@@ -1,0 +1,69 @@
+{
+	"version": 4,
+	"deadlineId": "ddl_49d23b6ea4ca",
+	"versions": [
+		{
+			"n": 1,
+			"prompt": "Make my cheat sheet again from what I asked before.",
+			"at": "2026-11-04T04:41:40.207Z",
+			"pages": [
+				{
+					"widthPt": 841.89,
+					"heightPt": 595.276
+				},
+				{
+					"widthPt": 841.89,
+					"heightPt": 595.276
+				}
+			],
+			"file": "/Users/learner/godspeed/cheat-sheets/CSE 21 Moracuw/kanet.pdf"
+		},
+		{
+			"prompt": "",
+			"at": "2026-11-06T10:03:54.508Z",
+			"pages": [
+				{
+					"widthPt": 841.89,
+					"heightPt": 595.276
+				},
+				{
+					"widthPt": 841.89,
+					"heightPt": 595.276
+				}
+			],
+			"file": "/Users/learner/godspeed/cheat-sheets/CSE 21 Moracuw/kanet.pdf",
+			"fromFolder": true,
+			"n": 2
+		}
+	],
+	"messages": [
+		{
+			"id": "kabet-0",
+			"role": "you",
+			"text": "sum but this should be ropabo gamab where is the other wato at? also it would be cico to have a flowchart that i can use for ANY lufotoh in this class that we picakiw so buv that bifibo no dowigineb.",
+			"at": "2026-11-04T01:27:17.507Z"
+		},
+		{
+			"id": "kabet-1",
+			"role": "you",
+			"text": "actually, use this one /Users/learner/Birenilut/CSE21_Moracuw_Cheat_Kanet.tex",
+			"at": "2026-11-04T03:57:03.324Z"
+		},
+		{
+			"id": "kabet-2",
+			"role": "you",
+			"text": "Make my cheat sheet again from what I asked before.",
+			"at": "2026-11-04T04:41:40.207Z"
+		},
+		{
+			"id": "sono-2",
+			"role": "agent",
+			"text": "",
+			"at": "2026-11-04T04:41:40.207Z",
+			"version": 1
+		}
+	],
+	"rules": [],
+	"folder": "CSE 21 Moracuw",
+	"updatedAt": "2026-11-06T10:03:54.508Z"
+}

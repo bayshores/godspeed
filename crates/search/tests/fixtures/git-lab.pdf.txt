@@ -1,0 +1,439 @@
+--- Page 1 ---
+Lab 2: Working with Git Repositories
+This lab is done in small groups of 2-3 people, so find your partners first.
+If nobody around you is free, wave to a TA and they will pair you up.
+What you will learn
+Let your lab machine account talk to the hosting site for you
+See how git keeps a history of your files
+Practice the everyday git commands in the terminal
+Rescue a file after you break it
+Warm-up
+Talk in your group about these questions:
+Which book would you take to a desert island, and why?
+What is a skill you learned this year that surprised you?
+Take the two-minute check-in poll when you are done
+PA1: begin early, work often
+Every quarter the same advice shows up in the course notes.
+--- Page 2 ---
+Clone the repository
+Use git clone with the repository link to copy the project onto your machine. The copy has the whole history, so you can look at any earlier commit.
+Check: your partner can see your change after they pull.
+Check: your commit shows up in git log.
+$ git commit -m "update notes"
+Step 4: Open the terminal on your lab machine.
+Question: Which command would you use to see an old version of a file?
+Check: your commit shows up in git log.
+Group activity: take turns typing. One person drives, the other reads the instructions aloud, then switch after each step. Ask a TA if you get stuck on the remote link.
+$ git status
+Group activity: take turns typing. One person drives, the other reads the instructions aloud, then switch after each step. Ask a TA if you get stuck on the remote link.
+Check: git status says the working tree is clean.
+$ git add notes.txt
+Group activity: take turns typing. One person drives, the other reads the instructions aloud, then switch after each step. Ask a TA if you get stuck on a merge conflict.
+Tip: pull before you start working.
+Tip: commit small changes often.
+Tip: pull before you start working.
+--- Page 3 ---
+Look at the status
+Run git status often. It lists the files you changed, the files that are staged and the files git does not know about yet.
+Question: Which command would you use to see an old version of a file?
+Tip: never commit passwords or keys.
+Group activity: take turns typing. One person drives, the other reads the instructions aloud, then switch after each step. Ask a TA if you get stuck on the commit message editor.
+$ git add notes.txt
+Question: What does git status show after you edit a tracked file?
+Check: the remote copy has your latest commit.
+Group activity: take turns typing. One person drives, the other reads the instructions aloud, then switch after each step. Ask a TA if you get stuck on the remote link.
+Tip: read the error message, it usually names the fix.
+Check: the remote copy has your latest commit.
+Tip: commit small changes often.
+Question: What happens to a staged change if you edit the file again?
+Step 12: Change into the project folder with cd.
+Tip: never commit passwords or keys.
+Check: the remote copy has your latest commit.
+$ git switch -c fix-typo
+$ git add notes.txt
+--- Page 4 ---
+Stage a change
+Use git add followed by a file name to stage it. Staged files are what the next commit will record.
+Question: What happens to a staged change if you edit the file again?
+Group activity: take turns typing. One person drives, the other reads the instructions aloud, then switch after each step. Ask a TA if you get stuck on the ssh key.
+Group activity: take turns typing. One person drives, the other reads the instructions aloud, then switch after each step. Ask a TA if you get stuck on the remote link.
+Question: Which command would you use to see an old version of a file?
+Step 5: Change into the project folder with cd.
+Step 6: Change into the project folder with cd.
+Question: What is the difference between git pull and git fetch?
+Tip: use a short branch name that says what the work is for.
+Question: What does git status show after you edit a tracked file?
+Check: git status says the working tree is clean.
+$ git add notes.txt
+Group activity: take turns typing. One person drives, the other reads the instructions aloud, then switch after each step. Ask a TA if you get stuck on the remote link.
+$ git restore notes.txt
+$ git diff
+Check: the remote copy has your latest commit.
+Check: your commit shows up in git log.
+Step 17: Write down what the output tells you before moving on.
+Tip: read the error message, it usually names the fix.
+Check: your partner can see your change after they pull.
+Question: Why does git ask for a message when you commit?
+--- Page 5 ---
+Make a commit
+Run git commit with the -m flag and a short message. A good message says what changed and why, in one line.
+Tip: commit small changes often.
+Check: the remote copy has your latest commit.
+Step 3: Edit the file in your text editor and save it.
+$ git push origin main
+$ git restore notes.txt
+Tip: commit small changes often.
+Question: What is the difference between git pull and git fetch?
+Step 8: Ask your partner to check your commit message.
+Question: What does git status show after you edit a tracked file?
+Group activity: take turns typing. One person drives, the other reads the instructions aloud, then switch after each step. Ask a TA if you get stuck on the ssh key.
+Step 11: Write down what the output tells you before moving on.
+$ git diff
+Check: your commit shows up in git log.
+Tip: never commit passwords or keys.
+Tip: read the error message, it usually names the fix.
+Group activity: take turns typing. One person drives, the other reads the instructions aloud, then switch after each step. Ask a TA if you get stuck on the remote link.
+Step 17: Edit the file in your text editor and save it.
+--- Page 6 ---
+Push your work
+Use git push to send your commits to the remote copy. If the push is rejected, pull first, fix any conflict and push again.
+$ git commit -m "update notes"
+Group activity: take turns typing. One person drives, the other reads the instructions aloud, then switch after each step. Ask a TA if you get stuck on the ssh key.
+Step 3: Change into the project folder with cd.
+Tip: use a short branch name that says what the work is for.
+Check: the remote copy has your latest commit.
+$ git pull
+Group activity: take turns typing. One person drives, the other reads the instructions aloud, then switch after each step. Ask a TA if you get stuck on the commit message editor.
+Group activity: take turns typing. One person drives, the other reads the instructions aloud, then switch after each step. Ask a TA if you get stuck on the ssh key.
+Group activity: take turns typing. One person drives, the other reads the instructions aloud, then switch after each step. Ask a TA if you get stuck on a merge conflict.
+Tip: use a short branch name that says what the work is for.
+Question: What is the difference between git pull and git fetch?
+Tip: pull before you start working.
+Tip: never commit passwords or keys.
+Question: What happens to a staged change if you edit the file again?
+Check: your partner can see your change after they pull.
+Group activity: take turns typing. One person drives, the other reads the instructions aloud, then switch after each step. Ask a TA if you get stuck on the remote link.
+Tip: use a short branch name that says what the work is for.
+Question: What is the difference between git pull and git fetch?
+$ git push origin main
+Tip: commit small changes often.
+--- Page 7 ---
+Pull the latest
+Run git pull to bring in commits your partner made. Git merges them with your own work and tells you when two edits touch the same lines.
+Check: the remote copy has your latest commit.
+Question: What is the difference between git pull and git fetch?
+Group activity: take turns typing. One person drives, the other reads the instructions aloud, then switch after each step. Ask a TA if you get stuck on the commit message editor.
+Check: your commit shows up in git log.
+Group activity: take turns typing. One person drives, the other reads the instructions aloud, then switch after each step. Ask a TA if you get stuck on the remote link.
+$ git log --oneline
+Group activity: take turns typing. One person drives, the other reads the instructions aloud, then switch after each step. Ask a TA if you get stuck on the remote link.
+$ git switch -c fix-typo
+Group activity: take turns typing. One person drives, the other reads the instructions aloud, then switch after each step. Ask a TA if you get stuck on the ssh key.
+Group activity: take turns typing. One person drives, the other reads the instructions aloud, then switch after each step. Ask a TA if you get stuck on the remote link.
+Step 11: Change into the project folder with cd.
+Tip: use a short branch name that says what the work is for.
+Question: What does git status show after you edit a tracked file?
+Tip: pull before you start working.
+--- Page 8 ---
+Read the log
+The command git log shows every commit with its author, date and message. Add --oneline for a compact list.
+$ git status
+Group activity: take turns typing. One person drives, the other reads the instructions aloud, then switch after each step. Ask a TA if you get stuck on the ssh key.
+$ git restore notes.txt
+$ git diff
+Check: your commit shows up in git log.
+Check: your commit shows up in git log.
+Step 7: Change into the project folder with cd.
+Group activity: take turns typing. One person drives, the other reads the instructions aloud, then switch after each step. Ask a TA if you get stuck on a merge conflict.
+Tip: commit small changes often.
+Check: your commit shows up in git log.
+Tip: read the error message, it usually names the fix.
+Step 12: Open the terminal on your lab machine.
+Group activity: take turns typing. One person drives, the other reads the instructions aloud, then switch after each step. Ask a TA if you get stuck on the remote link.
+Group activity: take turns typing. One person drives, the other reads the instructions aloud, then switch after each step. Ask a TA if you get stuck on the commit message editor.
+--- Page 9 ---
+Undo a destructive change
+If you deleted a file by mistake, git restore brings back the last committed version. If you committed something you regret, git revert makes a new commit that cancels it.
+$ git commit -m "update notes"
+Question: Why does git ask for a message when you commit?
+Question: What is the difference between git pull and git fetch?
+Step 4: Change into the project folder with cd.
+$ git switch -c fix-typo
+$ git switch -c fix-typo
+Step 7: Open the terminal on your lab machine.
+Check: git status says the working tree is clean.
+Check: the remote copy has your latest commit.
+Check: git status says the working tree is clean.
+$ git commit -m "update notes"
+Check: your partner can see your change after they pull.
+$ git commit -m "update notes"
+Step 14: Open the terminal on your lab machine.
+Tip: commit small changes often.
+Tip: use a short branch name that says what the work is for.
+--- Page 10 ---
+Branches
+A branch is a movable name for a line of commits. Create one with git branch, switch with git switch and merge it back when the work is done.
+$ git pull
+Step 2: Write down what the output tells you before moving on.
+Step 3: Ask your partner to check your commit message.
+Group activity: take turns typing. One person drives, the other reads the instructions aloud, then switch after each step. Ask a TA if you get stuck on a merge conflict.
+Question: What does git status show after you edit a tracked file?
+Tip: pull before you start working.
+$ git diff
+Question: What does git status show after you edit a tracked file?
+Tip: never commit passwords or keys.
+$ git log --oneline
+Question: What happens to a staged change if you edit the file again?
+Check: your commit shows up in git log.
+Group activity: take turns typing. One person drives, the other reads the instructions aloud, then switch after each step. Ask a TA if you get stuck on a merge conflict.
+Check: your commit shows up in git log.
+$ git diff
+Tip: use a short branch name that says what the work is for.
+Check: your commit shows up in git log.
+Question: What happens to a staged change if you edit the file again?
+--- Page 11 ---
+Merge conflicts
+When two people edit the same lines, git marks both versions in the file with arrows and equals signs. Edit the file to keep what you want, add it and commit.
+Check: git status says the working tree is clean.
+$ git switch -c fix-typo
+Question: What does git status show after you edit a tracked file?
+$ git add notes.txt
+Group activity: take turns typing. One person drives, the other reads the instructions aloud, then switch after each step. Ask a TA if you get stuck on the ssh key.
+Step 6: Run git status and read the output carefully.
+$ git pull
+$ git commit -m "update notes"
+Step 9: Ask your partner to check your commit message.
+Group activity: take turns typing. One person drives, the other reads the instructions aloud, then switch after each step. Ask a TA if you get stuck on a merge conflict.
+Check: git status says the working tree is clean.
+Step 12: Write down what the output tells you before moving on.
+$ git pull
+Group activity: take turns typing. One person drives, the other reads the instructions aloud, then switch after each step. Ask a TA if you get stuck on the remote link.
+--- Page 12 ---
+Ignore generated files
+List build products in a file called .gitignore so they never show up in git status. Compiled programs and object files do not belong in the repository.
+Group activity: take turns typing. One person drives, the other reads the instructions aloud, then switch after each step. Ask a TA if you get stuck on the ssh key.
+Step 2: Run git status and read the output carefully.
+Tip: pull before you start working.
+Step 4: Run git status and read the output carefully.
+Question: What does git status show after you edit a tracked file?
+Question: Which command would you use to see an old version of a file?
+Question: What does git status show after you edit a tracked file?
+Question: What happens to a staged change if you edit the file again?
+Group activity: take turns typing. One person drives, the other reads the instructions aloud, then switch after each step. Ask a TA if you get stuck on a merge conflict.
+Check: your partner can see your change after they pull.
+$ git push origin main
+Question: What does git status show after you edit a tracked file?
+Question: What does git status show after you edit a tracked file?
+Tip: read the error message, it usually names the fix.
+Tip: commit small changes often.
+Check: git status says the working tree is clean.
+--- Page 13 ---
+Connect to the remote
+Your account on the lab machines needs a key before it can talk to the hosting site. Make a key pair, copy the public half to your account settings and test the login.
+Step 1: Edit the file in your text editor and save it.
+Step 2: Edit the file in your text editor and save it.
+$ git add notes.txt
+$ git diff
+Check: your commit shows up in git log.
+Check: git status says the working tree is clean.
+$ git status
+Group activity: take turns typing. One person drives, the other reads the instructions aloud, then switch after each step. Ask a TA if you get stuck on the commit message editor.
+Question: Which command would you use to see an old version of a file?
+Group activity: take turns typing. One person drives, the other reads the instructions aloud, then switch after each step. Ask a TA if you get stuck on the remote link.
+Check: your partner can see your change after they pull.
+Step 12: Open the terminal on your lab machine.
+$ git add notes.txt
+Group activity: take turns typing. One person drives, the other reads the instructions aloud, then switch after each step. Ask a TA if you get stuck on a merge conflict.
+Check: your partner can see your change after they pull.
+Check: your commit shows up in git log.
+Tip: pull before you start working.
+Step 18: Change into the project folder with cd.
+$ git switch -c fix-typo
+$ git pull
+--- Page 14 ---
+Clone the repository (part 2)
+Use git clone with the repository link to copy the project onto your machine. The copy has the whole history, so you can look at any earlier commit.
+$ git status
+Tip: commit small changes often.
+Step 3: Change into the project folder with cd.
+Question: What happens to a staged change if you edit the file again?
+Check: git status says the working tree is clean.
+Step 6: Write down what the output tells you before moving on.
+Check: your commit shows up in git log.
+Step 8: Edit the file in your text editor and save it.
+Question: Why does git ask for a message when you commit?
+Group activity: take turns typing. One person drives, the other reads the instructions aloud, then switch after each step. Ask a TA if you get stuck on the remote link.
+Step 11: Edit the file in your text editor and save it.
+Tip: read the error message, it usually names the fix.
+Step 13: Edit the file in your text editor and save it.
+Tip: use a short branch name that says what the work is for.
+Tip: pull before you start working.
+Group activity: take turns typing. One person drives, the other reads the instructions aloud, then switch after each step. Ask a TA if you get stuck on the remote link.
+Step 17: Run git status and read the output carefully.
+--- Page 15 ---
+Look at the status (part 2)
+Run git status often. It lists the files you changed, the files that are staged and the files git does not know about yet.
+Check: git status says the working tree is clean.
+Group activity: take turns typing. One person drives, the other reads the instructions aloud, then switch after each step. Ask a TA if you get stuck on the ssh key.
+$ git pull
+Group activity: take turns typing. One person drives, the other reads the instructions aloud, then switch after each step. Ask a TA if you get stuck on a merge conflict.
+Check: git status says the working tree is clean.
+Question: What does git status show after you edit a tracked file?
+Question: Why does git ask for a message when you commit?
+Check: the remote copy has your latest commit.
+$ git log --oneline
+Tip: use a short branch name that says what the work is for.
+Step 11: Run git status and read the output carefully.
+$ git log --oneline
+Tip: read the error message, it usually names the fix.
+$ git restore notes.txt
+--- Page 16 ---
+Stage a change (part 2)
+Use git add followed by a file name to stage it. Staged files are what the next commit will record.
+Group activity: take turns typing. One person drives, the other reads the instructions aloud, then switch after each step. Ask a TA if you get stuck on the remote link.
+Step 2: Write down what the output tells you before moving on.
+Step 3: Run git status and read the output carefully.
+Tip: use a short branch name that says what the work is for.
+$ git pull
+Group activity: take turns typing. One person drives, the other reads the instructions aloud, then switch after each step. Ask a TA if you get stuck on a merge conflict.
+Tip: read the error message, it usually names the fix.
+Step 8: Write down what the output tells you before moving on.
+Step 9: Ask your partner to check your commit message.
+Check: your partner can see your change after they pull.
+Group activity: take turns typing. One person drives, the other reads the instructions aloud, then switch after each step. Ask a TA if you get stuck on the remote link.
+Check: your partner can see your change after they pull.
+Question: What does git status show after you edit a tracked file?
+Step 14: Change into the project folder with cd.
+Tip: pull before you start working.
+$ git commit -m "update notes"
+Question: What is the difference between git pull and git fetch?
+Group activity: take turns typing. One person drives, the other reads the instructions aloud, then switch after each step. Ask a TA if you get stuck on the ssh key.
+Tip: never commit passwords or keys.
+--- Page 17 ---
+Make a commit (part 2)
+Run git commit with the -m flag and a short message. A good message says what changed and why, in one line.
+Check: your commit shows up in git log.
+Question: What happens to a staged change if you edit the file again?
+$ git switch -c fix-typo
+Question: Which command would you use to see an old version of a file?
+Check: your partner can see your change after they pull.
+Check: git status says the working tree is clean.
+Step 7: Edit the file in your text editor and save it.
+Question: What is the difference between git pull and git fetch?
+Step 9: Edit the file in your text editor and save it.
+Group activity: take turns typing. One person drives, the other reads the instructions aloud, then switch after each step. Ask a TA if you get stuck on the ssh key.
+Tip: never commit passwords or keys.
+Check: git status says the working tree is clean.
+Tip: read the error message, it usually names the fix.
+Group activity: take turns typing. One person drives, the other reads the instructions aloud, then switch after each step. Ask a TA if you get stuck on the commit message editor.
+Tip: commit small changes often.
+Step 16: Ask your partner to check your commit message.
+$ git switch -c fix-typo
+Group activity: take turns typing. One person drives, the other reads the instructions aloud, then switch after each step. Ask a TA if you get stuck on the remote link.
+$ git pull
+--- Page 18 ---
+Push your work (part 2)
+Use git push to send your commits to the remote copy. If the push is rejected, pull first, fix any conflict and push again.
+Step 1: Ask your partner to check your commit message.
+Check: your partner can see your change after they pull.
+Question: What does git status show after you edit a tracked file?
+Step 4: Edit the file in your text editor and save it.
+Question: What does git status show after you edit a tracked file?
+Check: your partner can see your change after they pull.
+Step 7: Write down what the output tells you before moving on.
+Step 8: Change into the project folder with cd.
+Tip: never commit passwords or keys.
+Step 10: Write down what the output tells you before moving on.
+Question: Why does git ask for a message when you commit?
+Tip: commit small changes often.
+Question: Why does git ask for a message when you commit?
+Check: git status says the working tree is clean.
+$ git add notes.txt
+Question: Why does git ask for a message when you commit?
+Question: Which command would you use to see an old version of a file?
+Tip: use a short branch name that says what the work is for.
+--- Page 19 ---
+Pull the latest (part 2)
+Run git pull to bring in commits your partner made. Git merges them with your own work and tells you when two edits touch the same lines.
+Step 1: Write down what the output tells you before moving on.
+$ git push origin main
+$ git commit -m "update notes"
+$ git pull
+Group activity: take turns typing. One person drives, the other reads the instructions aloud, then switch after each step. Ask a TA if you get stuck on the commit message editor.
+$ git commit -m "update notes"
+Step 7: Ask your partner to check your commit message.
+Check: your partner can see your change after they pull.
+Tip: commit small changes often.
+Group activity: take turns typing. One person drives, the other reads the instructions aloud, then switch after each step. Ask a TA if you get stuck on the ssh key.
+Tip: use a short branch name that says what the work is for.
+$ git status
+Tip: pull before you start working.
+Tip: never commit passwords or keys.
+Group activity: take turns typing. One person drives, the other reads the instructions aloud, then switch after each step. Ask a TA if you get stuck on the remote link.
+Group activity: take turns typing. One person drives, the other reads the instructions aloud, then switch after each step. Ask a TA if you get stuck on a merge conflict.
+Tip: use a short branch name that says what the work is for.
+Check: your commit shows up in git log.
+Check: your commit shows up in git log.
+--- Page 20 ---
+Read the log (part 2)
+The command git log shows every commit with its author, date and message. Add --oneline for a compact list.
+Tip: use a short branch name that says what the work is for.
+Tip: never commit passwords or keys.
+Group activity: take turns typing. One person drives, the other reads the instructions aloud, then switch after each step. Ask a TA if you get stuck on the remote link.
+Question: What is the difference between git pull and git fetch?
+Check: your partner can see your change after they pull.
+Tip: pull before you start working.
+Step 7: Write down what the output tells you before moving on.
+Check: the remote copy has your latest commit.
+$ git log --oneline
+$ git switch -c fix-typo
+Tip: pull before you start working.
+Step 12: Write down what the output tells you before moving on.
+Question: What is the difference between git pull and git fetch?
+Check: git status says the working tree is clean.
+Step 15: Write down what the output tells you before moving on.
+$ git commit -m "update notes"
+Question: What is the difference between git pull and git fetch?
+Group activity: take turns typing. One person drives, the other reads the instructions aloud, then switch after each step. Ask a TA if you get stuck on a merge conflict.
+$ git add notes.txt
+--- Page 21 ---
+Undo a destructive change (part 2)
+If you deleted a file by mistake, git restore brings back the last committed version. If you committed something you regret, git revert makes a new commit that cancels it.
+Group activity: take turns typing. One person drives, the other reads the instructions aloud, then switch after each step. Ask a TA if you get stuck on the remote link.
+$ git add notes.txt
+Group activity: take turns typing. One person drives, the other reads the instructions aloud, then switch after each step. Ask a TA if you get stuck on a merge conflict.
+Tip: read the error message, it usually names the fix.
+Tip: never commit passwords or keys.
+Check: git status says the working tree is clean.
+Group activity: take turns typing. One person drives, the other reads the instructions aloud, then switch after each step. Ask a TA if you get stuck on the ssh key.
+Group activity: take turns typing. One person drives, the other reads the instructions aloud, then switch after each step. Ask a TA if you get stuck on the ssh key.
+Tip: never commit passwords or keys.
+$ git log --oneline
+Group activity: take turns typing. One person drives, the other reads the instructions aloud, then switch after each step. Ask a TA if you get stuck on the ssh key.
+$ git add notes.txt
+$ git switch -c fix-typo
+Check: your partner can see your change after they pull.
+Check: your partner can see your change after they pull.
+Tip: commit small changes often.
+Step 17: Write down what the output tells you before moving on.
+$ git diff
+$ git status
+--- Page 22 ---
+Branches (part 2)
+A branch is a movable name for a line of commits. Create one with git branch, switch with git switch and merge it back when the work is done.
+Check: the remote copy has your latest commit.
+Group activity: take turns typing. One person drives, the other reads the instructions aloud, then switch after each step. Ask a TA if you get stuck on the commit message editor.
+Check: the remote copy has your latest commit.
+Tip: use a short branch name that says what the work is for.
+Tip: read the error message, it usually names the fix.
+Question: Why does git ask for a message when you commit?
+$ git add notes.txt
+Question: What is the difference between git pull and git fetch?
+Tip: read the error message, it usually names the fix.
+Group activity: take turns typing. One person drives, the other reads the instructions aloud, then switch after each step. Ask a TA if you get stuck on the ssh key.
+Check: git status says the working tree is clean.
+Tip: commit small changes often.
+Step 13: Run git status and read the output carefully.
+Step 14: Ask your partner to check your commit message.
+Group activity: take turns typing. One person drives, the other reads the instructions aloud, then switch after each step. Ask a TA if you get stuck on the ssh key.
+Step 16: Change into the project folder with cd.

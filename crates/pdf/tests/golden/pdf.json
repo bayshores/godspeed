@@ -1,0 +1,4111 @@
+[
+	{
+		"name": "parsePageSpec total 0",
+		"output": [
+			{
+				"spec": "all",
+				"pages": []
+			},
+			{
+				"spec": "ALL",
+				"pages": []
+			},
+			{
+				"spec": " all ",
+				"pages": []
+			},
+			{
+				"spec": "1",
+				"pages": []
+			},
+			{
+				"spec": "2-3",
+				"pages": []
+			},
+			{
+				"spec": "3-1",
+				"pages": []
+			},
+			{
+				"spec": "0-2",
+				"pages": []
+			},
+			{
+				"spec": "1,3,7",
+				"pages": []
+			},
+			{
+				"spec": " 2 , 1 ",
+				"pages": []
+			},
+			{
+				"spec": "1-",
+				"pages": []
+			},
+			{
+				"spec": "-2",
+				"pages": []
+			},
+			{
+				"spec": "a",
+				"pages": []
+			},
+			{
+				"spec": "1-2-3",
+				"pages": []
+			},
+			{
+				"spec": "2,2,1",
+				"pages": []
+			},
+			{
+				"spec": "",
+				"pages": []
+			},
+			{
+				"spec": ",",
+				"pages": []
+			},
+			{
+				"spec": "1.5",
+				"pages": []
+			},
+			{
+				"spec": "2x",
+				"pages": []
+			},
+			{
+				"spec": "-1",
+				"pages": []
+			},
+			{
+				"spec": "9-12",
+				"pages": []
+			},
+			{
+				"spec": "1 - 2",
+				"pages": []
+			}
+		]
+	},
+	{
+		"name": "parsePageSpec total 1",
+		"output": [
+			{
+				"spec": "all",
+				"pages": [
+					1
+				]
+			},
+			{
+				"spec": "ALL",
+				"pages": [
+					1
+				]
+			},
+			{
+				"spec": " all ",
+				"pages": [
+					1
+				]
+			},
+			{
+				"spec": "1",
+				"pages": [
+					1
+				]
+			},
+			{
+				"spec": "2-3",
+				"pages": []
+			},
+			{
+				"spec": "3-1",
+				"pages": []
+			},
+			{
+				"spec": "0-2",
+				"pages": [
+					1
+				]
+			},
+			{
+				"spec": "1,3,7",
+				"pages": [
+					1
+				]
+			},
+			{
+				"spec": " 2 , 1 ",
+				"pages": [
+					1
+				]
+			},
+			{
+				"spec": "1-",
+				"pages": []
+			},
+			{
+				"spec": "-2",
+				"pages": []
+			},
+			{
+				"spec": "a",
+				"pages": []
+			},
+			{
+				"spec": "1-2-3",
+				"pages": [
+					1
+				]
+			},
+			{
+				"spec": "2,2,1",
+				"pages": [
+					1
+				]
+			},
+			{
+				"spec": "",
+				"pages": []
+			},
+			{
+				"spec": ",",
+				"pages": []
+			},
+			{
+				"spec": "1.5",
+				"pages": [
+					1
+				]
+			},
+			{
+				"spec": "2x",
+				"pages": []
+			},
+			{
+				"spec": "-1",
+				"pages": []
+			},
+			{
+				"spec": "9-12",
+				"pages": []
+			},
+			{
+				"spec": "1 - 2",
+				"pages": [
+					1
+				]
+			}
+		]
+	},
+	{
+		"name": "parsePageSpec total 3",
+		"output": [
+			{
+				"spec": "all",
+				"pages": [
+					1,
+					2,
+					3
+				]
+			},
+			{
+				"spec": "ALL",
+				"pages": [
+					1,
+					2,
+					3
+				]
+			},
+			{
+				"spec": " all ",
+				"pages": [
+					1,
+					2,
+					3
+				]
+			},
+			{
+				"spec": "1",
+				"pages": [
+					1
+				]
+			},
+			{
+				"spec": "2-3",
+				"pages": [
+					2,
+					3
+				]
+			},
+			{
+				"spec": "3-1",
+				"pages": []
+			},
+			{
+				"spec": "0-2",
+				"pages": [
+					1,
+					2
+				]
+			},
+			{
+				"spec": "1,3,7",
+				"pages": [
+					1,
+					3
+				]
+			},
+			{
+				"spec": " 2 , 1 ",
+				"pages": [
+					1,
+					2
+				]
+			},
+			{
+				"spec": "1-",
+				"pages": []
+			},
+			{
+				"spec": "-2",
+				"pages": []
+			},
+			{
+				"spec": "a",
+				"pages": []
+			},
+			{
+				"spec": "1-2-3",
+				"pages": [
+					1,
+					2
+				]
+			},
+			{
+				"spec": "2,2,1",
+				"pages": [
+					1,
+					2
+				]
+			},
+			{
+				"spec": "",
+				"pages": []
+			},
+			{
+				"spec": ",",
+				"pages": []
+			},
+			{
+				"spec": "1.5",
+				"pages": [
+					1
+				]
+			},
+			{
+				"spec": "2x",
+				"pages": [
+					2
+				]
+			},
+			{
+				"spec": "-1",
+				"pages": []
+			},
+			{
+				"spec": "9-12",
+				"pages": []
+			},
+			{
+				"spec": "1 - 2",
+				"pages": [
+					1,
+					2
+				]
+			}
+		]
+	},
+	{
+		"name": "parsePageSpec total 12",
+		"output": [
+			{
+				"spec": "all",
+				"pages": [
+					1,
+					2,
+					3,
+					4,
+					5,
+					6,
+					7,
+					8,
+					9,
+					10,
+					11,
+					12
+				]
+			},
+			{
+				"spec": "ALL",
+				"pages": [
+					1,
+					2,
+					3,
+					4,
+					5,
+					6,
+					7,
+					8,
+					9,
+					10,
+					11,
+					12
+				]
+			},
+			{
+				"spec": " all ",
+				"pages": [
+					1,
+					2,
+					3,
+					4,
+					5,
+					6,
+					7,
+					8,
+					9,
+					10,
+					11,
+					12
+				]
+			},
+			{
+				"spec": "1",
+				"pages": [
+					1
+				]
+			},
+			{
+				"spec": "2-3",
+				"pages": [
+					2,
+					3
+				]
+			},
+			{
+				"spec": "3-1",
+				"pages": []
+			},
+			{
+				"spec": "0-2",
+				"pages": [
+					1,
+					2
+				]
+			},
+			{
+				"spec": "1,3,7",
+				"pages": [
+					1,
+					3,
+					7
+				]
+			},
+			{
+				"spec": " 2 , 1 ",
+				"pages": [
+					1,
+					2
+				]
+			},
+			{
+				"spec": "1-",
+				"pages": []
+			},
+			{
+				"spec": "-2",
+				"pages": []
+			},
+			{
+				"spec": "a",
+				"pages": []
+			},
+			{
+				"spec": "1-2-3",
+				"pages": [
+					1,
+					2
+				]
+			},
+			{
+				"spec": "2,2,1",
+				"pages": [
+					1,
+					2
+				]
+			},
+			{
+				"spec": "",
+				"pages": []
+			},
+			{
+				"spec": ",",
+				"pages": []
+			},
+			{
+				"spec": "1.5",
+				"pages": [
+					1
+				]
+			},
+			{
+				"spec": "2x",
+				"pages": [
+					2
+				]
+			},
+			{
+				"spec": "-1",
+				"pages": []
+			},
+			{
+				"spec": "9-12",
+				"pages": [
+					9,
+					10,
+					11,
+					12
+				]
+			},
+			{
+				"spec": "1 - 2",
+				"pages": [
+					1,
+					2
+				]
+			}
+		]
+	},
+	{
+		"name": "text sample-3page.pdf",
+		"output": "--- Page 1 ---\nCalculus page: the integral of x dx is x squared over two\n--- Page 2 ---\nPhysics page: force equals mass times acceleration\n--- Page 3 ---\nChemistry page: H2O is water"
+	},
+	{
+		"name": "probe sample-3page.pdf",
+		"output": null
+	},
+	{
+		"name": "shape sample-3page.pdf",
+		"output": {
+			"pageCount": 3,
+			"aspect": 0.7727272727272727
+		}
+	},
+	{
+		"name": "info sample-3page.pdf",
+		"output": {
+			"path": "<root>/crates/pdf/tests/fixtures/sample-3page.pdf",
+			"page_count": 3,
+			"mean_text_length": 45,
+			"pages": [
+				{
+					"page": 1,
+					"text_length": 57,
+					"image_count": 0,
+					"math_density": 0
+				},
+				{
+					"page": 2,
+					"text_length": 50,
+					"image_count": 0,
+					"math_density": 0
+				},
+				{
+					"page": 3,
+					"text_length": 28,
+					"image_count": 0,
+					"math_density": 0
+				}
+			]
+		}
+	},
+	{
+		"name": "extract sample-3page.pdf all",
+		"output": "--- Page 1 ---\nCalculus page: the integral of x dx is x squared over two\n--- Page 2 ---\nPhysics page: force equals mass times acceleration\n--- Page 3 ---\nChemistry page: H2O is water"
+	},
+	{
+		"name": "extract sample-3page.pdf 2",
+		"output": "--- Page 2 ---\nPhysics page: force equals mass times acceleration"
+	},
+	{
+		"name": "extract sample-3page.pdf 1,3",
+		"output": "--- Page 1 ---\nCalculus page: the integral of x dx is x squared over two\n--- Page 3 ---\nChemistry page: H2O is water"
+	},
+	{
+		"name": "extract sample-3page.pdf 1-2",
+		"output": "--- Page 1 ---\nCalculus page: the integral of x dx is x squared over two\n--- Page 2 ---\nPhysics page: force equals mass times acceleration"
+	},
+	{
+		"name": "extract sample-3page.pdf 7",
+		"output": "No pages selected — page spec matched nothing."
+	},
+	{
+		"name": "extract sample-3page.pdf x",
+		"output": "No pages selected — page spec matched nothing."
+	},
+	{
+		"name": "text two-lines.pdf",
+		"output": "--- Page 1 ---\nFirst line of the page\nsecond line here"
+	},
+	{
+		"name": "probe two-lines.pdf",
+		"output": null
+	},
+	{
+		"name": "shape two-lines.pdf",
+		"output": {
+			"pageCount": 1,
+			"aspect": 0.7727272727272727
+		}
+	},
+	{
+		"name": "info two-lines.pdf",
+		"output": {
+			"path": "<root>/crates/pdf/tests/fixtures/two-lines.pdf",
+			"page_count": 1,
+			"mean_text_length": 39,
+			"pages": [
+				{
+					"page": 1,
+					"text_length": 39,
+					"image_count": 0,
+					"math_density": 0
+				}
+			]
+		}
+	},
+	{
+		"name": "extract two-lines.pdf all",
+		"output": "--- Page 1 ---\nFirst line of the page\nsecond line here"
+	},
+	{
+		"name": "extract two-lines.pdf 2",
+		"output": "No pages selected — page spec matched nothing."
+	},
+	{
+		"name": "extract two-lines.pdf 1,3",
+		"output": "--- Page 1 ---\nFirst line of the page\nsecond line here"
+	},
+	{
+		"name": "extract two-lines.pdf 1-2",
+		"output": "--- Page 1 ---\nFirst line of the page\nsecond line here"
+	},
+	{
+		"name": "extract two-lines.pdf 7",
+		"output": "No pages selected — page spec matched nothing."
+	},
+	{
+		"name": "extract two-lines.pdf x",
+		"output": "No pages selected — page spec matched nothing."
+	},
+	{
+		"name": "text lines.pdf",
+		"output": "--- Page 1 ---\nPage 1 line 1 alpha beta\nPage 1 line 2 alpha beta\nPage 1 line 3 alpha beta\nPage 1 line 4 alpha beta\nPage 1 line 5 alpha beta\nPage 1 line 6 alpha beta\nPage 1 line 7 alpha beta\nPage 1 line 8 alpha beta\n--- Page 2 ---\nPage 2 line 1 alpha beta\nPage 2 line 2 alpha beta\nPage 2 line 3 alpha beta\nPage 2 line 4 alpha beta\nPage 2 line 5 alpha beta\nPage 2 line 6 alpha beta\nPage 2 line 7 alpha beta\nPage 2 line 8 alpha beta\n--- Page 3 ---\nPage 3 line 1 alpha beta\nPage 3 line 2 alpha beta\nPage 3 line 3 alpha beta\nPage 3 line 4 alpha beta\nPage 3 line 5 alpha beta\nPage 3 line 6 alpha beta\nPage 3 line 7 alpha beta\nPage 3 line 8 alpha beta\n--- Page 4 ---\nNEEDLE at the very top\nPage 4 line 2 alpha beta\nPage 4 line 3 alpha beta\nPage 4 line 4 alpha beta\nPage 4 line 5 alpha beta\nPage 4 line 6 alpha beta\nPage 4 line 7 alpha beta\nNeedle at the very bottom\n--- Page 5 ---\nPage 5 line 1 alpha beta\nPage 5 line 2 alpha beta\nPage 5 line 3 alpha beta\na.b (c) [d] *star* $5 ^up\nPage 5 line 5 alpha beta\nPage 5 line 6 alpha beta\nPage 5 line 7 alpha beta\nPage 5 line 8 alpha beta\n--- Page 6 ---\nPage 6 line 1 alpha beta\nPage 6 line 2 alpha beta\nPage 6 line 3 alpha beta\nPage 6 line 4 alpha beta\nPage 6 line 5 alpha beta\nPage 6 line 6 alpha beta\nPage 6 line 7 alpha beta\nPage 6 line 8 alpha beta\n--- Page 7 ---\nPage 7 line 1 alpha beta\nPage 7 line 2 alpha beta\nPage 7 line 3 alpha beta\nPage 7 line 4 alpha beta\nPage 7 line 5 alpha beta\nPage 7 line 6 alpha beta\nPage 7 line 7 alpha beta\nPage 7 line 8 alpha beta\n--- Page 8 ---\nNEEDLE at the very top\nPage 8 line 2 alpha beta\nPage 8 line 3 alpha beta\nPage 8 line 4 alpha beta\nPage 8 line 5 alpha beta\nPage 8 line 6 alpha beta\nPage 8 line 7 alpha beta\nNeedle at the very bottom\n--- Page 9 ---\nPage 9 line 1 alpha beta\nPage 9 line 2 alpha beta\nPage 9 line 3 alpha beta\nPage 9 line 4 alpha beta\nPage 9 line 5 alpha beta\nPage 9 line 6 alpha beta\nPage 9 line 7 alpha beta\nPage 9 line 8 alpha beta\n--- Page 10 ---\nPage 10 line 1 alpha beta\nPage 10 line 2 alpha beta\nPage 10 line 3 alpha beta\nPage 10 line 4 alpha beta\nPage 10 line 5 alpha beta\nPage 10 line 6 alpha beta\nPage 10 line 7 alpha beta\nPage 10 line 8 alpha beta\n--- Page 11 ---\nPage 11 line 1 alpha beta\nPage 11 line 2 alpha beta\nPage 11 line 3 alpha beta\nPage 11 line 4 alpha beta\nPage 11 line 5 alpha beta\nPage 11 line 6 alpha beta\nPage 11 line 7 alpha beta\nPage 11 line 8 alpha beta\n--- Page 12 ---\nNEEDLE at the very top\nPage 12 line 2 alpha beta\nPage 12 line 3 alpha beta\nPage 12 line 4 alpha beta\nPage 12 line 5 alpha beta\nPage 12 line 6 alpha beta\nPage 12 line 7 alpha beta\nNeedle at the very bottom"
+	},
+	{
+		"name": "probe lines.pdf",
+		"output": null
+	},
+	{
+		"name": "shape lines.pdf",
+		"output": {
+			"pageCount": 12,
+			"aspect": 0.7727272727272727
+		}
+	},
+	{
+		"name": "info lines.pdf",
+		"output": {
+			"path": "<root>/crates/pdf/tests/fixtures/lines.pdf",
+			"page_count": 12,
+			"mean_text_length": 201,
+			"pages": [
+				{
+					"page": 1,
+					"text_length": 199,
+					"image_count": 0,
+					"math_density": 0
+				},
+				{
+					"page": 2,
+					"text_length": 199,
+					"image_count": 0,
+					"math_density": 0
+				},
+				{
+					"page": 3,
+					"text_length": 199,
+					"image_count": 0,
+					"math_density": 0
+				},
+				{
+					"page": 4,
+					"text_length": 198,
+					"image_count": 0,
+					"math_density": 0
+				},
+				{
+					"page": 5,
+					"text_length": 200,
+					"image_count": 0,
+					"math_density": 0
+				},
+				{
+					"page": 6,
+					"text_length": 199,
+					"image_count": 0,
+					"math_density": 0
+				},
+				{
+					"page": 7,
+					"text_length": 199,
+					"image_count": 0,
+					"math_density": 0
+				},
+				{
+					"page": 8,
+					"text_length": 198,
+					"image_count": 0,
+					"math_density": 0
+				},
+				{
+					"page": 9,
+					"text_length": 199,
+					"image_count": 0,
+					"math_density": 0
+				},
+				{
+					"page": 10,
+					"text_length": 207,
+					"image_count": 0,
+					"math_density": 0
+				},
+				{
+					"page": 11,
+					"text_length": 207,
+					"image_count": 0,
+					"math_density": 0
+				},
+				{
+					"page": 12,
+					"text_length": 204,
+					"image_count": 0,
+					"math_density": 0
+				}
+			]
+		}
+	},
+	{
+		"name": "extract lines.pdf all",
+		"output": "--- Page 1 ---\nPage 1 line 1 alpha beta\nPage 1 line 2 alpha beta\nPage 1 line 3 alpha beta\nPage 1 line 4 alpha beta\nPage 1 line 5 alpha beta\nPage 1 line 6 alpha beta\nPage 1 line 7 alpha beta\nPage 1 line 8 alpha beta\n--- Page 2 ---\nPage 2 line 1 alpha beta\nPage 2 line 2 alpha beta\nPage 2 line 3 alpha beta\nPage 2 line 4 alpha beta\nPage 2 line 5 alpha beta\nPage 2 line 6 alpha beta\nPage 2 line 7 alpha beta\nPage 2 line 8 alpha beta\n--- Page 3 ---\nPage 3 line 1 alpha beta\nPage 3 line 2 alpha beta\nPage 3 line 3 alpha beta\nPage 3 line 4 alpha beta\nPage 3 line 5 alpha beta\nPage 3 line 6 alpha beta\nPage 3 line 7 alpha beta\nPage 3 line 8 alpha beta\n--- Page 4 ---\nNEEDLE at the very top\nPage 4 line 2 alpha beta\nPage 4 line 3 alpha beta\nPage 4 line 4 alpha beta\nPage 4 line 5 alpha beta\nPage 4 line 6 alpha beta\nPage 4 line 7 alpha beta\nNeedle at the very bottom\n--- Page 5 ---\nPage 5 line 1 alpha beta\nPage 5 line 2 alpha beta\nPage 5 line 3 alpha beta\na.b (c) [d] *star* $5 ^up\nPage 5 line 5 alpha beta\nPage 5 line 6 alpha beta\nPage 5 line 7 alpha beta\nPage 5 line 8 alpha beta\n--- Page 6 ---\nPage 6 line 1 alpha beta\nPage 6 line 2 alpha beta\nPage 6 line 3 alpha beta\nPage 6 line 4 alpha beta\nPage 6 line 5 alpha beta\nPage 6 line 6 alpha beta\nPage 6 line 7 alpha beta\nPage 6 line 8 alpha beta\n--- Page 7 ---\nPage 7 line 1 alpha beta\nPage 7 line 2 alpha beta\nPage 7 line 3 alpha beta\nPage 7 line 4 alpha beta\nPage 7 line 5 alpha beta\nPage 7 line 6 alpha beta\nPage 7 line 7 alpha beta\nPage 7 line 8 alpha beta\n--- Page 8 ---\nNEEDLE at the very top\nPage 8 line 2 alpha beta\nPage 8 line 3 alpha beta\nPage 8 line 4 alpha beta\nPage 8 line 5 alpha beta\nPage 8 line 6 alpha beta\nPage 8 line 7 alpha beta\nNeedle at the very bottom\n--- Page 9 ---\nPage 9 line 1 alpha beta\nPage 9 line 2 alpha beta\nPage 9 line 3 alpha beta\nPage 9 line 4 alpha beta\nPage 9 line 5 alpha beta\nPage 9 line 6 alpha beta\nPage 9 line 7 alpha beta\nPage 9 line 8 alpha beta\n--- Page 10 ---\nPage 10 line 1 alpha beta\nPage 10 line 2 alpha beta\nPage 10 line 3 alpha beta\nPage 10 line 4 alpha beta\nPage 10 line 5 alpha beta\nPage 10 line 6 alpha beta\nPage 10 line 7 alpha beta\nPage 10 line 8 alpha beta\n--- Page 11 ---\nPage 11 line 1 alpha beta\nPage 11 line 2 alpha beta\nPage 11 line 3 alpha beta\nPage 11 line 4 alpha beta\nPage 11 line 5 alpha beta\nPage 11 line 6 alpha beta\nPage 11 line 7 alpha beta\nPage 11 line 8 alpha beta\n--- Page 12 ---\nNEEDLE at the very top\nPage 12 line 2 alpha beta\nPage 12 line 3 alpha beta\nPage 12 line 4 alpha beta\nPage 12 line 5 alpha beta\nPage 12 line 6 alpha beta\nPage 12 line 7 alpha beta\nNeedle at the very bottom"
+	},
+	{
+		"name": "extract lines.pdf 2",
+		"output": "--- Page 2 ---\nPage 2 line 1 alpha beta\nPage 2 line 2 alpha beta\nPage 2 line 3 alpha beta\nPage 2 line 4 alpha beta\nPage 2 line 5 alpha beta\nPage 2 line 6 alpha beta\nPage 2 line 7 alpha beta\nPage 2 line 8 alpha beta"
+	},
+	{
+		"name": "extract lines.pdf 1,3",
+		"output": "--- Page 1 ---\nPage 1 line 1 alpha beta\nPage 1 line 2 alpha beta\nPage 1 line 3 alpha beta\nPage 1 line 4 alpha beta\nPage 1 line 5 alpha beta\nPage 1 line 6 alpha beta\nPage 1 line 7 alpha beta\nPage 1 line 8 alpha beta\n--- Page 3 ---\nPage 3 line 1 alpha beta\nPage 3 line 2 alpha beta\nPage 3 line 3 alpha beta\nPage 3 line 4 alpha beta\nPage 3 line 5 alpha beta\nPage 3 line 6 alpha beta\nPage 3 line 7 alpha beta\nPage 3 line 8 alpha beta"
+	},
+	{
+		"name": "extract lines.pdf 1-2",
+		"output": "--- Page 1 ---\nPage 1 line 1 alpha beta\nPage 1 line 2 alpha beta\nPage 1 line 3 alpha beta\nPage 1 line 4 alpha beta\nPage 1 line 5 alpha beta\nPage 1 line 6 alpha beta\nPage 1 line 7 alpha beta\nPage 1 line 8 alpha beta\n--- Page 2 ---\nPage 2 line 1 alpha beta\nPage 2 line 2 alpha beta\nPage 2 line 3 alpha beta\nPage 2 line 4 alpha beta\nPage 2 line 5 alpha beta\nPage 2 line 6 alpha beta\nPage 2 line 7 alpha beta\nPage 2 line 8 alpha beta"
+	},
+	{
+		"name": "extract lines.pdf 7",
+		"output": "--- Page 7 ---\nPage 7 line 1 alpha beta\nPage 7 line 2 alpha beta\nPage 7 line 3 alpha beta\nPage 7 line 4 alpha beta\nPage 7 line 5 alpha beta\nPage 7 line 6 alpha beta\nPage 7 line 7 alpha beta\nPage 7 line 8 alpha beta"
+	},
+	{
+		"name": "extract lines.pdf x",
+		"output": "No pages selected — page spec matched nothing."
+	},
+	{
+		"name": "text image-only.pdf",
+		"output": "--- Page 1 ---\n\n--- Page 2 ---\nCaption under the picture"
+	},
+	{
+		"name": "probe image-only.pdf",
+		"output": null
+	},
+	{
+		"name": "shape image-only.pdf",
+		"output": {
+			"pageCount": 2,
+			"aspect": 0.7727272727272727
+		}
+	},
+	{
+		"name": "info image-only.pdf",
+		"output": {
+			"path": "<root>/crates/pdf/tests/fixtures/image-only.pdf",
+			"page_count": 2,
+			"mean_text_length": 13,
+			"pages": [
+				{
+					"page": 1,
+					"text_length": 0,
+					"image_count": 1,
+					"math_density": 0
+				},
+				{
+					"page": 2,
+					"text_length": 25,
+					"image_count": 2,
+					"math_density": 0
+				}
+			]
+		}
+	},
+	{
+		"name": "extract image-only.pdf all",
+		"output": "--- Page 1 ---\n\n--- Page 2 ---\nCaption under the picture"
+	},
+	{
+		"name": "extract image-only.pdf 2",
+		"output": "--- Page 2 ---\nCaption under the picture"
+	},
+	{
+		"name": "extract image-only.pdf 1,3",
+		"output": "--- Page 1 ---\n"
+	},
+	{
+		"name": "extract image-only.pdf 1-2",
+		"output": "--- Page 1 ---\n\n--- Page 2 ---\nCaption under the picture"
+	},
+	{
+		"name": "extract image-only.pdf 7",
+		"output": "No pages selected — page spec matched nothing."
+	},
+	{
+		"name": "extract image-only.pdf x",
+		"output": "No pages selected — page spec matched nothing."
+	},
+	{
+		"name": "text math.pdf",
+		"output": "--- Page 1 ---\n∫ x dx = x²/2 + C\nα + β ≤ γ ∑ ∏ √2 ≈ 1.41\nplain words only here\n--- Page 2 ---\nno math at all on this page"
+	},
+	{
+		"name": "probe math.pdf",
+		"output": null
+	},
+	{
+		"name": "shape math.pdf",
+		"output": {
+			"pageCount": 2,
+			"aspect": 0.7727272727272727
+		}
+	},
+	{
+		"name": "info math.pdf",
+		"output": {
+			"path": "<root>/crates/pdf/tests/fixtures/math.pdf",
+			"page_count": 2,
+			"mean_text_length": 45,
+			"pages": [
+				{
+					"page": 1,
+					"text_length": 63,
+					"image_count": 0,
+					"math_density": 0.1429
+				},
+				{
+					"page": 2,
+					"text_length": 27,
+					"image_count": 0,
+					"math_density": 0
+				}
+			]
+		}
+	},
+	{
+		"name": "extract math.pdf all",
+		"output": "--- Page 1 ---\n∫ x dx = x²/2 + C\nα + β ≤ γ ∑ ∏ √2 ≈ 1.41\nplain words only here\n--- Page 2 ---\nno math at all on this page"
+	},
+	{
+		"name": "extract math.pdf 2",
+		"output": "--- Page 2 ---\nno math at all on this page"
+	},
+	{
+		"name": "extract math.pdf 1,3",
+		"output": "--- Page 1 ---\n∫ x dx = x²/2 + C\nα + β ≤ γ ∑ ∏ √2 ≈ 1.41\nplain words only here"
+	},
+	{
+		"name": "extract math.pdf 1-2",
+		"output": "--- Page 1 ---\n∫ x dx = x²/2 + C\nα + β ≤ γ ∑ ∏ √2 ≈ 1.41\nplain words only here\n--- Page 2 ---\nno math at all on this page"
+	},
+	{
+		"name": "extract math.pdf 7",
+		"output": "No pages selected — page spec matched nothing."
+	},
+	{
+		"name": "extract math.pdf x",
+		"output": "No pages selected — page spec matched nothing."
+	},
+	{
+		"name": "text rotated.pdf",
+		"output": "--- Page 1 ---\nWide page"
+	},
+	{
+		"name": "probe rotated.pdf",
+		"output": null
+	},
+	{
+		"name": "shape rotated.pdf",
+		"output": {
+			"pageCount": 1,
+			"aspect": 0.5
+		}
+	},
+	{
+		"name": "info rotated.pdf",
+		"output": {
+			"path": "<root>/crates/pdf/tests/fixtures/rotated.pdf",
+			"page_count": 1,
+			"mean_text_length": 9,
+			"pages": [
+				{
+					"page": 1,
+					"text_length": 9,
+					"image_count": 0,
+					"math_density": 0
+				}
+			]
+		}
+	},
+	{
+		"name": "extract rotated.pdf all",
+		"output": "--- Page 1 ---\nWide page"
+	},
+	{
+		"name": "extract rotated.pdf 2",
+		"output": "No pages selected — page spec matched nothing."
+	},
+	{
+		"name": "extract rotated.pdf 1,3",
+		"output": "--- Page 1 ---\nWide page"
+	},
+	{
+		"name": "extract rotated.pdf 1-2",
+		"output": "--- Page 1 ---\nWide page"
+	},
+	{
+		"name": "extract rotated.pdf 7",
+		"output": "No pages selected — page spec matched nothing."
+	},
+	{
+		"name": "extract rotated.pdf x",
+		"output": "No pages selected — page spec matched nothing."
+	},
+	{
+		"name": "text cropped.pdf",
+		"output": "--- Page 1 ---\nInside the crop box\nsecond inside line"
+	},
+	{
+		"name": "probe cropped.pdf",
+		"output": null
+	},
+	{
+		"name": "shape cropped.pdf",
+		"output": {
+			"pageCount": 1,
+			"aspect": 2.1875
+		}
+	},
+	{
+		"name": "info cropped.pdf",
+		"output": {
+			"path": "<root>/crates/pdf/tests/fixtures/cropped.pdf",
+			"page_count": 1,
+			"mean_text_length": 38,
+			"pages": [
+				{
+					"page": 1,
+					"text_length": 38,
+					"image_count": 0,
+					"math_density": 0
+				}
+			]
+		}
+	},
+	{
+		"name": "extract cropped.pdf all",
+		"output": "--- Page 1 ---\nInside the crop box\nsecond inside line"
+	},
+	{
+		"name": "extract cropped.pdf 2",
+		"output": "No pages selected — page spec matched nothing."
+	},
+	{
+		"name": "extract cropped.pdf 1,3",
+		"output": "--- Page 1 ---\nInside the crop box\nsecond inside line"
+	},
+	{
+		"name": "extract cropped.pdf 1-2",
+		"output": "--- Page 1 ---\nInside the crop box\nsecond inside line"
+	},
+	{
+		"name": "extract cropped.pdf 7",
+		"output": "No pages selected — page spec matched nothing."
+	},
+	{
+		"name": "extract cropped.pdf x",
+		"output": "No pages selected — page spec matched nothing."
+	},
+	{
+		"name": "text hyphen.pdf",
+		"output": "--- Page 1 ---\nA representa-\ntion of the graph is shown below."
+	},
+	{
+		"name": "probe hyphen.pdf",
+		"output": null
+	},
+	{
+		"name": "shape hyphen.pdf",
+		"output": {
+			"pageCount": 1,
+			"aspect": 0.7727272727272727
+		}
+	},
+	{
+		"name": "info hyphen.pdf",
+		"output": {
+			"path": "<root>/crates/pdf/tests/fixtures/hyphen.pdf",
+			"page_count": 1,
+			"mean_text_length": 47,
+			"pages": [
+				{
+					"page": 1,
+					"text_length": 47,
+					"image_count": 0,
+					"math_density": 0
+				}
+			]
+		}
+	},
+	{
+		"name": "extract hyphen.pdf all",
+		"output": "--- Page 1 ---\nA representa-\ntion of the graph is shown below."
+	},
+	{
+		"name": "extract hyphen.pdf 2",
+		"output": "No pages selected — page spec matched nothing."
+	},
+	{
+		"name": "extract hyphen.pdf 1,3",
+		"output": "--- Page 1 ---\nA representa-\ntion of the graph is shown below."
+	},
+	{
+		"name": "extract hyphen.pdf 1-2",
+		"output": "--- Page 1 ---\nA representa-\ntion of the graph is shown below."
+	},
+	{
+		"name": "extract hyphen.pdf 7",
+		"output": "No pages selected — page spec matched nothing."
+	},
+	{
+		"name": "extract hyphen.pdf x",
+		"output": "No pages selected — page spec matched nothing."
+	},
+	{
+		"name": "text spaces.pdf",
+		"output": "--- Page 1 ---\ntop\nbottom"
+	},
+	{
+		"name": "probe spaces.pdf",
+		"output": null
+	},
+	{
+		"name": "shape spaces.pdf",
+		"output": {
+			"pageCount": 1,
+			"aspect": 0.7727272727272727
+		}
+	},
+	{
+		"name": "info spaces.pdf",
+		"output": {
+			"path": "<root>/crates/pdf/tests/fixtures/spaces.pdf",
+			"page_count": 1,
+			"mean_text_length": 10,
+			"pages": [
+				{
+					"page": 1,
+					"text_length": 10,
+					"image_count": 0,
+					"math_density": 0
+				}
+			]
+		}
+	},
+	{
+		"name": "extract spaces.pdf all",
+		"output": "--- Page 1 ---\ntop\nbottom"
+	},
+	{
+		"name": "extract spaces.pdf 2",
+		"output": "No pages selected — page spec matched nothing."
+	},
+	{
+		"name": "extract spaces.pdf 1,3",
+		"output": "--- Page 1 ---\ntop\nbottom"
+	},
+	{
+		"name": "extract spaces.pdf 1-2",
+		"output": "--- Page 1 ---\ntop\nbottom"
+	},
+	{
+		"name": "extract spaces.pdf 7",
+		"output": "No pages selected — page spec matched nothing."
+	},
+	{
+		"name": "extract spaces.pdf x",
+		"output": "No pages selected — page spec matched nothing."
+	},
+	{
+		"name": "text unicode.pdf",
+		"output": "--- Page 1 ---\n𝐀Bfi ΩF\nFΩ fiB𝐀"
+	},
+	{
+		"name": "probe unicode.pdf",
+		"output": null
+	},
+	{
+		"name": "shape unicode.pdf",
+		"output": {
+			"pageCount": 1,
+			"aspect": 0.7727272727272727
+		}
+	},
+	{
+		"name": "info unicode.pdf",
+		"output": {
+			"path": "<root>/crates/pdf/tests/fixtures/unicode.pdf",
+			"page_count": 1,
+			"mean_text_length": 17,
+			"pages": [
+				{
+					"page": 1,
+					"text_length": 17,
+					"image_count": 0,
+					"math_density": 0.2353
+				}
+			]
+		}
+	},
+	{
+		"name": "extract unicode.pdf all",
+		"output": "--- Page 1 ---\n𝐀Bfi ΩF\nFΩ fiB𝐀"
+	},
+	{
+		"name": "extract unicode.pdf 2",
+		"output": "No pages selected — page spec matched nothing."
+	},
+	{
+		"name": "extract unicode.pdf 1,3",
+		"output": "--- Page 1 ---\n𝐀Bfi ΩF\nFΩ fiB𝐀"
+	},
+	{
+		"name": "extract unicode.pdf 1-2",
+		"output": "--- Page 1 ---\n𝐀Bfi ΩF\nFΩ fiB𝐀"
+	},
+	{
+		"name": "extract unicode.pdf 7",
+		"output": "No pages selected — page spec matched nothing."
+	},
+	{
+		"name": "extract unicode.pdf x",
+		"output": "No pages selected — page spec matched nothing."
+	},
+	{
+		"name": "text zero-pages.pdf",
+		"output": "No pages selected — page spec matched nothing."
+	},
+	{
+		"name": "probe zero-pages.pdf",
+		"output": null
+	},
+	{
+		"name": "shape zero-pages.pdf",
+		"error": "Invalid page request."
+	},
+	{
+		"name": "info zero-pages.pdf",
+		"output": {
+			"path": "<root>/crates/pdf/tests/fixtures/zero-pages.pdf",
+			"page_count": 0,
+			"mean_text_length": 0,
+			"pages": []
+		}
+	},
+	{
+		"name": "extract zero-pages.pdf all",
+		"output": "No pages selected — page spec matched nothing."
+	},
+	{
+		"name": "extract zero-pages.pdf 2",
+		"output": "No pages selected — page spec matched nothing."
+	},
+	{
+		"name": "extract zero-pages.pdf 1,3",
+		"output": "No pages selected — page spec matched nothing."
+	},
+	{
+		"name": "extract zero-pages.pdf 1-2",
+		"output": "No pages selected — page spec matched nothing."
+	},
+	{
+		"name": "extract zero-pages.pdf 7",
+		"output": "No pages selected — page spec matched nothing."
+	},
+	{
+		"name": "extract zero-pages.pdf x",
+		"output": "No pages selected — page spec matched nothing."
+	},
+	{
+		"name": "text encrypted.pdf",
+		"error": "No password given"
+	},
+	{
+		"name": "probe encrypted.pdf",
+		"error": "No password given"
+	},
+	{
+		"name": "shape encrypted.pdf",
+		"error": "No password given"
+	},
+	{
+		"name": "info encrypted.pdf",
+		"error": "No password given"
+	},
+	{
+		"name": "extract encrypted.pdf all",
+		"error": "No password given"
+	},
+	{
+		"name": "extract encrypted.pdf 2",
+		"error": "No password given"
+	},
+	{
+		"name": "extract encrypted.pdf 1,3",
+		"error": "No password given"
+	},
+	{
+		"name": "extract encrypted.pdf 1-2",
+		"error": "No password given"
+	},
+	{
+		"name": "extract encrypted.pdf 7",
+		"error": "No password given"
+	},
+	{
+		"name": "extract encrypted.pdf x",
+		"error": "No password given"
+	},
+	{
+		"name": "text truncated.pdf",
+		"error": "Invalid PDF structure."
+	},
+	{
+		"name": "probe truncated.pdf",
+		"error": "Invalid PDF structure."
+	},
+	{
+		"name": "shape truncated.pdf",
+		"error": "Invalid PDF structure."
+	},
+	{
+		"name": "info truncated.pdf",
+		"error": "Invalid PDF structure."
+	},
+	{
+		"name": "extract truncated.pdf all",
+		"error": "Invalid PDF structure."
+	},
+	{
+		"name": "extract truncated.pdf 2",
+		"error": "Invalid PDF structure."
+	},
+	{
+		"name": "extract truncated.pdf 1,3",
+		"error": "Invalid PDF structure."
+	},
+	{
+		"name": "extract truncated.pdf 1-2",
+		"error": "Invalid PDF structure."
+	},
+	{
+		"name": "extract truncated.pdf 7",
+		"error": "Invalid PDF structure."
+	},
+	{
+		"name": "extract truncated.pdf x",
+		"error": "Invalid PDF structure."
+	},
+	{
+		"name": "text empty.pdf",
+		"error": "The PDF file is empty, i.e. its size is zero bytes."
+	},
+	{
+		"name": "probe empty.pdf",
+		"error": "The PDF file is empty, i.e. its size is zero bytes."
+	},
+	{
+		"name": "shape empty.pdf",
+		"error": "The PDF file is empty, i.e. its size is zero bytes."
+	},
+	{
+		"name": "info empty.pdf",
+		"error": "The PDF file is empty, i.e. its size is zero bytes."
+	},
+	{
+		"name": "extract empty.pdf all",
+		"error": "The PDF file is empty, i.e. its size is zero bytes."
+	},
+	{
+		"name": "extract empty.pdf 2",
+		"error": "The PDF file is empty, i.e. its size is zero bytes."
+	},
+	{
+		"name": "extract empty.pdf 1,3",
+		"error": "The PDF file is empty, i.e. its size is zero bytes."
+	},
+	{
+		"name": "extract empty.pdf 1-2",
+		"error": "The PDF file is empty, i.e. its size is zero bytes."
+	},
+	{
+		"name": "extract empty.pdf 7",
+		"error": "The PDF file is empty, i.e. its size is zero bytes."
+	},
+	{
+		"name": "extract empty.pdf x",
+		"error": "The PDF file is empty, i.e. its size is zero bytes."
+	},
+	{
+		"name": "text header-only.pdf",
+		"error": "Invalid PDF structure."
+	},
+	{
+		"name": "probe header-only.pdf",
+		"error": "Invalid PDF structure."
+	},
+	{
+		"name": "shape header-only.pdf",
+		"error": "Invalid PDF structure."
+	},
+	{
+		"name": "info header-only.pdf",
+		"error": "Invalid PDF structure."
+	},
+	{
+		"name": "extract header-only.pdf all",
+		"error": "Invalid PDF structure."
+	},
+	{
+		"name": "extract header-only.pdf 2",
+		"error": "Invalid PDF structure."
+	},
+	{
+		"name": "extract header-only.pdf 1,3",
+		"error": "Invalid PDF structure."
+	},
+	{
+		"name": "extract header-only.pdf 1-2",
+		"error": "Invalid PDF structure."
+	},
+	{
+		"name": "extract header-only.pdf 7",
+		"error": "Invalid PDF structure."
+	},
+	{
+		"name": "extract header-only.pdf x",
+		"error": "Invalid PDF structure."
+	},
+	{
+		"name": "text not-a-pdf.txt",
+		"error": "Invalid PDF structure."
+	},
+	{
+		"name": "probe not-a-pdf.txt",
+		"error": "Invalid PDF structure."
+	},
+	{
+		"name": "shape not-a-pdf.txt",
+		"error": "Invalid PDF structure."
+	},
+	{
+		"name": "info not-a-pdf.txt",
+		"error": "Invalid PDF structure."
+	},
+	{
+		"name": "extract not-a-pdf.txt all",
+		"error": "Invalid PDF structure."
+	},
+	{
+		"name": "extract not-a-pdf.txt 2",
+		"error": "Invalid PDF structure."
+	},
+	{
+		"name": "extract not-a-pdf.txt 1,3",
+		"error": "Invalid PDF structure."
+	},
+	{
+		"name": "extract not-a-pdf.txt 1-2",
+		"error": "Invalid PDF structure."
+	},
+	{
+		"name": "extract not-a-pdf.txt 7",
+		"error": "Invalid PDF structure."
+	},
+	{
+		"name": "extract not-a-pdf.txt x",
+		"error": "Invalid PDF structure."
+	},
+	{
+		"name": "text missing.pdf",
+		"error": "ENOENT: no such file or directory, open '<root>/crates/pdf/tests/fixtures/missing.pdf'"
+	},
+	{
+		"name": "probe missing.pdf",
+		"error": "ENOENT: no such file or directory, open '<root>/crates/pdf/tests/fixtures/missing.pdf'"
+	},
+	{
+		"name": "shape missing.pdf",
+		"error": "ENOENT: no such file or directory, open '<root>/crates/pdf/tests/fixtures/missing.pdf'"
+	},
+	{
+		"name": "info missing.pdf",
+		"error": "ENOENT: no such file or directory, open '<root>/crates/pdf/tests/fixtures/missing.pdf'"
+	},
+	{
+		"name": "extract missing.pdf all",
+		"error": "ENOENT: no such file or directory, open '<root>/crates/pdf/tests/fixtures/missing.pdf'"
+	},
+	{
+		"name": "extract missing.pdf 2",
+		"error": "ENOENT: no such file or directory, open '<root>/crates/pdf/tests/fixtures/missing.pdf'"
+	},
+	{
+		"name": "extract missing.pdf 1,3",
+		"error": "ENOENT: no such file or directory, open '<root>/crates/pdf/tests/fixtures/missing.pdf'"
+	},
+	{
+		"name": "extract missing.pdf 1-2",
+		"error": "ENOENT: no such file or directory, open '<root>/crates/pdf/tests/fixtures/missing.pdf'"
+	},
+	{
+		"name": "extract missing.pdf 7",
+		"error": "ENOENT: no such file or directory, open '<root>/crates/pdf/tests/fixtures/missing.pdf'"
+	},
+	{
+		"name": "extract missing.pdf x",
+		"error": "ENOENT: no such file or directory, open '<root>/crates/pdf/tests/fixtures/missing.pdf'"
+	},
+	{
+		"name": "text .",
+		"error": "EISDIR: illegal operation on a directory, read '<root>/crates/pdf/tests/fixtures'"
+	},
+	{
+		"name": "probe .",
+		"error": "EISDIR: illegal operation on a directory, read '<root>/crates/pdf/tests/fixtures'"
+	},
+	{
+		"name": "shape .",
+		"error": "EISDIR: illegal operation on a directory, read '<root>/crates/pdf/tests/fixtures'"
+	},
+	{
+		"name": "info .",
+		"error": "EISDIR: illegal operation on a directory, read '<root>/crates/pdf/tests/fixtures'"
+	},
+	{
+		"name": "extract . all",
+		"error": "EISDIR: illegal operation on a directory, read '<root>/crates/pdf/tests/fixtures'"
+	},
+	{
+		"name": "extract . 2",
+		"error": "EISDIR: illegal operation on a directory, read '<root>/crates/pdf/tests/fixtures'"
+	},
+	{
+		"name": "extract . 1,3",
+		"error": "EISDIR: illegal operation on a directory, read '<root>/crates/pdf/tests/fixtures'"
+	},
+	{
+		"name": "extract . 1-2",
+		"error": "EISDIR: illegal operation on a directory, read '<root>/crates/pdf/tests/fixtures'"
+	},
+	{
+		"name": "extract . 7",
+		"error": "EISDIR: illegal operation on a directory, read '<root>/crates/pdf/tests/fixtures'"
+	},
+	{
+		"name": "extract . x",
+		"error": "EISDIR: illegal operation on a directory, read '<root>/crates/pdf/tests/fixtures'"
+	},
+	{
+		"name": "render sample-3page.pdf default",
+		"output": [
+			{
+				"page": 1,
+				"width": 1275,
+				"height": 1651,
+				"idats": 1
+			},
+			{
+				"page": 2,
+				"width": 1275,
+				"height": 1651,
+				"idats": 1
+			},
+			{
+				"page": 3,
+				"width": 1275,
+				"height": 1651,
+				"idats": 1
+			}
+		]
+	},
+	{
+		"name": "render sample-3page.pdf 72",
+		"output": [
+			{
+				"page": 1,
+				"width": 612,
+				"height": 792,
+				"idats": 1
+			},
+			{
+				"page": 2,
+				"width": 612,
+				"height": 792,
+				"idats": 1
+			},
+			{
+				"page": 3,
+				"width": 612,
+				"height": 792,
+				"idats": 1
+			}
+		]
+	},
+	{
+		"name": "render sample-3page.pdf 144",
+		"output": [
+			{
+				"page": 1,
+				"width": 1224,
+				"height": 1584,
+				"idats": 1
+			},
+			{
+				"page": 2,
+				"width": 1224,
+				"height": 1584,
+				"idats": 1
+			},
+			{
+				"page": 3,
+				"width": 1224,
+				"height": 1584,
+				"idats": 1
+			}
+		]
+	},
+	{
+		"name": "render two-lines.pdf default",
+		"output": [
+			{
+				"page": 1,
+				"width": 1275,
+				"height": 1651,
+				"idats": 1
+			}
+		]
+	},
+	{
+		"name": "render two-lines.pdf 72",
+		"output": [
+			{
+				"page": 1,
+				"width": 612,
+				"height": 792,
+				"idats": 1
+			}
+		]
+	},
+	{
+		"name": "render two-lines.pdf 144",
+		"output": [
+			{
+				"page": 1,
+				"width": 1224,
+				"height": 1584,
+				"idats": 1
+			}
+		]
+	},
+	{
+		"name": "render lines.pdf default",
+		"output": [
+			{
+				"page": 1,
+				"width": 1275,
+				"height": 1651,
+				"idats": 1
+			},
+			{
+				"page": 2,
+				"width": 1275,
+				"height": 1651,
+				"idats": 1
+			},
+			{
+				"page": 3,
+				"width": 1275,
+				"height": 1651,
+				"idats": 1
+			}
+		]
+	},
+	{
+		"name": "render lines.pdf 72",
+		"output": [
+			{
+				"page": 1,
+				"width": 612,
+				"height": 792,
+				"idats": 1
+			},
+			{
+				"page": 2,
+				"width": 612,
+				"height": 792,
+				"idats": 1
+			},
+			{
+				"page": 3,
+				"width": 612,
+				"height": 792,
+				"idats": 1
+			}
+		]
+	},
+	{
+		"name": "render lines.pdf 144",
+		"output": [
+			{
+				"page": 1,
+				"width": 1224,
+				"height": 1584,
+				"idats": 1
+			},
+			{
+				"page": 2,
+				"width": 1224,
+				"height": 1584,
+				"idats": 1
+			},
+			{
+				"page": 3,
+				"width": 1224,
+				"height": 1584,
+				"idats": 1
+			}
+		]
+	},
+	{
+		"name": "render image-only.pdf default",
+		"output": [
+			{
+				"page": 1,
+				"width": 1275,
+				"height": 1651,
+				"idats": 1
+			},
+			{
+				"page": 2,
+				"width": 1275,
+				"height": 1651,
+				"idats": 1
+			}
+		]
+	},
+	{
+		"name": "render image-only.pdf 72",
+		"output": [
+			{
+				"page": 1,
+				"width": 612,
+				"height": 792,
+				"idats": 1
+			},
+			{
+				"page": 2,
+				"width": 612,
+				"height": 792,
+				"idats": 1
+			}
+		]
+	},
+	{
+		"name": "render image-only.pdf 144",
+		"output": [
+			{
+				"page": 1,
+				"width": 1224,
+				"height": 1584,
+				"idats": 1
+			},
+			{
+				"page": 2,
+				"width": 1224,
+				"height": 1584,
+				"idats": 1
+			}
+		]
+	},
+	{
+		"name": "render math.pdf default",
+		"output": [
+			{
+				"page": 1,
+				"width": 1275,
+				"height": 1651,
+				"idats": 1
+			},
+			{
+				"page": 2,
+				"width": 1275,
+				"height": 1651,
+				"idats": 1
+			}
+		]
+	},
+	{
+		"name": "render math.pdf 72",
+		"output": [
+			{
+				"page": 1,
+				"width": 612,
+				"height": 792,
+				"idats": 1
+			},
+			{
+				"page": 2,
+				"width": 612,
+				"height": 792,
+				"idats": 1
+			}
+		]
+	},
+	{
+		"name": "render math.pdf 144",
+		"output": [
+			{
+				"page": 1,
+				"width": 1224,
+				"height": 1584,
+				"idats": 1
+			},
+			{
+				"page": 2,
+				"width": 1224,
+				"height": 1584,
+				"idats": 1
+			}
+		]
+	},
+	{
+		"name": "render rotated.pdf default",
+		"output": [
+			{
+				"page": 1,
+				"width": 625,
+				"height": 1250,
+				"idats": 1
+			}
+		]
+	},
+	{
+		"name": "render rotated.pdf 72",
+		"output": [
+			{
+				"page": 1,
+				"width": 300,
+				"height": 600,
+				"idats": 1
+			}
+		]
+	},
+	{
+		"name": "render rotated.pdf 144",
+		"output": [
+			{
+				"page": 1,
+				"width": 600,
+				"height": 1200,
+				"idats": 1
+			}
+		]
+	},
+	{
+		"name": "render cropped.pdf default",
+		"output": [
+			{
+				"page": 1,
+				"width": 730,
+				"height": 334,
+				"idats": 1
+			}
+		]
+	},
+	{
+		"name": "render cropped.pdf 72",
+		"output": [
+			{
+				"page": 1,
+				"width": 350,
+				"height": 160,
+				"idats": 1
+			}
+		]
+	},
+	{
+		"name": "render cropped.pdf 144",
+		"output": [
+			{
+				"page": 1,
+				"width": 700,
+				"height": 320,
+				"idats": 1
+			}
+		]
+	},
+	{
+		"name": "render hyphen.pdf default",
+		"output": [
+			{
+				"page": 1,
+				"width": 1275,
+				"height": 1651,
+				"idats": 1
+			}
+		]
+	},
+	{
+		"name": "render hyphen.pdf 72",
+		"output": [
+			{
+				"page": 1,
+				"width": 612,
+				"height": 792,
+				"idats": 1
+			}
+		]
+	},
+	{
+		"name": "render hyphen.pdf 144",
+		"output": [
+			{
+				"page": 1,
+				"width": 1224,
+				"height": 1584,
+				"idats": 1
+			}
+		]
+	},
+	{
+		"name": "render spaces.pdf default",
+		"output": [
+			{
+				"page": 1,
+				"width": 1275,
+				"height": 1651,
+				"idats": 1
+			}
+		]
+	},
+	{
+		"name": "render spaces.pdf 72",
+		"output": [
+			{
+				"page": 1,
+				"width": 612,
+				"height": 792,
+				"idats": 1
+			}
+		]
+	},
+	{
+		"name": "render spaces.pdf 144",
+		"output": [
+			{
+				"page": 1,
+				"width": 1224,
+				"height": 1584,
+				"idats": 1
+			}
+		]
+	},
+	{
+		"name": "render unicode.pdf default",
+		"output": [
+			{
+				"page": 1,
+				"width": 1275,
+				"height": 1651,
+				"idats": 1
+			}
+		]
+	},
+	{
+		"name": "render unicode.pdf 72",
+		"output": [
+			{
+				"page": 1,
+				"width": 612,
+				"height": 792,
+				"idats": 1
+			}
+		]
+	},
+	{
+		"name": "render unicode.pdf 144",
+		"output": [
+			{
+				"page": 1,
+				"width": 1224,
+				"height": 1584,
+				"idats": 1
+			}
+		]
+	},
+	{
+		"name": "render zero-pages.pdf default",
+		"output": []
+	},
+	{
+		"name": "render zero-pages.pdf 72",
+		"output": []
+	},
+	{
+		"name": "render zero-pages.pdf 144",
+		"output": []
+	},
+	{
+		"name": "render encrypted.pdf default",
+		"error": "No password given"
+	},
+	{
+		"name": "render encrypted.pdf 72",
+		"error": "No password given"
+	},
+	{
+		"name": "render encrypted.pdf 144",
+		"error": "No password given"
+	},
+	{
+		"name": "render truncated.pdf default",
+		"error": "Invalid PDF structure."
+	},
+	{
+		"name": "render truncated.pdf 72",
+		"error": "Invalid PDF structure."
+	},
+	{
+		"name": "render truncated.pdf 144",
+		"error": "Invalid PDF structure."
+	},
+	{
+		"name": "render empty.pdf default",
+		"error": "The PDF file is empty, i.e. its size is zero bytes."
+	},
+	{
+		"name": "render empty.pdf 72",
+		"error": "The PDF file is empty, i.e. its size is zero bytes."
+	},
+	{
+		"name": "render empty.pdf 144",
+		"error": "The PDF file is empty, i.e. its size is zero bytes."
+	},
+	{
+		"name": "render not-a-pdf.txt default",
+		"error": "Invalid PDF structure."
+	},
+	{
+		"name": "render not-a-pdf.txt 72",
+		"error": "Invalid PDF structure."
+	},
+	{
+		"name": "render not-a-pdf.txt 144",
+		"error": "Invalid PDF structure."
+	},
+	{
+		"name": "render missing.pdf default",
+		"error": "ENOENT: no such file or directory, open '<root>/crates/pdf/tests/fixtures/missing.pdf'"
+	},
+	{
+		"name": "render missing.pdf 72",
+		"error": "ENOENT: no such file or directory, open '<root>/crates/pdf/tests/fixtures/missing.pdf'"
+	},
+	{
+		"name": "render missing.pdf 144",
+		"error": "ENOENT: no such file or directory, open '<root>/crates/pdf/tests/fixtures/missing.pdf'"
+	},
+	{
+		"name": "render . default",
+		"error": "EISDIR: illegal operation on a directory, read"
+	},
+	{
+		"name": "render . 72",
+		"error": "EISDIR: illegal operation on a directory, read"
+	},
+	{
+		"name": "render . 144",
+		"error": "EISDIR: illegal operation on a directory, read"
+	},
+	{
+		"name": "render tiny.pdf 0",
+		"output": [
+			{
+				"page": 1,
+				"width": 350,
+				"height": 150,
+				"idats": 1
+			}
+		]
+	},
+	{
+		"name": "render tiny.pdf -72",
+		"output": [
+			{
+				"page": 1,
+				"width": 350,
+				"height": 150,
+				"idats": 1
+			}
+		]
+	},
+	{
+		"name": "render tiny.pdf 0.5",
+		"output": [
+			{
+				"page": 1,
+				"width": 1,
+				"height": 1,
+				"idats": 1
+			}
+		]
+	},
+	{
+		"name": "render tiny.pdf 166831.19",
+		"error": "Create skia surface failed"
+	},
+	{
+		"name": "render thin.pdf 5040",
+		"output": [
+			{
+				"page": 1,
+				"width": 70000,
+				"height": 70,
+				"idats": 1
+			}
+		]
+	},
+	{
+		"name": "search sample-3page.pdf \"force\" literal true",
+		"output": {
+			"hits": [
+				{
+					"page": 2,
+					"line": 1,
+					"context": ">>> Physics page: force equals mass times acceleration"
+				}
+			]
+		}
+	},
+	{
+		"name": "search sample-3page.pdf \"force\" literal false",
+		"output": {
+			"hits": [
+				{
+					"page": 2,
+					"line": 1,
+					"context": ">>> Physics page: force equals mass times acceleration"
+				}
+			]
+		}
+	},
+	{
+		"name": "search sample-3page.pdf \"needle\" literal true",
+		"output": {
+			"hits": []
+		}
+	},
+	{
+		"name": "search sample-3page.pdf \"needle\" literal false",
+		"output": {
+			"hits": []
+		}
+	},
+	{
+		"name": "search sample-3page.pdf \"NEEDLE\" literal true",
+		"output": {
+			"hits": []
+		}
+	},
+	{
+		"name": "search sample-3page.pdf \"NEEDLE\" literal false",
+		"output": {
+			"hits": []
+		}
+	},
+	{
+		"name": "search sample-3page.pdf \"page 1 line\" literal true",
+		"output": {
+			"hits": []
+		}
+	},
+	{
+		"name": "search sample-3page.pdf \"page 1 line\" literal false",
+		"output": {
+			"hits": []
+		}
+	},
+	{
+		"name": "search sample-3page.pdf \"alpha|beta\" literal true",
+		"output": {
+			"hits": []
+		}
+	},
+	{
+		"name": "search sample-3page.pdf \"alpha|beta\" literal false",
+		"output": {
+			"hits": []
+		}
+	},
+	{
+		"name": "search sample-3page.pdf \"zymurgy\" literal true",
+		"output": {
+			"hits": []
+		}
+	},
+	{
+		"name": "search sample-3page.pdf \"zymurgy\" literal false",
+		"output": {
+			"hits": []
+		}
+	},
+	{
+		"name": "search sample-3page.pdf \"^Page 3\" literal true",
+		"output": {
+			"hits": []
+		}
+	},
+	{
+		"name": "search sample-3page.pdf \"^Page 3\" literal false",
+		"output": {
+			"hits": []
+		}
+	},
+	{
+		"name": "search sample-3page.pdf \"line [1-2]$\" literal true",
+		"output": {
+			"hits": []
+		}
+	},
+	{
+		"name": "search sample-3page.pdf \"line [1-2]$\" literal false",
+		"output": {
+			"hits": []
+		}
+	},
+	{
+		"name": "search sample-3page.pdf \"a.b\" literal true",
+		"output": {
+			"hits": []
+		}
+	},
+	{
+		"name": "search sample-3page.pdf \"a.b\" literal false",
+		"output": {
+			"hits": []
+		}
+	},
+	{
+		"name": "search sample-3page.pdf \"$5\" literal true",
+		"output": {
+			"hits": []
+		}
+	},
+	{
+		"name": "search sample-3page.pdf \"$5\" literal false",
+		"output": {
+			"hits": []
+		}
+	},
+	{
+		"name": "search sample-3page.pdf \"(c)\" literal true",
+		"output": {
+			"hits": []
+		}
+	},
+	{
+		"name": "search sample-3page.pdf \"(c)\" literal false",
+		"output": {
+			"hits": [
+				{
+					"page": 1,
+					"line": 1,
+					"context": ">>> Calculus page: the integral of x dx is x squared over two"
+				},
+				{
+					"page": 2,
+					"line": 1,
+					"context": ">>> Physics page: force equals mass times acceleration"
+				},
+				{
+					"page": 3,
+					"line": 1,
+					"context": ">>> Chemistry page: H2O is water"
+				}
+			]
+		}
+	},
+	{
+		"name": "search lines.pdf \"force\" literal true",
+		"output": {
+			"hits": []
+		}
+	},
+	{
+		"name": "search lines.pdf \"force\" literal false",
+		"output": {
+			"hits": []
+		}
+	},
+	{
+		"name": "search lines.pdf \"needle\" literal true",
+		"output": {
+			"hits": [
+				{
+					"page": 4,
+					"line": 1,
+					"context": ">>> NEEDLE at the very top\n    Page 4 line 2 alpha beta\n    Page 4 line 3 alpha beta\n    Page 4 line 4 alpha beta"
+				},
+				{
+					"page": 4,
+					"line": 8,
+					"context": "    Page 4 line 5 alpha beta\n    Page 4 line 6 alpha beta\n    Page 4 line 7 alpha beta\n>>> Needle at the very bottom"
+				},
+				{
+					"page": 8,
+					"line": 1,
+					"context": ">>> NEEDLE at the very top\n    Page 8 line 2 alpha beta\n    Page 8 line 3 alpha beta\n    Page 8 line 4 alpha beta"
+				},
+				{
+					"page": 8,
+					"line": 8,
+					"context": "    Page 8 line 5 alpha beta\n    Page 8 line 6 alpha beta\n    Page 8 line 7 alpha beta\n>>> Needle at the very bottom"
+				},
+				{
+					"page": 12,
+					"line": 1,
+					"context": ">>> NEEDLE at the very top\n    Page 12 line 2 alpha beta\n    Page 12 line 3 alpha beta\n    Page 12 line 4 alpha beta"
+				},
+				{
+					"page": 12,
+					"line": 8,
+					"context": "    Page 12 line 5 alpha beta\n    Page 12 line 6 alpha beta\n    Page 12 line 7 alpha beta\n>>> Needle at the very bottom"
+				}
+			]
+		}
+	},
+	{
+		"name": "search lines.pdf \"needle\" literal false",
+		"output": {
+			"hits": [
+				{
+					"page": 4,
+					"line": 1,
+					"context": ">>> NEEDLE at the very top\n    Page 4 line 2 alpha beta\n    Page 4 line 3 alpha beta\n    Page 4 line 4 alpha beta"
+				},
+				{
+					"page": 4,
+					"line": 8,
+					"context": "    Page 4 line 5 alpha beta\n    Page 4 line 6 alpha beta\n    Page 4 line 7 alpha beta\n>>> Needle at the very bottom"
+				},
+				{
+					"page": 8,
+					"line": 1,
+					"context": ">>> NEEDLE at the very top\n    Page 8 line 2 alpha beta\n    Page 8 line 3 alpha beta\n    Page 8 line 4 alpha beta"
+				},
+				{
+					"page": 8,
+					"line": 8,
+					"context": "    Page 8 line 5 alpha beta\n    Page 8 line 6 alpha beta\n    Page 8 line 7 alpha beta\n>>> Needle at the very bottom"
+				},
+				{
+					"page": 12,
+					"line": 1,
+					"context": ">>> NEEDLE at the very top\n    Page 12 line 2 alpha beta\n    Page 12 line 3 alpha beta\n    Page 12 line 4 alpha beta"
+				},
+				{
+					"page": 12,
+					"line": 8,
+					"context": "    Page 12 line 5 alpha beta\n    Page 12 line 6 alpha beta\n    Page 12 line 7 alpha beta\n>>> Needle at the very bottom"
+				}
+			]
+		}
+	},
+	{
+		"name": "search lines.pdf \"NEEDLE\" literal true",
+		"output": {
+			"hits": [
+				{
+					"page": 4,
+					"line": 1,
+					"context": ">>> NEEDLE at the very top\n    Page 4 line 2 alpha beta\n    Page 4 line 3 alpha beta\n    Page 4 line 4 alpha beta"
+				},
+				{
+					"page": 4,
+					"line": 8,
+					"context": "    Page 4 line 5 alpha beta\n    Page 4 line 6 alpha beta\n    Page 4 line 7 alpha beta\n>>> Needle at the very bottom"
+				},
+				{
+					"page": 8,
+					"line": 1,
+					"context": ">>> NEEDLE at the very top\n    Page 8 line 2 alpha beta\n    Page 8 line 3 alpha beta\n    Page 8 line 4 alpha beta"
+				},
+				{
+					"page": 8,
+					"line": 8,
+					"context": "    Page 8 line 5 alpha beta\n    Page 8 line 6 alpha beta\n    Page 8 line 7 alpha beta\n>>> Needle at the very bottom"
+				},
+				{
+					"page": 12,
+					"line": 1,
+					"context": ">>> NEEDLE at the very top\n    Page 12 line 2 alpha beta\n    Page 12 line 3 alpha beta\n    Page 12 line 4 alpha beta"
+				},
+				{
+					"page": 12,
+					"line": 8,
+					"context": "    Page 12 line 5 alpha beta\n    Page 12 line 6 alpha beta\n    Page 12 line 7 alpha beta\n>>> Needle at the very bottom"
+				}
+			]
+		}
+	},
+	{
+		"name": "search lines.pdf \"NEEDLE\" literal false",
+		"output": {
+			"hits": [
+				{
+					"page": 4,
+					"line": 1,
+					"context": ">>> NEEDLE at the very top\n    Page 4 line 2 alpha beta\n    Page 4 line 3 alpha beta\n    Page 4 line 4 alpha beta"
+				},
+				{
+					"page": 4,
+					"line": 8,
+					"context": "    Page 4 line 5 alpha beta\n    Page 4 line 6 alpha beta\n    Page 4 line 7 alpha beta\n>>> Needle at the very bottom"
+				},
+				{
+					"page": 8,
+					"line": 1,
+					"context": ">>> NEEDLE at the very top\n    Page 8 line 2 alpha beta\n    Page 8 line 3 alpha beta\n    Page 8 line 4 alpha beta"
+				},
+				{
+					"page": 8,
+					"line": 8,
+					"context": "    Page 8 line 5 alpha beta\n    Page 8 line 6 alpha beta\n    Page 8 line 7 alpha beta\n>>> Needle at the very bottom"
+				},
+				{
+					"page": 12,
+					"line": 1,
+					"context": ">>> NEEDLE at the very top\n    Page 12 line 2 alpha beta\n    Page 12 line 3 alpha beta\n    Page 12 line 4 alpha beta"
+				},
+				{
+					"page": 12,
+					"line": 8,
+					"context": "    Page 12 line 5 alpha beta\n    Page 12 line 6 alpha beta\n    Page 12 line 7 alpha beta\n>>> Needle at the very bottom"
+				}
+			]
+		}
+	},
+	{
+		"name": "search lines.pdf \"page 1 line\" literal true",
+		"output": {
+			"hits": [
+				{
+					"page": 1,
+					"line": 1,
+					"context": ">>> Page 1 line 1 alpha beta\n    Page 1 line 2 alpha beta\n    Page 1 line 3 alpha beta\n    Page 1 line 4 alpha beta"
+				},
+				{
+					"page": 1,
+					"line": 2,
+					"context": "    Page 1 line 1 alpha beta\n>>> Page 1 line 2 alpha beta\n    Page 1 line 3 alpha beta\n    Page 1 line 4 alpha beta\n    Page 1 line 5 alpha beta"
+				},
+				{
+					"page": 1,
+					"line": 3,
+					"context": "    Page 1 line 1 alpha beta\n    Page 1 line 2 alpha beta\n>>> Page 1 line 3 alpha beta\n    Page 1 line 4 alpha beta\n    Page 1 line 5 alpha beta\n    Page 1 line 6 alpha beta"
+				},
+				{
+					"page": 1,
+					"line": 4,
+					"context": "    Page 1 line 1 alpha beta\n    Page 1 line 2 alpha beta\n    Page 1 line 3 alpha beta\n>>> Page 1 line 4 alpha beta\n    Page 1 line 5 alpha beta\n    Page 1 line 6 alpha beta\n    Page 1 line 7 alpha beta"
+				},
+				{
+					"page": 1,
+					"line": 5,
+					"context": "    Page 1 line 2 alpha beta\n    Page 1 line 3 alpha beta\n    Page 1 line 4 alpha beta\n>>> Page 1 line 5 alpha beta\n    Page 1 line 6 alpha beta\n    Page 1 line 7 alpha beta\n    Page 1 line 8 alpha beta"
+				},
+				{
+					"page": 1,
+					"line": 6,
+					"context": "    Page 1 line 3 alpha beta\n    Page 1 line 4 alpha beta\n    Page 1 line 5 alpha beta\n>>> Page 1 line 6 alpha beta\n    Page 1 line 7 alpha beta\n    Page 1 line 8 alpha beta"
+				},
+				{
+					"page": 1,
+					"line": 7,
+					"context": "    Page 1 line 4 alpha beta\n    Page 1 line 5 alpha beta\n    Page 1 line 6 alpha beta\n>>> Page 1 line 7 alpha beta\n    Page 1 line 8 alpha beta"
+				},
+				{
+					"page": 1,
+					"line": 8,
+					"context": "    Page 1 line 5 alpha beta\n    Page 1 line 6 alpha beta\n    Page 1 line 7 alpha beta\n>>> Page 1 line 8 alpha beta"
+				}
+			]
+		}
+	},
+	{
+		"name": "search lines.pdf \"page 1 line\" literal false",
+		"output": {
+			"hits": [
+				{
+					"page": 1,
+					"line": 1,
+					"context": ">>> Page 1 line 1 alpha beta\n    Page 1 line 2 alpha beta\n    Page 1 line 3 alpha beta\n    Page 1 line 4 alpha beta"
+				},
+				{
+					"page": 1,
+					"line": 2,
+					"context": "    Page 1 line 1 alpha beta\n>>> Page 1 line 2 alpha beta\n    Page 1 line 3 alpha beta\n    Page 1 line 4 alpha beta\n    Page 1 line 5 alpha beta"
+				},
+				{
+					"page": 1,
+					"line": 3,
+					"context": "    Page 1 line 1 alpha beta\n    Page 1 line 2 alpha beta\n>>> Page 1 line 3 alpha beta\n    Page 1 line 4 alpha beta\n    Page 1 line 5 alpha beta\n    Page 1 line 6 alpha beta"
+				},
+				{
+					"page": 1,
+					"line": 4,
+					"context": "    Page 1 line 1 alpha beta\n    Page 1 line 2 alpha beta\n    Page 1 line 3 alpha beta\n>>> Page 1 line 4 alpha beta\n    Page 1 line 5 alpha beta\n    Page 1 line 6 alpha beta\n    Page 1 line 7 alpha beta"
+				},
+				{
+					"page": 1,
+					"line": 5,
+					"context": "    Page 1 line 2 alpha beta\n    Page 1 line 3 alpha beta\n    Page 1 line 4 alpha beta\n>>> Page 1 line 5 alpha beta\n    Page 1 line 6 alpha beta\n    Page 1 line 7 alpha beta\n    Page 1 line 8 alpha beta"
+				},
+				{
+					"page": 1,
+					"line": 6,
+					"context": "    Page 1 line 3 alpha beta\n    Page 1 line 4 alpha beta\n    Page 1 line 5 alpha beta\n>>> Page 1 line 6 alpha beta\n    Page 1 line 7 alpha beta\n    Page 1 line 8 alpha beta"
+				},
+				{
+					"page": 1,
+					"line": 7,
+					"context": "    Page 1 line 4 alpha beta\n    Page 1 line 5 alpha beta\n    Page 1 line 6 alpha beta\n>>> Page 1 line 7 alpha beta\n    Page 1 line 8 alpha beta"
+				},
+				{
+					"page": 1,
+					"line": 8,
+					"context": "    Page 1 line 5 alpha beta\n    Page 1 line 6 alpha beta\n    Page 1 line 7 alpha beta\n>>> Page 1 line 8 alpha beta"
+				}
+			]
+		}
+	},
+	{
+		"name": "search lines.pdf \"alpha|beta\" literal true",
+		"output": {
+			"hits": []
+		}
+	},
+	{
+		"name": "search lines.pdf \"alpha|beta\" literal false",
+		"output": {
+			"hits": [
+				{
+					"page": 1,
+					"line": 1,
+					"context": ">>> Page 1 line 1 alpha beta\n    Page 1 line 2 alpha beta\n    Page 1 line 3 alpha beta\n    Page 1 line 4 alpha beta"
+				},
+				{
+					"page": 1,
+					"line": 2,
+					"context": "    Page 1 line 1 alpha beta\n>>> Page 1 line 2 alpha beta\n    Page 1 line 3 alpha beta\n    Page 1 line 4 alpha beta\n    Page 1 line 5 alpha beta"
+				},
+				{
+					"page": 1,
+					"line": 3,
+					"context": "    Page 1 line 1 alpha beta\n    Page 1 line 2 alpha beta\n>>> Page 1 line 3 alpha beta\n    Page 1 line 4 alpha beta\n    Page 1 line 5 alpha beta\n    Page 1 line 6 alpha beta"
+				},
+				{
+					"page": 1,
+					"line": 4,
+					"context": "    Page 1 line 1 alpha beta\n    Page 1 line 2 alpha beta\n    Page 1 line 3 alpha beta\n>>> Page 1 line 4 alpha beta\n    Page 1 line 5 alpha beta\n    Page 1 line 6 alpha beta\n    Page 1 line 7 alpha beta"
+				},
+				{
+					"page": 1,
+					"line": 5,
+					"context": "    Page 1 line 2 alpha beta\n    Page 1 line 3 alpha beta\n    Page 1 line 4 alpha beta\n>>> Page 1 line 5 alpha beta\n    Page 1 line 6 alpha beta\n    Page 1 line 7 alpha beta\n    Page 1 line 8 alpha beta"
+				},
+				{
+					"page": 1,
+					"line": 6,
+					"context": "    Page 1 line 3 alpha beta\n    Page 1 line 4 alpha beta\n    Page 1 line 5 alpha beta\n>>> Page 1 line 6 alpha beta\n    Page 1 line 7 alpha beta\n    Page 1 line 8 alpha beta"
+				},
+				{
+					"page": 1,
+					"line": 7,
+					"context": "    Page 1 line 4 alpha beta\n    Page 1 line 5 alpha beta\n    Page 1 line 6 alpha beta\n>>> Page 1 line 7 alpha beta\n    Page 1 line 8 alpha beta"
+				},
+				{
+					"page": 1,
+					"line": 8,
+					"context": "    Page 1 line 5 alpha beta\n    Page 1 line 6 alpha beta\n    Page 1 line 7 alpha beta\n>>> Page 1 line 8 alpha beta"
+				},
+				{
+					"page": 2,
+					"line": 1,
+					"context": ">>> Page 2 line 1 alpha beta\n    Page 2 line 2 alpha beta\n    Page 2 line 3 alpha beta\n    Page 2 line 4 alpha beta"
+				},
+				{
+					"page": 2,
+					"line": 2,
+					"context": "    Page 2 line 1 alpha beta\n>>> Page 2 line 2 alpha beta\n    Page 2 line 3 alpha beta\n    Page 2 line 4 alpha beta\n    Page 2 line 5 alpha beta"
+				},
+				{
+					"page": 2,
+					"line": 3,
+					"context": "    Page 2 line 1 alpha beta\n    Page 2 line 2 alpha beta\n>>> Page 2 line 3 alpha beta\n    Page 2 line 4 alpha beta\n    Page 2 line 5 alpha beta\n    Page 2 line 6 alpha beta"
+				},
+				{
+					"page": 2,
+					"line": 4,
+					"context": "    Page 2 line 1 alpha beta\n    Page 2 line 2 alpha beta\n    Page 2 line 3 alpha beta\n>>> Page 2 line 4 alpha beta\n    Page 2 line 5 alpha beta\n    Page 2 line 6 alpha beta\n    Page 2 line 7 alpha beta"
+				},
+				{
+					"page": 2,
+					"line": 5,
+					"context": "    Page 2 line 2 alpha beta\n    Page 2 line 3 alpha beta\n    Page 2 line 4 alpha beta\n>>> Page 2 line 5 alpha beta\n    Page 2 line 6 alpha beta\n    Page 2 line 7 alpha beta\n    Page 2 line 8 alpha beta"
+				},
+				{
+					"page": 2,
+					"line": 6,
+					"context": "    Page 2 line 3 alpha beta\n    Page 2 line 4 alpha beta\n    Page 2 line 5 alpha beta\n>>> Page 2 line 6 alpha beta\n    Page 2 line 7 alpha beta\n    Page 2 line 8 alpha beta"
+				},
+				{
+					"page": 2,
+					"line": 7,
+					"context": "    Page 2 line 4 alpha beta\n    Page 2 line 5 alpha beta\n    Page 2 line 6 alpha beta\n>>> Page 2 line 7 alpha beta\n    Page 2 line 8 alpha beta"
+				},
+				{
+					"page": 2,
+					"line": 8,
+					"context": "    Page 2 line 5 alpha beta\n    Page 2 line 6 alpha beta\n    Page 2 line 7 alpha beta\n>>> Page 2 line 8 alpha beta"
+				},
+				{
+					"page": 3,
+					"line": 1,
+					"context": ">>> Page 3 line 1 alpha beta\n    Page 3 line 2 alpha beta\n    Page 3 line 3 alpha beta\n    Page 3 line 4 alpha beta"
+				},
+				{
+					"page": 3,
+					"line": 2,
+					"context": "    Page 3 line 1 alpha beta\n>>> Page 3 line 2 alpha beta\n    Page 3 line 3 alpha beta\n    Page 3 line 4 alpha beta\n    Page 3 line 5 alpha beta"
+				},
+				{
+					"page": 3,
+					"line": 3,
+					"context": "    Page 3 line 1 alpha beta\n    Page 3 line 2 alpha beta\n>>> Page 3 line 3 alpha beta\n    Page 3 line 4 alpha beta\n    Page 3 line 5 alpha beta\n    Page 3 line 6 alpha beta"
+				},
+				{
+					"page": 3,
+					"line": 4,
+					"context": "    Page 3 line 1 alpha beta\n    Page 3 line 2 alpha beta\n    Page 3 line 3 alpha beta\n>>> Page 3 line 4 alpha beta\n    Page 3 line 5 alpha beta\n    Page 3 line 6 alpha beta\n    Page 3 line 7 alpha beta"
+				},
+				{
+					"page": 3,
+					"line": 5,
+					"context": "    Page 3 line 2 alpha beta\n    Page 3 line 3 alpha beta\n    Page 3 line 4 alpha beta\n>>> Page 3 line 5 alpha beta\n    Page 3 line 6 alpha beta\n    Page 3 line 7 alpha beta\n    Page 3 line 8 alpha beta"
+				},
+				{
+					"page": 3,
+					"line": 6,
+					"context": "    Page 3 line 3 alpha beta\n    Page 3 line 4 alpha beta\n    Page 3 line 5 alpha beta\n>>> Page 3 line 6 alpha beta\n    Page 3 line 7 alpha beta\n    Page 3 line 8 alpha beta"
+				},
+				{
+					"page": 3,
+					"line": 7,
+					"context": "    Page 3 line 4 alpha beta\n    Page 3 line 5 alpha beta\n    Page 3 line 6 alpha beta\n>>> Page 3 line 7 alpha beta\n    Page 3 line 8 alpha beta"
+				},
+				{
+					"page": 3,
+					"line": 8,
+					"context": "    Page 3 line 5 alpha beta\n    Page 3 line 6 alpha beta\n    Page 3 line 7 alpha beta\n>>> Page 3 line 8 alpha beta"
+				},
+				{
+					"page": 4,
+					"line": 2,
+					"context": "    NEEDLE at the very top\n>>> Page 4 line 2 alpha beta\n    Page 4 line 3 alpha beta\n    Page 4 line 4 alpha beta\n    Page 4 line 5 alpha beta"
+				},
+				{
+					"page": 4,
+					"line": 3,
+					"context": "    NEEDLE at the very top\n    Page 4 line 2 alpha beta\n>>> Page 4 line 3 alpha beta\n    Page 4 line 4 alpha beta\n    Page 4 line 5 alpha beta\n    Page 4 line 6 alpha beta"
+				},
+				{
+					"page": 4,
+					"line": 4,
+					"context": "    NEEDLE at the very top\n    Page 4 line 2 alpha beta\n    Page 4 line 3 alpha beta\n>>> Page 4 line 4 alpha beta\n    Page 4 line 5 alpha beta\n    Page 4 line 6 alpha beta\n    Page 4 line 7 alpha beta"
+				},
+				{
+					"page": 4,
+					"line": 5,
+					"context": "    Page 4 line 2 alpha beta\n    Page 4 line 3 alpha beta\n    Page 4 line 4 alpha beta\n>>> Page 4 line 5 alpha beta\n    Page 4 line 6 alpha beta\n    Page 4 line 7 alpha beta\n    Needle at the very bottom"
+				},
+				{
+					"page": 4,
+					"line": 6,
+					"context": "    Page 4 line 3 alpha beta\n    Page 4 line 4 alpha beta\n    Page 4 line 5 alpha beta\n>>> Page 4 line 6 alpha beta\n    Page 4 line 7 alpha beta\n    Needle at the very bottom"
+				},
+				{
+					"page": 4,
+					"line": 7,
+					"context": "    Page 4 line 4 alpha beta\n    Page 4 line 5 alpha beta\n    Page 4 line 6 alpha beta\n>>> Page 4 line 7 alpha beta\n    Needle at the very bottom"
+				},
+				{
+					"page": 5,
+					"line": 1,
+					"context": ">>> Page 5 line 1 alpha beta\n    Page 5 line 2 alpha beta\n    Page 5 line 3 alpha beta\n    a.b (c) [d] *star* $5 ^up"
+				},
+				{
+					"page": 5,
+					"line": 2,
+					"context": "    Page 5 line 1 alpha beta\n>>> Page 5 line 2 alpha beta\n    Page 5 line 3 alpha beta\n    a.b (c) [d] *star* $5 ^up\n    Page 5 line 5 alpha beta"
+				},
+				{
+					"page": 5,
+					"line": 3,
+					"context": "    Page 5 line 1 alpha beta\n    Page 5 line 2 alpha beta\n>>> Page 5 line 3 alpha beta\n    a.b (c) [d] *star* $5 ^up\n    Page 5 line 5 alpha beta\n    Page 5 line 6 alpha beta"
+				},
+				{
+					"page": 5,
+					"line": 5,
+					"context": "    Page 5 line 2 alpha beta\n    Page 5 line 3 alpha beta\n    a.b (c) [d] *star* $5 ^up\n>>> Page 5 line 5 alpha beta\n    Page 5 line 6 alpha beta\n    Page 5 line 7 alpha beta\n    Page 5 line 8 alpha beta"
+				},
+				{
+					"page": 5,
+					"line": 6,
+					"context": "    Page 5 line 3 alpha beta\n    a.b (c) [d] *star* $5 ^up\n    Page 5 line 5 alpha beta\n>>> Page 5 line 6 alpha beta\n    Page 5 line 7 alpha beta\n    Page 5 line 8 alpha beta"
+				},
+				{
+					"page": 5,
+					"line": 7,
+					"context": "    a.b (c) [d] *star* $5 ^up\n    Page 5 line 5 alpha beta\n    Page 5 line 6 alpha beta\n>>> Page 5 line 7 alpha beta\n    Page 5 line 8 alpha beta"
+				},
+				{
+					"page": 5,
+					"line": 8,
+					"context": "    Page 5 line 5 alpha beta\n    Page 5 line 6 alpha beta\n    Page 5 line 7 alpha beta\n>>> Page 5 line 8 alpha beta"
+				},
+				{
+					"page": 6,
+					"line": 1,
+					"context": ">>> Page 6 line 1 alpha beta\n    Page 6 line 2 alpha beta\n    Page 6 line 3 alpha beta\n    Page 6 line 4 alpha beta"
+				},
+				{
+					"page": 6,
+					"line": 2,
+					"context": "    Page 6 line 1 alpha beta\n>>> Page 6 line 2 alpha beta\n    Page 6 line 3 alpha beta\n    Page 6 line 4 alpha beta\n    Page 6 line 5 alpha beta"
+				},
+				{
+					"page": 6,
+					"line": 3,
+					"context": "    Page 6 line 1 alpha beta\n    Page 6 line 2 alpha beta\n>>> Page 6 line 3 alpha beta\n    Page 6 line 4 alpha beta\n    Page 6 line 5 alpha beta\n    Page 6 line 6 alpha beta"
+				},
+				{
+					"page": 6,
+					"line": 4,
+					"context": "    Page 6 line 1 alpha beta\n    Page 6 line 2 alpha beta\n    Page 6 line 3 alpha beta\n>>> Page 6 line 4 alpha beta\n    Page 6 line 5 alpha beta\n    Page 6 line 6 alpha beta\n    Page 6 line 7 alpha beta"
+				},
+				{
+					"page": 6,
+					"line": 5,
+					"context": "    Page 6 line 2 alpha beta\n    Page 6 line 3 alpha beta\n    Page 6 line 4 alpha beta\n>>> Page 6 line 5 alpha beta\n    Page 6 line 6 alpha beta\n    Page 6 line 7 alpha beta\n    Page 6 line 8 alpha beta"
+				},
+				{
+					"page": 6,
+					"line": 6,
+					"context": "    Page 6 line 3 alpha beta\n    Page 6 line 4 alpha beta\n    Page 6 line 5 alpha beta\n>>> Page 6 line 6 alpha beta\n    Page 6 line 7 alpha beta\n    Page 6 line 8 alpha beta"
+				},
+				{
+					"page": 6,
+					"line": 7,
+					"context": "    Page 6 line 4 alpha beta\n    Page 6 line 5 alpha beta\n    Page 6 line 6 alpha beta\n>>> Page 6 line 7 alpha beta\n    Page 6 line 8 alpha beta"
+				},
+				{
+					"page": 6,
+					"line": 8,
+					"context": "    Page 6 line 5 alpha beta\n    Page 6 line 6 alpha beta\n    Page 6 line 7 alpha beta\n>>> Page 6 line 8 alpha beta"
+				},
+				{
+					"page": 7,
+					"line": 1,
+					"context": ">>> Page 7 line 1 alpha beta\n    Page 7 line 2 alpha beta\n    Page 7 line 3 alpha beta\n    Page 7 line 4 alpha beta"
+				},
+				{
+					"page": 7,
+					"line": 2,
+					"context": "    Page 7 line 1 alpha beta\n>>> Page 7 line 2 alpha beta\n    Page 7 line 3 alpha beta\n    Page 7 line 4 alpha beta\n    Page 7 line 5 alpha beta"
+				},
+				{
+					"page": 7,
+					"line": 3,
+					"context": "    Page 7 line 1 alpha beta\n    Page 7 line 2 alpha beta\n>>> Page 7 line 3 alpha beta\n    Page 7 line 4 alpha beta\n    Page 7 line 5 alpha beta\n    Page 7 line 6 alpha beta"
+				},
+				{
+					"page": 7,
+					"line": 4,
+					"context": "    Page 7 line 1 alpha beta\n    Page 7 line 2 alpha beta\n    Page 7 line 3 alpha beta\n>>> Page 7 line 4 alpha beta\n    Page 7 line 5 alpha beta\n    Page 7 line 6 alpha beta\n    Page 7 line 7 alpha beta"
+				},
+				{
+					"page": 7,
+					"line": 5,
+					"context": "    Page 7 line 2 alpha beta\n    Page 7 line 3 alpha beta\n    Page 7 line 4 alpha beta\n>>> Page 7 line 5 alpha beta\n    Page 7 line 6 alpha beta\n    Page 7 line 7 alpha beta\n    Page 7 line 8 alpha beta"
+				},
+				{
+					"page": 7,
+					"line": 6,
+					"context": "    Page 7 line 3 alpha beta\n    Page 7 line 4 alpha beta\n    Page 7 line 5 alpha beta\n>>> Page 7 line 6 alpha beta\n    Page 7 line 7 alpha beta\n    Page 7 line 8 alpha beta"
+				},
+				{
+					"page": 7,
+					"line": 7,
+					"context": "    Page 7 line 4 alpha beta\n    Page 7 line 5 alpha beta\n    Page 7 line 6 alpha beta\n>>> Page 7 line 7 alpha beta\n    Page 7 line 8 alpha beta"
+				},
+				{
+					"page": 7,
+					"line": 8,
+					"context": "    Page 7 line 5 alpha beta\n    Page 7 line 6 alpha beta\n    Page 7 line 7 alpha beta\n>>> Page 7 line 8 alpha beta"
+				},
+				{
+					"page": 8,
+					"line": 2,
+					"context": "    NEEDLE at the very top\n>>> Page 8 line 2 alpha beta\n    Page 8 line 3 alpha beta\n    Page 8 line 4 alpha beta\n    Page 8 line 5 alpha beta"
+				},
+				{
+					"page": 8,
+					"line": 3,
+					"context": "    NEEDLE at the very top\n    Page 8 line 2 alpha beta\n>>> Page 8 line 3 alpha beta\n    Page 8 line 4 alpha beta\n    Page 8 line 5 alpha beta\n    Page 8 line 6 alpha beta"
+				},
+				{
+					"page": 8,
+					"line": 4,
+					"context": "    NEEDLE at the very top\n    Page 8 line 2 alpha beta\n    Page 8 line 3 alpha beta\n>>> Page 8 line 4 alpha beta\n    Page 8 line 5 alpha beta\n    Page 8 line 6 alpha beta\n    Page 8 line 7 alpha beta"
+				},
+				{
+					"page": 8,
+					"line": 5,
+					"context": "    Page 8 line 2 alpha beta\n    Page 8 line 3 alpha beta\n    Page 8 line 4 alpha beta\n>>> Page 8 line 5 alpha beta\n    Page 8 line 6 alpha beta\n    Page 8 line 7 alpha beta\n    Needle at the very bottom"
+				},
+				{
+					"page": 8,
+					"line": 6,
+					"context": "    Page 8 line 3 alpha beta\n    Page 8 line 4 alpha beta\n    Page 8 line 5 alpha beta\n>>> Page 8 line 6 alpha beta\n    Page 8 line 7 alpha beta\n    Needle at the very bottom"
+				},
+				{
+					"page": 8,
+					"line": 7,
+					"context": "    Page 8 line 4 alpha beta\n    Page 8 line 5 alpha beta\n    Page 8 line 6 alpha beta\n>>> Page 8 line 7 alpha beta\n    Needle at the very bottom"
+				},
+				{
+					"page": 9,
+					"line": 1,
+					"context": ">>> Page 9 line 1 alpha beta\n    Page 9 line 2 alpha beta\n    Page 9 line 3 alpha beta\n    Page 9 line 4 alpha beta"
+				},
+				{
+					"page": 9,
+					"line": 2,
+					"context": "    Page 9 line 1 alpha beta\n>>> Page 9 line 2 alpha beta\n    Page 9 line 3 alpha beta\n    Page 9 line 4 alpha beta\n    Page 9 line 5 alpha beta"
+				},
+				{
+					"page": 9,
+					"line": 3,
+					"context": "    Page 9 line 1 alpha beta\n    Page 9 line 2 alpha beta\n>>> Page 9 line 3 alpha beta\n    Page 9 line 4 alpha beta\n    Page 9 line 5 alpha beta\n    Page 9 line 6 alpha beta"
+				},
+				{
+					"page": 9,
+					"line": 4,
+					"context": "    Page 9 line 1 alpha beta\n    Page 9 line 2 alpha beta\n    Page 9 line 3 alpha beta\n>>> Page 9 line 4 alpha beta\n    Page 9 line 5 alpha beta\n    Page 9 line 6 alpha beta\n    Page 9 line 7 alpha beta"
+				},
+				{
+					"page": 9,
+					"line": 5,
+					"context": "    Page 9 line 2 alpha beta\n    Page 9 line 3 alpha beta\n    Page 9 line 4 alpha beta\n>>> Page 9 line 5 alpha beta\n    Page 9 line 6 alpha beta\n    Page 9 line 7 alpha beta\n    Page 9 line 8 alpha beta"
+				},
+				{
+					"page": 9,
+					"line": 6,
+					"context": "    Page 9 line 3 alpha beta\n    Page 9 line 4 alpha beta\n    Page 9 line 5 alpha beta\n>>> Page 9 line 6 alpha beta\n    Page 9 line 7 alpha beta\n    Page 9 line 8 alpha beta"
+				},
+				{
+					"page": 9,
+					"line": 7,
+					"context": "    Page 9 line 4 alpha beta\n    Page 9 line 5 alpha beta\n    Page 9 line 6 alpha beta\n>>> Page 9 line 7 alpha beta\n    Page 9 line 8 alpha beta"
+				},
+				{
+					"page": 9,
+					"line": 8,
+					"context": "    Page 9 line 5 alpha beta\n    Page 9 line 6 alpha beta\n    Page 9 line 7 alpha beta\n>>> Page 9 line 8 alpha beta"
+				},
+				{
+					"page": 10,
+					"line": 1,
+					"context": ">>> Page 10 line 1 alpha beta\n    Page 10 line 2 alpha beta\n    Page 10 line 3 alpha beta\n    Page 10 line 4 alpha beta"
+				},
+				{
+					"page": 10,
+					"line": 2,
+					"context": "    Page 10 line 1 alpha beta\n>>> Page 10 line 2 alpha beta\n    Page 10 line 3 alpha beta\n    Page 10 line 4 alpha beta\n    Page 10 line 5 alpha beta"
+				},
+				{
+					"page": 10,
+					"line": 3,
+					"context": "    Page 10 line 1 alpha beta\n    Page 10 line 2 alpha beta\n>>> Page 10 line 3 alpha beta\n    Page 10 line 4 alpha beta\n    Page 10 line 5 alpha beta\n    Page 10 line 6 alpha beta"
+				},
+				{
+					"page": 10,
+					"line": 4,
+					"context": "    Page 10 line 1 alpha beta\n    Page 10 line 2 alpha beta\n    Page 10 line 3 alpha beta\n>>> Page 10 line 4 alpha beta\n    Page 10 line 5 alpha beta\n    Page 10 line 6 alpha beta\n    Page 10 line 7 alpha beta"
+				},
+				{
+					"page": 10,
+					"line": 5,
+					"context": "    Page 10 line 2 alpha beta\n    Page 10 line 3 alpha beta\n    Page 10 line 4 alpha beta\n>>> Page 10 line 5 alpha beta\n    Page 10 line 6 alpha beta\n    Page 10 line 7 alpha beta\n    Page 10 line 8 alpha beta"
+				},
+				{
+					"page": 10,
+					"line": 6,
+					"context": "    Page 10 line 3 alpha beta\n    Page 10 line 4 alpha beta\n    Page 10 line 5 alpha beta\n>>> Page 10 line 6 alpha beta\n    Page 10 line 7 alpha beta\n    Page 10 line 8 alpha beta"
+				},
+				{
+					"page": 10,
+					"line": 7,
+					"context": "    Page 10 line 4 alpha beta\n    Page 10 line 5 alpha beta\n    Page 10 line 6 alpha beta\n>>> Page 10 line 7 alpha beta\n    Page 10 line 8 alpha beta"
+				},
+				{
+					"page": 10,
+					"line": 8,
+					"context": "    Page 10 line 5 alpha beta\n    Page 10 line 6 alpha beta\n    Page 10 line 7 alpha beta\n>>> Page 10 line 8 alpha beta"
+				},
+				{
+					"page": 11,
+					"line": 1,
+					"context": ">>> Page 11 line 1 alpha beta\n    Page 11 line 2 alpha beta\n    Page 11 line 3 alpha beta\n    Page 11 line 4 alpha beta"
+				},
+				{
+					"page": 11,
+					"line": 2,
+					"context": "    Page 11 line 1 alpha beta\n>>> Page 11 line 2 alpha beta\n    Page 11 line 3 alpha beta\n    Page 11 line 4 alpha beta\n    Page 11 line 5 alpha beta"
+				},
+				{
+					"page": 11,
+					"line": 3,
+					"context": "    Page 11 line 1 alpha beta\n    Page 11 line 2 alpha beta\n>>> Page 11 line 3 alpha beta\n    Page 11 line 4 alpha beta\n    Page 11 line 5 alpha beta\n    Page 11 line 6 alpha beta"
+				},
+				{
+					"page": 11,
+					"line": 4,
+					"context": "    Page 11 line 1 alpha beta\n    Page 11 line 2 alpha beta\n    Page 11 line 3 alpha beta\n>>> Page 11 line 4 alpha beta\n    Page 11 line 5 alpha beta\n    Page 11 line 6 alpha beta\n    Page 11 line 7 alpha beta"
+				},
+				{
+					"page": 11,
+					"line": 5,
+					"context": "    Page 11 line 2 alpha beta\n    Page 11 line 3 alpha beta\n    Page 11 line 4 alpha beta\n>>> Page 11 line 5 alpha beta\n    Page 11 line 6 alpha beta\n    Page 11 line 7 alpha beta\n    Page 11 line 8 alpha beta"
+				},
+				{
+					"page": 11,
+					"line": 6,
+					"context": "    Page 11 line 3 alpha beta\n    Page 11 line 4 alpha beta\n    Page 11 line 5 alpha beta\n>>> Page 11 line 6 alpha beta\n    Page 11 line 7 alpha beta\n    Page 11 line 8 alpha beta"
+				},
+				{
+					"page": 11,
+					"line": 7,
+					"context": "    Page 11 line 4 alpha beta\n    Page 11 line 5 alpha beta\n    Page 11 line 6 alpha beta\n>>> Page 11 line 7 alpha beta\n    Page 11 line 8 alpha beta"
+				},
+				{
+					"page": 11,
+					"line": 8,
+					"context": "    Page 11 line 5 alpha beta\n    Page 11 line 6 alpha beta\n    Page 11 line 7 alpha beta\n>>> Page 11 line 8 alpha beta"
+				},
+				{
+					"page": 12,
+					"line": 2,
+					"context": "    NEEDLE at the very top\n>>> Page 12 line 2 alpha beta\n    Page 12 line 3 alpha beta\n    Page 12 line 4 alpha beta\n    Page 12 line 5 alpha beta"
+				},
+				{
+					"page": 12,
+					"line": 3,
+					"context": "    NEEDLE at the very top\n    Page 12 line 2 alpha beta\n>>> Page 12 line 3 alpha beta\n    Page 12 line 4 alpha beta\n    Page 12 line 5 alpha beta\n    Page 12 line 6 alpha beta"
+				},
+				{
+					"page": 12,
+					"line": 4,
+					"context": "    NEEDLE at the very top\n    Page 12 line 2 alpha beta\n    Page 12 line 3 alpha beta\n>>> Page 12 line 4 alpha beta\n    Page 12 line 5 alpha beta\n    Page 12 line 6 alpha beta\n    Page 12 line 7 alpha beta"
+				},
+				{
+					"page": 12,
+					"line": 5,
+					"context": "    Page 12 line 2 alpha beta\n    Page 12 line 3 alpha beta\n    Page 12 line 4 alpha beta\n>>> Page 12 line 5 alpha beta\n    Page 12 line 6 alpha beta\n    Page 12 line 7 alpha beta\n    Needle at the very bottom"
+				},
+				{
+					"page": 12,
+					"line": 6,
+					"context": "    Page 12 line 3 alpha beta\n    Page 12 line 4 alpha beta\n    Page 12 line 5 alpha beta\n>>> Page 12 line 6 alpha beta\n    Page 12 line 7 alpha beta\n    Needle at the very bottom"
+				},
+				{
+					"page": 12,
+					"line": 7,
+					"context": "    Page 12 line 4 alpha beta\n    Page 12 line 5 alpha beta\n    Page 12 line 6 alpha beta\n>>> Page 12 line 7 alpha beta\n    Needle at the very bottom"
+				}
+			]
+		}
+	},
+	{
+		"name": "search lines.pdf \"zymurgy\" literal true",
+		"output": {
+			"hits": []
+		}
+	},
+	{
+		"name": "search lines.pdf \"zymurgy\" literal false",
+		"output": {
+			"hits": []
+		}
+	},
+	{
+		"name": "search lines.pdf \"^Page 3\" literal true",
+		"output": {
+			"hits": []
+		}
+	},
+	{
+		"name": "search lines.pdf \"^Page 3\" literal false",
+		"output": {
+			"hits": [
+				{
+					"page": 3,
+					"line": 1,
+					"context": ">>> Page 3 line 1 alpha beta\n    Page 3 line 2 alpha beta\n    Page 3 line 3 alpha beta\n    Page 3 line 4 alpha beta"
+				},
+				{
+					"page": 3,
+					"line": 2,
+					"context": "    Page 3 line 1 alpha beta\n>>> Page 3 line 2 alpha beta\n    Page 3 line 3 alpha beta\n    Page 3 line 4 alpha beta\n    Page 3 line 5 alpha beta"
+				},
+				{
+					"page": 3,
+					"line": 3,
+					"context": "    Page 3 line 1 alpha beta\n    Page 3 line 2 alpha beta\n>>> Page 3 line 3 alpha beta\n    Page 3 line 4 alpha beta\n    Page 3 line 5 alpha beta\n    Page 3 line 6 alpha beta"
+				},
+				{
+					"page": 3,
+					"line": 4,
+					"context": "    Page 3 line 1 alpha beta\n    Page 3 line 2 alpha beta\n    Page 3 line 3 alpha beta\n>>> Page 3 line 4 alpha beta\n    Page 3 line 5 alpha beta\n    Page 3 line 6 alpha beta\n    Page 3 line 7 alpha beta"
+				},
+				{
+					"page": 3,
+					"line": 5,
+					"context": "    Page 3 line 2 alpha beta\n    Page 3 line 3 alpha beta\n    Page 3 line 4 alpha beta\n>>> Page 3 line 5 alpha beta\n    Page 3 line 6 alpha beta\n    Page 3 line 7 alpha beta\n    Page 3 line 8 alpha beta"
+				},
+				{
+					"page": 3,
+					"line": 6,
+					"context": "    Page 3 line 3 alpha beta\n    Page 3 line 4 alpha beta\n    Page 3 line 5 alpha beta\n>>> Page 3 line 6 alpha beta\n    Page 3 line 7 alpha beta\n    Page 3 line 8 alpha beta"
+				},
+				{
+					"page": 3,
+					"line": 7,
+					"context": "    Page 3 line 4 alpha beta\n    Page 3 line 5 alpha beta\n    Page 3 line 6 alpha beta\n>>> Page 3 line 7 alpha beta\n    Page 3 line 8 alpha beta"
+				},
+				{
+					"page": 3,
+					"line": 8,
+					"context": "    Page 3 line 5 alpha beta\n    Page 3 line 6 alpha beta\n    Page 3 line 7 alpha beta\n>>> Page 3 line 8 alpha beta"
+				}
+			]
+		}
+	},
+	{
+		"name": "search lines.pdf \"line [1-2]$\" literal true",
+		"output": {
+			"hits": []
+		}
+	},
+	{
+		"name": "search lines.pdf \"line [1-2]$\" literal false",
+		"output": {
+			"hits": []
+		}
+	},
+	{
+		"name": "search lines.pdf \"a.b\" literal true",
+		"output": {
+			"hits": [
+				{
+					"page": 5,
+					"line": 4,
+					"context": "    Page 5 line 1 alpha beta\n    Page 5 line 2 alpha beta\n    Page 5 line 3 alpha beta\n>>> a.b (c) [d] *star* $5 ^up\n    Page 5 line 5 alpha beta\n    Page 5 line 6 alpha beta\n    Page 5 line 7 alpha beta"
+				}
+			]
+		}
+	},
+	{
+		"name": "search lines.pdf \"a.b\" literal false",
+		"output": {
+			"hits": [
+				{
+					"page": 1,
+					"line": 1,
+					"context": ">>> Page 1 line 1 alpha beta\n    Page 1 line 2 alpha beta\n    Page 1 line 3 alpha beta\n    Page 1 line 4 alpha beta"
+				},
+				{
+					"page": 1,
+					"line": 2,
+					"context": "    Page 1 line 1 alpha beta\n>>> Page 1 line 2 alpha beta\n    Page 1 line 3 alpha beta\n    Page 1 line 4 alpha beta\n    Page 1 line 5 alpha beta"
+				},
+				{
+					"page": 1,
+					"line": 3,
+					"context": "    Page 1 line 1 alpha beta\n    Page 1 line 2 alpha beta\n>>> Page 1 line 3 alpha beta\n    Page 1 line 4 alpha beta\n    Page 1 line 5 alpha beta\n    Page 1 line 6 alpha beta"
+				},
+				{
+					"page": 1,
+					"line": 4,
+					"context": "    Page 1 line 1 alpha beta\n    Page 1 line 2 alpha beta\n    Page 1 line 3 alpha beta\n>>> Page 1 line 4 alpha beta\n    Page 1 line 5 alpha beta\n    Page 1 line 6 alpha beta\n    Page 1 line 7 alpha beta"
+				},
+				{
+					"page": 1,
+					"line": 5,
+					"context": "    Page 1 line 2 alpha beta\n    Page 1 line 3 alpha beta\n    Page 1 line 4 alpha beta\n>>> Page 1 line 5 alpha beta\n    Page 1 line 6 alpha beta\n    Page 1 line 7 alpha beta\n    Page 1 line 8 alpha beta"
+				},
+				{
+					"page": 1,
+					"line": 6,
+					"context": "    Page 1 line 3 alpha beta\n    Page 1 line 4 alpha beta\n    Page 1 line 5 alpha beta\n>>> Page 1 line 6 alpha beta\n    Page 1 line 7 alpha beta\n    Page 1 line 8 alpha beta"
+				},
+				{
+					"page": 1,
+					"line": 7,
+					"context": "    Page 1 line 4 alpha beta\n    Page 1 line 5 alpha beta\n    Page 1 line 6 alpha beta\n>>> Page 1 line 7 alpha beta\n    Page 1 line 8 alpha beta"
+				},
+				{
+					"page": 1,
+					"line": 8,
+					"context": "    Page 1 line 5 alpha beta\n    Page 1 line 6 alpha beta\n    Page 1 line 7 alpha beta\n>>> Page 1 line 8 alpha beta"
+				},
+				{
+					"page": 2,
+					"line": 1,
+					"context": ">>> Page 2 line 1 alpha beta\n    Page 2 line 2 alpha beta\n    Page 2 line 3 alpha beta\n    Page 2 line 4 alpha beta"
+				},
+				{
+					"page": 2,
+					"line": 2,
+					"context": "    Page 2 line 1 alpha beta\n>>> Page 2 line 2 alpha beta\n    Page 2 line 3 alpha beta\n    Page 2 line 4 alpha beta\n    Page 2 line 5 alpha beta"
+				},
+				{
+					"page": 2,
+					"line": 3,
+					"context": "    Page 2 line 1 alpha beta\n    Page 2 line 2 alpha beta\n>>> Page 2 line 3 alpha beta\n    Page 2 line 4 alpha beta\n    Page 2 line 5 alpha beta\n    Page 2 line 6 alpha beta"
+				},
+				{
+					"page": 2,
+					"line": 4,
+					"context": "    Page 2 line 1 alpha beta\n    Page 2 line 2 alpha beta\n    Page 2 line 3 alpha beta\n>>> Page 2 line 4 alpha beta\n    Page 2 line 5 alpha beta\n    Page 2 line 6 alpha beta\n    Page 2 line 7 alpha beta"
+				},
+				{
+					"page": 2,
+					"line": 5,
+					"context": "    Page 2 line 2 alpha beta\n    Page 2 line 3 alpha beta\n    Page 2 line 4 alpha beta\n>>> Page 2 line 5 alpha beta\n    Page 2 line 6 alpha beta\n    Page 2 line 7 alpha beta\n    Page 2 line 8 alpha beta"
+				},
+				{
+					"page": 2,
+					"line": 6,
+					"context": "    Page 2 line 3 alpha beta\n    Page 2 line 4 alpha beta\n    Page 2 line 5 alpha beta\n>>> Page 2 line 6 alpha beta\n    Page 2 line 7 alpha beta\n    Page 2 line 8 alpha beta"
+				},
+				{
+					"page": 2,
+					"line": 7,
+					"context": "    Page 2 line 4 alpha beta\n    Page 2 line 5 alpha beta\n    Page 2 line 6 alpha beta\n>>> Page 2 line 7 alpha beta\n    Page 2 line 8 alpha beta"
+				},
+				{
+					"page": 2,
+					"line": 8,
+					"context": "    Page 2 line 5 alpha beta\n    Page 2 line 6 alpha beta\n    Page 2 line 7 alpha beta\n>>> Page 2 line 8 alpha beta"
+				},
+				{
+					"page": 3,
+					"line": 1,
+					"context": ">>> Page 3 line 1 alpha beta\n    Page 3 line 2 alpha beta\n    Page 3 line 3 alpha beta\n    Page 3 line 4 alpha beta"
+				},
+				{
+					"page": 3,
+					"line": 2,
+					"context": "    Page 3 line 1 alpha beta\n>>> Page 3 line 2 alpha beta\n    Page 3 line 3 alpha beta\n    Page 3 line 4 alpha beta\n    Page 3 line 5 alpha beta"
+				},
+				{
+					"page": 3,
+					"line": 3,
+					"context": "    Page 3 line 1 alpha beta\n    Page 3 line 2 alpha beta\n>>> Page 3 line 3 alpha beta\n    Page 3 line 4 alpha beta\n    Page 3 line 5 alpha beta\n    Page 3 line 6 alpha beta"
+				},
+				{
+					"page": 3,
+					"line": 4,
+					"context": "    Page 3 line 1 alpha beta\n    Page 3 line 2 alpha beta\n    Page 3 line 3 alpha beta\n>>> Page 3 line 4 alpha beta\n    Page 3 line 5 alpha beta\n    Page 3 line 6 alpha beta\n    Page 3 line 7 alpha beta"
+				},
+				{
+					"page": 3,
+					"line": 5,
+					"context": "    Page 3 line 2 alpha beta\n    Page 3 line 3 alpha beta\n    Page 3 line 4 alpha beta\n>>> Page 3 line 5 alpha beta\n    Page 3 line 6 alpha beta\n    Page 3 line 7 alpha beta\n    Page 3 line 8 alpha beta"
+				},
+				{
+					"page": 3,
+					"line": 6,
+					"context": "    Page 3 line 3 alpha beta\n    Page 3 line 4 alpha beta\n    Page 3 line 5 alpha beta\n>>> Page 3 line 6 alpha beta\n    Page 3 line 7 alpha beta\n    Page 3 line 8 alpha beta"
+				},
+				{
+					"page": 3,
+					"line": 7,
+					"context": "    Page 3 line 4 alpha beta\n    Page 3 line 5 alpha beta\n    Page 3 line 6 alpha beta\n>>> Page 3 line 7 alpha beta\n    Page 3 line 8 alpha beta"
+				},
+				{
+					"page": 3,
+					"line": 8,
+					"context": "    Page 3 line 5 alpha beta\n    Page 3 line 6 alpha beta\n    Page 3 line 7 alpha beta\n>>> Page 3 line 8 alpha beta"
+				},
+				{
+					"page": 4,
+					"line": 2,
+					"context": "    NEEDLE at the very top\n>>> Page 4 line 2 alpha beta\n    Page 4 line 3 alpha beta\n    Page 4 line 4 alpha beta\n    Page 4 line 5 alpha beta"
+				},
+				{
+					"page": 4,
+					"line": 3,
+					"context": "    NEEDLE at the very top\n    Page 4 line 2 alpha beta\n>>> Page 4 line 3 alpha beta\n    Page 4 line 4 alpha beta\n    Page 4 line 5 alpha beta\n    Page 4 line 6 alpha beta"
+				},
+				{
+					"page": 4,
+					"line": 4,
+					"context": "    NEEDLE at the very top\n    Page 4 line 2 alpha beta\n    Page 4 line 3 alpha beta\n>>> Page 4 line 4 alpha beta\n    Page 4 line 5 alpha beta\n    Page 4 line 6 alpha beta\n    Page 4 line 7 alpha beta"
+				},
+				{
+					"page": 4,
+					"line": 5,
+					"context": "    Page 4 line 2 alpha beta\n    Page 4 line 3 alpha beta\n    Page 4 line 4 alpha beta\n>>> Page 4 line 5 alpha beta\n    Page 4 line 6 alpha beta\n    Page 4 line 7 alpha beta\n    Needle at the very bottom"
+				},
+				{
+					"page": 4,
+					"line": 6,
+					"context": "    Page 4 line 3 alpha beta\n    Page 4 line 4 alpha beta\n    Page 4 line 5 alpha beta\n>>> Page 4 line 6 alpha beta\n    Page 4 line 7 alpha beta\n    Needle at the very bottom"
+				},
+				{
+					"page": 4,
+					"line": 7,
+					"context": "    Page 4 line 4 alpha beta\n    Page 4 line 5 alpha beta\n    Page 4 line 6 alpha beta\n>>> Page 4 line 7 alpha beta\n    Needle at the very bottom"
+				},
+				{
+					"page": 5,
+					"line": 1,
+					"context": ">>> Page 5 line 1 alpha beta\n    Page 5 line 2 alpha beta\n    Page 5 line 3 alpha beta\n    a.b (c) [d] *star* $5 ^up"
+				},
+				{
+					"page": 5,
+					"line": 2,
+					"context": "    Page 5 line 1 alpha beta\n>>> Page 5 line 2 alpha beta\n    Page 5 line 3 alpha beta\n    a.b (c) [d] *star* $5 ^up\n    Page 5 line 5 alpha beta"
+				},
+				{
+					"page": 5,
+					"line": 3,
+					"context": "    Page 5 line 1 alpha beta\n    Page 5 line 2 alpha beta\n>>> Page 5 line 3 alpha beta\n    a.b (c) [d] *star* $5 ^up\n    Page 5 line 5 alpha beta\n    Page 5 line 6 alpha beta"
+				},
+				{
+					"page": 5,
+					"line": 4,
+					"context": "    Page 5 line 1 alpha beta\n    Page 5 line 2 alpha beta\n    Page 5 line 3 alpha beta\n>>> a.b (c) [d] *star* $5 ^up\n    Page 5 line 5 alpha beta\n    Page 5 line 6 alpha beta\n    Page 5 line 7 alpha beta"
+				},
+				{
+					"page": 5,
+					"line": 5,
+					"context": "    Page 5 line 2 alpha beta\n    Page 5 line 3 alpha beta\n    a.b (c) [d] *star* $5 ^up\n>>> Page 5 line 5 alpha beta\n    Page 5 line 6 alpha beta\n    Page 5 line 7 alpha beta\n    Page 5 line 8 alpha beta"
+				},
+				{
+					"page": 5,
+					"line": 6,
+					"context": "    Page 5 line 3 alpha beta\n    a.b (c) [d] *star* $5 ^up\n    Page 5 line 5 alpha beta\n>>> Page 5 line 6 alpha beta\n    Page 5 line 7 alpha beta\n    Page 5 line 8 alpha beta"
+				},
+				{
+					"page": 5,
+					"line": 7,
+					"context": "    a.b (c) [d] *star* $5 ^up\n    Page 5 line 5 alpha beta\n    Page 5 line 6 alpha beta\n>>> Page 5 line 7 alpha beta\n    Page 5 line 8 alpha beta"
+				},
+				{
+					"page": 5,
+					"line": 8,
+					"context": "    Page 5 line 5 alpha beta\n    Page 5 line 6 alpha beta\n    Page 5 line 7 alpha beta\n>>> Page 5 line 8 alpha beta"
+				},
+				{
+					"page": 6,
+					"line": 1,
+					"context": ">>> Page 6 line 1 alpha beta\n    Page 6 line 2 alpha beta\n    Page 6 line 3 alpha beta\n    Page 6 line 4 alpha beta"
+				},
+				{
+					"page": 6,
+					"line": 2,
+					"context": "    Page 6 line 1 alpha beta\n>>> Page 6 line 2 alpha beta\n    Page 6 line 3 alpha beta\n    Page 6 line 4 alpha beta\n    Page 6 line 5 alpha beta"
+				},
+				{
+					"page": 6,
+					"line": 3,
+					"context": "    Page 6 line 1 alpha beta\n    Page 6 line 2 alpha beta\n>>> Page 6 line 3 alpha beta\n    Page 6 line 4 alpha beta\n    Page 6 line 5 alpha beta\n    Page 6 line 6 alpha beta"
+				},
+				{
+					"page": 6,
+					"line": 4,
+					"context": "    Page 6 line 1 alpha beta\n    Page 6 line 2 alpha beta\n    Page 6 line 3 alpha beta\n>>> Page 6 line 4 alpha beta\n    Page 6 line 5 alpha beta\n    Page 6 line 6 alpha beta\n    Page 6 line 7 alpha beta"
+				},
+				{
+					"page": 6,
+					"line": 5,
+					"context": "    Page 6 line 2 alpha beta\n    Page 6 line 3 alpha beta\n    Page 6 line 4 alpha beta\n>>> Page 6 line 5 alpha beta\n    Page 6 line 6 alpha beta\n    Page 6 line 7 alpha beta\n    Page 6 line 8 alpha beta"
+				},
+				{
+					"page": 6,
+					"line": 6,
+					"context": "    Page 6 line 3 alpha beta\n    Page 6 line 4 alpha beta\n    Page 6 line 5 alpha beta\n>>> Page 6 line 6 alpha beta\n    Page 6 line 7 alpha beta\n    Page 6 line 8 alpha beta"
+				},
+				{
+					"page": 6,
+					"line": 7,
+					"context": "    Page 6 line 4 alpha beta\n    Page 6 line 5 alpha beta\n    Page 6 line 6 alpha beta\n>>> Page 6 line 7 alpha beta\n    Page 6 line 8 alpha beta"
+				},
+				{
+					"page": 6,
+					"line": 8,
+					"context": "    Page 6 line 5 alpha beta\n    Page 6 line 6 alpha beta\n    Page 6 line 7 alpha beta\n>>> Page 6 line 8 alpha beta"
+				},
+				{
+					"page": 7,
+					"line": 1,
+					"context": ">>> Page 7 line 1 alpha beta\n    Page 7 line 2 alpha beta\n    Page 7 line 3 alpha beta\n    Page 7 line 4 alpha beta"
+				},
+				{
+					"page": 7,
+					"line": 2,
+					"context": "    Page 7 line 1 alpha beta\n>>> Page 7 line 2 alpha beta\n    Page 7 line 3 alpha beta\n    Page 7 line 4 alpha beta\n    Page 7 line 5 alpha beta"
+				},
+				{
+					"page": 7,
+					"line": 3,
+					"context": "    Page 7 line 1 alpha beta\n    Page 7 line 2 alpha beta\n>>> Page 7 line 3 alpha beta\n    Page 7 line 4 alpha beta\n    Page 7 line 5 alpha beta\n    Page 7 line 6 alpha beta"
+				},
+				{
+					"page": 7,
+					"line": 4,
+					"context": "    Page 7 line 1 alpha beta\n    Page 7 line 2 alpha beta\n    Page 7 line 3 alpha beta\n>>> Page 7 line 4 alpha beta\n    Page 7 line 5 alpha beta\n    Page 7 line 6 alpha beta\n    Page 7 line 7 alpha beta"
+				},
+				{
+					"page": 7,
+					"line": 5,
+					"context": "    Page 7 line 2 alpha beta\n    Page 7 line 3 alpha beta\n    Page 7 line 4 alpha beta\n>>> Page 7 line 5 alpha beta\n    Page 7 line 6 alpha beta\n    Page 7 line 7 alpha beta\n    Page 7 line 8 alpha beta"
+				},
+				{
+					"page": 7,
+					"line": 6,
+					"context": "    Page 7 line 3 alpha beta\n    Page 7 line 4 alpha beta\n    Page 7 line 5 alpha beta\n>>> Page 7 line 6 alpha beta\n    Page 7 line 7 alpha beta\n    Page 7 line 8 alpha beta"
+				},
+				{
+					"page": 7,
+					"line": 7,
+					"context": "    Page 7 line 4 alpha beta\n    Page 7 line 5 alpha beta\n    Page 7 line 6 alpha beta\n>>> Page 7 line 7 alpha beta\n    Page 7 line 8 alpha beta"
+				},
+				{
+					"page": 7,
+					"line": 8,
+					"context": "    Page 7 line 5 alpha beta\n    Page 7 line 6 alpha beta\n    Page 7 line 7 alpha beta\n>>> Page 7 line 8 alpha beta"
+				},
+				{
+					"page": 8,
+					"line": 2,
+					"context": "    NEEDLE at the very top\n>>> Page 8 line 2 alpha beta\n    Page 8 line 3 alpha beta\n    Page 8 line 4 alpha beta\n    Page 8 line 5 alpha beta"
+				},
+				{
+					"page": 8,
+					"line": 3,
+					"context": "    NEEDLE at the very top\n    Page 8 line 2 alpha beta\n>>> Page 8 line 3 alpha beta\n    Page 8 line 4 alpha beta\n    Page 8 line 5 alpha beta\n    Page 8 line 6 alpha beta"
+				},
+				{
+					"page": 8,
+					"line": 4,
+					"context": "    NEEDLE at the very top\n    Page 8 line 2 alpha beta\n    Page 8 line 3 alpha beta\n>>> Page 8 line 4 alpha beta\n    Page 8 line 5 alpha beta\n    Page 8 line 6 alpha beta\n    Page 8 line 7 alpha beta"
+				},
+				{
+					"page": 8,
+					"line": 5,
+					"context": "    Page 8 line 2 alpha beta\n    Page 8 line 3 alpha beta\n    Page 8 line 4 alpha beta\n>>> Page 8 line 5 alpha beta\n    Page 8 line 6 alpha beta\n    Page 8 line 7 alpha beta\n    Needle at the very bottom"
+				},
+				{
+					"page": 8,
+					"line": 6,
+					"context": "    Page 8 line 3 alpha beta\n    Page 8 line 4 alpha beta\n    Page 8 line 5 alpha beta\n>>> Page 8 line 6 alpha beta\n    Page 8 line 7 alpha beta\n    Needle at the very bottom"
+				},
+				{
+					"page": 8,
+					"line": 7,
+					"context": "    Page 8 line 4 alpha beta\n    Page 8 line 5 alpha beta\n    Page 8 line 6 alpha beta\n>>> Page 8 line 7 alpha beta\n    Needle at the very bottom"
+				},
+				{
+					"page": 9,
+					"line": 1,
+					"context": ">>> Page 9 line 1 alpha beta\n    Page 9 line 2 alpha beta\n    Page 9 line 3 alpha beta\n    Page 9 line 4 alpha beta"
+				},
+				{
+					"page": 9,
+					"line": 2,
+					"context": "    Page 9 line 1 alpha beta\n>>> Page 9 line 2 alpha beta\n    Page 9 line 3 alpha beta\n    Page 9 line 4 alpha beta\n    Page 9 line 5 alpha beta"
+				},
+				{
+					"page": 9,
+					"line": 3,
+					"context": "    Page 9 line 1 alpha beta\n    Page 9 line 2 alpha beta\n>>> Page 9 line 3 alpha beta\n    Page 9 line 4 alpha beta\n    Page 9 line 5 alpha beta\n    Page 9 line 6 alpha beta"
+				},
+				{
+					"page": 9,
+					"line": 4,
+					"context": "    Page 9 line 1 alpha beta\n    Page 9 line 2 alpha beta\n    Page 9 line 3 alpha beta\n>>> Page 9 line 4 alpha beta\n    Page 9 line 5 alpha beta\n    Page 9 line 6 alpha beta\n    Page 9 line 7 alpha beta"
+				},
+				{
+					"page": 9,
+					"line": 5,
+					"context": "    Page 9 line 2 alpha beta\n    Page 9 line 3 alpha beta\n    Page 9 line 4 alpha beta\n>>> Page 9 line 5 alpha beta\n    Page 9 line 6 alpha beta\n    Page 9 line 7 alpha beta\n    Page 9 line 8 alpha beta"
+				},
+				{
+					"page": 9,
+					"line": 6,
+					"context": "    Page 9 line 3 alpha beta\n    Page 9 line 4 alpha beta\n    Page 9 line 5 alpha beta\n>>> Page 9 line 6 alpha beta\n    Page 9 line 7 alpha beta\n    Page 9 line 8 alpha beta"
+				},
+				{
+					"page": 9,
+					"line": 7,
+					"context": "    Page 9 line 4 alpha beta\n    Page 9 line 5 alpha beta\n    Page 9 line 6 alpha beta\n>>> Page 9 line 7 alpha beta\n    Page 9 line 8 alpha beta"
+				},
+				{
+					"page": 9,
+					"line": 8,
+					"context": "    Page 9 line 5 alpha beta\n    Page 9 line 6 alpha beta\n    Page 9 line 7 alpha beta\n>>> Page 9 line 8 alpha beta"
+				},
+				{
+					"page": 10,
+					"line": 1,
+					"context": ">>> Page 10 line 1 alpha beta\n    Page 10 line 2 alpha beta\n    Page 10 line 3 alpha beta\n    Page 10 line 4 alpha beta"
+				},
+				{
+					"page": 10,
+					"line": 2,
+					"context": "    Page 10 line 1 alpha beta\n>>> Page 10 line 2 alpha beta\n    Page 10 line 3 alpha beta\n    Page 10 line 4 alpha beta\n    Page 10 line 5 alpha beta"
+				},
+				{
+					"page": 10,
+					"line": 3,
+					"context": "    Page 10 line 1 alpha beta\n    Page 10 line 2 alpha beta\n>>> Page 10 line 3 alpha beta\n    Page 10 line 4 alpha beta\n    Page 10 line 5 alpha beta\n    Page 10 line 6 alpha beta"
+				},
+				{
+					"page": 10,
+					"line": 4,
+					"context": "    Page 10 line 1 alpha beta\n    Page 10 line 2 alpha beta\n    Page 10 line 3 alpha beta\n>>> Page 10 line 4 alpha beta\n    Page 10 line 5 alpha beta\n    Page 10 line 6 alpha beta\n    Page 10 line 7 alpha beta"
+				},
+				{
+					"page": 10,
+					"line": 5,
+					"context": "    Page 10 line 2 alpha beta\n    Page 10 line 3 alpha beta\n    Page 10 line 4 alpha beta\n>>> Page 10 line 5 alpha beta\n    Page 10 line 6 alpha beta\n    Page 10 line 7 alpha beta\n    Page 10 line 8 alpha beta"
+				},
+				{
+					"page": 10,
+					"line": 6,
+					"context": "    Page 10 line 3 alpha beta\n    Page 10 line 4 alpha beta\n    Page 10 line 5 alpha beta\n>>> Page 10 line 6 alpha beta\n    Page 10 line 7 alpha beta\n    Page 10 line 8 alpha beta"
+				},
+				{
+					"page": 10,
+					"line": 7,
+					"context": "    Page 10 line 4 alpha beta\n    Page 10 line 5 alpha beta\n    Page 10 line 6 alpha beta\n>>> Page 10 line 7 alpha beta\n    Page 10 line 8 alpha beta"
+				},
+				{
+					"page": 10,
+					"line": 8,
+					"context": "    Page 10 line 5 alpha beta\n    Page 10 line 6 alpha beta\n    Page 10 line 7 alpha beta\n>>> Page 10 line 8 alpha beta"
+				},
+				{
+					"page": 11,
+					"line": 1,
+					"context": ">>> Page 11 line 1 alpha beta\n    Page 11 line 2 alpha beta\n    Page 11 line 3 alpha beta\n    Page 11 line 4 alpha beta"
+				},
+				{
+					"page": 11,
+					"line": 2,
+					"context": "    Page 11 line 1 alpha beta\n>>> Page 11 line 2 alpha beta\n    Page 11 line 3 alpha beta\n    Page 11 line 4 alpha beta\n    Page 11 line 5 alpha beta"
+				},
+				{
+					"page": 11,
+					"line": 3,
+					"context": "    Page 11 line 1 alpha beta\n    Page 11 line 2 alpha beta\n>>> Page 11 line 3 alpha beta\n    Page 11 line 4 alpha beta\n    Page 11 line 5 alpha beta\n    Page 11 line 6 alpha beta"
+				},
+				{
+					"page": 11,
+					"line": 4,
+					"context": "    Page 11 line 1 alpha beta\n    Page 11 line 2 alpha beta\n    Page 11 line 3 alpha beta\n>>> Page 11 line 4 alpha beta\n    Page 11 line 5 alpha beta\n    Page 11 line 6 alpha beta\n    Page 11 line 7 alpha beta"
+				},
+				{
+					"page": 11,
+					"line": 5,
+					"context": "    Page 11 line 2 alpha beta\n    Page 11 line 3 alpha beta\n    Page 11 line 4 alpha beta\n>>> Page 11 line 5 alpha beta\n    Page 11 line 6 alpha beta\n    Page 11 line 7 alpha beta\n    Page 11 line 8 alpha beta"
+				},
+				{
+					"page": 11,
+					"line": 6,
+					"context": "    Page 11 line 3 alpha beta\n    Page 11 line 4 alpha beta\n    Page 11 line 5 alpha beta\n>>> Page 11 line 6 alpha beta\n    Page 11 line 7 alpha beta\n    Page 11 line 8 alpha beta"
+				},
+				{
+					"page": 11,
+					"line": 7,
+					"context": "    Page 11 line 4 alpha beta\n    Page 11 line 5 alpha beta\n    Page 11 line 6 alpha beta\n>>> Page 11 line 7 alpha beta\n    Page 11 line 8 alpha beta"
+				},
+				{
+					"page": 11,
+					"line": 8,
+					"context": "    Page 11 line 5 alpha beta\n    Page 11 line 6 alpha beta\n    Page 11 line 7 alpha beta\n>>> Page 11 line 8 alpha beta"
+				},
+				{
+					"page": 12,
+					"line": 2,
+					"context": "    NEEDLE at the very top\n>>> Page 12 line 2 alpha beta\n    Page 12 line 3 alpha beta\n    Page 12 line 4 alpha beta\n    Page 12 line 5 alpha beta"
+				},
+				{
+					"page": 12,
+					"line": 3,
+					"context": "    NEEDLE at the very top\n    Page 12 line 2 alpha beta\n>>> Page 12 line 3 alpha beta\n    Page 12 line 4 alpha beta\n    Page 12 line 5 alpha beta\n    Page 12 line 6 alpha beta"
+				},
+				{
+					"page": 12,
+					"line": 4,
+					"context": "    NEEDLE at the very top\n    Page 12 line 2 alpha beta\n    Page 12 line 3 alpha beta\n>>> Page 12 line 4 alpha beta\n    Page 12 line 5 alpha beta\n    Page 12 line 6 alpha beta\n    Page 12 line 7 alpha beta"
+				},
+				{
+					"page": 12,
+					"line": 5,
+					"context": "    Page 12 line 2 alpha beta\n    Page 12 line 3 alpha beta\n    Page 12 line 4 alpha beta\n>>> Page 12 line 5 alpha beta\n    Page 12 line 6 alpha beta\n    Page 12 line 7 alpha beta\n    Needle at the very bottom"
+				},
+				{
+					"page": 12,
+					"line": 6,
+					"context": "    Page 12 line 3 alpha beta\n    Page 12 line 4 alpha beta\n    Page 12 line 5 alpha beta\n>>> Page 12 line 6 alpha beta\n    Page 12 line 7 alpha beta\n    Needle at the very bottom"
+				},
+				{
+					"page": 12,
+					"line": 7,
+					"context": "    Page 12 line 4 alpha beta\n    Page 12 line 5 alpha beta\n    Page 12 line 6 alpha beta\n>>> Page 12 line 7 alpha beta\n    Needle at the very bottom"
+				}
+			]
+		}
+	},
+	{
+		"name": "search lines.pdf \"$5\" literal true",
+		"output": {
+			"hits": [
+				{
+					"page": 5,
+					"line": 4,
+					"context": "    Page 5 line 1 alpha beta\n    Page 5 line 2 alpha beta\n    Page 5 line 3 alpha beta\n>>> a.b (c) [d] *star* $5 ^up\n    Page 5 line 5 alpha beta\n    Page 5 line 6 alpha beta\n    Page 5 line 7 alpha beta"
+				}
+			]
+		}
+	},
+	{
+		"name": "search lines.pdf \"$5\" literal false",
+		"output": {
+			"hits": []
+		}
+	},
+	{
+		"name": "search lines.pdf \"(c)\" literal true",
+		"output": {
+			"hits": [
+				{
+					"page": 5,
+					"line": 4,
+					"context": "    Page 5 line 1 alpha beta\n    Page 5 line 2 alpha beta\n    Page 5 line 3 alpha beta\n>>> a.b (c) [d] *star* $5 ^up\n    Page 5 line 5 alpha beta\n    Page 5 line 6 alpha beta\n    Page 5 line 7 alpha beta"
+				}
+			]
+		}
+	},
+	{
+		"name": "search lines.pdf \"(c)\" literal false",
+		"output": {
+			"hits": [
+				{
+					"page": 5,
+					"line": 4,
+					"context": "    Page 5 line 1 alpha beta\n    Page 5 line 2 alpha beta\n    Page 5 line 3 alpha beta\n>>> a.b (c) [d] *star* $5 ^up\n    Page 5 line 5 alpha beta\n    Page 5 line 6 alpha beta\n    Page 5 line 7 alpha beta"
+				}
+			]
+		}
+	},
+	{
+		"name": "search math.pdf \"force\" literal true",
+		"output": {
+			"hits": []
+		}
+	},
+	{
+		"name": "search math.pdf \"force\" literal false",
+		"output": {
+			"hits": []
+		}
+	},
+	{
+		"name": "search math.pdf \"needle\" literal true",
+		"output": {
+			"hits": []
+		}
+	},
+	{
+		"name": "search math.pdf \"needle\" literal false",
+		"output": {
+			"hits": []
+		}
+	},
+	{
+		"name": "search math.pdf \"NEEDLE\" literal true",
+		"output": {
+			"hits": []
+		}
+	},
+	{
+		"name": "search math.pdf \"NEEDLE\" literal false",
+		"output": {
+			"hits": []
+		}
+	},
+	{
+		"name": "search math.pdf \"page 1 line\" literal true",
+		"output": {
+			"hits": []
+		}
+	},
+	{
+		"name": "search math.pdf \"page 1 line\" literal false",
+		"output": {
+			"hits": []
+		}
+	},
+	{
+		"name": "search math.pdf \"alpha|beta\" literal true",
+		"output": {
+			"hits": []
+		}
+	},
+	{
+		"name": "search math.pdf \"alpha|beta\" literal false",
+		"output": {
+			"hits": []
+		}
+	},
+	{
+		"name": "search math.pdf \"zymurgy\" literal true",
+		"output": {
+			"hits": []
+		}
+	},
+	{
+		"name": "search math.pdf \"zymurgy\" literal false",
+		"output": {
+			"hits": []
+		}
+	},
+	{
+		"name": "search math.pdf \"^Page 3\" literal true",
+		"output": {
+			"hits": []
+		}
+	},
+	{
+		"name": "search math.pdf \"^Page 3\" literal false",
+		"output": {
+			"hits": []
+		}
+	},
+	{
+		"name": "search math.pdf \"line [1-2]$\" literal true",
+		"output": {
+			"hits": []
+		}
+	},
+	{
+		"name": "search math.pdf \"line [1-2]$\" literal false",
+		"output": {
+			"hits": []
+		}
+	},
+	{
+		"name": "search math.pdf \"a.b\" literal true",
+		"output": {
+			"hits": []
+		}
+	},
+	{
+		"name": "search math.pdf \"a.b\" literal false",
+		"output": {
+			"hits": []
+		}
+	},
+	{
+		"name": "search math.pdf \"$5\" literal true",
+		"output": {
+			"hits": []
+		}
+	},
+	{
+		"name": "search math.pdf \"$5\" literal false",
+		"output": {
+			"hits": []
+		}
+	},
+	{
+		"name": "search math.pdf \"(c)\" literal true",
+		"output": {
+			"hits": []
+		}
+	},
+	{
+		"name": "search math.pdf \"(c)\" literal false",
+		"output": {
+			"hits": [
+				{
+					"page": 1,
+					"line": 1,
+					"context": ">>> ∫ x dx = x²/2 + C\n    α + β ≤ γ ∑ ∏ √2 ≈ 1.41\n    plain words only here"
+				}
+			]
+		}
+	},
+	{
+		"name": "search missing.pdf \"force\" literal true",
+		"error": "ENOENT: no such file or directory, open '<root>/crates/pdf/tests/fixtures/missing.pdf'"
+	},
+	{
+		"name": "search missing.pdf \"force\" literal false",
+		"error": "ENOENT: no such file or directory, open '<root>/crates/pdf/tests/fixtures/missing.pdf'"
+	},
+	{
+		"name": "search missing.pdf \"needle\" literal true",
+		"error": "ENOENT: no such file or directory, open '<root>/crates/pdf/tests/fixtures/missing.pdf'"
+	},
+	{
+		"name": "search missing.pdf \"needle\" literal false",
+		"error": "ENOENT: no such file or directory, open '<root>/crates/pdf/tests/fixtures/missing.pdf'"
+	},
+	{
+		"name": "search missing.pdf \"NEEDLE\" literal true",
+		"error": "ENOENT: no such file or directory, open '<root>/crates/pdf/tests/fixtures/missing.pdf'"
+	},
+	{
+		"name": "search missing.pdf \"NEEDLE\" literal false",
+		"error": "ENOENT: no such file or directory, open '<root>/crates/pdf/tests/fixtures/missing.pdf'"
+	},
+	{
+		"name": "search missing.pdf \"page 1 line\" literal true",
+		"error": "ENOENT: no such file or directory, open '<root>/crates/pdf/tests/fixtures/missing.pdf'"
+	},
+	{
+		"name": "search missing.pdf \"page 1 line\" literal false",
+		"error": "ENOENT: no such file or directory, open '<root>/crates/pdf/tests/fixtures/missing.pdf'"
+	},
+	{
+		"name": "search missing.pdf \"alpha|beta\" literal true",
+		"error": "ENOENT: no such file or directory, open '<root>/crates/pdf/tests/fixtures/missing.pdf'"
+	},
+	{
+		"name": "search missing.pdf \"alpha|beta\" literal false",
+		"error": "ENOENT: no such file or directory, open '<root>/crates/pdf/tests/fixtures/missing.pdf'"
+	},
+	{
+		"name": "search missing.pdf \"zymurgy\" literal true",
+		"error": "ENOENT: no such file or directory, open '<root>/crates/pdf/tests/fixtures/missing.pdf'"
+	},
+	{
+		"name": "search missing.pdf \"zymurgy\" literal false",
+		"error": "ENOENT: no such file or directory, open '<root>/crates/pdf/tests/fixtures/missing.pdf'"
+	},
+	{
+		"name": "search missing.pdf \"^Page 3\" literal true",
+		"error": "ENOENT: no such file or directory, open '<root>/crates/pdf/tests/fixtures/missing.pdf'"
+	},
+	{
+		"name": "search missing.pdf \"^Page 3\" literal false",
+		"error": "ENOENT: no such file or directory, open '<root>/crates/pdf/tests/fixtures/missing.pdf'"
+	},
+	{
+		"name": "search missing.pdf \"line [1-2]$\" literal true",
+		"error": "ENOENT: no such file or directory, open '<root>/crates/pdf/tests/fixtures/missing.pdf'"
+	},
+	{
+		"name": "search missing.pdf \"line [1-2]$\" literal false",
+		"error": "ENOENT: no such file or directory, open '<root>/crates/pdf/tests/fixtures/missing.pdf'"
+	},
+	{
+		"name": "search missing.pdf \"a.b\" literal true",
+		"error": "ENOENT: no such file or directory, open '<root>/crates/pdf/tests/fixtures/missing.pdf'"
+	},
+	{
+		"name": "search missing.pdf \"a.b\" literal false",
+		"error": "ENOENT: no such file or directory, open '<root>/crates/pdf/tests/fixtures/missing.pdf'"
+	},
+	{
+		"name": "search missing.pdf \"$5\" literal true",
+		"error": "ENOENT: no such file or directory, open '<root>/crates/pdf/tests/fixtures/missing.pdf'"
+	},
+	{
+		"name": "search missing.pdf \"$5\" literal false",
+		"error": "ENOENT: no such file or directory, open '<root>/crates/pdf/tests/fixtures/missing.pdf'"
+	},
+	{
+		"name": "search missing.pdf \"(c)\" literal true",
+		"error": "ENOENT: no such file or directory, open '<root>/crates/pdf/tests/fixtures/missing.pdf'"
+	},
+	{
+		"name": "search missing.pdf \"(c)\" literal false",
+		"error": "ENOENT: no such file or directory, open '<root>/crates/pdf/tests/fixtures/missing.pdf'"
+	},
+	{
+		"name": "search encrypted.pdf \"force\" literal true",
+		"error": "No password given"
+	},
+	{
+		"name": "search encrypted.pdf \"force\" literal false",
+		"error": "No password given"
+	},
+	{
+		"name": "search encrypted.pdf \"needle\" literal true",
+		"error": "No password given"
+	},
+	{
+		"name": "search encrypted.pdf \"needle\" literal false",
+		"error": "No password given"
+	},
+	{
+		"name": "search encrypted.pdf \"NEEDLE\" literal true",
+		"error": "No password given"
+	},
+	{
+		"name": "search encrypted.pdf \"NEEDLE\" literal false",
+		"error": "No password given"
+	},
+	{
+		"name": "search encrypted.pdf \"page 1 line\" literal true",
+		"error": "No password given"
+	},
+	{
+		"name": "search encrypted.pdf \"page 1 line\" literal false",
+		"error": "No password given"
+	},
+	{
+		"name": "search encrypted.pdf \"alpha|beta\" literal true",
+		"error": "No password given"
+	},
+	{
+		"name": "search encrypted.pdf \"alpha|beta\" literal false",
+		"error": "No password given"
+	},
+	{
+		"name": "search encrypted.pdf \"zymurgy\" literal true",
+		"error": "No password given"
+	},
+	{
+		"name": "search encrypted.pdf \"zymurgy\" literal false",
+		"error": "No password given"
+	},
+	{
+		"name": "search encrypted.pdf \"^Page 3\" literal true",
+		"error": "No password given"
+	},
+	{
+		"name": "search encrypted.pdf \"^Page 3\" literal false",
+		"error": "No password given"
+	},
+	{
+		"name": "search encrypted.pdf \"line [1-2]$\" literal true",
+		"error": "No password given"
+	},
+	{
+		"name": "search encrypted.pdf \"line [1-2]$\" literal false",
+		"error": "No password given"
+	},
+	{
+		"name": "search encrypted.pdf \"a.b\" literal true",
+		"error": "No password given"
+	},
+	{
+		"name": "search encrypted.pdf \"a.b\" literal false",
+		"error": "No password given"
+	},
+	{
+		"name": "search encrypted.pdf \"$5\" literal true",
+		"error": "No password given"
+	},
+	{
+		"name": "search encrypted.pdf \"$5\" literal false",
+		"error": "No password given"
+	},
+	{
+		"name": "search encrypted.pdf \"(c)\" literal true",
+		"error": "No password given"
+	},
+	{
+		"name": "search encrypted.pdf \"(c)\" literal false",
+		"error": "No password given"
+	},
+	{
+		"name": "search lines.pdf context 0",
+		"output": {
+			"hits": [
+				{
+					"page": 4,
+					"line": 1,
+					"context": ">>> NEEDLE at the very top"
+				},
+				{
+					"page": 4,
+					"line": 8,
+					"context": ">>> Needle at the very bottom"
+				},
+				{
+					"page": 8,
+					"line": 1,
+					"context": ">>> NEEDLE at the very top"
+				},
+				{
+					"page": 8,
+					"line": 8,
+					"context": ">>> Needle at the very bottom"
+				},
+				{
+					"page": 12,
+					"line": 1,
+					"context": ">>> NEEDLE at the very top"
+				},
+				{
+					"page": 12,
+					"line": 8,
+					"context": ">>> Needle at the very bottom"
+				}
+			]
+		}
+	},
+	{
+		"name": "search lines.pdf context 1",
+		"output": {
+			"hits": [
+				{
+					"page": 4,
+					"line": 1,
+					"context": ">>> NEEDLE at the very top\n    Page 4 line 2 alpha beta"
+				},
+				{
+					"page": 4,
+					"line": 8,
+					"context": "    Page 4 line 7 alpha beta\n>>> Needle at the very bottom"
+				},
+				{
+					"page": 8,
+					"line": 1,
+					"context": ">>> NEEDLE at the very top\n    Page 8 line 2 alpha beta"
+				},
+				{
+					"page": 8,
+					"line": 8,
+					"context": "    Page 8 line 7 alpha beta\n>>> Needle at the very bottom"
+				},
+				{
+					"page": 12,
+					"line": 1,
+					"context": ">>> NEEDLE at the very top\n    Page 12 line 2 alpha beta"
+				},
+				{
+					"page": 12,
+					"line": 8,
+					"context": "    Page 12 line 7 alpha beta\n>>> Needle at the very bottom"
+				}
+			]
+		}
+	},
+	{
+		"name": "search lines.pdf context 3",
+		"output": {
+			"hits": [
+				{
+					"page": 4,
+					"line": 1,
+					"context": ">>> NEEDLE at the very top\n    Page 4 line 2 alpha beta\n    Page 4 line 3 alpha beta\n    Page 4 line 4 alpha beta"
+				},
+				{
+					"page": 4,
+					"line": 8,
+					"context": "    Page 4 line 5 alpha beta\n    Page 4 line 6 alpha beta\n    Page 4 line 7 alpha beta\n>>> Needle at the very bottom"
+				},
+				{
+					"page": 8,
+					"line": 1,
+					"context": ">>> NEEDLE at the very top\n    Page 8 line 2 alpha beta\n    Page 8 line 3 alpha beta\n    Page 8 line 4 alpha beta"
+				},
+				{
+					"page": 8,
+					"line": 8,
+					"context": "    Page 8 line 5 alpha beta\n    Page 8 line 6 alpha beta\n    Page 8 line 7 alpha beta\n>>> Needle at the very bottom"
+				},
+				{
+					"page": 12,
+					"line": 1,
+					"context": ">>> NEEDLE at the very top\n    Page 12 line 2 alpha beta\n    Page 12 line 3 alpha beta\n    Page 12 line 4 alpha beta"
+				},
+				{
+					"page": 12,
+					"line": 8,
+					"context": "    Page 12 line 5 alpha beta\n    Page 12 line 6 alpha beta\n    Page 12 line 7 alpha beta\n>>> Needle at the very bottom"
+				}
+			]
+		}
+	},
+	{
+		"name": "search lines.pdf context 20",
+		"output": {
+			"hits": [
+				{
+					"page": 4,
+					"line": 1,
+					"context": ">>> NEEDLE at the very top\n    Page 4 line 2 alpha beta\n    Page 4 line 3 alpha beta\n    Page 4 line 4 alpha beta\n    Page 4 line 5 alpha beta\n    Page 4 line 6 alpha beta\n    Page 4 line 7 alpha beta\n    Needle at the very bottom"
+				},
+				{
+					"page": 4,
+					"line": 8,
+					"context": "    NEEDLE at the very top\n    Page 4 line 2 alpha beta\n    Page 4 line 3 alpha beta\n    Page 4 line 4 alpha beta\n    Page 4 line 5 alpha beta\n    Page 4 line 6 alpha beta\n    Page 4 line 7 alpha beta\n>>> Needle at the very bottom"
+				},
+				{
+					"page": 8,
+					"line": 1,
+					"context": ">>> NEEDLE at the very top\n    Page 8 line 2 alpha beta\n    Page 8 line 3 alpha beta\n    Page 8 line 4 alpha beta\n    Page 8 line 5 alpha beta\n    Page 8 line 6 alpha beta\n    Page 8 line 7 alpha beta\n    Needle at the very bottom"
+				},
+				{
+					"page": 8,
+					"line": 8,
+					"context": "    NEEDLE at the very top\n    Page 8 line 2 alpha beta\n    Page 8 line 3 alpha beta\n    Page 8 line 4 alpha beta\n    Page 8 line 5 alpha beta\n    Page 8 line 6 alpha beta\n    Page 8 line 7 alpha beta\n>>> Needle at the very bottom"
+				},
+				{
+					"page": 12,
+					"line": 1,
+					"context": ">>> NEEDLE at the very top\n    Page 12 line 2 alpha beta\n    Page 12 line 3 alpha beta\n    Page 12 line 4 alpha beta\n    Page 12 line 5 alpha beta\n    Page 12 line 6 alpha beta\n    Page 12 line 7 alpha beta\n    Needle at the very bottom"
+				},
+				{
+					"page": 12,
+					"line": 8,
+					"context": "    NEEDLE at the very top\n    Page 12 line 2 alpha beta\n    Page 12 line 3 alpha beta\n    Page 12 line 4 alpha beta\n    Page 12 line 5 alpha beta\n    Page 12 line 6 alpha beta\n    Page 12 line 7 alpha beta\n>>> Needle at the very bottom"
+				}
+			]
+		}
+	},
+	{
+		"name": "search lines.pdf context 1.5",
+		"output": {
+			"hits": [
+				{
+					"page": 4,
+					"line": 1,
+					"context": ">>> NEEDLE at the very top\n    Page 4 line 2 alpha beta"
+				},
+				{
+					"page": 4,
+					"line": 8,
+					"context": "    Page 4 line 6 alpha beta\n    Page 4 line 7 alpha beta\n    Needle at the very bottom"
+				},
+				{
+					"page": 8,
+					"line": 1,
+					"context": ">>> NEEDLE at the very top\n    Page 8 line 2 alpha beta"
+				},
+				{
+					"page": 8,
+					"line": 8,
+					"context": "    Page 8 line 6 alpha beta\n    Page 8 line 7 alpha beta\n    Needle at the very bottom"
+				},
+				{
+					"page": 12,
+					"line": 1,
+					"context": ">>> NEEDLE at the very top\n    Page 12 line 2 alpha beta"
+				},
+				{
+					"page": 12,
+					"line": 8,
+					"context": "    Page 12 line 6 alpha beta\n    Page 12 line 7 alpha beta\n    Needle at the very bottom"
+				}
+			]
+		}
+	},
+	{
+		"name": "search lines.pdf context -1",
+		"output": {
+			"hits": [
+				{
+					"page": 4,
+					"line": 1,
+					"context": ""
+				},
+				{
+					"page": 4,
+					"line": 8,
+					"context": ""
+				},
+				{
+					"page": 8,
+					"line": 1,
+					"context": ""
+				},
+				{
+					"page": 8,
+					"line": 8,
+					"context": ""
+				},
+				{
+					"page": 12,
+					"line": 1,
+					"context": ""
+				},
+				{
+					"page": 12,
+					"line": 8,
+					"context": ""
+				}
+			]
+		}
+	},
+	{
+		"name": "search lines.pdf context NaN",
+		"output": {
+			"hits": [
+				{
+					"page": 4,
+					"line": 1,
+					"context": ""
+				},
+				{
+					"page": 4,
+					"line": 8,
+					"context": ""
+				},
+				{
+					"page": 8,
+					"line": 1,
+					"context": ""
+				},
+				{
+					"page": 8,
+					"line": 8,
+					"context": ""
+				},
+				{
+					"page": 12,
+					"line": 1,
+					"context": ""
+				},
+				{
+					"page": 12,
+					"line": 8,
+					"context": ""
+				}
+			]
+		}
+	},
+	{
+		"name": "search invalid ([unclosed",
+		"error": "Invalid regex: Invalid regular expression: /([unclosed/i: Unterminated character class"
+	},
+	{
+		"name": "search invalid a)",
+		"error": "Invalid regex: Invalid regular expression: /a)/i: Unmatched ')'"
+	},
+	{
+		"name": "search invalid *a",
+		"error": "Invalid regex: Invalid regular expression: /*a/i: Nothing to repeat"
+	},
+	{
+		"name": "search invalid [a-",
+		"error": "Invalid regex: Invalid regular expression: /[a-/i: Unterminated character class"
+	},
+	{
+		"name": "search invalid \\",
+		"error": "Invalid regex: Invalid regular expression: /\\/i: \\ at end of pattern"
+	},
+	{
+		"name": "search invalid (?<n",
+		"error": "Invalid regex: Invalid regular expression: /(?<n/i: Invalid capture group name"
+	},
+	{
+		"name": "search invalid a{2,1}",
+		"error": "Invalid regex: Invalid regular expression: /a{2,1}/i: numbers out of order in {} quantifier"
+	},
+	{
+		"name": "search invalid [z-a]",
+		"error": "Invalid regex: Invalid regular expression: /[z-a]/i: Range out of order in character class"
+	},
+	{
+		"name": "search invalid a**",
+		"error": "Invalid regex: Invalid regular expression: /a**/i: Nothing to repeat"
+	},
+	{
+		"name": "search invalid (?i)abc",
+		"error": "Invalid regex: Invalid regular expression: /(?i)abc/i: Invalid group"
+	},
+	{
+		"name": "search invalid (?<a>x)(?<a>y)",
+		"error": "Invalid regex: Invalid regular expression: /(?<a>x)(?<a>y)/i: Duplicate capture group name"
+	},
+	{
+		"name": "search invalid (?<n>a)\\k<m>",
+		"error": "Invalid regex: Invalid regular expression: /(?<n>a)\\k<m>/i: Invalid named capture referenced"
+	},
+	{
+		"name": "search invalid a/b(",
+		"error": "Invalid regex: Invalid regular expression: /a/b(/i: Unterminated group"
+	}
+]

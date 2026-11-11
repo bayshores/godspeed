@@ -1,0 +1,561 @@
+[
+	{
+		"name": "forms",
+		"output": [
+			{
+				"name": "field and file",
+				"contentType": "multipart/form-data; boundary=XX",
+				"hex": "2d2d58580d0a436f6e74656e742d446973706f736974696f6e3a20666f726d2d646174613b206e616d653d226b696e64220d0a0d0a73747564790d0a2d2d58580d0a436f6e74656e742d446973706f736974696f6e3a20666f726d2d646174613b206e616d653d2266696c6573223b2066696c656e616d653d226e6f7465732e747874220d0a436f6e74656e742d547970653a20746578742f706c61696e0d0a0d0a6c696e65206f6e650d0a6c696e652074776f0d0a0d0a2d2d58582d2d0d0a",
+				"entries": [
+					{
+						"name": "kind",
+						"text": "study"
+					},
+					{
+						"name": "files",
+						"fileName": "notes.txt",
+						"hex": "6c696e65206f6e650d0a6c696e652074776f0d0a"
+					}
+				]
+			},
+			{
+				"name": "windows path file name",
+				"contentType": "multipart/form-data; boundary=XX",
+				"hex": "2d2d58580d0a436f6e74656e742d446973706f736974696f6e3a20666f726d2d646174613b206e616d653d2266696c6573223b2066696c656e616d653d22433a5c7765656b20315c612e747874220d0a0d0a68690d0a2d2d58582d2d0d0a",
+				"entries": [
+					{
+						"name": "files",
+						"fileName": "C:\\week 1\\a.txt",
+						"hex": "6869"
+					}
+				]
+			},
+			{
+				"name": "preamble of blank lines",
+				"contentType": "multipart/form-data; boundary=XX",
+				"hex": "0d0a0d0a2d2d58580d0a436f6e74656e742d446973706f736974696f6e3a20666f726d2d646174613b206e616d653d226b696e64220d0a0d0a696e666f0d0a2d2d58582d2d0d0a",
+				"entries": [
+					{
+						"name": "kind",
+						"text": "info"
+					}
+				]
+			},
+			{
+				"name": "quoted boundary",
+				"contentType": "multipart/form-data; boundary=\"a b\"",
+				"hex": "2d2d6120620d0a436f6e74656e742d446973706f736974696f6e3a20666f726d2d646174613b206e616d653d226b696e64220d0a0d0a73747564790d0a2d2d6120622d2d0d0a",
+				"entries": [
+					{
+						"name": "kind",
+						"text": "study"
+					}
+				]
+			},
+			{
+				"name": "upper-case type and header",
+				"contentType": "MULTIPART/FORM-DATA; BOUNDARY=XX",
+				"hex": "2d2d58580d0a434f4e54454e542d444953504f534954494f4e3a20666f726d2d646174613b206e616d653d226b696e64220d0a0d0a73747564790d0a2d2d58582d2d0d0a",
+				"entries": [
+					{
+						"name": "kind",
+						"text": "study"
+					}
+				]
+			},
+			{
+				"name": "escaped name and file name",
+				"contentType": "multipart/form-data; boundary=XX",
+				"hex": "2d2d58580d0a436f6e74656e742d446973706f736974696f6e3a20666f726d2d646174613b206e616d653d226125323262223b2066696c656e616d653d2278253041792530442532322e747874220d0a0d0a7a0d0a2d2d58582d2d0d0a",
+				"entries": [
+					{
+						"name": "a\"b",
+						"fileName": "x\ny\r\".txt",
+						"hex": "7a"
+					}
+				]
+			},
+			{
+				"name": "empty file name",
+				"contentType": "multipart/form-data; boundary=XX",
+				"hex": "2d2d58580d0a436f6e74656e742d446973706f736974696f6e3a20666f726d2d646174613b206e616d653d2266696c6573223b2066696c656e616d653d22220d0a0d0a646174610d0a2d2d58582d2d0d0a",
+				"entries": [
+					{
+						"name": "files",
+						"fileName": "",
+						"hex": "64617461"
+					}
+				]
+			},
+			{
+				"name": "duplicate names",
+				"contentType": "multipart/form-data; boundary=XX",
+				"hex": "2d2d58580d0a436f6e74656e742d446973706f736974696f6e3a20666f726d2d646174613b206e616d653d2266696c6573223b2066696c656e616d653d22612e747874220d0a0d0a410d0a2d2d58580d0a436f6e74656e742d446973706f736974696f6e3a20666f726d2d646174613b206e616d653d2266696c6573223b2066696c656e616d653d22622e747874220d0a0d0a420d0a2d2d58580d0a436f6e74656e742d446973706f736974696f6e3a20666f726d2d646174613b206e616d653d226b696e64220d0a0d0a696e666f0d0a2d2d58582d2d0d0a",
+				"entries": [
+					{
+						"name": "files",
+						"fileName": "a.txt",
+						"hex": "41"
+					},
+					{
+						"name": "files",
+						"fileName": "b.txt",
+						"hex": "42"
+					},
+					{
+						"name": "kind",
+						"text": "info"
+					}
+				]
+			},
+			{
+				"name": "empty part body",
+				"contentType": "multipart/form-data; boundary=XX",
+				"hex": "2d2d58580d0a436f6e74656e742d446973706f736974696f6e3a20666f726d2d646174613b206e616d653d226b696e64220d0a0d0a0d0a2d2d58582d2d0d0a",
+				"entries": [
+					{
+						"name": "kind",
+						"text": ""
+					}
+				]
+			},
+			{
+				"name": "epilogue after the end",
+				"contentType": "multipart/form-data; boundary=XX",
+				"hex": "2d2d58580d0a436f6e74656e742d446973706f736974696f6e3a20666f726d2d646174613b206e616d653d226b696e64220d0a0d0a73747564790d0a2d2d58582d2d0d0a747261696c696e6720776f726473",
+				"entries": [
+					{
+						"name": "kind",
+						"text": "study"
+					}
+				]
+			},
+			{
+				"name": "no closing newline",
+				"contentType": "multipart/form-data; boundary=XX",
+				"hex": "2d2d58580d0a436f6e74656e742d446973706f736974696f6e3a20666f726d2d646174613b206e616d653d226b696e64220d0a0d0a73747564790d0a2d2d58582d2d",
+				"entries": [
+					{
+						"name": "kind",
+						"text": "study"
+					}
+				]
+			},
+			{
+				"name": "boundary text inside a body",
+				"contentType": "multipart/form-data; boundary=XX",
+				"hex": "2d2d58580d0a436f6e74656e742d446973706f736974696f6e3a20666f726d2d646174613b206e616d653d2266696c6573223b2066696c656e616d653d22612e747874220d0a0d0a2d2d5859206e6f742074686520656e64202d2d580d0a2d2d58582d2d0d0a",
+				"entries": [
+					{
+						"name": "files",
+						"fileName": "a.txt",
+						"hex": "2d2d5859206e6f742074686520656e64202d2d58"
+					}
+				]
+			},
+			{
+				"name": "unicode file name",
+				"contentType": "multipart/form-data; boundary=XX",
+				"hex": "2d2d58580d0a436f6e74656e742d446973706f736974696f6e3a20666f726d2d646174613b206e616d653d2266696c6573223b2066696c656e616d653d22c39c62756e67203320e28093204cc3b673756e67656e2e747874220d0a0d0ac3b60d0a2d2d58582d2d0d0a",
+				"entries": [
+					{
+						"name": "files",
+						"fileName": "Übung 3 – Lösungen.txt",
+						"hex": "c3b6"
+					}
+				]
+			},
+			{
+				"name": "bad utf-8 in a field",
+				"contentType": "multipart/form-data; boundary=XX",
+				"hex": "2d2d58580d0a436f6e74656e742d446973706f736974696f6e3a20666f726d2d646174613b206e616d653d226b696e64220d0a0d0a7374fffe7564790d0a2d2d58582d2d0d0a",
+				"entries": [
+					{
+						"name": "kind",
+						"text": "st��udy"
+					}
+				]
+			},
+			{
+				"name": "boundary text without dashes inside a body",
+				"contentType": "multipart/form-data; boundary=XX",
+				"hex": "2d2d58580d0a436f6e74656e742d446973706f736974696f6e3a20666f726d2d646174613b206e616d653d2266696c6573223b2066696c656e616d653d22612e747874220d0a0d0a61626358586465660d0a2d2d58582d2d0d0a",
+				"entries": null
+			},
+			{
+				"name": "boundary text right after the headers",
+				"contentType": "multipart/form-data; boundary=XX",
+				"hex": "2d2d58580d0a436f6e74656e742d446973706f736974696f6e3a20666f726d2d646174613b206e616d653d2266696c6573223b2066696c656e616d653d22612e747874220d0a0d0a58580d0a2d2d58582d2d0d0a",
+				"entries": null
+			},
+			{
+				"name": "base64 part",
+				"contentType": "multipart/form-data; boundary=XX",
+				"hex": "2d2d58580d0a436f6e74656e742d446973706f736974696f6e3a20666f726d2d646174613b206e616d653d2266696c6573223b2066696c656e616d653d22612e747874220d0a436f6e74656e742d5472616e736665722d456e636f64696e673a206261736536340d0a0d0a61475673206247383d0d0a2d2d58582d2d0d0a",
+				"entries": [
+					{
+						"name": "files",
+						"fileName": "a.txt",
+						"hex": "68656c6c6f"
+					}
+				]
+			},
+			{
+				"name": "base64 field",
+				"contentType": "multipart/form-data; boundary=XX",
+				"hex": "2d2d58580d0a436f6e74656e742d446973706f736974696f6e3a20666f726d2d646174613b206e616d653d226b696e64220d0a636f6e74656e742d7472616e736665722d656e636f64696e673a2062617365363420200d0a0d0a633352315a486b3d0d0a2d2d58582d2d0d0a",
+				"entries": [
+					{
+						"name": "kind",
+						"text": "study"
+					}
+				]
+			},
+			{
+				"name": "other transfer encoding",
+				"contentType": "multipart/form-data; boundary=XX",
+				"hex": "2d2d58580d0a436f6e74656e742d446973706f736974696f6e3a20666f726d2d646174613b206e616d653d226b696e64220d0a436f6e74656e742d5472616e736665722d456e636f64696e673a204241534536340d0a0d0a633352315a486b3d0d0a2d2d58582d2d0d0a",
+				"entries": [
+					{
+						"name": "kind",
+						"text": "c3R1ZHk="
+					}
+				]
+			},
+			{
+				"name": "extended file name",
+				"contentType": "multipart/form-data; boundary=XX",
+				"hex": "2d2d58580d0a436f6e74656e742d446973706f736974696f6e3a20666f726d2d646174613b206e616d653d2266696c6573223b2066696c656e616d652a3d5554462d38272725433325394362756e67253230312e7478740d0a0d0a780d0a2d2d58582d2d0d0a",
+				"entries": [
+					{
+						"name": "files",
+						"fileName": "Übung 1.txt",
+						"hex": "78"
+					}
+				]
+			},
+			{
+				"name": "extended file name wins",
+				"contentType": "multipart/form-data; boundary=XX",
+				"hex": "2d2d58580d0a436f6e74656e742d446973706f736974696f6e3a20666f726d2d646174613b206e616d653d2266696c6573223b2066696c656e616d652a3d7574662d3827277265616c2e7478743b2066696c656e616d653d22706c61696e2e747874220d0a0d0a780d0a2d2d58582d2d0d0a",
+				"entries": [
+					{
+						"name": "files",
+						"fileName": "real.txt",
+						"hex": "78"
+					}
+				]
+			},
+			{
+				"name": "bad extended escape",
+				"contentType": "multipart/form-data; boundary=XX",
+				"hex": "2d2d58580d0a436f6e74656e742d446973706f736974696f6e3a20666f726d2d646174613b206e616d653d2266696c6573223b2066696c656e616d652a3d7574662d3827272545302541340d0a0d0a780d0a2d2d58582d2d0d0a",
+				"entries": null
+			},
+			{
+				"name": "extended other charset",
+				"contentType": "multipart/form-data; boundary=XX",
+				"hex": "2d2d58580d0a436f6e74656e742d446973706f736974696f6e3a20666f726d2d646174613b206e616d653d2266696c6573223b2066696c656e616d652a3d69736f2d383835392d312727612e7478740d0a0d0a780d0a2d2d58582d2d0d0a",
+				"entries": null
+			},
+			{
+				"name": "unquoted name",
+				"contentType": "multipart/form-data; boundary=XX",
+				"hex": "2d2d58580d0a436f6e74656e742d446973706f736974696f6e3a20666f726d2d646174613b206e616d653d6b696e640d0a0d0a73747564790d0a2d2d58582d2d0d0a",
+				"entries": [
+					{
+						"name": "kind",
+						"text": "study"
+					}
+				]
+			},
+			{
+				"name": "lower-case escapes",
+				"contentType": "multipart/form-data; boundary=XX",
+				"hex": "2d2d58580d0a436f6e74656e742d446973706f736974696f6e3a20666f726d2d646174613b206e616d653d22612530616225306463253232220d0a0d0a760d0a2d2d58582d2d0d0a",
+				"entries": [
+					{
+						"name": "a\nb\rc\"",
+						"text": "v"
+					}
+				]
+			},
+			{
+				"name": "bom in a file name",
+				"contentType": "multipart/form-data; boundary=XX",
+				"hex": "2d2d58580d0a436f6e74656e742d446973706f736974696f6e3a20666f726d2d646174613b206e616d653d2266696c6573223b2066696c656e616d653d22efbbbf612e747874220d0a0d0a780d0a2d2d58582d2d0d0a",
+				"entries": [
+					{
+						"name": "files",
+						"fileName": "a.txt",
+						"hex": "78"
+					}
+				]
+			},
+			{
+				"name": "bom in a field",
+				"contentType": "multipart/form-data; boundary=XX",
+				"hex": "2d2d58580d0a436f6e74656e742d446973706f736974696f6e3a20666f726d2d646174613b206e616d653d226b696e64220d0a0d0aefbbbf73747564790d0a2d2d58582d2d0d0a",
+				"entries": [
+					{
+						"name": "kind",
+						"text": "﻿study"
+					}
+				]
+			},
+			{
+				"name": "space before the header colon",
+				"contentType": "multipart/form-data; boundary=XX",
+				"hex": "2d2d58580d0a436f6e74656e742d446973706f736974696f6e203a20666f726d2d646174613b206e616d653d226b696e64220d0a0d0a73747564790d0a2d2d58582d2d0d0a",
+				"entries": [
+					{
+						"name": "kind",
+						"text": "study"
+					}
+				]
+			},
+			{
+				"name": "unclosed quote",
+				"contentType": "multipart/form-data; boundary=XX",
+				"hex": "2d2d58580d0a436f6e74656e742d446973706f736974696f6e3a20666f726d2d646174613b206e616d653d226b696e640d0a0d0a73747564790d0a2d2d58582d2d0d0a",
+				"entries": null
+			},
+			{
+				"name": "junk after the attributes",
+				"contentType": "multipart/form-data; boundary=XX",
+				"hex": "2d2d58580d0a436f6e74656e742d446973706f736974696f6e3a20666f726d2d646174613b206e616d653d226b696e6422206a756e6b0d0a0d0a73747564790d0a2d2d58582d2d0d0a",
+				"entries": [
+					{
+						"name": "kind",
+						"text": "study"
+					}
+				]
+			},
+			{
+				"name": "attachment disposition",
+				"contentType": "multipart/form-data; boundary=XX",
+				"hex": "2d2d58580d0a436f6e74656e742d446973706f736974696f6e3a206174746163686d656e743b206e616d653d226b696e64220d0a0d0a73747564790d0a2d2d58582d2d0d0a",
+				"entries": null
+			},
+			{
+				"name": "second disposition resets",
+				"contentType": "multipart/form-data; boundary=XX",
+				"hex": "2d2d58580d0a436f6e74656e742d446973706f736974696f6e3a20666f726d2d646174613b206e616d653d2266696c6573223b2066696c656e616d653d22612e747874220d0a436f6e74656e742d446973706f736974696f6e3a20666f726d2d646174613b206e616d653d226b696e64220d0a0d0a73747564790d0a2d2d58582d2d0d0a",
+				"entries": [
+					{
+						"name": "kind",
+						"text": "study"
+					}
+				]
+			},
+			{
+				"name": "no space in the content type",
+				"contentType": "multipart/form-data;boundary=XX",
+				"hex": "2d2d58580d0a436f6e74656e742d446973706f736974696f6e3a20666f726d2d646174613b206e616d653d226b696e64220d0a0d0a73747564790d0a2d2d58582d2d0d0a",
+				"entries": [
+					{
+						"name": "kind",
+						"text": "study"
+					}
+				]
+			},
+			{
+				"name": "boundary with escapes",
+				"contentType": "multipart/form-data; boundary=\"a\\\"b\"",
+				"hex": "2d2d6122620d0a436f6e74656e742d446973706f736974696f6e3a20666f726d2d646174613b206e616d653d226b696e64220d0a0d0a73747564790d0a2d2d6122622d2d0d0a",
+				"entries": [
+					{
+						"name": "kind",
+						"text": "study"
+					}
+				]
+			},
+			{
+				"name": "charset and boundary",
+				"contentType": "multipart/form-data; charset=utf-8; boundary=XX; boundary=YY",
+				"hex": "2d2d58580d0a436f6e74656e742d446973706f736974696f6e3a20666f726d2d646174613b206e616d653d226b696e64220d0a0d0a73747564790d0a2d2d58582d2d0d0a",
+				"entries": [
+					{
+						"name": "kind",
+						"text": "study"
+					}
+				]
+			},
+			{
+				"name": "two content types",
+				"contentType": "text/plain, multipart/form-data; boundary=XX",
+				"hex": "2d2d58580d0a436f6e74656e742d446973706f736974696f6e3a20666f726d2d646174613b206e616d653d226b696e64220d0a0d0a73747564790d0a2d2d58582d2d0d0a",
+				"entries": [
+					{
+						"name": "kind",
+						"text": "study"
+					}
+				]
+			},
+			{
+				"name": "comma inside a quoted boundary",
+				"contentType": "multipart/form-data; boundary=\"X,X\"",
+				"hex": "2d2d582c580d0a436f6e74656e742d446973706f736974696f6e3a20666f726d2d646174613b206e616d653d226b696e64220d0a0d0a73747564790d0a2d2d582c582d2d0d0a",
+				"entries": [
+					{
+						"name": "kind",
+						"text": "study"
+					}
+				]
+			},
+			{
+				"name": "url-encoded with a question mark",
+				"contentType": "application/x-www-form-urlencoded",
+				"hex": "3f6b696e643d696e666f263f3f783d31",
+				"entries": [
+					{
+						"name": "kind",
+						"text": "info"
+					},
+					{
+						"name": "??x",
+						"text": "1"
+					}
+				]
+			},
+			{
+				"name": "url-encoded bad escapes",
+				"contentType": "application/x-www-form-urlencoded",
+				"hex": "6b696e643d257a7a2543332661253242623d2532",
+				"entries": [
+					{
+						"name": "kind",
+						"text": "%zz�"
+					},
+					{
+						"name": "a+b",
+						"text": "%2"
+					}
+				]
+			},
+			{
+				"name": "other headers first",
+				"contentType": "multipart/form-data; boundary=XX",
+				"hex": "2d2d58580d0a436f6e74656e742d547970653a20746578742f706c61696e0d0a436f6e74656e742d446973706f736974696f6e3a20666f726d2d646174613b206e616d653d2266696c6573223b2066696c656e616d653d22612e747874220d0a0d0a780d0a2d2d58582d2d0d0a",
+				"entries": [
+					{
+						"name": "files",
+						"fileName": "a.txt",
+						"hex": "78"
+					}
+				]
+			},
+			{
+				"name": "no space after the semicolon",
+				"contentType": "multipart/form-data; boundary=XX",
+				"hex": "2d2d58580d0a436f6e74656e742d446973706f736974696f6e3a20666f726d2d646174613b6e616d653d226b696e64220d0a0d0a73747564790d0a2d2d58582d2d0d0a",
+				"entries": [
+					{
+						"name": "kind",
+						"text": "study"
+					}
+				]
+			},
+			{
+				"name": "no name",
+				"contentType": "multipart/form-data; boundary=XX",
+				"hex": "2d2d58580d0a436f6e74656e742d446973706f736974696f6e3a20666f726d2d646174613b2066696c656e616d653d22612e747874220d0a0d0a780d0a2d2d58582d2d0d0a",
+				"entries": null
+			},
+			{
+				"name": "no content disposition",
+				"contentType": "multipart/form-data; boundary=XX",
+				"hex": "2d2d58580d0a436f6e74656e742d547970653a20746578742f706c61696e0d0a0d0a780d0a2d2d58582d2d0d0a",
+				"entries": null
+			},
+			{
+				"name": "no closing boundary",
+				"contentType": "multipart/form-data; boundary=XX",
+				"hex": "2d2d58580d0a436f6e74656e742d446973706f736974696f6e3a20666f726d2d646174613b206e616d653d226b696e64220d0a0d0a73747564790d0a",
+				"entries": null
+			},
+			{
+				"name": "wrong boundary",
+				"contentType": "multipart/form-data; boundary=XX",
+				"hex": "2d2d59590d0a436f6e74656e742d446973706f736974696f6e3a20666f726d2d646174613b206e616d653d226b696e64220d0a0d0a73747564790d0a2d2d59592d2d0d0a",
+				"entries": null
+			},
+			{
+				"name": "empty body",
+				"contentType": "multipart/form-data; boundary=XX",
+				"hex": "",
+				"entries": null
+			},
+			{
+				"name": "only the end",
+				"contentType": "multipart/form-data; boundary=XX",
+				"hex": "2d2d58582d2d0d0a",
+				"entries": []
+			},
+			{
+				"name": "no boundary",
+				"contentType": "multipart/form-data",
+				"hex": "2d2d58580d0a436f6e74656e742d446973706f736974696f6e3a20666f726d2d646174613b206e616d653d226b696e64220d0a0d0a73747564790d0a2d2d58582d2d0d0a",
+				"entries": null
+			},
+			{
+				"name": "bare line feeds",
+				"contentType": "multipart/form-data; boundary=XX",
+				"hex": "2d2d58580a436f6e74656e742d446973706f736974696f6e3a20666f726d2d646174613b206e616d653d226b696e64220a0a73747564790a2d2d58582d2d0a",
+				"entries": null
+			},
+			{
+				"name": "url-encoded",
+				"contentType": "application/x-www-form-urlencoded",
+				"hex": "6b696e643d696e666f266e616d653d612b622532306326656d7074793d266b696e643d7374756479",
+				"entries": [
+					{
+						"name": "kind",
+						"text": "info"
+					},
+					{
+						"name": "name",
+						"text": "a b c"
+					},
+					{
+						"name": "empty",
+						"text": ""
+					},
+					{
+						"name": "kind",
+						"text": "study"
+					}
+				]
+			},
+			{
+				"name": "url-encoded with a charset",
+				"contentType": "application/x-www-form-urlencoded;charset=UTF-8",
+				"hex": "6b696e643d254333254243",
+				"entries": [
+					{
+						"name": "kind",
+						"text": "ü"
+					}
+				]
+			},
+			{
+				"name": "json",
+				"contentType": "application/json",
+				"hex": "7b226b696e64223a227374756479227d",
+				"entries": null
+			},
+			{
+				"name": "plain text",
+				"contentType": "text/plain",
+				"hex": "6b696e643d7374756479",
+				"entries": null
+			},
+			{
+				"name": "no content type",
+				"contentType": "",
+				"hex": "6b696e643d7374756479",
+				"entries": null
+			}
+		]
+	}
+]

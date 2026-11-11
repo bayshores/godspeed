@@ -1,0 +1,7286 @@
+[
+	{
+		"name": "sanitizeUserSettings",
+		"output": [
+			{
+				"input": {},
+				"output": {
+					"version": 2
+				}
+			},
+			{
+				"input": {
+					"version": 1
+				},
+				"output": {
+					"version": 1
+				}
+			},
+			{
+				"input": {
+					"version": 0
+				},
+				"output": {
+					"version": 2
+				}
+			},
+			{
+				"input": {
+					"version": 1.5
+				},
+				"output": {
+					"version": 2
+				}
+			},
+			{
+				"input": {
+					"version": "2"
+				},
+				"output": {
+					"version": 2
+				}
+			},
+			{
+				"input": {
+					"version": 7,
+					"general": {
+						"teacherName": 5,
+						"sounds": "x",
+						"activeClass": "zzz",
+						"autoUpdate": true,
+						"keep": 1
+					}
+				},
+				"output": {
+					"version": 7,
+					"general": {
+						"autoUpdate": true
+					}
+				}
+			},
+			{
+				"input": {
+					"general": {
+						"activeClass": "cls_abc-1_2",
+						"onboarded": true,
+						"lastSeenVersion": "0.5.44",
+						"teacherName": "  Zed\n the  great ",
+						"sounds": false
+					}
+				},
+				"output": {
+					"version": 2,
+					"general": {
+						"activeClass": "cls_abc-1_2",
+						"onboarded": true,
+						"lastSeenVersion": "0.5.44",
+						"teacherName": "Zed the great",
+						"sounds": false
+					}
+				}
+			},
+			{
+				"input": {
+					"general": {
+						"activeClass": "none",
+						"lastSeenVersion": "0.5",
+						"teacherName": "   "
+					}
+				},
+				"output": {
+					"version": 2,
+					"general": {
+						"activeClass": "none"
+					}
+				}
+			},
+			{
+				"input": {
+					"general": [],
+					"constructor": 1,
+					"toString": 2,
+					"x": 2
+				},
+				"output": {
+					"version": 2,
+					"general": [],
+					"x": 2
+				}
+			},
+			{
+				"input": {
+					"2": 2,
+					"10": 1,
+					"chat": {
+						"a": 1
+					},
+					"models": {
+						"b": 2
+					},
+					"future": {
+						"a": [
+							1,
+							{
+								"z": null
+							}
+						]
+					}
+				},
+				"output": {
+					"2": 2,
+					"10": 1,
+					"version": 2,
+					"future": {
+						"a": [
+							1,
+							{
+								"z": null
+							}
+						]
+					}
+				}
+			},
+			{
+				"input": {
+					"appearance": {
+						"background": "#FFFFFF",
+						"proseFontSize": 99.6,
+						"fontFamily": "  ",
+						"mdRendering": {
+							"headingWeight": 5000.4,
+							"boldColor": "zzz",
+							"italicColor": null
+						}
+					}
+				},
+				"output": {
+					"version": 2,
+					"appearance": {
+						"background": null,
+						"fontFamily": null,
+						"proseFontSize": 24,
+						"mdRendering": {
+							"headingWeight": 900,
+							"boldColor": null,
+							"italicColor": null
+						}
+					}
+				}
+			},
+			{
+				"input": {
+					"appearance": {
+						"background": "#F4F1EA"
+					}
+				},
+				"output": {
+					"version": 2,
+					"appearance": {
+						"background": null
+					}
+				}
+			},
+			{
+				"input": {
+					"appearance": {
+						"background": "#123",
+						"fontFamily": "Inter",
+						"proseFontSize": 11.5,
+						"mdRendering": {
+							"headingWeight": 100.5,
+							"boldColor": "#abcdef",
+							"italicColor": "#ABC"
+						}
+					}
+				},
+				"output": {
+					"version": 2,
+					"appearance": {
+						"background": "#123",
+						"fontFamily": "Inter",
+						"proseFontSize": 12,
+						"mdRendering": {
+							"headingWeight": 101,
+							"boldColor": "#abcdef",
+							"italicColor": "#ABC"
+						}
+					}
+				}
+			},
+			{
+				"input": {
+					"appearance": {
+						"background": 5,
+						"fontFamily": 5,
+						"proseFontSize": "15",
+						"mdRendering": []
+					}
+				},
+				"output": {
+					"version": 2,
+					"appearance": {
+						"background": null,
+						"fontFamily": null,
+						"mdRendering": {}
+					}
+				}
+			},
+			{
+				"input": {
+					"appearance": {
+						"mdRendering": {
+							"headingWeight": 49.4
+						}
+					}
+				},
+				"output": {
+					"version": 2,
+					"appearance": {
+						"mdRendering": {
+							"headingWeight": 100
+						}
+					}
+				}
+			},
+			{
+				"input": {
+					"graph": {
+						"extractionChunkTokens": 10,
+						"enabled": "y"
+					}
+				},
+				"output": {
+					"version": 2,
+					"graph": {
+						"extractionChunkTokens": 500
+					}
+				}
+			},
+			{
+				"input": {
+					"graph": {
+						"extractionChunkTokens": 4096.9,
+						"enabled": true
+					}
+				},
+				"output": {
+					"version": 2,
+					"graph": {
+						"enabled": true,
+						"extractionChunkTokens": 4096
+					}
+				}
+			},
+			{
+				"input": {
+					"graph": {
+						"extractionChunkTokens": -1
+					}
+				},
+				"output": {
+					"version": 2,
+					"graph": {}
+				}
+			},
+			{
+				"input": {
+					"compaction": {
+						"thresholdTokens": -5
+					}
+				},
+				"output": {
+					"version": 2,
+					"compaction": {}
+				}
+			},
+			{
+				"input": {
+					"compaction": {
+						"thresholdTokens": 150000
+					}
+				},
+				"output": {
+					"version": 2,
+					"compaction": {
+						"thresholdTokens": 150000
+					}
+				}
+			},
+			{
+				"input": {
+					"compaction": {
+						"thresholdTokens": 31999.5
+					}
+				},
+				"output": {
+					"version": 2,
+					"compaction": {
+						"thresholdTokens": 32000
+					}
+				}
+			},
+			{
+				"input": {
+					"agent": {
+						"tools": {
+							"a": true,
+							"b": "x",
+							"c": false
+						},
+						"graphTools": {
+							"enabled": "x"
+						},
+						"rules": {
+							"voice": [
+								" a ",
+								"a",
+								3
+							],
+							"nope": [
+								"x"
+							]
+						}
+					}
+				},
+				"output": {
+					"version": 2,
+					"agent": {
+						"tools": {
+							"a": true,
+							"c": false
+						},
+						"rules": {
+							"voice": [
+								"a"
+							]
+						}
+					}
+				}
+			},
+			{
+				"input": {
+					"agent": {
+						"tools": {
+							"b": "x"
+						},
+						"graphTools": {},
+						"rules": {
+							"voice": []
+						}
+					}
+				},
+				"output": {
+					"version": 2,
+					"agent": {
+						"graphTools": {}
+					}
+				}
+			},
+			{
+				"input": {
+					"agent": {
+						"graphTools": {
+							"enabled": false
+						}
+					}
+				},
+				"output": {
+					"version": 2,
+					"agent": {
+						"graphTools": {
+							"enabled": false
+						}
+					}
+				}
+			},
+			{
+				"input": {
+					"agent": {
+						"graphTools": []
+					}
+				},
+				"output": {
+					"version": 2,
+					"agent": {}
+				}
+			},
+			{
+				"input": {
+					"agent": {
+						"tools": [
+							true
+						],
+						"rules": []
+					}
+				},
+				"output": {
+					"version": 2,
+					"agent": {}
+				}
+			},
+			{
+				"input": {
+					"agent": {
+						"prompts": {
+							"system-prompt.md": true,
+							"x.md": false
+						}
+					}
+				},
+				"output": {
+					"version": 2,
+					"agent": {}
+				}
+			},
+			{
+				"input": {
+					"__proto__": {
+						"x": 1
+					},
+					"agent": {
+						"tools": {
+							"__proto__": true,
+							"a": false
+						}
+					},
+					"y": 2
+				},
+				"output": {
+					"version": 2,
+					"agent": {
+						"tools": {
+							"a": false
+						}
+					},
+					"y": 2
+				}
+			}
+		]
+	},
+	{
+		"name": "resolveSettings",
+		"output": [
+			{
+				"input": null,
+				"output": {
+					"general": {
+						"autoUpdate": true,
+						"activeClass": "none",
+						"teacherName": "Teacher",
+						"sounds": true
+					},
+					"agent": {
+						"tools": {},
+						"rules": {},
+						"graphTools": {}
+					},
+					"appearance": {
+						"background": null,
+						"fontFamily": null,
+						"proseFontSize": 15,
+						"mdRendering": {
+							"headingWeight": 900,
+							"boldColor": null,
+							"italicColor": null
+						}
+					},
+					"graph": {
+						"enabled": true,
+						"extractionChunkTokens": 4096
+					},
+					"compaction": {
+						"thresholdTokens": 40000
+					}
+				},
+				"graphTools": true
+			},
+			{
+				"input": {},
+				"output": {
+					"general": {
+						"autoUpdate": true,
+						"activeClass": "none",
+						"teacherName": "Teacher",
+						"sounds": true
+					},
+					"agent": {
+						"tools": {},
+						"rules": {},
+						"graphTools": {}
+					},
+					"appearance": {
+						"background": null,
+						"fontFamily": null,
+						"proseFontSize": 15,
+						"mdRendering": {
+							"headingWeight": 900,
+							"boldColor": null,
+							"italicColor": null
+						}
+					},
+					"graph": {
+						"enabled": true,
+						"extractionChunkTokens": 4096
+					},
+					"compaction": {
+						"thresholdTokens": 40000
+					}
+				},
+				"graphTools": true
+			},
+			{
+				"input": {
+					"version": 2,
+					"general": {
+						"teacherName": "Zed",
+						"autoUpdate": false,
+						"sounds": false,
+						"activeClass": "cls_a"
+					}
+				},
+				"output": {
+					"general": {
+						"autoUpdate": false,
+						"activeClass": "cls_a",
+						"teacherName": "Zed",
+						"sounds": false
+					},
+					"agent": {
+						"tools": {},
+						"rules": {},
+						"graphTools": {}
+					},
+					"appearance": {
+						"background": null,
+						"fontFamily": null,
+						"proseFontSize": 15,
+						"mdRendering": {
+							"headingWeight": 900,
+							"boldColor": null,
+							"italicColor": null
+						}
+					},
+					"graph": {
+						"enabled": true,
+						"extractionChunkTokens": 4096
+					},
+					"compaction": {
+						"thresholdTokens": 40000
+					}
+				},
+				"graphTools": true
+			},
+			{
+				"input": {
+					"general": {
+						"teacherName": ""
+					}
+				},
+				"output": {
+					"general": {
+						"autoUpdate": true,
+						"activeClass": "none",
+						"teacherName": "Teacher",
+						"sounds": true
+					},
+					"agent": {
+						"tools": {},
+						"rules": {},
+						"graphTools": {}
+					},
+					"appearance": {
+						"background": null,
+						"fontFamily": null,
+						"proseFontSize": 15,
+						"mdRendering": {
+							"headingWeight": 900,
+							"boldColor": null,
+							"italicColor": null
+						}
+					},
+					"graph": {
+						"enabled": true,
+						"extractionChunkTokens": 4096
+					},
+					"compaction": {
+						"thresholdTokens": 40000
+					}
+				},
+				"graphTools": true
+			},
+			{
+				"input": {
+					"appearance": {
+						"background": "#000",
+						"fontFamily": "Inter",
+						"proseFontSize": 18,
+						"mdRendering": {
+							"headingWeight": 700,
+							"boldColor": "#fff",
+							"italicColor": "#eee"
+						}
+					}
+				},
+				"output": {
+					"general": {
+						"autoUpdate": true,
+						"activeClass": "none",
+						"teacherName": "Teacher",
+						"sounds": true
+					},
+					"agent": {
+						"tools": {},
+						"rules": {},
+						"graphTools": {}
+					},
+					"appearance": {
+						"background": "#000",
+						"fontFamily": "Inter",
+						"proseFontSize": 18,
+						"mdRendering": {
+							"headingWeight": 700,
+							"boldColor": "#fff",
+							"italicColor": "#eee"
+						}
+					},
+					"graph": {
+						"enabled": true,
+						"extractionChunkTokens": 4096
+					},
+					"compaction": {
+						"thresholdTokens": 40000
+					}
+				},
+				"graphTools": true
+			},
+			{
+				"input": {
+					"graph": {
+						"enabled": false,
+						"extractionChunkTokens": 800
+					},
+					"compaction": {
+						"thresholdTokens": 64000
+					}
+				},
+				"output": {
+					"general": {
+						"autoUpdate": true,
+						"activeClass": "none",
+						"teacherName": "Teacher",
+						"sounds": true
+					},
+					"agent": {
+						"tools": {},
+						"rules": {},
+						"graphTools": {}
+					},
+					"appearance": {
+						"background": null,
+						"fontFamily": null,
+						"proseFontSize": 15,
+						"mdRendering": {
+							"headingWeight": 900,
+							"boldColor": null,
+							"italicColor": null
+						}
+					},
+					"graph": {
+						"enabled": false,
+						"extractionChunkTokens": 800
+					},
+					"compaction": {
+						"thresholdTokens": 64000
+					}
+				},
+				"graphTools": false
+			},
+			{
+				"input": {
+					"agent": {
+						"tools": {
+							"a": true
+						},
+						"rules": {
+							"voice": [
+								"Short."
+							]
+						},
+						"graphTools": {
+							"enabled": false
+						}
+					}
+				},
+				"output": {
+					"general": {
+						"autoUpdate": true,
+						"activeClass": "none",
+						"teacherName": "Teacher",
+						"sounds": true
+					},
+					"agent": {
+						"tools": {
+							"a": true
+						},
+						"rules": {
+							"voice": [
+								"Short."
+							]
+						},
+						"graphTools": {
+							"enabled": false
+						}
+					},
+					"appearance": {
+						"background": null,
+						"fontFamily": null,
+						"proseFontSize": 15,
+						"mdRendering": {
+							"headingWeight": 900,
+							"boldColor": null,
+							"italicColor": null
+						}
+					},
+					"graph": {
+						"enabled": true,
+						"extractionChunkTokens": 4096
+					},
+					"compaction": {
+						"thresholdTokens": 40000
+					}
+				},
+				"graphTools": false
+			},
+			{
+				"input": {
+					"agent": {
+						"graphTools": {}
+					}
+				},
+				"output": {
+					"general": {
+						"autoUpdate": true,
+						"activeClass": "none",
+						"teacherName": "Teacher",
+						"sounds": true
+					},
+					"agent": {
+						"tools": {},
+						"rules": {},
+						"graphTools": {}
+					},
+					"appearance": {
+						"background": null,
+						"fontFamily": null,
+						"proseFontSize": 15,
+						"mdRendering": {
+							"headingWeight": 900,
+							"boldColor": null,
+							"italicColor": null
+						}
+					},
+					"graph": {
+						"enabled": true,
+						"extractionChunkTokens": 4096
+					},
+					"compaction": {
+						"thresholdTokens": 40000
+					}
+				},
+				"graphTools": true
+			},
+			{
+				"input": {
+					"general": {
+						"autoUpdate": null
+					}
+				},
+				"output": {
+					"general": {
+						"autoUpdate": true,
+						"activeClass": "none",
+						"teacherName": "Teacher",
+						"sounds": true
+					},
+					"agent": {
+						"tools": {},
+						"rules": {},
+						"graphTools": {}
+					},
+					"appearance": {
+						"background": null,
+						"fontFamily": null,
+						"proseFontSize": 15,
+						"mdRendering": {
+							"headingWeight": 900,
+							"boldColor": null,
+							"italicColor": null
+						}
+					},
+					"graph": {
+						"enabled": true,
+						"extractionChunkTokens": 4096
+					},
+					"compaction": {
+						"thresholdTokens": 40000
+					}
+				},
+				"graphTools": true
+			}
+		]
+	},
+	{
+		"name": "resolveSettings of sanitized",
+		"output": [
+			{
+				"input": {},
+				"output": {
+					"general": {
+						"autoUpdate": true,
+						"activeClass": "none",
+						"teacherName": "Teacher",
+						"sounds": true
+					},
+					"agent": {
+						"tools": {},
+						"rules": {},
+						"graphTools": {}
+					},
+					"appearance": {
+						"background": null,
+						"fontFamily": null,
+						"proseFontSize": 15,
+						"mdRendering": {
+							"headingWeight": 900,
+							"boldColor": null,
+							"italicColor": null
+						}
+					},
+					"graph": {
+						"enabled": true,
+						"extractionChunkTokens": 4096
+					},
+					"compaction": {
+						"thresholdTokens": 40000
+					}
+				},
+				"graphTools": true
+			},
+			{
+				"input": {
+					"version": 1
+				},
+				"output": {
+					"general": {
+						"autoUpdate": true,
+						"activeClass": "none",
+						"teacherName": "Teacher",
+						"sounds": true
+					},
+					"agent": {
+						"tools": {},
+						"rules": {},
+						"graphTools": {}
+					},
+					"appearance": {
+						"background": null,
+						"fontFamily": null,
+						"proseFontSize": 15,
+						"mdRendering": {
+							"headingWeight": 900,
+							"boldColor": null,
+							"italicColor": null
+						}
+					},
+					"graph": {
+						"enabled": true,
+						"extractionChunkTokens": 4096
+					},
+					"compaction": {
+						"thresholdTokens": 40000
+					}
+				},
+				"graphTools": true
+			},
+			{
+				"input": {
+					"version": 0
+				},
+				"output": {
+					"general": {
+						"autoUpdate": true,
+						"activeClass": "none",
+						"teacherName": "Teacher",
+						"sounds": true
+					},
+					"agent": {
+						"tools": {},
+						"rules": {},
+						"graphTools": {}
+					},
+					"appearance": {
+						"background": null,
+						"fontFamily": null,
+						"proseFontSize": 15,
+						"mdRendering": {
+							"headingWeight": 900,
+							"boldColor": null,
+							"italicColor": null
+						}
+					},
+					"graph": {
+						"enabled": true,
+						"extractionChunkTokens": 4096
+					},
+					"compaction": {
+						"thresholdTokens": 40000
+					}
+				},
+				"graphTools": true
+			},
+			{
+				"input": {
+					"version": 1.5
+				},
+				"output": {
+					"general": {
+						"autoUpdate": true,
+						"activeClass": "none",
+						"teacherName": "Teacher",
+						"sounds": true
+					},
+					"agent": {
+						"tools": {},
+						"rules": {},
+						"graphTools": {}
+					},
+					"appearance": {
+						"background": null,
+						"fontFamily": null,
+						"proseFontSize": 15,
+						"mdRendering": {
+							"headingWeight": 900,
+							"boldColor": null,
+							"italicColor": null
+						}
+					},
+					"graph": {
+						"enabled": true,
+						"extractionChunkTokens": 4096
+					},
+					"compaction": {
+						"thresholdTokens": 40000
+					}
+				},
+				"graphTools": true
+			},
+			{
+				"input": {
+					"version": "2"
+				},
+				"output": {
+					"general": {
+						"autoUpdate": true,
+						"activeClass": "none",
+						"teacherName": "Teacher",
+						"sounds": true
+					},
+					"agent": {
+						"tools": {},
+						"rules": {},
+						"graphTools": {}
+					},
+					"appearance": {
+						"background": null,
+						"fontFamily": null,
+						"proseFontSize": 15,
+						"mdRendering": {
+							"headingWeight": 900,
+							"boldColor": null,
+							"italicColor": null
+						}
+					},
+					"graph": {
+						"enabled": true,
+						"extractionChunkTokens": 4096
+					},
+					"compaction": {
+						"thresholdTokens": 40000
+					}
+				},
+				"graphTools": true
+			},
+			{
+				"input": {
+					"version": 7,
+					"general": {
+						"teacherName": 5,
+						"sounds": "x",
+						"activeClass": "zzz",
+						"autoUpdate": true,
+						"keep": 1
+					}
+				},
+				"output": {
+					"general": {
+						"autoUpdate": true,
+						"activeClass": "none",
+						"teacherName": "Teacher",
+						"sounds": true
+					},
+					"agent": {
+						"tools": {},
+						"rules": {},
+						"graphTools": {}
+					},
+					"appearance": {
+						"background": null,
+						"fontFamily": null,
+						"proseFontSize": 15,
+						"mdRendering": {
+							"headingWeight": 900,
+							"boldColor": null,
+							"italicColor": null
+						}
+					},
+					"graph": {
+						"enabled": true,
+						"extractionChunkTokens": 4096
+					},
+					"compaction": {
+						"thresholdTokens": 40000
+					}
+				},
+				"graphTools": true
+			},
+			{
+				"input": {
+					"general": {
+						"activeClass": "cls_abc-1_2",
+						"onboarded": true,
+						"lastSeenVersion": "0.5.44",
+						"teacherName": "  Zed\n the  great ",
+						"sounds": false
+					}
+				},
+				"output": {
+					"general": {
+						"autoUpdate": true,
+						"activeClass": "cls_abc-1_2",
+						"teacherName": "Zed the great",
+						"sounds": false
+					},
+					"agent": {
+						"tools": {},
+						"rules": {},
+						"graphTools": {}
+					},
+					"appearance": {
+						"background": null,
+						"fontFamily": null,
+						"proseFontSize": 15,
+						"mdRendering": {
+							"headingWeight": 900,
+							"boldColor": null,
+							"italicColor": null
+						}
+					},
+					"graph": {
+						"enabled": true,
+						"extractionChunkTokens": 4096
+					},
+					"compaction": {
+						"thresholdTokens": 40000
+					}
+				},
+				"graphTools": true
+			},
+			{
+				"input": {
+					"general": {
+						"activeClass": "none",
+						"lastSeenVersion": "0.5",
+						"teacherName": "   "
+					}
+				},
+				"output": {
+					"general": {
+						"autoUpdate": true,
+						"activeClass": "none",
+						"teacherName": "Teacher",
+						"sounds": true
+					},
+					"agent": {
+						"tools": {},
+						"rules": {},
+						"graphTools": {}
+					},
+					"appearance": {
+						"background": null,
+						"fontFamily": null,
+						"proseFontSize": 15,
+						"mdRendering": {
+							"headingWeight": 900,
+							"boldColor": null,
+							"italicColor": null
+						}
+					},
+					"graph": {
+						"enabled": true,
+						"extractionChunkTokens": 4096
+					},
+					"compaction": {
+						"thresholdTokens": 40000
+					}
+				},
+				"graphTools": true
+			},
+			{
+				"input": {
+					"general": [],
+					"constructor": 1,
+					"toString": 2,
+					"x": 2
+				},
+				"output": {
+					"general": {
+						"autoUpdate": true,
+						"activeClass": "none",
+						"teacherName": "Teacher",
+						"sounds": true
+					},
+					"agent": {
+						"tools": {},
+						"rules": {},
+						"graphTools": {}
+					},
+					"appearance": {
+						"background": null,
+						"fontFamily": null,
+						"proseFontSize": 15,
+						"mdRendering": {
+							"headingWeight": 900,
+							"boldColor": null,
+							"italicColor": null
+						}
+					},
+					"graph": {
+						"enabled": true,
+						"extractionChunkTokens": 4096
+					},
+					"compaction": {
+						"thresholdTokens": 40000
+					}
+				},
+				"graphTools": true
+			},
+			{
+				"input": {
+					"2": 2,
+					"10": 1,
+					"chat": {
+						"a": 1
+					},
+					"models": {
+						"b": 2
+					},
+					"future": {
+						"a": [
+							1,
+							{
+								"z": null
+							}
+						]
+					}
+				},
+				"output": {
+					"general": {
+						"autoUpdate": true,
+						"activeClass": "none",
+						"teacherName": "Teacher",
+						"sounds": true
+					},
+					"agent": {
+						"tools": {},
+						"rules": {},
+						"graphTools": {}
+					},
+					"appearance": {
+						"background": null,
+						"fontFamily": null,
+						"proseFontSize": 15,
+						"mdRendering": {
+							"headingWeight": 900,
+							"boldColor": null,
+							"italicColor": null
+						}
+					},
+					"graph": {
+						"enabled": true,
+						"extractionChunkTokens": 4096
+					},
+					"compaction": {
+						"thresholdTokens": 40000
+					}
+				},
+				"graphTools": true
+			},
+			{
+				"input": {
+					"appearance": {
+						"background": "#FFFFFF",
+						"proseFontSize": 99.6,
+						"fontFamily": "  ",
+						"mdRendering": {
+							"headingWeight": 5000.4,
+							"boldColor": "zzz",
+							"italicColor": null
+						}
+					}
+				},
+				"output": {
+					"general": {
+						"autoUpdate": true,
+						"activeClass": "none",
+						"teacherName": "Teacher",
+						"sounds": true
+					},
+					"agent": {
+						"tools": {},
+						"rules": {},
+						"graphTools": {}
+					},
+					"appearance": {
+						"background": null,
+						"fontFamily": null,
+						"proseFontSize": 24,
+						"mdRendering": {
+							"headingWeight": 900,
+							"boldColor": null,
+							"italicColor": null
+						}
+					},
+					"graph": {
+						"enabled": true,
+						"extractionChunkTokens": 4096
+					},
+					"compaction": {
+						"thresholdTokens": 40000
+					}
+				},
+				"graphTools": true
+			},
+			{
+				"input": {
+					"appearance": {
+						"background": "#F4F1EA"
+					}
+				},
+				"output": {
+					"general": {
+						"autoUpdate": true,
+						"activeClass": "none",
+						"teacherName": "Teacher",
+						"sounds": true
+					},
+					"agent": {
+						"tools": {},
+						"rules": {},
+						"graphTools": {}
+					},
+					"appearance": {
+						"background": null,
+						"fontFamily": null,
+						"proseFontSize": 15,
+						"mdRendering": {
+							"headingWeight": 900,
+							"boldColor": null,
+							"italicColor": null
+						}
+					},
+					"graph": {
+						"enabled": true,
+						"extractionChunkTokens": 4096
+					},
+					"compaction": {
+						"thresholdTokens": 40000
+					}
+				},
+				"graphTools": true
+			},
+			{
+				"input": {
+					"appearance": {
+						"background": "#123",
+						"fontFamily": "Inter",
+						"proseFontSize": 11.5,
+						"mdRendering": {
+							"headingWeight": 100.5,
+							"boldColor": "#abcdef",
+							"italicColor": "#ABC"
+						}
+					}
+				},
+				"output": {
+					"general": {
+						"autoUpdate": true,
+						"activeClass": "none",
+						"teacherName": "Teacher",
+						"sounds": true
+					},
+					"agent": {
+						"tools": {},
+						"rules": {},
+						"graphTools": {}
+					},
+					"appearance": {
+						"background": "#123",
+						"fontFamily": "Inter",
+						"proseFontSize": 12,
+						"mdRendering": {
+							"headingWeight": 101,
+							"boldColor": "#abcdef",
+							"italicColor": "#ABC"
+						}
+					},
+					"graph": {
+						"enabled": true,
+						"extractionChunkTokens": 4096
+					},
+					"compaction": {
+						"thresholdTokens": 40000
+					}
+				},
+				"graphTools": true
+			},
+			{
+				"input": {
+					"appearance": {
+						"background": 5,
+						"fontFamily": 5,
+						"proseFontSize": "15",
+						"mdRendering": []
+					}
+				},
+				"output": {
+					"general": {
+						"autoUpdate": true,
+						"activeClass": "none",
+						"teacherName": "Teacher",
+						"sounds": true
+					},
+					"agent": {
+						"tools": {},
+						"rules": {},
+						"graphTools": {}
+					},
+					"appearance": {
+						"background": null,
+						"fontFamily": null,
+						"proseFontSize": 15,
+						"mdRendering": {
+							"headingWeight": 900,
+							"boldColor": null,
+							"italicColor": null
+						}
+					},
+					"graph": {
+						"enabled": true,
+						"extractionChunkTokens": 4096
+					},
+					"compaction": {
+						"thresholdTokens": 40000
+					}
+				},
+				"graphTools": true
+			},
+			{
+				"input": {
+					"appearance": {
+						"mdRendering": {
+							"headingWeight": 49.4
+						}
+					}
+				},
+				"output": {
+					"general": {
+						"autoUpdate": true,
+						"activeClass": "none",
+						"teacherName": "Teacher",
+						"sounds": true
+					},
+					"agent": {
+						"tools": {},
+						"rules": {},
+						"graphTools": {}
+					},
+					"appearance": {
+						"background": null,
+						"fontFamily": null,
+						"proseFontSize": 15,
+						"mdRendering": {
+							"headingWeight": 100,
+							"boldColor": null,
+							"italicColor": null
+						}
+					},
+					"graph": {
+						"enabled": true,
+						"extractionChunkTokens": 4096
+					},
+					"compaction": {
+						"thresholdTokens": 40000
+					}
+				},
+				"graphTools": true
+			},
+			{
+				"input": {
+					"graph": {
+						"extractionChunkTokens": 10,
+						"enabled": "y"
+					}
+				},
+				"output": {
+					"general": {
+						"autoUpdate": true,
+						"activeClass": "none",
+						"teacherName": "Teacher",
+						"sounds": true
+					},
+					"agent": {
+						"tools": {},
+						"rules": {},
+						"graphTools": {}
+					},
+					"appearance": {
+						"background": null,
+						"fontFamily": null,
+						"proseFontSize": 15,
+						"mdRendering": {
+							"headingWeight": 900,
+							"boldColor": null,
+							"italicColor": null
+						}
+					},
+					"graph": {
+						"enabled": true,
+						"extractionChunkTokens": 500
+					},
+					"compaction": {
+						"thresholdTokens": 40000
+					}
+				},
+				"graphTools": true
+			},
+			{
+				"input": {
+					"graph": {
+						"extractionChunkTokens": 4096.9,
+						"enabled": true
+					}
+				},
+				"output": {
+					"general": {
+						"autoUpdate": true,
+						"activeClass": "none",
+						"teacherName": "Teacher",
+						"sounds": true
+					},
+					"agent": {
+						"tools": {},
+						"rules": {},
+						"graphTools": {}
+					},
+					"appearance": {
+						"background": null,
+						"fontFamily": null,
+						"proseFontSize": 15,
+						"mdRendering": {
+							"headingWeight": 900,
+							"boldColor": null,
+							"italicColor": null
+						}
+					},
+					"graph": {
+						"enabled": true,
+						"extractionChunkTokens": 4096
+					},
+					"compaction": {
+						"thresholdTokens": 40000
+					}
+				},
+				"graphTools": true
+			},
+			{
+				"input": {
+					"graph": {
+						"extractionChunkTokens": -1
+					}
+				},
+				"output": {
+					"general": {
+						"autoUpdate": true,
+						"activeClass": "none",
+						"teacherName": "Teacher",
+						"sounds": true
+					},
+					"agent": {
+						"tools": {},
+						"rules": {},
+						"graphTools": {}
+					},
+					"appearance": {
+						"background": null,
+						"fontFamily": null,
+						"proseFontSize": 15,
+						"mdRendering": {
+							"headingWeight": 900,
+							"boldColor": null,
+							"italicColor": null
+						}
+					},
+					"graph": {
+						"enabled": true,
+						"extractionChunkTokens": 4096
+					},
+					"compaction": {
+						"thresholdTokens": 40000
+					}
+				},
+				"graphTools": true
+			},
+			{
+				"input": {
+					"compaction": {
+						"thresholdTokens": -5
+					}
+				},
+				"output": {
+					"general": {
+						"autoUpdate": true,
+						"activeClass": "none",
+						"teacherName": "Teacher",
+						"sounds": true
+					},
+					"agent": {
+						"tools": {},
+						"rules": {},
+						"graphTools": {}
+					},
+					"appearance": {
+						"background": null,
+						"fontFamily": null,
+						"proseFontSize": 15,
+						"mdRendering": {
+							"headingWeight": 900,
+							"boldColor": null,
+							"italicColor": null
+						}
+					},
+					"graph": {
+						"enabled": true,
+						"extractionChunkTokens": 4096
+					},
+					"compaction": {
+						"thresholdTokens": 40000
+					}
+				},
+				"graphTools": true
+			},
+			{
+				"input": {
+					"compaction": {
+						"thresholdTokens": 150000
+					}
+				},
+				"output": {
+					"general": {
+						"autoUpdate": true,
+						"activeClass": "none",
+						"teacherName": "Teacher",
+						"sounds": true
+					},
+					"agent": {
+						"tools": {},
+						"rules": {},
+						"graphTools": {}
+					},
+					"appearance": {
+						"background": null,
+						"fontFamily": null,
+						"proseFontSize": 15,
+						"mdRendering": {
+							"headingWeight": 900,
+							"boldColor": null,
+							"italicColor": null
+						}
+					},
+					"graph": {
+						"enabled": true,
+						"extractionChunkTokens": 4096
+					},
+					"compaction": {
+						"thresholdTokens": 150000
+					}
+				},
+				"graphTools": true
+			},
+			{
+				"input": {
+					"compaction": {
+						"thresholdTokens": 31999.5
+					}
+				},
+				"output": {
+					"general": {
+						"autoUpdate": true,
+						"activeClass": "none",
+						"teacherName": "Teacher",
+						"sounds": true
+					},
+					"agent": {
+						"tools": {},
+						"rules": {},
+						"graphTools": {}
+					},
+					"appearance": {
+						"background": null,
+						"fontFamily": null,
+						"proseFontSize": 15,
+						"mdRendering": {
+							"headingWeight": 900,
+							"boldColor": null,
+							"italicColor": null
+						}
+					},
+					"graph": {
+						"enabled": true,
+						"extractionChunkTokens": 4096
+					},
+					"compaction": {
+						"thresholdTokens": 32000
+					}
+				},
+				"graphTools": true
+			},
+			{
+				"input": {
+					"agent": {
+						"tools": {
+							"a": true,
+							"b": "x",
+							"c": false
+						},
+						"graphTools": {
+							"enabled": "x"
+						},
+						"rules": {
+							"voice": [
+								" a ",
+								"a",
+								3
+							],
+							"nope": [
+								"x"
+							]
+						}
+					}
+				},
+				"output": {
+					"general": {
+						"autoUpdate": true,
+						"activeClass": "none",
+						"teacherName": "Teacher",
+						"sounds": true
+					},
+					"agent": {
+						"tools": {
+							"a": true,
+							"c": false
+						},
+						"rules": {
+							"voice": [
+								"a"
+							]
+						},
+						"graphTools": {}
+					},
+					"appearance": {
+						"background": null,
+						"fontFamily": null,
+						"proseFontSize": 15,
+						"mdRendering": {
+							"headingWeight": 900,
+							"boldColor": null,
+							"italicColor": null
+						}
+					},
+					"graph": {
+						"enabled": true,
+						"extractionChunkTokens": 4096
+					},
+					"compaction": {
+						"thresholdTokens": 40000
+					}
+				},
+				"graphTools": true
+			},
+			{
+				"input": {
+					"agent": {
+						"tools": {
+							"b": "x"
+						},
+						"graphTools": {},
+						"rules": {
+							"voice": []
+						}
+					}
+				},
+				"output": {
+					"general": {
+						"autoUpdate": true,
+						"activeClass": "none",
+						"teacherName": "Teacher",
+						"sounds": true
+					},
+					"agent": {
+						"tools": {},
+						"rules": {},
+						"graphTools": {}
+					},
+					"appearance": {
+						"background": null,
+						"fontFamily": null,
+						"proseFontSize": 15,
+						"mdRendering": {
+							"headingWeight": 900,
+							"boldColor": null,
+							"italicColor": null
+						}
+					},
+					"graph": {
+						"enabled": true,
+						"extractionChunkTokens": 4096
+					},
+					"compaction": {
+						"thresholdTokens": 40000
+					}
+				},
+				"graphTools": true
+			},
+			{
+				"input": {
+					"agent": {
+						"graphTools": {
+							"enabled": false
+						}
+					}
+				},
+				"output": {
+					"general": {
+						"autoUpdate": true,
+						"activeClass": "none",
+						"teacherName": "Teacher",
+						"sounds": true
+					},
+					"agent": {
+						"tools": {},
+						"rules": {},
+						"graphTools": {
+							"enabled": false
+						}
+					},
+					"appearance": {
+						"background": null,
+						"fontFamily": null,
+						"proseFontSize": 15,
+						"mdRendering": {
+							"headingWeight": 900,
+							"boldColor": null,
+							"italicColor": null
+						}
+					},
+					"graph": {
+						"enabled": true,
+						"extractionChunkTokens": 4096
+					},
+					"compaction": {
+						"thresholdTokens": 40000
+					}
+				},
+				"graphTools": false
+			},
+			{
+				"input": {
+					"agent": {
+						"graphTools": []
+					}
+				},
+				"output": {
+					"general": {
+						"autoUpdate": true,
+						"activeClass": "none",
+						"teacherName": "Teacher",
+						"sounds": true
+					},
+					"agent": {
+						"tools": {},
+						"rules": {},
+						"graphTools": {}
+					},
+					"appearance": {
+						"background": null,
+						"fontFamily": null,
+						"proseFontSize": 15,
+						"mdRendering": {
+							"headingWeight": 900,
+							"boldColor": null,
+							"italicColor": null
+						}
+					},
+					"graph": {
+						"enabled": true,
+						"extractionChunkTokens": 4096
+					},
+					"compaction": {
+						"thresholdTokens": 40000
+					}
+				},
+				"graphTools": true
+			},
+			{
+				"input": {
+					"agent": {
+						"tools": [
+							true
+						],
+						"rules": []
+					}
+				},
+				"output": {
+					"general": {
+						"autoUpdate": true,
+						"activeClass": "none",
+						"teacherName": "Teacher",
+						"sounds": true
+					},
+					"agent": {
+						"tools": {},
+						"rules": {},
+						"graphTools": {}
+					},
+					"appearance": {
+						"background": null,
+						"fontFamily": null,
+						"proseFontSize": 15,
+						"mdRendering": {
+							"headingWeight": 900,
+							"boldColor": null,
+							"italicColor": null
+						}
+					},
+					"graph": {
+						"enabled": true,
+						"extractionChunkTokens": 4096
+					},
+					"compaction": {
+						"thresholdTokens": 40000
+					}
+				},
+				"graphTools": true
+			},
+			{
+				"input": {
+					"agent": {
+						"prompts": {
+							"system-prompt.md": true,
+							"x.md": false
+						}
+					}
+				},
+				"output": {
+					"general": {
+						"autoUpdate": true,
+						"activeClass": "none",
+						"teacherName": "Teacher",
+						"sounds": true
+					},
+					"agent": {
+						"tools": {},
+						"rules": {},
+						"graphTools": {}
+					},
+					"appearance": {
+						"background": null,
+						"fontFamily": null,
+						"proseFontSize": 15,
+						"mdRendering": {
+							"headingWeight": 900,
+							"boldColor": null,
+							"italicColor": null
+						}
+					},
+					"graph": {
+						"enabled": true,
+						"extractionChunkTokens": 4096
+					},
+					"compaction": {
+						"thresholdTokens": 40000
+					}
+				},
+				"graphTools": true
+			},
+			{
+				"input": {
+					"__proto__": {
+						"x": 1
+					},
+					"agent": {
+						"tools": {
+							"__proto__": true,
+							"a": false
+						}
+					},
+					"y": 2
+				},
+				"output": {
+					"general": {
+						"autoUpdate": true,
+						"activeClass": "none",
+						"teacherName": "Teacher",
+						"sounds": true
+					},
+					"agent": {
+						"tools": {
+							"a": false
+						},
+						"rules": {},
+						"graphTools": {}
+					},
+					"appearance": {
+						"background": null,
+						"fontFamily": null,
+						"proseFontSize": 15,
+						"mdRendering": {
+							"headingWeight": 900,
+							"boldColor": null,
+							"italicColor": null
+						}
+					},
+					"graph": {
+						"enabled": true,
+						"extractionChunkTokens": 4096
+					},
+					"compaction": {
+						"thresholdTokens": 40000
+					}
+				},
+				"graphTools": true
+			}
+		]
+	},
+	{
+		"name": "teacher names and colors",
+		"output": {
+			"names": [
+				{
+					"input": "",
+					"output": ""
+				},
+				{
+					"input": "  ",
+					"output": ""
+				},
+				{
+					"input": "Zed",
+					"output": "Zed"
+				},
+				{
+					"input": "  Zed\n the  great ",
+					"output": "Zed the great"
+				},
+				{
+					"input": "a​b",
+					"output": "a b"
+				},
+				{
+					"input": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀",
+					"output": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀"
+				},
+				{
+					"input": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+					"output": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+				},
+				{
+					"input": "a\tb cd",
+					"output": "a b c d"
+				},
+				{
+					"input": "\ud83dlone",
+					"output": "\ud83dlone"
+				},
+				{
+					"input": "ab😀cdab😀cdab😀cdab😀cdab😀cdab😀cdab😀cdab😀cdab😀cdab😀cdab😀cdab😀cd",
+					"output": "ab😀cdab😀cdab😀cdab😀cdab😀cdab😀cdab😀cdab😀cd"
+				}
+			],
+			"colors": [
+				{
+					"input": "#abc",
+					"output": true
+				},
+				{
+					"input": "#A1b2C3",
+					"output": true
+				},
+				{
+					"input": "#abcd",
+					"output": false
+				},
+				{
+					"input": "abc",
+					"output": false
+				},
+				{
+					"input": "#abcdeg",
+					"output": false
+				},
+				{
+					"input": "",
+					"output": false
+				},
+				{
+					"input": "#ABCDEF",
+					"output": true
+				},
+				{
+					"input": "# abc",
+					"output": false
+				},
+				{
+					"input": "#abc\n",
+					"output": false
+				}
+			]
+		}
+	},
+	{
+		"name": "oneLine",
+		"output": [
+			{
+				"input": "a​b\tc d  ",
+				"max": 5,
+				"output": "a b c"
+			},
+			{
+				"input": "a​b\tc d  ",
+				"max": 40,
+				"output": "a b c d"
+			},
+			{
+				"input": "a​b\tc d  ",
+				"max": 200,
+				"output": "a b c d"
+			},
+			{
+				"input": "😀😀😀",
+				"max": 5,
+				"output": "😀😀😀"
+			},
+			{
+				"input": "😀😀😀",
+				"max": 40,
+				"output": "😀😀😀"
+			},
+			{
+				"input": "😀😀😀",
+				"max": 200,
+				"output": "😀😀😀"
+			},
+			{
+				"input": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+				"max": 5,
+				"output": "xxxxx"
+			},
+			{
+				"input": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+				"max": 40,
+				"output": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+			},
+			{
+				"input": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+				"max": 200,
+				"output": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+			},
+			{
+				"input": "  padded  ",
+				"max": 5,
+				"output": "padde"
+			},
+			{
+				"input": "  padded  ",
+				"max": 40,
+				"output": "padded"
+			},
+			{
+				"input": "  padded  ",
+				"max": 200,
+				"output": "padded"
+			},
+			{
+				"input": "\u0000\u001f",
+				"max": 5,
+				"output": ""
+			},
+			{
+				"input": "\u0000\u001f",
+				"max": 40,
+				"output": ""
+			},
+			{
+				"input": "\u0000\u001f",
+				"max": 200,
+				"output": ""
+			},
+			{
+				"input": "éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé",
+				"max": 5,
+				"output": "éée"
+			},
+			{
+				"input": "éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé",
+				"max": 40,
+				"output": "éééééééééééééééééééé"
+			},
+			{
+				"input": "éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé",
+				"max": 200,
+				"output": "éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé"
+			},
+			{
+				"input": "\ud83d\ud83d\ud83d\ud83d\ud83d",
+				"max": 5,
+				"output": "\ud83d\ud83d\ud83d\ud83d\ud83d"
+			},
+			{
+				"input": "\ud83d\ud83d\ud83d\ud83d\ud83d",
+				"max": 40,
+				"output": "\ud83d\ud83d\ud83d\ud83d\ud83d"
+			},
+			{
+				"input": "\ud83d\ud83d\ud83d\ud83d\ud83d",
+				"max": 200,
+				"output": "\ud83d\ud83d\ud83d\ud83d\ud83d"
+			}
+		]
+	},
+	{
+		"name": "sanitizeRules",
+		"output": [
+			{
+				"input": [
+					"x",
+					1,
+					" x ",
+					"y"
+				],
+				"output": [
+					"x",
+					"y"
+				]
+			},
+			{
+				"input": "x",
+				"output": []
+			},
+			{
+				"input": null,
+				"output": []
+			},
+			{
+				"input": [],
+				"output": []
+			},
+			{
+				"input": [
+					"  ",
+					"a",
+					"a\nb",
+					"A"
+				],
+				"output": [
+					"a",
+					"a b",
+					"A"
+				]
+			},
+			{
+				"input": [
+					"rule 0",
+					"rule 1",
+					"rule 2",
+					"rule 3",
+					"rule 4",
+					"rule 5",
+					"rule 6",
+					"rule 7",
+					"rule 8",
+					"rule 9",
+					"rule 10",
+					"rule 11",
+					"rule 12",
+					"rule 13",
+					"rule 14",
+					"rule 15",
+					"rule 16",
+					"rule 17",
+					"rule 18",
+					"rule 19",
+					"rule 20",
+					"rule 21",
+					"rule 22",
+					"rule 23",
+					"rule 24",
+					"rule 25",
+					"rule 26",
+					"rule 27",
+					"rule 28",
+					"rule 29"
+				],
+				"output": [
+					"rule 0",
+					"rule 1",
+					"rule 2",
+					"rule 3",
+					"rule 4",
+					"rule 5",
+					"rule 6",
+					"rule 7",
+					"rule 8",
+					"rule 9",
+					"rule 10",
+					"rule 11",
+					"rule 12",
+					"rule 13",
+					"rule 14",
+					"rule 15",
+					"rule 16",
+					"rule 17",
+					"rule 18",
+					"rule 19"
+				]
+			},
+			{
+				"input": [
+					[
+						"nested"
+					],
+					{
+						"a": 1
+					},
+					"ok"
+				],
+				"output": [
+					"ok"
+				]
+			}
+		]
+	},
+	{
+		"name": "sanitizeAreaRules",
+		"output": [
+			{
+				"input": {},
+				"output": {}
+			},
+			{
+				"input": null,
+				"output": {}
+			},
+			{
+				"input": [
+					1
+				],
+				"output": {}
+			},
+			{
+				"input": {
+					"voice": [
+						"Short.",
+						"Short."
+					],
+					"nope": [
+						"x"
+					],
+					"facts": []
+				},
+				"output": {
+					"voice": [
+						"Short."
+					]
+				}
+			},
+			{
+				"input": {
+					"voice": [
+						"a"
+					],
+					"teaching": [
+						"b",
+						"c"
+					],
+					"questions": [
+						"d"
+					],
+					"facts": [
+						"e"
+					],
+					"demos": [
+						"f"
+					],
+					"files": [
+						"g"
+					]
+				},
+				"output": {
+					"voice": [
+						"a"
+					],
+					"teaching": [
+						"b",
+						"c"
+					],
+					"questions": [
+						"d"
+					],
+					"facts": [
+						"e"
+					],
+					"demos": [
+						"f"
+					],
+					"files": [
+						"g"
+					]
+				}
+			},
+			{
+				"input": {
+					"files": "x",
+					"demos": [
+						3
+					]
+				},
+				"output": {}
+			}
+		]
+	},
+	{
+		"name": "learnerRulesSection",
+		"output": [
+			{
+				"rules": {},
+				"lessonClass": null,
+				"output": ""
+			},
+			{
+				"rules": {},
+				"lessonClass": {
+					"name": "CSE 21",
+					"rules": []
+				},
+				"output": ""
+			},
+			{
+				"rules": {},
+				"lessonClass": {
+					"name": "CSE 21",
+					"rules": [
+						"Use Python."
+					]
+				},
+				"output": "## The learner's rules\n\nThe learner wrote these rules. Follow them. Where a rule conflicts with the instructions above, the rule wins.\n\nRules for this class (CSE 21)\n- Use Python."
+			},
+			{
+				"rules": {
+					"voice": [
+						"Short."
+					]
+				},
+				"lessonClass": null,
+				"output": "## The learner's rules\n\nThe learner wrote these rules. Follow them. Where a rule conflicts with the instructions above, the rule wins.\n\nVoice\n- Short."
+			},
+			{
+				"rules": {
+					"voice": [
+						"Short."
+					],
+					"files": [
+						"Tabs.",
+						"Kebab names."
+					],
+					"demos": []
+				},
+				"lessonClass": {
+					"name": "CSE 29",
+					"rules": [
+						"A",
+						"B"
+					]
+				},
+				"output": "## The learner's rules\n\nThe learner wrote these rules. Follow them. Where a rule conflicts with the instructions above, the rule wins.\n\nVoice\n- Short.\n\nYour files and formatting\n- Tabs.\n- Kebab names.\n\nRules for this class (CSE 29)\n- A\n- B"
+			},
+			{
+				"rules": {
+					"teaching": [
+						"One step."
+					],
+					"questions": [
+						"Ask first."
+					],
+					"facts": [
+						"Cite."
+					]
+				},
+				"lessonClass": {
+					"name": "X (y)",
+					"rules": [
+						"Z"
+					]
+				},
+				"output": "## The learner's rules\n\nThe learner wrote these rules. Follow them. Where a rule conflicts with the instructions above, the rule wins.\n\nLesson flow\n- One step.\n\nQuestions\n- Ask first.\n\nFacts and research\n- Cite.\n\nRules for this class (X (y))\n- Z"
+			}
+		]
+	},
+	{
+		"name": "agent notes",
+		"output": {
+			"parsed": [
+				{
+					"input": null,
+					"output": []
+				},
+				{
+					"input": {},
+					"output": []
+				},
+				{
+					"input": {
+						"notes": "x"
+					},
+					"output": []
+				},
+				{
+					"input": {
+						"notes": []
+					},
+					"output": []
+				},
+				{
+					"input": {
+						"notes": [
+							{
+								"id": "n1",
+								"text": "t",
+								"classId": 5,
+								"createdAt": "now",
+								"extra": 1
+							},
+							{
+								"id": "n2",
+								"text": "t"
+							},
+							"x",
+							null,
+							{
+								"id": "n3",
+								"text": "u",
+								"classId": "cls_a",
+								"createdAt": "z"
+							},
+							{
+								"id": 1,
+								"text": "t",
+								"createdAt": "z"
+							}
+						]
+					},
+					"output": [
+						{
+							"id": "n1",
+							"text": "t",
+							"createdAt": "now"
+						},
+						{
+							"id": "n3",
+							"text": "u",
+							"classId": "cls_a",
+							"createdAt": "z"
+						}
+					]
+				},
+				{
+					"input": [
+						{
+							"id": "n",
+							"text": "t",
+							"createdAt": "z"
+						}
+					],
+					"output": []
+				}
+			],
+			"cleaned": [
+				{
+					"input": "  a \n\t b  ",
+					"output": "a b"
+				},
+				{
+					"input": " \n ",
+					"output": null
+				},
+				{
+					"input": "",
+					"output": null
+				},
+				{
+					"input": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+					"output": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+				},
+				{
+					"input": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+					"output": null
+				},
+				{
+					"input": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀",
+					"output": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀"
+				},
+				{
+					"input": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀",
+					"output": null
+				},
+				{
+					"input": "a b c﻿d",
+					"output": "a b c d"
+				},
+				{
+					"input": "​z",
+					"output": "​z"
+				}
+			]
+		}
+	},
+	{
+		"name": "agent rules",
+		"output": {
+			"where": [
+				{
+					"input": null,
+					"output": null
+				},
+				{
+					"input": "voice",
+					"output": null
+				},
+				{
+					"input": [],
+					"output": null
+				},
+				{
+					"input": {},
+					"output": null
+				},
+				{
+					"input": {
+						"area": "voice"
+					},
+					"output": {
+						"area": "voice"
+					}
+				},
+				{
+					"input": {
+						"area": "voice",
+						"classId": "cls_a"
+					},
+					"output": {
+						"area": "voice"
+					}
+				},
+				{
+					"input": {
+						"area": "nope",
+						"classId": "cls_a"
+					},
+					"output": {
+						"classId": "cls_a"
+					}
+				},
+				{
+					"input": {
+						"area": "nope"
+					},
+					"output": null
+				},
+				{
+					"input": {
+						"classId": "cls_a-b_1"
+					},
+					"output": {
+						"classId": "cls_a-b_1"
+					}
+				},
+				{
+					"input": {
+						"classId": "bad"
+					},
+					"output": null
+				},
+				{
+					"input": {
+						"classId": 5
+					},
+					"output": null
+				},
+				{
+					"input": {
+						"area": 5,
+						"classId": "cls_x"
+					},
+					"output": {
+						"classId": "cls_x"
+					}
+				},
+				{
+					"input": {
+						"area": "files",
+						"extra": 1
+					},
+					"output": {
+						"area": "files"
+					}
+				}
+			],
+			"same": [
+				{
+					"a": 4,
+					"b": 4,
+					"output": true
+				},
+				{
+					"a": 4,
+					"b": 5,
+					"output": true
+				},
+				{
+					"a": 4,
+					"b": 6,
+					"output": false
+				},
+				{
+					"a": 4,
+					"b": 8,
+					"output": false
+				},
+				{
+					"a": 4,
+					"b": 11,
+					"output": false
+				},
+				{
+					"a": 4,
+					"b": 12,
+					"output": false
+				},
+				{
+					"a": 5,
+					"b": 4,
+					"output": true
+				},
+				{
+					"a": 5,
+					"b": 5,
+					"output": true
+				},
+				{
+					"a": 5,
+					"b": 6,
+					"output": false
+				},
+				{
+					"a": 5,
+					"b": 8,
+					"output": false
+				},
+				{
+					"a": 5,
+					"b": 11,
+					"output": false
+				},
+				{
+					"a": 5,
+					"b": 12,
+					"output": false
+				},
+				{
+					"a": 6,
+					"b": 4,
+					"output": false
+				},
+				{
+					"a": 6,
+					"b": 5,
+					"output": false
+				},
+				{
+					"a": 6,
+					"b": 6,
+					"output": true
+				},
+				{
+					"a": 6,
+					"b": 8,
+					"output": false
+				},
+				{
+					"a": 6,
+					"b": 11,
+					"output": false
+				},
+				{
+					"a": 6,
+					"b": 12,
+					"output": false
+				},
+				{
+					"a": 8,
+					"b": 4,
+					"output": false
+				},
+				{
+					"a": 8,
+					"b": 5,
+					"output": false
+				},
+				{
+					"a": 8,
+					"b": 6,
+					"output": false
+				},
+				{
+					"a": 8,
+					"b": 8,
+					"output": true
+				},
+				{
+					"a": 8,
+					"b": 11,
+					"output": false
+				},
+				{
+					"a": 8,
+					"b": 12,
+					"output": false
+				},
+				{
+					"a": 11,
+					"b": 4,
+					"output": false
+				},
+				{
+					"a": 11,
+					"b": 5,
+					"output": false
+				},
+				{
+					"a": 11,
+					"b": 6,
+					"output": false
+				},
+				{
+					"a": 11,
+					"b": 8,
+					"output": false
+				},
+				{
+					"a": 11,
+					"b": 11,
+					"output": true
+				},
+				{
+					"a": 11,
+					"b": 12,
+					"output": false
+				},
+				{
+					"a": 12,
+					"b": 4,
+					"output": false
+				},
+				{
+					"a": 12,
+					"b": 5,
+					"output": false
+				},
+				{
+					"a": 12,
+					"b": 6,
+					"output": false
+				},
+				{
+					"a": 12,
+					"b": 8,
+					"output": false
+				},
+				{
+					"a": 12,
+					"b": 11,
+					"output": false
+				},
+				{
+					"a": 12,
+					"b": 12,
+					"output": true
+				}
+			],
+			"labels": [
+				{
+					"where": {
+						"area": "voice"
+					},
+					"name": null,
+					"ruleFor": "every lesson",
+					"whereLabel": "Every lesson, under Voice"
+				},
+				{
+					"where": {
+						"area": "voice"
+					},
+					"name": "CSE 21",
+					"ruleFor": "every lesson",
+					"whereLabel": "Every lesson, under Voice"
+				},
+				{
+					"where": {
+						"area": "voice"
+					},
+					"name": null,
+					"ruleFor": "every lesson",
+					"whereLabel": "Every lesson, under Voice"
+				},
+				{
+					"where": {
+						"area": "voice"
+					},
+					"name": "CSE 21",
+					"ruleFor": "every lesson",
+					"whereLabel": "Every lesson, under Voice"
+				},
+				{
+					"where": {
+						"classId": "cls_a"
+					},
+					"name": null,
+					"ruleFor": "this class",
+					"whereLabel": "Lessons in this class"
+				},
+				{
+					"where": {
+						"classId": "cls_a"
+					},
+					"name": "CSE 21",
+					"ruleFor": "CSE 21",
+					"whereLabel": "Lessons in CSE 21"
+				},
+				{
+					"where": {
+						"classId": "cls_a-b_1"
+					},
+					"name": null,
+					"ruleFor": "this class",
+					"whereLabel": "Lessons in this class"
+				},
+				{
+					"where": {
+						"classId": "cls_a-b_1"
+					},
+					"name": "CSE 21",
+					"ruleFor": "CSE 21",
+					"whereLabel": "Lessons in CSE 21"
+				},
+				{
+					"where": {
+						"classId": "cls_x"
+					},
+					"name": null,
+					"ruleFor": "this class",
+					"whereLabel": "Lessons in this class"
+				},
+				{
+					"where": {
+						"classId": "cls_x"
+					},
+					"name": "CSE 21",
+					"ruleFor": "CSE 21",
+					"whereLabel": "Lessons in CSE 21"
+				},
+				{
+					"where": {
+						"area": "files"
+					},
+					"name": null,
+					"ruleFor": "every lesson",
+					"whereLabel": "Every lesson, under Your files and formatting"
+				},
+				{
+					"where": {
+						"area": "files"
+					},
+					"name": "CSE 21",
+					"ruleFor": "every lesson",
+					"whereLabel": "Every lesson, under Your files and formatting"
+				}
+			],
+			"saved": [
+				{
+					"input": null,
+					"output": []
+				},
+				{
+					"input": {
+						"rules": "x"
+					},
+					"output": []
+				},
+				{
+					"input": {
+						"rules": [
+							{
+								"where": {
+									"area": "teaching"
+								},
+								"text": "A",
+								"at": "t"
+							},
+							{
+								"where": {
+									"area": "teaching"
+								},
+								"text": "",
+								"at": "t"
+							},
+							{
+								"where": {},
+								"text": "B",
+								"at": "t"
+							},
+							{
+								"where": {
+									"classId": "cls_a"
+								},
+								"text": "C",
+								"at": 5
+							},
+							{
+								"where": {
+									"classId": "cls_a"
+								},
+								"text": "D",
+								"at": "u",
+								"extra": true
+							},
+							null,
+							"x"
+						]
+					},
+					"output": [
+						{
+							"where": {
+								"area": "teaching"
+							},
+							"text": "A",
+							"at": "t"
+						},
+						{
+							"where": {
+								"classId": "cls_a"
+							},
+							"text": "D",
+							"at": "u"
+						}
+					]
+				}
+			]
+		}
+	},
+	{
+		"name": "agent seen",
+		"output": {
+			"parsed": [
+				{
+					"input": null,
+					"output": {
+						"agents": {}
+					}
+				},
+				{
+					"input": {},
+					"output": {
+						"agents": {}
+					}
+				},
+				{
+					"input": {
+						"agents": []
+					},
+					"output": {
+						"agents": {}
+					}
+				},
+				{
+					"input": {
+						"agents": "x"
+					},
+					"output": {
+						"agents": {}
+					}
+				},
+				{
+					"input": {
+						"agents": {
+							"a": {
+								"at": "1",
+								"conversations": {
+									"c": {
+										"count": 2,
+										"hash": "h"
+									},
+									"bad": {
+										"count": -1,
+										"hash": "h"
+									},
+									"frac": {
+										"count": 1.5,
+										"hash": "h"
+									},
+									"nohash": {
+										"count": 1
+									},
+									"nul": null
+								}
+							},
+							"b": {
+								"at": 5,
+								"conversations": {}
+							},
+							"c": null,
+							"d": {
+								"at": "2",
+								"conversations": [
+									{
+										"count": 0,
+										"hash": "z"
+									}
+								]
+							},
+							"e": {
+								"at": "3",
+								"conversations": "x"
+							},
+							"f": {
+								"at": "4"
+							}
+						}
+					},
+					"output": {
+						"agents": {
+							"a": {
+								"at": "1",
+								"conversations": {
+									"c": {
+										"count": 2,
+										"hash": "h"
+									}
+								}
+							},
+							"d": {
+								"at": "2",
+								"conversations": {
+									"0": {
+										"count": 0,
+										"hash": "z"
+									}
+								}
+							}
+						}
+					}
+				},
+				{
+					"input": {
+						"agents": [
+							{
+								"at": "1",
+								"conversations": {}
+							}
+						],
+						"version": 9
+					},
+					"output": {
+						"agents": {
+							"0": {
+								"at": "1",
+								"conversations": {}
+							}
+						}
+					}
+				},
+				{
+					"input": {
+						"agents": {
+							"__proto__": {
+								"at": "1",
+								"conversations": {}
+							},
+							"g": {
+								"at": "2",
+								"conversations": {
+									"__proto__": {
+										"count": 1,
+										"hash": "h"
+									},
+									"k": {
+										"count": 1,
+										"hash": "h"
+									}
+								}
+							}
+						}
+					},
+					"output": {
+						"agents": {
+							"g": {
+								"at": "2",
+								"conversations": {
+									"k": {
+										"count": 1,
+										"hash": "h"
+									}
+								}
+							}
+						}
+					}
+				}
+			],
+			"marks": [
+				{
+					"n": 0,
+					"output": {
+						"count": 0,
+						"hash": "e3b0c44298fc1c149afbf4c8996fb924"
+					}
+				},
+				{
+					"n": 1,
+					"output": {
+						"count": 1,
+						"hash": "ffe9aaeaa2a2d5048174df0b80599ef0"
+					}
+				},
+				{
+					"n": 2,
+					"output": {
+						"count": 2,
+						"hash": "8fb20ef63ced4145fc2e983ffe597d1d"
+					}
+				},
+				{
+					"n": 3,
+					"output": {
+						"count": 3,
+						"hash": "13e228567e8249fce53337f25d7970de"
+					}
+				},
+				{
+					"n": 6,
+					"output": {
+						"count": 6,
+						"hash": "8355cf270b13351069918b934875f13c"
+					}
+				}
+			],
+			"steps": [
+				{
+					"agents": {
+						"agent0": {
+							"at": "2026-01-01T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 0,
+									"hash": "h0"
+								}
+							}
+						}
+					}
+				},
+				{
+					"agents": {
+						"agent1": {
+							"at": "2026-01-02T00:00:00.000Z",
+							"conversations": {
+								"chat1": {
+									"count": 1,
+									"hash": "h1"
+								}
+							}
+						},
+						"agent0": {
+							"at": "2026-01-01T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 0,
+									"hash": "h0"
+								}
+							}
+						}
+					}
+				},
+				{
+					"agents": {
+						"agent2": {
+							"at": "2026-01-03T00:00:00.000Z",
+							"conversations": {
+								"chat2": {
+									"count": 2,
+									"hash": "h2"
+								}
+							}
+						},
+						"agent1": {
+							"at": "2026-01-02T00:00:00.000Z",
+							"conversations": {
+								"chat1": {
+									"count": 1,
+									"hash": "h1"
+								}
+							}
+						},
+						"agent0": {
+							"at": "2026-01-01T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 0,
+									"hash": "h0"
+								}
+							}
+						}
+					}
+				},
+				{
+					"agents": {
+						"agent3": {
+							"at": "2026-01-04T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 3,
+									"hash": "h3"
+								}
+							}
+						},
+						"agent2": {
+							"at": "2026-01-03T00:00:00.000Z",
+							"conversations": {
+								"chat2": {
+									"count": 2,
+									"hash": "h2"
+								}
+							}
+						},
+						"agent1": {
+							"at": "2026-01-02T00:00:00.000Z",
+							"conversations": {
+								"chat1": {
+									"count": 1,
+									"hash": "h1"
+								}
+							}
+						},
+						"agent0": {
+							"at": "2026-01-01T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 0,
+									"hash": "h0"
+								}
+							}
+						}
+					}
+				},
+				{
+					"agents": {
+						"agent4": {
+							"at": "2026-01-05T00:00:00.000Z",
+							"conversations": {
+								"chat4": {
+									"count": 4,
+									"hash": "h4"
+								}
+							}
+						},
+						"agent3": {
+							"at": "2026-01-04T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 3,
+									"hash": "h3"
+								}
+							}
+						},
+						"agent2": {
+							"at": "2026-01-03T00:00:00.000Z",
+							"conversations": {
+								"chat2": {
+									"count": 2,
+									"hash": "h2"
+								}
+							}
+						},
+						"agent1": {
+							"at": "2026-01-02T00:00:00.000Z",
+							"conversations": {
+								"chat1": {
+									"count": 1,
+									"hash": "h1"
+								}
+							}
+						},
+						"agent0": {
+							"at": "2026-01-01T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 0,
+									"hash": "h0"
+								}
+							}
+						}
+					}
+				},
+				{
+					"agents": {
+						"agent5": {
+							"at": "2026-01-06T00:00:00.000Z",
+							"conversations": {
+								"chat5": {
+									"count": 5,
+									"hash": "h5"
+								}
+							}
+						},
+						"agent4": {
+							"at": "2026-01-05T00:00:00.000Z",
+							"conversations": {
+								"chat4": {
+									"count": 4,
+									"hash": "h4"
+								}
+							}
+						},
+						"agent3": {
+							"at": "2026-01-04T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 3,
+									"hash": "h3"
+								}
+							}
+						},
+						"agent2": {
+							"at": "2026-01-03T00:00:00.000Z",
+							"conversations": {
+								"chat2": {
+									"count": 2,
+									"hash": "h2"
+								}
+							}
+						},
+						"agent1": {
+							"at": "2026-01-02T00:00:00.000Z",
+							"conversations": {
+								"chat1": {
+									"count": 1,
+									"hash": "h1"
+								}
+							}
+						},
+						"agent0": {
+							"at": "2026-01-01T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 0,
+									"hash": "h0"
+								}
+							}
+						}
+					}
+				},
+				{
+					"agents": {
+						"agent6": {
+							"at": "2026-01-07T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 6,
+									"hash": "h6"
+								}
+							}
+						},
+						"agent5": {
+							"at": "2026-01-06T00:00:00.000Z",
+							"conversations": {
+								"chat5": {
+									"count": 5,
+									"hash": "h5"
+								}
+							}
+						},
+						"agent4": {
+							"at": "2026-01-05T00:00:00.000Z",
+							"conversations": {
+								"chat4": {
+									"count": 4,
+									"hash": "h4"
+								}
+							}
+						},
+						"agent3": {
+							"at": "2026-01-04T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 3,
+									"hash": "h3"
+								}
+							}
+						},
+						"agent2": {
+							"at": "2026-01-03T00:00:00.000Z",
+							"conversations": {
+								"chat2": {
+									"count": 2,
+									"hash": "h2"
+								}
+							}
+						},
+						"agent1": {
+							"at": "2026-01-02T00:00:00.000Z",
+							"conversations": {
+								"chat1": {
+									"count": 1,
+									"hash": "h1"
+								}
+							}
+						},
+						"agent0": {
+							"at": "2026-01-01T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 0,
+									"hash": "h0"
+								}
+							}
+						}
+					}
+				},
+				{
+					"agents": {
+						"agent7": {
+							"at": "2026-01-08T00:00:00.000Z",
+							"conversations": {
+								"chat7": {
+									"count": 7,
+									"hash": "h7"
+								}
+							}
+						},
+						"agent6": {
+							"at": "2026-01-07T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 6,
+									"hash": "h6"
+								}
+							}
+						},
+						"agent5": {
+							"at": "2026-01-06T00:00:00.000Z",
+							"conversations": {
+								"chat5": {
+									"count": 5,
+									"hash": "h5"
+								}
+							}
+						},
+						"agent4": {
+							"at": "2026-01-05T00:00:00.000Z",
+							"conversations": {
+								"chat4": {
+									"count": 4,
+									"hash": "h4"
+								}
+							}
+						},
+						"agent3": {
+							"at": "2026-01-04T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 3,
+									"hash": "h3"
+								}
+							}
+						},
+						"agent2": {
+							"at": "2026-01-03T00:00:00.000Z",
+							"conversations": {
+								"chat2": {
+									"count": 2,
+									"hash": "h2"
+								}
+							}
+						},
+						"agent1": {
+							"at": "2026-01-02T00:00:00.000Z",
+							"conversations": {
+								"chat1": {
+									"count": 1,
+									"hash": "h1"
+								}
+							}
+						},
+						"agent0": {
+							"at": "2026-01-01T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 0,
+									"hash": "h0"
+								}
+							}
+						}
+					}
+				},
+				{
+					"agents": {
+						"agent8": {
+							"at": "2026-01-09T00:00:00.000Z",
+							"conversations": {
+								"chat8": {
+									"count": 8,
+									"hash": "h8"
+								}
+							}
+						},
+						"agent7": {
+							"at": "2026-01-08T00:00:00.000Z",
+							"conversations": {
+								"chat7": {
+									"count": 7,
+									"hash": "h7"
+								}
+							}
+						},
+						"agent6": {
+							"at": "2026-01-07T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 6,
+									"hash": "h6"
+								}
+							}
+						},
+						"agent5": {
+							"at": "2026-01-06T00:00:00.000Z",
+							"conversations": {
+								"chat5": {
+									"count": 5,
+									"hash": "h5"
+								}
+							}
+						},
+						"agent4": {
+							"at": "2026-01-05T00:00:00.000Z",
+							"conversations": {
+								"chat4": {
+									"count": 4,
+									"hash": "h4"
+								}
+							}
+						},
+						"agent3": {
+							"at": "2026-01-04T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 3,
+									"hash": "h3"
+								}
+							}
+						},
+						"agent2": {
+							"at": "2026-01-03T00:00:00.000Z",
+							"conversations": {
+								"chat2": {
+									"count": 2,
+									"hash": "h2"
+								}
+							}
+						},
+						"agent1": {
+							"at": "2026-01-02T00:00:00.000Z",
+							"conversations": {
+								"chat1": {
+									"count": 1,
+									"hash": "h1"
+								}
+							}
+						},
+						"agent0": {
+							"at": "2026-01-01T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 0,
+									"hash": "h0"
+								}
+							}
+						}
+					}
+				},
+				{
+					"agents": {
+						"agent9": {
+							"at": "2026-01-10T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 9,
+									"hash": "h9"
+								}
+							}
+						},
+						"agent8": {
+							"at": "2026-01-09T00:00:00.000Z",
+							"conversations": {
+								"chat8": {
+									"count": 8,
+									"hash": "h8"
+								}
+							}
+						},
+						"agent7": {
+							"at": "2026-01-08T00:00:00.000Z",
+							"conversations": {
+								"chat7": {
+									"count": 7,
+									"hash": "h7"
+								}
+							}
+						},
+						"agent6": {
+							"at": "2026-01-07T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 6,
+									"hash": "h6"
+								}
+							}
+						},
+						"agent5": {
+							"at": "2026-01-06T00:00:00.000Z",
+							"conversations": {
+								"chat5": {
+									"count": 5,
+									"hash": "h5"
+								}
+							}
+						},
+						"agent4": {
+							"at": "2026-01-05T00:00:00.000Z",
+							"conversations": {
+								"chat4": {
+									"count": 4,
+									"hash": "h4"
+								}
+							}
+						},
+						"agent3": {
+							"at": "2026-01-04T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 3,
+									"hash": "h3"
+								}
+							}
+						},
+						"agent2": {
+							"at": "2026-01-03T00:00:00.000Z",
+							"conversations": {
+								"chat2": {
+									"count": 2,
+									"hash": "h2"
+								}
+							}
+						},
+						"agent1": {
+							"at": "2026-01-02T00:00:00.000Z",
+							"conversations": {
+								"chat1": {
+									"count": 1,
+									"hash": "h1"
+								}
+							}
+						},
+						"agent0": {
+							"at": "2026-01-01T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 0,
+									"hash": "h0"
+								}
+							}
+						}
+					}
+				},
+				{
+					"agents": {
+						"agent10": {
+							"at": "2026-01-11T00:00:00.000Z",
+							"conversations": {
+								"chat10": {
+									"count": 10,
+									"hash": "h10"
+								}
+							}
+						},
+						"agent9": {
+							"at": "2026-01-10T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 9,
+									"hash": "h9"
+								}
+							}
+						},
+						"agent8": {
+							"at": "2026-01-09T00:00:00.000Z",
+							"conversations": {
+								"chat8": {
+									"count": 8,
+									"hash": "h8"
+								}
+							}
+						},
+						"agent7": {
+							"at": "2026-01-08T00:00:00.000Z",
+							"conversations": {
+								"chat7": {
+									"count": 7,
+									"hash": "h7"
+								}
+							}
+						},
+						"agent6": {
+							"at": "2026-01-07T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 6,
+									"hash": "h6"
+								}
+							}
+						},
+						"agent5": {
+							"at": "2026-01-06T00:00:00.000Z",
+							"conversations": {
+								"chat5": {
+									"count": 5,
+									"hash": "h5"
+								}
+							}
+						},
+						"agent4": {
+							"at": "2026-01-05T00:00:00.000Z",
+							"conversations": {
+								"chat4": {
+									"count": 4,
+									"hash": "h4"
+								}
+							}
+						},
+						"agent3": {
+							"at": "2026-01-04T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 3,
+									"hash": "h3"
+								}
+							}
+						},
+						"agent2": {
+							"at": "2026-01-03T00:00:00.000Z",
+							"conversations": {
+								"chat2": {
+									"count": 2,
+									"hash": "h2"
+								}
+							}
+						},
+						"agent1": {
+							"at": "2026-01-02T00:00:00.000Z",
+							"conversations": {
+								"chat1": {
+									"count": 1,
+									"hash": "h1"
+								}
+							}
+						},
+						"agent0": {
+							"at": "2026-01-01T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 0,
+									"hash": "h0"
+								}
+							}
+						}
+					}
+				},
+				{
+					"agents": {
+						"agent11": {
+							"at": "2026-01-12T00:00:00.000Z",
+							"conversations": {
+								"chat11": {
+									"count": 11,
+									"hash": "h11"
+								}
+							}
+						},
+						"agent10": {
+							"at": "2026-01-11T00:00:00.000Z",
+							"conversations": {
+								"chat10": {
+									"count": 10,
+									"hash": "h10"
+								}
+							}
+						},
+						"agent9": {
+							"at": "2026-01-10T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 9,
+									"hash": "h9"
+								}
+							}
+						},
+						"agent8": {
+							"at": "2026-01-09T00:00:00.000Z",
+							"conversations": {
+								"chat8": {
+									"count": 8,
+									"hash": "h8"
+								}
+							}
+						},
+						"agent7": {
+							"at": "2026-01-08T00:00:00.000Z",
+							"conversations": {
+								"chat7": {
+									"count": 7,
+									"hash": "h7"
+								}
+							}
+						},
+						"agent6": {
+							"at": "2026-01-07T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 6,
+									"hash": "h6"
+								}
+							}
+						},
+						"agent5": {
+							"at": "2026-01-06T00:00:00.000Z",
+							"conversations": {
+								"chat5": {
+									"count": 5,
+									"hash": "h5"
+								}
+							}
+						},
+						"agent4": {
+							"at": "2026-01-05T00:00:00.000Z",
+							"conversations": {
+								"chat4": {
+									"count": 4,
+									"hash": "h4"
+								}
+							}
+						},
+						"agent3": {
+							"at": "2026-01-04T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 3,
+									"hash": "h3"
+								}
+							}
+						},
+						"agent2": {
+							"at": "2026-01-03T00:00:00.000Z",
+							"conversations": {
+								"chat2": {
+									"count": 2,
+									"hash": "h2"
+								}
+							}
+						},
+						"agent1": {
+							"at": "2026-01-02T00:00:00.000Z",
+							"conversations": {
+								"chat1": {
+									"count": 1,
+									"hash": "h1"
+								}
+							}
+						},
+						"agent0": {
+							"at": "2026-01-01T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 0,
+									"hash": "h0"
+								}
+							}
+						}
+					}
+				},
+				{
+					"agents": {
+						"agent12": {
+							"at": "2026-01-13T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 12,
+									"hash": "h12"
+								}
+							}
+						},
+						"agent11": {
+							"at": "2026-01-12T00:00:00.000Z",
+							"conversations": {
+								"chat11": {
+									"count": 11,
+									"hash": "h11"
+								}
+							}
+						},
+						"agent10": {
+							"at": "2026-01-11T00:00:00.000Z",
+							"conversations": {
+								"chat10": {
+									"count": 10,
+									"hash": "h10"
+								}
+							}
+						},
+						"agent9": {
+							"at": "2026-01-10T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 9,
+									"hash": "h9"
+								}
+							}
+						},
+						"agent8": {
+							"at": "2026-01-09T00:00:00.000Z",
+							"conversations": {
+								"chat8": {
+									"count": 8,
+									"hash": "h8"
+								}
+							}
+						},
+						"agent7": {
+							"at": "2026-01-08T00:00:00.000Z",
+							"conversations": {
+								"chat7": {
+									"count": 7,
+									"hash": "h7"
+								}
+							}
+						},
+						"agent6": {
+							"at": "2026-01-07T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 6,
+									"hash": "h6"
+								}
+							}
+						},
+						"agent5": {
+							"at": "2026-01-06T00:00:00.000Z",
+							"conversations": {
+								"chat5": {
+									"count": 5,
+									"hash": "h5"
+								}
+							}
+						},
+						"agent4": {
+							"at": "2026-01-05T00:00:00.000Z",
+							"conversations": {
+								"chat4": {
+									"count": 4,
+									"hash": "h4"
+								}
+							}
+						},
+						"agent3": {
+							"at": "2026-01-04T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 3,
+									"hash": "h3"
+								}
+							}
+						},
+						"agent2": {
+							"at": "2026-01-03T00:00:00.000Z",
+							"conversations": {
+								"chat2": {
+									"count": 2,
+									"hash": "h2"
+								}
+							}
+						},
+						"agent1": {
+							"at": "2026-01-02T00:00:00.000Z",
+							"conversations": {
+								"chat1": {
+									"count": 1,
+									"hash": "h1"
+								}
+							}
+						},
+						"agent0": {
+							"at": "2026-01-01T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 0,
+									"hash": "h0"
+								}
+							}
+						}
+					}
+				},
+				{
+					"agents": {
+						"agent13": {
+							"at": "2026-01-14T00:00:00.000Z",
+							"conversations": {
+								"chat13": {
+									"count": 13,
+									"hash": "h13"
+								}
+							}
+						},
+						"agent12": {
+							"at": "2026-01-13T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 12,
+									"hash": "h12"
+								}
+							}
+						},
+						"agent11": {
+							"at": "2026-01-12T00:00:00.000Z",
+							"conversations": {
+								"chat11": {
+									"count": 11,
+									"hash": "h11"
+								}
+							}
+						},
+						"agent10": {
+							"at": "2026-01-11T00:00:00.000Z",
+							"conversations": {
+								"chat10": {
+									"count": 10,
+									"hash": "h10"
+								}
+							}
+						},
+						"agent9": {
+							"at": "2026-01-10T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 9,
+									"hash": "h9"
+								}
+							}
+						},
+						"agent8": {
+							"at": "2026-01-09T00:00:00.000Z",
+							"conversations": {
+								"chat8": {
+									"count": 8,
+									"hash": "h8"
+								}
+							}
+						},
+						"agent7": {
+							"at": "2026-01-08T00:00:00.000Z",
+							"conversations": {
+								"chat7": {
+									"count": 7,
+									"hash": "h7"
+								}
+							}
+						},
+						"agent6": {
+							"at": "2026-01-07T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 6,
+									"hash": "h6"
+								}
+							}
+						},
+						"agent5": {
+							"at": "2026-01-06T00:00:00.000Z",
+							"conversations": {
+								"chat5": {
+									"count": 5,
+									"hash": "h5"
+								}
+							}
+						},
+						"agent4": {
+							"at": "2026-01-05T00:00:00.000Z",
+							"conversations": {
+								"chat4": {
+									"count": 4,
+									"hash": "h4"
+								}
+							}
+						},
+						"agent3": {
+							"at": "2026-01-04T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 3,
+									"hash": "h3"
+								}
+							}
+						},
+						"agent2": {
+							"at": "2026-01-03T00:00:00.000Z",
+							"conversations": {
+								"chat2": {
+									"count": 2,
+									"hash": "h2"
+								}
+							}
+						},
+						"agent1": {
+							"at": "2026-01-02T00:00:00.000Z",
+							"conversations": {
+								"chat1": {
+									"count": 1,
+									"hash": "h1"
+								}
+							}
+						},
+						"agent0": {
+							"at": "2026-01-01T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 0,
+									"hash": "h0"
+								}
+							}
+						}
+					}
+				},
+				{
+					"agents": {
+						"agent14": {
+							"at": "2026-01-15T00:00:00.000Z",
+							"conversations": {
+								"chat14": {
+									"count": 14,
+									"hash": "h14"
+								}
+							}
+						},
+						"agent13": {
+							"at": "2026-01-14T00:00:00.000Z",
+							"conversations": {
+								"chat13": {
+									"count": 13,
+									"hash": "h13"
+								}
+							}
+						},
+						"agent12": {
+							"at": "2026-01-13T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 12,
+									"hash": "h12"
+								}
+							}
+						},
+						"agent11": {
+							"at": "2026-01-12T00:00:00.000Z",
+							"conversations": {
+								"chat11": {
+									"count": 11,
+									"hash": "h11"
+								}
+							}
+						},
+						"agent10": {
+							"at": "2026-01-11T00:00:00.000Z",
+							"conversations": {
+								"chat10": {
+									"count": 10,
+									"hash": "h10"
+								}
+							}
+						},
+						"agent9": {
+							"at": "2026-01-10T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 9,
+									"hash": "h9"
+								}
+							}
+						},
+						"agent8": {
+							"at": "2026-01-09T00:00:00.000Z",
+							"conversations": {
+								"chat8": {
+									"count": 8,
+									"hash": "h8"
+								}
+							}
+						},
+						"agent7": {
+							"at": "2026-01-08T00:00:00.000Z",
+							"conversations": {
+								"chat7": {
+									"count": 7,
+									"hash": "h7"
+								}
+							}
+						},
+						"agent6": {
+							"at": "2026-01-07T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 6,
+									"hash": "h6"
+								}
+							}
+						},
+						"agent5": {
+							"at": "2026-01-06T00:00:00.000Z",
+							"conversations": {
+								"chat5": {
+									"count": 5,
+									"hash": "h5"
+								}
+							}
+						},
+						"agent4": {
+							"at": "2026-01-05T00:00:00.000Z",
+							"conversations": {
+								"chat4": {
+									"count": 4,
+									"hash": "h4"
+								}
+							}
+						},
+						"agent3": {
+							"at": "2026-01-04T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 3,
+									"hash": "h3"
+								}
+							}
+						},
+						"agent2": {
+							"at": "2026-01-03T00:00:00.000Z",
+							"conversations": {
+								"chat2": {
+									"count": 2,
+									"hash": "h2"
+								}
+							}
+						},
+						"agent1": {
+							"at": "2026-01-02T00:00:00.000Z",
+							"conversations": {
+								"chat1": {
+									"count": 1,
+									"hash": "h1"
+								}
+							}
+						},
+						"agent0": {
+							"at": "2026-01-01T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 0,
+									"hash": "h0"
+								}
+							}
+						}
+					}
+				},
+				{
+					"agents": {
+						"agent15": {
+							"at": "2026-01-16T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 15,
+									"hash": "h15"
+								}
+							}
+						},
+						"agent14": {
+							"at": "2026-01-15T00:00:00.000Z",
+							"conversations": {
+								"chat14": {
+									"count": 14,
+									"hash": "h14"
+								}
+							}
+						},
+						"agent13": {
+							"at": "2026-01-14T00:00:00.000Z",
+							"conversations": {
+								"chat13": {
+									"count": 13,
+									"hash": "h13"
+								}
+							}
+						},
+						"agent12": {
+							"at": "2026-01-13T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 12,
+									"hash": "h12"
+								}
+							}
+						},
+						"agent11": {
+							"at": "2026-01-12T00:00:00.000Z",
+							"conversations": {
+								"chat11": {
+									"count": 11,
+									"hash": "h11"
+								}
+							}
+						},
+						"agent10": {
+							"at": "2026-01-11T00:00:00.000Z",
+							"conversations": {
+								"chat10": {
+									"count": 10,
+									"hash": "h10"
+								}
+							}
+						},
+						"agent9": {
+							"at": "2026-01-10T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 9,
+									"hash": "h9"
+								}
+							}
+						},
+						"agent8": {
+							"at": "2026-01-09T00:00:00.000Z",
+							"conversations": {
+								"chat8": {
+									"count": 8,
+									"hash": "h8"
+								}
+							}
+						},
+						"agent7": {
+							"at": "2026-01-08T00:00:00.000Z",
+							"conversations": {
+								"chat7": {
+									"count": 7,
+									"hash": "h7"
+								}
+							}
+						},
+						"agent6": {
+							"at": "2026-01-07T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 6,
+									"hash": "h6"
+								}
+							}
+						},
+						"agent5": {
+							"at": "2026-01-06T00:00:00.000Z",
+							"conversations": {
+								"chat5": {
+									"count": 5,
+									"hash": "h5"
+								}
+							}
+						},
+						"agent4": {
+							"at": "2026-01-05T00:00:00.000Z",
+							"conversations": {
+								"chat4": {
+									"count": 4,
+									"hash": "h4"
+								}
+							}
+						},
+						"agent3": {
+							"at": "2026-01-04T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 3,
+									"hash": "h3"
+								}
+							}
+						},
+						"agent2": {
+							"at": "2026-01-03T00:00:00.000Z",
+							"conversations": {
+								"chat2": {
+									"count": 2,
+									"hash": "h2"
+								}
+							}
+						},
+						"agent1": {
+							"at": "2026-01-02T00:00:00.000Z",
+							"conversations": {
+								"chat1": {
+									"count": 1,
+									"hash": "h1"
+								}
+							}
+						},
+						"agent0": {
+							"at": "2026-01-01T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 0,
+									"hash": "h0"
+								}
+							}
+						}
+					}
+				},
+				{
+					"agents": {
+						"agent16": {
+							"at": "2026-01-17T00:00:00.000Z",
+							"conversations": {
+								"chat16": {
+									"count": 16,
+									"hash": "h16"
+								}
+							}
+						},
+						"agent15": {
+							"at": "2026-01-16T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 15,
+									"hash": "h15"
+								}
+							}
+						},
+						"agent14": {
+							"at": "2026-01-15T00:00:00.000Z",
+							"conversations": {
+								"chat14": {
+									"count": 14,
+									"hash": "h14"
+								}
+							}
+						},
+						"agent13": {
+							"at": "2026-01-14T00:00:00.000Z",
+							"conversations": {
+								"chat13": {
+									"count": 13,
+									"hash": "h13"
+								}
+							}
+						},
+						"agent12": {
+							"at": "2026-01-13T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 12,
+									"hash": "h12"
+								}
+							}
+						},
+						"agent11": {
+							"at": "2026-01-12T00:00:00.000Z",
+							"conversations": {
+								"chat11": {
+									"count": 11,
+									"hash": "h11"
+								}
+							}
+						},
+						"agent10": {
+							"at": "2026-01-11T00:00:00.000Z",
+							"conversations": {
+								"chat10": {
+									"count": 10,
+									"hash": "h10"
+								}
+							}
+						},
+						"agent9": {
+							"at": "2026-01-10T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 9,
+									"hash": "h9"
+								}
+							}
+						},
+						"agent8": {
+							"at": "2026-01-09T00:00:00.000Z",
+							"conversations": {
+								"chat8": {
+									"count": 8,
+									"hash": "h8"
+								}
+							}
+						},
+						"agent7": {
+							"at": "2026-01-08T00:00:00.000Z",
+							"conversations": {
+								"chat7": {
+									"count": 7,
+									"hash": "h7"
+								}
+							}
+						},
+						"agent6": {
+							"at": "2026-01-07T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 6,
+									"hash": "h6"
+								}
+							}
+						},
+						"agent5": {
+							"at": "2026-01-06T00:00:00.000Z",
+							"conversations": {
+								"chat5": {
+									"count": 5,
+									"hash": "h5"
+								}
+							}
+						},
+						"agent4": {
+							"at": "2026-01-05T00:00:00.000Z",
+							"conversations": {
+								"chat4": {
+									"count": 4,
+									"hash": "h4"
+								}
+							}
+						},
+						"agent3": {
+							"at": "2026-01-04T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 3,
+									"hash": "h3"
+								}
+							}
+						},
+						"agent2": {
+							"at": "2026-01-03T00:00:00.000Z",
+							"conversations": {
+								"chat2": {
+									"count": 2,
+									"hash": "h2"
+								}
+							}
+						},
+						"agent1": {
+							"at": "2026-01-02T00:00:00.000Z",
+							"conversations": {
+								"chat1": {
+									"count": 1,
+									"hash": "h1"
+								}
+							}
+						},
+						"agent0": {
+							"at": "2026-01-01T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 0,
+									"hash": "h0"
+								}
+							}
+						}
+					}
+				},
+				{
+					"agents": {
+						"agent17": {
+							"at": "2026-01-18T00:00:00.000Z",
+							"conversations": {
+								"chat17": {
+									"count": 17,
+									"hash": "h17"
+								}
+							}
+						},
+						"agent16": {
+							"at": "2026-01-17T00:00:00.000Z",
+							"conversations": {
+								"chat16": {
+									"count": 16,
+									"hash": "h16"
+								}
+							}
+						},
+						"agent15": {
+							"at": "2026-01-16T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 15,
+									"hash": "h15"
+								}
+							}
+						},
+						"agent14": {
+							"at": "2026-01-15T00:00:00.000Z",
+							"conversations": {
+								"chat14": {
+									"count": 14,
+									"hash": "h14"
+								}
+							}
+						},
+						"agent13": {
+							"at": "2026-01-14T00:00:00.000Z",
+							"conversations": {
+								"chat13": {
+									"count": 13,
+									"hash": "h13"
+								}
+							}
+						},
+						"agent12": {
+							"at": "2026-01-13T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 12,
+									"hash": "h12"
+								}
+							}
+						},
+						"agent11": {
+							"at": "2026-01-12T00:00:00.000Z",
+							"conversations": {
+								"chat11": {
+									"count": 11,
+									"hash": "h11"
+								}
+							}
+						},
+						"agent10": {
+							"at": "2026-01-11T00:00:00.000Z",
+							"conversations": {
+								"chat10": {
+									"count": 10,
+									"hash": "h10"
+								}
+							}
+						},
+						"agent9": {
+							"at": "2026-01-10T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 9,
+									"hash": "h9"
+								}
+							}
+						},
+						"agent8": {
+							"at": "2026-01-09T00:00:00.000Z",
+							"conversations": {
+								"chat8": {
+									"count": 8,
+									"hash": "h8"
+								}
+							}
+						},
+						"agent7": {
+							"at": "2026-01-08T00:00:00.000Z",
+							"conversations": {
+								"chat7": {
+									"count": 7,
+									"hash": "h7"
+								}
+							}
+						},
+						"agent6": {
+							"at": "2026-01-07T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 6,
+									"hash": "h6"
+								}
+							}
+						},
+						"agent5": {
+							"at": "2026-01-06T00:00:00.000Z",
+							"conversations": {
+								"chat5": {
+									"count": 5,
+									"hash": "h5"
+								}
+							}
+						},
+						"agent4": {
+							"at": "2026-01-05T00:00:00.000Z",
+							"conversations": {
+								"chat4": {
+									"count": 4,
+									"hash": "h4"
+								}
+							}
+						},
+						"agent3": {
+							"at": "2026-01-04T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 3,
+									"hash": "h3"
+								}
+							}
+						},
+						"agent2": {
+							"at": "2026-01-03T00:00:00.000Z",
+							"conversations": {
+								"chat2": {
+									"count": 2,
+									"hash": "h2"
+								}
+							}
+						},
+						"agent1": {
+							"at": "2026-01-02T00:00:00.000Z",
+							"conversations": {
+								"chat1": {
+									"count": 1,
+									"hash": "h1"
+								}
+							}
+						},
+						"agent0": {
+							"at": "2026-01-01T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 0,
+									"hash": "h0"
+								}
+							}
+						}
+					}
+				},
+				{
+					"agents": {
+						"agent18": {
+							"at": "2026-01-19T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 18,
+									"hash": "h18"
+								}
+							}
+						},
+						"agent17": {
+							"at": "2026-01-18T00:00:00.000Z",
+							"conversations": {
+								"chat17": {
+									"count": 17,
+									"hash": "h17"
+								}
+							}
+						},
+						"agent16": {
+							"at": "2026-01-17T00:00:00.000Z",
+							"conversations": {
+								"chat16": {
+									"count": 16,
+									"hash": "h16"
+								}
+							}
+						},
+						"agent15": {
+							"at": "2026-01-16T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 15,
+									"hash": "h15"
+								}
+							}
+						},
+						"agent14": {
+							"at": "2026-01-15T00:00:00.000Z",
+							"conversations": {
+								"chat14": {
+									"count": 14,
+									"hash": "h14"
+								}
+							}
+						},
+						"agent13": {
+							"at": "2026-01-14T00:00:00.000Z",
+							"conversations": {
+								"chat13": {
+									"count": 13,
+									"hash": "h13"
+								}
+							}
+						},
+						"agent12": {
+							"at": "2026-01-13T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 12,
+									"hash": "h12"
+								}
+							}
+						},
+						"agent11": {
+							"at": "2026-01-12T00:00:00.000Z",
+							"conversations": {
+								"chat11": {
+									"count": 11,
+									"hash": "h11"
+								}
+							}
+						},
+						"agent10": {
+							"at": "2026-01-11T00:00:00.000Z",
+							"conversations": {
+								"chat10": {
+									"count": 10,
+									"hash": "h10"
+								}
+							}
+						},
+						"agent9": {
+							"at": "2026-01-10T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 9,
+									"hash": "h9"
+								}
+							}
+						},
+						"agent8": {
+							"at": "2026-01-09T00:00:00.000Z",
+							"conversations": {
+								"chat8": {
+									"count": 8,
+									"hash": "h8"
+								}
+							}
+						},
+						"agent7": {
+							"at": "2026-01-08T00:00:00.000Z",
+							"conversations": {
+								"chat7": {
+									"count": 7,
+									"hash": "h7"
+								}
+							}
+						},
+						"agent6": {
+							"at": "2026-01-07T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 6,
+									"hash": "h6"
+								}
+							}
+						},
+						"agent5": {
+							"at": "2026-01-06T00:00:00.000Z",
+							"conversations": {
+								"chat5": {
+									"count": 5,
+									"hash": "h5"
+								}
+							}
+						},
+						"agent4": {
+							"at": "2026-01-05T00:00:00.000Z",
+							"conversations": {
+								"chat4": {
+									"count": 4,
+									"hash": "h4"
+								}
+							}
+						},
+						"agent3": {
+							"at": "2026-01-04T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 3,
+									"hash": "h3"
+								}
+							}
+						},
+						"agent2": {
+							"at": "2026-01-03T00:00:00.000Z",
+							"conversations": {
+								"chat2": {
+									"count": 2,
+									"hash": "h2"
+								}
+							}
+						},
+						"agent1": {
+							"at": "2026-01-02T00:00:00.000Z",
+							"conversations": {
+								"chat1": {
+									"count": 1,
+									"hash": "h1"
+								}
+							}
+						},
+						"agent0": {
+							"at": "2026-01-01T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 0,
+									"hash": "h0"
+								}
+							}
+						}
+					}
+				},
+				{
+					"agents": {
+						"agent19": {
+							"at": "2026-01-20T00:00:00.000Z",
+							"conversations": {
+								"chat19": {
+									"count": 19,
+									"hash": "h19"
+								}
+							}
+						},
+						"agent18": {
+							"at": "2026-01-19T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 18,
+									"hash": "h18"
+								}
+							}
+						},
+						"agent17": {
+							"at": "2026-01-18T00:00:00.000Z",
+							"conversations": {
+								"chat17": {
+									"count": 17,
+									"hash": "h17"
+								}
+							}
+						},
+						"agent16": {
+							"at": "2026-01-17T00:00:00.000Z",
+							"conversations": {
+								"chat16": {
+									"count": 16,
+									"hash": "h16"
+								}
+							}
+						},
+						"agent15": {
+							"at": "2026-01-16T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 15,
+									"hash": "h15"
+								}
+							}
+						},
+						"agent14": {
+							"at": "2026-01-15T00:00:00.000Z",
+							"conversations": {
+								"chat14": {
+									"count": 14,
+									"hash": "h14"
+								}
+							}
+						},
+						"agent13": {
+							"at": "2026-01-14T00:00:00.000Z",
+							"conversations": {
+								"chat13": {
+									"count": 13,
+									"hash": "h13"
+								}
+							}
+						},
+						"agent12": {
+							"at": "2026-01-13T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 12,
+									"hash": "h12"
+								}
+							}
+						},
+						"agent11": {
+							"at": "2026-01-12T00:00:00.000Z",
+							"conversations": {
+								"chat11": {
+									"count": 11,
+									"hash": "h11"
+								}
+							}
+						},
+						"agent10": {
+							"at": "2026-01-11T00:00:00.000Z",
+							"conversations": {
+								"chat10": {
+									"count": 10,
+									"hash": "h10"
+								}
+							}
+						},
+						"agent9": {
+							"at": "2026-01-10T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 9,
+									"hash": "h9"
+								}
+							}
+						},
+						"agent8": {
+							"at": "2026-01-09T00:00:00.000Z",
+							"conversations": {
+								"chat8": {
+									"count": 8,
+									"hash": "h8"
+								}
+							}
+						},
+						"agent7": {
+							"at": "2026-01-08T00:00:00.000Z",
+							"conversations": {
+								"chat7": {
+									"count": 7,
+									"hash": "h7"
+								}
+							}
+						},
+						"agent6": {
+							"at": "2026-01-07T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 6,
+									"hash": "h6"
+								}
+							}
+						},
+						"agent5": {
+							"at": "2026-01-06T00:00:00.000Z",
+							"conversations": {
+								"chat5": {
+									"count": 5,
+									"hash": "h5"
+								}
+							}
+						},
+						"agent4": {
+							"at": "2026-01-05T00:00:00.000Z",
+							"conversations": {
+								"chat4": {
+									"count": 4,
+									"hash": "h4"
+								}
+							}
+						},
+						"agent3": {
+							"at": "2026-01-04T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 3,
+									"hash": "h3"
+								}
+							}
+						},
+						"agent2": {
+							"at": "2026-01-03T00:00:00.000Z",
+							"conversations": {
+								"chat2": {
+									"count": 2,
+									"hash": "h2"
+								}
+							}
+						},
+						"agent1": {
+							"at": "2026-01-02T00:00:00.000Z",
+							"conversations": {
+								"chat1": {
+									"count": 1,
+									"hash": "h1"
+								}
+							}
+						},
+						"agent0": {
+							"at": "2026-01-01T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 0,
+									"hash": "h0"
+								}
+							}
+						}
+					}
+				},
+				{
+					"agents": {
+						"agent20": {
+							"at": "2026-01-21T00:00:00.000Z",
+							"conversations": {
+								"chat20": {
+									"count": 20,
+									"hash": "h20"
+								}
+							}
+						},
+						"agent19": {
+							"at": "2026-01-20T00:00:00.000Z",
+							"conversations": {
+								"chat19": {
+									"count": 19,
+									"hash": "h19"
+								}
+							}
+						},
+						"agent18": {
+							"at": "2026-01-19T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 18,
+									"hash": "h18"
+								}
+							}
+						},
+						"agent17": {
+							"at": "2026-01-18T00:00:00.000Z",
+							"conversations": {
+								"chat17": {
+									"count": 17,
+									"hash": "h17"
+								}
+							}
+						},
+						"agent16": {
+							"at": "2026-01-17T00:00:00.000Z",
+							"conversations": {
+								"chat16": {
+									"count": 16,
+									"hash": "h16"
+								}
+							}
+						},
+						"agent15": {
+							"at": "2026-01-16T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 15,
+									"hash": "h15"
+								}
+							}
+						},
+						"agent14": {
+							"at": "2026-01-15T00:00:00.000Z",
+							"conversations": {
+								"chat14": {
+									"count": 14,
+									"hash": "h14"
+								}
+							}
+						},
+						"agent13": {
+							"at": "2026-01-14T00:00:00.000Z",
+							"conversations": {
+								"chat13": {
+									"count": 13,
+									"hash": "h13"
+								}
+							}
+						},
+						"agent12": {
+							"at": "2026-01-13T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 12,
+									"hash": "h12"
+								}
+							}
+						},
+						"agent11": {
+							"at": "2026-01-12T00:00:00.000Z",
+							"conversations": {
+								"chat11": {
+									"count": 11,
+									"hash": "h11"
+								}
+							}
+						},
+						"agent10": {
+							"at": "2026-01-11T00:00:00.000Z",
+							"conversations": {
+								"chat10": {
+									"count": 10,
+									"hash": "h10"
+								}
+							}
+						},
+						"agent9": {
+							"at": "2026-01-10T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 9,
+									"hash": "h9"
+								}
+							}
+						},
+						"agent8": {
+							"at": "2026-01-09T00:00:00.000Z",
+							"conversations": {
+								"chat8": {
+									"count": 8,
+									"hash": "h8"
+								}
+							}
+						},
+						"agent7": {
+							"at": "2026-01-08T00:00:00.000Z",
+							"conversations": {
+								"chat7": {
+									"count": 7,
+									"hash": "h7"
+								}
+							}
+						},
+						"agent6": {
+							"at": "2026-01-07T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 6,
+									"hash": "h6"
+								}
+							}
+						},
+						"agent5": {
+							"at": "2026-01-06T00:00:00.000Z",
+							"conversations": {
+								"chat5": {
+									"count": 5,
+									"hash": "h5"
+								}
+							}
+						},
+						"agent4": {
+							"at": "2026-01-05T00:00:00.000Z",
+							"conversations": {
+								"chat4": {
+									"count": 4,
+									"hash": "h4"
+								}
+							}
+						},
+						"agent3": {
+							"at": "2026-01-04T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 3,
+									"hash": "h3"
+								}
+							}
+						},
+						"agent2": {
+							"at": "2026-01-03T00:00:00.000Z",
+							"conversations": {
+								"chat2": {
+									"count": 2,
+									"hash": "h2"
+								}
+							}
+						},
+						"agent1": {
+							"at": "2026-01-02T00:00:00.000Z",
+							"conversations": {
+								"chat1": {
+									"count": 1,
+									"hash": "h1"
+								}
+							}
+						}
+					}
+				},
+				{
+					"agents": {
+						"agent21": {
+							"at": "2026-01-22T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 21,
+									"hash": "h21"
+								}
+							}
+						},
+						"agent20": {
+							"at": "2026-01-21T00:00:00.000Z",
+							"conversations": {
+								"chat20": {
+									"count": 20,
+									"hash": "h20"
+								}
+							}
+						},
+						"agent19": {
+							"at": "2026-01-20T00:00:00.000Z",
+							"conversations": {
+								"chat19": {
+									"count": 19,
+									"hash": "h19"
+								}
+							}
+						},
+						"agent18": {
+							"at": "2026-01-19T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 18,
+									"hash": "h18"
+								}
+							}
+						},
+						"agent17": {
+							"at": "2026-01-18T00:00:00.000Z",
+							"conversations": {
+								"chat17": {
+									"count": 17,
+									"hash": "h17"
+								}
+							}
+						},
+						"agent16": {
+							"at": "2026-01-17T00:00:00.000Z",
+							"conversations": {
+								"chat16": {
+									"count": 16,
+									"hash": "h16"
+								}
+							}
+						},
+						"agent15": {
+							"at": "2026-01-16T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 15,
+									"hash": "h15"
+								}
+							}
+						},
+						"agent14": {
+							"at": "2026-01-15T00:00:00.000Z",
+							"conversations": {
+								"chat14": {
+									"count": 14,
+									"hash": "h14"
+								}
+							}
+						},
+						"agent13": {
+							"at": "2026-01-14T00:00:00.000Z",
+							"conversations": {
+								"chat13": {
+									"count": 13,
+									"hash": "h13"
+								}
+							}
+						},
+						"agent12": {
+							"at": "2026-01-13T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 12,
+									"hash": "h12"
+								}
+							}
+						},
+						"agent11": {
+							"at": "2026-01-12T00:00:00.000Z",
+							"conversations": {
+								"chat11": {
+									"count": 11,
+									"hash": "h11"
+								}
+							}
+						},
+						"agent10": {
+							"at": "2026-01-11T00:00:00.000Z",
+							"conversations": {
+								"chat10": {
+									"count": 10,
+									"hash": "h10"
+								}
+							}
+						},
+						"agent9": {
+							"at": "2026-01-10T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 9,
+									"hash": "h9"
+								}
+							}
+						},
+						"agent8": {
+							"at": "2026-01-09T00:00:00.000Z",
+							"conversations": {
+								"chat8": {
+									"count": 8,
+									"hash": "h8"
+								}
+							}
+						},
+						"agent7": {
+							"at": "2026-01-08T00:00:00.000Z",
+							"conversations": {
+								"chat7": {
+									"count": 7,
+									"hash": "h7"
+								}
+							}
+						},
+						"agent6": {
+							"at": "2026-01-07T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 6,
+									"hash": "h6"
+								}
+							}
+						},
+						"agent5": {
+							"at": "2026-01-06T00:00:00.000Z",
+							"conversations": {
+								"chat5": {
+									"count": 5,
+									"hash": "h5"
+								}
+							}
+						},
+						"agent4": {
+							"at": "2026-01-05T00:00:00.000Z",
+							"conversations": {
+								"chat4": {
+									"count": 4,
+									"hash": "h4"
+								}
+							}
+						},
+						"agent3": {
+							"at": "2026-01-04T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 3,
+									"hash": "h3"
+								}
+							}
+						},
+						"agent2": {
+							"at": "2026-01-03T00:00:00.000Z",
+							"conversations": {
+								"chat2": {
+									"count": 2,
+									"hash": "h2"
+								}
+							}
+						}
+					}
+				},
+				{
+					"agents": {
+						"agent22": {
+							"at": "2026-01-23T00:00:00.000Z",
+							"conversations": {
+								"chat22": {
+									"count": 22,
+									"hash": "h22"
+								}
+							}
+						},
+						"agent21": {
+							"at": "2026-01-22T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 21,
+									"hash": "h21"
+								}
+							}
+						},
+						"agent20": {
+							"at": "2026-01-21T00:00:00.000Z",
+							"conversations": {
+								"chat20": {
+									"count": 20,
+									"hash": "h20"
+								}
+							}
+						},
+						"agent19": {
+							"at": "2026-01-20T00:00:00.000Z",
+							"conversations": {
+								"chat19": {
+									"count": 19,
+									"hash": "h19"
+								}
+							}
+						},
+						"agent18": {
+							"at": "2026-01-19T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 18,
+									"hash": "h18"
+								}
+							}
+						},
+						"agent17": {
+							"at": "2026-01-18T00:00:00.000Z",
+							"conversations": {
+								"chat17": {
+									"count": 17,
+									"hash": "h17"
+								}
+							}
+						},
+						"agent16": {
+							"at": "2026-01-17T00:00:00.000Z",
+							"conversations": {
+								"chat16": {
+									"count": 16,
+									"hash": "h16"
+								}
+							}
+						},
+						"agent15": {
+							"at": "2026-01-16T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 15,
+									"hash": "h15"
+								}
+							}
+						},
+						"agent14": {
+							"at": "2026-01-15T00:00:00.000Z",
+							"conversations": {
+								"chat14": {
+									"count": 14,
+									"hash": "h14"
+								}
+							}
+						},
+						"agent13": {
+							"at": "2026-01-14T00:00:00.000Z",
+							"conversations": {
+								"chat13": {
+									"count": 13,
+									"hash": "h13"
+								}
+							}
+						},
+						"agent12": {
+							"at": "2026-01-13T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 12,
+									"hash": "h12"
+								}
+							}
+						},
+						"agent11": {
+							"at": "2026-01-12T00:00:00.000Z",
+							"conversations": {
+								"chat11": {
+									"count": 11,
+									"hash": "h11"
+								}
+							}
+						},
+						"agent10": {
+							"at": "2026-01-11T00:00:00.000Z",
+							"conversations": {
+								"chat10": {
+									"count": 10,
+									"hash": "h10"
+								}
+							}
+						},
+						"agent9": {
+							"at": "2026-01-10T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 9,
+									"hash": "h9"
+								}
+							}
+						},
+						"agent8": {
+							"at": "2026-01-09T00:00:00.000Z",
+							"conversations": {
+								"chat8": {
+									"count": 8,
+									"hash": "h8"
+								}
+							}
+						},
+						"agent7": {
+							"at": "2026-01-08T00:00:00.000Z",
+							"conversations": {
+								"chat7": {
+									"count": 7,
+									"hash": "h7"
+								}
+							}
+						},
+						"agent6": {
+							"at": "2026-01-07T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 6,
+									"hash": "h6"
+								}
+							}
+						},
+						"agent5": {
+							"at": "2026-01-06T00:00:00.000Z",
+							"conversations": {
+								"chat5": {
+									"count": 5,
+									"hash": "h5"
+								}
+							}
+						},
+						"agent4": {
+							"at": "2026-01-05T00:00:00.000Z",
+							"conversations": {
+								"chat4": {
+									"count": 4,
+									"hash": "h4"
+								}
+							}
+						},
+						"agent3": {
+							"at": "2026-01-04T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 3,
+									"hash": "h3"
+								}
+							}
+						}
+					}
+				},
+				{
+					"agents": {
+						"agent0": {
+							"at": "2026-01-24T00:00:00.000Z",
+							"conversations": {
+								"chat23": {
+									"count": 23,
+									"hash": "h23"
+								}
+							}
+						},
+						"agent22": {
+							"at": "2026-01-23T00:00:00.000Z",
+							"conversations": {
+								"chat22": {
+									"count": 22,
+									"hash": "h22"
+								}
+							}
+						},
+						"agent21": {
+							"at": "2026-01-22T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 21,
+									"hash": "h21"
+								}
+							}
+						},
+						"agent20": {
+							"at": "2026-01-21T00:00:00.000Z",
+							"conversations": {
+								"chat20": {
+									"count": 20,
+									"hash": "h20"
+								}
+							}
+						},
+						"agent19": {
+							"at": "2026-01-20T00:00:00.000Z",
+							"conversations": {
+								"chat19": {
+									"count": 19,
+									"hash": "h19"
+								}
+							}
+						},
+						"agent18": {
+							"at": "2026-01-19T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 18,
+									"hash": "h18"
+								}
+							}
+						},
+						"agent17": {
+							"at": "2026-01-18T00:00:00.000Z",
+							"conversations": {
+								"chat17": {
+									"count": 17,
+									"hash": "h17"
+								}
+							}
+						},
+						"agent16": {
+							"at": "2026-01-17T00:00:00.000Z",
+							"conversations": {
+								"chat16": {
+									"count": 16,
+									"hash": "h16"
+								}
+							}
+						},
+						"agent15": {
+							"at": "2026-01-16T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 15,
+									"hash": "h15"
+								}
+							}
+						},
+						"agent14": {
+							"at": "2026-01-15T00:00:00.000Z",
+							"conversations": {
+								"chat14": {
+									"count": 14,
+									"hash": "h14"
+								}
+							}
+						},
+						"agent13": {
+							"at": "2026-01-14T00:00:00.000Z",
+							"conversations": {
+								"chat13": {
+									"count": 13,
+									"hash": "h13"
+								}
+							}
+						},
+						"agent12": {
+							"at": "2026-01-13T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 12,
+									"hash": "h12"
+								}
+							}
+						},
+						"agent11": {
+							"at": "2026-01-12T00:00:00.000Z",
+							"conversations": {
+								"chat11": {
+									"count": 11,
+									"hash": "h11"
+								}
+							}
+						},
+						"agent10": {
+							"at": "2026-01-11T00:00:00.000Z",
+							"conversations": {
+								"chat10": {
+									"count": 10,
+									"hash": "h10"
+								}
+							}
+						},
+						"agent9": {
+							"at": "2026-01-10T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 9,
+									"hash": "h9"
+								}
+							}
+						},
+						"agent8": {
+							"at": "2026-01-09T00:00:00.000Z",
+							"conversations": {
+								"chat8": {
+									"count": 8,
+									"hash": "h8"
+								}
+							}
+						},
+						"agent7": {
+							"at": "2026-01-08T00:00:00.000Z",
+							"conversations": {
+								"chat7": {
+									"count": 7,
+									"hash": "h7"
+								}
+							}
+						},
+						"agent6": {
+							"at": "2026-01-07T00:00:00.000Z",
+							"conversations": {
+								"chat": {
+									"count": 6,
+									"hash": "h6"
+								}
+							}
+						},
+						"agent5": {
+							"at": "2026-01-06T00:00:00.000Z",
+							"conversations": {
+								"chat5": {
+									"count": 5,
+									"hash": "h5"
+								}
+							}
+						},
+						"agent4": {
+							"at": "2026-01-05T00:00:00.000Z",
+							"conversations": {
+								"chat4": {
+									"count": 4,
+									"hash": "h4"
+								}
+							}
+						}
+					}
+				}
+			],
+			"ties": {
+				"agents": {
+					"x": {
+						"at": "T",
+						"conversations": {
+							"c": {
+								"count": 1,
+								"hash": "h"
+							}
+						}
+					},
+					"y": {
+						"at": "T",
+						"conversations": {
+							"c": {
+								"count": 1,
+								"hash": "h"
+							}
+						}
+					}
+				}
+			},
+			"mixed": {
+				"agents": {
+					"apple": {
+						"at": "B",
+						"conversations": {}
+					},
+					"Zed": {
+						"at": "b",
+						"conversations": {}
+					},
+					"new": {
+						"at": "A",
+						"conversations": {
+							"c": {
+								"count": 2,
+								"hash": "q"
+							}
+						}
+					},
+					"mid": {
+						"at": "a",
+						"conversations": {}
+					}
+				}
+			}
+		}
+	},
+	{
+		"name": "segment paths",
+		"output": [
+			{
+				"input": "system-prompt.md",
+				"output": true
+			},
+			{
+				"input": "shared/30-learner-files.md",
+				"output": true
+			},
+			{
+				"input": "teacher/20-teaching.md",
+				"output": true
+			},
+			{
+				"input": "talk/1-a.b.md",
+				"output": true
+			},
+			{
+				"input": "practice/00-base.md",
+				"output": true
+			},
+			{
+				"input": "study/5-x_y.md",
+				"output": true
+			},
+			{
+				"input": "homework/10-a.md",
+				"output": true
+			},
+			{
+				"input": "prober/10-probe-doctrine.md",
+				"output": true
+			},
+			{
+				"input": "",
+				"output": false
+			},
+			{
+				"input": "teacher/teaching.md",
+				"output": false
+			},
+			{
+				"input": "teacher/20-teaching.txt",
+				"output": false
+			},
+			{
+				"input": "other/20-a.md",
+				"output": false
+			},
+			{
+				"input": "teacher/../20-a.md",
+				"output": false
+			},
+			{
+				"input": "teacher/x/20-a.md",
+				"output": false
+			},
+			{
+				"input": "/system-prompt.md",
+				"output": false
+			},
+			{
+				"input": "teacher/20-a.md\n",
+				"output": false
+			},
+			{
+				"input": "teacher/20-é.md",
+				"output": false
+			},
+			{
+				"input": "System-prompt.md",
+				"output": false
+			},
+			{
+				"input": "shared/.md",
+				"output": false
+			},
+			{
+				"input": "shared/20-.md",
+				"output": false
+			}
+		]
+	},
+	{
+		"name": "changelog",
+		"output": {
+			"isVersion": [
+				{
+					"input": "0.5.10",
+					"output": true
+				},
+				{
+					"input": "0.5.9",
+					"output": true
+				},
+				{
+					"input": "1.2.3",
+					"output": true
+				},
+				{
+					"input": "junk",
+					"output": false
+				},
+				{
+					"input": "also junk",
+					"output": false
+				},
+				{
+					"input": "0.5",
+					"output": false
+				},
+				{
+					"input": "1.2.3.4",
+					"output": false
+				},
+				{
+					"input": "01.02.03",
+					"output": true
+				},
+				{
+					"input": "0.0.0",
+					"output": true
+				},
+				{
+					"input": "10.0.0",
+					"output": true
+				},
+				{
+					"input": "9.9.9",
+					"output": true
+				},
+				{
+					"input": "",
+					"output": false
+				},
+				{
+					"input": "1.2.3\n",
+					"output": false
+				},
+				{
+					"input": "99999999999999999999.0.0",
+					"output": true
+				},
+				{
+					"input": null,
+					"output": false
+				},
+				{
+					"input": 5,
+					"output": false
+				},
+				{
+					"input": null,
+					"output": false
+				}
+			],
+			"compare": [
+				{
+					"a": "0.5.10",
+					"b": "0.5.10",
+					"output": 0
+				},
+				{
+					"a": "0.5.10",
+					"b": "0.5.9",
+					"output": 1
+				},
+				{
+					"a": "0.5.10",
+					"b": "1.2.3",
+					"output": -1
+				},
+				{
+					"a": "0.5.10",
+					"b": "junk",
+					"output": 1
+				},
+				{
+					"a": "0.5.10",
+					"b": "also junk",
+					"output": 1
+				},
+				{
+					"a": "0.5.10",
+					"b": "0.5",
+					"output": 1
+				},
+				{
+					"a": "0.5.10",
+					"b": "1.2.3.4",
+					"output": 1
+				},
+				{
+					"a": "0.5.10",
+					"b": "01.02.03",
+					"output": -1
+				},
+				{
+					"a": "0.5.10",
+					"b": "0.0.0",
+					"output": 5
+				},
+				{
+					"a": "0.5.10",
+					"b": "10.0.0",
+					"output": -10
+				},
+				{
+					"a": "0.5.10",
+					"b": "9.9.9",
+					"output": -9
+				},
+				{
+					"a": "0.5.10",
+					"b": "",
+					"output": 1
+				},
+				{
+					"a": "0.5.10",
+					"b": "1.2.3\n",
+					"output": 1
+				},
+				{
+					"a": "0.5.10",
+					"b": "99999999999999999999.0.0",
+					"output": -100000000000000000000
+				},
+				{
+					"a": "0.5.9",
+					"b": "0.5.10",
+					"output": -1
+				},
+				{
+					"a": "0.5.9",
+					"b": "0.5.9",
+					"output": 0
+				},
+				{
+					"a": "0.5.9",
+					"b": "1.2.3",
+					"output": -1
+				},
+				{
+					"a": "0.5.9",
+					"b": "junk",
+					"output": 1
+				},
+				{
+					"a": "0.5.9",
+					"b": "also junk",
+					"output": 1
+				},
+				{
+					"a": "0.5.9",
+					"b": "0.5",
+					"output": 1
+				},
+				{
+					"a": "0.5.9",
+					"b": "1.2.3.4",
+					"output": 1
+				},
+				{
+					"a": "0.5.9",
+					"b": "01.02.03",
+					"output": -1
+				},
+				{
+					"a": "0.5.9",
+					"b": "0.0.0",
+					"output": 5
+				},
+				{
+					"a": "0.5.9",
+					"b": "10.0.0",
+					"output": -10
+				},
+				{
+					"a": "0.5.9",
+					"b": "9.9.9",
+					"output": -9
+				},
+				{
+					"a": "0.5.9",
+					"b": "",
+					"output": 1
+				},
+				{
+					"a": "0.5.9",
+					"b": "1.2.3\n",
+					"output": 1
+				},
+				{
+					"a": "0.5.9",
+					"b": "99999999999999999999.0.0",
+					"output": -100000000000000000000
+				},
+				{
+					"a": "1.2.3",
+					"b": "0.5.10",
+					"output": 1
+				},
+				{
+					"a": "1.2.3",
+					"b": "0.5.9",
+					"output": 1
+				},
+				{
+					"a": "1.2.3",
+					"b": "1.2.3",
+					"output": 0
+				},
+				{
+					"a": "1.2.3",
+					"b": "junk",
+					"output": 1
+				},
+				{
+					"a": "1.2.3",
+					"b": "also junk",
+					"output": 1
+				},
+				{
+					"a": "1.2.3",
+					"b": "0.5",
+					"output": 1
+				},
+				{
+					"a": "1.2.3",
+					"b": "1.2.3.4",
+					"output": 1
+				},
+				{
+					"a": "1.2.3",
+					"b": "01.02.03",
+					"output": 0
+				},
+				{
+					"a": "1.2.3",
+					"b": "0.0.0",
+					"output": 1
+				},
+				{
+					"a": "1.2.3",
+					"b": "10.0.0",
+					"output": -9
+				},
+				{
+					"a": "1.2.3",
+					"b": "9.9.9",
+					"output": -8
+				},
+				{
+					"a": "1.2.3",
+					"b": "",
+					"output": 1
+				},
+				{
+					"a": "1.2.3",
+					"b": "1.2.3\n",
+					"output": 1
+				},
+				{
+					"a": "1.2.3",
+					"b": "99999999999999999999.0.0",
+					"output": -100000000000000000000
+				},
+				{
+					"a": "junk",
+					"b": "0.5.10",
+					"output": -1
+				},
+				{
+					"a": "junk",
+					"b": "0.5.9",
+					"output": -1
+				},
+				{
+					"a": "junk",
+					"b": "1.2.3",
+					"output": -1
+				},
+				{
+					"a": "junk",
+					"b": "junk",
+					"output": 0
+				},
+				{
+					"a": "junk",
+					"b": "also junk",
+					"output": 0
+				},
+				{
+					"a": "junk",
+					"b": "0.5",
+					"output": 0
+				},
+				{
+					"a": "junk",
+					"b": "1.2.3.4",
+					"output": 0
+				},
+				{
+					"a": "junk",
+					"b": "01.02.03",
+					"output": -1
+				},
+				{
+					"a": "junk",
+					"b": "0.0.0",
+					"output": -1
+				},
+				{
+					"a": "junk",
+					"b": "10.0.0",
+					"output": -1
+				},
+				{
+					"a": "junk",
+					"b": "9.9.9",
+					"output": -1
+				},
+				{
+					"a": "junk",
+					"b": "",
+					"output": 0
+				},
+				{
+					"a": "junk",
+					"b": "1.2.3\n",
+					"output": 0
+				},
+				{
+					"a": "junk",
+					"b": "99999999999999999999.0.0",
+					"output": -1
+				},
+				{
+					"a": "also junk",
+					"b": "0.5.10",
+					"output": -1
+				},
+				{
+					"a": "also junk",
+					"b": "0.5.9",
+					"output": -1
+				},
+				{
+					"a": "also junk",
+					"b": "1.2.3",
+					"output": -1
+				},
+				{
+					"a": "also junk",
+					"b": "junk",
+					"output": 0
+				},
+				{
+					"a": "also junk",
+					"b": "also junk",
+					"output": 0
+				},
+				{
+					"a": "also junk",
+					"b": "0.5",
+					"output": 0
+				},
+				{
+					"a": "also junk",
+					"b": "1.2.3.4",
+					"output": 0
+				},
+				{
+					"a": "also junk",
+					"b": "01.02.03",
+					"output": -1
+				},
+				{
+					"a": "also junk",
+					"b": "0.0.0",
+					"output": -1
+				},
+				{
+					"a": "also junk",
+					"b": "10.0.0",
+					"output": -1
+				},
+				{
+					"a": "also junk",
+					"b": "9.9.9",
+					"output": -1
+				},
+				{
+					"a": "also junk",
+					"b": "",
+					"output": 0
+				},
+				{
+					"a": "also junk",
+					"b": "1.2.3\n",
+					"output": 0
+				},
+				{
+					"a": "also junk",
+					"b": "99999999999999999999.0.0",
+					"output": -1
+				},
+				{
+					"a": "0.5",
+					"b": "0.5.10",
+					"output": -1
+				},
+				{
+					"a": "0.5",
+					"b": "0.5.9",
+					"output": -1
+				},
+				{
+					"a": "0.5",
+					"b": "1.2.3",
+					"output": -1
+				},
+				{
+					"a": "0.5",
+					"b": "junk",
+					"output": 0
+				},
+				{
+					"a": "0.5",
+					"b": "also junk",
+					"output": 0
+				},
+				{
+					"a": "0.5",
+					"b": "0.5",
+					"output": 0
+				},
+				{
+					"a": "0.5",
+					"b": "1.2.3.4",
+					"output": 0
+				},
+				{
+					"a": "0.5",
+					"b": "01.02.03",
+					"output": -1
+				},
+				{
+					"a": "0.5",
+					"b": "0.0.0",
+					"output": -1
+				},
+				{
+					"a": "0.5",
+					"b": "10.0.0",
+					"output": -1
+				},
+				{
+					"a": "0.5",
+					"b": "9.9.9",
+					"output": -1
+				},
+				{
+					"a": "0.5",
+					"b": "",
+					"output": 0
+				},
+				{
+					"a": "0.5",
+					"b": "1.2.3\n",
+					"output": 0
+				},
+				{
+					"a": "0.5",
+					"b": "99999999999999999999.0.0",
+					"output": -1
+				},
+				{
+					"a": "1.2.3.4",
+					"b": "0.5.10",
+					"output": -1
+				},
+				{
+					"a": "1.2.3.4",
+					"b": "0.5.9",
+					"output": -1
+				},
+				{
+					"a": "1.2.3.4",
+					"b": "1.2.3",
+					"output": -1
+				},
+				{
+					"a": "1.2.3.4",
+					"b": "junk",
+					"output": 0
+				},
+				{
+					"a": "1.2.3.4",
+					"b": "also junk",
+					"output": 0
+				},
+				{
+					"a": "1.2.3.4",
+					"b": "0.5",
+					"output": 0
+				},
+				{
+					"a": "1.2.3.4",
+					"b": "1.2.3.4",
+					"output": 0
+				},
+				{
+					"a": "1.2.3.4",
+					"b": "01.02.03",
+					"output": -1
+				},
+				{
+					"a": "1.2.3.4",
+					"b": "0.0.0",
+					"output": -1
+				},
+				{
+					"a": "1.2.3.4",
+					"b": "10.0.0",
+					"output": -1
+				},
+				{
+					"a": "1.2.3.4",
+					"b": "9.9.9",
+					"output": -1
+				},
+				{
+					"a": "1.2.3.4",
+					"b": "",
+					"output": 0
+				},
+				{
+					"a": "1.2.3.4",
+					"b": "1.2.3\n",
+					"output": 0
+				},
+				{
+					"a": "1.2.3.4",
+					"b": "99999999999999999999.0.0",
+					"output": -1
+				},
+				{
+					"a": "01.02.03",
+					"b": "0.5.10",
+					"output": 1
+				},
+				{
+					"a": "01.02.03",
+					"b": "0.5.9",
+					"output": 1
+				},
+				{
+					"a": "01.02.03",
+					"b": "1.2.3",
+					"output": 0
+				},
+				{
+					"a": "01.02.03",
+					"b": "junk",
+					"output": 1
+				},
+				{
+					"a": "01.02.03",
+					"b": "also junk",
+					"output": 1
+				},
+				{
+					"a": "01.02.03",
+					"b": "0.5",
+					"output": 1
+				},
+				{
+					"a": "01.02.03",
+					"b": "1.2.3.4",
+					"output": 1
+				},
+				{
+					"a": "01.02.03",
+					"b": "01.02.03",
+					"output": 0
+				},
+				{
+					"a": "01.02.03",
+					"b": "0.0.0",
+					"output": 1
+				},
+				{
+					"a": "01.02.03",
+					"b": "10.0.0",
+					"output": -9
+				},
+				{
+					"a": "01.02.03",
+					"b": "9.9.9",
+					"output": -8
+				},
+				{
+					"a": "01.02.03",
+					"b": "",
+					"output": 1
+				},
+				{
+					"a": "01.02.03",
+					"b": "1.2.3\n",
+					"output": 1
+				},
+				{
+					"a": "01.02.03",
+					"b": "99999999999999999999.0.0",
+					"output": -100000000000000000000
+				},
+				{
+					"a": "0.0.0",
+					"b": "0.5.10",
+					"output": -5
+				},
+				{
+					"a": "0.0.0",
+					"b": "0.5.9",
+					"output": -5
+				},
+				{
+					"a": "0.0.0",
+					"b": "1.2.3",
+					"output": -1
+				},
+				{
+					"a": "0.0.0",
+					"b": "junk",
+					"output": 1
+				},
+				{
+					"a": "0.0.0",
+					"b": "also junk",
+					"output": 1
+				},
+				{
+					"a": "0.0.0",
+					"b": "0.5",
+					"output": 1
+				},
+				{
+					"a": "0.0.0",
+					"b": "1.2.3.4",
+					"output": 1
+				},
+				{
+					"a": "0.0.0",
+					"b": "01.02.03",
+					"output": -1
+				},
+				{
+					"a": "0.0.0",
+					"b": "0.0.0",
+					"output": 0
+				},
+				{
+					"a": "0.0.0",
+					"b": "10.0.0",
+					"output": -10
+				},
+				{
+					"a": "0.0.0",
+					"b": "9.9.9",
+					"output": -9
+				},
+				{
+					"a": "0.0.0",
+					"b": "",
+					"output": 1
+				},
+				{
+					"a": "0.0.0",
+					"b": "1.2.3\n",
+					"output": 1
+				},
+				{
+					"a": "0.0.0",
+					"b": "99999999999999999999.0.0",
+					"output": -100000000000000000000
+				},
+				{
+					"a": "10.0.0",
+					"b": "0.5.10",
+					"output": 10
+				},
+				{
+					"a": "10.0.0",
+					"b": "0.5.9",
+					"output": 10
+				},
+				{
+					"a": "10.0.0",
+					"b": "1.2.3",
+					"output": 9
+				},
+				{
+					"a": "10.0.0",
+					"b": "junk",
+					"output": 1
+				},
+				{
+					"a": "10.0.0",
+					"b": "also junk",
+					"output": 1
+				},
+				{
+					"a": "10.0.0",
+					"b": "0.5",
+					"output": 1
+				},
+				{
+					"a": "10.0.0",
+					"b": "1.2.3.4",
+					"output": 1
+				},
+				{
+					"a": "10.0.0",
+					"b": "01.02.03",
+					"output": 9
+				},
+				{
+					"a": "10.0.0",
+					"b": "0.0.0",
+					"output": 10
+				},
+				{
+					"a": "10.0.0",
+					"b": "10.0.0",
+					"output": 0
+				},
+				{
+					"a": "10.0.0",
+					"b": "9.9.9",
+					"output": 1
+				},
+				{
+					"a": "10.0.0",
+					"b": "",
+					"output": 1
+				},
+				{
+					"a": "10.0.0",
+					"b": "1.2.3\n",
+					"output": 1
+				},
+				{
+					"a": "10.0.0",
+					"b": "99999999999999999999.0.0",
+					"output": -100000000000000000000
+				},
+				{
+					"a": "9.9.9",
+					"b": "0.5.10",
+					"output": 9
+				},
+				{
+					"a": "9.9.9",
+					"b": "0.5.9",
+					"output": 9
+				},
+				{
+					"a": "9.9.9",
+					"b": "1.2.3",
+					"output": 8
+				},
+				{
+					"a": "9.9.9",
+					"b": "junk",
+					"output": 1
+				},
+				{
+					"a": "9.9.9",
+					"b": "also junk",
+					"output": 1
+				},
+				{
+					"a": "9.9.9",
+					"b": "0.5",
+					"output": 1
+				},
+				{
+					"a": "9.9.9",
+					"b": "1.2.3.4",
+					"output": 1
+				},
+				{
+					"a": "9.9.9",
+					"b": "01.02.03",
+					"output": 8
+				},
+				{
+					"a": "9.9.9",
+					"b": "0.0.0",
+					"output": 9
+				},
+				{
+					"a": "9.9.9",
+					"b": "10.0.0",
+					"output": -1
+				},
+				{
+					"a": "9.9.9",
+					"b": "9.9.9",
+					"output": 0
+				},
+				{
+					"a": "9.9.9",
+					"b": "",
+					"output": 1
+				},
+				{
+					"a": "9.9.9",
+					"b": "1.2.3\n",
+					"output": 1
+				},
+				{
+					"a": "9.9.9",
+					"b": "99999999999999999999.0.0",
+					"output": -100000000000000000000
+				},
+				{
+					"a": "",
+					"b": "0.5.10",
+					"output": -1
+				},
+				{
+					"a": "",
+					"b": "0.5.9",
+					"output": -1
+				},
+				{
+					"a": "",
+					"b": "1.2.3",
+					"output": -1
+				},
+				{
+					"a": "",
+					"b": "junk",
+					"output": 0
+				},
+				{
+					"a": "",
+					"b": "also junk",
+					"output": 0
+				},
+				{
+					"a": "",
+					"b": "0.5",
+					"output": 0
+				},
+				{
+					"a": "",
+					"b": "1.2.3.4",
+					"output": 0
+				},
+				{
+					"a": "",
+					"b": "01.02.03",
+					"output": -1
+				},
+				{
+					"a": "",
+					"b": "0.0.0",
+					"output": -1
+				},
+				{
+					"a": "",
+					"b": "10.0.0",
+					"output": -1
+				},
+				{
+					"a": "",
+					"b": "9.9.9",
+					"output": -1
+				},
+				{
+					"a": "",
+					"b": "",
+					"output": 0
+				},
+				{
+					"a": "",
+					"b": "1.2.3\n",
+					"output": 0
+				},
+				{
+					"a": "",
+					"b": "99999999999999999999.0.0",
+					"output": -1
+				},
+				{
+					"a": "1.2.3\n",
+					"b": "0.5.10",
+					"output": -1
+				},
+				{
+					"a": "1.2.3\n",
+					"b": "0.5.9",
+					"output": -1
+				},
+				{
+					"a": "1.2.3\n",
+					"b": "1.2.3",
+					"output": -1
+				},
+				{
+					"a": "1.2.3\n",
+					"b": "junk",
+					"output": 0
+				},
+				{
+					"a": "1.2.3\n",
+					"b": "also junk",
+					"output": 0
+				},
+				{
+					"a": "1.2.3\n",
+					"b": "0.5",
+					"output": 0
+				},
+				{
+					"a": "1.2.3\n",
+					"b": "1.2.3.4",
+					"output": 0
+				},
+				{
+					"a": "1.2.3\n",
+					"b": "01.02.03",
+					"output": -1
+				},
+				{
+					"a": "1.2.3\n",
+					"b": "0.0.0",
+					"output": -1
+				},
+				{
+					"a": "1.2.3\n",
+					"b": "10.0.0",
+					"output": -1
+				},
+				{
+					"a": "1.2.3\n",
+					"b": "9.9.9",
+					"output": -1
+				},
+				{
+					"a": "1.2.3\n",
+					"b": "",
+					"output": 0
+				},
+				{
+					"a": "1.2.3\n",
+					"b": "1.2.3\n",
+					"output": 0
+				},
+				{
+					"a": "1.2.3\n",
+					"b": "99999999999999999999.0.0",
+					"output": -1
+				},
+				{
+					"a": "99999999999999999999.0.0",
+					"b": "0.5.10",
+					"output": 100000000000000000000
+				},
+				{
+					"a": "99999999999999999999.0.0",
+					"b": "0.5.9",
+					"output": 100000000000000000000
+				},
+				{
+					"a": "99999999999999999999.0.0",
+					"b": "1.2.3",
+					"output": 100000000000000000000
+				},
+				{
+					"a": "99999999999999999999.0.0",
+					"b": "junk",
+					"output": 1
+				},
+				{
+					"a": "99999999999999999999.0.0",
+					"b": "also junk",
+					"output": 1
+				},
+				{
+					"a": "99999999999999999999.0.0",
+					"b": "0.5",
+					"output": 1
+				},
+				{
+					"a": "99999999999999999999.0.0",
+					"b": "1.2.3.4",
+					"output": 1
+				},
+				{
+					"a": "99999999999999999999.0.0",
+					"b": "01.02.03",
+					"output": 100000000000000000000
+				},
+				{
+					"a": "99999999999999999999.0.0",
+					"b": "0.0.0",
+					"output": 100000000000000000000
+				},
+				{
+					"a": "99999999999999999999.0.0",
+					"b": "10.0.0",
+					"output": 100000000000000000000
+				},
+				{
+					"a": "99999999999999999999.0.0",
+					"b": "9.9.9",
+					"output": 100000000000000000000
+				},
+				{
+					"a": "99999999999999999999.0.0",
+					"b": "",
+					"output": 1
+				},
+				{
+					"a": "99999999999999999999.0.0",
+					"b": "1.2.3\n",
+					"output": 1
+				},
+				{
+					"a": "99999999999999999999.0.0",
+					"b": "99999999999999999999.0.0",
+					"output": 0
+				}
+			],
+			"since": [
+				{
+					"since": "0.5.41",
+					"current": "0.5.43",
+					"output": [
+						"0.5.43",
+						"0.5.42"
+					],
+					"small": []
+				},
+				{
+					"since": "0.0.0",
+					"current": "99.0.0",
+					"output": [
+						"0.5.44",
+						"0.5.43",
+						"0.5.42",
+						"0.5.41",
+						"0.5.40",
+						"0.5.39",
+						"0.5.38",
+						"0.5.37",
+						"0.5.36",
+						"0.5.35",
+						"0.5.34",
+						"0.5.33",
+						"0.5.32",
+						"0.5.31",
+						"0.5.30",
+						"0.5.29",
+						"0.5.28",
+						"0.5.27",
+						"0.5.26",
+						"0.5.25",
+						"0.5.24",
+						"0.5.23",
+						"0.5.22",
+						"0.5.21",
+						"0.5.20",
+						"0.5.19",
+						"0.5.18",
+						"0.5.17",
+						"0.5.16",
+						"0.5.15",
+						"0.5.14",
+						"0.5.13",
+						"0.5.12",
+						"0.5.11",
+						"0.5.10",
+						"0.5.9",
+						"0.5.8",
+						"0.5.7",
+						"0.5.6",
+						"0.5.5",
+						"0.5.4",
+						"0.5.3",
+						"0.5.2",
+						"0.5.1",
+						"0.5.0",
+						"0.4.2",
+						"0.4.1",
+						"0.4.0"
+					],
+					"small": [
+						"0.5.10",
+						"0.5.2",
+						"0.4.0"
+					]
+				},
+				{
+					"since": "0.5.44",
+					"current": "0.5.44",
+					"output": [],
+					"small": []
+				},
+				{
+					"since": "junk",
+					"current": "0.5.3",
+					"output": [
+						"0.5.3",
+						"0.5.2",
+						"0.5.1",
+						"0.5.0",
+						"0.4.2",
+						"0.4.1",
+						"0.4.0"
+					],
+					"small": [
+						"0.5.2",
+						"0.4.0"
+					]
+				},
+				{
+					"since": "0.4.0",
+					"current": "0.5.10",
+					"output": [
+						"0.5.10",
+						"0.5.9",
+						"0.5.8",
+						"0.5.7",
+						"0.5.6",
+						"0.5.5",
+						"0.5.4",
+						"0.5.3",
+						"0.5.2",
+						"0.5.1",
+						"0.5.0",
+						"0.4.2",
+						"0.4.1"
+					],
+					"small": [
+						"0.5.10",
+						"0.5.2"
+					]
+				},
+				{
+					"since": "0.5.2",
+					"current": "junk",
+					"output": [],
+					"small": []
+				}
+			],
+			"entry": [
+				{
+					"version": "0.5.44",
+					"output": "2026-11-09",
+					"small": null
+				},
+				{
+					"version": "0.5.1",
+					"output": "2026-10-28",
+					"small": null
+				},
+				{
+					"version": "9.9.9",
+					"output": null,
+					"small": null
+				},
+				{
+					"version": "",
+					"output": null,
+					"small": null
+				},
+				{
+					"version": "bad",
+					"output": null,
+					"small": {
+						"version": "bad",
+						"date": "d",
+						"changes": []
+					}
+				}
+			],
+			"length": 48,
+			"first": {
+				"version": "0.5.44",
+				"date": "2026-11-09",
+				"changes": [
+					"A long problem shows in full in the lesson, where code and every part fit. The Your turn panel shows how it starts with a show the whole problem button, so the box you work in keeps its room.",
+					"Text that scrolls in the Your turn panel fades out before it reaches the panel's border and title."
+				]
+			},
+			"last": {
+				"version": "0.4.0",
+				"date": "2026-10-27",
+				"changes": [
+					"godspeed is the new name. Claude Code, Codex or any MCP app can now be your teacher, on the plan you already pay for.",
+					"Classes: each class has its own lessons, files, knowledge graph and exams.",
+					"A new lesson layout: a step bar on top, a reading column, and an always-open Your turn panel.",
+					"The class Overview and the topic Graph show what you've covered and what to work on before each exam.",
+					"The Files page: drag files in, link a folder, and see which files you've studied.",
+					"Updates download on their own, and the Mac app is signed and notarized by Apple."
+				]
+			}
+		}
+	}
+]

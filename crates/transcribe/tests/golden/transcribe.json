@@ -1,0 +1,403 @@
+[
+	{
+		"name": "findProgram",
+		"output": [
+			{
+				"name": "tool-x",
+				"path": "$R/a:$R/b:$R/c",
+				"note": "the first runnable one wins",
+				"found": "<root>/b/tool-x"
+			},
+			{
+				"name": "tool-x",
+				"path": "$R/a:$R/h",
+				"note": "plain files and links to them do not run",
+				"found": null
+			},
+			{
+				"name": "tool-x",
+				"path": "$R/d:$R/c",
+				"note": "a folder with the name is skipped",
+				"found": "<root>/c/tool-x"
+			},
+			{
+				"name": "tool-x",
+				"path": "$R/f:$R/e",
+				"note": "a broken link is skipped, a good one is returned unresolved",
+				"found": "<root>/e/tool-x"
+			},
+			{
+				"name": "tool-x",
+				"path": "$R/g",
+				"note": "owner-only execute counts",
+				"found": "<root>/g/tool-x"
+			},
+			{
+				"name": "tool-x",
+				"path": "$R/a/../b//:$R/c",
+				"note": "the folder is tidied like path.join",
+				"found": "<root>/b/tool-x"
+			},
+			{
+				"name": "tool-x",
+				"path": "::$R/c:",
+				"note": "empty entries are skipped",
+				"found": "<root>/c/tool-x"
+			},
+			{
+				"name": "tool-x",
+				"path": "",
+				"note": "an empty path finds nothing",
+				"found": null
+			},
+			{
+				"name": "tool-x",
+				"path": null,
+				"note": "no path finds nothing",
+				"found": null
+			},
+			{
+				"name": "tool-y",
+				"path": "$R/i",
+				"note": "another name",
+				"found": "<root>/i/tool-y"
+			},
+			{
+				"name": "tool-x",
+				"path": "$R/i",
+				"note": "a name that is not there",
+				"found": null
+			}
+		]
+	},
+	{
+		"name": "transcribeRecording",
+		"output": {
+			"talk.mp3": {
+				"text": "[RIFFSTUB talk.mp3] Hash tables store keys by their hash.\n Collisions are resolved by chaining.",
+				"written": "[RIFFSTUB talk.mp3] Hash tables store keys by their hash.\n Collisions are resolved by chaining.\n",
+				"calls": "ffmpeg -y -loglevel error -i <root>/recordings/talk.mp3 -ar 16000 -ac 1 -c:a pcm_s16le <root>/tmp/godspeed-transcribe-XXXXXX/audio.wav\nwhisper-cli -m <root>/data/models/ggml-base.en.bin -f <root>/tmp/godspeed-transcribe-XXXXXX/audio.wav -otxt -of <root>/tmp/godspeed-transcribe-XXXXXX/transcript -np\n",
+				"tmpLeft": []
+			},
+			"blank-talk.m4a": {
+				"text": "",
+				"written": "\n",
+				"calls": "ffmpeg -y -loglevel error -i <root>/recordings/blank-talk.m4a -ar 16000 -ac 1 -c:a pcm_s16le <root>/tmp/godspeed-transcribe-XXXXXX/audio.wav\nwhisper-cli -m <root>/data/models/ggml-base.en.bin -f <root>/tmp/godspeed-transcribe-XXXXXX/audio.wav -otxt -of <root>/tmp/godspeed-transcribe-XXXXXX/transcript -np\n",
+				"tmpLeft": []
+			},
+			"crlf-talk.mp3": {
+				"text": "First line.\n\n   \nSecond line.",
+				"written": "First line.\n\n   \nSecond line.\n",
+				"calls": "ffmpeg -y -loglevel error -i <root>/recordings/crlf-talk.mp3 -ar 16000 -ac 1 -c:a pcm_s16le <root>/tmp/godspeed-transcribe-XXXXXX/audio.wav\nwhisper-cli -m <root>/data/models/ggml-base.en.bin -f <root>/tmp/godspeed-transcribe-XXXXXX/audio.wav -otxt -of <root>/tmp/godspeed-transcribe-XXXXXX/transcript -np\n",
+				"tmpLeft": []
+			},
+			"lone-cr.wav": {
+				"text": "a\nb\n\nc",
+				"written": "a\nb\n\nc\n",
+				"calls": "ffmpeg -y -loglevel error -i <root>/recordings/lone-cr.wav -ar 16000 -ac 1 -c:a pcm_s16le <root>/tmp/godspeed-transcribe-XXXXXX/audio.wav\nwhisper-cli -m <root>/data/models/ggml-base.en.bin -f <root>/tmp/godspeed-transcribe-XXXXXX/audio.wav -otxt -of <root>/tmp/godspeed-transcribe-XXXXXX/transcript -np\n",
+				"tmpLeft": []
+			},
+			"bom.mp3": {
+				"text": "After the mark.",
+				"written": "After the mark.\n",
+				"calls": "ffmpeg -y -loglevel error -i <root>/recordings/bom.mp3 -ar 16000 -ac 1 -c:a pcm_s16le <root>/tmp/godspeed-transcribe-XXXXXX/audio.wav\nwhisper-cli -m <root>/data/models/ggml-base.en.bin -f <root>/tmp/godspeed-transcribe-XXXXXX/audio.wav -otxt -of <root>/tmp/godspeed-transcribe-XXXXXX/transcript -np\n",
+				"tmpLeft": []
+			},
+			"badutf8.mp3": {
+				"text": "�� ok",
+				"written": "�� ok\n",
+				"calls": "ffmpeg -y -loglevel error -i <root>/recordings/badutf8.mp3 -ar 16000 -ac 1 -c:a pcm_s16le <root>/tmp/godspeed-transcribe-XXXXXX/audio.wav\nwhisper-cli -m <root>/data/models/ggml-base.en.bin -f <root>/tmp/godspeed-transcribe-XXXXXX/audio.wav -otxt -of <root>/tmp/godspeed-transcribe-XXXXXX/transcript -np\n",
+				"tmpLeft": []
+			},
+			"nbsp.mp3": {
+				"text": "text with spaces",
+				"written": "text with spaces\n",
+				"calls": "ffmpeg -y -loglevel error -i <root>/recordings/nbsp.mp3 -ar 16000 -ac 1 -c:a pcm_s16le <root>/tmp/godspeed-transcribe-XXXXXX/audio.wav\nwhisper-cli -m <root>/data/models/ggml-base.en.bin -f <root>/tmp/godspeed-transcribe-XXXXXX/audio.wav -otxt -of <root>/tmp/godspeed-transcribe-XXXXXX/transcript -np\n",
+				"tmpLeft": []
+			},
+			"nel.mp3": {
+				"text": "x",
+				"written": "x\n",
+				"calls": "ffmpeg -y -loglevel error -i <root>/recordings/nel.mp3 -ar 16000 -ac 1 -c:a pcm_s16le <root>/tmp/godspeed-transcribe-XXXXXX/audio.wav\nwhisper-cli -m <root>/data/models/ggml-base.en.bin -f <root>/tmp/godspeed-transcribe-XXXXXX/audio.wav -otxt -of <root>/tmp/godspeed-transcribe-XXXXXX/transcript -np\n",
+				"tmpLeft": []
+			},
+			"ws-only.mp3": {
+				"text": "",
+				"written": "\n",
+				"calls": "ffmpeg -y -loglevel error -i <root>/recordings/ws-only.mp3 -ar 16000 -ac 1 -c:a pcm_s16le <root>/tmp/godspeed-transcribe-XXXXXX/audio.wav\nwhisper-cli -m <root>/data/models/ggml-base.en.bin -f <root>/tmp/godspeed-transcribe-XXXXXX/audio.wav -otxt -of <root>/tmp/godspeed-transcribe-XXXXXX/transcript -np\n",
+				"tmpLeft": []
+			},
+			"unicode.mov": {
+				"text": "Café 😀 日本語.",
+				"written": "Café 😀 日本語.\n",
+				"calls": "ffmpeg -y -loglevel error -i <root>/recordings/unicode.mov -ar 16000 -ac 1 -c:a pcm_s16le <root>/tmp/godspeed-transcribe-XXXXXX/audio.wav\nwhisper-cli -m <root>/data/models/ggml-base.en.bin -f <root>/tmp/godspeed-transcribe-XXXXXX/audio.wav -otxt -of <root>/tmp/godspeed-transcribe-XXXXXX/transcript -np\n",
+				"tmpLeft": []
+			},
+			"spaces and 'quotes' & $x.MP4": {
+				"text": "[RIFFSTUB spaces and 'quotes' & $x.MP4] Hash tables store keys by their hash.\n Collisions are resolved by chaining.",
+				"written": "[RIFFSTUB spaces and 'quotes' & $x.MP4] Hash tables store keys by their hash.\n Collisions are resolved by chaining.\n",
+				"calls": "ffmpeg -y -loglevel error -i <root>/recordings/spaces and 'quotes' & $x.MP4 -ar 16000 -ac 1 -c:a pcm_s16le <root>/tmp/godspeed-transcribe-XXXXXX/audio.wav\nwhisper-cli -m <root>/data/models/ggml-base.en.bin -f <root>/tmp/godspeed-transcribe-XXXXXX/audio.wav -otxt -of <root>/tmp/godspeed-transcribe-XXXXXX/transcript -np\n",
+				"tmpLeft": []
+			},
+			"ffmpeg-fail.mp3": {
+				"error": "ffmpeg failed: built with a compiler libavutil 1.0 <root>/recordings/ffmpeg-fail.mp3: Invalid data found when processing input",
+				"missing": false,
+				"written": null,
+				"calls": "ffmpeg -y -loglevel error -i <root>/recordings/ffmpeg-fail.mp3 -ar 16000 -ac 1 -c:a pcm_s16le <root>/tmp/godspeed-transcribe-XXXXXX/audio.wav\n",
+				"tmpLeft": []
+			},
+			"ffmpeg-silent.mp3": {
+				"error": "ffmpeg failed: Command failed: <root>/bin/ffmpeg -y -loglevel error -i <root>/recordings/ffmpeg-silent.mp3 -ar 16000 -ac 1 -c:a pcm_s16le <root>/tmp/godspeed-transcribe-XXXXXX/audio.wav\n",
+				"missing": false,
+				"written": null,
+				"calls": "ffmpeg -y -loglevel error -i <root>/recordings/ffmpeg-silent.mp3 -ar 16000 -ac 1 -c:a pcm_s16le <root>/tmp/godspeed-transcribe-XXXXXX/audio.wav\n",
+				"tmpLeft": []
+			},
+			"ffmpeg-blank.mp3": {
+				"error": "ffmpeg failed: Command failed: <root>/bin/ffmpeg -y -loglevel error -i <root>/recordings/ffmpeg-blank.mp3 -ar 16000 -ac 1 -c:a pcm_s16le <root>/tmp/godspeed-transcribe-XXXXXX/audio.wav\n  \n\n",
+				"missing": false,
+				"written": null,
+				"calls": "ffmpeg -y -loglevel error -i <root>/recordings/ffmpeg-blank.mp3 -ar 16000 -ac 1 -c:a pcm_s16le <root>/tmp/godspeed-transcribe-XXXXXX/audio.wav\n",
+				"tmpLeft": []
+			},
+			"ffmpeg-signal.mp3": {
+				"error": "ffmpeg failed: Command failed: <root>/bin/ffmpeg -y -loglevel error -i <root>/recordings/ffmpeg-signal.mp3 -ar 16000 -ac 1 -c:a pcm_s16le <root>/tmp/godspeed-transcribe-XXXXXX/audio.wav\n",
+				"missing": false,
+				"written": null,
+				"calls": "ffmpeg -y -loglevel error -i <root>/recordings/ffmpeg-signal.mp3 -ar 16000 -ac 1 -c:a pcm_s16le <root>/tmp/godspeed-transcribe-XXXXXX/audio.wav\n",
+				"tmpLeft": []
+			},
+			"ffmpeg-flood-out.mp3": {
+				"error": "ffmpeg failed: warn",
+				"missing": false,
+				"written": null,
+				"calls": "ffmpeg -y -loglevel error -i <root>/recordings/ffmpeg-flood-out.mp3 -ar 16000 -ac 1 -c:a pcm_s16le <root>/tmp/godspeed-transcribe-XXXXXX/audio.wav\n",
+				"tmpLeft": []
+			},
+			"ffmpeg-flood-err.mp3": {
+				"error": "ffmpeg failed: abcdefghij abcdefghij abcde",
+				"missing": false,
+				"written": null,
+				"calls": "ffmpeg -y -loglevel error -i <root>/recordings/ffmpeg-flood-err.mp3 -ar 16000 -ac 1 -c:a pcm_s16le <root>/tmp/godspeed-transcribe-XXXXXX/audio.wav\n",
+				"tmpLeft": []
+			},
+			"ffmpeg-nowav.mp3": {
+				"text": "[] Hash tables store keys by their hash.\n Collisions are resolved by chaining.",
+				"written": "[] Hash tables store keys by their hash.\n Collisions are resolved by chaining.\n",
+				"calls": "ffmpeg -y -loglevel error -i <root>/recordings/ffmpeg-nowav.mp3 -ar 16000 -ac 1 -c:a pcm_s16le <root>/tmp/godspeed-transcribe-XXXXXX/audio.wav\nwhisper-cli -m <root>/data/models/ggml-base.en.bin -f <root>/tmp/godspeed-transcribe-XXXXXX/audio.wav -otxt -of <root>/tmp/godspeed-transcribe-XXXXXX/transcript -np\n",
+				"tmpLeft": []
+			},
+			"whisper-fail.wav": {
+				"error": "whisper-cli failed: whisper_init_from_file: loading model error: failed to load the model",
+				"missing": false,
+				"written": null,
+				"calls": "ffmpeg -y -loglevel error -i <root>/recordings/whisper-fail.wav -ar 16000 -ac 1 -c:a pcm_s16le <root>/tmp/godspeed-transcribe-XXXXXX/audio.wav\nwhisper-cli -m <root>/data/models/ggml-base.en.bin -f <root>/tmp/godspeed-transcribe-XXXXXX/audio.wav -otxt -of <root>/tmp/godspeed-transcribe-XXXXXX/transcript -np\n",
+				"tmpLeft": []
+			},
+			"whisper-lines.wav": {
+				"error": "whisper-cli failed: line 3   line 4   line 5",
+				"missing": false,
+				"written": null,
+				"calls": "ffmpeg -y -loglevel error -i <root>/recordings/whisper-lines.wav -ar 16000 -ac 1 -c:a pcm_s16le <root>/tmp/godspeed-transcribe-XXXXXX/audio.wav\nwhisper-cli -m <root>/data/models/ggml-base.en.bin -f <root>/tmp/godspeed-transcribe-XXXXXX/audio.wav -otxt -of <root>/tmp/godspeed-transcribe-XXXXXX/transcript -np\n",
+				"tmpLeft": []
+			},
+			"whisper-nofile.wav": {
+				"error": "ENOENT: no such file or directory, open '<root>/tmp/godspeed-transcribe-XXXXXX/transcript.txt'",
+				"missing": false,
+				"written": null,
+				"calls": "ffmpeg -y -loglevel error -i <root>/recordings/whisper-nofile.wav -ar 16000 -ac 1 -c:a pcm_s16le <root>/tmp/godspeed-transcribe-XXXXXX/audio.wav\nwhisper-cli -m <root>/data/models/ggml-base.en.bin -f <root>/tmp/godspeed-transcribe-XXXXXX/audio.wav -otxt -of <root>/tmp/godspeed-transcribe-XXXXXX/transcript -np\n",
+				"tmpLeft": []
+			}
+		}
+	},
+	{
+		"name": "transcribeRecording output file",
+		"output": {
+			"nested": {
+				"text": "[RIFFSTUB talk.mp3] Hash tables store keys by their hash.\n Collisions are resolved by chaining.",
+				"written": "[RIFFSTUB talk.mp3] Hash tables store keys by their hash.\n Collisions are resolved by chaining.\n",
+				"calls": "ffmpeg -y -loglevel error -i <root>/recordings/talk.mp3 -ar 16000 -ac 1 -c:a pcm_s16le <root>/tmp/godspeed-transcribe-XXXXXX/audio.wav\nwhisper-cli -m <root>/data/models/ggml-base.en.bin -f <root>/tmp/godspeed-transcribe-XXXXXX/audio.wav -otxt -of <root>/tmp/godspeed-transcribe-XXXXXX/transcript -np\n",
+				"tmpLeft": []
+			},
+			"overwritten": {
+				"text": "[RIFFSTUB talk.mp3] Hash tables store keys by their hash.\n Collisions are resolved by chaining.",
+				"written": "[RIFFSTUB talk.mp3] Hash tables store keys by their hash.\n Collisions are resolved by chaining.\n",
+				"calls": "ffmpeg -y -loglevel error -i <root>/recordings/talk.mp3 -ar 16000 -ac 1 -c:a pcm_s16le <root>/tmp/godspeed-transcribe-XXXXXX/audio.wav\nwhisper-cli -m <root>/data/models/ggml-base.en.bin -f <root>/tmp/godspeed-transcribe-XXXXXX/audio.wav -otxt -of <root>/tmp/godspeed-transcribe-XXXXXX/transcript -np\n",
+				"tmpLeft": []
+			},
+			"underAFile": {
+				"error": "EEXIST: file already exists, mkdir '<root>/out/plain'",
+				"missing": false,
+				"written": null,
+				"calls": "ffmpeg -y -loglevel error -i <root>/recordings/talk.mp3 -ar 16000 -ac 1 -c:a pcm_s16le <root>/tmp/godspeed-transcribe-XXXXXX/audio.wav\nwhisper-cli -m <root>/data/models/ggml-base.en.bin -f <root>/tmp/godspeed-transcribe-XXXXXX/audio.wav -otxt -of <root>/tmp/godspeed-transcribe-XXXXXX/transcript -np\n",
+				"tmpLeft": []
+			},
+			"ontoAFolder": {
+				"error": "EISDIR: illegal operation on a directory, open '<root>/out/folder'",
+				"missing": false,
+				"written": null,
+				"calls": "ffmpeg -y -loglevel error -i <root>/recordings/talk.mp3 -ar 16000 -ac 1 -c:a pcm_s16le <root>/tmp/godspeed-transcribe-XXXXXX/audio.wav\nwhisper-cli -m <root>/data/models/ggml-base.en.bin -f <root>/tmp/godspeed-transcribe-XXXXXX/audio.wav -otxt -of <root>/tmp/godspeed-transcribe-XXXXXX/transcript -np\n",
+				"tmpLeft": []
+			}
+		}
+	},
+	{
+		"name": "ensureWhisperModel downloads",
+		"output": {
+			"ok": {
+				"results": [
+					{
+						"path": "<root>/data/models/ggml-base.en.bin"
+					}
+				],
+				"fetches": 1,
+				"models": [
+					"ggml-base.en.bin"
+				],
+				"content": "model bytes"
+			},
+			"http503": {
+				"results": [
+					{
+						"error": "Speech model download failed (HTTP 503)"
+					}
+				],
+				"fetches": 1,
+				"models": [],
+				"content": null
+			},
+			"http404": {
+				"results": [
+					{
+						"error": "Speech model download failed (HTTP 404)"
+					}
+				],
+				"fetches": 1,
+				"models": [],
+				"content": null
+			},
+			"http204": {
+				"results": [
+					{
+						"error": "Speech model download failed (HTTP 204)"
+					}
+				],
+				"fetches": 1,
+				"models": [],
+				"content": null
+			},
+			"fetchFails": {
+				"results": [
+					{
+						"error": "fetch failed"
+					}
+				],
+				"fetches": 1,
+				"models": [],
+				"content": null
+			},
+			"bodyBreaks": {
+				"results": [
+					{
+						"error": "terminated"
+					}
+				],
+				"fetches": 1,
+				"models": [],
+				"content": null
+			},
+			"alreadyThere": {
+				"results": [
+					{
+						"path": "<root>/data/models/ggml-base.en.bin"
+					}
+				],
+				"fetches": 0,
+				"models": [
+					"ggml-base.en.bin"
+				],
+				"content": "on disk"
+			},
+			"modelsIsAFile": {
+				"results": [
+					{
+						"error": "EEXIST: file already exists, mkdir '<root>/data/models'"
+					}
+				],
+				"fetches": 0,
+				"models": null,
+				"content": null
+			},
+			"shared": {
+				"results": [
+					{
+						"path": "<root>/data/models/ggml-base.en.bin"
+					},
+					{
+						"path": "<root>/data/models/ggml-base.en.bin"
+					},
+					{
+						"path": "<root>/data/models/ggml-base.en.bin"
+					}
+				],
+				"fetches": 1,
+				"models": [
+					"ggml-base.en.bin"
+				],
+				"content": "model bytes"
+			},
+			"sharedFailure": {
+				"results": [
+					{
+						"error": "Speech model download failed (HTTP 503)"
+					},
+					{
+						"error": "Speech model download failed (HTTP 503)"
+					},
+					{
+						"error": "Speech model download failed (HTTP 503)"
+					}
+				],
+				"fetches": 1,
+				"models": [],
+				"content": null
+			},
+			"retryAfterFailure": {
+				"results": [
+					{
+						"error": "Speech model download failed (HTTP 503)"
+					},
+					{
+						"path": "<root>/data/models/ggml-base.en.bin"
+					}
+				],
+				"fetches": 2,
+				"models": [
+					"ggml-base.en.bin"
+				],
+				"content": "model bytes"
+			},
+			"sharedThenRetry": {
+				"results": [
+					{
+						"error": "Speech model download failed (HTTP 503)"
+					},
+					{
+						"error": "Speech model download failed (HTTP 503)"
+					},
+					{
+						"path": "<root>/data/models/ggml-base.en.bin"
+					},
+					{
+						"path": "<root>/data/models/ggml-base.en.bin"
+					}
+				],
+				"fetches": 2,
+				"models": [
+					"ggml-base.en.bin"
+				],
+				"content": "model bytes"
+			}
+		}
+	}
+]

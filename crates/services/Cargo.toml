@@ -1,0 +1,26 @@
+[package]
+name = "gs-services"
+version = "0.0.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+gs-json.workspace = true
+gs-base.workspace = true
+gs-core.workspace = true
+gs-store.workspace = true
+gs-engine.workspace = true
+gs-agent.workspace = true
+gs-files.workspace = true
+gs-pdf.workspace = true
+gs-search.workspace = true
+gs-media.workspace = true
+gs-transcribe.workspace = true
+futures-util.workspace = true
+tokio.workspace = true
+parking_lot.workspace = true
+
+[lints]
+workspace = true

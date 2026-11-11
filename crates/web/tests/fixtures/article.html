@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>How binary search works | Algorithms Notebook</title>
+<meta name="author" content="Ada Example">
+<script>window.analytics = { track: function () {} };</script>
+<style>.nav { display: none }</style>
+</head>
+<body>
+<header class="site-header"><nav class="nav"><a href="/">Home</a> <a href="/about">About</a> <a href="/archive">Archive</a></nav></header>
+<main>
+<article>
+<h1>How binary search works</h1>
+<p class="byline">By Ada Example</p>
+<p>Binary search finds a value in a <strong>sorted</strong> array by halving the range it looks at. It is one of the first algorithms a student learns, and it shows up in <em>surprising</em> places, from <a href="https://example.com/git-bisect" title="git bisect docs">git bisect</a> to database indexes.</p>
+<h2>The idea</h2>
+<p>Keep two indexes, <code>lo</code> and <code>hi</code>. Look at the middle element. If it equals the target you are done; if it is too small, throw away the left half; otherwise throw away the right half. Each step cuts the work in half, so an array of one million items needs about twenty steps.</p>
+<h2>An implementation</h2>
+<pre><code class="language-python">def search(items, target):
+    lo, hi = 0, len(items) - 1
+    while lo &lt;= hi:
+        mid = (lo + hi) // 2
+        if items[mid] == target:
+            return mid
+        if items[mid] &lt; target:
+            lo = mid + 1
+        else:
+            hi = mid - 1
+    return -1
+</code></pre>
+<h3>Things to check</h3>
+<ul>
+<li>The array must be sorted first.</li>
+<li>Compute <code>mid</code> without overflow in fixed-width languages.
+<ul>
+<li>Use <code>lo + (hi - lo) / 2</code>.</li>
+<li>Never <code>(lo + hi) / 2</code> with 32-bit ints.</li>
+</ul>
+</li>
+<li>Decide what to return when the target is missing.</li>
+</ul>
+<h3>Steps for a manual trace</h3>
+<ol>
+<li>Write down the array.</li>
+<li>Mark <code>lo</code> and <code>hi</code>.</li>
+<li>Repeat until the marks cross.</li>
+</ol>
+<blockquote><p>Although the basic idea of binary search is comparatively straightforward, the details can be surprisingly tricky.</p><p>Donald Knuth</p></blockquote>
+<hr>
+<p>Costs at a glance:</p>
+<table>
+<thead><tr><th>Case</th><th>Comparisons</th></tr></thead>
+<tbody>
+<tr><td>Best</td><td>1</td></tr>
+<tr><td>Worst</td><td>log2 n</td></tr>
+</tbody>
+</table>
+<p>Here is a diagram of the halving:<br>first step<br>second step</p>
+<p><img src="/img/halving.png" alt="Diagram of halving" title="Halving"></p>
+<p>That is all there is to it, and it is worth writing from memory at least once so the off-by-one cases stick in your head for good.</p>
+</article>
+</main>
+<footer><p>Copyright 2025 Algorithms Notebook. All rights reserved.</p></footer>
+</body>
+</html>

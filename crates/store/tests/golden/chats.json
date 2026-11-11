@@ -1,0 +1,2308 @@
+[
+	{
+		"name": "synthetic store",
+		"output": {
+			"files": {
+				"chat_a.json": "{\n\t\"id\": \"chat_a\",\n\t\"title\": \"Lesson chat_a\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-02-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"classId\": \"cls_1\"\n}",
+				"chat_b.json": "{\n\t\"id\": \"chat_b\",\n\t\"title\": \"Lesson chat_b\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-03-01T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"u1\",\n\t\t\t\"role\": \"user\",\n\t\t\t\"content\": \"hi\",\n\t\t\t\"timestamp\": 3\n\t\t}\n\t],\n\t\"kind\": \"study\",\n\t\"version\": 1\n}",
+				"chat_c.json": "{\n\t\"id\": \"chat_c\",\n\t\"title\": \"Lesson chat_c\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-01-15T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"a1\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"p1\",\n\t\t\t\t\t\"name\": \"problem\",\n\t\t\t\t\t\"arguments\": {\n\t\t\t\t\t\t\"statement\": \"s\"\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t},\n\t\t{\n\t\t\t\"id\": \"r1\",\n\t\t\t\"role\": \"toolResult\",\n\t\t\t\"toolCallId\": \"p1\",\n\t\t\t\"toolName\": \"problem\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"text\",\n\t\t\t\t\t\"text\": \"ok\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"details\": {},\n\t\t\t\"isError\": false,\n\t\t\t\"timestamp\": 2\n\t\t}\n\t],\n\t\"kind\": \"practice\",\n\t\"turns\": [\n\t\t{\n\t\t\t\"id\": \"t0\"\n\t\t}\n\t],\n\t\"tree\": {\n\t\t\"nodes\": []\n\t}\n}",
+				"chat_d.json": "{\n\t\"id\": \"chat_d\",\n\t\"title\": \"Lesson chat_d\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-03-01T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"a1\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"d1\",\n\t\t\t\t\t\"name\": \"probe_done\",\n\t\t\t\t\t\"arguments\": {}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t},\n\t\t{\n\t\t\t\"id\": \"r1\",\n\t\t\t\"role\": \"toolResult\",\n\t\t\t\"toolCallId\": \"d1\",\n\t\t\t\"toolName\": \"probe_done\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"text\",\n\t\t\t\t\t\"text\": \"ok\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"details\": {},\n\t\t\t\"isError\": false,\n\t\t\t\"timestamp\": 2\n\t\t},\n\t\t{\n\t\t\t\"id\": \"a2\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"q1\",\n\t\t\t\t\t\"name\": \"quiz\",\n\t\t\t\t\t\"arguments\": {\n\t\t\t\t\t\t\"nodeId\": \"n1\"\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t}\n\t]\n}",
+				"chat_talk.json": "{\n\t\"id\": \"chat_talk\",\n\t\"title\": \"Lesson chat_talk\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-04-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"kind\": \"talk\"\n}",
+				"chat_future.json": "{\n\t\"id\": \"chat_future\",\n\t\"title\": \"Lesson chat_future\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-05-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 2\n}",
+				"chat_noshape.json": "{\"id\":\"chat_noshape\",\"messages\":[]}",
+				"chat_broken.json": "{ not json",
+				"odd name.json": "{\"id\":\"odd name\",\"title\":\"Lesson odd name\",\"createdAt\":\"2026-01-01T00:00:00.000Z\",\"updatedAt\":\"2026-06-01T00:00:00.000Z\",\"messages\":[]}",
+				"chat_dir": ""
+			},
+			"ids": [
+				"chat_a",
+				"chat_b",
+				"chat_c",
+				"chat_d",
+				"chat_talk",
+				"chat_future",
+				"chat_noshape",
+				"chat_broken",
+				"odd name",
+				"../escape",
+				"missing",
+				""
+			],
+			"reads": [
+				{
+					"id": "chat_a",
+					"chat": {
+						"id": "chat_a",
+						"title": "Lesson chat_a",
+						"createdAt": "2026-01-01T00:00:00.000Z",
+						"updatedAt": "2026-02-01T00:00:00.000Z",
+						"messages": [],
+						"classId": "cls_1"
+					}
+				},
+				{
+					"id": "chat_b",
+					"chat": {
+						"id": "chat_b",
+						"title": "Lesson chat_b",
+						"createdAt": "2026-01-01T00:00:00.000Z",
+						"updatedAt": "2026-03-01T00:00:00.000Z",
+						"messages": [
+							{
+								"id": "u1",
+								"role": "user",
+								"content": "hi",
+								"timestamp": 3
+							}
+						],
+						"kind": "study",
+						"version": 1
+					}
+				},
+				{
+					"id": "chat_c",
+					"chat": {
+						"id": "chat_c",
+						"title": "Lesson chat_c",
+						"createdAt": "2026-01-01T00:00:00.000Z",
+						"updatedAt": "2026-01-15T00:00:00.000Z",
+						"messages": [
+							{
+								"id": "a1",
+								"role": "assistant",
+								"content": [
+									{
+										"type": "toolCall",
+										"id": "p1",
+										"name": "problem",
+										"arguments": {
+											"statement": "s"
+										}
+									}
+								],
+								"stopReason": "toolUse",
+								"timestamp": 1
+							},
+							{
+								"id": "r1",
+								"role": "toolResult",
+								"toolCallId": "p1",
+								"toolName": "problem",
+								"content": [
+									{
+										"type": "text",
+										"text": "ok"
+									}
+								],
+								"details": {},
+								"isError": false,
+								"timestamp": 2
+							}
+						],
+						"kind": "practice",
+						"turns": [
+							{
+								"id": "t0"
+							}
+						],
+						"tree": {
+							"nodes": []
+						}
+					}
+				},
+				{
+					"id": "chat_d",
+					"chat": {
+						"id": "chat_d",
+						"title": "Lesson chat_d",
+						"createdAt": "2026-01-01T00:00:00.000Z",
+						"updatedAt": "2026-03-01T00:00:00.000Z",
+						"messages": [
+							{
+								"id": "a1",
+								"role": "assistant",
+								"content": [
+									{
+										"type": "toolCall",
+										"id": "d1",
+										"name": "probe_done",
+										"arguments": {}
+									}
+								],
+								"stopReason": "toolUse",
+								"timestamp": 1
+							},
+							{
+								"id": "r1",
+								"role": "toolResult",
+								"toolCallId": "d1",
+								"toolName": "probe_done",
+								"content": [
+									{
+										"type": "text",
+										"text": "ok"
+									}
+								],
+								"details": {},
+								"isError": false,
+								"timestamp": 2
+							},
+							{
+								"id": "a2",
+								"role": "assistant",
+								"content": [
+									{
+										"type": "toolCall",
+										"id": "q1",
+										"name": "quiz",
+										"arguments": {
+											"nodeId": "n1"
+										}
+									}
+								],
+								"stopReason": "toolUse",
+								"timestamp": 1
+							}
+						]
+					}
+				},
+				{
+					"id": "chat_talk",
+					"chat": {
+						"id": "chat_talk",
+						"title": "Lesson chat_talk",
+						"createdAt": "2026-01-01T00:00:00.000Z",
+						"updatedAt": "2026-04-01T00:00:00.000Z",
+						"messages": [],
+						"kind": "talk"
+					}
+				},
+				{
+					"id": "chat_future",
+					"chat": null
+				},
+				{
+					"id": "chat_noshape",
+					"chat": null
+				},
+				{
+					"id": "chat_broken",
+					"chat": null
+				},
+				{
+					"id": "odd name",
+					"chat": null
+				},
+				{
+					"id": "../escape",
+					"chat": null
+				},
+				{
+					"id": "missing",
+					"chat": null
+				},
+				{
+					"id": "",
+					"chat": null
+				}
+			],
+			"list": [
+				{
+					"id": "chat_b",
+					"title": "Lesson chat_b",
+					"createdAt": "2026-01-01T00:00:00.000Z",
+					"updatedAt": "2026-03-01T00:00:00.000Z",
+					"kind": "study",
+					"version": 1,
+					"messageCount": 1,
+					"phase": "teach",
+					"pendingQuestion": false,
+					"pendingProblem": false
+				},
+				{
+					"id": "chat_d",
+					"title": "Lesson chat_d",
+					"createdAt": "2026-01-01T00:00:00.000Z",
+					"updatedAt": "2026-03-01T00:00:00.000Z",
+					"kind": "teach",
+					"messageCount": 3,
+					"phase": "teach",
+					"pendingQuestion": true,
+					"pendingProblem": false
+				},
+				{
+					"id": "chat_a",
+					"title": "Lesson chat_a",
+					"createdAt": "2026-01-01T00:00:00.000Z",
+					"updatedAt": "2026-02-01T00:00:00.000Z",
+					"classId": "cls_1",
+					"kind": "teach",
+					"messageCount": 0,
+					"phase": "probe",
+					"pendingQuestion": false,
+					"pendingProblem": false
+				},
+				{
+					"id": "chat_c",
+					"title": "Lesson chat_c",
+					"createdAt": "2026-01-01T00:00:00.000Z",
+					"updatedAt": "2026-01-15T00:00:00.000Z",
+					"kind": "practice",
+					"messageCount": 2,
+					"phase": "probe",
+					"pendingQuestion": false,
+					"pendingProblem": true
+				}
+			],
+			"afterSteps": [
+				{
+					"step": {
+						"op": "rename",
+						"id": "chat_a",
+						"title": "  New name  "
+					},
+					"ok": {
+						"id": "chat_a",
+						"title": "New name",
+						"createdAt": "2026-01-01T00:00:00.000Z",
+						"updatedAt": "2026-02-01T00:00:00.000Z",
+						"messages": [],
+						"classId": "cls_1"
+					},
+					"files": {
+						"chat_a.json": "{\n\t\"id\": \"chat_a\",\n\t\"title\": \"New name\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-02-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"classId\": \"cls_1\",\n\t\"version\": 1\n}",
+						"chat_b.json": "{\n\t\"id\": \"chat_b\",\n\t\"title\": \"Lesson chat_b\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-03-01T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"u1\",\n\t\t\t\"role\": \"user\",\n\t\t\t\"content\": \"hi\",\n\t\t\t\"timestamp\": 3\n\t\t}\n\t],\n\t\"kind\": \"study\",\n\t\"version\": 1\n}",
+						"chat_broken.json": "{ not json",
+						"chat_c.json": "{\n\t\"id\": \"chat_c\",\n\t\"title\": \"Lesson chat_c\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-01-15T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"a1\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"p1\",\n\t\t\t\t\t\"name\": \"problem\",\n\t\t\t\t\t\"arguments\": {\n\t\t\t\t\t\t\"statement\": \"s\"\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t},\n\t\t{\n\t\t\t\"id\": \"r1\",\n\t\t\t\"role\": \"toolResult\",\n\t\t\t\"toolCallId\": \"p1\",\n\t\t\t\"toolName\": \"problem\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"text\",\n\t\t\t\t\t\"text\": \"ok\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"details\": {},\n\t\t\t\"isError\": false,\n\t\t\t\"timestamp\": 2\n\t\t}\n\t],\n\t\"kind\": \"practice\",\n\t\"turns\": [\n\t\t{\n\t\t\t\"id\": \"t0\"\n\t\t}\n\t],\n\t\"tree\": {\n\t\t\"nodes\": []\n\t}\n}",
+						"chat_d.json": "{\n\t\"id\": \"chat_d\",\n\t\"title\": \"Lesson chat_d\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-03-01T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"a1\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"d1\",\n\t\t\t\t\t\"name\": \"probe_done\",\n\t\t\t\t\t\"arguments\": {}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t},\n\t\t{\n\t\t\t\"id\": \"r1\",\n\t\t\t\"role\": \"toolResult\",\n\t\t\t\"toolCallId\": \"d1\",\n\t\t\t\"toolName\": \"probe_done\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"text\",\n\t\t\t\t\t\"text\": \"ok\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"details\": {},\n\t\t\t\"isError\": false,\n\t\t\t\"timestamp\": 2\n\t\t},\n\t\t{\n\t\t\t\"id\": \"a2\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"q1\",\n\t\t\t\t\t\"name\": \"quiz\",\n\t\t\t\t\t\"arguments\": {\n\t\t\t\t\t\t\"nodeId\": \"n1\"\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t}\n\t]\n}",
+						"chat_dir": null,
+						"chat_future.json": "{\n\t\"id\": \"chat_future\",\n\t\"title\": \"Lesson chat_future\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-05-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 2\n}",
+						"chat_noshape.json": "{\"id\":\"chat_noshape\",\"messages\":[]}",
+						"chat_talk.json": "{\n\t\"id\": \"chat_talk\",\n\t\"title\": \"Lesson chat_talk\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-04-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"kind\": \"talk\"\n}",
+						"odd name.json": "{\"id\":\"odd name\",\"title\":\"Lesson odd name\",\"createdAt\":\"2026-01-01T00:00:00.000Z\",\"updatedAt\":\"2026-06-01T00:00:00.000Z\",\"messages\":[]}"
+					},
+					"list": [
+						{
+							"id": "chat_b",
+							"title": "Lesson chat_b",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-03-01T00:00:00.000Z",
+							"kind": "study",
+							"version": 1,
+							"messageCount": 1,
+							"phase": "teach",
+							"pendingQuestion": false,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_d",
+							"title": "Lesson chat_d",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-03-01T00:00:00.000Z",
+							"kind": "teach",
+							"messageCount": 3,
+							"phase": "teach",
+							"pendingQuestion": true,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_a",
+							"title": "New name",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-02-01T00:00:00.000Z",
+							"classId": "cls_1",
+							"version": 1,
+							"kind": "teach",
+							"messageCount": 0,
+							"phase": "probe",
+							"pendingQuestion": false,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_c",
+							"title": "Lesson chat_c",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-01-15T00:00:00.000Z",
+							"kind": "practice",
+							"messageCount": 2,
+							"phase": "probe",
+							"pendingQuestion": false,
+							"pendingProblem": true
+						}
+					]
+				},
+				{
+					"step": {
+						"op": "rename",
+						"id": "chat_a",
+						"title": "   "
+					},
+					"ok": {
+						"id": "chat_a",
+						"title": "Untitled session",
+						"createdAt": "2026-01-01T00:00:00.000Z",
+						"updatedAt": "2026-02-01T00:00:00.000Z",
+						"messages": [],
+						"classId": "cls_1",
+						"version": 1
+					},
+					"files": {
+						"chat_a.json": "{\n\t\"id\": \"chat_a\",\n\t\"title\": \"Untitled session\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-02-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"classId\": \"cls_1\",\n\t\"version\": 1\n}",
+						"chat_b.json": "{\n\t\"id\": \"chat_b\",\n\t\"title\": \"Lesson chat_b\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-03-01T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"u1\",\n\t\t\t\"role\": \"user\",\n\t\t\t\"content\": \"hi\",\n\t\t\t\"timestamp\": 3\n\t\t}\n\t],\n\t\"kind\": \"study\",\n\t\"version\": 1\n}",
+						"chat_broken.json": "{ not json",
+						"chat_c.json": "{\n\t\"id\": \"chat_c\",\n\t\"title\": \"Lesson chat_c\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-01-15T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"a1\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"p1\",\n\t\t\t\t\t\"name\": \"problem\",\n\t\t\t\t\t\"arguments\": {\n\t\t\t\t\t\t\"statement\": \"s\"\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t},\n\t\t{\n\t\t\t\"id\": \"r1\",\n\t\t\t\"role\": \"toolResult\",\n\t\t\t\"toolCallId\": \"p1\",\n\t\t\t\"toolName\": \"problem\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"text\",\n\t\t\t\t\t\"text\": \"ok\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"details\": {},\n\t\t\t\"isError\": false,\n\t\t\t\"timestamp\": 2\n\t\t}\n\t],\n\t\"kind\": \"practice\",\n\t\"turns\": [\n\t\t{\n\t\t\t\"id\": \"t0\"\n\t\t}\n\t],\n\t\"tree\": {\n\t\t\"nodes\": []\n\t}\n}",
+						"chat_d.json": "{\n\t\"id\": \"chat_d\",\n\t\"title\": \"Lesson chat_d\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-03-01T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"a1\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"d1\",\n\t\t\t\t\t\"name\": \"probe_done\",\n\t\t\t\t\t\"arguments\": {}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t},\n\t\t{\n\t\t\t\"id\": \"r1\",\n\t\t\t\"role\": \"toolResult\",\n\t\t\t\"toolCallId\": \"d1\",\n\t\t\t\"toolName\": \"probe_done\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"text\",\n\t\t\t\t\t\"text\": \"ok\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"details\": {},\n\t\t\t\"isError\": false,\n\t\t\t\"timestamp\": 2\n\t\t},\n\t\t{\n\t\t\t\"id\": \"a2\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"q1\",\n\t\t\t\t\t\"name\": \"quiz\",\n\t\t\t\t\t\"arguments\": {\n\t\t\t\t\t\t\"nodeId\": \"n1\"\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t}\n\t]\n}",
+						"chat_dir": null,
+						"chat_future.json": "{\n\t\"id\": \"chat_future\",\n\t\"title\": \"Lesson chat_future\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-05-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 2\n}",
+						"chat_noshape.json": "{\"id\":\"chat_noshape\",\"messages\":[]}",
+						"chat_talk.json": "{\n\t\"id\": \"chat_talk\",\n\t\"title\": \"Lesson chat_talk\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-04-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"kind\": \"talk\"\n}",
+						"odd name.json": "{\"id\":\"odd name\",\"title\":\"Lesson odd name\",\"createdAt\":\"2026-01-01T00:00:00.000Z\",\"updatedAt\":\"2026-06-01T00:00:00.000Z\",\"messages\":[]}"
+					},
+					"list": [
+						{
+							"id": "chat_b",
+							"title": "Lesson chat_b",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-03-01T00:00:00.000Z",
+							"kind": "study",
+							"version": 1,
+							"messageCount": 1,
+							"phase": "teach",
+							"pendingQuestion": false,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_d",
+							"title": "Lesson chat_d",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-03-01T00:00:00.000Z",
+							"kind": "teach",
+							"messageCount": 3,
+							"phase": "teach",
+							"pendingQuestion": true,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_a",
+							"title": "Untitled session",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-02-01T00:00:00.000Z",
+							"classId": "cls_1",
+							"version": 1,
+							"kind": "teach",
+							"messageCount": 0,
+							"phase": "probe",
+							"pendingQuestion": false,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_c",
+							"title": "Lesson chat_c",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-01-15T00:00:00.000Z",
+							"kind": "practice",
+							"messageCount": 2,
+							"phase": "probe",
+							"pendingQuestion": false,
+							"pendingProblem": true
+						}
+					]
+				},
+				{
+					"step": {
+						"op": "setClass",
+						"id": "chat_a",
+						"classId": "cls_2"
+					},
+					"ok": {
+						"id": "chat_a",
+						"title": "Untitled session",
+						"createdAt": "2026-01-01T00:00:00.000Z",
+						"updatedAt": "2026-02-01T00:00:00.000Z",
+						"messages": [],
+						"classId": "cls_2",
+						"version": 1
+					},
+					"files": {
+						"chat_a.json": "{\n\t\"id\": \"chat_a\",\n\t\"title\": \"Untitled session\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-02-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"classId\": \"cls_2\",\n\t\"version\": 1\n}",
+						"chat_b.json": "{\n\t\"id\": \"chat_b\",\n\t\"title\": \"Lesson chat_b\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-03-01T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"u1\",\n\t\t\t\"role\": \"user\",\n\t\t\t\"content\": \"hi\",\n\t\t\t\"timestamp\": 3\n\t\t}\n\t],\n\t\"kind\": \"study\",\n\t\"version\": 1\n}",
+						"chat_broken.json": "{ not json",
+						"chat_c.json": "{\n\t\"id\": \"chat_c\",\n\t\"title\": \"Lesson chat_c\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-01-15T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"a1\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"p1\",\n\t\t\t\t\t\"name\": \"problem\",\n\t\t\t\t\t\"arguments\": {\n\t\t\t\t\t\t\"statement\": \"s\"\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t},\n\t\t{\n\t\t\t\"id\": \"r1\",\n\t\t\t\"role\": \"toolResult\",\n\t\t\t\"toolCallId\": \"p1\",\n\t\t\t\"toolName\": \"problem\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"text\",\n\t\t\t\t\t\"text\": \"ok\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"details\": {},\n\t\t\t\"isError\": false,\n\t\t\t\"timestamp\": 2\n\t\t}\n\t],\n\t\"kind\": \"practice\",\n\t\"turns\": [\n\t\t{\n\t\t\t\"id\": \"t0\"\n\t\t}\n\t],\n\t\"tree\": {\n\t\t\"nodes\": []\n\t}\n}",
+						"chat_d.json": "{\n\t\"id\": \"chat_d\",\n\t\"title\": \"Lesson chat_d\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-03-01T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"a1\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"d1\",\n\t\t\t\t\t\"name\": \"probe_done\",\n\t\t\t\t\t\"arguments\": {}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t},\n\t\t{\n\t\t\t\"id\": \"r1\",\n\t\t\t\"role\": \"toolResult\",\n\t\t\t\"toolCallId\": \"d1\",\n\t\t\t\"toolName\": \"probe_done\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"text\",\n\t\t\t\t\t\"text\": \"ok\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"details\": {},\n\t\t\t\"isError\": false,\n\t\t\t\"timestamp\": 2\n\t\t},\n\t\t{\n\t\t\t\"id\": \"a2\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"q1\",\n\t\t\t\t\t\"name\": \"quiz\",\n\t\t\t\t\t\"arguments\": {\n\t\t\t\t\t\t\"nodeId\": \"n1\"\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t}\n\t]\n}",
+						"chat_dir": null,
+						"chat_future.json": "{\n\t\"id\": \"chat_future\",\n\t\"title\": \"Lesson chat_future\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-05-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 2\n}",
+						"chat_noshape.json": "{\"id\":\"chat_noshape\",\"messages\":[]}",
+						"chat_talk.json": "{\n\t\"id\": \"chat_talk\",\n\t\"title\": \"Lesson chat_talk\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-04-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"kind\": \"talk\"\n}",
+						"odd name.json": "{\"id\":\"odd name\",\"title\":\"Lesson odd name\",\"createdAt\":\"2026-01-01T00:00:00.000Z\",\"updatedAt\":\"2026-06-01T00:00:00.000Z\",\"messages\":[]}"
+					},
+					"list": [
+						{
+							"id": "chat_b",
+							"title": "Lesson chat_b",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-03-01T00:00:00.000Z",
+							"kind": "study",
+							"version": 1,
+							"messageCount": 1,
+							"phase": "teach",
+							"pendingQuestion": false,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_d",
+							"title": "Lesson chat_d",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-03-01T00:00:00.000Z",
+							"kind": "teach",
+							"messageCount": 3,
+							"phase": "teach",
+							"pendingQuestion": true,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_a",
+							"title": "Untitled session",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-02-01T00:00:00.000Z",
+							"classId": "cls_2",
+							"version": 1,
+							"kind": "teach",
+							"messageCount": 0,
+							"phase": "probe",
+							"pendingQuestion": false,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_c",
+							"title": "Lesson chat_c",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-01-15T00:00:00.000Z",
+							"kind": "practice",
+							"messageCount": 2,
+							"phase": "probe",
+							"pendingQuestion": false,
+							"pendingProblem": true
+						}
+					]
+				},
+				{
+					"step": {
+						"op": "setClass",
+						"id": "chat_a",
+						"classId": null
+					},
+					"ok": {
+						"id": "chat_a",
+						"title": "Untitled session",
+						"createdAt": "2026-01-01T00:00:00.000Z",
+						"updatedAt": "2026-02-01T00:00:00.000Z",
+						"messages": [],
+						"version": 1
+					},
+					"files": {
+						"chat_a.json": "{\n\t\"id\": \"chat_a\",\n\t\"title\": \"Untitled session\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-02-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 1\n}",
+						"chat_b.json": "{\n\t\"id\": \"chat_b\",\n\t\"title\": \"Lesson chat_b\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-03-01T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"u1\",\n\t\t\t\"role\": \"user\",\n\t\t\t\"content\": \"hi\",\n\t\t\t\"timestamp\": 3\n\t\t}\n\t],\n\t\"kind\": \"study\",\n\t\"version\": 1\n}",
+						"chat_broken.json": "{ not json",
+						"chat_c.json": "{\n\t\"id\": \"chat_c\",\n\t\"title\": \"Lesson chat_c\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-01-15T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"a1\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"p1\",\n\t\t\t\t\t\"name\": \"problem\",\n\t\t\t\t\t\"arguments\": {\n\t\t\t\t\t\t\"statement\": \"s\"\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t},\n\t\t{\n\t\t\t\"id\": \"r1\",\n\t\t\t\"role\": \"toolResult\",\n\t\t\t\"toolCallId\": \"p1\",\n\t\t\t\"toolName\": \"problem\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"text\",\n\t\t\t\t\t\"text\": \"ok\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"details\": {},\n\t\t\t\"isError\": false,\n\t\t\t\"timestamp\": 2\n\t\t}\n\t],\n\t\"kind\": \"practice\",\n\t\"turns\": [\n\t\t{\n\t\t\t\"id\": \"t0\"\n\t\t}\n\t],\n\t\"tree\": {\n\t\t\"nodes\": []\n\t}\n}",
+						"chat_d.json": "{\n\t\"id\": \"chat_d\",\n\t\"title\": \"Lesson chat_d\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-03-01T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"a1\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"d1\",\n\t\t\t\t\t\"name\": \"probe_done\",\n\t\t\t\t\t\"arguments\": {}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t},\n\t\t{\n\t\t\t\"id\": \"r1\",\n\t\t\t\"role\": \"toolResult\",\n\t\t\t\"toolCallId\": \"d1\",\n\t\t\t\"toolName\": \"probe_done\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"text\",\n\t\t\t\t\t\"text\": \"ok\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"details\": {},\n\t\t\t\"isError\": false,\n\t\t\t\"timestamp\": 2\n\t\t},\n\t\t{\n\t\t\t\"id\": \"a2\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"q1\",\n\t\t\t\t\t\"name\": \"quiz\",\n\t\t\t\t\t\"arguments\": {\n\t\t\t\t\t\t\"nodeId\": \"n1\"\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t}\n\t]\n}",
+						"chat_dir": null,
+						"chat_future.json": "{\n\t\"id\": \"chat_future\",\n\t\"title\": \"Lesson chat_future\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-05-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 2\n}",
+						"chat_noshape.json": "{\"id\":\"chat_noshape\",\"messages\":[]}",
+						"chat_talk.json": "{\n\t\"id\": \"chat_talk\",\n\t\"title\": \"Lesson chat_talk\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-04-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"kind\": \"talk\"\n}",
+						"odd name.json": "{\"id\":\"odd name\",\"title\":\"Lesson odd name\",\"createdAt\":\"2026-01-01T00:00:00.000Z\",\"updatedAt\":\"2026-06-01T00:00:00.000Z\",\"messages\":[]}"
+					},
+					"list": [
+						{
+							"id": "chat_b",
+							"title": "Lesson chat_b",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-03-01T00:00:00.000Z",
+							"kind": "study",
+							"version": 1,
+							"messageCount": 1,
+							"phase": "teach",
+							"pendingQuestion": false,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_d",
+							"title": "Lesson chat_d",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-03-01T00:00:00.000Z",
+							"kind": "teach",
+							"messageCount": 3,
+							"phase": "teach",
+							"pendingQuestion": true,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_a",
+							"title": "Untitled session",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-02-01T00:00:00.000Z",
+							"version": 1,
+							"kind": "teach",
+							"messageCount": 0,
+							"phase": "probe",
+							"pendingQuestion": false,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_c",
+							"title": "Lesson chat_c",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-01-15T00:00:00.000Z",
+							"kind": "practice",
+							"messageCount": 2,
+							"phase": "probe",
+							"pendingQuestion": false,
+							"pendingProblem": true
+						}
+					]
+				},
+				{
+					"step": {
+						"op": "turnUsage",
+						"id": "chat_a",
+						"entry": {
+							"id": "t1",
+							"tokens": 5
+						}
+					},
+					"ok": null,
+					"files": {
+						"chat_a.json": "{\n\t\"id\": \"chat_a\",\n\t\"title\": \"Untitled session\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-02-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 1,\n\t\"turns\": [\n\t\t{\n\t\t\t\"id\": \"t1\",\n\t\t\t\"tokens\": 5\n\t\t}\n\t]\n}",
+						"chat_b.json": "{\n\t\"id\": \"chat_b\",\n\t\"title\": \"Lesson chat_b\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-03-01T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"u1\",\n\t\t\t\"role\": \"user\",\n\t\t\t\"content\": \"hi\",\n\t\t\t\"timestamp\": 3\n\t\t}\n\t],\n\t\"kind\": \"study\",\n\t\"version\": 1\n}",
+						"chat_broken.json": "{ not json",
+						"chat_c.json": "{\n\t\"id\": \"chat_c\",\n\t\"title\": \"Lesson chat_c\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-01-15T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"a1\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"p1\",\n\t\t\t\t\t\"name\": \"problem\",\n\t\t\t\t\t\"arguments\": {\n\t\t\t\t\t\t\"statement\": \"s\"\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t},\n\t\t{\n\t\t\t\"id\": \"r1\",\n\t\t\t\"role\": \"toolResult\",\n\t\t\t\"toolCallId\": \"p1\",\n\t\t\t\"toolName\": \"problem\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"text\",\n\t\t\t\t\t\"text\": \"ok\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"details\": {},\n\t\t\t\"isError\": false,\n\t\t\t\"timestamp\": 2\n\t\t}\n\t],\n\t\"kind\": \"practice\",\n\t\"turns\": [\n\t\t{\n\t\t\t\"id\": \"t0\"\n\t\t}\n\t],\n\t\"tree\": {\n\t\t\"nodes\": []\n\t}\n}",
+						"chat_d.json": "{\n\t\"id\": \"chat_d\",\n\t\"title\": \"Lesson chat_d\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-03-01T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"a1\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"d1\",\n\t\t\t\t\t\"name\": \"probe_done\",\n\t\t\t\t\t\"arguments\": {}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t},\n\t\t{\n\t\t\t\"id\": \"r1\",\n\t\t\t\"role\": \"toolResult\",\n\t\t\t\"toolCallId\": \"d1\",\n\t\t\t\"toolName\": \"probe_done\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"text\",\n\t\t\t\t\t\"text\": \"ok\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"details\": {},\n\t\t\t\"isError\": false,\n\t\t\t\"timestamp\": 2\n\t\t},\n\t\t{\n\t\t\t\"id\": \"a2\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"q1\",\n\t\t\t\t\t\"name\": \"quiz\",\n\t\t\t\t\t\"arguments\": {\n\t\t\t\t\t\t\"nodeId\": \"n1\"\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t}\n\t]\n}",
+						"chat_dir": null,
+						"chat_future.json": "{\n\t\"id\": \"chat_future\",\n\t\"title\": \"Lesson chat_future\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-05-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 2\n}",
+						"chat_noshape.json": "{\"id\":\"chat_noshape\",\"messages\":[]}",
+						"chat_talk.json": "{\n\t\"id\": \"chat_talk\",\n\t\"title\": \"Lesson chat_talk\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-04-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"kind\": \"talk\"\n}",
+						"odd name.json": "{\"id\":\"odd name\",\"title\":\"Lesson odd name\",\"createdAt\":\"2026-01-01T00:00:00.000Z\",\"updatedAt\":\"2026-06-01T00:00:00.000Z\",\"messages\":[]}"
+					},
+					"list": [
+						{
+							"id": "chat_b",
+							"title": "Lesson chat_b",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-03-01T00:00:00.000Z",
+							"kind": "study",
+							"version": 1,
+							"messageCount": 1,
+							"phase": "teach",
+							"pendingQuestion": false,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_d",
+							"title": "Lesson chat_d",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-03-01T00:00:00.000Z",
+							"kind": "teach",
+							"messageCount": 3,
+							"phase": "teach",
+							"pendingQuestion": true,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_a",
+							"title": "Untitled session",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-02-01T00:00:00.000Z",
+							"version": 1,
+							"kind": "teach",
+							"messageCount": 0,
+							"phase": "probe",
+							"pendingQuestion": false,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_c",
+							"title": "Lesson chat_c",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-01-15T00:00:00.000Z",
+							"kind": "practice",
+							"messageCount": 2,
+							"phase": "probe",
+							"pendingQuestion": false,
+							"pendingProblem": true
+						}
+					]
+				},
+				{
+					"step": {
+						"op": "turnUsage",
+						"id": "chat_a",
+						"entry": {
+							"id": "t1",
+							"tokens": 6
+						}
+					},
+					"ok": null,
+					"files": {
+						"chat_a.json": "{\n\t\"id\": \"chat_a\",\n\t\"title\": \"Untitled session\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-02-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 1,\n\t\"turns\": [\n\t\t{\n\t\t\t\"id\": \"t1\",\n\t\t\t\"tokens\": 5\n\t\t}\n\t]\n}",
+						"chat_b.json": "{\n\t\"id\": \"chat_b\",\n\t\"title\": \"Lesson chat_b\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-03-01T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"u1\",\n\t\t\t\"role\": \"user\",\n\t\t\t\"content\": \"hi\",\n\t\t\t\"timestamp\": 3\n\t\t}\n\t],\n\t\"kind\": \"study\",\n\t\"version\": 1\n}",
+						"chat_broken.json": "{ not json",
+						"chat_c.json": "{\n\t\"id\": \"chat_c\",\n\t\"title\": \"Lesson chat_c\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-01-15T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"a1\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"p1\",\n\t\t\t\t\t\"name\": \"problem\",\n\t\t\t\t\t\"arguments\": {\n\t\t\t\t\t\t\"statement\": \"s\"\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t},\n\t\t{\n\t\t\t\"id\": \"r1\",\n\t\t\t\"role\": \"toolResult\",\n\t\t\t\"toolCallId\": \"p1\",\n\t\t\t\"toolName\": \"problem\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"text\",\n\t\t\t\t\t\"text\": \"ok\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"details\": {},\n\t\t\t\"isError\": false,\n\t\t\t\"timestamp\": 2\n\t\t}\n\t],\n\t\"kind\": \"practice\",\n\t\"turns\": [\n\t\t{\n\t\t\t\"id\": \"t0\"\n\t\t}\n\t],\n\t\"tree\": {\n\t\t\"nodes\": []\n\t}\n}",
+						"chat_d.json": "{\n\t\"id\": \"chat_d\",\n\t\"title\": \"Lesson chat_d\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-03-01T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"a1\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"d1\",\n\t\t\t\t\t\"name\": \"probe_done\",\n\t\t\t\t\t\"arguments\": {}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t},\n\t\t{\n\t\t\t\"id\": \"r1\",\n\t\t\t\"role\": \"toolResult\",\n\t\t\t\"toolCallId\": \"d1\",\n\t\t\t\"toolName\": \"probe_done\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"text\",\n\t\t\t\t\t\"text\": \"ok\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"details\": {},\n\t\t\t\"isError\": false,\n\t\t\t\"timestamp\": 2\n\t\t},\n\t\t{\n\t\t\t\"id\": \"a2\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"q1\",\n\t\t\t\t\t\"name\": \"quiz\",\n\t\t\t\t\t\"arguments\": {\n\t\t\t\t\t\t\"nodeId\": \"n1\"\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t}\n\t]\n}",
+						"chat_dir": null,
+						"chat_future.json": "{\n\t\"id\": \"chat_future\",\n\t\"title\": \"Lesson chat_future\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-05-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 2\n}",
+						"chat_noshape.json": "{\"id\":\"chat_noshape\",\"messages\":[]}",
+						"chat_talk.json": "{\n\t\"id\": \"chat_talk\",\n\t\"title\": \"Lesson chat_talk\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-04-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"kind\": \"talk\"\n}",
+						"odd name.json": "{\"id\":\"odd name\",\"title\":\"Lesson odd name\",\"createdAt\":\"2026-01-01T00:00:00.000Z\",\"updatedAt\":\"2026-06-01T00:00:00.000Z\",\"messages\":[]}"
+					},
+					"list": [
+						{
+							"id": "chat_b",
+							"title": "Lesson chat_b",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-03-01T00:00:00.000Z",
+							"kind": "study",
+							"version": 1,
+							"messageCount": 1,
+							"phase": "teach",
+							"pendingQuestion": false,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_d",
+							"title": "Lesson chat_d",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-03-01T00:00:00.000Z",
+							"kind": "teach",
+							"messageCount": 3,
+							"phase": "teach",
+							"pendingQuestion": true,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_a",
+							"title": "Untitled session",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-02-01T00:00:00.000Z",
+							"version": 1,
+							"kind": "teach",
+							"messageCount": 0,
+							"phase": "probe",
+							"pendingQuestion": false,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_c",
+							"title": "Lesson chat_c",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-01-15T00:00:00.000Z",
+							"kind": "practice",
+							"messageCount": 2,
+							"phase": "probe",
+							"pendingQuestion": false,
+							"pendingProblem": true
+						}
+					]
+				},
+				{
+					"step": {
+						"op": "turnUsage",
+						"id": "chat_a",
+						"entry": {
+							"id": "t2"
+						}
+					},
+					"ok": null,
+					"files": {
+						"chat_a.json": "{\n\t\"id\": \"chat_a\",\n\t\"title\": \"Untitled session\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-02-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 1,\n\t\"turns\": [\n\t\t{\n\t\t\t\"id\": \"t1\",\n\t\t\t\"tokens\": 5\n\t\t},\n\t\t{\n\t\t\t\"id\": \"t2\"\n\t\t}\n\t]\n}",
+						"chat_b.json": "{\n\t\"id\": \"chat_b\",\n\t\"title\": \"Lesson chat_b\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-03-01T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"u1\",\n\t\t\t\"role\": \"user\",\n\t\t\t\"content\": \"hi\",\n\t\t\t\"timestamp\": 3\n\t\t}\n\t],\n\t\"kind\": \"study\",\n\t\"version\": 1\n}",
+						"chat_broken.json": "{ not json",
+						"chat_c.json": "{\n\t\"id\": \"chat_c\",\n\t\"title\": \"Lesson chat_c\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-01-15T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"a1\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"p1\",\n\t\t\t\t\t\"name\": \"problem\",\n\t\t\t\t\t\"arguments\": {\n\t\t\t\t\t\t\"statement\": \"s\"\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t},\n\t\t{\n\t\t\t\"id\": \"r1\",\n\t\t\t\"role\": \"toolResult\",\n\t\t\t\"toolCallId\": \"p1\",\n\t\t\t\"toolName\": \"problem\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"text\",\n\t\t\t\t\t\"text\": \"ok\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"details\": {},\n\t\t\t\"isError\": false,\n\t\t\t\"timestamp\": 2\n\t\t}\n\t],\n\t\"kind\": \"practice\",\n\t\"turns\": [\n\t\t{\n\t\t\t\"id\": \"t0\"\n\t\t}\n\t],\n\t\"tree\": {\n\t\t\"nodes\": []\n\t}\n}",
+						"chat_d.json": "{\n\t\"id\": \"chat_d\",\n\t\"title\": \"Lesson chat_d\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-03-01T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"a1\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"d1\",\n\t\t\t\t\t\"name\": \"probe_done\",\n\t\t\t\t\t\"arguments\": {}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t},\n\t\t{\n\t\t\t\"id\": \"r1\",\n\t\t\t\"role\": \"toolResult\",\n\t\t\t\"toolCallId\": \"d1\",\n\t\t\t\"toolName\": \"probe_done\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"text\",\n\t\t\t\t\t\"text\": \"ok\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"details\": {},\n\t\t\t\"isError\": false,\n\t\t\t\"timestamp\": 2\n\t\t},\n\t\t{\n\t\t\t\"id\": \"a2\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"q1\",\n\t\t\t\t\t\"name\": \"quiz\",\n\t\t\t\t\t\"arguments\": {\n\t\t\t\t\t\t\"nodeId\": \"n1\"\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t}\n\t]\n}",
+						"chat_dir": null,
+						"chat_future.json": "{\n\t\"id\": \"chat_future\",\n\t\"title\": \"Lesson chat_future\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-05-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 2\n}",
+						"chat_noshape.json": "{\"id\":\"chat_noshape\",\"messages\":[]}",
+						"chat_talk.json": "{\n\t\"id\": \"chat_talk\",\n\t\"title\": \"Lesson chat_talk\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-04-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"kind\": \"talk\"\n}",
+						"odd name.json": "{\"id\":\"odd name\",\"title\":\"Lesson odd name\",\"createdAt\":\"2026-01-01T00:00:00.000Z\",\"updatedAt\":\"2026-06-01T00:00:00.000Z\",\"messages\":[]}"
+					},
+					"list": [
+						{
+							"id": "chat_b",
+							"title": "Lesson chat_b",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-03-01T00:00:00.000Z",
+							"kind": "study",
+							"version": 1,
+							"messageCount": 1,
+							"phase": "teach",
+							"pendingQuestion": false,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_d",
+							"title": "Lesson chat_d",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-03-01T00:00:00.000Z",
+							"kind": "teach",
+							"messageCount": 3,
+							"phase": "teach",
+							"pendingQuestion": true,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_a",
+							"title": "Untitled session",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-02-01T00:00:00.000Z",
+							"version": 1,
+							"kind": "teach",
+							"messageCount": 0,
+							"phase": "probe",
+							"pendingQuestion": false,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_c",
+							"title": "Lesson chat_c",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-01-15T00:00:00.000Z",
+							"kind": "practice",
+							"messageCount": 2,
+							"phase": "probe",
+							"pendingQuestion": false,
+							"pendingProblem": true
+						}
+					]
+				},
+				{
+					"step": {
+						"op": "extractionUsage",
+						"id": "chat_a",
+						"entry": {
+							"startedAt": "s1",
+							"cost": 1
+						}
+					},
+					"ok": null,
+					"files": {
+						"chat_a.json": "{\n\t\"id\": \"chat_a\",\n\t\"title\": \"Untitled session\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-02-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 1,\n\t\"turns\": [\n\t\t{\n\t\t\t\"id\": \"t1\",\n\t\t\t\"tokens\": 5\n\t\t},\n\t\t{\n\t\t\t\"id\": \"t2\"\n\t\t}\n\t],\n\t\"extractions\": [\n\t\t{\n\t\t\t\"startedAt\": \"s1\",\n\t\t\t\"cost\": 1\n\t\t}\n\t]\n}",
+						"chat_b.json": "{\n\t\"id\": \"chat_b\",\n\t\"title\": \"Lesson chat_b\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-03-01T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"u1\",\n\t\t\t\"role\": \"user\",\n\t\t\t\"content\": \"hi\",\n\t\t\t\"timestamp\": 3\n\t\t}\n\t],\n\t\"kind\": \"study\",\n\t\"version\": 1\n}",
+						"chat_broken.json": "{ not json",
+						"chat_c.json": "{\n\t\"id\": \"chat_c\",\n\t\"title\": \"Lesson chat_c\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-01-15T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"a1\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"p1\",\n\t\t\t\t\t\"name\": \"problem\",\n\t\t\t\t\t\"arguments\": {\n\t\t\t\t\t\t\"statement\": \"s\"\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t},\n\t\t{\n\t\t\t\"id\": \"r1\",\n\t\t\t\"role\": \"toolResult\",\n\t\t\t\"toolCallId\": \"p1\",\n\t\t\t\"toolName\": \"problem\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"text\",\n\t\t\t\t\t\"text\": \"ok\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"details\": {},\n\t\t\t\"isError\": false,\n\t\t\t\"timestamp\": 2\n\t\t}\n\t],\n\t\"kind\": \"practice\",\n\t\"turns\": [\n\t\t{\n\t\t\t\"id\": \"t0\"\n\t\t}\n\t],\n\t\"tree\": {\n\t\t\"nodes\": []\n\t}\n}",
+						"chat_d.json": "{\n\t\"id\": \"chat_d\",\n\t\"title\": \"Lesson chat_d\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-03-01T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"a1\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"d1\",\n\t\t\t\t\t\"name\": \"probe_done\",\n\t\t\t\t\t\"arguments\": {}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t},\n\t\t{\n\t\t\t\"id\": \"r1\",\n\t\t\t\"role\": \"toolResult\",\n\t\t\t\"toolCallId\": \"d1\",\n\t\t\t\"toolName\": \"probe_done\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"text\",\n\t\t\t\t\t\"text\": \"ok\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"details\": {},\n\t\t\t\"isError\": false,\n\t\t\t\"timestamp\": 2\n\t\t},\n\t\t{\n\t\t\t\"id\": \"a2\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"q1\",\n\t\t\t\t\t\"name\": \"quiz\",\n\t\t\t\t\t\"arguments\": {\n\t\t\t\t\t\t\"nodeId\": \"n1\"\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t}\n\t]\n}",
+						"chat_dir": null,
+						"chat_future.json": "{\n\t\"id\": \"chat_future\",\n\t\"title\": \"Lesson chat_future\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-05-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 2\n}",
+						"chat_noshape.json": "{\"id\":\"chat_noshape\",\"messages\":[]}",
+						"chat_talk.json": "{\n\t\"id\": \"chat_talk\",\n\t\"title\": \"Lesson chat_talk\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-04-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"kind\": \"talk\"\n}",
+						"odd name.json": "{\"id\":\"odd name\",\"title\":\"Lesson odd name\",\"createdAt\":\"2026-01-01T00:00:00.000Z\",\"updatedAt\":\"2026-06-01T00:00:00.000Z\",\"messages\":[]}"
+					},
+					"list": [
+						{
+							"id": "chat_b",
+							"title": "Lesson chat_b",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-03-01T00:00:00.000Z",
+							"kind": "study",
+							"version": 1,
+							"messageCount": 1,
+							"phase": "teach",
+							"pendingQuestion": false,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_d",
+							"title": "Lesson chat_d",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-03-01T00:00:00.000Z",
+							"kind": "teach",
+							"messageCount": 3,
+							"phase": "teach",
+							"pendingQuestion": true,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_a",
+							"title": "Untitled session",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-02-01T00:00:00.000Z",
+							"version": 1,
+							"kind": "teach",
+							"messageCount": 0,
+							"phase": "probe",
+							"pendingQuestion": false,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_c",
+							"title": "Lesson chat_c",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-01-15T00:00:00.000Z",
+							"kind": "practice",
+							"messageCount": 2,
+							"phase": "probe",
+							"pendingQuestion": false,
+							"pendingProblem": true
+						}
+					]
+				},
+				{
+					"step": {
+						"op": "extractionUsage",
+						"id": "chat_a",
+						"entry": {
+							"startedAt": "s1",
+							"cost": 2
+						}
+					},
+					"ok": null,
+					"files": {
+						"chat_a.json": "{\n\t\"id\": \"chat_a\",\n\t\"title\": \"Untitled session\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-02-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 1,\n\t\"turns\": [\n\t\t{\n\t\t\t\"id\": \"t1\",\n\t\t\t\"tokens\": 5\n\t\t},\n\t\t{\n\t\t\t\"id\": \"t2\"\n\t\t}\n\t],\n\t\"extractions\": [\n\t\t{\n\t\t\t\"startedAt\": \"s1\",\n\t\t\t\"cost\": 1\n\t\t}\n\t]\n}",
+						"chat_b.json": "{\n\t\"id\": \"chat_b\",\n\t\"title\": \"Lesson chat_b\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-03-01T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"u1\",\n\t\t\t\"role\": \"user\",\n\t\t\t\"content\": \"hi\",\n\t\t\t\"timestamp\": 3\n\t\t}\n\t],\n\t\"kind\": \"study\",\n\t\"version\": 1\n}",
+						"chat_broken.json": "{ not json",
+						"chat_c.json": "{\n\t\"id\": \"chat_c\",\n\t\"title\": \"Lesson chat_c\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-01-15T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"a1\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"p1\",\n\t\t\t\t\t\"name\": \"problem\",\n\t\t\t\t\t\"arguments\": {\n\t\t\t\t\t\t\"statement\": \"s\"\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t},\n\t\t{\n\t\t\t\"id\": \"r1\",\n\t\t\t\"role\": \"toolResult\",\n\t\t\t\"toolCallId\": \"p1\",\n\t\t\t\"toolName\": \"problem\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"text\",\n\t\t\t\t\t\"text\": \"ok\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"details\": {},\n\t\t\t\"isError\": false,\n\t\t\t\"timestamp\": 2\n\t\t}\n\t],\n\t\"kind\": \"practice\",\n\t\"turns\": [\n\t\t{\n\t\t\t\"id\": \"t0\"\n\t\t}\n\t],\n\t\"tree\": {\n\t\t\"nodes\": []\n\t}\n}",
+						"chat_d.json": "{\n\t\"id\": \"chat_d\",\n\t\"title\": \"Lesson chat_d\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-03-01T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"a1\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"d1\",\n\t\t\t\t\t\"name\": \"probe_done\",\n\t\t\t\t\t\"arguments\": {}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t},\n\t\t{\n\t\t\t\"id\": \"r1\",\n\t\t\t\"role\": \"toolResult\",\n\t\t\t\"toolCallId\": \"d1\",\n\t\t\t\"toolName\": \"probe_done\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"text\",\n\t\t\t\t\t\"text\": \"ok\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"details\": {},\n\t\t\t\"isError\": false,\n\t\t\t\"timestamp\": 2\n\t\t},\n\t\t{\n\t\t\t\"id\": \"a2\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"q1\",\n\t\t\t\t\t\"name\": \"quiz\",\n\t\t\t\t\t\"arguments\": {\n\t\t\t\t\t\t\"nodeId\": \"n1\"\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t}\n\t]\n}",
+						"chat_dir": null,
+						"chat_future.json": "{\n\t\"id\": \"chat_future\",\n\t\"title\": \"Lesson chat_future\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-05-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 2\n}",
+						"chat_noshape.json": "{\"id\":\"chat_noshape\",\"messages\":[]}",
+						"chat_talk.json": "{\n\t\"id\": \"chat_talk\",\n\t\"title\": \"Lesson chat_talk\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-04-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"kind\": \"talk\"\n}",
+						"odd name.json": "{\"id\":\"odd name\",\"title\":\"Lesson odd name\",\"createdAt\":\"2026-01-01T00:00:00.000Z\",\"updatedAt\":\"2026-06-01T00:00:00.000Z\",\"messages\":[]}"
+					},
+					"list": [
+						{
+							"id": "chat_b",
+							"title": "Lesson chat_b",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-03-01T00:00:00.000Z",
+							"kind": "study",
+							"version": 1,
+							"messageCount": 1,
+							"phase": "teach",
+							"pendingQuestion": false,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_d",
+							"title": "Lesson chat_d",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-03-01T00:00:00.000Z",
+							"kind": "teach",
+							"messageCount": 3,
+							"phase": "teach",
+							"pendingQuestion": true,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_a",
+							"title": "Untitled session",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-02-01T00:00:00.000Z",
+							"version": 1,
+							"kind": "teach",
+							"messageCount": 0,
+							"phase": "probe",
+							"pendingQuestion": false,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_c",
+							"title": "Lesson chat_c",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-01-15T00:00:00.000Z",
+							"kind": "practice",
+							"messageCount": 2,
+							"phase": "probe",
+							"pendingQuestion": false,
+							"pendingProblem": true
+						}
+					]
+				},
+				{
+					"step": {
+						"op": "tree",
+						"id": "chat_a",
+						"tree": {
+							"nodes": [
+								{
+									"id": "n"
+								}
+							]
+						}
+					},
+					"ok": null,
+					"files": {
+						"chat_a.json": "{\n\t\"id\": \"chat_a\",\n\t\"title\": \"Untitled session\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-02-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 1,\n\t\"turns\": [\n\t\t{\n\t\t\t\"id\": \"t1\",\n\t\t\t\"tokens\": 5\n\t\t},\n\t\t{\n\t\t\t\"id\": \"t2\"\n\t\t}\n\t],\n\t\"extractions\": [\n\t\t{\n\t\t\t\"startedAt\": \"s1\",\n\t\t\t\"cost\": 1\n\t\t}\n\t],\n\t\"tree\": {\n\t\t\"nodes\": [\n\t\t\t{\n\t\t\t\t\"id\": \"n\"\n\t\t\t}\n\t\t]\n\t}\n}",
+						"chat_b.json": "{\n\t\"id\": \"chat_b\",\n\t\"title\": \"Lesson chat_b\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-03-01T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"u1\",\n\t\t\t\"role\": \"user\",\n\t\t\t\"content\": \"hi\",\n\t\t\t\"timestamp\": 3\n\t\t}\n\t],\n\t\"kind\": \"study\",\n\t\"version\": 1\n}",
+						"chat_broken.json": "{ not json",
+						"chat_c.json": "{\n\t\"id\": \"chat_c\",\n\t\"title\": \"Lesson chat_c\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-01-15T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"a1\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"p1\",\n\t\t\t\t\t\"name\": \"problem\",\n\t\t\t\t\t\"arguments\": {\n\t\t\t\t\t\t\"statement\": \"s\"\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t},\n\t\t{\n\t\t\t\"id\": \"r1\",\n\t\t\t\"role\": \"toolResult\",\n\t\t\t\"toolCallId\": \"p1\",\n\t\t\t\"toolName\": \"problem\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"text\",\n\t\t\t\t\t\"text\": \"ok\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"details\": {},\n\t\t\t\"isError\": false,\n\t\t\t\"timestamp\": 2\n\t\t}\n\t],\n\t\"kind\": \"practice\",\n\t\"turns\": [\n\t\t{\n\t\t\t\"id\": \"t0\"\n\t\t}\n\t],\n\t\"tree\": {\n\t\t\"nodes\": []\n\t}\n}",
+						"chat_d.json": "{\n\t\"id\": \"chat_d\",\n\t\"title\": \"Lesson chat_d\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-03-01T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"a1\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"d1\",\n\t\t\t\t\t\"name\": \"probe_done\",\n\t\t\t\t\t\"arguments\": {}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t},\n\t\t{\n\t\t\t\"id\": \"r1\",\n\t\t\t\"role\": \"toolResult\",\n\t\t\t\"toolCallId\": \"d1\",\n\t\t\t\"toolName\": \"probe_done\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"text\",\n\t\t\t\t\t\"text\": \"ok\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"details\": {},\n\t\t\t\"isError\": false,\n\t\t\t\"timestamp\": 2\n\t\t},\n\t\t{\n\t\t\t\"id\": \"a2\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"q1\",\n\t\t\t\t\t\"name\": \"quiz\",\n\t\t\t\t\t\"arguments\": {\n\t\t\t\t\t\t\"nodeId\": \"n1\"\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t}\n\t]\n}",
+						"chat_dir": null,
+						"chat_future.json": "{\n\t\"id\": \"chat_future\",\n\t\"title\": \"Lesson chat_future\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-05-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 2\n}",
+						"chat_noshape.json": "{\"id\":\"chat_noshape\",\"messages\":[]}",
+						"chat_talk.json": "{\n\t\"id\": \"chat_talk\",\n\t\"title\": \"Lesson chat_talk\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-04-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"kind\": \"talk\"\n}",
+						"odd name.json": "{\"id\":\"odd name\",\"title\":\"Lesson odd name\",\"createdAt\":\"2026-01-01T00:00:00.000Z\",\"updatedAt\":\"2026-06-01T00:00:00.000Z\",\"messages\":[]}"
+					},
+					"list": [
+						{
+							"id": "chat_b",
+							"title": "Lesson chat_b",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-03-01T00:00:00.000Z",
+							"kind": "study",
+							"version": 1,
+							"messageCount": 1,
+							"phase": "teach",
+							"pendingQuestion": false,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_d",
+							"title": "Lesson chat_d",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-03-01T00:00:00.000Z",
+							"kind": "teach",
+							"messageCount": 3,
+							"phase": "teach",
+							"pendingQuestion": true,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_a",
+							"title": "Untitled session",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-02-01T00:00:00.000Z",
+							"version": 1,
+							"kind": "teach",
+							"messageCount": 0,
+							"phase": "probe",
+							"pendingQuestion": false,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_c",
+							"title": "Lesson chat_c",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-01-15T00:00:00.000Z",
+							"kind": "practice",
+							"messageCount": 2,
+							"phase": "probe",
+							"pendingQuestion": false,
+							"pendingProblem": true
+						}
+					]
+				},
+				{
+					"step": {
+						"op": "rename",
+						"id": "chat_b",
+						"title": "Study notes"
+					},
+					"ok": {
+						"id": "chat_b",
+						"title": "Study notes",
+						"createdAt": "2026-01-01T00:00:00.000Z",
+						"updatedAt": "2026-03-01T00:00:00.000Z",
+						"messages": [
+							{
+								"id": "u1",
+								"role": "user",
+								"content": "hi",
+								"timestamp": 3
+							}
+						],
+						"kind": "study",
+						"version": 1
+					},
+					"files": {
+						"chat_a.json": "{\n\t\"id\": \"chat_a\",\n\t\"title\": \"Untitled session\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-02-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 1,\n\t\"turns\": [\n\t\t{\n\t\t\t\"id\": \"t1\",\n\t\t\t\"tokens\": 5\n\t\t},\n\t\t{\n\t\t\t\"id\": \"t2\"\n\t\t}\n\t],\n\t\"extractions\": [\n\t\t{\n\t\t\t\"startedAt\": \"s1\",\n\t\t\t\"cost\": 1\n\t\t}\n\t],\n\t\"tree\": {\n\t\t\"nodes\": [\n\t\t\t{\n\t\t\t\t\"id\": \"n\"\n\t\t\t}\n\t\t]\n\t}\n}",
+						"chat_b.json": "{\n\t\"id\": \"chat_b\",\n\t\"title\": \"Study notes\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-03-01T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"u1\",\n\t\t\t\"role\": \"user\",\n\t\t\t\"content\": \"hi\",\n\t\t\t\"timestamp\": 3\n\t\t}\n\t],\n\t\"kind\": \"study\",\n\t\"version\": 1\n}",
+						"chat_broken.json": "{ not json",
+						"chat_c.json": "{\n\t\"id\": \"chat_c\",\n\t\"title\": \"Lesson chat_c\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-01-15T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"a1\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"p1\",\n\t\t\t\t\t\"name\": \"problem\",\n\t\t\t\t\t\"arguments\": {\n\t\t\t\t\t\t\"statement\": \"s\"\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t},\n\t\t{\n\t\t\t\"id\": \"r1\",\n\t\t\t\"role\": \"toolResult\",\n\t\t\t\"toolCallId\": \"p1\",\n\t\t\t\"toolName\": \"problem\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"text\",\n\t\t\t\t\t\"text\": \"ok\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"details\": {},\n\t\t\t\"isError\": false,\n\t\t\t\"timestamp\": 2\n\t\t}\n\t],\n\t\"kind\": \"practice\",\n\t\"turns\": [\n\t\t{\n\t\t\t\"id\": \"t0\"\n\t\t}\n\t],\n\t\"tree\": {\n\t\t\"nodes\": []\n\t}\n}",
+						"chat_d.json": "{\n\t\"id\": \"chat_d\",\n\t\"title\": \"Lesson chat_d\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-03-01T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"a1\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"d1\",\n\t\t\t\t\t\"name\": \"probe_done\",\n\t\t\t\t\t\"arguments\": {}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t},\n\t\t{\n\t\t\t\"id\": \"r1\",\n\t\t\t\"role\": \"toolResult\",\n\t\t\t\"toolCallId\": \"d1\",\n\t\t\t\"toolName\": \"probe_done\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"text\",\n\t\t\t\t\t\"text\": \"ok\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"details\": {},\n\t\t\t\"isError\": false,\n\t\t\t\"timestamp\": 2\n\t\t},\n\t\t{\n\t\t\t\"id\": \"a2\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"q1\",\n\t\t\t\t\t\"name\": \"quiz\",\n\t\t\t\t\t\"arguments\": {\n\t\t\t\t\t\t\"nodeId\": \"n1\"\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t}\n\t]\n}",
+						"chat_dir": null,
+						"chat_future.json": "{\n\t\"id\": \"chat_future\",\n\t\"title\": \"Lesson chat_future\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-05-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 2\n}",
+						"chat_noshape.json": "{\"id\":\"chat_noshape\",\"messages\":[]}",
+						"chat_talk.json": "{\n\t\"id\": \"chat_talk\",\n\t\"title\": \"Lesson chat_talk\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-04-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"kind\": \"talk\"\n}",
+						"odd name.json": "{\"id\":\"odd name\",\"title\":\"Lesson odd name\",\"createdAt\":\"2026-01-01T00:00:00.000Z\",\"updatedAt\":\"2026-06-01T00:00:00.000Z\",\"messages\":[]}"
+					},
+					"list": [
+						{
+							"id": "chat_b",
+							"title": "Study notes",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-03-01T00:00:00.000Z",
+							"kind": "study",
+							"version": 1,
+							"messageCount": 1,
+							"phase": "teach",
+							"pendingQuestion": false,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_d",
+							"title": "Lesson chat_d",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-03-01T00:00:00.000Z",
+							"kind": "teach",
+							"messageCount": 3,
+							"phase": "teach",
+							"pendingQuestion": true,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_a",
+							"title": "Untitled session",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-02-01T00:00:00.000Z",
+							"version": 1,
+							"kind": "teach",
+							"messageCount": 0,
+							"phase": "probe",
+							"pendingQuestion": false,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_c",
+							"title": "Lesson chat_c",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-01-15T00:00:00.000Z",
+							"kind": "practice",
+							"messageCount": 2,
+							"phase": "probe",
+							"pendingQuestion": false,
+							"pendingProblem": true
+						}
+					]
+				},
+				{
+					"step": {
+						"op": "turnUsage",
+						"id": "chat_c",
+						"entry": {
+							"id": "t0"
+						}
+					},
+					"ok": null,
+					"files": {
+						"chat_a.json": "{\n\t\"id\": \"chat_a\",\n\t\"title\": \"Untitled session\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-02-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 1,\n\t\"turns\": [\n\t\t{\n\t\t\t\"id\": \"t1\",\n\t\t\t\"tokens\": 5\n\t\t},\n\t\t{\n\t\t\t\"id\": \"t2\"\n\t\t}\n\t],\n\t\"extractions\": [\n\t\t{\n\t\t\t\"startedAt\": \"s1\",\n\t\t\t\"cost\": 1\n\t\t}\n\t],\n\t\"tree\": {\n\t\t\"nodes\": [\n\t\t\t{\n\t\t\t\t\"id\": \"n\"\n\t\t\t}\n\t\t]\n\t}\n}",
+						"chat_b.json": "{\n\t\"id\": \"chat_b\",\n\t\"title\": \"Study notes\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-03-01T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"u1\",\n\t\t\t\"role\": \"user\",\n\t\t\t\"content\": \"hi\",\n\t\t\t\"timestamp\": 3\n\t\t}\n\t],\n\t\"kind\": \"study\",\n\t\"version\": 1\n}",
+						"chat_broken.json": "{ not json",
+						"chat_c.json": "{\n\t\"id\": \"chat_c\",\n\t\"title\": \"Lesson chat_c\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-01-15T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"a1\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"p1\",\n\t\t\t\t\t\"name\": \"problem\",\n\t\t\t\t\t\"arguments\": {\n\t\t\t\t\t\t\"statement\": \"s\"\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t},\n\t\t{\n\t\t\t\"id\": \"r1\",\n\t\t\t\"role\": \"toolResult\",\n\t\t\t\"toolCallId\": \"p1\",\n\t\t\t\"toolName\": \"problem\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"text\",\n\t\t\t\t\t\"text\": \"ok\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"details\": {},\n\t\t\t\"isError\": false,\n\t\t\t\"timestamp\": 2\n\t\t}\n\t],\n\t\"kind\": \"practice\",\n\t\"turns\": [\n\t\t{\n\t\t\t\"id\": \"t0\"\n\t\t}\n\t],\n\t\"tree\": {\n\t\t\"nodes\": []\n\t},\n\t\"version\": 1\n}",
+						"chat_d.json": "{\n\t\"id\": \"chat_d\",\n\t\"title\": \"Lesson chat_d\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-03-01T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"a1\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"d1\",\n\t\t\t\t\t\"name\": \"probe_done\",\n\t\t\t\t\t\"arguments\": {}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t},\n\t\t{\n\t\t\t\"id\": \"r1\",\n\t\t\t\"role\": \"toolResult\",\n\t\t\t\"toolCallId\": \"d1\",\n\t\t\t\"toolName\": \"probe_done\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"text\",\n\t\t\t\t\t\"text\": \"ok\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"details\": {},\n\t\t\t\"isError\": false,\n\t\t\t\"timestamp\": 2\n\t\t},\n\t\t{\n\t\t\t\"id\": \"a2\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"q1\",\n\t\t\t\t\t\"name\": \"quiz\",\n\t\t\t\t\t\"arguments\": {\n\t\t\t\t\t\t\"nodeId\": \"n1\"\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t}\n\t]\n}",
+						"chat_dir": null,
+						"chat_future.json": "{\n\t\"id\": \"chat_future\",\n\t\"title\": \"Lesson chat_future\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-05-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 2\n}",
+						"chat_noshape.json": "{\"id\":\"chat_noshape\",\"messages\":[]}",
+						"chat_talk.json": "{\n\t\"id\": \"chat_talk\",\n\t\"title\": \"Lesson chat_talk\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-04-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"kind\": \"talk\"\n}",
+						"odd name.json": "{\"id\":\"odd name\",\"title\":\"Lesson odd name\",\"createdAt\":\"2026-01-01T00:00:00.000Z\",\"updatedAt\":\"2026-06-01T00:00:00.000Z\",\"messages\":[]}"
+					},
+					"list": [
+						{
+							"id": "chat_b",
+							"title": "Study notes",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-03-01T00:00:00.000Z",
+							"kind": "study",
+							"version": 1,
+							"messageCount": 1,
+							"phase": "teach",
+							"pendingQuestion": false,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_d",
+							"title": "Lesson chat_d",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-03-01T00:00:00.000Z",
+							"kind": "teach",
+							"messageCount": 3,
+							"phase": "teach",
+							"pendingQuestion": true,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_a",
+							"title": "Untitled session",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-02-01T00:00:00.000Z",
+							"version": 1,
+							"kind": "teach",
+							"messageCount": 0,
+							"phase": "probe",
+							"pendingQuestion": false,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_c",
+							"title": "Lesson chat_c",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-01-15T00:00:00.000Z",
+							"kind": "practice",
+							"version": 1,
+							"messageCount": 2,
+							"phase": "probe",
+							"pendingQuestion": false,
+							"pendingProblem": true
+						}
+					]
+				},
+				{
+					"step": {
+						"op": "rename",
+						"id": "chat_talk",
+						"title": "Talk"
+					},
+					"ok": {
+						"id": "chat_talk",
+						"title": "Talk",
+						"createdAt": "2026-01-01T00:00:00.000Z",
+						"updatedAt": "2026-04-01T00:00:00.000Z",
+						"messages": [],
+						"kind": "talk"
+					},
+					"files": {
+						"chat_a.json": "{\n\t\"id\": \"chat_a\",\n\t\"title\": \"Untitled session\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-02-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 1,\n\t\"turns\": [\n\t\t{\n\t\t\t\"id\": \"t1\",\n\t\t\t\"tokens\": 5\n\t\t},\n\t\t{\n\t\t\t\"id\": \"t2\"\n\t\t}\n\t],\n\t\"extractions\": [\n\t\t{\n\t\t\t\"startedAt\": \"s1\",\n\t\t\t\"cost\": 1\n\t\t}\n\t],\n\t\"tree\": {\n\t\t\"nodes\": [\n\t\t\t{\n\t\t\t\t\"id\": \"n\"\n\t\t\t}\n\t\t]\n\t}\n}",
+						"chat_b.json": "{\n\t\"id\": \"chat_b\",\n\t\"title\": \"Study notes\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-03-01T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"u1\",\n\t\t\t\"role\": \"user\",\n\t\t\t\"content\": \"hi\",\n\t\t\t\"timestamp\": 3\n\t\t}\n\t],\n\t\"kind\": \"study\",\n\t\"version\": 1\n}",
+						"chat_broken.json": "{ not json",
+						"chat_c.json": "{\n\t\"id\": \"chat_c\",\n\t\"title\": \"Lesson chat_c\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-01-15T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"a1\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"p1\",\n\t\t\t\t\t\"name\": \"problem\",\n\t\t\t\t\t\"arguments\": {\n\t\t\t\t\t\t\"statement\": \"s\"\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t},\n\t\t{\n\t\t\t\"id\": \"r1\",\n\t\t\t\"role\": \"toolResult\",\n\t\t\t\"toolCallId\": \"p1\",\n\t\t\t\"toolName\": \"problem\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"text\",\n\t\t\t\t\t\"text\": \"ok\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"details\": {},\n\t\t\t\"isError\": false,\n\t\t\t\"timestamp\": 2\n\t\t}\n\t],\n\t\"kind\": \"practice\",\n\t\"turns\": [\n\t\t{\n\t\t\t\"id\": \"t0\"\n\t\t}\n\t],\n\t\"tree\": {\n\t\t\"nodes\": []\n\t},\n\t\"version\": 1\n}",
+						"chat_d.json": "{\n\t\"id\": \"chat_d\",\n\t\"title\": \"Lesson chat_d\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-03-01T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"a1\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"d1\",\n\t\t\t\t\t\"name\": \"probe_done\",\n\t\t\t\t\t\"arguments\": {}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t},\n\t\t{\n\t\t\t\"id\": \"r1\",\n\t\t\t\"role\": \"toolResult\",\n\t\t\t\"toolCallId\": \"d1\",\n\t\t\t\"toolName\": \"probe_done\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"text\",\n\t\t\t\t\t\"text\": \"ok\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"details\": {},\n\t\t\t\"isError\": false,\n\t\t\t\"timestamp\": 2\n\t\t},\n\t\t{\n\t\t\t\"id\": \"a2\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"q1\",\n\t\t\t\t\t\"name\": \"quiz\",\n\t\t\t\t\t\"arguments\": {\n\t\t\t\t\t\t\"nodeId\": \"n1\"\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t}\n\t]\n}",
+						"chat_dir": null,
+						"chat_future.json": "{\n\t\"id\": \"chat_future\",\n\t\"title\": \"Lesson chat_future\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-05-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 2\n}",
+						"chat_noshape.json": "{\"id\":\"chat_noshape\",\"messages\":[]}",
+						"chat_talk.json": "{\n\t\"id\": \"chat_talk\",\n\t\"title\": \"Talk\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-04-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"kind\": \"talk\",\n\t\"version\": 1\n}",
+						"odd name.json": "{\"id\":\"odd name\",\"title\":\"Lesson odd name\",\"createdAt\":\"2026-01-01T00:00:00.000Z\",\"updatedAt\":\"2026-06-01T00:00:00.000Z\",\"messages\":[]}"
+					},
+					"list": [
+						{
+							"id": "chat_b",
+							"title": "Study notes",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-03-01T00:00:00.000Z",
+							"kind": "study",
+							"version": 1,
+							"messageCount": 1,
+							"phase": "teach",
+							"pendingQuestion": false,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_d",
+							"title": "Lesson chat_d",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-03-01T00:00:00.000Z",
+							"kind": "teach",
+							"messageCount": 3,
+							"phase": "teach",
+							"pendingQuestion": true,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_a",
+							"title": "Untitled session",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-02-01T00:00:00.000Z",
+							"version": 1,
+							"kind": "teach",
+							"messageCount": 0,
+							"phase": "probe",
+							"pendingQuestion": false,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_c",
+							"title": "Lesson chat_c",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-01-15T00:00:00.000Z",
+							"kind": "practice",
+							"version": 1,
+							"messageCount": 2,
+							"phase": "probe",
+							"pendingQuestion": false,
+							"pendingProblem": true
+						}
+					]
+				},
+				{
+					"step": {
+						"op": "rename",
+						"id": "chat_future",
+						"title": "x"
+					},
+					"error": "Chat not found: chat_future",
+					"files": {
+						"chat_a.json": "{\n\t\"id\": \"chat_a\",\n\t\"title\": \"Untitled session\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-02-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 1,\n\t\"turns\": [\n\t\t{\n\t\t\t\"id\": \"t1\",\n\t\t\t\"tokens\": 5\n\t\t},\n\t\t{\n\t\t\t\"id\": \"t2\"\n\t\t}\n\t],\n\t\"extractions\": [\n\t\t{\n\t\t\t\"startedAt\": \"s1\",\n\t\t\t\"cost\": 1\n\t\t}\n\t],\n\t\"tree\": {\n\t\t\"nodes\": [\n\t\t\t{\n\t\t\t\t\"id\": \"n\"\n\t\t\t}\n\t\t]\n\t}\n}",
+						"chat_b.json": "{\n\t\"id\": \"chat_b\",\n\t\"title\": \"Study notes\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-03-01T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"u1\",\n\t\t\t\"role\": \"user\",\n\t\t\t\"content\": \"hi\",\n\t\t\t\"timestamp\": 3\n\t\t}\n\t],\n\t\"kind\": \"study\",\n\t\"version\": 1\n}",
+						"chat_broken.json": "{ not json",
+						"chat_c.json": "{\n\t\"id\": \"chat_c\",\n\t\"title\": \"Lesson chat_c\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-01-15T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"a1\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"p1\",\n\t\t\t\t\t\"name\": \"problem\",\n\t\t\t\t\t\"arguments\": {\n\t\t\t\t\t\t\"statement\": \"s\"\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t},\n\t\t{\n\t\t\t\"id\": \"r1\",\n\t\t\t\"role\": \"toolResult\",\n\t\t\t\"toolCallId\": \"p1\",\n\t\t\t\"toolName\": \"problem\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"text\",\n\t\t\t\t\t\"text\": \"ok\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"details\": {},\n\t\t\t\"isError\": false,\n\t\t\t\"timestamp\": 2\n\t\t}\n\t],\n\t\"kind\": \"practice\",\n\t\"turns\": [\n\t\t{\n\t\t\t\"id\": \"t0\"\n\t\t}\n\t],\n\t\"tree\": {\n\t\t\"nodes\": []\n\t},\n\t\"version\": 1\n}",
+						"chat_d.json": "{\n\t\"id\": \"chat_d\",\n\t\"title\": \"Lesson chat_d\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-03-01T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"a1\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"d1\",\n\t\t\t\t\t\"name\": \"probe_done\",\n\t\t\t\t\t\"arguments\": {}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t},\n\t\t{\n\t\t\t\"id\": \"r1\",\n\t\t\t\"role\": \"toolResult\",\n\t\t\t\"toolCallId\": \"d1\",\n\t\t\t\"toolName\": \"probe_done\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"text\",\n\t\t\t\t\t\"text\": \"ok\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"details\": {},\n\t\t\t\"isError\": false,\n\t\t\t\"timestamp\": 2\n\t\t},\n\t\t{\n\t\t\t\"id\": \"a2\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"q1\",\n\t\t\t\t\t\"name\": \"quiz\",\n\t\t\t\t\t\"arguments\": {\n\t\t\t\t\t\t\"nodeId\": \"n1\"\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t}\n\t]\n}",
+						"chat_dir": null,
+						"chat_future.json": "{\n\t\"id\": \"chat_future\",\n\t\"title\": \"Lesson chat_future\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-05-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 2\n}",
+						"chat_noshape.json": "{\"id\":\"chat_noshape\",\"messages\":[]}",
+						"chat_talk.json": "{\n\t\"id\": \"chat_talk\",\n\t\"title\": \"Talk\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-04-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"kind\": \"talk\",\n\t\"version\": 1\n}",
+						"odd name.json": "{\"id\":\"odd name\",\"title\":\"Lesson odd name\",\"createdAt\":\"2026-01-01T00:00:00.000Z\",\"updatedAt\":\"2026-06-01T00:00:00.000Z\",\"messages\":[]}"
+					},
+					"list": [
+						{
+							"id": "chat_b",
+							"title": "Study notes",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-03-01T00:00:00.000Z",
+							"kind": "study",
+							"version": 1,
+							"messageCount": 1,
+							"phase": "teach",
+							"pendingQuestion": false,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_d",
+							"title": "Lesson chat_d",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-03-01T00:00:00.000Z",
+							"kind": "teach",
+							"messageCount": 3,
+							"phase": "teach",
+							"pendingQuestion": true,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_a",
+							"title": "Untitled session",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-02-01T00:00:00.000Z",
+							"version": 1,
+							"kind": "teach",
+							"messageCount": 0,
+							"phase": "probe",
+							"pendingQuestion": false,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_c",
+							"title": "Lesson chat_c",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-01-15T00:00:00.000Z",
+							"kind": "practice",
+							"version": 1,
+							"messageCount": 2,
+							"phase": "probe",
+							"pendingQuestion": false,
+							"pendingProblem": true
+						}
+					]
+				},
+				{
+					"step": {
+						"op": "rename",
+						"id": "chat_broken",
+						"title": "x"
+					},
+					"error": "Chat not found: chat_broken",
+					"files": {
+						"chat_a.json": "{\n\t\"id\": \"chat_a\",\n\t\"title\": \"Untitled session\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-02-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 1,\n\t\"turns\": [\n\t\t{\n\t\t\t\"id\": \"t1\",\n\t\t\t\"tokens\": 5\n\t\t},\n\t\t{\n\t\t\t\"id\": \"t2\"\n\t\t}\n\t],\n\t\"extractions\": [\n\t\t{\n\t\t\t\"startedAt\": \"s1\",\n\t\t\t\"cost\": 1\n\t\t}\n\t],\n\t\"tree\": {\n\t\t\"nodes\": [\n\t\t\t{\n\t\t\t\t\"id\": \"n\"\n\t\t\t}\n\t\t]\n\t}\n}",
+						"chat_b.json": "{\n\t\"id\": \"chat_b\",\n\t\"title\": \"Study notes\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-03-01T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"u1\",\n\t\t\t\"role\": \"user\",\n\t\t\t\"content\": \"hi\",\n\t\t\t\"timestamp\": 3\n\t\t}\n\t],\n\t\"kind\": \"study\",\n\t\"version\": 1\n}",
+						"chat_broken.json": "{ not json",
+						"chat_c.json": "{\n\t\"id\": \"chat_c\",\n\t\"title\": \"Lesson chat_c\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-01-15T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"a1\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"p1\",\n\t\t\t\t\t\"name\": \"problem\",\n\t\t\t\t\t\"arguments\": {\n\t\t\t\t\t\t\"statement\": \"s\"\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t},\n\t\t{\n\t\t\t\"id\": \"r1\",\n\t\t\t\"role\": \"toolResult\",\n\t\t\t\"toolCallId\": \"p1\",\n\t\t\t\"toolName\": \"problem\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"text\",\n\t\t\t\t\t\"text\": \"ok\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"details\": {},\n\t\t\t\"isError\": false,\n\t\t\t\"timestamp\": 2\n\t\t}\n\t],\n\t\"kind\": \"practice\",\n\t\"turns\": [\n\t\t{\n\t\t\t\"id\": \"t0\"\n\t\t}\n\t],\n\t\"tree\": {\n\t\t\"nodes\": []\n\t},\n\t\"version\": 1\n}",
+						"chat_d.json": "{\n\t\"id\": \"chat_d\",\n\t\"title\": \"Lesson chat_d\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-03-01T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"a1\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"d1\",\n\t\t\t\t\t\"name\": \"probe_done\",\n\t\t\t\t\t\"arguments\": {}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t},\n\t\t{\n\t\t\t\"id\": \"r1\",\n\t\t\t\"role\": \"toolResult\",\n\t\t\t\"toolCallId\": \"d1\",\n\t\t\t\"toolName\": \"probe_done\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"text\",\n\t\t\t\t\t\"text\": \"ok\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"details\": {},\n\t\t\t\"isError\": false,\n\t\t\t\"timestamp\": 2\n\t\t},\n\t\t{\n\t\t\t\"id\": \"a2\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"q1\",\n\t\t\t\t\t\"name\": \"quiz\",\n\t\t\t\t\t\"arguments\": {\n\t\t\t\t\t\t\"nodeId\": \"n1\"\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t}\n\t]\n}",
+						"chat_dir": null,
+						"chat_future.json": "{\n\t\"id\": \"chat_future\",\n\t\"title\": \"Lesson chat_future\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-05-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 2\n}",
+						"chat_noshape.json": "{\"id\":\"chat_noshape\",\"messages\":[]}",
+						"chat_talk.json": "{\n\t\"id\": \"chat_talk\",\n\t\"title\": \"Talk\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-04-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"kind\": \"talk\",\n\t\"version\": 1\n}",
+						"odd name.json": "{\"id\":\"odd name\",\"title\":\"Lesson odd name\",\"createdAt\":\"2026-01-01T00:00:00.000Z\",\"updatedAt\":\"2026-06-01T00:00:00.000Z\",\"messages\":[]}"
+					},
+					"list": [
+						{
+							"id": "chat_b",
+							"title": "Study notes",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-03-01T00:00:00.000Z",
+							"kind": "study",
+							"version": 1,
+							"messageCount": 1,
+							"phase": "teach",
+							"pendingQuestion": false,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_d",
+							"title": "Lesson chat_d",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-03-01T00:00:00.000Z",
+							"kind": "teach",
+							"messageCount": 3,
+							"phase": "teach",
+							"pendingQuestion": true,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_a",
+							"title": "Untitled session",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-02-01T00:00:00.000Z",
+							"version": 1,
+							"kind": "teach",
+							"messageCount": 0,
+							"phase": "probe",
+							"pendingQuestion": false,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_c",
+							"title": "Lesson chat_c",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-01-15T00:00:00.000Z",
+							"kind": "practice",
+							"version": 1,
+							"messageCount": 2,
+							"phase": "probe",
+							"pendingQuestion": false,
+							"pendingProblem": true
+						}
+					]
+				},
+				{
+					"step": {
+						"op": "rename",
+						"id": "../escape",
+						"title": "x"
+					},
+					"error": "Chat not found: ../escape",
+					"files": {
+						"chat_a.json": "{\n\t\"id\": \"chat_a\",\n\t\"title\": \"Untitled session\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-02-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 1,\n\t\"turns\": [\n\t\t{\n\t\t\t\"id\": \"t1\",\n\t\t\t\"tokens\": 5\n\t\t},\n\t\t{\n\t\t\t\"id\": \"t2\"\n\t\t}\n\t],\n\t\"extractions\": [\n\t\t{\n\t\t\t\"startedAt\": \"s1\",\n\t\t\t\"cost\": 1\n\t\t}\n\t],\n\t\"tree\": {\n\t\t\"nodes\": [\n\t\t\t{\n\t\t\t\t\"id\": \"n\"\n\t\t\t}\n\t\t]\n\t}\n}",
+						"chat_b.json": "{\n\t\"id\": \"chat_b\",\n\t\"title\": \"Study notes\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-03-01T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"u1\",\n\t\t\t\"role\": \"user\",\n\t\t\t\"content\": \"hi\",\n\t\t\t\"timestamp\": 3\n\t\t}\n\t],\n\t\"kind\": \"study\",\n\t\"version\": 1\n}",
+						"chat_broken.json": "{ not json",
+						"chat_c.json": "{\n\t\"id\": \"chat_c\",\n\t\"title\": \"Lesson chat_c\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-01-15T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"a1\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"p1\",\n\t\t\t\t\t\"name\": \"problem\",\n\t\t\t\t\t\"arguments\": {\n\t\t\t\t\t\t\"statement\": \"s\"\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t},\n\t\t{\n\t\t\t\"id\": \"r1\",\n\t\t\t\"role\": \"toolResult\",\n\t\t\t\"toolCallId\": \"p1\",\n\t\t\t\"toolName\": \"problem\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"text\",\n\t\t\t\t\t\"text\": \"ok\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"details\": {},\n\t\t\t\"isError\": false,\n\t\t\t\"timestamp\": 2\n\t\t}\n\t],\n\t\"kind\": \"practice\",\n\t\"turns\": [\n\t\t{\n\t\t\t\"id\": \"t0\"\n\t\t}\n\t],\n\t\"tree\": {\n\t\t\"nodes\": []\n\t},\n\t\"version\": 1\n}",
+						"chat_d.json": "{\n\t\"id\": \"chat_d\",\n\t\"title\": \"Lesson chat_d\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-03-01T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"a1\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"d1\",\n\t\t\t\t\t\"name\": \"probe_done\",\n\t\t\t\t\t\"arguments\": {}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t},\n\t\t{\n\t\t\t\"id\": \"r1\",\n\t\t\t\"role\": \"toolResult\",\n\t\t\t\"toolCallId\": \"d1\",\n\t\t\t\"toolName\": \"probe_done\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"text\",\n\t\t\t\t\t\"text\": \"ok\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"details\": {},\n\t\t\t\"isError\": false,\n\t\t\t\"timestamp\": 2\n\t\t},\n\t\t{\n\t\t\t\"id\": \"a2\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"q1\",\n\t\t\t\t\t\"name\": \"quiz\",\n\t\t\t\t\t\"arguments\": {\n\t\t\t\t\t\t\"nodeId\": \"n1\"\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t}\n\t]\n}",
+						"chat_dir": null,
+						"chat_future.json": "{\n\t\"id\": \"chat_future\",\n\t\"title\": \"Lesson chat_future\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-05-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 2\n}",
+						"chat_noshape.json": "{\"id\":\"chat_noshape\",\"messages\":[]}",
+						"chat_talk.json": "{\n\t\"id\": \"chat_talk\",\n\t\"title\": \"Talk\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-04-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"kind\": \"talk\",\n\t\"version\": 1\n}",
+						"odd name.json": "{\"id\":\"odd name\",\"title\":\"Lesson odd name\",\"createdAt\":\"2026-01-01T00:00:00.000Z\",\"updatedAt\":\"2026-06-01T00:00:00.000Z\",\"messages\":[]}"
+					},
+					"list": [
+						{
+							"id": "chat_b",
+							"title": "Study notes",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-03-01T00:00:00.000Z",
+							"kind": "study",
+							"version": 1,
+							"messageCount": 1,
+							"phase": "teach",
+							"pendingQuestion": false,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_d",
+							"title": "Lesson chat_d",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-03-01T00:00:00.000Z",
+							"kind": "teach",
+							"messageCount": 3,
+							"phase": "teach",
+							"pendingQuestion": true,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_a",
+							"title": "Untitled session",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-02-01T00:00:00.000Z",
+							"version": 1,
+							"kind": "teach",
+							"messageCount": 0,
+							"phase": "probe",
+							"pendingQuestion": false,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_c",
+							"title": "Lesson chat_c",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-01-15T00:00:00.000Z",
+							"kind": "practice",
+							"version": 1,
+							"messageCount": 2,
+							"phase": "probe",
+							"pendingQuestion": false,
+							"pendingProblem": true
+						}
+					]
+				},
+				{
+					"step": {
+						"op": "tree",
+						"id": "missing",
+						"tree": {}
+					},
+					"error": "Chat not found: missing",
+					"files": {
+						"chat_a.json": "{\n\t\"id\": \"chat_a\",\n\t\"title\": \"Untitled session\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-02-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 1,\n\t\"turns\": [\n\t\t{\n\t\t\t\"id\": \"t1\",\n\t\t\t\"tokens\": 5\n\t\t},\n\t\t{\n\t\t\t\"id\": \"t2\"\n\t\t}\n\t],\n\t\"extractions\": [\n\t\t{\n\t\t\t\"startedAt\": \"s1\",\n\t\t\t\"cost\": 1\n\t\t}\n\t],\n\t\"tree\": {\n\t\t\"nodes\": [\n\t\t\t{\n\t\t\t\t\"id\": \"n\"\n\t\t\t}\n\t\t]\n\t}\n}",
+						"chat_b.json": "{\n\t\"id\": \"chat_b\",\n\t\"title\": \"Study notes\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-03-01T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"u1\",\n\t\t\t\"role\": \"user\",\n\t\t\t\"content\": \"hi\",\n\t\t\t\"timestamp\": 3\n\t\t}\n\t],\n\t\"kind\": \"study\",\n\t\"version\": 1\n}",
+						"chat_broken.json": "{ not json",
+						"chat_c.json": "{\n\t\"id\": \"chat_c\",\n\t\"title\": \"Lesson chat_c\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-01-15T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"a1\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"p1\",\n\t\t\t\t\t\"name\": \"problem\",\n\t\t\t\t\t\"arguments\": {\n\t\t\t\t\t\t\"statement\": \"s\"\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t},\n\t\t{\n\t\t\t\"id\": \"r1\",\n\t\t\t\"role\": \"toolResult\",\n\t\t\t\"toolCallId\": \"p1\",\n\t\t\t\"toolName\": \"problem\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"text\",\n\t\t\t\t\t\"text\": \"ok\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"details\": {},\n\t\t\t\"isError\": false,\n\t\t\t\"timestamp\": 2\n\t\t}\n\t],\n\t\"kind\": \"practice\",\n\t\"turns\": [\n\t\t{\n\t\t\t\"id\": \"t0\"\n\t\t}\n\t],\n\t\"tree\": {\n\t\t\"nodes\": []\n\t},\n\t\"version\": 1\n}",
+						"chat_d.json": "{\n\t\"id\": \"chat_d\",\n\t\"title\": \"Lesson chat_d\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-03-01T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"a1\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"d1\",\n\t\t\t\t\t\"name\": \"probe_done\",\n\t\t\t\t\t\"arguments\": {}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t},\n\t\t{\n\t\t\t\"id\": \"r1\",\n\t\t\t\"role\": \"toolResult\",\n\t\t\t\"toolCallId\": \"d1\",\n\t\t\t\"toolName\": \"probe_done\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"text\",\n\t\t\t\t\t\"text\": \"ok\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"details\": {},\n\t\t\t\"isError\": false,\n\t\t\t\"timestamp\": 2\n\t\t},\n\t\t{\n\t\t\t\"id\": \"a2\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"q1\",\n\t\t\t\t\t\"name\": \"quiz\",\n\t\t\t\t\t\"arguments\": {\n\t\t\t\t\t\t\"nodeId\": \"n1\"\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t}\n\t]\n}",
+						"chat_dir": null,
+						"chat_future.json": "{\n\t\"id\": \"chat_future\",\n\t\"title\": \"Lesson chat_future\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-05-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 2\n}",
+						"chat_noshape.json": "{\"id\":\"chat_noshape\",\"messages\":[]}",
+						"chat_talk.json": "{\n\t\"id\": \"chat_talk\",\n\t\"title\": \"Talk\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-04-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"kind\": \"talk\",\n\t\"version\": 1\n}",
+						"odd name.json": "{\"id\":\"odd name\",\"title\":\"Lesson odd name\",\"createdAt\":\"2026-01-01T00:00:00.000Z\",\"updatedAt\":\"2026-06-01T00:00:00.000Z\",\"messages\":[]}"
+					},
+					"list": [
+						{
+							"id": "chat_b",
+							"title": "Study notes",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-03-01T00:00:00.000Z",
+							"kind": "study",
+							"version": 1,
+							"messageCount": 1,
+							"phase": "teach",
+							"pendingQuestion": false,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_d",
+							"title": "Lesson chat_d",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-03-01T00:00:00.000Z",
+							"kind": "teach",
+							"messageCount": 3,
+							"phase": "teach",
+							"pendingQuestion": true,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_a",
+							"title": "Untitled session",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-02-01T00:00:00.000Z",
+							"version": 1,
+							"kind": "teach",
+							"messageCount": 0,
+							"phase": "probe",
+							"pendingQuestion": false,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_c",
+							"title": "Lesson chat_c",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-01-15T00:00:00.000Z",
+							"kind": "practice",
+							"version": 1,
+							"messageCount": 2,
+							"phase": "probe",
+							"pendingQuestion": false,
+							"pendingProblem": true
+						}
+					]
+				},
+				{
+					"step": {
+						"op": "turnUsage",
+						"id": "missing",
+						"entry": {
+							"id": "t"
+						}
+					},
+					"error": "Chat not found: missing",
+					"files": {
+						"chat_a.json": "{\n\t\"id\": \"chat_a\",\n\t\"title\": \"Untitled session\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-02-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 1,\n\t\"turns\": [\n\t\t{\n\t\t\t\"id\": \"t1\",\n\t\t\t\"tokens\": 5\n\t\t},\n\t\t{\n\t\t\t\"id\": \"t2\"\n\t\t}\n\t],\n\t\"extractions\": [\n\t\t{\n\t\t\t\"startedAt\": \"s1\",\n\t\t\t\"cost\": 1\n\t\t}\n\t],\n\t\"tree\": {\n\t\t\"nodes\": [\n\t\t\t{\n\t\t\t\t\"id\": \"n\"\n\t\t\t}\n\t\t]\n\t}\n}",
+						"chat_b.json": "{\n\t\"id\": \"chat_b\",\n\t\"title\": \"Study notes\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-03-01T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"u1\",\n\t\t\t\"role\": \"user\",\n\t\t\t\"content\": \"hi\",\n\t\t\t\"timestamp\": 3\n\t\t}\n\t],\n\t\"kind\": \"study\",\n\t\"version\": 1\n}",
+						"chat_broken.json": "{ not json",
+						"chat_c.json": "{\n\t\"id\": \"chat_c\",\n\t\"title\": \"Lesson chat_c\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-01-15T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"a1\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"p1\",\n\t\t\t\t\t\"name\": \"problem\",\n\t\t\t\t\t\"arguments\": {\n\t\t\t\t\t\t\"statement\": \"s\"\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t},\n\t\t{\n\t\t\t\"id\": \"r1\",\n\t\t\t\"role\": \"toolResult\",\n\t\t\t\"toolCallId\": \"p1\",\n\t\t\t\"toolName\": \"problem\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"text\",\n\t\t\t\t\t\"text\": \"ok\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"details\": {},\n\t\t\t\"isError\": false,\n\t\t\t\"timestamp\": 2\n\t\t}\n\t],\n\t\"kind\": \"practice\",\n\t\"turns\": [\n\t\t{\n\t\t\t\"id\": \"t0\"\n\t\t}\n\t],\n\t\"tree\": {\n\t\t\"nodes\": []\n\t},\n\t\"version\": 1\n}",
+						"chat_d.json": "{\n\t\"id\": \"chat_d\",\n\t\"title\": \"Lesson chat_d\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-03-01T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"a1\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"d1\",\n\t\t\t\t\t\"name\": \"probe_done\",\n\t\t\t\t\t\"arguments\": {}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t},\n\t\t{\n\t\t\t\"id\": \"r1\",\n\t\t\t\"role\": \"toolResult\",\n\t\t\t\"toolCallId\": \"d1\",\n\t\t\t\"toolName\": \"probe_done\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"text\",\n\t\t\t\t\t\"text\": \"ok\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"details\": {},\n\t\t\t\"isError\": false,\n\t\t\t\"timestamp\": 2\n\t\t},\n\t\t{\n\t\t\t\"id\": \"a2\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"q1\",\n\t\t\t\t\t\"name\": \"quiz\",\n\t\t\t\t\t\"arguments\": {\n\t\t\t\t\t\t\"nodeId\": \"n1\"\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t}\n\t]\n}",
+						"chat_dir": null,
+						"chat_future.json": "{\n\t\"id\": \"chat_future\",\n\t\"title\": \"Lesson chat_future\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-05-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 2\n}",
+						"chat_noshape.json": "{\"id\":\"chat_noshape\",\"messages\":[]}",
+						"chat_talk.json": "{\n\t\"id\": \"chat_talk\",\n\t\"title\": \"Talk\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-04-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"kind\": \"talk\",\n\t\"version\": 1\n}",
+						"odd name.json": "{\"id\":\"odd name\",\"title\":\"Lesson odd name\",\"createdAt\":\"2026-01-01T00:00:00.000Z\",\"updatedAt\":\"2026-06-01T00:00:00.000Z\",\"messages\":[]}"
+					},
+					"list": [
+						{
+							"id": "chat_b",
+							"title": "Study notes",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-03-01T00:00:00.000Z",
+							"kind": "study",
+							"version": 1,
+							"messageCount": 1,
+							"phase": "teach",
+							"pendingQuestion": false,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_d",
+							"title": "Lesson chat_d",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-03-01T00:00:00.000Z",
+							"kind": "teach",
+							"messageCount": 3,
+							"phase": "teach",
+							"pendingQuestion": true,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_a",
+							"title": "Untitled session",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-02-01T00:00:00.000Z",
+							"version": 1,
+							"kind": "teach",
+							"messageCount": 0,
+							"phase": "probe",
+							"pendingQuestion": false,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_c",
+							"title": "Lesson chat_c",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-01-15T00:00:00.000Z",
+							"kind": "practice",
+							"version": 1,
+							"messageCount": 2,
+							"phase": "probe",
+							"pendingQuestion": false,
+							"pendingProblem": true
+						}
+					]
+				},
+				{
+					"step": {
+						"op": "extractionUsage",
+						"id": "",
+						"entry": {
+							"startedAt": "s"
+						}
+					},
+					"error": "Chat not found: ",
+					"files": {
+						"chat_a.json": "{\n\t\"id\": \"chat_a\",\n\t\"title\": \"Untitled session\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-02-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 1,\n\t\"turns\": [\n\t\t{\n\t\t\t\"id\": \"t1\",\n\t\t\t\"tokens\": 5\n\t\t},\n\t\t{\n\t\t\t\"id\": \"t2\"\n\t\t}\n\t],\n\t\"extractions\": [\n\t\t{\n\t\t\t\"startedAt\": \"s1\",\n\t\t\t\"cost\": 1\n\t\t}\n\t],\n\t\"tree\": {\n\t\t\"nodes\": [\n\t\t\t{\n\t\t\t\t\"id\": \"n\"\n\t\t\t}\n\t\t]\n\t}\n}",
+						"chat_b.json": "{\n\t\"id\": \"chat_b\",\n\t\"title\": \"Study notes\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-03-01T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"u1\",\n\t\t\t\"role\": \"user\",\n\t\t\t\"content\": \"hi\",\n\t\t\t\"timestamp\": 3\n\t\t}\n\t],\n\t\"kind\": \"study\",\n\t\"version\": 1\n}",
+						"chat_broken.json": "{ not json",
+						"chat_c.json": "{\n\t\"id\": \"chat_c\",\n\t\"title\": \"Lesson chat_c\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-01-15T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"a1\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"p1\",\n\t\t\t\t\t\"name\": \"problem\",\n\t\t\t\t\t\"arguments\": {\n\t\t\t\t\t\t\"statement\": \"s\"\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t},\n\t\t{\n\t\t\t\"id\": \"r1\",\n\t\t\t\"role\": \"toolResult\",\n\t\t\t\"toolCallId\": \"p1\",\n\t\t\t\"toolName\": \"problem\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"text\",\n\t\t\t\t\t\"text\": \"ok\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"details\": {},\n\t\t\t\"isError\": false,\n\t\t\t\"timestamp\": 2\n\t\t}\n\t],\n\t\"kind\": \"practice\",\n\t\"turns\": [\n\t\t{\n\t\t\t\"id\": \"t0\"\n\t\t}\n\t],\n\t\"tree\": {\n\t\t\"nodes\": []\n\t},\n\t\"version\": 1\n}",
+						"chat_d.json": "{\n\t\"id\": \"chat_d\",\n\t\"title\": \"Lesson chat_d\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-03-01T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"a1\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"d1\",\n\t\t\t\t\t\"name\": \"probe_done\",\n\t\t\t\t\t\"arguments\": {}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t},\n\t\t{\n\t\t\t\"id\": \"r1\",\n\t\t\t\"role\": \"toolResult\",\n\t\t\t\"toolCallId\": \"d1\",\n\t\t\t\"toolName\": \"probe_done\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"text\",\n\t\t\t\t\t\"text\": \"ok\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"details\": {},\n\t\t\t\"isError\": false,\n\t\t\t\"timestamp\": 2\n\t\t},\n\t\t{\n\t\t\t\"id\": \"a2\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"q1\",\n\t\t\t\t\t\"name\": \"quiz\",\n\t\t\t\t\t\"arguments\": {\n\t\t\t\t\t\t\"nodeId\": \"n1\"\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t}\n\t]\n}",
+						"chat_dir": null,
+						"chat_future.json": "{\n\t\"id\": \"chat_future\",\n\t\"title\": \"Lesson chat_future\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-05-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 2\n}",
+						"chat_noshape.json": "{\"id\":\"chat_noshape\",\"messages\":[]}",
+						"chat_talk.json": "{\n\t\"id\": \"chat_talk\",\n\t\"title\": \"Talk\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-04-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"kind\": \"talk\",\n\t\"version\": 1\n}",
+						"odd name.json": "{\"id\":\"odd name\",\"title\":\"Lesson odd name\",\"createdAt\":\"2026-01-01T00:00:00.000Z\",\"updatedAt\":\"2026-06-01T00:00:00.000Z\",\"messages\":[]}"
+					},
+					"list": [
+						{
+							"id": "chat_b",
+							"title": "Study notes",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-03-01T00:00:00.000Z",
+							"kind": "study",
+							"version": 1,
+							"messageCount": 1,
+							"phase": "teach",
+							"pendingQuestion": false,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_d",
+							"title": "Lesson chat_d",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-03-01T00:00:00.000Z",
+							"kind": "teach",
+							"messageCount": 3,
+							"phase": "teach",
+							"pendingQuestion": true,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_a",
+							"title": "Untitled session",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-02-01T00:00:00.000Z",
+							"version": 1,
+							"kind": "teach",
+							"messageCount": 0,
+							"phase": "probe",
+							"pendingQuestion": false,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_c",
+							"title": "Lesson chat_c",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-01-15T00:00:00.000Z",
+							"kind": "practice",
+							"version": 1,
+							"messageCount": 2,
+							"phase": "probe",
+							"pendingQuestion": false,
+							"pendingProblem": true
+						}
+					]
+				},
+				{
+					"step": {
+						"op": "setClass",
+						"id": "missing",
+						"classId": "cls"
+					},
+					"error": "Chat not found: missing",
+					"files": {
+						"chat_a.json": "{\n\t\"id\": \"chat_a\",\n\t\"title\": \"Untitled session\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-02-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 1,\n\t\"turns\": [\n\t\t{\n\t\t\t\"id\": \"t1\",\n\t\t\t\"tokens\": 5\n\t\t},\n\t\t{\n\t\t\t\"id\": \"t2\"\n\t\t}\n\t],\n\t\"extractions\": [\n\t\t{\n\t\t\t\"startedAt\": \"s1\",\n\t\t\t\"cost\": 1\n\t\t}\n\t],\n\t\"tree\": {\n\t\t\"nodes\": [\n\t\t\t{\n\t\t\t\t\"id\": \"n\"\n\t\t\t}\n\t\t]\n\t}\n}",
+						"chat_b.json": "{\n\t\"id\": \"chat_b\",\n\t\"title\": \"Study notes\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-03-01T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"u1\",\n\t\t\t\"role\": \"user\",\n\t\t\t\"content\": \"hi\",\n\t\t\t\"timestamp\": 3\n\t\t}\n\t],\n\t\"kind\": \"study\",\n\t\"version\": 1\n}",
+						"chat_broken.json": "{ not json",
+						"chat_c.json": "{\n\t\"id\": \"chat_c\",\n\t\"title\": \"Lesson chat_c\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-01-15T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"a1\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"p1\",\n\t\t\t\t\t\"name\": \"problem\",\n\t\t\t\t\t\"arguments\": {\n\t\t\t\t\t\t\"statement\": \"s\"\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t},\n\t\t{\n\t\t\t\"id\": \"r1\",\n\t\t\t\"role\": \"toolResult\",\n\t\t\t\"toolCallId\": \"p1\",\n\t\t\t\"toolName\": \"problem\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"text\",\n\t\t\t\t\t\"text\": \"ok\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"details\": {},\n\t\t\t\"isError\": false,\n\t\t\t\"timestamp\": 2\n\t\t}\n\t],\n\t\"kind\": \"practice\",\n\t\"turns\": [\n\t\t{\n\t\t\t\"id\": \"t0\"\n\t\t}\n\t],\n\t\"tree\": {\n\t\t\"nodes\": []\n\t},\n\t\"version\": 1\n}",
+						"chat_d.json": "{\n\t\"id\": \"chat_d\",\n\t\"title\": \"Lesson chat_d\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-03-01T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"a1\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"d1\",\n\t\t\t\t\t\"name\": \"probe_done\",\n\t\t\t\t\t\"arguments\": {}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t},\n\t\t{\n\t\t\t\"id\": \"r1\",\n\t\t\t\"role\": \"toolResult\",\n\t\t\t\"toolCallId\": \"d1\",\n\t\t\t\"toolName\": \"probe_done\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"text\",\n\t\t\t\t\t\"text\": \"ok\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"details\": {},\n\t\t\t\"isError\": false,\n\t\t\t\"timestamp\": 2\n\t\t},\n\t\t{\n\t\t\t\"id\": \"a2\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"q1\",\n\t\t\t\t\t\"name\": \"quiz\",\n\t\t\t\t\t\"arguments\": {\n\t\t\t\t\t\t\"nodeId\": \"n1\"\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t}\n\t]\n}",
+						"chat_dir": null,
+						"chat_future.json": "{\n\t\"id\": \"chat_future\",\n\t\"title\": \"Lesson chat_future\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-05-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 2\n}",
+						"chat_noshape.json": "{\"id\":\"chat_noshape\",\"messages\":[]}",
+						"chat_talk.json": "{\n\t\"id\": \"chat_talk\",\n\t\"title\": \"Talk\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-04-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"kind\": \"talk\",\n\t\"version\": 1\n}",
+						"odd name.json": "{\"id\":\"odd name\",\"title\":\"Lesson odd name\",\"createdAt\":\"2026-01-01T00:00:00.000Z\",\"updatedAt\":\"2026-06-01T00:00:00.000Z\",\"messages\":[]}"
+					},
+					"list": [
+						{
+							"id": "chat_b",
+							"title": "Study notes",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-03-01T00:00:00.000Z",
+							"kind": "study",
+							"version": 1,
+							"messageCount": 1,
+							"phase": "teach",
+							"pendingQuestion": false,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_d",
+							"title": "Lesson chat_d",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-03-01T00:00:00.000Z",
+							"kind": "teach",
+							"messageCount": 3,
+							"phase": "teach",
+							"pendingQuestion": true,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_a",
+							"title": "Untitled session",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-02-01T00:00:00.000Z",
+							"version": 1,
+							"kind": "teach",
+							"messageCount": 0,
+							"phase": "probe",
+							"pendingQuestion": false,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_c",
+							"title": "Lesson chat_c",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-01-15T00:00:00.000Z",
+							"kind": "practice",
+							"version": 1,
+							"messageCount": 2,
+							"phase": "probe",
+							"pendingQuestion": false,
+							"pendingProblem": true
+						}
+					]
+				},
+				{
+					"step": {
+						"op": "saveMessages",
+						"id": "missing"
+					},
+					"error": "Chat not found: missing",
+					"files": {
+						"chat_a.json": "{\n\t\"id\": \"chat_a\",\n\t\"title\": \"Untitled session\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-02-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 1,\n\t\"turns\": [\n\t\t{\n\t\t\t\"id\": \"t1\",\n\t\t\t\"tokens\": 5\n\t\t},\n\t\t{\n\t\t\t\"id\": \"t2\"\n\t\t}\n\t],\n\t\"extractions\": [\n\t\t{\n\t\t\t\"startedAt\": \"s1\",\n\t\t\t\"cost\": 1\n\t\t}\n\t],\n\t\"tree\": {\n\t\t\"nodes\": [\n\t\t\t{\n\t\t\t\t\"id\": \"n\"\n\t\t\t}\n\t\t]\n\t}\n}",
+						"chat_b.json": "{\n\t\"id\": \"chat_b\",\n\t\"title\": \"Study notes\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-03-01T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"u1\",\n\t\t\t\"role\": \"user\",\n\t\t\t\"content\": \"hi\",\n\t\t\t\"timestamp\": 3\n\t\t}\n\t],\n\t\"kind\": \"study\",\n\t\"version\": 1\n}",
+						"chat_broken.json": "{ not json",
+						"chat_c.json": "{\n\t\"id\": \"chat_c\",\n\t\"title\": \"Lesson chat_c\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-01-15T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"a1\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"p1\",\n\t\t\t\t\t\"name\": \"problem\",\n\t\t\t\t\t\"arguments\": {\n\t\t\t\t\t\t\"statement\": \"s\"\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t},\n\t\t{\n\t\t\t\"id\": \"r1\",\n\t\t\t\"role\": \"toolResult\",\n\t\t\t\"toolCallId\": \"p1\",\n\t\t\t\"toolName\": \"problem\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"text\",\n\t\t\t\t\t\"text\": \"ok\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"details\": {},\n\t\t\t\"isError\": false,\n\t\t\t\"timestamp\": 2\n\t\t}\n\t],\n\t\"kind\": \"practice\",\n\t\"turns\": [\n\t\t{\n\t\t\t\"id\": \"t0\"\n\t\t}\n\t],\n\t\"tree\": {\n\t\t\"nodes\": []\n\t},\n\t\"version\": 1\n}",
+						"chat_d.json": "{\n\t\"id\": \"chat_d\",\n\t\"title\": \"Lesson chat_d\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-03-01T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"a1\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"d1\",\n\t\t\t\t\t\"name\": \"probe_done\",\n\t\t\t\t\t\"arguments\": {}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t},\n\t\t{\n\t\t\t\"id\": \"r1\",\n\t\t\t\"role\": \"toolResult\",\n\t\t\t\"toolCallId\": \"d1\",\n\t\t\t\"toolName\": \"probe_done\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"text\",\n\t\t\t\t\t\"text\": \"ok\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"details\": {},\n\t\t\t\"isError\": false,\n\t\t\t\"timestamp\": 2\n\t\t},\n\t\t{\n\t\t\t\"id\": \"a2\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"q1\",\n\t\t\t\t\t\"name\": \"quiz\",\n\t\t\t\t\t\"arguments\": {\n\t\t\t\t\t\t\"nodeId\": \"n1\"\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t}\n\t]\n}",
+						"chat_dir": null,
+						"chat_future.json": "{\n\t\"id\": \"chat_future\",\n\t\"title\": \"Lesson chat_future\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-05-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 2\n}",
+						"chat_noshape.json": "{\"id\":\"chat_noshape\",\"messages\":[]}",
+						"chat_talk.json": "{\n\t\"id\": \"chat_talk\",\n\t\"title\": \"Talk\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-04-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"kind\": \"talk\",\n\t\"version\": 1\n}",
+						"odd name.json": "{\"id\":\"odd name\",\"title\":\"Lesson odd name\",\"createdAt\":\"2026-01-01T00:00:00.000Z\",\"updatedAt\":\"2026-06-01T00:00:00.000Z\",\"messages\":[]}"
+					},
+					"list": [
+						{
+							"id": "chat_b",
+							"title": "Study notes",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-03-01T00:00:00.000Z",
+							"kind": "study",
+							"version": 1,
+							"messageCount": 1,
+							"phase": "teach",
+							"pendingQuestion": false,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_d",
+							"title": "Lesson chat_d",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-03-01T00:00:00.000Z",
+							"kind": "teach",
+							"messageCount": 3,
+							"phase": "teach",
+							"pendingQuestion": true,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_a",
+							"title": "Untitled session",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-02-01T00:00:00.000Z",
+							"version": 1,
+							"kind": "teach",
+							"messageCount": 0,
+							"phase": "probe",
+							"pendingQuestion": false,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_c",
+							"title": "Lesson chat_c",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-01-15T00:00:00.000Z",
+							"kind": "practice",
+							"version": 1,
+							"messageCount": 2,
+							"phase": "probe",
+							"pendingQuestion": false,
+							"pendingProblem": true
+						}
+					]
+				},
+				{
+					"step": {
+						"op": "delete",
+						"id": "chat_d"
+					},
+					"ok": true,
+					"files": {
+						"chat_a.json": "{\n\t\"id\": \"chat_a\",\n\t\"title\": \"Untitled session\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-02-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 1,\n\t\"turns\": [\n\t\t{\n\t\t\t\"id\": \"t1\",\n\t\t\t\"tokens\": 5\n\t\t},\n\t\t{\n\t\t\t\"id\": \"t2\"\n\t\t}\n\t],\n\t\"extractions\": [\n\t\t{\n\t\t\t\"startedAt\": \"s1\",\n\t\t\t\"cost\": 1\n\t\t}\n\t],\n\t\"tree\": {\n\t\t\"nodes\": [\n\t\t\t{\n\t\t\t\t\"id\": \"n\"\n\t\t\t}\n\t\t]\n\t}\n}",
+						"chat_b.json": "{\n\t\"id\": \"chat_b\",\n\t\"title\": \"Study notes\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-03-01T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"u1\",\n\t\t\t\"role\": \"user\",\n\t\t\t\"content\": \"hi\",\n\t\t\t\"timestamp\": 3\n\t\t}\n\t],\n\t\"kind\": \"study\",\n\t\"version\": 1\n}",
+						"chat_broken.json": "{ not json",
+						"chat_c.json": "{\n\t\"id\": \"chat_c\",\n\t\"title\": \"Lesson chat_c\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-01-15T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"a1\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"p1\",\n\t\t\t\t\t\"name\": \"problem\",\n\t\t\t\t\t\"arguments\": {\n\t\t\t\t\t\t\"statement\": \"s\"\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t},\n\t\t{\n\t\t\t\"id\": \"r1\",\n\t\t\t\"role\": \"toolResult\",\n\t\t\t\"toolCallId\": \"p1\",\n\t\t\t\"toolName\": \"problem\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"text\",\n\t\t\t\t\t\"text\": \"ok\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"details\": {},\n\t\t\t\"isError\": false,\n\t\t\t\"timestamp\": 2\n\t\t}\n\t],\n\t\"kind\": \"practice\",\n\t\"turns\": [\n\t\t{\n\t\t\t\"id\": \"t0\"\n\t\t}\n\t],\n\t\"tree\": {\n\t\t\"nodes\": []\n\t},\n\t\"version\": 1\n}",
+						"chat_dir": null,
+						"chat_future.json": "{\n\t\"id\": \"chat_future\",\n\t\"title\": \"Lesson chat_future\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-05-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 2\n}",
+						"chat_noshape.json": "{\"id\":\"chat_noshape\",\"messages\":[]}",
+						"chat_talk.json": "{\n\t\"id\": \"chat_talk\",\n\t\"title\": \"Talk\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-04-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"kind\": \"talk\",\n\t\"version\": 1\n}",
+						"odd name.json": "{\"id\":\"odd name\",\"title\":\"Lesson odd name\",\"createdAt\":\"2026-01-01T00:00:00.000Z\",\"updatedAt\":\"2026-06-01T00:00:00.000Z\",\"messages\":[]}"
+					},
+					"list": [
+						{
+							"id": "chat_b",
+							"title": "Study notes",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-03-01T00:00:00.000Z",
+							"kind": "study",
+							"version": 1,
+							"messageCount": 1,
+							"phase": "teach",
+							"pendingQuestion": false,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_a",
+							"title": "Untitled session",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-02-01T00:00:00.000Z",
+							"version": 1,
+							"kind": "teach",
+							"messageCount": 0,
+							"phase": "probe",
+							"pendingQuestion": false,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_c",
+							"title": "Lesson chat_c",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-01-15T00:00:00.000Z",
+							"kind": "practice",
+							"version": 1,
+							"messageCount": 2,
+							"phase": "probe",
+							"pendingQuestion": false,
+							"pendingProblem": true
+						}
+					]
+				},
+				{
+					"step": {
+						"op": "delete",
+						"id": "chat_d"
+					},
+					"ok": false,
+					"files": {
+						"chat_a.json": "{\n\t\"id\": \"chat_a\",\n\t\"title\": \"Untitled session\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-02-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 1,\n\t\"turns\": [\n\t\t{\n\t\t\t\"id\": \"t1\",\n\t\t\t\"tokens\": 5\n\t\t},\n\t\t{\n\t\t\t\"id\": \"t2\"\n\t\t}\n\t],\n\t\"extractions\": [\n\t\t{\n\t\t\t\"startedAt\": \"s1\",\n\t\t\t\"cost\": 1\n\t\t}\n\t],\n\t\"tree\": {\n\t\t\"nodes\": [\n\t\t\t{\n\t\t\t\t\"id\": \"n\"\n\t\t\t}\n\t\t]\n\t}\n}",
+						"chat_b.json": "{\n\t\"id\": \"chat_b\",\n\t\"title\": \"Study notes\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-03-01T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"u1\",\n\t\t\t\"role\": \"user\",\n\t\t\t\"content\": \"hi\",\n\t\t\t\"timestamp\": 3\n\t\t}\n\t],\n\t\"kind\": \"study\",\n\t\"version\": 1\n}",
+						"chat_broken.json": "{ not json",
+						"chat_c.json": "{\n\t\"id\": \"chat_c\",\n\t\"title\": \"Lesson chat_c\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-01-15T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"a1\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"p1\",\n\t\t\t\t\t\"name\": \"problem\",\n\t\t\t\t\t\"arguments\": {\n\t\t\t\t\t\t\"statement\": \"s\"\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t},\n\t\t{\n\t\t\t\"id\": \"r1\",\n\t\t\t\"role\": \"toolResult\",\n\t\t\t\"toolCallId\": \"p1\",\n\t\t\t\"toolName\": \"problem\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"text\",\n\t\t\t\t\t\"text\": \"ok\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"details\": {},\n\t\t\t\"isError\": false,\n\t\t\t\"timestamp\": 2\n\t\t}\n\t],\n\t\"kind\": \"practice\",\n\t\"turns\": [\n\t\t{\n\t\t\t\"id\": \"t0\"\n\t\t}\n\t],\n\t\"tree\": {\n\t\t\"nodes\": []\n\t},\n\t\"version\": 1\n}",
+						"chat_dir": null,
+						"chat_future.json": "{\n\t\"id\": \"chat_future\",\n\t\"title\": \"Lesson chat_future\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-05-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 2\n}",
+						"chat_noshape.json": "{\"id\":\"chat_noshape\",\"messages\":[]}",
+						"chat_talk.json": "{\n\t\"id\": \"chat_talk\",\n\t\"title\": \"Talk\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-04-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"kind\": \"talk\",\n\t\"version\": 1\n}",
+						"odd name.json": "{\"id\":\"odd name\",\"title\":\"Lesson odd name\",\"createdAt\":\"2026-01-01T00:00:00.000Z\",\"updatedAt\":\"2026-06-01T00:00:00.000Z\",\"messages\":[]}"
+					},
+					"list": [
+						{
+							"id": "chat_b",
+							"title": "Study notes",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-03-01T00:00:00.000Z",
+							"kind": "study",
+							"version": 1,
+							"messageCount": 1,
+							"phase": "teach",
+							"pendingQuestion": false,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_a",
+							"title": "Untitled session",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-02-01T00:00:00.000Z",
+							"version": 1,
+							"kind": "teach",
+							"messageCount": 0,
+							"phase": "probe",
+							"pendingQuestion": false,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_c",
+							"title": "Lesson chat_c",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-01-15T00:00:00.000Z",
+							"kind": "practice",
+							"version": 1,
+							"messageCount": 2,
+							"phase": "probe",
+							"pendingQuestion": false,
+							"pendingProblem": true
+						}
+					]
+				},
+				{
+					"step": {
+						"op": "delete",
+						"id": "../escape"
+					},
+					"ok": false,
+					"files": {
+						"chat_a.json": "{\n\t\"id\": \"chat_a\",\n\t\"title\": \"Untitled session\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-02-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 1,\n\t\"turns\": [\n\t\t{\n\t\t\t\"id\": \"t1\",\n\t\t\t\"tokens\": 5\n\t\t},\n\t\t{\n\t\t\t\"id\": \"t2\"\n\t\t}\n\t],\n\t\"extractions\": [\n\t\t{\n\t\t\t\"startedAt\": \"s1\",\n\t\t\t\"cost\": 1\n\t\t}\n\t],\n\t\"tree\": {\n\t\t\"nodes\": [\n\t\t\t{\n\t\t\t\t\"id\": \"n\"\n\t\t\t}\n\t\t]\n\t}\n}",
+						"chat_b.json": "{\n\t\"id\": \"chat_b\",\n\t\"title\": \"Study notes\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-03-01T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"u1\",\n\t\t\t\"role\": \"user\",\n\t\t\t\"content\": \"hi\",\n\t\t\t\"timestamp\": 3\n\t\t}\n\t],\n\t\"kind\": \"study\",\n\t\"version\": 1\n}",
+						"chat_broken.json": "{ not json",
+						"chat_c.json": "{\n\t\"id\": \"chat_c\",\n\t\"title\": \"Lesson chat_c\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-01-15T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"a1\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"p1\",\n\t\t\t\t\t\"name\": \"problem\",\n\t\t\t\t\t\"arguments\": {\n\t\t\t\t\t\t\"statement\": \"s\"\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t},\n\t\t{\n\t\t\t\"id\": \"r1\",\n\t\t\t\"role\": \"toolResult\",\n\t\t\t\"toolCallId\": \"p1\",\n\t\t\t\"toolName\": \"problem\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"text\",\n\t\t\t\t\t\"text\": \"ok\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"details\": {},\n\t\t\t\"isError\": false,\n\t\t\t\"timestamp\": 2\n\t\t}\n\t],\n\t\"kind\": \"practice\",\n\t\"turns\": [\n\t\t{\n\t\t\t\"id\": \"t0\"\n\t\t}\n\t],\n\t\"tree\": {\n\t\t\"nodes\": []\n\t},\n\t\"version\": 1\n}",
+						"chat_dir": null,
+						"chat_future.json": "{\n\t\"id\": \"chat_future\",\n\t\"title\": \"Lesson chat_future\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-05-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 2\n}",
+						"chat_noshape.json": "{\"id\":\"chat_noshape\",\"messages\":[]}",
+						"chat_talk.json": "{\n\t\"id\": \"chat_talk\",\n\t\"title\": \"Talk\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-04-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"kind\": \"talk\",\n\t\"version\": 1\n}",
+						"odd name.json": "{\"id\":\"odd name\",\"title\":\"Lesson odd name\",\"createdAt\":\"2026-01-01T00:00:00.000Z\",\"updatedAt\":\"2026-06-01T00:00:00.000Z\",\"messages\":[]}"
+					},
+					"list": [
+						{
+							"id": "chat_b",
+							"title": "Study notes",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-03-01T00:00:00.000Z",
+							"kind": "study",
+							"version": 1,
+							"messageCount": 1,
+							"phase": "teach",
+							"pendingQuestion": false,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_a",
+							"title": "Untitled session",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-02-01T00:00:00.000Z",
+							"version": 1,
+							"kind": "teach",
+							"messageCount": 0,
+							"phase": "probe",
+							"pendingQuestion": false,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_c",
+							"title": "Lesson chat_c",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-01-15T00:00:00.000Z",
+							"kind": "practice",
+							"version": 1,
+							"messageCount": 2,
+							"phase": "probe",
+							"pendingQuestion": false,
+							"pendingProblem": true
+						}
+					]
+				},
+				{
+					"step": {
+						"op": "delete",
+						"id": "chat_broken"
+					},
+					"ok": true,
+					"files": {
+						"chat_a.json": "{\n\t\"id\": \"chat_a\",\n\t\"title\": \"Untitled session\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-02-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 1,\n\t\"turns\": [\n\t\t{\n\t\t\t\"id\": \"t1\",\n\t\t\t\"tokens\": 5\n\t\t},\n\t\t{\n\t\t\t\"id\": \"t2\"\n\t\t}\n\t],\n\t\"extractions\": [\n\t\t{\n\t\t\t\"startedAt\": \"s1\",\n\t\t\t\"cost\": 1\n\t\t}\n\t],\n\t\"tree\": {\n\t\t\"nodes\": [\n\t\t\t{\n\t\t\t\t\"id\": \"n\"\n\t\t\t}\n\t\t]\n\t}\n}",
+						"chat_b.json": "{\n\t\"id\": \"chat_b\",\n\t\"title\": \"Study notes\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-03-01T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"u1\",\n\t\t\t\"role\": \"user\",\n\t\t\t\"content\": \"hi\",\n\t\t\t\"timestamp\": 3\n\t\t}\n\t],\n\t\"kind\": \"study\",\n\t\"version\": 1\n}",
+						"chat_c.json": "{\n\t\"id\": \"chat_c\",\n\t\"title\": \"Lesson chat_c\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-01-15T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"a1\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"p1\",\n\t\t\t\t\t\"name\": \"problem\",\n\t\t\t\t\t\"arguments\": {\n\t\t\t\t\t\t\"statement\": \"s\"\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t},\n\t\t{\n\t\t\t\"id\": \"r1\",\n\t\t\t\"role\": \"toolResult\",\n\t\t\t\"toolCallId\": \"p1\",\n\t\t\t\"toolName\": \"problem\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"text\",\n\t\t\t\t\t\"text\": \"ok\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"details\": {},\n\t\t\t\"isError\": false,\n\t\t\t\"timestamp\": 2\n\t\t}\n\t],\n\t\"kind\": \"practice\",\n\t\"turns\": [\n\t\t{\n\t\t\t\"id\": \"t0\"\n\t\t}\n\t],\n\t\"tree\": {\n\t\t\"nodes\": []\n\t},\n\t\"version\": 1\n}",
+						"chat_dir": null,
+						"chat_future.json": "{\n\t\"id\": \"chat_future\",\n\t\"title\": \"Lesson chat_future\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-05-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 2\n}",
+						"chat_noshape.json": "{\"id\":\"chat_noshape\",\"messages\":[]}",
+						"chat_talk.json": "{\n\t\"id\": \"chat_talk\",\n\t\"title\": \"Talk\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-04-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"kind\": \"talk\",\n\t\"version\": 1\n}",
+						"odd name.json": "{\"id\":\"odd name\",\"title\":\"Lesson odd name\",\"createdAt\":\"2026-01-01T00:00:00.000Z\",\"updatedAt\":\"2026-06-01T00:00:00.000Z\",\"messages\":[]}"
+					},
+					"list": [
+						{
+							"id": "chat_b",
+							"title": "Study notes",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-03-01T00:00:00.000Z",
+							"kind": "study",
+							"version": 1,
+							"messageCount": 1,
+							"phase": "teach",
+							"pendingQuestion": false,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_a",
+							"title": "Untitled session",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-02-01T00:00:00.000Z",
+							"version": 1,
+							"kind": "teach",
+							"messageCount": 0,
+							"phase": "probe",
+							"pendingQuestion": false,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_c",
+							"title": "Lesson chat_c",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-01-15T00:00:00.000Z",
+							"kind": "practice",
+							"version": 1,
+							"messageCount": 2,
+							"phase": "probe",
+							"pendingQuestion": false,
+							"pendingProblem": true
+						}
+					]
+				},
+				{
+					"step": {
+						"op": "attachment",
+						"id": "chat_a",
+						"name": "pic.png"
+					},
+					"ok": "010203",
+					"files": {
+						"chat_a": null,
+						"chat_a.json": "{\n\t\"id\": \"chat_a\",\n\t\"title\": \"Untitled session\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-02-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 1,\n\t\"turns\": [\n\t\t{\n\t\t\t\"id\": \"t1\",\n\t\t\t\"tokens\": 5\n\t\t},\n\t\t{\n\t\t\t\"id\": \"t2\"\n\t\t}\n\t],\n\t\"extractions\": [\n\t\t{\n\t\t\t\"startedAt\": \"s1\",\n\t\t\t\"cost\": 1\n\t\t}\n\t],\n\t\"tree\": {\n\t\t\"nodes\": [\n\t\t\t{\n\t\t\t\t\"id\": \"n\"\n\t\t\t}\n\t\t]\n\t}\n}",
+						"chat_b.json": "{\n\t\"id\": \"chat_b\",\n\t\"title\": \"Study notes\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-03-01T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"u1\",\n\t\t\t\"role\": \"user\",\n\t\t\t\"content\": \"hi\",\n\t\t\t\"timestamp\": 3\n\t\t}\n\t],\n\t\"kind\": \"study\",\n\t\"version\": 1\n}",
+						"chat_c.json": "{\n\t\"id\": \"chat_c\",\n\t\"title\": \"Lesson chat_c\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-01-15T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"a1\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"p1\",\n\t\t\t\t\t\"name\": \"problem\",\n\t\t\t\t\t\"arguments\": {\n\t\t\t\t\t\t\"statement\": \"s\"\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t},\n\t\t{\n\t\t\t\"id\": \"r1\",\n\t\t\t\"role\": \"toolResult\",\n\t\t\t\"toolCallId\": \"p1\",\n\t\t\t\"toolName\": \"problem\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"text\",\n\t\t\t\t\t\"text\": \"ok\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"details\": {},\n\t\t\t\"isError\": false,\n\t\t\t\"timestamp\": 2\n\t\t}\n\t],\n\t\"kind\": \"practice\",\n\t\"turns\": [\n\t\t{\n\t\t\t\"id\": \"t0\"\n\t\t}\n\t],\n\t\"tree\": {\n\t\t\"nodes\": []\n\t},\n\t\"version\": 1\n}",
+						"chat_dir": null,
+						"chat_future.json": "{\n\t\"id\": \"chat_future\",\n\t\"title\": \"Lesson chat_future\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-05-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 2\n}",
+						"chat_noshape.json": "{\"id\":\"chat_noshape\",\"messages\":[]}",
+						"chat_talk.json": "{\n\t\"id\": \"chat_talk\",\n\t\"title\": \"Talk\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-04-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"kind\": \"talk\",\n\t\"version\": 1\n}",
+						"odd name.json": "{\"id\":\"odd name\",\"title\":\"Lesson odd name\",\"createdAt\":\"2026-01-01T00:00:00.000Z\",\"updatedAt\":\"2026-06-01T00:00:00.000Z\",\"messages\":[]}"
+					},
+					"list": [
+						{
+							"id": "chat_b",
+							"title": "Study notes",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-03-01T00:00:00.000Z",
+							"kind": "study",
+							"version": 1,
+							"messageCount": 1,
+							"phase": "teach",
+							"pendingQuestion": false,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_a",
+							"title": "Untitled session",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-02-01T00:00:00.000Z",
+							"version": 1,
+							"kind": "teach",
+							"messageCount": 0,
+							"phase": "probe",
+							"pendingQuestion": false,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_c",
+							"title": "Lesson chat_c",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-01-15T00:00:00.000Z",
+							"kind": "practice",
+							"version": 1,
+							"messageCount": 2,
+							"phase": "probe",
+							"pendingQuestion": false,
+							"pendingProblem": true
+						}
+					]
+				},
+				{
+					"step": {
+						"op": "attachment",
+						"id": "chat_a",
+						"name": "dir/pic.png"
+					},
+					"error": "Invalid attachment name: dir/pic.png",
+					"files": {
+						"chat_a": null,
+						"chat_a.json": "{\n\t\"id\": \"chat_a\",\n\t\"title\": \"Untitled session\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-02-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 1,\n\t\"turns\": [\n\t\t{\n\t\t\t\"id\": \"t1\",\n\t\t\t\"tokens\": 5\n\t\t},\n\t\t{\n\t\t\t\"id\": \"t2\"\n\t\t}\n\t],\n\t\"extractions\": [\n\t\t{\n\t\t\t\"startedAt\": \"s1\",\n\t\t\t\"cost\": 1\n\t\t}\n\t],\n\t\"tree\": {\n\t\t\"nodes\": [\n\t\t\t{\n\t\t\t\t\"id\": \"n\"\n\t\t\t}\n\t\t]\n\t}\n}",
+						"chat_b.json": "{\n\t\"id\": \"chat_b\",\n\t\"title\": \"Study notes\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-03-01T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"u1\",\n\t\t\t\"role\": \"user\",\n\t\t\t\"content\": \"hi\",\n\t\t\t\"timestamp\": 3\n\t\t}\n\t],\n\t\"kind\": \"study\",\n\t\"version\": 1\n}",
+						"chat_c.json": "{\n\t\"id\": \"chat_c\",\n\t\"title\": \"Lesson chat_c\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-01-15T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"a1\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"p1\",\n\t\t\t\t\t\"name\": \"problem\",\n\t\t\t\t\t\"arguments\": {\n\t\t\t\t\t\t\"statement\": \"s\"\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t},\n\t\t{\n\t\t\t\"id\": \"r1\",\n\t\t\t\"role\": \"toolResult\",\n\t\t\t\"toolCallId\": \"p1\",\n\t\t\t\"toolName\": \"problem\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"text\",\n\t\t\t\t\t\"text\": \"ok\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"details\": {},\n\t\t\t\"isError\": false,\n\t\t\t\"timestamp\": 2\n\t\t}\n\t],\n\t\"kind\": \"practice\",\n\t\"turns\": [\n\t\t{\n\t\t\t\"id\": \"t0\"\n\t\t}\n\t],\n\t\"tree\": {\n\t\t\"nodes\": []\n\t},\n\t\"version\": 1\n}",
+						"chat_dir": null,
+						"chat_future.json": "{\n\t\"id\": \"chat_future\",\n\t\"title\": \"Lesson chat_future\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-05-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 2\n}",
+						"chat_noshape.json": "{\"id\":\"chat_noshape\",\"messages\":[]}",
+						"chat_talk.json": "{\n\t\"id\": \"chat_talk\",\n\t\"title\": \"Talk\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-04-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"kind\": \"talk\",\n\t\"version\": 1\n}",
+						"odd name.json": "{\"id\":\"odd name\",\"title\":\"Lesson odd name\",\"createdAt\":\"2026-01-01T00:00:00.000Z\",\"updatedAt\":\"2026-06-01T00:00:00.000Z\",\"messages\":[]}"
+					},
+					"list": [
+						{
+							"id": "chat_b",
+							"title": "Study notes",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-03-01T00:00:00.000Z",
+							"kind": "study",
+							"version": 1,
+							"messageCount": 1,
+							"phase": "teach",
+							"pendingQuestion": false,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_a",
+							"title": "Untitled session",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-02-01T00:00:00.000Z",
+							"version": 1,
+							"kind": "teach",
+							"messageCount": 0,
+							"phase": "probe",
+							"pendingQuestion": false,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_c",
+							"title": "Lesson chat_c",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-01-15T00:00:00.000Z",
+							"kind": "practice",
+							"version": 1,
+							"messageCount": 2,
+							"phase": "probe",
+							"pendingQuestion": false,
+							"pendingProblem": true
+						}
+					]
+				},
+				{
+					"step": {
+						"op": "attachment",
+						"id": "../escape",
+						"name": "pic.png"
+					},
+					"error": "Invalid chat id: ../escape",
+					"files": {
+						"chat_a": null,
+						"chat_a.json": "{\n\t\"id\": \"chat_a\",\n\t\"title\": \"Untitled session\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-02-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 1,\n\t\"turns\": [\n\t\t{\n\t\t\t\"id\": \"t1\",\n\t\t\t\"tokens\": 5\n\t\t},\n\t\t{\n\t\t\t\"id\": \"t2\"\n\t\t}\n\t],\n\t\"extractions\": [\n\t\t{\n\t\t\t\"startedAt\": \"s1\",\n\t\t\t\"cost\": 1\n\t\t}\n\t],\n\t\"tree\": {\n\t\t\"nodes\": [\n\t\t\t{\n\t\t\t\t\"id\": \"n\"\n\t\t\t}\n\t\t]\n\t}\n}",
+						"chat_b.json": "{\n\t\"id\": \"chat_b\",\n\t\"title\": \"Study notes\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-03-01T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"u1\",\n\t\t\t\"role\": \"user\",\n\t\t\t\"content\": \"hi\",\n\t\t\t\"timestamp\": 3\n\t\t}\n\t],\n\t\"kind\": \"study\",\n\t\"version\": 1\n}",
+						"chat_c.json": "{\n\t\"id\": \"chat_c\",\n\t\"title\": \"Lesson chat_c\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-01-15T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"a1\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"p1\",\n\t\t\t\t\t\"name\": \"problem\",\n\t\t\t\t\t\"arguments\": {\n\t\t\t\t\t\t\"statement\": \"s\"\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t},\n\t\t{\n\t\t\t\"id\": \"r1\",\n\t\t\t\"role\": \"toolResult\",\n\t\t\t\"toolCallId\": \"p1\",\n\t\t\t\"toolName\": \"problem\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"text\",\n\t\t\t\t\t\"text\": \"ok\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"details\": {},\n\t\t\t\"isError\": false,\n\t\t\t\"timestamp\": 2\n\t\t}\n\t],\n\t\"kind\": \"practice\",\n\t\"turns\": [\n\t\t{\n\t\t\t\"id\": \"t0\"\n\t\t}\n\t],\n\t\"tree\": {\n\t\t\"nodes\": []\n\t},\n\t\"version\": 1\n}",
+						"chat_dir": null,
+						"chat_future.json": "{\n\t\"id\": \"chat_future\",\n\t\"title\": \"Lesson chat_future\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-05-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 2\n}",
+						"chat_noshape.json": "{\"id\":\"chat_noshape\",\"messages\":[]}",
+						"chat_talk.json": "{\n\t\"id\": \"chat_talk\",\n\t\"title\": \"Talk\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-04-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"kind\": \"talk\",\n\t\"version\": 1\n}",
+						"odd name.json": "{\"id\":\"odd name\",\"title\":\"Lesson odd name\",\"createdAt\":\"2026-01-01T00:00:00.000Z\",\"updatedAt\":\"2026-06-01T00:00:00.000Z\",\"messages\":[]}"
+					},
+					"list": [
+						{
+							"id": "chat_b",
+							"title": "Study notes",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-03-01T00:00:00.000Z",
+							"kind": "study",
+							"version": 1,
+							"messageCount": 1,
+							"phase": "teach",
+							"pendingQuestion": false,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_a",
+							"title": "Untitled session",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-02-01T00:00:00.000Z",
+							"version": 1,
+							"kind": "teach",
+							"messageCount": 0,
+							"phase": "probe",
+							"pendingQuestion": false,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_c",
+							"title": "Lesson chat_c",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-01-15T00:00:00.000Z",
+							"kind": "practice",
+							"version": 1,
+							"messageCount": 2,
+							"phase": "probe",
+							"pendingQuestion": false,
+							"pendingProblem": true
+						}
+					]
+				},
+				{
+					"step": {
+						"op": "delete",
+						"id": "chat_a"
+					},
+					"ok": true,
+					"files": {
+						"chat_b.json": "{\n\t\"id\": \"chat_b\",\n\t\"title\": \"Study notes\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-03-01T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"u1\",\n\t\t\t\"role\": \"user\",\n\t\t\t\"content\": \"hi\",\n\t\t\t\"timestamp\": 3\n\t\t}\n\t],\n\t\"kind\": \"study\",\n\t\"version\": 1\n}",
+						"chat_c.json": "{\n\t\"id\": \"chat_c\",\n\t\"title\": \"Lesson chat_c\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-01-15T00:00:00.000Z\",\n\t\"messages\": [\n\t\t{\n\t\t\t\"id\": \"a1\",\n\t\t\t\"role\": \"assistant\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"toolCall\",\n\t\t\t\t\t\"id\": \"p1\",\n\t\t\t\t\t\"name\": \"problem\",\n\t\t\t\t\t\"arguments\": {\n\t\t\t\t\t\t\"statement\": \"s\"\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"stopReason\": \"toolUse\",\n\t\t\t\"timestamp\": 1\n\t\t},\n\t\t{\n\t\t\t\"id\": \"r1\",\n\t\t\t\"role\": \"toolResult\",\n\t\t\t\"toolCallId\": \"p1\",\n\t\t\t\"toolName\": \"problem\",\n\t\t\t\"content\": [\n\t\t\t\t{\n\t\t\t\t\t\"type\": \"text\",\n\t\t\t\t\t\"text\": \"ok\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"details\": {},\n\t\t\t\"isError\": false,\n\t\t\t\"timestamp\": 2\n\t\t}\n\t],\n\t\"kind\": \"practice\",\n\t\"turns\": [\n\t\t{\n\t\t\t\"id\": \"t0\"\n\t\t}\n\t],\n\t\"tree\": {\n\t\t\"nodes\": []\n\t},\n\t\"version\": 1\n}",
+						"chat_dir": null,
+						"chat_future.json": "{\n\t\"id\": \"chat_future\",\n\t\"title\": \"Lesson chat_future\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-05-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"version\": 2\n}",
+						"chat_noshape.json": "{\"id\":\"chat_noshape\",\"messages\":[]}",
+						"chat_talk.json": "{\n\t\"id\": \"chat_talk\",\n\t\"title\": \"Talk\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-04-01T00:00:00.000Z\",\n\t\"messages\": [],\n\t\"kind\": \"talk\",\n\t\"version\": 1\n}",
+						"odd name.json": "{\"id\":\"odd name\",\"title\":\"Lesson odd name\",\"createdAt\":\"2026-01-01T00:00:00.000Z\",\"updatedAt\":\"2026-06-01T00:00:00.000Z\",\"messages\":[]}"
+					},
+					"list": [
+						{
+							"id": "chat_b",
+							"title": "Study notes",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-03-01T00:00:00.000Z",
+							"kind": "study",
+							"version": 1,
+							"messageCount": 1,
+							"phase": "teach",
+							"pendingQuestion": false,
+							"pendingProblem": false
+						},
+						{
+							"id": "chat_c",
+							"title": "Lesson chat_c",
+							"createdAt": "2026-01-01T00:00:00.000Z",
+							"updatedAt": "2026-01-15T00:00:00.000Z",
+							"kind": "practice",
+							"version": 1,
+							"messageCount": 2,
+							"phase": "probe",
+							"pendingQuestion": false,
+							"pendingProblem": true
+						}
+					]
+				}
+			]
+		}
+	},
+	{
+		"name": "created lessons",
+		"output": [
+			{
+				"masked": {
+					"id": "<id>",
+					"title": "Limits",
+					"createdAt": "<time>",
+					"updatedAt": "<time>",
+					"messages": [],
+					"classId": "cls_1",
+					"version": 1
+				},
+				"keys": [
+					"id",
+					"title",
+					"createdAt",
+					"updatedAt",
+					"messages",
+					"classId",
+					"version"
+				],
+				"text": "{\n\t\"id\": \"<id>\",\n\t\"title\": \"Limits\",\n\t\"createdAt\": \"<time>\",\n\t\"updatedAt\": \"<time>\",\n\t\"messages\": [],\n\t\"classId\": \"cls_1\",\n\t\"version\": 1\n}"
+			},
+			{
+				"masked": {
+					"id": "<id>",
+					"title": "Untitled session",
+					"createdAt": "<time>",
+					"updatedAt": "<time>",
+					"messages": [],
+					"deadlineId": "deadline_1",
+					"version": 1
+				},
+				"keys": [
+					"id",
+					"title",
+					"createdAt",
+					"updatedAt",
+					"messages",
+					"deadlineId",
+					"version"
+				],
+				"text": "{\n\t\"id\": \"<id>\",\n\t\"title\": \"Untitled session\",\n\t\"createdAt\": \"<time>\",\n\t\"updatedAt\": \"<time>\",\n\t\"messages\": [],\n\t\"deadlineId\": \"deadline_1\",\n\t\"version\": 1\n}"
+			},
+			{
+				"masked": {
+					"id": "chat_talk",
+					"title": "Quick chat",
+					"createdAt": "<time>",
+					"updatedAt": "<time>",
+					"messages": [],
+					"kind": "talk",
+					"version": 1
+				},
+				"keys": [
+					"id",
+					"title",
+					"createdAt",
+					"updatedAt",
+					"messages",
+					"kind",
+					"version"
+				],
+				"text": "{\n\t\"id\": \"chat_talk\",\n\t\"title\": \"Quick chat\",\n\t\"createdAt\": \"<time>\",\n\t\"updatedAt\": \"<time>\",\n\t\"messages\": [],\n\t\"kind\": \"talk\",\n\t\"version\": 1\n}"
+			},
+			{
+				"masked": {
+					"id": "<id>",
+					"title": "Study",
+					"createdAt": "<time>",
+					"updatedAt": "<time>",
+					"messages": [],
+					"kind": "study",
+					"classId": "cls_2",
+					"deadlineId": "d2",
+					"version": 1
+				},
+				"keys": [
+					"id",
+					"title",
+					"createdAt",
+					"updatedAt",
+					"messages",
+					"kind",
+					"classId",
+					"deadlineId",
+					"version"
+				],
+				"text": "{\n\t\"id\": \"<id>\",\n\t\"title\": \"Study\",\n\t\"createdAt\": \"<time>\",\n\t\"updatedAt\": \"<time>\",\n\t\"messages\": [],\n\t\"kind\": \"study\",\n\t\"classId\": \"cls_2\",\n\t\"deadlineId\": \"d2\",\n\t\"version\": 1\n}"
+			}
+		]
+	}
+]

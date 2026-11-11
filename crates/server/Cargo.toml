@@ -1,0 +1,28 @@
+[package]
+name = "gs-server"
+version = "0.0.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "godspeed-server"
+path = "src/main.rs"
+
+[dependencies]
+gs-json.workspace = true
+gs-base.workspace = true
+gs-services.workspace = true
+gs-core.workspace = true
+gs-engine.workspace = true
+gs-agent.workspace = true
+axum.workspace = true
+bytes.workspace = true
+futures-util.workspace = true
+http-body-util.workspace = true
+tokio.workspace = true
+tower.workspace = true
+
+[lints]
+workspace = true

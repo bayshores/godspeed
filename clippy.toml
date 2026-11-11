@@ -1,0 +1,11 @@
+# Time and file writes go through gs-base, so the contract clock can move every timer and every
+# write is atomic (crates/base/src/clock.rs, fsx.rs).
+disallowed-methods = [
+	{ path = "std::time::SystemTime::now", reason = "use gs_base::clock::now_ms" },
+	{ path = "tokio::time::sleep", reason = "use gs_base::clock::sleep" },
+	{ path = "tokio::time::sleep_until", reason = "use gs_base::clock::sleep_until" },
+	{ path = "tokio::time::interval", reason = "loop on gs_base::clock::sleep_until" },
+	{ path = "tokio::time::timeout", reason = "select! against gs_base::clock::sleep" },
+	{ path = "std::fs::write", reason = "use gs_base::fsx::write_atomic or write_text_atomic" },
+	{ path = "tokio::fs::write", reason = "use gs_base::fsx::write_atomic or write_text_atomic" },
+]

@@ -1,0 +1,1435 @@
+[
+	{
+		"name": "settings section bodies",
+		"output": [
+			{
+				"section": "general",
+				"body": {},
+				"result": {
+					"ok": true,
+					"settings": {}
+				}
+			},
+			{
+				"section": "general",
+				"body": null,
+				"result": {
+					"ok": false,
+					"error": "Invalid JSON body"
+				}
+			},
+			{
+				"section": "general",
+				"body": [],
+				"result": {
+					"ok": false,
+					"error": "Invalid JSON body"
+				}
+			},
+			{
+				"section": "general",
+				"body": "text",
+				"result": {
+					"ok": false,
+					"error": "Invalid JSON body"
+				}
+			},
+			{
+				"section": "general",
+				"body": {
+					"teacherName": "  Zed   the  Wise  ",
+					"sounds": false,
+					"autoUpdate": true,
+					"onboarded": true,
+					"extra": 1
+				},
+				"result": {
+					"ok": true,
+					"settings": {
+						"autoUpdate": true,
+						"onboarded": true,
+						"teacherName": "Zed the Wise",
+						"sounds": false
+					}
+				}
+			},
+			{
+				"section": "general",
+				"body": {
+					"teacherName": "   "
+				},
+				"result": {
+					"ok": true,
+					"settings": {}
+				}
+			},
+			{
+				"section": "general",
+				"body": {
+					"teacherName": 5
+				},
+				"result": {
+					"ok": false,
+					"error": "teacherName must be a string"
+				}
+			},
+			{
+				"section": "general",
+				"body": {
+					"activeClass": "none",
+					"lastSeenVersion": "0.5.44"
+				},
+				"result": {
+					"ok": true,
+					"settings": {
+						"activeClass": "none",
+						"lastSeenVersion": "0.5.44"
+					}
+				}
+			},
+			{
+				"section": "general",
+				"body": {
+					"activeClass": "cls_golden01_00000001"
+				},
+				"result": {
+					"ok": true,
+					"settings": {
+						"activeClass": "cls_golden01_00000001"
+					}
+				}
+			},
+			{
+				"section": "general",
+				"body": {
+					"activeClass": "cls_bad"
+				},
+				"result": {
+					"ok": true,
+					"settings": {
+						"activeClass": "cls_bad"
+					}
+				}
+			},
+			{
+				"section": "general",
+				"body": {
+					"lastSeenVersion": "v1"
+				},
+				"result": {
+					"ok": false,
+					"error": "lastSeenVersion must be a version like \"0.4.1\""
+				}
+			},
+			{
+				"section": "general",
+				"body": {
+					"lastSeenVersion": "01.2.3"
+				},
+				"result": {
+					"ok": true,
+					"settings": {
+						"lastSeenVersion": "01.2.3"
+					}
+				}
+			},
+			{
+				"section": "general",
+				"body": {
+					"autoUpdate": "yes"
+				},
+				"result": {
+					"ok": false,
+					"error": "autoUpdate must be a boolean"
+				}
+			},
+			{
+				"section": "general",
+				"body": {
+					"onboarded": 1
+				},
+				"result": {
+					"ok": false,
+					"error": "onboarded must be a boolean"
+				}
+			},
+			{
+				"section": "general",
+				"body": {
+					"sounds": null
+				},
+				"result": {
+					"ok": false,
+					"error": "sounds must be a boolean"
+				}
+			},
+			{
+				"section": "agent",
+				"body": {},
+				"result": {
+					"ok": true,
+					"settings": {}
+				}
+			},
+			{
+				"section": "agent",
+				"body": {
+					"tools": {
+						"explain": false
+					}
+				},
+				"result": {
+					"ok": true,
+					"settings": {
+						"tools": {
+							"explain": false
+						}
+					}
+				}
+			},
+			{
+				"section": "agent",
+				"body": {
+					"tools": {
+						"nope": true
+					}
+				},
+				"result": {
+					"ok": false,
+					"error": "unknown tool \"nope\" (supported: research, demo, visual, pdf, explain)"
+				}
+			},
+			{
+				"section": "agent",
+				"body": {
+					"tools": {
+						"explain": "no"
+					}
+				},
+				"result": {
+					"ok": false,
+					"error": "tools.explain must be a boolean"
+				}
+			},
+			{
+				"section": "agent",
+				"body": {
+					"tools": []
+				},
+				"result": {
+					"ok": false,
+					"error": "tools must be an object"
+				}
+			},
+			{
+				"section": "agent",
+				"body": {
+					"rules": {
+						"voice": [
+							"Be brief",
+							"  Be   brief  ",
+							"",
+							"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+						],
+						"demos": []
+					}
+				},
+				"result": {
+					"ok": true,
+					"settings": {
+						"rules": {
+							"voice": [
+								"Be brief",
+								"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+							]
+						}
+					}
+				}
+			},
+			{
+				"section": "agent",
+				"body": {
+					"rules": {
+						"nope": []
+					}
+				},
+				"result": {
+					"ok": false,
+					"error": "unknown area \"nope\" (supported: voice, teaching, questions, facts, demos, files)"
+				}
+			},
+			{
+				"section": "agent",
+				"body": {
+					"rules": {
+						"voice": "text"
+					}
+				},
+				"result": {
+					"ok": false,
+					"error": "rules.voice must be a list of strings"
+				}
+			},
+			{
+				"section": "agent",
+				"body": {
+					"rules": {
+						"voice": [
+							1
+						]
+					}
+				},
+				"result": {
+					"ok": false,
+					"error": "rules.voice must be a list of strings"
+				}
+			},
+			{
+				"section": "agent",
+				"body": {
+					"rules": []
+				},
+				"result": {
+					"ok": false,
+					"error": "rules must be an object"
+				}
+			},
+			{
+				"section": "agent",
+				"body": {
+					"graphTools": {}
+				},
+				"result": {
+					"ok": true,
+					"settings": {
+						"graphTools": {}
+					}
+				}
+			},
+			{
+				"section": "agent",
+				"body": {
+					"graphTools": {
+						"enabled": false,
+						"other": 1
+					}
+				},
+				"result": {
+					"ok": true,
+					"settings": {
+						"graphTools": {
+							"enabled": false
+						}
+					}
+				}
+			},
+			{
+				"section": "agent",
+				"body": {
+					"graphTools": {
+						"enabled": "no"
+					}
+				},
+				"result": {
+					"ok": false,
+					"error": "graphTools.enabled must be a boolean"
+				}
+			},
+			{
+				"section": "agent",
+				"body": {
+					"graphTools": null
+				},
+				"result": {
+					"ok": false,
+					"error": "graphTools must be an object"
+				}
+			},
+			{
+				"section": "appearance",
+				"body": {},
+				"result": {
+					"ok": true,
+					"settings": {}
+				}
+			},
+			{
+				"section": "appearance",
+				"body": {
+					"background": "#112233",
+					"fontFamily": "Inter",
+					"proseFontSize": 16,
+					"mdRendering": {
+						"headingWeight": 600,
+						"boldColor": "#abc",
+						"italicColor": null
+					}
+				},
+				"result": {
+					"ok": true,
+					"settings": {
+						"background": "#112233",
+						"fontFamily": "Inter",
+						"proseFontSize": 16,
+						"mdRendering": {
+							"headingWeight": 600,
+							"boldColor": "#abc",
+							"italicColor": null
+						}
+					}
+				}
+			},
+			{
+				"section": "appearance",
+				"body": {
+					"background": null,
+					"fontFamily": null
+				},
+				"result": {
+					"ok": true,
+					"settings": {
+						"background": null,
+						"fontFamily": null
+					}
+				}
+			},
+			{
+				"section": "appearance",
+				"body": {
+					"background": "red"
+				},
+				"result": {
+					"ok": false,
+					"error": "background must be a #hex color or null"
+				}
+			},
+			{
+				"section": "appearance",
+				"body": {
+					"background": 5
+				},
+				"result": {
+					"ok": false,
+					"error": "background must be a #hex color or null"
+				}
+			},
+			{
+				"section": "appearance",
+				"body": {
+					"fontFamily": "  "
+				},
+				"result": {
+					"ok": false,
+					"error": "fontFamily must be a non-empty string or null"
+				}
+			},
+			{
+				"section": "appearance",
+				"body": {
+					"fontFamily": 5
+				},
+				"result": {
+					"ok": false,
+					"error": "fontFamily must be a non-empty string or null"
+				}
+			},
+			{
+				"section": "appearance",
+				"body": {
+					"proseFontSize": 11
+				},
+				"result": {
+					"ok": false,
+					"error": "proseFontSize must be an integer between 12 and 24"
+				}
+			},
+			{
+				"section": "appearance",
+				"body": {
+					"proseFontSize": 25
+				},
+				"result": {
+					"ok": false,
+					"error": "proseFontSize must be an integer between 12 and 24"
+				}
+			},
+			{
+				"section": "appearance",
+				"body": {
+					"proseFontSize": 16.5
+				},
+				"result": {
+					"ok": false,
+					"error": "proseFontSize must be an integer between 12 and 24"
+				}
+			},
+			{
+				"section": "appearance",
+				"body": {
+					"proseFontSize": "16"
+				},
+				"result": {
+					"ok": false,
+					"error": "proseFontSize must be an integer between 12 and 24"
+				}
+			},
+			{
+				"section": "appearance",
+				"body": {
+					"mdRendering": {}
+				},
+				"result": {
+					"ok": true,
+					"settings": {}
+				}
+			},
+			{
+				"section": "appearance",
+				"body": {
+					"mdRendering": []
+				},
+				"result": {
+					"ok": false,
+					"error": "mdRendering must be an object"
+				}
+			},
+			{
+				"section": "appearance",
+				"body": {
+					"mdRendering": {
+						"headingWeight": 99
+					}
+				},
+				"result": {
+					"ok": false,
+					"error": "mdRendering.headingWeight must be an integer between 100 and 900"
+				}
+			},
+			{
+				"section": "appearance",
+				"body": {
+					"mdRendering": {
+						"headingWeight": 901
+					}
+				},
+				"result": {
+					"ok": false,
+					"error": "mdRendering.headingWeight must be an integer between 100 and 900"
+				}
+			},
+			{
+				"section": "appearance",
+				"body": {
+					"mdRendering": {
+						"boldColor": "blue"
+					}
+				},
+				"result": {
+					"ok": false,
+					"error": "mdRendering.boldColor must be a #hex color or null"
+				}
+			},
+			{
+				"section": "appearance",
+				"body": {
+					"mdRendering": {
+						"italicColor": 3
+					}
+				},
+				"result": {
+					"ok": false,
+					"error": "mdRendering.italicColor must be a #hex color or null"
+				}
+			},
+			{
+				"section": "graph",
+				"body": {},
+				"result": {
+					"ok": true,
+					"settings": {}
+				}
+			},
+			{
+				"section": "graph",
+				"body": {
+					"enabled": true,
+					"extractionChunkTokens": 123456.9,
+					"old": 1
+				},
+				"result": {
+					"ok": true,
+					"settings": {
+						"enabled": true,
+						"extractionChunkTokens": 123456
+					}
+				}
+			},
+			{
+				"section": "graph",
+				"body": {
+					"enabled": "on"
+				},
+				"result": {
+					"ok": false,
+					"error": "enabled must be a boolean"
+				}
+			},
+			{
+				"section": "graph",
+				"body": {
+					"extractionChunkTokens": "big"
+				},
+				"result": {
+					"ok": false,
+					"error": "extractionChunkTokens must be a number"
+				}
+			},
+			{
+				"section": "graph",
+				"body": {
+					"extractionChunkTokens": 10
+				},
+				"result": {
+					"ok": false,
+					"error": "extractionChunkTokens must be at least 500 (smaller batches waste the per-run graph overhead)"
+				}
+			},
+			{
+				"section": "graph",
+				"body": {
+					"extractionChunkTokens": 1e+300
+				},
+				"result": {
+					"ok": true,
+					"settings": {
+						"extractionChunkTokens": 1e+300
+					}
+				}
+			},
+			{
+				"section": "compaction",
+				"body": {},
+				"result": {
+					"ok": true,
+					"settings": {}
+				}
+			},
+			{
+				"section": "compaction",
+				"body": {
+					"thresholdTokens": 50000.7
+				},
+				"result": {
+					"ok": true,
+					"settings": {
+						"thresholdTokens": 50000
+					}
+				}
+			},
+			{
+				"section": "compaction",
+				"body": {
+					"thresholdTokens": 5
+				},
+				"result": {
+					"ok": false,
+					"error": "thresholdTokens must be at least 32000 (compaction keeps a ~20k-token recent tail, so smaller budgets would churn it)"
+				}
+			},
+			{
+				"section": "compaction",
+				"body": {
+					"thresholdTokens": "5"
+				},
+				"result": {
+					"ok": false,
+					"error": "thresholdTokens must be a number"
+				}
+			},
+			{
+				"section": "compaction",
+				"body": {
+					"thresholdTokens": null
+				},
+				"result": {
+					"ok": false,
+					"error": "thresholdTokens must be a number"
+				}
+			}
+		]
+	},
+	{
+		"name": "prompt segment list",
+		"output": {
+			"segments": [
+				{
+					"path": "system-prompt.md",
+					"shared": true,
+					"sourceSha": "9508631d35931e9da94e648e3f806a48a8fada8b182b7d94bb5db9224752e65c"
+				},
+				{
+					"path": "teacher/05-method.md",
+					"shared": false,
+					"sourceSha": "be7b8cf41950f1b2527a5097300472de441b1f6c4394d79453233ce994366d92"
+				},
+				{
+					"path": "teacher/10-planning.md",
+					"shared": false,
+					"sourceSha": "e76dc44e72b40e5cf8567bd9ce67269c5fc34af2dfd64e5d05ecdc58f0c38b72"
+				},
+				{
+					"path": "teacher/20-teaching.md",
+					"shared": false,
+					"sourceSha": "e4a9d0f800279538b4a66992071340909d3ff5ab46d5d082c37555e4c261b07e"
+				},
+				{
+					"path": "teacher/28-predictions.md",
+					"shared": false,
+					"sourceSha": "3857f55e92aeb7daeb4919fb310a64e318f73137395a7e546bbe9cf9f416a6cd"
+				},
+				{
+					"path": "teacher/30-question-principles.md",
+					"shared": false,
+					"sourceSha": "8bef787a2dbb1818fbcde75e13901ce4a9aec6eeb38525ac7ced7ada7bb0da44"
+				},
+				{
+					"path": "teacher/40-jobs.md",
+					"shared": false,
+					"sourceSha": "24e9feb8d710cde69e316762683cd9347ebd01bfc0ee31ee8efdabe1294213cc"
+				},
+				{
+					"path": "teacher/50-demos.md",
+					"shared": false,
+					"sourceSha": "b61c71dd7cde7ab2be0b3af3ff8901d5e7fd4913aca892951bb9a26c79558eaf"
+				},
+				{
+					"path": "shared/10-voice.md",
+					"shared": true,
+					"sourceSha": "bf8a9d2d13b070bf0eae84a8b4f95b7b6d9fba1ea29a9e4dd5f1ec799952e3b0"
+				},
+				{
+					"path": "shared/12-class-context.md",
+					"shared": true,
+					"sourceSha": "4af356d3df2b20edec733620f3c511e5746e353d5476df98a8251287772bb9b6"
+				},
+				{
+					"path": "shared/15-accuracy.md",
+					"shared": true,
+					"sourceSha": "0ab4d315ce7433d3ca54bb9bdef655334ab7d3c2c3cb8184d6195cd69ab24c2b"
+				},
+				{
+					"path": "shared/16-mental-model.md",
+					"shared": true,
+					"sourceSha": "cd8ec0d0ed84beeae8a7185a15484592849ce08c567e5415169d660382db7226"
+				},
+				{
+					"path": "shared/20-question-tools.md",
+					"shared": true,
+					"sourceSha": "f134ac5fc788e0dc59b7ec8bd5974d49d257a513d1f36a4af4c49e1bd1df8104"
+				},
+				{
+					"path": "shared/25-confidence.md",
+					"shared": true,
+					"sourceSha": "bb8210ba127d8fccea8dc648b571ca769716133ae8ccf075bfcc21e070122189"
+				},
+				{
+					"path": "shared/30-learner-files.md",
+					"shared": true,
+					"sourceSha": "9a6746226f084ee0cc3742a4a7f88ccfd22e3e5c9ea77504e2d40253d582737b"
+				},
+				{
+					"path": "shared/35-work-plan.md",
+					"shared": true,
+					"sourceSha": "8a1529f2ef163bb53b754c661fde866f84b52f9a770d176391df1d318259c453"
+				},
+				{
+					"path": "shared/40-formatting.md",
+					"shared": true,
+					"sourceSha": "361bd910b55daaf1187f869346d309fc61b79d4572a38b49ea70ee0a72751332"
+				},
+				{
+					"path": "prober/10-probe-doctrine.md",
+					"shared": false,
+					"sourceSha": "67e2816b943dc3e8d8c2f0079a0f9bb708e3538867716ed3c870ba4e48837891"
+				}
+			],
+			"supported": [
+				"homework/00-base.md",
+				"practice/00-base.md",
+				"practice/10-doctrine.md",
+				"practice/20-hints.md",
+				"prober/10-probe-doctrine.md",
+				"shared/10-voice.md",
+				"shared/12-class-context.md",
+				"shared/15-accuracy.md",
+				"shared/16-mental-model.md",
+				"shared/20-question-tools.md",
+				"shared/25-confidence.md",
+				"shared/30-learner-files.md",
+				"shared/35-work-plan.md",
+				"shared/40-formatting.md",
+				"study/10-study.md",
+				"system-prompt.md",
+				"teacher/05-method.md",
+				"teacher/10-planning.md",
+				"teacher/20-teaching.md",
+				"teacher/28-predictions.md",
+				"teacher/30-question-principles.md",
+				"teacher/40-jobs.md",
+				"teacher/50-demos.md"
+			]
+		}
+	},
+	{
+		"name": "activity log",
+		"output": {
+			"shown": [
+				{
+					"id": "<id>",
+					"at": "<now>",
+					"agent": "you",
+					"label": "Changed Quiz 1",
+					"classId": "cls_golden01_00000001",
+					"target": {
+						"kind": "deadline",
+						"id": "ddl_gold00000002"
+					},
+					"page": "/"
+				},
+				{
+					"id": "<id>",
+					"at": "<now>",
+					"agent": "you",
+					"label": "Marked Quiz 1 done",
+					"classId": "cls_golden01_00000001",
+					"target": {
+						"kind": "deadline",
+						"id": "ddl_gold00000002"
+					},
+					"page": "/"
+				},
+				{
+					"id": "<id>",
+					"at": "<now>",
+					"agent": "you",
+					"label": "Moved Quiz 1",
+					"classId": "cls_golden01_00000001",
+					"target": {
+						"kind": "deadline",
+						"id": "ddl_gold00000002"
+					},
+					"page": "/"
+				},
+				{
+					"id": "<id>",
+					"at": "<now>",
+					"agent": "you",
+					"label": "Added Quiz 1",
+					"classId": "cls_golden01_00000001",
+					"target": {
+						"kind": "deadline",
+						"id": "ddl_gold00000002"
+					},
+					"page": "/"
+				},
+				{
+					"id": "<id>",
+					"at": "<now>",
+					"agent": "you",
+					"label": "Answered wrong",
+					"classId": null,
+					"target": {
+						"kind": "lesson",
+						"id": "chat_b"
+					},
+					"page": "/chat/chat_b"
+				},
+				{
+					"id": "<id>",
+					"at": "<now>",
+					"agent": "you",
+					"label": "Answered 1 of 3 right",
+					"classId": "cls_golden01_00000001",
+					"target": {
+						"kind": "lesson",
+						"id": "chat_a"
+					},
+					"page": "/chat/chat_a"
+				},
+				{
+					"id": "<id>",
+					"at": "<now>",
+					"agent": "godspeed",
+					"label": "Added 1 file from a folder",
+					"classId": "cls_golden01_00000001",
+					"target": null,
+					"page": "/class/files"
+				},
+				{
+					"id": "<id>",
+					"at": "<now>",
+					"agent": "godspeed",
+					"label": "Added 3 files from Google Drive",
+					"classId": "cls_golden01_00000001",
+					"target": null,
+					"page": "/class/files"
+				},
+				{
+					"id": "<id>",
+					"at": "<now>",
+					"agent": "Claude",
+					"label": "word word word word word word word word word word word word word word word word…",
+					"classId": "cls_golden01_00000001",
+					"target": null,
+					"page": "/",
+					"open": true
+				},
+				{
+					"id": "<id>",
+					"at": "<now>",
+					"agent": "Your agent",
+					"label": "Removed a file",
+					"classId": "cls_golden01_00000001",
+					"target": null,
+					"page": "/",
+					"removed": true
+				},
+				{
+					"id": "<id>",
+					"at": "<now>",
+					"agent": "Your agent",
+					"label": "Removed a file",
+					"classId": "cls_golden01_00000001",
+					"target": null,
+					"page": "/",
+					"removed": true
+				},
+				{
+					"id": "<id>",
+					"at": "<now>",
+					"agent": "Your agent",
+					"label": "Wrote a lesson plan",
+					"classId": "cls_golden01_00000001",
+					"target": null,
+					"page": "/chat"
+				},
+				{
+					"id": "<id>",
+					"at": "<now>",
+					"agent": "Codex",
+					"label": "Added Test 2",
+					"classId": "cls_golden01_00000001",
+					"target": {
+						"kind": "deadline",
+						"id": "ddl_gold00000001"
+					},
+					"page": "/"
+				},
+				{
+					"id": "<id>",
+					"at": "<now>",
+					"agent": "Claude",
+					"label": "Added Test 2",
+					"classId": "cls_golden01_00000001",
+					"target": {
+						"kind": "deadline",
+						"id": "ddl_gold00000001"
+					},
+					"page": "/"
+				}
+			],
+			"saved": [
+				{
+					"id": "<id>",
+					"at": "<now>",
+					"agent": "Claude",
+					"label": "Added Test 2",
+					"classId": "cls_golden01_00000001",
+					"target": {
+						"kind": "deadline",
+						"id": "ddl_gold00000001"
+					},
+					"page": "/"
+				},
+				{
+					"id": "<id>",
+					"at": "<now>",
+					"agent": "Codex",
+					"label": "Added Test 2",
+					"classId": "cls_golden01_00000001",
+					"target": {
+						"kind": "deadline",
+						"id": "ddl_gold00000001"
+					},
+					"page": "/"
+				},
+				{
+					"id": "<id>",
+					"at": "<now>",
+					"agent": "Your agent",
+					"label": "Wrote a lesson plan",
+					"classId": "cls_golden01_00000001",
+					"target": null,
+					"page": "/chat"
+				},
+				{
+					"id": "<id>",
+					"at": "<now>",
+					"agent": "Your agent",
+					"label": "Removed a file",
+					"classId": "cls_golden01_00000001",
+					"target": null,
+					"page": "/",
+					"removed": true
+				},
+				{
+					"id": "<id>",
+					"at": "<now>",
+					"agent": "Your agent",
+					"label": "Removed a file",
+					"classId": "cls_golden01_00000001",
+					"target": null,
+					"page": "/",
+					"removed": true
+				},
+				{
+					"id": "<id>",
+					"at": "<now>",
+					"agent": "Claude",
+					"label": "word word word word word word word word word word word word word word word word…",
+					"classId": "cls_golden01_00000001",
+					"target": null,
+					"page": "/",
+					"open": true
+				},
+				{
+					"id": "<id>",
+					"at": "<now>",
+					"agent": "godspeed",
+					"label": "Added 3 files from Google Drive",
+					"classId": "cls_golden01_00000001",
+					"target": null,
+					"page": "/class/files"
+				},
+				{
+					"id": "<id>",
+					"at": "<now>",
+					"agent": "godspeed",
+					"label": "Added 1 file from a folder",
+					"classId": "cls_golden01_00000001",
+					"target": null,
+					"page": "/class/files"
+				},
+				{
+					"id": "<id>",
+					"at": "<now>",
+					"agent": "you",
+					"label": "Answered 1 of 3 right",
+					"classId": "cls_golden01_00000001",
+					"target": {
+						"kind": "lesson",
+						"id": "chat_a"
+					},
+					"page": "/chat/chat_a"
+				},
+				{
+					"id": "<id>",
+					"at": "<now>",
+					"agent": "you",
+					"label": "Answered wrong",
+					"classId": null,
+					"target": {
+						"kind": "lesson",
+						"id": "chat_b"
+					},
+					"page": "/chat/chat_b"
+				},
+				{
+					"id": "<id>",
+					"at": "<now>",
+					"agent": "you",
+					"label": "Added Quiz 1",
+					"classId": "cls_golden01_00000001",
+					"target": {
+						"kind": "deadline",
+						"id": "ddl_gold00000002"
+					},
+					"page": "/"
+				},
+				{
+					"id": "<id>",
+					"at": "<now>",
+					"agent": "you",
+					"label": "Moved Quiz 1",
+					"classId": "cls_golden01_00000001",
+					"target": {
+						"kind": "deadline",
+						"id": "ddl_gold00000002"
+					},
+					"page": "/"
+				},
+				{
+					"id": "<id>",
+					"at": "<now>",
+					"agent": "you",
+					"label": "Marked Quiz 1 done",
+					"classId": "cls_golden01_00000001",
+					"target": {
+						"kind": "deadline",
+						"id": "ddl_gold00000002"
+					},
+					"page": "/"
+				},
+				{
+					"id": "<id>",
+					"at": "<now>",
+					"agent": "you",
+					"label": "Changed Quiz 1",
+					"classId": "cls_golden01_00000001",
+					"target": {
+						"kind": "deadline",
+						"id": "ddl_gold00000002"
+					},
+					"page": "/"
+				}
+			]
+		}
+	},
+	{
+		"name": "saved rules",
+		"output": {
+			"steps": [
+				{
+					"op": "save",
+					"outcome": {
+						"ok": true,
+						"rule": "Be brief",
+						"for": "every lesson",
+						"where": "Every lesson, under Voice"
+					}
+				},
+				{
+					"op": "save again",
+					"outcome": {
+						"ok": true,
+						"rule": "Be brief",
+						"for": "every lesson",
+						"where": "Every lesson, under Voice"
+					}
+				},
+				{
+					"op": "save one line",
+					"outcome": {
+						"ok": true,
+						"rule": "Use one line",
+						"for": "every lesson",
+						"where": "Every lesson, under Voice"
+					}
+				},
+				{
+					"op": "save empty",
+					"outcome": {
+						"ok": false,
+						"error": "A rule is one line of 1 to 200 characters."
+					}
+				},
+				{
+					"op": "save too long",
+					"outcome": {
+						"ok": true,
+						"rule": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+						"for": "every lesson",
+						"where": "Every lesson, under Voice"
+					}
+				},
+				{
+					"op": "save in a class",
+					"outcome": {
+						"ok": true,
+						"rule": "Show the proof first",
+						"for": "Golden Class",
+						"where": "Lessons in Golden Class"
+					}
+				},
+				{
+					"op": "save in a missing class",
+					"outcome": {
+						"ok": false,
+						"error": "No such class."
+					}
+				},
+				{
+					"op": "marks",
+					"outcome": [
+						{
+							"where": {
+								"area": "voice"
+							},
+							"text": "Be brief",
+							"at": "<now>"
+						},
+						{
+							"where": {
+								"area": "voice"
+							},
+							"text": "Use one line",
+							"at": "<now>"
+						},
+						{
+							"where": {
+								"area": "voice"
+							},
+							"text": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+							"at": "<now>"
+						},
+						{
+							"where": {
+								"classId": "cls_golden01_00000001"
+							},
+							"text": "Show the proof first",
+							"at": "<now>"
+						}
+					]
+				},
+				{
+					"op": "edit",
+					"outcome": {
+						"ok": true,
+						"rule": "Be very brief",
+						"for": "every lesson",
+						"where": "Every lesson, under Voice"
+					}
+				},
+				{
+					"op": "edit to an existing one",
+					"outcome": {
+						"ok": false,
+						"error": "You already have that rule.",
+						"code": "conflict"
+					}
+				},
+				{
+					"op": "edit a missing rule",
+					"outcome": {
+						"ok": false,
+						"error": "That rule was removed.",
+						"code": "not_found"
+					}
+				},
+				{
+					"op": "edit in a missing class",
+					"outcome": {
+						"ok": false,
+						"error": "That rule was removed.",
+						"code": "not_found"
+					}
+				},
+				{
+					"op": "edit to nothing",
+					"outcome": {
+						"ok": false,
+						"error": "A rule is one line of 1 to 200 characters."
+					}
+				},
+				{
+					"op": "remove",
+					"outcome": true
+				},
+				{
+					"op": "remove again",
+					"outcome": false
+				},
+				{
+					"op": "remove in a missing class",
+					"outcome": false
+				},
+				{
+					"op": "marks after",
+					"outcome": [
+						{
+							"where": {
+								"area": "voice"
+							},
+							"text": "Use one line",
+							"at": "<now>"
+						},
+						{
+							"where": {
+								"area": "voice"
+							},
+							"text": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+							"at": "<now>"
+						}
+					]
+				}
+			],
+			"settings": {
+				"version": 2,
+				"agent": {
+					"rules": {
+						"voice": [
+							"Be very brief",
+							"Use one line",
+							"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+						]
+					}
+				}
+			}
+		}
+	},
+	{
+		"name": "reading documents",
+		"output": {
+			"documents": [
+				{
+					"name": "text",
+					"outcome": {
+						"ok": true,
+						"value": {
+							"kind": "text",
+							"textSha": "26c60a61d01db5836ca70fefd44a6a016620413c8ef5f259a6c5612d4f79d3b8",
+							"length": 11
+						}
+					}
+				},
+				{
+					"name": "with a nul byte",
+					"outcome": {
+						"ok": false,
+						"status": 415,
+						"error": "Not a text file"
+					}
+				},
+				{
+					"name": "over two megabytes",
+					"outcome": {
+						"ok": false,
+						"status": 413,
+						"error": "File too large"
+					}
+				},
+				{
+					"name": "exactly two megabytes",
+					"outcome": {
+						"ok": true,
+						"value": {
+							"kind": "text",
+							"textSha": "6932fd31e5daf4739b9fa78ff777b2831b0995cc1d0b0093cac80601902013bc",
+							"length": 2097152
+						}
+					}
+				},
+				{
+					"name": "bad utf-8",
+					"outcome": {
+						"ok": true,
+						"value": {
+							"kind": "text",
+							"textSha": "6774bd44b59de971bf094faab22578e687660a30e79971e8668db27e6c6e7d0d",
+							"length": 3
+						}
+					}
+				},
+				{
+					"name": "empty",
+					"outcome": {
+						"ok": true,
+						"value": {
+							"kind": "text",
+							"textSha": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+							"length": 0
+						}
+					}
+				},
+				{
+					"name": "missing",
+					"outcome": {
+						"ok": false,
+						"status": 404,
+						"error": "No such file"
+					}
+				},
+				{
+					"name": "a folder",
+					"outcome": {
+						"ok": false,
+						"status": 404,
+						"error": "No such file"
+					}
+				},
+				{
+					"name": "in a dot folder",
+					"outcome": {
+						"ok": false,
+						"status": 403,
+						"error": "Not a file the teacher can show"
+					}
+				},
+				{
+					"name": "a dot file",
+					"outcome": {
+						"ok": false,
+						"status": 403,
+						"error": "Not a file the teacher can show"
+					}
+				},
+				{
+					"name": "the home folder",
+					"outcome": {
+						"ok": false,
+						"status": 403,
+						"error": "Not a file the teacher can show"
+					}
+				},
+				{
+					"name": "outside home",
+					"outcome": {
+						"ok": false,
+						"status": 403,
+						"error": "Not a file the teacher can show"
+					}
+				},
+				{
+					"name": "a dotted way out",
+					"outcome": {
+						"ok": false,
+						"status": 403,
+						"error": "Not a file the teacher can show"
+					}
+				},
+				{
+					"name": "a way back in",
+					"outcome": {
+						"ok": true,
+						"value": {
+							"kind": "text",
+							"textSha": "26c60a61d01db5836ca70fefd44a6a016620413c8ef5f259a6c5612d4f79d3b8",
+							"length": 11
+						}
+					}
+				},
+				{
+					"name": "a pdf name on a text file",
+					"outcome": {
+						"ok": true,
+						"value": {
+							"kind": "text",
+							"textSha": "07bcbca5e5cff5eadb6a3578850bb9413f9bfd2406d9210b0c25b7f78449889a",
+							"length": 9
+						}
+					}
+				}
+			],
+			"notPdf": {
+				"ok": false,
+				"status": 415,
+				"error": "Not a PDF"
+			},
+			"hiddenPage": {
+				"ok": false,
+				"status": 403,
+				"error": "Not a file the teacher can show"
+			}
+		}
+	}
+]

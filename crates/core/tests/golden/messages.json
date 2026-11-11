@@ -1,0 +1,9061 @@
+[
+	{
+		"name": "folds over saved lessons",
+		"output": [
+			{
+				"name": "empty",
+				"messages": [],
+				"active": null,
+				"dangling": null,
+				"endsInDismissal": false,
+				"hasProbeDone": false,
+				"pendingDismissal": null,
+				"retry": [],
+				"phases": [
+					"probe",
+					"plan",
+					"teach"
+				],
+				"failed": [],
+				"sideTurn": false,
+				"held": [],
+				"concludeInputs": [],
+				"missingConclude": null,
+				"llm": []
+			},
+			{
+				"name": "opening",
+				"messages": [
+					{
+						"id": "u1",
+						"role": "user",
+						"content": "hello",
+						"timestamp": 3
+					}
+				],
+				"active": null,
+				"dangling": null,
+				"endsInDismissal": false,
+				"hasProbeDone": false,
+				"pendingDismissal": null,
+				"retry": [
+					"u1"
+				],
+				"phases": [
+					"probe",
+					"plan",
+					"teach"
+				],
+				"failed": [],
+				"sideTurn": false,
+				"held": [],
+				"concludeInputs": [],
+				"missingConclude": null,
+				"llm": [
+					{
+						"role": "user",
+						"content": "hello",
+						"timestamp": 3
+					}
+				]
+			},
+			{
+				"name": "question_open",
+				"messages": [
+					{
+						"id": "u1",
+						"role": "user",
+						"content": "hi",
+						"timestamp": 3
+					},
+					{
+						"id": "a1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							},
+							{
+								"type": "toolCall",
+								"id": "q1",
+								"name": "quiz",
+								"arguments": {
+									"nodeId": "n1",
+									"question": "q?"
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "toolUse",
+						"timestamp": 1
+					}
+				],
+				"active": null,
+				"dangling": {
+					"toolCallId": "q1",
+					"tool": "quiz",
+					"input": {
+						"nodeId": "n1",
+						"question": "q?"
+					}
+				},
+				"endsInDismissal": false,
+				"hasProbeDone": false,
+				"pendingDismissal": null,
+				"retry": [
+					"u1",
+					"a1"
+				],
+				"phases": [
+					"probe",
+					"teach",
+					"teach"
+				],
+				"failed": [],
+				"sideTurn": false,
+				"held": [],
+				"concludeInputs": [],
+				"missingConclude": null,
+				"llm": [
+					{
+						"role": "user",
+						"content": "hi",
+						"timestamp": 3
+					},
+					{
+						"role": "assistant",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							},
+							{
+								"type": "toolCall",
+								"id": "q1",
+								"name": "quiz",
+								"arguments": {
+									"nodeId": "n1",
+									"question": "q?"
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "toolUse",
+						"timestamp": 1
+					},
+					{
+						"role": "toolResult",
+						"toolCallId": "q1",
+						"toolName": "quiz",
+						"content": [
+							{
+								"type": "text",
+								"text": "The question was interrupted — the learner never answered; continue without holding a result for it."
+							}
+						],
+						"isError": false,
+						"timestamp": 1
+					}
+				]
+			},
+			{
+				"name": "question_answered",
+				"messages": [
+					{
+						"id": "u1",
+						"role": "user",
+						"content": "hi",
+						"timestamp": 3
+					},
+					{
+						"id": "a1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "q1",
+								"name": "quiz",
+								"arguments": {
+									"nodeId": "n1",
+									"question": "q?"
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "toolUse",
+						"timestamp": 1
+					},
+					{
+						"id": "r1",
+						"role": "toolResult",
+						"toolCallId": "q1",
+						"toolName": "quiz",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"isError": false,
+						"timestamp": 2,
+						"details": {
+							"kind": "quiz"
+						}
+					},
+					{
+						"id": "a2",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "text",
+								"text": "next"
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "stop",
+						"timestamp": 1
+					}
+				],
+				"active": null,
+				"dangling": null,
+				"endsInDismissal": false,
+				"hasProbeDone": false,
+				"pendingDismissal": null,
+				"retry": [
+					"u1",
+					"a1",
+					"r1",
+					"a2"
+				],
+				"phases": [
+					"probe",
+					"teach",
+					"teach"
+				],
+				"failed": [],
+				"sideTurn": false,
+				"held": [],
+				"concludeInputs": [],
+				"missingConclude": null,
+				"llm": [
+					{
+						"role": "user",
+						"content": "hi",
+						"timestamp": 3
+					},
+					{
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "q1",
+								"name": "quiz",
+								"arguments": {
+									"nodeId": "n1",
+									"question": "q?"
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "toolUse",
+						"timestamp": 1
+					},
+					{
+						"role": "toolResult",
+						"toolCallId": "q1",
+						"toolName": "quiz",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"isError": false,
+						"timestamp": 2,
+						"details": {
+							"kind": "quiz"
+						}
+					},
+					{
+						"role": "assistant",
+						"content": [
+							{
+								"type": "text",
+								"text": "next"
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "stop",
+						"timestamp": 1
+					}
+				]
+			},
+			{
+				"name": "two_questions",
+				"messages": [
+					{
+						"id": "a1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "q1",
+								"name": "quiz",
+								"arguments": {
+									"nodeId": "n1",
+									"question": "q?"
+								}
+							},
+							{
+								"type": "toolCall",
+								"id": "q2",
+								"name": "explain",
+								"arguments": {
+									"prompt": "why"
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "toolUse",
+						"timestamp": 1
+					},
+					{
+						"id": "r1",
+						"role": "toolResult",
+						"toolCallId": "q1",
+						"toolName": "quiz",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"isError": false,
+						"timestamp": 2,
+						"details": {
+							"kind": "quiz"
+						}
+					}
+				],
+				"active": null,
+				"dangling": {
+					"toolCallId": "q2",
+					"tool": "explain",
+					"input": {
+						"prompt": "why"
+					}
+				},
+				"endsInDismissal": false,
+				"hasProbeDone": false,
+				"pendingDismissal": null,
+				"retry": [
+					"a1",
+					"r1"
+				],
+				"phases": [
+					"probe",
+					"teach",
+					"teach"
+				],
+				"failed": [],
+				"sideTurn": false,
+				"held": [],
+				"concludeInputs": [],
+				"missingConclude": null,
+				"llm": [
+					{
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "q1",
+								"name": "quiz",
+								"arguments": {
+									"nodeId": "n1",
+									"question": "q?"
+								}
+							},
+							{
+								"type": "toolCall",
+								"id": "q2",
+								"name": "explain",
+								"arguments": {
+									"prompt": "why"
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "toolUse",
+						"timestamp": 1
+					},
+					{
+						"role": "toolResult",
+						"toolCallId": "q2",
+						"toolName": "explain",
+						"content": [
+							{
+								"type": "text",
+								"text": "The question was interrupted — the learner never answered; continue without holding a result for it."
+							}
+						],
+						"isError": false,
+						"timestamp": 1
+					},
+					{
+						"role": "toolResult",
+						"toolCallId": "q1",
+						"toolName": "quiz",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"isError": false,
+						"timestamp": 2,
+						"details": {
+							"kind": "quiz"
+						}
+					}
+				]
+			},
+			{
+				"name": "other_tool_open",
+				"messages": [
+					{
+						"id": "a1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "t1",
+								"name": "read",
+								"arguments": {
+									"path": "x"
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "toolUse",
+						"timestamp": 1
+					}
+				],
+				"active": null,
+				"dangling": null,
+				"endsInDismissal": false,
+				"hasProbeDone": false,
+				"pendingDismissal": null,
+				"retry": [
+					"a1"
+				],
+				"phases": [
+					"probe",
+					"plan",
+					"teach"
+				],
+				"failed": [],
+				"sideTurn": false,
+				"held": [],
+				"concludeInputs": [],
+				"missingConclude": null,
+				"llm": [
+					{
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "t1",
+								"name": "read",
+								"arguments": {
+									"path": "x"
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "toolUse",
+						"timestamp": 1
+					},
+					{
+						"role": "toolResult",
+						"toolCallId": "t1",
+						"toolName": "read",
+						"content": [
+							{
+								"type": "text",
+								"text": "The question was interrupted — the learner never answered; continue without holding a result for it."
+							}
+						],
+						"isError": false,
+						"timestamp": 1
+					}
+				]
+			},
+			{
+				"name": "learner_closes_question",
+				"messages": [
+					{
+						"id": "a1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "q1",
+								"name": "quiz",
+								"arguments": {
+									"nodeId": "n1",
+									"question": "q?"
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "toolUse",
+						"timestamp": 1
+					},
+					{
+						"id": "u2",
+						"role": "user",
+						"content": "never mind",
+						"timestamp": 3
+					}
+				],
+				"active": null,
+				"dangling": null,
+				"endsInDismissal": false,
+				"hasProbeDone": false,
+				"pendingDismissal": null,
+				"retry": [
+					"a1",
+					"u2"
+				],
+				"phases": [
+					"probe",
+					"teach",
+					"teach"
+				],
+				"failed": [],
+				"sideTurn": false,
+				"held": [],
+				"concludeInputs": [],
+				"missingConclude": null,
+				"llm": [
+					{
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "q1",
+								"name": "quiz",
+								"arguments": {
+									"nodeId": "n1",
+									"question": "q?"
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "toolUse",
+						"timestamp": 1
+					},
+					{
+						"role": "toolResult",
+						"toolCallId": "q1",
+						"toolName": "quiz",
+						"content": [
+							{
+								"type": "text",
+								"text": "The question was interrupted — the learner never answered; continue without holding a result for it."
+							}
+						],
+						"isError": false,
+						"timestamp": 1
+					},
+					{
+						"role": "user",
+						"content": "never mind",
+						"timestamp": 3
+					}
+				]
+			},
+			{
+				"name": "probe_asked",
+				"messages": [
+					{
+						"id": "a1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "p1",
+								"name": "probe",
+								"arguments": {}
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "toolUse",
+						"timestamp": 1
+					},
+					{
+						"id": "r1",
+						"role": "toolResult",
+						"toolCallId": "p1",
+						"toolName": "probe",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"isError": false,
+						"timestamp": 2,
+						"details": {
+							"kind": "quiz"
+						}
+					}
+				],
+				"active": null,
+				"dangling": null,
+				"endsInDismissal": false,
+				"hasProbeDone": false,
+				"pendingDismissal": null,
+				"retry": [
+					"a1",
+					"r1"
+				],
+				"phases": [
+					"probe",
+					"plan",
+					"teach"
+				],
+				"failed": [],
+				"sideTurn": false,
+				"held": [],
+				"concludeInputs": [],
+				"missingConclude": null,
+				"llm": [
+					{
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "p1",
+								"name": "probe",
+								"arguments": {}
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "toolUse",
+						"timestamp": 1
+					},
+					{
+						"role": "toolResult",
+						"toolCallId": "p1",
+						"toolName": "probe",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"isError": false,
+						"timestamp": 2,
+						"details": {
+							"kind": "quiz"
+						}
+					}
+				]
+			},
+			{
+				"name": "probe_done",
+				"messages": [
+					{
+						"id": "a1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "d1",
+								"name": "probe_done",
+								"arguments": {}
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "toolUse",
+						"timestamp": 1
+					},
+					{
+						"id": "r1",
+						"role": "toolResult",
+						"toolCallId": "d1",
+						"toolName": "probe_done",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"isError": false,
+						"timestamp": 2,
+						"details": {
+							"ok": true
+						}
+					}
+				],
+				"active": null,
+				"dangling": null,
+				"endsInDismissal": false,
+				"hasProbeDone": true,
+				"pendingDismissal": null,
+				"retry": [
+					"a1",
+					"r1"
+				],
+				"phases": [
+					"plan",
+					"plan",
+					"teach"
+				],
+				"failed": [],
+				"sideTurn": false,
+				"held": [],
+				"concludeInputs": [],
+				"missingConclude": null,
+				"llm": [
+					{
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "d1",
+								"name": "probe_done",
+								"arguments": {}
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "toolUse",
+						"timestamp": 1
+					},
+					{
+						"role": "toolResult",
+						"toolCallId": "d1",
+						"toolName": "probe_done",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"isError": false,
+						"timestamp": 2,
+						"details": {
+							"ok": true
+						}
+					}
+				]
+			},
+			{
+				"name": "probe_done_refused",
+				"messages": [
+					{
+						"id": "a1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "d1",
+								"name": "probe_done",
+								"arguments": {}
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "toolUse",
+						"timestamp": 1
+					},
+					{
+						"id": "r1",
+						"role": "toolResult",
+						"toolCallId": "d1",
+						"toolName": "probe_done",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"isError": false,
+						"timestamp": 2,
+						"details": {
+							"ok": false
+						}
+					}
+				],
+				"active": null,
+				"dangling": null,
+				"endsInDismissal": false,
+				"hasProbeDone": false,
+				"pendingDismissal": null,
+				"retry": [
+					"a1",
+					"r1"
+				],
+				"phases": [
+					"probe",
+					"plan",
+					"teach"
+				],
+				"failed": [],
+				"sideTurn": false,
+				"held": [],
+				"concludeInputs": [],
+				"missingConclude": null,
+				"llm": [
+					{
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "d1",
+								"name": "probe_done",
+								"arguments": {}
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "toolUse",
+						"timestamp": 1
+					},
+					{
+						"role": "toolResult",
+						"toolCallId": "d1",
+						"toolName": "probe_done",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"isError": false,
+						"timestamp": 2,
+						"details": {
+							"ok": false
+						}
+					}
+				]
+			},
+			{
+				"name": "probe_done_errored",
+				"messages": [
+					{
+						"id": "a1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "d1",
+								"name": "probe_done",
+								"arguments": {}
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "toolUse",
+						"timestamp": 1
+					},
+					{
+						"id": "r1",
+						"role": "toolResult",
+						"toolCallId": "d1",
+						"toolName": "probe_done",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"isError": true,
+						"timestamp": 2
+					}
+				],
+				"active": null,
+				"dangling": null,
+				"endsInDismissal": false,
+				"hasProbeDone": false,
+				"pendingDismissal": null,
+				"retry": [
+					"a1",
+					"r1"
+				],
+				"phases": [
+					"probe",
+					"plan",
+					"teach"
+				],
+				"failed": [],
+				"sideTurn": false,
+				"held": [],
+				"concludeInputs": [],
+				"missingConclude": null,
+				"llm": [
+					{
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "d1",
+								"name": "probe_done",
+								"arguments": {}
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "toolUse",
+						"timestamp": 1
+					},
+					{
+						"role": "toolResult",
+						"toolCallId": "d1",
+						"toolName": "probe_done",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"isError": true,
+						"timestamp": 2
+					}
+				]
+			},
+			{
+				"name": "teaching",
+				"messages": [
+					{
+						"id": "a1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "d1",
+								"name": "probe_done",
+								"arguments": {}
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "toolUse",
+						"timestamp": 1
+					},
+					{
+						"id": "r1",
+						"role": "toolResult",
+						"toolCallId": "d1",
+						"toolName": "probe_done",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"isError": false,
+						"timestamp": 2
+					},
+					{
+						"id": "a2",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "q1",
+								"name": "quiz",
+								"arguments": {
+									"question": "untagged"
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "toolUse",
+						"timestamp": 1
+					},
+					{
+						"id": "r2",
+						"role": "toolResult",
+						"toolCallId": "q1",
+						"toolName": "quiz",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"isError": false,
+						"timestamp": 2,
+						"details": {
+							"kind": "quiz"
+						}
+					},
+					{
+						"id": "a3",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "q2",
+								"name": "explain",
+								"arguments": {
+									"nodeId": "n2"
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "toolUse",
+						"timestamp": 1
+					}
+				],
+				"active": null,
+				"dangling": {
+					"toolCallId": "q2",
+					"tool": "explain",
+					"input": {
+						"nodeId": "n2"
+					}
+				},
+				"endsInDismissal": false,
+				"hasProbeDone": true,
+				"pendingDismissal": null,
+				"retry": [
+					"a1",
+					"r1",
+					"a2",
+					"r2",
+					"a3"
+				],
+				"phases": [
+					"teach",
+					"teach",
+					"teach"
+				],
+				"failed": [],
+				"sideTurn": false,
+				"held": [],
+				"concludeInputs": [],
+				"missingConclude": null,
+				"llm": [
+					{
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "d1",
+								"name": "probe_done",
+								"arguments": {}
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "toolUse",
+						"timestamp": 1
+					},
+					{
+						"role": "toolResult",
+						"toolCallId": "d1",
+						"toolName": "probe_done",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"isError": false,
+						"timestamp": 2
+					},
+					{
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "q1",
+								"name": "quiz",
+								"arguments": {
+									"question": "untagged"
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "toolUse",
+						"timestamp": 1
+					},
+					{
+						"role": "toolResult",
+						"toolCallId": "q1",
+						"toolName": "quiz",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"isError": false,
+						"timestamp": 2,
+						"details": {
+							"kind": "quiz"
+						}
+					},
+					{
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "q2",
+								"name": "explain",
+								"arguments": {
+									"nodeId": "n2"
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "toolUse",
+						"timestamp": 1
+					},
+					{
+						"role": "toolResult",
+						"toolCallId": "q2",
+						"toolName": "explain",
+						"content": [
+							{
+								"type": "text",
+								"text": "The question was interrupted — the learner never answered; continue without holding a result for it."
+							}
+						],
+						"isError": false,
+						"timestamp": 1
+					}
+				]
+			},
+			{
+				"name": "side_around_question",
+				"messages": [
+					{
+						"id": "a1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "text",
+								"text": "hmm"
+							},
+							{
+								"type": "toolCall",
+								"id": "q1",
+								"name": "quiz",
+								"arguments": {
+									"nodeId": "n1",
+									"question": "q?"
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "toolUse",
+						"timestamp": 1
+					},
+					{
+						"id": "c1",
+						"role": "custom",
+						"customType": "plan-block",
+						"content": "marker plan-block",
+						"display": true,
+						"details": {},
+						"timestamp": 4
+					},
+					{
+						"id": "s1",
+						"role": "user",
+						"content": "quick one",
+						"timestamp": 3,
+						"side": true
+					},
+					{
+						"id": "a2",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "text",
+								"text": "answer"
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "stop",
+						"timestamp": 1
+					}
+				],
+				"active": null,
+				"dangling": {
+					"toolCallId": "q1",
+					"tool": "quiz",
+					"input": {
+						"nodeId": "n1",
+						"question": "q?"
+					}
+				},
+				"endsInDismissal": false,
+				"hasProbeDone": false,
+				"pendingDismissal": null,
+				"retry": [
+					"a1",
+					"c1",
+					"s1",
+					"a2"
+				],
+				"phases": [
+					"probe",
+					"teach",
+					"teach"
+				],
+				"failed": [],
+				"sideTurn": true,
+				"held": [
+					[
+						"q1",
+						{
+							"callAt": 0,
+							"sideAt": 2
+						}
+					]
+				],
+				"concludeInputs": [],
+				"missingConclude": null,
+				"llm": [
+					{
+						"role": "assistant",
+						"content": [
+							{
+								"type": "text",
+								"text": "hmm"
+							},
+							{
+								"type": "toolCall",
+								"id": "q1",
+								"name": "quiz",
+								"arguments": {
+									"nodeId": "n1",
+									"question": "q?"
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "toolUse",
+						"timestamp": 1
+					},
+					{
+						"role": "toolResult",
+						"toolCallId": "q1",
+						"toolName": "quiz",
+						"content": [
+							{
+								"type": "text",
+								"text": "Not answered yet. The learner asked a side question first. Answer it. The question stays open in their window, so don't repeat it or ask another."
+							}
+						],
+						"isError": false,
+						"timestamp": 1
+					},
+					{
+						"role": "user",
+						"content": "quick one",
+						"timestamp": 3
+					},
+					{
+						"role": "assistant",
+						"content": [
+							{
+								"type": "text",
+								"text": "answer"
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "stop",
+						"timestamp": 1
+					}
+				]
+			},
+			{
+				"name": "side_then_answer",
+				"messages": [
+					{
+						"id": "a1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "q1",
+								"name": "quiz",
+								"arguments": {
+									"nodeId": "n1",
+									"question": "q?"
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "toolUse",
+						"timestamp": 1
+					},
+					{
+						"id": "s1",
+						"role": "user",
+						"content": "quick one",
+						"timestamp": 3,
+						"side": true
+					},
+					{
+						"id": "a2",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "text",
+								"text": "answer"
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "stop",
+						"timestamp": 1
+					},
+					{
+						"id": "r1",
+						"role": "toolResult",
+						"toolCallId": "q1",
+						"toolName": "quiz",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"isError": false,
+						"timestamp": 2,
+						"details": {
+							"kind": "quiz",
+							"picked": 2
+						}
+					}
+				],
+				"active": null,
+				"dangling": null,
+				"endsInDismissal": false,
+				"hasProbeDone": false,
+				"pendingDismissal": null,
+				"retry": [
+					"a1",
+					"s1",
+					"a2",
+					"r1"
+				],
+				"phases": [
+					"probe",
+					"teach",
+					"teach"
+				],
+				"failed": [],
+				"sideTurn": false,
+				"held": [
+					[
+						"q1",
+						{
+							"callAt": 0,
+							"sideAt": 1
+						}
+					]
+				],
+				"concludeInputs": [],
+				"missingConclude": null,
+				"llm": [
+					{
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "q1",
+								"name": "quiz",
+								"arguments": {
+									"nodeId": "n1",
+									"question": "q?"
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "toolUse",
+						"timestamp": 1
+					},
+					{
+						"role": "toolResult",
+						"toolCallId": "q1",
+						"toolName": "quiz",
+						"content": [
+							{
+								"type": "text",
+								"text": "Not answered yet. The learner asked a side question first. Answer it. The question stays open in their window, so don't repeat it or ask another."
+							}
+						],
+						"isError": false,
+						"timestamp": 1
+					},
+					{
+						"role": "user",
+						"content": "quick one",
+						"timestamp": 3
+					},
+					{
+						"role": "assistant",
+						"content": [
+							{
+								"type": "text",
+								"text": "answer"
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "stop",
+						"timestamp": 1
+					},
+					{
+						"role": "user",
+						"content": [
+							{
+								"type": "text",
+								"text": "The learner answered your open question: ok"
+							}
+						],
+						"timestamp": 2
+					}
+				]
+			},
+			{
+				"name": "side_with_image",
+				"messages": [
+					{
+						"id": "a1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "q1",
+								"name": "explain",
+								"arguments": {}
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "toolUse",
+						"timestamp": 1
+					},
+					{
+						"id": "s1",
+						"role": "user",
+						"content": [
+							{
+								"type": "text",
+								"text": "see this"
+							},
+							{
+								"type": "image",
+								"data": "QUJD",
+								"mimeType": "image/png"
+							}
+						],
+						"timestamp": 3,
+						"side": true
+					},
+					{
+						"id": "r1",
+						"role": "toolResult",
+						"toolCallId": "q1",
+						"toolName": "explain",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"isError": false,
+						"timestamp": 2,
+						"details": {
+							"kind": "explain"
+						}
+					}
+				],
+				"active": null,
+				"dangling": null,
+				"endsInDismissal": false,
+				"hasProbeDone": false,
+				"pendingDismissal": null,
+				"retry": [
+					"a1",
+					"s1",
+					"r1"
+				],
+				"phases": [
+					"probe",
+					"plan",
+					"teach"
+				],
+				"failed": [],
+				"sideTurn": false,
+				"held": [
+					[
+						"q1",
+						{
+							"callAt": 0,
+							"sideAt": 1
+						}
+					]
+				],
+				"concludeInputs": [],
+				"missingConclude": null,
+				"llm": [
+					{
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "q1",
+								"name": "explain",
+								"arguments": {}
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "toolUse",
+						"timestamp": 1
+					},
+					{
+						"role": "toolResult",
+						"toolCallId": "q1",
+						"toolName": "explain",
+						"content": [
+							{
+								"type": "text",
+								"text": "Not answered yet. The learner asked a side question first. Answer it. The question stays open in their window, so don't repeat it or ask another."
+							}
+						],
+						"isError": false,
+						"timestamp": 1
+					},
+					{
+						"role": "user",
+						"content": [
+							{
+								"type": "text",
+								"text": "see this"
+							},
+							{
+								"type": "image",
+								"data": "QUJD",
+								"mimeType": "image/png"
+							}
+						],
+						"timestamp": 3
+					},
+					{
+						"role": "user",
+						"content": [
+							{
+								"type": "text",
+								"text": "The learner answered your open question: ok"
+							}
+						],
+						"timestamp": 2
+					}
+				]
+			},
+			{
+				"name": "problem_active",
+				"messages": [
+					{
+						"id": "a1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "p1",
+								"name": "problem",
+								"arguments": {
+									"statement": "Solve",
+									"mode": "work",
+									"target": [
+										"x"
+									],
+									"modelSolution": "42"
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "toolUse",
+						"timestamp": 1
+					},
+					{
+						"id": "r1",
+						"role": "toolResult",
+						"toolCallId": "p1",
+						"toolName": "problem",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"isError": false,
+						"timestamp": 2
+					}
+				],
+				"active": {
+					"toolCallId": "p1",
+					"input": {
+						"statement": "Solve",
+						"mode": "work",
+						"target": [
+							"x"
+						],
+						"modelSolution": "42"
+					}
+				},
+				"dangling": null,
+				"endsInDismissal": false,
+				"hasProbeDone": false,
+				"pendingDismissal": null,
+				"retry": [
+					"a1",
+					"r1"
+				],
+				"phases": [
+					"probe",
+					"plan",
+					"teach"
+				],
+				"failed": [],
+				"sideTurn": false,
+				"held": [],
+				"concludeInputs": [],
+				"missingConclude": null,
+				"llm": [
+					{
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "p1",
+								"name": "problem",
+								"arguments": {
+									"statement": "Solve",
+									"mode": "work",
+									"target": [
+										"x"
+									],
+									"modelSolution": "42"
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "toolUse",
+						"timestamp": 1
+					},
+					{
+						"role": "toolResult",
+						"toolCallId": "p1",
+						"toolName": "problem",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"isError": false,
+						"timestamp": 2
+					}
+				]
+			},
+			{
+				"name": "problem_unacked",
+				"messages": [
+					{
+						"id": "a1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "p1",
+								"name": "problem",
+								"arguments": {
+									"statement": "Solve"
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "toolUse",
+						"timestamp": 1
+					}
+				],
+				"active": null,
+				"dangling": null,
+				"endsInDismissal": false,
+				"hasProbeDone": false,
+				"pendingDismissal": null,
+				"retry": [
+					"a1"
+				],
+				"phases": [
+					"probe",
+					"plan",
+					"teach"
+				],
+				"failed": [],
+				"sideTurn": false,
+				"held": [],
+				"concludeInputs": [],
+				"missingConclude": null,
+				"llm": [
+					{
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "p1",
+								"name": "problem",
+								"arguments": {
+									"statement": "Solve"
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "toolUse",
+						"timestamp": 1
+					},
+					{
+						"role": "toolResult",
+						"toolCallId": "p1",
+						"toolName": "problem",
+						"content": [
+							{
+								"type": "text",
+								"text": "The question was interrupted — the learner never answered; continue without holding a result for it."
+							}
+						],
+						"isError": false,
+						"timestamp": 1
+					}
+				]
+			},
+			{
+				"name": "problem_errored",
+				"messages": [
+					{
+						"id": "a1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "p1",
+								"name": "problem",
+								"arguments": {}
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "toolUse",
+						"timestamp": 1
+					},
+					{
+						"id": "r1",
+						"role": "toolResult",
+						"toolCallId": "p1",
+						"toolName": "problem",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"isError": true,
+						"timestamp": 2
+					}
+				],
+				"active": null,
+				"dangling": null,
+				"endsInDismissal": false,
+				"hasProbeDone": false,
+				"pendingDismissal": null,
+				"retry": [
+					"a1",
+					"r1"
+				],
+				"phases": [
+					"probe",
+					"plan",
+					"teach"
+				],
+				"failed": [],
+				"sideTurn": false,
+				"held": [],
+				"concludeInputs": [],
+				"missingConclude": null,
+				"llm": [
+					{
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "p1",
+								"name": "problem",
+								"arguments": {}
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "toolUse",
+						"timestamp": 1
+					},
+					{
+						"role": "toolResult",
+						"toolCallId": "p1",
+						"toolName": "problem",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"isError": true,
+						"timestamp": 2
+					}
+				]
+			},
+			{
+				"name": "problem_concluded",
+				"messages": [
+					{
+						"id": "a1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "p1",
+								"name": "problem",
+								"arguments": {
+									"statement": "Solve"
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "toolUse",
+						"timestamp": 1
+					},
+					{
+						"id": "r1",
+						"role": "toolResult",
+						"toolCallId": "p1",
+						"toolName": "problem",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"isError": false,
+						"timestamp": 2
+					},
+					{
+						"id": "a2",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "k1",
+								"name": "conclude",
+								"arguments": {
+									"outcome": "solved"
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "toolUse",
+						"timestamp": 1
+					},
+					{
+						"id": "r2",
+						"role": "toolResult",
+						"toolCallId": "k1",
+						"toolName": "conclude",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"isError": false,
+						"timestamp": 2
+					}
+				],
+				"active": null,
+				"dangling": null,
+				"endsInDismissal": false,
+				"hasProbeDone": false,
+				"pendingDismissal": null,
+				"retry": [
+					"a1",
+					"r1",
+					"a2",
+					"r2"
+				],
+				"phases": [
+					"probe",
+					"plan",
+					"teach"
+				],
+				"failed": [],
+				"sideTurn": false,
+				"held": [],
+				"concludeInputs": [
+					{
+						"statement": "Solve"
+					}
+				],
+				"missingConclude": null,
+				"llm": [
+					{
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "p1",
+								"name": "problem",
+								"arguments": {
+									"statement": "Solve"
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "toolUse",
+						"timestamp": 1
+					},
+					{
+						"role": "toolResult",
+						"toolCallId": "p1",
+						"toolName": "problem",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"isError": false,
+						"timestamp": 2
+					},
+					{
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "k1",
+								"name": "conclude",
+								"arguments": {
+									"outcome": "solved"
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "toolUse",
+						"timestamp": 1
+					},
+					{
+						"role": "toolResult",
+						"toolCallId": "k1",
+						"toolName": "conclude",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"isError": false,
+						"timestamp": 2
+					}
+				]
+			},
+			{
+				"name": "problem_conclude_errored",
+				"messages": [
+					{
+						"id": "a1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "p1",
+								"name": "problem",
+								"arguments": {
+									"statement": "Solve"
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "toolUse",
+						"timestamp": 1
+					},
+					{
+						"id": "r1",
+						"role": "toolResult",
+						"toolCallId": "p1",
+						"toolName": "problem",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"isError": false,
+						"timestamp": 2
+					},
+					{
+						"id": "a2",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "k1",
+								"name": "conclude",
+								"arguments": {}
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "toolUse",
+						"timestamp": 1
+					},
+					{
+						"id": "r2",
+						"role": "toolResult",
+						"toolCallId": "k1",
+						"toolName": "conclude",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"isError": true,
+						"timestamp": 2
+					}
+				],
+				"active": {
+					"toolCallId": "p1",
+					"input": {
+						"statement": "Solve"
+					}
+				},
+				"dangling": null,
+				"endsInDismissal": false,
+				"hasProbeDone": false,
+				"pendingDismissal": null,
+				"retry": [
+					"a1",
+					"r1",
+					"a2",
+					"r2"
+				],
+				"phases": [
+					"probe",
+					"plan",
+					"teach"
+				],
+				"failed": [],
+				"sideTurn": false,
+				"held": [],
+				"concludeInputs": [
+					{
+						"statement": "Solve"
+					}
+				],
+				"missingConclude": null,
+				"llm": [
+					{
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "p1",
+								"name": "problem",
+								"arguments": {
+									"statement": "Solve"
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "toolUse",
+						"timestamp": 1
+					},
+					{
+						"role": "toolResult",
+						"toolCallId": "p1",
+						"toolName": "problem",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"isError": false,
+						"timestamp": 2
+					},
+					{
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "k1",
+								"name": "conclude",
+								"arguments": {}
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "toolUse",
+						"timestamp": 1
+					},
+					{
+						"role": "toolResult",
+						"toolCallId": "k1",
+						"toolName": "conclude",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"isError": true,
+						"timestamp": 2
+					}
+				]
+			},
+			{
+				"name": "problem_dismissed",
+				"messages": [
+					{
+						"id": "a1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "p1",
+								"name": "problem",
+								"arguments": {
+									"statement": "Solve"
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "toolUse",
+						"timestamp": 1
+					},
+					{
+						"id": "r1",
+						"role": "toolResult",
+						"toolCallId": "p1",
+						"toolName": "problem",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"isError": false,
+						"timestamp": 2
+					},
+					{
+						"id": "c1",
+						"role": "custom",
+						"customType": "problem-dismissed",
+						"content": "marker problem-dismissed",
+						"display": true,
+						"details": {
+							"problemCallId": "p1"
+						},
+						"timestamp": 4
+					}
+				],
+				"active": null,
+				"dangling": null,
+				"endsInDismissal": false,
+				"hasProbeDone": false,
+				"pendingDismissal": "p1",
+				"retry": [
+					"a1",
+					"r1",
+					"c1"
+				],
+				"phases": [
+					"probe",
+					"plan",
+					"teach"
+				],
+				"failed": [],
+				"sideTurn": false,
+				"held": [],
+				"concludeInputs": [],
+				"missingConclude": null,
+				"llm": [
+					{
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "p1",
+								"name": "problem",
+								"arguments": {
+									"statement": "Solve"
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "toolUse",
+						"timestamp": 1
+					},
+					{
+						"role": "toolResult",
+						"toolCallId": "p1",
+						"toolName": "problem",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"isError": false,
+						"timestamp": 2
+					}
+				]
+			},
+			{
+				"name": "problem_dismissed_then_concluded",
+				"messages": [
+					{
+						"id": "a1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "p1",
+								"name": "problem",
+								"arguments": {}
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "toolUse",
+						"timestamp": 1
+					},
+					{
+						"id": "r1",
+						"role": "toolResult",
+						"toolCallId": "p1",
+						"toolName": "problem",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"isError": false,
+						"timestamp": 2
+					},
+					{
+						"id": "c1",
+						"role": "custom",
+						"customType": "problem-dismissed",
+						"content": "marker problem-dismissed",
+						"display": true,
+						"details": {
+							"problemCallId": "p1"
+						},
+						"timestamp": 4
+					},
+					{
+						"id": "pair0",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "call_conc_p1",
+								"name": "conclude",
+								"arguments": {
+									"outcome": "dismissed"
+								}
+							}
+						],
+						"timestamp": 5,
+						"api": "faux",
+						"provider": "synthetic",
+						"model": "synthetic-conclude",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse"
+					},
+					{
+						"id": "pair1",
+						"role": "toolResult",
+						"toolCallId": "call_conc_p1",
+						"toolName": "conclude",
+						"content": [
+							{
+								"type": "text",
+								"text": "Problem concluded. Say your closing words about the learner's work if useful, then END YOUR TURN — no further tool calls. The next problem is NEVER posed here: it waits for the learner's explicit go-ahead (a *Next problem* message, or their own words asking for the next one). Between problems, answer their questions about the concluded one."
+							}
+						],
+						"details": {
+							"outcome": "dismissed",
+							"problemCallId": "p1"
+						},
+						"isError": false,
+						"timestamp": 5
+					}
+				],
+				"active": null,
+				"dangling": null,
+				"endsInDismissal": false,
+				"hasProbeDone": false,
+				"pendingDismissal": null,
+				"retry": [
+					"a1",
+					"r1",
+					"c1",
+					"pair0",
+					"pair1"
+				],
+				"phases": [
+					"probe",
+					"plan",
+					"teach"
+				],
+				"failed": [],
+				"sideTurn": false,
+				"held": [],
+				"concludeInputs": [
+					{}
+				],
+				"missingConclude": null,
+				"llm": [
+					{
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "p1",
+								"name": "problem",
+								"arguments": {}
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "toolUse",
+						"timestamp": 1
+					},
+					{
+						"role": "toolResult",
+						"toolCallId": "p1",
+						"toolName": "problem",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"isError": false,
+						"timestamp": 2
+					},
+					{
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "call_conc_p1",
+								"name": "conclude",
+								"arguments": {
+									"outcome": "dismissed"
+								}
+							}
+						],
+						"timestamp": 5,
+						"api": "faux",
+						"provider": "synthetic",
+						"model": "synthetic-conclude",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse"
+					},
+					{
+						"role": "toolResult",
+						"toolCallId": "call_conc_p1",
+						"toolName": "conclude",
+						"content": [
+							{
+								"type": "text",
+								"text": "Problem concluded. Say your closing words about the learner's work if useful, then END YOUR TURN — no further tool calls. The next problem is NEVER posed here: it waits for the learner's explicit go-ahead (a *Next problem* message, or their own words asking for the next one). Between problems, answer their questions about the concluded one."
+							}
+						],
+						"details": {
+							"outcome": "dismissed",
+							"problemCallId": "p1"
+						},
+						"isError": false,
+						"timestamp": 5
+					}
+				]
+			},
+			{
+				"name": "problem_dismissed_then_new_problem",
+				"messages": [
+					{
+						"id": "a1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "p1",
+								"name": "problem",
+								"arguments": {}
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "toolUse",
+						"timestamp": 1
+					},
+					{
+						"id": "r1",
+						"role": "toolResult",
+						"toolCallId": "p1",
+						"toolName": "problem",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"isError": false,
+						"timestamp": 2
+					},
+					{
+						"id": "c1",
+						"role": "custom",
+						"customType": "problem-dismissed",
+						"content": "marker problem-dismissed",
+						"display": true,
+						"details": {
+							"problemCallId": "p1"
+						},
+						"timestamp": 4
+					},
+					{
+						"id": "a2",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "p2",
+								"name": "problem",
+								"arguments": {
+									"statement": "Again"
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "toolUse",
+						"timestamp": 1
+					},
+					{
+						"id": "r2",
+						"role": "toolResult",
+						"toolCallId": "p2",
+						"toolName": "problem",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"isError": false,
+						"timestamp": 2
+					}
+				],
+				"active": {
+					"toolCallId": "p2",
+					"input": {
+						"statement": "Again"
+					}
+				},
+				"dangling": null,
+				"endsInDismissal": false,
+				"hasProbeDone": false,
+				"pendingDismissal": null,
+				"retry": [
+					"a1",
+					"r1",
+					"c1",
+					"a2",
+					"r2"
+				],
+				"phases": [
+					"probe",
+					"plan",
+					"teach"
+				],
+				"failed": [],
+				"sideTurn": false,
+				"held": [],
+				"concludeInputs": [],
+				"missingConclude": null,
+				"llm": [
+					{
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "p1",
+								"name": "problem",
+								"arguments": {}
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "toolUse",
+						"timestamp": 1
+					},
+					{
+						"role": "toolResult",
+						"toolCallId": "p1",
+						"toolName": "problem",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"isError": false,
+						"timestamp": 2
+					},
+					{
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "p2",
+								"name": "problem",
+								"arguments": {
+									"statement": "Again"
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "toolUse",
+						"timestamp": 1
+					},
+					{
+						"role": "toolResult",
+						"toolCallId": "p2",
+						"toolName": "problem",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"isError": false,
+						"timestamp": 2
+					}
+				]
+			},
+			{
+				"name": "side_around_problem",
+				"messages": [
+					{
+						"id": "a1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "p1",
+								"name": "problem",
+								"arguments": {
+									"statement": "Solve"
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "toolUse",
+						"timestamp": 1
+					},
+					{
+						"id": "r1",
+						"role": "toolResult",
+						"toolCallId": "p1",
+						"toolName": "problem",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"isError": false,
+						"timestamp": 2
+					},
+					{
+						"id": "s1",
+						"role": "user",
+						"content": "what does that symbol mean?",
+						"timestamp": 3,
+						"side": true
+					},
+					{
+						"id": "a2",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "text",
+								"text": "it means"
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "stop",
+						"timestamp": 1
+					},
+					{
+						"id": "s2",
+						"role": "user",
+						"content": "and this one?",
+						"timestamp": 3,
+						"side": true
+					}
+				],
+				"active": {
+					"toolCallId": "p1",
+					"input": {
+						"statement": "Solve"
+					}
+				},
+				"dangling": null,
+				"endsInDismissal": false,
+				"hasProbeDone": false,
+				"pendingDismissal": null,
+				"retry": [
+					"a1",
+					"r1",
+					"s1",
+					"a2",
+					"s2"
+				],
+				"phases": [
+					"probe",
+					"plan",
+					"teach"
+				],
+				"failed": [],
+				"sideTurn": true,
+				"held": [],
+				"concludeInputs": [],
+				"missingConclude": null,
+				"llm": [
+					{
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "p1",
+								"name": "problem",
+								"arguments": {
+									"statement": "Solve"
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "toolUse",
+						"timestamp": 1
+					},
+					{
+						"role": "toolResult",
+						"toolCallId": "p1",
+						"toolName": "problem",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"isError": false,
+						"timestamp": 2
+					},
+					{
+						"role": "user",
+						"content": "Side question. Your problem stays open in their window: answer this in text, don't conclude it or pose another, and their thinking on it comes later. what does that symbol mean?",
+						"timestamp": 3
+					},
+					{
+						"role": "assistant",
+						"content": [
+							{
+								"type": "text",
+								"text": "it means"
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "stop",
+						"timestamp": 1
+					},
+					{
+						"role": "user",
+						"content": "Side question. Your problem stays open in their window: answer this in text, don't conclude it or pose another, and their thinking on it comes later. and this one?",
+						"timestamp": 3
+					}
+				]
+			},
+			{
+				"name": "side_around_problem_parts",
+				"messages": [
+					{
+						"id": "a1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "p1",
+								"name": "problem",
+								"arguments": {}
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "toolUse",
+						"timestamp": 1
+					},
+					{
+						"id": "r1",
+						"role": "toolResult",
+						"toolCallId": "p1",
+						"toolName": "problem",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"isError": false,
+						"timestamp": 2
+					},
+					{
+						"id": "s1",
+						"role": "user",
+						"content": [
+							{
+								"type": "image",
+								"data": "QUJD",
+								"mimeType": "image/png"
+							},
+							{
+								"type": "text",
+								"text": "caption"
+							}
+						],
+						"timestamp": 3,
+						"side": true
+					},
+					{
+						"id": "s2",
+						"role": "user",
+						"content": [
+							{
+								"type": "image",
+								"data": "QUJD",
+								"mimeType": "image/png"
+							}
+						],
+						"timestamp": 3,
+						"side": true
+					}
+				],
+				"active": {
+					"toolCallId": "p1",
+					"input": {}
+				},
+				"dangling": null,
+				"endsInDismissal": false,
+				"hasProbeDone": false,
+				"pendingDismissal": null,
+				"retry": [
+					"a1",
+					"r1",
+					"s1",
+					"s2"
+				],
+				"phases": [
+					"probe",
+					"plan",
+					"teach"
+				],
+				"failed": [],
+				"sideTurn": true,
+				"held": [],
+				"concludeInputs": [],
+				"missingConclude": null,
+				"llm": [
+					{
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "p1",
+								"name": "problem",
+								"arguments": {}
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "toolUse",
+						"timestamp": 1
+					},
+					{
+						"role": "toolResult",
+						"toolCallId": "p1",
+						"toolName": "problem",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"isError": false,
+						"timestamp": 2
+					},
+					{
+						"role": "user",
+						"content": [
+							{
+								"type": "text",
+								"text": "Side question. Your problem stays open in their window: answer this in text, don't conclude it or pose another, and their thinking on it comes later."
+							},
+							{
+								"type": "image",
+								"data": "QUJD",
+								"mimeType": "image/png"
+							},
+							{
+								"type": "text",
+								"text": "caption"
+							}
+						],
+						"timestamp": 3
+					},
+					{
+						"role": "user",
+						"content": [
+							{
+								"type": "text",
+								"text": "Side question. Your problem stays open in their window: answer this in text, don't conclude it or pose another, and their thinking on it comes later."
+							},
+							{
+								"type": "image",
+								"data": "QUJD",
+								"mimeType": "image/png"
+							}
+						],
+						"timestamp": 3
+					}
+				]
+			},
+			{
+				"name": "dismissed_question",
+				"messages": [
+					{
+						"id": "a1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "q1",
+								"name": "quiz",
+								"arguments": {
+									"nodeId": "n1",
+									"question": "q?"
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "toolUse",
+						"timestamp": 1
+					},
+					{
+						"id": "r1",
+						"role": "toolResult",
+						"toolCallId": "q1",
+						"toolName": "quiz",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"isError": false,
+						"timestamp": 2,
+						"details": {
+							"kind": "quiz",
+							"dismissed": true
+						}
+					}
+				],
+				"active": null,
+				"dangling": null,
+				"endsInDismissal": true,
+				"hasProbeDone": false,
+				"pendingDismissal": null,
+				"retry": [
+					"a1",
+					"r1"
+				],
+				"phases": [
+					"probe",
+					"teach",
+					"teach"
+				],
+				"failed": [],
+				"sideTurn": false,
+				"held": [],
+				"concludeInputs": [],
+				"missingConclude": null,
+				"llm": [
+					{
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "q1",
+								"name": "quiz",
+								"arguments": {
+									"nodeId": "n1",
+									"question": "q?"
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "toolUse",
+						"timestamp": 1
+					},
+					{
+						"role": "toolResult",
+						"toolCallId": "q1",
+						"toolName": "quiz",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"isError": false,
+						"timestamp": 2,
+						"details": {
+							"kind": "quiz",
+							"dismissed": true
+						}
+					}
+				]
+			},
+			{
+				"name": "trailing_failures",
+				"messages": [
+					{
+						"id": "u1",
+						"role": "user",
+						"content": "go",
+						"timestamp": 3
+					},
+					{
+						"id": "a1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "text",
+								"text": "partial"
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "error",
+						"timestamp": 1
+					},
+					{
+						"id": "a2",
+						"role": "assistant",
+						"content": [],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "aborted",
+						"timestamp": 1
+					}
+				],
+				"active": null,
+				"dangling": null,
+				"endsInDismissal": false,
+				"hasProbeDone": false,
+				"pendingDismissal": null,
+				"retry": [
+					"u1"
+				],
+				"phases": [
+					"probe",
+					"plan",
+					"teach"
+				],
+				"failed": [],
+				"sideTurn": false,
+				"held": [],
+				"concludeInputs": [],
+				"missingConclude": null,
+				"llm": [
+					{
+						"role": "user",
+						"content": "go",
+						"timestamp": 3
+					},
+					{
+						"role": "assistant",
+						"content": [
+							{
+								"type": "text",
+								"text": "partial"
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "error",
+						"timestamp": 1
+					},
+					{
+						"role": "assistant",
+						"content": [],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "aborted",
+						"timestamp": 1
+					}
+				]
+			},
+			{
+				"name": "trailing_stop",
+				"messages": [
+					{
+						"id": "u1",
+						"role": "user",
+						"content": "go",
+						"timestamp": 3
+					},
+					{
+						"id": "a1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "text",
+								"text": "done"
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "stop",
+						"timestamp": 1
+					}
+				],
+				"active": null,
+				"dangling": null,
+				"endsInDismissal": false,
+				"hasProbeDone": false,
+				"pendingDismissal": null,
+				"retry": [
+					"u1",
+					"a1"
+				],
+				"phases": [
+					"probe",
+					"plan",
+					"teach"
+				],
+				"failed": [],
+				"sideTurn": false,
+				"held": [],
+				"concludeInputs": [],
+				"missingConclude": null,
+				"llm": [
+					{
+						"role": "user",
+						"content": "go",
+						"timestamp": 3
+					},
+					{
+						"role": "assistant",
+						"content": [
+							{
+								"type": "text",
+								"text": "done"
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "stop",
+						"timestamp": 1
+					}
+				]
+			},
+			{
+				"name": "send_to_user",
+				"messages": [
+					{
+						"id": "a1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "s1",
+								"name": "send_to_user",
+								"arguments": {
+									"message": "hello there"
+								}
+							},
+							{
+								"type": "toolCall",
+								"id": "s2",
+								"name": "send_to_user",
+								"arguments": {
+									"message": "bad"
+								}
+							},
+							{
+								"type": "text",
+								"text": "plain"
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "toolUse",
+						"timestamp": 1
+					},
+					{
+						"id": "r1",
+						"role": "toolResult",
+						"toolCallId": "s1",
+						"toolName": "send_to_user",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"isError": false,
+						"timestamp": 2
+					},
+					{
+						"id": "r2",
+						"role": "toolResult",
+						"toolCallId": "s2",
+						"toolName": "send_to_user",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"isError": true,
+						"timestamp": 2
+					}
+				],
+				"active": null,
+				"dangling": null,
+				"endsInDismissal": false,
+				"hasProbeDone": false,
+				"pendingDismissal": null,
+				"retry": [
+					"a1",
+					"r1",
+					"r2"
+				],
+				"phases": [
+					"probe",
+					"plan",
+					"teach"
+				],
+				"failed": [
+					"s2"
+				],
+				"sideTurn": false,
+				"held": [],
+				"concludeInputs": [],
+				"missingConclude": null,
+				"llm": [
+					{
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "s1",
+								"name": "send_to_user",
+								"arguments": {
+									"message": "hello there"
+								}
+							},
+							{
+								"type": "toolCall",
+								"id": "s2",
+								"name": "send_to_user",
+								"arguments": {
+									"message": "bad"
+								}
+							},
+							{
+								"type": "text",
+								"text": "plain"
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "toolUse",
+						"timestamp": 1
+					},
+					{
+						"role": "toolResult",
+						"toolCallId": "s1",
+						"toolName": "send_to_user",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"isError": false,
+						"timestamp": 2
+					},
+					{
+						"role": "toolResult",
+						"toolCallId": "s2",
+						"toolName": "send_to_user",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"isError": true,
+						"timestamp": 2
+					}
+				]
+			},
+			{
+				"name": "side_around_two_questions",
+				"messages": [
+					{
+						"id": "a1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "q1",
+								"name": "quiz",
+								"arguments": {
+									"question": "say \"hi\" — ok"
+								}
+							},
+							{
+								"type": "toolCall",
+								"id": "q2",
+								"name": "explain",
+								"arguments": {
+									"question": "é \ud800 😀"
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "toolUse",
+						"timestamp": 1
+					},
+					{
+						"id": "s1",
+						"role": "user",
+						"content": "wait",
+						"timestamp": 3,
+						"side": true
+					},
+					{
+						"id": "a2",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "text",
+								"text": "sure"
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "stop",
+						"timestamp": 1
+					},
+					{
+						"id": "r1",
+						"role": "toolResult",
+						"toolCallId": "q1",
+						"toolName": "quiz",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"isError": false,
+						"timestamp": 2,
+						"details": {
+							"kind": "quiz"
+						}
+					},
+					{
+						"id": "r2",
+						"role": "toolResult",
+						"toolCallId": "q2",
+						"toolName": "explain",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"isError": false,
+						"timestamp": 2,
+						"details": {
+							"kind": "explain"
+						}
+					}
+				],
+				"active": null,
+				"dangling": null,
+				"endsInDismissal": false,
+				"hasProbeDone": false,
+				"pendingDismissal": null,
+				"retry": [
+					"a1",
+					"s1",
+					"a2",
+					"r1",
+					"r2"
+				],
+				"phases": [
+					"probe",
+					"plan",
+					"teach"
+				],
+				"failed": [],
+				"sideTurn": false,
+				"held": [
+					[
+						"q1",
+						{
+							"callAt": 0,
+							"sideAt": 1
+						}
+					],
+					[
+						"q2",
+						{
+							"callAt": 0,
+							"sideAt": 1
+						}
+					]
+				],
+				"concludeInputs": [],
+				"missingConclude": null,
+				"llm": [
+					{
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "q1",
+								"name": "quiz",
+								"arguments": {
+									"question": "say \"hi\" — ok"
+								}
+							},
+							{
+								"type": "toolCall",
+								"id": "q2",
+								"name": "explain",
+								"arguments": {
+									"question": "é \ud800 😀"
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "toolUse",
+						"timestamp": 1
+					},
+					{
+						"role": "toolResult",
+						"toolCallId": "q1",
+						"toolName": "quiz",
+						"content": [
+							{
+								"type": "text",
+								"text": "Not answered yet. The learner asked a side question first. Answer it. The question stays open in their window, so don't repeat it or ask another."
+							}
+						],
+						"isError": false,
+						"timestamp": 1
+					},
+					{
+						"role": "toolResult",
+						"toolCallId": "q2",
+						"toolName": "explain",
+						"content": [
+							{
+								"type": "text",
+								"text": "Not answered yet. The learner asked a side question first. Answer it. The question stays open in their window, so don't repeat it or ask another."
+							}
+						],
+						"isError": false,
+						"timestamp": 1
+					},
+					{
+						"role": "user",
+						"content": "wait",
+						"timestamp": 3
+					},
+					{
+						"role": "assistant",
+						"content": [
+							{
+								"type": "text",
+								"text": "sure"
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "stop",
+						"timestamp": 1
+					},
+					{
+						"role": "user",
+						"content": [
+							{
+								"type": "text",
+								"text": "The learner answered your open question (\"say \\\"hi\\\" — ok\"): ok"
+							}
+						],
+						"timestamp": 2
+					},
+					{
+						"role": "user",
+						"content": [
+							{
+								"type": "text",
+								"text": "The learner answered your open question (\"é \\ud800 😀\"): ok"
+							}
+						],
+						"timestamp": 2
+					}
+				]
+			},
+			{
+				"name": "compacted",
+				"messages": [
+					{
+						"id": "u0",
+						"role": "user",
+						"content": "old one",
+						"timestamp": 3
+					},
+					{
+						"id": "a0",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "text",
+								"text": "old reply"
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "stop",
+						"timestamp": 1
+					},
+					{
+						"id": "c1",
+						"role": "custom",
+						"customType": "compaction",
+						"content": "[Summary] earlier talk",
+						"display": true,
+						"details": {
+							"firstKeptMessageId": "u1"
+						},
+						"timestamp": 4
+					},
+					{
+						"id": "u1",
+						"role": "user",
+						"content": "kept",
+						"timestamp": 3
+					},
+					{
+						"id": "a1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "text",
+								"text": "kept reply"
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "stop",
+						"timestamp": 1
+					}
+				],
+				"active": null,
+				"dangling": null,
+				"endsInDismissal": false,
+				"hasProbeDone": false,
+				"pendingDismissal": null,
+				"retry": [
+					"u0",
+					"a0",
+					"c1",
+					"u1",
+					"a1"
+				],
+				"phases": [
+					"probe",
+					"plan",
+					"teach"
+				],
+				"failed": [],
+				"sideTurn": false,
+				"held": [],
+				"concludeInputs": [],
+				"missingConclude": null,
+				"llm": [
+					{
+						"role": "user",
+						"content": [
+							{
+								"type": "text",
+								"text": "[Summary] earlier talk"
+							}
+						],
+						"timestamp": 4
+					},
+					{
+						"role": "user",
+						"content": "kept",
+						"timestamp": 3
+					},
+					{
+						"role": "assistant",
+						"content": [
+							{
+								"type": "text",
+								"text": "kept reply"
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "stop",
+						"timestamp": 1
+					}
+				]
+			},
+			{
+				"name": "compaction_names_missing_id",
+				"messages": [
+					{
+						"id": "u0",
+						"role": "user",
+						"content": "one",
+						"timestamp": 3
+					},
+					{
+						"id": "c1",
+						"role": "custom",
+						"customType": "compaction",
+						"content": "[Summary]",
+						"display": true,
+						"details": {
+							"firstKeptMessageId": "gone"
+						},
+						"timestamp": 4
+					},
+					{
+						"id": "u1",
+						"role": "user",
+						"content": "two",
+						"timestamp": 3
+					}
+				],
+				"active": null,
+				"dangling": null,
+				"endsInDismissal": false,
+				"hasProbeDone": false,
+				"pendingDismissal": null,
+				"retry": [
+					"u0",
+					"c1",
+					"u1"
+				],
+				"phases": [
+					"probe",
+					"plan",
+					"teach"
+				],
+				"failed": [],
+				"sideTurn": false,
+				"held": [],
+				"concludeInputs": [],
+				"missingConclude": null,
+				"llm": [
+					{
+						"role": "user",
+						"content": "one",
+						"timestamp": 3
+					},
+					{
+						"role": "user",
+						"content": [
+							{
+								"type": "text",
+								"text": "[Summary]"
+							}
+						],
+						"timestamp": 4
+					},
+					{
+						"role": "user",
+						"content": "two",
+						"timestamp": 3
+					}
+				]
+			},
+			{
+				"name": "markers",
+				"messages": [
+					{
+						"id": "m1",
+						"role": "custom",
+						"customType": "class-context",
+						"content": "[Class context] x",
+						"display": true,
+						"details": {
+							"classId": "c"
+						},
+						"timestamp": 4
+					},
+					{
+						"id": "m2",
+						"role": "custom",
+						"customType": "today-context",
+						"content": "[Today] it is Tuesday",
+						"display": false,
+						"details": {
+							"day": "2026-11-10"
+						},
+						"timestamp": 4
+					},
+					{
+						"id": "m3",
+						"role": "custom",
+						"customType": "practice-thinking",
+						"content": "marker practice-thinking",
+						"display": true,
+						"details": {
+							"problemCallId": "p1",
+							"text": "t"
+						},
+						"timestamp": 4,
+						"attachments": [
+							{
+								"type": "image",
+								"data": "QUJD",
+								"mimeType": "image/png"
+							}
+						]
+					},
+					{
+						"id": "m4",
+						"role": "custom",
+						"customType": "plan-block",
+						"content": "marker plan-block",
+						"display": true,
+						"details": {
+							"planCallId": "x"
+						},
+						"timestamp": 4
+					},
+					{
+						"id": "m5",
+						"role": "custom",
+						"customType": "app-request",
+						"content": "marker app-request",
+						"display": true,
+						"details": {
+							"deadlines": []
+						},
+						"timestamp": 4
+					},
+					{
+						"id": "u1",
+						"role": "user",
+						"content": [
+							{
+								"type": "text",
+								"text": "with picture"
+							},
+							{
+								"type": "image",
+								"data": "QUJD",
+								"mimeType": "image/png"
+							}
+						],
+						"timestamp": 3
+					},
+					{
+						"id": "sys",
+						"role": "bogus",
+						"stuff": 1
+					}
+				],
+				"active": null,
+				"dangling": null,
+				"endsInDismissal": false,
+				"hasProbeDone": false,
+				"pendingDismissal": null,
+				"retry": [
+					"m1",
+					"m2",
+					"m3",
+					"m4",
+					"m5",
+					"u1",
+					"sys"
+				],
+				"phases": [
+					"probe",
+					"plan",
+					"teach"
+				],
+				"failed": [],
+				"sideTurn": false,
+				"held": [],
+				"concludeInputs": [],
+				"missingConclude": null,
+				"llm": [
+					{
+						"role": "user",
+						"content": [
+							{
+								"type": "text",
+								"text": "[Class context] x"
+							}
+						],
+						"timestamp": 4
+					},
+					{
+						"role": "user",
+						"content": [
+							{
+								"type": "text",
+								"text": "[Today] it is Tuesday"
+							}
+						],
+						"timestamp": 4
+					},
+					{
+						"role": "user",
+						"content": [
+							{
+								"type": "text",
+								"text": "marker practice-thinking"
+							},
+							{
+								"type": "image",
+								"data": "QUJD",
+								"mimeType": "image/png"
+							}
+						],
+						"timestamp": 4
+					},
+					{
+						"role": "user",
+						"content": [
+							{
+								"type": "text",
+								"text": "marker app-request"
+							}
+						],
+						"timestamp": 4
+					},
+					{
+						"role": "user",
+						"content": [
+							{
+								"type": "text",
+								"text": "with picture"
+							},
+							{
+								"type": "image",
+								"data": "QUJD",
+								"mimeType": "image/png"
+							}
+						],
+						"timestamp": 3
+					},
+					{
+						"role": "bogus",
+						"stuff": 1
+					}
+				]
+			},
+			{
+				"name": "system_first",
+				"messages": [
+					{
+						"role": "system",
+						"content": "chrome"
+					},
+					{
+						"id": "u1",
+						"role": "user",
+						"content": "hi",
+						"timestamp": 3
+					},
+					{
+						"id": "a1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "q1",
+								"name": "quiz",
+								"arguments": {
+									"nodeId": "n1",
+									"question": "q?"
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "toolUse",
+						"timestamp": 1
+					}
+				],
+				"active": null,
+				"dangling": {
+					"toolCallId": "q1",
+					"tool": "quiz",
+					"input": {
+						"nodeId": "n1",
+						"question": "q?"
+					}
+				},
+				"endsInDismissal": false,
+				"hasProbeDone": false,
+				"pendingDismissal": null,
+				"retry": [
+					null,
+					"u1",
+					"a1"
+				],
+				"phases": [
+					"probe",
+					"teach",
+					"teach"
+				],
+				"failed": [],
+				"sideTurn": false,
+				"held": [],
+				"concludeInputs": [],
+				"missingConclude": null,
+				"llm": [
+					{
+						"role": "system",
+						"content": "chrome"
+					},
+					{
+						"role": "user",
+						"content": "hi",
+						"timestamp": 3
+					},
+					{
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "q1",
+								"name": "quiz",
+								"arguments": {
+									"nodeId": "n1",
+									"question": "q?"
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "toolUse",
+						"timestamp": 1
+					},
+					{
+						"role": "toolResult",
+						"toolCallId": "q1",
+						"toolName": "quiz",
+						"content": [
+							{
+								"type": "text",
+								"text": "The question was interrupted — the learner never answered; continue without holding a result for it."
+							}
+						],
+						"isError": false,
+						"timestamp": 1
+					}
+				]
+			},
+			{
+				"name": "dangling_calls",
+				"messages": [
+					{
+						"id": "a1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "q1",
+								"name": "quiz",
+								"arguments": {
+									"nodeId": "n1",
+									"question": "q?"
+								}
+							},
+							{
+								"type": "toolCall",
+								"id": "t1",
+								"name": "read",
+								"arguments": {}
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "toolUse",
+						"timestamp": 1
+					},
+					{
+						"id": "u2",
+						"role": "user",
+						"content": "stop",
+						"timestamp": 3
+					},
+					{
+						"id": "a2",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "t1",
+								"name": "read",
+								"arguments": {}
+							},
+							{
+								"type": "toolCall",
+								"id": "t1",
+								"name": "read",
+								"arguments": {}
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "toolUse",
+						"timestamp": 1
+					},
+					{
+						"id": "r2",
+						"role": "toolResult",
+						"toolCallId": "t1",
+						"toolName": "read",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"isError": false,
+						"timestamp": 2
+					}
+				],
+				"active": null,
+				"dangling": null,
+				"endsInDismissal": false,
+				"hasProbeDone": false,
+				"pendingDismissal": null,
+				"retry": [
+					"a1",
+					"u2",
+					"a2",
+					"r2"
+				],
+				"phases": [
+					"probe",
+					"teach",
+					"teach"
+				],
+				"failed": [],
+				"sideTurn": false,
+				"held": [],
+				"concludeInputs": [],
+				"missingConclude": null,
+				"llm": [
+					{
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "q1",
+								"name": "quiz",
+								"arguments": {
+									"nodeId": "n1",
+									"question": "q?"
+								}
+							},
+							{
+								"type": "toolCall",
+								"id": "t1",
+								"name": "read",
+								"arguments": {}
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "toolUse",
+						"timestamp": 1
+					},
+					{
+						"role": "toolResult",
+						"toolCallId": "q1",
+						"toolName": "quiz",
+						"content": [
+							{
+								"type": "text",
+								"text": "The question was interrupted — the learner never answered; continue without holding a result for it."
+							}
+						],
+						"isError": false,
+						"timestamp": 1
+					},
+					{
+						"role": "user",
+						"content": "stop",
+						"timestamp": 3
+					},
+					{
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "t1",
+								"name": "read",
+								"arguments": {}
+							},
+							{
+								"type": "toolCall",
+								"id": "t1",
+								"name": "read",
+								"arguments": {}
+							}
+						],
+						"api": "faux",
+						"provider": "p",
+						"model": "m",
+						"stopReason": "toolUse",
+						"timestamp": 1
+					},
+					{
+						"role": "toolResult",
+						"toolCallId": "t1",
+						"toolName": "read",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"isError": false,
+						"timestamp": 2
+					}
+				]
+			}
+		]
+	},
+	{
+		"name": "first phase",
+		"output": [
+			{
+				"kind": null,
+				"phase": "probe"
+			},
+			{
+				"kind": "teach",
+				"phase": "probe"
+			},
+			{
+				"kind": "practice",
+				"phase": "probe"
+			},
+			{
+				"kind": "study",
+				"phase": "teach"
+			},
+			{
+				"kind": "homework",
+				"phase": "teach"
+			},
+			{
+				"kind": "talk",
+				"phase": "probe"
+			},
+			{
+				"kind": "",
+				"phase": "probe"
+			}
+		]
+	},
+	{
+		"name": "user facing text",
+		"output": [
+			{
+				"content": {
+					"text": "plain"
+				},
+				"all": [],
+				"failed": []
+			},
+			{
+				"content": [
+					{
+						"type": "text",
+						"text": "a"
+					},
+					{
+						"type": "toolCall",
+						"id": "s1",
+						"name": "send_to_user",
+						"arguments": {
+							"message": "hi"
+						}
+					},
+					{
+						"type": "toolCall",
+						"id": "s2",
+						"name": "send_to_user",
+						"arguments": {
+							"message": "no"
+						}
+					},
+					{
+						"type": "toolCall",
+						"id": "s3",
+						"name": "send_to_user",
+						"arguments": {}
+					},
+					{
+						"type": "toolCall",
+						"id": "s4",
+						"name": "send_to_user",
+						"arguments": {
+							"message": 5
+						}
+					},
+					{
+						"type": "toolCall",
+						"id": "s5",
+						"name": "send_to_user",
+						"arguments": {
+							"text": "old shape"
+						}
+					},
+					{
+						"type": "toolCall",
+						"id": "s6",
+						"name": "send_to_user",
+						"arguments": {
+							"message": " \n"
+						}
+					},
+					{
+						"type": "image",
+						"data": "QUJD",
+						"mimeType": "image/png"
+					}
+				],
+				"all": [
+					"a",
+					"hi",
+					"no"
+				],
+				"failed": [
+					"a",
+					"hi"
+				]
+			},
+			{
+				"content": [],
+				"all": [],
+				"failed": []
+			},
+			{
+				"content": null,
+				"all": [],
+				"failed": []
+			},
+			{
+				"content": "string",
+				"all": [
+					"string"
+				],
+				"failed": [
+					"string"
+				]
+			}
+		]
+	},
+	{
+		"name": "send to user text",
+		"output": [
+			{
+				"block": null,
+				"text": null
+			},
+			{
+				"block": 4,
+				"text": null
+			},
+			{
+				"block": {},
+				"text": null
+			},
+			{
+				"block": {
+					"type": "text"
+				},
+				"text": null
+			},
+			{
+				"block": {
+					"type": "toolCall",
+					"id": "x",
+					"name": "other",
+					"arguments": {
+						"text": "t"
+					}
+				},
+				"text": null
+			},
+			{
+				"block": {
+					"type": "toolCall",
+					"id": "x",
+					"name": "send_to_user",
+					"arguments": {}
+				},
+				"text": null
+			},
+			{
+				"block": {
+					"type": "toolCall",
+					"id": "x",
+					"name": "send_to_user",
+					"arguments": {
+						"text": "  hi "
+					}
+				},
+				"text": null
+			},
+			{
+				"block": {
+					"type": "toolCall",
+					"id": "x",
+					"name": "send_to_user",
+					"arguments": {
+						"message": ""
+					}
+				},
+				"text": null
+			},
+			{
+				"block": {
+					"type": "toolCall",
+					"id": "x",
+					"name": "send_to_user",
+					"arguments": {
+						"message": "  hi "
+					}
+				},
+				"text": "  hi "
+			},
+			{
+				"block": {
+					"type": "toolCall",
+					"id": "x",
+					"name": "send_to_user",
+					"arguments": {
+						"message": " "
+					}
+				},
+				"text": null
+			},
+			{
+				"block": {
+					"type": "toolCall",
+					"id": "x",
+					"name": "send_to_user",
+					"arguments": null
+				},
+				"text": null
+			},
+			{
+				"block": {
+					"type": "toolCall",
+					"name": "send_to_user",
+					"arguments": [
+						"hi"
+					]
+				},
+				"text": null
+			}
+		]
+	},
+	{
+		"name": "new messages",
+		"output": [
+			{
+				"name": "user",
+				"built": {
+					"id": "<id>",
+					"role": "user",
+					"content": "hello",
+					"timestamp": 0
+				}
+			},
+			{
+				"name": "user with files",
+				"built": {
+					"id": "<id>",
+					"role": "user",
+					"content": [
+						{
+							"type": "text",
+							"text": "hello"
+						},
+						{
+							"type": "text",
+							"text": "[Attached PDF]"
+						},
+						{
+							"type": "image",
+							"data": "QUJD",
+							"mimeType": "image/png"
+						}
+					],
+					"timestamp": 0
+				}
+			},
+			{
+				"name": "side",
+				"built": {
+					"id": "<id>",
+					"role": "user",
+					"content": "why?",
+					"timestamp": 0,
+					"side": true
+				}
+			},
+			{
+				"name": "side with files",
+				"built": {
+					"id": "<id>",
+					"role": "user",
+					"content": [
+						{
+							"type": "text",
+							"text": "why?"
+						},
+						{
+							"type": "image",
+							"data": "QUJD",
+							"mimeType": "image/png"
+						}
+					],
+					"timestamp": 0,
+					"side": true
+				}
+			},
+			{
+				"name": "steer",
+				"built": {
+					"id": "steer_1",
+					"role": "user",
+					"content": "keep going",
+					"timestamp": 0
+				}
+			},
+			{
+				"name": "answer",
+				"built": {
+					"id": "<id>",
+					"role": "toolResult",
+					"toolCallId": "q1",
+					"toolName": "quiz",
+					"content": [
+						{
+							"type": "text",
+							"text": "{\"kind\":\"quiz\"}"
+						}
+					],
+					"details": {
+						"kind": "quiz",
+						"picked": 2
+					},
+					"isError": false,
+					"timestamp": 0
+				}
+			},
+			{
+				"name": "answer with files",
+				"built": {
+					"id": "<id>",
+					"role": "toolResult",
+					"toolCallId": "q1",
+					"toolName": "explain",
+					"content": [
+						{
+							"type": "text",
+							"text": "{\"kind\":\"explain\",\"text\":\"t\"}"
+						},
+						{
+							"type": "image",
+							"data": "QUJD",
+							"mimeType": "image/png"
+						}
+					],
+					"details": {
+						"kind": "explain",
+						"text": "t"
+					},
+					"isError": false,
+					"timestamp": 0
+				}
+			},
+			{
+				"name": "handoff",
+				"built": {
+					"id": "steer_probe_chat_abc",
+					"role": "custom",
+					"customType": "probe-handoff",
+					"content": "Next: plan the full teaching arc from my current understanding to the goal understanding. Apply the teaching methodology in your system prompt, and find the optimal way to teach me this. Find the unconditional truths, plan the motivated derivations/discoveries, so every reasoning step has to land as obviously true. Take your time here and really think this through. When it's genuinely reasoned out, call plan_init and present the plan; I'll accept it or ask for changes.",
+					"display": true,
+					"details": {
+						"chatId": "chat_abc"
+					},
+					"timestamp": 0
+				}
+			},
+			{
+				"name": "plan block",
+				"built": {
+					"id": "<id>",
+					"role": "custom",
+					"customType": "plan-block",
+					"content": "",
+					"display": true,
+					"details": {
+						"planCallId": "plan_1",
+						"block": {
+							"steps": [
+								"a"
+							]
+						}
+					},
+					"timestamp": 0
+				}
+			},
+			{
+				"name": "today",
+				"built": {
+					"id": "<id>",
+					"role": "custom",
+					"customType": "today-context",
+					"content": "[Today] Tuesday",
+					"display": false,
+					"details": {
+						"day": "2026-11-10"
+					},
+					"timestamp": 0
+				}
+			},
+			{
+				"name": "app request",
+				"built": {
+					"id": "<id>",
+					"role": "custom",
+					"customType": "app-request",
+					"content": "[From godspeed, not the learner] Add the deadlines",
+					"display": true,
+					"details": {
+						"deadlines": [
+							{
+								"id": "d1",
+								"title": "Quiz"
+							}
+						]
+					},
+					"timestamp": 0
+				}
+			},
+			{
+				"name": "thinking",
+				"built": {
+					"id": "<id>",
+					"role": "custom",
+					"customType": "practice-thinking",
+					"content": "Your thinking:\nmy idea",
+					"display": true,
+					"details": {
+						"problemCallId": "p1",
+						"text": "my idea"
+					},
+					"timestamp": 0
+				}
+			},
+			{
+				"name": "thinking with files",
+				"built": {
+					"id": "<id>",
+					"role": "custom",
+					"customType": "practice-thinking",
+					"content": "Your thinking:\nmy idea",
+					"attachments": [
+						{
+							"type": "image",
+							"data": "QUJD",
+							"mimeType": "image/png"
+						}
+					],
+					"display": true,
+					"details": {
+						"problemCallId": "p1",
+						"text": "my idea"
+					},
+					"timestamp": 0
+				}
+			},
+			{
+				"name": "next",
+				"built": {
+					"id": "<id>",
+					"role": "custom",
+					"customType": "practice-next",
+					"content": "[NEXT PROBLEM] — the learner's explicit go-ahead: pose the next problem now per the selection rules, or wrap the session in text if the arc is complete.",
+					"display": true,
+					"details": {},
+					"timestamp": 0
+				}
+			},
+			{
+				"name": "dismissed marker",
+				"built": {
+					"id": "<id>",
+					"role": "custom",
+					"customType": "problem-dismissed",
+					"content": "",
+					"display": true,
+					"details": {
+						"problemCallId": "p1"
+					},
+					"timestamp": 0
+				}
+			},
+			{
+				"name": "dismissal pair",
+				"built": [
+					{
+						"id": "<id>",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "call_conc_p1",
+								"name": "conclude",
+								"arguments": {
+									"outcome": "dismissed"
+								}
+							}
+						],
+						"timestamp": 0,
+						"api": "faux",
+						"provider": "synthetic",
+						"model": "synthetic-conclude",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse"
+					},
+					{
+						"id": "<id>",
+						"role": "toolResult",
+						"toolCallId": "call_conc_p1",
+						"toolName": "conclude",
+						"content": [
+							{
+								"type": "text",
+								"text": "Problem concluded. Say your closing words about the learner's work if useful, then END YOUR TURN — no further tool calls. The next problem is NEVER posed here: it waits for the learner's explicit go-ahead (a *Next problem* message, or their own words asking for the next one). Between problems, answer their questions about the concluded one."
+							}
+						],
+						"details": {
+							"outcome": "dismissed",
+							"problemCallId": "p1"
+						},
+						"isError": false,
+						"timestamp": 0
+					}
+				]
+			}
+		]
+	},
+	{
+		"name": "context cards",
+		"output": [
+			{
+				"card": {
+					"classId": "c1",
+					"name": "CSE 21",
+					"description": "  My class.  ",
+					"files": []
+				},
+				"text": "[Class context] — this lesson belongs to a course the learner is taking:\n\nClass: CSE 21\n\nAbout the class (the learner's own words):\nMy class.",
+				"message": {
+					"id": "<id>",
+					"role": "custom",
+					"customType": "class-context",
+					"content": "[Class context] — this lesson belongs to a course the learner is taking:\n\nClass: CSE 21\n\nAbout the class (the learner's own words):\nMy class.",
+					"display": true,
+					"details": {
+						"classId": "c1",
+						"name": "CSE 21",
+						"description": "  My class.  ",
+						"files": []
+					},
+					"timestamp": 0
+				}
+			},
+			{
+				"card": {
+					"classId": "c2",
+					"name": "Math",
+					"description": "",
+					"files": [
+						{
+							"name": "notes.pdf",
+							"kind": "study",
+							"path": "/f/notes.pdf",
+							"size": "98 pages",
+							"status": "ready"
+						},
+						{
+							"name": "syllabus.pdf",
+							"kind": "info",
+							"path": "/f/syllabus.pdf",
+							"status": "reading"
+						},
+						{
+							"name": "gone.pdf",
+							"kind": "info",
+							"path": null
+						},
+						{
+							"name": "talk.mp4",
+							"kind": "study",
+							"path": "/f/talk.txt",
+							"size": "52 min",
+							"status": "failed"
+						}
+					],
+					"topics": [
+						{
+							"name": "Limits",
+							"facts": 4
+						},
+						{
+							"name": "Series",
+							"facts": 0
+						}
+					]
+				},
+				"text": "[Class context] — this lesson belongs to a course the learner is taking:\n\nClass: Math\n\nClass files (study material = turned into the class's knowledge graph; course info = syllabus, assignments, logistics):\n- [study material] notes.pdf (98 pages) — /f/notes.pdf\n- [course info] syllabus.pdf (reading) — /f/syllabus.pdf\n- [study material] talk.mp4 (52 min, failed) — /f/talk.txt\n\nTopics in the class's knowledge graph (facts in each):\nLimits (4), Series (0)",
+				"message": {
+					"id": "<id>",
+					"role": "custom",
+					"customType": "class-context",
+					"content": "[Class context] — this lesson belongs to a course the learner is taking:\n\nClass: Math\n\nClass files (study material = turned into the class's knowledge graph; course info = syllabus, assignments, logistics):\n- [study material] notes.pdf (98 pages) — /f/notes.pdf\n- [course info] syllabus.pdf (reading) — /f/syllabus.pdf\n- [study material] talk.mp4 (52 min, failed) — /f/talk.txt\n\nTopics in the class's knowledge graph (facts in each):\nLimits (4), Series (0)",
+					"display": true,
+					"details": {
+						"classId": "c2",
+						"name": "Math",
+						"description": "",
+						"files": [
+							{
+								"name": "notes.pdf",
+								"kind": "study",
+								"path": "/f/notes.pdf",
+								"size": "98 pages",
+								"status": "ready"
+							},
+							{
+								"name": "syllabus.pdf",
+								"kind": "info",
+								"path": "/f/syllabus.pdf",
+								"status": "reading"
+							},
+							{
+								"name": "gone.pdf",
+								"kind": "info",
+								"path": null
+							},
+							{
+								"name": "talk.mp4",
+								"kind": "study",
+								"path": "/f/talk.txt",
+								"size": "52 min",
+								"status": "failed"
+							}
+						],
+						"topics": [
+							{
+								"name": "Limits",
+								"facts": 4
+							},
+							{
+								"name": "Series",
+								"facts": 0
+							}
+						]
+					},
+					"timestamp": 0
+				}
+			},
+			{
+				"card": {
+					"classId": "c3",
+					"name": "Empty topics",
+					"description": "d",
+					"files": [],
+					"topics": []
+				},
+				"text": "[Class context] — this lesson belongs to a course the learner is taking:\n\nClass: Empty topics\n\nAbout the class (the learner's own words):\nd",
+				"message": {
+					"id": "<id>",
+					"role": "custom",
+					"customType": "class-context",
+					"content": "[Class context] — this lesson belongs to a course the learner is taking:\n\nClass: Empty topics\n\nAbout the class (the learner's own words):\nd",
+					"display": true,
+					"details": {
+						"classId": "c3",
+						"name": "Empty topics",
+						"description": "d",
+						"files": [],
+						"topics": []
+					},
+					"timestamp": 0
+				}
+			},
+			{
+				"picks": [
+					{
+						"id": "p1",
+						"name": "Limit",
+						"statement": "A limit is"
+					}
+				],
+				"chains": [
+					"Limit → Continuity"
+				],
+				"message": {
+					"id": "<id>",
+					"role": "custom",
+					"customType": "graph-context",
+					"content": "[Session context] — picked from the learner's knowledge map when starting this session:\n\nPropositions (id — name: statement; the problem tool's target field uses these ids):\n- [p1] Limit: A limit is\n\nReasoning chains among them (premises → conclusion):\n- Limit → Continuity",
+					"display": true,
+					"details": {
+						"propositions": [
+							{
+								"id": "p1",
+								"name": "Limit",
+								"statement": "A limit is"
+							}
+						],
+						"chains": [
+							"Limit → Continuity"
+						]
+					},
+					"timestamp": 0
+				}
+			},
+			{
+				"picks": [],
+				"chains": [],
+				"message": {
+					"id": "<id>",
+					"role": "custom",
+					"customType": "graph-context",
+					"content": "[Session context] — picked from the learner's knowledge map when starting this session:\n\nPropositions (id — name: statement; the problem tool's target field uses these ids):",
+					"display": true,
+					"details": {
+						"propositions": [],
+						"chains": []
+					},
+					"timestamp": 0
+				}
+			},
+			{
+				"study": {
+					"id": "<id>",
+					"role": "custom",
+					"customType": "study-context",
+					"content": "[Study] topics",
+					"display": false,
+					"details": null,
+					"timestamp": 0
+				},
+				"homework": {
+					"id": "<id>",
+					"role": "custom",
+					"customType": "homework-context",
+					"content": "[Homework] problems",
+					"display": false,
+					"details": null,
+					"timestamp": 0
+				}
+			}
+		]
+	},
+	{
+		"name": "chat inputs",
+		"output": [
+			{
+				"raw": null,
+				"error": "input must be an object"
+			},
+			{
+				"raw": "x",
+				"error": "input must be an object"
+			},
+			{
+				"raw": 5,
+				"error": "input must be an object"
+			},
+			{
+				"raw": [],
+				"error": "unknown input type: undefined"
+			},
+			{
+				"raw": {},
+				"error": "unknown input type: undefined"
+			},
+			{
+				"raw": {
+					"type": 5
+				},
+				"error": "unknown input type: 5"
+			},
+			{
+				"raw": {
+					"type": "nope"
+				},
+				"error": "unknown input type: nope"
+			},
+			{
+				"raw": {},
+				"error": "unknown input type: undefined"
+			},
+			{
+				"raw": {
+					"type": "text",
+					"text": "hi"
+				},
+				"ok": {
+					"type": "text",
+					"text": "hi"
+				}
+			},
+			{
+				"raw": {
+					"type": "text",
+					"text": "  "
+				},
+				"error": "text input requires non-empty text or attachments"
+			},
+			{
+				"raw": {
+					"type": "text",
+					"text": 5
+				},
+				"error": "text input requires non-empty text or attachments"
+			},
+			{
+				"raw": {
+					"type": "text"
+				},
+				"error": "text input requires non-empty text or attachments"
+			},
+			{
+				"raw": {
+					"type": "text",
+					"text": " ",
+					"attachments": [
+						{
+							"name": "a.png",
+							"mimeType": "image/png",
+							"data": "QUJD"
+						}
+					]
+				},
+				"ok": {
+					"type": "text",
+					"text": " ",
+					"attachments": [
+						{
+							"name": "a.png",
+							"mimeType": "image/png",
+							"data": "QUJD"
+						}
+					]
+				}
+			},
+			{
+				"raw": {
+					"type": "text",
+					"text": "x",
+					"attachments": []
+				},
+				"error": "attachments must be a non-empty list"
+			},
+			{
+				"raw": {
+					"type": "text",
+					"text": "x",
+					"attachments": "no"
+				},
+				"error": "attachments must be a non-empty list"
+			},
+			{
+				"raw": {
+					"type": "text",
+					"text": "x",
+					"attachments": [
+						{
+							"name": "a.png",
+							"mimeType": "image/png",
+							"data": "QUJD"
+						},
+						{
+							"name": "a.png",
+							"mimeType": "image/png",
+							"data": "QUJD"
+						},
+						{
+							"name": "a.png",
+							"mimeType": "image/png",
+							"data": "QUJD"
+						},
+						{
+							"name": "a.png",
+							"mimeType": "image/png",
+							"data": "QUJD"
+						},
+						{
+							"name": "a.png",
+							"mimeType": "image/png",
+							"data": "QUJD"
+						},
+						{
+							"name": "a.png",
+							"mimeType": "image/png",
+							"data": "QUJD"
+						}
+					]
+				},
+				"error": "You can add up to 5 files to one message."
+			},
+			{
+				"raw": {
+					"type": "text",
+					"text": "x",
+					"attachments": [
+						null
+					]
+				},
+				"error": "each attachment requires a name and a mimeType"
+			},
+			{
+				"raw": {
+					"type": "text",
+					"text": "x",
+					"attachments": [
+						{
+							"name": " ",
+							"mimeType": "image/png",
+							"data": "QUJD"
+						}
+					]
+				},
+				"error": "each attachment requires a name and a mimeType"
+			},
+			{
+				"raw": {
+					"type": "text",
+					"text": "x",
+					"attachments": [
+						{
+							"name": "a",
+							"mimeType": "",
+							"data": "QUJD"
+						}
+					]
+				},
+				"error": "each attachment requires a name and a mimeType"
+			},
+			{
+				"raw": {
+					"type": "text",
+					"text": "x",
+					"attachments": [
+						{
+							"name": "a.png",
+							"mimeType": "image/png",
+							"data": "QUJ"
+						}
+					]
+				},
+				"error": "a.png is not valid base64"
+			},
+			{
+				"raw": {
+					"type": "text",
+					"text": "x",
+					"attachments": [
+						{
+							"name": "a.png",
+							"mimeType": "image/png",
+							"data": "QU=D"
+						}
+					]
+				},
+				"error": "a.png is not valid base64"
+			},
+			{
+				"raw": {
+					"type": "text",
+					"text": "x",
+					"attachments": [
+						{
+							"name": "a.png",
+							"mimeType": "image/png",
+							"data": ""
+						}
+					]
+				},
+				"error": "a.png is not valid base64"
+			},
+			{
+				"raw": {
+					"type": "text",
+					"text": "x",
+					"attachments": [
+						{
+							"name": "a.heic",
+							"mimeType": "",
+							"data": "QUJD"
+						}
+					]
+				},
+				"error": "each attachment requires a name and a mimeType"
+			},
+			{
+				"raw": {
+					"type": "text",
+					"text": "x",
+					"attachments": [
+						{
+							"name": "a.txt",
+							"mimeType": "text/plain",
+							"data": "QUJD"
+						}
+					]
+				},
+				"error": "Can't add a.txt. Use a PNG, JPG, GIF, WebP or PDF."
+			},
+			{
+				"raw": {
+					"type": "text",
+					"text": "x",
+					"attachments": [
+						{
+							"name": "notes.pdf",
+							"mimeType": "application/pdf",
+							"data": "QUJD"
+						},
+						{
+							"name": "b.jpg",
+							"mimeType": "",
+							"data": "QQ=="
+						}
+					]
+				},
+				"error": "each attachment requires a name and a mimeType"
+			},
+			{
+				"raw": {
+					"type": "answer",
+					"toolCallId": "q1",
+					"answer": {
+						"kind": "quiz"
+					}
+				},
+				"ok": {
+					"type": "answer",
+					"toolCallId": "q1",
+					"answer": {
+						"kind": "quiz"
+					}
+				}
+			},
+			{
+				"raw": {
+					"type": "answer",
+					"toolCallId": "",
+					"answer": {}
+				},
+				"error": "answer input requires toolCallId"
+			},
+			{
+				"raw": {
+					"type": "answer",
+					"toolCallId": "q1"
+				},
+				"error": "answer input requires the graded answer object"
+			},
+			{
+				"raw": {
+					"type": "answer",
+					"toolCallId": "q1",
+					"answer": null
+				},
+				"error": "answer input requires the graded answer object"
+			},
+			{
+				"raw": {
+					"type": "answer",
+					"toolCallId": "q1",
+					"answer": []
+				},
+				"ok": {
+					"type": "answer",
+					"toolCallId": "q1",
+					"answer": []
+				}
+			},
+			{
+				"raw": {
+					"type": "answer",
+					"toolCallId": "q1",
+					"answer": {
+						"kind": "explain"
+					},
+					"attachments": [
+						{
+							"name": "a.png",
+							"mimeType": "image/png",
+							"data": "QUJD"
+						}
+					]
+				},
+				"ok": {
+					"type": "answer",
+					"toolCallId": "q1",
+					"answer": {
+						"kind": "explain"
+					},
+					"attachments": [
+						{
+							"name": "a.png",
+							"mimeType": "image/png",
+							"data": "QUJD"
+						}
+					]
+				}
+			},
+			{
+				"raw": {
+					"type": "continue"
+				},
+				"ok": {
+					"type": "continue"
+				}
+			},
+			{
+				"raw": {
+					"type": "continue",
+					"extra": 1
+				},
+				"ok": {
+					"type": "continue"
+				}
+			},
+			{
+				"raw": {
+					"type": "side",
+					"text": "why"
+				},
+				"ok": {
+					"type": "side",
+					"text": "why"
+				}
+			},
+			{
+				"raw": {
+					"type": "side",
+					"text": ""
+				},
+				"error": "side input requires non-empty text or attachments"
+			},
+			{
+				"raw": {
+					"type": "side",
+					"text": "",
+					"attachments": [
+						{
+							"name": "a.png",
+							"mimeType": "image/png",
+							"data": "QUJD"
+						}
+					]
+				},
+				"ok": {
+					"type": "side",
+					"text": "",
+					"attachments": [
+						{
+							"name": "a.png",
+							"mimeType": "image/png",
+							"data": "QUJD"
+						}
+					]
+				}
+			},
+			{
+				"raw": {
+					"type": "thinking",
+					"problemCallId": "p1",
+					"text": "idea"
+				},
+				"ok": {
+					"type": "thinking",
+					"problemCallId": "p1",
+					"text": "idea"
+				}
+			},
+			{
+				"raw": {
+					"type": "thinking",
+					"problemCallId": "",
+					"text": "x"
+				},
+				"error": "thinking input requires problemCallId"
+			},
+			{
+				"raw": {
+					"type": "thinking",
+					"problemCallId": "p1",
+					"text": " "
+				},
+				"error": "thinking input requires non-empty text or attachments"
+			},
+			{
+				"raw": {
+					"type": "thinking",
+					"problemCallId": "p1",
+					"text": "",
+					"attachments": [
+						{
+							"name": "a.png",
+							"mimeType": "image/png",
+							"data": "QUJD"
+						}
+					]
+				},
+				"ok": {
+					"type": "thinking",
+					"problemCallId": "p1",
+					"text": "",
+					"attachments": [
+						{
+							"name": "a.png",
+							"mimeType": "image/png",
+							"data": "QUJD"
+						}
+					]
+				}
+			},
+			{
+				"raw": {
+					"type": "next"
+				},
+				"ok": {
+					"type": "next"
+				}
+			}
+		]
+	},
+	{
+		"name": "dismiss inputs",
+		"output": [
+			{
+				"raw": null,
+				"error": "input must be an object"
+			},
+			{
+				"raw": 4,
+				"error": "input must be an object"
+			},
+			{
+				"raw": {},
+				"error": "unknown input type: undefined"
+			},
+			{
+				"raw": {
+					"type": "steer"
+				},
+				"error": "unknown input type: steer"
+			},
+			{
+				"raw": {
+					"type": "dismiss",
+					"toolCallId": "q1",
+					"answer": {
+						"kind": "quiz",
+						"dismissed": true
+					}
+				},
+				"ok": {
+					"type": "dismiss",
+					"toolCallId": "q1",
+					"answer": {
+						"kind": "quiz",
+						"dismissed": true
+					}
+				}
+			},
+			{
+				"raw": {
+					"type": "dismiss",
+					"toolCallId": "",
+					"answer": {
+						"dismissed": true
+					}
+				},
+				"error": "dismiss input requires toolCallId"
+			},
+			{
+				"raw": {
+					"type": "dismiss",
+					"answer": {
+						"dismissed": true
+					}
+				},
+				"error": "dismiss input requires toolCallId"
+			},
+			{
+				"raw": {
+					"type": "dismiss",
+					"toolCallId": "q1"
+				},
+				"error": "dismiss input requires the dismissal answer object"
+			},
+			{
+				"raw": {
+					"type": "dismiss",
+					"toolCallId": "q1",
+					"answer": null
+				},
+				"error": "dismiss input requires the dismissal answer object"
+			},
+			{
+				"raw": {
+					"type": "dismiss",
+					"toolCallId": "q1",
+					"answer": {
+						"kind": "quiz"
+					}
+				},
+				"error": "dismiss input's answer must be a dismissal (dismissed: true)"
+			},
+			{
+				"raw": {
+					"type": "dismiss",
+					"toolCallId": "q1",
+					"answer": {
+						"dismissed": "yes"
+					}
+				},
+				"error": "dismiss input's answer must be a dismissal (dismissed: true)"
+			},
+			{
+				"raw": {
+					"type": "dismiss",
+					"toolCallId": "q1",
+					"answer": {
+						"kind": "explain",
+						"dismissed": true
+					}
+				},
+				"ok": {
+					"type": "dismiss",
+					"toolCallId": "q1",
+					"answer": {
+						"kind": "explain",
+						"dismissed": true
+					}
+				}
+			},
+			{
+				"raw": {
+					"type": "dismiss-problem",
+					"problemCallId": "p1"
+				},
+				"ok": {
+					"type": "dismiss-problem",
+					"problemCallId": "p1"
+				}
+			},
+			{
+				"raw": {
+					"type": "dismiss-problem",
+					"problemCallId": ""
+				},
+				"error": "dismiss-problem input requires problemCallId"
+			},
+			{
+				"raw": {
+					"type": "dismiss-problem"
+				},
+				"error": "dismiss-problem input requires problemCallId"
+			}
+		]
+	},
+	{
+		"name": "steer inputs",
+		"output": [
+			{
+				"raw": null,
+				"error": "input must be an object"
+			},
+			{
+				"raw": {},
+				"error": "unknown input type: undefined"
+			},
+			{
+				"raw": {
+					"type": "text"
+				},
+				"error": "unknown input type: text"
+			},
+			{
+				"raw": {
+					"type": "steer"
+				},
+				"error": "steer input requires a client-minted id"
+			},
+			{
+				"raw": {
+					"type": "steer",
+					"id": "",
+					"text": "x"
+				},
+				"error": "steer input requires a client-minted id"
+			},
+			{
+				"raw": {
+					"type": "steer",
+					"id": "s1"
+				},
+				"error": "steer input requires non-empty text"
+			},
+			{
+				"raw": {
+					"type": "steer",
+					"id": "s1",
+					"text": "  "
+				},
+				"error": "steer input requires non-empty text"
+			},
+			{
+				"raw": {
+					"type": "steer",
+					"id": "s1",
+					"text": 5
+				},
+				"error": "steer input requires non-empty text"
+			},
+			{
+				"raw": {
+					"type": "steer",
+					"id": "s1",
+					"text": " go "
+				},
+				"ok": {
+					"type": "steer",
+					"id": "s1",
+					"text": " go "
+				}
+			}
+		]
+	},
+	{
+		"name": "appends for inputs",
+		"output": {
+			"records": {
+				"empty": {
+					"messages": []
+				},
+				"question": {
+					"messages": [
+						{
+							"id": "u1",
+							"role": "user",
+							"content": "hi",
+							"timestamp": 3
+						},
+						{
+							"id": "a1",
+							"role": "assistant",
+							"content": [
+								{
+									"type": "text",
+									"text": "ok"
+								},
+								{
+									"type": "toolCall",
+									"id": "q1",
+									"name": "quiz",
+									"arguments": {
+										"nodeId": "n1",
+										"question": "q?"
+									}
+								}
+							],
+							"api": "faux",
+							"provider": "p",
+							"model": "m",
+							"stopReason": "toolUse",
+							"timestamp": 1
+						}
+					]
+				},
+				"explain_question": {
+					"messages": [
+						{
+							"id": "a1",
+							"role": "assistant",
+							"content": [
+								{
+									"type": "toolCall",
+									"id": "q1",
+									"name": "explain",
+									"arguments": {}
+								}
+							],
+							"api": "faux",
+							"provider": "p",
+							"model": "m",
+							"stopReason": "toolUse",
+							"timestamp": 1
+						}
+					]
+				},
+				"code_question": {
+					"messages": [
+						{
+							"id": "a1",
+							"role": "assistant",
+							"content": [
+								{
+									"type": "toolCall",
+									"id": "q1",
+									"name": "write_code",
+									"arguments": {}
+								}
+							],
+							"api": "faux",
+							"provider": "p",
+							"model": "m",
+							"stopReason": "toolUse",
+							"timestamp": 1
+						}
+					]
+				},
+				"problem": {
+					"kind": "study",
+					"messages": [
+						{
+							"id": "a1",
+							"role": "assistant",
+							"content": [
+								{
+									"type": "toolCall",
+									"id": "p1",
+									"name": "problem",
+									"arguments": {
+										"statement": "Solve",
+										"mode": "work",
+										"target": [
+											"x"
+										],
+										"modelSolution": "42"
+									}
+								}
+							],
+							"api": "faux",
+							"provider": "p",
+							"model": "m",
+							"stopReason": "toolUse",
+							"timestamp": 1
+						},
+						{
+							"id": "r1",
+							"role": "toolResult",
+							"toolCallId": "p1",
+							"toolName": "problem",
+							"content": [
+								{
+									"type": "text",
+									"text": "ok"
+								}
+							],
+							"isError": false,
+							"timestamp": 2
+						}
+					]
+				},
+				"dismissed_problem": {
+					"kind": "practice",
+					"messages": [
+						{
+							"id": "a1",
+							"role": "assistant",
+							"content": [
+								{
+									"type": "toolCall",
+									"id": "p1",
+									"name": "problem",
+									"arguments": {
+										"statement": "Solve"
+									}
+								}
+							],
+							"api": "faux",
+							"provider": "p",
+							"model": "m",
+							"stopReason": "toolUse",
+							"timestamp": 1
+						},
+						{
+							"id": "r1",
+							"role": "toolResult",
+							"toolCallId": "p1",
+							"toolName": "problem",
+							"content": [
+								{
+									"type": "text",
+									"text": "ok"
+								}
+							],
+							"isError": false,
+							"timestamp": 2
+						},
+						{
+							"id": "c1",
+							"role": "custom",
+							"customType": "problem-dismissed",
+							"content": "marker problem-dismissed",
+							"display": true,
+							"details": {
+								"problemCallId": "p1"
+							},
+							"timestamp": 4
+						}
+					]
+				},
+				"between_problems": {
+					"kind": "homework",
+					"messages": [
+						{
+							"id": "a1",
+							"role": "assistant",
+							"content": [
+								{
+									"type": "toolCall",
+									"id": "p1",
+									"name": "problem",
+									"arguments": {
+										"statement": "Solve"
+									}
+								}
+							],
+							"api": "faux",
+							"provider": "p",
+							"model": "m",
+							"stopReason": "toolUse",
+							"timestamp": 1
+						},
+						{
+							"id": "r1",
+							"role": "toolResult",
+							"toolCallId": "p1",
+							"toolName": "problem",
+							"content": [
+								{
+									"type": "text",
+									"text": "ok"
+								}
+							],
+							"isError": false,
+							"timestamp": 2
+						},
+						{
+							"id": "a2",
+							"role": "assistant",
+							"content": [
+								{
+									"type": "toolCall",
+									"id": "k1",
+									"name": "conclude",
+									"arguments": {
+										"outcome": "solved"
+									}
+								}
+							],
+							"api": "faux",
+							"provider": "p",
+							"model": "m",
+							"stopReason": "toolUse",
+							"timestamp": 1
+						},
+						{
+							"id": "r2",
+							"role": "toolResult",
+							"toolCallId": "k1",
+							"toolName": "conclude",
+							"content": [
+								{
+									"type": "text",
+									"text": "ok"
+								}
+							],
+							"isError": false,
+							"timestamp": 2
+						}
+					]
+				},
+				"teach": {
+					"kind": "teach",
+					"messages": [
+						{
+							"id": "a1",
+							"role": "assistant",
+							"content": [
+								{
+									"type": "toolCall",
+									"id": "p1",
+									"name": "problem",
+									"arguments": {
+										"statement": "Solve"
+									}
+								}
+							],
+							"api": "faux",
+							"provider": "p",
+							"model": "m",
+							"stopReason": "toolUse",
+							"timestamp": 1
+						},
+						{
+							"id": "r1",
+							"role": "toolResult",
+							"toolCallId": "p1",
+							"toolName": "problem",
+							"content": [
+								{
+									"type": "text",
+									"text": "ok"
+								}
+							],
+							"isError": false,
+							"timestamp": 2
+						},
+						{
+							"id": "a2",
+							"role": "assistant",
+							"content": [
+								{
+									"type": "toolCall",
+									"id": "k1",
+									"name": "conclude",
+									"arguments": {
+										"outcome": "solved"
+									}
+								}
+							],
+							"api": "faux",
+							"provider": "p",
+							"model": "m",
+							"stopReason": "toolUse",
+							"timestamp": 1
+						},
+						{
+							"id": "r2",
+							"role": "toolResult",
+							"toolCallId": "k1",
+							"toolName": "conclude",
+							"content": [
+								{
+									"type": "text",
+									"text": "ok"
+								}
+							],
+							"isError": false,
+							"timestamp": 2
+						}
+					]
+				}
+			},
+			"cases": [
+				{
+					"record": "empty",
+					"input": {
+						"type": "text",
+						"text": "hi"
+					},
+					"stored": [],
+					"ok": [
+						{
+							"id": "<id>",
+							"role": "user",
+							"content": "hi",
+							"timestamp": 0
+						}
+					]
+				},
+				{
+					"record": "empty",
+					"input": {
+						"type": "text",
+						"text": " ",
+						"attachments": [
+							{
+								"name": "a.png",
+								"mimeType": "image/png",
+								"data": "QUJD"
+							}
+						]
+					},
+					"stored": [
+						{
+							"type": "text",
+							"text": "stored a.png"
+						}
+					],
+					"ok": [
+						{
+							"id": "<id>",
+							"role": "user",
+							"content": [
+								{
+									"type": "text",
+									"text": "stored a.png"
+								}
+							],
+							"timestamp": 0
+						}
+					]
+				},
+				{
+					"record": "empty",
+					"input": {
+						"type": "answer",
+						"toolCallId": "q1",
+						"answer": {
+							"kind": "quiz"
+						}
+					},
+					"stored": [],
+					"error": "answer input targets no pending question call"
+				},
+				{
+					"record": "empty",
+					"input": {
+						"type": "answer",
+						"toolCallId": "q1",
+						"answer": {
+							"kind": "explain"
+						},
+						"attachments": [
+							{
+								"name": "a.png",
+								"mimeType": "image/png",
+								"data": "QUJD"
+							}
+						]
+					},
+					"stored": [
+						{
+							"type": "text",
+							"text": "stored a.png"
+						}
+					],
+					"error": "answer input targets no pending question call"
+				},
+				{
+					"record": "empty",
+					"input": {
+						"type": "continue"
+					},
+					"stored": [],
+					"ok": []
+				},
+				{
+					"record": "empty",
+					"input": {
+						"type": "continue",
+						"extra": 1
+					},
+					"stored": [],
+					"ok": []
+				},
+				{
+					"record": "empty",
+					"input": {
+						"type": "side",
+						"text": "why"
+					},
+					"stored": [],
+					"error": "side input requires a waiting question or problem"
+				},
+				{
+					"record": "empty",
+					"input": {
+						"type": "side",
+						"text": "",
+						"attachments": [
+							{
+								"name": "a.png",
+								"mimeType": "image/png",
+								"data": "QUJD"
+							}
+						]
+					},
+					"stored": [
+						{
+							"type": "text",
+							"text": "stored a.png"
+						}
+					],
+					"error": "side input requires a waiting question or problem"
+				},
+				{
+					"record": "empty",
+					"input": {
+						"type": "thinking",
+						"problemCallId": "p1",
+						"text": "idea"
+					},
+					"stored": [],
+					"error": "thinking input targets no active problem"
+				},
+				{
+					"record": "empty",
+					"input": {
+						"type": "thinking",
+						"problemCallId": "p1",
+						"text": "",
+						"attachments": [
+							{
+								"name": "a.png",
+								"mimeType": "image/png",
+								"data": "QUJD"
+							}
+						]
+					},
+					"stored": [
+						{
+							"type": "text",
+							"text": "stored a.png"
+						}
+					],
+					"error": "thinking input targets no active problem"
+				},
+				{
+					"record": "empty",
+					"input": {
+						"type": "next"
+					},
+					"stored": [],
+					"error": "next input is a practice, study or homework session affordance"
+				},
+				{
+					"record": "empty",
+					"input": {
+						"type": "answer",
+						"toolCallId": "q1",
+						"answer": {
+							"kind": "quiz",
+							"picked": 1
+						}
+					},
+					"stored": [],
+					"error": "answer input targets no pending question call"
+				},
+				{
+					"record": "empty",
+					"input": {
+						"type": "answer",
+						"toolCallId": "q1",
+						"answer": {
+							"kind": "explain",
+							"text": "because"
+						}
+					},
+					"stored": [],
+					"error": "answer input targets no pending question call"
+				},
+				{
+					"record": "empty",
+					"input": {
+						"type": "answer",
+						"toolCallId": "other",
+						"answer": {
+							"kind": "quiz"
+						}
+					},
+					"stored": [],
+					"error": "answer input targets no pending question call"
+				},
+				{
+					"record": "empty",
+					"input": {
+						"type": "thinking",
+						"problemCallId": "p1",
+						"text": "idea"
+					},
+					"stored": [],
+					"error": "thinking input targets no active problem"
+				},
+				{
+					"record": "empty",
+					"input": {
+						"type": "thinking",
+						"problemCallId": "p2",
+						"text": "idea"
+					},
+					"stored": [],
+					"error": "thinking input targets no active problem"
+				},
+				{
+					"record": "empty",
+					"dismiss": {
+						"type": "dismiss",
+						"toolCallId": "q1",
+						"answer": {
+							"kind": "quiz",
+							"dismissed": true
+						}
+					},
+					"error": "dismiss input targets no pending question call"
+				},
+				{
+					"record": "empty",
+					"dismiss": {
+						"type": "dismiss",
+						"toolCallId": "q1",
+						"answer": {
+							"kind": "explain",
+							"dismissed": true
+						}
+					},
+					"error": "dismiss input targets no pending question call"
+				},
+				{
+					"record": "empty",
+					"dismiss": {
+						"type": "dismiss-problem",
+						"problemCallId": "p1"
+					},
+					"error": "dismiss-problem input targets no active problem"
+				},
+				{
+					"record": "question",
+					"input": {
+						"type": "text",
+						"text": "hi"
+					},
+					"stored": [],
+					"ok": [
+						{
+							"id": "<id>",
+							"role": "user",
+							"content": "hi",
+							"timestamp": 0
+						}
+					]
+				},
+				{
+					"record": "question",
+					"input": {
+						"type": "text",
+						"text": " ",
+						"attachments": [
+							{
+								"name": "a.png",
+								"mimeType": "image/png",
+								"data": "QUJD"
+							}
+						]
+					},
+					"stored": [
+						{
+							"type": "text",
+							"text": "stored a.png"
+						}
+					],
+					"ok": [
+						{
+							"id": "<id>",
+							"role": "user",
+							"content": [
+								{
+									"type": "text",
+									"text": "stored a.png"
+								}
+							],
+							"timestamp": 0
+						}
+					]
+				},
+				{
+					"record": "question",
+					"input": {
+						"type": "answer",
+						"toolCallId": "q1",
+						"answer": {
+							"kind": "quiz"
+						}
+					},
+					"stored": [],
+					"ok": [
+						{
+							"id": "<id>",
+							"role": "toolResult",
+							"toolCallId": "q1",
+							"toolName": "quiz",
+							"content": [
+								{
+									"type": "text",
+									"text": "{\"kind\":\"quiz\"}"
+								}
+							],
+							"details": {
+								"kind": "quiz"
+							},
+							"isError": false,
+							"timestamp": 0
+						}
+					]
+				},
+				{
+					"record": "question",
+					"input": {
+						"type": "answer",
+						"toolCallId": "q1",
+						"answer": {
+							"kind": "explain"
+						},
+						"attachments": [
+							{
+								"name": "a.png",
+								"mimeType": "image/png",
+								"data": "QUJD"
+							}
+						]
+					},
+					"stored": [
+						{
+							"type": "text",
+							"text": "stored a.png"
+						}
+					],
+					"error": "a quiz answer takes no files"
+				},
+				{
+					"record": "question",
+					"input": {
+						"type": "continue"
+					},
+					"stored": [],
+					"ok": []
+				},
+				{
+					"record": "question",
+					"input": {
+						"type": "continue",
+						"extra": 1
+					},
+					"stored": [],
+					"ok": []
+				},
+				{
+					"record": "question",
+					"input": {
+						"type": "side",
+						"text": "why"
+					},
+					"stored": [],
+					"ok": [
+						{
+							"id": "<id>",
+							"role": "user",
+							"content": "why",
+							"timestamp": 0,
+							"side": true
+						}
+					]
+				},
+				{
+					"record": "question",
+					"input": {
+						"type": "side",
+						"text": "",
+						"attachments": [
+							{
+								"name": "a.png",
+								"mimeType": "image/png",
+								"data": "QUJD"
+							}
+						]
+					},
+					"stored": [
+						{
+							"type": "text",
+							"text": "stored a.png"
+						}
+					],
+					"ok": [
+						{
+							"id": "<id>",
+							"role": "user",
+							"content": [
+								{
+									"type": "text",
+									"text": "stored a.png"
+								}
+							],
+							"timestamp": 0,
+							"side": true
+						}
+					]
+				},
+				{
+					"record": "question",
+					"input": {
+						"type": "thinking",
+						"problemCallId": "p1",
+						"text": "idea"
+					},
+					"stored": [],
+					"error": "thinking input targets no active problem"
+				},
+				{
+					"record": "question",
+					"input": {
+						"type": "thinking",
+						"problemCallId": "p1",
+						"text": "",
+						"attachments": [
+							{
+								"name": "a.png",
+								"mimeType": "image/png",
+								"data": "QUJD"
+							}
+						]
+					},
+					"stored": [
+						{
+							"type": "text",
+							"text": "stored a.png"
+						}
+					],
+					"error": "thinking input targets no active problem"
+				},
+				{
+					"record": "question",
+					"input": {
+						"type": "next"
+					},
+					"stored": [],
+					"error": "next input is a practice, study or homework session affordance"
+				},
+				{
+					"record": "question",
+					"input": {
+						"type": "answer",
+						"toolCallId": "q1",
+						"answer": {
+							"kind": "quiz",
+							"picked": 1
+						}
+					},
+					"stored": [],
+					"ok": [
+						{
+							"id": "<id>",
+							"role": "toolResult",
+							"toolCallId": "q1",
+							"toolName": "quiz",
+							"content": [
+								{
+									"type": "text",
+									"text": "{\"kind\":\"quiz\"}"
+								}
+							],
+							"details": {
+								"kind": "quiz",
+								"picked": 1
+							},
+							"isError": false,
+							"timestamp": 0
+						}
+					]
+				},
+				{
+					"record": "question",
+					"input": {
+						"type": "answer",
+						"toolCallId": "q1",
+						"answer": {
+							"kind": "explain",
+							"text": "because"
+						}
+					},
+					"stored": [],
+					"ok": [
+						{
+							"id": "<id>",
+							"role": "toolResult",
+							"toolCallId": "q1",
+							"toolName": "quiz",
+							"content": [
+								{
+									"type": "text",
+									"text": "{\"kind\":\"explain\",\"text\":\"because\"}"
+								}
+							],
+							"details": {
+								"kind": "explain",
+								"text": "because"
+							},
+							"isError": false,
+							"timestamp": 0
+						}
+					]
+				},
+				{
+					"record": "question",
+					"input": {
+						"type": "answer",
+						"toolCallId": "other",
+						"answer": {
+							"kind": "quiz"
+						}
+					},
+					"stored": [],
+					"error": "answer input targets no pending question call"
+				},
+				{
+					"record": "question",
+					"input": {
+						"type": "thinking",
+						"problemCallId": "p1",
+						"text": "idea"
+					},
+					"stored": [],
+					"error": "thinking input targets no active problem"
+				},
+				{
+					"record": "question",
+					"input": {
+						"type": "thinking",
+						"problemCallId": "p2",
+						"text": "idea"
+					},
+					"stored": [],
+					"error": "thinking input targets no active problem"
+				},
+				{
+					"record": "question",
+					"dismiss": {
+						"type": "dismiss",
+						"toolCallId": "q1",
+						"answer": {
+							"kind": "quiz",
+							"dismissed": true
+						}
+					},
+					"ok": [
+						{
+							"id": "<id>",
+							"role": "toolResult",
+							"toolCallId": "q1",
+							"toolName": "quiz",
+							"content": [
+								{
+									"type": "text",
+									"text": "{\"kind\":\"quiz\",\"dismissed\":true}"
+								}
+							],
+							"details": {
+								"kind": "quiz",
+								"dismissed": true
+							},
+							"isError": false,
+							"timestamp": 0
+						}
+					]
+				},
+				{
+					"record": "question",
+					"dismiss": {
+						"type": "dismiss",
+						"toolCallId": "q1",
+						"answer": {
+							"kind": "explain",
+							"dismissed": true
+						}
+					},
+					"error": "dismiss input's answer kind does not match the question"
+				},
+				{
+					"record": "question",
+					"dismiss": {
+						"type": "dismiss-problem",
+						"problemCallId": "p1"
+					},
+					"error": "dismiss-problem input targets no active problem"
+				},
+				{
+					"record": "explain_question",
+					"input": {
+						"type": "text",
+						"text": "hi"
+					},
+					"stored": [],
+					"ok": [
+						{
+							"id": "<id>",
+							"role": "user",
+							"content": "hi",
+							"timestamp": 0
+						}
+					]
+				},
+				{
+					"record": "explain_question",
+					"input": {
+						"type": "text",
+						"text": " ",
+						"attachments": [
+							{
+								"name": "a.png",
+								"mimeType": "image/png",
+								"data": "QUJD"
+							}
+						]
+					},
+					"stored": [
+						{
+							"type": "text",
+							"text": "stored a.png"
+						}
+					],
+					"ok": [
+						{
+							"id": "<id>",
+							"role": "user",
+							"content": [
+								{
+									"type": "text",
+									"text": "stored a.png"
+								}
+							],
+							"timestamp": 0
+						}
+					]
+				},
+				{
+					"record": "explain_question",
+					"input": {
+						"type": "answer",
+						"toolCallId": "q1",
+						"answer": {
+							"kind": "quiz"
+						}
+					},
+					"stored": [],
+					"ok": [
+						{
+							"id": "<id>",
+							"role": "toolResult",
+							"toolCallId": "q1",
+							"toolName": "explain",
+							"content": [
+								{
+									"type": "text",
+									"text": "{\"kind\":\"quiz\"}"
+								}
+							],
+							"details": {
+								"kind": "quiz"
+							},
+							"isError": false,
+							"timestamp": 0
+						}
+					]
+				},
+				{
+					"record": "explain_question",
+					"input": {
+						"type": "answer",
+						"toolCallId": "q1",
+						"answer": {
+							"kind": "explain"
+						},
+						"attachments": [
+							{
+								"name": "a.png",
+								"mimeType": "image/png",
+								"data": "QUJD"
+							}
+						]
+					},
+					"stored": [
+						{
+							"type": "text",
+							"text": "stored a.png"
+						}
+					],
+					"ok": [
+						{
+							"id": "<id>",
+							"role": "toolResult",
+							"toolCallId": "q1",
+							"toolName": "explain",
+							"content": [
+								{
+									"type": "text",
+									"text": "{\"kind\":\"explain\"}"
+								},
+								{
+									"type": "text",
+									"text": "stored a.png"
+								}
+							],
+							"details": {
+								"kind": "explain"
+							},
+							"isError": false,
+							"timestamp": 0
+						}
+					]
+				},
+				{
+					"record": "explain_question",
+					"input": {
+						"type": "continue"
+					},
+					"stored": [],
+					"ok": []
+				},
+				{
+					"record": "explain_question",
+					"input": {
+						"type": "continue",
+						"extra": 1
+					},
+					"stored": [],
+					"ok": []
+				},
+				{
+					"record": "explain_question",
+					"input": {
+						"type": "side",
+						"text": "why"
+					},
+					"stored": [],
+					"ok": [
+						{
+							"id": "<id>",
+							"role": "user",
+							"content": "why",
+							"timestamp": 0,
+							"side": true
+						}
+					]
+				},
+				{
+					"record": "explain_question",
+					"input": {
+						"type": "side",
+						"text": "",
+						"attachments": [
+							{
+								"name": "a.png",
+								"mimeType": "image/png",
+								"data": "QUJD"
+							}
+						]
+					},
+					"stored": [
+						{
+							"type": "text",
+							"text": "stored a.png"
+						}
+					],
+					"ok": [
+						{
+							"id": "<id>",
+							"role": "user",
+							"content": [
+								{
+									"type": "text",
+									"text": "stored a.png"
+								}
+							],
+							"timestamp": 0,
+							"side": true
+						}
+					]
+				},
+				{
+					"record": "explain_question",
+					"input": {
+						"type": "thinking",
+						"problemCallId": "p1",
+						"text": "idea"
+					},
+					"stored": [],
+					"error": "thinking input targets no active problem"
+				},
+				{
+					"record": "explain_question",
+					"input": {
+						"type": "thinking",
+						"problemCallId": "p1",
+						"text": "",
+						"attachments": [
+							{
+								"name": "a.png",
+								"mimeType": "image/png",
+								"data": "QUJD"
+							}
+						]
+					},
+					"stored": [
+						{
+							"type": "text",
+							"text": "stored a.png"
+						}
+					],
+					"error": "thinking input targets no active problem"
+				},
+				{
+					"record": "explain_question",
+					"input": {
+						"type": "next"
+					},
+					"stored": [],
+					"error": "next input is a practice, study or homework session affordance"
+				},
+				{
+					"record": "explain_question",
+					"input": {
+						"type": "answer",
+						"toolCallId": "q1",
+						"answer": {
+							"kind": "quiz",
+							"picked": 1
+						}
+					},
+					"stored": [],
+					"ok": [
+						{
+							"id": "<id>",
+							"role": "toolResult",
+							"toolCallId": "q1",
+							"toolName": "explain",
+							"content": [
+								{
+									"type": "text",
+									"text": "{\"kind\":\"quiz\"}"
+								}
+							],
+							"details": {
+								"kind": "quiz",
+								"picked": 1
+							},
+							"isError": false,
+							"timestamp": 0
+						}
+					]
+				},
+				{
+					"record": "explain_question",
+					"input": {
+						"type": "answer",
+						"toolCallId": "q1",
+						"answer": {
+							"kind": "explain",
+							"text": "because"
+						}
+					},
+					"stored": [],
+					"ok": [
+						{
+							"id": "<id>",
+							"role": "toolResult",
+							"toolCallId": "q1",
+							"toolName": "explain",
+							"content": [
+								{
+									"type": "text",
+									"text": "{\"kind\":\"explain\",\"text\":\"because\"}"
+								}
+							],
+							"details": {
+								"kind": "explain",
+								"text": "because"
+							},
+							"isError": false,
+							"timestamp": 0
+						}
+					]
+				},
+				{
+					"record": "explain_question",
+					"input": {
+						"type": "answer",
+						"toolCallId": "other",
+						"answer": {
+							"kind": "quiz"
+						}
+					},
+					"stored": [],
+					"error": "answer input targets no pending question call"
+				},
+				{
+					"record": "explain_question",
+					"input": {
+						"type": "thinking",
+						"problemCallId": "p1",
+						"text": "idea"
+					},
+					"stored": [],
+					"error": "thinking input targets no active problem"
+				},
+				{
+					"record": "explain_question",
+					"input": {
+						"type": "thinking",
+						"problemCallId": "p2",
+						"text": "idea"
+					},
+					"stored": [],
+					"error": "thinking input targets no active problem"
+				},
+				{
+					"record": "explain_question",
+					"dismiss": {
+						"type": "dismiss",
+						"toolCallId": "q1",
+						"answer": {
+							"kind": "quiz",
+							"dismissed": true
+						}
+					},
+					"error": "dismiss input's answer kind does not match the question"
+				},
+				{
+					"record": "explain_question",
+					"dismiss": {
+						"type": "dismiss",
+						"toolCallId": "q1",
+						"answer": {
+							"kind": "explain",
+							"dismissed": true
+						}
+					},
+					"ok": [
+						{
+							"id": "<id>",
+							"role": "toolResult",
+							"toolCallId": "q1",
+							"toolName": "explain",
+							"content": [
+								{
+									"type": "text",
+									"text": "{\"kind\":\"explain\",\"dismissed\":true}"
+								}
+							],
+							"details": {
+								"kind": "explain",
+								"dismissed": true
+							},
+							"isError": false,
+							"timestamp": 0
+						}
+					]
+				},
+				{
+					"record": "explain_question",
+					"dismiss": {
+						"type": "dismiss-problem",
+						"problemCallId": "p1"
+					},
+					"error": "dismiss-problem input targets no active problem"
+				},
+				{
+					"record": "code_question",
+					"input": {
+						"type": "text",
+						"text": "hi"
+					},
+					"stored": [],
+					"ok": [
+						{
+							"id": "<id>",
+							"role": "user",
+							"content": "hi",
+							"timestamp": 0
+						}
+					]
+				},
+				{
+					"record": "code_question",
+					"input": {
+						"type": "text",
+						"text": " ",
+						"attachments": [
+							{
+								"name": "a.png",
+								"mimeType": "image/png",
+								"data": "QUJD"
+							}
+						]
+					},
+					"stored": [
+						{
+							"type": "text",
+							"text": "stored a.png"
+						}
+					],
+					"ok": [
+						{
+							"id": "<id>",
+							"role": "user",
+							"content": [
+								{
+									"type": "text",
+									"text": "stored a.png"
+								}
+							],
+							"timestamp": 0
+						}
+					]
+				},
+				{
+					"record": "code_question",
+					"input": {
+						"type": "answer",
+						"toolCallId": "q1",
+						"answer": {
+							"kind": "quiz"
+						}
+					},
+					"stored": [],
+					"ok": [
+						{
+							"id": "<id>",
+							"role": "toolResult",
+							"toolCallId": "q1",
+							"toolName": "write_code",
+							"content": [
+								{
+									"type": "text",
+									"text": "{\"kind\":\"quiz\"}"
+								}
+							],
+							"details": {
+								"kind": "quiz"
+							},
+							"isError": false,
+							"timestamp": 0
+						}
+					]
+				},
+				{
+					"record": "code_question",
+					"input": {
+						"type": "answer",
+						"toolCallId": "q1",
+						"answer": {
+							"kind": "explain"
+						},
+						"attachments": [
+							{
+								"name": "a.png",
+								"mimeType": "image/png",
+								"data": "QUJD"
+							}
+						]
+					},
+					"stored": [
+						{
+							"type": "text",
+							"text": "stored a.png"
+						}
+					],
+					"error": "a write_code answer takes no files"
+				},
+				{
+					"record": "code_question",
+					"input": {
+						"type": "continue"
+					},
+					"stored": [],
+					"ok": []
+				},
+				{
+					"record": "code_question",
+					"input": {
+						"type": "continue",
+						"extra": 1
+					},
+					"stored": [],
+					"ok": []
+				},
+				{
+					"record": "code_question",
+					"input": {
+						"type": "side",
+						"text": "why"
+					},
+					"stored": [],
+					"ok": [
+						{
+							"id": "<id>",
+							"role": "user",
+							"content": "why",
+							"timestamp": 0,
+							"side": true
+						}
+					]
+				},
+				{
+					"record": "code_question",
+					"input": {
+						"type": "side",
+						"text": "",
+						"attachments": [
+							{
+								"name": "a.png",
+								"mimeType": "image/png",
+								"data": "QUJD"
+							}
+						]
+					},
+					"stored": [
+						{
+							"type": "text",
+							"text": "stored a.png"
+						}
+					],
+					"ok": [
+						{
+							"id": "<id>",
+							"role": "user",
+							"content": [
+								{
+									"type": "text",
+									"text": "stored a.png"
+								}
+							],
+							"timestamp": 0,
+							"side": true
+						}
+					]
+				},
+				{
+					"record": "code_question",
+					"input": {
+						"type": "thinking",
+						"problemCallId": "p1",
+						"text": "idea"
+					},
+					"stored": [],
+					"error": "thinking input targets no active problem"
+				},
+				{
+					"record": "code_question",
+					"input": {
+						"type": "thinking",
+						"problemCallId": "p1",
+						"text": "",
+						"attachments": [
+							{
+								"name": "a.png",
+								"mimeType": "image/png",
+								"data": "QUJD"
+							}
+						]
+					},
+					"stored": [
+						{
+							"type": "text",
+							"text": "stored a.png"
+						}
+					],
+					"error": "thinking input targets no active problem"
+				},
+				{
+					"record": "code_question",
+					"input": {
+						"type": "next"
+					},
+					"stored": [],
+					"error": "next input is a practice, study or homework session affordance"
+				},
+				{
+					"record": "code_question",
+					"input": {
+						"type": "answer",
+						"toolCallId": "q1",
+						"answer": {
+							"kind": "quiz",
+							"picked": 1
+						}
+					},
+					"stored": [],
+					"ok": [
+						{
+							"id": "<id>",
+							"role": "toolResult",
+							"toolCallId": "q1",
+							"toolName": "write_code",
+							"content": [
+								{
+									"type": "text",
+									"text": "{\"kind\":\"quiz\"}"
+								}
+							],
+							"details": {
+								"kind": "quiz",
+								"picked": 1
+							},
+							"isError": false,
+							"timestamp": 0
+						}
+					]
+				},
+				{
+					"record": "code_question",
+					"input": {
+						"type": "answer",
+						"toolCallId": "q1",
+						"answer": {
+							"kind": "explain",
+							"text": "because"
+						}
+					},
+					"stored": [],
+					"ok": [
+						{
+							"id": "<id>",
+							"role": "toolResult",
+							"toolCallId": "q1",
+							"toolName": "write_code",
+							"content": [
+								{
+									"type": "text",
+									"text": "{\"kind\":\"explain\",\"text\":\"because\"}"
+								}
+							],
+							"details": {
+								"kind": "explain",
+								"text": "because"
+							},
+							"isError": false,
+							"timestamp": 0
+						}
+					]
+				},
+				{
+					"record": "code_question",
+					"input": {
+						"type": "answer",
+						"toolCallId": "other",
+						"answer": {
+							"kind": "quiz"
+						}
+					},
+					"stored": [],
+					"error": "answer input targets no pending question call"
+				},
+				{
+					"record": "code_question",
+					"input": {
+						"type": "thinking",
+						"problemCallId": "p1",
+						"text": "idea"
+					},
+					"stored": [],
+					"error": "thinking input targets no active problem"
+				},
+				{
+					"record": "code_question",
+					"input": {
+						"type": "thinking",
+						"problemCallId": "p2",
+						"text": "idea"
+					},
+					"stored": [],
+					"error": "thinking input targets no active problem"
+				},
+				{
+					"record": "code_question",
+					"dismiss": {
+						"type": "dismiss",
+						"toolCallId": "q1",
+						"answer": {
+							"kind": "quiz",
+							"dismissed": true
+						}
+					},
+					"error": "dismiss input's answer kind does not match the question"
+				},
+				{
+					"record": "code_question",
+					"dismiss": {
+						"type": "dismiss",
+						"toolCallId": "q1",
+						"answer": {
+							"kind": "explain",
+							"dismissed": true
+						}
+					},
+					"error": "dismiss input's answer kind does not match the question"
+				},
+				{
+					"record": "code_question",
+					"dismiss": {
+						"type": "dismiss-problem",
+						"problemCallId": "p1"
+					},
+					"error": "dismiss-problem input targets no active problem"
+				},
+				{
+					"record": "problem",
+					"input": {
+						"type": "text",
+						"text": "hi"
+					},
+					"stored": [],
+					"ok": [
+						{
+							"id": "<id>",
+							"role": "user",
+							"content": "hi",
+							"timestamp": 0
+						}
+					]
+				},
+				{
+					"record": "problem",
+					"input": {
+						"type": "text",
+						"text": " ",
+						"attachments": [
+							{
+								"name": "a.png",
+								"mimeType": "image/png",
+								"data": "QUJD"
+							}
+						]
+					},
+					"stored": [
+						{
+							"type": "text",
+							"text": "stored a.png"
+						}
+					],
+					"ok": [
+						{
+							"id": "<id>",
+							"role": "user",
+							"content": [
+								{
+									"type": "text",
+									"text": "stored a.png"
+								}
+							],
+							"timestamp": 0
+						}
+					]
+				},
+				{
+					"record": "problem",
+					"input": {
+						"type": "answer",
+						"toolCallId": "q1",
+						"answer": {
+							"kind": "quiz"
+						}
+					},
+					"stored": [],
+					"error": "answer input targets no pending question call"
+				},
+				{
+					"record": "problem",
+					"input": {
+						"type": "answer",
+						"toolCallId": "q1",
+						"answer": {
+							"kind": "explain"
+						},
+						"attachments": [
+							{
+								"name": "a.png",
+								"mimeType": "image/png",
+								"data": "QUJD"
+							}
+						]
+					},
+					"stored": [
+						{
+							"type": "text",
+							"text": "stored a.png"
+						}
+					],
+					"error": "answer input targets no pending question call"
+				},
+				{
+					"record": "problem",
+					"input": {
+						"type": "continue"
+					},
+					"stored": [],
+					"ok": []
+				},
+				{
+					"record": "problem",
+					"input": {
+						"type": "continue",
+						"extra": 1
+					},
+					"stored": [],
+					"ok": []
+				},
+				{
+					"record": "problem",
+					"input": {
+						"type": "side",
+						"text": "why"
+					},
+					"stored": [],
+					"ok": [
+						{
+							"id": "<id>",
+							"role": "user",
+							"content": "why",
+							"timestamp": 0,
+							"side": true
+						}
+					]
+				},
+				{
+					"record": "problem",
+					"input": {
+						"type": "side",
+						"text": "",
+						"attachments": [
+							{
+								"name": "a.png",
+								"mimeType": "image/png",
+								"data": "QUJD"
+							}
+						]
+					},
+					"stored": [
+						{
+							"type": "text",
+							"text": "stored a.png"
+						}
+					],
+					"ok": [
+						{
+							"id": "<id>",
+							"role": "user",
+							"content": [
+								{
+									"type": "text",
+									"text": "stored a.png"
+								}
+							],
+							"timestamp": 0,
+							"side": true
+						}
+					]
+				},
+				{
+					"record": "problem",
+					"input": {
+						"type": "thinking",
+						"problemCallId": "p1",
+						"text": "idea"
+					},
+					"stored": [],
+					"ok": [
+						{
+							"id": "<id>",
+							"role": "custom",
+							"customType": "practice-thinking",
+							"content": "Your thinking:\nidea",
+							"display": true,
+							"details": {
+								"problemCallId": "p1",
+								"text": "idea"
+							},
+							"timestamp": 0
+						}
+					]
+				},
+				{
+					"record": "problem",
+					"input": {
+						"type": "thinking",
+						"problemCallId": "p1",
+						"text": "",
+						"attachments": [
+							{
+								"name": "a.png",
+								"mimeType": "image/png",
+								"data": "QUJD"
+							}
+						]
+					},
+					"stored": [
+						{
+							"type": "text",
+							"text": "stored a.png"
+						}
+					],
+					"ok": [
+						{
+							"id": "<id>",
+							"role": "custom",
+							"customType": "practice-thinking",
+							"content": "Your thinking:\n",
+							"attachments": [
+								{
+									"type": "text",
+									"text": "stored a.png"
+								}
+							],
+							"display": true,
+							"details": {
+								"problemCallId": "p1",
+								"text": ""
+							},
+							"timestamp": 0
+						}
+					]
+				},
+				{
+					"record": "problem",
+					"input": {
+						"type": "next"
+					},
+					"stored": [],
+					"error": "next input requires no active problem"
+				},
+				{
+					"record": "problem",
+					"input": {
+						"type": "answer",
+						"toolCallId": "q1",
+						"answer": {
+							"kind": "quiz",
+							"picked": 1
+						}
+					},
+					"stored": [],
+					"error": "answer input targets no pending question call"
+				},
+				{
+					"record": "problem",
+					"input": {
+						"type": "answer",
+						"toolCallId": "q1",
+						"answer": {
+							"kind": "explain",
+							"text": "because"
+						}
+					},
+					"stored": [],
+					"error": "answer input targets no pending question call"
+				},
+				{
+					"record": "problem",
+					"input": {
+						"type": "answer",
+						"toolCallId": "other",
+						"answer": {
+							"kind": "quiz"
+						}
+					},
+					"stored": [],
+					"error": "answer input targets no pending question call"
+				},
+				{
+					"record": "problem",
+					"input": {
+						"type": "thinking",
+						"problemCallId": "p1",
+						"text": "idea"
+					},
+					"stored": [],
+					"ok": [
+						{
+							"id": "<id>",
+							"role": "custom",
+							"customType": "practice-thinking",
+							"content": "Your thinking:\nidea",
+							"display": true,
+							"details": {
+								"problemCallId": "p1",
+								"text": "idea"
+							},
+							"timestamp": 0
+						}
+					]
+				},
+				{
+					"record": "problem",
+					"input": {
+						"type": "thinking",
+						"problemCallId": "p2",
+						"text": "idea"
+					},
+					"stored": [],
+					"error": "thinking input targets no active problem"
+				},
+				{
+					"record": "problem",
+					"dismiss": {
+						"type": "dismiss",
+						"toolCallId": "q1",
+						"answer": {
+							"kind": "quiz",
+							"dismissed": true
+						}
+					},
+					"error": "dismiss input targets no pending question call"
+				},
+				{
+					"record": "problem",
+					"dismiss": {
+						"type": "dismiss",
+						"toolCallId": "q1",
+						"answer": {
+							"kind": "explain",
+							"dismissed": true
+						}
+					},
+					"error": "dismiss input targets no pending question call"
+				},
+				{
+					"record": "problem",
+					"dismiss": {
+						"type": "dismiss-problem",
+						"problemCallId": "p1"
+					},
+					"ok": [
+						{
+							"id": "<id>",
+							"role": "custom",
+							"customType": "problem-dismissed",
+							"content": "",
+							"display": true,
+							"details": {
+								"problemCallId": "p1"
+							},
+							"timestamp": 0
+						}
+					]
+				},
+				{
+					"record": "dismissed_problem",
+					"input": {
+						"type": "text",
+						"text": "hi"
+					},
+					"stored": [],
+					"ok": [
+						{
+							"id": "<id>",
+							"role": "assistant",
+							"content": [
+								{
+									"type": "toolCall",
+									"id": "call_conc_p1",
+									"name": "conclude",
+									"arguments": {
+										"outcome": "dismissed"
+									}
+								}
+							],
+							"timestamp": 0,
+							"api": "faux",
+							"provider": "synthetic",
+							"model": "synthetic-conclude",
+							"usage": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"totalTokens": 0,
+								"cost": {
+									"input": 0,
+									"output": 0,
+									"cacheRead": 0,
+									"cacheWrite": 0,
+									"total": 0
+								}
+							},
+							"stopReason": "toolUse"
+						},
+						{
+							"id": "<id>",
+							"role": "toolResult",
+							"toolCallId": "call_conc_p1",
+							"toolName": "conclude",
+							"content": [
+								{
+									"type": "text",
+									"text": "Problem concluded. Say your closing words about the learner's work if useful, then END YOUR TURN — no further tool calls. The next problem is NEVER posed here: it waits for the learner's explicit go-ahead (a *Next problem* message, or their own words asking for the next one). Between problems, answer their questions about the concluded one."
+								}
+							],
+							"details": {
+								"outcome": "dismissed",
+								"problemCallId": "p1"
+							},
+							"isError": false,
+							"timestamp": 0
+						},
+						{
+							"id": "<id>",
+							"role": "user",
+							"content": "hi",
+							"timestamp": 0
+						}
+					]
+				},
+				{
+					"record": "dismissed_problem",
+					"input": {
+						"type": "text",
+						"text": " ",
+						"attachments": [
+							{
+								"name": "a.png",
+								"mimeType": "image/png",
+								"data": "QUJD"
+							}
+						]
+					},
+					"stored": [
+						{
+							"type": "text",
+							"text": "stored a.png"
+						}
+					],
+					"ok": [
+						{
+							"id": "<id>",
+							"role": "assistant",
+							"content": [
+								{
+									"type": "toolCall",
+									"id": "call_conc_p1",
+									"name": "conclude",
+									"arguments": {
+										"outcome": "dismissed"
+									}
+								}
+							],
+							"timestamp": 0,
+							"api": "faux",
+							"provider": "synthetic",
+							"model": "synthetic-conclude",
+							"usage": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"totalTokens": 0,
+								"cost": {
+									"input": 0,
+									"output": 0,
+									"cacheRead": 0,
+									"cacheWrite": 0,
+									"total": 0
+								}
+							},
+							"stopReason": "toolUse"
+						},
+						{
+							"id": "<id>",
+							"role": "toolResult",
+							"toolCallId": "call_conc_p1",
+							"toolName": "conclude",
+							"content": [
+								{
+									"type": "text",
+									"text": "Problem concluded. Say your closing words about the learner's work if useful, then END YOUR TURN — no further tool calls. The next problem is NEVER posed here: it waits for the learner's explicit go-ahead (a *Next problem* message, or their own words asking for the next one). Between problems, answer their questions about the concluded one."
+								}
+							],
+							"details": {
+								"outcome": "dismissed",
+								"problemCallId": "p1"
+							},
+							"isError": false,
+							"timestamp": 0
+						},
+						{
+							"id": "<id>",
+							"role": "user",
+							"content": [
+								{
+									"type": "text",
+									"text": "stored a.png"
+								}
+							],
+							"timestamp": 0
+						}
+					]
+				},
+				{
+					"record": "dismissed_problem",
+					"input": {
+						"type": "answer",
+						"toolCallId": "q1",
+						"answer": {
+							"kind": "quiz"
+						}
+					},
+					"stored": [],
+					"error": "answer input targets no pending question call"
+				},
+				{
+					"record": "dismissed_problem",
+					"input": {
+						"type": "answer",
+						"toolCallId": "q1",
+						"answer": {
+							"kind": "explain"
+						},
+						"attachments": [
+							{
+								"name": "a.png",
+								"mimeType": "image/png",
+								"data": "QUJD"
+							}
+						]
+					},
+					"stored": [
+						{
+							"type": "text",
+							"text": "stored a.png"
+						}
+					],
+					"error": "answer input targets no pending question call"
+				},
+				{
+					"record": "dismissed_problem",
+					"input": {
+						"type": "continue"
+					},
+					"stored": [],
+					"ok": [
+						{
+							"id": "<id>",
+							"role": "assistant",
+							"content": [
+								{
+									"type": "toolCall",
+									"id": "call_conc_p1",
+									"name": "conclude",
+									"arguments": {
+										"outcome": "dismissed"
+									}
+								}
+							],
+							"timestamp": 0,
+							"api": "faux",
+							"provider": "synthetic",
+							"model": "synthetic-conclude",
+							"usage": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"totalTokens": 0,
+								"cost": {
+									"input": 0,
+									"output": 0,
+									"cacheRead": 0,
+									"cacheWrite": 0,
+									"total": 0
+								}
+							},
+							"stopReason": "toolUse"
+						},
+						{
+							"id": "<id>",
+							"role": "toolResult",
+							"toolCallId": "call_conc_p1",
+							"toolName": "conclude",
+							"content": [
+								{
+									"type": "text",
+									"text": "Problem concluded. Say your closing words about the learner's work if useful, then END YOUR TURN — no further tool calls. The next problem is NEVER posed here: it waits for the learner's explicit go-ahead (a *Next problem* message, or their own words asking for the next one). Between problems, answer their questions about the concluded one."
+								}
+							],
+							"details": {
+								"outcome": "dismissed",
+								"problemCallId": "p1"
+							},
+							"isError": false,
+							"timestamp": 0
+						}
+					]
+				},
+				{
+					"record": "dismissed_problem",
+					"input": {
+						"type": "continue",
+						"extra": 1
+					},
+					"stored": [],
+					"ok": [
+						{
+							"id": "<id>",
+							"role": "assistant",
+							"content": [
+								{
+									"type": "toolCall",
+									"id": "call_conc_p1",
+									"name": "conclude",
+									"arguments": {
+										"outcome": "dismissed"
+									}
+								}
+							],
+							"timestamp": 0,
+							"api": "faux",
+							"provider": "synthetic",
+							"model": "synthetic-conclude",
+							"usage": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"totalTokens": 0,
+								"cost": {
+									"input": 0,
+									"output": 0,
+									"cacheRead": 0,
+									"cacheWrite": 0,
+									"total": 0
+								}
+							},
+							"stopReason": "toolUse"
+						},
+						{
+							"id": "<id>",
+							"role": "toolResult",
+							"toolCallId": "call_conc_p1",
+							"toolName": "conclude",
+							"content": [
+								{
+									"type": "text",
+									"text": "Problem concluded. Say your closing words about the learner's work if useful, then END YOUR TURN — no further tool calls. The next problem is NEVER posed here: it waits for the learner's explicit go-ahead (a *Next problem* message, or their own words asking for the next one). Between problems, answer their questions about the concluded one."
+								}
+							],
+							"details": {
+								"outcome": "dismissed",
+								"problemCallId": "p1"
+							},
+							"isError": false,
+							"timestamp": 0
+						}
+					]
+				},
+				{
+					"record": "dismissed_problem",
+					"input": {
+						"type": "side",
+						"text": "why"
+					},
+					"stored": [],
+					"error": "side input requires a waiting question or problem"
+				},
+				{
+					"record": "dismissed_problem",
+					"input": {
+						"type": "side",
+						"text": "",
+						"attachments": [
+							{
+								"name": "a.png",
+								"mimeType": "image/png",
+								"data": "QUJD"
+							}
+						]
+					},
+					"stored": [
+						{
+							"type": "text",
+							"text": "stored a.png"
+						}
+					],
+					"error": "side input requires a waiting question or problem"
+				},
+				{
+					"record": "dismissed_problem",
+					"input": {
+						"type": "thinking",
+						"problemCallId": "p1",
+						"text": "idea"
+					},
+					"stored": [],
+					"error": "thinking input targets no active problem"
+				},
+				{
+					"record": "dismissed_problem",
+					"input": {
+						"type": "thinking",
+						"problemCallId": "p1",
+						"text": "",
+						"attachments": [
+							{
+								"name": "a.png",
+								"mimeType": "image/png",
+								"data": "QUJD"
+							}
+						]
+					},
+					"stored": [
+						{
+							"type": "text",
+							"text": "stored a.png"
+						}
+					],
+					"error": "thinking input targets no active problem"
+				},
+				{
+					"record": "dismissed_problem",
+					"input": {
+						"type": "next"
+					},
+					"stored": [],
+					"ok": [
+						{
+							"id": "<id>",
+							"role": "assistant",
+							"content": [
+								{
+									"type": "toolCall",
+									"id": "call_conc_p1",
+									"name": "conclude",
+									"arguments": {
+										"outcome": "dismissed"
+									}
+								}
+							],
+							"timestamp": 0,
+							"api": "faux",
+							"provider": "synthetic",
+							"model": "synthetic-conclude",
+							"usage": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"totalTokens": 0,
+								"cost": {
+									"input": 0,
+									"output": 0,
+									"cacheRead": 0,
+									"cacheWrite": 0,
+									"total": 0
+								}
+							},
+							"stopReason": "toolUse"
+						},
+						{
+							"id": "<id>",
+							"role": "toolResult",
+							"toolCallId": "call_conc_p1",
+							"toolName": "conclude",
+							"content": [
+								{
+									"type": "text",
+									"text": "Problem concluded. Say your closing words about the learner's work if useful, then END YOUR TURN — no further tool calls. The next problem is NEVER posed here: it waits for the learner's explicit go-ahead (a *Next problem* message, or their own words asking for the next one). Between problems, answer their questions about the concluded one."
+								}
+							],
+							"details": {
+								"outcome": "dismissed",
+								"problemCallId": "p1"
+							},
+							"isError": false,
+							"timestamp": 0
+						},
+						{
+							"id": "<id>",
+							"role": "custom",
+							"customType": "practice-next",
+							"content": "[NEXT PROBLEM] — the learner's explicit go-ahead: pose the next problem now per the selection rules, or wrap the session in text if the arc is complete.",
+							"display": true,
+							"details": {},
+							"timestamp": 0
+						}
+					]
+				},
+				{
+					"record": "dismissed_problem",
+					"input": {
+						"type": "answer",
+						"toolCallId": "q1",
+						"answer": {
+							"kind": "quiz",
+							"picked": 1
+						}
+					},
+					"stored": [],
+					"error": "answer input targets no pending question call"
+				},
+				{
+					"record": "dismissed_problem",
+					"input": {
+						"type": "answer",
+						"toolCallId": "q1",
+						"answer": {
+							"kind": "explain",
+							"text": "because"
+						}
+					},
+					"stored": [],
+					"error": "answer input targets no pending question call"
+				},
+				{
+					"record": "dismissed_problem",
+					"input": {
+						"type": "answer",
+						"toolCallId": "other",
+						"answer": {
+							"kind": "quiz"
+						}
+					},
+					"stored": [],
+					"error": "answer input targets no pending question call"
+				},
+				{
+					"record": "dismissed_problem",
+					"input": {
+						"type": "thinking",
+						"problemCallId": "p1",
+						"text": "idea"
+					},
+					"stored": [],
+					"error": "thinking input targets no active problem"
+				},
+				{
+					"record": "dismissed_problem",
+					"input": {
+						"type": "thinking",
+						"problemCallId": "p2",
+						"text": "idea"
+					},
+					"stored": [],
+					"error": "thinking input targets no active problem"
+				},
+				{
+					"record": "dismissed_problem",
+					"dismiss": {
+						"type": "dismiss",
+						"toolCallId": "q1",
+						"answer": {
+							"kind": "quiz",
+							"dismissed": true
+						}
+					},
+					"error": "dismiss input targets no pending question call"
+				},
+				{
+					"record": "dismissed_problem",
+					"dismiss": {
+						"type": "dismiss",
+						"toolCallId": "q1",
+						"answer": {
+							"kind": "explain",
+							"dismissed": true
+						}
+					},
+					"error": "dismiss input targets no pending question call"
+				},
+				{
+					"record": "dismissed_problem",
+					"dismiss": {
+						"type": "dismiss-problem",
+						"problemCallId": "p1"
+					},
+					"error": "dismiss-problem input targets no active problem"
+				},
+				{
+					"record": "between_problems",
+					"input": {
+						"type": "text",
+						"text": "hi"
+					},
+					"stored": [],
+					"ok": [
+						{
+							"id": "<id>",
+							"role": "user",
+							"content": "hi",
+							"timestamp": 0
+						}
+					]
+				},
+				{
+					"record": "between_problems",
+					"input": {
+						"type": "text",
+						"text": " ",
+						"attachments": [
+							{
+								"name": "a.png",
+								"mimeType": "image/png",
+								"data": "QUJD"
+							}
+						]
+					},
+					"stored": [
+						{
+							"type": "text",
+							"text": "stored a.png"
+						}
+					],
+					"ok": [
+						{
+							"id": "<id>",
+							"role": "user",
+							"content": [
+								{
+									"type": "text",
+									"text": "stored a.png"
+								}
+							],
+							"timestamp": 0
+						}
+					]
+				},
+				{
+					"record": "between_problems",
+					"input": {
+						"type": "answer",
+						"toolCallId": "q1",
+						"answer": {
+							"kind": "quiz"
+						}
+					},
+					"stored": [],
+					"error": "answer input targets no pending question call"
+				},
+				{
+					"record": "between_problems",
+					"input": {
+						"type": "answer",
+						"toolCallId": "q1",
+						"answer": {
+							"kind": "explain"
+						},
+						"attachments": [
+							{
+								"name": "a.png",
+								"mimeType": "image/png",
+								"data": "QUJD"
+							}
+						]
+					},
+					"stored": [
+						{
+							"type": "text",
+							"text": "stored a.png"
+						}
+					],
+					"error": "answer input targets no pending question call"
+				},
+				{
+					"record": "between_problems",
+					"input": {
+						"type": "continue"
+					},
+					"stored": [],
+					"ok": []
+				},
+				{
+					"record": "between_problems",
+					"input": {
+						"type": "continue",
+						"extra": 1
+					},
+					"stored": [],
+					"ok": []
+				},
+				{
+					"record": "between_problems",
+					"input": {
+						"type": "side",
+						"text": "why"
+					},
+					"stored": [],
+					"error": "side input requires a waiting question or problem"
+				},
+				{
+					"record": "between_problems",
+					"input": {
+						"type": "side",
+						"text": "",
+						"attachments": [
+							{
+								"name": "a.png",
+								"mimeType": "image/png",
+								"data": "QUJD"
+							}
+						]
+					},
+					"stored": [
+						{
+							"type": "text",
+							"text": "stored a.png"
+						}
+					],
+					"error": "side input requires a waiting question or problem"
+				},
+				{
+					"record": "between_problems",
+					"input": {
+						"type": "thinking",
+						"problemCallId": "p1",
+						"text": "idea"
+					},
+					"stored": [],
+					"error": "thinking input targets no active problem"
+				},
+				{
+					"record": "between_problems",
+					"input": {
+						"type": "thinking",
+						"problemCallId": "p1",
+						"text": "",
+						"attachments": [
+							{
+								"name": "a.png",
+								"mimeType": "image/png",
+								"data": "QUJD"
+							}
+						]
+					},
+					"stored": [
+						{
+							"type": "text",
+							"text": "stored a.png"
+						}
+					],
+					"error": "thinking input targets no active problem"
+				},
+				{
+					"record": "between_problems",
+					"input": {
+						"type": "next"
+					},
+					"stored": [],
+					"ok": [
+						{
+							"id": "<id>",
+							"role": "custom",
+							"customType": "practice-next",
+							"content": "[NEXT PROBLEM] — the learner's explicit go-ahead: pose the next problem now per the selection rules, or wrap the session in text if the arc is complete.",
+							"display": true,
+							"details": {},
+							"timestamp": 0
+						}
+					]
+				},
+				{
+					"record": "between_problems",
+					"input": {
+						"type": "answer",
+						"toolCallId": "q1",
+						"answer": {
+							"kind": "quiz",
+							"picked": 1
+						}
+					},
+					"stored": [],
+					"error": "answer input targets no pending question call"
+				},
+				{
+					"record": "between_problems",
+					"input": {
+						"type": "answer",
+						"toolCallId": "q1",
+						"answer": {
+							"kind": "explain",
+							"text": "because"
+						}
+					},
+					"stored": [],
+					"error": "answer input targets no pending question call"
+				},
+				{
+					"record": "between_problems",
+					"input": {
+						"type": "answer",
+						"toolCallId": "other",
+						"answer": {
+							"kind": "quiz"
+						}
+					},
+					"stored": [],
+					"error": "answer input targets no pending question call"
+				},
+				{
+					"record": "between_problems",
+					"input": {
+						"type": "thinking",
+						"problemCallId": "p1",
+						"text": "idea"
+					},
+					"stored": [],
+					"error": "thinking input targets no active problem"
+				},
+				{
+					"record": "between_problems",
+					"input": {
+						"type": "thinking",
+						"problemCallId": "p2",
+						"text": "idea"
+					},
+					"stored": [],
+					"error": "thinking input targets no active problem"
+				},
+				{
+					"record": "between_problems",
+					"dismiss": {
+						"type": "dismiss",
+						"toolCallId": "q1",
+						"answer": {
+							"kind": "quiz",
+							"dismissed": true
+						}
+					},
+					"error": "dismiss input targets no pending question call"
+				},
+				{
+					"record": "between_problems",
+					"dismiss": {
+						"type": "dismiss",
+						"toolCallId": "q1",
+						"answer": {
+							"kind": "explain",
+							"dismissed": true
+						}
+					},
+					"error": "dismiss input targets no pending question call"
+				},
+				{
+					"record": "between_problems",
+					"dismiss": {
+						"type": "dismiss-problem",
+						"problemCallId": "p1"
+					},
+					"error": "dismiss-problem input targets no active problem"
+				},
+				{
+					"record": "teach",
+					"input": {
+						"type": "text",
+						"text": "hi"
+					},
+					"stored": [],
+					"ok": [
+						{
+							"id": "<id>",
+							"role": "user",
+							"content": "hi",
+							"timestamp": 0
+						}
+					]
+				},
+				{
+					"record": "teach",
+					"input": {
+						"type": "text",
+						"text": " ",
+						"attachments": [
+							{
+								"name": "a.png",
+								"mimeType": "image/png",
+								"data": "QUJD"
+							}
+						]
+					},
+					"stored": [
+						{
+							"type": "text",
+							"text": "stored a.png"
+						}
+					],
+					"ok": [
+						{
+							"id": "<id>",
+							"role": "user",
+							"content": [
+								{
+									"type": "text",
+									"text": "stored a.png"
+								}
+							],
+							"timestamp": 0
+						}
+					]
+				},
+				{
+					"record": "teach",
+					"input": {
+						"type": "answer",
+						"toolCallId": "q1",
+						"answer": {
+							"kind": "quiz"
+						}
+					},
+					"stored": [],
+					"error": "answer input targets no pending question call"
+				},
+				{
+					"record": "teach",
+					"input": {
+						"type": "answer",
+						"toolCallId": "q1",
+						"answer": {
+							"kind": "explain"
+						},
+						"attachments": [
+							{
+								"name": "a.png",
+								"mimeType": "image/png",
+								"data": "QUJD"
+							}
+						]
+					},
+					"stored": [
+						{
+							"type": "text",
+							"text": "stored a.png"
+						}
+					],
+					"error": "answer input targets no pending question call"
+				},
+				{
+					"record": "teach",
+					"input": {
+						"type": "continue"
+					},
+					"stored": [],
+					"ok": []
+				},
+				{
+					"record": "teach",
+					"input": {
+						"type": "continue",
+						"extra": 1
+					},
+					"stored": [],
+					"ok": []
+				},
+				{
+					"record": "teach",
+					"input": {
+						"type": "side",
+						"text": "why"
+					},
+					"stored": [],
+					"error": "side input requires a waiting question or problem"
+				},
+				{
+					"record": "teach",
+					"input": {
+						"type": "side",
+						"text": "",
+						"attachments": [
+							{
+								"name": "a.png",
+								"mimeType": "image/png",
+								"data": "QUJD"
+							}
+						]
+					},
+					"stored": [
+						{
+							"type": "text",
+							"text": "stored a.png"
+						}
+					],
+					"error": "side input requires a waiting question or problem"
+				},
+				{
+					"record": "teach",
+					"input": {
+						"type": "thinking",
+						"problemCallId": "p1",
+						"text": "idea"
+					},
+					"stored": [],
+					"error": "thinking input targets no active problem"
+				},
+				{
+					"record": "teach",
+					"input": {
+						"type": "thinking",
+						"problemCallId": "p1",
+						"text": "",
+						"attachments": [
+							{
+								"name": "a.png",
+								"mimeType": "image/png",
+								"data": "QUJD"
+							}
+						]
+					},
+					"stored": [
+						{
+							"type": "text",
+							"text": "stored a.png"
+						}
+					],
+					"error": "thinking input targets no active problem"
+				},
+				{
+					"record": "teach",
+					"input": {
+						"type": "next"
+					},
+					"stored": [],
+					"error": "next input is a practice, study or homework session affordance"
+				},
+				{
+					"record": "teach",
+					"input": {
+						"type": "answer",
+						"toolCallId": "q1",
+						"answer": {
+							"kind": "quiz",
+							"picked": 1
+						}
+					},
+					"stored": [],
+					"error": "answer input targets no pending question call"
+				},
+				{
+					"record": "teach",
+					"input": {
+						"type": "answer",
+						"toolCallId": "q1",
+						"answer": {
+							"kind": "explain",
+							"text": "because"
+						}
+					},
+					"stored": [],
+					"error": "answer input targets no pending question call"
+				},
+				{
+					"record": "teach",
+					"input": {
+						"type": "answer",
+						"toolCallId": "other",
+						"answer": {
+							"kind": "quiz"
+						}
+					},
+					"stored": [],
+					"error": "answer input targets no pending question call"
+				},
+				{
+					"record": "teach",
+					"input": {
+						"type": "thinking",
+						"problemCallId": "p1",
+						"text": "idea"
+					},
+					"stored": [],
+					"error": "thinking input targets no active problem"
+				},
+				{
+					"record": "teach",
+					"input": {
+						"type": "thinking",
+						"problemCallId": "p2",
+						"text": "idea"
+					},
+					"stored": [],
+					"error": "thinking input targets no active problem"
+				},
+				{
+					"record": "teach",
+					"dismiss": {
+						"type": "dismiss",
+						"toolCallId": "q1",
+						"answer": {
+							"kind": "quiz",
+							"dismissed": true
+						}
+					},
+					"error": "dismiss input targets no pending question call"
+				},
+				{
+					"record": "teach",
+					"dismiss": {
+						"type": "dismiss",
+						"toolCallId": "q1",
+						"answer": {
+							"kind": "explain",
+							"dismissed": true
+						}
+					},
+					"error": "dismiss input targets no pending question call"
+				},
+				{
+					"record": "teach",
+					"dismiss": {
+						"type": "dismiss-problem",
+						"problemCallId": "p1"
+					},
+					"error": "dismiss-problem input targets no active problem"
+				}
+			]
+		}
+	},
+	{
+		"name": "attachment rules",
+		"output": {
+			"refusals": [
+				{
+					"name": "a.png",
+					"type": "",
+					"size": 1,
+					"refusal": null
+				},
+				{
+					"name": "a.PNG",
+					"type": "",
+					"size": 1,
+					"refusal": null
+				},
+				{
+					"name": "a.jpeg",
+					"type": "",
+					"size": 1,
+					"refusal": null
+				},
+				{
+					"name": "a.heic",
+					"type": "",
+					"size": 1,
+					"refusal": "Can't use HEIC photos yet. Export as JPG."
+				},
+				{
+					"name": "a.HEIF",
+					"type": "",
+					"size": 1,
+					"refusal": "Can't use HEIC photos yet. Export as JPG."
+				},
+				{
+					"name": "photo",
+					"type": "image/heic",
+					"size": 1,
+					"refusal": "Can't use HEIC photos yet. Export as JPG."
+				},
+				{
+					"name": "a.txt",
+					"type": "",
+					"size": 1,
+					"refusal": "Can't add a.txt. Use a PNG, JPG, GIF, WebP or PDF."
+				},
+				{
+					"name": "a.pdf",
+					"type": "",
+					"size": 31457280,
+					"refusal": null
+				},
+				{
+					"name": "a.pdf",
+					"type": "",
+					"size": 31457281,
+					"refusal": "a.pdf is too big. PDFs can be up to 30 MB."
+				},
+				{
+					"name": "p",
+					"type": "image/png",
+					"size": 20971520,
+					"refusal": null
+				},
+				{
+					"name": "p",
+					"type": "image/png",
+					"size": 20971521,
+					"refusal": "p is too big. Pictures can be up to 20 MB."
+				},
+				{
+					"name": "x.tar.gz",
+					"type": "",
+					"size": 1,
+					"refusal": "Can't add x.tar.gz. Use a PNG, JPG, GIF, WebP or PDF."
+				},
+				{
+					"name": "x.",
+					"type": "",
+					"size": 1,
+					"refusal": "Can't add x.. Use a PNG, JPG, GIF, WebP or PDF."
+				},
+				{
+					"name": "noext",
+					"type": "",
+					"size": 1,
+					"refusal": "Can't add noext. Use a PNG, JPG, GIF, WebP or PDF."
+				},
+				{
+					"name": "a.webp",
+					"type": "application/pdf",
+					"size": 1,
+					"refusal": null
+				},
+				{
+					"name": "a.pdf",
+					"type": "text/plain",
+					"size": 1,
+					"refusal": "Can't add a.pdf. Use a PNG, JPG, GIF, WebP or PDF."
+				},
+				{
+					"name": ".png",
+					"type": "",
+					"size": 1,
+					"refusal": null
+				}
+			],
+			"base64": [
+				{
+					"data": "",
+					"bytes": 0
+				},
+				{
+					"data": "QUJD",
+					"bytes": 3
+				},
+				{
+					"data": "QUI=",
+					"bytes": 2
+				},
+				{
+					"data": "QQ==",
+					"bytes": 1
+				},
+				{
+					"data": "QQ=",
+					"bytes": 1
+				},
+				{
+					"data": "====",
+					"bytes": 1
+				},
+				{
+					"data": "QUJDRA==",
+					"bytes": 4
+				}
+			],
+			"png": [
+				{
+					"transparent": true,
+					"sourcePng": false,
+					"pngBytes": 9000000000,
+					"keeps": true
+				},
+				{
+					"transparent": false,
+					"sourcePng": true,
+					"pngBytes": 1572864,
+					"keeps": true
+				},
+				{
+					"transparent": false,
+					"sourcePng": true,
+					"pngBytes": 1572865,
+					"keeps": false
+				},
+				{
+					"transparent": false,
+					"sourcePng": false,
+					"pngBytes": 1,
+					"keeps": false
+				}
+			],
+			"pdfNames": [
+				{
+					"name": "../My Notes (v2).PDF",
+					"hash": "0123456789abcdef",
+					"file": "0123456789ab-_My Notes _v2_.pdf"
+				},
+				{
+					"name": "...pdf",
+					"hash": "ab",
+					"file": "ab-document.pdf"
+				},
+				{
+					"name": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+					"hash": "h",
+					"file": "h-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.pdf"
+				},
+				{
+					"name": "  .hidden.pdf",
+					"hash": "1234",
+					"file": "1234-hidden.pdf"
+				},
+				{
+					"name": "résumé 日本語.pdf",
+					"hash": "abcdef0123456789",
+					"file": "abcdef012345-r_sum_ _.pdf"
+				},
+				{
+					"name": "",
+					"hash": "z",
+					"file": "z-document.pdf"
+				},
+				{
+					"name": "a  b\tc.pdf",
+					"hash": "q",
+					"file": "q-a  b_c.pdf"
+				}
+			],
+			"notes": [
+				{
+					"name": "my   file.pdf",
+					"path": "/tmp/a.pdf",
+					"note": {
+						"type": "text",
+						"text": "[Attached PDF] my file.pdf\nPath: /tmp/a.pdf\nRead it with the pdf tool when you need its content."
+					},
+					"back": {
+						"name": "my file.pdf",
+						"path": "/tmp/a.pdf"
+					}
+				},
+				{
+					"name": "tab\tname\n.pdf",
+					"path": "/x y/z.pdf",
+					"note": {
+						"type": "text",
+						"text": "[Attached PDF] tab name .pdf\nPath: /x y/z.pdf\nRead it with the pdf tool when you need its content."
+					},
+					"back": {
+						"name": "tab name .pdf",
+						"path": "/x y/z.pdf"
+					}
+				}
+			],
+			"notesBack": [
+				{
+					"t": "[Attached PDF] x\nPath: y",
+					"back": null
+				},
+				{
+					"t": "random",
+					"back": null
+				},
+				{
+					"t": "[Attached PDF] x\nPath: y\nRead it with the pdf tool when you need its content.",
+					"back": {
+						"name": "x",
+						"path": "y"
+					}
+				},
+				{
+					"t": "[Attached PDF] a\nPath: \nRead it with the pdf tool when you need its content.",
+					"back": {
+						"name": "a",
+						"path": ""
+					}
+				},
+				{
+					"t": "Attached PDF x\nPath: y\nRead it with the pdf tool when you need its content.",
+					"back": null
+				}
+			],
+			"contentText": [
+				{
+					"content": "plain",
+					"text": "plain"
+				},
+				{
+					"content": [
+						{
+							"type": "text",
+							"text": "a"
+						},
+						{
+							"type": "image",
+							"data": "QUJD",
+							"mimeType": "image/png"
+						}
+					],
+					"text": "a\n[image]"
+				},
+				{
+					"content": [
+						{
+							"type": "image",
+							"data": "QUJD",
+							"mimeType": "image/png"
+						}
+					],
+					"text": "[image]"
+				},
+				{
+					"content": [],
+					"text": ""
+				},
+				{
+					"content": [
+						{
+							"type": "text"
+						}
+					],
+					"text": ""
+				}
+			]
+		}
+	}
+]

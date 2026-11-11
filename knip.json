@@ -9,6 +9,8 @@
 		"tests/perf/*.{ts,tsx}"
 	],
 	"project": ["**/*.{ts,tsx,js,mjs,cjs}"],
+	// The Rust server; scripts/golden.ts loads the crates' golden specs by path.
+	"ignore": ["crates/**"],
 	// globals.css loads it with `@import "tailwindcss"`, which knip does not read.
 	"ignoreDependencies": ["tailwindcss"],
 	// knip reads the `-c electron/electron-builder.yml` argument in release.yml as a binary.

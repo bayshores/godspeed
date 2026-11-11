@@ -1,0 +1,3453 @@
+[
+	{
+		"name": "quiz ok",
+		"output": {
+			"schema": {
+				"type": "object",
+				"required": [
+					"type",
+					"nodeId",
+					"question",
+					"options",
+					"correctAnswer"
+				],
+				"properties": {
+					"type": {
+						"anyOf": [
+							{
+								"type": "string",
+								"const": "predict"
+							},
+							{
+								"type": "string",
+								"const": "check"
+							}
+						]
+					},
+					"nodeId": {
+						"type": "string"
+					},
+					"question": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 40
+					},
+					"options": {
+						"type": "array",
+						"items": {
+							"type": "object",
+							"required": [
+								"label"
+							],
+							"properties": {
+								"label": {
+									"type": "string",
+									"minLength": 1
+								},
+								"value": {
+									"type": "string"
+								}
+							}
+						},
+						"minItems": 2,
+						"maxItems": 4
+					},
+					"multiSelect": {
+						"type": "boolean"
+					},
+					"correctAnswer": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "array",
+								"items": {
+									"type": "string"
+								}
+							}
+						]
+					},
+					"limit": {
+						"type": "integer",
+						"minimum": 1,
+						"maximum": 20
+					},
+					"time": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"rating": {
+						"anyOf": [
+							{
+								"type": "string",
+								"const": "R0"
+							},
+							{
+								"type": "string",
+								"const": "R1"
+							},
+							{
+								"type": "null"
+							}
+						]
+					}
+				}
+			},
+			"args": {
+				"type": "check",
+				"nodeId": "n1",
+				"question": "Why?",
+				"options": [
+					{
+						"label": "a",
+						"value": "a"
+					},
+					{
+						"label": "b"
+					}
+				],
+				"correctAnswer": "a"
+			},
+			"ok": {
+				"type": "check",
+				"nodeId": "n1",
+				"question": "Why?",
+				"options": [
+					{
+						"label": "a",
+						"value": "a"
+					},
+					{
+						"label": "b"
+					}
+				],
+				"correctAnswer": "a"
+			}
+		}
+	},
+	{
+		"name": "quiz loose values",
+		"output": {
+			"schema": {
+				"type": "object",
+				"required": [
+					"type",
+					"nodeId",
+					"question",
+					"options",
+					"correctAnswer"
+				],
+				"properties": {
+					"type": {
+						"anyOf": [
+							{
+								"type": "string",
+								"const": "predict"
+							},
+							{
+								"type": "string",
+								"const": "check"
+							}
+						]
+					},
+					"nodeId": {
+						"type": "string"
+					},
+					"question": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 40
+					},
+					"options": {
+						"type": "array",
+						"items": {
+							"type": "object",
+							"required": [
+								"label"
+							],
+							"properties": {
+								"label": {
+									"type": "string",
+									"minLength": 1
+								},
+								"value": {
+									"type": "string"
+								}
+							}
+						},
+						"minItems": 2,
+						"maxItems": 4
+					},
+					"multiSelect": {
+						"type": "boolean"
+					},
+					"correctAnswer": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "array",
+								"items": {
+									"type": "string"
+								}
+							}
+						]
+					},
+					"limit": {
+						"type": "integer",
+						"minimum": 1,
+						"maximum": 20
+					},
+					"time": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"rating": {
+						"anyOf": [
+							{
+								"type": "string",
+								"const": "R0"
+							},
+							{
+								"type": "string",
+								"const": "R1"
+							},
+							{
+								"type": "null"
+							}
+						]
+					}
+				}
+			},
+			"args": {
+				"type": "check",
+				"nodeId": "n1",
+				"question": "Why?",
+				"options": {
+					"label": "only"
+				},
+				"correctAnswer": "a",
+				"multiSelect": "true",
+				"limit": "7",
+				"time": null,
+				"rating": null
+			},
+			"error": "Validation failed for tool \"t\":\n  - options: must not have fewer than 2 items\n\nReceived arguments:\n{\n  \"type\": \"check\",\n  \"nodeId\": \"n1\",\n  \"question\": \"Why?\",\n  \"options\": {\n    \"label\": \"only\"\n  },\n  \"correctAnswer\": \"a\",\n  \"multiSelect\": \"true\",\n  \"limit\": \"7\",\n  \"time\": null,\n  \"rating\": null\n}"
+		}
+	},
+	{
+		"name": "quiz missing several",
+		"output": {
+			"schema": {
+				"type": "object",
+				"required": [
+					"type",
+					"nodeId",
+					"question",
+					"options",
+					"correctAnswer"
+				],
+				"properties": {
+					"type": {
+						"anyOf": [
+							{
+								"type": "string",
+								"const": "predict"
+							},
+							{
+								"type": "string",
+								"const": "check"
+							}
+						]
+					},
+					"nodeId": {
+						"type": "string"
+					},
+					"question": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 40
+					},
+					"options": {
+						"type": "array",
+						"items": {
+							"type": "object",
+							"required": [
+								"label"
+							],
+							"properties": {
+								"label": {
+									"type": "string",
+									"minLength": 1
+								},
+								"value": {
+									"type": "string"
+								}
+							}
+						},
+						"minItems": 2,
+						"maxItems": 4
+					},
+					"multiSelect": {
+						"type": "boolean"
+					},
+					"correctAnswer": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "array",
+								"items": {
+									"type": "string"
+								}
+							}
+						]
+					},
+					"limit": {
+						"type": "integer",
+						"minimum": 1,
+						"maximum": 20
+					},
+					"time": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"rating": {
+						"anyOf": [
+							{
+								"type": "string",
+								"const": "R0"
+							},
+							{
+								"type": "string",
+								"const": "R1"
+							},
+							{
+								"type": "null"
+							}
+						]
+					}
+				}
+			},
+			"args": {
+				"nodeId": 3
+			},
+			"error": "Validation failed for tool \"t\":\n  - type: must have required properties type, question, options, correctAnswer\n\nReceived arguments:\n{\n  \"nodeId\": 3\n}"
+		}
+	},
+	{
+		"name": "quiz wrong type literal",
+		"output": {
+			"schema": {
+				"type": "object",
+				"required": [
+					"type",
+					"nodeId",
+					"question",
+					"options",
+					"correctAnswer"
+				],
+				"properties": {
+					"type": {
+						"anyOf": [
+							{
+								"type": "string",
+								"const": "predict"
+							},
+							{
+								"type": "string",
+								"const": "check"
+							}
+						]
+					},
+					"nodeId": {
+						"type": "string"
+					},
+					"question": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 40
+					},
+					"options": {
+						"type": "array",
+						"items": {
+							"type": "object",
+							"required": [
+								"label"
+							],
+							"properties": {
+								"label": {
+									"type": "string",
+									"minLength": 1
+								},
+								"value": {
+									"type": "string"
+								}
+							}
+						},
+						"minItems": 2,
+						"maxItems": 4
+					},
+					"multiSelect": {
+						"type": "boolean"
+					},
+					"correctAnswer": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "array",
+								"items": {
+									"type": "string"
+								}
+							}
+						]
+					},
+					"limit": {
+						"type": "integer",
+						"minimum": 1,
+						"maximum": 20
+					},
+					"time": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"rating": {
+						"anyOf": [
+							{
+								"type": "string",
+								"const": "R0"
+							},
+							{
+								"type": "string",
+								"const": "R1"
+							},
+							{
+								"type": "null"
+							}
+						]
+					}
+				}
+			},
+			"args": {
+				"type": "teach",
+				"nodeId": "n1",
+				"question": "Why?",
+				"options": [
+					{
+						"label": "a",
+						"value": "a"
+					},
+					{
+						"label": "b"
+					}
+				],
+				"correctAnswer": "a"
+			},
+			"error": "Validation failed for tool \"t\":\n  - type: must be equal to constant\n  - type: must be equal to constant\n  - type: must match a schema in anyOf\n\nReceived arguments:\n{\n  \"type\": \"teach\",\n  \"nodeId\": \"n1\",\n  \"question\": \"Why?\",\n  \"options\": [\n    {\n      \"label\": \"a\",\n      \"value\": \"a\"\n    },\n    {\n      \"label\": \"b\"\n    }\n  ],\n  \"correctAnswer\": \"a\"\n}"
+		}
+	},
+	{
+		"name": "quiz bad union",
+		"output": {
+			"schema": {
+				"type": "object",
+				"required": [
+					"type",
+					"nodeId",
+					"question",
+					"options",
+					"correctAnswer"
+				],
+				"properties": {
+					"type": {
+						"anyOf": [
+							{
+								"type": "string",
+								"const": "predict"
+							},
+							{
+								"type": "string",
+								"const": "check"
+							}
+						]
+					},
+					"nodeId": {
+						"type": "string"
+					},
+					"question": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 40
+					},
+					"options": {
+						"type": "array",
+						"items": {
+							"type": "object",
+							"required": [
+								"label"
+							],
+							"properties": {
+								"label": {
+									"type": "string",
+									"minLength": 1
+								},
+								"value": {
+									"type": "string"
+								}
+							}
+						},
+						"minItems": 2,
+						"maxItems": 4
+					},
+					"multiSelect": {
+						"type": "boolean"
+					},
+					"correctAnswer": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "array",
+								"items": {
+									"type": "string"
+								}
+							}
+						]
+					},
+					"limit": {
+						"type": "integer",
+						"minimum": 1,
+						"maximum": 20
+					},
+					"time": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"rating": {
+						"anyOf": [
+							{
+								"type": "string",
+								"const": "R0"
+							},
+							{
+								"type": "string",
+								"const": "R1"
+							},
+							{
+								"type": "null"
+							}
+						]
+					}
+				}
+			},
+			"args": {
+				"type": "check",
+				"nodeId": "n1",
+				"question": "Why?",
+				"options": [
+					{
+						"label": "a",
+						"value": "a"
+					},
+					{
+						"label": "b"
+					}
+				],
+				"correctAnswer": 5
+			},
+			"ok": {
+				"type": "check",
+				"nodeId": "n1",
+				"question": "Why?",
+				"options": [
+					{
+						"label": "a",
+						"value": "a"
+					},
+					{
+						"label": "b"
+					}
+				],
+				"correctAnswer": "5"
+			}
+		}
+	},
+	{
+		"name": "quiz union object",
+		"output": {
+			"schema": {
+				"type": "object",
+				"required": [
+					"type",
+					"nodeId",
+					"question",
+					"options",
+					"correctAnswer"
+				],
+				"properties": {
+					"type": {
+						"anyOf": [
+							{
+								"type": "string",
+								"const": "predict"
+							},
+							{
+								"type": "string",
+								"const": "check"
+							}
+						]
+					},
+					"nodeId": {
+						"type": "string"
+					},
+					"question": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 40
+					},
+					"options": {
+						"type": "array",
+						"items": {
+							"type": "object",
+							"required": [
+								"label"
+							],
+							"properties": {
+								"label": {
+									"type": "string",
+									"minLength": 1
+								},
+								"value": {
+									"type": "string"
+								}
+							}
+						},
+						"minItems": 2,
+						"maxItems": 4
+					},
+					"multiSelect": {
+						"type": "boolean"
+					},
+					"correctAnswer": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "array",
+								"items": {
+									"type": "string"
+								}
+							}
+						]
+					},
+					"limit": {
+						"type": "integer",
+						"minimum": 1,
+						"maximum": 20
+					},
+					"time": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"rating": {
+						"anyOf": [
+							{
+								"type": "string",
+								"const": "R0"
+							},
+							{
+								"type": "string",
+								"const": "R1"
+							},
+							{
+								"type": "null"
+							}
+						]
+					}
+				}
+			},
+			"args": {
+				"type": "check",
+				"nodeId": "n1",
+				"question": "Why?",
+				"options": [
+					{
+						"label": "a",
+						"value": "a"
+					},
+					{
+						"label": "b"
+					}
+				],
+				"correctAnswer": {
+					"a": 1
+				}
+			},
+			"error": "Validation failed for tool \"t\":\n  - correctAnswer: must be string\n  - correctAnswer: must be array\n  - correctAnswer: must match a schema in anyOf\n\nReceived arguments:\n{\n  \"type\": \"check\",\n  \"nodeId\": \"n1\",\n  \"question\": \"Why?\",\n  \"options\": [\n    {\n      \"label\": \"a\",\n      \"value\": \"a\"\n    },\n    {\n      \"label\": \"b\"\n    }\n  ],\n  \"correctAnswer\": {\n    \"a\": 1\n  }\n}"
+		}
+	},
+	{
+		"name": "quiz too many options",
+		"output": {
+			"schema": {
+				"type": "object",
+				"required": [
+					"type",
+					"nodeId",
+					"question",
+					"options",
+					"correctAnswer"
+				],
+				"properties": {
+					"type": {
+						"anyOf": [
+							{
+								"type": "string",
+								"const": "predict"
+							},
+							{
+								"type": "string",
+								"const": "check"
+							}
+						]
+					},
+					"nodeId": {
+						"type": "string"
+					},
+					"question": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 40
+					},
+					"options": {
+						"type": "array",
+						"items": {
+							"type": "object",
+							"required": [
+								"label"
+							],
+							"properties": {
+								"label": {
+									"type": "string",
+									"minLength": 1
+								},
+								"value": {
+									"type": "string"
+								}
+							}
+						},
+						"minItems": 2,
+						"maxItems": 4
+					},
+					"multiSelect": {
+						"type": "boolean"
+					},
+					"correctAnswer": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "array",
+								"items": {
+									"type": "string"
+								}
+							}
+						]
+					},
+					"limit": {
+						"type": "integer",
+						"minimum": 1,
+						"maximum": 20
+					},
+					"time": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"rating": {
+						"anyOf": [
+							{
+								"type": "string",
+								"const": "R0"
+							},
+							{
+								"type": "string",
+								"const": "R1"
+							},
+							{
+								"type": "null"
+							}
+						]
+					}
+				}
+			},
+			"args": {
+				"type": "check",
+				"nodeId": "n1",
+				"question": "Why?",
+				"options": [
+					{
+						"label": "o1"
+					},
+					{
+						"label": "o2"
+					},
+					{
+						"label": "o3"
+					},
+					{
+						"label": "o4"
+					},
+					{
+						"label": "o5"
+					}
+				],
+				"correctAnswer": "a"
+			},
+			"error": "Validation failed for tool \"t\":\n  - options: must not have more than 4 items\n\nReceived arguments:\n{\n  \"type\": \"check\",\n  \"nodeId\": \"n1\",\n  \"question\": \"Why?\",\n  \"options\": [\n    {\n      \"label\": \"o1\"\n    },\n    {\n      \"label\": \"o2\"\n    },\n    {\n      \"label\": \"o3\"\n    },\n    {\n      \"label\": \"o4\"\n    },\n    {\n      \"label\": \"o5\"\n    }\n  ],\n  \"correctAnswer\": \"a\"\n}"
+		}
+	},
+	{
+		"name": "quiz empty label",
+		"output": {
+			"schema": {
+				"type": "object",
+				"required": [
+					"type",
+					"nodeId",
+					"question",
+					"options",
+					"correctAnswer"
+				],
+				"properties": {
+					"type": {
+						"anyOf": [
+							{
+								"type": "string",
+								"const": "predict"
+							},
+							{
+								"type": "string",
+								"const": "check"
+							}
+						]
+					},
+					"nodeId": {
+						"type": "string"
+					},
+					"question": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 40
+					},
+					"options": {
+						"type": "array",
+						"items": {
+							"type": "object",
+							"required": [
+								"label"
+							],
+							"properties": {
+								"label": {
+									"type": "string",
+									"minLength": 1
+								},
+								"value": {
+									"type": "string"
+								}
+							}
+						},
+						"minItems": 2,
+						"maxItems": 4
+					},
+					"multiSelect": {
+						"type": "boolean"
+					},
+					"correctAnswer": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "array",
+								"items": {
+									"type": "string"
+								}
+							}
+						]
+					},
+					"limit": {
+						"type": "integer",
+						"minimum": 1,
+						"maximum": 20
+					},
+					"time": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"rating": {
+						"anyOf": [
+							{
+								"type": "string",
+								"const": "R0"
+							},
+							{
+								"type": "string",
+								"const": "R1"
+							},
+							{
+								"type": "null"
+							}
+						]
+					}
+				}
+			},
+			"args": {
+				"type": "check",
+				"nodeId": "n1",
+				"question": "Why?",
+				"options": [
+					{
+						"label": ""
+					},
+					{
+						"label": "b",
+						"value": 7
+					}
+				],
+				"correctAnswer": "a"
+			},
+			"error": "Validation failed for tool \"t\":\n  - options.0.label: must not have fewer than 1 characters\n\nReceived arguments:\n{\n  \"type\": \"check\",\n  \"nodeId\": \"n1\",\n  \"question\": \"Why?\",\n  \"options\": [\n    {\n      \"label\": \"\"\n    },\n    {\n      \"label\": \"b\",\n      \"value\": 7\n    }\n  ],\n  \"correctAnswer\": \"a\"\n}"
+		}
+	},
+	{
+		"name": "quiz long question",
+		"output": {
+			"schema": {
+				"type": "object",
+				"required": [
+					"type",
+					"nodeId",
+					"question",
+					"options",
+					"correctAnswer"
+				],
+				"properties": {
+					"type": {
+						"anyOf": [
+							{
+								"type": "string",
+								"const": "predict"
+							},
+							{
+								"type": "string",
+								"const": "check"
+							}
+						]
+					},
+					"nodeId": {
+						"type": "string"
+					},
+					"question": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 40
+					},
+					"options": {
+						"type": "array",
+						"items": {
+							"type": "object",
+							"required": [
+								"label"
+							],
+							"properties": {
+								"label": {
+									"type": "string",
+									"minLength": 1
+								},
+								"value": {
+									"type": "string"
+								}
+							}
+						},
+						"minItems": 2,
+						"maxItems": 4
+					},
+					"multiSelect": {
+						"type": "boolean"
+					},
+					"correctAnswer": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "array",
+								"items": {
+									"type": "string"
+								}
+							}
+						]
+					},
+					"limit": {
+						"type": "integer",
+						"minimum": 1,
+						"maximum": 20
+					},
+					"time": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"rating": {
+						"anyOf": [
+							{
+								"type": "string",
+								"const": "R0"
+							},
+							{
+								"type": "string",
+								"const": "R1"
+							},
+							{
+								"type": "null"
+							}
+						]
+					}
+				}
+			},
+			"args": {
+				"type": "check",
+				"nodeId": "n1",
+				"question": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+				"options": [
+					{
+						"label": "a",
+						"value": "a"
+					},
+					{
+						"label": "b"
+					}
+				],
+				"correctAnswer": "a"
+			},
+			"error": "Validation failed for tool \"t\":\n  - question: must not have more than 40 characters\n\nReceived arguments:\n{\n  \"type\": \"check\",\n  \"nodeId\": \"n1\",\n  \"question\": \"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\",\n  \"options\": [\n    {\n      \"label\": \"a\",\n      \"value\": \"a\"\n    },\n    {\n      \"label\": \"b\"\n    }\n  ],\n  \"correctAnswer\": \"a\"\n}"
+		}
+	},
+	{
+		"name": "quiz emoji question",
+		"output": {
+			"schema": {
+				"type": "object",
+				"required": [
+					"type",
+					"nodeId",
+					"question",
+					"options",
+					"correctAnswer"
+				],
+				"properties": {
+					"type": {
+						"anyOf": [
+							{
+								"type": "string",
+								"const": "predict"
+							},
+							{
+								"type": "string",
+								"const": "check"
+							}
+						]
+					},
+					"nodeId": {
+						"type": "string"
+					},
+					"question": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 40
+					},
+					"options": {
+						"type": "array",
+						"items": {
+							"type": "object",
+							"required": [
+								"label"
+							],
+							"properties": {
+								"label": {
+									"type": "string",
+									"minLength": 1
+								},
+								"value": {
+									"type": "string"
+								}
+							}
+						},
+						"minItems": 2,
+						"maxItems": 4
+					},
+					"multiSelect": {
+						"type": "boolean"
+					},
+					"correctAnswer": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "array",
+								"items": {
+									"type": "string"
+								}
+							}
+						]
+					},
+					"limit": {
+						"type": "integer",
+						"minimum": 1,
+						"maximum": 20
+					},
+					"time": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"rating": {
+						"anyOf": [
+							{
+								"type": "string",
+								"const": "R0"
+							},
+							{
+								"type": "string",
+								"const": "R1"
+							},
+							{
+								"type": "null"
+							}
+						]
+					}
+				}
+			},
+			"args": {
+				"type": "check",
+				"nodeId": "n1",
+				"question": "👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽",
+				"options": [
+					{
+						"label": "a",
+						"value": "a"
+					},
+					{
+						"label": "b"
+					}
+				],
+				"correctAnswer": "a"
+			},
+			"error": "Validation failed for tool \"t\":\n  - question: must not have more than 40 characters\n\nReceived arguments:\n{\n  \"type\": \"check\",\n  \"nodeId\": \"n1\",\n  \"question\": \"👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽\",\n  \"options\": [\n    {\n      \"label\": \"a\",\n      \"value\": \"a\"\n    },\n    {\n      \"label\": \"b\"\n    }\n  ],\n  \"correctAnswer\": \"a\"\n}"
+		}
+	},
+	{
+		"name": "quiz combining question",
+		"output": {
+			"schema": {
+				"type": "object",
+				"required": [
+					"type",
+					"nodeId",
+					"question",
+					"options",
+					"correctAnswer"
+				],
+				"properties": {
+					"type": {
+						"anyOf": [
+							{
+								"type": "string",
+								"const": "predict"
+							},
+							{
+								"type": "string",
+								"const": "check"
+							}
+						]
+					},
+					"nodeId": {
+						"type": "string"
+					},
+					"question": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 40
+					},
+					"options": {
+						"type": "array",
+						"items": {
+							"type": "object",
+							"required": [
+								"label"
+							],
+							"properties": {
+								"label": {
+									"type": "string",
+									"minLength": 1
+								},
+								"value": {
+									"type": "string"
+								}
+							}
+						},
+						"minItems": 2,
+						"maxItems": 4
+					},
+					"multiSelect": {
+						"type": "boolean"
+					},
+					"correctAnswer": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "array",
+								"items": {
+									"type": "string"
+								}
+							}
+						]
+					},
+					"limit": {
+						"type": "integer",
+						"minimum": 1,
+						"maximum": 20
+					},
+					"time": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"rating": {
+						"anyOf": [
+							{
+								"type": "string",
+								"const": "R0"
+							},
+							{
+								"type": "string",
+								"const": "R1"
+							},
+							{
+								"type": "null"
+							}
+						]
+					}
+				}
+			},
+			"args": {
+				"type": "check",
+				"nodeId": "n1",
+				"question": "éééééééééééééééééééééééééééééééééééééééé",
+				"options": [
+					{
+						"label": "a",
+						"value": "a"
+					},
+					{
+						"label": "b"
+					}
+				],
+				"correctAnswer": "a"
+			},
+			"ok": {
+				"type": "check",
+				"nodeId": "n1",
+				"question": "éééééééééééééééééééééééééééééééééééééééé",
+				"options": [
+					{
+						"label": "a",
+						"value": "a"
+					},
+					{
+						"label": "b"
+					}
+				],
+				"correctAnswer": "a"
+			}
+		}
+	},
+	{
+		"name": "quiz flag question",
+		"output": {
+			"schema": {
+				"type": "object",
+				"required": [
+					"type",
+					"nodeId",
+					"question",
+					"options",
+					"correctAnswer"
+				],
+				"properties": {
+					"type": {
+						"anyOf": [
+							{
+								"type": "string",
+								"const": "predict"
+							},
+							{
+								"type": "string",
+								"const": "check"
+							}
+						]
+					},
+					"nodeId": {
+						"type": "string"
+					},
+					"question": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 40
+					},
+					"options": {
+						"type": "array",
+						"items": {
+							"type": "object",
+							"required": [
+								"label"
+							],
+							"properties": {
+								"label": {
+									"type": "string",
+									"minLength": 1
+								},
+								"value": {
+									"type": "string"
+								}
+							}
+						},
+						"minItems": 2,
+						"maxItems": 4
+					},
+					"multiSelect": {
+						"type": "boolean"
+					},
+					"correctAnswer": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "array",
+								"items": {
+									"type": "string"
+								}
+							}
+						]
+					},
+					"limit": {
+						"type": "integer",
+						"minimum": 1,
+						"maximum": 20
+					},
+					"time": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"rating": {
+						"anyOf": [
+							{
+								"type": "string",
+								"const": "R0"
+							},
+							{
+								"type": "string",
+								"const": "R1"
+							},
+							{
+								"type": "null"
+							}
+						]
+					}
+				}
+			},
+			"args": {
+				"type": "check",
+				"nodeId": "n1",
+				"question": "🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸",
+				"options": [
+					{
+						"label": "a",
+						"value": "a"
+					},
+					{
+						"label": "b"
+					}
+				],
+				"correctAnswer": "a"
+			},
+			"ok": {
+				"type": "check",
+				"nodeId": "n1",
+				"question": "🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸",
+				"options": [
+					{
+						"label": "a",
+						"value": "a"
+					},
+					{
+						"label": "b"
+					}
+				],
+				"correctAnswer": "a"
+			}
+		}
+	},
+	{
+		"name": "quiz zwj question",
+		"output": {
+			"schema": {
+				"type": "object",
+				"required": [
+					"type",
+					"nodeId",
+					"question",
+					"options",
+					"correctAnswer"
+				],
+				"properties": {
+					"type": {
+						"anyOf": [
+							{
+								"type": "string",
+								"const": "predict"
+							},
+							{
+								"type": "string",
+								"const": "check"
+							}
+						]
+					},
+					"nodeId": {
+						"type": "string"
+					},
+					"question": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 40
+					},
+					"options": {
+						"type": "array",
+						"items": {
+							"type": "object",
+							"required": [
+								"label"
+							],
+							"properties": {
+								"label": {
+									"type": "string",
+									"minLength": 1
+								},
+								"value": {
+									"type": "string"
+								}
+							}
+						},
+						"minItems": 2,
+						"maxItems": 4
+					},
+					"multiSelect": {
+						"type": "boolean"
+					},
+					"correctAnswer": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "array",
+								"items": {
+									"type": "string"
+								}
+							}
+						]
+					},
+					"limit": {
+						"type": "integer",
+						"minimum": 1,
+						"maximum": 20
+					},
+					"time": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"rating": {
+						"anyOf": [
+							{
+								"type": "string",
+								"const": "R0"
+							},
+							{
+								"type": "string",
+								"const": "R1"
+							},
+							{
+								"type": "null"
+							}
+						]
+					}
+				}
+			},
+			"args": {
+				"type": "check",
+				"nodeId": "n1",
+				"question": "👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧",
+				"options": [
+					{
+						"label": "a",
+						"value": "a"
+					},
+					{
+						"label": "b"
+					}
+				],
+				"correctAnswer": "a"
+			},
+			"ok": {
+				"type": "check",
+				"nodeId": "n1",
+				"question": "👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧👩‍👩‍👧",
+				"options": [
+					{
+						"label": "a",
+						"value": "a"
+					},
+					{
+						"label": "b"
+					}
+				],
+				"correctAnswer": "a"
+			}
+		}
+	},
+	{
+		"name": "quiz limit range",
+		"output": {
+			"schema": {
+				"type": "object",
+				"required": [
+					"type",
+					"nodeId",
+					"question",
+					"options",
+					"correctAnswer"
+				],
+				"properties": {
+					"type": {
+						"anyOf": [
+							{
+								"type": "string",
+								"const": "predict"
+							},
+							{
+								"type": "string",
+								"const": "check"
+							}
+						]
+					},
+					"nodeId": {
+						"type": "string"
+					},
+					"question": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 40
+					},
+					"options": {
+						"type": "array",
+						"items": {
+							"type": "object",
+							"required": [
+								"label"
+							],
+							"properties": {
+								"label": {
+									"type": "string",
+									"minLength": 1
+								},
+								"value": {
+									"type": "string"
+								}
+							}
+						},
+						"minItems": 2,
+						"maxItems": 4
+					},
+					"multiSelect": {
+						"type": "boolean"
+					},
+					"correctAnswer": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "array",
+								"items": {
+									"type": "string"
+								}
+							}
+						]
+					},
+					"limit": {
+						"type": "integer",
+						"minimum": 1,
+						"maximum": 20
+					},
+					"time": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"rating": {
+						"anyOf": [
+							{
+								"type": "string",
+								"const": "R0"
+							},
+							{
+								"type": "string",
+								"const": "R1"
+							},
+							{
+								"type": "null"
+							}
+						]
+					}
+				}
+			},
+			"args": {
+				"type": "check",
+				"nodeId": "n1",
+				"question": "Why?",
+				"options": [
+					{
+						"label": "a",
+						"value": "a"
+					},
+					{
+						"label": "b"
+					}
+				],
+				"correctAnswer": "a",
+				"limit": 30
+			},
+			"error": "Validation failed for tool \"t\":\n  - limit: must be <= 20\n\nReceived arguments:\n{\n  \"type\": \"check\",\n  \"nodeId\": \"n1\",\n  \"question\": \"Why?\",\n  \"options\": [\n    {\n      \"label\": \"a\",\n      \"value\": \"a\"\n    },\n    {\n      \"label\": \"b\"\n    }\n  ],\n  \"correctAnswer\": \"a\",\n  \"limit\": 30\n}"
+		}
+	},
+	{
+		"name": "quiz limit low",
+		"output": {
+			"schema": {
+				"type": "object",
+				"required": [
+					"type",
+					"nodeId",
+					"question",
+					"options",
+					"correctAnswer"
+				],
+				"properties": {
+					"type": {
+						"anyOf": [
+							{
+								"type": "string",
+								"const": "predict"
+							},
+							{
+								"type": "string",
+								"const": "check"
+							}
+						]
+					},
+					"nodeId": {
+						"type": "string"
+					},
+					"question": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 40
+					},
+					"options": {
+						"type": "array",
+						"items": {
+							"type": "object",
+							"required": [
+								"label"
+							],
+							"properties": {
+								"label": {
+									"type": "string",
+									"minLength": 1
+								},
+								"value": {
+									"type": "string"
+								}
+							}
+						},
+						"minItems": 2,
+						"maxItems": 4
+					},
+					"multiSelect": {
+						"type": "boolean"
+					},
+					"correctAnswer": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "array",
+								"items": {
+									"type": "string"
+								}
+							}
+						]
+					},
+					"limit": {
+						"type": "integer",
+						"minimum": 1,
+						"maximum": 20
+					},
+					"time": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"rating": {
+						"anyOf": [
+							{
+								"type": "string",
+								"const": "R0"
+							},
+							{
+								"type": "string",
+								"const": "R1"
+							},
+							{
+								"type": "null"
+							}
+						]
+					}
+				}
+			},
+			"args": {
+				"type": "check",
+				"nodeId": "n1",
+				"question": "Why?",
+				"options": [
+					{
+						"label": "a",
+						"value": "a"
+					},
+					{
+						"label": "b"
+					}
+				],
+				"correctAnswer": "a",
+				"limit": 0
+			},
+			"error": "Validation failed for tool \"t\":\n  - limit: must be >= 1\n\nReceived arguments:\n{\n  \"type\": \"check\",\n  \"nodeId\": \"n1\",\n  \"question\": \"Why?\",\n  \"options\": [\n    {\n      \"label\": \"a\",\n      \"value\": \"a\"\n    },\n    {\n      \"label\": \"b\"\n    }\n  ],\n  \"correctAnswer\": \"a\",\n  \"limit\": 0\n}"
+		}
+	},
+	{
+		"name": "quiz limit fraction",
+		"output": {
+			"schema": {
+				"type": "object",
+				"required": [
+					"type",
+					"nodeId",
+					"question",
+					"options",
+					"correctAnswer"
+				],
+				"properties": {
+					"type": {
+						"anyOf": [
+							{
+								"type": "string",
+								"const": "predict"
+							},
+							{
+								"type": "string",
+								"const": "check"
+							}
+						]
+					},
+					"nodeId": {
+						"type": "string"
+					},
+					"question": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 40
+					},
+					"options": {
+						"type": "array",
+						"items": {
+							"type": "object",
+							"required": [
+								"label"
+							],
+							"properties": {
+								"label": {
+									"type": "string",
+									"minLength": 1
+								},
+								"value": {
+									"type": "string"
+								}
+							}
+						},
+						"minItems": 2,
+						"maxItems": 4
+					},
+					"multiSelect": {
+						"type": "boolean"
+					},
+					"correctAnswer": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "array",
+								"items": {
+									"type": "string"
+								}
+							}
+						]
+					},
+					"limit": {
+						"type": "integer",
+						"minimum": 1,
+						"maximum": 20
+					},
+					"time": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"rating": {
+						"anyOf": [
+							{
+								"type": "string",
+								"const": "R0"
+							},
+							{
+								"type": "string",
+								"const": "R1"
+							},
+							{
+								"type": "null"
+							}
+						]
+					}
+				}
+			},
+			"args": {
+				"type": "check",
+				"nodeId": "n1",
+				"question": "Why?",
+				"options": [
+					{
+						"label": "a",
+						"value": "a"
+					},
+					{
+						"label": "b"
+					}
+				],
+				"correctAnswer": "a",
+				"limit": 2.7
+			},
+			"ok": {
+				"type": "check",
+				"nodeId": "n1",
+				"question": "Why?",
+				"options": [
+					{
+						"label": "a",
+						"value": "a"
+					},
+					{
+						"label": "b"
+					}
+				],
+				"correctAnswer": "a",
+				"limit": 2
+			}
+		}
+	},
+	{
+		"name": "quiz limit text",
+		"output": {
+			"schema": {
+				"type": "object",
+				"required": [
+					"type",
+					"nodeId",
+					"question",
+					"options",
+					"correctAnswer"
+				],
+				"properties": {
+					"type": {
+						"anyOf": [
+							{
+								"type": "string",
+								"const": "predict"
+							},
+							{
+								"type": "string",
+								"const": "check"
+							}
+						]
+					},
+					"nodeId": {
+						"type": "string"
+					},
+					"question": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 40
+					},
+					"options": {
+						"type": "array",
+						"items": {
+							"type": "object",
+							"required": [
+								"label"
+							],
+							"properties": {
+								"label": {
+									"type": "string",
+									"minLength": 1
+								},
+								"value": {
+									"type": "string"
+								}
+							}
+						},
+						"minItems": 2,
+						"maxItems": 4
+					},
+					"multiSelect": {
+						"type": "boolean"
+					},
+					"correctAnswer": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "array",
+								"items": {
+									"type": "string"
+								}
+							}
+						]
+					},
+					"limit": {
+						"type": "integer",
+						"minimum": 1,
+						"maximum": 20
+					},
+					"time": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"rating": {
+						"anyOf": [
+							{
+								"type": "string",
+								"const": "R0"
+							},
+							{
+								"type": "string",
+								"const": "R1"
+							},
+							{
+								"type": "null"
+							}
+						]
+					}
+				}
+			},
+			"args": {
+				"type": "check",
+				"nodeId": "n1",
+				"question": "Why?",
+				"options": [
+					{
+						"label": "a",
+						"value": "a"
+					},
+					{
+						"label": "b"
+					}
+				],
+				"correctAnswer": "a",
+				"limit": "abc"
+			},
+			"error": "Validation failed for tool \"t\":\n  - limit: must be integer\n\nReceived arguments:\n{\n  \"type\": \"check\",\n  \"nodeId\": \"n1\",\n  \"question\": \"Why?\",\n  \"options\": [\n    {\n      \"label\": \"a\",\n      \"value\": \"a\"\n    },\n    {\n      \"label\": \"b\"\n    }\n  ],\n  \"correctAnswer\": \"a\",\n  \"limit\": \"abc\"\n}"
+		}
+	},
+	{
+		"name": "quiz rating text",
+		"output": {
+			"schema": {
+				"type": "object",
+				"required": [
+					"type",
+					"nodeId",
+					"question",
+					"options",
+					"correctAnswer"
+				],
+				"properties": {
+					"type": {
+						"anyOf": [
+							{
+								"type": "string",
+								"const": "predict"
+							},
+							{
+								"type": "string",
+								"const": "check"
+							}
+						]
+					},
+					"nodeId": {
+						"type": "string"
+					},
+					"question": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 40
+					},
+					"options": {
+						"type": "array",
+						"items": {
+							"type": "object",
+							"required": [
+								"label"
+							],
+							"properties": {
+								"label": {
+									"type": "string",
+									"minLength": 1
+								},
+								"value": {
+									"type": "string"
+								}
+							}
+						},
+						"minItems": 2,
+						"maxItems": 4
+					},
+					"multiSelect": {
+						"type": "boolean"
+					},
+					"correctAnswer": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "array",
+								"items": {
+									"type": "string"
+								}
+							}
+						]
+					},
+					"limit": {
+						"type": "integer",
+						"minimum": 1,
+						"maximum": 20
+					},
+					"time": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"rating": {
+						"anyOf": [
+							{
+								"type": "string",
+								"const": "R0"
+							},
+							{
+								"type": "string",
+								"const": "R1"
+							},
+							{
+								"type": "null"
+							}
+						]
+					}
+				}
+			},
+			"args": {
+				"type": "check",
+				"nodeId": "n1",
+				"question": "Why?",
+				"options": [
+					{
+						"label": "a",
+						"value": "a"
+					},
+					{
+						"label": "b"
+					}
+				],
+				"correctAnswer": "a",
+				"rating": "R2"
+			},
+			"error": "Validation failed for tool \"t\":\n  - rating: must be equal to constant\n  - rating: must be equal to constant\n  - rating: must be null\n  - rating: must match a schema in anyOf\n\nReceived arguments:\n{\n  \"type\": \"check\",\n  \"nodeId\": \"n1\",\n  \"question\": \"Why?\",\n  \"options\": [\n    {\n      \"label\": \"a\",\n      \"value\": \"a\"\n    },\n    {\n      \"label\": \"b\"\n    }\n  ],\n  \"correctAnswer\": \"a\",\n  \"rating\": \"R2\"\n}"
+		}
+	},
+	{
+		"name": "quiz rating null kept",
+		"output": {
+			"schema": {
+				"type": "object",
+				"required": [
+					"type",
+					"nodeId",
+					"question",
+					"options",
+					"correctAnswer"
+				],
+				"properties": {
+					"type": {
+						"anyOf": [
+							{
+								"type": "string",
+								"const": "predict"
+							},
+							{
+								"type": "string",
+								"const": "check"
+							}
+						]
+					},
+					"nodeId": {
+						"type": "string"
+					},
+					"question": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 40
+					},
+					"options": {
+						"type": "array",
+						"items": {
+							"type": "object",
+							"required": [
+								"label"
+							],
+							"properties": {
+								"label": {
+									"type": "string",
+									"minLength": 1
+								},
+								"value": {
+									"type": "string"
+								}
+							}
+						},
+						"minItems": 2,
+						"maxItems": 4
+					},
+					"multiSelect": {
+						"type": "boolean"
+					},
+					"correctAnswer": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "array",
+								"items": {
+									"type": "string"
+								}
+							}
+						]
+					},
+					"limit": {
+						"type": "integer",
+						"minimum": 1,
+						"maximum": 20
+					},
+					"time": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"rating": {
+						"anyOf": [
+							{
+								"type": "string",
+								"const": "R0"
+							},
+							{
+								"type": "string",
+								"const": "R1"
+							},
+							{
+								"type": "null"
+							}
+						]
+					}
+				}
+			},
+			"args": {
+				"type": "check",
+				"nodeId": "n1",
+				"question": "Why?",
+				"options": [
+					{
+						"label": "a",
+						"value": "a"
+					},
+					{
+						"label": "b"
+					}
+				],
+				"correctAnswer": "a",
+				"rating": null
+			},
+			"ok": {
+				"type": "check",
+				"nodeId": "n1",
+				"question": "Why?",
+				"options": [
+					{
+						"label": "a",
+						"value": "a"
+					},
+					{
+						"label": "b"
+					}
+				],
+				"correctAnswer": "a",
+				"rating": null
+			}
+		}
+	},
+	{
+		"name": "quiz extra key",
+		"output": {
+			"schema": {
+				"type": "object",
+				"required": [
+					"type",
+					"nodeId",
+					"question",
+					"options",
+					"correctAnswer"
+				],
+				"properties": {
+					"type": {
+						"anyOf": [
+							{
+								"type": "string",
+								"const": "predict"
+							},
+							{
+								"type": "string",
+								"const": "check"
+							}
+						]
+					},
+					"nodeId": {
+						"type": "string"
+					},
+					"question": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 40
+					},
+					"options": {
+						"type": "array",
+						"items": {
+							"type": "object",
+							"required": [
+								"label"
+							],
+							"properties": {
+								"label": {
+									"type": "string",
+									"minLength": 1
+								},
+								"value": {
+									"type": "string"
+								}
+							}
+						},
+						"minItems": 2,
+						"maxItems": 4
+					},
+					"multiSelect": {
+						"type": "boolean"
+					},
+					"correctAnswer": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "array",
+								"items": {
+									"type": "string"
+								}
+							}
+						]
+					},
+					"limit": {
+						"type": "integer",
+						"minimum": 1,
+						"maximum": 20
+					},
+					"time": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"rating": {
+						"anyOf": [
+							{
+								"type": "string",
+								"const": "R0"
+							},
+							{
+								"type": "string",
+								"const": "R1"
+							},
+							{
+								"type": "null"
+							}
+						]
+					}
+				}
+			},
+			"args": {
+				"type": "check",
+				"nodeId": "n1",
+				"question": "Why?",
+				"options": [
+					{
+						"label": "a",
+						"value": "a"
+					},
+					{
+						"label": "b"
+					}
+				],
+				"correctAnswer": "a",
+				"extra": true
+			},
+			"ok": {
+				"type": "check",
+				"nodeId": "n1",
+				"question": "Why?",
+				"options": [
+					{
+						"label": "a",
+						"value": "a"
+					},
+					{
+						"label": "b"
+					}
+				],
+				"correctAnswer": "a",
+				"extra": true
+			}
+		}
+	},
+	{
+		"name": "root string",
+		"output": {
+			"schema": {
+				"type": "object",
+				"required": [
+					"type",
+					"nodeId",
+					"question",
+					"options",
+					"correctAnswer"
+				],
+				"properties": {
+					"type": {
+						"anyOf": [
+							{
+								"type": "string",
+								"const": "predict"
+							},
+							{
+								"type": "string",
+								"const": "check"
+							}
+						]
+					},
+					"nodeId": {
+						"type": "string"
+					},
+					"question": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 40
+					},
+					"options": {
+						"type": "array",
+						"items": {
+							"type": "object",
+							"required": [
+								"label"
+							],
+							"properties": {
+								"label": {
+									"type": "string",
+									"minLength": 1
+								},
+								"value": {
+									"type": "string"
+								}
+							}
+						},
+						"minItems": 2,
+						"maxItems": 4
+					},
+					"multiSelect": {
+						"type": "boolean"
+					},
+					"correctAnswer": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "array",
+								"items": {
+									"type": "string"
+								}
+							}
+						]
+					},
+					"limit": {
+						"type": "integer",
+						"minimum": 1,
+						"maximum": 20
+					},
+					"time": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"rating": {
+						"anyOf": [
+							{
+								"type": "string",
+								"const": "R0"
+							},
+							{
+								"type": "string",
+								"const": "R1"
+							},
+							{
+								"type": "null"
+							}
+						]
+					}
+				}
+			},
+			"args": "hello",
+			"error": "Validation failed for tool \"t\":\n  - root: must be object\n\nReceived arguments:\n\"hello\""
+		}
+	},
+	{
+		"name": "root null",
+		"output": {
+			"schema": {
+				"type": "object",
+				"required": [
+					"type",
+					"nodeId",
+					"question",
+					"options",
+					"correctAnswer"
+				],
+				"properties": {
+					"type": {
+						"anyOf": [
+							{
+								"type": "string",
+								"const": "predict"
+							},
+							{
+								"type": "string",
+								"const": "check"
+							}
+						]
+					},
+					"nodeId": {
+						"type": "string"
+					},
+					"question": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 40
+					},
+					"options": {
+						"type": "array",
+						"items": {
+							"type": "object",
+							"required": [
+								"label"
+							],
+							"properties": {
+								"label": {
+									"type": "string",
+									"minLength": 1
+								},
+								"value": {
+									"type": "string"
+								}
+							}
+						},
+						"minItems": 2,
+						"maxItems": 4
+					},
+					"multiSelect": {
+						"type": "boolean"
+					},
+					"correctAnswer": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "array",
+								"items": {
+									"type": "string"
+								}
+							}
+						]
+					},
+					"limit": {
+						"type": "integer",
+						"minimum": 1,
+						"maximum": 20
+					},
+					"time": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"rating": {
+						"anyOf": [
+							{
+								"type": "string",
+								"const": "R0"
+							},
+							{
+								"type": "string",
+								"const": "R1"
+							},
+							{
+								"type": "null"
+							}
+						]
+					}
+				}
+			},
+			"args": null,
+			"error": "Validation failed for tool \"t\":\n  - root: must be object\n\nReceived arguments:\nnull"
+		}
+	},
+	{
+		"name": "root array",
+		"output": {
+			"schema": {
+				"type": "object",
+				"required": [
+					"type",
+					"nodeId",
+					"question",
+					"options",
+					"correctAnswer"
+				],
+				"properties": {
+					"type": {
+						"anyOf": [
+							{
+								"type": "string",
+								"const": "predict"
+							},
+							{
+								"type": "string",
+								"const": "check"
+							}
+						]
+					},
+					"nodeId": {
+						"type": "string"
+					},
+					"question": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 40
+					},
+					"options": {
+						"type": "array",
+						"items": {
+							"type": "object",
+							"required": [
+								"label"
+							],
+							"properties": {
+								"label": {
+									"type": "string",
+									"minLength": 1
+								},
+								"value": {
+									"type": "string"
+								}
+							}
+						},
+						"minItems": 2,
+						"maxItems": 4
+					},
+					"multiSelect": {
+						"type": "boolean"
+					},
+					"correctAnswer": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "array",
+								"items": {
+									"type": "string"
+								}
+							}
+						]
+					},
+					"limit": {
+						"type": "integer",
+						"minimum": 1,
+						"maximum": 20
+					},
+					"time": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"rating": {
+						"anyOf": [
+							{
+								"type": "string",
+								"const": "R0"
+							},
+							{
+								"type": "string",
+								"const": "R1"
+							},
+							{
+								"type": "null"
+							}
+						]
+					}
+				}
+			},
+			"args": [
+				1,
+				2
+			],
+			"error": "Validation failed for tool \"t\":\n  - root: must be object\n\nReceived arguments:\n[\n  1,\n  2\n]"
+		}
+	},
+	{
+		"name": "many errors",
+		"output": {
+			"schema": {
+				"type": "object",
+				"required": [
+					"type",
+					"nodeId",
+					"question",
+					"options",
+					"correctAnswer"
+				],
+				"properties": {
+					"type": {
+						"anyOf": [
+							{
+								"type": "string",
+								"const": "predict"
+							},
+							{
+								"type": "string",
+								"const": "check"
+							}
+						]
+					},
+					"nodeId": {
+						"type": "string"
+					},
+					"question": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 40
+					},
+					"options": {
+						"type": "array",
+						"items": {
+							"type": "object",
+							"required": [
+								"label"
+							],
+							"properties": {
+								"label": {
+									"type": "string",
+									"minLength": 1
+								},
+								"value": {
+									"type": "string"
+								}
+							}
+						},
+						"minItems": 2,
+						"maxItems": 4
+					},
+					"multiSelect": {
+						"type": "boolean"
+					},
+					"correctAnswer": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "array",
+								"items": {
+									"type": "string"
+								}
+							}
+						]
+					},
+					"limit": {
+						"type": "integer",
+						"minimum": 1,
+						"maximum": 20
+					},
+					"time": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"rating": {
+						"anyOf": [
+							{
+								"type": "string",
+								"const": "R0"
+							},
+							{
+								"type": "string",
+								"const": "R1"
+							},
+							{
+								"type": "null"
+							}
+						]
+					}
+				}
+			},
+			"args": {
+				"type": 1,
+				"nodeId": 2,
+				"question": 3,
+				"options": [
+					4,
+					5,
+					6,
+					7,
+					8,
+					9,
+					10
+				],
+				"correctAnswer": null,
+				"multiSelect": [],
+				"limit": {},
+				"time": 5
+			},
+			"error": "Validation failed for tool \"t\":\n  - type: must be string\n  - type: must be equal to constant\n  - type: must be string\n  - type: must be equal to constant\n  - type: must match a schema in anyOf\n  - options.0: must be object\n  - options.1: must be object\n  - options.2: must be object\n\nReceived arguments:\n{\n  \"type\": 1,\n  \"nodeId\": 2,\n  \"question\": 3,\n  \"options\": [\n    4,\n    5,\n    6,\n    7,\n    8,\n    9,\n    10\n  ],\n  \"correctAnswer\": null,\n  \"multiSelect\": [],\n  \"limit\": {},\n  \"time\": 5\n}"
+		}
+	},
+	{
+		"name": "flat ok",
+		"output": {
+			"schema": {
+				"type": "object",
+				"required": [
+					"n"
+				],
+				"properties": {
+					"n": {
+						"type": "integer",
+						"minimum": 0
+					},
+					"flag": {
+						"type": "boolean"
+					},
+					"name": {
+						"type": "string",
+						"maxLength": 3
+					},
+					"nothing": {
+						"type": "null"
+					},
+					"tags": {
+						"type": "array",
+						"items": {
+							"type": "string",
+							"minLength": 1,
+							"maxLength": 80
+						}
+					},
+					"k": {
+						"type": "number",
+						"const": 5
+					},
+					"on": {
+						"type": "boolean",
+						"const": true
+					}
+				}
+			},
+			"args": {
+				"n": 3
+			},
+			"ok": {
+				"n": 3
+			}
+		}
+	},
+	{
+		"name": "flat strings",
+		"output": {
+			"schema": {
+				"type": "object",
+				"required": [
+					"n"
+				],
+				"properties": {
+					"n": {
+						"type": "integer",
+						"minimum": 0
+					},
+					"flag": {
+						"type": "boolean"
+					},
+					"name": {
+						"type": "string",
+						"maxLength": 3
+					},
+					"nothing": {
+						"type": "null"
+					},
+					"tags": {
+						"type": "array",
+						"items": {
+							"type": "string",
+							"minLength": 1,
+							"maxLength": 80
+						}
+					},
+					"k": {
+						"type": "number",
+						"const": 5
+					},
+					"on": {
+						"type": "boolean",
+						"const": true
+					}
+				}
+			},
+			"args": {
+				"n": " 12 ",
+				"flag": "FALSE",
+				"name": 12,
+				"nothing": "",
+				"tags": "one",
+				"k": "5",
+				"on": "1"
+			},
+			"ok": {
+				"n": 12,
+				"flag": false,
+				"name": "12",
+				"nothing": null,
+				"tags": [
+					"one"
+				],
+				"k": 5,
+				"on": true
+			}
+		}
+	},
+	{
+		"name": "flat hex and bigint",
+		"output": {
+			"schema": {
+				"type": "object",
+				"required": [
+					"n"
+				],
+				"properties": {
+					"n": {
+						"type": "integer",
+						"minimum": 0
+					},
+					"flag": {
+						"type": "boolean"
+					},
+					"name": {
+						"type": "string",
+						"maxLength": 3
+					},
+					"nothing": {
+						"type": "null"
+					},
+					"tags": {
+						"type": "array",
+						"items": {
+							"type": "string",
+							"minLength": 1,
+							"maxLength": 80
+						}
+					},
+					"k": {
+						"type": "number",
+						"const": 5
+					},
+					"on": {
+						"type": "boolean",
+						"const": true
+					}
+				}
+			},
+			"args": {
+				"n": "0x10"
+			},
+			"ok": {
+				"n": 16
+			}
+		}
+	},
+	{
+		"name": "flat bigint text",
+		"output": {
+			"schema": {
+				"type": "object",
+				"required": [
+					"n"
+				],
+				"properties": {
+					"n": {
+						"type": "integer",
+						"minimum": 0
+					},
+					"flag": {
+						"type": "boolean"
+					},
+					"name": {
+						"type": "string",
+						"maxLength": 3
+					},
+					"nothing": {
+						"type": "null"
+					},
+					"tags": {
+						"type": "array",
+						"items": {
+							"type": "string",
+							"minLength": 1,
+							"maxLength": 80
+						}
+					},
+					"k": {
+						"type": "number",
+						"const": 5
+					},
+					"on": {
+						"type": "boolean",
+						"const": true
+					}
+				}
+			},
+			"args": {
+				"n": "12n"
+			},
+			"ok": {
+				"n": 12
+			}
+		}
+	},
+	{
+		"name": "flat negative",
+		"output": {
+			"schema": {
+				"type": "object",
+				"required": [
+					"n"
+				],
+				"properties": {
+					"n": {
+						"type": "integer",
+						"minimum": 0
+					},
+					"flag": {
+						"type": "boolean"
+					},
+					"name": {
+						"type": "string",
+						"maxLength": 3
+					},
+					"nothing": {
+						"type": "null"
+					},
+					"tags": {
+						"type": "array",
+						"items": {
+							"type": "string",
+							"minLength": 1,
+							"maxLength": 80
+						}
+					},
+					"k": {
+						"type": "number",
+						"const": 5
+					},
+					"on": {
+						"type": "boolean",
+						"const": true
+					}
+				}
+			},
+			"args": {
+				"n": -1
+			},
+			"error": "Validation failed for tool \"t\":\n  - n: must be >= 0\n\nReceived arguments:\n{\n  \"n\": -1\n}"
+		}
+	},
+	{
+		"name": "flat null n",
+		"output": {
+			"schema": {
+				"type": "object",
+				"required": [
+					"n"
+				],
+				"properties": {
+					"n": {
+						"type": "integer",
+						"minimum": 0
+					},
+					"flag": {
+						"type": "boolean"
+					},
+					"name": {
+						"type": "string",
+						"maxLength": 3
+					},
+					"nothing": {
+						"type": "null"
+					},
+					"tags": {
+						"type": "array",
+						"items": {
+							"type": "string",
+							"minLength": 1,
+							"maxLength": 80
+						}
+					},
+					"k": {
+						"type": "number",
+						"const": 5
+					},
+					"on": {
+						"type": "boolean",
+						"const": true
+					}
+				}
+			},
+			"args": {
+				"n": null,
+				"flag": null,
+				"name": null,
+				"nothing": null,
+				"tags": null
+			},
+			"ok": {
+				"n": 0,
+				"nothing": null
+			}
+		}
+	},
+	{
+		"name": "flat booleans",
+		"output": {
+			"schema": {
+				"type": "object",
+				"required": [
+					"n"
+				],
+				"properties": {
+					"n": {
+						"type": "integer",
+						"minimum": 0
+					},
+					"flag": {
+						"type": "boolean"
+					},
+					"name": {
+						"type": "string",
+						"maxLength": 3
+					},
+					"nothing": {
+						"type": "null"
+					},
+					"tags": {
+						"type": "array",
+						"items": {
+							"type": "string",
+							"minLength": 1,
+							"maxLength": 80
+						}
+					},
+					"k": {
+						"type": "number",
+						"const": 5
+					},
+					"on": {
+						"type": "boolean",
+						"const": true
+					}
+				}
+			},
+			"args": {
+				"n": true,
+				"flag": 1,
+				"name": false,
+				"tags": [
+					1,
+					true,
+					null
+				]
+			},
+			"error": "Validation failed for tool \"t\":\n  - name: must not have more than 3 characters\n\nReceived arguments:\n{\n  \"n\": true,\n  \"flag\": 1,\n  \"name\": false,\n  \"tags\": [\n    1,\n    true,\n    null\n  ]\n}"
+		}
+	},
+	{
+		"name": "flat bad",
+		"output": {
+			"schema": {
+				"type": "object",
+				"required": [
+					"n"
+				],
+				"properties": {
+					"n": {
+						"type": "integer",
+						"minimum": 0
+					},
+					"flag": {
+						"type": "boolean"
+					},
+					"name": {
+						"type": "string",
+						"maxLength": 3
+					},
+					"nothing": {
+						"type": "null"
+					},
+					"tags": {
+						"type": "array",
+						"items": {
+							"type": "string",
+							"minLength": 1,
+							"maxLength": 80
+						}
+					},
+					"k": {
+						"type": "number",
+						"const": 5
+					},
+					"on": {
+						"type": "boolean",
+						"const": true
+					}
+				}
+			},
+			"args": {
+				"n": "x",
+				"flag": "yes",
+				"name": "long",
+				"nothing": 1,
+				"tags": [
+					""
+				],
+				"k": 6,
+				"on": false
+			},
+			"error": "Validation failed for tool \"t\":\n  - n: must be integer\n  - flag: must be boolean\n  - name: must not have more than 3 characters\n  - nothing: must be null\n  - tags.0: must not have fewer than 1 characters\n  - k: must be equal to constant\n  - on: must be equal to constant\n\nReceived arguments:\n{\n  \"n\": \"x\",\n  \"flag\": \"yes\",\n  \"name\": \"long\",\n  \"nothing\": 1,\n  \"tags\": [\n    \"\"\n  ],\n  \"k\": 6,\n  \"on\": false\n}"
+		}
+	},
+	{
+		"name": "flat empty",
+		"output": {
+			"schema": {
+				"type": "object",
+				"required": [
+					"n"
+				],
+				"properties": {
+					"n": {
+						"type": "integer",
+						"minimum": 0
+					},
+					"flag": {
+						"type": "boolean"
+					},
+					"name": {
+						"type": "string",
+						"maxLength": 3
+					},
+					"nothing": {
+						"type": "null"
+					},
+					"tags": {
+						"type": "array",
+						"items": {
+							"type": "string",
+							"minLength": 1,
+							"maxLength": 80
+						}
+					},
+					"k": {
+						"type": "number",
+						"const": 5
+					},
+					"on": {
+						"type": "boolean",
+						"const": true
+					}
+				}
+			},
+			"args": {},
+			"error": "Validation failed for tool \"t\":\n  - n: must have required properties n\n\nReceived arguments:\n{}"
+		}
+	},
+	{
+		"name": "flat exp",
+		"output": {
+			"schema": {
+				"type": "object",
+				"required": [
+					"n"
+				],
+				"properties": {
+					"n": {
+						"type": "integer",
+						"minimum": 0
+					},
+					"flag": {
+						"type": "boolean"
+					},
+					"name": {
+						"type": "string",
+						"maxLength": 3
+					},
+					"nothing": {
+						"type": "null"
+					},
+					"tags": {
+						"type": "array",
+						"items": {
+							"type": "string",
+							"minLength": 1,
+							"maxLength": 80
+						}
+					},
+					"k": {
+						"type": "number",
+						"const": 5
+					},
+					"on": {
+						"type": "boolean",
+						"const": true
+					}
+				}
+			},
+			"args": {
+				"n": "1e3",
+				"name": 1e+21
+			},
+			"error": "Validation failed for tool \"t\":\n  - name: must not have more than 3 characters\n\nReceived arguments:\n{\n  \"n\": \"1e3\",\n  \"name\": 1e+21\n}"
+		}
+	}
+]

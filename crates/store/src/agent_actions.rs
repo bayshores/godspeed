@@ -1,0 +1,83 @@
+//! Ported from src/backend/store/agent-actions.ts: data/agent-actions.json, the activity log,
+//! oldest first. Rewritten whole on each change; small by design.
+
+use std::path::PathBuf;
+
+use gs_base::config::Paths;
+use gs_base::fsx;
+use gs_base::locks::{LockKey, Locks};
+use gs_json::{Json, Obj, json, stringify_pretty};
+
+use crate::agent_notes::read_json_or_set_aside;
+
+const FILE_NAME: &str = "agent-actions.json";
+const VERSION: i64 = 1;
+const TARGET_KINDS: [&str; 4] = ["deadline", "file", "class", "lesson"];
+
+pub struct AgentActionsStore {
+	file: PathBuf,
+	locks: Locks,
+}
+
+impl AgentActionsStore {
+	pub fn new(paths: &Paths, locks: &Locks) -> AgentActionsStore {
+		AgentActionsStore { file: paths.data.join(FILE_NAME), locks: locks.clone() }
+	}
+
+	/// Oldest first. A missing file reads as no actions; a broken one is set aside.
+	pub fn read_agent_actions(&self) -> Vec<Json> {
+		let Some(raw) = read_json_or_set_aside(&self.file) else { return Vec::new() };
+		raw["actions"].as_arr().map_or_else(Vec::new, |list| list.iter().filter_map(parse_action).collect())
+	}
+
+	pub fn write_agent_actions(&self, actions: &[Json]) -> Result<(), String> {
+		let _guard = self.locks.lock(LockKey::AppFile(FILE_NAME));
+		let record = json!({ "version": VERSION, "actions": actions.to_vec() });
+		fsx::write_text_atomic(&self.file, &stringify_pretty(&record, "\t")).map_err(|err| fsx::node_error_message(&err, "open", &self.file))
+	}
+}
+
+/// One logged action made safe to use; None when a required text field is missing.
+fn parse_action(entry: &Json) -> Option<Json> {
+	let (id, at, agent, label, page) = (entry["id"].as_str()?, entry["at"].as_str()?, entry["agent"].as_str()?, entry["label"].as_str()?, entry["page"].as_str()?);
+	let target = &entry["target"];
+	let target = match (target["kind"].as_str().filter(|k| TARGET_KINDS.contains(k)), target["id"].as_str()) {
+		(Some(kind), Some(target_id)) => json!({ "kind": kind, "id": target_id }),
+		_ => Json::Null,
+	};
+	let mut out = Obj::new();
+	out.insert("id", id);
+	out.insert("at", at);
+	out.insert("agent", agent);
+	out.insert("label", label);
+	out.insert("classId", entry["classId"].as_str().map_or(Json::Null, Json::from));
+	out.insert("target", target);
+	out.insert("page", page);
+	if entry["removed"].as_bool() == Some(true) {
+		out.insert("removed", true);
+	}
+	if entry["open"].as_bool() == Some(true) {
+		out.insert("open", true);
+	}
+	Some(Json::Obj(out))
+}
+
+#[cfg(test)]
+mod tests {
+	use gs_json::{parse, stringify};
+
+	use super::*;
+
+	#[test]
+	fn actions_keep_their_shape_and_drop_the_rest() {
+		let raw = parse(r#"[{"id":"a","at":"t","agent":"x","label":"l","page":"p","classId":5,"target":{"kind":"file","id":"f_1"},"removed":true,"open":false,"junk":1},{"id":"b","at":"t","agent":"x","label":"l","page":"p","classId":"cls_a","target":{"kind":"nope","id":"f"}},{"id":"c","at":"t","agent":"x","label":"l"},"x",null]"#).unwrap();
+		let kept: Vec<String> = raw.as_arr().unwrap().iter().filter_map(parse_action).map(|a| stringify(&a)).collect();
+		assert_eq!(
+			kept,
+			[
+				r#"{"id":"a","at":"t","agent":"x","label":"l","classId":null,"target":{"kind":"file","id":"f_1"},"page":"p","removed":true}"#,
+				r#"{"id":"b","at":"t","agent":"x","label":"l","classId":"cls_a","target":null,"page":"p"}"#
+			]
+		);
+	}
+}

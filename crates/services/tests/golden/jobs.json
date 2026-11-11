@@ -1,0 +1,1693 @@
+[
+	{
+		"name": "feed and sweep",
+		"output": {
+			"before": {
+				"chats": [
+					{
+						"id": "chat_golden01_00000001",
+						"title": "Binary search",
+						"createdAt": "2029-12-31T00:00:00.000Z",
+						"updatedAt": "2030-01-01T11:59:59.000Z",
+						"messages": [],
+						"kind": "study",
+						"version": 1
+					},
+					{
+						"id": "chat_golden02_00000002",
+						"createdAt": "2029-12-31T00:00:00.000Z",
+						"updatedAt": "2030-01-01T11:59:58.000Z",
+						"messages": [],
+						"kind": "study",
+						"version": 1
+					},
+					{
+						"id": "chat_golden03_00000003",
+						"title": "Sorting",
+						"createdAt": "2029-12-31T00:00:00.000Z",
+						"updatedAt": "2030-01-01T11:59:57.000Z",
+						"messages": [],
+						"kind": "study",
+						"version": 1
+					}
+				],
+				"jobs": [
+					{
+						"id": "job_feed0001_00000001",
+						"kind": "research",
+						"chatId": "chat_golden01_00000001",
+						"toolCallId": "call_job_feed0001_00000001",
+						"input": {
+							"question": "Why?"
+						},
+						"status": "running",
+						"activity": "web_fetch: example.org",
+						"createdAt": "2029-12-31T23:00:00.000Z",
+						"updatedAt": "2030-01-01T11:59:30.000Z",
+						"result": {
+							"brief": "ok",
+							"sources": []
+						},
+						"delivery": {
+							"kind": "result",
+							"status": "delivered"
+						},
+						"usage": {
+							"model": "agent:outside-agent",
+							"inputTokens": 10,
+							"outputTokens": 2,
+							"steps": 1
+						}
+					},
+					{
+						"id": "job_feed0002_00000002",
+						"kind": "demo",
+						"chatId": "chat_golden02_00000002",
+						"toolCallId": "call_job_feed0002_00000002",
+						"input": {
+							"question": "Why?"
+						},
+						"status": "running",
+						"activity": "researching",
+						"createdAt": "2029-12-31T23:00:00.000Z",
+						"updatedAt": "2030-01-01T11:59:00.000Z",
+						"result": {
+							"html": "<p>x</p>"
+						},
+						"delivery": {
+							"kind": "result",
+							"status": "delivered"
+						},
+						"usage": {
+							"model": "other:model",
+							"inputTokens": 10,
+							"outputTokens": 2,
+							"steps": 1
+						}
+					},
+					{
+						"id": "job_feed0003_00000003",
+						"kind": "visual",
+						"chatId": "chat_golden03_00000003",
+						"toolCallId": "call_job_feed0003_00000003",
+						"input": {
+							"question": "Why?"
+						},
+						"status": "running",
+						"activity": "researching",
+						"createdAt": "2029-12-31T23:00:00.000Z",
+						"updatedAt": "2030-01-01T11:59:30.000Z",
+						"result": {
+							"svg": "<svg/>"
+						},
+						"delivery": {
+							"kind": "result",
+							"status": "delivered"
+						}
+					},
+					{
+						"id": "job_feed0004_00000004",
+						"kind": "research",
+						"chatId": "chat_golden09_00000009",
+						"toolCallId": "call_job_feed0004_00000004",
+						"input": {
+							"question": "Why?"
+						},
+						"status": "running",
+						"activity": "researching",
+						"createdAt": "2029-12-31T23:00:00.000Z",
+						"updatedAt": "2030-01-01T11:59:50.000Z",
+						"result": {
+							"brief": "x",
+							"sources": []
+						},
+						"delivery": {
+							"kind": "result",
+							"status": "delivered"
+						}
+					},
+					{
+						"id": "job_feed0005_00000005",
+						"kind": "research",
+						"chatId": "chat_golden01_00000001",
+						"toolCallId": "call_job_feed0005_00000005",
+						"input": {
+							"question": "Why?"
+						},
+						"status": "error",
+						"activity": "failed",
+						"createdAt": "2029-12-31T23:00:00.000Z",
+						"updatedAt": "2030-01-01T11:58:30.000Z",
+						"error": "  Spaced  ",
+						"delivery": {
+							"kind": "result",
+							"status": "delivered"
+						}
+					},
+					{
+						"id": "job_feed0006_00000006",
+						"kind": "research",
+						"chatId": "chat_golden02_00000002",
+						"toolCallId": "call_job_feed0006_00000006",
+						"input": {
+							"question": "Why?"
+						},
+						"status": "error",
+						"activity": "failed",
+						"createdAt": "2029-12-31T23:00:00.000Z",
+						"updatedAt": "2030-01-01T11:59:30.000Z",
+						"error": "   ",
+						"delivery": {
+							"kind": "result",
+							"status": "delivered"
+						}
+					},
+					{
+						"id": "job_feed0007_00000007",
+						"kind": "research",
+						"chatId": "chat_golden03_00000003",
+						"toolCallId": "call_job_feed0007_00000007",
+						"input": {
+							"question": "Why?"
+						},
+						"status": "error",
+						"activity": "failed",
+						"createdAt": "2029-12-31T23:00:00.000Z",
+						"updatedAt": "2030-01-01T11:50:00.001Z",
+						"delivery": {
+							"kind": "result",
+							"status": "delivered"
+						}
+					},
+					{
+						"id": "job_feed0008_00000008",
+						"kind": "research",
+						"chatId": "chat_golden03_00000003",
+						"toolCallId": "call_job_feed0008_00000008",
+						"input": {
+							"question": "Why?"
+						},
+						"status": "error",
+						"activity": "failed",
+						"createdAt": "2029-12-31T23:00:00.000Z",
+						"updatedAt": "2030-01-01T11:50:00.000Z",
+						"error": "Too old",
+						"delivery": {
+							"kind": "result",
+							"status": "delivered"
+						}
+					},
+					{
+						"id": "job_feed0009_00000009",
+						"kind": "research",
+						"chatId": "chat_golden01_00000001",
+						"toolCallId": "call_job_feed0009_00000009",
+						"input": {
+							"question": "Why?"
+						},
+						"status": "error",
+						"activity": "failed",
+						"createdAt": "2029-12-31T23:00:00.000Z",
+						"updatedAt": "not a date",
+						"error": "Bad time",
+						"delivery": {
+							"kind": "result",
+							"status": "delivered"
+						}
+					},
+					{
+						"id": "job_feed0010_00000010",
+						"kind": "research",
+						"chatId": "chat_golden01_00000001",
+						"toolCallId": "call_job_feed0010_00000010",
+						"input": {
+							"question": "Why?"
+						},
+						"status": "done",
+						"activity": "finished",
+						"createdAt": "2029-12-31T23:00:00.000Z",
+						"updatedAt": "2030-01-01T11:59:55.000Z",
+						"result": {
+							"brief": "done",
+							"sources": []
+						},
+						"delivery": {
+							"kind": "result",
+							"status": "delivered"
+						}
+					},
+					{
+						"id": "job_feed0011_00000011",
+						"kind": "research",
+						"chatId": "chat_golden02_00000002",
+						"toolCallId": "call_job_feed0011_00000011",
+						"input": {
+							"question": "Why?"
+						},
+						"status": "running",
+						"activity": "researching",
+						"createdAt": "2029-12-31T23:00:00.000Z",
+						"updatedAt": "2030-01-01T11:58:00.000Z",
+						"result": {
+							"brief": "Research failed: offline",
+							"sources": []
+						}
+					},
+					{
+						"id": "job_feed0012_00000012",
+						"kind": "pdf",
+						"chatId": "chat_golden03_00000003",
+						"toolCallId": "call_job_feed0012_00000012",
+						"input": {
+							"question": "Why?"
+						},
+						"status": "running",
+						"activity": "researching",
+						"createdAt": "2029-12-31T23:00:00.000Z",
+						"updatedAt": "2030-01-01T11:58:00.000Z",
+						"result": {
+							"brief": "Pages 1-2 say so."
+						}
+					},
+					{
+						"id": "job_feed0013_00000013",
+						"kind": "research",
+						"chatId": "chat_golden08_00000008",
+						"toolCallId": "call_job_feed0013_00000013",
+						"input": {
+							"question": "Why?"
+						},
+						"status": "running",
+						"activity": "researching",
+						"createdAt": "2029-12-31T23:00:00.000Z",
+						"updatedAt": "2030-01-01T11:58:00.000Z",
+						"result": {
+							"brief": "x",
+							"sources": []
+						}
+					},
+					{
+						"id": "job_feed0014_00000014",
+						"kind": "research",
+						"chatId": "chat_golden01_00000001",
+						"toolCallId": "call_job_feed0014_00000014",
+						"input": {
+							"question": "Why?"
+						},
+						"status": "done",
+						"activity": "finished",
+						"createdAt": "2029-12-31T23:00:00.000Z",
+						"updatedAt": "2030-01-01T11:59:20.000Z",
+						"result": {
+							"brief": "y",
+							"sources": []
+						},
+						"delivery": {
+							"kind": "result",
+							"status": "pending"
+						}
+					}
+				]
+			},
+			"sweep": [
+				{
+					"id": "job_feed0001_00000001",
+					"kind": "research",
+					"chatId": "chat_golden01_00000001",
+					"toolCallId": "call_job_feed0001_00000001",
+					"input": {
+						"question": "Why?"
+					},
+					"status": "running",
+					"activity": "web_fetch: example.org",
+					"createdAt": "2029-12-31T23:00:00.000Z",
+					"updatedAt": "2030-01-01T11:59:30.000Z",
+					"result": {
+						"brief": "ok",
+						"sources": []
+					},
+					"delivery": {
+						"kind": "result",
+						"status": "delivered"
+					},
+					"usage": {
+						"model": "agent:outside-agent",
+						"inputTokens": 10,
+						"outputTokens": 2,
+						"steps": 1
+					}
+				},
+				{
+					"id": "job_feed0002_00000002",
+					"kind": "demo",
+					"chatId": "chat_golden02_00000002",
+					"toolCallId": "call_job_feed0002_00000002",
+					"input": {
+						"question": "Why?"
+					},
+					"status": "running",
+					"activity": "researching",
+					"createdAt": "2029-12-31T23:00:00.000Z",
+					"updatedAt": "2030-01-01T11:59:00.000Z",
+					"result": {
+						"html": "<p>x</p>"
+					},
+					"delivery": {
+						"kind": "result",
+						"status": "delivered"
+					},
+					"usage": {
+						"model": "other:model",
+						"inputTokens": 10,
+						"outputTokens": 2,
+						"steps": 1
+					}
+				},
+				{
+					"id": "job_feed0003_00000003",
+					"kind": "visual",
+					"chatId": "chat_golden03_00000003",
+					"toolCallId": "call_job_feed0003_00000003",
+					"input": {
+						"question": "Why?"
+					},
+					"status": "running",
+					"activity": "researching",
+					"createdAt": "2029-12-31T23:00:00.000Z",
+					"updatedAt": "2030-01-01T11:59:30.000Z",
+					"result": {
+						"svg": "<svg/>"
+					},
+					"delivery": {
+						"kind": "result",
+						"status": "delivered"
+					}
+				},
+				{
+					"id": "job_feed0004_00000004",
+					"kind": "research",
+					"chatId": "chat_golden09_00000009",
+					"toolCallId": "call_job_feed0004_00000004",
+					"input": {
+						"question": "Why?"
+					},
+					"status": "running",
+					"activity": "researching",
+					"createdAt": "2029-12-31T23:00:00.000Z",
+					"updatedAt": "2030-01-01T11:59:50.000Z",
+					"result": {
+						"brief": "x",
+						"sources": []
+					},
+					"delivery": {
+						"kind": "result",
+						"status": "delivered"
+					}
+				},
+				{
+					"id": "job_feed0005_00000005",
+					"kind": "research",
+					"chatId": "chat_golden01_00000001",
+					"toolCallId": "call_job_feed0005_00000005",
+					"input": {
+						"question": "Why?"
+					},
+					"status": "error",
+					"activity": "failed",
+					"createdAt": "2029-12-31T23:00:00.000Z",
+					"updatedAt": "2030-01-01T11:58:30.000Z",
+					"error": "  Spaced  ",
+					"delivery": {
+						"kind": "result",
+						"status": "delivered"
+					}
+				},
+				{
+					"id": "job_feed0006_00000006",
+					"kind": "research",
+					"chatId": "chat_golden02_00000002",
+					"toolCallId": "call_job_feed0006_00000006",
+					"input": {
+						"question": "Why?"
+					},
+					"status": "error",
+					"activity": "failed",
+					"createdAt": "2029-12-31T23:00:00.000Z",
+					"updatedAt": "2030-01-01T11:59:30.000Z",
+					"error": "   ",
+					"delivery": {
+						"kind": "result",
+						"status": "delivered"
+					}
+				},
+				{
+					"id": "job_feed0007_00000007",
+					"kind": "research",
+					"chatId": "chat_golden03_00000003",
+					"toolCallId": "call_job_feed0007_00000007",
+					"input": {
+						"question": "Why?"
+					},
+					"status": "error",
+					"activity": "failed",
+					"createdAt": "2029-12-31T23:00:00.000Z",
+					"updatedAt": "2030-01-01T11:50:00.001Z",
+					"delivery": {
+						"kind": "result",
+						"status": "delivered"
+					}
+				},
+				{
+					"id": "job_feed0008_00000008",
+					"kind": "research",
+					"chatId": "chat_golden03_00000003",
+					"toolCallId": "call_job_feed0008_00000008",
+					"input": {
+						"question": "Why?"
+					},
+					"status": "error",
+					"activity": "failed",
+					"createdAt": "2029-12-31T23:00:00.000Z",
+					"updatedAt": "2030-01-01T11:50:00.000Z",
+					"error": "Too old",
+					"delivery": {
+						"kind": "result",
+						"status": "delivered"
+					}
+				},
+				{
+					"id": "job_feed0009_00000009",
+					"kind": "research",
+					"chatId": "chat_golden01_00000001",
+					"toolCallId": "call_job_feed0009_00000009",
+					"input": {
+						"question": "Why?"
+					},
+					"status": "error",
+					"activity": "failed",
+					"createdAt": "2029-12-31T23:00:00.000Z",
+					"updatedAt": "not a date",
+					"error": "Bad time",
+					"delivery": {
+						"kind": "result",
+						"status": "delivered"
+					}
+				},
+				{
+					"id": "job_feed0010_00000010",
+					"kind": "research",
+					"chatId": "chat_golden01_00000001",
+					"toolCallId": "call_job_feed0010_00000010",
+					"input": {
+						"question": "Why?"
+					},
+					"status": "done",
+					"activity": "finished",
+					"createdAt": "2029-12-31T23:00:00.000Z",
+					"updatedAt": "2030-01-01T11:59:55.000Z",
+					"result": {
+						"brief": "done",
+						"sources": []
+					},
+					"delivery": {
+						"kind": "result",
+						"status": "delivered"
+					}
+				},
+				{
+					"id": "job_feed0011_00000011",
+					"kind": "research",
+					"chatId": "chat_golden02_00000002",
+					"toolCallId": "call_job_feed0011_00000011",
+					"input": {
+						"question": "Why?"
+					},
+					"status": "error",
+					"activity": "failed",
+					"createdAt": "2029-12-31T23:00:00.000Z",
+					"updatedAt": "<now>",
+					"result": {
+						"brief": "Research failed: offline",
+						"sources": []
+					},
+					"delivery": {
+						"kind": "result",
+						"status": "pending"
+					}
+				},
+				{
+					"id": "job_feed0012_00000012",
+					"kind": "pdf",
+					"chatId": "chat_golden03_00000003",
+					"toolCallId": "call_job_feed0012_00000012",
+					"input": {
+						"question": "Why?"
+					},
+					"status": "done",
+					"activity": "finished",
+					"createdAt": "2029-12-31T23:00:00.000Z",
+					"updatedAt": "<now>",
+					"result": {
+						"brief": "Pages 1-2 say so."
+					},
+					"delivery": {
+						"kind": "result",
+						"status": "pending"
+					}
+				},
+				{
+					"id": "job_feed0013_00000013",
+					"kind": "research",
+					"chatId": "chat_golden08_00000008",
+					"toolCallId": "call_job_feed0013_00000013",
+					"input": {
+						"question": "Why?"
+					},
+					"status": "running",
+					"activity": "researching",
+					"createdAt": "2029-12-31T23:00:00.000Z",
+					"updatedAt": "2030-01-01T11:58:00.000Z",
+					"result": {
+						"brief": "x",
+						"sources": []
+					}
+				},
+				{
+					"id": "job_feed0014_00000014",
+					"kind": "research",
+					"chatId": "chat_golden01_00000001",
+					"toolCallId": "call_job_feed0014_00000014",
+					"input": {
+						"question": "Why?"
+					},
+					"status": "done",
+					"activity": "finished",
+					"createdAt": "2029-12-31T23:00:00.000Z",
+					"updatedAt": "2030-01-01T11:59:20.000Z",
+					"result": {
+						"brief": "y",
+						"sources": []
+					},
+					"delivery": {
+						"kind": "result",
+						"status": "pending"
+					}
+				}
+			],
+			"compose": {
+				"now": 1893499200000,
+				"chats": [
+					{
+						"id": "chat_golden01_00000001",
+						"title": "Binary search",
+						"createdAt": "2029-12-31T00:00:00.000Z",
+						"updatedAt": "2030-01-01T11:59:59.000Z",
+						"kind": "study",
+						"version": 1,
+						"messageCount": 0,
+						"phase": "teach",
+						"pendingQuestion": false,
+						"pendingProblem": false
+					},
+					{
+						"id": "chat_golden02_00000002",
+						"createdAt": "2029-12-31T00:00:00.000Z",
+						"updatedAt": "2030-01-01T11:59:58.000Z",
+						"kind": "study",
+						"version": 1,
+						"messageCount": 0,
+						"phase": "teach",
+						"pendingQuestion": false,
+						"pendingProblem": false
+					},
+					{
+						"id": "chat_golden03_00000003",
+						"title": "Sorting",
+						"createdAt": "2029-12-31T00:00:00.000Z",
+						"updatedAt": "2030-01-01T11:59:57.000Z",
+						"kind": "study",
+						"version": 1,
+						"messageCount": 0,
+						"phase": "teach",
+						"pendingQuestion": false,
+						"pendingProblem": false
+					}
+				],
+				"jobs": [
+					{
+						"id": "job_feed0009_00000009",
+						"kind": "research",
+						"chatId": "chat_golden01_00000001",
+						"toolCallId": "call_job_feed0009_00000009",
+						"input": {
+							"question": "Why?"
+						},
+						"status": "error",
+						"activity": "failed",
+						"createdAt": "2029-12-31T23:00:00.000Z",
+						"updatedAt": "not a date",
+						"error": "Bad time",
+						"delivery": {
+							"kind": "result",
+							"status": "delivered"
+						}
+					},
+					{
+						"id": "job_feed0011_00000011",
+						"kind": "research",
+						"chatId": "chat_golden02_00000002",
+						"toolCallId": "call_job_feed0011_00000011",
+						"input": {
+							"question": "Why?"
+						},
+						"status": "error",
+						"activity": "failed",
+						"createdAt": "2029-12-31T23:00:00.000Z",
+						"updatedAt": "2030-01-01T12:00:00.000Z",
+						"result": {
+							"brief": "Research failed: offline",
+							"sources": []
+						},
+						"delivery": {
+							"kind": "result",
+							"status": "pending"
+						}
+					},
+					{
+						"id": "job_feed0012_00000012",
+						"kind": "pdf",
+						"chatId": "chat_golden03_00000003",
+						"toolCallId": "call_job_feed0012_00000012",
+						"input": {
+							"question": "Why?"
+						},
+						"status": "done",
+						"activity": "finished",
+						"createdAt": "2029-12-31T23:00:00.000Z",
+						"updatedAt": "2030-01-01T12:00:00.000Z",
+						"result": {
+							"brief": "Pages 1-2 say so."
+						},
+						"delivery": {
+							"kind": "result",
+							"status": "pending"
+						}
+					},
+					{
+						"id": "job_feed0010_00000010",
+						"kind": "research",
+						"chatId": "chat_golden01_00000001",
+						"toolCallId": "call_job_feed0010_00000010",
+						"input": {
+							"question": "Why?"
+						},
+						"status": "done",
+						"activity": "finished",
+						"createdAt": "2029-12-31T23:00:00.000Z",
+						"updatedAt": "2030-01-01T11:59:55.000Z",
+						"result": {
+							"brief": "done",
+							"sources": []
+						},
+						"delivery": {
+							"kind": "result",
+							"status": "delivered"
+						}
+					},
+					{
+						"id": "job_feed0004_00000004",
+						"kind": "research",
+						"chatId": "chat_golden09_00000009",
+						"toolCallId": "call_job_feed0004_00000004",
+						"input": {
+							"question": "Why?"
+						},
+						"status": "running",
+						"activity": "researching",
+						"createdAt": "2029-12-31T23:00:00.000Z",
+						"updatedAt": "2030-01-01T11:59:50.000Z",
+						"result": {
+							"brief": "x",
+							"sources": []
+						},
+						"delivery": {
+							"kind": "result",
+							"status": "delivered"
+						}
+					},
+					{
+						"id": "job_feed0001_00000001",
+						"kind": "research",
+						"chatId": "chat_golden01_00000001",
+						"toolCallId": "call_job_feed0001_00000001",
+						"input": {
+							"question": "Why?"
+						},
+						"status": "running",
+						"activity": "web_fetch: example.org",
+						"createdAt": "2029-12-31T23:00:00.000Z",
+						"updatedAt": "2030-01-01T11:59:30.000Z",
+						"result": {
+							"brief": "ok",
+							"sources": []
+						},
+						"delivery": {
+							"kind": "result",
+							"status": "delivered"
+						},
+						"usage": {
+							"model": "agent:outside-agent",
+							"inputTokens": 10,
+							"outputTokens": 2,
+							"steps": 1
+						}
+					},
+					{
+						"id": "job_feed0003_00000003",
+						"kind": "visual",
+						"chatId": "chat_golden03_00000003",
+						"toolCallId": "call_job_feed0003_00000003",
+						"input": {
+							"question": "Why?"
+						},
+						"status": "running",
+						"activity": "researching",
+						"createdAt": "2029-12-31T23:00:00.000Z",
+						"updatedAt": "2030-01-01T11:59:30.000Z",
+						"result": {
+							"svg": "<svg/>"
+						},
+						"delivery": {
+							"kind": "result",
+							"status": "delivered"
+						}
+					},
+					{
+						"id": "job_feed0006_00000006",
+						"kind": "research",
+						"chatId": "chat_golden02_00000002",
+						"toolCallId": "call_job_feed0006_00000006",
+						"input": {
+							"question": "Why?"
+						},
+						"status": "error",
+						"activity": "failed",
+						"createdAt": "2029-12-31T23:00:00.000Z",
+						"updatedAt": "2030-01-01T11:59:30.000Z",
+						"error": "   ",
+						"delivery": {
+							"kind": "result",
+							"status": "delivered"
+						}
+					},
+					{
+						"id": "job_feed0014_00000014",
+						"kind": "research",
+						"chatId": "chat_golden01_00000001",
+						"toolCallId": "call_job_feed0014_00000014",
+						"input": {
+							"question": "Why?"
+						},
+						"status": "done",
+						"activity": "finished",
+						"createdAt": "2029-12-31T23:00:00.000Z",
+						"updatedAt": "2030-01-01T11:59:20.000Z",
+						"result": {
+							"brief": "y",
+							"sources": []
+						},
+						"delivery": {
+							"kind": "result",
+							"status": "pending"
+						}
+					},
+					{
+						"id": "job_feed0002_00000002",
+						"kind": "demo",
+						"chatId": "chat_golden02_00000002",
+						"toolCallId": "call_job_feed0002_00000002",
+						"input": {
+							"question": "Why?"
+						},
+						"status": "running",
+						"activity": "researching",
+						"createdAt": "2029-12-31T23:00:00.000Z",
+						"updatedAt": "2030-01-01T11:59:00.000Z",
+						"result": {
+							"html": "<p>x</p>"
+						},
+						"delivery": {
+							"kind": "result",
+							"status": "delivered"
+						},
+						"usage": {
+							"model": "other:model",
+							"inputTokens": 10,
+							"outputTokens": 2,
+							"steps": 1
+						}
+					},
+					{
+						"id": "job_feed0005_00000005",
+						"kind": "research",
+						"chatId": "chat_golden01_00000001",
+						"toolCallId": "call_job_feed0005_00000005",
+						"input": {
+							"question": "Why?"
+						},
+						"status": "error",
+						"activity": "failed",
+						"createdAt": "2029-12-31T23:00:00.000Z",
+						"updatedAt": "2030-01-01T11:58:30.000Z",
+						"error": "  Spaced  ",
+						"delivery": {
+							"kind": "result",
+							"status": "delivered"
+						}
+					},
+					{
+						"id": "job_feed0013_00000013",
+						"kind": "research",
+						"chatId": "chat_golden08_00000008",
+						"toolCallId": "call_job_feed0013_00000013",
+						"input": {
+							"question": "Why?"
+						},
+						"status": "running",
+						"activity": "researching",
+						"createdAt": "2029-12-31T23:00:00.000Z",
+						"updatedAt": "2030-01-01T11:58:00.000Z",
+						"result": {
+							"brief": "x",
+							"sources": []
+						}
+					},
+					{
+						"id": "job_feed0007_00000007",
+						"kind": "research",
+						"chatId": "chat_golden03_00000003",
+						"toolCallId": "call_job_feed0007_00000007",
+						"input": {
+							"question": "Why?"
+						},
+						"status": "error",
+						"activity": "failed",
+						"createdAt": "2029-12-31T23:00:00.000Z",
+						"updatedAt": "2030-01-01T11:50:00.001Z",
+						"delivery": {
+							"kind": "result",
+							"status": "delivered"
+						}
+					},
+					{
+						"id": "job_feed0008_00000008",
+						"kind": "research",
+						"chatId": "chat_golden03_00000003",
+						"toolCallId": "call_job_feed0008_00000008",
+						"input": {
+							"question": "Why?"
+						},
+						"status": "error",
+						"activity": "failed",
+						"createdAt": "2029-12-31T23:00:00.000Z",
+						"updatedAt": "2030-01-01T11:50:00.000Z",
+						"error": "Too old",
+						"delivery": {
+							"kind": "result",
+							"status": "delivered"
+						}
+					}
+				],
+				"runs": [
+					{
+						"chatId": "chat_golden01_00000001",
+						"kind": "chat",
+						"phase": "extracting",
+						"startedAt": 1893499195000
+					},
+					{
+						"chatId": "src_notes001",
+						"kind": "notes",
+						"label": "notes/week 1.md",
+						"part": {
+							"i": 2,
+							"n": 3
+						},
+						"phase": "merging",
+						"startedAt": 1893499191000
+					},
+					{
+						"chatId": "chat_golden02_00000002",
+						"kind": "chat",
+						"part": {
+							"i": 1,
+							"n": 2
+						},
+						"phase": "waiting",
+						"startedAt": 1893499199000
+					},
+					{
+						"chatId": "topics:cls_x",
+						"kind": "topics",
+						"label": "Grouping topics",
+						"phase": "grouping",
+						"startedAt": 1893499197000
+					},
+					{
+						"chatId": "src_unknown01",
+						"kind": "notes",
+						"phase": "extracting",
+						"startedAt": 1893499193000
+					}
+				],
+				"feed": {
+					"jobs": [
+						{
+							"id": "job_feed0002_00000002",
+							"kind": "demo",
+							"chatId": "chat_golden02_00000002",
+							"toolCallId": "call_job_feed0002_00000002",
+							"input": {
+								"question": "Why?"
+							},
+							"status": "running",
+							"activity": "researching",
+							"createdAt": "2029-12-31T23:00:00.000Z",
+							"updatedAt": "2030-01-01T11:59:00.000Z",
+							"result": {
+								"html": "<p>x</p>"
+							},
+							"delivery": {
+								"kind": "result",
+								"status": "delivered"
+							},
+							"usage": {
+								"model": "other:model",
+								"inputTokens": 10,
+								"outputTokens": 2,
+								"steps": 1
+							},
+							"title": "chat_golden02_00000002",
+							"contextLimit": null
+						},
+						{
+							"id": "job_feed0001_00000001",
+							"kind": "research",
+							"chatId": "chat_golden01_00000001",
+							"toolCallId": "call_job_feed0001_00000001",
+							"input": {
+								"question": "Why?"
+							},
+							"status": "running",
+							"activity": "web_fetch: example.org",
+							"createdAt": "2029-12-31T23:00:00.000Z",
+							"updatedAt": "2030-01-01T11:59:30.000Z",
+							"result": {
+								"brief": "ok",
+								"sources": []
+							},
+							"delivery": {
+								"kind": "result",
+								"status": "delivered"
+							},
+							"usage": {
+								"model": "agent:outside-agent",
+								"inputTokens": 10,
+								"outputTokens": 2,
+								"steps": 1
+							},
+							"title": "Binary search",
+							"contextLimit": 200000
+						},
+						{
+							"id": "job_feed0003_00000003",
+							"kind": "visual",
+							"chatId": "chat_golden03_00000003",
+							"toolCallId": "call_job_feed0003_00000003",
+							"input": {
+								"question": "Why?"
+							},
+							"status": "running",
+							"activity": "researching",
+							"createdAt": "2029-12-31T23:00:00.000Z",
+							"updatedAt": "2030-01-01T11:59:30.000Z",
+							"result": {
+								"svg": "<svg/>"
+							},
+							"delivery": {
+								"kind": "result",
+								"status": "delivered"
+							},
+							"title": "Sorting",
+							"contextLimit": null
+						}
+					],
+					"extractions": [
+						{
+							"id": "src_notes001#2",
+							"chatId": "src_notes001",
+							"kind": "notes",
+							"part": {
+								"i": 2,
+								"n": 3
+							},
+							"title": "notes/week 1.md (2/3)",
+							"phase": "merging",
+							"startedAt": 1893499191000
+						},
+						{
+							"id": "src_unknown01",
+							"chatId": "src_unknown01",
+							"kind": "notes",
+							"title": "src_unknown01",
+							"phase": "extracting",
+							"startedAt": 1893499193000
+						},
+						{
+							"id": "chat_golden01_00000001",
+							"chatId": "chat_golden01_00000001",
+							"kind": "chat",
+							"title": "Binary search",
+							"phase": "extracting",
+							"startedAt": 1893499195000
+						},
+						{
+							"id": "topics:cls_x",
+							"chatId": "topics:cls_x",
+							"kind": "topics",
+							"title": "Grouping topics",
+							"phase": "grouping",
+							"startedAt": 1893499197000
+						},
+						{
+							"id": "chat_golden02_00000002#1",
+							"chatId": "chat_golden02_00000002",
+							"kind": "chat",
+							"part": {
+								"i": 1,
+								"n": 2
+							},
+							"title": "chat_golden02_00000002 (1/2)",
+							"phase": "waiting",
+							"startedAt": 1893499199000
+						}
+					],
+					"failed": [
+						{
+							"id": "job_feed0011_00000011",
+							"kind": "research",
+							"chatId": "chat_golden02_00000002",
+							"title": "chat_golden02_00000002",
+							"error": "Something went wrong",
+							"at": "2030-01-01T12:00:00.000Z"
+						},
+						{
+							"id": "job_feed0006_00000006",
+							"kind": "research",
+							"chatId": "chat_golden02_00000002",
+							"title": "chat_golden02_00000002",
+							"error": "Something went wrong",
+							"at": "2030-01-01T11:59:30.000Z"
+						},
+						{
+							"id": "job_feed0005_00000005",
+							"kind": "research",
+							"chatId": "chat_golden01_00000001",
+							"title": "Binary search",
+							"error": "Spaced",
+							"at": "2030-01-01T11:58:30.000Z"
+						},
+						{
+							"id": "job_feed0007_00000007",
+							"kind": "research",
+							"chatId": "chat_golden03_00000003",
+							"title": "Sorting",
+							"error": "Something went wrong",
+							"at": "2030-01-01T11:50:00.001Z"
+						}
+					]
+				}
+			}
+		}
+	},
+	{
+		"name": "aborts and acknowledgements",
+		"output": {
+			"before": {
+				"chats": [],
+				"jobs": [
+					{
+						"id": "job_abrt0001_00000001",
+						"kind": "research",
+						"chatId": "chat_golden08_00000008",
+						"toolCallId": "call_job_abrt0001_00000001",
+						"input": {
+							"question": "Why?"
+						},
+						"status": "running",
+						"activity": "researching",
+						"createdAt": "2029-12-31T23:00:00.000Z",
+						"updatedAt": "2030-01-01T11:58:00.000Z"
+					},
+					{
+						"id": "job_abrt0002_00000002",
+						"kind": "research",
+						"chatId": "chat_golden08_00000008",
+						"toolCallId": "call_job_abrt0002_00000002",
+						"input": {
+							"question": "Why?"
+						},
+						"status": "running",
+						"activity": "researching",
+						"createdAt": "2029-12-31T23:00:00.000Z",
+						"updatedAt": "2030-01-01T11:58:00.000Z",
+						"result": {
+							"brief": "Found it.",
+							"sources": [
+								{
+									"url": "https://example.org"
+								}
+							]
+						}
+					},
+					{
+						"id": "job_abrt0003_00000003",
+						"kind": "demo",
+						"chatId": "chat_golden08_00000008",
+						"toolCallId": "call_job_abrt0003_00000003",
+						"input": {
+							"question": "Why?"
+						},
+						"status": "running",
+						"activity": "researching",
+						"createdAt": "2029-12-31T23:00:00.000Z",
+						"updatedAt": "2030-01-01T11:58:00.000Z",
+						"result": {
+							"title": "Stepper",
+							"notes": "no html"
+						}
+					},
+					{
+						"id": "job_abrt0004_00000004",
+						"kind": "research",
+						"chatId": "chat_golden08_00000008",
+						"toolCallId": "call_job_abrt0004_00000004",
+						"input": {
+							"question": "Why?"
+						},
+						"status": "done",
+						"activity": "finished",
+						"createdAt": "2029-12-31T23:00:00.000Z",
+						"updatedAt": "2030-01-01T11:58:00.000Z",
+						"result": {
+							"brief": "ok",
+							"sources": []
+						},
+						"delivery": {
+							"kind": "result",
+							"status": "delivered"
+						}
+					},
+					{
+						"id": "job_abrt0005_00000005",
+						"kind": "research",
+						"chatId": "chat_golden08_00000008",
+						"toolCallId": "call_job_abrt0005_00000005",
+						"input": {
+							"question": "Why?"
+						},
+						"status": "error",
+						"activity": "failed",
+						"createdAt": "2029-12-31T23:00:00.000Z",
+						"updatedAt": "2030-01-01T11:58:00.000Z",
+						"error": "boom",
+						"delivery": {
+							"kind": "result",
+							"status": "delivered"
+						}
+					},
+					{
+						"id": "job_ackn0001_00000001",
+						"kind": "research",
+						"chatId": "chat_golden08_00000008",
+						"toolCallId": "call_job_ackn0001_00000001",
+						"input": {
+							"question": "Why?"
+						},
+						"status": "done",
+						"activity": "finished",
+						"createdAt": "2029-12-31T23:00:00.000Z",
+						"updatedAt": "2030-01-01T11:58:00.000Z",
+						"result": {
+							"brief": "ok",
+							"sources": []
+						},
+						"delivery": {
+							"kind": "result",
+							"status": "pending",
+							"note": "kept"
+						}
+					},
+					{
+						"id": "job_ackn0002_00000002",
+						"kind": "visual",
+						"chatId": "chat_golden08_00000008",
+						"toolCallId": "call_job_ackn0002_00000002",
+						"input": {
+							"question": "Why?"
+						},
+						"status": "running",
+						"activity": "researching",
+						"createdAt": "2029-12-31T23:00:00.000Z",
+						"updatedAt": "2030-01-01T11:58:00.000Z",
+						"result": {
+							"notes": "nothing drawn"
+						}
+					},
+					{
+						"id": "job_ackn0003_00000003",
+						"kind": "research",
+						"chatId": "chat_golden08_00000008",
+						"toolCallId": "call_job_ackn0003_00000003",
+						"input": {
+							"question": "Why?"
+						},
+						"status": "error",
+						"activity": "aborted",
+						"createdAt": "2029-12-31T23:00:00.000Z",
+						"updatedAt": "2030-01-01T11:58:00.000Z",
+						"error": "Aborted by learner",
+						"delivery": {
+							"kind": "abort",
+							"status": "delivered"
+						}
+					},
+					{
+						"id": "job_ackn0004_00000004",
+						"kind": "research",
+						"chatId": "chat_golden08_00000008",
+						"toolCallId": "call_job_ackn0004_00000004",
+						"input": {
+							"question": "Why?"
+						},
+						"status": "done",
+						"activity": "finished",
+						"createdAt": "2029-12-31T23:00:00.000Z",
+						"updatedAt": "2030-01-01T11:58:00.000Z",
+						"result": {
+							"brief": "ok",
+							"sources": []
+						}
+					}
+				]
+			},
+			"steps": [
+				{
+					"op": "abort",
+					"id": "job_abrt0001_00000001",
+					"outcome": {
+						"ok": true
+					},
+					"job": {
+						"id": "job_abrt0001_00000001",
+						"kind": "research",
+						"chatId": "chat_golden08_00000008",
+						"toolCallId": "call_job_abrt0001_00000001",
+						"input": {
+							"question": "Why?"
+						},
+						"status": "error",
+						"activity": "aborted",
+						"createdAt": "2029-12-31T23:00:00.000Z",
+						"updatedAt": "<now>",
+						"error": "Aborted by learner",
+						"delivery": {
+							"kind": "abort",
+							"status": "pending"
+						}
+					}
+				},
+				{
+					"op": "abort",
+					"id": "job_abrt0002_00000002",
+					"outcome": {
+						"ok": false,
+						"reason": "not_running"
+					},
+					"job": {
+						"id": "job_abrt0002_00000002",
+						"kind": "research",
+						"chatId": "chat_golden08_00000008",
+						"toolCallId": "call_job_abrt0002_00000002",
+						"input": {
+							"question": "Why?"
+						},
+						"status": "done",
+						"activity": "finished",
+						"createdAt": "2029-12-31T23:00:00.000Z",
+						"updatedAt": "<now>",
+						"result": {
+							"brief": "Found it.",
+							"sources": [
+								{
+									"url": "https://example.org"
+								}
+							]
+						},
+						"delivery": {
+							"kind": "result",
+							"status": "pending"
+						}
+					}
+				},
+				{
+					"op": "abort",
+					"id": "job_abrt0003_00000003",
+					"outcome": {
+						"ok": false,
+						"reason": "not_running"
+					},
+					"job": {
+						"id": "job_abrt0003_00000003",
+						"kind": "demo",
+						"chatId": "chat_golden08_00000008",
+						"toolCallId": "call_job_abrt0003_00000003",
+						"input": {
+							"question": "Why?"
+						},
+						"status": "error",
+						"activity": "failed",
+						"createdAt": "2029-12-31T23:00:00.000Z",
+						"updatedAt": "<now>",
+						"result": {
+							"title": "Stepper",
+							"notes": "no html"
+						},
+						"delivery": {
+							"kind": "result",
+							"status": "pending"
+						}
+					}
+				},
+				{
+					"op": "abort",
+					"id": "job_abrt0004_00000004",
+					"outcome": {
+						"ok": false,
+						"reason": "not_running"
+					},
+					"job": {
+						"id": "job_abrt0004_00000004",
+						"kind": "research",
+						"chatId": "chat_golden08_00000008",
+						"toolCallId": "call_job_abrt0004_00000004",
+						"input": {
+							"question": "Why?"
+						},
+						"status": "done",
+						"activity": "finished",
+						"createdAt": "2029-12-31T23:00:00.000Z",
+						"updatedAt": "2030-01-01T11:58:00.000Z",
+						"result": {
+							"brief": "ok",
+							"sources": []
+						},
+						"delivery": {
+							"kind": "result",
+							"status": "delivered"
+						}
+					}
+				},
+				{
+					"op": "abort",
+					"id": "job_abrt0005_00000005",
+					"outcome": {
+						"ok": false,
+						"reason": "not_running"
+					},
+					"job": {
+						"id": "job_abrt0005_00000005",
+						"kind": "research",
+						"chatId": "chat_golden08_00000008",
+						"toolCallId": "call_job_abrt0005_00000005",
+						"input": {
+							"question": "Why?"
+						},
+						"status": "error",
+						"activity": "failed",
+						"createdAt": "2029-12-31T23:00:00.000Z",
+						"updatedAt": "2030-01-01T11:58:00.000Z",
+						"error": "boom",
+						"delivery": {
+							"kind": "result",
+							"status": "delivered"
+						}
+					}
+				},
+				{
+					"op": "abort",
+					"id": "job_missing0_00000000",
+					"outcome": {
+						"ok": false,
+						"reason": "not_found"
+					},
+					"job": null
+				},
+				{
+					"op": "acknowledge",
+					"chatId": "chat_golden08_00000008",
+					"persisted": [
+						{
+							"id": "steer_job_ackn0001_00000001",
+							"role": "custom",
+							"customType": "subagent-steer",
+							"details": {
+								"jobId": "job_ackn0001_00000001"
+							}
+						},
+						{
+							"id": "steer_job_ackn0002_00000002",
+							"role": "custom",
+							"customType": "subagent-steer",
+							"details": {
+								"jobId": "job_ackn0002_00000002"
+							}
+						},
+						{
+							"id": "steer_job_ackn0003_00000003",
+							"role": "custom",
+							"customType": "subagent-abort",
+							"details": {
+								"jobId": "job_ackn0003_00000003"
+							}
+						},
+						{
+							"id": "msg_plain",
+							"role": "user",
+							"content": "hi",
+							"details": {
+								"jobId": "job_ackn0004_00000004"
+							}
+						},
+						{
+							"id": "steer_job_gone",
+							"role": "custom",
+							"customType": "subagent-steer",
+							"details": {
+								"jobId": "job_gone0000_00000000"
+							}
+						},
+						{
+							"id": "custom_no_job",
+							"role": "custom",
+							"customType": "class-context",
+							"details": {}
+						}
+					],
+					"jobs": [
+						{
+							"id": "job_abrt0001_00000001",
+							"kind": "research",
+							"chatId": "chat_golden08_00000008",
+							"toolCallId": "call_job_abrt0001_00000001",
+							"input": {
+								"question": "Why?"
+							},
+							"status": "error",
+							"activity": "aborted",
+							"createdAt": "2029-12-31T23:00:00.000Z",
+							"updatedAt": "<now>",
+							"error": "Aborted by learner",
+							"delivery": {
+								"kind": "abort",
+								"status": "pending"
+							}
+						},
+						{
+							"id": "job_abrt0002_00000002",
+							"kind": "research",
+							"chatId": "chat_golden08_00000008",
+							"toolCallId": "call_job_abrt0002_00000002",
+							"input": {
+								"question": "Why?"
+							},
+							"status": "done",
+							"activity": "finished",
+							"createdAt": "2029-12-31T23:00:00.000Z",
+							"updatedAt": "<now>",
+							"result": {
+								"brief": "Found it.",
+								"sources": [
+									{
+										"url": "https://example.org"
+									}
+								]
+							},
+							"delivery": {
+								"kind": "result",
+								"status": "pending"
+							}
+						},
+						{
+							"id": "job_abrt0003_00000003",
+							"kind": "demo",
+							"chatId": "chat_golden08_00000008",
+							"toolCallId": "call_job_abrt0003_00000003",
+							"input": {
+								"question": "Why?"
+							},
+							"status": "error",
+							"activity": "failed",
+							"createdAt": "2029-12-31T23:00:00.000Z",
+							"updatedAt": "<now>",
+							"result": {
+								"title": "Stepper",
+								"notes": "no html"
+							},
+							"delivery": {
+								"kind": "result",
+								"status": "pending"
+							}
+						},
+						{
+							"id": "job_abrt0004_00000004",
+							"kind": "research",
+							"chatId": "chat_golden08_00000008",
+							"toolCallId": "call_job_abrt0004_00000004",
+							"input": {
+								"question": "Why?"
+							},
+							"status": "done",
+							"activity": "finished",
+							"createdAt": "2029-12-31T23:00:00.000Z",
+							"updatedAt": "2030-01-01T11:58:00.000Z",
+							"result": {
+								"brief": "ok",
+								"sources": []
+							},
+							"delivery": {
+								"kind": "result",
+								"status": "delivered"
+							}
+						},
+						{
+							"id": "job_abrt0005_00000005",
+							"kind": "research",
+							"chatId": "chat_golden08_00000008",
+							"toolCallId": "call_job_abrt0005_00000005",
+							"input": {
+								"question": "Why?"
+							},
+							"status": "error",
+							"activity": "failed",
+							"createdAt": "2029-12-31T23:00:00.000Z",
+							"updatedAt": "2030-01-01T11:58:00.000Z",
+							"error": "boom",
+							"delivery": {
+								"kind": "result",
+								"status": "delivered"
+							}
+						},
+						{
+							"id": "job_ackn0001_00000001",
+							"kind": "research",
+							"chatId": "chat_golden08_00000008",
+							"toolCallId": "call_job_ackn0001_00000001",
+							"input": {
+								"question": "Why?"
+							},
+							"status": "done",
+							"activity": "finished",
+							"createdAt": "2029-12-31T23:00:00.000Z",
+							"updatedAt": "<now>",
+							"result": {
+								"brief": "ok",
+								"sources": []
+							},
+							"delivery": {
+								"kind": "result",
+								"status": "delivered",
+								"note": "kept"
+							}
+						},
+						{
+							"id": "job_ackn0002_00000002",
+							"kind": "visual",
+							"chatId": "chat_golden08_00000008",
+							"toolCallId": "call_job_ackn0002_00000002",
+							"input": {
+								"question": "Why?"
+							},
+							"status": "error",
+							"activity": "failed",
+							"createdAt": "2029-12-31T23:00:00.000Z",
+							"updatedAt": "<now>",
+							"result": {
+								"notes": "nothing drawn"
+							},
+							"delivery": {
+								"kind": "result",
+								"status": "delivered"
+							}
+						},
+						{
+							"id": "job_ackn0003_00000003",
+							"kind": "research",
+							"chatId": "chat_golden08_00000008",
+							"toolCallId": "call_job_ackn0003_00000003",
+							"input": {
+								"question": "Why?"
+							},
+							"status": "error",
+							"activity": "aborted",
+							"createdAt": "2029-12-31T23:00:00.000Z",
+							"updatedAt": "2030-01-01T11:58:00.000Z",
+							"error": "Aborted by learner",
+							"delivery": {
+								"kind": "abort",
+								"status": "delivered"
+							}
+						},
+						{
+							"id": "job_ackn0004_00000004",
+							"kind": "research",
+							"chatId": "chat_golden08_00000008",
+							"toolCallId": "call_job_ackn0004_00000004",
+							"input": {
+								"question": "Why?"
+							},
+							"status": "done",
+							"activity": "finished",
+							"createdAt": "2029-12-31T23:00:00.000Z",
+							"updatedAt": "2030-01-01T11:58:00.000Z",
+							"result": {
+								"brief": "ok",
+								"sources": []
+							}
+						}
+					]
+				}
+			]
+		}
+	}
+]

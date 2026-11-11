@@ -1,0 +1,1141 @@
+[
+	{
+		"name": "visual: looked at and delivered",
+		"output": {
+			"config": {
+				"kind": "visual",
+				"brief": "  Two boxes and a dot.\nMore.  ",
+				"steps": [
+					{
+						"calls": [
+							[
+								"write_svg",
+								{
+									"svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 120 60\">\n  <rect x=\"5\" y=\"5\" width=\"30\" height=\"30\"/>\n  <rect x=\"45\" y=\"5\" width=\"30\" height=\"30\"/>\n  <circle cx=\"100\" cy=\"20\" r=\"10\" fill=\"red\"/>\n</svg>"
+								}
+							]
+						]
+					},
+					{
+						"calls": [
+							[
+								"render_svg",
+								{}
+							]
+						]
+					},
+					{
+						"text": "  Two boxes and a dot.  "
+					}
+				]
+			},
+			"result": {
+				"svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 120 60\">\n  <rect x=\"5\" y=\"5\" width=\"30\" height=\"30\"/>\n  <rect x=\"45\" y=\"5\" width=\"30\" height=\"30\"/>\n  <circle cx=\"100\" cy=\"20\" r=\"10\" fill=\"red\"/>\n</svg>",
+				"notes": "Two boxes and a dot."
+			},
+			"shown": [
+				{
+					"user": "Brief for ONE precise figure (from the teacher, verbatim — it is everything you know):\nTwo boxes and a dot.\nMore.\n\nAuthor the SVG, render it, look at it, iterate until correct, then finish with your notes."
+				},
+				{
+					"tool": "write_svg",
+					"isError": false,
+					"text": "Saved (206 bytes). Call render_svg to look at it."
+				},
+				{
+					"tool": "render_svg",
+					"isError": false,
+					"text": "Rendered — the PNG follows in the next message. Look at it."
+				},
+				{
+					"user": "Here is the current render of your SVG — inspect it critically (geometry, labels, clipping, readability):\n[image]"
+				}
+			],
+			"activity": [
+				"write_svg: 0.2 KB",
+				"render_svg: inspecting render"
+			]
+		}
+	},
+	{
+		"name": "visual: an unlooked finish is shown first",
+		"output": {
+			"config": {
+				"kind": "visual",
+				"brief": "",
+				"steps": [
+					{
+						"calls": [
+							[
+								"write_svg",
+								{
+									"svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 120 60\">\n  <rect x=\"5\" y=\"5\" width=\"30\" height=\"30\"/>\n  <rect x=\"45\" y=\"5\" width=\"30\" height=\"30\"/>\n  <circle cx=\"100\" cy=\"20\" r=\"10\" fill=\"red\"/>\n</svg>"
+								}
+							],
+							[
+								"edit_svg",
+								{
+									"old_text": "r=\"10\"",
+									"new_text": "r=\"$&$$10\""
+								}
+							]
+						]
+					},
+					{
+						"text": "Done."
+					},
+					{
+						"text": ""
+					}
+				]
+			},
+			"result": {
+				"svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 120 60\">\n  <rect x=\"5\" y=\"5\" width=\"30\" height=\"30\"/>\n  <rect x=\"45\" y=\"5\" width=\"30\" height=\"30\"/>\n  <circle cx=\"100\" cy=\"20\" r=\"$&$$10\" fill=\"red\"/>\n</svg>"
+			},
+			"shown": [
+				{
+					"user": "Brief for ONE precise figure (from the teacher, verbatim — it is everything you know):\n(no brief)\n\nAuthor the SVG, render it, look at it, iterate until correct, then finish with your notes."
+				},
+				{
+					"tool": "write_svg",
+					"isError": false,
+					"text": "Saved (206 bytes). Call render_svg to look at it."
+				},
+				{
+					"tool": "edit_svg",
+					"isError": false,
+					"text": "OK — replaced 1 occurrence. Call render_svg to look at the edited SVG."
+				},
+				{
+					"user": "You finished without looking at a render of your final SVG. Above is its render. If it is correct and clean, reply with just your notes; otherwise call write_svg with fixes and render again.\n[image]"
+				}
+			],
+			"activity": [
+				"write_svg: 0.2 KB",
+				"edit_svg: applied",
+				"render_svg: inspecting final render"
+			]
+		}
+	},
+	{
+		"name": "visual: every tool error",
+		"output": {
+			"config": {
+				"kind": "visual",
+				"brief": "x",
+				"steps": [
+					{
+						"calls": [
+							[
+								"edit_svg",
+								{
+									"old_text": "a",
+									"new_text": "b"
+								}
+							],
+							[
+								"render_svg",
+								{}
+							],
+							[
+								"write_svg",
+								{
+									"svg": "just words"
+								}
+							],
+							[
+								"write_svg",
+								{
+									"svg": ""
+								}
+							],
+							[
+								"write_svg",
+								{
+									"svg": 5
+								}
+							],
+							[
+								"write_svg",
+								{}
+							],
+							[
+								"write_svg",
+								{
+									"svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 120 60\">\n  <rect x=\"5\" y=\"5\" width=\"30\" height=\"30\"/>\n  <rect x=\"45\" y=\"5\" width=\"30\" height=\"30\"/>\n  <circle cx=\"100\" cy=\"20\" r=\"10\" fill=\"red\"/>\n</svg>"
+								}
+							],
+							[
+								"edit_svg",
+								{
+									"old_text": "<rect",
+									"new_text": "x"
+								}
+							],
+							[
+								"edit_svg",
+								{
+									"old_text": "rect x=\"450\"",
+									"new_text": "y"
+								}
+							],
+							[
+								"edit_svg",
+								{
+									"old_text": "",
+									"new_text": "y"
+								}
+							],
+							[
+								"edit_svg",
+								{
+									"old_text": "<rect",
+									"new_text": 5
+								}
+							],
+							[
+								"edit_svg",
+								{
+									"old_text": "<rect"
+								}
+							],
+							[
+								"edit_svg",
+								{
+									"old_text": "   ",
+									"new_text": ""
+								}
+							],
+							[
+								"edit_svg",
+								{
+									"old_text": "red green",
+									"new_text": ""
+								}
+							],
+							[
+								"draw",
+								{}
+							],
+							[
+								"render_svg",
+								{
+									"extra": 1
+								}
+							],
+							[
+								"write_svg",
+								{
+									"svg": "<svg xmlns=\"http://www.w3.org/2000/svg\"><rect x=\"1\" broken"
+								}
+							],
+							[
+								"render_svg",
+								{}
+							]
+						]
+					},
+					{
+						"text": "Gave up."
+					}
+				]
+			},
+			"result": {
+				"svg": "",
+				"notes": "FAILED: rendering the final SVG failed: bad svg"
+			},
+			"shown": [
+				{
+					"user": "Brief for ONE precise figure (from the teacher, verbatim — it is everything you know):\nx\n\nAuthor the SVG, render it, look at it, iterate until correct, then finish with your notes."
+				},
+				{
+					"tool": "edit_svg",
+					"isError": true,
+					"text": "ERROR: nothing to edit — call write_svg first."
+				},
+				{
+					"tool": "render_svg",
+					"isError": true,
+					"text": "ERROR: nothing to render — call write_svg first."
+				},
+				{
+					"tool": "write_svg",
+					"isError": true,
+					"text": "ERROR: expected a complete <svg>…</svg> document in the `svg` field."
+				},
+				{
+					"tool": "write_svg",
+					"isError": true,
+					"text": "ERROR: expected a complete <svg>…</svg> document in the `svg` field."
+				},
+				{
+					"tool": "write_svg",
+					"isError": true,
+					"text": "ERROR: expected a complete <svg>…</svg> document in the `svg` field."
+				},
+				{
+					"tool": "write_svg",
+					"isError": true,
+					"text": "ERROR: expected a complete <svg>…</svg> document in the `svg` field."
+				},
+				{
+					"tool": "write_svg",
+					"isError": false,
+					"text": "Saved (206 bytes). Call render_svg to look at it."
+				},
+				{
+					"tool": "edit_svg",
+					"isError": true,
+					"text": "ERROR: old_text appears 2 times — it must match EXACTLY ONCE. Include more surrounding context to make it unique."
+				},
+				{
+					"tool": "edit_svg",
+					"isError": true,
+					"text": "ERROR: old_text not found. Closest line for reference:\n1 | <svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 120 60\">\n2 |   <rect x=\"5\" y=\"5\" width=\"30\" height=\"30\"/>\n3 |   <rect x=\"45\" y=\"5\" width=\"30\" height=\"30\"/>"
+				},
+				{
+					"tool": "edit_svg",
+					"isError": true,
+					"text": "ERROR: expected old_text (non-empty) and new_text strings."
+				},
+				{
+					"tool": "edit_svg",
+					"isError": true,
+					"text": "ERROR: expected old_text (non-empty) and new_text strings."
+				},
+				{
+					"tool": "edit_svg",
+					"isError": true,
+					"text": "ERROR: expected old_text (non-empty) and new_text strings."
+				},
+				{
+					"tool": "edit_svg",
+					"isError": true,
+					"text": "ERROR: old_text not found. Closest line for reference:\n(empty old_text)"
+				},
+				{
+					"tool": "edit_svg",
+					"isError": true,
+					"text": "ERROR: old_text not found. Closest line for reference:\n3 |   <rect x=\"45\" y=\"5\" width=\"30\" height=\"30\"/>\n4 |   <circle cx=\"100\" cy=\"20\" r=\"10\" fill=\"red\"/>\n5 | </svg>"
+				},
+				{
+					"tool": "draw",
+					"isError": true,
+					"text": "ERROR: unknown tool \"draw\". Use write_svg, edit_svg, or render_svg."
+				},
+				{
+					"tool": "render_svg",
+					"isError": false,
+					"text": "Rendered — the PNG follows in the next message. Look at it."
+				},
+				{
+					"tool": "write_svg",
+					"isError": false,
+					"text": "Saved (58 bytes). Call render_svg to look at it."
+				},
+				{
+					"tool": "render_svg",
+					"isError": true,
+					"text": "RENDER ERROR (the SVG may be malformed): bad svg. Fix it with write_svg and render again."
+				},
+				{
+					"user": "Here is the current render of your SVG — inspect it critically (geometry, labels, clipping, readability):\n[image]"
+				}
+			],
+			"activity": [
+				"write_svg: 0.2 KB",
+				"render_svg: inspecting render",
+				"write_svg: 0.1 KB",
+				"render_svg: render error"
+			]
+		}
+	},
+	{
+		"name": "visual: never writes",
+		"output": {
+			"config": {
+				"kind": "visual",
+				"brief": "x",
+				"steps": [
+					{
+						"text": "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn"
+					}
+				]
+			},
+			"result": {
+				"svg": "",
+				"notes": "FAILED: the maker never wrote an SVG. (nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn)"
+			},
+			"shown": [
+				{
+					"user": "Brief for ONE precise figure (from the teacher, verbatim — it is everything you know):\nx\n\nAuthor the SVG, render it, look at it, iterate until correct, then finish with your notes."
+				}
+			],
+			"activity": []
+		}
+	},
+	{
+		"name": "visual: iteration limit, looked at",
+		"output": {
+			"config": {
+				"kind": "visual",
+				"brief": "x",
+				"steps": [
+					{
+						"calls": [
+							[
+								"write_svg",
+								{
+									"svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 120 60\">\n  <rect x=\"5\" y=\"5\" width=\"30\" height=\"30\"/>\n  <rect x=\"45\" y=\"5\" width=\"30\" height=\"30\"/>\n  <circle cx=\"100\" cy=\"20\" r=\"10\" fill=\"red\"/>\n</svg>"
+								}
+							],
+							[
+								"render_svg",
+								{}
+							]
+						]
+					},
+					{
+						"calls": [
+							[
+								"render_svg",
+								{}
+							]
+						]
+					},
+					{
+						"calls": [
+							[
+								"render_svg",
+								{}
+							]
+						]
+					},
+					{
+						"calls": [
+							[
+								"render_svg",
+								{}
+							]
+						]
+					},
+					{
+						"calls": [
+							[
+								"render_svg",
+								{}
+							]
+						]
+					},
+					{
+						"calls": [
+							[
+								"render_svg",
+								{}
+							]
+						]
+					},
+					{
+						"calls": [
+							[
+								"render_svg",
+								{}
+							]
+						]
+					},
+					{
+						"calls": [
+							[
+								"render_svg",
+								{}
+							]
+						]
+					}
+				]
+			},
+			"result": {
+				"svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 120 60\">\n  <rect x=\"5\" y=\"5\" width=\"30\" height=\"30\"/>\n  <rect x=\"45\" y=\"5\" width=\"30\" height=\"30\"/>\n  <circle cx=\"100\" cy=\"20\" r=\"10\" fill=\"red\"/>\n</svg>",
+				"notes": "Iteration limit reached — delivering the last verified SVG."
+			},
+			"shown": [
+				{
+					"user": "Brief for ONE precise figure (from the teacher, verbatim — it is everything you know):\nx\n\nAuthor the SVG, render it, look at it, iterate until correct, then finish with your notes."
+				},
+				{
+					"tool": "write_svg",
+					"isError": false,
+					"text": "Saved (206 bytes). Call render_svg to look at it."
+				},
+				{
+					"tool": "render_svg",
+					"isError": false,
+					"text": "Rendered — the PNG follows in the next message. Look at it."
+				},
+				{
+					"user": "Here is the current render of your SVG — inspect it critically (geometry, labels, clipping, readability):\n[image]"
+				},
+				{
+					"tool": "render_svg",
+					"isError": false,
+					"text": "Rendered — the PNG follows in the next message. Look at it."
+				},
+				{
+					"user": "Here is the current render of your SVG — inspect it critically (geometry, labels, clipping, readability):\n[image]"
+				},
+				{
+					"tool": "render_svg",
+					"isError": false,
+					"text": "Rendered — the PNG follows in the next message. Look at it."
+				},
+				{
+					"user": "Here is the current render of your SVG — inspect it critically (geometry, labels, clipping, readability):\n[image]"
+				},
+				{
+					"tool": "render_svg",
+					"isError": false,
+					"text": "Rendered — the PNG follows in the next message. Look at it."
+				},
+				{
+					"user": "Here is the current render of your SVG — inspect it critically (geometry, labels, clipping, readability):\n[image]"
+				},
+				{
+					"tool": "render_svg",
+					"isError": false,
+					"text": "Rendered — the PNG follows in the next message. Look at it."
+				},
+				{
+					"user": "Here is the current render of your SVG — inspect it critically (geometry, labels, clipping, readability):\n[image]"
+				},
+				{
+					"tool": "render_svg",
+					"isError": false,
+					"text": "Rendered — the PNG follows in the next message. Look at it."
+				},
+				{
+					"user": "Here is the current render of your SVG — inspect it critically (geometry, labels, clipping, readability):\n[image]"
+				},
+				{
+					"tool": "render_svg",
+					"isError": false,
+					"text": "Rendered — the PNG follows in the next message. Look at it."
+				},
+				{
+					"user": "Here is the current render of your SVG — inspect it critically (geometry, labels, clipping, readability):\n[image]"
+				}
+			],
+			"activity": [
+				"write_svg: 0.2 KB",
+				"render_svg: inspecting render",
+				"render_svg: inspecting render",
+				"render_svg: inspecting render",
+				"render_svg: inspecting render",
+				"render_svg: inspecting render",
+				"render_svg: inspecting render",
+				"render_svg: inspecting render",
+				"render_svg: inspecting render"
+			]
+		}
+	},
+	{
+		"name": "visual: iteration limit, never looked at",
+		"output": {
+			"config": {
+				"kind": "visual",
+				"brief": "x",
+				"steps": [
+					{
+						"calls": [
+							[
+								"write_svg",
+								{
+									"svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 120 60\">\n  <rect x=\"5\" y=\"5\" width=\"30\" height=\"30\"/>\n  <rect x=\"45\" y=\"5\" width=\"30\" height=\"30\"/>\n  <circle cx=\"100\" cy=\"20\" r=\"10\" fill=\"red\"/>\n</svg>"
+								}
+							]
+						]
+					},
+					{
+						"calls": [
+							[
+								"write_svg",
+								{
+									"svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 120 60\">\n  <rect x=\"5\" y=\"5\" width=\"30\" height=\"30\"/>\n  <rect x=\"45\" y=\"5\" width=\"30\" height=\"30\"/>\n  <circle cx=\"100\" cy=\"20\" r=\"10\" fill=\"red\"/>\n</svg>"
+								}
+							]
+						]
+					},
+					{
+						"calls": [
+							[
+								"write_svg",
+								{
+									"svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 120 60\">\n  <rect x=\"5\" y=\"5\" width=\"30\" height=\"30\"/>\n  <rect x=\"45\" y=\"5\" width=\"30\" height=\"30\"/>\n  <circle cx=\"100\" cy=\"20\" r=\"10\" fill=\"red\"/>\n</svg>"
+								}
+							]
+						]
+					},
+					{
+						"calls": [
+							[
+								"write_svg",
+								{
+									"svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 120 60\">\n  <rect x=\"5\" y=\"5\" width=\"30\" height=\"30\"/>\n  <rect x=\"45\" y=\"5\" width=\"30\" height=\"30\"/>\n  <circle cx=\"100\" cy=\"20\" r=\"10\" fill=\"red\"/>\n</svg>"
+								}
+							]
+						]
+					},
+					{
+						"calls": [
+							[
+								"write_svg",
+								{
+									"svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 120 60\">\n  <rect x=\"5\" y=\"5\" width=\"30\" height=\"30\"/>\n  <rect x=\"45\" y=\"5\" width=\"30\" height=\"30\"/>\n  <circle cx=\"100\" cy=\"20\" r=\"10\" fill=\"red\"/>\n</svg>"
+								}
+							]
+						]
+					},
+					{
+						"calls": [
+							[
+								"write_svg",
+								{
+									"svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 120 60\">\n  <rect x=\"5\" y=\"5\" width=\"30\" height=\"30\"/>\n  <rect x=\"45\" y=\"5\" width=\"30\" height=\"30\"/>\n  <circle cx=\"100\" cy=\"20\" r=\"10\" fill=\"red\"/>\n</svg>"
+								}
+							]
+						]
+					},
+					{
+						"calls": [
+							[
+								"write_svg",
+								{
+									"svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 120 60\">\n  <rect x=\"5\" y=\"5\" width=\"30\" height=\"30\"/>\n  <rect x=\"45\" y=\"5\" width=\"30\" height=\"30\"/>\n  <circle cx=\"100\" cy=\"20\" r=\"10\" fill=\"red\"/>\n</svg>"
+								}
+							]
+						]
+					},
+					{
+						"calls": [
+							[
+								"write_svg",
+								{
+									"svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 120 60\">\n  <rect x=\"5\" y=\"5\" width=\"30\" height=\"30\"/>\n  <rect x=\"45\" y=\"5\" width=\"30\" height=\"30\"/>\n  <circle cx=\"100\" cy=\"20\" r=\"10\" fill=\"red\"/>\n</svg>"
+								}
+							]
+						]
+					}
+				]
+			},
+			"result": {
+				"svg": "",
+				"notes": "FAILED: iteration limit (8) reached without a verified SVG."
+			},
+			"shown": [
+				{
+					"user": "Brief for ONE precise figure (from the teacher, verbatim — it is everything you know):\nx\n\nAuthor the SVG, render it, look at it, iterate until correct, then finish with your notes."
+				},
+				{
+					"tool": "write_svg",
+					"isError": false,
+					"text": "Saved (206 bytes). Call render_svg to look at it."
+				},
+				{
+					"tool": "write_svg",
+					"isError": false,
+					"text": "Saved (206 bytes). Call render_svg to look at it."
+				},
+				{
+					"tool": "write_svg",
+					"isError": false,
+					"text": "Saved (206 bytes). Call render_svg to look at it."
+				},
+				{
+					"tool": "write_svg",
+					"isError": false,
+					"text": "Saved (206 bytes). Call render_svg to look at it."
+				},
+				{
+					"tool": "write_svg",
+					"isError": false,
+					"text": "Saved (206 bytes). Call render_svg to look at it."
+				},
+				{
+					"tool": "write_svg",
+					"isError": false,
+					"text": "Saved (206 bytes). Call render_svg to look at it."
+				},
+				{
+					"tool": "write_svg",
+					"isError": false,
+					"text": "Saved (206 bytes). Call render_svg to look at it."
+				}
+			],
+			"activity": [
+				"write_svg: 0.2 KB",
+				"write_svg: 0.2 KB",
+				"write_svg: 0.2 KB",
+				"write_svg: 0.2 KB",
+				"write_svg: 0.2 KB",
+				"write_svg: 0.2 KB",
+				"write_svg: 0.2 KB",
+				"write_svg: 0.2 KB"
+			]
+		}
+	},
+	{
+		"name": "visual: no engine",
+		"output": {
+			"config": {
+				"kind": "visual",
+				"brief": "x",
+				"steps": [],
+				"unavailable": "no render engine"
+			},
+			"result": {
+				"svg": "",
+				"notes": "FAILED: no render engine"
+			},
+			"shown": [],
+			"activity": []
+		}
+	},
+	{
+		"name": "visual: the script runs out",
+		"output": {
+			"config": {
+				"kind": "visual",
+				"brief": "x",
+				"steps": [
+					{
+						"calls": [
+							[
+								"write_svg",
+								{
+									"svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 120 60\">\n  <rect x=\"5\" y=\"5\" width=\"30\" height=\"30\"/>\n  <rect x=\"45\" y=\"5\" width=\"30\" height=\"30\"/>\n  <circle cx=\"100\" cy=\"20\" r=\"10\" fill=\"red\"/>\n</svg>"
+								}
+							]
+						]
+					}
+				]
+			},
+			"result": {
+				"svg": "",
+				"notes": "FAILED: the maker crashed: No more faux responses queued"
+			},
+			"shown": [
+				{
+					"user": "Brief for ONE precise figure (from the teacher, verbatim — it is everything you know):\nx\n\nAuthor the SVG, render it, look at it, iterate until correct, then finish with your notes."
+				}
+			],
+			"activity": [
+				"write_svg: 0.2 KB"
+			]
+		}
+	},
+	{
+		"name": "demo: tested and delivered",
+		"output": {
+			"config": {
+				"kind": "demo",
+				"title": "  Stepper ",
+				"brief": "",
+				"steps": [
+					{
+						"calls": [
+							[
+								"run_demo",
+								{}
+							],
+							[
+								"run_demo",
+								{
+									"probe": "1 + 1"
+								}
+							],
+							[
+								"write_demo",
+								{
+									"html": ""
+								}
+							],
+							[
+								"write_demo",
+								{
+									"html": "   \n  "
+								}
+							],
+							[
+								"write_demo",
+								{
+									"html": 5
+								}
+							],
+							[
+								"write_demo",
+								{}
+							],
+							[
+								"run_demo",
+								{
+									"probe": 5
+								}
+							],
+							[
+								"run_demo",
+								{}
+							]
+						]
+					},
+					{
+						"text": " Nothing more. "
+					}
+				],
+				"demo": [
+					{
+						"result": {
+							"consoleErrors": [],
+							"pageErrors": [],
+							"failedRequests": [],
+							"ok": true,
+							"probeResult": {
+								"a": [
+									1,
+									"two"
+								]
+							}
+						}
+					},
+					{
+						"result": {
+							"consoleErrors": [],
+							"pageErrors": [],
+							"failedRequests": [],
+							"ok": true
+						}
+					}
+				]
+			},
+			"result": {
+				"title": "Stepper",
+				"html": "5",
+				"tested": true,
+				"notes": "Nothing more."
+			},
+			"shown": [
+				{
+					"user": "Demo title: Stepper\nBrief (all you know about the lesson — this comes from the teacher, verbatim):\n(no brief)\n\nBuild the demo, test it with run_demo, iterate until PASSED, then finish with your notes."
+				},
+				{
+					"tool": "run_demo",
+					"isError": false,
+					"text": "ERROR: nothing to run — call write_demo first."
+				},
+				{
+					"tool": "run_demo",
+					"isError": false,
+					"text": "ERROR: nothing to run — call write_demo first."
+				},
+				{
+					"tool": "write_demo",
+					"isError": false,
+					"text": "ERROR: empty document — write the full HTML."
+				},
+				{
+					"tool": "write_demo",
+					"isError": false,
+					"text": "ERROR: empty document — write the full HTML."
+				},
+				{
+					"tool": "write_demo",
+					"isError": false,
+					"text": "Saved (1 bytes). Now call run_demo to test it — never deliver untested."
+				},
+				{
+					"tool": "write_demo",
+					"isError": true,
+					"text": "Validation failed for tool \"write_demo\":\n  - html: must have required properties html\n\nReceived arguments:\n{}"
+				},
+				{
+					"tool": "run_demo",
+					"isError": false,
+					"text": "PASSED: no console errors, no uncaught errors, no failed requests. Probe result: {\"a\":[1,\"two\"]}. If you are satisfied, finish with your notes; otherwise keep improving and re-test."
+				},
+				{
+					"tool": "run_demo",
+					"isError": false,
+					"text": "PASSED: no console errors, no uncaught errors, no failed requests. If you are satisfied, finish with your notes; otherwise keep improving and re-test."
+				}
+			],
+			"activity": [
+				"run_demo",
+				"run_demo",
+				"write_demo",
+				"write_demo",
+				"write_demo",
+				"write_demo",
+				"run_demo",
+				"run_demo",
+				"write_demo: 0.0 KB",
+				"run_demo: clean",
+				"run_demo: clean"
+			]
+		}
+	},
+	{
+		"name": "demo: never passes",
+		"output": {
+			"config": {
+				"kind": "demo",
+				"title": "",
+				"brief": "b",
+				"steps": [
+					{
+						"calls": [
+							[
+								"write_demo",
+								{
+									"html": "<p>hi</p>"
+								}
+							],
+							[
+								"run_demo",
+								{}
+							]
+						]
+					},
+					{
+						"text": "It works."
+					}
+				],
+				"demo": [
+					{
+						"result": {
+							"consoleErrors": [
+								"boom"
+							],
+							"pageErrors": [
+								"x is not defined",
+								"y"
+							],
+							"failedRequests": [
+								"https://cdn.example/lib.js (net::ERR_FAILED)"
+							],
+							"ok": false
+						}
+					}
+				]
+			},
+			"result": {
+				"title": "Interactive demo",
+				"html": "",
+				"tested": true,
+				"notes": "FAILED: the demo never passed headless verification (1 console error, 2 page errors, 1 failed request: boom | x is not defined | y | https://cdn.example/lib.js (net::ERR_FAILED))."
+			},
+			"shown": [
+				{
+					"user": "Demo title: Interactive demo\nBrief (all you know about the lesson — this comes from the teacher, verbatim):\nb\n\nBuild the demo, test it with run_demo, iterate until PASSED, then finish with your notes."
+				},
+				{
+					"tool": "write_demo",
+					"isError": false,
+					"text": "Saved (9 bytes). Now call run_demo to test it — never deliver untested."
+				},
+				{
+					"tool": "run_demo",
+					"isError": false,
+					"text": "FAILED: 1 console error, 2 page errors, 1 failed request.\nConsole errors:\n- boom\nUncaught errors:\n- x is not defined\n- y\nFailed requests:\n- https://cdn.example/lib.js (net::ERR_FAILED)\nFix the document (write_demo) and re-test (run_demo)."
+				}
+			],
+			"activity": [
+				"write_demo",
+				"run_demo",
+				"write_demo: 0.0 KB",
+				"run_demo: 1 console error, 2 page errors, 1 failed request",
+				"final verification"
+			]
+		}
+	},
+	{
+		"name": "demo: the browser fails",
+		"output": {
+			"config": {
+				"kind": "demo",
+				"title": "T",
+				"brief": "b",
+				"steps": [
+					{
+						"calls": [
+							[
+								"write_demo",
+								{
+									"html": "<p>hi</p>"
+								}
+							],
+							[
+								"run_demo",
+								{}
+							]
+						]
+					},
+					{
+						"text": ""
+					}
+				],
+				"demo": [
+					{
+						"throws": "No render engine available"
+					}
+				]
+			},
+			"result": {
+				"title": "T",
+				"html": "",
+				"tested": true,
+				"notes": "FAILED: final verification crashed: No render engine available"
+			},
+			"shown": [
+				{
+					"user": "Demo title: T\nBrief (all you know about the lesson — this comes from the teacher, verbatim):\nb\n\nBuild the demo, test it with run_demo, iterate until PASSED, then finish with your notes."
+				},
+				{
+					"tool": "write_demo",
+					"isError": false,
+					"text": "Saved (9 bytes). Now call run_demo to test it — never deliver untested."
+				},
+				{
+					"tool": "run_demo",
+					"isError": false,
+					"text": "HEADLESS ERROR (retrying may help): No render engine available"
+				}
+			],
+			"activity": [
+				"write_demo",
+				"run_demo",
+				"write_demo: 0.0 KB",
+				"run_demo: browser error",
+				"final verification"
+			]
+		}
+	},
+	{
+		"name": "demo: untested html is verified at the end",
+		"output": {
+			"config": {
+				"kind": "demo",
+				"title": "T",
+				"brief": "b",
+				"steps": [
+					{
+						"calls": [
+							[
+								"write_demo",
+								{
+									"html": "<p>a</p>"
+								}
+							]
+						]
+					},
+					{
+						"text": "Built."
+					}
+				],
+				"demo": [
+					{
+						"result": {
+							"consoleErrors": [],
+							"pageErrors": [],
+							"failedRequests": [],
+							"ok": true
+						}
+					}
+				]
+			},
+			"result": {
+				"title": "T",
+				"html": "<p>a</p>",
+				"tested": true,
+				"notes": "Built."
+			},
+			"shown": [
+				{
+					"user": "Demo title: T\nBrief (all you know about the lesson — this comes from the teacher, verbatim):\nb\n\nBuild the demo, test it with run_demo, iterate until PASSED, then finish with your notes."
+				},
+				{
+					"tool": "write_demo",
+					"isError": false,
+					"text": "Saved (8 bytes). Now call run_demo to test it — never deliver untested."
+				}
+			],
+			"activity": [
+				"write_demo",
+				"write_demo: 0.0 KB",
+				"final verification"
+			]
+		}
+	},
+	{
+		"name": "demo: never writes",
+		"output": {
+			"config": {
+				"kind": "demo",
+				"title": "T",
+				"brief": "b",
+				"steps": [
+					{
+						"text": "Nothing could be built."
+					}
+				]
+			},
+			"result": {
+				"title": "T",
+				"html": "",
+				"tested": true,
+				"notes": "FAILED: the builder never wrote a demo. (Nothing could be built.)"
+			},
+			"shown": [
+				{
+					"user": "Demo title: T\nBrief (all you know about the lesson — this comes from the teacher, verbatim):\nb\n\nBuild the demo, test it with run_demo, iterate until PASSED, then finish with your notes."
+				}
+			],
+			"activity": []
+		}
+	},
+	{
+		"name": "demo: no engine",
+		"output": {
+			"config": {
+				"kind": "demo",
+				"title": "T",
+				"brief": "b",
+				"steps": [],
+				"unavailable": "no browser"
+			},
+			"result": {
+				"title": "T",
+				"html": "",
+				"tested": true,
+				"notes": "FAILED: no browser"
+			},
+			"shown": [],
+			"activity": []
+		}
+	},
+	{
+		"name": "demo: the script runs out",
+		"output": {
+			"config": {
+				"kind": "demo",
+				"title": "T",
+				"brief": "b",
+				"steps": []
+			},
+			"result": {
+				"title": "T",
+				"html": "",
+				"tested": true,
+				"notes": "FAILED: the builder crashed: No more faux responses queued"
+			},
+			"shown": [],
+			"activity": []
+		}
+	}
+]

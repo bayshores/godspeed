@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head><title>Config reference - Widget Docs</title></head>
+<body>
+<div id="sidebar" class="sidebar"><ul><li><a href="/docs/intro">Intro</a></li><li><a href="/docs/config">Config</a></li><li><a href="/docs/api">API</a></li><li><a href="/docs/faq">FAQ</a></li></ul></div>
+<div id="content" class="content">
+<h1>Config reference</h1>
+<p>Widget reads its settings from <code>widget.toml</code> in the project root. Every key is optional; a missing key takes the default shown below. Values are validated when the process starts, and an unknown key is reported with its line number.</p>
+<h2>Keys</h2>
+<dl><dt>port</dt><dd>The port to listen on. Default 8080.</dd><dt>log_level</dt><dd>One of debug, info, warn, error.</dd></dl>
+<p>Special characters need escaping in some places: use a literal * or _ when you mean it, a # at the start of a line, 1. numbered text, and [brackets] marks. Paths such as C:\temp\files and snake_case_names should survive too.</p>
+<p>- not a list<br>+ not a list either<br>1. not numbered<br># not a heading<br>&gt; not a quote</p>
+<p>See <a href="/docs/api">the API page</a> or <a href="mailto:help@example.com">email help</a> or <a href="#top">jump to top</a> or <a href="https://example.com/a_b(c)">a link with parens</a>.</p>
+<pre>plain preformatted
+  text with    spacing
+</pre>
+<p>Unicode: caf&eacute; &mdash; na&iuml;ve &ndash; &copy; 2025 &amp; 日本語 and 😀 emoji. Non-breaking&nbsp;space here.</p>
+</div>
+<div class="footer"><a href="/terms">Terms</a> <a href="/privacy">Privacy</a></div>
+</body>
+</html>

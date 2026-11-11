@@ -1,0 +1,2101 @@
+[
+	{
+		"name": "reused ids get fresh ones",
+		"output": {
+			"scenario": {
+				"messages": [
+					{
+						"role": "user",
+						"content": "before",
+						"timestamp": "<ts>"
+					},
+					{
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "call_0",
+								"name": "echo",
+								"arguments": {
+									"text": "old"
+								}
+							}
+						],
+						"api": "x",
+						"provider": "x",
+						"model": "x",
+						"usage": {},
+						"stopReason": "toolUse",
+						"timestamp": "<ts>"
+					},
+					{
+						"role": "toolResult",
+						"toolCallId": "call_0",
+						"toolName": "echo",
+						"content": [
+							{
+								"type": "text",
+								"text": "echo: old"
+							}
+						],
+						"isError": false,
+						"timestamp": "<ts>"
+					},
+					{
+						"role": "assistant",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"api": "x",
+						"provider": "x",
+						"model": "x",
+						"usage": {},
+						"stopReason": "stop",
+						"timestamp": "<ts>"
+					},
+					{
+						"role": "user",
+						"content": "again",
+						"timestamp": "<ts>"
+					}
+				],
+				"usedIds": [
+					"call_0",
+					"call_0~2"
+				],
+				"responses": [
+					{
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "call_0",
+								"name": "echo",
+								"arguments": {
+									"text": "a"
+								}
+							},
+							{
+								"type": "toolCall",
+								"id": "call_1",
+								"name": "echo",
+								"arguments": {
+									"text": "b"
+								}
+							}
+						],
+						"stopReason": "toolUse"
+					},
+					{
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "call_0",
+								"name": "echo",
+								"arguments": {
+									"text": "c"
+								}
+							}
+						],
+						"stopReason": "toolUse"
+					},
+					{
+						"content": [
+							{
+								"type": "text",
+								"text": "done"
+							}
+						],
+						"stopReason": "stop"
+					}
+				]
+			},
+			"frames": [
+				{
+					"type": "agent_start"
+				},
+				{
+					"type": "turn_start"
+				},
+				{
+					"type": "message_start",
+					"message": {
+						"role": "assistant",
+						"content": [],
+						"api": "godspeed-agent",
+						"provider": "agent",
+						"model": "outside-agent",
+						"usage": {
+							"input": 62,
+							"output": 9,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 71,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "pending",
+						"timestamp": "<ts>"
+					}
+				},
+				{
+					"type": "message_update",
+					"message": {
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "call_0~3",
+								"name": "echo",
+								"arguments": {
+									"text": "a"
+								}
+							},
+							{
+								"type": "toolCall",
+								"id": "call_1",
+								"name": "echo",
+								"arguments": {
+									"text": "b"
+								}
+							}
+						],
+						"api": "godspeed-agent",
+						"provider": "agent",
+						"model": "outside-agent",
+						"usage": {
+							"input": 62,
+							"output": 9,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 71,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "pending",
+						"timestamp": "<ts>"
+					}
+				},
+				{
+					"type": "message_end",
+					"message": {
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "call_0~3",
+								"name": "echo",
+								"arguments": {
+									"text": "a"
+								}
+							},
+							{
+								"type": "toolCall",
+								"id": "call_1",
+								"name": "echo",
+								"arguments": {
+									"text": "b"
+								}
+							}
+						],
+						"api": "godspeed-agent",
+						"provider": "agent",
+						"model": "outside-agent",
+						"usage": {
+							"input": 62,
+							"output": 9,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 71,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": "<ts>",
+						"thinkingLevel": "off"
+					}
+				},
+				{
+					"type": "tool_execution_start",
+					"toolCallId": "call_0~3",
+					"toolName": "echo",
+					"args": {
+						"text": "a"
+					}
+				},
+				{
+					"type": "tool_execution_start",
+					"toolCallId": "call_1",
+					"toolName": "echo",
+					"args": {
+						"text": "b"
+					}
+				},
+				{
+					"type": "tool_execution_end",
+					"toolCallId": "call_0~3",
+					"toolName": "echo",
+					"result": {
+						"content": [
+							{
+								"type": "text",
+								"text": "echo: a"
+							}
+						],
+						"details": {
+							"text": "a"
+						}
+					},
+					"isError": false,
+					"durationMs": "<ms>"
+				},
+				{
+					"type": "tool_execution_end",
+					"toolCallId": "call_1",
+					"toolName": "echo",
+					"result": {
+						"content": [
+							{
+								"type": "text",
+								"text": "echo: b"
+							}
+						],
+						"details": {
+							"text": "b"
+						}
+					},
+					"isError": false,
+					"durationMs": "<ms>"
+				},
+				{
+					"type": "message_start",
+					"message": {
+						"role": "toolResult",
+						"toolCallId": "call_0",
+						"toolName": "echo",
+						"content": [
+							{
+								"type": "text",
+								"text": "echo: a"
+							}
+						],
+						"details": {
+							"text": "a"
+						},
+						"isError": false,
+						"durationMs": "<ms>",
+						"timestamp": "<ts>"
+					}
+				},
+				{
+					"type": "message_end",
+					"message": {
+						"role": "toolResult",
+						"toolCallId": "call_0",
+						"toolName": "echo",
+						"content": [
+							{
+								"type": "text",
+								"text": "echo: a"
+							}
+						],
+						"details": {
+							"text": "a"
+						},
+						"isError": false,
+						"durationMs": "<ms>",
+						"timestamp": "<ts>"
+					}
+				},
+				{
+					"type": "message_start",
+					"message": {
+						"role": "toolResult",
+						"toolCallId": "call_1",
+						"toolName": "echo",
+						"content": [
+							{
+								"type": "text",
+								"text": "echo: b"
+							}
+						],
+						"details": {
+							"text": "b"
+						},
+						"isError": false,
+						"durationMs": "<ms>",
+						"timestamp": "<ts>"
+					}
+				},
+				{
+					"type": "message_end",
+					"message": {
+						"role": "toolResult",
+						"toolCallId": "call_1",
+						"toolName": "echo",
+						"content": [
+							{
+								"type": "text",
+								"text": "echo: b"
+							}
+						],
+						"details": {
+							"text": "b"
+						},
+						"isError": false,
+						"durationMs": "<ms>",
+						"timestamp": "<ts>"
+					}
+				},
+				{
+					"type": "turn_end",
+					"message": {
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "call_0~3",
+								"name": "echo",
+								"arguments": {
+									"text": "a"
+								}
+							},
+							{
+								"type": "toolCall",
+								"id": "call_1",
+								"name": "echo",
+								"arguments": {
+									"text": "b"
+								}
+							}
+						],
+						"api": "godspeed-agent",
+						"provider": "agent",
+						"model": "outside-agent",
+						"usage": {
+							"input": 62,
+							"output": 9,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 71,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": "<ts>",
+						"thinkingLevel": "off"
+					},
+					"toolResults": [
+						{
+							"role": "toolResult",
+							"toolCallId": "call_0~3",
+							"toolName": "echo",
+							"content": [
+								{
+									"type": "text",
+									"text": "echo: a"
+								}
+							],
+							"details": {
+								"text": "a"
+							},
+							"isError": false,
+							"durationMs": "<ms>",
+							"timestamp": "<ts>"
+						},
+						{
+							"role": "toolResult",
+							"toolCallId": "call_1",
+							"toolName": "echo",
+							"content": [
+								{
+									"type": "text",
+									"text": "echo: b"
+								}
+							],
+							"details": {
+								"text": "b"
+							},
+							"isError": false,
+							"durationMs": "<ms>",
+							"timestamp": "<ts>"
+						}
+					]
+				},
+				{
+					"type": "turn_start"
+				},
+				{
+					"type": "message_start",
+					"message": {
+						"role": "assistant",
+						"content": [],
+						"api": "godspeed-agent",
+						"provider": "agent",
+						"model": "outside-agent",
+						"usage": {
+							"input": 86,
+							"output": 5,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 91,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "pending",
+						"timestamp": "<ts>"
+					}
+				},
+				{
+					"type": "message_update",
+					"message": {
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "call_0~4",
+								"name": "echo",
+								"arguments": {
+									"text": "c"
+								}
+							}
+						],
+						"api": "godspeed-agent",
+						"provider": "agent",
+						"model": "outside-agent",
+						"usage": {
+							"input": 86,
+							"output": 5,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 91,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "pending",
+						"timestamp": "<ts>"
+					}
+				},
+				{
+					"type": "message_end",
+					"message": {
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "call_0~4",
+								"name": "echo",
+								"arguments": {
+									"text": "c"
+								}
+							}
+						],
+						"api": "godspeed-agent",
+						"provider": "agent",
+						"model": "outside-agent",
+						"usage": {
+							"input": 86,
+							"output": 5,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 91,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": "<ts>",
+						"thinkingLevel": "off"
+					}
+				},
+				{
+					"type": "tool_execution_start",
+					"toolCallId": "call_0~4",
+					"toolName": "echo",
+					"args": {
+						"text": "c"
+					}
+				},
+				{
+					"type": "tool_execution_end",
+					"toolCallId": "call_0~4",
+					"toolName": "echo",
+					"result": {
+						"content": [
+							{
+								"type": "text",
+								"text": "echo: c"
+							}
+						],
+						"details": {
+							"text": "c"
+						}
+					},
+					"isError": false,
+					"durationMs": "<ms>"
+				},
+				{
+					"type": "message_start",
+					"message": {
+						"role": "toolResult",
+						"toolCallId": "call_0",
+						"toolName": "echo",
+						"content": [
+							{
+								"type": "text",
+								"text": "echo: c"
+							}
+						],
+						"details": {
+							"text": "c"
+						},
+						"isError": false,
+						"durationMs": "<ms>",
+						"timestamp": "<ts>"
+					}
+				},
+				{
+					"type": "message_end",
+					"message": {
+						"role": "toolResult",
+						"toolCallId": "call_0",
+						"toolName": "echo",
+						"content": [
+							{
+								"type": "text",
+								"text": "echo: c"
+							}
+						],
+						"details": {
+							"text": "c"
+						},
+						"isError": false,
+						"durationMs": "<ms>",
+						"timestamp": "<ts>"
+					}
+				},
+				{
+					"type": "turn_end",
+					"message": {
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "call_0~4",
+								"name": "echo",
+								"arguments": {
+									"text": "c"
+								}
+							}
+						],
+						"api": "godspeed-agent",
+						"provider": "agent",
+						"model": "outside-agent",
+						"usage": {
+							"input": 86,
+							"output": 5,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 91,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": "<ts>",
+						"thinkingLevel": "off"
+					},
+					"toolResults": [
+						{
+							"role": "toolResult",
+							"toolCallId": "call_0~4",
+							"toolName": "echo",
+							"content": [
+								{
+									"type": "text",
+									"text": "echo: c"
+								}
+							],
+							"details": {
+								"text": "c"
+							},
+							"isError": false,
+							"durationMs": "<ms>",
+							"timestamp": "<ts>"
+						}
+					]
+				},
+				{
+					"type": "turn_start"
+				},
+				{
+					"type": "message_start",
+					"message": {
+						"role": "assistant",
+						"content": [],
+						"api": "godspeed-agent",
+						"provider": "agent",
+						"model": "outside-agent",
+						"usage": {
+							"input": 99,
+							"output": 1,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 100,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "pending",
+						"timestamp": "<ts>"
+					}
+				},
+				{
+					"type": "message_update",
+					"message": {
+						"role": "assistant",
+						"content": [
+							{
+								"type": "text",
+								"text": "done"
+							}
+						],
+						"api": "godspeed-agent",
+						"provider": "agent",
+						"model": "outside-agent",
+						"usage": {
+							"input": 99,
+							"output": 1,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 100,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "pending",
+						"timestamp": "<ts>"
+					}
+				},
+				{
+					"type": "message_end",
+					"message": {
+						"role": "assistant",
+						"content": [
+							{
+								"type": "text",
+								"text": "done"
+							}
+						],
+						"api": "godspeed-agent",
+						"provider": "agent",
+						"model": "outside-agent",
+						"usage": {
+							"input": 99,
+							"output": 1,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 100,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "stop",
+						"timestamp": "<ts>",
+						"thinkingLevel": "off"
+					}
+				},
+				{
+					"type": "turn_end",
+					"message": {
+						"role": "assistant",
+						"content": [
+							{
+								"type": "text",
+								"text": "done"
+							}
+						],
+						"api": "godspeed-agent",
+						"provider": "agent",
+						"model": "outside-agent",
+						"usage": {
+							"input": 99,
+							"output": 1,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 100,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "stop",
+						"timestamp": "<ts>",
+						"thinkingLevel": "off"
+					},
+					"toolResults": []
+				},
+				{
+					"type": "agent_end",
+					"messages": [
+						{
+							"role": "assistant",
+							"content": [
+								{
+									"type": "toolCall",
+									"id": "call_0~3",
+									"name": "echo",
+									"arguments": {
+										"text": "a"
+									}
+								},
+								{
+									"type": "toolCall",
+									"id": "call_1",
+									"name": "echo",
+									"arguments": {
+										"text": "b"
+									}
+								}
+							],
+							"api": "godspeed-agent",
+							"provider": "agent",
+							"model": "outside-agent",
+							"usage": {
+								"input": 62,
+								"output": 9,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"totalTokens": 71,
+								"cost": {
+									"input": 0,
+									"output": 0,
+									"cacheRead": 0,
+									"cacheWrite": 0,
+									"total": 0
+								}
+							},
+							"stopReason": "toolUse",
+							"timestamp": "<ts>",
+							"thinkingLevel": "off"
+						},
+						{
+							"role": "toolResult",
+							"toolCallId": "call_0~3",
+							"toolName": "echo",
+							"content": [
+								{
+									"type": "text",
+									"text": "echo: a"
+								}
+							],
+							"details": {
+								"text": "a"
+							},
+							"isError": false,
+							"durationMs": "<ms>",
+							"timestamp": "<ts>"
+						},
+						{
+							"role": "toolResult",
+							"toolCallId": "call_1",
+							"toolName": "echo",
+							"content": [
+								{
+									"type": "text",
+									"text": "echo: b"
+								}
+							],
+							"details": {
+								"text": "b"
+							},
+							"isError": false,
+							"durationMs": "<ms>",
+							"timestamp": "<ts>"
+						},
+						{
+							"role": "assistant",
+							"content": [
+								{
+									"type": "toolCall",
+									"id": "call_0~4",
+									"name": "echo",
+									"arguments": {
+										"text": "c"
+									}
+								}
+							],
+							"api": "godspeed-agent",
+							"provider": "agent",
+							"model": "outside-agent",
+							"usage": {
+								"input": 86,
+								"output": 5,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"totalTokens": 91,
+								"cost": {
+									"input": 0,
+									"output": 0,
+									"cacheRead": 0,
+									"cacheWrite": 0,
+									"total": 0
+								}
+							},
+							"stopReason": "toolUse",
+							"timestamp": "<ts>",
+							"thinkingLevel": "off"
+						},
+						{
+							"role": "toolResult",
+							"toolCallId": "call_0~4",
+							"toolName": "echo",
+							"content": [
+								{
+									"type": "text",
+									"text": "echo: c"
+								}
+							],
+							"details": {
+								"text": "c"
+							},
+							"isError": false,
+							"durationMs": "<ms>",
+							"timestamp": "<ts>"
+						},
+						{
+							"role": "assistant",
+							"content": [
+								{
+									"type": "text",
+									"text": "done"
+								}
+							],
+							"api": "godspeed-agent",
+							"provider": "agent",
+							"model": "outside-agent",
+							"usage": {
+								"input": 99,
+								"output": 1,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"totalTokens": 100,
+								"cost": {
+									"input": 0,
+									"output": 0,
+									"cacheRead": 0,
+									"cacheWrite": 0,
+									"total": 0
+								}
+							},
+							"stopReason": "stop",
+							"timestamp": "<ts>",
+							"thinkingLevel": "off"
+						}
+					]
+				},
+				"[DONE]"
+			],
+			"finished": [
+				{
+					"role": "user",
+					"content": "before",
+					"timestamp": "<ts>"
+				},
+				{
+					"role": "assistant",
+					"content": [
+						{
+							"type": "toolCall",
+							"id": "call_0",
+							"name": "echo",
+							"arguments": {
+								"text": "old"
+							}
+						}
+					],
+					"api": "x",
+					"provider": "x",
+					"model": "x",
+					"usage": {},
+					"stopReason": "toolUse",
+					"timestamp": "<ts>"
+				},
+				{
+					"role": "toolResult",
+					"toolCallId": "call_0",
+					"toolName": "echo",
+					"content": [
+						{
+							"type": "text",
+							"text": "echo: old"
+						}
+					],
+					"isError": false,
+					"timestamp": "<ts>"
+				},
+				{
+					"role": "assistant",
+					"content": [
+						{
+							"type": "text",
+							"text": "ok"
+						}
+					],
+					"api": "x",
+					"provider": "x",
+					"model": "x",
+					"usage": {},
+					"stopReason": "stop",
+					"timestamp": "<ts>"
+				},
+				{
+					"role": "user",
+					"content": "again",
+					"timestamp": "<ts>"
+				},
+				{
+					"role": "assistant",
+					"content": [
+						{
+							"type": "toolCall",
+							"id": "call_0~3",
+							"name": "echo",
+							"arguments": {
+								"text": "a"
+							}
+						},
+						{
+							"type": "toolCall",
+							"id": "call_1",
+							"name": "echo",
+							"arguments": {
+								"text": "b"
+							}
+						}
+					],
+					"api": "godspeed-agent",
+					"provider": "agent",
+					"model": "outside-agent",
+					"usage": {
+						"input": 62,
+						"output": 9,
+						"cacheRead": 0,
+						"cacheWrite": 0,
+						"totalTokens": 71,
+						"cost": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"total": 0
+						}
+					},
+					"stopReason": "toolUse",
+					"timestamp": "<ts>",
+					"thinkingLevel": "off"
+				},
+				{
+					"role": "toolResult",
+					"toolCallId": "call_0~3",
+					"toolName": "echo",
+					"content": [
+						{
+							"type": "text",
+							"text": "echo: a"
+						}
+					],
+					"details": {
+						"text": "a"
+					},
+					"isError": false,
+					"durationMs": "<ms>",
+					"timestamp": "<ts>"
+				},
+				{
+					"role": "toolResult",
+					"toolCallId": "call_1",
+					"toolName": "echo",
+					"content": [
+						{
+							"type": "text",
+							"text": "echo: b"
+						}
+					],
+					"details": {
+						"text": "b"
+					},
+					"isError": false,
+					"durationMs": "<ms>",
+					"timestamp": "<ts>"
+				},
+				{
+					"role": "assistant",
+					"content": [
+						{
+							"type": "toolCall",
+							"id": "call_0~4",
+							"name": "echo",
+							"arguments": {
+								"text": "c"
+							}
+						}
+					],
+					"api": "godspeed-agent",
+					"provider": "agent",
+					"model": "outside-agent",
+					"usage": {
+						"input": 86,
+						"output": 5,
+						"cacheRead": 0,
+						"cacheWrite": 0,
+						"totalTokens": 91,
+						"cost": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"total": 0
+						}
+					},
+					"stopReason": "toolUse",
+					"timestamp": "<ts>",
+					"thinkingLevel": "off"
+				},
+				{
+					"role": "toolResult",
+					"toolCallId": "call_0~4",
+					"toolName": "echo",
+					"content": [
+						{
+							"type": "text",
+							"text": "echo: c"
+						}
+					],
+					"details": {
+						"text": "c"
+					},
+					"isError": false,
+					"durationMs": "<ms>",
+					"timestamp": "<ts>"
+				},
+				{
+					"role": "assistant",
+					"content": [
+						{
+							"type": "text",
+							"text": "done"
+						}
+					],
+					"api": "godspeed-agent",
+					"provider": "agent",
+					"model": "outside-agent",
+					"usage": {
+						"input": 99,
+						"output": 1,
+						"cacheRead": 0,
+						"cacheWrite": 0,
+						"totalTokens": 100,
+						"cost": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"total": 0
+						}
+					},
+					"stopReason": "stop",
+					"timestamp": "<ts>",
+					"thinkingLevel": "off"
+				}
+			],
+			"failures": [],
+			"late": 30
+		}
+	},
+	{
+		"name": "fresh ids stay",
+		"output": {
+			"scenario": {
+				"messages": [
+					{
+						"role": "user",
+						"content": "go",
+						"timestamp": "<ts>"
+					}
+				],
+				"usedIds": [],
+				"responses": [
+					{
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "x1",
+								"name": "echo",
+								"arguments": {
+									"text": "a"
+								}
+							}
+						],
+						"stopReason": "toolUse"
+					},
+					{
+						"content": [
+							{
+								"type": "text",
+								"text": "done"
+							}
+						],
+						"stopReason": "stop"
+					}
+				]
+			},
+			"frames": [
+				{
+					"type": "agent_start"
+				},
+				{
+					"type": "turn_start"
+				},
+				{
+					"type": "message_start",
+					"message": {
+						"role": "assistant",
+						"content": [],
+						"api": "godspeed-agent",
+						"provider": "agent",
+						"model": "outside-agent",
+						"usage": {
+							"input": 40,
+							"output": 5,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 45,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "pending",
+						"timestamp": "<ts>"
+					}
+				},
+				{
+					"type": "message_update",
+					"message": {
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "x1",
+								"name": "echo",
+								"arguments": {
+									"text": "a"
+								}
+							}
+						],
+						"api": "godspeed-agent",
+						"provider": "agent",
+						"model": "outside-agent",
+						"usage": {
+							"input": 40,
+							"output": 5,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 45,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "pending",
+						"timestamp": "<ts>"
+					}
+				},
+				{
+					"type": "message_end",
+					"message": {
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "x1",
+								"name": "echo",
+								"arguments": {
+									"text": "a"
+								}
+							}
+						],
+						"api": "godspeed-agent",
+						"provider": "agent",
+						"model": "outside-agent",
+						"usage": {
+							"input": 40,
+							"output": 5,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 45,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": "<ts>",
+						"thinkingLevel": "off"
+					}
+				},
+				{
+					"type": "tool_execution_start",
+					"toolCallId": "x1",
+					"toolName": "echo",
+					"args": {
+						"text": "a"
+					}
+				},
+				{
+					"type": "tool_execution_end",
+					"toolCallId": "x1",
+					"toolName": "echo",
+					"result": {
+						"content": [
+							{
+								"type": "text",
+								"text": "echo: a"
+							}
+						],
+						"details": {
+							"text": "a"
+						}
+					},
+					"isError": false,
+					"durationMs": "<ms>"
+				},
+				{
+					"type": "message_start",
+					"message": {
+						"role": "toolResult",
+						"toolCallId": "x1",
+						"toolName": "echo",
+						"content": [
+							{
+								"type": "text",
+								"text": "echo: a"
+							}
+						],
+						"details": {
+							"text": "a"
+						},
+						"isError": false,
+						"durationMs": "<ms>",
+						"timestamp": "<ts>"
+					}
+				},
+				{
+					"type": "message_end",
+					"message": {
+						"role": "toolResult",
+						"toolCallId": "x1",
+						"toolName": "echo",
+						"content": [
+							{
+								"type": "text",
+								"text": "echo: a"
+							}
+						],
+						"details": {
+							"text": "a"
+						},
+						"isError": false,
+						"durationMs": "<ms>",
+						"timestamp": "<ts>"
+					}
+				},
+				{
+					"type": "turn_end",
+					"message": {
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "x1",
+								"name": "echo",
+								"arguments": {
+									"text": "a"
+								}
+							}
+						],
+						"api": "godspeed-agent",
+						"provider": "agent",
+						"model": "outside-agent",
+						"usage": {
+							"input": 40,
+							"output": 5,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 45,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": "<ts>",
+						"thinkingLevel": "off"
+					},
+					"toolResults": [
+						{
+							"role": "toolResult",
+							"toolCallId": "x1",
+							"toolName": "echo",
+							"content": [
+								{
+									"type": "text",
+									"text": "echo: a"
+								}
+							],
+							"details": {
+								"text": "a"
+							},
+							"isError": false,
+							"durationMs": "<ms>",
+							"timestamp": "<ts>"
+						}
+					]
+				},
+				{
+					"type": "turn_start"
+				},
+				{
+					"type": "message_start",
+					"message": {
+						"role": "assistant",
+						"content": [],
+						"api": "godspeed-agent",
+						"provider": "agent",
+						"model": "outside-agent",
+						"usage": {
+							"input": 53,
+							"output": 1,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 54,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "pending",
+						"timestamp": "<ts>"
+					}
+				},
+				{
+					"type": "message_update",
+					"message": {
+						"role": "assistant",
+						"content": [
+							{
+								"type": "text",
+								"text": "done"
+							}
+						],
+						"api": "godspeed-agent",
+						"provider": "agent",
+						"model": "outside-agent",
+						"usage": {
+							"input": 53,
+							"output": 1,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 54,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "pending",
+						"timestamp": "<ts>"
+					}
+				},
+				{
+					"type": "message_end",
+					"message": {
+						"role": "assistant",
+						"content": [
+							{
+								"type": "text",
+								"text": "done"
+							}
+						],
+						"api": "godspeed-agent",
+						"provider": "agent",
+						"model": "outside-agent",
+						"usage": {
+							"input": 53,
+							"output": 1,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 54,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "stop",
+						"timestamp": "<ts>",
+						"thinkingLevel": "off"
+					}
+				},
+				{
+					"type": "turn_end",
+					"message": {
+						"role": "assistant",
+						"content": [
+							{
+								"type": "text",
+								"text": "done"
+							}
+						],
+						"api": "godspeed-agent",
+						"provider": "agent",
+						"model": "outside-agent",
+						"usage": {
+							"input": 53,
+							"output": 1,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 54,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "stop",
+						"timestamp": "<ts>",
+						"thinkingLevel": "off"
+					},
+					"toolResults": []
+				},
+				{
+					"type": "agent_end",
+					"messages": [
+						{
+							"role": "assistant",
+							"content": [
+								{
+									"type": "toolCall",
+									"id": "x1",
+									"name": "echo",
+									"arguments": {
+										"text": "a"
+									}
+								}
+							],
+							"api": "godspeed-agent",
+							"provider": "agent",
+							"model": "outside-agent",
+							"usage": {
+								"input": 40,
+								"output": 5,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"totalTokens": 45,
+								"cost": {
+									"input": 0,
+									"output": 0,
+									"cacheRead": 0,
+									"cacheWrite": 0,
+									"total": 0
+								}
+							},
+							"stopReason": "toolUse",
+							"timestamp": "<ts>",
+							"thinkingLevel": "off"
+						},
+						{
+							"role": "toolResult",
+							"toolCallId": "x1",
+							"toolName": "echo",
+							"content": [
+								{
+									"type": "text",
+									"text": "echo: a"
+								}
+							],
+							"details": {
+								"text": "a"
+							},
+							"isError": false,
+							"durationMs": "<ms>",
+							"timestamp": "<ts>"
+						},
+						{
+							"role": "assistant",
+							"content": [
+								{
+									"type": "text",
+									"text": "done"
+								}
+							],
+							"api": "godspeed-agent",
+							"provider": "agent",
+							"model": "outside-agent",
+							"usage": {
+								"input": 53,
+								"output": 1,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"totalTokens": 54,
+								"cost": {
+									"input": 0,
+									"output": 0,
+									"cacheRead": 0,
+									"cacheWrite": 0,
+									"total": 0
+								}
+							},
+							"stopReason": "stop",
+							"timestamp": "<ts>",
+							"thinkingLevel": "off"
+						}
+					]
+				},
+				"[DONE]"
+			],
+			"finished": [
+				{
+					"role": "user",
+					"content": "go",
+					"timestamp": "<ts>"
+				},
+				{
+					"role": "assistant",
+					"content": [
+						{
+							"type": "toolCall",
+							"id": "x1",
+							"name": "echo",
+							"arguments": {
+								"text": "a"
+							}
+						}
+					],
+					"api": "godspeed-agent",
+					"provider": "agent",
+					"model": "outside-agent",
+					"usage": {
+						"input": 40,
+						"output": 5,
+						"cacheRead": 0,
+						"cacheWrite": 0,
+						"totalTokens": 45,
+						"cost": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"total": 0
+						}
+					},
+					"stopReason": "toolUse",
+					"timestamp": "<ts>",
+					"thinkingLevel": "off"
+				},
+				{
+					"role": "toolResult",
+					"toolCallId": "x1",
+					"toolName": "echo",
+					"content": [
+						{
+							"type": "text",
+							"text": "echo: a"
+						}
+					],
+					"details": {
+						"text": "a"
+					},
+					"isError": false,
+					"durationMs": "<ms>",
+					"timestamp": "<ts>"
+				},
+				{
+					"role": "assistant",
+					"content": [
+						{
+							"type": "text",
+							"text": "done"
+						}
+					],
+					"api": "godspeed-agent",
+					"provider": "agent",
+					"model": "outside-agent",
+					"usage": {
+						"input": 53,
+						"output": 1,
+						"cacheRead": 0,
+						"cacheWrite": 0,
+						"totalTokens": 54,
+						"cost": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"total": 0
+						}
+					},
+					"stopReason": "stop",
+					"timestamp": "<ts>",
+					"thinkingLevel": "off"
+				}
+			],
+			"failures": [],
+			"late": 17
+		}
+	},
+	{
+		"name": "run cannot start",
+		"output": {
+			"scenario": {
+				"messages": [
+					{
+						"role": "user",
+						"content": "before",
+						"timestamp": "<ts>"
+					},
+					{
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "call_0",
+								"name": "echo",
+								"arguments": {
+									"text": "old"
+								}
+							}
+						],
+						"api": "x",
+						"provider": "x",
+						"model": "x",
+						"usage": {},
+						"stopReason": "toolUse",
+						"timestamp": "<ts>"
+					},
+					{
+						"role": "toolResult",
+						"toolCallId": "call_0",
+						"toolName": "echo",
+						"content": [
+							{
+								"type": "text",
+								"text": "echo: old"
+							}
+						],
+						"isError": false,
+						"timestamp": "<ts>"
+					},
+					{
+						"role": "assistant",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"api": "x",
+						"provider": "x",
+						"model": "x",
+						"usage": {},
+						"stopReason": "stop",
+						"timestamp": "<ts>"
+					}
+				],
+				"usedIds": [
+					"call_0"
+				],
+				"responses": []
+			},
+			"frames": [
+				{
+					"type": "error",
+					"errorText": "loop: Cannot continue from message role: assistant"
+				},
+				"[DONE]"
+			],
+			"finished": [
+				{
+					"role": "user",
+					"content": "before",
+					"timestamp": "<ts>"
+				},
+				{
+					"role": "assistant",
+					"content": [
+						{
+							"type": "toolCall",
+							"id": "call_0",
+							"name": "echo",
+							"arguments": {
+								"text": "old"
+							}
+						}
+					],
+					"api": "x",
+					"provider": "x",
+					"model": "x",
+					"usage": {},
+					"stopReason": "toolUse",
+					"timestamp": "<ts>"
+				},
+				{
+					"role": "toolResult",
+					"toolCallId": "call_0",
+					"toolName": "echo",
+					"content": [
+						{
+							"type": "text",
+							"text": "echo: old"
+						}
+					],
+					"isError": false,
+					"timestamp": "<ts>"
+				},
+				{
+					"role": "assistant",
+					"content": [
+						{
+							"type": "text",
+							"text": "ok"
+						}
+					],
+					"api": "x",
+					"provider": "x",
+					"model": "x",
+					"usage": {},
+					"stopReason": "stop",
+					"timestamp": "<ts>"
+				}
+			],
+			"failures": [],
+			"late": 2
+		}
+	},
+	{
+		"name": "finish fails",
+		"output": {
+			"scenario": {
+				"messages": [
+					{
+						"role": "user",
+						"content": "go",
+						"timestamp": "<ts>"
+					}
+				],
+				"usedIds": [],
+				"responses": [
+					{
+						"content": [
+							{
+								"type": "text",
+								"text": "hi"
+							}
+						],
+						"stopReason": "stop"
+					}
+				],
+				"finishFails": true
+			},
+			"frames": [
+				{
+					"type": "agent_start"
+				},
+				{
+					"type": "turn_start"
+				},
+				{
+					"type": "message_start",
+					"message": {
+						"role": "assistant",
+						"content": [],
+						"api": "godspeed-agent",
+						"provider": "agent",
+						"model": "outside-agent",
+						"usage": {
+							"input": 40,
+							"output": 1,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 41,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "pending",
+						"timestamp": "<ts>"
+					}
+				},
+				{
+					"type": "message_update",
+					"message": {
+						"role": "assistant",
+						"content": [
+							{
+								"type": "text",
+								"text": "hi"
+							}
+						],
+						"api": "godspeed-agent",
+						"provider": "agent",
+						"model": "outside-agent",
+						"usage": {
+							"input": 40,
+							"output": 1,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 41,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "pending",
+						"timestamp": "<ts>"
+					}
+				},
+				{
+					"type": "message_end",
+					"message": {
+						"role": "assistant",
+						"content": [
+							{
+								"type": "text",
+								"text": "hi"
+							}
+						],
+						"api": "godspeed-agent",
+						"provider": "agent",
+						"model": "outside-agent",
+						"usage": {
+							"input": 40,
+							"output": 1,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 41,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "stop",
+						"timestamp": "<ts>",
+						"thinkingLevel": "off"
+					}
+				},
+				{
+					"type": "turn_end",
+					"message": {
+						"role": "assistant",
+						"content": [
+							{
+								"type": "text",
+								"text": "hi"
+							}
+						],
+						"api": "godspeed-agent",
+						"provider": "agent",
+						"model": "outside-agent",
+						"usage": {
+							"input": 40,
+							"output": 1,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 41,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "stop",
+						"timestamp": "<ts>",
+						"thinkingLevel": "off"
+					},
+					"toolResults": []
+				},
+				{
+					"type": "agent_end",
+					"messages": [
+						{
+							"role": "assistant",
+							"content": [
+								{
+									"type": "text",
+									"text": "hi"
+								}
+							],
+							"api": "godspeed-agent",
+							"provider": "agent",
+							"model": "outside-agent",
+							"usage": {
+								"input": 40,
+								"output": 1,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"totalTokens": 41,
+								"cost": {
+									"input": 0,
+									"output": 0,
+									"cacheRead": 0,
+									"cacheWrite": 0,
+									"total": 0
+								}
+							},
+							"stopReason": "stop",
+							"timestamp": "<ts>",
+							"thinkingLevel": "off"
+						}
+					]
+				},
+				{
+					"type": "error",
+					"errorText": "settle: disk full"
+				},
+				"[DONE]"
+			],
+			"finished": [
+				{
+					"role": "user",
+					"content": "go",
+					"timestamp": "<ts>"
+				},
+				{
+					"role": "assistant",
+					"content": [
+						{
+							"type": "text",
+							"text": "hi"
+						}
+					],
+					"api": "godspeed-agent",
+					"provider": "agent",
+					"model": "outside-agent",
+					"usage": {
+						"input": 40,
+						"output": 1,
+						"cacheRead": 0,
+						"cacheWrite": 0,
+						"totalTokens": 41,
+						"cost": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"total": 0
+						}
+					},
+					"stopReason": "stop",
+					"timestamp": "<ts>",
+					"thinkingLevel": "off"
+				}
+			],
+			"failures": [
+				{
+					"error": "disk full",
+					"reported": null
+				}
+			],
+			"late": 9
+		}
+	}
+]

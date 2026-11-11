@@ -1,0 +1,319 @@
+Start here
+
+Use the button above to open your workspace. It holds six small bit manipulation problems, and each one has its
+own folder and files.
+
+Problems
+
+Expand each problem below to read it. All six must pass to earn full credit.
+
+Problem 1: Keep the Low Half
+
+Location: problem1/low_half.c
+
+The file low_half.c already has a main that reads numbers, hands each one to low_half
+and prints what comes back.
+
+What to do
+
+Write low_half as the title describes. Use bitwise operators only:
+no loops, no arrays and no library calls.
+
+Examples
+
+Input: 0xb2be1200
+Output: 0x1657c
+
+Input: 0x6832a200
+Output: 0x34195100
+
+Input: 0x13a1b280
+Output: 0x2743650
+
+Input: 0x8843ad80
+Output: 0x4421d6c
+
+Input: 0xa5b1a000
+Output: 0x14b6340
+
+Input: 0x6d83e000
+Output: 0x36c1f000
+
+Input: 0x5d402080
+Output: 0x17500
+
+Input: 0xde1c5e00
+Output: 0x1bc38
+
+Input: 0x397ce00
+Output: 0x1cbe700
+
+Hints
+
+Use a mask to keep only the bits you need. A shift by 10 moves the part you want down to the lowest position.
+Remember that the right shift of a signed value may copy the sign bit, so declare your variables as unsigned.
+
+Testing
+
+Compile with make low_half and run the program. Try the examples above, then try zero, the largest 32-bit value and a value with only the top bit set.
+Run the autograder from the workspace to check all of your problems at once.
+
+Problem 2: Keep the High Half
+
+Location: problem2/high_half.c
+
+The file high_half.c already has a main that reads numbers, hands each one to high_half
+and prints what comes back.
+
+What to do
+
+Write high_half as the title describes. Use bitwise operators only:
+no loops, no arrays and no library calls.
+
+Examples
+
+Input: 0x199cf100
+Output: 0x6673c40
+
+Input: 0xace95000
+Output: 0x5674a8
+
+Input: 0x433b1000
+Output: 0x433b
+
+Input: 0x9842d000
+Output: 0x4c216800
+
+Input: 0xa1f09080
+Output: 0xa1f090
+
+Input: 0xdda4e00
+Output: 0xdda4
+
+Input: 0x9e067400
+Output: 0x9e06
+
+Input: 0x77d6d400
+Output: 0xefada8
+
+Input: 0xe80e3400
+Output: 0x74071a0
+
+Hints
+
+Use a mask to keep only the bits you need. A shift by 24 moves the part you want down to the lowest position.
+Remember that the right shift of a signed value may copy the sign bit, so declare your variables as unsigned.
+
+Testing
+
+Compile with make high_half and run the program. Try the examples above, then try zero, the largest 32-bit value and a value with only the top bit set.
+Run the autograder from the workspace to check all of your problems at once.
+
+Problem 3: Turn On One Bit
+
+Location: problem3/turn_on.c
+
+The file turn_on.c already has a main that reads numbers, hands each one to turn_on
+and prints what comes back.
+
+What to do
+
+Write turn_on as the title describes. Use bitwise operators only:
+no loops, no arrays and no library calls.
+
+Examples
+
+Input: 0x3b8b6400
+Output: 0xee2d900
+
+Input: 0xcee47b00
+Output: 0x33b91
+
+Input: 0x476c2000
+Output: 0x23b61000
+
+Input: 0xf4026080
+Output: 0xf4026
+
+Input: 0xe489e00
+Output: 0x392278
+
+Input: 0xc7654400
+Output: 0x63b2a20
+
+Input: 0x18da2400
+Output: 0x31b4
+
+Input: 0x73b13a00
+Output: 0x1cec4e80
+
+Input: 0x21fe0a80
+Output: 0x21fe0a
+
+Hints
+
+Use a mask to keep only the bits you need. A shift by 17 moves the part you want down to the lowest position.
+Remember that the right shift of a signed value may copy the sign bit, so declare your variables as unsigned.
+
+Testing
+
+Compile with make turn_on and run the program. Try the examples above, then try zero, the largest 32-bit value and a value with only the top bit set.
+Run the autograder from the workspace to check all of your problems at once.
+
+Problem 4: Turn Off One Bit
+
+Location: problem4/turn_off.c
+
+The file turn_off.c already has a main that reads numbers, hands each one to turn_off
+and prints what comes back.
+
+What to do
+
+Write turn_off as the title describes. Use bitwise operators only:
+no loops, no arrays and no library calls.
+
+Examples
+
+Input: 0x9b22d400
+Output: 0x26c8b5
+
+Input: 0x1a3a3400
+Output: 0x68e8d00
+
+Input: 0xedb7cb00
+Output: 0x1db6f960
+
+Input: 0xaa37f080
+Output: 0xaa37f080
+
+Input: 0x22e0ae80
+Output: 0x11705
+
+Input: 0x24b10800
+Output: 0x24b10
+
+Input: 0xdbfcbe00
+Output: 0x36ff2f
+
+Input: 0xde5f2e00
+Output: 0xde5f2e0
+
+Input: 0xf01f1e00
+Output: 0x1e03e
+
+Hints
+
+Use a mask to keep only the bits you need. A shift by 15 moves the part you want down to the lowest position.
+Remember that the right shift of a signed value may copy the sign bit, so declare your variables as unsigned.
+
+Testing
+
+Compile with make turn_off and run the program. Try the examples above, then try zero, the largest 32-bit value and a value with only the top bit set.
+Run the autograder from the workspace to check all of your problems at once.
+
+Problem 5: Count the Ones
+
+Location: problem5/count_ones.c
+
+The file count_ones.c already has a main that reads numbers, hands each one to count_ones
+and prints what comes back.
+
+What to do
+
+Write count_ones as the title describes. Use bitwise operators only:
+no loops, no arrays and no library calls.
+
+Examples
+
+Input: 0x9d58d600
+Output: 0x4eac6b
+
+Input: 0xc3950600
+Output: 0x61ca830
+
+Input: 0x724b600
+Output: 0x724
+
+Input: 0x53b63400
+Output: 0x14ed8d0
+
+Input: 0x366c9400
+Output: 0x366c9
+
+Input: 0x8c212a00
+Output: 0x8c212a0
+
+Input: 0x5e477a00
+Output: 0x5e477a0
+
+Input: 0x3c1e4a00
+Output: 0x1e0f2500
+
+Input: 0xf580d100
+Output: 0x1eb01a2
+
+Hints
+
+Use a mask to keep only the bits you need. A shift by 4 moves the part you want down to the lowest position.
+Remember that the right shift of a signed value may copy the sign bit, so declare your variables as unsigned.
+
+Testing
+
+Compile with make count_ones and run the program. Try the examples above, then try zero, the largest 32-bit value and a value with only the top bit set.
+Run the autograder from the workspace to check all of your problems at once.
+
+Problem 6: Swap Two Bytes
+
+Location: problem6/swap_bytes.c
+
+The file swap_bytes.c already has a main that reads numbers, hands each one to swap_bytes
+and prints what comes back.
+
+What to do
+
+Write swap_bytes as the title describes. Use bitwise operators only:
+no loops, no arrays and no library calls.
+
+Examples
+
+Input: 0xef45fc80
+Output: 0xef45
+
+Input: 0x80db9800
+Output: 0x406dcc0
+
+Input: 0x80ea9800
+Output: 0x101d5
+
+Input: 0x8d119800
+Output: 0x8d11
+
+Input: 0xff109800
+Output: 0x1fe21300
+
+Input: 0x26a79880
+Output: 0x26a7
+
+Input: 0x6e0b0400
+Output: 0x3705820
+
+Input: 0xa855e400
+Output: 0x150abc80
+
+Input: 0x5bcbc480
+Output: 0xb7978
+
+Hints
+
+Use a mask to keep only the bits you need. A shift by 5 moves the part you want down to the lowest position.
+Remember that the right shift of a signed value may copy the sign bit, so declare your variables as unsigned.
+
+Testing
+
+Compile with make swap_bytes and run the program. Try the examples above, then try zero, the largest 32-bit value and a value with only the top bit set.
+Run the autograder from the workspace to check all of your problems at once.
+
+Submission
+
+Save every file in the workspace and press Submit. You can resubmit as many times as you like before the deadline.
+Make sure that each problem passes the autograder, because partial credit is not given for a problem that fails any test.

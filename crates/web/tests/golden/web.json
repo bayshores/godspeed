@@ -1,0 +1,142 @@
+[
+	{
+		"name": "/article",
+		"output": "# How binary search works | Algorithms Notebook\n\nSource: http://127.0.0.1:PORT/article (HTTP 200)\n\n---\n\nBy Ada Example\n\nBinary search finds a value in a **sorted** array by halving the range it looks at. It is one of the first algorithms a student learns, and it shows up in _surprising_ places, from [git bisect](https://example.com/git-bisect \"git bisect docs\") to database indexes.\n\n## The idea\n\nKeep two indexes, `lo` and `hi`. Look at the middle element. If it equals the target you are done; if it is too small, throw away the left half; otherwise throw away the right half. Each step cuts the work in half, so an array of one million items needs about twenty steps.\n\n## An implementation\n\n```\ndef search(items, target):\n    lo, hi = 0, len(items) - 1\n    while lo <= hi:\n        mid = (lo + hi) // 2\n        if items[mid] == target:\n            return mid\n        if items[mid] < target:\n            lo = mid + 1\n        else:\n            hi = mid - 1\n    return -1\n```\n\n### Things to check\n\n*   The array must be sorted first.\n*   Compute `mid` without overflow in fixed-width languages.\n    *   Use `lo + (hi - lo) / 2`.\n    *   Never `(lo + hi) / 2` with 32-bit ints.\n*   Decide what to return when the target is missing.\n\n### Steps for a manual trace\n\n1.  Write down the array.\n2.  Mark `lo` and `hi`.\n3.  Repeat until the marks cross.\n\n> Although the basic idea of binary search is comparatively straightforward, the details can be surprisingly tricky.\n> \n> Donald Knuth\n\n* * *\n\nCosts at a glance:\n\nCase\n\nComparisons\n\nBest\n\n1\n\nWorst\n\nlog2 n\n\nHere is a diagram of the halving:  \nfirst step  \nsecond step\n\n![Diagram of halving](/img/halving.png \"Halving\")\n\nThat is all there is to it, and it is worth writing from memory at least once so the off-by-one cases stick in your head for good."
+	},
+	{
+		"name": "/docs",
+		"output": "# Config reference - Widget Docs\n\nSource: http://127.0.0.1:PORT/docs (HTTP 200)\n\n---\n\nWidget reads its settings from `widget.toml` in the project root. Every key is optional; a missing key takes the default shown below. Values are validated when the process starts, and an unknown key is reported with its line number.\n\n## Keys\n\nport\n\nThe port to listen on. Default 8080.\n\nlog\\_level\n\nOne of debug, info, warn, error.\n\nSpecial characters need escaping in some places: use a literal \\* or \\_ when you mean it, a # at the start of a line, 1. numbered text, and \\[brackets\\] marks. Paths such as C:\\\\temp\\\\files and snake\\_case\\_names should survive too.\n\n\\- not a list  \n\\+ not a list either  \n1\\. not numbered  \n\\# not a heading  \n\\> not a quote\n\nSee [the API page](/docs/api) or [email help](mailto:help@example.com) or [jump to top](#top) or [a link with parens](https://example.com/a_b\\(c\\)).\n\nplain preformatted\n  text with    spacing\n\nUnicode: café — naïve – © 2025 & 日本語 and 😀 emoji. Non-breaking space here."
+	},
+	{
+		"name": "/markup",
+		"output": "# Markup tour\n\nSource: http://127.0.0.1:PORT/markup (HTTP 200)\n\n---\n\n## Inline _marks_ and [links](/x)\n\nPlain text with **bold**, **strong**, _italic_, _emphasis_, **_both_**, _an **inner** word_, deleted, struck, under, marked, Ctrl, CPU, x2 and H2O, small print, a cite, quoted, v, output.\n\nEdge spacing: _padded_ word and **bold** next and [spaced link](/y) after. Empty and marks.\n\nA link without href: anchor text, a link with a title: [titled](/t \"He said \\\"hi\\\"\"), and a link with spaces in href: [spaced](</a b/c d>), and a quote in text: \"straight\" and 'single' and “curly”.\n\nCode spans: `plain`, ``with `tick` inside``, `*not emphasis*`, `<tag>`, `back\\slash`.\n\n### Heading `code` three\n\n#### Heading four\n\n##### Heading five\n\n###### Heading six\n\nText right before a list follows.\n\n*   First item with a long enough sentence to count as real content for the reader.\n*   Outer\n    3.  third\n    4.  fourth\n        *   deep one\n        *   deep two\n\n1.  One\n2.  Two\n3.  Three\n\n> Outer quote paragraph one is here and it is long enough to matter to anybody reading it.\n> \n> > Inner quote.\n> \n> *   list in quote\n\n```\nindented\n    deeper\n\t\ttabbed\nwith a code fence inside\n```\n\n```\nconst a = 1;\n```\n\nbare pre\n  with spaces\n\nBefore rule.\n\n* * *\n\nAfter rule. An image: ![Alt text](/a.png) and one without alt ![](/b.png) and one with a title ![C](/c.png \"The C\") and a data one ![dot](data:image/gif;base64,R0lGODlhAQABAAAAACw=).\n\n![Figure image](/fig.png)\n\nFigure caption text\n\nA bare div with text.\n\nA nested div with more text.\n\nTrailing text in the outer div.\n\nWhitespace collapsing across lines and tabs. Trailing spaces\n\nEntities: &amp; \"q\" © 😀   two nbsp. A line starting with a number follows.\n\n2024\\. The year it began.\n\nUnderscores\\_in\\_words and \\*stars\\* and \\*\\*double\\*\\* and \\`ticks\\` and ~~tildes~~ and \\[brackets\\](not a link) and a|pipe and !\\[bang\\](x).\n\n\\= equals line  \n\\== two equals  \n\\*\\*\\*  \n\\_\\_\\_  \n\\~~~ tildes  \n\\`\\`\\` fence  \n10) paren list  \n\\* star item  \n\\- dash item  \n\\+ plus item  \n1) one paren  \n#hash no space  \n\\###### six\n\nSummary textDetails body text goes here.\n\nTerm\n\nDefinition one.\n\nDefinition two.\n\nTable caption\n\nH1\n\nH2\n\na\n\nb _c_\n\nThe very last paragraph closes the tour with a few more words so the page is long."
+	},
+	{
+		"name": "/edges",
+		"output": "# Where the two converters part\n\nSource: http://127.0.0.1:PORT/edges (HTTP 200)\n\n---\n\nThis page holds the constructs where the Rust converter is known to print something different from Turndown, so the differences stay written down and any new one is caught.\n\nAngle brackets in text: use <angle> marks and a <b> tag name, plus 1 < 2 and a </closing> tag.\n\nAn empty link [](/z)before text.\n\nA break  \nthen a new source line.\n\nA path in _~/projects_ and a range _n_\\-_i_.\n\nEmpty links in a row:[](/prev)[](/next)\n\na bare pre with \\*stars\\*, \\[brackets\\] and snake\\_case\n\n```\nlet x: Vec<T>;\n```\n\n*   Item with a paragraph.\n    \n    And a second paragraph inside the item.\n    \n*   Item with a break  \n    inside it.\n*   Item with code block:\n    \n    ```\n    line one\n    line two\n    ```\n    \n\n1.  One\n2.  Two\n3.  Three\n4.  Four\n5.  Five\n6.  Six\n7.  Seven\n8.  Eight\n9.  Nine\n10.  Ten\n11.  Eleven\n\n```\na fence ``` inside a line\n```\n\n\\= equals line  \n\\--- three dashes  \n\\###### six  \n####### seven"
+	},
+	{
+		"name": "/spacing",
+		"output": "# Spaces around code and blocks\n\nSource: http://127.0.0.1:PORT/spacing (HTTP 200)\n\n---\n\nThis page checks the spaces that sit at the edges of inline code and of block elements, where a converter can join two words or leave a stray space at the end of a line.\n\nThe `export_name` attribute names the symbol, and `lo`and `hi` mark the range.\n\nInside code, runs of `spaces and newlines` collapse, `` `ticks` `` get padded, `a `` b` needs a longer fence, and blank code leaves a space.\n\nCode in a link: [`link_code`](/x), and a strong one: **`bold_code` text**.\n\nTerm with `code`\n\n_number_: integer, `0` to `9` inclusive, default `20`\n\nA loose line in a division with `code`\n\nA paragraph inside a section, ending with a space.\n\n![A figure](/a.png)\n\nThe caption `x`"
+	},
+	{
+		"name": "/xhtml",
+		"output": "# How binary search works | Algorithms Notebook\n\nSource: http://127.0.0.1:PORT/xhtml (HTTP 200)\n\n---\n\nBy Ada Example\n\nBinary search finds a value in a **sorted** array by halving the range it looks at. It is one of the first algorithms a student learns, and it shows up in _surprising_ places, from [git bisect](https://example.com/git-bisect \"git bisect docs\") to database indexes.\n\n## The idea\n\nKeep two indexes, `lo` and `hi`. Look at the middle element. If it equals the target you are done; if it is too small, throw away the left half; otherwise throw away the right half. Each step cuts the work in half, so an array of one million items needs about twenty steps.\n\n## An implementation\n\n```\ndef search(items, target):\n    lo, hi = 0, len(items) - 1\n    while lo <= hi:\n        mid = (lo + hi) // 2\n        if items[mid] == target:\n            return mid\n        if items[mid] < target:\n            lo = mid + 1\n        else:\n            hi = mid - 1\n    return -1\n```\n\n### Things to check\n\n*   The array must be sorted first.\n*   Compute `mid` without overflow in fixed-width languages.\n    *   Use `lo + (hi - lo) / 2`.\n    *   Never `(lo + hi) / 2` with 32-bit ints.\n*   Decide what to return when the target is missing.\n\n### Steps for a manual trace\n\n1.  Write down the array.\n2.  Mark `lo` and `hi`.\n3.  Repeat until the marks cross.\n\n> Although the basic idea of binary search is comparatively straightforward, the details can be surprisingly tricky.\n> \n> Donald Knuth\n\n* * *\n\nCosts at a glance:\n\nCase\n\nComparisons\n\nBest\n\n1\n\nWorst\n\nlog2 n\n\nHere is a diagram of the halving:  \nfirst step  \nsecond step\n\n![Diagram of halving](/img/halving.png \"Halving\")\n\nThat is all there is to it, and it is worth writing from memory at least once so the off-by-one cases stick in your head for good."
+	},
+	{
+		"name": "/upper",
+		"output": "Source: http://127.0.0.1:PORT/upper (HTTP 200)\n\n<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>How binary search works | Algorithms Notebook</title>\n<meta name=\"author\" content=\"Ada Example\">\n<script>window.analytics = { track: function () {} };</script>\n<style>.nav { display: none }</style>\n</head>\n<body>\n<header class=\"site-header\"><nav class=\"nav\"><a href=\"/\">Home</a> <a href=\"/about\">About</a> <a href=\"/archive\">Archive</a></nav></header>\n<main>\n<article>\n<h1>How binary search works</h1>\n<p class=\"byline\">By Ada Example</p>\n<p>Binary search finds a value in a <strong>sorted</strong> array by halving the range it looks at. It is one of the first algorithms a student learns, and it shows up in <em>surprising</em> places, from <a href=\"https://example.com/git-bisect\" title=\"git bisect docs\">git bisect</a> to database indexes.</p>\n<h2>The idea</h2>\n<p>Keep two indexes, <code>lo</code> and <code>hi</code>. Look at the middle element. If it equals the target you are done; if it is too small, throw away the left half; otherwise throw away the right half. Each step cuts the work in half, so an array of one million items needs about twenty steps.</p>\n<h2>An implementation</h2>\n<pre><code class=\"language-python\">def search(items, target):\n    lo, hi = 0, len(items) - 1\n    while lo &lt;= hi:\n        mid = (lo + hi) // 2\n        if items[mid] == target:\n            return mid\n        if items[mid] &lt; target:\n            lo = mid + 1\n        else:\n            hi = mid - 1\n    return -1\n</code></pre>\n<h3>Things to check</h3>\n<ul>\n<li>The array must be sorted first.</li>\n<li>Compute <code>mid</code> without overflow in fixed-width languages.\n<ul>\n<li>Use <code>lo + (hi - lo) / 2</code>.</li>\n<li>Never <code>(lo + hi) / 2</code> with 32-bit ints.</li>\n</ul>\n</li>\n<li>Decide what to return when the target is missing.</li>\n</ul>\n<h3>Steps for a manual trace</h3>\n<ol>\n<li>Write down the array.</li>\n<li>Mark <code>lo</code> and <code>hi</code>.</li>\n<li>Repeat until the marks cross.</li>\n</ol>\n<blockquote><p>Although the basic idea of binary search is comparatively straightforward, the details can be surprisingly tricky.</p><p>Donald Knuth</p></blockquote>\n<hr>\n<p>Costs at a glance:</p>\n<table>\n<thead><tr><th>Case</th><th>Comparisons</th></tr></thead>\n<tbody>\n<tr><td>Best</td><td>1</td></tr>\n<tr><td>Worst</td><td>log2 n</td></tr>\n</tbody>\n</table>\n<p>Here is a diagram of the halving:<br>first step<br>second step</p>\n<p><img src=\"/img/halving.png\" alt=\"Diagram of halving\" title=\"Halving\"></p>\n<p>That is all there is to it, and it is worth writing from memory at least once so the off-by-one cases stick in your head for good.</p>\n</article>\n</main>\n<footer><p>Copyright 2025 Algorithms Notebook. All rights reserved.</p></footer>\n</body>\n</html>\n"
+	},
+	{
+		"name": "/no-type",
+		"output": "Source: http://127.0.0.1:PORT/no-type (HTTP 200)\n\nPlain notes\n\nline two with <b>tags</b> left alone\n  indented line\ncafé 日本語 😀\n"
+	},
+	{
+		"name": "/notes.txt",
+		"output": "Source: http://127.0.0.1:PORT/notes.txt (HTTP 200)\n\nPlain notes\n\nline two with <b>tags</b> left alone\n  indented line\ncafé 日本語 😀\n"
+	},
+	{
+		"name": "/data.json",
+		"output": "Source: http://127.0.0.1:PORT/data.json (HTTP 200)\n\n{\"name\": \"godspeed\", \"ok\": true}\n"
+	},
+	{
+		"name": "/bom",
+		"output": "Source: http://127.0.0.1:PORT/bom (HTTP 200)\n\nPlain notes\n\nline two with <b>tags</b> left alone\n  indented line\ncafé 日本語 😀\n"
+	},
+	{
+		"name": "/bad-utf8",
+		"output": "Source: http://127.0.0.1:PORT/bad-utf8 (HTTP 200)\n\nhi�!�"
+	},
+	{
+		"name": "/loading",
+		"output": "web_fetch failed for http://127.0.0.1:PORT/loading: Could not extract readable content (the page may be JavaScript-rendered)"
+	},
+	{
+		"name": "/too-short",
+		"output": "web_fetch failed for http://127.0.0.1:PORT/too-short: Could not extract readable content (the page may be JavaScript-rendered)"
+	},
+	{
+		"name": "/spa",
+		"output": "# Rendered later\n\nThis text was produced by the reader service after running the page scripts, and it is long enough to count as useful content because it passes the two hundred character minimum that the extractor demands before it will trust a fallback page."
+	},
+	{
+		"name": "/no-jina",
+		"output": "web_fetch failed for http://127.0.0.1:PORT/no-jina: Could not extract readable content (the page may be JavaScript-rendered)"
+	},
+	{
+		"name": "/nomarker",
+		"output": "web_fetch failed for http://127.0.0.1:PORT/nomarker: Could not extract readable content (the page may be JavaScript-rendered)"
+	},
+	{
+		"name": "/missing",
+		"output": "web_fetch failed for http://127.0.0.1:PORT/missing: HTTP 404 Not Found"
+	},
+	{
+		"name": "/broken",
+		"output": "web_fetch failed for http://127.0.0.1:PORT/broken: HTTP 500 Internal Server Error"
+	},
+	{
+		"name": "/busy",
+		"output": "web_fetch failed for http://127.0.0.1:PORT/busy: HTTP 503 Service Unavailable"
+	},
+	{
+		"name": "/moved",
+		"output": "# How binary search works | Algorithms Notebook\n\nSource: http://127.0.0.1:PORT/article (HTTP 200)\n\n---\n\nBy Ada Example\n\nBinary search finds a value in a **sorted** array by halving the range it looks at. It is one of the first algorithms a student learns, and it shows up in _surprising_ places, from [git bisect](https://example.com/git-bisect \"git bisect docs\") to database indexes.\n\n## The idea\n\nKeep two indexes, `lo` and `hi`. Look at the middle element. If it equals the target you are done; if it is too small, throw away the left half; otherwise throw away the right half. Each step cuts the work in half, so an array of one million items needs about twenty steps.\n\n## An implementation\n\n```\ndef search(items, target):\n    lo, hi = 0, len(items) - 1\n    while lo <= hi:\n        mid = (lo + hi) // 2\n        if items[mid] == target:\n            return mid\n        if items[mid] < target:\n            lo = mid + 1\n        else:\n            hi = mid - 1\n    return -1\n```\n\n### Things to check\n\n*   The array must be sorted first.\n*   Compute `mid` without overflow in fixed-width languages.\n    *   Use `lo + (hi - lo) / 2`.\n    *   Never `(lo + hi) / 2` with 32-bit ints.\n*   Decide what to return when the target is missing.\n\n### Steps for a manual trace\n\n1.  Write down the array.\n2.  Mark `lo` and `hi`.\n3.  Repeat until the marks cross.\n\n> Although the basic idea of binary search is comparatively straightforward, the details can be surprisingly tricky.\n> \n> Donald Knuth\n\n* * *\n\nCosts at a glance:\n\nCase\n\nComparisons\n\nBest\n\n1\n\nWorst\n\nlog2 n\n\nHere is a diagram of the halving:  \nfirst step  \nsecond step\n\n![Diagram of halving](/img/halving.png \"Halving\")\n\nThat is all there is to it, and it is worth writing from memory at least once so the off-by-one cases stick in your head for good."
+	},
+	{
+		"name": "/moved-twice",
+		"output": "# How binary search works | Algorithms Notebook\n\nSource: http://127.0.0.1:PORT/article (HTTP 200)\n\n---\n\nBy Ada Example\n\nBinary search finds a value in a **sorted** array by halving the range it looks at. It is one of the first algorithms a student learns, and it shows up in _surprising_ places, from [git bisect](https://example.com/git-bisect \"git bisect docs\") to database indexes.\n\n## The idea\n\nKeep two indexes, `lo` and `hi`. Look at the middle element. If it equals the target you are done; if it is too small, throw away the left half; otherwise throw away the right half. Each step cuts the work in half, so an array of one million items needs about twenty steps.\n\n## An implementation\n\n```\ndef search(items, target):\n    lo, hi = 0, len(items) - 1\n    while lo <= hi:\n        mid = (lo + hi) // 2\n        if items[mid] == target:\n            return mid\n        if items[mid] < target:\n            lo = mid + 1\n        else:\n            hi = mid - 1\n    return -1\n```\n\n### Things to check\n\n*   The array must be sorted first.\n*   Compute `mid` without overflow in fixed-width languages.\n    *   Use `lo + (hi - lo) / 2`.\n    *   Never `(lo + hi) / 2` with 32-bit ints.\n*   Decide what to return when the target is missing.\n\n### Steps for a manual trace\n\n1.  Write down the array.\n2.  Mark `lo` and `hi`.\n3.  Repeat until the marks cross.\n\n> Although the basic idea of binary search is comparatively straightforward, the details can be surprisingly tricky.\n> \n> Donald Knuth\n\n* * *\n\nCosts at a glance:\n\nCase\n\nComparisons\n\nBest\n\n1\n\nWorst\n\nlog2 n\n\nHere is a diagram of the halving:  \nfirst step  \nsecond step\n\n![Diagram of halving](/img/halving.png \"Halving\")\n\nThat is all there is to it, and it is worth writing from memory at least once so the off-by-one cases stick in your head for good."
+	},
+	{
+		"name": "/moved-pdf",
+		"output": "web_fetch: this URL is a PDF document — call web_fetch_pdf on it to download and read it."
+	},
+	{
+		"name": "/loop",
+		"output": "web_fetch failed for http://127.0.0.1:PORT/loop: fetch failed"
+	},
+	{
+		"name": "/no-location",
+		"output": "web_fetch failed for http://127.0.0.1:PORT/no-location: HTTP 302 Found"
+	},
+	{
+		"name": "/paper.pdf",
+		"output": "web_fetch: this URL is a PDF document — call web_fetch_pdf on it to download and read it."
+	},
+	{
+		"name": "/Paper.PDF",
+		"output": "web_fetch: this URL is a PDF document — call web_fetch_pdf on it to download and read it."
+	},
+	{
+		"name": "/view",
+		"output": "web_fetch: this URL is a PDF document — call web_fetch_pdf on it to download and read it."
+	},
+	{
+		"name": "/image",
+		"output": "web_fetch failed for http://127.0.0.1:PORT/image: Unsupported content type: image/png"
+	},
+	{
+		"name": "/video",
+		"output": "web_fetch failed for http://127.0.0.1:PORT/video: Unsupported content type: video/mp4"
+	},
+	{
+		"name": "/archive",
+		"output": "web_fetch failed for http://127.0.0.1:PORT/archive: Unsupported content type: application/x-gzip-zip"
+	},
+	{
+		"name": "/blob",
+		"output": "web_fetch failed for http://127.0.0.1:PORT/blob: Unsupported content type: application/octet-stream"
+	},
+	{
+		"name": "/huge",
+		"output": "web_fetch failed for http://127.0.0.1:PORT/huge: Response too large"
+	},
+	{
+		"name": "/just-fits",
+		"output": "web_fetch failed for http://127.0.0.1:PORT/just-fits: terminated"
+	},
+	{
+		"name": "connection refused",
+		"output": "web_fetch failed for http://127.0.0.1:1/: fetch failed"
+	}
+]

@@ -36,3 +36,9 @@ next-env.d.ts
 
 # class-search embedding model, filled by scripts/fetch-model.mjs
 models/
+
+# Rust build output (cargo)
+target/
+
+# golden output made from real app data kept outside the repo
+crates/*/tests/golden/*.lab.json

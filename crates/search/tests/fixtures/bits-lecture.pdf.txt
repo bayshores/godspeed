@@ -1,0 +1,90 @@
+--- Page 1 ---
+Lecture 2:
+Bits, Bytes and UTF-8 Text
+CSE 29: Example Course Title
+Example Instructor
+--- Page 2 ---
+Lecture 2 - Bits, Bytes and UTF-8 Text 2
+Today
+ Walking through strings in C
+ Why one byte per letter is not enough
+ Printing and changing single bits of a value
+--- Page 3 ---
+Announcements
+- PA1 is posted on the course site
+- Read the spec, take the quiz, then build the project
+- Start now and use the office hours
+- Some parts only need ASCII and strings, so begin with those
+- You may resubmit to earn back missed points.
+Lecture 2 - Bits, Bytes and UTF-8 Text 3
+--- Page 4 ---
+Strings in C are arrays of bytes
+ A string ends with a zero byte, the null terminator
+ strlen counts the bytes before the terminator
+ strcpy copies bytes until it copies the terminator
+ Pointer arithmetic moves through the array one byte at a time
+Lecture 2 - Bits, Bytes and UTF-8 Text 4
+--- Page 5 ---
+ASCII uses seven bits per character
+ A is 65, a is 97, the digit 0 is 48
+ One byte holds one ASCII character, with room to spare
+ Most of the world's writing does not fit in 128 characters
+Lecture 2 - Bits, Bytes and UTF-8 Text 5
+--- Page 6 ---
+Unicode gives every character a code point
+ A code point is just a number, written U+0041 for A
+ The euro sign is U+20AC and a smiley is U+1F600
+ UTF-8 is one way to encode code points as bytes
+Lecture 2 - Bits, Bytes and UTF-8 Text 6
+--- Page 7 ---
+UTF-8 encoding of bytes
+ 1 byte:  0xxxxxxx
+ 2 bytes: 110xxxxx 10xxxxxx
+ 3 bytes: 1110xxxx 10xxxxxx 10xxxxxx
+ 4 bytes: 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
+ How many bytes does a UTF-8 character use? Look at the first byte.
+Lecture 2 - Bits, Bytes and UTF-8 Text 7
+--- Page 8 ---
+Bitwise operators in C
+ & and, | or, ^ xor, ~ not
+ << shifts bits left, >> shifts bits right
+ x & 0xFF keeps the lowest eight bits
+ x | 0x80 sets the top bit of a byte
+Lecture 2 - Bits, Bytes and UTF-8 Text 8
+--- Page 9 ---
+Masks
+ A mask picks out the bits you care about
+ Use & with a mask to read bits, | to set bits, & ~mask to clear bits
+ Example: (x >> 4) & 0xF reads the second hex digit
+Lecture 2 - Bits, Bytes and UTF-8 Text 9
+--- Page 10 ---
+Printing bits
+ for (int i = 7; i >= 0; i--) { printf("%d", (b >> i) & 1); }
+ Walk from the highest bit to the lowest
+ Shift the bit you want down to position zero, then mask it
+Lecture 2 - Bits, Bytes and UTF-8 Text 10
+--- Page 11 ---
+Counting characters, not bytes
+ strlen("cafe") is 4, strlen of the accented word is 5
+ To count code points, skip bytes that start with 10
+ Continuation bytes never begin a character
+Lecture 2 - Bits, Bytes and UTF-8 Text 11
+--- Page 12 ---
+Decoding a character
+ Read the first byte and count its leading ones
+ Strip the length marker with a mask
+ Shift in six bits from each continuation byte
+Lecture 2 - Bits, Bytes and UTF-8 Text 12
+--- Page 13 ---
+Common mistakes
+ Using signed char and getting sign extension
+ Forgetting that the shift of a negative number is not portable
+ Writing past the end of the buffer when copying
+Lecture 2 - Bits, Bytes and UTF-8 Text 13
+--- Page 14 ---
+Summary
+ Strings are bytes, characters are code points
+ UTF-8 stores code points in one to four bytes
+ Bit operators let you build and take apart those bytes
+ Next time: memory, malloc and free
+Lecture 2 - Bits, Bytes and UTF-8 Text 14

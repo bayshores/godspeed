@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Spaces around code and blocks</title></head>
+<body>
+<article>
+<p>This page checks the spaces that sit at the edges of inline code and of block elements, where a converter can join two words or leave a stray space at the end of a line.</p>
+<p>The <code>export_name </code>attribute names the symbol, and <code> lo</code>and <code>hi </code> mark the range.</p>
+<p>Inside code, runs of <code>spaces   and
+newlines</code> collapse, <code>`ticks`</code> get padded, <code>a `` b</code> needs a longer fence, and <code> </code>blank code leaves a space.</p>
+<p>Code in a link: <a href="/x"><code>link_code</code></a>, and a strong one: <strong><code>bold_code</code> text</strong>.</p>
+<dl>
+<dt>Term with <code>code </code></dt>
+<dd>
+<i>number</i>: integer, <code>0</code> to <code>9</code> inclusive, default <code>20</code>
+</dd>
+</dl>
+<div>
+A loose line in a division with <code>code</code>
+</div>
+<section>
+<p>A paragraph inside a section, ending with a space. </p>
+</section>
+<figure><img src="/a.png" alt="A figure"><figcaption> The caption <code>x</code> </figcaption></figure>
+</article>
+</body>
+</html>

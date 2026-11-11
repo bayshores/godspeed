@@ -1,0 +1,1685 @@
+[
+	{
+		"name": "origin refused",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json",
+					"origin": "http://x.example"
+				},
+				"body": "{}"
+			},
+			"status": 403,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"error\":\"Browser requests are not allowed.\"}"
+		}
+	},
+	{
+		"name": "foreign host",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "x.example:80",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json"
+				},
+				"body": "{}"
+			},
+			"status": 403,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"error\":\"Only local connections are allowed.\"}"
+		}
+	},
+	{
+		"name": "no token",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json"
+				},
+				"body": "{}"
+			},
+			"status": 401,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"error\":\"Missing or wrong access token (Settings → Connection).\"}"
+		}
+	},
+	{
+		"name": "lower-case bearer",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "bearer  abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json",
+					"mcp-protocol-version": "2025-06-18"
+				},
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"ping\"}"
+			},
+			"status": 200,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"result\":{},\"jsonrpc\":\"2.0\",\"id\":1}"
+		}
+	},
+	{
+		"name": "legacy ping",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json",
+					"mcp-protocol-version": "2025-06-18"
+				},
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"ping\"}"
+			},
+			"status": 200,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"result\":{},\"jsonrpc\":\"2.0\",\"id\":1}"
+		}
+	},
+	{
+		"name": "legacy unknown method",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json",
+					"mcp-protocol-version": "2025-06-18"
+				},
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":\"x\",\"method\":\"nope\"}"
+			},
+			"status": 200,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"jsonrpc\":\"2.0\",\"id\":\"x\",\"error\":{\"code\":-32601,\"message\":\"Method not found\"}}"
+		}
+	},
+	{
+		"name": "legacy notification",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json",
+					"mcp-protocol-version": "2025-06-18"
+				},
+				"body": "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}"
+			},
+			"status": 202,
+			"type": null,
+			"allow": null,
+			"body": ""
+		}
+	},
+	{
+		"name": "legacy posted response",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json",
+					"mcp-protocol-version": "2025-06-18"
+				},
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":4,\"result\":{}}"
+			},
+			"status": 202,
+			"type": null,
+			"allow": null,
+			"body": ""
+		}
+	},
+	{
+		"name": "legacy batch of two",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json",
+					"mcp-protocol-version": "2025-06-18"
+				},
+				"body": "[{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"nope\"}]"
+			},
+			"status": 200,
+			"type": "application/json",
+			"allow": null,
+			"body": "[{\"result\":{},\"jsonrpc\":\"2.0\",\"id\":1},{\"jsonrpc\":\"2.0\",\"id\":2,\"error\":{\"code\":-32601,\"message\":\"Method not found\"}}]"
+		}
+	},
+	{
+		"name": "legacy batch of one",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json",
+					"mcp-protocol-version": "2025-06-18"
+				},
+				"body": "[{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"ping\"}]"
+			},
+			"status": 200,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"result\":{},\"jsonrpc\":\"2.0\",\"id\":1}"
+		}
+	},
+	{
+		"name": "legacy batch with initialize",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json",
+					"mcp-protocol-version": "2025-06-18"
+				},
+				"body": "[{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2025-06-18\",\"capabilities\":{},\"clientInfo\":{\"name\":\"c\",\"version\":\"1\"}}},{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"ping\"}]"
+			},
+			"status": 400,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32600,\"message\":\"Invalid Request: Only one initialization request is allowed\"},\"id\":null}"
+		}
+	},
+	{
+		"name": "legacy batch over 100",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json",
+					"mcp-protocol-version": "2025-06-18"
+				},
+				"body": "[{\"jsonrpc\":\"2.0\",\"id\":0,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":4,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":5,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":6,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":7,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":8,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":9,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":10,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":11,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":12,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":13,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":14,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":15,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":16,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":17,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":18,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":19,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":20,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":21,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":22,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":23,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":24,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":25,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":26,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":27,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":28,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":29,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":30,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":31,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":32,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":33,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":34,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":35,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":36,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":37,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":38,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":39,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":40,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":41,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":42,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":43,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":44,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":45,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":46,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":47,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":48,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":49,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":50,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":51,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":52,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":53,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":54,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":55,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":56,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":57,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":58,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":59,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":60,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":61,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":62,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":63,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":64,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":65,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":66,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":67,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":68,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":69,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":70,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":71,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":72,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":73,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":74,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":75,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":76,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":77,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":78,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":79,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":80,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":81,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":82,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":83,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":84,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":85,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":86,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":87,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":88,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":89,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":90,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":91,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":92,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":93,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":94,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":95,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":96,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":97,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":98,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":99,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"id\":100,\"method\":\"ping\"}]"
+			},
+			"status": 400,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32600,\"message\":\"Invalid Request: Batch must not exceed 100 messages\"},\"id\":null}"
+		}
+	},
+	{
+		"name": "legacy unknown version header",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json",
+					"mcp-protocol-version": "1999-01-01"
+				},
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"ping\"}"
+			},
+			"status": 400,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32000,\"message\":\"Bad Request: Unsupported protocol version: 1999-01-01 (supported versions: 2025-11-25, 2025-06-18, 2025-03-26, 2024-11-05, 2024-10-07)\"},\"id\":null}"
+		}
+	},
+	{
+		"name": "legacy wrong content type",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "text/plain",
+					"mcp-protocol-version": "2025-06-18"
+				},
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"ping\"}"
+			},
+			"status": 415,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32000,\"message\":\"Unsupported Media Type: Content-Type must be application/json\"},\"id\":null}"
+		}
+	},
+	{
+		"name": "legacy json content type with charset",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json; charset=utf-8",
+					"mcp-protocol-version": "2025-06-18"
+				},
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"ping\"}"
+			},
+			"status": 200,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"result\":{},\"jsonrpc\":\"2.0\",\"id\":1}"
+		}
+	},
+	{
+		"name": "legacy accept without event-stream",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json",
+					"content-type": "application/json",
+					"mcp-protocol-version": "2025-06-18"
+				},
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"ping\"}"
+			},
+			"status": 406,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32000,\"message\":\"Not Acceptable: Client must accept both application/json and text/event-stream\"},\"id\":null}"
+		}
+	},
+	{
+		"name": "empty body",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json"
+				},
+				"body": ""
+			},
+			"status": 400,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32700,\"message\":\"Parse error: Invalid JSON\"},\"id\":null}"
+		}
+	},
+	{
+		"name": "body not json",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json"
+				},
+				"body": "{nope"
+			},
+			"status": 400,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32700,\"message\":\"Parse error: Invalid JSON\"},\"id\":null}"
+		}
+	},
+	{
+		"name": "not a JSON-RPC message",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json"
+				},
+				"body": "{\"hello\":1}"
+			},
+			"status": 400,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32600,\"message\":\"Bad Request: the request body is not a valid JSON-RPC message\"},\"id\":null}"
+		}
+	},
+	{
+		"name": "invalid JSON-RPC message, legacy",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json"
+				},
+				"body": "{\"jsonrpc\":\"1.0\",\"id\":1,\"method\":\"ping\"}"
+			},
+			"status": 400,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32600,\"message\":\"Bad Request: the request body is not a valid JSON-RPC message\"},\"id\":1}"
+		}
+	},
+	{
+		"name": "GET without event-stream",
+		"output": {
+			"request": {
+				"method": "GET",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json",
+					"content-type": "application/json"
+				}
+			},
+			"status": 406,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32000,\"message\":\"Not Acceptable: Client must accept text/event-stream\"},\"id\":null}"
+		}
+	},
+	{
+		"name": "GET with an unknown version",
+		"output": {
+			"request": {
+				"method": "GET",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json",
+					"mcp-protocol-version": "1999-01-01"
+				}
+			},
+			"status": 400,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32000,\"message\":\"Bad Request: Unsupported protocol version: 1999-01-01 (supported versions: 2025-11-25, 2025-06-18, 2025-03-26, 2024-11-05, 2024-10-07)\"},\"id\":null}"
+		}
+	},
+	{
+		"name": "GET",
+		"output": {
+			"request": {
+				"method": "GET",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json"
+				}
+			},
+			"status": 200,
+			"type": "text/event-stream",
+			"allow": null,
+			"body": ""
+		}
+	},
+	{
+		"name": "DELETE",
+		"output": {
+			"request": {
+				"method": "DELETE",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json"
+				}
+			},
+			"status": 200,
+			"type": null,
+			"allow": null,
+			"body": ""
+		}
+	},
+	{
+		"name": "empty batch",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json"
+				},
+				"body": "[]"
+			},
+			"status": 400,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32600,\"message\":\"Bad Request: empty JSON-RPC batch\"},\"id\":null}"
+		}
+	},
+	{
+		"name": "batch with a modern element",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json"
+				},
+				"body": "[{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\",\"params\":{\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}]"
+			},
+			"status": 400,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32600,\"message\":\"Bad Request: JSON-RPC batches may not contain requests for protocol revision 2026-07-28 or later\"},\"id\":null}"
+		}
+	},
+	{
+		"name": "batch with an invalid element",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json"
+				},
+				"body": "[{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"ping\"},{\"nope\":true}]"
+			},
+			"status": 400,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32600,\"message\":\"Bad Request: JSON-RPC batch contains an invalid message\"},\"id\":null}"
+		}
+	},
+	{
+		"name": "modern ping",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json",
+					"mcp-protocol-version": "2026-07-28",
+					"mcp-method": "ping"
+				},
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":9,\"method\":\"ping\",\"params\":{\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
+			},
+			"status": 404,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"jsonrpc\":\"2.0\",\"id\":9,\"error\":{\"code\":-32601,\"message\":\"Method not found\"}}"
+		}
+	},
+	{
+		"name": "modern initialize",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json",
+					"mcp-protocol-version": "2026-07-28",
+					"mcp-method": "initialize"
+				},
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":9,\"method\":\"initialize\",\"params\":{\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
+			},
+			"status": 404,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"jsonrpc\":\"2.0\",\"id\":9,\"error\":{\"code\":-32601,\"message\":\"Method not found\"}}"
+		}
+	},
+	{
+		"name": "modern unknown version",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json",
+					"mcp-protocol-version": "2099-01-01",
+					"mcp-method": "tools/list"
+				},
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/list\",\"params\":{\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2099-01-01\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
+			},
+			"status": 400,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32022,\"message\":\"Unsupported protocol version: 2099-01-01\",\"data\":{\"supported\":[\"2026-07-28\"],\"requested\":\"2099-01-01\"}},\"id\":2}"
+		}
+	},
+	{
+		"name": "modern pre-2026 claim",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json",
+					"mcp-method": "tools/list"
+				},
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/list\",\"params\":{\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2025-06-18\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
+			},
+			"status": 400,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32022,\"message\":\"Unsupported protocol version: 2025-06-18\",\"data\":{\"supported\":[\"2026-07-28\"],\"requested\":\"2025-06-18\"}},\"id\":2}"
+		}
+	},
+	{
+		"name": "envelope missing capabilities",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json",
+					"mcp-protocol-version": "2026-07-28",
+					"mcp-method": "tools/list"
+				},
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"tools/list\",\"params\":{\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\"}}}"
+			},
+			"status": 400,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32602,\"message\":\"Invalid _meta envelope for protocol revision 2026-07-28: io.modelcontextprotocol/clientCapabilities: missing\",\"data\":{\"envelope\":{\"key\":\"io.modelcontextprotocol/clientCapabilities\",\"problem\":\"missing\"}}},\"id\":3}"
+		}
+	},
+	{
+		"name": "envelope version not a string",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json",
+					"mcp-protocol-version": "2026-07-28",
+					"mcp-method": "tools/list"
+				},
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"tools/list\",\"params\":{\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":7,\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
+			},
+			"status": 400,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32602,\"message\":\"Invalid _meta envelope for protocol revision 2026-07-28: io.modelcontextprotocol/protocolVersion: Invalid input: expected string, received number\",\"data\":{\"envelope\":{\"key\":\"io.modelcontextprotocol/protocolVersion\",\"problem\":\"Invalid input: expected string, received number\"}}},\"id\":3}"
+		}
+	},
+	{
+		"name": "envelope capabilities not an object",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json",
+					"mcp-protocol-version": "2026-07-28",
+					"mcp-method": "tools/list"
+				},
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"tools/list\",\"params\":{\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":[]}}}"
+			},
+			"status": 400,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32602,\"message\":\"Invalid _meta envelope for protocol revision 2026-07-28: io.modelcontextprotocol/clientCapabilities: Invalid input: expected object, received array\",\"data\":{\"envelope\":{\"key\":\"io.modelcontextprotocol/clientCapabilities\",\"problem\":\"Invalid input: expected object, received array\"}}},\"id\":3}"
+		}
+	},
+	{
+		"name": "version header mismatch",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json",
+					"mcp-protocol-version": "2025-06-18",
+					"mcp-method": "tools/list"
+				},
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":4,\"method\":\"tools/list\",\"params\":{\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
+			},
+			"status": 400,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32020,\"message\":\"Bad Request: the request headers and body disagree: the body envelope names protocol version 2026-07-28 but the MCP-Protocol-Version header names 2025-06-18\",\"data\":{\"mismatch\":{\"header\":\"2025-06-18\",\"body\":\"the body envelope names protocol version 2026-07-28 but the MCP-Protocol-Version header names 2025-06-18\"}}},\"id\":4}"
+		}
+	},
+	{
+		"name": "method header mismatch",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json",
+					"mcp-protocol-version": "2026-07-28",
+					"mcp-method": "ping"
+				},
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":4,\"method\":\"tools/list\",\"params\":{\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
+			},
+			"status": 400,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32020,\"message\":\"Bad Request: the request headers and body disagree: the body names method tools/list but the Mcp-Method header names ping\",\"data\":{\"mismatch\":{\"header\":\"ping\",\"body\":\"the body names method tools/list but the Mcp-Method header names ping\"}}},\"id\":4}"
+		}
+	},
+	{
+		"name": "modern header without a claim",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json",
+					"mcp-protocol-version": "2026-07-28",
+					"mcp-method": "tools/list"
+				},
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":5,\"method\":\"tools/list\"}"
+			},
+			"status": 400,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32602,\"message\":\"Invalid params: the MCP-Protocol-Version header names protocol revision 2026-07-28, but the request is missing the required per-request envelope key(s): _meta\",\"data\":{\"envelope\":{\"missing\":[\"_meta\"]}}},\"id\":5}"
+		}
+	},
+	{
+		"name": "modern header with a partial envelope",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json",
+					"mcp-protocol-version": "2026-07-28",
+					"mcp-method": "tools/list"
+				},
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":5,\"method\":\"tools/list\",\"params\":{\"_meta\":{\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
+			},
+			"status": 400,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32602,\"message\":\"Invalid params: the MCP-Protocol-Version header names protocol revision 2026-07-28, but the request is missing the required per-request envelope key(s): io.modelcontextprotocol/protocolVersion\",\"data\":{\"envelope\":{\"missing\":[\"io.modelcontextprotocol/protocolVersion\"]}}},\"id\":5}"
+		}
+	},
+	{
+		"name": "initialize with a modern header",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json",
+					"mcp-protocol-version": "2026-07-28",
+					"mcp-method": "initialize"
+				},
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":6,\"method\":\"initialize\",\"params\":{}}"
+			},
+			"status": 400,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32020,\"message\":\"Bad Request: the request headers and body disagree: an initialize request (legacy handshake) was sent with a modern MCP-Protocol-Version header\",\"data\":{\"mismatch\":{\"header\":\"2026-07-28\",\"body\":\"an initialize request (legacy handshake) was sent with a modern MCP-Protocol-Version header\"}}},\"id\":6}"
+		}
+	},
+	{
+		"name": "modern without the version header",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json",
+					"mcp-method": "tools/list"
+				},
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":7,\"method\":\"tools/list\",\"params\":{\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
+			},
+			"status": 400,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32020,\"message\":\"Bad Request: the request headers and body disagree: the body envelope names protocol version 2026-07-28 but the required MCP-Protocol-Version header is absent\",\"data\":{\"mismatch\":{\"header\":\"(missing)\",\"body\":\"the body envelope names protocol version 2026-07-28 but the required MCP-Protocol-Version header is absent\"}}},\"id\":7}"
+		}
+	},
+	{
+		"name": "modern without the method header",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json",
+					"mcp-protocol-version": "2026-07-28"
+				},
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":7,\"method\":\"tools/list\",\"params\":{\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
+			},
+			"status": 400,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32020,\"message\":\"Bad Request: the request headers and body disagree: the body names method tools/list but the required Mcp-Method header is absent\",\"data\":{\"mismatch\":{\"header\":\"(missing)\",\"body\":\"the body names method tools/list but the required Mcp-Method header is absent\"}}},\"id\":7}"
+		}
+	},
+	{
+		"name": "modern call without the name header",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json",
+					"mcp-protocol-version": "2026-07-28",
+					"mcp-method": "tools/call"
+				},
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":8,\"method\":\"tools/call\",\"params\":{\"name\":\"forget\",\"arguments\":{},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
+			},
+			"status": 400,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32020,\"message\":\"Bad Request: the request headers and body disagree: the body carries params.name=\\\"forget\\\" but the required Mcp-Name header is absent\",\"data\":{\"mismatch\":{\"header\":\"(missing)\",\"body\":\"the body carries params.name=\\\"forget\\\" but the required Mcp-Name header is absent\"}}},\"id\":8}"
+		}
+	},
+	{
+		"name": "modern call with another name header",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json",
+					"mcp-protocol-version": "2026-07-28",
+					"mcp-method": "tools/call",
+					"mcp-name": "remember"
+				},
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":8,\"method\":\"tools/call\",\"params\":{\"name\":\"forget\",\"arguments\":{},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
+			},
+			"status": 400,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32020,\"message\":\"Bad Request: the request headers and body disagree: the body carries params.name=\\\"forget\\\" but the Mcp-Name header names \\\"remember\\\"\",\"data\":{\"mismatch\":{\"header\":\"remember\",\"body\":\"the body carries params.name=\\\"forget\\\" but the Mcp-Name header names \\\"remember\\\"\"}}},\"id\":8}"
+		}
+	},
+	{
+		"name": "modern wrong content type",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "text/plain",
+					"mcp-protocol-version": "2026-07-28",
+					"mcp-method": "tools/list"
+				},
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":8,\"method\":\"tools/list\",\"params\":{\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
+			},
+			"status": 415,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32000,\"message\":\"Unsupported Media Type: Content-Type must be application/json\"},\"id\":null}"
+		}
+	},
+	{
+		"name": "modern notification",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json",
+					"mcp-protocol-version": "2026-07-28",
+					"mcp-method": "notifications/initialized"
+				},
+				"body": "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\",\"params\":{\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
+			},
+			"status": 202,
+			"type": null,
+			"allow": null,
+			"body": ""
+		}
+	},
+	{
+		"name": "modern notification, version not a string",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json"
+				},
+				"body": "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\",\"params\":{\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":5,\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
+			},
+			"status": 400,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32602,\"message\":\"Invalid _meta envelope for protocol revision 2026-07-28: io.modelcontextprotocol/protocolVersion: Invalid input: expected string, received number\",\"data\":{\"envelope\":{\"key\":\"io.modelcontextprotocol/protocolVersion\",\"problem\":\"Invalid input: expected string, received number\"}}},\"id\":null}"
+		}
+	},
+	{
+		"name": "notification with a modern header only",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json",
+					"mcp-protocol-version": "2026-07-28",
+					"mcp-method": "notifications/initialized"
+				},
+				"body": "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}"
+			},
+			"status": 202,
+			"type": null,
+			"allow": null,
+			"body": ""
+		}
+	},
+	{
+		"name": "call without a name",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json",
+					"mcp-protocol-version": "2026-07-28",
+					"mcp-method": "tools/call"
+				},
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"arguments\":{},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
+			},
+			"status": 200,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"error\":{\"code\":-32602,\"message\":\"Invalid tools/call request: [\\n  {\\n    \\\"expected\\\": \\\"string\\\",\\n    \\\"code\\\": \\\"invalid_type\\\",\\n    \\\"path\\\": [\\n      \\\"params\\\",\\n      \\\"name\\\"\\n    ],\\n    \\\"message\\\": \\\"Invalid input: expected string, received undefined\\\"\\n  }\\n]\"}}"
+		}
+	},
+	{
+		"name": "call with list arguments",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json",
+					"mcp-protocol-version": "2026-07-28",
+					"mcp-method": "tools/call",
+					"mcp-name": "forget"
+				},
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"forget\",\"arguments\":[],\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
+			},
+			"status": 200,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"error\":{\"code\":-32602,\"message\":\"Invalid tools/call request: [\\n  {\\n    \\\"expected\\\": \\\"record\\\",\\n    \\\"code\\\": \\\"invalid_type\\\",\\n    \\\"path\\\": [\\n      \\\"params\\\",\\n      \\\"arguments\\\"\\n    ],\\n    \\\"message\\\": \\\"Invalid input: expected record, received array\\\"\\n  }\\n]\"}}"
+		}
+	},
+	{
+		"name": "call with a number name and null arguments",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json",
+					"mcp-protocol-version": "2026-07-28",
+					"mcp-method": "tools/call"
+				},
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":5,\"arguments\":null,\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
+			},
+			"status": 200,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"error\":{\"code\":-32602,\"message\":\"Invalid tools/call request: [\\n  {\\n    \\\"expected\\\": \\\"string\\\",\\n    \\\"code\\\": \\\"invalid_type\\\",\\n    \\\"path\\\": [\\n      \\\"params\\\",\\n      \\\"name\\\"\\n    ],\\n    \\\"message\\\": \\\"Invalid input: expected string, received number\\\"\\n  },\\n  {\\n    \\\"expected\\\": \\\"record\\\",\\n    \\\"code\\\": \\\"invalid_type\\\",\\n    \\\"path\\\": [\\n      \\\"params\\\",\\n      \\\"arguments\\\"\\n    ],\\n    \\\"message\\\": \\\"Invalid input: expected record, received null\\\"\\n  }\\n]\"}}"
+		}
+	},
+	{
+		"name": "remember text as an empty list",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json",
+					"mcp-protocol-version": "2026-07-28",
+					"mcp-method": "tools/call",
+					"mcp-name": "remember"
+				},
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"remember\",\"arguments\":{\"text\":[]},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
+			},
+			"status": 200,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool remember: text: Invalid input: expected string, received array, text: Too small: expected array to have >=1 items\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+		}
+	},
+	{
+		"name": "remember text as an object with a length",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json",
+					"mcp-protocol-version": "2026-07-28",
+					"mcp-method": "tools/call",
+					"mcp-name": "remember"
+				},
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"remember\",\"arguments\":{\"text\":{\"length\":500}},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
+			},
+			"status": 200,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool remember: text: Invalid input: expected string, received object, text: Too big: expected unknown to be <=200\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+		}
+	},
+	{
+		"name": "remember text as an object with a text length",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json",
+					"mcp-protocol-version": "2026-07-28",
+					"mcp-method": "tools/call",
+					"mcp-name": "remember"
+				},
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"remember\",\"arguments\":{\"text\":{\"length\":\"x\"}},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
+			},
+			"status": 200,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool remember: text: Invalid input: expected string, received object, text: Too small: expected unknown to be >=1, text: Too big: expected unknown to be <=200\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+		}
+	},
+	{
+		"name": "set_class_file_kind ids as an empty string",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json",
+					"mcp-protocol-version": "2026-07-28",
+					"mcp-method": "tools/call",
+					"mcp-name": "set_class_file_kind"
+				},
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"set_class_file_kind\",\"arguments\":{\"class_id\":\"c\",\"file_ids\":\"\",\"kind\":\"info\"},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
+			},
+			"status": 200,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool set_class_file_kind: file_ids: Invalid input: expected array, received string, file_ids: Too small: expected string to have >=1 characters\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+		}
+	},
+	{
+		"name": "add_class_deadline list of bad items",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json",
+					"mcp-protocol-version": "2026-07-28",
+					"mcp-method": "tools/call",
+					"mcp-name": "add_class_deadline"
+				},
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"add_class_deadline\",\"arguments\":{\"class_id\":\"c\",\"deadlines\":[1,null]},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
+			},
+			"status": 200,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool add_class_deadline: deadlines.0: Invalid input: expected object, received number, deadlines.1: Invalid input: expected object, received null\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+		}
+	},
+	{
+		"name": "call of an unknown tool",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json",
+					"mcp-protocol-version": "2026-07-28",
+					"mcp-method": "tools/call",
+					"mcp-name": "nope"
+				},
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"nope\",\"arguments\":{},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
+			},
+			"status": 200,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"error\":{\"code\":-32602,\"message\":\"Tool nope not found\"}}"
+		}
+	},
+	{
+		"name": "legacy call of an unknown tool",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json",
+					"mcp-protocol-version": "2025-06-18"
+				},
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"nope\",\"arguments\":{}}}"
+			},
+			"status": 200,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"error\":{\"code\":-32602,\"message\":\"Tool nope not found\"}}"
+		}
+	},
+	{
+		"name": "create_class with nothing",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json",
+					"mcp-protocol-version": "2026-07-28",
+					"mcp-method": "tools/call",
+					"mcp-name": "create_class"
+				},
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"create_class\",\"arguments\":{},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
+			},
+			"status": 200,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool create_class: name: Invalid input: expected string, received undefined, icon: Invalid option: expected one of \\\"cpu\\\"|\\\"code\\\"|\\\"sigma\\\"|\\\"chart-line\\\"|\\\"atom\\\"|\\\"flask-conical\\\"|\\\"dna\\\"|\\\"brain\\\"|\\\"landmark\\\"|\\\"scale\\\"|\\\"trending-up\\\"|\\\"globe\\\"|\\\"languages\\\"|\\\"book-open\\\"|\\\"palette\\\"|\\\"music\\\"\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+		}
+	},
+	{
+		"name": "create_class with a bad signature",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json",
+					"mcp-protocol-version": "2026-07-28",
+					"mcp-method": "tools/call",
+					"mcp-name": "create_class"
+				},
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"create_class\",\"arguments\":{\"name\":\"x\",\"icon\":\"cpu\",\"signature\":{\"kind\":\"poem\",\"value\":\"\"}},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
+			},
+			"status": 200,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool create_class: signature.kind: Invalid option: expected one of \\\"math\\\"|\\\"code\\\"|\\\"text\\\", signature.value: Too small: expected string to have >=1 characters\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+		}
+	},
+	{
+		"name": "create_class with a signature string",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json",
+					"mcp-protocol-version": "2026-07-28",
+					"mcp-method": "tools/call",
+					"mcp-name": "create_class"
+				},
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"create_class\",\"arguments\":{\"name\":\"x\",\"icon\":\"cpu\",\"signature\":\"x\"},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
+			},
+			"status": 200,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool create_class: signature: Invalid input: expected object, received string\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+		}
+	},
+	{
+		"name": "create_class with a null signature",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json",
+					"mcp-protocol-version": "2026-07-28",
+					"mcp-method": "tools/call",
+					"mcp-name": "create_class"
+				},
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"create_class\",\"arguments\":{\"name\":\"x\",\"icon\":\"cpu\",\"signature\":null},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
+			},
+			"status": 200,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool create_class: signature: Invalid input: expected object, received null\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+		}
+	},
+	{
+		"name": "update_class wrong types",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json",
+					"mcp-protocol-version": "2026-07-28",
+					"mcp-method": "tools/call",
+					"mcp-name": "update_class"
+				},
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"update_class\",\"arguments\":{\"class_id\":1,\"name\":\"\",\"archived\":\"yes\",\"icon\":3},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
+			},
+			"status": 200,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool update_class: class_id: Invalid input: expected string, received number, name: Too small: expected string to have >=1 characters, icon: Invalid option: expected one of \\\"cpu\\\"|\\\"code\\\"|\\\"sigma\\\"|\\\"chart-line\\\"|\\\"atom\\\"|\\\"flask-conical\\\"|\\\"dna\\\"|\\\"brain\\\"|\\\"landmark\\\"|\\\"scale\\\"|\\\"trending-up\\\"|\\\"globe\\\"|\\\"languages\\\"|\\\"book-open\\\"|\\\"palette\\\"|\\\"music\\\", archived: Invalid input: expected boolean, received string\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+		}
+	},
+	{
+		"name": "add_class_deadline items",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json",
+					"mcp-protocol-version": "2026-07-28",
+					"mcp-method": "tools/call",
+					"mcp-name": "add_class_deadline"
+				},
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"add_class_deadline\",\"arguments\":{\"class_id\":\"c\",\"deadlines\":[{\"kind\":\"quiz\"},{\"kind\":\"x\",\"name\":\"\",\"date\":1,\"file_ids\":[1,\"a\"]}]},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
+			},
+			"status": 200,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool add_class_deadline: deadlines.0.name: Invalid input: expected string, received undefined, deadlines.0.date: Invalid input: expected string, received undefined, deadlines.1.kind: Invalid option: expected one of \\\"exam\\\"|\\\"homework\\\"|\\\"quiz\\\"|\\\"project\\\", deadlines.1.name: Too small: expected string to have >=1 characters, deadlines.1.date: Invalid input: expected string, received number, deadlines.1.file_ids.0: Invalid input: expected string, received number\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+		}
+	},
+	{
+		"name": "add_class_deadline not a list",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json",
+					"mcp-protocol-version": "2026-07-28",
+					"mcp-method": "tools/call",
+					"mcp-name": "add_class_deadline"
+				},
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"add_class_deadline\",\"arguments\":{\"class_id\":\"c\",\"deadlines\":{\"kind\":\"quiz\"}},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
+			},
+			"status": 200,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool add_class_deadline: deadlines: Invalid input: expected array, received object\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+		}
+	},
+	{
+		"name": "update_class_deadline nulls",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json",
+					"mcp-protocol-version": "2026-07-28",
+					"mcp-method": "tools/call",
+					"mcp-name": "update_class_deadline"
+				},
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"update_class_deadline\",\"arguments\":{\"class_id\":\"c\",\"deadline_id\":\"d\",\"time\":5,\"source\":false,\"assignment_file_id\":[],\"done\":null},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
+			},
+			"status": 200,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool update_class_deadline: time: Invalid input: expected string, received number, source: Invalid input: expected string, received boolean, assignment_file_id: Invalid input: expected string, received array, done: Invalid input: expected boolean, received null\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+		}
+	},
+	{
+		"name": "set_class_file_kind with a bad id",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json",
+					"mcp-protocol-version": "2026-07-28",
+					"mcp-method": "tools/call",
+					"mcp-name": "set_class_file_kind"
+				},
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"set_class_file_kind\",\"arguments\":{\"class_id\":\"c\",\"file_ids\":[3],\"kind\":\"info\"},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
+			},
+			"status": 200,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool set_class_file_kind: file_ids.0: Invalid input: expected string, received number\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+		}
+	},
+	{
+		"name": "respond calls",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json",
+					"mcp-protocol-version": "2026-07-28",
+					"mcp-method": "tools/call",
+					"mcp-name": "respond"
+				},
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"respond\",\"arguments\":{\"work_id\":\"w\",\"tool_calls\":[{\"name\":1},\"x\",{\"name\":\"a\",\"arguments\":null}],\"wait_seconds\":56},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
+			},
+			"status": 200,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool respond: tool_calls.0.name: Invalid input: expected string, received number, tool_calls.0.arguments: Invalid input: expected record, received undefined, tool_calls.1: Invalid input: expected object, received string, tool_calls.2.arguments: Invalid input: expected record, received null, wait_seconds: Too big: expected number to be <=55\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+		}
+	},
+	{
+		"name": "respond tool calls not a list",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json",
+					"mcp-protocol-version": "2026-07-28",
+					"mcp-method": "tools/call",
+					"mcp-name": "respond"
+				},
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"respond\",\"arguments\":{\"work_id\":\"w\",\"tool_calls\":{}},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
+			},
+			"status": 200,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool respond: tool_calls: Invalid input: expected array, received object\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+		}
+	},
+	{
+		"name": "list_lessons huge limit",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json",
+					"mcp-protocol-version": "2026-07-28",
+					"mcp-method": "tools/call",
+					"mcp-name": "list_lessons"
+				},
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"list_lessons\",\"arguments\":{\"limit\":1e+300},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
+			},
+			"status": 200,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool list_lessons: limit: Too big: expected int to be <=9007199254740991, limit: Too big: expected number to be <=200\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+		}
+	},
+	{
+		"name": "list_lessons negative fraction",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json",
+					"mcp-protocol-version": "2026-07-28",
+					"mcp-method": "tools/call",
+					"mcp-name": "list_lessons"
+				},
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"list_lessons\",\"arguments\":{\"limit\":-0.5},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
+			},
+			"status": 200,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool list_lessons: limit: Invalid input: expected int, received number\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+		}
+	},
+	{
+		"name": "read_lesson page null",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json",
+					"mcp-protocol-version": "2026-07-28",
+					"mcp-method": "tools/call",
+					"mcp-name": "read_lesson"
+				},
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"read_lesson\",\"arguments\":{\"lesson_id\":\"x\",\"page\":null},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
+			},
+			"status": 200,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool read_lesson: page: Invalid input: expected number, received null\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+		}
+	},
+	{
+		"name": "read_work booleans",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json",
+					"mcp-protocol-version": "2026-07-28",
+					"mcp-method": "tools/call",
+					"mcp-name": "read_work"
+				},
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"read_work\",\"arguments\":{\"work_id\":true,\"page\":true,\"full\":1},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
+			},
+			"status": 200,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool read_work: work_id: Invalid input: expected string, received boolean, page: Invalid input: expected number, received boolean, full: Invalid input: expected boolean, received number\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+		}
+	},
+	{
+		"name": "remember long multi-byte",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json",
+					"mcp-protocol-version": "2026-07-28",
+					"mcp-method": "tools/call",
+					"mcp-name": "remember"
+				},
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"remember\",\"arguments\":{\"text\":\"😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀\"},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
+			},
+			"status": 200,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"A note is one line of 1 to 200 characters.\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+		}
+	},
+	{
+		"name": "save_rule bad area and class",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json",
+					"mcp-protocol-version": "2026-07-28",
+					"mcp-method": "tools/call",
+					"mcp-name": "save_rule"
+				},
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"save_rule\",\"arguments\":{\"rule\":\"\",\"class_id\":5,\"area\":\"x\"},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
+			},
+			"status": 200,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool save_rule: rule: Too small: expected string to have >=1 characters, class_id: Invalid input: expected string, received number, area: Invalid option: expected one of \\\"voice\\\"|\\\"teaching\\\"|\\\"questions\\\"|\\\"facts\\\"|\\\"demos\\\"|\\\"files\\\"\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+		}
+	},
+	{
+		"name": "search_class_files limit",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json",
+					"mcp-protocol-version": "2026-07-28",
+					"mcp-method": "tools/call",
+					"mcp-name": "search_class_files"
+				},
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"search_class_files\",\"arguments\":{\"class_id\":\"c\",\"query\":\"q\",\"limit\":0.5},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
+			},
+			"status": 200,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool search_class_files: limit: Invalid input: expected int, received number\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+		}
+	},
+	{
+		"name": "read_passage numbers",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json",
+					"mcp-protocol-version": "2026-07-28",
+					"mcp-method": "tools/call",
+					"mcp-name": "read_passage"
+				},
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"read_passage\",\"arguments\":{\"class_id\":\"c\",\"passage_id\":1,\"file_id\":2,\"range\":3},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
+			},
+			"status": 200,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool read_passage: passage_id: Invalid input: expected string, received number, file_id: Invalid input: expected string, received number, range: Invalid input: expected string, received number\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+		}
+	},
+	{
+		"name": "start_lesson object topic",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json",
+					"mcp-protocol-version": "2026-07-28",
+					"mcp-method": "tools/call",
+					"mcp-name": "start_lesson"
+				},
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"start_lesson\",\"arguments\":{\"topic\":{},\"class_id\":null},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
+			},
+			"status": 200,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool start_lesson: topic: Invalid input: expected string, received object, class_id: Invalid input: expected string, received null\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+		}
+	},
+	{
+		"name": "link_class_folder nothing",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json",
+					"mcp-protocol-version": "2026-07-28",
+					"mcp-method": "tools/call",
+					"mcp-name": "link_class_folder"
+				},
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"link_class_folder\",\"arguments\":{},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
+			},
+			"status": 200,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool link_class_folder: class_id: Invalid input: expected string, received undefined, path: Invalid input: expected string, received undefined\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+		}
+	},
+	{
+		"name": "unlink_class_folder number",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json",
+					"mcp-protocol-version": "2026-07-28",
+					"mcp-method": "tools/call",
+					"mcp-name": "unlink_class_folder"
+				},
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"unlink_class_folder\",\"arguments\":{\"class_id\":9},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
+			},
+			"status": 200,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool unlink_class_folder: class_id: Invalid input: expected string, received number\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+		}
+	},
+	{
+		"name": "import_notes empty",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json",
+					"mcp-protocol-version": "2026-07-28",
+					"mcp-method": "tools/call",
+					"mcp-name": "import_notes"
+				},
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"import_notes\",\"arguments\":{\"name\":1,\"text\":\"\"},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
+			},
+			"status": 200,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool import_notes: name: Invalid input: expected string, received number, text: Too small: expected string to have >=1 characters\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+		}
+	},
+	{
+		"name": "wait_for_work everything wrong",
+		"output": {
+			"request": {
+				"method": "POST",
+				"headers": {
+					"host": "127.0.0.1:1",
+					"authorization": "Bearer abababababababababababababababababababababababababababababababab",
+					"accept": "application/json, text/event-stream",
+					"content-type": "application/json",
+					"mcp-protocol-version": "2026-07-28",
+					"mcp-method": "tools/call",
+					"mcp-name": "wait_for_work"
+				},
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"wait_for_work\",\"arguments\":{\"timeout_seconds\":\"1\",\"lesson_id\":2,\"full_context\":\"no\"},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
+			},
+			"status": 200,
+			"type": "application/json",
+			"allow": null,
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool wait_for_work: timeout_seconds: Invalid input: expected number, received string, lesson_id: Invalid input: expected string, received number, full_context: Invalid input: expected boolean, received string\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+		}
+	}
+]

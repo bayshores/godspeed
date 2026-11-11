@@ -1,0 +1,2966 @@
+[
+	{
+		"name": "views, reads, rules, folder and taking PDFs",
+		"output": {
+			"before": {
+				"data": [
+					[
+						"classes/cls_golden01_00000001/cheat-sheets/ddl_gold00000001-files/aaaa11112222-pic.png",
+						"bm90IHJlYWxseSBhIHBuZw=="
+					],
+					[
+						"classes/cls_golden01_00000001/cheat-sheets/ddl_gold00000001-files/bbbb33334444-notes.pdf",
+						"JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCA2MTIgNzkyXSAvQ29udGVudHMgNCAwIFIgL1Jlc291cmNlcyA8PCA+PiA+PgplbmRvYmoKNCAwIG9iago8PCAvTGVuZ3RoIDI0ID4+CnN0cmVhbQowLjggZyAxMCAxMCA1OTIgNzcyIHJlIGYKZW5kc3RyZWFtCmVuZG9iagp4cmVmCjAgNQowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwMDkgMDAwMDAgbiAKMDAwMDAwMDA1OCAwMDAwMCBuIAowMDAwMDAwMTE1IDAwMDAwIG4gCjAwMDAwMDAyMTkgMDAwMDAgbiAKdHJhaWxlcgo8PCAvU2l6ZSA1IC9Sb290IDEgMCBSID4+CnN0YXJ0eHJlZgoyOTMKJSVFT0YK"
+					],
+					[
+						"classes/cls_golden01_00000001/cheat-sheets/ddl_gold00000001-files/cccc55556666-shot.jpg",
+						"bm90IHJlYWxseSBhIGpwZWc="
+					],
+					[
+						"classes/cls_golden01_00000001/cheat-sheets/ddl_gold00000001-files/dddd77778888-data.bin",
+						"AAECAw=="
+					],
+					[
+						"classes/cls_golden01_00000001/cheat-sheets/ddl_gold00000001-files/eeee9999aaaa-UPPER.PDF",
+						"JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCA2MTIgNzkyXSAvQ29udGVudHMgNCAwIFIgL1Jlc291cmNlcyA8PCA+PiA+PgplbmRvYmoKNCAwIG9iago8PCAvTGVuZ3RoIDI0ID4+CnN0cmVhbQowLjggZyAxMCAxMCA1OTIgNzcyIHJlIGYKZW5kc3RyZWFtCmVuZG9iagp4cmVmCjAgNQowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwMDkgMDAwMDAgbiAKMDAwMDAwMDA1OCAwMDAwMCBuIAowMDAwMDAwMTE1IDAwMDAwIG4gCjAwMDAwMDAyMTkgMDAwMDAgbiAKdHJhaWxlcgo8PCAvU2l6ZSA1IC9Sb290IDEgMCBSID4+CnN0YXJ0eHJlZgoyOTMKJSVFT0YK"
+					],
+					[
+						"classes/cls_golden01_00000001/cheat-sheets/ddl_gold00000001-versions/v1.pdf",
+						"JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCA2MTIgNzkyXSAvQ29udGVudHMgNCAwIFIgL1Jlc291cmNlcyA8PCA+PiA+PgplbmRvYmoKNCAwIG9iago8PCAvTGVuZ3RoIDI0ID4+CnN0cmVhbQowLjggZyAxMCAxMCA1OTIgNzcyIHJlIGYKZW5kc3RyZWFtCmVuZG9iagp4cmVmCjAgNQowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwMDkgMDAwMDAgbiAKMDAwMDAwMDA1OCAwMDAwMCBuIAowMDAwMDAwMTE1IDAwMDAwIG4gCjAwMDAwMDAyMTkgMDAwMDAgbiAKdHJhaWxlcgo8PCAvU2l6ZSA1IC9Sb290IDEgMCBSID4+CnN0YXJ0eHJlZgoyOTMKJSVFT0YK"
+					],
+					[
+						"classes/cls_golden01_00000001/cheat-sheets/ddl_gold00000001-versions/v2.pdf",
+						"JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUiA1IDAgUl0gL0NvdW50IDIgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCA2MTIgNzkyXSAvQ29udGVudHMgNCAwIFIgL1Jlc291cmNlcyA8PCA+PiA+PgplbmRvYmoKNCAwIG9iago8PCAvTGVuZ3RoIDI0ID4+CnN0cmVhbQowLjggZyAxMCAxMCA1OTIgNzcyIHJlIGYKZW5kc3RyZWFtCmVuZG9iago1IDAgb2JqCjw8IC9UeXBlIC9QYWdlIC9QYXJlbnQgMiAwIFIgL01lZGlhQm94IFswIDAgNjEyIDc5Ml0gL0NvbnRlbnRzIDYgMCBSIC9SZXNvdXJjZXMgPDwgPj4gPj4KZW5kb2JqCjYgMCBvYmoKPDwgL0xlbmd0aCAyNCA+PgpzdHJlYW0KMC44IGcgMTAgMTAgNTkyIDc3MiByZSBmCmVuZHN0cmVhbQplbmRvYmoKeHJlZgowIDcKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDA5IDAwMDAwIG4gCjAwMDAwMDAwNTggMDAwMDAgbiAKMDAwMDAwMDEyMSAwMDAwMCBuIAowMDAwMDAwMjI1IDAwMDAwIG4gCjAwMDAwMDAyOTkgMDAwMDAgbiAKMDAwMDAwMDQwMyAwMDAwMCBuIAp0cmFpbGVyCjw8IC9TaXplIDcgL1Jvb3QgMSAwIFIgPj4Kc3RhcnR4cmVmCjQ3NwolJUVPRgo="
+					],
+					[
+						"classes/cls_golden01_00000001/cheat-sheets/ddl_gold00000001.json",
+						"ewoJInZlcnNpb24iOiA0LAoJImRlYWRsaW5lSWQiOiAiZGRsX2dvbGQwMDAwMDAwMSIsCgkidmVyc2lvbnMiOiBbCgkJewoJCQkicHJvbXB0IjogImZpcnN0IGFzayIsCgkJCSJhdCI6ICIyMDI5LTAzLTAxVDEwOjAwOjAwLjAwMFoiLAoJCQkicGFnZXMiOiBbCgkJCQl7CgkJCQkJIndpZHRoUHQiOiA2MTIsCgkJCQkJImhlaWdodFB0IjogNzkyCgkJCQl9CgkJCV0sCgkJCSJuIjogMQoJCX0sCgkJewoJCQkicHJvbXB0IjogImJpZ2dlciBmb250cyIsCgkJCSJhdCI6ICIyMDI5LTAzLTAyVDEwOjAwOjAwLjAwMFoiLAoJCQkicGFnZXMiOiBbCgkJCQl7CgkJCQkJIndpZHRoUHQiOiA2MTIsCgkJCQkJImhlaWdodFB0IjogNzkyCgkJCQl9LAoJCQkJewoJCQkJCSJ3aWR0aFB0IjogNjEyLAoJCQkJCSJoZWlnaHRQdCI6IDc5MgoJCQkJfQoJCQldLAoJCQkiZmlsZSI6ICI8aG9tZT4vZ29kc3BlZWQvY2hlYXQtc2hlZXRzL0dvbGRlbiBDbGFzcyBNaWR0ZXJtL3NoZWV0LnBkZiIsCgkJCSJuIjogMgoJCX0KCV0sCgkibWVzc2FnZXMiOiBbCgkJewoJCQkiaWQiOiAibTEiLAoJCQkicm9sZSI6ICJ5b3UiLAoJCQkidGV4dCI6ICJmaXJzdCBhc2siLAoJCQkiYXQiOiAiMjAyOS0wMy0wMVQxMDowMDowMC4wMDBaIiwKCQkJImZpbGVzIjogWwoJCQkJewoJCQkJCSJuYW1lIjogInBpYy5wbmciLAoJCQkJCSJmaWxlIjogImFhYWExMTExMjIyMi1waWMucG5nIgoJCQkJfQoJCQldCgkJfSwKCQl7CgkJCSJpZCI6ICJtMiIsCgkJCSJyb2xlIjogImFnZW50IiwKCQkJInRleHQiOiAiTWFkZSBpdC4iLAoJCQkiYXQiOiAiMjAyOS0wMy0wMVQxMDowMDowMC4wMDBaIiwKCQkJInZlcnNpb24iOiAxLAoJCQkicnVsZXMiOiBbCgkJCQkibm8gc2xhbmciCgkJCV0KCQl9CgldLAoJInJ1bGVzIjogWwoJCXsKCQkJInRleHQiOiAibm8gc2xhbmciLAoJCQkiYXQiOiAiMjAyOS0wMy0wMVQxMDowMDowMC4wMDBaIgoJCX0sCgkJewoJCQkidGV4dCI6ICJBNCwgYm90aCBzaWRlcyIsCgkJCSJhdCI6ICIyMDI5LTAzLTAxVDEwOjAwOjAwLjAwMFoiCgkJfQoJXSwKCSJ1cGRhdGVkQXQiOiAiMjAyOS0wMy0wMlQxMDowMDowMC4wMDBaIiwKCSJmb2xkZXIiOiAiR29sZGVuIENsYXNzIE1pZHRlcm0iCn0="
+					],
+					[
+						"classes/cls_golden01_00000001/cheat-sheets/ddl_gold00000003.json",
+						"ewoJInZlcnNpb24iOiA1LAoJImRlYWRsaW5lSWQiOiAiZGRsX2dvbGQwMDAwMDAwMyIsCgkidmVyc2lvbnMiOiBbXSwKCSJtZXNzYWdlcyI6IFtdLAoJInJ1bGVzIjogW10sCgkidXBkYXRlZEF0IjogIjIwMjktMDMtMDNUMTA6MDA6MDAuMDAwWiIKfQo="
+					],
+					[
+						"classes/cls_golden01_00000001/cheat-sheets/ddl_gold00000004.json",
+						"ewoJInZlcnNpb24iOiAyLAoJImRlYWRsaW5lSWQiOiAiZGRsX2dvbGQwMDAwMDAwNCIsCgkicHJvbXB0cyI6IFsKCQl7CgkJCSJ0ZXh0IjogIm1ha2UgaXQgYmlnZ2VyIiwKCQkJImF0IjogIjIwMjktMDMtMDJUMTA6MDA6MDAuMDAwWiIsCgkJCSJmaWxlcyI6IFsKCQkJCSJvbGQucG5nIgoJCQldCgkJfQoJXSwKCSJkb2MiOiB7CgkJImh0bWwiOiAiPHA+eDwvcD4iCgl9LAoJInVwZGF0ZWRBdCI6ICIyMDI5LTAzLTAyVDEwOjAwOjAwLjAwMFoiCn0K"
+					],
+					[
+						"classes/cls_golden01_00000001/cheat-sheets/ddl_gold00000005.json",
+						"eyB0aGlzIGlzIG5vdCBqc29u"
+					],
+					[
+						"classes/cls_golden01_00000001/cheat-sheets/ddl_gold00000006-versions/v1.pdf",
+						"JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCA2MTIgNzkyXSAvQ29udGVudHMgNCAwIFIgL1Jlc291cmNlcyA8PCA+PiA+PgplbmRvYmoKNCAwIG9iago8PCAvTGVuZ3RoIDI0ID4+CnN0cmVhbQowLjggZyAxMCAxMCA1OTIgNzcyIHJlIGYKZW5kc3RyZWFtCmVuZG9iagp4cmVmCjAgNQowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwMDkgMDAwMDAgbiAKMDAwMDAwMDA1OCAwMDAwMCBuIAowMDAwMDAwMTE1IDAwMDAwIG4gCjAwMDAwMDAyMTkgMDAwMDAgbiAKdHJhaWxlcgo8PCAvU2l6ZSA1IC9Sb290IDEgMCBSID4+CnN0YXJ0eHJlZgoyOTMKJSVFT0YK"
+					],
+					[
+						"classes/cls_golden01_00000001/cheat-sheets/ddl_gold00000006.json",
+						"ewoJInZlcnNpb24iOiA0LAoJImRlYWRsaW5lSWQiOiAiZGRsX2dvbGQwMDAwMDAwNiIsCgkidmVyc2lvbnMiOiBbCgkJewoJCQkicHJvbXB0IjogImVzc2F5IiwKCQkJImF0IjogIjIwMjktMDMtMDFUMTA6MDA6MDAuMDAwWiIsCgkJCSJwYWdlcyI6IFsKCQkJCXsKCQkJCQkid2lkdGhQdCI6IDYxMiwKCQkJCQkiaGVpZ2h0UHQiOiA3OTIKCQkJCX0KCQkJXSwKCQkJImZpbGUiOiAiPGhvbWU+L2dvZHNwZWVkL2NoZWF0LXNoZWV0cy9Hb2xkZW4gQ2xhc3MgRXNzYXkvbWFkZS5wZGYiLAoJCQkibiI6IDEKCQl9CgldLAoJIm1lc3NhZ2VzIjogW10sCgkicnVsZXMiOiBbXSwKCSJ1cGRhdGVkQXQiOiAiMjAyOS0wMy0wMVQxMDowMDowMC4wMDBaIiwKCSJmb2xkZXIiOiAiR29sZGVuIENsYXNzIEVzc2F5Igp9"
+					],
+					[
+						"classes/cls_golden01_00000001/class.json",
+						"ewoJImlkIjogImNsc19nb2xkZW4wMV8wMDAwMDAwMSIsCgkibmFtZSI6ICJHb2xkZW4gQ2xhc3MiLAoJImRlc2NyaXB0aW9uIjogIk5vdGVzIGFib3V0IHRoZSBjbGFzcy4iLAoJImNyZWF0ZWRBdCI6ICIyMDI5LTAzLTAxVDEwOjAwOjAwLjAwMFoiLAoJInVwZGF0ZWRBdCI6ICIyMDI5LTAzLTAxVDEwOjAwOjAwLjAwMFoiLAoJImFyY2hpdmVkIjogZmFsc2UsCgkiZmlsZXMiOiBbCgkJewoJCQkiaWQiOiAiZl9pbmZvMDAwMDAwMDEiLAoJCQkib3JpZ2luIjogImNvcGllZCIsCgkJCSJuYW1lIjogInN5bGxhYnVzLnR4dCIsCgkJCSJwYXRoIjogImZfaW5mbzAwMDAwMDAxL3N5bGxhYnVzLnR4dCIsCgkJCSJraW5kIjogImluZm8iLAoJCQkiY29udGVudEZwIjogImFhYWFhYWFhYWFhYWFhYWEiLAoJCQkic3RhdHVzIjogInJlYWR5IiwKCQkJImFkZGVkQXQiOiAiMjAyOS0wMy0wMVQxMDowMDowMC4wMDBaIiwKCQkJInN0YXRTaWciOiAiMToxIgoJCX0sCgkJewoJCQkiaWQiOiAiZl9zdHVkeTAwMDAwMDEiLAoJCQkib3JpZ2luIjogImNvcGllZCIsCgkJCSJuYW1lIjogIndlZWsgMS50eHQiLAoJCQkicGF0aCI6ICJmX3N0dWR5MDAwMDAwMS93ZWVrIDEudHh0IiwKCQkJImtpbmQiOiAic3R1ZHkiLAoJCQkiY29udGVudEZwIjogImJiYmJiYmJiYmJiYmJiYmIiLAoJCQkic3RhdHVzIjogInJlYWR5IiwKCQkJImFkZGVkQXQiOiAiMjAyOS0wMy0wMVQxMDowMDowMC4wMDBaIiwKCQkJInN0YXRTaWciOiAiMToyIgoJCX0KCV0sCgkicmVtb3ZlZEZpbGVzIjogW10sCgkiZGVhZGxpbmVzIjogWwoJCXsKCQkJImlkIjogImRkbF9nb2xkMDAwMDAwMDEiLAoJCQkia2luZCI6ICJleGFtIiwKCQkJIm5hbWUiOiAiTWlkdGVybSIsCgkJCSJkYXRlIjogIjIwMzAtMDItMDEiLAoJCQkiZmlsZUlkcyI6IFtdLAoJCQkiZG9uZSI6IGZhbHNlCgkJfSwKCQl7CgkJCSJpZCI6ICJkZGxfZ29sZDAwMDAwMDAyIiwKCQkJImtpbmQiOiAiZXhhbSIsCgkJCSJuYW1lIjogIlF1aXogMSIsCgkJCSJkYXRlIjogIjIwMzAtMDItMTAiLAoJCQkiZmlsZUlkcyI6IFtdLAoJCQkiZG9uZSI6IGZhbHNlCgkJfSwKCQl7CgkJCSJpZCI6ICJkZGxfZ29sZDAwMDAwMDAzIiwKCQkJImtpbmQiOiAiZXhhbSIsCgkJCSJuYW1lIjogIkZpbmFsIiwKCQkJImRhdGUiOiAiMjAzMC0wMy0wMSIsCgkJCSJmaWxlSWRzIjogW10sCgkJCSJkb25lIjogZmFsc2UKCQl9LAoJCXsKCQkJImlkIjogImRkbF9nb2xkMDAwMDAwMDQiLAoJCQkia2luZCI6ICJleGFtIiwKCQkJIm5hbWUiOiAiTGFiIDQiLAoJCQkiZGF0ZSI6ICIyMDMwLTAyLTA1IiwKCQkJImZpbGVJZHMiOiBbXSwKCQkJImRvbmUiOiBmYWxzZQoJCX0sCgkJewoJCQkiaWQiOiAiZGRsX2dvbGQwMDAwMDAwNSIsCgkJCSJraW5kIjogImV4YW0iLAoJCQkibmFtZSI6ICJQcm9qZWN0IiwKCQkJImRhdGUiOiAiMjAzMC0wMi0yMCIsCgkJCSJmaWxlSWRzIjogW10sCgkJCSJkb25lIjogZmFsc2UKCQl9LAoJCXsKCQkJImlkIjogImRkbF9nb2xkMDAwMDAwMDYiLAoJCQkia2luZCI6ICJleGFtIiwKCQkJIm5hbWUiOiAiRXNzYXkiLAoJCQkiZGF0ZSI6ICIyMDMwLTAyLTI1IiwKCQkJImZpbGVJZHMiOiBbXSwKCQkJImRvbmUiOiBmYWxzZQoJCX0KCV0sCgkidmVyc2lvbiI6IDEKfQo="
+					]
+				],
+				"home": [
+					[
+						"godspeed/cheat-sheets/Golden Class Essay/made.pdf",
+						"JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCA2MTIgNzkyXSAvQ29udGVudHMgNCAwIFIgL1Jlc291cmNlcyA8PCA+PiA+PgplbmRvYmoKNCAwIG9iago8PCAvTGVuZ3RoIDI0ID4+CnN0cmVhbQowLjggZyAxMCAxMCA1OTIgNzcyIHJlIGYKZW5kc3RyZWFtCmVuZG9iagp4cmVmCjAgNQowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwMDkgMDAwMDAgbiAKMDAwMDAwMDA1OCAwMDAwMCBuIAowMDAwMDAwMTE1IDAwMDAwIG4gCjAwMDAwMDAyMTkgMDAwMDAgbiAKdHJhaWxlcgo8PCAvU2l6ZSA1IC9Sb290IDEgMCBSID4+CnN0YXJ0eHJlZgoyOTMKJSVFT0YK"
+					],
+					[
+						"godspeed/cheat-sheets/Golden Class Midterm/sheet.pdf",
+						"JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUiA1IDAgUl0gL0NvdW50IDIgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCA2MTIgNzkyXSAvQ29udGVudHMgNCAwIFIgL1Jlc291cmNlcyA8PCA+PiA+PgplbmRvYmoKNCAwIG9iago8PCAvTGVuZ3RoIDI0ID4+CnN0cmVhbQowLjggZyAxMCAxMCA1OTIgNzcyIHJlIGYKZW5kc3RyZWFtCmVuZG9iago1IDAgb2JqCjw8IC9UeXBlIC9QYWdlIC9QYXJlbnQgMiAwIFIgL01lZGlhQm94IFswIDAgNjEyIDc5Ml0gL0NvbnRlbnRzIDYgMCBSIC9SZXNvdXJjZXMgPDwgPj4gPj4KZW5kb2JqCjYgMCBvYmoKPDwgL0xlbmd0aCAyNCA+PgpzdHJlYW0KMC44IGcgMTAgMTAgNTkyIDc3MiByZSBmCmVuZHN0cmVhbQplbmRvYmoKeHJlZgowIDcKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDA5IDAwMDAwIG4gCjAwMDAwMDAwNTggMDAwMDAgbiAKMDAwMDAwMDEyMSAwMDAwMCBuIAowMDAwMDAwMjI1IDAwMDAwIG4gCjAwMDAwMDAyOTkgMDAwMDAgbiAKMDAwMDAwMDQwMyAwMDAwMCBuIAp0cmFpbGVyCjw8IC9TaXplIDcgL1Jvb3QgMSAwIFIgPj4Kc3RhcnR4cmVmCjQ3NwolJUVPRgo="
+					]
+				]
+			},
+			"steps": [
+				{
+					"op": "class",
+					"cls": "cls_golden01_00000001",
+					"out": {
+						"ok": true,
+						"value": {
+							"className": "Golden Class",
+							"cards": [
+								{
+									"deadlineId": "ddl_gold00000001",
+									"name": "Midterm",
+									"kind": "exam",
+									"date": "2030-02-01",
+									"past": false,
+									"status": "made",
+									"version": {
+										"n": 2,
+										"prompt": "bigger fonts",
+										"at": "2029-03-02T10:00:00.000Z",
+										"pages": [
+											{
+												"widthPt": 612,
+												"heightPt": 792
+											},
+											{
+												"widthPt": 612,
+												"heightPt": 792
+											}
+										],
+										"file": "<home>/godspeed/cheat-sheets/Golden Class Midterm/sheet.pdf"
+									}
+								},
+								{
+									"deadlineId": "ddl_gold00000004",
+									"name": "Lab 4",
+									"kind": "exam",
+									"date": "2030-02-05",
+									"past": false,
+									"status": "older",
+									"version": null
+								},
+								{
+									"deadlineId": "ddl_gold00000002",
+									"name": "Quiz 1",
+									"kind": "exam",
+									"date": "2030-02-10",
+									"past": false,
+									"status": "none",
+									"version": null
+								},
+								{
+									"deadlineId": "ddl_gold00000005",
+									"name": "Project",
+									"kind": "exam",
+									"date": "2030-02-20",
+									"past": false,
+									"status": "none",
+									"version": null
+								},
+								{
+									"deadlineId": "ddl_gold00000006",
+									"name": "Essay",
+									"kind": "exam",
+									"date": "2030-02-25",
+									"past": false,
+									"status": "made",
+									"version": {
+										"n": 1,
+										"prompt": "essay",
+										"at": "2029-03-01T10:00:00.000Z",
+										"pages": [
+											{
+												"widthPt": 612,
+												"heightPt": 792
+											}
+										],
+										"file": "<home>/godspeed/cheat-sheets/Golden Class Essay/made.pdf"
+									}
+								},
+								{
+									"deadlineId": "ddl_gold00000003",
+									"name": "Final",
+									"kind": "exam",
+									"date": "2030-03-01",
+									"past": false,
+									"status": "newer",
+									"version": null
+								}
+							]
+						}
+					}
+				},
+				{
+					"op": "class",
+					"cls": "cls_nothere_00000000",
+					"out": {
+						"ok": false,
+						"status": 404,
+						"error": "No such class"
+					}
+				},
+				{
+					"op": "view",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_gold00000001",
+					"out": {
+						"ok": true,
+						"value": {
+							"className": "Golden Class",
+							"deadlineName": "Midterm",
+							"date": "2030-02-01",
+							"sheet": {
+								"deadlineId": "ddl_gold00000001",
+								"versions": [
+									{
+										"n": 1,
+										"prompt": "first ask",
+										"at": "2029-03-01T10:00:00.000Z",
+										"pages": [
+											{
+												"widthPt": 612,
+												"heightPt": 792
+											}
+										]
+									},
+									{
+										"n": 2,
+										"prompt": "bigger fonts",
+										"at": "2029-03-02T10:00:00.000Z",
+										"pages": [
+											{
+												"widthPt": 612,
+												"heightPt": 792
+											},
+											{
+												"widthPt": 612,
+												"heightPt": 792
+											}
+										],
+										"file": "<home>/godspeed/cheat-sheets/Golden Class Midterm/sheet.pdf"
+									}
+								],
+								"messages": [
+									{
+										"id": "m1",
+										"role": "you",
+										"text": "first ask",
+										"at": "2029-03-01T10:00:00.000Z",
+										"files": [
+											{
+												"name": "pic.png",
+												"file": "aaaa11112222-pic.png"
+											}
+										]
+									},
+									{
+										"id": "m2",
+										"role": "agent",
+										"text": "Made it.",
+										"at": "2029-03-01T10:00:00.000Z",
+										"version": 1,
+										"rules": [
+											"no slang"
+										]
+									}
+								],
+								"rules": [
+									{
+										"text": "no slang",
+										"at": "2029-03-01T10:00:00.000Z"
+									},
+									{
+										"text": "A4, both sides",
+										"at": "2029-03-01T10:00:00.000Z"
+									}
+								],
+								"folder": "Golden Class Midterm",
+								"updatedAt": "2029-03-02T10:00:00.000Z"
+							},
+							"running": null,
+							"error": null
+						}
+					}
+				},
+				{
+					"op": "view",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_gold00000002",
+					"out": {
+						"ok": true,
+						"value": {
+							"className": "Golden Class",
+							"deadlineName": "Quiz 1",
+							"date": "2030-02-10",
+							"sheet": {
+								"deadlineId": "ddl_gold00000002",
+								"versions": [],
+								"messages": [],
+								"rules": [],
+								"updatedAt": "<now>"
+							},
+							"running": null,
+							"error": null
+						}
+					}
+				},
+				{
+					"op": "view",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_gold00000003",
+					"out": {
+						"ok": true,
+						"value": {
+							"className": "Golden Class",
+							"deadlineName": "Final",
+							"date": "2030-03-01",
+							"sheet": {
+								"deadlineId": "ddl_gold00000003",
+								"versions": [],
+								"messages": [],
+								"rules": [],
+								"updatedAt": "<now>"
+							},
+							"running": null,
+							"error": null,
+							"newer": true
+						}
+					}
+				},
+				{
+					"op": "view",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_gold00000004",
+					"out": {
+						"ok": true,
+						"value": {
+							"className": "Golden Class",
+							"deadlineName": "Lab 4",
+							"date": "2030-02-05",
+							"sheet": {
+								"deadlineId": "ddl_gold00000004",
+								"versions": [],
+								"messages": [
+									{
+										"id": "asked-0",
+										"role": "you",
+										"text": "make it bigger",
+										"at": "2029-03-02T10:00:00.000Z",
+										"files": [
+											{
+												"name": "old.png"
+											}
+										]
+									}
+								],
+								"rules": [],
+								"olderFormat": true,
+								"updatedAt": "2029-03-02T10:00:00.000Z"
+							},
+							"running": null,
+							"error": null
+						}
+					}
+				},
+				{
+					"op": "view",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_gold00000005",
+					"out": {
+						"ok": true,
+						"value": {
+							"className": "Golden Class",
+							"deadlineName": "Project",
+							"date": "2030-02-20",
+							"sheet": {
+								"deadlineId": "ddl_gold00000005",
+								"versions": [],
+								"messages": [],
+								"rules": [],
+								"updatedAt": "<now>"
+							},
+							"running": null,
+							"error": null
+						}
+					}
+				},
+				{
+					"op": "view",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_gold00000006",
+					"out": {
+						"ok": true,
+						"value": {
+							"className": "Golden Class",
+							"deadlineName": "Essay",
+							"date": "2030-02-25",
+							"sheet": {
+								"deadlineId": "ddl_gold00000006",
+								"versions": [
+									{
+										"n": 1,
+										"prompt": "essay",
+										"at": "2029-03-01T10:00:00.000Z",
+										"pages": [
+											{
+												"widthPt": 612,
+												"heightPt": 792
+											}
+										],
+										"file": "<home>/godspeed/cheat-sheets/Golden Class Essay/made.pdf"
+									}
+								],
+								"messages": [],
+								"rules": [],
+								"folder": "Golden Class Essay",
+								"updatedAt": "2029-03-01T10:00:00.000Z"
+							},
+							"running": null,
+							"error": null
+						}
+					}
+				},
+				{
+					"op": "view",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_000000000000",
+					"out": {
+						"ok": false,
+						"status": 404,
+						"error": "No such deadline"
+					}
+				},
+				{
+					"op": "pdf",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_gold00000001",
+					"n": 1,
+					"out": {
+						"size": 456,
+						"sha256": "a2ad60ead6bfbadbaf0f5bf14e6cee796ca5c938df81f818e14c7742601a42ec"
+					}
+				},
+				{
+					"op": "pdf",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_gold00000001",
+					"n": 2,
+					"out": {
+						"size": 680,
+						"sha256": "2ae913163c68f1ddb5395dd87dbad32824a93f975380f8ee4e0d57f1251393d0"
+					}
+				},
+				{
+					"op": "pdf",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_gold00000001",
+					"n": 3,
+					"out": null
+				},
+				{
+					"op": "pdf",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_gold00000002",
+					"n": 1,
+					"out": null
+				},
+				{
+					"op": "pdf",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_000000000000",
+					"n": 1,
+					"out": null
+				},
+				{
+					"op": "kept",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_gold00000001",
+					"file": "aaaa11112222-pic.png",
+					"out": {
+						"type": "image/png",
+						"size": 16,
+						"sha256": "e90137d39de304eefbbe788bc535c7e82f27abbf8069505fbbd8a9dcdc4f2024"
+					}
+				},
+				{
+					"op": "kept",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_gold00000001",
+					"file": "bbbb33334444-notes.pdf",
+					"out": {
+						"type": "application/pdf",
+						"size": 456,
+						"sha256": "a2ad60ead6bfbadbaf0f5bf14e6cee796ca5c938df81f818e14c7742601a42ec"
+					}
+				},
+				{
+					"op": "kept",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_gold00000001",
+					"file": "cccc55556666-shot.jpg",
+					"out": {
+						"type": "image/jpeg",
+						"size": 17,
+						"sha256": "21ac2586e213d1f490778a07bf0025a98fc57595863a282372bac594b398322b"
+					}
+				},
+				{
+					"op": "kept",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_gold00000001",
+					"file": "dddd77778888-data.bin",
+					"out": {
+						"type": "application/octet-stream",
+						"size": 4,
+						"sha256": "054edec1d0211f624fed0cbca9d4f9400b0e491c43742af2c5b0abebf0c990d8"
+					}
+				},
+				{
+					"op": "kept",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_gold00000001",
+					"file": "eeee9999aaaa-UPPER.PDF",
+					"out": {
+						"type": "application/pdf",
+						"size": 456,
+						"sha256": "a2ad60ead6bfbadbaf0f5bf14e6cee796ca5c938df81f818e14c7742601a42ec"
+					}
+				},
+				{
+					"op": "kept",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_gold00000001",
+					"file": "ffff00000000-gone.png",
+					"out": null
+				},
+				{
+					"op": "kept",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_gold00000001",
+					"file": ".hidden.png",
+					"out": null
+				},
+				{
+					"op": "kept",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_gold00000002",
+					"file": "aaaa11112222-pic.png",
+					"out": null
+				},
+				{
+					"op": "ask",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_gold00000001",
+					"body": {
+						"text": ""
+					},
+					"out": {
+						"ok": false,
+						"status": 400,
+						"error": "Say what you want to ask or change."
+					}
+				},
+				{
+					"op": "ask",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_gold00000001",
+					"body": {
+						"text": "   \n\t "
+					},
+					"out": {
+						"ok": false,
+						"status": 400,
+						"error": "Say what you want to ask or change."
+					}
+				},
+				{
+					"op": "ask",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_gold00000001",
+					"body": {
+						"text": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+					},
+					"out": {
+						"ok": false,
+						"status": 400,
+						"error": "Keep it under 2000 characters."
+					}
+				},
+				{
+					"op": "ask",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_gold00000001",
+					"body": {
+						"text": "hi",
+						"attachments": [
+							{
+								"name": "a.txt",
+								"mimeType": "text/plain",
+								"data": "AAAA"
+							}
+						]
+					},
+					"out": {
+						"ok": false,
+						"status": 400,
+						"error": "Send pictures or PDFs."
+					}
+				},
+				{
+					"op": "ask",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_gold00000001",
+					"body": {
+						"text": "hi",
+						"attachments": [
+							{
+								"name": "a.heic",
+								"mimeType": "image/heic",
+								"data": "AAAA"
+							}
+						]
+					},
+					"out": {
+						"ok": false,
+						"status": 400,
+						"error": "Can't read a.heic."
+					}
+				},
+				{
+					"op": "ask",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_gold00000001",
+					"body": {
+						"text": "",
+						"attachments": [
+							{
+								"name": "a.txt",
+								"mimeType": "text/plain",
+								"data": "AAAA"
+							}
+						]
+					},
+					"out": {
+						"ok": false,
+						"status": 400,
+						"error": "Send pictures or PDFs."
+					}
+				},
+				{
+					"op": "ask",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_000000000000",
+					"body": {
+						"text": "hi"
+					},
+					"out": {
+						"ok": false,
+						"status": 404,
+						"error": "No such deadline"
+					}
+				},
+				{
+					"op": "ask",
+					"cls": "cls_nothere_00000000",
+					"ddl": "ddl_gold00000001",
+					"body": {
+						"text": "hi"
+					},
+					"out": {
+						"ok": false,
+						"status": 404,
+						"error": "No such deadline"
+					}
+				},
+				{
+					"op": "ask",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_gold00000003",
+					"body": {
+						"text": "hi"
+					},
+					"out": {
+						"ok": false,
+						"status": 409,
+						"error": "A newer godspeed saved this cheat sheet. Update godspeed to change it."
+					}
+				},
+				{
+					"op": "ask",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_gold00000003",
+					"body": {
+						"text": "hi",
+						"region": {
+							"n": 1,
+							"page": 1,
+							"x": 0,
+							"y": 0,
+							"w": 1,
+							"h": 1
+						}
+					},
+					"out": {
+						"ok": false,
+						"status": 409,
+						"error": "A newer godspeed saved this cheat sheet. Update godspeed to change it."
+					}
+				},
+				{
+					"op": "ask",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_gold00000001",
+					"body": {
+						"text": "hi",
+						"region": {
+							"n": 99,
+							"page": 1,
+							"x": 0,
+							"y": 0,
+							"w": 1,
+							"h": 1
+						}
+					},
+					"out": {
+						"ok": false,
+						"status": 400,
+						"error": "That version of the sheet is gone. Point at it again."
+					}
+				},
+				{
+					"op": "ask",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_gold00000001",
+					"body": {
+						"text": "hi",
+						"region": {
+							"n": 2,
+							"page": 3,
+							"x": 0,
+							"y": 0,
+							"w": 1,
+							"h": 1
+						}
+					},
+					"out": {
+						"ok": false,
+						"status": 400,
+						"error": "That version of the sheet is gone. Point at it again."
+					}
+				},
+				{
+					"op": "ask",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_gold00000001",
+					"body": {
+						"text": "hi",
+						"region": {
+							"n": 2,
+							"page": 1.5,
+							"x": 0,
+							"y": 0,
+							"w": 1,
+							"h": 1
+						}
+					},
+					"out": {
+						"ok": false,
+						"status": 400,
+						"error": "That version of the sheet is gone. Point at it again."
+					}
+				},
+				{
+					"op": "ask",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_gold00000001",
+					"body": {
+						"text": "hi",
+						"region": {
+							"n": 2,
+							"page": 1,
+							"x": 0.5,
+							"y": 0,
+							"w": 0.6,
+							"h": 1
+						}
+					},
+					"out": {
+						"ok": false,
+						"status": 400,
+						"error": "That box isn't on the page."
+					}
+				},
+				{
+					"op": "ask",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_gold00000001",
+					"body": {
+						"text": "hi",
+						"region": {
+							"n": 2,
+							"page": 1,
+							"x": 0.5,
+							"y": 0.5,
+							"w": 0,
+							"h": 0.2
+						}
+					},
+					"out": {
+						"ok": false,
+						"status": 400,
+						"error": "That box isn't on the page."
+					}
+				},
+				{
+					"op": "ask",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_gold00000001",
+					"body": {
+						"text": "hi",
+						"region": {
+							"n": 2,
+							"page": 1,
+							"x": -0.1,
+							"y": 0,
+							"w": 0.5,
+							"h": 0.5
+						}
+					},
+					"out": {
+						"ok": false,
+						"status": 400,
+						"error": "That box isn't on the page."
+					}
+				},
+				{
+					"op": "view",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_gold00000001",
+					"out": {
+						"ok": true,
+						"value": {
+							"className": "Golden Class",
+							"deadlineName": "Midterm",
+							"date": "2030-02-01",
+							"sheet": {
+								"deadlineId": "ddl_gold00000001",
+								"versions": [
+									{
+										"n": 1,
+										"prompt": "first ask",
+										"at": "2029-03-01T10:00:00.000Z",
+										"pages": [
+											{
+												"widthPt": 612,
+												"heightPt": 792
+											}
+										]
+									},
+									{
+										"n": 2,
+										"prompt": "bigger fonts",
+										"at": "2029-03-02T10:00:00.000Z",
+										"pages": [
+											{
+												"widthPt": 612,
+												"heightPt": 792
+											},
+											{
+												"widthPt": 612,
+												"heightPt": 792
+											}
+										],
+										"file": "<home>/godspeed/cheat-sheets/Golden Class Midterm/sheet.pdf"
+									}
+								],
+								"messages": [
+									{
+										"id": "m1",
+										"role": "you",
+										"text": "first ask",
+										"at": "2029-03-01T10:00:00.000Z",
+										"files": [
+											{
+												"name": "pic.png",
+												"file": "aaaa11112222-pic.png"
+											}
+										]
+									},
+									{
+										"id": "m2",
+										"role": "agent",
+										"text": "Made it.",
+										"at": "2029-03-01T10:00:00.000Z",
+										"version": 1,
+										"rules": [
+											"no slang"
+										]
+									}
+								],
+								"rules": [
+									{
+										"text": "no slang",
+										"at": "2029-03-01T10:00:00.000Z"
+									},
+									{
+										"text": "A4, both sides",
+										"at": "2029-03-01T10:00:00.000Z"
+									}
+								],
+								"folder": "Golden Class Midterm",
+								"updatedAt": "2029-03-02T10:00:00.000Z"
+							},
+							"running": null,
+							"error": null
+						}
+					}
+				},
+				{
+					"op": "retry",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_gold00000001",
+					"out": {
+						"ok": false,
+						"status": 409,
+						"error": "Nothing to try again."
+					}
+				},
+				{
+					"op": "retry",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_000000000000",
+					"out": {
+						"ok": false,
+						"status": 409,
+						"error": "Nothing to try again."
+					}
+				},
+				{
+					"op": "stop",
+					"ddl": "ddl_gold00000001",
+					"out": null
+				},
+				{
+					"op": "removeRule",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_gold00000001",
+					"text": "no such rule",
+					"out": {
+						"ok": true,
+						"value": null
+					}
+				},
+				{
+					"op": "removeRule",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_gold00000001",
+					"text": "  A4, BOTH sides ",
+					"out": {
+						"ok": true,
+						"value": null
+					}
+				},
+				{
+					"op": "view",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_gold00000001",
+					"out": {
+						"ok": true,
+						"value": {
+							"className": "Golden Class",
+							"deadlineName": "Midterm",
+							"date": "2030-02-01",
+							"sheet": {
+								"deadlineId": "ddl_gold00000001",
+								"versions": [
+									{
+										"n": 1,
+										"prompt": "first ask",
+										"at": "2029-03-01T10:00:00.000Z",
+										"pages": [
+											{
+												"widthPt": 612,
+												"heightPt": 792
+											}
+										]
+									},
+									{
+										"n": 2,
+										"prompt": "bigger fonts",
+										"at": "2029-03-02T10:00:00.000Z",
+										"pages": [
+											{
+												"widthPt": 612,
+												"heightPt": 792
+											},
+											{
+												"widthPt": 612,
+												"heightPt": 792
+											}
+										],
+										"file": "<home>/godspeed/cheat-sheets/Golden Class Midterm/sheet.pdf"
+									}
+								],
+								"messages": [
+									{
+										"id": "m1",
+										"role": "you",
+										"text": "first ask",
+										"at": "2029-03-01T10:00:00.000Z",
+										"files": [
+											{
+												"name": "pic.png",
+												"file": "aaaa11112222-pic.png"
+											}
+										]
+									},
+									{
+										"id": "m2",
+										"role": "agent",
+										"text": "Made it.",
+										"at": "2029-03-01T10:00:00.000Z",
+										"version": 1,
+										"rules": [
+											"no slang"
+										]
+									}
+								],
+								"rules": [
+									{
+										"text": "no slang",
+										"at": "2029-03-01T10:00:00.000Z"
+									},
+									{
+										"text": "A4, both sides",
+										"at": "2029-03-01T10:00:00.000Z"
+									}
+								],
+								"folder": "Golden Class Midterm",
+								"updatedAt": "2029-03-02T10:00:00.000Z"
+							},
+							"running": null,
+							"error": null
+						}
+					}
+				},
+				{
+					"op": "removeRule",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_gold00000001",
+					"text": "no slang",
+					"out": {
+						"ok": true,
+						"value": null
+					}
+				},
+				{
+					"op": "view",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_gold00000001",
+					"out": {
+						"ok": true,
+						"value": {
+							"className": "Golden Class",
+							"deadlineName": "Midterm",
+							"date": "2030-02-01",
+							"sheet": {
+								"deadlineId": "ddl_gold00000001",
+								"versions": [
+									{
+										"n": 1,
+										"prompt": "first ask",
+										"at": "2029-03-01T10:00:00.000Z",
+										"pages": [
+											{
+												"widthPt": 612,
+												"heightPt": 792
+											}
+										]
+									},
+									{
+										"n": 2,
+										"prompt": "bigger fonts",
+										"at": "2029-03-02T10:00:00.000Z",
+										"pages": [
+											{
+												"widthPt": 612,
+												"heightPt": 792
+											},
+											{
+												"widthPt": 612,
+												"heightPt": 792
+											}
+										],
+										"file": "<home>/godspeed/cheat-sheets/Golden Class Midterm/sheet.pdf"
+									}
+								],
+								"messages": [
+									{
+										"id": "m1",
+										"role": "you",
+										"text": "first ask",
+										"at": "2029-03-01T10:00:00.000Z",
+										"files": [
+											{
+												"name": "pic.png",
+												"file": "aaaa11112222-pic.png"
+											}
+										]
+									},
+									{
+										"id": "m2",
+										"role": "agent",
+										"text": "Made it.",
+										"at": "2029-03-01T10:00:00.000Z",
+										"version": 1,
+										"rules": [
+											"no slang"
+										]
+									}
+								],
+								"rules": [
+									{
+										"text": "A4, both sides",
+										"at": "2029-03-01T10:00:00.000Z"
+									}
+								],
+								"folder": "Golden Class Midterm",
+								"updatedAt": "2029-03-02T10:00:00.000Z"
+							},
+							"running": null,
+							"error": null
+						}
+					}
+				},
+				{
+					"op": "removeRule",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_gold00000001",
+					"text": "",
+					"out": {
+						"ok": true,
+						"value": null
+					}
+				},
+				{
+					"op": "removeRule",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_gold00000002",
+					"text": "x",
+					"out": {
+						"ok": true,
+						"value": null
+					}
+				},
+				{
+					"op": "removeRule",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_gold00000004",
+					"text": "x",
+					"out": {
+						"ok": true,
+						"value": null
+					}
+				},
+				{
+					"op": "removeRule",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_gold00000003",
+					"text": "x",
+					"out": {
+						"ok": false,
+						"status": 409,
+						"error": "A newer godspeed saved this cheat sheet. Update godspeed to change it."
+					}
+				},
+				{
+					"op": "removeRule",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_000000000000",
+					"text": "x",
+					"out": {
+						"ok": false,
+						"status": 404,
+						"error": "No such deadline"
+					}
+				},
+				{
+					"op": "removeRule",
+					"cls": "cls_nothere_00000000",
+					"ddl": "ddl_gold00000001",
+					"text": "x",
+					"out": {
+						"ok": false,
+						"status": 404,
+						"error": "No such deadline"
+					}
+				},
+				{
+					"op": "sheet",
+					"ddl": "ddl_gold00000001",
+					"out": {
+						"version": 4,
+						"deadlineId": "ddl_gold00000001",
+						"versions": [
+							{
+								"n": 1,
+								"prompt": "first ask",
+								"at": "2029-03-01T10:00:00.000Z",
+								"pages": [
+									{
+										"widthPt": 612,
+										"heightPt": 792
+									}
+								]
+							},
+							{
+								"n": 2,
+								"prompt": "bigger fonts",
+								"at": "2029-03-02T10:00:00.000Z",
+								"pages": [
+									{
+										"widthPt": 612,
+										"heightPt": 792
+									},
+									{
+										"widthPt": 612,
+										"heightPt": 792
+									}
+								],
+								"file": "<home>/godspeed/cheat-sheets/Golden Class Midterm/sheet.pdf"
+							}
+						],
+						"messages": [
+							{
+								"id": "m1",
+								"role": "you",
+								"text": "first ask",
+								"at": "2029-03-01T10:00:00.000Z",
+								"files": [
+									{
+										"name": "pic.png",
+										"file": "aaaa11112222-pic.png"
+									}
+								]
+							},
+							{
+								"id": "m2",
+								"role": "agent",
+								"text": "Made it.",
+								"at": "2029-03-01T10:00:00.000Z",
+								"version": 1,
+								"rules": [
+									"no slang"
+								]
+							}
+						],
+						"rules": [
+							{
+								"text": "A4, both sides",
+								"at": "2029-03-01T10:00:00.000Z"
+							}
+						],
+						"folder": "Golden Class Midterm",
+						"updatedAt": "2029-03-02T10:00:00.000Z"
+					}
+				},
+				{
+					"op": "file",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_gold00000001",
+					"n": 99,
+					"out": {
+						"ok": false,
+						"status": 404,
+						"error": "No such cheat sheet"
+					}
+				},
+				{
+					"op": "file",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_gold00000001",
+					"n": 2,
+					"out": {
+						"ok": true,
+						"value": "<home>/godspeed/cheat-sheets/Golden Class Midterm/sheet.pdf"
+					}
+				},
+				{
+					"op": "file",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_gold00000001",
+					"n": 1,
+					"out": {
+						"ok": true,
+						"value": "<home>/godspeed/cheat-sheets/Golden Class Midterm/cheat sheet v1.pdf"
+					}
+				},
+				{
+					"op": "file",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_gold00000001",
+					"n": 1,
+					"out": {
+						"ok": true,
+						"value": "<home>/godspeed/cheat-sheets/Golden Class Midterm/cheat sheet v1.pdf"
+					}
+				},
+				{
+					"op": "file",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_gold00000006",
+					"n": 1,
+					"out": {
+						"ok": true,
+						"value": "<home>/godspeed/cheat-sheets/Golden Class Essay/made.pdf"
+					}
+				},
+				{
+					"op": "file",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_gold00000002",
+					"n": 1,
+					"out": {
+						"ok": false,
+						"status": 404,
+						"error": "No such cheat sheet"
+					}
+				},
+				{
+					"op": "file",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_gold00000003",
+					"n": 1,
+					"out": {
+						"ok": false,
+						"status": 404,
+						"error": "No such cheat sheet"
+					}
+				},
+				{
+					"op": "file",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_gold00000004",
+					"n": 1,
+					"out": {
+						"ok": false,
+						"status": 404,
+						"error": "No such cheat sheet"
+					}
+				},
+				{
+					"op": "file",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_gold00000005",
+					"n": 1,
+					"out": {
+						"ok": false,
+						"status": 404,
+						"error": "No such cheat sheet"
+					}
+				},
+				{
+					"op": "file",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_gold00000001",
+					"n": 3.5,
+					"out": {
+						"ok": false,
+						"status": 404,
+						"error": "No such cheat sheet"
+					}
+				},
+				{
+					"op": "ls",
+					"dir": "Golden Class Midterm",
+					"out": [
+						"cheat sheet v1.pdf",
+						"sheet.pdf"
+					]
+				},
+				{
+					"op": "put",
+					"path": "Golden Class Midterm/cheat sheet v1.pdf",
+					"base64": "JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCAzMDAgMzAwXSAvQ29udGVudHMgNCAwIFIgL1Jlc291cmNlcyA8PCA+PiA+PgplbmRvYmoKNCAwIG9iago8PCAvTGVuZ3RoIDI0ID4+CnN0cmVhbQowLjggZyAxMCAxMCAyODAgMjgwIHJlIGYKZW5kc3RyZWFtCmVuZG9iagp4cmVmCjAgNQowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwMDkgMDAwMDAgbiAKMDAwMDAwMDA1OCAwMDAwMCBuIAowMDAwMDAwMTE1IDAwMDAwIG4gCjAwMDAwMDAyMTkgMDAwMDAgbiAKdHJhaWxlcgo8PCAvU2l6ZSA1IC9Sb290IDEgMCBSID4+CnN0YXJ0eHJlZgoyOTMKJSVFT0YK",
+					"mtime": "2031-01-01T00:00:00.000Z",
+					"out": null
+				},
+				{
+					"op": "file",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_gold00000001",
+					"n": 1,
+					"out": {
+						"ok": true,
+						"value": "<home>/godspeed/cheat-sheets/Golden Class Midterm/cheat sheet v1.pdf"
+					}
+				},
+				{
+					"op": "ls",
+					"dir": "Golden Class Midterm",
+					"out": [
+						"cheat sheet v1.pdf",
+						"sheet.pdf"
+					]
+				},
+				{
+					"op": "put",
+					"path": "Golden Class Midterm/old.pdf",
+					"base64": "JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCA2MTIgNzkyXSAvQ29udGVudHMgNCAwIFIgL1Jlc291cmNlcyA8PCA+PiA+PgplbmRvYmoKNCAwIG9iago8PCAvTGVuZ3RoIDI0ID4+CnN0cmVhbQowLjggZyAxMCAxMCA1OTIgNzcyIHJlIGYKZW5kc3RyZWFtCmVuZG9iagp4cmVmCjAgNQowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwMDkgMDAwMDAgbiAKMDAwMDAwMDA1OCAwMDAwMCBuIAowMDAwMDAwMTE1IDAwMDAwIG4gCjAwMDAwMDAyMTkgMDAwMDAgbiAKdHJhaWxlcgo8PCAvU2l6ZSA1IC9Sb290IDEgMCBSID4+CnN0YXJ0eHJlZgoyOTMKJSVFT0YK",
+					"mtime": "2025-01-01T00:00:00.000Z",
+					"out": null
+				},
+				{
+					"op": "view",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_gold00000001",
+					"out": {
+						"ok": true,
+						"value": {
+							"className": "Golden Class",
+							"deadlineName": "Midterm",
+							"date": "2030-02-01",
+							"sheet": {
+								"deadlineId": "ddl_gold00000001",
+								"versions": [
+									{
+										"n": 1,
+										"prompt": "first ask",
+										"at": "2029-03-01T10:00:00.000Z",
+										"pages": [
+											{
+												"widthPt": 612,
+												"heightPt": 792
+											}
+										]
+									},
+									{
+										"n": 2,
+										"prompt": "bigger fonts",
+										"at": "2029-03-02T10:00:00.000Z",
+										"pages": [
+											{
+												"widthPt": 612,
+												"heightPt": 792
+											},
+											{
+												"widthPt": 612,
+												"heightPt": 792
+											}
+										],
+										"file": "<home>/godspeed/cheat-sheets/Golden Class Midterm/sheet.pdf"
+									}
+								],
+								"messages": [
+									{
+										"id": "m1",
+										"role": "you",
+										"text": "first ask",
+										"at": "2029-03-01T10:00:00.000Z",
+										"files": [
+											{
+												"name": "pic.png",
+												"file": "aaaa11112222-pic.png"
+											}
+										]
+									},
+									{
+										"id": "m2",
+										"role": "agent",
+										"text": "Made it.",
+										"at": "2029-03-01T10:00:00.000Z",
+										"version": 1,
+										"rules": [
+											"no slang"
+										]
+									}
+								],
+								"rules": [
+									{
+										"text": "A4, both sides",
+										"at": "2029-03-01T10:00:00.000Z"
+									}
+								],
+								"folder": "Golden Class Midterm",
+								"updatedAt": "2029-03-02T10:00:00.000Z"
+							},
+							"running": null,
+							"error": null
+						}
+					}
+				},
+				{
+					"op": "put",
+					"path": "Golden Class Midterm/notes.pdf",
+					"base64": "JVBERi0xLjQganVuayB0aGF0IGlzIG5vIGRvY3VtZW50Cg==",
+					"mtime": "2031-01-01T00:00:00.000Z",
+					"out": null
+				},
+				{
+					"op": "view",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_gold00000001",
+					"out": {
+						"ok": true,
+						"value": {
+							"className": "Golden Class",
+							"deadlineName": "Midterm",
+							"date": "2030-02-01",
+							"sheet": {
+								"deadlineId": "ddl_gold00000001",
+								"versions": [
+									{
+										"n": 1,
+										"prompt": "first ask",
+										"at": "2029-03-01T10:00:00.000Z",
+										"pages": [
+											{
+												"widthPt": 612,
+												"heightPt": 792
+											}
+										]
+									},
+									{
+										"n": 2,
+										"prompt": "bigger fonts",
+										"at": "2029-03-02T10:00:00.000Z",
+										"pages": [
+											{
+												"widthPt": 612,
+												"heightPt": 792
+											},
+											{
+												"widthPt": 612,
+												"heightPt": 792
+											}
+										],
+										"file": "<home>/godspeed/cheat-sheets/Golden Class Midterm/sheet.pdf"
+									}
+								],
+								"messages": [
+									{
+										"id": "m1",
+										"role": "you",
+										"text": "first ask",
+										"at": "2029-03-01T10:00:00.000Z",
+										"files": [
+											{
+												"name": "pic.png",
+												"file": "aaaa11112222-pic.png"
+											}
+										]
+									},
+									{
+										"id": "m2",
+										"role": "agent",
+										"text": "Made it.",
+										"at": "2029-03-01T10:00:00.000Z",
+										"version": 1,
+										"rules": [
+											"no slang"
+										]
+									}
+								],
+								"rules": [
+									{
+										"text": "A4, both sides",
+										"at": "2029-03-01T10:00:00.000Z"
+									}
+								],
+								"folder": "Golden Class Midterm",
+								"updatedAt": "2029-03-02T10:00:00.000Z"
+							},
+							"running": null,
+							"error": null
+						}
+					}
+				},
+				{
+					"op": "view",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_gold00000001",
+					"out": {
+						"ok": true,
+						"value": {
+							"className": "Golden Class",
+							"deadlineName": "Midterm",
+							"date": "2030-02-01",
+							"sheet": {
+								"deadlineId": "ddl_gold00000001",
+								"versions": [
+									{
+										"n": 1,
+										"prompt": "first ask",
+										"at": "2029-03-01T10:00:00.000Z",
+										"pages": [
+											{
+												"widthPt": 612,
+												"heightPt": 792
+											}
+										]
+									},
+									{
+										"n": 2,
+										"prompt": "bigger fonts",
+										"at": "2029-03-02T10:00:00.000Z",
+										"pages": [
+											{
+												"widthPt": 612,
+												"heightPt": 792
+											},
+											{
+												"widthPt": 612,
+												"heightPt": 792
+											}
+										],
+										"file": "<home>/godspeed/cheat-sheets/Golden Class Midterm/sheet.pdf"
+									}
+								],
+								"messages": [
+									{
+										"id": "m1",
+										"role": "you",
+										"text": "first ask",
+										"at": "2029-03-01T10:00:00.000Z",
+										"files": [
+											{
+												"name": "pic.png",
+												"file": "aaaa11112222-pic.png"
+											}
+										]
+									},
+									{
+										"id": "m2",
+										"role": "agent",
+										"text": "Made it.",
+										"at": "2029-03-01T10:00:00.000Z",
+										"version": 1,
+										"rules": [
+											"no slang"
+										]
+									}
+								],
+								"rules": [
+									{
+										"text": "A4, both sides",
+										"at": "2029-03-01T10:00:00.000Z"
+									}
+								],
+								"folder": "Golden Class Midterm",
+								"updatedAt": "2029-03-02T10:00:00.000Z"
+							},
+							"running": null,
+							"error": null
+						}
+					}
+				},
+				{
+					"op": "put",
+					"path": "Golden Class Midterm/five.pdf",
+					"base64": "JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUiA1IDAgUiA3IDAgUiA5IDAgUiAxMSAwIFJdIC9Db3VudCA1ID4+CmVuZG9iagozIDAgb2JqCjw8IC9UeXBlIC9QYWdlIC9QYXJlbnQgMiAwIFIgL01lZGlhQm94IFswIDAgNjEyIDc5Ml0gL0NvbnRlbnRzIDQgMCBSIC9SZXNvdXJjZXMgPDwgPj4gPj4KZW5kb2JqCjQgMCBvYmoKPDwgL0xlbmd0aCAyNCA+PgpzdHJlYW0KMC44IGcgMTAgMTAgNTkyIDc3MiByZSBmCmVuZHN0cmVhbQplbmRvYmoKNSAwIG9iago8PCAvVHlwZSAvUGFnZSAvUGFyZW50IDIgMCBSIC9NZWRpYUJveCBbMCAwIDYxMiA3OTJdIC9Db250ZW50cyA2IDAgUiAvUmVzb3VyY2VzIDw8ID4+ID4+CmVuZG9iago2IDAgb2JqCjw8IC9MZW5ndGggMjQgPj4Kc3RyZWFtCjAuOCBnIDEwIDEwIDU5MiA3NzIgcmUgZgplbmRzdHJlYW0KZW5kb2JqCjcgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCA2MTIgNzkyXSAvQ29udGVudHMgOCAwIFIgL1Jlc291cmNlcyA8PCA+PiA+PgplbmRvYmoKOCAwIG9iago8PCAvTGVuZ3RoIDI0ID4+CnN0cmVhbQowLjggZyAxMCAxMCA1OTIgNzcyIHJlIGYKZW5kc3RyZWFtCmVuZG9iago5IDAgb2JqCjw8IC9UeXBlIC9QYWdlIC9QYXJlbnQgMiAwIFIgL01lZGlhQm94IFswIDAgNjEyIDc5Ml0gL0NvbnRlbnRzIDEwIDAgUiAvUmVzb3VyY2VzIDw8ID4+ID4+CmVuZG9iagoxMCAwIG9iago8PCAvTGVuZ3RoIDI0ID4+CnN0cmVhbQowLjggZyAxMCAxMCA1OTIgNzcyIHJlIGYKZW5kc3RyZWFtCmVuZG9iagoxMSAwIG9iago8PCAvVHlwZSAvUGFnZSAvUGFyZW50IDIgMCBSIC9NZWRpYUJveCBbMCAwIDYxMiA3OTJdIC9Db250ZW50cyAxMiAwIFIgL1Jlc291cmNlcyA8PCA+PiA+PgplbmRvYmoKMTIgMCBvYmoKPDwgL0xlbmd0aCAyNCA+PgpzdHJlYW0KMC44IGcgMTAgMTAgNTkyIDc3MiByZSBmCmVuZHN0cmVhbQplbmRvYmoKeHJlZgowIDEzCjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDAwOSAwMDAwMCBuIAowMDAwMDAwMDU4IDAwMDAwIG4gCjAwMDAwMDAxNDAgMDAwMDAgbiAKMDAwMDAwMDI0NCAwMDAwMCBuIAowMDAwMDAwMzE4IDAwMDAwIG4gCjAwMDAwMDA0MjIgMDAwMDAgbiAKMDAwMDAwMDQ5NiAwMDAwMCBuIAowMDAwMDAwNjAwIDAwMDAwIG4gCjAwMDAwMDA2NzQgMDAwMDAgbiAKMDAwMDAwMDc3OSAwMDAwMCBuIAowMDAwMDAwODU0IDAwMDAwIG4gCjAwMDAwMDA5NjAgMDAwMDAgbiAKdHJhaWxlcgo8PCAvU2l6ZSAxMyAvUm9vdCAxIDAgUiA+PgpzdGFydHhyZWYKMTAzNQolJUVPRgo=",
+					"mtime": "2031-01-02T00:00:00.000Z",
+					"out": null
+				},
+				{
+					"op": "view",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_gold00000001",
+					"out": {
+						"ok": true,
+						"value": {
+							"className": "Golden Class",
+							"deadlineName": "Midterm",
+							"date": "2030-02-01",
+							"sheet": {
+								"deadlineId": "ddl_gold00000001",
+								"versions": [
+									{
+										"n": 1,
+										"prompt": "first ask",
+										"at": "2029-03-01T10:00:00.000Z",
+										"pages": [
+											{
+												"widthPt": 612,
+												"heightPt": 792
+											}
+										]
+									},
+									{
+										"n": 2,
+										"prompt": "bigger fonts",
+										"at": "2029-03-02T10:00:00.000Z",
+										"pages": [
+											{
+												"widthPt": 612,
+												"heightPt": 792
+											},
+											{
+												"widthPt": 612,
+												"heightPt": 792
+											}
+										],
+										"file": "<home>/godspeed/cheat-sheets/Golden Class Midterm/sheet.pdf"
+									}
+								],
+								"messages": [
+									{
+										"id": "m1",
+										"role": "you",
+										"text": "first ask",
+										"at": "2029-03-01T10:00:00.000Z",
+										"files": [
+											{
+												"name": "pic.png",
+												"file": "aaaa11112222-pic.png"
+											}
+										]
+									},
+									{
+										"id": "m2",
+										"role": "agent",
+										"text": "Made it.",
+										"at": "2029-03-01T10:00:00.000Z",
+										"version": 1,
+										"rules": [
+											"no slang"
+										]
+									}
+								],
+								"rules": [
+									{
+										"text": "A4, both sides",
+										"at": "2029-03-01T10:00:00.000Z"
+									}
+								],
+								"folder": "Golden Class Midterm",
+								"updatedAt": "2029-03-02T10:00:00.000Z"
+							},
+							"running": null,
+							"error": null
+						}
+					}
+				},
+				{
+					"op": "put",
+					"path": "Golden Class Midterm/big.pdf",
+					"base64": "JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCAyMDAwIDIwMDBdIC9Db250ZW50cyA0IDAgUiAvUmVzb3VyY2VzIDw8ID4+ID4+CmVuZG9iago0IDAgb2JqCjw8IC9MZW5ndGggMjYgPj4Kc3RyZWFtCjAuOCBnIDEwIDEwIDE5ODAgMTk4MCByZSBmCmVuZHN0cmVhbQplbmRvYmoKeHJlZgowIDUKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDA5IDAwMDAwIG4gCjAwMDAwMDAwNTggMDAwMDAgbiAKMDAwMDAwMDExNSAwMDAwMCBuIAowMDAwMDAwMjIxIDAwMDAwIG4gCnRyYWlsZXIKPDwgL1NpemUgNSAvUm9vdCAxIDAgUiA+PgpzdGFydHhyZWYKMjk3CiUlRU9GCg==",
+					"mtime": "2031-01-03T00:00:00.000Z",
+					"out": null
+				},
+				{
+					"op": "view",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_gold00000001",
+					"out": {
+						"ok": true,
+						"value": {
+							"className": "Golden Class",
+							"deadlineName": "Midterm",
+							"date": "2030-02-01",
+							"sheet": {
+								"deadlineId": "ddl_gold00000001",
+								"versions": [
+									{
+										"n": 1,
+										"prompt": "first ask",
+										"at": "2029-03-01T10:00:00.000Z",
+										"pages": [
+											{
+												"widthPt": 612,
+												"heightPt": 792
+											}
+										]
+									},
+									{
+										"n": 2,
+										"prompt": "bigger fonts",
+										"at": "2029-03-02T10:00:00.000Z",
+										"pages": [
+											{
+												"widthPt": 612,
+												"heightPt": 792
+											},
+											{
+												"widthPt": 612,
+												"heightPt": 792
+											}
+										],
+										"file": "<home>/godspeed/cheat-sheets/Golden Class Midterm/sheet.pdf"
+									}
+								],
+								"messages": [
+									{
+										"id": "m1",
+										"role": "you",
+										"text": "first ask",
+										"at": "2029-03-01T10:00:00.000Z",
+										"files": [
+											{
+												"name": "pic.png",
+												"file": "aaaa11112222-pic.png"
+											}
+										]
+									},
+									{
+										"id": "m2",
+										"role": "agent",
+										"text": "Made it.",
+										"at": "2029-03-01T10:00:00.000Z",
+										"version": 1,
+										"rules": [
+											"no slang"
+										]
+									}
+								],
+								"rules": [
+									{
+										"text": "A4, both sides",
+										"at": "2029-03-01T10:00:00.000Z"
+									}
+								],
+								"folder": "Golden Class Midterm",
+								"updatedAt": "2029-03-02T10:00:00.000Z"
+							},
+							"running": null,
+							"error": null
+						}
+					}
+				},
+				{
+					"op": "put",
+					"path": "Golden Class Midterm/small.pdf",
+					"base64": "JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCAxMDAgMTAwXSAvQ29udGVudHMgNCAwIFIgL1Jlc291cmNlcyA8PCA+PiA+PgplbmRvYmoKNCAwIG9iago8PCAvTGVuZ3RoIDIyID4+CnN0cmVhbQowLjggZyAxMCAxMCA4MCA4MCByZSBmCmVuZHN0cmVhbQplbmRvYmoKeHJlZgowIDUKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDA5IDAwMDAwIG4gCjAwMDAwMDAwNTggMDAwMDAgbiAKMDAwMDAwMDExNSAwMDAwMCBuIAowMDAwMDAwMjE5IDAwMDAwIG4gCnRyYWlsZXIKPDwgL1NpemUgNSAvUm9vdCAxIDAgUiA+PgpzdGFydHhyZWYKMjkxCiUlRU9GCg==",
+					"mtime": "2031-01-04T00:00:00.000Z",
+					"out": null
+				},
+				{
+					"op": "view",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_gold00000001",
+					"out": {
+						"ok": true,
+						"value": {
+							"className": "Golden Class",
+							"deadlineName": "Midterm",
+							"date": "2030-02-01",
+							"sheet": {
+								"deadlineId": "ddl_gold00000001",
+								"versions": [
+									{
+										"n": 1,
+										"prompt": "first ask",
+										"at": "2029-03-01T10:00:00.000Z",
+										"pages": [
+											{
+												"widthPt": 612,
+												"heightPt": 792
+											}
+										]
+									},
+									{
+										"n": 2,
+										"prompt": "bigger fonts",
+										"at": "2029-03-02T10:00:00.000Z",
+										"pages": [
+											{
+												"widthPt": 612,
+												"heightPt": 792
+											},
+											{
+												"widthPt": 612,
+												"heightPt": 792
+											}
+										],
+										"file": "<home>/godspeed/cheat-sheets/Golden Class Midterm/sheet.pdf"
+									}
+								],
+								"messages": [
+									{
+										"id": "m1",
+										"role": "you",
+										"text": "first ask",
+										"at": "2029-03-01T10:00:00.000Z",
+										"files": [
+											{
+												"name": "pic.png",
+												"file": "aaaa11112222-pic.png"
+											}
+										]
+									},
+									{
+										"id": "m2",
+										"role": "agent",
+										"text": "Made it.",
+										"at": "2029-03-01T10:00:00.000Z",
+										"version": 1,
+										"rules": [
+											"no slang"
+										]
+									}
+								],
+								"rules": [
+									{
+										"text": "A4, both sides",
+										"at": "2029-03-01T10:00:00.000Z"
+									}
+								],
+								"folder": "Golden Class Midterm",
+								"updatedAt": "2029-03-02T10:00:00.000Z"
+							},
+							"running": null,
+							"error": null
+						}
+					}
+				},
+				{
+					"op": "put",
+					"path": "Golden Class Midterm/fake.pdf",
+					"base64": "anVzdCB0ZXh0Cg==",
+					"mtime": "2031-01-05T00:00:00.000Z",
+					"out": null
+				},
+				{
+					"op": "view",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_gold00000001",
+					"out": {
+						"ok": true,
+						"value": {
+							"className": "Golden Class",
+							"deadlineName": "Midterm",
+							"date": "2030-02-01",
+							"sheet": {
+								"deadlineId": "ddl_gold00000001",
+								"versions": [
+									{
+										"n": 1,
+										"prompt": "first ask",
+										"at": "2029-03-01T10:00:00.000Z",
+										"pages": [
+											{
+												"widthPt": 612,
+												"heightPt": 792
+											}
+										]
+									},
+									{
+										"n": 2,
+										"prompt": "bigger fonts",
+										"at": "2029-03-02T10:00:00.000Z",
+										"pages": [
+											{
+												"widthPt": 612,
+												"heightPt": 792
+											},
+											{
+												"widthPt": 612,
+												"heightPt": 792
+											}
+										],
+										"file": "<home>/godspeed/cheat-sheets/Golden Class Midterm/sheet.pdf"
+									}
+								],
+								"messages": [
+									{
+										"id": "m1",
+										"role": "you",
+										"text": "first ask",
+										"at": "2029-03-01T10:00:00.000Z",
+										"files": [
+											{
+												"name": "pic.png",
+												"file": "aaaa11112222-pic.png"
+											}
+										]
+									},
+									{
+										"id": "m2",
+										"role": "agent",
+										"text": "Made it.",
+										"at": "2029-03-01T10:00:00.000Z",
+										"version": 1,
+										"rules": [
+											"no slang"
+										]
+									}
+								],
+								"rules": [
+									{
+										"text": "A4, both sides",
+										"at": "2029-03-01T10:00:00.000Z"
+									}
+								],
+								"folder": "Golden Class Midterm",
+								"updatedAt": "2029-03-02T10:00:00.000Z"
+							},
+							"running": null,
+							"error": null
+						}
+					}
+				},
+				{
+					"op": "put",
+					"path": "Golden Class Midterm/same.pdf",
+					"base64": "JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUiA1IDAgUl0gL0NvdW50IDIgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCA2MTIgNzkyXSAvQ29udGVudHMgNCAwIFIgL1Jlc291cmNlcyA8PCA+PiA+PgplbmRvYmoKNCAwIG9iago8PCAvTGVuZ3RoIDI0ID4+CnN0cmVhbQowLjggZyAxMCAxMCA1OTIgNzcyIHJlIGYKZW5kc3RyZWFtCmVuZG9iago1IDAgb2JqCjw8IC9UeXBlIC9QYWdlIC9QYXJlbnQgMiAwIFIgL01lZGlhQm94IFswIDAgNjEyIDc5Ml0gL0NvbnRlbnRzIDYgMCBSIC9SZXNvdXJjZXMgPDwgPj4gPj4KZW5kb2JqCjYgMCBvYmoKPDwgL0xlbmd0aCAyNCA+PgpzdHJlYW0KMC44IGcgMTAgMTAgNTkyIDc3MiByZSBmCmVuZHN0cmVhbQplbmRvYmoKeHJlZgowIDcKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDA5IDAwMDAwIG4gCjAwMDAwMDAwNTggMDAwMDAgbiAKMDAwMDAwMDEyMSAwMDAwMCBuIAowMDAwMDAwMjI1IDAwMDAwIG4gCjAwMDAwMDAyOTkgMDAwMDAgbiAKMDAwMDAwMDQwMyAwMDAwMCBuIAp0cmFpbGVyCjw8IC9TaXplIDcgL1Jvb3QgMSAwIFIgPj4Kc3RhcnR4cmVmCjQ3NwolJUVPRgo=",
+					"mtime": "2031-01-06T00:00:00.000Z",
+					"out": null
+				},
+				{
+					"op": "view",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_gold00000001",
+					"out": {
+						"ok": true,
+						"value": {
+							"className": "Golden Class",
+							"deadlineName": "Midterm",
+							"date": "2030-02-01",
+							"sheet": {
+								"deadlineId": "ddl_gold00000001",
+								"versions": [
+									{
+										"n": 1,
+										"prompt": "first ask",
+										"at": "2029-03-01T10:00:00.000Z",
+										"pages": [
+											{
+												"widthPt": 612,
+												"heightPt": 792
+											}
+										]
+									},
+									{
+										"n": 2,
+										"prompt": "bigger fonts",
+										"at": "2029-03-02T10:00:00.000Z",
+										"pages": [
+											{
+												"widthPt": 612,
+												"heightPt": 792
+											},
+											{
+												"widthPt": 612,
+												"heightPt": 792
+											}
+										],
+										"file": "<home>/godspeed/cheat-sheets/Golden Class Midterm/sheet.pdf"
+									}
+								],
+								"messages": [
+									{
+										"id": "m1",
+										"role": "you",
+										"text": "first ask",
+										"at": "2029-03-01T10:00:00.000Z",
+										"files": [
+											{
+												"name": "pic.png",
+												"file": "aaaa11112222-pic.png"
+											}
+										]
+									},
+									{
+										"id": "m2",
+										"role": "agent",
+										"text": "Made it.",
+										"at": "2029-03-01T10:00:00.000Z",
+										"version": 1,
+										"rules": [
+											"no slang"
+										]
+									}
+								],
+								"rules": [
+									{
+										"text": "A4, both sides",
+										"at": "2029-03-01T10:00:00.000Z"
+									}
+								],
+								"folder": "Golden Class Midterm",
+								"updatedAt": "2029-03-02T10:00:00.000Z"
+							},
+							"running": null,
+							"error": null
+						}
+					}
+				},
+				{
+					"op": "put",
+					"path": "Golden Class Midterm/new1.pdf",
+					"base64": "JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCA2MTIgNzkyXSAvQ29udGVudHMgNCAwIFIgL1Jlc291cmNlcyA8PCA+PiA+PgplbmRvYmoKNCAwIG9iago8PCAvTGVuZ3RoIDI0ID4+CnN0cmVhbQowLjggZyAxMCAxMCA1OTIgNzcyIHJlIGYKZW5kc3RyZWFtCmVuZG9iagp4cmVmCjAgNQowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwMDkgMDAwMDAgbiAKMDAwMDAwMDA1OCAwMDAwMCBuIAowMDAwMDAwMTE1IDAwMDAwIG4gCjAwMDAwMDAyMTkgMDAwMDAgbiAKdHJhaWxlcgo8PCAvU2l6ZSA1IC9Sb290IDEgMCBSID4+CnN0YXJ0eHJlZgoyOTMKJSVFT0YK",
+					"mtime": "2031-01-07T00:00:00.000Z",
+					"out": null
+				},
+				{
+					"op": "view",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_gold00000001",
+					"out": {
+						"ok": true,
+						"value": {
+							"className": "Golden Class",
+							"deadlineName": "Midterm",
+							"date": "2030-02-01",
+							"sheet": {
+								"deadlineId": "ddl_gold00000001",
+								"versions": [
+									{
+										"n": 1,
+										"prompt": "first ask",
+										"at": "2029-03-01T10:00:00.000Z",
+										"pages": [
+											{
+												"widthPt": 612,
+												"heightPt": 792
+											}
+										]
+									},
+									{
+										"n": 2,
+										"prompt": "bigger fonts",
+										"at": "2029-03-02T10:00:00.000Z",
+										"pages": [
+											{
+												"widthPt": 612,
+												"heightPt": 792
+											},
+											{
+												"widthPt": 612,
+												"heightPt": 792
+											}
+										],
+										"file": "<home>/godspeed/cheat-sheets/Golden Class Midterm/sheet.pdf"
+									},
+									{
+										"n": 3,
+										"prompt": "",
+										"at": "<now>",
+										"pages": [
+											{
+												"widthPt": 612,
+												"heightPt": 792
+											}
+										],
+										"file": "<home>/godspeed/cheat-sheets/Golden Class Midterm/new1.pdf",
+										"fromFolder": true
+									}
+								],
+								"messages": [
+									{
+										"id": "m1",
+										"role": "you",
+										"text": "first ask",
+										"at": "2029-03-01T10:00:00.000Z",
+										"files": [
+											{
+												"name": "pic.png",
+												"file": "aaaa11112222-pic.png"
+											}
+										]
+									},
+									{
+										"id": "m2",
+										"role": "agent",
+										"text": "Made it.",
+										"at": "2029-03-01T10:00:00.000Z",
+										"version": 1,
+										"rules": [
+											"no slang"
+										]
+									}
+								],
+								"rules": [
+									{
+										"text": "A4, both sides",
+										"at": "2029-03-01T10:00:00.000Z"
+									}
+								],
+								"folder": "Golden Class Midterm",
+								"updatedAt": "<now>"
+							},
+							"running": null,
+							"error": null
+						}
+					}
+				},
+				{
+					"op": "put",
+					"path": "Golden Class Midterm/new2.pdf",
+					"base64": "JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCA2MTIgNzkyXSAvQ29udGVudHMgNCAwIFIgL1Jlc291cmNlcyA8PCA+PiA+PgplbmRvYmoKNCAwIG9iago8PCAvTGVuZ3RoIDI0ID4+CnN0cmVhbQowLjggZyAxMCAxMCA1OTIgNzcyIHJlIGYKZW5kc3RyZWFtCmVuZG9iagp4cmVmCjAgNQowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwMDkgMDAwMDAgbiAKMDAwMDAwMDA1OCAwMDAwMCBuIAowMDAwMDAwMTE1IDAwMDAwIG4gCjAwMDAwMDAyMTkgMDAwMDAgbiAKdHJhaWxlcgo8PCAvU2l6ZSA1IC9Sb290IDEgMCBSID4+CnN0YXJ0eHJlZgoyOTMKJSVFT0YK",
+					"mtime": "2031-01-08T00:00:00.000Z",
+					"out": null
+				},
+				{
+					"op": "view",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_gold00000001",
+					"out": {
+						"ok": true,
+						"value": {
+							"className": "Golden Class",
+							"deadlineName": "Midterm",
+							"date": "2030-02-01",
+							"sheet": {
+								"deadlineId": "ddl_gold00000001",
+								"versions": [
+									{
+										"n": 1,
+										"prompt": "first ask",
+										"at": "2029-03-01T10:00:00.000Z",
+										"pages": [
+											{
+												"widthPt": 612,
+												"heightPt": 792
+											}
+										]
+									},
+									{
+										"n": 2,
+										"prompt": "bigger fonts",
+										"at": "2029-03-02T10:00:00.000Z",
+										"pages": [
+											{
+												"widthPt": 612,
+												"heightPt": 792
+											},
+											{
+												"widthPt": 612,
+												"heightPt": 792
+											}
+										],
+										"file": "<home>/godspeed/cheat-sheets/Golden Class Midterm/sheet.pdf"
+									},
+									{
+										"n": 3,
+										"prompt": "",
+										"at": "<now>",
+										"pages": [
+											{
+												"widthPt": 612,
+												"heightPt": 792
+											}
+										],
+										"file": "<home>/godspeed/cheat-sheets/Golden Class Midterm/new1.pdf",
+										"fromFolder": true
+									}
+								],
+								"messages": [
+									{
+										"id": "m1",
+										"role": "you",
+										"text": "first ask",
+										"at": "2029-03-01T10:00:00.000Z",
+										"files": [
+											{
+												"name": "pic.png",
+												"file": "aaaa11112222-pic.png"
+											}
+										]
+									},
+									{
+										"id": "m2",
+										"role": "agent",
+										"text": "Made it.",
+										"at": "2029-03-01T10:00:00.000Z",
+										"version": 1,
+										"rules": [
+											"no slang"
+										]
+									}
+								],
+								"rules": [
+									{
+										"text": "A4, both sides",
+										"at": "2029-03-01T10:00:00.000Z"
+									}
+								],
+								"folder": "Golden Class Midterm",
+								"updatedAt": "<now>"
+							},
+							"running": null,
+							"error": null
+						}
+					}
+				},
+				{
+					"op": "put",
+					"path": "Golden Class Midterm/new3.pdf",
+					"base64": "JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCA2MDAgODAwXSAvQ29udGVudHMgNCAwIFIgL1Jlc291cmNlcyA8PCA+PiA+PgplbmRvYmoKNCAwIG9iago8PCAvTGVuZ3RoIDI0ID4+CnN0cmVhbQowLjggZyAxMCAxMCA1ODAgNzgwIHJlIGYKZW5kc3RyZWFtCmVuZG9iagp4cmVmCjAgNQowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwMDkgMDAwMDAgbiAKMDAwMDAwMDA1OCAwMDAwMCBuIAowMDAwMDAwMTE1IDAwMDAwIG4gCjAwMDAwMDAyMTkgMDAwMDAgbiAKdHJhaWxlcgo8PCAvU2l6ZSA1IC9Sb290IDEgMCBSID4+CnN0YXJ0eHJlZgoyOTMKJSVFT0YK",
+					"mtime": "2031-01-09T00:00:00.000Z",
+					"out": null
+				},
+				{
+					"op": "view",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_gold00000001",
+					"out": {
+						"ok": true,
+						"value": {
+							"className": "Golden Class",
+							"deadlineName": "Midterm",
+							"date": "2030-02-01",
+							"sheet": {
+								"deadlineId": "ddl_gold00000001",
+								"versions": [
+									{
+										"n": 1,
+										"prompt": "first ask",
+										"at": "2029-03-01T10:00:00.000Z",
+										"pages": [
+											{
+												"widthPt": 612,
+												"heightPt": 792
+											}
+										]
+									},
+									{
+										"n": 2,
+										"prompt": "bigger fonts",
+										"at": "2029-03-02T10:00:00.000Z",
+										"pages": [
+											{
+												"widthPt": 612,
+												"heightPt": 792
+											},
+											{
+												"widthPt": 612,
+												"heightPt": 792
+											}
+										],
+										"file": "<home>/godspeed/cheat-sheets/Golden Class Midterm/sheet.pdf"
+									},
+									{
+										"n": 3,
+										"prompt": "",
+										"at": "<now>",
+										"pages": [
+											{
+												"widthPt": 612,
+												"heightPt": 792
+											}
+										],
+										"file": "<home>/godspeed/cheat-sheets/Golden Class Midterm/new1.pdf",
+										"fromFolder": true
+									},
+									{
+										"n": 4,
+										"prompt": "",
+										"at": "<now>",
+										"pages": [
+											{
+												"widthPt": 600,
+												"heightPt": 800
+											}
+										],
+										"file": "<home>/godspeed/cheat-sheets/Golden Class Midterm/new3.pdf",
+										"fromFolder": true
+									}
+								],
+								"messages": [
+									{
+										"id": "m1",
+										"role": "you",
+										"text": "first ask",
+										"at": "2029-03-01T10:00:00.000Z",
+										"files": [
+											{
+												"name": "pic.png",
+												"file": "aaaa11112222-pic.png"
+											}
+										]
+									},
+									{
+										"id": "m2",
+										"role": "agent",
+										"text": "Made it.",
+										"at": "2029-03-01T10:00:00.000Z",
+										"version": 1,
+										"rules": [
+											"no slang"
+										]
+									}
+								],
+								"rules": [
+									{
+										"text": "A4, both sides",
+										"at": "2029-03-01T10:00:00.000Z"
+									}
+								],
+								"folder": "Golden Class Midterm",
+								"updatedAt": "<now>"
+							},
+							"running": null,
+							"error": null
+						}
+					}
+				},
+				{
+					"op": "put",
+					"path": "Golden Class Midterm/.hidden.pdf",
+					"base64": "JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCA1MDAgNzAwXSAvQ29udGVudHMgNCAwIFIgL1Jlc291cmNlcyA8PCA+PiA+PgplbmRvYmoKNCAwIG9iago8PCAvTGVuZ3RoIDI0ID4+CnN0cmVhbQowLjggZyAxMCAxMCA0ODAgNjgwIHJlIGYKZW5kc3RyZWFtCmVuZG9iagp4cmVmCjAgNQowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwMDkgMDAwMDAgbiAKMDAwMDAwMDA1OCAwMDAwMCBuIAowMDAwMDAwMTE1IDAwMDAwIG4gCjAwMDAwMDAyMTkgMDAwMDAgbiAKdHJhaWxlcgo8PCAvU2l6ZSA1IC9Sb290IDEgMCBSID4+CnN0YXJ0eHJlZgoyOTMKJSVFT0YK",
+					"mtime": "2031-02-01T00:00:00.000Z",
+					"out": null
+				},
+				{
+					"op": "view",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_gold00000001",
+					"out": {
+						"ok": true,
+						"value": {
+							"className": "Golden Class",
+							"deadlineName": "Midterm",
+							"date": "2030-02-01",
+							"sheet": {
+								"deadlineId": "ddl_gold00000001",
+								"versions": [
+									{
+										"n": 1,
+										"prompt": "first ask",
+										"at": "2029-03-01T10:00:00.000Z",
+										"pages": [
+											{
+												"widthPt": 612,
+												"heightPt": 792
+											}
+										]
+									},
+									{
+										"n": 2,
+										"prompt": "bigger fonts",
+										"at": "2029-03-02T10:00:00.000Z",
+										"pages": [
+											{
+												"widthPt": 612,
+												"heightPt": 792
+											},
+											{
+												"widthPt": 612,
+												"heightPt": 792
+											}
+										],
+										"file": "<home>/godspeed/cheat-sheets/Golden Class Midterm/sheet.pdf"
+									},
+									{
+										"n": 3,
+										"prompt": "",
+										"at": "<now>",
+										"pages": [
+											{
+												"widthPt": 612,
+												"heightPt": 792
+											}
+										],
+										"file": "<home>/godspeed/cheat-sheets/Golden Class Midterm/new1.pdf",
+										"fromFolder": true
+									},
+									{
+										"n": 4,
+										"prompt": "",
+										"at": "<now>",
+										"pages": [
+											{
+												"widthPt": 600,
+												"heightPt": 800
+											}
+										],
+										"file": "<home>/godspeed/cheat-sheets/Golden Class Midterm/new3.pdf",
+										"fromFolder": true
+									},
+									{
+										"n": 5,
+										"prompt": "",
+										"at": "<now>",
+										"pages": [
+											{
+												"widthPt": 500,
+												"heightPt": 700
+											}
+										],
+										"file": "<home>/godspeed/cheat-sheets/Golden Class Midterm/.hidden.pdf",
+										"fromFolder": true
+									}
+								],
+								"messages": [
+									{
+										"id": "m1",
+										"role": "you",
+										"text": "first ask",
+										"at": "2029-03-01T10:00:00.000Z",
+										"files": [
+											{
+												"name": "pic.png",
+												"file": "aaaa11112222-pic.png"
+											}
+										]
+									},
+									{
+										"id": "m2",
+										"role": "agent",
+										"text": "Made it.",
+										"at": "2029-03-01T10:00:00.000Z",
+										"version": 1,
+										"rules": [
+											"no slang"
+										]
+									}
+								],
+								"rules": [
+									{
+										"text": "A4, both sides",
+										"at": "2029-03-01T10:00:00.000Z"
+									}
+								],
+								"folder": "Golden Class Midterm",
+								"updatedAt": "<now>"
+							},
+							"running": null,
+							"error": null
+						}
+					}
+				},
+				{
+					"op": "view",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_gold00000001",
+					"out": {
+						"ok": true,
+						"value": {
+							"className": "Golden Class",
+							"deadlineName": "Midterm",
+							"date": "2030-02-01",
+							"sheet": {
+								"deadlineId": "ddl_gold00000001",
+								"versions": [
+									{
+										"n": 1,
+										"prompt": "first ask",
+										"at": "2029-03-01T10:00:00.000Z",
+										"pages": [
+											{
+												"widthPt": 612,
+												"heightPt": 792
+											}
+										]
+									},
+									{
+										"n": 2,
+										"prompt": "bigger fonts",
+										"at": "2029-03-02T10:00:00.000Z",
+										"pages": [
+											{
+												"widthPt": 612,
+												"heightPt": 792
+											},
+											{
+												"widthPt": 612,
+												"heightPt": 792
+											}
+										],
+										"file": "<home>/godspeed/cheat-sheets/Golden Class Midterm/sheet.pdf"
+									},
+									{
+										"n": 3,
+										"prompt": "",
+										"at": "<now>",
+										"pages": [
+											{
+												"widthPt": 612,
+												"heightPt": 792
+											}
+										],
+										"file": "<home>/godspeed/cheat-sheets/Golden Class Midterm/new1.pdf",
+										"fromFolder": true
+									},
+									{
+										"n": 4,
+										"prompt": "",
+										"at": "<now>",
+										"pages": [
+											{
+												"widthPt": 600,
+												"heightPt": 800
+											}
+										],
+										"file": "<home>/godspeed/cheat-sheets/Golden Class Midterm/new3.pdf",
+										"fromFolder": true
+									},
+									{
+										"n": 5,
+										"prompt": "",
+										"at": "<now>",
+										"pages": [
+											{
+												"widthPt": 500,
+												"heightPt": 700
+											}
+										],
+										"file": "<home>/godspeed/cheat-sheets/Golden Class Midterm/.hidden.pdf",
+										"fromFolder": true
+									}
+								],
+								"messages": [
+									{
+										"id": "m1",
+										"role": "you",
+										"text": "first ask",
+										"at": "2029-03-01T10:00:00.000Z",
+										"files": [
+											{
+												"name": "pic.png",
+												"file": "aaaa11112222-pic.png"
+											}
+										]
+									},
+									{
+										"id": "m2",
+										"role": "agent",
+										"text": "Made it.",
+										"at": "2029-03-01T10:00:00.000Z",
+										"version": 1,
+										"rules": [
+											"no slang"
+										]
+									}
+								],
+								"rules": [
+									{
+										"text": "A4, both sides",
+										"at": "2029-03-01T10:00:00.000Z"
+									}
+								],
+								"folder": "Golden Class Midterm",
+								"updatedAt": "<now>"
+							},
+							"running": null,
+							"error": null
+						}
+					}
+				},
+				{
+					"op": "sheet",
+					"ddl": "ddl_gold00000001",
+					"out": {
+						"version": 4,
+						"deadlineId": "ddl_gold00000001",
+						"versions": [
+							{
+								"n": 1,
+								"prompt": "first ask",
+								"at": "2029-03-01T10:00:00.000Z",
+								"pages": [
+									{
+										"widthPt": 612,
+										"heightPt": 792
+									}
+								]
+							},
+							{
+								"n": 2,
+								"prompt": "bigger fonts",
+								"at": "2029-03-02T10:00:00.000Z",
+								"pages": [
+									{
+										"widthPt": 612,
+										"heightPt": 792
+									},
+									{
+										"widthPt": 612,
+										"heightPt": 792
+									}
+								],
+								"file": "<home>/godspeed/cheat-sheets/Golden Class Midterm/sheet.pdf"
+							},
+							{
+								"n": 3,
+								"prompt": "",
+								"at": "<now>",
+								"pages": [
+									{
+										"widthPt": 612,
+										"heightPt": 792
+									}
+								],
+								"file": "<home>/godspeed/cheat-sheets/Golden Class Midterm/new1.pdf",
+								"fromFolder": true
+							},
+							{
+								"n": 4,
+								"prompt": "",
+								"at": "<now>",
+								"pages": [
+									{
+										"widthPt": 600,
+										"heightPt": 800
+									}
+								],
+								"file": "<home>/godspeed/cheat-sheets/Golden Class Midterm/new3.pdf",
+								"fromFolder": true
+							},
+							{
+								"prompt": "",
+								"at": "<now>",
+								"pages": [
+									{
+										"widthPt": 500,
+										"heightPt": 700
+									}
+								],
+								"file": "<home>/godspeed/cheat-sheets/Golden Class Midterm/.hidden.pdf",
+								"fromFolder": true,
+								"n": 5
+							}
+						],
+						"messages": [
+							{
+								"id": "m1",
+								"role": "you",
+								"text": "first ask",
+								"at": "2029-03-01T10:00:00.000Z",
+								"files": [
+									{
+										"name": "pic.png",
+										"file": "aaaa11112222-pic.png"
+									}
+								]
+							},
+							{
+								"id": "m2",
+								"role": "agent",
+								"text": "Made it.",
+								"at": "2029-03-01T10:00:00.000Z",
+								"version": 1,
+								"rules": [
+									"no slang"
+								]
+							}
+						],
+						"rules": [
+							{
+								"text": "A4, both sides",
+								"at": "2029-03-01T10:00:00.000Z"
+							}
+						],
+						"folder": "Golden Class Midterm",
+						"updatedAt": "<now>"
+					}
+				},
+				{
+					"op": "versions",
+					"ddl": "ddl_gold00000001",
+					"out": [
+						"v1.pdf",
+						"v2.pdf",
+						"v3.pdf",
+						"v4.pdf",
+						"v5.pdf"
+					]
+				},
+				{
+					"op": "pdf",
+					"cls": "cls_golden01_00000001",
+					"ddl": "ddl_gold00000001",
+					"n": 4,
+					"out": {
+						"size": 456,
+						"sha256": "4d4199c4cd74cd66b1bb89a7150c37b70ed39706644850f2bab41aa62965800e"
+					}
+				},
+				{
+					"op": "put",
+					"path": "Take/ok.pdf",
+					"base64": "JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUiA1IDAgUl0gL0NvdW50IDIgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCA2MTIgNzkyXSAvQ29udGVudHMgNCAwIFIgL1Jlc291cmNlcyA8PCA+PiA+PgplbmRvYmoKNCAwIG9iago8PCAvTGVuZ3RoIDI0ID4+CnN0cmVhbQowLjggZyAxMCAxMCA1OTIgNzcyIHJlIGYKZW5kc3RyZWFtCmVuZG9iago1IDAgb2JqCjw8IC9UeXBlIC9QYWdlIC9QYXJlbnQgMiAwIFIgL01lZGlhQm94IFswIDAgMzAwIDQwMF0gL0NvbnRlbnRzIDYgMCBSIC9SZXNvdXJjZXMgPDwgPj4gPj4KZW5kb2JqCjYgMCBvYmoKPDwgL0xlbmd0aCAyNCA+PgpzdHJlYW0KMC44IGcgMTAgMTAgMjgwIDM4MCByZSBmCmVuZHN0cmVhbQplbmRvYmoKeHJlZgowIDcKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDA5IDAwMDAwIG4gCjAwMDAwMDAwNTggMDAwMDAgbiAKMDAwMDAwMDEyMSAwMDAwMCBuIAowMDAwMDAwMjI1IDAwMDAwIG4gCjAwMDAwMDAyOTkgMDAwMDAgbiAKMDAwMDAwMDQwMyAwMDAwMCBuIAp0cmFpbGVyCjw8IC9TaXplIDcgL1Jvb3QgMSAwIFIgPj4Kc3RhcnR4cmVmCjQ3NwolJUVPRgo=",
+					"mtime": "2025-01-01T00:00:00.000Z",
+					"out": null
+				},
+				{
+					"op": "put",
+					"path": "Take/sub/inner.pdf",
+					"base64": "JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCA2MTIgNzkyXSAvQ29udGVudHMgNCAwIFIgL1Jlc291cmNlcyA8PCA+PiA+PgplbmRvYmoKNCAwIG9iago8PCAvTGVuZ3RoIDI0ID4+CnN0cmVhbQowLjggZyAxMCAxMCA1OTIgNzcyIHJlIGYKZW5kc3RyZWFtCmVuZG9iagp4cmVmCjAgNQowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwMDkgMDAwMDAgbiAKMDAwMDAwMDA1OCAwMDAwMCBuIAowMDAwMDAwMTE1IDAwMDAwIG4gCjAwMDAwMDAyMTkgMDAwMDAgbiAKdHJhaWxlcgo8PCAvU2l6ZSA1IC9Sb290IDEgMCBSID4+CnN0YXJ0eHJlZgoyOTMKJSVFT0YK",
+					"mtime": "2025-01-01T00:00:00.000Z",
+					"out": null
+				},
+				{
+					"op": "put",
+					"path": "Take/five.pdf",
+					"base64": "JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUiA1IDAgUiA3IDAgUiA5IDAgUiAxMSAwIFJdIC9Db3VudCA1ID4+CmVuZG9iagozIDAgb2JqCjw8IC9UeXBlIC9QYWdlIC9QYXJlbnQgMiAwIFIgL01lZGlhQm94IFswIDAgNjEyIDc5Ml0gL0NvbnRlbnRzIDQgMCBSIC9SZXNvdXJjZXMgPDwgPj4gPj4KZW5kb2JqCjQgMCBvYmoKPDwgL0xlbmd0aCAyNCA+PgpzdHJlYW0KMC44IGcgMTAgMTAgNTkyIDc3MiByZSBmCmVuZHN0cmVhbQplbmRvYmoKNSAwIG9iago8PCAvVHlwZSAvUGFnZSAvUGFyZW50IDIgMCBSIC9NZWRpYUJveCBbMCAwIDYxMiA3OTJdIC9Db250ZW50cyA2IDAgUiAvUmVzb3VyY2VzIDw8ID4+ID4+CmVuZG9iago2IDAgb2JqCjw8IC9MZW5ndGggMjQgPj4Kc3RyZWFtCjAuOCBnIDEwIDEwIDU5MiA3NzIgcmUgZgplbmRzdHJlYW0KZW5kb2JqCjcgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCA2MTIgNzkyXSAvQ29udGVudHMgOCAwIFIgL1Jlc291cmNlcyA8PCA+PiA+PgplbmRvYmoKOCAwIG9iago8PCAvTGVuZ3RoIDI0ID4+CnN0cmVhbQowLjggZyAxMCAxMCA1OTIgNzcyIHJlIGYKZW5kc3RyZWFtCmVuZG9iago5IDAgb2JqCjw8IC9UeXBlIC9QYWdlIC9QYXJlbnQgMiAwIFIgL01lZGlhQm94IFswIDAgNjEyIDc5Ml0gL0NvbnRlbnRzIDEwIDAgUiAvUmVzb3VyY2VzIDw8ID4+ID4+CmVuZG9iagoxMCAwIG9iago8PCAvTGVuZ3RoIDI0ID4+CnN0cmVhbQowLjggZyAxMCAxMCA1OTIgNzcyIHJlIGYKZW5kc3RyZWFtCmVuZG9iagoxMSAwIG9iago8PCAvVHlwZSAvUGFnZSAvUGFyZW50IDIgMCBSIC9NZWRpYUJveCBbMCAwIDYxMiA3OTJdIC9Db250ZW50cyAxMiAwIFIgL1Jlc291cmNlcyA8PCA+PiA+PgplbmRvYmoKMTIgMCBvYmoKPDwgL0xlbmd0aCAyNCA+PgpzdHJlYW0KMC44IGcgMTAgMTAgNTkyIDc3MiByZSBmCmVuZHN0cmVhbQplbmRvYmoKeHJlZgowIDEzCjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDAwOSAwMDAwMCBuIAowMDAwMDAwMDU4IDAwMDAwIG4gCjAwMDAwMDAxNDAgMDAwMDAgbiAKMDAwMDAwMDI0NCAwMDAwMCBuIAowMDAwMDAwMzE4IDAwMDAwIG4gCjAwMDAwMDA0MjIgMDAwMDAgbiAKMDAwMDAwMDQ5NiAwMDAwMCBuIAowMDAwMDAwNjAwIDAwMDAwIG4gCjAwMDAwMDA2NzQgMDAwMDAgbiAKMDAwMDAwMDc3OSAwMDAwMCBuIAowMDAwMDAwODU0IDAwMDAwIG4gCjAwMDAwMDA5NjAgMDAwMDAgbiAKdHJhaWxlcgo8PCAvU2l6ZSAxMyAvUm9vdCAxIDAgUiA+PgpzdGFydHhyZWYKMTAzNQolJUVPRgo=",
+					"mtime": "2025-01-01T00:00:00.000Z",
+					"out": null
+				},
+				{
+					"op": "put",
+					"path": "Take/huge.pdf",
+					"base64": "JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCAyMDAwIDIwMDBdIC9Db250ZW50cyA0IDAgUiAvUmVzb3VyY2VzIDw8ID4+ID4+CmVuZG9iago0IDAgb2JqCjw8IC9MZW5ndGggMjYgPj4Kc3RyZWFtCjAuOCBnIDEwIDEwIDE5ODAgMTk4MCByZSBmCmVuZHN0cmVhbQplbmRvYmoKeHJlZgowIDUKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDA5IDAwMDAwIG4gCjAwMDAwMDAwNTggMDAwMDAgbiAKMDAwMDAwMDExNSAwMDAwMCBuIAowMDAwMDAwMjIxIDAwMDAwIG4gCnRyYWlsZXIKPDwgL1NpemUgNSAvUm9vdCAxIDAgUiA+PgpzdGFydHhyZWYKMjk3CiUlRU9GCg==",
+					"mtime": "2025-01-01T00:00:00.000Z",
+					"out": null
+				},
+				{
+					"op": "put",
+					"path": "Take/tiny.pdf",
+					"base64": "JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCAxMDAgMTAwXSAvQ29udGVudHMgNCAwIFIgL1Jlc291cmNlcyA8PCA+PiA+PgplbmRvYmoKNCAwIG9iago8PCAvTGVuZ3RoIDIyID4+CnN0cmVhbQowLjggZyAxMCAxMCA4MCA4MCByZSBmCmVuZHN0cmVhbQplbmRvYmoKeHJlZgowIDUKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDA5IDAwMDAwIG4gCjAwMDAwMDAwNTggMDAwMDAgbiAKMDAwMDAwMDExNSAwMDAwMCBuIAowMDAwMDAwMjE5IDAwMDAwIG4gCnRyYWlsZXIKPDwgL1NpemUgNSAvUm9vdCAxIDAgUiA+PgpzdGFydHhyZWYKMjkxCiUlRU9GCg==",
+					"mtime": "2025-01-01T00:00:00.000Z",
+					"out": null
+				},
+				{
+					"op": "put",
+					"path": "Take/words.txt",
+					"base64": "anVzdCB3b3Jkcwo=",
+					"mtime": "2025-01-01T00:00:00.000Z",
+					"out": null
+				},
+				{
+					"op": "put",
+					"path": "Take/junk.pdf",
+					"base64": "JVBERi0xLjQganVuayB0aGF0IGlzIG5vIGRvY3VtZW50Cg==",
+					"mtime": "2025-01-01T00:00:00.000Z",
+					"out": null
+				},
+				{
+					"op": "put",
+					"path": "Take/dir/inside.txt",
+					"base64": "eA==",
+					"mtime": "2025-01-01T00:00:00.000Z",
+					"out": null
+				},
+				{
+					"op": "link",
+					"path": "Take/link.pdf",
+					"outside": "outside.pdf",
+					"base64": "JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCA2MTIgNzkyXSAvQ29udGVudHMgNCAwIFIgL1Jlc291cmNlcyA8PCA+PiA+PgplbmRvYmoKNCAwIG9iago8PCAvTGVuZ3RoIDI0ID4+CnN0cmVhbQowLjggZyAxMCAxMCA1OTIgNzcyIHJlIGYKZW5kc3RyZWFtCmVuZG9iagp4cmVmCjAgNQowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwMDkgMDAwMDAgbiAKMDAwMDAwMDA1OCAwMDAwMCBuIAowMDAwMDAwMTE1IDAwMDAwIG4gCjAwMDAwMDAyMTkgMDAwMDAgbiAKdHJhaWxlcgo8PCAvU2l6ZSA1IC9Sb290IDEgMCBSID4+CnN0YXJ0eHJlZgoyOTMKJSVFT0YK",
+					"out": null
+				},
+				{
+					"op": "take",
+					"folder": "Take",
+					"pdfPath": "ok.pdf",
+					"out": {
+						"pages": [
+							{
+								"widthPt": 612,
+								"heightPt": 792
+							},
+							{
+								"widthPt": 300,
+								"heightPt": 400
+							}
+						],
+						"file": "<home>/godspeed/cheat-sheets/Take/ok.pdf",
+						"size": 680,
+						"sha256": "6396658968029b11ddf85a879f8b18c9db28e19901ec4bd2ecd23501b4df2bb5"
+					}
+				},
+				{
+					"op": "take",
+					"folder": "Take",
+					"pdfPath": "sub/inner.pdf",
+					"out": {
+						"pages": [
+							{
+								"widthPt": 612,
+								"heightPt": 792
+							}
+						],
+						"file": "<home>/godspeed/cheat-sheets/Take/sub/inner.pdf",
+						"size": 456,
+						"sha256": "a2ad60ead6bfbadbaf0f5bf14e6cee796ca5c938df81f818e14c7742601a42ec"
+					}
+				},
+				{
+					"op": "take",
+					"folder": "Take",
+					"pdfPath": "./ok.pdf",
+					"out": {
+						"pages": [
+							{
+								"widthPt": 612,
+								"heightPt": 792
+							},
+							{
+								"widthPt": 300,
+								"heightPt": 400
+							}
+						],
+						"file": "<home>/godspeed/cheat-sheets/Take/ok.pdf",
+						"size": 680,
+						"sha256": "6396658968029b11ddf85a879f8b18c9db28e19901ec4bd2ecd23501b4df2bb5"
+					}
+				},
+				{
+					"op": "take",
+					"folder": "Take",
+					"pdfPath": "five.pdf",
+					"out": {
+						"error": "The PDF has 5 pages; a cheat sheet has 1 to 4."
+					}
+				},
+				{
+					"op": "take",
+					"folder": "Take",
+					"pdfPath": "huge.pdf",
+					"out": {
+						"error": "Each page must be between 2 and 17 inches on each side."
+					}
+				},
+				{
+					"op": "take",
+					"folder": "Take",
+					"pdfPath": "tiny.pdf",
+					"out": {
+						"error": "Each page must be between 2 and 17 inches on each side."
+					}
+				},
+				{
+					"op": "take",
+					"folder": "Take",
+					"pdfPath": "words.txt",
+					"out": {
+						"error": "That file is not a PDF."
+					}
+				},
+				{
+					"op": "take",
+					"folder": "Take",
+					"pdfPath": "junk.pdf",
+					"out": {
+						"error": "The PDF can't be read: Invalid PDF structure."
+					}
+				},
+				{
+					"op": "take",
+					"folder": "Take",
+					"pdfPath": "dir",
+					"out": {
+						"error": "dir is not a file."
+					}
+				},
+				{
+					"op": "take",
+					"folder": "Take",
+					"pdfPath": "missing.pdf",
+					"out": {
+						"error": "There is no file at missing.pdf."
+					}
+				},
+				{
+					"op": "take",
+					"folder": "Take",
+					"pdfPath": "link.pdf",
+					"out": {
+						"error": "Put the PDF inside the working folder, <home>/godspeed/cheat-sheets/Take."
+					}
+				},
+				{
+					"op": "take",
+					"folder": "Take",
+					"pdfPath": "../Golden Class Midterm/sheet.pdf",
+					"out": {
+						"error": "Put the PDF inside the working folder, <home>/godspeed/cheat-sheets/Take."
+					}
+				},
+				{
+					"op": "take",
+					"folder": "Take",
+					"pdfPath": "<home>/outside.pdf",
+					"out": {
+						"error": "Put the PDF inside the working folder, <home>/godspeed/cheat-sheets/Take."
+					}
+				},
+				{
+					"op": "take",
+					"folder": "Take",
+					"pdfPath": "<home>/godspeed/cheat-sheets/Take/ok.pdf",
+					"out": {
+						"pages": [
+							{
+								"widthPt": 612,
+								"heightPt": 792
+							},
+							{
+								"widthPt": 300,
+								"heightPt": 400
+							}
+						],
+						"file": "<home>/godspeed/cheat-sheets/Take/ok.pdf",
+						"size": 680,
+						"sha256": "6396658968029b11ddf85a879f8b18c9db28e19901ec4bd2ecd23501b4df2bb5"
+					}
+				}
+			]
+		}
+	}
+]

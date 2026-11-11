@@ -1,0 +1,27 @@
+#!/bin/sh
+# Stand-in for ffmpeg. What it does is chosen by the recording's file name.
+echo "ffmpeg $*" >> "$(dirname "$0")/calls.log"
+input=""
+prev=""
+last=""
+for a in "$@"; do
+  if [ "$prev" = "-i" ]; then input="$a"; fi
+  prev="$a"
+  last="$a"
+done
+name=$(basename "$input")
+case "$name" in
+  *ffmpeg-fail*)
+    printf 'ffmpeg version stub\n' >&2
+    printf 'built with a compiler\n' >&2
+    printf 'libavutil 1.0\n' >&2
+    printf '%s: Invalid data found when processing input\n' "$input" >&2
+    exit 1;;
+  *ffmpeg-silent*) exit 3;;
+  *ffmpeg-blank*) printf '  \n\n' >&2; exit 3;;
+  *ffmpeg-signal*) kill -9 $$;;
+  *ffmpeg-flood-out*) echo warn >&2; head -c 17000000 /dev/zero;;
+  *ffmpeg-flood-err*) yes abcdefghij | head -c 17000000 >&2;;
+  *ffmpeg-nowav*) exit 0;;
+esac
+printf 'RIFFSTUB %s' "$name" > "$last"

@@ -1,0 +1,925 @@
+[
+	{
+		"name": "wait_for_work",
+		"title": "Wait for work",
+		"description": "Wait for the next request from godspeed (a lesson turn, a Talk message, a helper job, or a knowledge-graph run). Returns a work item, or status \"idle\" if nothing arrived in time — then call again.",
+		"inputSchema": {
+			"type": "object",
+			"$schema": "https://json-schema.org/draft/2020-12/schema",
+			"properties": {
+				"timeout_seconds": {
+					"description": "How long to wait in seconds (default 45, at most 600). Stay under your client's tool timeout: for Codex that is its tool_timeout_sec (60 unless raised; the godspeed folder's start command sets 620).",
+					"type": "integer",
+					"minimum": 1,
+					"maximum": 600
+				},
+				"lesson_id": {
+					"description": "Stay on this lesson: take its turns and Talk messages, plus background jobs (file reading, graph building, helpers) so they never get stuck. Other lessons wait.",
+					"type": "string"
+				},
+				"full_context": {
+					"description": "Send the whole conversation and instructions again, even if you saw them before (use after losing your context).",
+					"type": "boolean"
+				}
+			}
+		},
+		"annotations": {
+			"destructiveHint": false,
+			"idempotentHint": false,
+			"openWorldHint": false
+		}
+	},
+	{
+		"name": "respond",
+		"title": "Respond to work",
+		"description": "Answer a work item the way a model would: text for the learner (or the task), and/or calls to the tools listed in the work item. Returns the next work item in the same conversation when the app needs you again right away (for example with tool results), or status \"turn_complete\".",
+		"inputSchema": {
+			"type": "object",
+			"$schema": "https://json-schema.org/draft/2020-12/schema",
+			"properties": {
+				"work_id": {
+					"type": "string",
+					"description": "The workId from wait_for_work or a previous respond."
+				},
+				"text": {
+					"description": "Your message (markdown).",
+					"type": "string"
+				},
+				"tool_calls": {
+					"description": "Tool calls, run in order. Use only tools listed in the work item.",
+					"type": "array",
+					"items": {
+						"type": "object",
+						"properties": {
+							"name": {
+								"type": "string"
+							},
+							"arguments": {
+								"type": "object",
+								"propertyNames": {
+									"type": "string"
+								},
+								"additionalProperties": {}
+							}
+						},
+						"required": [
+							"name",
+							"arguments"
+						]
+					}
+				},
+				"wait_seconds": {
+					"description": "How long to wait for the follow-up (default 30).",
+					"type": "integer",
+					"minimum": 0,
+					"maximum": 55
+				}
+			},
+			"required": [
+				"work_id"
+			]
+		},
+		"annotations": {
+			"destructiveHint": false,
+			"idempotentHint": false,
+			"openWorldHint": false
+		}
+	},
+	{
+		"name": "read_work",
+		"title": "Read more of a work item",
+		"description": "Read one page of a long work item, or (full: true) get the item again in full: its instructions, every tool and the whole conversation, for when you lost track of it. When a work item says it has several pages, read all of them before you respond.",
+		"inputSchema": {
+			"type": "object",
+			"$schema": "https://json-schema.org/draft/2020-12/schema",
+			"properties": {
+				"work_id": {
+					"type": "string",
+					"description": "The workId of the work item."
+				},
+				"page": {
+					"description": "The page to read, from 2.",
+					"type": "integer",
+					"minimum": 1,
+					"maximum": 9007199254740991
+				},
+				"full": {
+					"description": "Send the whole item again instead of one page (after your context was compacted, or when you no longer have the instructions or tools it refers to).",
+					"type": "boolean"
+				}
+			},
+			"required": [
+				"work_id"
+			]
+		},
+		"annotations": {
+			"readOnlyHint": true,
+			"openWorldHint": false
+		}
+	},
+	{
+		"name": "list_lessons",
+		"title": "List lessons",
+		"description": "List the learner's lessons, newest first, each with its class and kind (study or homework; older ones teach or practice). total says how many match.",
+		"inputSchema": {
+			"type": "object",
+			"$schema": "https://json-schema.org/draft/2020-12/schema",
+			"properties": {
+				"class_id": {
+					"description": "Only the lessons of this class (from list_classes), or \"none\" for lessons without a class. Leave it out for all lessons.",
+					"type": "string"
+				},
+				"limit": {
+					"description": "Most lessons to return (default 20).",
+					"type": "integer",
+					"minimum": 1,
+					"maximum": 200
+				}
+			}
+		},
+		"annotations": {
+			"readOnlyHint": true,
+			"openWorldHint": false
+		}
+	},
+	{
+		"name": "read_lesson",
+		"title": "Read a lesson",
+		"description": "Read one lesson as markdown: everything the teacher and learner said, quizzes and answers included. A long lesson comes in pages; each page says which page it is and how many there are.",
+		"inputSchema": {
+			"type": "object",
+			"$schema": "https://json-schema.org/draft/2020-12/schema",
+			"properties": {
+				"lesson_id": {
+					"type": "string"
+				},
+				"page": {
+					"description": "The page to read (default 1).",
+					"type": "integer",
+					"minimum": 1,
+					"maximum": 9007199254740991
+				}
+			},
+			"required": [
+				"lesson_id"
+			]
+		},
+		"annotations": {
+			"readOnlyHint": true,
+			"openWorldHint": false
+		}
+	},
+	{
+		"name": "search_graph",
+		"title": "Search the knowledge graph",
+		"description": "Search one class's knowledge graph (each class has its own): the facts (propositions) the learner has learned and the reasoning chains connecting them. Without a query, returns the most recent facts.",
+		"inputSchema": {
+			"type": "object",
+			"$schema": "https://json-schema.org/draft/2020-12/schema",
+			"properties": {
+				"query": {
+					"description": "What to look for, in plain words (matched by meaning and by keywords).",
+					"type": "string"
+				},
+				"limit": {
+					"description": "Most facts to return (default 30).",
+					"type": "integer",
+					"minimum": 1,
+					"maximum": 200
+				},
+				"class_id": {
+					"description": "The class id from list_classes, or \"none\" for lessons without a class (the default).",
+					"type": "string"
+				}
+			}
+		},
+		"annotations": {
+			"readOnlyHint": true,
+			"openWorldHint": false
+		}
+	},
+	{
+		"name": "import_notes",
+		"title": "Import notes",
+		"description": "Add notes to a knowledge graph. godspeed turns them into facts in the background; that work arrives through wait_for_work. Returns right away. With class_id the notes become a study file of that class (to add a file from disk, use add_class_file).",
+		"inputSchema": {
+			"type": "object",
+			"$schema": "https://json-schema.org/draft/2020-12/schema",
+			"properties": {
+				"name": {
+					"type": "string",
+					"description": "A file-like name for the notes, e.g. \"biology-ch3.md\". In a class, re-importing the same name replaces that file and rebuilds its facts; in No class it is processed again and adds to that import."
+				},
+				"text": {
+					"type": "string",
+					"minLength": 1,
+					"description": "The notes."
+				},
+				"class_id": {
+					"description": "The class id from list_classes, or \"none\" for lessons without a class (the default).",
+					"type": "string"
+				}
+			},
+			"required": [
+				"name",
+				"text"
+			]
+		},
+		"annotations": {
+			"destructiveHint": false,
+			"idempotentHint": false,
+			"openWorldHint": false
+		}
+	},
+	{
+		"name": "remember",
+		"title": "Remember a note",
+		"description": "Save a short note about the learner. Every agent that connects to godspeed later sees it under \"Where you left off\", in any folder. Save what the learner tells you outside lessons that will matter next time: an exam that is over, what they plan to study next, how they like to learn. One fact per note, at most 200 characters. Never save passwords or private details. The learner can see and delete notes in Settings → Connection.",
+		"inputSchema": {
+			"type": "object",
+			"$schema": "https://json-schema.org/draft/2020-12/schema",
+			"properties": {
+				"text": {
+					"type": "string",
+					"minLength": 1,
+					"maxLength": 200,
+					"description": "The note, one line."
+				},
+				"class_id": {
+					"description": "The class the note is about, if one (from list_classes).",
+					"type": "string"
+				}
+			},
+			"required": [
+				"text"
+			]
+		},
+		"annotations": {
+			"destructiveHint": false,
+			"idempotentHint": false,
+			"openWorldHint": false
+		}
+	},
+	{
+		"name": "forget",
+		"title": "Forget a note",
+		"description": "Delete a saved note by its note_id (from \"Where you left off\" or from remember). Use it when a note is out of date or the learner asks.",
+		"inputSchema": {
+			"type": "object",
+			"$schema": "https://json-schema.org/draft/2020-12/schema",
+			"properties": {
+				"note_id": {
+					"type": "string"
+				}
+			},
+			"required": [
+				"note_id"
+			]
+		},
+		"annotations": {
+			"destructiveHint": true,
+			"idempotentHint": true,
+			"openWorldHint": false
+		}
+	},
+	{
+		"name": "save_rule",
+		"title": "Save a teaching rule",
+		"description": "Save a rule about how godspeed's teacher teaches this learner, when they tell you a lasting preference (\"use Python for code examples\", \"shorter answers\"). It joins the learner's rules in Settings, for every lesson or for one class's lessons, and applies from the next turn. Not for one-off requests or facts about the learner (use remember for those). Don't ask first: the godspeed window shows it with Undo and Edit.",
+		"inputSchema": {
+			"type": "object",
+			"$schema": "https://json-schema.org/draft/2020-12/schema",
+			"properties": {
+				"rule": {
+					"type": "string",
+					"minLength": 1,
+					"maxLength": 200,
+					"description": "One line, an instruction to the teacher, e.g. \"Use Python for code examples.\""
+				},
+				"class_id": {
+					"description": "Only for this class's lessons (from list_classes). Leave it out for every lesson.",
+					"type": "string"
+				},
+				"area": {
+					"description": "For every lesson, the part of teaching it is about: \"voice\", \"teaching\" (the default), \"questions\", \"facts\", \"demos\" or \"files\" (files, formatting and code).",
+					"type": "string",
+					"enum": [
+						"voice",
+						"teaching",
+						"questions",
+						"facts",
+						"demos",
+						"files"
+					]
+				}
+			},
+			"required": [
+				"rule"
+			]
+		},
+		"annotations": {
+			"destructiveHint": false,
+			"idempotentHint": false,
+			"openWorldHint": false
+		}
+	},
+	{
+		"name": "list_classes",
+		"title": "List classes",
+		"description": "List the learner's classes (university courses), archived ones included, with file and lesson counts.",
+		"inputSchema": {
+			"type": "object",
+			"$schema": "https://json-schema.org/draft/2020-12/schema",
+			"properties": {}
+		},
+		"annotations": {
+			"readOnlyHint": true,
+			"openWorldHint": false
+		}
+	},
+	{
+		"name": "read_class",
+		"title": "Read a class",
+		"description": "Read one class: its description, how many files are in each status (pending, extracting, ready, failed, needs-whisper) and the files that could not be read, the topics of its knowledge graph with their fact counts, its deadlines (kind, date, time, done, and the files each covers), its lessons, and today's local date and time. With files: true it lists every file instead (id, kind, status, size, path on disk). To find something inside the files, use search_class_files.",
+		"inputSchema": {
+			"type": "object",
+			"$schema": "https://json-schema.org/draft/2020-12/schema",
+			"properties": {
+				"class_id": {
+					"type": "string"
+				},
+				"files": {
+					"description": "List every file with its id (needed for file_ids). Default false.",
+					"type": "boolean"
+				}
+			},
+			"required": [
+				"class_id"
+			]
+		},
+		"annotations": {
+			"readOnlyHint": true,
+			"openWorldHint": false
+		}
+	},
+	{
+		"name": "search_class_files",
+		"title": "Search a class's files",
+		"description": "Search all of a class's files (readings, slides, transcripts, syllabus, assignments) by meaning and keywords. Returns the best passages, each with its id, file, place (page, slide, time or lines) and a short snippet. Open the ones you need with read_passage instead of reading whole files.",
+		"inputSchema": {
+			"type": "object",
+			"$schema": "https://json-schema.org/draft/2020-12/schema",
+			"properties": {
+				"class_id": {
+					"type": "string"
+				},
+				"query": {
+					"type": "string",
+					"minLength": 1,
+					"description": "What to look for, in plain words."
+				},
+				"limit": {
+					"description": "Most passages to return (default 8).",
+					"type": "integer",
+					"minimum": 1,
+					"maximum": 20
+				}
+			},
+			"required": [
+				"class_id",
+				"query"
+			]
+		},
+		"annotations": {
+			"readOnlyHint": true,
+			"openWorldHint": false
+		}
+	},
+	{
+		"name": "read_passage",
+		"title": "Read a passage of a class file",
+		"description": "Read one passage of a class file by its id from search_class_files, or a file's passages at a place (file_id + range, e.g. a whole page). Returns the text with the ids of the passages before and after it, to keep reading.",
+		"inputSchema": {
+			"type": "object",
+			"$schema": "https://json-schema.org/draft/2020-12/schema",
+			"properties": {
+				"class_id": {
+					"type": "string"
+				},
+				"passage_id": {
+					"description": "A passage id from search_class_files (or a previous/next id).",
+					"type": "string"
+				},
+				"file_id": {
+					"description": "Instead of passage_id: a file id from read_class, with range.",
+					"type": "string"
+				},
+				"range": {
+					"description": "With file_id: the place, e.g. \"p. 12\", \"slide 4\", \"12:30\" or \"lines 40\".",
+					"type": "string"
+				}
+			},
+			"required": [
+				"class_id"
+			]
+		},
+		"annotations": {
+			"readOnlyHint": true,
+			"openWorldHint": false
+		}
+	},
+	{
+		"name": "create_class",
+		"title": "Create a class",
+		"description": "Create a class for a course the learner is taking. The description is shown to the teacher in every lesson of the class: level, textbook, the professor's notation, what exams and assignments look like. Add the class's deadlines with add_class_deadline.",
+		"inputSchema": {
+			"type": "object",
+			"$schema": "https://json-schema.org/draft/2020-12/schema",
+			"properties": {
+				"name": {
+					"type": "string",
+					"minLength": 1,
+					"description": "The course, e.g. \"MATH 20C – Calculus III\"."
+				},
+				"description": {
+					"description": "What the teacher should know about the course, in the learner's terms.",
+					"type": "string"
+				},
+				"signature": {
+					"description": "The class's signature: ONE line that sums up the subject, shown huge on the class's cover. kind \"math\" = LaTeX without $ (math, physics, chemistry, economics), \"code\" = a line of code (programming classes), \"text\" = anything else (a line from a primary source, a sequence, a date). At most 60 characters. Pick something iconic for the course; ask the learner when unsure.",
+					"type": "object",
+					"properties": {
+						"kind": {
+							"type": "string",
+							"enum": [
+								"math",
+								"code",
+								"text"
+							]
+						},
+						"value": {
+							"type": "string",
+							"minLength": 1,
+							"maxLength": 60
+						}
+					},
+					"required": [
+						"kind",
+						"value"
+					]
+				},
+				"icon": {
+					"type": "string",
+					"enum": [
+						"cpu",
+						"code",
+						"sigma",
+						"chart-line",
+						"atom",
+						"flask-conical",
+						"dna",
+						"brain",
+						"landmark",
+						"scale",
+						"trending-up",
+						"globe",
+						"languages",
+						"book-open",
+						"palette",
+						"music"
+					],
+					"description": "The class's subject icon in the class switcher: \"cpu\" Computer science, \"code\" Programming, \"sigma\" Math, \"chart-line\" Statistics, \"atom\" Physics, \"flask-conical\" Chemistry, \"dna\" Biology, \"brain\" Psychology, \"landmark\" History, \"scale\" Law and politics, \"trending-up\" Economics, \"globe\" Geography, \"languages\" Languages, \"book-open\" Literature, \"palette\" Art, \"music\" Music. Pick the closest subject."
+				}
+			},
+			"required": [
+				"name",
+				"icon"
+			]
+		},
+		"annotations": {
+			"destructiveHint": false,
+			"idempotentHint": false,
+			"openWorldHint": false
+		}
+	},
+	{
+		"name": "update_class",
+		"title": "Update a class",
+		"description": "Rename a class, change its description, signature or icon, or archive / unarchive it (archiving hides it from the class switcher but keeps everything; an archived class takes no new lessons).",
+		"inputSchema": {
+			"type": "object",
+			"$schema": "https://json-schema.org/draft/2020-12/schema",
+			"properties": {
+				"class_id": {
+					"type": "string"
+				},
+				"name": {
+					"type": "string",
+					"minLength": 1
+				},
+				"description": {
+					"type": "string"
+				},
+				"signature": {
+					"description": "The class's signature: ONE line that sums up the subject, shown huge on the class's cover. kind \"math\" = LaTeX without $ (math, physics, chemistry, economics), \"code\" = a line of code (programming classes), \"text\" = anything else (a line from a primary source, a sequence, a date). At most 60 characters. Pick something iconic for the course; ask the learner when unsure.",
+					"type": "object",
+					"properties": {
+						"kind": {
+							"type": "string",
+							"enum": [
+								"math",
+								"code",
+								"text"
+							]
+						},
+						"value": {
+							"type": "string",
+							"minLength": 1,
+							"maxLength": 60
+						}
+					},
+					"required": [
+						"kind",
+						"value"
+					]
+				},
+				"icon": {
+					"type": "string",
+					"enum": [
+						"cpu",
+						"code",
+						"sigma",
+						"chart-line",
+						"atom",
+						"flask-conical",
+						"dna",
+						"brain",
+						"landmark",
+						"scale",
+						"trending-up",
+						"globe",
+						"languages",
+						"book-open",
+						"palette",
+						"music"
+					],
+					"description": "The class's subject icon in the class switcher: \"cpu\" Computer science, \"code\" Programming, \"sigma\" Math, \"chart-line\" Statistics, \"atom\" Physics, \"flask-conical\" Chemistry, \"dna\" Biology, \"brain\" Psychology, \"landmark\" History, \"scale\" Law and politics, \"trending-up\" Economics, \"globe\" Geography, \"languages\" Languages, \"book-open\" Literature, \"palette\" Art, \"music\" Music. Pick the closest subject."
+				},
+				"archived": {
+					"type": "boolean"
+				}
+			},
+			"required": [
+				"class_id"
+			]
+		},
+		"annotations": {
+			"destructiveHint": false,
+			"idempotentHint": true,
+			"openWorldHint": false
+		}
+	},
+	{
+		"name": "add_class_file",
+		"title": "Add a file to a class",
+		"description": "Copy a file from this computer into a class. Supported: .md .txt, code files (.c .py .java .js and the like), plain text with no extension, .pdf .docx .pptx, .vtt .srt (transcripts) and .mp3 .m4a .wav .mp4 .mov (recordings, transcribed locally with whisper.cpp). Google Docs links (.gdoc) need saving as PDF or Word first. Study files are turned into facts by you, through wait_for_work.",
+		"inputSchema": {
+			"type": "object",
+			"$schema": "https://json-schema.org/draft/2020-12/schema",
+			"properties": {
+				"class_id": {
+					"type": "string"
+				},
+				"path": {
+					"type": "string",
+					"description": "The file's absolute path."
+				},
+				"kind": {
+					"type": "string",
+					"enum": [
+						"study",
+						"info"
+					],
+					"description": "\"study\" = study material turned into graph facts (notes, readings, transcripts, recordings); \"info\" = course info the teacher can read but that never becomes facts (syllabus, assignments, logistics)."
+				}
+			},
+			"required": [
+				"class_id",
+				"path",
+				"kind"
+			]
+		},
+		"annotations": {
+			"destructiveHint": false,
+			"idempotentHint": false,
+			"openWorldHint": false
+		}
+	},
+	{
+		"name": "set_class_file_kind",
+		"title": "Set class files' kind",
+		"description": "Switch one or more class files between study material and course info. Study → info removes their facts; info → study builds them. A file that can't be switched is listed under refused; the others still switch.",
+		"inputSchema": {
+			"type": "object",
+			"$schema": "https://json-schema.org/draft/2020-12/schema",
+			"properties": {
+				"class_id": {
+					"type": "string"
+				},
+				"file_ids": {
+					"minItems": 1,
+					"type": "array",
+					"items": {
+						"type": "string"
+					},
+					"description": "The files to switch (ids from read_class with files: true)."
+				},
+				"kind": {
+					"type": "string",
+					"enum": [
+						"study",
+						"info"
+					],
+					"description": "\"study\" = study material turned into graph facts (notes, readings, transcripts, recordings); \"info\" = course info the teacher can read but that never becomes facts (syllabus, assignments, logistics)."
+				}
+			},
+			"required": [
+				"class_id",
+				"file_ids",
+				"kind"
+			]
+		},
+		"annotations": {
+			"destructiveHint": true,
+			"idempotentHint": true,
+			"openWorldHint": false
+		}
+	},
+	{
+		"name": "add_class_deadline",
+		"title": "Add deadlines to a class",
+		"description": "Add one or more deadlines to a class (send all of a syllabus's deadlines in one call): exams, homework, quizzes and projects, each with its date, its time if it has one, and which of the class's files (lecture notes, readings) it covers. godspeed uses this to show the learner what is due and what to work on first. Take the deadlines, their dates and times from the syllabus or course info, and never make up a date or time. Work out what a deadline covers from the class's own files first: a practice exam or review sheet, the syllabus schedule, announcements (search_class_files). Link the lectures they point to (file_ids), list files from before it that it doesn't cover in left_out_ids, and say in source which file it came from. Ask only when the files don't settle it. File ids come from read_class with files: true. A deadline that is refused is listed under refused with the reason; the others are still added, so send only the refused ones again.",
+		"inputSchema": {
+			"type": "object",
+			"$schema": "https://json-schema.org/draft/2020-12/schema",
+			"properties": {
+				"class_id": {
+					"type": "string"
+				},
+				"deadlines": {
+					"minItems": 1,
+					"type": "array",
+					"items": {
+						"type": "object",
+						"properties": {
+							"kind": {
+								"type": "string",
+								"enum": [
+									"exam",
+									"homework",
+									"quiz",
+									"project"
+								],
+								"description": "What the deadline is."
+							},
+							"name": {
+								"type": "string",
+								"minLength": 1,
+								"description": "e.g. \"Midterm 1\", \"Homework 5\"."
+							},
+							"date": {
+								"type": "string",
+								"description": "The due day as YYYY-MM-DD."
+							},
+							"time": {
+								"description": "The due time as 24-hour \"HH:MM\" on this computer's clock. Leave it out when there is none (it then counts as due at the end of the day).",
+								"type": "string"
+							},
+							"file_ids": {
+								"description": "Ids of the class files it covers.",
+								"type": "array",
+								"items": {
+									"type": "string"
+								}
+							},
+							"left_out_ids": {
+								"description": "Ids of class files from before it that it does NOT cover (e.g. lectures after the practice exam's last topic). The learner's page stops flagging them as missing.",
+								"type": "array",
+								"items": {
+									"type": "string"
+								}
+							},
+							"source": {
+								"description": "Where you found what it covers, e.g. the practice exam's file name. The learner sees it.",
+								"type": "string"
+							},
+							"assignment_file_id": {
+								"description": "For homework and projects: the id of the class file with its problems (the assignment sheet). The learner works on its problems in godspeed.",
+								"type": "string"
+							}
+						},
+						"required": [
+							"kind",
+							"name",
+							"date"
+						]
+					}
+				}
+			},
+			"required": [
+				"class_id",
+				"deadlines"
+			]
+		},
+		"annotations": {
+			"destructiveHint": false,
+			"idempotentHint": false,
+			"openWorldHint": false
+		}
+	},
+	{
+		"name": "update_class_deadline",
+		"title": "Update a class deadline",
+		"description": "Change a deadline's kind, name, date, time, covered files, left-out files, source or assignment file, or tick it done (done: true) or not done (done: false). file_ids and left_out_ids each replace the whole list (a file is never in both); time: null, source: null and assignment_file_id: null remove them. Work out coverage from the class's own files as add_class_deadline says; ask the learner when the files don't settle it.",
+		"inputSchema": {
+			"type": "object",
+			"$schema": "https://json-schema.org/draft/2020-12/schema",
+			"properties": {
+				"class_id": {
+					"type": "string"
+				},
+				"deadline_id": {
+					"type": "string"
+				},
+				"kind": {
+					"type": "string",
+					"enum": [
+						"exam",
+						"homework",
+						"quiz",
+						"project"
+					],
+					"description": "What the deadline is."
+				},
+				"name": {
+					"type": "string",
+					"minLength": 1
+				},
+				"date": {
+					"description": "YYYY-MM-DD.",
+					"type": "string"
+				},
+				"time": {
+					"description": "24-hour \"HH:MM\", or null to remove the time.",
+					"type": [
+						"string",
+						"null"
+					]
+				},
+				"file_ids": {
+					"description": "Ids of the class files it covers.",
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				},
+				"left_out_ids": {
+					"description": "Ids of class files from before it that it does NOT cover (e.g. lectures after the practice exam's last topic). The learner's page stops flagging them as missing.",
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				},
+				"source": {
+					"description": "Where you found what it covers, e.g. the practice exam's file name. The learner sees it.",
+					"type": [
+						"string",
+						"null"
+					]
+				},
+				"assignment_file_id": {
+					"description": "For homework and projects: the id of the class file with its problems (the assignment sheet). The learner works on its problems in godspeed.",
+					"type": [
+						"string",
+						"null"
+					]
+				},
+				"done": {
+					"type": "boolean"
+				}
+			},
+			"required": [
+				"class_id",
+				"deadline_id"
+			]
+		},
+		"annotations": {
+			"destructiveHint": false,
+			"idempotentHint": true,
+			"openWorldHint": false
+		}
+	},
+	{
+		"name": "remove_class_deadline",
+		"title": "Remove a class deadline",
+		"description": "Remove one deadline from a class (its files and facts are not touched).",
+		"inputSchema": {
+			"type": "object",
+			"$schema": "https://json-schema.org/draft/2020-12/schema",
+			"properties": {
+				"class_id": {
+					"type": "string"
+				},
+				"deadline_id": {
+					"type": "string"
+				}
+			},
+			"required": [
+				"class_id",
+				"deadline_id"
+			]
+		},
+		"annotations": {
+			"destructiveHint": true,
+			"idempotentHint": true,
+			"openWorldHint": false
+		}
+	},
+	{
+		"name": "link_class_folder",
+		"title": "Link a folder to a class",
+		"description": "Link a folder on this computer to a class. Its supported files are added, and from then on new files dropped there are added automatically and edited files are rebuilt (checked every minute while godspeed is open). godspeed sorts them into study material and course info itself while reading them, and never changes the folder. Use set_class_file_kind only to correct a kind.",
+		"inputSchema": {
+			"type": "object",
+			"$schema": "https://json-schema.org/draft/2020-12/schema",
+			"properties": {
+				"class_id": {
+					"type": "string"
+				},
+				"path": {
+					"type": "string",
+					"description": "The folder's absolute path."
+				}
+			},
+			"required": [
+				"class_id",
+				"path"
+			]
+		},
+		"annotations": {
+			"destructiveHint": false,
+			"idempotentHint": true,
+			"openWorldHint": false
+		}
+	},
+	{
+		"name": "start_lesson",
+		"title": "Start a lesson",
+		"description": "Start a new study session in godspeed taught by you: you teach what is new and give problems on what needs practice. The topic becomes the learner's first message. With class_id the lesson belongs to that class: it opens with the class's card and its facts go into that class's graph. You teach it through wait_for_work; the learner follows along in the godspeed window.",
+		"inputSchema": {
+			"type": "object",
+			"$schema": "https://json-schema.org/draft/2020-12/schema",
+			"properties": {
+				"topic": {
+					"type": "string",
+					"minLength": 1,
+					"description": "What the learner wants to study, in their words."
+				},
+				"class_id": {
+					"description": "The class id from list_classes, or \"none\" for lessons without a class (the default).",
+					"type": "string"
+				}
+			},
+			"required": [
+				"topic"
+			]
+		},
+		"annotations": {
+			"destructiveHint": false,
+			"idempotentHint": false,
+			"openWorldHint": false
+		}
+	},
+	{
+		"name": "unlink_class_folder",
+		"title": "Unlink a class's folder",
+		"description": "Unlink the class's folder: its files leave the class together with their facts. The folder itself is not touched.",
+		"inputSchema": {
+			"type": "object",
+			"$schema": "https://json-schema.org/draft/2020-12/schema",
+			"properties": {
+				"class_id": {
+					"type": "string"
+				}
+			},
+			"required": [
+				"class_id"
+			]
+		},
+		"annotations": {
+			"destructiveHint": true,
+			"idempotentHint": true,
+			"openWorldHint": false
+		}
+	}
+]

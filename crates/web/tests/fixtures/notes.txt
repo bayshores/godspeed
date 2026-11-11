@@ -1,0 +1,5 @@
+Plain notes
+
+line two with <b>tags</b> left alone
+  indented line
+café 日本語 😀

@@ -1,0 +1,481 @@
+[
+	{
+		"name": "settled stream",
+		"output": {
+			"plain": "data: {\"type\":\"turn-settled\"}\n\ndata: [DONE]\n\n",
+			"failed": "data: {\"type\":\"error\",\"errorText\":\"The reply could not be saved.\"}\n\ndata: {\"type\":\"turn-settled\"}\n\ndata: [DONE]\n\n"
+		}
+	},
+	{
+		"name": "projected tokens",
+		"output": [
+			[
+				174,
+				1674
+			],
+			[
+				1340,
+				1340
+			],
+			[
+				13,
+				1513
+			]
+		]
+	},
+	{
+		"name": "persist plain turn",
+		"output": {
+			"stamped": [
+				{
+					"role": "assistant",
+					"content": [
+						{
+							"type": "text",
+							"text": "Hello!"
+						}
+					],
+					"usage": {
+						"input": 10,
+						"output": 2,
+						"cacheRead": 0,
+						"cacheWrite": 0,
+						"totalTokens": 12,
+						"cost": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"total": 0
+						}
+					},
+					"stopReason": "stop",
+					"timestamp": 2,
+					"id": "<new>"
+				},
+				{
+					"id": "keep_id",
+					"role": "assistant",
+					"content": [
+						{
+							"type": "text",
+							"text": "Kept id"
+						}
+					],
+					"stopReason": "stop",
+					"timestamp": 2
+				}
+			],
+			"saved": [
+				{
+					"id": "u1",
+					"role": "user",
+					"content": "hi",
+					"timestamp": 1
+				},
+				{
+					"role": "assistant",
+					"content": [
+						{
+							"type": "text",
+							"text": "Hello!"
+						}
+					],
+					"usage": {
+						"input": 10,
+						"output": 2,
+						"cacheRead": 0,
+						"cacheWrite": 0,
+						"totalTokens": 12,
+						"cost": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"total": 0
+						}
+					},
+					"stopReason": "stop",
+					"timestamp": 2,
+					"id": "<new>"
+				},
+				{
+					"id": "keep_id",
+					"role": "assistant",
+					"content": [
+						{
+							"type": "text",
+							"text": "Kept id"
+						}
+					],
+					"stopReason": "stop",
+					"timestamp": 2
+				}
+			]
+		}
+	},
+	{
+		"name": "persist drops a clean question placeholder",
+		"output": {
+			"stamped": [
+				{
+					"role": "assistant",
+					"content": [
+						{
+							"type": "toolCall",
+							"id": "q1",
+							"name": "quiz",
+							"arguments": {}
+						}
+					],
+					"stopReason": "toolUse",
+					"timestamp": 3,
+					"id": "<new>"
+				},
+				{
+					"role": "assistant",
+					"content": [
+						{
+							"type": "toolCall",
+							"id": "q2",
+							"name": "ask_user_question",
+							"arguments": {}
+						}
+					],
+					"stopReason": "toolUse",
+					"timestamp": 3,
+					"id": "<new>"
+				},
+				{
+					"role": "toolResult",
+					"toolCallId": "q2",
+					"toolName": "ask_user_question",
+					"content": [
+						{
+							"type": "text",
+							"text": "ask_user_question result"
+						}
+					],
+					"isError": true,
+					"timestamp": 4,
+					"id": "<new>"
+				}
+			],
+			"saved": [
+				{
+					"id": "u1",
+					"role": "user",
+					"content": "quiz me",
+					"timestamp": 1
+				},
+				{
+					"role": "assistant",
+					"content": [
+						{
+							"type": "toolCall",
+							"id": "q1",
+							"name": "quiz",
+							"arguments": {}
+						}
+					],
+					"stopReason": "toolUse",
+					"timestamp": 3,
+					"id": "<new>"
+				},
+				{
+					"role": "assistant",
+					"content": [
+						{
+							"type": "toolCall",
+							"id": "q2",
+							"name": "ask_user_question",
+							"arguments": {}
+						}
+					],
+					"stopReason": "toolUse",
+					"timestamp": 3,
+					"id": "<new>"
+				},
+				{
+					"role": "toolResult",
+					"toolCallId": "q2",
+					"toolName": "ask_user_question",
+					"content": [
+						{
+							"type": "text",
+							"text": "ask_user_question result"
+						}
+					],
+					"isError": true,
+					"timestamp": 4,
+					"id": "<new>"
+				}
+			]
+		}
+	},
+	{
+		"name": "persist a plan block once",
+		"output": {
+			"first": {
+				"stamped": [
+					{
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "p1",
+								"name": "plan_init",
+								"arguments": {}
+							}
+						],
+						"stopReason": "toolUse",
+						"timestamp": 3,
+						"id": "<new>"
+					},
+					{
+						"role": "toolResult",
+						"toolCallId": "p1",
+						"toolName": "plan_init",
+						"content": [
+							{
+								"type": "text",
+								"text": "plan_init result"
+							}
+						],
+						"isError": false,
+						"details": {
+							"ok": true
+						},
+						"timestamp": 4,
+						"id": "<new>"
+					},
+					{
+						"role": "assistant",
+						"content": [
+							{
+								"type": "text",
+								"text": "Here is the plan."
+							}
+						],
+						"stopReason": "stop",
+						"timestamp": 2,
+						"id": "<new>"
+					}
+				],
+				"saved": [
+					{
+						"id": "u1",
+						"role": "user",
+						"content": "plan it",
+						"timestamp": 1
+					},
+					{
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "p1",
+								"name": "plan_init",
+								"arguments": {}
+							}
+						],
+						"stopReason": "toolUse",
+						"timestamp": 3,
+						"id": "<new>"
+					},
+					{
+						"role": "toolResult",
+						"toolCallId": "p1",
+						"toolName": "plan_init",
+						"content": [
+							{
+								"type": "text",
+								"text": "plan_init result"
+							}
+						],
+						"isError": false,
+						"details": {
+							"ok": true
+						},
+						"timestamp": 4,
+						"id": "<new>"
+					},
+					{
+						"role": "assistant",
+						"content": [
+							{
+								"type": "text",
+								"text": "Here is the plan."
+							}
+						],
+						"stopReason": "stop",
+						"timestamp": 2,
+						"id": "<new>"
+					},
+					{
+						"id": "<new>",
+						"role": "custom",
+						"customType": "plan-block",
+						"content": "",
+						"display": true,
+						"details": {
+							"planCallId": "p1",
+							"block": {
+								"kind": "full",
+								"at": "<now>",
+								"current": null,
+								"nodes": [
+									{
+										"id": "a",
+										"title": "Limits",
+										"status": "upcoming"
+									},
+									{
+										"id": "b",
+										"title": "Derivatives",
+										"status": "upcoming"
+									}
+								],
+								"edges": [
+									{
+										"from": "a",
+										"to": "b"
+									}
+								]
+							}
+						},
+						"timestamp": "<now>"
+					}
+				]
+			},
+			"failed": {
+				"stamped": [
+					{
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "p1",
+								"name": "plan_init",
+								"arguments": {}
+							}
+						],
+						"stopReason": "toolUse",
+						"timestamp": 3,
+						"id": "<new>"
+					},
+					{
+						"role": "toolResult",
+						"toolCallId": "p1",
+						"toolName": "plan_init",
+						"content": [
+							{
+								"type": "text",
+								"text": "plan_init result"
+							}
+						],
+						"isError": true,
+						"details": {
+							"ok": false
+						},
+						"timestamp": 4,
+						"id": "<new>"
+					}
+				],
+				"saved": [
+					{
+						"id": "u1",
+						"role": "user",
+						"content": "plan it",
+						"timestamp": 1
+					},
+					{
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "p1",
+								"name": "plan_init",
+								"arguments": {}
+							}
+						],
+						"stopReason": "toolUse",
+						"timestamp": 3,
+						"id": "<new>"
+					},
+					{
+						"role": "toolResult",
+						"toolCallId": "p1",
+						"toolName": "plan_init",
+						"content": [
+							{
+								"type": "text",
+								"text": "plan_init result"
+							}
+						],
+						"isError": true,
+						"details": {
+							"ok": false
+						},
+						"timestamp": 4,
+						"id": "<new>"
+					}
+				]
+			}
+		}
+	},
+	{
+		"name": "persist with a base past the record",
+		"output": {
+			"stamped": [
+				{
+					"role": "assistant",
+					"content": [
+						{
+							"type": "text",
+							"text": "four"
+						}
+					],
+					"stopReason": "stop",
+					"timestamp": 2,
+					"id": "<new>"
+				}
+			],
+			"saved": [
+				{
+					"role": "assistant",
+					"content": [
+						{
+							"type": "text",
+							"text": "four"
+						}
+					],
+					"stopReason": "stop",
+					"timestamp": 2,
+					"id": "<new>"
+				}
+			]
+		}
+	},
+	{
+		"name": "pdf attachments",
+		"output": {
+			"parts": [
+				{
+					"type": "text",
+					"text": "[Attached PDF] Week 3 notes.pdf\nPath: /lessons/chat_g/0fdbf15a259c-Week 3 notes.pdf\nRead it with the pdf tool when you need its content."
+				},
+				{
+					"type": "text",
+					"text": "[Attached PDF] ../odd:name?.PDF\nPath: /lessons/chat_g/0fdbf15a259c-_odd_name_.pdf\nRead it with the pdf tool when you need its content."
+				}
+			],
+			"saved": [
+				"0fdbf15a259c-Week 3 notes.pdf",
+				"0fdbf15a259c-_odd_name_.pdf"
+			],
+			"refused": "fake.pdf is not a PDF.",
+			"unreadable": "Can't read photo.png."
+		}
+	}
+]

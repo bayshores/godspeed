@@ -1,0 +1,20 @@
+[package]
+name = "gs-transcribe"
+version = "0.0.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+gs-base.workspace = true
+gs-core.workspace = true
+parking_lot.workspace = true
+reqwest.workspace = true
+tokio.workspace = true
+
+[dev-dependencies]
+gs-json.workspace = true
+
+[lints]
+workspace = true

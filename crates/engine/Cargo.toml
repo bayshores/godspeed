@@ -1,0 +1,18 @@
+[package]
+name = "gs-engine"
+version = "0.0.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+gs-json.workspace = true
+gs-base.workspace = true
+gs-core.workspace = true
+tokio.workspace = true
+parking_lot.workspace = true
+futures-util.workspace = true
+
+[lints]
+workspace = true

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Where the two converters part</title></head>
+<body>
+<article>
+<p>This page holds the constructs where the Rust converter is known to print something different from Turndown, so the differences stay written down and any new one is caught.</p>
+<p>Angle brackets in text: use &lt;angle&gt; marks and a &lt;b&gt; tag name, plus 1 &lt; 2 and a &lt;/closing&gt; tag.</p>
+<p>An empty link <a href="/z"></a> before text.</p>
+<p>A break<br>
+then a new source line.</p>
+<p>A path in <em>~/projects</em> and a range <i>n</i>-<i>i</i>.</p>
+<p>Empty links in a row:
+<a href="/prev"></a>
+<a href="/next"></a>
+</p>
+<pre>a bare pre with *stars*, [brackets] and snake_case</pre>
+<pre><code>let x: Vec&lt;<a href="/t">T</a>&gt;;</code></pre>
+<ul>
+<li><p>Item with a paragraph.</p><p>And a second paragraph inside the item.</p></li>
+<li>Item with a break<br>inside it.</li>
+<li>Item with code block:
+<pre><code>line one
+line two</code></pre>
+</li>
+</ul>
+<ol>
+<li>One</li><li>Two</li><li>Three</li><li>Four</li><li>Five</li><li>Six</li><li>Seven</li><li>Eight</li><li>Nine</li><li>Ten</li><li>Eleven</li>
+</ol>
+<pre><code>a fence ``` inside a line
+</code></pre>
+<p>= equals line<br>--- three dashes<br>###### six<br>####### seven</p>
+</article>
+</body>
+</html>

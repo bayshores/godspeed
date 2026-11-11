@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Markup tour</title></head>
+<body>
+<article>
+<h2>Inline <em>marks</em> and <a href="/x">links</a></h2>
+<p>Plain text with <b>bold</b>, <strong>strong</strong>, <i>italic</i>, <em>emphasis</em>, <strong><em>both</em></strong>, <em>an <strong>inner</strong> word</em>, <del>deleted</del>, <s>struck</s>, <u>under</u>, <mark>marked</mark>, <kbd>Ctrl</kbd>, <abbr title="Central Processing Unit">CPU</abbr>, x<sup>2</sup> and H<sub>2</sub>O, <small>small print</small>, <cite>a cite</cite>, <q>quoted</q>, <var>v</var>, <samp>output</samp>.</p>
+<p>Edge spacing: <em> padded </em>word and <strong>bold </strong>next and <a href="/y"> spaced link </a>after. Empty <em></em> and <strong> </strong> marks.</p>
+<p>A link without href: <a name="anchor">anchor text</a>, a link with a title: <a href="/t" title='He said "hi"'>titled</a>, and a link with spaces in href: <a href="/a b/c d">spaced</a>, and a quote in text: "straight" and 'single' and “curly”.</p>
+<p>Code spans: <code>plain</code>, <code>with `tick` inside</code>, <code>*not emphasis*</code>, <code>&lt;tag&gt;</code>, <code>back\slash</code>.</p>
+<h3>Heading <code>code</code> three</h3>
+<h4>Heading four</h4>
+<h5>Heading five</h5>
+<h6>Heading six</h6>
+<p>Text right before a list follows.</p>
+<ul>
+<li>First item with a long enough sentence to count as real content for the reader.</li>
+<li>Outer
+<ol start="3">
+<li>third</li>
+<li>fourth
+<ul><li>deep one</li><li>deep two</li></ul>
+</li>
+</ol>
+</li>
+</ul>
+<ol>
+<li>One</li><li>Two</li><li>Three</li>
+</ol>
+<blockquote>
+<p>Outer quote paragraph one is here and it is long enough to matter to anybody reading it.</p>
+<blockquote><p>Inner quote.</p></blockquote>
+<ul><li>list in quote</li></ul>
+</blockquote>
+<pre><code>indented
+    deeper
+		tabbed
+with a code fence inside
+</code></pre>
+<pre><code class="language-js">const a = 1;
+</code></pre>
+<pre>bare pre
+  with spaces</pre>
+<p>Before rule.</p>
+<hr>
+<p>After rule. An image: <img src="/a.png" alt="Alt text"> and one without alt <img src="/b.png"> and one with a title <img src="/c.png" alt="C" title="The C"> and a data one <img src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" alt="dot">.</p>
+<figure><img src="/fig.png" alt="Figure image"><figcaption>Figure caption text</figcaption></figure>
+<div>A bare div with text.<div>A nested div with more text.</div>Trailing text in the outer div.</div>
+<p>Whitespace   collapsing
+across    lines	and tabs.   Trailing spaces   </p>
+<p>Entities: &amp;amp; &quot;q&quot; &#169; &#x1F600; &nbsp;&nbsp;two nbsp. A line starting with a number follows.</p>
+<p>2024. The year it began.</p>
+<p>Underscores_in_words and *stars* and **double** and `ticks` and ~~tildes~~ and [brackets](not a link) and a|pipe and ![bang](x).</p>
+<p>= equals line<br>== two equals<br>***<br>___<br>~~~ tildes<br>``` fence<br>10) paren list<br>* star item<br>- dash item<br>+ plus item<br>1) one paren<br>#hash no space<br>###### six</p>
+<details><summary>Summary text</summary>Details body text goes here.</details>
+<dl><dt>Term</dt><dd>Definition one.</dd><dd>Definition two.</dd></dl>
+<table><caption>Table caption</caption><tr><th>H1</th><th>H2</th></tr><tr><td>a</td><td>b <em>c</em></td></tr></table>
+<p>The very last paragraph closes the tour with a few more words so the page is long.</p>
+</article>
+</body>
+</html>

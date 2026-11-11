@@ -1,0 +1,6 @@
+# Tests compare against outputs Node made in this zone and locale (npm run golden sets the same).
+[env]
+TZ = { value = "America/Los_Angeles", force = true }
+LANG = { value = "en_US.UTF-8", force = true }
+LC_ALL = { value = "", force = true }
+LC_MESSAGES = { value = "", force = true }

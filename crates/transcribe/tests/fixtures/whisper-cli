@@ -1,0 +1,33 @@
+#!/bin/sh
+# Stand-in for whisper-cli. What it does is chosen by the file name inside the "wav" ffmpeg's
+# stand-in wrote.
+echo "whisper-cli $*" >> "$(dirname "$0")/calls.log"
+wav=""
+base=""
+prev=""
+for a in "$@"; do
+  if [ "$prev" = "-f" ]; then wav="$a"; fi
+  if [ "$prev" = "-of" ]; then base="$a"; fi
+  prev="$a"
+done
+name=$(cat "$wav")
+case "$name" in
+  *whisper-fail*)
+    printf 'whisper_init_from_file: loading model\n' >&2
+    printf 'error: failed to load the model\n' >&2
+    exit 2;;
+  *whisper-lines*)
+    printf 'line 1\nline 2\n\nline 3\n  line 4  \nline 5\n\n' >&2
+    exit 4;;
+  *whisper-nofile*) exit 0;;
+  *blank-talk*) : > "$base.txt";;
+  *crlf*) printf ' First line.\r\n\r\n   \r\nSecond line.\r\n\r\n' > "$base.txt";;
+  *lone-cr*) printf 'a\rb\r\rc\r\n' > "$base.txt";;
+  *bom*) printf '\357\273\277 After the mark.\n' > "$base.txt";;
+  *badutf8*) printf '\377\376 ok \n' > "$base.txt";;
+  *nbsp*) printf ' \302\240\302\240text with\302\240spaces\302\240\n' > "$base.txt";;
+  *nel*) printf '\302\205x\302\205\n' > "$base.txt";;
+  *ws-only*) printf '  \n \r\n\t \n' > "$base.txt";;
+  *unicode*) printf ' Caf\303\251 \360\237\230\200 \346\227\245\346\234\254\350\252\236.\n' > "$base.txt";;
+  *) printf ' [%s] Hash tables store keys by their hash.\n Collisions are resolved by chaining.\n' "$name" > "$base.txt";;
+esac

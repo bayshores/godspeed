@@ -47,6 +47,8 @@
     "node_modules",
     "dist",
     "dist-ui",
-    ".next"
+    ".next",
+    "crates",
+    "target"
   ]
 }
