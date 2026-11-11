@@ -149,9 +149,6 @@ fn updater(app: &AppHandle) -> Result<Updater, String> {
 
 /// A check the learner asked for (menu, Settings): it runs even with automatic updates off.
 pub fn manual_check(app: &AppHandle) {
-	if app.try_state::<Updates>().is_none() {
-		return;
-	}
 	let app = app.clone();
 	tauri::async_runtime::spawn(async move { check(&app, true).await });
 }

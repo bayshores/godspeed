@@ -1,6 +1,6 @@
 //! The one way out. Every exit (the Quit item, the Dock, logout, the last window, the stopped
 //! dialog, a restart) reaches `RunEvent::Exit`, which runs this and waits for it: stop the
-//! server, then install a held update while nothing runs from the bundle.
+//! server, clean up, then install a held update while nothing runs from the bundle.
 
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -25,12 +25,13 @@ pub fn run(app: &AppHandle) {
 	if let Some(server) = app.try_state::<Server>() {
 		server.stop();
 	}
-	update::install_held(app, RESTARTING.load(Ordering::SeqCst));
-	// Managed only once the old-app check let this launch go on.
+	// Before the install: on Windows it exits the process. Managed only once the old-app check
+	// let this launch go on.
 	if let Some(paths) = app.try_state::<Paths>() {
 		old_app::remove_pid(&paths.user_data);
 		let _ = std::fs::remove_dir_all(&paths.demo_data);
 	}
+	update::install_held(app, RESTARTING.load(Ordering::SeqCst));
 }
 
 /// True the first time only.
