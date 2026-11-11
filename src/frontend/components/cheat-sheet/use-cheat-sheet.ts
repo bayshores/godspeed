@@ -85,14 +85,20 @@ export function sheetFilePath(classId: string, deadlineId: string, file: string)
 	return `${sheetApiPath(classId, deadlineId)}/files/${encodeURIComponent(file)}`;
 }
 
+/** Where the version's PDF sits in the sheet's working folder: its path, or the error line. */
+export async function sheetPdfFile(classId: string, deadlineId: string, n: number): Promise<{ path: string } | { error: string }> {
+	const { error, body } = await send(sheetApiPath(classId, deadlineId), jsonInit("POST", { action: "file", n }));
+	return error ? { error } : { path: (body as { path: string }).path };
+}
+
 /** Show in Finder (desktop): the version's PDF in the sheet's working
  *  folder. Resolves to the error line, or null. */
 export async function showSheetPdf(classId: string, deadlineId: string, n: number): Promise<string | null> {
 	const show = window.lh?.showInFolder;
 	if (!show) return null;
-	const { error, body } = await send(sheetApiPath(classId, deadlineId), jsonInit("POST", { action: "file", n }));
-	if (error) return error;
-	await show((body as { path: string }).path);
+	const file = await sheetPdfFile(classId, deadlineId, n);
+	if ("error" in file) return file.error;
+	await show(file.path);
 	return null;
 }
 

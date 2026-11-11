@@ -7,11 +7,13 @@ mod demo;
 #[cfg(not(target_os = "macos"))]
 mod demo_webview;
 mod first_run;
+mod fonts;
 mod log;
 #[cfg(target_os = "macos")]
 mod mac;
 mod menu;
 mod old_app;
+mod open;
 mod paths;
 mod push;
 mod quit;
@@ -54,6 +56,18 @@ fn main() {
 			zoom::set_zoom,
 			zoom::zoom_step,
 			zoom::zoom_reset,
+			commands::pick_folder,
+			commands::show_in_folder,
+			commands::open_path,
+			commands::open_agent,
+			commands::report_bug,
+			commands::list_fonts,
+			#[cfg(target_os = "macos")]
+			commands::appkit::print_pdf,
+			#[cfg(target_os = "macos")]
+			commands::appkit::drag_paths,
+			#[cfg(target_os = "macos")]
+			commands::appkit::title_bar_double_click,
 		])
 		.setup(setup)
 		.build(tauri::generate_context!())

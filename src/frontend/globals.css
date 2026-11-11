@@ -559,66 +559,39 @@ body {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
-   Electron merged chrome. The system title bar is
-   hidden (macOS hiddenInset; Windows/Linux hidden + native controls
-   overlay in electron/main.cjs); the app's 60px bands are the drag surface.
-   Everything here is inert in the plain browser — it keys off <html class="lh-electron">, which
-   SidebarProvider sets after mount when it detects the Electron shell.
+   Desktop chrome. On the Mac the title bar is transparent over the page and the
+   app's 60px bands are the drag surface (the shell's shim moves the window, see
+   crates/shell/src/shim.js). Everything here is inert in the plain browser: it
+   keys off <html class="lh-desktop">, which SidebarProvider sets after mount
+   when the shell's window.lh exists.
 
-   - .lh-drag        window-drag region — on a dedicated mask div in
-                       home.tsx placed FIRST in the page DOM (the mask
-                       resolves by DOM order, not z-index: no-drag subtracts
-                       only regions added earlier in the tree)
+   - .lh-drag        window-drag region, on a dedicated mask div in
+                       home.tsx placed FIRST in the page DOM (the shim lets the
+                       last listed element under the pointer decide)
    - .lh-no-drag     carve-out for interactive elements inside a drag band
-                       (native interactive elements carve out AUTOMATICALLY —
-                       see the auto carve-out rule below; manual use is for
-                       clickable non-natives only)
+                       (native interactive elements carve out on their own in
+                       the shim; manual use is for clickable NON-native
+                       elements (spans/divs with onClick), e.g. the graph
+                       chrome's control column)
    - .lh-lights-gutter  the sidebar LH band's traffic-light gutter: lights
                        end at x≈68, the wordmark starts at 80px (5rem)
    ───────────────────────────────────────────────────────────────────────── */
-.lh-electron .lh-drag {
-	-webkit-app-region: drag;
-}
-.lh-electron .lh-no-drag {
-	-webkit-app-region: no-drag;
-}
-/* THE AUTO CARVE-OUT:
-   inside a drag band, every NATIVE interactive element is automatically
-   a no-drag island — "draggable anywhere that is not a clickable
-   element" becomes structural, not per-child discipline. TopBar
-   contents can differ arbitrarily; buttons/inputs/links always stay
-   clickable with zero opt-out bookkeeping. Manual .lh-no-drag remains
-   only for clickable NON-native elements (spans/divs with onClick —
-   e.g. the graph chrome's control column). */
-.lh-electron .lh-drag :is(button, input, textarea, select, a, summary, [contenteditable]) {
-	-webkit-app-region: no-drag;
-}
 /* 92px = measured lights' right edge (~75pt) + the lights' own 16px
    inset from the window edge — comfortable, symmetric air.
    PHYSICAL-CONSTANT under zoom: ⌘±/⌘0 scale
-   every CSS px by the zoomFactor while the native lights never move —
+   every CSS px by the zoom factor while the native lights never move —
    so these lengths DIVIDE by --lh-zoom (published by the renderer from
-   the lh:zoom IPC) to render at the same physical size at every zoom.
+   the shell's zoom push) to render at the same physical size at every zoom.
    The graph button stays glued next to the lights zoomed in; nothing
    slides under them zoomed out. Default 1 until the first push lands. */
-.lh-electron {
+.lh-desktop {
 	--lh-zoom: 1;
 }
-.lh-electron[data-lh-platform="darwin"] .lh-lights-gutter {
+.lh-desktop[data-lh-platform="darwin"] .lh-lights-gutter {
 	padding-left: calc(92px / var(--lh-zoom));
 }
-
-/* Windows/Linux Window Controls Overlay: Chromium publishes the usable
-   titlebar rectangle in CSS coordinates (including resize/zoom changes).
-   Reserve the native buttons' actual right-side extent, no fixed width
-   and no second zoom division. The env fallbacks make fullscreen/absent
-   overlay a zero gutter. Keep this independent of .lh-drag: rename mode
-   still needs to clear the native buttons when dragging is disabled. */
-.lh-electron:is([data-lh-platform="win32"], [data-lh-platform="linux"]) {
-	--lh-wco-right: max(0px, calc(100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, 100vw)));
-}
-.lh-electron .lh-wco-gutter {
-	padding-right: calc(0.75rem + var(--lh-wco-right, 0px));
+.lh-desktop .lh-wco-gutter {
+	padding-right: 0.75rem;
 }
 
 /* Source-message arrival: a brief, static theme-colored spotlight. */

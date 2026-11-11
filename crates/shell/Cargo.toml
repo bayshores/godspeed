@@ -26,6 +26,9 @@ tauri-plugin-dialog.workspace = true
 tauri-plugin-opener.workspace = true
 tauri-plugin-single-instance.workspace = true
 
+[target.'cfg(not(target_os = "macos"))'.dependencies]
+fontdb.workspace = true
+
 [target.'cfg(target_os = "macos")'.dependencies]
 block2.workspace = true
 objc2.workspace = true

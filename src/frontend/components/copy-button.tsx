@@ -11,10 +11,10 @@ type CopyButtonProps = Omit<ComponentProps<"button">, "children" | "type"> & {
 	icon?: boolean | "only";
 };
 
-/** Clipboard write with a fallback: navigator.clipboard needs a permission
- *  Electron's handler (electron/main.cjs) must grant, and a stale API
- *  rejects, so the hidden-textarea execCommand path catches what would
- *  otherwise fail silently. Returns whether the copy landed. */
+/** Clipboard write with a fallback: the desktop shell's webview can refuse
+ *  navigator.clipboard, and a stale API rejects, so the hidden-textarea
+ *  execCommand path catches what would otherwise fail silently. Returns
+ *  whether the copy landed. */
 async function copyText(text: string): Promise<boolean> {
 	try {
 		await navigator.clipboard.writeText(text);

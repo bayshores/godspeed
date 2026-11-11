@@ -4,7 +4,7 @@ import { BrailleSpinner } from "@/frontend/components/braille-spinner";
 import { SettingsRow, Toggle } from "./controls.tsx";
 import { hasWhatsNew, openWhatsNew } from "@/frontend/components/whats-new";
 
-/** Observational snapshot from electron/main.cjs; never updater permission. */
+/** Observational snapshot from the desktop shell; never updater permission. */
 export type UpdateState = {
 	status: "idle" | "checking" | "downloading" | "up-to-date" | "downloaded" | "error" | "disabled";
 	version: string | null;

@@ -253,7 +253,7 @@ pub fn open_link(webview: Webview, origin: State<AppOrigin>, url: String) -> Res
 	Ok(())
 }
 
-fn main_window(webview: &Webview) -> Result<WebviewWindow, String> {
+pub fn main_window(webview: &Webview) -> Result<WebviewWindow, String> {
 	webview.app_handle().get_webview_window("main").ok_or_else(|| "no window".to_owned())
 }
 

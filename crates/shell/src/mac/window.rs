@@ -31,7 +31,6 @@ pub fn register_text_defaults() {
 }
 
 /// The file paths on the drag pasteboard (Finder puts one file URL per item).
-#[expect(dead_code, reason = "the drag command calls it")]
 pub fn drag_paths() -> Vec<String> {
 	// SAFETY: AppKit's own pasteboard name and type constants.
 	let (name, file_url) = unsafe { (NSPasteboardNameDrag, NSPasteboardTypeFileURL) };
@@ -45,7 +44,6 @@ pub fn drag_paths() -> Vec<String> {
 		.collect()
 }
 
-#[expect(dead_code, reason = "the title bar command calls it")]
 pub fn double_click_action() -> DoubleClick {
 	let action = NSUserDefaults::standardUserDefaults().stringForKey(&NSString::from_str("AppleActionOnDoubleClick"));
 	match action.map(|action| action.to_string()).as_deref() {

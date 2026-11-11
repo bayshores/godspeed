@@ -22,7 +22,14 @@
 		}
 		return () => set.delete(cb);
 	};
+	// Windows: the path a dropped file's message was sent for.
+	const drops = new Map();
+	let lastDrop = 0;
 	window.__lhPush = (channel, payload) => {
+		if (channel === "drop-path") {
+			drops.get(payload.n)?.(payload.path);
+			return;
+		}
 		if (channel === "zoom") {
 			try {
 				localStorage.setItem("lh-zoom", String(payload));
@@ -72,7 +79,43 @@
 	// The app's own menus handle the event earlier; nothing else shows the browser's.
 	window.addEventListener("contextmenu", (e) => e.preventDefault());
 
+	// A dropped file's path on disk (onboarding links a dropped folder). WebKit gives the page
+	// none, so each platform has its own way; Linux has none.
+	let pathForFile = () => Promise.resolve("");
+
 	if (PLATFORM === "darwin") {
+		// The shell reads the drag pasteboard once per drag, and the paths stay until just after
+		// the drop, which is when the page asks. A file is matched by its name.
+		let dragPaths = Promise.resolve([]);
+		let dragAsked = false;
+		const askDragPaths = () => {
+			if (dragAsked) return;
+			dragAsked = true;
+			dragPaths = invoke("drag_paths").catch(() => []);
+		};
+		window.addEventListener("dragenter", askDragPaths, true);
+		window.addEventListener("dragover", askDragPaths, true);
+		// A drag that leaves the window is over: the next one reads the pasteboard again.
+		window.addEventListener(
+			"dragleave",
+			(e) => {
+				if (e.clientX <= 0 || e.clientY <= 0 || e.clientX >= window.innerWidth || e.clientY >= window.innerHeight) dragAsked = false;
+			},
+			true,
+		);
+		window.addEventListener(
+			"drop",
+			() => {
+				setTimeout(() => {
+					dragAsked = false;
+					dragPaths = Promise.resolve([]);
+				}, 1000);
+			},
+			true,
+		);
+		const lastSegment = (path) => path.split("/").pop().normalize("NFC");
+		pathForFile = async (file) => (await dragPaths).find((path) => lastSegment(path) === file.name.normalize("NFC")) ?? "";
+
 		// Chromium's -webkit-app-region rule: the last listed element under the point decides.
 		const NO_DRAG = ".lh-no-drag, .lh-drag :is(button, input, textarea, select, a, summary, [contenteditable])";
 		const dragsAt = (x, y) => {
@@ -94,6 +137,25 @@
 			if (plain(e) && dragsAt(e.clientX, e.clientY)) void invoke("title_bar_double_click");
 		});
 	} else {
+		if (PLATFORM === "win32") {
+			// The file goes to the shell in a message that its Windows hook answers with a push.
+			pathForFile = (file) =>
+				new Promise((resolve) => {
+					const n = ++lastDrop;
+					const done = (path) => {
+						clearTimeout(timer);
+						drops.delete(n);
+						resolve(path);
+					};
+					const timer = setTimeout(() => done(""), 2000);
+					drops.set(n, done);
+					try {
+						window.chrome.webview.postMessageWithAdditionalObjects({ lhDrop: n }, [file]);
+					} catch {
+						done("");
+					}
+				});
+		}
 		// A lone Alt press and release shows or hides the menu bar.
 		let altAlone = false;
 		window.addEventListener("keydown", (e) => {
@@ -112,7 +174,19 @@
 		expandWindow: () => void invoke("expand_window"),
 		onZoom: (cb) => subscribe("zoom", cb),
 		getZoom: () => invoke("get_zoom"),
-
-		// OS commands: folders, files, fonts, printing, updates and bug reports.
+		pickFolder: () => invoke("pick_folder"),
+		showInFolder: (path) => invoke("show_in_folder", { path }),
+		openPath: (path) => invoke("open_path", { path }),
+		openAgent: (folder, agent) => invoke("open_agent", { folder, agent }),
+		pathForFile,
+		reportBug: () => void invoke("report_bug"),
+		listFonts: () => invoke("list_fonts"),
+		onUpdateStatus: (cb) => subscribe("update", cb),
+		getUpdateState: () => invoke("update_state"),
+		checkForUpdates: () => invoke("update_check"),
+		installUpdate: () => void invoke("update_install"),
+		onOpenSettings: (cb) => subscribe("open-settings", cb),
 	};
+	// Only the Mac prints through the system's own sheet.
+	if (PLATFORM === "darwin") window.lh.printPdf = (path) => invoke("print_pdf", { path });
 })();

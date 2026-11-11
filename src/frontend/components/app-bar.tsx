@@ -6,7 +6,7 @@
  *
  * Pages fill it with <TopBar path={…}>buttons</TopBar>, which renders into
  * the bar's slots. The path starts at the active class, or at "~" for
- * pages outside a class (Home). In Electron the bar is the window's drag band, with the
+ * pages outside a class (Home). In the desktop app the bar is the window's drag band, with the
  * traffic lights in its left gutter; clickable elements carve out of the
  * drag region on their own (globals.css).
  */

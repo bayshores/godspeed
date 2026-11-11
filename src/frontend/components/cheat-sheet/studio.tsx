@@ -12,7 +12,7 @@ import { printPdf } from "./print-pdf";
 import { SheetCanvas } from "./sheet-canvas";
 import { SheetChat } from "./sheet-chat";
 import { OlderSheet, StudioStatus, emptyChatLine, versionLabel } from "./studio-states";
-import { remakeSheet, sheetPdfPath, showSheetPdf, useCheatSheet, useSheetFocus } from "./use-cheat-sheet";
+import { remakeSheet, sheetPdfFile, sheetPdfPath, showSheetPdf, useCheatSheet, useSheetFocus } from "./use-cheat-sheet";
 
 /** The floating panel's width and its gap from the canvas's edges. */
 const PANEL_W = 380;
@@ -75,10 +75,18 @@ function Studio({
 	const pdfUrl = useCallback((n: number) => sheetPdfPath(classId, deadlineId, n), [classId, deadlineId]);
 	const currentUrl = current ? pdfUrl(current.n) : null;
 	const desktop = typeof window !== "undefined" && !!window.lh?.showInFolder;
+	// The Mac prints the PDF file itself through the system's sheet; elsewhere pdf.js draws it.
+	const printVersion = async (n: number, url: string) => {
+		const printFile = window.lh?.printPdf;
+		if (!printFile) return printPdf(url);
+		const file = await sheetPdfFile(classId, deadlineId, n);
+		if ("error" in file) throw new Error(file.error);
+		await printFile(file.path);
+	};
 	const print = () => {
-		if (!currentUrl) return;
+		if (!current || !currentUrl) return;
 		setPrinting(true);
-		printPdf(currentUrl)
+		printVersion(current.n, currentUrl)
 			.catch((err: unknown) => setFailed(`Couldn't print: ${err instanceof Error ? err.message : String(err)}`))
 			.finally(() => setPrinting(false));
 	};

@@ -1996,6 +1996,7 @@ name = "gs-shell"
 version = "0.0.0"
 dependencies = [
  "block2",
+ "fontdb",
  "getrandom 0.3.4",
  "gs-base",
  "gs-shell-rpc",

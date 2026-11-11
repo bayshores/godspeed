@@ -11,7 +11,6 @@ use objc2_pdf_kit::{PDFDisplayBox, PDFDocument, PDFPrintScalingMode};
 use tauri::WebviewWindow;
 
 /// Opens the print sheet for the PDF at `path` on `window`.
-#[expect(dead_code, reason = "the print command calls it")]
 pub fn print_pdf(window: &WebviewWindow, path: &Path) -> Result<(), String> {
 	let (tx, rx) = mpsc::channel();
 	let (main, path) = (window.clone(), path.to_owned());

@@ -1,6 +1,7 @@
 import type { RefObject } from "react";
 import { MenuShell } from "@/frontend/components/menu-shell";
 import { CoverageMenuBlock } from "@/frontend/components/extraction-coverage";
+import { dispositionFileName, saveBlob } from "@/frontend/components/artifacts/download";
 
 /**
  * THE LESSON MENU (a lesson row's ⋯ button or a right-click): Rename, Export as
@@ -10,6 +11,17 @@ import { CoverageMenuBlock } from "@/frontend/components/extraction-coverage";
  */
 
 const ITEM = "lh-press flex items-center px-2.5 py-1.5 text-left hover:bg-tone";
+
+/** Saves the lesson as a markdown file. A fetch, not a link: the server only answers requests
+ *  the page itself makes. A failed export shows nothing, as a failed download did. */
+async function exportMarkdown(chatId: string): Promise<void> {
+	try {
+		const res = await fetch(`/api/chats/${chatId}/markdown`);
+		if (res.ok) saveBlob(dispositionFileName(res.headers.get("content-disposition")) ?? "session.md", await res.blob());
+	} catch {
+		// nothing to save
+	}
+}
 
 export function LessonMenu({
 	chatId,
@@ -45,13 +57,7 @@ export function LessonMenu({
 				data-testid="ctx-export-md"
 				onClick={() => {
 					onClose();
-					// Same-origin download; the route's Content-Disposition names the file.
-					const a = document.createElement("a");
-					a.href = `/api/chats/${chatId}/markdown`;
-					a.download = "";
-					document.body.appendChild(a);
-					a.click();
-					a.remove();
+					void exportMarkdown(chatId);
 				}}
 				className={`${ITEM} text-ink`}
 			>

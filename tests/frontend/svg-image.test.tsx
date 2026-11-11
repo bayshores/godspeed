@@ -2,7 +2,7 @@ import React, { act, useState } from "react";
 (globalThis as Record<string, unknown>).React = React;
 
 import assert from "node:assert/strict";
-import { describe, it } from "node:test";
+import { describe, it, mock } from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createRoot } from "react-dom/client";
 import { parseHTML } from "linkedom";
@@ -186,13 +186,17 @@ it("the fullscreen button opens the same SVG image and inversion; download keeps
 			}
 			return element;
 		}) as typeof originalCreateElement;
+		mock.timers.enable({ apis: ["setTimeout"] });
 		await act(async () => { host.querySelector('[data-testid="visual-download"]')!.dispatchEvent(new dom.window.Event("click", { bubbles: true })); });
 		assert.ok(downloaded);
 		assert.equal(await downloaded.text(), originalSvg);
 		assert.equal(downloaded.type, "image/svg+xml");
 		assert.deepEqual(clicked, { name: "figure.svg", href: "blob:figure-test" });
+		assert.equal(revoked, undefined);
+		mock.timers.tick(60_000);
 		assert.equal(revoked, "blob:figure-test");
 	} finally {
+		mock.timers.reset();
 		try {
 			await act(async () => root.unmount());
 		} finally {

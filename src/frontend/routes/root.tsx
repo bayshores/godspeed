@@ -54,7 +54,7 @@ export function Root() {
 					</ClassProvider>
 				</AgentStatusProvider>
 			</ServerEventsProvider>
-			{/* Auto-update banner (Electron-only pushes) and the restart notice. */}
+			{/* Auto-update banner (pushed by the desktop shell) and the restart notice. */}
 			<NoticeStack>
 				<UpdateBanner />
 				{boot.firstLoad === "restarted" && <RestartNotice />}

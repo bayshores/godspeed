@@ -4,7 +4,7 @@ import { Toggle } from "@/frontend/components/settings/controls";
 import { InvertDiscIcon } from "@/frontend/components/artifacts/invert-disc";
 import { ChatActionsContext } from "@/frontend/components/chat-actions-context";
 import { useArtifactInvert } from "@/frontend/components/artifacts/use-artifact-invert";
-import { downloadFile, slugFilename } from "@/frontend/components/artifacts/download";
+import { saveText, slugFilename } from "@/frontend/components/artifacts/download";
 import { DispatchCard } from "@/frontend/components/artifacts/dispatch-card";
 import type { ArtifactPartProps, DemoResult } from "@/shared/core";
 
@@ -179,7 +179,7 @@ function DemoFrame({
 						type="button"
 						aria-label="Download demo as HTML"
 						title="Download as HTML"
-						onClick={() => downloadFile(`${slugFilename(title)}.html`, html, "text/html")}
+						onClick={() => saveText(`${slugFilename(title)}.html`, html, "text/html")}
 						data-testid="demo-download"
 						className=" p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
 					>

@@ -1,8 +1,8 @@
 /**
- * Artifact download helpers: the tiny
- * save-a-blob seam shared by the demo + figure cards, plus the filename
- * slug. The slug is pure (test-pinned); downloadFile touches the DOM and
- * only runs on click.
+ * Download helpers: the tiny save-a-blob seam shared by the demo + figure
+ * cards and the lesson export, plus the filename slug. The slug and the
+ * header parsing are pure (test-pinned); saveBlob touches the DOM and only
+ * runs on click.
  */
 
 /** Slugify a demo title into a filename stem — lowercase, accents folded,
@@ -19,14 +19,26 @@ export function slugFilename(title: string): string {
 	return slug || "demo";
 }
 
-/** Save text as a downloaded file. The blob URL is revoked right after the
- *  click — Chromium keeps the download alive past the revoke. */
-export function downloadFile(name: string, text: string, mime: string): void {
-	const blob = new Blob([text], { type: mime });
+/** How long a saved file's blob URL stays alive. WebKit reads the blob only after the save
+ *  dialog closes, where Chromium read it at once. */
+const REVOKE_AFTER_MS = 60_000;
+
+/** Save a blob as a downloaded file. */
+export function saveBlob(name: string, blob: Blob): void {
 	const url = URL.createObjectURL(blob);
 	const a = document.createElement("a");
 	a.href = url;
 	a.download = name;
 	a.click();
-	URL.revokeObjectURL(url);
+	setTimeout(() => URL.revokeObjectURL(url), REVOKE_AFTER_MS);
+}
+
+/** Save text as a downloaded file. */
+export function saveText(name: string, text: string, mime: string): void {
+	saveBlob(name, new Blob([text], { type: mime }));
+}
+
+/** The `filename="…"` of a Content-Disposition header, or null. */
+export function dispositionFileName(header: string | null): string | null {
+	return header?.match(/filename="([^"]+)"/)?.[1] ?? null;
 }

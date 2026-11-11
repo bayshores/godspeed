@@ -3,7 +3,7 @@ import { DownloadIcon, MaximizeIcon } from "lucide-react";
 import { InvertDiscIcon } from "@/frontend/components/artifacts/invert-disc";
 import { Toggle } from "@/frontend/components/settings/controls";
 import { useSessionMermaid } from "@/frontend/components/session-overlay";
-import { downloadFile } from "@/frontend/components/artifacts/download";
+import { saveText } from "@/frontend/components/artifacts/download";
 import { DispatchCard } from "@/frontend/components/artifacts/dispatch-card";
 import { SvgImage } from "@/frontend/components/artifacts/svg-image";
 import type { ArtifactPartProps, VisualResult } from "@/shared/core";
@@ -123,7 +123,7 @@ export function VisualOutputCard({
 						type="button"
 						aria-label="Download figure as SVG"
 						title="Download as SVG"
-						onClick={() => downloadFile("figure.svg", result.svg, "image/svg+xml")}
+						onClick={() => saveText("figure.svg", result.svg, "image/svg+xml")}
 						data-testid="visual-download"
 						className=" p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
 					>

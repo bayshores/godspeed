@@ -33,23 +33,23 @@ const STORAGE_KEY = "lh:sidebar-open";
  * is one expression: rendered = pref && !narrow, where pref is the
  * persisted user choice.
  * Manual closes persist and stay closed; auto-close does not touch the
- * preference. Opening the sidebar while narrow asks the Electron shell to
- * widen the window to the threshold (window.lh.expandWindow, IPC in
- * electron/main.cjs) — the resize listener flips `narrow` and the sidebar
+ * preference. Opening the sidebar while narrow asks the desktop shell to
+ * widen the window to the threshold (window.lh.expandWindow, handled in
+ * crates/shell/src/window.rs) — the resize listener flips `narrow` and the sidebar
  * appears. In the plain browser there is no window to widen and no
  * suppression — a narrow tab opens the sidebar if the user says so.
  *
- * Mirrors SIDEBAR_AUTOCLOSE in electron/main.cjs — keep in sync.
+ * Mirrors SIDEBAR_AUTOCLOSE in crates/shell/src/window.rs — keep in sync.
  */
 import type { UpdateState } from "@/frontend/components/settings/update-settings.tsx";
 const SIDEBAR_AUTOCLOSE = 1000;
 
-// Read once at module load; false where there is no navigator.
-const IS_ELECTRON = typeof navigator !== "undefined" && navigator.userAgent.includes("Electron");
+// The shell's shim defines window.lh before the page's scripts run; false in a plain browser.
+const IS_DESKTOP = typeof window !== "undefined" && !!window.lh;
 
 declare global {
 	interface Window {
-		/** Preload bridge (electron/preload.cjs) — Electron only, absent in the browser. */
+		/** The desktop shell's bridge (crates/shell/src/shim.js), absent in a plain browser. */
 		lh?: {
 			/** Read-only host OS; determines the native-control gutter. */
 			platform?: string;
@@ -61,8 +61,8 @@ declare global {
 			openPath?: (path: string) => Promise<void>;
 			/** Opens a terminal running the godspeed folder's start script: null, or why it couldn't. */
 			openAgent?: (folder: string, agent: "claude" | "codex") => Promise<string | null>;
-			/** A dropped file's or folder's absolute path (onboarding drop zone). */
-			pathForFile?: (file: File) => string;
+			/** A dropped file's or folder's absolute path, or "" where the OS gives none (onboarding drop zone). */
+			pathForFile?: (file: File) => Promise<string>;
 			expandWindow: () => void;
 			/** The first screen is drawn: show the window (hidden until then). */
 			showWindow?: () => void;
@@ -80,6 +80,8 @@ declare global {
 			/** The installed font families, sorted. */
 			listFonts?: () => Promise<string[]>;
 			onOpenSettings?: (cb: (section: string) => void) => () => void;
+			/** Opens the system print sheet for a PDF in the data folder. Mac only. */
+			printPdf?: (path: string) => Promise<void>;
 		};
 	}
 }
@@ -102,19 +104,19 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
 	const [folded, setFolded] = useState(false);
 
 	useEffect(() => {
-		// Electron shell detection: keys the .lh-electron CSS
-		// (src/frontend/globals.css) that turns the header bands into the
-		// window's drag surface. Set after mount, like the stored state
-		// below; in the plain browser the class never appears.
-		if (IS_ELECTRON) {
-			document.documentElement.classList.add("lh-electron");
+		// Desktop shell detection: keys the .lh-desktop CSS
+		// (src/frontend/globals.css) that makes room for the traffic lights.
+		// Set after mount, like the stored state below; in the plain
+		// browser the class never appears.
+		if (IS_DESKTOP) {
+			document.documentElement.classList.add("lh-desktop");
 			document.documentElement.dataset.lhPlatform = window.lh?.platform ?? "";
 		}
 
-		// THE ZOOM TRUTH: ⌘±/⌘0 zoom the UI (Electron zoomFactor) while the native traffic lights stay
+		// THE ZOOM TRUTH: ⌘±/⌘0 zoom the UI (the webview's zoom) while the native traffic lights stay
 		// physical-fixed — the CSS gutter lengths divide by this factor so
 		// their RENDERED size never moves. getZoom covers the first-paint
-		// race; every later change arrives as an lh:zoom push.
+		// race; every later change arrives as a zoom push.
 		const setZoomVar = (factor: number) =>
 			document.documentElement.style.setProperty("--lh-zoom", String(factor));
 		const off = window.lh?.onZoom?.(setZoomVar);
@@ -139,7 +141,7 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
 	// Both this and the mount effect land before the first paint, so a
 	// narrow window never flashes the open sidebar on load.
 	useEffect(() => {
-		if (!IS_ELECTRON) return; // plain-browser tabs open freely
+		if (!IS_DESKTOP) return; // plain-browser tabs open freely
 		const onResize = () => setNarrow(window.innerWidth < SIDEBAR_AUTOCLOSE);
 		onResize();
 		window.addEventListener("resize", onResize);

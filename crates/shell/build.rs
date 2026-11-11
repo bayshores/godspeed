@@ -12,6 +12,15 @@ fn main() {
 		"set_zoom",
 		"zoom_step",
 		"zoom_reset",
+		"pick_folder",
+		"show_in_folder",
+		"open_path",
+		"open_agent",
+		"report_bug",
+		"list_fonts",
+		"print_pdf",
+		"drag_paths",
+		"title_bar_double_click",
 	]);
 	tauri_build::try_build(tauri_build::Attributes::new().app_manifest(commands)).expect("tauri build step");
 }

@@ -12,6 +12,15 @@
     "allow-zoom-reset",
     "allow-start-drag",
     "allow-toggle-menu",
-    "allow-open-link"
+    "allow-open-link",
+    "allow-pick-folder",
+    "allow-show-in-folder",
+    "allow-open-path",
+    "allow-open-agent",
+    "allow-report-bug",
+    "allow-list-fonts",
+    "allow-print-pdf",
+    "allow-drag-paths",
+    "allow-title-bar-double-click"
   ]
 }

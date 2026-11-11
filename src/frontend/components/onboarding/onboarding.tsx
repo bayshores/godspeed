@@ -107,7 +107,7 @@ export function Onboarding() {
 			data-testid="onboarding"
 			className={cn("ob-root relative flex h-dvh w-full flex-col overflow-hidden bg-background", step === "intro" && introSkipped && "ob-skip")}
 		>
-			{/* The window-drag band (Electron): first in the DOM, see globals.css. */}
+			{/* The window-drag band (desktop shell): first in the DOM, see globals.css. */}
 			<div aria-hidden className="lh-drag absolute inset-x-0 top-0 z-10 h-12" />
 			<Constellation mode={sky} />
 			<div className={cn("relative flex min-h-0 flex-1 overflow-y-auto", leaving && "ob-leave")}>
@@ -294,19 +294,21 @@ function ClassStep({ onDone }: { onDone: (classId: string | null) => void }) {
 		} else fileInput.current?.click();
 	};
 
-	const onDrop = (e: React.DragEvent) => {
+	const onDrop = async (e: React.DragEvent) => {
 		e.preventDefault();
 		setOver(false);
+		// The dropped data is gone after the first await, so all of it is read first.
 		const items = Array.from(e.dataTransfer.items ?? []);
-		const folder = items.map((i) => i.webkitGetAsEntry?.()).find((entry) => entry?.isDirectory);
-		if (folder) {
-			const file = items.find((i) => i.webkitGetAsEntry?.()?.isDirectory)?.getAsFile();
-			const path = file && typeof window !== "undefined" ? window.lh?.pathForFile?.(file) : undefined;
+		const folderItem = items.find((i) => i.webkitGetAsEntry?.()?.isDirectory);
+		const folder = folderItem?.getAsFile();
+		const files = Array.from(e.dataTransfer.files ?? []);
+		if (folderItem) {
+			const path = folder ? await window.lh?.pathForFile?.(folder) : undefined;
 			if (path) setPicked({ kind: "folder", path });
-			else setError("A folder can be linked in the desktop app. Here, drop the files themselves.");
+			// In the desktop app a "" means this OS gives the page no path (Linux).
+			else setError(window.lh && path === "" ? "To link a folder, click this box and choose it." : "A folder can be linked in the desktop app. Here, drop the files themselves.");
 			return;
 		}
-		const files = Array.from(e.dataTransfer.files ?? []);
 		if (files.length > 0) setPicked({ kind: "files", files });
 	};
 
@@ -347,7 +349,7 @@ function ClassStep({ onDone }: { onDone: (classId: string | null) => void }) {
 					setOver(true);
 				}}
 				onDragLeave={() => setOver(false)}
-				onDrop={onDrop}
+				onDrop={(e) => void onDrop(e)}
 				className={cn(
 					"lh-press mt-2 flex h-[155px] flex-col items-center justify-center gap-2 border bg-panel px-6 text-center",
 					over ? "border-ink-2" : "border-tone-2 hover:border-ink-3",
