@@ -1,0 +1,302 @@
+//! The main window: built hidden on the boot page while the server starts, then sent to the app.
+//! It keeps to the app origin, sends web links to the browser, saves downloads where the learner
+//! picks, follows the page's title and shows itself once the page has drawn.
+
+use std::sync::Arc;
+use std::sync::Mutex;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::time::Duration;
+
+use serde_json::Value;
+use tauri::webview::{DownloadEvent, NewWindowResponse, PageLoadEvent};
+use tauri::window::Color;
+use tauri::{AppHandle, LogicalSize, Manager, State, Url, Webview, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
+
+use crate::commands::{AppOrigin, trusted};
+use crate::push::push;
+use crate::server::Server;
+use crate::{log, zoom};
+
+/// The sidebar closes itself below this width; opening it widens the window back
+/// (SIDEBAR_AUTOCLOSE in src/frontend/components/sidebar.tsx).
+const SIDEBAR_AUTOCLOSE: f64 = 1000.0;
+
+/// A page that never asks to be shown still gets its window this long after it loaded.
+const SHOW_FALLBACK: Duration = Duration::from_secs(5);
+
+/// WebView2 refuses a second web view with other arguments in the same profile, so the demo
+/// window keeps a profile of its own.
+#[cfg(windows)]
+const MAIN_BROWSER_ARGS: &str = "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --autoplay-policy=no-user-gesture-required";
+
+/// Where the traffic lights sit, measured against the Electron app's (x 16 to 76, centers on
+/// y 21, the middle of the 44 px top bar).
+#[cfg(target_os = "macos")]
+const TRAFFIC_LIGHTS: tauri::LogicalPosition<f64> = tauri::LogicalPosition { x: 16.0, y: 23.0 };
+
+const SHIM: &str = include_str!("shim.js");
+
+/// The main page's load state and the settings section a menu asked for before the page could
+/// take it.
+#[derive(Default)]
+pub struct Page {
+	loaded: AtomicBool,
+	open_settings: Mutex<Option<String>>,
+}
+
+/// Builds the main window on the boot page; `server::open_window` sends it to the app.
+pub fn create(app: &AppHandle) -> tauri::Result<WebviewWindow> {
+	let origin = app.state::<AppOrigin>().0.clone();
+	// A closed window's page is gone: a menu's open-settings now waits for the new one.
+	app.state::<Page>().loaded.store(false, Ordering::SeqCst);
+	#[cfg(target_os = "macos")]
+	crate::mac::window::register_text_defaults();
+	let platform = match std::env::consts::OS {
+		"macos" => "darwin",
+		"windows" => "win32",
+		other => other,
+	};
+	let shim = SHIM.replace("__APP_ORIGIN__", &Value::from(origin.as_str()).to_string()).replace("__PLATFORM__", &Value::from(platform).to_string());
+	let show_armed = Arc::new(AtomicBool::new(true));
+	let (nav_origin, new_window_origin, load_origin) = (origin.clone(), origin.clone(), origin);
+	let builder = WebviewWindowBuilder::new(app, "main", WebviewUrl::App("index.html".into()))
+		.title("godspeed")
+		.inner_size(1440.0, 900.0)
+		.min_inner_size(640.0, 600.0)
+		.center()
+		.visible(false)
+		.background_color(Color(0x14, 0x14, 0x14, 0xff))
+		.initialization_script(shim)
+		.zoom_hotkeys_enabled(false)
+		// Tauri's own handler blocks the page's HTML5 drops.
+		.disable_drag_drop_handler()
+		.on_navigation(move |url| stays(url, &nav_origin))
+		.on_new_window(move |url, _| {
+			stays(&url, &new_window_origin);
+			NewWindowResponse::Deny
+		})
+		.on_download(save_download)
+		// A loading page has an empty title for a moment. Setting one moves the Mac's traffic
+		// lights back to their default place after tao has put them in ours, so only a real
+		// change is passed on.
+		.on_document_title_changed(|window, title| {
+			if !title.is_empty() && window.title().is_ok_and(|current| current != title) {
+				let _ = window.set_title(&title);
+			}
+		})
+		.on_page_load(move |window, payload| {
+			let page = window.state::<Page>();
+			let url = payload.url();
+			let app_page = url.origin().ascii_serialization() == load_origin && url.path() != "/api/desktop/login";
+			match payload.event() {
+				PageLoadEvent::Started => page.loaded.store(false, Ordering::SeqCst),
+				PageLoadEvent::Finished if app_page => {
+					page.loaded.store(true, Ordering::SeqCst);
+					let app = window.app_handle();
+					zoom::push_current(app);
+					flush_open_settings(app);
+					if show_armed.swap(false, Ordering::SeqCst) {
+						show_later(window);
+					}
+				}
+				PageLoadEvent::Finished => {}
+			}
+		});
+	#[cfg(target_os = "macos")]
+	let builder = builder.title_bar_style(tauri::TitleBarStyle::Overlay).hidden_title(true).traffic_light_position(TRAFFIC_LIGHTS).allow_link_preview(false);
+	#[cfg(windows)]
+	let builder = builder.additional_browser_args(MAIN_BROWSER_ARGS);
+	// A debug build never shares localStorage or cookies with the installed app.
+	#[cfg(target_os = "macos")]
+	let builder = if cfg!(debug_assertions) { builder.data_store_identifier(*b"godspeed-dev-web") } else { builder };
+	#[cfg(not(target_os = "macos"))]
+	let builder = if cfg!(debug_assertions) { builder.data_directory(app.state::<crate::paths::Paths>().user_data.join("webview")) } else { builder };
+	let main = builder.build()?;
+	#[cfg(not(target_os = "macos"))]
+	main.hide_menu()?;
+	Ok(main)
+}
+
+/// Whether the window may go to `url`: the app origin and the boot page. A web or mail link
+/// goes to the browser instead; any other scheme goes nowhere.
+fn stays(url: &Url, origin: &str) -> bool {
+	match route(url, origin) {
+		Route::Stay => true,
+		Route::Browser => {
+			if let Err(err) = tauri_plugin_opener::open_url(url.as_str(), None::<&str>) {
+				log::line(&format!("cannot open {url}: {err}"));
+			}
+			false
+		}
+		Route::Nowhere => false,
+	}
+}
+
+#[derive(Debug, PartialEq)]
+enum Route {
+	Stay,
+	Browser,
+	Nowhere,
+}
+
+fn route(url: &Url, origin: &str) -> Route {
+	if url.origin().ascii_serialization() == origin || is_boot_page(url) {
+		Route::Stay
+	// The OS would hand any other scheme to whatever app registered it.
+	} else if matches!(url.scheme(), "http" | "https" | "mailto") {
+		Route::Browser
+	} else {
+		Route::Nowhere
+	}
+}
+
+/// Tauri serves the boot page at `tauri://localhost` (`http://tauri.localhost` on Windows).
+fn is_boot_page(url: &Url) -> bool {
+	url.scheme() == "tauri" || url.host_str() == Some("tauri.localhost")
+}
+
+/// Blob downloads (demo and visual cards, Export as Markdown) ask where to save, as Electron
+/// did. This runs on the main thread, where a synchronous save dialog must run.
+fn save_download(webview: Webview, event: DownloadEvent<'_>) -> bool {
+	match event {
+		DownloadEvent::Requested { destination, .. } => {
+			let folder = destination.parent().map(|p| p.to_path_buf()).or_else(|| webview.path().download_dir().ok()).unwrap_or_default();
+			let name = destination.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+			match rfd::FileDialog::new().set_parent(&webview.window()).set_directory(folder).set_file_name(name).save_file() {
+				Some(picked) => {
+					*destination = picked;
+					true
+				}
+				None => false,
+			}
+		}
+		DownloadEvent::Finished { success, .. } => {
+			log::line(&format!("download finished (success={success})"));
+			true
+		}
+		_ => true,
+	}
+}
+
+fn show_later(window: WebviewWindow) {
+	std::thread::spawn(move || {
+		std::thread::sleep(SHOW_FALLBACK);
+		if window.is_visible().is_ok_and(|visible| !visible) {
+			let _ = show(&window);
+		}
+	});
+}
+
+/// AppKit puts the traffic lights back in their default place when a hidden window first shows;
+/// setting the title again makes tao move them to ours.
+fn show(window: &WebviewWindow) -> tauri::Result<()> {
+	window.show()?;
+	#[cfg(target_os = "macos")]
+	window.set_title(&window.title()?)?;
+	Ok(())
+}
+
+/// Sends the page to a Settings section: now if it has loaded, else once it has.
+pub fn open_settings(app: &AppHandle, section: &str) {
+	*app.state::<Page>().open_settings.lock().unwrap_or_else(std::sync::PoisonError::into_inner) = Some(section.to_owned());
+	if app.state::<Page>().loaded.load(Ordering::SeqCst) {
+		flush_open_settings(app);
+	}
+}
+
+fn flush_open_settings(app: &AppHandle) {
+	let section = app.state::<Page>().open_settings.lock().unwrap_or_else(std::sync::PoisonError::into_inner).take();
+	if let Some(section) = section {
+		push(app, "open-settings", &Value::from(section));
+	}
+}
+
+/// The main window again after it was closed (the Mac keeps the app running), logged in.
+pub fn reopen(app: &AppHandle) {
+	if app.get_webview_window("main").is_some() {
+		return;
+	}
+	if let Err(err) = create(app) {
+		log::line(&format!("cannot open the window: {err}"));
+		return;
+	}
+	if app.state::<Server>().is_up() {
+		let app = app.clone();
+		std::thread::spawn(move || app.state::<Server>().open_window(&app));
+	}
+}
+
+fn main_window(webview: &Webview) -> Result<WebviewWindow, String> {
+	webview.app_handle().get_webview_window("main").ok_or_else(|| "no window".to_owned())
+}
+
+/// The page drew its first screen.
+#[tauri::command]
+pub fn show_window(webview: Webview, origin: State<AppOrigin>) -> Result<(), String> {
+	trusted(&webview, &origin)?;
+	let main = main_window(&webview)?;
+	if !main.is_visible().map_err(|e| e.to_string())? {
+		show(&main).map_err(|e| e.to_string())?;
+		main.set_focus().map_err(|e| e.to_string())?;
+	}
+	Ok(())
+}
+
+/// Widens a narrow window to where the sidebar fits; the top-left corner stays.
+#[tauri::command]
+pub fn expand_window(webview: Webview, origin: State<AppOrigin>) -> Result<(), String> {
+	trusted(&webview, &origin)?;
+	let main = main_window(&webview)?;
+	let size = main.inner_size().map_err(|e| e.to_string())?.to_logical::<f64>(main.scale_factor().map_err(|e| e.to_string())?);
+	if size.width < SIDEBAR_AUTOCLOSE {
+		let position = main.outer_position().map_err(|e| e.to_string())?;
+		main.set_size(LogicalSize::new(SIDEBAR_AUTOCLOSE, size.height)).map_err(|e| e.to_string())?;
+		main.set_position(position).map_err(|e| e.to_string())?;
+	}
+	Ok(())
+}
+
+/// A press on a drag area of the Mac title bar.
+#[tauri::command]
+pub fn start_drag(webview: Webview, origin: State<AppOrigin>) -> Result<(), String> {
+	trusted(&webview, &origin)?;
+	main_window(&webview)?.start_dragging().map_err(|e| e.to_string())
+}
+
+/// A lone Alt shows or hides the menu bar (Windows, Linux).
+#[tauri::command]
+pub fn toggle_menu(webview: Webview, origin: State<AppOrigin>) -> Result<(), String> {
+	trusted(&webview, &origin)?;
+	let main = main_window(&webview)?;
+	let shown = main.is_menu_visible().map_err(|e| e.to_string())?;
+	if shown { main.hide_menu() } else { main.show_menu() }.map_err(|e| e.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	fn url(text: &str) -> Url {
+		text.parse().unwrap()
+	}
+
+	#[test]
+	fn the_window_stays_on_the_app_origin_and_the_boot_page() {
+		let origin = "http://127.0.0.1:48061";
+		assert_eq!(route(&url("http://127.0.0.1:48061/class/x"), origin), Route::Stay);
+		assert_eq!(route(&url("http://127.0.0.1:48061/api/desktop/login?token=ab"), origin), Route::Stay);
+		assert_eq!(route(&url("tauri://localhost/index.html"), origin), Route::Stay);
+		assert_eq!(route(&url("http://tauri.localhost/index.html"), origin), Route::Stay);
+	}
+
+	#[test]
+	fn only_web_and_mail_links_leave_the_app() {
+		let origin = "http://127.0.0.1:48061";
+		assert_eq!(route(&url("http://127.0.0.1:48062/"), origin), Route::Browser);
+		assert_eq!(route(&url("https://example.com/a"), origin), Route::Browser);
+		assert_eq!(route(&url("mailto:a@b.c"), origin), Route::Browser);
+		assert_eq!(route(&url("file:///tmp/a"), origin), Route::Nowhere);
+		assert_eq!(route(&url("smb://host/share"), origin), Route::Nowhere);
+		assert_eq!(route(&url("javascript:alert(1)"), origin), Route::Nowhere);
+	}
+}

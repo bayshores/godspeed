@@ -11,8 +11,9 @@
 	"project": ["**/*.{ts,tsx,js,mjs,cjs}"],
 	// The Rust server; scripts/golden.ts loads the crates' golden specs by path.
 	"ignore": ["crates/**"],
-	// globals.css loads it with `@import "tailwindcss"`, which knip does not read.
-	"ignoreDependencies": ["tailwindcss"],
+	// globals.css loads it with `@import "tailwindcss"`, which knip does not read. The Tauri CLI
+	// is run by hand (`npx tauri icon` makes crates/shell/icons).
+	"ignoreDependencies": ["tailwindcss", "@tauri-apps/cli"],
 	// knip reads the `-c electron/electron-builder.yml` argument in release.yml as a binary.
 	"ignoreBinaries": ["electron/electron-builder.yml"]
 }

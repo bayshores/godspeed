@@ -37,15 +37,22 @@ image = { version = "0.25.10", default-features = false, features = ["png", "jpe
 indexmap = "2.14"
 jiff = "0.2.42"
 ort = "=2.0.0-rc.13"
+os_info = { version = "3.15.0", default-features = false }
 parking_lot = "0.12.5"
 pdfium-render = { version = "0.9.5", default-features = false, features = ["image_latest", "thread_safe", "pdfium_latest"] }
 regress = { version = "0.12", features = ["utf16"] }
+rfd = { version = "0.17.2", default-features = false, features = ["gtk3"] }
 reqwest = { version = "0.13.5", default-features = false, features = ["rustls", "stream"] }
 resvg = "0.47"
 ryu-js = "1.0.3"
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1.0.154", features = ["preserve_order", "float_roundtrip"] }
 sha2 = "0.10.9"
+tauri = "=2.12.5"
+tauri-build = "=2.7.4"
+tauri-plugin-dialog = "=2.8.4"
+tauri-plugin-opener = "=2.7.2"
+tauri-plugin-single-instance = "=2.5.5"
 tokenizers = { version = "0.22.2", default-features = false, features = ["fancy-regex"] }
 tower = { version = "0.5.3", default-features = false }
 tokio = { version = "1.54", features = ["rt-multi-thread", "macros", "time", "sync", "signal", "io-util", "io-std", "net", "process", "fs"] }

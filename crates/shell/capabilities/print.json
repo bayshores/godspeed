@@ -1,0 +1,8 @@
+{
+  "identifier": "print",
+  "webviews": ["main"],
+  "local": false,
+  "platforms": ["windows", "linux"],
+  "remote": { "urls": ["http://127.0.0.1:*"] },
+  "permissions": ["core:webview:allow-print"]
+}

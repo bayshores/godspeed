@@ -42,3 +42,10 @@ target/
 
 # golden output made from real app data kept outside the repo
 crates/*/tests/golden/*.lab.json
+
+# the folder a debug godspeed-server runs in (scripts/dev-resources.mjs)
+.dev-resources/
+
+# what tauri-build writes on every build: permission schemas and one permission per app command
+crates/shell/gen/
+crates/shell/permissions/

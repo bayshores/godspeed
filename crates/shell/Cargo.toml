@@ -1,0 +1,33 @@
+[package]
+name = "gs-shell"
+version = "0.0.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "godspeed"
+path = "src/main.rs"
+
+[features]
+# The developer tools in a release build (debug builds always have them).
+devtools = ["tauri/devtools"]
+
+[dependencies]
+gs-base.workspace = true
+gs-shell-rpc.workspace = true
+getrandom.workspace = true
+os_info.workspace = true
+rfd.workspace = true
+serde_json.workspace = true
+tauri.workspace = true
+tauri-plugin-dialog.workspace = true
+tauri-plugin-opener.workspace = true
+tauri-plugin-single-instance.workspace = true
+
+[build-dependencies]
+tauri-build.workspace = true
+
+[lints]
+workspace = true
