@@ -13,6 +13,8 @@ path = "src/main.rs"
 [features]
 # The developer tools in a release build (debug builds always have them).
 devtools = ["tauri/devtools"]
+# The screenshot lab's control channel (screens.rs); debug builds only.
+screens = []
 
 [dependencies]
 gs-base.workspace = true

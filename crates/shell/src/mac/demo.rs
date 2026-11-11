@@ -388,7 +388,7 @@ fn snapshot(run: &Run) {
 
 /// The image as a PNG of exactly `size` pixels: the snapshot has the screen's scale (2 px a
 /// point on a Retina screen), so it is drawn again at one pixel a point.
-fn exact_png(image: &NSImage, size: NSSize) -> Result<Vec<u8>, String> {
+pub(super) fn exact_png(image: &NSImage, size: NSSize) -> Result<Vec<u8>, String> {
 	let (width, height) = (size.width as isize, size.height as isize);
 	// SAFETY: no planes, so AppKit allocates an 8-bit RGBA buffer it owns; the color space
 	// name is AppKit's own constant.
@@ -444,7 +444,7 @@ fn end(id: u64) -> Option<Rc<Run>> {
 	Some(run)
 }
 
-fn describe(err: *mut NSError) -> String {
+pub(super) fn describe(err: *mut NSError) -> String {
 	// SAFETY: WebKit's errors are null or valid.
 	unsafe { err.as_ref() }.map_or_else(|| "unknown WebKit error".to_owned(), |err| err.localizedDescription().to_string())
 }

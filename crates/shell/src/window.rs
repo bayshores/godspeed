@@ -109,6 +109,11 @@ pub fn create(app: &AppHandle) -> tauri::Result<WebviewWindow> {
 				PageLoadEvent::Finished => {}
 			}
 		});
+	#[cfg(feature = "screens")]
+	let builder = match crate::screens::init_script() {
+		Some(script) => builder.initialization_script(script),
+		None => builder,
+	};
 	#[cfg(target_os = "macos")]
 	let builder = builder.title_bar_style(tauri::TitleBarStyle::Overlay).hidden_title(true).traffic_light_position(TRAFFIC_LIGHTS).allow_link_preview(false);
 	#[cfg(windows)]

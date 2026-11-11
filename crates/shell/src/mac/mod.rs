@@ -4,4 +4,6 @@
 pub mod demo;
 pub mod fonts;
 pub mod print;
+#[cfg(feature = "screens")]
+pub mod screens;
 pub mod window;

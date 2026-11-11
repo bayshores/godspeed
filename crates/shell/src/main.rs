@@ -19,6 +19,8 @@ mod push;
 mod quit;
 mod restarts;
 mod rpc;
+#[cfg(feature = "screens")]
+mod screens;
 mod server;
 mod update;
 mod window;
@@ -126,6 +128,8 @@ fn setup(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
 	update::start(&handle);
 	app.set_menu(menu::build(&handle)?)?;
 	window::create(&handle)?;
+	#[cfg(feature = "screens")]
+	screens::start(&handle);
 	Server::start(&handle);
 	Ok(())
 }
