@@ -2,12 +2,15 @@
 # Builds, signs and notarizes the Mac app and its DMG, then names the release files.
 # Needs APPLE_ID and APPLE_TEAM_ID in the environment, the app-specific password in the login
 # keychain (add it once with `security add-generic-password -s godspeed-notary -a "$APPLE_ID" -w`),
-# and a Developer ID Application certificate for that team.
+# a Developer ID Application certificate for that team, and the updater signing key in
+# TAURI_SIGNING_PRIVATE_KEY.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
 : "${APPLE_ID:?set APPLE_ID to the Apple ID that notarizes the app}"
 : "${APPLE_TEAM_ID:?set APPLE_TEAM_ID to the Apple developer team id}"
+# The bundler signs the updater archive only after the whole build and notarization.
+: "${TAURI_SIGNING_PRIVATE_KEY:?set TAURI_SIGNING_PRIVATE_KEY to the updater signing key (or the path of its file)}"
 APPLE_PASSWORD="$(security find-generic-password -s godspeed-notary -a "$APPLE_ID" -w)"
 APPLE_SIGNING_IDENTITY="$(security find-identity -v -p codesigning | sed -n "s/^.*\"\(Developer ID Application: .*($APPLE_TEAM_ID)\)\".*$/\1/p" | head -n 1)"
 if [ -z "$APPLE_SIGNING_IDENTITY" ]; then

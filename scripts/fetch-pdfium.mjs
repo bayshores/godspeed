@@ -63,10 +63,9 @@ if (sha256(bytes) !== build.archiveSha256) {
 const work = fs.mkdtempSync(path.join(os.tmpdir(), "gs-pdfium-"));
 let library;
 try {
-	const archive = path.join(work, build.archive);
-	fs.writeFileSync(archive, bytes);
-	// bsdtar ships with Windows 10 and later as `tar`.
-	execFileSync("tar", ["-xzf", archive, "-C", work, build.member]);
+	fs.writeFileSync(path.join(work, build.archive), bytes);
+	// A bare file name: GNU tar (first on PATH in Git Bash) reads `C:\…` as a remote host.
+	execFileSync("tar", ["-xzf", build.archive, build.member], { cwd: work });
 	library = fs.readFileSync(path.join(work, build.member));
 } finally {
 	fs.rmSync(work, { recursive: true, force: true });
