@@ -49,6 +49,7 @@ fn main() {
 			window::expand_window,
 			window::start_drag,
 			window::toggle_menu,
+			window::open_link,
 			zoom::get_zoom,
 			zoom::set_zoom,
 			zoom::zoom_step,
@@ -78,13 +79,13 @@ fn main() {
 fn setup(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
 	let handle = app.handle().clone();
 	let paths = Paths::new(&handle)?;
-	log::open(&paths.logs);
 	if old_app::electron_running(&paths.user_data) {
-		// Nothing in userData is touched and no server starts.
+		// Nothing in userData is touched, not even the log the old app writes, and no server starts.
 		let quit = handle.clone();
 		handle.dialog().message(old_app::STILL_OPEN).title("godspeed").kind(MessageDialogKind::Info).buttons(MessageDialogButtons::Ok).show(move |_| quit.exit(0));
 		return Ok(());
 	}
+	log::open(&paths.logs);
 	if let Err(err) = old_app::write_pid(&paths.user_data) {
 		log::line(&format!("cannot write shell.pid: {err}"));
 	}
@@ -99,8 +100,9 @@ fn setup(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
 		}
 	};
 	app.manage(AppOrigin(server.window_origin()));
-	app.manage(server);
 	app.manage(window::Page::default());
+	// Last of what the window needs: a managed server tells `window::reopen` it can build one.
+	app.manage(server);
 	app.manage(zoom::Zoom::default());
 	app.manage(rpc::Demos::start(&handle));
 	app.set_menu(menu::build(&handle)?)?;

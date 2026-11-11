@@ -7,6 +7,7 @@ fn main() {
 		"expand_window",
 		"start_drag",
 		"toggle_menu",
+		"open_link",
 		"get_zoom",
 		"set_zoom",
 		"zoom_step",

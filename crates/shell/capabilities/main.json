@@ -11,6 +11,7 @@
     "allow-zoom-step",
     "allow-zoom-reset",
     "allow-start-drag",
-    "allow-toggle-menu"
+    "allow-toggle-menu",
+    "allow-open-link"
   ]
 }

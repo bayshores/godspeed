@@ -1,6 +1,10 @@
 //! The main window: built hidden on the boot page while the server starts, then sent to the app.
 //! It keeps to the app origin, sends web links to the browser, saves downloads where the learner
 //! picks, follows the page's title and shows itself once the page has drawn.
+//!
+//! WebKit asks about every frame's navigations without saying which frame, so a navigation
+//! never opens the browser: a demo iframe sending itself to a web address would open it with
+//! no click, over and over. Links leave through a new window or the shim's `open_link`.
 
 use std::sync::Arc;
 use std::sync::Mutex;
@@ -70,9 +74,12 @@ pub fn create(app: &AppHandle) -> tauri::Result<WebviewWindow> {
 		.zoom_hotkeys_enabled(false)
 		// Tauri's own handler blocks the page's HTML5 drops.
 		.disable_drag_drop_handler()
-		.on_navigation(move |url| stays(url, &nav_origin))
+		.on_navigation(move |url| route(url, &nav_origin) == Route::Stay)
+		// A sandboxed demo iframe cannot open windows, so this is the page itself.
 		.on_new_window(move |url, _| {
-			stays(&url, &new_window_origin);
+			if route(&url, &new_window_origin) == Route::Browser {
+				open_in_browser(&url);
+			}
 			NewWindowResponse::Deny
 		})
 		.on_download(save_download)
@@ -117,21 +124,14 @@ pub fn create(app: &AppHandle) -> tauri::Result<WebviewWindow> {
 	Ok(main)
 }
 
-/// Whether the window may go to `url`: the app origin and the boot page. A web or mail link
-/// goes to the browser instead; any other scheme goes nowhere.
-fn stays(url: &Url, origin: &str) -> bool {
-	match route(url, origin) {
-		Route::Stay => true,
-		Route::Browser => {
-			if let Err(err) = tauri_plugin_opener::open_url(url.as_str(), None::<&str>) {
-				log::line(&format!("cannot open {url}: {err}"));
-			}
-			false
-		}
-		Route::Nowhere => false,
+fn open_in_browser(url: &Url) {
+	if let Err(err) = tauri_plugin_opener::open_url(url.as_str(), None::<&str>) {
+		log::line(&format!("cannot open {url}: {err}"));
 	}
 }
 
+/// Where a page may go: the app origin, the boot page and a demo iframe's own document stay;
+/// a web or mail link belongs in the browser; any other scheme goes nowhere.
 #[derive(Debug, PartialEq)]
 enum Route {
 	Stay,
@@ -140,7 +140,7 @@ enum Route {
 }
 
 fn route(url: &Url, origin: &str) -> Route {
-	if url.origin().ascii_serialization() == origin || is_boot_page(url) {
+	if url.origin().ascii_serialization() == origin || is_boot_page(url) || is_frame_document(url) {
 		Route::Stay
 	// The OS would hand any other scheme to whatever app registered it.
 	} else if matches!(url.scheme(), "http" | "https" | "mailto") {
@@ -153,6 +153,11 @@ fn route(url: &Url, origin: &str) -> Route {
 /// Tauri serves the boot page at `tauri://localhost` (`http://tauri.localhost` on Windows).
 fn is_boot_page(url: &Url) -> bool {
 	url.scheme() == "tauri" || url.host_str() == Some("tauri.localhost")
+}
+
+/// A demo card's iframe loads its `srcdoc` as `about:srcdoc`, and an empty frame is `about:blank`.
+fn is_frame_document(url: &Url) -> bool {
+	url.scheme() == "about" && matches!(url.path(), "srcdoc" | "blank")
 }
 
 /// Blob downloads (demo and visual cards, Export as Markdown) ask where to save, as Electron
@@ -213,7 +218,9 @@ fn flush_open_settings(app: &AppHandle) {
 
 /// The main window again after it was closed (the Mac keeps the app running), logged in.
 pub fn reopen(app: &AppHandle) {
-	if app.get_webview_window("main").is_some() {
+	// Setup manages the server only after the old-app check and the port choice let the launch
+	// go on; a Dock click while that check's dialog is up has no window to open.
+	if app.try_state::<Server>().is_none() || app.get_webview_window("main").is_some() {
 		return;
 	}
 	if let Err(err) = create(app) {
@@ -222,8 +229,28 @@ pub fn reopen(app: &AppHandle) {
 	}
 	if app.state::<Server>().is_up() {
 		let app = app.clone();
-		std::thread::spawn(move || app.state::<Server>().open_window(&app));
+		std::thread::spawn(move || {
+			// The server may be restarting. It keeps running; the next click tries again.
+			if let Err(err) = app.state::<Server>().open_window(&app) {
+				log::line(&err);
+				if let Some(main) = app.get_webview_window("main") {
+					let _ = main.destroy();
+				}
+			}
+		});
 	}
+}
+
+/// A web or mail link the learner clicked in the page (shim.js).
+#[tauri::command]
+pub fn open_link(webview: Webview, origin: State<AppOrigin>, url: String) -> Result<(), String> {
+	trusted(&webview, &origin)?;
+	let url: Url = url.parse().map_err(|_| "Not a link.".to_owned())?;
+	if route(&url, &origin.0) != Route::Browser {
+		return Err("Not a web link.".to_owned());
+	}
+	open_in_browser(&url);
+	Ok(())
 }
 
 fn main_window(webview: &Webview) -> Result<WebviewWindow, String> {
@@ -287,6 +314,14 @@ mod tests {
 		assert_eq!(route(&url("http://127.0.0.1:48061/api/desktop/login?token=ab"), origin), Route::Stay);
 		assert_eq!(route(&url("tauri://localhost/index.html"), origin), Route::Stay);
 		assert_eq!(route(&url("http://tauri.localhost/index.html"), origin), Route::Stay);
+	}
+
+	#[test]
+	fn a_demo_iframe_keeps_its_own_document() {
+		let origin = "http://127.0.0.1:48061";
+		assert_eq!(route(&url("about:srcdoc"), origin), Route::Stay);
+		assert_eq!(route(&url("about:blank"), origin), Route::Stay);
+		assert_eq!(route(&url("about:config"), origin), Route::Nowhere);
 	}
 
 	#[test]

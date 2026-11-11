@@ -14,6 +14,8 @@ pub struct Paths {
 	/// What ships beside the server (`ui/`, `models/`, `pdfjs-dist/`): its working directory.
 	pub resources: PathBuf,
 	pub pdfium: PathBuf,
+	/// The Electron updater's cache, which the first run removes. A debug build names its own,
+	/// so it never removes the installed app's.
 	pub updater_cache: PathBuf,
 	/// The demo window's own browser profile.
 	pub demo_data: PathBuf,
@@ -28,7 +30,7 @@ impl Paths {
 			data: data(&user_data),
 			logs: user_data.join("logs"),
 			pdfium: pdfium(&resources, std::env::consts::OS, cfg!(debug_assertions)),
-			updater_cache: resolver.cache_dir()?.join("godspeed-updater"),
+			updater_cache: updater_cache(&resolver.cache_dir()?, cfg!(debug_assertions)),
 			demo_data: resolver.temp_dir()?.join(format!("godspeed-demo-{}", std::process::id())),
 			user_data,
 			resources,
@@ -43,6 +45,10 @@ fn repo() -> PathBuf {
 
 fn user_data(config_dir: &Path, debug: bool) -> PathBuf {
 	config_dir.join(if debug { "godspeed-dev" } else { "godspeed" })
+}
+
+fn updater_cache(cache_dir: &Path, debug: bool) -> PathBuf {
+	cache_dir.join(if debug { "godspeed-dev-updater" } else { "godspeed-updater" })
 }
 
 /// A debug build uses the repo's `data/` (or `LH_DATA_DIR`), as the browser dev server does.
@@ -78,6 +84,12 @@ mod tests {
 	fn user_data_is_electrons_folder_and_dev_has_its_own() {
 		assert_eq!(user_data(Path::new("/c"), false), Path::new("/c/godspeed"));
 		assert_eq!(user_data(Path::new("/c"), true), Path::new("/c/godspeed-dev"));
+	}
+
+	#[test]
+	fn a_debug_build_never_names_the_installed_apps_updater_cache() {
+		assert_eq!(updater_cache(Path::new("/k"), false), Path::new("/k/godspeed-updater"));
+		assert_eq!(updater_cache(Path::new("/k"), true), Path::new("/k/godspeed-dev-updater"));
 	}
 
 	#[test]

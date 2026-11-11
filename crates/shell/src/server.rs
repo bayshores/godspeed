@@ -107,30 +107,26 @@ impl Server {
 			}
 			log::line(&format!("server up: {}", server.url()));
 			server.up.store(true, Ordering::SeqCst);
-			server.open_window(&app);
+			if let Err(err) = server.open_window(&app) {
+				log::line(&err);
+				server.stopped(&app);
+			}
 		});
 	}
 
 	/// Logs the main window in (desktop mode) and sends it to the app.
-	pub fn open_window(&self, app: &AppHandle) {
-		let Some(main) = app.get_webview_window("main") else { return };
+	pub fn open_window(&self, app: &AppHandle) -> Result<(), String> {
+		let Some(main) = app.get_webview_window("main") else { return Ok(()) };
 		let target = match &self.mode {
 			Mode::Desktop { .. } => self.log_in().map(|token| format!("{}/api/desktop/login?token={token}", self.url())),
 			#[cfg(debug_assertions)]
 			Mode::Browser { vite } => wait_for_vite(*vite).map(|()| format!("{}/", self.window_origin())),
 		};
-		let opened = target.and_then(|target| {
-			let url: Url = target.parse().map_err(|err| format!("bad app address: {err}"))?;
-			main.navigate(url).map_err(|err| format!("cannot open the app: {err}"))
-		});
-		match opened {
-			// Never the login URL: it holds the token.
-			Ok(()) => log::line(&format!("window open: {}/", self.window_origin())),
-			Err(err) => {
-				log::line(&err);
-				self.stopped(app);
-			}
-		}
+		let url: Url = target?.parse().map_err(|err| format!("bad app address: {err}"))?;
+		main.navigate(url).map_err(|err| format!("cannot open the app: {err}"))?;
+		// Never the login URL: it holds the token.
+		log::line(&format!("window open: {}/", self.window_origin()));
+		Ok(())
 	}
 
 	/// A one-time token the server takes over stdin; the window opens the login URL with it.

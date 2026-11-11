@@ -53,6 +53,22 @@
 		e.preventDefault();
 	});
 
+	// The window never sends a navigation to the browser (it cannot tell this page from a demo
+	// iframe), so a click on a web or mail link goes out here.
+	window.addEventListener("click", (e) => {
+		const link = !e.defaultPrevented && e.target instanceof Element ? e.target.closest("a[href]") : null;
+		if (!link) return;
+		let url;
+		try {
+			url = new URL(link.getAttribute("href"), location.href);
+		} catch {
+			return;
+		}
+		if (url.origin === APP_ORIGIN || !["http:", "https:", "mailto:"].includes(url.protocol)) return;
+		e.preventDefault();
+		void invoke("open_link", { url: url.href });
+	});
+
 	// The app's own menus handle the event earlier; nothing else shows the browser's.
 	window.addEventListener("contextmenu", (e) => e.preventDefault());
 
