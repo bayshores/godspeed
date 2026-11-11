@@ -2,7 +2,7 @@
 //! with. SVGs go to PNG through gs_media and PDF pages through gs_pdf, both in this process.
 //!
 //! Running a demo's JavaScript needs a browser, and SVGs gs_media cannot draw go to one too. The
-//! desktop shell owns that browser view, so `run_in_browser` asks it over the shell link; without
+//! desktop shell owns that browser view, so `browser` hands out the shell link to ask; without
 //! a shell (a browser-mode server) it answers what the Node server answered when it found no
 //! browser.
 
@@ -14,7 +14,7 @@ use gs_json::Json;
 use gs_media::png::provider_safe_png;
 use gs_media::svg::{RenderSvgOptions, render_svg, svg_viewport};
 use gs_pdf::{Pdf, RenderedPdfPage};
-use gs_shell_rpc::{DemoResult, Reply, ShellLink, ToShell};
+use gs_shell_rpc::{DemoResult, ShellLink};
 
 /// What one headless demo run saw.
 #[derive(Debug, Clone, PartialEq, Default)]
@@ -45,9 +45,6 @@ pub trait HeadlessApi: Send + Sync {
 /// What the Node server said when it found neither its browser helper nor a Chrome.
 pub const NO_CHROME_MESSAGE: &str = "No render engine available: the app's own browser helper failed to start and no system Chrome/Chromium was found. Install Google Chrome or set CHROME_PATH to a Chrome executable. (Verification is mandatory — demos are never delivered untested.)";
 
-/// What a demo or SVG request gets when the shell answers the other kind.
-const WRONG_REPLY: &str = "The desktop shell answered with the wrong kind of result.";
-
 /// The server's checks; `pdf` renders PDF pages and `shell` runs pages in the app's browser.
 pub fn get_headless(pdf: &Pdf, shell: Option<&ShellLink>) -> Arc<dyn HeadlessApi> {
 	Arc::new(RealHeadless { pdf: pdf.clone(), shell: shell.cloned() })
@@ -59,12 +56,9 @@ struct RealHeadless {
 }
 
 impl RealHeadless {
-	/// The browser seam: the one call that runs a page in a browser.
-	async fn run_in_browser(&self, ask: impl FnOnce(u64) -> ToShell) -> Result<Reply, String> {
-		match &self.shell {
-			Some(shell) => shell.request(ask).await,
-			None => Err(NO_CHROME_MESSAGE.to_owned()),
-		}
+	/// The browser seam: the shell that runs pages in its browser.
+	fn browser(&self) -> Result<&ShellLink, String> {
+		self.shell.as_ref().ok_or_else(|| NO_CHROME_MESSAGE.to_owned())
 	}
 }
 
@@ -88,10 +82,7 @@ impl HeadlessApi for RealHeadless {
 
 	fn run_demo<'a>(&'a self, html: &'a str, probe: Option<&'a str>) -> BoxFuture<'a, Result<DemoRunResult, String>> {
 		Box::pin(async move {
-			match self.run_in_browser(|id| ToShell::Demo { id, html: html.to_owned(), probe: probe.map(str::to_owned) }).await? {
-				Reply::Demo(result) => Ok(result.into()),
-				Reply::Svg(_) => Err(WRONG_REPLY.to_owned()),
-			}
+			Ok(self.browser()?.demo(html, probe).await?.into())
 		})
 	}
 
@@ -103,11 +94,9 @@ impl HeadlessApi for RealHeadless {
 				return Ok(png);
 			}
 			let (width, height) = svg_viewport(svg, RenderSvgOptions::default());
-			match self.run_in_browser(|id| ToShell::Svg { id, svg: svg.to_owned(), width: width as u32, height: height as u32 }).await? {
-				// The browser's PNG goes to a vision model, which may refuse its split chunks.
-				Reply::Svg(png) => Ok(provider_safe_png(&gs_base::base64::decode(&png))),
-				Reply::Demo(_) => Err(WRONG_REPLY.to_owned()),
-			}
+			let png = self.browser()?.svg(svg, width as u32, height as u32).await?;
+			// The browser's PNG goes to a vision model, which may refuse its split chunks.
+			Ok(provider_safe_png(&gs_base::base64::decode(&png)))
 		})
 	}
 
@@ -118,6 +107,8 @@ impl HeadlessApi for RealHeadless {
 
 #[cfg(test)]
 mod tests {
+	use gs_shell_rpc::ToShell;
+
 	use super::*;
 
 	fn headless() -> Arc<dyn HeadlessApi> {

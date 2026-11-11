@@ -69,7 +69,7 @@ Rules:
 **Who owns the demo runner.** WKWebView needs the main thread of a process with an `NSApplication`, so the shell owns it. The server asks over the line protocol:
 
 1. `gs_server` main reads `LH_SHELL=1`; when set it builds a `ShellLink` on its stdin/stdout and stores it in `App` (`app.shell: Option<ShellLink>`, new field in `crates/services/src/lib.rs`).
-2. `gs_agent::subagents::headless::get_headless(pdf, shell)` takes the link. `run_in_browser` becomes: no link → today's `NO_CHROME_MESSAGE`; link → `link.request(ToShell::Demo{..})` / `ToShell::Svg{..}`.
+2. `gs_agent::subagents::headless::get_headless(pdf, shell)` takes the link. `run_in_browser` becomes: no link → today's `NO_CHROME_MESSAGE`; link → `link.demo(html, probe)` / `link.svg(svg, width, height)`, each waiting only for an answer of its own kind (one of the other kind is logged and dropped).
 3. The shell's `rpc.rs` gets the request, queues it (one demo at a time, like the TS page chain), runs it on the main thread through `app.run_on_main_thread`, replies on the server's stdin. Each run creates its view and window and closes them when it ends (Mac: the objc2 NSWindow; Windows/Linux: the Tauri window `demo`), so no demo window outlives a run.
 4. The server waits at most 60 s per request (via `gs_base::clock`), then answers the error `demo check timed out`.
 5. Requests in flight when the server dies are dropped by the shell; a restarted server starts a new id space.

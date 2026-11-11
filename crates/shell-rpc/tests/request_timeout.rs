@@ -2,14 +2,14 @@
 //! moves the clock).
 
 use gs_base::clock;
-use gs_shell_rpc::{ShellLink, ToShell};
+use gs_shell_rpc::ShellLink;
 
 #[tokio::test]
 async fn an_unanswered_request_times_out() {
 	let link = ShellLink::new(std::io::sink());
 	let waiting = tokio::spawn({
 		let link = link.clone();
-		async move { link.request(|id| ToShell::Demo { id, html: String::new(), probe: None }).await }
+		async move { link.demo("", None).await }
 	});
 	// Lets the request start its 60 s wait before the clock jumps.
 	clock::sleep(50).await;

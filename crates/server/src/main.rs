@@ -31,6 +31,8 @@ async fn main() -> ExitCode {
 		eprintln!("another godspeed server is using {}", paths.data.display());
 		return ExitCode::FAILURE;
 	};
+	// The one stdout writer.
+	#[allow(clippy::disallowed_methods)]
 	let shell = (std::env::var("LH_SHELL").as_deref() == Ok("1")).then(|| ShellLink::new(std::io::stdout()));
 	let port = http::port();
 	let listener = match tokio::net::TcpListener::bind(("127.0.0.1", port)).await {

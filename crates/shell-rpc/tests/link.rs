@@ -2,7 +2,8 @@
 
 use std::io::{self, Write};
 
-use gs_shell_rpc::{DemoOutcome, DemoResult, Reply, ShellLink, SvgOutcome, ToServer, ToShell, read_lines};
+use gs_base::clock;
+use gs_shell_rpc::{DemoOutcome, DemoResult, ShellLink, SvgOutcome, ToServer, ToShell, read_lines};
 use tokio::sync::mpsc;
 
 /// Hands each written line to the test.
@@ -35,17 +36,17 @@ async fn requests_get_their_own_answers() {
 	let (link, mut rx) = link();
 	let demo = tokio::spawn({
 		let link = link.clone();
-		async move { link.request(|id| ToShell::Demo { id, html: "<p>hi</p>".into(), probe: None }).await }
+		async move { link.demo("<p>hi</p>", None).await }
 	});
 	let ToShell::Demo { id: demo_id, html, probe } = sent(&mut rx).await else { panic!("a demo request") };
 	assert_eq!((demo_id, html.as_str(), probe), (1, "<p>hi</p>", None));
 
 	let svg = tokio::spawn({
 		let link = link.clone();
-		async move { link.request(|id| ToShell::Svg { id, svg: "<svg/>".into(), width: 9, height: 7 }).await }
+		async move { link.svg("<svg/>", 9, 7).await }
 	});
-	let ToShell::Svg { id: svg_id, .. } = sent(&mut rx).await else { panic!("an svg request") };
-	assert_eq!(svg_id, 2);
+	let ToShell::Svg { id: svg_id, svg: drawing, width, height } = sent(&mut rx).await else { panic!("an svg request") };
+	assert_eq!((svg_id, drawing.as_str(), width, height), (2, "<svg/>", 9, 7));
 
 	// Answers in the other order, plus one for an id nobody waits for.
 	link.receive(ToServer::SvgDone { id: 99, outcome: SvgOutcome::Png("late".into()) });
@@ -53,7 +54,22 @@ async fn requests_get_their_own_answers() {
 	let result = DemoResult { ok: true, ..DemoResult::default() };
 	link.receive(ToServer::DemoDone { id: demo_id, outcome: DemoOutcome::Result(result.clone()) });
 	assert_eq!(svg.await.unwrap(), Err("no view".to_owned()));
-	assert_eq!(demo.await.unwrap(), Ok(Reply::Demo(result)));
+	assert_eq!(demo.await.unwrap(), Ok(result));
+}
+
+#[tokio::test]
+async fn an_answer_of_the_wrong_kind_is_skipped() {
+	let (link, mut rx) = link();
+	let demo = tokio::spawn({
+		let link = link.clone();
+		async move { link.demo("<p>hi</p>", None).await }
+	});
+	let ToShell::Demo { id, .. } = sent(&mut rx).await else { panic!("a demo request") };
+	link.receive(ToServer::SvgDone { id, outcome: SvgOutcome::Png("png".into()) });
+	clock::sleep(50).await;
+	assert!(!demo.is_finished(), "the demo still waits for its own answer");
+	link.receive(ToServer::DemoDone { id, outcome: DemoOutcome::Error("no view".into()) });
+	assert_eq!(demo.await.unwrap(), Err("no view".to_owned()));
 }
 
 #[tokio::test]

@@ -17,15 +17,20 @@ use crate::messages::{DemoOutcome, DemoResult, SvgOutcome, ToServer, ToShell};
 const REQUEST_LIMIT_MS: i64 = 60_000;
 const TIMED_OUT: &str = "demo check timed out";
 
-/// What the shell answered a request with.
-#[derive(Debug, Clone, PartialEq)]
-pub enum Reply {
-	Demo(DemoResult),
-	/// The PNG, base64.
-	Svg(String),
+/// Who waits for a request's answer; it takes only the answer of its own kind.
+enum Waiter {
+	Demo(oneshot::Sender<Result<DemoResult, String>>),
+	Svg(oneshot::Sender<Result<String, String>>),
 }
 
-type Answer = Result<Reply, String>;
+impl Waiter {
+	fn kind(&self) -> &'static str {
+		match self {
+			Waiter::Demo(_) => "demo",
+			Waiter::Svg(_) => "svg",
+		}
+	}
+}
 
 /// The server's handle on the shell (clones share it).
 #[derive(Clone)]
@@ -34,7 +39,7 @@ pub struct ShellLink(Arc<Inner>);
 struct Inner {
 	out: Mutex<Box<dyn Write + Send>>,
 	last_id: AtomicU64,
-	pending: Mutex<HashMap<u64, oneshot::Sender<Answer>>>,
+	pending: Mutex<HashMap<u64, Waiter>>,
 	login_tokens: LoginTokens,
 }
 
@@ -50,12 +55,22 @@ impl ShellLink {
 		}
 	}
 
-	/// Sends the message `make` builds with a fresh id and waits for its answer. An error the
+	/// Runs a demo's HTML in the shell's browser and reports what went wrong in it. An error the
 	/// shell reports comes back as the Err text.
-	pub async fn request(&self, make: impl FnOnce(u64) -> ToShell) -> Answer {
+	pub async fn demo(&self, html: &str, probe: Option<&str>) -> Result<DemoResult, String> {
+		self.request(|id| ToShell::Demo { id, html: html.to_owned(), probe: probe.map(str::to_owned) }, Waiter::Demo).await
+	}
+
+	/// The shell's browser snapshot of an SVG as a base64 PNG of exactly `width` × `height` px.
+	pub async fn svg(&self, svg: &str, width: u32, height: u32) -> Result<String, String> {
+		self.request(|id| ToShell::Svg { id, svg: svg.to_owned(), width, height }, Waiter::Svg).await
+	}
+
+	/// Sends the message `make` builds with a fresh id and waits for its answer.
+	async fn request<T>(&self, make: impl FnOnce(u64) -> ToShell, waiter: fn(oneshot::Sender<Result<T, String>>) -> Waiter) -> Result<T, String> {
 		let id = self.0.last_id.fetch_add(1, Ordering::SeqCst) + 1;
 		let (tx, rx) = oneshot::channel();
-		lock(&self.0.pending).insert(id, tx);
+		lock(&self.0.pending).insert(id, waiter(tx));
 		// Removes the entry however the wait ends, a dropped request included.
 		let _waiting = Waiting { link: self, id };
 		self.send(&make(id));
@@ -85,20 +100,22 @@ impl ShellLink {
 					eprintln!("desktop shell: skipped a login token that is not 64 hex");
 				}
 			}
-			ToServer::DemoDone { id, outcome } => self.answer(
-				id,
-				match outcome {
-					DemoOutcome::Result(result) => Ok(Reply::Demo(result)),
-					DemoOutcome::Error(err) => Err(err),
-				},
-			),
-			ToServer::SvgDone { id, outcome } => self.answer(
-				id,
-				match outcome {
-					SvgOutcome::Png(png) => Ok(Reply::Svg(png)),
-					SvgOutcome::Error(err) => Err(err),
-				},
-			),
+			ToServer::DemoDone { id, outcome } => {
+				if let Some(Waiter::Demo(tx)) = self.waiter(id, "demo") {
+					let _ = tx.send(match outcome {
+						DemoOutcome::Result(result) => Ok(result),
+						DemoOutcome::Error(err) => Err(err),
+					});
+				}
+			}
+			ToServer::SvgDone { id, outcome } => {
+				if let Some(Waiter::Svg(tx)) = self.waiter(id, "svg") {
+					let _ = tx.send(match outcome {
+						SvgOutcome::Png(png) => Ok(png),
+						SvgOutcome::Error(err) => Err(err),
+					});
+				}
+			}
 		}
 	}
 
@@ -107,11 +124,16 @@ impl ShellLink {
 		self.0.login_tokens.take(token)
 	}
 
-	/// An answer to a request that already gave up is dropped.
-	fn answer(&self, id: u64, answer: Answer) {
-		if let Some(tx) = lock(&self.0.pending).remove(&id) {
-			let _ = tx.send(answer);
+	/// The waiter for an answer of `kind` to request `id`. An answer to a request that already
+	/// gave up is dropped, and so is one of the wrong kind: that request then times out.
+	fn waiter(&self, id: u64, kind: &str) -> Option<Waiter> {
+		let mut pending = lock(&self.0.pending);
+		let expected = pending.get(&id)?.kind();
+		if expected != kind {
+			eprintln!("desktop shell: skipped a {kind} answer to {expected} request {id}");
+			return None;
 		}
+		pending.remove(&id)
 	}
 }
 

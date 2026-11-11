@@ -82,8 +82,8 @@ async fn download_and_report(slot: Arc<Mutex<Option<Pending>>>, url: String, fil
 async fn download(url: &str, file: &Path) -> Outcome {
 	let dir = file.parent().unwrap_or(Path::new(""));
 	std::fs::create_dir_all(dir).map_err(|err| fsx::node_error_message(&err, "mkdir", dir))?;
-	// Like console.info, a closed stdout is not an error.
-	let _ = writeln!(std::io::stdout(), "[transcribe] downloading {WHISPER_MODEL_NAME} (~150 MB, one time)");
+	// stdout is the desktop shell's protocol; a closed stderr is not an error.
+	let _ = writeln!(std::io::stderr(), "[transcribe] downloading {WHISPER_MODEL_NAME} (~150 MB, one time)");
 	let client = reqwest::Client::builder().redirect(Policy::limited(20)).connect_timeout(CONNECT_TIMEOUT).no_proxy().build().map_err(|_| "fetch failed".to_owned())?;
 	let Some(Ok(response)) = within(client.get(url).send()).await else {
 		return Err("fetch failed".to_owned());

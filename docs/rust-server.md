@@ -63,8 +63,8 @@ A module is named after its TS file in snake_case (`file-series.ts` is `classes:
 - `gs_base`: `clock`, `config` (`Paths`, `GraphFiles`, `resolve`, `VERSION`), `events` (`Events`, `EventKind`, `Event::sse_frame`), `fsx`, `hash`, `ids`, `locale`, `locks`, `num`, `re`, `shutdown`, `text`, `time`.
 - `gs_core`: `contracts::{chat, class, graph}` (ids, versions, guards, class icons, deadline sort, scope parsing) and the edge functions other packages call first, each marked in its file.
 - `gs_store`: `Stores::new` with every store's constructor; `AgentSeenStore` implements `gs_core::records::agent_seen::SeenStore` (bodies to fill).
-- `gs_services`: `App::new(paths)`.
-- `gs_server::http` (done, checked against `ui-serving`, `pdfjs-assets` and the access half of `proxy-desktop`):
+- `gs_services`: `App::new(paths, shell)`.
+- `gs_server::http` (done, checked against `ui-serving` and `pdfjs-assets`; the desktop access rule by the `access` unit tests and `tests/shell.rs`):
   - `front` runs before routing: backslashes, `//` and trailing slashes redirect 308 with the path as body; `.`/`..`/`%2e` segments resolve; then the desktop access check (`access`), then a segment that will not decode answers Next's 500 page.
   - `route::ApiRoute::new().get(h).post(h).put(h).delete(h).into_route()` builds one route path: OPTIONS answers 204 with Next's sorted `Allow`, other methods an empty 405, HEAD runs GET without the body, a panic answers an empty 500. Register every route with it.
   - `reply`: `json(status, &v)`, `json_no_store`, `text`, `empty`, `no_store`, `not_found`, `Unhandled`, `json_body(body)` (`await req.json()`, None where it throws), `read_body` (cut at 210 MB like `proxyClientMaxBodySize`), `body_text`.

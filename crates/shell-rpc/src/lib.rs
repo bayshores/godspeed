@@ -7,6 +7,6 @@ mod login;
 mod messages;
 
 pub use lines::{read_lines, write_line};
-pub use link::{Reply, ShellLink};
+pub use link::ShellLink;
 pub use login::same_bytes;
 pub use messages::{DemoOutcome, DemoResult, SvgOutcome, ToServer, ToShell};
