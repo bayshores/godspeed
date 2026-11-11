@@ -12,5 +12,9 @@
         "appPosition": { "x": 130, "y": 190 }, "applicationFolderPosition": { "x": 410, "y": 190 } } },
     "windows": { "nsis": { "installMode": "currentUser", "installerHooks": "nsis/hooks.nsh" } },
     "linux": { "deb": { "depends": [] } }
+  },
+  "plugins": {
+    "updater": { "pubkey": "", "endpoints": ["https://github.com/bayshores/godspeed/releases/latest/download/latest.json"],
+      "windows": { "installMode": "passive" } }
   }
 }

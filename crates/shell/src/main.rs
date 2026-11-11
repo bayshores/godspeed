@@ -46,6 +46,7 @@ fn main() {
 	}));
 	let app = builder
 		.plugin(tauri_plugin_dialog::init())
+		.plugin(tauri_plugin_updater::Builder::new().build())
 		.invoke_handler(tauri::generate_handler![
 			window::show_window,
 			window::expand_window,
@@ -56,6 +57,9 @@ fn main() {
 			zoom::set_zoom,
 			zoom::zoom_step,
 			zoom::zoom_reset,
+			update::update_state,
+			update::update_check,
+			update::update_install,
 			commands::pick_folder,
 			commands::show_in_folder,
 			commands::open_path,
@@ -119,6 +123,7 @@ fn setup(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
 	app.manage(server);
 	app.manage(zoom::Zoom::default());
 	app.manage(rpc::Demos::start(&handle));
+	update::start(&handle);
 	app.set_menu(menu::build(&handle)?)?;
 	window::create(&handle)?;
 	Server::start(&handle);

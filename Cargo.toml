@@ -60,6 +60,7 @@ tauri-build = "=2.7.4"
 tauri-plugin-dialog = "=2.8.4"
 tauri-plugin-opener = "=2.7.2"
 tauri-plugin-single-instance = "=2.5.5"
+tauri-plugin-updater = "=2.14.1"
 tokenizers = { version = "0.22.2", default-features = false, features = ["fancy-regex"] }
 tower = { version = "0.5.3", default-features = false }
 tokio = { version = "1.54", features = ["rt-multi-thread", "macros", "time", "sync", "signal", "io-util", "io-std", "net", "process", "fs"] }
