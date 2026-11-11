@@ -59,7 +59,7 @@ export function ClassHead() {
 								</span>
 							)}
 							{t.href === "/class/files" && unseenFiles && (
-								<span data-testid="nav-files-new" className="bg-highlight px-1.5 text-sm text-on-class">
+								<span data-testid="nav-files-new" className="bg-highlight px-1.5 text-sm text-ink">
 									new
 								</span>
 							)}

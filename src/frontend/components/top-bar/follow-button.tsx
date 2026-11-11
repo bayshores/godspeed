@@ -3,7 +3,7 @@ import { cn } from "@/frontend/lib/utils";
 import { followButtons } from "./top-bar-model";
 
 const BUTTON = "lh-press shrink-0 self-center rounded-[2px] px-2.5 py-1 text-sm whitespace-nowrap";
-const MARKED = "bg-highlight font-medium text-on-class";
+const MARKED = "bg-highlight font-medium text-ink";
 
 /**
  * Beside the teacher chip while the teacher works: "Follow" (the window

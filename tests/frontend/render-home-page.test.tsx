@@ -1,8 +1,8 @@
 /**
- * Home's panes: ticking a deadline done (the shared notice), due next
- * (title, study, mark done, the pixel countdown, empty states), coming up
- * (ready blocks, class, countdown), a class's fact grid and the activity
- * log.
+ * Today's rows: ticking a deadline done and undoing it (the shared read),
+ * a row under Today (count block, words, Mark done, the one main button),
+ * a row stamped Done, a row under Later, and a class's fact grid on
+ * Progress.
  */
 import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;
@@ -12,7 +12,7 @@ import { afterEach, describe, it } from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createRoot, type Root } from "react-dom/client";
 import { parseHTML } from "linkedom";
-import { rampColor, type AgentAction, type DeadlineProgress, type FactProgress } from "../../src/shared/core/index.ts";
+import type { DeadlineProgress, FactProgress } from "../../src/shared/core/index.ts";
 import type { OpenDeadline } from "../../src/frontend/components/deadlines-model.ts";
 
 const dom = parseHTML("<html><body></body></html>");
@@ -28,10 +28,8 @@ Object.assign(globalThis, {
 	cancelIdleCallback: (id: number) => clearTimeout(id),
 });
 
-const { ComingUp } = await import("../../src/frontend/components/home-page/coming-up.tsx");
-const { DueNext } = await import("../../src/frontend/components/home-page/due-next.tsx");
-const { ClassFacts } = await import("../../src/frontend/components/home-page/class-facts.tsx");
-const { ActivityPane } = await import("../../src/frontend/components/home-page/activity-pane.tsx");
+const { TodayRow, DoneRow, LaterRow } = await import("../../src/frontend/components/home-page/today-row.tsx");
+const { ClassFacts } = await import("../../src/frontend/components/overview/class-facts.tsx");
 const { OpenDeadlinesProvider, useOpenDeadlines } = await import("../../src/frontend/components/use-open-deadlines.tsx");
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
 const { NoticeStack } = await import("../../src/frontend/components/notice-stack.tsx");
@@ -84,13 +82,20 @@ async function mount(node: React.ReactNode): Promise<HTMLElement> {
 describe("Ticking a deadline done", () => {
 	const writes: { url: string; body: unknown }[] = [];
 	let saveFails = false;
+	let reads = 0;
 	const original = globalThis.fetch;
 	afterEach(() => {
 		globalThis.fetch = original;
 		writes.length = 0;
 		saveFails = false;
+		reads = 0;
 		document.body.innerHTML = "";
 	});
+
+	const DONE = { ...OPEN[0]!, done: true, doneAt: new Date().toISOString() };
+	let seen!: { open: string[]; done: string[] };
+	let tick!: () => void;
+	let untick!: () => void;
 
 	async function mountProvider() {
 		globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -98,12 +103,14 @@ describe("Ticking a deadline done", () => {
 				writes.push({ url: String(input), body: JSON.parse(String(init.body)) });
 				return saveFails ? Response.json({ error: "boom" }, { status: 500 }) : Response.json({ ok: true });
 			}
-			return Response.json({ deadlines: [OPEN[1]] });
+			reads++;
+			return Response.json({ deadlines: [OPEN[1]], doneToday: [DONE] });
 		}) as typeof fetch;
-		let tick!: () => void;
 		function Harness() {
-			const { deadlines, markDone } = useOpenDeadlines();
+			const { deadlines, doneToday, markDone, undo } = useOpenDeadlines();
+			seen = { open: (deadlines ?? []).map((x) => x.id), done: doneToday.map((x) => x.id) };
 			tick = () => markDone(deadlines![0]!);
+			untick = () => undo(doneToday[0]!);
 			return null;
 		}
 		const connect = () => ({ onEvent() {}, onOpen() {}, close() {} });
@@ -115,42 +122,45 @@ describe("Ticking a deadline done", () => {
 				</OpenDeadlinesProvider>
 			</ServerEventsProvider>,
 		);
-		await act(async () => {
-			await new Promise((r) => setTimeout(r, 10));
-		});
-		await act(async () => {
-			tick();
-			await new Promise((r) => setTimeout(r, 260));
-		});
+		await settle();
 	}
+	const settle = () => act(async () => void (await new Promise((r) => setTimeout(r, 10))));
 	const notice = () => document.querySelector<HTMLElement>('[data-testid="done-notice"]');
 
-	it("says 'Marked done' and Undo, and Undo ticks it back", async () => {
+	it("reads the open deadlines and the ones done today", async () => {
 		await mountProvider();
-		assert.equal(notice()!.textContent, "Marked doneUndo");
-		assert.equal(notice()!.parentElement!.id, "lh-notices", "it stacks with the update and restart notices");
-		assert.equal(notice()!.getAttribute("role"), "status");
-		await act(async () => {
-			document.querySelector<HTMLButtonElement>('[data-testid="done-notice-undo"]')!.click();
-			await new Promise((r) => setTimeout(r, 10));
-		});
+		assert.deepEqual(seen, { open: ["quiz"], done: ["late"] });
+	});
+
+	it("Mark done and Undo save it and read the lists again, with no notice", async () => {
+		await mountProvider();
+		tick();
+		await settle();
+		untick();
+		await settle();
 		assert.deepEqual(writes, [
 			{ url: "/api/classes/c21/deadlines/quiz", body: { done: true } },
-			{ url: "/api/classes/c21/deadlines/quiz", body: { done: false } },
+			{ url: "/api/classes/c21/deadlines/late", body: { done: false } },
 		]);
+		assert.equal(reads, 3);
 		assert.equal(notice(), null);
 	});
 
 	it("a save that fails says so", async () => {
 		saveFails = true;
 		await mountProvider();
+		tick();
+		await settle();
 		assert.equal(notice()!.textContent, "Couldn't mark it done. Try again.");
 		assert.equal(notice()!.getAttribute("role"), "alert");
-		assert.equal(document.querySelector('[data-testid="done-notice-undo"]'), null);
+		assert.equal(notice()!.parentElement!.id, "lh-notices", "it stacks with the update and restart notices");
+		untick();
+		await settle();
+		assert.equal(notice()!.textContent, "Couldn't undo that. Try again.");
 	});
 });
 
-// ─── Due next ───────────────────────────────────────────────────────────────
+// ─── A row under Today ──────────────────────────────────────────────────────
 
 function progressFor(id: string, extra: Partial<DeadlineProgress>): DeadlineProgress {
 	return {
@@ -170,102 +180,82 @@ function progressFor(id: string, extra: Partial<DeadlineProgress>): DeadlineProg
 	};
 }
 
-function dueNext(props: Partial<React.ComponentProps<typeof DueNext>> = {}) {
-	return renderToStaticMarkup(
-		<DueNext
-			deadline={OPEN[1]!}
-			progress={null}
-			leaving={false}
-			hasClasses
-			busy={false}
-			error={null}
-			fixedNow={NOW}
-			onStudy={() => {}}
-			onDone={() => {}}
-			onNewClass={() => {}}
-			{...props}
-		/>,
-	);
+function todayRow(props: Partial<React.ComponentProps<typeof TodayRow>> = {}) {
+	return renderToStaticMarkup(<TodayRow deadline={OPEN[2]!} progress={undefined} color={3} nowMs={NOW} busy={false} onStart={() => {}} onDone={() => {}} {...props} />);
 }
 
-describe("Due next", () => {
-	it("the class and name, a link to the deadline's page, tagged for the teacher", () => {
-		const html = dueNext();
-		assert.match(html, /cse 21 \/<\/span>/);
-		assert.match(tag(html, "due-next-open"), /href="\/class\/deadline\/quiz"/);
-		assert.ok(html.includes('data-halley-target="deadline:quiz"'));
+describe("A row under Today", () => {
+	it("the count block in the class's color, days left", () => {
+		const html = todayRow();
+		assert.match(html, /background:var\(--lh-class-3\)/);
+		assert.match(html, />2<\/span>.*>days</);
+		assert.match(todayRow({ deadline: OPEN[1]! }), />48<\/span>.*>min</);
+		assert.match(todayRow({ deadline: OPEN[0]! }), />late</);
 	});
 
-	it("study for it, or continue its unfinished session; mark done", () => {
-		assert.match(section(dueNext(), "due-next-study", "</button>"), />study</);
-		const cont = dueNext({ progress: progressFor("quiz", { continueStudy: { chatId: "c", done: 1, total: 3 } }) });
-		assert.match(section(cont, "due-next-study", "</button>"), /continue studying, 1 of 3 topics/);
-		assert.match(section(dueNext(), "due-next-done", "</button>"), /mark done/);
+	it("the title opens the deadline's page and the row is tagged for the teacher", () => {
+		const html = todayRow();
+		assert.match(tag(html, "today-open"), /href="\/class\/deadline\/hw5"/);
+		assert.ok(html.includes('data-halley-target="deadline:hw5"'));
 	});
 
-	it("the last 24h is a pixel clock; earlier it's plain text", () => {
-		assert.match(tag(dueNext(), "pixel-countdown"), /<svg[^>]*data-mode="fine"[^>]*aria-label="48:00.00"/);
-		const far = dueNext({ deadline: OPEN[3]! });
-		assert.match(far, /data-testid="pixel-countdown" data-mode="days"[^>]*>in 8 days</);
+	it("homework: its name, how far it is, and Work on it", () => {
+		const html = todayRow({ progress: progressFor("hw5", { problems: { done: 2, total: 7 } }) });
+		assert.match(section(html, "today-open", "</a>"), />HW 5$/);
+		assert.ok(html.includes("CSE 29, due Friday. 2 of 7 problems done"));
+		assert.match(section(html, "today-start", "</button>"), />Work on it$/);
+		assert.ok(!tag(html, "today-start").includes("lh-btn-main"), "the outlined button");
 	});
 
-	it("nothing due says how deadlines get added; no class offers a new one", () => {
-		assert.match(dueNext({ deadline: null }), /No deadlines yet\. Your agent can add them from the syllabus\./);
-		const none = dueNext({ deadline: null, hasClasses: false });
-		assert.match(none, /No classes yet\./);
-		assert.ok(none.includes('data-testid="due-next-new-class"'));
+	it("a test: today's topics and Start; an unfinished session continues", () => {
+		const topics = [1, 2, 3].map((n) => ({ id: `t${n}`, name: `t${n}`, rate: null }));
+		const html = todayRow({ deadline: OPEN[3]!, progress: progressFor("mid", { topics }) });
+		assert.match(section(html, "today-open", "</a>"), />Study 1 topic for Midterm 2$/);
+		assert.ok(html.includes("CSE 21, the test is on Thursday at 7:00 PM"));
+		assert.match(section(html, "today-start", "</button>"), /Start$/);
+		assert.ok(tag(html, "today-start").includes("lh-btn-main"));
+		const cont = todayRow({ deadline: OPEN[3]!, progress: progressFor("mid", { topics, continueStudy: { chatId: "c", done: 1, total: 3 } }) });
+		assert.match(section(cont, "today-open", "</a>"), />Continue studying for Midterm 2$/);
+		assert.match(section(cont, "today-start", "</button>"), /Continue$/);
 	});
 
-	it("a click passes the deadline", async () => {
-		const studied: string[] = [];
+	it("a click passes the deadline; the main button waits while a lesson starts", async () => {
+		const started: string[] = [];
 		const done: string[] = [];
-		const el = await mount(<DueNext deadline={OPEN[1]!} progress={null} leaving={false} hasClasses busy={false} error={null} fixedNow={NOW} onStudy={(x) => studied.push(x.id)} onDone={(x) => done.push(x.id)} onNewClass={() => {}} />);
+		const el = await mount(<ul><TodayRow deadline={OPEN[1]!} progress={undefined} color={1} nowMs={NOW} busy={false} onStart={(x) => started.push(x.id)} onDone={(x) => done.push(x.id)} /></ul>);
 		await act(async () => {
-			el.querySelector<HTMLButtonElement>('[data-testid="due-next-study"]')!.click();
-			el.querySelector<HTMLButtonElement>('[data-testid="due-next-done"]')!.click();
+			el.querySelector<HTMLButtonElement>('[data-testid="today-start"]')!.click();
+			el.querySelector<HTMLButtonElement>('[data-testid="today-done"]')!.click();
 		});
-		assert.deepEqual([studied, done], [["quiz"], ["quiz"]]);
+		assert.deepEqual([started, done], [["quiz"], ["quiz"]]);
+		assert.match(tag(todayRow({ busy: true }), "today-start"), /disabled/);
 	});
 });
 
-// ─── Coming up ──────────────────────────────────────────────────────────────
+describe("A row stamped Done", () => {
+	it("the stamp, its name and class, and Undo", async () => {
+		const undone: string[] = [];
+		const el = await mount(<ul><DoneRow deadline={OPEN[2]!} onUndo={(x) => undone.push(x.id)} /></ul>);
+		assert.equal(el.querySelector('[data-testid="today-done-row-hw5"]')!.textContent, "DoneHW 5CSE 29Undo");
+		await act(async () => el.querySelector<HTMLButtonElement>('[data-testid="today-undo"]')!.click());
+		assert.deepEqual(undone, ["hw5"]);
+	});
+});
 
-const PROGRESS = new Map([["hw5", progressFor("hw5", { files: [{ id: "f4", name: "Lecture 4.pdf" }], ready: 0.58 })]]);
+describe("A row under Later", () => {
+	const html = renderToStaticMarkup(<LaterRow deadline={OPEN[4]!} progress={progressFor("far", { ready: 0.19 })} color={2} nowMs={NOW} />);
 
-function comingUp(deadlines: OpenDeadline[] = OPEN.slice(2)) {
-	return renderToStaticMarkup(<ComingUp deadlines={deadlines} progress={PROGRESS} leaving={new Set()} fixedNow={NOW} />);
-}
-
-describe("Coming up", () => {
-	it("a row opens its deadline's page and is tagged for the teacher", () => {
-		const row = section(comingUp(), "coming-up-row-mid", "</li>");
-		assert.match(row, /href="\/class\/deadline\/mid"/);
-		assert.ok(comingUp().includes('data-halley-target="deadline:mid"'));
+	it("the whole row opens the deadline's page", () => {
+		const row = section(html, "later-row-far", "</li>");
+		assert.match(row, /<a[^>]*href="\/class\/deadline\/far"/);
+		assert.ok(!row.includes("<button"));
+		assert.ok(html.includes('data-halley-target="deadline:far"'));
 	});
 
-	it("ten ready blocks, 58% fills six in the ramp color; no files, no blocks", () => {
-		const row = section(comingUp(), "coming-up-row-hw5", "</li>");
-		assert.match(row, /aria-label="58% ready"/);
-		assert.equal(row.split(`background:${rampColor(0.58)}`).length - 1, 6);
-		assert.equal(row.split("background:var(--border)").length - 1, 4);
-		assert.ok(!section(comingUp(), "coming-up-row-mid", "</li>").includes("coming-up-ready"));
-	});
-
-	it("homework with problems shows a done bar and 2/7 instead of the ready bar", () => {
-		const progress = new Map([["hw5", { ...progressFor("hw5", { files: [{ id: "f4", name: "Lecture 4.pdf" }], ready: 0.58 }), problems: { done: 2, total: 7 } }]]);
-		const row = section(renderToStaticMarkup(<ComingUp deadlines={OPEN.slice(2)} progress={progress} leaving={new Set()} fixedNow={NOW} />), "coming-up-row-hw5", "</li>");
-		assert.match(row, /aria-label="2 of 7 problems done"/);
-		assert.match(row, /2\/7/);
-		assert.ok(!row.includes("coming-up-ready"));
-	});
-
-	it("the class shows only when more than one class has deadlines", () => {
-		assert.ok(comingUp().includes('data-testid="coming-up-class"'));
-		assert.ok(!comingUp([OPEN[3]!, OPEN[4]!]).includes('data-testid="coming-up-class"'));
-	});
-
-	it("empty: nothing else is due", () => {
-		assert.match(comingUp([]), /Nothing else is due\./);
+	it("a pale count block, its name, the class, the day and how ready", () => {
+		assert.match(html, /color-mix\(in oklab, var\(--lh-class-2\) 45%/);
+		assert.match(html, />34<\/span>.*>days</);
+		assert.ok(html.includes("CSE 21, Tuesday Dec 1. 19% ready"));
 	});
 });
 
@@ -276,54 +266,16 @@ function fact(inLessons: boolean, ...outcomes: ("right" | "wrong")[]): FactProgr
 }
 
 describe("A class's facts", () => {
-	const cls = { id: "c29", name: "CSE 29" };
-	it("its name with the facts studied, one square per fact", () => {
-		const html = renderToStaticMarkup(
-			<ClassFacts cls={cls} progress={{ facts: [fact(true, "right"), fact(true), fact(false)], files: [{} as never] }} onOpenFiles={() => {}} />,
-		);
-		assert.match(html, /cse 29 <span[^>]*>2\/3<\/span>/);
+	it("the facts studied, one square per fact, and what the colors mean", () => {
+		const html = renderToStaticMarkup(<ClassFacts progress={{ facts: [fact(true, "right"), fact(true), fact(false)], files: [{} as never] }} />);
+		assert.ok(html.includes("2 of 3 studied"));
 		assert.match(html, /aria-label="2 of 3 facts studied"/);
 		assert.equal(html.split('size-[13px]"').length - 1, 3);
+		assert.ok(html.includes('data-testid="fact-key"'));
 	});
 
-	it("no study files: add files, to its Files page", async () => {
-		const opened: string[] = [];
-		const el = await mount(<ClassFacts cls={cls} progress={{ facts: [], files: [] }} onOpenFiles={(id) => opened.push(id)} />);
-		await act(async () => el.querySelector<HTMLButtonElement>('[data-testid="class-facts-add-files"]')!.click());
-		assert.deepEqual(opened, ["c29"]);
-	});
-});
-
-// ─── Activity ───────────────────────────────────────────────────────────────
-
-describe("Activity", () => {
-	const action = (id: string, label: string, agent: string, removed?: true): AgentAction => ({
-		id,
-		at: new Date(NOW - 60_000).toISOString(),
-		agent,
-		label,
-		classId: null,
-		target: null,
-		page: "/",
-		...(removed ? { removed } : {}),
-	});
-
-	it("a line: the time, the verb in the agent's accent, what it was about", () => {
-		const html = renderToStaticMarkup(<ActivityPane actions={[action("a", "Reading Lab 6.pdf", "Claude Code")]} nowMs={NOW} onGo={() => {}} />);
-		assert.match(html, />16:11<\/span><span class="[^"]*text-tint[^"]*">reading<\/span>/);
-		assert.match(html, />Lab 6\.pdf</);
-	});
-
-	it("a click goes there; a removed thing can't be visited", async () => {
-		const went: string[] = [];
-		const el = await mount(<ActivityPane actions={[action("a", "Adding HW 5", "Claude Code"), action("b", "Removed HW 4", "Claude Code", true)]} nowMs={NOW} onGo={(a) => went.push(a.id)} />);
-		const lines = el.querySelectorAll<HTMLButtonElement>('[data-testid="home-activity-line"]');
-		await act(async () => lines.forEach((l) => l.click()));
-		assert.deepEqual(went, ["a"]);
-		assert.ok(lines[1]!.disabled);
-	});
-
-	it("empty: what will show here", () => {
-		assert.match(renderToStaticMarkup(<ActivityPane actions={[]} nowMs={NOW} onGo={() => {}} />), /Nothing yet\./);
+	it("no study files: Add files, to the class's Files tab", () => {
+		const html = renderToStaticMarkup(<ClassFacts progress={{ facts: [], files: [] }} />);
+		assert.match(tag(html, "class-facts-add-files"), /href="\/class\/files"/);
 	});
 });

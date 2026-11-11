@@ -7,7 +7,7 @@
 import { useMemo } from "react";
 import { topicFacts, type FactProgress, type TopicLink, type TopicProgress } from "@/shared/core";
 import { Pane } from "@/frontend/components/ui/pane";
-import { factCells, UNSTUDIED_CELL } from "@/frontend/components/home-page/home-page-model";
+import { factCells, UNSTUDIED_CELL } from "@/frontend/components/fact-cells";
 import { neighbors, STATUS_COLOR, statusLine, takeaway } from "./derive.ts";
 import { FactList } from "./fact-list.tsx";
 import { StudyButton } from "./side-panes.tsx";

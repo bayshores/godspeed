@@ -196,7 +196,7 @@ describe("deadline routes", () => {
 		assert.equal((await deadlinesRoute.POST(json("/x", "POST", { kind: "exam", name: "x", date: "2026-12-10" }), ctx({ id: "cls_nope_x" }))).status, 404);
 	});
 
-	it("GET /api/deadlines: open deadlines of classes not archived, soonest due first", async () => {
+	it("GET /api/deadlines: open deadlines of classes not archived, soonest due first, and the ones done today", async () => {
 		const a = await makeClass("Open A");
 		const b = await makeClass("Open B");
 		const archived = await makeClass("Archived C");
@@ -212,7 +212,13 @@ describe("deadline routes", () => {
 
 		const res = await openDeadlinesRoute.GET();
 		assert.equal(res.status, 200);
-		const mine = ((await res.json()).deadlines as { classId: string; className: string; name: string; done: boolean }[]).filter((d) =>
+		const body = await res.json();
+		assert.deepEqual(
+			(body.doneToday as { classId: string; name: string }[]).filter((d) => d.classId === b).map((d) => d.name),
+			["Done one"],
+			"ticked done today, so Today still shows it",
+		);
+		const mine = (body.deadlines as { classId: string; className: string; name: string; done: boolean }[]).filter((d) =>
 			[a, b, archived].includes(d.classId),
 		);
 		assert.deepEqual(

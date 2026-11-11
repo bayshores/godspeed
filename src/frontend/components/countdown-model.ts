@@ -76,7 +76,7 @@ function nextMidnight(ms: number): number {
 
 /** Calendar days from `fromMs`'s day to `toMs`'s day (rounded, so a
  *  daylight-saving day still counts as one). */
-function calendarDays(fromMs: number, toMs: number): number {
+export function calendarDays(fromMs: number, toMs: number): number {
 	return Math.round((startOfDay(toMs) - startOfDay(fromMs)) / DAY);
 }
 

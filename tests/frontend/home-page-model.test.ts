@@ -1,16 +1,15 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import type { ProgressPayload } from "../../src/shared/core/index.ts";
-import { UNTESTED_COLOR, rampColor } from "../../src/shared/core/index.ts";
+import type { DeadlineProgress, ProgressPayload } from "../../src/shared/core/index.ts";
+import type { OpenDeadline } from "../../src/frontend/components/deadlines-model.ts";
 import {
-	UNSTUDIED_CELL,
-	activityLine,
 	classesSettled,
-	classSlot,
-	factCells,
-	factRate,
+	countLeft,
 	foldClassesProgress,
-	readyBlocks,
+	laterLine,
+	longDay,
+	todayLists,
+	todayRow,
 	type ClassesProgress,
 } from "../../src/frontend/components/home-page/home-page-model.ts";
 
@@ -47,7 +46,7 @@ describe("foldClassesProgress", () => {
 	});
 });
 
-describe("classesSettled and classSlot", () => {
+describe("classesSettled", () => {
 	const state = foldClassesProgress(EMPTY, ["a", "b"], [
 		{ classId: "a", payload: payload("a1") },
 		{ classId: "b", error: "HTTP 500" },
@@ -55,61 +54,122 @@ describe("classesSettled and classSlot", () => {
 
 	it("one failed class does not hold the others in loading", () => {
 		assert.equal(classesSettled(["a", "b"], state), true);
-		assert.equal(classSlot("a", state, true), "block");
-		assert.equal(classSlot("b", state, true), "failed");
 	});
 
 	it("waits while a class has neither data nor an error", () => {
 		assert.equal(classesSettled(["a", "b", "c"], state), false);
-		assert.equal(classSlot("c", state, true), "loading");
-	});
-
-	it("shows loading boxes until the blocks are ready", () => {
-		assert.equal(classSlot("a", state, false), "loading");
-		assert.equal(classSlot("b", state, false), "loading");
 	});
 });
 
-const answers = (...o: ("right" | "wrong" | "dontKnow")[]) => o.map((outcome) => ({ outcome })) as never;
+// Wed Nov 11 2026, 2:32 PM local.
+const NOW = new Date(2026, 10, 11, 14, 32).getTime();
 
-describe("factRate", () => {
-	it("is the share of right answers, null before the first", () => {
-		assert.equal(factRate({ answers: [] }), null);
-		assert.equal(factRate({ answers: answers("right", "wrong", "dontKnow", "right") }), 0.5);
+function d(id: string, kind: OpenDeadline["kind"], date: string, extra: Partial<OpenDeadline> = {}): OpenDeadline {
+	return { id, kind, name: id, date, fileIds: [], done: false, classId: "c21", className: "CSE 21", ...extra };
+}
+
+function progress(extra: Partial<DeadlineProgress>): DeadlineProgress {
+	return {
+		id: "x",
+		kind: "exam",
+		name: "x",
+		date: "2026-11-17",
+		done: false,
+		daysUntil: 6,
+		files: [],
+		topicIds: [],
+		counts: { strong: 0, shaky: 0, weak: 0, untested: 0 },
+		workOnNext: [],
+		ready: null,
+		topics: [],
+		...extra,
+	};
+}
+
+describe("todayLists", () => {
+	const doneAt = (h: number, day = 11) => new Date(2026, 10, day, h).toISOString();
+
+	it("Today holds what is due within 7 days or overdue; Later holds the rest", () => {
+		const open = [d("late", "homework", "2026-11-09"), d("today", "quiz", "2026-11-11"), d("week", "exam", "2026-11-18"), d("far", "exam", "2026-11-19")];
+		const lists = todayLists(open, [], NOW);
+		assert.deepEqual(lists.today.map((x) => x.id), ["late", "today", "week"]);
+		assert.deepEqual(lists.later.map((x) => x.id), ["far"]);
+	});
+
+	it("a row ticked done stays until the day turns", () => {
+		const done = [d("now", "homework", "2026-11-12", { done: true, doneAt: doneAt(9) }), d("yesterday", "homework", "2026-11-10", { done: true, doneAt: doneAt(23, 10) })];
+		assert.deepEqual(todayLists([], done, NOW).done.map((x) => x.id), ["now"]);
+		assert.deepEqual(todayLists([], done, new Date(2026, 10, 12, 0, 1).getTime()).done, []);
 	});
 });
 
-describe("factCells", () => {
-	it("answered facts first in their ramp color, then studied ones, then the unstudied dim", () => {
-		const cells = factCells([
-			{ inLessons: false, answers: [] },
-			{ inLessons: true, answers: [] },
-			{ inLessons: true, answers: answers("right") },
-			{ inLessons: true, answers: answers("wrong") },
-		]);
-		assert.deepEqual(cells, [rampColor(1), rampColor(0), UNTESTED_COLOR, UNSTUDIED_CELL]);
+describe("countLeft", () => {
+	const at = (day: number, h: number, m = 0) => new Date(2026, 10, day, h, m).getTime();
+
+	it("whole calendar days while more than 24 hours are left", () => {
+		assert.deepEqual(countLeft(at(17, 23, 59), NOW), { count: "6", unit: "days" });
+		assert.deepEqual(countLeft(at(12, 23, 59), NOW), { count: "1", unit: "day" });
+	});
+
+	it("hours on the last day, minutes in the last hour, late once due", () => {
+		assert.deepEqual(countLeft(at(11, 19, 40), NOW), { count: "5", unit: "hours" });
+		assert.deepEqual(countLeft(at(11, 15, 40), NOW), { count: "1", unit: "hour" });
+		assert.deepEqual(countLeft(at(11, 14, 44), NOW), { count: "12", unit: "min" });
+		assert.deepEqual(countLeft(NOW, NOW), { count: "late", unit: "" });
 	});
 });
 
-describe("readyBlocks", () => {
-	it("fills a tenth per block, rounded and kept in 0 to 10", () => {
-		assert.deepEqual([0, 0.04, 0.05, 0.58, 1, 1.2].map(readyBlocks), [0, 0, 1, 6, 10, 10]);
+describe("longDay", () => {
+	it("the weekday in full, then the month and day", () => {
+		assert.equal(longDay("2026-11-11"), "Wednesday Nov 11");
+		assert.equal(longDay("2026-12-08"), "Tuesday Dec 8");
 	});
 });
 
-describe("activityLine", () => {
-	const NOW = new Date(2026, 10, 7, 18, 0).getTime();
-	it("splits the label into a verb and the rest, today's time as HH:MM", () => {
-		const line = activityLine({ at: new Date(2026, 10, 7, 9, 5).toISOString(), label: "Reading Lab 6.pdf", agent: "Claude Code" }, NOW);
-		assert.deepEqual(line, { time: "09:05", verb: "reading", rest: "Lab 6.pdf", source: "agent" });
+describe("todayRow", () => {
+	const topics = [
+		{ id: "a", name: "a", rate: 0.2 },
+		{ id: "b", name: "b", rate: null },
+		{ id: "c", name: "c", rate: null },
+		{ id: "s", name: "s", rate: 1 },
+	];
+
+	it("a test names today's share of the topics that still need work, and starts", () => {
+		const test = d("Test 2", "exam", "2026-11-17", { className: "CSE 29" });
+		// 3 topics need work, 6 days to spread them over: one today.
+		assert.deepEqual(todayRow(test, progress({ topics }), NOW), { title: "Study 1 topic for Test 2", line: "CSE 29, the test is on Tuesday", button: "Start" });
+		const tomorrow = d("Test 2", "exam", "2026-11-12", { time: "19:00" });
+		assert.deepEqual(todayRow(tomorrow, progress({ topics }), NOW), { title: "Study 3 topics for Test 2", line: "CSE 21, the test is tomorrow at 7:00 PM", button: "Start" });
 	});
-	it("an earlier day shows its date; the app's and the learner's entries say so", () => {
-		assert.deepEqual(activityLine({ at: new Date(2026, 10, 5, 9, 5).toISOString(), label: "Synced 2 new files", agent: "godspeed" }, NOW), {
-			time: "nov 5",
-			verb: "synced",
-			rest: "2 new files",
-			source: "app",
-		});
-		assert.equal(activityLine({ at: new Date(NOW).toISOString(), label: "Answered right", agent: "you" }, NOW).source, "you");
+
+	it("nothing left to study, or no progress read: just its name", () => {
+		const quiz = d("Quiz 3", "quiz", "2026-11-11", { time: "17:00" });
+		assert.deepEqual(todayRow(quiz, progress({ topics: [topics[3]!] }), NOW), { title: "Quiz 3", line: "CSE 21, the quiz is today at 5:00 PM", button: "Start" });
+		assert.equal(todayRow(quiz, undefined, NOW).title, "Quiz 3");
+	});
+
+	it("an unfinished study session continues", () => {
+		const row = todayRow(d("Test 2", "exam", "2026-11-17"), progress({ topics, continueStudy: { chatId: "c", done: 1, total: 3 } }), NOW);
+		assert.deepEqual([row.title, row.button], ["Continue studying for Test 2", "Continue"]);
+	});
+
+	it("homework and projects say how far they are, and are worked on", () => {
+		const hw = d("HW6", "homework", "2026-11-13");
+		assert.deepEqual(todayRow(hw, progress({ problems: { done: 2, total: 7 } }), NOW), { title: "HW6", line: "CSE 21, due Friday. 2 of 7 problems done", button: "Work on it" });
+		assert.equal(todayRow(d("Lab", "project", "2026-11-13"), progress({ ready: 0.58 }), NOW).line, "CSE 21, due Friday. 58% ready");
+		assert.equal(todayRow(hw, undefined, NOW).line, "CSE 21, due Friday");
+	});
+
+	it("past due says when it was due", () => {
+		assert.equal(todayRow(d("HW4", "homework", "2026-11-09"), undefined, NOW).line, "CSE 21, was due Mon Nov 9");
+	});
+});
+
+describe("laterLine", () => {
+	it("the class, the day, and how ready or how far", () => {
+		const final = d("Final", "exam", "2026-12-08");
+		assert.equal(laterLine(final, progress({ ready: 0.19 })), "CSE 21, Tuesday Dec 8. 19% ready");
+		assert.equal(laterLine(final, progress({ problems: { done: 0, total: 4 } })), "CSE 21, Tuesday Dec 8. 0 of 4 problems done");
+		assert.equal(laterLine(final, undefined), "CSE 21, Tuesday Dec 8");
 	});
 });

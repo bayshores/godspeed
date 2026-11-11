@@ -10,7 +10,7 @@ import { memo, useMemo } from "react";
 import Link from "next/link";
 import { topicFacts, type FactProgress, type TopicLink, type TopicProgress } from "@/shared/core";
 import { Pane } from "@/frontend/components/ui/pane";
-import { factCells, UNSTUDIED_CELL } from "@/frontend/components/home-page/home-page-model";
+import { factCells, UNSTUDIED_CELL } from "@/frontend/components/fact-cells";
 import { cn } from "@/frontend/lib/utils";
 import { levelName, neighbors, statusLine, topicLevels } from "./derive.ts";
 

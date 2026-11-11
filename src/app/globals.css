@@ -94,6 +94,10 @@
 	--lh-class-7: #8e9467;
 	--lh-class-8: #a9836a;
 	--lh-on-class: #24231f;
+	/* Mixed into a class color for the pale block of a row that can wait. */
+	--lh-class-wash: #d7d5cb;
+	/* The Done stamp. */
+	--lh-stamp: #b3564b;
 	/* The code editor's syntax colors (Shiki's github-light; .dark below
 	   swaps in github-dark, as the code blocks do). */
 	--lh-code-keyword: #b31d28;
@@ -236,6 +240,7 @@
 	--color-bar-ink: var(--lh-bar-ink);
 	--color-highlight: var(--lh-highlight);
 	--color-on-class: var(--lh-on-class);
+	--color-stamp: var(--lh-stamp);
 	/* Right / wrong / didn't know. The confidence and topic ramps are read
 	   as var(--lh-conf-N) and var(--lh-ramp-N). */
 	--color-ans-right: var(--lh-ans-right);
@@ -245,8 +250,11 @@
 	--color-ans-wrong-hover: color-mix(in oklab, var(--lh-ans-wrong) 80%, var(--lh-ink-max));
 }
 
-* {
-	border-color: var(--color-border);
+/* In the base layer, so a border color utility wins over it. */
+@layer base {
+	* {
+		border-color: var(--color-border);
+	}
 }
 
 body {
@@ -317,57 +325,60 @@ body {
 }
 
 /* Buttons: a 2px-cornered box with a thin ink outline. .lh-btn-main is
-   the one filled action of a view; .lh-btn-quiet is a plain word. */
-.lh-btn {
-	display: inline-flex;
-	align-items: center;
-	gap: 8px;
-	height: 32px;
-	padding: 0 14px;
-	border-radius: 2px;
-	border: 1.5px solid var(--foreground);
-	background: transparent;
-	font-family: var(--font-ui);
-	font-size: 14px;
-	font-weight: 500;
-	/* Room for descenders: a truncated label clips at its line box. */
-	line-height: 1.4;
-	white-space: nowrap;
-	color: var(--foreground);
-	transition: background-color var(--lh-dur-fast) var(--lh-ease-out);
-}
-.lh-btn:hover {
-	background: color-mix(in oklab, var(--foreground) 10%, transparent);
-}
-.lh-btn:disabled {
-	opacity: 0.5;
-	pointer-events: none;
-}
-/* A button that deletes or removes: red text and outline. */
-.lh-btn-danger {
-	border-color: var(--color-ans-wrong);
-	color: var(--color-ans-wrong);
-}
-.lh-btn-main {
-	border-color: var(--lh-tint);
-	background: var(--lh-tint);
-	color: var(--background);
-}
-.lh-btn-main:hover {
-	background: color-mix(in oklab, var(--lh-tint) 86%, var(--background));
-}
-.lh-btn-quiet {
-	border-color: transparent;
-	padding: 0 6px;
-	color: var(--muted-foreground);
-}
-.lh-btn-quiet:hover {
-	color: var(--foreground);
+   the one filled action of a view; .lh-btn-quiet is a plain word. In the
+   components layer, so a size utility on one button wins. */
+@layer components {
+	.lh-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+		height: 32px;
+		padding: 0 14px;
+		border-radius: 2px;
+		border: 1.5px solid var(--foreground);
+		background: transparent;
+		font-family: var(--font-ui);
+		font-size: 14px;
+		font-weight: 500;
+		/* Room for descenders: a truncated label clips at its line box. */
+		line-height: 1.4;
+		white-space: nowrap;
+		color: var(--foreground);
+		transition: background-color var(--lh-dur-fast) var(--lh-ease-out);
+	}
+	.lh-btn:hover {
+		background: color-mix(in oklab, var(--foreground) 10%, transparent);
+	}
+	.lh-btn:disabled {
+		opacity: 0.5;
+		pointer-events: none;
+	}
+	/* A button that deletes or removes: red text and outline. */
+	.lh-btn-danger {
+		border-color: var(--color-ans-wrong);
+		color: var(--color-ans-wrong);
+	}
+	.lh-btn-main {
+		border-color: var(--lh-tint);
+		background: var(--lh-tint);
+		color: var(--background);
+	}
+	.lh-btn-main:hover {
+		background: color-mix(in oklab, var(--lh-tint) 86%, var(--background));
+	}
+	.lh-btn-quiet {
+		border-color: transparent;
+		padding: 0 6px;
+		color: var(--muted-foreground);
+	}
+	.lh-btn-quiet:hover {
+		color: var(--foreground);
+	}
 }
 
 /* The page under everything: paper with a faint dot grid. */
 .lh-dots {
-	background-image: radial-gradient(color-mix(in oklab, var(--foreground) 16%, transparent) 1px, transparent 1px);
+	background-image: radial-gradient(color-mix(in oklab, var(--foreground) 10%, transparent) 1px, transparent 1px);
 	background-size: 16px 16px;
 }
 

@@ -37,6 +37,7 @@ import { emit } from "../../shared/core/events.ts";
 import { folderSource } from "../../shared/core/linked-folder.ts";
 import { kindsForNewFiles } from "../../shared/core/new-files.ts";
 import { recordingsToRecheck, transcriptFor } from "../../shared/core/lecture-transcript.ts";
+import { localDay } from "../../shared/core/today-note.ts";
 import { recordFolderFiles } from "./agent-actions.ts";
 import { extraction } from "./extraction.ts";
 import { quiesceChatForRewrite, runningWorkBlocker } from "./chats.ts";
@@ -251,20 +252,31 @@ export function removeClassDeadline(classId: string, deadlineId: string): ClassO
 	return { ok: true, value: null };
 }
 
-/** One open deadline with the class it belongs to (GET /api/deadlines). */
+/** A deadline with the class it belongs to (GET /api/deadlines). */
 type OpenDeadline = ClassDeadline & { classId: string; className: string };
 
-/** Every deadline not yet done, across every class that is not archived,
- *  soonest due first (Home). */
-export function listOpenDeadlines(): OpenDeadline[] {
+/** The deadlines `keep` picks from every class that is not archived,
+ *  soonest due first. */
+function deadlinesWhere(keep: (d: ClassDeadline) => boolean): OpenDeadline[] {
 	const out: OpenDeadline[] = [];
 	for (const record of stores.classStore.listClassRecords()) {
 		if (record.archived) continue;
 		for (const d of record.deadlines ?? []) {
-			if (!d.done) out.push({ ...d, classId: record.id, className: record.name });
+			if (keep(d)) out.push({ ...d, classId: record.id, className: record.name });
 		}
 	}
 	return out.sort((a, b) => compareDeadlines(a, b) || a.className.localeCompare(b.className));
+}
+
+/** Every deadline not yet done (Today). */
+export function listOpenDeadlines(): OpenDeadline[] {
+	return deadlinesWhere((d) => !d.done);
+}
+
+/** The deadlines ticked done on `day` (a local day, YYYY-MM-DD): Today
+ *  keeps them, stamped, until the day ends. */
+export function listDeadlinesDoneOn(day: string): OpenDeadline[] {
+	return deadlinesWhere((d) => d.done && !!d.doneAt && localDay(new Date(d.doneAt)) === day);
 }
 
 // ─── file list mutation (sync read-modify-write) ────────────────────────────

@@ -138,7 +138,7 @@ export function LessonsList() {
 	return (
 		<div data-testid="lessons-list" className="mx-auto flex w-full max-w-[908px] flex-col gap-5 px-6 py-6">
 			{/* New lessons start on the start page ("/new"). */}
-			<Link href="/new" prefetch={false} data-testid="new-session" className="lh-btn lh-btn-main w-full justify-center py-3 text-base">
+			<Link href="/new" prefetch={false} data-testid="new-session" className="lh-btn lh-btn-main h-auto w-full justify-center py-3 text-base">
 				<PixelIcon name="play" />
 				Study something new
 			</Link>

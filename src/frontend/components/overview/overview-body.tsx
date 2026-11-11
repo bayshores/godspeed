@@ -1,6 +1,7 @@
 import { memo, useMemo, type ReactNode } from "react";
 import type { ClassNote, ClassSignature, ProgressPayload } from "@/shared/core";
 import { ClassCover } from "./class-cover";
+import { ClassFacts } from "./class-facts";
 import { ConfidenceCard } from "./confidence-card";
 import { LessonsCard } from "./lessons-card";
 import { answeredLessons, hasCalibration } from "./overview-model";
@@ -11,7 +12,7 @@ import { Decode } from "@/frontend/components/ui/decode";
 /**
  * The Overview page below the top bar (pure view — the render-test seam):
  * the header (a class's cover; "No class" gets just its name), then Ready
- * for what's due (classes only) and the How-lessons-went / confidence row. Each card shows only
+ * for what's due and the fact grid (classes only) and the How-lessons-went / confidence row. Each card shows only
  * once it has something to show; while loading the cards are absent.
  */
 export const OverviewBody = memo(function OverviewBody({
@@ -80,6 +81,7 @@ export const OverviewBody = memo(function OverviewBody({
 						onAddDeadline={onAddDeadline}
 					/>
 				)}
+				{hasClass && data && <ClassFacts progress={data} />}
 				{(lessons.length > 0 || showConfidence) && (
 					<div className="flex flex-col items-start gap-3 @4xl:flex-row">
 						{lessons.length > 0 && (

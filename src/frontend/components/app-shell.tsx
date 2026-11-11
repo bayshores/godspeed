@@ -55,7 +55,7 @@ export function AppShell({
 					</a>
 					<AppBar />
 					{/* The teacher's open panel pushes the page left (halley-panel.tsx sets the var). */}
-					<main id="lh-page" tabIndex={-1} className="min-h-0 min-w-0 flex-1 pr-(--lh-dock-push,0px) motion-safe:transition-[padding] motion-safe:duration-(--lh-dur) motion-safe:ease-(--lh-ease-out)">
+					<main id="lh-page" tabIndex={-1} className="lh-dots min-h-0 min-w-0 flex-1 pr-(--lh-dock-push,0px) motion-safe:transition-[padding] motion-safe:duration-(--lh-dur) motion-safe:ease-(--lh-ease-out)">
 						<ViewSwap>{children}</ViewSwap>
 					</main>
 				</HalleyProvider>
