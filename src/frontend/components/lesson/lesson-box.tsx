@@ -6,10 +6,11 @@ import { AttachButton, AttachmentTray, attachmentInputProps, type AttachmentDraf
 
 /**
  * The lesson's one message box, at the foot of the reading pane. It never
- * moves: with a question or problem open, a message is a side question and
- * the question stays open; otherwise it is a plain lesson message. While
- * the teacher writes, typed text steers the turn ("Send when ready") and
- * an empty box holds Stop.
+ * moves: with a question open, a message is a side question and the
+ * question stays open; otherwise it is a plain lesson message, which with
+ * a problem open is the learner's work on it. While the teacher writes,
+ * typed text steers the turn ("Send when ready") and an empty box holds
+ * Stop.
  *
  * Enter follows enterAction: send (or steer) when there is text, stop on an
  * empty box while the teacher writes, and in a practice pause an empty
@@ -22,7 +23,6 @@ export function LessonBox({
 	onSend,
 	onStop,
 	canSend,
-	showStop,
 	sideOpen,
 	nextReady,
 	onNext,
@@ -36,10 +36,8 @@ export function LessonBox({
 	onSend: () => void;
 	onStop: () => void;
 	canSend: boolean;
-	/** The running turn's Stop lives here (not in a problem's dock). */
-	showStop: boolean;
-	/** What is open in the Your turn panel; messages to it are side questions. */
-	sideOpen: "question" | "problem" | null;
+	/** A question waits in the Your turn panel; messages are side questions. */
+	sideOpen: boolean;
 	/** The pause between problems: an empty Enter asks for the next one. */
 	nextReady: boolean;
 	onNext: () => void;
@@ -54,7 +52,7 @@ export function LessonBox({
 		else if (action === "send") onSend();
 		else if (action === "next") onNext();
 	};
-	const steering = busy && sideOpen === null;
+	const steering = busy && !sideOpen;
 	return (
 		<form
 			data-testid="composer"
@@ -79,7 +77,7 @@ export function LessonBox({
 					<MathBox compact value={value} onChange={onChange} onEnter={act} placeholder="Message the teacher…" ariaLabel="Message the teacher" />
 				</div>
 				<div className="flex h-10 items-center pr-[5px]">
-					{busy && showStop && !canSend ? (
+					{busy && !canSend ? (
 						<StopButton onStop={onStop} />
 					) : (
 						<SendButton type="submit" testId="composer-send" label={busy ? "Send when ready" : "Send"} waiting={busy} disabled={!canSend} />
@@ -88,7 +86,7 @@ export function LessonBox({
 			</div>
 			{sideOpen && (
 				<p data-testid="side-question-note" className="text-sm leading-5 text-ink-3">
-					Your {sideOpen} stays open while you ask.
+					Your question stays open while you ask.
 				</p>
 			)}
 		</form>

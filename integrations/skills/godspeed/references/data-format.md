@@ -171,7 +171,7 @@ recall/explain response: the teacher's subsequent prose is its interpretation.
 
 | `customType` | Interpretation |
 | --- | --- |
-| `practice-thinking` | **Learner-authored work**, including intermediate attempts and claimed answers; raw text is `details.text`, associated through `details.problemCallId` |
+| `practice-thinking` | **Learner-authored work** in older lessons, including intermediate attempts and claimed answers; raw text is `details.text`, associated through `details.problemCallId`. Newer lessons save this work as plain user messages |
 | `graph-context` | Picked propositions/chains supplied as session context; app-injected, not learner speech |
 | `class-context` | The class card shown at the start of a class lesson; app-injected |
 | `today-context` | Today's date and the class's open deadlines, given to the teacher only; app-injected |
@@ -185,8 +185,9 @@ recall/explain response: the teacher's subsequent prose is its interpretation.
 | `compaction` | Context-management bookkeeping, not a learner statement or replacement for history |
 
 The practice `problem` tool holds the statement, target proposition IDs, and
-precommitted `modelSolution`. There may be many `practice-thinking` submissions for
-one problem. `conclude` carries the teacher's outcome/verdict; a dismissal can be
+precommitted `modelSolution`. While a problem is open, the learner's user messages
+are their work on it and their questions about it (older lessons: `practice-thinking`
+markers); there may be many for one problem. `conclude` carries the teacher's outcome/verdict; a dismissal can be
 recorded before its synthetic conclude pair appears. Preserve the sequence rather
 than treating only the last submission as the learner's work.
 

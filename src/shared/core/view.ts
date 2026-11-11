@@ -525,10 +525,9 @@ function projectMarker(marker: LhMarkerMessage, out: LhViewMessage[]): void {
 			return;
 		}
 		case "practice-thinking": {
-			// The learner's working trace / committed answer (practice
-			// sessions): a user-side card keyed on the structured details
-			// (problemCallId, text) — the register lives in the card,
-			// not re-parsed from content.
+			// The learner's work on a problem as older lessons saved it: a
+			// user-side card keyed on the structured details
+			// (problemCallId, text), not re-parsed from content.
 			out.push({
 				id: marker.id,
 				role: "user",

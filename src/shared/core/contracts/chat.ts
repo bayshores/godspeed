@@ -173,18 +173,14 @@ export const HANDOFF_TEXT =
 // The model-facing text of every custom marker lives in core/contracts,
 // never in the flattening seam.
 
-/** The label newThinkingMessage prefixes a practice submission with. One
- *  send lane: whether a submission claims an answer is read from the
- *  text, not declared by a button. */
-export const THINKING_LABEL = "Your thinking";
-
 /** The conclude tool's ack — shared by the executed call (agent layer) and
  *  the dismissal-synthesized pair (input-events), so a concluded problem
  *  reads identically to the model however it concluded. The turn ENDS
  *  after concluding (closing words allowed, no more tool calls); the next
- *  problem waits for the learner's explicit go-ahead. */
+ *  problem waits for the learner's explicit go-ahead, which asking for a
+ *  different problem or part is. */
 export const CONCLUDE_ACK_TEXT =
-	"Problem concluded. Say your closing words about the learner's work if useful, then END YOUR TURN — no further tool calls. The next problem is NEVER posed here: it waits for the learner's explicit go-ahead (a *Next problem* message, or their own words asking for the next one). Between problems, answer their questions about the concluded one.";
+	"Problem concluded. Say your closing words about the learner's work if useful, then END YOUR TURN — no further tool calls. The next problem waits for the learner's explicit go-ahead (a *Next problem* message, or their own words asking for the next one). The one exception: when the learner asked for a different problem or part, that ask is the go-ahead, so pose it now. Between problems, answer their questions about the concluded one.";
 
 /** The learner's explicit move-on signal: the model-facing text of the
  *  practice-next marker. */

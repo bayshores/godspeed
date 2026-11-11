@@ -18,7 +18,6 @@ import { StepsPane, jumpTarget, rightCountLabel } from "../../src/frontend/compo
 import { ProblemsPane } from "../../src/frontend/components/lesson/problems-pane.tsx";
 import { practiceProgress } from "../../src/frontend/components/lesson/practice-progress.ts";
 import { QuestionDock } from "../../src/frontend/components/question-dock.tsx";
-import { PracticeDock } from "../../src/frontend/components/practice-dock.tsx";
 import { ReadingPane } from "../../src/frontend/components/lesson/reading-pane.tsx";
 import { CONFIDENCE_STOPS, projectView, reuseUnchangedMessages, type LhMessage, type PlanStepBar, type QuestionAnswerData, type QuestionFormDraft } from "../../src/shared/core/index.ts";
 
@@ -65,8 +64,7 @@ function lessonBox(over: Partial<React.ComponentProps<typeof LessonBox>> = {}) {
 			onSend={() => {}}
 			onStop={() => {}}
 			canSend={false}
-			showStop
-			sideOpen={null}
+			sideOpen={false}
 			nextReady={false}
 			onNext={() => {}}
 			queuedSteers={[]}
@@ -87,10 +85,8 @@ function panel(over: Partial<React.ComponentProps<typeof YourTurnPanel>> = {}) {
 			readingThinking=""
 			onReadingThinking={() => {}}
 			practice={null}
-			onSavePracticeDraft={() => {}}
-			onSubmitThinking={async () => true}
 			onDiscardProblem={() => {}}
-			onShowProblem={() => {}}
+			onStop={() => {}}
 			busy={false}
 			waitingForAgent={false}
 			onNext={() => {}}
@@ -158,10 +154,8 @@ describe("the Your-turn panel's states", () => {
 				readingThinking=""
 				onReadingThinking={() => {}}
 				practice={null}
-				onSavePracticeDraft={() => {}}
-				onSubmitThinking={async () => true}
 				onDiscardProblem={() => {}}
-				onShowProblem={() => {}}
+				onStop={() => {}}
 				busy={false}
 				waitingForAgent={false}
 				onNext={() => {}}
@@ -184,16 +178,19 @@ describe("the Your-turn panel's states", () => {
 		}
 	});
 
-	it("an active practice problem fills the panel; the statement names its own number", () => {
+	it("an open practice problem fills the panel with the whole statement and no writing box", () => {
 		const html = panel({ practice: { toolCallId: "p1", input: { statement: "Find E[N]." } } });
 		assert.match(html, /data-mode="practice"/);
-		assert.doesNotMatch(html, /problem-number/);
-		assert.match(html, /Find E\[N\]\./);
+		assert.match(html, /data-testid="open-problem"/);
+		assert.match(html, /data-testid="problem-statement"[\s\S]*Find E\[N\]\./);
+		assert.doesNotMatch(html, /problem-number/, "the statement names its own number");
+		assert.doesNotMatch(html, /data-testid="problem-source"/);
+		assert.doesNotMatch(html, /practice-thinking-field|practice-send|data-testid="math-box"/);
 	});
 
-	it("a homework problem shows whole in the pane with where it is and its part, and no writing box", () => {
+	it("a homework problem shows whole in the pane with where it is and its part", () => {
 		const html = panel({ practice: { toolCallId: "p1", input: { number: "3", statement: "Find α." } }, homeworkProblem: { label: "Q3", source: "from hw4.pdf, page 2", part: "b" } });
-		assert.match(html, /data-testid="homework-problem"/);
+		assert.match(html, /data-testid="open-problem"/);
 		assert.match(html, /your turn: q3 \(b\)/);
 		assert.match(html, /Find α\./);
 		assert.match(html, /from hw4\.pdf, page 2/);
@@ -251,10 +248,8 @@ describe("the Your-turn panel's states", () => {
 				readingThinking=""
 				onReadingThinking={() => {}}
 				practice={null}
-				onSavePracticeDraft={() => {}}
-				onSubmitThinking={async () => true}
 				onDiscardProblem={() => asked.push("problem")}
-				onShowProblem={() => {}}
+				onStop={() => {}}
 								busy={false}
 								waitingForAgent={false}
 								onNext={() => {}}
@@ -280,10 +275,10 @@ describe("the Your-turn panel's states", () => {
 		assert.ok(!html.includes("Teacher is writing"));
 	});
 
-	it("a problem's dock holds Stop only when the panel is given one", () => {
-		const problem = { practice: { toolCallId: "p1", input: { statement: "Find E[N]." } }, busy: true };
-		assert.equal(panel({ ...problem, onStop: () => {} }).split('data-testid="stop-turn"').length - 1, 1);
-		assert.ok(!panel(problem).includes('data-testid="stop-turn"'), "a side reply's Stop is in the lesson box");
+	it("an open problem's header has Stop only while the teacher writes", () => {
+		const problem = { practice: { toolCallId: "p1", input: { statement: "Find E[N]." } } };
+		assert.equal(panel({ ...problem, busy: true }).split('data-testid="stop-turn"').length - 1, 1);
+		assert.ok(!panel(problem).includes('data-testid="stop-turn"'));
 	});
 });
 
@@ -300,9 +295,8 @@ describe("the lesson box", () => {
 		assert.ok(!out.includes("side-question-note"));
 	});
 
-	it("with a question or problem open it says it stays open", () => {
-		assert.match(html({ sideOpen: "question" }), /data-testid="side-question-note"[^>]*>Your question stays open while you ask\.</);
-		assert.match(html({ sideOpen: "problem" }), />Your problem stays open while you ask\.</);
+	it("with a question open it says it stays open", () => {
+		assert.match(html({ sideOpen: true }), /data-testid="side-question-note"[^>]*>Your question stays open while you ask\.</);
 	});
 
 	it("while the teacher writes: Stop on an empty box, the gray Send when ready with text", () => {
@@ -310,7 +304,6 @@ describe("the lesson box", () => {
 		const typed = html({ busy: true, value: "wait, why?", canSend: true });
 		assert.ok(!typed.includes("stop-turn"));
 		assert.match(typed, /data-testid="composer-send"[^>]*class="lh-btn ml-auto shrink-0"[\s\S]*?Send when ready/);
-		assert.ok(!html({ busy: true, showStop: false }).includes("stop-turn"), "a problem's dock holds Stop instead");
 	});
 
 	it("queued messages and the notice sit above the box", () => {
@@ -325,7 +318,7 @@ describe("the lesson box", () => {
 				{ id: "f2", attachment: { name: "notes.pdf", mimeType: "application/pdf", data: "JVBERi0=" } },
 			],
 		});
-		const out = html({ attachments: files, canSend: true, sideOpen: "question" });
+		const out = html({ attachments: files, canSend: true, sideOpen: true });
 		assert.match(out, /data-testid="attachment-tray"[\s\S]*data-testid="draft-image"[\s\S]*data-testid="draft-pdf"[\s\S]*data-testid="math-box"/);
 		assert.match(out, /data-testid="attach-button"[\s\S]*data-testid="math-box"[\s\S]*data-testid="composer-send"/);
 		assert.match(out, /type="file"[^>]*accept="image\/png,image\/jpeg,image\/gif,image\/webp,application\/pdf"/);
@@ -335,7 +328,7 @@ describe("the lesson box", () => {
 	});
 
 	it("mouse-first: no key hint and no em-dash", () => {
-		for (const out of [html(), html({ sideOpen: "question" }), html({ busy: true })]) assert.ok(!out.includes("Enter") && !out.includes("—"));
+		for (const out of [html(), html({ sideOpen: true }), html({ busy: true })]) assert.ok(!out.includes("Enter") && !out.includes("—"));
 	});
 
 	it("typing reaches the lesson, Enter sends, Shift+Enter is a newline; an empty Enter in the pause asks for the next problem", async () => {
@@ -369,7 +362,7 @@ describe("the lesson box", () => {
 		const root = createRoot(host);
 		let stopped = 0;
 		try {
-			await act(async () => root.render(lessonBox({ busy: true, sideOpen: "question", onStop: () => stopped++ })));
+			await act(async () => root.render(lessonBox({ busy: true, sideOpen: true, onStop: () => stopped++ })));
 			await act(async () => host.querySelector<HTMLButtonElement>('[data-testid="stop-turn"]')!.click());
 			assert.equal(stopped, 1);
 		} finally {
@@ -380,32 +373,6 @@ describe("the lesson box", () => {
 });
 
 describe("saved drafts in the panel", () => {
-	it("a practice problem starts from its saved thinking", () => {
-		const html = renderToStaticMarkup(<PracticeDock problemCallId="p1" input={{ statement: "Find E[N]." }} onSubmit={async () => true} initialDraft="half done" />);
-		assert.match(html, /data-testid="math-box"[^]*>half done</);
-	});
-
-	it("a practice send clears the saved draft, and a refused one puts it back", async () => {
-		for (const taken of [true, false]) {
-			const host = document.createElement("div");
-			document.body.append(host);
-			const root = createRoot(host);
-			const saved: string[] = [];
-			try {
-				await act(async () =>
-					root.render(
-						<PracticeDock problemCallId="p1" input={{ statement: "Find E[N]." }} onSubmit={async () => taken} initialDraft="half done" onSaveDraft={(t) => saved.push(t)} />,
-					),
-				);
-				await act(async () => press("Enter"));
-				assert.deepEqual(saved, taken ? [""] : ["", "half done"]);
-			} finally {
-				await act(async () => root.unmount());
-				host.remove();
-			}
-		}
-	});
-
 	it("a question form starts from the saved draft and saves every change", async () => {
 		const draft: QuestionFormDraft = { selection: { selected: new Set([0]), otherSelected: false, dontKnow: false }, thinking: "because", other: "", text: "" };
 		assert.match(

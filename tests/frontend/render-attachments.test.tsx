@@ -13,12 +13,12 @@ import { parseHTML } from "linkedom";
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { LessonBox } from "../../src/frontend/components/lesson/lesson-box.tsx";
-import { PracticeDock } from "../../src/frontend/components/practice-dock.tsx";
 import { MessageRow } from "../../src/frontend/components/lesson/message-row.tsx";
 import { useAttachmentDraft, type AttachmentDraft } from "../../src/frontend/components/lesson/attachment-tray.tsx";
-import { HEIC_REFUSAL, newAnswerResult, newThinkingMessage, newUserMessage, pdfNote, projectView, type AttachmentPart, type LhMessage, type QuestionAnswerData } from "../../src/shared/core/index.ts";
+import { HEIC_REFUSAL, newAnswerResult, newUserMessage, pdfNote, projectView, type AttachmentPart, type LhMessage, type QuestionAnswerData } from "../../src/shared/core/index.ts";
 import { QuestionDock } from "../../src/frontend/components/question-dock.tsx";
 import { stubCodeMirrorDom } from "../math-box-dom.ts";
+import { oldThinkingMessage } from "../old-records.ts";
 
 const dom = parseHTML("<!doctype html><html><body></body></html>");
 Object.assign(globalThis, {
@@ -45,7 +45,7 @@ const draft = (over: Partial<AttachmentDraft> = {}): AttachmentDraft => ({
 
 function composer(over: Partial<React.ComponentProps<typeof LessonBox>> = {}) {
 	return renderToStaticMarkup(
-		<LessonBox busy={false} value="" onChange={() => {}} onSend={() => {}} onStop={() => {}} canSend showStop sideOpen={null} nextReady={false} onNext={() => {}} queuedSteers={[]} attachments={draft()} {...over} />,
+		<LessonBox busy={false} value="" onChange={() => {}} onSend={() => {}} onStop={() => {}} canSend sideOpen={false} nextReady={false} onNext={() => {}} queuedSteers={[]} attachments={draft()} {...over} />,
 	);
 }
 
@@ -79,11 +79,6 @@ describe("the composer's waiting files", () => {
 		assert.match(html, /data-testid="stop-turn"/);
 		assert.ok(!html.includes('data-testid="composer-send"'));
 		assert.ok(!html.includes("—"), "no em-dashes");
-	});
-
-	it("the practice panel has the same picture button", () => {
-		const html = renderToStaticMarkup(<PracticeDock problemCallId="p1" input={{ statement: "Solve it." }} onSubmit={async () => true} />);
-		assert.match(html, /data-testid="attach-button"/);
 	});
 });
 
@@ -236,8 +231,8 @@ describe("the learner's message with files", () => {
 		assert.match(html, /data-testid="answered-card"[\s\S]*data-testid="message-image"/);
 	});
 
-	it("a thinking card shows its files under it", () => {
-		const html = renderToStaticMarkup(row({ ...newThinkingMessage("p1", "my work", [image]), id: "t1" }));
+	it("an old thinking card shows its files under it", () => {
+		const html = renderToStaticMarkup(row({ ...oldThinkingMessage("p1", "my work", [image]), id: "t1" }));
 		assert.match(html, /data-testid="thinking-card"[\s\S]*data-testid="message-image"/);
 	});
 

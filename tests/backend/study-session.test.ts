@@ -38,7 +38,7 @@ const { chatStore } = await import("../../src/backend/store/chats.ts");
 const { classStore } = await import("../../src/backend/store/classes.ts");
 const bridge = await import("../../src/backend/agent/agent-bridge.ts");
 const { ensureMcpToken } = await import("../../src/backend/store/mcp-token.ts");
-const { activeProblemOf, SIDE_PROBLEM_LEAD } = await import("../../src/shared/core/native-messages.ts");
+const { activeProblemOf } = await import("../../src/shared/core/native-messages.ts");
 const { practiceOutcomes } = await import("../../src/shared/core/practice-outcomes.ts");
 const { composeInstructions } = await import("../../src/backend/agent/teacher-agent.ts");
 const { localDay } = await import("../../src/shared/core/today-note.ts");
@@ -225,8 +225,8 @@ describe("a study session", () => {
 		assert.ok(posed, "the problem waits for the learner");
 		assert.equal(chatStore.listChats().find((c) => c.id === chatId)?.pendingProblem, true);
 
-		// The learner's thinking: the next turn is a small delta, the tools unchanged.
-		assert.equal((await handleChatInput(chatId, { type: "thinking", problemCallId: posed.toolCallId, text: "2^3 = 8" })).status, 200);
+		// The learner's work is a plain message: the next turn is a small delta, the tools unchanged.
+		assert.equal((await handleChatInput(chatId, { type: "text", text: "2^3 = 8" })).status, 200);
 		const second = await bridge.waitForWork(5000, { conversation: chatId });
 		assert.ok(second);
 		assert.equal(second.continued, true, "only the new messages are sent");
@@ -245,7 +245,7 @@ describe("a study session", () => {
 		await waitFor(() => !isTurnRunning(chatId), 8000, "turn settle");
 	});
 
-	it("a side question on a problem: the same tools, problem and conclude refuse, the problem stays and its outcome counts once", async () => {
+	it("a message on an open problem: the same tools, the problem stays until the teacher concludes it, and its outcome counts once", async () => {
 		const cls = seedClass();
 		const created = createLesson({ title: "Study: Counting", classId: cls.id, picks: [{ id: "n_count", name: "n_count", statement: "n_count holds" }] });
 		assert.ok(created.ok);
@@ -258,33 +258,29 @@ describe("a study session", () => {
 		await settle();
 		const posed = activeProblemOf(chatStore.getChat(chatId)!.messages)!;
 
-		// A side question with a picture: a small delta with the same tools.
+		// A question about it, with a picture: a small delta with the same tools, no side-question lead.
 		const png = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
-		assert.equal((await handleChatInput(chatId, { type: "side", text: "what's a subset?", attachments: [{ name: "sets.png", mimeType: "image/png", data: png }] })).status, 200);
+		assert.equal((await handleChatInput(chatId, { type: "text", text: "what's a subset?", attachments: [{ name: "sets.png", mimeType: "image/png", data: png }] })).status, 200);
 		const reply = await bridge.waitForWork(5000, { conversation: chatId });
 		assert.ok(reply);
 		assert.equal(reply.continued, true, "only the new messages are sent");
 		assert.equal(reply.tools, undefined, "the same tools: none resent");
-		assert.ok(JSON.stringify(reply.messages).includes(JSON.stringify(SIDE_PROBLEM_LEAD + "what's a subset?").slice(1, -1)));
+		assert.ok(JSON.stringify(reply.messages).includes("what's a subset?"));
+		assert.ok(!JSON.stringify(reply.messages).includes("Side question"), "it is not a side question");
 		assert.equal(reply.images?.length, 1, "the picture reaches the agent");
-		// The agent tries to conclude, then to pose: both refuse.
-		assert.ok(bridge.respondToWork(reply.workId, { toolCalls: [{ name: "conclude", arguments: conclude as never }] }, 0).ok);
-		const again = await bridge.waitForWork(5000, { conversation: chatId });
-		assert.ok(again && bridge.respondToWork(again.workId, { toolCalls: [{ name: "problem", arguments: { ...POSE, nodeId: "tpc_count" } as never }] }, 0).ok);
-		const refused = await bridge.waitForWork(5000, { conversation: chatId });
-		assert.ok(refused);
-		assert.match(JSON.stringify(refused.messages), /Answer the side question in text instead/);
-		assert.ok(bridge.respondToWork(refused.workId, { text: "A set made of some of its elements." }, 0).ok);
+		assert.ok(bridge.respondToWork(reply.workId, { text: "A set made of some of its elements." }, 0).ok);
 		await settle();
 		assert.equal(activeProblemOf(chatStore.getChat(chatId)!.messages)?.toolCallId, posed.toolCallId, "the problem stays");
 		assert.equal(chatStore.listChats().find((c) => c.id === chatId)?.pendingProblem, true);
 
-		// Then the thinking and the teacher's own conclude: one outcome.
-		assert.equal((await handleChatInput(chatId, { type: "thinking", problemCallId: posed.toolCallId, text: "2^3 = 8" })).status, 200);
-		const thinking = await bridge.waitForWork(5000, { conversation: chatId });
-		assert.ok(thinking && bridge.respondToWork(thinking.workId, { toolCalls: [{ name: "conclude", arguments: conclude as never }] }, 0).ok);
+		// Then the learner's work: the teacher's conclude is accepted, one outcome.
+		assert.equal((await handleChatInput(chatId, { type: "text", text: "2^3 = 8" })).status, 200);
+		const work = await bridge.waitForWork(5000, { conversation: chatId });
+		assert.ok(work && bridge.respondToWork(work.workId, { toolCalls: [{ name: "conclude", arguments: conclude as never }] }, 0).ok);
 		const closing = await bridge.waitForWork(5000, { conversation: chatId });
-		assert.ok(closing && bridge.respondToWork(closing.workId, { text: "Nice." }, 0).ok);
+		assert.ok(closing);
+		assert.ok(!JSON.stringify(closing.messages).includes("Answer the side question in text instead"), "conclude is not refused");
+		assert.ok(bridge.respondToWork(closing.workId, { text: "Nice." }, 0).ok);
 		await settle();
 		const messages = chatStore.getChat(chatId)!.messages;
 		assert.equal(activeProblemOf(messages), null);

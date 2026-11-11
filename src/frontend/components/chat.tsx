@@ -25,7 +25,6 @@ import {
 	findPendingToolCall,
 	firstPhase,
 	homeworkProblems,
-	isSideTurn,
 	kbdEventForAction,
 	phaseTimeline,
 	planStepBar,
@@ -158,10 +157,9 @@ export function Chat({
 	const activeProblem = useMemo(() => activeProblemOf(nativeMessages), [nativeMessages]);
 	const activeProblemRef = useRef(activeProblem);
 	activeProblemRef.current = activeProblem;
-	const activeProblemId = activeProblem?.toolCallId ?? null;
 	// Unsent text, saved per lesson so leaving or a reload never loses it.
-	const drafts = useLessonDrafts(chatId, nativeMessages, activeProblemId);
-	const { saveComposer, saveQuestion, saveProblem } = drafts;
+	const drafts = useLessonDrafts(chatId, nativeMessages);
+	const { saveComposer, saveQuestion } = drafts;
 
 	// A turn runs: this view's own, or one the app started (a wake).
 	const busy = status === "submitted" || status === "streaming" || turnInFlight;
@@ -335,7 +333,7 @@ export function Chat({
 	}, [draftsLoaded, applyText]);
 
 	// Follow never takes the window away from unsent text.
-	const draftHeld = drafts.draft !== null && holdsDraft(drafts.draft, { questionId: pendingQuestionId, problemId: activeProblemId });
+	const draftHeld = drafts.draft !== null && holdsDraft(drafts.draft, pendingQuestionId);
 	// Halley rests in the reading pane: Talking while the teacher writes,
 	// Thinking while the turn runs.
 	useHalleyLesson(status === "streaming", busy, draftHeld);
@@ -345,17 +343,12 @@ export function Chat({
 	const hasFiles = attachments.files.length > 0;
 
 	// A running turn never gates the box: Enter while busy STEERS it (text
-	// only, so waiting files hold the send). A waiting question or problem
-	// owns the panel. Under a waiting question or
-	// problem the box asks a side question, never while the teacher replies.
-	// A homework problem is worked on in the box itself: plain messages.
-	const practiceProblem = activeProblem !== null && kind !== "homework";
-	const sendBlocked = sendBlockedReason({ pending: pending !== null, problem: practiceProblem });
-	const sideOpen = pending !== null ? "question" : practiceProblem ? "problem" : null;
-	const sideReply = busy && sideOpen !== null && isSideTurn(nativeMessages);
-	const canSend = sideOpen
-		? (text.trim().length > 0 || hasFiles) && !busy
-		: (text.trim().length > 0 || hasFiles) && !(busy && hasFiles) && sendBlocked === null;
+	// only, so waiting files hold the send). Under a waiting question the
+	// box asks a side question, never while the teacher replies. An open
+	// problem is worked on in the box itself: plain messages.
+	const sideOpen = pending !== null;
+	const sendBlocked = sendBlockedReason(sideOpen);
+	const canSend = (text.trim().length > 0 || hasFiles) && !(busy && (sideOpen || hasFiles));
 
 	/* THE PRACTICE PAUSE (practice and study): between problems, once a
 	 * problem has ever been posed — Enter on an empty box (or anywhere)
@@ -377,24 +370,15 @@ export function Chat({
 	}, [nextReady, send]);
 	useEnterSubmits(sendNext);
 
-	const submitThinking = useCallback(
-		(t: string, files: ChatAttachment[]) => {
-			const problem = activeProblemRef.current;
-			if (!problem) return Promise.resolve(false);
-			return send({ type: "thinking", problemCallId: problem.toolCallId, text: t, ...(files.length > 0 ? { attachments: files } : {}) });
-		},
-		[send],
-	);
-
 	/* STEER VS SEND: a send while a turn runs (ours or
 	 * a wake) steers it; idle takes the plain send (a raced settle 409s and
-	 * falls back to exactly that). Under a waiting question or problem it is
-	 * a side question. */
+	 * falls back to exactly that). Under a waiting question it is a side
+	 * question. */
 	const onSend = () => {
 		const t = textRef.current.trim();
 		const files = attachments.files.map((f) => f.attachment);
 		// A steer of the running turn is text only.
-		if (busy && sideOpen === null) {
+		if (busy && !sideOpen) {
 			if (!t || files.length > 0) return;
 			editText("");
 			void steer(t).then((sent) => {
@@ -455,7 +439,7 @@ export function Chat({
 	const jumpToAnswer = useCallback((toolCallId: string) => scrollToCard(answerAnchorSelector(toolCallId)), [scrollToCard]);
 
 	// The demo's error report follows the message box's rules: never past a
-	// waiting question or problem, and a running turn is steered.
+	// waiting question, and a running turn is steered.
 	const chatActions = useMemo(
 		() => ({
 			chatId,
@@ -489,7 +473,7 @@ export function Chat({
 
 	// The cheat sheet beside the session; a message from it takes the problem or question the learner is on.
 	const sheet = useSheetDock(chatId);
-	const problemWork = activeProblemId ? drafts.draft?.problems[activeProblemId] : undefined;
+	const problemWork = activeProblem ? text : undefined;
 	const sheetAbout = useMemo(
 		() => sessionAbout({ session: rename.title, problem: activeProblem?.input, work: problemWork, question: pending?.input }),
 		[rename.title, activeProblem, problemWork, pending],
@@ -533,7 +517,6 @@ export function Chat({
 										onSend={onSend}
 										onStop={abortInFlightTurn}
 										canSend={canSend}
-										showStop={sideOpen === null || sideReply || pending !== null}
 										sideOpen={sideOpen}
 										nextReady={nextReady}
 										onNext={sendNext}
@@ -575,18 +558,10 @@ export function Chat({
 										readingThinking={readingThinking}
 										onReadingThinking={editReadingThinking}
 										practice={activeProblem}
-										initialPracticeDraft={activeProblemId ? drafts.draft?.problems[activeProblemId] : undefined}
-										onSavePracticeDraft={(t) => {
-											if (activeProblemId) saveProblem(activeProblemId, t);
-										}}
-										onSubmitThinking={submitThinking}
 										onDiscardProblem={() => setAbortAsk("problem")}
-										onShowProblem={() => {
-											if (activeProblemId) scrollToCard(`[data-problem-call="${activeProblemId}"]`);
-										}}
 										busy={busy}
 										waitingForAgent={waitingForAgent}
-										onStop={sideReply ? undefined : abortInFlightTurn}
+										onStop={abortInFlightTurn}
 										next={nextReady ? (kind === "study" ? "Continue" : "Next problem") : undefined}
 										onNext={sendNext}
 										stats={<StatsBar turns={turns} contextTokens={contextTokens} summarizeAt={summarizeAt} pricing={pricing} />}

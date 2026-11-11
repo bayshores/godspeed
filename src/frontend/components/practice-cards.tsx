@@ -6,15 +6,16 @@ import type { ArtifactPartProps } from "@/shared/core";
  * The practice transcript cards: three quiet records in the stream —
  *
  * - ProblemCard — a posed problem: the statement, compact-expandable
- *   (like every card here; the dock is the working surface, this is the
- *   record). The commitment NEVER renders — only the call's statement.
+ *   (like every card here; the Your turn panel holds the open problem,
+ *   this is the record). The commitment NEVER renders — only the call's
+ *   statement.
  * - ConcludeCard — the conclusion: outcome badge + verdict + the reveal
  *   (the committed solution, shown when the problem ended). A dismissal
  *   synthesis (outcome:"dismissed") renders as one muted line.
- * - ThinkingCard — the learner's own submission, user-side: the register
- *   is the two buttons' (Nudge = working trace, Commit = answer). The
- *   unified ThinkingBlock: the quiz quote-block language in a faint
- *   user-side shell, never collapsible.
+ * - ThinkingCard — the learner's work on a problem as older lessons
+ *   saved it (today it is a plain message). The unified ThinkingBlock:
+ *   the quiz quote-block language in a faint user-side shell, never
+ *   collapsible.
  */
 
 import { useEffect, useRef, useState } from "react";
@@ -66,7 +67,7 @@ export interface PracticeThinkingData {
 
 export function ProblemCard({ part }: ArtifactPartProps) {
 	// Always open, no chevron: the record IS the statement, in the same
-	// container + eyebrow as the answered card and the dock. The
+	// container + eyebrow as the answered card. The
 	// commitment never renders, only the call's statement.
 	const input = (part.input ?? {}) as { statement?: string };
 	const statement = typeof input.statement === "string" ? input.statement : "";

@@ -5,7 +5,7 @@ import { ATTACHMENT_ACCEPT, MAX_ATTACHMENTS, attachmentType, isPdfType, pickAtta
 
 /**
  * The files waiting in a message box (the lesson composer, the side
- * question box, the practice panel and Talk): paste, drop or the picture
+ * question box and Talk): paste, drop or the picture
  * button add them, small previews show them above the box, and the send
  * carries them.
  */
@@ -44,7 +44,7 @@ function readBase64(file: File): Promise<string> {
  *  keeps them. Never stored on disk (they can be large); a reload drops them. */
 const waitingFiles = new Map<string, DraftFile[]>();
 
-/** `key` names the box (a lesson's message box, a question, a problem), so
+/** `key` names the box (a lesson's message box, a question), so
  *  its files outlive the box's component. Without one they live and go with it. */
 export function useAttachmentDraft(key?: string): AttachmentDraft {
 	const [files, showFiles] = useState(() => (key && waitingFiles.get(key)) || []);

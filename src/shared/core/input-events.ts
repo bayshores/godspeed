@@ -5,7 +5,7 @@
  * like. An input event retries safely: nothing was appended when a POST
  * is refused.
  *
- * The teach events (practice adds `thinking` and `next`, below):
+ * The teach events (practice adds `next`, below):
  *   text    — a learner-authored user message (composer send, initial
  *             topic, the demo error-fix loop)
  *   answer  — the pending question's graded result (QuestionAnswerData,
@@ -17,8 +17,9 @@
  *             continuations, job-settle re-syncs: the record ends at an
  *             answered question with no teacher reaction yet).
  *   side    — a side question: the learner asks the teacher something
- *             (text, files or both) while a question or practice problem
- *             waits, which stays open around it.
+ *             (text, files or both) while a question waits, which stays
+ *             open around it. With a problem open, a message is plain
+ *             text: the learner's work on it, or a question about it.
  *
  * Server-originated delivery (the wake pipeline's steers) is NOT a client
  * input — the handler accepts it on the same path (TurnInput) so every
@@ -35,7 +36,6 @@ import {
 	newNextMessage,
 	newProblemDismissedMarker,
 	newSideQuestion,
-	newThinkingMessage,
 	newUserMessage,
 	pendingProblemDismissalOf,
 } from "./native-messages.ts";
@@ -55,14 +55,10 @@ export type ChatInput =
 	| { type: "answer"; toolCallId: string; answer: QuestionAnswerData; attachments?: ChatAttachment[] }
 	| { type: "continue" }
 	| { type: "side"; text: string; attachments?: ChatAttachment[] }
-	/** The learner's thinking on the ACTIVE practice problem — one lane:
-	 *  whether it claims an answer is read from the text. One
-	 *  problem may carry many submissions; each is its own turn. */
-	| { type: "thinking"; problemCallId: string; text: string; attachments?: ChatAttachment[] }
 	/** The practice move-on signal: the learner's
 	 *  explicit go-ahead during the between-problems pause — the Next
 	 *  chip or Enter on an empty composer. Practice sessions only, and
-	 *  only with nothing active (mid-problem input rides the dock). */
+	 *  only with nothing active. */
 	| { type: "next" };
 
 /** A wake-pipeline steer delivery — same turn composition, server-origin.
@@ -189,16 +185,6 @@ export function parseChatInput(input: unknown): ChatInput {
 			}
 			return { type: "side", text: i.text, ...(attachments ? { attachments } : {}) };
 		}
-		case "thinking": {
-			if (typeof i.problemCallId !== "string" || i.problemCallId.length === 0) {
-				throw new ChatInputError("thinking input requires problemCallId");
-			}
-			const attachments = parseAttachments(i.attachments);
-			if (typeof i.text !== "string" || (i.text.trim().length === 0 && !attachments)) {
-				throw new ChatInputError("thinking input requires non-empty text or attachments");
-			}
-			return { type: "thinking", problemCallId: i.problemCallId, text: i.text, ...(attachments ? { attachments } : {}) };
-		}
 		case "next":
 			return { type: "next" };
 		default:
@@ -261,21 +247,13 @@ export function inputAppends(
 		case "continue":
 			return dismissalConclusion(record);
 		case "side":
-			if (!danglingQuestionOf(record.messages) && !activeProblemOf(record.messages)) {
-				throw new ChatInputError("side input requires a waiting question or problem");
+			if (!danglingQuestionOf(record.messages)) {
+				throw new ChatInputError("side input requires a waiting question");
 			}
 			return [newSideQuestion(input.text, attachments)];
-		case "thinking": {
-			const active = activeProblemOf(record.messages);
-			if (!active || active.toolCallId !== input.problemCallId) {
-				throw new ChatInputError("thinking input targets no active problem");
-			}
-			return [...dismissalConclusion(record), newThinkingMessage(input.problemCallId, input.text, attachments)];
-		}
 		case "next": {
-			// Honest 400s, the thinking gate's discipline: the signal is a
-			// between-problems affordance — practice, study and homework only,
-			// nothing active (mid-problem input rides the dock), and the client
+			// Honest 400s: the signal is a between-problems affordance —
+			// practice, study and homework only, nothing active, and the client
 			// gates make violations unreachable in practice anyway.
 			if (record.kind !== "practice" && record.kind !== "study" && record.kind !== "homework") {
 				throw new ChatInputError("next input is a practice, study or homework session affordance");

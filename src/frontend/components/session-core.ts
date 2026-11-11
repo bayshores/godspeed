@@ -24,7 +24,6 @@ import {
 	newNextMessage,
 	newProblemDismissedMarker,
 	newSideQuestion,
-	newThinkingMessage,
 	newUserMessage,
 	pdfNoteOf,
 	projectView,
@@ -172,9 +171,9 @@ export function absorbed(m: LhMessage, record: readonly LhMessage[]): boolean {
 		);
 	}
 	if (role === "custom") {
-		// Markers: without this an optimistic practice-thinking card is never
-		// absorbed and renders beside the write-ahead's server copy for the
-		// whole turn. TOTAL over roles by identity key — a
+		// Markers: without this an optimistic marker is never absorbed and
+		// renders beside the write-ahead's server copy for the whole turn.
+		// TOTAL over roles by identity key — a
 		// marker is itself when its customType AND structured details match;
 		// types that never appear optimistically simply never reach here.
 		const marker = m as LhMarkerMessage;
@@ -700,12 +699,7 @@ export class SessionModel {
 		const files = "attachments" in input && input.attachments ? draftAttachmentParts(input.attachments) : [];
 		if (input.type === "text") optimistic.push({ ...newUserMessage(input.text, files), id: localId() });
 		else if (input.type === "side") optimistic.push({ ...newSideQuestion(input.text, files), id: localId() });
-		else if (input.type === "thinking") {
-			// The practice submissions: the marker lands
-			// optimistically — the card renders from its details the
-			// moment the button fires.
-			optimistic.push({ ...newThinkingMessage(input.problemCallId, input.text, files), id: localId() });
-		} else if (input.type === "next") {
+		else if (input.type === "next") {
 			// The move-on signal: the NEXT PROBLEM line
 			// renders the instant the chip/Enter fires.
 			optimistic.push({ ...newNextMessage(), id: localId() });

@@ -5,11 +5,11 @@ import { HeaderChip, PanelBody, PanelHeader, StopButton } from "./panel-parts";
 import { TurnStatus } from "./turn-status";
 
 /**
- * A homework problem in the Your turn panel: the whole problem, always in
+ * The open problem in the Your turn panel: the whole problem, always in
  * view, scrolled to the part the teacher marked. The learner works in the
  * lesson's message box, so the panel holds no writing box of its own.
  */
-export function HomeworkProblemPane({
+export function OpenProblemPane({
 	statement,
 	source,
 	part,
@@ -20,14 +20,14 @@ export function HomeworkProblemPane({
 	footer,
 }: {
 	statement: string;
-	/** Where it is in the assignment. */
+	/** Where it is in the assignment (homework only). */
 	source: string | null;
-	/** The part the learner is on, as the problem labels it. */
+	/** The part the learner is on, as the problem labels it (homework only). */
 	part: string | null;
 	busy: boolean;
 	waitingForAgent: boolean;
 	onDiscard: () => void;
-	onStop?: () => void;
+	onStop: () => void;
 	footer: React.ReactNode;
 }) {
 	const statementRef = useRef<HTMLDivElement>(null);
@@ -43,20 +43,20 @@ export function HomeworkProblemPane({
 	}, [part]);
 
 	return (
-		<div data-testid="homework-problem" className="flex min-h-0 flex-1 flex-col">
+		<div data-testid="open-problem" className="flex min-h-0 flex-1 flex-col">
 			{/* The header and footer stay put while the problem scrolls between them. */}
 			<div className="shrink-0 px-6 pt-6">
 				<PanelHeader
 					status={busy && <TurnStatus waitingForAgent={waitingForAgent} />}
 					right={
 						<HeaderChip exit={{ label: "Discard problem", testId: "discard-problem", onClick: onDiscard }}>
-							{busy && onStop && <StopButton onStop={onStop} />}
+							{busy && <StopButton onStop={onStop} />}
 						</HeaderChip>
 					}
 				/>
 			</div>
 			<PanelBody className="pt-1 pb-3">
-				<div ref={statementRef} data-testid="homework-statement" className="lh-prose py-3 text-[15px] text-ink">
+				<div ref={statementRef} data-testid="problem-statement" className="lh-prose py-3 text-[15px] text-ink">
 					<ToolContentResponse>{statement}</ToolContentResponse>
 				</div>
 				{source && (

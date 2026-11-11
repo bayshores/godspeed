@@ -119,7 +119,7 @@ function TalkThread({
 	const session = useChatSession({ chatId: chat.id, initialMessages: chat.messages, initialError: chat.turnError, initiallyInFlight: chat.turnInFlight });
 	// Unsent text is saved like the lesson box's; waiting files stay in
 	// memory while the tab or the panel is closed.
-	const drafts = useLessonDrafts(chat.id, session.nativeMessages, null);
+	const drafts = useLessonDrafts(chat.id, session.nativeMessages);
 	const { saveComposer } = drafts;
 	const draftsLoaded = drafts.draft !== null;
 	const draftRef = useRef(drafts.draft);

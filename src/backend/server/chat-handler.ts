@@ -231,7 +231,7 @@ export async function handleChatInput(
 	// messages only (text, thinking, next): an answer must stay next to its
 	// question call, only side questions and their replies may follow a
 	// waiting one, and a wake or a continue carries no learner message.
-	if (input.type === "text" || input.type === "thinking" || input.type === "next") {
+	if (input.type === "text" || input.type === "next") {
 		const note = todayNoteFor(record);
 		if (note) appends = [...appends.slice(0, -1), note, ...appends.slice(-1)];
 	}

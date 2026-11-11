@@ -17,7 +17,7 @@ export interface TeachingArea {
 }
 
 export const TEACHING_AREAS: readonly TeachingArea[] = [
-	{ id: "voice", label: "Voice", about: "How {teacher} talks: plain, direct, no praise", parts: ["shared/10-voice.md"] },
+	{ id: "voice", label: "Voice", about: "How {teacher} talks: plain, direct, no praise", parts: ["shared/10-voice.md", "shared/11-learner-first.md"] },
 	{
 		id: "teaching",
 		label: "Lesson flow",
@@ -56,6 +56,7 @@ export const TEACHING_AREAS: readonly TeachingArea[] = [
 /** The plain name each prompt part shows under in the window. */
 export const PART_NAMES: Readonly<Record<string, string>> = {
 	"shared/10-voice.md": "Voice",
+	"shared/11-learner-first.md": "Your question first",
 	"system-prompt.md": "The goal",
 	"teacher/05-method.md": "Teaching method",
 	"teacher/10-planning.md": "Planning",

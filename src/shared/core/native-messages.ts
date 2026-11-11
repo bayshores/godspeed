@@ -38,7 +38,6 @@ import {
 	CONCLUDE_ACK_TEXT,
 	HANDOFF_TEXT,
 	NEXT_PROBLEM_TEXT,
-	THINKING_LABEL,
 } from "./contracts/chat.ts";
 import type { ClassFileStatus } from "./contracts/class.ts";
 import { compactAnswerForModel, type QuestionAnswerData } from "./question-core.ts";
@@ -59,12 +58,6 @@ export const SIDE_PENDING_TEXT =
 
 /** How that later answer (or skip) reaches the model, at its own place. */
 export const SIDE_ANSWER_LEAD = "The learner answered your open question: ";
-
-/** A side question asked while a problem is active starts with this: the
- *  problem already has its result, so the question itself says the problem
- *  stays open. */
-export const SIDE_PROBLEM_LEAD =
-	"Side question. Your problem stays open in their window: answer this in text, don't conclude it or pose another, and their thinking on it comes later. ";
 
 /** SIDE_ANSWER_LEAD, naming the question when its message asked several:
  *  out of place, the answer no longer sits next to its own call. */
@@ -108,7 +101,8 @@ export interface LhMarkerMessage {
 		| "app-request";
 	/** The model-facing text ("" for plan blocks — UI-only). */
 	content: string;
-	/** Model-facing files after the text: a thinking submission's pictures and PDF notes. */
+	/** Model-facing files after the text: the pictures and PDF notes of an
+	 *  older lesson's thinking submission. */
 	attachments?: AttachmentPart[];
 	display: boolean;
 	/** The UI payload — per-customType, never model-visible. */
@@ -197,9 +191,8 @@ export function newUserMessage(text: string, attachments: readonly AttachmentPar
 }
 
 /** A side question: the learner asks the teacher something while a
- *  question or problem waits, with files like any learner message. The
- *  question stays open around it (danglingQuestionOf), as does the problem
- *  (activeProblemOf). */
+ *  question waits, with files like any learner message. The question
+ *  stays open around it (danglingQuestionOf). */
 export function newSideQuestion(text: string, attachments: readonly AttachmentPart[] = []): LhMessage & UserMessage {
 	return { ...newUserMessage(text, attachments), side: true };
 }
@@ -269,33 +262,11 @@ export function sideHeldQuestions(messages: readonly LhMessage[]): Map<string, {
 }
 
 /** Does this turn answer a side question: the newest input (a learner
- *  message, their thinking, a job result) is one, and the question or
- *  problem it was asked around is still open? */
+ *  message, a job result) is one, and the question it was asked around
+ *  is still open? */
 export function isSideTurn(messages: readonly LhMessage[]): boolean {
 	const input = messages.findLast((m) => m.role === "user" || (m.role === "custom" && !isBookkeeping(m)));
-	return input !== undefined && isSideQuestion(input) && (danglingQuestionOf(messages) !== null || activeProblemOf(messages) !== null);
-}
-
-/** The indexes of side questions asked around an active problem with no
- *  question waiting: the model reads SIDE_PROBLEM_LEAD before each. Read
- *  from the messages before each one, so earlier model views never change. */
-function problemSideQuestions(messages: readonly LhMessage[]): Set<number> {
-	const out = new Set<number>();
-	messages.forEach((m, i) => {
-		if (!isSideQuestion(m)) return;
-		const before = messages.slice(0, i);
-		if (danglingQuestionOf(before) === null && activeProblemOf(before) !== null) out.add(i);
-	});
-	return out;
-}
-
-/** A side question's content with SIDE_PROBLEM_LEAD in front. */
-function withProblemLead(content: UserMessage["content"]): UserMessage["content"] {
-	if (typeof content === "string") return SIDE_PROBLEM_LEAD + content;
-	const [first, ...rest] = content;
-	return first?.type === "text"
-		? [{ ...first, text: SIDE_PROBLEM_LEAD + first.text }, ...rest]
-		: [{ type: "text", text: SIDE_PROBLEM_LEAD.trimEnd() }, ...content];
+	return input !== undefined && isSideQuestion(input) && danglingQuestionOf(messages) !== null;
 }
 
 /** A steered user message (mid-turn composer steering):
@@ -549,25 +520,6 @@ export function newAppRequestMessage(text: string, deadlines: readonly AppReques
 	};
 }
 
-/** The learner's thinking submission (ONE send lane): no button declares
- *  the register — the model READS the text to tell working traces from
- *  claimed answers. The
- *  content label is the single "Your thinking"; `details` keeps the raw
- *  payload for the transcript card. One problem may carry many
- *  submissions. */
-export function newThinkingMessage(problemCallId: string, text: string, attachments: readonly AttachmentPart[] = []): LhMarkerMessage {
-	return {
-		id: newMessageId(),
-		role: "custom",
-		customType: "practice-thinking",
-		content: `${THINKING_LABEL}:\n${text}`,
-		...(attachments.length > 0 ? { attachments: [...attachments] } : {}),
-		display: true,
-		details: { problemCallId, text },
-		timestamp: Date.now(),
-	};
-}
-
 /** The learner's explicit move-on signal: appended by
  *  the next input (the composer band's chip, or Enter on an empty
  *  composer during the between-problems pause). The content is the
@@ -705,8 +657,8 @@ export function problemInputForConclude(
 /** The active-problem fold (the conclude-before-next-problem gate): the
  *  NEWEST problem tool call with nothing concluding after it — either a
  *  conclude call or a dismissal marker deactivates. The ack result at pose
- *  time does NOT (the problem stays on screen through nudges; the dock's
- *  subject is the call, not a dangling result). */
+ *  time does NOT (the problem stays on screen through nudges; the
+ *  panel's subject is the call, not a dangling result). */
 export function activeProblemOf(
 	messages: readonly LhMessage[],
 ): { toolCallId: string; input: unknown } | null {
@@ -856,9 +808,6 @@ export function toLlmMessages(messages: readonly AgentMessage[]): Message[] {
 	// its call, and the learner's later answer arrives where it happened, as
 	// their message. The earlier model view stays a prefix of the next one.
 	const sideHeld = sideHeldQuestions(lhMessages);
-	// A side question around a problem: the problem's result is already
-	// there, so the question carries the lead instead.
-	const problemSides = problemSideQuestions(lhMessages);
 	for (let i = leading ? Math.max(start, 1) : start; i < messages.length; i++) {
 		const m = messages[i]!;
 		const role = (m as { role?: string }).role;
@@ -893,10 +842,6 @@ export function toLlmMessages(messages: readonly AgentMessage[]): Message[] {
 		}
 		// Strip the record fields: the wire carries the native shape only.
 		const { id: _id, side: _side, ...native } = m as LhMessage & { side?: true };
-		if (problemSides.has(i)) {
-			out.push({ ...(native as UserMessage), content: withProblemLead((native as UserMessage).content) });
-			continue;
-		}
 		out.push(native as Message);
 		// Dangling-call synthesis: an assistant message whose toolCalls have
 		// no results in the remaining tail (abort mid-question) — the
@@ -1059,7 +1004,7 @@ export function needsContinuation(record: readonly LhMessage[]): boolean {
 	const results = messages.slice(start) as ToolResultMessage[];
 	// PRACTICE: a batch acking a problem POSE
 	// owes nothing — terminate:true ended that turn DELIBERATELY (the
-	// learner's next thinking submission is the next turn), and unlike a
+	// learner's next message is the next turn), and unlike a
 	// question's placeholder this ack PERSISTS (the model reads its own
 	// "Problem posed" result later). Without this fold a reload after a
 	// pose would wake a phantom continuation turn.

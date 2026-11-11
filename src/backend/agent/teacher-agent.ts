@@ -108,8 +108,8 @@ export interface AgentBuildOptions {
 	/** Native conversation identity: the existing persisted chat id, reused
 	 * across reconstructed prober, teacher, and practice Agents. */
 	chatId?: string;
-	/** The turn answers a side question: a question or problem is already
-	 *  waiting, so the question and problem tools refuse (sideTurnTools). */
+	/** The turn answers a side question: a question is already waiting, so
+	 *  the question and problem tools refuse (sideTurnTools). */
 	sideTurn?: boolean;
 }
 
@@ -162,7 +162,7 @@ function sideTurnTools(tools: AgentTool<any, any>[]): AgentTool<any, any>[] {
 	);
 }
 
-const SIDE_TURN_REFUSAL = "A question or problem is already waiting for the learner. Answer the side question in text instead.";
+const SIDE_TURN_REFUSAL = "A question is already waiting for the learner. Answer the side question in text instead.";
 
 function baseAgentOptions(kind: AgentKind, opts: AgentBuildOptions, tools: AgentTool<any, any>[]) {
 	// The handler always injects the engine; the outside agent is the fallback.

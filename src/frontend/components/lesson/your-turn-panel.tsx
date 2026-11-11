@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { LightbulbIcon } from "lucide-react";
 import { NoAgentLine } from "@/frontend/components/agent-folder/no-agent-line";
-import { PracticeDock } from "@/frontend/components/practice-dock";
-import { HomeworkProblemPane } from "./homework-problem-pane";
+import { OpenProblemPane } from "./open-problem-pane";
 import { QuestionDock, type QuestionDockProps } from "@/frontend/components/question-dock";
 import { ReadingThinkingField } from "@/frontend/components/reading-thinking";
 import { normalizeQuizType, questionKindLabel, type ChatAttachment, type findPendingToolCall, type QuestionAnswerData, type QuestionFormDraft } from "@/shared/core";
@@ -34,12 +33,12 @@ export function fitPanelWidth(width: number, room: number | null): number {
  * - a teach-phase check waiting behind "Check your understanding" (the
  *   learner reads first, can note thoughts while reading, then opens it);
  * - a waiting question (QuestionDock);
- * - an active practice problem (PracticeDock), or a homework problem
- *   (HomeworkProblemPane: the whole problem, worked on in the message box);
+ * - the open problem (OpenProblemPane: the whole problem, worked on in
+ *   the message box);
  * - otherwise nothing to answer, with Next problem / Continue in the pause
  *   between problems.
- * Messages, side questions included, go through the one box under the
- * reading pane (LessonBox). The lesson's stats row sits at the foot of
+ * Messages, work on a problem and side questions included, go through the
+ * one box under the reading pane (LessonBox). The lesson's stats row sits at the foot of
  * every state.
  */
 export function YourTurnPanel({
@@ -53,11 +52,7 @@ export function YourTurnPanel({
 	readingThinking,
 	onReadingThinking,
 	practice,
-	initialPracticeDraft,
-	onSavePracticeDraft,
-	onSubmitThinking,
 	onDiscardProblem,
-	onShowProblem,
 	busy,
 	waitingForAgent,
 	onStop,
@@ -79,18 +74,13 @@ export function YourTurnPanel({
 	readingThinking: string;
 	onReadingThinking: (v: string) => void;
 	practice: { toolCallId: string; input: unknown } | null;
-	initialPracticeDraft?: string;
-	onSavePracticeDraft: (thinking: string) => void;
-	onSubmitThinking: (text: string, attachments: ChatAttachment[]) => Promise<boolean>;
 	/** Opens the discard confirm for the active problem. */
 	onDiscardProblem: () => void;
-	/** Scrolls the lesson to the active problem's card. */
-	onShowProblem: () => void;
 	busy: boolean;
 	/** The turn waits for an agent to take it. */
 	waitingForAgent: boolean;
-	/** The problem dock's Stop; absent when the lesson box holds it. */
-	onStop?: () => void;
+	/** Stops the running turn. */
+	onStop: () => void;
 	/** The go-ahead in the pause between problems ("Next problem", or
 	 *  "Continue" in a study session); absent outside that pause. */
 	next?: string;
@@ -186,32 +176,16 @@ export function YourTurnPanel({
 				footer={footer}
 			/>
 		);
-	} else if (practice && homeworkProblem) {
-		body = (
-			<HomeworkProblemPane
-				statement={(practice.input as { statement: string }).statement}
-				source={homeworkProblem.source}
-				part={homeworkProblem.part}
-				busy={busy}
-				waitingForAgent={waitingForAgent}
-				onDiscard={onDiscardProblem}
-				onStop={onStop}
-				footer={footer}
-			/>
-		);
 	} else if (practice) {
 		body = (
-			<PracticeDock
-				problemCallId={practice.toolCallId}
-				input={practice.input as { statement: string }}
-				onSubmit={onSubmitThinking}
-				initialDraft={initialPracticeDraft}
-				onSaveDraft={onSavePracticeDraft}
-				onDiscard={onDiscardProblem}
-				onShowProblem={onShowProblem}
-				onStop={onStop}
+			<OpenProblemPane
+				statement={(practice.input as { statement: string }).statement}
+				source={homeworkProblem?.source ?? null}
+				part={homeworkProblem?.part ?? null}
 				busy={busy}
 				waitingForAgent={waitingForAgent}
+				onDiscard={onDiscardProblem}
+				onStop={onStop}
 				footer={footer}
 			/>
 		);

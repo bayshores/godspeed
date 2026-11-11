@@ -117,7 +117,7 @@ export function homeworkTools(ctx: HomeworkToolContext, enabled?: EnabledTools):
 		name: "conclude",
 		label: "conclude",
 		description:
-			"Close the open problem with the outcome and verdict; solved and solvedWithHints mark it done. Then say your closing words and END YOUR TURN: the next problem waits for the learner's go-ahead.",
+			"Close the open problem with the outcome and verdict; solved and solvedWithHints mark it done. Then say your closing words and END YOUR TURN: the next problem waits for the learner's go-ahead. When they asked for a different problem, that ask is the go-ahead: open it right after this result.",
 		parameters: concludeInput,
 		executionMode: "sequential",
 		prepareArguments: (args: unknown) => healEncodedArguments(args, concludeInput) as never,

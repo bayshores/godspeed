@@ -3,7 +3,7 @@
  * (pose: terminates the turn; the commitment rides the call's arguments,
  * hidden from the learner UI) and `conclude` (end the problem: normal
  * result, so closing words may follow; the next pose waits for the
- * learner's go-ahead). The rarely-used extras join in practiceTools. The gating law: an agent cannot pose while a problem is active
+ * learner's go-ahead, which asking for another problem or part is). The rarely-used extras join in practiceTools. The gating law: an agent cannot pose while a problem is active
  * and cannot conclude with nothing active — activeProblemOf is the single
  * fold both gates read.
  *
@@ -62,9 +62,9 @@ export interface PracticeToolContext {
 /** TURN-SCOPED GATE STATE: the gates can't read the STORED record — it
  *  freezes at the turn's write-ahead (persistTurn lands only at turn END),
  *  so a mid-turn conclude → pose pair would never see each other and every
- *  pose after a conclude would fail with "a problem is already active".
- *  (The prompt forbids conclude → pose in one turn; the gate only keeps a
- *  slip from failing confusingly.) The gate seeds ONCE from the record at construction
+ *  pose after a conclude would fail with "a problem is already active"
+ *  (the learner asking for another problem or part is exactly that pair).
+ *  The gate seeds ONCE from the record at construction
  *  (one practiceTools per turn — chat-handler builds the agent per
  *  request, so there is no cross-turn leakage), and the executes flip
  *  this closure — the intra-turn truth the record cannot hold yet. */
@@ -113,8 +113,8 @@ export function problemTool(
 		name: "problem",
 		label: "problem",
 		description:
-			"Pose one practice problem. Ends the turn — the learner works in the thinking field; their thinking " +
-			"traces and answer commits arrive back as labeled messages. The modelSolution rides this call's " +
+			"Pose one practice problem. Ends the turn — the problem stays in view beside the lesson, and the " +
+			"learner's work and questions on it arrive back as their messages. The modelSolution rides this call's " +
 			"arguments and stays hidden from the learner until you conclude (conclude shows it verbatim — the " +
 			"reveal needs no new field). Only one problem may be active — conclude it before posing the next.",
 		parameters: problemInputObject,
@@ -165,7 +165,7 @@ export function problemTool(
 				}
 			}
 			gate.problemActive = true;
-			return problemResult("the learner's thinking traces and answer commits arrive as labeled messages.");
+			return problemResult("the learner's work and questions on it arrive as their messages.");
 		},
 	};
 }
@@ -246,9 +246,10 @@ export function concludeTool(gate: PracticeGate): AgentTool<typeof concludeInput
 		description:
 			"Conclude the active problem: records the outcome + verdict, reveals the committed solution, and frees " +
 			"the learner's composer. After the result, say your closing words about the learner's work if useful, then " +
-			"END YOUR TURN — no further tool calls. The next problem is NEVER posed here: it waits for the learner's " +
-			"explicit go-ahead (a *Next problem* message, or their own words asking for the next one). Between problems, " +
-			"answer their questions about the concluded one. Nothing may conclude unless a problem is active.",
+			"END YOUR TURN — no further tool calls. The next problem waits for the learner's explicit go-ahead (a " +
+			"*Next problem* message, or their own words asking for the next one). The one exception: when the learner " +
+			"asked for a different problem or part, that ask is the go-ahead, so pose it right after this result. " +
+			"Between problems, answer their questions about the concluded one. Nothing may conclude unless a problem is active.",
 		parameters: concludeInputObject,
 		prepareArguments: (args: unknown) => healEncodedArguments(args, concludeInputObject) as never,
 		executionMode: "sequential",
