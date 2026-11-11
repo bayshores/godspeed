@@ -34,7 +34,7 @@ impl Fixture {
 	fn new() -> Fixture {
 		let dir = std::env::temp_dir().join(format!("gs-turns-golden-{}", ids::uuid()));
 		std::fs::create_dir_all(dir.join("data/chats")).unwrap();
-		let app = App::new(Paths::new(dir.join("data"), dir.join("home"), dir.join("tmp"), dir.join("res")));
+		let app = App::new(Paths::new(dir.join("data"), dir.join("home"), dir.join("tmp"), dir.join("res")), None);
 		Fixture { app, dir }
 	}
 }

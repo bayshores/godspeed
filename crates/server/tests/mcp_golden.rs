@@ -19,7 +19,7 @@ fn app() -> Arc<App> {
 	let data = dir.join("data");
 	std::fs::create_dir_all(&data).unwrap();
 	fsx::write_atomic(&data.join("mcp-token"), TOKEN.as_bytes(), Some(0o600)).unwrap();
-	App::new(Paths::new(data, dir.join("home"), dir.join("tmp"), dir))
+	App::new(Paths::new(data, dir.join("home"), dir.join("tmp"), dir), None)
 }
 
 #[tokio::test]

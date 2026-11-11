@@ -33,7 +33,7 @@ fn synthetic_app() -> (Arc<App>, PathBuf) {
 	std::fs::create_dir_all(&home).unwrap();
 	let class = json!({ "id": CLASS, "name": "Golden Class", "description": "", "createdAt": AT, "updatedAt": AT, "archived": false, "files": [], "removedFiles": [], "deadlines": [], "version": 1 });
 	fsx::write_text_atomic(&data.join("classes").join(CLASS).join("class.json"), &format!("{}\n", gs_json::stringify_pretty(&class, "\t"))).unwrap();
-	(App::new(Paths::new(data, home, dir.join("tmp"), dir.clone())), dir)
+	(App::new(Paths::new(data, home, dir.join("tmp"), dir.clone()), None), dir)
 }
 
 fn masked(list: &[Json]) -> Json {

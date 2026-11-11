@@ -22,6 +22,7 @@ gs-transcribe = { path = "crates/transcribe" }
 gs-engine = { path = "crates/engine" }
 gs-agent = { path = "crates/agent" }
 gs-services = { path = "crates/services" }
+gs-shell-rpc = { path = "crates/shell-rpc" }
 
 axum = { version = "0.8.9", default-features = false, features = ["http1", "tokio", "multipart"] }
 bytes = "1.12"
@@ -54,6 +55,8 @@ unsafe_code = "deny"
 
 [workspace.lints.clippy]
 dbg_macro = "deny"
+# stdout is the line protocol to the desktop shell (gs-shell-rpc).
+print_stdout = "deny"
 
 # A panic in one request must answer an empty 500 and keep the server up (the HTTP layer catches it).
 [profile.dev]

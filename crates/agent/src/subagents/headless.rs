@@ -1,18 +1,20 @@
 //! What the helper jobs check their work
 //! with. SVGs go to PNG through gs_media and PDF pages through gs_pdf, both in this process.
 //!
-//! Running a demo's JavaScript needs a browser. The Node server reached one through Electron's
-//! browser service; this server has none yet, so `run_in_browser` is the one place a browser
-//! would be called, and it answers what the Node server answered when it found no browser. SVGs
-//! that gs_media cannot draw went to that browser too, and get the same answer.
+//! Running a demo's JavaScript needs a browser, and SVGs gs_media cannot draw go to one too. The
+//! desktop shell owns that browser view, so `run_in_browser` asks it over the shell link; without
+//! a shell (a browser-mode server) it answers what the Node server answered when it found no
+//! browser.
 
 use std::path::Path;
 use std::sync::Arc;
 
 use futures_util::future::BoxFuture;
 use gs_json::Json;
-use gs_media::svg::{RenderSvgOptions, render_svg};
+use gs_media::png::provider_safe_png;
+use gs_media::svg::{RenderSvgOptions, render_svg, svg_viewport};
 use gs_pdf::{Pdf, RenderedPdfPage};
+use gs_shell_rpc::{DemoResult, Reply, ShellLink, ToShell};
 
 /// What one headless demo run saw.
 #[derive(Debug, Clone, PartialEq, Default)]
@@ -43,18 +45,40 @@ pub trait HeadlessApi: Send + Sync {
 /// What the Node server said when it found neither its browser helper nor a Chrome.
 pub const NO_CHROME_MESSAGE: &str = "No render engine available: the app's own browser helper failed to start and no system Chrome/Chromium was found. Install Google Chrome or set CHROME_PATH to a Chrome executable. (Verification is mandatory — demos are never delivered untested.)";
 
-/// The server's checks; `pdf` renders PDF pages.
-pub fn get_headless(pdf: &Pdf) -> Arc<dyn HeadlessApi> {
-	Arc::new(RealHeadless { pdf: pdf.clone() })
+/// What a demo or SVG request gets when the shell answers the other kind.
+const WRONG_REPLY: &str = "The desktop shell answered with the wrong kind of result.";
+
+/// The server's checks; `pdf` renders PDF pages and `shell` runs pages in the app's browser.
+pub fn get_headless(pdf: &Pdf, shell: Option<&ShellLink>) -> Arc<dyn HeadlessApi> {
+	Arc::new(RealHeadless { pdf: pdf.clone(), shell: shell.cloned() })
 }
 
 struct RealHeadless {
 	pdf: Pdf,
+	shell: Option<ShellLink>,
 }
 
-/// The browser seam: the one call that would run a page in a browser.
-fn run_in_browser<T>() -> Result<T, String> {
-	Err(NO_CHROME_MESSAGE.to_owned())
+impl RealHeadless {
+	/// The browser seam: the one call that runs a page in a browser.
+	async fn run_in_browser(&self, ask: impl FnOnce(u64) -> ToShell) -> Result<Reply, String> {
+		match &self.shell {
+			Some(shell) => shell.request(ask).await,
+			None => Err(NO_CHROME_MESSAGE.to_owned()),
+		}
+	}
+}
+
+impl From<DemoResult> for DemoRunResult {
+	fn from(r: DemoResult) -> DemoRunResult {
+		DemoRunResult {
+			console_errors: r.console_errors,
+			page_errors: r.page_errors,
+			failed_requests: r.failed_requests,
+			// serde_json writes valid JSON, so the parse cannot fail.
+			probe_result: r.probe_result.and_then(|v| gs_json::parse(&v.to_string()).ok()),
+			ok: r.ok,
+		}
+	}
 }
 
 impl HeadlessApi for RealHeadless {
@@ -62,18 +86,27 @@ impl HeadlessApi for RealHeadless {
 		None
 	}
 
-	fn run_demo<'a>(&'a self, _html: &'a str, _probe: Option<&'a str>) -> BoxFuture<'a, Result<DemoRunResult, String>> {
-		Box::pin(async { run_in_browser() })
+	fn run_demo<'a>(&'a self, html: &'a str, probe: Option<&'a str>) -> BoxFuture<'a, Result<DemoRunResult, String>> {
+		Box::pin(async move {
+			match self.run_in_browser(|id| ToShell::Demo { id, html: html.to_owned(), probe: probe.map(str::to_owned) }).await? {
+				Reply::Demo(result) => Ok(result.into()),
+				Reply::Svg(_) => Err(WRONG_REPLY.to_owned()),
+			}
+		})
 	}
 
 	fn render_svg<'a>(&'a self, svg: &'a str) -> BoxFuture<'a, Result<Vec<u8>, String>> {
-		let svg = svg.to_owned();
 		Box::pin(async move {
 			// Font loading and drawing are slow CPU work: off the async threads.
-			let drawn = tokio::task::spawn_blocking(move || render_svg(&svg, RenderSvgOptions::default())).await;
-			match drawn {
-				Ok(Ok(png)) => Ok(png),
-				_ => run_in_browser(),
+			let owned = svg.to_owned();
+			if let Ok(Ok(png)) = tokio::task::spawn_blocking(move || render_svg(&owned, RenderSvgOptions::default())).await {
+				return Ok(png);
+			}
+			let (width, height) = svg_viewport(svg, RenderSvgOptions::default());
+			match self.run_in_browser(|id| ToShell::Svg { id, svg: svg.to_owned(), width: width as u32, height: height as u32 }).await? {
+				// The browser's PNG goes to a vision model, which may refuse its split chunks.
+				Reply::Svg(png) => Ok(provider_safe_png(&gs_base::base64::decode(&png))),
+				Reply::Demo(_) => Err(WRONG_REPLY.to_owned()),
 			}
 		})
 	}
@@ -88,7 +121,7 @@ mod tests {
 	use super::*;
 
 	fn headless() -> Arc<dyn HeadlessApi> {
-		get_headless(&Pdf::new(Path::new("/nonexistent")))
+		get_headless(&Pdf::new(Path::new("/nonexistent")), None)
 	}
 
 	#[tokio::test]
@@ -104,5 +137,62 @@ mod tests {
 		let png = h.render_svg(r#"<svg xmlns="http://www.w3.org/2000/svg" width="20" height="10"><rect width="5" height="5"/></svg>"#).await.unwrap();
 		assert_eq!(&png[..8], b"\x89PNG\r\n\x1a\n");
 		assert_eq!(h.render_svg(r#"<svg xmlns="http://www.w3.org/2000/svg"><rect x="1""#).await, Err(NO_CHROME_MESSAGE.to_owned()));
+	}
+
+	/// Hands each line the server writes to the fake shell.
+	struct Lines(tokio::sync::mpsc::UnboundedSender<Vec<u8>>);
+
+	impl std::io::Write for Lines {
+		fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+			let _ = self.0.send(buf.to_vec());
+			Ok(buf.len())
+		}
+
+		fn flush(&mut self) -> std::io::Result<()> {
+			Ok(())
+		}
+	}
+
+	/// A shell that answers every demo with one console error and the probe's text, and every
+	/// SVG with `png`; it keeps the requests it saw.
+	fn fake_shell(png: Vec<u8>) -> (ShellLink, Arc<parking_lot::Mutex<Vec<ToShell>>>) {
+		let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
+		let link = ShellLink::new(Lines(tx));
+		let seen = Arc::new(parking_lot::Mutex::new(Vec::new()));
+		tokio::spawn({
+			let (link, seen) = (link.clone(), seen.clone());
+			async move {
+				while let Some(line) = rx.recv().await {
+					let Some(Ok(msg)) = gs_shell_rpc::read_lines::<ToShell>(&line[..]).next() else { continue };
+					let answer = match &msg {
+						ToShell::Demo { id, probe, .. } => {
+							let probe = probe.as_deref().map_or(String::new(), |p| format!(r#","probeResult":{}"#, gs_json::quote(p)));
+							format!(r#"{{"t":"demo_done","id":{id},"result":{{"consoleErrors":["boom"],"pageErrors":[],"failedRequests":[]{probe},"ok":false}}}}"#)
+						}
+						ToShell::Svg { id, .. } => format!(r#"{{"t":"svg_done","id":{id},"png":"{}"}}"#, gs_base::base64::encode(&png)),
+						_ => continue,
+					};
+					seen.lock().push(msg);
+					link.listen(answer.as_bytes());
+				}
+			}
+		});
+		(link, seen)
+	}
+
+	#[tokio::test]
+	async fn with_a_shell_demos_and_broken_svgs_run_there() {
+		let png = render_svg(r#"<svg xmlns="http://www.w3.org/2000/svg" width="4" height="4"/>"#, RenderSvgOptions::default()).unwrap();
+		let (link, seen) = fake_shell(png.clone());
+		let h = get_headless(&Pdf::new(Path::new("/nonexistent")), Some(&link));
+
+		let probed = h.run_demo("<p>hi</p>", Some("1 + 1")).await.unwrap();
+		assert_eq!(probed, DemoRunResult { console_errors: vec!["boom".into()], probe_result: Some(Json::Str("1 + 1".into())), ..DemoRunResult::default() });
+		assert_eq!(h.run_demo("<p>hi</p>", None).await.unwrap().probe_result, None);
+
+		assert_eq!(h.render_svg(r#"<svg xmlns="http://www.w3.org/2000/svg"><rect x="1""#).await, Ok(png));
+		let seen = seen.lock();
+		assert!(matches!(&seen[0], ToShell::Demo { html, probe: Some(p), .. } if html == "<p>hi</p>" && p == "1 + 1"));
+		assert!(matches!(&seen[2], ToShell::Svg { width: 900, height: 700, .. }), "{:?}", seen[2]);
 	}
 }

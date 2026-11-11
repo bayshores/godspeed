@@ -50,7 +50,7 @@ impl JobHost for AppJobs {
 	}
 
 	fn headless(&self) -> Arc<dyn HeadlessApi> {
-		get_headless(&self.0.pdf)
+		get_headless(&self.0.pdf, self.0.shell.as_ref())
 	}
 
 	fn engine_for(&self, _role: &str) -> Option<Engine> {

@@ -37,5 +37,5 @@ pub fn test_app(root: &Path) -> Arc<App> {
 	for name in ["data", "home", "tmp", "res"] {
 		std::fs::create_dir_all(root.join(name)).expect("the scratch folder is writable");
 	}
-	App::new(Paths::new(root.join("data"), root.join("home"), root.join("tmp"), root.join("res")))
+	App::new(Paths::new(root.join("data"), root.join("home"), root.join("tmp"), root.join("res")), None)
 }

@@ -28,7 +28,7 @@ fn app_with(before: &Json) -> (Arc<App>, PathBuf) {
 			fsx::write_text_atomic(&file, &format!("{}\n", stringify_pretty(record, "\t"))).unwrap();
 		}
 	}
-	(App::new(Paths::new(data.clone(), dir.join("home"), dir.join("tmp"), dir)), data)
+	(App::new(Paths::new(data.clone(), dir.join("home"), dir.join("tmp"), dir), None), data)
 }
 
 /// A job's file, its updatedAt masked when it changed (the TS side masks the same way).

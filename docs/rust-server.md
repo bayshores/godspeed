@@ -65,7 +65,7 @@ A module is named after its TS file in snake_case (`file-series.ts` is `classes:
 - `gs_store`: `Stores::new` with every store's constructor; `AgentSeenStore` implements `gs_core::records::agent_seen::SeenStore` (bodies to fill).
 - `gs_services`: `App::new(paths)`.
 - `gs_server::http` (done, checked against `ui-serving`, `pdfjs-assets` and the access half of `proxy-desktop`):
-  - `front` runs before routing: backslashes, `//` and trailing slashes redirect 308 with the path as body; `.`/`..`/`%2e` segments resolve; then the desktop secret check (`access`), then a segment that will not decode answers Next's 500 page.
+  - `front` runs before routing: backslashes, `//` and trailing slashes redirect 308 with the path as body; `.`/`..`/`%2e` segments resolve; then the desktop access check (`access`), then a segment that will not decode answers Next's 500 page.
   - `route::ApiRoute::new().get(h).post(h).put(h).delete(h).into_route()` builds one route path: OPTIONS answers 204 with Next's sorted `Allow`, other methods an empty 405, HEAD runs GET without the body, a panic answers an empty 500. Register every route with it.
   - `reply`: `json(status, &v)`, `json_no_store`, `text`, `empty`, `no_store`, `not_found`, `Unhandled`, `json_body(body)` (`await req.json()`, None where it throws), `read_body` (cut at 210 MB like `proxyClientMaxBodySize`), `body_text`.
   - `paths::search_params(query)` and `paths::param` read a query like `URLSearchParams`; `paths::decode_component`.
@@ -86,9 +86,13 @@ Node ran each read-modify-write of a file without an `await` inside, so nothing 
 
 - Started with its working directory beside `ui/`, `models/` (`Snowflake/snowflake-arctic-embed-xs`) and `pdfjs-dist/` (`Paths::resources`). pdfium's library also goes there (package pdf decides the file name).
 - A debug build (`cargo build`) keeps the godspeed folder in `<data>/godspeed-folder` until the learner picks one, as `next dev` does, so a dev run never rewrites the real `~/godspeed`. A release build uses `~/godspeed`.
-- Env: `PORT` (bind is always 127.0.0.1), `LH_DATA_DIR` (unset: `data/` in the working directory), `HOME`, `TMPDIR`, `TZ`, `LH_DESKTOP_SERVER=1` + `LH_DESKTOP_API_SECRET` in the app, `GODSPEED_CONTRACT_NOW` / `GODSPEED_CONTRACT_CLOCK_FILE` in tests. `CLAUDE_CONFIG_DIR` and `CODEX_HOME` are read where the TS reads them.
-- Writes nothing at start-up (the Electron shell writes `mcp-endpoint.json`). An advisory lock on the data folder itself keeps a second server off the same data (no lock file); a new server waits up to 3 s for one that is still stopping.
-- Stops on SIGTERM or SIGINT, and when stdin is a pipe that closes. `gs_base::shutdown::wait()` ends long waits (event streams, `wait_for_work`); after 2 s the process exits with 143.
+- Env: `PORT` (bind is always 127.0.0.1), `LH_DATA_DIR` (unset: `data/` in the working directory), `HOME`, `TMPDIR`, `TZ`, `LH_DESKTOP_SERVER=1` + `LH_DESKTOP_API_SECRET` in the app, `LH_SHELL=1` when the desktop shell started it, `GODSPEED_CONTRACT_NOW` / `GODSPEED_CONTRACT_CLOCK_FILE` in tests. `CLAUDE_CONFIG_DIR` and `CODEX_HOME` are read where the TS reads them.
+- Writes nothing at start-up (the shell writes `mcp-endpoint.json`). An advisory lock on the data folder itself keeps a second server off the same data (no lock file); a new server waits up to 3 s for one that is still stopping.
+- Stops on SIGTERM or SIGINT, and at the end of stdin: always with `LH_SHELL=1`, otherwise when stdin is a pipe. `gs_base::shutdown::wait()` ends long waits (event streams, `wait_for_work`); open requests get 2 s, and the process exits with 143.
+- Log lines go to stderr. stdout belongs to the shell protocol (clippy `print_stdout` is denied).
+- **Shell protocol** (`LH_SHELL=1`, crate `gs-shell-rpc`, spelled out in docs/tauri-shell.md section 2): one JSON object per line, `t` naming it. stdout: `ready` once right after the bind, `login_ok`, and `demo` / `svg` requests; stdin: `login`, `demo_done`, `svg_done`. Bad or unknown lines are logged and skipped. `App::shell` holds the `ShellLink`; `get_headless` sends demo runs and SVGs resvg cannot draw through it and waits at most 60 s (`demo check timed out`). Without a link they answer the no-browser error.
+- **Login** `GET /api/desktop/login?token=<64 hex>`: a token the shell sent in `login` within the last 60 s (app clock) works once and answers 303 to `/` with `Cache-Control: no-store` and `Set-Cookie: gs_desktop=<secret>; Path=/; HttpOnly; SameSite=Strict`. Anything else gets the access check's 403.
+- **Access** (`http/access.rs`): with a secret, every /api path except `/api/mcp`, `/api/mcp/forget` (bearer token in the route) and `/api/desktop/login` needs cookie `gs_desktop` equal to the secret and exactly `Sec-Fetch-Site: same-origin`; refusals are 403 `{"error":"Desktop API access requires the trusted godspeed window."}`. `LH_DESKTOP_SERVER=1` without a secret refuses them all. Browser mode (neither set) allows everything.
 - The app version is package.json's, baked in at build time (`config::VERSION`).
 
 ## Checking against the recordings
@@ -152,6 +156,6 @@ The full instructions per package (TS sources, what to provide to whom, scenario
 ## Known gaps and decisions
 
 - Range and conditional requests: the recordings show today's server answers both with the full file (200), so the Rust server does too.
-- Demo checking (headless.ts) runs JavaScript in Electron's browser service through puppeteer. How the Rust server reaches a browser while Electron is still the shell (Phase 3) is an owner decision; until then the subagents package ports everything else and keeps the browser call behind one function.
+- Demo checking (headless.ts) ran JavaScript in Electron's browser service through puppeteer. The Rust server asks the desktop shell instead (the shell protocol above); a server without the shell answers the no-browser error.
 - Characters in Unicode's last 2048 private-use code points (U+10F800 to U+10FFFF) are the lone-surrogate stand-ins and cannot appear as real text.
 - Search vectors: if Rust's vectors do not match the stored ones exactly, the tables are rebuilt from saved text (plan decision 8).

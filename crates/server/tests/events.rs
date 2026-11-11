@@ -7,6 +7,7 @@ use gs_base::config::Paths;
 use gs_base::events::EventKind;
 use gs_base::{clock, ids};
 use gs_json::json;
+use gs_server::http::access::Access;
 use gs_services::App;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
@@ -14,10 +15,10 @@ use tokio::net::TcpStream;
 async fn serve() -> (Arc<App>, u16) {
 	let dir = std::env::temp_dir().join(format!("gs-events-{}", ids::uuid()));
 	std::fs::create_dir_all(dir.join("data")).unwrap();
-	let app = App::new(Paths::new(dir.join("data"), dir.join("home"), dir.join("tmp"), dir));
+	let app = App::new(Paths::new(dir.join("data"), dir.join("home"), dir.join("tmp"), dir), None);
 	let listener = tokio::net::TcpListener::bind(("127.0.0.1", 0)).await.unwrap();
 	let port = listener.local_addr().unwrap().port();
-	tokio::spawn(axum::serve(listener, gs_server::http::server(app.clone())).into_future());
+	tokio::spawn(axum::serve(listener, gs_server::http::server(app.clone(), &Access::default())).into_future());
 	(app, port)
 }
 

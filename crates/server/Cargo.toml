@@ -17,6 +17,7 @@ gs-services.workspace = true
 gs-core.workspace = true
 gs-engine.workspace = true
 gs-agent.workspace = true
+gs-shell-rpc.workspace = true
 axum.workspace = true
 bytes.workspace = true
 futures-util.workspace = true

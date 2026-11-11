@@ -176,7 +176,7 @@ fn replays_the_recorded_steps() {
 	let runtime = tokio::runtime::Builder::new_multi_thread().enable_all().build().unwrap();
 	let mut wrong = Vec::new();
 	runtime.block_on(async {
-		let app = App::new(Paths::new(data.clone(), home.clone(), tmp.clone(), pdfium));
+		let app = App::new(Paths::new(data.clone(), home.clone(), tmp.clone(), pdfium), None);
 		for (i, step) in case["steps"].as_arr().unwrap().iter().enumerate() {
 			let got = replay(&app, &mask, &home, &data, step).await;
 			if stringify(&got) != stringify(&step["out"]) {

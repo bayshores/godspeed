@@ -42,7 +42,7 @@ fn app_with(before: &Json) -> (Arc<App>, PathBuf) {
 		std::fs::create_dir_all(at.parent().unwrap()).unwrap();
 		fsx::write_text_atomic(&at, s(&pair[1])).unwrap();
 	}
-	(App::new(Paths::new(data, root.join("home"), root.join("tmp"), root.clone())), root)
+	(App::new(Paths::new(data, root.join("home"), root.join("tmp"), root.clone()), None), root)
 }
 
 fn mask(v: &Json, root: &Path) -> Json {

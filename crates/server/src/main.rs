@@ -1,6 +1,7 @@
 //! godspeed-server: the app's backend, started by the desktop shell with its working directory
 //! beside `ui/`, `models/` and `pdfjs-dist/`. It listens on 127.0.0.1:$PORT and writes nothing
-//! until a request asks it to.
+//! until a request asks it to. With `LH_SHELL=1` its stdin and stdout carry the line protocol to
+//! the shell (gs-shell-rpc); log lines go to stderr either way.
 
 use std::os::unix::fs::FileTypeExt;
 use std::process::ExitCode;
@@ -11,6 +12,7 @@ use gs_base::config::Paths;
 use gs_base::{clock, shutdown};
 use gs_server::{data_lock, http};
 use gs_services::App;
+use gs_shell_rpc::{ShellLink, ToShell};
 use tokio::signal::unix::{SignalKind, signal};
 use tower::Layer;
 
@@ -29,6 +31,7 @@ async fn main() -> ExitCode {
 		eprintln!("another godspeed server is using {}", paths.data.display());
 		return ExitCode::FAILURE;
 	};
+	let shell = (std::env::var("LH_SHELL").as_deref() == Ok("1")).then(|| ShellLink::new(std::io::stdout()));
 	let port = http::port();
 	let listener = match tokio::net::TcpListener::bind(("127.0.0.1", port)).await {
 		Ok(l) => l,
@@ -37,23 +40,28 @@ async fn main() -> ExitCode {
 			return ExitCode::FAILURE;
 		}
 	};
+	if let Some(shell) = &shell {
+		shell.send(&ToShell::Ready);
+	}
 	let access = http::access::Access::from_env();
-	let router = http::server(App::new(paths));
+	let router = http::server(App::new(paths, shell.clone()), &access);
 	let service = axum::middleware::from_fn_with_state(access, http::front).layer(router);
-	watch_for_stop();
-	println!("godspeed-server {} on http://127.0.0.1:{port}", gs_base::config::VERSION);
+	watch_for_stop(shell);
+	eprintln!("godspeed-server {} on http://127.0.0.1:{port}", gs_base::config::VERSION);
 	let served = axum::serve(listener, ServiceExt::<Request>::into_make_service(service)).with_graceful_shutdown(shutdown::wait()).await;
 	if let Err(err) = served {
 		eprintln!("{err}");
 		return ExitCode::FAILURE;
 	}
-	ExitCode::SUCCESS
+	// Serving ends only on a stop, which Node answered with 143 too.
+	ExitCode::from(143)
 }
 
-/// SIGTERM or SIGINT stops the server, and so does the end of stdin when stdin is a pipe (the
-/// app holds the other end, so its crash or force-quit ends us too). After the stop, open
-/// requests get FORCE_EXIT_MS, then the process exits with 143 like Node after SIGTERM.
-fn watch_for_stop() {
+/// SIGTERM or SIGINT stops the server, and so does the end of stdin: the shell's stdin pipe
+/// when it started us (its quit, crash or force-quit ends us too, on every OS), else stdin when
+/// it is a pipe. After the stop, open requests get FORCE_EXIT_MS, then the process exits with
+/// 143 like Node after SIGTERM.
+fn watch_for_stop(shell: Option<ShellLink>) {
 	tokio::spawn(async {
 		let (Ok(mut term), Ok(mut int)) = (signal(SignalKind::terminate()), signal(SignalKind::interrupt())) else { return };
 		tokio::select! {
@@ -62,7 +70,12 @@ fn watch_for_stop() {
 		}
 		shutdown::trigger();
 	});
-	if std::fs::metadata("/dev/stdin").is_ok_and(|m| m.file_type().is_fifo()) {
+	if let Some(shell) = shell {
+		std::thread::spawn(move || {
+			shell.listen(std::io::stdin().lock());
+			shutdown::trigger();
+		});
+	} else if std::fs::metadata("/dev/stdin").is_ok_and(|m| m.file_type().is_fifo()) {
 		std::thread::spawn(|| {
 			let _ = std::io::copy(&mut std::io::stdin(), &mut std::io::sink());
 			shutdown::trigger();

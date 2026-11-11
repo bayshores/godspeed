@@ -963,6 +963,7 @@ dependencies = [
  "gs-media",
  "gs-pdf",
  "gs-search",
+ "gs-shell-rpc",
  "gs-store",
  "gs-web",
  "parking_lot",
@@ -1077,6 +1078,7 @@ dependencies = [
  "gs-engine",
  "gs-json",
  "gs-services",
+ "gs-shell-rpc",
  "http-body-util",
  "tokio",
  "tower",
@@ -1096,9 +1098,20 @@ dependencies = [
  "gs-media",
  "gs-pdf",
  "gs-search",
+ "gs-shell-rpc",
  "gs-store",
  "gs-transcribe",
  "parking_lot",
+ "tokio",
+]
+
+[[package]]
+name = "gs-shell-rpc"
+version = "0.0.0"
+dependencies = [
+ "gs-base",
+ "serde",
+ "serde_json",
  "tokio",
 ]
 

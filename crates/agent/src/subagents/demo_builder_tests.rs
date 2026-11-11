@@ -63,7 +63,7 @@ async fn without_a_browser_every_run_fails() {
 	let seen = Arc::new(Mutex::new(Vec::new()));
 	script.reply(calls(&[("write_demo", json!({ "html": "<p>hi</p>" })), ("run_demo", json!({}))]));
 	reply_seeing(&script, says("It works."), &seen);
-	let (opts, lines) = helper_options(&script, get_headless(&Pdf::new(Path::new("/nonexistent"))));
+	let (opts, lines) = helper_options(&script, get_headless(&Pdf::new(Path::new("/nonexistent")), None));
 	let result = run_demo_builder("T", "b", &opts).await;
 	assert_eq!(result["notes"], Json::from(format!("FAILED: final verification crashed: {NO_CHROME_MESSAGE}")));
 	assert_eq!(result_texts(&seen.lock()[0])[1], format!("HEADLESS ERROR (retrying may help): {NO_CHROME_MESSAGE}"));

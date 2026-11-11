@@ -30,10 +30,12 @@ pub struct App {
 	pub cheat_sheets: cheat_sheets::CheatSheetsState,
 	pub graph: graph::GraphState,
 	pub misc: app::MiscState,
+	/// The desktop shell, when it started us (`LH_SHELL=1`): demo checks and window logins go through it.
+	pub shell: Option<gs_shell_rpc::ShellLink>,
 }
 
 impl App {
-	pub fn new(paths: Paths) -> Arc<App> {
+	pub fn new(paths: Paths, shell: Option<gs_shell_rpc::ShellLink>) -> Arc<App> {
 		let events = Events::new();
 		let locks = Locks::new();
 		let stores = Stores::new(&paths, &events, &locks);
@@ -48,6 +50,7 @@ impl App {
 			cheat_sheets: Default::default(),
 			graph: Default::default(),
 			misc: Default::default(),
+			shell,
 			paths,
 			events,
 			locks,
