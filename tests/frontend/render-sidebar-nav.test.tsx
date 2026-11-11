@@ -18,7 +18,7 @@ import { hasUnseenFiles } from "../../src/frontend/components/sidebar/files-seen
 
 const { AppRouterContext } = await import("next/dist/shared/lib/app-router-context.shared-runtime.js");
 
-const cls = (id: string, name: string, archived = false): ClassSummary => ({ id, name, description: "", createdAt: "", updatedAt: "", archived, fileCount: 33 });
+const cls = (id: string, name: string, archived = false): ClassSummary => ({ id, name, description: "", createdAt: "", updatedAt: "", archived, fileCount: 33, color: 1 });
 const CLASSES = [cls("c29", "CSE 29"), cls("c21", "CSE 21"), cls("old", "MATH 18", true)];
 
 function tree(pathname: string, active: string | null = "c29", unseenFiles = false) {

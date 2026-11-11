@@ -28,6 +28,7 @@ import type {
 	DeadlineKind,
 	HomeworkProblem,
 	ClassFile,
+	ClassColor,
 	ClassIcon,
 	ClassNote,
 	ClassRecord,
@@ -152,6 +153,7 @@ export interface ClassPatch {
 	/** null clears it. */
 	signature?: ClassSignature | null;
 	icon?: ClassIcon;
+	color?: ClassColor;
 	note?: ClassNote;
 	/** Replaces the class's rules; [] clears them. */
 	rules?: string[];

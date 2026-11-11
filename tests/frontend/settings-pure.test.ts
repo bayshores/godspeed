@@ -1,6 +1,6 @@
 /**
  * The settings pure layers: the appearance → CSS-variable mapping, the
- * background-derived palette (dark only), the Teaching section's
+ * background-derived palette, the Teaching section's
  * compose helpers (the replace-whole PUT), and the keyboard overrides map.
  */
 
@@ -11,6 +11,7 @@ import {
 	appearanceVars,
 	BACKGROUND_PRESETS,
 	derivedPalette,
+	PAPER,
 	readableBackground,
 	resolveAppearance,
 	staleVarNames,
@@ -31,8 +32,8 @@ describe("resolveAppearance — delta over factory", () => {
 		const a = resolveAppearance(undefined);
 		assert.equal(a.background, null);
 		assert.equal(a.fontFamily, null);
-		assert.equal(a.proseFontSize, 15);
-		assert.deepEqual(a.mdRendering, { headingWeight: 900, boldColor: null, italicColor: null });
+		assert.equal(a.proseFontSize, 17);
+		assert.deepEqual(a.mdRendering, { headingWeight: 600, boldColor: null, italicColor: null });
 	});
 
 	it("explicit deltas win field-by-field", () => {
@@ -79,18 +80,31 @@ describe("derivedPalette — every surface and text color follows the background
 		assert.equal(derivedPalette("#123")["--card"], "#192a3b"); // 11 22 33 each +8
 	});
 
-	it("black's palette is the stylesheet's default", () => {
+	it("Paper is light with ink text and an ink top bar", () => {
+		const p = derivedPalette(PAPER);
+		assert.equal(p["--foreground"], "#24231f");
+		assert.equal(p["--lh-bar"], "#24231f");
+		assert.equal(p["--lh-tint"], "#24231f", "the main button is ink");
+		assert.ok(contrast(p["--lh-bar-ink"]!, p["--lh-bar"]!) >= 7);
+	});
+
+	it("a dark background gets a top bar a step darker than the page", () => {
+		assert.equal(derivedPalette("#1b1b19")["--lh-bar"], "#0f0f0d");
+		assert.equal(derivedPalette("#000000")["--lh-bar"], "#000000");
+	});
+
+	it("Paper's palette is the stylesheet's default", () => {
 		const css = fs.readFileSync("src/app/globals.css", "utf-8");
 		const root = css.slice(css.indexOf(":root {"), css.indexOf("}", css.indexOf(":root {")));
 		const declared = new Map([...root.matchAll(/(--[\w-]+):\s*([^;]+);/g)].map((m) => [m[1]!, m[2]!.trim()]));
 		// The shadcn aliases the stylesheet leaves out fall back on their own; every lh token is declared.
-		const palette = Object.entries(derivedPalette("#000000")).filter(([name]) => name.startsWith("--lh-") || declared.has(name));
+		const palette = Object.entries(derivedPalette(PAPER)).filter(([name]) => name.startsWith("--lh-") || declared.has(name));
 		for (const [name, value] of palette) assert.equal(declared.get(name), value, name);
 	});
 
 	it("on every preset, text reads at 4.5, the status colors read as text and edges show at 3", () => {
 		for (const { name, color } of BACKGROUND_PRESETS) {
-			const p = derivedPalette(color ?? "#000000");
+			const p = derivedPalette(color ?? PAPER);
 			const surfaces = [p["--background"]!, p["--card"]!, p["--accent"]!];
 			const min = (ink: string, on: readonly string[]) => Math.min(...on.map((s) => contrast(ink, s)));
 			for (const level of ["--foreground", "--lh-ink-body", "--muted-foreground"]) {
@@ -131,8 +145,8 @@ describe("readableBackground — a picked color is made dark enough for the app"
 describe("appearanceVars — the mapping the provider applies", () => {
 	it("factory appearance: only the always-applied tokens move", () => {
 		const vars = appearanceVars(resolveAppearance(undefined));
-		assert.equal(vars["--lh-prose-size"], "15px");
-		assert.equal(vars["--lh-heading-weight"], "900");
+		assert.equal(vars["--lh-prose-size"], "17px");
+		assert.equal(vars["--lh-heading-weight"], "600");
 		assert.equal(vars["--font-prose"], undefined, "no font override at factory");
 		assert.equal(vars["--background"], undefined, "factory palette untouched");
 		assert.equal(vars["--lh-ink-strong"], undefined, "default ink");
@@ -149,7 +163,7 @@ describe("appearanceVars — the mapping the provider applies", () => {
 		);
 		assert.equal(vars["--background"], "#101820");
 		assert.equal(vars["--card"], "#182028", "raised +8 per channel: 10→18, 18→20, 20→28");
-		assert.equal(vars["--font-prose"], `"Georgia", var(--font-atkinson), ui-monospace, monospace`);
+		assert.equal(vars["--font-prose"], `"Georgia", var(--font-literata), Georgia, serif`);
 		assert.equal(vars["--lh-prose-size"], "18px");
 		assert.equal(vars["--lh-heading-weight"], "700");
 		assert.equal(vars["--lh-ink-strong"], "#ff8080");
@@ -158,7 +172,8 @@ describe("appearanceVars — the mapping the provider applies", () => {
 
 	it("a bold color that would be hard to read is made readable", () => {
 		const vars = appearanceVars(resolveAppearance({ mdRendering: { boldColor: "#2f5fb3" } }));
-		assert.notEqual(vars["--lh-ink-strong"], "#2f5fb3", "dark blue on black is lightened");
+		assert.notEqual(vars["--lh-ink-strong"], "#2f5fb3", "mid blue on Paper is darkened");
+		assert.ok(contrast(vars["--lh-ink-strong"]!, PAPER) >= 4.5);
 	});
 });
 

@@ -27,17 +27,17 @@ const tabKeys = keymap.of([
 	},
 ]);
 
-/** The same colors as the app's code blocks (Shiki's github-dark). */
+/** The same colors as the app's code blocks (Shiki's GitHub themes). */
 const highlight = HighlightStyle.define([
-	{ tag: [t.keyword, t.controlKeyword, t.operatorKeyword, t.modifier, t.processingInstruction], color: "#ff7b72" },
-	{ tag: [t.string, t.character, t.special(t.string)], color: "#a5d6ff" },
-	{ tag: [t.number, t.bool, t.null, t.atom, t.constant(t.name)], color: "#79c0ff" },
-	{ tag: [t.typeName, t.standard(t.typeName)], color: "#ffa657" },
-	{ tag: [t.function(t.variableName), t.function(t.definition(t.variableName)), t.macroName], color: "#d2a8ff" },
-	{ tag: [t.comment, t.lineComment, t.blockComment], color: "#8b949e" },
+	{ tag: [t.keyword, t.controlKeyword, t.operatorKeyword, t.modifier, t.processingInstruction], color: "var(--lh-code-keyword)" },
+	{ tag: [t.string, t.character, t.special(t.string)], color: "var(--lh-code-string)" },
+	{ tag: [t.number, t.bool, t.null, t.atom, t.constant(t.name)], color: "var(--lh-code-number)" },
+	{ tag: [t.typeName, t.standard(t.typeName)], color: "var(--lh-code-type)" },
+	{ tag: [t.function(t.variableName), t.function(t.definition(t.variableName)), t.macroName], color: "var(--lh-code-function)" },
+	{ tag: [t.comment, t.lineComment, t.blockComment], color: "var(--lh-code-comment)" },
 ]);
 
-/** The app's black field: its surface, ink and mono tokens, square edges. */
+/** The app's field: its surface, ink and mono tokens, square edges. */
 const theme = EditorView.theme(
 	{
 		"&": { backgroundColor: "var(--background)", color: "var(--foreground)", fontSize: "13.5px", maxHeight: "360px" },

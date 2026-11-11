@@ -94,7 +94,7 @@ export const ConversationScrollButton = ({
         <Button
           aria-label="Scroll to the bottom"
           className={cn(
-            "lh-fade absolute bottom-4 left-[50%] translate-x-[-50%] dark:bg-background dark:hover:bg-muted",
+            "lh-fade absolute bottom-4 left-[50%] translate-x-[-50%] bg-background hover:bg-muted",
             className
           )}
           data-state={presence.state}

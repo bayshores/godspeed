@@ -5,12 +5,11 @@
 /*
  * THE SKIN. Design tokens, the single place to restyle the app.
  *
- * Mathematical soundness:
- *   - Tailwind's built-in 0.25rem (4px) spacing scale IS the rhythm — every
- *     padding/margin/gap in the app uses whole units of a 4px base.
- *   - The type scale below is a declared modular ladder (each --text-* token
+ *   - Tailwind's built-in 0.25rem (4px) spacing scale is the rhythm.
+ *   - The type scale below is a declared ladder (each --text-* token
  *     carries its own line-height); components never invent pixel sizes.
- *   - Corners are square: every radius token is 0.
+ *   - Corners are near-square: every radius token is 2px.
+ *   - No heavy interface text: every weight above medium draws as medium.
  *   - Emphasis colors live in tokens (--lh-ink-strong / --lh-ink-italic) so
  *     the appearance settings can reassign them.
  */
@@ -34,121 +33,117 @@
 	outline-offset: 2px;
 }
 
-/* Palette: the OLED-black default — background
-   #000000, panel #080808, tone #161616, tone-2 #2F2F2F. These are exactly
-   derivedPalette("#000000") in src/frontend/components/settings/appearance-model.ts
-   (a test holds them equal), so a background picked in Settings →
-   Appearance moves every surface, text level and status color with it.
-   Text: ink #E6E6E6, ink-2 #8D8D8D, ink-3 #808080 (every text level is at
-   least 4.5:1). The interface is Martian Mono, reading text Atkinson
-   Hyperlegible Mono. */
+/* Palette: Paper, the default: an e-ink page with ink text. These are
+   exactly derivedPalette(PAPER) in
+   src/frontend/components/settings/appearance-model.ts (a test holds them
+   equal). A background picked in Settings, Appearance is dark and moves
+   every surface, text level and status color with it. Every text level is
+   at least 4.5:1. The interface is Zen Kaku Gothic New, reading text
+   Literata, dates and counts DotGothic16. */
 :root {
-	color-scheme: dark;
-	--radius: 0px;
-	--background: #000000;
-	--foreground: #e6e6e6;
-	--card: #080808;
-	--card-foreground: #e6e6e6;
-	--primary: #e6e6e6;
-	--primary-foreground: #000000;
-	--secondary: #080808;
-	--muted: #080808;
-	--muted-foreground: #8d8d8d;
-	--accent: #161616;
-	--accent-foreground: #e6e6e6;
-	--destructive: #ff6467;
-	--border: #2f2f2f;
-	--input: #2f2f2f;
-	--ring: #8d8d8d;
+	color-scheme: light;
+	--radius: 2px;
+	--background: #c9c7bd;
+	--foreground: #24231f;
+	--card: #d7d5cb;
+	--card-foreground: #24231f;
+	--primary: #24231f;
+	--primary-foreground: #c9c7bd;
+	--secondary: #d7d5cb;
+	--muted: #d7d5cb;
+	--muted-foreground: #4f4d45;
+	--accent: #cfcdc3;
+	--accent-foreground: #24231f;
+	--destructive: #78433c;
+	--border: #a9a79d;
+	--input: #a9a79d;
+	--ring: #4f4d45;
 	/* Field borders and empty bars: the quietest line that still shows (3:1). */
-	--lh-edge: #5d5d5d;
-	/* The tooltip box: background +20 on the dark curve. */
-	--lh-tip: #141414;
-	/* A hovered row in a pop-up: background +39. */
-	--lh-tip-hover: #272727;
-	/* The app's only colors: right / wrong, the confidence ramp (levels
-	   1–5) and the topic ramp (wrong → right). Light backgrounds darken
-	   them, so each reads as text and carries text-background as a fill. */
-	--lh-ans-right: #10b981;
-	--lh-ans-wrong: #ef4444;
-	--lh-conf-1: #ef4444;
-	--lh-conf-2: #f97316;
-	--lh-conf-3: #eab308;
-	--lh-conf-4: #84cc16;
-	--lh-conf-5: #10b981;
-	--lh-ramp-1: #f2545b;
-	--lh-ramp-2: #f59e4c;
-	--lh-ramp-3: #e8c547;
-	--lh-ramp-4: #9bd35a;
-	--lh-ramp-5: #3dd68c;
-	/* Emphasis inks default to the REGULAR TEXT COLOR. Explicit overrides
+	--lh-edge: #6d6b62;
+	/* A pop-up's box, and a hovered row in it. */
+	--lh-tip: #dddbd1;
+	--lh-tip-hover: #cfcdc3;
+	/* The top bar and the text on it. */
+	--lh-bar: #24231f;
+	--lh-bar-ink: #d7d5cb;
+	/* The highlighter: a picked option, today's date. */
+	--lh-highlight: #d8cb8e;
+	/* Status colors: right / wrong, the confidence ramp (levels 1 to 5) and
+	   the topic ramp (wrong to right). Each reads as text and carries
+	   text-background as a fill. */
+	--lh-ans-right: #3f5948;
+	--lh-ans-wrong: #78433c;
+	--lh-conf-1: #78433c;
+	--lh-conf-2: #6c4a2f;
+	--lh-conf-3: #5f5229;
+	--lh-conf-4: #52553a;
+	--lh-conf-5: #3f5948;
+	--lh-ramp-1: #78433c;
+	--lh-ramp-2: #6c4a2f;
+	--lh-ramp-3: #5f5229;
+	--lh-ramp-4: #52553a;
+	--lh-ramp-5: #3f5948;
+	/* The eight class colors, the same on every background, and the ink
+	   that sits on them. */
+	--lh-class-1: #6f8da6;
+	--lh-class-2: #957b94;
+	--lh-class-3: #6f9a7e;
+	--lh-class-4: #b3665c;
+	--lh-class-5: #c2aa5c;
+	--lh-class-6: #6e9c9a;
+	--lh-class-7: #8e9467;
+	--lh-class-8: #a9836a;
+	--lh-on-class: #24231f;
+	/* The code editor's syntax colors (Shiki's github-light; .dark below
+	   swaps in github-dark, as the code blocks do). */
+	--lh-code-keyword: #b31d28;
+	--lh-code-string: #032f62;
+	--lh-code-number: #005cc5;
+	--lh-code-type: #8a3b00;
+	--lh-code-function: #5a32a3;
+	--lh-code-comment: #4f4d45;
+	/* Emphasis inks default to the regular text color. Explicit overrides
 	   land via the appearance settings vars. */
 	--lh-ink-strong: var(--foreground);
 	--lh-ink-italic: var(--foreground);
-	/* THE READING SIZE = the ladder's 15px rung (--text-lg). Can't be
-	   var()-linked: @theme inline inlines literals into utilities without
-	   emitting runtime vars — so this is the one documented duplication:
-	   change one, change both. */
-	--lh-prose-size: 15px;
+	/* The reading size (Settings, Appearance sets it at runtime). */
+	--lh-prose-size: 17px;
 	--lh-prose-leading: 1.65;
 	/* Lesson text sits a step below the text color so bold and italic
 	   (which stay at the full text color) stand out. */
-	--lh-ink-body: #cfcfcf;
-	/* Bold words in lesson text sit on a flat block in the border color. */
-	--lh-mark-bg: var(--border);
-	/* Markdown heading weight (appearance settings; 900 = the Black cut). */
-	--lh-heading-weight: 900;
+	--lh-ink-body: #33322c;
+	/* Bold words in lesson text sit on a highlighter block. */
+	--lh-mark-bg: var(--lh-highlight);
+	/* Markdown heading weight (appearance settings). */
+	--lh-heading-weight: 600;
 	/* The quietest text (labels, finished lessons, hints). */
-	--lh-ink-3: #808080;
-	/* The strongest ink: hover brightening, focus edges, graph strokes. */
-	--lh-ink-max: #ffffff;
-	/* The one accent: a pale tint of the background's hue (active pane,
-	   selected row, main button). Gray on Black. */
-	--lh-tint: #dedede;
+	--lh-ink-3: #535149;
+	/* The strongest ink: hover darkening, focus edges, graph strokes. */
+	--lh-ink-max: #000000;
+	/* The one accent (selected row, main button): ink on Paper, a pale
+	   tint of the background's hue on a dark background. */
+	--lh-tint: #24231f;
 }
 
-/* The app is always dark (<html class="dark">); mirror the same values so
-   the block stays coherent under Tailwind's variant. */
+/* A dark background (Settings, Appearance) sets its palette on <html>. */
 .dark {
-	--background: #000000;
-	--foreground: #e6e6e6;
-	--card: #080808;
-	--card-foreground: #e6e6e6;
-	--primary: #e6e6e6;
-	--primary-foreground: #000000;
-	--secondary: #080808;
-	--muted: #080808;
-	--muted-foreground: #8d8d8d;
-	--accent: #161616;
-	--accent-foreground: #e6e6e6;
-	--destructive: #ff6467;
-	--border: #2f2f2f;
-	--input: #2f2f2f;
-	--ring: #8d8d8d;
-	/* The tooltip box: background +20 on the dark curve. */
-	--lh-tip: #141414;
-	/* Same emphasis default as the block above: unset = text color. */
-	--lh-ink-strong: var(--foreground);
-	--lh-ink-italic: var(--foreground);
-	/* THE READING SIZE = the ladder's 15px rung (--text-lg). Can't be
-	   var()-linked: @theme inline inlines literals into utilities without
-	   emitting runtime vars — so this is the one documented duplication:
-	   change one, change both. */
-	--lh-prose-size: 15px;
-	--lh-prose-leading: 1.65;
-	--lh-ink-body: #cfcfcf;
-	--lh-mark-bg: var(--border);
-	/* Markdown heading weight (appearance settings; 900 = the Black cut). */
-	--lh-heading-weight: 900;
+	color-scheme: dark;
+	--lh-code-keyword: #ff7b72;
+	--lh-code-string: #a5d6ff;
+	--lh-code-number: #79c0ff;
+	--lh-code-type: #ffa657;
+	--lh-code-function: #d2a8ff;
+	--lh-code-comment: #8b949e;
 }
 
-/* Pop-ups (menus, the teacher's bubble, notices) are solid boxes with a
-   1px rule, like the rest of the app: no blur, no shadow. Rows that hover
-   with bg-tone get a tone that still shows on the box. */
+/* Pop-ups (menus, the teacher's bubble, notices) are solid sheets with a
+   2px ink outline: no blur, no shadow. Rows that hover with bg-tone get a
+   tone that still shows on the box. */
 .lh-popup {
 	--accent: var(--lh-tip-hover);
 	background-color: var(--lh-tip);
-	border: 1px solid var(--border);
+	border: 2px solid var(--foreground);
+	border-radius: 2px;
 }
 
 /* A right-edge panel slides in (the teacher's panel, the graph's panel). */
@@ -168,44 +163,46 @@
 }
 
 @theme inline {
-	/* Fonts: the interface is Martian Mono, reading text Atkinson
-	   Hyperlegible Mono (the Appearance reading font overrides
-	   --font-prose at runtime). Both attach in src/app/layout.tsx.
-	   font-mono and font-sans point at the interface font too, so
-	   streamdown's chrome never falls to a system font. The ladder below
-	   is sized for mono, which reads wider than a sans at the same px;
-	   reading prose is the 15px rung via --lh-prose-size. */
-	--font-ui: var(--font-martian), ui-monospace, monospace;
-	--font-prose: var(--font-atkinson), ui-monospace, monospace;
-	--font-mono: var(--font-martian), ui-monospace, monospace;
-	--font-sans: var(--font-martian), ui-monospace, monospace;
+	/* Fonts: the interface is Zen Kaku Gothic New, reading text Literata
+	   (the Appearance reading font overrides --font-prose at runtime),
+	   dates and counts DotGothic16 (font-count). All attach in
+	   src/app/layout.tsx. Code stays in the system's monospace. */
+	--font-ui: var(--font-zen), system-ui, sans-serif;
+	--font-prose: var(--font-literata), Georgia, serif;
+	--font-count: var(--font-dot), ui-monospace, monospace;
+	--font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+	--font-sans: var(--font-zen), system-ui, sans-serif;
 	--text-xs: 12px;
 	--text-xs--line-height: 1.5;
-	--text-sm: 12.5px;
+	--text-sm: 13px;
 	--text-sm--line-height: 1.5;
-	--text-base: 13px;
+	--text-base: 14px;
 	--text-base--line-height: 1.55;
-	--text-lg: 15px;
-	--text-lg--line-height: 1.55;
-	--text-xl: 18px;
+	--text-lg: 16px;
+	--text-lg--line-height: 1.5;
+	--text-xl: 20px;
 	--text-xl--line-height: 1.4;
-	--text-2xl: 22px;
+	--text-2xl: 26px;
 	--text-2xl--line-height: 1.3;
-	--text-3xl: 28px;
-	--text-3xl--line-height: 1.25;
-	/* Square corners everywhere: every radius rung
-	   is 0, so rounded / rounded-sm … rounded-4xl all draw square.
-	   rounded-full stays round — it is kept only for real circles (dots,
-	   spinners, switch knobs). */
-	--radius-xs: 0px;
-	--radius-sm: 0px;
-	--radius-md: 0px;
-	--radius-lg: 0px;
-	--radius-xl: 0px;
-	--radius-2xl: 0px;
-	--radius-3xl: 0px;
-	--radius-4xl: 0px;
-	--radius: 0px;
+	--text-3xl: 34px;
+	--text-3xl--line-height: 1.2;
+	/* No heavy interface text: the interface font is loaded at regular and
+	   medium only, so every heavier rung draws as medium. */
+	--font-weight-semibold: 500;
+	--font-weight-bold: 500;
+	--font-weight-extrabold: 500;
+	--font-weight-black: 500;
+	/* Near-square corners everywhere. rounded-full stays round, for real
+	   circles (dots, spinners, switch knobs). */
+	--radius-xs: 2px;
+	--radius-sm: 2px;
+	--radius-md: 2px;
+	--radius-lg: 2px;
+	--radius-xl: 2px;
+	--radius-2xl: 2px;
+	--radius-3xl: 2px;
+	--radius-4xl: 2px;
+	--radius: 2px;
 	--color-background: var(--background);
 	--color-foreground: var(--foreground);
 	--color-card: var(--card);
@@ -221,10 +218,10 @@
 	--color-border: var(--border);
 	--color-input: var(--input);
 	--color-ring: var(--ring);
-	/* Surface + text tokens. The surfaces read the
-	   derived palette, so Settings → Appearance still moves them:
-	   bg-panel (cards, the class switcher), bg-tone (buttons, active rows),
-	   bg-tone-2 (edges, empty bars), bg-tip (tooltips). */
+	/* Surface + text tokens. The surfaces read the derived palette, so
+	   Settings, Appearance moves them: bg-panel (sheets), bg-tone (hovered
+	   and active rows), bg-tone-2 (thin lines, empty bars), bg-tip
+	   (pop-ups), bg-bar (the top bar), bg-highlight. */
 	--color-panel: var(--card);
 	--color-tone: var(--accent);
 	--color-tone-2: var(--border);
@@ -235,13 +232,16 @@
 	--color-ink-max: var(--lh-ink-max);
 	--color-edge: var(--lh-edge);
 	--color-tint: var(--lh-tint);
+	--color-bar: var(--lh-bar);
+	--color-bar-ink: var(--lh-bar-ink);
+	--color-highlight: var(--lh-highlight);
+	--color-on-class: var(--lh-on-class);
 	/* Right / wrong / didn't know. The confidence and topic ramps are read
 	   as var(--lh-conf-N) and var(--lh-ramp-N). */
 	--color-ans-right: var(--lh-ans-right);
 	--color-ans-wrong: var(--lh-ans-wrong);
-	--color-ans-dontknow: #5a5a5a;
-	/* A hovered red button or link: a step toward the strongest ink, so it
-	   gains contrast on dark and light backgrounds alike. */
+	--color-ans-dontknow: var(--lh-edge);
+	/* A hovered red button or link: a step toward the strongest ink. */
 	--color-ans-wrong-hover: color-mix(in oklab, var(--lh-ans-wrong) 80%, var(--lh-ink-max));
 }
 
@@ -267,7 +267,7 @@ body {
 
 .lh-prose :where(strong, b) {
 	color: var(--lh-ink-strong);
-	font-weight: 700;
+	font-weight: 600;
 }
 
 /* Shaded block: bold words in lesson
@@ -299,7 +299,7 @@ body {
    font-semibold 600; the font draws its nearest weight. Unlayered CSS
    beats the utility layer; :where keeps specificity zero. */
 .lh-prose :where(h1, h2, h3, h4, h5, h6) {
-	font-weight: var(--lh-heading-weight, 900);
+	font-weight: var(--lh-heading-weight, 600);
 }
 
 
@@ -316,43 +316,58 @@ body {
 	line-height: 1.25;
 }
 
-/* Soft-fill buttons: a solid block a step above the background, rounded.
-   The fill mixes from the theme's colors so Appearance moves it too.
-   .lh-btn-main is the one light action of a view. */
+/* Buttons: a 2px-cornered box with a thin ink outline. .lh-btn-main is
+   the one filled action of a view; .lh-btn-quiet is a plain word. */
 .lh-btn {
 	display: inline-flex;
 	align-items: center;
-	gap: 1ch;
-	height: 30px;
-	padding: 0 12px;
-	border-radius: 6px;
-	background: color-mix(in oklab, var(--foreground) 18%, var(--background));
+	gap: 8px;
+	height: 32px;
+	padding: 0 14px;
+	border-radius: 2px;
+	border: 1.5px solid var(--foreground);
+	background: transparent;
 	font-family: var(--font-ui);
-	font-size: 13px;
+	font-size: 14px;
+	font-weight: 500;
 	line-height: 1;
 	white-space: nowrap;
-	text-transform: lowercase;
 	color: var(--foreground);
 	transition: background-color var(--lh-dur-fast) var(--lh-ease-out);
 }
 .lh-btn:hover {
-	background: color-mix(in oklab, var(--foreground) 26%, var(--background));
+	background: color-mix(in oklab, var(--foreground) 10%, transparent);
 }
 .lh-btn:disabled {
 	opacity: 0.5;
 	pointer-events: none;
 }
-/* A button that deletes or removes: the soft fill with red text. */
+/* A button that deletes or removes: red text and outline. */
 .lh-btn-danger {
+	border-color: var(--color-ans-wrong);
 	color: var(--color-ans-wrong);
 }
 .lh-btn-main {
+	border-color: var(--lh-tint);
 	background: var(--lh-tint);
 	color: var(--background);
-	font-weight: 700;
 }
 .lh-btn-main:hover {
-	background: color-mix(in oklab, var(--lh-tint) 82%, white);
+	background: color-mix(in oklab, var(--lh-tint) 86%, var(--background));
+}
+.lh-btn-quiet {
+	border-color: transparent;
+	padding: 0 6px;
+	color: var(--muted-foreground);
+}
+.lh-btn-quiet:hover {
+	color: var(--foreground);
+}
+
+/* The page under everything: paper with a faint dot grid. */
+.lh-dots {
+	background-image: radial-gradient(color-mix(in oklab, var(--foreground) 16%, transparent) 1px, transparent 1px);
+	background-size: 16px 16px;
 }
 
 /* A box whose text fades out over its top and bottom 12px, so scrolled
@@ -378,7 +393,7 @@ body {
 	background: var(--lh-tint);
 }
 
-/* Thin dark native scrollbar (app-wide): dark thumb, transparent track. */
+/* Thin native scrollbar (app-wide): a quiet thumb, transparent track. */
 * {
 	scrollbar-width: thin;
 	scrollbar-color: var(--color-border) transparent;
@@ -451,13 +466,11 @@ body {
  * unlayered author CSS wins regardless of order).
  * ============================================================ */
 
-/* Code blocks: no header bar — one quiet rounded tint so code reads as a
-   unit. The tint is DARKER than the page (a lighter tint reads as
-   raised) plus a subtle hairline outline. (md-blocks renders its own
-   hover copy corner.) */
+/* Code blocks: no header bar, one quiet tint a step darker than the page
+   with a thin outline. (md-blocks renders its own hover copy corner.) */
 [data-streamdown="code-block"] {
 	border: 1px solid var(--border);
-	background: color-mix(in oklab, var(--background) 86%, black);
+	background: color-mix(in oklab, var(--background) 92%, black);
 	padding: 0.375rem;
 }
 [data-streamdown="code-block-header"] {
@@ -1156,14 +1169,9 @@ body {
 
 
 /* ─────────────────────────────────────────────────────────────────────────
-   TERMINAL MOTION: fast and stepped, like a terminal redrawing. Nothing
+   STEPPED MOTION: fast and stepped, like an e-ink page redrawing. Nothing
    floats or glows. Reduce motion (the OS setting) turns all of it off.
 
-   - .lh-pane          a pane's border traces around from its name, then
-                       its contents reveal top to bottom (--lh-pane-delay
-                       staggers panes that appear together);
-   - html[data-lh-hold] holds every pane's draw-in while the welcome
-                       screen covers the app; it plays when the screen goes;
    - .lh-hover-bar     the highlight that slides to the hovered row;
    - .lh-px-in         a countdown pixel that lights in;
    - .lh-block-in      a bar block or fact square that steps in
@@ -1172,27 +1180,6 @@ body {
    - .lh-flash-right/-wrong  a checked answer's card flips to inverse green
                        or red for a beat, then settles;
    - the streaming block cursor blinks. */
-@property --lh-trace {
-	syntax: "<angle>";
-	inherits: false;
-	initial-value: 360deg;
-}
-@keyframes lh-trace {
-	from {
-		--lh-trace: 0deg;
-	}
-	to {
-		--lh-trace: 360deg;
-	}
-}
-@keyframes lh-reveal-down {
-	from {
-		clip-path: inset(0 0 100% 0);
-	}
-	to {
-		clip-path: inset(0 0 0 0);
-	}
-}
 @keyframes lh-appear {
 	from {
 		opacity: 0;
@@ -1200,32 +1187,6 @@ body {
 	to {
 		opacity: 1;
 	}
-}
-.lh-pane::before {
-	content: "";
-	position: absolute;
-	/* Above the contents: a full-width bar inside (an action bar) must not
-	   paint over the border once an animation lifts it. */
-	z-index: 1;
-	inset: -1px;
-	border: 1px solid var(--border);
-	pointer-events: none;
-	/* The trace starts at the top-left corner, where the name sits. */
-	mask: conic-gradient(from -60deg, #000 var(--lh-trace), transparent 0);
-	animation: lh-trace 180ms steps(12, end) var(--lh-pane-delay, 0ms) backwards;
-}
-.lh-pane[data-active]::before {
-	border-color: var(--lh-tint);
-}
-.lh-pane > h2 {
-	animation: lh-appear 1ms var(--lh-pane-delay, 0ms) backwards;
-}
-.lh-pane > :not(h2) {
-	animation: lh-reveal-down 220ms steps(8, end) calc(var(--lh-pane-delay, 0ms) + 120ms) backwards;
-}
-html[data-lh-hold] .lh-pane::before,
-html[data-lh-hold] .lh-pane > * {
-	animation-play-state: paused;
 }
 
 .lh-hover-bar {
@@ -1289,8 +1250,6 @@ html[data-lh-hold] .lh-pane > * {
 }
 
 @media (prefers-reduced-motion: reduce) {
-	.lh-pane::before,
-	.lh-pane > *,
 	.lh-px-in,
 	.lh-block-in,
 	.lh-push,

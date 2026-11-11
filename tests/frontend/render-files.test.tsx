@@ -55,6 +55,7 @@ const RECORD: ClassRecord = {
 	id: "cls_a",
 	name: "CSE 21",
 	description: "",
+	color: 1,
 	createdAt: "",
 	updatedAt: "",
 	archived: false,

@@ -67,13 +67,13 @@ test("chats: a NEWER-stamped record is refused honestly (the downgrade scenario)
 	assert.equal(onDisk.version, 99, "the future record survives untouched");
 });
 
-// ── classes: version 7 since homework problems (v6 removed files, v5 rules, v4 signature + note, v3 deadlines, v2 exams)
+// ── classes: version 8 since class colors (v7 homework problems, v6 removed files, v5 rules, v4 signature + note, v3 deadlines, v2 exams)
 
-test("classes: writes stamp version 7; older records still read; a newer one is refused", () => {
+test("classes: writes stamp version 8; older records still read; a newer one is refused", () => {
 	const r = classStore.createClass({ name: "stamp class" });
-	assert.equal(r.version, 7);
+	assert.equal(r.version, 8);
 	const file = path.join(TMP_DATA, "classes", r.id, "class.json");
-	assert.equal(JSON.parse(fs.readFileSync(file, "utf8")).version, 7);
+	assert.equal(JSON.parse(fs.readFileSync(file, "utf8")).version, 8);
 	const raw = JSON.parse(fs.readFileSync(file, "utf8"));
 	fs.writeFileSync(file, JSON.stringify({ ...raw, version: 1 }), "utf-8");
 	assert.equal(classStore.getClass(r.id)?.version, 1, "v1 reads as-is (no deadlines)");
@@ -89,9 +89,11 @@ test("classes: writes stamp version 7; older records still read; a newer one is 
 	assert.equal(classStore.getClass(r.id)?.version, 5, "v5 reads (no removed files)");
 	fs.writeFileSync(file, JSON.stringify({ ...raw, version: 6 }), "utf-8");
 	assert.equal(classStore.getClass(r.id)?.version, 6, "v6 reads (no homework problems)");
-	fs.writeFileSync(file, JSON.stringify({ ...raw, version: 8 }), "utf-8");
+	fs.writeFileSync(file, JSON.stringify({ ...raw, version: 7 }), "utf-8");
+	assert.equal(classStore.getClass(r.id)?.version, 7, "v7 reads");
+	fs.writeFileSync(file, JSON.stringify({ ...raw, version: 9 }), "utf-8");
 	assert.equal(classStore.getClass(r.id), null, "a newer build's record is refused");
-	assert.equal(JSON.parse(fs.readFileSync(file, "utf8")).version, 8, "and left untouched");
+	assert.equal(JSON.parse(fs.readFileSync(file, "utf8")).version, 9, "and left untouched");
 });
 
 // ── the graph family: the lazy format.json sidecar ──────────────────────────

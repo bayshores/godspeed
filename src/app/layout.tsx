@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import type { ClassSummary } from "@/shared/core";
-import { Atkinson_Hyperlegible_Mono, Martian_Mono } from "next/font/google";
+import type { AppearanceSettings, ClassSummary } from "@/shared/core";
+import { DotGothic16, Literata, Zen_Kaku_Gothic_New } from "next/font/google";
 import "katex/dist/katex.min.css";
 import "./globals.css";
 import { SidebarProvider } from "@/frontend/components/sidebar";
@@ -9,6 +9,7 @@ import { ActivityProvider } from "@/frontend/components/activity-dock";
 import { ServerEventsProvider } from "@/frontend/components/server-events";
 import { AgentStatusProvider } from "@/frontend/components/agent-status";
 import { AppearanceProvider } from "@/frontend/components/settings/appearance";
+import { appearanceVars, resolveAppearance } from "@/frontend/components/settings/appearance-model";
 import UpdateBanner from "@/frontend/components/update-banner";
 import { ClassProvider } from "@/frontend/components/class-context";
 import { SoundProvider } from "@/frontend/components/sounds";
@@ -22,10 +23,11 @@ import { WhatsNew } from "@/frontend/components/whats-new";
 import { FolderNotice } from "@/frontend/components/agent-folder/folder-notice";
 import { OldSetupNotice } from "@/frontend/components/agent-folder/old-setup";
 
-// The interface is Martian Mono, reading text Atkinson Hyperlegible Mono.
-// next/font bundles both at build time, so they work offline.
-const ui = Martian_Mono({ subsets: ["latin"], variable: "--font-martian" });
-const prose = Atkinson_Hyperlegible_Mono({ subsets: ["latin"], variable: "--font-atkinson" });
+// The interface is Zen Kaku Gothic New, reading text Literata, dates and
+// counts DotGothic16. next/font bundles them at build time, so they work offline.
+const ui = Zen_Kaku_Gothic_New({ subsets: ["latin"], weight: ["400", "500"], variable: "--font-zen" });
+const prose = Literata({ subsets: ["latin"], style: ["normal", "italic"], variable: "--font-literata" });
+const count = DotGothic16({ subsets: ["latin"], weight: "400", variable: "--font-dot" });
 
 // Request-time render: the active class is read
 // from the live settings record on every load, never baked in at build.
@@ -46,6 +48,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 	// Halley's name (Settings → General), so the first paint has it.
 	let teacherName: string | undefined;
 	let soundsOn = true;
+	// The saved look, so the first paint already has its colors.
+	let appearance: AppearanceSettings | undefined;
 	// First launch: the onboarding replaces the app
 	// shell until it is finished. Deciding also makes the outside-agent
 	// access token (always on), so the godspeed folder's connector can find it.
@@ -78,7 +82,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 	const firstLoad = firstLoadScreen();
 	const welcome = firstLoad === "welcome" && !onboarding;
 	try {
-		const general = readSettingsRecord()?.general;
+		const record = readSettingsRecord();
+		const general = record?.general;
+		appearance = record?.appearance;
 		const raw = general?.activeClass;
 		// A class deleted behind the app's back falls back to No class.
 		initialActive = raw && raw !== "none" && classStore.getClass(raw) ? raw : null;
@@ -88,15 +94,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 	} catch {
 		/* unreadable settings: No class */
 	}
+	const look = resolveAppearance(appearance);
 	return (
-		<html lang="en" className={`dark ${ui.variable} ${prose.variable}`} data-lh-hold={welcome ? "" : undefined}>
+		<html
+			lang="en"
+			className={`${look.background === null ? "" : "dark "}${ui.variable} ${prose.variable} ${count.variable}`}
+			style={appearanceVars(look) as React.CSSProperties}
+		>
 			<body className="min-h-dvh antialiased">
 			{/* The notification channel rides OUTSIDE everything: sidebar, dock,
 				 and pages all subscribe. */}
 			<ServerEventsProvider>
 				<AgentStatusProvider>
 				<ClassProvider initialActive={initialActive} initialClasses={initialClasses}>
-				<AppearanceProvider>
+				<AppearanceProvider initial={appearance}>
 					<SidebarProvider>
 						<ActivityProvider>
 						<SoundProvider initialOn={soundsOn}>

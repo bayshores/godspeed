@@ -11,7 +11,7 @@ import { useEffect, useRef, useState } from "react";
 import { fuzzyScore } from "@/shared/core";
 
 /** The factory reading family (unset = this). */
-export const DEFAULT_READING_FONT = "Atkinson Hyperlegible Mono";
+export const DEFAULT_READING_FONT = "Literata";
 
 /** The menu's rows. The DEFAULT row (null) is searched like any family
  *  (it matches "source", "sans" and "default"), so Enter can never pick a

@@ -208,6 +208,28 @@ export function isClassIcon(name: unknown): name is ClassIcon {
 	return typeof name === "string" && Object.hasOwn(CLASS_ICONS, name);
 }
 
+/** How many class colors there are (--lh-class-1 to --lh-class-8). */
+const CLASS_COLOR_COUNT = 8;
+
+/** A class's color: 1 to CLASS_COLOR_COUNT. */
+export type ClassColor = number;
+
+export function isClassColor(color: unknown): color is ClassColor {
+	return typeof color === "number" && Number.isInteger(color) && color >= 1 && color <= CLASS_COLOR_COUNT;
+}
+
+/** The color a new class takes: the one the fewest classes wear, lowest
+ *  number first. */
+export function nextClassColor(taken: readonly ClassColor[]): ClassColor {
+	let best = 1;
+	let fewest = Infinity;
+	for (let color = 1; color <= CLASS_COLOR_COUNT; color++) {
+		const uses = taken.filter((t) => t === color).length;
+		if (uses < fewest) [best, fewest] = [color, uses];
+	}
+	return best;
+}
+
 /** Halley's note on the cover: the teacher's two sentences on where the
  *  learner stands in the class and what's next (set_class_note). */
 export interface ClassNote {
@@ -254,6 +276,7 @@ export interface ClassRecord {
 	deadlines?: ClassDeadline[];
 	signature?: ClassSignature;
 	icon?: ClassIcon;
+	color: ClassColor;
 	note?: ClassNote;
 	/** The learner's rules for lessons in this class (absent = none). */
 	rules?: string[];
@@ -270,8 +293,9 @@ export interface ClassRecord {
  *  v4: adds `signature` and `note`.
  *  v5: adds `rules`.
  *  v6: adds `removedFiles`.
- *  v7: deadlines add `assignmentFileId` and `problems`. */
-export const CURRENT_CLASS_VERSION = 7;
+ *  v7: deadlines add `assignmentFileId` and `problems`.
+ *  v8: adds `color`. */
+export const CURRENT_CLASS_VERSION = 8;
 
 /** Why a deadline write was refused (the store's validation; the server
  *  maps it to a 400 / 404 with this message). */
@@ -331,6 +355,7 @@ export interface ClassSummary {
 	lastFolderFileAt?: string;
 	signature?: ClassSignature;
 	icon?: ClassIcon;
+	color: ClassColor;
 	note?: ClassNote;
 }
 

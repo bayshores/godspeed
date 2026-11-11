@@ -37,6 +37,7 @@ const cls = (id: string, extra: Partial<ClassSummary>): ClassSummary => ({
 	updatedAt: ago(1),
 	archived: false,
 	fileCount: 3,
+	color: 1,
 	...extra,
 });
 

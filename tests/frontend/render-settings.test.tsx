@@ -143,15 +143,14 @@ describe("GeneralSection (SSR)", () => {
 });
 
 describe("AppearanceSection (SSR)", () => {
-	it("the background presets plus Custom, with Black picked at factory", () => {
+	it("the background presets plus Custom, with Paper picked at factory", () => {
 		const html = renderToStaticMarkup(<AppearanceSection appearance={undefined} onSectionChange={() => {}} />);
-		for (const id of ["black", "graphite", "midnight", "forest", "custom"]) {
+		for (const id of ["paper", "night", "black", "graphite", "midnight", "forest", "custom"]) {
 			assert.ok(html.includes(`data-testid="theme-${id}"`), id);
 		}
-		assert.ok(tagOf(html, "theme-black").includes('aria-pressed="true"'));
+		assert.ok(tagOf(html, "theme-paper").includes('aria-pressed="true"'));
 		assert.ok(html.includes('data-testid="font-trigger"'));
-		assert.ok(!html.includes('data-testid="theme-paper"') && !html.includes('data-testid="theme-white"'), "dark only");
-		assert.ok(tagOf(html, "slider-text-size").includes('value="15"'));
+		assert.ok(tagOf(html, "slider-text-size").includes('value="17"'));
 		assert.ok(html.includes('data-testid="appearance-preview"'));
 	});
 

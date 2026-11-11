@@ -11,7 +11,7 @@ import type { AppearanceSettings } from "@/shared/core";
 import { MenuShell } from "@/frontend/components/menu-shell";
 import { cn } from "@/frontend/lib/utils";
 import { useAppearance } from "./appearance.tsx";
-import { BACKGROUND_PRESETS, HEADING_WEIGHTS, INK_PRESETS, derivedPalette, readableBackground } from "./appearance-model.ts";
+import { BACKGROUND_PRESETS, HEADING_WEIGHTS, INK_PRESETS, PAPER, derivedPalette, readableBackground } from "./appearance-model.ts";
 import { DEFAULT_READING_FONT, FontMenuList } from "./font-menu";
 import { SettingsGroup, Slider } from "./controls.tsx";
 import { LABEL_TEXT } from "@/frontend/components/ui/label-text";
@@ -49,7 +49,7 @@ export function AppearanceSection({
 	const { appearance: resolved } = useAppearance();
 	const md = appearance?.mdRendering;
 	const background = appearance?.background ?? null;
-	const shownBackground = background ?? "#000000";
+	const shownBackground = background ?? PAPER;
 	const isPreset = BACKGROUND_PRESETS.some((p) => p.color === background);
 	const weightIndex = Math.max(0, HEADING_WEIGHTS.findIndex((w) => w.weight >= resolved.mdRendering.headingWeight));
 	const ink = md?.boldColor ?? null;
@@ -60,12 +60,12 @@ export function AppearanceSection({
 	return (
 		<>
 			<SettingsGroup label="Background" testid="group-background">
-				<div className="grid grid-cols-5 gap-2.5">
+				<div className="grid grid-cols-7 gap-2.5">
 					{BACKGROUND_PRESETS.map((preset) => (
 						<ThemeTile
 							key={preset.name}
 							name={preset.name}
-							color={preset.color ?? "#000000"}
+							color={preset.color ?? PAPER}
 							on={preset.color === background}
 							onPick={() => onSectionChange({ ...appearance, background: preset.color })}
 						/>
@@ -122,7 +122,7 @@ export function AppearanceSection({
 					</Control>
 					<Control label="Bold and italic color">
 						<div className="flex items-center gap-1.5">
-							<InkSwatch color={derivedPalette(readableBackground(shownBackground))["--foreground"]!} label="Same as text" on={ink === null} onPick={() => setInk(null)} />
+							<InkSwatch color={derivedPalette(background === null ? PAPER : readableBackground(background))["--foreground"]!} label="Same as text" on={ink === null} onPick={() => setInk(null)} />
 							{INK_PRESETS.map((c) => (
 								<InkSwatch key={c} color={c} label={c} on={ink === c} onPick={() => setInk(c)} />
 							))}

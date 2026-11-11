@@ -26,10 +26,10 @@ const PAD_X = 16;
 export const NODE_W_MIN = 96;
 export const NODE_H = 44;
 
-/** One character's width at text-xs (12px) in the reading font, which is
- *  monospace: Atkinson Hyperlegible Mono advances 0.632em. A different
- *  reading font (Appearance) drifts the estimate slightly; accepted. */
-const CHAR_W = 12 * 0.632;
+/** One character's width at text-xs (12px) in the reading font: Literata
+ *  averages about 0.55em. A different reading font (Appearance) drifts the
+ *  estimate slightly; accepted. */
+const CHAR_W = 12 * 0.55;
 
 /** Estimated rendered width (px) of one line at text-xs. Pure. */
 export function estimateLineWidth(line: string): number {

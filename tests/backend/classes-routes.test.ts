@@ -128,6 +128,16 @@ describe("class icon route", () => {
 	});
 });
 
+describe("class color route", () => {
+	it("sets a color from 1 to 8 and refuses any other", async () => {
+		const id = await makeClass("CSE 30");
+		const set = await classRoute.PUT(json(`/api/classes/${id}`, "PUT", { color: 6 }), ctx({ id }));
+		assert.equal((await set.json()).class.color, 6);
+		const bad = await classRoute.PUT(json(`/api/classes/${id}`, "PUT", { color: 9 }), ctx({ id }));
+		assert.equal(bad.status, 400);
+	});
+});
+
 describe("deadline routes", () => {
 	it("lists, adds, edits and removes deadlines; refuses bad input", async () => {
 		const id = await makeClass("CSE 21");

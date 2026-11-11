@@ -18,18 +18,20 @@ import { emit } from "../../shared/core/events.ts";
 import { isRecentChange } from "../../shared/core/new-files.ts";
 import { sanitizeRules } from "../../shared/core/teaching-areas.ts";
 import type { ClassPatch, ClassStore, DeadlineInit, DeadlinePatch } from "../../shared/core/ports.ts";
-import type { ClassDeadline, ClassFile, ClassIcon, ClassNote, ClassRecord, ClassSignature, ClassSummary, DeadlineKind, HomeworkProblem, RemovedFile } from "../../shared/core/contracts.ts";
+import type { ClassColor, ClassDeadline, ClassFile, ClassIcon, ClassNote, ClassRecord, ClassSignature, ClassSummary, DeadlineKind, HomeworkProblem, RemovedFile } from "../../shared/core/contracts.ts";
 import {
 	ClassDeadlineError,
 	cleanSignature,
 	compareDeadlines,
 	CURRENT_CLASS_VERSION,
 	isCalendarDate,
+	isClassColor,
 	isClassIcon,
 	isClassId,
 	isClockTime,
 	isDeadlineKind,
 	MAX_HOMEWORK_PROBLEMS,
+	nextClassColor,
 } from "../../shared/core/contracts.ts";
 import { isRecord, isString } from "./guards.ts";
 import { writeFileAtomic } from "./write-file-atomic.ts";
@@ -126,6 +128,25 @@ function recentRemoved(list: readonly RemovedFile[], now: number): RemovedFile[]
 
 const isClassNote = (v: unknown): v is ClassNote => isRecord(v) && isString(v.text) && isString(v.at);
 
+/** The colors the other classes wear, read straight from their records. */
+function colorsBeside(id: string): ClassColor[] {
+	let entries: string[];
+	try {
+		entries = fs.readdirSync(PATHS.classes);
+	} catch {
+		return [];
+	}
+	return entries.flatMap((name) => {
+		if (name === id || !isClassId(name)) return [];
+		try {
+			const other: unknown = JSON.parse(fs.readFileSync(recordFile(name), "utf-8"));
+			return isRecord(other) && isClassColor(other.color) ? [other.color] : [];
+		} catch {
+			return [];
+		}
+	});
+}
+
 function getClass(id: string): ClassRecord | null {
 	let parsed: unknown;
 	try {
@@ -150,7 +171,8 @@ function getClass(id: string): ClassRecord | null {
 	const deadlines = readDeadlines(parsed);
 	const signature = isRecord(parsed.signature) ? cleanSignature(parsed.signature) : null;
 	const rules = sanitizeRules(parsed.rules);
-	return {
+	const colored = isClassColor(parsed.color);
+	const record: ClassRecord = {
 		id: parsed.id,
 		name: parsed.name,
 		description: isString(parsed.description) ? parsed.description : "",
@@ -163,10 +185,17 @@ function getClass(id: string): ClassRecord | null {
 		...(deadlines ? { deadlines: deadlines.map((d) => withFiles(knownAssignment(d, fileIds), d.fileIds.filter((f) => fileIds.has(f)), d.leftOutIds?.filter((f) => fileIds.has(f)))).sort(compareDeadlines) } : {}),
 		...(signature ? { signature } : {}),
 		...(isClassIcon(parsed.icon) ? { icon: parsed.icon } : {}),
+		color: colored ? (parsed.color as ClassColor) : nextClassColor(colorsBeside(id)),
 		...(isClassNote(parsed.note) ? { note: { text: parsed.note.text, at: parsed.note.at } } : {}),
 		...(rules.length ? { rules } : {}),
 		...(typeof parsed.version === "number" ? { version: parsed.version } : {}),
 	};
+	// A class from before colors keeps the one it is given here.
+	if (!colored) {
+		writeClass(record);
+		record.version = CURRENT_CLASS_VERSION;
+	}
+	return record;
 }
 
 function summarize(record: ClassRecord): ClassSummary {
@@ -186,6 +215,7 @@ function summarize(record: ClassRecord): ClassSummary {
 		...(lastFolderFileAt ? { lastFolderFileAt } : {}),
 		...(record.signature ? { signature: record.signature } : {}),
 		...(record.icon ? { icon: record.icon } : {}),
+		color: record.color,
 		...(record.note ? { note: record.note } : {}),
 	};
 }
@@ -196,8 +226,9 @@ function cleanName(name: string): string {
 
 function createClass(init: { name: string; description?: string; signature?: ClassSignature; icon?: ClassIcon }): ClassRecord {
 	const now = new Date().toISOString();
+	const id = `cls_${Date.now().toString(36)}_${crypto.randomUUID().slice(0, 8)}`;
 	const record: ClassRecord = {
-		id: `cls_${Date.now().toString(36)}_${crypto.randomUUID().slice(0, 8)}`,
+		id,
 		name: cleanName(init.name),
 		description: (init.description ?? "").trim(),
 		createdAt: now,
@@ -206,6 +237,7 @@ function createClass(init: { name: string; description?: string; signature?: Cla
 		files: [],
 		...(init.signature ? { signature: init.signature } : {}),
 		...(init.icon ? { icon: init.icon } : {}),
+		color: nextClassColor(colorsBeside(id)),
 	};
 	writeClass(record);
 	emit("classes-changed", {});
@@ -250,6 +282,7 @@ function updateClass(id: string, patch: ClassPatch): ClassRecord {
 		else record.signature = patch.signature;
 	}
 	if (patch.icon !== undefined) record.icon = patch.icon;
+	if (patch.color !== undefined) record.color = patch.color;
 	if (patch.note !== undefined) record.note = patch.note;
 	// A new note alone doesn't count as an edit: the class list is ordered
 	// by updatedAt and shouldn't reshuffle after every lesson.

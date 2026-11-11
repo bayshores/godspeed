@@ -9,9 +9,7 @@
  * updating from the old look, "new look"), then "Let's go", which closes
  * it; after an update the release notes open next. A click during the
  * animation skips to the end. Server-rendered, so the window's first
- * paint is this and not Home. The app's panes hold their draw-in while
- * it covers them (html[data-lh-hold], set by the root layout) and draw
- * in as it leaves.
+ * paint is this and not Home.
  */
 
 import { useCallback, useEffect, useState } from "react";
@@ -36,18 +34,12 @@ const BOOT_START_MS = 2200;
 const LETTER_MS = 12;
 const VERSION = process.env.LH_VERSION ?? "";
 
-/** Lets the app's panes draw in (they hold while the screen covers them). */
-function releasePanes() {
-	delete document.documentElement.dataset.lhHold;
-}
-
 export function Welcome({ initialOpen, whatsNewSince }: { initialOpen: boolean; whatsNewSince: string | null }) {
 	// Kept in state: later layout renders (router.refresh) say false.
 	const [open, setOpen] = useState(initialOpen);
 	const presence = usePresence(open, LEAVE_MS);
 	const close = useCallback(() => {
 		setOpen(false);
-		releasePanes();
 		// "What's new" and the godspeed folder notice never come on the same launch.
 		setTimeout(() => (whatsNewSince ? openWhatsNew(whatsNewSince) : openFolderNotice()), LEAVE_MS);
 	}, [whatsNewSince]);

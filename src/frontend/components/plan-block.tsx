@@ -40,9 +40,9 @@ const GLOW_BLUR = 5;
 const GLOW_REACH = GLOW_MARGIN + 3 * GLOW_BLUR;
 /** Node titles render at text-xs (12px) in svg units. The in-chat block
  *  scales up to fill the column but NEVER past the chat prose size
- *  (--lh-prose-size, 15px, the ladder's reading rung): the width cap
+ *  (--lh-prose-size, 17px by default): the width cap
  *  that makes that hold. */
-const TEXT_CAP_SCALE = 15 / 12;
+const TEXT_CAP_SCALE = 17 / 12;
 
 // ─── Status styling ──────────────────────────────────────────────────────────
 

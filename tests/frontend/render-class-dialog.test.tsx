@@ -44,6 +44,7 @@ const RECORD: ClassRecord = {
 	id: "cls_a",
 	name: "CSE 21",
 	description: "Discrete math",
+	color: 2,
 	createdAt: "",
 	updatedAt: "",
 	archived: false,
@@ -360,6 +361,19 @@ describe("Edit class dialog — deadlines", () => {
 		assert.equal((calls[0] as { body: { icon?: string } }).body.icon, "sigma");
 	});
 
+	it("the color: the class's color is picked, another one saves", async () => {
+		fakeFetch();
+		await mount({ kind: "edit", classId: "cls_a" });
+		assert.equal(q("class-color-2")!.getAttribute("aria-checked"), "true");
+		await click(q("class-color-5"));
+		assert.equal(q("class-color-5")!.getAttribute("aria-checked"), "true");
+		await click(q("class-save"));
+		await act(async () => {
+			await new Promise((r) => setTimeout(r, 10));
+		});
+		assert.deepEqual((calls[0] as { body: unknown }).body, { color: 5 });
+	});
+
 	it("New class: name and description only", async () => {
 		fakeFetch();
 		await mount({ kind: "create" });
@@ -367,6 +381,7 @@ describe("Edit class dialog — deadlines", () => {
 		assert.equal(q("class-deadlines"), null);
 		assert.equal(q("class-signature"), null);
 		assert.equal(q("class-icon"), null);
+		assert.equal(q("class-color"), null);
 		assert.equal(q("class-save")!.textContent, "Create class");
 	});
 });

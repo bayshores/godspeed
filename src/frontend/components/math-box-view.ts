@@ -214,7 +214,7 @@ const typingRules = EditorView.inputHandler.of((view, from, to, text) => {
 	return true;
 });
 
-/** The app's black writing field: prose font, square edges, quiet list. */
+/** The app's writing field: prose font, square edges, quiet list. */
 const theme = EditorView.theme(
 	{
 		"&": { height: "100%", backgroundColor: "var(--background)", color: "var(--foreground)" },

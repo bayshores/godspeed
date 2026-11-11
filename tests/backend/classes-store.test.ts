@@ -23,7 +23,7 @@ const { chatStore } = await import("../../src/backend/store/chats.ts");
 const { graphStoreFor, graphStoreForChat, allGraphScopes } = await import("../../src/backend/server/stores.ts");
 const { deleteSourceTraces } = await import("../../src/shared/core/graph-deletion.ts");
 const { getGraph } = await import("../../src/shared/core/graph.ts");
-const { parseClassScope, isSupportedClassFile, extensionOf, isCalendarDate, isClockTime, ClassDeadlineError, deadlineDueAt, compareDeadlines, cleanSignature } = await import("../../src/shared/core/contracts.ts");
+const { parseClassScope, isSupportedClassFile, extensionOf, isCalendarDate, isClockTime, ClassDeadlineError, deadlineDueAt, compareDeadlines, cleanSignature, isClassColor, nextClassColor } = await import("../../src/shared/core/contracts.ts");
 
 after(() => {
 	fs.rmSync(TMP_DATA, { recursive: true, force: true });
@@ -136,9 +136,9 @@ describe("deadlines", () => {
 	});
 	const classFile = (id: string) => path.join(TMP_DATA, "classes", id, "class.json");
 
-	it("adds, updates, sorts and removes deadlines; stamps version 7", () => {
+	it("adds, updates, sorts and removes deadlines; stamps version 8", () => {
 		const cls = classStore.createClass({ name: "CSE 21" });
-		assert.equal(cls.version, 7);
+		assert.equal(cls.version, 8);
 		classStore.saveFiles(cls.id, [studyFile("f_aaaaaaaaaaaa"), studyFile("f_bbbbbbbbbbbb")]);
 		const finalExam = classStore.addDeadline(cls.id, {
 			kind: "exam",
@@ -163,7 +163,7 @@ describe("deadlines", () => {
 		assert.deepEqual(classStore.getClass(cls.id)?.deadlines?.map((d) => d.name), ["Final", "Midterm 1"]);
 
 		const onDisk = JSON.parse(fs.readFileSync(classFile(cls.id), "utf-8"));
-		assert.equal(onDisk.version, 7);
+		assert.equal(onDisk.version, 8);
 		assert.equal(onDisk.deadlines.length, 2);
 		assert.equal(onDisk.exams, undefined);
 
@@ -252,7 +252,7 @@ describe("deadlines", () => {
 		assert.deepEqual(classStore.getClass(cls.id)?.deadlines?.[0]?.fileIds, ["f_eeeeeeeeeeee"]);
 	});
 
-	it("reads a version-2 record's exams as deadlines, and writes them back as v7", () => {
+	it("reads a version-2 record's exams as deadlines, and writes them back as v8", () => {
 		const cls = classStore.createClass({ name: "Upgraded" });
 		classStore.saveFiles(cls.id, [studyFile("f_ffffffffffff")]);
 		const raw = JSON.parse(fs.readFileSync(classFile(cls.id), "utf-8"));
@@ -276,7 +276,7 @@ describe("deadlines", () => {
 		]);
 		classStore.updateDeadline(cls.id, "exm_111111111111", { done: true });
 		const onDisk = JSON.parse(fs.readFileSync(classFile(cls.id), "utf-8"));
-		assert.equal(onDisk.version, 7);
+		assert.equal(onDisk.version, 8);
 		assert.equal(onDisk.exams, undefined, "the old field is gone");
 		assert.deepEqual(
 			onDisk.deadlines.map((d: { id: string; kind: string; done: boolean }) => [d.id, d.kind, d.done]),
@@ -321,6 +321,41 @@ describe("deadlines", () => {
 		const raw = JSON.parse(fs.readFileSync(classFile(cls.id), "utf-8"));
 		fs.writeFileSync(classFile(cls.id), JSON.stringify({ ...raw, icon: "rocket" }));
 		assert.equal(classStore.getClass(cls.id)?.icon, undefined);
+	});
+
+	it("gives each new class the color the fewest classes wear, and keeps a picked one", () => {
+		// Every record on disk counts, also one this build can't read.
+		const dir = path.join(TMP_DATA, "classes");
+		const before = fs.readdirSync(dir).map((id) => JSON.parse(fs.readFileSync(classFile(id), "utf-8")).color);
+		const cls = classStore.createClass({ name: "PHYS 2A" });
+		assert.equal(cls.color, nextClassColor(before));
+		assert.equal(classStore.listClasses().find((c) => c.id === cls.id)?.color, cls.color);
+		assert.equal(classStore.updateClass(cls.id, { color: 8 }).color, 8);
+		assert.equal(classStore.getClass(cls.id)?.color, 8);
+	});
+
+	it("a class saved before colors takes one on its first read and keeps it", () => {
+		const cls = classStore.createClass({ name: "Old" });
+		const { color: _color, ...raw } = JSON.parse(fs.readFileSync(classFile(cls.id), "utf-8"));
+		fs.writeFileSync(classFile(cls.id), JSON.stringify({ ...raw, version: 7 }));
+		const read = classStore.getClass(cls.id);
+		assert.ok(read && isClassColor(read.color));
+		assert.equal(read.version, 8);
+		const onDisk = JSON.parse(fs.readFileSync(classFile(cls.id), "utf-8"));
+		assert.equal(onDisk.color, read.color);
+		assert.equal(onDisk.version, 8);
+		classStore.createClass({ name: "Newer" });
+		assert.equal(classStore.getClass(cls.id)?.color, read.color);
+	});
+
+	it("picks the least used class color, lowest number first", () => {
+		assert.equal(nextClassColor([]), 1);
+		assert.equal(nextClassColor([1, 2, 4]), 3);
+		assert.equal(nextClassColor([1, 2, 3, 4, 5, 6, 7, 8, 1, 2]), 3);
+		assert.equal(isClassColor(0), false);
+		assert.equal(isClassColor(9), false);
+		assert.equal(isClassColor(2.5), false);
+		assert.equal(isClassColor("3"), false);
 	});
 
 	it("cleans a signature: one line, trimmed, a known kind, at most 60 characters", () => {

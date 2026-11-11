@@ -1,7 +1,7 @@
 /**
  * THE CLASS DIALOG: create a
- * class (name and description) or edit one — name, description, signature,
- * its rules for the teacher and its Deadlines — with Archive and Delete class in the footer. The class's files live on the Files page (src/frontend/components/files/*).
+ * class (name and description) or edit one — name, description, icon, color,
+ * signature, its rules for the teacher and its Deadlines — with Archive and Delete class in the footer. The class's files live on the Files page (src/frontend/components/files/*).
  *
  * Deadline edits are drafts until Save (src/frontend/components/class-deadlines-model.ts
  * turns them into the deadline routes' writes). Every write goes to /api/classes/*;
@@ -19,11 +19,12 @@ import { DeadlinesEditor } from "@/frontend/components/class-deadlines";
 import { RuleChips } from "@/frontend/components/rule-chips";
 import { changedFields, deadlineWrites, draftProblem, draftsFrom, dropRemoved, hasUnsavedChanges, withoutBlankDrafts, type DeadlineDraft } from "@/frontend/components/class-deadlines-model";
 import { jsonInit, send, useClassRecord } from "@/frontend/components/files/class-files-api";
-import { DEFAULT_TEACHER_NAME, savedTimes, type ClassDeadline, type ClassIcon, type ClassRecord, type ClassSignature, type SignatureKind } from "@/shared/core";
+import { DEFAULT_TEACHER_NAME, savedTimes, type ClassColor, type ClassDeadline, type ClassIcon, type ClassRecord, type ClassSignature, type SignatureKind } from "@/shared/core";
 import { useHalley } from "@/frontend/components/halley/halley-provider";
 import { useSavedRules } from "@/frontend/components/use-saved-rules";
 import { ClassSignatureField } from "@/frontend/components/class-signature-field";
 import { ClassIconField } from "@/frontend/components/class-icon-field";
+import { ClassColorField } from "@/frontend/components/class-color-field";
 import { forgetLessonDraft } from "@/frontend/components/lesson/use-lesson-drafts";
 import { LoadFailed } from "@/frontend/components/load-failed";
 import { useDialogFocus } from "@/frontend/components/use-dialog-focus";
@@ -52,7 +53,7 @@ export function ClassDialog({ mode, onClose }: { mode: Mode | null; onClose: () 
 type MotionState = "open" | "closed";
 
 /** The class's own fields as the Edit class dialog sends them. */
-type ClassFields = { name: string; description: string; signature: ClassSignature | null; icon?: ClassIcon; rules: string[] };
+type ClassFields = { name: string; description: string; signature: ClassSignature | null; icon?: ClassIcon; color: ClassColor; rules: string[] };
 
 const FIELD =
 	"w-full bg-background px-3 py-2.5 text-[14.5px] leading-[21px] text-ink border border-edge placeholder:text-ink-3 focus:border-ink";
@@ -74,6 +75,7 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 	const [description, setDescription] = useState("");
 	const [signature, setSignature] = useState<{ kind: SignatureKind; value: string }>({ kind: "math", value: "" });
 	const [icon, setIcon] = useState<ClassIcon | undefined>(undefined);
+	const [color, setColor] = useState<ClassColor>(1);
 	const [rules, setRules] = useState<string[]>([]);
 	const savedRules = useSavedRules(record?.rules);
 	const teacherName = useHalley()?.name ?? DEFAULT_TEACHER_NAME;
@@ -91,13 +93,14 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 	useEffect(() => {
 		if (record && !seeded.current) {
 			seeded.current = {
-				fields: { name: record.name, description: record.description, signature: record.signature ?? null, icon: record.icon, rules: record.rules ?? [] },
+				fields: { name: record.name, description: record.description, signature: record.signature ?? null, icon: record.icon, color: record.color, rules: record.rules ?? [] },
 				deadlines: record.deadlines ?? [],
 			};
 			setName(record.name);
 			setDescription(record.description);
 			if (record.signature) setSignature(record.signature);
 			setIcon(record.icon);
+			setColor(record.color);
 			setRules(record.rules ?? []);
 			const drafts = draftsFrom(record.deadlines);
 			const focus = mode.kind === "edit" ? mode.deadline : undefined;
@@ -124,7 +127,7 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 		setDrafts(next.drafts);
 	}, [record, drafts]);
 
-	const fields: ClassFields = { name, description, signature: signature.value.trim() ? signature : null, icon, rules };
+	const fields: ClassFields = { name, description, signature: signature.value.trim() ? signature : null, icon, color, rules };
 	const unsaved =
 		mode.kind === "create"
 			? name.trim() !== "" || description.trim() !== ""
@@ -337,6 +340,8 @@ function ClassDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 					)}
 
 					{mode.kind === "edit" && record && <ClassIconField icon={icon} disabled={busy} onChange={setIcon} />}
+
+					{mode.kind === "edit" && record && <ClassColorField color={color} disabled={busy} onChange={setColor} />}
 
 					{mode.kind === "edit" && record && (
 						<ClassSignatureField

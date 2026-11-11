@@ -387,6 +387,7 @@ function killServer() {
  *    external web and mail links go to the real browser via
  *    shell.openExternal, every other scheme is dropped. */
 function createWindow(url, serverUp = null) {
+	const colors = windowColors();
 	const win = new BrowserWindow({
 		width: 1440,
 		height: 900,
@@ -404,7 +405,7 @@ function createWindow(url, serverUp = null) {
 				// height. Do not force the zoom-invariant native overlay to match
 				// the renderer's 60 CSS px bar: zooming out would cover its border.
 				// The renderer reserves the actual width via env(titlebar-area-*).
-				titleBarOverlay: { color: "#141414", symbolColor: "#e5e5e5" },
+				titleBarOverlay: { color: colors.bar, symbolColor: colors.symbol },
 				// Keep the custom bar alone; Alt reveals the native menu.
 				autoHideMenuBar: true,
 			}),
@@ -420,11 +421,11 @@ function createWindow(url, serverUp = null) {
 		// Live-resize + first-paint flash: during a resize
 		// the native window surface changes size before Chromium's compositor
 		// has a frame at the new size, and the gap shows the window's NATIVE
-		// background — Electron's default is white, glaring on a dark app.
-		// The app background (#141414) fills the lag instead. `show: false` +
+		// background — Electron's default is white.
+		// The app background fills the lag instead. `show: false` +
 		// ready-to-show is the same treatment for first paint: the window
 		// appears only once the page has actually rendered.
-		backgroundColor: "#141414",
+		backgroundColor: colors.background,
 		show: false,
 		// Narrow-window behavior: 640px is the floor —
 		// below it even a wrapped chrome row gets cramped and the chat header
@@ -562,6 +563,21 @@ function reportUpdateStatus(status, version = null, percent = null) {
 	} catch {
 		/* Status reporting must never interrupt the updater. */
 	}
+}
+
+/** The window's own colors, shown before the page paints and behind the
+ * native window buttons: Paper with its ink top bar, or the dark background
+ * picked in Settings, Appearance. */
+function windowColors() {
+	let picked = null;
+	try {
+		picked = JSON.parse(fs.readFileSync(path.join(DATA_DIR(), "settings.json"), "utf8"))?.appearance?.background ?? null;
+	} catch {
+		/* no settings yet: Paper */
+	}
+	return typeof picked === "string"
+		? { background: picked, bar: picked, symbol: "#e5e5e5" }
+		: { background: "#c9c7bd", bar: "#24231f", symbol: "#d7d5cb" };
 }
 
 /** Read the SAME data directory passed to the packaged server. Only an

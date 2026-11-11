@@ -17,8 +17,8 @@ describe("resolveSettings", () => {
 		assert.deepEqual(eff.agent.rules, {});
 		assert.equal(eff.appearance.background, null);
 		assert.equal(eff.appearance.fontFamily, null);
-		assert.equal(eff.appearance.proseFontSize, 15);
-		assert.equal(eff.appearance.mdRendering.headingWeight, 900);
+		assert.equal(eff.appearance.proseFontSize, 17);
+		assert.equal(eff.appearance.mdRendering.headingWeight, 600);
 		// the master switch ONLY + the chunk budget — absent record
 		// resolves the factory 4096
 		assert.deepEqual(eff.graph, { enabled: true, extractionChunkTokens: 4096 });
