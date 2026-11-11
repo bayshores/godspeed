@@ -84,37 +84,19 @@
 	let pathForFile = () => Promise.resolve("");
 
 	if (PLATFORM === "darwin") {
-		// The shell reads the drag pasteboard once per drag, and the paths stay until just after
-		// the drop, which is when the page asks. A file is matched by its name.
-		let dragPaths = Promise.resolve([]);
-		let dragAsked = false;
-		const askDragPaths = () => {
-			if (dragAsked) return;
-			dragAsked = true;
-			dragPaths = invoke("drag_paths").catch(() => []);
-		};
-		window.addEventListener("dragenter", askDragPaths, true);
-		window.addEventListener("dragover", askDragPaths, true);
-		// A drag that leaves the window is over: the next one reads the pasteboard again.
-		window.addEventListener(
-			"dragleave",
-			(e) => {
-				if (e.clientX <= 0 || e.clientY <= 0 || e.clientX >= window.innerWidth || e.clientY >= window.innerHeight) dragAsked = false;
-			},
-			true,
-		);
+		// The drag pasteboard keeps the dropped files after the drop, so the shell reads it then; a
+		// drag released anywhere else leaves nothing behind for the next drop. A file is matched by
+		// its name.
+		let dropPaths = Promise.resolve([]);
 		window.addEventListener(
 			"drop",
 			() => {
-				setTimeout(() => {
-					dragAsked = false;
-					dragPaths = Promise.resolve([]);
-				}, 1000);
+				dropPaths = invoke("drag_paths").catch(() => []);
 			},
 			true,
 		);
 		const lastSegment = (path) => path.split("/").pop().normalize("NFC");
-		pathForFile = async (file) => (await dragPaths).find((path) => lastSegment(path) === file.name.normalize("NFC")) ?? "";
+		pathForFile = async (file) => (await dropPaths).find((path) => lastSegment(path) === file.name.normalize("NFC")) ?? "";
 
 		// Chromium's -webkit-app-region rule: the last listed element under the point decides.
 		const NO_DRAG = ".lh-no-drag, .lh-drag :is(button, input, textarea, select, a, summary, [contenteditable])";
@@ -128,13 +110,21 @@
 			return drag;
 		};
 		const plain = (e) => e.button === 0 && !e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey;
+		// The second press of a double click starts no drag: the drag would track the mouse until
+		// it is released, and WebKit would never see that mouse-up, or send its dblclick. A
+		// release where it was pressed is the double click, as the system title bar has it.
+		let secondPress = null;
 		window.addEventListener("mousedown", (e) => {
+			secondPress = null;
 			if (!plain(e) || !dragsAt(e.clientX, e.clientY)) return;
 			e.preventDefault();
-			void invoke("start_drag");
+			if (e.detail === 2) secondPress = { x: e.clientX, y: e.clientY };
+			else void invoke("start_drag");
 		});
-		window.addEventListener("dblclick", (e) => {
-			if (plain(e) && dragsAt(e.clientX, e.clientY)) void invoke("title_bar_double_click");
+		window.addEventListener("mouseup", (e) => {
+			const press = secondPress;
+			secondPress = null;
+			if (press && e.detail === 2 && e.clientX === press.x && e.clientY === press.y) void invoke("title_bar_double_click");
 		});
 	} else {
 		if (PLATFORM === "win32") {

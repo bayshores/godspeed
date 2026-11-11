@@ -16,9 +16,10 @@ fn is_app_bundle(folder: &Path) -> bool {
 	name.rsplit_once('.').is_some_and(|(_, extension)| BUNDLE_EXTENSIONS.contains(&extension))
 }
 
-/// Shows an absolute path selected in the file manager; any other path does nothing.
+/// Shows an absolute path selected in the file manager; a relative path, or one that is not there
+/// (moved or deleted since the page listed it), does nothing.
 pub fn show_in_folder(target: &str) -> Result<(), String> {
-	if !Path::new(target).is_absolute() {
+	if !Path::new(target).is_absolute() || std::fs::metadata(target).is_err() {
 		return Ok(());
 	}
 	tauri_plugin_opener::reveal_item_in_dir(target).map_err(|err| err.to_string())
@@ -192,6 +193,7 @@ mod tests {
 		assert_eq!(open_path("relative/dir"), Ok(()));
 		assert_eq!(open_path("/gs-shell-open-nowhere"), Ok(()));
 		assert_eq!(show_in_folder("relative/file"), Ok(()));
+		assert_eq!(show_in_folder("/gs-shell-open-nowhere/gone.pdf"), Ok(()));
 	}
 
 	#[test]

@@ -8,7 +8,7 @@
  * the bar's slots. The path starts at the active class, or at "~" for
  * pages outside a class (Home). In the desktop app the bar is the window's drag band, with the
  * traffic lights in its left gutter; clickable elements carve out of the
- * drag region on their own (globals.css).
+ * drag region on their own (crates/shell/src/shim.js).
  */
 
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";

@@ -6,15 +6,20 @@ use tauri::AppHandle;
 use crate::log;
 
 pub fn open(app: &AppHandle) {
+	let version = app.package_info().version.to_string();
 	let arch = match std::env::consts::ARCH {
 		"aarch64" => "arm64",
 		"x86_64" => "x64",
 		other => other,
 	};
-	let link = url(&app.package_info().version.to_string(), std::env::consts::OS, &os_info::get().version().to_string(), arch);
-	if let Err(err) = tauri_plugin_opener::open_url(link, None::<&str>) {
-		log::line(&format!("cannot open the bug report page: {err}"));
-	}
+	// Reading the OS version runs helper programs (sw_vers, uname, lsb_release); off the main
+	// thread, where menu and command handlers run, they cannot freeze the window.
+	std::thread::spawn(move || {
+		let link = url(&version, std::env::consts::OS, &os_info::get().version().to_string(), arch);
+		if let Err(err) = tauri_plugin_opener::open_url(link, None::<&str>) {
+			log::line(&format!("cannot open the bug report page: {err}"));
+		}
+	});
 }
 
 fn url(version: &str, os: &str, os_version: &str, arch: &str) -> String {

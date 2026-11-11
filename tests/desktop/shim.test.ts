@@ -167,28 +167,31 @@ test("app links, other schemes and links the app handled stay in the page", () =
 	assert.deepEqual(invoked, []);
 });
 
-test("on the Mac a dropped file's path is found by name from the paths the shell read for the drag", async () => {
+test("on the Mac a dropped file's path is found by name from the paths the shell reads at the drop", async () => {
 	const { lh, fire, invoked } = page({ reply: (cmd) => (cmd === "drag_paths" ? ["/Users/me/CSE 21", "/Users/me/café"] : undefined) });
 	fire("dragenter");
 	fire("dragover");
+	assert.deepEqual(invoked, []);
+	fire("drop");
 	assert.deepEqual(invoked, [["drag_paths"]]);
 	assert.equal(await lh!.pathForFile!({ name: "CSE 21" }), "/Users/me/CSE 21");
 	assert.equal(await lh!.pathForFile!({ name: "cafe\u0301" }), "/Users/me/café");
 	assert.equal(await lh!.pathForFile!({ name: "other" }), "");
 });
 
-test("a drag that leaves the window reads the pasteboard again, and a failed read gives no path", async () => {
-	let paths: unknown = ["/a/x"];
-	const { lh, fire, invoked } = page({ reply: () => paths });
+test("on the Mac a drag released where nothing takes it leaves no paths for the next drop", async () => {
+	let paths: unknown = ["/Users/me/A/notes"];
+	const { lh, fire } = page({ reply: () => paths });
 	fire("dragenter");
 	fire("dragleave", { clientX: 500, clientY: 400 });
+	paths = ["/Users/me/B"];
 	fire("dragenter");
-	assert.equal(invoked.length, 1);
-	fire("dragleave", { clientX: 0, clientY: 400 });
+	fire("drop");
+	assert.equal(await lh!.pathForFile!({ name: "B" }), "/Users/me/B");
+	assert.equal(await lh!.pathForFile!({ name: "notes" }), "");
 	paths = Promise.reject(new Error("no pasteboard"));
-	fire("dragenter");
-	assert.equal(invoked.length, 2);
-	assert.equal(await lh!.pathForFile!({ name: "x" }), "");
+	fire("drop");
+	assert.equal(await lh!.pathForFile!({ name: "B" }), "");
 });
 
 test("on Windows the file goes to the shell in a message and the path comes back in a push", async () => {
@@ -247,12 +250,27 @@ test("a press on the drag strip, but not on a button in it or the page below, dr
 	assert.deepEqual(invoked, [["start_drag"]]);
 });
 
-test("a double click on the drag strip asks the shell for the title bar's double-click action", () => {
+test("a double click on the drag strip starts no drag on its second press and asks for the title bar's action on its release", () => {
 	const { fire, invoked } = desktopPage();
-	fire("dblclick", { button: 0, clientX: 500, clientY: 20 });
-	fire("dblclick", { button: 0, clientX: 30, clientY: 20 });
-	fire("dblclick", { button: 0, clientX: 500, clientY: 100 });
-	assert.deepEqual(invoked, [["title_bar_double_click"]]);
+	const at = { button: 0, clientX: 500, clientY: 20 };
+	fire("mousedown", { ...at, detail: 1 });
+	fire("mouseup", { ...at, detail: 1 });
+	assert.equal(fire("mousedown", { ...at, detail: 2 }), true);
+	assert.deepEqual(invoked, [["start_drag"]]);
+	fire("mouseup", { ...at, detail: 2 });
+	assert.deepEqual(invoked, [["start_drag"], ["title_bar_double_click"]]);
+});
+
+test("a double click that moves before its release, or lands on a button or the page, does nothing", () => {
+	const { fire, invoked } = desktopPage();
+	fire("mousedown", { button: 0, detail: 2, clientX: 500, clientY: 20 });
+	fire("mouseup", { button: 0, detail: 2, clientX: 520, clientY: 20 });
+	for (const [x, y] of [[30, 20], [500, 100]]) {
+		fire("mousedown", { button: 0, detail: 2, clientX: x, clientY: y });
+		fire("mouseup", { button: 0, detail: 2, clientX: x, clientY: y });
+	}
+	fire("mouseup", { button: 0, detail: 2, clientX: 500, clientY: 20 });
+	assert.deepEqual(invoked, []);
 });
 
 test("the drag strip does nothing before the desktop classes are set", () => {

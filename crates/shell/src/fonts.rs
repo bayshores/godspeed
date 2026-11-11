@@ -4,8 +4,11 @@ use gs_base::locale;
 
 /// Every family once, sorted like the picker shows them.
 pub fn list() -> Vec<String> {
-	let mut names = system_families();
-	// The one name font-list never listed.
+	tidy(system_families())
+}
+
+fn tidy(mut names: Vec<String>) -> Vec<String> {
+	// An icon font, not one to read in.
 	names.retain(|name| name != "iconfont");
 	names.sort_by(|a, b| locale::compare(a, b));
 	names.dedup();
@@ -29,9 +32,8 @@ mod tests {
 	use super::*;
 
 	#[test]
-	fn the_list_is_sorted_and_names_a_family_once() {
-		let names = list();
-		assert!(names.windows(2).all(|pair| locale::compare(&pair[0], &pair[1]).is_le()));
-		assert!(!names.contains(&"iconfont".to_owned()));
+	fn the_list_drops_the_icon_font_names_a_family_once_and_sorts_like_the_picker() {
+		let names = ["Times", "iconfont", "arial", "Courier", "Arial", "Times", "Courier", "iconfont"].map(str::to_owned).to_vec();
+		assert_eq!(tidy(names), ["arial", "Arial", "Courier", "Times"]);
 	}
 }
