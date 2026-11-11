@@ -5,7 +5,7 @@
 use std::path::{Path, PathBuf};
 
 use gs_agent::subagents::cheat_sheet_writer::TakenPdf;
-use gs_base::fsx::node_error_message;
+use gs_base::fsx::{self, node_error_message};
 use gs_core::study::cheat_sheet::pdf_problem;
 use gs_json::{Json, json};
 
@@ -22,17 +22,9 @@ fn inside(folder: &Path, pdf_path: &str) -> Result<PathBuf, String> {
 	Ok(file)
 }
 
-/// `fs.realpathSync`: links resolved. Windows' `\\?\` prefix is dropped, as Node does, so the path
-/// still opens in tools that do not know it.
+/// `fs.realpathSync`: links resolved, without Windows' long-path prefix.
 fn real_path(path: &Path) -> Option<PathBuf> {
-	let real = std::fs::canonicalize(path).ok()?;
-	let text = real.to_string_lossy();
-	let plain = match text.strip_prefix(r"\\?\") {
-		Some(rest) if rest.as_bytes().get(1) == Some(&b':') => rest.to_owned(),
-		Some(rest) => rest.strip_prefix("UNC\\").map_or_else(|| text.to_string(), |share| format!(r"\\{share}")),
-		None => return Some(real),
-	};
-	Some(PathBuf::from(plain))
+	std::fs::canonicalize(path).ok().map(fsx::without_long_prefix)
 }
 
 pub async fn take_sheet_pdf(app: &App, folder: &Path, pdf_path: &str) -> Result<TakenPdf, String> {

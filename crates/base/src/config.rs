@@ -1,8 +1,8 @@
 //! Where things live, read from the environment once at start-up (src/backend/config.ts):
 //!
 //! - `LH_DATA_DIR`: every mutable record; unset, `data/` in the working directory.
-//! - `HOME` (Windows: `USERPROFILE`): `os.homedir()`; `TMPDIR`: `os.tmpdir()` (trailing slash
-//!   dropped, `/tmp` when unset; Windows asks the OS).
+//! - `HOME` (Windows: `USERPROFILE`): `os.homedir()`; `TMPDIR` (Windows: `TEMP`, then `TMP`):
+//!   `os.tmpdir()`.
 //! - The working directory holds what ships beside the server: `ui/`, `models/`, `pdfjs-dist/`.
 //!
 //! Stores and services take a `Paths` instead of reading globals, so tests give each one its own
@@ -90,15 +90,22 @@ pub fn home_dir() -> PathBuf {
 	env_path(if cfg!(windows) { "USERPROFILE" } else { "HOME" }).unwrap_or_else(|| PathBuf::from("/"))
 }
 
-/// `os.tmpdir()` without a trailing separator: `TMPDIR` or `/tmp`, and on Windows the folder
-/// `TEMP` or `TMP` names (as Windows itself resolves it).
+/// `os.tmpdir()`: `TMPDIR` without a trailing slash, or `/tmp`; on Windows see `windows_tmp_dir`.
 fn tmp_dir() -> PathBuf {
 	if cfg!(windows) {
-		let temp = std::env::temp_dir().to_string_lossy().into_owned();
-		let trimmed = temp.trim_end_matches('\\');
-		return PathBuf::from(if trimmed.ends_with(':') { temp.as_str() } else { trimmed });
+		return PathBuf::from(windows_tmp_dir(|key| env_path(key).map(|p| p.to_string_lossy().into_owned())));
 	}
 	env_path("TMPDIR").map_or_else(|| PathBuf::from("/tmp"), |p| PathBuf::from(p.to_string_lossy().trim_end_matches('/')))
+}
+
+/// Node's `os.tmpdir()` on Windows: `TEMP`, then `TMP`, then `%SystemRoot%\temp` (or `%windir%`),
+/// with one trailing backslash dropped unless it follows a drive letter.
+fn windows_tmp_dir(env: impl Fn(&str) -> Option<String>) -> String {
+	let path = env("TEMP").or_else(|| env("TMP")).unwrap_or_else(|| format!(r"{}\temp", env("SystemRoot").or_else(|| env("windir")).unwrap_or_default()));
+	match path.strip_suffix('\\') {
+		Some(trimmed) if !path.ends_with(r":\") && path.len() > 1 => trimmed.to_owned(),
+		_ => path,
+	}
 }
 
 impl Paths {
@@ -150,6 +157,16 @@ mod tests {
 		assert_eq!(resolve(Path::new("/a/./b/../c")), Path::new("/a/c"));
 		assert!(!VERSION.is_empty());
 		assert_eq!(p.default_agent_folder, Path::new("/h/godspeed"));
+	}
+
+	#[test]
+	fn the_windows_temp_folder_is_read_like_node() {
+		let tmp = |vars: &[(&str, &str)]| windows_tmp_dir(|key| vars.iter().find(|(k, _)| *k == key).map(|(_, v)| (*v).to_owned()));
+		assert_eq!(tmp(&[("TMP", r"D:\tmp"), ("TEMP", r"C:\Temp\")]), r"C:\Temp");
+		assert_eq!(tmp(&[("TMP", r"D:\tmp\\")]), r"D:\tmp\");
+		assert_eq!(tmp(&[("TEMP", r"C:\")]), r"C:\");
+		assert_eq!(tmp(&[("SystemRoot", r"C:\Windows"), ("windir", r"D:\Windows")]), r"C:\Windows\temp");
+		assert_eq!(tmp(&[("windir", r"D:\Windows")]), r"D:\Windows\temp");
 	}
 
 	#[test]

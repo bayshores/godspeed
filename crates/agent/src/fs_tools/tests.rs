@@ -136,26 +136,28 @@ async fn read_shows_pictures_and_refuses_binaries() {
 	assert_eq!(ok(&tool, json!({ "path": dir.text("paper.pdf") })).await, "paper.pdf is a binary file (8B), not readable as text. For a PDF, dispatch a pdf job if you have that tool.");
 }
 
-#[cfg(unix)]
 #[tokio::test]
 async fn read_words_failures_like_node() {
 	let dir = TempDir::new("read-fail");
 	dir.put("sub/x.txt", "x");
-	dir.link("nowhere", "dangling");
 	let tool = read_tool();
 	assert_eq!(err(&tool, json!({ "path": dir.text("missing.txt") })).await, format!("ENOENT: no such file or directory, open '{}'", dir.text("missing.txt")));
 	assert_eq!(err(&tool, json!({ "path": dir.text("missing.pdf") })).await, format!("ENOENT: no such file or directory, stat '{}'", dir.text("missing.pdf")));
-	assert_eq!(err(&tool, json!({ "path": dir.text("sub") })).await, "EISDIR: illegal operation on a directory, read");
-	assert_eq!(err(&tool, json!({ "path": dir.text("dangling") })).await, format!("ENOENT: no such file or directory, open '{}'", dir.text("dangling")));
-	if !can_ignore_permissions() {
-		dir.lock("sub/x.txt");
-		assert_eq!(err(&tool, json!({ "path": dir.text("sub/x.txt") })).await, format!("EACCES: permission denied, open '{}'", dir.text("sub/x.txt")));
+	// Links and locks need macOS or Linux, and Node's EISDIR for a folder was only seen there.
+	#[cfg(unix)]
+	{
+		dir.link("nowhere", "dangling");
+		assert_eq!(err(&tool, json!({ "path": dir.text("sub") })).await, "EISDIR: illegal operation on a directory, read");
+		assert_eq!(err(&tool, json!({ "path": dir.text("dangling") })).await, format!("ENOENT: no such file or directory, open '{}'", dir.text("dangling")));
+		if !can_ignore_permissions() {
+			dir.lock("sub/x.txt");
+			assert_eq!(err(&tool, json!({ "path": dir.text("sub/x.txt") })).await, format!("EACCES: permission denied, open '{}'", dir.text("sub/x.txt")));
+		}
 	}
 }
 
 // ls
 
-#[cfg(unix)]
 #[tokio::test]
 async fn ls_sorts_without_case_and_marks_folders() {
 	let dir = TempDir::new("ls");
@@ -163,14 +165,17 @@ async fn ls_sorts_without_case_and_marks_folders() {
 		dir.put(name, "");
 	}
 	dir.put("folder/in.txt", "");
-	dir.link("folder", "link-to-folder");
-	dir.link("nowhere", "dangling");
 	let tool = ls_tool();
-	assert_eq!(ok(&tool, json!({ "path": dir.text("") })).await, ".hidden\na.txt\nB.txt\nC.txt\nfolder/\nlink-to-folder/");
+	assert_eq!(ok(&tool, json!({ "path": dir.text("") })).await, ".hidden\na.txt\nB.txt\nC.txt\nfolder/");
 	assert_eq!(ok(&tool, json!({ "path": dir.text(""), "limit": 2 })).await, ".hidden\na.txt\n\n[Truncated: 2 entries limit]");
+	#[cfg(unix)]
+	{
+		dir.link("folder", "link-to-folder");
+		dir.link("nowhere", "dangling");
+		assert_eq!(ok(&tool, json!({ "path": dir.text("") })).await, ".hidden\na.txt\nB.txt\nC.txt\nfolder/\nlink-to-folder/");
+	}
 }
 
-#[cfg(unix)]
 #[tokio::test]
 async fn ls_words_failures() {
 	let dir = TempDir::new("ls-fail");
@@ -180,6 +185,7 @@ async fn ls_words_failures() {
 	assert_eq!(ok(&tool, json!({ "path": dir.text("empty") })).await, "Directory is empty");
 	assert_eq!(err(&tool, json!({ "path": dir.text("nope") })).await, format!("Path not found: {}", dir.text("nope")));
 	assert_eq!(err(&tool, json!({ "path": dir.text("file.txt") })).await, format!("Not a directory: {}", dir.text("file.txt")));
+	#[cfg(unix)]
 	if !can_ignore_permissions() {
 		dir.lock("empty");
 		assert_eq!(err(&tool, json!({ "path": dir.text("empty") })).await, format!("Cannot read directory: EACCES: permission denied, scandir '{}'", dir.text("empty")));
@@ -198,13 +204,13 @@ async fn ls_cuts_at_fifty_kb() {
 
 // find
 
-#[cfg(unix)]
 #[tokio::test]
 async fn find_matches_globs_and_skips_noise() {
 	let dir = TempDir::new("find");
 	for file in ["src/main.ts", "src/deep/util.ts", "src/deep/util.spec.ts", "README.md", "node_modules/p.ts", ".git/c.ts", "Library/l.ts", ".Trash/t.ts"] {
 		dir.put(file, "");
 	}
+	#[cfg(unix)]
 	dir.link("src", "linked");
 	let tool = find_tool();
 	let find = |pattern: &str| ok(&tool, json!({ "pattern": pattern, "path": dir.text("") }));

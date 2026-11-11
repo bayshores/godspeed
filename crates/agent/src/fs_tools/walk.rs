@@ -97,7 +97,6 @@ mod tests {
 		(seen, out)
 	}
 
-	#[cfg(unix)]
 	#[test]
 	fn walks_in_name_order_and_skips_noise_and_links() {
 		let dir = TempDir::new("walk");
@@ -107,21 +106,38 @@ mod tests {
 		dir.put(".git/config", "");
 		dir.put("Library/skip.txt", "");
 		dir.put(".Trash/skip.txt", "");
-		dir.link("b.txt", "link.txt");
-		dir.link("a", "linked-dir");
+		#[cfg(unix)]
+		{
+			dir.link("b.txt", "link.txt");
+			dir.link("a", "linked-dir");
+		}
 		let (seen, out) = collect(dir.path(), &Abort::new());
 		assert_eq!(seen, ["a/z.txt", "b.txt"]);
 		assert!(!out.timed_out && !out.aborted);
 	}
 
-	#[cfg(unix)]
+	#[test]
+	fn full_paths_use_this_os_separator() {
+		let dir = TempDir::new("walk-full");
+		dir.put("a/z.txt", "");
+		let mut seen = Vec::new();
+		walk_files(dir.path(), &Abort::new(), |full, rel| {
+			seen.push((full.to_owned(), rel.to_owned()));
+			false
+		});
+		assert_eq!(seen, [(dir.path().join("a").join("z.txt").to_string_lossy().into_owned(), "a/z.txt".to_owned())]);
+	}
+
 	#[test]
 	fn the_root_may_be_a_noise_folder_and_a_link() {
 		let dir = TempDir::new("walk-root");
 		dir.put("node_modules/skip.txt", "");
-		dir.link("node_modules", "to-modules");
 		assert_eq!(collect(&dir.path().join("node_modules"), &Abort::new()).0, ["skip.txt"]);
-		assert_eq!(collect(&dir.path().join("to-modules"), &Abort::new()).0, ["skip.txt"]);
+		#[cfg(unix)]
+		{
+			dir.link("node_modules", "to-modules");
+			assert_eq!(collect(&dir.path().join("to-modules"), &Abort::new()).0, ["skip.txt"]);
+		}
 	}
 
 	#[test]

@@ -54,7 +54,8 @@ fn up_to_date(made: &Json) -> Result<bool, String> {
 		None => {
 			let at = Path::new(path_of(made));
 			let link = std::fs::read_link(at).map_err(|err| fsx::node_error_message(&err, "readlink", at))?;
-			Ok(link.to_string_lossy() == target)
+			// Windows keeps the long-path prefix on targets over 260 characters.
+			Ok(fsx::without_long_prefix(link).to_string_lossy() == target)
 		}
 		Some(ino) => Ok(ino_of(Path::new(target)) == Some(ino)),
 	}

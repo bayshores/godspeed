@@ -3,7 +3,7 @@
 //! (set-aside.ts), and fs error texts worded like Node's.
 
 use std::io;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use gs_json::{Json, parse};
 
@@ -14,18 +14,29 @@ pub fn read_text(file: &Path) -> io::Result<String> {
 	Ok(text::from_utf8_lossy(&std::fs::read(file)?))
 }
 
-/// `fs.statSync(file).mtimeMs`: seconds and nanoseconds as fractional milliseconds.
+/// `fs.statSync(file).mtimeMs`: whole seconds and nanoseconds added as milliseconds, as Node
+/// does (one fractional-seconds product rounds differently).
 pub fn modified_ms(meta: &std::fs::Metadata) -> f64 {
 	#[cfg(unix)]
-	{
+	let (sec, nsec) = {
 		use std::os::unix::fs::MetadataExt;
-		meta.mtime() as f64 * 1000.0 + meta.mtime_nsec() as f64 / 1e6
-	}
+		(meta.mtime() as f64, meta.mtime_nsec() as f64)
+	};
 	#[cfg(not(unix))]
-	{
+	let (sec, nsec) = {
 		let since_epoch = meta.modified().ok().and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok()).unwrap_or_default();
-		since_epoch.as_secs_f64() * 1000.0
-	}
+		(since_epoch.as_secs() as f64, f64::from(since_epoch.subsec_nanos()))
+	};
+	sec * 1000.0 + nsec / 1e6
+}
+
+/// The path without Windows' `\\?\` long-path prefix, as Node's realpath and readlink give it, so
+/// it still opens in tools that do not know the prefix and compares equal to the plain form.
+pub fn without_long_prefix(path: PathBuf) -> PathBuf {
+	let plain = path.to_string_lossy().strip_prefix(r"\\?\").and_then(|rest| {
+		if rest.as_bytes().get(1) == Some(&b':') { Some(rest.to_owned()) } else { rest.strip_prefix("UNC\\").map(|share| format!(r"\\{share}")) }
+	});
+	plain.map_or(path, PathBuf::from)
 }
 
 /// Writes through `<file>.tmp-<8 hex>` and a rename, so a crash leaves the old file whole.
@@ -157,6 +168,27 @@ mod tests {
 		assert!(!f.exists());
 		assert_eq!(std::fs::read_dir(&d).unwrap().count(), 1);
 		std::fs::remove_dir_all(d).unwrap();
+	}
+
+	#[test]
+	fn modified_ms_adds_seconds_and_nanoseconds_like_node() {
+		let d = dir("mtime");
+		let f = d.join("a.txt");
+		write_text_atomic(&f, "x").unwrap();
+		// A time where (secs + nanos / 1e9) * 1000 gives 1700000000123.457 instead.
+		let at = std::time::UNIX_EPOCH + std::time::Duration::new(1_700_000_000, 123_456_900);
+		std::fs::File::options().write(true).open(&f).unwrap().set_modified(at).unwrap();
+		assert_eq!(modified_ms(&std::fs::metadata(&f).unwrap()), 1_700_000_000_123.456_8);
+		std::fs::remove_dir_all(d).unwrap();
+	}
+
+	#[test]
+	fn the_long_path_prefix_is_dropped() {
+		let plain = |p: &str| without_long_prefix(PathBuf::from(p)).to_string_lossy().into_owned();
+		assert_eq!(plain(r"\\?\C:\a\b"), r"C:\a\b");
+		assert_eq!(plain(r"\\?\UNC\server\share\a"), r"\\server\share\a");
+		assert_eq!(plain(r"\\?\Volume{x}\a"), r"\\?\Volume{x}\a");
+		assert_eq!(plain("/a/b"), "/a/b");
 	}
 
 	#[test]
