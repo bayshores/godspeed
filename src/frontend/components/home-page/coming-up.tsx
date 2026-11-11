@@ -36,7 +36,7 @@ export const ComingUp = memo(function ComingUp({
 	const manyClasses = new Set(deadlines.map((d) => d.classId)).size > 1;
 	const hover = useHoverBar<HTMLUListElement>();
 	return (
-		<Pane name="coming up" data-testid="coming-up" className="px-3 pt-5 pb-3">
+		<Pane name="coming up" data-testid="coming-up" className="[&>h2]:px-2 [&>h2]:pt-0 [&>h2]:pb-1 px-3 pt-4 pb-3">
 			{deadlines.length === 0 ? (
 				<p data-testid="coming-up-empty" className="px-2 pb-1 text-sm text-ink-2">
 					Nothing else is due.

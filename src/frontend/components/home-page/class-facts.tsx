@@ -31,7 +31,7 @@ export const ClassFacts = memo(function ClassFacts({
 		</>
 	);
 	return (
-		<Pane name={name} data-testid={`class-facts-${cls.id}`} className="px-5 pt-5 pb-4">
+		<Pane name={name} data-testid={`class-facts-${cls.id}`} className="[&>h2]:p-0 [&>h2]:pb-2 px-5 pt-4 pb-4">
 			{progress.files.length === 0 ? (
 				<div className="flex flex-col items-start gap-3">
 					<p className="text-sm text-ink-2">No study files yet.</p>

@@ -330,7 +330,8 @@ body {
 	font-family: var(--font-ui);
 	font-size: 14px;
 	font-weight: 500;
-	line-height: 1;
+	/* Room for descenders: a truncated label clips at its line box. */
+	line-height: 1.4;
 	white-space: nowrap;
 	color: var(--foreground);
 	transition: background-color var(--lh-dur-fast) var(--lh-ease-out);

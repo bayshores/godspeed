@@ -16,7 +16,7 @@ export const ProblemsPane = memo(function ProblemsPane({ name, problems, open }:
 		listRef.current?.querySelector('[data-status="current"]')?.scrollIntoView({ block: "nearest" });
 	}, [open]);
 	return (
-		<Pane name={name.toLowerCase()} data-testid="problems-pane" className="shrink-0 px-3 pt-4 pb-3">
+		<Pane name={name.toLowerCase()} data-testid="problems-pane" className="[&>h2]:px-2 [&>h2]:pt-0 shrink-0 px-3 pt-3 pb-3">
 			{problems.length === 0 ? (
 				<p data-testid="problems-none" className="px-2 text-sm text-ink-3">
 					The teacher is reading the assignment.

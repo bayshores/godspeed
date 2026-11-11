@@ -41,7 +41,7 @@ export function DueNext({
 	onNewClass: () => void;
 }) {
 	return (
-		<Pane name="due next" active data-testid="due-next" className="px-7 pt-7 pb-6">
+		<Pane name="due next" active data-testid="due-next" className="[&>h2]:p-0 px-7 pt-6 pb-6">
 			{!d ? (
 				<div className="flex flex-col items-start gap-3">
 					<p data-testid="due-next-empty" className="text-base text-ink-2">

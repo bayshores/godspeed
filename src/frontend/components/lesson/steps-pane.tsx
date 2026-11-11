@@ -42,7 +42,7 @@ export const StepsPane = memo(function StepsPane({ bar, onJump, onOpenPlan }: { 
 		</>
 	);
 	return (
-		<Pane name={name} data-testid="steps-pane" className="shrink-0 px-3 pt-4 pb-3">
+		<Pane name={name} data-testid="steps-pane" className="[&>h2]:px-2 [&>h2]:pt-0 shrink-0 px-3 pt-3 pb-3">
 			<button
 				type="button"
 				data-testid="plan-step-open"

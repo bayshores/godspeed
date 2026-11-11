@@ -61,7 +61,7 @@ export function DeadlinePane({
 	const files = deadlineFilesText(deadline.files);
 	const when = countdownText(deadline.daysUntil);
 	return (
-		<Pane name="next" data-testid="deadline-pane" className="flex shrink-0 flex-col gap-3 px-5 pt-5 pb-4">
+		<Pane name="next" data-testid="deadline-pane" className="[&>h2]:p-0 flex shrink-0 flex-col gap-3 px-5 pt-4 pb-4">
 			<DeadlinePicker deadlines={deadlines} deadline={deadline} onChange={onChange} />
 			<div className="flex items-baseline justify-between gap-3" data-testid="deadline-countdown">
 				<span className="text-xl font-bold text-ink">{deadline.daysUntil > 0 ? `in ${when}` : when.toLowerCase()}</span>
