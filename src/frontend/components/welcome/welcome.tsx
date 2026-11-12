@@ -95,7 +95,7 @@ function WelcomeScreen({ leaving, onClose, upgraded }: { leaving: boolean; onClo
 		>
 			<div aria-hidden className="lh-drag absolute inset-x-0 top-0 z-10 h-12" />
 			<Constellation mode="welcome" />
-			<Wordmark markClassName="wl-comet" wordClassName="wl-word" />
+			<Wordmark markClassName="wl-mark" wordClassName="wl-word" />
 			<div className={cn("wl-rise relative flex flex-col items-center gap-[30px]", !ready && "pointer-events-none")}>
 				<BootLog lines={agent && nowMs !== null ? bootLines(VERSION, agent, next, nowMs, upgraded) : []} skipped={skipped} />
 				<button
