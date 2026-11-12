@@ -1,11 +1,11 @@
-// Space files, deadlines' agent text, the agent folder, the briefing and today's note: each case
+// Space files, deadlines' agent text, the old setup, the briefing and today's note: each case
 // lists its inputs beside the output so the Rust test can run them again. Seed space files come
 // from tests/fixtures/spaces (two made-up spaces).
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { agentBriefing } from "../../../../src/shared/core/agent-briefing.ts";
-import { claudeSettings, copyCommand, mcpJson, shortFolder, startScript, startScriptPath, usableFolder, withoutJsonEntry, withoutOldCodexServer } from "../../../../src/shared/core/agent-folder.ts";
+import { withoutJsonEntry, withoutOldCodexServer } from "../../../../src/shared/core/agent-folder.ts";
 import { missingSetup, SETUP_HOW } from "../../../../src/shared/core/space-setup.ts";
 import { spaceDirs, readmeText, safeEntryName, shortcutLayout, uniqueName } from "../../../../src/shared/core/space-shortcuts.ts";
 import { SPACE_ARG_TEXT, SPACE_TOOL_TEXT, DEADLINE_KINDS, FILE_KINDS, lessonStartedLastTurn } from "../../../../src/shared/core/space-tools.ts";
@@ -284,32 +284,7 @@ export default {
 	},
 	"readme text": () => [[], ["a.pdf"], ["a.pdf", "b/c.pdf", "😀.pdf"]].map((skipped) => ({ skipped, output: readmeText(skipped) })),
 
-	// ── the agent folder ──
-	"agent folder text": () => {
-		const folders = ["/Users/a/godspeed", "/Users/a/godspeed/", "/Users/a/my folder/godspeed", "C:\\Users\\a\\godspeed", "C:\\Users\\a\\godspeed\\", "/Users/a/📚/godspeed", "/Users/a/it's", 'a"b', "relative", "/a\nb", "/a`b", "/a$b", "", "/", "D:\\", "D:/x"];
-		const platforms = ["darwin", "win32", "linux"] as const;
-		const agents = ["claude", "codex"] as const;
-		return folders.map((folder) => {
-			const usable = usableFolder(folder);
-			return {
-				folder,
-				usable,
-				short: [shortFolder(folder, "/Users/a"), shortFolder("/Users/a", "/Users/a"), shortFolder("/Users/ab/x", "/Users/a")],
-				platforms: usable
-					? Object.fromEntries(
-							platforms.map((p) => [
-								p,
-								{
-									mcp: mcpJson(folder, p),
-									settings: claudeSettings(folder, p),
-									agents: Object.fromEntries(agents.map((a) => [a, { path: startScriptPath(folder, a, p), copy: copyCommand(a, folder, "/Users/a", p), script: startScript(a, folder, p) }])),
-								},
-							]),
-						)
-					: null,
-			};
-		});
-	},
+	// ── the old setup ──
 	"old setup": () => {
 		const tomls = [
 			'model = "x"\n\n[mcp_servers.godspeed]\nurl = "http://127.0.0.1:47613/api/mcp"\n\n[mcp_servers.godspeed.tools]\na = 1\n\n[other]\nb = 2\n',

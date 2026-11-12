@@ -10,7 +10,8 @@ use axum::response::Response;
 use gs_core::records::agent_rules::parse_where;
 use gs_json::{Json, json};
 use gs_services::App;
-use gs_services::app::agent_folder::{SetUpError, agent_folder_view, dismiss_folder_notice, set_up_agent_folder};
+use gs_core::spaces::agent_folder::FolderAgent;
+use gs_services::app::agent_folder::{SetUpError, agent_folder_view, dismiss_folder_notice, set_start_command, set_up_agent_folder};
 use gs_services::app::agent_memory::agent_notes_view;
 use gs_services::app::agent_rules::{RuleFailure, agent_saved_rules, edit_rule, remove_rule};
 use gs_services::app::boot::boot_info;
@@ -82,19 +83,35 @@ async fn change_agent_folder(State(app): State<Arc<App>>, body: Body) -> Result<
 			Ok(()) => reply::json_no_store(200, &agent_folder_view(&app)),
 			Err(message) => error(500, &format!("Couldn't remove it: {message}")),
 		}),
+		Some("set-start-command") => {
+			let agent = match body["agent"].as_str() {
+				Some("claude") => Some(FolderAgent::Claude),
+				Some("codex") => Some(FolderAgent::Codex),
+				_ => None,
+			};
+			match (agent, body["command"].as_str()) {
+				(Some(agent), Some(command)) => changed(set_start_command(&app, agent, command)),
+				_ => Ok(error(400, "agent must be \"claude\" or \"codex\", and command a string")),
+			}
+		}
 		Some("setup") => {
 			let folder = match &body["folder"] {
 				Json::Str(folder) => Some(folder.as_str()),
 				folder if body.as_obj().is_some_and(|o| o.contains_key("folder")) && !matches!(folder, Json::Str(_)) => return Ok(error(400, "folder must be a string")),
 				_ => None,
 			};
-			Ok(match set_up_agent_folder(&app, folder) {
-				Ok(view) => reply::json_no_store(200, &view),
-				Err(SetUpError::Folder(message)) => error(400, &message),
-				Err(SetUpError::Disk(message)) => return Err(Unhandled::from(message)),
-			})
+			changed(set_up_agent_folder(&app, folder))
 		}
-		_ => Ok(error(400, "action must be \"setup\", \"dismiss-notice\" or \"remove-old-setup\"")),
+		_ => Ok(error(400, "action must be \"setup\", \"set-start-command\", \"dismiss-notice\" or \"remove-old-setup\"")),
+	}
+}
+
+/// The folder after a change, or why it couldn't be made.
+fn changed(result: Result<Json, SetUpError>) -> Result<Response, Unhandled> {
+	match result {
+		Ok(view) => Ok(reply::json_no_store(200, &view)),
+		Err(SetUpError::Folder(message)) => Ok(error(400, &message)),
+		Err(SetUpError::Disk(message)) => Err(Unhandled::from(message)),
 	}
 }
 

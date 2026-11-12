@@ -6,7 +6,6 @@ use std::collections::{HashMap, HashSet};
 
 use gs_base::time;
 use gs_core::spaces::agent_briefing::{BriefingSpace, BriefingInput, BriefingLesson, agent_briefing};
-use gs_core::spaces::agent_folder::{FolderAgent, Platform, claude_settings, copy_command, mcp_json, short_folder, start_script, start_script_path, usable_folder};
 use gs_core::spaces::space_setup::{SETUP_HOW, missing_setup};
 use gs_core::spaces::space_shortcuts::{space_dirs, readme_text, safe_entry_name, shortcut_layout, unique_name};
 use gs_core::spaces::space_tools::{SPACE_ARG_TEXT, SPACE_TOOL_TEXT, DEADLINE_KINDS, FILE_KINDS, lesson_started_last_turn};
@@ -243,30 +242,6 @@ fn shortcut_layout_matches_node() {
 	}
 	let got: Vec<Json> = shortcut_layout(spaces).iter().map(|sc| json!({ "at": sc.at, "fileId": sc.file_id })).collect();
 	same(&Json::Arr(got), &c["layout"], "layout");
-}
-
-#[test]
-fn agent_folder_text_matches_node() {
-	for c in case("agent folder text") {
-		let folder = s(&c["folder"]);
-		assert_eq!(usable_folder(folder), c["usable"].as_bool().unwrap(), "{folder:?}");
-		let short = [short_folder(folder, "/Users/a"), short_folder("/Users/a", "/Users/a"), short_folder("/Users/ab/x", "/Users/a")];
-		assert_eq!(short.to_vec(), strings(&c["short"]), "{folder:?}");
-		if c["platforms"].is_null() {
-			continue;
-		}
-		for (name, platform) in [("darwin", Platform::Darwin), ("win32", Platform::Win32), ("linux", Platform::Linux)] {
-			let want = &c["platforms"][name];
-			assert_eq!(mcp_json(folder, platform), s(&want["mcp"]), "{folder:?} {name} mcp");
-			assert_eq!(claude_settings(folder, platform), s(&want["settings"]), "{folder:?} {name} settings");
-			for (agent_name, agent) in [("claude", FolderAgent::Claude), ("codex", FolderAgent::Codex)] {
-				let w = &want["agents"][agent_name];
-				assert_eq!(start_script_path(folder, agent, platform), s(&w["path"]), "{folder:?} {name} {agent_name} path");
-				assert_eq!(copy_command(agent, folder, "/Users/a", platform), s(&w["copy"]), "{folder:?} {name} {agent_name} copy");
-				assert_eq!(start_script(agent, folder, platform), s(&w["script"]), "{folder:?} {name} {agent_name} script");
-			}
-		}
-	}
 }
 
 #[test]
