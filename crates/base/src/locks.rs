@@ -50,8 +50,17 @@ impl Locks {
 
 	/// Waits for and holds the lock until the guard drops.
 	pub fn lock(&self, key: LockKey<'_>) -> Guard {
-		let lock = self.held.lock().entry(key.text()).or_default().clone();
-		lock.lock_arc()
+		self.entry(key).lock_arc()
+	}
+
+	/// The lock if no other thread holds it: for a caller that may already hold a lock that
+	/// comes after this one.
+	pub fn try_lock(&self, key: LockKey<'_>) -> Option<Guard> {
+		self.entry(key).try_lock_arc()
+	}
+
+	fn entry(&self, key: LockKey<'_>) -> Arc<ReentrantMutex<()>> {
+		self.held.lock().entry(key.text()).or_default().clone()
 	}
 }
 
@@ -75,5 +84,8 @@ mod tests {
 		drop(outer);
 		assert!(waited.join().unwrap() >= std::time::Duration::from_millis(40));
 		let _other = locks.lock(LockKey::Space("a"));
+		assert!(locks.try_lock(LockKey::Space("a")).is_some(), "the same thread gets it again");
+		let l3 = locks.clone();
+		assert!(std::thread::spawn(move || l3.try_lock(LockKey::Space("a")).is_none()).join().unwrap(), "another thread doesn't wait for it");
 	}
 }

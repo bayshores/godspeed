@@ -22,6 +22,7 @@ use gs_core::spaces::space_record::{clean_name, newer_version, read_space_record
 use gs_core::spaces::space_work::{work_after_deadline, work_after_files};
 use gs_core::records::teaching_areas::sanitize_rules;
 use gs_json::{Json, Obj, json, parse, stringify_pretty};
+use parking_lot::Mutex;
 
 /// Why a space change was refused: a deadline that is wrong or missing, or anything else
 /// (an unknown space, a disk error).
@@ -114,11 +115,14 @@ pub struct SpaceStore {
 	adopted: Once,
 	events: Events,
 	locks: Locks,
+	/// Held while a color is picked and saved, so each pick sees the colors saved before it, as
+	/// in Node's one thread. Taken last: nothing else is locked under it.
+	coloring: Mutex<()>,
 }
 
 impl SpaceStore {
 	pub fn new(paths: &Paths, events: &Events, locks: &Locks) -> SpaceStore {
-		SpaceStore { root: paths.spaces.clone(), old_root: paths.data.join("classes"), adopted: Once::new(), events: events.clone(), locks: locks.clone() }
+		SpaceStore { root: paths.spaces.clone(), old_root: paths.data.join("classes"), adopted: Once::new(), events: events.clone(), locks: locks.clone(), coloring: Mutex::new(()) }
 	}
 
 	/// Moves data/classes over, once.
@@ -220,8 +224,10 @@ impl SpaceStore {
 			return Some(record);
 		}
 		// A space from before colors keeps the one it is given here. Read again under the lock, so
-		// a change saved meanwhile is not written over.
-		let _guard = self.locks.lock(LockKey::Space(id));
+		// a change saved meanwhile is not written over. The caller may hold a lesson's lock, which
+		// comes after the space's: while another thread holds the space's, a later read saves it.
+		let Some(_guard) = self.locks.try_lock(LockKey::Space(id)) else { return Some(record) };
+		let _coloring = self.coloring.lock();
 		let (mut record, colored) = self.read_space(id)?;
 		if !colored {
 			if let Err(err) = self.write_space(&record) {
@@ -256,12 +262,14 @@ impl SpaceStore {
 				record.insert(key, init[key].clone());
 			}
 		}
+		let coloring = self.coloring.lock();
 		record.insert("color", next_space_color(&self.colors_beside(&id)));
 		if init["prep"].truthy() {
 			record.insert("prep", init["prep"].clone());
 		}
 		let mut record = Json::Obj(record);
 		self.write_space(&record)?;
+		drop(coloring);
 		self.changed();
 		if let Some(obj) = record.as_obj_mut() {
 			obj.insert("version", CURRENT_SPACE_VERSION);
@@ -576,6 +584,50 @@ mod tests {
 		assert!(rx.try_recv().is_err(), "a read is quiet");
 		// The colored one is only read.
 		assert_eq!(std::fs::read_to_string(root.join("cls_e1").join("space.json")).unwrap(), colored);
+	}
+
+	#[test]
+	fn a_color_is_saved_only_when_the_spaces_lock_is_free_and_two_picks_never_meet() {
+		let dir = std::env::temp_dir().join(format!("gs-store-colors-{}", ids::uuid()));
+		let paths = Paths::new(dir.clone(), dir.clone(), dir.clone(), dir.clone());
+		let locks = Locks::new();
+		let store = std::sync::Arc::new(SpaceStore::new(&paths, &Events::new(), &locks));
+		let uncolored = |id: &str| fsx::write_text_atomic(&paths.spaces.join(id).join("space.json"), &old_record(id).replace("\t\"color\": 1,\n", "")).unwrap();
+		uncolored("cls_a");
+		// A space delete holds the space's lock and waits for a lesson's, which this reader may hold.
+		let held = locks.clone();
+		let (taken, release) = (std::sync::mpsc::channel(), std::sync::mpsc::channel::<()>());
+		let holder = std::thread::spawn(move || {
+			let _guard = held.lock(LockKey::Space("cls_a"));
+			taken.0.send(()).unwrap();
+			release.1.recv().unwrap();
+		});
+		taken.1.recv().unwrap();
+		assert_eq!(store.get_space("cls_a").unwrap()["color"], Json::from(1), "read without waiting");
+		assert!(!std::fs::read_to_string(paths.spaces.join("cls_a").join("space.json")).unwrap().contains("color"));
+		release.0.send(()).unwrap();
+		holder.join().unwrap();
+		store.get_space("cls_a").unwrap();
+		assert!(std::fs::read_to_string(paths.spaces.join("cls_a").join("space.json")).unwrap().contains("\"color\": 1"));
+
+		let ids: Vec<String> = (0..7).map(|i| format!("cls_b{i}")).collect();
+		for id in &ids {
+			uncolored(id);
+		}
+		let start = std::sync::Arc::new(std::sync::Barrier::new(ids.len()));
+		let readers: Vec<_> = ids
+			.iter()
+			.map(|id| {
+				let (store, start, id) = (store.clone(), start.clone(), id.clone());
+				std::thread::spawn(move || {
+					start.wait();
+					store.get_space(&id).unwrap()["color"].as_f64().unwrap() as i64
+				})
+			})
+			.collect();
+		let mut colors: Vec<i64> = readers.into_iter().map(|r| r.join().unwrap()).collect();
+		colors.sort_unstable();
+		assert_eq!(colors, [2, 3, 4, 5, 6, 7, 8], "spaces colored at the same time each take their own");
 	}
 
 	fn study(id: &str, status: &str) -> Json {
