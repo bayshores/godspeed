@@ -164,5 +164,6 @@ fn pptx_text(zip: &Zip) -> Result<String, String> {
 /// Word/PowerPoint files or are password-protected.
 pub fn office_text(file: &Path) -> Result<String, String> {
 	let zip = Zip::open(read_file(file)?)?;
-	if posix::extname(&file.to_string_lossy()).to_lowercase() == ".pptx" { pptx_text(&zip) } else { docx_text(&zip) }
+	let name = file.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+	if posix::extname(&name).to_lowercase() == ".pptx" { pptx_text(&zip) } else { docx_text(&zip) }
 }
