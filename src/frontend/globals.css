@@ -533,14 +533,18 @@ body {
 /* Inline math: a piece too wide to break scrolls too, since message
  * bodies hide overflow. Each base is the unbreakable run, so lines still
  * wrap between them; baseline-source keeps the scroller on the text line,
- * and padding offset by margin keeps glyph overhang from being clipped. */
-:not(.katex-display) > .katex .katex-base {
-	max-width: 100%;
-	overflow-x: auto;
-	overflow-y: hidden;
-	baseline-source: last;
-	padding: 0.5em 0.2em;
-	margin: -0.5em -0.2em;
+ * and padding offset by margin keeps glyph overhang from being clipped.
+ * Without baseline-source (WebKit) a scroller sits on its bottom edge and
+ * lifts the math off the line, so those browsers skip the scrolling. */
+@supports (baseline-source: last) {
+	:not(.katex-display) > .katex .katex-base {
+		max-width: 100%;
+		overflow-x: auto;
+		overflow-y: hidden;
+		baseline-source: last;
+		padding: 0.5em 0.2em;
+		margin: -0.5em -0.2em;
+	}
 }
 
 /* ============================================================
