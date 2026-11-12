@@ -102,6 +102,16 @@ fn at(value: &Json, root: &Path) -> Json {
 	parse(&stringify(value).replace("<ROOT>", root.to_str().unwrap())).unwrap()
 }
 
+/// The recording was made on a case-insensitive disk, where case/b.txt is case/B.txt and the
+/// folder holds one file. On a case-sensitive disk both exist, and names that differ only in case
+/// list in byte order, so b.txt follows B.txt.
+fn for_this_disk(name: &str, recorded: Json, case_sensitive: bool) -> Json {
+	if case_sensitive && name == "ls: mixed case and accents" {
+		return parse(&stringify(&recorded).replace("B.txt\\n", "B.txt\\nb.txt\\n")).unwrap();
+	}
+	recorded
+}
+
 fn tools_for(root: &Path) -> Vec<Arc<dyn Tool>> {
 	let pdf = Pdf::new(Path::new("/nonexistent"));
 	[read_tool(), ls_tool(), find_tool(), grep_tool()].into_iter().chain(web_tools()).chain(create_pdf_read_tools(&pdf, &root.join("pdf-job"))).collect()
@@ -114,6 +124,7 @@ async fn the_tools_answer_like_the_typescript_ones() {
 	let case = |name: &str| cases.iter().find(|c| s(&c["name"]) == name).unwrap_or_else(|| panic!("no golden case {name}"))["output"].clone();
 
 	let fixture = build(&case("fixture"));
+	let case_sensitive = !fixture.root.join("CASE").exists();
 	let tools = tools_for(&fixture.root);
 	let mut failures: Vec<String> = Vec::new();
 
@@ -139,7 +150,7 @@ async fn the_tools_answer_like_the_typescript_ones() {
 		let got = tool.execute(at(&recorded["args"], &fixture.root), ToolContext { tool_call_id: "call".to_owned(), abort }).await;
 		let want = match recorded.get("error") {
 			Some(error) => Err(s(&at(error, &fixture.root)).to_owned()),
-			None => Ok(at(&recorded["result"], &fixture.root)),
+			None => Ok(for_this_disk(name, at(&recorded["result"], &fixture.root), case_sensitive)),
 		};
 		if got != want {
 			let show = |r: &Result<Json, String>| match r {
