@@ -119,7 +119,8 @@ describe("running a code answer's examples", () => {
 			assert.match(looped.error ?? "", /more than 5 seconds/);
 			await gone();
 
-			const loud = await runExamples(QUESTION, starts("while (true) process.stdout.write('x'.repeat(65536));"), "javascript");
+			// Written at once: process.stdout queues behind a busy loop on a Mac's pipe.
+			const loud = await runExamples(QUESTION, starts("while (true) try { require('node:fs').writeSync(1, 'x'.repeat(65536)); } catch {}"), "javascript");
 			assert.equal(loud.error, "Your code printed too much and was stopped.");
 			await gone();
 
