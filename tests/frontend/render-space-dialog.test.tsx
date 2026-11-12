@@ -3,7 +3,7 @@
  * writes only the fields the learner changed. The dialog has no file list
  * and no deadlines (those have their own tabs).
  */
-import React, { act } from "react";
+import React, { act, useEffect } from "react";
 (globalThis as Record<string, unknown>).React = React;
 
 import assert from "node:assert/strict";
@@ -32,7 +32,26 @@ const { createRoot } = await import("react-dom/client");
 const { SpaceDialog } = await import("../../src/frontend/components/space-dialog.tsx");
 const { MoveLessonDialog } = await import("../../src/frontend/components/lessons/move-lesson-dialog.tsx");
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
-const { SpaceProvider } = await import("../../src/frontend/components/space-context.tsx");
+const { SpaceProvider, useSpaces } = await import("../../src/frontend/components/space-context.tsx");
+const { useSpaceRecord } = await import("../../src/frontend/components/files/space-files-api.ts");
+const { MemoryRouter, useLocation } = await import("react-router");
+
+/** Where the window was sent. */
+const pushed: string[] = [];
+function Spy() {
+	const { pathname, search } = useLocation();
+	useEffect(() => {
+		pushed.push(pathname + search);
+	}, [pathname, search]);
+	return null;
+}
+
+/** A space page behind the dialog: it reads the space the window is on. */
+function SpacePage() {
+	const { active } = useSpaces();
+	useSpaceRecord(active);
+	return null;
+}
 
 function file(id: string, name: string, kind: "study" | "info" = "study"): SpaceFile {
 	return { id, origin: "copied", name, path: `${id}/${name}`, kind, contentFp: "", status: "ready", addedAt: "" };
@@ -54,6 +73,8 @@ const RECORD: SpaceRecord = {
 };
 
 const calls: { method: string; url: string; body?: unknown }[] = [];
+/** Every GET, in order. */
+const reads: string[] = [];
 const originalFetch = globalThis.fetch;
 /** The record the server holds now (an agent may change it mid-test). */
 let served: SpaceRecord = RECORD;
@@ -65,6 +86,7 @@ function fakeFetch() {
 		const method = init?.method ?? "GET";
 		const body = typeof init?.body === "string" ? JSON.parse(init.body) : undefined;
 		if (method !== "GET") calls.push({ method, url, body });
+		else reads.push(url);
 		if (url === "/api/spaces") return Response.json({ spaces: [{ id: "cls_a", name: "CSE 21" }] });
 		if (url === "/api/spaces/cls_a" && method === "GET") return Response.json({ space: served });
 		if (url === "/api/spaces/cls_a" && method === "DELETE") return Response.json({ ok: true, lessonIds: ["l1", "l2"] });
@@ -83,15 +105,20 @@ async function mount(mode: { kind: "create" } | { kind: "edit"; spaceId: string 
 	await act(async () => {
 		root!.render(
 			<ServerEventsProvider connect={connect as never}>
-				<SpaceProvider initialActive="cls_a">
-					<SpaceDialog mode={mode} onClose={() => closed++} />
-				</SpaceProvider>
+				<MemoryRouter initialEntries={["/space"]}>
+					<SpaceProvider initialActive="cls_a">
+						<SpacePage />
+						<SpaceDialog mode={mode} onClose={() => closed++} />
+					</SpaceProvider>
+					<Spy />
+				</MemoryRouter>
 			</ServerEventsProvider>,
 		);
 	});
 	await act(async () => {
 		await new Promise((r) => setTimeout(r, 20));
 	});
+	pushed.length = 0;
 }
 const q = (id: string) => document.querySelector<HTMLElement>(`[data-testid="${id}"]`);
 async function click(el: HTMLElement | null) {
@@ -122,6 +149,8 @@ afterEach(async () => {
 	host = undefined;
 	closed = 0;
 	calls.length = 0;
+	reads.length = 0;
+	pushed.length = 0;
 	served = RECORD;
 	events.clear();
 	globalThis.fetch = originalFetch;
@@ -208,6 +237,25 @@ describe("Edit space dialog", () => {
 		assert.deepEqual((calls[0] as { body: unknown }).body, { color: 5 });
 	});
 
+	it("Edit prep: no signature and no word of the agent picking an icon, since it never does for a prep", async () => {
+		served = { ...RECORD, name: "Backend phone screen", prep: { goal: "Backend phone screen at a made-up startup", about: "", sources: [], topics: [] } };
+		fakeFetch();
+		await mount({ kind: "edit", spaceId: "cls_a" });
+		assert.equal(q("space-dialog")!.getAttribute("aria-label"), "Edit prep");
+		assert.equal(q("space-signature"), null);
+		assert.ok(q("space-icon"), "the icon can still be picked");
+		assert.doesNotMatch(q("space-dialog")!.textContent!, /Your agent picks one/);
+		assert.ok(q("space-description"), "the teacher reads the description in a prep's lessons too");
+		await click(q("space-delete"));
+		assert.match(q("space-delete-confirm")!.textContent!, /removes the prep, all its lessons, its mocks, its copied files/);
+	});
+
+	it("Edit space says the agent picks the icon", async () => {
+		fakeFetch();
+		await mount({ kind: "edit", spaceId: "cls_a" });
+		assert.match(q("space-dialog")!.textContent!, /Your agent picks one when it sets up the space\./);
+	});
+
 	it("Add a space: name and description only", async () => {
 		fakeFetch();
 		await mount({ kind: "create" });
@@ -230,16 +278,71 @@ describe("Delete space", () => {
 			await click(q("space-delete"));
 			assert.equal(q("space-dialog")!.getAttribute("aria-label"), "Delete CSE 21?");
 			assert.match(q("space-delete-confirm")!.textContent!, /This cannot be undone\./);
+			assert.doesNotMatch(q("space-delete-confirm")!.textContent!, /mocks/, "an ordinary space has none");
 			await click(q("space-delete-confirm-button"));
 			await act(async () => {
 				await new Promise((r) => setTimeout(r, 10));
 			});
-			assert.equal(`${calls[0]?.method} ${calls[0]?.url}`, "DELETE /api/spaces/cls_a");
+			assert.ok(calls.some((c) => `${c.method} ${c.url}` === "DELETE /api/spaces/cls_a"));
 			assert.equal(closed, 1);
 			assert.deepEqual([...store.keys()], ["lh:lesson-draft:other"], "another lesson's draft stays");
 		} finally {
 			delete (globalThis as { localStorage?: unknown }).localStorage;
 		}
+	});
+});
+
+describe("Delete space, while the server deletes it", () => {
+	it("leaves the space first, so nothing asks for it again, then goes to Today", async () => {
+		fakeFetch();
+		const deleting = Promise.withResolvers<void>();
+		const fallback = globalThis.fetch;
+		globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+			if (String(input) === "/api/spaces/cls_a" && init?.method === "DELETE") await deleting.promise;
+			return fallback(input, init);
+		}) as typeof fetch;
+		await mount({ kind: "edit", spaceId: "cls_a" });
+		await click(q("space-delete"));
+		await click(q("space-delete-confirm-button"));
+		const before = reads.length;
+		// The server says the spaces changed before its answer arrives.
+		await act(async () => {
+			events.get("spaces-changed")?.("{}");
+			await new Promise((r) => setTimeout(r, 20));
+		});
+		assert.ok(q("space-delete-confirm"), "the question stays while it runs");
+		await act(async () => {
+			deleting.resolve();
+			await new Promise((r) => setTimeout(r, 10));
+		});
+		assert.deepEqual(
+			reads.slice(before).filter((url) => url.startsWith("/api/spaces/cls_a")),
+			[],
+			"neither the dialog nor the page behind it reads the deleted space",
+		);
+		assert.deepEqual(pushed, ["/"], "to Today");
+		assert.equal(closed, 1);
+		assert.ok(calls.some((c) => c.url === "/api/settings/general" && (c.body as { activeSpace?: string }).activeSpace === "none"));
+	});
+
+	it("comes back to the space when the delete is refused", async () => {
+		fakeFetch();
+		const fallback = globalThis.fetch;
+		globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+			if (String(input) === "/api/spaces/cls_a" && init?.method === "DELETE") return Response.json({ error: "Counting: a turn is running" }, { status: 409 });
+			return fallback(input, init);
+		}) as typeof fetch;
+		await mount({ kind: "edit", spaceId: "cls_a" });
+		await click(q("space-delete"));
+		await click(q("space-delete-confirm-button"));
+		await act(async () => {
+			await new Promise((r) => setTimeout(r, 20));
+		});
+		assert.match(q("space-dialog-error")!.textContent!, /a turn is running/);
+		assert.deepEqual(pushed, []);
+		assert.equal(closed, 0);
+		const settings = calls.filter((c) => c.url === "/api/settings/general").map((c) => (c.body as { activeSpace?: string }).activeSpace);
+		assert.deepEqual(settings, ["none", "cls_a"], "back on the space");
 	});
 });
 

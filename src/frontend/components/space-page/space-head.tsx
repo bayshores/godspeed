@@ -23,11 +23,12 @@ import { spaceTabs, sheetCount, type TabCounts } from "./space-head-model";
 export function SpaceHead() {
 	const { pathname } = useLocation();
 	const { active, activeSpace } = useSpaces();
-	const [editing, setEditing] = useState(false);
+	/** The space Edit opened for: it stays open while that space is deleted. */
+	const [editing, setEditing] = useState<string | null>(null);
 	const unseenFiles = useUnseenFiles(active, activeSpace?.lastFoundAt, pathname === "/space/files");
 	const counts = useTabCounts();
 	// The dialog compares its mode by identity: one object per open.
-	const editMode = useMemo(() => (editing && active ? { kind: "edit" as const, spaceId: active } : null), [editing, active]);
+	const editMode = useMemo(() => (editing ? { kind: "edit" as const, spaceId: editing } : null), [editing]);
 	return (
 		<div data-testid="space-head" className="mx-auto w-full max-w-[908px] shrink-0 px-6 pt-10">
 			<div className="flex items-center gap-4">
@@ -45,7 +46,7 @@ export function SpaceHead() {
 				)}
 				<div id={ASIDE_ID} className="shrink-0 empty:hidden" />
 				{activeSpace && (
-					<button type="button" data-testid="space-edit" onClick={() => setEditing(true)} className="lh-btn lh-btn-quiet shrink-0 text-[15px]">
+					<button type="button" data-testid="space-edit" onClick={() => setEditing(activeSpace.id)} className="lh-btn lh-btn-quiet shrink-0 text-[15px]">
 						{activeSpace.prep ? "Edit prep" : "Edit space"}
 					</button>
 				)}
@@ -81,7 +82,7 @@ export function SpaceHead() {
 					);
 				})}
 			</nav>
-			<SpaceDialog mode={editMode} onClose={() => setEditing(false)} />
+			<SpaceDialog mode={editMode} onClose={() => setEditing(null)} />
 		</div>
 	);
 }

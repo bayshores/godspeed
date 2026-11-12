@@ -11,6 +11,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useNavigate } from "react-router";
 import { useSpaces } from "@/frontend/components/space-context";
 import { RuleChips } from "@/frontend/components/rule-chips";
 import { changedFields } from "@/frontend/components/space-deadlines-model";
@@ -45,8 +46,12 @@ function scrollIntoSight(el: HTMLElement | null) {
 
 function SpaceDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () => void; state: "open" | "closed" }) {
 	const { active, setActive } = useSpaces();
+	const navigate = useNavigate();
 	const spaceId = mode.kind === "edit" ? mode.spaceId : null;
-	const { record, failed: recordFailed, reload } = useSpaceRecord(spaceId);
+	/** The space while it is being deleted: nothing reads it again meanwhile. */
+	const [leaving, setLeaving] = useState<SpaceRecord | null>(null);
+	const { record: read, failed: recordFailed, reload } = useSpaceRecord(leaving ? null : spaceId);
+	const record = leaving ?? read;
 	// Edit space with nothing to edit: say so instead of showing empty fields.
 	const loadFailed = mode.kind === "edit" && !record && recordFailed;
 	// Edit space waits for the space before showing its fields.
@@ -124,11 +129,20 @@ function SpaceDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 		if (Object.keys(body).length > 0 && !(await call(`/api/spaces/${encodeURIComponent(record.id)}`, jsonInit("PUT", body)))) return;
 		onClose();
 	};
+	/** Leaves the space before deleting it, so no page asks for it once it
+	 *  is gone, then goes to Today. A refused delete comes back to it. */
 	const remove = async (space: SpaceRecord) => {
+		const wasActive = space.id === active;
+		setLeaving(space);
+		if (wasActive) setActive(null);
 		const body = (await call(`/api/spaces/${space.id}`, { method: "DELETE" })) as { lessonIds: string[] } | null;
-		if (!body) return setAsking(null);
+		if (!body) {
+			setLeaving(null);
+			if (wasActive) setActive(space.id);
+			return setAsking(null);
+		}
 		for (const id of body.lessonIds) forgetLessonDraft(id);
-		if (space.id === active) setActive(null);
+		navigate("/");
 		onClose();
 	};
 	const archive = async (space: SpaceRecord) => {
@@ -170,7 +184,7 @@ function SpaceDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 				}
 			>
 				<p data-testid="space-delete-confirm" className="text-lg text-ink">
-					This permanently removes the {noun}, all its lessons, its copied files, and its knowledge graph. A linked folder on your computer is not touched. This cannot be undone.
+					This permanently removes the {noun}, all its lessons, {record.prep ? "its mocks, " : ""}its copied files, and its knowledge graph. A linked folder on your computer is not touched. This cannot be undone.
 				</p>
 				{errorLine}
 			</DialogSheet>
@@ -256,7 +270,7 @@ function SpaceDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 			)}
 			{editing && (
 				<>
-					<SpaceIconField icon={icon} disabled={busy} onChange={setIcon} />
+					<SpaceIconField icon={icon} agentPicks={!editing.prep} disabled={busy} onChange={setIcon} />
 					<SpaceColorField color={color} disabled={busy} onChange={setColor} />
 					{!editing.prep && <SpaceSignatureField kind={signature.kind} value={signature.value} disabled={busy} onChange={(kind, value) => setSignature({ kind, value })} />}
 					<div className="flex flex-col gap-1.5">

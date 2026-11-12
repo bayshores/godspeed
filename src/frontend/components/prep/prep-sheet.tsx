@@ -12,6 +12,7 @@ import { LoadFailed } from "@/frontend/components/load-failed";
 import { TITLE } from "@/frontend/components/overview/styles";
 import { BIG_BUTTON } from "@/frontend/components/ui/big-button";
 import { FIELD } from "@/frontend/components/ui/field";
+import { FootQuestion } from "@/frontend/components/ui/foot-question";
 import { Pane } from "@/frontend/components/ui/pane";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { ProgressBar } from "@/frontend/components/ui/progress-bar";
@@ -183,10 +184,30 @@ function Sheet({ view, teacher, act }: { view: PrepView; teacher: string; act: A
 	);
 }
 
-/** One topic: its place, name and why, how it is going, and Remove. The
- *  row itself starts a study session on just this topic. */
+/** One topic: its place, name and why, how it is going, and Remove,
+ *  which asks first like removing a deadline. The row itself starts a
+ *  study session on just this topic. */
 function TopicRow({ n, topic: t, busy, onStudy, onRemove }: { n: number; topic: PrepTopicProgress; busy: boolean; onStudy: () => void; onRemove: () => void }) {
+	const [asking, setAsking] = useState(false);
 	const boxes = meterBoxes(t.rate);
+	if (asking) {
+		return (
+			<li data-testid={`prep-topic-${t.id}`} className="flex border-b border-dotted border-edge px-1 py-2 last:border-b-0">
+				<FootQuestion
+					testid="prep-topic-remove-confirm"
+					line={`Remove ${t.name}? This can't be undone.`}
+					keep="Cancel"
+					go="Remove topic"
+					busy={busy}
+					onKeep={() => setAsking(false)}
+					onGo={() => {
+						setAsking(false);
+						onRemove();
+					}}
+				/>
+			</li>
+		);
+	}
 	return (
 		<li data-testid={`prep-topic-${t.id}`} className="flex items-stretch border-b border-dotted border-edge last:border-b-0">
 			<button type="button" data-testid="prep-topic-study" disabled={busy} onClick={onStudy} className="lh-press flex min-w-0 flex-1 items-center gap-3.5 px-1 py-3 text-left hover:bg-tone focus-visible:bg-tone">
@@ -204,7 +225,7 @@ function TopicRow({ n, topic: t, busy, onStudy, onRemove }: { n: number; topic: 
 					))}
 				</span>
 			</button>
-			<button type="button" data-testid="prep-topic-remove" aria-label={`Remove ${t.name}`} title="Remove" disabled={busy} onClick={onRemove} className="lh-press flex w-9 shrink-0 items-center justify-center text-ink-3 hover:bg-tone hover:text-ink">
+			<button type="button" data-testid="prep-topic-remove" aria-label={`Remove ${t.name}`} title="Remove" disabled={busy} onClick={() => setAsking(true)} className="lh-press flex w-9 shrink-0 items-center justify-center text-ink-3 hover:bg-tone hover:text-ink">
 				<PixelIcon name="close" className="h-[9px]" />
 			</button>
 		</li>

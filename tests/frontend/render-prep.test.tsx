@@ -134,9 +134,19 @@ describe("a prep's sheet", () => {
 
 	});
 
-	it("Remove takes a topic off, and Take a mock makes one", async () => {
+	it("Remove asks first for every topic, then takes it off, and Take a mock makes one", async () => {
 		await mount(WRITTEN);
+		const sent = posts.length;
+		for (const id of ["pt_00000001", "pt_00000003"]) {
+			await click(q(`prep-topic-${id}`)!.querySelector('[data-testid="prep-topic-remove"]'));
+			assert.equal(posts.length, sent, `nothing removed yet (${id}, answered or not)`);
+			assert.match(q("prep-topic-remove-confirm")!.textContent ?? "", /This can't be undone\./);
+			await click(q("prep-topic-remove-confirm-keep"));
+			assert.equal(q("prep-topic-remove-confirm"), null, "Cancel keeps it");
+		}
 		await click(q("prep-topic-pt_00000001")!.querySelector('[data-testid="prep-topic-remove"]'));
+		assert.match(q("prep-topic-remove-confirm")!.textContent ?? "", /^Remove Arrays\?/);
+		await click(q("prep-topic-remove-confirm-go"));
 		assert.deepEqual(posts.at(-1), { url: "/api/spaces/spc_a/prep", body: { action: "remove-topic", topicId: "pt_00000001" } });
 
 		await click(q("prep-take-mock"));
