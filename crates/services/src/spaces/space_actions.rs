@@ -8,6 +8,7 @@ use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
 
+use gs_base::text::trim;
 use gs_base::{clock, time};
 use gs_core::spaces::space_tools::{SpaceChange, ToolOutcome};
 use gs_core::spaces::today_note::local_day;
@@ -21,6 +22,7 @@ use super::{add_space_deadline, add_file_from_path, link_folder, remove_space_de
 use crate::App;
 use crate::app::agent_actions::note_agent_action;
 use crate::app::agent_folder::shortcut_path_problem;
+use crate::preps::preps::{Stop, change_prep, prep_view};
 use crate::turns::lessons::{CreateLessonInput, LessonStart, create_lesson};
 
 /// Study files are read by the agent itself, as background work items.
@@ -82,6 +84,53 @@ fn change(label: String, space_id: &Json, kind: &str, id: &str, page: &str) -> J
 	json!({ "label": label, "spaceId": space_id, "target": { "kind": kind, "id": id }, "page": page })
 }
 
+/// A prep's sheet as agents see it (null when the space is no prep).
+fn sheet_view(app: &Arc<App>, space_id: &str) -> Json {
+	let Ok(view) = prep_view(app, space_id) else { return Json::Null };
+	let prep = &view["prep"];
+	let or_null = |v: &Json| if v.is_null() { Json::Null } else { v.clone() };
+	let topics: Vec<Json> = view["topics"]
+		.as_arr()
+		.into_iter()
+		.flatten()
+		.map(|t| {
+			let mut entry = Obj::new();
+			entry.insert("id", t["id"].clone());
+			entry.insert("name", t["name"].clone());
+			if t["why"].truthy() {
+				entry.insert("why", t["why"].clone());
+			}
+			entry.insert("status", t["status"].clone());
+			Json::Obj(entry)
+		})
+		.collect();
+	let mocks: Vec<Json> = view["mocks"]
+		.as_arr()
+		.into_iter()
+		.flatten()
+		.map(|m| {
+			let mut entry = Obj::new();
+			entry.insert("n", m["n"].clone());
+			entry.insert("state", m["state"].clone());
+			if let Some(solved) = m.get("solved") {
+				entry.insert("solved", solved.clone());
+			}
+			Json::Obj(entry)
+		})
+		.collect();
+	let mut out = Obj::new();
+	out.insert("goal", prep["goal"].clone());
+	out.insert("date", or_null(&prep["date"]));
+	out.insert("about", prep["about"].clone());
+	out.insert("mock", or_null(&prep["mock"]));
+	out.insert("topics", topics);
+	out.insert("mocks", mocks);
+	if view["writing"].truthy() {
+		out.insert("beingWritten", true);
+	}
+	Json::Obj(out)
+}
+
 /// The signature argument cleaned: Ok(None) when not given, Err when given but not valid.
 fn signature_arg(args: &Json) -> Result<Option<Json>, ()> {
 	if !args["signature"].truthy() {
@@ -115,8 +164,8 @@ impl SpaceActions {
 	}
 
 	/// A space as agents see it: summary, file counts by status (and the files that could not be
-	/// read, or every file with `with_files`), the graph's topics, deadlines, lessons. A linked
-	/// folder can hold 500 files, so the full list comes only on request. Err when the space's
+	/// read, or every file with `with_files`), the graph's topics, deadlines, lessons, and a prep's
+	/// sheet. A linked folder can hold 500 files, so the full list comes only on request. Err when the space's
 	/// graph cannot be read.
 	fn space_view(&self, space_id: &str, with_files: bool) -> Result<Option<Json>, String> {
 		let app = &self.app;
@@ -138,6 +187,9 @@ impl SpaceActions {
 		view.insert("icon", or_null("icon"));
 		view.insert("archived", record["archived"].clone());
 		view.insert("linkedFolder", or_null("linkedFolder"));
+		if record["prep"].truthy() {
+			view.insert("prep", sheet_view(app, space_id));
+		}
 		view.insert("fileCounts", counts);
 		if with_files {
 			let listed: Vec<Json> = files
@@ -522,19 +574,50 @@ impl SpaceActions {
 		self.done(json!({ "space": view, "note": format!("Linked. {READING_NOTE}") }), vec![change(label, &Json::from(space_id), "space", space_id, "/space/files")])
 	}
 
+	pub fn update_prep(&self, args: &Json) -> ToolOutcome {
+		let space_id = str_of(args, "space_id");
+		let Some(record) = self.app.stores.spaces.get_space(space_id) else { return no_space(space_id) };
+		if !record["prep"].truthy() {
+			return ToolOutcome::Err(format!("{} is not a prep, so it has no prep sheet.", str_of(&record, "name")));
+		}
+		let mut edits = Obj::new();
+		for (arg, edit) in [("date", "date"), ("about", "about"), ("mock", "mock"), ("add_topics", "addTopics"), ("remove_topic_ids", "removeTopicIds")] {
+			if let Some(value) = args.get(arg) {
+				edits.insert(edit, value.clone());
+			}
+		}
+		match change_prep(&self.app, space_id, &Json::Obj(edits)) {
+			Ok(()) => {}
+			Err(Stop::Refuse(_, error) | Stop::Throw(error)) => return ToolOutcome::Err(error),
+		}
+		let label = format!("Changing the prep sheet of {}", str_of(&record, "name"));
+		self.done(json!({ "prep": sheet_view(&self.app, space_id) }), vec![change(label, &Json::from(space_id), "space", space_id, "/space")])
+	}
+
 	pub async fn start_lesson(&self, args: &Json) -> ToolOutcome {
 		let topic = str_of(args, "topic");
 		let raw = args["space_id"].as_str();
 		let Some(scope) = parse_space_scope(raw) else {
 			return ToolOutcome::Err(format!("\"{}\" is not a space id. Use list_spaces.", template_text(args.get("space_id"))));
 		};
-		if let Some(id) = &scope {
-			let Some(space) = self.app.stores.spaces.get_space(id) else { return no_space(id) };
-			if space["archived"].truthy() {
-				return ToolOutcome::Err("This space is archived. Ask the learner to unarchive it in Edit space first.".to_owned());
-			}
+		let space = match &scope {
+			Some(id) => match self.app.stores.spaces.get_space(id) {
+				Some(space) => Some(space),
+				None => return no_space(id),
+			},
+			None => None,
+		};
+		if space.as_ref().is_some_and(|s| s["archived"].truthy()) {
+			return ToolOutcome::Err("This space is archived. Ask the learner to unarchive it in Edit space first.".to_owned());
 		}
-		let input = CreateLessonInput { space_id: scope.clone(), start: LessonStart::Typed { title: topic.to_owned(), picks: Vec::new() } };
+		// A topic of a prep's sheet is studied as that topic, so its answers count for it.
+		let wanted = trim(topic).to_lowercase();
+		let on_sheet = space.as_ref().and_then(|s| s["prep"]["topics"].as_arr()?.iter().find(|t| str_of(t, "name").to_lowercase() == wanted).cloned());
+		let start = match on_sheet {
+			Some(t) => LessonStart::PrepTopics(vec![str_of(&t, "id").to_owned()]),
+			None => LessonStart::Typed { title: topic.to_owned(), picks: Vec::new() },
+		};
+		let input = CreateLessonInput { space_id: scope.clone(), start };
 		let chat = match create_lesson(&self.app, input) {
 			Ok(Ok(created)) => created.chat,
 			Ok(Err(not_found)) => return ToolOutcome::Err(not_found.error.to_owned()),
@@ -564,6 +647,7 @@ impl SpaceActions {
 			"update_space_deadline" => self.update_space_deadline(args),
 			"remove_space_deadline" => self.remove_space_deadline(args),
 			"link_space_folder" => self.link_space_folder(args),
+			"update_prep" => self.update_prep(args),
 			"start_lesson" => self.start_lesson(args).await,
 			_ => return None,
 		})
@@ -587,6 +671,54 @@ mod tests {
 			let action = recent_agent_actions(&app).into_iter().find(|a| a["label"].as_str() == Some(&format!("Creating {name}"))).unwrap();
 			assert_eq!(action["open"].as_bool(), open_started.then_some(true));
 		}
+	}
+
+	#[tokio::test]
+	async fn reads_a_preps_sheet_changes_it_and_starts_a_lesson_on_one_of_its_topics() {
+		use gs_core::preps::prep::{new_prep, with_sheet};
+		let root = scratch_dir("space-actions-prep");
+		let app = test_app(&root);
+		let sheet = json!({ "name": "Acme junior web test", "about": "Four questions in 70 minutes.", "sources": [], "topics": [{ "name": "Arrays" }, { "name": "Hash maps" }], "mock": { "questions": 4, "minutes": 70 } });
+		let mut n = 0;
+		let (written, name) = with_sheet(&new_prep("Acme online test", None).unwrap(), &sheet, "2026-11-11T10:00:00.000Z", &mut || { n += 1; format!("pt_0000000{n}") }, &Default::default());
+		let prep_id = app.stores.spaces.create_space(&json!({ "name": name, "prep": written })).unwrap()["id"].as_str().unwrap().to_owned();
+		let send: SendFirstMessage = Arc::new(|_, _| Box::pin(async { Ok(()) }));
+		let actions = space_actions(&app, Some("Claude Code"), send, true);
+		let sheet_of = |outcome: ToolOutcome| match outcome {
+			ToolOutcome::Ok { value, .. } => value["prep"].clone(),
+			ToolOutcome::Err(error) => panic!("{error}"),
+		};
+
+		let before = sheet_of(actions.read_space(&json!({ "space_id": prep_id })));
+		assert_eq!(
+			gs_json::stringify(&before),
+			r#"{"goal":"Acme online test","date":null,"about":"Four questions in 70 minutes.","mock":{"questions":4,"minutes":70},"topics":[{"id":"pt_00000001","name":"Arrays","status":"untested"},{"id":"pt_00000002","name":"Hash maps","status":"untested"}],"mocks":[]}"#
+		);
+
+		let edits = json!({ "space_id": prep_id, "date": "2026-11-20", "mock": { "questions": 3, "minutes": 60 }, "add_topics": [{ "name": "React hooks", "why": "The role is React" }], "remove_topic_ids": ["pt_00000001"] });
+		let ToolOutcome::Ok { changes, .. } = actions.update_prep(&edits) else { panic!("refused") };
+		assert_eq!((changes[0].label.as_str(), changes[0].page.as_str()), ("Changing the prep sheet of Acme junior web test", "/space"));
+		let after = sheet_of(actions.read_space(&json!({ "space_id": prep_id })));
+		let topics: Vec<String> = after["topics"].as_arr().unwrap().iter().map(|t| format!("{} {}", t["name"].as_str().unwrap(), t["why"].as_str().unwrap_or("-"))).collect();
+		assert_eq!(topics, ["Hash maps -", "React hooks The role is React"]);
+		assert_eq!((after["date"].clone(), after["about"].clone()), (Json::from("2026-11-20"), Json::from("Four questions in 70 minutes.")));
+		assert_eq!(gs_json::stringify(&after["mock"]), r#"{"questions":3,"minutes":60}"#);
+
+		let twice = actions.update_prep(&json!({ "space_id": prep_id, "add_topics": [{ "name": "hash maps" }] }));
+		assert!(matches!(twice, ToolOutcome::Err(e) if e == "\"hash maps\" is already on the sheet."));
+		let plain = app.stores.spaces.create_space(&json!({ "name": "Plain space" })).unwrap()["id"].as_str().unwrap().to_owned();
+		assert!(matches!(actions.update_prep(&json!({ "space_id": plain, "date": null })), ToolOutcome::Err(e) if e == "Plain space is not a prep, so it has no prep sheet."));
+		assert!(matches!(actions.update_prep(&json!({ "space_id": "cls_missing", "date": null })), ToolOutcome::Err(e) if e == "No space \"cls_missing\". Use list_spaces."));
+		let ToolOutcome::Ok { value, .. } = actions.read_space(&json!({ "space_id": plain })) else { panic!("no space") };
+		assert!(value.get("prep").is_none());
+
+		let lesson_tree = |outcome: ToolOutcome| {
+			let ToolOutcome::Ok { value, .. } = outcome else { panic!("not started") };
+			let chat = app.stores.chats.get_chat(value["lessonId"].as_str().unwrap()).unwrap();
+			chat["tree"]["nodes"].as_arr().unwrap().iter().map(|n| n["id"].as_str().unwrap().to_owned()).collect::<Vec<_>>()
+		};
+		assert_eq!(lesson_tree(actions.start_lesson(&json!({ "topic": " hash maps ", "space_id": prep_id })).await), ["pt_00000002"], "its answers count for the sheet's topic");
+		assert_ne!(lesson_tree(actions.start_lesson(&json!({ "topic": "Big O", "space_id": prep_id })).await), ["pt_00000002"]);
 	}
 
 	#[test]
