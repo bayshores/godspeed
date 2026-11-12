@@ -22,12 +22,13 @@ pub enum AgentKind {
 	Talk,
 }
 
-/// Voice, accuracy and the mental model are one law across every agent, and formatting too
-/// (practice writes the same LaTeX and markdown). The question, confidence and file mechanics stay
-/// out: practice has no such tools.
-const PRACTICE_SHARED: [&str; 5] = ["10-voice.md", "12-space-context.md", "15-accuracy.md", "16-mental-model.md", "40-formatting.md"];
-/// Talk is a small side panel: the voice only (its own base sets short replies).
-const TALK_SHARED: [&str; 1] = ["10-voice.md"];
+/// Voice, the learner's question first, accuracy and the mental model are one law across every
+/// agent, and formatting too (practice writes the same LaTeX and markdown). The question,
+/// confidence and file mechanics stay out: practice has no such tools.
+const PRACTICE_SHARED: [&str; 7] = ["10-voice.md", "11-learner-first.md", "12-space-context.md", "13-source-marks.md", "15-accuracy.md", "16-mental-model.md", "40-formatting.md"];
+/// Talk is a small side panel: the voice and the learner's question first (its own base sets
+/// short replies).
+const TALK_SHARED: [&str; 2] = ["10-voice.md", "11-learner-first.md"];
 /// The hint and claimed-answer rules study and homework problems run on.
 const HINT_RULES: [&str; 1] = ["20-hints.md"];
 

@@ -111,10 +111,11 @@ pub fn question_result() -> Json {
 	})
 }
 
-/// The practice pose's result: saved, since the learner's work arrives as messages.
-pub fn problem_result() -> Json {
+/// The practice pose's result: saved, since the learner's work arrives as messages (`arrives`
+/// says how).
+pub fn problem_result(arrives: &str) -> Json {
 	json!({
-		"content": [text_block("Problem posed — the turn ends here; the learner's thinking traces and answer commits arrive as labeled messages.")],
+		"content": [text_block(&format!("Problem posed — the turn ends here; {arrives}"))],
 		"details": null,
 		"terminate": true,
 	})

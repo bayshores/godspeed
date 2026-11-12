@@ -1,5 +1,5 @@
 //! One chat turn over the server-owned record (chat-handler.ts). POST /api/chat carries one input
-//! event (text, answer, side, thinking, next, continue), never a client transcript; the wake
+//! event (text, answer, side, next, continue), never a client transcript; the wake
 //! pipeline's steers come through here too. The event becomes record appends (written ahead, before
 //! the turn runs), the agent is built from the record, and the turn runs as a background object
 //! that views attach to through GET /api/chats/{id}/stream. The POST only acknowledges.
@@ -118,7 +118,7 @@ pub fn handle_chat_input(app: &Arc<App>, chat_id: &str, input: TurnInput) -> Rep
 
 fn input_files(input: &TurnInput) -> Option<&[ChatAttachment]> {
 	match input {
-		TurnInput::Chat(ChatInput::Text { attachments, .. } | ChatInput::Answer { attachments, .. } | ChatInput::Side { attachments, .. } | ChatInput::Thinking { attachments, .. }) => attachments.as_deref(),
+		TurnInput::Chat(ChatInput::Text { attachments, .. } | ChatInput::Answer { attachments, .. } | ChatInput::Side { attachments, .. }) => attachments.as_deref(),
 		_ => None,
 	}
 }
@@ -208,7 +208,7 @@ fn write_ahead(app: &Arc<App>, chat_id: &str, input: &TurnInput, attachments: &[
 
 	// The [Today] note goes right before a learner message when the day, the open deadlines or a
 	// compaction call for a fresh one.
-	if matches!(input, TurnInput::Chat(ChatInput::Text { .. } | ChatInput::Thinking { .. } | ChatInput::Next))
+	if matches!(input, TurnInput::Chat(ChatInput::Text { .. } | ChatInput::Next))
 		&& let Some(note) = today_note_for(app, &record)
 	{
 		let at = appends.len().saturating_sub(1);

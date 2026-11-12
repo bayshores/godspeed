@@ -457,12 +457,15 @@ const cases: Record<string, () => unknown> = {
 		const reg = homeworkTools({ chatId: "lesson", chatStore: w.chatStore, homework });
 		const out = await script(reg, [
 			["problem", { number: "1", statement: "s" }],
+			["part", { part: "a" }],
 			["post_problems", { problems: [{ number: "bad", title: "t", text: "x" }] }],
 			["post_problems", { problems: JSON.stringify([{ number: "1", title: "One", text: "x" }, { number: "2b", title: "Two", text: "y", page: 2 }]) }],
 			["problem", { number: "9", statement: "s" }],
 			["problem", { number: "1", statement: "s" }],
+			["part", { part: "b" }],
 			["problem", { number: "2b", statement: "s" }],
 			["conclude", { outcome: "movedOn", verdict: "v" }],
+			["part", { part: "c" }],
 			["problem", { number: "2b", statement: "s" }],
 			["conclude", { outcome: "solved", verdict: "v" }],
 			["conclude", { outcome: "solved", verdict: "v" }],

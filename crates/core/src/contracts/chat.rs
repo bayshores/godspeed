@@ -20,9 +20,7 @@ pub const HANDOFF_TEXT: &str = concat!(
 	"When it's genuinely reasoned out, call plan_init and present the plan; I'll accept it or ask for changes."
 );
 
-pub const THINKING_LABEL: &str = "Your thinking";
-
-pub const CONCLUDE_ACK_TEXT: &str = "Problem concluded. Say your closing words about the learner's work if useful, then END YOUR TURN — no further tool calls. The next problem is NEVER posed here: it waits for the learner's explicit go-ahead (a *Next problem* message, or their own words asking for the next one). Between problems, answer their questions about the concluded one.";
+pub const CONCLUDE_ACK_TEXT: &str = "Problem concluded. Say your closing words about the learner's work if useful, then END YOUR TURN — no further tool calls. The next problem waits for the learner's explicit go-ahead (a *Next problem* message, or their own words asking for the next one). The one exception: when the learner asked for a different problem or part, that ask is the go-ahead, so pose it now. Between problems, answer their questions about the concluded one.";
 
 pub const NEXT_PROBLEM_TEXT: &str = "[NEXT PROBLEM] — the learner's explicit go-ahead: pose the next problem now per the selection rules, or wrap the session in text if the arc is complete.";
 

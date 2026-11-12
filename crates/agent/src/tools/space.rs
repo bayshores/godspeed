@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use futures_util::future::BoxFuture;
 use gs_core::contracts::space::NOTE_MAX;
-use gs_core::messages::native_messages::space_card_text;
+use gs_core::messages::native_messages::{space_card_text, space_files_text};
 use gs_json::{Json, json};
 use gs_search::index::PassageRef;
 
@@ -52,7 +52,7 @@ pub fn space_tools(ctx: &SpaceToolContext) -> Vec<FnTool> {
 fn read_space_tool(ctx: &SpaceToolContext) -> FnTool {
 	let (space_card, today_note) = (ctx.space_card.clone(), ctx.today_note.clone());
 	let description = "Read the current card of this lesson's space: the space name, the learner's description of the space, its files (study material and space info) with the paths to open them, and the topics of its knowledge graph. \
-		Use it when you need space details the opening [Space context] card may not have (files added since the lesson started, an edited description). \
+		Use it when you need a file's path (the opening [Space context] card only counts the files) or space details that changed since the lesson started. To find something inside the files, use search_space_files instead. \
 		It also returns today's date and time and the space's open deadlines (the [Today] note).";
 	FnTool::server("read_space", description, no_arguments(), move |_args, _ctx| {
 		let (space_card, today_note) = (space_card.clone(), today_note.clone());
@@ -60,10 +60,8 @@ fn read_space_tool(ctx: &SpaceToolContext) -> FnTool {
 			let Some(card) = space_card()? else {
 				return Ok(Json::from("This lesson's space no longer exists."));
 			};
-			Ok(Json::from(match today_note {
-				Some(note) => format!("{}\n\n{}", space_card_text(&card), note()),
-				None => space_card_text(&card),
-			}))
+			let parts = [space_card_text(&card), space_files_text(&card), today_note.map(|note| note()).unwrap_or_default()];
+			Ok(Json::from(parts.into_iter().filter(|part| !part.is_empty()).collect::<Vec<_>>().join("\n\n")))
 		}
 	})
 }

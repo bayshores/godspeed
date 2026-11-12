@@ -2407,7 +2407,7 @@
 						"content": [
 							{
 								"type": "text",
-								"text": "Problem concluded. Say your closing words about the learner's work if useful, then END YOUR TURN — no further tool calls. The next problem is NEVER posed here: it waits for the learner's explicit go-ahead (a *Next problem* message, or their own words asking for the next one). Between problems, answer their questions about the concluded one."
+								"text": "Problem concluded. Say your closing words about the learner's work if useful, then END YOUR TURN — no further tool calls. The next problem waits for the learner's explicit go-ahead (a *Next problem* message, or their own words asking for the next one). The one exception: when the learner asked for a different problem or part, that ask is the go-ahead, so pose it now. Between problems, answer their questions about the concluded one."
 							}
 						],
 						"details": {
@@ -2511,7 +2511,7 @@
 						"content": [
 							{
 								"type": "text",
-								"text": "Problem concluded. Say your closing words about the learner's work if useful, then END YOUR TURN — no further tool calls. The next problem is NEVER posed here: it waits for the learner's explicit go-ahead (a *Next problem* message, or their own words asking for the next one). Between problems, answer their questions about the concluded one."
+								"text": "Problem concluded. Say your closing words about the learner's work if useful, then END YOUR TURN — no further tool calls. The next problem waits for the learner's explicit go-ahead (a *Next problem* message, or their own words asking for the next one). The one exception: when the learner asked for a different problem or part, that ask is the go-ahead, so pose it now. Between problems, answer their questions about the concluded one."
 							}
 						],
 						"details": {
@@ -2781,7 +2781,7 @@
 					"teach"
 				],
 				"failed": [],
-				"sideTurn": true,
+				"sideTurn": false,
 				"held": [],
 				"concludeInputs": [],
 				"missingConclude": null,
@@ -2819,7 +2819,7 @@
 					},
 					{
 						"role": "user",
-						"content": "Side question. Your problem stays open in their window: answer this in text, don't conclude it or pose another, and their thinking on it comes later. what does that symbol mean?",
+						"content": "what does that symbol mean?",
 						"timestamp": 3
 					},
 					{
@@ -2838,7 +2838,7 @@
 					},
 					{
 						"role": "user",
-						"content": "Side question. Your problem stays open in their window: answer this in text, don't conclude it or pose another, and their thinking on it comes later. and this one?",
+						"content": "and this one?",
 						"timestamp": 3
 					}
 				]
@@ -2928,7 +2928,7 @@
 					"teach"
 				],
 				"failed": [],
-				"sideTurn": true,
+				"sideTurn": false,
 				"held": [],
 				"concludeInputs": [],
 				"missingConclude": null,
@@ -2966,10 +2966,6 @@
 						"role": "user",
 						"content": [
 							{
-								"type": "text",
-								"text": "Side question. Your problem stays open in their window: answer this in text, don't conclude it or pose another, and their thinking on it comes later."
-							},
-							{
 								"type": "image",
 								"data": "QUJD",
 								"mimeType": "image/png"
@@ -2984,10 +2980,6 @@
 					{
 						"role": "user",
 						"content": [
-							{
-								"type": "text",
-								"text": "Side question. Your problem stays open in their window: answer this in text, don't conclude it or pose another, and their thinking on it comes later."
-							},
 							{
 								"type": "image",
 								"data": "QUJD",
@@ -4678,43 +4670,6 @@
 				}
 			},
 			{
-				"name": "thinking",
-				"built": {
-					"id": "<id>",
-					"role": "custom",
-					"customType": "practice-thinking",
-					"content": "Your thinking:\nmy idea",
-					"display": true,
-					"details": {
-						"problemCallId": "p1",
-						"text": "my idea"
-					},
-					"timestamp": 0
-				}
-			},
-			{
-				"name": "thinking with files",
-				"built": {
-					"id": "<id>",
-					"role": "custom",
-					"customType": "practice-thinking",
-					"content": "Your thinking:\nmy idea",
-					"attachments": [
-						{
-							"type": "image",
-							"data": "QUJD",
-							"mimeType": "image/png"
-						}
-					],
-					"display": true,
-					"details": {
-						"problemCallId": "p1",
-						"text": "my idea"
-					},
-					"timestamp": 0
-				}
-			},
-			{
 				"name": "next",
 				"built": {
 					"id": "<id>",
@@ -4784,7 +4739,7 @@
 						"content": [
 							{
 								"type": "text",
-								"text": "Problem concluded. Say your closing words about the learner's work if useful, then END YOUR TURN — no further tool calls. The next problem is NEVER posed here: it waits for the learner's explicit go-ahead (a *Next problem* message, or their own words asking for the next one). Between problems, answer their questions about the concluded one."
+								"text": "Problem concluded. Say your closing words about the learner's work if useful, then END YOUR TURN — no further tool calls. The next problem waits for the learner's explicit go-ahead (a *Next problem* message, or their own words asking for the next one). The one exception: when the learner asked for a different problem or part, that ask is the go-ahead, so pose it now. Between problems, answer their questions about the concluded one."
 							}
 						],
 						"details": {
@@ -4804,20 +4759,21 @@
 			{
 				"card": {
 					"spaceId": "c1",
-					"name": "CSE 21",
+					"name": "Algebra 1",
 					"description": "  My space.  ",
 					"files": []
 				},
-				"text": "[Space context] — this lesson belongs to one of the learner's spaces:\n\nSpace: CSE 21\n\nAbout the space (the learner's own words):\nMy space.",
+				"text": "[Space context] — this lesson belongs to one of the learner's spaces:\n\nSpace: Algebra 1\n\nAbout the space (the learner's own words):\nMy space.",
+				"files": "",
 				"message": {
 					"id": "<id>",
 					"role": "custom",
 					"customType": "space-context",
-					"content": "[Space context] — this lesson belongs to one of the learner's spaces:\n\nSpace: CSE 21\n\nAbout the space (the learner's own words):\nMy space.",
+					"content": "[Space context] — this lesson belongs to one of the learner's spaces:\n\nSpace: Algebra 1\n\nAbout the space (the learner's own words):\nMy space.",
 					"display": true,
 					"details": {
 						"spaceId": "c1",
-						"name": "CSE 21",
+						"name": "Algebra 1",
 						"description": "  My space.  ",
 						"files": []
 					},
@@ -4867,12 +4823,13 @@
 						}
 					]
 				},
-				"text": "[Space context] — this lesson belongs to one of the learner's spaces:\n\nSpace: Math\n\nSpace files (study material = turned into the space's knowledge graph; space info = a syllabus, a schedule, logistics):\n- [study material] notes.pdf (98 pages) — /f/notes.pdf\n- [space info] syllabus.pdf (reading) — /f/syllabus.pdf\n- [study material] talk.mp4 (52 min, failed) — /f/talk.txt\n\nTopics in the space's knowledge graph (facts in each):\nLimits (4), Series (0)",
+				"text": "[Space context] — this lesson belongs to one of the learner's spaces:\n\nSpace: Math\n\nSpace files: 2 study material, 1 space info. Find what's in them with search_space_files; read_space lists them with their paths.\n\nTopics in the space's knowledge graph (facts in each):\nLimits (4), Series (0)",
+				"files": "Space files (study material = turned into the space's knowledge graph; space info = a syllabus, a schedule, logistics):\n- [study material] notes.pdf (98 pages) — /f/notes.pdf\n- [space info] syllabus.pdf (reading) — /f/syllabus.pdf\n- [study material] talk.mp4 (52 min, failed) — /f/talk.txt",
 				"message": {
 					"id": "<id>",
 					"role": "custom",
 					"customType": "space-context",
-					"content": "[Space context] — this lesson belongs to one of the learner's spaces:\n\nSpace: Math\n\nSpace files (study material = turned into the space's knowledge graph; space info = a syllabus, a schedule, logistics):\n- [study material] notes.pdf (98 pages) — /f/notes.pdf\n- [space info] syllabus.pdf (reading) — /f/syllabus.pdf\n- [study material] talk.mp4 (52 min, failed) — /f/talk.txt\n\nTopics in the space's knowledge graph (facts in each):\nLimits (4), Series (0)",
+					"content": "[Space context] — this lesson belongs to one of the learner's spaces:\n\nSpace: Math\n\nSpace files: 2 study material, 1 space info. Find what's in them with search_space_files; read_space lists them with their paths.\n\nTopics in the space's knowledge graph (facts in each):\nLimits (4), Series (0)",
 					"display": true,
 					"details": {
 						"spaceId": "c2",
@@ -4928,6 +4885,7 @@
 					"topics": []
 				},
 				"text": "[Space context] — this lesson belongs to one of the learner's spaces:\n\nSpace: Empty topics\n\nAbout the space (the learner's own words):\nd",
+				"files": "",
 				"message": {
 					"id": "<id>",
 					"role": "custom",
@@ -5434,11 +5392,7 @@
 					"problemCallId": "p1",
 					"text": "idea"
 				},
-				"ok": {
-					"type": "thinking",
-					"problemCallId": "p1",
-					"text": "idea"
-				}
+				"error": "unknown input type: thinking"
 			},
 			{
 				"raw": {
@@ -5446,7 +5400,7 @@
 					"problemCallId": "",
 					"text": "x"
 				},
-				"error": "thinking input requires problemCallId"
+				"error": "unknown input type: thinking"
 			},
 			{
 				"raw": {
@@ -5454,7 +5408,7 @@
 					"problemCallId": "p1",
 					"text": " "
 				},
-				"error": "thinking input requires non-empty text or attachments"
+				"error": "unknown input type: thinking"
 			},
 			{
 				"raw": {
@@ -5469,18 +5423,7 @@
 						}
 					]
 				},
-				"ok": {
-					"type": "thinking",
-					"problemCallId": "p1",
-					"text": "",
-					"attachments": [
-						{
-							"name": "a.png",
-							"mimeType": "image/png",
-							"data": "QUJD"
-						}
-					]
-				}
+				"error": "unknown input type: thinking"
 			},
 			{
 				"raw": {
@@ -6124,7 +6067,7 @@
 						"text": "why"
 					},
 					"stored": [],
-					"error": "side input requires a waiting question or problem"
+					"error": "side input requires a waiting question"
 				},
 				{
 					"record": "empty",
@@ -6145,39 +6088,7 @@
 							"text": "stored a.png"
 						}
 					],
-					"error": "side input requires a waiting question or problem"
-				},
-				{
-					"record": "empty",
-					"input": {
-						"type": "thinking",
-						"problemCallId": "p1",
-						"text": "idea"
-					},
-					"stored": [],
-					"error": "thinking input targets no active problem"
-				},
-				{
-					"record": "empty",
-					"input": {
-						"type": "thinking",
-						"problemCallId": "p1",
-						"text": "",
-						"attachments": [
-							{
-								"name": "a.png",
-								"mimeType": "image/png",
-								"data": "QUJD"
-							}
-						]
-					},
-					"stored": [
-						{
-							"type": "text",
-							"text": "stored a.png"
-						}
-					],
-					"error": "thinking input targets no active problem"
+					"error": "side input requires a waiting question"
 				},
 				{
 					"record": "empty",
@@ -6224,26 +6135,6 @@
 					},
 					"stored": [],
 					"error": "answer input targets no pending question call"
-				},
-				{
-					"record": "empty",
-					"input": {
-						"type": "thinking",
-						"problemCallId": "p1",
-						"text": "idea"
-					},
-					"stored": [],
-					"error": "thinking input targets no active problem"
-				},
-				{
-					"record": "empty",
-					"input": {
-						"type": "thinking",
-						"problemCallId": "p2",
-						"text": "idea"
-					},
-					"stored": [],
-					"error": "thinking input targets no active problem"
 				},
 				{
 					"record": "empty",
@@ -6451,38 +6342,6 @@
 				{
 					"record": "question",
 					"input": {
-						"type": "thinking",
-						"problemCallId": "p1",
-						"text": "idea"
-					},
-					"stored": [],
-					"error": "thinking input targets no active problem"
-				},
-				{
-					"record": "question",
-					"input": {
-						"type": "thinking",
-						"problemCallId": "p1",
-						"text": "",
-						"attachments": [
-							{
-								"name": "a.png",
-								"mimeType": "image/png",
-								"data": "QUJD"
-							}
-						]
-					},
-					"stored": [
-						{
-							"type": "text",
-							"text": "stored a.png"
-						}
-					],
-					"error": "thinking input targets no active problem"
-				},
-				{
-					"record": "question",
-					"input": {
 						"type": "next"
 					},
 					"stored": [],
@@ -6563,26 +6422,6 @@
 					},
 					"stored": [],
 					"error": "answer input targets no pending question call"
-				},
-				{
-					"record": "question",
-					"input": {
-						"type": "thinking",
-						"problemCallId": "p1",
-						"text": "idea"
-					},
-					"stored": [],
-					"error": "thinking input targets no active problem"
-				},
-				{
-					"record": "question",
-					"input": {
-						"type": "thinking",
-						"problemCallId": "p2",
-						"text": "idea"
-					},
-					"stored": [],
-					"error": "thinking input targets no active problem"
 				},
 				{
 					"record": "question",
@@ -6831,38 +6670,6 @@
 				{
 					"record": "explain_question",
 					"input": {
-						"type": "thinking",
-						"problemCallId": "p1",
-						"text": "idea"
-					},
-					"stored": [],
-					"error": "thinking input targets no active problem"
-				},
-				{
-					"record": "explain_question",
-					"input": {
-						"type": "thinking",
-						"problemCallId": "p1",
-						"text": "",
-						"attachments": [
-							{
-								"name": "a.png",
-								"mimeType": "image/png",
-								"data": "QUJD"
-							}
-						]
-					},
-					"stored": [
-						{
-							"type": "text",
-							"text": "stored a.png"
-						}
-					],
-					"error": "thinking input targets no active problem"
-				},
-				{
-					"record": "explain_question",
-					"input": {
 						"type": "next"
 					},
 					"stored": [],
@@ -6943,26 +6750,6 @@
 					},
 					"stored": [],
 					"error": "answer input targets no pending question call"
-				},
-				{
-					"record": "explain_question",
-					"input": {
-						"type": "thinking",
-						"problemCallId": "p1",
-						"text": "idea"
-					},
-					"stored": [],
-					"error": "thinking input targets no active problem"
-				},
-				{
-					"record": "explain_question",
-					"input": {
-						"type": "thinking",
-						"problemCallId": "p2",
-						"text": "idea"
-					},
-					"stored": [],
-					"error": "thinking input targets no active problem"
 				},
 				{
 					"record": "explain_question",
@@ -7189,38 +6976,6 @@
 				{
 					"record": "code_question",
 					"input": {
-						"type": "thinking",
-						"problemCallId": "p1",
-						"text": "idea"
-					},
-					"stored": [],
-					"error": "thinking input targets no active problem"
-				},
-				{
-					"record": "code_question",
-					"input": {
-						"type": "thinking",
-						"problemCallId": "p1",
-						"text": "",
-						"attachments": [
-							{
-								"name": "a.png",
-								"mimeType": "image/png",
-								"data": "QUJD"
-							}
-						]
-					},
-					"stored": [
-						{
-							"type": "text",
-							"text": "stored a.png"
-						}
-					],
-					"error": "thinking input targets no active problem"
-				},
-				{
-					"record": "code_question",
-					"input": {
 						"type": "next"
 					},
 					"stored": [],
@@ -7301,26 +7056,6 @@
 					},
 					"stored": [],
 					"error": "answer input targets no pending question call"
-				},
-				{
-					"record": "code_question",
-					"input": {
-						"type": "thinking",
-						"problemCallId": "p1",
-						"text": "idea"
-					},
-					"stored": [],
-					"error": "thinking input targets no active problem"
-				},
-				{
-					"record": "code_question",
-					"input": {
-						"type": "thinking",
-						"problemCallId": "p2",
-						"text": "idea"
-					},
-					"stored": [],
-					"error": "thinking input targets no active problem"
 				},
 				{
 					"record": "code_question",
@@ -7463,15 +7198,7 @@
 						"text": "why"
 					},
 					"stored": [],
-					"ok": [
-						{
-							"id": "<id>",
-							"role": "user",
-							"content": "why",
-							"timestamp": 0,
-							"side": true
-						}
-					]
+					"error": "side input requires a waiting question"
 				},
 				{
 					"record": "problem",
@@ -7492,84 +7219,7 @@
 							"text": "stored a.png"
 						}
 					],
-					"ok": [
-						{
-							"id": "<id>",
-							"role": "user",
-							"content": [
-								{
-									"type": "text",
-									"text": "stored a.png"
-								}
-							],
-							"timestamp": 0,
-							"side": true
-						}
-					]
-				},
-				{
-					"record": "problem",
-					"input": {
-						"type": "thinking",
-						"problemCallId": "p1",
-						"text": "idea"
-					},
-					"stored": [],
-					"ok": [
-						{
-							"id": "<id>",
-							"role": "custom",
-							"customType": "practice-thinking",
-							"content": "Your thinking:\nidea",
-							"display": true,
-							"details": {
-								"problemCallId": "p1",
-								"text": "idea"
-							},
-							"timestamp": 0
-						}
-					]
-				},
-				{
-					"record": "problem",
-					"input": {
-						"type": "thinking",
-						"problemCallId": "p1",
-						"text": "",
-						"attachments": [
-							{
-								"name": "a.png",
-								"mimeType": "image/png",
-								"data": "QUJD"
-							}
-						]
-					},
-					"stored": [
-						{
-							"type": "text",
-							"text": "stored a.png"
-						}
-					],
-					"ok": [
-						{
-							"id": "<id>",
-							"role": "custom",
-							"customType": "practice-thinking",
-							"content": "Your thinking:\n",
-							"attachments": [
-								{
-									"type": "text",
-									"text": "stored a.png"
-								}
-							],
-							"display": true,
-							"details": {
-								"problemCallId": "p1",
-								"text": ""
-							},
-							"timestamp": 0
-						}
-					]
+					"error": "side input requires a waiting question"
 				},
 				{
 					"record": "problem",
@@ -7616,39 +7266,6 @@
 					},
 					"stored": [],
 					"error": "answer input targets no pending question call"
-				},
-				{
-					"record": "problem",
-					"input": {
-						"type": "thinking",
-						"problemCallId": "p1",
-						"text": "idea"
-					},
-					"stored": [],
-					"ok": [
-						{
-							"id": "<id>",
-							"role": "custom",
-							"customType": "practice-thinking",
-							"content": "Your thinking:\nidea",
-							"display": true,
-							"details": {
-								"problemCallId": "p1",
-								"text": "idea"
-							},
-							"timestamp": 0
-						}
-					]
-				},
-				{
-					"record": "problem",
-					"input": {
-						"type": "thinking",
-						"problemCallId": "p2",
-						"text": "idea"
-					},
-					"stored": [],
-					"error": "thinking input targets no active problem"
 				},
 				{
 					"record": "problem",
@@ -7743,7 +7360,7 @@
 							"content": [
 								{
 									"type": "text",
-									"text": "Problem concluded. Say your closing words about the learner's work if useful, then END YOUR TURN — no further tool calls. The next problem is NEVER posed here: it waits for the learner's explicit go-ahead (a *Next problem* message, or their own words asking for the next one). Between problems, answer their questions about the concluded one."
+									"text": "Problem concluded. Say your closing words about the learner's work if useful, then END YOUR TURN — no further tool calls. The next problem waits for the learner's explicit go-ahead (a *Next problem* message, or their own words asking for the next one). The one exception: when the learner asked for a different problem or part, that ask is the go-ahead, so pose it now. Between problems, answer their questions about the concluded one."
 								}
 							],
 							"details": {
@@ -7822,7 +7439,7 @@
 							"content": [
 								{
 									"type": "text",
-									"text": "Problem concluded. Say your closing words about the learner's work if useful, then END YOUR TURN — no further tool calls. The next problem is NEVER posed here: it waits for the learner's explicit go-ahead (a *Next problem* message, or their own words asking for the next one). Between problems, answer their questions about the concluded one."
+									"text": "Problem concluded. Say your closing words about the learner's work if useful, then END YOUR TURN — no further tool calls. The next problem waits for the learner's explicit go-ahead (a *Next problem* message, or their own words asking for the next one). The one exception: when the learner asked for a different problem or part, that ask is the go-ahead, so pose it now. Between problems, answer their questions about the concluded one."
 								}
 							],
 							"details": {
@@ -7929,7 +7546,7 @@
 							"content": [
 								{
 									"type": "text",
-									"text": "Problem concluded. Say your closing words about the learner's work if useful, then END YOUR TURN — no further tool calls. The next problem is NEVER posed here: it waits for the learner's explicit go-ahead (a *Next problem* message, or their own words asking for the next one). Between problems, answer their questions about the concluded one."
+									"text": "Problem concluded. Say your closing words about the learner's work if useful, then END YOUR TURN — no further tool calls. The next problem waits for the learner's explicit go-ahead (a *Next problem* message, or their own words asking for the next one). The one exception: when the learner asked for a different problem or part, that ask is the go-ahead, so pose it now. Between problems, answer their questions about the concluded one."
 								}
 							],
 							"details": {
@@ -7990,7 +7607,7 @@
 							"content": [
 								{
 									"type": "text",
-									"text": "Problem concluded. Say your closing words about the learner's work if useful, then END YOUR TURN — no further tool calls. The next problem is NEVER posed here: it waits for the learner's explicit go-ahead (a *Next problem* message, or their own words asking for the next one). Between problems, answer their questions about the concluded one."
+									"text": "Problem concluded. Say your closing words about the learner's work if useful, then END YOUR TURN — no further tool calls. The next problem waits for the learner's explicit go-ahead (a *Next problem* message, or their own words asking for the next one). The one exception: when the learner asked for a different problem or part, that ask is the go-ahead, so pose it now. Between problems, answer their questions about the concluded one."
 								}
 							],
 							"details": {
@@ -8009,7 +7626,7 @@
 						"text": "why"
 					},
 					"stored": [],
-					"error": "side input requires a waiting question or problem"
+					"error": "side input requires a waiting question"
 				},
 				{
 					"record": "dismissed_problem",
@@ -8030,39 +7647,7 @@
 							"text": "stored a.png"
 						}
 					],
-					"error": "side input requires a waiting question or problem"
-				},
-				{
-					"record": "dismissed_problem",
-					"input": {
-						"type": "thinking",
-						"problemCallId": "p1",
-						"text": "idea"
-					},
-					"stored": [],
-					"error": "thinking input targets no active problem"
-				},
-				{
-					"record": "dismissed_problem",
-					"input": {
-						"type": "thinking",
-						"problemCallId": "p1",
-						"text": "",
-						"attachments": [
-							{
-								"name": "a.png",
-								"mimeType": "image/png",
-								"data": "QUJD"
-							}
-						]
-					},
-					"stored": [
-						{
-							"type": "text",
-							"text": "stored a.png"
-						}
-					],
-					"error": "thinking input targets no active problem"
+					"error": "side input requires a waiting question"
 				},
 				{
 					"record": "dismissed_problem",
@@ -8112,7 +7697,7 @@
 							"content": [
 								{
 									"type": "text",
-									"text": "Problem concluded. Say your closing words about the learner's work if useful, then END YOUR TURN — no further tool calls. The next problem is NEVER posed here: it waits for the learner's explicit go-ahead (a *Next problem* message, or their own words asking for the next one). Between problems, answer their questions about the concluded one."
+									"text": "Problem concluded. Say your closing words about the learner's work if useful, then END YOUR TURN — no further tool calls. The next problem waits for the learner's explicit go-ahead (a *Next problem* message, or their own words asking for the next one). The one exception: when the learner asked for a different problem or part, that ask is the go-ahead, so pose it now. Between problems, answer their questions about the concluded one."
 								}
 							],
 							"details": {
@@ -8170,26 +7755,6 @@
 					},
 					"stored": [],
 					"error": "answer input targets no pending question call"
-				},
-				{
-					"record": "dismissed_problem",
-					"input": {
-						"type": "thinking",
-						"problemCallId": "p1",
-						"text": "idea"
-					},
-					"stored": [],
-					"error": "thinking input targets no active problem"
-				},
-				{
-					"record": "dismissed_problem",
-					"input": {
-						"type": "thinking",
-						"problemCallId": "p2",
-						"text": "idea"
-					},
-					"stored": [],
-					"error": "thinking input targets no active problem"
 				},
 				{
 					"record": "dismissed_problem",
@@ -8332,7 +7897,7 @@
 						"text": "why"
 					},
 					"stored": [],
-					"error": "side input requires a waiting question or problem"
+					"error": "side input requires a waiting question"
 				},
 				{
 					"record": "between_problems",
@@ -8353,39 +7918,7 @@
 							"text": "stored a.png"
 						}
 					],
-					"error": "side input requires a waiting question or problem"
-				},
-				{
-					"record": "between_problems",
-					"input": {
-						"type": "thinking",
-						"problemCallId": "p1",
-						"text": "idea"
-					},
-					"stored": [],
-					"error": "thinking input targets no active problem"
-				},
-				{
-					"record": "between_problems",
-					"input": {
-						"type": "thinking",
-						"problemCallId": "p1",
-						"text": "",
-						"attachments": [
-							{
-								"name": "a.png",
-								"mimeType": "image/png",
-								"data": "QUJD"
-							}
-						]
-					},
-					"stored": [
-						{
-							"type": "text",
-							"text": "stored a.png"
-						}
-					],
-					"error": "thinking input targets no active problem"
+					"error": "side input requires a waiting question"
 				},
 				{
 					"record": "between_problems",
@@ -8442,26 +7975,6 @@
 					},
 					"stored": [],
 					"error": "answer input targets no pending question call"
-				},
-				{
-					"record": "between_problems",
-					"input": {
-						"type": "thinking",
-						"problemCallId": "p1",
-						"text": "idea"
-					},
-					"stored": [],
-					"error": "thinking input targets no active problem"
-				},
-				{
-					"record": "between_problems",
-					"input": {
-						"type": "thinking",
-						"problemCallId": "p2",
-						"text": "idea"
-					},
-					"stored": [],
-					"error": "thinking input targets no active problem"
 				},
 				{
 					"record": "between_problems",
@@ -8604,7 +8117,7 @@
 						"text": "why"
 					},
 					"stored": [],
-					"error": "side input requires a waiting question or problem"
+					"error": "side input requires a waiting question"
 				},
 				{
 					"record": "teach",
@@ -8625,39 +8138,7 @@
 							"text": "stored a.png"
 						}
 					],
-					"error": "side input requires a waiting question or problem"
-				},
-				{
-					"record": "teach",
-					"input": {
-						"type": "thinking",
-						"problemCallId": "p1",
-						"text": "idea"
-					},
-					"stored": [],
-					"error": "thinking input targets no active problem"
-				},
-				{
-					"record": "teach",
-					"input": {
-						"type": "thinking",
-						"problemCallId": "p1",
-						"text": "",
-						"attachments": [
-							{
-								"name": "a.png",
-								"mimeType": "image/png",
-								"data": "QUJD"
-							}
-						]
-					},
-					"stored": [
-						{
-							"type": "text",
-							"text": "stored a.png"
-						}
-					],
-					"error": "thinking input targets no active problem"
+					"error": "side input requires a waiting question"
 				},
 				{
 					"record": "teach",
@@ -8704,26 +8185,6 @@
 					},
 					"stored": [],
 					"error": "answer input targets no pending question call"
-				},
-				{
-					"record": "teach",
-					"input": {
-						"type": "thinking",
-						"problemCallId": "p1",
-						"text": "idea"
-					},
-					"stored": [],
-					"error": "thinking input targets no active problem"
-				},
-				{
-					"record": "teach",
-					"input": {
-						"type": "thinking",
-						"problemCallId": "p2",
-						"text": "idea"
-					},
-					"stored": [],
-					"error": "thinking input targets no active problem"
 				},
 				{
 					"record": "teach",

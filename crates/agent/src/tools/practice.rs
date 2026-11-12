@@ -1,6 +1,7 @@
 //! The practice tools (src/backend/agent/tools/practice.ts): the session runs on `problem` (pose:
 //! ends the turn, the commitment rides the call's arguments) and `conclude` (ends the problem, so
-//! closing words may follow). An agent cannot pose while a problem is active and cannot conclude
+//! closing words may follow; the next pose waits for the learner's go-ahead, which asking for
+//! another problem or part is). An agent cannot pose while a problem is active and cannot conclude
 //! with nothing active.
 
 use std::sync::Arc;
@@ -112,8 +113,8 @@ fn normalize_target(mut args: Json, graph_nodes: Option<&GraphNodes>) -> Json {
 
 /// The pose, with its extra checks for a study session (`node_check`).
 fn problem_tool(gate: &Arc<AtomicBool>, graph_nodes: Option<GraphNodes>, parameters: Json, node_check: Option<NodeCheck>) -> FnTool {
-	let description = "Pose one practice problem. Ends the turn \u{2014} the learner works in the thinking field; their thinking \
-		traces and answer commits arrive back as labeled messages. The modelSolution rides this call's \
+	let description = "Pose one practice problem. Ends the turn \u{2014} the problem stays in view beside the lesson, and the \
+		learner's work and questions on it arrive back as their messages. The modelSolution rides this call's \
 		arguments and stays hidden from the learner until you conclude (conclude shows it verbatim \u{2014} the \
 		reveal needs no new field). Only one problem may be active \u{2014} conclude it before posing the next.";
 	let (gate, run_nodes, prepare_nodes) = (gate.clone(), graph_nodes.clone(), graph_nodes);
@@ -140,7 +141,7 @@ fn problem_tool(gate: &Arc<AtomicBool>, graph_nodes: Option<GraphNodes>, paramet
 			}
 		}
 		gate.store(true, Ordering::SeqCst);
-		problem_result()
+		problem_result("the learner's work and questions on it arrive as their messages.")
 	})
 	.sequential()
 	.prepared(move |args| normalize_target(heal_encoded_arguments(&args, &plain), prepare_nodes.as_ref()))
@@ -181,9 +182,10 @@ fn conclude_tool(gate: &Arc<AtomicBool>) -> FnTool {
 	let gate = gate.clone();
 	let description = "Conclude the active problem: records the outcome + verdict, reveals the committed solution, and frees \
 		the learner's composer. After the result, say your closing words about the learner's work if useful, then \
-		END YOUR TURN \u{2014} no further tool calls. The next problem is NEVER posed here: it waits for the learner's \
-		explicit go-ahead (a *Next problem* message, or their own words asking for the next one). Between problems, \
-		answer their questions about the concluded one. Nothing may conclude unless a problem is active.";
+		END YOUR TURN \u{2014} no further tool calls. The next problem waits for the learner's explicit go-ahead (a \
+		*Next problem* message, or their own words asking for the next one). The one exception: when the learner \
+		asked for a different problem or part, that ask is the go-ahead, so pose it right after this result. \
+		Between problems, answer their questions about the concluded one. Nothing may conclude unless a problem is active.";
 	FnTool::immediate("conclude", description, conclude_parameters(), move |_args| {
 		if !gate.load(Ordering::SeqCst) {
 			return invalid_input_result("conclude", &["no active problem to conclude \u{2014} pose one first".to_owned()]);

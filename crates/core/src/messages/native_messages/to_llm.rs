@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use gs_json::{Json, Obj, json};
 
 use super::scans::tool_calls;
-use super::side_questions::{SIDE_PENDING_TEXT, problem_side_questions, side_answer_lead, side_held_questions, with_problem_lead};
+use super::side_questions::{SIDE_PENDING_TEXT, side_answer_lead, side_held_questions};
 use crate::messages::compaction_marks::{active_compaction_of, kept_index_for};
 use gs_json::js_text::js_string;
 
@@ -66,7 +66,6 @@ pub fn to_llm_messages(messages: &[Json]) -> Vec<Json> {
 		}
 	}
 	let side_held = side_held_questions(messages);
-	let problem_sides = problem_side_questions(messages);
 	for (i, m) in messages.iter().enumerate().skip(if leading.is_some() { start.max(1) } else { start }) {
 		match m["role"].as_str() {
 			Some("custom") => {
@@ -101,11 +100,6 @@ pub fn to_llm_messages(messages: &[Json]) -> Vec<Json> {
 		if let Some(o) = native.as_obj_mut() {
 			o.remove("id");
 			o.remove("side");
-		}
-		if problem_sides.contains(&i)
-			&& let Some(o) = native.as_obj_mut()
-		{
-			o.insert("content", with_problem_lead(&m["content"]));
 		}
 		out.push(native);
 		if m["role"].as_str() == Some("assistant") {

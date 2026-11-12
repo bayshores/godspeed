@@ -10,7 +10,7 @@ use gs_json::Json;
 use super::attachments::{ChatAttachment, MAX_ATTACHMENTS, TOO_MANY_REFUSAL, attachment_refusal, base64_bytes};
 use gs_json::js_text::js_string;
 use super::native_messages::{
-	concluded_by_dismissal_pair, dangling_question_of, active_problem_of, new_answer_result, new_next_message, new_problem_dismissed_marker, new_side_question, new_thinking_message, new_user_message,
+	concluded_by_dismissal_pair, dangling_question_of, active_problem_of, new_answer_result, new_next_message, new_problem_dismissed_marker, new_side_question, new_user_message,
 	pending_problem_dismissal_of,
 };
 use super::pending::{answer_takes_files, tool_question_kind};
@@ -40,10 +40,8 @@ pub enum ChatInput {
 	Answer { tool_call_id: String, answer: Json, attachments: Option<Vec<ChatAttachment>> },
 	/// Run the next turn on the current record.
 	Continue,
-	/// A side question asked while a question or problem waits.
+	/// A side question asked while a question waits. With a problem open, a message is plain text.
 	Side { text: String, attachments: Option<Vec<ChatAttachment>> },
-	/// The learner's thinking on the active practice problem.
-	Thinking { problem_call_id: String, text: String, attachments: Option<Vec<ChatAttachment>> },
 	/// The learner's go-ahead between problems.
 	Next,
 }
@@ -161,11 +159,6 @@ pub fn parse_chat_input(input: &Json) -> Result<ChatInput, ChatInputError> {
 			let attachments = parse_attachments(i.get("attachments"))?;
 			Ok(ChatInput::Side { text: required_text(i, &attachments, "side input requires non-empty text or attachments")?, attachments })
 		}
-		Some("thinking") => {
-			let Some(problem_call_id) = non_empty_str(&i["problemCallId"]) else { return refuse("thinking input requires problemCallId") };
-			let attachments = parse_attachments(i.get("attachments"))?;
-			Ok(ChatInput::Thinking { problem_call_id: problem_call_id.to_owned(), text: required_text(i, &attachments, "thinking input requires non-empty text or attachments")?, attachments })
-		}
 		Some("next") => Ok(ChatInput::Next),
 		_ => unknown_type(i),
 	}
@@ -231,16 +224,10 @@ pub fn input_appends(record: &Json, input: &ChatInput, attachments: &[Json]) -> 
 		}
 		ChatInput::Continue => Ok(dismissal_conclusion(messages)),
 		ChatInput::Side { text, .. } => {
-			if dangling_question_of(messages).is_none() && active_problem_of(messages).is_none() {
-				return refuse("side input requires a waiting question or problem");
+			if dangling_question_of(messages).is_none() {
+				return refuse("side input requires a waiting question");
 			}
 			Ok(vec![new_side_question(text, attachments)])
-		}
-		ChatInput::Thinking { problem_call_id, text, .. } => {
-			if active_problem_of(messages).is_none_or(|a| a.tool_call_id != *problem_call_id) {
-				return refuse("thinking input targets no active problem");
-			}
-			Ok(with_dismissal_conclusion(messages, new_thinking_message(problem_call_id, text, attachments)))
 		}
 		ChatInput::Next => {
 			if !matches!(record["kind"].as_str(), Some("practice" | "study" | "homework")) {
@@ -284,8 +271,8 @@ mod tests {
 		assert_eq!(error_of(parse_chat_input(&json!({ "type": "text", "text": "  " }))), "text input requires non-empty text or attachments");
 		assert_eq!(error_of(parse_chat_input(&json!({ "type": "side" }))), "side input requires non-empty text or attachments");
 		let file = json!({ "name": "a.png", "mimeType": "image/png", "data": "QUJD" });
-		let parsed = parse_chat_input(&json!({ "type": "thinking", "problemCallId": "p", "text": "", "attachments": [file] })).unwrap();
-		assert_eq!(parsed, ChatInput::Thinking { problem_call_id: "p".into(), text: String::new(), attachments: Some(vec![ChatAttachment { name: "a.png".into(), mime_type: "image/png".into(), data: "QUJD".into() }]) });
+		let parsed = parse_chat_input(&json!({ "type": "side", "text": "", "attachments": [file] })).unwrap();
+		assert_eq!(parsed, ChatInput::Side { text: String::new(), attachments: Some(vec![ChatAttachment { name: "a.png".into(), mime_type: "image/png".into(), data: "QUJD".into() }]) });
 	}
 
 	#[test]
@@ -293,6 +280,7 @@ mod tests {
 		assert_eq!(error_of(parse_chat_input(&json!("x"))), "input must be an object");
 		assert_eq!(error_of(parse_chat_input(&json!(null))), "input must be an object");
 		assert_eq!(error_of(parse_chat_input(&json!({ "type": 5 }))), "unknown input type: 5");
+		assert_eq!(error_of(parse_chat_input(&json!({ "type": "thinking", "problemCallId": "p", "text": "x" }))), "unknown input type: thinking");
 		assert_eq!(error_of(parse_chat_input(&json!({}))), "unknown input type: undefined");
 		assert_eq!(error_of(parse_chat_input(&json!([]))), "unknown input type: undefined");
 		assert_eq!(error_of(parse_chat_input(&json!({ "type": "answer", "toolCallId": "q" }))), "answer input requires the graded answer object");
@@ -346,8 +334,10 @@ mod tests {
 				{ "role": "toolResult", "toolCallId": "p1", "isError": false },
 			],
 		});
-		let thinking = ChatInput::Thinking { problem_call_id: "p1".into(), text: "work".into(), attachments: None };
-		assert_eq!(input_appends(&record, &thinking, &[]).unwrap().len(), 1);
+		let work = ChatInput::Text { text: "work".into(), attachments: None };
+		assert_eq!(input_appends(&record, &work, &[]).unwrap().len(), 1);
+		let side = ChatInput::Side { text: "q".into(), attachments: None };
+		assert_eq!(error_of(input_appends(&record, &side, &[])), "side input requires a waiting question");
 		assert_eq!(error_of(input_appends(&record, &ChatInput::Next, &[])), "next input requires no active problem");
 		let dismiss = DismissInput::DismissProblem { problem_call_id: "p1".into() };
 		let marker = dismiss_appends(&record, &dismiss).unwrap();
@@ -362,6 +352,6 @@ mod tests {
 		assert!(input_appends(&unnamed, &ChatInput::Continue, &[]).unwrap().is_empty());
 		let teach = json!({ "kind": "teach", "messages": [] });
 		assert_eq!(error_of(input_appends(&teach, &ChatInput::Next, &[])), "next input is a practice, study or homework session affordance");
-		assert_eq!(error_of(input_appends(&teach, &ChatInput::Side { text: "q".into(), attachments: None }, &[])), "side input requires a waiting question or problem");
+		assert_eq!(error_of(input_appends(&teach, &ChatInput::Side { text: "q".into(), attachments: None }, &[])), "side input requires a waiting question");
 	}
 }

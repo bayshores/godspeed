@@ -1,13 +1,11 @@
-//! Side questions: the learner asks the teacher something while a question or problem waits, and
-//! it stays open around the answer. These rules decide what the model reads in their place.
+//! Side questions: the learner asks the teacher something while a question waits, and it stays
+//! open around the answer. These rules decide what the model reads in their place.
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
-use gs_base::text;
 use gs_json::{Json, quote};
 
-use super::scans::{active_problem_of, dangling_question_of, is_bookkeeping, is_side_question, tool_calls};
-use gs_json::js_text::js_string;
+use super::scans::{dangling_question_of, is_bookkeeping, is_side_question, tool_calls};
 use crate::messages::pending::is_question_tool;
 
 /// The model's result for a question the learner asked a side question around: providers need a
@@ -16,10 +14,6 @@ pub const SIDE_PENDING_TEXT: &str = "Not answered yet. The learner asked a side 
 
 /// How that later answer (or skip) reaches the model, at its own place.
 pub const SIDE_ANSWER_LEAD: &str = "The learner answered your open question: ";
-
-/// A side question asked while a problem is active starts with this: the problem already has its
-/// result, so the question itself says the problem stays open.
-pub const SIDE_PROBLEM_LEAD: &str = "Side question. Your problem stays open in their window: answer this in text, don't conclude it or pose another, and their thinking on it comes later. ";
 
 /// Where a question was asked and where the side question that holds it sits.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -60,47 +54,11 @@ pub fn side_held_questions(messages: &[Json]) -> HashMap<String, HeldQuestion> {
 	held
 }
 
-/// Does this turn answer a side question: the newest input (a learner message, their thinking, a
-/// job result) is one, and the question or problem it was asked around is still open?
+/// Does this turn answer a side question: the newest input (a learner message, a job result) is
+/// one, and the question it was asked around is still open?
 pub fn is_side_turn(messages: &[Json]) -> bool {
 	let input = messages.iter().rev().find(|m| m["role"].as_str() == Some("user") || (m["role"].as_str() == Some("custom") && !is_bookkeeping(m)));
-	input.is_some_and(is_side_question) && (dangling_question_of(messages).is_some() || active_problem_of(messages).is_some())
-}
-
-/// The indexes of side questions asked around an active problem with no question waiting: the
-/// model reads SIDE_PROBLEM_LEAD before each. Each is judged from the messages before it, so
-/// earlier model views never change.
-pub(super) fn problem_side_questions(messages: &[Json]) -> HashSet<usize> {
-	(0..messages.len())
-		.filter(|&i| is_side_question(&messages[i]))
-		.filter(|&i| dangling_question_of(&messages[..i]).is_none() && active_problem_of(&messages[..i]).is_some())
-		.collect()
-}
-
-/// A side question's content with SIDE_PROBLEM_LEAD in front.
-pub(super) fn with_problem_lead(content: &Json) -> Json {
-	match content {
-		Json::Str(s) => Json::from(format!("{SIDE_PROBLEM_LEAD}{s}")),
-		Json::Arr(parts) => {
-			let mut out: Vec<Json> = Vec::with_capacity(parts.len() + 1);
-			match parts.first().filter(|first| first["type"].as_str() == Some("text")) {
-				Some(first) => {
-					let mut led = first.clone();
-					if let Some(o) = led.as_obj_mut() {
-						o.insert("text", format!("{SIDE_PROBLEM_LEAD}{}", js_string(first.get("text"))));
-					}
-					out.push(led);
-					out.extend(parts[1..].iter().cloned());
-				}
-				None => {
-					out.push(gs_json::json!({ "type": "text", "text": text::trim_end(SIDE_PROBLEM_LEAD) }));
-					out.extend(parts.iter().cloned());
-				}
-			}
-			Json::Arr(out)
-		}
-		other => other.clone(),
-	}
+	input.is_some_and(is_side_question) && dangling_question_of(messages).is_some()
 }
 
 /// SIDE_ANSWER_LEAD, naming the question when its message asked several: out of place, the answer
@@ -147,14 +105,10 @@ mod tests {
 	}
 
 	#[test]
-	fn an_active_problem_gives_its_side_questions_a_lead() {
+	fn a_side_question_around_a_problem_alone_is_no_side_turn() {
 		let pose = json!({ "role": "assistant", "content": [{ "type": "toolCall", "id": "p", "name": "problem", "arguments": {} }] });
 		let messages = vec![pose, json!({ "role": "toolResult", "toolCallId": "p", "isError": false }), side()];
-		assert_eq!(problem_side_questions(&messages), HashSet::from([2]));
-		assert!(is_side_turn(&messages));
-		assert_eq!(with_problem_lead(&json!("hi")), json!(format!("{SIDE_PROBLEM_LEAD}hi")));
-		assert_eq!(with_problem_lead(&json!([{ "type": "text", "text": "hi", "x": 1 }, { "type": "image" }])), json!([{ "type": "text", "text": format!("{SIDE_PROBLEM_LEAD}hi"), "x": 1 }, { "type": "image" }]));
-		assert_eq!(with_problem_lead(&json!([{ "type": "image" }])), json!([{ "type": "text", "text": SIDE_PROBLEM_LEAD.trim_end() }, { "type": "image" }]));
+		assert!(!is_side_turn(&messages));
 	}
 
 	#[test]

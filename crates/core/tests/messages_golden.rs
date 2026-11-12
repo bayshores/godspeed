@@ -7,9 +7,9 @@ use std::collections::HashSet;
 use gs_core::messages::attachments::{attachment_refusal, base64_bytes, content_text, keeps_png, pdf_file_name, pdf_note, pdf_note_of};
 use gs_core::messages::input_events::{ChatInput, DismissInput, dismiss_appends, input_appends, parse_chat_input, parse_dismiss_input, parse_user_steer_input};
 use gs_core::messages::native_messages::{
-	active_problem_of, space_card_text, concluded_by_dismissal_pair, dangling_question_of, ends_in_dismissal, failed_output_call_ids, has_probe_done, is_side_turn, new_answer_result, new_app_request_message,
+	active_problem_of, space_card_text, space_files_text, concluded_by_dismissal_pair, dangling_question_of, ends_in_dismissal, failed_output_call_ids, has_probe_done, is_side_turn, new_answer_result, new_app_request_message,
 	new_space_context_message, new_graph_context_message, new_handoff_message, new_next_message, new_plan_block_message, new_problem_dismissed_marker, new_side_question, new_study_context_message,
-	new_thinking_message, new_today_context_message, new_user_message, new_user_steer, pending_problem_dismissal_of, problem_input_for_conclude, retry_context, send_to_user_text, side_held_questions,
+	new_today_context_message, new_user_message, new_user_steer, pending_problem_dismissal_of, problem_input_for_conclude, retry_context, send_to_user_text, side_held_questions,
 	to_llm_messages, user_facing_text_of,
 };
 use gs_core::messages::phases::{Phase3, first_phase, phase_at3_lh};
@@ -136,8 +136,6 @@ fn constructors_match_node() {
 			"plan block" => new_plan_block_message("plan_1", json!({ "steps": ["a"] })),
 			"today" => new_today_context_message("[Today] Tuesday", "2026-11-10"),
 			"app request" => new_app_request_message("Add the deadlines", vec![json!({ "id": "d1", "title": "Quiz" })]),
-			"thinking" => new_thinking_message("p1", "my idea", &[]),
-			"thinking with files" => new_thinking_message("p1", "my idea", std::slice::from_ref(&image)),
 			"next" => new_next_message(),
 			"dismissed marker" => new_problem_dismissed_marker("p1"),
 			"dismissal pair" => concluded_by_dismissal_pair("p1").into_iter().collect(),
@@ -145,7 +143,7 @@ fn constructors_match_node() {
 		}
 	};
 	let cases = golden("new messages");
-	assert_eq!(arr(&cases).len(), 16);
+	assert_eq!(arr(&cases).len(), 14);
 	for case in arr(&cases) {
 		same(&norm(&built(s(&case["name"]))), &case["built"], s(&case["name"]));
 	}
@@ -156,6 +154,7 @@ fn context_cards_match_node() {
 	for case in arr(&golden("context cards")) {
 		if case.get("card").is_some() {
 			same(&Json::from(space_card_text(&case["card"])), &case["text"], &stringify(&case["card"]));
+			same(&Json::from(space_files_text(&case["card"])), &case["files"], &stringify(&case["card"]));
 			same(&norm(&new_space_context_message(&case["card"])), &case["message"], "space card");
 		} else if case.get("picks").is_some() {
 			let chains: Vec<String> = arr(&case["chains"]).iter().map(|c| s(c).to_owned()).collect();
@@ -188,7 +187,6 @@ fn chat_input_json(input: &ChatInput) -> Json {
 		ChatInput::Answer { tool_call_id, answer, attachments } => with_files(event("answer", vec![("toolCallId", tool_call_id.as_str().into()), ("answer", answer.clone())]), attachments),
 		ChatInput::Continue => Json::Obj(event("continue", vec![])),
 		ChatInput::Side { text, attachments } => with_files(event("side", vec![("text", text.as_str().into())]), attachments),
-		ChatInput::Thinking { problem_call_id, text, attachments } => with_files(event("thinking", vec![("problemCallId", problem_call_id.as_str().into()), ("text", text.as_str().into())]), attachments),
 		ChatInput::Next => Json::Obj(event("next", vec![])),
 	}
 }

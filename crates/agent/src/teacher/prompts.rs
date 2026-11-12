@@ -3,7 +3,7 @@
 //! is also how a learner's saved version is keyed. Sorted by folder then file name, so a folder's
 //! fragments are already in the order they compose.
 
-pub const SOURCES: [(&str, &str); 24] = [
+pub const SOURCES: [(&str, &str); 26] = [
 	("system-prompt.md", include_str!("../../../../src/backend/agent/system-prompt.md")),
 	("homework/00-base.md", include_str!("../../../../src/backend/agent/prompts/homework/00-base.md")),
 	("practice/00-base.md", include_str!("../../../../src/backend/agent/prompts/practice/00-base.md")),
@@ -11,7 +11,9 @@ pub const SOURCES: [(&str, &str); 24] = [
 	("practice/20-hints.md", include_str!("../../../../src/backend/agent/prompts/practice/20-hints.md")),
 	("prober/10-probe-doctrine.md", include_str!("../../../../src/backend/agent/prompts/prober/10-probe-doctrine.md")),
 	("shared/10-voice.md", include_str!("../../../../src/backend/agent/prompts/shared/10-voice.md")),
+	("shared/11-learner-first.md", include_str!("../../../../src/backend/agent/prompts/shared/11-learner-first.md")),
 	("shared/12-space-context.md", include_str!("../../../../src/backend/agent/prompts/shared/12-space-context.md")),
+	("shared/13-source-marks.md", include_str!("../../../../src/backend/agent/prompts/shared/13-source-marks.md")),
 	("shared/15-accuracy.md", include_str!("../../../../src/backend/agent/prompts/shared/15-accuracy.md")),
 	("shared/16-mental-model.md", include_str!("../../../../src/backend/agent/prompts/shared/16-mental-model.md")),
 	("shared/20-question-tools.md", include_str!("../../../../src/backend/agent/prompts/shared/20-question-tools.md")),

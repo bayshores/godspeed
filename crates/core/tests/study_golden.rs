@@ -160,7 +160,7 @@ fn replay(cases: &[Json], c: &Json) {
 	} else if name == "conclude marks done" {
 		same(name, Json::Arr(list(&args["outcomes"]).iter().map(|o| Json::from(homework::conclude_marks_done(o))).collect()), want);
 	} else if name.starts_with("homework context ") {
-		same(name, Json::from(homework::homework_context_text(&args["deadline"], &args["assignment"], &list(&args["problems"]))), want);
+		same(name, Json::from(homework::homework_context_text(text(&args["spaceId"]), &args["deadline"], &args["assignment"], &list(&args["problems"]))), want);
 	} else if name.starts_with("parse cheat sheet ") {
 		same(name, parsed_json(cheat_sheet::parse_cheat_sheet(&args["raw"])), want);
 	} else if name.starts_with("sheet cards ") {

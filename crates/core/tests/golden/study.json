@@ -69617,7 +69617,9 @@
 		"name": "homework context with problems",
 		"output": {
 			"args": {
+				"spaceId": "spc_test_0000aaaa",
 				"deadline": {
+					"id": "ddl_hw5",
 					"name": "HW5",
 					"kind": "homework",
 					"date": "2026-11-09",
@@ -69658,7 +69660,9 @@
 		"name": "homework context without problems",
 		"output": {
 			"args": {
+				"spaceId": "spc_test_0000aaaa",
 				"deadline": {
+					"id": "ddl_hw5",
 					"name": "HW5",
 					"kind": "homework",
 					"date": "2026-11-09"
@@ -69677,7 +69681,9 @@
 		"name": "homework context without an assignment",
 		"output": {
 			"args": {
+				"spaceId": "spc_test_0000aaaa",
 				"deadline": {
+					"id": "ddl_hw5",
 					"name": "HW5",
 					"kind": "homework",
 					"date": "2026-11-09",
@@ -69694,7 +69700,7 @@
 					}
 				]
 			},
-			"result": "[Homework] The learner is working on HW5 (homework), due 2026-11-09 23:59.\nNo assignment file is attached yet. Ask the learner which space file it is and attach it with update_space_deadline (assignment_file_id), or work from the problems they paste.\nIts problems, posted before:\n- 1: Binary search (done)\nOpen the first one not done unless the learner picks another."
+			"result": "[Homework] The learner is working on HW5 (homework), due 2026-11-09 23:59.\nNo assignment file is attached yet. Find it in the space files (search_space_files) and attach it with update_space_deadline (space_id spc_test_0000aaaa, deadline_id ddl_hw5, assignment_file_id) before you post its problems. Ask the learner only when you can't find it, or work from the problems they paste.\nIts problems, posted before:\n- 1: Binary search (done)\nOpen the first one not done unless the learner picks another."
 		}
 	},
 	{

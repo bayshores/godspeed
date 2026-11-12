@@ -15,33 +15,33 @@ use crate::App;
 use crate::spaces::space_card::{space_card_for, space_file_path};
 use crate::spaces::update_space_deadline;
 
-fn deadline_of<'a>(cls: &'a Json, deadline_id: &str) -> Option<&'a Json> {
-	cls["deadlines"].as_arr()?.iter().find(|d| d["id"].as_str() == Some(deadline_id))
+fn deadline_of<'a>(space: &'a Json, deadline_id: &str) -> Option<&'a Json> {
+	space["deadlines"].as_arr()?.iter().find(|d| d["id"].as_str() == Some(deadline_id))
 }
 
-fn file_of<'a>(cls: &'a Json, deadline: &Json) -> Option<&'a Json> {
+fn file_of<'a>(space: &'a Json, deadline: &Json) -> Option<&'a Json> {
 	let file_id = deadline["assignmentFileId"].as_str().filter(|id| !id.is_empty())?;
-	cls["files"].as_arr()?.iter().find(|f| f["id"].as_str() == Some(file_id))
+	space["files"].as_arr()?.iter().find(|f| f["id"].as_str() == Some(file_id))
 }
 
 /// Starts a homework session on one homework or project deadline. Its title is the learner's
 /// first message.
 pub fn create_homework(app: &Arc<App>, space_id: &str, deadline_id: &str) -> Result<Result<Created, NotFound>, String> {
 	// Held from the space check to the finished lesson, as in `create_lesson`.
-	let _space = app.locks.lock(LockKey::Space(space_id));
-	let Some(cls) = app.stores.spaces.get_space(space_id) else {
+	let _guard = app.locks.lock(LockKey::Space(space_id));
+	let Some(space) = app.stores.spaces.get_space(space_id) else {
 		return Ok(Err(NotFound { code: "space_not_found", error: "No such space" }));
 	};
-	let Some(deadline) = deadline_of(&cls, deadline_id).filter(|d| has_problems(d["kind"].as_str().unwrap_or_default())) else {
+	let Some(deadline) = deadline_of(&space, deadline_id).filter(|d| has_problems(d["kind"].as_str().unwrap_or_default())) else {
 		return Ok(Err(NotFound { code: "deadline_not_found", error: "No such homework or project" }));
 	};
-	let assignment = file_of(&cls, deadline).map_or(Json::Null, |file| json!({ "id": file["id"], "name": file["name"], "path": space_file_path(app, &cls, file) }));
+	let assignment = file_of(&space, deadline).map_or(Json::Null, |file| json!({ "id": file["id"], "name": file["name"], "path": space_file_path(app, &space, file) }));
 	let title = format!("Work on {}", deadline["name"].as_str().unwrap_or_default());
-	let space_id = cls["id"].as_str().unwrap_or_default();
+	let space_id = space["id"].as_str().unwrap_or_default();
 	let chat = app.stores.chats.create_chat(&title, Some("homework"), Some(space_id), deadline["id"].as_str())?;
 	let chat_id = chat["id"].as_str().unwrap_or_default().to_owned();
 	let problems = deadline["problems"].as_arr().map_or(&[][..], Vec::as_slice);
-	let messages = [new_space_context_message(&space_card_for(app, &cls)?), new_study_context_message(&homework_context_text(deadline, &assignment, problems), "homework-context")];
+	let messages = [new_space_context_message(&space_card_for(app, &space)?), new_study_context_message(&homework_context_text(space_id, deadline, &assignment, problems), "homework-context")];
 	app.stores.chats.save_messages(&chat_id, &messages)?;
 	let chat = app.stores.chats.get_chat(&chat_id).unwrap_or(chat);
 	Ok(Ok(Created { chat, title }))
@@ -49,9 +49,9 @@ pub fn create_homework(app: &Arc<App>, space_id: &str, deadline_id: &str) -> Res
 
 /// What a homework lesson shows of its deadline; None once it is gone.
 pub fn homework_view(app: &Arc<App>, space_id: &str, deadline_id: &str) -> Option<Json> {
-	let cls = app.stores.spaces.get_space(space_id)?;
-	let deadline = deadline_of(&cls, deadline_id)?;
-	let assignment = file_of(&cls, deadline).map_or(Json::Null, |file| json!({ "name": file["name"], "path": space_file_path(app, &cls, file) }));
+	let space = app.stores.spaces.get_space(space_id)?;
+	let deadline = deadline_of(&space, deadline_id)?;
+	let assignment = file_of(&space, deadline).map_or(Json::Null, |file| json!({ "name": file["name"], "path": space_file_path(app, &space, file) }));
 	let problems = if deadline["problems"].is_null() { json!([]) } else { deadline["problems"].clone() };
 	Some(json!({ "name": deadline["name"], "problems": problems, "assignment": assignment }))
 }
@@ -76,8 +76,8 @@ impl DeadlineProblems {
 
 impl HomeworkDeadline for DeadlineProblems {
 	fn problems(&self) -> Vec<Json> {
-		let cls = self.app.stores.spaces.get_space(&self.space_id);
-		cls.as_ref().and_then(|c| deadline_of(c, &self.deadline_id)).and_then(|d| d["problems"].as_arr().cloned()).unwrap_or_default()
+		let space = self.app.stores.spaces.get_space(&self.space_id);
+		space.as_ref().and_then(|c| deadline_of(c, &self.deadline_id)).and_then(|d| d["problems"].as_arr().cloned()).unwrap_or_default()
 	}
 
 	fn post(&self, posted: &[Json]) -> Option<String> {

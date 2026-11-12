@@ -1,7 +1,8 @@
 //! The homework tools (src/backend/agent/tools/homework.ts): post_problems saves the assignment's
 //! problems on its deadline, problem opens one in the learner's Your turn panel (it ends the turn,
-//! but carries no solution: homework is hints only), conclude closes it and marks it done when the
-//! learner's own work was right. The side tools are practice's.
+//! but carries no solution: homework is hints only), part marks the part the learner is on there,
+//! conclude closes it and marks it done when the learner's own work was right. The side tools are
+//! practice's.
 
 use std::sync::Arc;
 
@@ -82,7 +83,7 @@ fn problem_tool(homework: Arc<dyn HomeworkDeadline>, open: &Arc<Mutex<Option<Str
 			("statement", string("REQUIRED \u{2014} the problem as the learner sees it while working (markdown + LaTeX): the assignment's wording. Never any part of its answer.")),
 		],
 	);
-	let description = "Open one problem in the learner's work area. Ends the turn: the learner's work arrives as *Your thinking* messages (text and photos). Only one problem is open at a time; conclude it before opening the next.";
+	let description = "Open one problem in the learner's Your turn panel, where it stays in view. Ends the turn: the learner's work and questions arrive as their messages (text and photos). Only one problem is open at a time; conclude it before opening the next.";
 	FnTool::immediate("problem", description, parameters, move |args| {
 		let mut open = open.lock();
 		if let Some(number) = open.as_ref() {
@@ -97,7 +98,20 @@ fn problem_tool(homework: Arc<dyn HomeworkDeadline>, open: &Arc<Mutex<Option<Str
 			return invalid_input_result("problem", &[format!("no problem numbered {}; the numbers are {}", quote(number), numbers.join(", "))]);
 		}
 		*open = Some(number.to_owned());
-		problem_result()
+		problem_result("the learner's work and questions arrive as their messages.")
+	})
+	.sequential()
+}
+
+fn part_tool(open: &Arc<Mutex<Option<String>>>) -> FnTool {
+	let open = open.clone();
+	let parameters = object(&["part"], vec![("part", string("REQUIRED \u{2014} the part as the problem labels it, e.g. \"a\", \"b\", \"2\"."))]);
+	let description = "For a problem with parts: mark the part the learner works on now, when they start it. Their panel marks it and scrolls the problem to it. Doesn't end the turn.";
+	FnTool::immediate("part", description, parameters, move |_args| {
+		if open.lock().is_none() {
+			return invalid_input_result("part", &["no problem is open".to_owned()]);
+		}
+		json!({ "content": [{ "type": "text", "text": "Marked." }], "details": null })
 	})
 	.sequential()
 }
@@ -117,7 +131,7 @@ fn conclude_tool(homework: Arc<dyn HomeworkDeadline>, open: &Arc<Mutex<Option<St
 			("verdict", string("REQUIRED \u{2014} what was right in the learner's work, or where it still breaks. Never the answer.")),
 		],
 	);
-	let description = "Close the open problem with the outcome and verdict; solved and solvedWithHints mark it done. Then say your closing words and END YOUR TURN: the next problem waits for the learner's go-ahead.";
+	let description = "Close the open problem with the outcome and verdict; solved and solvedWithHints mark it done. Then say your closing words and END YOUR TURN: the next problem waits for the learner's go-ahead. When they asked for a different problem, that ask is the go-ahead: open it right after this result.";
 	FnTool::immediate("conclude", description, parameters, move |args| {
 		let mut open = open.lock();
 		let Some(number) = open.take() else {
@@ -134,7 +148,7 @@ fn conclude_tool(homework: Arc<dyn HomeworkDeadline>, open: &Arc<Mutex<Option<St
 /// The homework agent's whole registry; `enabled` filters the side tools as in practice.
 pub fn homework_tools(ctx: &HomeworkToolContext, enabled: Option<&Json>) -> Vec<FnTool> {
 	let open = Arc::new(Mutex::new(open_problem_of(ctx)));
-	let mut tools = vec![post_problems_tool(ctx.homework.clone()), problem_tool(ctx.homework.clone(), &open), conclude_tool(ctx.homework.clone(), &open)];
+	let mut tools = vec![post_problems_tool(ctx.homework.clone()), problem_tool(ctx.homework.clone(), &open), part_tool(&open), conclude_tool(ctx.homework.clone(), &open)];
 	tools.extend(practice_side_tools(ctx.jobs.as_ref(), ctx.graph.as_ref(), &ctx.side, enabled));
 	heal_tool_record(tools)
 }

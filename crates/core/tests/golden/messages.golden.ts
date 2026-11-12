@@ -5,6 +5,7 @@ import {
 	concludedByDismissalPair,
 	activeProblemOf,
 	spaceCardText,
+	spaceFilesText,
 	danglingQuestionOf,
 	endsInDismissal,
 	failedOutputCallIds,
@@ -20,7 +21,6 @@ import {
 	newProblemDismissedMarker,
 	newSideQuestion,
 	newStudyContextMessage,
-	newThinkingMessage,
 	newTodayContextMessage,
 	newUserMessage,
 	newUserSteer,
@@ -302,8 +302,6 @@ function appendCases(): unknown[] {
 		// A kind-less answer is the question rules' own case, not the record's.
 		...chatInputs.filter((raw) => !Array.isArray((raw as { answer?: unknown } | null)?.answer)),
 		...answerInputs,
-		{ type: "thinking", problemCallId: "p1", text: "idea" },
-		{ type: "thinking", problemCallId: "p2", text: "idea" },
 	];
 	for (const [recordName, record] of Object.entries(records)) {
 		for (const raw of inputs) {
@@ -332,7 +330,7 @@ function appendCases(): unknown[] {
 // ─── cases ───────────────────────────────────────────────────────────────────
 
 const cards = [
-	{ spaceId: "c1", name: "CSE 21", description: "  My space.  ", files: [], topics: undefined },
+	{ spaceId: "c1", name: "Algebra 1", description: "  My space.  ", files: [], topics: undefined },
 	{
 		spaceId: "c2", name: "Math", description: "",
 		files: [
@@ -369,14 +367,12 @@ export default {
 		["plan block", newPlanBlockMessage("plan_1", { steps: ["a"] } as never)],
 		["today", newTodayContextMessage("[Today] Tuesday", "2026-11-10")],
 		["app request", newAppRequestMessage("Add the deadlines", [{ id: "d1", title: "Quiz" }] as never)],
-		["thinking", newThinkingMessage("p1", "my idea")],
-		["thinking with files", newThinkingMessage("p1", "my idea", [image] as never)],
 		["next", newNextMessage()],
 		["dismissed marker", newProblemDismissedMarker("p1")],
 		["dismissal pair", concludedByDismissalPair("p1")],
 	].map(([name, built]) => ({ name, built: norm(built) })),
 	"context cards": () => [
-		...cards.map((card) => ({ card, text: spaceCardText(card as never), message: norm(newSpaceContextMessage(card as never)) })),
+		...cards.map((card) => ({ card, text: spaceCardText(card as never), files: spaceFilesText(card as never), message: norm(newSpaceContextMessage(card as never)) })),
 		{
 			picks: [{ id: "p1", name: "Limit", statement: "A limit is" }],
 			chains: ["Limit → Continuity"],

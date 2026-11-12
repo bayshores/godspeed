@@ -37,30 +37,48 @@ pub fn new_study_context_message(text: &str, custom_type: &str) -> Json {
 }
 
 /// The model-facing space card text. `card` is `{spaceId, name, description, files, topics?}`.
+/// It counts the files; read_space lists them (`space_files_text`).
 pub fn space_card_text(card: &Json) -> String {
 	let mut lines = vec!["[Space context] — this lesson belongs to one of the learner's spaces:".to_owned(), String::new(), format!("Space: {}", js_string(card.get("name")))];
 	let description = text::trim(card["description"].as_str().unwrap_or(""));
 	if !description.is_empty() {
 		lines.extend(["".to_owned(), "About the space (the learner's own words):".to_owned(), description.to_owned()]);
 	}
-	let readable: Vec<&Json> = card["files"].as_arr().into_iter().flatten().filter(|f| !matches!(f.get("path"), Some(Json::Null))).collect();
+	let readable = readable_files(card);
 	if !readable.is_empty() {
+		let study = readable.iter().filter(|f| f["kind"].as_str() == Some("study")).count();
 		lines.push(String::new());
-		lines.push("Space files (study material = turned into the space's knowledge graph; space info = a syllabus, a schedule, logistics):".to_owned());
-		for f in readable {
-			// Only a status other than "ready" is worth showing.
-			let status = Some(&f["status"]).filter(|s| s.as_str() != Some("ready"));
-			let parts: Vec<String> = [Some(&f["size"]), status].into_iter().flatten().filter(|v| v.truthy()).map(|v| js_string(Some(v))).collect();
-			let about = if parts.is_empty() { String::new() } else { format!(" ({})", parts.join(", ")) };
-			let kind = if f["kind"].as_str() == Some("study") { "study material" } else { "space info" };
-			lines.push(format!("- [{kind}] {}{about} — {}", js_string(f.get("name")), js_string(f.get("path"))));
-		}
+		lines.push(format!("Space files: {study} study material, {} space info. Find what's in them with search_space_files; read_space lists them with their paths.", readable.len() - study));
 	}
 	let topics = card["topics"].as_arr().filter(|t| !t.is_empty());
 	if let Some(topics) = topics {
 		lines.push(String::new());
 		lines.push("Topics in the space's knowledge graph (facts in each):".to_owned());
 		lines.push(topics.iter().map(|t| format!("{} ({})", js_string(t.get("name")), js_string(t.get("facts")))).collect::<Vec<_>>().join(", "));
+	}
+	lines.join("\n")
+}
+
+/// The files the teacher can read: a file without a path (not readable) is left out.
+fn readable_files(card: &Json) -> Vec<&Json> {
+	card["files"].as_arr().into_iter().flatten().filter(|f| !matches!(f.get("path"), Some(Json::Null))).collect()
+}
+
+/// The space's readable files, one line each with its path. Only read_space shows it: the card
+/// just counts them, so lessons don't carry the list.
+pub fn space_files_text(card: &Json) -> String {
+	let readable = readable_files(card);
+	if readable.is_empty() {
+		return String::new();
+	}
+	let mut lines = vec!["Space files (study material = turned into the space's knowledge graph; space info = a syllabus, a schedule, logistics):".to_owned()];
+	for f in readable {
+		// Only a status other than "ready" is worth showing.
+		let status = Some(&f["status"]).filter(|s| s.as_str() != Some("ready"));
+		let parts: Vec<String> = [Some(&f["size"]), status].into_iter().flatten().filter(|v| v.truthy()).map(|v| js_string(Some(v))).collect();
+		let about = if parts.is_empty() { String::new() } else { format!(" ({})", parts.join(", ")) };
+		let kind = if f["kind"].as_str() == Some("study") { "study material" } else { "space info" };
+		lines.push(format!("- [{kind}] {}{about} — {}", js_string(f.get("name")), js_string(f.get("path"))));
 	}
 	lines.join("\n")
 }
@@ -86,10 +104,10 @@ mod tests {
 	}
 
 	#[test]
-	fn the_space_card_lists_readable_files_and_topics() {
+	fn the_space_card_counts_readable_files_and_lists_topics() {
 		let card = json!({
 			"spaceId": "c1",
-			"name": "CSE 21",
+			"name": "Algebra 1",
 			"description": "  my words \n",
 			"files": [
 				{ "name": "notes.pdf", "kind": "study", "path": "/a/notes.pdf", "size": "98 pages", "status": "ready" },
@@ -100,10 +118,15 @@ mod tests {
 		});
 		assert_eq!(
 			space_card_text(&card),
-			"[Space context] — this lesson belongs to one of the learner's spaces:\n\nSpace: CSE 21\n\nAbout the space (the learner's own words):\nmy words\n\nSpace files (study material = turned into the space's knowledge graph; space info = a syllabus, a schedule, logistics):\n- [study material] notes.pdf (98 pages) — /a/notes.pdf\n- [space info] syl.pdf (reading) — /a/syl.pdf\n\nTopics in the space's knowledge graph (facts in each):\nSums (4), Logs (2)"
+			"[Space context] — this lesson belongs to one of the learner's spaces:\n\nSpace: Algebra 1\n\nAbout the space (the learner's own words):\nmy words\n\nSpace files: 1 study material, 1 space info. Find what's in them with search_space_files; read_space lists them with their paths.\n\nTopics in the space's knowledge graph (facts in each):\nSums (4), Logs (2)"
+		);
+		assert_eq!(
+			space_files_text(&card),
+			"Space files (study material = turned into the space's knowledge graph; space info = a syllabus, a schedule, logistics):\n- [study material] notes.pdf (98 pages) — /a/notes.pdf\n- [space info] syl.pdf (reading) — /a/syl.pdf"
 		);
 		let bare = json!({ "name": "X", "description": "", "files": [], "topics": [] });
 		assert_eq!(space_card_text(&bare), "[Space context] — this lesson belongs to one of the learner's spaces:\n\nSpace: X");
+		assert_eq!(space_files_text(&bare), "");
 		assert_eq!(new_space_context_message(&bare)["details"], bare);
 		assert_eq!(new_study_context_message("t", "homework-context")["display"], json!(false));
 	}

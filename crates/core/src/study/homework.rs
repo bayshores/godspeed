@@ -44,12 +44,15 @@ pub fn conclude_marks_done(outcome: &Json) -> bool {
 
 /// What the teacher knows when a homework session starts (a hidden message at its top).
 /// `assignment` is `{ id, name, path }` or null.
-pub fn homework_context_text(deadline: &Json, assignment: &Json, problems: &[Json]) -> String {
+pub fn homework_context_text(space_id: &str, deadline: &Json, assignment: &Json, problems: &[Json]) -> String {
 	let text = |v: &Json| v.as_str().map_or_else(|| gs_json::stringify(v), str::to_owned);
 	let time = deadline["time"].as_str().filter(|t| !t.is_empty()).map(|t| format!(" {t}")).unwrap_or_default();
 	let mut lines = vec![format!("[Homework] The learner is working on {} ({}), due {}{time}.", text(&deadline["name"]), text(&deadline["kind"]), text(&deadline["date"]))];
 	if assignment.is_null() {
-		lines.push("No assignment file is attached yet. Ask the learner which space file it is and attach it with update_space_deadline (assignment_file_id), or work from the problems they paste.".to_owned());
+		lines.push(format!(
+			"No assignment file is attached yet. Find it in the space files (search_space_files) and attach it with update_space_deadline (space_id {space_id}, deadline_id {}, assignment_file_id) before you post its problems. Ask the learner only when you can't find it, or work from the problems they paste.",
+			text(&deadline["id"])
+		));
 	} else {
 		let at = assignment["path"].as_str().filter(|p| !p.is_empty()).map(|p| format!(", at {p}")).unwrap_or_default();
 		lines.push(format!("Its assignment is the space file {} (file id {}){at}.", text(&assignment["name"]), text(&assignment["id"])));
@@ -92,11 +95,13 @@ mod tests {
 	fn the_latest_homework_session_and_the_opening_text() {
 		let sessions = [json!({ "chatId": "a", "deadlineId": "d", "createdAt": "1" }), json!({ "chatId": "b", "deadlineId": "d", "createdAt": "2" })];
 		assert_eq!(latest_homework("d", &sessions).as_deref(), Some("b"));
-		let deadline = json!({ "name": "HW 4", "kind": "homework", "date": "2026-11-20", "time": "17:00" });
-		let text = homework_context_text(&deadline, &json!({ "id": "f1", "name": "hw4.pdf", "path": null }), &[json!({ "number": "1", "title": "Sums", "done": true })]);
+		let deadline = json!({ "id": "ddl_4", "name": "HW 4", "kind": "homework", "date": "2026-11-20", "time": "17:00" });
+		let text = homework_context_text("spc_1", &deadline, &json!({ "id": "f1", "name": "hw4.pdf", "path": null }), &[json!({ "number": "1", "title": "Sums", "done": true })]);
 		assert_eq!(
 			text,
 			"[Homework] The learner is working on HW 4 (homework), due 2026-11-20 17:00.\nIts assignment is the space file hw4.pdf (file id f1).\nIts problems, posted before:\n- 1: Sums (done)\nOpen the first one not done unless the learner picks another."
 		);
+		let bare = homework_context_text("spc_1", &deadline, &Json::Null, &[]);
+		assert!(bare.contains("update_space_deadline (space_id spc_1, deadline_id ddl_4, assignment_file_id)"));
 	}
 }

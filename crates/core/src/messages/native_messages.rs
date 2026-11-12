@@ -9,7 +9,7 @@ use gs_base::{clock, ids, text};
 use gs_json::{Json, Obj, json, stringify};
 
 use super::message_id::new_message_id;
-use crate::contracts::chat::{CONCLUDE_ACK_TEXT, HANDOFF_TEXT, NEXT_PROBLEM_TEXT, THINKING_LABEL};
+use crate::contracts::chat::{CONCLUDE_ACK_TEXT, HANDOFF_TEXT, NEXT_PROBLEM_TEXT};
 use crate::session::question_core::compact_answer_for_model;
 
 mod context_cards;
@@ -18,9 +18,9 @@ mod side_questions;
 mod summary_guard;
 mod to_llm;
 
-pub use context_cards::{space_card_text, new_space_context_message, new_graph_context_message, new_study_context_message};
+pub use context_cards::{space_card_text, space_files_text, new_space_context_message, new_graph_context_message, new_study_context_message};
 pub use scans::{ActiveProblem, DanglingQuestion, active_problem_of, dangling_question_of, ends_in_dismissal, has_probe_done, pending_problem_dismissal_of, problem_input_for_conclude, retry_context};
-pub use side_questions::{HeldQuestion, SIDE_ANSWER_LEAD, SIDE_PENDING_TEXT, SIDE_PROBLEM_LEAD, is_side_turn, side_held_questions};
+pub use side_questions::{HeldQuestion, SIDE_ANSWER_LEAD, SIDE_PENDING_TEXT, is_side_turn, side_held_questions};
 pub use summary_guard::summary_folds_throw;
 pub use to_llm::to_llm_messages;
 
@@ -170,25 +170,6 @@ pub fn new_app_request_message(request: &str, deadlines: Vec<Json>) -> Json {
 	Json::Obj(marker(new_message_id(), "app-request", format!("[From godspeed, not the learner] {request}"), true, json!({ "deadlines": deadlines })))
 }
 
-/// The learner's thinking on the active problem. One lane: the model reads the text to tell
-/// working from a claimed answer.
-pub fn new_thinking_message(problem_call_id: &str, text: &str, attachments: &[Json]) -> Json {
-	let mut message = marker(new_message_id(), "practice-thinking", format!("{THINKING_LABEL}:\n{text}"), true, json!({ "problemCallId": problem_call_id, "text": text }));
-	if !attachments.is_empty() {
-		// The files sit between the text and the display flag.
-		let mut with_files = Obj::new();
-		for (key, value) in message {
-			let after_content = key == "content";
-			with_files.insert(key, value);
-			if after_content {
-				with_files.insert("attachments", attachments.iter().cloned().collect::<Json>());
-			}
-		}
-		message = with_files;
-	}
-	Json::Obj(message)
-}
-
 /// The learner's explicit move-on signal between problems.
 pub fn new_next_message() -> Json {
 	Json::Obj(marker(new_message_id(), "practice-next", NEXT_PROBLEM_TEXT, true, json!({})))
@@ -276,10 +257,7 @@ mod tests {
 
 	#[test]
 	fn markers_keep_the_typescript_key_order() {
-		let thinking = new_thinking_message("c1", "my work", &[json!({ "type": "text", "text": "f" })]);
-		assert_eq!(keys(&thinking), ["id", "role", "customType", "content", "attachments", "display", "details", "timestamp"]);
-		assert_eq!(thinking["content"], json!("Your thinking:\nmy work"));
-		assert_eq!(keys(&new_thinking_message("c1", "t", &[])), ["id", "role", "customType", "content", "display", "details", "timestamp"]);
+		assert_eq!(keys(&new_next_message()), ["id", "role", "customType", "content", "display", "details", "timestamp"]);
 		assert_eq!(new_handoff_message("chat_x")["id"], json!("steer_probe_chat_x"));
 		assert_eq!(new_next_message()["details"], json!({}));
 		let answer = new_answer_result("c1", "quiz", &json!({ "kind": "quiz", "correct": true }), &[]);

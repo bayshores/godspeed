@@ -349,13 +349,14 @@ const homeworkSessions = [
 for (const id of ["d1", "d2", "d3"]) add(`latest homework ${id}`, { deadlineId: id, sessions: homeworkSessions }, () => latestHomework(id, homeworkSessions));
 const outcomes: unknown[] = ["solved", "solvedWithHints", "movedOn", "surrendered", "dismissed", "", null, undefined, 3, { outcome: "solved" }, [], ["solved"]];
 add("conclude marks done", { outcomes: outcomes.map((o) => (o === undefined ? null : o)) }, () => outcomes.map((o) => concludeMarksDone(o)));
-const deadline = { name: "HW5", kind: "homework", date: "2026-11-09", time: "23:59" };
+const deadline = { id: "ddl_hw5", name: "HW5", kind: "homework", date: "2026-11-09", time: "23:59" };
 const assignment = { id: "f_1", name: "HW5.pdf", path: "Homework/HW5.pdf" };
-add("homework context with problems", { deadline, assignment, problems: previous }, () => homeworkContextText(deadline as any, assignment, previous as any));
-add("homework context without problems", { deadline: { ...deadline, time: undefined }, assignment: { ...assignment, path: null }, problems: [] }, () =>
-	homeworkContextText({ ...deadline, time: undefined } as any, { ...assignment, path: null }, []),
+const spaceId = "spc_test_0000aaaa";
+add("homework context with problems", { spaceId, deadline, assignment, problems: previous }, () => homeworkContextText(spaceId, deadline as any, assignment, previous as any));
+add("homework context without problems", { spaceId, deadline: { ...deadline, time: undefined }, assignment: { ...assignment, path: null }, problems: [] }, () =>
+	homeworkContextText(spaceId, { ...deadline, time: undefined } as any, { ...assignment, path: null }, []),
 );
-add("homework context without an assignment", { deadline, assignment: null, problems: previous.slice(0, 1) }, () => homeworkContextText(deadline as any, null, previous.slice(0, 1) as any));
+add("homework context without an assignment", { spaceId, deadline, assignment: null, problems: previous.slice(0, 1) }, () => homeworkContextText(spaceId, deadline as any, null, previous.slice(0, 1) as any));
 
 // ─── cheat sheets ───────────────────────────────────────────────────────────
 

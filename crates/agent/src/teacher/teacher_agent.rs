@@ -29,7 +29,7 @@ use super::prompt_segments::{AgentKind, effective_prompt_segments};
 
 const SEPARATOR: &str = "\n\n---\n\n";
 
-const SIDE_TURN_REFUSAL: &str = "A question or problem is already waiting for the learner. Answer the side question in text instead.";
+const SIDE_TURN_REFUSAL: &str = "A question is already waiting for the learner. Answer the side question in text instead.";
 
 /// The switchable tools each agent's registry carries: demos and figures are teacher-only.
 fn switches(kind: AgentKind) -> &'static [&'static str] {
@@ -63,8 +63,8 @@ pub struct AgentBuildOptions<'a> {
 	pub learner_rules: Option<String>,
 	/// The chat id, kept across the prober, teacher and practice agents of one conversation.
 	pub chat_id: Option<String>,
-	/// The turn answers a side question: a question or problem is already waiting, so the question
-	/// and problem tools refuse.
+	/// The turn answers a side question: a question is already waiting, so the question and
+	/// problem tools refuse.
 	pub side_turn: bool,
 }
 
