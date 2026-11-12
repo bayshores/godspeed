@@ -161,7 +161,7 @@ function writeFolder(folder: string): void {
 	put(path.join(folder, "AGENTS.md"), template("AGENTS.md"));
 	put(path.join(folder, ".claude", "skills", "setup-spaces", "SKILL.md"), template("setup-spaces.md"));
 	// The command was /setup-classes before the rename.
-	fs.rmSync(path.join(folder, ".claude", "skills", "setup-classes"), { recursive: true, force: true });
+	fs.rmSync(path.join(/* turbopackIgnore: true */ folder, ".claude", "skills", "setup-classes"), { recursive: true, force: true });
 	put(path.join(folder, ".mcp.json"), mcpJson(folder, p));
 	for (const script of ["connect.mjs", "target.mjs", "wait-for-work.mjs", "forget.mjs", "compacting.mjs"]) put(path.join(dot, script), template(script));
 	put(path.join(dot, "package.json"), `${JSON.stringify({ private: true, type: "module", version: process.env.LH_VERSION ?? "0.0.0" }, null, "\t")}\n`);

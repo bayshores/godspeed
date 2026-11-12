@@ -177,7 +177,7 @@ export function syncShortcuts(folder: string, opts: { clear?: boolean } = {}): v
 
 	// spaces/ was classes/ before the rename: its note goes with its
 	// shortcuts, so the folder this made can be removed once it is empty.
-	const oldRoot = path.join(folder, "classes");
+	const oldRoot = path.join(/* turbopackIgnore: true */ folder, "classes");
 	if (old.dirs.includes(oldRoot)) fs.rmSync(path.join(oldRoot, README_NAME), { force: true });
 
 	const readme = path.join(root, README_NAME);

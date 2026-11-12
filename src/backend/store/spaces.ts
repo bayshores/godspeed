@@ -58,7 +58,7 @@ function oldRecordFile(id: string): string {
  *  move that failed, or a space made first), entry by entry. An entry both
  *  folders have stays where it is, so nothing is overwritten. */
 function adoptOldFolder(): void {
-	const old = path.join(PATHS.data, "classes");
+	const old = path.join(/* turbopackIgnore: true */ PATHS.data, "classes");
 	if (!fs.existsSync(old)) return;
 	try {
 		if (!fs.existsSync(PATHS.spaces)) {
@@ -67,8 +67,8 @@ function adoptOldFolder(): void {
 		}
 		let stayed = 0;
 		for (const name of fs.readdirSync(old)) {
-			const from = path.join(old, name);
-			const to = path.join(PATHS.spaces, name);
+			const from = path.join(/* turbopackIgnore: true */ old, name);
+			const to = path.join(/* turbopackIgnore: true */ PATHS.spaces, name);
 			try {
 				if (!fs.lstatSync(to, { throwIfNoEntry: false })) fs.renameSync(from, to);
 				// Finder's file on both sides would keep data/classes for good.
