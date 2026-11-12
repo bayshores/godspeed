@@ -319,9 +319,8 @@ fn arg_text(v: &Json, fallback: &str) -> String {
 
 /// A cheap check that the file can be read; real parsing happens in the tools.
 async fn probe_readable(pdf: &Pdf, path: &Path) -> Result<(), String> {
-	// Node awaited an import, then fs.stat on its thread pool: the job steps aside for the turn
-	// that started it, then checks off the thread. So a bad source's brief misses that turn's
-	// steering and reaches the lesson at its next turn boundary.
+	// Node awaited an import, then fs.stat on its thread pool: the check goes on in the
+	// background, after the turn that started it (see job_host's run_job).
 	tokio::task::yield_now().await;
 	let meta = tokio::fs::metadata(path).await.map_err(|e| node_error_message(&e, "stat", path))?;
 	if !meta.is_file() {

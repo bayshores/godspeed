@@ -95,6 +95,7 @@ impl Agent {
 	/// `streamAssistantResponse`: the transcript as the model sees it, one model call, and the
 	/// streamed message's events.
 	async fn stream_response(&self, context: &mut Vec<Json>, abort: &Abort) -> Json {
+		self.passed_model_call();
 		let request = match &self.convert_to_llm {
 			Some(convert) => convert(context),
 			None => context.iter().filter(|m| matches!(role(m), "system" | "user" | "assistant" | "toolResult")).cloned().collect(),

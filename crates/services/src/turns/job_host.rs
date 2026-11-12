@@ -20,7 +20,7 @@ use gs_store::chats::ChatStore;
 use gs_store::jobs::JobStore;
 
 use crate::App;
-use crate::jobs::deliver_job_result;
+use crate::jobs::{deliver_job_result, live_agent};
 
 struct AppJobs(Arc<App>);
 
@@ -66,11 +66,17 @@ impl JobHost for AppJobs {
 /// Runs a job's helper agent in the background. `input` rides along when the spawn happens
 /// before the tool call is saved. Like Node's `void runJob()`, the job runs here up to its first
 /// wait (a job that fails its checks has failed when this returns), then goes on in the
-/// background.
+/// background once its lesson's running turn has called the model again.
 pub fn run_job(app: &Arc<App>, job_id: &str, input: Option<Json>) {
 	let runner = create_job_runner(Arc::new(AppJobs(app.clone())));
 	let mut job = Box::pin(runner.run_job(job_id.to_owned(), input));
 	if job.as_mut().poll(&mut Context::from_waker(noop_waker_ref())).is_pending() {
-		tokio::spawn(job);
+		let turn = app.stores.jobs.get_job(job_id).and_then(|j| live_agent(app, j["chatId"].as_str()?)).filter(|agent| agent.is_running()).map(|agent| agent.next_model_call());
+		tokio::spawn(async move {
+			if let Some(turn) = turn {
+				turn.await;
+			}
+			job.await;
+		});
 	}
 }

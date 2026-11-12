@@ -213,6 +213,11 @@ pub fn register_live_agent(app: &App, chat_id: &str, agent: &Arc<Agent>, allow_d
 	Ok(())
 }
 
+/// The agent of the chat's turn, while one is registered.
+pub fn live_agent(app: &App, chat_id: &str) -> Option<Arc<Agent>> {
+	app.jobs.wake.lock().live_agents.get(chat_id).cloned()
+}
+
 /// The steer route's hand-off: false when no turn is live (the route answers 409). The parked
 /// copy rides the chat's next run if this one ends before persisting it.
 pub fn steer_live_chat(app: &App, chat_id: &str, message: Json) -> bool {
@@ -380,7 +385,7 @@ async fn run_pump(app: &Arc<App>, chat_id: &str) -> bool {
 		}
 
 		// The live run: its agent takes every eligible marker; settlement re-pumps the rest.
-		let live = app.jobs.wake.lock().live_agents.get(chat_id).cloned();
+		let live = live_agent(app, chat_id);
 		if let Some(live) = live
 			&& is_turn_running(app, chat_id)
 		{

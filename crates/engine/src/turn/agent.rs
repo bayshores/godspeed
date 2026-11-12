@@ -1,6 +1,7 @@
 //! The stateful agent (pi-agent-core agent.ts): owns the transcript, runs the loop, emits
 //! events, and queues steering and follow-up messages for a running loop.
 
+use std::future::Future;
 use std::sync::Arc;
 
 use gs_json::Json;
@@ -77,6 +78,8 @@ pub struct Agent {
 	listeners: Mutex<Vec<Listener>>,
 	/// The running loop's abort, while one runs.
 	active: Mutex<Option<Abort>>,
+	/// Counts model calls and run ends, for `next_model_call`.
+	model_calls: tokio::sync::watch::Sender<u64>,
 }
 
 /// Clears the active run when the run ends or its future is dropped.
@@ -85,6 +88,7 @@ struct ActiveRun<'a>(&'a Agent);
 impl Drop for ActiveRun<'_> {
 	fn drop(&mut self) {
 		*self.0.active.lock() = None;
+		self.0.passed_model_call();
 	}
 }
 
@@ -117,6 +121,7 @@ impl Agent {
 			follow_ups: Mutex::new(Vec::new()),
 			listeners: Mutex::new(Vec::new()),
 			active: Mutex::new(None),
+			model_calls: tokio::sync::watch::Sender::new(0),
 		})
 	}
 
@@ -149,6 +154,20 @@ impl Agent {
 
 	pub fn is_running(&self) -> bool {
 		self.active.lock().is_some()
+	}
+
+	/// Resolves once the running loop next calls the model, or ends. Work a tool call starts in
+	/// the background waits for it: Node's went on only after the loop's synchronous steps, so
+	/// what it delivers misses the steering poll right after that tool call.
+	pub fn next_model_call(&self) -> impl Future<Output = ()> + Send + use<> {
+		let mut calls = self.model_calls.subscribe();
+		async move {
+			let _ = calls.changed().await;
+		}
+	}
+
+	pub(super) fn passed_model_call(&self) {
+		self.model_calls.send_modify(|n| *n += 1);
 	}
 
 	/// Runs the loop with `messages` as the new prompt. `abort` is the run's abort (`abort()`
