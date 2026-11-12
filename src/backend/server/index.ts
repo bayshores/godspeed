@@ -52,4 +52,6 @@ export { agentSavedRules, editRule, removeRule } from "./agent-rules.ts";
 export { clearTalk, openTalk } from "./talk.ts";
 export { askAboutNewDeadlines } from "./agent-catch-up.ts";
 export { askCheatSheet, cheatSheetFile, cheatSheetPdf, cheatSheetView, spaceSheetsView, removeSheetRule, retryCheatSheet, sheetPdfFile, stopCheatSheet } from "./cheat-sheets.ts";
+export { changePrep, createPrep, prepView, startWrite } from "./preps.ts";
+export { changeMock, createMock, deleteMock, mockView, runMockExamples } from "./mocks.ts";
 export { pdfjsAsset } from "./pdfjs-assets.ts";

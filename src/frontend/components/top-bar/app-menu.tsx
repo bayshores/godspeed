@@ -64,6 +64,9 @@ export function AppMenu({ lit }: { lit: boolean }) {
 				>
 					Add a space
 				</button>
+				<Link role="menuitem" href="/prep" data-testid="menu-prep" onClick={close} className={ITEM}>
+					Prepare for something
+				</Link>
 				<button
 					role="menuitem"
 					type="button"

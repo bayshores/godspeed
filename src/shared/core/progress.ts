@@ -72,7 +72,7 @@ export interface AnsweredQuestion {
 	tool: string;
 	/** The facts it names itself (a practice problem's targets). */
 	factIds?: string[];
-	/** The plan node the quiz is about (teach quizzes). */
+	/** The plan node it is about (teach quizzes, study problems). */
 	nodeId?: string;
 	question: string;
 	outcome: AnswerOutcome;
@@ -177,6 +177,7 @@ export function collectAnswers(chatId: string, messages: readonly LhMessage[]): 
 			toolCallId: p.problemCallId,
 			tool: "problem",
 			...(p.targets.length > 0 ? { factIds: p.targets } : {}),
+			...(p.nodeId ? { nodeId: p.nodeId } : {}),
 			question: p.statement,
 			outcome,
 			answeredAt: p.at,

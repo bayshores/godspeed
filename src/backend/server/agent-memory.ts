@@ -22,7 +22,8 @@ export function currentAgentBriefing(maxChars: number): string {
 			name: r.name,
 			archived: r.archived,
 			deadlines: r.deadlines ?? [],
-			missingSetup: missingSetup(r),
+			// A prep has no signature or description to fill in.
+			missingSetup: r.prep ? [] : missingSetup(r),
 		})),
 		lessons: stores.chatStore.listChats().map((c) => ({
 			id: c.id,

@@ -75,15 +75,19 @@ describe("follow", () => {
 		assert.equal(followReady(typed, false, t + RESUME_MS), true);
 	});
 	it("switches space first on a space page, never for Home", () => {
-		assert.deepEqual(followMoves({ page: "/space/files", spaceId: "cls_b" }, { path: "/", activeSpace: "cls_a", lessonDraft: false }), { switchSpace: { to: "cls_b" }, go: "/space/files" });
-		assert.deepEqual(followMoves({ page: "/", spaceId: "cls_b" }, { path: "/", activeSpace: "cls_a", lessonDraft: false }), { switchSpace: null, go: null });
-		assert.deepEqual(followMoves({ page: "/space", spaceId: "cls_a" }, { path: "/graph", activeSpace: "cls_a", lessonDraft: false }), { switchSpace: null, go: "/space" });
-		assert.deepEqual(followMoves({ page: "/graph", spaceId: null }, { path: "/graph", activeSpace: "cls_a", lessonDraft: false }), { switchSpace: { to: null }, go: null });
+		assert.deepEqual(followMoves({ page: "/space/files", spaceId: "cls_b" }, { path: "/", activeSpace: "cls_a", lessonDraft: false, asked: false }), { switchSpace: { to: "cls_b" }, go: "/space/files" });
+		assert.deepEqual(followMoves({ page: "/", spaceId: "cls_b" }, { path: "/", activeSpace: "cls_a", lessonDraft: false, asked: false }), { switchSpace: null, go: null });
+		assert.deepEqual(followMoves({ page: "/space", spaceId: "cls_a" }, { path: "/graph", activeSpace: "cls_a", lessonDraft: false, asked: false }), { switchSpace: null, go: "/space" });
+		assert.deepEqual(followMoves({ page: "/graph", spaceId: null }, { path: "/graph", activeSpace: "cls_a", lessonDraft: false, asked: false }), { switchSpace: { to: null }, go: null });
 		// A lesson opens in its own space, so the sidebar lists it.
-		assert.deepEqual(followMoves({ page: "/chat/c2", spaceId: "cls_b" }, { path: "/", activeSpace: null, lessonDraft: false }), { switchSpace: { to: "cls_b" }, go: "/chat/c2" });
+		assert.deepEqual(followMoves({ page: "/chat/c2", spaceId: "cls_b" }, { path: "/", activeSpace: null, lessonDraft: false, asked: false }), { switchSpace: { to: "cls_b" }, go: "/chat/c2" });
 		// Unsent text in the lesson on screen keeps the window there.
-		assert.deepEqual(followMoves({ page: "/space", spaceId: "cls_b" }, { path: "/chat/c1", activeSpace: "cls_a", lessonDraft: true }), { switchSpace: null, go: null });
-		assert.deepEqual(followMoves({ page: "/space", spaceId: "cls_a" }, { path: "/chat/c1", activeSpace: "cls_a", lessonDraft: false }), { switchSpace: null, go: "/space" });
+		assert.deepEqual(followMoves({ page: "/space", spaceId: "cls_b" }, { path: "/chat/c1", activeSpace: "cls_a", lessonDraft: true, asked: false }), { switchSpace: null, go: null });
+		assert.deepEqual(followMoves({ page: "/space", spaceId: "cls_a" }, { path: "/chat/c1", activeSpace: "cls_a", lessonDraft: false, asked: false }), { switchSpace: null, go: "/space" });
+		assert.deepEqual(followMoves({ page: "/space", spaceId: "cls_a" }, { path: "/chat/c1", activeSpace: "cls_a", lessonDraft: true, asked: true }), { switchSpace: null, go: "/space" }, "the learner asked to go");
+		// A mock keeps the window too.
+		assert.deepEqual(followMoves({ page: "/chat/c2", spaceId: "cls_a" }, { path: "/space/mock/cls_a/mock_1", activeSpace: "cls_a", lessonDraft: false, asked: false }), { switchSpace: null, go: null });
+		assert.deepEqual(followMoves({ page: "/chat/c2", spaceId: "cls_a" }, { path: "/space/mock/cls_a/mock_1", activeSpace: "cls_a", lessonDraft: false, asked: true }), { switchSpace: null, go: "/chat/c2" });
 	});
 	it("only goes to the app's own pages", () => {
 		for (const p of ["/", "/space", "/space/files", "/graph", "/chat/c_12-ab"]) assert.equal(safePage(p), p);

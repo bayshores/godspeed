@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { SmallSwitch } from "@/frontend/components/ui/small-switch";
 import { cn } from "@/frontend/lib/utils";
 import type { CodeEditorHandle } from "./code-editor-view";
@@ -28,7 +28,7 @@ function keepKeysInEditor(e: React.KeyboardEvent) {
 }
 
 /**
- * The code question's editor: the language over a CodeMirror field, with
+ * A code editor: the language (or `tools`) over a CodeMirror field, with
  * the Vim switch (and Vim's mode while it is on) in the corner. CodeMirror
  * loads on mount, so server rendering shows the empty field.
  */
@@ -37,12 +37,18 @@ export function CodeEditor({
 	language,
 	onChange,
 	dimmed = false,
+	tools,
+	fill = false,
 }: {
 	initialCode: string;
 	language: string;
 	onChange: (code: string) => void;
 	/** "I don't know" is picked: the code won't be sent. */
 	dimmed?: boolean;
+	/** In place of the language's name (a mock's language pick). */
+	tools?: ReactNode;
+	/** Take the whole height it is given, in place of growing with the code. */
+	fill?: boolean;
 }) {
 	const hostRef = useRef<HTMLDivElement>(null);
 	const handleRef = useRef<CodeEditorHandle | null>(null);
@@ -63,6 +69,7 @@ export function CodeEditor({
 				doc: initialCode,
 				language,
 				vim: vimRef.current,
+				fill,
 				onChange: (code) => onChangeRef.current(code),
 				onVimMode: setMode,
 			});
@@ -82,11 +89,13 @@ export function CodeEditor({
 	};
 
 	return (
-		<div data-testid="code-editor" className={cn("flex shrink-0 flex-col bg-background transition-opacity duration-(--lh-dur)", dimmed && "opacity-40")}>
+		<div data-testid="code-editor" className={cn("flex flex-col bg-background transition-opacity duration-(--lh-dur)", fill ? "min-h-0 flex-1" : "shrink-0", dimmed && "opacity-40")}>
 			<div className="flex items-center justify-between gap-3 border-b border-tone-2 px-3.5 py-2">
-				<span data-testid="code-language" className="font-mono text-[12.5px] text-ink-3">
-					{languageLabel(language)}
-				</span>
+				{tools ?? (
+					<span data-testid="code-language" className="font-mono text-[12.5px] text-ink-3">
+						{languageLabel(language)}
+					</span>
+				)}
 				<span className="flex items-center gap-[7px]">
 					{vim && (
 						<span data-testid="vim-mode" className="font-mono text-[12.5px] font-bold text-ink-2">
@@ -97,7 +106,7 @@ export function CodeEditor({
 					<SmallSwitch on={vim} onChange={toggleVim} label="Vim" testId="vim-switch" />
 				</span>
 			</div>
-			<div ref={hostRef} data-testid="code-editor-host" className="min-h-[200px]" onKeyDown={keepKeysInEditor} />
+			<div ref={hostRef} data-testid="code-editor-host" className={fill ? "min-h-0 flex-1" : "min-h-[200px]"} onKeyDown={keepKeysInEditor} />
 		</div>
 	);
 }

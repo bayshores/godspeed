@@ -7,6 +7,8 @@ import { EditorView, drawSelection, keymap, lineNumbers } from "@codemirror/view
 import { defaultKeymap, history, historyKeymap, indentLess, indentMore } from "@codemirror/commands";
 import { HighlightStyle, bracketMatching, indentOnInput, indentUnit, syntaxHighlighting } from "@codemirror/language";
 import { cpp } from "@codemirror/lang-cpp";
+import { javascript } from "@codemirror/lang-javascript";
+import { python } from "@codemirror/lang-python";
 import { tags as t } from "@lezer/highlight";
 import { getCM, vim } from "@replit/codemirror-vim";
 import { highlightsAsCpp, vimModeLabel } from "./code-editor-model";
@@ -37,10 +39,18 @@ const highlight = HighlightStyle.define([
 	{ tag: [t.comment, t.lineComment, t.blockComment], color: "var(--lh-code-comment)" },
 ]);
 
-/** The app's field: its surface, ink and mono tokens, square edges. */
-const theme = EditorView.theme(
+/** The language's syntax colors; any other language is plain text. */
+function syntaxOf(language: string) {
+	if (highlightsAsCpp(language)) return cpp();
+	if (language === "javascript") return javascript();
+	return language === "python" ? python() : [];
+}
+
+/** The app's field: its surface, ink and mono tokens, square edges. It
+ *  grows with the code up to a height, or with `fill` takes its box's. */
+const theme = (fill: boolean) => EditorView.theme(
 	{
-		"&": { backgroundColor: "var(--background)", color: "var(--foreground)", fontSize: "13.5px", maxHeight: "360px" },
+		"&": { backgroundColor: "var(--background)", color: "var(--foreground)", fontSize: "13.5px", ...(fill ? { height: "100%" } : { maxHeight: "360px" }) },
 		"&.cm-focused": { outline: "none" },
 		".cm-scroller": { fontFamily: "var(--font-mono)", lineHeight: "1.6", minHeight: "200px" },
 		".cm-content": { caretColor: "var(--lh-ink-max)", padding: "10px 0" },
@@ -72,6 +82,8 @@ export function mountCodeEditor(
 		doc: string;
 		language: string;
 		vim: boolean;
+		/** Take the whole height of `parent`. */
+		fill: boolean;
 		onChange: (code: string) => void;
 		onVimMode: (label: string) => void;
 	},
@@ -93,9 +105,9 @@ export function mountCodeEditor(
 				EditorState.tabSize.of(4),
 				tabKeys,
 				keymap.of([...defaultKeymap, ...historyKeymap]),
-				highlightsAsCpp(opts.language) ? cpp() : [],
+				syntaxOf(opts.language),
 				syntaxHighlighting(highlight),
-				theme,
+				theme(opts.fill),
 				EditorView.contentAttributes.of({ "aria-label": "Your code", spellcheck: "false", autocorrect: "off", autocapitalize: "off" }),
 				EditorView.updateListener.of((u) => {
 					if (u.docChanged) opts.onChange(u.state.doc.toString());

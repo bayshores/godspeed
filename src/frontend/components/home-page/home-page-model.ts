@@ -1,5 +1,5 @@
 /** Pure helpers for Today (home-page.tsx): per-space progress, which list a deadline goes in, and each row's words. */
-import { hasProblems, localDay, planDays, type DeadlineProgress, type ProgressPayload } from "@/shared/core";
+import { hasProblems, localDay, planDays, type DeadlineProgress, type ProgressPayload, type SpaceColor, type SpaceSummary } from "@/shared/core";
 import { clockLabel, deadlineDateLabel } from "@/frontend/components/space-deadlines-model";
 import { DAY, HOUR, MINUTE, calendarDays, dueAtMs } from "@/frontend/components/countdown-model";
 import type { OpenDeadline } from "@/frontend/components/deadlines-model";
@@ -60,6 +60,32 @@ export function todayLists(open: readonly OpenDeadline[], doneToday: readonly Op
 		done: doneToday.filter((d) => d.doneAt !== undefined && localDay(new Date(d.doneAt)) === day),
 		later: open.filter((d) => !soon(d)),
 	};
+}
+
+/** A prep with a day, as a row of Today or Later. */
+export interface PrepDay {
+	spaceId: string;
+	name: string;
+	date: string;
+	color: SpaceColor;
+}
+
+/** The preps whose day hasn't passed, soonest first: within the week
+ *  under Today, the rest under Later. */
+export function prepDays(spaces: readonly SpaceSummary[], nowMs: number): { today: PrepDay[]; later: PrepDay[] } {
+	const coming = spaces
+		.flatMap((c): PrepDay[] => (c.prep?.date && !c.archived ? [{ spaceId: c.id, name: c.name, date: c.prep.date, color: c.color }] : []))
+		.filter((p) => calendarDays(nowMs, dueAtMs(p)) >= 0)
+		.sort((a, b) => a.date.localeCompare(b.date));
+	return { today: coming.filter((p) => dueThisWeek(p, nowMs)), later: coming.filter((p) => !dueThisWeek(p, nowMs)) };
+}
+
+/** Deadlines and preps as one list, soonest first; on the same moment the
+ *  deadline goes first. */
+export function byDue(deadlines: readonly OpenDeadline[], preps: readonly PrepDay[]): Array<{ deadline: OpenDeadline } | { prep: PrepDay }> {
+	return [...deadlines.map((deadline) => ({ deadline, at: dueAtMs(deadline) })), ...preps.map((prep) => ({ prep, at: dueAtMs(prep) }))]
+		.sort((a, b) => a.at - b.at)
+		.map(({ at: _at, ...item }) => item);
 }
 
 /** The count block: whole days left, hours on the last day, minutes in

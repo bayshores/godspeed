@@ -30,6 +30,8 @@ const { TALK_CHAT_ID } = await import("../../src/shared/core/contracts.ts");
 const { chatStore } = await import("../../src/backend/store/chats.ts");
 const { openTalk, clearTalk } = await import("../../src/backend/server/talk.ts");
 const { spaceActions } = await import("../../src/backend/server/space-actions.ts");
+const { spaceStore } = await import("../../src/backend/store/spaces.ts");
+const { newPrep, withSheet } = await import("../../src/shared/core/prep.ts");
 const { clearAgentActions, recentAgentActions } = await import("../../src/backend/server/agent-actions.ts");
 const { lessonSpaceChangeTools, talkTools } = await import("../../src/backend/agent/tools/talk.ts");
 const { createTeacherTools } = await import("../../src/backend/agent/tools.ts");
@@ -179,6 +181,7 @@ describe("the Talk tools", () => {
 			actions.update_space_deadline({ ...missing, deadline_id: "ddl_x", done: true }),
 			actions.remove_space_deadline({ ...missing, deadline_id: "ddl_x" }),
 			actions.link_space_folder({ ...missing, path: "/tmp" }),
+			actions.update_prep({ ...missing, date: null }),
 		];
 		outcomes.push(await actions.start_lesson({ topic: "Sets", ...missing }));
 		for (const outcome of outcomes) assert.deepEqual(outcome, { ok: false, error: 'No space "cls_missing". Use list_spaces.' });
@@ -204,6 +207,43 @@ describe("the Talk tools", () => {
 		const failing = async () => new Response("busy", { status: 409 });
 		const outcome = await spaceActions("Codex", failing, { openStarted: false }).start_lesson({ topic: "Pointers" });
 		assert.deepEqual(outcome, { ok: false, error: "The lesson was created but could not start: busy" });
+	});
+	it("reads a prep's sheet, changes it, and starts a lesson on one of its topics", async () => {
+		clearAgentActions();
+		const sheet = { name: "Acme junior web test", about: "Four questions in 70 minutes.", sources: [], topics: [{ name: "Arrays" }, { name: "Hash maps" }], mock: { questions: 4, minutes: 70 } };
+		let n = 0;
+		const written = withSheet(newPrep("Acme online test")!, sheet, "2026-11-11T10:00:00.000Z", () => `pt_0000000${++n}`, new Set());
+		const prep = spaceStore.createSpace({ name: written.name, prep: written.prep });
+		const actions = spaceActions("Claude Code", sendOk, { openStarted: true });
+		type Sheet = { date: string | null; about: string; mock: unknown; topics: { id: string; name: string; why?: string; status: string }[]; mocks: unknown[] };
+		const sheetOf = (outcome: ReturnType<SpaceActions["read_space"]>) => {
+			assert.ok(outcome.ok);
+			return (outcome.value as { prep: Sheet }).prep;
+		};
+
+		const before = sheetOf(actions.read_space({ space_id: prep.id }));
+		assert.deepEqual(before.topics, [{ id: "pt_00000001", name: "Arrays", status: "untested" }, { id: "pt_00000002", name: "Hash maps", status: "untested" }]);
+		assert.deepEqual([before.date, before.mock, before.mocks], [null, { questions: 4, minutes: 70 }, []]);
+
+		const changed = actions.update_prep({ space_id: prep.id, date: "2026-11-20", mock: { questions: 3, minutes: 60 }, add_topics: [{ name: "React hooks", why: "The role is React" }], remove_topic_ids: ["pt_00000001"] });
+		assert.ok(changed.ok);
+		assert.deepEqual(changed.changes, [{ label: "Changing the prep sheet of Acme junior web test", page: "/space" }]);
+		const after = sheetOf(actions.read_space({ space_id: prep.id }));
+		assert.deepEqual(after.topics.map((t) => [t.name, t.why]), [["Hash maps", undefined], ["React hooks", "The role is React"]]);
+		assert.deepEqual([after.date, after.mock, after.about], ["2026-11-20", { questions: 3, minutes: 60 }, "Four questions in 70 minutes."]);
+
+		assert.deepEqual(actions.update_prep({ space_id: prep.id, add_topics: [{ name: "hash maps" }] }), { ok: false, error: '"hash maps" is already on the sheet.' });
+		const plain = spaceStore.createSpace({ name: "Plain space" });
+		assert.deepEqual(actions.update_prep({ space_id: plain.id, date: null }), { ok: false, error: "Plain space is not a prep, so it has no prep sheet." });
+		assert.equal("prep" in (actions.read_space({ space_id: plain.id }) as { value: object }).value, false);
+
+		const started = await actions.start_lesson({ topic: " hash maps ", space_id: prep.id });
+		assert.ok(started.ok);
+		const lesson = chatStore.getChat((started.value as { lessonId: string }).lessonId)!;
+		assert.deepEqual(lesson.tree?.nodes.map((node) => node.id), ["pt_00000002"], "its answers count for the sheet's topic");
+		const other = await actions.start_lesson({ topic: "Big O", space_id: prep.id });
+		assert.ok(other.ok);
+		assert.notDeepEqual(chatStore.getChat((other.value as { lessonId: string }).lessonId)!.tree?.nodes.map((node) => node.id), ["pt_00000002"]);
 	});
 	it("finds the lesson the last turn started, so the agent goes on to teach it", () => {
 		const user = { id: "u", role: "user", content: "lets do pointers", timestamp: 1 } as LhMessage;

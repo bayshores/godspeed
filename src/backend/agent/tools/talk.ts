@@ -90,6 +90,14 @@ const SCHEMAS: Record<SpaceToolName, TSchema> = {
 	}),
 	remove_space_deadline: Type.Object({ space_id: spaceId, deadline_id: Type.String() }),
 	link_space_folder: Type.Object({ space_id: spaceId, path: Type.String({ description: SPACE_ARG_TEXT.folderPath }) }),
+	update_prep: Type.Object({
+		space_id: spaceId,
+		date: Type.Optional(Type.Union([Type.String(), Type.Null()], { description: SPACE_ARG_TEXT.prepDate })),
+		about: Type.Optional(Type.String({ minLength: 1, description: SPACE_ARG_TEXT.prepAbout })),
+		mock: Type.Optional(Type.Object({ questions: Type.Integer(), minutes: Type.Integer() }, { description: SPACE_ARG_TEXT.prepMock })),
+		add_topics: Type.Optional(Type.Array(Type.Object({ name: Type.String({ minLength: 1 }), why: Type.Optional(Type.String()) }), { description: SPACE_ARG_TEXT.addTopics })),
+		remove_topic_ids: Type.Optional(Type.Array(Type.String(), { description: SPACE_ARG_TEXT.removeTopics })),
+	}),
 	start_lesson: Type.Object({
 		topic: Type.String({ minLength: 1, description: SPACE_ARG_TEXT.topic }),
 		space_id: Type.Optional(Type.String({ description: SPACE_ARG_TEXT.lessonSpace })),

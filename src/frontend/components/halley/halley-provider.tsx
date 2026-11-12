@@ -200,7 +200,7 @@ export function HalleyProvider({ initialName, children }: { initialName?: string
 		const page = safePage(action.page);
 		if (!page) return;
 		const { pathname: path, spaces: space, router: r } = live.current;
-		const moves = followMoves({ page, spaceId: action.spaceId }, { path, activeSpace: space.active, lessonDraft: !asked && !!lessonRef.current?.draft });
+		const moves = followMoves({ page, spaceId: action.spaceId }, { path, activeSpace: space.active, lessonDraft: !!lessonRef.current?.draft, asked });
 		if (moves.switchSpace) space.setActive(moves.switchSpace.to);
 		if (moves.go) {
 			r.push(moves.go);

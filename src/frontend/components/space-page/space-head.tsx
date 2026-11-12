@@ -14,12 +14,14 @@ import { useUnseenFiles } from "@/frontend/components/files/files-seen";
 import { useLessonList } from "@/frontend/components/lessons/use-lesson-list";
 import { useOpenDeadlines } from "@/frontend/components/use-open-deadlines";
 import { cn } from "@/frontend/lib/utils";
+import { longDay } from "@/frontend/components/home-page/home-page-model";
 import { spaceTabs, sheetCount, type TabCounts } from "./space-head-model";
 
 /**
  * The head of every space page: the space's color bar, name and
  * description, a tab's own aside, "Edit space", then the tabs with their
- * counts. With no space picked it names the lessons that belong to none.
+ * counts. A prep shows its day beside its name and has its own tabs. With
+ * no space picked it names the lessons that belong to none.
  */
 export function SpaceHead() {
 	const pathname = usePathname();
@@ -39,16 +41,21 @@ export function SpaceHead() {
 					</p>
 					{activeSpace?.description && <p className="truncate text-lg text-ink-2">{activeSpace.description}</p>}
 				</div>
+				{activeSpace?.prep?.date && (
+					<p data-testid="prep-head-date" className="shrink-0 bg-highlight px-2.5 py-1 font-count text-[17px] text-ink">
+						{longDay(activeSpace.prep.date)}
+					</p>
+				)}
 				<div id={ASIDE_ID} className="shrink-0 empty:hidden" />
 				{activeSpace && (
 					<button type="button" data-testid="space-edit" onClick={() => setEditing(true)} className="lh-btn lh-btn-quiet shrink-0 text-[15px]">
-						Edit space
+						{activeSpace.prep ? "Edit prep" : "Edit space"}
 					</button>
 				)}
 			</div>
 			{/* The row's rule is a shadow: a scrolling row clips a tab that overhangs it. */}
 			<nav aria-label={activeSpace?.name ?? "Lessons with no space"} className="mt-[22px] flex gap-1.5 overflow-x-auto shadow-[inset_0_-2px_0_var(--border)]">
-				{spaceTabs(!!activeSpace).map((t) => {
+				{spaceTabs(activeSpace?.prep ? "prep" : activeSpace ? "space" : "none").map((t) => {
 					const selected = t.href === pathname;
 					const count = t.count && counts[t.count];
 					return (

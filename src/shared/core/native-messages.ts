@@ -430,6 +430,8 @@ export interface SpaceCardDetails {
 	files: SpaceCardFile[];
 	/** The space graph's topics with their fact counts. */
 	topics?: { name: string; facts: number }[];
+	/** Set when the space is a prep: what the learner is getting ready for. */
+	prep?: { goal: string; date?: string; about: string };
 }
 
 /** The model-facing space card text. Bracket-labelled like the graph
@@ -443,6 +445,10 @@ export function spaceCardText(card: SpaceCardDetails): string {
 		`Space: ${card.name}`,
 	];
 	if (card.description.trim()) lines.push("", "About the space (the learner's own words):", card.description.trim());
+	if (card.prep) {
+		lines.push("", `This space is a prep. The learner is getting ready for: ${card.prep.goal}${card.prep.date ? ` (on ${card.prep.date})` : ""}`);
+		if (card.prep.about) lines.push("", "What it is like (from the prep sheet):", card.prep.about);
+	}
 	const readable = card.files.filter((f) => f.path !== null);
 	if (readable.length > 0) {
 		const study = readable.filter((f) => f.kind === "study").length;

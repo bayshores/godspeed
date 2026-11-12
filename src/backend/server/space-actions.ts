@@ -16,6 +16,7 @@ import { fileExtents, readPassage, searchSpaceFiles } from "./search-index.ts";
 import { noteAgentAction, type AgentActionInput } from "./agent-actions.ts";
 import { shortcutPathProblem } from "./agent-folder.ts";
 import { createLesson } from "./lessons.ts";
+import { changePrep, prepView } from "./preps.ts";
 import { SIGNATURE_MAX } from "../../shared/core/contracts.ts";
 
 /** Study files are read by the agent itself, as background work items. */
@@ -29,9 +30,25 @@ function localNow(): string {
 	return `${localDay(now)} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
 }
 
+/** A prep's sheet as agents see it. */
+function sheetView(spaceId: string) {
+	const view = prepView(spaceId);
+	if (!view.ok) return null;
+	const { prep, topics, mocks, writing } = view.value;
+	return {
+		goal: prep.goal,
+		date: prep.date ?? null,
+		about: prep.about,
+		mock: prep.mock ?? null,
+		topics: topics.map((t) => ({ id: t.id, name: t.name, ...(t.why ? { why: t.why } : {}), status: t.status })),
+		mocks: mocks.map((m) => ({ n: m.n, state: m.state, ...(m.solved !== undefined ? { solved: m.solved } : {}) })),
+		...(writing ? { beingWritten: true } : {}),
+	};
+}
+
 /** A space as agents see it: summary, file counts by status (and the
  *  files that could not be read, or every file with `withFiles`), the
- *  graph's topics, deadlines, lessons. A linked folder can hold 500 files,
+ *  graph's topics, deadlines, lessons, and a prep's sheet. A linked folder can hold 500 files,
  *  so the full list comes only on request. */
 function spaceView(spaceId: string, withFiles = false) {
 	const record = stores.spaceStore.getSpace(spaceId);
@@ -47,6 +64,7 @@ function spaceView(spaceId: string, withFiles = false) {
 		icon: record.icon ?? null,
 		archived: record.archived,
 		linkedFolder: record.linkedFolder ?? null,
+		...(record.prep ? { prep: sheetView(record.id) } : {}),
 		fileCounts,
 		...(withFiles
 			? {
@@ -269,15 +287,30 @@ export function spaceActions(caller: string | undefined, send: SendFirstMessage,
 			]);
 		},
 
+		update_prep({ space_id, date, about, mock, add_topics, remove_topic_ids }) {
+			const record = stores.spaceStore.getSpace(space_id);
+			if (!record) return noSpace(space_id);
+			if (!record.prep) return { ok: false, error: `${record.name} is not a prep, so it has no prep sheet.` };
+			const outcome = changePrep(space_id, {
+				...(date !== undefined ? { date } : {}),
+				...(about !== undefined ? { about } : {}),
+				...(mock !== undefined ? { mock } : {}),
+				...(add_topics !== undefined ? { addTopics: add_topics } : {}),
+				...(remove_topic_ids !== undefined ? { removeTopicIds: remove_topic_ids } : {}),
+			});
+			if (!outcome.ok) return { ok: false, error: outcome.error };
+			return done({ prep: sheetView(space_id) }, [{ label: `Changing the prep sheet of ${record.name}`, spaceId: space_id, target: { kind: "space", id: space_id }, page: "/space" }]);
+		},
+
 		async start_lesson({ topic, space_id }) {
 			const scope = parseSpaceScope(space_id);
 			if (scope === undefined) return { ok: false, error: `"${space_id}" is not a space id. Use list_spaces.` };
-			if (scope !== null) {
-				const space = stores.spaceStore.getSpace(scope);
-				if (!space) return noSpace(scope);
-				if (space.archived) return { ok: false, error: "This space is archived. Ask the learner to unarchive it in Edit space first." };
-			}
-			const created = createLesson({ title: topic, spaceId: scope });
+			const space = scope === null ? null : stores.spaceStore.getSpace(scope);
+			if (scope !== null && !space) return noSpace(scope);
+			if (space?.archived) return { ok: false, error: "This space is archived. Ask the learner to unarchive it in Edit space first." };
+			// A topic of a prep's sheet is studied as that topic, so its answers count for it.
+			const onSheet = space?.prep?.topics.find((t) => t.name.toLowerCase() === topic.trim().toLowerCase());
+			const created = onSheet ? createLesson({ spaceId: scope, prepTopicIds: [onSheet.id] }) : createLesson({ title: topic, spaceId: scope });
 			if (!created.ok) return { ok: false, error: created.error };
 			const chat = created.chat;
 			const started = await send(chat.id, topic);

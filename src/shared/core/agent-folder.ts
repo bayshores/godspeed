@@ -77,14 +77,16 @@ export function mcpJson(folder: string, platform: Platform): string {
 }
 
 /** .godspeed/claude-settings.json: turns on the folder's server, lets the
- *  agent use godspeed's tools and the waiter without asking, and tells the
- *  app when the session starts compacting and when it lost its context. */
+ *  agent use godspeed's tools, the waiter and web search (a prep sheet is
+ *  looked up online) without asking, and tells the app when the session
+ *  starts compacting and when it lost its context. Fetching a page still
+ *  asks: text hidden in a space file could send the learner's data out. */
 export function claudeSettings(folder: string, platform: Platform): string {
 	const hook = (script: string) => [{ type: "command", command: "node", args: [join(folder, platform, ".godspeed", script)], timeout: 10 }];
 	const forget = hook("forget.mjs");
 	const settings = {
 		enabledMcpjsonServers: ["godspeed"],
-		permissions: { allow: ["mcp__godspeed__*", `Bash(${WAITER})`, `Bash(${WAITER} *)`] },
+		permissions: { allow: ["mcp__godspeed__*", `Bash(${WAITER})`, `Bash(${WAITER} *)`, "WebSearch"] },
 		hooks: {
 			PreCompact: [{ hooks: hook("compacting.mjs") }],
 			SessionStart: [{ matcher: "compact", hooks: forget }],

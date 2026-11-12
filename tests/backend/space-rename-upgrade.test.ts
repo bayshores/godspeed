@@ -10,6 +10,7 @@ import fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { after, describe, it } from "node:test";
+import { CURRENT_SPACE_VERSION } from "../../src/shared/core/contracts.ts";
 
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), "lh-space-rename-"));
 const DATA = path.join(TMP, "data");
@@ -85,7 +86,7 @@ describe("data from before the rename", () => {
 		spaceStore.updateSpace(OLD_ID, { description: "still here" });
 		assert.equal(fs.existsSync(path.join(DATA, "spaces", OLD_ID, "class.json")), false);
 		const saved = readJson(`spaces/${OLD_ID}/space.json`);
-		assert.equal(saved.version, 9);
+		assert.equal(saved.version, CURRENT_SPACE_VERSION);
 		assert.equal(saved.files.length, 1);
 		assert.equal(spaceStore.getSpace(OLD_ID)?.description, "still here");
 	});

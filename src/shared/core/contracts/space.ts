@@ -14,6 +14,7 @@
  *
  * Pure types + tiny pure helpers.
  */
+import type { SpacePrep } from "./prep.ts";
 
 /** "study" files are turned into graph facts by the extraction pipeline;
  *  "info" files (syllabus, assignments) are never extracted — the teacher
@@ -292,6 +293,8 @@ export interface SpaceRecord {
 	rules?: string[];
 	/** The teacher's newest round of work here (absent = none to show). */
 	lastWork?: SpaceWork;
+	/** Present on a prep: a space made to get ready for one thing. */
+	prep?: SpacePrep;
 	/** Schema stamp — same lazy-v1 / honest-refusal contract as chats. */
 	version?: number;
 }
@@ -307,8 +310,9 @@ export interface SpaceRecord {
  *  v6: adds `removedFiles`.
  *  v7: deadlines add `assignmentFileId` and `problems`.
  *  v8: adds `color`.
- *  v9: the record file is space.json (class.json before). */
-export const CURRENT_SPACE_VERSION = 9;
+ *  v9: the record file is space.json (class.json before).
+ *  v10: adds `prep`. */
+export const CURRENT_SPACE_VERSION = 10;
 
 /** Why a deadline write was refused (the store's validation; the server
  *  maps it to a 400 / 404 with this message). */
@@ -374,6 +378,8 @@ export interface SpaceSummary {
 	filesLeft: number;
 	/** Those are the space's first files: it is being built. */
 	building?: true;
+	/** A prep, with its day when it has one. */
+	prep?: { date?: string };
 }
 
 /** The "No space" space's wire name (query strings, MCP inputs). */

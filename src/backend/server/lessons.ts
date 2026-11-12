@@ -5,7 +5,8 @@
  * session.
  *
  * A start names a typed topic (its title, with any facts picked for it),
- * picked facts alone, some of the space's topics, or a deadline. On
+ * picked facts alone, some of the space's topics, topics of a prep's
+ * sheet, or a deadline. On
  * picked facts alone, topics or a deadline this picks the session's
  * topics and writes its title, which the caller sends as the first
  * message.
@@ -28,8 +29,13 @@ import {
 	type GraphContextPick,
 	type LhMessage,
 } from "../../shared/core/native-messages.ts";
-import { MAX_STUDY_FACTS, studyContextText, studyPlanTree, studyTitle, type StudyTopic } from "../../shared/core/study.ts";
+import { FREE_TOPIC_ID, MAX_STUDY_FACTS, studyContextText, studyPlanTree, studyTitle, type StudyTopic } from "../../shared/core/study.ts";
+import { questionResult } from "../../shared/core/mock.ts";
+import { goOverText } from "../../shared/core/mock-requests.ts";
+import { readMock } from "../store/mocks.ts";
+import { prepStudyTopics } from "../../shared/core/prep.ts";
 import { spaceCardFor } from "./space-card.ts";
+import { prepView } from "./preps.ts";
 import { deadlineStudyFor, studyTopicsFor, topicStudyFor } from "./progress.ts";
 import { graphStoreFor, stores } from "./stores.ts";
 
@@ -40,6 +46,10 @@ type CreateLessonInput = { spaceId: SpaceScope } & (
 			picks?: GraphContextPick[];
 	  }
 	| { topicIds: string[] }
+	/** Topics of a prep's sheet; none = the ones that most need work. */
+	| { prepTopicIds: string[] }
+	/** One question of a graded mock, to go over. */
+	| { mockQuestion: { mockId: string; questionId: string } }
 	| { deadlineId: string }
 );
 
@@ -54,6 +64,8 @@ interface Start {
 	title: string;
 	picks: GraphContextPick[];
 	topics: StudyTopic[];
+	/** More for the teacher under the study plan. */
+	note?: string;
 }
 
 export function createLesson(input: CreateLessonInput): CreateLessonOutcome {
@@ -76,7 +88,7 @@ export function createLesson(input: CreateLessonInput): CreateLessonOutcome {
 		const chainLines = chainsForSelection(pickedNodes, chains).map((c) => formatChainLine(c, Object.fromEntries(byId)));
 		messages.push(newGraphContextMessage(start.picks, chainLines) as LhMessage);
 	}
-	messages.push(newStudyContextMessage(studyContextText(start.topics)) as LhMessage);
+	messages.push(newStudyContextMessage([studyContextText(start.topics), ...(start.note ? [start.note] : [])].join("\n\n")) as LhMessage);
 	stores.chatStore.saveMessages(chat.id, messages);
 	stores.chatStore.saveTree(chat.id, studyPlanTree(start.topics));
 	return { ok: true, chat: stores.chatStore.getChat(chat.id) ?? chat, title: start.title };
@@ -88,6 +100,25 @@ function startOf(input: CreateLessonInput): Start | NotFound {
 		const { topics, picks } = topicStudyFor(input.spaceId, input.topicIds);
 		if (topics.length === 0) return { code: "topics_not_found", error: "No such topics" };
 		return { title: studyTitle(topics), picks, topics };
+	}
+	if ("prepTopicIds" in input) {
+		const view = input.spaceId === null ? null : prepView(input.spaceId);
+		const topics = view?.ok ? prepStudyTopics(view.value.topics, input.prepTopicIds) : [];
+		if (topics.length === 0) return { code: "topics_not_found", error: "No such topics" };
+		return { title: studyTitle(topics), picks: [], topics };
+	}
+	if ("mockQuestion" in input) {
+		const mock = input.spaceId === null ? null : readMock(input.spaceId, input.mockQuestion.mockId);
+		const question = mock?.questions.find((q) => q.id === input.mockQuestion.questionId);
+		const note = mock && goOverText(mock, input.mockQuestion.questionId);
+		if (!question || !note) return { code: "topics_not_found", error: "No such question" };
+		const view = input.spaceId === null ? null : prepView(input.spaceId);
+		const onSheet = view?.ok && question.topicId ? prepStudyTopics(view.value.topics, [question.topicId]) : [];
+		// Its topic is the plan's one step; a question with none is its own,
+		// weak, since it is being gone over, and latest wrong unless it was right.
+		const wrong = questionResult(mock, question.id) !== "right";
+		const topics: StudyTopic[] = onSheet.length > 0 ? onSheet : [{ id: FREE_TOPIC_ID, name: question.title, status: "weak", ...(wrong ? { latestWrong: true as const } : {}), factIds: [] }];
+		return { title: `Go over: ${question.title}`, picks: [], topics, note };
 	}
 	if ("deadlineId" in input) {
 		const deadline = input.spaceId === null ? null : deadlineStudyFor(input.spaceId, input.deadlineId);

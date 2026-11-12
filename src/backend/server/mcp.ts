@@ -684,6 +684,14 @@ function registerSpaceTools(server: McpServer, caller: string | undefined): void
 		}), annotations: SETS }, async (args) => reply(await actions.update_space_deadline(args)));
 	server.registerTool("remove_space_deadline", { title: "Remove a space deadline", description: SPACE_TOOL_TEXT.remove_space_deadline, inputSchema: z.object({ space_id: z.string(), deadline_id: z.string() }), annotations: REMOVES }, async (args) => reply(await actions.remove_space_deadline(args)));
 	server.registerTool("link_space_folder", { title: "Link a folder to a space", description: SPACE_TOOL_TEXT.link_space_folder, inputSchema: z.object({ space_id: z.string(), path: z.string().describe(SPACE_ARG_TEXT.folderPath) }), annotations: SETS }, async (args) => reply(await actions.link_space_folder(args)));
+	server.registerTool("update_prep", { title: "Change a prep sheet", description: SPACE_TOOL_TEXT.update_prep, inputSchema: z.object({
+			space_id: z.string(),
+			date: z.string().nullable().optional().describe(SPACE_ARG_TEXT.prepDate),
+			about: z.string().min(1).optional().describe(SPACE_ARG_TEXT.prepAbout),
+			mock: z.object({ questions: z.number().int(), minutes: z.number().int() }).optional().describe(SPACE_ARG_TEXT.prepMock),
+			add_topics: z.array(z.object({ name: z.string().min(1), why: z.string().optional() })).optional().describe(SPACE_ARG_TEXT.addTopics),
+			remove_topic_ids: z.array(z.string()).optional().describe(SPACE_ARG_TEXT.removeTopics),
+		}), annotations: SETS }, async (args) => reply(await actions.update_prep(args)));
 	server.registerTool("start_lesson", { title: "Start a lesson", description: SPACE_TOOL_TEXT.start_lesson, inputSchema: z.object({ topic: z.string().min(1).describe(SPACE_ARG_TEXT.topic), space_id: SPACE_ID_ARG }), annotations: ADDS }, async (args) => {
 		const outcome = await actions.start_lesson(args);
 		if (!outcome.ok) return failure(outcome.error);

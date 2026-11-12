@@ -17,10 +17,11 @@ import * as path from "node:path";
 import { PATHS } from "../config.ts";
 import { emit } from "../../shared/core/events.ts";
 import { isRecentChange } from "../../shared/core/new-files.ts";
+import { parsePrep } from "../../shared/core/prep.ts";
 import { isFirstRound, isWaitingFile, workAfterDeadline, workAfterFiles } from "../../shared/core/space-work.ts";
 import { sanitizeRules } from "../../shared/core/teaching-areas.ts";
 import type { SpacePatch, SpaceStore, DeadlineInit, DeadlinePatch } from "../../shared/core/ports.ts";
-import type { SpaceColor, SpaceDeadline, SpaceFile, SpaceIcon, SpaceNote, SpaceRecord, SpaceSignature, SpaceSummary, SpaceWork, DeadlineKind, HomeworkProblem, RemovedFile } from "../../shared/core/contracts.ts";
+import type { SpaceColor, SpaceDeadline, SpaceFile, SpaceIcon, SpaceNote, SpacePrep, SpaceRecord, SpaceSignature, SpaceSummary, SpaceWork, DeadlineKind, HomeworkProblem, RemovedFile } from "../../shared/core/contracts.ts";
 import {
 	SpaceDeadlineError,
 	cleanSignature,
@@ -225,6 +226,7 @@ function getSpace(id: string): SpaceRecord | null {
 	const deadlines = readDeadlines(parsed);
 	const signature = isRecord(parsed.signature) ? cleanSignature(parsed.signature) : null;
 	const rules = sanitizeRules(parsed.rules);
+	const prep = parsePrep(parsed.prep);
 	const colored = isSpaceColor(parsed.color);
 	const lastWork = readWork(parsed.lastWork);
 	const record: SpaceRecord = {
@@ -244,6 +246,7 @@ function getSpace(id: string): SpaceRecord | null {
 		...(isSpaceNote(parsed.note) ? { note: { text: parsed.note.text, at: parsed.note.at } } : {}),
 		...(rules.length ? { rules } : {}),
 		...(lastWork ? { lastWork } : {}),
+		...(prep ? { prep } : {}),
 		...(typeof parsed.version === "number" ? { version: parsed.version } : {}),
 	};
 	// A space from before colors keeps the one it is given here.
@@ -276,6 +279,7 @@ function summarize(record: SpaceRecord): SpaceSummary {
 		...(record.note ? { note: record.note } : {}),
 		filesLeft,
 		...(filesLeft > 0 && isFirstRound(record.files, record.lastWork) ? { building: true as const } : {}),
+		...(record.prep ? { prep: record.prep.date ? { date: record.prep.date } : {} } : {}),
 	};
 }
 
@@ -283,7 +287,7 @@ function cleanName(name: string): string {
 	return name.trim().replace(/\s+/g, " ").slice(0, 120) || "Untitled space";
 }
 
-function createSpace(init: { name: string; description?: string; signature?: SpaceSignature; icon?: SpaceIcon }): SpaceRecord {
+function createSpace(init: { name: string; description?: string; signature?: SpaceSignature; icon?: SpaceIcon; prep?: SpacePrep }): SpaceRecord {
 	const now = new Date().toISOString();
 	const id = `spc_${Date.now().toString(36)}_${crypto.randomUUID().slice(0, 8)}`;
 	const record: SpaceRecord = {
@@ -297,6 +301,7 @@ function createSpace(init: { name: string; description?: string; signature?: Spa
 		...(init.signature ? { signature: init.signature } : {}),
 		...(init.icon ? { icon: init.icon } : {}),
 		color: nextSpaceColor(colorsBeside(id)),
+		...(init.prep ? { prep: init.prep } : {}),
 	};
 	writeSpace(record);
 	emit("spaces-changed", {});
@@ -343,6 +348,7 @@ function updateSpace(id: string, patch: SpacePatch): SpaceRecord {
 	if (patch.icon !== undefined) record.icon = patch.icon;
 	if (patch.color !== undefined) record.color = patch.color;
 	if (patch.note !== undefined) record.note = patch.note;
+	if (patch.prep !== undefined) record.prep = patch.prep;
 	// A new note alone doesn't count as an edit: the space list is ordered
 	// by updatedAt and shouldn't reshuffle after every lesson.
 	const edited = Object.entries(patch).some(([k, v]) => k !== "note" && v !== undefined);

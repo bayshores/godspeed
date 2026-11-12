@@ -4,8 +4,9 @@
  * With Follow on (the default), Halley takes you to the page of each
  * change. Only the Follow chip's Stop turns it off. While you
  * type or a dialog is open it waits, and catches up RESUME_MS after you
- * stop. It never leaves a lesson where you have unsent text. With Follow
- * off, a fresh change on another page offers a "Go to" button.
+ * stop. It never leaves a lesson where you have unsent text, or a mock,
+ * unless you asked to go.
+ * With Follow off, a fresh change on another page offers a "Go to" button.
  */
 
 export const RESUME_MS = 3000;
@@ -49,12 +50,14 @@ function spaceScopedPage(page: string): boolean {
 }
 
 /** What Follow must do to show an action's page: switch space, go to the
- *  page, both, or nothing. A lesson with unsent text keeps the window. */
+ *  page, both, or nothing. A lesson with unsent text keeps the window, and
+ *  so does a mock, unless the learner asked to go. */
 export function followMoves(
 	action: { page: string; spaceId: string | null },
-	here: { path: string; activeSpace: string | null; lessonDraft: boolean },
+	here: { path: string; activeSpace: string | null; lessonDraft: boolean; asked: boolean },
 ): { switchSpace: { to: string | null } | null; go: string | null } {
-	if (here.lessonDraft && here.path.startsWith("/chat/")) return { switchSpace: null, go: null };
+	const held = here.path.startsWith("/space/mock/") || (here.lessonDraft && here.path.startsWith("/chat/"));
+	if (held && !here.asked) return { switchSpace: null, go: null };
 	const switchSpace = spaceScopedPage(action.page) && action.spaceId !== here.activeSpace ? { to: action.spaceId } : null;
 	return { switchSpace, go: action.page !== here.path ? action.page : null };
 }

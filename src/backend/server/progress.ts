@@ -47,6 +47,14 @@ function lessonReadout(chatId: string): LessonReadout | null {
 	return readout;
 }
 
+/** Every graded answer in the space's lessons. */
+export function spaceAnswers(spaceId: string): AnsweredQuestion[] {
+	return stores.chatStore
+		.listChats()
+		.filter((c) => c.spaceId === spaceId)
+		.flatMap((c) => lessonReadout(c.id)?.answers ?? []);
+}
+
 /** The space's problems (practice and study) the learner solved only with hints. */
 export function hintedProblems(spaceId: string): { statement: string; at: string }[] {
 	return stores.chatStore

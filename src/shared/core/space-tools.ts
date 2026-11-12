@@ -4,7 +4,7 @@
  * server runs them (server/space-actions.ts); each side declares the
  * schemas in its own library with this text.
  */
-import { SPACE_ICONS, SIGNATURE_MAX, type SpaceDeadline, type SpaceIcon } from "./contracts.ts";
+import { SPACE_ICONS, SIGNATURE_MAX, type MockFormat, type SpaceDeadline, type SpaceIcon } from "./contracts.ts";
 import type { LhMessage } from "./native-messages.ts";
 
 /** One change an action made, as the window shows it (a recorded agent action). */
@@ -53,6 +53,14 @@ export interface SpaceActions {
 	}): ToolOutcome;
 	remove_space_deadline(args: { space_id: string; deadline_id: string }): ToolOutcome;
 	link_space_folder(args: { space_id: string; path: string }): ToolOutcome;
+	update_prep(args: {
+		space_id: string;
+		date?: string | null;
+		about?: string;
+		mock?: MockFormat;
+		add_topics?: { name: string; why?: string }[];
+		remove_topic_ids?: string[];
+	}): ToolOutcome;
 	start_lesson(args: { topic: string; space_id?: string }): Promise<ToolOutcome>;
 }
 
@@ -61,7 +69,7 @@ export type SpaceToolName = keyof SpaceActions;
 export const SPACE_TOOL_TEXT: Record<SpaceToolName, string> = {
 	list_spaces: "List the learner's spaces, archived ones included, with file and lesson counts.",
 	read_space:
-		"Read one space: its description, how many files are in each status (pending, extracting, ready, failed, needs-whisper) and the files that could not be read, the topics of its knowledge graph with their fact counts, its deadlines (kind, date, time, done, and the files each covers), its lessons, and today's local date and time. With files: true it lists every file instead (id, kind, status, size, path on disk). To find something inside the files, use search_space_files.",
+		"Read one space: its description, how many files are in each status (pending, extracting, ready, failed, needs-whisper) and the files that could not be read, the topics of its knowledge graph with their fact counts, its deadlines (kind, date, time, done, and the files each covers), its lessons, and today's local date and time. A prep (a space made to get ready for one interview, assessment or test) also has its prep sheet: what the learner is preparing for, its day, what it is like, the topics with their ids and how each is going, what a mock is and the mocks taken. With files: true it lists every file instead (id, kind, status, size, path on disk). To find something inside the files, use search_space_files.",
 	search_space_files:
 		"Search all of a space's files (readings, slides, transcripts, syllabus, assignments) by meaning and keywords. Returns the best passages, each with its id, file, place (page, slide, time or lines) and a short snippet. Open the ones you need with read_passage instead of reading whole files.",
 	read_passage:
@@ -81,8 +89,10 @@ export const SPACE_TOOL_TEXT: Record<SpaceToolName, string> = {
 	remove_space_deadline: "Remove one deadline from a space (its files and facts are not touched).",
 	link_space_folder:
 		"Link a folder on this computer to a space. Its supported files are added, and from then on new files dropped there are added automatically and edited files are rebuilt (checked every minute while godspeed is open). godspeed sorts them into study material and space info itself while reading them, and never changes the folder. Use set_space_file_kind only to correct a kind.",
+	update_prep:
+		"Change a prep's sheet when the learner asks (read_space shows it): move or clear its day, replace what it is like, change what a mock is, add topics, or remove topics by id. Only what you send changes. Refused while the sheet is being written.",
 	start_lesson:
-		"Start a new study session in godspeed taught by you: you teach what is new and give problems on what needs practice. The topic becomes the learner's first message. With space_id the lesson belongs to that space: it opens with the space's card and its facts go into that space's graph. You teach it through wait_for_work; the learner follows along in the godspeed window.",
+		"Start a new study session in godspeed taught by you: you teach what is new and give problems on what needs practice. The topic becomes the learner's first message. With space_id the lesson belongs to that space: it opens with the space's card and its facts go into that space's graph. In a prep, a topic named exactly like one on its sheet counts for that topic. You teach it through wait_for_work; the learner follows along in the godspeed window.",
 };
 
 /** The argument descriptions both schemas share. */
@@ -112,6 +122,11 @@ export const SPACE_ARG_TEXT = {
 	source: "Where you found what it covers, e.g. the practice exam's file name. The learner sees it.",
 	assignmentFile: "For homework and projects: the id of the space file with its problems (the assignment sheet). The learner works on its problems in godspeed.",
 	newTime: '24-hour "HH:MM", or null to remove the time.',
+	prepDate: "The day it happens as YYYY-MM-DD, or null for no day.",
+	prepAbout: "What it is like, in markdown. Replaces the whole text.",
+	prepMock: "What one mock is: how many questions in how many minutes.",
+	addTopics: "Topics to add at the end of the sheet, each with one line on why it is there.",
+	removeTopics: "Ids of the sheet's topics to remove.",
 	topic: "What the learner wants to study, in their words.",
 	lessonSpace: 'The space id from list_spaces, or "none" for lessons without a space (the default).',
 } as const;

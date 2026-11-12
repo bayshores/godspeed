@@ -106,9 +106,11 @@ flowchart TB
 ```
 src/
   app/                          Next.js App Router: pages (/ Today, /new, /chat/[id],
-                                /space Progress, /space/lessons, /space/files, /graph,
-                                /space/cheat-sheets, /space/deadlines, /settings,
-                                /archived) + thin API route handlers
+                                /space Progress (a prep: its prep sheet), /space/lessons,
+                                /space/files, /graph, /space/cheat-sheets,
+                                /space/deadlines, /prep, /space/mocks,
+                                /space/mock/[spaceId]/[mockId], /settings, /archived)
+                                + thin API route handlers
   app/api/cited/                GET /api/cited/<file id>?range=… (passage + page number)
                                 and /page/<n> (the PDF page as a PNG), for source marks
   proxy.ts                      Next proxy: desktop-only /api gate
@@ -166,6 +168,9 @@ src/
     server/search-index.ts       space file and fact search (local embedding model on a
                                  worker thread + BM25)
     server/lessons.ts            lesson birth (space card, picked facts)
+    server/preps.ts              a prep's sheet and the request that writes it
+    server/mocks.ts              a prep's mocks: questions, the clock, grades
+    server/mock-runner.ts        Run examples: the learner's code as a child process
     server/talk.ts               the Talk chat outside lessons
     server/attachments.ts        pictures and PDFs on learner messages
     server/turn-service.ts       turn seams: persist · extraction trigger
@@ -179,10 +184,10 @@ src/
     store/                        fs adapters: chats · spaces · graph ledgers (+
                                   graph-format) · jobs · settings · prompt-overrides ·
                                   mcp-token · agent-notes · agent-seen · agent-rules ·
-                                  agent-actions · cheat-sheets
+                                  agent-actions · cheat-sheets · mocks
   shared/                       pure logic both sides import (no IO)
     changelog.json              release notes shown in What's new
-    core/contracts/{chat,space,graph,jobs,plan,probe}.ts
+    core/contracts/{chat,space,graph,jobs,plan,prep,probe}.ts
                                   the contracts — one file per domain
     core/ports.ts                 storage ports — ChatStore · GraphStore · SpaceStore ·
                                   JobStore · SettingsStore · PromptOverrideStore
@@ -194,7 +199,8 @@ src/
                                   coverage, chains, topics, progress, today-note,
                                   attachments, work-pages, agent-seen, agent-briefing,
                                   citations (source marks),
-                                  prices, tool-parts. All pure: storage arrives as
+                                  prices, tool-parts, prep, mock, mock-run,
+                                  mock-requests. All pure: storage arrives as
                                   parameters
 electron/                       desktop launcher + security guard (spawns the standalone
                                 server; LH_DATA_DIR; a small set of IPC channels in
@@ -262,6 +268,8 @@ bills the learner's own plan, so nothing has a dollar price: the app only counts
 **The knowledge graph (two channels, one writer).** The write channel: the extraction pipeline — extractor (LLM: sees the source (the session's teacher prose or a notes chunk) plus its own source's digest (**THE GRAPH SO FAR**: propositions + chains already extracted from this source, ids verbatim), so it references existing ids instead of restating them and leans on established conclusions as premises; fully trusted; its deliverable is core ideas + reasoning chains: premises that jointly entail a conclusion, submitted as chains and stored as chains (`chains.jsonl` is the truth, edges a derived view); it also sees RELATED IDEAS, the ~25 existing ideas the app's local search picks for the part, and lists the ones it re-teaches in `reteaches`) → merger (`mergeFindings`, deterministic: a node per new proposition, a credit line for each re-taught idea, resolves and dedupes chains — identical arguments merge under one `arg_` id; then the chain-simplification pass strips provably redundant derivations, chains whose premises already derive their conclusion through the other kept chains — checkpoints coverage) → topic grouping is scheduled. A source's batches run strictly in order (each extractor continues the digest of every earlier merge). No quiz outcomes or understanding assessments live in the graph; practice sessions read it and write nothing back. Triggered when a chat's **uncovered tokens** (message-view fingerprints, `coverage.jsonl`) cross `graph.extractionChunkTokens` (a settings knob, default 4096, floor 500 — read fresh per turn); failure checkpoints nothing, the next trigger re-runs. The same pipeline serves the **notes front door** (`POST /api/graph/import` and the `import_notes` MCP tool: any `*.md`/`*.txt` becomes a source; a "No space" re-import is processed again and adds to that source) and space study files (a changed or removed space file has its old facts removed first, then it is read again). The read channel: `GET /api/graph` derives the snapshot from the ledgers — a pure read (`deriveView` turns each chain into an implication node `⟹` with premise→implication→conclusion arrows, so two arguments for one conclusion stay two). The `/graph` page shows **topics in level columns**: the topic grouper (`src/backend/agent/subagents/topic-grouper.ts`, scheduled by `src/backend/server/topics.ts`) groups facts into topics saved in `topics.jsonl`, and `src/frontend/components/graph/layout.ts` places them in columns by prerequisite depth and draws only direct arrows. Nothing about the layout is stored. Scores, coverage and "Work on next" come from `GET /api/progress` (`src/shared/core/progress.ts`), derived from lesson answers. Clusters are **birth-session groupings**: a node joins the cluster of the session that birthed it (a chat, or an imported notes file as a file-kind session), derived at read. The chain table groups chains by them. The teacher reaches the graph on its own terms through the gated prober tools (`list_sessions` / `list_propositions`, the `agent.graphTools` setting) — there is no automatic context injection.
 
 **Study sessions.** Every new lesson is `kind: "study"`. The learner starts one from "Study something new" on a space's Lessons tab (the study page, `/new`, with its suggestions), a Today row, a deadline page, the Graph tab or the Progress tab; `start_lesson` over MCP does too. `createLesson` (`src/backend/server/lessons.ts`) writes the picked facts into a `graph-context` marker (`chainsForSelection`, `src/shared/core/chains.ts`), then a `study-context` marker with the session's topics in space order and each topic's material and standing (from `src/shared/core/study.ts`; the move table in `prompts/study/10-study.md` picks the move from that pair), and saves the matching plan tree. The study agent is the teacher plus `problem` / `conclude` (`src/backend/agent/tools/practice.ts`), with no prober; instructions in `src/backend/agent/prompts/study/`. Study sessions are extracted into the graph. Older `teach` and `practice` lessons keep working; practice sessions are never extracted.
+
+**Preps and mocks.** "Prepare for something" in the app menu (`/prep`) makes a prep: a space with a `prep` on its record (`src/shared/core/contracts/prep.ts`), for getting ready for one interview, assessment or test. The teacher writes its prep sheet as one background work item (`write_prep_sheet`, `src/backend/agent/subagents/prep-writer.ts`; server side `src/backend/server/preps.ts`): what it is like, the pages it read, the topics to study and what a mock is. A topic's status comes from the answers tagged with its id, in study sessions and mocks. A mock (`src/shared/core/mock.ts`, `src/backend/server/mocks.ts`, one file per mock under `spaces/<id>/mocks/`) asks the teacher twice, for all its questions before it starts and for all its grades after it ends (`src/backend/agent/subagents/mock-writer.ts`); the clock runs with no agent. "Run examples" runs the learner's JavaScript or Python on this computer with a 5-second limit (`src/shared/core/mock-run.ts`, `src/backend/server/mock-runner.ts`). The request texts are pure (`prepRequestText`, `src/shared/core/mock-requests.ts`), and the tests script the agent through `prepSeams.engine` (`tests/backend/preps.test.ts`, `mocks.test.ts`). Details: `docs/architecture.md` section 6.2.
 
 ## Testing
 

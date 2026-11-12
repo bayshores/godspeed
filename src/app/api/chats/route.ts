@@ -1,4 +1,4 @@
-import { type GraphContextPick, parseSpaceScope } from "@/shared/core";
+import { type GraphContextPick, isMockId, parseSpaceScope } from "@/shared/core";
 import { createHomework, createLesson, isTurnRunning, listChats, startSpaceScanner } from "@/backend/server";
 import type { ChatListItem } from "@/shared/core";
 
@@ -27,7 +27,7 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-	const body = (await req.json().catch(() => ({}))) as { title?: unknown; graphContext?: unknown; spaceId?: unknown; topicIds?: unknown; deadlineId?: unknown; homework?: unknown };
+	const body = (await req.json().catch(() => ({}))) as { title?: unknown; graphContext?: unknown; spaceId?: unknown; topicIds?: unknown; prepTopicIds?: unknown; mockQuestion?: unknown; deadlineId?: unknown; homework?: unknown };
 	const title = typeof body.title === "string" ? body.title : "";
 	// The lesson's space (absent/"none" = No space).
 	const spaceId = parseSpaceScope(typeof body.spaceId === "string" ? body.spaceId : undefined);
@@ -41,15 +41,27 @@ export async function POST(req: Request) {
 		if (!homework.ok) return Response.json({ error: homework.error, code: homework.code }, { status: homework.status });
 		return Response.json({ id: homework.chat.id, title: homework.title });
 	}
+	const mockQuestion = mockQuestionOf(body.mockQuestion);
 	const created =
 		typeof body.deadlineId === "string"
 			? createLesson({ spaceId, deadlineId: body.deadlineId })
-			: Array.isArray(body.topicIds)
-				? createLesson({ spaceId, topicIds: body.topicIds.filter((id): id is string => typeof id === "string") })
-				: createLesson({ spaceId, title, picks: picksOf(body.graphContext) });
+			: mockQuestion
+				? createLesson({ spaceId, mockQuestion })
+				: Array.isArray(body.topicIds)
+					? createLesson({ spaceId, topicIds: strings(body.topicIds) })
+					: Array.isArray(body.prepTopicIds)
+						? createLesson({ spaceId, prepTopicIds: strings(body.prepTopicIds) })
+						: createLesson({ spaceId, title, picks: picksOf(body.graphContext) });
 	if (!created.ok) return Response.json({ error: created.error, code: created.code }, { status: created.status });
 	return Response.json({ id: created.chat.id, title: created.title });
 }
+
+function mockQuestionOf(raw: unknown): { mockId: string; questionId: string } | null {
+	const q = raw as { mockId?: unknown; questionId?: unknown } | null | undefined;
+	return q && isMockId(q.mockId) && typeof q.questionId === "string" ? { mockId: q.mockId, questionId: q.questionId } : null;
+}
+
+const strings = (list: unknown[]) => list.filter((id): id is string => typeof id === "string");
 
 function picksOf(graphContext: unknown): GraphContextPick[] {
 	// The session's map context: the picked

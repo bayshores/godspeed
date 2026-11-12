@@ -316,6 +316,7 @@ describe("the /api/mcp door", () => {
 			"set_space_file_kind",
 			"start_lesson",
 			"unlink_space_folder",
+			"update_prep",
 			"update_space",
 			"update_space_deadline",
 			"wait_for_work",

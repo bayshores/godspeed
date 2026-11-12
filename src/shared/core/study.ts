@@ -8,7 +8,7 @@
  * The topics become the study context the agent reads and the plan the
  * step bar shows (one node per topic). Pure and browser-safe.
  */
-import { daysBetween, topicFacts, type DeadlineProgress, type FactProgress, type TopicProgress, type TopicStatus } from "./progress.ts";
+import { daysBetween, topicFacts, type AnswerOutcome, type DeadlineProgress, type FactProgress, type TopicProgress, type TopicStatus } from "./progress.ts";
 import type { PlanTree, TopicMaterial } from "./contracts.ts";
 import { planDays } from "./deadline-plan.ts";
 import { dateInName } from "./file-series.ts";
@@ -31,10 +31,13 @@ export interface StudyTopic {
 /** The plan node of a typed topic that matches no fact. */
 export const FREE_TOPIC_ID = "topic";
 
+/** A weak topic whose newest answer was not right: taught first again. */
+export const isLatestWrong = (status: TopicStatus, latest: AnswerOutcome | undefined) => status === "weak" && latest !== "right";
+
 type StudiedTopic = Pick<TopicProgress, "id" | "name" | "members" | "material" | "status" | "answers">;
 
 function studyTopic(t: StudiedTopic, factIds: string[]): StudyTopic {
-	const latestWrong = t.status === "weak" && t.answers.at(-1)?.outcome !== "right";
+	const latestWrong = isLatestWrong(t.status, t.answers.at(-1)?.outcome);
 	return {
 		id: t.id,
 		name: t.name,

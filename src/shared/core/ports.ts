@@ -31,6 +31,7 @@ import type {
 	SpaceColor,
 	SpaceIcon,
 	SpaceNote,
+	SpacePrep,
 	SpaceRecord,
 	SpaceSignature,
 	SpaceSummary,
@@ -157,6 +158,8 @@ export interface SpacePatch {
 	note?: SpaceNote;
 	/** Replaces the space's rules; [] clears them. */
 	rules?: string[];
+	/** Replaces a prep's sheet (a space never becomes or stops being one). */
+	prep?: SpacePrep;
 }
 
 /** A new deadline as the store takes it. */
@@ -187,7 +190,7 @@ export interface DeadlinePatch {
 }
 
 export interface SpaceStore {
-	createSpace(init: { name: string; description?: string; signature?: SpaceSignature; icon?: SpaceIcon }): SpaceRecord;
+	createSpace(init: { name: string; description?: string; signature?: SpaceSignature; icon?: SpaceIcon; prep?: SpacePrep }): SpaceRecord;
 	/** The full record, or null (unknown id, corrupt, or newer-stamped). */
 	getSpace(id: string): SpaceRecord | null;
 	/** Every space's full record (archived included), most recently updated first. */

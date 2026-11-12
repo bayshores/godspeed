@@ -49,6 +49,7 @@ import { transcribeRecording, WhisperMissingError } from "./transcribe.ts";
 import { clearTurnFailure } from "./turn-runs.ts";
 import { applySpaceCard, spaceFilePath, transcriptPathOf } from "./space-card.ts";
 import { cancelTopicGrouping, scheduleTopicGrouping } from "./topics.ts";
+import { cancelPrepRuns } from "./prep-runs.ts";
 import { writeFileAtomic } from "../store/write-file-atomic.ts";
 import { removeCheatSheet } from "../store/cheat-sheets.ts";
 
@@ -199,6 +200,7 @@ export async function deleteSpace(id: string): Promise<SpaceOutcome<{ lessonIds:
 	}
 	cancelledSpaces.add(id);
 	cancelTopicGrouping(id);
+	cancelPrepRuns(id);
 	// THE SYNC BLOCK: lessons → space folder.
 	const lessonIds: string[] = [];
 	for (const lesson of current) {
@@ -319,17 +321,19 @@ function patchFile(spaceId: string, fileId: string, patch: Partial<SpaceFile>): 
 
 const newFileId = () => `f_${crypto.randomUUID().replace(/-/g, "").slice(0, 12)}`;
 
+/** Why a file can't be copied into a space; null when it can. */
+export function copiedFileProblem(name: string, bytes: Uint8Array): string | null {
+	const clean = safeName(name);
+	if (isReadableSpaceFile(clean, () => looksLikeText(bytes))) return null;
+	return `${clean}: unsupported file type. Supported: ${SUPPORTED_SPACE_FILE_EXTENSIONS.join(" ")}, and plain text with no extension. Google Docs need saving as PDF or Word first.`;
+}
+
 /** Copy a file into the space (the "Add files…" button / MCP add_space_file). */
 export function addCopiedFile(spaceId: string, name: string, bytes: Uint8Array, kind: SpaceFileKind): SpaceOutcome<SpaceFile> {
 	if (!stores.spaceStore.getSpace(spaceId)) return fail(404, "not_found", "No such space");
 	const clean = safeName(name);
-	if (!isReadableSpaceFile(clean, () => looksLikeText(bytes))) {
-		return fail(
-			400,
-			"unsupported_type",
-			`${clean}: unsupported file type. Supported: ${SUPPORTED_SPACE_FILE_EXTENSIONS.join(" ")}, and plain text with no extension. Google Docs need saving as PDF or Word first.`,
-		);
-	}
+	const problem = copiedFileProblem(name, bytes);
+	if (problem) return fail(400, "unsupported_type", problem);
 	const id = newFileId();
 	const rel = `${id}/${clean}`;
 	const abs = path.join(stores.spaceStore.filesDir(spaceId), rel);

@@ -70,6 +70,19 @@ describe("SpaceStore", () => {
 		assert.equal(records.find((r) => r.id === space.id)?.deadlines?.[0]?.name, "Midterm");
 	});
 
+	it("a prep is a space with a prep sheet: saved, listed with its day, replaced by a patch", () => {
+		const prep = { goal: "Phone screen", date: "2026-11-20", about: "", sources: [], topics: [] };
+		const space = spaceStore.createSpace({ name: "Phone screen", prep });
+		assert.deepEqual(spaceStore.getSpace(space.id)?.prep, prep);
+		assert.deepEqual(spaceStore.listSpaces().find((c) => c.id === space.id)?.prep, { date: "2026-11-20" });
+		const written = { goal: "Phone screen", about: "Four questions.", sources: [], topics: [{ id: "pt_0a1b2c3d", name: "Arrays" }], mock: { questions: 4, minutes: 70 } };
+		assert.deepEqual(spaceStore.updateSpace(space.id, { prep: written }).prep, written);
+		assert.deepEqual(spaceStore.listSpaces().find((c) => c.id === space.id)?.prep, {}, "no day");
+		const plain = spaceStore.createSpace({ name: "Plain space" });
+		assert.equal("prep" in plain, false);
+		assert.equal("prep" in spaceStore.listSpaces().find((c) => c.id === plain.id)!, false);
+	});
+
 	it("space rules are cleaned on save, and an empty list removes them", () => {
 		const space = spaceStore.createSpace({ name: "CSE 30" });
 		assert.equal("rules" in space, false, "no rules, no field");
@@ -176,9 +189,9 @@ describe("deadlines", () => {
 	});
 	const spaceFile = (id: string) => path.join(TMP_DATA, "spaces", id, "space.json");
 
-	it("adds, updates, sorts and removes deadlines; stamps version 9", () => {
+	it("adds, updates, sorts and removes deadlines; stamps version 10", () => {
 		const space = spaceStore.createSpace({ name: "CSE 21" });
-		assert.equal(space.version, 9);
+		assert.equal(space.version, 10);
 		spaceStore.saveFiles(space.id, [studyFile("f_aaaaaaaaaaaa"), studyFile("f_bbbbbbbbbbbb")]);
 		const finalExam = spaceStore.addDeadline(space.id, {
 			kind: "exam",
@@ -203,7 +216,7 @@ describe("deadlines", () => {
 		assert.deepEqual(spaceStore.getSpace(space.id)?.deadlines?.map((d) => d.name), ["Final", "Midterm 1"]);
 
 		const onDisk = JSON.parse(fs.readFileSync(spaceFile(space.id), "utf-8"));
-		assert.equal(onDisk.version, 9);
+		assert.equal(onDisk.version, 10);
 		assert.equal(onDisk.deadlines.length, 2);
 		assert.equal(onDisk.exams, undefined);
 
@@ -292,7 +305,7 @@ describe("deadlines", () => {
 		assert.deepEqual(spaceStore.getSpace(space.id)?.deadlines?.[0]?.fileIds, ["f_eeeeeeeeeeee"]);
 	});
 
-	it("reads a version-2 record's exams as deadlines, and writes them back as v9", () => {
+	it("reads a version-2 record's exams as deadlines, and writes them back as v10", () => {
 		const space = spaceStore.createSpace({ name: "Upgraded" });
 		spaceStore.saveFiles(space.id, [studyFile("f_ffffffffffff")]);
 		const raw = JSON.parse(fs.readFileSync(spaceFile(space.id), "utf-8"));
@@ -316,7 +329,7 @@ describe("deadlines", () => {
 		]);
 		spaceStore.updateDeadline(space.id, "exm_111111111111", { done: true });
 		const onDisk = JSON.parse(fs.readFileSync(spaceFile(space.id), "utf-8"));
-		assert.equal(onDisk.version, 9);
+		assert.equal(onDisk.version, 10);
 		assert.equal(onDisk.exams, undefined, "the old field is gone");
 		assert.deepEqual(
 			onDisk.deadlines.map((d: { id: string; kind: string; done: boolean }) => [d.id, d.kind, d.done]),
@@ -380,10 +393,10 @@ describe("deadlines", () => {
 		fs.writeFileSync(spaceFile(space.id), JSON.stringify({ ...raw, version: 7 }));
 		const read = spaceStore.getSpace(space.id);
 		assert.ok(read && isSpaceColor(read.color));
-		assert.equal(read.version, 9);
+		assert.equal(read.version, 10);
 		const onDisk = JSON.parse(fs.readFileSync(spaceFile(space.id), "utf-8"));
 		assert.equal(onDisk.color, read.color);
-		assert.equal(onDisk.version, 9);
+		assert.equal(onDisk.version, 10);
 		spaceStore.createSpace({ name: "Newer" });
 		assert.equal(spaceStore.getSpace(space.id)?.color, read.color);
 	});

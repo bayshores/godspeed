@@ -67,13 +67,13 @@ test("chats: a NEWER-stamped record is refused honestly (the downgrade scenario)
 	assert.equal(onDisk.version, 99, "the future record survives untouched");
 });
 
-// ── spaces: version 9 since space.json (v8 space colors, v7 homework problems, v6 removed files, v5 rules, v4 signature + note, v3 deadlines, v2 exams)
+// ── spaces: version 10 since preps (v9 space.json, v8 space colors, v7 homework problems, v6 removed files, v5 rules, v4 signature + note, v3 deadlines, v2 exams)
 
-test("spaces: writes stamp version 9; older records still read; a newer one is refused", () => {
+test("spaces: writes stamp version 10; older records still read; a newer one is refused", () => {
 	const r = spaceStore.createSpace({ name: "stamp space" });
-	assert.equal(r.version, 9);
+	assert.equal(r.version, 10);
 	const file = path.join(TMP_DATA, "spaces", r.id, "space.json");
-	assert.equal(JSON.parse(fs.readFileSync(file, "utf8")).version, 9);
+	assert.equal(JSON.parse(fs.readFileSync(file, "utf8")).version, 10);
 	const raw = JSON.parse(fs.readFileSync(file, "utf8"));
 	fs.writeFileSync(file, JSON.stringify({ ...raw, version: 1 }), "utf-8");
 	assert.equal(spaceStore.getSpace(r.id)?.version, 1, "v1 reads as-is (no deadlines)");
@@ -91,9 +91,11 @@ test("spaces: writes stamp version 9; older records still read; a newer one is r
 	assert.equal(spaceStore.getSpace(r.id)?.version, 6, "v6 reads (no homework problems)");
 	fs.writeFileSync(file, JSON.stringify({ ...raw, version: 7 }), "utf-8");
 	assert.equal(spaceStore.getSpace(r.id)?.version, 7, "v7 reads");
-	fs.writeFileSync(file, JSON.stringify({ ...raw, version: 10 }), "utf-8");
+	fs.writeFileSync(file, JSON.stringify({ ...raw, version: 9 }), "utf-8");
+	assert.equal(spaceStore.getSpace(r.id)?.version, 9, "v9 reads (no prep)");
+	fs.writeFileSync(file, JSON.stringify({ ...raw, version: 11 }), "utf-8");
 	assert.equal(spaceStore.getSpace(r.id), null, "a newer build's record is refused");
-	assert.equal(JSON.parse(fs.readFileSync(file, "utf8")).version, 10, "and left untouched");
+	assert.equal(JSON.parse(fs.readFileSync(file, "utf8")).version, 11, "and left untouched");
 });
 
 // ── the graph family: the lazy format.json sidecar ──────────────────────────

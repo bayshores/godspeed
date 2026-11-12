@@ -37,10 +37,10 @@ command = "x"
 `;
 
 describe("the folder's files and commands", () => {
-	it("pre-approves only godspeed's tools and the waiter, and turns on the folder's server", () => {
+	it("pre-approves only godspeed's tools, the waiter and web search, and turns on the folder's server", () => {
 		const settings = JSON.parse(core.claudeSettings("/Users/me/godspeed", "darwin"));
 		assert.deepEqual(settings.enabledMcpjsonServers, ["godspeed"]);
-		assert.deepEqual(settings.permissions.allow, ["mcp__godspeed__*", "Bash(node .godspeed/wait-for-work.mjs)", "Bash(node .godspeed/wait-for-work.mjs *)"]);
+		assert.deepEqual(settings.permissions.allow, ["mcp__godspeed__*", "Bash(node .godspeed/wait-for-work.mjs)", "Bash(node .godspeed/wait-for-work.mjs *)", "WebSearch"]);
 		assert.deepEqual(settings.hooks.SessionStart[0].hooks[0].args, ["/Users/me/godspeed/.godspeed/forget.mjs"]);
 		assert.equal(settings.hooks.SessionEnd[0].matcher, "clear");
 		assert.deepEqual(settings.hooks.PreCompact, [{ hooks: [{ type: "command", command: "node", args: ["/Users/me/godspeed/.godspeed/compacting.mjs"], timeout: 10 }] }], "every compaction, manual or automatic");

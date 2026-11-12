@@ -36,18 +36,19 @@ const WHISPER_MODEL_URL = `https://huggingface.co/ggerganov/whisper.cpp/resolve/
 
 /** Apps opened from the Dock don't inherit the shell's PATH, so the
  *  Homebrew prefixes are searched explicitly. */
-const EXTRA_BIN_DIRS = ["/opt/homebrew/bin", "/usr/local/bin"];
+export const HOMEBREW_BIN_DIRS = ["/opt/homebrew/bin", "/usr/local/bin"];
 
-/** The first executable named `name` on PATH or in the Homebrew prefixes. */
-export function findProgram(name: string, env: Record<string, string | undefined> = process.env): string | null {
-	const dirs = [...(env.PATH ?? "").split(path.delimiter).filter(Boolean), ...EXTRA_BIN_DIRS];
+/** The first executable named `name` on PATH or in the Homebrew prefixes
+ *  that `accept` takes. */
+export function findProgram(name: string, env: Record<string, string | undefined> = process.env, accept: (file: string) => boolean = () => true): string | null {
+	const dirs = [...(env.PATH ?? "").split(path.delimiter).filter(Boolean), ...HOMEBREW_BIN_DIRS];
 	const names = process.platform === "win32" ? [`${name}.exe`, name] : [name];
 	for (const dir of dirs) {
 		for (const n of names) {
 			const candidate = path.join(dir, n);
 			try {
 				fs.accessSync(candidate, fs.constants.X_OK);
-				if (fs.statSync(candidate).isFile()) return candidate;
+				if (fs.statSync(candidate).isFile() && accept(candidate)) return candidate;
 			} catch {
 				/* not here */
 			}

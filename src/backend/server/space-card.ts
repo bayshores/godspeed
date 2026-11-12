@@ -51,6 +51,7 @@ export function spaceCardFor(record: SpaceRecord): SpaceCardDetails {
 			return { name: file.name, kind: file.kind, path: p, ...(sizes[file.id] ? { size: sizes[file.id] } : {}), status: file.status };
 		}),
 		...(topics.length ? { topics } : {}),
+		...(record.prep ? { prep: { goal: record.prep.goal, ...(record.prep.date ? { date: record.prep.date } : {}), about: record.prep.about } } : {}),
 	};
 }
 
