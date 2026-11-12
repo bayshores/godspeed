@@ -3,7 +3,7 @@
  * backdrop. One SVG drawn in a 1440×900 space and cropped to the window.
  * Under it all, a faint dot grid. In the intro and on the welcome screen
  * topic dots appear from the bottom-left outward and link up, then dim to
- * a faint backdrop that stays behind every setup step. Pure SVG + CSS animation (src/app/globals.css,
+ * a faint backdrop that stays behind every setup step. Pure SVG + CSS animation (src/frontend/globals.css,
  * "Onboarding"); with reduced motion every element simply shows its final
  * state.
  */

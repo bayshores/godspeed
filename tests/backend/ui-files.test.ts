@@ -34,7 +34,7 @@ const read = async (parts?: string[]) => {
 
 describe("the built UI", () => {
 	it("a screen's address gets index.html, never cached", async () => {
-		for (const parts of [undefined, ["chat", "chat_abc"], ["class", "deadline", "ddl_1", "cheat-sheet"]]) {
+		for (const parts of [undefined, ["chat", "chat_abc"], ["space", "deadline", "ddl_1", "cheat-sheet"]]) {
 			const page = await read(parts);
 			assert.equal(page.status, 200, String(parts));
 			assert.equal(page.type, "text/html; charset=utf-8");
