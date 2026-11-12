@@ -33,8 +33,8 @@ const SHOW_FALLBACK: Duration = Duration::from_secs(5);
 #[cfg(windows)]
 const MAIN_BROWSER_ARGS: &str = "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --autoplay-policy=no-user-gesture-required";
 
-/// Where the traffic lights sit, measured against the Electron app's (x 16 to 76, centers on
-/// y 21, the middle of the 44 px top bar).
+/// Where the traffic lights sit: the three circles span x 16 to 76 with centers on y 21, as in
+/// the Electron app (tao puts the first circle's left edge at x and its center at y - 2).
 #[cfg(target_os = "macos")]
 const TRAFFIC_LIGHTS: tauri::LogicalPosition<f64> = tauri::LogicalPosition { x: 16.0, y: 23.0 };
 
@@ -83,12 +83,13 @@ pub fn create(app: &AppHandle) -> tauri::Result<WebviewWindow> {
 			NewWindowResponse::Deny
 		})
 		.on_download(save_download)
-		// A loading page has an empty title for a moment. Setting one moves the Mac's traffic
-		// lights back to their default place after tao has put them in ours, so only a real
-		// change is passed on.
+		// A loading page has an empty title for a moment. Every title change moves the Mac's
+		// traffic lights back to their default place, so only a real change is passed on.
 		.on_document_title_changed(|window, title| {
 			if !title.is_empty() && window.title().is_ok_and(|current| current != title) {
 				let _ = window.set_title(&title);
+				#[cfg(target_os = "macos")]
+				put_lights_back(window);
 			}
 		})
 		.on_page_load(move |window, payload| {
@@ -206,6 +207,15 @@ fn show(window: &WebviewWindow) -> tauri::Result<()> {
 	#[cfg(target_os = "macos")]
 	window.set_title(&window.title()?)?;
 	Ok(())
+}
+
+/// The title change takes effect on the main thread a moment after `set_title` returns.
+#[cfg(target_os = "macos")]
+fn put_lights_back(window: WebviewWindow) {
+	std::thread::spawn(move || {
+		std::thread::sleep(Duration::from_millis(50));
+		crate::mac::window::redraw_lights(&window);
+	});
 }
 
 /// Sends the page to a Settings section: now if it has loaded, else once it has.

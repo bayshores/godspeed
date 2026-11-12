@@ -1,9 +1,11 @@
 //! Window behavior AppKit and WebKit settle: typing defaults, dragged file paths and the title
 //! bar's double-click.
 
+use objc2::rc::Retained;
 use objc2::runtime::AnyObject;
-use objc2_app_kit::{NSPasteboard, NSPasteboardNameDrag, NSPasteboardTypeFileURL};
+use objc2_app_kit::{NSPasteboard, NSPasteboardNameDrag, NSPasteboardTypeFileURL, NSWindow};
 use objc2_foundation::{NSDictionary, NSNumber, NSString, NSURL, NSUserDefaults};
+use tauri::WebviewWindow;
 
 /// What a double-click on the title bar does (System Settings, Desktop & Dock).
 pub enum DoubleClick {
@@ -51,4 +53,17 @@ pub fn double_click_action() -> DoubleClick {
 		Some("None") => DoubleClick::Nothing,
 		_ => DoubleClick::Zoom,
 	}
+}
+
+/// AppKit moves the traffic lights back to their default place when the title changes, and tao
+/// puts them in ours only while it draws its content view, so that view is asked to draw again.
+pub fn redraw_lights(window: &WebviewWindow) {
+	let ns_window = window.clone();
+	let _ = window.run_on_main_thread(move || {
+		// SAFETY: Tauri hands over this window's NSWindow, autoreleased, on the main thread.
+		let ns_window = ns_window.ns_window().ok().and_then(|ptr| unsafe { Retained::retain(ptr.cast::<NSWindow>()) });
+		if let Some(view) = ns_window.and_then(|window| window.contentView()) {
+			view.setNeedsDisplay(true);
+		}
+	});
 }
