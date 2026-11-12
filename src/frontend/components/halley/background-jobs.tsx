@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "react-router";
 import { subscriptionLabel, subscriptionLabels } from "@/shared/core";
 import { useActivity, type ActivityFeed } from "@/frontend/components/activity-dock";
 import { useFold } from "@/frontend/components/use-fold";
@@ -191,10 +192,10 @@ function JobRow({
 								</DetailRow>
 							)}
 							{blob.opensLesson && (
-								<a href={`/chat/${blob.chatId}`} className="lh-press flex items-center gap-2 self-start text-ink hover:underline">
+								<Link to={`/chat/${blob.chatId}`} className="lh-press flex items-center gap-2 self-start text-ink hover:underline">
 									Open lesson
 									<PixelIcon name="chevron" />
-								</a>
+								</Link>
 							)}
 							{abortState === "failed" && <p className="text-ans-wrong">Abort failed. Try again.</p>}
 							{abortState === "pending" && <p>Stopping…</p>}
