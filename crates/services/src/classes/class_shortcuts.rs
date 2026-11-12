@@ -300,4 +300,79 @@ mod tests {
 		sync.join().unwrap();
 		assert!(manifest_path(&folder).exists());
 	}
+
+	#[cfg(windows)]
+	fn made_link(at: &Path, target: &Path) -> Json {
+		link(&target.to_string_lossy(), &at.to_string_lossy()).unwrap().expect("a link can be made here")
+	}
+
+	#[test]
+	#[cfg(windows)]
+	fn a_sync_keeps_its_links_instead_of_making_them_again() {
+		let root = scratch_dir("shortcuts-keep");
+		let linked = root.join("linked");
+		std::fs::create_dir_all(&linked).unwrap();
+		fsx::write_text_atomic(&linked.join("notes.md"), "x").unwrap();
+		let file = json!({ "id": "f_a00000000001", "origin": "linked", "name": "notes.md", "path": "notes.md", "kind": "study", "contentFp": "", "status": "done", "addedAt": "2026-01-05T10:00:00.000Z" });
+		let class = json!({
+			"id": "cls_a", "name": "Linear Algebra", "description": "", "createdAt": "2026-01-05T10:00:00.000Z", "updatedAt": "2026-01-05T10:00:00.000Z",
+			"archived": false, "linkedFolder": linked.to_string_lossy(), "deadlines": [], "version": 7, "files": [file],
+		});
+		let at = root.join("data").join("classes").join("cls_a").join("class.json");
+		std::fs::create_dir_all(at.parent().unwrap()).unwrap();
+		fsx::write_text_atomic(&at, &stringify_pretty(&class, "\t")).unwrap();
+		let app = test_app(&root);
+		let folder = root.join("godspeed");
+
+		sync_shortcuts_safely(&app, &folder, false);
+		let (links, _) = read_manifest(&folder);
+		assert_eq!(links.len(), 1);
+		let shortcut = PathBuf::from(path_of(&links[0]));
+		assert_eq!(std::fs::read_to_string(&shortcut).unwrap(), "x");
+		let made_at = std::fs::symlink_metadata(&shortcut).unwrap().created().unwrap();
+
+		sync_shortcuts_safely(&app, &folder, false);
+		assert_eq!(read_manifest(&folder).0, links);
+		assert_eq!(std::fs::symlink_metadata(&shortcut).unwrap().created().unwrap(), made_at);
+
+		sync_shortcuts_safely(&app, &folder, true);
+		assert!(std::fs::symlink_metadata(&shortcut).is_err());
+		assert!(read_manifest(&folder).0.is_empty());
+	}
+
+	#[test]
+	#[cfg(windows)]
+	fn a_target_over_260_characters_gets_a_hard_link_since_a_symlink_to_it_is_refused() {
+		let root = scratch_dir("shortcuts-long");
+		let deep = (0..6).fold(root.to_path_buf(), |dir, i| dir.join(format!("{i}{}", "d".repeat(50))));
+		std::fs::create_dir_all(&deep).unwrap();
+		let target = deep.join("notes.md");
+		fsx::write_text_atomic(&target, "x").unwrap();
+		assert!(target.to_string_lossy().len() > 260);
+		let made = made_link(&root.join("short.md"), &target);
+		assert!(made.get("ino").is_some());
+		assert!(still_ours(&made));
+		assert_eq!(up_to_date(&made), Ok(true));
+	}
+
+	#[test]
+	#[cfg(windows)]
+	fn a_hard_link_is_ours_until_its_target_is_replaced() {
+		let root = scratch_dir("shortcuts-hard");
+		let (target, at) = (root.join("target.md"), root.join("shortcut.md"));
+		fsx::write_text_atomic(&target, "x").unwrap();
+		std::fs::hard_link(&target, &at).unwrap();
+		let ino = ino_of(&at).expect("a file has an index");
+		assert_eq!(ino_of(&target), Some(ino));
+		let made = json!({ "path": at.to_string_lossy(), "target": target.to_string_lossy(), "ino": ino });
+		assert!(still_ours(&made));
+		assert_eq!(up_to_date(&made), Ok(true));
+
+		fsx::write_atomic(&target, b"y", None).unwrap();
+		assert_eq!(up_to_date(&made), Ok(false));
+
+		std::fs::remove_file(&at).unwrap();
+		fsx::write_text_atomic(&at, "the learner's own file").unwrap();
+		assert!(!still_ours(&made));
+	}
 }
