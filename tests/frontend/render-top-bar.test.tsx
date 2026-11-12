@@ -52,8 +52,8 @@ const { ServerEventsProvider } = await import("../../src/frontend/components/ser
 const { AppRouterContext } = await import("next/dist/shared/lib/app-router-context.shared-runtime.js");
 const { PathnameContext } = await import("next/dist/shared/lib/hooks-client-context.shared-runtime.js");
 
-const space = (id: string, name: string, over: Partial<SpaceSummary> = {}): SpaceSummary => ({ id, name, description: "", createdAt: "", updatedAt: "", archived: false, fileCount: 33, color: 1, ...over });
-const SPACES = [space("c29", "CSE 29", { description: "Systems programming" }), space("c21", "CSE 21", { color: 2 }), space("old", "MATH 18", { archived: true, description: "Linear algebra.", fileCount: 1 })];
+const space = (id: string, name: string, over: Partial<SpaceSummary> = {}): SpaceSummary => ({ id, name, description: "", createdAt: "", updatedAt: "", archived: false, fileCount: 33, color: 1, filesLeft: 0, ...over });
+const SPACES = [space("c29", "CSE 29", { description: "Systems programming" }), space("c21", "CSE 21", { color: 2, filesLeft: 2 }), space("old", "MATH 18", { archived: true, description: "Linear algebra.", fileCount: 1 })];
 
 const lesson = (id: string, title: string, spaceId?: string): ChatListItem => ({
 	id,
@@ -118,10 +118,16 @@ const click = (el: HTMLElement) => act(async () => el.click());
 describe("the top bar's tabs", () => {
 	it("Today, then one tab per space that isn't archived", async () => {
 		await mount(<SpaceTabs selected="c29" />);
-		assert.deepEqual(texts("[data-testid='space-tabs'] a"), ["Today", "CSE 29", "CSE 21"]);
+		assert.deepEqual(texts("[data-testid='space-tabs'] a"), ["Today", "CSE 29", "CSE 212 left"]);
 		assert.equal(q("nav-today")!.getAttribute("href"), "/");
 		assert.equal(q("space-option-old"), null, "archived spaces are under Menu");
 	});
+	it("a space's tab says how many files the teacher still has to read", async () => {
+		await mount(<SpaceTabs selected="c29" />);
+		assert.equal(q("space-work-c21")!.textContent, "2 left");
+		assert.equal(q("space-work-c29"), null);
+	});
+
 	it("marks the lit tab as the current page, and a space tab is the teacher's highlight target", async () => {
 		await mount(<SpaceTabs selected="c29" />);
 		assert.equal(q("space-option-c29")!.getAttribute("aria-current"), "page");

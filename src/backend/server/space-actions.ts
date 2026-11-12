@@ -100,8 +100,8 @@ const badSignature: ToolOutcome = { ok: false, error: `A signature is one line o
 /** Sends a lesson's first message. */
 type SendFirstMessage = (chatId: string, text: string) => Promise<Response>;
 
-/** `openStarted`: the learner asked for the lesson in Talk, so the window
- *  opens it even with Follow off. */
+/** `openStarted`: the learner asked for the lesson or the space in Talk, so
+ *  the window opens it even with Follow off. */
 export function spaceActions(caller: string | undefined, send: SendFirstMessage, opts: { openStarted: boolean }): SpaceActions {
 	// Each change is recorded for the panel and returned for the chat.
 	const done = (value: unknown, changes: AgentActionInput[] = []): ToolOutcome => {
@@ -150,7 +150,7 @@ export function spaceActions(caller: string | undefined, send: SendFirstMessage,
 			if (sig === null) return badSignature;
 			const created = createSpace({ name, description, icon, ...(sig ? { signature: sig } : {}) });
 			return done({ space: spaceView(created.id) }, [
-				{ label: `Creating ${created.name}`, spaceId: created.id, target: { kind: "space", id: created.id }, page: "/space" },
+				{ label: `Creating ${created.name}`, spaceId: created.id, target: { kind: "space", id: created.id }, page: "/space", ...(opts.openStarted ? { open: true as const } : {}) },
 			]);
 		},
 

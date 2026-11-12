@@ -254,6 +254,16 @@ export function cleanSignature(raw: { kind?: unknown; value?: unknown }): SpaceS
 	return value && value.length <= SIGNATURE_MAX ? { kind: raw.kind, value } : null;
 }
 
+/** One round of the teacher reading a space's files: what it read and the
+ *  deadlines added meanwhile. Open until `endedAt` is set. */
+export interface SpaceWork {
+	startedAt: string;
+	endedAt?: string;
+	/** Study files that finished in this round (read or failed), in order. */
+	fileIds: string[];
+	deadlineIds: string[];
+}
+
 export interface SpaceRecord {
 	/** "spc_" + base36 time + "_" + 8 hex ("cls_" on a space made before the rename). */
 	id: string;
@@ -280,6 +290,8 @@ export interface SpaceRecord {
 	note?: SpaceNote;
 	/** The learner's rules for lessons in this space (absent = none). */
 	rules?: string[];
+	/** The teacher's newest round of work here (absent = none to show). */
+	lastWork?: SpaceWork;
 	/** Schema stamp — same lazy-v1 / honest-refusal contract as chats. */
 	version?: number;
 }
@@ -358,6 +370,10 @@ export interface SpaceSummary {
 	icon?: SpaceIcon;
 	color: SpaceColor;
 	note?: SpaceNote;
+	/** Study files the teacher still has to read. */
+	filesLeft: number;
+	/** Those are the space's first files: it is being built. */
+	building?: true;
 }
 
 /** The "No space" space's wire name (query strings, MCP inputs). */

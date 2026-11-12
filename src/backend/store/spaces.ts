@@ -17,9 +17,10 @@ import * as path from "node:path";
 import { PATHS } from "../config.ts";
 import { emit } from "../../shared/core/events.ts";
 import { isRecentChange } from "../../shared/core/new-files.ts";
+import { isFirstRound, isWaitingFile, workAfterDeadline, workAfterFiles } from "../../shared/core/space-work.ts";
 import { sanitizeRules } from "../../shared/core/teaching-areas.ts";
 import type { SpacePatch, SpaceStore, DeadlineInit, DeadlinePatch } from "../../shared/core/ports.ts";
-import type { SpaceColor, SpaceDeadline, SpaceFile, SpaceIcon, SpaceNote, SpaceRecord, SpaceSignature, SpaceSummary, DeadlineKind, HomeworkProblem, RemovedFile } from "../../shared/core/contracts.ts";
+import type { SpaceColor, SpaceDeadline, SpaceFile, SpaceIcon, SpaceNote, SpaceRecord, SpaceSignature, SpaceSummary, SpaceWork, DeadlineKind, HomeworkProblem, RemovedFile } from "../../shared/core/contracts.ts";
 import {
 	SpaceDeadlineError,
 	cleanSignature,
@@ -156,6 +157,11 @@ function recentRemoved(list: readonly RemovedFile[], now: number): RemovedFile[]
 
 const isSpaceNote = (v: unknown): v is SpaceNote => isRecord(v) && isString(v.text) && isString(v.at);
 
+function readWork(v: unknown): SpaceWork | undefined {
+	if (!isRecord(v) || !isString(v.startedAt) || !isIdList(v.fileIds) || !isIdList(v.deadlineIds)) return undefined;
+	return { startedAt: v.startedAt, ...(isString(v.endedAt) ? { endedAt: v.endedAt } : {}), fileIds: v.fileIds, deadlineIds: v.deadlineIds };
+}
+
 /** The colors the other spaces wear, read straight from their records. */
 function colorsBeside(id: string): SpaceColor[] {
 	let entries: string[];
@@ -200,6 +206,7 @@ function getSpace(id: string): SpaceRecord | null {
 	const signature = isRecord(parsed.signature) ? cleanSignature(parsed.signature) : null;
 	const rules = sanitizeRules(parsed.rules);
 	const colored = isSpaceColor(parsed.color);
+	const lastWork = readWork(parsed.lastWork);
 	const record: SpaceRecord = {
 		id: parsed.id,
 		name: parsed.name,
@@ -216,6 +223,7 @@ function getSpace(id: string): SpaceRecord | null {
 		color: colored ? (parsed.color as SpaceColor) : nextSpaceColor(colorsBeside(id)),
 		...(isSpaceNote(parsed.note) ? { note: { text: parsed.note.text, at: parsed.note.at } } : {}),
 		...(rules.length ? { rules } : {}),
+		...(lastWork ? { lastWork } : {}),
 		...(typeof parsed.version === "number" ? { version: parsed.version } : {}),
 	};
 	// A space from before colors keeps the one it is given here.
@@ -230,6 +238,7 @@ function summarize(record: SpaceRecord): SpaceSummary {
 	const newest = (pick: (f: SpaceFile) => boolean) => record.files.reduce<string | undefined>((at, f) => (pick(f) && (!at || f.addedAt > at) ? f.addedAt : at), undefined);
 	const lastFoundAt = newest((f) => f.foundByScan === true);
 	const lastFolderFileAt = newest((f) => f.origin === "linked");
+	const filesLeft = record.files.filter(isWaitingFile).length;
 	return {
 		id: record.id,
 		name: record.name,
@@ -245,6 +254,8 @@ function summarize(record: SpaceRecord): SpaceSummary {
 		...(record.icon ? { icon: record.icon } : {}),
 		color: record.color,
 		...(record.note ? { note: record.note } : {}),
+		filesLeft,
+		...(filesLeft > 0 && isFirstRound(record.files, record.lastWork) ? { building: true as const } : {}),
 	};
 }
 
@@ -324,10 +335,25 @@ function updateSpace(id: string, patch: SpacePatch): SpaceRecord {
 function saveFiles(id: string, files: SpaceFile[], removed: readonly RemovedFile[] = []): SpaceRecord {
 	const record = getSpace(id);
 	if (!record) throw new Error(`Space not found: ${id}`);
+	setWork(record, workAfterFiles(record.lastWork, record.files, files, new Date().toISOString()));
 	record.files = files;
 	if (removed.length) record.removedFiles = [...(record.removedFiles ?? []), ...removed];
 	writeSpace(record);
 	return record;
+}
+
+function setWork(record: SpaceRecord, work: SpaceWork | undefined): void {
+	if (work) record.lastWork = work;
+	else delete record.lastWork;
+}
+
+function closeWork(id: string): boolean {
+	const record = getSpace(id);
+	if (!record?.lastWork?.endedAt) return false;
+	delete record.lastWork;
+	writeSpace(record);
+	emit("spaces-changed", {});
+	return true;
 }
 
 // ─── deadlines ──────────────────────────────────────────────────────────────
@@ -435,6 +461,7 @@ function addDeadline(id: string, init: DeadlineInit): SpaceDeadline {
 		done: false,
 	};
 	const deadline = withFiles(base, deadlineFiles(record, init.fileIds ?? []), init.leftOutIds !== undefined ? deadlineFiles(record, init.leftOutIds) : undefined);
+	setWork(record, workAfterDeadline(record.lastWork, deadline.id));
 	saveDeadlines(record, [...(record.deadlines ?? []), deadline]);
 	return deadline;
 }
@@ -496,6 +523,7 @@ export const spaceStore: SpaceStore = {
 	listSpaces,
 	updateSpace,
 	saveFiles,
+	closeWork,
 	addDeadline,
 	updateDeadline,
 	removeDeadline,

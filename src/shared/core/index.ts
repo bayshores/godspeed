@@ -39,6 +39,7 @@ export * from "./math-delims.ts";
 // browser-safe.
 export * from "./native-messages.ts";
 export * from "./today-note.ts";
+export * from "./space-work.ts";
 export * from "./compaction.ts";
 export * from "./input-events.ts";
 export * from "./attachments.ts";

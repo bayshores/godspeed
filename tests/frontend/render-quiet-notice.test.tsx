@@ -38,6 +38,7 @@ const space = (id: string, extra: Partial<SpaceSummary>): SpaceSummary => ({
 	archived: false,
 	fileCount: 3,
 	color: 1,
+	filesLeft: 0,
 	...extra,
 });
 

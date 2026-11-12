@@ -12,6 +12,7 @@ import { MenuShell } from "@/frontend/components/menu-shell";
 import { useMenuDismiss } from "@/frontend/components/use-menu-dismiss";
 import { useLessonStart } from "@/frontend/components/home/use-lesson-start";
 import { useOpenDeadlines } from "@/frontend/components/use-open-deadlines";
+import { TodayWork } from "@/frontend/components/teacher-work/today-work";
 import type { OpenDeadline } from "@/frontend/components/deadlines-model";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { spacesSettled, longDay, todayLists } from "./home-page-model";
@@ -19,7 +20,8 @@ import { DoneRow, LaterRow, TodayRow } from "./today-row";
 import { useSpacesProgress } from "./use-spaces-progress";
 
 /**
- * TODAY ("/"): the deadlines of every space as one list. Under "Today",
+ * TODAY ("/"): the spaces the teacher is reading files of, then the
+ * deadlines of every space as one list. Under "Today",
  * the ones due within a week or overdue, each with its one main button,
  * then the ones ticked done today; under "Later", the rest. "Add a
  * deadline" opens a space's Deadlines tab (a menu picks the space when
@@ -82,6 +84,7 @@ export function HomePage() {
 						</p>
 					)}
 				</div>
+				<TodayWork spaces={shown} />
 				{!ready || nowMs === null ? (
 					<div data-testid="home-loading" aria-hidden className="h-[320px] w-full bg-panel" />
 				) : !lists ? (

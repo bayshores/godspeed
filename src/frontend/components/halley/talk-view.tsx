@@ -15,6 +15,8 @@ import { MathBox } from "@/frontend/components/math-box";
 import { useLessonDrafts } from "@/frontend/components/lesson/use-lesson-drafts";
 import { useServerEvent } from "@/frontend/components/server-events";
 import { useChatSession } from "@/frontend/components/session";
+import { useSpaces } from "@/frontend/components/space-context";
+import { talkWorkLine } from "@/frontend/components/teacher-work/teacher-work-model";
 import { actionFor, appRequestText, draftWithAsk, speakerOf, startsTurn, talkRows } from "./talk-model";
 import { TalkNoAgent } from "./talk-no-agent";
 import { pastLabel } from "./tour";
@@ -125,6 +127,7 @@ function TalkThread({
 	onCleared: () => void;
 }) {
 	const session = useChatSession({ chatId: chat.id, initialMessages: chat.messages, initialError: chat.turnError, initiallyInFlight: chat.turnInFlight });
+	const { spaces } = useSpaces();
 	// Unsent text is saved like the lesson's writing box; waiting files stay in
 	// memory while the tab or the panel is closed.
 	const drafts = useLessonDrafts(chat.id, session.nativeMessages);
@@ -296,6 +299,7 @@ function TalkThread({
 						);
 					else {
 						const action = actionFor(row.change, recent);
+						const work = talkWorkLine(action, spaces, agent?.teaching ?? true);
 						body = (
 							<button
 								type="button"
@@ -304,7 +308,16 @@ function TalkThread({
 								onClick={() => action && onPick(action)}
 								className="lh-press flex w-full items-center gap-2 border border-edge bg-background px-2.5 py-2 text-left text-base text-ink enabled:hover:bg-tone disabled:cursor-default"
 							>
-								<span className="min-w-0 flex-1 truncate" title={pastLabel(row.change.label)}>{pastLabel(row.change.label)}</span>
+								<span className="flex min-w-0 flex-1 flex-col">
+									<span className="truncate" title={pastLabel(row.change.label)}>
+										{pastLabel(row.change.label)}
+									</span>
+									{work && (
+										<span data-testid="talk-change-work" className="truncate text-[15px] text-ink-2">
+											{work}
+										</span>
+									)}
+								</span>
 								{action && <PixelIcon name="chevron" className="text-ink-2" />}
 							</button>
 						);

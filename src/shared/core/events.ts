@@ -38,8 +38,8 @@ export interface AgentAction {
 	page: string;
 	/** The target was removed (it fades out after the visit). */
 	removed?: true;
-	/** The learner asked for it (a lesson started from Talk): the window
-	 *  goes there even with Follow off. */
+	/** The learner asked for it (a lesson or a space made from Talk): the
+	 *  window goes there even with Follow off. */
 	open?: true;
 }
 

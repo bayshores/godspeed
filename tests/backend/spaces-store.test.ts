@@ -105,6 +105,46 @@ describe("SpaceStore", () => {
 		assert.deepEqual(spaceStore.getSpace(space.id)?.removedFiles, [fresh]);
 	});
 
+	it("remembers a round of the teacher's work: its files, its deadlines, and Close", () => {
+		const space = spaceStore.createSpace({ name: "BIO 1" });
+		const study = (id: string, status: "pending" | "extracting" | "ready") => ({
+			id,
+			origin: "copied" as const,
+			name: `${id}.pdf`,
+			path: `${id}.pdf`,
+			kind: "study" as const,
+			contentFp: "",
+			status,
+			addedAt: "2026-10-26T00:00:00.000Z",
+		});
+		spaceStore.saveFiles(space.id, [study("f_a", "pending"), study("f_b", "pending")]);
+		const summary = () => spaceStore.listSpaces().find((s) => s.id === space.id);
+		assert.equal(summary()?.filesLeft, 2);
+		assert.equal(summary()?.building, true);
+		assert.equal(spaceStore.closeWork(space.id), false, "an open round stays");
+
+		const deadline = spaceStore.addDeadline(space.id, { kind: "exam", name: "Midterm", date: "2026-12-01" });
+		spaceStore.saveFiles(space.id, [study("f_a", "ready"), study("f_b", "extracting")]);
+		assert.equal(summary()?.filesLeft, 1);
+		const done = spaceStore.saveFiles(space.id, [study("f_a", "ready"), study("f_b", "ready")]);
+		assert.deepEqual(done.lastWork?.fileIds, ["f_a", "f_b"]);
+		assert.deepEqual(done.lastWork?.deadlineIds, [deadline.id]);
+		assert.ok(done.lastWork?.endedAt);
+		assert.deepEqual(spaceStore.getSpace(space.id)?.lastWork, done.lastWork, "read back from disk");
+		assert.equal(summary()?.filesLeft, 0);
+		assert.equal(summary()?.building, undefined);
+
+		// New files in a space that has read ones: not building.
+		spaceStore.saveFiles(space.id, [study("f_a", "ready"), study("f_b", "ready"), study("f_c", "pending")]);
+		assert.equal(summary()?.building, undefined);
+		spaceStore.saveFiles(space.id, [study("f_a", "ready"), study("f_b", "ready"), study("f_c", "ready")]);
+		assert.deepEqual(spaceStore.getSpace(space.id)?.lastWork?.fileIds, ["f_c"]);
+
+		assert.equal(spaceStore.closeWork(space.id), true);
+		assert.equal(spaceStore.getSpace(space.id)?.lastWork, undefined);
+		assert.equal(spaceStore.closeWork(space.id), false);
+	});
+
 	it("refuses a record stamped newer than this build", () => {
 		const space = spaceStore.createSpace({ name: "Future" });
 		const file = path.join(TMP_DATA, "spaces", space.id, "space.json");

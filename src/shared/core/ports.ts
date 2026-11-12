@@ -200,6 +200,9 @@ export interface SpaceStore {
 	 *  `removed` to the record's removed files. Quiet: no updatedAt bump,
 	 *  no event. */
 	saveFiles(id: string, files: SpaceFile[], removed?: readonly RemovedFile[]): SpaceRecord;
+	/** Forget the last round of work once it has ended (Close). False when
+	 *  the space is unknown or a round is still open. */
+	closeWork(id: string): boolean;
 	/** Add a deadline (validated: a known kind, non-empty name, a
 	 *  YYYY-MM-DD date, an optional HH:MM time, every file id one of the
 	 *  space's files). Starts not done. Bumps updatedAt. Throws

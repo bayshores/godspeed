@@ -160,6 +160,11 @@ export function updateSpace(
 	return { ok: true, value: stores.spaceStore.updateSpace(id, patch) };
 }
 
+/** Close the summary of the teacher's last round of work on a space. */
+export function closeSpaceWork(id: string): void {
+	stores.spaceStore.closeWork(id);
+}
+
 /**
  * Delete a space with its lessons, copied files and graph. Refused while
  * any of its lessons has a turn or job running; extractions are aborted
