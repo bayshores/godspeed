@@ -15,9 +15,9 @@ pub struct PromptOverrides {
 	adopted: Once,
 }
 
-/// A saved "Space context" part was shared/12-class-context.md before the rename: it moves to its
-/// new name on first use (Node does it when the module loads).
-fn adopt_old_name(paths: &Paths) {
+/// A saved "Space context" part was shared/12-class-context.md before the rename: it takes its new
+/// name once, unless a part already has it.
+fn rename_old_part(paths: &Paths) {
 	let old = paths.prompt_override_file("shared/12-class-context.md");
 	let now = paths.prompt_override_file("shared/12-space-context.md");
 	if old.exists()
@@ -33,18 +33,19 @@ impl PromptOverrides {
 		PromptOverrides { paths: paths.clone(), adopted: Once::new() }
 	}
 
-	fn adopt(&self) {
-		self.adopted.call_once(|| adopt_old_name(&self.paths));
+	/// Renames the saved part from before the rename, once.
+	pub fn adopt_old_name(&self) {
+		self.adopted.call_once(|| rename_old_part(&self.paths));
 	}
 
 	fn file(&self, segment_path: &str) -> PathBuf {
-		self.adopt();
+		self.adopt_old_name();
 		self.paths.prompt_override_file(segment_path)
 	}
 
 	/// The segment paths that have an override file, sorted.
 	pub fn list_overrides(&self) -> Vec<String> {
-		self.adopt();
+		self.adopt_old_name();
 		let mut found = Vec::new();
 		walk(&self.paths.prompts_dir, "", &mut found);
 		found.sort();

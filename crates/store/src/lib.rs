@@ -54,4 +54,11 @@ impl Stores {
 			cheat_sheets: cheat_sheets::CheatSheetStore::new(paths, locks),
 		}
 	}
+
+	/// Moves what was saved under the names from before spaces (data/classes, a saved
+	/// 12-class-context.md). Node did it when a route first loaded the store modules.
+	pub fn adopt_old_names(&self) {
+		self.spaces.adopt_old_folder();
+		self.prompt_overrides.adopt_old_name();
+	}
 }

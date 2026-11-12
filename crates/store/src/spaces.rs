@@ -96,7 +96,7 @@ fn adopt_old_folder(old: &Path, spaces: &Path) {
 
 pub struct SpaceStore {
 	root: PathBuf,
-	/// data/classes, adopted on the store's first use (Node does it when the module loads).
+	/// data/classes, moved over once, before the store first reads (`adopt_old_folder`).
 	old_root: PathBuf,
 	adopted: Once,
 	events: Events,
@@ -108,8 +108,13 @@ impl SpaceStore {
 		SpaceStore { root: paths.spaces.clone(), old_root: paths.data.join("classes"), adopted: Once::new(), events: events.clone(), locks: locks.clone() }
 	}
 
-	fn root(&self) -> &Path {
+	/// Moves data/classes over, once.
+	pub fn adopt_old_folder(&self) {
 		self.adopted.call_once(|| adopt_old_folder(&self.old_root, &self.root));
+	}
+
+	fn root(&self) -> &Path {
+		self.adopt_old_folder();
 		&self.root
 	}
 

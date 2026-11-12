@@ -34,14 +34,23 @@ pub fn port() -> u16 {
 /// Every route; main.rs wraps this in `front` with the same `access`.
 pub fn server(app: Arc<App>, access: &Access) -> Router {
 	let cookie = access.login_cookie();
-	Router::new()
-		.merge(crate::routes::api())
+	let api = crate::routes::api()
 		.route("/api/events", ApiRoute::new().get(events::stream).into_route())
+		.route_layer(axum::middleware::from_fn_with_state(app.clone(), adopt_old_names));
+	Router::new()
+		.merge(api)
 		.route("/api/desktop/login", ApiRoute::new().get(move |State(app): State<Arc<App>>, uri: Uri| login::login(app, uri, cookie.clone())).into_route())
 		.route("/pdfjs/{*file}", ApiRoute::new().get(ui::pdfjs).into_route())
 		.fallback(ApiRoute::new().get(ui::page).into_route())
 		.layer(DefaultBodyLimit::disable())
 		.with_state(app)
+}
+
+/// Every Node route loaded the store modules, and loading them moved the data saved under the
+/// names from before spaces: so before the first route runs, not at start-up or on a 404.
+async fn adopt_old_names(State(app): State<Arc<App>>, req: Request, next: Next) -> Response {
+	app.stores.adopt_old_names();
+	next.run(req).await
 }
 
 /// Runs before routing (the caller wraps the router in it, so a cleaned path is what routes see).
