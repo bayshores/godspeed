@@ -164,7 +164,14 @@ fn folder_walks_match_node() {
 		build_tree(&root, c["tree"].as_arr().unwrap());
 		let got = walk_linked_folder(&root, &checks).unwrap();
 		let want = &c["result"];
-		assert_eq!(got.files, strings(&want["files"]), "{name} files");
+		let mut want_files = strings(&want["files"]);
+		// The recording came from a case-insensitive disk, where library/ is the skipped Library/.
+		// On a case-sensitive disk it is a folder of its own, so its file is walked.
+		if name == "mixed" && !root.join("LIBRARY").exists() {
+			let before = want_files.iter().position(|f| f == "nested/deep/file.py").unwrap();
+			want_files.insert(before, "library/x.txt".to_owned());
+		}
+		assert_eq!(got.files, want_files, "{name} files");
 		assert_eq!(got.capped, want["capped"].as_bool().unwrap(), "{name} capped");
 		assert_eq!(got.unreadable, strings(&want["unreadable"]), "{name} unreadable");
 		assert_eq!(got.skipped.count as i64, want["skipped"]["count"].as_i64().unwrap(), "{name} skipped count");
