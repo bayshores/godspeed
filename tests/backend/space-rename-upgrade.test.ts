@@ -205,4 +205,43 @@ describe("the godspeed folder from before the rename", () => {
 		syncShortcuts(folder);
 		assert.deepEqual(under(path.join(folder, "classes")).sort(), [".DS_Store", "Old Space", "Old Space/.DS_Store", "Old Space/mine.txt"]);
 	});
+
+	/** A folder of the learner's own holding only Finder's file. */
+	const finderOnly = (folder: string) => {
+		const dir = path.join(folder, "Mine");
+		fs.mkdirSync(dir, { recursive: true });
+		fs.writeFileSync(path.join(dir, ".DS_Store"), "finder");
+		return dir;
+	};
+
+	it("a folder the learner just picked keeps its own empty classes/", () => {
+		const folder = path.join(TMP, "godspeed-f");
+		fs.mkdirSync(path.join(folder, "classes", "Biology"), { recursive: true });
+		fs.writeFileSync(path.join(folder, "classes", ".DS_Store"), "finder");
+		syncShortcuts(folder);
+		assert.deepEqual(under(path.join(folder, "classes")).sort(), [".DS_Store", "Biology"]);
+	});
+
+	it("a link in classes/ to a folder holding only Finder's file keeps classes/, the link and its folder", { skip: process.platform === "win32" }, () => {
+		const folder = oldFolder("godspeed-g");
+		finderFiles(folder);
+		const mine = finderOnly(folder);
+		fs.symlinkSync(mine, path.join(folder, "classes", "Old Space", "link"), "dir");
+		syncShortcuts(folder);
+		assert.ok(fs.lstatSync(path.join(folder, "classes", "Old Space", "link")).isSymbolicLink());
+		assert.ok(fs.existsSync(path.join(mine, ".DS_Store")));
+	});
+
+	it("a folder the app made that the learner replaced with a link keeps the link and its folder", { skip: process.platform === "win32" }, () => {
+		const folder = path.join(TMP, "godspeed-h");
+		const mine = finderOnly(folder);
+		const at = path.join(folder, "spaces", "Biology");
+		fs.mkdirSync(path.dirname(at), { recursive: true });
+		fs.symlinkSync(mine, at, "dir");
+		fs.mkdirSync(path.join(folder, ".godspeed"));
+		fs.writeFileSync(path.join(folder, ".godspeed", "shortcuts.json"), JSON.stringify({ links: [], dirs: [at] }));
+		syncShortcuts(folder);
+		assert.ok(fs.lstatSync(at).isSymbolicLink());
+		assert.ok(fs.existsSync(path.join(mine, ".DS_Store")));
+	});
 });

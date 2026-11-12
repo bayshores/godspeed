@@ -91,6 +91,22 @@ function holdsNothing(dir: string, deep = false): boolean {
 		.every((e) => (e.name === FINDER_FILE ? e.isFile() : deep && e.isDirectory() && holdsNothing(path.join(dir, e.name), true)));
 }
 
+/** Removes `dir` when holdsNothing passes: Finder's files, then each folder
+ *  with rmdir, never a recursive rm, so a file saved meanwhile keeps its
+ *  folder (rmdir throws). */
+function removeIfEmpty(dir: string, deep = false): void {
+	if (!holdsNothing(dir, deep)) return;
+	const remove = (d: string) => {
+		for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+			const p = path.join(d, e.name);
+			if (e.name === FINDER_FILE && e.isFile()) fs.unlinkSync(p);
+			else if (deep && e.isDirectory()) remove(p);
+		}
+		fs.rmdirSync(d);
+	};
+	remove(dir);
+}
+
 function readOnly(file: string): void {
 	if (process.platform === "win32") return;
 	const st = fs.statSync(file);
@@ -123,6 +139,8 @@ function currentSpaces(): { spaces: ShortcutSpace[]; targets: Map<string, { path
  */
 export function syncShortcuts(folder: string, opts: { clear?: boolean } = {}): void {
 	const root = path.join(folder, "spaces");
+	// No manifest yet: a folder the learner just picked, whose own classes/ stays.
+	const syncedBefore = fs.existsSync(manifestPath(folder));
 	const old = readManifest(folder);
 	const { spaces, targets } = opts.clear ? { spaces: [], targets: new Map() } : currentSpaces();
 	const want = new Map<string, { path: string; copied: boolean }>();
@@ -136,7 +154,8 @@ export function syncShortcuts(folder: string, opts: { clear?: boolean } = {}): v
 	}
 	const kept = new Set(links.map((l) => l.path));
 
-	const dirs = new Set(old.dirs.filter((d) => fs.existsSync(d)));
+	// A folder the learner replaced with a link is theirs now.
+	const dirs = new Set(old.dirs.filter((d) => lstat(d)?.isDirectory()));
 	const ensureDir = (dir: string) => {
 		if (fs.existsSync(dir)) return;
 		ensureDir(path.dirname(dir));
@@ -172,7 +191,7 @@ export function syncShortcuts(folder: string, opts: { clear?: boolean } = {}): v
 		const needed = [...want.keys()].some((p) => p.startsWith(dir + path.sep));
 		if (needed) continue;
 		try {
-			if (holdsNothing(dir)) fs.rmSync(dir, { recursive: true });
+			removeIfEmpty(dir);
 			dirs.delete(dir);
 		} catch {
 			dirs.delete(dir);
@@ -181,7 +200,7 @@ export function syncShortcuts(folder: string, opts: { clear?: boolean } = {}): v
 	// An earlier sync dropped classes/ from the manifest when Finder's file
 	// kept it; it still goes once nothing else is under it.
 	try {
-		if (lstat(oldRoot)?.isDirectory() && holdsNothing(oldRoot, true)) fs.rmSync(oldRoot, { recursive: true });
+		if (syncedBefore && lstat(oldRoot)?.isDirectory()) removeIfEmpty(oldRoot, true);
 	} catch {
 		// Left for the next sync.
 	}
