@@ -23,7 +23,7 @@
 		"typecheck": "tsc --noEmit",
 		"deadcode": "knip",
 		"check": "npm run typecheck && npm test && npm run lint && npm run deadcode && npm run rust:check",
-		"rust:check": "cargo test --workspace && cargo test -p gs-shell --features screens --bin godspeed screens:: && cargo clippy --workspace --all-targets -- -D warnings && cargo clippy -p gs-shell --features screens --all-targets -- -D warnings && cargo machete",
+		"rust:check": "cargo test --workspace && cargo test -p gs-shell --features screens --bin godspeed screens:: && cargo clippy --workspace --all-targets -- -D warnings && cargo clippy -p gs-shell --features screens --all-targets -- -D warnings && cargo clippy -p gs-shell --features self-test --all-targets -- -D warnings && cargo machete",
 		"dev:fresh": "bash scripts/dev-fresh.sh"
 	},
 	"dependencies": {
