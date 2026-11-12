@@ -168,8 +168,8 @@ async fn run_move(app: &Arc<App>, chat_id: &str, target: Option<&str>) -> SpaceO
 	delete_chat_from_graph(app, from, chat_id, ChatDeleteMode::DeleteNodes).map_err(SpaceFailure::thrown)?;
 	app.stores.chats.set_chat_space(chat_id, target).map_err(SpaceFailure::thrown)?;
 	apply_space_card(app, chat_id, target_space.as_ref()).map_err(SpaceFailure::thrown)?;
-	let graph_on = app.stores.settings.effective_settings().is_ok_and(|s| s["graph"]["enabled"].truthy());
-	if extracts_facts(record["kind"].as_str()) && graph_on {
+	// Settings only for a lesson that extracts facts, as in Node: a read can save an old file anew.
+	if extracts_facts(record["kind"].as_str()) && app.stores.settings.effective_settings().is_ok_and(|s| s["graph"]["enabled"].truthy()) {
 		let (app, chat_id) = (app.clone(), chat_id.to_owned());
 		tokio::spawn(async move {
 			if let Err(err) = extraction(&app).run_extraction(&chat_id).await {
