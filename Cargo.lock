@@ -2035,10 +2035,12 @@ name = "gs-shell"
 version = "0.0.0"
 dependencies = [
  "block2",
+ "cairo-rs",
  "fontdb",
  "getrandom 0.3.4",
  "gs-base",
  "gs-shell-rpc",
+ "gtk",
  "image",
  "objc2",
  "objc2-app-kit",
@@ -2054,6 +2056,9 @@ dependencies = [
  "tauri-plugin-opener",
  "tauri-plugin-single-instance",
  "tauri-plugin-updater",
+ "webkit2gtk",
+ "webview2-com",
+ "windows",
 ]
 
 [[package]]

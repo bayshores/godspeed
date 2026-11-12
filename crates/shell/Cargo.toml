@@ -15,11 +15,14 @@ path = "src/main.rs"
 devtools = ["tauri/devtools"]
 # The screenshot lab's control channel (screens.rs); Mac debug builds only.
 screens = []
+# `godspeed --self-test`: the demo runner checked in the real app (self_test.rs), as CI runs it.
+self-test = ["dep:image"]
 
 [dependencies]
 gs-base.workspace = true
 gs-shell-rpc.workspace = true
 getrandom.workspace = true
+image = { workspace = true, optional = true }
 os_info.workspace = true
 rfd.workspace = true
 serde_json.workspace = true
@@ -31,6 +34,15 @@ tauri-plugin-updater.workspace = true
 
 [target.'cfg(not(target_os = "macos"))'.dependencies]
 fontdb.workspace = true
+
+[target.'cfg(windows)'.dependencies]
+webview2-com.workspace = true
+windows.workspace = true
+
+[target.'cfg(target_os = "linux")'.dependencies]
+cairo-rs = { workspace = true, features = ["png"] }
+gtk.workspace = true
+webkit2gtk.workspace = true
 
 [target.'cfg(target_os = "macos")'.dependencies]
 block2.workspace = true

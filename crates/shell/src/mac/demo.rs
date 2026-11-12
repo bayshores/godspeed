@@ -9,7 +9,6 @@ use std::path::Path;
 use std::rc::Rc;
 
 use block2::RcBlock;
-use gs_shell_rpc::DemoResult;
 use objc2::rc::Retained;
 use objc2::runtime::{AnyObject, NSObject, ProtocolObject};
 use objc2::{AnyThread, DefinedClass, MainThreadMarker, MainThreadOnly, define_class, msg_send};
@@ -25,76 +24,12 @@ use objc2_web_kit::{
 	WKNavigationDelegate, WKNavigationResponse, WKNavigationResponsePolicy, WKSnapshotConfiguration, WKUserScript, WKUserScriptInjectionTime, WKWebView,
 	WKWebViewConfiguration, WKWebsiteDataStore,
 };
-use serde_json::Value;
 use tauri::{AppHandle, Manager};
 
-use crate::demo::{DemoJob, SvgJob};
+use crate::demo::{
+	self, ANSWER_LIMIT, BLOCK_LOOPBACK, DEMO_SIZE, DemoDone, DemoJob, LOAD_LIMIT, LOAD_TIMED_OUT, NO_ANSWER, NO_SNAPSHOT, ORIGIN, READ, RECORDER, SETTLE, SvgDone, SvgJob,
+};
 use crate::paths::Paths;
-
-/// The page's origin: an https one, so a demo gets localStorage and real error messages, and
-/// one that can never resolve.
-const ORIGIN: &str = "https://demo.invalid/";
-
-/// A demo's page size.
-const DEMO_SIZE: (u32, u32) = (800, 600);
-
-/// How long a page gets to load, and the page error when it runs out.
-const LOAD_LIMIT_SECONDS: f64 = 30.0;
-const LOAD_TIMED_OUT: &str = "Navigation timeout of 30000 ms exceeded";
-
-/// How long a loaded demo runs (animations, async CDN loads) before it is read.
-const SETTLE_SECONDS: f64 = 2.0;
-
-/// A page stuck in a loop never answers; this keeps the queue moving.
-const ANSWER_LIMIT_SECONDS: f64 = 15.0;
-
-/// Records what a demo gets wrong (console errors, uncaught errors, failed loads), from
-/// document start in the page's own world.
-const RECORDER: &str = r#"(() => {
-  const rec = { consoleErrors: [], pageErrors: [], failedRequests: [] };
-  const push = (k, m) => { if (rec[k].length < 50) rec[k].push(String(m).slice(0, 500)); };
-  const fmt = (a) => a.map((x) => { try { return x instanceof Error ? x.message : typeof x === "object" ? JSON.stringify(x) : String(x); } catch { return String(x); } }).join(" ");
-  const ce = console.error.bind(console);
-  console.error = (...a) => { push("consoleErrors", fmt(a)); ce(...a); };
-  addEventListener("error", (e) => {
-    if (e instanceof ErrorEvent) push("pageErrors", e.message || String(e.error));
-    else { const t = e.target, u = t && (t.currentSrc || t.src || t.href); if (u) push("failedRequests", u + " (" + String(t.tagName).toLowerCase() + " failed to load)"); }
-  }, true);
-  addEventListener("unhandledrejection", (e) => push("pageErrors", "Uncaught (in promise) " + ((e.reason && e.reason.message) || e.reason)));
-  const f = window.fetch;
-  window.fetch = function (input, init) {
-    const u = typeof input === "string" ? input : (input && input.url) || String(input);
-    return f.call(this, input, init).catch((err) => { push("failedRequests", u + " (" + err + ")"); throw err; });
-  };
-  const XO = XMLHttpRequest.prototype.open, XS = XMLHttpRequest.prototype.send;
-  XMLHttpRequest.prototype.open = function (m, u, ...r) { this.__u = u; return XO.call(this, m, u, ...r); };
-  XMLHttpRequest.prototype.send = function (...a) { this.addEventListener("error", () => push("failedRequests", this.__u + " (xhr error)")); return XS.apply(this, a); };
-  Object.defineProperty(window, "__gsDemoReport", { value: () => JSON.stringify(rec) });
-})();"#;
-
-/// Runs the probe (an expression or statements; a promise is awaited) and reads the record.
-/// `probeSource` is only defined when there is a probe.
-const READ: &str = r#"let probe;
-if (typeof probeSource === "string") {
-  try { probe = { json: JSON.stringify(await (0, eval)(probeSource)) }; }
-  catch (e) { probe = { error: String((e && e.message) || e) }; }
-}
-const read = window.__gsDemoReport;
-return JSON.stringify({ report: read ? JSON.parse(read()) : null, probe });"#;
-
-/// WebKit content blockers have no alternation, so one rule per host shape. Each allows a user
-/// name before the host, which WebKit keeps in the URL; localhost covers its subdomains and a
-/// trailing dot, which resolve to this machine too; and `[::` is every IPv6 form of it
-/// (`[::1]`, `[::]`, IPv4 inside IPv6), since no public address starts with `::`.
-const BLOCK_LOOPBACK: &str = r#"[
- {"trigger":{"url-filter":"^[a-z]+://([^/]*@)?127\\."},"action":{"type":"block"}},
- {"trigger":{"url-filter":"^[a-z]+://([^/]*@)?([^/]*\\.)?localhost\\.?[:/]"},"action":{"type":"block"}},
- {"trigger":{"url-filter":"^[a-z]+://([^/]*@)?\\[::"},"action":{"type":"block"}},
- {"trigger":{"url-filter":"^[a-z]+://([^/]*@)?0\\.0\\.0\\.0"},"action":{"type":"block"}}
-]"#;
-
-pub type DemoDone = Box<dyn FnOnce(Result<DemoResult, String>) + Send>;
-pub type SvgDone = Box<dyn FnOnce(Result<Vec<u8>, String>) + Send>;
 
 /// One run: a demo to check or an SVG to draw, and who hears the outcome.
 pub enum Work {
@@ -187,7 +122,7 @@ fn current(id: u64) -> Option<Rc<Run>> {
 fn open(mtm: MainThreadMarker, rules: &WKContentRuleList, work: Work) {
 	let ((width, height), html) = match &work {
 		Work::Demo(job, _) => (DEMO_SIZE, job.html.clone()),
-		Work::Svg(job, _) => ((job.width, job.height), svg_page(&job.svg)),
+		Work::Svg(job, _) => ((job.width, job.height), demo::svg_page(&job.svg)),
 	};
 	let id = LAST_ID.get() + 1;
 	LAST_ID.set(id);
@@ -227,7 +162,7 @@ fn open(mtm: MainThreadMarker, rules: &WKContentRuleList, work: Work) {
 		work: RefCell::new(Some(work)),
 	};
 	RUN.set(Some(Rc::new(run)));
-	arm(id, LOAD_LIMIT_SECONDS, |id| loaded(id, Err(LOAD_TIMED_OUT.to_owned())));
+	arm(id, LOAD_LIMIT.as_secs_f64(), |id| loaded(id, Err(LOAD_TIMED_OUT.to_owned())));
 }
 
 /// WebKit stops drawing, and pauses animation frames, in a window that is hidden, off screen
@@ -260,13 +195,6 @@ fn invisible_window(mtm: MainThreadMarker, frame: NSRect, view: &WKWebView) -> R
 	window
 }
 
-/// The SVG alone on a white page, so transparent areas come out white.
-fn svg_page(svg: &str) -> String {
-	format!(
-		r#"<!doctype html><html><head><meta charset="utf-8"><style>html,body{{margin:0;padding:0;background:#fff}}svg{{display:block}}</style></head><body>{svg}</body></html>"#
-	)
-}
-
 /// Calls `fire(id)` after `seconds` unless the run moves on first. Common modes, so a menu held
 /// open or a modal dialog does not hold it back.
 fn arm(id: u64, seconds: f64, fire: fn(u64)) {
@@ -292,7 +220,7 @@ fn loaded(id: u64, result: Result<(), String>) {
 	let svg = matches!(*run.work.borrow(), Some(Work::Svg(..)));
 	match result {
 		Ok(()) if svg => snapshot(&run),
-		Ok(()) => arm(id, SETTLE_SECONDS, |id| read(id, true)),
+		Ok(()) => arm(id, SETTLE.as_secs_f64(), |id| read(id, true)),
 		Err(err) if svg => end_svg(id, Err(err)),
 		Err(err) => {
 			run.errors.borrow_mut().push(err);
@@ -334,31 +262,18 @@ fn read(id: u64, loaded: bool) {
 		let world = WKContentWorld::pageWorld(MainThreadMarker::from(&*run.view));
 		run.view.callAsyncJavaScript_arguments_inFrame_inContentWorld_completionHandler(&NSString::from_str(READ), Some(&args), None, &world, Some(&answered));
 	}
-	arm(id, ANSWER_LIMIT_SECONDS, |id| {
+	arm(id, ANSWER_LIMIT.as_secs_f64(), |id| {
 		if let Some(run) = current(id) {
-			run.errors.borrow_mut().push("the page did not answer within 15 s".to_owned());
+			run.errors.borrow_mut().push(NO_ANSWER.to_owned());
 		}
 		end_demo(id, None);
 	});
 }
 
-/// Ends the demo run with what the page recorded (`answer`, the JSON from READ), the errors it
-/// could not record, and the probe's value.
+/// Ends the demo run with what the page recorded (`answer`, the JSON from READ).
 fn end_demo(id: u64, answer: Option<&str>) {
 	let Some(run) = end(id) else { return };
-	let answer: Value = answer.and_then(|text| serde_json::from_str(text).ok()).unwrap_or_default();
-	let list = |key: &str| -> Vec<String> {
-		answer["report"][key].as_array().map(|items| items.iter().filter_map(|item| item.as_str().map(str::to_owned)).collect()).unwrap_or_default()
-	};
-	let mut result = DemoResult { console_errors: list("consoleErrors"), page_errors: list("pageErrors"), failed_requests: list("failedRequests"), ..DemoResult::default() };
-	result.page_errors.append(&mut run.errors.borrow_mut());
-	let probe = &answer["probe"];
-	if let Some(err) = probe["error"].as_str() {
-		result.page_errors.push(format!("probe failed: {err}"));
-	}
-	// A probe whose value was undefined comes back without `json`, and stays absent.
-	result.probe_result = probe["json"].as_str().and_then(|json| serde_json::from_str(json).ok());
-	result.ok = result.console_errors.is_empty() && result.page_errors.is_empty() && result.failed_requests.is_empty();
+	let result = demo::result(answer, run.errors.take());
 	if let Some(Work::Demo(_, done)) = run.work.take() {
 		done(Ok(result));
 	}
@@ -383,7 +298,7 @@ fn snapshot(run: &Run) {
 		config.setSnapshotWidth(Some(&NSNumber::new_f64(size.width)));
 		run.view.takeSnapshotWithConfiguration_completionHandler(Some(&config), &drawn);
 	}
-	arm(id, ANSWER_LIMIT_SECONDS, |id| end_svg(id, Err("the SVG snapshot did not finish within 15 s".to_owned())));
+	arm(id, ANSWER_LIMIT.as_secs_f64(), |id| end_svg(id, Err(NO_SNAPSHOT.to_owned())));
 }
 
 /// The image as a PNG of exactly `size` pixels: the snapshot has the screen's scale (2 px a

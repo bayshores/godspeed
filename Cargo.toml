@@ -27,11 +27,13 @@ gs-shell-rpc = { path = "crates/shell-rpc" }
 axum = { version = "0.8.9", default-features = false, features = ["http1", "tokio", "multipart"] }
 block2 = "=0.6.2"
 bytes = "1.12"
+cairo-rs = "=0.18.5"
 dom_smoothie = "0.19"
 file-id = { version = "0.2.3", default-features = false }
 fontdb = "0.23"
 futures-util = "0.3.34"
 getrandom = "0.3.4"
+gtk = "=0.18.2"
 htmd = "0.5.6"
 http-body-util = "0.1.5"
 icu_collator = "2.4"
@@ -65,6 +67,9 @@ tauri-plugin-updater = "=2.14.1"
 tokenizers = { version = "0.22.2", default-features = false, features = ["fancy-regex"] }
 tower = { version = "0.5.3", default-features = false }
 tokio = { version = "1.54", features = ["rt-multi-thread", "macros", "time", "sync", "signal", "io-util", "io-std", "net", "process", "fs"] }
+webkit2gtk = { version = "=2.0.2", features = ["v2_38"] }
+webview2-com = "=0.39.1"
+windows = "=0.62.2"
 
 [workspace.lints.rust]
 unsafe_code = "deny"

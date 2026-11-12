@@ -5,6 +5,9 @@ use std::path::{Path, PathBuf};
 
 use tauri::{AppHandle, Manager};
 
+/// Each launch's demo folder in the temp folder is this and its process id.
+pub const DEMO_FOLDER_PREFIX: &str = "godspeed-demo-";
+
 pub struct Paths {
 	/// `godspeed` in the OS config folder; `godspeed-dev` for a debug build, so it never shares
 	/// logs or the old-app check with the installed app.
@@ -32,7 +35,7 @@ impl Paths {
 			logs: user_data.join("logs"),
 			pdfium: pdfium(&resources, std::env::consts::OS, cfg!(debug_assertions)),
 			updater_cache: updater_cache(&resolver.cache_dir()?, cfg!(debug_assertions)),
-			demo_data: resolver.temp_dir()?.join(format!("godspeed-demo-{}", std::process::id())),
+			demo_data: resolver.temp_dir()?.join(format!("{DEMO_FOLDER_PREFIX}{}", std::process::id())),
 			user_data,
 			resources,
 		})

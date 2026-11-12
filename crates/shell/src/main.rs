@@ -8,6 +8,8 @@ mod demo;
 mod demo_webview;
 mod first_run;
 mod fonts;
+#[cfg(target_os = "linux")]
+mod linux;
 mod log;
 #[cfg(target_os = "macos")]
 mod mac;
@@ -21,8 +23,12 @@ mod restarts;
 mod rpc;
 #[cfg(all(feature = "screens", target_os = "macos"))]
 mod screens;
+#[cfg(feature = "self-test")]
+mod self_test;
 mod server;
 mod update;
+#[cfg(windows)]
+mod win;
 mod window;
 mod zoom;
 
@@ -46,6 +52,9 @@ fn main() {
 			let _ = main.set_focus();
 		}
 	}));
+	// The demo window's page on Windows; the Mac and Linux load it into the view themselves.
+	#[cfg(windows)]
+	let builder = builder.register_uri_scheme_protocol("demo", demo_webview::serve);
 	let app = builder
 		.plugin(tauri_plugin_dialog::init())
 		.plugin(tauri_plugin_updater::Builder::new().build())
@@ -97,6 +106,10 @@ fn main() {
 }
 
 fn setup(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
+	#[cfg(feature = "self-test")]
+	if self_test::requested() {
+		return self_test::start(app);
+	}
 	let handle = app.handle().clone();
 	let paths = Paths::new(&handle)?;
 	if old_app::electron_running(&paths.user_data) {
@@ -110,6 +123,8 @@ fn setup(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
 		log::line(&format!("cannot write shell.pid: {err}"));
 	}
 	first_run::run(&paths.user_data, &paths.updater_cache, &app.package_info().version.to_string());
+	#[cfg(not(target_os = "macos"))]
+	demo_webview::sweep(&paths.demo_data);
 	app.manage(paths);
 	let server = match Server::choose() {
 		Ok(server) => server,
