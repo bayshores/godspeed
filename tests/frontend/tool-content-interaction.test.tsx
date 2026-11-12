@@ -15,6 +15,8 @@ const dom = parseHTML("<html><body></body></html>");
 Object.assign(globalThis, { window: dom.window, document: dom.document, Element: dom.window.Element,
 	HTMLElement: dom.window.HTMLElement, IS_REACT_ACT_ENVIRONMENT: true });
 stubCodeMirrorDom(dom);
+// linkedom has no layout: scrolling the meter into view is a no-op here.
+(dom.window.Element.prototype as unknown as { scrollIntoView: () => void }).scrollIntoView = () => {};
 
 test("actual select → submit → saved result → historical Why uses source data and presentation-only recovery", async () => {
 	const question = String.raw`Find $\\nabla f$ for $\begin{pmatrix}a&b\\c&d\end{pmatrix}$.`;

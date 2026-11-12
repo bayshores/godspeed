@@ -24,6 +24,8 @@ Object.assign(globalThis, {
 	IS_REACT_ACT_ENVIRONMENT: true,
 });
 stubCodeMirrorDom(dom);
+// linkedom has no layout: scrolling the meter into view is a no-op here.
+(dom.window.Element.prototype as unknown as { scrollIntoView: () => void }).scrollIntoView = () => {};
 
 const task = { question: "Write **`int max(int a, int b)`**.", starter: "int max(int a, int b) {\n}" };
 

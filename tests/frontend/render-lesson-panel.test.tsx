@@ -37,8 +37,11 @@ Object.assign(globalThis, {
 	localStorage: { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => store.set(k, v), removeItem: (k: string) => store.delete(k) },
 });
 stubCodeMirrorDom(dom);
-// linkedom has no layout: the walked row's scrollIntoView is a no-op here.
-(dom.window.Element.prototype as unknown as { scrollIntoView: () => void }).scrollIntoView = () => {};
+// linkedom has no layout: scrollIntoView only records what it was asked to show.
+const scrolledTo: Element[] = [];
+(dom.window.Element.prototype as unknown as { scrollIntoView: () => void }).scrollIntoView = function (this: Element) {
+	scrolledTo.push(this);
+};
 
 const quizInput = {
 	question: "Which planet is closest to the sun?",
@@ -482,6 +485,14 @@ describe("the question's keys", () => {
 		await mounted(turn({ pending: quiz, onSubmitAnswer: (a) => answers.push(a) }), async () => {
 			await act(async () => press("Enter"));
 			assert.equal(answers.length, 0);
+		});
+	});
+
+	it("picking an answer brings the confidence meter into view", async () => {
+		await mounted(turn({ pending: quiz }), async (host) => {
+			scrolledTo.length = 0;
+			await act(async () => options(host)[1]!.click());
+			assert.ok(scrolledTo.includes(host.querySelector('[data-testid="confidence-meter"]')!));
 		});
 	});
 

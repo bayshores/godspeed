@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { type Ref, useEffect, useRef } from "react";
 import { cn } from "@/frontend/lib/utils";
 import { type ConfidenceLevel } from "@/shared/core";
 
@@ -40,14 +40,16 @@ export function ConfidenceMeter({
 	level,
 	onChange,
 	disabled = false,
+	ref,
 }: {
 	level: ConfidenceLevel | null;
 	onChange: (level: ConfidenceLevel) => void;
 	disabled?: boolean;
+	ref?: Ref<HTMLDivElement>;
 }) {
 	const groupRef = useFocusFollowsPick<HTMLDivElement>(level);
 	return (
-		<div data-testid="confidence-meter" className={cn("flex shrink-0 flex-col gap-2", disabled && "opacity-40")}>
+		<div ref={ref} data-testid="confidence-meter" className={cn("flex shrink-0 flex-col gap-2", disabled && "opacity-40")}>
 			<div id="confidence-question" className="text-[15px] font-medium text-ink">
 				How sure are you?
 			</div>

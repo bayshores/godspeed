@@ -4,6 +4,7 @@ import { ANSWER_ROW, DontKnowRow, PICKED, proseVars, QuestionText } from "@/fron
 import { ConfidenceMeter, ConfidenceSquares } from "@/frontend/components/confidence-meter";
 import { InlineMath } from "@/frontend/components/overview/inline-math";
 import { PickedRow } from "@/frontend/components/lesson/picked-row";
+import { prefersReducedMotion } from "@/frontend/components/presence";
 import { cn } from "@/frontend/lib/utils";
 import { useSound } from "@/frontend/components/sounds";
 import {
@@ -341,6 +342,13 @@ function QuestionDockForm({
 		rootRef.current?.querySelector(`[data-kbdrow="${kbdIdx}"]`)?.scrollIntoView({ block: "nearest" });
 	}, [kbdIdx]);
 
+	// A picked answer is rated next, and the meter can sit below the fold.
+	const meterRef = useRef<HTMLDivElement>(null);
+	const ratesNext = kind === "quiz" && selectMode === "single-select" && sel.selected.size > 0;
+	useEffect(() => {
+		if (ratesNext) meterRef.current?.scrollIntoView({ block: "nearest", behavior: prefersReducedMotion() ? "auto" : "smooth" });
+	}, [ratesNext]);
+
 	const walked = (i: number, picked: boolean) => i === kbdIdx && !picked && "ring-2 ring-inset ring-ink-3";
 	const level = confIdx === undefined ? null : ((confIdx + 1) as ConfidenceLevel);
 	const pickedMarks = sel.dontKnow ? null : (
@@ -470,7 +478,7 @@ function QuestionDockForm({
 				</div>
 			)}
 
-			{kind === "quiz" && !showFolded && <ConfidenceMeter level={level} onChange={(next) => setConfIdx(next - 1)} disabled={sel.dontKnow} />}
+			{kind === "quiz" && !showFolded && <ConfidenceMeter ref={meterRef} level={level} onChange={(next) => setConfIdx(next - 1)} disabled={sel.dontKnow} />}
 		</div>
 	);
 }
