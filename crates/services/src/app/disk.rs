@@ -1,14 +1,18 @@
 //! Disk work whose failures are worded like Node's, because the learner or an agent reads them
 //! ("Couldn't write to ...: EACCES: permission denied, open '...'").
 
-use std::io::Write;
+use std::io::{self, Write};
 use std::path::Path;
 
 use gs_base::{fsx, ids, text};
 
 /// `fs.mkdirSync(dir, { recursive: true })`.
 pub fn make_dir(dir: &Path) -> Result<(), String> {
-	std::fs::create_dir_all(dir).map_err(|err| fsx::node_error_message(&err, "mkdir", dir))
+	std::fs::create_dir_all(dir).map_err(|err| {
+		// Windows says "already exists" for a file in the way of a longer path; Node says ENOTDIR.
+		let blocked = cfg!(windows) && err.kind() == io::ErrorKind::AlreadyExists && !dir.exists();
+		fsx::node_error_message(&if blocked { io::Error::from(io::ErrorKind::NotADirectory) } else { err }, "mkdir", dir)
+	})
 }
 
 /// write-file-atomic.ts: a temp file beside the target, then a rename. The temp file's name is
