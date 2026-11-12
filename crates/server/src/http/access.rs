@@ -1,15 +1,16 @@
 //! Who may call /api. In the desktop app only the app's own window holds the per-launch secret,
 //! as the HttpOnly cookie the login route sets, and only its own pages send `Sec-Fetch-Site:
-//! same-origin` (a demo iframe sends `cross-site`). Outside agents reach /api/mcp and
-//! /api/mcp/forget with their own token, which those routes check.
+//! same-origin` (a demo iframe sends `cross-site`). Outside agents reach /api/mcp and its hook
+//! routes with their own token, which those routes check.
 
 use axum::http::{HeaderMap, HeaderValue, header};
 use gs_shell_rpc::same_bytes;
 
 const COOKIE: &str = "gs_desktop";
 
-/// Open in every mode: the agents' endpoint (bearer token in the route) and the window's login.
-const EXEMPT: [&str; 3] = ["/api/mcp", "/api/mcp/forget", "/api/desktop/login"];
+/// Open in every mode: the agents' endpoint and hooks (bearer token in the route) and the
+/// window's login.
+const EXEMPT: [&str; 4] = ["/api/mcp", "/api/mcp/forget", "/api/mcp/compacting", "/api/desktop/login"];
 
 /// The desktop secret settings, read once at start-up. The default is browser mode.
 #[derive(Clone, Default)]
@@ -129,10 +130,11 @@ mod tests {
 
 	#[test]
 	fn mcp_and_login_are_exempt() {
-		for path in ["/api/mcp", "/api/mcp/forget", "/api/desktop/login"] {
+		for path in ["/api/mcp", "/api/mcp/forget", "/api/mcp/compacting", "/api/desktop/login"] {
 			assert!(desktop().allows(path, &HeaderMap::new()), "{path}");
 		}
 		assert!(!desktop().allows("/api/mcp/other", &HeaderMap::new()));
+		assert!(!desktop().allows("/api/mcp/compacting/x", &HeaderMap::new()));
 		assert!(!desktop().allows("/api/desktop/login/x", &HeaderMap::new()));
 	}
 

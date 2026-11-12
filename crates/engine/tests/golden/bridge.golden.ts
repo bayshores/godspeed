@@ -1,5 +1,6 @@
 // The real agent-bridge.ts driven by a script of operations that tests/bridge_golden.rs runs on
-// the Rust Bridge: views, errors, replies as assistant messages, saved marks and events. Random
+// the Rust Bridge: views, errors, replies as assistant messages, saved marks, the backup teacher
+// and events. Random
 // work and call ids are numbered by first appearance; times are masked.
 import * as bridge from "../../../../src/backend/agent/agent-bridge.ts";
 import type { SeenMark, SeenStore } from "../../../../src/shared/core/agent-seen.ts";
@@ -62,6 +63,42 @@ const script: Op[] = [
 	{ op: "wait", as: "W9", conversation: "chat_l4", agent: "agent-D" },
 	{ op: "respond", work: "W9", text: "Marked." },
 	{ op: "result", of: "F" },
+	// The backup teacher answers only while a main agent compacts, taking the turn it held.
+	{ op: "status", agents: ["backup-1", "main-1"] },
+	{ op: "park", as: "H", conversation: "chat_l6", messages: [sys, user("help")] },
+	{ op: "wait", as: "W10", conversation: "chat_l6", agent: "main-1" },
+	{ op: "wait", as: "none4", agent: "backup-1", backup: true },
+	{ op: "status", agents: ["backup-1", "main-1"] },
+	{ op: "compacting", agent: "backup-1" },
+	{ op: "compacting", agent: "main-1" },
+	{ op: "status", agents: ["backup-1", "main-1"] },
+	{ op: "claimed" },
+	{ op: "wait", as: "none5", conversation: "chat_l6", agent: "main-1" },
+	{ op: "park", as: "I", conversation: "job_y", messages: [{ role: "system", content: "Read files.", timestamp: 0 }, user("read this")] },
+	{ op: "wait", as: "W11", agent: "backup-1", backup: true },
+	{ op: "respond", work: "W10", text: "Too late." },
+	{ op: "respond", work: "W11", text: "Hello.", hold: 0 },
+	{ op: "result", of: "H" },
+	{ op: "forget", agent: "main-1", cleared: false },
+	{ op: "status", agents: ["backup-1", "main-1"] },
+	{ op: "wait", as: "none6", agent: "backup-1", backup: true },
+	{ op: "wait", as: "W12", agent: "main-1" },
+	{ op: "respond", work: "W12", text: "Read.", hold: 0 },
+	{ op: "result", of: "I" },
+	// The backup finishes a turn it began and ignores a hold while someone compacts.
+	{ op: "park", as: "J", conversation: "chat_l7", messages: [sys, user("quiz me")] },
+	{ op: "wait", as: "W13", conversation: "chat_l7", agent: "main-1" },
+	{ op: "respond", work: "W13", toolCalls: [{ name: "quiz", arguments: { text: "q" } }] },
+	{ op: "parkNext", as: "J2", from: "J", result: "asked" },
+	{ op: "compacting", agent: "main-1" },
+	{ op: "wait", as: "W14", agent: "backup-1", backup: true },
+	{ op: "respond", work: "W14", text: "Your answer?" },
+	{ op: "result", of: "J2" },
+	{ op: "parkNext", as: "J3", from: "J2", user: "4" },
+	{ op: "wait", as: "W15", conversation: "chat_l7", agent: "backup-1", backup: true },
+	{ op: "respond", work: "W15", text: "Right.", hold: 0 },
+	{ op: "result", of: "J3" },
+	{ op: "forget", agent: "main-1", cleared: false },
 	// A changed lead resends the instructions with only the new messages; after a summary the
 	// agent picks up after its own last reply.
 	{ op: "park", as: "K", conversation: "chat_l8", messages: [sys, user("one")] },
@@ -143,7 +180,7 @@ async function run() {
 				break;
 			}
 			case "wait": {
-				const view = await bridge.waitForWork(0, { conversation: s.conversation, agent: s.agent, full: s.full, andBackground: s.andBackground });
+				const view = await bridge.waitForWork(0, { conversation: s.conversation, agent: s.agent, full: s.full, andBackground: s.andBackground, backup: s.backup });
 				if (view) works.set(s.as, view.workId);
 				result = view;
 				break;
@@ -192,6 +229,12 @@ async function run() {
 				break;
 			case "forgetConversation":
 				bridge.forgetConversation(s.conversation);
+				break;
+			case "compacting":
+				bridge.agentCompacting(s.agent);
+				break;
+			case "status":
+				result = { connected: bridge.backupConnected(), answering: bridge.backupAnswering(), backups: s.agents.map((a: string) => bridge.isBackupAgent(a)) };
 				break;
 			case "names":
 				result = s.infos.map((i: never) => bridge.displayAgentName(i) ?? null);

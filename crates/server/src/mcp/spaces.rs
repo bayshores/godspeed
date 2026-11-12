@@ -30,7 +30,7 @@ fn started(call: &ToolCall<'_>, done: ToolOutcome) -> Json {
 	};
 	let lesson_id = value["lessonId"].as_str().unwrap_or_default();
 	let next = if in_claude_code(call.caller) {
-		super::work::waiter_hint(Some(lesson_id))
+		super::work::waiter_hint(Some(lesson_id), false)
 	} else {
 		format!("Call wait_for_work with lesson_id \"{lesson_id}\" to begin teaching.")
 	};

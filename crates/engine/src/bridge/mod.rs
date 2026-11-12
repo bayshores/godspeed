@@ -7,7 +7,9 @@
 //!
 //! Check-ins: every authorized MCP request counts as the agent being connected; only the work
 //! loop (wait, respond, read) counts as teaching. Status changes go out as "agent-changed".
+//! A backup teacher answers while a main agent compacts its context (`backup`).
 
+mod backup;
 mod checkin;
 mod render;
 mod stream;
@@ -100,6 +102,10 @@ struct State {
 	background_runs: HashSet<String>,
 	/// agent ("" = no id) → the lesson its waiter stays on.
 	staying_on: HashMap<String, String>,
+	/// agent → when it started compacting its context.
+	compacting: HashMap<String, i64>,
+	/// backup agent ("" = no id) → its last check-in.
+	backups: HashMap<String, i64>,
 }
 
 /// Lessons use their chat id as the conversation; everything else is a background job.

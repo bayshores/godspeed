@@ -115,9 +115,9 @@ pub async fn handle_mcp_request(app: &Arc<App>, method: &Method, headers: &Heade
 	}
 }
 
-/// /api/mcp/forget: the godspeed folder's Claude Code hook says an agent lost its context (it
-/// compacted, or /clear ended the session), so its next items come in full.
-pub fn handle_agent_forget(app: &App, headers: &HeaderMap, body: Option<Json>) -> Response {
+/// A godspeed folder hook's request: the refusal, or `then` runs with the session id it sent
+/// and its body.
+fn hook_request(app: &App, headers: &HeaderMap, body: Option<Json>, then: impl FnOnce(&str, &Json)) -> Response {
 	if let Some(refused) = refuse(app, headers) {
 		return refused;
 	}
@@ -125,8 +125,20 @@ pub fn handle_agent_forget(app: &App, headers: &HeaderMap, body: Option<Json>) -
 	let Some(agent) = agent_id_of(&json!({ "godspeed/agent": body["agent"] })) else {
 		return http_reply::json(400, &json!({ "error": "Send the agent's session id as \"agent\"." }));
 	};
-	app.bridge.forget_agent(&agent, body["cleared"] == Json::Bool(true));
+	then(&agent, &body);
 	http_reply::json(200, &json!({ "ok": true }))
+}
+
+/// /api/mcp/forget: the godspeed folder's Claude Code hook says an agent lost its context (it
+/// compacted, or /clear ended the session), so its next items come in full.
+pub fn handle_agent_forget(app: &App, headers: &HeaderMap, body: Option<Json>) -> Response {
+	hook_request(app, headers, body, |agent, body| app.bridge.forget_agent(agent, body["cleared"] == Json::Bool(true)))
+}
+
+/// /api/mcp/compacting: the godspeed folder's Claude Code hook says an agent started compacting
+/// its context, so the backup teacher answers meanwhile.
+pub fn handle_agent_compacting(app: &App, headers: &HeaderMap, body: Option<Json>) -> Response {
+	hook_request(app, headers, body, |agent, _| app.bridge.agent_compacting(agent, clock::now_ms()))
 }
 
 /// Token and agent status for the window (GET /api/mcp-access), without the url.
@@ -137,6 +149,8 @@ pub fn mcp_access_status(app: &App) -> Result<Json, String> {
 		"agentConnected": app.bridge.agent_connected(now),
 		"agentTeaching": app.bridge.agent_teaching(now),
 		"agentName": app.bridge.agent_name(now),
+		"backupConnected": app.bridge.backup_connected(now),
+		"backupAnswering": app.bridge.backup_answering(now),
 		"pendingWork": app.bridge.pending_work_count(),
 		"claimedLessons": app.bridge.claimed_lessons(),
 	}))

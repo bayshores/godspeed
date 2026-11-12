@@ -1127,6 +1127,799 @@
 				},
 				{
 					"step": {
+						"op": "status",
+						"agents": [
+							"backup-1",
+							"main-1"
+						]
+					},
+					"result": {
+						"connected": false,
+						"answering": false,
+						"backups": [
+							false,
+							false
+						]
+					},
+					"events": []
+				},
+				{
+					"step": {
+						"op": "park",
+						"as": "H",
+						"conversation": "chat_l6",
+						"messages": [
+							{
+								"role": "system",
+								"content": "Teach well.",
+								"toolsAdded": [
+									{
+										"name": "quiz",
+										"description": "Ask.",
+										"parameters": {
+											"type": "object",
+											"properties": {
+												"text": {
+													"type": "string"
+												}
+											}
+										}
+									},
+									{
+										"name": "echo",
+										"description": "Echo.",
+										"parameters": {
+											"type": "object",
+											"properties": {
+												"text": {
+													"type": "string"
+												}
+											}
+										}
+									}
+								],
+								"timestamp": "<t>"
+							},
+							{
+								"role": "user",
+								"content": "help",
+								"timestamp": "<t>"
+							}
+						]
+					},
+					"result": null,
+					"events": [
+						"agent-changed"
+					]
+				},
+				{
+					"step": {
+						"op": "wait",
+						"as": "W10",
+						"conversation": "chat_l6",
+						"agent": "main-1"
+					},
+					"result": {
+						"workId": "<work#7>_1",
+						"conversation": "chat_l6",
+						"continued": false,
+						"instructions": "Teach well.",
+						"tools": [
+							{
+								"name": "quiz",
+								"description": "Ask.",
+								"parameters": {
+									"type": "object",
+									"properties": {
+										"text": {
+											"type": "string"
+										}
+									}
+								}
+							},
+							{
+								"name": "echo",
+								"description": "Echo.",
+								"parameters": {
+									"type": "object",
+									"properties": {
+										"text": {
+											"type": "string"
+										}
+									}
+								}
+							}
+						],
+						"messages": [
+							{
+								"role": "user",
+								"text": "help"
+							}
+						]
+					},
+					"events": [
+						"agent-changed"
+					]
+				},
+				{
+					"step": {
+						"op": "wait",
+						"as": "none4",
+						"agent": "backup-1",
+						"backup": true
+					},
+					"result": null,
+					"events": [
+						"agent-changed"
+					]
+				},
+				{
+					"step": {
+						"op": "status",
+						"agents": [
+							"backup-1",
+							"main-1"
+						]
+					},
+					"result": {
+						"connected": true,
+						"answering": false,
+						"backups": [
+							true,
+							false
+						]
+					},
+					"events": []
+				},
+				{
+					"step": {
+						"op": "compacting",
+						"agent": "backup-1"
+					},
+					"result": null,
+					"events": []
+				},
+				{
+					"step": {
+						"op": "compacting",
+						"agent": "main-1"
+					},
+					"result": null,
+					"events": [
+						"agent-changed"
+					]
+				},
+				{
+					"step": {
+						"op": "status",
+						"agents": [
+							"backup-1",
+							"main-1"
+						]
+					},
+					"result": {
+						"connected": true,
+						"answering": true,
+						"backups": [
+							true,
+							false
+						]
+					},
+					"events": []
+				},
+				{
+					"step": {
+						"op": "claimed"
+					},
+					"result": [
+						{
+							"lessonId": "chat_l2",
+							"claimedAt": "<t>"
+						},
+						{
+							"lessonId": "chat_l1",
+							"claimedAt": "<t>"
+						}
+					],
+					"events": []
+				},
+				{
+					"step": {
+						"op": "wait",
+						"as": "none5",
+						"conversation": "chat_l6",
+						"agent": "main-1"
+					},
+					"result": null,
+					"events": []
+				},
+				{
+					"step": {
+						"op": "park",
+						"as": "I",
+						"conversation": "job_y",
+						"messages": [
+							{
+								"role": "system",
+								"content": "Read files.",
+								"timestamp": "<t>"
+							},
+							{
+								"role": "user",
+								"content": "read this",
+								"timestamp": "<t>"
+							}
+						]
+					},
+					"result": null,
+					"events": [
+						"agent-changed",
+						"activity-changed"
+					]
+				},
+				{
+					"step": {
+						"op": "wait",
+						"as": "W11",
+						"agent": "backup-1",
+						"backup": true
+					},
+					"result": {
+						"workId": "<work#7>_2",
+						"conversation": "chat_l6",
+						"continued": false,
+						"instructions": "Teach well.",
+						"tools": [
+							{
+								"name": "quiz",
+								"description": "Ask.",
+								"parameters": {
+									"type": "object",
+									"properties": {
+										"text": {
+											"type": "string"
+										}
+									}
+								}
+							},
+							{
+								"name": "echo",
+								"description": "Echo.",
+								"parameters": {
+									"type": "object",
+									"properties": {
+										"text": {
+											"type": "string"
+										}
+									}
+								}
+							}
+						],
+						"messages": [
+							{
+								"role": "user",
+								"text": "help"
+							}
+						]
+					},
+					"events": [
+						"agent-changed"
+					]
+				},
+				{
+					"step": {
+						"op": "respond",
+						"work": "W10",
+						"text": "Too late."
+					},
+					"result": {
+						"ok": false,
+						"error": "No open work item \"<work#7>_1\" — it was already answered or the request was cancelled. Call wait_for_work for the current one."
+					},
+					"events": []
+				},
+				{
+					"step": {
+						"op": "respond",
+						"work": "W11",
+						"text": "Hello.",
+						"hold": 0
+					},
+					"result": {
+						"ok": true,
+						"conversation": "chat_l6",
+						"agent": "backup-1"
+					},
+					"events": [
+						"agent-changed"
+					]
+				},
+				{
+					"step": {
+						"op": "result",
+						"of": "H"
+					},
+					"result": {
+						"role": "assistant",
+						"content": [
+							{
+								"type": "text",
+								"text": "Hello."
+							}
+						],
+						"api": "godspeed-agent",
+						"provider": "agent",
+						"model": "outside-agent",
+						"usage": {
+							"input": 65,
+							"output": 2,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 67,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "stop",
+						"timestamp": "<t>"
+					},
+					"events": []
+				},
+				{
+					"step": {
+						"op": "forget",
+						"agent": "main-1",
+						"cleared": false
+					},
+					"result": null,
+					"events": [
+						"agent-changed"
+					]
+				},
+				{
+					"step": {
+						"op": "status",
+						"agents": [
+							"backup-1",
+							"main-1"
+						]
+					},
+					"result": {
+						"connected": true,
+						"answering": false,
+						"backups": [
+							true,
+							false
+						]
+					},
+					"events": []
+				},
+				{
+					"step": {
+						"op": "wait",
+						"as": "none6",
+						"agent": "backup-1",
+						"backup": true
+					},
+					"result": null,
+					"events": []
+				},
+				{
+					"step": {
+						"op": "wait",
+						"as": "W12",
+						"agent": "main-1"
+					},
+					"result": {
+						"workId": "<work#8>_1",
+						"conversation": "job_y",
+						"continued": false,
+						"instructions": "Read files.",
+						"tools": [],
+						"messages": [
+							{
+								"role": "user",
+								"text": "read this"
+							}
+						]
+					},
+					"events": [
+						"activity-changed"
+					]
+				},
+				{
+					"step": {
+						"op": "respond",
+						"work": "W12",
+						"text": "Read.",
+						"hold": 0
+					},
+					"result": {
+						"ok": true,
+						"conversation": "job_y",
+						"agent": "main-1"
+					},
+					"events": [
+						"agent-changed"
+					]
+				},
+				{
+					"step": {
+						"op": "result",
+						"of": "I"
+					},
+					"result": {
+						"role": "assistant",
+						"content": [
+							{
+								"type": "text",
+								"text": "Read."
+							}
+						],
+						"api": "godspeed-agent",
+						"provider": "agent",
+						"model": "outside-agent",
+						"usage": {
+							"input": 9,
+							"output": 2,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 11,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "stop",
+						"timestamp": "<t>"
+					},
+					"events": []
+				},
+				{
+					"step": {
+						"op": "park",
+						"as": "J",
+						"conversation": "chat_l7",
+						"messages": [
+							{
+								"role": "system",
+								"content": "Teach well.",
+								"toolsAdded": [
+									{
+										"name": "quiz",
+										"description": "Ask.",
+										"parameters": {
+											"type": "object",
+											"properties": {
+												"text": {
+													"type": "string"
+												}
+											}
+										}
+									},
+									{
+										"name": "echo",
+										"description": "Echo.",
+										"parameters": {
+											"type": "object",
+											"properties": {
+												"text": {
+													"type": "string"
+												}
+											}
+										}
+									}
+								],
+								"timestamp": "<t>"
+							},
+							{
+								"role": "user",
+								"content": "quiz me",
+								"timestamp": "<t>"
+							}
+						]
+					},
+					"result": null,
+					"events": [
+						"agent-changed"
+					]
+				},
+				{
+					"step": {
+						"op": "wait",
+						"as": "W13",
+						"conversation": "chat_l7",
+						"agent": "main-1"
+					},
+					"result": {
+						"workId": "<work#9>_1",
+						"conversation": "chat_l7",
+						"continued": false,
+						"instructions": "Teach well.",
+						"tools": [
+							{
+								"name": "quiz",
+								"description": "Ask.",
+								"parameters": {
+									"type": "object",
+									"properties": {
+										"text": {
+											"type": "string"
+										}
+									}
+								}
+							},
+							{
+								"name": "echo",
+								"description": "Echo.",
+								"parameters": {
+									"type": "object",
+									"properties": {
+										"text": {
+											"type": "string"
+										}
+									}
+								}
+							}
+						],
+						"messages": [
+							{
+								"role": "user",
+								"text": "quiz me"
+							}
+						]
+					},
+					"events": [
+						"agent-changed"
+					]
+				},
+				{
+					"step": {
+						"op": "respond",
+						"work": "W13",
+						"toolCalls": [
+							{
+								"name": "quiz",
+								"arguments": {
+									"text": "q"
+								}
+							}
+						]
+					},
+					"result": {
+						"ok": true,
+						"conversation": "chat_l7",
+						"agent": "main-1"
+					},
+					"events": [
+						"agent-changed"
+					]
+				},
+				{
+					"step": {
+						"op": "parkNext",
+						"as": "J2",
+						"from": "J",
+						"result": "asked"
+					},
+					"result": null,
+					"events": [
+						"agent-changed"
+					]
+				},
+				{
+					"step": {
+						"op": "compacting",
+						"agent": "main-1"
+					},
+					"result": null,
+					"events": [
+						"agent-changed"
+					]
+				},
+				{
+					"step": {
+						"op": "wait",
+						"as": "W14",
+						"agent": "backup-1",
+						"backup": true
+					},
+					"result": {
+						"workId": "<work#10>_1",
+						"conversation": "chat_l7",
+						"continued": false,
+						"instructionsAsIn": "<work#7>_2",
+						"tools": [],
+						"toolsAsBefore": [
+							"quiz",
+							"echo"
+						],
+						"messages": [
+							{
+								"role": "user",
+								"text": "quiz me"
+							},
+							{
+								"role": "assistant",
+								"toolCalls": [
+									{
+										"id": "<agent#2>",
+										"name": "quiz",
+										"arguments": {
+											"text": "q"
+										}
+									}
+								]
+							},
+							{
+								"role": "toolResult",
+								"toolCallId": "<agent#2>",
+								"toolName": "quiz",
+								"isError": false,
+								"text": "asked"
+							}
+						]
+					},
+					"events": [
+						"agent-changed"
+					]
+				},
+				{
+					"step": {
+						"op": "respond",
+						"work": "W14",
+						"text": "Your answer?"
+					},
+					"result": {
+						"ok": true,
+						"conversation": "chat_l7",
+						"agent": "backup-1"
+					},
+					"events": [
+						"agent-changed"
+					]
+				},
+				{
+					"step": {
+						"op": "result",
+						"of": "J2"
+					},
+					"result": {
+						"role": "assistant",
+						"content": [
+							{
+								"type": "text",
+								"text": "Your answer?"
+							}
+						],
+						"api": "godspeed-agent",
+						"provider": "agent",
+						"model": "outside-agent",
+						"usage": {
+							"input": 79,
+							"output": 3,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 82,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "stop",
+						"timestamp": "<t>"
+					},
+					"events": []
+				},
+				{
+					"step": {
+						"op": "parkNext",
+						"as": "J3",
+						"from": "J2",
+						"user": "4"
+					},
+					"result": null,
+					"events": [
+						"agent-changed"
+					]
+				},
+				{
+					"step": {
+						"op": "wait",
+						"as": "W15",
+						"conversation": "chat_l7",
+						"agent": "backup-1",
+						"backup": true
+					},
+					"result": {
+						"workId": "<work#11>_1",
+						"conversation": "chat_l7",
+						"continued": true,
+						"messages": [
+							{
+								"role": "user",
+								"text": "4"
+							}
+						]
+					},
+					"events": [
+						"agent-changed"
+					]
+				},
+				{
+					"step": {
+						"op": "respond",
+						"work": "W15",
+						"text": "Right.",
+						"hold": 0
+					},
+					"result": {
+						"ok": true,
+						"conversation": "chat_l7",
+						"agent": "backup-1"
+					},
+					"events": [
+						"agent-changed"
+					]
+				},
+				{
+					"step": {
+						"op": "result",
+						"of": "J3"
+					},
+					"result": {
+						"role": "assistant",
+						"content": [
+							{
+								"type": "text",
+								"text": "Right."
+							}
+						],
+						"api": "godspeed-agent",
+						"provider": "agent",
+						"model": "outside-agent",
+						"usage": {
+							"input": 87,
+							"output": 2,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 89,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "stop",
+						"timestamp": "<t>"
+					},
+					"events": []
+				},
+				{
+					"step": {
+						"op": "forget",
+						"agent": "main-1",
+						"cleared": false
+					},
+					"result": null,
+					"events": [
+						"agent-changed"
+					]
+				},
+				{
+					"step": {
 						"op": "park",
 						"as": "K",
 						"conversation": "chat_l8",
@@ -1182,7 +1975,7 @@
 						"agent": "agent-F"
 					},
 					"result": {
-						"workId": "<work#7>_1",
+						"workId": "<work#12>_1",
 						"conversation": "chat_l8",
 						"continued": false,
 						"instructions": "Teach well.",
@@ -1260,7 +2053,7 @@
 						"agent": "agent-F"
 					},
 					"result": {
-						"workId": "<work#8>_1",
+						"workId": "<work#13>_1",
 						"conversation": "chat_l8",
 						"continued": true,
 						"instructions": "Teach well. Explain terms.",
@@ -1317,7 +2110,7 @@
 						"agent": "agent-F"
 					},
 					"result": {
-						"workId": "<work#9>_1",
+						"workId": "<work#14>_1",
 						"conversation": "chat_l8",
 						"continued": true,
 						"messages": [
@@ -1368,7 +2161,7 @@
 						"agent": "agent-F"
 					},
 					"result": {
-						"workId": "<work#10>_1",
+						"workId": "<work#15>_1",
 						"conversation": "chat_l8",
 						"continued": true,
 						"messages": [
@@ -1418,7 +2211,7 @@
 						"agent": "agent-G"
 					},
 					"result": {
-						"workId": "<work#11>_1",
+						"workId": "<work#16>_1",
 						"conversation": "chat_l8",
 						"continued": false,
 						"instructions": "Teach well. Explain terms.",
@@ -1563,7 +2356,7 @@
 			"saved": {
 				"agent-B chat_l1": {
 					"count": 5,
-					"hash": "46ec9d556b2951b4f717e7f311ff0e88",
+					"hash": "305153df148bcdee9b8a24d58441e0c2",
 					"last": "2e689183d0186cdc32e05c7863bf46f6",
 					"lead": "7f32ce993cc75a30ea3a22f287a89c41"
 				},
@@ -1571,6 +2364,18 @@
 					"count": 3,
 					"hash": "a82df0c9d225ace08417d4740a090d8e",
 					"last": "2acabdb51c70d0a9c9b315aeea6a86e9",
+					"lead": "7f32ce993cc75a30ea3a22f287a89c41"
+				},
+				"backup-1 chat_l6": {
+					"count": 3,
+					"hash": "304ef847846aafa2b8a852ae84cacd30",
+					"last": "73699b70b88bc58b0885597b77936d06",
+					"lead": "7f32ce993cc75a30ea3a22f287a89c41"
+				},
+				"backup-1 chat_l7": {
+					"count": 7,
+					"hash": "4defbc9e7698508dd1d89a7ad7a1ad8b",
+					"last": "d612697a601af31d18b3f726b674ab8f",
 					"lead": "7f32ce993cc75a30ea3a22f287a89c41"
 				},
 				"agent-F chat_l8": {

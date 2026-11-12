@@ -1,6 +1,6 @@
 //! Replays tests/golden/bridge.json (the real agent-bridge.ts, from bridge.golden.ts): the same
-//! script of operations on the Rust Bridge gives the same views, errors, replies, events and
-//! saved marks.
+//! script of operations on the Rust Bridge gives the same views, errors, replies, events, saved
+//! marks and backup teacher status.
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -170,6 +170,7 @@ async fn the_bridge_matches_agent_bridge_ts() {
 					agent: s["agent"].as_str().map(str::to_owned),
 					full: s["full"].truthy(),
 					and_background: s["andBackground"].truthy(),
+					backup: s["backup"].truthy(),
 				};
 				if let Some(view) = bridge.wait_for_work(0, opts).await {
 					works.insert(text("as"), view.work_id.clone());
@@ -201,6 +202,12 @@ async fn the_bridge_matches_agent_bridge_ts() {
 			"stay" => bridge.stay_on(s["agent"].as_str(), s["lesson"].as_str()),
 			"staying" => result = bridge.staying_on(s["agent"].as_str()).map_or(Json::Null, Json::from),
 			"forgetConversation" => bridge.forget_conversation(&text("conversation")),
+			"compacting" => bridge.agent_compacting(&text("agent"), clock::now_ms()),
+			"status" => {
+				let now = clock::now_ms();
+				let backups: Json = s["agents"].as_arr().unwrap().iter().map(|a| Json::from(bridge.is_backup_agent(a.as_str()))).collect();
+				result = json!({ "connected": bridge.backup_connected(now), "answering": bridge.backup_answering(now), "backups": backups });
+			}
 			"names" => result = s["infos"].as_arr().unwrap().iter().map(|i| display_agent_name(i).map_or(Json::Null, Json::from)).collect(),
 			other => panic!("unknown op {other}"),
 		}
@@ -220,13 +227,15 @@ async fn the_bridge_matches_agent_bridge_ts() {
 			assert_eq!(stringify_pretty(&g[key], " "), stringify_pretty(&w[key], " "), "step {i} ({}): {key}", w["step"]["op"].as_str().unwrap());
 		}
 	}
-	// chat_l1's mark covers a reply's random tool-call id, so its hash and last cannot match.
+	// The marks of chat_l1 and chat_l7 cover a reply's random tool-call id, so their hashes
+	// cannot match; chat_l1's last message has one too.
 	let (got, want) = (&got["saved"], &want["saved"]);
 	let keys = |v: &Json| v.as_obj().unwrap().keys().cloned().collect::<Vec<_>>();
 	assert_eq!(keys(got), keys(want));
 	for key in keys(want) {
+		let random = ["chat_l1", "chat_l7"].iter().any(|c| key.ends_with(c));
 		for field in ["count", "hash", "last", "lead"] {
-			if key.ends_with("chat_l1") && (field == "hash" || field == "last") {
+			if random && (field == "hash" || (field == "last" && key.ends_with("chat_l1"))) {
 				continue;
 			}
 			assert_eq!(got[key.as_str()][field], want[key.as_str()][field], "saved {key} {field}");

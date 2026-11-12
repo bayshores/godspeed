@@ -1,5 +1,6 @@
-//! Limits that only end on the app clock: a stuck tool's 30 s timeout and grace, and a claim
-//! nobody answered for 10 minutes. One test, because the clock is shared by the whole binary.
+//! Limits that only end on the app clock: a stuck tool's 30 s timeout and grace, a claim nobody
+//! answered for 10 minutes, and a compaction that never reported its end. One test, because the
+//! clock is shared by the whole binary.
 
 use std::sync::Arc;
 
@@ -69,4 +70,27 @@ async fn the_app_clock_ends_stuck_tools_and_stale_claims() {
 	assert!(bridge.respond_to_work(&first.work_id, reply("late"), 0).unwrap_err().starts_with("No open work item"));
 	bridge.respond_to_work(&second.work_id, reply("Hi."), 0).unwrap();
 	assert_eq!(call.await.unwrap()["content"], json!([{ "type": "text", "text": "Hi." }]));
+
+	// A compacting agent takes nothing; its mark lapses after 10 minutes, and the window hears
+	// it a second later.
+	let events = Events::new();
+	let bridge = Bridge::new(&events, Arc::new(Marks::default()));
+	let call = park(&bridge, vec![json!({ "role": "user", "content": "hi", "timestamp": 1 })], "chat_l2", &Abort::new());
+	bridge.agent_compacting("main-1", clock::now_ms());
+	settle().await;
+	assert!(bridge.wait_for_work(0, agent("main-1")).await.is_none());
+	clock::advance(9 * 60_000);
+	settle().await;
+	assert!(bridge.wait_for_work(0, agent("main-1")).await.is_none(), "still compacting after 9 minutes");
+	let mut changes = events.subscribe();
+	clock::advance(60_000);
+	settle().await;
+	assert!(changes.try_recv().is_err());
+	clock::advance(1000);
+	settle().await;
+	assert_eq!(changes.try_recv().unwrap().kind.name(), "agent-changed");
+	assert!(changes.try_recv().is_err());
+	let work = bridge.wait_for_work(0, agent("main-1")).await.unwrap();
+	bridge.respond_to_work(&work.work_id, reply("Back."), 0).unwrap();
+	assert_eq!(call.await.unwrap()["content"], json!([{ "type": "text", "text": "Back." }]));
 }

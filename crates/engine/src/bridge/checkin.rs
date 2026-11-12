@@ -13,7 +13,7 @@ use super::{Bridge, Inner};
 /// An agent counts as connected (or teaching) if it checked in within this window.
 const CONNECTED_WINDOW_MS: i64 = 3 * 60_000;
 
-fn recent(at: i64, now: i64) -> bool {
+pub(super) fn recent(at: i64, now: i64) -> bool {
 	now - at < CONNECTED_WINDOW_MS
 }
 

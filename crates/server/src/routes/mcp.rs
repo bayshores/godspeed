@@ -1,7 +1,7 @@
-//! /api/mcp (the MCP endpoint for outside agents), /api/mcp/forget (an agent lost its context)
-//! and /api/mcp-access (Settings → Connection: the token, who is connected, rotating the
-//! token). /api/mcp and /api/mcp/forget check the token themselves; /api/mcp-access is for the
-//! desktop window only, like every other /api route.
+//! /api/mcp (the MCP endpoint for outside agents), /api/mcp/forget (an agent lost its context),
+//! /api/mcp/compacting (an agent started compacting it) and /api/mcp-access (Settings →
+//! Connection: the token, who is connected, rotating the token). The agents' routes check the
+//! token themselves; /api/mcp-access is for the desktop window only, like every other /api route.
 
 use std::sync::Arc;
 
@@ -21,6 +21,7 @@ pub fn routes() -> Router<Arc<App>> {
 	Router::new()
 		.route("/api/mcp", ApiRoute::new().get(endpoint).post(endpoint).delete(endpoint).into_route())
 		.route("/api/mcp/forget", ApiRoute::new().post(forget).into_route())
+		.route("/api/mcp/compacting", ApiRoute::new().post(compacting).into_route())
 		.route("/api/mcp-access", ApiRoute::new().get(access).post(rotate).into_route())
 }
 
@@ -31,6 +32,10 @@ async fn endpoint(State(app): State<Arc<App>>, method: Method, headers: HeaderMa
 
 async fn forget(State(app): State<Arc<App>>, headers: HeaderMap, body: Body) -> Response {
 	mcp::handle_agent_forget(&app, &headers, json_body(body).await)
+}
+
+async fn compacting(State(app): State<Arc<App>>, headers: HeaderMap, body: Body) -> Response {
+	mcp::handle_agent_compacting(&app, &headers, json_body(body).await)
 }
 
 /// The status with the endpoint's address. Node built it from its own host and port, never

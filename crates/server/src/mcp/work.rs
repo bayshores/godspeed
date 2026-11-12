@@ -34,16 +34,21 @@ fn wait_ms(seconds: Option<f64>) -> i64 {
 	(seconds.unwrap_or(DEFAULT_WAIT_S).clamp(1.0, MAX_WAIT_S) * 1000.0) as i64
 }
 
-pub(super) fn waiter_hint(lesson_id: Option<&str>) -> String {
-	let lesson = lesson_id.filter(|l| !l.is_empty()).map(|l| format!(" --lesson {l}")).unwrap_or_default();
+/// The backup teacher's waiter always says --backup and stays on no lesson.
+pub(super) fn waiter_hint(lesson_id: Option<&str>, backup: bool) -> String {
+	let flags = match lesson_id.filter(|l| !l.is_empty()) {
+		_ if backup => " --backup".to_owned(),
+		Some(lesson) => format!(" --lesson {lesson}"),
+		None => String::new(),
+	};
 	format!(
-		"Wait with the waiter, not by calling wait_for_work yourself: run node .godspeed/wait-for-work.mjs{lesson} in the background (CLAUDE.md in the godspeed folder has the exact command) and end your turn. It costs no tokens and wakes you when work arrives."
+		"Wait with the waiter, not by calling wait_for_work yourself: run node .godspeed/wait-for-work.mjs{flags} in the background (CLAUDE.md in the godspeed folder has the exact command) and end your turn. It costs no tokens and wakes you when work arrives."
 	)
 }
 
-fn idle(caller: Option<&str>) -> Json {
+fn idle(caller: Option<&str>, backup: bool) -> Json {
 	let note = if in_claude_code(caller) {
-		format!("Nothing to do right now. {}", waiter_hint(None))
+		format!("Nothing to do right now. {}", waiter_hint(None, backup))
 	} else {
 		"Nothing to do right now. Call wait_for_work again to keep waiting (the learner may be reading or answering).".to_owned()
 	};
@@ -147,15 +152,24 @@ pub async fn wait_for_work(call: &ToolCall<'_>, args: &Json) -> Json {
 		return failure(&format!("No lesson \"{lesson}\". Use list_lessons."));
 	}
 	let agent = agent_id_of(call.meta);
+	let full = args["full_context"].as_bool() == Some(true);
+	// The backup teacher's waiter (wait-for-work.mjs --backup).
+	if call.meta["godspeed/backup"] == Json::Bool(true) {
+		let opts = WaitOptions { agent, full, backup: true, ..WaitOptions::default() };
+		return match app.bridge.wait_for_work(wait_ms(args["timeout_seconds"].as_f64()), opts).await {
+			Some(view) => work_result(app, &view),
+			None => result(&idle(call.caller, true)),
+		};
+	}
 	app.bridge.stay_on(agent.as_deref(), lesson_id);
-	let opts = WaitOptions { conversation: lesson_id.map(str::to_owned), agent, full: args["full_context"].as_bool() == Some(true), and_background: true };
+	let opts = WaitOptions { conversation: lesson_id.map(str::to_owned), agent, full, and_background: true, backup: false };
 	// Waiting counts the agent as working at once, so what godspeed queues for it now (catch-up)
 	// reaches this same wait.
 	let wait = app.bridge.wait_for_work(wait_ms(args["timeout_seconds"].as_f64()), opts);
 	let view = started_then(wait, || gs_services::turns::agent_catch_up::catch_up_for_agent(app, clock::now_ms())).await;
 	match view {
 		Some(view) => work_result(app, &view),
-		None => result(&idle(call.caller)),
+		None => result(&idle(call.caller, false)),
 	}
 }
 
@@ -184,15 +198,16 @@ pub async fn respond(call: &ToolCall<'_>, args: &Json) -> Json {
 	if let Some(lesson) = app.stores.chats.get_chat(&answered.conversation).filter(|l| l["kind"].as_str() != Some("talk")) {
 		note_replying(app, call.caller, &lesson);
 	}
+	let backup = app.bridge.is_backup_agent(answered.agent.as_deref());
 	let next = {
 		let _release = Release { app, conversation: answered.conversation.clone() };
-		let opts = WaitOptions { conversation: Some(answered.conversation.clone()), agent: answered.agent.clone(), ..WaitOptions::default() };
+		let opts = WaitOptions { conversation: Some(answered.conversation.clone()), agent: answered.agent.clone(), backup, ..WaitOptions::default() };
 		app.bridge.wait_for_work(follow_up_ms, opts).await
 	};
 	if let Some(next) = next {
 		return work_result(app, &next);
 	}
-	result(&turn_complete(app, call.caller, &answered.conversation, answered.agent.as_deref()))
+	result(&turn_complete(app, call.caller, &answered.conversation, answered.agent.as_deref(), backup))
 }
 
 fn note_replying(app: &Arc<App>, caller: Option<&str>, lesson: &Json) {
@@ -206,27 +221,27 @@ fn note_replying(app: &Arc<App>, caller: Option<&str>, lesson: &Json) {
 	gs_services::app::agent_actions::note_agent_action(app, caller, &action);
 }
 
-/// The answer when no follow-up came: where the agent goes next.
-fn turn_complete(app: &App, caller: Option<&str>, conversation: &str, agent: Option<&str>) -> Json {
+/// The answer when no follow-up came: where the agent goes next. The backup stays on no lesson.
+fn turn_complete(app: &App, caller: Option<&str>, conversation: &str, agent: Option<&str>, backup: bool) -> Json {
 	let chat = app.stores.chats.get_chat(conversation);
 	let claude_code = in_claude_code(caller);
 	// A Talk reply goes on to the lesson it just started, else back to the lesson the agent was
 	// staying on, not to Talk alone.
 	let talk = chat.as_ref().is_some_and(|c| c["kind"].as_str() == Some("talk"));
 	let started = chat.as_ref().filter(|_| talk).and_then(|c| lesson_started_last_turn(c["messages"].as_arr().map_or(&[][..], Vec::as_slice)));
-	if let Some(started) = &started {
+	if let Some(started) = started.as_deref().filter(|_| !backup) {
 		app.bridge.stay_on(agent, Some(started));
 	}
 	let lesson_id = if talk { started.clone().or_else(|| app.bridge.staying_on(agent)) } else { chat.as_ref().and_then(|c| c["id"].as_str().map(str::to_owned)) };
 	let lesson_id = lesson_id.filter(|l| !l.is_empty());
 	let wait = if claude_code {
-		waiter_hint(lesson_id.as_deref())
+		waiter_hint(lesson_id.as_deref(), backup)
 	} else {
 		let stay = lesson_id.as_deref().map(|l| format!(" (lesson_id \"{l}\" to stay on this lesson)")).unwrap_or_default();
 		format!("Call wait_for_work to continue{stay}.")
 	};
 	let note = match &chat {
-		None => format!("The task step is done. {}", if claude_code { waiter_hint(None) } else { "Call wait_for_work for more.".to_owned() }),
+		None => format!("The task step is done. {}", if claude_code { waiter_hint(None, false) } else { "Call wait_for_work for more.".to_owned() }),
 		Some(_) if talk => format!("Your reply is in Talk.{} {wait}", if started.is_some() { " The lesson you started is waiting for you." } else { "" }),
 		Some(_) => format!("Your turn is done. The learner is reading and will answer in the godspeed window. {wait}"),
 	};
@@ -267,9 +282,15 @@ mod tests {
 
 	#[test]
 	fn hints_name_the_lesson() {
-		assert!(waiter_hint(Some("chat_a")).contains("wait-for-work.mjs --lesson chat_a in the background"));
-		assert!(waiter_hint(None).contains("wait-for-work.mjs in the background"));
-		assert_eq!(idle(Some("Codex"))["note"], json!("Nothing to do right now. Call wait_for_work again to keep waiting (the learner may be reading or answering)."));
+		assert!(waiter_hint(Some("chat_a"), false).contains("wait-for-work.mjs --lesson chat_a in the background"));
+		assert!(waiter_hint(None, false).contains("wait-for-work.mjs in the background"));
+		assert_eq!(idle(Some("Codex"), true)["note"], json!("Nothing to do right now. Call wait_for_work again to keep waiting (the learner may be reading or answering)."));
+	}
+
+	#[test]
+	fn the_backup_waits_with_backup_never_on_a_lesson() {
+		assert!(waiter_hint(Some("chat_a"), true).contains("wait-for-work.mjs --backup in the background"));
+		assert!(idle(Some("Claude Code"), true)["note"].as_str().unwrap().starts_with("Nothing to do right now. Wait with the waiter, not by calling wait_for_work yourself: run node .godspeed/wait-for-work.mjs --backup in"));
 	}
 
 	#[tokio::test]

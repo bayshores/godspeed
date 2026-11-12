@@ -7,6 +7,7 @@ use gs_core::contracts::chat::{CHAT_ID_PREFIX, TALK_CHAT_ID};
 use gs_core::records::agent_seen::seen_mark;
 use gs_json::Json;
 
+use super::backup::{compacting_now, someone_compacting};
 use super::render::{instructions_and_tools, prints_of};
 use super::view::{WorkView, remember_seen};
 use super::{Bridge, State, WorkItem, is_background};
@@ -31,6 +32,8 @@ pub struct WaitOptions {
 	/// With a conversation, also take background jobs, so an agent staying on one lesson
 	/// still does the file reading and graph work nobody else would.
 	pub and_background: bool,
+	/// The backup teacher's waiter.
+	pub backup: bool,
 }
 
 /// One tool call in an agent's reply.
@@ -64,8 +67,13 @@ fn open_item(state: &State, work_id: &str) -> Option<usize> {
 	state.items.iter().position(|i| i.id == id && i.claims.to_string() == claims)
 }
 
-fn claimable(state: &State, item: &WorkItem, now: i64, conversation: Option<&str>, agent: Option<&str>) -> bool {
-	if Some(item.conversation.as_str()) != conversation && state.held.get(&item.conversation).is_some_and(|until| *until > now) {
+fn claimable(state: &State, item: &WorkItem, now: i64, taker: &WaitOptions) -> bool {
+	let agent = taker.agent.as_deref();
+	if agent.is_some_and(|a| compacting_now(state, a, now)) {
+		return false;
+	}
+	// The backup answers for a compacting agent, so its holds do not count.
+	if !taker.backup && Some(item.conversation.as_str()) != taker.conversation.as_deref() && state.held.get(&item.conversation).is_some_and(|until| *until > now) {
 		return false;
 	}
 	// An agent may take its own item again (a compaction lost its workId).
@@ -81,13 +89,22 @@ fn oldest(state: &State, now: i64, opts: &WaitOptions, keep: impl Fn(&WorkItem) 
 	order.sort_by_key(|&i| state.items[i].created_at);
 	order.into_iter().find(|&i| {
 		let item = &state.items[i];
-		keep(item) && claimable(state, item, now, opts.conversation.as_deref(), opts.agent.as_deref())
+		keep(item) && claimable(state, item, now, opts)
 	})
 }
 
 /// The next item: any, or the conversation's (a lesson also takes Talk's, oldest first, so Talk
 /// never waits on a lesson), then background jobs when asked.
 fn pick(state: &State, now: i64, opts: &WaitOptions) -> Option<usize> {
+	// The backup finishes a turn it began, and takes new lesson and Talk turns only while a main
+	// agent compacts.
+	if opts.backup {
+		return match opts.conversation.as_deref() {
+			Some(conversation) => oldest(state, now, opts, |i| i.conversation == conversation),
+			None if someone_compacting(state, now) => oldest(state, now, opts, |i| !is_background(&i.conversation)),
+			None => None,
+		};
+	}
 	let Some(conversation) = opts.conversation.as_deref() else { return oldest(state, now, opts, |_| true) };
 	let with_talk = conversation.starts_with(CHAT_ID_PREFIX);
 	oldest(state, now, opts, |i| i.conversation == conversation || (with_talk && i.conversation == TALK_CHAT_ID))
@@ -134,7 +151,12 @@ impl Bridge {
 				return None;
 			}
 			let now = clock::now_ms();
-			self.record_check_in(None, true, now);
+			// A backup that only waits is not teaching: lessons still need the main agent.
+			if opts.backup {
+				self.note_backup(opts.agent.as_deref(), now);
+			} else {
+				self.record_check_in(None, true, now);
+			}
 			let seen = self.0.waiters.wakes();
 			let claimed = self.claim(now, &opts);
 			drop(ticket.take());
@@ -229,6 +251,8 @@ impl Bridge {
 	/// cleared session is gone for good, so the items it held go to the next agent at once.
 	pub fn forget_agent(&self, agent: &str, cleared: bool) {
 		let mut s = self.0.state.lock();
+		// It came back from compacting: the work is its own again.
+		let back = s.compacting.remove(agent).is_some();
 		for by_agent in s.seen_by.values_mut() {
 			by_agent.remove(agent);
 		}
@@ -242,6 +266,9 @@ impl Bridge {
 			}
 		}
 		drop(s);
+		if back {
+			self.emit(EventKind::AgentChanged);
+		}
 		self.0.seen.forget_agent(agent);
 		if released {
 			self.emit(EventKind::AgentChanged);
