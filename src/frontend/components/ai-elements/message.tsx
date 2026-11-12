@@ -11,7 +11,7 @@ import {
 } from "streamdown";
 import { mdComponents } from "@/frontend/components/md-blocks";
 import { lazyCodePlugin } from "@/frontend/components/lazy-code-plugin";
-import { repairMathForDisplay, transformMathDelimiters } from "@/shared/core";
+import { CITE_TAG, repairMathForDisplay, transformMathDelimiters, withoutCiteMarks } from "@/shared/core";
 
 export const Message = ({ className, ...props }: HTMLAttributes<HTMLDivElement>) => (
   <div className={cn("flex w-full max-w-[95%] flex-col gap-2", className)} {...props} />
@@ -67,6 +67,9 @@ export const streamdownPlugins = {
   math: createMathPlugin({ singleDollarTextMath: true }),
 } as unknown as PluginConfig;
 
+// The source number on a mark; a module constant so Streamdown sees one identity.
+const citeTags = { [CITE_TAG]: ["n"] };
+
 export const MessageResponse = memo(
   ({ className, children, ...props }: MessageResponseProps) => {
     // Legacy backslash delimiters are converted in a single linear scan;
@@ -86,6 +89,7 @@ export const MessageResponse = memo(
           className
         )}
         components={mdComponents}
+        allowedTags={citeTags}
         plugins={streamdownPlugins}
         {...props}
       >
@@ -105,7 +109,7 @@ MessageResponse.displayName = "MessageResponse";
 export function ToolContentResponse({ children, ...props }: MessageResponseProps) {
   return (
     <MessageResponse {...props}>
-      {typeof children === "string" ? repairMathForDisplay(children) : children}
+      {typeof children === "string" ? repairMathForDisplay(withoutCiteMarks(children)) : children}
     </MessageResponse>
   );
 }

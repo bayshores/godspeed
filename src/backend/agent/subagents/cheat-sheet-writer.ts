@@ -25,6 +25,7 @@ const CHEAT_SHEET_INSTRUCTIONS = `You help a student with their cheat sheet: the
 - A change, or something on the sheet that is wrong or would confuse a beginner: edit the source in the working folder, compile it, check it (below) and send the PDF as pdf_path, with a short note in text of what changed.
 - When the student says something that should hold for every later change ("A4, both sides", "no slang"), put it in new_rules, one short line each. Follow every one of the sheet's rules.
 - Write for a beginner who barely studied: plain words, no slang, no notation the class doesn't use. Methods that work for any problem of a kind, never one practice problem's details. A mistake becomes the rule it broke. Where one part depends on another, say where to look ("see card 4").
+- When your reply says where something on the sheet comes from, put the passage id in double square brackets right after that sentence in text, like [[f_1a2b3c4d5e6f:7]]. Only in text, never on the sheet itself. The student can click it to see the passage.
 - Where the sheet's rules don't settle the class's rules for this exam (paper size, sides, what's allowed), find them with search_class_files and read_passage. Never break them.
 - Keep the source in the working folder (LaTeX works well: sheet.tex with latexmk, tectonic or pdflatex). A change edits it; don't start over. One PDF page per side. Black on white unless asked. No em-dashes.
 - Before sending a PDF, check it: count the pages and check their size (pdfinfo); render each page to an image (pdftoppm -r 60 -png) and look at every one; nothing runs off a page, overlaps or is too small to read; every formula and method agrees with the class's material. Fix what you find first.`;
@@ -61,22 +62,29 @@ export async function replyOnSheet(input: {
 	/** The request (core cheatSheetRequestText), with the learner's pictures. */
 	prompt: UserMessage["content"];
 	lookups: AgentTool<any>[];
+	/** Checks the source marks in the reply text: the text to keep, and the
+	 *  marks that point at nothing. */
+	checkText: (text: string) => { text: string; removed: string[] };
 	/** Checks and reads the PDF at a path: it, or why it can't be used. */
 	takePdf: (path: string) => Promise<TakenPdf | string>;
 	engine: PiEngine | undefined;
 	signal?: AbortSignal;
 }): Promise<SheetReply> {
 	let pdf: TakenPdf | null = null;
+	let text = "";
 	const reply = await runSubmitAgent<{ text: string; path?: string; rules: string[] }>({
 		toolName: "sheet_reply",
 		toolDescription: "Answer the student: your words, and the new PDF's path when you made or changed the sheet.",
 		parameters: replySchema,
 		fill: (raw: ReplySubmit) => ({ text: raw.text, ...(raw.pdf_path ? { path: raw.pdf_path } : {}), rules: raw.new_rules ?? [] }),
 		// The PDF is read here, once, so what was checked is what is kept.
-		validate: async ({ path }) => {
+		validate: async (raw) => {
 			pdf = null;
-			if (!path) return null;
-			const got = await input.takePdf(path);
+			const checked = input.checkText(raw.text);
+			if (checked.removed.length > 0) return `These source marks don't point at a passage of a class file: ${checked.removed.join(", ")}. Use ids from search_class_files, or leave them out.`;
+			text = checked.text;
+			if (!raw.path) return null;
+			const got = await input.takePdf(raw.path);
 			if (typeof got === "string") return got;
 			pdf = got;
 			return null;
@@ -91,5 +99,5 @@ export async function replyOnSheet(input: {
 		onStep: () => {},
 		neverSubmitted: "the agent never answered",
 	});
-	return { text: reply.text, pdf, rules: reply.rules };
+	return { text, pdf, rules: reply.rules };
 }

@@ -42,6 +42,7 @@ export { piTurnResponse } from "./pi/ui-stream.ts";
 export * from "./observability.ts";
 export { recentAgentActions, recordDeadlineChange } from "./agent-actions.ts";
 export { readingDocument, readingPdfPage } from "./reading-pages.ts";
+export { citedPage, citedPassage } from "./citations.ts";
 
 export { AgentFolderError, agentFolderView, classShortcutDir, dismissFolderNotice, setUpAgentFolder, shortcutPathProblem } from "./agent-folder.ts";
 export { removeOldSetup } from "./old-setup.ts";

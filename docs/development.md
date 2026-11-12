@@ -109,14 +109,17 @@ src/
                                 /class Progress, /class/lessons, /class/files, /graph,
                                 /class/cheat-sheets, /class/deadlines, /settings,
                                 /archived) + thin API route handlers
+  app/api/cited/                GET /api/cited/<file id>?range=… (passage + page number)
+                                and /page/<n> (the PDF page as a PNG), for source marks
   proxy.ts                      Next proxy: desktop-only /api gate
   frontend/                     everything the browser runs
     components/                   the top bar (top-bar/), Today (home-page/), the class
                                   head and tabs (class-page/, overview/, lessons/, files/,
                                   graph/), the lesson screen (lesson/), question dock,
                                   plan row and plan blocks, Settings page (settings/),
-                                  onboarding, the welcome screen (welcome/), artifact
-                                  renderers (registry: artifacts/), activity dock, keyboard
+                                  source marks (citations/), onboarding, the welcome screen
+                                  (welcome/), artifact renderers (registry: artifacts/),
+                                  activity dock, keyboard
     lib/utils.ts                  shadcn class-name helper (cn)
   backend/                      everything the server runs (Node only)
     config.ts                     paths (data dir, prompts) + engine construction facts
@@ -157,6 +160,8 @@ src/
                                  moves, cascade delete
     server/class-files.ts        a class file → text (PDF on a worker thread, Office,
                                  captions) and the linked-folder walk
+    server/citations.ts          checks source marks in a reply before it is stored; finds
+                                 the passage or PDF page behind a stored mark
     server/transcribe.ts         recordings → text with whisper.cpp
     server/search-index.ts       class file and fact search (local embedding model on a
                                  worker thread + BM25)
@@ -188,6 +193,7 @@ src/
                                   pending, tool-switches, graph (merger/derivation),
                                   coverage, chains, topics, progress, today-note,
                                   attachments, work-pages, agent-seen, agent-briefing,
+                                  citations (source marks),
                                   prices, tool-parts. All pure: storage arrives as
                                   parameters
 electron/                       desktop launcher + security guard (spawns the standalone
@@ -246,6 +252,8 @@ bills the learner's own plan, so nothing has a dollar price: the app only counts
 **Client-side question tools.** `probe`, `quiz`, `ask_user_question`, `explain`, `recall` and `write_code` only check their input on the server and end the turn. The tool call streams to the browser, the learner answers in the dock, and the client builds the answer with `question-core` (grading multiple choice) and POSTs it to `/api/chat` as an input event. The server saves it as the call's tool result and the next turn runs. `write_code` (`src/shared/core/code-question.ts`) gives the learner a code editor; the app never runs or grades the code, the teacher reads it. Options are shuffled deterministically (seeded by toolCallId) so server and client renders match. A pending question saved in the chat record is exactly what makes **resume mid-question free**.
 
 **Side questions.** The lesson has one writing box, at the foot of the teacher column (`LessonBox` in `src/frontend/components/lesson/lesson-box.tsx`; `lessonBox` in `lesson-box-model.ts` decides its buttons and what Enter does). While a question waits, a message from it is a side question (with a problem open it is a plain message, the learner's work on the problem): the learner asks the teacher something else first, with pictures and PDFs, and the box says the question stays open. It posts a `side` input event (`src/shared/core/input-events.ts`), saved as a user message with `side: true` (`newSideQuestion` in `src/shared/core/native-messages.ts`). The question stays open: `danglingQuestionOf` looks past side questions and their replies. `isSideTurn` marks the reply turn. It keeps the same tool list, but the question tools refuse (`sideTurnTools` in `src/backend/agent/teacher-agent.ts`), so the outside agent still gets a small delta. A side turn gets no `today-context` note and no job results (`src/backend/server/chat-handler.ts`). The model sees a placeholder result right after the question call, then the side question as a plain user message; the learner's later answer reaches it as a user message at the point where it was given (`toLlmMessages`). Tests: `tests/backend/side-questions.test.ts`.
+
+**Source marks.** The teacher writes `[[f_1a2b3c4d5e6f:7]]` (a passage id) or `[[https://example.com/page]]` (a web page) after a sentence it took from a class file or a web page. The `respond` tool checks every mark before the reply is stored (`src/backend/server/citations.ts`): a passage that exists is stored as `[[<file id>/<range>/<file name>]]`, one that doesn't is removed and the agent is told, and web marks stay as written. The lesson shows stored marks as numbered buttons and a Sources list (`src/frontend/components/citations/`), and the popup reads `GET /api/cited/<file id>?range=<range>` (JSON `{name, range, page, text}`) and `GET /api/cited/<file id>/page/<n>` (`image/png`). The pure logic is `src/shared/core/citations.ts` (tests in `tests/shared/citations.test.ts`); marks in code and math are left alone, and plain-text readers (Markdown export, extraction) get a mark in words through `citesInWords`. The prompt part is `shared/13-source-marks.md` (Talk has one sentence in `talk/00-base.md`).
 
 **The formal plan tree (author-once).** The teacher authors the session's dependency tree with one schema-validated tool — `plan_init`, whose mermaid-subset input is parsed deterministically (line-numbered errors) and validated as a DAG. The tree persists in the chat record; progress is never mutated — `current`/`visited`/upcoming are **derived** from tagged quiz calls in the transcript, and the lesson's plan row (`src/frontend/components/lesson/plan-row.tsx`, its steps from `src/shared/core/plan-step-bar.ts`) and plan blocks render that derivation.
 

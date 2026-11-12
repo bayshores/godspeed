@@ -3,7 +3,8 @@ import dynamic from "next/dynamic";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { paleClassColor } from "@/frontend/components/class-color";
 import { useClasses } from "@/frontend/components/class-context";
-import { Message, MessageContent, MessageResponse } from "@/frontend/components/ai-elements/message";
+import { Message, MessageContent } from "@/frontend/components/ai-elements/message";
+import { CitedResponse } from "@/frontend/components/citations/cited-response";
 import { Reasoning, ReasoningContent, ReasoningTrigger } from "@/frontend/components/ai-elements/reasoning";
 import { LiveToolCard } from "@/frontend/components/artifacts/live-tool-card";
 import { SubagentSteerCard } from "@/frontend/components/artifacts/steer-card";
@@ -227,7 +228,7 @@ function AssistantPart({
 					className="lh-source-passage"
 				>
 					{/* While it streams, an unclosed diagram fence shows "still drawing", not a doomed parse. */}
-					<MessageResponse isAnimating={streaming} className={streaming ? "lh-streaming" : undefined}>{part.text}</MessageResponse>
+					<CitedResponse text={part.text ?? ""} isAnimating={streaming} className={streaming ? "lh-streaming" : undefined} />
 				</div>
 			);
 		}

@@ -14,7 +14,7 @@ System prompts are composed per agent when the agent is built (`composeInstructi
 
 **The Talk agent** (the teacher's panel chat outside lessons) has no base either: `talk/*.md`, then only the shared files in `TALK_SHARED_FRAGMENTS` (the voice and the learner's question first).
 
-**The shared files** hold the doctrine every agent shares: the voice (`10-voice.md`), the learner's question first (`11-learner-first.md`), accuracy (`15-accuracy.md`), the mental model and class context, plus tool, file and format mechanics. See the folder for the full list.
+**The shared files** hold the doctrine every agent shares: the voice (`10-voice.md`), the learner's question first (`11-learner-first.md`), source marks (`13-source-marks.md`, also in `PRACTICE_SHARED_FRAGMENTS`; Talk has its own one-sentence version in `talk/00-base.md`), accuracy (`15-accuracy.md`), the mental model and class context, plus tool, file and format mechanics. See the folder for the full list.
 
 **The teaching method** (Principle i / Principle ii, the click, the arc, the hedge) lives in `teacher/05-method.md`, teacher-only since the prober never teaches.
 

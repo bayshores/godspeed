@@ -49,7 +49,7 @@ export const TEACHING_AREAS: readonly TeachingArea[] = [
 		id: "files",
 		label: "Your files and formatting",
 		about: "Reading your PDFs and laying out answers",
-		parts: ["shared/30-learner-files.md", "shared/40-formatting.md", "shared/12-class-context.md"],
+		parts: ["shared/30-learner-files.md", "shared/40-formatting.md", "shared/12-class-context.md", "shared/13-source-marks.md"],
 	},
 ];
 
@@ -74,6 +74,7 @@ export const PART_NAMES: Readonly<Record<string, string>> = {
 	"shared/30-learner-files.md": "Your files",
 	"shared/40-formatting.md": "Formatting",
 	"shared/12-class-context.md": "Class context",
+	"shared/13-source-marks.md": "Showing sources",
 };
 
 export const RULE_MAX_CHARS = 200;

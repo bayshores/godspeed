@@ -37,6 +37,7 @@ import { blurAfterPointerClick } from "@/frontend/components/focus-hygiene";
 import { CopyButton } from "@/frontend/components/copy-button";
 import { chartSize, useSessionMermaid } from "@/frontend/components/session-overlay";
 import { SMALL_BTN } from "@/frontend/components/ui/card-parts";
+import { CiteMark } from "@/frontend/components/citations/cite-mark";
 
 // ─── The one affordance: the hover-reveal corner copy ────────────────────────
 
@@ -415,4 +416,5 @@ export const mdComponents = {
 	span: MathDisplay,
 	strong: MarkdownStrong,
 	blockquote: MarkdownBlockquote,
+	"lh-cite": CiteMark,
 };

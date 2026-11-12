@@ -54,6 +54,7 @@ import { CLASS_ARG_TEXT, CLASS_TOOL_TEXT, DEADLINE_KINDS, FILE_KINDS, lessonStar
 import { ensureMcpToken, writeNewMcpToken } from "../store/mcp-token.ts";
 import { handleChatInput } from "./chat-handler.ts";
 import { catchUpForAgent } from "./agent-catch-up.ts";
+import { checkCites } from "./citations.ts";
 import { extraction } from "./extraction.ts";
 import { graphStoreFor, stores } from "./stores.ts";
 import { addCopiedFile, AGENT_FILE_READING_REFUSAL, replaceCopiedFile, unlinkFolder } from "./classes.ts";
@@ -358,14 +359,20 @@ function buildServer(instructions: string, signal: AbortSignal, caller: string |
 		},
 		async ({ work_id, text, tool_calls, wait_seconds }) => {
 			const followUpMs = (wait_seconds ?? 30) * 1000;
-			const answered = respondToWork(work_id, { text, toolCalls: tool_calls as { name: string; arguments: Record<string, never> }[] | undefined }, followUpMs);
-			if (!answered.ok) return failure(answered.error);
+			// Checked before it is stored, so the stored text and the seen-mark fingerprint agree.
+			const checked = text === undefined ? undefined : checkCites(text);
+			const removedMarks = checked?.removed.length ? `Removed source marks that don't point at a passage of a class file: ${checked.removed.join(", ")}. Use ids from search_class_files.` : "";
+			const answered = respondToWork(work_id, { text: checked?.text, toolCalls: tool_calls as { name: string; arguments: Record<string, never> }[] | undefined }, followUpMs);
+			if (!answered.ok) return failure(removedMarks ? `${removedMarks} ${answered.error}` : answered.error);
 			const lesson = stores.chatStore.getChat(answered.conversation);
 			// The Talk chat has no page to go to; its replies show in the panel.
 			if (lesson && lesson.kind !== "talk") noteAgentAction(caller, { label: `Replying in ${lesson.title}`, classId: lesson.classId ?? null, target: { kind: "lesson", id: lesson.id }, page: `/chat/${lesson.id}` });
 			const backup = isBackupAgent(answered.agent);
 			const next = await waitForWork(followUpMs, { conversation: answered.conversation, agent: answered.agent, backup, signal }).finally(() => releaseConversation(answered.conversation));
-			if (next) return workResult(next);
+			if (next) {
+				const work = workResult(next);
+				return removedMarks ? { content: [textBlock(removedMarks), ...work.content] } : work;
+			}
 			const chat = stores.chatStore.getChat(answered.conversation);
 			const claudeCode = inClaudeCode(caller);
 			// A Talk reply goes on to the lesson it just started, else back to the
@@ -375,14 +382,12 @@ function buildServer(instructions: string, signal: AbortSignal, caller: string |
 			if (started && !backup) stayOn(answered.agent, started);
 			const lessonId = talk ? (started ?? stayingOn(answered.agent)) : chat?.id;
 			const wait = claudeCode ? waiterHint(lessonId, backup) : `Call wait_for_work to continue${lessonId ? ` (lesson_id "${lessonId}" to stay on this lesson)` : ""}.`;
-			return result({
-				status: "turn_complete",
-				note: !chat
-					? `The task step is done. ${claudeCode ? waiterHint() : "Call wait_for_work for more."}`
-					: talk
-						? `Your reply is in Talk.${started ? " The lesson you started is waiting for you." : ""} ${wait}`
-						: `Your turn is done. The learner is reading and will answer in the godspeed window. ${wait}`,
-			});
+			const note = !chat
+				? `The task step is done. ${claudeCode ? waiterHint() : "Call wait_for_work for more."}`
+				: talk
+					? `Your reply is in Talk.${started ? " The lesson you started is waiting for you." : ""} ${wait}`
+					: `Your turn is done. The learner is reading and will answer in the godspeed window. ${wait}`;
+			return result({ status: "turn_complete", note: removedMarks ? `${removedMarks} ${note}` : note });
 		},
 	);
 

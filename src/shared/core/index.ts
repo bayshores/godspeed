@@ -35,6 +35,8 @@ export * from "./pending.ts";
 export * from "./tool-switches.ts";
 export * from "./prompt-segments.ts";
 export * from "./math-delims.ts";
+// Source marks in teacher text.
+export * from "./citations.ts";
 // The native record (LhMessage) and the input-events contract — pure,
 // browser-safe.
 export * from "./native-messages.ts";

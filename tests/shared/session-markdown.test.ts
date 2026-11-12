@@ -150,6 +150,14 @@ describe("messageMarkdown", () => {
 	});
 });
 
+describe("source marks in teacher text", () => {
+	it("the export and the coverage lines read a mark as words", () => {
+		const message = teacher("a1", "Chunks are cut by page.[[f_1a2b3c4d5e6f/p. 12/Week 6 slides.pdf]]");
+		assert.equal(messageMarkdown(message, "a1"), "### Teacher · a1\n\nChunks are cut by page. (Week 6 slides.pdf, p. 12)");
+		assert.ok(messageViewLines(message, "a1").every((line) => !line.includes("[[")));
+	});
+});
+
 describe("sessionMarkdown — the practice join", () => {
 	it("a problem result renders the POSE's statement, joined off the call id", () => {
 		const messages = [

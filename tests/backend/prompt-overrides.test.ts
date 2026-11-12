@@ -162,6 +162,7 @@ describe("the source-derived segment list", () => {
 				"shared/10-voice.md",
 				"shared/11-learner-first.md",
 				"shared/12-class-context.md",
+				"shared/13-source-marks.md",
 				"shared/15-accuracy.md",
 				"shared/16-mental-model.md",
 				"shared/20-question-tools.md",

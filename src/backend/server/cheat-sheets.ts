@@ -53,6 +53,7 @@ import { replyOnSheet } from "../agent/subagents/cheat-sheet-writer.ts";
 import { uniqueName } from "../../shared/core/class-shortcuts.ts";
 import { readCheatSheet, readCheatSheetFile, readSheetPdf, removeSheetPdfs, saveCheatSheetFile, saveSheetPdf, writeCheatSheet } from "../store/cheat-sheets.ts";
 import { cheatSheetsDir } from "./agent-folder.ts";
+import { checkCites } from "./citations.ts";
 import { takeSheetPdf } from "./cheat-sheet-pdf.ts";
 import { storeAttachments } from "./attachments.ts";
 import { classMistakes, classOrderFor, progressFor } from "./progress.ts";
@@ -284,7 +285,7 @@ function startRun(ctx: Context, messageId: string): Outcome<null> {
 	const prompt: UserMessage["content"] = parts.length > 0 ? [{ type: "text", text }, ...parts] : text;
 	const lookups = Object.values(searchTools({ searchFiles: (query, limit) => searchClassFiles(ctx.classId, query, limit), readPassage: (ref) => readPassage(ctx.classId, ref) }));
 	const takePdf = (pdfPath: string) => takeSheetPdf(folder.path, pdfPath);
-	void replyOnSheet({ title: `${ctx.className} ${ctx.deadline.name}`, prompt, lookups, takePdf, engine: engine(), signal: controller.signal })
+	void replyOnSheet({ title: `${ctx.className} ${ctx.deadline.name}`, prompt, lookups, checkText: checkCites, takePdf, engine: engine(), signal: controller.signal })
 		.then((reply) => {
 			const at = new Date().toISOString();
 			let sheet = sheetNow(ctx);

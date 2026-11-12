@@ -320,23 +320,28 @@ function splitRows(vectors: Float32Array): Float32Array[] {
 	return Array.from({ length: vectors.length / DIMS }, (_, i) => vectors.subarray(i * DIMS, (i + 1) * DIMS));
 }
 
+/** The stored passages a reference names: the one passage of an id, or every
+ *  passage of a file that covers a place. Empty when there is none. */
+export function passagesAt(classId: string, ref: PassageRef): StoredPassage[] {
+	const rows = readTable(passagesFile(classId)).rows as StoredPassage[];
+	if ("passageId" in ref) return rows.filter((r) => r.id === ref.passageId);
+	// The place as the index wrote it wins: a transcript's label is rounded, so its number can miss.
+	const exact = rows.filter((r) => r.fileId === ref.fileId && r.range === ref.range);
+	if (exact.length > 0) return exact;
+	const point = rangePoint(ref.range);
+	return point === null ? [] : rows.filter((r) => r.fileId === ref.fileId && r.from <= point && point <= r.to);
+}
+
 /** A passage's text (a whole page when opened by file and place) with its
  *  file, place and the ids of its neighbors. */
 export function readPassage(classId: string, ref: PassageRef): string {
 	const rows = readTable(passagesFile(classId)).rows as StoredPassage[];
-	let picked: StoredPassage[];
-	if ("passageId" in ref) {
-		const one = rows.find((r) => r.id === ref.passageId);
-		if (!one) return `No passage "${ref.passageId}". Ids come from search_class_files.`;
-		picked = [one];
-	} else {
-		const point = rangePoint(ref.range);
-		picked = point === null ? [] : rows.filter((r) => r.fileId === ref.fileId && r.from <= point && point <= r.to);
-		if (picked.length === 0) {
-			const inFile = rows.filter((r) => r.fileId === ref.fileId);
-			if (inFile.length === 0) return `No passage of file "${ref.fileId}": it is not indexed. A file id is the part of a passage id before the ":" (or from read_class with files: true).`;
-			return `No passage of file "${ref.fileId}" at "${ref.range}". Its passages run from "${inFile[0]!.range}" to "${inFile.at(-1)!.range}".`;
-		}
+	const picked = passagesAt(classId, ref);
+	if (picked.length === 0) {
+		if ("passageId" in ref) return `No passage "${ref.passageId}". Ids come from search_class_files.`;
+		const inFile = rows.filter((r) => r.fileId === ref.fileId);
+		if (inFile.length === 0) return `No passage of file "${ref.fileId}": it is not indexed. A file id is the part of a passage id before the ":" (or from read_class with files: true).`;
+		return `No passage of file "${ref.fileId}" at "${ref.range}". Its passages run from "${inFile[0]!.range}" to "${inFile.at(-1)!.range}".`;
 	}
 	const inFile = rows.filter((r) => r.fileId === picked[0]!.fileId);
 	const first = inFile.indexOf(picked[0]!);

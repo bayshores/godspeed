@@ -33,6 +33,7 @@
 
 import type { AgentMessage } from "@earendil-works/pi-agent-core";
 import type { AssistantMessage, Message, ToolResultMessage, UserMessage } from "@earendil-works/pi-ai";
+import { citesInWords } from "./citations.ts";
 import { isQuestionTool } from "./pending.ts";
 import {
 	CONCLUDE_ACK_TEXT,
@@ -147,14 +148,14 @@ export function sendToUserText(block: unknown): string | undefined {
  * joins ordinary text here — thinking and all other tool inputs stay out.
  * Shared by coverage/extraction and Markdown; native history stays intact. */
 export function userFacingTextOf(content: unknown, failedOutputCalls?: ReadonlySet<string>): string[] {
-	if (typeof content === "string") return content.trim() ? [content] : [];
+	if (typeof content === "string") return content.trim() ? [citesInWords(content)] : [];
 	if (!Array.isArray(content)) return [];
 	const out: string[] = [];
 	for (const block of content) {
 		if (!block || typeof block !== "object") continue;
 		if (block.type === "toolCall" && failedOutputCalls?.has(block.id)) continue;
 		const text = block.type === "text" ? block.text : sendToUserText(block);
-		if (typeof text === "string" && text.trim()) out.push(text);
+		if (typeof text === "string" && text.trim()) out.push(citesInWords(text));
 	}
 	return out;
 }
