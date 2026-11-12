@@ -7121,6 +7121,12 @@
 					"since": "0.0.0",
 					"current": "99.0.0",
 					"output": [
+						"0.5.50",
+						"0.5.49",
+						"0.5.48",
+						"0.5.47",
+						"0.5.46",
+						"0.5.45",
 						"0.5.44",
 						"0.5.43",
 						"0.5.42",
@@ -7260,13 +7266,15 @@
 					}
 				}
 			],
-			"length": 48,
+			"length": 54,
 			"first": {
-				"version": "0.5.44",
-				"date": "2026-11-09",
+				"version": "0.5.50",
+				"date": "2026-11-11",
 				"changes": [
-					"A long problem shows in full in the lesson, where code and every part fit. The Your turn panel shows how it starts with a show the whole problem button, so the box you work in keeps its room.",
-					"Text that scrolls in the Your turn panel fades out before it reaches the panel's border and title."
+					"Every problem now shows by itself on the right, in Study and Practice too, like homework. You work on it in the one message box at the bottom.",
+					"A message you send while a problem is open is your work on it, not a side question. The teacher can check it, close the problem or switch to the part you asked for, and you never have to discard a problem first.",
+					"The teacher answers the exact thing you asked first, follows your own method when it works, and keeps replies short when you're stuck. After one explanation that didn't land, it asks one small question to find what's confusing you.",
+					"Problem sets start at the first problem and its first part unless you pick another."
 				]
 			},
 			"last": {
@@ -7274,9 +7282,9 @@
 				"date": "2026-10-27",
 				"changes": [
 					"godspeed is the new name. Claude Code, Codex or any MCP app can now be your teacher, on the plan you already pay for.",
-					"Spaces: each space has its own lessons, files, knowledge graph and exams.",
+					"Classes: each class has its own lessons, files, knowledge graph and exams.",
 					"A new lesson layout: a step bar on top, a reading column, and an always-open Your turn panel.",
-					"The space Overview and the topic Graph show what you've covered and what to work on before each exam.",
+					"The class Overview and the topic Graph show what you've covered and what to work on before each exam.",
 					"The Files page: drag files in, link a folder, and see which files you've studied.",
 					"Updates download on their own, and the Mac app is signed and notarized by Apple."
 				]
