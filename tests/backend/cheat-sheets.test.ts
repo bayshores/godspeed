@@ -219,6 +219,23 @@ describe("cheat sheets", () => {
 		assert.match(prompt, /It is empty\. There is no sheet yet\./);
 	});
 
+	it("checks the source marks in a reply: a mark that points at nothing is sent back, a good one is kept in its stored form", async () => {
+		const { spaceId, deadlineId } = seed();
+		const searchDir = path.join(sheetDir(spaceId), "..", "search");
+		const rows = [{ id: "f_aaaaaaaaaaaa:1", fileId: "f_aaaaaaaaaaaa", range: "p. 3", from: 3, to: 3, text: "Gauss sum.", hash: "h" }];
+		fs.mkdirSync(searchDir, { recursive: true });
+		fs.writeFileSync(path.join(searchDir, "passages.json"), JSON.stringify({ format: 1, model: "Snowflake/snowflake-arctic-embed-xs", rows, files: { f_aaaaaaaaaaaa: { fp: "", extent: "5 pages" } } }));
+		fs.writeFileSync(path.join(searchDir, "passages.f32"), Buffer.from(new Float32Array(384).buffer));
+		agent({ text: "It adds up. [[f_aaaaaaaaaaaa:9]]" }, { text: "It adds up. [[f_aaaaaaaaaaaa:1]]" });
+		assert.ok((await sheets.askCheatSheet(spaceId, deadlineId, { text: "where is the Gauss sum from?" })).ok);
+		await sheets.cheatSheetIdle(deadlineId);
+		assert.match(replies[0]!, /don't point at a passage of a class file: f_aaaaaaaaaaaa:9/);
+		assert.deepEqual(await chat(spaceId, deadlineId), [
+			["you", "where is the Gauss sum from?", null],
+			["agent", "It adds up. [[f_aaaaaaaaaaaa/p. 3/2026-10-01 Counting.pdf]]", null],
+		]);
+	});
+
 	it("refuses a link that leads out of the working folder", async () => {
 		const { spaceId, deadlineId } = seed();
 		const outside = path.join(TMP_DATA, "secret.pdf");

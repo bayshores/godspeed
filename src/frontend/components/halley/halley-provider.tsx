@@ -330,19 +330,21 @@ export function HalleyProvider({ initialName, children }: { initialName?: string
 }
 
 /** The open panel, on the page's top layer. It closes on a click elsewhere
- *  and on Esc. */
+ *  and on Esc, except while a dialog opened from it is up. */
 function PanelPortal({ children }: { children: ReactNode }) {
 	const api = useHalley();
 	const close = api?.setPanelOpen;
 	useEffect(() => {
 		if (!close) return;
+		const dialogUp = () => !!document.querySelector('[role="dialog"][aria-modal="true"]');
 		const onDown = (e: PointerEvent) => {
+			if (dialogUp()) return;
 			const t = e.target;
 			if (t instanceof Element && t.closest("[data-halley-panel], [data-halley-panel-toggle]")) return;
 			close(false);
 		};
 		const onKey = (e: KeyboardEvent) => {
-			if (e.key === "Escape") {
+			if (e.key === "Escape" && !dialogUp()) {
 				e.stopPropagation();
 				close(false);
 			}

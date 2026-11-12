@@ -37,7 +37,7 @@ const PROMPTS_DIR = path.join(PATHS.root, "src", "backend", "agent", "prompts");
  *  (practice writes the same $...$ / $$...$$ LaTeX and markdown). The
  *  question/confidence/file mechanics stay out (practice has no such
  *  tools). */
-const PRACTICE_SHARED_FRAGMENTS = ["10-voice.md", "11-learner-first.md", "12-space-context.md", "15-accuracy.md", "16-mental-model.md", "40-formatting.md"];
+const PRACTICE_SHARED_FRAGMENTS = ["10-voice.md", "11-learner-first.md", "12-space-context.md", "13-source-marks.md", "15-accuracy.md", "16-mental-model.md", "40-formatting.md"];
 /** Talk is a small side panel: the voice and the learner's question first
  *  (its own base sets short replies). */
 const TALK_SHARED_FRAGMENTS = ["10-voice.md", "11-learner-first.md"];

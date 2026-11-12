@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { AgentAction, LhMessage } from "@/shared/core";
-import { MessageResponse } from "@/frontend/components/ai-elements/message";
+import { CitedResponse } from "@/frontend/components/citations/cited-response";
 import { agentWaiting, type AgentStatus } from "@/frontend/components/agent-status";
 import { AttachButton, AttachmentTray, attachmentInputProps, useAttachmentDraft, type AttachmentDraft } from "@/frontend/components/lesson/attachment-tray";
 import { restoreUnsent } from "@/frontend/components/lesson/chat-helpers";
@@ -247,7 +247,8 @@ function TalkThread({
 			className="flex min-h-0 flex-1 flex-col"
 			// Claimed before the panel's own Esc (which closes it) and the box's.
 			onKeyDownCapture={(e) => {
-				if (e.key !== "Escape" || !busy) return;
+				// A key in a dialog opened from here (React passes it up through the portal) is the dialog's.
+				if (e.key !== "Escape" || !busy || !e.currentTarget.contains(e.target as Node)) return;
 				e.preventDefault();
 				e.stopPropagation();
 				stopReply();
@@ -294,7 +295,7 @@ function TalkThread({
 								className="min-w-0 break-words text-ink"
 								style={{ "--lh-prose-size": "16px", "--lh-prose-leading": "1.5" } as React.CSSProperties}
 							>
-								<MessageResponse>{row.text}</MessageResponse>
+								<CitedResponse text={row.text} />
 							</div>
 						);
 					else {

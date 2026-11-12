@@ -2,7 +2,7 @@
 
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import type { CheatSheetView, SheetMessage, SheetRegion, SheetRule } from "@/shared/core";
-import { MessageResponse } from "@/frontend/components/ai-elements/message";
+import { CitedResponse } from "@/frontend/components/citations/cited-response";
 import { NoAgentLine } from "@/frontend/components/agent-folder/no-agent-line";
 import { AttachButton, AttachmentTray, attachmentInputProps, useAttachmentDraft, type AttachmentDraft } from "@/frontend/components/lesson/attachment-tray";
 import { SendButton } from "@/frontend/components/ui/send-button";
@@ -245,7 +245,7 @@ function AgentBody({ message, current, onShowVersion }: { message: Extract<Sheet
 		<>
 			{message.text && (
 				<div data-testid="sheet-agent" className="min-w-0 font-prose break-words text-ink" style={{ "--lh-prose-size": "16px", "--lh-prose-leading": "1.5" } as React.CSSProperties}>
-					<MessageResponse>{message.text}</MessageResponse>
+					<CitedResponse text={message.text} />
 				</div>
 			)}
 			{n !== undefined && (

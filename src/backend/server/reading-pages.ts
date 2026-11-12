@@ -15,7 +15,7 @@ const TEXT_MAX_BYTES = 2 * 1024 * 1024;
 const PAGE_DPI = 100;
 const CACHE_LIMIT = 48;
 
-type ReadingOutcome<T> = { ok: true; value: T } | { ok: false; status: number; error: string };
+export type ReadingOutcome<T> = { ok: true; value: T } | { ok: false; status: number; error: string };
 
 type ReadingDocument = { kind: "text"; text: string } | { kind: "pdf"; pageCount: number; aspect: number };
 
@@ -33,7 +33,7 @@ async function servable(rawPath: string): Promise<ReadingOutcome<{ absolute: str
 	return { ok: true, value: { absolute, mtimeMs: stat.mtimeMs, size: stat.size } };
 }
 
-const isPdf = (file: string) => path.extname(file).toLowerCase() === ".pdf";
+export const isPdf = (file: string) => path.extname(file).toLowerCase() === ".pdf";
 
 /** The whole document: its text, or a PDF's page count and page shape. */
 export async function readingDocument(rawPath: string): Promise<ReadingOutcome<ReadingDocument>> {
@@ -51,12 +51,8 @@ export async function readingDocument(rawPath: string): Promise<ReadingOutcome<R
 	return { ok: true, value: { kind: "text", text } };
 }
 
-/** One PDF page as a PNG, cached by file version. */
-export async function readingPdfPage(rawPath: string, page: number): Promise<ReadingOutcome<Buffer>> {
-	const file = await servable(rawPath);
-	if (!file.ok) return file;
-	const { absolute, mtimeMs } = file.value;
-	if (!isPdf(absolute)) return { ok: false, status: 415, error: "Not a PDF" };
+/** One page of a PDF at `absolute` as a PNG, cached by file version. */
+export async function renderPdfPage(absolute: string, mtimeMs: number, page: number): Promise<ReadingOutcome<Buffer>> {
 	const key = `${absolute}:${mtimeMs}:${page}`;
 	const cached = pageCache.get(key);
 	if (cached) return { ok: true, value: cached };
@@ -65,4 +61,13 @@ export async function readingPdfPage(rawPath: string, page: number): Promise<Rea
 	pageCache.set(key, rendered.png);
 	if (pageCache.size > CACHE_LIMIT) pageCache.delete(pageCache.keys().next().value!);
 	return { ok: true, value: rendered.png };
+}
+
+/** One PDF page of a file the teacher may show, as a PNG. */
+export async function readingPdfPage(rawPath: string, page: number): Promise<ReadingOutcome<Buffer>> {
+	const file = await servable(rawPath);
+	if (!file.ok) return file;
+	const { absolute, mtimeMs } = file.value;
+	if (!isPdf(absolute)) return { ok: false, status: 415, error: "Not a PDF" };
+	return renderPdfPage(absolute, mtimeMs, page);
 }

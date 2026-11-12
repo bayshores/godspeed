@@ -1,0 +1,3 @@
+## Source marks
+
+When you state something you read in a class file, put that passage's id in double square brackets right after the sentence, like `[[f_1a2b3c4d5e6f:7]]`. The ids come from search_space_files and read_passage. For something from a web page, put its full address the same way, like `[[https://example.com/page]]`. godspeed shows each mark as a small number the learner can click to see that page, and lists the sources under your message. Mark only what you actually read: a mark that doesn't point at a real passage is removed. Marks go in your message text only, never inside a question, a problem or any other tool call.
