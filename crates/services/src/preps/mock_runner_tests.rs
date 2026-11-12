@@ -184,6 +184,20 @@ fn a_python_that_only_opens_an_installer_is_passed_over() {
 	assert!(!is_stand_in_python("/usr/bin/python3", "linux", &no));
 }
 
+/// Windows without Python still has python.exe in WindowsApps, which opens the Store.
+#[cfg(windows)]
+#[test]
+fn the_stores_python_stand_in_is_found_on_the_path_and_never_taken() {
+	let Some(local) = std::env::var_os("LOCALAPPDATA") else { return };
+	let apps = Path::new(&local).join("Microsoft").join("WindowsApps");
+	if !apps.join("python.exe").exists() {
+		return;
+	}
+	let apps = apps.to_string_lossy().into_owned();
+	assert!(find_in("python", Some(&apps), &[], &|_| true).is_some(), "the stand-in is on the path");
+	assert_eq!(find_in("python", Some(&apps), &[], &|file| !is_stand_in_python(&file.to_string_lossy(), "win32", &|| true)), None);
+}
+
 #[test]
 fn a_folder_is_named_by_url_as_node_names_it() {
 	if cfg!(windows) {
