@@ -173,4 +173,36 @@ describe("the godspeed folder from before the rename", () => {
 		syncShortcuts(folder);
 		assert.equal(fs.readFileSync(path.join(folder, "classes", "Old Space", "mine.txt"), "utf8"), "mine");
 	});
+
+	/** Finder's file in classes/ and every folder under it. */
+	const finderFiles = (folder: string) => {
+		for (const dir of ["", "Old Space", "Old Space/Other"]) fs.writeFileSync(path.join(folder, "classes", dir, ".DS_Store"), "finder");
+	};
+
+	it("Finder's .DS_Store files don't keep classes/", { skip: process.platform === "win32" }, () => {
+		const folder = oldFolder("godspeed-c");
+		finderFiles(folder);
+		syncShortcuts(folder);
+		assert.equal(fs.existsSync(path.join(folder, "classes")), false);
+	});
+
+	it("a classes/ an earlier sync dropped from its list still goes when only Finder's files are in it", () => {
+		const folder = path.join(TMP, "godspeed-d");
+		fs.mkdirSync(path.join(folder, "classes", "Old Space", "Other"), { recursive: true });
+		fs.mkdirSync(path.join(folder, "classes", "Empty"));
+		finderFiles(folder);
+		fs.mkdirSync(path.join(folder, ".godspeed"));
+		fs.writeFileSync(path.join(folder, ".godspeed", "shortcuts.json"), JSON.stringify({ links: [], dirs: [] }));
+		syncShortcuts(folder);
+		assert.equal(fs.existsSync(path.join(folder, "classes")), false);
+	});
+
+	it("a learner's file keeps classes/ and the Finder files beside it as they are", { skip: process.platform === "win32" }, () => {
+		const folder = oldFolder("godspeed-e");
+		finderFiles(folder);
+		fs.writeFileSync(path.join(folder, "classes", "Old Space", "mine.txt"), "mine");
+		syncShortcuts(folder);
+		syncShortcuts(folder);
+		assert.deepEqual(under(path.join(folder, "classes")).sort(), [".DS_Store", "Old Space", "Old Space/.DS_Store", "Old Space/mine.txt"]);
+	});
 });

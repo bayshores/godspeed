@@ -79,6 +79,18 @@ function link(target: string, at: string): Made | null {
 	}
 }
 
+/** Finder leaves this in any folder it opens, so a folder holding only it
+ *  counts as empty. */
+const FINDER_FILE = ".DS_Store";
+
+/** Nothing in the folder but Finder's file (and with `deep`, folders that
+ *  hold nothing either). */
+function holdsNothing(dir: string, deep = false): boolean {
+	return fs
+		.readdirSync(dir, { withFileTypes: true })
+		.every((e) => (e.name === FINDER_FILE ? e.isFile() : deep && e.isDirectory() && holdsNothing(path.join(dir, e.name), true)));
+}
+
 function readOnly(file: string): void {
 	if (process.platform === "win32") return;
 	const st = fs.statSync(file);
@@ -160,11 +172,18 @@ export function syncShortcuts(folder: string, opts: { clear?: boolean } = {}): v
 		const needed = [...want.keys()].some((p) => p.startsWith(dir + path.sep));
 		if (needed) continue;
 		try {
-			if (fs.readdirSync(dir).length === 0) fs.rmdirSync(dir);
+			if (holdsNothing(dir)) fs.rmSync(dir, { recursive: true });
 			dirs.delete(dir);
 		} catch {
 			dirs.delete(dir);
 		}
+	}
+	// An earlier sync dropped classes/ from the manifest when Finder's file
+	// kept it; it still goes once nothing else is under it.
+	try {
+		if (lstat(oldRoot)?.isDirectory() && holdsNothing(oldRoot, true)) fs.rmSync(oldRoot, { recursive: true });
+	} catch {
+		// Left for the next sync.
 	}
 	const manifest: Manifest = { links, dirs: [...dirs] };
 	fs.mkdirSync(path.dirname(manifestPath(folder)), { recursive: true });
