@@ -361,7 +361,7 @@ function buildServer(instructions: string, signal: AbortSignal, caller: string |
 			const followUpMs = (wait_seconds ?? 30) * 1000;
 			// Checked before it is stored, so the stored text and the seen-mark fingerprint agree.
 			const checked = text === undefined ? undefined : checkCites(text);
-			const removedMarks = checked?.removed.length ? `Removed source marks that don't point at a passage of a class file: ${checked.removed.join(", ")}. Use ids from search_space_files.` : "";
+			const removedMarks = checked?.removed.length ? `Removed source marks that don't point at a passage of a space file: ${checked.removed.join(", ")}. Use ids from search_space_files.` : "";
 			const answered = respondToWork(work_id, { text: checked?.text, toolCalls: tool_calls as { name: string; arguments: Record<string, never> }[] | undefined }, followUpMs);
 			if (!answered.ok) return failure(removedMarks ? `${removedMarks} ${answered.error}` : answered.error);
 			const lesson = stores.chatStore.getChat(answered.conversation);

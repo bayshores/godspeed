@@ -9,7 +9,7 @@ import { CiteDialog, type FileCite } from "./cite-dialog";
 const HALF_MARK = /\[\[[^\]\n]*\]?$/;
 
 /** The teacher's text with its source marks as numbers, a "Sources" list
- *  under it, and the popup a class file's source opens. */
+ *  under it, and the popup a space file's source opens. */
 export function CitedResponse({ text, isAnimating, className }: { text: string } & Pick<ComponentProps<typeof MessageResponse>, "isAnimating" | "className">) {
 	const view = useMemo(() => citeView(isAnimating ? text.replace(HALF_MARK, "") : text), [text, isAnimating]);
 	const [opened, setOpened] = useState<FileCite | null>(null);

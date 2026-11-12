@@ -1,5 +1,5 @@
 /**
- * GET /api/cited/<fileId>/page/<n>: one page of a cited class PDF as a PNG.
+ * GET /api/cited/<fileId>/page/<n>: one page of a cited space PDF as a PNG.
  */
 import { citedPage } from "@/backend/server";
 

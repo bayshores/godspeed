@@ -1,5 +1,5 @@
 /**
- * GET /api/cited/<fileId>?range=…: what a class file source in a teacher
+ * GET /api/cited/<fileId>?range=…: what a space file source in a teacher
  * message shows, as { name, range, page, text }.
  */
 import { citedPassage } from "@/backend/server";

@@ -6,7 +6,7 @@ import { DialogSheet, useLastWhileClosing } from "@/frontend/components/ui/dialo
 export type FileCite = Extract<Cite, { kind: "file" }>;
 type Passage = { page: number | null; text: string };
 
-/** The place in a class file a source points at: the PDF page as an image,
+/** The place in a space file a source points at: the PDF page as an image,
  *  or the passage text. */
 export function CiteDialog({ cite, onClose }: { cite: FileCite | null; onClose: () => void }) {
 	const { mounted, state, shown } = useLastWhileClosing(cite);
@@ -42,7 +42,7 @@ function CiteSheet({ cite, state, onClose }: { cite: FileCite; state: "open" | "
 		<DialogSheet title={cite.name} state={state} testid="cite-dialog" className="w-[780px]" onClose={onClose}>
 			{passage === null ? null : !found || (!showImage && found.text === "") ? (
 				<p data-testid="cite-gone" className="text-[15px] text-ink">
-					godspeed can&apos;t find this place in your class files anymore.
+					godspeed can&apos;t find this place in your space files anymore.
 				</p>
 			) : (
 				<>

@@ -1,12 +1,12 @@
 /**
  * Source marks in teacher text. The teacher writes `[[<passage id>]]` or
  * `[[<web address>]]` after a sentence. The server checks each mark and
- * keeps a class file's as `[[<file id>/<place>/<file name>]]`, which still
+ * keeps a space file's as `[[<file id>/<place>/<file name>]]`, which still
  * points at the right place after the file's passages are renumbered.
  */
 import { readContentSpans } from "./content-reader.ts";
 
-/** A checked source: a place in a class file, or a web page. */
+/** A checked source: a place in a space file, or a web page. */
 export type Cite = { kind: "file"; fileId: string; range: string; name: string } | { kind: "web"; url: string };
 
 /** A mark as written: a passage id still to be checked, or a source. */
@@ -27,7 +27,7 @@ function readMark(body: string): CiteMark | null {
 	return null;
 }
 
-/** A class file's source as the mark that is stored. Characters in the
+/** A space file's source as the mark that is stored. Characters in the
  *  name that would end the mark or open code or math become spaces. */
 export function fileCiteMark(fileId: string, range: string, name: string): string {
 	return `[[${fileId}/${range}/${name.replace(/[[\]\n`$]/g, " ")}]]`;

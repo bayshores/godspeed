@@ -229,7 +229,7 @@ describe("cheat sheets", () => {
 		agent({ text: "It adds up. [[f_aaaaaaaaaaaa:9]]" }, { text: "It adds up. [[f_aaaaaaaaaaaa:1]]" });
 		assert.ok((await sheets.askCheatSheet(spaceId, deadlineId, { text: "where is the Gauss sum from?" })).ok);
 		await sheets.cheatSheetIdle(deadlineId);
-		assert.match(replies[0]!, /don't point at a passage of a class file: f_aaaaaaaaaaaa:9/);
+		assert.match(replies[0]!, /don't point at a passage of a space file: f_aaaaaaaaaaaa:9/);
 		assert.deepEqual(await chat(spaceId, deadlineId), [
 			["you", "where is the Gauss sum from?", null],
 			["agent", "It adds up. [[f_aaaaaaaaaaaa/p. 3/2026-10-01 Counting.pdf]]", null],

@@ -1,8 +1,8 @@
 /** Source marks on the server: marks in a reply are checked against the
- *  class's indexed passages before the reply is stored, the cited route
+ *  space's indexed passages before the reply is stored, the cited route
  *  serves the passage and the PDF page, and respond tells the agent what it
  *  removed. The search index is never built under test, so the tables are
- *  written by hand (made-up classes and text). */
+ *  written by hand (made-up spaces and text). */
 import assert from "node:assert/strict";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -41,9 +41,9 @@ const SLIDES = "f_bbbbbbbbbbbb";
 const GONE = "f_cccccccccccc";
 const TALK = "f_dddddddddddd";
 
-/** A class with a text file and a PDF, and a search table of their passages. */
-function makeClass() {
-	const record = spaceStore.createSpace({ name: "Made-up Class" });
+/** A space with a text file and a PDF, and a search table of their passages. */
+function makeSpace() {
+	const record = spaceStore.createSpace({ name: "Made-up Space" });
 	const dir = spaceStore.filesDir(record.id);
 	fs.mkdirSync(dir, { recursive: true });
 	fs.writeFileSync(path.join(dir, "notes.txt"), "line one\nline two\n");
@@ -63,7 +63,7 @@ function makeClass() {
 	return record;
 }
 
-makeClass();
+makeSpace();
 
 describe("checkCites", () => {
 	it("rewrites a passage mark to the stored form with the file name", () => {
@@ -169,7 +169,7 @@ describe("respond checks source marks", () => {
 		const work = await bridge.waitForWork(5000, { conversation: chat.id });
 		assert.ok(work);
 		const said = await respond({ work_id: work.workId, text: `Page two. [[${SLIDES}:1]] Made up. [[${NOTES}:9]]`, wait_seconds: 0 });
-		assert.match(said, /Removed source marks that don't point at a passage of a class file: f_aaaaaaaaaaaa:9\./);
+		assert.match(said, /Removed source marks that don't point at a passage of a space file: f_aaaaaaaaaaaa:9\./);
 		assert.match(said, /turn_complete/);
 		await settled(chat.id);
 		assert.equal(lastTeacherText(chat.id), `Page two. [[${SLIDES}/p. 2/slides.pdf]] Made up. `);
@@ -181,7 +181,7 @@ describe("respond checks source marks", () => {
 		const work = await bridge.waitForWork(5000, { conversation: chat.id });
 		assert.ok(work);
 		const said = await respond({ work_id: work.workId, text: `Hmm. [[${GONE}:1]]`, tool_calls: [{ name: "ls", arguments: {} }], wait_seconds: 5 });
-		assert.ok(said.startsWith(`Removed source marks that don't point at a passage of a class file: ${GONE}:1.`), said);
+		assert.ok(said.startsWith(`Removed source marks that don't point at a passage of a space file: ${GONE}:1.`), said);
 		assert.match(said, /"status":"work"/);
 		const nextId = /"workId":"([^"]+)"/.exec(said)?.[1];
 		assert.ok(nextId);

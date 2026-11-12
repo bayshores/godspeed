@@ -74,7 +74,7 @@ describe("source marks in teacher text", () => {
 	});
 });
 
-describe("opening a class file source", () => {
+describe("opening a space file source", () => {
 	/** The dialog a click on the source's row opens, with /api/cited answering `answer`. */
 	async function opened(answer: Response, check: (dialog: Element, urls: string[]) => void) {
 		const urls: string[] = [];
@@ -119,8 +119,8 @@ describe("opening a class file source", () => {
 	});
 
 	it("says so when the place can't be found", async () => {
-		await opened(new Response(JSON.stringify({ error: "No class has that file" }), { status: 404 }), (dialog) => {
-			assert.match(dialog.querySelector('[data-testid="cite-gone"]')?.textContent ?? "", /can't find this place in your class files/);
+		await opened(new Response(JSON.stringify({ error: "No space has that file" }), { status: 404 }), (dialog) => {
+			assert.match(dialog.querySelector('[data-testid="cite-gone"]')?.textContent ?? "", /can't find this place in your space files/);
 		});
 	});
 });

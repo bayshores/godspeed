@@ -81,7 +81,7 @@ export async function replyOnSheet(input: {
 		validate: async (raw) => {
 			pdf = null;
 			const checked = input.checkText(raw.text);
-			if (checked.removed.length > 0) return `These source marks don't point at a passage of a class file: ${checked.removed.join(", ")}. Use ids from search_space_files, or leave them out.`;
+			if (checked.removed.length > 0) return `These source marks don't point at a passage of a space file: ${checked.removed.join(", ")}. Use ids from search_space_files, or leave them out.`;
 			text = checked.text;
 			if (!raw.path) return null;
 			const got = await input.takePdf(raw.path);
