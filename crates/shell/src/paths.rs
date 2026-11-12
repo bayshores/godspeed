@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 
 use tauri::{AppHandle, Manager};
 
-/// Each launch's demo folder in the temp folder is this and its process id.
+/// Each launch's demo folder is this and its process id.
 pub const DEMO_FOLDER_PREFIX: &str = "godspeed-demo-";
 
 pub struct Paths {
@@ -20,8 +20,10 @@ pub struct Paths {
 	/// The Electron updater's cache, which the first run removes. A debug build names its own,
 	/// so it never removes the installed app's.
 	pub updater_cache: PathBuf,
-	/// The demo view's own folder: its browser profile on Windows and Linux, its compiled
-	/// loopback rules on the Mac.
+	/// The demo view's own folder: its browser profile on Windows, its compiled loopback rules
+	/// on the Mac and Linux. It sits in the temp folder, except on Linux, where that is the
+	/// shared /tmp: another user could make the folder first and swap the rules, so it sits in
+	/// this user's cache folder there.
 	pub demo_data: PathBuf,
 }
 
@@ -35,7 +37,7 @@ impl Paths {
 			logs: user_data.join("logs"),
 			pdfium: pdfium(&resources, std::env::consts::OS, cfg!(debug_assertions)),
 			updater_cache: updater_cache(&resolver.cache_dir()?, cfg!(debug_assertions)),
-			demo_data: resolver.temp_dir()?.join(format!("{DEMO_FOLDER_PREFIX}{}", std::process::id())),
+			demo_data: if cfg!(target_os = "linux") { resolver.cache_dir()? } else { resolver.temp_dir()? }.join(format!("{DEMO_FOLDER_PREFIX}{}", std::process::id())),
 			user_data,
 			resources,
 		})

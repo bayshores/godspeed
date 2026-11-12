@@ -5,9 +5,8 @@
 
 use std::io::Read;
 use std::net::TcpListener;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::mpsc;
+use std::sync::{Arc, Mutex, mpsc};
 use std::time::Duration;
 
 use gs_shell_rpc::DemoResult;
@@ -21,6 +20,10 @@ use crate::{window, zoom};
 
 /// What the main window's page would be; it stays on the boot page.
 const APP_ORIGIN: &str = "http://127.0.0.1:9";
+
+/// A name that stands for any public one whose DNS answer is 127.0.0.1: Windows maps it to
+/// 127.0.0.1 in the self-test build (win/demo.rs); elsewhere it resolves to nothing.
+pub const LOOPBACK_NAME: &str = "loopback.self-test.invalid";
 
 /// Where a demo's page lives.
 #[cfg(target_os = "macos")]
@@ -59,7 +62,7 @@ fn checks(app: &AppHandle) -> usize {
 	};
 	let (port, seen) = loopback_server();
 	let saved = format!("godspeed-self-test-{}.txt", std::process::id());
-	let planted = check(app, &planted_page(port, &saved), Some("({ answer: window.answer, href: location.href, size: [innerWidth, innerHeight] })"));
+	let planted = check(app, &planted_page(port, &saved), Some(r#"({ answer: window.answer, href: location.href, size: [innerWidth, innerHeight], download: document.getElementById("save").href })"#));
 	// A blocked request is never sent; give one that got through time to arrive.
 	std::thread::sleep(Duration::from_millis(500));
 	match planted {
@@ -79,11 +82,27 @@ fn checks(app: &AppHandle) -> usize {
 /// What reached the loopback server.
 #[derive(Default)]
 struct Seen {
-	/// Connections that sent a request; a demo must make none.
-	requests: AtomicUsize,
-	/// Connections closed before sending a byte: WebView2 opens one ahead of a navigation it
-	/// then cancels or answers itself.
+	/// The first line of every other connection that sent something; a demo must make none.
+	requests: Mutex<Vec<String>>,
+	/// TLS handshakes naming LOOPBACK_NAME: an image the browser upgraded to https because the
+	/// page is https. Only a name's DNS answer says it is this machine, so this is as far as
+	/// such a name gets on every system.
+	upgraded: AtomicUsize,
+	/// Connections closed before sending a byte, which a browser may open ahead of a load.
 	empty: AtomicUsize,
+}
+
+impl Seen {
+	fn record(&self, sent: &[u8]) {
+		if sent.is_empty() {
+			self.empty.fetch_add(1, Ordering::SeqCst);
+		} else if sent[0] == 0x16 && sent.windows(LOOPBACK_NAME.len()).any(|bytes| bytes == LOOPBACK_NAME.as_bytes()) {
+			self.upgraded.fetch_add(1, Ordering::SeqCst);
+		} else {
+			let line = if sent[0] == 0x16 { "a TLS handshake".to_owned() } else { String::from_utf8_lossy(sent).lines().next().unwrap_or_default().to_owned() };
+			self.requests.lock().unwrap_or_else(std::sync::PoisonError::into_inner).push(line);
+		}
+	}
 }
 
 /// A loopback server on IPv4 and IPv6.
@@ -95,9 +114,9 @@ fn loopback_server() -> (u16, Arc<Seen>) {
 		let seen = seen.clone();
 		std::thread::spawn(move || {
 			for mut stream in listener.incoming().flatten() {
-				let sent = stream.read(&mut [0; 2048]).unwrap_or(0);
-				let counter = if sent == 0 { &seen.empty } else { &seen.requests };
-				counter.fetch_add(1, Ordering::SeqCst);
+				let mut buffer = [0; 2048];
+				let sent = stream.read(&mut buffer).unwrap_or(0);
+				seen.record(&buffer[..sent]);
 				let _ = std::io::Write::write_all(&mut stream, b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nno");
 			}
 		});
@@ -118,19 +137,29 @@ fn loopback_images(port: u16) -> String {
 	tags
 }
 
+/// The planted page: every loopback form, WebSockets, a worker, a name standing for one whose
+/// DNS answer is this machine, a download, an uncaught error and navigations away.
 fn planted_page(port: u16, saved: &str) -> String {
 	format!(
 		r#"<!doctype html><html><body><p>demo</p>{images}
 <iframe src="http://127.0.0.1:{port}/frame"></iframe>
-<a id="save" download="{saved}" href="data:text/plain,saved">save</a>
+<img src="http://{LOOPBACK_NAME}:{port}/name-image"><iframe src="http://{LOOPBACK_NAME}:{port}/name-frame"></iframe>
+<a id="save" download="{saved}">save</a>
 <script src="https://does-not-exist.invalid/lib.js"></script>
 <script>
 console.error("planted", {{ a: 1 }});
 window.answer = {{ n: 42, cookie: document.cookie }};
 fetch("http://127.0.0.1:{port}/api/classes", {{ credentials: "include" }}).catch(() => {{}});
 fetch("http://localhost:{port}/api/classes").catch(() => {{}});
+fetch("http://{LOOPBACK_NAME}:{port}/name-fetch").catch(() => {{}});
 const img = new Image(); img.src = "http://127.0.0.1:{port}/pixel.png"; document.body.appendChild(img);
-document.getElementById("save").click();
+for (const url of ["ws://127.0.0.1:{port}/ws", "ws://localhost:{port}/ws", "ws://[::1]:{port}/ws", "ws://{LOOPBACK_NAME}:{port}/name-ws"]) {{
+  try {{ new WebSocket(url); }} catch {{}}
+}}
+new Worker(URL.createObjectURL(new Blob(['fetch("http://127.0.0.1:{port}/worker").catch(() => {{}});'], {{ type: "text/javascript" }})));
+const save = document.getElementById("save");
+save.href = URL.createObjectURL(new Blob(["saved"], {{ type: "text/plain" }}));
+save.click();
 setTimeout(() => {{ throw new Error("planted uncaught"); }}, 10);
 setTimeout(() => {{ location.href = "http://127.0.0.1:{port}/away"; }}, 50);
 setTimeout(() => {{ location.href = "https://example.com/"; }}, 100);
@@ -160,9 +189,9 @@ fn planted_errors(result: &DemoResult) -> Result<String, String> {
 }
 
 fn nothing_reached(result: &DemoResult, port: u16, seen: &Seen) -> Result<String, String> {
-	let requests = seen.requests.load(Ordering::SeqCst);
-	if requests > 0 {
-		return Err(format!("the loopback server got {requests} request(s)"));
+	let requests = seen.requests.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+	if !requests.is_empty() {
+		return Err(format!("the loopback server got {}: {requests:?}", requests.len()));
 	}
 	let failed = result.failed_requests.join("\n");
 	for blocked in [format!("http://127.0.0.1:{port}/api/classes (TypeError"), format!("http://localhost:{port}/api/classes (TypeError")] {
@@ -170,8 +199,8 @@ fn nothing_reached(result: &DemoResult, port: u16, seen: &Seen) -> Result<String
 			return Err(format!("no failed request {blocked}: {failed}"));
 		}
 	}
-	let empty = seen.empty.load(Ordering::SeqCst);
-	Ok(if empty == 0 { String::new() } else { format!("{empty} connection(s) closed with no request") })
+	let notes = [(seen.upgraded.load(Ordering::SeqCst), "TLS handshake(s) from an image upgraded to https"), (seen.empty.load(Ordering::SeqCst), "connection(s) closed with no request")];
+	Ok(notes.iter().filter(|(n, _)| *n > 0).map(|(n, what)| format!("{n} {what}")).collect::<Vec<_>>().join(", "))
 }
 
 fn nothing_changed(app: &AppHandle, result: &DemoResult, saved: &str) -> Result<String, String> {
@@ -179,12 +208,21 @@ fn nothing_changed(app: &AppHandle, result: &DemoResult, saved: &str) -> Result<
 	if href != DEMO_PAGE {
 		return Err(format!("the demo moved to {href}"));
 	}
-	// The places a browser saves to by default.
-	let folders = [app.path().download_dir().ok(), app.path().home_dir().ok(), Some(std::env::temp_dir())];
-	match folders.into_iter().flatten().map(|folder| folder.join(saved)).find(|file| file.exists()) {
-		Some(file) => Err(format!("the download was saved to {}", file.display())),
-		None => Ok(String::new()),
+	// The places a browser saves to by default; wry falls back to the working folder.
+	let folders = [app.path().download_dir().ok(), app.path().home_dir().ok(), Some(std::env::temp_dir()), std::env::current_dir().ok()];
+	if let Some(file) = folders.into_iter().flatten().map(|folder| folder.join(saved)).find(|file| file.exists()) {
+		return Err(format!("the download was saved to {}", file.display()));
 	}
+	// Without this, a click the browser never turned into a download would pass too.
+	#[cfg(not(target_os = "macos"))]
+	{
+		let download = result.probe_result.as_ref().and_then(|probe| probe["download"].as_str()).unwrap_or_default();
+		let refused = crate::demo_webview::REFUSED.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+		if !refused.iter().any(|url| url == download) {
+			return Err(format!("no guard of the demo window stopped the download {download:?}; it refused {refused:?}"));
+		}
+	}
+	Ok(String::new())
 }
 
 /// The Mac's demo view has no bridge at all; elsewhere Tauri's bridge is there and every

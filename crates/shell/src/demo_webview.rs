@@ -1,7 +1,8 @@
 //! The demo runner on Windows and Linux. Each run gets a hidden top-level window labeled `demo`,
 //! made for the run and closed after it, with no way into the app: a browser profile of its own
-//! (no app cookie or storage), a page origin that is not the app's (so a request to the app is
-//! cross-site), every loopback address blocked, and no navigation away, new window or download.
+//! (no app cookie or storage), an https page origin that is not the app's (so a request to the
+//! app is cross-site, and plain http to any other name is mixed content), every loopback address
+//! blocked, and no navigation away, new window or download.
 //! Tauri injects its bridge here too, but no capability names this window, so every command is
 //! refused. A run waits on a thread of its own; the window lives on the main thread.
 //!
@@ -22,11 +23,22 @@ use crate::paths::{DEMO_FOLDER_PREFIX, Paths};
 
 pub const LABEL: &str = "demo";
 
-/// Where the demo's page lives: Tauri's address for the `demo` scheme on Windows.
+/// Where the demo's page lives: Tauri's https address for the `demo` scheme on Windows.
 #[cfg(windows)]
-pub const PAGE_URL: &str = "http://demo.localhost/";
+pub const PAGE_URL: &str = "https://demo.localhost/";
 #[cfg(target_os = "linux")]
 pub const PAGE_URL: &str = demo::ORIGIN;
+
+/// Every URL a demo window refused to go to or download, so the self-test can tell its download
+/// was stopped by a guard and not just never started. WebKitGTK asks `on_navigation` before an
+/// `<a download>` click becomes a download, WebView2 only `on_download`.
+#[cfg(feature = "self-test")]
+pub static REFUSED: std::sync::Mutex<Vec<String>> = std::sync::Mutex::new(Vec::new());
+
+#[cfg(feature = "self-test")]
+fn refused(url: &str) {
+	REFUSED.lock().unwrap_or_else(std::sync::PoisonError::into_inner).push(url.to_owned());
+}
 
 /// How often a run asks the page whether it has answered.
 const POLL: Duration = Duration::from_millis(50);
@@ -49,7 +61,7 @@ pub fn serve<R: tauri::Runtime>(ctx: tauri::UriSchemeContext<'_, R>, request: ta
 /// Deletes the demo folders earlier launches left behind (a crash skips quit.rs). Single
 /// instance means none is in use.
 pub fn sweep(own: &Path) {
-	let Some(entries) = own.parent().and_then(|temp| std::fs::read_dir(temp).ok()) else { return };
+	let Some(entries) = own.parent().and_then(|parent| std::fs::read_dir(parent).ok()) else { return };
 	for entry in entries.flatten() {
 		if entry.file_name().to_string_lossy().starts_with(DEMO_FOLDER_PREFIX) {
 			let _ = std::fs::remove_dir_all(entry.path());
@@ -118,11 +130,11 @@ struct View {
 }
 
 impl View {
-	/// Opens the window blank, blocks loopback in it, then loads `html`.
+	/// Opens the window blank, then loads `html` (on Linux once its loopback rules are in).
 	fn open(app: &AppHandle, html: &str, size: (u32, u32)) -> Result<View, String> {
 		let (loaded, loads) = mpsc::channel();
 		let blank: Url = "about:blank".parse().map_err(|_| "bad blank URL".to_owned())?;
-		let window = WebviewWindowBuilder::new(app, LABEL, WebviewUrl::External(blank))
+		let builder = WebviewWindowBuilder::new(app, LABEL, WebviewUrl::External(blank))
 			.inner_size(f64::from(size.0), f64::from(size.1))
 			.visible(false)
 			.focused(false)
@@ -131,16 +143,32 @@ impl View {
 			.incognito(true)
 			.initialization_script(RECORDER)
 			// The page and blank frames, as on the Mac; a link, a redirect or `location` goes nowhere.
-			.on_navigation(|url| url.as_str() == PAGE_URL || url.as_str() == "about:blank")
+			.on_navigation(|url| {
+				let allowed = url.as_str() == PAGE_URL || url.as_str() == "about:blank";
+				#[cfg(feature = "self-test")]
+				if !allowed {
+					refused(url.as_str());
+				}
+				allowed
+			})
 			.on_new_window(|_, _| NewWindowResponse::Deny)
-			.on_download(|_, _| false)
 			.on_page_load(move |_, payload| {
 				if matches!(payload.event(), PageLoadEvent::Finished) && payload.url().as_str() == PAGE_URL {
 					let _ = loaded.send(());
 				}
-			})
-			.build()
-			.map_err(|err| format!("cannot open the demo window: {err}"))?;
+			});
+		#[cfg(not(feature = "self-test"))]
+		let builder = builder.on_download(|_, _| false);
+		#[cfg(feature = "self-test")]
+		let builder = builder.on_download(|_, event| {
+			if let tauri::webview::DownloadEvent::Requested { url, .. } = &event {
+				refused(url.as_str());
+			}
+			false
+		});
+		#[cfg(windows)]
+		let builder = builder.use_https_scheme(true).additional_browser_args(&crate::win::demo::browser_args());
+		let window = builder.build().map_err(|err| format!("cannot open the demo window: {err}"))?;
 		let view = View { app: app.clone(), window, loads };
 		#[cfg(windows)]
 		view.load(html)?;
@@ -152,13 +180,6 @@ impl View {
 	#[cfg(windows)]
 	fn load(&self, html: &str) -> Result<(), String> {
 		html.clone_into(&mut PAGE.lock().unwrap_or_else(std::sync::PoisonError::into_inner));
-		let (tx, rx) = mpsc::channel();
-		self.window
-			.with_webview(move |webview| {
-				let _ = tx.send(crate::win::demo::block_loopback(&webview));
-			})
-			.map_err(|err| err.to_string())?;
-		rx.recv_timeout(LOAD_LIMIT).unwrap_or_else(|_| Err("the loopback block did not finish".to_owned()))?;
 		let page: Url = PAGE_URL.parse().map_err(|_| "bad demo page URL".to_owned())?;
 		self.window.navigate(page).map_err(|err| err.to_string())
 	}
