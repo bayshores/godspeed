@@ -5,6 +5,10 @@
 //! from the cut onward. Tokens are estimated as Pi does: anchor on the provider-reported usage of
 //! the last assistant message and estimate by characters / 4 only what came after it.
 //!
+//! Two steps, so a turn never waits on a summary: past the threshold godspeed shortens the record
+//! itself at once (`local_summary`), and once the lesson has been quiet the session's model writes
+//! the real summary in its place.
+//!
 //! `activeCompactionOf` and `keptIndexFor` live in `messages::compaction_marks`.
 
 use gs_base::{clock, text};
@@ -197,7 +201,8 @@ pub fn compaction_cut_index(messages: &[Json], keep_recent_tokens: f64) -> usize
 
 /// The compaction marker: content is the full model-facing text (header, then the summary). It
 /// rides the record at the compaction moment, while the cut it names sits deep in history.
-/// `details` is `{firstKeptMessageId, tokensBefore, model?, at}`.
+/// `details` is `{firstKeptMessageId, tokensBefore, model?, at, local?}`; `local` marks godspeed's
+/// own shortening, waiting for the model's summary to replace it.
 pub fn new_compaction_marker(summary: &str, details: &Json) -> Json {
 	let mut out = Obj::new();
 	out.insert("id", new_message_id());
@@ -212,6 +217,11 @@ pub fn new_compaction_marker(summary: &str, details: &Json) -> Json {
 
 /// A message span as labeled text for the summarizer.
 pub fn serialize_for_summary(messages: &[Json]) -> String {
+	summary_lines(messages).join("\n\n")
+}
+
+/// serialize_for_summary's entries, one per message.
+fn summary_lines(messages: &[Json]) -> Vec<String> {
 	let mut lines: Vec<String> = Vec::new();
 	for m in messages {
 		match m["role"].as_str() {
@@ -256,7 +266,61 @@ pub fn serialize_for_summary(messages: &[Json]) -> String {
 			_ => {}
 		}
 	}
-	lines.join("\n\n")
+	lines
+}
+
+/// A message in godspeed's own shortening is cut to this many characters.
+const LOCAL_LINE_CHARS: usize = 600;
+/// godspeed's own shortening stays under this (about 6k tokens).
+const LOCAL_SUMMARY_CHARS: usize = 24_000;
+
+/// godspeed's own shortening of a span, written at once and without a model: the plan, the
+/// summary before it, then each message cut short, the oldest dropped first when they don't all
+/// fit.
+pub fn local_summary(span: &[Json], prior_summary: Option<&str>, plan_tree_text: Option<&str>) -> String {
+	let mut head = vec!["godspeed shortened the earlier part of this session itself; a written summary comes later. Long messages are cut short.".to_owned()];
+	if let Some(plan) = plan_tree_text.filter(|t| !t.is_empty()) {
+		head.push(format!("## The plan dependency tree\n{plan}"));
+	}
+	if let Some(prior) = prior_summary.filter(|t| !t.is_empty()) {
+		head.push(format!("## Before that\n{}", cut(prior, LOCAL_SUMMARY_CHARS / 3)));
+	}
+	let lines: Vec<String> = summary_lines(span).iter().map(|line| cut(line, LOCAL_LINE_CHARS)).collect();
+	let mut room = LOCAL_SUMMARY_CHARS as i64 - text::len16(&head.join("\n\n")) as i64;
+	let mut first_kept = lines.len();
+	while first_kept > 0 && room - text::len16(&lines[first_kept - 1]) as i64 > 0 {
+		first_kept -= 1;
+		room -= text::len16(&lines[first_kept]) as i64 + 2;
+	}
+	let mut out = head;
+	out.push("## Earlier messages".to_owned());
+	if first_kept > 0 {
+		out.push(format!("({first_kept} older messages left out)"));
+	}
+	out.extend(lines.into_iter().skip(first_kept));
+	out.join("\n\n")
+}
+
+fn cut(line: &str, chars: usize) -> String {
+	if text::len16(line) > chars { format!("{}\u{2026}", text::slice16(line, 0, Some(chars as i64))) } else { line.to_owned() }
+}
+
+/// The messages a compaction marker stands for, and the previous marker's text.
+pub struct CompactionSpan<'a> {
+	pub span: &'a [Json],
+	pub prior_summary: Option<String>,
+}
+
+/// From the previous marker's kept boundary (or the start) to this marker's own. None when the
+/// marker or its boundary is not in `messages`.
+pub fn compaction_span<'a>(messages: &'a [Json], marker: &Json) -> Option<CompactionSpan<'a>> {
+	let at = messages.iter().position(|m| m["id"] == marker["id"])?;
+	let kept = messages.iter().position(|m| m["id"] == marker["details"]["firstKeptMessageId"])?;
+	let previous = active_compaction_of(&messages[..at]);
+	let start = previous.map_or(0, |p| messages.iter().position(|m| m["id"] == p["details"]["firstKeptMessageId"]).unwrap_or(0));
+	// A boundary before the previous one leaves an empty span, as `slice` does.
+	let span = if start <= kept { &messages[start..kept] } else { &[] };
+	Some(CompactionSpan { span, prior_summary: previous.map(|p| js_string(p.get("content"))) })
 }
 
 /// The plan dependency tree as text, verbatim through compaction: structure from the tree,
@@ -399,6 +463,25 @@ mod tests {
 		assert_eq!(compaction_cut_index(&[], 10.0), 0);
 		let kept = json!({ "role": "custom", "customType": "compaction", "details": { "firstKeptMessageId": "u" } });
 		assert_eq!(compaction_cut_index(&[user("a"), kept.clone(), user("b")], 1.0), 2);
+	}
+
+	#[test]
+	fn the_local_summary_cuts_long_messages_and_drops_the_oldest() {
+		let summary = local_summary(&[user(&"a".repeat(700)), user("b")], Some("prior"), Some("- [current] A (a)"));
+		let want = format!("godspeed shortened the earlier part of this session itself; a written summary comes later. Long messages are cut short.\n\n## The plan dependency tree\n- [current] A (a)\n\n## Before that\nprior\n\n## Earlier messages\n\n[LEARNER] {}\u{2026}\n\n[LEARNER] b", "a".repeat(590));
+		assert_eq!(summary, want);
+		let many: Vec<Json> = (0..60).map(|_| user(&"w".repeat(600))).collect();
+		assert!(local_summary(&many, None, None).contains("(21 older messages left out)"));
+	}
+
+	#[test]
+	fn the_span_runs_from_the_previous_boundary() {
+		let marker = |id: &str, kept: &str| json!({ "id": id, "role": "custom", "customType": "compaction", "content": format!("s{id}"), "details": { "firstKeptMessageId": kept } });
+		let m = |id: &str| json!({ "id": id, "role": "user", "content": id });
+		let messages = [m("a"), m("b"), marker("k1", "b"), m("c"), marker("k2", "c")];
+		let span = compaction_span(&messages, &messages[4]).unwrap();
+		assert_eq!((span.span.to_vec(), span.prior_summary), (messages[1..3].to_vec(), Some("sk1".to_owned())));
+		assert!(compaction_span(&messages, &marker("k9", "a")).is_none());
 	}
 
 	#[test]

@@ -24,7 +24,7 @@ use std::sync::atomic::AtomicBool;
 use gs_core::messages::input_events::DismissInput;
 use gs_engine::turn::ui_stream::TurnHandle;
 use parking_lot::Mutex;
-use tokio::sync::{Notify, watch};
+use tokio::sync::Notify;
 
 pub use agent_catch_up::{ask_about_new_deadlines, catch_up_for_agent};
 pub use attachments::{AttachmentError, store_attachments};
@@ -47,8 +47,11 @@ pub struct TurnsState {
 	failures: Mutex<HashMap<String, String>>,
 	/// A dismissal that arrived mid-turn, applied at settle (dismissal-park).
 	parked: Mutex<HashMap<String, DismissInput>>,
-	/// Running compactions: each ends by sending `true` (or dropping its sender).
-	compactions: Mutex<HashMap<String, watch::Receiver<bool>>>,
+	/// The quiet-wait timer of each chat's summary: its number, so a newer one replaces it.
+	refine_timers: Mutex<HashMap<String, u64>>,
+	refine_count: Mutex<u64>,
+	/// Chats whose summary is being written.
+	refining: Mutex<HashSet<String>>,
 	/// The leftover-extraction timer of each chat: its number, so a newer one replaces it.
 	leftover_timers: Mutex<HashMap<String, u64>>,
 	leftover_count: Mutex<u64>,

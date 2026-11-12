@@ -12,6 +12,8 @@ import {
 	estimateContextTokens,
 	estimateMessageTokens,
 	estimateTokens,
+	compactionSpan,
+	localSummary,
 	newCompactionMarker,
 	planTreeToText,
 	serializeForSummary,
@@ -356,6 +358,30 @@ export default {
 			empty: serializeForSummary([]),
 			plans: rec(planInputs, ([t, m]) => planTreeToText(t as never, m as never)),
 			prompts: rec(promptInputs, (input) => buildCompactionPrompt(input)),
+		};
+	},
+
+	"compaction: local summary and span": () => {
+		const many: Msg[] = Array.from({ length: 60 }, (_, i) => ({ id: `u${i}`, role: "user", content: `${i} ${"word ".repeat(150)}` }));
+		const spans: { span: Msg[]; priorSummary: string | null; planTreeText: string | null }[] = [
+			{ span: [], priorSummary: null, planTreeText: null },
+			{ span: [{ role: "user", content: "short" }, assistant("a1", [{ type: "text", text: "😀".repeat(700) }])], priorSummary: "", planTreeText: "" },
+			{ span: many.slice(0, 5), priorSummary: "s".repeat(9000), planTreeText: "- [current] A (a)" },
+			{ span: many, priorSummary: "earlier", planTreeText: null },
+			{ span: many, priorSummary: "😀".repeat(9000), planTreeText: "- [done] B (b)" },
+		];
+		const marker = (id: string, kept: unknown, content = "summary"): Msg => ({ id, role: "custom", customType: "compaction", content, details: { firstKeptMessageId: kept, tokensBefore: 1, at: "t" } });
+		const lists: [Msg[], Msg][] = [
+			[[{ id: "a", role: "user", content: "a" }, { id: "b", role: "user", content: "b" }, marker("k1", "b")], marker("k1", "b")],
+			[[{ id: "a", role: "user", content: "a" }, { id: "b", role: "user", content: "b" }, marker("k1", "b", "first"), { id: "c", role: "user", content: "c" }, { id: "d", role: "user", content: "d" }, marker("k2", "d")], marker("k2", "d")],
+			[[{ id: "a", role: "user", content: "a" }, marker("k1", "gone")], marker("k1", "gone")],
+			[[{ id: "a", role: "user", content: "a" }], marker("k9", "a")],
+			[[{ id: "a", role: "user", content: "a" }, { id: "b", role: "user", content: "b" }, marker("k1", "b", "first"), marker("k2", "a")], marker("k2", "a")],
+			[[{ id: "a", role: "user", content: "a" }, marker("k1", "missing", "first"), { id: "c", role: "user", content: "c" }, marker("k2", "c")], marker("k2", "c")],
+		];
+		return {
+			summaries: rec(spans, (input) => localSummary(input as never)),
+			spans: rec(lists, ([messages, m]) => compactionSpan(messages as never, m as never)),
 		};
 	},
 

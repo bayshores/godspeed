@@ -32,7 +32,7 @@ use super::compaction::{CompactionDeps, ensure_compacted, kick_compaction, or_ze
 use super::dismissal_park::apply_parked_dismissal;
 use super::job_host::run_job;
 use super::lesson_agent::{TurnAgent, build_lesson_agent};
-use super::turn_liveness::{begin_turn, end_turn, is_turn_running, turn_started};
+use super::turn_liveness::{begin_turn, end_turn, turn_started};
 use super::turn_runs::{register_turn, remember_turn_failure, unregister_turn};
 use super::turn_service::{PERSISTENCE_ERROR, persist_turn, trigger_extraction};
 use crate::App;
@@ -109,8 +109,8 @@ pub fn send_first_message(app: &Arc<App>) -> SendFirstMessage {
 
 /// The turn composition: one input event, its record appends, one agent turn in the background.
 /// Also the wake pipeline's entry (`TurnInput::Steers`). Runs on its own task once polled: a
-/// request whose client went away is dropped at its next await (the compaction gate can wait
-/// minutes), and the learner's input must still be saved and its turn run.
+/// request whose client went away is dropped at its next await, and the learner's input must
+/// still be saved and its turn run.
 pub fn handle_chat_input(app: &Arc<App>, chat_id: &str, input: TurnInput) -> ReplyFuture {
 	let (app, chat_id) = (app.clone(), chat_id.to_owned());
 	Box::pin(async move { tokio::spawn(async move { run(&app, &chat_id, input).await }).await.unwrap_or_else(ChatReply::thrown) })
@@ -142,12 +142,9 @@ async fn run(app: &Arc<App>, chat_id: &str, input: TurnInput) -> ChatReply {
 		Err(err) => return ChatReply::thrown(err),
 	};
 
-	// The compaction gate: nothing model-facing for this chat runs beside a compaction. It runs
-	// before the appends and begin_turn, and the record is read again after it.
-	let deps = compaction_deps(app, &record, &effective);
-	let gate_app = app.clone();
-	let gate_chat = chat_id.to_owned();
-	ensure_compacted(app, &deps, chat_id, move || !is_turn_running(&gate_app, &gate_chat)).await;
+	// The compaction gate: a record still over the threshold is shortened now, at once (no
+	// model). It runs before the appends and begin_turn, and the record is read again after it.
+	ensure_compacted(app, &compaction_deps(app, &record, &effective), chat_id);
 
 	let accepted = match write_ahead(app, chat_id, &input, &attachments) {
 		Ok(accepted) => accepted,
@@ -401,13 +398,18 @@ impl Settle {
 	}
 }
 
-/// The settle kick: a record now over threshold starts its summary during the learner's pause.
+/// The settle kick: a lesson now over the threshold is shortened at once, and the quiet wait for
+/// the model's summary starts again.
 fn kick(app: &Arc<App>, chat_id: &str) {
-	let deps = app.stores.chats.get_chat(chat_id).and_then(|fresh| {
+	let weak = Arc::downgrade(app);
+	let id = chat_id.to_owned();
+	let build = Arc::new(move || {
+		let app = weak.upgrade()?;
+		let fresh = app.stores.chats.get_chat(&id)?;
 		let effective = app.stores.settings.effective_settings().ok()?;
-		Some(compaction_deps(app, &fresh, &effective))
+		Some(compaction_deps(&app, &fresh, &effective))
 	});
-	kick_compaction(app, deps, chat_id, !is_turn_running(app, chat_id));
+	kick_compaction(app, build, chat_id);
 }
 
 /// The agent the next turn builds for this record.
@@ -466,11 +468,9 @@ pub(crate) fn wire(app: &Arc<App>) {
 
 #[cfg(test)]
 mod tests {
-	use gs_base::clock;
-	use tokio::sync::watch;
-
 	use super::*;
 	use crate::app::test_support::{scratch_dir, test_app};
+	use crate::turns::turn_liveness::is_turn_running;
 	use crate::turns::turn_runs::attach_turn;
 
 	fn lesson(app: &App) -> String {
@@ -483,30 +483,6 @@ mod tests {
 
 	fn saved(app: &App, chat_id: &str, text: &str) -> bool {
 		app.stores.chats.get_chat(chat_id).is_some_and(|record| stringify(&record["messages"]).contains(text))
-	}
-
-	#[tokio::test(flavor = "multi_thread")]
-	async fn a_message_whose_request_goes_away_during_a_compaction_is_still_saved() {
-		let root = scratch_dir("chat-gone");
-		let app = test_app(&root);
-		let chat_id = lesson(&app);
-		let (done, running) = watch::channel(false);
-		app.turns.compactions.lock().insert(chat_id.clone(), running);
-		// The window closes while the request waits out the compaction.
-		let request = handle_chat_input(&app, &chat_id, text("What is a set?"));
-		tokio::select! {
-			_ = request => panic!("the request ended before the compaction"),
-			() = clock::sleep(100) => {}
-		}
-		app.turns.compactions.lock().remove(&chat_id);
-		done.send(true).unwrap();
-		for _ in 0..200 {
-			if saved(&app, &chat_id, "What is a set?") {
-				break;
-			}
-			clock::sleep(10).await;
-		}
-		assert!(saved(&app, &chat_id, "What is a set?"));
 	}
 
 	#[tokio::test(flavor = "multi_thread")]

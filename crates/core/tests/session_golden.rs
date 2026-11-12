@@ -7,8 +7,8 @@ use gs_base::text;
 use gs_core::session::argument_heal::heal_encoded_arguments;
 use gs_core::session::code_question::{fenced_code, write_code_input_problems, write_code_input_schema};
 use gs_core::session::compaction::{
-	ContextTokenEstimate, KEEP_RECENT_TOKENS, build_compaction_prompt, calculate_context_tokens, compaction_cut_index, effective_threshold_tokens, estimate_context_tokens, estimate_message_tokens,
-	estimate_tokens, new_compaction_marker, plan_tree_to_text, serialize_for_summary,
+	ContextTokenEstimate, KEEP_RECENT_TOKENS, build_compaction_prompt, calculate_context_tokens, compaction_cut_index, compaction_span, effective_threshold_tokens, estimate_context_tokens,
+	estimate_message_tokens, estimate_tokens, local_summary, new_compaction_marker, plan_tree_to_text, serialize_for_summary,
 };
 use gs_core::session::cost_summary::graph_cost_summary;
 use gs_core::session::jobs::{accumulate_job_usage, build_abort_steer, build_subagent_steer, is_subagent_failure, pi_usage_to_step, set_steer_ui_inverted, steer_delivered};
@@ -239,6 +239,16 @@ fn compaction_text_matches_node() {
 	same(&serialize_for_summary(&[]).into(), &case["empty"], "empty");
 	each(&case["plans"], "plan text", |i| plan_tree_to_text(present(&i[0]), arr(&i[1])).into());
 	each(&case["prompts"], "prompt", |i| build_compaction_prompt(s(&i["spanText"]), i["planTreeText"].as_str(), s(&i["kind"])).into());
+}
+
+#[test]
+fn compaction_local_summary_and_span_match_node() {
+	let case = golden("compaction: local summary and span");
+	each(&case["summaries"], "local summary", |i| local_summary(arr(&i["span"]), i["priorSummary"].as_str(), i["planTreeText"].as_str()).into());
+	each(&case["spans"], "span", |i| match compaction_span(arr(&i[0]), &i[1]) {
+		Some(found) => object(vec![("span", found.span.to_vec().into()), ("priorSummary", found.prior_summary.map_or(Json::Null, Json::from))]),
+		None => Json::Null,
+	});
 }
 
 #[test]

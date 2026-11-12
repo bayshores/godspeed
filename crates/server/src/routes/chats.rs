@@ -28,7 +28,6 @@ use gs_services::spaces::{move_chat_to_space, start_space_scanner};
 use gs_services::jobs::steer_live_chat;
 use gs_services::turns::chat_handler::{ChatReply, ReplyBody, handle_chat_input};
 use gs_services::turns::chats::{delete_chat_session, session_coverage};
-use gs_services::turns::compaction::compaction_in_flight;
 use gs_services::turns::dismissal_park::park_dismissal;
 use gs_services::turns::homework::create_homework;
 use gs_services::turns::lessons::{CreateLessonInput, LessonStart, create_lesson};
@@ -102,7 +101,6 @@ async fn list(State(app): State<Arc<App>>, uri: Uri) -> Result<Response, Unhandl
 			let id = c["id"].as_str().unwrap_or_default().to_owned();
 			if let Some(o) = c.as_obj_mut() {
 				o.insert("busy", is_turn_running(&app, &id));
-				o.insert("compacting", compaction_in_flight(&app, &id));
 			}
 			c
 		})
@@ -151,12 +149,11 @@ async fn read(State(app): State<Arc<App>>, Path(id): Path<String>) -> Result<Res
 	if let Some(error) = turn_failure(&app, &id) {
 		out.insert("turnError", error);
 	}
-	out.insert("compacting", compaction_in_flight(&app, &id));
 	out.insert("coverage", session_coverage(&app, &chat)?);
 	Ok(reply::json(200, &Json::Obj(out)))
 }
 
-/// PUT /api/chats/{id}: rename. `updatedAt` stays, so the sidebar order does not change.
+/// PUT /api/chats/{id}: rename. `updatedAt` stays, so the lesson list order does not change.
 async fn rename(State(app): State<Arc<App>>, Path(id): Path<String>, body: Body) -> Result<Response, Unhandled> {
 	if app.stores.chats.get_chat(&id).is_none() {
 		return Ok(error(404, "Not found"));
