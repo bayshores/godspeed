@@ -32,7 +32,20 @@ const { createRoot } = await import("react-dom/client");
 const { SpaceDialog } = await import("../../src/frontend/components/space-dialog.tsx");
 const { MoveLessonDialog } = await import("../../src/frontend/components/lessons/move-lesson-dialog.tsx");
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
-const { SpaceProvider } = await import("../../src/frontend/components/space-context.tsx");
+const { SpaceProvider, useSpaces } = await import("../../src/frontend/components/space-context.tsx");
+const { useSpaceRecord } = await import("../../src/frontend/components/files/space-files-api.ts");
+const { AppRouterContext } = await import("next/dist/shared/lib/app-router-context.shared-runtime.js");
+
+/** Where the window was sent. */
+const pushed: string[] = [];
+const router = { push: (href: string) => pushed.push(href) } as unknown as React.ContextType<typeof AppRouterContext>;
+
+/** A space page behind the dialog: it reads the space the window is on. */
+function SpacePage() {
+	const { active } = useSpaces();
+	useSpaceRecord(active);
+	return null;
+}
 
 function file(id: string, name: string, kind: "study" | "info" = "study"): SpaceFile {
 	return { id, origin: "copied", name, path: `${id}/${name}`, kind, contentFp: "", status: "ready", addedAt: "" };
@@ -54,6 +67,8 @@ const RECORD: SpaceRecord = {
 };
 
 const calls: { method: string; url: string; body?: unknown }[] = [];
+/** Every GET, in order. */
+const reads: string[] = [];
 const originalFetch = globalThis.fetch;
 /** The record the server holds now (an agent may change it mid-test). */
 let served: SpaceRecord = RECORD;
@@ -65,6 +80,7 @@ function fakeFetch() {
 		const method = init?.method ?? "GET";
 		const body = typeof init?.body === "string" ? JSON.parse(init.body) : undefined;
 		if (method !== "GET") calls.push({ method, url, body });
+		else reads.push(url);
 		if (url === "/api/spaces") return Response.json({ spaces: [{ id: "cls_a", name: "CSE 21" }] });
 		if (url === "/api/spaces/cls_a" && method === "GET") return Response.json({ space: served });
 		if (url === "/api/spaces/cls_a" && method === "DELETE") return Response.json({ ok: true, lessonIds: ["l1", "l2"] });
@@ -83,9 +99,12 @@ async function mount(mode: { kind: "create" } | { kind: "edit"; spaceId: string 
 	await act(async () => {
 		root!.render(
 			<ServerEventsProvider connect={connect as never}>
-				<SpaceProvider initialActive="cls_a">
-					<SpaceDialog mode={mode} onClose={() => closed++} />
-				</SpaceProvider>
+				<AppRouterContext.Provider value={router}>
+					<SpaceProvider initialActive="cls_a">
+						<SpacePage />
+						<SpaceDialog mode={mode} onClose={() => closed++} />
+					</SpaceProvider>
+				</AppRouterContext.Provider>
 			</ServerEventsProvider>,
 		);
 	});
@@ -122,6 +141,8 @@ afterEach(async () => {
 	host = undefined;
 	closed = 0;
 	calls.length = 0;
+	reads.length = 0;
+	pushed.length = 0;
 	served = RECORD;
 	events.clear();
 	globalThis.fetch = originalFetch;
@@ -234,12 +255,66 @@ describe("Delete space", () => {
 			await act(async () => {
 				await new Promise((r) => setTimeout(r, 10));
 			});
-			assert.equal(`${calls[0]?.method} ${calls[0]?.url}`, "DELETE /api/spaces/cls_a");
+			assert.ok(calls.some((c) => `${c.method} ${c.url}` === "DELETE /api/spaces/cls_a"));
 			assert.equal(closed, 1);
 			assert.deepEqual([...store.keys()], ["lh:lesson-draft:other"], "another lesson's draft stays");
 		} finally {
 			delete (globalThis as { localStorage?: unknown }).localStorage;
 		}
+	});
+});
+
+describe("Delete space, while the server deletes it", () => {
+	it("leaves the space first, so nothing asks for it again, then goes to Today", async () => {
+		fakeFetch();
+		const deleting = Promise.withResolvers<void>();
+		const fallback = globalThis.fetch;
+		globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+			if (String(input) === "/api/spaces/cls_a" && init?.method === "DELETE") await deleting.promise;
+			return fallback(input, init);
+		}) as typeof fetch;
+		await mount({ kind: "edit", spaceId: "cls_a" });
+		await click(q("space-delete"));
+		await click(q("space-delete-confirm-button"));
+		const before = reads.length;
+		// The server says the spaces changed before its answer arrives.
+		await act(async () => {
+			events.get("spaces-changed")?.("{}");
+			await new Promise((r) => setTimeout(r, 20));
+		});
+		assert.ok(q("space-delete-confirm"), "the question stays while it runs");
+		await act(async () => {
+			deleting.resolve();
+			await new Promise((r) => setTimeout(r, 10));
+		});
+		assert.deepEqual(
+			reads.slice(before).filter((url) => url.startsWith("/api/spaces/cls_a")),
+			[],
+			"neither the dialog nor the page behind it reads the deleted space",
+		);
+		assert.deepEqual(pushed, ["/"], "to Today");
+		assert.equal(closed, 1);
+		assert.ok(calls.some((c) => c.url === "/api/settings/general" && (c.body as { activeSpace?: string }).activeSpace === "none"));
+	});
+
+	it("comes back to the space when the delete is refused", async () => {
+		fakeFetch();
+		const fallback = globalThis.fetch;
+		globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+			if (String(input) === "/api/spaces/cls_a" && init?.method === "DELETE") return Response.json({ error: "Counting: a turn is running" }, { status: 409 });
+			return fallback(input, init);
+		}) as typeof fetch;
+		await mount({ kind: "edit", spaceId: "cls_a" });
+		await click(q("space-delete"));
+		await click(q("space-delete-confirm-button"));
+		await act(async () => {
+			await new Promise((r) => setTimeout(r, 20));
+		});
+		assert.match(q("space-dialog-error")!.textContent!, /a turn is running/);
+		assert.deepEqual(pushed, []);
+		assert.equal(closed, 0);
+		const settings = calls.filter((c) => c.url === "/api/settings/general").map((c) => (c.body as { activeSpace?: string }).activeSpace);
+		assert.deepEqual(settings, ["none", "cls_a"], "back on the space");
 	});
 });
 

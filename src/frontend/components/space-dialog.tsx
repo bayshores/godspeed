@@ -11,6 +11,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useRouter } from "next/navigation";
 import { useSpaces } from "@/frontend/components/space-context";
 import { RuleChips } from "@/frontend/components/rule-chips";
 import { changedFields } from "@/frontend/components/space-deadlines-model";
@@ -45,8 +46,12 @@ function scrollIntoSight(el: HTMLElement | null) {
 
 function SpaceDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () => void; state: "open" | "closed" }) {
 	const { active, setActive } = useSpaces();
+	const router = useRouter();
 	const spaceId = mode.kind === "edit" ? mode.spaceId : null;
-	const { record, failed: recordFailed, reload } = useSpaceRecord(spaceId);
+	/** The space while it is being deleted: nothing reads it again meanwhile. */
+	const [leaving, setLeaving] = useState<SpaceRecord | null>(null);
+	const { record: read, failed: recordFailed, reload } = useSpaceRecord(leaving ? null : spaceId);
+	const record = leaving ?? read;
 	// Edit space with nothing to edit: say so instead of showing empty fields.
 	const loadFailed = mode.kind === "edit" && !record && recordFailed;
 	// Edit space waits for the space before showing its fields.
@@ -124,11 +129,20 @@ function SpaceDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 		if (Object.keys(body).length > 0 && !(await call(`/api/spaces/${encodeURIComponent(record.id)}`, jsonInit("PUT", body)))) return;
 		onClose();
 	};
+	/** Leaves the space before deleting it, so no page asks for it once it
+	 *  is gone, then goes to Today. A refused delete comes back to it. */
 	const remove = async (space: SpaceRecord) => {
+		const wasActive = space.id === active;
+		setLeaving(space);
+		if (wasActive) setActive(null);
 		const body = (await call(`/api/spaces/${space.id}`, { method: "DELETE" })) as { lessonIds: string[] } | null;
-		if (!body) return setAsking(null);
+		if (!body) {
+			setLeaving(null);
+			if (wasActive) setActive(space.id);
+			return setAsking(null);
+		}
 		for (const id of body.lessonIds) forgetLessonDraft(id);
-		if (space.id === active) setActive(null);
+		router.push("/");
 		onClose();
 	};
 	const archive = async (space: SpaceRecord) => {
