@@ -42,9 +42,14 @@ export type MockQuestion =
 export type CodeQuestion = Extract<MockQuestion, { kind: "code" }>;
 
 export interface MockAnswer {
+	/** What is graded: the written answer, or a code question's code in
+	 *  its picked language. */
 	text: string;
-	/** Code questions: the language it is written in. */
+	/** Code questions: the picked language. */
 	language?: MockLanguage;
+	/** Code questions: what is written in each language (the function's
+	 *  first lines alone are left out), so switching loses nothing. */
+	code?: Partial<Record<MockLanguage, string>>;
 	/** Seconds spent with this question open. */
 	seconds: number;
 	submitted: boolean;
@@ -226,17 +231,28 @@ export function startMock(mock: Mock, now: string): Mock {
 	return mockState(mock) === "ready" ? { ...mock, startedAt: now } : mock;
 }
 
+/** A code answer's code by language, from anything: strings in known
+ *  languages only, each cut to the longest answer. */
+export function parseMockCode(raw: unknown): Partial<Record<MockLanguage, string>> {
+	const out: Partial<Record<MockLanguage, string>> = {};
+	if (!isRecord(raw)) return out;
+	for (const [language, code] of Object.entries(raw)) if (isMockLanguage(language) && typeof code === "string") out[language] = code.slice(0, ANSWER_MAX);
+	return out;
+}
+
 /** A running mock with one question's answer saved (unknown questions and
- *  mocks that aren't running are left alone). */
+ *  mocks that aren't running are left alone). A code answer's text is its
+ *  code in the picked language, so what is graded is what was picked. */
 export function withAnswer(mock: Mock, questionId: string, answer: MockAnswer): Mock {
 	const question = mock.questions.find((q) => q.id === questionId);
 	if (!question || mockState(mock) !== "running") return mock;
-	const kept: MockAnswer = {
-		text: answer.text.slice(0, ANSWER_MAX),
-		...(question.kind === "code" && answer.language ? { language: answer.language } : {}),
-		seconds: Math.max(0, Math.round(answer.seconds)),
-		submitted: answer.submitted,
-	};
+	const seconds = Math.max(0, Math.round(answer.seconds));
+	let kept: MockAnswer;
+	if (question.kind === "code") {
+		const code = parseMockCode(answer.code);
+		const language = answer.language;
+		kept = { text: (language && code[language]) ?? "", ...(language ? { language } : {}), code, seconds, submitted: answer.submitted };
+	} else kept = { text: answer.text.slice(0, ANSWER_MAX), seconds, submitted: answer.submitted };
 	return { ...mock, answers: { ...mock.answers, [questionId]: kept } };
 }
 
@@ -374,6 +390,7 @@ function parseAnswers(raw: unknown): Record<string, MockAnswer> {
 		out[id] = {
 			text: a.text,
 			...(isMockLanguage(a.language) ? { language: a.language } : {}),
+			...(isRecord(a.code) ? { code: parseMockCode(a.code) } : {}),
 			seconds: typeof a.seconds === "number" && a.seconds >= 0 ? a.seconds : 0,
 			submitted: a.submitted === true,
 		};

@@ -105,6 +105,17 @@ describe("a prep", () => {
 		assert.deepEqual(record.files.map((f) => [f.name, f.kind]), [["posting.txt", "info"]]);
 	});
 
+	it("names a prep with a long goal by its first words, and keeps the whole goal", async () => {
+		agent(SHEET);
+		const goal = "Second round with the platform team at Acme, two hours of system design and one of code";
+		const made = preps.createPrep({ goal });
+		assert.ok(made.ok);
+		const before = view(made.value.spaceId);
+		assert.equal(before.name, "Second round with the platform team at…");
+		assert.equal(before.prep.goal, goal);
+		await settled(made.value.spaceId);
+	});
+
 	it("sends a sheet that can't be kept back, and keeps the next one", async () => {
 		const { replies } = agent({ ...SHEET, about: "  " }, SHEET);
 		const made = preps.createPrep({ goal: "Bank interview" });

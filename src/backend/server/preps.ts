@@ -15,7 +15,7 @@ import { randomUUID } from "node:crypto";
 import type { SpacePrep, SpaceRecord } from "../../shared/core/contracts.ts";
 import { emit } from "../../shared/core/events.ts";
 import { mockAnswers, mockSummary } from "../../shared/core/mock.ts";
-import { newPrep, prepRequestText, prepTopicProgress, withEdits, withSheet, type PrepEdits, type PrepView } from "../../shared/core/prep.ts";
+import { goalName, newPrep, prepRequestText, prepTopicProgress, withEdits, withSheet, type PrepEdits, type PrepView } from "../../shared/core/prep.ts";
 import { localDay } from "../../shared/core/today-note.ts";
 import { agentEngine } from "../agent/models.ts";
 import { writePrepSheet } from "../agent/subagents/prep-writer.ts";
@@ -54,7 +54,7 @@ export function createPrep(input: { goal: string; date?: string; files?: Readonl
 		const problem = copiedFileProblem(file.name, file.bytes);
 		if (problem) return fail(400, problem);
 	}
-	const record = stores.spaceStore.createSpace({ name: prep.goal, prep });
+	const record = stores.spaceStore.createSpace({ name: goalName(prep.goal), prep });
 	for (const file of files) addCopiedFile(record.id, file.name, file.bytes, "info");
 	startWrite(record.id);
 	return { ok: true, value: { spaceId: record.id } };

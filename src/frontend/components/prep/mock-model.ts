@@ -113,23 +113,25 @@ export interface Work {
 	submitted: boolean;
 }
 
-/** A question's work from its saved answer; a code question nothing was
- *  typed for starts from the function's first lines. */
+/** A question's work from its saved answer; a language nothing was typed
+ *  in starts from the function's first lines. */
 export function workOf(q: MockQuestion, saved: MockAnswer | undefined, preferred: MockLanguage): Work {
-	const language = saved?.language ?? preferred;
 	const code: Record<MockLanguage, string> =
-		q.kind === "code" ? { javascript: starterCode(q.fn, "javascript"), python: starterCode(q.fn, "python") } : { javascript: "", python: "" };
-	if (q.kind === "code" && saved?.text) code[language] = saved.text;
-	return { language, code, text: q.kind === "text" ? (saved?.text ?? "") : "", seconds: saved?.seconds ?? 0, submitted: saved?.submitted ?? false };
+		q.kind === "code" ? { javascript: starterCode(q.fn, "javascript"), python: starterCode(q.fn, "python"), ...saved?.code } : { javascript: "", python: "" };
+	return {
+		language: saved?.language ?? preferred,
+		code,
+		text: q.kind === "text" ? (saved?.text ?? "") : "",
+		seconds: saved?.seconds ?? 0,
+		submitted: saved?.submitted ?? false,
+	};
 }
 
-/** The answer to save. Code that is still just the first lines is no
- *  answer: with the picked language untouched, the other language's code is
- *  saved, so looking at the other language never wipes what was written. */
+/** The answer to save: a code question's code in every language it was
+ *  written in (the first lines alone are no answer), graded in the picked one. */
 export function answerOf(q: MockQuestion, work: Work): MockAnswer {
 	if (q.kind === "text") return { text: work.text, seconds: work.seconds, submitted: work.submitted };
-	const written = (language: MockLanguage) => work.code[language] !== starterCode(q.fn, language);
-	const other: MockLanguage = work.language === "javascript" ? "python" : "javascript";
-	const language = !written(work.language) && written(other) ? other : work.language;
-	return { text: written(language) ? work.code[language] : "", language, seconds: work.seconds, submitted: work.submitted };
+	const code: Partial<Record<MockLanguage, string>> = {};
+	for (const language of Object.keys(work.code) as MockLanguage[]) if (work.code[language] !== starterCode(q.fn, language)) code[language] = work.code[language];
+	return { text: code[work.language] ?? "", language: work.language, code, seconds: work.seconds, submitted: work.submitted };
 }

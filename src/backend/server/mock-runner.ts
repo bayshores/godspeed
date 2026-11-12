@@ -4,11 +4,12 @@
  * run with Node (the app's own) or the computer's Python, with a time
  * limit. What it printed is read by core/mock-run.ts.
  */
-import { execFile, spawnSync } from "node:child_process";
+import { execFile, spawn, spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import type { CodeQuestion, MockLanguage } from "../../shared/core/mock.ts";
 import { RUN_FILE, RUN_SECONDS, readRun, runnerSource, type RunOutcome } from "../../shared/core/mock-run.ts";
 import { HOMEBREW_BIN_DIRS, findProgram } from "./transcribe.ts";
@@ -58,7 +59,27 @@ function commandFor(language: MockLanguage): string[] | null {
 	return language === "javascript" ? [process.execPath] : pythonCommand();
 }
 
-export function runExamples(question: CodeQuestion, code: string, language: MockLanguage): Promise<RunOutcome> {
+/** How to end a run and every process it started: on macOS and Linux the
+ *  run leads its own process group, so the whole group; on Windows the
+ *  process tree. */
+export function stopCommand(pid: number, platform: NodeJS.Platform): { group: number } | { command: string[] } {
+	return platform === "win32" ? { command: ["taskkill", "/T", "/F", "/PID", String(pid)] } : { group: pid };
+}
+
+function stopAll(pid: number): void {
+	const how = stopCommand(pid, process.platform);
+	if ("group" in how) {
+		try {
+			process.kill(-how.group, "SIGKILL");
+		} catch {
+			/* every process of it has ended */
+		}
+	} else execFile(how.command[0]!, how.command.slice(1), { windowsHide: true }, () => {});
+}
+
+/** Run the learner's code on the question's examples. `signal` stops it
+ *  when the request that asked for it goes away. */
+export function runExamples(question: CodeQuestion, code: string, language: MockLanguage, signal?: AbortSignal): Promise<RunOutcome> {
 	const command = commandFor(language);
 	if (!command) return Promise.resolve({ examples: [], error: "godspeed couldn't find Python on this computer. Install Python 3, or answer in JavaScript." });
 	const mark = `__godspeed_${randomUUID()}__`;
@@ -68,19 +89,46 @@ export function runExamples(question: CodeQuestion, code: string, language: Mock
 	fs.writeFileSync(file, runnerSource(code, question.fn, question.examples, language, mark));
 	return new Promise((resolve) => {
 		const [program, ...args] = command;
-		const child = execFile(
-			program!,
-			[...args, file],
-			{ cwd: dir, timeout: RUN_SECONDS * 1000, killSignal: "SIGKILL", maxBuffer: MAX_OUTPUT, env: runEnv() },
-			(err, stdout, stderr) => {
-				fs.rmSync(dir, { recursive: true, force: true });
-				if (err?.killed) resolve({ examples: [], error: `Your code ran for more than ${RUN_SECONDS} seconds and was stopped.` });
-				else if (err && (err as NodeJS.ErrnoException).code === "ERR_CHILD_PROCESS_STDIO_MAXBUFFER") resolve({ examples: [], error: "Your code printed too much and was stopped." });
-				// The temp folder's path says nothing to the learner.
-				else resolve(readRun(stdout, stderr.replaceAll(dir + path.sep, ""), mark, question.examples));
-			},
+		const child = spawn(program!, [...args, file], { cwd: dir, env: runEnv(), detached: process.platform !== "win32", windowsHide: true });
+		const out: Buffer[] = [];
+		const err: Buffer[] = [];
+		const size = { out: 0, err: 0 };
+		let ended = false;
+		const end = (outcome: () => RunOutcome) => {
+			if (ended) return;
+			ended = true;
+			clearTimeout(timer);
+			signal?.removeEventListener("abort", aborted);
+			if (child.pid !== undefined) stopAll(child.pid);
+			child.stdout.destroy();
+			child.stderr.destroy();
+			fs.rmSync(dir, { recursive: true, force: true });
+			resolve(outcome());
+		};
+		const stopped = (error: string) => end(() => ({ examples: [], error }));
+		const aborted = () => stopped("The run was stopped.");
+		const timer = setTimeout(() => stopped(`Your code ran for more than ${RUN_SECONDS} seconds and was stopped.`), RUN_SECONDS * 1000);
+		signal?.addEventListener("abort", aborted, { once: true });
+		if (signal?.aborted) aborted();
+		const keep = (into: Buffer[], key: keyof typeof size) => (chunk: Buffer) => {
+			size[key] += chunk.length;
+			if (size[key] > MAX_OUTPUT) stopped("Your code printed too much and was stopped.");
+			else into.push(chunk);
+		};
+		child.stdout.on("data", keep(out, "out"));
+		child.stderr.on("data", keep(err, "err"));
+		// What the program started may still hold its output open: end it all
+		// once the program itself is done, so its output closes too.
+		child.on("exit", () => {
+			if (child.pid !== undefined) stopAll(child.pid);
+		});
+		child.on("error", () => end(() => readRun("", "", mark, question.examples)));
+		child.on("close", () =>
+			// The temp folder's path, also as a file:// URL when Node read the
+			// code as a module, says nothing to the learner.
+			end(() => readRun(Buffer.concat(out).toString("utf8"), Buffer.concat(err).toString("utf8").replaceAll(pathToFileURL(dir + path.sep).href, "").replaceAll(dir + path.sep, ""), mark, question.examples)),
 		);
 		// Nothing is typed in: input() ends at once instead of waiting out the time limit.
-		child.stdin?.end();
+		child.stdin.end();
 	});
 }

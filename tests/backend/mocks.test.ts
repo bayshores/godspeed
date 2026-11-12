@@ -155,7 +155,8 @@ describe("a mock", () => {
 		const ready = view(spaceId, mockId).mock;
 		assert.deepEqual(ready.questions.map((q) => [q.id, q.kind, q.topicId]), [["q1", "code", topicIds[0]], ["q2", "text", topicIds[1]]]);
 		assert.equal(state(spaceId, mockId), "ready");
-		const answer = { action: "answer", questionId: "q1", text: CODE, language: "javascript", seconds: 61.4, submitted: true };
+		const PY = "def countVowels(s):\n    return 0\n";
+		const answer = { action: "answer", questionId: "q1", text: CODE, language: "javascript", code: { javascript: CODE, python: PY }, seconds: 61.4, submitted: true };
 		assert.equal((await post(spaceId, mockId, answer)).status, 409, "no answers before the clock starts");
 		assert.equal((await post(spaceId, mockId, { action: "run", questionId: "q1", code: CODE, language: "javascript" })).status, 409);
 
@@ -163,7 +164,7 @@ describe("a mock", () => {
 		assert.equal((await post(spaceId, mockId, { action: "start" })).status, 409);
 		assert.equal(state(spaceId, mockId), "running");
 		assert.equal((await post(spaceId, mockId, answer)).status, 200);
-		assert.deepEqual(view(spaceId, mockId).mock.answers.q1, { text: CODE, language: "javascript", seconds: 61, submitted: true });
+		assert.deepEqual(view(spaceId, mockId).mock.answers.q1, { text: CODE, language: "javascript", code: { javascript: CODE, python: PY }, seconds: 61, submitted: true }, "both languages are kept");
 
 		const ran = await post(spaceId, mockId, { action: "run", questionId: "q1", code: CODE, language: "javascript" });
 		assert.equal(ran.status, 200);
@@ -268,7 +269,7 @@ describe("a mock", () => {
 		const later = await readyMock(spaceId, topicIds);
 		assert.ok(mocks.changeMock(spaceId, later, { action: "start" }).ok);
 		writeMock(spaceId, { ...readMock(spaceId, later)!, startedAt: new Date(Date.now() - 31 * 60_000).toISOString() });
-		const saved = mocks.changeMock(spaceId, later, { action: "answer", questionId: "q1", answer: { text: CODE, language: "javascript", seconds: 5, submitted: true } });
+		const saved = mocks.changeMock(spaceId, later, { action: "answer", questionId: "q1", answer: { text: CODE, language: "javascript", code: { javascript: CODE }, seconds: 5, submitted: true } });
 		assert.deepEqual(saved, { ok: false, status: 409, error: "Time is up." });
 		assert.deepEqual(readMock(spaceId, later)!.answers, {}, "the late answer isn't kept");
 		assert.equal(state(spaceId, later), "graded");

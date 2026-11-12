@@ -18,7 +18,8 @@ function ended(): Mock {
 		new Set(["pt_a"]),
 	) as MockQuestion[];
 	let mock = startMock({ ...newMock("mock_0a1b2c3d", 2, FORMAT, "2026-11-11T09:00:00.000Z"), questions }, "2026-11-11T10:00:00.000Z");
-	mock = withAnswer(mock, "q1", { text: "function longestRun(nums) { return 2; }", language: "javascript", seconds: 600, submitted: true });
+	const code = "function longestRun(nums) { return 2; }";
+	mock = withAnswer(mock, "q1", { text: code, language: "javascript", code: { javascript: code }, seconds: 600, submitted: true });
 	return endMock(mock, "2026-11-11T10:30:00.000Z");
 }
 

@@ -24,6 +24,21 @@ const MOCK_RANGE = `mock must be ${MOCK_QUESTIONS.min} to ${MOCK_QUESTIONS.max} 
 
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
 
+/** Longest name a prep gets from its goal, before the sheet names it. */
+const GOAL_NAME_MAX = 40;
+
+/** A prep's name before its sheet is written: the goal, or when longer
+ *  its whole words within GOAL_NAME_MAX and "…", so its top bar tab stays
+ *  short. */
+export function goalName(goal: string): string {
+	const chars = [...goal];
+	if (chars.length <= GOAL_NAME_MAX) return goal;
+	const head = chars.slice(0, GOAL_NAME_MAX + 1).join("");
+	const cut = head.lastIndexOf(" ");
+	// One word longer than the limit is cut inside it.
+	return `${(cut > 0 ? head.slice(0, cut) : chars.slice(0, GOAL_NAME_MAX).join("")).trimEnd()}…`;
+}
+
 /** A new prep, before its sheet is written. Null when nothing was typed. */
 export function newPrep(goal: string, date?: string): SpacePrep | null {
 	const clean = oneLine(goal, GOAL_MAX);

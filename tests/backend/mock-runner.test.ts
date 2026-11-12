@@ -4,10 +4,11 @@
  * learner's own function is ever called.
  */
 import assert from "node:assert/strict";
+import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, it } from "node:test";
-import { isStandInPython, runExamples } from "../../src/backend/server/mock-runner.ts";
+import { isStandInPython, runExamples, stopCommand } from "../../src/backend/server/mock-runner.ts";
 import type { CodeQuestion } from "../../src/shared/core/mock.ts";
 
 const QUESTION: CodeQuestion = {
@@ -41,6 +42,10 @@ describe("running a code answer's examples", () => {
 		assert.equal(run.examples.length, 0);
 		assert.match(run.error ?? "", /SyntaxError/);
 		assert.match(run.error ?? "", /^solution\.js:/);
+		// "export" makes Node read the file as a module, which names it by URL.
+		const asModule = await runExamples(QUESTION, "export function add(a, b) {\n  return a +;\n}", "javascript");
+		assert.match(asModule.error ?? "", /SyntaxError/);
+		assert.match(asModule.error ?? "", /^solution\.js:\d/, "no file:// before the name");
 	});
 
 	it("stops code that never ends", async () => {
@@ -80,6 +85,58 @@ describe("running a code answer's examples", () => {
 		} finally {
 			delete process.env.NODE_COMPILE_CACHE;
 		}
+	});
+
+	it("ends every process the learner's program started, however the run ends", { skip: process.platform === "win32" }, async () => {
+		const pidFile = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "godspeed-test-")), "pids");
+		// Starts a sleeping child that shares the run's output and doesn't keep
+		// the program waiting, and notes its pid.
+		const starts = (then: string) =>
+			`function add(a, b) { const c = require('node:child_process').spawn('sleep', ['30'], { stdio: 'inherit' }); c.unref(); require('node:fs').appendFileSync(${JSON.stringify(pidFile)}, c.pid + '\\n'); ${then} }`;
+		const alive = (pid: number) => {
+			try {
+				process.kill(pid, 0);
+				return true;
+			} catch {
+				return false;
+			}
+		};
+		const gone = async () => {
+			const pids = fs.readFileSync(pidFile, "utf8").trim().split("\n").map(Number);
+			fs.rmSync(pidFile);
+			assert.ok(pids.length > 0);
+			for (let tries = 0; pids.some(alive) && tries < 50; tries++) await new Promise((r) => setTimeout(r, 20));
+			assert.deepEqual(pids.filter(alive), [], "no child is left running");
+		};
+		try {
+			const t0 = Date.now();
+			const finished = await runExamples(QUESTION, starts("return a + b;"), "javascript");
+			assert.deepEqual(finished.examples, [{ returned: "3", passed: true }, { returned: "0", passed: true }]);
+			assert.ok(Date.now() - t0 < 4000, "a child holding the output open doesn't keep the run waiting");
+			await gone();
+
+			const looped = await runExamples(QUESTION, starts("while (true) {}"), "javascript");
+			assert.match(looped.error ?? "", /more than 5 seconds/);
+			await gone();
+
+			const loud = await runExamples(QUESTION, starts("while (true) process.stdout.write('x'.repeat(65536));"), "javascript");
+			assert.equal(loud.error, "Your code printed too much and was stopped.");
+			await gone();
+
+			const request = new AbortController();
+			setTimeout(() => request.abort(), 500);
+			const left = await runExamples(QUESTION, starts("while (true) {}"), "javascript", request.signal);
+			assert.equal(left.error, "The run was stopped.");
+			await gone();
+		} finally {
+			fs.rmSync(path.dirname(pidFile), { recursive: true, force: true });
+		}
+	});
+
+	it("ends a run's whole process group, or on Windows its process tree", () => {
+		assert.deepEqual(stopCommand(4242, "darwin"), { group: 4242 });
+		assert.deepEqual(stopCommand(4242, "linux"), { group: 4242 });
+		assert.deepEqual(stopCommand(4242, "win32"), { command: ["taskkill", "/T", "/F", "/PID", "4242"] });
 	});
 
 	it("passes over a Python that only opens an installer", () => {

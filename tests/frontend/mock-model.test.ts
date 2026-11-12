@@ -107,24 +107,31 @@ describe("answering", () => {
 		assert.equal(work.language, "python");
 		assert.match(work.code.python, /^def twoSum\(nums, target\):/);
 		assert.match(work.code.javascript, /^function twoSum\(nums, target\) \{/);
-		assert.deepEqual(answerOf(CODE, work), { text: "", language: "python", seconds: 0, submitted: false });
+		assert.deepEqual(answerOf(CODE, work), { text: "", language: "python", code: {}, seconds: 0, submitted: false });
 		const typed = { ...work, code: { ...work.code, python: "def twoSum(nums, target):\n    return [0, 1]\n" }, seconds: 90, submitted: true };
-		assert.deepEqual(answerOf(CODE, typed), { text: typed.code.python, language: "python", seconds: 90, submitted: true });
+		assert.deepEqual(answerOf(CODE, typed), { text: typed.code.python, language: "python", code: { python: typed.code.python }, seconds: 90, submitted: true });
 	});
-	it("keeps the code written in one language while the other is only looked at", () => {
+	it("keeps the code written in each language through switching and a reload, graded in the picked one", () => {
+		const py = "def twoSum(nums, target):\n    return [1, 0]\n";
 		const js = "function twoSum() { return [0, 1]; }";
-		const work = { ...workOf(CODE, { text: js, language: "javascript", seconds: 30, submitted: false }, "javascript"), language: "python" as const };
-		assert.deepEqual(answerOf(CODE, work), { text: js, language: "javascript", seconds: 30, submitted: false });
-		assert.equal(workOf(CODE, answerOf(CODE, work), "python").code.javascript, js, "coming back shows it again");
-		const both = { ...work, code: { ...work.code, python: "def twoSum(nums, target):\n    return [1, 0]\n" } };
-		assert.equal(answerOf(CODE, both).language, "python", "once the picked one is written, it is the answer");
+		const start = workOf(CODE, undefined, "python");
+		// Python written, then JavaScript picked and written too.
+		const both = { ...start, language: "javascript" as const, code: { python: py, javascript: js } };
+		const saved = answerOf(CODE, both);
+		assert.deepEqual(saved, { text: js, language: "javascript", code: { python: py, javascript: js }, seconds: 0, submitted: false });
+		const reloaded = workOf(CODE, saved, "python");
+		assert.deepEqual(reloaded.code, { python: py, javascript: js }, "a reload shows both");
+		assert.equal(reloaded.language, "javascript");
+		const back = answerOf(CODE, { ...reloaded, language: "python" });
+		assert.equal(back.text, py, "switching back grades Python");
+		assert.deepEqual(back.code, { python: py, javascript: js }, "and keeps the JavaScript");
 	});
-	it("picks a saved answer back up in its own language", () => {
-		const work = workOf(CODE, { text: "function twoSum() { return [] }", language: "javascript", seconds: 30, submitted: true }, "python");
-		assert.equal(work.language, "javascript");
-		assert.equal(work.code.javascript, "function twoSum() { return [] }");
-		assert.equal(work.seconds, 30);
-		assert.equal(work.submitted, true);
+	it("grades the picked language even when only the other one is written", () => {
+		const js = "function twoSum() { return [0, 1]; }";
+		const work = { ...workOf(CODE, undefined, "javascript"), language: "python" as const };
+		const looking = answerOf(CODE, { ...work, code: { ...work.code, javascript: js } });
+		assert.deepEqual(looking, { text: "", language: "python", code: { javascript: js }, seconds: 0, submitted: false });
+		assert.equal(workOf(CODE, looking, "javascript").code.javascript, js, "coming back shows it again");
 	});
 	it("keeps a written answer as typed", () => {
 		const work = workOf(TEXT, { text: "It is a queue.", seconds: 12, submitted: false }, "javascript");
