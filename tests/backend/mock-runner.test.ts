@@ -43,9 +43,9 @@ describe("running a code answer's examples", () => {
 		assert.match(run.error ?? "", /SyntaxError/);
 		assert.match(run.error ?? "", /^solution\.js:/);
 		// "export" makes Node read the file as a module, which names it by URL.
-		const module = await runExamples(QUESTION, "export function add(a, b) {\n  return a +;\n}", "javascript");
-		assert.match(module.error ?? "", /SyntaxError/);
-		assert.match(module.error ?? "", /^solution\.js:\d/, "no file:// before the name");
+		const asModule = await runExamples(QUESTION, "export function add(a, b) {\n  return a +;\n}", "javascript");
+		assert.match(asModule.error ?? "", /SyntaxError/);
+		assert.match(asModule.error ?? "", /^solution\.js:\d/, "no file:// before the name");
 	});
 
 	it("stops code that never ends", async () => {
