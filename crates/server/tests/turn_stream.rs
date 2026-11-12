@@ -1,5 +1,5 @@
-//! A running turn's stream pings while it has nothing to send. WebKit can hold the last bytes of
-//! a fetch body until more arrive on it, so without the ping a tool call that runs on hid the
+//! A running turn's stream pings once when it goes quiet. WebKit can hold the last bytes of a
+//! fetch body until more arrive on it, so without the ping a tool call that runs on hid the
 //! frames that announced it.
 
 use gs_base::config::Paths;
@@ -67,4 +67,11 @@ async fn a_quiet_turn_stream_pings() {
 	read_until(&mut stream, r#"data: {"type":"turn_start"}"#).await;
 	clock::advance(250);
 	read_until(&mut stream, ": ping\n\n").await;
+	// One ping per quiet spell: the turn goes on waiting, and the stream stays silent.
+	clock::advance(1000);
+	let mut buf = vec![0; 4096];
+	tokio::select! {
+		n = stream.read(&mut buf) => panic!("more after the ping: {:?}", String::from_utf8_lossy(&buf[..n.unwrap()])),
+		() = clock::sleep(300) => {}
+	}
 }

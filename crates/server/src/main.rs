@@ -7,6 +7,7 @@ use std::process::ExitCode;
 
 use axum::ServiceExt;
 use axum::extract::Request;
+use axum::serve::ListenerExt;
 use gs_base::config::Paths;
 use gs_base::{clock, shutdown};
 use gs_server::{data_lock, http};
@@ -34,7 +35,11 @@ async fn main() -> ExitCode {
 	let shell = (std::env::var("LH_SHELL").as_deref() == Ok("1")).then(|| ShellLink::new(std::io::stdout()));
 	let port = http::port();
 	let listener = match tokio::net::TcpListener::bind(("127.0.0.1", port)).await {
-		Ok(l) => l,
+		// Nagle off, as Node's server had it: a stream's small frames go out the moment they are
+		// written instead of waiting for the ACK of the one before. A socket that refuses still works.
+		Ok(l) => l.tap_io(|tcp| {
+			let _ = tcp.set_nodelay(true);
+		}),
 		Err(err) => {
 			eprintln!("cannot listen on 127.0.0.1:{port}: {err}");
 			return ExitCode::FAILURE;

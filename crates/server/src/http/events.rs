@@ -1,6 +1,8 @@
 //! GET /api/events (src/backend/server/events-stream.ts): one SSE stream per open window over the
 //! event bus. Frames carry only the event name and a small payload; the window then fetches what
-//! changed. A `: ping` comment goes out every 25 s. The stream ends when the window goes away
+//! changed. A `: ping` comment goes out every 25 s; no quick ping after quiet like the turn
+//! stream's, since WebKit holds back the last bytes of fetch bodies but hands an EventSource every
+//! event at once. The stream ends when the window goes away
 //! (its queue is dropped with the body) or the server stops.
 
 use std::convert::Infallible;

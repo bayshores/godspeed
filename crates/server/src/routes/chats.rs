@@ -269,9 +269,10 @@ async fn steer(State(app): State<Arc<App>>, Path(id): Path<String>, body: Body) 
 	reply::json(200, &json!({ "ok": true }))
 }
 
-/// A turn stream with nothing to send pings this often. WebKit can hold the last bytes it got on
-/// a fetch body until more arrive on it, so frames sent just before a long tool call would
-/// otherwise stay hidden until the call ends.
+/// A turn stream pings once this long after its last frame. WebKit can hold the last bytes it got
+/// on a fetch body until more arrive on it, so frames sent just before a long tool call would
+/// otherwise stay hidden until the call ends. One ping releases them; more would only wake every
+/// open lesson while a turn waits.
 const QUIET_PING_MS: i64 = 250;
 
 /// GET /api/chats/{id}/stream: the turn's SSE wire. A running turn replays its log, then goes
@@ -283,12 +284,17 @@ async fn stream(State(app): State<Arc<App>>, Path(id): Path<String>) -> Response
 	let body = match attach_turn(&app, &id).await {
 		None => Body::from(settled_turn_frames(&app, &id)),
 		Some(handle) => {
-			let frames = futures_util::stream::unfold(handle.subscribe(), |mut rx| async move {
-				let frame = tokio::select! {
-					frame = rx.recv() => Bytes::from(frame?),
-					() = clock::sleep(QUIET_PING_MS) => Bytes::from_static(b": ping\n\n"),
+			// The flag says a frame went out since the last ping.
+			let frames = futures_util::stream::unfold((handle.subscribe(), false), |(mut rx, ping_due)| async move {
+				let frame = if ping_due {
+					tokio::select! {
+						frame = rx.recv() => frame,
+						() = clock::sleep(QUIET_PING_MS) => return Some((Ok(Bytes::from_static(b": ping\n\n")), (rx, false))),
+					}
+				} else {
+					rx.recv().await
 				};
-				Some((Ok::<_, Infallible>(frame), rx))
+				Some((Ok::<_, Infallible>(Bytes::from(frame?)), (rx, true)))
 			});
 			Body::from_stream(frames)
 		}
