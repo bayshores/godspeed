@@ -44,7 +44,7 @@ const DATA_DIR = () => path.join(app.getPath("userData"), "data");
 /** The packaged standalone server (extraResources → Resources/server).
  *  In dev LH_DEV_URL short-circuits everything: no spawn, no packaging —
  *  the window points at the Vite dev server (full HMR), which passes /api
- *  on to `next dev`. */
+ *  on to the API server. */
 function serverEntry() {
 	// extraResources ships the whole .next payload under server/standalone/
 	// (copied from .next with an explicit filter — see electron/electron-builder.yml).
@@ -327,8 +327,8 @@ function waitUntilUp(url, child, tries = 600) {
 	});
 }
 
-/** Dev: Vite answers before `next dev` does, and its proxy answers 502 until
- *  then, so the window waits for the API behind it. */
+/** Dev: Vite answers before the API server does, and its proxy answers 502
+ *  until then, so the window waits for the API behind it. */
 async function devServerUp(devUrl) {
 	const probe = new URL("/api/ready", devUrl);
 	for (;;) {
@@ -546,7 +546,7 @@ const ZOOM_LADDER = [0.75, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2];
  *
  * Hard rules:
  *  - DEV NEVER UPDATES: !app.isPackaged skips the updater entirely — the
- *    dev world runs Vite and `next dev` and has no signed bundle.
+ *    dev world runs Vite and a dev API server and has no signed bundle.
  *  - THE UPDATER CAN NEVER TAKE THE APP DOWN: every event and check is
  *    caught and logged (feed down, disk full, bad signature — all just
  *    log lines; the app keeps working, update or no update).

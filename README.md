@@ -68,7 +68,7 @@ The app checks for updates once a day and installs them when you quit. **Setting
 
 The first launch walks you through connecting your agent (below). You can find the same steps later under **Settings → Connection**.
 
-To build it yourself instead: `npm install`, then `npm run desktop:local` (an unsigned Mac app in `dist/`), or `node scripts/fetch-model.mjs` once and then `npm run dev` (http://localhost:3000).
+To build it yourself instead: `npm install`, then `npm run desktop:local` (an unsigned Mac app in `target/release/bundle/macos/`), or `node scripts/fetch-model.mjs` once and then `npm run dev` (http://localhost:3000).
 
 ## Outside agents (MCP)
 

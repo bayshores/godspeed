@@ -19,20 +19,22 @@ Other docs:
 npm install          # once
 node scripts/fetch-model.mjs   # once: the space-search model into models/ (the desktop builds run it too)
 
-npm run dev          # Vite serves the screens at http://localhost:3000; `next dev` serves /api on 4000
+npm run dev          # Vite serves the screens at http://localhost:3000; the debug Rust server serves /api on 4000
 npm run dev:fresh    # a fresh instance with empty data at http://localhost:3005 (tests onboarding)
-npm run build        # production build: `vite build` for the screens, then `next build` (standalone output)
+npm run build        # `vite build`: the screens into dist-ui/
 
-npm run check        # THE done gate: typecheck + tests + lint + deadcode. CI runs the same
+npm run check        # THE done gate: typecheck + tests + lint + deadcode + rust:check (cargo test, clippy, machete)
 npm test             # the full suite (node:test via tsx; deterministic, no LLM, no network)
 npm run lint         # eslint, including the import law (architecture §2)
 npm run typecheck    # tsc --noEmit (unused variables and parameters are errors)
 npm run deadcode     # knip: unused files, exports, types and npm packages
 
-npm run desktop:dev    # Vite + `next dev` + Electron shell pointed at Vite
-npm run desktop:local  # unsigned local macOS arm64 app in dist/
-npm run desktop:dist   # local signed/notarized macOS arm64 build (LH_NOTARY keychain)
+npm run desktop:dev    # Vite + the debug Rust server + the Tauri shell pointed at Vite
+npm run desktop:local  # unsigned local Mac app (Tauri) in target/release/bundle/macos/
+npm run desktop:dist   # signed, notarized Mac app and DMG (scripts/mac-dist.sh says what it needs)
 ```
+
+The Node server (Next, `/api` only) is no longer built by a script. For the contract lab it is built by hand: `npx vite build && npx next build && node scripts/build-server.mjs`.
 
 A change is done when `npm run check` passes. To bulk-import notes, use the app: a space's linked folder or Files page, the Graph's Add files (No space only), or the `import_notes` MCP tool. All extraction runs on the connected agent.
 

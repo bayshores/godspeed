@@ -6,7 +6,7 @@ import { defineConfig } from "vite";
 
 const pkg = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), "utf8")) as { version: string; homepage: string };
 
-// `npm run dev`: the UI on PORT (3000), the API's `next dev` 1000 above it.
+// `npm run dev`: the UI on PORT (3000), the API server 1000 above it.
 const uiPort = Number(process.env.PORT ?? 3000);
 const api = `http://localhost:${uiPort + 1000}`;
 

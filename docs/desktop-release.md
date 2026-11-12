@@ -21,7 +21,7 @@ Each OS installs its own dependencies and builds its own Next standalone tree:
 1. `npm ci`
 2. Native PDF/SVG renderer tests for that OS, running in Electron's bundled Node (no display needed).
 3. `node scripts/fetch-model.mjs`: download the space-search model into `models/`.
-4. `npm run build`: `vite build` (the screens into `dist-ui/`), then `next build` (`output: "standalone"`).
+4. `npm run build` (`vite build`, the screens into `dist-ui/`), then `npx next build` (`output: "standalone"`). `npm run build` no longer runs `next build`, so the workflows need that step of their own until they build the Tauri app ([`tauri-shell.md`](tauri-shell.md), CI and release).
 5. `node scripts/build-server.mjs` — copy `dist-ui/` into the standalone tree as `ui/`, refuse leaked data, old secret files and `.env` files, remove only standalone-root `dist/` and `node_modules/electron/` (old installers and the development runtime), check prompt assets. Runtime dependencies' own `dist/` directories and native renderer binaries stay intact.
 6. `node scripts/smoke-server.mjs --electron` — boot the standalone server in Electron's bundled Node, using an empty temporary data folder, then check the home route and GET-only APIs.
 7. `npx electron-builder -c electron/electron-builder.yml <platform flags> --publish <policy>`.

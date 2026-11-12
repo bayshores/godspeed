@@ -75,7 +75,7 @@ export PORT
 
 echo "── fresh-user instance ─────────────────────────────────"
 echo "  URL      : http://localhost:$PORT"
-echo "  API      : next dev on port $((PORT + 1000))"
+echo "  API      : the Rust server on port $((PORT + 1000))"
 echo "  data dir : $DATA_DIR ($( [ "$KEEP" = "true" ] && echo 'kept across runs' || echo 'wiped next launch unless --keep' ))"
 echo "─────────────────────────────────────────────────────────"
 
