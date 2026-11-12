@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { FIELD } from "@/frontend/components/ui/field";
+import { LABEL_TEXT } from "@/frontend/components/ui/label-text";
 import type { FolderAgent } from "@/shared/core";
 import { AGENT_LABEL } from "./agent-folder-model";
 
@@ -12,16 +14,16 @@ export function StartCommandField({ agent, saved, onSave }: { agent: FolderAgent
 	return (
 		<form
 			data-testid="agent-start-command"
-			className="flex w-full max-w-[560px] flex-col gap-2 text-left"
+			className="flex w-full flex-col gap-1.5 text-left"
 			onSubmit={(e) => {
 				e.preventDefault();
 				onSave(command);
 			}}
 		>
-			<label htmlFor="agent-start-command-input" className="text-[13px] text-ink-2">
+			<label htmlFor="agent-start-command-input" className={LABEL_TEXT}>
 				Command that starts {AGENT_LABEL[agent]}
 			</label>
-			<div className="flex items-center gap-2">
+			<div className="flex items-center gap-2.5">
 				<input
 					id="agent-start-command-input"
 					type="text"
@@ -32,14 +34,14 @@ export function StartCommandField({ agent, saved, onSave }: { agent: FolderAgent
 					value={command}
 					placeholder={agent}
 					onChange={(e) => setCommand(e.target.value)}
-					className="h-[28px] min-w-0 flex-1 border border-tone-2 bg-background px-2 font-mono text-[12.5px] text-ink focus-visible:border-ink-3"
+					className={`${FIELD} min-w-0 flex-1 font-mono`}
 				/>
-				<button type="submit" className="lh-press lh-btn">
+				<button type="submit" className="lh-btn lh-btn-main h-10 shrink-0 text-[15px]">
 					Save
 				</button>
 			</div>
-			<p className="text-[13px] text-ink-3">
-				Leave empty to use <span className="font-mono text-[12.5px]">{agent}</span>
+			<p className="text-[15px] text-ink-2">
+				Leave empty to use <span className="font-mono">{agent}</span>
 			</p>
 		</form>
 	);
