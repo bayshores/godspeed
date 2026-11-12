@@ -1,5 +1,5 @@
 //! Parity with the TypeScript for the app services (tests/golden/app-misc.json, made by
-//! app-misc.golden.ts over a synthetic class): the settings parsers, the prompt segment list, the
+//! app-misc.golden.ts over a synthetic space): the settings parsers, the prompt segment list, the
 //! activity log, the saved-rules code and the reading view.
 
 use std::path::{Path, PathBuf};
@@ -17,7 +17,7 @@ use gs_services::app::prompt_segments::{prompt_segments, save_prompt_segment};
 use gs_services::app::reading_pages::{ReadingError, reading_document, reading_pdf_page};
 use gs_services::app::settings_body::parse_section;
 
-const CLASS: &str = "cls_golden01_00000001";
+const SPACE: &str = "cls_golden01_00000001";
 const GONE: &str = "cls_gone0000_00000000";
 const AT: &str = "2029-03-01T10:00:00.000Z";
 
@@ -26,13 +26,13 @@ fn case(name: &str) -> Json {
 	golden.as_arr().unwrap().iter().find(|c| c["name"] == Json::from(name)).unwrap()["output"].clone()
 }
 
-/// An app over fresh data and home folders holding the synthetic class.
+/// An app over fresh data and home folders holding the synthetic space.
 fn synthetic_app() -> (Arc<App>, PathBuf) {
 	let dir = std::env::temp_dir().join(format!("gs-app-misc-golden-{}", ids::uuid()));
 	let (data, home) = (dir.join("data"), dir.join("home"));
 	std::fs::create_dir_all(&home).unwrap();
-	let class = json!({ "id": CLASS, "name": "Golden Class", "description": "", "createdAt": AT, "updatedAt": AT, "archived": false, "files": [], "removedFiles": [], "deadlines": [], "version": 1 });
-	fsx::write_text_atomic(&data.join("classes").join(CLASS).join("class.json"), &format!("{}\n", gs_json::stringify_pretty(&class, "\t"))).unwrap();
+	let space = json!({ "id": SPACE, "name": "Golden Space", "description": "", "createdAt": AT, "updatedAt": AT, "archived": false, "files": [], "removedFiles": [], "deadlines": [], "version": 1 });
+	fsx::write_text_atomic(&data.join("spaces").join(SPACE).join("space.json"), &format!("{}\n", gs_json::stringify_pretty(&space, "\t"))).unwrap();
 	(App::new(Paths::new(data, home, dir.join("tmp"), dir.clone()), None), dir)
 }
 
@@ -85,7 +85,7 @@ fn the_activity_log_matches_node() {
 	let (app, dir) = synthetic_app();
 	let target = json!({ "kind": "deadline", "id": "ddl_gold00000001" });
 	let act = |label: &str, target: &Json, page: &str, removed: bool, open: bool| {
-		let mut change = json!({ "label": label, "classId": CLASS, "target": target, "page": page });
+		let mut change = json!({ "label": label, "spaceId": SPACE, "target": target, "page": page });
 		let fields = change.as_obj_mut().unwrap();
 		if removed {
 			fields.insert("removed", true);
@@ -102,20 +102,20 @@ fn the_activity_log_matches_node() {
 	note_agent_action(&app, Some("  "), &act("Removed a file", &Json::Null, "/", true, false));
 	note_agent_action(&app, Some("  "), &act("Removed a file", &Json::Null, "/", true, false));
 	note_agent_action(&app, Some("Claude"), &act(&"word ".repeat(30), &Json::Null, "/", false, true));
-	record_folder_files(&app, CLASS, 1, "Google Drive");
-	record_folder_files(&app, CLASS, 2, "Google Drive");
-	record_folder_files(&app, CLASS, 1, "a folder");
-	let lesson = json!({ "id": "chat_a", "classId": CLASS });
+	record_folder_files(&app, SPACE, 1, "Google Drive");
+	record_folder_files(&app, SPACE, 2, "Google Drive");
+	record_folder_files(&app, SPACE, 1, "a folder");
+	let lesson = json!({ "id": "chat_a", "spaceId": SPACE });
 	record_answer(&app, &lesson, &json!({ "kind": "quiz", "correct": true }));
 	record_answer(&app, &lesson, &json!({ "kind": "quiz", "correct": false }));
 	record_answer(&app, &lesson, &json!({ "kind": "quiz", "correct": true, "dontKnow": true }));
 	record_answer(&app, &lesson, &json!({ "kind": "open" }));
 	record_answer(&app, &json!({ "id": "chat_b" }), &json!({ "kind": "quiz", "correct": false }));
 	let quiz = json!({ "id": "ddl_gold00000002", "name": "Quiz 1" });
-	record_deadline_change(&app, CLASS, &quiz, &Json::from("added"));
-	record_deadline_change(&app, CLASS, &quiz, &json!({ "date": "2030-01-01", "time": "10:00" }));
-	record_deadline_change(&app, CLASS, &quiz, &json!({ "done": true }));
-	record_deadline_change(&app, CLASS, &quiz, &json!({ "name": "Quiz one" }));
+	record_deadline_change(&app, SPACE, &quiz, &Json::from("added"));
+	record_deadline_change(&app, SPACE, &quiz, &json!({ "date": "2030-01-01", "time": "10:00" }));
+	record_deadline_change(&app, SPACE, &quiz, &json!({ "done": true }));
+	record_deadline_change(&app, SPACE, &quiz, &json!({ "name": "Quiz one" }));
 	let shown = masked(&recent_agent_actions(&app));
 	let saved = masked(&app.stores.agent_actions.read_agent_actions());
 	assert_eq!(stringify(&shown), stringify(&expected["shown"]));
@@ -149,7 +149,7 @@ fn saved_rules_match_node() {
 	let expected = case("saved rules");
 	let (app, dir) = synthetic_app();
 	let place = |raw: Json| parse_where(&raw).unwrap();
-	let (voice, mine, missing) = (place(json!({ "area": "voice" })), place(json!({ "classId": CLASS })), place(json!({ "classId": GONE })));
+	let (voice, mine, missing) = (place(json!({ "area": "voice" })), place(json!({ "spaceId": SPACE })), place(json!({ "spaceId": GONE })));
 	let marks = |app: &App| masked_marks(&agent_saved_rules(app).unwrap());
 	let outcomes = vec![
 		saved_rule(save_rule_by_agent(&app, "Be brief", &voice, Some("Claude"))),

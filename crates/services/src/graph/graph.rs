@@ -17,7 +17,7 @@ use gs_json::{Json, json};
 use super::extraction_runs::runs;
 use crate::App;
 
-/// One scope's graph ledgers: None is "No class", a class id its own graph.
+/// One scope's graph ledgers: None is "No space", a space id its own graph.
 pub fn graph_store_for<'a>(app: &'a App, scope: Option<&'a str>) -> Box<dyn GraphStore + 'a> {
 	Box::new(ScopedGraph::new(&app.stores.graphs, scope))
 }
@@ -41,8 +41,8 @@ pub fn graph_costs(app: &App, scope: Option<&str>) -> Result<Json, String> {
 		.chats
 		.list_chats()
 		.iter()
-		// A graph's costs are its own class's lessons only.
-		.filter(|summary| summary["classId"].as_str() == scope)
+		// A graph's costs are its own space's lessons only.
+		.filter(|summary| summary["spaceId"].as_str() == scope)
 		.filter_map(|summary| {
 			let id = summary["id"].as_str()?;
 			let record = app.stores.chats.get_chat(id)?;
@@ -63,7 +63,7 @@ pub fn graph_costs(app: &App, scope: Option<&str>) -> Result<Json, String> {
 fn graph_dir_for(app: &App, scope: Option<&str>) -> Option<PathBuf> {
 	match scope {
 		None => Some(app.paths.graph.clone()),
-		Some(class_id) => app.stores.classes.graph_dir(class_id).ok(),
+		Some(space_id) => app.stores.spaces.graph_dir(space_id).ok(),
 	}
 }
 

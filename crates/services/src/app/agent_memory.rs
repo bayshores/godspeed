@@ -2,8 +2,8 @@
 //! when it connects, and the saved notes as Settings lists them.
 
 use gs_base::clock;
-use gs_core::classes::agent_briefing::{BriefingClass, BriefingInput, BriefingLesson, agent_briefing};
-use gs_core::classes::class_setup::missing_setup;
+use gs_core::spaces::agent_briefing::{BriefingSpace, BriefingInput, BriefingLesson, agent_briefing};
+use gs_core::spaces::space_setup::missing_setup;
 use gs_json::{Json, json};
 
 use crate::App;
@@ -11,12 +11,12 @@ use crate::App;
 /// The briefing, at most `max_chars` long. A note or lesson with a time that isn't one cannot be
 /// saved, so the briefing has no failure to report.
 pub fn current_agent_briefing(app: &App, max_chars: usize) -> String {
-	let classes = app
+	let spaces = app
 		.stores
-		.classes
-		.list_class_records()
+		.spaces
+		.list_space_records()
 		.iter()
-		.map(|record| BriefingClass {
+		.map(|record| BriefingSpace {
 			id: record["id"].as_str().unwrap_or_default().to_owned(),
 			name: record["name"].as_str().unwrap_or_default().to_owned(),
 			archived: record["archived"].truthy(),
@@ -32,24 +32,24 @@ pub fn current_agent_briefing(app: &App, max_chars: usize) -> String {
 		.map(|chat| BriefingLesson {
 			id: chat["id"].as_str().unwrap_or_default().to_owned(),
 			title: chat["title"].as_str().unwrap_or_default().to_owned(),
-			class_id: chat["classId"].as_str().filter(|id| !id.is_empty()).map(str::to_owned),
+			space_id: chat["spaceId"].as_str().filter(|id| !id.is_empty()).map(str::to_owned),
 			updated_at: chat["updatedAt"].as_str().unwrap_or_default().to_owned(),
 			waiting: chat["pendingQuestion"].truthy() || chat["pendingProblem"].truthy(),
 		})
 		.collect();
-	let input = BriefingInput { now_ms: clock::now_ms(), classes, lessons, notes: app.stores.agent_notes.list_agent_notes(), max_chars };
+	let input = BriefingInput { now_ms: clock::now_ms(), spaces, lessons, notes: app.stores.agent_notes.list_agent_notes(), max_chars };
 	agent_briefing(&input).unwrap_or_default()
 }
 
-/// The notes with their class names, oldest first.
+/// The notes with their space names, oldest first.
 pub fn agent_notes_view(app: &App) -> Json {
 	app.stores
 		.agent_notes
 		.list_agent_notes()
 		.iter()
 		.map(|note| {
-			let class_name = note["classId"].as_str().and_then(|id| app.stores.classes.get_class(id)).map(|class| class["name"].clone());
-			json!({ "id": note["id"], "text": note["text"], "className": class_name, "createdAt": note["createdAt"] })
+			let space_name = note["spaceId"].as_str().and_then(|id| app.stores.spaces.get_space(id)).map(|space| space["name"].clone());
+			json!({ "id": note["id"], "text": note["text"], "spaceName": space_name, "createdAt": note["createdAt"] })
 		})
 		.collect()
 }
@@ -62,14 +62,14 @@ mod tests {
 	use crate::app::test_support::{scratch_dir, test_app};
 
 	#[test]
-	fn notes_show_their_class_name_or_none() {
+	fn notes_show_their_space_name_or_none() {
 		let root = scratch_dir("memory-notes");
 		let app = test_app(&root);
 		app.stores.agent_notes.add_agent_note("Prefers short answers", None).unwrap();
 		app.stores.agent_notes.add_agent_note("Test is open book", Some("cls_gone")).unwrap();
 		let view = agent_notes_view(&app);
-		assert_eq!(stringify(&json!([view[0]["text"], view[0]["className"], view[1]["text"], view[1]["className"]])), r#"["Prefers short answers",null,"Test is open book",null]"#);
-		assert_eq!(view[0].as_obj().unwrap().keys().map(String::as_str).collect::<Vec<_>>(), ["id", "text", "className", "createdAt"]);
+		assert_eq!(stringify(&json!([view[0]["text"], view[0]["spaceName"], view[1]["text"], view[1]["spaceName"]])), r#"["Prefers short answers",null,"Test is open book",null]"#);
+		assert_eq!(view[0].as_obj().unwrap().keys().map(String::as_str).collect::<Vec<_>>(), ["id", "text", "spaceName", "createdAt"]);
 	}
 
 	#[test]

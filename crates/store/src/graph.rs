@@ -1,7 +1,7 @@
 //! The append-only graph ledgers and the imported-notes records.
 //!
-//! One graph family per scope: None is "No class" (data/graph), a class id is that class's own
-//! graph (data/classes/<id>/graph). Each family holds
+//! One graph family per scope: None is "No space" (data/graph), a space id is that space's own
+//! graph (data/spaces/<id>/graph). Each family holds
 //!
 //! - nodes.jsonl, chains.jsonl, sessions.jsonl (checkpoints), coverage.jsonl, topics.jsonl:
 //!   one JSON record per line, appended and never edited. Reads skip lines that are not valid
@@ -19,7 +19,7 @@ use std::time::SystemTime;
 use gs_base::config::{GraphFiles, Paths};
 use gs_base::locks::{LockKey, Locks};
 use gs_base::{fsx, text};
-use gs_core::contracts::class::is_class_id;
+use gs_core::contracts::space::is_space_id;
 use gs_core::contracts::graph::CURRENT_GRAPH_FORMAT_VERSION;
 use gs_core::records::entries;
 use gs_json::{Json, Obj, js_number, json, parse, stringify, stringify_pretty};
@@ -78,12 +78,12 @@ impl GraphStores {
 		GraphStores { paths: paths.clone(), locks: locks.clone(), cache: Mutex::new(HashMap::new()) }
 	}
 
-	/// A scope's files; Err for a class id that could be a path.
+	/// A scope's files; Err for a space id that could be a path.
 	fn files(&self, scope: Option<&str>) -> Result<GraphFiles, String> {
 		let dir = match scope {
 			None => self.paths.graph.clone(),
-			Some(class_id) if is_class_id(class_id) => self.paths.classes.join(class_id).join("graph"),
-			Some(class_id) => return Err(format!("Invalid class id: {class_id}")),
+			Some(space_id) if is_space_id(space_id) => self.paths.spaces.join(space_id).join("graph"),
+			Some(space_id) => return Err(format!("Invalid space id: {space_id}")),
 		};
 		Ok(GraphFiles::new(&dir))
 	}
@@ -194,9 +194,9 @@ impl GraphStores {
 		write_source_map(&files, &all)
 	}
 
-	/// Drops a deleted class's parsed ledgers: nothing reads them again.
-	pub fn forget_graph_store(&self, class_id: &str) {
-		let Ok(files) = self.files(Some(class_id)) else { return };
+	/// Drops a deleted space's parsed ledgers: nothing reads them again.
+	pub fn forget_graph_store(&self, space_id: &str) {
+		let Ok(files) = self.files(Some(space_id)) else { return };
 		let mut cache = self.cache.lock();
 		for file in [&files.nodes, &files.chains, &files.sessions, &files.coverage, &files.sources, &files.format, &files.topics] {
 			cache.remove(file);

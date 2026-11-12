@@ -5,7 +5,7 @@
 use std::path::Path;
 
 use gs_base::{clock, fsx};
-use gs_core::classes::agent_folder::{FolderAgent, Platform, claude_settings, mcp_json, start_script, start_script_path};
+use gs_core::spaces::agent_folder::{FolderAgent, Platform, claude_settings, mcp_json, start_script, start_script_path};
 use gs_json::{json, stringify_pretty};
 
 use super::disk::write_file_atomic;
@@ -13,11 +13,11 @@ use super::disk::write_file_atomic;
 /// Images the waiter saved for the agent are kept this long.
 const IMAGE_DAYS: i64 = 7;
 
-/// The agent's instructions and the class-setup skill, copied into the folder as they are.
+/// The agent's instructions and the space-setup skill, copied into the folder as they are.
 const DOCS: [(&str, &str); 3] = [
 	("CLAUDE.md", include_str!("../../../../src/backend/server/agent-folder-files/CLAUDE.md")),
 	("AGENTS.md", include_str!("../../../../src/backend/server/agent-folder-files/AGENTS.md")),
-	(".claude/skills/setup-classes/SKILL.md", include_str!("../../../../src/backend/server/agent-folder-files/setup-spaces.md")),
+	(".claude/skills/setup-spaces/SKILL.md", include_str!("../../../../src/backend/server/agent-folder-files/setup-spaces.md")),
 ];
 
 /// The waiter's scripts, copied into `.godspeed/` as they are.
@@ -84,6 +84,12 @@ pub fn write_folder(folder: &str, platform: Platform) -> Result<(), String> {
 	for (name, content) in DOCS {
 		put(&root.join(name), content, None)?;
 	}
+	// The command was /setup-classes before the rename.
+	let old_skill = root.join(".claude").join("skills").join("setup-classes");
+	match std::fs::remove_dir_all(&old_skill) {
+		Err(err) if err.kind() != std::io::ErrorKind::NotFound => return Err(fsx::node_error_message(&err, "rm", &old_skill)),
+		_ => {}
+	}
 	put(&root.join(".mcp.json"), &mcp_json(folder, platform), None)?;
 	for (name, content) in SCRIPTS {
 		put(&dot.join(name), content, None)?;
@@ -112,7 +118,7 @@ mod tests {
 		let folder = root.join("godspeed");
 		let name = folder.to_string_lossy().into_owned();
 		write_folder(&name, platform()).unwrap();
-		for file in ["CLAUDE.md", "AGENTS.md", ".mcp.json", ".claude/skills/setup-classes/SKILL.md", ".godspeed/connect.mjs", ".godspeed/wait-for-work.mjs", ".godspeed/package.json", ".godspeed/claude-settings.json", ".godspeed/start-claude.sh", ".godspeed/start-codex.sh"] {
+		for file in ["CLAUDE.md", "AGENTS.md", ".mcp.json", ".claude/skills/setup-spaces/SKILL.md", ".godspeed/connect.mjs", ".godspeed/wait-for-work.mjs", ".godspeed/package.json", ".godspeed/claude-settings.json", ".godspeed/start-claude.sh", ".godspeed/start-codex.sh"] {
 			assert!(folder.join(file).is_file(), "{file}");
 		}
 		let first = std::fs::metadata(folder.join("CLAUDE.md")).unwrap().modified().unwrap();
@@ -123,6 +129,15 @@ mod tests {
 			use std::os::unix::fs::PermissionsExt;
 			assert_eq!(std::fs::metadata(folder.join(".godspeed/start-claude.sh")).unwrap().permissions().mode() & 0o777, 0o755);
 		}
+	}
+
+	#[test]
+	fn the_old_setup_skill_goes() {
+		let root = scratch_dir("folder-files-old-skill");
+		let old = root.join(".claude/skills/setup-classes");
+		write_file_atomic(&old.join("SKILL.md"), "old").unwrap();
+		write_folder(&root.to_string_lossy(), platform()).unwrap();
+		assert!(!old.exists() && root.join(".claude/skills/setup-spaces/SKILL.md").is_file());
 	}
 
 	#[test]

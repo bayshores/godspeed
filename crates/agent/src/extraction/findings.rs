@@ -54,16 +54,16 @@ re-teaches nothing. The tool's field descriptions carry the details.";
 /// Lessons: questions the learner answered arrive as "QUESTION [id]" lines.
 const SESSION_QUESTION_RULE: &str = "QUESTION [id] passages are questions the learner was asked. They teach nothing themselves; for each one, list in tests the ideas it asks about (new or existing ids) under its message id, so the learner's answer counts for them.";
 
-/// Added for class files godspeed may sort by itself.
-const COURSE_INFO_RULE: &str = "This file is from a class folder. If it is course logistics rather than material to learn from (announcements, emails, grade or submission notices, schedules, forum digests), submit courseInfo: true with empty propositions, chains and reteaches.";
+/// Added for space files godspeed may sort by itself.
+const SPACE_INFO_RULE: &str = "This file is from a space folder. If it is logistics rather than material to learn from (announcements, emails, grade or submission notices, schedules, forum digests), submit spaceInfo: true with empty propositions, chains and reteaches.";
 
 pub fn extractor_instructions() -> String {
 	format!("{SESSION_PREAMBLE}\n\n{EXTRACTION_CORE}\n\n{SESSION_MESSAGE_ID_RULE}\n\n{SESSION_QUESTION_RULE}")
 }
 
-pub fn notes_extractor_instructions(may_be_course_info: bool) -> String {
+pub fn notes_extractor_instructions(may_be_space_info: bool) -> String {
 	let base = format!("{NOTES_PREAMBLE}\n\n{EXTRACTION_CORE}");
-	if may_be_course_info { format!("{base}\n\n{COURSE_INFO_RULE}") } else { base }
+	if may_be_space_info { format!("{base}\n\n{SPACE_INFO_RULE}") } else { base }
 }
 
 // ── the schemas, key for key as TypeBox emits them ──
@@ -124,12 +124,12 @@ fn base_fields(propositions: Vec<(&'static str, Json, bool)>) -> Vec<(&'static s
 	]
 }
 
-/// A notes file's submit; a class file godspeed may sort by itself adds the course-info verdict.
-pub fn notes_findings_schema(may_be_course_info: bool) -> Json {
+/// A notes file's submit; a space file godspeed may sort by itself adds the space-info verdict.
+pub fn notes_findings_schema(may_be_space_info: bool) -> Json {
 	let mut fields = base_fields(proposition_props());
-	if may_be_course_info {
-		let verdict = json!({ "type": "boolean", "description": "true when this file is course logistics, not material to learn from; then propositions, chains and reteaches stay empty." });
-		fields.push(("courseInfo", verdict, true));
+	if may_be_space_info {
+		let verdict = json!({ "type": "boolean", "description": "true when this file is logistics, not material to learn from; then propositions, chains and reteaches stay empty." });
+		fields.push(("spaceInfo", verdict, true));
 	}
 	object(fields)
 }
@@ -259,9 +259,9 @@ mod tests {
 		let session = stringify(&session_findings_schema());
 		assert!(session.starts_with(r#"{"type":"object","required":["propositions","chains","reteaches"],"properties":{"propositions":{"type":"array","items":{"type":"object","required":["id","name","statement","messageId"]"#));
 		assert!(session.contains(r#""minItems":1,"description":"Premise ids used TOGETHER"#));
-		let course = notes_findings_schema(true);
-		assert_eq!(course["properties"]["courseInfo"]["type"], Json::from("boolean"));
-		assert_eq!(course["required"], json!(["propositions", "chains", "reteaches"]));
+		let info = notes_findings_schema(true);
+		assert_eq!(info["properties"]["spaceInfo"]["type"], Json::from("boolean"));
+		assert_eq!(info["required"], json!(["propositions", "chains", "reteaches"]));
 	}
 
 	#[test]

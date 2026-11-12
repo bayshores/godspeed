@@ -7,7 +7,7 @@ use gs_core::graph::ports::{GraphStore, LedgerRewrite};
 use gs_json::Json;
 use gs_store::graph::{GraphStores, Ledger};
 
-/// One graph family: `None` is "No class", a class id that class's own graph. It shares the
+/// One graph family: `None` is "No space", a space id that space's own graph. It shares the
 /// stores, so a graph can live as long as a turn.
 pub struct ScopedGraph {
 	graphs: Arc<GraphStores>,

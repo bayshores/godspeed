@@ -77,14 +77,14 @@ async fn the_search_vectors_scenario_comes_out_as_recorded() {
 	let mut files = Vec::new();
 	for (n, (name, text)) in TEXTS.iter().copied().chain([("long-notes.md", long.as_str())]).enumerate() {
 		let id = format!("<f#{}>", n + 1);
-		search.index_class_file("cls_test", &id, name, s(&fps[id.as_str()]["fp"]), text, || Some(())).await.unwrap();
+		search.index_space_file("cls_test", &id, name, s(&fps[id.as_str()]["fp"]), text, || Some(())).await.unwrap();
 		files.push(json!({ "id": id, "name": name }));
 	}
-	let passages = dir.join("data/classes/cls_test/search/passages");
+	let passages = dir.join("data/spaces/cls_test/search/passages");
 	assert_eq!(std::fs::read_to_string(passages.with_extension("json")).unwrap(), s(&want["passagesJson"]));
 	assert_vectors(&passages, &want["passages"]);
 	for q in want["searches"].as_arr().unwrap() {
-		let got = search.search_class_files("cls_test", &files, s(&q["query"]), q["limit"].as_f64().unwrap() as usize).await.unwrap();
+		let got = search.search_space_files("cls_test", &files, s(&q["query"]), q["limit"].as_f64().unwrap() as usize).await.unwrap();
 		let want = s(&q["text"]);
 		if EXACT {
 			assert_eq!(got, want);

@@ -1,4 +1,4 @@
-//! The tools every lesson-like session may add beside its own: the class card and search, the
+//! The tools every lesson-like session may add beside its own: the space card and search, the
 //! learner's rules and the deadline changes. Each is present only when the composition root
 //! passes its reader.
 
@@ -11,32 +11,32 @@ use crate::fs_tools::grep::grep_tool;
 use crate::fs_tools::ls::ls_tool;
 use crate::fs_tools::read::read_tool;
 
-use super::class::{ClassToolContext, class_tools};
+use super::space::{SpaceToolContext, space_tools};
 use super::fn_tool::FnTool;
 use super::graph::{GraphToolContext, prober_graph_tools};
 use super::rules::{SaveRule, save_rule_tool};
-use super::talk::{ClassActions, lesson_class_change_tools};
+use super::talk::{SpaceActions, lesson_space_change_tools};
 
 #[derive(Clone, Default)]
 pub struct LessonSide {
-	/// The lesson's class, when it has one.
-	pub class: Option<ClassToolContext>,
+	/// The lesson's space, when it has one.
+	pub space: Option<SpaceToolContext>,
 	pub save_rule: Option<SaveRule>,
 	/// The deadline changes a learner may ask for mid-lesson.
-	pub class_actions: Option<ClassActions>,
+	pub space_actions: Option<SpaceActions>,
 }
 
 impl LessonSide {
 	pub fn tools(&self) -> Vec<FnTool> {
 		let mut tools = Vec::new();
-		if let Some(class) = &self.class {
-			tools.extend(class_tools(class));
+		if let Some(space) = &self.space {
+			tools.extend(space_tools(space));
 		}
 		if let Some(save_rule) = &self.save_rule {
 			tools.push(save_rule_tool(save_rule.clone()));
 		}
-		if let Some(actions) = &self.class_actions {
-			tools.extend(lesson_class_change_tools(actions));
+		if let Some(actions) = &self.space_actions {
+			tools.extend(lesson_space_change_tools(actions));
 		}
 		tools
 	}

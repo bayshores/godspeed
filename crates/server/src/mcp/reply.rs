@@ -1,6 +1,6 @@
 //! Tool results as MCP's CallToolResult: `{content, isError?}`.
 
-use gs_core::classes::class_tools::ToolOutcome;
+use gs_core::spaces::space_tools::ToolOutcome;
 use gs_json::{Json, json, stringify};
 
 /// Compact JSON (indentation costs the agent tokens and tells it nothing); a string as is.
@@ -20,7 +20,7 @@ pub fn failure(message: &str) -> Json {
 	json!({ "content": [text_block(message)], "isError": true })
 }
 
-/// A class action's outcome as a tool result.
+/// A space action's outcome as a tool result.
 pub fn outcome(outcome: ToolOutcome) -> Json {
 	match outcome {
 		ToolOutcome::Ok { value, .. } => result(&value),

@@ -9,7 +9,7 @@ use std::task::Poll;
 
 use gs_base::clock;
 use gs_base::text::len16;
-use gs_core::classes::class_tools::lesson_started_last_turn;
+use gs_core::spaces::space_tools::lesson_started_last_turn;
 use gs_core::session::work_pages::{WORK_PAGE_BYTES, page_blocks};
 use gs_engine::bridge::{AgentReply, ReplyCall, WaitOptions, WorkView};
 use gs_json::{Json, Obj, json, stringify};
@@ -199,7 +199,7 @@ fn note_replying(app: &Arc<App>, caller: Option<&str>, lesson: &Json) {
 	let id = lesson["id"].as_str().unwrap_or_default();
 	let action = json!({
 		"label": format!("Replying in {}", lesson["title"].as_str().unwrap_or_default()),
-		"classId": lesson["classId"],
+		"spaceId": lesson["spaceId"],
 		"target": { "kind": "lesson", "id": id },
 		"page": format!("/chat/{id}"),
 	});

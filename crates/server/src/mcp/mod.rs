@@ -4,10 +4,10 @@
 //! server/discover hands over the instructions) and the older one that starts with initialize.
 //!
 //! Four kinds of tools: the work loop (`work`), direct access to lessons and graphs (`lessons`,
-//! `graph`), classes (`classes`), and memory (`memory`). Deleting a class is app-only on purpose.
+//! `graph`), spaces (`spaces`), and memory (`memory`). Deleting a space is app-only on purpose.
 
 mod caller;
-mod classes;
+mod spaces;
 mod graph;
 mod instructions;
 mod lessons;

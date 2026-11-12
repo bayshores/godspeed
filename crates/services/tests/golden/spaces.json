@@ -1,0 +1,626 @@
+[
+	{
+		"name": "ids, names, cards, tools and shortcuts",
+		"output": {
+			"before": {
+				"records": [
+					{
+						"id": "cls_golden_a",
+						"name": "Linear Algebra",
+						"description": "Vectors and matrices",
+						"createdAt": "2026-01-05T10:00:00.000Z",
+						"updatedAt": "2026-01-05T10:00:00.000Z",
+						"archived": false,
+						"linkedFolder": "<root>/linked/la",
+						"files": [
+							{
+								"id": "f_a00000000001",
+								"origin": "linked",
+								"name": "notes.md",
+								"path": "week1/notes.md",
+								"kind": "study",
+								"contentFp": "",
+								"status": "done",
+								"addedAt": "2026-01-05T10:00:00.000Z"
+							},
+							{
+								"id": "f_a00000000002",
+								"origin": "linked",
+								"name": "Lecture 3.mp4",
+								"path": "Lecture 3.mp4",
+								"kind": "study",
+								"contentFp": "",
+								"status": "done",
+								"addedAt": "2026-01-05T10:00:00.000Z"
+							},
+							{
+								"id": "f_a00000000003",
+								"origin": "linked",
+								"name": "Lecture 4.mp4",
+								"path": "Lecture 4.mp4",
+								"kind": "study",
+								"contentFp": "",
+								"status": "done",
+								"addedAt": "2026-01-05T10:00:00.000Z",
+								"transcriptId": "f_a00000000004"
+							},
+							{
+								"id": "f_a00000000004",
+								"origin": "linked",
+								"name": "Lecture 4.vtt",
+								"path": "Lecture 4.vtt",
+								"kind": "study",
+								"contentFp": "",
+								"status": "done",
+								"addedAt": "2026-01-05T10:00:00.000Z"
+							},
+							{
+								"id": "f_a00000000005",
+								"origin": "copied",
+								"name": "syllabus.pdf",
+								"path": "f_a00000000005/syllabus.pdf",
+								"kind": "info",
+								"contentFp": "",
+								"status": "failed",
+								"addedAt": "2026-01-05T10:00:00.000Z"
+							},
+							{
+								"id": "f_a00000000006",
+								"origin": "linked",
+								"name": "gone.txt",
+								"path": "gone.txt",
+								"kind": "study",
+								"contentFp": "",
+								"status": "done",
+								"addedAt": "2026-01-05T10:00:00.000Z"
+							},
+							{
+								"id": "f_a00000000007",
+								"origin": "linked",
+								"name": "Lecture 5.mp4",
+								"path": "Lecture 5.mp4",
+								"kind": "study",
+								"contentFp": "",
+								"status": "done",
+								"addedAt": "2026-01-05T10:00:00.000Z"
+							},
+							{
+								"id": "f_a00000000008",
+								"origin": "linked",
+								"name": "Week 2 notes.md",
+								"path": "week2/Week 2 notes.md",
+								"kind": "study",
+								"contentFp": "",
+								"status": "pending",
+								"addedAt": "2026-01-05T10:00:00.000Z"
+							}
+						],
+						"deadlines": [],
+						"version": 7
+					},
+					{
+						"id": "cls_golden_b",
+						"name": "Linear Algebra",
+						"description": "Last year's",
+						"createdAt": "2026-01-05T10:00:00.000Z",
+						"updatedAt": "2026-01-05T10:00:00.000Z",
+						"archived": true,
+						"files": [
+							{
+								"id": "f_b00000000001",
+								"origin": "copied",
+								"name": "notes.md",
+								"path": "f_b00000000001/notes.md",
+								"kind": "study",
+								"contentFp": "",
+								"status": "done",
+								"addedAt": "2026-01-05T10:00:00.000Z"
+							},
+							{
+								"id": "f_b00000000002",
+								"origin": "linked",
+								"name": "lost.txt",
+								"path": "lost.txt",
+								"kind": "study",
+								"contentFp": "",
+								"status": "done",
+								"addedAt": "2026-01-05T10:00:00.000Z"
+							}
+						],
+						"deadlines": [],
+						"version": 7
+					},
+					{
+						"id": "cls_golden_c",
+						"name": "Physics: Waves/Optics",
+						"description": "",
+						"createdAt": "2026-01-05T10:00:00.000Z",
+						"updatedAt": "2026-01-05T10:00:00.000Z",
+						"archived": false,
+						"files": [],
+						"deadlines": [],
+						"version": 7
+					}
+				],
+				"files": [
+					[
+						"linked/la/week1/notes.md",
+						"# Week 1\n"
+					],
+					[
+						"linked/la/Lecture 3.mp4",
+						"not really a video"
+					],
+					[
+						"linked/la/Lecture 4.mp4",
+						"not really a video"
+					],
+					[
+						"linked/la/Lecture 4.vtt",
+						"WEBVTT\n\n00:00.000 --> 00:01.000\nHello\n"
+					],
+					[
+						"linked/la/Lecture 5.mp4",
+						"not really a video"
+					],
+					[
+						"linked/la/week2/Week 2 notes.md",
+						"# Week 2\n"
+					],
+					[
+						"data/spaces/cls_golden_a/files/f_a00000000005/syllabus.pdf",
+						"%PDF-1.4 not really"
+					],
+					[
+						"data/spaces/cls_golden_a/files/transcripts/f_a00000000002.txt",
+						"Hello from lecture 3\n"
+					],
+					[
+						"data/spaces/cls_golden_b/files/f_b00000000001/notes.md",
+						"# Old notes\n"
+					]
+				]
+			},
+			"sourceIds": [
+				[
+					"cls_golden_a",
+					"f_a00000000001",
+					"src_d58d274efd13"
+				],
+				[
+					"cls_golden_b",
+					"f_b00000000002",
+					"src_2ad17d9ebb3b"
+				],
+				[
+					"cls_x",
+					"f_000000000000",
+					"src_0acef91c1513"
+				],
+				[
+					"",
+					"",
+					"src_e7ac0786668e"
+				]
+			],
+			"folderNames": [
+				[
+					null,
+					"a folder"
+				],
+				[
+					"",
+					"a folder"
+				],
+				[
+					"/",
+					"a folder"
+				],
+				[
+					"/Users/x/Drive/Math 20C",
+					"Math 20C"
+				],
+				[
+					"/Users/x/Drive/Math 20C/",
+					"Math 20C"
+				],
+				[
+					"C:\\Users\\x\\Math\\",
+					"Math"
+				],
+				[
+					"a\\b/c//",
+					"c"
+				],
+				[
+					"plain",
+					"plain"
+				]
+			],
+			"cards": [
+				{
+					"spaceId": "cls_golden_a",
+					"name": "Linear Algebra",
+					"description": "Vectors and matrices",
+					"files": [
+						{
+							"name": "notes.md",
+							"kind": "study",
+							"path": "<root>/linked/la/week1/notes.md",
+							"status": "done"
+						},
+						{
+							"name": "Lecture 3.mp4",
+							"kind": "study",
+							"path": "<root>/data/spaces/cls_golden_a/files/transcripts/f_a00000000002.txt",
+							"status": "done"
+						},
+						{
+							"name": "Lecture 4.mp4",
+							"kind": "study",
+							"path": "<root>/linked/la/Lecture 4.vtt",
+							"status": "done"
+						},
+						{
+							"name": "Lecture 4.vtt",
+							"kind": "study",
+							"path": "<root>/linked/la/Lecture 4.vtt",
+							"status": "done"
+						},
+						{
+							"name": "syllabus.pdf",
+							"kind": "info",
+							"path": "<root>/data/spaces/cls_golden_a/files/f_a00000000005/syllabus.pdf",
+							"status": "failed"
+						},
+						{
+							"name": "gone.txt",
+							"kind": "study",
+							"path": "<root>/linked/la/gone.txt",
+							"status": "done"
+						},
+						{
+							"name": "Lecture 5.mp4",
+							"kind": "study",
+							"path": null,
+							"status": "done"
+						},
+						{
+							"name": "Week 2 notes.md",
+							"kind": "study",
+							"path": "<root>/linked/la/week2/Week 2 notes.md",
+							"status": "pending"
+						}
+					]
+				},
+				{
+					"spaceId": "cls_golden_b",
+					"name": "Linear Algebra",
+					"description": "Last year's",
+					"files": [
+						{
+							"name": "notes.md",
+							"kind": "study",
+							"path": "<root>/data/spaces/cls_golden_b/files/f_b00000000001/notes.md",
+							"status": "done"
+						},
+						{
+							"name": "lost.txt",
+							"kind": "study",
+							"path": null,
+							"status": "done"
+						}
+					]
+				},
+				{
+					"spaceId": "cls_golden_c",
+					"name": "Physics: Waves/Optics",
+					"description": "",
+					"files": []
+				}
+			],
+			"tools": {
+				"list": {
+					"ok": true,
+					"value": {
+						"spaces": [
+							{
+								"id": "cls_golden_a",
+								"name": "Linear Algebra",
+								"description": "Vectors and matrices",
+								"icon": null,
+								"archived": false,
+								"linkedFolder": "<root>/linked/la",
+								"files": 8,
+								"lessons": 0
+							},
+							{
+								"id": "cls_golden_b",
+								"name": "Linear Algebra",
+								"description": "Last year's",
+								"icon": null,
+								"archived": true,
+								"linkedFolder": null,
+								"files": 2,
+								"lessons": 0
+							},
+							{
+								"id": "cls_golden_c",
+								"name": "Physics: Waves/Optics",
+								"description": "",
+								"icon": null,
+								"archived": false,
+								"linkedFolder": null,
+								"files": 0,
+								"lessons": 0
+							}
+						],
+						"noSpaceLessons": 0
+					},
+					"changes": []
+				},
+				"readA": {
+					"ok": true,
+					"value": {
+						"id": "cls_golden_a",
+						"name": "Linear Algebra",
+						"description": "Vectors and matrices",
+						"signature": null,
+						"icon": null,
+						"archived": false,
+						"linkedFolder": "<root>/linked/la",
+						"fileCounts": {
+							"done": 6,
+							"failed": 1,
+							"pending": 1
+						},
+						"failedFiles": [
+							{
+								"id": "f_a00000000005",
+								"name": "syllabus.pdf",
+								"status": "failed"
+							}
+						],
+						"topics": [],
+						"today": "2026-11-10 08:09",
+						"deadlines": [],
+						"lessons": []
+					},
+					"changes": []
+				},
+				"readC": {
+					"ok": true,
+					"value": {
+						"id": "cls_golden_c",
+						"name": "Physics: Waves/Optics",
+						"description": "",
+						"signature": null,
+						"icon": null,
+						"archived": false,
+						"linkedFolder": null,
+						"fileCounts": {},
+						"failedFiles": [],
+						"topics": [],
+						"today": "2026-11-10 08:09",
+						"deadlines": [],
+						"lessons": []
+					},
+					"changes": []
+				},
+				"readMissing": {
+					"ok": false,
+					"error": "No space \"cls_missing\". Use list_spaces."
+				}
+			},
+			"shortcuts": [
+				{
+					"step": "first sync",
+					"tree": [
+						{
+							"path": ".godspeed",
+							"type": "dir"
+						},
+						{
+							"path": ".godspeed/shortcuts.json",
+							"type": "file",
+							"text": "{\n\t\"links\": [\n\t\t{\n\t\t\t\"path\": \"<root>/gs/spaces/Linear Algebra/Lecture/Lecture 3.mp4\",\n\t\t\t\"target\": \"<root>/linked/la/Lecture 3.mp4\"\n\t\t},\n\t\t{\n\t\t\t\"path\": \"<root>/gs/spaces/Linear Algebra/Lecture/Lecture 4.mp4\",\n\t\t\t\"target\": \"<root>/linked/la/Lecture 4.mp4\"\n\t\t},\n\t\t{\n\t\t\t\"path\": \"<root>/gs/spaces/Linear Algebra/Lecture/Lecture 4.vtt\",\n\t\t\t\"target\": \"<root>/linked/la/Lecture 4.vtt\"\n\t\t},\n\t\t{\n\t\t\t\"path\": \"<root>/gs/spaces/Linear Algebra/Lecture/Lecture 5.mp4\",\n\t\t\t\"target\": \"<root>/linked/la/Lecture 5.mp4\"\n\t\t},\n\t\t{\n\t\t\t\"path\": \"<root>/gs/spaces/Linear Algebra/Other/notes.md\",\n\t\t\t\"target\": \"<root>/linked/la/week1/notes.md\"\n\t\t},\n\t\t{\n\t\t\t\"path\": \"<root>/gs/spaces/Linear Algebra/Other/syllabus.pdf\",\n\t\t\t\"target\": \"<root>/data/spaces/cls_golden_a/files/f_a00000000005/syllabus.pdf\"\n\t\t},\n\t\t{\n\t\t\t\"path\": \"<root>/gs/spaces/Linear Algebra/Other/Week 2 notes.md\",\n\t\t\t\"target\": \"<root>/linked/la/week2/Week 2 notes.md\"\n\t\t},\n\t\t{\n\t\t\t\"path\": \"<root>/gs/spaces/Archived/Linear Algebra/Other/notes.md\",\n\t\t\t\"target\": \"<root>/data/spaces/cls_golden_b/files/f_b00000000001/notes.md\"\n\t\t}\n\t],\n\t\"dirs\": [\n\t\t\"<root>/gs\",\n\t\t\"<root>/gs/spaces\",\n\t\t\"<root>/gs/spaces/Linear Algebra\",\n\t\t\"<root>/gs/spaces/Linear Algebra/Lecture\",\n\t\t\"<root>/gs/spaces/Linear Algebra/Other\",\n\t\t\"<root>/gs/spaces/Archived\",\n\t\t\"<root>/gs/spaces/Archived/Linear Algebra\",\n\t\t\"<root>/gs/spaces/Archived/Linear Algebra/Other\"\n\t]\n}\n"
+						},
+						{
+							"path": "spaces",
+							"type": "dir"
+						},
+						{
+							"path": "spaces/Archived",
+							"type": "dir"
+						},
+						{
+							"path": "spaces/Archived/Linear Algebra",
+							"type": "dir"
+						},
+						{
+							"path": "spaces/Archived/Linear Algebra/Other",
+							"type": "dir"
+						},
+						{
+							"path": "spaces/Archived/Linear Algebra/Other/notes.md",
+							"type": "link",
+							"target": "<root>/data/spaces/cls_golden_b/files/f_b00000000001/notes.md"
+						},
+						{
+							"path": "spaces/Linear Algebra",
+							"type": "dir"
+						},
+						{
+							"path": "spaces/Linear Algebra/Lecture",
+							"type": "dir"
+						},
+						{
+							"path": "spaces/Linear Algebra/Lecture/Lecture 3.mp4",
+							"type": "link",
+							"target": "<root>/linked/la/Lecture 3.mp4"
+						},
+						{
+							"path": "spaces/Linear Algebra/Lecture/Lecture 4.mp4",
+							"type": "link",
+							"target": "<root>/linked/la/Lecture 4.mp4"
+						},
+						{
+							"path": "spaces/Linear Algebra/Lecture/Lecture 4.vtt",
+							"type": "link",
+							"target": "<root>/linked/la/Lecture 4.vtt"
+						},
+						{
+							"path": "spaces/Linear Algebra/Lecture/Lecture 5.mp4",
+							"type": "link",
+							"target": "<root>/linked/la/Lecture 5.mp4"
+						},
+						{
+							"path": "spaces/Linear Algebra/Other",
+							"type": "dir"
+						},
+						{
+							"path": "spaces/Linear Algebra/Other/Week 2 notes.md",
+							"type": "link",
+							"target": "<root>/linked/la/week2/Week 2 notes.md"
+						},
+						{
+							"path": "spaces/Linear Algebra/Other/notes.md",
+							"type": "link",
+							"target": "<root>/linked/la/week1/notes.md"
+						},
+						{
+							"path": "spaces/Linear Algebra/Other/syllabus.pdf",
+							"type": "link",
+							"target": "<root>/data/spaces/cls_golden_a/files/f_a00000000005/syllabus.pdf"
+						},
+						{
+							"path": "spaces/READ ME.txt",
+							"type": "file",
+							"text": "These are shortcuts to your space files in godspeed, grouped like the Files page.\n\nAdd, remove or switch files in the godspeed window, not here. godspeed keeps this folder up to date and removes only the shortcuts it made, so anything else you put here stays.\n"
+						}
+					],
+					"copies": [
+						{
+							"path": "data/spaces/cls_golden_a/files/f_a00000000005/syllabus.pdf",
+							"writable": false
+						},
+						{
+							"path": "data/spaces/cls_golden_b/files/f_b00000000001/notes.md",
+							"writable": false
+						}
+					]
+				},
+				{
+					"step": "a file gone, a learner file added",
+					"tree": [
+						{
+							"path": ".godspeed",
+							"type": "dir"
+						},
+						{
+							"path": ".godspeed/shortcuts.json",
+							"type": "file",
+							"text": "{\n\t\"links\": [\n\t\t{\n\t\t\t\"path\": \"<root>/gs/spaces/Linear Algebra/Lecture/Lecture 3.mp4\",\n\t\t\t\"target\": \"<root>/linked/la/Lecture 3.mp4\"\n\t\t},\n\t\t{\n\t\t\t\"path\": \"<root>/gs/spaces/Linear Algebra/Lecture/Lecture 4.mp4\",\n\t\t\t\"target\": \"<root>/linked/la/Lecture 4.mp4\"\n\t\t},\n\t\t{\n\t\t\t\"path\": \"<root>/gs/spaces/Linear Algebra/Lecture/Lecture 4.vtt\",\n\t\t\t\"target\": \"<root>/linked/la/Lecture 4.vtt\"\n\t\t},\n\t\t{\n\t\t\t\"path\": \"<root>/gs/spaces/Linear Algebra/Lecture/Lecture 5.mp4\",\n\t\t\t\"target\": \"<root>/linked/la/Lecture 5.mp4\"\n\t\t},\n\t\t{\n\t\t\t\"path\": \"<root>/gs/spaces/Linear Algebra/Other/syllabus.pdf\",\n\t\t\t\"target\": \"<root>/data/spaces/cls_golden_a/files/f_a00000000005/syllabus.pdf\"\n\t\t},\n\t\t{\n\t\t\t\"path\": \"<root>/gs/spaces/Linear Algebra/Other/Week 2 notes.md\",\n\t\t\t\"target\": \"<root>/linked/la/week2/Week 2 notes.md\"\n\t\t},\n\t\t{\n\t\t\t\"path\": \"<root>/gs/spaces/Archived/Linear Algebra/Other/notes.md\",\n\t\t\t\"target\": \"<root>/data/spaces/cls_golden_b/files/f_b00000000001/notes.md\"\n\t\t}\n\t],\n\t\"dirs\": [\n\t\t\"<root>/gs\",\n\t\t\"<root>/gs/spaces\",\n\t\t\"<root>/gs/spaces/Linear Algebra\",\n\t\t\"<root>/gs/spaces/Linear Algebra/Lecture\",\n\t\t\"<root>/gs/spaces/Linear Algebra/Other\",\n\t\t\"<root>/gs/spaces/Archived\",\n\t\t\"<root>/gs/spaces/Archived/Linear Algebra\",\n\t\t\"<root>/gs/spaces/Archived/Linear Algebra/Other\"\n\t]\n}\n"
+						},
+						{
+							"path": "spaces",
+							"type": "dir"
+						},
+						{
+							"path": "spaces/Archived",
+							"type": "dir"
+						},
+						{
+							"path": "spaces/Archived/Linear Algebra",
+							"type": "dir"
+						},
+						{
+							"path": "spaces/Archived/Linear Algebra/Other",
+							"type": "dir"
+						},
+						{
+							"path": "spaces/Archived/Linear Algebra/Other/notes.md",
+							"type": "link",
+							"target": "<root>/data/spaces/cls_golden_b/files/f_b00000000001/notes.md"
+						},
+						{
+							"path": "spaces/Linear Algebra",
+							"type": "dir"
+						},
+						{
+							"path": "spaces/Linear Algebra/Lecture",
+							"type": "dir"
+						},
+						{
+							"path": "spaces/Linear Algebra/Lecture/Lecture 3.mp4",
+							"type": "link",
+							"target": "<root>/linked/la/Lecture 3.mp4"
+						},
+						{
+							"path": "spaces/Linear Algebra/Lecture/Lecture 4.mp4",
+							"type": "link",
+							"target": "<root>/linked/la/Lecture 4.mp4"
+						},
+						{
+							"path": "spaces/Linear Algebra/Lecture/Lecture 4.vtt",
+							"type": "link",
+							"target": "<root>/linked/la/Lecture 4.vtt"
+						},
+						{
+							"path": "spaces/Linear Algebra/Lecture/Lecture 5.mp4",
+							"type": "link",
+							"target": "<root>/linked/la/Lecture 5.mp4"
+						},
+						{
+							"path": "spaces/Linear Algebra/Other",
+							"type": "dir"
+						},
+						{
+							"path": "spaces/Linear Algebra/Other/Week 2 notes.md",
+							"type": "link",
+							"target": "<root>/linked/la/week2/Week 2 notes.md"
+						},
+						{
+							"path": "spaces/Linear Algebra/Other/syllabus.pdf",
+							"type": "link",
+							"target": "<root>/data/spaces/cls_golden_a/files/f_a00000000005/syllabus.pdf"
+						},
+						{
+							"path": "spaces/READ ME.txt",
+							"type": "file",
+							"text": "These are shortcuts to your space files in godspeed, grouped like the Files page.\n\nAdd, remove or switch files in the godspeed window, not here. godspeed keeps this folder up to date and removes only the shortcuts it made, so anything else you put here stays.\n"
+						},
+						{
+							"path": "spaces/mine.txt",
+							"type": "file",
+							"text": "the learner's own file\n"
+						}
+					]
+				},
+				{
+					"step": "cleared",
+					"tree": [
+						{
+							"path": ".godspeed",
+							"type": "dir"
+						},
+						{
+							"path": ".godspeed/shortcuts.json",
+							"type": "file",
+							"text": "{\n\t\"links\": [],\n\t\"dirs\": []\n}\n"
+						},
+						{
+							"path": "spaces",
+							"type": "dir"
+						},
+						{
+							"path": "spaces/mine.txt",
+							"type": "file",
+							"text": "the learner's own file\n"
+						}
+					]
+				}
+			]
+		}
+	}
+]

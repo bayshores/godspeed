@@ -4,13 +4,13 @@
 
 use std::sync::{Arc, LazyLock};
 
-use gs_core::contracts::class::parse_class_scope;
+use gs_core::contracts::space::parse_space_scope;
 use gs_json::Json;
 use gs_services::App;
 
 use super::reply::failure;
 use super::schema::check_arguments;
-use super::{classes, graph, lessons, memory, work};
+use super::{spaces, graph, lessons, memory, work};
 
 static TOOLS: LazyLock<Json> = LazyLock::new(|| gs_json::parse(include_str!("tools.json")).unwrap_or_default());
 
@@ -34,16 +34,16 @@ pub struct ToolCall<'a> {
 	pub meta: &'a Json,
 }
 
-/// A tool's class_id argument, checked: absent or "none" is No class; otherwise the class must
+/// A tool's space_id argument, checked: absent or "none" is No space; otherwise the space must
 /// exist. The scope, or the refusal text.
-pub fn class_arg(app: &App, class_id: Option<&str>) -> Result<Option<String>, String> {
-	let Some(scope) = parse_class_scope(class_id) else {
-		return Err(format!("\"{}\" is not a class id. Use list_classes.", class_id.unwrap_or_default()));
+pub fn space_arg(app: &App, space_id: Option<&str>) -> Result<Option<String>, String> {
+	let Some(scope) = parse_space_scope(space_id) else {
+		return Err(format!("\"{}\" is not a space id. Use list_spaces.", space_id.unwrap_or_default()));
 	};
 	if let Some(id) = &scope
-		&& app.stores.classes.get_class(id).is_none()
+		&& app.stores.spaces.get_space(id).is_none()
 	{
-		return Err(format!("No class \"{id}\". Use list_classes."));
+		return Err(format!("No space \"{id}\". Use list_spaces."));
 	}
 	Ok(scope)
 }
@@ -66,13 +66,13 @@ pub async fn call_tool(call: &ToolCall<'_>, name: &str, args: &Json) -> Json {
 		"remember" => memory::remember(call, &args),
 		"forget" => memory::forget(call, &args),
 		"save_rule" => memory::save_rule(call, &args),
-		other => classes::class_tool(call, other, &args).await.unwrap_or_else(|| failure(&format!("Tool {other} not found"))),
+		other => spaces::space_tool(call, other, &args).await.unwrap_or_else(|| failure(&format!("Tool {other} not found"))),
 	}
 }
 
 #[cfg(test)]
 mod tests {
-	use gs_core::classes::class_tools::{CLASS_ARG_TEXT, CLASS_TOOL_TEXT};
+	use gs_core::spaces::space_tools::{SPACE_ARG_TEXT, SPACE_TOOL_TEXT};
 	use gs_core::records::agent_notes::NOTE_MAX_CHARS;
 
 	use super::*;
@@ -82,19 +82,19 @@ mod tests {
 		let names: Vec<&str> = tool_list().as_arr().unwrap().iter().filter_map(|t| t["name"].as_str()).collect();
 		assert_eq!(names.len(), 24);
 		assert_eq!(names[..3], ["wait_for_work", "respond", "read_work"]);
-		assert_eq!(names[23], "unlink_class_folder");
+		assert_eq!(names[23], "unlink_space_folder");
 	}
 
-	/// The listed texts are the shared class-tool texts, so the two never drift apart.
+	/// The listed texts are the shared space-tool texts, so the two never drift apart.
 	#[test]
-	fn class_tool_texts_match_the_shared_ones() {
-		for (name, description) in CLASS_TOOL_TEXT {
+	fn space_tool_texts_match_the_shared_ones() {
+		for (name, description) in SPACE_TOOL_TEXT {
 			let tool = tool_list().as_arr().unwrap().iter().find(|t| t["name"].as_str() == Some(name)).unwrap();
 			assert_eq!(tool["description"].as_str(), Some(description), "{name}");
 		}
-		let create = &input_schema("create_class").unwrap()["properties"];
-		assert_eq!(create["signature"]["description"].as_str(), Some(CLASS_ARG_TEXT.signature.as_str()));
-		assert_eq!(create["icon"]["description"].as_str(), Some(CLASS_ARG_TEXT.icon.as_str()));
+		let create = &input_schema("create_space").unwrap()["properties"];
+		assert_eq!(create["signature"]["description"].as_str(), Some(SPACE_ARG_TEXT.signature.as_str()));
+		assert_eq!(create["icon"]["description"].as_str(), Some(SPACE_ARG_TEXT.icon.as_str()));
 		assert_eq!(input_schema("remember").unwrap()["properties"]["text"]["maxLength"].as_f64(), Some(NOTE_MAX_CHARS as f64));
 	}
 }

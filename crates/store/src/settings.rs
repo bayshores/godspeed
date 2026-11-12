@@ -1,12 +1,13 @@
 //! data/settings.json, the one user settings record.
 //!
-//! Every read sanitizes what is on disk and runs the lazy upgrades (the v1 to v2 threshold move
-//! and the retired prompt switches). Every write sanitizes again, so the file can never hold a
+//! Every read sanitizes what is on disk and runs the lazy upgrades (the v1 to v2 threshold move,
+//! the v2 to v3 rename of general.activeClass to activeSpace, and the retired prompt switches). Every write sanitizes again, so the file can never hold a
 //! value that shifts a knob.
 
 use gs_base::config::Paths;
 use gs_base::fsx;
 use gs_base::locks::{LockKey, Locks};
+use gs_core::contracts::space::is_space_id;
 use gs_core::records::settings::sanitize_user_settings;
 use gs_core::records::settings_resolution::resolve_settings;
 use gs_json::{Json, stringify_pretty};
@@ -40,7 +41,8 @@ impl SettingsStore {
 			return Ok(None);
 		};
 		let upgraded = upgrade_to_v2(&mut record);
-		if self.drop_prompt_switches(&parsed) || upgraded {
+		let renamed = upgrade_to_v3(&mut record, &parsed);
+		if self.drop_prompt_switches(&parsed) || upgraded || renamed {
 			self.write_settings(&record)?;
 		}
 		Ok(Some(record))
@@ -93,6 +95,21 @@ fn upgrade_to_v2(record: &mut Json) -> bool {
 	record.get_mut("compaction").and_then(Json::as_obj_mut).is_some_and(|c| c.remove("thresholdTokens").is_some())
 }
 
+/// v2 to v3: the open space was saved as general.activeClass, a key the sanitizer drops, so it is
+/// read from the raw file. True when the file needs saving.
+fn upgrade_to_v3(record: &mut Json, parsed: &Json) -> bool {
+	if record["version"].as_f64().is_some_and(|v| v >= 3.0) {
+		return false;
+	}
+	let Some(obj) = record.as_obj_mut() else { return false };
+	obj.insert("version", 3);
+	let Some(old) = parsed["general"]["activeClass"].as_str().filter(|c| *c == "none" || is_space_id(c)) else { return false };
+	let mut general = obj.get("general").and_then(Json::as_obj).cloned().unwrap_or_default();
+	general.insert("activeSpace", old);
+	obj.insert("general", general);
+	true
+}
+
 #[cfg(test)]
 mod tests {
 	use gs_json::parse;
@@ -109,5 +126,34 @@ mod tests {
 		assert_eq!(gs_json::stringify(&custom), r#"{"version":2,"compaction":{"thresholdTokens":90000}}"#);
 		let mut current = parse(r#"{"version":3}"#).unwrap();
 		assert!(!upgrade_to_v2(&mut current));
+	}
+
+	#[test]
+	fn the_open_class_becomes_the_open_space() {
+		let upgrade = |raw: &str| {
+			let parsed = parse(raw).unwrap();
+			let mut record = sanitize_user_settings(&parsed).unwrap();
+			let save = upgrade_to_v3(&mut record, &parsed);
+			(save, gs_json::stringify(&record))
+		};
+		assert_eq!(upgrade(r#"{"version":2,"general":{"activeClass":"cls_a1","sounds":false}}"#), (true, r#"{"version":3,"general":{"sounds":false,"activeSpace":"cls_a1"}}"#.to_owned()));
+		assert_eq!(upgrade(r#"{"version":1,"general":{"activeClass":"none"}}"#), (true, r#"{"version":3,"general":{"activeSpace":"none"}}"#.to_owned()));
+		assert_eq!(upgrade(r#"{"version":2}"#), (false, r#"{"version":3}"#.to_owned()));
+		assert_eq!(upgrade(r#"{"version":2,"general":{"activeClass":"../x"}}"#), (false, r#"{"version":3,"general":{}}"#.to_owned()));
+		assert_eq!(upgrade(r#"{"version":3,"general":{"activeClass":"cls_a1"}}"#), (false, r#"{"version":3,"general":{}}"#.to_owned()));
+	}
+
+	#[test]
+	fn a_read_saves_the_moved_open_space_only() {
+		let dir = std::env::temp_dir().join(format!("gs-settings-v3-{}", gs_base::ids::uuid()));
+		let paths = Paths::new(dir.clone(), dir.clone(), dir.clone(), dir.clone());
+		let store = SettingsStore::new(&paths, &Locks::new());
+		fsx::write_text_atomic(&paths.settings_file, r#"{"version":2,"general":{"activeClass":"spc_b2"}}"#).unwrap();
+		assert_eq!(store.read_settings().unwrap().unwrap()["general"]["activeSpace"], Json::from("spc_b2"));
+		assert_eq!(std::fs::read_to_string(&paths.settings_file).unwrap(), "{\n\t\"version\": 3,\n\t\"general\": {\n\t\t\"activeSpace\": \"spc_b2\"\n\t}\n}");
+		let plain = r#"{"version":2,"general":{"sounds":true}}"#;
+		fsx::write_text_atomic(&paths.settings_file, plain).unwrap();
+		assert_eq!(store.read_settings().unwrap().unwrap()["version"], Json::from(3));
+		assert_eq!(std::fs::read_to_string(&paths.settings_file).unwrap(), plain);
 	}
 }

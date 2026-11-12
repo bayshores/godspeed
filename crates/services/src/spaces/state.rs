@@ -1,0 +1,50 @@
+//! The space services' live state (the TS module's globalThis maps), kept in memory only: every
+//! launch rescans.
+
+use std::collections::{HashMap, HashSet, VecDeque};
+use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
+
+use gs_files::text::TextChecks;
+use gs_json::Json;
+use gs_transcribe::model::ModelDownload;
+use parking_lot::Mutex;
+use tokio::sync::Notify;
+
+/// A linked-folder path at a space's last scan: its size and time (None once gone) and since
+/// when it has held still.
+#[derive(Clone, Debug, PartialEq)]
+pub(super) struct SeenFile {
+	pub sig: Option<String>,
+	pub since: i64,
+}
+
+/// One space's file queue: files wait in order and one worker processes them.
+#[derive(Default)]
+pub(super) struct Queue {
+	pub waiting: VecDeque<String>,
+	pub running: bool,
+}
+
+#[derive(Default)]
+pub struct SpacesState {
+	pub(super) queues: Mutex<HashMap<String, Queue>>,
+	/// `<space>:<file>` keys waiting in a queue (a file is queued once).
+	pub(super) queued: Mutex<HashSet<String>>,
+	/// Told whenever a queue drains or a triage ends, for `space_idle` and waiting rescans.
+	pub(super) settled: Arc<Notify>,
+	/// Each space's linked folder at its last scan (a FolderStatus).
+	pub(super) folder_scans: Mutex<HashMap<String, Json>>,
+	/// Spaces deleted while work was queued: their queued work is skipped.
+	pub(super) cancelled: Mutex<HashSet<String>>,
+	pub(super) seen_files: Mutex<HashMap<String, HashMap<String, SeenFile>>>,
+	/// Spaces whose new folder files are being triaged, by triage number.
+	pub(super) triaging: Mutex<HashMap<String, u64>>,
+	pub(super) triage_count: Mutex<u64>,
+	pub(super) scanner_started: AtomicBool,
+	pub(super) shortcut_watch: AtomicBool,
+	/// Held through a shortcut sync. Nothing under it takes a `LockKey`.
+	pub(super) shortcut_sync: Mutex<()>,
+	pub(super) text_checks: TextChecks,
+	pub(super) speech_model: ModelDownload,
+}

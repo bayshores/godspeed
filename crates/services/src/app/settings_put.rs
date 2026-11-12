@@ -8,7 +8,7 @@ use gs_json::{Json, json};
 use super::settings_body::{SETTINGS_SECTIONS, parse_section};
 use super::settings_record::record_or_new;
 use crate::App;
-use crate::classes::queue_waiting_files;
+use crate::spaces::queue_waiting_files;
 
 /// What the section name does when it is also a name every JavaScript object has. The old server
 /// looked sections up on a plain object, so these names reached a function that is not a
@@ -48,7 +48,7 @@ pub fn put_settings_section(app: &Arc<App>, section: &str, body: &Json) -> Resul
 		app.stores.settings.write_settings(&next)?;
 		next
 	};
-	// Class files saved while the graph was off wait for it to come back on.
+	// Space files saved while the graph was off wait for it to come back on.
 	if section == "graph" && !graph_was_on && graph_is_on(app)? {
 		queue_waiting_files(app);
 	}
@@ -71,7 +71,7 @@ mod tests {
 		let root = scratch_dir("put-section");
 		let app = test_app(&root);
 		let (status, answer) = put_settings_section(&app, "general", &json!({ "teacherName": "Zed" })).unwrap();
-		assert_eq!((status, stringify(&answer).as_str()), (200, r#"{"settings":{"version":2,"general":{"teacherName":"Zed"}}}"#));
+		assert_eq!((status, stringify(&answer).as_str()), (200, r#"{"settings":{"version":3,"general":{"teacherName":"Zed"}}}"#));
 		let (_, answer) = put_settings_section(&app, "compaction", &json!({})).unwrap();
 		assert_eq!(answer["settings"]["general"]["teacherName"].as_str(), Some("Zed"));
 		assert!(answer["settings"]["compaction"].as_obj().is_some());

@@ -4,7 +4,8 @@
 pub const CHAT_ID_PREFIX: &str = "chat_";
 /// The Talk chat's fixed id.
 pub const TALK_CHAT_ID: &str = "chat_talk";
-pub const CURRENT_CHAT_VERSION: i64 = 1;
+/// v2: `classId`, the "class-context" card and a deadline request's `className` are named for spaces.
+pub const CURRENT_CHAT_VERSION: i64 = 2;
 
 /// Whether a session's teaching is saved to the graph: teach (absent kind) and study lessons.
 pub fn extracts_facts(kind: Option<&str>) -> bool {

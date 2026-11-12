@@ -211,7 +211,7 @@ pub fn practice_tools(ctx: &PracticeToolContext, enabled: Option<&Json>) -> Vec<
 }
 
 /// The rarely needed set practice and homework share: the learner's files, the research and pdf
-/// jobs (demo and visual stay teach-only), the map readers when the settings gate opened, the class
+/// jobs (demo and visual stay teach-only), the map readers when the settings gate opened, the space
 /// tools, save_rule and the deadline changes. The teacher's Settings switches apply to them.
 pub fn practice_side_tools(jobs: Option<&JobToolContext>, graph: Option<&GraphToolContext>, side: &LessonSide, enabled: Option<&Json>) -> Vec<FnTool> {
 	let mut tools = file_tools();

@@ -222,7 +222,7 @@ mod tests {
 	#[test]
 	fn start_times_never_repeat_and_background_runs_are_single() {
 		let (runs, events) = (ExtractionRuns::default(), Events::new());
-		let a = runs.start_background_graph_run(&events, "topics:none", "Topic grouping: No class");
+		let a = runs.start_background_graph_run(&events, "topics:none", "Topic grouping: No space");
 		let b = runs.start_background_graph_run(&events, "topics:none", "again");
 		b.abort();
 		assert!(a.is_aborted());

@@ -102,8 +102,8 @@ fn ledgers(host: &Host) -> Json {
 	Json::Obj(out)
 }
 
-fn notes(input: &Json, may_be_course_info: bool) -> NotesImportInput {
-	NotesImportInput { file_path: input["filePath"].as_str().unwrap().into(), text: input["text"].as_str().unwrap().into(), scope: None, source_id: None, may_be_course_info }
+fn notes(input: &Json, may_be_space_info: bool) -> NotesImportInput {
+	NotesImportInput { file_path: input["filePath"].as_str().unwrap().into(), text: input["text"].as_str().unwrap().into(), scope: None, source_id: None, may_be_space_info }
 }
 
 #[test]
@@ -160,7 +160,7 @@ async fn the_pipeline_and_the_topic_grouper_match_node() {
 	]);
 	let requests = script(&host, &topic_replies, "submit_topics");
 	let input = TopicGrouperInput {
-		class_name: "Algorithms".into(),
+		space_name: "Algorithms".into(),
 		facts: facts.clone(),
 		chains: graph.chains.clone(),
 		current: vec![json!({ "id": "tpc_aaaaaaaaaa", "name": "Old", "members": [ids[0].clone()] })],
@@ -180,7 +180,7 @@ async fn the_pipeline_and_the_topic_grouper_match_node() {
 		("a lesson: a stray anchor, a broken chain, then a good submit", "lesson"),
 		("short notes: reteaches left out, then a stray messageId is dropped", "shortNotes"),
 		("long notes in stretches, the later ones never submit", "longNotes"),
-		("a class file that is course logistics", "logistics"),
+		("a space file that is logistics", "logistics"),
 		("the same lesson again has nothing left", "again"),
 		("topic grouping: a long name, then a repaired grouping", "topics"),
 		("the files afterwards", "files"),

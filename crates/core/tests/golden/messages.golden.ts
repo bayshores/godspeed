@@ -4,7 +4,7 @@
 import {
 	concludedByDismissalPair,
 	activeProblemOf,
-	classCardText,
+	spaceCardText,
 	danglingQuestionOf,
 	endsInDismissal,
 	failedOutputCallIds,
@@ -12,7 +12,7 @@ import {
 	isSideTurn,
 	newAnswerResult,
 	newAppRequestMessage,
-	newClassContextMessage,
+	newSpaceContextMessage,
 	newGraphContextMessage,
 	newHandoffMessage,
 	newNextMessage,
@@ -199,7 +199,7 @@ const histories: Record<string, unknown[]> = {
 	],
 	compaction_names_missing_id: [user("u0", "one"), custom("c1", "compaction", { firstKeptMessageId: "gone" }, { content: "[Summary]" }), user("u1", "two")],
 	markers: [
-		custom("m1", "class-context", { classId: "c" }, { content: "[Class context] x" }),
+		custom("m1", "space-context", { spaceId: "c" }, { content: "[Space context] x" }),
 		custom("m2", "today-context", { day: "2026-11-10" }, { display: false, content: "[Today] it is Tuesday" }),
 		custom("m3", "practice-thinking", { problemCallId: "p1", text: "t" }, { attachments: [image] }),
 		custom("m4", "plan-block", { planCallId: "x" }),
@@ -332,9 +332,9 @@ function appendCases(): unknown[] {
 // ─── cases ───────────────────────────────────────────────────────────────────
 
 const cards = [
-	{ classId: "c1", name: "CSE 21", description: "  My class.  ", files: [], topics: undefined },
+	{ spaceId: "c1", name: "CSE 21", description: "  My space.  ", files: [], topics: undefined },
 	{
-		classId: "c2", name: "Math", description: "",
+		spaceId: "c2", name: "Math", description: "",
 		files: [
 			{ name: "notes.pdf", kind: "study", path: "/f/notes.pdf", size: "98 pages", status: "ready" },
 			{ name: "syllabus.pdf", kind: "info", path: "/f/syllabus.pdf", status: "reading" },
@@ -343,7 +343,7 @@ const cards = [
 		],
 		topics: [{ name: "Limits", facts: 4 }, { name: "Series", facts: 0 }],
 	},
-	{ classId: "c3", name: "Empty topics", description: "d", files: [], topics: [] },
+	{ spaceId: "c3", name: "Empty topics", description: "d", files: [], topics: [] },
 ];
 
 export default {
@@ -376,7 +376,7 @@ export default {
 		["dismissal pair", concludedByDismissalPair("p1")],
 	].map(([name, built]) => ({ name, built: norm(built) })),
 	"context cards": () => [
-		...cards.map((card) => ({ card, text: classCardText(card as never), message: norm(newClassContextMessage(card as never)) })),
+		...cards.map((card) => ({ card, text: spaceCardText(card as never), message: norm(newSpaceContextMessage(card as never)) })),
 		{
 			picks: [{ id: "p1", name: "Limit", statement: "A limit is" }],
 			chains: ["Limit → Continuity"],

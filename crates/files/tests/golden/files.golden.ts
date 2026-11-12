@@ -1,4 +1,4 @@
-// What the TypeScript class-file code gives for the inputs gs-files copies: office text, caption
+// What the TypeScript space-file code gives for the inputs gs-files copies: office text, caption
 // cleanup, text sniffing, reading rules, folder walks and fingerprints. Folder and file cases write
 // real files, so the case output carries the layout for the Rust test to rebuild.
 import fs from "node:fs";
@@ -9,11 +9,11 @@ import {
 	RecordingNeedsTranscriptError,
 	fileToText,
 	fingerprintFile,
-	isReadableClassFile,
+	isReadableSpaceFile,
 	looksLikeText,
 	transcriptToText,
 	walkLinkedFolder,
-} from "../../../../src/backend/server/class-files.ts";
+} from "../../../../src/backend/server/space-files.ts";
 import { officeText } from "../../../../src/backend/server/office-text.ts";
 import { STRATEGIES, ap, at, docx, pptx, wp, wt, zip } from "./office-fixtures.ts";
 
@@ -387,7 +387,7 @@ const cases: Record<string, () => unknown> = {
 	transcripts: () => CAPTIONS.map((raw) => ({ raw, text: transcriptToText(raw) })),
 	sniffing: () => sniffInputs().map((bytes) => ({ hex: hex(bytes), text: looksLikeText(bytes) })),
 	"reading rules": () =>
-		READABLE_NAMES.flatMap((name) => [true, false, null].map((isText) => ({ name, isText, readable: isReadableClassFile(name, () => isText) }))),
+		READABLE_NAMES.flatMap((name) => [true, false, null].map((isText) => ({ name, isText, readable: isReadableSpaceFile(name, () => isText) }))),
 	office,
 	"file to text": reads,
 	walks,

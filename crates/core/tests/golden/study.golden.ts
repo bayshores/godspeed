@@ -1,5 +1,5 @@
 // The study rules (progress, study sessions, homework, deadline plan, cheat sheets) on the two
-// fixture classes and on inputs that probe each branch. Every case is `{ args, result }`; the Rust replay
+// fixture spaces and on inputs that probe each branch. Every case is `{ args, result }`; the Rust replay
 // feeds the args to the Rust function and compares the result.
 import { createHash } from "node:crypto";
 import fs from "node:fs";
@@ -28,7 +28,7 @@ import {
 	withVersion,
 	withoutRule,
 } from "../../../../src/shared/core/cheat-sheet.ts";
-import { deadlineStudyTopicIds, factClassOrder, studyContextText, studyMode, studyPlanTree, studyTitle, studyTopics, topicStudy } from "../../../../src/shared/core/study.ts";
+import { deadlineStudyTopicIds, factSpaceOrder, studyContextText, studyMode, studyPlanTree, studyTitle, studyTopics, topicStudy } from "../../../../src/shared/core/study.ts";
 
 const FIXTURES = path.resolve(import.meta.dirname, "../fixtures");
 const CSE21 = "cls_cvq4t7in_101dfecb";
@@ -38,21 +38,21 @@ const MIDTERM = "ddl_49d23b6ea4ca";
 
 const readJson = (file: string) => JSON.parse(fs.readFileSync(file, "utf8"));
 const readLines = (file: string): any[] => (fs.existsSync(file) ? fs.readFileSync(file, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l)) : []);
-const sourceIdFor = (classId: string, fileId: string) => `src_${createHash("sha256").update(`${classId}:${fileId}`).digest("hex").slice(0, 12)}`;
+const sourceIdFor = (spaceId: string, fileId: string) => `src_${createHash("sha256").update(`${spaceId}:${fileId}`).digest("hex").slice(0, 12)}`;
 
 // ─── the fixture chats, already cut down to what the answer rules read ──────
 
 const chats: any[] = readJson(path.join(FIXTURES, "study_chats.json")).chats;
 const trimmed = chats.map((c) => ({ id: c.id, messages: c.messages }));
 
-// ─── the fixture classes, as the server hands them to deriveProgress ───────────
+// ─── the fixture spaces, as the server hands them to deriveProgress ───────────
 
-function lessonsOf(classId: string | null) {
+function lessonsOf(spaceId: string | null) {
 	const lessons: any[] = [];
 	const deadlineSessions: any[] = [];
 	const homeworkSessions: any[] = [];
 	for (const c of chats) {
-		if ((c.classId ?? null) !== classId) continue;
+		if ((c.spaceId ?? null) !== spaceId) continue;
 		if (c.kind === "homework" && c.deadlineId) homeworkSessions.push({ chatId: c.id, deadlineId: c.deadlineId, createdAt: c.createdAt });
 		lessons.push({ id: c.id, title: c.title, kind: c.kind, updatedAt: c.updatedAt, answers: collectAnswers(c.id, c.messages) });
 		if (c.deadlineId && c.tree) deadlineSessions.push({ chatId: c.id, deadlineId: c.deadlineId, createdAt: c.createdAt, done: Math.min(c.turns ?? 0, 3), total: 3 });
@@ -60,27 +60,27 @@ function lessonsOf(classId: string | null) {
 	return { lessons, deadlineSessions, homeworkSessions };
 }
 
-function progressInput(classId: string | null, today: string) {
-	const graphDir = classId ? path.join(FIXTURES, "graph", GRAPH_DIRS[classId]!) : null;
+function progressInput(spaceId: string | null, today: string) {
+	const graphDir = spaceId ? path.join(FIXTURES, "graph", GRAPH_DIRS[spaceId]!) : null;
 	const lines = (name: string) => (graphDir ? readLines(path.join(graphDir, name)) : []);
 	const graph = getGraph({ readNodes: () => lines("nodes.jsonl"), readChains: () => lines("chains.jsonl") });
-	const record = classId ? readJson(path.join(FIXTURES, "classes", classId, "class.json")) : null;
+	const record = spaceId ? readJson(path.join(FIXTURES, "spaces", spaceId, "space.json")) : null;
 	return {
-		classId,
+		spaceId,
 		today,
 		facts: graph.nodes,
 		chains: graph.chains,
 		topics: lines("topics.jsonl").at(-1) ?? null,
 		files: (record?.files ?? []).map((f: any) => ({ id: f.id, name: f.name, kind: f.kind, sourceId: f.sourceId ?? sourceIdFor(record.id, f.id) })),
 		deadlines: record?.deadlines ?? [],
-		...lessonsOf(classId),
+		...lessonsOf(spaceId),
 		grouping: false,
 	};
 }
 
 const BASE21 = "derive CSE 21 on 2026-11-10";
 const BASE29 = "derive CSE 29 on 2026-11-10";
-const BASE_NONE = "derive no class on 2026-11-10";
+const BASE_NONE = "derive no space on 2026-11-10";
 const inputs: Record<string, any> = {
 	[BASE21]: progressInput(CSE21, "2026-11-10"),
 	[BASE29]: progressInput(CSE29, "2026-11-10"),
@@ -114,11 +114,11 @@ for (const [name, base, patch, slim] of variants) {
 	const input = { ...inputs[base], ...patch };
 	add(name, { base, patch, slim }, () => (slim ? slimmed(deriveProgress(input)) : deriveProgress(input)));
 }
-add("derive an empty class", { input: { classId: null, today: "2026-11-10", facts: [], chains: [], topics: null, files: [], deadlines: [], lessons: [] } }, () =>
-	deriveProgress({ classId: null, today: "2026-11-10", facts: [], chains: [], topics: null, files: [], deadlines: [], lessons: [] }),
+add("derive an empty space", { input: { spaceId: null, today: "2026-11-10", facts: [], chains: [], topics: null, files: [], deadlines: [], lessons: [] } }, () =>
+	deriveProgress({ spaceId: null, today: "2026-11-10", facts: [], chains: [], topics: null, files: [], deadlines: [], lessons: [] }),
 );
 
-// A made-up class that reaches the branches the fixtures do not: a topic another struggling one
+// A made-up space that reaches the branches the fixtures do not: a topic another struggling one
 // builds on, an ungrouped fact, a lesson listed twice, practice answers naming a fact twice and
 // answers found through an earlier message of the turn.
 const answer = (id: string, outcome: string, at: string, extra: Record<string, unknown> = {}) => ({
@@ -133,7 +133,7 @@ const answer = (id: string, outcome: string, at: string, extra: Record<string, u
 	...extra,
 });
 const madeUp = {
-	classId: "cls_x",
+	spaceId: "cls_x",
 	today: "2026-11-10",
 	facts: [
 		{ id: "f1", name: "Uno", statement: "One.", provenance: [{ chatId: "src_a" }, { chatId: "c1", messageId: "m_a1" }] },
@@ -192,7 +192,7 @@ const madeUp = {
 	deadlineSessions: [{ chatId: "c1", deadlineId: "d1", createdAt: "2026-11-01T00:00:00.000Z", done: 1, total: 3 }],
 	homeworkSessions: [{ chatId: "c2", deadlineId: "d1", createdAt: "2026-11-02T00:00:00.000Z" }],
 };
-add("derive a made-up class with every branch", { input: madeUp }, () => deriveProgress(madeUp as any));
+add("derive a made-up space with every branch", { input: madeUp }, () => deriveProgress(madeUp as any));
 
 for (const [i, t] of trimmed.entries()) add(`collect answers ${i}`, { chatId: t.id, messages: t.messages }, () => collectAnswers(t.id, t.messages));
 
@@ -213,8 +213,8 @@ const progresses: Record<string, any> = { [BASE21]: progress21, [BASE29]: progre
 for (const [name, p] of Object.entries(progresses)) {
 	const files = filesOf(name);
 	const facts = p.facts as any[];
-	add(`fact class order ${name}`, { from: name }, () => Object.fromEntries(factClassOrder(p.facts, files)));
-	const order = factClassOrder(p.facts, files);
+	add(`fact space order ${name}`, { from: name }, () => Object.fromEntries(factSpaceOrder(p.facts, files)));
+	const order = factSpaceOrder(p.facts, files);
 	const topics = p.topics as any[];
 	const ids = (list: any[], n: number) => list.slice(0, n).map((f) => f.id);
 	const picks: Record<string, string[]> = {
@@ -226,7 +226,7 @@ for (const [name, p] of Object.entries(progresses)) {
 		"every fact": ids(facts, facts.length),
 	};
 	for (const [pick, factIds] of Object.entries(picks)) {
-		add(`study topics ${name} ${pick}`, { from: name, factIds, freeTopic: "Typed topic" }, () => studyTopics({ factIds, topics: p.topics, classOrder: order, freeTopic: "Typed topic" }));
+		add(`study topics ${name} ${pick}`, { from: name, factIds, freeTopic: "Typed topic" }, () => studyTopics({ factIds, topics: p.topics, spaceOrder: order, freeTopic: "Typed topic" }));
 	}
 	const topicIds = topics.map((t) => t.id);
 	const sets: Record<string, string[]> = {
@@ -236,15 +236,15 @@ for (const [name, p] of Object.entries(progresses)) {
 		"none": [],
 	};
 	for (const [label, set] of Object.entries(sets)) {
-		add(`topic study ${name} ${label}`, { from: name, topicIds: set, studiedToday: null }, () => topicStudy({ topicIds: set, topics: p.topics, facts: p.facts, classOrder: order }));
+		add(`topic study ${name} ${label}`, { from: name, topicIds: set, studiedToday: null }, () => topicStudy({ topicIds: set, topics: p.topics, facts: p.facts, spaceOrder: order }));
 	}
 	const studied = new Set(topicIds.filter((_, i) => i % 2 === 0));
 	add(`topic study ${name} with studied today`, { from: name, topicIds, studiedToday: [...studied] }, () =>
-		topicStudy({ topicIds, topics: p.topics, facts: p.facts, classOrder: order, studiedToday: studied }),
+		topicStudy({ topicIds, topics: p.topics, facts: p.facts, spaceOrder: order, studiedToday: studied }),
 	);
 	const strongFirst = new Set(topicIds);
 	add(`topic study ${name} all studied today`, { from: name, topicIds, studiedToday: [...strongFirst] }, () =>
-		topicStudy({ topicIds, topics: p.topics, facts: p.facts, classOrder: order, studiedToday: strongFirst }),
+		topicStudy({ topicIds, topics: p.topics, facts: p.facts, spaceOrder: order, studiedToday: strongFirst }),
 	);
 
 	for (const d of p.deadlines as any[]) {
@@ -362,7 +362,7 @@ add("homework context without an assignment", { deadline, assignment: null, prob
 const page = { widthPt: 612, heightPt: 792 };
 const when = "2026-11-05T10:00:00.000Z";
 const version = (n: unknown, extra: Record<string, unknown> = {}) => ({ n, prompt: "ask", at: when, pages: [page], ...extra });
-const midterm = readJson(path.join(FIXTURES, "classes", CSE21, "cheat-sheets", `${MIDTERM}.json`));
+const midterm = readJson(path.join(FIXTURES, "spaces", CSE21, "cheat-sheets", `${MIDTERM}.json`));
 const goodRecord = { version: 4, deadlineId: "ddl_x", versions: [version(1), version(2, { file: "/tmp/a.pdf", fromFolder: true })], messages: [], rules: [], folder: "CSE Test", updatedAt: when };
 const raws: [string, unknown][] = [
 	["the midterm sheet", midterm],
@@ -628,7 +628,7 @@ const earlier = [
 const baseRequest = {
 	title: "CSE 21 Midterm",
 	date: "2026-11-04",
-	classNotes: "We use Rosen.  Notation: |A| is size.",
+	spaceNotes: "We use Rosen.  Notation: |A| is size.",
 	infoFiles: ["syllabus.txt", "Course Policies.pdf", "week1.pdf", "week2.pdf"],
 	rules: [{ text: "A4, both sides", at: when }, { text: "No colour", at: when }],
 	topics: topicRows,
@@ -648,7 +648,7 @@ const requests: Record<string, any> = {
 	},
 	"with a chat so far": { ...baseRequest, earlier },
 	"with no words": { ...baseRequest, message: youMessage({ text: "   " }) },
-	"with nothing else": { title: "T", date: "d", classNotes: "", infoFiles: [], rules: [], topics: [], mistakes: [], folder: { path: "/p", files: [] }, versions: [], earlier: [], message: youMessage({}) },
+	"with nothing else": { title: "T", date: "d", spaceNotes: "", infoFiles: [], rules: [], topics: [], mistakes: [], folder: { path: "/p", files: [] }, versions: [], earlier: [], message: youMessage({}) },
 	"about a problem": {
 		...baseRequest,
 		message: youMessage({ about: { kind: "problem", session: "HW5", text: "Prove the invariant  holds.", work: "  Let lo <= r.  " } }),

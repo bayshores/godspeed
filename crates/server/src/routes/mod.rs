@@ -4,7 +4,7 @@
 mod app;
 mod chats;
 mod cheat_sheets;
-mod classes;
+mod spaces;
 mod graph;
 mod jobs;
 mod mcp;
@@ -19,7 +19,7 @@ pub fn api() -> Router<Arc<App>> {
 		.merge(app::routes())
 		.merge(chats::routes())
 		.merge(jobs::routes())
-		.merge(classes::routes())
+		.merge(spaces::routes())
 		.merge(cheat_sheets::routes())
 		.merge(graph::routes())
 		.merge(mcp::routes())

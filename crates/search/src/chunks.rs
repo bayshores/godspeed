@@ -1,4 +1,4 @@
-//! Class files cut into passages, each with where it sits in its file, and the places the agent
+//! Space files cut into passages, each with where it sits in its file, and the places the agent
 //! names (chunkFile, chunkText, rangePoint, snippetOf in src/shared/core/search.ts). Every length
 //! and cut counts UTF-16 units like the TS.
 
@@ -6,11 +6,11 @@ use std::sync::LazyLock;
 
 use gs_base::re::Re;
 use gs_base::{num, text};
-use gs_core::contracts::class::{extension_of, is_transcript_file};
+use gs_core::contracts::space::{extension_of, is_transcript_file};
 use gs_json::js_number as finite_number;
 use gs_json::lone::{from_utf16, to_utf16};
 
-/// One piece of a class file. `from`/`to` locate it: pages (PDFs), slides (PowerPoint), seconds
+/// One piece of a space file. `from`/`to` locate it: pages (PDFs), slides (PowerPoint), seconds
 /// (captions) or lines (text).
 #[derive(Clone, Debug, PartialEq)]
 pub struct PassageChunk {
@@ -20,7 +20,7 @@ pub struct PassageChunk {
 	pub text: String,
 }
 
-/// A file's passages plus its size for the class outline ("98 pages").
+/// A file's passages plus its size for the space outline ("98 pages").
 #[derive(Debug, PartialEq)]
 pub struct ChunkedFile {
 	pub chunks: Vec<PassageChunk>,

@@ -71,12 +71,12 @@ fn a_file_of_the_wrong_shape_reads_as_empty_and_stays_in_place() {
 #[test]
 fn notes_with_bad_entries_keep_only_the_good_ones() {
 	let lab = Lab::new("agent-notes-bad");
-	let list = format!(r#"{{"version":1,"notes":[{NOTE},{{"id":5,"text":"x","createdAt":"y"}},null,{{"id":"note_0000aa02","text":"No time"}},{{"id":"note_0000aa03","text":"Likes worked examples.","createdAt":"{AT}","classId":7}}]}}"#);
+	let list = format!(r#"{{"version":1,"notes":[{NOTE},{{"id":5,"text":"x","createdAt":"y"}},null,{{"id":"note_0000aa02","text":"No time"}},{{"id":"note_0000aa03","text":"Likes worked examples.","createdAt":"{AT}","spaceId":7}}]}}"#);
 	lab.put("agent-notes.json", &list);
 	let read = notes(&lab).list_agent_notes();
 	let ids: Vec<&str> = read.iter().filter_map(|n| n["id"].as_str()).collect();
 	assert_eq!(ids, ["note_0000aa01", "note_0000aa03"]);
-	assert!(read[1].get("classId").is_none());
+	assert!(read[1].get("spaceId").is_none());
 	assert_eq!(lab.get("agent-notes.json"), list);
 }
 
@@ -98,13 +98,13 @@ fn a_note_is_added_cleaned_and_removed() {
 	let lab = Lab::new("agent-notes-add");
 	let store = notes(&lab);
 	let plain = store.add_agent_note("  Prefers   short answers.\n", None).unwrap();
-	let with_class = store.add_agent_note("Studies at night.", Some("cls_a")).unwrap();
-	let empty_class = store.add_agent_note("Likes diagrams.", Some("")).unwrap();
+	let with_space = store.add_agent_note("Studies at night.", Some("cls_a")).unwrap();
+	let empty_space = store.add_agent_note("Likes diagrams.", Some("")).unwrap();
 	assert_eq!(plain["text"].as_str(), Some("Prefers short answers."));
-	assert!(plain.get("classId").is_none() && empty_class.get("classId").is_none());
-	assert_eq!(with_class["classId"].as_str(), Some("cls_a"));
+	assert!(plain.get("spaceId").is_none() && empty_space.get("spaceId").is_none());
+	assert_eq!(with_space["spaceId"].as_str(), Some("cls_a"));
 	assert_eq!(store.list_agent_notes().len(), 3);
-	assert_eq!(texts(&store.list_agent_notes())[1], stringify(&with_class));
+	assert_eq!(texts(&store.list_agent_notes())[1], stringify(&with_space));
 	assert_eq!(store.remove_agent_note(plain["id"].as_str().unwrap()), Ok(true));
 	assert_eq!(store.remove_agent_note("note_nope"), Ok(false));
 	assert_eq!(store.list_agent_notes().len(), 2);
@@ -151,8 +151,8 @@ fn rules_stamped_newer_are_read_and_saved_back_as_version_1() {
 fn actions_are_saved_whole_and_read_back_in_order() {
 	let lab = Lab::new("agent-actions");
 	let list = [
-		parse(r#"{"id":"act_1","at":"2026-11-01T10:00:00.000Z","agent":"Codex","label":"Added a file","classId":"cls_a","target":{"kind":"file","id":"f_1"},"page":"/","removed":true}"#).unwrap(),
-		parse(r#"{"id":"act_2","at":"2026-11-01T10:01:00.000Z","agent":"Codex","label":"Opened a lesson","classId":null,"target":null,"page":"/","open":true}"#).unwrap(),
+		parse(r#"{"id":"act_1","at":"2026-11-01T10:00:00.000Z","agent":"Codex","label":"Added a file","spaceId":"cls_a","target":{"kind":"file","id":"f_1"},"page":"/","removed":true}"#).unwrap(),
+		parse(r#"{"id":"act_2","at":"2026-11-01T10:01:00.000Z","agent":"Codex","label":"Opened a lesson","spaceId":null,"target":null,"page":"/","open":true}"#).unwrap(),
 	];
 	actions(&lab).write_agent_actions(&list).unwrap();
 	assert_eq!(texts(&actions(&lab).read_agent_actions()), texts(&list));
@@ -162,7 +162,7 @@ fn actions_are_saved_whole_and_read_back_in_order() {
 #[test]
 fn actions_stamped_newer_are_read_anyway() {
 	let lab = Lab::new("agent-actions-newer");
-	lab.put("agent-actions.json", &tabbed(&format!(r#"{{"version":99,"actions":[{{"id":"act_0000000000b1","at":"{AT}","agent":"Codex","label":"From the future","classId":null,"target":null,"page":"/"}}]}}"#)));
+	lab.put("agent-actions.json", &tabbed(&format!(r#"{{"version":99,"actions":[{{"id":"act_0000000000b1","at":"{AT}","agent":"Codex","label":"From the future","spaceId":null,"target":null,"page":"/"}}]}}"#)));
 	let read = actions(&lab).read_agent_actions();
 	assert_eq!(read.len(), 1);
 	assert_eq!(read[0]["label"].as_str(), Some("From the future"));
@@ -174,7 +174,7 @@ fn the_seed_memory_files_read_and_save_back_byte_for_byte() {
 	if !(lab.copy_seed("agent-rules.json") && lab.copy_seed("agent-actions.json")) {
 		return;
 	}
-	let (rules_before, actions_before) = (lab.get("agent-rules.json"), lab.get("agent-actions.json"));
+	let rules_before = lab.get("agent-rules.json");
 	let saved_rules = rules(&lab).read_saved_rules();
 	let saved_actions = actions(&lab).read_agent_actions();
 	assert!(!saved_rules.is_empty() && !saved_actions.is_empty());
@@ -182,7 +182,12 @@ fn the_seed_memory_files_read_and_save_back_byte_for_byte() {
 	rules(&lab).write_saved_rules(&saved_rules).unwrap();
 	actions(&lab).write_agent_actions(&saved_actions).unwrap();
 	assert_eq!(lab.get("agent-rules.json"), rules_before);
-	assert_eq!(lab.get("agent-actions.json"), actions_before);
+	// Actions saved before spaces read with the old names moved over (classId, /class pages), so
+	// only the first write may change the file; from then on it saves back byte for byte.
+	let written = lab.get("agent-actions.json");
+	assert_eq!(actions(&lab).read_agent_actions(), saved_actions);
+	actions(&lab).write_agent_actions(&saved_actions).unwrap();
+	assert_eq!(lab.get("agent-actions.json"), written);
 }
 
 fn mark(count: usize, hash: &str) -> SeenMark {

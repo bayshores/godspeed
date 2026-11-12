@@ -5,7 +5,7 @@
 
 use std::sync::Arc;
 
-use gs_core::contracts::class::MAX_HOMEWORK_PROBLEMS;
+use gs_core::contracts::space::MAX_HOMEWORK_PROBLEMS;
 use gs_core::messages::native_messages::active_problem_of;
 use gs_core::study::homework::conclude_marks_done;
 use gs_engine::turn::tool_execute::{conclude_result, invalid_input_result, problem_result};
@@ -21,7 +21,7 @@ use super::practice::practice_side_tools;
 use gs_core::session::schema::{object, one_of_literals, string};
 use super::side::LessonSide;
 
-/// The session's deadline, read and written through the class store.
+/// The session's deadline, read and written through the space store.
 pub trait HomeworkDeadline: Send + Sync {
 	fn problems(&self) -> Vec<Json>;
 	/// Saves the list (done marks kept by number); the refusal text when refused.

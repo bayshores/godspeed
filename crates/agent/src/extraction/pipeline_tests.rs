@@ -157,7 +157,7 @@ async fn notes_import_in_chunks_reports_partial_failures() {
 	let long = (0..142).map(|i| format!("Line {i:03} {}", "alpha beta gamma delta ".repeat(6))).collect::<Vec<_>>().join("\n");
 	host.script().reply(submit(json!({ "propositions": [{ "id": "p1", "name": "Alpha", "statement": "Alpha first.", "messageId": "stray" }], "chains": [], "reteaches": [] })));
 	host.script().reply(says("I cannot read this."));
-	let input = NotesImportInput { file_path: "notes/half.md".into(), text: long, scope: None, source_id: None, may_be_course_info: false };
+	let input = NotesImportInput { file_path: "notes/half.md".into(), text: long, scope: None, source_id: None, may_be_space_info: false };
 	let err = extraction.import_notes(input).await.unwrap_err();
 	assert_eq!((err.outcome, err.message.as_str()), (ImportOutcome::Partial, "the extractor never submitted findings"));
 	assert_eq!(err.partial_stats, json!({ "nodes": 1, "chains": 0 }));
@@ -169,17 +169,17 @@ async fn notes_import_in_chunks_reports_partial_failures() {
 	assert_eq!(sources[0]["extractions"].as_arr().unwrap().len(), 2);
 
 	// An empty file completes with nothing to read.
-	let empty = NotesImportInput { file_path: "notes/empty.md".into(), text: "  \n".into(), scope: None, source_id: None, may_be_course_info: false };
+	let empty = NotesImportInput { file_path: "notes/empty.md".into(), text: "  \n".into(), scope: None, source_id: None, may_be_space_info: false };
 	assert_eq!(extraction.import_notes(empty).await.unwrap(), json!({ "nodes": 0, "chains": 0 }));
 }
 
 #[tokio::test]
-async fn course_logistics_are_not_extracted_and_a_busy_source_is_refused() {
+async fn logistics_are_not_extracted_and_a_busy_source_is_refused() {
 	let host = host();
 	let extraction = Extraction::new(host.clone());
-	host.script().reply(submit(json!({ "propositions": [], "chains": [], "reteaches": [], "courseInfo": true })));
-	let input = |text: &str| NotesImportInput { file_path: "syllabus.md".into(), text: text.into(), scope: None, source_id: Some("src_fixed".into()), may_be_course_info: true };
-	assert_eq!(extraction.import_notes(input("Office hours moved.")).await.unwrap(), json!({ "nodes": 0, "chains": 0, "courseInfo": true }));
+	host.script().reply(submit(json!({ "propositions": [], "chains": [], "reteaches": [], "spaceInfo": true })));
+	let input = |text: &str| NotesImportInput { file_path: "syllabus.md".into(), text: text.into(), scope: None, source_id: Some("src_fixed".into()), may_be_space_info: true };
+	assert_eq!(extraction.import_notes(input("Office hours moved.")).await.unwrap(), json!({ "nodes": 0, "chains": 0, "spaceInfo": true }));
 
 	assert!(host.state.runs.claim("src_fixed"));
 	let err = extraction.import_notes(input("again")).await.unwrap_err();
@@ -193,7 +193,7 @@ async fn an_abort_while_waiting_for_the_graph_lock_ends_the_import() {
 	let held = host.state.graph_lock_for_tests().await;
 	let run = tokio::spawn({
 		let extraction = extraction.clone();
-		async move { extraction.import_notes(NotesImportInput { file_path: "a.md".into(), text: "x".into(), scope: None, source_id: Some("src_a".into()), may_be_course_info: false }).await }
+		async move { extraction.import_notes(NotesImportInput { file_path: "a.md".into(), text: "x".into(), scope: None, source_id: Some("src_a".into()), may_be_space_info: false }).await }
 	});
 	while host.state.runs.get("src_a").is_none_or(|r| r.phase != ExtractionPhase::Waiting) {
 		tokio::task::yield_now().await;

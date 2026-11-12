@@ -1,6 +1,6 @@
 // The settings parsers, the prompt segment list, the activity log, the saved-rules code and the
 // reading view against the TypeScript. app-misc.run.ts runs once in its own process over fresh
-// data and home folders (the stores fix their folders when they load) with a synthetic class.
+// data and home folders (the stores fix their folders when they load) with a synthetic space.
 // Nothing here touches a real data folder.
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";

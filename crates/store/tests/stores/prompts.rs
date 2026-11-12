@@ -43,3 +43,24 @@ fn other_files_and_links_are_not_listed() {
 	let overrides = PromptOverrides::new(&lab.paths);
 	assert_eq!(overrides.list_overrides(), ["teacher/10-planning.md"]);
 }
+
+#[test]
+fn a_saved_class_context_part_takes_its_new_name_once() {
+	let lab = Lab::new("prompts-old-name");
+	lab.put("prompts/shared/12-class-context.md", "mine\n");
+	assert!(lab.exists("prompts/shared/12-class-context.md"), "nothing moves before the store is used");
+	let overrides = PromptOverrides::new(&lab.paths);
+	assert_eq!(overrides.list_overrides(), ["shared/12-space-context.md"]);
+	assert_eq!(overrides.read_override("shared/12-space-context.md").as_deref(), Some("mine\n"));
+	assert!(!lab.exists("prompts/shared/12-class-context.md"));
+}
+
+#[test]
+fn a_saved_space_context_part_wins_over_the_old_name() {
+	let lab = Lab::new("prompts-both-names");
+	lab.put("prompts/shared/12-class-context.md", "old\n");
+	lab.put("prompts/shared/12-space-context.md", "new\n");
+	let overrides = PromptOverrides::new(&lab.paths);
+	assert_eq!(overrides.read_override("shared/12-space-context.md").as_deref(), Some("new\n"));
+	assert!(lab.exists("prompts/shared/12-class-context.md"));
+}

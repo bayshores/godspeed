@@ -1,7 +1,7 @@
 //! The lesson agents' tools (src/backend/agent/tools.ts and tools/*.ts except the file, web and
 //! PDF tools): each closes over small ports the services fill in, so no tool imports a service.
 
-pub mod class;
+pub mod space;
 pub mod fn_tool;
 pub mod graph;
 pub mod heal;

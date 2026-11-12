@@ -104,7 +104,7 @@ const lesson = {
 };
 const shortNotes = { filePath: "notes/heaps.md", text: "# Heaps\n\nA heap keeps the smallest item on top.\nInserting sifts the item up.\n" };
 const longNotes = { filePath: "notes/graphs.txt", text: Array.from({ length: 40 }, (_, i) => `Line ${i}: a graph has vertices and edges; a path walks edges from vertex to vertex without repeating. ${"x".repeat(i % 7)}`).join("\n").repeat(12) };
-const logistics = { filePath: "class/week1-announcement.md", text: "Office hours move to Tuesday.\nThe first quiz is next Friday.\n" };
+const logistics = { filePath: "space/week1-announcement.md", text: "Office hours move to Tuesday.\nThe first quiz is next Friday.\n" };
 
 const replies = {
 	lesson: [
@@ -122,7 +122,7 @@ const replies = {
 		{ say: "Done." },
 		{ say: "Really done." },
 	] as Reply[],
-	logistics: [{ call: { propositions: [], chains: [], reteaches: [], courseInfo: true } }] as Reply[],
+	logistics: [{ call: { propositions: [], chains: [], reteaches: [], spaceInfo: true } }] as Reply[],
 	again: [{ say: "Nothing new." }, { say: "Nothing." }, { say: "No." }, { say: "Stop." }] as Reply[],
 };
 
@@ -141,7 +141,7 @@ const story = await (async () => {
 		["lesson", (p: any) => p.runExtraction(lesson.id)],
 		["shortNotes", (p: any) => p.importNotes(shortNotes)],
 		["longNotes", (p: any) => p.importNotes(longNotes)],
-		["logistics", (p: any) => p.importNotes({ ...logistics, mayBeCourseInfo: true })],
+		["logistics", (p: any) => p.importNotes({ ...logistics, mayBeSpaceInfo: true })],
 		["again", (p: any) => p.runExtraction(lesson.id)],
 	] as const) {
 		const p = pipeline(replies[name]);
@@ -158,7 +158,7 @@ const story = await (async () => {
 		],
 		"submit_topics",
 	);
-	const grouped = await settle(() => groupTopics({ className: "Algorithms", facts, chains: graph.chains, current: [{ id: "tpc_aaaaaaaaaa", name: "Old", members: [ids[0]] }], engine: topics.engine }));
+	const grouped = await settle(() => groupTopics({ spaceName: "Algorithms", facts, chains: graph.chains, current: [{ id: "tpc_aaaaaaaaaa", name: "Old", members: [ids[0]] }], engine: topics.engine }));
 	steps.topics = { facts, result: grouped, requests: topics.requests };
 	const chat = JSON.parse(fs.readFileSync(path.join(PATHS.chats, `${lesson.id}.json`), "utf8"));
 	steps.files = { graph: ledgers(), extractions: chat.extractions };
@@ -174,7 +174,7 @@ export default {
 	"a lesson: a stray anchor, a broken chain, then a good submit": () => (story as any).lesson,
 	"short notes: reteaches left out, then a stray messageId is dropped": () => (story as any).shortNotes,
 	"long notes in stretches, the later ones never submit": () => (story as any).longNotes,
-	"a class file that is course logistics": () => (story as any).logistics,
+	"a space file that is logistics": () => (story as any).logistics,
 	"the same lesson again has nothing left": () => (story as any).again,
 	"topic grouping: a long name, then a repaired grouping": () => (story as any).topics,
 	"the files afterwards": () => (story as any).files,

@@ -23,7 +23,7 @@ pub fn resolve_settings(record: Option<&Json>) -> Json {
 	json!({
 		"general": {
 			"autoUpdate": or(&general["autoUpdate"], &factory["general"]["autoUpdate"]),
-			"activeClass": or(&general["activeClass"], &factory["general"]["activeClass"]),
+			"activeSpace": or(&general["activeSpace"], &factory["general"]["activeSpace"]),
 			"teacherName": if teacher.truthy() { teacher.clone() } else { factory["general"]["teacherName"].clone() },
 			"sounds": or(&general["sounds"], &factory["general"]["sounds"]),
 		},

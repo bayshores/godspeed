@@ -1500,7 +1500,7 @@
 						{
 							"id": "custom_no_job",
 							"role": "custom",
-							"customType": "class-context",
+							"customType": "space-context",
 							"details": {}
 						}
 					],

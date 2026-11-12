@@ -1,4 +1,4 @@
-//! Class search: the embedding model, BM25 keyword ranking, fusion and the stored index tables.
+//! Space search: the embedding model, BM25 keyword ranking, fusion and the stored index tables.
 //! Servers call `index::Search`; the other public modules are its parts, kept public for parity tests.
 
 pub mod chunks;

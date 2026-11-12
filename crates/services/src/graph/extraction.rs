@@ -1,6 +1,6 @@
 //! The server's one extraction pipeline (server/extraction.ts): every front door (lesson runs,
-//! notes imports, class files) shares its registry. A lesson's facts land in its class's graph,
-//! a run that wrote a class graph queues a topic grouping, and every stage runs on the outside
+//! notes imports, space files) shares its registry. A lesson's facts land in its space's graph,
+//! a run that wrote a space graph queues a topic grouping, and every stage runs on the outside
 //! agent with related ideas from the local search.
 
 use std::sync::Arc;
@@ -41,9 +41,9 @@ impl ExtractionHost for AppHost {
 		&self.0.graph.extraction
 	}
 	fn on_graph_written(&self, scope: Option<&str>) {
-		// "No class" has no topics.
-		if let Some(class_id) = scope {
-			schedule_topic_grouping(&self.0, class_id);
+		// "No space" has no topics.
+		if let Some(space_id) = scope {
+			schedule_topic_grouping(&self.0, space_id);
 		}
 	}
 	fn related_facts<'a>(&'a self, scope: Option<&'a str>, nodes: &'a [Json], text: &'a str, limit: usize) -> BoxFuture<'a, Result<Vec<String>, String>> {

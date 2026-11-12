@@ -69,9 +69,9 @@ fn block(title: &str, rules: impl Iterator<Item = String>) -> String {
 	std::iter::once(title.to_owned()).chain(rules.map(|r| format!("- {r}"))).collect::<Vec<_>>().join("\n")
 }
 
-/// The section added after the instructions, or "" when there are no rules. Class rules only
-/// come with a lesson in that class: its name and its rules.
-pub fn learner_rules_section(rules: &Json, lesson_class: Option<(&str, &[String])>) -> String {
+/// The section added after the instructions, or "" when there are no rules. Space rules only
+/// come with a lesson in that space: its name and its rules.
+pub fn learner_rules_section(rules: &Json, lesson_space: Option<(&str, &[String])>) -> String {
 	let mut blocks: Vec<String> = Vec::new();
 	for area in &TEACHING_AREAS {
 		let list = rules[area.id].as_arr().filter(|l| !l.is_empty());
@@ -79,8 +79,8 @@ pub fn learner_rules_section(rules: &Json, lesson_class: Option<(&str, &[String]
 			blocks.push(block(area.label, list.iter().map(|r| r.as_str().unwrap_or_default().to_owned())));
 		}
 	}
-	if let Some((name, class_rules)) = lesson_class.filter(|(_, r)| !r.is_empty()) {
-		blocks.push(block(&format!("Rules for this class ({name})"), class_rules.iter().cloned()));
+	if let Some((name, space_rules)) = lesson_space.filter(|(_, r)| !r.is_empty()) {
+		blocks.push(block(&format!("Rules for this space ({name})"), space_rules.iter().cloned()));
 	}
 	if blocks.is_empty() {
 		return String::new();
@@ -109,10 +109,10 @@ mod tests {
 		assert_eq!(gs_json::stringify(&rules), r#"{"voice":["Short."]}"#);
 		assert_eq!(sanitize_area_rules(&json!([1])), json!({}));
 		assert_eq!(learner_rules_section(&json!({}), None), "");
-		let class_rules = ["Use Python.".to_owned()];
+		let space_rules = ["Use Python.".to_owned()];
 		assert_eq!(
-			learner_rules_section(&rules, Some(("CSE 21", &class_rules))),
-			"## The learner's rules\n\nThe learner wrote these rules. Follow them. Where a rule conflicts with the instructions above, the rule wins.\n\nVoice\n- Short.\n\nRules for this class (CSE 21)\n- Use Python."
+			learner_rules_section(&rules, Some(("CSE 21", &space_rules))),
+			"## The learner's rules\n\nThe learner wrote these rules. Follow them. Where a rule conflicts with the instructions above, the rule wins.\n\nVoice\n- Short.\n\nRules for this space (CSE 21)\n- Use Python."
 		);
 	}
 }

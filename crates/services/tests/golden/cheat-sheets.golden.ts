@@ -1,4 +1,4 @@
-// The cheat-sheet server code against the TypeScript: the class page and sheet views, a version's
+// The cheat-sheet server code against the TypeScript: the space page and sheet views, a version's
 // PDF and a kept file, the refusals an ask gives before anything is kept, rules, Show in Finder,
 // a newer PDF in the working folder coming in as a version, and taking the PDF an agent made.
 // cheat-sheets.run.ts runs once in its own process over fresh data and home folders (the stores

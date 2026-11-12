@@ -1,5 +1,5 @@
 // Runs the settings parsers, the prompt segment lists, the activity log, the saved-rules code and
-// the reading view over a fresh data folder and home folder with a synthetic class, and prints
+// the reading view over a fresh data folder and home folder with a synthetic space, and prints
 // what each answered. app-misc.golden.ts starts it in its own process with LH_DATA_DIR and HOME
 // set, because the stores fix their folders when they load. Ids and times the TypeScript run made
 // are masked ("<id>", "<now>"): the Rust run makes its own.
@@ -14,17 +14,17 @@ const HOME = process.env.HOME;
 console.error = () => {};
 console.warn = () => {};
 
-const CLASS = "cls_golden01_00000001";
+const SPACE = "cls_golden01_00000001";
 const GONE = "cls_gone0000_00000000";
 const AT = "2029-03-01T10:00:00.000Z";
 const tabs = (v: unknown) => `${JSON.stringify(v, null, "\t")}\n`;
 const sha = (text: string) => createHash("sha256").update(text).digest("hex");
 const mask = (list: { id: string; at: string }[]) => list.map((entry) => ({ ...entry, id: "<id>", at: "<now>" }));
 
-fs.mkdirSync(path.join(DATA, "classes", CLASS), { recursive: true });
+fs.mkdirSync(path.join(DATA, "spaces", SPACE), { recursive: true });
 fs.writeFileSync(
-	path.join(DATA, "classes", CLASS, "class.json"),
-	tabs({ id: CLASS, name: "Golden Class", description: "", createdAt: AT, updatedAt: AT, archived: false, files: [], removedFiles: [], deadlines: [], version: 1 }),
+	path.join(DATA, "spaces", SPACE, "space.json"),
+	tabs({ id: SPACE, name: "Golden Space", description: "", createdAt: AT, updatedAt: AT, archived: false, files: [], removedFiles: [], deadlines: [], version: 1 }),
 );
 
 const { SETTINGS_SECTIONS } = await import("../../../../src/backend/server/settings-body.ts");
@@ -44,9 +44,9 @@ const BODIES: [keyof typeof SETTINGS_SECTIONS, unknown][] = [
 	["general", { teacherName: "  Zed   the  Wise  ", sounds: false, autoUpdate: true, onboarded: true, extra: 1 }],
 	["general", { teacherName: "   " }],
 	["general", { teacherName: 5 }],
-	["general", { activeClass: "none", lastSeenVersion: "0.5.44" }],
-	["general", { activeClass: CLASS }],
-	["general", { activeClass: "cls_bad" }],
+	["general", { activeSpace: "none", lastSeenVersion: "0.5.44" }],
+	["general", { activeSpace: SPACE }],
+	["general", { activeSpace: "cls_bad" }],
 	["general", { lastSeenVersion: "v1" }],
 	["general", { lastSeenVersion: "01.2.3" }],
 	["general", { autoUpdate: "yes" }],
@@ -107,7 +107,7 @@ const promptList = { segments: [...listed.values()], supported: prompts.allSegme
 
 // The activity log.
 const target = { kind: "deadline", id: "ddl_gold00000001" };
-const act = (label: string, extra: object = {}) => ({ label, classId: CLASS, target, page: "/", ...extra });
+const act = (label: string, extra: object = {}) => ({ label, spaceId: SPACE, target, page: "/", ...extra });
 actions.noteAgentAction("Claude", act("Added Test 2"));
 actions.noteAgentAction("Claude", act("Added Test 2"));
 actions.noteAgentAction("Codex", act("Added Test 2"));
@@ -115,24 +115,24 @@ actions.noteAgentAction(undefined, act("  Wrote   a   lesson\n plan  ", { target
 actions.noteAgentAction("  ", act("Removed a file", { removed: true, target: null }));
 actions.noteAgentAction("  ", act("Removed a file", { removed: true, target: null }));
 actions.noteAgentAction("Claude", act("word ".repeat(30), { target: null, open: true }));
-actions.recordFolderFiles(CLASS, 1, "Google Drive");
-actions.recordFolderFiles(CLASS, 2, "Google Drive");
-actions.recordFolderFiles(CLASS, 1, "a folder");
-actions.recordAnswer({ id: "chat_a", classId: CLASS }, { kind: "quiz", correct: true } as never);
-actions.recordAnswer({ id: "chat_a", classId: CLASS }, { kind: "quiz", correct: false } as never);
-actions.recordAnswer({ id: "chat_a", classId: CLASS }, { kind: "quiz", correct: true, dontKnow: true } as never);
-actions.recordAnswer({ id: "chat_a", classId: CLASS }, { kind: "open" } as never);
+actions.recordFolderFiles(SPACE, 1, "Google Drive");
+actions.recordFolderFiles(SPACE, 2, "Google Drive");
+actions.recordFolderFiles(SPACE, 1, "a folder");
+actions.recordAnswer({ id: "chat_a", spaceId: SPACE }, { kind: "quiz", correct: true } as never);
+actions.recordAnswer({ id: "chat_a", spaceId: SPACE }, { kind: "quiz", correct: false } as never);
+actions.recordAnswer({ id: "chat_a", spaceId: SPACE }, { kind: "quiz", correct: true, dontKnow: true } as never);
+actions.recordAnswer({ id: "chat_a", spaceId: SPACE }, { kind: "open" } as never);
 actions.recordAnswer({ id: "chat_b" }, { kind: "quiz", correct: false } as never);
-actions.recordDeadlineChange(CLASS, { id: "ddl_gold00000002", name: "Quiz 1" }, "added");
-actions.recordDeadlineChange(CLASS, { id: "ddl_gold00000002", name: "Quiz 1" }, { date: "2030-01-01", time: "10:00" });
-actions.recordDeadlineChange(CLASS, { id: "ddl_gold00000002", name: "Quiz 1" }, { done: true });
-actions.recordDeadlineChange(CLASS, { id: "ddl_gold00000002", name: "Quiz 1" }, { name: "Quiz one" });
+actions.recordDeadlineChange(SPACE, { id: "ddl_gold00000002", name: "Quiz 1" }, "added");
+actions.recordDeadlineChange(SPACE, { id: "ddl_gold00000002", name: "Quiz 1" }, { date: "2030-01-01", time: "10:00" });
+actions.recordDeadlineChange(SPACE, { id: "ddl_gold00000002", name: "Quiz 1" }, { done: true });
+actions.recordDeadlineChange(SPACE, { id: "ddl_gold00000002", name: "Quiz 1" }, { name: "Quiz one" });
 const activity = { shown: mask(actions.recentAgentActions()), saved: mask(readAgentActions()) };
 
-// Saved rules: in a teaching area's list and in a class's list.
+// Saved rules: in a teaching area's list and in a space's list.
 const voice = { area: "voice" } as const;
-const mine = { classId: CLASS } as const;
-const missing = { classId: GONE } as const;
+const mine = { spaceId: SPACE } as const;
+const missing = { spaceId: GONE } as const;
 const mark = (list: { where: unknown; text: string; at: string }[]) => list.map((s) => ({ ...s, at: "<now>" }));
 const ruleSteps: { op: string; outcome: unknown }[] = [];
 const step = (op: string, outcome: unknown) => ruleSteps.push({ op, outcome });
@@ -141,17 +141,17 @@ step("save again", rules.saveRuleByAgent("Be brief", voice));
 step("save one line", rules.saveRuleByAgent("  Use   one\n line ", voice));
 step("save empty", rules.saveRuleByAgent("   ", voice));
 step("save too long", rules.saveRuleByAgent("x".repeat(400), voice));
-step("save in a class", rules.saveRuleByAgent("Show the proof first", mine, "Codex"));
-step("save in a missing class", rules.saveRuleByAgent("Anything", missing));
+step("save in a space", rules.saveRuleByAgent("Show the proof first", mine, "Codex"));
+step("save in a missing space", rules.saveRuleByAgent("Anything", missing));
 step("marks", mark(rules.agentSavedRules()));
 step("edit", rules.editRule(voice, "Be brief", "Be very brief"));
 step("edit to an existing one", rules.editRule(voice, "Be very brief", "Use one line"));
 step("edit a missing rule", rules.editRule(voice, "Not here", "Anything"));
-step("edit in a missing class", rules.editRule(missing, "Not here", "Anything"));
+step("edit in a missing space", rules.editRule(missing, "Not here", "Anything"));
 step("edit to nothing", rules.editRule(voice, "Be very brief", " "));
 step("remove", rules.removeRule(mine, "Show the proof first"));
 step("remove again", rules.removeRule(mine, "Show the proof first"));
-step("remove in a missing class", rules.removeRule(missing, "x"));
+step("remove in a missing space", rules.removeRule(missing, "x"));
 step("marks after", mark(rules.agentSavedRules()));
 const saved = { steps: ruleSteps, settings: readSettings() };
 

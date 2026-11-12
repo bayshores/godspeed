@@ -3797,11 +3797,11 @@
 					{
 						"id": "m1",
 						"role": "custom",
-						"customType": "class-context",
-						"content": "[Class context] x",
+						"customType": "space-context",
+						"content": "[Space context] x",
 						"display": true,
 						"details": {
-							"classId": "c"
+							"spaceId": "c"
 						},
 						"timestamp": 4
 					},
@@ -3909,7 +3909,7 @@
 						"content": [
 							{
 								"type": "text",
-								"text": "[Class context] x"
+								"text": "[Space context] x"
 							}
 						],
 						"timestamp": 4
@@ -4803,22 +4803,22 @@
 		"output": [
 			{
 				"card": {
-					"classId": "c1",
+					"spaceId": "c1",
 					"name": "CSE 21",
-					"description": "  My class.  ",
+					"description": "  My space.  ",
 					"files": []
 				},
-				"text": "[Class context] — this lesson belongs to a course the learner is taking:\n\nClass: CSE 21\n\nAbout the class (the learner's own words):\nMy class.",
+				"text": "[Space context] — this lesson belongs to one of the learner's spaces:\n\nSpace: CSE 21\n\nAbout the space (the learner's own words):\nMy space.",
 				"message": {
 					"id": "<id>",
 					"role": "custom",
-					"customType": "class-context",
-					"content": "[Class context] — this lesson belongs to a course the learner is taking:\n\nClass: CSE 21\n\nAbout the class (the learner's own words):\nMy class.",
+					"customType": "space-context",
+					"content": "[Space context] — this lesson belongs to one of the learner's spaces:\n\nSpace: CSE 21\n\nAbout the space (the learner's own words):\nMy space.",
 					"display": true,
 					"details": {
-						"classId": "c1",
+						"spaceId": "c1",
 						"name": "CSE 21",
-						"description": "  My class.  ",
+						"description": "  My space.  ",
 						"files": []
 					},
 					"timestamp": 0
@@ -4826,7 +4826,7 @@
 			},
 			{
 				"card": {
-					"classId": "c2",
+					"spaceId": "c2",
 					"name": "Math",
 					"description": "",
 					"files": [
@@ -4867,15 +4867,15 @@
 						}
 					]
 				},
-				"text": "[Class context] — this lesson belongs to a course the learner is taking:\n\nClass: Math\n\nClass files (study material = turned into the class's knowledge graph; course info = syllabus, assignments, logistics):\n- [study material] notes.pdf (98 pages) — /f/notes.pdf\n- [course info] syllabus.pdf (reading) — /f/syllabus.pdf\n- [study material] talk.mp4 (52 min, failed) — /f/talk.txt\n\nTopics in the class's knowledge graph (facts in each):\nLimits (4), Series (0)",
+				"text": "[Space context] — this lesson belongs to one of the learner's spaces:\n\nSpace: Math\n\nSpace files (study material = turned into the space's knowledge graph; space info = a syllabus, a schedule, logistics):\n- [study material] notes.pdf (98 pages) — /f/notes.pdf\n- [space info] syllabus.pdf (reading) — /f/syllabus.pdf\n- [study material] talk.mp4 (52 min, failed) — /f/talk.txt\n\nTopics in the space's knowledge graph (facts in each):\nLimits (4), Series (0)",
 				"message": {
 					"id": "<id>",
 					"role": "custom",
-					"customType": "class-context",
-					"content": "[Class context] — this lesson belongs to a course the learner is taking:\n\nClass: Math\n\nClass files (study material = turned into the class's knowledge graph; course info = syllabus, assignments, logistics):\n- [study material] notes.pdf (98 pages) — /f/notes.pdf\n- [course info] syllabus.pdf (reading) — /f/syllabus.pdf\n- [study material] talk.mp4 (52 min, failed) — /f/talk.txt\n\nTopics in the class's knowledge graph (facts in each):\nLimits (4), Series (0)",
+					"customType": "space-context",
+					"content": "[Space context] — this lesson belongs to one of the learner's spaces:\n\nSpace: Math\n\nSpace files (study material = turned into the space's knowledge graph; space info = a syllabus, a schedule, logistics):\n- [study material] notes.pdf (98 pages) — /f/notes.pdf\n- [space info] syllabus.pdf (reading) — /f/syllabus.pdf\n- [study material] talk.mp4 (52 min, failed) — /f/talk.txt\n\nTopics in the space's knowledge graph (facts in each):\nLimits (4), Series (0)",
 					"display": true,
 					"details": {
-						"classId": "c2",
+						"spaceId": "c2",
 						"name": "Math",
 						"description": "",
 						"files": [
@@ -4921,21 +4921,21 @@
 			},
 			{
 				"card": {
-					"classId": "c3",
+					"spaceId": "c3",
 					"name": "Empty topics",
 					"description": "d",
 					"files": [],
 					"topics": []
 				},
-				"text": "[Class context] — this lesson belongs to a course the learner is taking:\n\nClass: Empty topics\n\nAbout the class (the learner's own words):\nd",
+				"text": "[Space context] — this lesson belongs to one of the learner's spaces:\n\nSpace: Empty topics\n\nAbout the space (the learner's own words):\nd",
 				"message": {
 					"id": "<id>",
 					"role": "custom",
-					"customType": "class-context",
-					"content": "[Class context] — this lesson belongs to a course the learner is taking:\n\nClass: Empty topics\n\nAbout the class (the learner's own words):\nd",
+					"customType": "space-context",
+					"content": "[Space context] — this lesson belongs to one of the learner's spaces:\n\nSpace: Empty topics\n\nAbout the space (the learner's own words):\nd",
 					"display": true,
 					"details": {
-						"classId": "c3",
+						"spaceId": "c3",
 						"name": "Empty topics",
 						"description": "d",
 						"files": [],

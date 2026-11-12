@@ -18,10 +18,10 @@ pub struct Paths {
 	pub data: PathBuf,
 	/// One `<id>.json` per lesson, with `<id>/` beside it for files the learner sent.
 	pub chats: PathBuf,
-	/// The "No class" graph family.
+	/// The "No space" graph family.
 	pub graph: PathBuf,
-	/// One folder per class: `class.json`, `files/`, `graph/`, `cheat-sheets/`.
-	pub classes: PathBuf,
+	/// One folder per space: `space.json`, `files/`, `graph/`, `cheat-sheets/`.
+	pub spaces: PathBuf,
 	pub settings_file: PathBuf,
 	/// The learner's prompt overrides, mirroring the source layout.
 	pub prompts_dir: PathBuf,
@@ -34,7 +34,7 @@ pub struct Paths {
 	pub resources: PathBuf,
 }
 
-/// Every file of one graph family (the "No class" graph or a class's `graph/`).
+/// Every file of one graph family (the "No space" graph or a space's `graph/`).
 #[derive(Clone, Debug, PartialEq)]
 pub struct GraphFiles {
 	pub nodes: PathBuf,
@@ -114,7 +114,7 @@ impl Paths {
 		let resources = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
 		let data = env_path("LH_DATA_DIR").map_or_else(|| resources.join("data"), |p| resolve(&p));
 		let mut paths = Paths::new(data, home_dir(), tmp_dir(), resources);
-		// A development build keeps its folder inside its own data, so its class list never syncs
+		// A development build keeps its folder inside its own data, so its space list never syncs
 		// over the installed app's ~/godspeed.
 		if cfg!(debug_assertions) {
 			paths.default_agent_folder = paths.data.join("godspeed-folder");
@@ -126,7 +126,7 @@ impl Paths {
 		Paths {
 			chats: data.join("chats"),
 			graph: data.join("graph"),
-			classes: data.join("classes"),
+			spaces: data.join("spaces"),
 			settings_file: data.join("settings.json"),
 			prompts_dir: data.join("prompts"),
 			default_agent_folder: home.join("godspeed"),

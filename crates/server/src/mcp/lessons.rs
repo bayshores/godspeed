@@ -6,7 +6,7 @@ use gs_core::session::work_pages::{WORK_PAGE_BYTES, split_pages};
 use gs_json::{Json, Obj, json};
 
 use super::reply::{failure, result, text_block};
-use super::tools::{ToolCall, class_arg};
+use super::tools::{ToolCall, space_arg};
 
 /// Copies `key` when the summary has it (JSON.stringify drops an absent field).
 fn copy(into: &mut Obj, key: &str, from: &Json, field: &str) {
@@ -18,27 +18,27 @@ fn copy(into: &mut Obj, key: &str, from: &Json, field: &str) {
 pub fn list_lessons(call: &ToolCall<'_>, args: &Json) -> Json {
 	let app = call.app;
 	let mut chats = app.stores.chats.list_chats();
-	if let Some(class_id) = args["class_id"].as_str() {
-		let scope = match class_arg(app, Some(class_id)) {
+	if let Some(space_id) = args["space_id"].as_str() {
+		let scope = match space_arg(app, Some(space_id)) {
 			Ok(scope) => scope,
 			Err(error) => return failure(&error),
 		};
-		chats.retain(|c| c["classId"].as_str() == scope.as_deref());
+		chats.retain(|c| c["spaceId"].as_str() == scope.as_deref());
 	}
 	let mut lessons: Vec<Json> = chats
 		.iter()
 		.map(|c| {
-			let class_id = c["classId"].as_str().filter(|id| !id.is_empty());
-			let class_name = match class_id {
-				Some(id) => app.stores.classes.get_class(id).and_then(|k| k["name"].as_str().map(str::to_owned)).unwrap_or_else(|| "Unknown class".to_owned()),
-				None => "No class".to_owned(),
+			let space_id = c["spaceId"].as_str().filter(|id| !id.is_empty());
+			let space_name = match space_id {
+				Some(id) => app.stores.spaces.get_space(id).and_then(|k| k["name"].as_str().map(str::to_owned)).unwrap_or_else(|| "Unknown space".to_owned()),
+				None => "No space".to_owned(),
 			};
 			let mut lesson = Obj::new();
 			copy(&mut lesson, "id", c, "id");
 			copy(&mut lesson, "title", c, "title");
 			copy(&mut lesson, "kind", c, "kind");
-			lesson.insert("classId", if c["classId"].is_null() { Json::from("none") } else { c["classId"].clone() });
-			lesson.insert("className", class_name);
+			lesson.insert("spaceId", if c["spaceId"].is_null() { Json::from("none") } else { c["spaceId"].clone() });
+			lesson.insert("spaceName", space_name);
 			copy(&mut lesson, "phase", c, "phase");
 			lesson.insert("waitingForLearner", if c["pendingQuestion"].truthy() { c["pendingQuestion"].clone() } else { c["pendingProblem"].clone() });
 			lesson.insert("running", gs_services::turns::turn_liveness::is_turn_running(app, c["id"].as_str().unwrap_or_default()));

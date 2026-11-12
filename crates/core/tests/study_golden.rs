@@ -69,10 +69,10 @@ fn derive_input(cases: &[Json], args: &Json) -> Json {
 	input
 }
 
-fn class_order(cases: &[Json], from: &str) -> HashMap<String, usize> {
+fn space_order(cases: &[Json], from: &str) -> HashMap<String, usize> {
 	let case = find(cases, from);
 	let input = derive_input(cases, &case["args"]);
-	study::fact_class_order(&list(&case["result"]["facts"]), &list(&input["files"]))
+	study::fact_space_order(&list(&case["result"]["facts"]), &list(&input["files"]))
 }
 
 fn same(name: &str, got: Json, want: &Json) {
@@ -114,16 +114,16 @@ fn replay(cases: &[Json], c: &Json) {
 		same(name, rows, want);
 	} else if name == "days between" {
 		same(name, each(&args["pairs"], |p| Json::from(progress::days_between(text(&p[0]), text(&p[1])))), want);
-	} else if name.starts_with("fact class order ") {
-		let order = class_order(cases, text(&args["from"]));
+	} else if name.starts_with("fact space order ") {
+		let order = space_order(cases, text(&args["from"]));
 		let (total, matched) = order_json(&order, want);
 		assert_eq!(total, matched, "{name}: extra facts ranked");
 	} else if name.starts_with("study topics ") {
-		let order = class_order(cases, text(&args["from"]));
+		let order = space_order(cases, text(&args["from"]));
 		let topics = from_progress("topics");
 		same(name, Json::Arr(study::study_topics(&strings(&args["factIds"]), &topics, &order, text(&args["freeTopic"]))), want);
 	} else if name.starts_with("topic study ") {
-		let order = class_order(cases, text(&args["from"]));
+		let order = space_order(cases, text(&args["from"]));
 		let (topics, facts) = (from_progress("topics"), from_progress("facts"));
 		let studied: Option<HashSet<String>> = args["studiedToday"].as_arr().map(|_| strings(&args["studiedToday"]).into_iter().collect());
 		same(name, Json::Arr(study::topic_study(&strings(&args["topicIds"]), &topics, &facts, &order, studied.as_ref())), want);

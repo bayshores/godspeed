@@ -1,25 +1,25 @@
-//! The class tools of the Talk chat (src/backend/agent/tools/talk.ts): the learner's classes, files
+//! The space tools of the Talk chat (src/backend/agent/tools/talk.ts): the learner's spaces, files
 //! and deadlines, running the same actions the outside agent's MCP tools run. Nothing here deletes
-//! a class or a file. Each result's details carry the changes it made, shown as rows in Talk.
+//! a space or a file. Each result's details carry the changes it made, shown as rows in Talk.
 
 use std::sync::Arc;
 
 use futures_util::future::BoxFuture;
-use gs_core::classes::class_tools::{CLASS_ARG_TEXT, CLASS_TOOL_TEXT, ClassArgText, DEADLINE_KINDS, FILE_KINDS, ToolOutcome};
-use gs_core::contracts::class::{CLASS_ICONS, SIGNATURE_MAX};
+use gs_core::spaces::space_tools::{SPACE_ARG_TEXT, SPACE_TOOL_TEXT, SpaceArgText, DEADLINE_KINDS, FILE_KINDS, ToolOutcome};
+use gs_core::contracts::space::{SPACE_ICONS, SIGNATURE_MAX};
 use gs_json::{Json, json, stringify};
 
 use super::fn_tool::FnTool;
 use gs_core::session::schema::{boolean, no_arguments, object, one_of_literals, string, string_min, string_or_null, strings};
 
-/// Runs one class tool by name over its validated arguments (server/class-actions.ts).
-pub type ClassActions = Arc<dyn Fn(&str, Json) -> BoxFuture<'static, ToolOutcome> + Send + Sync>;
+/// Runs one space tool by name over its validated arguments (server/space-actions.ts).
+pub type SpaceActions = Arc<dyn Fn(&str, Json) -> BoxFuture<'static, ToolOutcome> + Send + Sync>;
 
-/// What a lesson adds to its own class tools: the deadline changes a learner asks for
+/// What a lesson adds to its own space tools: the deadline changes a learner asks for
 /// mid-lesson. Each definition costs the agent tokens, so the rest stays in Talk.
-const LESSON_CHANGES: [&str; 4] = ["list_classes", "add_class_deadline", "update_class_deadline", "remove_class_deadline"];
+const LESSON_CHANGES: [&str; 4] = ["list_spaces", "add_space_deadline", "update_space_deadline", "remove_space_deadline"];
 
-fn class_id() -> Json {
+fn space_id() -> Json {
 	json!({ "type": "string" })
 }
 
@@ -27,7 +27,7 @@ fn optional_text(description: &str) -> Json {
 	string(description)
 }
 
-fn signature(text: &ClassArgText) -> Json {
+fn signature(text: &SpaceArgText) -> Json {
 	json!({
 		"type": "object",
 		"required": ["kind", "value"],
@@ -39,34 +39,34 @@ fn signature(text: &ClassArgText) -> Json {
 	})
 }
 
-fn icon(text: &ClassArgText) -> Json {
-	let names: Vec<&str> = CLASS_ICONS.iter().map(|(name, _)| *name).collect();
+fn icon(text: &SpaceArgText) -> Json {
+	let names: Vec<&str> = SPACE_ICONS.iter().map(|(name, _)| *name).collect();
 	one_of_literals(&names, &text.icon)
 }
 
-fn file_kind(text: &ClassArgText) -> Json {
+fn file_kind(text: &SpaceArgText) -> Json {
 	one_of_literals(&FILE_KINDS, text.file_kind)
 }
 
-fn deadline_kind(text: &ClassArgText) -> Json {
+fn deadline_kind(text: &SpaceArgText) -> Json {
 	one_of_literals(&DEADLINE_KINDS, text.deadline_kind)
 }
 
-/// The input schema of one class tool.
+/// The input schema of one space tool.
 fn schema_of(name: &str) -> Json {
-	let t: &ClassArgText = &CLASS_ARG_TEXT;
-	let id = || ("class_id", class_id());
+	let t: &SpaceArgText = &SPACE_ARG_TEXT;
+	let id = || ("space_id", space_id());
 	match name {
-		"list_classes" => no_arguments(),
-		"read_class" => object(&["class_id"], vec![id(), ("files", boolean(t.files))]),
-		"search_class_files" => object(
-			&["class_id", "query"],
+		"list_spaces" => no_arguments(),
+		"read_space" => object(&["space_id"], vec![id(), ("files", boolean(t.files))]),
+		"search_space_files" => object(
+			&["space_id", "query"],
 			vec![id(), ("query", string_min(1, t.query)), ("limit", json!({ "type": "integer", "minimum": 1, "maximum": 20, "description": t.limit }))],
 		),
-		"read_passage" => object(&["class_id"], vec![id(), ("passage_id", optional_text(t.passage_id)), ("file_id", optional_text(t.file_id)), ("range", optional_text(t.range))]),
-		"create_class" => object(&["name", "icon"], vec![("name", string_min(1, t.name)), ("description", optional_text(t.description)), ("signature", signature(t)), ("icon", icon(t))]),
-		"update_class" => object(
-			&["class_id"],
+		"read_passage" => object(&["space_id"], vec![id(), ("passage_id", optional_text(t.passage_id)), ("file_id", optional_text(t.file_id)), ("range", optional_text(t.range))]),
+		"create_space" => object(&["name", "icon"], vec![("name", string_min(1, t.name)), ("description", optional_text(t.description)), ("signature", signature(t)), ("icon", icon(t))]),
+		"update_space" => object(
+			&["space_id"],
 			vec![
 				id(),
 				("name", json!({ "type": "string", "minLength": 1 })),
@@ -76,12 +76,12 @@ fn schema_of(name: &str) -> Json {
 				("archived", json!({ "type": "boolean" })),
 			],
 		),
-		"add_class_file" => object(&["class_id", "path", "kind"], vec![id(), ("path", string(t.file_path)), ("kind", file_kind(t))]),
-		"set_class_file_kind" => object(
-			&["class_id", "file_ids", "kind"],
+		"add_space_file" => object(&["space_id", "path", "kind"], vec![id(), ("path", string(t.file_path)), ("kind", file_kind(t))]),
+		"set_space_file_kind" => object(
+			&["space_id", "file_ids", "kind"],
 			vec![id(), ("file_ids", json!({ "type": "array", "items": { "type": "string" }, "minItems": 1, "description": t.file_ids })), ("kind", file_kind(t))],
 		),
-		"add_class_deadline" => {
+		"add_space_deadline" => {
 			let deadline = object(
 				&["kind", "name", "date"],
 				vec![
@@ -95,13 +95,13 @@ fn schema_of(name: &str) -> Json {
 					("assignment_file_id", string(t.assignment_file)),
 				],
 			);
-			object(&["class_id", "deadlines"], vec![id(), ("deadlines", json!({ "type": "array", "items": deadline, "minItems": 1 }))])
+			object(&["space_id", "deadlines"], vec![id(), ("deadlines", json!({ "type": "array", "items": deadline, "minItems": 1 }))])
 		}
-		"update_class_deadline" => object(
-			&["class_id", "deadline_id"],
+		"update_space_deadline" => object(
+			&["space_id", "deadline_id"],
 			vec![
 				id(),
-				("deadline_id", class_id()),
+				("deadline_id", space_id()),
 				("kind", deadline_kind(t)),
 				("name", json!({ "type": "string", "minLength": 1 })),
 				("date", string("YYYY-MM-DD.")),
@@ -113,10 +113,10 @@ fn schema_of(name: &str) -> Json {
 				("done", json!({ "type": "boolean" })),
 			],
 		),
-		"remove_class_deadline" => object(&["class_id", "deadline_id"], vec![id(), ("deadline_id", class_id())]),
-		"link_class_folder" => object(&["class_id", "path"], vec![id(), ("path", string(t.folder_path))]),
-		"start_lesson" => object(&["topic"], vec![("topic", string_min(1, t.topic)), ("class_id", string(t.lesson_class))]),
-		_ => unreachable!("every class tool name has a schema"),
+		"remove_space_deadline" => object(&["space_id", "deadline_id"], vec![id(), ("deadline_id", space_id())]),
+		"link_space_folder" => object(&["space_id", "path"], vec![id(), ("path", string(t.folder_path))]),
+		"start_lesson" => object(&["topic"], vec![("topic", string_min(1, t.topic)), ("space_id", string(t.lesson_space))]),
+		_ => unreachable!("every space tool name has a schema"),
 	}
 }
 
@@ -133,9 +133,9 @@ fn to_result(outcome: ToolOutcome) -> Result<Json, String> {
 	}
 }
 
-fn class_tool(actions: &ClassActions, name: &'static str) -> FnTool {
+fn space_tool(actions: &SpaceActions, name: &'static str) -> FnTool {
 	let actions = actions.clone();
-	let description = CLASS_TOOL_TEXT.iter().find(|(tool, _)| *tool == name).map_or("", |(_, text)| *text);
+	let description = SPACE_TOOL_TEXT.iter().find(|(tool, _)| *tool == name).map_or("", |(_, text)| *text);
 	FnTool::server(name, description, schema_of(name), move |args, _ctx| {
 		let outcome = actions(name, args);
 		async move { to_result(outcome.await) }
@@ -143,11 +143,11 @@ fn class_tool(actions: &ClassActions, name: &'static str) -> FnTool {
 }
 
 /// The deadline changes a lesson may make.
-pub fn lesson_class_change_tools(actions: &ClassActions) -> Vec<FnTool> {
-	LESSON_CHANGES.iter().map(|name| class_tool(actions, name)).collect()
+pub fn lesson_space_change_tools(actions: &SpaceActions) -> Vec<FnTool> {
+	LESSON_CHANGES.iter().map(|name| space_tool(actions, name)).collect()
 }
 
-/// All thirteen class tools, the Talk chat's whole set.
-pub fn talk_tools(actions: &ClassActions) -> Vec<FnTool> {
-	CLASS_TOOL_TEXT.iter().map(|(name, _)| class_tool(actions, name)).collect()
+/// All thirteen space tools, the Talk chat's whole set.
+pub fn talk_tools(actions: &SpaceActions) -> Vec<FnTool> {
+	SPACE_TOOL_TEXT.iter().map(|(name, _)| space_tool(actions, name)).collect()
 }

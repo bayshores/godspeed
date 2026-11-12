@@ -2,7 +2,7 @@
 //!
 //! | Shape | TypeScript | Used for |
 //! | --- | --- | --- |
-//! | `timed("chat")` → `chat_<base36 now>_<8 hex>` | `` `chat_${Date.now().toString(36)}_${randomUUID().slice(0, 8)}` `` | chat, job, cls, msg, pb |
+//! | `timed("chat")` → `chat_<base36 now>_<8 hex>` | `` `chat_${Date.now().toString(36)}_${randomUUID().slice(0, 8)}` `` | chat, job, spc, msg, pb |
 //! | `uuid_hex("f", 12)` → `f_<12 hex>` | `` `f_${randomUUID().replace(/-/g, "").slice(0, 12)}` `` | f (12), ddl (12), act (12), tpc (10) |
 //! | `bytes_hex("n", 6)` → `n_<12 hex>` | `` `n_${randomBytes(6).toString("hex")}` `` | n (6), arg (6), note (4) |
 //! | `uuid_head("agent", 12)` → `agent_<8 hex>-<3 hex>` | `` `agent_${randomUUID().slice(0, 12)}` `` | agent, work |

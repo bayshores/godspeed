@@ -38,7 +38,7 @@ pub fn from_lesson(point: &Json) -> bool {
 	!point["chatId"].as_str().unwrap_or("").starts_with("src_")
 }
 
-/// Coverage for every study file, in the class's file order: `{ fileId, name, facts, inLessons,
+/// Coverage for every study file, in the space's file order: `{ fileId, name, facts, inLessons,
 /// share }`.
 pub fn file_coverage(files: &[Json], facts: &[Json]) -> Vec<Json> {
 	let mut by_source: HashMap<&str, (usize, usize)> = HashMap::new();

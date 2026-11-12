@@ -327,7 +327,7 @@ export default {
 			result("c5", "read", {}, { content: [{ type: "image" }] }),
 			{ role: "custom", customType: "plan-block", content: "hidden", details: {} },
 			{ role: "custom", customType: "today-context", content: "today is a day" },
-			{ role: "custom", customType: "class-context", content: "class", attachments: [{ type: "text", text: "attached file" }] },
+			{ role: "custom", customType: "space-context", content: "space", attachments: [{ type: "text", text: "attached file" }] },
 			{ role: "system", content: "ignored" },
 			{ role: "custom", customType: "compaction", content: "earlier summary" },
 			assistant("a4", [{ type: "text", text: 5 }, { type: "text" }, { type: "text", text: null }, { type: "text", text: ["x", null, 2] }]),

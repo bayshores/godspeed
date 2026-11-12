@@ -1,5 +1,5 @@
 //! The markers that tell the teacher where a session came from: the map picks, the study topics
-//! and the class card. The model reads their text; the view reads `details`.
+//! and the space card. The model reads their text; the view reads `details`.
 
 use gs_base::text;
 use gs_json::{Json, json};
@@ -36,37 +36,37 @@ pub fn new_study_context_message(text: &str, custom_type: &str) -> Json {
 	Json::Obj(marker(new_message_id(), custom_type, text, false, Json::Null))
 }
 
-/// The model-facing class card text. `card` is `{classId, name, description, files, topics?}`.
-pub fn class_card_text(card: &Json) -> String {
-	let mut lines = vec!["[Class context] — this lesson belongs to a course the learner is taking:".to_owned(), String::new(), format!("Class: {}", js_string(card.get("name")))];
+/// The model-facing space card text. `card` is `{spaceId, name, description, files, topics?}`.
+pub fn space_card_text(card: &Json) -> String {
+	let mut lines = vec!["[Space context] — this lesson belongs to one of the learner's spaces:".to_owned(), String::new(), format!("Space: {}", js_string(card.get("name")))];
 	let description = text::trim(card["description"].as_str().unwrap_or(""));
 	if !description.is_empty() {
-		lines.extend(["".to_owned(), "About the class (the learner's own words):".to_owned(), description.to_owned()]);
+		lines.extend(["".to_owned(), "About the space (the learner's own words):".to_owned(), description.to_owned()]);
 	}
 	let readable: Vec<&Json> = card["files"].as_arr().into_iter().flatten().filter(|f| !matches!(f.get("path"), Some(Json::Null))).collect();
 	if !readable.is_empty() {
 		lines.push(String::new());
-		lines.push("Class files (study material = turned into the class's knowledge graph; course info = syllabus, assignments, logistics):".to_owned());
+		lines.push("Space files (study material = turned into the space's knowledge graph; space info = a syllabus, a schedule, logistics):".to_owned());
 		for f in readable {
 			// Only a status other than "ready" is worth showing.
 			let status = Some(&f["status"]).filter(|s| s.as_str() != Some("ready"));
 			let parts: Vec<String> = [Some(&f["size"]), status].into_iter().flatten().filter(|v| v.truthy()).map(|v| js_string(Some(v))).collect();
 			let about = if parts.is_empty() { String::new() } else { format!(" ({})", parts.join(", ")) };
-			let kind = if f["kind"].as_str() == Some("study") { "study material" } else { "course info" };
+			let kind = if f["kind"].as_str() == Some("study") { "study material" } else { "space info" };
 			lines.push(format!("- [{kind}] {}{about} — {}", js_string(f.get("name")), js_string(f.get("path"))));
 		}
 	}
 	let topics = card["topics"].as_arr().filter(|t| !t.is_empty());
 	if let Some(topics) = topics {
 		lines.push(String::new());
-		lines.push("Topics in the class's knowledge graph (facts in each):".to_owned());
+		lines.push("Topics in the space's knowledge graph (facts in each):".to_owned());
 		lines.push(topics.iter().map(|t| format!("{} ({})", js_string(t.get("name")), js_string(t.get("facts")))).collect::<Vec<_>>().join(", "));
 	}
 	lines.join("\n")
 }
 
-pub fn new_class_context_message(card: &Json) -> Json {
-	Json::Obj(marker(new_message_id(), "class-context", class_card_text(card), true, card.clone()))
+pub fn new_space_context_message(card: &Json) -> Json {
+	Json::Obj(marker(new_message_id(), "space-context", space_card_text(card), true, card.clone()))
 }
 
 #[cfg(test)]
@@ -86,9 +86,9 @@ mod tests {
 	}
 
 	#[test]
-	fn the_class_card_lists_readable_files_and_topics() {
+	fn the_space_card_lists_readable_files_and_topics() {
 		let card = json!({
-			"classId": "c1",
+			"spaceId": "c1",
 			"name": "CSE 21",
 			"description": "  my words \n",
 			"files": [
@@ -99,12 +99,12 @@ mod tests {
 			"topics": [{ "name": "Sums", "facts": 4 }, { "name": "Logs", "facts": 2 }],
 		});
 		assert_eq!(
-			class_card_text(&card),
-			"[Class context] — this lesson belongs to a course the learner is taking:\n\nClass: CSE 21\n\nAbout the class (the learner's own words):\nmy words\n\nClass files (study material = turned into the class's knowledge graph; course info = syllabus, assignments, logistics):\n- [study material] notes.pdf (98 pages) — /a/notes.pdf\n- [course info] syl.pdf (reading) — /a/syl.pdf\n\nTopics in the class's knowledge graph (facts in each):\nSums (4), Logs (2)"
+			space_card_text(&card),
+			"[Space context] — this lesson belongs to one of the learner's spaces:\n\nSpace: CSE 21\n\nAbout the space (the learner's own words):\nmy words\n\nSpace files (study material = turned into the space's knowledge graph; space info = a syllabus, a schedule, logistics):\n- [study material] notes.pdf (98 pages) — /a/notes.pdf\n- [space info] syl.pdf (reading) — /a/syl.pdf\n\nTopics in the space's knowledge graph (facts in each):\nSums (4), Logs (2)"
 		);
 		let bare = json!({ "name": "X", "description": "", "files": [], "topics": [] });
-		assert_eq!(class_card_text(&bare), "[Class context] — this lesson belongs to a course the learner is taking:\n\nClass: X");
-		assert_eq!(new_class_context_message(&bare)["details"], bare);
+		assert_eq!(space_card_text(&bare), "[Space context] — this lesson belongs to one of the learner's spaces:\n\nSpace: X");
+		assert_eq!(new_space_context_message(&bare)["details"], bare);
 		assert_eq!(new_study_context_message("t", "homework-context")["display"], json!(false));
 	}
 }

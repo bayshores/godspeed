@@ -1,4 +1,4 @@
-//! Every deadline of a class with its cheat sheet (cheat-sheet.ts: sheetCards).
+//! Every deadline of a space with its cheat sheet (cheat-sheet.ts: sheetCards).
 
 use gs_base::locale;
 use gs_base::text::cmp16;
@@ -6,7 +6,7 @@ use gs_json::{Json, Obj};
 
 use super::cheat_sheet::{ParsedSheet, current_version};
 
-/// Every deadline of the class with its sheet: upcoming soonest first, then past ones, latest
+/// Every deadline of the space with its sheet: upcoming soonest first, then past ones, latest
 /// first. A card is `{ deadlineId, name, kind, date[, time], past, status, version }`, with status
 /// "made", "making", "older", "newer" or "none".
 pub fn sheet_cards(deadlines: &[Json], sheet_of: impl Fn(&str) -> Option<ParsedSheet>, running: impl Fn(&str) -> bool, today: &str) -> Vec<Json> {

@@ -1,13 +1,13 @@
-//! Which supported files a linked class folder holds.
+//! Which supported files a linked space folder holds.
 
 use std::fs::DirEntry;
 use std::io;
 use std::path::Path;
 
 use gs_base::locale;
-use gs_core::contracts::class::{MAX_LINKED_FILES, extension_of};
+use gs_core::contracts::space::{MAX_LINKED_FILES, extension_of};
 
-use crate::text::{TextChecks, is_readable_class_file};
+use crate::text::{TextChecks, is_readable_space_file};
 
 /// Google Docs, Sheets, Slides and the like on a synced Drive: small link files whose contents
 /// live online.
@@ -16,7 +16,7 @@ const GOOGLE_STUB_EXTENSIONS: [&str; 8] = [".gdoc", ".gsheet", ".gslides", ".gdr
 /// Names kept for files a folder holds that can't be read.
 const SKIPPED_EXAMPLES: usize = 3;
 
-/// Folders never walked inside a linked class folder.
+/// Folders never walked inside a linked space folder.
 const SKIPPED_DIRS: [&str; 4] = ["node_modules", ".git", "Library", ".Trash"];
 
 /// A linked folder's files that can't be read: how many, a few names, and how many are Google
@@ -75,7 +75,7 @@ fn visit(dir: &Path, rel: &str, checks: &TextChecks, walk: &mut Walk) -> io::Res
 				visit(&entry.path(), &child_rel, checks, walk)?;
 			}
 		} else if kind.is_file() {
-			match is_readable_class_file(&name, || checks.file_looks_like_text(&entry.path())) {
+			match is_readable_space_file(&name, || checks.file_looks_like_text(&entry.path())) {
 				None => walk.unreadable.push(child_rel),
 				Some(false) => skip(&name, walk),
 				Some(true) if walk.files.len() == MAX_LINKED_FILES => walk.capped = true,

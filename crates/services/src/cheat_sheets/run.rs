@@ -4,7 +4,7 @@
 use std::sync::Arc;
 
 use gs_agent::subagents::cheat_sheet_writer::{SheetReply, SheetRequest, reply_on_sheet};
-use gs_agent::tools::class::search_tools;
+use gs_agent::tools::space::search_tools;
 use gs_base::ids::uuid;
 use gs_base::locks::LockKey;
 use gs_base::text::{len16, slice16, trim};
@@ -21,7 +21,7 @@ use super::files::{files_for_agent, keep_files};
 use super::folder::working_folder;
 use super::{BUSY, Failed, NEWER, Outcome, Running, Stop, changed, refuse};
 use crate::App;
-use crate::classes::class_search::class_search;
+use crate::spaces::space_search::space_search;
 
 /// The longest problem or work text a message carries from a session.
 const ABOUT_MAX: i64 = 4000;
@@ -55,7 +55,7 @@ fn short_about(about: &Json) -> Json {
 
 /// A message in the sheet's chat, from the studio or the sheet beside a session: kept, then the
 /// agent answers it. Pictures go to the agent as pictures, PDFs as a note with their path.
-pub fn ask(app: &Arc<App>, class_id: &str, deadline_id: &str, input: AskInput) -> Outcome<()> {
+pub fn ask(app: &Arc<App>, space_id: &str, deadline_id: &str, input: AskInput) -> Outcome<()> {
 	let text = trim(&input.text);
 	let attachments = input.attachments.unwrap_or_default();
 	if text.is_empty() && attachments.is_empty() {
@@ -68,8 +68,8 @@ pub fn ask(app: &Arc<App>, class_id: &str, deadline_id: &str, input: AskInput) -
 		return refuse(400, "Send pictures or PDFs.");
 	}
 	// One request at a time per sheet: the checks and the start happen under one lock.
-	let _guard = app.locks.lock(LockKey::Class(class_id));
-	let mut ctx = context_for(app, class_id, deadline_id)?;
+	let _guard = app.locks.lock(LockKey::Space(space_id));
+	let mut ctx = context_for(app, space_id, deadline_id)?;
 	if matches!(ctx.saved, Saved::Newer) {
 		return refuse(409, NEWER);
 	}
@@ -80,7 +80,7 @@ pub fn ask(app: &Arc<App>, class_id: &str, deadline_id: &str, input: AskInput) -
 	if let Some(wrong) = input.region.as_ref().and_then(|r| region_problem(r, items(&sheet["versions"]))) {
 		return refuse(400, wrong);
 	}
-	let files = keep_files(app, class_id, deadline_id, &attachments)?;
+	let files = keep_files(app, space_id, deadline_id, &attachments)?;
 	let mut message = gs_json::Obj::new();
 	message.insert("id", uuid());
 	message.insert("role", "you");
@@ -96,17 +96,17 @@ pub fn ask(app: &Arc<App>, class_id: &str, deadline_id: &str, input: AskInput) -
 		message.insert("about", short_about(about));
 	}
 	let message = Json::Obj(message);
-	app.stores.cheat_sheets.write_cheat_sheet(class_id, &with_message(&sheet, &message))?;
-	ctx.saved = read_saved(app, class_id, deadline_id)?;
+	app.stores.cheat_sheets.write_cheat_sheet(space_id, &with_message(&sheet, &message))?;
+	ctx.saved = read_saved(app, space_id, deadline_id)?;
 	start_run(app, &ctx, message["id"].as_str().unwrap_or(""))
 }
 
 /// Try again: the message the last request failed on, sent again.
-pub fn retry(app: &Arc<App>, class_id: &str, deadline_id: &str) -> Outcome<()> {
-	let _guard = app.locks.lock(LockKey::Class(class_id));
+pub fn retry(app: &Arc<App>, space_id: &str, deadline_id: &str) -> Outcome<()> {
+	let _guard = app.locks.lock(LockKey::Space(space_id));
 	let failed = app.cheat_sheets.failed.lock().get(deadline_id).map(|f| f.message_id.clone());
 	let Some(message_id) = failed else { return refuse(409, "Nothing to try again.") };
-	let ctx = context_for(app, class_id, deadline_id)?;
+	let ctx = context_for(app, space_id, deadline_id)?;
 	start_run(app, &ctx, &message_id)
 }
 
@@ -118,14 +118,14 @@ pub fn stop(app: &App, deadline_id: &str) {
 }
 
 /// Delete one of the sheet's rules.
-pub fn remove_rule(app: &App, class_id: &str, deadline_id: &str, text: &str) -> Outcome<()> {
-	let _guard = app.locks.lock(LockKey::Class(class_id));
-	let ctx = context_for(app, class_id, deadline_id)?;
+pub fn remove_rule(app: &App, space_id: &str, deadline_id: &str, text: &str) -> Outcome<()> {
+	let _guard = app.locks.lock(LockKey::Space(space_id));
+	let ctx = context_for(app, space_id, deadline_id)?;
 	if matches!(ctx.saved, Saved::Newer) {
 		return refuse(409, NEWER);
 	}
 	let sheet = sheet_now(app, &ctx)?;
-	app.stores.cheat_sheets.write_cheat_sheet(class_id, &without_rule(&sheet, text))?;
+	app.stores.cheat_sheets.write_cheat_sheet(space_id, &without_rule(&sheet, text))?;
 	changed(app, deadline_id);
 	Ok(())
 }
@@ -144,7 +144,7 @@ impl Drop for RunEnd {
 }
 
 /// Runs one request: the agent answers the message. Refused while another runs; its end is
-/// announced. The caller holds the class lock.
+/// announced. The caller holds the space lock.
 fn start_run(app: &Arc<App>, ctx: &Context, message_id: &str) -> Outcome<()> {
 	let id = ctx.deadline.id.clone();
 	if app.cheat_sheets.runs.lock().contains_key(&id) {
@@ -156,7 +156,7 @@ fn start_run(app: &Arc<App>, ctx: &Context, message_id: &str) -> Outcome<()> {
 	let folder = sheet_now(app, ctx).and_then(|sheet| working_folder(app, ctx, &sheet)).map_err(|e| Stop::Refuse(500, format!("Couldn't make the cheat sheet's folder: {e}")))?;
 	// Saved now, so a retry or a renamed deadline keeps the same folder.
 	if folder.sheet["folder"].as_str() != ctx.saved.folder() {
-		app.stores.cheat_sheets.write_cheat_sheet(&ctx.class_id, &folder.sheet)?;
+		app.stores.cheat_sheets.write_cheat_sheet(&ctx.space_id, &folder.sheet)?;
 	}
 	let messages = items(&folder.sheet["messages"]);
 	let index = messages.iter().position(|m| m["id"].as_str() == Some(message_id));
@@ -166,11 +166,11 @@ fn start_run(app: &Arc<App>, ctx: &Context, message_id: &str) -> Outcome<()> {
 	app.cheat_sheets.failed.lock().remove(&id);
 	changed(app, &id);
 
-	let title = format!("{} {}", ctx.class_name, ctx.deadline.name);
+	let title = format!("{} {}", ctx.space_name, ctx.deadline.name);
 	let text = cheat_sheet_request_text(&json!({
 		"title": title,
 		"date": ctx.deadline.date,
-		"classNotes": ctx.class_notes,
+		"spaceNotes": ctx.space_notes,
 		"infoFiles": ctx.info_files,
 		"rules": folder.sheet["rules"],
 		"topics": ctx.topics,
@@ -180,13 +180,13 @@ fn start_run(app: &Arc<App>, ctx: &Context, message_id: &str) -> Outcome<()> {
 		"earlier": &messages[..index],
 		"message": message,
 	}));
-	let parts = files_for_agent(app, &ctx.class_id, &id, items(&message["files"]));
+	let parts = files_for_agent(app, &ctx.space_id, &id, items(&message["files"]));
 	let prompt = if parts.is_empty() { Json::from(text) } else { Json::from([vec![json!({ "type": "text", "text": text })], parts].concat()) };
 	let (task_app, folder_path) = (app.clone(), folder.path.clone());
 	let request = SheetRequest {
 		title,
 		prompt,
-		lookups: search_tools(class_search(app, &ctx.class_id)),
+		lookups: search_tools(space_search(app, &ctx.space_id)),
 		take_pdf: Box::new(move |path| {
 			let (app, folder) = (task_app.clone(), folder_path.clone());
 			Box::pin(async move { take_sheet_pdf(&app, &folder, &path).await })
@@ -194,7 +194,7 @@ fn start_run(app: &Arc<App>, ctx: &Context, message_id: &str) -> Outcome<()> {
 		engine: agent_engine(&app.bridge),
 		signal: abort.clone(),
 	};
-	let answer = Answer { app: app.clone(), class_id: ctx.class_id.clone(), deadline_id: id, message_id: message_id.to_owned(), asked: message["text"].as_str().unwrap_or("").to_owned() };
+	let answer = Answer { app: app.clone(), space_id: ctx.space_id.clone(), deadline_id: id, message_id: message_id.to_owned(), asked: message["text"].as_str().unwrap_or("").to_owned() };
 	tokio::spawn(async move {
 		let _end = RunEnd { app: answer.app.clone(), deadline_id: answer.deadline_id.clone() };
 		let done = match reply_on_sheet(&answer.app.bridge, request).await {
@@ -215,7 +215,7 @@ fn start_run(app: &Arc<App>, ctx: &Context, message_id: &str) -> Outcome<()> {
 /// What a finished request needs to write its answer.
 struct Answer {
 	app: Arc<App>,
-	class_id: String,
+	space_id: String,
 	deadline_id: String,
 	message_id: String,
 	/// The message the agent answers.
@@ -224,11 +224,11 @@ struct Answer {
 
 /// Writes the agent's answer: the PDF as the newest version, the new rules, the reply.
 fn keep_reply(answer: &Answer, reply: SheetReply) -> Result<(), String> {
-	let Answer { app, class_id, deadline_id, asked, .. } = answer;
-	let _guard = app.locks.lock(LockKey::Class(class_id));
+	let Answer { app, space_id, deadline_id, asked, .. } = answer;
+	let _guard = app.locks.lock(LockKey::Space(space_id));
 	let at = iso_now();
 	let store = &app.stores.cheat_sheets;
-	let mut sheet = match read_saved(app, class_id, deadline_id)? {
+	let mut sheet = match read_saved(app, space_id, deadline_id)? {
 		Saved::Sheet(sheet) => sheet,
 		_ => new_cheat_sheet(deadline_id, &at),
 	};
@@ -236,8 +236,8 @@ fn keep_reply(answer: &Answer, reply: SheetReply) -> Result<(), String> {
 	if let Some(pdf) = &reply.pdf {
 		let (next, dropped) = with_version(&sheet, &json!({ "prompt": asked, "at": at, "pages": pdf.pages, "file": pdf.file }));
 		let n = current_version(&next).and_then(|v| v["n"].as_f64()).unwrap_or(1.0);
-		store.save_sheet_pdf(class_id, deadline_id, n, &pdf.bytes)?;
-		store.remove_sheet_pdfs(class_id, deadline_id, &dropped)?;
+		store.save_sheet_pdf(space_id, deadline_id, n, &pdf.bytes)?;
+		store.remove_sheet_pdfs(space_id, deadline_id, &dropped)?;
 		sheet = next;
 		version = Some(n);
 	}
@@ -257,5 +257,5 @@ fn keep_reply(answer: &Answer, reply: SheetReply) -> Result<(), String> {
 	if let Some(o) = sheet.as_obj_mut() {
 		o.insert("updatedAt", at);
 	}
-	store.write_cheat_sheet(class_id, &sheet)
+	store.write_cheat_sheet(space_id, &sheet)
 }

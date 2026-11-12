@@ -1,6 +1,6 @@
 //! The godspeed folder on disk (gs_core's agent_folder has the pure parts). Setting it up writes
-//! the agent's instructions, its connection and its start scripts there, plus classes/ with
-//! shortcuts to the class files; the app refreshes them once per start, so an update reaches
+//! the agent's instructions, its connection and its start scripts there, plus spaces/ with
+//! shortcuts to the space files; the app refreshes them once per start, so an update reaches
 //! them. Which folder is used, and whether the one-time "godspeed has its own folder now" notice
 //! was seen, live in <data>/agent-folder.json.
 
@@ -10,15 +10,15 @@ use std::sync::atomic::Ordering;
 
 use gs_base::config::resolve;
 use gs_base::fsx;
-use gs_core::classes::agent_folder::{FolderAgent, Platform, copy_command, short_folder, usable_folder};
-use gs_core::classes::class_shortcuts::class_dirs;
+use gs_core::spaces::agent_folder::{FolderAgent, Platform, copy_command, short_folder, usable_folder};
+use gs_core::spaces::space_shortcuts::space_dirs;
 use gs_json::{Json, Obj, json, parse, stringify_pretty};
 
 use super::disk::write_file_atomic;
 use super::folder_files::write_folder;
 use super::old_setup::{OldSetup, old_setup, remove_old_setup};
 use crate::App;
-use crate::classes::class_shortcuts::{sync_shortcuts_safely, watch_shortcuts};
+use crate::spaces::space_shortcuts::{sync_shortcuts_safely, watch_shortcuts};
 
 /// Why setting the folder up failed: `Folder` is a folder that can't be used, in words for the
 /// learner; `Disk` is the app's own state file not saving.
@@ -105,14 +105,14 @@ pub fn cheat_sheets_dir(app: &App) -> PathBuf {
 	Path::new(&agent_folder(app)).join("cheat-sheets")
 }
 
-/// The class's folder of shortcuts in the godspeed folder, when it's there.
-pub fn class_shortcut_dir(app: &App, class_id: &str) -> Option<String> {
+/// The space's folder of shortcuts in the godspeed folder, when it's there.
+pub fn space_shortcut_dir(app: &App, space_id: &str) -> Option<String> {
 	let folder = agent_folder(app);
 	if !is_set_up(&folder) {
 		return None;
 	}
-	let at = class_dirs(&app.stores.classes.list_classes()).remove(class_id)?;
-	let dir = at.iter().fold(Path::new(&folder).join("classes"), |dir, part| dir.join(part));
+	let at = space_dirs(&app.stores.spaces.list_spaces()).remove(space_id)?;
+	let dir = at.iter().fold(Path::new(&folder).join("spaces"), |dir, part| dir.join(part));
 	dir.exists().then(|| dir.to_string_lossy().into_owned())
 }
 
@@ -151,7 +151,7 @@ pub fn set_up_agent_folder(app: &Arc<App>, folder: Option<&str>) -> Result<Json,
 		sync_shortcuts_safely(app, &tidy(&before), true);
 	}
 	sync_shortcuts_safely(app, &tidy(&folder), false);
-	watch_class_shortcuts(app);
+	watch_space_shortcuts(app);
 	if let Err(err) = remove_old_setup(app) {
 		eprintln!("[agent-folder] removing the old setup failed: {err}");
 	}
@@ -171,21 +171,21 @@ pub fn refresh_agent_folder(app: &Arc<App>) {
 		eprintln!("[agent-folder] refresh failed: {err}");
 	}
 	sync_shortcuts_safely(app, &tidy(&folder), false);
-	watch_class_shortcuts(app);
+	watch_space_shortcuts(app);
 }
 
-/// Why a file or folder can't be added from `path`: it's inside the godspeed folder's classes/,
+/// Why a file or folder can't be added from `path`: it's inside the godspeed folder's spaces/,
 /// which only holds shortcuts to files godspeed already has. None when it's fine.
 pub fn shortcut_path_problem(app: &App, path: &str) -> Option<String> {
-	let root = resolve(&Path::new(&agent_folder(app)).join("classes"));
+	let root = resolve(&Path::new(&agent_folder(app)).join("spaces"));
 	let at = resolve(Path::new(path));
 	(at == root || at.starts_with(&root)).then(|| {
-		"That's in godspeed's classes folder, which only holds shortcuts to files godspeed already has. Pick the original file or folder instead.".to_owned()
+		"That's in godspeed's spaces folder, which only holds shortcuts to files godspeed already has. Pick the original file or folder instead.".to_owned()
 	})
 }
 
-/// Keep classes/ in step with the classes while a folder is set up.
-fn watch_class_shortcuts(app: &Arc<App>) {
+/// Keep spaces/ in step with the spaces while a folder is set up.
+fn watch_space_shortcuts(app: &Arc<App>) {
 	watch_shortcuts(app, |app| {
 		let folder = agent_folder(app);
 		is_set_up(&folder).then(|| tidy(&folder))
@@ -268,13 +268,13 @@ mod tests {
 	}
 
 	#[test]
-	fn the_classes_folder_is_not_a_place_to_add_files_from() {
+	fn the_spaces_folder_is_not_a_place_to_add_files_from() {
 		let root = scratch_dir("folder-problem");
 		let app = test_app(&root);
-		let classes = root.join("home/godspeed/classes");
-		assert!(shortcut_path_problem(&app, &classes.to_string_lossy()).is_some());
-		assert!(shortcut_path_problem(&app, &classes.join("x/../y/z.pdf").to_string_lossy()).is_some());
-		assert!(shortcut_path_problem(&app, &root.join("home/godspeed/classes-other").to_string_lossy()).is_none());
+		let spaces = root.join("home/godspeed/spaces");
+		assert!(shortcut_path_problem(&app, &spaces.to_string_lossy()).is_some());
+		assert!(shortcut_path_problem(&app, &spaces.join("x/../y/z.pdf").to_string_lossy()).is_some());
+		assert!(shortcut_path_problem(&app, &root.join("home/godspeed/spaces-other").to_string_lossy()).is_none());
 		assert!(shortcut_path_problem(&app, &root.join("home/notes").to_string_lossy()).is_none());
 	}
 }

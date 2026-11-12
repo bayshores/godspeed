@@ -12,9 +12,9 @@ All Rust lives in `crates/` (a Cargo workspace; `Cargo.toml` at the repo root, t
 |---|---|---|
 | `json` (gs-json) | `Json`: JSON with JS key order, JS number text, lone surrogates | `JSON.parse` / `JSON.stringify` |
 | `base` (gs-base) | JS-compatible text, numbers, dates, regex, sorting, ids, hashes, the app clock, paths, events, locks, atomic writes, shutdown | Node and V8 behaviour, `src/backend/config.ts`, `src/shared/core/events.ts` |
-| `core` (gs-core) | pure logic: `contracts`, `records`, `messages`, `session`, `graph`, `classes`, `study` | `src/shared/core` |
+| `core` (gs-core) | pure logic: `contracts`, `records`, `messages`, `session`, `graph`, `spaces`, `study` | `src/shared/core` |
 | `store` (gs-store) | every data file, read and written byte for byte like Node | `src/backend/store` |
-| `files` | class files to text, linked folder walks, fingerprints | `office-text.ts`, `class-files.ts` |
+| `files` | space files to text, linked folder walks, fingerprints | `office-text.ts`, `space-files.ts` |
 | `pdf` | pdfium on one thread: text, shape, search, page images | `workers/pdf-text-worker.mjs`, `pdf-ops.ts`, page renders |
 | `search` | embedding model (ort), MiniSearch BM25+, fusion, index tables | `src/shared/core/search.ts`, `search-index.ts`, `embed-worker.mjs` |
 | `media` | image re-encoding, SVG to PNG, PNG fixes | `attachments.ts` (images), `headless.ts` (svg, png) |
@@ -25,7 +25,7 @@ All Rust lives in `crates/` (a Cargo workspace; `Cargo.toml` at the repo root, t
 | `services` | `App` (all server state) and the server's services | `src/backend/server` |
 | `server` (gs-server, binary `godspeed-server`) | the HTTP layer Next gave us, the /api routes, the MCP endpoint | `src/proxy.ts`, `src/app`, `mcp.ts` |
 
-A module is named after its TS file in snake_case (`file-series.ts` is `classes::file_series`). A TS export `fooBar` becomes `foo_bar` in that module; `FOO_BAR` stays `FOO_BAR`. Other packages call your code by these names, so keep them.
+A module is named after its TS file in snake_case (`file-series.ts` is `spaces::file_series`). A TS export `fooBar` becomes `foo_bar` in that module; `FOO_BAR` stays `FOO_BAR`. Other packages call your code by these names, so keep them.
 
 ## Rules for every port
 
@@ -61,7 +61,7 @@ A module is named after its TS file in snake_case (`file-series.ts` is `classes:
 
 - `gs_json`: `Json`, `Obj`, `json!`, `parse`, `stringify`, `stringify_pretty`, `js_number`, `quote`, `to_json`, `from_json`, `lone`.
 - `gs_base`: `clock`, `config` (`Paths`, `GraphFiles`, `resolve`, `VERSION`), `events` (`Events`, `EventKind`, `Event::sse_frame`), `fsx`, `hash`, `ids`, `locale`, `locks`, `num`, `re`, `shutdown`, `text`, `time`.
-- `gs_core`: `contracts::{chat, class, graph}` (ids, versions, guards, class icons, deadline sort, scope parsing) and the edge functions other packages call first, each marked in its file.
+- `gs_core`: `contracts::{chat, space, graph}` (ids, versions, guards, space icons, deadline sort, scope parsing) and the edge functions other packages call first, each marked in its file.
 - `gs_store`: `Stores::new` with every store's constructor; `AgentSeenStore` implements `gs_core::records::agent_seen::SeenStore` (bodies to fill).
 - `gs_services`: `App::new(paths, shell)`.
 - `gs_server::http` (done, checked against `ui-serving` and `pdfjs-assets`; the desktop access rule by the `access` unit tests and `tests/shell.rs`):
@@ -70,15 +70,15 @@ A module is named after its TS file in snake_case (`file-series.ts` is `classes:
   - `reply`: `json(status, &v)`, `json_no_store`, `text`, `empty`, `no_store`, `not_found`, `Unhandled`, `json_body(body)` (`await req.json()`, None where it throws), `read_body` (cut at 210 MB like `proxyClientMaxBodySize`), `body_text`.
   - `paths::search_params(query)` and `paths::param` read a query like `URLSearchParams`; `paths::decode_component`.
   - `ui` serves `ui/` and `/pdfjs/*`; `events` is `GET /api/events`.
-- Handlers take axum extractors: `State<Arc<App>>`, `Path<String>` (or `Path<(String, String)>`), `Uri` for the query, `HeaderMap`, and `Body` last. Path params are decoded per segment like Next. Use the same param names on shared prefixes: `{id}` for a class or chat, `{deadline_id}`, `{file_id}`, `{section}`, `{*segment}`, `{n}`, `{file}`.
+- Handlers take axum extractors: `State<Arc<App>>`, `Path<String>` (or `Path<(String, String)>`), `Uri` for the query, `HeaderMap`, and `Body` last. Path params are decoded per segment like Next. Use the same param names on shared prefixes: `{id}` for a space or chat, `{deadline_id}`, `{file_id}`, `{section}`, `{*segment}`, `{n}`, `{file}`.
 
 ## Locks
 
 Node ran each read-modify-write of a file without an `await` inside, so nothing interleaved. Rust runs requests in parallel, so every such section takes a lock from `app.locks` (`gs_base::locks`):
 
-- Keys: `LockKey::Class(id)` (a class record, its files and cheat sheets), `Chat(id)` (a lesson or Talk record and its folder), `Graph(scope)` (one graph family, `None` is "No class"), `AppFile(name)` (one file under data/, like `"settings.json"` or `"agent-notes.json"`).
-- Take at most one, or several in this order: class, then chat, then graph, then app file. Several of one kind go in id order (a class delete holds each of its lessons). Of two app files, `settings.json` comes first: reading settings takes its lock, so code holding another app file must not read settings unless it took `settings.json` before. Locks are re-entrant on one thread, so a store may take the lock its caller already holds.
-- A turn begins under its lesson's lock (the write-ahead), and an extraction reads its lesson under it, so a check that no turn or extraction runs, made under that lock, holds until the lock is let go. Deleting or moving a lesson checks again under it after waiting out its work (`rewrite_blocker`). A lesson enters a class (created in it or moved to it) under the class's lock, which a class delete holds, so the delete sees every lesson in the class.
+- Keys: `LockKey::Space(id)` (a space record, its files and cheat sheets), `Chat(id)` (a lesson or Talk record and its folder), `Graph(scope)` (one graph family, `None` is "No space"), `AppFile(name)` (one file under data/, like `"settings.json"` or `"agent-notes.json"`).
+- Take at most one, or several in this order: space, then chat, then graph, then app file. Several of one kind go in id order (a space delete holds each of its lessons). Of two app files, `settings.json` comes first: reading settings takes its lock, so code holding another app file must not read settings unless it took `settings.json` before. Locks are re-entrant on one thread, so a store may take the lock its caller already holds.
+- A turn begins under its lesson's lock (the write-ahead), and an extraction reads its lesson under it, so a check that no turn or extraction runs, made under that lock, holds until the lock is let go. Deleting or moving a lesson checks again under it after waiting out its work (`rewrite_blocker`). A lesson enters a space (created in it or moved to it) under the space's lock, which a space delete holds, so the delete sees every lesson in the space.
 - The guard is not `Send`: hold it only in synchronous code. Read, change and write inside the guard; do slow work (PDF, model, network, agent) outside and re-check after taking the lock again, as the TS does after an `await`.
 - A store method that does its own read-modify-write takes the lock itself. A service that reads a record, decides, then writes takes the lock around all of it.
 
@@ -87,7 +87,7 @@ Node ran each read-modify-write of a file without an `await` inside, so nothing 
 - Started with its working directory beside `ui/`, `models/` (`Snowflake/snowflake-arctic-embed-xs`) and `pdfjs-dist/` (`Paths::resources`). pdfium's library also goes there (package pdf decides the file name), unless `LH_PDFIUM_PATH` names the library file: the Mac app keeps it in `Contents/Frameworks`, where the bundler signs it. `scripts/fetch-pdfium.mjs` downloads the pinned library into `.stage/`.
 - A debug build (`cargo build`) keeps the godspeed folder in `<data>/godspeed-folder` until the learner picks one, as `next dev` does, so a dev run never rewrites the real `~/godspeed`. A release build uses `~/godspeed`.
 - Env: `PORT` (bind is always 127.0.0.1), `LH_DATA_DIR` (unset: `data/` in the working directory), `HOME`, `TMPDIR`, `TZ`, `LH_DESKTOP_SERVER=1` + `LH_DESKTOP_API_SECRET` in the app, `LH_SHELL=1` when the desktop shell started it, `GODSPEED_CONTRACT_NOW` / `GODSPEED_CONTRACT_CLOCK_FILE` in tests. `CLAUDE_CONFIG_DIR` and `CODEX_HOME` are read where the TS reads them.
-- Writes nothing at start-up (the shell writes `mcp-endpoint.json`). An advisory lock on the data folder itself keeps a second server off the same data (no lock file); a new server waits up to 3 s for one that is still stopping.
+- Writes nothing at start-up (the shell writes `mcp-endpoint.json`). Data from before spaces were called spaces moves on first use instead, as Node moved it when the store modules loaded: `data/classes` to `data/spaces` (space store) and a saved `shared/12-class-context.md` to `12-space-context.md` (prompt overrides); `class.json`, v1 chats and v2 settings are read in their old shape and written in the new one. An advisory lock on the data folder itself keeps a second server off the same data (no lock file); a new server waits up to 3 s for one that is still stopping.
 - Stops on SIGTERM or SIGINT, and at the end of stdin: always with `LH_SHELL=1`, otherwise when stdin is a pipe. `gs_base::shutdown::wait()` ends long waits (event streams, `wait_for_work`); open requests get 2 s, and the process exits with 143.
 - Log lines go to stderr. stdout belongs to the shell protocol (clippy `print_stdout` is denied).
 - **Shell protocol** (`LH_SHELL=1`, crate `gs-shell-rpc`, spelled out in docs/tauri-shell.md section 2): one JSON object per line, `t` naming it. stdout: `ready` once right after the bind, `login_ok`, and `demo` / `svg` requests; stdin: `login`, `demo_done`, `svg_done`. Bad or unknown lines are logged and skipped. `App::shell` holds the `ShellLink`; `get_headless` sends demo runs and SVGs resvg cannot draw through it and waits at most 60 s (`demo check timed out`). Without a link they answer the no-browser error.
@@ -105,7 +105,7 @@ cd /Users/seane/Code/learnharness/.claude/rewrite-lab/contract
 CONTRACT_SERVER_CMD="/bin/sh $PWD/lib/rust-server.sh" CONTRACT_PORTS=48060-48069 node run.mjs check <scenario>
 ```
 
-The recordings come from a production Node build, so they hold only for a release server: a debug build keeps its own godspeed folder (see above) and answers the classes-folder checks differently, and it is too slow for the timing in some scenarios. `lib/rust-server.sh` makes `rewrite-lab/rust-stage/` with links to the phase 1 build's `ui/`, `models/` and pdf.js, and starts `target/release/godspeed-server` there (`RUST_SERVER_BIN` picks another build). Each scenario gets its own copy of the seed data, its own home, tmp, Claude and Codex folders, and the env above; the launcher stops the server afterwards. On a failure the full result is in `out/<scenario>.actual.json`. `--keep` keeps the run folder. Never point a server at the real data, `~/godspeed`, `~/.claude`, `~/.codex` or Google Drive.
+The recordings come from a production Node build, so they hold only for a release server: a debug build keeps its own godspeed folder (see above) and answers the spaces-folder checks differently, and it is too slow for the timing in some scenarios. `lib/rust-server.sh` makes `rewrite-lab/rust-stage/` with links to the phase 1 build's `ui/`, `models/` and pdf.js, and starts `target/release/godspeed-server` there (`RUST_SERVER_BIN` picks another build). Each scenario gets its own copy of the seed data, its own home, tmp, Claude and Codex folders, and the env above; the launcher stops the server afterwards. On a failure the full result is in `out/<scenario>.actual.json`. `--keep` keeps the run folder. Never point a server at the real data, `~/godspeed`, `~/.claude`, `~/.codex` or Google Drive.
 
 ## Work packages
 
@@ -113,13 +113,13 @@ Wave A ports the bottom layers in parallel; wave B builds the services, tools an
 
 | Package | Wave | Model | Owns |
 |---|---|---|---|
-| store-records | A | sonnet | `crates/core/src/records/`, `crates/store/src/` except chats, classes, cheat_sheets |
+| store-records | A | sonnet | `crates/core/src/records/`, `crates/store/src/` except chats, spaces, cheat_sheets |
 | messages | A | sonnet | `crates/core/src/messages/`, `crates/store/src/chats.rs` |
 | session | A | sonnet | `crates/core/src/session/` |
 | graph-core | A | sonnet | `crates/core/src/graph/` |
-| classes-core | A | sonnet | `crates/core/src/classes/`, `crates/store/src/classes.rs` |
+| spaces-core | A | sonnet | `crates/core/src/spaces/`, `crates/store/src/spaces.rs` |
 | study-progress | A | sonnet | `crates/core/src/study/`, `crates/store/src/cheat_sheets.rs` |
-| class-files | A | sonnet | `crates/files/` |
+| space-files | A | sonnet | `crates/files/` |
 | pdf | A | sonnet | `crates/pdf/` |
 | search | A | opus | `crates/search/` |
 | media | A | sonnet | `crates/media/` |
@@ -133,7 +133,7 @@ Wave A ports the bottom layers in parallel; wave B builds the services, tools an
 | extraction | B | opus | `crates/agent/src/extraction/`, `crates/services/src/graph/`, `crates/server/src/routes/graph.rs` |
 | turns | B | opus | `crates/services/src/turns/`, `crates/server/src/routes/chats.rs` |
 | jobs | B | opus | `crates/services/src/jobs/`, `crates/server/src/routes/jobs.rs` |
-| classes-service | B | opus | `crates/services/src/classes/`, `crates/server/src/routes/classes.rs` |
+| spaces-service | B | opus | `crates/services/src/spaces/`, `crates/server/src/routes/spaces.rs` |
 | cheat-sheets | B | sonnet | `crates/services/src/cheat_sheets/`, `crates/server/src/routes/cheat_sheets.rs` |
 | app-misc | B | sonnet | `crates/services/src/app/`, `crates/server/src/routes/app.rs` |
 
@@ -143,11 +143,11 @@ The full instructions per package (TS sources, what to provide to whom, scenario
 - **Wave B provides to wave B.** Where one wave B package calls another, the callee provides these names (snake_case of the TS), in the module named after the TS file, with `app: &Arc<App>` (or `&App`) as the first parameter when the TS reached module state:
   - turns: `chat_handler::handle_chat_input`, `agent_catch_up::catch_up_for_agent`, `turn_liveness::is_turn_running`, `turn_runs::clear_turn_failure`, `chats::{quiesce_chat_for_rewrite, running_work_blocker}`, `lessons::create_lesson`, `attachments::store_attachments`.
   - jobs: `jobs::{deliver_job_result, discard_chat_deliveries, note_steers_durable, reconcile_user_steers, register_live_agent, unregister_live_agent, set_job_respawn, set_turn_runner, settle_steers}`.
-  - classes-service: `classes::{add_copied_file, replace_copied_file, unlink_folder, update_class_deadline, source_id_for, AGENT_FILE_READING_REFUSAL}`, `class_actions::{class_actions, folder_name, READING_NOTE}` (one method per class tool, `&Json` args in, `ToolOutcome` out), `class_card::{class_card_for, class_file_path}`, `class_shortcuts::{sync_shortcuts_safely, watch_shortcuts}`.
-  - extraction: `extraction::extraction` (the registry), `extraction_runs::{abort_extraction, extraction_statuses, runs}`, `topics::{schedule_topic_grouping, cancel_topic_grouping}`, `progress::{progress_for, class_order_for, class_mistakes, hinted_problems, deadline_study_for, study_topics_for, topic_study_for}`, `graph::graph_revision`, `extraction::NotesImportError` (agent side), `submit_agent::run_submit_agent`.
+  - spaces-service: `spaces::{add_copied_file, replace_copied_file, unlink_folder, update_space_deadline, source_id_for, AGENT_FILE_READING_REFUSAL}`, `space_actions::{space_actions, folder_name, READING_NOTE}` (one method per space tool, `&Json` args in, `ToolOutcome` out), `space_card::{space_card_for, space_file_path}`, `space_shortcuts::{sync_shortcuts_safely, watch_shortcuts}`.
+  - extraction: `extraction::extraction` (the registry), `extraction_runs::{abort_extraction, extraction_statuses, runs}`, `topics::{schedule_topic_grouping, cancel_topic_grouping}`, `progress::{progress_for, space_order_for, space_mistakes, hinted_problems, deadline_study_for, study_topics_for, topic_study_for}`, `graph::graph_revision`, `extraction::NotesImportError` (agent side), `submit_agent::run_submit_agent`.
   - app-misc: `agent_actions::{note_agent_action, record_folder_files, record_answer}`, `agent_memory::current_agent_briefing`, `agent_rules::save_rule_by_agent`, `agent_folder::{cheat_sheets_dir, shortcut_path_problem}`, `today_note::{current_today_note, today_note_for}`.
   - subagents: `runner::create_job_runner`, `pi_run::run_subagent`, `aborts::{fire_job_abort, is_job_live}`, `bg_llm_semaphore::with_bg_llm_slot`, `headless::get_headless`, `cheat_sheet_writer::reply_on_sheet`.
-  - lesson-tools: `teacher::teacher_agent::{compose_instructions, create_prober_agent, create_teacher_agent, create_practice_agent, create_study_agent, create_homework_agent, create_talk_agent}`, `tools::heal::heal_tool_record`, `tools::class::search_tools`.
+  - lesson-tools: `teacher::teacher_agent::{compose_instructions, create_prober_agent, create_teacher_agent, create_practice_agent, create_study_agent, create_homework_agent, create_talk_agent}`, `tools::heal::heal_tool_record`, `tools::space::search_tools`.
   - file-tools: `fs_tools::{read::read_tool, ls::ls_tool, find::find_tool, grep::grep_tool, fs_shared::resolve_source_path, web::web_tools, pdf_read::create_pdf_read_tools}`.
   Write these first, as signatures with `todo!("package <you>")` bodies, so the others can compile against them; then fill them.
 - **Routes** go in the package's `routes/*.rs` as `ApiRoute`s; `routes/mod.rs` already merges every module.

@@ -1,7 +1,7 @@
 //! One `<id>.json` per lesson in data/chats, with an
 //! `<id>/` folder beside it for the files the learner sent.
 //!
-//! Only create, rename, delete and the class change announce `chats-changed`: those change the
+//! Only create, rename, delete and the space change announce `chats-changed`: those change the
 //! list's shape. The content writers stay silent, because every list-visible change they cause
 //! is already announced by turn-started and turn-settled.
 
@@ -22,7 +22,7 @@ use parking_lot::Mutex;
 const UNTITLED: &str = "Untitled session";
 
 /// A summary kept while its record file's version (modified time and size) is unchanged, so a
-/// sidebar refresh does not parse every lesson again. None is a record that is not a lesson.
+/// lesson list refresh does not parse every lesson again. None is a record that is not a lesson.
 type CachedSummary = (String, Option<Json>);
 
 pub struct ChatStore {
@@ -49,8 +49,8 @@ impl ChatStore {
 	}
 
 	/// Starts a lesson (or the Talk chat, for kind "talk"). `kind` is absent for a teach lesson,
-	/// and `class_id` for "No class". Returns the record as it landed on disk.
-	pub fn create_chat(&self, title: &str, kind: Option<&str>, class_id: Option<&str>, deadline_id: Option<&str>) -> Result<Json, String> {
+	/// and `space_id` for "No space". Returns the record as it landed on disk.
+	pub fn create_chat(&self, title: &str, kind: Option<&str>, space_id: Option<&str>, deadline_id: Option<&str>) -> Result<Json, String> {
 		let now = time::iso_now();
 		let kind = kind.filter(|k| !k.is_empty());
 		let id = if kind == Some("talk") { TALK_CHAT_ID.to_owned() } else { ids::timed("chat") };
@@ -61,7 +61,7 @@ impl ChatStore {
 		record.insert("createdAt", now.as_str());
 		record.insert("updatedAt", now.as_str());
 		record.insert("messages", Json::Arr(vec![]));
-		for (key, value) in [("kind", kind), ("classId", class_id), ("deadlineId", deadline_id)] {
+		for (key, value) in [("kind", kind), ("spaceId", space_id), ("deadlineId", deadline_id)] {
 			if let Some(value) = value.filter(|v| !v.is_empty()) {
 				record.insert(key, value);
 			}
@@ -107,6 +107,8 @@ impl ChatStore {
 			eprintln!("[chat {id}] record stamped with schema version {} > {CURRENT_CHAT_VERSION} — this app build is older; refusing to read it", js_number(version));
 			return None;
 		}
+		let mut parsed = parsed;
+		upgrade_to_v2(&mut parsed);
 		Some(parsed)
 	}
 
@@ -225,14 +227,14 @@ impl ChatStore {
 		Ok(file)
 	}
 
-	/// Sets or clears the lesson's class. Quiet like a rename (`updatedAt` stays put), but it
+	/// Sets or clears the lesson's space. Quiet like a rename (`updatedAt` stays put), but it
 	/// changes which list the lesson shows in, so it announces `chats-changed`.
-	pub fn set_chat_class(&self, id: &str, class_id: Option<&str>) -> Result<Json, String> {
-		let record = self.update(id, |record| match class_id.filter(|c| !c.is_empty()) {
-			Some(class_id) => set_field(record, "classId", class_id),
+	pub fn set_chat_space(&self, id: &str, space_id: Option<&str>) -> Result<Json, String> {
+		let record = self.update(id, |record| match space_id.filter(|c| !c.is_empty()) {
+			Some(space_id) => set_field(record, "spaceId", space_id),
 			None => {
 				if let Some(o) = record.as_obj_mut() {
-					o.remove("classId");
+					o.remove("spaceId");
 				}
 			}
 		})?;
@@ -288,6 +290,42 @@ impl ChatListing for ChatStore {
 	}
 }
 
+/// `o[to] = o[from]; delete o[from]` when `from` is there.
+fn rename(o: &mut Obj, from: &str, to: &str) {
+	if let Some(value) = o.get(from).cloned() {
+		o.insert(to, value);
+		o.remove(from);
+	}
+}
+
+/// v1 to v2: a record from before spaces were called spaces takes the new names. In memory only;
+/// the next write saves them.
+fn upgrade_to_v2(record: &mut Json) {
+	if record["version"].as_f64().is_some_and(|v| v >= 2.0) {
+		return;
+	}
+	let Some(obj) = record.as_obj_mut() else { return };
+	rename(obj, "classId", "spaceId");
+	let Some(messages) = obj.get_mut("messages").and_then(Json::as_arr_mut) else { return };
+	for m in messages.iter_mut().filter_map(Json::as_obj_mut) {
+		match m.get("customType").and_then(Json::as_str) {
+			Some("class-context") => {
+				m.insert("customType", "space-context");
+				if let Some(details) = m.get_mut("details").and_then(Json::as_obj_mut) {
+					rename(details, "classId", "spaceId");
+				}
+			}
+			Some("app-request") => {
+				let deadlines = m.get_mut("details").and_then(Json::as_obj_mut).and_then(|d| d.get_mut("deadlines")).and_then(Json::as_arr_mut);
+				for d in deadlines.into_iter().flatten().filter_map(Json::as_obj_mut) {
+					rename(d, "className", "spaceName");
+				}
+			}
+			_ => {}
+		}
+	}
+}
+
 #[cfg(test)]
 mod tests {
 	use super::*;
@@ -336,15 +374,44 @@ mod tests {
 		let fx = Fixture::new();
 		let mut changes = fx.events.subscribe();
 		let record = fx.store.create_chat("  Limits  ", None, Some("cls_1"), Some("")).unwrap();
-		assert_eq!(keys(&record), ["id", "title", "createdAt", "updatedAt", "messages", "classId", "version"]);
+		assert_eq!(keys(&record), ["id", "title", "createdAt", "updatedAt", "messages", "spaceId", "version"]);
 		assert_eq!(record["title"], json!("Limits"));
 		let id = record["id"].as_str().unwrap();
 		assert!(id.starts_with("chat_"));
 		let raw = std::fs::read_to_string(fx.file(id)).unwrap();
 		assert!(raw.starts_with(&format!("{{\n\t\"id\": \"{id}\",\n\t\"title\": \"Limits\",")));
-		assert!(raw.ends_with("\"messages\": [],\n\t\"classId\": \"cls_1\",\n\t\"version\": 1\n}"));
+		assert!(raw.ends_with("\"messages\": [],\n\t\"spaceId\": \"cls_1\",\n\t\"version\": 2\n}"));
 		assert_eq!(fx.store.get_chat(id), Some(record));
 		assert_eq!(changes.try_recv().unwrap().kind, EventKind::ChatsChanged);
+	}
+
+	#[test]
+	fn a_record_from_before_spaces_takes_the_new_names_on_read() {
+		let fx = Fixture::new();
+		std::fs::create_dir_all(&fx.store.dir).unwrap();
+		let v1 = r#"{"id":"chat_old","classId":"cls_1","updatedAt":"x","messages":[
+			{"role":"custom","customType":"class-context","details":{"classId":"cls_1","n":1}},
+			{"role":"custom","customType":"app-request","details":{"deadlines":[{"className":"Algebra","id":"d1"},"odd"]}},
+			{"role":"user","content":"class"},
+			"not a message"
+		]}"#;
+		fsx::write_text_atomic(&fx.file("chat_old"), v1).unwrap();
+		let read = fx.store.get_chat("chat_old").unwrap();
+		assert_eq!(keys(&read), ["id", "updatedAt", "messages", "spaceId"]);
+		let m = read["messages"].as_arr().unwrap();
+		assert_eq!(gs_json::stringify(&m[0]), r#"{"role":"custom","customType":"space-context","details":{"n":1,"spaceId":"cls_1"}}"#);
+		assert_eq!(gs_json::stringify(&m[1]["details"]), r#"{"deadlines":[{"id":"d1","spaceName":"Algebra"},"odd"]}"#);
+		assert_eq!(gs_json::stringify(&m[2]), r#"{"role":"user","content":"class"}"#);
+		// In memory only: the file keeps its old names until the next write.
+		assert_eq!(std::fs::read_to_string(fx.file("chat_old")).unwrap(), v1);
+		fx.store.rename_chat("chat_old", "Now").unwrap();
+		let saved = std::fs::read_to_string(fx.file("chat_old")).unwrap();
+		assert!(saved.contains("\"spaceId\": \"cls_1\"") && saved.contains("space-context") && !saved.contains("classId") && !saved.contains("class-context") && saved.ends_with("\"version\": 2\n}"));
+
+		// A v2 record is read as it is.
+		let v2 = r#"{"id":"chat_new","classId":"kept","updatedAt":"x","messages":[{"customType":"class-context"}],"version":2}"#;
+		fsx::write_text_atomic(&fx.file("chat_new"), v2).unwrap();
+		assert_eq!(gs_json::stringify(&fx.store.get_chat("chat_new").unwrap()), v2.replace('\n', ""));
 	}
 
 	#[test]
@@ -365,7 +432,7 @@ mod tests {
 		let plain = r#"{"id":"plain","updatedAt":"x","messages":[],"version":1}"#;
 		put("broken", "{ nope");
 		put("shapeless", r#"{"id":"shapeless","messages":[]}"#);
-		put("future", r#"{"id":"future","updatedAt":"x","messages":[],"version":2}"#);
+		put("future", r#"{"id":"future","updatedAt":"x","messages":[],"version":3}"#);
 		put("plain", plain);
 		for id in ["broken", "shapeless", "future", "missing", "../escape", ""] {
 			assert!(fx.store.get_chat(id).is_none(), "{id}");
@@ -380,7 +447,7 @@ mod tests {
 		let fx = Fixture::new();
 		fx.seed(old("chat_a", "2026-01-02T00:00:00.000Z"));
 		fx.store.rename_chat("chat_a", "New").unwrap();
-		fx.store.set_chat_class("chat_a", Some("cls_1")).unwrap();
+		fx.store.set_chat_space("chat_a", Some("cls_1")).unwrap();
 		fx.store.save_tree("chat_a", &json!({ "nodes": [] })).unwrap();
 		fx.store.append_turn_usage("chat_a", &json!({ "id": "t1", "tokens": 1 })).unwrap();
 		fx.store.append_turn_usage("chat_a", &json!({ "id": "t1", "tokens": 2 })).unwrap();
@@ -389,12 +456,12 @@ mod tests {
 		fx.store.append_extraction_usage("chat_a", &json!({ "startedAt": "s" })).unwrap();
 		let record = fx.store.get_chat("chat_a").unwrap();
 		assert_eq!(record["updatedAt"], json!("2026-01-02T00:00:00.000Z"));
-		assert_eq!((record["title"].as_str(), record["classId"].as_str()), (Some("New"), Some("cls_1")));
+		assert_eq!((record["title"].as_str(), record["spaceId"].as_str()), (Some("New"), Some("cls_1")));
 		assert_eq!(record["turns"], json!([{ "id": "t1", "tokens": 1 }, { "id": "t2" }]));
 		assert_eq!(record["extractions"], json!([{ "startedAt": "s" }]));
-		assert_eq!(keys(&record), ["id", "title", "createdAt", "updatedAt", "messages", "version", "classId", "tree", "turns", "extractions"]);
-		let cleared = fx.store.set_chat_class("chat_a", None).unwrap();
-		assert!(cleared.get("classId").is_none());
+		assert_eq!(keys(&record), ["id", "title", "createdAt", "updatedAt", "messages", "version", "spaceId", "tree", "turns", "extractions"]);
+		let cleared = fx.store.set_chat_space("chat_a", None).unwrap();
+		assert!(cleared.get("spaceId").is_none());
 		fx.store.save_messages("chat_a", &[json!({ "role": "user", "content": "hi" })]).unwrap();
 		let saved = fx.store.get_chat("chat_a").unwrap();
 		assert_ne!(saved["updatedAt"], json!("2026-01-02T00:00:00.000Z"));

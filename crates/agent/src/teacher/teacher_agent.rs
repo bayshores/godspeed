@@ -23,7 +23,7 @@ use crate::tools::homework::{HomeworkToolContext, homework_tools};
 use crate::tools::lesson::{ProberToolContext, StudyToolContext, TeacherToolContext, prober_tools, study_tools, teacher_tools};
 use crate::tools::practice::{PracticeToolContext, practice_tools};
 use crate::tools::questions::bare_question_tools;
-use crate::tools::talk::{ClassActions, talk_tools};
+use crate::tools::talk::{SpaceActions, talk_tools};
 
 use super::prompt_segments::{AgentKind, effective_prompt_segments};
 
@@ -185,9 +185,9 @@ pub fn create_homework_agent(ctx: &HomeworkToolContext, mut opts: AgentBuildOpti
 	build_agent(AgentKind::Homework, opts, tools)
 }
 
-/// Talk (the teacher's panel): one ongoing chat outside any lesson, for setting up classes, files
-/// and deadlines and quick questions. Its tools are the class actions.
-pub fn create_talk_agent(actions: &ClassActions, mut opts: AgentBuildOptions) -> Arc<Agent> {
+/// Talk (the teacher's panel): one ongoing chat outside any lesson, for setting up spaces, files
+/// and deadlines and quick questions. Its tools are the space actions.
+pub fn create_talk_agent(actions: &SpaceActions, mut opts: AgentBuildOptions) -> Arc<Agent> {
 	let tools = registry(&mut opts, |_| talk_tools(actions));
 	build_agent(AgentKind::Talk, opts, tools)
 }

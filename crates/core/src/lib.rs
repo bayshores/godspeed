@@ -8,5 +8,5 @@ pub mod records;
 pub mod messages;
 pub mod session;
 pub mod graph;
-pub mod classes;
+pub mod spaces;
 pub mod study;

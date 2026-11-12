@@ -9,7 +9,7 @@ use gs_json::{Json, json};
 use super::fn_tool::FnTool;
 use gs_core::session::schema::{object, one_of_literals};
 
-/// Saves the rule (text, `every_lesson` or `this_class`, area) and gives back the saved rule
+/// Saves the rule (text, `every_lesson` or `this_space`, area) and gives back the saved rule
 /// or the refusal as text.
 pub type SaveRule = Arc<dyn Fn(&str, &str, Option<&str>) -> Json + Send + Sync>;
 
@@ -27,7 +27,7 @@ pub fn save_rule_tool(save_rule: SaveRule) -> FnTool {
 					"description": "One line, an instruction to yourself in plain words, e.g. \"Use Python for code examples.\"",
 				}),
 			),
-			("for", one_of_literals(&["every_lesson", "this_class"], "\"every_lesson\", or \"this_class\" when it only matters in this lesson's class.")),
+			("for", one_of_literals(&["every_lesson", "this_space"], "\"every_lesson\", or \"this_space\" when it only matters in this lesson's space.")),
 			(
 				"area",
 				one_of_literals(

@@ -7,7 +7,7 @@
 use std::path::{Path, PathBuf};
 
 use gs_base::fsx;
-use gs_core::classes::old_setup::{without_json_entry, without_old_codex_server};
+use gs_core::spaces::old_setup::{without_json_entry, without_old_codex_server};
 use gs_json::{Json, json};
 
 use super::disk::{remove_all, write_file_atomic};

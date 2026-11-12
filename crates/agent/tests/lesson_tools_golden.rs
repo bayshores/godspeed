@@ -10,7 +10,7 @@ use std::sync::Arc;
 use futures_util::future::BoxFuture;
 use gs_agent::teacher::prompt_segments::{AgentKind, all_segment_paths};
 use gs_agent::teacher::teacher_agent::{AgentBuildOptions, compose_instructions, create_homework_agent, create_practice_agent, create_prober_agent, create_study_agent, create_talk_agent, create_teacher_agent};
-use gs_agent::tools::class::{ClassSearch, ClassToolContext};
+use gs_agent::tools::space::{SpaceSearch, SpaceToolContext};
 use gs_agent::tools::fn_tool::FnTool;
 use gs_agent::tools::graph::{GraphToolContext, ScopedGraph};
 use gs_agent::tools::homework::{HomeworkDeadline, HomeworkToolContext, homework_tools};
@@ -24,11 +24,11 @@ use gs_agent::tools::probe::ProbeDoneContext;
 use gs_agent::tools::questions::bare_question_tools;
 use gs_agent::tools::rules::SaveRule;
 use gs_agent::tools::side::LessonSide;
-use gs_agent::tools::talk::{ClassActions, talk_tools};
+use gs_agent::tools::talk::{SpaceActions, talk_tools};
 use gs_base::config::Paths;
 use gs_base::fsx;
-use gs_core::classes::class_tools::{ClassChange, ToolOutcome};
-use gs_core::contracts::class::CLASS_ICONS;
+use gs_core::spaces::space_tools::{SpaceChange, ToolOutcome};
+use gs_core::contracts::space::SPACE_ICONS;
 use gs_core::graph::ports::{ChatListing, GraphStore, LedgerRewrite};
 use gs_engine::turn::abort::Abort;
 use gs_engine::turn::agent::Agent;
@@ -230,8 +230,8 @@ fn world() -> World {
 
 fn card() -> Json {
 	json!({
-		"classId": "class1",
-		"name": "Class One",
+		"spaceId": "space1",
+		"name": "Space One",
 		"description": "  About it.  ",
 		"files": [
 			{ "name": "notes.md", "kind": "study", "path": "/files/notes.md", "size": "4 pages" },
@@ -242,19 +242,19 @@ fn card() -> Json {
 	})
 }
 
-fn class_actions() -> ClassActions {
+fn space_actions() -> SpaceActions {
 	Arc::new(|name, args| {
 		let outcome = match name {
-			"remove_class_deadline" => ToolOutcome::Err("No such deadline.".to_owned()),
-			"list_classes" => ToolOutcome::Ok { value: Json::from("Class One (class1)"), changes: Vec::new() },
-			_ => ToolOutcome::Ok { value: json!({ "tool": name, "args": args }), changes: vec![ClassChange { label: format!("Changed {name}"), page: format!("/class/{name}") }] },
+			"remove_space_deadline" => ToolOutcome::Err("No such deadline.".to_owned()),
+			"list_spaces" => ToolOutcome::Ok { value: Json::from("Space One (space1)"), changes: Vec::new() },
+			_ => ToolOutcome::Ok { value: json!({ "tool": name, "args": args }), changes: vec![SpaceChange { label: format!("Changed {name}"), page: format!("/space/{name}") }] },
 		};
 		Box::pin(async move { outcome })
 	})
 }
 
-fn class_search() -> Arc<ClassSearch> {
-	Arc::new(ClassSearch {
+fn space_search() -> Arc<SpaceSearch> {
+	Arc::new(SpaceSearch {
 		search_files: Box::new(|query, limit| Box::pin(async move { Ok(format!("found {} limit {limit}", stringify(&Json::from(query)))) }) as BoxFuture<'static, Result<String, String>>),
 		read_passage: Box::new(|reference| {
 			let shown = match reference {
@@ -271,9 +271,9 @@ fn save_rule() -> SaveRule {
 		if rule == "dup" {
 			return Json::from("That rule already exists.");
 		}
-		let this_class = scope == "this_class";
-		let place = if this_class { json!({ "classId": "class1" }) } else { json!({ "area": area.unwrap_or("teaching") }) };
-		json!({ "saved": true, "rule": rule, "for": if this_class { "Class One" } else { "every lesson" }, "where": place, "note": "" })
+		let this_space = scope == "this_space";
+		let place = if this_space { json!({ "spaceId": "space1" }) } else { json!({ "area": area.unwrap_or("teaching") }) };
+		json!({ "saved": true, "rule": rule, "for": if this_space { "Space One" } else { "every lesson" }, "where": place, "note": "" })
 	})
 }
 
@@ -304,27 +304,27 @@ impl World {
 		JobToolContext { chat_id: chat_id.to_owned(), job_store: self.jobs.clone(), spawn: self.spawn() }
 	}
 
-	/// The class card, [Today] note, file search, class note, rule saving and deadline changes.
+	/// The space card, [Today] note, file search, space note, rule saving and deadline changes.
 	fn side(&self) -> LessonSide {
 		LessonSide {
-			class: Some(ClassToolContext {
-				class_card: Arc::new(|| Ok(Some(card()))),
+			space: Some(SpaceToolContext {
+				space_card: Arc::new(|| Ok(Some(card()))),
 				today_note: Some(Arc::new(|| "[Today] Monday".to_owned())),
-				search: Some(class_search()),
+				search: Some(space_search()),
 				set_note: Some(Arc::new(|text| format!("Note saved: {text}"))),
 			}),
 			save_rule: Some(save_rule()),
-			class_actions: Some(class_actions()),
+			space_actions: Some(space_actions()),
 		}
 	}
 
-	fn graph(&self, store: Arc<dyn GraphStore>, across_classes: bool) -> GraphToolContext {
+	fn graph(&self, store: Arc<dyn GraphStore>, across_spaces: bool) -> GraphToolContext {
 		let (own, other) = (self.own.clone(), self.other.clone());
-		let graphs: Option<Arc<dyn Fn() -> Vec<ScopedGraph> + Send + Sync>> = across_classes.then(|| {
+		let graphs: Option<Arc<dyn Fn() -> Vec<ScopedGraph> + Send + Sync>> = across_spaces.then(|| {
 			Arc::new(move || {
 				vec![
-					ScopedGraph { class_name: "Class One".to_owned(), graph_store: own.clone(), own: true },
-					ScopedGraph { class_name: "Class Two".to_owned(), graph_store: other.clone(), own: false },
+					ScopedGraph { space_name: "Space One".to_owned(), graph_store: own.clone(), own: true },
+					ScopedGraph { space_name: "Space Two".to_owned(), graph_store: other.clone(), own: false },
 				]
 			}) as Arc<dyn Fn() -> Vec<ScopedGraph> + Send + Sync>
 		});
@@ -479,7 +479,7 @@ fn agents(prompts: &PromptOverrides) -> Json {
 		"practice": agent_facts(&create_practice_agent(&w.practice("lesson"), toggled(off()))),
 		"study": agent_facts(&create_study_agent(&study, toggled(json!({ "demo": false })))),
 		"homework": agent_facts(&create_homework_agent(&w.homework("lesson", deadline), AgentBuildOptions { learner_rules: rules(), ..opts() })),
-		"talk": agent_facts(&create_talk_agent(&class_actions(), toggled(off()))),
+		"talk": agent_facts(&create_talk_agent(&space_actions(), toggled(off()))),
 		"explicit tools": agent_facts(&create_teacher_agent(Some(&teacher()), AgentBuildOptions { tools: Some(explicit), ..toggled(json!({ "quiz": false })) })),
 	})
 }
@@ -539,9 +539,9 @@ async fn run_cases(data: &Path) -> Vec<(&'static str, Json)> {
 	case("registry: practice minimal", describe(&practice_tools(&w.practice("lesson"), None)));
 	case("registry: practice full", describe(&practice_tools(&practice_full, Some(&json!({ "pdf": false })))));
 	case("registry: homework full", describe(&homework_tools(&homework_full, None)));
-	case("registry: talk", describe(&talk_tools(&class_actions())));
+	case("registry: talk", describe(&talk_tools(&space_actions())));
 	case("registry: bare questions", describe(&bare_question_tools()));
-	case("icons", CLASS_ICONS.iter().map(|(icon, _)| Json::from(*icon)).collect());
+	case("icons", SPACE_ICONS.iter().map(|(icon, _)| Json::from(*icon)).collect());
 
 	let w = world();
 	let reg = teacher_tools(&w.teacher("lesson"), None);
@@ -661,47 +661,47 @@ async fn run_cases(data: &Path) -> Vec<(&'static str, Json)> {
 	let out = script(
 		&reg,
 		vec![
-			("read_class", json!({})),
-			("set_class_note", json!({ "text": "Two sentences." })),
-			("search_class_files", json!({ "query": "limits" })),
-			("search_class_files", json!({ "query": "limits", "limit": 3 })),
+			("read_space", json!({})),
+			("set_space_note", json!({ "text": "Two sentences." })),
+			("search_space_files", json!({ "query": "limits" })),
+			("search_space_files", json!({ "query": "limits", "limit": 3 })),
 			("read_passage", json!({ "passage_id": "f1:3" })),
 			("read_passage", json!({ "file_id": "f1", "range": "p. 3" })),
 			("read_passage", json!({ "file_id": "f1" })),
 			("read_passage", json!({})),
 			("save_rule", json!({ "rule": "Use Python.", "for": "every_lesson", "area": "files" })),
-			("save_rule", json!({ "rule": "Use Python.", "for": "this_class" })),
+			("save_rule", json!({ "rule": "Use Python.", "for": "this_space" })),
 			("save_rule", json!({ "rule": "dup", "for": "every_lesson" })),
-			("list_classes", json!({})),
-			("add_class_deadline", json!({ "class_id": "class1", "deadlines": [{ "kind": "exam", "name": "Midterm", "date": "2026-03-01" }] })),
-			("update_class_deadline", json!({ "class_id": "class1", "deadline_id": "d1", "time": null, "done": true })),
-			("remove_class_deadline", json!({ "class_id": "class1", "deadline_id": "d1" })),
+			("list_spaces", json!({})),
+			("add_space_deadline", json!({ "space_id": "space1", "deadlines": [{ "kind": "exam", "name": "Midterm", "date": "2026-03-01" }] })),
+			("update_space_deadline", json!({ "space_id": "space1", "deadline_id": "d1", "time": null, "done": true })),
+			("remove_space_deadline", json!({ "space_id": "space1", "deadline_id": "d1" })),
 		],
 	)
 	.await;
-	let class_only = |class_card: Arc<dyn Fn() -> Result<Option<Json>, String> + Send + Sync>| {
-		let side = LessonSide { class: Some(ClassToolContext { class_card, today_note: None, search: None, set_note: None }), ..LessonSide::default() };
+	let space_only = |space_card: Arc<dyn Fn() -> Result<Option<Json>, String> + Send + Sync>| {
+		let side = LessonSide { space: Some(SpaceToolContext { space_card, today_note: None, search: None, set_note: None }), ..LessonSide::default() };
 		teacher_tools(&TeacherToolContext { side, ..w.teacher("lesson") }, None)
 	};
-	let gone = script(&class_only(Arc::new(|| Ok(None))), vec![("read_class", json!({}))]).await;
-	let no_today = script(&class_only(Arc::new(|| Ok(Some(card())))), vec![("read_class", json!({}))]).await;
-	case("class: tools", json!({ "out": out, "gone": gone, "noToday": no_today }));
-	let icon = CLASS_ICONS[0].0;
+	let gone = script(&space_only(Arc::new(|| Ok(None))), vec![("read_space", json!({}))]).await;
+	let no_today = script(&space_only(Arc::new(|| Ok(Some(card())))), vec![("read_space", json!({}))]).await;
+	case("space: tools", json!({ "out": out, "gone": gone, "noToday": no_today }));
+	let icon = SPACE_ICONS[0].0;
 	case(
-		"class: talk",
+		"space: talk",
 		script(
-			&talk_tools(&class_actions()),
+			&talk_tools(&space_actions()),
 			vec![
-				("list_classes", json!({})),
-				("read_class", json!({ "class_id": "class1", "files": true })),
-				("search_class_files", json!({ "class_id": "class1", "query": "q", "limit": 2 })),
-				("create_class", json!({ "name": "New", "icon": icon, "signature": { "kind": "math", "value": "x^2" } })),
-				("add_class_file", json!({ "class_id": "class1", "path": "/a.md", "kind": "study" })),
-				("set_class_file_kind", json!({ "class_id": "class1", "file_ids": ["f1"], "kind": "info" })),
-				("add_class_deadline", json!({ "class_id": "class1", "deadlines": [{ "kind": "quiz", "name": "Q1", "date": "2026-03-01", "time": "10:00", "file_ids": ["f1"] }] })),
-				("remove_class_deadline", json!({ "class_id": "class1", "deadline_id": "d1" })),
+				("list_spaces", json!({})),
+				("read_space", json!({ "space_id": "space1", "files": true })),
+				("search_space_files", json!({ "space_id": "space1", "query": "q", "limit": 2 })),
+				("create_space", json!({ "name": "New", "icon": icon, "signature": { "kind": "math", "value": "x^2" } })),
+				("add_space_file", json!({ "space_id": "space1", "path": "/a.md", "kind": "study" })),
+				("set_space_file_kind", json!({ "space_id": "space1", "file_ids": ["f1"], "kind": "info" })),
+				("add_space_deadline", json!({ "space_id": "space1", "deadlines": [{ "kind": "quiz", "name": "Q1", "date": "2026-03-01", "time": "10:00", "file_ids": ["f1"] }] })),
+				("remove_space_deadline", json!({ "space_id": "space1", "deadline_id": "d1" })),
 				("start_lesson", json!({ "topic": "Limits" })),
-				("link_class_folder", json!({ "class_id": "class1", "path": "/folder" })),
+				("link_space_folder", json!({ "space_id": "space1", "path": "/folder" })),
 			],
 		)
 		.await,

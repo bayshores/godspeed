@@ -26,8 +26,10 @@ pub fn parse_agent_notes(raw: &Json) -> Vec<Json> {
 			let mut out = Obj::new();
 			out.insert("id", id);
 			out.insert("text", note);
-			if let Some(class_id) = entry["classId"].as_str() {
-				out.insert("classId", class_id);
+			// classId: the field's name before the rename.
+			let space_id = if entry["spaceId"].is_null() { &entry["classId"] } else { &entry["spaceId"] };
+			if let Some(space_id) = space_id.as_str() {
+				out.insert("spaceId", space_id);
 			}
 			out.insert("createdAt", created_at);
 			Some(Json::Obj(out))
@@ -51,9 +53,11 @@ mod tests {
 
 	#[test]
 	fn malformed_entries_are_dropped() {
-		let raw = json!({ "notes": [{ "id": "n1", "text": "t", "classId": 5, "createdAt": "now", "extra": 1 }, { "id": "n2", "text": "t" }, "x", { "id": "n3", "text": "u", "classId": "cls_a", "createdAt": "z" }] });
-		assert_eq!(stringify(&json!(parse_agent_notes(&raw))), r#"[{"id":"n1","text":"t","createdAt":"now"},{"id":"n3","text":"u","classId":"cls_a","createdAt":"z"}]"#);
+		let raw = json!({ "notes": [{ "id": "n1", "text": "t", "spaceId": 5, "createdAt": "now", "extra": 1 }, { "id": "n2", "text": "t" }, "x", { "id": "n3", "text": "u", "spaceId": "cls_a", "createdAt": "z" }] });
+		assert_eq!(stringify(&json!(parse_agent_notes(&raw))), r#"[{"id":"n1","text":"t","createdAt":"now"},{"id":"n3","text":"u","spaceId":"cls_a","createdAt":"z"}]"#);
 		assert!(parse_agent_notes(&json!({ "notes": "x" })).is_empty());
+		let old = json!({ "notes": [{ "id": "n1", "text": "t", "classId": "cls_a", "createdAt": "z" }, { "id": "n2", "text": "t", "spaceId": null, "classId": "cls_b", "createdAt": "z" }, { "id": "n3", "text": "t", "spaceId": 5, "classId": "cls_c", "createdAt": "z" }] });
+		assert_eq!(stringify(&json!(parse_agent_notes(&old))), r#"[{"id":"n1","text":"t","spaceId":"cls_a","createdAt":"z"},{"id":"n2","text":"t","spaceId":"cls_b","createdAt":"z"},{"id":"n3","text":"t","createdAt":"z"}]"#);
 		assert!(parse_agent_notes(&Json::Null).is_empty());
 	}
 }

@@ -42,22 +42,22 @@ fn the_first_append_stamps_the_format_and_writes_one_line() {
 }
 
 #[test]
-fn a_class_graph_lives_in_its_class_folder() {
-	let lab = Lab::new("graph-class");
+fn a_space_graph_lives_in_its_space_folder() {
+	let lab = Lab::new("graph-space");
 	let graph = stores(&lab);
 	graph.append(Some("cls_a"), Ledger::Chains, &chain("c_1")).unwrap();
-	assert!(lab.exists("classes/cls_a/graph/chains.jsonl") && lab.exists("classes/cls_a/graph/format.json"));
+	assert!(lab.exists("spaces/cls_a/graph/chains.jsonl") && lab.exists("spaces/cls_a/graph/format.json"));
 	assert!(!lab.exists("graph"));
 	assert!(graph.read(None, Ledger::Chains).unwrap().is_empty());
 	assert_eq!(graph.read(Some("cls_a"), Ledger::Chains).unwrap().len(), 1);
 }
 
 #[test]
-fn a_class_id_that_could_be_a_path_is_refused() {
-	let lab = Lab::new("graph-bad-class");
+fn a_space_id_that_could_be_a_path_is_refused() {
+	let lab = Lab::new("graph-bad-space");
 	let graph = stores(&lab);
-	for bad in ["../evil", "cls_a/../../x", "", "notaclass"] {
-		let want: Result<(), String> = Err(format!("Invalid class id: {bad}"));
+	for bad in ["../evil", "cls_a/../../x", "", "notaspace"] {
+		let want: Result<(), String> = Err(format!("Invalid space id: {bad}"));
 		assert_eq!(graph.append(Some(bad), Ledger::Nodes, &node("n_1")), want);
 		assert_eq!(graph.read(Some(bad), Ledger::Nodes).map(|_| ()), want);
 		assert_eq!(graph.read_sources(Some(bad)).map(|_| ()), want);
@@ -143,7 +143,7 @@ fn rewriting_ledgers_replaces_each_whole_and_leaves_the_stamp_alone() {
 	assert!(graph.read(None, Ledger::Chains).unwrap().is_empty());
 	let fresh = Lab::new("graph-rewrite-fresh");
 	stores(&fresh).rewrite_ledgers(Some("cls_a"), &[(Ledger::Coverage, &[])]).unwrap();
-	assert_eq!(fresh.names("classes/cls_a/graph"), ["coverage.jsonl"]);
+	assert_eq!(fresh.names("spaces/cls_a/graph"), ["coverage.jsonl"]);
 }
 
 #[test]
@@ -201,16 +201,16 @@ fn old_ledgers_nothing_reads_any_more_are_deleted_when_the_stores_open() {
 #[test]
 fn the_seed_graphs_read_and_rewrite_byte_for_byte() {
 	let lab = Lab::new("graph-seed");
-	if !lab.copy_seed("graph") || !lab.copy_seed("classes") {
+	if !lab.copy_seed("graph") || !lab.copy_seed("spaces") {
 		return;
 	}
 	let graph = stores(&lab);
 	let ledgers = [(Ledger::Nodes, "nodes.jsonl"), (Ledger::Chains, "chains.jsonl"), (Ledger::Checkpoints, "sessions.jsonl"), (Ledger::Coverage, "coverage.jsonl")];
 	let mut scopes: Vec<Option<String>> = vec![None];
-	scopes.extend(lab.names("classes").into_iter().filter(|c| lab.exists(&format!("classes/{c}/graph"))).map(Some));
+	scopes.extend(lab.names("spaces").into_iter().filter(|c| lab.exists(&format!("spaces/{c}/graph"))).map(Some));
 	let mut checked = 0;
 	for scope in &scopes {
-		let dir = scope.as_ref().map_or_else(|| "graph".to_owned(), |c| format!("classes/{c}/graph"));
+		let dir = scope.as_ref().map_or_else(|| "graph".to_owned(), |c| format!("spaces/{c}/graph"));
 		for (ledger, name) in ledgers {
 			let file = format!("{dir}/{name}");
 			if !lab.exists(&file) {
@@ -233,20 +233,20 @@ fn the_seed_graphs_read_and_rewrite_byte_for_byte() {
 #[test]
 fn the_seed_sources_save_back_byte_for_byte() {
 	let lab = Lab::new("graph-seed-sources");
-	if !lab.copy_seed("classes") {
+	if !lab.copy_seed("spaces") {
 		return;
 	}
 	let graph = stores(&lab);
 	let mut found = false;
-	for class in lab.names("classes") {
-		let file = format!("classes/{class}/graph/sources.json");
+	for space in lab.names("spaces") {
+		let file = format!("spaces/{space}/graph/sources.json");
 		if !lab.exists(&file) {
 			continue;
 		}
 		let before = lab.get(&file);
-		let sources = graph.read_sources(Some(&class)).unwrap();
+		let sources = graph.read_sources(Some(&space)).unwrap();
 		let Some(first) = sources.first() else { continue };
-		graph.upsert_source(Some(&class), first).unwrap();
+		graph.upsert_source(Some(&space), first).unwrap();
 		assert_eq!(lab.get(&file), before, "{file}");
 		assert_eq!(parse(&before).unwrap().as_obj().unwrap().len(), sources.len(), "{file} dropped a source");
 		found = true;

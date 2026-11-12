@@ -20,7 +20,7 @@ use parking_lot::Mutex;
 
 use crate::App;
 
-pub use reads::{cheat_sheet_file, cheat_sheet_pdf, cheat_sheet_view, class_sheets_view, sheet_pdf_file};
+pub use reads::{cheat_sheet_file, cheat_sheet_pdf, cheat_sheet_view, space_sheets_view, sheet_pdf_file};
 pub use run::{AskInput, ask, remove_rule, retry, stop};
 
 /// The message a sheet's agent is answering.

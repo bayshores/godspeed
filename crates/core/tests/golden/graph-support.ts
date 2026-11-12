@@ -29,7 +29,7 @@ export function ledgers(parts: Partial<Ledgers>): Ledgers {
 const jsonl = (file: string): any[] =>
 	fs.existsSync(file) ? fs.readFileSync(file, "utf8").split("\n").filter(Boolean).map((line) => JSON.parse(line)) : [];
 
-/** The fixture ledgers of one class graph (never written). */
+/** The fixture ledgers of one space graph (never written). */
 export function fixture(name: string): Ledgers {
 	const dir = path.join(FIXTURES, name);
 	return {

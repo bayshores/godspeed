@@ -28,7 +28,7 @@ impl AgentNotesStore {
 	}
 
 	/// The saved note, or the message to give the agent.
-	pub fn add_agent_note(&self, text: &str, class_id: Option<&str>) -> Result<Json, String> {
+	pub fn add_agent_note(&self, text: &str, space_id: Option<&str>) -> Result<Json, String> {
 		let Some(clean) = clean_note_text(text) else { return Err(format!("A note is one line of 1 to {NOTE_MAX_CHARS} characters.")) };
 		let _guard = self.locks.lock(LockKey::AppFile(FILE_NAME));
 		let mut notes = self.list_agent_notes();
@@ -39,8 +39,8 @@ impl AgentNotesStore {
 		let mut note = Obj::new();
 		note.insert("id", ids::bytes_hex("note", 4));
 		note.insert("text", clean);
-		if let Some(class_id) = class_id.filter(|c| !c.is_empty()) {
-			note.insert("classId", class_id);
+		if let Some(space_id) = space_id.filter(|c| !c.is_empty()) {
+			note.insert("spaceId", space_id);
 		}
 		note.insert("createdAt", time::iso_now());
 		let note = Json::Obj(note);

@@ -28,7 +28,7 @@ export default {
 					() => chatStore.appendTurnUsage(id, { id: "golden-turn" } as never),
 					() => chatStore.appendExtractionUsage(id, { startedAt: "golden-run" } as never),
 					() => chatStore.saveTree(id, { nodes: [] } as never),
-					() => chatStore.setChatClass(id, "cls_golden"),
+					() => chatStore.setChatSpace(id, "cls_golden"),
 				];
 				const steps = edits.map((edit) => {
 					edit();

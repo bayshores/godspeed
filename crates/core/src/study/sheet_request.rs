@@ -114,7 +114,7 @@ fn earlier_text(messages: &[Json]) -> String {
 		.map(|m| {
 			let said = one_line(m["text"].as_str().unwrap_or(""), EARLIER_CHARS);
 			if m["role"].as_str() == Some("you") {
-				return format!("Student: {}", if said.is_empty() { "(files only)" } else { &said });
+				return format!("Learner: {}", if said.is_empty() { "(files only)" } else { &said });
 			}
 			let made = if m["version"].truthy() { format!("[made version {}]", number(&m["version"])) } else { String::new() };
 			format!("You: {}", [said, made].into_iter().filter(|p| !p.is_empty()).collect::<Vec<_>>().join(" "))
@@ -161,7 +161,7 @@ fn topic_lines(t: &Json, first_sheet: bool) -> String {
 /// mistakes, the working folder, the chat so far, what the learner is on and points at, and their
 /// message last.
 ///
-/// `r` is `{ title, date, classNotes, infoFiles, rules, topics, mistakes, folder: { path, files },
+/// `r` is `{ title, date, spaceNotes, infoFiles, rules, topics, mistakes, folder: { path, files },
 /// versions, earlier, message }`; a topic is `{ id, name, status, mistakes, facts: [{ name,
 /// statement }] }`.
 pub fn cheat_sheet_request_text(r: &Json) -> String {
@@ -170,12 +170,12 @@ pub fn cheat_sheet_request_text(r: &Json) -> String {
 	let current = versions.last();
 	let m = &r["message"];
 	let info_files: Vec<&str> = items(&r["infoFiles"]).iter().filter_map(Json::as_str).collect();
-	let class_notes = r["classNotes"].as_str().filter(|n| !n.is_empty());
+	let space_notes = r["spaceNotes"].as_str().filter(|n| !n.is_empty());
 
 	let header = [
 		format!("Cheat sheet for: {} on {}", r["title"].as_str().unwrap_or(""), r["date"].as_str().unwrap_or("")),
-		class_notes.map(|n| format!("About the class: {}", one_line(n, 300))).unwrap_or_default(),
-		if info_files.is_empty() { "The class has no course info files; search all its files for the rules.".to_owned() } else { format!("Course info files (the rules are likely here): {}", info_file_list(&info_files)) },
+		space_notes.map(|n| format!("About the space: {}", one_line(n, 300))).unwrap_or_default(),
+		if info_files.is_empty() { "The space has no space info files; search all its files for the rules.".to_owned() } else { format!("Space info files (the rules are likely here): {}", info_file_list(&info_files)) },
 	]
 	.into_iter()
 	.filter(|p| !p.is_empty())
@@ -192,8 +192,8 @@ pub fn cheat_sheet_request_text(r: &Json) -> String {
 			String::new()
 		} else {
 			format!(
-				"Topics on this exam (name | how the student does){}:\n{}",
-				if current.is_some() { "" } else { ", with some of the class's facts" },
+				"Topics on this exam (name | how the learner does){}:\n{}",
+				if current.is_some() { "" } else { ", with some of the space's facts" },
 				topics.iter().map(|t| topic_lines(t, current.is_none())).collect::<Vec<_>>().join("\n")
 			)
 		},
@@ -212,7 +212,7 @@ pub fn cheat_sheet_request_text(r: &Json) -> String {
 		if m["region"].truthy() { region_line(&m["region"], versions, current) } else { String::new() },
 		{
 			let said = text::trim(m["text"].as_str().unwrap_or(""));
-			format!("The student says:\n{}", if said.is_empty() { "(no words, only the files)" } else { said })
+			format!("The learner says:\n{}", if said.is_empty() { "(no words, only the files)" } else { said })
 		},
 	];
 	sections.into_iter().filter(|s| !s.is_empty()).collect::<Vec<_>>().join("\n\n")
@@ -246,7 +246,7 @@ mod tests {
 	#[test]
 	fn the_first_request_lists_facts_and_a_later_one_the_chat() {
 		let r = json!({
-			"title": "CSE 21 Midterm", "date": "2026-11-20", "classNotes": "Uses  Rosen.",
+			"title": "CSE 21 Midterm", "date": "2026-11-20", "spaceNotes": "Uses  Rosen.",
 			"infoFiles": ["notes.pdf", "Syllabus.pdf"],
 			"rules": [{ "text": "A4", "at": "t" }],
 			"topics": [{ "id": "t1", "name": "Sums", "status": "weak", "mistakes": 2, "facts": [{ "name": "Gauss", "statement": "1+2+...+n" }] }],
@@ -259,7 +259,7 @@ mod tests {
 		let first = cheat_sheet_request_text(&r);
 		assert_eq!(
 			first,
-			"Cheat sheet for: CSE 21 Midterm on 2026-11-20\nAbout the class: Uses Rosen.\nCourse info files (the rules are likely here): Syllabus.pdf, notes.pdf\n\nThis sheet's rules (follow every one):\n- A4\n\nTopics on this exam (name | how the student does), with some of the class's facts:\nSums | weak, 2 mistakes\n  - Gauss: 1+2+...+n\n\nMistakes from practice:\n- answered wrong (Sums): \"What is 1+1?\"\n\nWorking folder: /g/CSE\nIt is empty. There is no sheet yet. Keep its source here so later changes can edit it.\n\nThe student says:\nmake it"
+			"Cheat sheet for: CSE 21 Midterm on 2026-11-20\nAbout the space: Uses Rosen.\nSpace info files (the rules are likely here): Syllabus.pdf, notes.pdf\n\nThis sheet's rules (follow every one):\n- A4\n\nTopics on this exam (name | how the learner does), with some of the space's facts:\nSums | weak, 2 mistakes\n  - Gauss: 1+2+...+n\n\nMistakes from practice:\n- answered wrong (Sums): \"What is 1+1?\"\n\nWorking folder: /g/CSE\nIt is empty. There is no sheet yet. Keep its source here so later changes can edit it.\n\nThe learner says:\nmake it"
 		);
 		let page = json!({ "widthPt": 612, "heightPt": 792 });
 		let mut r = r.as_obj().cloned().unwrap();
@@ -267,11 +267,11 @@ mod tests {
 		r.insert("earlier", json!([{ "role": "you", "text": "", "files": [] }, { "role": "agent", "text": "Done", "version": 2 }]));
 		r.insert("message", json!({ "text": "", "region": { "n": 1, "page": 1, "x": 0.1, "y": 0.1, "w": 0.3, "h": 0.2 }, "about": { "kind": "problem", "session": "HW 4", "text": "Find x", "work": " x = 2 " } }));
 		let later = cheat_sheet_request_text(&Json::Obj(r));
-		assert!(later.contains("Topics on this exam (name | how the student does):\nSums | weak, 2 mistakes\n\n"));
+		assert!(later.contains("Topics on this exam (name | how the learner does):\nSums | weak, 2 mistakes\n\n"));
 		assert!(later.contains("It is empty. The sheet now is version 2 (Letter, one side), made from the source here."));
-		assert!(later.contains("The chat so far, oldest first:\nStudent: (files only)\nYou: Done [made version 2]\n\n"));
+		assert!(later.contains("The chat so far, oldest first:\nLearner: (files only)\nYou: Done [made version 2]\n\n"));
 		assert!(later.contains("The student is on this problem in their session \"HW 4\", with the sheet open beside it:\nFind x\nWhat they have written for it so far:\nx = 2\n\n"));
 		assert!(later.contains("They pointed at version 1, page 1, from 10% to 40% across and 10% to 30% down. The first picture shows that part. That is an older version; the sheet now is version 2.\n\n"));
-		assert!(later.ends_with("The student says:\n(no words, only the files)"));
+		assert!(later.ends_with("The learner says:\n(no words, only the files)"));
 	}
 }

@@ -1,5 +1,5 @@
-//! A class's passage table: indexing and dropping files, search_class_files and read_passage
-//! (the class-file half of src/backend/server/search-index.ts).
+//! A space's passage table: indexing and dropping files, search_space_files and read_passage
+//! (the space-file half of src/backend/server/search-index.ts).
 
 use std::collections::HashMap;
 
@@ -13,7 +13,7 @@ use crate::table::Table;
 /// Most characters read_passage returns.
 const READ_LIMIT_CHARS: usize = 6000;
 
-/// A class file's id to its name, from the class record's `files`; a file without a name shows its
+/// A space file's id to its name, from the space record's `files`; a file without a name shows its
 /// id, like the TS's `?? fileId`.
 fn file_names(files: &[Json]) -> HashMap<&str, &str> {
 	files.iter().filter_map(|f| Some((field(f, "id"), f["name"].as_str()?))).collect()
@@ -29,30 +29,30 @@ fn place(row: &Json, key: &str) -> f64 {
 }
 
 impl Search {
-	/// Drop a deleted class's tables from memory: nothing reads them again. Its writer locks stay,
+	/// Drop a deleted space's tables from memory: nothing reads them again. Its writer locks stay,
 	/// so an index run still in flight keeps its order.
-	pub fn forget_class_search(&self, class_id: &str) {
-		self.drop_cached(&self.passages_file(class_id));
-		self.drop_cached(&self.facts_file(Some(class_id)));
+	pub fn forget_space_search(&self, space_id: &str) {
+		self.drop_cached(&self.passages_file(space_id));
+		self.drop_cached(&self.facts_file(Some(space_id)));
 	}
 
-	/// True when this version of the file is in the class's index.
-	pub fn is_file_indexed(&self, class_id: &str, file_id: &str, fp: &str) -> bool {
-		self.read_table(&self.passages_file(class_id)).files.get(file_id).is_some_and(|f| f["fp"] == Json::from(fp))
+	/// True when this version of the file is in the space's index.
+	pub fn is_file_indexed(&self, space_id: &str, file_id: &str, fp: &str) -> bool {
+		self.read_table(&self.passages_file(space_id)).files.get(file_id).is_some_and(|f| f["fp"] == Json::from(fp))
 	}
 
 	/// Each indexed file's size ("98 pages", "52 min", "420 lines"), by file id.
-	pub fn file_extents(&self, class_id: &str) -> Obj {
-		self.read_table(&self.passages_file(class_id)).files.iter().map(|(id, f)| (id.clone(), f["extent"].clone())).collect()
+	pub fn file_extents(&self, space_id: &str) -> Obj {
+		self.read_table(&self.passages_file(space_id)).files.iter().map(|(id, f)| (id.clone(), f["extent"].clone())).collect()
 	}
 
-	/// Put one version of a class file in its class's index, replacing the old one. `text` is what
+	/// Put one version of a space file in its space's index, replacing the old one. `text` is what
 	/// search reads: a PDF's page-headed text, a caption file's raw cues, or plain text.
-	/// `still_listed` runs after embedding: None when the class no longer has the file (a file
-	/// removed meanwhile, or its class deleted, is never put back), else a guard (the class lock)
+	/// `still_listed` runs after embedding: None when the space no longer has the file (a file
+	/// removed meanwhile, or its space deleted, is never put back), else a guard (the space lock)
 	/// held over the write, so no removal slips in between the check and the write.
-	pub async fn index_class_file<G>(&self, class_id: &str, file_id: &str, name: &str, fp: &str, text: &str, still_listed: impl FnOnce() -> Option<G>) -> Result<(), String> {
-		let at = self.passages_file(class_id);
+	pub async fn index_space_file<G>(&self, space_id: &str, file_id: &str, name: &str, fp: &str, text: &str, still_listed: impl FnOnce() -> Option<G>) -> Result<(), String> {
+		let at = self.passages_file(space_id);
 		let writer = self.writer(&at);
 		let _turn = writer.lock().await;
 		let old = self.read_table(&at);
@@ -85,9 +85,9 @@ impl Search {
 		self.write_table(&at, Table::new(rows, all, files)).map(drop)
 	}
 
-	/// Take a removed file out of its class's index.
-	pub async fn drop_class_file(&self, class_id: &str, file_id: &str) -> Result<(), String> {
-		let at = self.passages_file(class_id);
+	/// Take a removed file out of its space's index.
+	pub async fn drop_space_file(&self, space_id: &str, file_id: &str) -> Result<(), String> {
+		let at = self.passages_file(space_id);
 		let writer = self.writer(&at);
 		let _turn = writer.lock().await;
 		let old = self.read_table(&at);
@@ -101,11 +101,11 @@ impl Search {
 	}
 
 	/// The best passages for a query, as compact lines: id, file, place, snippet. `files` is the
-	/// class record's file list.
-	pub async fn search_class_files(&self, class_id: &str, files: &[Json], query: &str, limit: usize) -> Result<String, String> {
-		let table = self.read_table(&self.passages_file(class_id));
+	/// space record's file list.
+	pub async fn search_space_files(&self, space_id: &str, files: &[Json], query: &str, limit: usize) -> Result<String, String> {
+		let table = self.read_table(&self.passages_file(space_id));
 		if table.rows.is_empty() {
-			return Ok("No class files are indexed for search yet (files are indexed once their text is read).".to_owned());
+			return Ok("No space files are indexed for search yet (files are indexed once their text is read).".to_owned());
 		}
 		let query_vector = self.embed(&[query.to_owned()], true).await?;
 		let keywords = keywords_of(&table, || table.rows.iter().map(|r| (field(r, "id").to_owned(), field(r, "text").to_owned())).collect())?;
@@ -115,7 +115,7 @@ impl Search {
 		let indexed = files.iter().filter(|f| table.files.get(field(f, "id")).is_some_and(Json::truthy)).count();
 		let mut lines = Vec::new();
 		if indexed < files.len() {
-			lines.push(format!("(Searching {indexed} of the class's {} files; the others are not indexed yet.)", files.len()));
+			lines.push(format!("(Searching {indexed} of the space's {} files; the others are not indexed yet.)", files.len()));
 		}
 		lines.push(format!("Top {} of {} passages for \"{query}\":", hits.len(), table.rows.len()));
 		for id in &hits {
@@ -130,13 +130,13 @@ impl Search {
 
 	/// A passage's text (a whole page when opened by file and place) with its file, place and the
 	/// ids of its neighbours.
-	pub fn read_passage(&self, class_id: &str, files: &[Json], at: &PassageRef) -> String {
-		let table = self.read_table(&self.passages_file(class_id));
+	pub fn read_passage(&self, space_id: &str, files: &[Json], at: &PassageRef) -> String {
+		let table = self.read_table(&self.passages_file(space_id));
 		let rows = &table.rows;
 		let picked: Vec<usize> = match at {
 			PassageRef::Passage(id) => match rows.iter().position(|r| field(r, "id") == id) {
 				Some(i) => vec![i],
-				None => return format!("No passage \"{id}\". Ids come from search_class_files."),
+				None => return format!("No passage \"{id}\". Ids come from search_space_files."),
 			},
 			PassageRef::Place { file_id, range } => {
 				let in_file = |r: &&Json| r["fileId"] == Json::from(file_id.as_str());
@@ -147,7 +147,7 @@ impl Search {
 				if picked.is_empty() {
 					let all: Vec<&Json> = rows.iter().filter(in_file).collect();
 					let (Some(first), Some(last)) = (all.first(), all.last()) else {
-						return format!("No passage of file \"{file_id}\": it is not indexed. A file id is the part of a passage id before the \":\" (or from read_class with files: true).");
+						return format!("No passage of file \"{file_id}\": it is not indexed. A file id is the part of a passage id before the \":\" (or from read_space with files: true).");
 					};
 					return format!("No passage of file \"{file_id}\" at \"{range}\". Its passages run from \"{}\" to \"{}\".", field(first, "range"), field(last, "range"));
 				}
@@ -183,7 +183,7 @@ mod tests {
 	use crate::embed::DIMS;
 	use crate::table;
 
-	const CLASS: &str = "cls_test";
+	const SPACE: &str = "cls_test";
 
 	/// A Search on a temp folder with no model: every vector these tests need is already stored.
 	fn search(tag: &str) -> (Search, PathBuf) {
@@ -196,7 +196,7 @@ mod tests {
 		(1..=40).map(|i| format!("line {i} {}", "x".repeat(90))).collect::<Vec<_>>().join("\n")
 	}
 
-	/// The table indexClassFile would have written for `notes()` as file f_a, version "v1", with
+	/// The table indexSpaceFile would have written for `notes()` as file f_a, version "v1", with
 	/// row r's vector all r.
 	fn seed(s: &Search) {
 		let chunked = chunk_file("a.txt", &notes());
@@ -209,24 +209,24 @@ mod tests {
 		let vectors = (0..rows.len()).flat_map(|r| vec![r as f32; DIMS]).collect();
 		let mut files = Obj::new();
 		files.insert("f_a", json!({ "fp": "v1", "extent": chunked.extent }));
-		table::save(&s.passages_file(CLASS), &Table::new(rows, vectors, files)).unwrap();
+		table::save(&s.passages_file(SPACE), &Table::new(rows, vectors, files)).unwrap();
 	}
 
 	fn stored(s: &Search) -> Json {
-		gs_json::parse(&std::fs::read_to_string(s.passages_file(CLASS).with_extension("json")).unwrap()).unwrap()
+		gs_json::parse(&std::fs::read_to_string(s.passages_file(SPACE).with_extension("json")).unwrap()).unwrap()
 	}
 
 	#[tokio::test]
 	async fn a_new_version_with_the_same_text_reuses_its_vectors() {
 		let (s, dir) = search("reuse");
 		seed(&s);
-		assert!(s.is_file_indexed(CLASS, "f_a", "v1"));
-		assert_eq!(stringify(&Json::Obj(s.file_extents(CLASS))), r#"{"f_a":"40 lines"}"#);
-		s.index_class_file(CLASS, "f_a", "a.txt", "v1", "ignored: this version is indexed", || -> Option<()> { panic!("not re-indexed") }).await.unwrap();
-		s.index_class_file(CLASS, "f_a", "a.txt", "v2", &notes(), || Some(())).await.unwrap();
-		assert!(s.is_file_indexed(CLASS, "f_a", "v2"));
+		assert!(s.is_file_indexed(SPACE, "f_a", "v1"));
+		assert_eq!(stringify(&Json::Obj(s.file_extents(SPACE))), r#"{"f_a":"40 lines"}"#);
+		s.index_space_file(SPACE, "f_a", "a.txt", "v1", "ignored: this version is indexed", || -> Option<()> { panic!("not re-indexed") }).await.unwrap();
+		s.index_space_file(SPACE, "f_a", "a.txt", "v2", &notes(), || Some(())).await.unwrap();
+		assert!(s.is_file_indexed(SPACE, "f_a", "v2"));
 		assert_eq!(stored(&s)["files"], json!({ "f_a": { "fp": "v2", "extent": "40 lines" } }));
-		let f32 = std::fs::read(s.passages_file(CLASS).with_extension("f32")).unwrap();
+		let f32 = std::fs::read(s.passages_file(SPACE).with_extension("f32")).unwrap();
 		assert_eq!(f32[DIMS * 4..DIMS * 4 + 4], 1f32.to_le_bytes());
 		std::fs::remove_dir_all(dir).unwrap();
 	}
@@ -235,8 +235,8 @@ mod tests {
 	async fn a_file_gone_while_embedding_is_not_put_back() {
 		let (s, dir) = search("gone");
 		seed(&s);
-		s.index_class_file(CLASS, "f_a", "a.txt", "v2", &notes(), || None::<()>).await.unwrap();
-		assert!(s.is_file_indexed(CLASS, "f_a", "v1"));
+		s.index_space_file(SPACE, "f_a", "a.txt", "v2", &notes(), || None::<()>).await.unwrap();
+		assert!(s.is_file_indexed(SPACE, "f_a", "v1"));
 		std::fs::remove_dir_all(dir).unwrap();
 	}
 
@@ -244,10 +244,10 @@ mod tests {
 	async fn dropping_the_last_file_leaves_no_files_key() {
 		let (s, dir) = search("drop");
 		seed(&s);
-		s.drop_class_file(CLASS, "f_missing").await.unwrap();
-		s.drop_class_file(CLASS, "f_a").await.unwrap();
-		assert_eq!(std::fs::read_to_string(s.passages_file(CLASS).with_extension("json")).unwrap(), r#"{"format":1,"model":"Snowflake/snowflake-arctic-embed-xs","rows":[]}"#);
-		assert!(s.search_class_files(CLASS, &[], "x", 3).await.unwrap().starts_with("No class files are indexed"));
+		s.drop_space_file(SPACE, "f_missing").await.unwrap();
+		s.drop_space_file(SPACE, "f_a").await.unwrap();
+		assert_eq!(std::fs::read_to_string(s.passages_file(SPACE).with_extension("json")).unwrap(), r#"{"format":1,"model":"Snowflake/snowflake-arctic-embed-xs","rows":[]}"#);
+		assert!(s.search_space_files(SPACE, &[], "x", 3).await.unwrap().starts_with("No space files are indexed"));
 		std::fs::remove_dir_all(dir).unwrap();
 	}
 
@@ -256,17 +256,17 @@ mod tests {
 		let (s, dir) = search("read");
 		seed(&s);
 		let files = [json!({ "id": "f_a", "name": "a.txt" })];
-		let one = s.read_passage(CLASS, &files, &PassageRef::Passage("f_a:2".into()));
+		let one = s.read_passage(SPACE, &files, &PassageRef::Passage("f_a:2".into()));
 		assert!(one.starts_with("a.txt · lines 17–32 · f_a:2\n(previous: f_a:1 · next: f_a:3)\n\nline 17 "), "{one}");
-		let first = s.read_passage(CLASS, &[], &PassageRef::Place { file_id: "f_a".into(), range: "lines 3".into() });
+		let first = s.read_passage(SPACE, &[], &PassageRef::Place { file_id: "f_a".into(), range: "lines 3".into() });
 		assert!(first.starts_with("f_a · lines 1–16 · f_a:1\n(first passage of the file · next: f_a:2)"), "{first}");
-		let nameless = s.read_passage(CLASS, &[json!({ "id": "f_a" })], &PassageRef::Passage("f_a:3".into()));
+		let nameless = s.read_passage(SPACE, &[json!({ "id": "f_a" })], &PassageRef::Passage("f_a:3".into()));
 		assert!(nameless.starts_with("f_a · lines 33–40 · f_a:3\n(previous: f_a:2 · last passage of the file)"), "{nameless}");
-		assert_eq!(s.read_passage(CLASS, &files, &PassageRef::Passage("f_a:9".into())), "No passage \"f_a:9\". Ids come from search_class_files.");
-		assert_eq!(s.read_passage(CLASS, &files, &PassageRef::Place { file_id: "f_a".into(), range: "the end".into() }), "No passage of file \"f_a\" at \"the end\". Its passages run from \"lines 1–16\" to \"lines 33–40\".");
-		assert!(s.read_passage(CLASS, &files, &PassageRef::Place { file_id: "f_b".into(), range: "1".into() }).ends_with("it is not indexed. A file id is the part of a passage id before the \":\" (or from read_class with files: true)."));
-		s.forget_class_search(CLASS);
-		assert!(s.is_file_indexed(CLASS, "f_a", "v1"));
+		assert_eq!(s.read_passage(SPACE, &files, &PassageRef::Passage("f_a:9".into())), "No passage \"f_a:9\". Ids come from search_space_files.");
+		assert_eq!(s.read_passage(SPACE, &files, &PassageRef::Place { file_id: "f_a".into(), range: "the end".into() }), "No passage of file \"f_a\" at \"the end\". Its passages run from \"lines 1–16\" to \"lines 33–40\".");
+		assert!(s.read_passage(SPACE, &files, &PassageRef::Place { file_id: "f_b".into(), range: "1".into() }).ends_with("it is not indexed. A file id is the part of a passage id before the \":\" (or from read_space with files: true)."));
+		s.forget_space_search(SPACE);
+		assert!(s.is_file_indexed(SPACE, "f_a", "v1"));
 		std::fs::remove_dir_all(dir).unwrap();
 	}
 

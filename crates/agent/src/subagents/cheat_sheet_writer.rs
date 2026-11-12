@@ -1,6 +1,6 @@
 //! One message of a cheat sheet's
 //! chat as one short request on the single-submit seam, so the connected agent gets it as one
-//! labelled work item. The agent may look things up in the class's files, makes or changes the
+//! labelled work item. The agent may look things up in the space's files, makes or changes the
 //! PDF with its own tools in the sheet's working folder, and answers with one sheet_reply call:
 //! its words, and the new PDF's path and any rules the learner set when there are some.
 //!
@@ -22,27 +22,27 @@ use parking_lot::Mutex;
 use super::pi_run::RunError;
 use crate::extraction::submit_agent::{SubmitAgentOptions, run_submit_agent};
 
-const CHEAT_SHEET_INSTRUCTIONS: &str = r#"You help a student with their cheat sheet: the notes their class lets them bring into one exam, a real PDF you make in a working folder. Each request is one message from the student about it, with the exam, its topics, their mistakes, the sheet's rules and the chat so far. Reply with one sheet_reply call.
+const CHEAT_SHEET_INSTRUCTIONS: &str = r#"You help a learner with their cheat sheet: the notes they may bring into one exam, a real PDF you make in a working folder. Each request is one message from the learner about it, with the exam, its topics, their mistakes, the sheet's rules and the chat so far. Reply with one sheet_reply call.
 
 - A question ("what does pool mean?"): answer it in plain words in text and leave the sheet alone. If the sheet's wording caused the confusion, also fix the sheet.
 - A change, or something on the sheet that is wrong or would confuse a beginner: edit the source in the working folder, compile it, check it (below) and send the PDF as pdf_path, with a short note in text of what changed.
-- When the student says something that should hold for every later change ("A4, both sides", "no slang"), put it in new_rules, one short line each. Follow every one of the sheet's rules.
-- Write for a beginner who barely studied: plain words, no slang, no notation the class doesn't use. Methods that work for any problem of a kind, never one practice problem's details. A mistake becomes the rule it broke. Where one part depends on another, say where to look ("see card 4").
-- Where the sheet's rules don't settle the class's rules for this exam (paper size, sides, what's allowed), find them with search_class_files and read_passage. Never break them.
+- When the learner says something that should hold for every later change ("A4, both sides", "no slang"), put it in new_rules, one short line each. Follow every one of the sheet's rules.
+- Write for a beginner who barely studied: plain words, no slang, no notation the space doesn't use. Methods that work for any problem of a kind, never one practice problem's details. A mistake becomes the rule it broke. Where one part depends on another, say where to look ("see card 4").
+- Where the sheet's rules don't settle the space's rules for this exam (paper size, sides, what's allowed), find them with search_space_files and read_passage. Never break them.
 - Keep the source in the working folder (LaTeX works well: sheet.tex with latexmk, tectonic or pdflatex). A change edits it; don't start over. One PDF page per side. Black on white unless asked. No em-dashes.
-- Before sending a PDF, check it: count the pages and check their size (pdfinfo); render each page to an image (pdftoppm -r 60 -png) and look at every one; nothing runs off a page, overlaps or is too small to read; every formula and method agrees with the class's material. Fix what you find first."#;
+- Before sending a PDF, check it: count the pages and check their size (pdfinfo); render each page to an image (pdftoppm -r 60 -png) and look at every one; nothing runs off a page, overlaps or is too small to read; every formula and method agrees with the space's material. Fix what you find first."#;
 
 fn reply_schema() -> Json {
 	json!({
 		"type": "object",
 		"required": ["text"],
 		"properties": {
-			"text": { "type": "string", "minLength": 1, "description": "Your answer to the student, in markdown with $LaTeX$ math. When you changed the sheet, say what changed in a line or two." },
+			"text": { "type": "string", "minLength": 1, "description": "Your answer to the learner, in markdown with $LaTeX$ math. When you changed the sheet, say what changed in a line or two." },
 			"pdf_path": { "type": "string", "minLength": 1, "description": format!("Only when you made or changed the sheet: the new PDF, inside the working folder (absolute, or relative to it). 1 to {MAX_PAGES} pages.") },
 			"new_rules": {
 				"type": "array",
 				"items": { "type": "string", "minLength": 1, "maxLength": RULE_MAX_CHARS },
-				"description": "Requirements the student just set that should hold for every later change of this sheet, one short line each.",
+				"description": "Requirements the learner just set that should hold for every later change of this sheet, one short line each.",
 			},
 		},
 	})
@@ -85,7 +85,7 @@ pub async fn reply_on_sheet(bridge: &Bridge, input: SheetRequest) -> Result<Shee
 	let pdf: Arc<Mutex<Option<TakenPdf>>> = Arc::default();
 	let mut opts = SubmitAgentOptions::new(
 		"sheet_reply",
-		"Answer the student: your words, and the new PDF's path when you made or changed the sheet.",
+		"Answer the learner: your words, and the new PDF's path when you made or changed the sheet.",
 		reply_schema(),
 		CHEAT_SHEET_INSTRUCTIONS.to_owned(),
 		input.prompt,
@@ -138,7 +138,7 @@ mod tests {
 
 	fn request(script: &Arc<Scripted>) -> SheetRequest {
 		SheetRequest {
-			title: "Class Midterm".to_owned(),
+			title: "Space Midterm".to_owned(),
 			prompt: Json::from("Make it A4."),
 			lookups: Vec::new(),
 			take_pdf: Box::new(|path: String| {

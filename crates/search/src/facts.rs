@@ -1,6 +1,6 @@
 //! A graph scope's fact table: search_graph's ranking and the facts related to new material (the
 //! facts half of src/backend/server/search-index.ts). Nodes are the graph's merged nodes
-//! (`{ id, name, statement, aliases, .. }`); a scope is None for "No class" or a class id.
+//! (`{ id, name, statement, aliases, .. }`); a scope is None for "No space" or a space id.
 
 use std::sync::Arc;
 

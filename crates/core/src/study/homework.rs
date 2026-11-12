@@ -49,10 +49,10 @@ pub fn homework_context_text(deadline: &Json, assignment: &Json, problems: &[Jso
 	let time = deadline["time"].as_str().filter(|t| !t.is_empty()).map(|t| format!(" {t}")).unwrap_or_default();
 	let mut lines = vec![format!("[Homework] The learner is working on {} ({}), due {}{time}.", text(&deadline["name"]), text(&deadline["kind"]), text(&deadline["date"]))];
 	if assignment.is_null() {
-		lines.push("No assignment file is attached yet. Ask the learner which class file it is and attach it with update_class_deadline (assignment_file_id), or work from the problems they paste.".to_owned());
+		lines.push("No assignment file is attached yet. Ask the learner which space file it is and attach it with update_space_deadline (assignment_file_id), or work from the problems they paste.".to_owned());
 	} else {
 		let at = assignment["path"].as_str().filter(|p| !p.is_empty()).map(|p| format!(", at {p}")).unwrap_or_default();
-		lines.push(format!("Its assignment is the class file {} (file id {}){at}.", text(&assignment["name"]), text(&assignment["id"])));
+		lines.push(format!("Its assignment is the space file {} (file id {}){at}.", text(&assignment["name"]), text(&assignment["id"])));
 	}
 	if problems.is_empty() {
 		lines.push("No problems are posted yet. Read the assignment and post them all with post_problems first.".to_owned());
@@ -96,7 +96,7 @@ mod tests {
 		let text = homework_context_text(&deadline, &json!({ "id": "f1", "name": "hw4.pdf", "path": null }), &[json!({ "number": "1", "title": "Sums", "done": true })]);
 		assert_eq!(
 			text,
-			"[Homework] The learner is working on HW 4 (homework), due 2026-11-20 17:00.\nIts assignment is the class file hw4.pdf (file id f1).\nIts problems, posted before:\n- 1: Sums (done)\nOpen the first one not done unless the learner picks another."
+			"[Homework] The learner is working on HW 4 (homework), due 2026-11-20 17:00.\nIts assignment is the space file hw4.pdf (file id f1).\nIts problems, posted before:\n- 1: Sums (done)\nOpen the first one not done unless the learner picks another."
 		);
 	}
 }

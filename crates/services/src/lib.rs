@@ -2,7 +2,7 @@
 
 pub mod turns;
 pub mod jobs;
-pub mod classes;
+pub mod spaces;
 pub mod cheat_sheets;
 pub mod graph;
 pub mod app;
@@ -26,7 +26,7 @@ pub struct App {
 	pub bridge: gs_engine::bridge::Bridge,
 	pub turns: turns::TurnsState,
 	pub jobs: jobs::JobsState,
-	pub classes: classes::ClassesState,
+	pub spaces: spaces::SpacesState,
 	pub cheat_sheets: cheat_sheets::CheatSheetsState,
 	pub graph: graph::GraphState,
 	pub misc: app::MiscState,
@@ -46,7 +46,7 @@ impl App {
 			search: gs_search::index::Search::new(&paths),
 			turns: Default::default(),
 			jobs: Default::default(),
-			classes: Default::default(),
+			spaces: Default::default(),
 			cheat_sheets: Default::default(),
 			graph: Default::default(),
 			misc: Default::default(),

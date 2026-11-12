@@ -10,9 +10,9 @@ use gs_json::{Json, Obj, json};
 
 use super::changelog::is_version;
 use super::teaching_areas::{one_line, sanitize_area_rules};
-use crate::contracts::class::is_class_id;
+use crate::contracts::space::is_space_id;
 
-pub const CURRENT_SETTINGS_VERSION: i64 = 2;
+pub const CURRENT_SETTINGS_VERSION: i64 = 3;
 pub const DEFAULT_TEACHER_NAME: &str = "Teacher";
 pub const OUTSIDE_AGENT_PROVIDER: &str = "agent";
 pub const OUTSIDE_AGENT_MODEL_ID: &str = "outside-agent";
@@ -47,7 +47,7 @@ const OBJECT_PROTOTYPE_KEYS: [&str; 12] = [
 pub fn factory_settings() -> Json {
 	json!({
 		"version": CURRENT_SETTINGS_VERSION,
-		"general": { "autoUpdate": true, "activeClass": "none", "teacherName": DEFAULT_TEACHER_NAME, "sounds": true },
+		"general": { "autoUpdate": true, "activeSpace": "none", "teacherName": DEFAULT_TEACHER_NAME, "sounds": true },
 		"appearance": {
 			"background": null,
 			"fontFamily": null,
@@ -93,8 +93,8 @@ fn sanitize_general(raw: &Json) -> Json {
 	if let Some(auto_update) = raw["autoUpdate"].as_bool() {
 		out.insert("autoUpdate", auto_update);
 	}
-	if let Some(class) = raw["activeClass"].as_str().filter(|c| *c == "none" || is_class_id(c)) {
-		out.insert("activeClass", class);
+	if let Some(space) = raw["activeSpace"].as_str().filter(|c| *c == "none" || is_space_id(c)) {
+		out.insert("activeSpace", space);
 	}
 	if let Some(onboarded) = raw["onboarded"].as_bool() {
 		out.insert("onboarded", onboarded);
@@ -240,7 +240,7 @@ mod tests {
 
 	#[test]
 	fn clamps_drops_and_keeps_unknown_keys() {
-		let messy = r##"{"version":7,"general":{"teacherName":5,"sounds":"x","activeClass":"zzz","autoUpdate":true,"keep":1},"chat":{},"future":{"a":[1]},"appearance":{"background":"#FFFFFF","proseFontSize":99.6,"fontFamily":"  ","mdRendering":{"headingWeight":5000.4,"boldColor":"zzz","italicColor":null}},"graph":{"extractionChunkTokens":10,"enabled":"y"},"compaction":{"thresholdTokens":-5},"agent":{"tools":{"a":true,"b":"x"},"graphTools":{"enabled":"x"},"rules":{"voice":[" a ","a",3],"nope":["x"]}}}"##;
+		let messy = r##"{"version":7,"general":{"teacherName":5,"sounds":"x","activeSpace":"zzz","autoUpdate":true,"keep":1},"chat":{},"future":{"a":[1]},"appearance":{"background":"#FFFFFF","proseFontSize":99.6,"fontFamily":"  ","mdRendering":{"headingWeight":5000.4,"boldColor":"zzz","italicColor":null}},"graph":{"extractionChunkTokens":10,"enabled":"y"},"compaction":{"thresholdTokens":-5},"agent":{"tools":{"a":true,"b":"x"},"graphTools":{"enabled":"x"},"rules":{"voice":[" a ","a",3],"nope":["x"]}}}"##;
 		assert_eq!(
 			clean(messy),
 			r#"{"version":7,"general":{"autoUpdate":true},"agent":{"tools":{"a":true},"rules":{"voice":["a"]}},"appearance":{"background":null,"fontFamily":null,"proseFontSize":24,"mdRendering":{"headingWeight":900,"boldColor":null,"italicColor":null}},"graph":{"extractionChunkTokens":500},"compaction":{},"future":{"a":[1]}}"#
@@ -249,14 +249,14 @@ mod tests {
 
 	#[test]
 	fn version_and_shapes() {
-		assert_eq!(clean("{}"), r#"{"version":2}"#);
-		assert_eq!(clean(r#"{"version":0}"#), r#"{"version":2}"#);
-		assert_eq!(clean(r#"{"version":1.5}"#), r#"{"version":2}"#);
-		assert_eq!(clean(r#"{"version":"2","general":[],"constructor":1,"x":2}"#), r#"{"version":2,"general":[],"x":2}"#);
+		assert_eq!(clean("{}"), r#"{"version":3}"#);
+		assert_eq!(clean(r#"{"version":0}"#), r#"{"version":3}"#);
+		assert_eq!(clean(r#"{"version":1.5}"#), r#"{"version":3}"#);
+		assert_eq!(clean(r#"{"version":"2","general":[],"constructor":1,"x":2}"#), r#"{"version":3,"general":[],"x":2}"#);
 		assert!(sanitize_user_settings(&parse("[1]").unwrap()).is_none());
 		assert!(sanitize_user_settings(&Json::Null).is_none());
-		assert_eq!(clean(r#"{"agent":{"graphTools":{}}}"#), r#"{"version":2,"agent":{"graphTools":{}}}"#);
-		assert_eq!(clean(r#"{"agent":{"graphTools":{"enabled":false}}}"#), r#"{"version":2,"agent":{"graphTools":{"enabled":false}}}"#);
+		assert_eq!(clean(r#"{"agent":{"graphTools":{}}}"#), r#"{"version":3,"agent":{"graphTools":{}}}"#);
+		assert_eq!(clean(r#"{"agent":{"graphTools":{"enabled":false}}}"#), r#"{"version":3,"agent":{"graphTools":{"enabled":false}}}"#);
 	}
 
 	#[test]

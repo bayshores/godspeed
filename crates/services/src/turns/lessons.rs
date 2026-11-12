@@ -1,8 +1,8 @@
 //! Lesson creation (lessons.ts): the one place a new lesson record is born (POST /api/chats and
-//! MCP start_lesson), so a lesson in a class always opens with its class card. Every new lesson
+//! MCP start_lesson), so a lesson in a space always opens with its space card. Every new lesson
 //! is a study session.
 //!
-//! Message order at birth: class card, graph-context picks, study plan; the caller then sends the
+//! Message order at birth: space card, graph-context picks, study plan; the caller then sends the
 //! learner's first message. A start from a deadline is recorded on the chat so that deadline's
 //! Study button can reopen it.
 
@@ -13,12 +13,12 @@ use gs_base::locks::LockKey;
 use gs_core::contracts::graph::title_from_prompt;
 use gs_core::graph::chains::{chains_for_selection, format_chain_line};
 use gs_core::graph::graph::get_graph;
-use gs_core::messages::native_messages::{new_class_context_message, new_graph_context_message, new_study_context_message};
+use gs_core::messages::native_messages::{new_space_context_message, new_graph_context_message, new_study_context_message};
 use gs_core::study::study::{MAX_STUDY_FACTS, study_context_text, study_plan_tree, study_title};
 use gs_json::Json;
 
 use crate::App;
-use crate::classes::class_card::class_card_for;
+use crate::spaces::space_card::space_card_for;
 use crate::graph::graph::graph_store_for;
 use crate::graph::progress::{deadline_study_for, study_topics_for, topic_study_for};
 
@@ -26,15 +26,15 @@ use crate::graph::progress::{deadline_study_for, study_topics_for, topic_study_f
 pub enum LessonStart {
 	/// A typed topic (its title), with any facts picked for it (`{id, name, statement}`).
 	Typed { title: String, picks: Vec<Json> },
-	/// Some of the class's topics.
+	/// Some of the space's topics.
 	Topics(Vec<String>),
 	/// A deadline: its topics for today.
 	Deadline(String),
 }
 
 pub struct CreateLessonInput {
-	/// None is "No class".
-	pub class_id: Option<String>,
+	/// None is "No space".
+	pub space_id: Option<String>,
 	pub start: LessonStart,
 }
 
@@ -44,7 +44,7 @@ pub struct Created {
 	pub title: String,
 }
 
-/// The 404 refusals: `class_not_found`, `topics_not_found`, `deadline_not_found`.
+/// The 404 refusals: `space_not_found`, `topics_not_found`, `deadline_not_found`.
 #[derive(Debug, PartialEq)]
 pub struct NotFound {
 	pub code: &'static str,
@@ -58,15 +58,15 @@ struct Start {
 }
 
 pub fn create_lesson(app: &Arc<App>, input: CreateLessonInput) -> Result<Result<Created, NotFound>, String> {
-	let scope = input.class_id.as_deref();
-	// Held from the class check to the finished lesson: a class delete takes this lock too, so it
-	// sees the new lesson, never a lesson born into a class it already removed.
-	let _class = scope.map(|id| app.locks.lock(LockKey::Class(id)));
+	let scope = input.space_id.as_deref();
+	// Held from the space check to the finished lesson: a space delete takes this lock too, so it
+	// sees the new lesson, never a lesson born into a space it already removed.
+	let _space = scope.map(|id| app.locks.lock(LockKey::Space(id)));
 	let cls = match scope {
 		None => None,
-		Some(id) => match app.stores.classes.get_class(id) {
+		Some(id) => match app.stores.spaces.get_space(id) {
 			Some(cls) => Some(cls),
-			None => return Ok(Err(NotFound { code: "class_not_found", error: "No such class" })),
+			None => return Ok(Err(NotFound { code: "space_not_found", error: "No such space" })),
 		},
 	};
 	let start = match start_of(app, scope, &input.start)? {
@@ -77,15 +77,15 @@ pub fn create_lesson(app: &Arc<App>, input: CreateLessonInput) -> Result<Result<
 		LessonStart::Deadline(id) => Some(id.as_str()),
 		_ => None,
 	};
-	let class_id = cls.as_ref().and_then(|c| c["id"].as_str());
-	let chat = app.stores.chats.create_chat(&title_from_prompt(&start.title), Some("study"), class_id, deadline_id)?;
+	let space_id = cls.as_ref().and_then(|c| c["id"].as_str());
+	let chat = app.stores.chats.create_chat(&title_from_prompt(&start.title), Some("study"), space_id, deadline_id)?;
 	let chat_id = chat["id"].as_str().unwrap_or_default().to_owned();
 	let mut messages = Vec::new();
 	if let Some(cls) = &cls {
-		messages.push(new_class_context_message(&class_card_for(app, cls)?));
+		messages.push(new_space_context_message(&space_card_for(app, cls)?));
 	}
 	if !start.picks.is_empty() {
-		// The picks carry what the learner saw; the chains come from the lesson's own class graph.
+		// The picks carry what the learner saw; the chains come from the lesson's own space graph.
 		let graph = get_graph(graph_store_for(app, scope).as_ref())?;
 		let by_id: HashMap<&str, &Json> = graph.nodes.iter().filter_map(|n| Some((n["id"].as_str()?, n))).collect();
 		let names: HashMap<String, String> = by_id.iter().map(|(id, n)| ((*id).to_owned(), n["name"].as_str().unwrap_or_default().to_owned())).collect();
@@ -118,7 +118,7 @@ fn start_of(app: &Arc<App>, scope: Option<&str>, start: &LessonStart) -> Result<
 		}
 		LessonStart::Deadline(deadline_id) => {
 			let deadline = match scope {
-				Some(class_id) => deadline_study_for(app, class_id, deadline_id)?,
+				Some(space_id) => deadline_study_for(app, space_id, deadline_id)?,
 				None => None,
 			};
 			let Some(deadline) = deadline else {
@@ -155,21 +155,21 @@ mod tests {
 	use crate::app::test_support::{scratch_dir, test_app};
 
 	#[test]
-	fn a_lesson_started_as_its_class_goes_is_not_created() {
-		let root = scratch_dir("lesson-class-gone");
+	fn a_lesson_started_as_its_space_goes_is_not_created() {
+		let root = scratch_dir("lesson-space-gone");
 		let app = test_app(&root);
-		let class_id = app.stores.classes.create_class(&gs_json::json!({ "name": "Algebra" })).unwrap()["id"].as_str().unwrap().to_owned();
-		// The delete holds the class while the lesson is started.
-		let deleting = app.locks.lock(LockKey::Class(&class_id));
-		let (starting, class) = (app.clone(), class_id.clone());
+		let space_id = app.stores.spaces.create_space(&gs_json::json!({ "name": "Algebra" })).unwrap()["id"].as_str().unwrap().to_owned();
+		// The delete holds the space while the lesson is started.
+		let deleting = app.locks.lock(LockKey::Space(&space_id));
+		let (starting, space) = (app.clone(), space_id.clone());
 		let started = std::thread::spawn(move || {
-			let input = CreateLessonInput { class_id: Some(class), start: LessonStart::Typed { title: "Sets".to_owned(), picks: Vec::new() } };
+			let input = CreateLessonInput { space_id: Some(space), start: LessonStart::Typed { title: "Sets".to_owned(), picks: Vec::new() } };
 			create_lesson(&starting, input).unwrap().map(drop)
 		});
 		std::thread::sleep(std::time::Duration::from_millis(100));
-		app.stores.classes.delete_class(&class_id).unwrap();
+		app.stores.spaces.delete_space(&space_id).unwrap();
 		drop(deleting);
-		assert_eq!(started.join().unwrap(), Err(NotFound { code: "class_not_found", error: "No such class" }));
+		assert_eq!(started.join().unwrap(), Err(NotFound { code: "space_not_found", error: "No such space" }));
 		assert!(app.stores.chats.list_chats().is_empty());
 	}
 }

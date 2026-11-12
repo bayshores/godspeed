@@ -1,4 +1,4 @@
-// What src/shared/core/search.ts gives for made-up class texts (tests/fixtures) and for
+// What src/shared/core/search.ts gives for made-up space texts (tests/fixtures) and for
 // odd inputs: passages, places, snippets, MiniSearch results with their scores, fusion, vector
 // ranking, and Math.log (BM25's idf).
 //

@@ -5,7 +5,7 @@
 			{
 				"input": {},
 				"output": {
-					"version": 2
+					"version": 3
 				}
 			},
 			{
@@ -21,7 +21,7 @@
 					"version": 0
 				},
 				"output": {
-					"version": 2
+					"version": 3
 				}
 			},
 			{
@@ -29,7 +29,7 @@
 					"version": 1.5
 				},
 				"output": {
-					"version": 2
+					"version": 3
 				}
 			},
 			{
@@ -37,7 +37,7 @@
 					"version": "2"
 				},
 				"output": {
-					"version": 2
+					"version": 3
 				}
 			},
 			{
@@ -46,7 +46,7 @@
 					"general": {
 						"teacherName": 5,
 						"sounds": "x",
-						"activeClass": "zzz",
+						"activeSpace": "zzz",
 						"autoUpdate": true,
 						"keep": 1
 					}
@@ -61,7 +61,7 @@
 			{
 				"input": {
 					"general": {
-						"activeClass": "cls_abc-1_2",
+						"activeSpace": "cls_abc-1_2",
 						"onboarded": true,
 						"lastSeenVersion": "0.5.44",
 						"teacherName": "  Zed\n the  great ",
@@ -69,9 +69,9 @@
 					}
 				},
 				"output": {
-					"version": 2,
+					"version": 3,
 					"general": {
-						"activeClass": "cls_abc-1_2",
+						"activeSpace": "cls_abc-1_2",
 						"onboarded": true,
 						"lastSeenVersion": "0.5.44",
 						"teacherName": "Zed the great",
@@ -82,15 +82,15 @@
 			{
 				"input": {
 					"general": {
-						"activeClass": "none",
+						"activeSpace": "none",
 						"lastSeenVersion": "0.5",
 						"teacherName": "   "
 					}
 				},
 				"output": {
-					"version": 2,
+					"version": 3,
 					"general": {
-						"activeClass": "none"
+						"activeSpace": "none"
 					}
 				}
 			},
@@ -102,7 +102,7 @@
 					"x": 2
 				},
 				"output": {
-					"version": 2,
+					"version": 3,
 					"general": [],
 					"x": 2
 				}
@@ -129,7 +129,7 @@
 				"output": {
 					"2": 2,
 					"10": 1,
-					"version": 2,
+					"version": 3,
 					"future": {
 						"a": [
 							1,
@@ -154,7 +154,7 @@
 					}
 				},
 				"output": {
-					"version": 2,
+					"version": 3,
 					"appearance": {
 						"background": null,
 						"fontFamily": null,
@@ -174,7 +174,7 @@
 					}
 				},
 				"output": {
-					"version": 2,
+					"version": 3,
 					"appearance": {
 						"background": null
 					}
@@ -194,7 +194,7 @@
 					}
 				},
 				"output": {
-					"version": 2,
+					"version": 3,
 					"appearance": {
 						"background": "#123",
 						"fontFamily": "Inter",
@@ -217,7 +217,7 @@
 					}
 				},
 				"output": {
-					"version": 2,
+					"version": 3,
 					"appearance": {
 						"background": null,
 						"fontFamily": null,
@@ -234,7 +234,7 @@
 					}
 				},
 				"output": {
-					"version": 2,
+					"version": 3,
 					"appearance": {
 						"mdRendering": {
 							"headingWeight": 100
@@ -250,7 +250,7 @@
 					}
 				},
 				"output": {
-					"version": 2,
+					"version": 3,
 					"graph": {
 						"extractionChunkTokens": 500
 					}
@@ -264,7 +264,7 @@
 					}
 				},
 				"output": {
-					"version": 2,
+					"version": 3,
 					"graph": {
 						"enabled": true,
 						"extractionChunkTokens": 4096
@@ -278,7 +278,7 @@
 					}
 				},
 				"output": {
-					"version": 2,
+					"version": 3,
 					"graph": {}
 				}
 			},
@@ -289,7 +289,7 @@
 					}
 				},
 				"output": {
-					"version": 2,
+					"version": 3,
 					"compaction": {}
 				}
 			},
@@ -300,7 +300,7 @@
 					}
 				},
 				"output": {
-					"version": 2,
+					"version": 3,
 					"compaction": {
 						"thresholdTokens": 150000
 					}
@@ -313,7 +313,7 @@
 					}
 				},
 				"output": {
-					"version": 2,
+					"version": 3,
 					"compaction": {
 						"thresholdTokens": 32000
 					}
@@ -343,7 +343,7 @@
 					}
 				},
 				"output": {
-					"version": 2,
+					"version": 3,
 					"agent": {
 						"tools": {
 							"a": true,
@@ -370,7 +370,7 @@
 					}
 				},
 				"output": {
-					"version": 2,
+					"version": 3,
 					"agent": {
 						"graphTools": {}
 					}
@@ -385,7 +385,7 @@
 					}
 				},
 				"output": {
-					"version": 2,
+					"version": 3,
 					"agent": {
 						"graphTools": {
 							"enabled": false
@@ -400,7 +400,7 @@
 					}
 				},
 				"output": {
-					"version": 2,
+					"version": 3,
 					"agent": {}
 				}
 			},
@@ -414,7 +414,7 @@
 					}
 				},
 				"output": {
-					"version": 2,
+					"version": 3,
 					"agent": {}
 				}
 			},
@@ -428,7 +428,7 @@
 					}
 				},
 				"output": {
-					"version": 2,
+					"version": 3,
 					"agent": {}
 				}
 			},
@@ -446,7 +446,7 @@
 					"y": 2
 				},
 				"output": {
-					"version": 2,
+					"version": 3,
 					"agent": {
 						"tools": {
 							"a": false
@@ -465,7 +465,7 @@
 				"output": {
 					"general": {
 						"autoUpdate": true,
-						"activeClass": "none",
+						"activeSpace": "none",
 						"teacherName": "Teacher",
 						"sounds": true
 					},
@@ -499,7 +499,7 @@
 				"output": {
 					"general": {
 						"autoUpdate": true,
-						"activeClass": "none",
+						"activeSpace": "none",
 						"teacherName": "Teacher",
 						"sounds": true
 					},
@@ -535,13 +535,13 @@
 						"teacherName": "Zed",
 						"autoUpdate": false,
 						"sounds": false,
-						"activeClass": "cls_a"
+						"activeSpace": "cls_a"
 					}
 				},
 				"output": {
 					"general": {
 						"autoUpdate": false,
-						"activeClass": "cls_a",
+						"activeSpace": "cls_a",
 						"teacherName": "Zed",
 						"sounds": false
 					},
@@ -579,7 +579,7 @@
 				"output": {
 					"general": {
 						"autoUpdate": true,
-						"activeClass": "none",
+						"activeSpace": "none",
 						"teacherName": "Teacher",
 						"sounds": true
 					},
@@ -624,7 +624,7 @@
 				"output": {
 					"general": {
 						"autoUpdate": true,
-						"activeClass": "none",
+						"activeSpace": "none",
 						"teacherName": "Teacher",
 						"sounds": true
 					},
@@ -666,7 +666,7 @@
 				"output": {
 					"general": {
 						"autoUpdate": true,
-						"activeClass": "none",
+						"activeSpace": "none",
 						"teacherName": "Teacher",
 						"sounds": true
 					},
@@ -714,7 +714,7 @@
 				"output": {
 					"general": {
 						"autoUpdate": true,
-						"activeClass": "none",
+						"activeSpace": "none",
 						"teacherName": "Teacher",
 						"sounds": true
 					},
@@ -760,7 +760,7 @@
 				"output": {
 					"general": {
 						"autoUpdate": true,
-						"activeClass": "none",
+						"activeSpace": "none",
 						"teacherName": "Teacher",
 						"sounds": true
 					},
@@ -798,7 +798,7 @@
 				"output": {
 					"general": {
 						"autoUpdate": true,
-						"activeClass": "none",
+						"activeSpace": "none",
 						"teacherName": "Teacher",
 						"sounds": true
 					},
@@ -837,7 +837,7 @@
 				"output": {
 					"general": {
 						"autoUpdate": true,
-						"activeClass": "none",
+						"activeSpace": "none",
 						"teacherName": "Teacher",
 						"sounds": true
 					},
@@ -873,7 +873,7 @@
 				"output": {
 					"general": {
 						"autoUpdate": true,
-						"activeClass": "none",
+						"activeSpace": "none",
 						"teacherName": "Teacher",
 						"sounds": true
 					},
@@ -909,7 +909,7 @@
 				"output": {
 					"general": {
 						"autoUpdate": true,
-						"activeClass": "none",
+						"activeSpace": "none",
 						"teacherName": "Teacher",
 						"sounds": true
 					},
@@ -945,7 +945,7 @@
 				"output": {
 					"general": {
 						"autoUpdate": true,
-						"activeClass": "none",
+						"activeSpace": "none",
 						"teacherName": "Teacher",
 						"sounds": true
 					},
@@ -981,7 +981,7 @@
 				"output": {
 					"general": {
 						"autoUpdate": true,
-						"activeClass": "none",
+						"activeSpace": "none",
 						"teacherName": "Teacher",
 						"sounds": true
 					},
@@ -1016,7 +1016,7 @@
 					"general": {
 						"teacherName": 5,
 						"sounds": "x",
-						"activeClass": "zzz",
+						"activeSpace": "zzz",
 						"autoUpdate": true,
 						"keep": 1
 					}
@@ -1024,7 +1024,7 @@
 				"output": {
 					"general": {
 						"autoUpdate": true,
-						"activeClass": "none",
+						"activeSpace": "none",
 						"teacherName": "Teacher",
 						"sounds": true
 					},
@@ -1056,7 +1056,7 @@
 			{
 				"input": {
 					"general": {
-						"activeClass": "cls_abc-1_2",
+						"activeSpace": "cls_abc-1_2",
 						"onboarded": true,
 						"lastSeenVersion": "0.5.44",
 						"teacherName": "  Zed\n the  great ",
@@ -1066,7 +1066,7 @@
 				"output": {
 					"general": {
 						"autoUpdate": true,
-						"activeClass": "cls_abc-1_2",
+						"activeSpace": "cls_abc-1_2",
 						"teacherName": "Zed the great",
 						"sounds": false
 					},
@@ -1098,7 +1098,7 @@
 			{
 				"input": {
 					"general": {
-						"activeClass": "none",
+						"activeSpace": "none",
 						"lastSeenVersion": "0.5",
 						"teacherName": "   "
 					}
@@ -1106,7 +1106,7 @@
 				"output": {
 					"general": {
 						"autoUpdate": true,
-						"activeClass": "none",
+						"activeSpace": "none",
 						"teacherName": "Teacher",
 						"sounds": true
 					},
@@ -1145,7 +1145,7 @@
 				"output": {
 					"general": {
 						"autoUpdate": true,
-						"activeClass": "none",
+						"activeSpace": "none",
 						"teacherName": "Teacher",
 						"sounds": true
 					},
@@ -1196,7 +1196,7 @@
 				"output": {
 					"general": {
 						"autoUpdate": true,
-						"activeClass": "none",
+						"activeSpace": "none",
 						"teacherName": "Teacher",
 						"sounds": true
 					},
@@ -1241,7 +1241,7 @@
 				"output": {
 					"general": {
 						"autoUpdate": true,
-						"activeClass": "none",
+						"activeSpace": "none",
 						"teacherName": "Teacher",
 						"sounds": true
 					},
@@ -1279,7 +1279,7 @@
 				"output": {
 					"general": {
 						"autoUpdate": true,
-						"activeClass": "none",
+						"activeSpace": "none",
 						"teacherName": "Teacher",
 						"sounds": true
 					},
@@ -1324,7 +1324,7 @@
 				"output": {
 					"general": {
 						"autoUpdate": true,
-						"activeClass": "none",
+						"activeSpace": "none",
 						"teacherName": "Teacher",
 						"sounds": true
 					},
@@ -1365,7 +1365,7 @@
 				"output": {
 					"general": {
 						"autoUpdate": true,
-						"activeClass": "none",
+						"activeSpace": "none",
 						"teacherName": "Teacher",
 						"sounds": true
 					},
@@ -1405,7 +1405,7 @@
 				"output": {
 					"general": {
 						"autoUpdate": true,
-						"activeClass": "none",
+						"activeSpace": "none",
 						"teacherName": "Teacher",
 						"sounds": true
 					},
@@ -1444,7 +1444,7 @@
 				"output": {
 					"general": {
 						"autoUpdate": true,
-						"activeClass": "none",
+						"activeSpace": "none",
 						"teacherName": "Teacher",
 						"sounds": true
 					},
@@ -1483,7 +1483,7 @@
 				"output": {
 					"general": {
 						"autoUpdate": true,
-						"activeClass": "none",
+						"activeSpace": "none",
 						"teacherName": "Teacher",
 						"sounds": true
 					},
@@ -1521,7 +1521,7 @@
 				"output": {
 					"general": {
 						"autoUpdate": true,
-						"activeClass": "none",
+						"activeSpace": "none",
 						"teacherName": "Teacher",
 						"sounds": true
 					},
@@ -1559,7 +1559,7 @@
 				"output": {
 					"general": {
 						"autoUpdate": true,
-						"activeClass": "none",
+						"activeSpace": "none",
 						"teacherName": "Teacher",
 						"sounds": true
 					},
@@ -1597,7 +1597,7 @@
 				"output": {
 					"general": {
 						"autoUpdate": true,
-						"activeClass": "none",
+						"activeSpace": "none",
 						"teacherName": "Teacher",
 						"sounds": true
 					},
@@ -1635,7 +1635,7 @@
 				"output": {
 					"general": {
 						"autoUpdate": true,
-						"activeClass": "none",
+						"activeSpace": "none",
 						"teacherName": "Teacher",
 						"sounds": true
 					},
@@ -1690,7 +1690,7 @@
 				"output": {
 					"general": {
 						"autoUpdate": true,
-						"activeClass": "none",
+						"activeSpace": "none",
 						"teacherName": "Teacher",
 						"sounds": true
 					},
@@ -1741,7 +1741,7 @@
 				"output": {
 					"general": {
 						"autoUpdate": true,
-						"activeClass": "none",
+						"activeSpace": "none",
 						"teacherName": "Teacher",
 						"sounds": true
 					},
@@ -1781,7 +1781,7 @@
 				"output": {
 					"general": {
 						"autoUpdate": true,
-						"activeClass": "none",
+						"activeSpace": "none",
 						"teacherName": "Teacher",
 						"sounds": true
 					},
@@ -1821,7 +1821,7 @@
 				"output": {
 					"general": {
 						"autoUpdate": true,
-						"activeClass": "none",
+						"activeSpace": "none",
 						"teacherName": "Teacher",
 						"sounds": true
 					},
@@ -1862,7 +1862,7 @@
 				"output": {
 					"general": {
 						"autoUpdate": true,
-						"activeClass": "none",
+						"activeSpace": "none",
 						"teacherName": "Teacher",
 						"sounds": true
 					},
@@ -1903,7 +1903,7 @@
 				"output": {
 					"general": {
 						"autoUpdate": true,
-						"activeClass": "none",
+						"activeSpace": "none",
 						"teacherName": "Teacher",
 						"sounds": true
 					},
@@ -1948,7 +1948,7 @@
 				"output": {
 					"general": {
 						"autoUpdate": true,
-						"activeClass": "none",
+						"activeSpace": "none",
 						"teacherName": "Teacher",
 						"sounds": true
 					},
@@ -2382,12 +2382,12 @@
 		"output": [
 			{
 				"rules": {},
-				"lessonClass": null,
+				"lessonSpace": null,
 				"output": ""
 			},
 			{
 				"rules": {},
-				"lessonClass": {
+				"lessonSpace": {
 					"name": "CSE 21",
 					"rules": []
 				},
@@ -2395,13 +2395,13 @@
 			},
 			{
 				"rules": {},
-				"lessonClass": {
+				"lessonSpace": {
 					"name": "CSE 21",
 					"rules": [
 						"Use Python."
 					]
 				},
-				"output": "## The learner's rules\n\nThe learner wrote these rules. Follow them. Where a rule conflicts with the instructions above, the rule wins.\n\nRules for this class (CSE 21)\n- Use Python."
+				"output": "## The learner's rules\n\nThe learner wrote these rules. Follow them. Where a rule conflicts with the instructions above, the rule wins.\n\nRules for this space (CSE 21)\n- Use Python."
 			},
 			{
 				"rules": {
@@ -2409,7 +2409,7 @@
 						"Short."
 					]
 				},
-				"lessonClass": null,
+				"lessonSpace": null,
 				"output": "## The learner's rules\n\nThe learner wrote these rules. Follow them. Where a rule conflicts with the instructions above, the rule wins.\n\nVoice\n- Short."
 			},
 			{
@@ -2423,14 +2423,14 @@
 					],
 					"demos": []
 				},
-				"lessonClass": {
+				"lessonSpace": {
 					"name": "CSE 29",
 					"rules": [
 						"A",
 						"B"
 					]
 				},
-				"output": "## The learner's rules\n\nThe learner wrote these rules. Follow them. Where a rule conflicts with the instructions above, the rule wins.\n\nVoice\n- Short.\n\nYour files and formatting\n- Tabs.\n- Kebab names.\n\nRules for this class (CSE 29)\n- A\n- B"
+				"output": "## The learner's rules\n\nThe learner wrote these rules. Follow them. Where a rule conflicts with the instructions above, the rule wins.\n\nVoice\n- Short.\n\nYour files and formatting\n- Tabs.\n- Kebab names.\n\nRules for this space (CSE 29)\n- A\n- B"
 			},
 			{
 				"rules": {
@@ -2444,13 +2444,13 @@
 						"Cite."
 					]
 				},
-				"lessonClass": {
+				"lessonSpace": {
 					"name": "X (y)",
 					"rules": [
 						"Z"
 					]
 				},
-				"output": "## The learner's rules\n\nThe learner wrote these rules. Follow them. Where a rule conflicts with the instructions above, the rule wins.\n\nLesson flow\n- One step.\n\nQuestions\n- Ask first.\n\nFacts and research\n- Cite.\n\nRules for this class (X (y))\n- Z"
+				"output": "## The learner's rules\n\nThe learner wrote these rules. Follow them. Where a rule conflicts with the instructions above, the rule wins.\n\nLesson flow\n- One step.\n\nQuestions\n- Ask first.\n\nFacts and research\n- Cite.\n\nRules for this space (X (y))\n- Z"
 			}
 		]
 	},
@@ -2484,7 +2484,7 @@
 							{
 								"id": "n1",
 								"text": "t",
-								"classId": 5,
+								"spaceId": 5,
 								"createdAt": "now",
 								"extra": 1
 							},
@@ -2497,7 +2497,7 @@
 							{
 								"id": "n3",
 								"text": "u",
-								"classId": "cls_a",
+								"spaceId": "cls_a",
 								"createdAt": "z"
 							},
 							{
@@ -2516,7 +2516,7 @@
 						{
 							"id": "n3",
 							"text": "u",
-							"classId": "cls_a",
+							"spaceId": "cls_a",
 							"createdAt": "z"
 						}
 					]
@@ -2603,7 +2603,7 @@
 				{
 					"input": {
 						"area": "voice",
-						"classId": "cls_a"
+						"spaceId": "cls_a"
 					},
 					"output": {
 						"area": "voice"
@@ -2612,10 +2612,10 @@
 				{
 					"input": {
 						"area": "nope",
-						"classId": "cls_a"
+						"spaceId": "cls_a"
 					},
 					"output": {
-						"classId": "cls_a"
+						"spaceId": "cls_a"
 					}
 				},
 				{
@@ -2626,31 +2626,31 @@
 				},
 				{
 					"input": {
-						"classId": "cls_a-b_1"
+						"spaceId": "cls_a-b_1"
 					},
 					"output": {
-						"classId": "cls_a-b_1"
+						"spaceId": "cls_a-b_1"
 					}
 				},
 				{
 					"input": {
-						"classId": "bad"
+						"spaceId": "bad"
 					},
 					"output": null
 				},
 				{
 					"input": {
-						"classId": 5
+						"spaceId": 5
 					},
 					"output": null
 				},
 				{
 					"input": {
 						"area": 5,
-						"classId": "cls_x"
+						"spaceId": "cls_x"
 					},
 					"output": {
-						"classId": "cls_x"
+						"spaceId": "cls_x"
 					}
 				},
 				{
@@ -2880,15 +2880,15 @@
 				},
 				{
 					"where": {
-						"classId": "cls_a"
+						"spaceId": "cls_a"
 					},
 					"name": null,
-					"ruleFor": "this class",
-					"whereLabel": "Lessons in this class"
+					"ruleFor": "this space",
+					"whereLabel": "Lessons in this space"
 				},
 				{
 					"where": {
-						"classId": "cls_a"
+						"spaceId": "cls_a"
 					},
 					"name": "CSE 21",
 					"ruleFor": "CSE 21",
@@ -2896,15 +2896,15 @@
 				},
 				{
 					"where": {
-						"classId": "cls_a-b_1"
+						"spaceId": "cls_a-b_1"
 					},
 					"name": null,
-					"ruleFor": "this class",
-					"whereLabel": "Lessons in this class"
+					"ruleFor": "this space",
+					"whereLabel": "Lessons in this space"
 				},
 				{
 					"where": {
-						"classId": "cls_a-b_1"
+						"spaceId": "cls_a-b_1"
 					},
 					"name": "CSE 21",
 					"ruleFor": "CSE 21",
@@ -2912,15 +2912,15 @@
 				},
 				{
 					"where": {
-						"classId": "cls_x"
+						"spaceId": "cls_x"
 					},
 					"name": null,
-					"ruleFor": "this class",
-					"whereLabel": "Lessons in this class"
+					"ruleFor": "this space",
+					"whereLabel": "Lessons in this space"
 				},
 				{
 					"where": {
-						"classId": "cls_x"
+						"spaceId": "cls_x"
 					},
 					"name": "CSE 21",
 					"ruleFor": "CSE 21",
@@ -2978,14 +2978,14 @@
 							},
 							{
 								"where": {
-									"classId": "cls_a"
+									"spaceId": "cls_a"
 								},
 								"text": "C",
 								"at": 5
 							},
 							{
 								"where": {
-									"classId": "cls_a"
+									"spaceId": "cls_a"
 								},
 								"text": "D",
 								"at": "u",
@@ -3005,7 +3005,7 @@
 						},
 						{
 							"where": {
-								"classId": "cls_a"
+								"spaceId": "cls_a"
 							},
 							"text": "D",
 							"at": "u"
@@ -7274,9 +7274,9 @@
 				"date": "2026-10-27",
 				"changes": [
 					"godspeed is the new name. Claude Code, Codex or any MCP app can now be your teacher, on the plan you already pay for.",
-					"Classes: each class has its own lessons, files, knowledge graph and exams.",
+					"Spaces: each space has its own lessons, files, knowledge graph and exams.",
 					"A new lesson layout: a step bar on top, a reading column, and an always-open Your turn panel.",
-					"The class Overview and the topic Graph show what you've covered and what to work on before each exam.",
+					"The space Overview and the topic Graph show what you've covered and what to work on before each exam.",
 					"The Files page: drag files in, link a folder, and see which files you've studied.",
 					"Updates download on their own, and the Mac app is signed and notarized by Apple."
 				]

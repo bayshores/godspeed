@@ -21,7 +21,7 @@ const { talkTools } = await import(`${src}/tools/talk.ts`);
 const { parseMermaidPlan } = await import(`${src}/tools/mermaid-plan.ts`);
 const { loadAgentCore } = await import(`${src}/engine-load.ts`);
 const { createFauxCore } = await import("@earendil-works/pi-ai/providers/faux");
-const { CLASS_ICONS } = await import("../../../../src/shared/core/contracts.ts");
+const { SPACE_ICONS } = await import("../../../../src/shared/core/contracts.ts");
 
 type AnyTool = { name: string; description: string; parameters: unknown; executionMode?: string; prepareArguments?: (a: unknown) => unknown; execute: (id: string, args: unknown, signal?: AbortSignal) => Promise<unknown> };
 type Registry = Record<string, AnyTool>;
@@ -82,8 +82,8 @@ function world() {
 	const delivered: unknown[] = [];
 	const deliver = (steer: any) => void delivered.push({ ...steer, timestamp: "<ts>" });
 	const card = {
-		classId: "class1",
-		name: "Class One",
+		spaceId: "space1",
+		name: "Space One",
 		description: "  About it.  ",
 		files: [
 			{ name: "notes.md", kind: "study", path: "/files/notes.md", size: "4 pages" },
@@ -92,24 +92,24 @@ function world() {
 		],
 		topics: [{ name: "Limits", facts: 3 }],
 	};
-	const classSearch = {
+	const spaceSearch = {
 		searchFiles: async (query: string, limit: number) => `found ${JSON.stringify(query)} limit ${limit}`,
 		readPassage: (ref: unknown) => `passage ${JSON.stringify(ref)}`,
 	};
 	const saveRule = (rule: string, scope: string, area: string | undefined) =>
-		rule === "dup" ? "That rule already exists." : { saved: true, rule, for: scope === "this_class" ? "Class One" : "every lesson", where: scope === "this_class" ? { classId: "class1" } : { area: area ?? "teaching" }, note: "" };
-	const ok = (name: string) => (args: unknown) => ({ ok: true, value: { tool: name, args }, changes: [{ label: `Changed ${name}`, page: `/class/${name}` }] });
-	const classActions: any = {};
-	for (const name of ["list_classes", "read_class", "search_class_files", "read_passage", "create_class", "update_class", "add_class_file", "set_class_file_kind", "add_class_deadline", "update_class_deadline", "remove_class_deadline", "link_class_folder", "start_lesson"]) {
-		classActions[name] = name === "remove_class_deadline" ? () => ({ ok: false, error: "No such deadline." }) : name === "list_classes" ? () => ({ ok: true, value: "Class One (class1)", changes: [] }) : ok(name);
+		rule === "dup" ? "That rule already exists." : { saved: true, rule, for: scope === "this_space" ? "Space One" : "every lesson", where: scope === "this_space" ? { spaceId: "space1" } : { area: area ?? "teaching" }, note: "" };
+	const ok = (name: string) => (args: unknown) => ({ ok: true, value: { tool: name, args }, changes: [{ label: `Changed ${name}`, page: `/space/${name}` }] });
+	const spaceActions: any = {};
+	for (const name of ["list_spaces", "read_space", "search_space_files", "read_passage", "create_space", "update_space", "add_space_file", "set_space_file_kind", "add_space_deadline", "update_space_deadline", "remove_space_deadline", "link_space_folder", "start_lesson"]) {
+		spaceActions[name] = name === "remove_space_deadline" ? () => ({ ok: false, error: "No such deadline." }) : name === "list_spaces" ? () => ({ ok: true, value: "Space One (space1)", changes: [] }) : ok(name);
 	}
 	const base = { chatId: "lesson", chatStore, jobStore, spawn, deliver };
-	const side = { classCard: () => card, todayNote: () => "[Today] Monday", classSearch, classNote: (text: string) => `Note saved: ${text}`, saveRule, classActions };
+	const side = { spaceCard: () => card, todayNote: () => "[Today] Monday", spaceSearch, spaceNote: (text: string) => `Note saved: ${text}`, saveRule, spaceActions };
 	const graphs = () => [
-		{ className: "Class One", graphStore: own, own: true },
-		{ className: "Class Two", graphStore: other, own: false },
+		{ spaceName: "Space One", graphStore: own, own: true },
+		{ spaceName: "Space Two", graphStore: other, own: false },
 	];
-	return { classActions, chats, saved, chatStore, jobStore, jobs, spawned, delivered, base, side, own, other, graphs, card };
+	return { spaceActions, chats, saved, chatStore, jobStore, jobs, spawned, delivered, base, side, own, other, graphs, card };
 }
 
 const strip = (t: AnyTool) => (FILE_TOOLS.includes(t.name) ? { name: t.name } : { name: t.name, description: t.description, parameters: t.parameters, executionMode: t.executionMode ?? "parallel" });
@@ -219,10 +219,10 @@ const cases: Record<string, () => unknown> = {
 	},
 	"registry: talk": () => {
 		const w = world();
-		return describe(talkTools(w.classActions));
+		return describe(talkTools(w.spaceActions));
 	},
 	"registry: bare questions": () => describe(teacherAgent.bareQuestionTools()),
-	"icons": () => Object.keys(CLASS_ICONS),
+	"icons": () => Object.keys(SPACE_ICONS),
 
 	"questions: quiz": async () => {
 		const w = world();
@@ -349,43 +349,43 @@ const cases: Record<string, () => unknown> = {
 		return { out, again, jobs: w.jobs, spawned: w.spawned };
 	},
 
-	"class: tools": async () => {
+	"space: tools": async () => {
 		const w = world();
 		const reg = tools.createTeacherTools({ ...w.base, ...w.side });
 		const out = await script(reg, [
-			["read_class", {}],
-			["set_class_note", { text: "Two sentences." }],
-			["search_class_files", { query: "limits" }],
-			["search_class_files", { query: "limits", limit: 3 }],
+			["read_space", {}],
+			["set_space_note", { text: "Two sentences." }],
+			["search_space_files", { query: "limits" }],
+			["search_space_files", { query: "limits", limit: 3 }],
 			["read_passage", { passage_id: "f1:3" }],
 			["read_passage", { file_id: "f1", range: "p. 3" }],
 			["read_passage", { file_id: "f1" }],
 			["read_passage", {}],
 			["save_rule", { rule: "Use Python.", for: "every_lesson", area: "files" }],
-			["save_rule", { rule: "Use Python.", for: "this_class" }],
+			["save_rule", { rule: "Use Python.", for: "this_space" }],
 			["save_rule", { rule: "dup", for: "every_lesson" }],
-			["list_classes", {}],
-			["add_class_deadline", { class_id: "class1", deadlines: [{ kind: "exam", name: "Midterm", date: "2026-03-01" }] }],
-			["update_class_deadline", { class_id: "class1", deadline_id: "d1", time: null, done: true }],
-			["remove_class_deadline", { class_id: "class1", deadline_id: "d1" }],
+			["list_spaces", {}],
+			["add_space_deadline", { space_id: "space1", deadlines: [{ kind: "exam", name: "Midterm", date: "2026-03-01" }] }],
+			["update_space_deadline", { space_id: "space1", deadline_id: "d1", time: null, done: true }],
+			["remove_space_deadline", { space_id: "space1", deadline_id: "d1" }],
 		]);
-		const gone = tools.createTeacherTools({ ...w.base, classCard: () => null });
-		return { out, gone: await script(gone, [["read_class", {}]]), noToday: await script(tools.createTeacherTools({ ...w.base, classCard: () => w.card }), [["read_class", {}]]) };
+		const gone = tools.createTeacherTools({ ...w.base, spaceCard: () => null });
+		return { out, gone: await script(gone, [["read_space", {}]]), noToday: await script(tools.createTeacherTools({ ...w.base, spaceCard: () => w.card }), [["read_space", {}]]) };
 	},
-	"class: talk": async () => {
+	"space: talk": async () => {
 		const w = world();
-		const reg = talkTools(w.classActions);
+		const reg = talkTools(w.spaceActions);
 		return script(reg, [
-			["list_classes", {}],
-			["read_class", { class_id: "class1", files: true }],
-			["search_class_files", { class_id: "class1", query: "q", limit: 2 }],
-			["create_class", { name: "New", icon: Object.keys(CLASS_ICONS)[0], signature: { kind: "math", value: "x^2" } }],
-			["add_class_file", { class_id: "class1", path: "/a.md", kind: "study" }],
-			["set_class_file_kind", { class_id: "class1", file_ids: ["f1"], kind: "info" }],
-			["add_class_deadline", { class_id: "class1", deadlines: [{ kind: "quiz", name: "Q1", date: "2026-03-01", time: "10:00", file_ids: ["f1"] }] }],
-			["remove_class_deadline", { class_id: "class1", deadline_id: "d1" }],
+			["list_spaces", {}],
+			["read_space", { space_id: "space1", files: true }],
+			["search_space_files", { space_id: "space1", query: "q", limit: 2 }],
+			["create_space", { name: "New", icon: Object.keys(SPACE_ICONS)[0], signature: { kind: "math", value: "x^2" } }],
+			["add_space_file", { space_id: "space1", path: "/a.md", kind: "study" }],
+			["set_space_file_kind", { space_id: "space1", file_ids: ["f1"], kind: "info" }],
+			["add_space_deadline", { space_id: "space1", deadlines: [{ kind: "quiz", name: "Q1", date: "2026-03-01", time: "10:00", file_ids: ["f1"] }] }],
+			["remove_space_deadline", { space_id: "space1", deadline_id: "d1" }],
 			["start_lesson", { topic: "Limits" }],
-			["link_class_folder", { class_id: "class1", path: "/folder" }],
+			["link_space_folder", { space_id: "space1", path: "/folder" }],
 		]);
 	},
 
@@ -500,7 +500,7 @@ async function agentFacts() {
 		practice: facts(teacherAgent.createPracticeAgent({ chatId: "lesson", chatStore: w.chatStore }, { engine, toolToggles: off })),
 		study: facts(teacherAgent.createStudyAgent({ ...teacherCtx, graphNodes: () => [] }, { engine, toolToggles: { demo: false } })),
 		homework: facts(teacherAgent.createHomeworkAgent({ chatId: "lesson", chatStore: w.chatStore, homework }, { engine, learnerRules: rules })),
-		talk: facts(teacherAgent.createTalkAgent(w.classActions, { engine, toolToggles: off })),
+		talk: facts(teacherAgent.createTalkAgent(w.spaceActions, { engine, toolToggles: off })),
 		"explicit tools": facts(teacherAgent.createTeacherAgent(teacherCtx, { engine, tools: teacherAgent.bareQuestionTools(), toolToggles: { quiz: false } })),
 	};
 }

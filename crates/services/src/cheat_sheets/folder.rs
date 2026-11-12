@@ -9,7 +9,7 @@ use gs_agent::subagents::cheat_sheet_writer::TakenPdf;
 use gs_base::fsx::node_error_message;
 use gs_base::locks::LockKey;
 use gs_base::time::iso_now;
-use gs_core::classes::class_shortcuts::unique_name;
+use gs_core::spaces::space_shortcuts::unique_name;
 use gs_base::text::cmp16;
 use gs_core::study::cheat_sheet::{current_version, newer_folder_pdf, sheet_folder_name, with_version};
 use gs_json::{Json, js_number, json};
@@ -33,14 +33,14 @@ fn names(dir: &std::path::Path) -> std::io::Result<Vec<String>> {
 }
 
 /// The sheet's working folder, made if missing: the one it was given at its first request, else
-/// a new one named for the class and deadline.
+/// a new one named for the space and deadline.
 pub(super) fn working_folder(app: &App, ctx: &Context, sheet: &Json) -> Result<Folder, String> {
 	let root = cheat_sheets_dir(app);
 	make_dir(&root)?;
 	let mut taken: HashSet<String> = names(&root).map_err(|e| node_error_message(&e, "scandir", &root))?.iter().map(|n| n.to_lowercase()).collect();
 	let name = match sheet["folder"].as_str().filter(|f| !f.is_empty()) {
 		Some(folder) => folder.to_owned(),
-		None => unique_name(&sheet_folder_name(&ctx.class_name, &ctx.deadline.name), &mut taken),
+		None => unique_name(&sheet_folder_name(&ctx.space_name, &ctx.deadline.name), &mut taken),
 	};
 	let dir = root.join(&name);
 	make_dir(&dir)?;
@@ -95,19 +95,19 @@ pub(super) async fn take_folder_pdf(app: &App, ctx: &Context) -> Outcome<bool> {
 
 /// Saves the folder's PDF as the newest version, unless the newest already is that file.
 fn keep_folder_version(app: &App, ctx: &Context, pdf: &TakenPdf) -> Result<bool, String> {
-	let _guard = app.locks.lock(LockKey::Class(&ctx.class_id));
+	let _guard = app.locks.lock(LockKey::Space(&ctx.space_id));
 	let now = sheet_now(app, ctx)?;
 	let id = &ctx.deadline.id;
 	if let Some(n) = current_version(&now).and_then(|v| v["n"].as_f64())
-		&& app.stores.cheat_sheets.read_sheet_pdf(&ctx.class_id, id, n).is_some_and(|saved| saved == pdf.bytes)
+		&& app.stores.cheat_sheets.read_sheet_pdf(&ctx.space_id, id, n).is_some_and(|saved| saved == pdf.bytes)
 	{
 		return Ok(false);
 	}
 	let version = json!({ "prompt": "", "at": iso_now(), "pages": pdf.pages, "file": pdf.file, "fromFolder": true });
 	let (next, dropped) = with_version(&now, &version);
 	let n = current_version(&next).and_then(|v| v["n"].as_f64()).unwrap_or(1.0);
-	app.stores.cheat_sheets.save_sheet_pdf(&ctx.class_id, id, n, &pdf.bytes)?;
-	app.stores.cheat_sheets.write_cheat_sheet(&ctx.class_id, &next)?;
-	app.stores.cheat_sheets.remove_sheet_pdfs(&ctx.class_id, id, &dropped)?;
+	app.stores.cheat_sheets.save_sheet_pdf(&ctx.space_id, id, n, &pdf.bytes)?;
+	app.stores.cheat_sheets.write_cheat_sheet(&ctx.space_id, &next)?;
+	app.stores.cheat_sheets.remove_sheet_pdfs(&ctx.space_id, id, &dropped)?;
 	Ok(true)
 }

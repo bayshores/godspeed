@@ -86,7 +86,7 @@ fn run(store: &ChatStore, step: &Json) -> Result<Json, String> {
 	let id = s(&step["id"]);
 	match s(&step["op"]) {
 		"rename" => store.rename_chat(id, s(&step["title"])),
-		"setClass" => store.set_chat_class(id, step["classId"].as_str()),
+		"setSpace" => store.set_chat_space(id, step["spaceId"].as_str()),
 		"turnUsage" => store.append_turn_usage(id, &step["entry"]).map(|()| Json::Null),
 		"extractionUsage" => store.append_extraction_usage(id, &step["entry"]).map(|()| Json::Null),
 		"tree" => store.save_tree(id, &step["tree"]).map(|()| Json::Null),
@@ -194,7 +194,7 @@ fn seed_chats_match_node() {
 			Box::new(|| lab.store.append_turn_usage(id, &json!({ "id": "golden-turn" }))),
 			Box::new(|| lab.store.append_extraction_usage(id, &json!({ "startedAt": "golden-run" }))),
 			Box::new(|| lab.store.save_tree(id, &json!({ "nodes": [] }))),
-			Box::new(|| lab.store.set_chat_class(id, Some("cls_golden")).map(drop)),
+			Box::new(|| lab.store.set_chat_space(id, Some("cls_golden")).map(drop)),
 		];
 		for (i, edit) in edits.iter().enumerate() {
 			edit().unwrap();

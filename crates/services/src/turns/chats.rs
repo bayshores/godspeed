@@ -86,7 +86,7 @@ fn winding_down() -> Refusal {
 	Refusal { status: 503, code: "extraction_winding_down", error: "This lesson is still finishing its graph work. Try again in a moment.", job_ids: None }
 }
 
-/// Quiesces one lesson before a graph rewrite (a delete or a class move): refuses while a turn or
+/// Quiesces one lesson before a graph rewrite (a delete or a space move): refuses while a turn or
 /// job runs, aborts and waits out its extraction. None: take the lesson's lock and check
 /// `rewrite_blocker` under it, since a turn or an extraction may start before the lock is taken.
 pub async fn quiesce_chat_for_rewrite(app: &Arc<App>, chat_id: &str) -> Option<Refusal> {
@@ -133,13 +133,13 @@ async fn run_delete(app: &Arc<App>, chat_id: &str, mode: ChatDeleteMode) -> Resu
 		return Ok(Err(blocker));
 	}
 	// A turn begins under this lock, so none can start between the check and the removal. The
-	// record is read again: a move may have changed its class during the wind-down.
+	// record is read again: a move may have changed its space during the wind-down.
 	let _held = app.locks.lock(LockKey::Chat(chat_id));
 	if let Some(blocker) = rewrite_blocker(app, chat_id) {
 		return Ok(Err(blocker));
 	}
 	let Some(record) = app.stores.chats.get_chat(chat_id) else { return Ok(Err(no_lesson())) };
-	let scope = record["classId"].as_str();
+	let scope = record["spaceId"].as_str();
 	let stats = delete_chat_from_graph(app, scope, chat_id, mode)?;
 	let jobs_removed = app.stores.jobs.delete_jobs_for_chat(chat_id);
 	if app.stores.chats.delete_chat(chat_id) {
@@ -152,7 +152,7 @@ async fn run_delete(app: &Arc<App>, chat_id: &str, mode: ChatDeleteMode) -> Resu
 /// The sidebar menu's coverage block for one lesson, derived per request.
 pub fn session_coverage(app: &Arc<App>, record: &Json) -> Result<Json, String> {
 	let chat_id = record["id"].as_str().unwrap_or_default();
-	let entries = app.stores.graphs.read(record["classId"].as_str(), Ledger::Coverage)?;
+	let entries = app.stores.graphs.read(record["spaceId"].as_str(), Ledger::Coverage)?;
 	let messages = record["messages"].as_arr().map_or(&[][..], Vec::as_slice);
 	// Node's walk reads every message's role, so a null message fails the whole read.
 	if messages.iter().any(Json::is_null) {

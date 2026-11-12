@@ -29,6 +29,6 @@ mod tests {
 	fn a_field_goes_into_its_section_without_moving_anything() {
 		let record = json!({ "version": 2, "general": { "teacherName": "Zed" }, "graph": {} });
 		assert_eq!(stringify(&with_field(record, "general", "onboarded", true)), r#"{"version":2,"general":{"teacherName":"Zed","onboarded":true},"graph":{}}"#);
-		assert_eq!(stringify(&with_field(record_or_new(None), "general", "lastSeenVersion", "1.2.3")), r#"{"version":2,"general":{"lastSeenVersion":"1.2.3"}}"#);
+		assert_eq!(stringify(&with_field(record_or_new(None), "general", "lastSeenVersion", "1.2.3")), r#"{"version":3,"general":{"lastSeenVersion":"1.2.3"}}"#);
 	}
 }

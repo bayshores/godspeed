@@ -10,7 +10,7 @@ pub mod mcp_token;
 pub mod jobs;
 pub mod graph;
 pub mod chats;
-pub mod classes;
+pub mod spaces;
 pub mod cheat_sheets;
 
 use std::sync::Arc;
@@ -33,7 +33,7 @@ pub struct Stores {
 	pub jobs: Arc<jobs::JobStore>,
 	pub graphs: Arc<graph::GraphStores>,
 	pub chats: Arc<chats::ChatStore>,
-	pub classes: classes::ClassStore,
+	pub spaces: spaces::SpaceStore,
 	pub cheat_sheets: cheat_sheets::CheatSheetStore,
 }
 
@@ -50,7 +50,7 @@ impl Stores {
 			jobs: Arc::new(jobs::JobStore::new(paths, events, locks)),
 			graphs: Arc::new(graph::GraphStores::new(paths, locks)),
 			chats: Arc::new(chats::ChatStore::new(paths, events, locks)),
-			classes: classes::ClassStore::new(paths, events, locks),
+			spaces: spaces::SpaceStore::new(paths, events, locks),
 			cheat_sheets: cheat_sheets::CheatSheetStore::new(paths, locks),
 		}
 	}

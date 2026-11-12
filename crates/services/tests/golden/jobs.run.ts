@@ -124,7 +124,7 @@ if (which === "feed") {
 		{ id: "steer_job_ackn0003_00000003", role: "custom", customType: "subagent-abort", details: { jobId: "job_ackn0003_00000003" } },
 		{ id: "msg_plain", role: "user", content: "hi", details: { jobId: "job_ackn0004_00000004" } },
 		{ id: "steer_job_gone", role: "custom", customType: "subagent-steer", details: { jobId: "job_gone0000_00000000" } },
-		{ id: "custom_no_job", role: "custom", customType: "class-context", details: {} },
+		{ id: "custom_no_job", role: "custom", customType: "space-context", details: {} },
 	];
 	noteSteersDurable(OFF, persisted as never);
 	steps.push({ op: "acknowledge", chatId: OFF, persisted, jobs: records() });

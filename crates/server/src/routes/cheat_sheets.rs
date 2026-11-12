@@ -1,4 +1,4 @@
-//! /api/classes/{id}/cheat-sheets and /api/classes/{id}/deadlines/{deadline_id}/cheat-sheet and everything under it.
+//! /api/spaces/{id}/cheat-sheets and /api/spaces/{id}/deadlines/{deadline_id}/cheat-sheet and everything under it.
 
 use std::sync::{Arc, LazyLock};
 
@@ -8,28 +8,28 @@ use axum::extract::{Path, State};
 use axum::http::{HeaderValue, header};
 use axum::response::Response;
 use gs_base::re::Re;
-use gs_core::contracts::class::is_class_id;
+use gs_core::contracts::space::is_space_id;
 use gs_core::messages::input_events::parse_attachments;
 use gs_core::study::cheat_sheet::{sheet_about_of, sheet_region_of};
 use gs_json::{Json, json};
 use gs_services::App;
-use gs_services::cheat_sheets::{AskInput, Outcome, Stop, ask, cheat_sheet_file, cheat_sheet_pdf, cheat_sheet_view, class_sheets_view, remove_rule, retry, sheet_pdf_file, stop};
+use gs_services::cheat_sheets::{AskInput, Outcome, Stop, ask, cheat_sheet_file, cheat_sheet_pdf, cheat_sheet_view, space_sheets_view, remove_rule, retry, sheet_pdf_file, stop};
 
 use crate::http::reply::{Unhandled, error, json, json_body};
 use crate::http::route::ApiRoute;
 
-const SHEET: &str = "/api/classes/{id}/deadlines/{deadline_id}/cheat-sheet";
+const SHEET: &str = "/api/spaces/{id}/deadlines/{deadline_id}/cheat-sheet";
 
 pub fn routes() -> Router<Arc<App>> {
 	Router::new()
-		.route("/api/classes/{id}/cheat-sheets", ApiRoute::new().get(get_class_sheets).into_route())
+		.route("/api/spaces/{id}/cheat-sheets", ApiRoute::new().get(get_space_sheets).into_route())
 		.route(SHEET, ApiRoute::new().get(get_sheet).post(post_sheet).into_route())
 		.route(&format!("{SHEET}/pdf/{{n}}"), ApiRoute::new().get(get_pdf).into_route())
 		.route(&format!("{SHEET}/files/{{file}}"), ApiRoute::new().get(get_file).into_route())
 }
 
-fn not_a_class() -> Response {
-	error(404, "No such class")
+fn not_a_space() -> Response {
+	error(404, "No such space")
 }
 
 /// A refusal answers with its status; a throw is the route's empty 500.
@@ -53,23 +53,23 @@ fn kept(bytes: Vec<u8>, kind: &'static str) -> Response {
 	res
 }
 
-async fn get_class_sheets(State(app): State<Arc<App>>, Path(id): Path<String>) -> Result<Response, Unhandled> {
-	if !is_class_id(&id) {
-		return Ok(not_a_class());
+async fn get_space_sheets(State(app): State<Arc<App>>, Path(id): Path<String>) -> Result<Response, Unhandled> {
+	if !is_space_id(&id) {
+		return Ok(not_a_space());
 	}
-	answer(class_sheets_view(&app, &id))
+	answer(space_sheets_view(&app, &id))
 }
 
 async fn get_sheet(State(app): State<Arc<App>>, Path((id, deadline_id)): Path<(String, String)>) -> Result<Response, Unhandled> {
-	if !is_class_id(&id) {
-		return Ok(not_a_class());
+	if !is_space_id(&id) {
+		return Ok(not_a_space());
 	}
 	answer(cheat_sheet_view(&app, &id, &deadline_id).await)
 }
 
 async fn post_sheet(State(app): State<Arc<App>>, Path((id, deadline_id)): Path<(String, String)>, body: Body) -> Result<Response, Unhandled> {
-	if !is_class_id(&id) {
-		return Ok(not_a_class());
+	if !is_space_id(&id) {
+		return Ok(not_a_space());
 	}
 	let body = json_body(body).await.unwrap_or_else(|| json!({}));
 	if body.is_null() {
@@ -112,7 +112,7 @@ async fn post_sheet(State(app): State<Arc<App>>, Path((id, deadline_id)): Path<(
 
 async fn get_pdf(State(app): State<Arc<App>>, Path((id, deadline_id, n)): Path<(String, String, String)>) -> Response {
 	static VERSION: LazyLock<Re> = LazyLock::new(|| Re::new(r"^[1-9]\d{0,8}$", ""));
-	let pdf = if VERSION.test(&n) && is_class_id(&id) { cheat_sheet_pdf(&app, &id, &deadline_id, n.parse().unwrap_or(0.0)) } else { None };
+	let pdf = if VERSION.test(&n) && is_space_id(&id) { cheat_sheet_pdf(&app, &id, &deadline_id, n.parse().unwrap_or(0.0)) } else { None };
 	match pdf {
 		Some(bytes) => kept(bytes, "application/pdf"),
 		None => error(404, "No such cheat sheet"),
@@ -120,7 +120,7 @@ async fn get_pdf(State(app): State<Arc<App>>, Path((id, deadline_id, n)): Path<(
 }
 
 async fn get_file(State(app): State<Arc<App>>, Path((id, deadline_id, file)): Path<(String, String, String)>) -> Response {
-	match is_class_id(&id).then(|| cheat_sheet_file(&app, &id, &deadline_id, &file)).flatten() {
+	match is_space_id(&id).then(|| cheat_sheet_file(&app, &id, &deadline_id, &file)).flatten() {
 		Some((bytes, kind)) => kept(bytes, kind),
 		None => error(404, "No such file"),
 	}

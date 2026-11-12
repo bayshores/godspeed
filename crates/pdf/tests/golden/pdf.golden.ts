@@ -6,7 +6,7 @@ import path from "node:path";
 process.env.LH_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "gs-pdf-golden-"));
 
 const { parsePageSpec, pdfExtract, pdfInfo, pdfProbe, pdfSearch, pdfShape } = await import("../../../../src/backend/agent/subagents/pdf-ops.ts");
-const { pdfTextOffThread } = await import("../../../../src/backend/server/class-files.ts");
+const { pdfTextOffThread } = await import("../../../../src/backend/server/space-files.ts");
 const { realHeadless } = await import("../../../../src/backend/agent/subagents/headless.ts");
 
 const root = path.resolve(import.meta.dirname, "../../../..");

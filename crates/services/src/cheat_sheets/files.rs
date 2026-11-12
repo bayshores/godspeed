@@ -30,12 +30,12 @@ pub(super) fn is_pdf_name(file: &str) -> bool {
 
 /// A message's files as the agent reads them: pictures inline, PDFs as a note naming their path.
 /// Files that are gone are left out.
-pub(super) fn files_for_agent(app: &App, class_id: &str, deadline_id: &str, files: &[Json]) -> Vec<Json> {
+pub(super) fn files_for_agent(app: &App, space_id: &str, deadline_id: &str, files: &[Json]) -> Vec<Json> {
 	files
 		.iter()
 		.filter_map(|f| {
 			let file = f["file"].as_str().filter(|file| !file.is_empty())?;
-			let (path, bytes) = app.stores.cheat_sheets.read_cheat_sheet_file(class_id, deadline_id, file)?;
+			let (path, bytes) = app.stores.cheat_sheets.read_cheat_sheet_file(space_id, deadline_id, file)?;
 			if is_pdf_name(file) {
 				return Some(pdf_note(f["name"].as_str().unwrap_or(""), &path.to_string_lossy()));
 			}
@@ -55,8 +55,8 @@ fn without_extension(name: &str) -> &str {
 
 /// Keeps a message's files beside the sheet: pictures resized as the lessons keep them, PDFs as
 /// sent. Returns `{ name, file }` for each.
-pub(super) fn keep_files(app: &App, class_id: &str, deadline_id: &str, attachments: &[ChatAttachment]) -> Outcome<Vec<Json>> {
-	let mut save = |file: &str, bytes: &[u8]| app.stores.cheat_sheets.save_cheat_sheet_file(class_id, deadline_id, file, bytes).map(|p| p.to_string_lossy().into_owned());
+pub(super) fn keep_files(app: &App, space_id: &str, deadline_id: &str, attachments: &[ChatAttachment]) -> Outcome<Vec<Json>> {
+	let mut save = |file: &str, bytes: &[u8]| app.stores.cheat_sheets.save_cheat_sheet_file(space_id, deadline_id, file, bytes).map(|p| p.to_string_lossy().into_owned());
 	let parts = store_attachments(attachments, &mut save).map_err(|err| match err {
 		AttachmentError::Input(input) => Stop::Refuse(400, input.0),
 		AttachmentError::Save(message) => Stop::Throw(message),

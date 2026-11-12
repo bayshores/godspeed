@@ -1069,7 +1069,7 @@
 		}
 	},
 	{
-		"name": "set_class_file_kind ids as an empty string",
+		"name": "set_space_file_kind ids as an empty string",
 		"output": {
 			"request": {
 				"method": "POST",
@@ -1080,18 +1080,18 @@
 					"content-type": "application/json",
 					"mcp-protocol-version": "2026-07-28",
 					"mcp-method": "tools/call",
-					"mcp-name": "set_class_file_kind"
+					"mcp-name": "set_space_file_kind"
 				},
-				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"set_class_file_kind\",\"arguments\":{\"class_id\":\"c\",\"file_ids\":\"\",\"kind\":\"info\"},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"set_space_file_kind\",\"arguments\":{\"space_id\":\"c\",\"file_ids\":\"\",\"kind\":\"info\"},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
 			},
 			"status": 200,
 			"type": "application/json",
 			"allow": null,
-			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool set_class_file_kind: file_ids: Invalid input: expected array, received string, file_ids: Too small: expected string to have >=1 characters\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool set_space_file_kind: file_ids: Invalid input: expected array, received string, file_ids: Too small: expected string to have >=1 characters\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
 		}
 	},
 	{
-		"name": "add_class_deadline list of bad items",
+		"name": "add_space_deadline list of bad items",
 		"output": {
 			"request": {
 				"method": "POST",
@@ -1102,14 +1102,14 @@
 					"content-type": "application/json",
 					"mcp-protocol-version": "2026-07-28",
 					"mcp-method": "tools/call",
-					"mcp-name": "add_class_deadline"
+					"mcp-name": "add_space_deadline"
 				},
-				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"add_class_deadline\",\"arguments\":{\"class_id\":\"c\",\"deadlines\":[1,null]},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"add_space_deadline\",\"arguments\":{\"space_id\":\"c\",\"deadlines\":[1,null]},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
 			},
 			"status": 200,
 			"type": "application/json",
 			"allow": null,
-			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool add_class_deadline: deadlines.0: Invalid input: expected object, received number, deadlines.1: Invalid input: expected object, received null\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool add_space_deadline: deadlines.0: Invalid input: expected object, received number, deadlines.1: Invalid input: expected object, received null\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
 		}
 	},
 	{
@@ -1155,7 +1155,7 @@
 		}
 	},
 	{
-		"name": "create_class with nothing",
+		"name": "create_space with nothing",
 		"output": {
 			"request": {
 				"method": "POST",
@@ -1166,18 +1166,18 @@
 					"content-type": "application/json",
 					"mcp-protocol-version": "2026-07-28",
 					"mcp-method": "tools/call",
-					"mcp-name": "create_class"
+					"mcp-name": "create_space"
 				},
-				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"create_class\",\"arguments\":{},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"create_space\",\"arguments\":{},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
 			},
 			"status": 200,
 			"type": "application/json",
 			"allow": null,
-			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool create_class: name: Invalid input: expected string, received undefined, icon: Invalid option: expected one of \\\"cpu\\\"|\\\"code\\\"|\\\"sigma\\\"|\\\"chart-line\\\"|\\\"atom\\\"|\\\"flask-conical\\\"|\\\"dna\\\"|\\\"brain\\\"|\\\"landmark\\\"|\\\"scale\\\"|\\\"trending-up\\\"|\\\"globe\\\"|\\\"languages\\\"|\\\"book-open\\\"|\\\"palette\\\"|\\\"music\\\"\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool create_space: name: Invalid input: expected string, received undefined, icon: Invalid option: expected one of \\\"cpu\\\"|\\\"code\\\"|\\\"sigma\\\"|\\\"chart-line\\\"|\\\"atom\\\"|\\\"flask-conical\\\"|\\\"dna\\\"|\\\"brain\\\"|\\\"landmark\\\"|\\\"scale\\\"|\\\"trending-up\\\"|\\\"globe\\\"|\\\"languages\\\"|\\\"book-open\\\"|\\\"palette\\\"|\\\"music\\\"\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
 		}
 	},
 	{
-		"name": "create_class with a bad signature",
+		"name": "create_space with a bad signature",
 		"output": {
 			"request": {
 				"method": "POST",
@@ -1188,18 +1188,18 @@
 					"content-type": "application/json",
 					"mcp-protocol-version": "2026-07-28",
 					"mcp-method": "tools/call",
-					"mcp-name": "create_class"
+					"mcp-name": "create_space"
 				},
-				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"create_class\",\"arguments\":{\"name\":\"x\",\"icon\":\"cpu\",\"signature\":{\"kind\":\"poem\",\"value\":\"\"}},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"create_space\",\"arguments\":{\"name\":\"x\",\"icon\":\"cpu\",\"signature\":{\"kind\":\"poem\",\"value\":\"\"}},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
 			},
 			"status": 200,
 			"type": "application/json",
 			"allow": null,
-			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool create_class: signature.kind: Invalid option: expected one of \\\"math\\\"|\\\"code\\\"|\\\"text\\\", signature.value: Too small: expected string to have >=1 characters\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool create_space: signature.kind: Invalid option: expected one of \\\"math\\\"|\\\"code\\\"|\\\"text\\\", signature.value: Too small: expected string to have >=1 characters\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
 		}
 	},
 	{
-		"name": "create_class with a signature string",
+		"name": "create_space with a signature string",
 		"output": {
 			"request": {
 				"method": "POST",
@@ -1210,18 +1210,18 @@
 					"content-type": "application/json",
 					"mcp-protocol-version": "2026-07-28",
 					"mcp-method": "tools/call",
-					"mcp-name": "create_class"
+					"mcp-name": "create_space"
 				},
-				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"create_class\",\"arguments\":{\"name\":\"x\",\"icon\":\"cpu\",\"signature\":\"x\"},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"create_space\",\"arguments\":{\"name\":\"x\",\"icon\":\"cpu\",\"signature\":\"x\"},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
 			},
 			"status": 200,
 			"type": "application/json",
 			"allow": null,
-			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool create_class: signature: Invalid input: expected object, received string\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool create_space: signature: Invalid input: expected object, received string\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
 		}
 	},
 	{
-		"name": "create_class with a null signature",
+		"name": "create_space with a null signature",
 		"output": {
 			"request": {
 				"method": "POST",
@@ -1232,18 +1232,18 @@
 					"content-type": "application/json",
 					"mcp-protocol-version": "2026-07-28",
 					"mcp-method": "tools/call",
-					"mcp-name": "create_class"
+					"mcp-name": "create_space"
 				},
-				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"create_class\",\"arguments\":{\"name\":\"x\",\"icon\":\"cpu\",\"signature\":null},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"create_space\",\"arguments\":{\"name\":\"x\",\"icon\":\"cpu\",\"signature\":null},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
 			},
 			"status": 200,
 			"type": "application/json",
 			"allow": null,
-			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool create_class: signature: Invalid input: expected object, received null\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool create_space: signature: Invalid input: expected object, received null\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
 		}
 	},
 	{
-		"name": "update_class wrong types",
+		"name": "update_space wrong types",
 		"output": {
 			"request": {
 				"method": "POST",
@@ -1254,18 +1254,18 @@
 					"content-type": "application/json",
 					"mcp-protocol-version": "2026-07-28",
 					"mcp-method": "tools/call",
-					"mcp-name": "update_class"
+					"mcp-name": "update_space"
 				},
-				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"update_class\",\"arguments\":{\"class_id\":1,\"name\":\"\",\"archived\":\"yes\",\"icon\":3},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"update_space\",\"arguments\":{\"space_id\":1,\"name\":\"\",\"archived\":\"yes\",\"icon\":3},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
 			},
 			"status": 200,
 			"type": "application/json",
 			"allow": null,
-			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool update_class: class_id: Invalid input: expected string, received number, name: Too small: expected string to have >=1 characters, icon: Invalid option: expected one of \\\"cpu\\\"|\\\"code\\\"|\\\"sigma\\\"|\\\"chart-line\\\"|\\\"atom\\\"|\\\"flask-conical\\\"|\\\"dna\\\"|\\\"brain\\\"|\\\"landmark\\\"|\\\"scale\\\"|\\\"trending-up\\\"|\\\"globe\\\"|\\\"languages\\\"|\\\"book-open\\\"|\\\"palette\\\"|\\\"music\\\", archived: Invalid input: expected boolean, received string\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool update_space: space_id: Invalid input: expected string, received number, name: Too small: expected string to have >=1 characters, icon: Invalid option: expected one of \\\"cpu\\\"|\\\"code\\\"|\\\"sigma\\\"|\\\"chart-line\\\"|\\\"atom\\\"|\\\"flask-conical\\\"|\\\"dna\\\"|\\\"brain\\\"|\\\"landmark\\\"|\\\"scale\\\"|\\\"trending-up\\\"|\\\"globe\\\"|\\\"languages\\\"|\\\"book-open\\\"|\\\"palette\\\"|\\\"music\\\", archived: Invalid input: expected boolean, received string\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
 		}
 	},
 	{
-		"name": "add_class_deadline items",
+		"name": "add_space_deadline items",
 		"output": {
 			"request": {
 				"method": "POST",
@@ -1276,18 +1276,18 @@
 					"content-type": "application/json",
 					"mcp-protocol-version": "2026-07-28",
 					"mcp-method": "tools/call",
-					"mcp-name": "add_class_deadline"
+					"mcp-name": "add_space_deadline"
 				},
-				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"add_class_deadline\",\"arguments\":{\"class_id\":\"c\",\"deadlines\":[{\"kind\":\"quiz\"},{\"kind\":\"x\",\"name\":\"\",\"date\":1,\"file_ids\":[1,\"a\"]}]},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"add_space_deadline\",\"arguments\":{\"space_id\":\"c\",\"deadlines\":[{\"kind\":\"quiz\"},{\"kind\":\"x\",\"name\":\"\",\"date\":1,\"file_ids\":[1,\"a\"]}]},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
 			},
 			"status": 200,
 			"type": "application/json",
 			"allow": null,
-			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool add_class_deadline: deadlines.0.name: Invalid input: expected string, received undefined, deadlines.0.date: Invalid input: expected string, received undefined, deadlines.1.kind: Invalid option: expected one of \\\"exam\\\"|\\\"homework\\\"|\\\"quiz\\\"|\\\"project\\\", deadlines.1.name: Too small: expected string to have >=1 characters, deadlines.1.date: Invalid input: expected string, received number, deadlines.1.file_ids.0: Invalid input: expected string, received number\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool add_space_deadline: deadlines.0.name: Invalid input: expected string, received undefined, deadlines.0.date: Invalid input: expected string, received undefined, deadlines.1.kind: Invalid option: expected one of \\\"exam\\\"|\\\"homework\\\"|\\\"quiz\\\"|\\\"project\\\", deadlines.1.name: Too small: expected string to have >=1 characters, deadlines.1.date: Invalid input: expected string, received number, deadlines.1.file_ids.0: Invalid input: expected string, received number\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
 		}
 	},
 	{
-		"name": "add_class_deadline not a list",
+		"name": "add_space_deadline not a list",
 		"output": {
 			"request": {
 				"method": "POST",
@@ -1298,18 +1298,18 @@
 					"content-type": "application/json",
 					"mcp-protocol-version": "2026-07-28",
 					"mcp-method": "tools/call",
-					"mcp-name": "add_class_deadline"
+					"mcp-name": "add_space_deadline"
 				},
-				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"add_class_deadline\",\"arguments\":{\"class_id\":\"c\",\"deadlines\":{\"kind\":\"quiz\"}},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"add_space_deadline\",\"arguments\":{\"space_id\":\"c\",\"deadlines\":{\"kind\":\"quiz\"}},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
 			},
 			"status": 200,
 			"type": "application/json",
 			"allow": null,
-			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool add_class_deadline: deadlines: Invalid input: expected array, received object\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool add_space_deadline: deadlines: Invalid input: expected array, received object\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
 		}
 	},
 	{
-		"name": "update_class_deadline nulls",
+		"name": "update_space_deadline nulls",
 		"output": {
 			"request": {
 				"method": "POST",
@@ -1320,18 +1320,18 @@
 					"content-type": "application/json",
 					"mcp-protocol-version": "2026-07-28",
 					"mcp-method": "tools/call",
-					"mcp-name": "update_class_deadline"
+					"mcp-name": "update_space_deadline"
 				},
-				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"update_class_deadline\",\"arguments\":{\"class_id\":\"c\",\"deadline_id\":\"d\",\"time\":5,\"source\":false,\"assignment_file_id\":[],\"done\":null},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"update_space_deadline\",\"arguments\":{\"space_id\":\"c\",\"deadline_id\":\"d\",\"time\":5,\"source\":false,\"assignment_file_id\":[],\"done\":null},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
 			},
 			"status": 200,
 			"type": "application/json",
 			"allow": null,
-			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool update_class_deadline: time: Invalid input: expected string, received number, source: Invalid input: expected string, received boolean, assignment_file_id: Invalid input: expected string, received array, done: Invalid input: expected boolean, received null\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool update_space_deadline: time: Invalid input: expected string, received number, source: Invalid input: expected string, received boolean, assignment_file_id: Invalid input: expected string, received array, done: Invalid input: expected boolean, received null\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
 		}
 	},
 	{
-		"name": "set_class_file_kind with a bad id",
+		"name": "set_space_file_kind with a bad id",
 		"output": {
 			"request": {
 				"method": "POST",
@@ -1342,14 +1342,14 @@
 					"content-type": "application/json",
 					"mcp-protocol-version": "2026-07-28",
 					"mcp-method": "tools/call",
-					"mcp-name": "set_class_file_kind"
+					"mcp-name": "set_space_file_kind"
 				},
-				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"set_class_file_kind\",\"arguments\":{\"class_id\":\"c\",\"file_ids\":[3],\"kind\":\"info\"},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"set_space_file_kind\",\"arguments\":{\"space_id\":\"c\",\"file_ids\":[3],\"kind\":\"info\"},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
 			},
 			"status": 200,
 			"type": "application/json",
 			"allow": null,
-			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool set_class_file_kind: file_ids.0: Invalid input: expected string, received number\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool set_space_file_kind: file_ids.0: Invalid input: expected string, received number\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
 		}
 	},
 	{
@@ -1507,7 +1507,7 @@
 		}
 	},
 	{
-		"name": "save_rule bad area and class",
+		"name": "save_rule bad area and space",
 		"output": {
 			"request": {
 				"method": "POST",
@@ -1520,16 +1520,16 @@
 					"mcp-method": "tools/call",
 					"mcp-name": "save_rule"
 				},
-				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"save_rule\",\"arguments\":{\"rule\":\"\",\"class_id\":5,\"area\":\"x\"},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"save_rule\",\"arguments\":{\"rule\":\"\",\"space_id\":5,\"area\":\"x\"},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
 			},
 			"status": 200,
 			"type": "application/json",
 			"allow": null,
-			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool save_rule: rule: Too small: expected string to have >=1 characters, class_id: Invalid input: expected string, received number, area: Invalid option: expected one of \\\"voice\\\"|\\\"teaching\\\"|\\\"questions\\\"|\\\"facts\\\"|\\\"demos\\\"|\\\"files\\\"\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool save_rule: rule: Too small: expected string to have >=1 characters, space_id: Invalid input: expected string, received number, area: Invalid option: expected one of \\\"voice\\\"|\\\"teaching\\\"|\\\"questions\\\"|\\\"facts\\\"|\\\"demos\\\"|\\\"files\\\"\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
 		}
 	},
 	{
-		"name": "search_class_files limit",
+		"name": "search_space_files limit",
 		"output": {
 			"request": {
 				"method": "POST",
@@ -1540,14 +1540,14 @@
 					"content-type": "application/json",
 					"mcp-protocol-version": "2026-07-28",
 					"mcp-method": "tools/call",
-					"mcp-name": "search_class_files"
+					"mcp-name": "search_space_files"
 				},
-				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"search_class_files\",\"arguments\":{\"class_id\":\"c\",\"query\":\"q\",\"limit\":0.5},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"search_space_files\",\"arguments\":{\"space_id\":\"c\",\"query\":\"q\",\"limit\":0.5},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
 			},
 			"status": 200,
 			"type": "application/json",
 			"allow": null,
-			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool search_class_files: limit: Invalid input: expected int, received number\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool search_space_files: limit: Invalid input: expected int, received number\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
 		}
 	},
 	{
@@ -1564,7 +1564,7 @@
 					"mcp-method": "tools/call",
 					"mcp-name": "read_passage"
 				},
-				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"read_passage\",\"arguments\":{\"class_id\":\"c\",\"passage_id\":1,\"file_id\":2,\"range\":3},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"read_passage\",\"arguments\":{\"space_id\":\"c\",\"passage_id\":1,\"file_id\":2,\"range\":3},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
 			},
 			"status": 200,
 			"type": "application/json",
@@ -1586,16 +1586,16 @@
 					"mcp-method": "tools/call",
 					"mcp-name": "start_lesson"
 				},
-				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"start_lesson\",\"arguments\":{\"topic\":{},\"class_id\":null},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"start_lesson\",\"arguments\":{\"topic\":{},\"space_id\":null},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
 			},
 			"status": 200,
 			"type": "application/json",
 			"allow": null,
-			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool start_lesson: topic: Invalid input: expected string, received object, class_id: Invalid input: expected string, received null\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool start_lesson: topic: Invalid input: expected string, received object, space_id: Invalid input: expected string, received null\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
 		}
 	},
 	{
-		"name": "link_class_folder nothing",
+		"name": "link_space_folder nothing",
 		"output": {
 			"request": {
 				"method": "POST",
@@ -1606,18 +1606,18 @@
 					"content-type": "application/json",
 					"mcp-protocol-version": "2026-07-28",
 					"mcp-method": "tools/call",
-					"mcp-name": "link_class_folder"
+					"mcp-name": "link_space_folder"
 				},
-				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"link_class_folder\",\"arguments\":{},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"link_space_folder\",\"arguments\":{},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
 			},
 			"status": 200,
 			"type": "application/json",
 			"allow": null,
-			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool link_class_folder: class_id: Invalid input: expected string, received undefined, path: Invalid input: expected string, received undefined\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool link_space_folder: space_id: Invalid input: expected string, received undefined, path: Invalid input: expected string, received undefined\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
 		}
 	},
 	{
-		"name": "unlink_class_folder number",
+		"name": "unlink_space_folder number",
 		"output": {
 			"request": {
 				"method": "POST",
@@ -1628,14 +1628,14 @@
 					"content-type": "application/json",
 					"mcp-protocol-version": "2026-07-28",
 					"mcp-method": "tools/call",
-					"mcp-name": "unlink_class_folder"
+					"mcp-name": "unlink_space_folder"
 				},
-				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"unlink_class_folder\",\"arguments\":{\"class_id\":9},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"unlink_space_folder\",\"arguments\":{\"space_id\":9},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
 			},
 			"status": 200,
 			"type": "application/json",
 			"allow": null,
-			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool unlink_class_folder: class_id: Invalid input: expected string, received number\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool unlink_space_folder: space_id: Invalid input: expected string, received number\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
 		}
 	},
 	{

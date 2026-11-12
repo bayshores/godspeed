@@ -384,10 +384,10 @@ mod tests {
 		bytes.iter().map(|b| format!("{b:02x}")).collect()
 	}
 
-	/// Parity with undici (tests/golden/class-forms.json, made by class-forms.golden.ts).
+	/// Parity with undici (tests/golden/space-forms.json, made by space-forms.golden.ts).
 	#[test]
 	fn forms_match_undici() {
-		let golden = parse_json(include_str!("../../tests/golden/class-forms.json")).unwrap();
+		let golden = parse_json(include_str!("../../tests/golden/space-forms.json")).unwrap();
 		let cases = golden[0]["output"].as_arr().unwrap();
 		assert!(cases.len() > 30);
 		for case in cases {

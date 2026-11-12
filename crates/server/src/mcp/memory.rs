@@ -4,10 +4,10 @@
 use gs_json::{Json, json};
 
 use super::reply::{failure, result};
-use super::tools::{ToolCall, class_arg};
+use super::tools::{ToolCall, space_arg};
 
 pub fn remember(call: &ToolCall<'_>, args: &Json) -> Json {
-	let scope = match class_arg(call.app, args["class_id"].as_str()) {
+	let scope = match space_arg(call.app, args["space_id"].as_str()) {
 		Ok(scope) => scope,
 		Err(error) => return failure(&error),
 	};
@@ -27,12 +27,12 @@ pub fn forget(call: &ToolCall<'_>, args: &Json) -> Json {
 }
 
 pub fn save_rule(call: &ToolCall<'_>, args: &Json) -> Json {
-	let scope = match class_arg(call.app, args["class_id"].as_str()) {
+	let scope = match space_arg(call.app, args["space_id"].as_str()) {
 		Ok(scope) => scope,
 		Err(error) => return failure(&error),
 	};
 	let place = match scope {
-		Some(class_id) => json!({ "classId": class_id }),
+		Some(space_id) => json!({ "spaceId": space_id }),
 		None => json!({ "area": args["area"].as_str().unwrap_or("teaching") }),
 	};
 	let rule = args["rule"].as_str().unwrap_or_default();

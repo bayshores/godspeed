@@ -17,7 +17,7 @@ static HEADER_RE: LazyLock<Re> = LazyLock::new(|| Re::new(r"^(graph|flowchart)\s
 static SLUG_RE: LazyLock<Re> = LazyLock::new(|| Re::new(r"^[a-z0-9]+([_-][a-z0-9]+)*$", ""));
 static ARROW_RE: LazyLock<Re> = LazyLock::new(|| Re::new(r"-->|==>|-\.->", ""));
 static LINE_BREAK_RE: LazyLock<Re> = LazyLock::new(|| Re::new(r"\r?\n", ""));
-// The id class is broad on purpose, so every bad id reaches the specific slug message.
+// The id space is broad on purpose, so every bad id reaches the specific slug message.
 static ENDPOINT_RE: LazyLock<Re> = LazyLock::new(|| Re::new(r#"^([^\s()\[\]]+)\s*(?:\[([^\[\]]*)\]|\(\s*"([^"]*)"\s*\)|\(([^()]*)\))?$"#, ""));
 
 /// A line without its trailing `;` (mermaid's optional separator; titles may contain one).
@@ -121,7 +121,7 @@ pub fn parse_mermaid_plan(mermaid: &str) -> Result<ParsedPlan, Vec<String>> {
 		} else {
 			let Some(node) = parse_endpoint(line) else {
 				problems.push(format!(
-					"line {no}: can't parse `{line}` \u{2014} ids are the strict part (lowercase slugs: a-z, 0-9, hyphens, underscores); node lines (`slug[title]`) and requires-edges (`a --> b`) are the accepted forms; subgraphs, styles, and classes are not part of the subset."
+					"line {no}: can't parse `{line}` \u{2014} ids are the strict part (lowercase slugs: a-z, 0-9, hyphens, underscores); node lines (`slug[title]`) and requires-edges (`a --> b`) are the accepted forms; subgraphs, styles, and spaces are not part of the subset."
 				));
 				continue;
 			};

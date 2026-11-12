@@ -1,11 +1,11 @@
 //! The stored search index (src/backend/server/search-index.ts). Each graph scope keeps its tables
-//! next to its graph, in `search/`: `passages` (every class file cut into passages) and `facts`
+//! next to its graph, in `search/`: `passages` (every space file cut into passages) and `facts`
 //! (the graph's facts), see table.rs. A row's hash is of its text, so a changed file or fact
 //! re-embeds only what changed. Search fuses the embedding ranking with BM25 keyword ranking;
 //! brute-force cosine is fine for tens of thousands of rows.
 //!
-//! Callers pass what the TS read from the stores: a class's files (`[{ id, name, .. }]`) and a
-//! graph's merged nodes. A class id must name a class the caller found.
+//! Callers pass what the TS read from the stores: a space's files (`[{ id, name, .. }]`) and a
+//! graph's merged nodes. A space id must name a space the caller found.
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -34,11 +34,11 @@ pub enum PassageRef {
 	Place { file_id: String, range: String },
 }
 
-/// The search model and the per-scope index tables. Keep this constructor's signature. The class
+/// The search model and the per-scope index tables. Keep this constructor's signature. The space
 /// files' methods are in passages.rs, the facts' in facts.rs.
 pub struct Search {
 	data: PathBuf,
-	classes: PathBuf,
+	spaces: PathBuf,
 	embedder: Embedder,
 	/// Tables read from disk or last written, by base path.
 	tables: Mutex<HashMap<PathBuf, Arc<Table>>>,
@@ -50,20 +50,20 @@ impl Search {
 	pub fn new(paths: &Paths) -> Search {
 		Search {
 			data: paths.data.clone(),
-			classes: paths.classes.clone(),
+			spaces: paths.spaces.clone(),
 			embedder: Embedder::new(paths.resources.join("models")),
 			tables: Mutex::default(),
 			writers: Mutex::default(),
 		}
 	}
 
-	/// `search/` beside the scope's graph: data/search for "No class", else the class folder's.
+	/// `search/` beside the scope's graph: data/search for "No space", else the space folder's.
 	fn search_dir(&self, scope: Option<&str>) -> PathBuf {
-		scope.map_or_else(|| self.data.join("search"), |id| self.classes.join(id).join("search"))
+		scope.map_or_else(|| self.data.join("search"), |id| self.spaces.join(id).join("search"))
 	}
 
-	pub(crate) fn passages_file(&self, class_id: &str) -> PathBuf {
-		self.search_dir(Some(class_id)).join("passages")
+	pub(crate) fn passages_file(&self, space_id: &str) -> PathBuf {
+		self.search_dir(Some(space_id)).join("passages")
 	}
 
 	pub(crate) fn facts_file(&self, scope: Option<&str>) -> PathBuf {
@@ -165,13 +165,13 @@ mod tests {
 	#[test]
 	fn searches_can_be_spawned() {
 		let s = Search::new(&Paths::new("/d".into(), "/h".into(), "/t".into(), "/r".into()));
-		// The class lock's guard is not Send; it is held only over the write, after the last await.
-		spawnable(&s.index_class_file("c", "f", "n.txt", "fp", "text", || Some(std::rc::Rc::new(()))));
-		spawnable(&s.drop_class_file("c", "f"));
-		spawnable(&s.search_class_files("c", &[], "q", 3));
+		// The space lock's guard is not Send; it is held only over the write, after the last await.
+		spawnable(&s.index_space_file("c", "f", "n.txt", "fp", "text", || Some(std::rc::Rc::new(()))));
+		spawnable(&s.drop_space_file("c", "f"));
+		spawnable(&s.search_space_files("c", &[], "q", 3));
 		spawnable(&s.search_facts(None, &[], "q", 3));
 		spawnable(&s.related_facts(None, &[], "text", 3));
-		assert_eq!(s.passages_file("cls_x"), Path::new("/d/classes/cls_x/search/passages"));
+		assert_eq!(s.passages_file("cls_x"), Path::new("/d/spaces/cls_x/search/passages"));
 		assert_eq!(s.facts_file(None), Path::new("/d/search/facts"));
 		assert_eq!(hash_of("a"), "ca978112ca1bbdca");
 	}

@@ -1,4 +1,4 @@
-//! The cheat sheet: the notes a class lets the learner bring to a deadline, one per deadline
+//! The cheat sheet: the notes a space lets the learner bring to a deadline, one per deadline
 //! (cheat-sheet.ts). The sheet is a PDF made by the agent, with a chat, its last few versions
 //! and its rules.
 //!
@@ -14,7 +14,7 @@ use gs_base::{num, re::Re, time};
 use gs_json::{Json, Obj, js_number, json};
 
 use super::items;
-use crate::classes::class_shortcuts::safe_entry_name;
+use crate::spaces::space_shortcuts::safe_entry_name;
 use crate::records::teaching_areas::{RULE_MAX_CHARS, RULES_MAX, one_line};
 
 pub use super::sheet_cards::sheet_cards;
@@ -126,8 +126,8 @@ pub fn pdf_problem(bytes: u64, head: Option<&str>, pages: Option<&[Json]>) -> Op
 }
 
 /// The working folder's name: "CSE 21 Midterm", safe on every OS.
-pub fn sheet_folder_name(class_name: &str, deadline_name: &str) -> String {
-	safe_entry_name(&format!("{class_name} {deadline_name}"))
+pub fn sheet_folder_name(space_name: &str, deadline_name: &str) -> String {
+	safe_entry_name(&format!("{space_name} {deadline_name}"))
 }
 
 /// The PDF in the working folder that is newer than the current version (the learner changed the

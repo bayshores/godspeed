@@ -1,5 +1,5 @@
 // Runs the cheat-sheet server code (cheat-sheets.ts, cheat-sheet-pdf.ts) over a fresh data folder
-// and home folder with a synthetic class, and prints what the folders held before, each step and
+// and home folder with a synthetic space, and prints what the folders held before, each step and
 // what it answered. cheat-sheets.golden.ts starts it in its own process with LH_DATA_DIR and HOME
 // set, because the stores fix their folders when they load. Times the TypeScript clock made, and
 // ids it made, are masked ("<now>", "<id>"): the Rust clock is not fixed.
@@ -57,15 +57,15 @@ function tinyPdf(pages: [number, number][]): Buffer {
 	return Buffer.from(out, "latin1");
 }
 
-const classDir = path.join(DATA, "classes", CLS);
+const spaceDir = path.join(DATA, "spaces", CLS);
 const deadline = (id: string, name: string, date: string) => ({ id, kind: "exam", name, date, fileIds: [], done: false });
-fs.mkdirSync(path.join(classDir, "cheat-sheets"), { recursive: true });
+fs.mkdirSync(path.join(spaceDir, "cheat-sheets"), { recursive: true });
 fs.writeFileSync(
-	path.join(classDir, "class.json"),
+	path.join(spaceDir, "space.json"),
 	tabs({
 		id: CLS,
-		name: "Golden Class",
-		description: "Notes about the class.",
+		name: "Golden Space",
+		description: "Notes about the space.",
 		createdAt: AT(1),
 		updatedAt: AT(1),
 		archived: false,
@@ -86,9 +86,9 @@ fs.writeFileSync(
 	}),
 );
 
-const sheets = path.join(classDir, "cheat-sheets");
+const sheets = path.join(spaceDir, "cheat-sheets");
 const page = { widthPt: 612, heightPt: 792 };
-const folderOf = path.join(HOME, "godspeed", "cheat-sheets", "Golden Class Midterm");
+const folderOf = path.join(HOME, "godspeed", "cheat-sheets", "Golden Space Midterm");
 const store = await import("../../../../src/backend/store/cheat-sheets.ts");
 const core = await import("../../../../src/shared/core/cheat-sheet.ts");
 const server = await import("../../../../src/backend/server/cheat-sheets.ts");
@@ -99,7 +99,7 @@ const v1 = tinyPdf([[612, 792]]);
 const v2 = tinyPdf([[612, 792], [612, 792]]);
 fs.mkdirSync(folderOf, { recursive: true });
 fs.writeFileSync(path.join(folderOf, "sheet.pdf"), v2);
-const t1 = core.withVersion({ ...core.newCheatSheet(MID, AT(1)), folder: "Golden Class Midterm" }, { prompt: "first ask", at: AT(1), pages: [page] });
+const t1 = core.withVersion({ ...core.newCheatSheet(MID, AT(1)), folder: "Golden Space Midterm" }, { prompt: "first ask", at: AT(1), pages: [page] });
 const t2 = core.withVersion(t1.sheet, { prompt: "bigger fonts", at: AT(2), pages: [page, page], file: path.join(folderOf, "sheet.pdf") });
 let mid = core.withMessage(t2.sheet, { id: "m1", role: "you", text: "first ask", at: AT(1), files: [{ name: "pic.png", file: "aaaa11112222-pic.png" }] });
 mid = core.withMessage(mid, { id: "m2", role: "agent", text: "Made it.", at: AT(1), version: 1, rules: ["no slang"] });
@@ -117,11 +117,11 @@ store.saveCheatSheetFile(CLS, MID, "eeee9999aaaa-UPPER.PDF", v1);
 fs.writeFileSync(path.join(sheets, `${NEWER}.json`), tabs({ version: 5, deadlineId: NEWER, versions: [], messages: [], rules: [], updatedAt: AT(3) }));
 fs.writeFileSync(path.join(sheets, `${OLD}.json`), tabs({ version: 2, deadlineId: OLD, prompts: [{ text: "make it bigger", at: AT(2), files: ["old.png"] }], doc: { html: "<p>x</p>" }, updatedAt: AT(2) }));
 fs.writeFileSync(path.join(sheets, `${BAD}.json`), "{ this is not json");
-const own = core.withVersion({ ...core.newCheatSheet(OWN, AT(1)), folder: "Golden Class Essay" }, { prompt: "essay", at: AT(1), pages: [page], file: path.join(HOME, "godspeed", "cheat-sheets", "Golden Class Essay", "made.pdf") });
+const own = core.withVersion({ ...core.newCheatSheet(OWN, AT(1)), folder: "Golden Space Essay" }, { prompt: "essay", at: AT(1), pages: [page], file: path.join(HOME, "godspeed", "cheat-sheets", "Golden Space Essay", "made.pdf") });
 store.saveSheetPdf(CLS, OWN, 1, v1);
 store.writeCheatSheet(CLS, { ...own.sheet, updatedAt: AT(1) });
-fs.mkdirSync(path.join(HOME, "godspeed", "cheat-sheets", "Golden Class Essay"), { recursive: true });
-fs.writeFileSync(path.join(HOME, "godspeed", "cheat-sheets", "Golden Class Essay", "made.pdf"), v1);
+fs.mkdirSync(path.join(HOME, "godspeed", "cheat-sheets", "Golden Space Essay"), { recursive: true });
+fs.writeFileSync(path.join(HOME, "godspeed", "cheat-sheets", "Golden Space Essay", "made.pdf"), v1);
 
 /** Every file under a folder: [relative path, base64]. The home folder in a saved sheet is written as "<home>". */
 function walk(root: string, dir = root): [string, string][] {
@@ -188,9 +188,9 @@ const OLD_DAY = "2025-01-01T00:00:00.000Z";
 const NEW_DAY = "2031-01-01T00:00:00.000Z";
 const later = (n: number) => `2031-01-0${n}T00:00:00.000Z`;
 
-// The class page and every view, each sheet state.
-await run({ op: "class", cls: CLS }, () => server.classSheetsView(CLS));
-await run({ op: "class", cls: "cls_nothere_00000000" }, () => server.classSheetsView("cls_nothere_00000000"));
+// The space page and every view, each sheet state.
+await run({ op: "space", cls: CLS }, () => server.spaceSheetsView(CLS));
+await run({ op: "space", cls: "cls_nothere_00000000" }, () => server.spaceSheetsView("cls_nothere_00000000"));
 for (const ddl of [MID, QUIZ, NEWER, OLD, BAD, OWN, "ddl_000000000000"]) await view(ddl);
 
 // Reads: a version's PDF, a kept file.
@@ -259,34 +259,34 @@ await file(NEWER, 1);
 await file(OLD, 1);
 await file(BAD, 1);
 await file(MID, 3.5);
-await run({ op: "ls", dir: "Golden Class Midterm" }, () => fs.readdirSync(folderOf).sort());
-await put("Golden Class Midterm/cheat sheet v1.pdf", pdf(tinyPdf([[300, 300]])), NEW_DAY);
+await run({ op: "ls", dir: "Golden Space Midterm" }, () => fs.readdirSync(folderOf).sort());
+await put("Golden Space Midterm/cheat sheet v1.pdf", pdf(tinyPdf([[300, 300]])), NEW_DAY);
 await file(MID, 1);
-await run({ op: "ls", dir: "Golden Class Midterm" }, () => fs.readdirSync(folderOf).sort());
+await run({ op: "ls", dir: "Golden Space Midterm" }, () => fs.readdirSync(folderOf).sort());
 
 // A newer PDF in the working folder comes in as a new version, each file looked at once.
-await put("Golden Class Midterm/old.pdf", pdf(tinyPdf([[612, 792]])), OLD_DAY);
+await put("Golden Space Midterm/old.pdf", pdf(tinyPdf([[612, 792]])), OLD_DAY);
 await view(MID);
-await put("Golden Class Midterm/notes.pdf", Buffer.from("%PDF-1.4 junk that is no document\n").toString("base64"), later(1));
+await put("Golden Space Midterm/notes.pdf", Buffer.from("%PDF-1.4 junk that is no document\n").toString("base64"), later(1));
 await view(MID);
 await view(MID);
-await put("Golden Class Midterm/five.pdf", pdf(tinyPdf(Array(5).fill([612, 792]))), later(2));
+await put("Golden Space Midterm/five.pdf", pdf(tinyPdf(Array(5).fill([612, 792]))), later(2));
 await view(MID);
-await put("Golden Class Midterm/big.pdf", pdf(tinyPdf([[2000, 2000]])), later(3));
+await put("Golden Space Midterm/big.pdf", pdf(tinyPdf([[2000, 2000]])), later(3));
 await view(MID);
-await put("Golden Class Midterm/small.pdf", pdf(tinyPdf([[100, 100]])), later(4));
+await put("Golden Space Midterm/small.pdf", pdf(tinyPdf([[100, 100]])), later(4));
 await view(MID);
-await put("Golden Class Midterm/fake.pdf", Buffer.from("just text\n").toString("base64"), later(5));
+await put("Golden Space Midterm/fake.pdf", Buffer.from("just text\n").toString("base64"), later(5));
 await view(MID);
-await put("Golden Class Midterm/same.pdf", pdf(v2), later(6));
+await put("Golden Space Midterm/same.pdf", pdf(v2), later(6));
 await view(MID);
-await put("Golden Class Midterm/new1.pdf", pdf(v1), later(7));
+await put("Golden Space Midterm/new1.pdf", pdf(v1), later(7));
 await view(MID);
-await put("Golden Class Midterm/new2.pdf", pdf(tinyPdf([[612, 792]])), later(8));
+await put("Golden Space Midterm/new2.pdf", pdf(tinyPdf([[612, 792]])), later(8));
 await view(MID);
-await put("Golden Class Midterm/new3.pdf", pdf(tinyPdf([[600, 800]])), later(9));
+await put("Golden Space Midterm/new3.pdf", pdf(tinyPdf([[600, 800]])), later(9));
 await view(MID);
-await put("Golden Class Midterm/.hidden.pdf", pdf(tinyPdf([[500, 700]])), NEW_DAY.replace("2031-01-01", "2031-02-01"));
+await put("Golden Space Midterm/.hidden.pdf", pdf(tinyPdf([[500, 700]])), NEW_DAY.replace("2031-01-01", "2031-02-01"));
 await view(MID);
 await view(MID);
 await run({ op: "sheet", ddl: MID }, () => sheetFile(MID));
@@ -310,7 +310,7 @@ await run({ op: "link", path: "Take/link.pdf", outside: "outside.pdf", base64: p
 	fs.symlinkSync(path.join(HOME, "outside.pdf"), path.join(HOME, "godspeed", "cheat-sheets", "Take", "link.pdf"));
 	return null;
 });
-for (const p of ["ok.pdf", "sub/inner.pdf", "./ok.pdf", "five.pdf", "huge.pdf", "tiny.pdf", "words.txt", "junk.pdf", "dir", "missing.pdf", "link.pdf", "../Golden Class Midterm/sheet.pdf", "<home>/outside.pdf", "<home>/godspeed/cheat-sheets/Take/ok.pdf"]) await take("Take", p);
+for (const p of ["ok.pdf", "sub/inner.pdf", "./ok.pdf", "five.pdf", "huge.pdf", "tiny.pdf", "words.txt", "junk.pdf", "dir", "missing.pdf", "link.pdf", "../Golden Space Midterm/sheet.pdf", "<home>/outside.pdf", "<home>/godspeed/cheat-sheets/Take/ok.pdf"]) await take("Take", p);
 
 process.stdout.write(JSON.stringify({ before, steps }));
 process.exit(0);

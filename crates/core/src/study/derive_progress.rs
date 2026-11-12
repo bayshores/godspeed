@@ -16,13 +16,13 @@ use super::progress::{days_between, ramp_color, topic_status};
 use super::topic_links::{topic_columns, topic_links};
 use super::work_on_next::{TopicView, status_counts, work_on_next};
 use super::items;
-use crate::contracts::class::compare_deadlines;
+use crate::contracts::space::compare_deadlines;
 use crate::graph::session_clusters::birth_session_of;
 use crate::graph::topics::resolve_topics;
 
 /// The progress payload for GET /api/progress.
 ///
-/// `input` is `{ classId, today, facts, chains, topics, files, deadlines, lessons[,
+/// `input` is `{ spaceId, today, facts, chains, topics, files, deadlines, lessons[,
 /// deadlineSessions, homeworkSessions, grouping] }`; each lesson carries its collected `answers`.
 pub fn derive_progress(input: &Json) -> Json {
 	let facts = items(&input["facts"]);
@@ -36,7 +36,7 @@ pub fn derive_progress(input: &Json) -> Json {
 		}
 	}
 
-	// Answers, per lesson and for the whole class. A repeated lesson id keeps its first place and
+	// Answers, per lesson and for the whole space. A repeated lesson id keeps its first place and
 	// its last answers, like a Map.
 	let lessons = items(&input["lessons"]);
 	let mut titles: HashMap<&str, &Json> = HashMap::new();
@@ -216,7 +216,7 @@ pub fn derive_progress(input: &Json) -> Json {
 	overall.insert("workOnNext", work_on_next(&grouped_views, &links));
 
 	let mut out = Obj::new();
-	out.insert("classId", input["classId"].clone());
+	out.insert("spaceId", input["spaceId"].clone());
 	out.insert("today", input["today"].clone());
 	out.insert("topicsAt", input["topics"]["at"].clone());
 	out.insert("grouping", input["grouping"].as_bool() == Some(true));

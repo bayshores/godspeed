@@ -72,7 +72,7 @@ fn update_newest(app: &App, list: &mut [Json], label: Option<&str>, now: i64) ->
 
 /// Record one action and announce it. A repeat of the newest action (same label, agent and
 /// target, within `COALESCE_MS`) only refreshes its time and is not announced again. `input` has
-/// `label`, `classId`, `target`, `page` and optionally `removed` and `open`.
+/// `label`, `spaceId`, `target`, `page` and optionally `removed` and `open`.
 fn record_agent_action(app: &App, agent: Option<&str>, input: &Json, now: i64) -> Json {
 	let label = short_label(input["label"].as_str().unwrap_or_default());
 	let agent = agent.map(text::trim).filter(|a| !a.is_empty()).unwrap_or("Your agent");
@@ -88,7 +88,7 @@ fn record_agent_action(app: &App, agent: Option<&str>, input: &Json, now: i64) -
 		action.insert("at", time::iso(now));
 		action.insert("agent", agent);
 		action.insert("label", label);
-		action.insert("classId", input["classId"].clone());
+		action.insert("spaceId", input["spaceId"].clone());
 		action.insert("target", input["target"].clone());
 		action.insert("page", input["page"].clone());
 		if removed {
@@ -121,13 +121,13 @@ pub fn note_agent_action(app: &App, caller: Option<&str>, change: &Json) {
 
 /// A linked folder's new files, as the app's own entry: "Added 3 files from Google Drive". Scans
 /// a few minutes apart add to the newest such entry.
-pub fn record_folder_files(app: &App, class_id: &str, count: usize, from: &str) {
+pub fn record_folder_files(app: &App, space_id: &str, count: usize, from: &str) {
 	static LABEL: LazyLock<Re> = LazyLock::new(|| Re::new(r"^Added (\d+) files? from (.+)$", ""));
 	let now = clock::now_ms();
 	let label = |n: usize| format!("Added {n} {} from {from}", if n == 1 { "file" } else { "files" });
 	let merged = with_list(app, |list| {
 		let last = list.last()?;
-		let found = (last["agent"].as_str() == Some(APP_SOURCE) && last["classId"].as_str() == Some(class_id) && is_recent(last, now))
+		let found = (last["agent"].as_str() == Some(APP_SOURCE) && last["spaceId"].as_str() == Some(space_id) && is_recent(last, now))
 			.then(|| LABEL.captures(last["label"].as_str().unwrap_or_default()))
 			.flatten()?;
 		(found.get(2).as_deref() == Some(from)).then(|| found.get(1).and_then(|n| n.parse::<usize>().ok()).map(|n| n + count))?
@@ -135,7 +135,7 @@ pub fn record_folder_files(app: &App, class_id: &str, count: usize, from: &str) 
 	match merged {
 		Some(total) => extend_newest(app, &label(total), now),
 		None => {
-			record_agent_action(app, Some(APP_SOURCE), &json!({ "label": label(count), "classId": class_id, "target": null, "page": "/class/files" }), now);
+			record_agent_action(app, Some(APP_SOURCE), &json!({ "label": label(count), "spaceId": space_id, "target": null, "page": "/space/files" }), now);
 		}
 	}
 }
@@ -179,12 +179,12 @@ pub fn record_answer(app: &App, lesson: &Json, answer: &Json) {
 	} else {
 		"Answered wrong"
 	};
-	record_agent_action(app, Some(LEARNER_SOURCE), &json!({ "label": label, "classId": lesson["classId"], "target": target, "page": format!("/chat/{lesson_id}") }), now);
+	record_agent_action(app, Some(LEARNER_SOURCE), &json!({ "label": label, "spaceId": lesson["spaceId"], "target": target, "page": format!("/chat/{lesson_id}") }), now);
 }
 
 /// A deadline the learner saved in the app, with the verbs the agent's entries use: "Added Test
 /// 2", "Moved Test 2", "Marked Test 2 done". `change` is "added" or the saved patch.
-pub fn record_deadline_change(app: &App, class_id: &str, deadline: &Json, change: &Json) {
+pub fn record_deadline_change(app: &App, space_id: &str, deadline: &Json, change: &Json) {
 	let name = deadline["name"].as_str().unwrap_or_default();
 	let label = match change.as_obj() {
 		None => format!("Added {name}"),
@@ -195,7 +195,7 @@ pub fn record_deadline_change(app: &App, class_id: &str, deadline: &Json, change
 		}
 	};
 	let target = json!({ "kind": "deadline", "id": deadline["id"] });
-	record_agent_action(app, Some(LEARNER_SOURCE), &json!({ "label": label, "classId": class_id, "target": target, "page": "/" }), clock::now_ms());
+	record_agent_action(app, Some(LEARNER_SOURCE), &json!({ "label": label, "spaceId": space_id, "target": target, "page": "/" }), clock::now_ms());
 }
 
 /// The saved actions, newest first.
@@ -215,7 +215,7 @@ mod tests {
 	}
 
 	fn lesson_action(label: &str) -> Json {
-		json!({ "label": label, "classId": null, "target": { "kind": "lesson", "id": "chat_a" }, "page": "/chat/chat_a" })
+		json!({ "label": label, "spaceId": null, "target": { "kind": "lesson", "id": "chat_a" }, "page": "/chat/chat_a" })
 	}
 
 	#[test]
@@ -223,7 +223,7 @@ mod tests {
 		let root = scratch_dir("actions-store");
 		let app = test_app(&root);
 		let mut events = app.events.subscribe();
-		let action = record_agent_action(&app, Some("  Claude Code "), &json!({ "label": "Adding\n  HW 5", "classId": "cls_a", "target": null, "page": "/", "open": true }), 1_000);
+		let action = record_agent_action(&app, Some("  Claude Code "), &json!({ "label": "Adding\n  HW 5", "spaceId": "cls_a", "target": null, "page": "/", "open": true }), 1_000);
 		assert!(action["id"].as_str().unwrap().starts_with("act_"));
 		assert_eq!(
 			stringify(&json!({ "agent": action["agent"], "label": action["label"], "at": action["at"], "open": action["open"] })),
@@ -251,7 +251,7 @@ mod tests {
 	fn a_removed_target_is_never_merged_and_long_labels_are_cut() {
 		let root = scratch_dir("actions-removed");
 		let app = test_app(&root);
-		let removed = json!({ "label": "Removed HW 5", "classId": null, "target": null, "page": "/", "removed": true });
+		let removed = json!({ "label": "Removed HW 5", "spaceId": null, "target": null, "page": "/", "removed": true });
 		record_agent_action(&app, None, &removed, 1_000);
 		record_agent_action(&app, None, &removed, 2_000);
 		let long = record_agent_action(&app, None, &lesson_action(&"word ".repeat(30)), 3_000);
@@ -265,7 +265,7 @@ mod tests {
 		let root = scratch_dir("actions-max");
 		let app = test_app(&root);
 		for n in 0..205 {
-			record_agent_action(&app, None, &json!({ "label": format!("Step {n}"), "classId": null, "target": null, "page": "/" }), 1_000 + n);
+			record_agent_action(&app, None, &json!({ "label": format!("Step {n}"), "spaceId": null, "target": null, "page": "/" }), 1_000 + n);
 		}
 		let kept = labels(&app);
 		assert_eq!((kept.len(), kept[0].as_str(), kept[199].as_str()), (200, "Step 204", "Step 5"));
@@ -281,7 +281,7 @@ mod tests {
 		record_folder_files(&app, "cls_a", 1, "a folder");
 		record_folder_files(&app, "cls_b", 2, "a folder");
 		assert_eq!(labels(&app), ["Added 2 files from a folder", "Added 1 file from a folder", "Added 3 files from Google Drive"]);
-		// Another class's same label only refreshes the newest entry, as the old server did.
+		// Another space's same label only refreshes the newest entry, as the old server did.
 		record_folder_files(&app, "cls_c", 2, "a folder");
 		assert_eq!(labels(&app).len(), 3);
 	}
@@ -290,7 +290,7 @@ mod tests {
 	fn answers_in_a_row_add_up() {
 		let root = scratch_dir("actions-answers");
 		let app = test_app(&root);
-		let lesson = json!({ "id": "chat_a", "classId": "cls_a" });
+		let lesson = json!({ "id": "chat_a", "spaceId": "cls_a" });
 		record_answer(&app, &lesson, &json!({ "kind": "quiz", "correct": true }));
 		assert_eq!(labels(&app), ["Answered right"]);
 		record_answer(&app, &lesson, &json!({ "kind": "quiz", "correct": false }));

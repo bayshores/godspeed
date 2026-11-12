@@ -11,7 +11,7 @@ pub const SOURCES: [(&str, &str); 24] = [
 	("practice/20-hints.md", include_str!("../../../../src/backend/agent/prompts/practice/20-hints.md")),
 	("prober/10-probe-doctrine.md", include_str!("../../../../src/backend/agent/prompts/prober/10-probe-doctrine.md")),
 	("shared/10-voice.md", include_str!("../../../../src/backend/agent/prompts/shared/10-voice.md")),
-	("shared/12-class-context.md", include_str!("../../../../src/backend/agent/prompts/shared/12-space-context.md")),
+	("shared/12-space-context.md", include_str!("../../../../src/backend/agent/prompts/shared/12-space-context.md")),
 	("shared/15-accuracy.md", include_str!("../../../../src/backend/agent/prompts/shared/15-accuracy.md")),
 	("shared/16-mental-model.md", include_str!("../../../../src/backend/agent/prompts/shared/16-mental-model.md")),
 	("shared/20-question-tools.md", include_str!("../../../../src/backend/agent/prompts/shared/20-question-tools.md")),

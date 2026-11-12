@@ -7,8 +7,8 @@ use std::collections::HashSet;
 use gs_core::messages::attachments::{attachment_refusal, base64_bytes, content_text, keeps_png, pdf_file_name, pdf_note, pdf_note_of};
 use gs_core::messages::input_events::{ChatInput, DismissInput, dismiss_appends, input_appends, parse_chat_input, parse_dismiss_input, parse_user_steer_input};
 use gs_core::messages::native_messages::{
-	active_problem_of, class_card_text, concluded_by_dismissal_pair, dangling_question_of, ends_in_dismissal, failed_output_call_ids, has_probe_done, is_side_turn, new_answer_result, new_app_request_message,
-	new_class_context_message, new_graph_context_message, new_handoff_message, new_next_message, new_plan_block_message, new_problem_dismissed_marker, new_side_question, new_study_context_message,
+	active_problem_of, space_card_text, concluded_by_dismissal_pair, dangling_question_of, ends_in_dismissal, failed_output_call_ids, has_probe_done, is_side_turn, new_answer_result, new_app_request_message,
+	new_space_context_message, new_graph_context_message, new_handoff_message, new_next_message, new_plan_block_message, new_problem_dismissed_marker, new_side_question, new_study_context_message,
 	new_thinking_message, new_today_context_message, new_user_message, new_user_steer, pending_problem_dismissal_of, problem_input_for_conclude, retry_context, send_to_user_text, side_held_questions,
 	to_llm_messages, user_facing_text_of,
 };
@@ -155,8 +155,8 @@ fn constructors_match_node() {
 fn context_cards_match_node() {
 	for case in arr(&golden("context cards")) {
 		if case.get("card").is_some() {
-			same(&Json::from(class_card_text(&case["card"])), &case["text"], &stringify(&case["card"]));
-			same(&norm(&new_class_context_message(&case["card"])), &case["message"], "class card");
+			same(&Json::from(space_card_text(&case["card"])), &case["text"], &stringify(&case["card"]));
+			same(&norm(&new_space_context_message(&case["card"])), &case["message"], "space card");
 		} else if case.get("picks").is_some() {
 			let chains: Vec<String> = arr(&case["chains"]).iter().map(|c| s(c).to_owned()).collect();
 			same(&norm(&new_graph_context_message(arr(&case["picks"]), &chains)), &case["message"], "graph card");

@@ -3,7 +3,7 @@
 use std::fmt;
 use std::path::{Path, PathBuf};
 
-use gs_core::contracts::class::SPEECH_TOOL_INSTALL;
+use gs_core::contracts::space::SPEECH_TOOL_INSTALL;
 
 /// Apps opened from the Dock don't inherit the shell's PATH, so the Homebrew prefixes are
 /// searched explicitly.

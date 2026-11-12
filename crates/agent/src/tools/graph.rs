@@ -11,10 +11,10 @@ use super::fn_tool::FnTool;
 use super::ports::ChatPort;
 use gs_core::session::schema::{no_arguments, object, string_min};
 
-/// One class graph a lesson may read, named, with `own` marking the lesson's class.
+/// One space graph a lesson may read, named, with `own` marking the lesson's space.
 #[derive(Clone)]
 pub struct ScopedGraph {
-	pub class_name: String,
+	pub space_name: String,
 	pub graph_store: Arc<dyn GraphStore>,
 	pub own: bool,
 }
@@ -24,14 +24,14 @@ pub struct ScopedGraph {
 pub struct GraphToolContext {
 	pub chat_store: Arc<dyn ChatPort>,
 	pub graph_store: Arc<dyn GraphStore>,
-	/// Every class graph plus "No class" (reads may cross classes, writes never do). With it the
+	/// Every space graph plus "No space" (reads may cross spaces, writes never do). With it the
 	/// tools read across all of them; without it, the one graph store.
 	pub graphs: Option<Arc<dyn Fn() -> Vec<ScopedGraph> + Send + Sync>>,
 }
 
 const EMPTY_GRAPH: &str = "The knowledge graph is empty \u{2014} no session has contributed propositions yet.";
 
-/// A session's line without its class tag or id: name, kind, count and dates.
+/// A session's line without its space tag or id: name, kind, count and dates.
 fn session_facts(session: &Json) -> String {
 	let count = session["propositions"].as_f64().unwrap_or(0.0);
 	let born = session["createdAt"].as_str().unwrap_or("unknown date");
@@ -47,21 +47,21 @@ fn propositions_of(chat_store: &Arc<dyn ChatPort>, graph_store: &Arc<dyn GraphSt
 	graph_session_propositions(&GraphDeps { chat_store: chat_store.as_ref(), graph_store: graph_store.as_ref() }, session)
 }
 
-/// list_sessions across classes: the lesson's own class first, then the others, each line
-/// tagged with its class.
-fn list_across_classes(chat_store: &Arc<dyn ChatPort>, graphs: &[ScopedGraph]) -> Result<String, String> {
+/// list_sessions across spaces: the lesson's own space first, then the others, each line
+/// tagged with its space.
+fn list_across_spaces(chat_store: &Arc<dyn ChatPort>, graphs: &[ScopedGraph]) -> Result<String, String> {
 	let ordered = graphs.iter().filter(|g| g.own).chain(graphs.iter().filter(|g| !g.own));
 	let mut lines: Vec<String> = Vec::new();
 	for g in ordered {
 		for s in sessions_of(chat_store, &g.graph_store)? {
-			let own = if g.own { " (this lesson's class)" } else { "" };
-			lines.push(format!("{}. {} \u{2014} class: {}{own} \u{2014} id: {}", lines.len() + 1, session_facts(&s), g.class_name, s["id"].as_str().unwrap_or_default()));
+			let own = if g.own { " (this lesson's space)" } else { "" };
+			lines.push(format!("{}. {} \u{2014} space: {}{own} \u{2014} id: {}", lines.len() + 1, session_facts(&s), g.space_name, s["id"].as_str().unwrap_or_default()));
 		}
 	}
 	if lines.is_empty() {
 		return Ok(EMPTY_GRAPH.to_owned());
 	}
-	Ok(format!("{} session(s) across the learner's classes (this lesson's class first, then the others; most recent first within each):\n{}", lines.len(), lines.join("\n")))
+	Ok(format!("{} session(s) across the learner's spaces (this lesson's space first, then the others; most recent first within each):\n{}", lines.len(), lines.join("\n")))
 }
 
 fn list_sessions_tool(ctx: &GraphToolContext) -> FnTool {
@@ -73,7 +73,7 @@ fn list_sessions_tool(ctx: &GraphToolContext) -> FnTool {
 		let ctx = ctx.clone();
 		async move {
 			if let Some(graphs) = &ctx.graphs {
-				return list_across_classes(&ctx.chat_store, &graphs()).map(Json::from);
+				return list_across_spaces(&ctx.chat_store, &graphs()).map(Json::from);
 			}
 			let sessions = sessions_of(&ctx.chat_store, &ctx.graph_store)?;
 			if sessions.is_empty() {
@@ -94,7 +94,7 @@ fn list_propositions_tool(ctx: &GraphToolContext) -> FnTool {
 		let ctx = ctx.clone();
 		async move {
 			let session = args["session"].as_str().unwrap_or_default();
-			// The session lives in exactly one class graph.
+			// The session lives in exactly one space graph.
 			let mut propositions: Vec<Json> = Vec::new();
 			for g in ctx.graphs.iter().flat_map(|graphs| graphs()) {
 				propositions = propositions_of(&ctx.chat_store, &g.graph_store, session)?;

@@ -147,8 +147,8 @@ mod checks {
 <script>
 console.error("planted", {{ a: 1 }});
 window.answer = {{ n: 42, origin: location.origin, cookie: document.cookie }};
-fetch("http://127.0.0.1:{port}/api/classes", {{ credentials: "include" }}).catch(() => {{}});
-fetch("http://localhost:{port}/api/classes").catch(() => {{}});
+fetch("http://127.0.0.1:{port}/api/spaces", {{ credentials: "include" }}).catch(() => {{}});
+fetch("http://localhost:{port}/api/spaces").catch(() => {{}});
 const img = new Image(); img.src = "http://127.0.0.1:{port}/pixel.png"; document.body.appendChild(img);
 setTimeout(() => {{ throw new Error("planted uncaught"); }}, 10);
 setTimeout(() => {{ location.href = "http://127.0.0.1:{port}/away"; }}, 50);
@@ -163,8 +163,8 @@ setTimeout(() => {{ location.href = "https://example.com/"; }}, 100);
 		assert!(result.page_errors.iter().any(|e| e.contains("planted uncaught")), "{:?}", result.page_errors);
 		let failed = result.failed_requests.join("\n");
 		assert!(failed.contains("https://does-not-exist.invalid/lib.js (script failed to load)"), "{failed}");
-		assert!(failed.contains(&format!("http://127.0.0.1:{port}/api/classes (TypeError")), "{failed}");
-		assert!(failed.contains(&format!("http://localhost:{port}/api/classes (TypeError")), "{failed}");
+		assert!(failed.contains(&format!("http://127.0.0.1:{port}/api/spaces (TypeError")), "{failed}");
+		assert!(failed.contains(&format!("http://localhost:{port}/api/spaces (TypeError")), "{failed}");
 		assert!(failed.contains(&format!("http://127.0.0.1:{port}/pixel.png (img failed to load)")), "{failed}");
 		assert_eq!(
 			result.probe_result,

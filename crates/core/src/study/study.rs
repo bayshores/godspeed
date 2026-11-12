@@ -1,6 +1,6 @@
 //! One session that decides per topic whether to teach, drill or just check (study.ts).
 //!
-//! A study topic is `{ id, name, mode, factIds }`: the plan node id (the class topic's id, or
+//! A study topic is `{ id, name, mode, factIds }`: the plan node id (the space topic's id, or
 //! `FREE_TOPIC_ID`), its name, its mode from the learner's track record ("teach", "problems" or
 //! "check") and the picked facts in it.
 
@@ -13,7 +13,7 @@ use gs_json::{Json, json};
 use super::items;
 use super::progress::topic_facts;
 use super::deadline_plan::plan_days;
-use crate::classes::file_series::date_in_name;
+use crate::spaces::file_series::date_in_name;
 use crate::session::plan_tree::create_tree;
 
 /// The plan node of a typed topic that matches no fact.
@@ -31,10 +31,10 @@ pub fn study_mode(status: &str) -> &'static str {
 	}
 }
 
-/// Each fact's place in the class's order: the files sorted the way the deadline page lists
-/// class days (dated files by date, then undated ones by name), and a fact sits where the file it
+/// Each fact's place in the space's order: the files sorted the way the deadline page lists
+/// space days (dated files by date, then undated ones by name), and a fact sits where the file it
 /// came from sits. Facts born in a lesson have no place.
-pub fn fact_class_order(facts: &[Json], files: &[Json]) -> HashMap<String, usize> {
+pub fn fact_space_order(facts: &[Json], files: &[Json]) -> HashMap<String, usize> {
 	let dated: Vec<(&Json, Option<String>)> = files.iter().map(|f| (f, date_in_name(f["name"].as_str().unwrap_or("")))).collect();
 	let mut with_date: Vec<&(&Json, Option<String>)> = dated.iter().filter(|d| d.1.is_some()).collect();
 	with_date.sort_by(|a, b| locale::compare(a.1.as_deref().unwrap_or(""), b.1.as_deref().unwrap_or("")));
@@ -59,10 +59,10 @@ fn fact_ids(topic: &Json) -> Vec<&str> {
 	items(&topic["factIds"]).iter().filter_map(Json::as_str).collect()
 }
 
-/// Topics sorted by their earliest fact's place in the class; facts from no class file go last
+/// Topics sorted by their earliest fact's place in the space; facts from no space file go last
 /// and ties keep their order.
-fn in_class_order(topics: Vec<Json>, class_order: &HashMap<String, usize>) -> Vec<Json> {
-	let rank = |t: &Json| fact_ids(t).iter().map(|id| class_order.get(*id).map_or(f64::INFINITY, |&r| r as f64)).fold(f64::INFINITY, f64::min);
+fn in_space_order(topics: Vec<Json>, space_order: &HashMap<String, usize>) -> Vec<Json> {
+	let rank = |t: &Json| fact_ids(t).iter().map(|id| space_order.get(*id).map_or(f64::INFINITY, |&r| r as f64)).fold(f64::INFINITY, f64::min);
 	let mut ranked: Vec<(f64, Json)> = topics.into_iter().map(|t| (rank(&t), t)).collect();
 	ranked.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(Ordering::Equal));
 	ranked.into_iter().map(|(_, t)| t).collect()
@@ -72,12 +72,12 @@ fn study_topic(id: &Json, name: &Json, status: &str, fact_ids: Vec<Json>) -> Jso
 	json!({ "id": id, "name": name, "mode": study_mode(status), "factIds": fact_ids })
 }
 
-/// The session's topics: the picked facts grouped by their class topic, in class order (a topic
-/// sits at its earliest fact; facts from no class file go last; ties keep the order the facts were
+/// The session's topics: the picked facts grouped by their space topic, in space order (a topic
+/// sits at its earliest fact; facts from no space file go last; ties keep the order the facts were
 /// picked in). When no picked fact is in a topic, the typed topic is the one "teach" topic.
 ///
 /// `topics` are `{ id, name, members, status }`.
-pub fn study_topics(picked: &[String], topics: &[Json], class_order: &HashMap<String, usize>, free_topic: &str) -> Vec<Json> {
+pub fn study_topics(picked: &[String], topics: &[Json], space_order: &HashMap<String, usize>, free_topic: &str) -> Vec<Json> {
 	let mut topic_of: HashMap<&str, &Json> = HashMap::new();
 	for t in topics {
 		for id in items(&t["members"]).iter().filter_map(Json::as_str) {
@@ -106,19 +106,19 @@ pub fn study_topics(picked: &[String], topics: &[Json], class_order: &HashMap<St
 	if groups.is_empty() {
 		return vec![study_topic(&Json::from(FREE_TOPIC_ID), &Json::from(free_topic), "untested", vec![])];
 	}
-	in_class_order(groups, class_order)
+	in_space_order(groups, space_order)
 }
 
-/// A session on class topics (a Study start on topics or on a deadline): each topic with its
+/// A session on space topics (a Study start on topics or on a deadline): each topic with its
 /// facts, the ones to fix first. Whole topics fill the session until the next one would pass
 /// `MAX_STUDY_FACTS` facts (always at least one; one bigger than that keeps its first
-/// `MAX_STUDY_FACTS` facts), and the kept ones are listed in class order.
+/// `MAX_STUDY_FACTS` facts), and the kept ones are listed in space order.
 ///
 /// A deadline start passes `studied_today` (the topics that are plan nodes of today's study
 /// sessions), so each Study click moves on: first the topics that are not strong and were not
-/// studied today, then not strong but studied today, then strong, each group in class order.
+/// studied today, then not strong but studied today, then strong, each group in space order.
 /// `topics` are `{ id, name, members, status }`; `facts` are the progress payload's facts.
-pub fn topic_study(topic_ids: &[String], topics: &[Json], facts: &[Json], class_order: &HashMap<String, usize>, studied_today: Option<&HashSet<String>>) -> Vec<Json> {
+pub fn topic_study(topic_ids: &[String], topics: &[Json], facts: &[Json], space_order: &HashMap<String, usize>, studied_today: Option<&HashSet<String>>) -> Vec<Json> {
 	let mut by_id: HashMap<&str, &Json> = HashMap::new();
 	for t in topics {
 		by_id.insert(t["id"].as_str().unwrap_or(""), t);
@@ -134,7 +134,7 @@ pub fn topic_study(topic_ids: &[String], topics: &[Json], facts: &[Json], class_
 			found.push(study_topic(&t["id"], &t["name"], t["status"].as_str().unwrap_or(""), ids));
 		}
 	}
-	let candidates = in_class_order(found, class_order);
+	let candidates = in_space_order(found, space_order);
 	// "check" is exactly the strong topics.
 	let tier = |t: &Json| match studied_today {
 		None => 0,
@@ -169,7 +169,7 @@ pub fn topic_study(topic_ids: &[String], topics: &[Json], facts: &[Json], class_
 		.collect()
 }
 
-/// A Study start's title and first message on class topics.
+/// A Study start's title and first message on space topics.
 pub fn study_title(topics: &[Json]) -> String {
 	let names: Vec<&str> = topics.iter().map(|t| t["name"].as_str().unwrap_or("")).collect();
 	format!("Study: {}", names.join(", "))
@@ -186,16 +186,16 @@ fn mode_note(mode: &str) -> &'static str {
 /// The study context's model-facing text: names, modes and fact ids only (the graph context
 /// above it carries the statements).
 pub fn study_context_text(topics: &[Json]) -> String {
-	let mut lines = vec!["[Study plan] \u{2014} this session's topics, in the order the class covered them, each with its plan node and its mode from the learner's track record:".to_owned()];
+	let mut lines = vec!["[Study plan] \u{2014} this session's topics, in the order the space covered them, each with its plan node and its mode from the learner's track record:".to_owned()];
 	for (i, t) in topics.iter().enumerate() {
 		let ids = fact_ids(t);
-		let facts = if ids.is_empty() { ", no facts in the class graph yet".to_owned() } else { format!(", facts {}", ids.join(", ")) };
+		let facts = if ids.is_empty() { ", no facts in the space graph yet".to_owned() } else { format!(", facts {}", ids.join(", ")) };
 		lines.push(format!("{}. {} \u{2014} node {}, {}{facts}", i + 1, t["name"].as_str().unwrap_or(""), t["id"].as_str().unwrap_or(""), mode_note(t["mode"].as_str().unwrap_or(""))));
 	}
 	lines.join("\n")
 }
 
-/// The plan the app writes for a study session: one node per topic, in class order (the step bar
+/// The plan the app writes for a study session: one node per topic, in space order (the step bar
 /// keeps authored order when there are no edges).
 pub fn study_plan_tree(topics: &[Json]) -> Result<Json, String> {
 	let nodes: Vec<Json> = topics.iter().map(|t| json!({ "id": t["id"], "title": t["name"] })).collect();
@@ -228,7 +228,7 @@ mod tests {
 	}
 
 	#[test]
-	fn picked_facts_group_by_topic_in_class_order() {
+	fn picked_facts_group_by_topic_in_space_order() {
 		let topics = [topic("t1", "weak", &["a", "b"]), topic("t2", "strong", &["c"]), topic("t3", "untested", &["d"])];
 		let order: HashMap<String, usize> = [("c", 0), ("a", 1)].map(|(k, v)| (k.to_owned(), v)).into();
 		let picked = ["a", "b", "a", "c", "d", "zzz"].map(String::from);
@@ -245,7 +245,7 @@ mod tests {
 		let got = [json!({ "id": "t1", "name": "Sums", "mode": "teach", "factIds": ["a", "b"] }), json!({ "id": "topic", "name": "Free", "mode": "check", "factIds": [] })];
 		assert_eq!(study_title(&got), "Study: Sums, Free");
 		let text = study_context_text(&got);
-		assert!(text.ends_with("1. Sums \u{2014} node t1, teach (never tested), facts a, b\n2. Free \u{2014} node topic, check (strong), no facts in the class graph yet"));
+		assert!(text.ends_with("1. Sums \u{2014} node t1, teach (never tested), facts a, b\n2. Free \u{2014} node topic, check (strong), no facts in the space graph yet"));
 	}
 
 	#[test]

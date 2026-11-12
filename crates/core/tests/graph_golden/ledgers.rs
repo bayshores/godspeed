@@ -1,4 +1,4 @@
-//! The ledgers a case starts from: a fixture class by name, or the ledgers inline.
+//! The ledgers a case starts from: a fixture space by name, or the ledgers inline.
 
 use std::path::PathBuf;
 use std::sync::Mutex;

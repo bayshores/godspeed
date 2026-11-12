@@ -3,7 +3,7 @@
 //! every known field is strict (a bad type is an error message for the 400, never a clamp).
 
 use gs_base::text;
-use gs_core::contracts::class::is_class_id;
+use gs_core::contracts::space::is_space_id;
 use gs_core::records::changelog::is_version;
 use gs_core::records::settings::{COMPACTION_THRESHOLD_FLOOR, EXTRACTION_CHUNK_TOKENS_FLOOR, is_hex_color, sanitize_teacher_name};
 use gs_core::records::teaching_areas::{TEACHING_AREAS, sanitize_area_rules};
@@ -52,10 +52,10 @@ fn parse_general(body: &Json) -> Parsed {
 	if let Some(v) = boolean(raw, "autoUpdate")? {
 		out.insert("autoUpdate", v);
 	}
-	if let Some(v) = raw.get("activeClass") {
+	if let Some(v) = raw.get("activeSpace") {
 		match v.as_str() {
-			Some(id) if id == "none" || is_class_id(id) => out.insert("activeClass", id),
-			_ => return Err("activeClass must be a class id or \"none\"".to_owned()),
+			Some(id) if id == "none" || is_space_id(id) => out.insert("activeSpace", id),
+			_ => return Err("activeSpace must be a space id or \"none\"".to_owned()),
 		};
 	}
 	if let Some(v) = boolean(raw, "onboarded")? {
@@ -232,7 +232,7 @@ mod tests {
 	fn general_keeps_known_keys_in_parser_order() {
 		assert_eq!(run("general", r#"{"sounds":false,"teacherName":"  Zed\n ","x":1,"autoUpdate":true}"#).unwrap(), r#"{"autoUpdate":true,"teacherName":"Zed","sounds":false}"#);
 		assert_eq!(run("general", r#"{"teacherName":"  "}"#).unwrap(), "{}");
-		assert_eq!(run("general", r#"{"activeClass":"zzz"}"#).unwrap_err(), "activeClass must be a class id or \"none\"");
+		assert_eq!(run("general", r#"{"activeSpace":"zzz"}"#).unwrap_err(), "activeSpace must be a space id or \"none\"");
 		assert_eq!(run("general", r#"{"lastSeenVersion":"1.2"}"#).unwrap_err(), "lastSeenVersion must be a version like \"0.4.1\"");
 		assert_eq!(run("general", "[]").unwrap_err(), "Invalid JSON body");
 		assert_eq!(run("general", "null").unwrap_err(), "Invalid JSON body");

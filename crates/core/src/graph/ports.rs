@@ -15,7 +15,7 @@ pub struct LedgerRewrite {
 	pub checkpoints: Option<Vec<Json>>,
 }
 
-/// One graph family's append-only ledgers (the "No class" graph or one class's).
+/// One graph family's append-only ledgers (the "No space" graph or one space's).
 pub trait GraphStore: Send + Sync {
 	fn append_node(&self, node: &Json) -> Result<(), String>;
 	/// Raw node lines in append order.

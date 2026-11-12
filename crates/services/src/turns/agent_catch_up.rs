@@ -8,8 +8,8 @@ use std::sync::Arc;
 use std::sync::atomic::Ordering;
 
 use gs_base::{clock, time};
-use gs_core::classes::deadline_requests::{asked_deadline_ids, coverage_request, talk_quiet, unlinked_deadlines};
-use gs_core::classes::today_note::local_day;
+use gs_core::spaces::deadline_requests::{asked_deadline_ids, coverage_request, talk_quiet, unlinked_deadlines};
+use gs_core::spaces::today_note::local_day;
 use gs_core::contracts::chat::{TALK_CHAT_ID, extracts_facts};
 use gs_core::messages::input_events::TurnInput;
 
@@ -26,15 +26,15 @@ fn catch_up_lessons(app: &Arc<App>, now: i64) -> Result<(), String> {
 		return Ok(());
 	}
 	app.turns.lessons_caught_up.store(true, Ordering::SeqCst);
-	let archived: HashSet<String> = app.stores.classes.list_classes().iter().filter(|c| c["archived"].truthy()).filter_map(|c| c["id"].as_str().map(str::to_owned)).collect();
+	let archived: HashSet<String> = app.stores.spaces.list_spaces().iter().filter(|c| c["archived"].truthy()).filter_map(|c| c["id"].as_str().map(str::to_owned)).collect();
 	for summary in app.stores.chats.list_chats() {
 		let Some(id) = summary["id"].as_str() else { continue };
 		let Some(record) = app.stores.chats.get_chat(id) else { continue };
-		let class_id = record["classId"].as_str().filter(|c| !c.is_empty());
-		if !extracts_facts(record["kind"].as_str()) || class_id.is_some_and(|c| archived.contains(c)) || is_turn_running(app, id) {
+		let space_id = record["spaceId"].as_str().filter(|c| !c.is_empty());
+		if !extracts_facts(record["kind"].as_str()) || space_id.is_some_and(|c| archived.contains(c)) || is_turn_running(app, id) {
 			continue;
 		}
-		let scope = record["classId"].as_str();
+		let scope = record["spaceId"].as_str();
 		if uncovered_tokens(app, id, scope)? == 0.0 {
 			continue;
 		}
@@ -58,7 +58,7 @@ fn ask_about_deadlines(app: &Arc<App>, now: i64) -> Result<(), String> {
 		return Ok(());
 	}
 	let asked = asked_deadline_ids(talk.as_ref().and_then(|t| t["messages"].as_arr()).map_or(&[][..], Vec::as_slice));
-	let deadlines = unlinked_deadlines(&app.stores.classes.list_class_records(), &local_day(now), &asked);
+	let deadlines = unlinked_deadlines(&app.stores.spaces.list_space_records(), &local_day(now), &asked);
 	if deadlines.is_empty() {
 		return Ok(());
 	}

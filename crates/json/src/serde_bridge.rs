@@ -92,14 +92,14 @@ mod tests {
 		id: String,
 		text: String,
 		#[serde(skip_serializing_if = "Option::is_none")]
-		class_id: Option<String>,
+		space_id: Option<String>,
 		created_at: String,
 		count: u32,
 	}
 
 	#[test]
 	fn typed_values_keep_field_order_and_skip_absent() {
-		let note = Note { id: "note_1".into(), text: "hi".into(), class_id: None, created_at: "t".into(), count: 3 };
+		let note = Note { id: "note_1".into(), text: "hi".into(), space_id: None, created_at: "t".into(), count: 3 };
 		assert_eq!(stringify(&to_json(&note)), r#"{"id":"note_1","text":"hi","createdAt":"t","count":3}"#);
 		let back: Note = from_json(&parse(r#"{"count":3,"createdAt":"t","text":"hi","id":"note_1","extra":1}"#).unwrap()).unwrap();
 		assert_eq!(back, note);

@@ -1,5 +1,5 @@
 //! /api/graph (the graph view), /api/graph/costs (its cost pill), /api/graph/coverage/extract (a
-//! lesson's manual extraction), /api/graph/import (No class's Add files), /api/graph/nodes/{id}
+//! lesson's manual extraction), /api/graph/import (No space's Add files), /api/graph/nodes/{id}
 //! (single-node deletion) and /api/progress (the Overview and topic Graph payload).
 
 use std::collections::VecDeque;
@@ -10,10 +10,10 @@ use axum::body::Body;
 use axum::extract::{Path, State};
 use axum::http::{HeaderMap, Uri, header};
 use axum::response::Response;
-use gs_core::contracts::class::is_calendar_date;
+use gs_core::contracts::space::is_calendar_date;
 use gs_json::{Json, Obj, json};
 use gs_services::App;
-use gs_services::classes::request_class_scope;
+use gs_services::spaces::request_space_scope;
 use gs_services::graph::extraction::{NotesImportInput, extraction};
 use gs_services::graph::extraction_runs::extraction_statuses;
 use gs_services::graph::graph::{delete_graph_node, graph_costs, graph_view};
@@ -34,25 +34,25 @@ pub fn routes() -> Router<Arc<App>> {
 		.route("/api/progress", ApiRoute::new().get(get_progress).into_route())
 }
 
-/// `?class=<id|none>` (absent is No class); None for a malformed or unknown class.
+/// `?space=<id|none>` (absent is No space); None for a malformed or unknown space.
 fn scope_of(app: &App, uri: &Uri) -> Option<Option<String>> {
 	let params = search_params(uri.query().unwrap_or_default());
-	request_class_scope(app, param(&params, "class"))
+	request_space_scope(app, param(&params, "space"))
 }
 
 async fn get_graph(State(app): State<Arc<App>>, uri: Uri) -> Result<Response, Unhandled> {
-	let Some(scope) = scope_of(&app, &uri) else { return Ok(error(404, "No such class")) };
+	let Some(scope) = scope_of(&app, &uri) else { return Ok(error(404, "No such space")) };
 	Ok(json(200, &graph_view(&app, scope.as_deref())?))
 }
 
 async fn get_costs(State(app): State<Arc<App>>, uri: Uri) -> Result<Response, Unhandled> {
-	let Some(scope) = scope_of(&app, &uri) else { return Ok(error(404, "No such class")) };
+	let Some(scope) = scope_of(&app, &uri) else { return Ok(error(404, "No such space")) };
 	Ok(json(200, &graph_costs(&app, scope.as_deref())?))
 }
 
 /// `?today=YYYY-MM-DD` sets the deadlines' days left; absent is this computer's day.
 async fn get_progress(State(app): State<Arc<App>>, uri: Uri) -> Result<Response, Unhandled> {
-	let Some(scope) = scope_of(&app, &uri) else { return Ok(error(404, "No such class")) };
+	let Some(scope) = scope_of(&app, &uri) else { return Ok(error(404, "No such space")) };
 	let params = search_params(uri.query().unwrap_or_default());
 	let today = param(&params, "today");
 	if today.is_some_and(|day| !is_calendar_date(&Json::from(day))) {
@@ -60,7 +60,7 @@ async fn get_progress(State(app): State<Arc<App>>, uri: Uri) -> Result<Response,
 	}
 	match progress_for(&app, scope.as_deref(), today)? {
 		Some(payload) => Ok(json(200, &payload)),
-		None => Ok(error(404, "No such class")),
+		None => Ok(error(404, "No such space")),
 	}
 }
 
@@ -115,7 +115,7 @@ async fn import_files(app: Arc<App>, files: VecDeque<(usize, String, String)>) -
 		loop {
 			let next = queue.lock().unwrap_or_else(PoisonError::into_inner).pop_front();
 			let Some((request_index, file_path, text)) = next else { return };
-			let input = NotesImportInput { file_path: file_path.clone(), text, scope: None, source_id: None, may_be_course_info: false };
+			let input = NotesImportInput { file_path: file_path.clone(), text, scope: None, source_id: None, may_be_space_info: false };
 			let mut result = Obj::new();
 			result.insert("filePath", file_path);
 			result.insert("requestIndex", request_index);
@@ -141,7 +141,7 @@ async fn import_files(app: Arc<App>, files: VecDeque<(usize, String, String)>) -
 
 /// Deletes one node and every chain naming it ("full death"); refused while extraction runs.
 async fn delete_node(State(app): State<Arc<App>>, Path(id): Path<String>, uri: Uri) -> Result<Response, Unhandled> {
-	let Some(scope) = scope_of(&app, &uri) else { return Ok(error(404, "No such class")) };
+	let Some(scope) = scope_of(&app, &uri) else { return Ok(error(404, "No such space")) };
 	Ok(match delete_graph_node(&app, &id, scope.as_deref())? {
 		Ok(deleted) => json(200, &deleted),
 		Err(refusal) => json(refusal.status, &json!({ "error": refusal.error, "code": refusal.code })),

@@ -1,4 +1,4 @@
-//! The change detector for a class file: a hash of its bytes.
+//! The change detector for a space file: a hash of its bytes.
 
 use std::path::Path;
 

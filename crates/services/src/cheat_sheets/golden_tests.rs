@@ -1,5 +1,5 @@
 //! Replays tests/golden/cheat-sheets.json, which the TypeScript server code recorded over a
-//! synthetic class: the same files, the same calls, the same answers. The recorded times and ids
+//! synthetic space: the same files, the same calls, the same answers. The recorded times and ids
 //! of the TypeScript run are masked ("<now>", "<id>"), and so are the temp folders.
 //!
 //! The PDFs are read by pdfium, so a run without the library prints why and passes.
@@ -18,7 +18,7 @@ use gs_pdf::test_support::pdfium_dir;
 
 use gs_base::base64::decode;
 use super::cheat_sheet_pdf::take_sheet_pdf;
-use super::{AskInput, Outcome, Stop, ask, cheat_sheet_file, cheat_sheet_pdf, cheat_sheet_view, class_sheets_view, remove_rule, retry, sheet_pdf_file, stop};
+use super::{AskInput, Outcome, Stop, ask, cheat_sheet_file, cheat_sheet_pdf, cheat_sheet_view, space_sheets_view, remove_rule, retry, sheet_pdf_file, stop};
 use crate::App;
 
 fn is_iso(s: &str) -> bool {
@@ -113,7 +113,7 @@ async fn replay(app: &Arc<App>, mask: &Mask, home: &Path, data: &Path, step: &Js
 	let sheets_home = home.join("godspeed").join("cheat-sheets");
 	let n = step["n"].as_f64().unwrap_or(0.0);
 	let out = match step["op"].as_str().unwrap() {
-		"class" => outcome(class_sheets_view(app, cls)),
+		"space" => outcome(space_sheets_view(app, cls)),
 		"view" => outcome(cheat_sheet_view(app, cls, ddl).await),
 		"pdf" => cheat_sheet_pdf(app, cls, ddl, n).map_or(Json::Null, |bytes| bytes_summary(&bytes)),
 		"kept" => cheat_sheet_file(app, cls, ddl, step["file"].as_str().unwrap()).map_or(Json::Null, |(bytes, kind)| json!({ "type": kind, "size": bytes.len(), "sha256": sha256_hex(&bytes) })),
@@ -125,12 +125,12 @@ async fn replay(app: &Arc<App>, mask: &Mask, home: &Path, data: &Path, step: &Js
 		}
 		"removeRule" => outcome(remove_rule(app, cls, ddl, step["text"].as_str().unwrap()).map(|()| Json::Null)),
 		"sheet" => {
-			let file = data.join("classes").join(cls_of(data)).join("cheat-sheets").join(format!("{ddl}.json"));
+			let file = data.join("spaces").join(cls_of(data)).join("cheat-sheets").join(format!("{ddl}.json"));
 			std::fs::read_to_string(file).ok().and_then(|text| parse(&text).ok()).unwrap_or(Json::Null)
 		}
 		"file" => outcome(sheet_pdf_file(app, cls, ddl, n).map(Json::from)),
 		"ls" => sorted_names(&sheets_home.join(step["dir"].as_str().unwrap())),
-		"versions" => sorted_names(&data.join("classes").join(cls_of(data)).join("cheat-sheets").join(format!("{ddl}-versions"))),
+		"versions" => sorted_names(&data.join("spaces").join(cls_of(data)).join("cheat-sheets").join(format!("{ddl}-versions"))),
 		"put" => {
 			let file = write_file(&sheets_home, step["path"].as_str().unwrap(), &decode(step["base64"].as_str().unwrap()));
 			set_mtime(&file, step["mtime"].as_str().unwrap());
@@ -153,9 +153,9 @@ async fn replay(app: &Arc<App>, mask: &Mask, home: &Path, data: &Path, step: &Js
 	mask.apply(&out)
 }
 
-/// The one class folder in the data folder.
+/// The one space folder in the data folder.
 fn cls_of(data: &Path) -> String {
-	sorted_names(&data.join("classes"))[0].as_str().unwrap().to_owned()
+	sorted_names(&data.join("spaces"))[0].as_str().unwrap().to_owned()
 }
 
 #[test]

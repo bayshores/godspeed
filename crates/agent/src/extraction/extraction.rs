@@ -78,7 +78,7 @@ impl ExtractionState {
 /// Why a job ended without merging.
 #[derive(Clone, Debug, PartialEq)]
 enum JobError {
-	/// The run's abort (the dock's button, a lesson or class being deleted).
+	/// The run's abort (the dock's button, a lesson or space being deleted).
 	Aborted(String),
 	Failed(String),
 }
@@ -150,13 +150,13 @@ pub struct NotesImportInput {
 	pub file_path: String,
 	/// The file's content, verbatim, any format.
 	pub text: String,
-	/// The graph to import into: None is "No class".
+	/// The graph to import into: None is "No space".
 	pub scope: Option<String>,
-	/// An explicit source id (class files); None is `src_` + the path's hash.
+	/// An explicit source id (space files); None is `src_` + the path's hash.
 	pub source_id: Option<String>,
-	/// A class file godspeed may sort by itself: the first stretch's read also says whether the
-	/// file is course logistics.
-	pub may_be_course_info: bool,
+	/// A space file godspeed may sort by itself: the first stretch's read also says whether the
+	/// file is logistics.
+	pub may_be_space_info: bool,
 }
 
 /// The merger's append counts, summed over jobs. `droppedChains` only when something dropped.
@@ -217,7 +217,7 @@ fn call_usage(usage: &Json) -> Json {
 enum Door {
 	/// A lesson: anchors must be passages of this batch.
 	Session(HashSet<String>),
-	/// A notes file, maybe asked whether it is course logistics.
+	/// A notes file, maybe asked whether it is logistics.
 	Notes(bool),
 }
 
@@ -248,7 +248,7 @@ impl Drop for Claimed<'_> {
 	}
 }
 
-/// The pipeline: every front door (lessons, notes imports, class files) shares one host.
+/// The pipeline: every front door (lessons, notes imports, space files) shares one host.
 #[derive(Clone)]
 pub struct Extraction(Arc<dyn ExtractionHost>);
 
@@ -269,9 +269,9 @@ impl Extraction {
 		self.runs().get(key).map(|run| run.abort).unwrap_or_default()
 	}
 
-	/// The graph a lesson writes to: its class's, or "No class".
+	/// The graph a lesson writes to: its space's, or "No space".
 	fn scope_of_chat(&self, chat_id: &str) -> Option<String> {
-		self.0.chats().get_chat(chat_id).and_then(|record| record["classId"].as_str().map(str::to_owned))
+		self.0.chats().get_chat(chat_id).and_then(|record| record["spaceId"].as_str().map(str::to_owned))
 	}
 
 	/// The job's name on the outside agent's work items: which lesson or file, and which part.
@@ -324,8 +324,8 @@ impl Extraction {
 				}));
 				opts
 			}
-			Door::Notes(may_be_course_info) => {
-				let mut opts = SubmitAgentOptions::new("submit_findings", "Submit the notes findings.", notes_findings_schema(may_be_course_info), notes_extractor_instructions(may_be_course_info), Json::from(prompt), never);
+			Door::Notes(may_be_space_info) => {
+				let mut opts = SubmitAgentOptions::new("submit_findings", "Submit the notes findings.", notes_findings_schema(may_be_space_info), notes_extractor_instructions(may_be_space_info), Json::from(prompt), never);
 				opts.fill = Some(Box::new(fill_notes_findings));
 				opts.validate = Some(Box::new(move |value| {
 					let problem = validate_findings_chains(value, &existing);
@@ -415,14 +415,14 @@ impl Extraction {
 
 	async fn extract_chat(&self, chat_id: &str) -> Result<Json, String> {
 		// Read under the lesson's lock: a move or delete holds it from its last check that no run
-		// claimed the lesson through the change, so this run reads the class it ends up in.
+		// claimed the lesson through the change, so this run reads the space it ends up in.
 		let record = {
 			let _held = self.0.locks().lock(LockKey::Chat(chat_id));
 			self.0.chats().get_chat(chat_id)
 		};
 		let record = record.ok_or_else(|| format!("Chat not found: {chat_id}"))?;
-		// The lesson's graph, fixed for the whole run (a class move is refused while it runs).
-		let scope = record["classId"].as_str().map(str::to_owned);
+		// The lesson's graph, fixed for the whole run (a space move is refused while it runs).
+		let scope = record["spaceId"].as_str().map(str::to_owned);
 		let messages = record["messages"].as_arr().map_or(&[][..], Vec::as_slice);
 		let entries = ScopedGraph::new(self.0.graphs(), scope.as_deref()).read_coverage()?;
 		let covered = coverage_of(messages, &entries, chat_id);
@@ -508,15 +508,15 @@ impl Extraction {
 		for (i, chunk) in chunks.iter().enumerate() {
 			let part = (chunks.len() > 1).then_some((i + 1, chunks.len()));
 			let key = job_key(id, part);
-			// Only the first stretch decides course info; then nothing is extracted.
-			let may_be_course_info = input.may_be_course_info && i == 0;
-			let mut course_info = false;
+			// Only the first stretch decides space info; then nothing is extracted.
+			let may_be_space_info = input.may_be_space_info && i == 0;
+			let mut space_info = false;
 			let job = self.with_graph_lock(&key, RunKind::Notes, Some(label), part, async {
 				self.set_phase(&key, ExtractionPhase::Extracting, RunKind::Notes, Some(label), part);
 				let view = notes_view(label, chunk, part);
-				let raw = self.extract(&key, id, scope, &view, chunk, Door::Notes(may_be_course_info)).await?;
-				if may_be_course_info && raw["courseInfo"] == Json::Bool(true) {
-					course_info = true;
+				let raw = self.extract(&key, id, scope, &view, chunk, Door::Notes(may_be_space_info)).await?;
+				if may_be_space_info && raw["spaceInfo"] == Json::Bool(true) {
+					space_info = true;
 					return Ok(Stats::default().to_json());
 				}
 				self.set_phase(&key, ExtractionPhase::Merging, RunKind::Notes, Some(label), part);
@@ -531,9 +531,9 @@ impl Extraction {
 			if aborted {
 				break;
 			}
-			if course_info {
-				eprintln!("[extraction {id}] course info, nothing extracted ({label})");
-				return Ok(json!({ "nodes": 0, "chains": 0, "courseInfo": true }));
+			if space_info {
+				eprintln!("[extraction {id}] space info, nothing extracted ({label})");
+				return Ok(json!({ "nodes": 0, "chains": 0, "spaceInfo": true }));
 			}
 		}
 		let stats = aggregate_jobs(id, &settled);

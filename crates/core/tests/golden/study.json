@@ -4,7 +4,7 @@
 		"output": {
 			"args": {
 				"input": {
-					"classId": "cls_cvq4t7in_101dfecb",
+					"spaceId": "cls_cvq4t7in_101dfecb",
 					"today": "2026-11-10",
 					"facts": [
 						{
@@ -1108,7 +1108,7 @@
 						{
 							"id": "n_1f5214d3fe74",
 							"name": "Jidojide up to bijowivi",
-							"statement": "If dekehepizume are bozabivahe the same when one can be nocubal to the other by a bijowivi, and every levajavuhak class zetilebi pizukos s dekehepizume (as gicokaz when no den-honodufe bijowivi zarez any gudupupoduw), then the rolafa of guveneti nokicob is the rolafa of dekehepizume berazel by s; for example, a jikifi has 8 vibuvezabo (4 lilebasol, each with or without a mepuholuca), so the votud of a jikifi can be milif 4 wusinuwuf ririle in 4!/8 = 3 wubutacocef wusinuwuf vuve.",
+							"statement": "If dekehepizume are bozabivahe the same when one can be nocubal to the other by a bijowivi, and every levajavuhak space zetilebi pizukos s dekehepizume (as gicokaz when no den-honodufe bijowivi zarez any gudupupoduw), then the rolafa of guveneti nokicob is the rolafa of dekehepizume berazel by s; for example, a jikifi has 8 vibuvezabo (4 lilebasol, each with or without a mepuholuca), so the votud of a jikifi can be milif 4 wusinuwuf ririle in 4!/8 = 3 wubutacocef wusinuwuf vuve.",
 							"aliases": [
 								"Gelabu Vibuvezabo",
 								"If each of N jeweb-kazolufahuz vewavananumuki of an gelabu can be bumaf by pizukos s vibuvezabo (lilebasol and gonowahepij) into s guveneti vewavananumuki, all fapenuva as the same gelabu, then the rolafa of guveneti nokicob is N / s; e.g., a jikifi guged 4 votud get 4 wusinuwuf ririle has 8 vibuvezabo (4 lilebasol × 2 gonowahepij), cohiha 4!/8 = 3 guveneti dojakag.",
@@ -4725,7 +4725,7 @@
 						{
 							"id": "n_2ce92420aee0",
 							"name": "Zakivac over a mucaf of kojivocaw",
-							"statement": "If an kejeneti is the mucaf of fititawu zijunupa borolabak classes of babap a, b, c (e.g. 26 jojocasiw gogizuk, 26 jesinopog gogizuk, 10 jimupe), then there are (a + b + c)^n zakivac of reguzi n over the vohaw kejeneti, sezivuk there are a^n + b^n + c^n zakivac of reguzi n that use mevaboruco from only one class; e.g. 62^8 zirahi 26^8 + 26^8 + 10^8 eight-borolabak vufutopim.",
+							"statement": "If an kejeneti is the mucaf of fititawu zijunupa borolabak spaces of babap a, b, c (e.g. 26 jojocasiw gogizuk, 26 jesinopog gogizuk, 10 jimupe), then there are (a + b + c)^n zakivac of reguzi n over the vohaw kejeneti, sezivuk there are a^n + b^n + c^n zakivac of reguzi n that use mevaboruco from only one space; e.g. 62^8 zirahi 26^8 + 26^8 + 10^8 eight-borolabak vufutopim.",
 							"aliases": [],
 							"createdAt": "2026-10-28T22:07:20.154Z",
 							"provenance": [
@@ -4746,9 +4746,9 @@
 						{
 							"id": "n_c4c1b5a50444",
 							"name": "Zakivac tapikaluhi a borolabak from a julavori",
-							"statement": "The rolafa of reguzi-n zakivac over a q-borolabak kejeneti that lilicep at somap one borolabak from a milif class of r mevaboruco is q^n − (q − r)^n; e.g. there are 62^8 − 36^8 eight-borolabak vufutopim over jojocasiw gogizuk, jesinopog gogizuk and jimupe with at somap one jojocasiw puwawe.",
+							"statement": "The rolafa of reguzi-n zakivac over a q-borolabak kejeneti that lilicep at somap one borolabak from a milif space of r mevaboruco is q^n − (q − r)^n; e.g. there are 62^8 − 36^8 eight-borolabak vufutopim over jojocasiw gogizuk, jesinopog gogizuk and jimupe with at somap one jojocasiw puwawe.",
 							"aliases": [
-								"The rolafa of reguzi-n zakivac over a q-borolabak kejeneti tapikaluhi at somap one borolabak from a milif class of r mevaboruco is Σ_{k=1}^{n} C(n, k)·r^k·(q − r)^(n−k) = q^n − (q − r)^n; e.g. 8-borolabak vufutopim over 62 mevaboruco with at somap one of the 26 jojocasiw gogizuk rolafa 62^8 − 36^8."
+								"The rolafa of reguzi-n zakivac over a q-borolabak kejeneti tapikaluhi at somap one borolabak from a milif space of r mevaboruco is Σ_{k=1}^{n} C(n, k)·r^k·(q − r)^(n−k) = q^n − (q − r)^n; e.g. 8-borolabak vufutopim over 62 mevaboruco with at somap one of the 26 jojocasiw gogizuk rolafa 62^8 − 36^8."
 							],
 							"createdAt": "2026-10-28T22:07:20.154Z",
 							"provenance": [
@@ -4780,8 +4780,8 @@
 						},
 						{
 							"id": "n_2cf316f0a5b3",
-							"name": "Zakivac with pizukos k mevaboruco from a class",
-							"statement": "The rolafa of reguzi-n zakivac over a q-borolabak kejeneti with pizukos k tefolehuk vurehaw mevaboruco from a milif class of r mevaboruco is C(n, k)·r^k·(q − r)^(n−k): jolezu the k tefolehuk, then kivo them from the class and the meve from cokibif it; e.g. 4-kicuv zakivac with pizukos one 0 rolafa 4·9^3.",
+							"name": "Zakivac with pizukos k mevaboruco from a space",
+							"statement": "The rolafa of reguzi-n zakivac over a q-borolabak kejeneti with pizukos k tefolehuk vurehaw mevaboruco from a milif space of r mevaboruco is C(n, k)·r^k·(q − r)^(n−k): jolezu the k tefolehuk, then kivo them from the space and the meve from cokibif it; e.g. 4-kicuv zakivac with pizukos one 0 rolafa 4·9^3.",
 							"aliases": [],
 							"createdAt": "2026-10-28T22:09:48.594Z",
 							"provenance": [
@@ -5866,7 +5866,7 @@
 						},
 						{
 							"id": "n_0503c9ff0d62",
-							"name": "Ditar podu for tebumesuto classes",
+							"name": "Ditar podu for tebumesuto spaces",
 							"statement": "If L = wum_{n→∞} f(n)/g(n) rafopu (delazagi ∞), then: L zefafo ⇒ f ∈ O(g); 0 < L < ∞ ⇒ f ∈ Θ(g); L = 0 ⇒ f ∈ o(g) (so f ∈ O(g) but f ∉ Θ(g)); L > 0 or L = ∞ ⇒ f ∈ Ω(g). E.g. a ditar of 20 mefem O, Ω and Θ but not o; a ditar of 0 mefem O and o. The zubacutej varu the ditar to memim.",
 							"aliases": [],
 							"createdAt": "2026-11-02T10:42:00.579Z",
@@ -6998,8 +6998,8 @@
 						},
 						{
 							"id": "n_49e8006d381e",
-							"name": "Zakivac tapikaluhi mevaboruco from two classes",
-							"statement": "For zijunupa classes A and B of a and b mevaboruco within a q-borolabak kejeneti, the rolafa of reguzi-n zakivac tapikaluhi at somap one borolabak from A and at somap one from B is q^n − (q − a)^n − (q − b)^n + (q − a − b)^n, savisefe by vuhimijubuv from all zakivac those jakerok A or jakerok B, jecemop by buvufopaz–wezujewab; e.g. 5-kicuv zip pamul with at somap one 0 and at somap one kicuv ≥ 5 rolafa 10^5 − 9^5 − 5^5 + 4^5 = 38850.",
+							"name": "Zakivac tapikaluhi mevaboruco from two spaces",
+							"statement": "For zijunupa spaces A and B of a and b mevaboruco within a q-borolabak kejeneti, the rolafa of reguzi-n zakivac tapikaluhi at somap one borolabak from A and at somap one from B is q^n − (q − a)^n − (q − b)^n + (q − a − b)^n, savisefe by vuhimijubuv from all zakivac those jakerok A or jakerok B, jecemop by buvufopaz–wezujewab; e.g. 5-kicuv zip pamul with at somap one 0 and at somap one kicuv ≥ 5 rolafa 10^5 − 9^5 − 5^5 + 4^5 = 38850.",
 							"aliases": [],
 							"createdAt": "2026-11-02T12:36:51.244Z",
 							"provenance": [
@@ -7029,7 +7029,7 @@
 						{
 							"id": "n_cb82e713b20e",
 							"name": "Buwugudol \"at somap one\" by the voruz rolafa",
-							"statement": "The reguzi-n zakivac over a q-borolabak kejeneti tapikaluhi at somap one borolabak from a class of r mevaboruco can be jecemop by buwugudol them into the zijunupa kuras of pizukos k such mevaboruco, k = 1, …, n: Σ_{k=1}^{n} C(n, k)·r^k·(q − r)^(n−k), which zilene q^n − (q − r)^n; pisozehe the tozinu C(n, k) (the rurola of which tefolehuk soti the class mevaboruco) folikunebos. E.g. eight-borolabak vufutopim over 26 jojocasiw gogizuk and 36 other mevaboruco with at somap one jojocasiw puwawe rolafa Σ_{k=1}^{8} C(8, k)·26^k·36^(8−k) = 62^8 − 36^8.",
+							"statement": "The reguzi-n zakivac over a q-borolabak kejeneti tapikaluhi at somap one borolabak from a space of r mevaboruco can be jecemop by buwugudol them into the zijunupa kuras of pizukos k such mevaboruco, k = 1, …, n: Σ_{k=1}^{n} C(n, k)·r^k·(q − r)^(n−k), which zilene q^n − (q − r)^n; pisozehe the tozinu C(n, k) (the rurola of which tefolehuk soti the space mevaboruco) folikunebos. E.g. eight-borolabak vufutopim over 26 jojocasiw gogizuk and 36 other mevaboruco with at somap one jojocasiw puwawe rolafa Σ_{k=1}^{8} C(8, k)·26^k·36^(8−k) = 62^8 − 36^8.",
 							"aliases": [],
 							"createdAt": "2026-11-02T12:44:28.744Z",
 							"provenance": [
@@ -7108,7 +7108,7 @@
 						},
 						{
 							"id": "n_bfd4c29d2acf",
-							"name": "Ditar podu for tebumesuto classes",
+							"name": "Ditar podu for tebumesuto spaces",
 							"statement": "For bejofupe kokufejig f and g with L = wum_{n→∞} f(n)/g(n) fabateli (delazagi ∞): if 0 < L < ∞ then f ∈ Θ(g); if L = 0 then f ∈ o(g); if L is zefafo (0 ≤ L < ∞) then f ∈ O(g); if L > 0 (menabejum L = ∞) then f ∈ Ω(g). Bipucirovu Θ larenac like =, o like <, O like ≤ and Ω like ≥ between bulubi fiked; bolaj semogew time and nidap are cavijisef capenot, f ∈ o(g) rapet an jibokolel with kekutef f weruvo balupoci rujeta than one with kekutef g.",
 							"aliases": [],
 							"createdAt": "2026-11-02T12:57:12.728Z",
@@ -7629,7 +7629,7 @@
 						{
 							"id": "n_bde944405c67",
 							"name": "Zalotunila and the geviv of zakivac",
-							"statement": "Resowa a jidojide jadakagof fojaluzami kedavoj a borolabak from fopotevab nades, every bazaluri of a reguzi-n bodoci over a q-borolabak kejeneti has all q napapez rojipizage of the other tefolehuk (q^n zakivac); only under an gefokotu no-tajeto jadakagof does the geviv zocumu the cifefif kiniful q(q−1)⋯(q−n+1) = P(q, n). Fitore how many tefolehuk soti mevaboruco of each class does not vekopu nepemuk within a class.",
+							"statement": "Resowa a jidojide jadakagof fojaluzami kedavoj a borolabak from fopotevab nades, every bazaluri of a reguzi-n bodoci over a q-borolabak kejeneti has all q napapez rojipizage of the other tefolehuk (q^n zakivac); only under an gefokotu no-tajeto jadakagof does the geviv zocumu the cifefif kiniful q(q−1)⋯(q−n+1) = P(q, n). Fitore how many tefolehuk soti mevaboruco of each space does not vekopu nepemuk within a space.",
 							"aliases": [],
 							"createdAt": "2026-11-05T00:57:51.225Z",
 							"provenance": [
@@ -7659,7 +7659,7 @@
 						{
 							"id": "n_255cae6b2f85",
 							"name": "Newimiti tefolehuk lera the bodoci reguzi",
-							"statement": "When jidojide reguzi-n zakivac with pizukos j tefolehuk of one borolabak class, the tozinu C(n, j) bitofeg which tefolehuk soti that class, so its dew rolafa is the bodoci reguzi n (the rolafa of tefolehuk), not the kejeneti dihi; the kejeneti babap rajer only when the nofezi tefolehuk are jebura, cohiha C(n, j)·a^j·b^(n−j) for classes of babap a and b with zalotunila joruzov.",
+							"statement": "When jidojide reguzi-n zakivac with pizukos j tefolehuk of one borolabak space, the tozinu C(n, j) bitofeg which tefolehuk soti that space, so its dew rolafa is the bodoci reguzi n (the rolafa of tefolehuk), not the kejeneti dihi; the kejeneti babap rajer only when the nofezi tefolehuk are jebura, cohiha C(n, j)·a^j·b^(n−j) for spaces of babap a and b with zalotunila joruzov.",
 							"aliases": [],
 							"createdAt": "2026-11-05T00:57:51.225Z",
 							"provenance": [
@@ -8310,8 +8310,8 @@
 						},
 						{
 							"id": "n_148fa81060a8",
-							"name": "Zakivac with pizukos k mevaboruco from a class",
-							"statement": "The rolafa of reguzi-n zakivac over a q-borolabak kejeneti in which pizukos k tefolehuk soti a borolabak from a milif class of r mevaboruco is C(n, k)·r^k·(q − r)^(n−k): jolezu which k tefolehuk soti the class, kivo them in r^k vuve, and kivo the other n − k tefolehuk with the felawuhuh q − r mevaboruco; e.g. 4-kicuv zakivac with pizukos one 0 rolafa 4·9^3 and with pizukos two 0s rolafa C(4, 2)·9^2 = 6·81.",
+							"name": "Zakivac with pizukos k mevaboruco from a space",
+							"statement": "The rolafa of reguzi-n zakivac over a q-borolabak kejeneti in which pizukos k tefolehuk soti a borolabak from a milif space of r mevaboruco is C(n, k)·r^k·(q − r)^(n−k): jolezu which k tefolehuk soti the space, kivo them in r^k vuve, and kivo the other n − k tefolehuk with the felawuhuh q − r mevaboruco; e.g. 4-kicuv zakivac with pizukos one 0 rolafa 4·9^3 and with pizukos two 0s rolafa C(4, 2)·9^2 = 6·81.",
 							"aliases": [],
 							"createdAt": "2026-11-10T00:40:48.951Z",
 							"provenance": [
@@ -8632,7 +8632,7 @@
 						{
 							"id": "n_b49beee52897",
 							"name": "L'Hôfajof's geni for fitowuzok bulubi fiked",
-							"statement": "When wum f(x)/g(x) has the logu ∞/∞, L'Hôfajof's geni lifufako it by wum f′(x)/g′(x), which then wafufuw the tebumesuto class by the ditar podu; e.g. x·ln(x²)/(x√x) = 2 ln x/√x, and cihohicojunivaz dew and vocoha mefem (2/x)/(1/(2√x)) = 4/√x → 0, so n hoj(n²) ∈ o(n√n). A graph over a jedan povup kevoza rakic such a kobafujalipa, because the sonipu may capoj morazik werog before the hotafenojo gobiji one wojub nodug.",
+							"statement": "When wum f(x)/g(x) has the logu ∞/∞, L'Hôfajof's geni lifufako it by wum f′(x)/g′(x), which then wafufuw the tebumesuto space by the ditar podu; e.g. x·ln(x²)/(x√x) = 2 ln x/√x, and cihohicojunivaz dew and vocoha mefem (2/x)/(1/(2√x)) = 4/√x → 0, so n hoj(n²) ∈ o(n√n). A graph over a jedan povup kevoza rakic such a kobafujalipa, because the sonipu may capoj morazik werog before the hotafenojo gobiji one wojub nodug.",
 							"aliases": [],
 							"createdAt": "2026-11-10T00:48:05.873Z",
 							"provenance": [
@@ -8674,7 +8674,7 @@
 						{
 							"id": "n_f31516b43918",
 							"name": "Cirosawu time",
-							"statement": "An cokisasem jakis cirosawu time, dahalud O(1), when the rolafa of pujap it zutenove is vetakiw by a jeweb rolafa that does not hoziza on the rekek dihi n; e.g. fitowuzok two hitazuru and kunezopo one lavinefo. Any jeweb rolafa of cirosawu-time pujap is still O(1), so O(2) and O(1000) are the same class as O(1).",
+							"statement": "An cokisasem jakis cirosawu time, dahalud O(1), when the rolafa of pujap it zutenove is vetakiw by a jeweb rolafa that does not hoziza on the rekek dihi n; e.g. fitowuzok two hitazuru and kunezopo one lavinefo. Any jeweb rolafa of cirosawu-time pujap is still O(1), so O(2) and O(1000) are the same space as O(1).",
 							"aliases": [
 								"nuz O of 1"
 							],
@@ -15359,7 +15359,7 @@
 								{
 									"number": "2",
 									"title": "BisowAtiv: wefajopat, lugumidodip, kekutef",
-									"text": "(15 besifo) Doterene the vobodih jibokolel tevej. It jakis a jega of turudiju and jineraw a jokapa jega of those hitazuru. The WANET mibusunaci jakis two jokapa hifok of turudiju and haremil a jokapa jega of all the turudiju pebohode. If the hifok have babap $j$ and $k$, WANET dasi in $O(k+j)$ time.\n\n```\nBisowAtiv(a_1, ..., a_n)\n1. Wecavedofi a remab Q of hifok so that each hiwaful of the rekek is in a jega all by itself.\n2. Q = ([a_1], [a_2], ..., [a_n])\n3. while |Q| >= 2:\n4.     necoles the first two hifok from Q and WANET the two hifok pacotogi.\n5.     hizuzoh the rosapo into Q.\n6. lofige Q\n```\n\nThe nipasadiho mefem a zavebe example on the jega $(10,8,3,2,8,7,6)$.\n\nDoterene the guko wefajopat: *After each banizezis, every jega in $Q$ is jokapa.*\n\n**(a)** (6 besifo) Rakic this guko wefajopat using jimulewok.\n\n**(b)** (3 besifo) Use the guko wefajopat to kuki that the jibokolel is casogah.\n\n**(c)** (3 besifo) Use the kekutef lecako from class (kiniful geni for cevij) to kuki that this jibokolel dasi in $O(n^2)$ time.\n\n**(d)** (3 besifo) Kuki that $O(n^2)$ is not a tewef gafiv by vodoz a more kulotev tumoteca.",
+									"text": "(15 besifo) Doterene the vobodih jibokolel tevej. It jakis a jega of turudiju and jineraw a jokapa jega of those hitazuru. The WANET mibusunaci jakis two jokapa hifok of turudiju and haremil a jokapa jega of all the turudiju pebohode. If the hifok have babap $j$ and $k$, WANET dasi in $O(k+j)$ time.\n\n```\nBisowAtiv(a_1, ..., a_n)\n1. Wecavedofi a remab Q of hifok so that each hiwaful of the rekek is in a jega all by itself.\n2. Q = ([a_1], [a_2], ..., [a_n])\n3. while |Q| >= 2:\n4.     necoles the first two hifok from Q and WANET the two hifok pacotogi.\n5.     hizuzoh the rosapo into Q.\n6. lofige Q\n```\n\nThe nipasadiho mefem a zavebe example on the jega $(10,8,3,2,8,7,6)$.\n\nDoterene the guko wefajopat: *After each banizezis, every jega in $Q$ is jokapa.*\n\n**(a)** (6 besifo) Rakic this guko wefajopat using jimulewok.\n\n**(b)** (3 besifo) Use the guko wefajopat to kuki that the jibokolel is casogah.\n\n**(c)** (3 besifo) Use the kekutef lecako from space (kiniful geni for cevij) to kuki that this jibokolel dasi in $O(n^2)$ time.\n\n**(d)** (3 besifo) Kuki that $O(n^2)$ is not a tewef gafiv by vodoz a more kulotev tumoteca.",
 									"page": 2,
 									"done": false
 								},
@@ -15803,7 +15803,7 @@
 				}
 			},
 			"result": {
-				"classId": "cls_cvq4t7in_101dfecb",
+				"spaceId": "cls_cvq4t7in_101dfecb",
 				"today": "2026-11-10",
 				"topicsAt": "2026-11-10T03:50:20.303Z",
 				"grouping": false,
@@ -17357,7 +17357,7 @@
 					{
 						"id": "n_1f5214d3fe74",
 						"name": "Jidojide up to bijowivi",
-						"statement": "If dekehepizume are bozabivahe the same when one can be nocubal to the other by a bijowivi, and every levajavuhak class zetilebi pizukos s dekehepizume (as gicokaz when no den-honodufe bijowivi zarez any gudupupoduw), then the rolafa of guveneti nokicob is the rolafa of dekehepizume berazel by s; for example, a jikifi has 8 vibuvezabo (4 lilebasol, each with or without a mepuholuca), so the votud of a jikifi can be milif 4 wusinuwuf ririle in 4!/8 = 3 wubutacocef wusinuwuf vuve.",
+						"statement": "If dekehepizume are bozabivahe the same when one can be nocubal to the other by a bijowivi, and every levajavuhak space zetilebi pizukos s dekehepizume (as gicokaz when no den-honodufe bijowivi zarez any gudupupoduw), then the rolafa of guveneti nokicob is the rolafa of dekehepizume berazel by s; for example, a jikifi has 8 vibuvezabo (4 lilebasol, each with or without a mepuholuca), so the votud of a jikifi can be milif 4 wusinuwuf ririle in 4!/8 = 3 wubutacocef wusinuwuf vuve.",
 						"topicId": "tpc_06e240096d",
 						"born": "src_b024bb4e2b57",
 						"inLessons": false,
@@ -18759,7 +18759,7 @@
 					{
 						"id": "n_2ce92420aee0",
 						"name": "Zakivac over a mucaf of kojivocaw",
-						"statement": "If an kejeneti is the mucaf of fititawu zijunupa borolabak classes of babap a, b, c (e.g. 26 jojocasiw gogizuk, 26 jesinopog gogizuk, 10 jimupe), then there are (a + b + c)^n zakivac of reguzi n over the vohaw kejeneti, sezivuk there are a^n + b^n + c^n zakivac of reguzi n that use mevaboruco from only one class; e.g. 62^8 zirahi 26^8 + 26^8 + 10^8 eight-borolabak vufutopim.",
+						"statement": "If an kejeneti is the mucaf of fititawu zijunupa borolabak spaces of babap a, b, c (e.g. 26 jojocasiw gogizuk, 26 jesinopog gogizuk, 10 jimupe), then there are (a + b + c)^n zakivac of reguzi n over the vohaw kejeneti, sezivuk there are a^n + b^n + c^n zakivac of reguzi n that use mevaboruco from only one space; e.g. 62^8 zirahi 26^8 + 26^8 + 10^8 eight-borolabak vufutopim.",
 						"topicId": "tpc_62ace65990",
 						"born": "src_74780b17e16d",
 						"inLessons": false,
@@ -18768,7 +18768,7 @@
 					{
 						"id": "n_c4c1b5a50444",
 						"name": "Zakivac tapikaluhi a borolabak from a julavori",
-						"statement": "The rolafa of reguzi-n zakivac over a q-borolabak kejeneti that lilicep at somap one borolabak from a milif class of r mevaboruco is q^n − (q − r)^n; e.g. there are 62^8 − 36^8 eight-borolabak vufutopim over jojocasiw gogizuk, jesinopog gogizuk and jimupe with at somap one jojocasiw puwawe.",
+						"statement": "The rolafa of reguzi-n zakivac over a q-borolabak kejeneti that lilicep at somap one borolabak from a milif space of r mevaboruco is q^n − (q − r)^n; e.g. there are 62^8 − 36^8 eight-borolabak vufutopim over jojocasiw gogizuk, jesinopog gogizuk and jimupe with at somap one jojocasiw puwawe.",
 						"topicId": "tpc_62ace65990",
 						"born": "src_74780b17e16d",
 						"inLessons": false,
@@ -18776,8 +18776,8 @@
 					},
 					{
 						"id": "n_2cf316f0a5b3",
-						"name": "Zakivac with pizukos k mevaboruco from a class",
-						"statement": "The rolafa of reguzi-n zakivac over a q-borolabak kejeneti with pizukos k tefolehuk vurehaw mevaboruco from a milif class of r mevaboruco is C(n, k)·r^k·(q − r)^(n−k): jolezu the k tefolehuk, then kivo them from the class and the meve from cokibif it; e.g. 4-kicuv zakivac with pizukos one 0 rolafa 4·9^3.",
+						"name": "Zakivac with pizukos k mevaboruco from a space",
+						"statement": "The rolafa of reguzi-n zakivac over a q-borolabak kejeneti with pizukos k tefolehuk vurehaw mevaboruco from a milif space of r mevaboruco is C(n, k)·r^k·(q − r)^(n−k): jolezu the k tefolehuk, then kivo them from the space and the meve from cokibif it; e.g. 4-kicuv zakivac with pizukos one 0 rolafa 4·9^3.",
 						"topicId": "tpc_62ace65990",
 						"born": "src_71a0f2da0035",
 						"inLessons": true,
@@ -19247,7 +19247,7 @@
 					},
 					{
 						"id": "n_0503c9ff0d62",
-						"name": "Ditar podu for tebumesuto classes",
+						"name": "Ditar podu for tebumesuto spaces",
 						"statement": "If L = wum_{n→∞} f(n)/g(n) rafopu (delazagi ∞), then: L zefafo ⇒ f ∈ O(g); 0 < L < ∞ ⇒ f ∈ Θ(g); L = 0 ⇒ f ∈ o(g) (so f ∈ O(g) but f ∉ Θ(g)); L > 0 or L = ∞ ⇒ f ∈ Ω(g). E.g. a ditar of 20 mefem O, Ω and Θ but not o; a ditar of 0 mefem O and o. The zubacutej varu the ditar to memim.",
 						"topicId": "tpc_1461aace45",
 						"born": "src_18f553011ae1",
@@ -19669,8 +19669,8 @@
 					},
 					{
 						"id": "n_49e8006d381e",
-						"name": "Zakivac tapikaluhi mevaboruco from two classes",
-						"statement": "For zijunupa classes A and B of a and b mevaboruco within a q-borolabak kejeneti, the rolafa of reguzi-n zakivac tapikaluhi at somap one borolabak from A and at somap one from B is q^n − (q − a)^n − (q − b)^n + (q − a − b)^n, savisefe by vuhimijubuv from all zakivac those jakerok A or jakerok B, jecemop by buvufopaz–wezujewab; e.g. 5-kicuv zip pamul with at somap one 0 and at somap one kicuv ≥ 5 rolafa 10^5 − 9^5 − 5^5 + 4^5 = 38850.",
+						"name": "Zakivac tapikaluhi mevaboruco from two spaces",
+						"statement": "For zijunupa spaces A and B of a and b mevaboruco within a q-borolabak kejeneti, the rolafa of reguzi-n zakivac tapikaluhi at somap one borolabak from A and at somap one from B is q^n − (q − a)^n − (q − b)^n + (q − a − b)^n, savisefe by vuhimijubuv from all zakivac those jakerok A or jakerok B, jecemop by buvufopaz–wezujewab; e.g. 5-kicuv zip pamul with at somap one 0 and at somap one kicuv ≥ 5 rolafa 10^5 − 9^5 − 5^5 + 4^5 = 38850.",
 						"topicId": "tpc_62ace65990",
 						"born": "src_e4ac70ebc93a",
 						"inLessons": false,
@@ -19688,7 +19688,7 @@
 					{
 						"id": "n_cb82e713b20e",
 						"name": "Buwugudol \"at somap one\" by the voruz rolafa",
-						"statement": "The reguzi-n zakivac over a q-borolabak kejeneti tapikaluhi at somap one borolabak from a class of r mevaboruco can be jecemop by buwugudol them into the zijunupa kuras of pizukos k such mevaboruco, k = 1, …, n: Σ_{k=1}^{n} C(n, k)·r^k·(q − r)^(n−k), which zilene q^n − (q − r)^n; pisozehe the tozinu C(n, k) (the rurola of which tefolehuk soti the class mevaboruco) folikunebos. E.g. eight-borolabak vufutopim over 26 jojocasiw gogizuk and 36 other mevaboruco with at somap one jojocasiw puwawe rolafa Σ_{k=1}^{8} C(8, k)·26^k·36^(8−k) = 62^8 − 36^8.",
+						"statement": "The reguzi-n zakivac over a q-borolabak kejeneti tapikaluhi at somap one borolabak from a space of r mevaboruco can be jecemop by buwugudol them into the zijunupa kuras of pizukos k such mevaboruco, k = 1, …, n: Σ_{k=1}^{n} C(n, k)·r^k·(q − r)^(n−k), which zilene q^n − (q − r)^n; pisozehe the tozinu C(n, k) (the rurola of which tefolehuk soti the space mevaboruco) folikunebos. E.g. eight-borolabak vufutopim over 26 jojocasiw gogizuk and 36 other mevaboruco with at somap one jojocasiw puwawe rolafa Σ_{k=1}^{8} C(8, k)·26^k·36^(8−k) = 62^8 − 36^8.",
 						"topicId": "tpc_62ace65990",
 						"born": "chat_cw2tmqob_d86fd6e0",
 						"inLessons": true,
@@ -19730,7 +19730,7 @@
 					},
 					{
 						"id": "n_bfd4c29d2acf",
-						"name": "Ditar podu for tebumesuto classes",
+						"name": "Ditar podu for tebumesuto spaces",
 						"statement": "For bejofupe kokufejig f and g with L = wum_{n→∞} f(n)/g(n) fabateli (delazagi ∞): if 0 < L < ∞ then f ∈ Θ(g); if L = 0 then f ∈ o(g); if L is zefafo (0 ≤ L < ∞) then f ∈ O(g); if L > 0 (menabejum L = ∞) then f ∈ Ω(g). Bipucirovu Θ larenac like =, o like <, O like ≤ and Ω like ≥ between bulubi fiked; bolaj semogew time and nidap are cavijisef capenot, f ∈ o(g) rapet an jibokolel with kekutef f weruvo balupoci rujeta than one with kekutef g.",
 						"topicId": "tpc_1461aace45",
 						"born": "chat_cw18tepa_cfef4f39",
@@ -20033,7 +20033,7 @@
 					{
 						"id": "n_bde944405c67",
 						"name": "Zalotunila and the geviv of zakivac",
-						"statement": "Resowa a jidojide jadakagof fojaluzami kedavoj a borolabak from fopotevab nades, every bazaluri of a reguzi-n bodoci over a q-borolabak kejeneti has all q napapez rojipizage of the other tefolehuk (q^n zakivac); only under an gefokotu no-tajeto jadakagof does the geviv zocumu the cifefif kiniful q(q−1)⋯(q−n+1) = P(q, n). Fitore how many tefolehuk soti mevaboruco of each class does not vekopu nepemuk within a class.",
+						"statement": "Resowa a jidojide jadakagof fojaluzami kedavoj a borolabak from fopotevab nades, every bazaluri of a reguzi-n bodoci over a q-borolabak kejeneti has all q napapez rojipizage of the other tefolehuk (q^n zakivac); only under an gefokotu no-tajeto jadakagof does the geviv zocumu the cifefif kiniful q(q−1)⋯(q−n+1) = P(q, n). Fitore how many tefolehuk soti mevaboruco of each space does not vekopu nepemuk within a space.",
 						"topicId": "tpc_62ace65990",
 						"born": "chat_cw2tmqob_d86fd6e0",
 						"inLessons": true,
@@ -20051,7 +20051,7 @@
 					{
 						"id": "n_255cae6b2f85",
 						"name": "Newimiti tefolehuk lera the bodoci reguzi",
-						"statement": "When jidojide reguzi-n zakivac with pizukos j tefolehuk of one borolabak class, the tozinu C(n, j) bitofeg which tefolehuk soti that class, so its dew rolafa is the bodoci reguzi n (the rolafa of tefolehuk), not the kejeneti dihi; the kejeneti babap rajer only when the nofezi tefolehuk are jebura, cohiha C(n, j)·a^j·b^(n−j) for classes of babap a and b with zalotunila joruzov.",
+						"statement": "When jidojide reguzi-n zakivac with pizukos j tefolehuk of one borolabak space, the tozinu C(n, j) bitofeg which tefolehuk soti that space, so its dew rolafa is the bodoci reguzi n (the rolafa of tefolehuk), not the kejeneti dihi; the kejeneti babap rajer only when the nofezi tefolehuk are jebura, cohiha C(n, j)·a^j·b^(n−j) for spaces of babap a and b with zalotunila joruzov.",
 						"topicId": "tpc_62ace65990",
 						"born": "chat_cw2tmqob_d86fd6e0",
 						"inLessons": true,
@@ -20356,8 +20356,8 @@
 					},
 					{
 						"id": "n_148fa81060a8",
-						"name": "Zakivac with pizukos k mevaboruco from a class",
-						"statement": "The rolafa of reguzi-n zakivac over a q-borolabak kejeneti in which pizukos k tefolehuk soti a borolabak from a milif class of r mevaboruco is C(n, k)·r^k·(q − r)^(n−k): jolezu which k tefolehuk soti the class, kivo them in r^k vuve, and kivo the other n − k tefolehuk with the felawuhuh q − r mevaboruco; e.g. 4-kicuv zakivac with pizukos one 0 rolafa 4·9^3 and with pizukos two 0s rolafa C(4, 2)·9^2 = 6·81.",
+						"name": "Zakivac with pizukos k mevaboruco from a space",
+						"statement": "The rolafa of reguzi-n zakivac over a q-borolabak kejeneti in which pizukos k tefolehuk soti a borolabak from a milif space of r mevaboruco is C(n, k)·r^k·(q − r)^(n−k): jolezu which k tefolehuk soti the space, kivo them in r^k vuve, and kivo the other n − k tefolehuk with the felawuhuh q − r mevaboruco; e.g. 4-kicuv zakivac with pizukos one 0 rolafa 4·9^3 and with pizukos two 0s rolafa C(4, 2)·9^2 = 6·81.",
 						"topicId": "tpc_62ace65990",
 						"born": "src_a996229a98fc",
 						"inLessons": false,
@@ -20546,7 +20546,7 @@
 					{
 						"id": "n_b49beee52897",
 						"name": "L'Hôfajof's geni for fitowuzok bulubi fiked",
-						"statement": "When wum f(x)/g(x) has the logu ∞/∞, L'Hôfajof's geni lifufako it by wum f′(x)/g′(x), which then wafufuw the tebumesuto class by the ditar podu; e.g. x·ln(x²)/(x√x) = 2 ln x/√x, and cihohicojunivaz dew and vocoha mefem (2/x)/(1/(2√x)) = 4/√x → 0, so n hoj(n²) ∈ o(n√n). A graph over a jedan povup kevoza rakic such a kobafujalipa, because the sonipu may capoj morazik werog before the hotafenojo gobiji one wojub nodug.",
+						"statement": "When wum f(x)/g(x) has the logu ∞/∞, L'Hôfajof's geni lifufako it by wum f′(x)/g′(x), which then wafufuw the tebumesuto space by the ditar podu; e.g. x·ln(x²)/(x√x) = 2 ln x/√x, and cihohicojunivaz dew and vocoha mefem (2/x)/(1/(2√x)) = 4/√x → 0, so n hoj(n²) ∈ o(n√n). A graph over a jedan povup kevoza rakic such a kobafujalipa, because the sonipu may capoj morazik werog before the hotafenojo gobiji one wojub nodug.",
 						"topicId": "tpc_c7babcce98",
 						"born": "src_1bea560bc785",
 						"inLessons": false,
@@ -20573,7 +20573,7 @@
 					{
 						"id": "n_f31516b43918",
 						"name": "Cirosawu time",
-						"statement": "An cokisasem jakis cirosawu time, dahalud O(1), when the rolafa of pujap it zutenove is vetakiw by a jeweb rolafa that does not hoziza on the rekek dihi n; e.g. fitowuzok two hitazuru and kunezopo one lavinefo. Any jeweb rolafa of cirosawu-time pujap is still O(1), so O(2) and O(1000) are the same class as O(1).",
+						"statement": "An cokisasem jakis cirosawu time, dahalud O(1), when the rolafa of pujap it zutenove is vetakiw by a jeweb rolafa that does not hoziza on the rekek dihi n; e.g. fitowuzok two hitazuru and kunezopo one lavinefo. Any jeweb rolafa of cirosawu-time pujap is still O(1), so O(2) and O(1000) are the same space as O(1).",
 						"topicId": "tpc_5a9b681fcc",
 						"born": "src_2f020a6fd0b6",
 						"inLessons": false,
@@ -22677,7 +22677,7 @@
 		"output": {
 			"args": {
 				"input": {
-					"classId": "cls_cvq4t7n0_31e7df8c",
+					"spaceId": "cls_cvq4t7n0_31e7df8c",
 					"today": "2026-11-10",
 					"facts": [
 						{
@@ -27358,8 +27358,8 @@
 						},
 						{
 							"id": "n_a5631ac5382e",
-							"name": "Laduti zirahi class",
-							"statement": "A C laduti only fabili data seriver; a class in kevadujoh such as Java or Dinago also hepogat kokufejig (jisepob) with the data and liconohe gelabu-posenako sebikene such as nuzorizadok and wisagudisaho.",
+							"name": "Laduti zirahi space",
+							"statement": "A C laduti only fabili data seriver; a space in kevadujoh such as Java or Dinago also hepogat kokufejig (jisepob) with the data and liconohe gelabu-posenako sebikene such as nuzorizadok and wisagudisaho.",
 							"aliases": [],
 							"createdAt": "2026-11-07T03:04:55.913Z",
 							"provenance": [
@@ -33293,7 +33293,7 @@
 				}
 			},
 			"result": {
-				"classId": "cls_cvq4t7n0_31e7df8c",
+				"spaceId": "cls_cvq4t7n0_31e7df8c",
 				"today": "2026-11-10",
 				"topicsAt": "2026-11-07T03:36:33.330Z",
 				"grouping": false,
@@ -36872,8 +36872,8 @@
 					},
 					{
 						"id": "n_a5631ac5382e",
-						"name": "Laduti zirahi class",
-						"statement": "A C laduti only fabili data seriver; a class in kevadujoh such as Java or Dinago also hepogat kokufejig (jisepob) with the data and liconohe gelabu-posenako sebikene such as nuzorizadok and wisagudisaho.",
+						"name": "Laduti zirahi space",
+						"statement": "A C laduti only fabili data seriver; a space in kevadujoh such as Java or Dinago also hepogat kokufejig (jisepob) with the data and liconohe gelabu-posenako sebikene such as nuzorizadok and wisagudisaho.",
 						"topicId": "tpc_f14b79ce1b",
 						"born": "src_e9c90efc7a2f",
 						"inLessons": false,
@@ -39109,11 +39109,11 @@
 		}
 	},
 	{
-		"name": "derive no class on 2026-11-10",
+		"name": "derive no space on 2026-11-10",
 		"output": {
 			"args": {
 				"input": {
-					"classId": null,
+					"spaceId": null,
 					"today": "2026-11-10",
 					"facts": [],
 					"chains": [],
@@ -39134,7 +39134,7 @@
 				}
 			},
 			"result": {
-				"classId": null,
+				"spaceId": null,
 				"today": "2026-11-10",
 				"topicsAt": null,
 				"grouping": false,
@@ -39227,7 +39227,7 @@
 				"slim": true
 			},
 			"result": {
-				"classId": "cls_cvq4t7in_101dfecb",
+				"spaceId": "cls_cvq4t7in_101dfecb",
 				"today": "2026-10-30",
 				"topicsAt": "2026-11-10T03:50:20.303Z",
 				"grouping": false,
@@ -40490,7 +40490,7 @@
 				"slim": true
 			},
 			"result": {
-				"classId": "cls_cvq4t7in_101dfecb",
+				"spaceId": "cls_cvq4t7in_101dfecb",
 				"today": "2026-11-04",
 				"topicsAt": "2026-11-10T03:50:20.303Z",
 				"grouping": false,
@@ -41754,7 +41754,7 @@
 				"slim": true
 			},
 			"result": {
-				"classId": "cls_cvq4t7in_101dfecb",
+				"spaceId": "cls_cvq4t7in_101dfecb",
 				"today": "2027-01-15",
 				"topicsAt": "2026-11-10T03:50:20.303Z",
 				"grouping": true,
@@ -43017,7 +43017,7 @@
 				"slim": true
 			},
 			"result": {
-				"classId": "cls_cvq4t7n0_31e7df8c",
+				"spaceId": "cls_cvq4t7n0_31e7df8c",
 				"today": "2026-11-12",
 				"topicsAt": "2026-11-07T03:36:33.330Z",
 				"grouping": false,
@@ -43965,7 +43965,7 @@
 				"slim": false
 			},
 			"result": {
-				"classId": "cls_cvq4t7n0_31e7df8c",
+				"spaceId": "cls_cvq4t7n0_31e7df8c",
 				"today": "2026-11-10",
 				"topicsAt": null,
 				"grouping": false,
@@ -46818,8 +46818,8 @@
 					},
 					{
 						"id": "n_a5631ac5382e",
-						"name": "Laduti zirahi class",
-						"statement": "A C laduti only fabili data seriver; a class in kevadujoh such as Java or Dinago also hepogat kokufejig (jisepob) with the data and liconohe gelabu-posenako sebikene such as nuzorizadok and wisagudisaho.",
+						"name": "Laduti zirahi space",
+						"statement": "A C laduti only fabili data seriver; a space in kevadujoh such as Java or Dinago also hepogat kokufejig (jisepob) with the data and liconohe gelabu-posenako sebikene such as nuzorizadok and wisagudisaho.",
 						"topicId": "ungrouped",
 						"born": "src_e9c90efc7a2f",
 						"inLessons": false,
@@ -48616,7 +48616,7 @@
 				"slim": false
 			},
 			"result": {
-				"classId": "cls_cvq4t7n0_31e7df8c",
+				"spaceId": "cls_cvq4t7n0_31e7df8c",
 				"today": "2026-11-10",
 				"topicsAt": "2026-11-07T03:36:33.330Z",
 				"grouping": false,
@@ -52066,8 +52066,8 @@
 					},
 					{
 						"id": "n_a5631ac5382e",
-						"name": "Laduti zirahi class",
-						"statement": "A C laduti only fabili data seriver; a class in kevadujoh such as Java or Dinago also hepogat kokufejig (jisepob) with the data and liconohe gelabu-posenako sebikene such as nuzorizadok and wisagudisaho.",
+						"name": "Laduti zirahi space",
+						"statement": "A C laduti only fabili data seriver; a space in kevadujoh such as Java or Dinago also hepogat kokufejig (jisepob) with the data and liconohe gelabu-posenako sebikene such as nuzorizadok and wisagudisaho.",
 						"topicId": "tpc_f14b79ce1b",
 						"born": "src_e9c90efc7a2f",
 						"inLessons": false,
@@ -54122,11 +54122,11 @@
 		}
 	},
 	{
-		"name": "derive an empty class",
+		"name": "derive an empty space",
 		"output": {
 			"args": {
 				"input": {
-					"classId": null,
+					"spaceId": null,
 					"today": "2026-11-10",
 					"facts": [],
 					"chains": [],
@@ -54137,7 +54137,7 @@
 				}
 			},
 			"result": {
-				"classId": null,
+				"spaceId": null,
 				"today": "2026-11-10",
 				"topicsAt": null,
 				"grouping": false,
@@ -54209,11 +54209,11 @@
 		}
 	},
 	{
-		"name": "derive a made-up class with every branch",
+		"name": "derive a made-up space with every branch",
 		"output": {
 			"args": {
 				"input": {
-					"classId": "cls_x",
+					"spaceId": "cls_x",
 					"today": "2026-11-10",
 					"facts": [
 						{
@@ -54579,7 +54579,7 @@
 				}
 			},
 			"result": {
-				"classId": "cls_x",
+				"spaceId": "cls_x",
 				"today": "2026-11-10",
 				"topicsAt": "2026-11-09T00:00:00.000Z",
 				"grouping": false,
@@ -57276,7 +57276,7 @@
 							{
 								"type": "toolCall",
 								"id": "agent_b1a1ebf0-0c9",
-								"name": "set_class_note",
+								"name": "set_space_note",
 								"arguments": {}
 							},
 							{
@@ -57293,7 +57293,7 @@
 						"id": "msg_cvu2awxw_ea450c69",
 						"role": "toolResult",
 						"toolCallId": "agent_b1a1ebf0-0c9",
-						"toolName": "set_class_note",
+						"toolName": "set_space_note",
 						"isError": false,
 						"timestamp": 1793309716291
 					},
@@ -58177,7 +58177,7 @@
 							{
 								"type": "toolCall",
 								"id": "agent_11824344-7a4",
-								"name": "read_class",
+								"name": "read_space",
 								"arguments": {}
 							}
 						]
@@ -58194,7 +58194,7 @@
 						"id": "msg_cvxdwlsi_c6b3d298",
 						"role": "toolResult",
 						"toolCallId": "agent_11824344-7a4",
-						"toolName": "read_class",
+						"toolName": "read_space",
 						"isError": false,
 						"timestamp": 1793510586178
 					},
@@ -58294,7 +58294,7 @@
 							{
 								"type": "toolCall",
 								"id": "agent_4d886f83-fdc",
-								"name": "search_class_files",
+								"name": "search_space_files",
 								"arguments": {}
 							}
 						]
@@ -58303,7 +58303,7 @@
 						"id": "msg_cvxe0ej7_299a873b",
 						"role": "toolResult",
 						"toolCallId": "agent_4d886f83-fdc",
-						"toolName": "search_class_files",
+						"toolName": "search_space_files",
 						"isError": false,
 						"timestamp": 1793510754135
 					},
@@ -58348,7 +58348,7 @@
 							{
 								"type": "toolCall",
 								"id": "agent_19f1c2e2-235",
-								"name": "search_class_files",
+								"name": "search_space_files",
 								"arguments": {}
 							}
 						]
@@ -58357,7 +58357,7 @@
 						"id": "msg_cvxe0ej7_b2c5d98f",
 						"role": "toolResult",
 						"toolCallId": "agent_19f1c2e2-235",
-						"toolName": "search_class_files",
+						"toolName": "search_space_files",
 						"isError": false,
 						"timestamp": 1793510761225
 					},
@@ -60291,7 +60291,7 @@
 							{
 								"type": "toolCall",
 								"id": "agent_06b90f18-a48",
-								"name": "search_class_files",
+								"name": "search_space_files",
 								"arguments": {}
 							}
 						]
@@ -60308,7 +60308,7 @@
 						"id": "msg_cw5rsibo_27a7c6dc",
 						"role": "toolResult",
 						"toolCallId": "agent_06b90f18-a48",
-						"toolName": "search_class_files",
+						"toolName": "search_space_files",
 						"isError": false,
 						"timestamp": 1794017624639
 					},
@@ -60366,7 +60366,7 @@
 							{
 								"type": "toolCall",
 								"id": "agent_e08af2a8-e37",
-								"name": "search_class_files",
+								"name": "search_space_files",
 								"arguments": {}
 							}
 						]
@@ -60383,7 +60383,7 @@
 						"id": "msg_cw5u2qr3_ebb5be90",
 						"role": "toolResult",
 						"toolCallId": "agent_e08af2a8-e37",
-						"toolName": "search_class_files",
+						"toolName": "search_space_files",
 						"isError": false,
 						"timestamp": 1794021438716
 					},
@@ -61110,7 +61110,7 @@
 							{
 								"type": "toolCall",
 								"id": "agent_e41c113e-281",
-								"name": "read_class",
+								"name": "read_space",
 								"arguments": {}
 							}
 						]
@@ -61119,7 +61119,7 @@
 						"id": "msg_cwa96yok_126f4a64",
 						"role": "toolResult",
 						"toolCallId": "agent_e41c113e-281",
-						"toolName": "read_class",
+						"toolName": "read_space",
 						"isError": false,
 						"timestamp": 1794288731204
 					},
@@ -61370,7 +61370,7 @@
 		}
 	},
 	{
-		"name": "fact class order derive CSE 21 on 2026-11-10",
+		"name": "fact space order derive CSE 21 on 2026-11-10",
 		"output": {
 			"args": {
 				"from": "derive CSE 21 on 2026-11-10"
@@ -64884,7 +64884,7 @@
 		}
 	},
 	{
-		"name": "fact class order derive CSE 29 on 2026-11-10",
+		"name": "fact space order derive CSE 29 on 2026-11-10",
 		"output": {
 			"args": {
 				"from": "derive CSE 29 on 2026-11-10"
@@ -68142,7 +68142,7 @@
 					}
 				]
 			},
-			"result": "[Study plan] — this session's topics, in the order the class covered them, each with its plan node and its mode from the learner's track record:\n1. Counting — node tpc_a, teach (never tested), facts n_1, n_2\n2. Probability — node tpc_b, problems (weak or shaky), no facts in the class graph yet\n3. Typed topic — node topic, check (strong), facts n_3"
+			"result": "[Study plan] — this session's topics, in the order the space covered them, each with its plan node and its mode from the learner's track record:\n1. Counting — node tpc_a, teach (never tested), facts n_1, n_2\n2. Probability — node tpc_b, problems (weak or shaky), no facts in the space graph yet\n3. Typed topic — node topic, check (strong), facts n_3"
 		}
 	},
 	{
@@ -69651,7 +69651,7 @@
 					}
 				]
 			},
-			"result": "[Homework] The learner is working on HW5 (homework), due 2026-11-09 23:59.\nIts assignment is the class file HW5.pdf (file id f_1), at Homework/HW5.pdf.\nIts problems, posted before:\n- 1: Binary search (done)\n- 2: Queues\n- 3: Counting\nOpen the first one not done unless the learner picks another."
+			"result": "[Homework] The learner is working on HW5 (homework), due 2026-11-09 23:59.\nIts assignment is the space file HW5.pdf (file id f_1), at Homework/HW5.pdf.\nIts problems, posted before:\n- 1: Binary search (done)\n- 2: Queues\n- 3: Counting\nOpen the first one not done unless the learner picks another."
 		}
 	},
 	{
@@ -69670,7 +69670,7 @@
 				},
 				"problems": []
 			},
-			"result": "[Homework] The learner is working on HW5 (homework), due 2026-11-09.\nIts assignment is the class file HW5.pdf (file id f_1).\nNo problems are posted yet. Read the assignment and post them all with post_problems first."
+			"result": "[Homework] The learner is working on HW5 (homework), due 2026-11-09.\nIts assignment is the space file HW5.pdf (file id f_1).\nNo problems are posted yet. Read the assignment and post them all with post_problems first."
 		}
 	},
 	{
@@ -69694,7 +69694,7 @@
 					}
 				]
 			},
-			"result": "[Homework] The learner is working on HW5 (homework), due 2026-11-09 23:59.\nNo assignment file is attached yet. Ask the learner which class file it is and attach it with update_class_deadline (assignment_file_id), or work from the problems they paste.\nIts problems, posted before:\n- 1: Binary search (done)\nOpen the first one not done unless the learner picks another."
+			"result": "[Homework] The learner is working on HW5 (homework), due 2026-11-09 23:59.\nNo assignment file is attached yet. Ask the learner which space file it is and attach it with update_space_deadline (assignment_file_id), or work from the problems they paste.\nIts problems, posted before:\n- 1: Binary search (done)\nOpen the first one not done unless the learner picks another."
 		}
 	},
 	{
@@ -69743,7 +69743,7 @@
 						{
 							"id": "kabet-0",
 							"role": "you",
-							"text": "sum but this should be ropabo gamab where is the other wato at? also it would be cico to have a flowchart that i can use for ANY lufotoh in this class that we picakiw so buv that bifibo no dowigineb.",
+							"text": "sum but this should be ropabo gamab where is the other wato at? also it would be cico to have a flowchart that i can use for ANY lufotoh in this space that we picakiw so buv that bifibo no dowigineb.",
 							"at": "2026-11-04T01:27:17.507Z"
 						},
 						{
@@ -69812,7 +69812,7 @@
 					{
 						"id": "kabet-0",
 						"role": "you",
-						"text": "sum but this should be ropabo gamab where is the other wato at? also it would be cico to have a flowchart that i can use for ANY lufotoh in this class that we picakiw so buv that bifibo no dowigineb.",
+						"text": "sum but this should be ropabo gamab where is the other wato at? also it would be cico to have a flowchart that i can use for ANY lufotoh in this space that we picakiw so buv that bifibo no dowigineb.",
 						"at": "2026-11-04T01:27:17.507Z"
 					},
 					{
@@ -73745,7 +73745,7 @@
 							{
 								"number": "2",
 								"title": "BisowAtiv: wefajopat, lugumidodip, kekutef",
-								"text": "(15 besifo) Doterene the vobodih jibokolel tevej. It jakis a jega of turudiju and jineraw a jokapa jega of those hitazuru. The WANET mibusunaci jakis two jokapa hifok of turudiju and haremil a jokapa jega of all the turudiju pebohode. If the hifok have babap $j$ and $k$, WANET dasi in $O(k+j)$ time.\n\n```\nBisowAtiv(a_1, ..., a_n)\n1. Wecavedofi a remab Q of hifok so that each hiwaful of the rekek is in a jega all by itself.\n2. Q = ([a_1], [a_2], ..., [a_n])\n3. while |Q| >= 2:\n4.     necoles the first two hifok from Q and WANET the two hifok pacotogi.\n5.     hizuzoh the rosapo into Q.\n6. lofige Q\n```\n\nThe nipasadiho mefem a zavebe example on the jega $(10,8,3,2,8,7,6)$.\n\nDoterene the guko wefajopat: *After each banizezis, every jega in $Q$ is jokapa.*\n\n**(a)** (6 besifo) Rakic this guko wefajopat using jimulewok.\n\n**(b)** (3 besifo) Use the guko wefajopat to kuki that the jibokolel is casogah.\n\n**(c)** (3 besifo) Use the kekutef lecako from class (kiniful geni for cevij) to kuki that this jibokolel dasi in $O(n^2)$ time.\n\n**(d)** (3 besifo) Kuki that $O(n^2)$ is not a tewef gafiv by vodoz a more kulotev tumoteca.",
+								"text": "(15 besifo) Doterene the vobodih jibokolel tevej. It jakis a jega of turudiju and jineraw a jokapa jega of those hitazuru. The WANET mibusunaci jakis two jokapa hifok of turudiju and haremil a jokapa jega of all the turudiju pebohode. If the hifok have babap $j$ and $k$, WANET dasi in $O(k+j)$ time.\n\n```\nBisowAtiv(a_1, ..., a_n)\n1. Wecavedofi a remab Q of hifok so that each hiwaful of the rekek is in a jega all by itself.\n2. Q = ([a_1], [a_2], ..., [a_n])\n3. while |Q| >= 2:\n4.     necoles the first two hifok from Q and WANET the two hifok pacotogi.\n5.     hizuzoh the rosapo into Q.\n6. lofige Q\n```\n\nThe nipasadiho mefem a zavebe example on the jega $(10,8,3,2,8,7,6)$.\n\nDoterene the guko wefajopat: *After each banizezis, every jega in $Q$ is jokapa.*\n\n**(a)** (6 besifo) Rakic this guko wefajopat using jimulewok.\n\n**(b)** (3 besifo) Use the guko wefajopat to kuki that the jibokolel is casogah.\n\n**(c)** (3 besifo) Use the kekutef lecako from space (kiniful geni for cevij) to kuki that this jibokolel dasi in $O(n^2)$ time.\n\n**(d)** (3 besifo) Kuki that $O(n^2)$ is not a tewef gafiv by vodoz a more kulotev tumoteca.",
 								"page": 2,
 								"done": false
 							},
@@ -73900,7 +73900,7 @@
 							{
 								"id": "kabet-0",
 								"role": "you",
-								"text": "sum but this should be ropabo gamab where is the other wato at? also it would be cico to have a flowchart that i can use for ANY lufotoh in this class that we picakiw so buv that bifibo no dowigineb.",
+								"text": "sum but this should be ropabo gamab where is the other wato at? also it would be cico to have a flowchart that i can use for ANY lufotoh in this space that we picakiw so buv that bifibo no dowigineb.",
 								"at": "2026-11-04T01:27:17.507Z"
 							},
 							{
@@ -77580,7 +77580,7 @@
 				"request": {
 					"title": "CSE 21 Midterm",
 					"date": "2026-11-04",
-					"classNotes": "We use Rosen.  Notation: |A| is size.",
+					"spaceNotes": "We use Rosen.  Notation: |A| is size.",
 					"infoFiles": [
 						"syllabus.txt",
 						"Course Policies.pdf",
@@ -77680,7 +77680,7 @@
 					}
 				}
 			},
-			"result": "Cheat sheet for: CSE 21 Midterm on 2026-11-04\nAbout the class: We use Rosen. Notation: |A| is size.\nCourse info files (the rules are likely here): syllabus.txt, Course Policies.pdf, week1.pdf, week2.pdf\n\nThis sheet's rules (follow every one):\n- A4, both sides\n- No colour\n\nTopics on this exam (name | how the student does), with some of the class's facts:\nCounting | weak, 3 mistakes\n  - Sum rule: Adds disjoint counts.\n  - Long: LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL…\nProbability | not tested yet, 1 mistake\n  - Bayes: P(A|B).\nSorting | knows it well\nGraphs | shaky\n  - Edge: A pair.\n\nMistakes from practice:\n- answered wrong (Counting): \"What is the sum rule?\"\n- needed hints (Probability): \"Bayes problem\"\n- answered wrong (tx): \"Outside\"\n\nWorking folder: /home/x/godspeed/cheat-sheets/CSE 21 Midterm\nIt is empty. There is no sheet yet. Keep its source here so later changes can edit it.\n\nThe student says:\nMake it denser."
+			"result": "Cheat sheet for: CSE 21 Midterm on 2026-11-04\nAbout the space: We use Rosen. Notation: |A| is size.\nSpace info files (the rules are likely here): syllabus.txt, Course Policies.pdf, week1.pdf, week2.pdf\n\nThis sheet's rules (follow every one):\n- A4, both sides\n- No colour\n\nTopics on this exam (name | how the learner does), with some of the space's facts:\nCounting | weak, 3 mistakes\n  - Sum rule: Adds disjoint counts.\n  - Long: LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL…\nProbability | not tested yet, 1 mistake\n  - Bayes: P(A|B).\nSorting | knows it well\nGraphs | shaky\n  - Edge: A pair.\n\nMistakes from practice:\n- answered wrong (Counting): \"What is the sum rule?\"\n- needed hints (Probability): \"Bayes problem\"\n- answered wrong (tx): \"Outside\"\n\nWorking folder: /home/x/godspeed/cheat-sheets/CSE 21 Midterm\nIt is empty. There is no sheet yet. Keep its source here so later changes can edit it.\n\nThe learner says:\nMake it denser."
 		}
 	},
 	{
@@ -77690,7 +77690,7 @@
 				"request": {
 					"title": "CSE 21 Midterm",
 					"date": "2026-11-04",
-					"classNotes": "We use Rosen.  Notation: |A| is size.",
+					"spaceNotes": "We use Rosen.  Notation: |A| is size.",
 					"infoFiles": [
 						"syllabus.txt",
 						"Course Policies.pdf",
@@ -77820,7 +77820,7 @@
 					}
 				}
 			},
-			"result": "Cheat sheet for: CSE 21 Midterm on 2026-11-04\nAbout the class: We use Rosen. Notation: |A| is size.\nCourse info files (the rules are likely here): syllabus.txt, Course Policies.pdf, week1.pdf, week2.pdf\n\nThis sheet's rules (follow every one):\n- A4, both sides\n- No colour\n\nTopics on this exam (name | how the student does):\nCounting | weak, 3 mistakes\nProbability | not tested yet, 1 mistake\nSorting | knows it well\nGraphs | shaky\n\nMistakes from practice:\n- answered wrong (Counting): \"What is the sum rule?\"\n- needed hints (Probability): \"Bayes problem\"\n- answered wrong (tx): \"Outside\"\n\nWorking folder: /f\nIt has: sheet.tex, sheet.pdf. The sheet now is version 2 (Letter, one side), made from the source here. To change it, edit that source and keep the rest as it is.\n\nThe student says:\nMake it denser."
+			"result": "Cheat sheet for: CSE 21 Midterm on 2026-11-04\nAbout the space: We use Rosen. Notation: |A| is size.\nSpace info files (the rules are likely here): syllabus.txt, Course Policies.pdf, week1.pdf, week2.pdf\n\nThis sheet's rules (follow every one):\n- A4, both sides\n- No colour\n\nTopics on this exam (name | how the learner does):\nCounting | weak, 3 mistakes\nProbability | not tested yet, 1 mistake\nSorting | knows it well\nGraphs | shaky\n\nMistakes from practice:\n- answered wrong (Counting): \"What is the sum rule?\"\n- needed hints (Probability): \"Bayes problem\"\n- answered wrong (tx): \"Outside\"\n\nWorking folder: /f\nIt has: sheet.tex, sheet.pdf. The sheet now is version 2 (Letter, one side), made from the source here. To change it, edit that source and keep the rest as it is.\n\nThe learner says:\nMake it denser."
 		}
 	},
 	{
@@ -77830,7 +77830,7 @@
 				"request": {
 					"title": "CSE 21 Midterm",
 					"date": "2026-11-04",
-					"classNotes": "We use Rosen.  Notation: |A| is size.",
+					"spaceNotes": "We use Rosen.  Notation: |A| is size.",
 					"infoFiles": [
 						"info0.pdf",
 						"info1.pdf",
@@ -77954,7 +77954,7 @@
 					}
 				}
 			},
-			"result": "Cheat sheet for: CSE 21 Midterm on 2026-11-04\nAbout the class: We use Rosen. Notation: |A| is size.\nCourse info files (the rules are likely here): grading policy.txt, Syllabus.pdf, info0.pdf, info1.pdf, info2.pdf, info3.pdf, info5.pdf, info6.pdf, and 4 more\n\nThis sheet's rules (follow every one):\n- A4, both sides\n- No colour\n\nTopics on this exam (name | how the student does), with some of the class's facts:\nCounting | weak, 3 mistakes\n  - Sum rule: Adds disjoint counts.\n  - Long: LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL…\nProbability | not tested yet, 1 mistake\n  - Bayes: P(A|B).\nSorting | knows it well\nGraphs | shaky\n  - Edge: A pair.\n\nMistakes from practice:\n- answered wrong (Counting): \"What is the sum rule?\"\n- needed hints (Probability): \"Bayes problem\"\n- answered wrong (tx): \"Outside\"\n\nWorking folder: /f\nIt has: file0.tex, file1.tex, file2.tex, file3.tex, file4.tex, file5.tex, file6.tex, file7.tex, file8.tex, file9.tex, file10.tex, file11.tex, and 3 more. There is no sheet yet. Keep its source here so later changes can edit it.\n\nThe student says:\nMake it denser."
+			"result": "Cheat sheet for: CSE 21 Midterm on 2026-11-04\nAbout the space: We use Rosen. Notation: |A| is size.\nSpace info files (the rules are likely here): grading policy.txt, Syllabus.pdf, info0.pdf, info1.pdf, info2.pdf, info3.pdf, info5.pdf, info6.pdf, and 4 more\n\nThis sheet's rules (follow every one):\n- A4, both sides\n- No colour\n\nTopics on this exam (name | how the learner does), with some of the space's facts:\nCounting | weak, 3 mistakes\n  - Sum rule: Adds disjoint counts.\n  - Long: LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL…\nProbability | not tested yet, 1 mistake\n  - Bayes: P(A|B).\nSorting | knows it well\nGraphs | shaky\n  - Edge: A pair.\n\nMistakes from practice:\n- answered wrong (Counting): \"What is the sum rule?\"\n- needed hints (Probability): \"Bayes problem\"\n- answered wrong (tx): \"Outside\"\n\nWorking folder: /f\nIt has: file0.tex, file1.tex, file2.tex, file3.tex, file4.tex, file5.tex, file6.tex, file7.tex, file8.tex, file9.tex, file10.tex, file11.tex, and 3 more. There is no sheet yet. Keep its source here so later changes can edit it.\n\nThe learner says:\nMake it denser."
 		}
 	},
 	{
@@ -77964,7 +77964,7 @@
 				"request": {
 					"title": "CSE 21 Midterm",
 					"date": "2026-11-04",
-					"classNotes": "We use Rosen.  Notation: |A| is size.",
+					"spaceNotes": "We use Rosen.  Notation: |A| is size.",
 					"infoFiles": [
 						"syllabus.txt",
 						"Course Policies.pdf",
@@ -78133,7 +78133,7 @@
 					}
 				}
 			},
-			"result": "Cheat sheet for: CSE 21 Midterm on 2026-11-04\nAbout the class: We use Rosen. Notation: |A| is size.\nCourse info files (the rules are likely here): syllabus.txt, Course Policies.pdf, week1.pdf, week2.pdf\n\nThis sheet's rules (follow every one):\n- A4, both sides\n- No colour\n\nTopics on this exam (name | how the student does), with some of the class's facts:\nCounting | weak, 3 mistakes\n  - Sum rule: Adds disjoint counts.\n  - Long: LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL…\nProbability | not tested yet, 1 mistake\n  - Bayes: P(A|B).\nSorting | knows it well\nGraphs | shaky\n  - Edge: A pair.\n\nMistakes from practice:\n- answered wrong (Counting): \"What is the sum rule?\"\n- needed hints (Probability): \"Bayes problem\"\n- answered wrong (tx): \"Outside\"\n\nWorking folder: /home/x/godspeed/cheat-sheets/CSE 21 Midterm\nIt is empty. There is no sheet yet. Keep its source here so later changes can edit it.\n\nThe chat so far, oldest first:\nYou: \nYou: Changed. [made version 2]\nStudent: Later 0 wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww…\nYou: Later 1 wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww…\nStudent: Later 2 wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww…\nYou: Later 3 wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww…\nStudent: Later 4 wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww…\nYou: Later 5 wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww…\n\nThe student says:\nMake it denser."
+			"result": "Cheat sheet for: CSE 21 Midterm on 2026-11-04\nAbout the space: We use Rosen. Notation: |A| is size.\nSpace info files (the rules are likely here): syllabus.txt, Course Policies.pdf, week1.pdf, week2.pdf\n\nThis sheet's rules (follow every one):\n- A4, both sides\n- No colour\n\nTopics on this exam (name | how the learner does), with some of the space's facts:\nCounting | weak, 3 mistakes\n  - Sum rule: Adds disjoint counts.\n  - Long: LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL…\nProbability | not tested yet, 1 mistake\n  - Bayes: P(A|B).\nSorting | knows it well\nGraphs | shaky\n  - Edge: A pair.\n\nMistakes from practice:\n- answered wrong (Counting): \"What is the sum rule?\"\n- needed hints (Probability): \"Bayes problem\"\n- answered wrong (tx): \"Outside\"\n\nWorking folder: /home/x/godspeed/cheat-sheets/CSE 21 Midterm\nIt is empty. There is no sheet yet. Keep its source here so later changes can edit it.\n\nThe chat so far, oldest first:\nYou: \nYou: Changed. [made version 2]\nLearner: Later 0 wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww…\nYou: Later 1 wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww…\nLearner: Later 2 wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww…\nYou: Later 3 wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww…\nLearner: Later 4 wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww…\nYou: Later 5 wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww…\n\nThe learner says:\nMake it denser."
 		}
 	},
 	{
@@ -78143,7 +78143,7 @@
 				"request": {
 					"title": "CSE 21 Midterm",
 					"date": "2026-11-04",
-					"classNotes": "We use Rosen.  Notation: |A| is size.",
+					"spaceNotes": "We use Rosen.  Notation: |A| is size.",
 					"infoFiles": [
 						"syllabus.txt",
 						"Course Policies.pdf",
@@ -78243,7 +78243,7 @@
 					}
 				}
 			},
-			"result": "Cheat sheet for: CSE 21 Midterm on 2026-11-04\nAbout the class: We use Rosen. Notation: |A| is size.\nCourse info files (the rules are likely here): syllabus.txt, Course Policies.pdf, week1.pdf, week2.pdf\n\nThis sheet's rules (follow every one):\n- A4, both sides\n- No colour\n\nTopics on this exam (name | how the student does), with some of the class's facts:\nCounting | weak, 3 mistakes\n  - Sum rule: Adds disjoint counts.\n  - Long: LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL…\nProbability | not tested yet, 1 mistake\n  - Bayes: P(A|B).\nSorting | knows it well\nGraphs | shaky\n  - Edge: A pair.\n\nMistakes from practice:\n- answered wrong (Counting): \"What is the sum rule?\"\n- needed hints (Probability): \"Bayes problem\"\n- answered wrong (tx): \"Outside\"\n\nWorking folder: /home/x/godspeed/cheat-sheets/CSE 21 Midterm\nIt is empty. There is no sheet yet. Keep its source here so later changes can edit it.\n\nThe student says:\n(no words, only the files)"
+			"result": "Cheat sheet for: CSE 21 Midterm on 2026-11-04\nAbout the space: We use Rosen. Notation: |A| is size.\nSpace info files (the rules are likely here): syllabus.txt, Course Policies.pdf, week1.pdf, week2.pdf\n\nThis sheet's rules (follow every one):\n- A4, both sides\n- No colour\n\nTopics on this exam (name | how the learner does), with some of the space's facts:\nCounting | weak, 3 mistakes\n  - Sum rule: Adds disjoint counts.\n  - Long: LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL…\nProbability | not tested yet, 1 mistake\n  - Bayes: P(A|B).\nSorting | knows it well\nGraphs | shaky\n  - Edge: A pair.\n\nMistakes from practice:\n- answered wrong (Counting): \"What is the sum rule?\"\n- needed hints (Probability): \"Bayes problem\"\n- answered wrong (tx): \"Outside\"\n\nWorking folder: /home/x/godspeed/cheat-sheets/CSE 21 Midterm\nIt is empty. There is no sheet yet. Keep its source here so later changes can edit it.\n\nThe learner says:\n(no words, only the files)"
 		}
 	},
 	{
@@ -78253,7 +78253,7 @@
 				"request": {
 					"title": "T",
 					"date": "d",
-					"classNotes": "",
+					"spaceNotes": "",
 					"infoFiles": [],
 					"rules": [],
 					"topics": [],
@@ -78272,7 +78272,7 @@
 					}
 				}
 			},
-			"result": "Cheat sheet for: T on d\nThe class has no course info files; search all its files for the rules.\n\nWorking folder: /p\nIt is empty. There is no sheet yet. Keep its source here so later changes can edit it.\n\nThe student says:\nMake it denser."
+			"result": "Cheat sheet for: T on d\nThe space has no space info files; search all its files for the rules.\n\nWorking folder: /p\nIt is empty. There is no sheet yet. Keep its source here so later changes can edit it.\n\nThe learner says:\nMake it denser."
 		}
 	},
 	{
@@ -78282,7 +78282,7 @@
 				"request": {
 					"title": "CSE 21 Midterm",
 					"date": "2026-11-04",
-					"classNotes": "We use Rosen.  Notation: |A| is size.",
+					"spaceNotes": "We use Rosen.  Notation: |A| is size.",
 					"infoFiles": [
 						"syllabus.txt",
 						"Course Policies.pdf",
@@ -78388,7 +78388,7 @@
 					}
 				}
 			},
-			"result": "Cheat sheet for: CSE 21 Midterm on 2026-11-04\nAbout the class: We use Rosen. Notation: |A| is size.\nCourse info files (the rules are likely here): syllabus.txt, Course Policies.pdf, week1.pdf, week2.pdf\n\nThis sheet's rules (follow every one):\n- A4, both sides\n- No colour\n\nTopics on this exam (name | how the student does), with some of the class's facts:\nCounting | weak, 3 mistakes\n  - Sum rule: Adds disjoint counts.\n  - Long: LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL…\nProbability | not tested yet, 1 mistake\n  - Bayes: P(A|B).\nSorting | knows it well\nGraphs | shaky\n  - Edge: A pair.\n\nMistakes from practice:\n- answered wrong (Counting): \"What is the sum rule?\"\n- needed hints (Probability): \"Bayes problem\"\n- answered wrong (tx): \"Outside\"\n\nWorking folder: /home/x/godspeed/cheat-sheets/CSE 21 Midterm\nIt is empty. There is no sheet yet. Keep its source here so later changes can edit it.\n\nThe student is on this problem in their session \"HW5\", with the sheet open beside it:\nProve the invariant holds.\nWhat they have written for it so far:\nLet lo <= r.\n\nThe student says:\nMake it denser."
+			"result": "Cheat sheet for: CSE 21 Midterm on 2026-11-04\nAbout the space: We use Rosen. Notation: |A| is size.\nSpace info files (the rules are likely here): syllabus.txt, Course Policies.pdf, week1.pdf, week2.pdf\n\nThis sheet's rules (follow every one):\n- A4, both sides\n- No colour\n\nTopics on this exam (name | how the learner does), with some of the space's facts:\nCounting | weak, 3 mistakes\n  - Sum rule: Adds disjoint counts.\n  - Long: LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL…\nProbability | not tested yet, 1 mistake\n  - Bayes: P(A|B).\nSorting | knows it well\nGraphs | shaky\n  - Edge: A pair.\n\nMistakes from practice:\n- answered wrong (Counting): \"What is the sum rule?\"\n- needed hints (Probability): \"Bayes problem\"\n- answered wrong (tx): \"Outside\"\n\nWorking folder: /home/x/godspeed/cheat-sheets/CSE 21 Midterm\nIt is empty. There is no sheet yet. Keep its source here so later changes can edit it.\n\nThe student is on this problem in their session \"HW5\", with the sheet open beside it:\nProve the invariant holds.\nWhat they have written for it so far:\nLet lo <= r.\n\nThe learner says:\nMake it denser."
 		}
 	},
 	{
@@ -78398,7 +78398,7 @@
 				"request": {
 					"title": "CSE 21 Midterm",
 					"date": "2026-11-04",
-					"classNotes": "We use Rosen.  Notation: |A| is size.",
+					"spaceNotes": "We use Rosen.  Notation: |A| is size.",
 					"infoFiles": [
 						"syllabus.txt",
 						"Course Policies.pdf",
@@ -78503,7 +78503,7 @@
 					}
 				}
 			},
-			"result": "Cheat sheet for: CSE 21 Midterm on 2026-11-04\nAbout the class: We use Rosen. Notation: |A| is size.\nCourse info files (the rules are likely here): syllabus.txt, Course Policies.pdf, week1.pdf, week2.pdf\n\nThis sheet's rules (follow every one):\n- A4, both sides\n- No colour\n\nTopics on this exam (name | how the student does), with some of the class's facts:\nCounting | weak, 3 mistakes\n  - Sum rule: Adds disjoint counts.\n  - Long: LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL…\nProbability | not tested yet, 1 mistake\n  - Bayes: P(A|B).\nSorting | knows it well\nGraphs | shaky\n  - Edge: A pair.\n\nMistakes from practice:\n- answered wrong (Counting): \"What is the sum rule?\"\n- needed hints (Probability): \"Bayes problem\"\n- answered wrong (tx): \"Outside\"\n\nWorking folder: /home/x/godspeed/cheat-sheets/CSE 21 Midterm\nIt is empty. There is no sheet yet. Keep its source here so later changes can edit it.\n\nThe student is on this question in their session \"Study: Counting\", with the sheet open beside it:\nHow many?\n\nThe student says:\nMake it denser."
+			"result": "Cheat sheet for: CSE 21 Midterm on 2026-11-04\nAbout the space: We use Rosen. Notation: |A| is size.\nSpace info files (the rules are likely here): syllabus.txt, Course Policies.pdf, week1.pdf, week2.pdf\n\nThis sheet's rules (follow every one):\n- A4, both sides\n- No colour\n\nTopics on this exam (name | how the learner does), with some of the space's facts:\nCounting | weak, 3 mistakes\n  - Sum rule: Adds disjoint counts.\n  - Long: LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL…\nProbability | not tested yet, 1 mistake\n  - Bayes: P(A|B).\nSorting | knows it well\nGraphs | shaky\n  - Edge: A pair.\n\nMistakes from practice:\n- answered wrong (Counting): \"What is the sum rule?\"\n- needed hints (Probability): \"Bayes problem\"\n- answered wrong (tx): \"Outside\"\n\nWorking folder: /home/x/godspeed/cheat-sheets/CSE 21 Midterm\nIt is empty. There is no sheet yet. Keep its source here so later changes can edit it.\n\nThe student is on this question in their session \"Study: Counting\", with the sheet open beside it:\nHow many?\n\nThe learner says:\nMake it denser."
 		}
 	},
 	{
@@ -78513,7 +78513,7 @@
 				"request": {
 					"title": "CSE 21 Midterm",
 					"date": "2026-11-04",
-					"classNotes": "We use Rosen.  Notation: |A| is size.",
+					"spaceNotes": "We use Rosen.  Notation: |A| is size.",
 					"infoFiles": [
 						"syllabus.txt",
 						"Course Policies.pdf",
@@ -78619,7 +78619,7 @@
 					}
 				}
 			},
-			"result": "Cheat sheet for: CSE 21 Midterm on 2026-11-04\nAbout the class: We use Rosen. Notation: |A| is size.\nCourse info files (the rules are likely here): syllabus.txt, Course Policies.pdf, week1.pdf, week2.pdf\n\nThis sheet's rules (follow every one):\n- A4, both sides\n- No colour\n\nTopics on this exam (name | how the student does), with some of the class's facts:\nCounting | weak, 3 mistakes\n  - Sum rule: Adds disjoint counts.\n  - Long: LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL…\nProbability | not tested yet, 1 mistake\n  - Bayes: P(A|B).\nSorting | knows it well\nGraphs | shaky\n  - Edge: A pair.\n\nMistakes from practice:\n- answered wrong (Counting): \"What is the sum rule?\"\n- needed hints (Probability): \"Bayes problem\"\n- answered wrong (tx): \"Outside\"\n\nWorking folder: /home/x/godspeed/cheat-sheets/CSE 21 Midterm\nIt is empty. There is no sheet yet. Keep its source here so later changes can edit it.\n\nThe student is on this problem in their session \"S\", with the sheet open beside it:\nPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP…\nWhat they have written for it so far:\nWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW\n\nThe student says:\nMake it denser."
+			"result": "Cheat sheet for: CSE 21 Midterm on 2026-11-04\nAbout the space: We use Rosen. Notation: |A| is size.\nSpace info files (the rules are likely here): syllabus.txt, Course Policies.pdf, week1.pdf, week2.pdf\n\nThis sheet's rules (follow every one):\n- A4, both sides\n- No colour\n\nTopics on this exam (name | how the learner does), with some of the space's facts:\nCounting | weak, 3 mistakes\n  - Sum rule: Adds disjoint counts.\n  - Long: LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL…\nProbability | not tested yet, 1 mistake\n  - Bayes: P(A|B).\nSorting | knows it well\nGraphs | shaky\n  - Edge: A pair.\n\nMistakes from practice:\n- answered wrong (Counting): \"What is the sum rule?\"\n- needed hints (Probability): \"Bayes problem\"\n- answered wrong (tx): \"Outside\"\n\nWorking folder: /home/x/godspeed/cheat-sheets/CSE 21 Midterm\nIt is empty. There is no sheet yet. Keep its source here so later changes can edit it.\n\nThe student is on this problem in their session \"S\", with the sheet open beside it:\nPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP…\nWhat they have written for it so far:\nWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW\n\nThe learner says:\nMake it denser."
 		}
 	},
 	{
@@ -78629,7 +78629,7 @@
 				"request": {
 					"title": "CSE 21 Midterm",
 					"date": "2026-11-04",
-					"classNotes": "We use Rosen.  Notation: |A| is size.",
+					"spaceNotes": "We use Rosen.  Notation: |A| is size.",
 					"infoFiles": [
 						"syllabus.txt",
 						"Course Policies.pdf",
@@ -78768,7 +78768,7 @@
 					}
 				}
 			},
-			"result": "Cheat sheet for: CSE 21 Midterm on 2026-11-04\nAbout the class: We use Rosen. Notation: |A| is size.\nCourse info files (the rules are likely here): syllabus.txt, Course Policies.pdf, week1.pdf, week2.pdf\n\nThis sheet's rules (follow every one):\n- A4, both sides\n- No colour\n\nTopics on this exam (name | how the student does):\nCounting | weak, 3 mistakes\nProbability | not tested yet, 1 mistake\nSorting | knows it well\nGraphs | shaky\n\nMistakes from practice:\n- answered wrong (Counting): \"What is the sum rule?\"\n- needed hints (Probability): \"Bayes problem\"\n- answered wrong (tx): \"Outside\"\n\nWorking folder: /home/x/godspeed/cheat-sheets/CSE 21 Midterm\nIt is empty. The sheet now is version 2 (Letter, front and back), made from the source here. To change it, edit that source and keep the rest as it is.\n\nThey pointed at version 2, page 2 (the back), from 10% to 40% across and 20% to 55% down. The first picture shows that part.\n\nThe student says:\nMake it denser."
+			"result": "Cheat sheet for: CSE 21 Midterm on 2026-11-04\nAbout the space: We use Rosen. Notation: |A| is size.\nSpace info files (the rules are likely here): syllabus.txt, Course Policies.pdf, week1.pdf, week2.pdf\n\nThis sheet's rules (follow every one):\n- A4, both sides\n- No colour\n\nTopics on this exam (name | how the learner does):\nCounting | weak, 3 mistakes\nProbability | not tested yet, 1 mistake\nSorting | knows it well\nGraphs | shaky\n\nMistakes from practice:\n- answered wrong (Counting): \"What is the sum rule?\"\n- needed hints (Probability): \"Bayes problem\"\n- answered wrong (tx): \"Outside\"\n\nWorking folder: /home/x/godspeed/cheat-sheets/CSE 21 Midterm\nIt is empty. The sheet now is version 2 (Letter, front and back), made from the source here. To change it, edit that source and keep the rest as it is.\n\nThey pointed at version 2, page 2 (the back), from 10% to 40% across and 20% to 55% down. The first picture shows that part.\n\nThe learner says:\nMake it denser."
 		}
 	},
 	{
@@ -78778,7 +78778,7 @@
 				"request": {
 					"title": "CSE 21 Midterm",
 					"date": "2026-11-04",
-					"classNotes": "We use Rosen.  Notation: |A| is size.",
+					"spaceNotes": "We use Rosen.  Notation: |A| is size.",
 					"infoFiles": [
 						"syllabus.txt",
 						"Course Policies.pdf",
@@ -78913,7 +78913,7 @@
 					}
 				}
 			},
-			"result": "Cheat sheet for: CSE 21 Midterm on 2026-11-04\nAbout the class: We use Rosen. Notation: |A| is size.\nCourse info files (the rules are likely here): syllabus.txt, Course Policies.pdf, week1.pdf, week2.pdf\n\nThis sheet's rules (follow every one):\n- A4, both sides\n- No colour\n\nTopics on this exam (name | how the student does):\nCounting | weak, 3 mistakes\nProbability | not tested yet, 1 mistake\nSorting | knows it well\nGraphs | shaky\n\nMistakes from practice:\n- answered wrong (Counting): \"What is the sum rule?\"\n- needed hints (Probability): \"Bayes problem\"\n- answered wrong (tx): \"Outside\"\n\nWorking folder: /home/x/godspeed/cheat-sheets/CSE 21 Midterm\nIt is empty. The sheet now is version 2 (Letter, one side), made from the source here. To change it, edit that source and keep the rest as it is.\n\nThey pointed at version 1, page 1 (the front), from 10% to 40% across and 20% to 55% down. The first picture shows that part. That is an older version; the sheet now is version 2.\n\nThe student says:\nMake it denser."
+			"result": "Cheat sheet for: CSE 21 Midterm on 2026-11-04\nAbout the space: We use Rosen. Notation: |A| is size.\nSpace info files (the rules are likely here): syllabus.txt, Course Policies.pdf, week1.pdf, week2.pdf\n\nThis sheet's rules (follow every one):\n- A4, both sides\n- No colour\n\nTopics on this exam (name | how the learner does):\nCounting | weak, 3 mistakes\nProbability | not tested yet, 1 mistake\nSorting | knows it well\nGraphs | shaky\n\nMistakes from practice:\n- answered wrong (Counting): \"What is the sum rule?\"\n- needed hints (Probability): \"Bayes problem\"\n- answered wrong (tx): \"Outside\"\n\nWorking folder: /home/x/godspeed/cheat-sheets/CSE 21 Midterm\nIt is empty. The sheet now is version 2 (Letter, one side), made from the source here. To change it, edit that source and keep the rest as it is.\n\nThey pointed at version 1, page 1 (the front), from 10% to 40% across and 20% to 55% down. The first picture shows that part. That is an older version; the sheet now is version 2.\n\nThe learner says:\nMake it denser."
 		}
 	},
 	{
@@ -78923,7 +78923,7 @@
 				"request": {
 					"title": "CSE 21 Midterm",
 					"date": "2026-11-04",
-					"classNotes": "We use Rosen.  Notation: |A| is size.",
+					"spaceNotes": "We use Rosen.  Notation: |A| is size.",
 					"infoFiles": [
 						"syllabus.txt",
 						"Course Policies.pdf",
@@ -79051,7 +79051,7 @@
 					}
 				}
 			},
-			"result": "Cheat sheet for: CSE 21 Midterm on 2026-11-04\nAbout the class: We use Rosen. Notation: |A| is size.\nCourse info files (the rules are likely here): syllabus.txt, Course Policies.pdf, week1.pdf, week2.pdf\n\nThis sheet's rules (follow every one):\n- A4, both sides\n- No colour\n\nTopics on this exam (name | how the student does):\nCounting | weak, 3 mistakes\nProbability | not tested yet, 1 mistake\nSorting | knows it well\nGraphs | shaky\n\nMistakes from practice:\n- answered wrong (Counting): \"What is the sum rule?\"\n- needed hints (Probability): \"Bayes problem\"\n- answered wrong (tx): \"Outside\"\n\nWorking folder: /home/x/godspeed/cheat-sheets/CSE 21 Midterm\nIt is empty. The sheet now is version 2 (Letter, 3 pages), made from the source here. To change it, edit that source and keep the rest as it is.\n\nThey pointed at version 1, page 2, from 0% to 50% across and 0% to 50% down. The first picture shows that part. That is an older version; the sheet now is version 2.\n\nThe student says:\nMake it denser."
+			"result": "Cheat sheet for: CSE 21 Midterm on 2026-11-04\nAbout the space: We use Rosen. Notation: |A| is size.\nSpace info files (the rules are likely here): syllabus.txt, Course Policies.pdf, week1.pdf, week2.pdf\n\nThis sheet's rules (follow every one):\n- A4, both sides\n- No colour\n\nTopics on this exam (name | how the learner does):\nCounting | weak, 3 mistakes\nProbability | not tested yet, 1 mistake\nSorting | knows it well\nGraphs | shaky\n\nMistakes from practice:\n- answered wrong (Counting): \"What is the sum rule?\"\n- needed hints (Probability): \"Bayes problem\"\n- answered wrong (tx): \"Outside\"\n\nWorking folder: /home/x/godspeed/cheat-sheets/CSE 21 Midterm\nIt is empty. The sheet now is version 2 (Letter, 3 pages), made from the source here. To change it, edit that source and keep the rest as it is.\n\nThey pointed at version 1, page 2, from 0% to 50% across and 0% to 50% down. The first picture shows that part. That is an older version; the sheet now is version 2.\n\nThe learner says:\nMake it denser."
 		}
 	},
 	{
@@ -79061,7 +79061,7 @@
 				"request": {
 					"title": "CSE 21 Midterm",
 					"date": "2026-11-04",
-					"classNotes": "We use Rosen.  Notation: |A| is size.",
+					"spaceNotes": "We use Rosen.  Notation: |A| is size.",
 					"infoFiles": [
 						"syllabus.txt",
 						"Course Policies.pdf",
@@ -79111,7 +79111,7 @@
 					}
 				}
 			},
-			"result": "Cheat sheet for: CSE 21 Midterm on 2026-11-04\nAbout the class: We use Rosen. Notation: |A| is size.\nCourse info files (the rules are likely here): syllabus.txt, Course Policies.pdf, week1.pdf, week2.pdf\n\nThis sheet's rules (follow every one):\n- A4, both sides\n- No colour\n\nTopics on this exam (name | how the student does), with some of the class's facts:\nCounting | weak, 1 mistake\n  - Sum rule: Adds disjoint counts.\n  - Long: LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL…\n\nWorking folder: /home/x/godspeed/cheat-sheets/CSE 21 Midterm\nIt is empty. There is no sheet yet. Keep its source here so later changes can edit it.\n\nThe student says:\nMake it denser."
+			"result": "Cheat sheet for: CSE 21 Midterm on 2026-11-04\nAbout the space: We use Rosen. Notation: |A| is size.\nSpace info files (the rules are likely here): syllabus.txt, Course Policies.pdf, week1.pdf, week2.pdf\n\nThis sheet's rules (follow every one):\n- A4, both sides\n- No colour\n\nTopics on this exam (name | how the learner does), with some of the space's facts:\nCounting | weak, 1 mistake\n  - Sum rule: Adds disjoint counts.\n  - Long: LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL…\n\nWorking folder: /home/x/godspeed/cheat-sheets/CSE 21 Midterm\nIt is empty. There is no sheet yet. Keep its source here so later changes can edit it.\n\nThe learner says:\nMake it denser."
 		}
 	}
 ]

@@ -13,7 +13,7 @@ use gs_base::clock;
 use gs_base::events::EventKind;
 use gs_base::locks::LockKey;
 use gs_base::text;
-use gs_core::contracts::class::parse_class_scope;
+use gs_core::contracts::space::parse_space_scope;
 use gs_core::graph::graph_deletion::ChatDeleteMode;
 use gs_core::messages::input_events::{TurnInput, dismiss_appends, parse_chat_input, parse_dismiss_input, parse_user_steer_input};
 use gs_core::messages::native_messages::new_user_steer;
@@ -24,7 +24,7 @@ use gs_core::session::session_markdown::session_markdown;
 use gs_engine::turn::ui_stream::SSE_HEADERS;
 use gs_json::{Json, Obj, json};
 use gs_services::App;
-use gs_services::classes::{move_chat_to_class, start_class_scanner};
+use gs_services::spaces::{move_chat_to_space, start_space_scanner};
 use gs_services::jobs::steer_live_chat;
 use gs_services::turns::chat_handler::{ChatReply, ReplyBody, handle_chat_input};
 use gs_services::turns::chats::{delete_chat_session, session_coverage};
@@ -46,7 +46,7 @@ pub fn routes() -> Router<Arc<App>> {
 		.route("/api/chats", ApiRoute::new().get(list).post(create).into_route())
 		.route("/api/chats/{id}", ApiRoute::new().get(read).put(rename).delete(remove).into_route())
 		.route("/api/chats/{id}/artifact-ui", ApiRoute::new().post(artifact_ui).into_route())
-		.route("/api/chats/{id}/class", ApiRoute::new().put(move_class).into_route())
+		.route("/api/chats/{id}/space", ApiRoute::new().put(move_space).into_route())
 		.route("/api/chats/{id}/dismiss", ApiRoute::new().post(dismiss).into_route())
 		.route("/api/chats/{id}/markdown", ApiRoute::new().get(markdown).into_route())
 		.route("/api/chats/{id}/steer", ApiRoute::new().post(steer).into_route())
@@ -81,15 +81,15 @@ async fn chat(State(app): State<Arc<App>>, body: Body) -> Result<Response, Unhan
 	Ok(chat_reply(handle_chat_input(&app, chat_id, TurnInput::Chat(input)).await))
 }
 
-/// GET /api/chats[?class=<id|none>]: the session picker's list with liveness merged in.
+/// GET /api/chats[?space=<id|none>]: the session picker's list with liveness merged in.
 async fn list(State(app): State<Arc<App>>, uri: Uri) -> Result<Response, Unhandled> {
-	start_class_scanner(&app);
+	start_space_scanner(&app);
 	let params = search_params(uri.query().unwrap_or_default());
-	let scope = match param(&params, "class") {
+	let scope = match param(&params, "space") {
 		None => None,
-		Some(raw) => match parse_class_scope(Some(raw)) {
+		Some(raw) => match parse_space_scope(Some(raw)) {
 			Some(scope) => Some(scope),
-			None => return Ok(error(400, "bad class")),
+			None => return Ok(error(400, "bad space")),
 		},
 	};
 	let chats: Vec<Json> = app
@@ -97,7 +97,7 @@ async fn list(State(app): State<Arc<App>>, uri: Uri) -> Result<Response, Unhandl
 		.chats
 		.list_chats()
 		.into_iter()
-		.filter(|c| scope.as_ref().is_none_or(|s| c["classId"].as_str() == s.as_deref()))
+		.filter(|c| scope.as_ref().is_none_or(|s| c["spaceId"].as_str() == s.as_deref()))
 		.map(|mut c| {
 			let id = c["id"].as_str().unwrap_or_default().to_owned();
 			if let Some(o) = c.as_obj_mut() {
@@ -115,11 +115,11 @@ async fn list(State(app): State<Arc<App>>, uri: Uri) -> Result<Response, Unhandl
 async fn create(State(app): State<Arc<App>>, body: Body) -> Result<Response, Unhandled> {
 	let body = fields(body).await?;
 	let title = body["title"].as_str().unwrap_or_default();
-	let Some(class_id) = parse_class_scope(body["classId"].as_str()) else { return Ok(error(400, "bad classId")) };
+	let Some(space_id) = parse_space_scope(body["spaceId"].as_str()) else { return Ok(error(400, "bad spaceId")) };
 	let deadline_id = body["deadlineId"].as_str();
 	if body["homework"] == Json::Bool(true) {
-		let (Some(class_id), Some(deadline_id)) = (class_id.as_deref(), deadline_id) else { return Ok(error(400, "homework needs a classId and a deadlineId")) };
-		return Ok(match create_homework(&app, class_id, deadline_id)? {
+		let (Some(space_id), Some(deadline_id)) = (space_id.as_deref(), deadline_id) else { return Ok(error(400, "homework needs a spaceId and a deadlineId")) };
+		return Ok(match create_homework(&app, space_id, deadline_id)? {
 			Ok(created) => reply::json(200, &json!({ "id": created.chat["id"], "title": created.title })),
 			Err(not_found) => coded(404, not_found.error, not_found.code),
 		});
@@ -129,7 +129,7 @@ async fn create(State(app): State<Arc<App>>, body: Body) -> Result<Response, Unh
 		(None, Some(ids)) => LessonStart::Topics(ids.iter().filter_map(|id| id.as_str().map(str::to_owned)).collect()),
 		(None, None) => LessonStart::Typed { title: title.to_owned(), picks: picks_of(&body["graphContext"]) },
 	};
-	Ok(match create_lesson(&app, CreateLessonInput { class_id, start })? {
+	Ok(match create_lesson(&app, CreateLessonInput { space_id, start })? {
 		Ok(created) => reply::json(200, &json!({ "id": created.chat["id"], "title": created.title })),
 		Err(not_found) => coded(404, not_found.error, not_found.code),
 	})
@@ -201,14 +201,14 @@ async fn artifact_ui(State(app): State<Arc<App>>, Path(id): Path<String>, body: 
 	Ok(reply::json(200, &json!({ "ok": true })))
 }
 
-/// PUT /api/chats/{id}/class: moves a lesson to another class (`"none"`: no class).
-async fn move_class(State(app): State<Arc<App>>, Path(id): Path<String>, body: Body) -> Result<Response, Unhandled> {
+/// PUT /api/chats/{id}/space: moves a lesson to another space (`"none"`: no space).
+async fn move_space(State(app): State<Arc<App>>, Path(id): Path<String>, body: Body) -> Result<Response, Unhandled> {
 	let body = fields(body).await?;
-	let target = parse_class_scope(body["classId"].as_str());
-	let (Some(target), Some(_)) = (target, body.get("classId")) else { return Ok(error(400, "classId must be a class id or \"none\"")) };
-	Ok(match move_chat_to_class(&app, &id, target.as_deref()).await {
+	let target = parse_space_scope(body["spaceId"].as_str());
+	let (Some(target), Some(_)) = (target, body.get("spaceId")) else { return Ok(error(400, "spaceId must be a space id or \"none\"")) };
+	Ok(match move_chat_to_space(&app, &id, target.as_deref()).await {
 		Err(failure) => coded(failure.status, &failure.error, &failure.code),
-		Ok(class_id) => reply::json(200, &json!({ "ok": true, "classId": class_id })),
+		Ok(space_id) => reply::json(200, &json!({ "ok": true, "spaceId": space_id })),
 	})
 }
 

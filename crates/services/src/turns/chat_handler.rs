@@ -38,7 +38,7 @@ use super::turn_service::{PERSISTENCE_ERROR, persist_turn, trigger_extraction};
 use crate::App;
 use crate::app::agent_actions::record_answer;
 use crate::app::today_note::today_note_for;
-use crate::classes::class_actions::SendFirstMessage;
+use crate::spaces::space_actions::SendFirstMessage;
 use crate::jobs::{note_steers_durable, reconcile_user_steers, register_live_agent, settle_steers, unregister_live_agent};
 
 /// The live update window of a turn's stream.
@@ -287,7 +287,7 @@ fn start_turn(app: &Arc<App>, chat_id: &str, input: &TurnInput, effective: &Json
 	let failure = settle.clone();
 	let finish = settle.clone();
 	let kind = record["kind"].as_str().map(str::to_owned);
-	let scope = record["classId"].as_str().map(str::to_owned);
+	let scope = record["spaceId"].as_str().map(str::to_owned);
 	let extracts = extracts_facts(kind.as_deref()) && effective["graph"]["enabled"].truthy();
 	let chunk_tokens = effective["graph"]["extractionChunkTokens"].as_f64().unwrap_or_default();
 	let turn_usage_id = ids::uuid();

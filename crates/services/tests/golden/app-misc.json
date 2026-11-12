@@ -76,13 +76,13 @@
 			{
 				"section": "general",
 				"body": {
-					"activeClass": "none",
+					"activeSpace": "none",
 					"lastSeenVersion": "0.5.44"
 				},
 				"result": {
 					"ok": true,
 					"settings": {
-						"activeClass": "none",
+						"activeSpace": "none",
 						"lastSeenVersion": "0.5.44"
 					}
 				}
@@ -90,24 +90,24 @@
 			{
 				"section": "general",
 				"body": {
-					"activeClass": "cls_golden01_00000001"
+					"activeSpace": "cls_golden01_00000001"
 				},
 				"result": {
 					"ok": true,
 					"settings": {
-						"activeClass": "cls_golden01_00000001"
+						"activeSpace": "cls_golden01_00000001"
 					}
 				}
 			},
 			{
 				"section": "general",
 				"body": {
-					"activeClass": "cls_bad"
+					"activeSpace": "cls_bad"
 				},
 				"result": {
 					"ok": true,
 					"settings": {
-						"activeClass": "cls_bad"
+						"activeSpace": "cls_bad"
 					}
 				}
 			},
@@ -708,7 +708,7 @@
 					"sourceSha": "bf8a9d2d13b070bf0eae84a8b4f95b7b6d9fba1ea29a9e4dd5f1ec799952e3b0"
 				},
 				{
-					"path": "shared/12-class-context.md",
+					"path": "shared/12-space-context.md",
 					"shared": true,
 					"sourceSha": "4af356d3df2b20edec733620f3c511e5746e353d5476df98a8251287772bb9b6"
 				},
@@ -760,7 +760,7 @@
 				"practice/20-hints.md",
 				"prober/10-probe-doctrine.md",
 				"shared/10-voice.md",
-				"shared/12-class-context.md",
+				"shared/12-space-context.md",
 				"shared/15-accuracy.md",
 				"shared/16-mental-model.md",
 				"shared/20-question-tools.md",
@@ -789,7 +789,7 @@
 					"at": "<now>",
 					"agent": "you",
 					"label": "Changed Quiz 1",
-					"classId": "cls_golden01_00000001",
+					"spaceId": "cls_golden01_00000001",
 					"target": {
 						"kind": "deadline",
 						"id": "ddl_gold00000002"
@@ -801,7 +801,7 @@
 					"at": "<now>",
 					"agent": "you",
 					"label": "Marked Quiz 1 done",
-					"classId": "cls_golden01_00000001",
+					"spaceId": "cls_golden01_00000001",
 					"target": {
 						"kind": "deadline",
 						"id": "ddl_gold00000002"
@@ -813,7 +813,7 @@
 					"at": "<now>",
 					"agent": "you",
 					"label": "Moved Quiz 1",
-					"classId": "cls_golden01_00000001",
+					"spaceId": "cls_golden01_00000001",
 					"target": {
 						"kind": "deadline",
 						"id": "ddl_gold00000002"
@@ -825,7 +825,7 @@
 					"at": "<now>",
 					"agent": "you",
 					"label": "Added Quiz 1",
-					"classId": "cls_golden01_00000001",
+					"spaceId": "cls_golden01_00000001",
 					"target": {
 						"kind": "deadline",
 						"id": "ddl_gold00000002"
@@ -837,7 +837,7 @@
 					"at": "<now>",
 					"agent": "you",
 					"label": "Answered wrong",
-					"classId": null,
+					"spaceId": null,
 					"target": {
 						"kind": "lesson",
 						"id": "chat_b"
@@ -849,7 +849,7 @@
 					"at": "<now>",
 					"agent": "you",
 					"label": "Answered 1 of 3 right",
-					"classId": "cls_golden01_00000001",
+					"spaceId": "cls_golden01_00000001",
 					"target": {
 						"kind": "lesson",
 						"id": "chat_a"
@@ -861,25 +861,25 @@
 					"at": "<now>",
 					"agent": "godspeed",
 					"label": "Added 1 file from a folder",
-					"classId": "cls_golden01_00000001",
+					"spaceId": "cls_golden01_00000001",
 					"target": null,
-					"page": "/class/files"
+					"page": "/space/files"
 				},
 				{
 					"id": "<id>",
 					"at": "<now>",
 					"agent": "godspeed",
 					"label": "Added 3 files from Google Drive",
-					"classId": "cls_golden01_00000001",
+					"spaceId": "cls_golden01_00000001",
 					"target": null,
-					"page": "/class/files"
+					"page": "/space/files"
 				},
 				{
 					"id": "<id>",
 					"at": "<now>",
 					"agent": "Claude",
 					"label": "word word word word word word word word word word word word word word word word…",
-					"classId": "cls_golden01_00000001",
+					"spaceId": "cls_golden01_00000001",
 					"target": null,
 					"page": "/",
 					"open": true
@@ -889,7 +889,7 @@
 					"at": "<now>",
 					"agent": "Your agent",
 					"label": "Removed a file",
-					"classId": "cls_golden01_00000001",
+					"spaceId": "cls_golden01_00000001",
 					"target": null,
 					"page": "/",
 					"removed": true
@@ -899,7 +899,7 @@
 					"at": "<now>",
 					"agent": "Your agent",
 					"label": "Removed a file",
-					"classId": "cls_golden01_00000001",
+					"spaceId": "cls_golden01_00000001",
 					"target": null,
 					"page": "/",
 					"removed": true
@@ -909,7 +909,7 @@
 					"at": "<now>",
 					"agent": "Your agent",
 					"label": "Wrote a lesson plan",
-					"classId": "cls_golden01_00000001",
+					"spaceId": "cls_golden01_00000001",
 					"target": null,
 					"page": "/chat"
 				},
@@ -918,7 +918,7 @@
 					"at": "<now>",
 					"agent": "Codex",
 					"label": "Added Test 2",
-					"classId": "cls_golden01_00000001",
+					"spaceId": "cls_golden01_00000001",
 					"target": {
 						"kind": "deadline",
 						"id": "ddl_gold00000001"
@@ -930,7 +930,7 @@
 					"at": "<now>",
 					"agent": "Claude",
 					"label": "Added Test 2",
-					"classId": "cls_golden01_00000001",
+					"spaceId": "cls_golden01_00000001",
 					"target": {
 						"kind": "deadline",
 						"id": "ddl_gold00000001"
@@ -944,7 +944,7 @@
 					"at": "<now>",
 					"agent": "Claude",
 					"label": "Added Test 2",
-					"classId": "cls_golden01_00000001",
+					"spaceId": "cls_golden01_00000001",
 					"target": {
 						"kind": "deadline",
 						"id": "ddl_gold00000001"
@@ -956,7 +956,7 @@
 					"at": "<now>",
 					"agent": "Codex",
 					"label": "Added Test 2",
-					"classId": "cls_golden01_00000001",
+					"spaceId": "cls_golden01_00000001",
 					"target": {
 						"kind": "deadline",
 						"id": "ddl_gold00000001"
@@ -968,7 +968,7 @@
 					"at": "<now>",
 					"agent": "Your agent",
 					"label": "Wrote a lesson plan",
-					"classId": "cls_golden01_00000001",
+					"spaceId": "cls_golden01_00000001",
 					"target": null,
 					"page": "/chat"
 				},
@@ -977,7 +977,7 @@
 					"at": "<now>",
 					"agent": "Your agent",
 					"label": "Removed a file",
-					"classId": "cls_golden01_00000001",
+					"spaceId": "cls_golden01_00000001",
 					"target": null,
 					"page": "/",
 					"removed": true
@@ -987,7 +987,7 @@
 					"at": "<now>",
 					"agent": "Your agent",
 					"label": "Removed a file",
-					"classId": "cls_golden01_00000001",
+					"spaceId": "cls_golden01_00000001",
 					"target": null,
 					"page": "/",
 					"removed": true
@@ -997,7 +997,7 @@
 					"at": "<now>",
 					"agent": "Claude",
 					"label": "word word word word word word word word word word word word word word word word…",
-					"classId": "cls_golden01_00000001",
+					"spaceId": "cls_golden01_00000001",
 					"target": null,
 					"page": "/",
 					"open": true
@@ -1007,25 +1007,25 @@
 					"at": "<now>",
 					"agent": "godspeed",
 					"label": "Added 3 files from Google Drive",
-					"classId": "cls_golden01_00000001",
+					"spaceId": "cls_golden01_00000001",
 					"target": null,
-					"page": "/class/files"
+					"page": "/space/files"
 				},
 				{
 					"id": "<id>",
 					"at": "<now>",
 					"agent": "godspeed",
 					"label": "Added 1 file from a folder",
-					"classId": "cls_golden01_00000001",
+					"spaceId": "cls_golden01_00000001",
 					"target": null,
-					"page": "/class/files"
+					"page": "/space/files"
 				},
 				{
 					"id": "<id>",
 					"at": "<now>",
 					"agent": "you",
 					"label": "Answered 1 of 3 right",
-					"classId": "cls_golden01_00000001",
+					"spaceId": "cls_golden01_00000001",
 					"target": {
 						"kind": "lesson",
 						"id": "chat_a"
@@ -1037,7 +1037,7 @@
 					"at": "<now>",
 					"agent": "you",
 					"label": "Answered wrong",
-					"classId": null,
+					"spaceId": null,
 					"target": {
 						"kind": "lesson",
 						"id": "chat_b"
@@ -1049,7 +1049,7 @@
 					"at": "<now>",
 					"agent": "you",
 					"label": "Added Quiz 1",
-					"classId": "cls_golden01_00000001",
+					"spaceId": "cls_golden01_00000001",
 					"target": {
 						"kind": "deadline",
 						"id": "ddl_gold00000002"
@@ -1061,7 +1061,7 @@
 					"at": "<now>",
 					"agent": "you",
 					"label": "Moved Quiz 1",
-					"classId": "cls_golden01_00000001",
+					"spaceId": "cls_golden01_00000001",
 					"target": {
 						"kind": "deadline",
 						"id": "ddl_gold00000002"
@@ -1073,7 +1073,7 @@
 					"at": "<now>",
 					"agent": "you",
 					"label": "Marked Quiz 1 done",
-					"classId": "cls_golden01_00000001",
+					"spaceId": "cls_golden01_00000001",
 					"target": {
 						"kind": "deadline",
 						"id": "ddl_gold00000002"
@@ -1085,7 +1085,7 @@
 					"at": "<now>",
 					"agent": "you",
 					"label": "Changed Quiz 1",
-					"classId": "cls_golden01_00000001",
+					"spaceId": "cls_golden01_00000001",
 					"target": {
 						"kind": "deadline",
 						"id": "ddl_gold00000002"
@@ -1143,19 +1143,19 @@
 					}
 				},
 				{
-					"op": "save in a class",
+					"op": "save in a space",
 					"outcome": {
 						"ok": true,
 						"rule": "Show the proof first",
-						"for": "Golden Class",
-						"where": "Lessons in Golden Class"
+						"for": "Golden Space",
+						"where": "Lessons in Golden Space"
 					}
 				},
 				{
-					"op": "save in a missing class",
+					"op": "save in a missing space",
 					"outcome": {
 						"ok": false,
-						"error": "No such class."
+						"error": "No such space."
 					}
 				},
 				{
@@ -1184,7 +1184,7 @@
 						},
 						{
 							"where": {
-								"classId": "cls_golden01_00000001"
+								"spaceId": "cls_golden01_00000001"
 							},
 							"text": "Show the proof first",
 							"at": "<now>"
@@ -1217,7 +1217,7 @@
 					}
 				},
 				{
-					"op": "edit in a missing class",
+					"op": "edit in a missing space",
 					"outcome": {
 						"ok": false,
 						"error": "That rule was removed.",
@@ -1240,7 +1240,7 @@
 					"outcome": false
 				},
 				{
-					"op": "remove in a missing class",
+					"op": "remove in a missing space",
 					"outcome": false
 				},
 				{
@@ -1264,7 +1264,7 @@
 				}
 			],
 			"settings": {
-				"version": 2,
+				"version": 3,
 				"agent": {
 					"rules": {
 						"voice": [

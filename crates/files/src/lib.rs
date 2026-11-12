@@ -1,4 +1,4 @@
-//! Class files to text: office documents, captions, text sniffing, linked folder walks and fingerprints.
+//! Space files to text: office documents, captions, text sniffing, linked folder walks and fingerprints.
 
 pub mod fingerprint;
 mod inflate;

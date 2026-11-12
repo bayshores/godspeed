@@ -149,8 +149,8 @@ fn planted_page(port: u16, saved: &str) -> String {
 <script>
 console.error("planted", {{ a: 1 }});
 window.answer = {{ n: 42, cookie: document.cookie }};
-fetch("http://127.0.0.1:{port}/api/classes", {{ credentials: "include" }}).catch(() => {{}});
-fetch("http://localhost:{port}/api/classes").catch(() => {{}});
+fetch("http://127.0.0.1:{port}/api/spaces", {{ credentials: "include" }}).catch(() => {{}});
+fetch("http://localhost:{port}/api/spaces").catch(() => {{}});
 fetch("http://{LOOPBACK_NAME}:{port}/name-fetch").catch(() => {{}});
 const img = new Image(); img.src = "http://127.0.0.1:{port}/pixel.png"; document.body.appendChild(img);
 for (const url of ["ws://127.0.0.1:{port}/ws", "ws://localhost:{port}/ws", "ws://[::1]:{port}/ws", "ws://{LOOPBACK_NAME}:{port}/name-ws"]) {{
@@ -194,7 +194,7 @@ fn nothing_reached(result: &DemoResult, port: u16, seen: &Seen) -> Result<String
 		return Err(format!("the loopback server got {}: {requests:?}", requests.len()));
 	}
 	let failed = result.failed_requests.join("\n");
-	for blocked in [format!("http://127.0.0.1:{port}/api/classes (TypeError"), format!("http://localhost:{port}/api/classes (TypeError")] {
+	for blocked in [format!("http://127.0.0.1:{port}/api/spaces (TypeError"), format!("http://localhost:{port}/api/spaces (TypeError")] {
 		if !failed.contains(&blocked) {
 			return Err(format!("no failed request {blocked}: {failed}"));
 		}

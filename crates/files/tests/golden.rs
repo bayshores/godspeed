@@ -1,4 +1,4 @@
-//! Parity with the TypeScript class-file code (tests/golden/files.json, made by scripts/golden.ts
+//! Parity with the TypeScript space-file code (tests/golden/files.json, made by scripts/golden.ts
 //! from files.golden.ts): office text, captions, text sniffing, reading rules, folder walks,
 //! fingerprints.
 
@@ -14,7 +14,7 @@ use std::path::Path;
 use gs_base::fsx::node_error_message;
 use gs_files::fingerprint::fingerprint_file;
 use gs_files::office::office_text;
-use gs_files::text::{FileTextError, file_to_text, is_readable_class_file, looks_like_text, transcript_to_text};
+use gs_files::text::{FileTextError, file_to_text, is_readable_space_file, looks_like_text, transcript_to_text};
 #[cfg(unix)]
 use gs_files::text::TextChecks;
 #[cfg(unix)]
@@ -69,7 +69,7 @@ fn reading_rules_match_node() {
 	for c in golden("reading rules") {
 		let is_text = c["isText"].as_bool();
 		let want = c["readable"].as_bool();
-		assert_eq!(is_readable_class_file(s(&c["name"]), || is_text), want, "{} with {is_text:?}", s(&c["name"]));
+		assert_eq!(is_readable_space_file(s(&c["name"]), || is_text), want, "{} with {is_text:?}", s(&c["name"]));
 	}
 }
 

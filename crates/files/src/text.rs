@@ -1,4 +1,4 @@
-//! A class file as text for the notes pipeline: plain reads, PDF text, Word and PowerPoint text,
+//! A space file as text for the notes pipeline: plain reads, PDF text, Word and PowerPoint text,
 //! caption cleanup. No model here. Also which files count as readable at all.
 
 use std::collections::HashMap;
@@ -10,7 +10,7 @@ use std::time::SystemTime;
 
 use gs_base::re::Re;
 use gs_base::text::{from_utf8_lossy, trim};
-use gs_core::contracts::class::{extension_of, is_office_file, is_recording_file, is_supported_class_file, is_transcript_file, plain_text_extensions};
+use gs_core::contracts::space::{extension_of, is_office_file, is_recording_file, is_supported_space_file, is_transcript_file, plain_text_extensions};
 use gs_pdf::worker::Pdf;
 use parking_lot::Mutex;
 
@@ -127,10 +127,10 @@ impl TextChecks {
 	}
 }
 
-/// Can this file become class material? By its extension, or, with none, by its bytes being
+/// Can this file become space material? By its extension, or, with none, by its bytes being
 /// text (`is_text`; None when they couldn't be read).
-pub fn is_readable_class_file(name: &str, is_text: impl FnOnce() -> Option<bool>) -> Option<bool> {
-	if is_supported_class_file(name) {
+pub fn is_readable_space_file(name: &str, is_text: impl FnOnce() -> Option<bool>) -> Option<bool> {
+	if is_supported_space_file(name) {
 		return Some(true);
 	}
 	if extension_of(name).is_empty() { is_text() } else { Some(false) }

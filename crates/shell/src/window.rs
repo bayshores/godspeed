@@ -327,7 +327,7 @@ mod tests {
 	#[test]
 	fn the_window_stays_on_the_app_origin_and_the_boot_page() {
 		let origin = "http://127.0.0.1:48061";
-		assert_eq!(route(&url("http://127.0.0.1:48061/class/x"), origin), Route::Stay);
+		assert_eq!(route(&url("http://127.0.0.1:48061/space/x"), origin), Route::Stay);
 		assert_eq!(route(&url("http://127.0.0.1:48061/api/desktop/login?token=ab"), origin), Route::Stay);
 		assert_eq!(route(&url("tauri://localhost/index.html"), origin), Route::Stay);
 		assert_eq!(route(&url("http://tauri.localhost/index.html"), origin), Route::Stay);

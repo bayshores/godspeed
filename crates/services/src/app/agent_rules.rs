@@ -1,5 +1,5 @@
 //! Teaching rules an agent saves on its own. The rule goes into the same list the learner edits
-//! (Settings, Teaching for every lesson; Edit class for one class); agent-rules.json only marks
+//! (Settings, Teaching for every lesson; Edit space for one space); agent-rules.json only marks
 //! it as the agent's. The learner can undo or edit it from the chat, the notice or Settings.
 
 use gs_base::events::EventKind;
@@ -43,9 +43,9 @@ fn too_long() -> RuleFailure {
 	RuleFailure::Refused(format!("A rule is one line of 1 to {RULE_MAX_CHARS} characters."))
 }
 
-fn class_name(app: &App, place: &Json) -> Option<String> {
-	let class = app.stores.classes.get_class(place["classId"].as_str()?)?;
-	class["name"].as_str().map(str::to_owned)
+fn space_name(app: &App, place: &Json) -> Option<String> {
+	let space = app.stores.spaces.get_space(place["spaceId"].as_str()?)?;
+	space["name"].as_str().map(str::to_owned)
 }
 
 fn strings(raw: &Json) -> Vec<String> {
@@ -56,27 +56,27 @@ const SETTINGS: LockKey<'static> = LockKey::AppFile("settings.json");
 /// The marks file, held from its read through its write; taken after the list's lock.
 const MARKS: LockKey<'static> = LockKey::AppFile("agent-rules.json");
 
-/// Holds the file the list at `place` lives in (its class record, or settings.json) from its read
+/// Holds the file the list at `place` lives in (its space record, or settings.json) from its read
 /// through its write, so two saves at once never write over each other's rule.
 fn lock_list(app: &App, place: &Json) -> Guard {
-	match place["classId"].as_str() {
-		Some(id) => app.locks.lock(LockKey::Class(id)),
+	match place["spaceId"].as_str() {
+		Some(id) => app.locks.lock(LockKey::Space(id)),
 		None => app.locks.lock(SETTINGS),
 	}
 }
 
-/// The rule list at `place`, or None for a class that doesn't exist.
+/// The rule list at `place`, or None for a space that doesn't exist.
 fn read_list(app: &App, place: &Json) -> Result<Option<Vec<String>>, String> {
-	if let Some(id) = place["classId"].as_str() {
-		return Ok(app.stores.classes.get_class(id).map(|class| strings(&class["rules"])));
+	if let Some(id) = place["spaceId"].as_str() {
+		return Ok(app.stores.spaces.get_space(id).map(|space| strings(&space["rules"])));
 	}
 	let record = app.stores.settings.read_settings()?;
 	Ok(Some(record.map(|record| strings(&record["agent"]["rules"][place["area"].as_str().unwrap_or_default()])).unwrap_or_default()))
 }
 
 fn write_list(app: &App, place: &Json, rules: &[String]) -> Result<(), String> {
-	if let Some(id) = place["classId"].as_str() {
-		return app.stores.classes.update_class(id, &json!({ "rules": rules })).map(|_| ());
+	if let Some(id) = place["spaceId"].as_str() {
+		return app.stores.spaces.update_space(id, &json!({ "rules": rules })).map(|_| ());
 	}
 	let area = place["area"].as_str().unwrap_or_default();
 	let mut record = record_or_new(app.stores.settings.read_settings()?);
@@ -108,7 +108,7 @@ fn unmark(app: &App, place: &Json, text: &str) -> Result<(), String> {
 }
 
 fn outcome(app: &App, place: &Json, rule: &str) -> Json {
-	let name = class_name(app, place);
+	let name = space_name(app, place);
 	json!({ "ok": true, "rule": rule, "for": rule_for(place, name.as_deref()), "where": where_label(place, name.as_deref()) })
 }
 
@@ -118,7 +118,7 @@ fn save(app: &App, text: &str, place: &Json, agent: Option<&str>) -> Result<Json
 		return Err(too_long());
 	}
 	let _list = lock_list(app, place);
-	let Some(list) = read_list(app, place)? else { return Err(RuleFailure::Refused("No such class.".to_owned())) };
+	let Some(list) = read_list(app, place)? else { return Err(RuleFailure::Refused("No such space.".to_owned())) };
 	let saved = outcome(app, place, &rule);
 	// The learner already has it: nothing to save or mark.
 	if list.contains(&rule) {
@@ -238,8 +238,8 @@ mod tests {
 	fn two_rules_saved_at_once_both_stay_marked() {
 		let root = scratch_dir("rules-together");
 		let app = test_app(&root);
-		let class = app.stores.classes.create_class(&json!({ "name": "Algebra" })).unwrap();
-		for (round, place) in [area(), json!({ "classId": class["id"] })].iter().cycle().take(40).enumerate() {
+		let space = app.stores.spaces.create_space(&json!({ "name": "Algebra" })).unwrap();
+		for (round, place) in [area(), json!({ "spaceId": space["id"] })].iter().cycle().take(40).enumerate() {
 			let start = std::sync::Arc::new(std::sync::Barrier::new(2));
 			let save = |rule: String| {
 				let (app, start, place) = (app.clone(), start.clone(), place.clone());
@@ -263,7 +263,7 @@ mod tests {
 		let root = scratch_dir("rules-refuse");
 		let app = test_app(&root);
 		assert_eq!(save_rule_by_agent(&app, " \n ", &area(), None).unwrap_err(), "A rule is one line of 1 to 200 characters.");
-		assert_eq!(save_rule_by_agent(&app, "x", &json!({ "classId": "cls_gone" }), None).unwrap_err(), "No such class.");
+		assert_eq!(save_rule_by_agent(&app, "x", &json!({ "spaceId": "cls_gone" }), None).unwrap_err(), "No such space.");
 		for n in 0..RULES_MAX {
 			save_rule_by_agent(&app, &format!("Rule {n}"), &area(), None).unwrap();
 		}
@@ -311,14 +311,14 @@ mod tests {
 	}
 
 	#[test]
-	fn a_class_keeps_its_own_rules() {
-		let root = scratch_dir("rules-class");
+	fn a_space_keeps_its_own_rules() {
+		let root = scratch_dir("rules-space");
 		let app = test_app(&root);
-		let class = app.stores.classes.create_class(&json!({ "name": "Algebra" })).unwrap();
-		let place = json!({ "classId": class["id"] });
+		let space = app.stores.spaces.create_space(&json!({ "name": "Algebra" })).unwrap();
+		let place = json!({ "spaceId": space["id"] });
 		let saved = save_rule_by_agent(&app, "Show every step", &place, Some("Codex")).unwrap();
 		assert_eq!((saved["for"].as_str(), saved["where"].as_str()), (Some("Algebra"), Some("Lessons in Algebra")));
-		assert_eq!(stringify(&app.stores.classes.get_class(class["id"].as_str().unwrap()).unwrap()["rules"]), r#"["Show every step"]"#);
+		assert_eq!(stringify(&app.stores.spaces.get_space(space["id"].as_str().unwrap()).unwrap()["rules"]), r#"["Show every step"]"#);
 		assert!(rules_in_settings(&app).is_null());
 	}
 }

@@ -1,5 +1,5 @@
 //! The run registry's reads and the dock's abort (extraction-runs.ts), for the activity feed,
-//! the lesson and class guards and the routes.
+//! the lesson and space guards and the routes.
 
 use gs_agent::extraction::extraction_runs::{ExtractionRuns, RunningExtraction};
 use gs_json::{Json, Obj, json};

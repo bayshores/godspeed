@@ -21,7 +21,7 @@ const record = (id: string, updatedAt: string, extra: Record<string, unknown> = 
 });
 
 const synthetic: Record<string, string> = {
-	"chat_a.json": JSON.stringify(record("chat_a", "2026-02-01T00:00:00.000Z", { classId: "cls_1" }), null, "\t"),
+	"chat_a.json": JSON.stringify(record("chat_a", "2026-02-01T00:00:00.000Z", { spaceId: "cls_1" }), null, "\t"),
 	"chat_b.json": JSON.stringify(record("chat_b", "2026-03-01T00:00:00.000Z", { kind: "study", version: 1, messages: [{ id: "u1", role: "user", content: "hi", timestamp: 3 }] }), null, "\t"),
 	"chat_c.json": JSON.stringify(
 		record("chat_c", "2026-01-15T00:00:00.000Z", {
@@ -41,7 +41,7 @@ const synthetic: Record<string, string> = {
 		"\t",
 	),
 	"chat_talk.json": JSON.stringify(record("chat_talk", "2026-04-01T00:00:00.000Z", { kind: "talk" }), null, "\t"),
-	"chat_future.json": JSON.stringify(record("chat_future", "2026-05-01T00:00:00.000Z", { version: 2 }), null, "\t"),
+	"chat_future.json": JSON.stringify(record("chat_future", "2026-05-01T00:00:00.000Z", { version: 3 }), null, "\t"),
 	"chat_noshape.json": JSON.stringify({ id: "chat_noshape", messages: [] }),
 	"chat_broken.json": "{ not json",
 	"odd name.json": JSON.stringify(record("odd name", "2026-06-01T00:00:00.000Z")),
@@ -53,8 +53,8 @@ const ids = ["chat_a", "chat_b", "chat_c", "chat_d", "chat_talk", "chat_future",
 const steps = [
 	{ op: "rename", id: "chat_a", title: "  New name  " },
 	{ op: "rename", id: "chat_a", title: "   " },
-	{ op: "setClass", id: "chat_a", classId: "cls_2" },
-	{ op: "setClass", id: "chat_a", classId: null },
+	{ op: "setSpace", id: "chat_a", spaceId: "cls_2" },
+	{ op: "setSpace", id: "chat_a", spaceId: null },
 	{ op: "turnUsage", id: "chat_a", entry: { id: "t1", tokens: 5 } },
 	{ op: "turnUsage", id: "chat_a", entry: { id: "t1", tokens: 6 } },
 	{ op: "turnUsage", id: "chat_a", entry: { id: "t2" } },
@@ -70,7 +70,7 @@ const steps = [
 	{ op: "tree", id: "missing", tree: {} },
 	{ op: "turnUsage", id: "missing", entry: { id: "t" } },
 	{ op: "extractionUsage", id: "", entry: { startedAt: "s" } },
-	{ op: "setClass", id: "missing", classId: "cls" },
+	{ op: "setSpace", id: "missing", spaceId: "cls" },
 	{ op: "saveMessages", id: "missing" },
 	{ op: "delete", id: "chat_d" },
 	{ op: "delete", id: "chat_d" },
@@ -88,7 +88,7 @@ type Step = (typeof steps)[number];
 function run(step: Step): unknown {
 	switch (step.op) {
 		case "rename": return chatStore.renameChat(step.id, step.title);
-		case "setClass": return chatStore.setChatClass(step.id, step.classId);
+		case "setSpace": return chatStore.setChatSpace(step.id, step.spaceId);
 		case "turnUsage": return chatStore.appendTurnUsage(step.id, step.entry as never);
 		case "extractionUsage": return chatStore.appendExtractionUsage(step.id, step.entry as never);
 		case "tree": return chatStore.saveTree(step.id, step.tree as never);

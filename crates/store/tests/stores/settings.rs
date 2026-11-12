@@ -8,15 +8,15 @@ fn store(lab: &Lab) -> SettingsStore {
 }
 
 #[test]
-fn an_old_default_threshold_is_dropped_and_the_file_saved_as_version_2() {
+fn an_old_default_threshold_is_dropped_and_the_file_saved_as_version_3() {
 	let lab = Lab::new("settings-v1-old");
 	lab.put("settings.json", &tabbed(r#"{"version":1,"compaction":{"thresholdTokens":150000},"general":{"teacherName":"Zed"}}"#));
 	assert_eq!(lab.hash("settings.json"), "b6ffadc25d90edef");
 	let read = store(&lab).read_settings().unwrap().unwrap();
-	assert_eq!(stringify(&read), r#"{"version":2,"general":{"teacherName":"Zed"},"compaction":{}}"#);
-	assert_eq!(lab.hash("settings.json"), "e36f465bcac31c22");
+	assert_eq!(stringify(&read), r#"{"version":3,"general":{"teacherName":"Zed"},"compaction":{}}"#);
+	assert_eq!(lab.hash("settings.json"), "ccf4399246a37f41");
 	store(&lab).read_settings().unwrap().unwrap();
-	assert_eq!(lab.hash("settings.json"), "e36f465bcac31c22");
+	assert_eq!(lab.hash("settings.json"), "ccf4399246a37f41");
 }
 
 #[cfg(unix)]
@@ -35,12 +35,12 @@ fn an_upgrade_that_cannot_be_saved_fails_the_read() {
 }
 
 #[test]
-fn a_custom_threshold_reads_as_version_2_but_the_file_is_left_alone() {
+fn a_custom_threshold_reads_as_version_3_but_the_file_is_left_alone() {
 	let lab = Lab::new("settings-v1-custom");
 	lab.put("settings.json", &tabbed(r#"{"version":1,"compaction":{"thresholdTokens":100000}}"#));
 	assert_eq!(lab.hash("settings.json"), "a4f85206acc24a0a");
 	let read = store(&lab).read_settings().unwrap().unwrap();
-	assert_eq!(stringify(&read), r#"{"version":2,"compaction":{"thresholdTokens":100000}}"#);
+	assert_eq!(stringify(&read), r#"{"version":3,"compaction":{"thresholdTokens":100000}}"#);
 	assert_eq!(lab.hash("settings.json"), "a4f85206acc24a0a");
 }
 
@@ -54,8 +54,8 @@ fn retired_prompt_switches_delete_the_versions_not_switched_on() {
 	lab.put("prompts/notes.txt", "not a segment\n");
 	assert_eq!(lab.hash("settings.json"), "5a67894720f553eb");
 	let read = store(&lab).read_settings().unwrap().unwrap();
-	assert_eq!(stringify(&read), r#"{"version":2,"agent":{"rules":{"voice":["Short."]}}}"#);
-	assert_eq!(lab.hash("settings.json"), "21081feff86205eb");
+	assert_eq!(stringify(&read), r#"{"version":3,"agent":{"rules":{"voice":["Short."]}}}"#);
+	assert_eq!(lab.hash("settings.json"), "d37abacad7b7de61");
 	assert_eq!(lab.names("prompts"), ["notes.txt", "shared", "teacher"]);
 	assert!(lab.names("prompts/shared").is_empty());
 	assert_eq!(lab.names("prompts/teacher"), ["10-planning.md"]);
@@ -98,16 +98,16 @@ fn a_duplicate_key_takes_the_last_value() {
 	let lab = Lab::new("settings-duplicate");
 	lab.put("settings.json", r#"{"version":2,"general":{"teacherName":"first","teacherName":"second"}}"#);
 	let read = store(&lab).read_settings().unwrap().unwrap();
-	assert_eq!(stringify(&read), r#"{"version":2,"general":{"teacherName":"second"}}"#);
+	assert_eq!(stringify(&read), r#"{"version":3,"general":{"teacherName":"second"}}"#);
 	assert_eq!(lab.get("settings.json"), r#"{"version":2,"general":{"teacherName":"first","teacherName":"second"}}"#);
 }
 
 #[test]
 fn a_write_is_sanitized_and_laid_out_with_tabs() {
 	let lab = Lab::new("settings-write");
-	let written = store(&lab).write_settings(&parse(r#"{"version":2,"general":{"teacherName":"  Ada  ","autoUpdate":"yes"},"chat":{"old":true}}"#).unwrap()).unwrap();
+	let written = store(&lab).write_settings(&parse(r#"{"version":3,"general":{"teacherName":"  Ada  ","autoUpdate":"yes"},"chat":{"old":true}}"#).unwrap()).unwrap();
 	assert_eq!(lab.get("settings.json"), tabbed(&stringify(&written)));
-	assert_eq!(stringify(&written), r#"{"version":2,"general":{"teacherName":"Ada"}}"#);
+	assert_eq!(stringify(&written), r#"{"version":3,"general":{"teacherName":"Ada"}}"#);
 	assert_eq!(stringify(&store(&lab).read_settings().unwrap().unwrap()), stringify(&written));
 }
 
@@ -121,15 +121,18 @@ fn a_write_of_anything_but_an_object_is_refused() {
 }
 
 #[test]
-fn the_seed_settings_read_and_save_back_byte_for_byte() {
+fn the_seed_settings_upgrade_once_then_save_back_byte_for_byte() {
 	let lab = Lab::new("settings-seed");
 	if !lab.copy_seed("settings.json") {
 		return;
 	}
-	let before = lab.get("settings.json");
+	// The seed was saved before spaces, so its first read may save the moved open space.
 	let read = store(&lab).read_settings().unwrap().unwrap();
-	assert_eq!(lab.get("settings.json"), before);
+	let upgraded = lab.get("settings.json");
+	assert_eq!(read["version"].as_i64(), Some(3));
+	store(&lab).read_settings().unwrap().unwrap();
+	assert_eq!(lab.get("settings.json"), upgraded);
 	store(&lab).write_settings(&read).unwrap();
-	assert_eq!(lab.get("settings.json"), before);
+	assert_eq!(lab.get("settings.json"), upgraded);
 	assert_eq!(store(&lab).effective_settings().unwrap()["general"]["teacherName"].as_str(), Some("marco"));
 }
