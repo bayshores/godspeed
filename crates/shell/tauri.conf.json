@@ -8,7 +8,7 @@
     "category": "Education",
     "icon": ["icons/icon.icon", "icons/icon.icns", "icons/icon.ico", "icons/icon.png"],
     "macOS": { "minimumSystemVersion": "14.0", "hardenedRuntime": true,
-      "dmg": { "background": "dmg/background.png", "windowSize": { "width": 540, "height": 380 },
+      "dmg": { "background": "dmg/background.tiff", "windowSize": { "width": 540, "height": 380 },
         "appPosition": { "x": 130, "y": 190 }, "applicationFolderPosition": { "x": 410, "y": 190 } } },
     "windows": { "nsis": { "installMode": "currentUser", "installerHooks": "nsis/hooks.nsh" } },
     "linux": { "deb": { "depends": [] } }

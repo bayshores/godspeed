@@ -351,7 +351,7 @@ Kept: `data/`, `logs/`, `shell.pid`, `.updaterId`, every `data-backup-*`. Fresh 
     "category": "Education",
     "icon": ["icons/icon.icon", "icons/icon.icns", "icons/icon.ico", "icons/icon.png"],
     "macOS": { "minimumSystemVersion": "14.0", "hardenedRuntime": true,
-      "dmg": { "background": "dmg/background.png", "windowSize": { "width": 540, "height": 380 },
+      "dmg": { "background": "dmg/background.tiff", "windowSize": { "width": 540, "height": 380 },
         "appPosition": { "x": 130, "y": 190 }, "applicationFolderPosition": { "x": 410, "y": 190 } } },
     "windows": { "nsis": { "installMode": "currentUser", "installerHooks": "nsis/hooks.nsh" } },
     "linux": { "deb": { "depends": [] } }
@@ -373,7 +373,7 @@ Kept: `data/`, `logs/`, `shell.pid`, `.updaterId`, every `data-backup-*`. Fresh 
 }
 ```
 
-`beforeBuildCommand` runs in the frontend folder, which tauri-cli resolves to the current folder holding `package.json`: the repo root, so the path is `scripts/…`, not `../../scripts/…`. There is no `devUrl`: `tauri dev` then serves `boot/` with its built-in dev server, and the debug shell moves the window to Vite itself (section 5, Port; section 6 says why this keeps the app page out of "local"). No entitlements file: WebKit's JIT runs in Apple's own processes, so `allow-jit` is gone. The `.icon` file becomes `Assets.car` through `actool` ≥ 26 (bundler source checked); the hand-packed `icon.icns` is the pre-Tahoe fallback, so `after-pack.cjs` goes. Tauri's docs warn DMG icon positions may not apply on CI: the release smoke opens the DMG and screenshots it.
+`beforeBuildCommand` runs in the frontend folder, which tauri-cli resolves to the current folder holding `package.json`: the repo root, so the path is `scripts/…`, not `../../scripts/…`. There is no `devUrl`: `tauri dev` then serves `boot/` with its built-in dev server, and the debug shell moves the window to Vite itself (section 5, Port; section 6 says why this keeps the app page out of "local"). No entitlements file: WebKit's JIT runs in Apple's own processes, so `allow-jit` is gone. The `.icon` file becomes `Assets.car` through `actool` ≥ 26 (bundler source checked); the hand-packed `icon.icns` is the pre-Tahoe fallback, so `after-pack.cjs` goes. Tauri's docs warn DMG icon positions may not apply on CI: the release smoke opens the DMG and screenshots it. `dmg/background.tiff` holds the 540 × 380 artwork at 1x and 2x (`tiffutil -cathidpicheck background.png background@2x.png`), the Retina TIFF electron-builder made from the same pair.
 
 **NSIS hook** (`nsis/hooks.nsh`, `NSIS_HOOK_PREINSTALL`): if `$LOCALAPPDATA\Programs\godspeed\Uninstall godspeed.exe` exists: `ExecWait '"$LOCALAPPDATA\Programs\godspeed\Uninstall godspeed.exe" /S _?=$LOCALAPPDATA\Programs\godspeed' $0`, then `Delete "$LOCALAPPDATA\Programs\godspeed\Uninstall godspeed.exe"` and `RMDir /r "$LOCALAPPDATA\Programs\godspeed"`. Without `_?=` an NSIS uninstaller copies itself to `%TEMP%`, relaunches and returns at once, and would then delete `$SMPROGRAMS\godspeed.lnk` and `$DESKTOP\godspeed.lnk` after the Tauri installer made them (electron-builder calls its own old uninstaller with `_?=` for this reason); with `_?=` it cannot delete itself, hence the two lines after. Never pass `--delete-app-data`; electron-builder's uninstaller keeps app data by default (`deleteAppDataOnUninstall` false), and the Tauri copy installs to its own folder (`$LOCALAPPDATA\godspeed`).
 
