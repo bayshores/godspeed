@@ -14,16 +14,12 @@ use std::time::Duration;
 use serde_json::Value;
 use tauri::webview::{DownloadEvent, NewWindowResponse, PageLoadEvent};
 use tauri::window::Color;
-use tauri::{AppHandle, LogicalSize, Manager, State, Url, Webview, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
+use tauri::{AppHandle, Manager, State, Url, Webview, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
 
 use crate::commands::{AppOrigin, trusted};
 use crate::push::push;
 use crate::server::Server;
 use crate::{log, zoom};
-
-/// The sidebar closes itself below this width; opening it widens the window back
-/// (SIDEBAR_AUTOCLOSE in src/frontend/components/sidebar.tsx).
-const SIDEBAR_AUTOCLOSE: f64 = 1000.0;
 
 /// A page that never asks to be shown still gets its window this long after it loaded.
 const SHOW_FALLBACK: Duration = Duration::from_secs(5);
@@ -282,20 +278,6 @@ pub fn show_window(webview: Webview, origin: State<AppOrigin>) -> Result<(), Str
 	if !main.is_visible().map_err(|e| e.to_string())? {
 		show(&main).map_err(|e| e.to_string())?;
 		main.set_focus().map_err(|e| e.to_string())?;
-	}
-	Ok(())
-}
-
-/// Widens a narrow window to where the sidebar fits; the top-left corner stays.
-#[tauri::command]
-pub fn expand_window(webview: Webview, origin: State<AppOrigin>) -> Result<(), String> {
-	trusted(&webview, &origin)?;
-	let main = main_window(&webview)?;
-	let size = main.inner_size().map_err(|e| e.to_string())?.to_logical::<f64>(main.scale_factor().map_err(|e| e.to_string())?);
-	if size.width < SIDEBAR_AUTOCLOSE {
-		let position = main.outer_position().map_err(|e| e.to_string())?;
-		main.set_size(LogicalSize::new(SIDEBAR_AUTOCLOSE, size.height)).map_err(|e| e.to_string())?;
-		main.set_position(position).map_err(|e| e.to_string())?;
 	}
 	Ok(())
 }

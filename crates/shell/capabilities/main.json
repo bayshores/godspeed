@@ -4,7 +4,6 @@
   "local": false,
   "remote": { "urls": ["http://127.0.0.1:*"] },
   "permissions": [
-    "allow-expand-window",
     "allow-show-window",
     "allow-get-zoom",
     "allow-set-zoom",

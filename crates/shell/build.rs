@@ -4,7 +4,6 @@
 fn main() {
 	let commands = tauri_build::AppManifest::new().commands(&[
 		"show_window",
-		"expand_window",
 		"start_drag",
 		"toggle_menu",
 		"open_link",

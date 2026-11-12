@@ -60,7 +60,6 @@ fn main() {
 		.plugin(tauri_plugin_updater::Builder::new().build())
 		.invoke_handler(tauri::generate_handler![
 			window::show_window,
-			window::expand_window,
 			window::start_drag,
 			window::toggle_menu,
 			window::open_link,

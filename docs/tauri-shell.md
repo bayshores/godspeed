@@ -39,7 +39,7 @@ godspeed (Tauri shell, crates/shell)                         godspeed-server (cr
 | `window.rs` | Builds the main window, navigation guards and the `open_link` command, show fallback, title, downloads (save dialog), the pending `open-settings` push. |
 | `menu.rs` | The application menu. |
 | `zoom.rs` | The zoom ladder, push and commands (`get_zoom`, `set_zoom`, `zoom_step`, `zoom_reset`). |
-| `commands.rs` | The trust check `trusted(&webview)` and the OS commands (`pick_folder`, `show_in_folder`, `open_path`, `open_agent`, `report_bug`, `list_fonts`, `print_pdf`, `drag_paths`, `title_bar_double_click`). Window commands (`show_window`, `expand_window`, `start_drag`, `toggle_menu`, `open_link`) live in `window.rs`, zoom commands in `zoom.rs`, update commands in `update.rs`; every command calls `commands::trusted` first. |
+| `commands.rs` | The trust check `trusted(&webview)` and the OS commands (`pick_folder`, `show_in_folder`, `open_path`, `open_agent`, `report_bug`, `list_fonts`, `print_pdf`, `drag_paths`, `title_bar_double_click`). Window commands (`show_window`, `start_drag`, `toggle_menu`, `open_link`) live in `window.rs`, zoom commands in `zoom.rs`, update commands in `update.rs`; every command calls `commands::trusted` first. |
 | `open.rs` | `isWebLink`, `isAppBundle`, open path, show in folder, the terminal launcher (port of `open-guards.cjs`, `open-terminal.cjs`). |
 | `bug_report.rs` | The issue URL (port of `bug-report.cjs`). |
 | `update.rs` | Updater state, checks, download, the update commands, and the install step `quit.rs` calls. |
@@ -102,7 +102,6 @@ The shim (`crates/shell/src/shim.js`) is an initialization script (main frame on
 | `openPath(path)` | `lh:open-path` | command `open_path` | `fs::canonicalize`; a directory whose name matches the bundle list → reveal; a directory, or a file ending `.pdf` (case-insensitive) → `tauri_plugin_opener::open_path(p, None)`; anything else → nothing. |
 | `openAgent(folder, agent)` | `lh:open-agent` | command `open_agent` | Rust port of `open-terminal.cjs`: same script path, same terminal list per OS, same two messages, spawn detached with null stdio. |
 | `pathForFile(file)` | `webUtils.getPathForFile` | shim + command `drag_paths` (Mac), WebView2 message (Windows) | Now returns `Promise<string>` (the one type change). See section 4, file drops. Linux: resolves `""`. |
-| `expandWindow()` | `lh:expand-window` | command `expand_window` | If the logical inner width < 1000: keep the outer position, set the inner size to 1000 × current height, set the position back. |
 | `showWindow()` | `lh:show-window` | command `show_window` | Show and focus the main window if hidden. |
 | `onZoom(cb)` | push `lh:zoom` | push `zoom` | Payload: the factor. Pushed after every change and after every page load. |
 | `getZoom()` | `lh:zoom:get` | command `get_zoom` | The shell's current factor. |
