@@ -11,7 +11,7 @@
  */
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import type { SpaceSummary } from "@/shared/core";
+import type { SpaceColor, SpaceSummary } from "@/shared/core";
 import { useServerEvent } from "@/frontend/components/server-events";
 import { notifySettingsSaved } from "@/frontend/components/settings-signal";
 
@@ -114,6 +114,11 @@ export function SpaceProvider({
 		[spaces, loaded, active, setActive, refresh],
 	);
 	return <SpacesContext.Provider value={value}>{children}</SpacesContext.Provider>;
+}
+
+/** A space's color by id (undefined for no space or one not in the list). */
+export function useSpaceColor(id: string | undefined): SpaceColor | undefined {
+	return useSpaces().spaces.find((c) => c.id === id)?.color;
 }
 
 /** The active-space state. Outside a provider (isolated renders, tests)

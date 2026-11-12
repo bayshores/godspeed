@@ -2,7 +2,7 @@ import { Fragment, memo } from "react";
 import dynamic from "next/dynamic";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { paleSpaceColor } from "@/frontend/components/space-color";
-import { useSpaces } from "@/frontend/components/space-context";
+import { useSpaceColor } from "@/frontend/components/space-context";
 import { Message, MessageContent } from "@/frontend/components/ai-elements/message";
 import { CitedResponse } from "@/frontend/components/citations/cited-response";
 import { Reasoning, ReasoningContent, ReasoningTrigger } from "@/frontend/components/ai-elements/reasoning";
@@ -52,6 +52,8 @@ function SystemLine({ children, testId }: { children: React.ReactNode; testId?: 
 
 interface MessageRowProps {
 	message: LhViewMessage;
+	/** The lesson's space: the learner's bubbles wear its color. */
+	spaceId: string | undefined;
 	/** The message's position — arrival slots and the step-boundary rule. */
 	index: number;
 	/** The teaching phase begins at this message (the inferred teach seam). */
@@ -69,7 +71,7 @@ interface MessageRowProps {
  * streams only the message being written redraws — every other row keeps
  * its previous message object (reuseUnchangedMessages) and skips.
  */
-export const MessageRow = memo(function MessageRow({ message: m, index: mi, teachSeam, streamingLast, hideSteps, arrive, onOpenPlan }: MessageRowProps) {
+export const MessageRow = memo(function MessageRow({ message: m, spaceId, index: mi, teachSeam, streamingLast, hideSteps, arrive, onOpenPlan }: MessageRowProps) {
 	if (m.role === "user" && isSubagentSteer(m)) {
 		// Sub-agent delivery: no bubble — the artifact card sits in the column.
 		return (
@@ -97,7 +99,7 @@ export const MessageRow = memo(function MessageRow({ message: m, index: mi, teac
 		);
 	}
 	if (m.role === "user") {
-		return <UserMessage message={m} className={arrive(`${mi}`)} />;
+		return <UserMessage message={m} spaceId={spaceId} className={arrive(`${mi}`)} />;
 	}
 	// The teach seam's step: -1 = before the whole group; a later index =
 	// at that step boundary, replacing its plain hairline.
@@ -131,18 +133,18 @@ export const MessageRow = memo(function MessageRow({ message: m, index: mi, teac
 	);
 });
 
-/** The learner's message: a bubble on the right in the space's pale color.
+/** The learner's message: a bubble on the right in the lesson's space color.
  *  Plain text, since learner text never goes through the model's LaTeX
  *  pipeline; the learner's files sit under it. */
-function UserMessage({ message, className }: { message: LhViewMessage; className?: string }) {
-	const { activeSpace } = useSpaces();
+function UserMessage({ message, spaceId, className }: { message: LhViewMessage; spaceId: string | undefined; className?: string }) {
+	const color = useSpaceColor(spaceId);
 	const text = message.parts.filter((p) => p.type === "text").map((p) => p.text).join("\n");
 	return (
 		<div className={cn("my-2 flex w-full justify-end", className)}>
 			<div
 				data-testid="user-message"
 				className="flex w-[520px] max-w-full flex-col gap-2 rounded-sm bg-tone px-3.5 py-2.5"
-				style={activeSpace ? { background: paleSpaceColor(activeSpace.color) } : undefined}
+				style={color ? { background: paleSpaceColor(color) } : undefined}
 			>
 				{text && <div className="whitespace-pre-wrap font-prose text-ink" style={{ fontSize: "calc(var(--lh-prose-size) - 2px)" }}>{text}</div>}
 				<MessageAttachments parts={message.parts} />

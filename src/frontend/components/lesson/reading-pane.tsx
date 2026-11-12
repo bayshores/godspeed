@@ -26,6 +26,7 @@ import { cn } from "@/frontend/lib/utils";
  * being written.
  */
 export function ReadingPane({
+	spaceId,
 	messages,
 	phases,
 	status,
@@ -37,6 +38,8 @@ export function ReadingPane({
 	onOpenPlan,
 	scrollContextRef,
 }: {
+	/** The lesson's space. */
+	spaceId: string | undefined;
 	messages: readonly LhViewMessage[];
 	/** The phase at every message (phaseTimeline). */
 	phases: readonly Phase3[];
@@ -69,6 +72,7 @@ export function ReadingPane({
 						<MessageRow
 							key={m.id || `m-${mi}`}
 							message={m}
+							spaceId={spaceId}
 							index={mi}
 							// The inferred teach seam: teaching begins at the group where
 							// the phase fold flips to teach (exactly one per lesson).

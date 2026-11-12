@@ -508,6 +508,7 @@ export function Chat({
 										<PlanRow kind={kind} spaceId={spaceId} stepBar={stepBar} homework={planHomework} practice={stablePractice} onJump={jumpToAnswer} onOpenPlan={openPlan} />
 									</div>
 									<ReadingPane
+										spaceId={spaceId}
 										messages={messages}
 										phases={phases}
 										status={status}

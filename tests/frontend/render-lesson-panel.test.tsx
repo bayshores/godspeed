@@ -19,7 +19,9 @@ import { TeacherColumn } from "../../src/frontend/components/lesson/teacher-colu
 import { practiceProgress } from "../../src/frontend/components/lesson/practice-progress.ts";
 import { ReadingPane } from "../../src/frontend/components/lesson/reading-pane.tsx";
 import { HalleyContext, type HalleyApi } from "../../src/frontend/components/halley/halley-context.ts";
-import { CONFIDENCE_STOPS, projectView, reuseUnchangedMessages, type LhMessage, type QuestionAnswerData, type QuestionFormDraft } from "../../src/shared/core/index.ts";
+import { SpaceProvider } from "../../src/frontend/components/space-context.tsx";
+import { ServerEventsProvider } from "../../src/frontend/components/server-events.tsx";
+import { CONFIDENCE_STOPS, newUserMessage, projectView, reuseUnchangedMessages, type LhMessage, type QuestionAnswerData, type QuestionFormDraft, type SpaceSummary } from "../../src/shared/core/index.ts";
 
 const dom = parseHTML("<!doctype html><html><body></body></html>");
 const store = new Map<string, string>();
@@ -648,6 +650,7 @@ describe("the reading pane", () => {
 	const pane = (over: Partial<React.ComponentProps<typeof ReadingPane>> = {}) =>
 		renderToStaticMarkup(
 			<ReadingPane
+				spaceId={undefined}
 				messages={[]}
 				phases={[]}
 				status="submitted"
@@ -676,6 +679,29 @@ describe("the reading pane", () => {
 		const out = pane({ busy: false, status: "ready" });
 		assert.match(out, />New lesson</);
 		assert.doesNotMatch(out, /see what you already know/);
+	});
+
+	it("the learner's bubbles wear the lesson's space color, as the teacher column does, not the open space's", () => {
+		const spaces = [
+			{ id: "spc_open", name: "Open space", color: 3 },
+			{ id: "spc_lesson", name: "Lesson space", color: 5 },
+		] as unknown as SpaceSummary[];
+		const messages = projectView([{ ...newUserMessage("my answer", []), id: "u1" }]);
+		const inSpaces = (node: React.ReactNode) =>
+			renderToStaticMarkup(
+				<ServerEventsProvider connect={(() => ({ onEvent() {}, onOpen() {}, close() {} })) as never}>
+					<SpaceProvider initialActive="spc_open" initialSpaces={spaces}>
+						{node}
+					</SpaceProvider>
+				</ServerEventsProvider>,
+			);
+		const bubble = inSpaces(
+			<ReadingPane spaceId="spc_lesson" messages={messages} phases={[]} status="ready" busy={false} turnInFlight={false} waitingForAgent={false} arrivalsLive={false} arrive={() => undefined} onOpenPlan={() => {}} scrollContextRef={{ current: null }} />,
+		);
+		assert.match(bubble, /data-testid="user-message"[^>]*style="[^"]*var\(--lh-space-5\)/);
+		assert.doesNotMatch(bubble, /--lh-space-3/);
+		assert.match(inSpaces(named(<TeacherColumn {...turnProps()} spaceId="spc_lesson" width={480} onWidth={() => {}} requiresReveal={false} onReveal={() => {}} />)), /--lh-pale:[^"]*var\(--lh-space-5\)/);
+		assert.doesNotMatch(pane({ messages, busy: false, status: "ready" }), /data-testid="user-message"[^>]*style=/, "a lesson with no space keeps the plain bubble");
 	});
 });
 

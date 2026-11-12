@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { paleSpaceColor } from "@/frontend/components/space-color";
-import { useSpaces } from "@/frontend/components/space-context";
+import { useSpaceColor } from "@/frontend/components/space-context";
 import { useHalley } from "@/frontend/components/halley/halley-context";
 import { TeacherActivity } from "@/frontend/components/halley/teacher-activity";
 import { TeacherHead } from "@/frontend/components/halley/teacher-head";
@@ -40,7 +40,7 @@ export function TeacherColumn({
 	const { pending, busy, waitingForAgent } = turn;
 	const halley = useHalley();
 	const name = halley?.name ?? DEFAULT_TEACHER_NAME;
-	const color = useSpaces().spaces.find((c) => c.id === spaceId)?.color;
+	const color = useSpaceColor(spaceId);
 	const [activityOpen, setActivityOpen] = useState(false);
 
 	// The reveal: false until the learner opens the check. Reset during
