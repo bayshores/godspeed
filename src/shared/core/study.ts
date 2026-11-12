@@ -11,11 +11,12 @@
  * The topics become the study context the agent reads and the plan the
  * step bar shows (one node per topic). Pure and browser-safe.
  */
-import { topicFacts, type DeadlineProgress, type FactProgress, type TopicProgress, type TopicStatus } from "./progress.ts";
+import { daysBetween, topicFacts, type DeadlineProgress, type FactProgress, type TopicProgress, type TopicStatus } from "./progress.ts";
 import type { PlanTree } from "./contracts.ts";
 import { planDays } from "./deadline-plan.ts";
 import { dateInName } from "./file-series.ts";
 import { createTree } from "./plan-tree.ts";
+import { localDay } from "./today-note.ts";
 
 export type StudyMode = "teach" | "problems" | "check";
 
@@ -173,9 +174,23 @@ export function studyPlanTree(topics: readonly StudyTopic[]): PlanTree {
 	);
 }
 
-/** The topics a deadline's Study button studies: today's planned topics,
- *  or all its topics once every one is strong (or the plan is over). */
-export function deadlineStudyTopicIds(today: string, deadline: Pick<DeadlineProgress, "date" | "topics">): string[] {
-	const plan = planDays(today, deadline.date, deadline.topics);
-	return (plan[0]?.topics ?? deadline.topics).map((t) => t.id);
+/** A strong topic is checked again once its newest answer is this many days old. */
+const RECHECK_DAYS = 7;
+
+/** The topics a deadline's Study button studies: today's planned topics
+ *  and the strong ones not answered for RECHECK_DAYS days, or all its
+ *  topics once every one is strong (or the plan is over). */
+export function deadlineStudyTopicIds(
+	today: string,
+	deadline: Pick<DeadlineProgress, "date" | "topics">,
+	topics: ReadonlyArray<Pick<TopicProgress, "id" | "status" | "answers">>,
+): string[] {
+	const planned = planDays(today, deadline.date, deadline.topics)[0]?.topics;
+	if (!planned) return deadline.topics.map((t) => t.id);
+	const inDeadline = new Set(deadline.topics.map((t) => t.id));
+	const recheck = topics.filter((t) => {
+		const newest = t.answers[t.answers.length - 1]?.answeredAt;
+		return inDeadline.has(t.id) && t.status === "strong" && !!newest && daysBetween(localDay(Date.parse(newest)), today) >= RECHECK_DAYS;
+	});
+	return [...planned, ...recheck].map((t) => t.id);
 }

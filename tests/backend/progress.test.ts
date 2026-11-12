@@ -172,6 +172,19 @@ describe("progress: answers", () => {
 		assert.equal(answers[0]!.question, "Q q1?");
 	});
 
+	it("leaves predictions out: a guess before the teaching is no evidence", () => {
+		const lesson: LhMessage[] = [
+			ask("m1", "p1", "quiz", { nodeId: "a", type: "predict" }),
+			answer("p1", "quiz", { correct: false, questionType: "predict" }),
+			// An old record: the role is only on the call, with the quotes models add.
+			ask("m2", "p2", "quiz", { nodeId: "a", type: '"predict"' }),
+			answer("p2", "quiz", { correct: true }),
+			ask("m3", "k1", "quiz", { nodeId: "a", type: "check" }),
+			answer("k1", "quiz", { correct: false, questionType: "check" }),
+		];
+		assert.deepEqual(P.collectAnswers("c9", lesson).map((a) => a.toolCallId), ["k1"]);
+	});
+
 	it("matches an answer to the facts of the asking message, else the prose before it", () => {
 		const index = P.factsByMessage(FACTS);
 		const [q1, q2, q3, q4] = P.collectAnswers("c1", C1);

@@ -163,13 +163,13 @@ export function topicStudyFor(scope: ClassScope, topicIds: readonly string[]): T
 }
 
 /** A Study start on a deadline: its topics for today (deadlineStudyTopicIds),
- *  the next ones that need work first. Null when the class has no such deadline. */
+ *  the next ones that need work first, strong ones due a check last. Null when the class has no such deadline. */
 export function deadlineStudyFor(classId: string, deadlineId: string): (TopicStudy & { name: string }) | null {
 	const progress = progressFor(classId);
 	const deadline = progress?.deadlines.find((d) => d.id === deadlineId);
 	if (!progress || !deadline) return null;
 	const studied = studiedOn(classId, progress.today);
-	return { name: deadline.name, ...topicStudyIn(classId, progress, deadlineStudyTopicIds(progress.today, deadline), studied) };
+	return { name: deadline.name, ...topicStudyIn(classId, progress, deadlineStudyTopicIds(progress.today, deadline, progress.topics), studied) };
 }
 
 /** The plan nodes of the class's study sessions created on `day` (the learner's local day). */

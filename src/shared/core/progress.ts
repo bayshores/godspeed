@@ -21,7 +21,7 @@ import { continueStudyFor, type ContinueStudy, type DeadlineSession } from "./co
 import { latestHomework, problemsDone, type HomeworkSession } from "./homework.ts";
 import type { LhMessage } from "./native-messages.ts";
 import { isGradedTool, isQuestionTool } from "./pending.ts";
-import { confidenceLevel, type ConfidenceLevel, type QuestionAnswerData } from "./question-core.ts";
+import { confidenceLevel, normalizeQuizType, type ConfidenceLevel, type QuestionAnswerData } from "./question-core.ts";
 import { birthSessionOf } from "./session-clusters.ts";
 import { practiceOutcomes, type ConcludeOutcome } from "./practice-outcomes.ts";
 import { resolveTopics } from "./topics.ts";
@@ -74,7 +74,6 @@ export interface AnsweredQuestion {
 	factIds?: string[];
 	/** The plan node the quiz is about (teach quizzes). */
 	nodeId?: string;
-	questionType?: string;
 	question: string;
 	outcome: AnswerOutcome;
 	/** Stored percentage (0–100), when the learner gave one. */
@@ -111,7 +110,7 @@ export function isAnswerData(v: unknown): v is QuestionAnswerData {
  *  on is wrong; solved with hints counts neither way. */
 const PRACTICE_OUTCOME: Partial<Record<ConcludeOutcome, AnswerOutcome>> = { solved: "right", movedOn: "wrong", surrendered: "wrong" };
 
-/** Every graded quiz/probe answer in one lesson, in transcript order, then its practice problems' outcomes. */
+/** Every graded quiz/probe answer in one lesson (predictions aside), in transcript order, then its practice problems' outcomes. */
 export function collectAnswers(chatId: string, messages: readonly LhMessage[]): AnsweredQuestion[] {
 	const calls = new Map<string, { messageId: string; context: string[]; tool: string; args: Record<string, unknown> }>();
 	const out: AnsweredQuestion[] = [];
@@ -151,8 +150,9 @@ export function collectAnswers(chatId: string, messages: readonly LhMessage[]): 
 		const ad = result.details;
 		const outcome = answerOutcome(ad);
 		if (!outcome) continue;
+		// A prediction is a guess at what hasn't been taught yet: no evidence either way.
+		if (normalizeQuizType(ad.questionType ?? call.args.type) === "predict") continue;
 		const nodeId = typeof call.args.nodeId === "string" ? call.args.nodeId : undefined;
-		const questionType = ad.questionType ?? (typeof call.args.type === "string" ? call.args.type : undefined);
 		const confidence = typeof ad.confidence === "number" && outcome !== "dontKnow" ? ad.confidence : undefined;
 		out.push({
 			chatId,
@@ -161,7 +161,6 @@ export function collectAnswers(chatId: string, messages: readonly LhMessage[]): 
 			toolCallId: result.toolCallId!,
 			tool: ad.tool ?? call.tool,
 			...(nodeId ? { nodeId } : {}),
-			...(questionType ? { questionType } : {}),
 			question: ad.questionText ?? (typeof call.args.question === "string" ? call.args.question : ""),
 			outcome,
 			...(confidence !== undefined ? { confidence, level: confidenceLevel(confidence) } : {}),
