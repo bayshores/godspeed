@@ -1,0 +1,228 @@
+//! What the teacher is asked about a mock (mock-requests.ts): the request for its questions and
+//! the request for its grades, and what a session that goes over one question starts from.
+
+use gs_base::num;
+use gs_json::{Json, js_number};
+
+use super::mock::{MockLanguage, is_answered, minutes_used};
+use super::prep::weakest_first;
+
+fn status_note(status: &str) -> &str {
+	match status {
+		"untested" => "not tested yet",
+		other => other,
+	}
+}
+
+fn questions_word(n: &Json) -> &'static str {
+	if n.as_f64() == Some(1.0) { "question" } else { "questions" }
+}
+
+fn number(n: &Json) -> String {
+	js_number(n.as_f64().unwrap_or(f64::NAN))
+}
+
+fn items(list: &Json) -> &[Json] {
+	list.as_arr().map_or(&[], Vec::as_slice)
+}
+
+/// The request for a mock's questions: what it is for, its size, the sheet's topics (with their
+/// progress, `{ id, name, status, ... }`) the ones that most need work first, and the titles of
+/// what earlier mocks asked.
+pub fn mock_request_text(goal: &str, about: &str, format: &Json, topics: &[Json], asked: &[String]) -> String {
+	let mut lines = vec![
+		format!("They are preparing for: {goal}"),
+		String::new(),
+		"What it is like:".to_owned(),
+		about.to_owned(),
+		String::new(),
+		format!("Write a mock of exactly {} {} for {} minutes.", number(&format["questions"]), questions_word(&format["questions"]), number(&format["minutes"])),
+	];
+	if !topics.is_empty() {
+		lines.extend([String::new(), "The sheet's topics, the ones that most need work first (topic_id: name, how it is going):".to_owned()]);
+		lines.extend(weakest_first(topics).iter().map(|t| format!("- {}: {} ({})", t["id"].str_or_empty(), t["name"].str_or_empty(), status_note(t["status"].str_or_empty()))));
+	}
+	if !asked.is_empty() {
+		lines.extend([String::new(), "Earlier mocks asked these. Don't ask them again:".to_owned()]);
+		lines.extend(asked.iter().map(|title| format!("- {title}")));
+	}
+	lines.join("\n")
+}
+
+fn minutes(seconds: f64) -> String {
+	let rounded = num::math_round(seconds / 60.0);
+	format!("{} min", js_number(if rounded.is_nan() { rounded } else { rounded.max(1.0) }))
+}
+
+/// How the answer did on the question's own examples (a run outcome), in one line.
+fn run_line(run: &Json) -> String {
+	if let Some(error) = run["error"].as_str().filter(|e| !e.is_empty()) {
+		return format!("It did not run on the examples here: {error}");
+	}
+	let lines: Vec<String> = items(&run["examples"])
+		.iter()
+		.enumerate()
+		.map(|(i, e)| {
+			let how = if e["passed"].truthy() {
+				"passed".to_owned()
+			} else if e["error"].truthy() {
+				format!("threw {}", e["error"].str_or_empty())
+			} else {
+				format!("returned {}", gs_json::js_text::js_string(e.get("returned")))
+			};
+			format!("example {} {how}", i + 1)
+		})
+		.collect();
+	format!("Run on the examples here: {}.", lines.join(", "))
+}
+
+const BLANK_NOTE: &str = "They left this blank. Don't grade it.";
+
+fn question_block(mock: &Json, q: &Json, run: Option<&Json>) -> Vec<String> {
+	let id = q["id"].str_or_empty();
+	let answer = &mock["answers"][id];
+	let code = q["kind"].as_str() == Some("code");
+	let mut block = vec![format!("## {id}: {} ({})", q["title"].str_or_empty(), if code { "code" } else { "written" }), q["statement"].str_or_empty().to_owned()];
+	if code {
+		let params: Vec<&str> = items(&q["fn"]["params"]).iter().map(Json::str_or_empty).collect();
+		block.push(format!("Function: {}({}). Examples (arguments, then what it returns):", q["fn"]["name"].str_or_empty(), params.join(", ")));
+		block.extend(items(&q["examples"]).iter().map(|e| format!("- {} returns {}", e["args"].str_or_empty(), e["expected"].str_or_empty())));
+	}
+	if !is_answered(answer) {
+		block.push(BLANK_NOTE.to_owned());
+		return block;
+	}
+	let language = if code { MockLanguage::parse(&answer["language"]) } else { None };
+	let spent = minutes(answer["seconds"].as_f64().unwrap_or(f64::NAN));
+	block.push(format!("Their answer ({}{spent}{}):", language.map_or(String::new(), |l| format!("{}, ", l.label())), if answer["submitted"].truthy() { "" } else { ", never submitted" }));
+	block.push(format!("```{}", language.map_or("", MockLanguage::as_str)));
+	block.push(answer["text"].str_or_empty().to_owned());
+	block.push("```".to_owned());
+	if let Some(run) = run {
+		block.push(run_line(run));
+	}
+	block
+}
+
+/// What a session that goes over one graded question starts from: the question, the learner's
+/// answer and the grade. None when the mock has no such question.
+pub fn go_over_text(mock: &Json, question_id: &str) -> Option<String> {
+	let question = items(&mock["questions"]).iter().find(|q| q["id"].as_str() == Some(question_id))?;
+	let grade = &mock["grades"][question_id];
+	let mut lines = vec![
+		format!(
+			"[Mock question] The learner wants to go over this question from Mock {}. Start from what they wrote: say what was right, find the gap, and have them fix it themselves before anything new.",
+			number(&mock["n"])
+		),
+		String::new(),
+	];
+	lines.extend(question_block(mock, question, None).into_iter().filter(|line| line != BLANK_NOTE));
+	if grade.is_null() {
+		lines.extend([String::new(), "They left it blank in the mock.".to_owned()]);
+	} else {
+		lines.extend([String::new(), format!("Your grade then: {}. Your feedback then:", grade["verdict"].str_or_empty()), grade["feedback"].str_or_empty().to_owned()]);
+	}
+	Some(lines.join("\n"))
+}
+
+/// The request for an ended mock's grades: every question with what the learner wrote, and how
+/// each code answer did on its examples (`runs` by question id).
+pub fn grade_request_text(goal: &str, mock: &Json, runs: &Json) -> String {
+	let format = &mock["format"];
+	let used = minutes_used(mock).map_or(String::new(), |used| format!(" They used {} of them.", js_number(used)));
+	let mut lines = vec![
+		format!("They are preparing for: {goal}"),
+		format!("Mock {}: {} {} in {} minutes.{used}", number(&mock["n"]), number(&format["questions"]), questions_word(&format["questions"]), number(&format["minutes"])),
+	];
+	for q in items(&mock["questions"]) {
+		lines.push(String::new());
+		lines.extend(question_block(mock, q, runs.get(q["id"].str_or_empty())));
+	}
+	lines.join("\n")
+}
+
+#[cfg(test)]
+mod tests {
+	use std::collections::HashSet;
+
+	use gs_json::json;
+
+	use super::super::mock::{end_mock, new_mock, start_mock, take_questions, with_answer, with_grades};
+	use super::*;
+
+	fn format() -> Json {
+		json!({ "questions": 2, "minutes": 70 })
+	}
+
+	fn ended() -> Json {
+		let written = [
+			json!({ "title": "Longest run", "statement": "Return the longest run of 1s.", "kind": "code", "topic_id": "pt_a", "function_name": "longestRun", "params": ["nums"], "examples": [{ "args": "[[1,1,0]]", "expected": "2" }, { "args": "[[0]]", "expected": "0" }] }),
+			json!({ "title": "Event loop", "statement": "Explain the event loop.", "kind": "text" }),
+		];
+		let questions = take_questions(&written, &format(), &HashSet::from(["pt_a".to_owned()])).unwrap();
+		let mut fresh = new_mock("mock_0a1b2c3d", 2.0, &format(), "2026-11-11T09:00:00.000Z");
+		fresh.as_obj_mut().unwrap().insert("questions", questions);
+		let mut mock = start_mock(&fresh, "2026-11-11T10:00:00.000Z");
+		let code = "function longestRun(nums) { return 2; }";
+		mock = with_answer(&mock, "q1", &json!({ "text": code, "language": "javascript", "code": { "javascript": code }, "seconds": 600, "submitted": true }));
+		end_mock(&mock, "2026-11-11T10:30:00.000Z")
+	}
+
+	fn topic(id: &str, name: &str, status: &str) -> Json {
+		json!({ "id": id, "name": name, "status": status, "rate": null, "answered": 0 })
+	}
+
+	#[test]
+	fn the_questions_request_names_the_goal_the_size_the_topics_weakest_first_and_what_was_asked() {
+		let text = mock_request_text("Acme online test", "Four questions.", &json!({ "questions": 1, "minutes": 45 }), &[topic("pt_a", "Arrays", "strong"), topic("pt_b", "Grids", "weak"), topic("pt_c", "Heaps", "untested")], &["Longest run".to_owned()]);
+		assert_eq!(
+			text,
+			"They are preparing for: Acme online test\n\nWhat it is like:\nFour questions.\n\nWrite a mock of exactly 1 question for 45 minutes.\n\nThe sheet's topics, the ones that most need work first (topic_id: name, how it is going):\n- pt_b: Grids (weak)\n- pt_c: Heaps (not tested yet)\n- pt_a: Arrays (strong)\n\nEarlier mocks asked these. Don't ask them again:\n- Longest run"
+		);
+	}
+
+	#[test]
+	fn the_questions_request_leaves_out_topics_and_earlier_questions_when_there_are_none() {
+		let text = mock_request_text("g", "a", &format(), &[], &[]);
+		assert!(!text.contains("topic_id") && !text.contains("Earlier mocks"));
+		assert!(text.ends_with("exactly 2 questions for 70 minutes."));
+	}
+
+	#[test]
+	fn the_grades_request_has_every_question_the_answer_with_its_language_and_time_and_how_it_ran() {
+		let runs = json!({ "q1": { "examples": [{ "returned": "2", "passed": true }, { "returned": "2", "passed": false }] } });
+		assert_eq!(
+			grade_request_text("Acme online test", &ended(), &runs),
+			"They are preparing for: Acme online test\nMock 2: 2 questions in 70 minutes. They used 30 of them.\n\n## q1: Longest run (code)\nReturn the longest run of 1s.\nFunction: longestRun(nums). Examples (arguments, then what it returns):\n- [[1,1,0]] returns 2\n- [[0]] returns 0\nTheir answer (JavaScript, 10 min):\n```javascript\nfunction longestRun(nums) { return 2; }\n```\nRun on the examples here: example 1 passed, example 2 returned 2.\n\n## q2: Event loop (written)\nExplain the event loop.\nThey left this blank. Don't grade it."
+		);
+	}
+
+	#[test]
+	fn the_grades_request_says_when_the_code_never_ran_threw_or_was_never_submitted() {
+		let mut mock = ended();
+		mock.get_mut("answers").and_then(|a| a.get_mut("q1")).unwrap().as_obj_mut().unwrap().insert("submitted", false);
+		let text = grade_request_text("g", &mock, &json!({ "q1": { "examples": [], "error": "SyntaxError: bad" } }));
+		assert!(text.contains("10 min, never submitted)"));
+		assert!(text.contains("It did not run on the examples here: SyntaxError: bad"));
+		let threw = grade_request_text("g", &mock, &json!({ "q1": { "examples": [{ "error": "TypeError: x", "passed": false }, { "returned": "1", "passed": false }] } }));
+		assert!(threw.contains("example 1 threw TypeError: x, example 2 returned 1."));
+	}
+
+	#[test]
+	fn going_over_starts_from_the_question_the_answer_and_the_grade() {
+		let graded = with_grades(&ended(), &[json!({ "question": "q1", "verdict": "partly", "feedback": "Hard-coded." })]).unwrap();
+		let text = go_over_text(&graded, "q1").unwrap();
+		assert!(text.starts_with("[Mock question] The learner wants to go over this question from Mock 2."));
+		assert!(text.contains("## q1: Longest run (code)"));
+		assert!(text.ends_with("Your grade then: partly. Your feedback then:\nHard-coded."));
+	}
+
+	#[test]
+	fn going_over_a_blank_one_says_so_and_no_other_question_is_known() {
+		let graded = with_grades(&ended(), &[json!({ "question": "q1", "verdict": "right", "feedback": "Good." })]).unwrap();
+		let text = go_over_text(&graded, "q2").unwrap();
+		assert!(text.ends_with("Explain the event loop.\n\nThey left it blank in the mock."));
+		assert!(!text.contains("Don't grade it"));
+		assert_eq!(go_over_text(&graded, "q9"), None);
+	}
+}

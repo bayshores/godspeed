@@ -1,0 +1,5717 @@
+[
+	{
+		"name": "take questions",
+		"output": [
+			{
+				"written": [
+					{
+						"title": "  Pair   sums\n",
+						"statement": "  Return the indexes of two numbers that add up to `target`.  ",
+						"kind": "code",
+						"topic_id": "pt_lists",
+						"function_name": "pairSum",
+						"params": [
+							"nums",
+							"target"
+						],
+						"examples": [
+							{
+								"args": " [[2,7,11], 9] ",
+								"expected": " [0,1] "
+							},
+							{
+								"args": "[[1,1], 2]",
+								"expected": "[0,1]"
+							}
+						]
+					},
+					{
+						"title": "Hash maps",
+						"statement": "When is a hash map slow?",
+						"kind": "text",
+						"topic_id": "pt_maps"
+					}
+				],
+				"format": {
+					"questions": 2,
+					"minutes": 45
+				},
+				"output": [
+					{
+						"id": "q1",
+						"topicId": "pt_lists",
+						"title": "Pair sums",
+						"statement": "Return the indexes of two numbers that add up to `target`.",
+						"kind": "code",
+						"fn": {
+							"name": "pairSum",
+							"params": [
+								"nums",
+								"target"
+							]
+						},
+						"examples": [
+							{
+								"args": "[[2,7,11], 9]",
+								"expected": "[0,1]"
+							},
+							{
+								"args": "[[1,1], 2]",
+								"expected": "[0,1]"
+							}
+						]
+					},
+					{
+						"id": "q2",
+						"topicId": "pt_maps",
+						"title": "Hash maps",
+						"statement": "When is a hash map slow?",
+						"kind": "text"
+					}
+				]
+			},
+			{
+				"written": [
+					{
+						"title": "  Pair   sums\n",
+						"statement": "  Return the indexes of two numbers that add up to `target`.  ",
+						"kind": "code",
+						"topic_id": "pt_other",
+						"function_name": "pairSum",
+						"params": [
+							"nums",
+							"target"
+						],
+						"examples": [
+							{
+								"args": " [[2,7,11], 9] ",
+								"expected": " [0,1] "
+							},
+							{
+								"args": "[[1,1], 2]",
+								"expected": "[0,1]"
+							}
+						]
+					},
+					{
+						"title": "Hash maps",
+						"statement": "When is a hash map slow?",
+						"kind": "text",
+						"topic_id": ""
+					}
+				],
+				"format": {
+					"questions": 2,
+					"minutes": 45
+				},
+				"output": [
+					{
+						"id": "q1",
+						"title": "Pair sums",
+						"statement": "Return the indexes of two numbers that add up to `target`.",
+						"kind": "code",
+						"fn": {
+							"name": "pairSum",
+							"params": [
+								"nums",
+								"target"
+							]
+						},
+						"examples": [
+							{
+								"args": "[[2,7,11], 9]",
+								"expected": "[0,1]"
+							},
+							{
+								"args": "[[1,1], 2]",
+								"expected": "[0,1]"
+							}
+						]
+					},
+					{
+						"id": "q2",
+						"title": "Hash maps",
+						"statement": "When is a hash map slow?",
+						"kind": "text"
+					}
+				]
+			},
+			{
+				"written": [
+					{
+						"title": "  Pair   sums\n",
+						"statement": "  Return the indexes of two numbers that add up to `target`.  ",
+						"kind": "code",
+						"topic_id": "pt_lists",
+						"function_name": "pairSum",
+						"params": [
+							"nums",
+							"target"
+						],
+						"examples": [
+							{
+								"args": " [[2,7,11], 9] ",
+								"expected": " [0,1] "
+							},
+							{
+								"args": "[[1,1], 2]",
+								"expected": "[0,1]"
+							}
+						]
+					}
+				],
+				"format": {
+					"questions": 2,
+					"minutes": 45
+				},
+				"output": "Write exactly 2 questions (got 1)."
+			},
+			{
+				"written": [
+					{
+						"title": "  Pair   sums\n",
+						"statement": "  Return the indexes of two numbers that add up to `target`.  ",
+						"kind": "code",
+						"topic_id": "pt_lists",
+						"function_name": "pairSum",
+						"params": [
+							"nums",
+							"target"
+						],
+						"examples": [
+							{
+								"args": " [[2,7,11], 9] ",
+								"expected": " [0,1] "
+							},
+							{
+								"args": "[[1,1], 2]",
+								"expected": "[0,1]"
+							}
+						]
+					},
+					{
+						"title": "Hash maps",
+						"statement": "When is a hash map slow?",
+						"kind": "text",
+						"topic_id": "pt_maps"
+					},
+					{
+						"title": "Hash maps",
+						"statement": "When is a hash map slow?",
+						"kind": "text",
+						"topic_id": "pt_maps"
+					}
+				],
+				"format": {
+					"questions": 3,
+					"minutes": 60
+				},
+				"output": [
+					{
+						"id": "q1",
+						"topicId": "pt_lists",
+						"title": "Pair sums",
+						"statement": "Return the indexes of two numbers that add up to `target`.",
+						"kind": "code",
+						"fn": {
+							"name": "pairSum",
+							"params": [
+								"nums",
+								"target"
+							]
+						},
+						"examples": [
+							{
+								"args": "[[2,7,11], 9]",
+								"expected": "[0,1]"
+							},
+							{
+								"args": "[[1,1], 2]",
+								"expected": "[0,1]"
+							}
+						]
+					},
+					{
+						"id": "q2",
+						"topicId": "pt_maps",
+						"title": "Hash maps",
+						"statement": "When is a hash map slow?",
+						"kind": "text"
+					},
+					{
+						"id": "q3",
+						"topicId": "pt_maps",
+						"title": "Hash maps",
+						"statement": "When is a hash map slow?",
+						"kind": "text"
+					}
+				]
+			},
+			{
+				"written": [
+					{
+						"title": "\u0007 ",
+						"statement": "  Return the indexes of two numbers that add up to `target`.  ",
+						"kind": "code",
+						"topic_id": "pt_lists",
+						"function_name": "pairSum",
+						"params": [
+							"nums",
+							"target"
+						],
+						"examples": [
+							{
+								"args": " [[2,7,11], 9] ",
+								"expected": " [0,1] "
+							},
+							{
+								"args": "[[1,1], 2]",
+								"expected": "[0,1]"
+							}
+						]
+					},
+					{
+						"title": "Hash maps",
+						"statement": "When is a hash map slow?",
+						"kind": "text",
+						"topic_id": "pt_maps"
+					}
+				],
+				"format": {
+					"questions": 2,
+					"minutes": 45
+				},
+				"output": "Question 1: title is empty."
+			},
+			{
+				"written": [
+					{
+						"title": "  Pair   sums\n",
+						"statement": " \n ",
+						"kind": "code",
+						"topic_id": "pt_lists",
+						"function_name": "pairSum",
+						"params": [
+							"nums",
+							"target"
+						],
+						"examples": [
+							{
+								"args": " [[2,7,11], 9] ",
+								"expected": " [0,1] "
+							},
+							{
+								"args": "[[1,1], 2]",
+								"expected": "[0,1]"
+							}
+						]
+					},
+					{
+						"title": "Hash maps",
+						"statement": "When is a hash map slow?",
+						"kind": "text",
+						"topic_id": "pt_maps"
+					}
+				],
+				"format": {
+					"questions": 2,
+					"minutes": 45
+				},
+				"output": "Question 1: statement is empty."
+			},
+			{
+				"written": [
+					{
+						"title": "  Pair   sums\n",
+						"statement": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+						"kind": "code",
+						"topic_id": "pt_lists",
+						"function_name": "pairSum",
+						"params": [
+							"nums",
+							"target"
+						],
+						"examples": [
+							{
+								"args": " [[2,7,11], 9] ",
+								"expected": " [0,1] "
+							},
+							{
+								"args": "[[1,1], 2]",
+								"expected": "[0,1]"
+							}
+						]
+					},
+					{
+						"title": "Hash maps",
+						"statement": "When is a hash map slow?",
+						"kind": "text",
+						"topic_id": "pt_maps"
+					}
+				],
+				"format": {
+					"questions": 2,
+					"minutes": 45
+				},
+				"output": [
+					{
+						"id": "q1",
+						"topicId": "pt_lists",
+						"title": "Pair sums",
+						"statement": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+						"kind": "code",
+						"fn": {
+							"name": "pairSum",
+							"params": [
+								"nums",
+								"target"
+							]
+						},
+						"examples": [
+							{
+								"args": "[[2,7,11], 9]",
+								"expected": "[0,1]"
+							},
+							{
+								"args": "[[1,1], 2]",
+								"expected": "[0,1]"
+							}
+						]
+					},
+					{
+						"id": "q2",
+						"topicId": "pt_maps",
+						"title": "Hash maps",
+						"statement": "When is a hash map slow?",
+						"kind": "text"
+					}
+				]
+			},
+			{
+				"written": [
+					{
+						"title": "A very long title A very long title A very long title A very long title A very long title A very long title A very long title A very long title ",
+						"statement": "  Return the indexes of two numbers that add up to `target`.  ",
+						"kind": "code",
+						"topic_id": "pt_lists",
+						"function_name": "pairSum",
+						"params": [
+							"nums",
+							"target"
+						],
+						"examples": [
+							{
+								"args": " [[2,7,11], 9] ",
+								"expected": " [0,1] "
+							},
+							{
+								"args": "[[1,1], 2]",
+								"expected": "[0,1]"
+							}
+						]
+					},
+					{
+						"title": "Hash maps",
+						"statement": "When is a hash map slow?",
+						"kind": "text",
+						"topic_id": "pt_maps"
+					}
+				],
+				"format": {
+					"questions": 2,
+					"minutes": 45
+				},
+				"output": [
+					{
+						"id": "q1",
+						"topicId": "pt_lists",
+						"title": "A very long title A very long title A very long title A very long title A very l",
+						"statement": "Return the indexes of two numbers that add up to `target`.",
+						"kind": "code",
+						"fn": {
+							"name": "pairSum",
+							"params": [
+								"nums",
+								"target"
+							]
+						},
+						"examples": [
+							{
+								"args": "[[2,7,11], 9]",
+								"expected": "[0,1]"
+							},
+							{
+								"args": "[[1,1], 2]",
+								"expected": "[0,1]"
+							}
+						]
+					},
+					{
+						"id": "q2",
+						"topicId": "pt_maps",
+						"title": "Hash maps",
+						"statement": "When is a hash map slow?",
+						"kind": "text"
+					}
+				]
+			},
+			{
+				"written": [
+					{
+						"title": "  Pair   sums\n",
+						"statement": "  Return the indexes of two numbers that add up to `target`.  ",
+						"kind": "code",
+						"topic_id": "pt_lists",
+						"params": [
+							"nums",
+							"target"
+						],
+						"examples": [
+							{
+								"args": " [[2,7,11], 9] ",
+								"expected": " [0,1] "
+							},
+							{
+								"args": "[[1,1], 2]",
+								"expected": "[0,1]"
+							}
+						]
+					},
+					{
+						"title": "Hash maps",
+						"statement": "When is a hash map slow?",
+						"kind": "text",
+						"topic_id": "pt_maps"
+					}
+				],
+				"format": {
+					"questions": 2,
+					"minutes": 45
+				},
+				"output": "Question 1: function_name must be one plain name (letters, digits, _, not starting with __) that works in JavaScript and Python: not a keyword of either, and not require, module or exports."
+			},
+			{
+				"written": [
+					{
+						"title": "  Pair   sums\n",
+						"statement": "  Return the indexes of two numbers that add up to `target`.  ",
+						"kind": "code",
+						"topic_id": "pt_lists",
+						"function_name": "pair_sum2",
+						"params": [
+							"nums",
+							"target"
+						],
+						"examples": [
+							{
+								"args": " [[2,7,11], 9] ",
+								"expected": " [0,1] "
+							},
+							{
+								"args": "[[1,1], 2]",
+								"expected": "[0,1]"
+							}
+						]
+					},
+					{
+						"title": "Hash maps",
+						"statement": "When is a hash map slow?",
+						"kind": "text",
+						"topic_id": "pt_maps"
+					}
+				],
+				"format": {
+					"questions": 2,
+					"minutes": 45
+				},
+				"output": [
+					{
+						"id": "q1",
+						"topicId": "pt_lists",
+						"title": "Pair sums",
+						"statement": "Return the indexes of two numbers that add up to `target`.",
+						"kind": "code",
+						"fn": {
+							"name": "pair_sum2",
+							"params": [
+								"nums",
+								"target"
+							]
+						},
+						"examples": [
+							{
+								"args": "[[2,7,11], 9]",
+								"expected": "[0,1]"
+							},
+							{
+								"args": "[[1,1], 2]",
+								"expected": "[0,1]"
+							}
+						]
+					},
+					{
+						"id": "q2",
+						"topicId": "pt_maps",
+						"title": "Hash maps",
+						"statement": "When is a hash map slow?",
+						"kind": "text"
+					}
+				]
+			},
+			{
+				"written": [
+					{
+						"title": "  Pair   sums\n",
+						"statement": "  Return the indexes of two numbers that add up to `target`.  ",
+						"kind": "code",
+						"topic_id": "pt_lists",
+						"function_name": "2pair",
+						"params": [
+							"nums",
+							"target"
+						],
+						"examples": [
+							{
+								"args": " [[2,7,11], 9] ",
+								"expected": " [0,1] "
+							},
+							{
+								"args": "[[1,1], 2]",
+								"expected": "[0,1]"
+							}
+						]
+					},
+					{
+						"title": "Hash maps",
+						"statement": "When is a hash map slow?",
+						"kind": "text",
+						"topic_id": "pt_maps"
+					}
+				],
+				"format": {
+					"questions": 2,
+					"minutes": 45
+				},
+				"output": "Question 1: function_name must be one plain name (letters, digits, _, not starting with __) that works in JavaScript and Python: not a keyword of either, and not require, module or exports."
+			},
+			{
+				"written": [
+					{
+						"title": "  Pair   sums\n",
+						"statement": "  Return the indexes of two numbers that add up to `target`.  ",
+						"kind": "code",
+						"topic_id": "pt_lists",
+						"function_name": "__init__",
+						"params": [
+							"nums",
+							"target"
+						],
+						"examples": [
+							{
+								"args": " [[2,7,11], 9] ",
+								"expected": " [0,1] "
+							},
+							{
+								"args": "[[1,1], 2]",
+								"expected": "[0,1]"
+							}
+						]
+					},
+					{
+						"title": "Hash maps",
+						"statement": "When is a hash map slow?",
+						"kind": "text",
+						"topic_id": "pt_maps"
+					}
+				],
+				"format": {
+					"questions": 2,
+					"minutes": 45
+				},
+				"output": "Question 1: function_name must be one plain name (letters, digits, _, not starting with __) that works in JavaScript and Python: not a keyword of either, and not require, module or exports."
+			},
+			{
+				"written": [
+					{
+						"title": "  Pair   sums\n",
+						"statement": "  Return the indexes of two numbers that add up to `target`.  ",
+						"kind": "code",
+						"topic_id": "pt_lists",
+						"function_name": "exports",
+						"params": [
+							"nums",
+							"target"
+						],
+						"examples": [
+							{
+								"args": " [[2,7,11], 9] ",
+								"expected": " [0,1] "
+							},
+							{
+								"args": "[[1,1], 2]",
+								"expected": "[0,1]"
+							}
+						]
+					},
+					{
+						"title": "Hash maps",
+						"statement": "When is a hash map slow?",
+						"kind": "text",
+						"topic_id": "pt_maps"
+					}
+				],
+				"format": {
+					"questions": 2,
+					"minutes": 45
+				},
+				"output": "Question 1: function_name must be one plain name (letters, digits, _, not starting with __) that works in JavaScript and Python: not a keyword of either, and not require, module or exports."
+			},
+			{
+				"written": [
+					{
+						"title": "  Pair   sums\n",
+						"statement": "  Return the indexes of two numbers that add up to `target`.  ",
+						"kind": "code",
+						"topic_id": "pt_lists",
+						"function_name": "yield",
+						"params": [
+							"nums",
+							"target"
+						],
+						"examples": [
+							{
+								"args": " [[2,7,11], 9] ",
+								"expected": " [0,1] "
+							},
+							{
+								"args": "[[1,1], 2]",
+								"expected": "[0,1]"
+							}
+						]
+					},
+					{
+						"title": "Hash maps",
+						"statement": "When is a hash map slow?",
+						"kind": "text",
+						"topic_id": "pt_maps"
+					}
+				],
+				"format": {
+					"questions": 2,
+					"minutes": 45
+				},
+				"output": "Question 1: function_name must be one plain name (letters, digits, _, not starting with __) that works in JavaScript and Python: not a keyword of either, and not require, module or exports."
+			},
+			{
+				"written": [
+					{
+						"title": "  Pair   sums\n",
+						"statement": "  Return the indexes of two numbers that add up to `target`.  ",
+						"kind": "code",
+						"topic_id": "pt_lists",
+						"function_name": "nonlocal",
+						"params": [
+							"nums",
+							"target"
+						],
+						"examples": [
+							{
+								"args": " [[2,7,11], 9] ",
+								"expected": " [0,1] "
+							},
+							{
+								"args": "[[1,1], 2]",
+								"expected": "[0,1]"
+							}
+						]
+					},
+					{
+						"title": "Hash maps",
+						"statement": "When is a hash map slow?",
+						"kind": "text",
+						"topic_id": "pt_maps"
+					}
+				],
+				"format": {
+					"questions": 2,
+					"minutes": 45
+				},
+				"output": "Question 1: function_name must be one plain name (letters, digits, _, not starting with __) that works in JavaScript and Python: not a keyword of either, and not require, module or exports."
+			},
+			{
+				"written": [
+					{
+						"title": "  Pair   sums\n",
+						"statement": "  Return the indexes of two numbers that add up to `target`.  ",
+						"kind": "code",
+						"topic_id": "pt_lists",
+						"function_name": "print",
+						"params": [
+							"nums",
+							"target"
+						],
+						"examples": [
+							{
+								"args": " [[2,7,11], 9] ",
+								"expected": " [0,1] "
+							},
+							{
+								"args": "[[1,1], 2]",
+								"expected": "[0,1]"
+							}
+						]
+					},
+					{
+						"title": "Hash maps",
+						"statement": "When is a hash map slow?",
+						"kind": "text",
+						"topic_id": "pt_maps"
+					}
+				],
+				"format": {
+					"questions": 2,
+					"minutes": 45
+				},
+				"output": [
+					{
+						"id": "q1",
+						"topicId": "pt_lists",
+						"title": "Pair sums",
+						"statement": "Return the indexes of two numbers that add up to `target`.",
+						"kind": "code",
+						"fn": {
+							"name": "print",
+							"params": [
+								"nums",
+								"target"
+							]
+						},
+						"examples": [
+							{
+								"args": "[[2,7,11], 9]",
+								"expected": "[0,1]"
+							},
+							{
+								"args": "[[1,1], 2]",
+								"expected": "[0,1]"
+							}
+						]
+					},
+					{
+						"id": "q2",
+						"topicId": "pt_maps",
+						"title": "Hash maps",
+						"statement": "When is a hash map slow?",
+						"kind": "text"
+					}
+				]
+			},
+			{
+				"written": [
+					{
+						"title": "  Pair   sums\n",
+						"statement": "  Return the indexes of two numbers that add up to `target`.  ",
+						"kind": "code",
+						"topic_id": "pt_lists",
+						"function_name": "pairSum",
+						"examples": [
+							{
+								"args": "[]",
+								"expected": "1"
+							},
+							{
+								"args": "[]",
+								"expected": "2"
+							}
+						]
+					},
+					{
+						"title": "Hash maps",
+						"statement": "When is a hash map slow?",
+						"kind": "text",
+						"topic_id": "pt_maps"
+					}
+				],
+				"format": {
+					"questions": 2,
+					"minutes": 45
+				},
+				"output": [
+					{
+						"id": "q1",
+						"topicId": "pt_lists",
+						"title": "Pair sums",
+						"statement": "Return the indexes of two numbers that add up to `target`.",
+						"kind": "code",
+						"fn": {
+							"name": "pairSum",
+							"params": []
+						},
+						"examples": [
+							{
+								"args": "[]",
+								"expected": "1"
+							},
+							{
+								"args": "[]",
+								"expected": "2"
+							}
+						]
+					},
+					{
+						"id": "q2",
+						"topicId": "pt_maps",
+						"title": "Hash maps",
+						"statement": "When is a hash map slow?",
+						"kind": "text"
+					}
+				]
+			},
+			{
+				"written": [
+					{
+						"title": "  Pair   sums\n",
+						"statement": "  Return the indexes of two numbers that add up to `target`.  ",
+						"kind": "code",
+						"topic_id": "pt_lists",
+						"function_name": "pairSum",
+						"params": [
+							"a",
+							"b",
+							"c",
+							"d",
+							"e",
+							"f",
+							"g"
+						],
+						"examples": [
+							{
+								"args": " [[2,7,11], 9] ",
+								"expected": " [0,1] "
+							},
+							{
+								"args": "[[1,1], 2]",
+								"expected": "[0,1]"
+							}
+						]
+					},
+					{
+						"title": "Hash maps",
+						"statement": "When is a hash map slow?",
+						"kind": "text",
+						"topic_id": "pt_maps"
+					}
+				],
+				"format": {
+					"questions": 2,
+					"minutes": 45
+				},
+				"output": "Question 1: params must be up to 6 different plain names, none a keyword in JavaScript or Python (say start and end, not from and to)."
+			},
+			{
+				"written": [
+					{
+						"title": "  Pair   sums\n",
+						"statement": "  Return the indexes of two numbers that add up to `target`.  ",
+						"kind": "code",
+						"topic_id": "pt_lists",
+						"function_name": "pairSum",
+						"params": [
+							"nums",
+							"lambda"
+						],
+						"examples": [
+							{
+								"args": " [[2,7,11], 9] ",
+								"expected": " [0,1] "
+							},
+							{
+								"args": "[[1,1], 2]",
+								"expected": "[0,1]"
+							}
+						]
+					},
+					{
+						"title": "Hash maps",
+						"statement": "When is a hash map slow?",
+						"kind": "text",
+						"topic_id": "pt_maps"
+					}
+				],
+				"format": {
+					"questions": 2,
+					"minutes": 45
+				},
+				"output": "Question 1: params must be up to 6 different plain names, none a keyword in JavaScript or Python (say start and end, not from and to)."
+			},
+			{
+				"written": [
+					{
+						"title": "  Pair   sums\n",
+						"statement": "  Return the indexes of two numbers that add up to `target`.  ",
+						"kind": "code",
+						"topic_id": "pt_lists",
+						"function_name": "pairSum",
+						"params": [
+							"nums",
+							"nums"
+						],
+						"examples": [
+							{
+								"args": " [[2,7,11], 9] ",
+								"expected": " [0,1] "
+							},
+							{
+								"args": "[[1,1], 2]",
+								"expected": "[0,1]"
+							}
+						]
+					},
+					{
+						"title": "Hash maps",
+						"statement": "When is a hash map slow?",
+						"kind": "text",
+						"topic_id": "pt_maps"
+					}
+				],
+				"format": {
+					"questions": 2,
+					"minutes": 45
+				},
+				"output": "Question 1: params must be up to 6 different plain names, none a keyword in JavaScript or Python (say start and end, not from and to)."
+			},
+			{
+				"written": [
+					{
+						"title": "  Pair   sums\n",
+						"statement": "  Return the indexes of two numbers that add up to `target`.  ",
+						"kind": "code",
+						"topic_id": "pt_lists",
+						"function_name": "pairSum",
+						"params": [
+							"nums",
+							"target"
+						]
+					},
+					{
+						"title": "Hash maps",
+						"statement": "When is a hash map slow?",
+						"kind": "text",
+						"topic_id": "pt_maps"
+					}
+				],
+				"format": {
+					"questions": 2,
+					"minutes": 45
+				},
+				"output": "Question 1: give 2 to 6 examples."
+			},
+			{
+				"written": [
+					{
+						"title": "  Pair   sums\n",
+						"statement": "  Return the indexes of two numbers that add up to `target`.  ",
+						"kind": "code",
+						"topic_id": "pt_lists",
+						"function_name": "pairSum",
+						"params": [
+							"nums",
+							"target"
+						],
+						"examples": [
+							{
+								"args": "[[1], 1]",
+								"expected": "0"
+							},
+							{
+								"args": "[[1], 1]",
+								"expected": "0"
+							},
+							{
+								"args": "[[1], 1]",
+								"expected": "0"
+							},
+							{
+								"args": "[[1], 1]",
+								"expected": "0"
+							},
+							{
+								"args": "[[1], 1]",
+								"expected": "0"
+							},
+							{
+								"args": "[[1], 1]",
+								"expected": "0"
+							},
+							{
+								"args": "[[1], 1]",
+								"expected": "0"
+							}
+						]
+					},
+					{
+						"title": "Hash maps",
+						"statement": "When is a hash map slow?",
+						"kind": "text",
+						"topic_id": "pt_maps"
+					}
+				],
+				"format": {
+					"questions": 2,
+					"minutes": 45
+				},
+				"output": "Question 1: give 2 to 6 examples."
+			},
+			{
+				"written": [
+					{
+						"title": "  Pair   sums\n",
+						"statement": "  Return the indexes of two numbers that add up to `target`.  ",
+						"kind": "code",
+						"topic_id": "pt_lists",
+						"function_name": "pairSum",
+						"params": [
+							"nums",
+							"target"
+						],
+						"examples": [
+							{
+								"args": "[[1], 1, 2]",
+								"expected": "0"
+							},
+							{
+								"args": "[[1], 1]",
+								"expected": "0"
+							}
+						]
+					},
+					{
+						"title": "Hash maps",
+						"statement": "When is a hash map slow?",
+						"kind": "text",
+						"topic_id": "pt_maps"
+					}
+				],
+				"format": {
+					"questions": 2,
+					"minutes": 45
+				},
+				"output": "Question 1: example args [[1], 1, 2] must be a JSON array with one item per parameter (2)."
+			},
+			{
+				"written": [
+					{
+						"title": "  Pair   sums\n",
+						"statement": "  Return the indexes of two numbers that add up to `target`.  ",
+						"kind": "code",
+						"topic_id": "pt_lists",
+						"function_name": "pairSum",
+						"params": [
+							"nums",
+							"target"
+						],
+						"examples": [
+							{
+								"args": "{}",
+								"expected": "0"
+							},
+							{
+								"args": "[[1], 1]",
+								"expected": "0"
+							}
+						]
+					},
+					{
+						"title": "Hash maps",
+						"statement": "When is a hash map slow?",
+						"kind": "text",
+						"topic_id": "pt_maps"
+					}
+				],
+				"format": {
+					"questions": 2,
+					"minutes": 45
+				},
+				"output": "Question 1: example args {} must be a JSON array with one item per parameter (2)."
+			},
+			{
+				"written": [
+					{
+						"title": "  Pair   sums\n",
+						"statement": "  Return the indexes of two numbers that add up to `target`.  ",
+						"kind": "code",
+						"topic_id": "pt_lists",
+						"function_name": "pairSum",
+						"params": [
+							"nums",
+							"target"
+						],
+						"examples": [
+							{
+								"args": "[[1], 1]",
+								"expected": "nope"
+							},
+							{
+								"args": "[[1], 1]",
+								"expected": "0"
+							}
+						]
+					},
+					{
+						"title": "Hash maps",
+						"statement": "When is a hash map slow?",
+						"kind": "text",
+						"topic_id": "pt_maps"
+					}
+				],
+				"format": {
+					"questions": 2,
+					"minutes": 45
+				},
+				"output": "Question 1: example expected \"nope\" is not JSON."
+			},
+			{
+				"written": [
+					{
+						"title": "  Pair   sums\n",
+						"statement": "  Return the indexes of two numbers that add up to `target`.  ",
+						"kind": "code",
+						"topic_id": "pt_lists",
+						"function_name": "pairSum",
+						"params": [
+							"nums",
+							"target"
+						],
+						"examples": [
+							{
+								"args": "[[1], 1]",
+								"expected": "\"ééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé\""
+							},
+							{
+								"args": "[[1], 1]",
+								"expected": "0"
+							}
+						]
+					},
+					{
+						"title": "Hash maps",
+						"statement": "When is a hash map slow?",
+						"kind": "text",
+						"topic_id": "pt_maps"
+					}
+				],
+				"format": {
+					"questions": 2,
+					"minutes": 45
+				},
+				"output": "Question 1: an example is too long."
+			},
+			{
+				"written": [
+					{
+						"title": "  Pair   sums\n",
+						"statement": "  Return the indexes of two numbers that add up to `target`.  ",
+						"kind": "code",
+						"topic_id": "pt_lists",
+						"function_name": "pairSum",
+						"params": [
+							"nums",
+							"target"
+						],
+						"examples": [
+							{
+								"args": "[[1], 1",
+								"expected": "0"
+							},
+							{
+								"args": "[[1], 1]",
+								"expected": "0"
+							}
+						]
+					},
+					{
+						"title": "Hash maps",
+						"statement": "When is a hash map slow?",
+						"kind": "text",
+						"topic_id": "pt_maps"
+					}
+				],
+				"format": {
+					"questions": 2,
+					"minutes": 45
+				},
+				"output": "Question 1: example args \"[[1], 1\" is not JSON."
+			},
+			{
+				"written": [
+					{
+						"title": "  Pair   sums\n",
+						"statement": "  Return the indexes of two numbers that add up to `target`.  ",
+						"kind": "text",
+						"topic_id": "pt_lists",
+						"function_name": "pairSum",
+						"params": [
+							"nums",
+							"target"
+						],
+						"examples": [
+							{
+								"args": " [[2,7,11], 9] ",
+								"expected": " [0,1] "
+							},
+							{
+								"args": "[[1,1], 2]",
+								"expected": "[0,1]"
+							}
+						]
+					},
+					{
+						"title": "  Pair   sums\n",
+						"statement": "  Return the indexes of two numbers that add up to `target`.  ",
+						"kind": "code",
+						"topic_id": "pt_lists",
+						"function_name": "count",
+						"params": [
+							"s"
+						],
+						"examples": [
+							{
+								"args": "[\"a\"]",
+								"expected": "1"
+							},
+							{
+								"args": "[\"\"]",
+								"expected": "0"
+							}
+						]
+					}
+				],
+				"format": {
+					"questions": 2,
+					"minutes": 45
+				},
+				"output": [
+					{
+						"id": "q1",
+						"topicId": "pt_lists",
+						"title": "Pair sums",
+						"statement": "Return the indexes of two numbers that add up to `target`.",
+						"kind": "text"
+					},
+					{
+						"id": "q2",
+						"topicId": "pt_lists",
+						"title": "Pair sums",
+						"statement": "Return the indexes of two numbers that add up to `target`.",
+						"kind": "code",
+						"fn": {
+							"name": "count",
+							"params": [
+								"s"
+							]
+						},
+						"examples": [
+							{
+								"args": "[\"a\"]",
+								"expected": "1"
+							},
+							{
+								"args": "[\"\"]",
+								"expected": "0"
+							}
+						]
+					}
+				]
+			}
+		]
+	},
+	{
+		"name": "starter code",
+		"output": [
+			[
+				"function pairSum() {\n\t\n}\n",
+				"function f(a, b_2) {\n\t\n}\n"
+			],
+			[
+				"def pairSum():\n    pass\n",
+				"def f(a, b_2):\n    pass\n"
+			]
+		]
+	},
+	{
+		"name": "states and clock",
+		"output": {
+			"mocks": [
+				{
+					"id": "mock_a1b2c3d4",
+					"n": 1,
+					"format": {
+						"questions": 2,
+						"minutes": 45
+					},
+					"createdAt": "x",
+					"questions": [],
+					"answers": {}
+				},
+				{
+					"id": "mock_a1b2c3d4",
+					"n": 3,
+					"format": {
+						"questions": 2,
+						"minutes": 45
+					},
+					"createdAt": "2026-11-12T08:00:00.000Z",
+					"questions": [
+						{
+							"id": "q1",
+							"topicId": "pt_lists",
+							"title": "Pair sums",
+							"statement": "Return the indexes of two numbers that add up to `target`.",
+							"kind": "code",
+							"fn": {
+								"name": "pairSum",
+								"params": [
+									"nums",
+									"target"
+								]
+							},
+							"examples": [
+								{
+									"args": "[[2,7,11], 9]",
+									"expected": "[0,1]"
+								},
+								{
+									"args": "[[1,1], 2]",
+									"expected": "[0,1]"
+								}
+							]
+						},
+						{
+							"id": "q2",
+							"topicId": "pt_maps",
+							"title": "Hash maps",
+							"statement": "When is a hash map slow?",
+							"kind": "text"
+						}
+					],
+					"answers": {}
+				},
+				{
+					"id": "mock_a1b2c3d4",
+					"n": 3,
+					"format": {
+						"questions": 2,
+						"minutes": 45
+					},
+					"createdAt": "2026-11-12T08:00:00.000Z",
+					"questions": [
+						{
+							"id": "q1",
+							"topicId": "pt_lists",
+							"title": "Pair sums",
+							"statement": "Return the indexes of two numbers that add up to `target`.",
+							"kind": "code",
+							"fn": {
+								"name": "pairSum",
+								"params": [
+									"nums",
+									"target"
+								]
+							},
+							"examples": [
+								{
+									"args": "[[2,7,11], 9]",
+									"expected": "[0,1]"
+								},
+								{
+									"args": "[[1,1], 2]",
+									"expected": "[0,1]"
+								}
+							]
+						},
+						{
+							"id": "q2",
+							"topicId": "pt_maps",
+							"title": "Hash maps",
+							"statement": "When is a hash map slow?",
+							"kind": "text"
+						}
+					],
+					"answers": {},
+					"startedAt": "2026-11-12T09:00:00.000Z"
+				},
+				{
+					"id": "mock_a1b2c3d4",
+					"n": 3,
+					"format": {
+						"questions": 2,
+						"minutes": 45
+					},
+					"createdAt": "2026-11-12T08:00:00.000Z",
+					"questions": [
+						{
+							"id": "q1",
+							"topicId": "pt_lists",
+							"title": "Pair sums",
+							"statement": "Return the indexes of two numbers that add up to `target`.",
+							"kind": "code",
+							"fn": {
+								"name": "pairSum",
+								"params": [
+									"nums",
+									"target"
+								]
+							},
+							"examples": [
+								{
+									"args": "[[2,7,11], 9]",
+									"expected": "[0,1]"
+								},
+								{
+									"args": "[[1,1], 2]",
+									"expected": "[0,1]"
+								}
+							]
+						},
+						{
+							"id": "q2",
+							"topicId": "pt_maps",
+							"title": "Hash maps",
+							"statement": "When is a hash map slow?",
+							"kind": "text"
+						}
+					],
+					"answers": {},
+					"startedAt": "2026-11-12T09:00:00.000Z",
+					"endedAt": "2026-11-12T09:20:00.000Z"
+				},
+				{
+					"id": "mock_a1b2c3d4",
+					"n": 3,
+					"format": {
+						"questions": 2,
+						"minutes": 45
+					},
+					"createdAt": "2026-11-12T08:00:00.000Z",
+					"questions": [
+						{
+							"id": "q1",
+							"topicId": "pt_lists",
+							"title": "Pair sums",
+							"statement": "Return the indexes of two numbers that add up to `target`.",
+							"kind": "code",
+							"fn": {
+								"name": "pairSum",
+								"params": [
+									"nums",
+									"target"
+								]
+							},
+							"examples": [
+								{
+									"args": "[[2,7,11], 9]",
+									"expected": "[0,1]"
+								},
+								{
+									"args": "[[1,1], 2]",
+									"expected": "[0,1]"
+								}
+							]
+						},
+						{
+							"id": "q2",
+							"topicId": "pt_maps",
+							"title": "Hash maps",
+							"statement": "When is a hash map slow?",
+							"kind": "text"
+						}
+					],
+					"answers": {},
+					"startedAt": "2026-11-12T09:00:00.000Z",
+					"endedAt": "2026-11-12T09:20:00.000Z",
+					"grades": {}
+				}
+			],
+			"states": [
+				"writing",
+				"ready",
+				"running",
+				"grading",
+				"graded"
+			],
+			"started": {
+				"id": "mock_a1b2c3d4",
+				"n": 3,
+				"format": {
+					"questions": 2,
+					"minutes": 45
+				},
+				"createdAt": "2026-11-12T08:00:00.000Z",
+				"questions": [
+					{
+						"id": "q1",
+						"topicId": "pt_lists",
+						"title": "Pair sums",
+						"statement": "Return the indexes of two numbers that add up to `target`.",
+						"kind": "code",
+						"fn": {
+							"name": "pairSum",
+							"params": [
+								"nums",
+								"target"
+							]
+						},
+						"examples": [
+							{
+								"args": "[[2,7,11], 9]",
+								"expected": "[0,1]"
+							},
+							{
+								"args": "[[1,1], 2]",
+								"expected": "[0,1]"
+							}
+						]
+					},
+					{
+						"id": "q2",
+						"topicId": "pt_maps",
+						"title": "Hash maps",
+						"statement": "When is a hash map slow?",
+						"kind": "text"
+					}
+				],
+				"answers": {},
+				"startedAt": "2026-11-12T09:00:00.000Z"
+			},
+			"ended": {
+				"id": "mock_a1b2c3d4",
+				"n": 3,
+				"format": {
+					"questions": 2,
+					"minutes": 45
+				},
+				"createdAt": "2026-11-12T08:00:00.000Z",
+				"questions": [
+					{
+						"id": "q1",
+						"topicId": "pt_lists",
+						"title": "Pair sums",
+						"statement": "Return the indexes of two numbers that add up to `target`.",
+						"kind": "code",
+						"fn": {
+							"name": "pairSum",
+							"params": [
+								"nums",
+								"target"
+							]
+						},
+						"examples": [
+							{
+								"args": "[[2,7,11], 9]",
+								"expected": "[0,1]"
+							},
+							{
+								"args": "[[1,1], 2]",
+								"expected": "[0,1]"
+							}
+						]
+					},
+					{
+						"id": "q2",
+						"topicId": "pt_maps",
+						"title": "Hash maps",
+						"statement": "When is a hash map slow?",
+						"kind": "text"
+					}
+				],
+				"answers": {},
+				"startedAt": "2026-11-12T09:00:00.000Z",
+				"endedAt": "2026-11-12T09:20:00.000Z"
+			},
+			"offsets": [
+				0,
+				1,
+				999,
+				1000,
+				1001,
+				2699999,
+				2700000,
+				3000000
+			],
+			"left": [
+				2700,
+				2700,
+				2700,
+				2699,
+				2699,
+				1,
+				0,
+				0
+			],
+			"notStarted": 2700,
+			"ends": [
+				"2026-11-12T09:20:00.000Z",
+				"2026-11-12T09:00:00.000Z",
+				"2026-11-12T11:00:00.000Z",
+				"2026-11-12T09:00:00.001Z"
+			],
+			"used": [
+				null,
+				20,
+				1,
+				45,
+				1
+			]
+		}
+	},
+	{
+		"name": "answers kept",
+		"output": [
+			{
+				"mock": {
+					"id": "mock_a1b2c3d4",
+					"n": 3,
+					"format": {
+						"questions": 2,
+						"minutes": 45
+					},
+					"createdAt": "2026-11-12T08:00:00.000Z",
+					"questions": [
+						{
+							"id": "q1",
+							"topicId": "pt_lists",
+							"title": "Pair sums",
+							"statement": "Return the indexes of two numbers that add up to `target`.",
+							"kind": "code",
+							"fn": {
+								"name": "pairSum",
+								"params": [
+									"nums",
+									"target"
+								]
+							},
+							"examples": [
+								{
+									"args": "[[2,7,11], 9]",
+									"expected": "[0,1]"
+								},
+								{
+									"args": "[[1,1], 2]",
+									"expected": "[0,1]"
+								}
+							]
+						},
+						{
+							"id": "q2",
+							"topicId": "pt_maps",
+							"title": "Hash maps",
+							"statement": "When is a hash map slow?",
+							"kind": "text"
+						}
+					],
+					"answers": {},
+					"startedAt": "2026-11-12T09:00:00.000Z"
+				},
+				"id": "q1",
+				"answer": {
+					"text": "ignored",
+					"language": "python",
+					"code": {
+						"python": "def pairSum(nums, target):\n    return [0, 1]\n",
+						"javascript": ""
+					},
+					"seconds": 90.5,
+					"submitted": true
+				},
+				"output": {
+					"id": "mock_a1b2c3d4",
+					"n": 3,
+					"format": {
+						"questions": 2,
+						"minutes": 45
+					},
+					"createdAt": "2026-11-12T08:00:00.000Z",
+					"questions": [
+						{
+							"id": "q1",
+							"topicId": "pt_lists",
+							"title": "Pair sums",
+							"statement": "Return the indexes of two numbers that add up to `target`.",
+							"kind": "code",
+							"fn": {
+								"name": "pairSum",
+								"params": [
+									"nums",
+									"target"
+								]
+							},
+							"examples": [
+								{
+									"args": "[[2,7,11], 9]",
+									"expected": "[0,1]"
+								},
+								{
+									"args": "[[1,1], 2]",
+									"expected": "[0,1]"
+								}
+							]
+						},
+						{
+							"id": "q2",
+							"topicId": "pt_maps",
+							"title": "Hash maps",
+							"statement": "When is a hash map slow?",
+							"kind": "text"
+						}
+					],
+					"answers": {
+						"q1": {
+							"text": "def pairSum(nums, target):\n    return [0, 1]\n",
+							"language": "python",
+							"code": {
+								"python": "def pairSum(nums, target):\n    return [0, 1]\n",
+								"javascript": ""
+							},
+							"seconds": 91,
+							"submitted": true
+						}
+					},
+					"startedAt": "2026-11-12T09:00:00.000Z"
+				}
+			},
+			{
+				"mock": {
+					"id": "mock_a1b2c3d4",
+					"n": 3,
+					"format": {
+						"questions": 2,
+						"minutes": 45
+					},
+					"createdAt": "2026-11-12T08:00:00.000Z",
+					"questions": [
+						{
+							"id": "q1",
+							"topicId": "pt_lists",
+							"title": "Pair sums",
+							"statement": "Return the indexes of two numbers that add up to `target`.",
+							"kind": "code",
+							"fn": {
+								"name": "pairSum",
+								"params": [
+									"nums",
+									"target"
+								]
+							},
+							"examples": [
+								{
+									"args": "[[2,7,11], 9]",
+									"expected": "[0,1]"
+								},
+								{
+									"args": "[[1,1], 2]",
+									"expected": "[0,1]"
+								}
+							]
+						},
+						{
+							"id": "q2",
+							"topicId": "pt_maps",
+							"title": "Hash maps",
+							"statement": "When is a hash map slow?",
+							"kind": "text"
+						}
+					],
+					"answers": {},
+					"startedAt": "2026-11-12T09:00:00.000Z"
+				},
+				"id": "q1",
+				"answer": {
+					"text": "x",
+					"language": "javascript",
+					"code": {
+						"javascript": "  \n",
+						"python": "py"
+					},
+					"seconds": -3,
+					"submitted": false
+				},
+				"output": {
+					"id": "mock_a1b2c3d4",
+					"n": 3,
+					"format": {
+						"questions": 2,
+						"minutes": 45
+					},
+					"createdAt": "2026-11-12T08:00:00.000Z",
+					"questions": [
+						{
+							"id": "q1",
+							"topicId": "pt_lists",
+							"title": "Pair sums",
+							"statement": "Return the indexes of two numbers that add up to `target`.",
+							"kind": "code",
+							"fn": {
+								"name": "pairSum",
+								"params": [
+									"nums",
+									"target"
+								]
+							},
+							"examples": [
+								{
+									"args": "[[2,7,11], 9]",
+									"expected": "[0,1]"
+								},
+								{
+									"args": "[[1,1], 2]",
+									"expected": "[0,1]"
+								}
+							]
+						},
+						{
+							"id": "q2",
+							"topicId": "pt_maps",
+							"title": "Hash maps",
+							"statement": "When is a hash map slow?",
+							"kind": "text"
+						}
+					],
+					"answers": {
+						"q1": {
+							"text": "py",
+							"language": "python",
+							"code": {
+								"javascript": "  \n",
+								"python": "py"
+							},
+							"seconds": 0,
+							"submitted": false
+						}
+					},
+					"startedAt": "2026-11-12T09:00:00.000Z"
+				}
+			},
+			{
+				"mock": {
+					"id": "mock_a1b2c3d4",
+					"n": 3,
+					"format": {
+						"questions": 2,
+						"minutes": 45
+					},
+					"createdAt": "2026-11-12T08:00:00.000Z",
+					"questions": [
+						{
+							"id": "q1",
+							"topicId": "pt_lists",
+							"title": "Pair sums",
+							"statement": "Return the indexes of two numbers that add up to `target`.",
+							"kind": "code",
+							"fn": {
+								"name": "pairSum",
+								"params": [
+									"nums",
+									"target"
+								]
+							},
+							"examples": [
+								{
+									"args": "[[2,7,11], 9]",
+									"expected": "[0,1]"
+								},
+								{
+									"args": "[[1,1], 2]",
+									"expected": "[0,1]"
+								}
+							]
+						},
+						{
+							"id": "q2",
+							"topicId": "pt_maps",
+							"title": "Hash maps",
+							"statement": "When is a hash map slow?",
+							"kind": "text"
+						}
+					],
+					"answers": {},
+					"startedAt": "2026-11-12T09:00:00.000Z"
+				},
+				"id": "q1",
+				"answer": {
+					"text": "x",
+					"code": {
+						"javascript": "js"
+					},
+					"seconds": 2.5,
+					"submitted": true
+				},
+				"output": {
+					"id": "mock_a1b2c3d4",
+					"n": 3,
+					"format": {
+						"questions": 2,
+						"minutes": 45
+					},
+					"createdAt": "2026-11-12T08:00:00.000Z",
+					"questions": [
+						{
+							"id": "q1",
+							"topicId": "pt_lists",
+							"title": "Pair sums",
+							"statement": "Return the indexes of two numbers that add up to `target`.",
+							"kind": "code",
+							"fn": {
+								"name": "pairSum",
+								"params": [
+									"nums",
+									"target"
+								]
+							},
+							"examples": [
+								{
+									"args": "[[2,7,11], 9]",
+									"expected": "[0,1]"
+								},
+								{
+									"args": "[[1,1], 2]",
+									"expected": "[0,1]"
+								}
+							]
+						},
+						{
+							"id": "q2",
+							"topicId": "pt_maps",
+							"title": "Hash maps",
+							"statement": "When is a hash map slow?",
+							"kind": "text"
+						}
+					],
+					"answers": {
+						"q1": {
+							"text": "js",
+							"language": "javascript",
+							"code": {
+								"javascript": "js"
+							},
+							"seconds": 3,
+							"submitted": true
+						}
+					},
+					"startedAt": "2026-11-12T09:00:00.000Z"
+				}
+			},
+			{
+				"mock": {
+					"id": "mock_a1b2c3d4",
+					"n": 3,
+					"format": {
+						"questions": 2,
+						"minutes": 45
+					},
+					"createdAt": "2026-11-12T08:00:00.000Z",
+					"questions": [
+						{
+							"id": "q1",
+							"topicId": "pt_lists",
+							"title": "Pair sums",
+							"statement": "Return the indexes of two numbers that add up to `target`.",
+							"kind": "code",
+							"fn": {
+								"name": "pairSum",
+								"params": [
+									"nums",
+									"target"
+								]
+							},
+							"examples": [
+								{
+									"args": "[[2,7,11], 9]",
+									"expected": "[0,1]"
+								},
+								{
+									"args": "[[1,1], 2]",
+									"expected": "[0,1]"
+								}
+							]
+						},
+						{
+							"id": "q2",
+							"topicId": "pt_maps",
+							"title": "Hash maps",
+							"statement": "When is a hash map slow?",
+							"kind": "text"
+						}
+					],
+					"answers": {},
+					"startedAt": "2026-11-12T09:00:00.000Z"
+				},
+				"id": "q1",
+				"answer": {
+					"text": "x",
+					"code": {},
+					"seconds": 1,
+					"submitted": true
+				},
+				"output": {
+					"id": "mock_a1b2c3d4",
+					"n": 3,
+					"format": {
+						"questions": 2,
+						"minutes": 45
+					},
+					"createdAt": "2026-11-12T08:00:00.000Z",
+					"questions": [
+						{
+							"id": "q1",
+							"topicId": "pt_lists",
+							"title": "Pair sums",
+							"statement": "Return the indexes of two numbers that add up to `target`.",
+							"kind": "code",
+							"fn": {
+								"name": "pairSum",
+								"params": [
+									"nums",
+									"target"
+								]
+							},
+							"examples": [
+								{
+									"args": "[[2,7,11], 9]",
+									"expected": "[0,1]"
+								},
+								{
+									"args": "[[1,1], 2]",
+									"expected": "[0,1]"
+								}
+							]
+						},
+						{
+							"id": "q2",
+							"topicId": "pt_maps",
+							"title": "Hash maps",
+							"statement": "When is a hash map slow?",
+							"kind": "text"
+						}
+					],
+					"answers": {
+						"q1": {
+							"text": "",
+							"code": {},
+							"seconds": 1,
+							"submitted": true
+						}
+					},
+					"startedAt": "2026-11-12T09:00:00.000Z"
+				}
+			},
+			{
+				"mock": {
+					"id": "mock_a1b2c3d4",
+					"n": 3,
+					"format": {
+						"questions": 2,
+						"minutes": 45
+					},
+					"createdAt": "2026-11-12T08:00:00.000Z",
+					"questions": [
+						{
+							"id": "q1",
+							"topicId": "pt_lists",
+							"title": "Pair sums",
+							"statement": "Return the indexes of two numbers that add up to `target`.",
+							"kind": "code",
+							"fn": {
+								"name": "pairSum",
+								"params": [
+									"nums",
+									"target"
+								]
+							},
+							"examples": [
+								{
+									"args": "[[2,7,11], 9]",
+									"expected": "[0,1]"
+								},
+								{
+									"args": "[[1,1], 2]",
+									"expected": "[0,1]"
+								}
+							]
+						},
+						{
+							"id": "q2",
+							"topicId": "pt_maps",
+							"title": "Hash maps",
+							"statement": "When is a hash map slow?",
+							"kind": "text"
+						}
+					],
+					"answers": {},
+					"startedAt": "2026-11-12T09:00:00.000Z"
+				},
+				"id": "q2",
+				"answer": {
+					"text": "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+					"language": "python",
+					"code": {
+						"python": "z"
+					},
+					"seconds": 12.49,
+					"submitted": false
+				},
+				"output": {
+					"id": "mock_a1b2c3d4",
+					"n": 3,
+					"format": {
+						"questions": 2,
+						"minutes": 45
+					},
+					"createdAt": "2026-11-12T08:00:00.000Z",
+					"questions": [
+						{
+							"id": "q1",
+							"topicId": "pt_lists",
+							"title": "Pair sums",
+							"statement": "Return the indexes of two numbers that add up to `target`.",
+							"kind": "code",
+							"fn": {
+								"name": "pairSum",
+								"params": [
+									"nums",
+									"target"
+								]
+							},
+							"examples": [
+								{
+									"args": "[[2,7,11], 9]",
+									"expected": "[0,1]"
+								},
+								{
+									"args": "[[1,1], 2]",
+									"expected": "[0,1]"
+								}
+							]
+						},
+						{
+							"id": "q2",
+							"topicId": "pt_maps",
+							"title": "Hash maps",
+							"statement": "When is a hash map slow?",
+							"kind": "text"
+						}
+					],
+					"answers": {
+						"q2": {
+							"text": "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+							"seconds": 12,
+							"submitted": false
+						}
+					},
+					"startedAt": "2026-11-12T09:00:00.000Z"
+				}
+			},
+			{
+				"mock": {
+					"id": "mock_a1b2c3d4",
+					"n": 3,
+					"format": {
+						"questions": 2,
+						"minutes": 45
+					},
+					"createdAt": "2026-11-12T08:00:00.000Z",
+					"questions": [
+						{
+							"id": "q1",
+							"topicId": "pt_lists",
+							"title": "Pair sums",
+							"statement": "Return the indexes of two numbers that add up to `target`.",
+							"kind": "code",
+							"fn": {
+								"name": "pairSum",
+								"params": [
+									"nums",
+									"target"
+								]
+							},
+							"examples": [
+								{
+									"args": "[[2,7,11], 9]",
+									"expected": "[0,1]"
+								},
+								{
+									"args": "[[1,1], 2]",
+									"expected": "[0,1]"
+								}
+							]
+						},
+						{
+							"id": "q2",
+							"topicId": "pt_maps",
+							"title": "Hash maps",
+							"statement": "When is a hash map slow?",
+							"kind": "text"
+						}
+					],
+					"answers": {},
+					"startedAt": "2026-11-12T09:00:00.000Z"
+				},
+				"id": "q2",
+				"answer": {
+					"text": "Words.",
+					"seconds": 1e+21,
+					"submitted": true
+				},
+				"output": {
+					"id": "mock_a1b2c3d4",
+					"n": 3,
+					"format": {
+						"questions": 2,
+						"minutes": 45
+					},
+					"createdAt": "2026-11-12T08:00:00.000Z",
+					"questions": [
+						{
+							"id": "q1",
+							"topicId": "pt_lists",
+							"title": "Pair sums",
+							"statement": "Return the indexes of two numbers that add up to `target`.",
+							"kind": "code",
+							"fn": {
+								"name": "pairSum",
+								"params": [
+									"nums",
+									"target"
+								]
+							},
+							"examples": [
+								{
+									"args": "[[2,7,11], 9]",
+									"expected": "[0,1]"
+								},
+								{
+									"args": "[[1,1], 2]",
+									"expected": "[0,1]"
+								}
+							]
+						},
+						{
+							"id": "q2",
+							"topicId": "pt_maps",
+							"title": "Hash maps",
+							"statement": "When is a hash map slow?",
+							"kind": "text"
+						}
+					],
+					"answers": {
+						"q2": {
+							"text": "Words.",
+							"seconds": 1e+21,
+							"submitted": true
+						}
+					},
+					"startedAt": "2026-11-12T09:00:00.000Z"
+				}
+			},
+			{
+				"mock": {
+					"id": "mock_a1b2c3d4",
+					"n": 3,
+					"format": {
+						"questions": 2,
+						"minutes": 45
+					},
+					"createdAt": "2026-11-12T08:00:00.000Z",
+					"questions": [
+						{
+							"id": "q1",
+							"topicId": "pt_lists",
+							"title": "Pair sums",
+							"statement": "Return the indexes of two numbers that add up to `target`.",
+							"kind": "code",
+							"fn": {
+								"name": "pairSum",
+								"params": [
+									"nums",
+									"target"
+								]
+							},
+							"examples": [
+								{
+									"args": "[[2,7,11], 9]",
+									"expected": "[0,1]"
+								},
+								{
+									"args": "[[1,1], 2]",
+									"expected": "[0,1]"
+								}
+							]
+						},
+						{
+							"id": "q2",
+							"topicId": "pt_maps",
+							"title": "Hash maps",
+							"statement": "When is a hash map slow?",
+							"kind": "text"
+						}
+					],
+					"answers": {},
+					"startedAt": "2026-11-12T09:00:00.000Z"
+				},
+				"id": "q3",
+				"answer": {
+					"text": "nothing",
+					"seconds": 1,
+					"submitted": true
+				},
+				"output": {
+					"id": "mock_a1b2c3d4",
+					"n": 3,
+					"format": {
+						"questions": 2,
+						"minutes": 45
+					},
+					"createdAt": "2026-11-12T08:00:00.000Z",
+					"questions": [
+						{
+							"id": "q1",
+							"topicId": "pt_lists",
+							"title": "Pair sums",
+							"statement": "Return the indexes of two numbers that add up to `target`.",
+							"kind": "code",
+							"fn": {
+								"name": "pairSum",
+								"params": [
+									"nums",
+									"target"
+								]
+							},
+							"examples": [
+								{
+									"args": "[[2,7,11], 9]",
+									"expected": "[0,1]"
+								},
+								{
+									"args": "[[1,1], 2]",
+									"expected": "[0,1]"
+								}
+							]
+						},
+						{
+							"id": "q2",
+							"topicId": "pt_maps",
+							"title": "Hash maps",
+							"statement": "When is a hash map slow?",
+							"kind": "text"
+						}
+					],
+					"answers": {},
+					"startedAt": "2026-11-12T09:00:00.000Z"
+				}
+			}
+		]
+	},
+	{
+		"name": "answers refused",
+		"output": [
+			{
+				"mock": {
+					"id": "mock_a1b2c3d4",
+					"n": 3,
+					"format": {
+						"questions": 2,
+						"minutes": 45
+					},
+					"createdAt": "2026-11-12T08:00:00.000Z",
+					"questions": [
+						{
+							"id": "q1",
+							"topicId": "pt_lists",
+							"title": "Pair sums",
+							"statement": "Return the indexes of two numbers that add up to `target`.",
+							"kind": "code",
+							"fn": {
+								"name": "pairSum",
+								"params": [
+									"nums",
+									"target"
+								]
+							},
+							"examples": [
+								{
+									"args": "[[2,7,11], 9]",
+									"expected": "[0,1]"
+								},
+								{
+									"args": "[[1,1], 2]",
+									"expected": "[0,1]"
+								}
+							]
+						},
+						{
+							"id": "q2",
+							"topicId": "pt_maps",
+							"title": "Hash maps",
+							"statement": "When is a hash map slow?",
+							"kind": "text"
+						}
+					],
+					"answers": {}
+				},
+				"output": {
+					"id": "mock_a1b2c3d4",
+					"n": 3,
+					"format": {
+						"questions": 2,
+						"minutes": 45
+					},
+					"createdAt": "2026-11-12T08:00:00.000Z",
+					"questions": [
+						{
+							"id": "q1",
+							"topicId": "pt_lists",
+							"title": "Pair sums",
+							"statement": "Return the indexes of two numbers that add up to `target`.",
+							"kind": "code",
+							"fn": {
+								"name": "pairSum",
+								"params": [
+									"nums",
+									"target"
+								]
+							},
+							"examples": [
+								{
+									"args": "[[2,7,11], 9]",
+									"expected": "[0,1]"
+								},
+								{
+									"args": "[[1,1], 2]",
+									"expected": "[0,1]"
+								}
+							]
+						},
+						{
+							"id": "q2",
+							"topicId": "pt_maps",
+							"title": "Hash maps",
+							"statement": "When is a hash map slow?",
+							"kind": "text"
+						}
+					],
+					"answers": {}
+				}
+			},
+			{
+				"mock": {
+					"id": "mock_a1b2c3d4",
+					"n": 3,
+					"format": {
+						"questions": 2,
+						"minutes": 45
+					},
+					"createdAt": "2026-11-12T08:00:00.000Z",
+					"questions": [
+						{
+							"id": "q1",
+							"topicId": "pt_lists",
+							"title": "Pair sums",
+							"statement": "Return the indexes of two numbers that add up to `target`.",
+							"kind": "code",
+							"fn": {
+								"name": "pairSum",
+								"params": [
+									"nums",
+									"target"
+								]
+							},
+							"examples": [
+								{
+									"args": "[[2,7,11], 9]",
+									"expected": "[0,1]"
+								},
+								{
+									"args": "[[1,1], 2]",
+									"expected": "[0,1]"
+								}
+							]
+						},
+						{
+							"id": "q2",
+							"topicId": "pt_maps",
+							"title": "Hash maps",
+							"statement": "When is a hash map slow?",
+							"kind": "text"
+						}
+					],
+					"answers": {},
+					"startedAt": "2026-11-12T09:00:00.000Z",
+					"endedAt": "2026-11-12T09:01:00.000Z"
+				},
+				"output": {
+					"id": "mock_a1b2c3d4",
+					"n": 3,
+					"format": {
+						"questions": 2,
+						"minutes": 45
+					},
+					"createdAt": "2026-11-12T08:00:00.000Z",
+					"questions": [
+						{
+							"id": "q1",
+							"topicId": "pt_lists",
+							"title": "Pair sums",
+							"statement": "Return the indexes of two numbers that add up to `target`.",
+							"kind": "code",
+							"fn": {
+								"name": "pairSum",
+								"params": [
+									"nums",
+									"target"
+								]
+							},
+							"examples": [
+								{
+									"args": "[[2,7,11], 9]",
+									"expected": "[0,1]"
+								},
+								{
+									"args": "[[1,1], 2]",
+									"expected": "[0,1]"
+								}
+							]
+						},
+						{
+							"id": "q2",
+							"topicId": "pt_maps",
+							"title": "Hash maps",
+							"statement": "When is a hash map slow?",
+							"kind": "text"
+						}
+					],
+					"answers": {},
+					"startedAt": "2026-11-12T09:00:00.000Z",
+					"endedAt": "2026-11-12T09:01:00.000Z"
+				}
+			}
+		]
+	},
+	{
+		"name": "grades",
+		"output": {
+			"tries": [
+				{
+					"mock": {
+						"id": "mock_a1b2c3d4",
+						"n": 3,
+						"format": {
+							"questions": 2,
+							"minutes": 45
+						},
+						"createdAt": "2026-11-12T08:00:00.000Z",
+						"questions": [
+							{
+								"id": "q1",
+								"topicId": "pt_lists",
+								"title": "Pair sums",
+								"statement": "Return the indexes of two numbers that add up to `target`.",
+								"kind": "code",
+								"fn": {
+									"name": "pairSum",
+									"params": [
+										"nums",
+										"target"
+									]
+								},
+								"examples": [
+									{
+										"args": "[[2,7,11], 9]",
+										"expected": "[0,1]"
+									},
+									{
+										"args": "[[1,1], 2]",
+										"expected": "[0,1]"
+									}
+								]
+							},
+							{
+								"id": "q2",
+								"topicId": "pt_maps",
+								"title": "Hash maps",
+								"statement": "When is a hash map slow?",
+								"kind": "text"
+							}
+						],
+						"answers": {
+							"q1": {
+								"text": "function pairSum() { return [0, 1]; }",
+								"language": "javascript",
+								"code": {
+									"javascript": "function pairSum() { return [0, 1]; }"
+								},
+								"seconds": 600,
+								"submitted": true
+							},
+							"q2": {
+								"text": "When keys collide.",
+								"seconds": 125,
+								"submitted": false
+							}
+						},
+						"startedAt": "2026-11-12T09:00:00.000Z",
+						"endedAt": "2026-11-12T09:31:20.000Z"
+					},
+					"written": [
+						{
+							"question": "q2",
+							"verdict": "partly",
+							"feedback": "  Collisions, yes; resizing too.  "
+						},
+						{
+							"question": "q1",
+							"verdict": "wrong",
+							"feedback": "It always returns [0, 1]."
+						},
+						{
+							"question": "q1",
+							"verdict": "right",
+							"feedback": "Ignored: the first one counts."
+						}
+					],
+					"output": {
+						"id": "mock_a1b2c3d4",
+						"n": 3,
+						"format": {
+							"questions": 2,
+							"minutes": 45
+						},
+						"createdAt": "2026-11-12T08:00:00.000Z",
+						"questions": [
+							{
+								"id": "q1",
+								"topicId": "pt_lists",
+								"title": "Pair sums",
+								"statement": "Return the indexes of two numbers that add up to `target`.",
+								"kind": "code",
+								"fn": {
+									"name": "pairSum",
+									"params": [
+										"nums",
+										"target"
+									]
+								},
+								"examples": [
+									{
+										"args": "[[2,7,11], 9]",
+										"expected": "[0,1]"
+									},
+									{
+										"args": "[[1,1], 2]",
+										"expected": "[0,1]"
+									}
+								]
+							},
+							{
+								"id": "q2",
+								"topicId": "pt_maps",
+								"title": "Hash maps",
+								"statement": "When is a hash map slow?",
+								"kind": "text"
+							}
+						],
+						"answers": {
+							"q1": {
+								"text": "function pairSum() { return [0, 1]; }",
+								"language": "javascript",
+								"code": {
+									"javascript": "function pairSum() { return [0, 1]; }"
+								},
+								"seconds": 600,
+								"submitted": true
+							},
+							"q2": {
+								"text": "When keys collide.",
+								"seconds": 125,
+								"submitted": false
+							}
+						},
+						"startedAt": "2026-11-12T09:00:00.000Z",
+						"endedAt": "2026-11-12T09:31:20.000Z",
+						"grades": {
+							"q1": {
+								"verdict": "wrong",
+								"feedback": "It always returns [0, 1]."
+							},
+							"q2": {
+								"verdict": "partly",
+								"feedback": "Collisions, yes; resizing too."
+							}
+						}
+					}
+				},
+				{
+					"mock": {
+						"id": "mock_a1b2c3d4",
+						"n": 3,
+						"format": {
+							"questions": 2,
+							"minutes": 45
+						},
+						"createdAt": "2026-11-12T08:00:00.000Z",
+						"questions": [
+							{
+								"id": "q1",
+								"topicId": "pt_lists",
+								"title": "Pair sums",
+								"statement": "Return the indexes of two numbers that add up to `target`.",
+								"kind": "code",
+								"fn": {
+									"name": "pairSum",
+									"params": [
+										"nums",
+										"target"
+									]
+								},
+								"examples": [
+									{
+										"args": "[[2,7,11], 9]",
+										"expected": "[0,1]"
+									},
+									{
+										"args": "[[1,1], 2]",
+										"expected": "[0,1]"
+									}
+								]
+							},
+							{
+								"id": "q2",
+								"topicId": "pt_maps",
+								"title": "Hash maps",
+								"statement": "When is a hash map slow?",
+								"kind": "text"
+							}
+						],
+						"answers": {
+							"q1": {
+								"text": "x",
+								"language": "python",
+								"code": {
+									"python": "x"
+								},
+								"seconds": 5,
+								"submitted": true
+							},
+							"q2": {
+								"text": " w ",
+								"seconds": 5,
+								"submitted": true
+							}
+						},
+						"startedAt": "2026-11-12T09:00:00.000Z",
+						"endedAt": "2026-11-12T09:05:00.000Z"
+					},
+					"written": [],
+					"output": "No grade for q1: grade every answered question."
+				},
+				{
+					"mock": {
+						"id": "mock_a1b2c3d4",
+						"n": 3,
+						"format": {
+							"questions": 2,
+							"minutes": 45
+						},
+						"createdAt": "2026-11-12T08:00:00.000Z",
+						"questions": [
+							{
+								"id": "q1",
+								"topicId": "pt_lists",
+								"title": "Pair sums",
+								"statement": "Return the indexes of two numbers that add up to `target`.",
+								"kind": "code",
+								"fn": {
+									"name": "pairSum",
+									"params": [
+										"nums",
+										"target"
+									]
+								},
+								"examples": [
+									{
+										"args": "[[2,7,11], 9]",
+										"expected": "[0,1]"
+									},
+									{
+										"args": "[[1,1], 2]",
+										"expected": "[0,1]"
+									}
+								]
+							},
+							{
+								"id": "q2",
+								"topicId": "pt_maps",
+								"title": "Hash maps",
+								"statement": "When is a hash map slow?",
+								"kind": "text"
+							}
+						],
+						"answers": {
+							"q1": {
+								"text": "x",
+								"language": "python",
+								"code": {
+									"python": "x"
+								},
+								"seconds": 5,
+								"submitted": true
+							},
+							"q2": {
+								"text": " w ",
+								"seconds": 5,
+								"submitted": true
+							}
+						},
+						"startedAt": "2026-11-12T09:00:00.000Z",
+						"endedAt": "2026-11-12T09:05:00.000Z"
+					},
+					"written": [
+						{
+							"question": "q1",
+							"verdict": "right",
+							"feedback": "ok"
+						}
+					],
+					"output": "No grade for q2: grade every answered question."
+				},
+				{
+					"mock": {
+						"id": "mock_a1b2c3d4",
+						"n": 3,
+						"format": {
+							"questions": 2,
+							"minutes": 45
+						},
+						"createdAt": "2026-11-12T08:00:00.000Z",
+						"questions": [
+							{
+								"id": "q1",
+								"topicId": "pt_lists",
+								"title": "Pair sums",
+								"statement": "Return the indexes of two numbers that add up to `target`.",
+								"kind": "code",
+								"fn": {
+									"name": "pairSum",
+									"params": [
+										"nums",
+										"target"
+									]
+								},
+								"examples": [
+									{
+										"args": "[[2,7,11], 9]",
+										"expected": "[0,1]"
+									},
+									{
+										"args": "[[1,1], 2]",
+										"expected": "[0,1]"
+									}
+								]
+							},
+							{
+								"id": "q2",
+								"topicId": "pt_maps",
+								"title": "Hash maps",
+								"statement": "When is a hash map slow?",
+								"kind": "text"
+							}
+						],
+						"answers": {
+							"q1": {
+								"text": "x",
+								"language": "python",
+								"code": {
+									"python": "x"
+								},
+								"seconds": 5,
+								"submitted": true
+							},
+							"q2": {
+								"text": " w ",
+								"seconds": 5,
+								"submitted": true
+							}
+						},
+						"startedAt": "2026-11-12T09:00:00.000Z",
+						"endedAt": "2026-11-12T09:05:00.000Z"
+					},
+					"written": [
+						{
+							"question": "q1",
+							"verdict": "right",
+							"feedback": "ok"
+						},
+						{
+							"question": "q2",
+							"verdict": "wrong",
+							"feedback": "\n \t"
+						}
+					],
+					"output": "The feedback for q2 is empty."
+				},
+				{
+					"mock": {
+						"id": "mock_a1b2c3d4",
+						"n": 3,
+						"format": {
+							"questions": 2,
+							"minutes": 45
+						},
+						"createdAt": "2026-11-12T08:00:00.000Z",
+						"questions": [
+							{
+								"id": "q1",
+								"topicId": "pt_lists",
+								"title": "Pair sums",
+								"statement": "Return the indexes of two numbers that add up to `target`.",
+								"kind": "code",
+								"fn": {
+									"name": "pairSum",
+									"params": [
+										"nums",
+										"target"
+									]
+								},
+								"examples": [
+									{
+										"args": "[[2,7,11], 9]",
+										"expected": "[0,1]"
+									},
+									{
+										"args": "[[1,1], 2]",
+										"expected": "[0,1]"
+									}
+								]
+							},
+							{
+								"id": "q2",
+								"topicId": "pt_maps",
+								"title": "Hash maps",
+								"statement": "When is a hash map slow?",
+								"kind": "text"
+							}
+						],
+						"answers": {},
+						"startedAt": "2026-11-12T09:00:00.000Z",
+						"endedAt": "2026-11-12T09:05:00.000Z"
+					},
+					"written": [
+						{
+							"question": "q9",
+							"verdict": "right",
+							"feedback": "extra"
+						}
+					],
+					"output": {
+						"id": "mock_a1b2c3d4",
+						"n": 3,
+						"format": {
+							"questions": 2,
+							"minutes": 45
+						},
+						"createdAt": "2026-11-12T08:00:00.000Z",
+						"questions": [
+							{
+								"id": "q1",
+								"topicId": "pt_lists",
+								"title": "Pair sums",
+								"statement": "Return the indexes of two numbers that add up to `target`.",
+								"kind": "code",
+								"fn": {
+									"name": "pairSum",
+									"params": [
+										"nums",
+										"target"
+									]
+								},
+								"examples": [
+									{
+										"args": "[[2,7,11], 9]",
+										"expected": "[0,1]"
+									},
+									{
+										"args": "[[1,1], 2]",
+										"expected": "[0,1]"
+									}
+								]
+							},
+							{
+								"id": "q2",
+								"topicId": "pt_maps",
+								"title": "Hash maps",
+								"statement": "When is a hash map slow?",
+								"kind": "text"
+							}
+						],
+						"answers": {},
+						"startedAt": "2026-11-12T09:00:00.000Z",
+						"endedAt": "2026-11-12T09:05:00.000Z",
+						"grades": {}
+					}
+				}
+			],
+			"mock": {
+				"id": "mock_a1b2c3d4",
+				"n": 3,
+				"format": {
+					"questions": 2,
+					"minutes": 45
+				},
+				"createdAt": "2026-11-12T08:00:00.000Z",
+				"questions": [
+					{
+						"id": "q1",
+						"topicId": "pt_lists",
+						"title": "Pair sums",
+						"statement": "Return the indexes of two numbers that add up to `target`.",
+						"kind": "code",
+						"fn": {
+							"name": "pairSum",
+							"params": [
+								"nums",
+								"target"
+							]
+						},
+						"examples": [
+							{
+								"args": "[[2,7,11], 9]",
+								"expected": "[0,1]"
+							},
+							{
+								"args": "[[1,1], 2]",
+								"expected": "[0,1]"
+							}
+						]
+					},
+					{
+						"id": "q2",
+						"topicId": "pt_maps",
+						"title": "Hash maps",
+						"statement": "When is a hash map slow?",
+						"kind": "text"
+					}
+				],
+				"answers": {
+					"q1": {
+						"text": "function pairSum() { return [0, 1]; }",
+						"language": "javascript",
+						"code": {
+							"javascript": "function pairSum() { return [0, 1]; }"
+						},
+						"seconds": 600,
+						"submitted": true
+					},
+					"q2": {
+						"text": "When keys collide.",
+						"seconds": 125,
+						"submitted": false
+					}
+				},
+				"startedAt": "2026-11-12T09:00:00.000Z",
+				"endedAt": "2026-11-12T09:31:20.000Z",
+				"grades": {
+					"q1": {
+						"verdict": "wrong",
+						"feedback": "It always returns [0, 1]."
+					},
+					"q2": {
+						"verdict": "partly",
+						"feedback": "Collisions, yes; resizing too."
+					}
+				}
+			},
+			"over": {
+				"id": "mock_a1b2c3d4",
+				"n": 3,
+				"format": {
+					"questions": 2,
+					"minutes": 45
+				},
+				"createdAt": "2026-11-12T08:00:00.000Z",
+				"questions": [
+					{
+						"id": "q1",
+						"topicId": "pt_lists",
+						"title": "Pair sums",
+						"statement": "Return the indexes of two numbers that add up to `target`.",
+						"kind": "code",
+						"fn": {
+							"name": "pairSum",
+							"params": [
+								"nums",
+								"target"
+							]
+						},
+						"examples": [
+							{
+								"args": "[[2,7,11], 9]",
+								"expected": "[0,1]"
+							},
+							{
+								"args": "[[1,1], 2]",
+								"expected": "[0,1]"
+							}
+						]
+					},
+					{
+						"id": "q2",
+						"topicId": "pt_maps",
+						"title": "Hash maps",
+						"statement": "When is a hash map slow?",
+						"kind": "text"
+					}
+				],
+				"answers": {
+					"q1": {
+						"text": "x",
+						"language": "python",
+						"code": {
+							"python": "x"
+						},
+						"seconds": 5,
+						"submitted": true
+					},
+					"q2": {
+						"text": " w ",
+						"seconds": 5,
+						"submitted": true
+					}
+				},
+				"startedAt": "2026-11-12T09:00:00.000Z",
+				"endedAt": "2026-11-12T09:05:00.000Z"
+			},
+			"results": [
+				"wrong",
+				"partly",
+				"blank"
+			],
+			"ungraded": null,
+			"answers": [
+				{
+					"nodeId": "pt_lists",
+					"outcome": "wrong",
+					"answeredAt": "2026-11-12T09:31:20.000Z"
+				},
+				{
+					"nodeId": "pt_maps",
+					"outcome": "wrong",
+					"answeredAt": "2026-11-12T09:31:20.000Z"
+				}
+			],
+			"solved": 0,
+			"summaries": [
+				{
+					"id": "mock_a1b2c3d4",
+					"n": 3,
+					"state": "graded",
+					"format": {
+						"questions": 2,
+						"minutes": 45
+					},
+					"createdAt": "2026-11-12T08:00:00.000Z",
+					"startedAt": "2026-11-12T09:00:00.000Z",
+					"endedAt": "2026-11-12T09:31:20.000Z",
+					"solved": 0,
+					"working": false
+				},
+				{
+					"id": "mock_a1b2c3d4",
+					"n": 3,
+					"state": "running",
+					"format": {
+						"questions": 2,
+						"minutes": 45
+					},
+					"createdAt": "2026-11-12T08:00:00.000Z",
+					"startedAt": "2026-11-12T09:00:00.000Z",
+					"working": true,
+					"error": "the agent never sent the questions"
+				},
+				{
+					"id": "mock_a1b2c3d4",
+					"n": 3,
+					"state": "ready",
+					"format": {
+						"questions": 2,
+						"minutes": 45
+					},
+					"createdAt": "2026-11-12T08:00:00.000Z",
+					"working": false
+				}
+			],
+			"running": {
+				"id": "mock_a1b2c3d4",
+				"n": 3,
+				"format": {
+					"questions": 2,
+					"minutes": 45
+				},
+				"createdAt": "2026-11-12T08:00:00.000Z",
+				"questions": [
+					{
+						"id": "q1",
+						"topicId": "pt_lists",
+						"title": "Pair sums",
+						"statement": "Return the indexes of two numbers that add up to `target`.",
+						"kind": "code",
+						"fn": {
+							"name": "pairSum",
+							"params": [
+								"nums",
+								"target"
+							]
+						},
+						"examples": [
+							{
+								"args": "[[2,7,11], 9]",
+								"expected": "[0,1]"
+							},
+							{
+								"args": "[[1,1], 2]",
+								"expected": "[0,1]"
+							}
+						]
+					},
+					{
+						"id": "q2",
+						"topicId": "pt_maps",
+						"title": "Hash maps",
+						"statement": "When is a hash map slow?",
+						"kind": "text"
+					}
+				],
+				"answers": {},
+				"startedAt": "2026-11-12T09:00:00.000Z"
+			},
+			"ready": {
+				"id": "mock_a1b2c3d4",
+				"n": 3,
+				"format": {
+					"questions": 2,
+					"minutes": 45
+				},
+				"createdAt": "2026-11-12T08:00:00.000Z",
+				"questions": [
+					{
+						"id": "q1",
+						"topicId": "pt_lists",
+						"title": "Pair sums",
+						"statement": "Return the indexes of two numbers that add up to `target`.",
+						"kind": "code",
+						"fn": {
+							"name": "pairSum",
+							"params": [
+								"nums",
+								"target"
+							]
+						},
+						"examples": [
+							{
+								"args": "[[2,7,11], 9]",
+								"expected": "[0,1]"
+							},
+							{
+								"args": "[[1,1], 2]",
+								"expected": "[0,1]"
+							}
+						]
+					},
+					{
+						"id": "q2",
+						"topicId": "pt_maps",
+						"title": "Hash maps",
+						"statement": "When is a hash map slow?",
+						"kind": "text"
+					}
+				],
+				"answers": {}
+			}
+		}
+	},
+	{
+		"name": "parse",
+		"output": [
+			{
+				"raw": {
+					"version": 1,
+					"id": "mock_a1b2c3d4",
+					"n": 3,
+					"format": {
+						"questions": 2,
+						"minutes": 45
+					},
+					"createdAt": "2026-11-12T08:00:00.000Z",
+					"questions": [
+						{
+							"id": "q1",
+							"topicId": "pt_lists",
+							"title": "Pair sums",
+							"statement": "Return the indexes of two numbers that add up to `target`.",
+							"kind": "code",
+							"fn": {
+								"name": "pairSum",
+								"params": [
+									"nums",
+									"target"
+								]
+							},
+							"examples": [
+								{
+									"args": "[[2,7,11], 9]",
+									"expected": "[0,1]"
+								},
+								{
+									"args": "[[1,1], 2]",
+									"expected": "[0,1]"
+								}
+							]
+						},
+						{
+							"id": "q2",
+							"topicId": "pt_maps",
+							"title": "Hash maps",
+							"statement": "When is a hash map slow?",
+							"kind": "text"
+						}
+					],
+					"answers": {
+						"q1": {
+							"text": "function pairSum() { return [0, 1]; }",
+							"language": "javascript",
+							"code": {
+								"javascript": "function pairSum() { return [0, 1]; }"
+							},
+							"seconds": 600,
+							"submitted": true
+						},
+						"q2": {
+							"text": "When keys collide.",
+							"seconds": 125,
+							"submitted": false
+						}
+					},
+					"startedAt": "2026-11-12T09:00:00.000Z",
+					"endedAt": "2026-11-12T09:31:20.000Z",
+					"grades": {
+						"q1": {
+							"verdict": "wrong",
+							"feedback": "It always returns [0, 1]."
+						},
+						"q2": {
+							"verdict": "partly",
+							"feedback": "Collisions, yes; resizing too."
+						}
+					}
+				},
+				"output": {
+					"id": "mock_a1b2c3d4",
+					"n": 3,
+					"format": {
+						"questions": 2,
+						"minutes": 45
+					},
+					"createdAt": "2026-11-12T08:00:00.000Z",
+					"questions": [
+						{
+							"id": "q1",
+							"topicId": "pt_lists",
+							"title": "Pair sums",
+							"statement": "Return the indexes of two numbers that add up to `target`.",
+							"kind": "code",
+							"fn": {
+								"name": "pairSum",
+								"params": [
+									"nums",
+									"target"
+								]
+							},
+							"examples": [
+								{
+									"args": "[[2,7,11], 9]",
+									"expected": "[0,1]"
+								},
+								{
+									"args": "[[1,1], 2]",
+									"expected": "[0,1]"
+								}
+							]
+						},
+						{
+							"id": "q2",
+							"topicId": "pt_maps",
+							"title": "Hash maps",
+							"statement": "When is a hash map slow?",
+							"kind": "text"
+						}
+					],
+					"answers": {
+						"q1": {
+							"text": "function pairSum() { return [0, 1]; }",
+							"language": "javascript",
+							"code": {
+								"javascript": "function pairSum() { return [0, 1]; }"
+							},
+							"seconds": 600,
+							"submitted": true
+						},
+						"q2": {
+							"text": "When keys collide.",
+							"seconds": 125,
+							"submitted": false
+						}
+					},
+					"startedAt": "2026-11-12T09:00:00.000Z",
+					"endedAt": "2026-11-12T09:31:20.000Z",
+					"grades": {
+						"q1": {
+							"verdict": "wrong",
+							"feedback": "It always returns [0, 1]."
+						},
+						"q2": {
+							"verdict": "partly",
+							"feedback": "Collisions, yes; resizing too."
+						}
+					}
+				}
+			},
+			{
+				"raw": {
+					"version": 2,
+					"id": "mock_a1b2c3d4",
+					"n": 3,
+					"format": {
+						"questions": 2,
+						"minutes": 45
+					},
+					"createdAt": "2026-11-12T08:00:00.000Z",
+					"questions": [
+						{
+							"id": "q1",
+							"topicId": "pt_lists",
+							"title": "Pair sums",
+							"statement": "Return the indexes of two numbers that add up to `target`.",
+							"kind": "code",
+							"fn": {
+								"name": "pairSum",
+								"params": [
+									"nums",
+									"target"
+								]
+							},
+							"examples": [
+								{
+									"args": "[[2,7,11], 9]",
+									"expected": "[0,1]"
+								},
+								{
+									"args": "[[1,1], 2]",
+									"expected": "[0,1]"
+								}
+							]
+						},
+						{
+							"id": "q2",
+							"topicId": "pt_maps",
+							"title": "Hash maps",
+							"statement": "When is a hash map slow?",
+							"kind": "text"
+						}
+					],
+					"answers": {
+						"q1": {
+							"text": "function pairSum() { return [0, 1]; }",
+							"language": "javascript",
+							"code": {
+								"javascript": "function pairSum() { return [0, 1]; }"
+							},
+							"seconds": 600,
+							"submitted": true
+						},
+						"q2": {
+							"text": "When keys collide.",
+							"seconds": 125,
+							"submitted": false
+						}
+					},
+					"startedAt": "2026-11-12T09:00:00.000Z",
+					"endedAt": "2026-11-12T09:31:20.000Z",
+					"grades": {
+						"q1": {
+							"verdict": "wrong",
+							"feedback": "It always returns [0, 1]."
+						},
+						"q2": {
+							"verdict": "partly",
+							"feedback": "Collisions, yes; resizing too."
+						}
+					}
+				},
+				"output": "newer"
+			},
+			{
+				"raw": {
+					"version": "2",
+					"id": "mock_a1b2c3d4",
+					"n": 3,
+					"format": {
+						"questions": 2,
+						"minutes": 45
+					},
+					"createdAt": "2026-11-12T08:00:00.000Z",
+					"questions": [
+						{
+							"id": "q1",
+							"topicId": "pt_lists",
+							"title": "Pair sums",
+							"statement": "Return the indexes of two numbers that add up to `target`.",
+							"kind": "code",
+							"fn": {
+								"name": "pairSum",
+								"params": [
+									"nums",
+									"target"
+								]
+							},
+							"examples": [
+								{
+									"args": "[[2,7,11], 9]",
+									"expected": "[0,1]"
+								},
+								{
+									"args": "[[1,1], 2]",
+									"expected": "[0,1]"
+								}
+							]
+						},
+						{
+							"id": "q2",
+							"topicId": "pt_maps",
+							"title": "Hash maps",
+							"statement": "When is a hash map slow?",
+							"kind": "text"
+						}
+					],
+					"answers": {
+						"q1": {
+							"text": "function pairSum() { return [0, 1]; }",
+							"language": "javascript",
+							"code": {
+								"javascript": "function pairSum() { return [0, 1]; }"
+							},
+							"seconds": 600,
+							"submitted": true
+						},
+						"q2": {
+							"text": "When keys collide.",
+							"seconds": 125,
+							"submitted": false
+						}
+					},
+					"startedAt": "2026-11-12T09:00:00.000Z",
+					"endedAt": "2026-11-12T09:31:20.000Z",
+					"grades": {
+						"q1": {
+							"verdict": "wrong",
+							"feedback": "It always returns [0, 1]."
+						},
+						"q2": {
+							"verdict": "partly",
+							"feedback": "Collisions, yes; resizing too."
+						}
+					}
+				},
+				"output": {
+					"id": "mock_a1b2c3d4",
+					"n": 3,
+					"format": {
+						"questions": 2,
+						"minutes": 45
+					},
+					"createdAt": "2026-11-12T08:00:00.000Z",
+					"questions": [
+						{
+							"id": "q1",
+							"topicId": "pt_lists",
+							"title": "Pair sums",
+							"statement": "Return the indexes of two numbers that add up to `target`.",
+							"kind": "code",
+							"fn": {
+								"name": "pairSum",
+								"params": [
+									"nums",
+									"target"
+								]
+							},
+							"examples": [
+								{
+									"args": "[[2,7,11], 9]",
+									"expected": "[0,1]"
+								},
+								{
+									"args": "[[1,1], 2]",
+									"expected": "[0,1]"
+								}
+							]
+						},
+						{
+							"id": "q2",
+							"topicId": "pt_maps",
+							"title": "Hash maps",
+							"statement": "When is a hash map slow?",
+							"kind": "text"
+						}
+					],
+					"answers": {
+						"q1": {
+							"text": "function pairSum() { return [0, 1]; }",
+							"language": "javascript",
+							"code": {
+								"javascript": "function pairSum() { return [0, 1]; }"
+							},
+							"seconds": 600,
+							"submitted": true
+						},
+						"q2": {
+							"text": "When keys collide.",
+							"seconds": 125,
+							"submitted": false
+						}
+					},
+					"startedAt": "2026-11-12T09:00:00.000Z",
+					"endedAt": "2026-11-12T09:31:20.000Z",
+					"grades": {
+						"q1": {
+							"verdict": "wrong",
+							"feedback": "It always returns [0, 1]."
+						},
+						"q2": {
+							"verdict": "partly",
+							"feedback": "Collisions, yes; resizing too."
+						}
+					}
+				}
+			},
+			{
+				"raw": {
+					"version": 0,
+					"id": "mock_a1b2c3d4",
+					"n": 3,
+					"format": {
+						"questions": 2,
+						"minutes": 45
+					},
+					"createdAt": "2026-11-12T08:00:00.000Z",
+					"questions": [
+						{
+							"id": "q1",
+							"topicId": "pt_lists",
+							"title": "Pair sums",
+							"statement": "Return the indexes of two numbers that add up to `target`.",
+							"kind": "code",
+							"fn": {
+								"name": "pairSum",
+								"params": [
+									"nums",
+									"target"
+								]
+							},
+							"examples": [
+								{
+									"args": "[[2,7,11], 9]",
+									"expected": "[0,1]"
+								},
+								{
+									"args": "[[1,1], 2]",
+									"expected": "[0,1]"
+								}
+							]
+						},
+						{
+							"id": "q2",
+							"topicId": "pt_maps",
+							"title": "Hash maps",
+							"statement": "When is a hash map slow?",
+							"kind": "text"
+						}
+					],
+					"answers": {
+						"q1": {
+							"text": "function pairSum() { return [0, 1]; }",
+							"language": "javascript",
+							"code": {
+								"javascript": "function pairSum() { return [0, 1]; }"
+							},
+							"seconds": 600,
+							"submitted": true
+						},
+						"q2": {
+							"text": "When keys collide.",
+							"seconds": 125,
+							"submitted": false
+						}
+					},
+					"startedAt": "2026-11-12T09:00:00.000Z",
+					"endedAt": "2026-11-12T09:31:20.000Z",
+					"grades": {
+						"q1": {
+							"verdict": "wrong",
+							"feedback": "It always returns [0, 1]."
+						},
+						"q2": {
+							"verdict": "partly",
+							"feedback": "Collisions, yes; resizing too."
+						}
+					},
+					"extra": true
+				},
+				"output": {
+					"id": "mock_a1b2c3d4",
+					"n": 3,
+					"format": {
+						"questions": 2,
+						"minutes": 45
+					},
+					"createdAt": "2026-11-12T08:00:00.000Z",
+					"questions": [
+						{
+							"id": "q1",
+							"topicId": "pt_lists",
+							"title": "Pair sums",
+							"statement": "Return the indexes of two numbers that add up to `target`.",
+							"kind": "code",
+							"fn": {
+								"name": "pairSum",
+								"params": [
+									"nums",
+									"target"
+								]
+							},
+							"examples": [
+								{
+									"args": "[[2,7,11], 9]",
+									"expected": "[0,1]"
+								},
+								{
+									"args": "[[1,1], 2]",
+									"expected": "[0,1]"
+								}
+							]
+						},
+						{
+							"id": "q2",
+							"topicId": "pt_maps",
+							"title": "Hash maps",
+							"statement": "When is a hash map slow?",
+							"kind": "text"
+						}
+					],
+					"answers": {
+						"q1": {
+							"text": "function pairSum() { return [0, 1]; }",
+							"language": "javascript",
+							"code": {
+								"javascript": "function pairSum() { return [0, 1]; }"
+							},
+							"seconds": 600,
+							"submitted": true
+						},
+						"q2": {
+							"text": "When keys collide.",
+							"seconds": 125,
+							"submitted": false
+						}
+					},
+					"startedAt": "2026-11-12T09:00:00.000Z",
+					"endedAt": "2026-11-12T09:31:20.000Z",
+					"grades": {
+						"q1": {
+							"verdict": "wrong",
+							"feedback": "It always returns [0, 1]."
+						},
+						"q2": {
+							"verdict": "partly",
+							"feedback": "Collisions, yes; resizing too."
+						}
+					}
+				}
+			},
+			{
+				"raw": {
+					"version": 1,
+					"id": "mock_A1B2C3D4",
+					"n": 3,
+					"format": {
+						"questions": 2,
+						"minutes": 45
+					},
+					"createdAt": "2026-11-12T08:00:00.000Z",
+					"questions": [
+						{
+							"id": "q1",
+							"topicId": "pt_lists",
+							"title": "Pair sums",
+							"statement": "Return the indexes of two numbers that add up to `target`.",
+							"kind": "code",
+							"fn": {
+								"name": "pairSum",
+								"params": [
+									"nums",
+									"target"
+								]
+							},
+							"examples": [
+								{
+									"args": "[[2,7,11], 9]",
+									"expected": "[0,1]"
+								},
+								{
+									"args": "[[1,1], 2]",
+									"expected": "[0,1]"
+								}
+							]
+						},
+						{
+							"id": "q2",
+							"topicId": "pt_maps",
+							"title": "Hash maps",
+							"statement": "When is a hash map slow?",
+							"kind": "text"
+						}
+					],
+					"answers": {
+						"q1": {
+							"text": "function pairSum() { return [0, 1]; }",
+							"language": "javascript",
+							"code": {
+								"javascript": "function pairSum() { return [0, 1]; }"
+							},
+							"seconds": 600,
+							"submitted": true
+						},
+						"q2": {
+							"text": "When keys collide.",
+							"seconds": 125,
+							"submitted": false
+						}
+					},
+					"startedAt": "2026-11-12T09:00:00.000Z",
+					"endedAt": "2026-11-12T09:31:20.000Z",
+					"grades": {
+						"q1": {
+							"verdict": "wrong",
+							"feedback": "It always returns [0, 1]."
+						},
+						"q2": {
+							"verdict": "partly",
+							"feedback": "Collisions, yes; resizing too."
+						}
+					}
+				},
+				"output": null
+			},
+			{
+				"raw": {
+					"version": 1,
+					"id": "mock_a1b2c3d4",
+					"n": "3",
+					"format": {
+						"questions": 2,
+						"minutes": 45
+					},
+					"createdAt": "2026-11-12T08:00:00.000Z",
+					"questions": [
+						{
+							"id": "q1",
+							"topicId": "pt_lists",
+							"title": "Pair sums",
+							"statement": "Return the indexes of two numbers that add up to `target`.",
+							"kind": "code",
+							"fn": {
+								"name": "pairSum",
+								"params": [
+									"nums",
+									"target"
+								]
+							},
+							"examples": [
+								{
+									"args": "[[2,7,11], 9]",
+									"expected": "[0,1]"
+								},
+								{
+									"args": "[[1,1], 2]",
+									"expected": "[0,1]"
+								}
+							]
+						},
+						{
+							"id": "q2",
+							"topicId": "pt_maps",
+							"title": "Hash maps",
+							"statement": "When is a hash map slow?",
+							"kind": "text"
+						}
+					],
+					"answers": {
+						"q1": {
+							"text": "function pairSum() { return [0, 1]; }",
+							"language": "javascript",
+							"code": {
+								"javascript": "function pairSum() { return [0, 1]; }"
+							},
+							"seconds": 600,
+							"submitted": true
+						},
+						"q2": {
+							"text": "When keys collide.",
+							"seconds": 125,
+							"submitted": false
+						}
+					},
+					"startedAt": "2026-11-12T09:00:00.000Z",
+					"endedAt": "2026-11-12T09:31:20.000Z",
+					"grades": {
+						"q1": {
+							"verdict": "wrong",
+							"feedback": "It always returns [0, 1]."
+						},
+						"q2": {
+							"verdict": "partly",
+							"feedback": "Collisions, yes; resizing too."
+						}
+					}
+				},
+				"output": null
+			},
+			{
+				"raw": {
+					"version": 1,
+					"id": "mock_a1b2c3d4",
+					"n": 3,
+					"format": {
+						"questions": 2,
+						"minutes": 45
+					},
+					"createdAt": 5,
+					"questions": [
+						{
+							"id": "q1",
+							"topicId": "pt_lists",
+							"title": "Pair sums",
+							"statement": "Return the indexes of two numbers that add up to `target`.",
+							"kind": "code",
+							"fn": {
+								"name": "pairSum",
+								"params": [
+									"nums",
+									"target"
+								]
+							},
+							"examples": [
+								{
+									"args": "[[2,7,11], 9]",
+									"expected": "[0,1]"
+								},
+								{
+									"args": "[[1,1], 2]",
+									"expected": "[0,1]"
+								}
+							]
+						},
+						{
+							"id": "q2",
+							"topicId": "pt_maps",
+							"title": "Hash maps",
+							"statement": "When is a hash map slow?",
+							"kind": "text"
+						}
+					],
+					"answers": {
+						"q1": {
+							"text": "function pairSum() { return [0, 1]; }",
+							"language": "javascript",
+							"code": {
+								"javascript": "function pairSum() { return [0, 1]; }"
+							},
+							"seconds": 600,
+							"submitted": true
+						},
+						"q2": {
+							"text": "When keys collide.",
+							"seconds": 125,
+							"submitted": false
+						}
+					},
+					"startedAt": "2026-11-12T09:00:00.000Z",
+					"endedAt": "2026-11-12T09:31:20.000Z",
+					"grades": {
+						"q1": {
+							"verdict": "wrong",
+							"feedback": "It always returns [0, 1]."
+						},
+						"q2": {
+							"verdict": "partly",
+							"feedback": "Collisions, yes; resizing too."
+						}
+					}
+				},
+				"output": null
+			},
+			{
+				"raw": {
+					"version": 1,
+					"id": "mock_a1b2c3d4",
+					"n": 3,
+					"format": {
+						"questions": 2
+					},
+					"createdAt": "2026-11-12T08:00:00.000Z",
+					"questions": [
+						{
+							"id": "q1",
+							"topicId": "pt_lists",
+							"title": "Pair sums",
+							"statement": "Return the indexes of two numbers that add up to `target`.",
+							"kind": "code",
+							"fn": {
+								"name": "pairSum",
+								"params": [
+									"nums",
+									"target"
+								]
+							},
+							"examples": [
+								{
+									"args": "[[2,7,11], 9]",
+									"expected": "[0,1]"
+								},
+								{
+									"args": "[[1,1], 2]",
+									"expected": "[0,1]"
+								}
+							]
+						},
+						{
+							"id": "q2",
+							"topicId": "pt_maps",
+							"title": "Hash maps",
+							"statement": "When is a hash map slow?",
+							"kind": "text"
+						}
+					],
+					"answers": {
+						"q1": {
+							"text": "function pairSum() { return [0, 1]; }",
+							"language": "javascript",
+							"code": {
+								"javascript": "function pairSum() { return [0, 1]; }"
+							},
+							"seconds": 600,
+							"submitted": true
+						},
+						"q2": {
+							"text": "When keys collide.",
+							"seconds": 125,
+							"submitted": false
+						}
+					},
+					"startedAt": "2026-11-12T09:00:00.000Z",
+					"endedAt": "2026-11-12T09:31:20.000Z",
+					"grades": {
+						"q1": {
+							"verdict": "wrong",
+							"feedback": "It always returns [0, 1]."
+						},
+						"q2": {
+							"verdict": "partly",
+							"feedback": "Collisions, yes; resizing too."
+						}
+					}
+				},
+				"output": null
+			},
+			{
+				"raw": {
+					"version": 1,
+					"id": "mock_a1b2c3d4",
+					"n": 3,
+					"format": [
+						2,
+						45
+					],
+					"createdAt": "2026-11-12T08:00:00.000Z",
+					"questions": [
+						{
+							"id": "q1",
+							"topicId": "pt_lists",
+							"title": "Pair sums",
+							"statement": "Return the indexes of two numbers that add up to `target`.",
+							"kind": "code",
+							"fn": {
+								"name": "pairSum",
+								"params": [
+									"nums",
+									"target"
+								]
+							},
+							"examples": [
+								{
+									"args": "[[2,7,11], 9]",
+									"expected": "[0,1]"
+								},
+								{
+									"args": "[[1,1], 2]",
+									"expected": "[0,1]"
+								}
+							]
+						},
+						{
+							"id": "q2",
+							"topicId": "pt_maps",
+							"title": "Hash maps",
+							"statement": "When is a hash map slow?",
+							"kind": "text"
+						}
+					],
+					"answers": {
+						"q1": {
+							"text": "function pairSum() { return [0, 1]; }",
+							"language": "javascript",
+							"code": {
+								"javascript": "function pairSum() { return [0, 1]; }"
+							},
+							"seconds": 600,
+							"submitted": true
+						},
+						"q2": {
+							"text": "When keys collide.",
+							"seconds": 125,
+							"submitted": false
+						}
+					},
+					"startedAt": "2026-11-12T09:00:00.000Z",
+					"endedAt": "2026-11-12T09:31:20.000Z",
+					"grades": {
+						"q1": {
+							"verdict": "wrong",
+							"feedback": "It always returns [0, 1]."
+						},
+						"q2": {
+							"verdict": "partly",
+							"feedback": "Collisions, yes; resizing too."
+						}
+					}
+				},
+				"output": null
+			},
+			{
+				"raw": {
+					"version": 1,
+					"id": "mock_a1b2c3d4",
+					"n": 3,
+					"format": {
+						"questions": 2,
+						"minutes": 45
+					},
+					"createdAt": "2026-11-12T08:00:00.000Z",
+					"questions": "none",
+					"answers": {
+						"q1": {
+							"text": "function pairSum() { return [0, 1]; }",
+							"language": "javascript",
+							"code": {
+								"javascript": "function pairSum() { return [0, 1]; }"
+							},
+							"seconds": 600,
+							"submitted": true
+						},
+						"q2": {
+							"text": "When keys collide.",
+							"seconds": 125,
+							"submitted": false
+						}
+					},
+					"startedAt": "2026-11-12T09:00:00.000Z",
+					"endedAt": "2026-11-12T09:31:20.000Z",
+					"grades": {
+						"q1": {
+							"verdict": "wrong",
+							"feedback": "It always returns [0, 1]."
+						},
+						"q2": {
+							"verdict": "partly",
+							"feedback": "Collisions, yes; resizing too."
+						}
+					}
+				},
+				"output": {
+					"id": "mock_a1b2c3d4",
+					"n": 3,
+					"format": {
+						"questions": 2,
+						"minutes": 45
+					},
+					"createdAt": "2026-11-12T08:00:00.000Z",
+					"questions": [],
+					"answers": {
+						"q1": {
+							"text": "function pairSum() { return [0, 1]; }",
+							"language": "javascript",
+							"code": {
+								"javascript": "function pairSum() { return [0, 1]; }"
+							},
+							"seconds": 600,
+							"submitted": true
+						},
+						"q2": {
+							"text": "When keys collide.",
+							"seconds": 125,
+							"submitted": false
+						}
+					},
+					"startedAt": "2026-11-12T09:00:00.000Z",
+					"endedAt": "2026-11-12T09:31:20.000Z",
+					"grades": {
+						"q1": {
+							"verdict": "wrong",
+							"feedback": "It always returns [0, 1]."
+						},
+						"q2": {
+							"verdict": "partly",
+							"feedback": "Collisions, yes; resizing too."
+						}
+					}
+				}
+			},
+			{
+				"raw": {
+					"version": 1,
+					"id": "mock_a1b2c3d4",
+					"n": 3,
+					"format": {
+						"questions": 2,
+						"minutes": 45
+					},
+					"createdAt": "2026-11-12T08:00:00.000Z",
+					"questions": [
+						null,
+						{
+							"id": "q1",
+							"title": "t",
+							"statement": "s",
+							"kind": "essay"
+						},
+						{
+							"id": "q2",
+							"title": "t",
+							"statement": "s",
+							"kind": "text",
+							"topicId": "",
+							"extra": 1
+						},
+						{
+							"id": "q3",
+							"title": "t",
+							"statement": "s",
+							"kind": "code",
+							"fn": {
+								"name": "f",
+								"params": [
+									"a",
+									3,
+									"b"
+								]
+							},
+							"examples": [
+								{
+									"args": "[1,2]",
+									"expected": "3"
+								},
+								"x",
+								{
+									"args": 1,
+									"expected": "2"
+								}
+							]
+						}
+					],
+					"answers": {
+						"q1": {
+							"text": "function pairSum() { return [0, 1]; }",
+							"language": "javascript",
+							"code": {
+								"javascript": "function pairSum() { return [0, 1]; }"
+							},
+							"seconds": 600,
+							"submitted": true
+						},
+						"q2": {
+							"text": "When keys collide.",
+							"seconds": 125,
+							"submitted": false
+						}
+					},
+					"startedAt": "2026-11-12T09:00:00.000Z",
+					"endedAt": "2026-11-12T09:31:20.000Z",
+					"grades": {
+						"q1": {
+							"verdict": "wrong",
+							"feedback": "It always returns [0, 1]."
+						},
+						"q2": {
+							"verdict": "partly",
+							"feedback": "Collisions, yes; resizing too."
+						}
+					}
+				},
+				"output": {
+					"id": "mock_a1b2c3d4",
+					"n": 3,
+					"format": {
+						"questions": 2,
+						"minutes": 45
+					},
+					"createdAt": "2026-11-12T08:00:00.000Z",
+					"questions": [
+						{
+							"id": "q2",
+							"topicId": "",
+							"title": "t",
+							"statement": "s",
+							"kind": "text"
+						},
+						{
+							"id": "q3",
+							"title": "t",
+							"statement": "s",
+							"kind": "code",
+							"fn": {
+								"name": "f",
+								"params": [
+									"a",
+									"b"
+								]
+							},
+							"examples": [
+								{
+									"args": "[1,2]",
+									"expected": "3"
+								}
+							]
+						}
+					],
+					"answers": {
+						"q1": {
+							"text": "function pairSum() { return [0, 1]; }",
+							"language": "javascript",
+							"code": {
+								"javascript": "function pairSum() { return [0, 1]; }"
+							},
+							"seconds": 600,
+							"submitted": true
+						},
+						"q2": {
+							"text": "When keys collide.",
+							"seconds": 125,
+							"submitted": false
+						}
+					},
+					"startedAt": "2026-11-12T09:00:00.000Z",
+					"endedAt": "2026-11-12T09:31:20.000Z",
+					"grades": {
+						"q1": {
+							"verdict": "wrong",
+							"feedback": "It always returns [0, 1]."
+						},
+						"q2": {
+							"verdict": "partly",
+							"feedback": "Collisions, yes; resizing too."
+						}
+					}
+				}
+			},
+			{
+				"raw": {
+					"version": 1,
+					"id": "mock_a1b2c3d4",
+					"n": 3,
+					"format": {
+						"questions": 2,
+						"minutes": 45
+					},
+					"createdAt": "2026-11-12T08:00:00.000Z",
+					"questions": [
+						{
+							"id": "q1",
+							"title": "t",
+							"statement": "s",
+							"kind": "code",
+							"fn": {
+								"name": "f",
+								"params": [
+									"a",
+									"a"
+								]
+							},
+							"examples": []
+						},
+						{
+							"id": "q2",
+							"title": "t",
+							"statement": "s",
+							"kind": "code",
+							"fn": {
+								"name": "constructor",
+								"params": []
+							},
+							"examples": []
+						},
+						{
+							"id": "q3",
+							"title": "t",
+							"statement": "s",
+							"kind": "code",
+							"fn": {
+								"name": "f",
+								"params": "a"
+							},
+							"examples": []
+						}
+					],
+					"answers": {
+						"q1": {
+							"text": "function pairSum() { return [0, 1]; }",
+							"language": "javascript",
+							"code": {
+								"javascript": "function pairSum() { return [0, 1]; }"
+							},
+							"seconds": 600,
+							"submitted": true
+						},
+						"q2": {
+							"text": "When keys collide.",
+							"seconds": 125,
+							"submitted": false
+						}
+					},
+					"startedAt": "2026-11-12T09:00:00.000Z",
+					"endedAt": "2026-11-12T09:31:20.000Z",
+					"grades": {
+						"q1": {
+							"verdict": "wrong",
+							"feedback": "It always returns [0, 1]."
+						},
+						"q2": {
+							"verdict": "partly",
+							"feedback": "Collisions, yes; resizing too."
+						}
+					}
+				},
+				"output": {
+					"id": "mock_a1b2c3d4",
+					"n": 3,
+					"format": {
+						"questions": 2,
+						"minutes": 45
+					},
+					"createdAt": "2026-11-12T08:00:00.000Z",
+					"questions": [
+						{
+							"id": "q2",
+							"title": "t",
+							"statement": "s",
+							"kind": "code",
+							"fn": {
+								"name": "constructor",
+								"params": []
+							},
+							"examples": []
+						}
+					],
+					"answers": {
+						"q1": {
+							"text": "function pairSum() { return [0, 1]; }",
+							"language": "javascript",
+							"code": {
+								"javascript": "function pairSum() { return [0, 1]; }"
+							},
+							"seconds": 600,
+							"submitted": true
+						},
+						"q2": {
+							"text": "When keys collide.",
+							"seconds": 125,
+							"submitted": false
+						}
+					},
+					"startedAt": "2026-11-12T09:00:00.000Z",
+					"endedAt": "2026-11-12T09:31:20.000Z",
+					"grades": {
+						"q1": {
+							"verdict": "wrong",
+							"feedback": "It always returns [0, 1]."
+						},
+						"q2": {
+							"verdict": "partly",
+							"feedback": "Collisions, yes; resizing too."
+						}
+					}
+				}
+			},
+			{
+				"raw": {
+					"version": 1,
+					"id": "mock_a1b2c3d4",
+					"n": 3,
+					"format": {
+						"questions": 2,
+						"minutes": 45
+					},
+					"createdAt": "2026-11-12T08:00:00.000Z",
+					"questions": [
+						{
+							"id": "q1",
+							"topicId": "pt_lists",
+							"title": "Pair sums",
+							"statement": "Return the indexes of two numbers that add up to `target`.",
+							"kind": "code",
+							"fn": {
+								"name": "pairSum",
+								"params": [
+									"nums",
+									"target"
+								]
+							},
+							"examples": [
+								{
+									"args": "[[2,7,11], 9]",
+									"expected": "[0,1]"
+								},
+								{
+									"args": "[[1,1], 2]",
+									"expected": "[0,1]"
+								}
+							]
+						},
+						{
+							"id": "q2",
+							"topicId": "pt_maps",
+							"title": "Hash maps",
+							"statement": "When is a hash map slow?",
+							"kind": "text"
+						}
+					],
+					"answers": {
+						"q1": {
+							"text": "a",
+							"language": "ruby",
+							"code": {
+								"ruby": "x",
+								"python": 3,
+								"javascript": "js"
+							},
+							"seconds": -1,
+							"submitted": "yes"
+						},
+						"q2": {
+							"text": 5
+						},
+						"q3": "x",
+						"q4": {
+							"text": "b",
+							"code": "nope",
+							"seconds": 7.25,
+							"submitted": true
+						}
+					},
+					"startedAt": "2026-11-12T09:00:00.000Z",
+					"endedAt": "2026-11-12T09:31:20.000Z",
+					"grades": {
+						"q1": {
+							"verdict": "wrong",
+							"feedback": "It always returns [0, 1]."
+						},
+						"q2": {
+							"verdict": "partly",
+							"feedback": "Collisions, yes; resizing too."
+						}
+					}
+				},
+				"output": {
+					"id": "mock_a1b2c3d4",
+					"n": 3,
+					"format": {
+						"questions": 2,
+						"minutes": 45
+					},
+					"createdAt": "2026-11-12T08:00:00.000Z",
+					"questions": [
+						{
+							"id": "q1",
+							"topicId": "pt_lists",
+							"title": "Pair sums",
+							"statement": "Return the indexes of two numbers that add up to `target`.",
+							"kind": "code",
+							"fn": {
+								"name": "pairSum",
+								"params": [
+									"nums",
+									"target"
+								]
+							},
+							"examples": [
+								{
+									"args": "[[2,7,11], 9]",
+									"expected": "[0,1]"
+								},
+								{
+									"args": "[[1,1], 2]",
+									"expected": "[0,1]"
+								}
+							]
+						},
+						{
+							"id": "q2",
+							"topicId": "pt_maps",
+							"title": "Hash maps",
+							"statement": "When is a hash map slow?",
+							"kind": "text"
+						}
+					],
+					"answers": {
+						"q1": {
+							"text": "a",
+							"code": {
+								"javascript": "js"
+							},
+							"seconds": 0,
+							"submitted": false
+						},
+						"q4": {
+							"text": "b",
+							"seconds": 7.25,
+							"submitted": true
+						}
+					},
+					"startedAt": "2026-11-12T09:00:00.000Z",
+					"endedAt": "2026-11-12T09:31:20.000Z",
+					"grades": {
+						"q1": {
+							"verdict": "wrong",
+							"feedback": "It always returns [0, 1]."
+						},
+						"q2": {
+							"verdict": "partly",
+							"feedback": "Collisions, yes; resizing too."
+						}
+					}
+				}
+			},
+			{
+				"raw": {
+					"version": 1,
+					"id": "mock_a1b2c3d4",
+					"n": 3,
+					"format": {
+						"questions": 2,
+						"minutes": 45
+					},
+					"createdAt": "2026-11-12T08:00:00.000Z",
+					"questions": [
+						{
+							"id": "q1",
+							"topicId": "pt_lists",
+							"title": "Pair sums",
+							"statement": "Return the indexes of two numbers that add up to `target`.",
+							"kind": "code",
+							"fn": {
+								"name": "pairSum",
+								"params": [
+									"nums",
+									"target"
+								]
+							},
+							"examples": [
+								{
+									"args": "[[2,7,11], 9]",
+									"expected": "[0,1]"
+								},
+								{
+									"args": "[[1,1], 2]",
+									"expected": "[0,1]"
+								}
+							]
+						},
+						{
+							"id": "q2",
+							"topicId": "pt_maps",
+							"title": "Hash maps",
+							"statement": "When is a hash map slow?",
+							"kind": "text"
+						}
+					],
+					"answers": [],
+					"startedAt": "2026-11-12T09:00:00.000Z",
+					"endedAt": "2026-11-12T09:31:20.000Z",
+					"grades": {
+						"q1": {
+							"verdict": "wrong",
+							"feedback": "It always returns [0, 1]."
+						},
+						"q2": {
+							"verdict": "partly",
+							"feedback": "Collisions, yes; resizing too."
+						}
+					}
+				},
+				"output": {
+					"id": "mock_a1b2c3d4",
+					"n": 3,
+					"format": {
+						"questions": 2,
+						"minutes": 45
+					},
+					"createdAt": "2026-11-12T08:00:00.000Z",
+					"questions": [
+						{
+							"id": "q1",
+							"topicId": "pt_lists",
+							"title": "Pair sums",
+							"statement": "Return the indexes of two numbers that add up to `target`.",
+							"kind": "code",
+							"fn": {
+								"name": "pairSum",
+								"params": [
+									"nums",
+									"target"
+								]
+							},
+							"examples": [
+								{
+									"args": "[[2,7,11], 9]",
+									"expected": "[0,1]"
+								},
+								{
+									"args": "[[1,1], 2]",
+									"expected": "[0,1]"
+								}
+							]
+						},
+						{
+							"id": "q2",
+							"topicId": "pt_maps",
+							"title": "Hash maps",
+							"statement": "When is a hash map slow?",
+							"kind": "text"
+						}
+					],
+					"answers": {},
+					"startedAt": "2026-11-12T09:00:00.000Z",
+					"endedAt": "2026-11-12T09:31:20.000Z",
+					"grades": {
+						"q1": {
+							"verdict": "wrong",
+							"feedback": "It always returns [0, 1]."
+						},
+						"q2": {
+							"verdict": "partly",
+							"feedback": "Collisions, yes; resizing too."
+						}
+					}
+				}
+			},
+			{
+				"raw": {
+					"version": 1,
+					"id": "mock_a1b2c3d4",
+					"n": 3,
+					"format": {
+						"questions": 2,
+						"minutes": 45
+					},
+					"createdAt": "2026-11-12T08:00:00.000Z",
+					"questions": [
+						{
+							"id": "q1",
+							"topicId": "pt_lists",
+							"title": "Pair sums",
+							"statement": "Return the indexes of two numbers that add up to `target`.",
+							"kind": "code",
+							"fn": {
+								"name": "pairSum",
+								"params": [
+									"nums",
+									"target"
+								]
+							},
+							"examples": [
+								{
+									"args": "[[2,7,11], 9]",
+									"expected": "[0,1]"
+								},
+								{
+									"args": "[[1,1], 2]",
+									"expected": "[0,1]"
+								}
+							]
+						},
+						{
+							"id": "q2",
+							"topicId": "pt_maps",
+							"title": "Hash maps",
+							"statement": "When is a hash map slow?",
+							"kind": "text"
+						}
+					],
+					"answers": {
+						"q1": {
+							"text": "function pairSum() { return [0, 1]; }",
+							"language": "javascript",
+							"code": {
+								"javascript": "function pairSum() { return [0, 1]; }"
+							},
+							"seconds": 600,
+							"submitted": true
+						},
+						"q2": {
+							"text": "When keys collide.",
+							"seconds": 125,
+							"submitted": false
+						}
+					},
+					"startedAt": "",
+					"endedAt": 7,
+					"grades": {
+						"q1": {
+							"verdict": "wrong",
+							"feedback": "It always returns [0, 1]."
+						},
+						"q2": {
+							"verdict": "partly",
+							"feedback": "Collisions, yes; resizing too."
+						}
+					}
+				},
+				"output": {
+					"id": "mock_a1b2c3d4",
+					"n": 3,
+					"format": {
+						"questions": 2,
+						"minutes": 45
+					},
+					"createdAt": "2026-11-12T08:00:00.000Z",
+					"questions": [
+						{
+							"id": "q1",
+							"topicId": "pt_lists",
+							"title": "Pair sums",
+							"statement": "Return the indexes of two numbers that add up to `target`.",
+							"kind": "code",
+							"fn": {
+								"name": "pairSum",
+								"params": [
+									"nums",
+									"target"
+								]
+							},
+							"examples": [
+								{
+									"args": "[[2,7,11], 9]",
+									"expected": "[0,1]"
+								},
+								{
+									"args": "[[1,1], 2]",
+									"expected": "[0,1]"
+								}
+							]
+						},
+						{
+							"id": "q2",
+							"topicId": "pt_maps",
+							"title": "Hash maps",
+							"statement": "When is a hash map slow?",
+							"kind": "text"
+						}
+					],
+					"answers": {
+						"q1": {
+							"text": "function pairSum() { return [0, 1]; }",
+							"language": "javascript",
+							"code": {
+								"javascript": "function pairSum() { return [0, 1]; }"
+							},
+							"seconds": 600,
+							"submitted": true
+						},
+						"q2": {
+							"text": "When keys collide.",
+							"seconds": 125,
+							"submitted": false
+						}
+					},
+					"startedAt": "",
+					"grades": {
+						"q1": {
+							"verdict": "wrong",
+							"feedback": "It always returns [0, 1]."
+						},
+						"q2": {
+							"verdict": "partly",
+							"feedback": "Collisions, yes; resizing too."
+						}
+					}
+				}
+			},
+			{
+				"raw": {
+					"version": 1,
+					"id": "mock_a1b2c3d4",
+					"n": 3,
+					"format": {
+						"questions": 2,
+						"minutes": 45
+					},
+					"createdAt": "2026-11-12T08:00:00.000Z",
+					"questions": [
+						{
+							"id": "q1",
+							"topicId": "pt_lists",
+							"title": "Pair sums",
+							"statement": "Return the indexes of two numbers that add up to `target`.",
+							"kind": "code",
+							"fn": {
+								"name": "pairSum",
+								"params": [
+									"nums",
+									"target"
+								]
+							},
+							"examples": [
+								{
+									"args": "[[2,7,11], 9]",
+									"expected": "[0,1]"
+								},
+								{
+									"args": "[[1,1], 2]",
+									"expected": "[0,1]"
+								}
+							]
+						},
+						{
+							"id": "q2",
+							"topicId": "pt_maps",
+							"title": "Hash maps",
+							"statement": "When is a hash map slow?",
+							"kind": "text"
+						}
+					],
+					"answers": {
+						"q1": {
+							"text": "function pairSum() { return [0, 1]; }",
+							"language": "javascript",
+							"code": {
+								"javascript": "function pairSum() { return [0, 1]; }"
+							},
+							"seconds": 600,
+							"submitted": true
+						},
+						"q2": {
+							"text": "When keys collide.",
+							"seconds": 125,
+							"submitted": false
+						}
+					},
+					"startedAt": "2026-11-12T09:00:00.000Z",
+					"endedAt": "2026-11-12T09:31:20.000Z",
+					"grades": {
+						"q1": {
+							"verdict": "great",
+							"feedback": "x"
+						},
+						"q2": {
+							"verdict": "right"
+						},
+						"q3": {
+							"verdict": "wrong",
+							"feedback": ""
+						}
+					}
+				},
+				"output": {
+					"id": "mock_a1b2c3d4",
+					"n": 3,
+					"format": {
+						"questions": 2,
+						"minutes": 45
+					},
+					"createdAt": "2026-11-12T08:00:00.000Z",
+					"questions": [
+						{
+							"id": "q1",
+							"topicId": "pt_lists",
+							"title": "Pair sums",
+							"statement": "Return the indexes of two numbers that add up to `target`.",
+							"kind": "code",
+							"fn": {
+								"name": "pairSum",
+								"params": [
+									"nums",
+									"target"
+								]
+							},
+							"examples": [
+								{
+									"args": "[[2,7,11], 9]",
+									"expected": "[0,1]"
+								},
+								{
+									"args": "[[1,1], 2]",
+									"expected": "[0,1]"
+								}
+							]
+						},
+						{
+							"id": "q2",
+							"topicId": "pt_maps",
+							"title": "Hash maps",
+							"statement": "When is a hash map slow?",
+							"kind": "text"
+						}
+					],
+					"answers": {
+						"q1": {
+							"text": "function pairSum() { return [0, 1]; }",
+							"language": "javascript",
+							"code": {
+								"javascript": "function pairSum() { return [0, 1]; }"
+							},
+							"seconds": 600,
+							"submitted": true
+						},
+						"q2": {
+							"text": "When keys collide.",
+							"seconds": 125,
+							"submitted": false
+						}
+					},
+					"startedAt": "2026-11-12T09:00:00.000Z",
+					"endedAt": "2026-11-12T09:31:20.000Z",
+					"grades": {
+						"q3": {
+							"verdict": "wrong",
+							"feedback": ""
+						}
+					}
+				}
+			},
+			{
+				"raw": {
+					"version": 1,
+					"id": "mock_a1b2c3d4",
+					"n": 3,
+					"format": {
+						"questions": 2,
+						"minutes": 45
+					},
+					"createdAt": "2026-11-12T08:00:00.000Z",
+					"questions": [
+						{
+							"id": "q1",
+							"topicId": "pt_lists",
+							"title": "Pair sums",
+							"statement": "Return the indexes of two numbers that add up to `target`.",
+							"kind": "code",
+							"fn": {
+								"name": "pairSum",
+								"params": [
+									"nums",
+									"target"
+								]
+							},
+							"examples": [
+								{
+									"args": "[[2,7,11], 9]",
+									"expected": "[0,1]"
+								},
+								{
+									"args": "[[1,1], 2]",
+									"expected": "[0,1]"
+								}
+							]
+						},
+						{
+							"id": "q2",
+							"topicId": "pt_maps",
+							"title": "Hash maps",
+							"statement": "When is a hash map slow?",
+							"kind": "text"
+						}
+					],
+					"answers": {
+						"q1": {
+							"text": "function pairSum() { return [0, 1]; }",
+							"language": "javascript",
+							"code": {
+								"javascript": "function pairSum() { return [0, 1]; }"
+							},
+							"seconds": 600,
+							"submitted": true
+						},
+						"q2": {
+							"text": "When keys collide.",
+							"seconds": 125,
+							"submitted": false
+						}
+					},
+					"startedAt": "2026-11-12T09:00:00.000Z",
+					"endedAt": "2026-11-12T09:31:20.000Z",
+					"grades": "none"
+				},
+				"output": {
+					"id": "mock_a1b2c3d4",
+					"n": 3,
+					"format": {
+						"questions": 2,
+						"minutes": 45
+					},
+					"createdAt": "2026-11-12T08:00:00.000Z",
+					"questions": [
+						{
+							"id": "q1",
+							"topicId": "pt_lists",
+							"title": "Pair sums",
+							"statement": "Return the indexes of two numbers that add up to `target`.",
+							"kind": "code",
+							"fn": {
+								"name": "pairSum",
+								"params": [
+									"nums",
+									"target"
+								]
+							},
+							"examples": [
+								{
+									"args": "[[2,7,11], 9]",
+									"expected": "[0,1]"
+								},
+								{
+									"args": "[[1,1], 2]",
+									"expected": "[0,1]"
+								}
+							]
+						},
+						{
+							"id": "q2",
+							"topicId": "pt_maps",
+							"title": "Hash maps",
+							"statement": "When is a hash map slow?",
+							"kind": "text"
+						}
+					],
+					"answers": {
+						"q1": {
+							"text": "function pairSum() { return [0, 1]; }",
+							"language": "javascript",
+							"code": {
+								"javascript": "function pairSum() { return [0, 1]; }"
+							},
+							"seconds": 600,
+							"submitted": true
+						},
+						"q2": {
+							"text": "When keys collide.",
+							"seconds": 125,
+							"submitted": false
+						}
+					},
+					"startedAt": "2026-11-12T09:00:00.000Z",
+					"endedAt": "2026-11-12T09:31:20.000Z"
+				}
+			},
+			{
+				"raw": "mock",
+				"output": null
+			},
+			{
+				"raw": null,
+				"output": null
+			},
+			{
+				"raw": [],
+				"output": null
+			}
+		]
+	},
+	{
+		"name": "runner source",
+		"output": [
+			"def x():\n  pass\n;(async () => {\n\tconst __out = [];\n\tconst __fn = typeof pairSum === \"function\" && pairSum !== globalThis.pairSum ? pairSum : null;\n\tfor (const __args of [\"[[2,7,11], 9]\",\"[\\\"é \\\\\\\"q\\\\\\\"\\\", {\\\"a\\\": [1, null]}]\",\"[1e3, -0]\"]) {\n\t\tif (!__fn) {\n\t\t\t__out.push({ error: \"Your code has no function named pairSum.\" });\n\t\t\tcontinue;\n\t\t}\n\t\ttry {\n\t\t\tconst __text = JSON.stringify(await __fn(...JSON.parse(__args)));\n\t\t\t__out.push(__text === undefined ? { error: \"It returned nothing.\" } : { returned: __text });\n\t\t} catch (__err) {\n\t\t\t__out.push({ error: __err instanceof Error ? `${__err.name}: ${__err.message}` : String(__err) });\n\t\t}\n\t}\n\tconsole.log(\"\\n__godspeed_mark__\" + JSON.stringify(__out));\n})();\n",
+			"\n;(async () => {\n\tconst __out = [];\n\tconst __fn = typeof f === \"function\" && f !== globalThis.f ? f : null;\n\tfor (const __args of []) {\n\t\tif (!__fn) {\n\t\t\t__out.push({ error: \"Your code has no function named f.\" });\n\t\t\tcontinue;\n\t\t}\n\t\ttry {\n\t\t\tconst __text = JSON.stringify(await __fn(...JSON.parse(__args)));\n\t\t\t__out.push(__text === undefined ? { error: \"It returned nothing.\" } : { returned: __text });\n\t\t} catch (__err) {\n\t\t\t__out.push({ error: __err instanceof Error ? `${__err.name}: ${__err.message}` : String(__err) });\n\t\t}\n\t}\n\tconsole.log(\"\\nM\" + JSON.stringify(__out));\n})();\n",
+			"def x():\n  pass\n\ndef __godspeed_run():\n    import json\n    out = []\n    fn = globals().get(\"pairSum\")\n    for args in json.loads(\"[\\\"[[2,7,11], 9]\\\",\\\"[\\\\\\\"é \\\\\\\\\\\\\\\"q\\\\\\\\\\\\\\\"\\\\\\\", {\\\\\\\"a\\\\\\\": [1, null]}]\\\",\\\"[1e3, -0]\\\"]\"):\n        if not callable(fn):\n            out.append({\"error\": \"Your code has no function named pairSum.\"})\n            continue\n        try:\n            out.append({\"returned\": json.dumps(fn(*json.loads(args)))})\n        except Exception as err:\n            out.append({\"error\": type(err).__name__ + \": \" + str(err)})\n    print(\"\\n__godspeed_mark__\" + json.dumps(out))\n\n__godspeed_run()\n",
+			"\n\ndef __godspeed_run():\n    import json\n    out = []\n    fn = globals().get(\"f\")\n    for args in json.loads(\"[]\"):\n        if not callable(fn):\n            out.append({\"error\": \"Your code has no function named f.\"})\n            continue\n        try:\n            out.append({\"returned\": json.dumps(fn(*json.loads(args)))})\n        except Exception as err:\n            out.append({\"error\": type(err).__name__ + \": \" + str(err)})\n    print(\"\\nM\" + json.dumps(out))\n\n__godspeed_run()\n"
+		]
+	},
+	{
+		"name": "read run",
+		"output": {
+			"examples": [
+				{
+					"args": "[[2,7,11], 9]",
+					"expected": "[0,1]"
+				},
+				{
+					"args": "[\"é \\\"q\\\"\", {\"a\": [1, null]}]",
+					"expected": "{\"b\": 2.5, \"a\": [true]}"
+				},
+				{
+					"args": "[1e3, -0]",
+					"expected": "1000.0000000001"
+				}
+			],
+			"cases": [
+				{
+					"stdout": "\n@@[{\"returned\":\"[0, 1]\"},{\"returned\":\"{\\\"a\\\": [true], \\\"b\\\": 2.5}\"},{\"returned\":\"1000\"}]\n",
+					"stderr": "",
+					"output": {
+						"examples": [
+							{
+								"returned": "[0,1]",
+								"passed": true
+							},
+							{
+								"returned": "{\"a\":[true],\"b\":2.5}",
+								"passed": true
+							},
+							{
+								"returned": "1000",
+								"passed": true
+							}
+						]
+					}
+				},
+				{
+					"stdout": "hi\n  there  \n@@[{\"returned\":\"[1,0]\"},{\"error\":\"ZeroDivisionError: division by zero\"}]\nafter",
+					"stderr": "",
+					"output": {
+						"examples": [
+							{
+								"returned": "[1,0]",
+								"passed": false
+							},
+							{
+								"error": "ZeroDivisionError: division by zero",
+								"passed": false
+							},
+							{
+								"error": "It didn't run.",
+								"passed": false
+							}
+						],
+						"printed": "hi\n  there"
+					}
+				},
+				{
+					"stdout": "@@[{\"returned\":\"not json\"},{\"returned\":5},7]",
+					"stderr": "",
+					"output": {
+						"examples": [
+							{
+								"returned": "not json",
+								"passed": false
+							},
+							{
+								"error": "It didn't run.",
+								"passed": false
+							},
+							{
+								"error": "It didn't run.",
+								"passed": false
+							}
+						]
+					}
+				},
+				{
+					"stdout": "@@{\"returned\":\"1\"}",
+					"stderr": "boom",
+					"output": {
+						"examples": [],
+						"error": "boom"
+					}
+				},
+				{
+					"stdout": "@@[1,2",
+					"stderr": "  File \"solution.py\", line 2\n    return [\n           ^\nSyntaxError: '[' was never closed\n",
+					"output": {
+						"examples": [],
+						"error": "  File \"solution.py\", line 2\n    return [\n           ^\nSyntaxError: '[' was never closed"
+					}
+				},
+				{
+					"stdout": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+					"stderr": "",
+					"output": {
+						"examples": [],
+						"error": "Your code stopped before the examples ran.",
+						"printed": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+					}
+				},
+				{
+					"stdout": "@@[]\n@@[{\"returned\":\"[0,1]\"}]",
+					"stderr": "",
+					"output": {
+						"examples": [
+							{
+								"returned": "[0,1]",
+								"passed": true
+							},
+							{
+								"error": "It didn't run.",
+								"passed": false
+							},
+							{
+								"error": "It didn't run.",
+								"passed": false
+							}
+						],
+						"printed": "@@[]"
+					}
+				},
+				{
+					"stdout": "",
+					"stderr": "line 0\nline 1\nline 2\nline 3\nline 4\nline 5\nline 6\nline 7\nline 8\nline 9\nline 10\nline 11\nline 12\nline 13\nline 14\n    at Object.<anonymous> (node:internal/x:1:1)\nNode.js v24.1.0\n",
+					"output": {
+						"examples": [],
+						"error": "line 3\nline 4\nline 5\nline 6\nline 7\nline 8\nline 9\nline 10\nline 11\nline 12\nline 13\nline 14"
+					}
+				},
+				{
+					"stdout": "",
+					"stderr": "\n\n   \n",
+					"output": {
+						"examples": [],
+						"error": "Your code stopped before the examples ran."
+					}
+				},
+				{
+					"stdout": "é😀 before\r\n@@[]",
+					"stderr": "",
+					"output": {
+						"examples": [
+							{
+								"error": "It didn't run.",
+								"passed": false
+							},
+							{
+								"error": "It didn't run.",
+								"passed": false
+							},
+							{
+								"error": "It didn't run.",
+								"passed": false
+							}
+						],
+						"printed": "é😀 before"
+					}
+				}
+			]
+		}
+	},
+	{
+		"name": "requests",
+		"output": {
+			"topics": [
+				{
+					"id": "pt_a",
+					"name": "A",
+					"status": "strong",
+					"answered": 0,
+					"right": 0,
+					"rate": null
+				},
+				{
+					"id": "pt_b",
+					"name": "B",
+					"status": "untested",
+					"answered": 0,
+					"right": 0,
+					"rate": null
+				},
+				{
+					"id": "pt_c",
+					"name": "C",
+					"status": "shaky",
+					"answered": 0,
+					"right": 0,
+					"rate": null
+				},
+				{
+					"id": "pt_d",
+					"name": "D",
+					"status": "weak",
+					"answered": 0,
+					"right": 0,
+					"rate": null
+				},
+				{
+					"id": "pt_e",
+					"name": "E",
+					"status": "weak",
+					"answered": 0,
+					"right": 0,
+					"rate": null
+				}
+			],
+			"questions": [
+				"They are preparing for: Backend intern online test\n\nWhat it is like:\nTwo coding questions.\nNo libraries.\n\nWrite a mock of exactly 1 question for 45 minutes.\n\nThe sheet's topics, the ones that most need work first (topic_id: name, how it is going):\n- pt_d: D (weak)\n- pt_e: E (weak)\n- pt_c: C (shaky)\n- pt_b: B (not tested yet)\n- pt_a: A (strong)\n\nEarlier mocks asked these. Don't ask them again:\n- Pair sums\n- Hash maps",
+				"They are preparing for: g\n\nWhat it is like:\n\n\nWrite a mock of exactly 10 questions for 240 minutes."
+			],
+			"mock": {
+				"id": "mock_a1b2c3d4",
+				"n": 3,
+				"format": {
+					"questions": 2,
+					"minutes": 45
+				},
+				"createdAt": "2026-11-12T08:00:00.000Z",
+				"questions": [
+					{
+						"id": "q1",
+						"topicId": "pt_lists",
+						"title": "Pair sums",
+						"statement": "Return the indexes of two numbers that add up to `target`.",
+						"kind": "code",
+						"fn": {
+							"name": "pairSum",
+							"params": [
+								"nums",
+								"target"
+							]
+						},
+						"examples": [
+							{
+								"args": "[[2,7,11], 9]",
+								"expected": "[0,1]"
+							},
+							{
+								"args": "[[1,1], 2]",
+								"expected": "[0,1]"
+							}
+						]
+					},
+					{
+						"id": "q2",
+						"topicId": "pt_maps",
+						"title": "Hash maps",
+						"statement": "When is a hash map slow?",
+						"kind": "text"
+					}
+				],
+				"answers": {
+					"q1": {
+						"text": "function pairSum() { return [0, 1]; }",
+						"language": "javascript",
+						"code": {
+							"javascript": "function pairSum() { return [0, 1]; }"
+						},
+						"seconds": 600,
+						"submitted": true
+					},
+					"q2": {
+						"text": "When keys collide.",
+						"seconds": 125,
+						"submitted": false
+					}
+				},
+				"startedAt": "2026-11-12T09:00:00.000Z",
+				"endedAt": "2026-11-12T09:31:20.000Z",
+				"grades": {
+					"q1": {
+						"verdict": "wrong",
+						"feedback": "It always returns [0, 1]."
+					},
+					"q2": {
+						"verdict": "partly",
+						"feedback": "Collisions, yes; resizing too."
+					}
+				}
+			},
+			"runs": {
+				"q1": {
+					"examples": [
+						{
+							"returned": "[0,1]",
+							"passed": true
+						},
+						{
+							"error": "TypeError: x is not iterable",
+							"passed": false
+						},
+						{
+							"passed": false
+						}
+					]
+				}
+			},
+			"short": {
+				"id": "mock_a1b2c3d4",
+				"n": 3,
+				"format": {
+					"questions": 2,
+					"minutes": 45
+				},
+				"createdAt": "2026-11-12T08:00:00.000Z",
+				"questions": [
+					{
+						"id": "q1",
+						"topicId": "pt_lists",
+						"title": "Pair sums",
+						"statement": "Return the indexes of two numbers that add up to `target`.",
+						"kind": "code",
+						"fn": {
+							"name": "pairSum",
+							"params": [
+								"nums",
+								"target"
+							]
+						},
+						"examples": [
+							{
+								"args": "[[2,7,11], 9]",
+								"expected": "[0,1]"
+							},
+							{
+								"args": "[[1,1], 2]",
+								"expected": "[0,1]"
+							}
+						]
+					},
+					{
+						"id": "q2",
+						"topicId": "pt_maps",
+						"title": "Hash maps",
+						"statement": "When is a hash map slow?",
+						"kind": "text"
+					}
+				],
+				"answers": {},
+				"startedAt": "2026-11-12T09:00:00.000Z",
+				"endedAt": "2026-11-12T09:00:30.000Z"
+			},
+			"running": {
+				"id": "mock_a1b2c3d4",
+				"n": 3,
+				"format": {
+					"questions": 2,
+					"minutes": 45
+				},
+				"createdAt": "2026-11-12T08:00:00.000Z",
+				"questions": [
+					{
+						"id": "q1",
+						"topicId": "pt_lists",
+						"title": "Pair sums",
+						"statement": "Return the indexes of two numbers that add up to `target`.",
+						"kind": "code",
+						"fn": {
+							"name": "pairSum",
+							"params": [
+								"nums",
+								"target"
+							]
+						},
+						"examples": [
+							{
+								"args": "[[2,7,11], 9]",
+								"expected": "[0,1]"
+							},
+							{
+								"args": "[[1,1], 2]",
+								"expected": "[0,1]"
+							}
+						]
+					},
+					{
+						"id": "q2",
+						"topicId": "pt_maps",
+						"title": "Hash maps",
+						"statement": "When is a hash map slow?",
+						"kind": "text"
+					}
+				],
+				"answers": {},
+				"startedAt": "2026-11-12T09:00:00.000Z"
+			},
+			"timedOut": {
+				"q1": {
+					"examples": [],
+					"error": "Your code ran for more than 5 seconds and was stopped."
+				}
+			},
+			"grades": [
+				"They are preparing for: Backend intern online test\nMock 3: 2 questions in 45 minutes. They used 32 of them.\n\n## q1: Pair sums (code)\nReturn the indexes of two numbers that add up to `target`.\nFunction: pairSum(nums, target). Examples (arguments, then what it returns):\n- [[2,7,11], 9] returns [0,1]\n- [[1,1], 2] returns [0,1]\nTheir answer (JavaScript, 10 min):\n```javascript\nfunction pairSum() { return [0, 1]; }\n```\nRun on the examples here: example 1 passed, example 2 threw TypeError: x is not iterable, example 3 returned undefined.\n\n## q2: Hash maps (written)\nWhen is a hash map slow?\nTheir answer (2 min, never submitted):\n```\nWhen keys collide.\n```",
+				"They are preparing for: g\nMock 3: 2 questions in 45 minutes. They used 1 of them.\n\n## q1: Pair sums (code)\nReturn the indexes of two numbers that add up to `target`.\nFunction: pairSum(nums, target). Examples (arguments, then what it returns):\n- [[2,7,11], 9] returns [0,1]\n- [[1,1], 2] returns [0,1]\nThey left this blank. Don't grade it.\n\n## q2: Hash maps (written)\nWhen is a hash map slow?\nThey left this blank. Don't grade it.",
+				"They are preparing for: g\nMock 3: 2 questions in 45 minutes.\n\n## q1: Pair sums (code)\nReturn the indexes of two numbers that add up to `target`.\nFunction: pairSum(nums, target). Examples (arguments, then what it returns):\n- [[2,7,11], 9] returns [0,1]\n- [[1,1], 2] returns [0,1]\nThey left this blank. Don't grade it.\n\n## q2: Hash maps (written)\nWhen is a hash map slow?\nThey left this blank. Don't grade it."
+			],
+			"blankGraded": {
+				"id": "mock_a1b2c3d4",
+				"n": 3,
+				"format": {
+					"questions": 2,
+					"minutes": 45
+				},
+				"createdAt": "2026-11-12T08:00:00.000Z",
+				"questions": [
+					{
+						"id": "q1",
+						"topicId": "pt_lists",
+						"title": "Pair sums",
+						"statement": "Return the indexes of two numbers that add up to `target`.",
+						"kind": "code",
+						"fn": {
+							"name": "pairSum",
+							"params": [
+								"nums",
+								"target"
+							]
+						},
+						"examples": [
+							{
+								"args": "[[2,7,11], 9]",
+								"expected": "[0,1]"
+							},
+							{
+								"args": "[[1,1], 2]",
+								"expected": "[0,1]"
+							}
+						]
+					},
+					{
+						"id": "q2",
+						"topicId": "pt_maps",
+						"title": "Hash maps",
+						"statement": "When is a hash map slow?",
+						"kind": "text"
+					}
+				],
+				"answers": {},
+				"startedAt": "2026-11-12T09:00:00.000Z",
+				"endedAt": "2026-11-12T09:05:00.000Z",
+				"grades": {}
+			},
+			"goOver": [
+				"[Mock question] The learner wants to go over this question from Mock 3. Start from what they wrote: say what was right, find the gap, and have them fix it themselves before anything new.\n\n## q1: Pair sums (code)\nReturn the indexes of two numbers that add up to `target`.\nFunction: pairSum(nums, target). Examples (arguments, then what it returns):\n- [[2,7,11], 9] returns [0,1]\n- [[1,1], 2] returns [0,1]\nTheir answer (JavaScript, 10 min):\n```javascript\nfunction pairSum() { return [0, 1]; }\n```\n\nYour grade then: wrong. Your feedback then:\nIt always returns [0, 1].",
+				"[Mock question] The learner wants to go over this question from Mock 3. Start from what they wrote: say what was right, find the gap, and have them fix it themselves before anything new.\n\n## q2: Hash maps (written)\nWhen is a hash map slow?\nTheir answer (2 min, never submitted):\n```\nWhen keys collide.\n```\n\nYour grade then: partly. Your feedback then:\nCollisions, yes; resizing too.",
+				"[Mock question] The learner wants to go over this question from Mock 3. Start from what they wrote: say what was right, find the gap, and have them fix it themselves before anything new.\n\n## q2: Hash maps (written)\nWhen is a hash map slow?\n\nThey left it blank in the mock.",
+				null
+			]
+		}
+	}
+]
