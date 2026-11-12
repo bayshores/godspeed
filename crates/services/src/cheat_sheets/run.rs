@@ -21,6 +21,7 @@ use super::files::{files_for_agent, keep_files};
 use super::folder::working_folder;
 use super::{BUSY, Failed, NEWER, Outcome, Running, Stop, changed, refuse};
 use crate::App;
+use crate::spaces::citations::check_cites;
 use crate::spaces::space_search::space_search;
 
 /// A message as the route parsed it.
@@ -165,6 +166,10 @@ fn start_run(app: &Arc<App>, ctx: &Context, message_id: &str) -> Outcome<()> {
 		title,
 		prompt,
 		lookups: search_tools(space_search(app, &ctx.space_id)),
+		check_text: Box::new({
+			let app = app.clone();
+			move |text| check_cites(&app, text)
+		}),
 		take_pdf: Box::new(move |path| {
 			let (app, folder) = (task_app.clone(), folder_path.clone());
 			Box::pin(async move { take_sheet_pdf(&app, &folder, &path).await })

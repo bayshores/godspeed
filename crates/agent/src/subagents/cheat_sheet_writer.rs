@@ -28,6 +28,7 @@ const CHEAT_SHEET_INSTRUCTIONS: &str = r#"You help a learner with their cheat sh
 - A change, or something on the sheet that is wrong or would confuse a beginner: edit the source in the working folder, compile it, check it (below) and send the PDF as pdf_path, with a short note in text of what changed.
 - When the learner says something that should hold for every later change ("A4, both sides", "no slang"), put it in new_rules, one short line each. Follow every one of the sheet's rules.
 - Write for a beginner who barely studied: plain words, no slang, no notation the space doesn't use. Methods that work for any problem of a kind, never one practice problem's details. A mistake becomes the rule it broke. Where one part depends on another, say where to look ("see card 4").
+- When your reply says where something on the sheet comes from, put the passage id in double square brackets right after that sentence in text, like [[f_1a2b3c4d5e6f:7]]. Only in text, never on the sheet itself. The learner can click it to see the passage.
 - Where the sheet's rules don't settle the space's rules for this exam (paper size, sides, what's allowed), find them with search_space_files and read_passage. Never break them.
 - Keep the source in the working folder (LaTeX works well: sheet.tex with latexmk, tectonic or pdflatex). A change edits it; don't start over. One PDF page per side. Black on white unless asked. No em-dashes.
 - Before sending a PDF, check it: count the pages and check their size (pdfinfo); render each page to an image (pdftoppm -r 60 -png) and look at every one; nothing runs off a page, overlaps or is too small to read; every formula and method agrees with the space's material. Fix what you find first."#;
@@ -61,12 +62,17 @@ pub struct TakenPdf {
 /// Checks and reads the PDF at a path: it, or why it cannot be used.
 pub type TakePdf = Box<dyn Fn(String) -> BoxFuture<'static, Result<TakenPdf, String>> + Send + Sync>;
 
+/// Checks the source marks in the reply text: the text to keep, and the marks that point at
+/// nothing.
+pub type CheckText = Box<dyn Fn(&str) -> (String, Vec<String>) + Send + Sync>;
+
 pub struct SheetRequest {
 	/// "CSE 21 Midterm": the work item's label.
 	pub title: String,
 	/// The request (core `cheat_sheet_request_text`), with the learner's pictures.
 	pub prompt: Json,
 	pub lookups: Vec<Arc<dyn Tool>>,
+	pub check_text: CheckText,
 	pub take_pdf: TakePdf,
 	pub engine: Engine,
 	pub signal: Abort,
@@ -83,6 +89,7 @@ pub struct SheetReply {
 /// Answers one message about the sheet; fails when the agent never sends a usable reply.
 pub async fn reply_on_sheet(bridge: &Bridge, input: SheetRequest) -> Result<SheetReply, RunError> {
 	let pdf: Arc<Mutex<Option<TakenPdf>>> = Arc::default();
+	let text: Arc<Mutex<String>> = Arc::default();
 	let mut opts = SubmitAgentOptions::new(
 		"sheet_reply",
 		"Answer the learner: your words, and the new PDF's path when you made or changed the sheet.",
@@ -102,12 +109,18 @@ pub async fn reply_on_sheet(bridge: &Bridge, input: SheetRequest) -> Result<Shee
 	}));
 	// The PDF is read here, once, so what was checked is what is kept.
 	opts.validate = Some(Box::new({
-		let (pdf, take_pdf) = (pdf.clone(), input.take_pdf);
+		let (pdf, text, check_text, take_pdf) = (pdf.clone(), text.clone(), input.check_text, input.take_pdf);
 		move |value: &Json| {
+			*pdf.lock() = None;
+			let (checked, removed) = check_text(value["text"].as_str().unwrap_or_default());
+			if !removed.is_empty() {
+				let problem = format!("These source marks don't point at a passage of a space file: {}. Use ids from search_space_files, or leave them out.", removed.join(", "));
+				return Box::pin(async move { Some(problem) });
+			}
+			*text.lock() = checked;
 			let taking = value["path"].as_str().map(|path| take_pdf(path.to_owned()));
 			let pdf = pdf.clone();
 			Box::pin(async move {
-				*pdf.lock() = None;
 				match taking?.await {
 					Ok(taken) => {
 						*pdf.lock() = Some(taken);
@@ -126,7 +139,8 @@ pub async fn reply_on_sheet(bridge: &Bridge, input: SheetRequest) -> Result<Shee
 	let reply = run_submit_agent(bridge, opts).await?;
 	let rules = reply["rules"].as_arr().into_iter().flatten().filter_map(|r| r.as_str().map(str::to_owned)).collect();
 	let pdf = pdf.lock().take();
-	Ok(SheetReply { text: reply["text"].as_str().unwrap_or_default().to_owned(), pdf, rules })
+	let text = std::mem::take(&mut *text.lock());
+	Ok(SheetReply { text, pdf, rules })
 }
 
 #[cfg(test)]
@@ -141,6 +155,7 @@ mod tests {
 			title: "Space Midterm".to_owned(),
 			prompt: Json::from("Make it A4."),
 			lookups: Vec::new(),
+			check_text: Box::new(|text: &str| if text.contains("[[f_000000000000:9]]") { (String::new(), vec!["f_000000000000:9".to_owned()]) } else { (text.replace("[[f_000000000000:1]]", "[[f_000000000000/p. 3/notes.pdf]]"), Vec::new()) }),
 			take_pdf: Box::new(|path: String| {
 				Box::pin(async move { if path == "bad.pdf" { Err("The PDF has 9 pages; a cheat sheet has 1 to 4.".to_owned()) } else { Ok(TakenPdf { bytes: b"%PDF".to_vec(), pages: vec![json!({ "w": 1, "h": 1 })], file: format!("/work/{path}") }) } })
 			}),
@@ -172,6 +187,17 @@ mod tests {
 		let script = Scripted::new();
 		script.reply(gs_engine::turn::messages::faux_assistant_message(vec![gs_engine::turn::messages::text_block("hi")], "stop"));
 		assert_eq!(reply_on_sheet(&bridge(), request(&script)).await, Err(RunError::Failed("the agent never answered".to_owned())));
+	}
+
+	#[tokio::test]
+	async fn a_mark_that_points_at_nothing_goes_back_and_the_checked_text_is_kept() {
+		let script = Scripted::new();
+		let seen = Arc::new(Mutex::new(Vec::new()));
+		script.reply(calls(&[("sheet_reply", json!({ "text": "It adds up. [[f_000000000000:9]]" }))]));
+		reply_seeing(&script, calls(&[("sheet_reply", json!({ "text": "It adds up. [[f_000000000000:1]]" }))]), &seen);
+		let reply = reply_on_sheet(&bridge(), request(&script)).await.unwrap();
+		assert_eq!(reply.text, "It adds up. [[f_000000000000/p. 3/notes.pdf]]");
+		assert!(result_texts(&seen.lock()[0])[0].contains("These source marks don't point at a passage of a space file: f_000000000000:9. Use ids from search_space_files, or leave them out."));
 	}
 
 	#[test]
