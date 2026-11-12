@@ -41,6 +41,7 @@ icu_locale_core = "2.4"
 image = { version = "0.25.10", default-features = false, features = ["png", "jpeg", "gif", "webp"] }
 indexmap = "2.14"
 jiff = "0.2.42"
+markdown = "=1.0.0"
 objc2 = "=0.6.5"
 objc2-app-kit = { version = "=0.3.2", default-features = false, features = ["std"] }
 objc2-foundation = { version = "=0.3.2", default-features = false, features = ["std"] }
@@ -66,6 +67,7 @@ tauri-plugin-single-instance = "=2.5.5"
 tauri-plugin-updater = "=2.14.1"
 tokenizers = { version = "0.22.2", default-features = false, features = ["fancy-regex"] }
 tower = { version = "0.5.3", default-features = false }
+url = "2.5.8"
 tokio = { version = "1.54", features = ["rt-multi-thread", "macros", "time", "sync", "signal", "io-util", "io-std", "net", "process", "fs"] }
 webkit2gtk = { version = "=2.0.2", features = ["v2_38"] }
 webview2-com = "=0.39.1"

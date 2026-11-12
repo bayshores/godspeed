@@ -112,6 +112,16 @@ pub(super) fn patch_file(app: &Arc<App>, space_id: &str, file_id: &str, patch: P
 	file_in(&next, file_id).cloned()
 }
 
+/// Why a file can't be copied into a space; None when it can.
+pub fn copied_file_problem(name: &str, bytes: &[u8]) -> Option<String> {
+	let clean = safe_name(name);
+	if is_readable_space_file(&clean, || Some(looks_like_text(bytes))) == Some(true) {
+		return None;
+	}
+	let supported: Vec<&str> = supported_space_file_extensions().collect();
+	Some(format!("{clean}: unsupported file type. Supported: {}, and plain text with no extension. Google Docs need saving as PDF or Word first.", supported.join(" ")))
+}
+
 /// Copies a file into the space (the "Add files…" button, MCP add_space_file).
 pub fn add_copied_file(app: &Arc<App>, space_id: &str, name: &str, bytes: &[u8], kind: &str) -> SpaceOutcome<Json> {
 	// Held from the check to the list entry: a space deleted in between would leave the copy in a
@@ -120,15 +130,10 @@ pub fn add_copied_file(app: &Arc<App>, space_id: &str, name: &str, bytes: &[u8],
 	if app.stores.spaces.get_space(space_id).is_none() {
 		return no_space();
 	}
-	let clean = safe_name(name);
-	if is_readable_space_file(&clean, || Some(looks_like_text(bytes))) != Some(true) {
-		let supported: Vec<&str> = supported_space_file_extensions().collect();
-		return fail(
-			400,
-			"unsupported_type",
-			format!("{clean}: unsupported file type. Supported: {}, and plain text with no extension. Google Docs need saving as PDF or Word first.", supported.join(" ")),
-		);
+	if let Some(problem) = copied_file_problem(name, bytes) {
+		return fail(400, "unsupported_type", problem);
 	}
+	let clean = safe_name(name);
 	let id = new_file_id();
 	let rel = format!("{id}/{clean}");
 	let Ok(dir) = app.stores.spaces.files_dir(space_id) else { return no_space() };

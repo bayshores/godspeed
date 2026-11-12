@@ -6,6 +6,7 @@ pub mod spaces;
 pub mod cheat_sheets;
 pub mod graph;
 pub mod app;
+pub mod preps;
 
 use std::sync::Arc;
 
@@ -30,6 +31,7 @@ pub struct App {
 	pub cheat_sheets: cheat_sheets::CheatSheetsState,
 	pub graph: graph::GraphState,
 	pub misc: app::MiscState,
+	pub preps: preps::PrepsState,
 	/// The desktop shell, when it started us (`LH_SHELL=1`): demo checks and window logins go through it.
 	pub shell: Option<gs_shell_rpc::ShellLink>,
 }
@@ -50,6 +52,7 @@ impl App {
 			cheat_sheets: Default::default(),
 			graph: Default::default(),
 			misc: Default::default(),
+			preps: Default::default(),
 			shell,
 			paths,
 			events,

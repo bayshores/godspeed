@@ -55,6 +55,11 @@ fn space_lessons(app: &App, space_id: &str) -> Vec<Json> {
 	app.stores.chats.list_chats().into_iter().filter(|c| c["spaceId"].as_str() == Some(space_id)).collect()
 }
 
+/// Every graded answer in the space's lessons.
+pub fn space_answers(app: &App, space_id: &str) -> Vec<Json> {
+	space_lessons(app, space_id).iter().filter_map(|c| lesson_readout(app, c["id"].str_or_empty())).flat_map(|readout| readout.answers.clone()).collect()
+}
+
 /// The space's problems (practice and study) the learner solved only with hints.
 pub fn hinted_problems(app: &App, space_id: &str) -> Vec<Json> {
 	space_lessons(app, space_id)

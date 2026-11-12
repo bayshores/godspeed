@@ -8,6 +8,7 @@ use std::collections::HashSet;
 use gs_base::{clock, ids, text};
 use gs_json::{Json, Obj, json, stringify};
 
+use super::citations::cites_in_words;
 use super::message_id::new_message_id;
 use crate::contracts::chat::{CONCLUDE_ACK_TEXT, HANDOFF_TEXT, NEXT_PROBLEM_TEXT};
 use crate::session::question_core::compact_answer_for_model;
@@ -39,14 +40,14 @@ pub fn send_to_user_text(block: &Json) -> Option<String> {
 }
 
 /// The text a message shows the learner: plain text blocks and `send_to_user` messages, minus
-/// the calls in `failed`.
+/// the calls in `failed`, with source marks written out in words.
 pub fn user_facing_text_of(content: &Json, failed: Option<&HashSet<String>>) -> Vec<String> {
 	match content {
 		Json::Str(s) => {
 			if text::trim(s).is_empty() {
 				vec![]
 			} else {
-				vec![s.clone()]
+				vec![cites_in_words(s)]
 			}
 		}
 		Json::Arr(blocks) => blocks
@@ -55,6 +56,7 @@ pub fn user_facing_text_of(content: &Json, failed: Option<&HashSet<String>>) -> 
 			.filter(|b| !(b["type"].as_str() == Some("toolCall") && failed.is_some_and(|f| b["id"].as_str().is_some_and(|id| f.contains(id)))))
 			.filter_map(|b| if b["type"].as_str() == Some("text") { b["text"].as_str().map(str::to_owned) } else { send_to_user_text(b) })
 			.filter(|t| !text::trim(t).is_empty())
+			.map(|t| cites_in_words(&t))
 			.collect(),
 		_ => vec![],
 	}

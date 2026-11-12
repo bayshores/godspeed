@@ -1,0 +1,835 @@
+[
+	{
+		"name": "content spans",
+		"output": [
+			{
+				"text": "",
+				"spans": []
+			},
+			{
+				"text": "plain words",
+				"spans": [
+					[
+						"prose",
+						"plain words"
+					]
+				]
+			},
+			{
+				"text": "a `b` c",
+				"spans": [
+					[
+						"prose",
+						"a "
+					],
+					[
+						"code",
+						"`b`"
+					],
+					[
+						"prose",
+						" c"
+					]
+				]
+			},
+			{
+				"text": "x $y$ z",
+				"spans": [
+					[
+						"prose",
+						"x "
+					],
+					[
+						"math",
+						"$y$"
+					],
+					[
+						"prose",
+						" z"
+					]
+				]
+			},
+			{
+				"text": "```\n$a$\n```\nafter",
+				"spans": [
+					[
+						"code",
+						"```\n$a$\n```"
+					],
+					[
+						"prose",
+						"\nafter"
+					]
+				]
+			},
+			{
+				"text": "~~~js\nlet a = `x`;\n~~~",
+				"spans": [
+					[
+						"code",
+						"~~~js\nlet a = `x`;\n~~~"
+					]
+				]
+			},
+			{
+				"text": "```\nnever closed $x$",
+				"spans": [
+					[
+						"code",
+						"```\nnever closed $x$"
+					]
+				]
+			},
+			{
+				"text": "    indented code $x$\n\nthen $y$",
+				"spans": [
+					[
+						"code",
+						"    indented code $x$"
+					],
+					[
+						"prose",
+						"\n\nthen "
+					],
+					[
+						"math",
+						"$y$"
+					]
+				]
+			},
+			{
+				"text": "- item `code` and $m$\n  - nested ``a ` b`` done",
+				"spans": [
+					[
+						"prose",
+						"- item "
+					],
+					[
+						"code",
+						"`code`"
+					],
+					[
+						"prose",
+						" and "
+					],
+					[
+						"math",
+						"$m$"
+					],
+					[
+						"prose",
+						"\n  - nested "
+					],
+					[
+						"code",
+						"``a ` b``"
+					],
+					[
+						"prose",
+						" done"
+					]
+				]
+			},
+			{
+				"text": "> quote `q`\n> more $r$\n\nout",
+				"spans": [
+					[
+						"prose",
+						"> quote "
+					],
+					[
+						"code",
+						"`q`"
+					],
+					[
+						"prose",
+						"\n> more "
+					],
+					[
+						"math",
+						"$r$"
+					],
+					[
+						"prose",
+						"\n\nout"
+					]
+				]
+			},
+			{
+				"text": "> ```\n> fenced in quote\n> ```\nlazy",
+				"spans": [
+					[
+						"prose",
+						"> "
+					],
+					[
+						"code",
+						"```\n> fenced in quote\n> ```"
+					],
+					[
+						"prose",
+						"\nlazy"
+					]
+				]
+			},
+			{
+				"text": "1. one\n\n   ```\n   inside list\n   ```\n2. two `x`",
+				"spans": [
+					[
+						"prose",
+						"1. one\n\n   "
+					],
+					[
+						"code",
+						"```\n   inside list\n   ```"
+					],
+					[
+						"prose",
+						"\n2. two "
+					],
+					[
+						"code",
+						"`x`"
+					]
+				]
+			},
+			{
+				"text": "$$\nx\n$$",
+				"spans": [
+					[
+						"math",
+						"$$\nx\n$$"
+					]
+				]
+			},
+			{
+				"text": "  $$\n  a + b\n  $$\ntail",
+				"spans": [
+					[
+						"prose",
+						"  "
+					],
+					[
+						"math",
+						"$$\n  a + b\n  $$"
+					],
+					[
+						"prose",
+						"\ntail"
+					]
+				]
+			},
+			{
+				"text": "$$x$$ inline display",
+				"spans": [
+					[
+						"math",
+						"$$x$$"
+					],
+					[
+						"prose",
+						" inline display"
+					]
+				]
+			},
+			{
+				"text": "$$ a $$ and $$\nb\n$$",
+				"spans": [
+					[
+						"math",
+						"$$ a $$"
+					],
+					[
+						"prose",
+						" and "
+					],
+					[
+						"math",
+						"$$\nb\n$$"
+					]
+				]
+			},
+			{
+				"text": "$$\nunclosed display",
+				"spans": [
+					[
+						"prose",
+						"$$\nunclosed display"
+					]
+				]
+			},
+			{
+				"text": "costs $5 and\n\nthen $6",
+				"spans": [
+					[
+						"prose",
+						"costs $5 and\n\nthen $6"
+					]
+				]
+			},
+			{
+				"text": "a \\$x$ b",
+				"spans": [
+					[
+						"prose",
+						"a \\$x$ b"
+					]
+				]
+			},
+			{
+				"text": "$a `$` b$",
+				"spans": [
+					[
+						"math",
+						"$a `$"
+					],
+					[
+						"prose",
+						"` b$"
+					]
+				]
+			},
+			{
+				"text": "see \\(x\\) and \\[y\\]",
+				"spans": [
+					[
+						"prose",
+						"see "
+					],
+					[
+						"math",
+						"\\(x\\)"
+					],
+					[
+						"prose",
+						" and "
+					],
+					[
+						"math",
+						"\\[y\\]"
+					]
+				]
+			},
+			{
+				"text": "\\(a\n\nb\\)",
+				"spans": [
+					[
+						"prose",
+						"\\(a\n\nb\\)"
+					]
+				]
+			},
+			{
+				"text": "\\[a\n\nb\\]",
+				"spans": [
+					[
+						"math",
+						"\\[a\n\nb\\]"
+					]
+				]
+			},
+			{
+				"text": "\\\\(not math\\)",
+				"spans": [
+					[
+						"prose",
+						"\\\\(not math\\)"
+					]
+				]
+			},
+			{
+				"text": "`a $b` c$ d",
+				"spans": [
+					[
+						"code",
+						"`a $b`"
+					],
+					[
+						"prose",
+						" c$ d"
+					]
+				]
+			},
+			{
+				"text": "$$$ three $$$ two $$ end",
+				"spans": [
+					[
+						"math",
+						"$$$ three $$$"
+					],
+					[
+						"prose",
+						" two $$ end"
+					]
+				]
+			},
+			{
+				"text": "é😀 `x` $y$",
+				"spans": [
+					[
+						"prose",
+						"é😀 "
+					],
+					[
+						"code",
+						"`x`"
+					],
+					[
+						"prose",
+						" "
+					],
+					[
+						"math",
+						"$y$"
+					]
+				]
+			},
+			{
+				"text": "line\r\n```\r\ncode\r\n```\r\n$z$",
+				"spans": [
+					[
+						"prose",
+						"line\r\n"
+					],
+					[
+						"code",
+						"```\r\ncode\r\n```"
+					],
+					[
+						"prose",
+						"\r\n"
+					],
+					[
+						"math",
+						"$z$"
+					]
+				]
+			},
+			{
+				"text": "<span>`not code`</span> `code`",
+				"spans": [
+					[
+						"prose",
+						"<span>"
+					],
+					[
+						"code",
+						"`not code`"
+					],
+					[
+						"prose",
+						"</span> "
+					],
+					[
+						"code",
+						"`code`"
+					]
+				]
+			},
+			{
+				"text": "[link `x`](http://a.b) `y`",
+				"spans": [
+					[
+						"prose",
+						"[link "
+					],
+					[
+						"code",
+						"`x`"
+					],
+					[
+						"prose",
+						"](http://a.b) "
+					],
+					[
+						"code",
+						"`y`"
+					]
+				]
+			},
+			{
+				"text": "*emph `c`* **$m$**",
+				"spans": [
+					[
+						"prose",
+						"*emph "
+					],
+					[
+						"code",
+						"`c`"
+					],
+					[
+						"prose",
+						"* **"
+					],
+					[
+						"math",
+						"$m$"
+					],
+					[
+						"prose",
+						"**"
+					]
+				]
+			},
+			{
+				"text": "\t\tcode by tabs\n\n`x`",
+				"spans": [
+					[
+						"code",
+						"\t\tcode by tabs"
+					],
+					[
+						"prose",
+						"\n\n"
+					],
+					[
+						"code",
+						"`x`"
+					]
+				]
+			},
+			{
+				"text": "a ``` b",
+				"spans": [
+					[
+						"prose",
+						"a ``` b"
+					]
+				]
+			},
+			{
+				"text": "``\n`\n``",
+				"spans": [
+					[
+						"code",
+						"``\n`\n``"
+					]
+				]
+			},
+			{
+				"text": "$\\$$ and $a\\$b$",
+				"spans": [
+					[
+						"math",
+						"$\\$$"
+					],
+					[
+						"prose",
+						" and "
+					],
+					[
+						"math",
+						"$a\\$b$"
+					]
+				]
+			},
+			{
+				"text": "`unclosed and $math$",
+				"spans": [
+					[
+						"prose",
+						"`unclosed and "
+					],
+					[
+						"math",
+						"$math$"
+					]
+				]
+			},
+			{
+				"text": "# Heading `h`\nSetext `s`\n---\n$x$",
+				"spans": [
+					[
+						"prose",
+						"# Heading "
+					],
+					[
+						"code",
+						"`h`"
+					],
+					[
+						"prose",
+						"\nSetext "
+					],
+					[
+						"code",
+						"`s`"
+					],
+					[
+						"prose",
+						"\n---\n"
+					],
+					[
+						"math",
+						"$x$"
+					]
+				]
+			},
+			{
+				"text": "text\n```\n$$$\n```",
+				"spans": [
+					[
+						"prose",
+						"text\n"
+					],
+					[
+						"code",
+						"```\n$$$\n```"
+					]
+				]
+			}
+		]
+	},
+	{
+		"name": "marks read",
+		"output": [
+			{
+				"text": "A [[f_1a2b3c4d5e6f:7]] B [[f_1a2b3c4d5e6f/p. 12/Week 6 slides.pdf]] C [[https://example.com/page]]",
+				"marks": [
+					{
+						"kind": "passage",
+						"passageId": "f_1a2b3c4d5e6f:7"
+					},
+					{
+						"kind": "file",
+						"fileId": "f_1a2b3c4d5e6f",
+						"range": "p. 12",
+						"name": "Week 6 slides.pdf"
+					},
+					{
+						"kind": "web",
+						"url": "https://example.com/page"
+					}
+				],
+				"swapped": "A <1> B <2> C <3>",
+				"words": "A  B  (Week 6 slides.pdf, p. 12) C  (https://example.com/page)"
+			},
+			{
+				"text": "[[f_1a2b3c4d5e6f/p. 3/a/b.pdf]]",
+				"marks": [
+					{
+						"kind": "file",
+						"fileId": "f_1a2b3c4d5e6f",
+						"range": "p. 3",
+						"name": "a/b.pdf"
+					}
+				],
+				"swapped": "<1>",
+				"words": " (a/b.pdf, p. 3)"
+			},
+			{
+				"text": "[[1,2],[3,4]]",
+				"marks": [],
+				"swapped": "[[1,2],[3,4]]",
+				"words": "[[1,2],[3,4]]"
+			},
+			{
+				"text": "see [[note]]",
+				"marks": [],
+				"swapped": "see [[note]]",
+				"words": "see [[note]]"
+			},
+			{
+				"text": "[[f_1a2b:7]]",
+				"marks": [],
+				"swapped": "[[f_1a2b:7]]",
+				"words": "[[f_1a2b:7]]"
+			},
+			{
+				"text": "[[f_1a2b3c4d5e6f]]",
+				"marks": [],
+				"swapped": "[[f_1a2b3c4d5e6f]]",
+				"words": "[[f_1a2b3c4d5e6f]]"
+			},
+			{
+				"text": "[[ftp://example.com/a]]",
+				"marks": [],
+				"swapped": "[[ftp://example.com/a]]",
+				"words": "[[ftp://example.com/a]]"
+			},
+			{
+				"text": "[[https://]]",
+				"marks": [],
+				"swapped": "[[https://]]",
+				"words": "[[https://]]"
+			},
+			{
+				"text": "[[https://a b]]",
+				"marks": [],
+				"swapped": "[[https://a b]]",
+				"words": "[[https://a b]]"
+			},
+			{
+				"text": "[[http://exa mple.com]]",
+				"marks": [],
+				"swapped": "[[http://exa mple.com]]",
+				"words": "[[http://exa mple.com]]"
+			},
+			{
+				"text": "[[https://exa%mple.com]]",
+				"marks": [],
+				"swapped": "[[https://exa%mple.com]]",
+				"words": "[[https://exa%mple.com]]"
+			},
+			{
+				"text": "[[https://[::1]:8080/x]]",
+				"marks": [],
+				"swapped": "[[https://[::1]:8080/x]]",
+				"words": "[[https://[::1]:8080/x]]"
+			},
+			{
+				"text": "[[https://例え.jp/パス]]",
+				"marks": [
+					{
+						"kind": "web",
+						"url": "https://例え.jp/パス"
+					}
+				],
+				"swapped": "<1>",
+				"words": " (https://例え.jp/パス)"
+			},
+			{
+				"text": "[[https://example.com:99999/]]",
+				"marks": [],
+				"swapped": "[[https://example.com:99999/]]",
+				"words": "[[https://example.com:99999/]]"
+			},
+			{
+				"text": "[[f_1a2b3c4d5e6f:7\n]]",
+				"marks": [],
+				"swapped": "[[f_1a2b3c4d5e6f:7\n]]",
+				"words": "[[f_1a2b3c4d5e6f:7\n]]"
+			},
+			{
+				"text": "Write `[[f_1a2b3c4d5e6f:7]]` like this.",
+				"marks": [],
+				"swapped": "Write `[[f_1a2b3c4d5e6f:7]]` like this.",
+				"words": "Write `[[f_1a2b3c4d5e6f:7]]` like this."
+			},
+			{
+				"text": "```\n[[f_1a2b3c4d5e6f:7]]\n```",
+				"marks": [],
+				"swapped": "```\n[[f_1a2b3c4d5e6f:7]]\n```",
+				"words": "```\n[[f_1a2b3c4d5e6f:7]]\n```"
+			},
+			{
+				"text": "The set $[[f_1a2b3c4d5e6f:7]]$ is odd.",
+				"marks": [],
+				"swapped": "The set $[[f_1a2b3c4d5e6f:7]]$ is odd.",
+				"words": "The set $[[f_1a2b3c4d5e6f:7]]$ is odd."
+			},
+			{
+				"text": "$$\n[[f_1a2b3c4d5e6f:7]]\n$$",
+				"marks": [],
+				"swapped": "$$\n[[f_1a2b3c4d5e6f:7]]\n$$",
+				"words": "$$\n[[f_1a2b3c4d5e6f:7]]\n$$"
+			},
+			{
+				"text": "Real one [[f_1a2b3c4d5e6f:7]] and `[[https://example.com/page]]`",
+				"marks": [
+					{
+						"kind": "passage",
+						"passageId": "f_1a2b3c4d5e6f:7"
+					}
+				],
+				"swapped": "Real one <1> and `[[https://example.com/page]]`",
+				"words": "Real one  and `[[https://example.com/page]]`"
+			},
+			{
+				"text": "- list [[f_1a2b3c4d5e6f/p. 12/Week 6 slides.pdf]]\n  > quote [[https://example.com/page]]",
+				"marks": [
+					{
+						"kind": "file",
+						"fileId": "f_1a2b3c4d5e6f",
+						"range": "p. 12",
+						"name": "Week 6 slides.pdf"
+					},
+					{
+						"kind": "web",
+						"url": "https://example.com/page"
+					}
+				],
+				"swapped": "- list <1>\n  > quote <2>",
+				"words": "- list  (Week 6 slides.pdf, p. 12)\n  > quote  (https://example.com/page)"
+			},
+			{
+				"text": "[[[f_1a2b3c4d5e6f:7]]]",
+				"marks": [
+					{
+						"kind": "passage",
+						"passageId": "f_1a2b3c4d5e6f:7"
+					}
+				],
+				"swapped": "[<1>]",
+				"words": "[]"
+			},
+			{
+				"text": "[[xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx]] [[f_1a2b3c4d5e6f:7]]",
+				"marks": [
+					{
+						"kind": "passage",
+						"passageId": "f_1a2b3c4d5e6f:7"
+					}
+				],
+				"swapped": "[[xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx]] <1>",
+				"words": "[[xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx]] "
+			},
+			{
+				"text": "[[f_1a2b3c4d5e6f:7]][[f_1a2b3c4d5e6f:7]][[f_1a2b3c4d5e6f/p. 12/Week 6 slides.pdf]]",
+				"marks": [
+					{
+						"kind": "passage",
+						"passageId": "f_1a2b3c4d5e6f:7"
+					},
+					{
+						"kind": "passage",
+						"passageId": "f_1a2b3c4d5e6f:7"
+					},
+					{
+						"kind": "file",
+						"fileId": "f_1a2b3c4d5e6f",
+						"range": "p. 12",
+						"name": "Week 6 slides.pdf"
+					}
+				],
+				"swapped": "<1><2><3>",
+				"words": " (Week 6 slides.pdf, p. 12)"
+			}
+		]
+	},
+	{
+		"name": "stored marks",
+		"output": [
+			{
+				"name": "Week 6 slides.pdf",
+				"mark": "[[f_1a2b3c4d5e6f/p. 3/Week 6 slides.pdf]]",
+				"words": "It frees memory.  (Week 6 slides.pdf, p. 3) Then $x+1$ and `free`."
+			},
+			{
+				"name": "Notes [draft] [[v2]].pdf",
+				"mark": "[[f_1a2b3c4d5e6f/p. 3/Notes  draft    v2  .pdf]]",
+				"words": "It frees memory.  (Notes  draft    v2  .pdf, p. 3) Then $x+1$ and `free`."
+			},
+			{
+				"name": "HW$2 notes.pdf",
+				"mark": "[[f_1a2b3c4d5e6f/p. 3/HW 2 notes.pdf]]",
+				"words": "It frees memory.  (HW 2 notes.pdf, p. 3) Then $x+1$ and `free`."
+			},
+			{
+				"name": "week`3.pdf",
+				"mark": "[[f_1a2b3c4d5e6f/p. 3/week 3.pdf]]",
+				"words": "It frees memory.  (week 3.pdf, p. 3) Then $x+1$ and `free`."
+			},
+			{
+				"name": "a\nb.pdf",
+				"mark": "[[f_1a2b3c4d5e6f/p. 3/a b.pdf]]",
+				"words": "It frees memory.  (a b.pdf, p. 3) Then $x+1$ and `free`."
+			}
+		]
+	},
+	{
+		"name": "session export",
+		"output": "### Learner\n\nWhere is this from?  (Week 6 slides.pdf, p. 12)\n\n### Teacher\n\nChunks are cut by page. (Week 6 slides.pdf, p. 12) See  (https://example.com/page), and .\n\n### Teacher\n\nCode `[[f_1a2b3c4d5e6f/p. 12/Week 6 slides.pdf]]` stays."
+	}
+]

@@ -9,6 +9,8 @@ publish.workspace = true
 [dependencies]
 gs-json.workspace = true
 gs-base.workspace = true
+markdown.workspace = true
+url.workspace = true
 
 [features]
 test-support = []
