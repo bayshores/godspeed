@@ -44,6 +44,10 @@ pub fn boot_info(app: &Arc<App>) -> Json {
 			fields.insert("teacherName", name.clone());
 		}
 		fields.insert("sounds", general["sounds"].as_bool() != Some(false));
+		// The saved look, so the first paint already has its colors.
+		if let Some(appearance) = record.as_ref().and_then(|r| r.get("appearance")) {
+			fields.insert("appearance", appearance.clone());
+		}
 	}
 	boot
 }
@@ -65,7 +69,7 @@ mod tests {
 		assert_eq!(first["whatsNewSince"], Json::Null);
 		assert_eq!(stringify(&first["spaces"]), "[]");
 		assert_eq!(first["sounds"].as_bool(), Some(true));
-		assert!(first.get("teacherName").is_none());
+		assert!(first.get("teacherName").is_none() && first.get("appearance").is_none());
 		let again = boot_info(&app);
 		assert_eq!(again["firstLoad"], Json::Null);
 		assert_eq!(again["onboarding"].as_bool(), Some(true));
@@ -75,9 +79,10 @@ mod tests {
 	fn the_answer_keeps_the_keys_in_order_and_reads_the_learners_choices() {
 		let root = scratch_dir("boot-general");
 		let app = test_app(&root);
-		app.stores.settings.write_settings(&json!({ "version": 2, "general": { "onboarded": true, "lastSeenVersion": VERSION, "teacherName": "Zed", "sounds": false, "activeSpace": "cls_gone" } })).unwrap();
+		app.stores.settings.write_settings(&json!({ "version": 2, "general": { "onboarded": true, "lastSeenVersion": VERSION, "teacherName": "Zed", "sounds": false, "activeSpace": "cls_gone" }, "appearance": { "background": "#123456", "proseFontSize": 18 } })).unwrap();
 		let boot = boot_info(&app);
-		assert_eq!(boot.as_obj().unwrap().keys().map(String::as_str).collect::<Vec<_>>(), ["onboarding", "firstLoad", "whatsNewSince", "folderNotice", "activeSpace", "sounds", "spaces", "teacherName"]);
+		assert_eq!(boot.as_obj().unwrap().keys().map(String::as_str).collect::<Vec<_>>(), ["onboarding", "firstLoad", "whatsNewSince", "folderNotice", "activeSpace", "sounds", "spaces", "teacherName", "appearance"]);
+		assert_eq!(stringify(&boot["appearance"]), r##"{"background":"#123456","proseFontSize":18}"##);
 		assert_eq!(boot["activeSpace"], Json::Null);
 		assert_eq!(boot["teacherName"].as_str(), Some("Zed"));
 		assert_eq!(boot["sounds"].as_bool(), Some(false));
