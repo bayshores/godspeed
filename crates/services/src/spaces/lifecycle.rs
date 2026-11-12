@@ -37,13 +37,19 @@ pub fn request_space_scope(app: &App, raw: Option<&str>) -> Option<Option<String
 	Some(scope)
 }
 
-/// `patch` may hold `name`, `description`, `archived`, `signature` (null clears it), `icon` and
-/// `rules`.
+/// `patch` may hold `name`, `description`, `archived`, `signature` (null clears it), `icon`,
+/// `color` and `rules`.
 pub fn update_space(app: &App, id: &str, patch: &Json) -> SpaceOutcome<Json> {
 	if app.stores.spaces.get_space(id).is_none() {
 		return no_space();
 	}
 	app.stores.spaces.update_space(id, patch).map_err(SpaceFailure::thrown)
+}
+
+/// Closes the summary of the teacher's last round of work on a space (nothing happens while a
+/// round is still going).
+pub fn close_space_work(app: &App, id: &str) -> Result<(), String> {
+	app.stores.spaces.close_work(id).map(|_| ())
 }
 
 fn lessons_of(app: &App, space_id: &str) -> Vec<Json> {

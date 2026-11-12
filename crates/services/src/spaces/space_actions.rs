@@ -29,8 +29,8 @@ pub const READING_NOTE: &str = "The reading work comes to you through wait_for_w
 /// Sends a lesson's first message (chat id, text); Err holds the refusal's body text.
 pub type SendFirstMessage = Arc<dyn Fn(String, String) -> Pin<Box<dyn Future<Output = Result<(), String>> + Send>> + Send + Sync>;
 
-/// The space tools for one caller. `open_started`: the learner asked for the lesson in Talk, so
-/// the window opens it even with Follow off.
+/// The space tools for one caller. `open_started`: the learner asked for the lesson or the space in
+/// Talk, so the window opens it even with Follow off.
 pub fn space_actions(app: &Arc<App>, caller: Option<&str>, send: SendFirstMessage, open_started: bool) -> SpaceActions {
 	SpaceActions { app: app.clone(), caller: caller.map(str::to_owned), send, open_started }
 }
@@ -91,6 +91,16 @@ fn signature_arg(args: &Json) -> Result<Option<Json>, ()> {
 }
 
 impl SpaceActions {
+	/// The change marked `open` when the learner asked for it in Talk.
+	fn opened(&self, mut change: Json) -> Json {
+		if self.open_started
+			&& let Some(obj) = change.as_obj_mut()
+		{
+			obj.insert("open", true);
+		}
+		change
+	}
+
 	fn space_exists(&self, space_id: &str) -> bool {
 		self.app.stores.spaces.get_space(space_id).is_some()
 	}
@@ -300,7 +310,7 @@ impl SpaceActions {
 			Ok(view) => view,
 			Err(err) => return ToolOutcome::Err(err),
 		};
-		self.done(json!({ "space": view }), vec![change(label, &created["id"], "space", id, "/space")])
+		self.done(json!({ "space": view }), vec![self.opened(change(label, &created["id"], "space", id, "/space"))])
 	}
 
 	pub fn update_space(&self, args: &Json) -> ToolOutcome {
@@ -535,12 +545,7 @@ impl SpaceActions {
 			return ToolOutcome::Err(format!("The lesson was created but could not start: {body}"));
 		}
 		let space_json = scope.map_or(Json::Null, Json::from);
-		let mut started = change(format!("Starting {title}"), &space_json, "lesson", &chat_id, &format!("/chat/{chat_id}"));
-		if self.open_started
-			&& let Some(obj) = started.as_obj_mut()
-		{
-			obj.insert("open", true);
-		}
+		let started = self.opened(change(format!("Starting {title}"), &space_json, "lesson", &chat_id, &format!("/chat/{chat_id}")));
 		self.done(json!({ "status": "started", "lessonId": chat_id, "title": title }), vec![started])
 	}
 
@@ -568,6 +573,21 @@ impl SpaceActions {
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use crate::app::agent_actions::recent_agent_actions;
+	use crate::app::test_support::{scratch_dir, test_app};
+
+	#[test]
+	fn a_space_made_from_talk_opens_and_one_made_by_the_agent_alone_does_not() {
+		let root = scratch_dir("space-actions-open");
+		let app = test_app(&root);
+		let send: SendFirstMessage = Arc::new(|_, _| Box::pin(async { Ok(()) }));
+		for (name, open_started) in [("Algebra", true), ("Biology", false)] {
+			let made = space_actions(&app, Some("Teacher"), send.clone(), open_started).create_space(&json!({ "name": name }));
+			assert!(matches!(made, ToolOutcome::Ok { .. }));
+			let action = recent_agent_actions(&app).into_iter().find(|a| a["label"].as_str() == Some(&format!("Creating {name}"))).unwrap();
+			assert_eq!(action["open"].as_bool(), open_started.then_some(true));
+		}
+	}
 
 	#[test]
 	fn folder_names_like_the_ts() {

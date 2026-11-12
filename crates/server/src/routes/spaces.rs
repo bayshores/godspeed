@@ -8,15 +8,17 @@ use axum::body::Body;
 use axum::extract::{Path, State};
 use axum::http::{HeaderMap, Uri, header};
 use axum::response::Response;
-use gs_base::text;
-use gs_core::contracts::space::{SIGNATURE_MAX, clean_signature, is_space_icon, is_space_id};
+use gs_base::{clock, text};
+use gs_core::contracts::space::{SIGNATURE_MAX, clean_signature, is_space_color, is_space_icon, is_space_id};
+use gs_core::spaces::today_note::local_day;
 use gs_json::{Json, Obj, json};
 use gs_services::App;
 use gs_services::app::agent_actions::record_deadline_change;
 use gs_services::app::agent_folder::{space_shortcut_dir, shortcut_path_problem};
 use gs_services::spaces::{
-	SpaceFailure, add_space_deadline, add_copied_file, deadline_with_space, delete_space, folder_status_of, link_folder, list_space_deadlines, list_open_deadlines,
-	remove_space_deadline, remove_file, retry_file, scan_linked_folder, set_file_kind, start_space_scanner, unlink_folder, update_space, update_space_deadline,
+	SpaceFailure, add_copied_file, add_space_deadline, close_space_work, deadline_with_space, delete_space, folder_status_of, link_folder, list_deadlines_done_on,
+	list_open_deadlines, list_space_deadlines, remove_file, remove_space_deadline, retry_file, scan_linked_folder, set_file_kind, start_space_scanner, unlink_folder,
+	update_space, update_space_deadline,
 };
 use gs_services::spaces::space_card::space_file_path;
 use gs_services::turns::ask_about_new_deadlines;
@@ -31,6 +33,7 @@ pub fn routes() -> Router<Arc<App>> {
 	Router::new()
 		.route("/api/spaces", ApiRoute::new().get(list).post(create).into_route())
 		.route("/api/spaces/{id}", ApiRoute::new().get(read).put(edit).delete(remove).into_route())
+		.route("/api/spaces/{id}/work", ApiRoute::new().delete(close_work).into_route())
 		.route("/api/spaces/{id}/files", ApiRoute::new().post(add_files).into_route())
 		.route("/api/spaces/{id}/files/{file_id}", ApiRoute::new().get(file_path).put(change_file).delete(remove_one_file).into_route())
 		.route("/api/spaces/{id}/folder", ApiRoute::new().put(link).delete(unlink).into_route())
@@ -94,8 +97,8 @@ async fn read(State(app): State<Arc<App>>, Path(id): Path<String>, uri: Uri) -> 
 	reply::json(200, &json!({ "space": record, "folder": folder_status_of(&app, &id), "shortcuts": shortcuts }))
 }
 
-/// PUT /api/spaces/{id} { name?, description?, archived?, signature?, icon?, rules? } (a null
-/// signature clears it).
+/// PUT /api/spaces/{id} { name?, description?, archived?, signature?, icon?, color?, rules? } (a
+/// null signature clears it).
 async fn edit(State(app): State<Arc<App>>, Path(id): Path<String>, body: Body) -> Result<Response, Unhandled> {
 	if !is_space_id(&id) {
 		return Ok(no_such_space());
@@ -117,6 +120,10 @@ async fn edit(State(app): State<Arc<App>>, Path(id): Path<String>, body: Body) -
 	if icon.is_some_and(|i| !is_space_icon(i)) {
 		return Ok(error(400, "Unknown space icon"));
 	}
+	let color = field(&body, "color");
+	if color.is_some_and(|c| !is_space_color(c)) {
+		return Ok(error(400, "Unknown space color"));
+	}
 	let rules = field(&body, "rules");
 	if rules.is_some_and(|r| r.as_arr().is_none_or(|list| list.iter().any(|r| r.as_str().is_none()))) {
 		return Ok(error(400, "rules must be a list of strings"));
@@ -137,6 +144,9 @@ async fn edit(State(app): State<Arc<App>>, Path(id): Path<String>, body: Body) -
 	if let Some(icon) = icon {
 		patch.insert("icon", icon.clone());
 	}
+	if let Some(color) = color {
+		patch.insert("color", color.clone());
+	}
 	if let Some(rules) = rules {
 		patch.insert("rules", rules.clone());
 	}
@@ -156,6 +166,16 @@ async fn remove(State(app): State<Arc<App>>, Path(id): Path<String>) -> Result<R
 		Ok(lesson_ids) => Ok(reply::json(200, &json!({ "ok": true, "lessonIds": lesson_ids }))),
 		Err(failure) => refused(failure),
 	}
+}
+
+/// DELETE /api/spaces/{id}/work: closes the summary of the teacher's last round of work on the
+/// space (nothing happens while a round is still going).
+async fn close_work(State(app): State<Arc<App>>, Path(id): Path<String>) -> Result<Response, Unhandled> {
+	if !is_space_id(&id) {
+		return Ok(no_such_space());
+	}
+	close_space_work(&app, &id)?;
+	Ok(reply::json(200, &json!({ "ok": true })))
 }
 
 /// POST /api/spaces/{id}/files: multipart, field "kind" ("study" or "info") and one or more
@@ -352,9 +372,11 @@ async fn homework(State(app): State<Arc<App>>, Path((id, deadline_id)): Path<(St
 	}
 }
 
-/// GET /api/deadlines: every open deadline of every space not archived, soonest due first (Home).
+/// GET /api/deadlines: from every space that is not archived, soonest due first, `deadlines` not
+/// yet done and `doneToday` ticked done today (Today).
 async fn open_deadlines(State(app): State<Arc<App>>) -> Response {
-	reply::json(200, &json!({ "deadlines": list_open_deadlines(&app) }))
+	let today = local_day(clock::now_ms());
+	reply::json(200, &json!({ "deadlines": list_open_deadlines(&app), "doneToday": list_deadlines_done_on(&app, &today) }))
 }
 
 /// GET /api/deadlines/{id}: one deadline with its space id. 404 once it is gone.
