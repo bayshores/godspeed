@@ -73,7 +73,7 @@ mod tests {
 		use std::os::windows::fs::OpenOptionsExt;
 		let dir = temp("lockfile");
 		assert!(!electron_running(&dir));
-		let held = std::fs::OpenOptions::new().write(true).create(true).share_mode(0).open(dir.join("lockfile")).unwrap();
+		let held = std::fs::OpenOptions::new().write(true).create(true).truncate(true).share_mode(0).open(dir.join("lockfile")).unwrap();
 		assert!(electron_running(&dir));
 		drop(held);
 		assert!(!electron_running(&dir));
