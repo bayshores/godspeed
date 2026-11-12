@@ -133,14 +133,14 @@ python3 -B scripts/graph.py find "*chain rule*"
 python3 -B scripts/graph.py chains
 python3 -B scripts/graph.py chains --node n_EXAMPLE
 python3 -B scripts/graph.py --format json propositions
-python3 -B scripts/graph.py classes
-python3 -B scripts/graph.py --class cls_EXAMPLE sessions
+python3 -B scripts/graph.py spaces
+python3 -B scripts/graph.py --space cls_EXAMPLE sessions
 ```
 
-**Classes.** The learner may organize learning by class (a university course).
-Each class has its own lessons and its **own graph**. Without `--class`, the graph
-readers read the "No class" graph. Use `classes` to list class ids, then
-`--class <id>` for that class's graph. `sessions.py list` shows each session's class.
+**Spaces.** The learner may organize learning by space (a university course, a certification, a language).
+Each space has its own lessons and its **own graph**. Without `--space`, the graph
+readers read the "No space" graph. Use `spaces` to list space ids, then
+`--space <id>` for that space's graph. `sessions.py list` shows each session's space.
 
 The graph `sessions` index lists **birth sources** of propositions: teaching chats
 or imported-notes files. It is not the complete session list. `--session` selects

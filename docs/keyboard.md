@@ -50,7 +50,7 @@ the keys.
 | Action | Default | Who handles it |
 |---|---|---|
 | Open settings | ⌘, | `keyboard-shortcuts.tsx` |
-| Search lessons | ⌘⇧F | `src/frontend/components/search-lessons.tsx` (the Search lessons popup, over every class). In the search field ↑/↓ walk the results and Enter opens one (the first match if none is picked) |
+| Search lessons | ⌘⇧F | `src/frontend/components/search-lessons.tsx` (the Search lessons popup, over every space). In the search field ↑/↓ walk the results and Enter opens one (the first match if none is picked) |
 | Go to Graph | ⌘G | `keyboard-shortcuts.tsx`, goes to `/graph` |
 | Study | ⌘N | `keyboard-shortcuts.tsx`, goes to `/new` |
 | Rename lesson | F2 | `src/frontend/components/lesson/use-title-rename.ts` |
