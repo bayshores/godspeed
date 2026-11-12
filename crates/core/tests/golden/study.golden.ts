@@ -28,7 +28,7 @@ import {
 	withVersion,
 	withoutRule,
 } from "../../../../src/shared/core/cheat-sheet.ts";
-import { deadlineStudyTopicIds, factSpaceOrder, studyContextText, studyMode, studyPlanTree, studyTitle, studyTopics, topicStudy } from "../../../../src/shared/core/study.ts";
+import { deadlineStudyTopicIds, factSpaceOrder, isLatestWrong, studyContextText, studyPlanTree, studyTitle, studyTopics, topicStudy } from "../../../../src/shared/core/study.ts";
 
 const FIXTURES = path.resolve(import.meta.dirname, "../fixtures");
 const CSE21 = "cls_cvq4t7in_101dfecb";
@@ -153,9 +153,9 @@ const madeUp = {
 	topics: {
 		at: "2026-11-09T00:00:00.000Z",
 		topics: [
-			{ id: "T1", name: "One", members: ["f1", "f2", "gone"] },
+			{ id: "T1", name: "One", members: ["f1", "f2", "gone"], material: "term" },
 			{ id: "T2", name: "Two", members: ["f3"] },
-			{ id: "T3", name: "Three", members: ["f4"] },
+			{ id: "T3", name: "Three", members: ["f4"], material: "proof" },
 			{ id: "T4", name: "Four", members: ["f5", "f1"] },
 		],
 	},
@@ -192,9 +192,28 @@ const madeUp = {
 	deadlineSessions: [{ chatId: "c1", deadlineId: "d1", createdAt: "2026-11-01T00:00:00.000Z", done: 1, total: 3 }],
 	homeworkSessions: [{ chatId: "c2", deadlineId: "d1", createdAt: "2026-11-02T00:00:00.000Z" }],
 };
-add("derive a made-up space with every branch", { input: madeUp }, () => deriveProgress(madeUp as any));
+const MADE_UP = "derive a made-up space with every branch";
+add(MADE_UP, { input: madeUp }, () => deriveProgress(madeUp as any));
 
 for (const [i, t] of trimmed.entries()) add(`collect answers ${i}`, { chatId: t.id, messages: t.messages }, () => collectAnswers(t.id, t.messages));
+// Predictions are no evidence either way (their type read past model debris, the answer's own
+// type first); a study problem names its plan node.
+const quizTurn = (id: string, args: Record<string, unknown>, details: Record<string, unknown>) => [
+	{ role: "assistant", id: `m_${id}`, content: [{ type: "toolCall", id, name: "quiz", arguments: { question: `Q ${id}?`, ...args } }] },
+	{ role: "toolResult", id: `r_${id}`, toolCallId: id, toolName: "quiz", details: { kind: "quiz", correct: false, answeredAt: "2026-11-02T00:00:00.000Z", ...details } },
+];
+const predictionMessages = [
+	...quizTurn("q1", { type: "predict", nodeId: "n1" }, {}),
+	...quizTurn("q2", { type: "check" }, { questionType: '"predict"' }),
+	...quizTurn("q3", { type: "predict" }, { questionType: "check", confidence: 80 }),
+	...quizTurn("q4", { type: " predict:" }, { correct: true }),
+	...quizTurn("q5", { type: "check", nodeId: "n5" }, { dontKnow: true }),
+	{ role: "assistant", id: "m_p", content: [{ type: "toolCall", id: "p1", name: "problem", arguments: { statement: "Solve it", nodeId: "tpc_1", target: ["f1"] } }] },
+	{ role: "toolResult", id: "r_p1", toolCallId: "p1", toolName: "problem", timestamp: 1_762_000_000_000 },
+	{ role: "assistant", id: "m_c", content: [{ type: "toolCall", id: "c1", name: "conclude", arguments: { outcome: "surrendered" } }] },
+	{ role: "toolResult", id: "r_c1", toolCallId: "c1", toolName: "conclude", timestamp: 1_762_000_100_000 },
+];
+add("collect answers with predictions and study problems", { chatId: "c9", messages: predictionMessages }, () => collectAnswers("c9", predictionMessages as any));
 
 const rates = [null, 0, 0.2, 0.39, 0.4, 0.5, 0.69, 0.7, 0.9, 1];
 add("ramp color and status", { rates }, () => rates.map((r) => ({ color: rampColor(r), status: topicStatus(r) })));
@@ -209,9 +228,9 @@ add("days between", { pairs: dayPairs }, () => dayPairs.map(([a, b]) => daysBetw
 
 // ─── study sessions ─────────────────────────────────────────────────────────
 
-const progresses: Record<string, any> = { [BASE21]: progress21, [BASE29]: progress29 };
+const progresses: Record<string, any> = { [BASE21]: progress21, [BASE29]: progress29, [MADE_UP]: deriveProgress(madeUp as any) };
 for (const [name, p] of Object.entries(progresses)) {
-	const files = filesOf(name);
+	const files = name === MADE_UP ? madeUp.files : filesOf(name);
 	const facts = p.facts as any[];
 	add(`fact space order ${name}`, { from: name }, () => Object.fromEntries(factSpaceOrder(p.facts, files)));
 	const order = factSpaceOrder(p.facts, files);
@@ -249,17 +268,43 @@ for (const [name, p] of Object.entries(progresses)) {
 
 	for (const d of p.deadlines as any[]) {
 		for (const today of ["2026-10-01", "2026-11-05", "2026-11-10", "2027-03-01"]) {
-			add(`deadline study topics ${name} ${d.id} on ${today}`, { today, date: d.date, topics: d.topics }, () => deadlineStudyTopicIds(today, d));
+			add(`deadline study topics ${name} ${d.id} on ${today}`, { from: name, today, deadline: { date: d.date, topics: d.topics } }, () => deadlineStudyTopicIds(today, d, p.topics));
 		}
 		add(`plan days ${name} ${d.id}`, { today: "2026-11-05", due: d.date, topics: d.topics }, () => planDays("2026-11-05", d.date, d.topics));
 		add(`topics to work on ${name} ${d.id}`, { topics: d.topics }, () => topicsToWorkOn(d.topics));
 	}
 }
 
+// A strong topic not answered for a week comes back as a check; one answered six days ago, one
+// outside the deadline, one never answered and one with an unreadable time do not.
+const recheckDeadline = {
+	date: "2026-11-20",
+	topics: [
+		{ id: "a", name: "Alpha", rate: 0.2 },
+		{ id: "s", name: "Strong", rate: 0.9 },
+		{ id: "r", name: "Recent", rate: 0.95 },
+		{ id: "n", name: "Never", rate: null },
+		{ id: "x", name: "Unreadable", rate: 0.9 },
+	],
+};
+const strongTopic = (id: string, at: string) => ({ id, status: "strong", answers: [{ outcome: "right", answeredAt: "2026-10-01T12:00:00.000Z" }, { outcome: "right", answeredAt: at }] });
+const recheckTopics = [
+	strongTopic("s", "2026-11-03T12:00:00.000Z"),
+	strongTopic("r", "2026-11-04T12:00:00.000Z"),
+	strongTopic("elsewhere", "2026-10-01T12:00:00.000Z"),
+	{ id: "n", status: "strong", answers: [] },
+	strongTopic("x", "not a time"),
+	{ id: "a", status: "weak", answers: [{ outcome: "wrong", answeredAt: "2026-10-01T12:00:00.000Z" }] },
+];
+for (const today of ["2026-11-10", "2026-11-11", "2026-11-25"]) {
+	add(`deadline study topics recheck on ${today}`, { today, deadline: recheckDeadline, topics: recheckTopics }, () => deadlineStudyTopicIds(today, recheckDeadline, recheckTopics as any));
+}
+
 const sampleTopics = [
-	{ id: "tpc_a", name: "Counting", mode: "teach", factIds: ["n_1", "n_2"] },
-	{ id: "tpc_b", name: "Probability", mode: "problems", factIds: [] },
-	{ id: "topic", name: "Typed topic", mode: "check", factIds: ["n_3"] },
+	{ id: "tpc_a", name: "Counting", material: "procedure", status: "weak", latestWrong: true, factIds: ["n_1", "n_2"] },
+	{ id: "tpc_b", name: "Probability", status: "shaky", factIds: [] },
+	{ id: "topic", name: "Typed topic", status: "untested", factIds: ["n_3"] },
+	{ id: "tpc_c", name: "Induction", material: "proof", status: "strong", factIds: ["n_4"] },
 ];
 add("study title", { topics: sampleTopics }, () => studyTitle(sampleTopics as any));
 add("study title of one", { topics: sampleTopics.slice(0, 1) }, () => studyTitle(sampleTopics.slice(0, 1) as any));
@@ -274,8 +319,16 @@ const planTree = (topics: unknown[]) => {
 const twice = [...sampleTopics, sampleTopics[0]];
 add("study plan tree", { topics: sampleTopics }, () => planTree(sampleTopics));
 add("study plan tree with a topic twice", { topics: twice }, () => planTree(twice));
-const statuses = ["strong", "shaky", "weak", "untested"];
-add("study mode", { statuses }, () => statuses.map((s) => studyMode(s as any)));
+const latestPairs: [string, string | null][] = [
+	["weak", "wrong"],
+	["weak", "dontKnow"],
+	["weak", null],
+	["weak", "right"],
+	["shaky", "wrong"],
+	["strong", "wrong"],
+	["untested", null],
+];
+add("is latest wrong", { pairs: latestPairs }, () => latestPairs.map(([status, latest]) => isLatestWrong(status as any, (latest ?? undefined) as any)));
 
 // ─── plan days and topics to work on ────────────────────────────────────────
 

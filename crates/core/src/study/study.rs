@@ -1,19 +1,24 @@
-//! One session that decides per topic whether to teach, drill or just check (study.ts).
+//! One session over the picked topics (study.ts). At the start the picked facts become the
+//! session's topics, in the order the space covered them, each with its material (from the topic
+//! grouper) and where the learner stands on it; the study prompt's move table picks each topic's
+//! move from that pair.
 //!
-//! A study topic is `{ id, name, mode, factIds }`: the plan node id (the space topic's id, or
-//! `FREE_TOPIC_ID`), its name, its mode from the learner's track record ("teach", "problems" or
-//! "check") and the picked facts in it.
+//! A study topic (TS `StudyTopic`) is `{ id, name[, material], status[, latestWrong: true],
+//! factIds }`: the plan node id (the space topic's id, or `FREE_TOPIC_ID`), its name, its
+//! material, its status from the learner's track record, whether it is weak with a wrong newest
+//! answer, and the picked facts in it.
 
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 
-use gs_base::locale;
-use gs_json::{Json, json};
+use gs_base::{locale, time};
+use gs_json::{Json, Obj, json};
 
 use super::items;
-use super::progress::topic_facts;
+use super::progress::{days_between, topic_facts};
 use super::deadline_plan::plan_days;
 use crate::spaces::file_series::date_in_name;
+use crate::spaces::today_note::local_day;
 use crate::session::plan_tree::create_tree;
 
 /// The plan node of a typed topic that matches no fact.
@@ -22,13 +27,27 @@ pub const FREE_TOPIC_ID: &str = "topic";
 /// A session holds at most this many facts.
 pub const MAX_STUDY_FACTS: usize = 64;
 
-/// Never tested is taught, strong is checked, weak or shaky is drilled.
-pub fn study_mode(status: &str) -> &'static str {
-	match status {
-		"untested" => "teach",
-		"strong" => "check",
-		_ => "problems",
+/// A weak topic whose newest answer was not right: taught first again (the status is a lifetime
+/// rate, so a topic can stay weak after the learner has caught up).
+pub fn is_latest_wrong(status: &str, latest: Option<&str>) -> bool {
+	status == "weak" && latest != Some("right")
+}
+
+/// A progress topic (`{ id, name[, material], status, answers }`) as a study topic over `fact_ids`.
+fn study_topic(t: &Json, fact_ids: Vec<Json>) -> Json {
+	let status = t["status"].as_str().unwrap_or("");
+	let mut o = Obj::new();
+	o.insert("id", t["id"].clone());
+	o.insert("name", t["name"].clone());
+	if let Some(material) = t["material"].as_str().filter(|m| !m.is_empty()) {
+		o.insert("material", material);
 	}
+	o.insert("status", t["status"].clone());
+	if is_latest_wrong(status, items(&t["answers"]).last().and_then(|a| a["outcome"].as_str())) {
+		o.insert("latestWrong", true);
+	}
+	o.insert("factIds", fact_ids);
+	Json::Obj(o)
 }
 
 /// Each fact's place in the space's order: the files sorted the way the deadline page lists
@@ -68,15 +87,11 @@ fn in_space_order(topics: Vec<Json>, space_order: &HashMap<String, usize>) -> Ve
 	ranked.into_iter().map(|(_, t)| t).collect()
 }
 
-fn study_topic(id: &Json, name: &Json, status: &str, fact_ids: Vec<Json>) -> Json {
-	json!({ "id": id, "name": name, "mode": study_mode(status), "factIds": fact_ids })
-}
-
 /// The session's topics: the picked facts grouped by their space topic, in space order (a topic
 /// sits at its earliest fact; facts from no space file go last; ties keep the order the facts were
-/// picked in). When no picked fact is in a topic, the typed topic is the one "teach" topic.
+/// picked in). When no picked fact is in a topic, the typed topic is the one untested topic.
 ///
-/// `topics` are `{ id, name, members, status }`.
+/// `topics` are progress topics: `{ id, name, members[, material], status, answers }`.
 pub fn study_topics(picked: &[String], topics: &[Json], space_order: &HashMap<String, usize>, free_topic: &str) -> Vec<Json> {
 	let mut topic_of: HashMap<&str, &Json> = HashMap::new();
 	for t in topics {
@@ -92,7 +107,7 @@ pub fn study_topics(picked: &[String], topics: &[Json], space_order: &HashMap<St
 		match group_at.get(topic_id) {
 			None => {
 				group_at.insert(topic_id, groups.len());
-				groups.push(study_topic(&topic["id"], &topic["name"], topic["status"].as_str().unwrap_or(""), vec![Json::from(id.as_str())]));
+				groups.push(study_topic(topic, vec![Json::from(id.as_str())]));
 			}
 			Some(&i) => {
 				if !fact_ids(&groups[i]).contains(&id.as_str())
@@ -104,7 +119,7 @@ pub fn study_topics(picked: &[String], topics: &[Json], space_order: &HashMap<St
 		}
 	}
 	if groups.is_empty() {
-		return vec![study_topic(&Json::from(FREE_TOPIC_ID), &Json::from(free_topic), "untested", vec![])];
+		return vec![json!({ "id": FREE_TOPIC_ID, "name": free_topic, "status": "untested", "factIds": [] })];
 	}
 	in_space_order(groups, space_order)
 }
@@ -117,7 +132,7 @@ pub fn study_topics(picked: &[String], topics: &[Json], space_order: &HashMap<St
 /// A deadline start passes `studied_today` (the topics that are plan nodes of today's study
 /// sessions), so each Study click moves on: first the topics that are not strong and were not
 /// studied today, then not strong but studied today, then strong, each group in space order.
-/// `topics` are `{ id, name, members, status }`; `facts` are the progress payload's facts.
+/// `topics` are progress topics (as in `study_topics`); `facts` are the progress payload's facts.
 pub fn topic_study(topic_ids: &[String], topics: &[Json], facts: &[Json], space_order: &HashMap<String, usize>, studied_today: Option<&HashSet<String>>) -> Vec<Json> {
 	let mut by_id: HashMap<&str, &Json> = HashMap::new();
 	for t in topics {
@@ -131,14 +146,13 @@ pub fn topic_study(topic_ids: &[String], topics: &[Json], facts: &[Json], space_
 		}
 		if let Some(t) = by_id.get(id.as_str()) {
 			let ids: Vec<Json> = topic_facts(facts, t).iter().map(|f| f["id"].clone()).collect();
-			found.push(study_topic(&t["id"], &t["name"], t["status"].as_str().unwrap_or(""), ids));
+			found.push(study_topic(t, ids));
 		}
 	}
 	let candidates = in_space_order(found, space_order);
-	// "check" is exactly the strong topics.
 	let tier = |t: &Json| match studied_today {
 		None => 0,
-		Some(_) if t["mode"].as_str() == Some("check") => 2,
+		Some(_) if t["status"].as_str() == Some("strong") => 2,
 		Some(today) if t["id"].as_str().is_some_and(|id| today.contains(id)) => 1,
 		Some(_) => 0,
 	};
@@ -175,22 +189,21 @@ pub fn study_title(topics: &[Json]) -> String {
 	format!("Study: {}", names.join(", "))
 }
 
-fn mode_note(mode: &str) -> &'static str {
-	match mode {
-		"teach" => "teach (never tested)",
-		"problems" => "problems (weak or shaky)",
-		_ => "check (strong)",
-	}
+/// "procedure, weak (latest wrong)": what the study prompt's move table reads.
+fn material_and_standing(t: &Json) -> String {
+	let material = t["material"].as_str().filter(|m| !m.is_empty()).map_or_else(String::new, |m| format!("{m}, "));
+	let latest = if t["latestWrong"].truthy() { " (latest wrong)" } else { "" };
+	format!("{material}{}{latest}", t["status"].as_str().unwrap_or(""))
 }
 
-/// The study context's model-facing text: names, modes and fact ids only (the graph context
+/// The study context's model-facing text: names, standings and fact ids only (the graph context
 /// above it carries the statements).
 pub fn study_context_text(topics: &[Json]) -> String {
-	let mut lines = vec!["[Study plan] \u{2014} this session's topics, in the order the space covered them, each with its plan node and its mode from the learner's track record:".to_owned()];
+	let mut lines = vec!["[Study plan] \u{2014} this session's topics, in the order the space covered them, each with its plan node, its material and where he stands from his track record:".to_owned()];
 	for (i, t) in topics.iter().enumerate() {
 		let ids = fact_ids(t);
 		let facts = if ids.is_empty() { ", no facts in the space graph yet".to_owned() } else { format!(", facts {}", ids.join(", ")) };
-		lines.push(format!("{}. {} \u{2014} node {}, {}{facts}", i + 1, t["name"].as_str().unwrap_or(""), t["id"].as_str().unwrap_or(""), mode_note(t["mode"].as_str().unwrap_or(""))));
+		lines.push(format!("{}. {} \u{2014} node {}, {}{facts}", i + 1, t["name"].as_str().unwrap_or(""), t["id"].as_str().unwrap_or(""), material_and_standing(t)));
 	}
 	lines.join("\n")
 }
@@ -202,20 +215,36 @@ pub fn study_plan_tree(topics: &[Json]) -> Result<Json, String> {
 	create_tree(&nodes, &[])
 }
 
-/// The topic ids a deadline's Study button studies: today's planned topics, or all its topics
-/// once every one is strong (or the plan is over). `deadline_topics` are `{ id, name, rate }`.
-pub fn deadline_study_topic_ids(today: &str, date: &str, deadline_topics: &[Json]) -> Vec<String> {
-	let plan = plan_days(today, date, deadline_topics);
-	let chosen = plan.first().map_or(deadline_topics, |day| items(&day["topics"]));
-	chosen.iter().map(|t| t["id"].as_str().unwrap_or("").to_owned()).collect()
+/// A strong topic is checked again once its newest answer is this many days old.
+const RECHECK_DAYS: i64 = 7;
+
+/// The topic ids a deadline's Study button studies: today's planned topics and the strong ones
+/// not answered for `RECHECK_DAYS` days, or all its topics once every one is strong (or the plan
+/// is over). `deadline` is a progress deadline (`date`, `topics` of `{ id, name, rate }`);
+/// `topics` are the progress topics (`id`, `status`, `answers` oldest first).
+pub fn deadline_study_topic_ids(today: &str, deadline: &Json, topics: &[Json]) -> Vec<String> {
+	let deadline_topics = items(&deadline["topics"]);
+	let id_of = |t: &Json| t["id"].as_str().unwrap_or("").to_owned();
+	let plan = plan_days(today, deadline["date"].as_str().unwrap_or(""), deadline_topics);
+	let Some(day) = plan.first() else { return deadline_topics.iter().map(id_of).collect() };
+	let in_deadline: HashSet<&str> = deadline_topics.iter().filter_map(|t| t["id"].as_str()).collect();
+	let due_again = |t: &&Json| {
+		let newest = items(&t["answers"]).last().and_then(|a| a["answeredAt"].as_str()).filter(|at| !at.is_empty());
+		// An unreadable time is NaN days old in JS, which never reaches the limit.
+		let old_enough = newest.and_then(time::parse_date).is_some_and(|ms| days_between(&local_day(ms), today) >= RECHECK_DAYS);
+		t["id"].as_str().is_some_and(|id| in_deadline.contains(id)) && t["status"].as_str() == Some("strong") && old_enough
+	};
+	items(&day["topics"]).iter().chain(topics.iter().filter(due_again)).map(id_of).collect()
 }
 
 #[cfg(test)]
 mod tests {
+	use gs_json::stringify;
+
 	use super::*;
 
 	fn topic(id: &str, status: &str, members: &[&str]) -> Json {
-		json!({ "id": id, "name": id.to_uppercase(), "members": members, "status": status })
+		json!({ "id": id, "name": id.to_uppercase(), "members": members, "status": status, "answers": [] })
 	}
 
 	fn ids(topics: &[Json]) -> Vec<String> {
@@ -223,36 +252,48 @@ mod tests {
 	}
 
 	#[test]
-	fn modes_follow_the_status() {
-		assert_eq!((study_mode("untested"), study_mode("strong"), study_mode("weak"), study_mode("shaky")), ("teach", "check", "problems", "problems"));
+	fn latest_wrong_is_weak_without_a_right_newest_answer() {
+		assert!(is_latest_wrong("weak", Some("wrong")));
+		assert!(is_latest_wrong("weak", Some("dontKnow")));
+		assert!(is_latest_wrong("weak", None));
+		assert!(!is_latest_wrong("weak", Some("right")));
+		assert!(!is_latest_wrong("shaky", Some("wrong")));
 	}
 
 	#[test]
 	fn picked_facts_group_by_topic_in_space_order() {
-		let topics = [topic("t1", "weak", &["a", "b"]), topic("t2", "strong", &["c"]), topic("t3", "untested", &["d"])];
+		let mut weak = topic("t1", "weak", &["a", "b"]);
+		weak.as_obj_mut().unwrap().insert("material", "procedure");
+		weak.as_obj_mut().unwrap().insert("answers", json!([{ "outcome": "right" }, { "outcome": "wrong" }]));
+		let topics = [weak, topic("t2", "strong", &["c"]), topic("t3", "untested", &["d"])];
 		let order: HashMap<String, usize> = [("c", 0), ("a", 1)].map(|(k, v)| (k.to_owned(), v)).into();
 		let picked = ["a", "b", "a", "c", "d", "zzz"].map(String::from);
 		let got = study_topics(&picked, &topics, &order, "Free");
 		assert_eq!(ids(&got), ["t2", "t1", "t3"]);
-		assert_eq!(got[1]["factIds"], json!(["a", "b"]));
-		assert_eq!(got[1]["mode"], Json::from("problems"));
+		assert_eq!(stringify(&got[1]), r#"{"id":"t1","name":"T1","material":"procedure","status":"weak","latestWrong":true,"factIds":["a","b"]}"#);
+		assert_eq!(stringify(&got[0]), r#"{"id":"t2","name":"T2","status":"strong","factIds":["c"]}"#);
 		let free = study_topics(&["nope".to_owned()], &topics, &order, "Free");
-		assert_eq!(free, vec![json!({ "id": "topic", "name": "Free", "mode": "teach", "factIds": [] })]);
+		assert_eq!(free, vec![json!({ "id": "topic", "name": "Free", "status": "untested", "factIds": [] })]);
 	}
 
 	#[test]
-	fn the_text_lists_each_topic() {
-		let got = [json!({ "id": "t1", "name": "Sums", "mode": "teach", "factIds": ["a", "b"] }), json!({ "id": "topic", "name": "Free", "mode": "check", "factIds": [] })];
+	fn the_text_lists_each_topic_with_its_material_and_standing() {
+		let got = [
+			json!({ "id": "t1", "name": "Sums", "material": "procedure", "status": "weak", "latestWrong": true, "factIds": ["a", "b"] }),
+			json!({ "id": "topic", "name": "Free", "status": "untested", "factIds": [] }),
+		];
 		assert_eq!(study_title(&got), "Study: Sums, Free");
-		let text = study_context_text(&got);
-		assert!(text.ends_with("1. Sums \u{2014} node t1, teach (never tested), facts a, b\n2. Free \u{2014} node topic, check (strong), no facts in the space graph yet"));
+		assert_eq!(
+			study_context_text(&got),
+			"[Study plan] \u{2014} this session's topics, in the order the space covered them, each with its plan node, its material and where he stands from his track record:\n1. Sums \u{2014} node t1, procedure, weak (latest wrong), facts a, b\n2. Free \u{2014} node topic, untested, no facts in the space graph yet"
+		);
 	}
 
 	#[test]
 	fn sessions_stop_before_passing_the_fact_cap() {
 		let many: Vec<String> = (0..40).map(|i| format!("f{i}")).collect();
 		let more: Vec<String> = (0..40).map(|i| format!("g{i}")).collect();
-		let topics = [json!({ "id": "t1", "name": "A", "members": many, "status": "weak" }), json!({ "id": "t2", "name": "B", "members": more, "status": "weak" })];
+		let topics = [json!({ "id": "t1", "name": "A", "members": many, "status": "weak", "answers": [] }), json!({ "id": "t2", "name": "B", "members": more, "status": "weak", "answers": [] })];
 		let facts: Vec<Json> = many.iter().chain(&more).map(|id| json!({ "id": id, "name": id, "answers": [] })).collect();
 		let picked = ["t1", "t2"].map(String::from);
 		let got = topic_study(&picked, &topics, &facts, &HashMap::new(), None);
@@ -263,9 +304,37 @@ mod tests {
 	}
 
 	#[test]
+	fn strong_topics_come_last_on_a_deadline_start() {
+		let topics = [topic("t1", "strong", &["a"]), topic("t2", "shaky", &["b"])];
+		let facts = [json!({ "id": "a", "topicId": "t1" }), json!({ "id": "b", "topicId": "t2" })];
+		let picked = ["t1", "t2"].map(String::from);
+		let caps: Vec<Json> = (0..64).map(|i| json!({ "id": format!("b{i}"), "topicId": "t2" })).collect();
+		let big = [topic("t1", "strong", &["a"]), json!({ "id": "t2", "name": "T2", "members": caps.iter().map(|f| f["id"].clone()).collect::<Vec<_>>(), "status": "shaky", "answers": [] })];
+		let all: Vec<Json> = facts.iter().cloned().chain(caps).collect();
+		assert_eq!(ids(&topic_study(&picked, &topics, &facts, &HashMap::new(), Some(&HashSet::new()))), ["t1", "t2"]);
+		assert_eq!(ids(&topic_study(&picked, &big, &all, &HashMap::new(), Some(&HashSet::new()))), ["t2"]);
+	}
+
+	#[test]
 	fn a_deadline_studies_todays_topics_or_all_of_them() {
-		let topics = [json!({ "id": "a", "name": "A", "rate": 0.1 }), json!({ "id": "b", "name": "B", "rate": 0.2 })];
-		assert_eq!(deadline_study_topic_ids("2026-11-10", "2026-11-12", &topics), ["a"]);
-		assert_eq!(deadline_study_topic_ids("2026-11-10", "2026-11-01", &topics), ["a", "b"]);
+		let deadline = json!({ "date": "2026-11-12", "topics": [{ "id": "a", "name": "A", "rate": 0.1 }, { "id": "b", "name": "B", "rate": 0.2 }] });
+		assert_eq!(deadline_study_topic_ids("2026-11-10", &deadline, &[]), ["a"]);
+		let over = json!({ "date": "2026-11-01", "topics": deadline["topics"] });
+		assert_eq!(deadline_study_topic_ids("2026-11-10", &over, &[]), ["a", "b"]);
+	}
+
+	#[test]
+	fn a_deadline_rechecks_strong_topics_not_answered_for_a_week() {
+		let deadline = json!({ "date": "2026-11-20", "topics": [{ "id": "a", "name": "A", "rate": 0.1 }, { "id": "s", "name": "S", "rate": 0.9 }, { "id": "r", "name": "R", "rate": 0.9 }] });
+		let strong = |id: &str, at: &str| json!({ "id": id, "status": "strong", "answers": [{ "outcome": "right", "answeredAt": "2026-10-01T12:00:00.000Z" }, { "outcome": "right", "answeredAt": at }] });
+		let topics = [
+			strong("s", "2026-11-03T12:00:00.000Z"),
+			strong("r", "2026-11-04T12:00:00.000Z"),
+			strong("elsewhere", "2026-10-01T12:00:00.000Z"),
+			json!({ "id": "n", "status": "strong", "answers": [] }),
+			json!({ "id": "a", "status": "weak", "answers": [{ "outcome": "wrong", "answeredAt": "2026-10-01T12:00:00.000Z" }] }),
+		];
+		assert_eq!(deadline_study_topic_ids("2026-11-10", &deadline, &topics), ["a", "s"]);
+		assert_eq!(deadline_study_topic_ids("2026-11-11", &deadline, &topics), ["a", "s", "r"]);
 	}
 }

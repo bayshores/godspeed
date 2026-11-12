@@ -128,13 +128,14 @@ fn replay(cases: &[Json], c: &Json) {
 		let studied: Option<HashSet<String>> = args["studiedToday"].as_arr().map(|_| strings(&args["studiedToday"]).into_iter().collect());
 		same(name, Json::Arr(study::topic_study(&strings(&args["topicIds"]), &topics, &facts, &order, studied.as_ref())), want);
 	} else if name.starts_with("deadline study topics ") {
-		same(name, strs(study::deadline_study_topic_ids(text(&args["today"]), text(&args["date"]), &list(&args["topics"]))), want);
+		let topics = if args["from"].is_null() { list(&args["topics"]) } else { from_progress("topics") };
+		same(name, strs(study::deadline_study_topic_ids(text(&args["today"]), &args["deadline"], &topics)), want);
 	} else if name.starts_with("plan days") {
 		same(name, Json::Arr(deadline_plan::plan_days(text(&args["today"]), text(&args["due"]), &list(&args["topics"]))), want);
 	} else if name.starts_with("topics to work on") {
 		same(name, Json::Arr(deadline_plan::topics_to_work_on(&list(&args["topics"]))), want);
-	} else if name == "study mode" {
-		same(name, strs(strings(&args["statuses"]).iter().map(|s| study::study_mode(s).to_string()).collect()), want);
+	} else if name == "is latest wrong" {
+		same(name, each(&args["pairs"], |p| Json::from(study::is_latest_wrong(text(&p[0]), opt_str(&p[1])))), want);
 	} else if name.starts_with("study title") {
 		same(name, Json::from(study::study_title(&list(&args["topics"]))), want);
 	} else if name == "study context text" {

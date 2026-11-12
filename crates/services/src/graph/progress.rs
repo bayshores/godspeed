@@ -210,7 +210,8 @@ pub fn topic_study_for(app: &App, scope: Option<&str>, topic_ids: &[String]) -> 
 	})
 }
 
-/// A Study start on a deadline: today's topics of its plan, the ones that need work first.
+/// A Study start on a deadline: today's topics of its plan, the ones that need work first, strong
+/// ones due a check last.
 pub struct DeadlineStudy {
 	pub name: String,
 	pub topics: Vec<Json>,
@@ -223,7 +224,7 @@ pub fn deadline_study_for(app: &App, space_id: &str, deadline_id: &str) -> Resul
 	let Some(deadline) = items(&progress["deadlines"]).iter().find(|d| d["id"].as_str() == Some(deadline_id)) else { return Ok(None) };
 	let today = progress["today"].str_or_empty();
 	let studied = studied_on(app, space_id, today);
-	let topic_ids = deadline_study_topic_ids(today, deadline["date"].str_or_empty(), items(&deadline["topics"]));
+	let topic_ids = deadline_study_topic_ids(today, deadline, items(&progress["topics"]));
 	let study = topic_study_in(app, Some(space_id), &progress, &topic_ids, Some(&studied));
 	Ok(Some(DeadlineStudy { name: deadline["name"].str_or_empty().to_owned(), topics: study.topics, picks: study.picks }))
 }
