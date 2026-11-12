@@ -148,6 +148,23 @@ const steps: Step[] = [
 	{ op: "get", id: "cls_raw4_00000004" },
 	{ op: "list" },
 	{ op: "update", id: "cls_raw3_00000003", patch: { name: "Renamed" } },
+	{ op: "closeWork", id: "$A" },
+	{ op: "saveFiles", id: "$A", files: [file("f2", "Lecture 2.pdf"), file("f5", "Lecture 5.pdf", { status: "pending" }), file("f6", "Lecture 6.pdf", { status: "extracting" })] },
+	{ op: "add", id: "$A", init: { kind: "quiz", name: "Quiz 2", date: "2026-12-02" }, as: "d5" },
+	{ op: "list" },
+	{ op: "closeWork", id: "$A" },
+	{ op: "saveFiles", id: "$A", files: [file("f2", "Lecture 2.pdf"), file("f5", "Lecture 5.pdf"), file("f6", "Lecture 6.pdf", { status: "extracting" })] },
+	{ op: "saveFiles", id: "$A", files: [file("f2", "Lecture 2.pdf"), file("f5", "Lecture 5.pdf"), file("f6", "Lecture 6.pdf", { status: "failed" })] },
+	{ op: "get", id: "$A" },
+	{ op: "closeWork", id: "$A" },
+	{ op: "closeWork", id: "$A" },
+	{ op: "closeWork", id: "cls_nope" },
+	{ op: "create", init: { name: "Fresh" }, as: "E" },
+	{ op: "saveFiles", id: "$E", files: [file("g1", "a.pdf", { status: "pending" }), file("g2", "b.pdf", { kind: "info" })] },
+	{ op: "list" },
+	{ op: "saveFiles", id: "$E", files: [file("g2", "b.pdf", { kind: "info" })] },
+	{ op: "get", id: "$E" },
+	{ op: "update", id: "$E", patch: { color: 7 } },
 	{ op: "delete", id: "$A" },
 	{ op: "list" },
 ];
@@ -222,6 +239,8 @@ function runScenario() {
 						return spaceStore.removeDeadline(id, step.deadline!);
 					case "delete":
 						return spaceStore.deleteSpace(id);
+					case "closeWork":
+						return spaceStore.closeWork(id);
 					case "raw":
 						fs.mkdirSync(path.join(dir, step.dir!), { recursive: true });
 						fs.writeFileSync(path.join(dir, step.dir!, "space.json"), step.text!);

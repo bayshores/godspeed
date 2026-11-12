@@ -5,10 +5,11 @@ use std::collections::HashSet;
 
 use gs_json::{Json, Obj};
 
-use super::space_deadlines::{id_list, squash, with_files};
 use super::new_files::is_recent_change;
+use super::space_deadlines::{id_list, squash, with_files};
+use super::space_work::{is_first_round, is_waiting_file};
+use crate::contracts::space::{CURRENT_SPACE_VERSION, clean_signature, compare_deadlines, is_deadline_kind, is_space_color, is_space_icon};
 use gs_base::text::cmp16;
-use crate::contracts::space::{CURRENT_SPACE_VERSION, clean_signature, compare_deadlines, is_space_icon, is_deadline_kind};
 use crate::records::teaching_areas::sanitize_rules;
 
 fn is_str(v: &Json) -> bool {
@@ -132,9 +133,25 @@ fn known_assignment(mut d: Json, file_ids: &HashSet<&str>) -> Json {
 	d
 }
 
+/// A saved round of the teacher's work, field by field, or None when it is not one.
+fn read_work(v: &Json) -> Option<Json> {
+	if v.as_obj().is_none() || !is_str(&v["startedAt"]) || id_list(&v["fileIds"]).is_none() || id_list(&v["deadlineIds"]).is_none() {
+		return None;
+	}
+	let mut out = Obj::new();
+	out.insert("startedAt", v["startedAt"].clone());
+	if is_str(&v["endedAt"]) {
+		out.insert("endedAt", v["endedAt"].clone());
+	}
+	out.insert("fileIds", v["fileIds"].clone());
+	out.insert("deadlineIds", v["deadlineIds"].clone());
+	Some(Json::Obj(out))
+}
+
 /// The space record a parsed `space.json` stands for, or None when it lacks an id, name or time.
-/// `now` decides which removed files are still recent.
-pub fn read_space_record(parsed: &Json, now: i64) -> Option<Json> {
+/// `now` decides which removed files are still recent; a record without a color takes
+/// `fresh_color()` (the store then saves it at once).
+pub fn read_space_record(parsed: &Json, now: i64, fresh_color: impl FnOnce() -> i64) -> Option<Json> {
 	let (id, name) = (parsed["id"].as_str()?, parsed["name"].as_str()?);
 	let (created_at, updated_at) = (parsed["createdAt"].as_str()?, parsed["updatedAt"].as_str()?);
 	let files: Vec<Json> = parsed["files"].as_arr().into_iter().flatten().filter(|f| is_space_file(f)).cloned().collect();
@@ -179,6 +196,7 @@ pub fn read_space_record(parsed: &Json, now: i64) -> Option<Json> {
 	if is_space_icon(&parsed["icon"]) {
 		out.insert("icon", parsed["icon"].clone());
 	}
+	out.insert("color", if is_space_color(&parsed["color"]) { parsed["color"].clone() } else { Json::from(fresh_color()) });
 	let note = &parsed["note"];
 	if is_str(&note["text"]) && is_str(&note["at"]) {
 		let mut n = Obj::new();
@@ -188,6 +206,9 @@ pub fn read_space_record(parsed: &Json, now: i64) -> Option<Json> {
 	}
 	if !rules.is_empty() {
 		out.insert("rules", rules);
+	}
+	if let Some(work) = read_work(&parsed["lastWork"]) {
+		out.insert("lastWork", work);
 	}
 	if matches!(parsed["version"], Json::Num(_)) {
 		out.insert("version", parsed["version"].clone());
@@ -234,10 +255,19 @@ pub fn summarize(record: &Json) -> Json {
 	if let Some(at) = last_folder_file {
 		out.insert("lastFolderFileAt", at);
 	}
-	for key in ["signature", "icon", "note"] {
+	for key in ["signature", "icon"] {
 		if record[key].truthy() {
 			out.insert(key, record[key].clone());
 		}
+	}
+	out.insert("color", record["color"].clone());
+	if record["note"].truthy() {
+		out.insert("note", record["note"].clone());
+	}
+	let files_left = files.iter().filter(|f| is_waiting_file(f)).count();
+	out.insert("filesLeft", files_left);
+	if files_left > 0 && is_first_round(files, record.get("lastWork")) {
+		out.insert("building", true);
 	}
 	Json::Obj(out)
 }
@@ -263,9 +293,10 @@ mod tests {
 				{ "id": "d3", "kind": "nope", "name": "C", "date": "2026-11-01", "fileIds": [], "done": false },
 			],
 		});
-		let record = read_space_record(&parsed, 0).unwrap();
+		let record = read_space_record(&parsed, 0, || 3).unwrap();
 		let keys: Vec<&String> = record.as_obj().unwrap().keys().collect();
-		assert_eq!(keys, ["id", "name", "description", "createdAt", "updatedAt", "archived", "files", "deadlines", "icon", "rules", "version"]);
+		assert_eq!(keys, ["id", "name", "description", "createdAt", "updatedAt", "archived", "files", "deadlines", "icon", "color", "rules", "version"]);
+		assert_eq!(record["color"], Json::from(3));
 		assert_eq!(
 			stringify(&record["deadlines"]),
 			r#"[{"id":"d1","kind":"quiz","name":"A","date":"2026-11-01","time":"10:00","fileIds":[],"done":true,"doneAt":"t"},{"id":"d2","kind":"exam","name":"B","date":"2026-11-02","fileIds":["f1"],"done":false}]"#
@@ -284,14 +315,14 @@ mod tests {
 	#[test]
 	fn old_exams_become_exam_deadlines() {
 		let parsed = json!({ "id": "cls_a", "name": "n", "createdAt": "c", "updatedAt": "u", "exams": [{ "id": "e1", "name": "Final", "date": "2026-12-01", "fileIds": [] }, { "id": 1 }] });
-		let record = read_space_record(&parsed, 0).unwrap();
+		let record = read_space_record(&parsed, 0, || 3).unwrap();
 		assert_eq!(stringify(&record["deadlines"]), r#"[{"id":"e1","kind":"exam","name":"Final","date":"2026-12-01","fileIds":[],"done":false}]"#);
 	}
 
 	#[test]
 	fn a_record_without_its_basics_does_not_read() {
-		assert!(read_space_record(&json!({ "id": "cls_a", "name": "n", "createdAt": "c" }), 0).is_none());
-		assert!(read_space_record(&json!([]), 0).is_none());
+		assert!(read_space_record(&json!({ "id": "cls_a", "name": "n", "createdAt": "c" }), 0, || 1).is_none());
+		assert!(read_space_record(&json!([]), 0, || 1).is_none());
 		assert_eq!(newer_version(&json!({ "version": 10 })), Some(10.0));
 		assert_eq!(newer_version(&json!({ "version": 9 })), None);
 	}
@@ -303,7 +334,7 @@ mod tests {
 			"id": "cls_a", "name": "n", "createdAt": "c", "updatedAt": "u",
 			"removedFiles": [{ "id": "a", "name": "a", "at": "2026-11-01T00:00:00.000Z", "extra": 1 }, { "id": "b", "name": "b", "at": "2026-10-01T00:00:00.000Z" }, { "id": "c" }],
 		});
-		let record = read_space_record(&parsed, now).unwrap();
+		let record = read_space_record(&parsed, now, || 3).unwrap();
 		assert_eq!(stringify(&record["removedFiles"]), r#"[{"id":"a","name":"a","at":"2026-11-01T00:00:00.000Z"}]"#);
 	}
 
@@ -314,11 +345,39 @@ mod tests {
 		let record = json!({
 			"id": "cls_a", "name": "n", "description": "", "createdAt": "c", "updatedAt": "u", "archived": false, "linkedFolder": "/x",
 			"files": [file("f1", "copied", "2026-10-09T00:00:00.000Z"), found, file("f3", "linked", "2026-10-02T00:00:00.000Z")],
-			"icon": "cpu",
+			"icon": "cpu", "color": 2,
 		});
 		assert_eq!(
 			stringify(&summarize(&record)),
-			r#"{"id":"cls_a","name":"n","description":"","createdAt":"c","updatedAt":"u","archived":false,"linkedFolder":"/x","fileCount":3,"lastFoundAt":"2026-10-05T00:00:00.000Z","lastFolderFileAt":"2026-10-05T00:00:00.000Z","icon":"cpu"}"#
+			r#"{"id":"cls_a","name":"n","description":"","createdAt":"c","updatedAt":"u","archived":false,"linkedFolder":"/x","fileCount":3,"lastFoundAt":"2026-10-05T00:00:00.000Z","lastFolderFileAt":"2026-10-05T00:00:00.000Z","icon":"cpu","color":2,"filesLeft":0}"#
 		);
+	}
+
+	#[test]
+	fn a_saved_color_and_round_of_work_are_kept() {
+		let parsed = json!({
+			"id": "cls_a", "name": "n", "createdAt": "c", "updatedAt": "u", "color": 6,
+			"lastWork": { "deadlineIds": [], "fileIds": ["f1"], "startedAt": "s", "extra": 1 },
+		});
+		let record = read_space_record(&parsed, 0, || panic!("a colored record keeps its color")).unwrap();
+		assert_eq!(record["color"], Json::from(6));
+		assert_eq!(stringify(&record["lastWork"]), r#"{"startedAt":"s","fileIds":["f1"],"deadlineIds":[]}"#);
+		let broken = json!({ "id": "cls_a", "name": "n", "createdAt": "c", "updatedAt": "u", "color": 9, "lastWork": { "startedAt": "s", "fileIds": [1], "deadlineIds": [] } });
+		let record = read_space_record(&broken, 0, || 4).unwrap();
+		assert_eq!(record["color"], Json::from(4));
+		assert!(record.get("lastWork").is_none());
+	}
+
+	#[test]
+	fn a_space_being_built_counts_the_files_left() {
+		let mut waiting = file("f2", "copied", "t");
+		waiting.as_obj_mut().unwrap().insert("status", "pending");
+		let mut record = json!({ "id": "cls_a", "name": "n", "description": "", "createdAt": "c", "updatedAt": "u", "archived": false, "files": [waiting.clone()], "color": 1 });
+		let summary = summarize(&record);
+		assert_eq!((summary["filesLeft"].clone(), summary["building"].clone()), (Json::from(1), Json::from(true)));
+		// A file read before this round: the teacher is adding to the space, not building it.
+		record.as_obj_mut().unwrap().insert("files", json!([file("f1", "copied", "t"), waiting]));
+		record.as_obj_mut().unwrap().insert("lastWork", json!({ "startedAt": "s", "fileIds": [], "deadlineIds": [] }));
+		assert!(summarize(&record).get("building").is_none());
 	}
 }

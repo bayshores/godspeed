@@ -43,6 +43,19 @@ pub fn is_space_icon(name: &Json) -> bool {
 	name.as_str().is_some_and(|n| SPACE_ICONS.iter().any(|(icon, _)| *icon == n))
 }
 
+/// How many space colors there are (--lh-space-1 to --lh-space-8).
+const SPACE_COLOR_COUNT: i64 = 8;
+
+/// A space's color: a whole number from 1 to SPACE_COLOR_COUNT.
+pub fn is_space_color(color: &Json) -> bool {
+	matches!(color, Json::Num(n) if n.fract() == 0.0 && *n >= 1.0 && *n <= SPACE_COLOR_COUNT as f64)
+}
+
+/// The color a new space takes: the one the fewest spaces wear, lowest number first.
+pub fn next_space_color(taken: &[i64]) -> i64 {
+	(1..=SPACE_COLOR_COUNT).min_by_key(|color| taken.iter().filter(|t| *t == color).count()).unwrap_or(1)
+}
+
 /// A signature as given, cleaned to one trimmed line: `{ kind, value }`, or None when the kind is
 /// unknown or the value empty or longer than SIGNATURE_MAX.
 pub fn clean_signature(raw: &Json) -> Option<Json> {
@@ -204,5 +217,15 @@ mod tests {
 		let a = json!({ "date": "2026-11-09", "name": "B" });
 		let b = json!({ "date": "2026-11-09", "time": "10:00", "name": "A" });
 		assert_eq!(compare_deadlines(&a, &b), Ordering::Greater);
+	}
+
+	#[test]
+	fn colors_are_whole_numbers_from_one_to_eight_and_new_ones_go_to_the_least_worn() {
+		assert!(is_space_color(&json!(1)) && is_space_color(&json!(8.0)));
+		assert!(!is_space_color(&json!(0)) && !is_space_color(&json!(9)) && !is_space_color(&json!(2.5)) && !is_space_color(&json!("3")));
+		assert_eq!(next_space_color(&[]), 1);
+		assert_eq!(next_space_color(&[1, 2, 2, 4]), 3);
+		assert_eq!(next_space_color(&[1, 2, 3, 4, 5, 6, 7, 8, 1]), 2);
+		assert_eq!(next_space_color(&[9, 0]), 1);
 	}
 }

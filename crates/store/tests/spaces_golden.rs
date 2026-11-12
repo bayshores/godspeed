@@ -12,6 +12,7 @@ use gs_base::events::{EventKind, Events};
 use gs_base::hash::sha256_text;
 use gs_base::locks::Locks;
 use gs_base::{clock, fsx, text, time};
+use gs_core::contracts::space::{CURRENT_SPACE_VERSION, is_space_color, next_space_color};
 use gs_core::spaces::space_record::{read_space_record, summarize};
 use gs_json::{Json, Obj, json, parse, stringify, stringify_pretty};
 use gs_store::spaces::{SpaceError, SpaceStore};
@@ -25,6 +26,20 @@ fn golden(case: &str) -> Json {
 	let found = all.as_arr().unwrap().iter().find(|c| c["name"] == Json::from(case)).unwrap_or_else(|| panic!("no golden case {case}"));
 	assert!(found.get("error").is_none(), "{case}: {:?}", found["error"]);
 	found["output"].clone()
+}
+
+/// Node stamps records v10 (a space there can be a prep); this build stamps v9 until preps are
+/// ported, and that port deletes this.
+fn as_node(text: &str) -> String {
+	assert_eq!(CURRENT_SPACE_VERSION, 9);
+	let mut out = text.replace("\"version\":9", "\"version\":10");
+	for end in ["\\n", ","] {
+		out = out.replace(&format!("\\\"version\\\": 9{end}"), &format!("\\\"version\\\": 10{end}"));
+	}
+	for end in ["\n", ","] {
+		out = out.replace(&format!("\"version\": 9{end}"), &format!("\"version\": 10{end}"));
+	}
+	out
 }
 
 fn s(v: &Json) -> &str {
@@ -155,6 +170,7 @@ fn the_scenario_matches_node() {
 			"updateDeadline" => outcome(store.update_deadline(id, s(&step["deadline"]), &step["patch"])),
 			"removeDeadline" => other(store.remove_deadline(id, s(&step["deadline"])).map(Json::Bool)),
 			"delete" => other(store.delete_space(id).map(Json::Bool)),
+			"closeWork" => other(store.close_work(id).map(Json::Bool)),
 			"raw" => {
 				fsx::write_text_atomic(&lab.spaces.join(s(&step["dir"])).join("space.json"), s(&step["text"])).unwrap();
 				outcome(Ok(step["dir"].clone()))
@@ -188,7 +204,7 @@ fn the_scenario_matches_node() {
 		let got = masks.value(&json!({ "step": k, "op": step["op"], "outcome": result, "events": events, "disk": Json::Null }));
 		let mut got = got;
 		got.as_obj_mut().unwrap().insert("disk", disk);
-		assert_eq!(stringify(&got), stringify(&want["log"][k]), "step {k}: {}", stringify(raw));
+		assert_eq!(as_node(&stringify(&got)), stringify(&want["log"][k]), "step {k}: {}", stringify(raw));
 	}
 }
 
@@ -196,19 +212,25 @@ fn the_scenario_matches_node() {
 fn the_fixture_spaces_read_and_write_like_node() {
 	let want = golden("fixture spaces");
 	let now = time::parse_date(s(&want["now"])).unwrap();
-	let mut records = Vec::new();
+	let mut records: Vec<Json> = Vec::new();
 	for c in want["spaces"].as_arr().unwrap() {
 		let file = format!("{}/../core/tests/fixtures/spaces/{}/space.json", env!("CARGO_MANIFEST_DIR"), s(&c["id"]));
 		let fixture = std::fs::read_to_string(file).unwrap();
 		assert_eq!(sha256_text(&fixture), s(&c["fixtureSha"]));
-		let record = read_space_record(&parse(&fixture).unwrap(), now).unwrap();
-		assert_eq!(sha256_text(&stringify(&record)), s(&c["recordSha"]), "{}", s(&c["id"]));
+		let parsed = parse(&fixture).unwrap();
+		let taken: Vec<i64> = records.iter().map(|r| r["color"].as_f64().unwrap() as i64).collect();
+		let mut record = read_space_record(&parsed, now, || next_space_color(&taken)).unwrap();
+		// The store saves a record it just gave a color, stamped with this build's version.
+		if !is_space_color(&parsed["color"]) {
+			record.as_obj_mut().unwrap().insert("version", CURRENT_SPACE_VERSION);
+		}
+		assert_eq!(sha256_text(&as_node(&stringify(&record))), s(&c["recordSha"]), "{}", s(&c["id"]));
 		assert_eq!(record.as_obj().unwrap().keys().cloned().collect::<Vec<_>>(), c["keys"].as_arr().unwrap().iter().map(|k| s(k).to_owned()).collect::<Vec<_>>());
 		assert_eq!(record["files"].as_arr().unwrap().len(), c["files"].as_i64().unwrap() as usize);
 		assert_eq!(record["removedFiles"].as_arr().map_or(0, Vec::len), c["removedFiles"].as_i64().unwrap() as usize);
 		assert_eq!(stringify(&record["deadlines"]), stringify(&c["deadlines"]));
 		assert_eq!(stringify(&summarize(&record)), stringify(&c["summary"]));
-		let written = stringify_pretty(&record, "\t");
+		let written = as_node(&stringify_pretty(&record, "\t"));
 		assert_eq!(sha256_text(&written), s(&c["writtenSha"]));
 		assert_eq!(text::len16(&written) as i64, c["writtenLength"].as_i64().unwrap());
 		assert_eq!(written == fixture, c["sameAsFixture"].as_bool().unwrap());

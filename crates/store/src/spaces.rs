@@ -17,8 +17,9 @@ use gs_base::events::{EventKind, Events};
 use gs_base::locks::{LockKey, Locks};
 use gs_base::{clock, fsx, ids, locale, time};
 use gs_core::spaces::space_deadlines::{changed_deadline, file_ids_of, new_deadline};
+use gs_core::contracts::space::{CURRENT_SPACE_VERSION, SpaceDeadlineError, compare_deadlines, is_space_color, is_space_id, next_space_color};
 use gs_core::spaces::space_record::{clean_name, newer_version, read_space_record, summarize};
-use gs_core::contracts::space::{CURRENT_SPACE_VERSION, SpaceDeadlineError, compare_deadlines, is_space_id};
+use gs_core::spaces::space_work::{work_after_deadline, work_after_files};
 use gs_core::records::teaching_areas::sanitize_rules;
 use gs_json::{Json, Obj, json, parse, stringify_pretty};
 
@@ -91,6 +92,18 @@ fn adopt_old_folder(old: &Path, spaces: &Path) {
 		eprintln!("[spaces] {stayed} entries stayed in data/classes: data/spaces has the same names or they could not move");
 	} else if let Err(err) = std::fs::remove_dir(old) {
 		eprintln!("[spaces] moving data/classes to data/spaces failed: {}", fsx::node_error_message(&err, "rmdir", old));
+	}
+}
+
+/// The record's round of work, or none.
+fn set_work(record: &mut Obj, work: Option<Json>) {
+	match work {
+		Some(work) => {
+			record.insert("lastWork", work);
+		}
+		None => {
+			record.remove("lastWork");
+		}
 	}
 }
 
@@ -168,8 +181,21 @@ impl SpaceStore {
 		}
 	}
 
-	/// The full record, or None (unknown id, corrupt, or written by a newer build).
-	pub fn get_space(&self, id: &str) -> Option<Json> {
+	/// The colors the other spaces wear, read straight from their records.
+	fn colors_beside(&self, id: &str) -> Vec<i64> {
+		let Ok(entries) = std::fs::read_dir(self.root()) else { return Vec::new() };
+		entries
+			.filter_map(|e| e.ok()?.file_name().into_string().ok())
+			.filter(|name| name != id && is_space_id(name))
+			.filter_map(|name| {
+				let other = parse(&self.read_record_text(&name)?).ok()?;
+				is_space_color(&other["color"]).then(|| other["color"].as_f64().unwrap_or(0.0) as i64)
+			})
+			.collect()
+	}
+
+	/// The record as stored, and whether it already had a color.
+	fn read_space(&self, id: &str) -> Option<(Json, bool)> {
 		let parsed = match parse(&self.read_record_text(id)?) {
 			Ok(parsed) => parsed,
 			Err(_) => {
@@ -183,18 +209,41 @@ impl SpaceStore {
 			eprintln!("[space {id}] record stamped with schema version {} > {CURRENT_SPACE_VERSION} — refusing to read it", gs_json::js_number(version));
 			return None;
 		}
-		read_space_record(&parsed, clock::now_ms())
+		let record = read_space_record(&parsed, clock::now_ms(), || next_space_color(&self.colors_beside(id)))?;
+		Some((record, is_space_color(&parsed["color"])))
+	}
+
+	/// The full record, or None (unknown id, corrupt, or written by a newer build).
+	pub fn get_space(&self, id: &str) -> Option<Json> {
+		let (record, colored) = self.read_space(id)?;
+		if colored {
+			return Some(record);
+		}
+		// A space from before colors keeps the one it is given here. Read again under the lock, so
+		// a change saved meanwhile is not written over.
+		let _guard = self.locks.lock(LockKey::Space(id));
+		let (mut record, colored) = self.read_space(id)?;
+		if !colored {
+			if let Err(err) = self.write_space(&record) {
+				eprintln!("[space {id}] saving its new color failed: {err}");
+			} else if let Some(obj) = record.as_obj_mut() {
+				obj.insert("version", CURRENT_SPACE_VERSION);
+			}
+		}
+		Some(record)
 	}
 
 	fn require_space(&self, id: &str) -> Result<Json, String> {
 		self.get_space(id).ok_or_else(|| format!("Space not found: {id}"))
 	}
 
-	/// A new space from `init`: `name`, and optionally `description`, `signature` and `icon`.
+	/// A new space from `init`: `name`, and optionally `description`, `signature` and `icon`. It
+	/// takes the color the fewest other spaces wear.
 	pub fn create_space(&self, init: &Json) -> Result<Json, String> {
 		let now = time::iso_now();
+		let id = ids::timed("spc");
 		let mut record = Obj::new();
-		record.insert("id", ids::timed("spc"));
+		record.insert("id", id.clone());
 		record.insert("name", clean_name(init["name"].as_str().unwrap_or("")));
 		record.insert("description", gs_base::text::trim(init["description"].as_str().unwrap_or("")));
 		record.insert("createdAt", now.clone());
@@ -206,6 +255,7 @@ impl SpaceStore {
 				record.insert(key, init[key].clone());
 			}
 		}
+		record.insert("color", next_space_color(&self.colors_beside(&id)));
 		let mut record = Json::Obj(record);
 		self.write_space(&record)?;
 		self.changed();
@@ -231,7 +281,8 @@ impl SpaceStore {
 	}
 
 	/// Merges a patch (`name`, `description`, `archived`, `rules`, `linkedFolder`, `signature`,
-	/// `icon`, `note`; `null` unlinks the folder and clears the signature) and bumps `updatedAt`.
+	/// `icon`, `color`, `note`; `null` unlinks the folder and clears the signature) and bumps
+	/// `updatedAt`.
 	pub fn update_space(&self, id: &str, patch: &Json) -> Result<Json, String> {
 		let _guard = self.locks.lock(LockKey::Space(id));
 		let mut record = self.require_space(id)?;
@@ -264,7 +315,7 @@ impl SpaceStore {
 				None => {}
 			}
 		}
-		for key in ["icon", "note"] {
+		for key in ["icon", "color", "note"] {
 			if let Some(value) = patch.get(key) {
 				obj.insert(key, value.clone());
 			}
@@ -279,12 +330,15 @@ impl SpaceStore {
 		Ok(record)
 	}
 
-	/// Replaces the whole file list (the file pipeline's write) and adds `removed` to the removed
-	/// files. Quiet: no `updatedAt` bump, no event.
+	/// Replaces the whole file list (the file pipeline's write), adds `removed` to the removed
+	/// files and moves the teacher's round of work along. Quiet: no `updatedAt` bump, no event.
 	pub fn save_files(&self, id: &str, files: Vec<Json>, removed: &[Json]) -> Result<Json, String> {
 		let _guard = self.locks.lock(LockKey::Space(id));
 		let mut record = self.require_space(id)?;
+		let before = record["files"].as_arr().cloned().unwrap_or_default();
+		let work = work_after_files(record.get("lastWork"), &before, &files, &time::iso_now());
 		let obj = record.as_obj_mut().ok_or_else(|| format!("Space not found: {id}"))?;
+		set_work(obj, work);
 		obj.insert("files", Json::Arr(files));
 		if !removed.is_empty() {
 			let mut all = obj.get("removedFiles").and_then(Json::as_arr).cloned().unwrap_or_default();
@@ -293,6 +347,22 @@ impl SpaceStore {
 		}
 		self.write_space(&record)?;
 		Ok(record)
+	}
+
+	/// Forgets the last round of work once it has ended (Close). False when the space is unknown or
+	/// a round is still open.
+	pub fn close_work(&self, id: &str) -> Result<bool, String> {
+		let _guard = self.locks.lock(LockKey::Space(id));
+		let Some(mut record) = self.get_space(id) else { return Ok(false) };
+		if !record["lastWork"]["endedAt"].truthy() {
+			return Ok(false);
+		}
+		if let Some(obj) = record.as_obj_mut() {
+			obj.remove("lastWork");
+		}
+		self.write_space(&record)?;
+		self.changed();
+		Ok(true)
 	}
 
 	/// Saves the deadlines sorted, soonest first.
@@ -313,6 +383,10 @@ impl SpaceStore {
 		let _guard = self.locks.lock(LockKey::Space(id));
 		let mut record = self.require_space(id)?;
 		let deadline = new_deadline(&file_ids_of(&record), init, ids::uuid_hex("ddl", 12))?;
+		let work = work_after_deadline(record.get("lastWork"), deadline["id"].as_str().unwrap_or(""));
+		if let Some(obj) = record.as_obj_mut() {
+			set_work(obj, work);
+		}
 		let mut deadlines = record["deadlines"].as_arr().cloned().unwrap_or_default();
 		deadlines.push(deadline.clone());
 		self.save_deadlines(&mut record, deadlines)?;
@@ -456,9 +530,61 @@ mod tests {
 		assert!(store.get_space(&id).is_none() && store.list_spaces().is_empty());
 	}
 
-	/// A record in the shape it had before the rename.
+	#[test]
+	fn new_spaces_take_the_least_worn_color_and_a_color_can_change() {
+		let (store, _, _) = store();
+		let colors: Vec<Json> = (0..3).map(|i| store.create_space(&json!({ "name": format!("S{i}") })).unwrap()["color"].clone()).collect();
+		assert_eq!(colors, [Json::from(1), Json::from(2), Json::from(3)]);
+		let first = store.list_space_records().into_iter().find(|r| r["color"] == Json::from(1)).unwrap();
+		let id = first["id"].as_str().unwrap();
+		assert_eq!(store.update_space(id, &json!({ "color": 3 })).unwrap()["color"], Json::from(3));
+		assert_eq!(store.create_space(&json!({ "name": "S3" })).unwrap()["color"], Json::from(1));
+	}
+
+	#[test]
+	fn a_record_without_a_color_is_given_one_and_saved_at_once() {
+		let (store, events, root) = store();
+		let mut rx = events.subscribe();
+		let colored = old_record("cls_e1");
+		fsx::write_text_atomic(&root.join("cls_e1").join("space.json"), &colored).unwrap();
+		fsx::write_text_atomic(&root.join("cls_e2").join("class.json"), &old_record("cls_e2").replace("\t\"color\": 1,\n", "")).unwrap();
+		let record = store.get_space("cls_e2").unwrap();
+		assert_eq!((record["color"].clone(), record["version"].clone()), (Json::from(2), Json::from(9)));
+		let saved = std::fs::read_to_string(root.join("cls_e2").join("space.json")).unwrap();
+		assert!(saved.contains("\"archived\": false,\n\t\"files\": [],\n\t\"color\": 2,\n\t\"version\": 9\n}"));
+		assert!(!root.join("cls_e2").join("class.json").exists());
+		assert!(rx.try_recv().is_err(), "a read is quiet");
+		// The colored one is only read.
+		assert_eq!(std::fs::read_to_string(root.join("cls_e1").join("space.json")).unwrap(), colored);
+	}
+
+	fn study(id: &str, status: &str) -> Json {
+		json!({ "id": id, "origin": "copied", "name": id, "path": id, "kind": "study", "contentFp": "x", "status": status, "addedAt": "t" })
+	}
+
+	#[test]
+	fn file_saves_and_new_deadlines_keep_the_round_of_work_and_close_forgets_an_ended_one() {
+		let (store, events, _) = store();
+		let id = store.create_space(&json!({ "name": "A" })).unwrap()["id"].as_str().unwrap().to_owned();
+		store.save_files(&id, vec![study("f1", "pending")], &[]).unwrap();
+		let deadline = store.add_deadline(&id, &json!({ "kind": "exam", "name": "Final", "date": "2026-12-01" })).unwrap();
+		let open = store.get_space(&id).unwrap()["lastWork"].clone();
+		assert_eq!(open["deadlineIds"], json!([deadline["id"].clone()]));
+		let mut rx = events.subscribe();
+		assert!(!store.close_work(&id).unwrap(), "a round still going stays");
+		let ended = store.save_files(&id, vec![study("f1", "ready")], &[]).unwrap();
+		assert_eq!(ended["lastWork"]["fileIds"], json!(["f1"]));
+		assert!(ended["lastWork"]["endedAt"].as_str().is_some());
+		assert!(rx.try_recv().is_err());
+		assert!(store.close_work(&id).unwrap());
+		assert!(rx.try_recv().is_ok());
+		assert!(store.get_space(&id).unwrap().get("lastWork").is_none());
+		assert!(!store.close_work(&id).unwrap() && !store.close_work("cls_nope").unwrap());
+	}
+
+	/// A record in the shape it had before the rename (with a color, so reading it writes nothing).
 	fn old_record(id: &str) -> String {
-		format!("{{\n\t\"id\": \"{id}\",\n\t\"name\": \"Old\",\n\t\"description\": \"\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"archived\": false,\n\t\"files\": [],\n\t\"version\": 7\n}}")
+		format!("{{\n\t\"id\": \"{id}\",\n\t\"name\": \"Old\",\n\t\"description\": \"\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"archived\": false,\n\t\"files\": [],\n\t\"color\": 1,\n\t\"version\": 7\n}}")
 	}
 
 	fn lab(name: &str) -> (PathBuf, SpaceStore) {
