@@ -9,6 +9,7 @@ use axum::extract::{Path, State};
 use axum::http::{HeaderName, HeaderValue, Uri, header};
 use axum::response::Response;
 use bytes::Bytes;
+use gs_base::clock;
 use gs_base::events::EventKind;
 use gs_base::locks::LockKey;
 use gs_base::text;
@@ -268,6 +269,11 @@ async fn steer(State(app): State<Arc<App>>, Path(id): Path<String>, body: Body) 
 	reply::json(200, &json!({ "ok": true }))
 }
 
+/// A turn stream with nothing to send pings this often. WebKit can hold the last bytes it got on
+/// a fetch body until more arrive on it, so frames sent just before a long tool call would
+/// otherwise stay hidden until the call ends.
+const QUIET_PING_MS: i64 = 250;
+
 /// GET /api/chats/{id}/stream: the turn's SSE wire. A running turn replays its log, then goes
 /// live until `[DONE]`; no running turn answers the cheap settled terminal.
 async fn stream(State(app): State<Arc<App>>, Path(id): Path<String>) -> Response {
@@ -277,7 +283,13 @@ async fn stream(State(app): State<Arc<App>>, Path(id): Path<String>) -> Response
 	let body = match attach_turn(&app, &id).await {
 		None => Body::from(settled_turn_frames(&app, &id)),
 		Some(handle) => {
-			let frames = futures_util::stream::unfold(handle.subscribe(), |mut rx| async move { rx.recv().await.map(|frame| (Ok::<_, Infallible>(Bytes::from(frame)), rx)) });
+			let frames = futures_util::stream::unfold(handle.subscribe(), |mut rx| async move {
+				let frame = tokio::select! {
+					frame = rx.recv() => Bytes::from(frame?),
+					() = clock::sleep(QUIET_PING_MS) => Bytes::from_static(b": ping\n\n"),
+				};
+				Some((Ok::<_, Infallible>(frame), rx))
+			});
 			Body::from_stream(frames)
 		}
 	};
