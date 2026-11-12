@@ -52,13 +52,30 @@ function oldRecordFile(id: string): string {
 	return path.join(spaceDir(id), "class.json");
 }
 
-/** Spaces were kept in data/classes before the rename: the whole folder
- *  moves once, in one step, the first time this build starts. */
+/** Spaces were kept in data/classes before the rename. Tried at every start:
+ *  the folder moves in one step, or, when data/spaces is already there (a
+ *  move that failed, or a space made first), entry by entry. An entry both
+ *  folders have stays where it is, so nothing is overwritten. */
 function adoptOldFolder(): void {
 	const old = path.join(PATHS.data, "classes");
-	if (!fs.existsSync(old) || fs.existsSync(PATHS.spaces)) return;
+	if (!fs.existsSync(old)) return;
 	try {
-		fs.renameSync(old, PATHS.spaces);
+		if (!fs.existsSync(PATHS.spaces)) {
+			fs.renameSync(old, PATHS.spaces);
+			return;
+		}
+		let stayed = 0;
+		for (const name of fs.readdirSync(old)) {
+			const to = path.join(PATHS.spaces, name);
+			try {
+				if (fs.lstatSync(to, { throwIfNoEntry: false })) stayed++;
+				else fs.renameSync(path.join(old, name), to);
+			} catch {
+				stayed++;
+			}
+		}
+		if (stayed > 0) console.error(`[spaces] ${stayed} entries stayed in data/classes: data/spaces has the same names or they could not move`);
+		else fs.rmdirSync(old);
 	} catch (err) {
 		console.error("[spaces] moving data/classes to data/spaces failed:", err);
 	}
