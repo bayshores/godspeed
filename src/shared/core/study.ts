@@ -154,8 +154,8 @@ export function studyTitle(topics: readonly Pick<StudyTopic, "name">[]): string 
 	return `Study: ${topics.map((t) => t.name).join(", ")}`;
 }
 
-/** "procedure, weak (latest wrong)": the pair the study prompt's move table reads. */
-function standing(t: StudyTopic): string {
+/** "procedure, weak (latest wrong)": what the study prompt's move table reads. */
+function materialAndStanding(t: StudyTopic): string {
 	return `${t.material ? `${t.material}, ` : ""}${t.status}${t.latestWrong ? " (latest wrong)" : ""}`;
 }
 
@@ -166,7 +166,7 @@ export function studyContextText(topics: readonly StudyTopic[]): string {
 		"[Study plan] — this session's topics, in the order the class covered them, each with its plan node, its material and where he stands from his track record:",
 		...topics.map(
 			(t, i) =>
-				`${i + 1}. ${t.name} — node ${t.id}, ${standing(t)}${t.factIds.length > 0 ? `, facts ${t.factIds.join(", ")}` : ", no facts in the class graph yet"}`,
+				`${i + 1}. ${t.name} — node ${t.id}, ${materialAndStanding(t)}${t.factIds.length > 0 ? `, facts ${t.factIds.join(", ")}` : ", no facts in the class graph yet"}`,
 		),
 	].join("\n");
 }

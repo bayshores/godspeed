@@ -217,6 +217,20 @@ describe("topics: the grouper (fake model)", () => {
 			["Sets", undefined],
 		]);
 	});
+
+	it("takes a grouping with an off-list material: a known one in other letters is kept, an unknown one dropped", async () => {
+		const { engine } = submitEngine({
+			topics: [
+				{ name: "Counting", members: ["n1"], material: "Procedure" },
+				{ name: "Sets", members: ["n2"], material: "definition" },
+			],
+		});
+		const out = await groupTopics({ className: "MATH 1A", facts: ["n1", "n2"].map((id) => ({ id, name: `Fact ${id}`, statement: `${id} holds` })), chains: [], current: [], engine, newId });
+		assert.deepEqual(out.map((t) => [t.name, t.material]), [
+			["Counting", "procedure"],
+			["Sets", undefined],
+		]);
+	});
 });
 
 describe("topics: the scheduler", () => {

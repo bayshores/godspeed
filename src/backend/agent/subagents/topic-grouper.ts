@@ -34,7 +34,8 @@ const topicSchema = Type.Object({
 	id: Type.Optional(Type.String({ description: "The existing topic's id (tpc_…) when keeping a topic; leave out for a new one." })),
 	name: Type.String({ description: "1–4 words, in the course's own terms." }),
 	members: Type.Array(Type.String(), { description: "The ids of the facts in this topic." }),
-	material: Type.Optional(Type.Union(TOPIC_MATERIALS.map((m) => Type.Literal(m)), { description: "The main work this topic asks: term, procedure, concept or proof." })),
+	// Any string, so one off-list label can't bounce the whole grouping; drafts() keeps the known ones.
+	material: Type.Optional(Type.String({ description: "The main work this topic asks: term, procedure, concept or proof." })),
 });
 
 const submitSchema = Type.Object({
@@ -61,6 +62,14 @@ interface TopicGrouperInput {
 	onStep?: (usage: Usage, model: string, step: number) => void;
 	/** New topic ids ("tpc_" + 10 hex by default). */
 	newId?: () => string;
+}
+
+/** The submitted topics, each with its material only when it is one of the four. */
+function drafts(raw: TopicsSubmit): TopicDraft[] {
+	return raw.topics.map(({ material, ...topic }) => {
+		const known = TOPIC_MATERIALS.find((m) => m === material?.trim().toLowerCase());
+		return known ? { ...topic, material: known } : topic;
+	});
 }
 
 const defaultNewId = () => `tpc_${crypto.randomUUID().replace(/-/g, "").slice(0, 10)}`;
@@ -96,9 +105,8 @@ export async function groupTopics(input: TopicGrouperInput): Promise<GraphTopic[
 		onStep: (usage, model, step) => input.onStep?.(usage, model, step),
 		neverSubmitted: "the topic grouper never submitted topics",
 	});
-	const drafts: TopicDraft[] = submitted.topics;
 	return repairTopics(
-		drafts,
+		drafts(submitted),
 		input.facts.map((f) => f.id),
 		input.chains,
 		input.current,
