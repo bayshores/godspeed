@@ -21,9 +21,9 @@ pub fn build(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
 	let check = item("check-updates", "Check for Updates…", None)?;
 	// The predefined Quit is unsupported on GTK 3, so every OS shares this one.
 	let quit = item("quit", "Quit godspeed", Some("CmdOrCtrl+Q"))?;
-	let (sep1, sep2) = (separator()?, separator()?);
+	let sep1 = separator()?;
 	#[cfg(target_os = "macos")]
-	let (hide, hide_others) = (PredefinedMenuItem::hide(app, None)?, PredefinedMenuItem::hide_others(app, None)?);
+	let (hide, hide_others, sep2) = (PredefinedMenuItem::hide(app, None)?, PredefinedMenuItem::hide_others(app, None)?, separator()?);
 	#[cfg(target_os = "macos")]
 	let app_items: Vec<&dyn IsMenuItem<Wry>> = vec![&about, &check, &sep1, &hide, &hide_others, &sep2, &quit];
 	#[cfg(not(target_os = "macos"))]
