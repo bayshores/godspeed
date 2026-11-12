@@ -44,11 +44,15 @@ async fn servable(app: &App, raw_path: &str) -> Result<Servable, ReadingError> {
 		return Err(ReadingError::Refused(403, "Not a file the teacher can show"));
 	}
 	let meta = tokio::fs::metadata(&absolute).await.ok().filter(std::fs::Metadata::is_file).ok_or(ReadingError::Refused(404, "No such file"))?;
-	let mtime_ms = meta.modified().ok().and_then(|at| at.duration_since(std::time::UNIX_EPOCH).ok()).map_or(0.0, |d| d.as_secs_f64() * 1000.0);
-	Ok(Servable { absolute, mtime_ms, size: meta.len() })
+	Ok(Servable { absolute, mtime_ms: mtime_ms(&meta), size: meta.len() })
 }
 
-fn is_pdf(file: &Path) -> bool {
+/// `stat.mtimeMs`.
+pub(crate) fn mtime_ms(meta: &std::fs::Metadata) -> f64 {
+	meta.modified().ok().and_then(|at| at.duration_since(std::time::UNIX_EPOCH).ok()).map_or(0.0, |d| d.as_secs_f64() * 1000.0)
+}
+
+pub(crate) fn is_pdf(file: &Path) -> bool {
 	file.extension().is_some_and(|ext| ext.eq_ignore_ascii_case("pdf"))
 }
 
@@ -70,17 +74,13 @@ pub async fn reading_document(app: &App, raw_path: &str) -> Result<Json, Reading
 	Ok(json!({ "kind": "text", "text": contents }))
 }
 
-/// One PDF page as a PNG, cached by file version.
-pub async fn reading_pdf_page(app: &App, raw_path: &str, page: i64) -> Result<Arc<Vec<u8>>, ReadingError> {
-	let Servable { absolute, mtime_ms, .. } = servable(app, raw_path).await?;
-	if !is_pdf(&absolute) {
-		return Err(ReadingError::Refused(415, "Not a PDF"));
-	}
+/// One page of a PDF at `absolute` as a PNG, cached by file version.
+pub(crate) async fn render_pdf_page(app: &App, absolute: &Path, mtime_ms: f64, page: i64) -> Result<Arc<Vec<u8>>, ReadingError> {
 	let key = format!("{}:{mtime_ms}:{page}", absolute.display());
 	if let Some((_, png)) = app.misc.pages.lock().iter().find(|(cached, _)| *cached == key) {
 		return Ok(png.clone());
 	}
-	let rendered = app.pdf.render_pdf_pages(&absolute, &[page], Some(PAGE_DPI)).await.map_err(ReadingError::Failed)?;
+	let rendered = app.pdf.render_pdf_pages(absolute, &[page], Some(PAGE_DPI)).await.map_err(ReadingError::Failed)?;
 	let png = Arc::new(rendered.into_iter().next().ok_or(ReadingError::Refused(404, "No such page"))?.png);
 	let mut cache = app.misc.pages.lock();
 	cache.push_back((key, png.clone()));
@@ -88,6 +88,15 @@ pub async fn reading_pdf_page(app: &App, raw_path: &str, page: i64) -> Result<Ar
 		cache.pop_front();
 	}
 	Ok(png)
+}
+
+/// One PDF page of a file the teacher may show, as a PNG.
+pub async fn reading_pdf_page(app: &App, raw_path: &str, page: i64) -> Result<Arc<Vec<u8>>, ReadingError> {
+	let Servable { absolute, mtime_ms, .. } = servable(app, raw_path).await?;
+	if !is_pdf(&absolute) {
+		return Err(ReadingError::Refused(415, "Not a PDF"));
+	}
+	render_pdf_page(app, &absolute, mtime_ms, page).await
 }
 
 /// The digits as a number in `radix`, or None when there are none or one is not valid.

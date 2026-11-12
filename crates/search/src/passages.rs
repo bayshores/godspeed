@@ -28,6 +28,25 @@ fn place(row: &Json, key: &str) -> f64 {
 	}
 }
 
+/// The rows `at` names, by index. A place as the index wrote it wins over the rows around its
+/// point: a transcript's label is rounded, so its number can miss.
+fn picked(rows: &[Json], at: &PassageRef) -> Vec<usize> {
+	match at {
+		PassageRef::Passage(id) => (0..rows.len()).filter(|&i| field(&rows[i], "id") == id).collect(),
+		PassageRef::Place { file_id, range } => {
+			let in_file = |i: &usize| rows[*i]["fileId"] == Json::from(file_id.as_str());
+			let exact: Vec<usize> = (0..rows.len()).filter(in_file).filter(|&i| rows[i]["range"] == Json::from(range.as_str())).collect();
+			if !exact.is_empty() {
+				return exact;
+			}
+			match range_point(range) {
+				Some(point) => (0..rows.len()).filter(in_file).filter(|&i| place(&rows[i], "from") <= point && point <= place(&rows[i], "to")).collect(),
+				None => Vec::new(),
+			}
+		}
+	}
+}
+
 impl Search {
 	/// Drop a deleted space's tables from memory: nothing reads them again. Its writer locks stay,
 	/// so an index run still in flight keeps its order.
@@ -128,32 +147,31 @@ impl Search {
 		Ok(lines.join("\n"))
 	}
 
+	/// The stored passages a reference names: the one passage of an id, or every passage of a
+	/// file that covers a place. Empty when there is none.
+	pub fn passages_at(&self, space_id: &str, at: &PassageRef) -> Vec<Json> {
+		let table = self.read_table(&self.passages_file(space_id));
+		picked(&table.rows, at).into_iter().map(|i| table.rows[i].clone()).collect()
+	}
+
 	/// A passage's text (a whole page when opened by file and place) with its file, place and the
 	/// ids of its neighbours.
 	pub fn read_passage(&self, space_id: &str, files: &[Json], at: &PassageRef) -> String {
 		let table = self.read_table(&self.passages_file(space_id));
 		let rows = &table.rows;
-		let picked: Vec<usize> = match at {
-			PassageRef::Passage(id) => match rows.iter().position(|r| field(r, "id") == id) {
-				Some(i) => vec![i],
-				None => return format!("No passage \"{id}\". Ids come from search_space_files."),
-			},
-			PassageRef::Place { file_id, range } => {
-				let in_file = |r: &&Json| r["fileId"] == Json::from(file_id.as_str());
-				let picked: Vec<usize> = match range_point(range) {
-					Some(point) => (0..rows.len()).filter(|&i| in_file(&&rows[i]) && place(&rows[i], "from") <= point && point <= place(&rows[i], "to")).collect(),
-					None => Vec::new(),
-				};
-				if picked.is_empty() {
-					let all: Vec<&Json> = rows.iter().filter(in_file).collect();
-					let (Some(first), Some(last)) = (all.first(), all.last()) else {
-						return format!("No passage of file \"{file_id}\": it is not indexed. A file id is the part of a passage id before the \":\" (or from read_space with files: true).");
-					};
-					return format!("No passage of file \"{file_id}\" at \"{range}\". Its passages run from \"{}\" to \"{}\".", field(first, "range"), field(last, "range"));
+		let picked = picked(rows, at);
+		if picked.is_empty() {
+			return match at {
+				PassageRef::Passage(id) => format!("No passage \"{id}\". Ids come from search_space_files."),
+				PassageRef::Place { file_id, range } => {
+					let all: Vec<&Json> = rows.iter().filter(|r| r["fileId"] == Json::from(file_id.as_str())).collect();
+					match (all.first(), all.last()) {
+						(Some(first), Some(last)) => format!("No passage of file \"{file_id}\" at \"{range}\". Its passages run from \"{}\" to \"{}\".", field(first, "range"), field(last, "range")),
+						_ => format!("No passage of file \"{file_id}\": it is not indexed. A file id is the part of a passage id before the \":\" (or from read_space with files: true)."),
+					}
 				}
-				picked
-			}
-		};
+			};
+		}
 		let head = &rows[picked[0]];
 		let in_file: Vec<usize> = (0..rows.len()).filter(|&i| rows[i]["fileId"] == head["fileId"]).collect();
 		let first = in_file.iter().position(|&i| i == picked[0]).unwrap_or(0);
@@ -268,6 +286,21 @@ mod tests {
 		s.forget_space_search(SPACE);
 		assert!(s.is_file_indexed(SPACE, "f_a", "v1"));
 		std::fs::remove_dir_all(dir).unwrap();
+	}
+
+	#[test]
+	fn a_place_as_the_index_wrote_it_wins_over_its_point() {
+		// A transcript's place is rounded down, so its number is before the passage starts.
+		let rows = [
+			json!({ "id": "f_t:1", "fileId": "f_t", "range": "12:30–13:40", "from": 750.5, "to": 820 }),
+			json!({ "id": "f_t:2", "fileId": "f_t", "range": "13:40–15:00", "from": 820, "to": 900 }),
+		];
+		let place = |range: &str| picked(&rows, &PassageRef::Place { file_id: "f_t".into(), range: range.into() });
+		assert_eq!(place("12:30–13:40"), [0]);
+		assert_eq!(place("13:40"), [0, 1]);
+		assert_eq!(place("12:30"), Vec::<usize>::new());
+		assert_eq!(picked(&rows, &PassageRef::Passage("f_t:2".into())), [1]);
+		assert_eq!(picked(&rows, &PassageRef::Place { file_id: "f_x".into(), range: "12:30–13:40".into() }), Vec::<usize>::new());
 	}
 
 	#[test]

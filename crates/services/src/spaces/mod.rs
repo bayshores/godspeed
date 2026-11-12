@@ -6,6 +6,7 @@
 //! file queue that turns files into text, facts and search passages) and `text_cache`. Its exports
 //! are re-exported here, so callers write `spaces::add_copied_file`.
 
+pub mod citations;
 pub mod space_actions;
 pub mod space_card;
 pub mod space_search;
