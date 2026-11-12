@@ -71,7 +71,7 @@ describe("the practice transcript cards", () => {
 		assert.match(html, /Prove the parity claim\./);
 		assert.doesNotMatch(html, /Pair them\./, "the commitment stays hidden");
 		// No chevron, no collapsed bar.
-		assert.doesNotMatch(html, /lucide-chevron|<button/, "nothing collapsible");
+		assert.doesNotMatch(html, /<button/, "nothing collapsible");
 	});
 
 	it("ConcludeCard: the SOLUTION is the hero (the pose's modelSolution via part.reveal); the verdict rides below, low-key", () => {

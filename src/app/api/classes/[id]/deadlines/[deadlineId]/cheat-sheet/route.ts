@@ -2,14 +2,14 @@
  * /api/classes/[id]/deadlines/[deadlineId]/cheat-sheet
  *  GET  — the sheet's view (CheatSheetView), after taking a newer PDF from its working folder
  *  POST — one action:
- *    { action: "ask", text, attachments?, region?, about? }   a message in the sheet's chat
+ *    { action: "ask", text, attachments?, region? }   a message in the sheet's chat
  *    { action: "retry" }                     send the failed message again
  *    { action: "stop" }                      stop the agent's request
  *    { action: "remove-rule", text }         delete one of the sheet's rules
  *    { action: "file", n }                   → { path }: version n's PDF in the working folder (Show in Finder)
  */
 import { askCheatSheet, cheatSheetView, removeSheetRule, retryCheatSheet, sheetPdfFile, stopCheatSheet } from "@/backend/server";
-import { ChatInputError, isClassId, parseAttachments, sheetAboutOf, sheetRegionOf } from "@/shared/core";
+import { ChatInputError, isClassId, parseAttachments, sheetRegionOf } from "@/shared/core";
 
 export const dynamic = "force-dynamic";
 
@@ -42,10 +42,8 @@ export async function POST(req: Request, { params }: Ctx) {
 				throw err;
 			}
 			const region = body.region === undefined ? undefined : sheetRegionOf(body.region);
-			const about = body.about === undefined ? undefined : sheetAboutOf(body.about);
 			if (body.region !== undefined && !region) return bad("Give the region as n, page, x, y, w and h.");
-			if (body.about !== undefined && !about) return bad("Give about as kind, session and text.");
-			return reply(await askCheatSheet(id, deadlineId, { text: body.text, ...(attachments ? { attachments } : {}), ...(region ? { region } : {}), ...(about ? { about } : {}) }));
+			return reply(await askCheatSheet(id, deadlineId, { text: body.text, ...(attachments ? { attachments } : {}), ...(region ? { region } : {}) }));
 		}
 		case "retry":
 			return reply(retryCheatSheet(id, deadlineId));

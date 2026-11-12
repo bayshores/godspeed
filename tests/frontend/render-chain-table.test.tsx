@@ -81,7 +81,6 @@ describe("ChainTableBody — clusters (the outermost layer)", () => {
 		assert.match(html, /title="notes\/raw\/ethics.md"[^>]*>ethics.md</, "a file shows its own name, the path on hover");
 		assert.ok(!html.includes('data-testid="chain-row-c1"'), "no chain row when collapsed");
 		assert.ok(!html.includes("Premise one"), "no chips when collapsed");
-		assert.ok(!html.includes("lucide"), "no lucide icons");
 	});
 
 	it("a premise-only birth never becomes a group — chains live in their CONCLUSION's cluster", () => {

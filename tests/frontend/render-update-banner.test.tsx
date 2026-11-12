@@ -72,7 +72,7 @@ describe("update banner (Wave C)", () => {
 		assert.ok(host.innerHTML.includes("0.3.1"), "the version renders");
 		assert.ok(host.innerHTML.includes("Restart"), "the restart affordance renders");
 
-		const button = host.querySelector<HTMLButtonElement>("[data-testid='update-banner'] button");
+		const button = host.querySelector<HTMLButtonElement>("[data-testid='update-restart-now']");
 		assert.ok(button, "restart button exists");
 		button!.click();
 		assert.equal(installed, 1, "Restart asks the shell to quit-and-install");

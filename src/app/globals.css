@@ -401,7 +401,11 @@ body {
 	padding: 24px 32px 28px;
 }
 .lh-lesson-body[data-dock] {
-	grid-template: "reading dock teacher" minmax(0, 1fr) / minmax(280px, 1fr) minmax(260px, 340px) minmax(340px, var(--lh-turn-w));
+	grid-template: "reading dock teacher" minmax(0, 1fr) / minmax(280px, 1fr) auto minmax(340px, var(--lh-turn-w));
+}
+/* The docked cheat sheet is as wide as the learner dragged it. */
+.lh-sheet-dock {
+	width: var(--lh-dock-w);
 }
 @container lesson (max-width: 999px) {
 	.lh-lesson-body[data-dock] {
@@ -409,7 +413,11 @@ body {
 		gap: 16px;
 		padding: 16px;
 	}
-	.lh-lesson-body[data-dock] .lh-teacher-resize {
+	.lh-lesson-body[data-dock] .lh-sheet-dock {
+		width: 100%;
+	}
+	.lh-lesson-body[data-dock] .lh-teacher-resize,
+	.lh-lesson-body[data-dock] .lh-dock-resize {
 		display: none;
 	}
 }

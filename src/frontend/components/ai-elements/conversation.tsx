@@ -1,7 +1,7 @@
 import { Button } from "@/frontend/components/ui/button";
 import { usePresence } from "@/frontend/components/presence";
+import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { cn } from "@/frontend/lib/utils";
-import { ArrowDownIcon } from "lucide-react";
 import type { ComponentProps } from "react";
 import { useCallback } from "react";
 import { StickToBottom, useStickToBottomContext } from "use-stick-to-bottom";
@@ -104,7 +104,7 @@ export const ConversationScrollButton = ({
           variant="outline"
           {...props}
         >
-          <ArrowDownIcon className="size-4" />
+          <PixelIcon name="chevron" className="rotate-90" />
         </Button>
       </>
     )

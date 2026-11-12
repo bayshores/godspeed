@@ -18,14 +18,17 @@
  */
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { actionForBinding, bindingForAction, bindingKeys, eventBinding, isTypingSurface, kbdEventForAction, KEYBOARD_ACTIONS, KEY_SCOPES } from "@/shared/core";
 import { showFocusRingAfterTab, trapTabInDialog } from "@/frontend/components/focus-hygiene";
-import { Popup } from "@/frontend/components/ui/popup";
+import { usePresence } from "@/frontend/components/presence";
+import { DialogSheet } from "@/frontend/components/ui/dialog-sheet";
 
 export function KeyboardShortcuts() {
 	const router = useRouter();
 	const [shortcutsOpen, setShortcutsOpen] = useState(false);
+	const presence = usePresence(shortcutsOpen);
 
 	// The router inside a ref so the keydown listener (attached once) never
 	// goes stale.
@@ -98,10 +101,12 @@ export function KeyboardShortcuts() {
 		};
 	}, []);
 
-	return (
-		<Popup open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} title="Keyboard shortcuts" testid="shortcuts" className="max-w-[780px]">
+	if (!presence.mounted) return null;
+	return createPortal(
+		<DialogSheet title="Keyboard shortcuts" state={presence.state} testid="shortcuts" onClose={() => setShortcutsOpen(false)} className="w-[780px]">
 			<ShortcutList />
-		</Popup>
+		</DialogSheet>,
+		document.body,
 	);
 }
 
@@ -110,14 +115,15 @@ function ShortcutList() {
 	return (
 		<div className="grid gap-x-10 gap-y-6 sm:grid-cols-2">
 			{KEY_SCOPES.map(({ scope, label }) => (
-				<div key={scope}>
-					<h3 className="border-b-2 border-ink pb-1 text-[17px] text-ink">{label}</h3>
+				<div key={scope} className="flex flex-col gap-0.5">
+					<h3 className="text-lg text-ink">{label}</h3>
+					<div className="h-[1.5px] bg-ink" />
 					{KEYBOARD_ACTIONS.filter((a) => a.scope === scope).map((a) => (
-						<div key={a.id} className="flex items-center justify-between gap-4 pt-2.5 text-[15px] text-ink">
+						<div key={a.id} className="flex items-center justify-between gap-4 py-1.5 text-[15px] text-ink">
 							{a.label}
-							<span className="flex shrink-0 gap-1">
+							<span className="flex shrink-0 gap-1.5">
 								{bindingKeys(bindingForAction(a.id)).map((key, i) => (
-									<kbd key={i} className="rounded-[2px] border-[1.5px] border-ink px-2 py-0.5 font-[inherit] text-sm">
+									<kbd key={i} className="rounded-[2px] border-[1.5px] border-ink bg-background px-2 py-0.5 font-[inherit] text-sm">
 										{key}
 									</kbd>
 								))}

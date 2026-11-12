@@ -158,7 +158,7 @@ describe("General update rows", () => {
 		const host = await mount(<><UpdateSettings {...props} /><UpdateBanner /></>);
 		assert.ok(q(host, "update-restart")); assert.ok(q(host, "update-banner"));
 		assert.ok(q(host, "update-banner")!.textContent!.includes("0.3.8"));
-		await click(q(host, "update-banner")!.querySelector("button")); assert.equal(b.calls.install, 1);
+		await click(q(host, "update-restart-now")); assert.equal(b.calls.install, 1);
 		assert.equal(b.calls.check, 0);
 	});
 

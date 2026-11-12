@@ -41,7 +41,6 @@ describe("DeleteNodeBody — the minimal screen", () => {
 		assert.match(html, /data-testid="node-permanence-line"[^>]*>This permanently deletes the node\. This cannot be undone\./);
 		assert.match(html, /data-testid="node-delete-cancel"[^>]*class="lh-btn text-\[15px\]"/);
 		assert.match(html, /data-testid="node-delete-confirm"[^>]*lh-btn-danger/);
-		assert.ok(!html.includes("lucide"), "no lucide icons");
 	});
 
 	it("NO impact facts, NO loading line, NO sessions join — the pre-flight read is dead", () => {

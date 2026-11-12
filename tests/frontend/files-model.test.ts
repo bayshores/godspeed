@@ -92,7 +92,8 @@ describe("files-model", () => {
 		assert.deepEqual(remove, {
 			title: "Remove HW.pdf?",
 			body: "It leaves CSE 21, along with the 1 fact built from it. Your original file is not touched. This cannot be undone.",
-			action: "Remove",
+			action: "Remove file",
+			danger: true,
 		});
 		assert.equal(
 			confirmCopy({ kind: "remove", file: files[3]! }, "CSE 21", files, coverage).body,
@@ -103,7 +104,8 @@ describe("files-model", () => {
 		assert.deepEqual(confirmCopy({ kind: "move", file: files[0]! }, "CSE 21", files, coverage), {
 			title: "Move to Course info?",
 			body: "Its 30 facts leave the graph. The teacher can still read it.",
-			action: "Move",
+			action: "Move file",
+			danger: false,
 		});
 		const empty = new Map<string, FileCoverage>([["a", { ...cov(0, 0), fileId: "a" }]]);
 		assert.equal(confirmCopy({ kind: "move", file: files[0]! }, "CSE 21", files, empty).body, "The teacher can still read it.", "no facts: nothing to lose");

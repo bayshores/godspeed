@@ -1,46 +1,37 @@
 /**
  * The onboarding constellation: the intro and the setup screens'
  * backdrop. One SVG drawn in a 1440×900 space and cropped to the window.
- * In the intro a comet streaks in from the bottom-left and drops topic
- * dots along its trail; they link up and light red → green, then dim to
- * a faint backdrop that stays behind every setup step. The welcome
- * screen draws the same sky without this comet (it flies its own, into
- * the logo). Pure SVG + CSS animation (src/app/globals.css,
+ * Under it all, a faint dot grid. In the intro a comet streaks in from the
+ * bottom-left and drops topic dots along its trail; they link up, then dim
+ * to a faint backdrop that stays behind every setup step. The welcome
+ * screen draws the same sky without this comet (the mascot flies in
+ * instead). Pure SVG + CSS animation (src/app/globals.css,
  * "Onboarding"); with reduced motion every element simply shows its final
  * state.
  */
 
-/** The confidence ramp, red → green (the app's only color). */
-const RAMP = [
-	"var(--lh-ans-wrong)",
-	"var(--lh-conf-2)",
-	"var(--lh-conf-3)",
-	"var(--lh-conf-4)",
-	"var(--lh-ans-right)",
-] as const;
-
-/** Topic dots: center x, y, radius, ramp step (from the design). */
-export const DOTS: readonly (readonly [number, number, number, number])[] = [
-	[150, 820, 8, 0],
-	[260, 700, 5.5, 2],
-	[200, 600, 5.5, 4],
-	[380, 640, 8, 1],
-	[330, 520, 5.5, 3],
-	[470, 560, 5.5, 0],
-	[520, 440, 8, 2],
-	[420, 400, 5.5, 4],
-	[620, 470, 5.5, 1],
-	[600, 330, 8, 3],
-	[760, 380, 5.5, 0],
-	[700, 250, 5.5, 2],
-	[880, 300, 8, 4],
-	[820, 520, 5.5, 1],
-	[960, 420, 5.5, 3],
-	[1080, 300, 8, 0],
-	[1020, 560, 5.5, 2],
-	[1200, 400, 5.5, 4],
-	[1160, 220, 8, 1],
-	[1300, 520, 5.5, 3],
+/** Topic dots: center x, y, side of the square. */
+export const DOTS: readonly (readonly [number, number, number])[] = [
+	[150, 820, 8],
+	[260, 700, 5.5],
+	[200, 600, 5.5],
+	[380, 640, 8],
+	[330, 520, 5.5],
+	[470, 560, 5.5],
+	[520, 440, 8],
+	[420, 400, 5.5],
+	[620, 470, 5.5],
+	[600, 330, 8],
+	[760, 380, 5.5],
+	[700, 250, 5.5],
+	[880, 300, 8],
+	[820, 520, 5.5],
+	[960, 420, 5.5],
+	[1080, 300, 8],
+	[1020, 560, 5.5],
+	[1200, 400, 5.5],
+	[1160, 220, 8],
+	[1300, 520, 5.5],
 ];
 
 /** Links between dots (indexes into DOTS). */
@@ -63,12 +54,12 @@ export function dotDelay(x: number): number {
 }
 
 /** The comet's head radius. */
-export const HEAD_R = 10.9;
+const HEAD_R = 10.9;
 /** The tail at rest: as wide as the head where they meet, about three
  *  head-widths long, pointing along +x (rotated to trail the path). */
-export const TAIL = `M0,${-HEAD_R} Q26,-4 66,0 Q26,4 0,${HEAD_R} Z`;
+const TAIL = `M0,${-HEAD_R} Q26,-4 66,0 Q26,4 0,${HEAD_R} Z`;
 /** The tail points back down the path, from STOP toward START. */
-export const TAIL_ANGLE = (Math.atan2(START[1] - STOP[1], START[0] - STOP[0]) * 180) / Math.PI;
+const TAIL_ANGLE = (Math.atan2(START[1] - STOP[1], START[0] - STOP[0]) * 180) / Math.PI;
 
 /** "welcome": the intro's dots and links, without the comet. */
 export type ConstellationMode = "intro" | "welcome" | "backdrop" | "bright" | "gone";
@@ -114,14 +105,15 @@ export function Constellation({ mode }: { mode: ConstellationMode }) {
 						/>
 					);
 				})}
-				{DOTS.map(([x, y, r, step], i) => (
-					<circle
+				{DOTS.map(([x, y, size], i) => (
+					<rect
 						key={i}
-						className="ob-dot"
-						cx={x}
-						cy={y}
-						r={r}
-						style={{ fill: RAMP[step], "--d": `${dotDelay(x).toFixed(2)}s` } as React.CSSProperties}
+						className="ob-dot fill-ink-2"
+						x={x - size / 2}
+						y={y - size / 2}
+						width={size}
+						height={size}
+						style={{ "--d": `${dotDelay(x).toFixed(2)}s` } as React.CSSProperties}
 					/>
 				))}
 			</g>

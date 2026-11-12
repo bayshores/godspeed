@@ -38,7 +38,7 @@ export const ClassIconField = memo(function ClassIconField({
 								picked ? "border-ink bg-highlight text-ink" : "border-border bg-background hover:text-ink",
 							)}
 						>
-							<ClassIcon icon={name} className="size-5" />
+							<ClassIcon icon={name} className="size-[22px]" />
 						</button>
 					);
 				})}

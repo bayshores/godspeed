@@ -8,7 +8,7 @@
  */
 
 import { useState } from "react";
-import { TriangleAlertIcon } from "lucide-react";
+import { NoticeCard, NoticeText } from "@/frontend/components/notice-card";
 import { OUTLINE_BUTTON } from "@/frontend/components/settings/controls";
 import { oldSetupLines, removedNote } from "./agent-folder-model";
 import { useOldSetup } from "./use-old-setup";
@@ -19,42 +19,44 @@ export function OldSetupNotice() {
 	if (hidden || !view) return null;
 	const lines = oldSetupLines(view.oldSetup, view.short);
 	if (!lines.length && !removed) return null;
+	const [title, rest] = removed ? [removedNote(removed), ""] : splitSentence(lines[0]!.full);
 	return (
-		<div data-testid="old-setup-notice" role="status" className="lh-rise lh-popup flex w-[340px] max-w-full flex-col gap-3 px-4 py-3.5 font-ui text-[13.5px] text-ink">
-			{removed ? (
-				<p>{removedNote(removed)}</p>
-			) : (
-				lines.map((line) => <p key={line.short}>{line.full}</p>)
-			)}
+		<NoticeCard
+			data-testid="old-setup-notice"
+			role="status"
+			title={title}
+			actions={
+				removed ? (
+					<button type="button" onClick={() => setHidden(true)} className="lh-btn text-[15px]">
+						OK
+					</button>
+				) : (
+					<>
+						<button type="button" data-testid="old-setup-later" onClick={() => setHidden(true)} className="lh-press lh-btn text-[15px]">
+							Later
+						</button>
+						<button type="button" data-testid="old-setup-remove" disabled={busy} onClick={() => void remove()} className="lh-btn text-[15px]">
+							Remove
+						</button>
+					</>
+				)
+			}
+		>
+			{rest && <NoticeText>{rest}</NoticeText>}
+			{!removed && lines.slice(1).map((line) => <NoticeText key={line.short}>{line.full}</NoticeText>)}
 			{error && (
 				<p role="alert" className="text-[13px] text-ans-wrong">
 					{error}
 				</p>
 			)}
-			<div className="flex items-center justify-end gap-4">
-				{removed ? (
-					<button type="button" onClick={() => setHidden(true)} className="lh-btn lh-btn-main">
-						OK
-					</button>
-				) : (
-					<>
-						<button type="button" data-testid="old-setup-later" onClick={() => setHidden(true)} className="lh-press lh-btn">
-							Later
-						</button>
-						<button
-							type="button"
-							data-testid="old-setup-remove"
-							disabled={busy}
-							onClick={() => void remove()}
-							className="lh-btn lh-btn-main"
-						>
-							Remove
-						</button>
-					</>
-				)}
-			</div>
-		</div>
+		</NoticeCard>
 	);
+}
+
+/** "A. B." into ["A.", "B."]: the notice's title and its body. */
+function splitSentence(text: string): [string, string] {
+	const at = text.indexOf(". ");
+	return at < 0 ? [text, ""] : [text.slice(0, at + 1), text.slice(at + 2)];
 }
 
 export function OldSetupWarning() {
@@ -66,7 +68,6 @@ export function OldSetupWarning() {
 		<div data-testid="old-setup-warning" className="flex flex-col gap-1.5 pb-1">
 			<div className="flex items-center justify-between gap-4">
 				<span className="flex min-w-0 items-center gap-2 text-[13.5px] text-ink">
-					<TriangleAlertIcon className="size-[13px] shrink-0 text-ans-wrong" aria-hidden />
 					{lines.map((line) => line.short).join(" ")}
 				</span>
 				<button type="button" className={OUTLINE_BUTTON} disabled={busy} onClick={() => void remove()}>

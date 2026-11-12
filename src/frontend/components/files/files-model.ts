@@ -102,6 +102,8 @@ export interface ConfirmCopy {
 	/** A safer way to get there (Unlink: Pick folder again). */
 	note?: string;
 	action: string;
+	/** The action takes something away for good (red); a move is a plain button. */
+	danger: boolean;
 }
 
 /**
@@ -129,6 +131,7 @@ export function confirmCopy(
 				body: `${leave}The folder on your computer is not touched. This cannot be undone.`,
 				note: "To switch to another folder, use Pick folder again instead. It keeps the facts of files that are also in the new folder.",
 				action: "Unlink",
+				danger: true,
 			};
 		}
 		case "remove": {
@@ -136,14 +139,16 @@ export function confirmCopy(
 			return {
 				title: `Remove ${change.file.name}?`,
 				body: `It leaves ${className}${what}. Your original file is not touched. This cannot be undone.`,
-				action: "Remove",
+				action: "Remove file",
+				danger: true,
 			};
 		}
 		case "move":
 			return {
 				title: "Move to Course info?",
 				body: `${factsLeave(known ? (coverage.get(change.file.id)?.facts ?? 0) : null)}The teacher can still read it.`,
-				action: "Move",
+				action: "Move file",
+				danger: false,
 			};
 	}
 }

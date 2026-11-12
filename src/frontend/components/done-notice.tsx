@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
+import { NoticeCard } from "@/frontend/components/notice-card";
 import { NOTICE_STACK_ID } from "@/frontend/components/notice-stack";
 import { useHeld } from "@/frontend/components/use-held";
 
@@ -19,9 +20,7 @@ export function DoneNotice({ text, onExpire }: { text: string; onExpire: () => v
 		return () => clearTimeout(timer);
 	}, [text, held, onExpire]);
 	return createPortal(
-		<div data-testid="done-notice" {...handlers} role="alert" className="lh-rise lh-popup flex items-center gap-2.5 px-4 py-2.5 font-ui text-sm text-ink">
-			{text}
-		</div>,
+		<NoticeCard data-testid="done-notice" {...handlers} role="alert" title={text} />,
 		document.getElementById(NOTICE_STACK_ID) ?? document.body,
 	);
 }

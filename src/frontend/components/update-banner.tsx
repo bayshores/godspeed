@@ -10,7 +10,9 @@
  */
 
 import { useState } from "react";
+import { NoticeCard, NoticeText } from "@/frontend/components/notice-card";
 import { useUpdateState } from "@/frontend/components/settings/update-settings.tsx";
+import { ProgressBar } from "@/frontend/components/ui/progress-bar";
 
 export default function UpdateBanner() {
 	const { state } = useUpdateState();
@@ -19,37 +21,25 @@ export default function UpdateBanner() {
 	if ((!ready && state?.status !== "downloading") || (ready && later)) return null;
 	const name = state.version ? `godspeed ${state.version}` : "A new godspeed";
 	return (
-		<div data-testid="update-banner" role="status" className="lh-rise lh-popup flex w-[320px] flex-col gap-3 px-4 py-3.5 font-ui">
-			<div className="flex flex-col gap-1">
-				<span className="text-[15px] font-bold text-ink">{ready ? `${name} is ready` : `${name} is downloading`}</span>
-				<span className="text-sm text-ink-2">
-					{ready ? "Restart now to finish installing, or it installs the next time you quit." : "This happens in the background. Keep working."}
-				</span>
-			</div>
-			{ready ? (
-				<div className="flex gap-2">
-					<button
-						type="button"
-						data-testid="update-restart-now"
-						onClick={() => window.lh?.installUpdate?.()}
-						className="lh-btn lh-btn-main"
-					>
-						Restart now
-					</button>
-					<button
-						type="button"
-						data-testid="update-later"
-						onClick={() => setLater(true)}
-						className="lh-press lh-btn"
-					>
-						Later
-					</button>
-				</div>
-			) : (
-				<div className="h-1 w-full bg-tone-2" aria-hidden>
-					<div className="h-full bg-ink transition-[width] duration-(--lh-dur)" style={{ width: `${state.percent ?? 0}%` }} />
-				</div>
-			)}
-		</div>
+		<NoticeCard
+			data-testid="update-banner"
+			role="status"
+			title={ready ? `${name} is ready` : `${name} is downloading`}
+			actions={
+				ready && (
+					<>
+						<button type="button" data-testid="update-later" onClick={() => setLater(true)} className="lh-press lh-btn text-[15px]">
+							Later
+						</button>
+						<button type="button" data-testid="update-restart-now" onClick={() => window.lh?.installUpdate?.()} className="lh-btn lh-btn-main text-[15px]">
+							Restart now
+						</button>
+					</>
+				)
+			}
+		>
+			<NoticeText>{ready ? "Restart now to finish installing, or it installs the next time you quit." : "This happens in the background. Keep working."}</NoticeText>
+			{!ready && <ProgressBar share={(state.percent ?? 0) / 100} className="w-full" />}
+		</NoticeCard>
 	);
 }

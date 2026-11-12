@@ -87,13 +87,13 @@ describe("settings restyle", () => {
 		assert.equal(sectionFor("nope"), "connection");
 	});
 
-	it("General holds the update rows and the Graph group (extraction, chunk budget)", async () => {
+	it("General holds the update rows and the Lessons and graph group (extraction, chunk budget)", async () => {
 		globalThis.fetch = (async () => Response.json({ settings: { version: 1 } })) as typeof fetch;
 		await mount(<SettingsPage section="general" />);
 		assert.equal(q("settings-nav-general")!.getAttribute("aria-current"), "true");
 		assert.ok(q("row-version"));
-		const graph = q("section-graph")!;
-		assert.ok(graph, "the Graph group");
+		const graph = q("group-lessons")!;
+		assert.ok(graph, "the Lessons and graph group");
 		for (const id of ["graph-row-enabled", "graph-row-chunk-tokens"]) {
 			assert.ok(graph.querySelector(`[data-testid="${id}"]`), id);
 		}
@@ -172,6 +172,13 @@ describe("settings restyle", () => {
 		await mount(<ConnectionSection />);
 		assert.equal(q("agent-status")!.textContent, "Codex connected, not teaching");
 		assert.equal(q("agent-teach-hint")!.textContent, "Tell Codex to start teaching.");
+	});
+
+	it("work waiting with no agent says to open one with the button below", async () => {
+		globalThis.fetch = connectionFetch({ token: "tok_w", url: "http://127.0.0.1:1/api/mcp", agentConnected: false, agentTeaching: false, pendingWork: 2 });
+		await mount(<ConnectionSection />);
+		assert.equal(q("agent-status")!.textContent, "Waiting for your agent");
+		assert.equal(q("agent-teach-hint")!.textContent, "Open your agent with the button below.");
 	});
 
 	it("the menu switches the button to Codex, and Other app shows the address and a masked token", async () => {

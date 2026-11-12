@@ -18,6 +18,7 @@ import {
 } from "../../src/frontend/components/settings/appearance-model.ts";
 import { contrast } from "../../src/shared/core/ink.ts";
 import {
+	areaEdited,
 	areaParts,
 	composeGraphTools,
 	composeQuizStyle,
@@ -256,6 +257,13 @@ describe("Teaching compose helpers — the replace-whole PUT body", () => {
 			areaParts(area, segments).map((s) => s.path),
 			["shared/15-accuracy.md", "teacher/40-jobs.md"],
 		);
+	});
+
+	it("areaEdited is true only when one of the area's own parts has a saved version", () => {
+		const area = TEACHING_AREAS.find((a) => a.id === "facts")!;
+		const seg = (path: string, overrideText: string | null): PromptSegmentInfo => ({ path, sourceText: "", overrideText, shared: true });
+		assert.equal(areaEdited(area, [seg("shared/15-accuracy.md", null), seg("shared/10-voice.md", "mine")]), false);
+		assert.equal(areaEdited(area, [seg("shared/15-accuracy.md", "mine")]), true);
 	});
 });
 

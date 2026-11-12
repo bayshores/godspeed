@@ -38,7 +38,6 @@ import {
 	type CheatSheetView,
 	type ClassSheetsView,
 	type RequestTopic,
-	type SheetAbout,
 	type SheetFile,
 	type SheetMistake,
 	type SheetRegion,
@@ -65,8 +64,6 @@ export const cheatSheetSeams: { engine?: PiEngine } = {};
 
 /** Facts sent per topic, to keep the request short. */
 const FACTS_PER_TOPIC = 5;
-/** The longest problem or work text a message carries from a session. */
-const ABOUT_MAX = 4000;
 
 interface SheetState {
 	/** The message each sheet's agent is answering. */
@@ -385,13 +382,13 @@ async function keepFiles(classId: string, deadlineId: string, attachments: reado
 	});
 }
 
-/** A message in the sheet's chat, from the studio or the sheet beside a
- *  session: kept, then the agent answers it. Pictures go to the agent as
- *  pictures (a region's picture first), PDFs as a note with their path. */
+/** A message in the sheet's chat: kept, then the agent answers it.
+ *  Pictures go to the agent as pictures (a region's picture first), PDFs
+ *  as a note with their path. */
 export async function askCheatSheet(
 	classId: string,
 	deadlineId: string,
-	input: { text: string; attachments?: readonly ChatAttachment[]; region?: SheetRegion; about?: SheetAbout },
+	input: { text: string; attachments?: readonly ChatAttachment[]; region?: SheetRegion },
 ): Promise<Outcome<null>> {
 	const text = input.text.trim();
 	const attachments = input.attachments ?? [];
@@ -412,7 +409,6 @@ export async function askCheatSheet(
 		if (err instanceof ChatInputError) return fail(400, err.message);
 		throw err;
 	}
-	const about = input.about && { ...input.about, text: input.about.text.slice(0, ABOUT_MAX), ...(input.about.work ? { work: input.about.work.slice(0, ABOUT_MAX) } : {}) };
 	const message: YouMessage = {
 		id: randomUUID(),
 		role: "you",
@@ -420,7 +416,6 @@ export async function askCheatSheet(
 		at: new Date().toISOString(),
 		...(files.length > 0 ? { files } : {}),
 		...(input.region ? { region: input.region } : {}),
-		...(about ? { about } : {}),
 	};
 	writeCheatSheet(classId, withMessage(sheet, message));
 	return startRun({ ...got.value, saved: readCheatSheet(classId, deadlineId) }, message.id);

@@ -13,7 +13,6 @@ import { CURRENT_SETTINGS_VERSION, DEFAULT_TEACHER_NAME, type AppearanceSettings
 import { useAppearance } from "./appearance.tsx";
 import { SettingsSection } from "./controls.tsx";
 import { TeachingSection } from "./teaching-section.tsx";
-import { RememberedNotes } from "./remembered-notes.tsx";
 import { GeneralSection } from "./general-section.tsx";
 import { MENU_CLOSE_EVENT, MENU_OPEN_EVENT } from "@/frontend/components/menu-shell";
 import { notifySettingsSaved } from "@/frontend/components/settings-signal";
@@ -28,7 +27,7 @@ const SECTIONS = [
 	{ id: "connection", label: "Connection", hint: CONNECTION_SECTION_HINT },
 	{ id: "teaching", label: "Teaching" },
 	{ id: "appearance", label: "Appearance" },
-	{ id: "keyboard", label: "Keyboard", hint: "Stored on this device" },
+	{ id: "keyboard", label: "Keyboard" },
 	{ id: "general", label: "General" },
 ] as const;
 type SectionId = (typeof SECTIONS)[number]["id"];
@@ -78,6 +77,8 @@ export function SettingsPage({ section }: { section?: string }) {
 		};
 	}, []);
 	const [active, setActive] = useState<SectionId>(initialSection);
+	// Teaching's full instructions fill the page, heading and tabs included.
+	const [fullPage, setFullPage] = useState(false);
 	const current = SECTIONS.find((s) => s.id === active) ?? SECTIONS[0];
 	// A link to another section while the page is open changes
 	// initialSection under our feet — follow it.
@@ -159,8 +160,8 @@ export function SettingsPage({ section }: { section?: string }) {
 	return (
 		<div ref={contentRef} data-testid="settings-page" className="h-full overflow-y-auto">
 			<div className="mx-auto flex w-full max-w-[1008px] flex-col px-6 pt-10 pb-12">
-				<h1 className="text-[40px] leading-[48px] text-ink">Settings</h1>
-				<nav aria-label="Settings sections" data-testid="settings-nav" className="mt-6 mb-6 flex gap-1 overflow-x-auto border-b-2 border-edge">
+				{!fullPage && <h1 className="text-[40px] leading-[48px] text-ink">Settings</h1>}
+				<nav hidden={fullPage} aria-label="Settings sections" data-testid="settings-nav" className="mt-6 mb-6 flex gap-1 overflow-x-auto border-b-2 border-edge">
 					{SECTIONS.map((s) => {
 						const on = active === s.id;
 						return (
@@ -212,8 +213,8 @@ export function SettingsPage({ section }: { section?: string }) {
 										graph={record.graph}
 										teacherName={record.general?.teacherName || DEFAULT_TEACHER_NAME}
 										onSectionChange={(next) => void write("agent", next)}
+										onFullPage={setFullPage}
 									/>
-									<RememberedNotes />
 								</SettingsSection>
 							)}
 							{active === "appearance" && (

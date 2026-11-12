@@ -13,9 +13,9 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { usePathname, useRouter } from "next/navigation";
-import { FolderInputIcon, FolderMinusIcon, XIcon } from "lucide-react";
 import { useAgentStatus } from "@/frontend/components/agent-status";
 import { useClasses } from "@/frontend/components/class-context";
+import { NoticeCard, NoticeText } from "@/frontend/components/notice-card";
 import { NOTICE_STACK_ID } from "@/frontend/components/notice-stack";
 import { useServerEvent } from "@/frontend/components/server-events";
 import { changeNames, changeTitle, mergeChange, type FolderChange } from "./files-notice-model";
@@ -76,35 +76,21 @@ export function FilesNoticeView({
 			{changes.map((entry) => {
 				const name = nameOf(entry.classId);
 				if (!name) return null;
-				const Icon = entry.change === "added" ? FolderInputIcon : FolderMinusIcon;
 				return (
-					<div
+					<NoticeCard
 						key={`${entry.classId}:${entry.change}`}
 						data-testid={`files-notice-${entry.change}`}
 						role="status"
-						className="lh-rise lh-popup flex w-[340px] max-w-full items-start gap-3 px-4 py-3 font-ui text-[13.5px] text-ink"
+						title={changeTitle(entry, name, agentConnected)}
+						close={{ onClick: () => onDismiss(entry), testId: "files-notice-close" }}
+						actions={
+							<button type="button" data-testid="files-notice-see" onClick={() => onSee(entry)} className="lh-press lh-btn text-[15px]">
+								{entry.change === "added" ? "See files" : "See changes"}
+							</button>
+						}
 					>
-						<Icon className="mt-0.5 size-3.5 shrink-0" aria-hidden />
-						<div className="flex min-w-0 flex-1 flex-col gap-1">
-							<p className="font-bold">{changeTitle(entry, name, agentConnected)}</p>
-							<p className="truncate text-xs text-ink-3" title={entry.files.map((f) => f.name).join("\n")}>
-								{changeNames(entry.files)}
-							</p>
-							<div className="pt-1.5">
-								<button
-									type="button"
-									data-testid="files-notice-see"
-									onClick={() => onSee(entry)}
-									className="lh-press border border-tone-2 px-3 py-1 text-[13px] font-bold hover:bg-tone"
-								>
-									{entry.change === "added" ? "See files" : "See changes"}
-								</button>
-							</div>
-						</div>
-						<button type="button" data-testid="files-notice-close" aria-label="Close" onClick={() => onDismiss(entry)} className="lh-press text-ink-3 hover:text-ink">
-							<XIcon className="size-3.5" aria-hidden />
-						</button>
-					</div>
+						<NoticeText title={entry.files.map((f) => f.name).join("\n")}>{changeNames(entry.files)}</NoticeText>
+					</NoticeCard>
 				);
 			})}
 		</>

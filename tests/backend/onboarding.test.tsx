@@ -43,7 +43,10 @@ const { readSettings, writeSettings } = await import("../../src/backend/store/se
 const { readMcpToken, writeNewMcpToken } = await import("../../src/backend/store/mcp-token.ts");
 const { sanitizeUserSettings } = await import("../../src/shared/core/settings.ts");
 const { parseGeneralSettingsBody } = await import("../../src/backend/server/settings-body.ts");
-const { pickedLabel, DoneStep } = await import("../../src/frontend/components/onboarding/onboarding.tsx");
+const { pickedLabel } = await import("../../src/frontend/components/onboarding/class-step-model.ts");
+const { DoneStep } = await import("../../src/frontend/components/onboarding/done-step.tsx");
+const { StepSheet } = await import("../../src/frontend/components/onboarding/step-sheet.tsx");
+const { Wordmark } = await import("../../src/frontend/components/onboarding/wordmark.tsx");
 const { Constellation, DOTS, LINKS, dotDelay } = await import("../../src/frontend/components/onboarding/constellation.tsx");
 const { createRoot } = await import("react-dom/client");
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
@@ -119,6 +122,22 @@ describe("onboarding screen helpers", () => {
 		assert.ok(html.includes('data-testid="onboarding-save-error"'));
 		assert.match(html, /data-testid="onboarding-finish"[^>]*>Try again</);
 	});
+	it("a setup step: the step bar with the current step filled, over a sheet with the title and sentence", () => {
+		const html = renderToStaticMarkup(
+			<StepSheet at={2} title="Add your first class" sub="Each class gets its own lessons.">
+				<p>inside</p>
+			</StepSheet>,
+		);
+		assert.match(html, /data-testid="onboarding-steps"/);
+		assert.match(html, /bg-ink text-background[^>]*>2<\/span><span[^>]*>Class</);
+		assert.match(html, /<h1[^>]*>Add your first class<\/h1>/);
+		assert.ok(html.includes("inside"));
+	});
+	it("the wordmark: the teacher mascot beside godspeed", () => {
+		const html = renderToStaticMarkup(<Wordmark />);
+		assert.ok(html.includes('data-testid="teacher-sprite"'));
+		assert.match(html, /<h1[^>]*>godspeed<\/h1>/);
+	});
 	it("dotDelay: dots appear as the comet passes, left to right", () => {
 		const near = (a: number, b: number) => assert.ok(Math.abs(a - b) < 1e-9, `${a} ≈ ${b}`);
 		near(dotDelay(130), 0.6);
@@ -129,7 +148,7 @@ describe("onboarding screen helpers", () => {
 	it("the constellation draws every dot and link, tagged with its mode", () => {
 		const html = renderToStaticMarkup(<Constellation mode="intro" />);
 		assert.ok(html.includes('data-mode="intro"'));
-		assert.equal(html.match(/class="ob-dot"/g)?.length, DOTS.length);
+		assert.equal(html.match(/class="ob-dot /g)?.length, DOTS.length);
 		assert.equal(html.match(/class="ob-link"/g)?.length, LINKS.length);
 		assert.ok(html.includes('aria-hidden="true"'));
 	});

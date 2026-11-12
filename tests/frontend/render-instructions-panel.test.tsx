@@ -36,7 +36,7 @@ describe("InstructionsPanel", () => {
 		let fail = false;
 		globalThis.fetch = (() => (fail ? Promise.reject(new TypeError("offline")) : new Promise<Response>((resolve) => (finish = resolve)))) as typeof fetch;
 		const root = createRoot(document.getElementById("root")!);
-		await act(async () => root.render(<InstructionsPanel area={{ ...area }} parts={[part]} onChanged={() => {}} onClose={() => {}} />));
+		await act(async () => root.render(<InstructionsPanel area={{ ...area }} parts={[part]} teacherName="Teacher" onChanged={() => {}} onClose={() => {}} />));
 
 		await act(async () => buttons().reset.click());
 		assert.equal(buttons().reset.disabled, true, "Reset waits for its request");

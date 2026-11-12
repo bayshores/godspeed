@@ -54,13 +54,12 @@ const LETTER: SheetPage = { widthPt: 612, heightPt: 792 };
 describe("cheat sheet: the saved record", () => {
 	it("reads its versions, chat, rules and folder, drops broken entries, and refuses a newer record", () => {
 		const region = { n: 1, page: 2, x: 0.1, y: 0.2, w: 0.3, h: 0.1 };
-		const about = { kind: "problem", session: "Counting", text: "How many?", work: "C(5,2)" };
 		const saved = {
 			version: CHEAT_SHEET_FORMAT,
 			deadlineId: "ddl_1",
 			versions: [{ n: 1, prompt: "A4", at: "t", pages: [A4, A4], fromFolder: true }, { n: 2, prompt: "x", at: "t", pages: [] }, { n: "3" }],
 			messages: [
-				{ id: "m1", role: "you", text: "A4", at: "t", files: [{ name: "a.png", file: "abc-a.png" }], region, about },
+				{ id: "m1", role: "you", text: "A4", at: "t", files: [{ name: "a.png", file: "abc-a.png" }], region },
 				{ id: "m2", role: "agent", text: "Done.", at: "t", version: 1, rules: ["A4"] },
 				{ id: "m3", role: "teacher", text: "x", at: "t" },
 				{ id: "m4", role: "you", text: 3 },
@@ -73,7 +72,7 @@ describe("cheat sheet: the saved record", () => {
 			deadlineId: "ddl_1",
 			versions: [{ n: 1, prompt: "A4", at: "t", pages: [A4, A4], fromFolder: true }],
 			messages: [
-				{ id: "m1", role: "you", text: "A4", at: "t", files: [{ name: "a.png", file: "abc-a.png" }], region, about },
+				{ id: "m1", role: "you", text: "A4", at: "t", files: [{ name: "a.png", file: "abc-a.png" }], region },
 				{ id: "m2", role: "agent", text: "Done.", at: "t", version: 1, rules: ["A4"] },
 			],
 			rules: [{ text: "A4, both sides", at: "t" }],
@@ -240,7 +239,7 @@ describe("cheat sheet: the request", () => {
 		assert.doesNotMatch(text, /rules \(follow|chat so far|pointed at|is on this/);
 	});
 
-	it("carries the sheet's rules, the sheet now, the last few messages, the problem the student is on and the part they point at", () => {
+	it("carries the sheet's rules, the sheet now, the last few messages and the part they point at", () => {
 		const versions = [
 			{ n: 1, prompt: "A4", at: "t", pages: [A4] },
 			{ n: 2, prompt: "A4", at: "t", pages: [A4, A4] },
@@ -263,7 +262,6 @@ describe("cheat sheet: the request", () => {
 			message: {
 				...message,
 				text: "according to the cheat sheet that's what I did",
-				about: { kind: "problem", session: "Counting practice", text: "How many   ways to seat 5?", work: "5! = 120" },
 				region: { n: 1, page: 1, x: 0.1, y: 0.2, w: 0.3, h: 0.1 },
 			},
 		});
@@ -273,7 +271,6 @@ describe("cheat sheet: the request", () => {
 		assert.match(text, /It has: sheet\.pdf, sheet\.tex\. The sheet now is version 2 \(A4, front and back\), made from the source here\. To change it, edit that source/);
 		assert.match(text, /The chat so far, oldest first:\nStudent: old 2\n.*Student: old 7\nYou: Made it bigger\. \[made version 2\]\nYou: \[made version 1\]/s);
 		assert.doesNotMatch(text, /old 1\n/, "only the last 8 messages");
-		assert.match(text, /The student is on this problem in their session "Counting practice", with the sheet open beside it:\nHow many ways to seat 5\?\nWhat they have written for it so far:\n5! = 120/);
 		assert.match(text, /They pointed at version 1, page 1, from 10% to 40% across and 20% to 30% down\. The first picture shows that part\. That is an older version; the sheet now is version 2\./);
 		assert.match(text, /The student says:\naccording to the cheat sheet that's what I did$/);
 		const many = cheatSheetRequestText({ ...base, infoFiles: ["HW1.pdf", ...Array.from({ length: 9 }, (_, i) => `n${i}.txt`), "syllabus.txt"] });

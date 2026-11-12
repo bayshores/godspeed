@@ -53,20 +53,9 @@ export interface SheetRegion {
 	h: number;
 }
 
-/** The problem or question the learner is on in a session, sent along
- *  from the sheet beside it. */
-export interface SheetAbout {
-	kind: "problem" | "question";
-	/** The session's title. */
-	session: string;
-	text: string;
-	/** What they have written for it so far. */
-	work?: string;
-}
-
 /** One message in the sheet's chat. */
 export type SheetMessage =
-	| { id: string; role: "you"; text: string; at: string; files?: SheetFile[]; region?: SheetRegion; about?: SheetAbout }
+	| { id: string; role: "you"; text: string; at: string; files?: SheetFile[]; region?: SheetRegion }
 	| {
 			id: string;
 			role: "agent";
@@ -234,19 +223,12 @@ export function sheetRegionOf(v: unknown): SheetRegion | undefined {
 	return isNumber(n) && isNumber(page) && isNumber(x) && isNumber(y) && isNumber(w) && isNumber(h) ? { n, page, x, y, w, h } : undefined;
 }
 
-/** A session's problem or question as sent or saved, or undefined. */
-export function sheetAboutOf(v: unknown): SheetAbout | undefined {
-	if (!isObject(v) || (v.kind !== "problem" && v.kind !== "question") || !isString(v.session) || !isString(v.text)) return undefined;
-	return { kind: v.kind, session: v.session, text: v.text, ...(isString(v.work) ? { work: v.work } : {}) };
-}
-
 function readMessage(v: unknown): SheetMessage | null {
 	if (!isObject(v) || !isString(v.id) || !isString(v.text) || !isString(v.at)) return null;
 	if (v.role === "you") {
 		const files = list(v.files, readFile);
 		const region = sheetRegionOf(v.region);
-		const about = sheetAboutOf(v.about);
-		return { id: v.id, role: "you", text: v.text, at: v.at, ...(files.length > 0 ? { files } : {}), ...(region ? { region } : {}), ...(about ? { about } : {}) };
+		return { id: v.id, role: "you", text: v.text, at: v.at, ...(files.length > 0 ? { files } : {}), ...(region ? { region } : {}) };
 	}
 	if (v.role !== "agent") return null;
 	const rules = Array.isArray(v.rules) ? v.rules.filter(isString) : [];
@@ -437,7 +419,6 @@ const FOLDER_FILES_NAMED = 12;
 /** The chat a request carries: its last few messages, each cut short. */
 const EARLIER_SENT = 8;
 const EARLIER_CHARS = 500;
-const ABOUT_CHARS = 1500;
 
 function namedList(names: readonly string[], max: number): string {
 	const rest = names.length - max;
@@ -462,16 +443,6 @@ function earlierText(messages: readonly SheetMessage[]): string {
 	return lines.length > 0 ? `The chat so far, oldest first:\n${lines.join("\n")}` : "";
 }
 
-function aboutText(a: SheetAbout): string {
-	const what = a.kind === "problem" ? "problem" : "question";
-	return [
-		`The student is on this ${what} in their session "${a.session}", with the sheet open beside it:`,
-		oneLine(a.text, ABOUT_CHARS),
-		a.work?.trim() ? `What they have written for it so far:\n${a.work.trim().slice(0, ABOUT_CHARS)}` : "",
-	]
-		.filter(Boolean)
-		.join("\n");
-}
 
 function regionLine(r: SheetRegion, versions: readonly SheetVersion[], current: SheetVersion | null): string {
 	const v = versions.find((x) => x.n === r.n);
@@ -506,7 +477,6 @@ export function cheatSheetRequestText(r: CheatSheetRequest): string {
 		r.mistakes.length > 0 ? `Mistakes from practice:\n${r.mistakes.map(mistake).join("\n")}` : "",
 		folderText(r, current),
 		earlierText(r.earlier),
-		m.about ? aboutText(m.about) : "",
 		m.region ? regionLine(m.region, r.versions, current) : "",
 		`The student says:\n${m.text.trim() || "(no words, only the files)"}`,
 	]

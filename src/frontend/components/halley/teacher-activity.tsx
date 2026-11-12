@@ -22,9 +22,6 @@ import { agoLabel } from "./activity-model";
  * It scrolls inside its parent, which pads it.
  */
 
-/** Recent rows shown (the server keeps more). */
-const RECENT_ROWS = 8;
-
 export function TeacherActivity() {
 	const halley = useHalley();
 	const { feed } = useActivity();
@@ -104,7 +101,7 @@ export function ActivityList({
 				<section className="flex flex-col gap-3.5">
 					<h3 className="text-[17px] font-normal text-ink">Recent</h3>
 					<div data-testid="halley-recent" className="flex flex-col border-y-[1.5px] border-ink">
-						{recent.slice(0, RECENT_ROWS).map((a) => {
+						{recent.map((a) => {
 							// A class's own row doesn't repeat its name.
 							const cls = a.target?.kind === "class" ? null : classNameOf(a.classId);
 							const canGo = safePage(a.page) !== null;

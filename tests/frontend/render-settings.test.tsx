@@ -11,6 +11,7 @@ import fs from "node:fs";
 import { describe, it } from "node:test";
 import { parseHTML } from "linkedom";
 import { renderToStaticMarkup } from "react-dom/server";
+import { AreaDetail } from "../../src/frontend/components/settings/area-detail.tsx";
 import { TeachingSection } from "../../src/frontend/components/settings/teaching-section.tsx";
 import { AppearanceSection } from "../../src/frontend/components/settings/appearance-section.tsx";
 import { GeneralSection } from "../../src/frontend/components/settings/general-section.tsx";
@@ -53,7 +54,6 @@ describe("the Settings page (SSR)", () => {
 
 	it("opens on the section the address asks for; an unknown one lands on Connection", () => {
 		assert.ok(tagOf(page("keyboard"), "settings-nav-keyboard").includes('aria-current="true"'));
-		assert.match(page("keyboard"), /data-testid="settings-hint"[^>]*>Stored on this device</);
 		assert.equal(sectionFor("teaching"), "teaching");
 		assert.equal(sectionFor("nope"), "connection");
 		assert.equal(sectionFor(undefined), "connection");
@@ -64,50 +64,78 @@ describe("TeachingSection (SSR)", () => {
 	const render = (props: Partial<React.ComponentProps<typeof TeachingSection>> = {}) =>
 		renderToStaticMarkup(
 			<ServerEventsProvider connect={quietEvents as never}>
-				<TeachingSection agent={undefined} graph={undefined} teacherName="Halley" onSectionChange={() => {}} {...props} />
+				<TeachingSection agent={undefined} graph={undefined} teacherName="Halley" onSectionChange={() => {}} onFullPage={() => {}} {...props} />
 			</ServerEventsProvider>,
 		);
 
-	it("one card per teaching area, in order, each with rules and a Full instructions button", () => {
+	it("a list of the teaching areas in order then Remembered, with the first area's sheet beside it", () => {
 		const html = render();
-		const ids = [...html.matchAll(/data-testid="area-(\w+)"/g)].map((m) => m[1]);
-		assert.deepEqual(ids, TEACHING_AREAS.map((a) => a.id));
-		for (const area of TEACHING_AREAS) {
-			assert.ok(html.includes(`data-testid="rules-${area.id}-input"`), `${area.id} rules`);
-			// Segments load in an effect, so the button waits disabled under SSR.
-			assert.ok(tagOf(html, `area-${area.id}-instructions`).includes("disabled"), `${area.id} instructions`);
-		}
+		const ids = [...html.matchAll(/<button[^>]*data-testid="area-([a-z]+)"/g)].map((m) => m[1]);
+		assert.deepEqual(ids, [...TEACHING_AREAS.map((a) => a.id), "remembered"]);
+		assert.ok(tagOf(html, `area-${TEACHING_AREAS[0]!.id}`).includes('aria-current="true"'), "the first area is picked");
+		assert.ok(html.includes('data-testid="area-detail"'));
 		assert.ok(html.includes("How Halley teaches you."), "the teacher's name in the lead line");
 	});
 
-	it("switches default on (absent key = on) and carry the stored delta", () => {
-		const html = render();
-		for (const id of ["web-research", "your-graph", "demos", "figures", "pdf-reading"]) {
-			assert.ok(tagOf(html, `toggle-${id}`).includes('aria-checked="true"'), id);
-		}
-		const off = render({ agent: { tools: { demo: false }, graphTools: { enabled: false } } });
-		assert.ok(tagOf(off, "toggle-demos").includes('aria-checked="false"'));
-		assert.ok(tagOf(off, "toggle-figures").includes('aria-checked="true"'));
-		assert.ok(tagOf(off, "toggle-your-graph").includes('aria-checked="false"'));
-	});
-
-	it("the graph switch is disabled, with the reason, while building the graph is off", () => {
-		const html = render({ graph: { enabled: false } });
-		assert.ok(tagOf(html, "toggle-your-graph").includes("disabled"));
-		assert.ok(html.includes("Off while building the graph is off in General"));
-	});
-
-	it("quiz style: multiple choice by default, free recall when explain is on", () => {
-		assert.ok(tagOf(render(), "quiz-style-choice").includes('aria-checked="true"'));
-		const free = render({ agent: { tools: { explain: true } } });
-		assert.ok(tagOf(free, "quiz-style-free").includes('aria-checked="true"'));
-		assert.ok(tagOf(free, "quiz-style-choice").includes('aria-checked="false"'));
+	it("the picked area's Full instructions button waits disabled until the texts load", () => {
+		assert.ok(tagOf(render(), `area-${TEACHING_AREAS[0]!.id}-instructions`).includes("disabled"));
 	});
 
 	it("stored rules show as chips in their area", () => {
 		const html = render({ agent: { rules: { voice: ["No jokes"] } } });
-		const voice = html.split('data-testid="area-voice"')[1]?.split('data-testid="area-teaching"')[0] ?? "";
-		assert.ok(voice.includes("No jokes"));
+		assert.ok(html.includes("No jokes"));
+		assert.ok(html.includes('data-testid="rules-voice-input"'));
+	});
+});
+
+describe("AreaDetail (SSR)", () => {
+	const area = (id: string) => TEACHING_AREAS.find((a) => a.id === id)!;
+	const render = (id: string, props: Partial<React.ComponentProps<typeof AreaDetail>> = {}) =>
+		renderToStaticMarkup(
+			<ServerEventsProvider connect={quietEvents as never}>
+				<AreaDetail
+					area={area(id)}
+					agent={undefined}
+					graphOn
+					teacherName="Halley"
+					savedAt={{}}
+					edited={false}
+					instructionsReady
+					onSectionChange={() => {}}
+					onOpenInstructions={() => {}}
+					{...props}
+				/>
+			</ServerEventsProvider>,
+		);
+
+	it("switches default on (absent key = on) and carry the stored delta", () => {
+		const on = { facts: ["web-research", "your-graph"], demos: ["demos", "figures"], files: ["pdf-reading"] } as const;
+		for (const [id, toggles] of Object.entries(on)) {
+			const html = render(id);
+			for (const t of toggles) assert.ok(tagOf(html, `toggle-${t}`).includes('aria-checked="true"'), t);
+		}
+		const off = render("demos", { agent: { tools: { demo: false } } });
+		assert.ok(tagOf(off, "toggle-demos").includes('aria-checked="false"'));
+		assert.ok(tagOf(off, "toggle-figures").includes('aria-checked="true"'));
+		assert.ok(tagOf(render("facts", { agent: { graphTools: { enabled: false } } }), "toggle-your-graph").includes('aria-checked="false"'));
+	});
+
+	it("quiz style: multiple choice by default, free recall when explain is on", () => {
+		assert.ok(tagOf(render("questions"), "quiz-style-choice").includes('aria-checked="true"'));
+		const free = render("questions", { agent: { tools: { explain: true } } });
+		assert.ok(tagOf(free, "quiz-style-free").includes('aria-checked="true"'));
+		assert.ok(tagOf(free, "quiz-style-choice").includes('aria-checked="false"'));
+	});
+
+	it("the graph switch is disabled, with the reason, while building the graph is off", () => {
+		const html = render("facts", { graphOn: false });
+		assert.ok(tagOf(html, "toggle-your-graph").includes("disabled"));
+		assert.ok(html.includes("Off while building the graph is off in General"));
+	});
+
+	it("an area with its own instructions changed says so", () => {
+		assert.ok(render("voice", { edited: true }).includes("You changed these."));
+		assert.ok(!render("voice").includes("You changed these."));
 	});
 });
 
@@ -125,7 +153,14 @@ describe("GeneralSection (SSR)", () => {
 		assert.ok(!html.includes("k tokens"));
 		assert.ok(tagOf(html, "slider-chunk-tokens").includes('value="4096"'));
 		assert.ok(tagOf(html, "toggle-build-the-graph").includes('aria-checked="true"'));
-		assert.match(html, /<span class="block text-xs text-ink-2">Shown in the window only</, "hints use the readable quiet color");
+		assert.match(html, /<span class="block text-base text-ink-2">Shown in the window only</, "hints use the readable quiet color");
+	});
+
+	it("a switch says On or Off beside its track", () => {
+		const on = render({ version: 1 });
+		assert.match(on.split('data-testid="toggle-build-the-graph"')[1]!.slice(0, 400), />On</);
+		const off = render({ version: 1, graph: { enabled: false } });
+		assert.match(off.split('data-testid="toggle-build-the-graph"')[1]!.slice(0, 400), />Off</);
 	});
 
 	it("graph off: the switch shows off and the chunk slider is disabled", () => {
@@ -181,7 +216,8 @@ describe("KeyboardSection (thin SSR)", () => {
 
 	it("displayOnly actions list but never offer Rebind", () => {
 		const html = renderToStaticMarkup(<KeyboardSection />);
-		assert.ok(html.includes("The question keys can&#x27;t be changed."), "one note for the group");
+		assert.ok(html.includes("These can&#x27;t be changed."), "one note for the group");
+		assert.ok(html.includes("Stored on this device"), "where the keys live");
 		assert.ok(!html.includes("Fixed, part of this screen"), "no per-row note");
 		assert.ok(!html.includes("lh:keymap"), "no storage key on screen");
 		assert.ok(!html.includes(`data-testid="kbd-rebind-question-next-row"`), "surface keys stay put");

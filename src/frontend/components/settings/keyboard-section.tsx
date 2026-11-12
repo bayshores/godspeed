@@ -24,9 +24,11 @@ import {
 	saveOverrides,
 	type KeyAction,
 } from "@/shared/core";
-import { SettingsRow } from "./controls.tsx";
-import { LABEL_TEXT } from "@/frontend/components/ui/label-text";
+import { SettingsGroup, SettingsRow } from "./controls.tsx";
 import { cn } from "@/frontend/lib/utils";
+
+const KEY = "inline-flex h-8 min-w-10 items-center justify-center rounded border border-edge bg-background px-2 text-[15px] text-ink";
+const FIXED_KEYS_HINT = "Switch between thinking and options, next, previous, pick, submit. These can't be changed.";
 
 /** The overrides map after ONE change (pure — exported for tests):
  *  binding null = reset the action to its default (key removed). */
@@ -92,72 +94,52 @@ export function KeyboardSection() {
 		<>
 			{KEY_SCOPES.map(({ scope, label }) => {
 				const actions = KEYBOARD_ACTIONS.filter((a) => a.scope === scope);
+				const fixed = actions.filter((a) => a.displayOnly);
 				return (
-					<div key={scope} data-testid={`kbd-scope-${scope}`} className="mt-[22px] first:mt-0">
-						<p className={cn("pb-2", LABEL_TEXT)}>{label}</p>
-						<div className="flex flex-col gap-0.5">
-							{actions.map((def) => {
+					<SettingsGroup key={scope} label={label} testid={`kbd-scope-${scope}`}>
+						{actions
+							.filter((a) => !a.displayOnly)
+							.map((def) => {
 								const effective = overrides[def.id] ?? def.binding;
 								return (
-									<SettingsRow
-										key={def.id}
-										label={def.label}
-										testid={`kbd-row-${def.id}`}
-									>
+									<SettingsRow key={def.id} label={def.label} testid={`kbd-row-${def.id}`}>
 										<span className="flex items-center gap-2">
-											<kbd className="border border-tone-2 bg-background px-1.5 py-0.5 font-mono text-xs text-ink">
-												{rebinding === def.id ? "Press keys…" : formatBinding(effective)}
-											</kbd>
-											{def.displayOnly ? null : rebinding === def.id ? (
-												<button
-													type="button"
-													onClick={() => setRebinding(null)}
-													className="lh-press lh-btn"
-												>
+											{rebinding !== def.id && overridden(def.id) && (
+												<button type="button" onClick={() => resetOne(def.id)} data-testid={`kbd-reset-${def.id}`} className="lh-press lh-btn lh-btn-quiet text-[15px]">
+													Reset
+												</button>
+											)}
+											<kbd className={cn(KEY, "min-w-24")}>{rebinding === def.id ? "Press keys…" : formatBinding(effective)}</kbd>
+											{rebinding === def.id ? (
+												<button type="button" onClick={() => setRebinding(null)} className="lh-press lh-btn text-[15px]">
 													Cancel
 												</button>
 											) : (
-												<>
-													<button
-														type="button"
-														onClick={() => setRebinding(def.id)}
-														data-testid={`kbd-rebind-${def.id}`}
-														className="lh-press lh-btn"
-													>
-														Rebind
-													</button>
-													{overridden(def.id) && (
-														<button
-															type="button"
-															onClick={() => resetOne(def.id)}
-															data-testid={`kbd-reset-${def.id}`}
-															className="lh-press lh-btn"
-														>
-															Reset
-														</button>
-													)}
-												</>
+												<button type="button" onClick={() => setRebinding(def.id)} data-testid={`kbd-rebind-${def.id}`} className="lh-press lh-btn text-[15px]">
+													Rebind
+												</button>
 											)}
 										</span>
 									</SettingsRow>
 								);
 							})}
-						</div>
-						{actions.some((a) => a.displayOnly) && (
-							<p data-testid={`kbd-fixed-${scope}`} className="pt-2 text-xs text-ink-3">
-								The question keys can't be changed.
-							</p>
+						{fixed.length > 0 && (
+							<SettingsRow label="Answering a question" hint={FIXED_KEYS_HINT} testid={`kbd-fixed-${scope}`}>
+								<span className="flex items-center gap-2">
+									{fixed.map((def) => (
+										<kbd key={def.id} data-testid={`kbd-row-${def.id}`} className={KEY}>
+											{formatBinding(def.binding)}
+										</kbd>
+									))}
+								</span>
+							</SettingsRow>
 						)}
-					</div>
+					</SettingsGroup>
 				);
 			})}
-			<div className="mt-4 flex justify-end">
-				<button
-					type="button"
-					onClick={resetAll}
-					data-testid="kbd-reset-all"
-					className="lh-press lh-btn"
-				>
+			<div className="flex items-center justify-between gap-4">
+				<span className="text-[15px] text-ink-2">Stored on this device</span>
+				<button type="button" onClick={resetAll} data-testid="kbd-reset-all" className="lh-press lh-btn text-[15px]">
 					Reset all to defaults
 				</button>
 			</div>

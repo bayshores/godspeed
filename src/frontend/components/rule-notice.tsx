@@ -9,12 +9,13 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { BookmarkCheckIcon } from "lucide-react";
 import { parseWhere, type RuleWhere } from "@/shared/core";
+import { NoticeCard, NoticeText } from "@/frontend/components/notice-card";
 import { NOTICE_STACK_ID } from "@/frontend/components/notice-stack";
 import { RuleEditBox, useSavedRule } from "@/frontend/components/saved-rule";
 import { useServerEvent } from "@/frontend/components/server-events";
 import { useHeld } from "@/frontend/components/use-held";
+import { cn } from "@/frontend/lib/utils";
 
 const SHOW_MS = 12_000;
 const AFTER_UNDO_MS = 3_000;
@@ -48,24 +49,32 @@ function Card({ saved, onDone }: { saved: Saved; onDone: () => void }) {
 	}, [held, mode.kind, onDone]);
 
 	return (
-		<div
+		<NoticeCard
 			data-testid="rule-notice"
 			role="status"
 			{...handlers}
-			className="lh-rise lh-popup flex w-[340px] max-w-full flex-col gap-2 px-4 py-3 font-ui text-[13.5px] text-ink"
+			title={mode.kind === "removed" ? "Rule removed" : `${saved.agent} saved a rule`}
+			actions={
+				(mode.kind === "saved" || mode.kind === "error") && (
+					<>
+						<button type="button" data-testid="rule-notice-undo" disabled={api.busy} onClick={api.undo} className="lh-press lh-btn text-[15px]">
+							Undo
+						</button>
+						<button type="button" data-testid="rule-notice-edit" disabled={api.busy} onClick={api.edit} className="lh-press lh-btn text-[15px]">
+							Edit
+						</button>
+					</>
+				)
+			}
 		>
-			<p className="flex items-center gap-2 font-bold">
-				<BookmarkCheckIcon className="size-3.5 shrink-0" aria-hidden />
-				{mode.kind === "removed" ? "Rule removed" : `${saved.agent} saved a rule`}
-			</p>
 			{mode.kind === "editing" ? (
-				<div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-[13px]">
+				<div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-[13px] text-ink">
 					<RuleEditBox api={api} draft={mode.draft} />
 				</div>
 			) : (
 				<>
-					<p className={mode.kind === "removed" ? "text-ink-2 line-through" : undefined}>{api.rule}</p>
-					<p className="text-xs text-ink-3">{saved.label}</p>
+					<p className={cn("border border-border bg-tone px-2.5 py-2 text-[15px] text-ink", mode.kind === "removed" && "text-ink-2 line-through")}>{api.rule}</p>
+					<NoticeText>{saved.label}</NoticeText>
 				</>
 			)}
 			{mode.kind === "error" && (
@@ -73,16 +82,6 @@ function Card({ saved, onDone }: { saved: Saved; onDone: () => void }) {
 					{mode.message}
 				</p>
 			)}
-			{(mode.kind === "saved" || mode.kind === "error") && (
-				<div className="flex gap-2 pt-1">
-					<button type="button" data-testid="rule-notice-undo" disabled={api.busy} onClick={api.undo} className="lh-press border border-tone-2 px-3 py-1 text-[13px] font-bold hover:bg-tone disabled:opacity-50">
-						Undo
-					</button>
-					<button type="button" data-testid="rule-notice-edit" disabled={api.busy} onClick={api.edit} className="lh-press border border-tone-2 px-3 py-1 text-[13px] font-bold hover:bg-tone disabled:opacity-50">
-						Edit
-					</button>
-				</div>
-			)}
-		</div>
+		</NoticeCard>
 	);
 }

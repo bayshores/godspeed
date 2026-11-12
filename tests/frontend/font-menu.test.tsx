@@ -90,15 +90,15 @@ describe("FontMenuList (thin SSR)", () => {
 			<FontMenuList families={["Georgia", "Menlo"]} effectiveFamily={null} onPick={() => {}} />,
 		);
 		const defaultRow = unset.split('data-testid="font-option-default"')[1]?.split("</button>")[0] ?? "";
-		assert.ok(defaultRow.includes("bg-muted/60"), "unset → the default row is the effective one");
+		assert.ok(defaultRow.includes("font-medium"), "unset → the default row is the effective one");
 
 		const menlo = renderToStaticMarkup(
 			<FontMenuList families={["Georgia", "Menlo"]} effectiveFamily="Menlo" onPick={() => {}} />,
 		);
 		const menloRow = menlo.split('data-testid="font-option-Menlo"')[1]?.split("</button>")[0] ?? "";
 		const georgiaRow = menlo.split('data-testid="font-option-Georgia"')[1]?.split("</button>")[0] ?? "";
-		assert.ok(menloRow.includes("bg-muted/60"), "the stored family highlights");
-		assert.ok(!georgiaRow.includes("bg-muted/60"), "others do not");
+		assert.ok(menloRow.includes("font-medium"), "the stored family highlights");
+		assert.ok(!georgiaRow.includes("font-medium"), "others do not");
 	});
 
 	it("undefined families = the enumerating state (Loading fonts…), not an empty picker", () => {

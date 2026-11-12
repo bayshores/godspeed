@@ -1,9 +1,8 @@
 /**
  * The cheat sheet's screens: the studio's status (the paper) and the
  * teacher's line (working, waiting for an agent), the older-sheet notice, the sheet's chat (its rules,
- * the learner's messages with what they pointed at and the problem they
- * were on, the agent's answers with "Made version N" and saved rules, the
- * working and failed lines; Send with the part pointed at and the problem,
+ * the learner's messages with what they pointed at, the agent's answers with "Made version N" and saved rules, the
+ * working and failed lines; Send with the part pointed at,
  * a refused send kept, Stop, Try again, removing a rule, the kept draft),
  * the canvas (each version's pages as labeled artboards, the narrow layout,
  * the toolbar with Point at the sheet), the class's cards, the lesson top
@@ -122,7 +121,7 @@ const chatView = view({
 		messages: [
 			{ id: "m1", role: "you", text: "this card is confusing", at: "t", region: { n: 2, page: 2, x: 0.1, y: 0.2, w: 0.3, h: 0.1 }, files: [{ name: "Version 2, Back.png", file: "abc-Version 2, Back.png" }, { name: "notes.pdf", file: "def-notes.pdf" }] },
 			{ id: "m2", role: "agent", text: "I split **card 8** into two routes: $n!$ and $\\binom{n}{k}$.", at: "t", version: 2, rules: ["American spelling"] },
-			{ id: "m3", role: "you", text: "according to the cheat sheet that's what I did", at: "t", about: { kind: "problem", session: "Counting practice", text: "Seat 5 people" } },
+			{ id: "m3", role: "you", text: "according to the cheat sheet that's what I did", at: "t" },
 		],
 	},
 });
@@ -133,7 +132,7 @@ describe("the sheet's chat", () => {
 			inEvents(<SheetChat view={v} classId="cls_1" deadlineId="ddl_1" act={async () => null} agentName="Claude Code" agentGone={false} pointed={null} onClearPointed={() => {}} empty="Say what you want on it." {...over} />),
 		);
 
-	it("shows the sheet's rules, the learner's messages with what they pointed at, their files and the problem they were on, and the agent's answers", () => {
+	it("shows the sheet's rules, the learner's messages with what they pointed at and their files, and the agent's answers", () => {
 		const html = render(chatView, { onShowVersion: () => {} });
 		assert.match(html, /This sheet&#x27;s rules \(1\).*American spelling.*Saved by Claude Code.*aria-label="Remove rule: American spelling"/);
 		assert.match(html, /data-testid="sheet-you"[^>]*>this card is confusing/);
@@ -143,7 +142,6 @@ describe("the sheet's chat", () => {
 		assert.match(html, /data-testid="sheet-agent".*<strong[^>]*>card 8<\/strong>/);
 		assert.match(html, /data-testid="sheet-made"[^>]*>.*Made version 2, the sheet now.*Show/);
 		assert.match(html, /Saved a rule for this sheet: .*American spelling/);
-		assert.match(html, /About the problem in Counting practice/);
 		assert.match(html, /data-testid="sheet-send"/);
 		assert.match(render(view()), /data-testid="sheet-chat-empty"[^>]*>Say what you want on it\./);
 		assert.doesNotMatch(render(view(), { empty: undefined }), /sheet-chat-empty/, "the studio says it on the canvas instead");
@@ -159,28 +157,26 @@ describe("the sheet's chat", () => {
 		assert.match(failed, /according to the cheat sheet.*Claude Code couldn&#x27;t finish that\..*the agent never answered.*Try again/);
 	});
 
-	it("names the part pointed at; a message still takes the problem along", () => {
+	it("names the part pointed at", () => {
 		assert.equal(pointedLabel({ n: 2, page: 1, x: 0, y: 0, w: 1, h: 1 }, 2), "the front of version 2");
 		assert.equal(pointedLabel({ n: 3, page: 3, x: 0, y: 0, w: 1, h: 1 }, 4), "page 3 of version 3");
 		const pointed = { region: { n: 2, page: 2, x: 0, y: 0, w: 1, h: 1 }, picture: { name: "p.png", mimeType: "image/png", data: "QUJD" } };
-		const html = render(chatView, { pointed, about: { kind: "question", session: "Counting", text: "Which?" } });
+		const html = render(chatView, { pointed });
 		assert.match(html, /data-testid="sheet-pointed-chip".*src="data:image\/png;base64,QUJD".*Pointing at the back of version 2/);
-		assert.doesNotMatch(html, /sheet-about/, "no line about the question riding along");
 	});
 
-	it("sends the words with the part pointed at first and the problem, keeps a refused message, and stops, retries and removes rules", async () => {
+	it("sends the words with the part pointed at first, keeps a refused message, and stops, retries and removes rules", async () => {
 		const posted: Record<string, unknown>[] = [];
 		let answer: string | null = "Your agent is still answering your last message about this sheet.";
 		let cleared = 0;
 		const shown: number[] = [];
 		const pointed = { region: { n: 2, page: 2, x: 0.1, y: 0.2, w: 0.3, h: 0.1 }, picture: { name: "Version 2, Back.png", mimeType: "image/png", data: "QUJD" } };
-		const about = { kind: "problem" as const, session: "Counting practice", text: "Seat 5 people", work: "5!" };
 		const act_ = async (body: Record<string, unknown>) => {
 			posted.push(body);
 			return body.action === "ask" ? answer : null;
 		};
 		const el = mount(
-			<SheetChat view={chatView} classId="cls_1" deadlineId="ddl_1" act={act_} agentName="Claude Code" agentGone={false} pointed={pointed} onClearPointed={() => cleared++} about={about} onShowVersion={(n) => shown.push(n)} empty="" />,
+			<SheetChat view={chatView} classId="cls_1" deadlineId="ddl_1" act={act_} agentName="Claude Code" agentGone={false} pointed={pointed} onClearPointed={() => cleared++} onShowVersion={(n) => shown.push(n)} empty="" />,
 		);
 		await settle();
 		const box = await mathBoxView(el);
@@ -188,7 +184,7 @@ describe("the sheet's chat", () => {
 		assert.equal(store.get("lh:sheet-draft:ddl_1"), "that's what I did", "the draft is kept");
 		await click(el.querySelector("[data-testid='sheet-send']"));
 		await settle();
-		assert.deepEqual(posted[0], { action: "ask", text: "that's what I did", attachments: [pointed.picture], region: pointed.region, about });
+		assert.deepEqual(posted[0], { action: "ask", text: "that's what I did", attachments: [pointed.picture], region: pointed.region });
 		assert.match(el.innerHTML, /role="alert"[^>]*>Your agent is still answering/);
 		assert.equal(box.state.doc.toString(), "that's what I did", "a refused message stays in the box");
 		assert.equal(cleared, 0);

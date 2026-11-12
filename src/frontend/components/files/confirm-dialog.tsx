@@ -21,14 +21,14 @@ export function ConfirmDialog({ copy, onConfirm, onClose }: { copy: ConfirmCopy 
 			foot={
 				<>
 					<span className="flex-1" />
-					<button type="button" data-testid="files-confirm-cancel" onClick={onClose} className="lh-btn h-[38px] bg-panel text-[15px]">
+					<button type="button" data-testid="files-confirm-cancel" onClick={onClose} className="lh-btn text-[15px]">
 						Cancel
 					</button>
 					<button
 						type="button"
 						data-testid="files-confirm-button"
 						onClick={onConfirm}
-						className="lh-btn h-[38px] border-ans-wrong bg-ans-wrong text-[15px] text-background hover:border-ans-wrong-hover hover:bg-ans-wrong-hover"
+						className={`lh-btn text-[15px] ${shown.danger ? "lh-btn-danger" : "lh-btn-main"}`}
 					>
 						{shown.action}
 					</button>

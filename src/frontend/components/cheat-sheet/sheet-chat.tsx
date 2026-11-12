@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
-import type { CheatSheetView, SheetAbout, SheetMessage, SheetRegion, SheetRule } from "@/shared/core";
+import type { CheatSheetView, SheetMessage, SheetRegion, SheetRule } from "@/shared/core";
 import { MessageResponse } from "@/frontend/components/ai-elements/message";
 import { NoAgentLine } from "@/frontend/components/agent-folder/no-agent-line";
 import { AttachButton, AttachmentTray, attachmentInputProps, useAttachmentDraft, type AttachmentDraft } from "@/frontend/components/lesson/attachment-tray";
@@ -69,7 +69,6 @@ export function SheetChat({
 	agentGone,
 	pointed,
 	onClearPointed,
-	about,
 	onShowVersion,
 	empty,
 	className,
@@ -84,9 +83,6 @@ export function SheetChat({
 	agentGone: boolean;
 	pointed: Pointed | null;
 	onClearPointed: () => void;
-	/** The problem or question the learner is on, sent with each message
-	 *  (the sheet beside a session). */
-	about?: SheetAbout | null;
 	/** Shows a version on the canvas; absent when that version isn't there. */
 	onShowVersion?: (n: number) => void;
 	/** The line an empty chat shows; absent when the page says it elsewhere. */
@@ -119,7 +115,6 @@ export function SheetChat({
 			text: sent.trim(),
 			...(all.length > 0 ? { attachments: all } : {}),
 			...(pointed ? { region: pointed.region } : {}),
-			...(about ? { about } : {}),
 		});
 		setSending(false);
 		setFailed(error);
@@ -222,11 +217,6 @@ function YouBody({ message, classId, deadlineId, pages }: { message: Extract<She
 			{message.text && (
 				<p data-testid="sheet-you" className="font-prose text-lg leading-normal whitespace-pre-wrap break-words text-ink">
 					{message.text}
-				</p>
-			)}
-			{message.about && (
-				<p data-testid="sheet-you-about" className="truncate text-base text-ink-2" title={message.about.text}>
-					About the {message.about.kind} in {message.about.session}
 				</p>
 			)}
 			{files.length > 0 && (

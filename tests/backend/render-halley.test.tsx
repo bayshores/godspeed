@@ -123,10 +123,11 @@ describe("the panel", () => {
 		// Outside the app shell there is no teacher state: the list says what will show there.
 		assert.ok(el.querySelector("[data-testid='halley-activity'] [data-testid='halley-activity-empty']"));
 	});
-	it("head: the name, the agent and a close button (Follow is the top bar's chip)", () => {
+	it("head: the name, the teacher's status and a Close button (Follow is the top bar's chip)", () => {
 		const html = renderToStaticMarkup(panel());
 		assert.match(html, /data-testid="halley-panel-name"[^>]*>Halley</);
-		assert.match(html, /data-testid="halley-panel-agent"[^>]*>Claude Code</);
+		assert.match(html, /data-testid="halley-panel-agent"[^>]*>Teaching, idle</);
+		assert.match(html, /data-testid="halley-close"[^>]*>[\s\S]*Close</);
 		assert.doesNotMatch(html, /role="switch"/);
 		const closes: number[] = [];
 		const el = mount(panel({ onClose: () => closes.push(1) }));
@@ -135,10 +136,10 @@ describe("the panel", () => {
 	});
 	it("docks on the right edge as a solid panel with no blur", () => {
 		const html = renderToStaticMarkup(panel());
-		assert.match(html, /data-testid="halley-panel"[^>]*class="[^"]*fixed top-12 right-0 bottom-0[^"]*border-l[^"]*bg-panel/);
+		assert.match(html, /data-testid="halley-panel"[^>]*class="[^"]*fixed top-12 right-0 bottom-0[^"]*border-l-2[^"]*border-line[^"]*bg-panel/);
 		assert.doesNotMatch(html, /lh-popup|rounded|blur/);
 	});
-	it("Talk reads like a script: the speaker's name once per turn, no bubbles, a white Send bar", async () => {
+	it("Talk reads like a script: the speaker's name above each turn, no bubbles, Send in the box", async () => {
 		talkChat = {
 			id: "chat_talk",
 			turnInFlight: false,
@@ -150,9 +151,38 @@ describe("the panel", () => {
 		const el = mount(panel());
 		await settle();
 		const who = [...el.querySelectorAll("[data-testid='talk-who']")].map((n) => n.textContent);
-		assert.deepEqual(who, ["You", ""]);
+		assert.deepEqual(who, ["You"], "the second message of a turn has no name of its own");
 		assert.equal(el.querySelector("[data-testid='talk-you']")?.className.includes("bg-"), false, "no bubbles");
 		assert.ok(el.querySelector("[data-testid='talk-send']"));
+		talkChat = null;
+	});
+	it("Clear chat sits on the tab row, and only once there is something to clear", async () => {
+		talkChat = { id: "chat_talk", turnInFlight: false, messages: [] };
+		const empty = mount(panel());
+		await settle();
+		assert.equal(empty.querySelector("[data-testid='talk-clear']"), null);
+		act(() => root?.unmount());
+		talkChat = { id: "chat_talk", turnInFlight: false, messages: [{ id: "u1", role: "user", content: "add my midterm", timestamp: 1 }] };
+		const el = mount(panel());
+		await settle();
+		const clear = el.querySelector("[data-testid='talk-clear']")!;
+		assert.equal(clear.textContent, "Clear chat");
+		assert.ok(clear.closest("[role='tablist']") === null && clear.parentElement?.previousElementSibling?.getAttribute("role") === "tablist", "beside the tabs, not inside the thread");
+		act(() => (el.querySelector("[data-testid='halley-tab-activity']") as HTMLElement).click());
+		assert.equal(el.querySelector("[data-testid='talk-clear']"), null, "Talk only");
+		talkChat = null;
+	});
+	it("with no agent connected the thread says so in the teacher's words, with the button that opens one", async () => {
+		talkChat = { id: "chat_talk", turnInFlight: false, messages: [] };
+		const idle = { connected: false, teaching: false, backupConnected: false, backupAnswering: false, pendingWork: 0, claimedLessons: [] };
+		const el = mount(panel({ agent: idle }));
+		await settle();
+		assert.match(el.querySelector("[data-testid='halley-panel-agent']")?.textContent ?? "", /^Not connected$/);
+		assert.match(el.querySelector("[data-testid='no-agent']")?.textContent ?? "", /I'm not connected yet\. Open Claude Code and I'll start\./);
+		assert.equal(el.querySelector("[data-testid='no-agent-open']")?.textContent, "Open Claude Code");
+		assert.ok(el.querySelector("[data-testid='talk-empty']"), "the prompt stays below it");
+		act(() => root?.unmount());
+		assert.equal(mount(panel()).querySelector("[data-testid='no-agent']"), null, "gone while an agent teaches");
 		talkChat = null;
 	});
 	it("Talk takes pictures and PDFs like the lesson box, and shows them under your message", async () => {
@@ -187,7 +217,7 @@ describe("the panel", () => {
 		const button = box.querySelector("[data-testid='attach-button']");
 		assert.equal(button?.textContent, "Add pictures or PDFs");
 		assert.equal(box.querySelector("[data-testid='attachment-input']")?.getAttribute("accept"), "image/png,image/jpeg,image/gif,image/webp,application/pdf");
-		assert.ok(box.innerHTML.indexOf('data-testid="attach-button"') < box.innerHTML.indexOf('data-testid="talk-send"'), "beside Send, before it");
+		assert.ok(box.innerHTML.indexOf('data-testid="talk-send"') < box.innerHTML.indexOf('data-testid="attach-button"'), "under the box that holds Send");
 		talkChat = null;
 	});
 	it("a turn starts when the speaker changes; a change row is the teacher's", () => {
@@ -305,10 +335,12 @@ describe("the panel", () => {
 			talkChat = null;
 		}
 	});
-	it("the agent line is empty with no agent, and shows the waiting notice while work waits", () => {
+	it("the status line says Not connected with no agent, and shows the waiting notice while work waits", () => {
 		const idle = { connected: false, teaching: false, backupConnected: false, backupAnswering: false, pendingWork: 0, claimedLessons: [] };
-		assert.equal(agentLine(idle), null);
-		assert.equal(agentLine(null), null);
+		assert.equal(agentLine(idle), "Not connected");
+		assert.equal(agentLine(null), null, "nothing until the first read");
+		assert.equal(agentLine({ ...idle, connected: true, teaching: true }), "Teaching, idle");
+		assert.equal(agentLine({ ...idle, connected: true, teaching: true }, { text: "Reading a PDF", working: true }), "Reading a PDF");
 		assert.equal(agentLine({ ...idle, connected: true, name: "Codex" }), "Codex connected, not teaching");
 		assert.equal(agentLine({ ...idle, connected: true, name: "Codex", pendingWork: 1 }), waitingNotice("Codex"));
 		assert.equal(agentLine({ ...idle, connected: true, teaching: true, backupAnswering: true }), "Catching up on my notes. My backup is answering for a minute.");
@@ -411,9 +443,11 @@ describe("the teacher's Activity", () => {
 		assert.equal(rows[1]!.querySelector("svg"), null);
 		assert.equal(rows[1]!.hasAttribute("disabled"), true, "a page that isn't the app's is never followed");
 	});
-	it("Recent shows at most 8 rows", () => {
+	it("Recent lists every row the server sent, scrolling inside the tab", () => {
 		const many = Array.from({ length: 12 }, (_, i) => ({ ...ACTIONS[0]!, id: `a${i}` }));
-		assert.equal(mount(list({ recent: many })).querySelectorAll("[data-testid='halley-recent-row']").length, 8);
+		const el = mount(list({ recent: many }));
+		assert.equal(el.querySelectorAll("[data-testid='halley-recent-row']").length, 12);
+		assert.match(el.querySelector("[data-testid='halley-activity']")?.className ?? "", /overflow-y-auto/);
 	});
 	it("clicking a Recent row goes there", () => {
 		const picked: string[] = [];

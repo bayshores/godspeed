@@ -4,9 +4,9 @@
  * The teacher's panel: click the teacher in the top bar.
  * Docked to the window's right edge, under the top bar. It pushes the page
  * left to make room. Never open over a lesson (the lesson has its own
- * teacher column). The head (name, the agent's state, close), then two
- * tabs: Talk (a chat outside lessons, talk-view.tsx) and Activity
- * (teacher-activity.tsx).
+ * teacher column). The head (name, the teacher's status, Close), then two
+ * tabs: Talk (a chat outside lessons, talk-view.tsx, with Clear chat on
+ * the tab row) and Activity (teacher-activity.tsx).
  */
 import { useEffect, useId, useState } from "react";
 import { cn } from "@/frontend/lib/utils";
@@ -14,6 +14,8 @@ import type { AgentAction } from "@/shared/core";
 import { agentWaiting, agentStatusLabel, waitingNotice, type AgentStatus } from "@/frontend/components/agent-status";
 import { tabListKeys } from "@/frontend/components/ui/tab-list";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
+import { useHalley } from "./halley-context";
+import type { AgentDoing } from "./follow-status";
 import { TeacherSprite } from "./teacher-sprite";
 import { TalkView, type TalkAsk } from "./talk-view";
 import { TeacherActivity } from "./teacher-activity";
@@ -22,14 +24,17 @@ import { DOCK_WIDTH, dockPush, dockWidth } from "./dock-model";
 const TABS = ["talk", "activity"] as const;
 type Tab = (typeof TABS)[number];
 
-/** The agent line under the name: the backup notice while the agent
- *  compacts, the waiting notice while work waits, the agent's state while
- *  one is connected. Nothing otherwise: the Talk box already says no agent
- *  is connected. */
-export function agentLine(agent: AgentStatus | null): string | null {
-	if (agent?.backupAnswering) return "Catching up on my notes. My backup is answering for a minute.";
-	if (agentWaiting(agent)) return waitingNotice(agent?.name);
-	return agent?.connected || agent?.teaching ? agentStatusLabel(agent, 0) : null;
+/** The status line under the name: the backup notice while the agent
+ *  compacts, the waiting notice while work waits, what the agent is doing
+ *  while it works, then whether it is teaching. Nothing until the first
+ *  read of the agent. */
+export function agentLine(agent: AgentStatus | null, doing: AgentDoing | null = null): string | null {
+	if (!agent) return null;
+	if (agent.backupAnswering) return "Catching up on my notes. My backup is answering for a minute.";
+	if (agentWaiting(agent)) return waitingNotice(agent.name);
+	if (doing?.working) return doing.text;
+	if (agent.teaching) return "Teaching, idle";
+	return agent.connected ? agentStatusLabel(agent, 0) : "Not connected";
 }
 
 /** The page's push while the panel is open (main's padding reads it). */
@@ -54,6 +59,9 @@ export function HalleyPanel({
 	onAsked?: (id: number) => void;
 }) {
 	const [tab, setTab] = useState<Tab>("talk");
+	const [clearSlot, setClearSlot] = useState<HTMLElement | null>(null);
+	const halley = useHalley();
+	const line = agentLine(agent, halley?.doing ?? null);
 	const tabsId = useId();
 	const [width, setWidth] = useState(DOCK_WIDTH);
 	useEffect(() => {
@@ -80,61 +88,59 @@ export function HalleyPanel({
 			data-testid="halley-panel"
 			aria-label={name}
 			style={{ width }}
-			className="lh-slide-in fixed top-12 right-0 bottom-0 z-[41] flex max-w-full flex-col border-l border-tone-2 bg-panel font-ui"
+			className="lh-slide-in fixed top-12 right-0 bottom-0 z-[41] flex max-w-full flex-col border-l-2 border-line bg-panel font-ui"
 		>
-			<div className="flex shrink-0 items-start gap-3 px-6 pt-5 pb-4">
-				<TeacherSprite mood="idle" className="mt-1 w-[22px] shrink-0" />
-				<span className="flex min-w-0 flex-1 flex-col gap-0.5">
-					<span data-testid="halley-panel-name" className="truncate font-bold text-[22px] leading-7 text-ink">
+			<div className="flex shrink-0 items-center gap-3 pt-4 pr-3.5 pb-3 pl-5">
+				<TeacherSprite mood={halley?.mood ?? "idle"} className="w-[30px] shrink-0" />
+				<span className="flex min-w-0 flex-1 flex-col gap-px">
+					<span data-testid="halley-panel-name" className="truncate text-xl leading-snug font-medium text-ink">
 						{name}
 					</span>
-					{agentLine(agent) && (
-						<span data-testid="halley-panel-agent" className="text-[12.5px] text-ink-2">
-							{agentLine(agent)}
+					{line && (
+						<span data-testid="halley-panel-agent" className="text-base text-ink-2">
+							{line}
 						</span>
 					)}
 				</span>
-				<button
-					type="button"
-					data-testid="halley-close"
-					aria-label="Close"
-					onClick={onClose}
-					className="lh-press mt-0.5 -mr-1.5 flex size-7 shrink-0 items-center justify-center text-ink-3 hover:bg-tone hover:text-ink"
-				>
+				<button type="button" data-testid="halley-close" onClick={onClose} className="lh-btn lh-btn-quiet shrink-0 text-[15px]">
 					<PixelIcon name="close" />
+					Close
 				</button>
 			</div>
 
-			<div
-				role="tablist"
-				aria-label={name}
-				onKeyDown={tabListKeys(TABS.indexOf(tab), TABS.length, (i) => setTab(TABS[i]!))}
-				className="flex shrink-0 gap-6 border-b border-tone-2 px-6"
-			>
-				{TABS.map((t) => (
-					<button
-						key={t}
-						type="button"
-						role="tab"
-						id={`${tabsId}-${t}`}
-						aria-selected={tab === t}
-						aria-controls={`${tabsId}-panel`}
-						tabIndex={tab === t ? 0 : -1}
-						data-testid={`halley-tab-${t}`}
-						onClick={() => setTab(t)}
-						className={cn(
-							"lh-press -mb-px border-b-2 py-2.5 text-[13.5px] font-bold",
-							tab === t ? "border-ink text-ink" : "border-transparent text-ink-3 hover:text-ink-2",
-						)}
-					>
-						{t === "talk" ? "Talk" : "Activity"}
-					</button>
-				))}
+			<div className="flex shrink-0 items-center border-b border-tone-2 px-3.5">
+				<div
+					role="tablist"
+					aria-label={name}
+					onKeyDown={tabListKeys(TABS.indexOf(tab), TABS.length, (i) => setTab(TABS[i]!))}
+					className="flex gap-1.5"
+				>
+					{TABS.map((t) => (
+						<button
+							key={t}
+							type="button"
+							role="tab"
+							id={`${tabsId}-${t}`}
+							aria-selected={tab === t}
+							aria-controls={`${tabsId}-panel`}
+							tabIndex={tab === t ? 0 : -1}
+							data-testid={`halley-tab-${t}`}
+							onClick={() => setTab(t)}
+							className={cn(
+								"lh-press -mb-px border-b-2 px-3.5 py-2.5 text-lg",
+								tab === t ? "border-ink font-medium text-ink" : "border-transparent text-ink-2 hover:text-ink",
+							)}
+						>
+							{t === "talk" ? "Talk" : "Activity"}
+						</button>
+					))}
+				</div>
+				{tab === "talk" && <span ref={setClearSlot} className="ml-auto" />}
 			</div>
 
 			{tab === "talk" ? (
 				<div role="tabpanel" id={`${tabsId}-panel`} aria-labelledby={`${tabsId}-talk`} className="flex min-h-0 flex-1 flex-col">
-					<TalkView name={name} agent={agent} recent={recent} onPick={onPick} ask={ask ?? null} onAsked={onAsked} />
+					<TalkView name={name} agent={agent} recent={recent} onPick={onPick} ask={ask ?? null} onAsked={onAsked} clearSlot={clearSlot} />
 				</div>
 			) : (
 				<div role="tabpanel" id={`${tabsId}-panel`} aria-labelledby={`${tabsId}-activity`} className="flex min-h-0 flex-1 flex-col px-5 py-[18px]">

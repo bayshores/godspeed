@@ -83,13 +83,13 @@ export function SheetDock({
 	const shownName = cards?.cards.find((c) => c.deadlineId === shown)?.name;
 
 	return (
-		<Pane data-testid="sheet-dock" aria-label="Cheat sheet" style={{ width }} className="flex h-full min-h-0 shrink-0 flex-col">
+		<Pane data-testid="sheet-dock" aria-label="Cheat sheet" style={{ "--lh-dock-w": `${width}px` } as React.CSSProperties} className="lh-sheet-dock flex h-full min-h-0 shrink-0 flex-col">
 			<div
 				role="separator"
 				aria-orientation="vertical"
 				aria-label="Drag to resize the cheat sheet"
 				data-testid="sheet-dock-resize"
-				className="absolute top-0 bottom-0 -left-3 z-10 w-3 cursor-col-resize hover:bg-tone-2"
+				className="lh-dock-resize absolute top-0 bottom-0 -left-3 z-10 w-3 cursor-col-resize hover:bg-tone-2"
 				onPointerDown={(e) => {
 					e.currentTarget.setPointerCapture(e.pointerId);
 					drag.current = { x: e.clientX, w: width };

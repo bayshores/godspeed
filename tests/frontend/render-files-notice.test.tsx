@@ -97,6 +97,9 @@ describe("folder notices", () => {
 		assert.match(cards[0]!.textContent ?? "", /3 new files in CSE 21, read when your agent connects/);
 		assert.match(cards[0]!.textContent ?? "", /Lecture11\.srt and 2 more/);
 		assert.match(cards[0]!.textContent ?? "", /See files/);
+		const close = document.querySelector<HTMLElement>('[data-testid="files-notice-close"]')!;
+		assert.equal(close.getAttribute("aria-label"), "Close");
+		assert.ok(close.querySelector("svg"), "the close button draws a pixel cross");
 		await act(async () => document.querySelector<HTMLElement>('[data-testid="files-notice-see"]')!.click());
 		await act(async () => document.querySelector<HTMLElement>('[data-testid="files-notice-close"]')!.click());
 		assert.deepEqual([seen, closed], [["a:added"], ["a:added"]]);

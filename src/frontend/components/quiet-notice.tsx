@@ -10,9 +10,9 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { CalendarClockIcon, XIcon } from "lucide-react";
 import { useClasses } from "@/frontend/components/class-context";
 import { useMinute } from "@/frontend/components/countdown";
+import { NoticeCard, NoticeText } from "@/frontend/components/notice-card";
 import { NOTICE_STACK_ID } from "@/frontend/components/notice-stack";
 import { quietClasses, quietLine, quietTitle, snoozeEnd, type QuietClass } from "./quiet-notice-model";
 
@@ -75,16 +75,18 @@ export function QuietNoticeView({
 	onSee: (entry: QuietClass) => void;
 	onDismiss: (entry: QuietClass) => void;
 }) {
-	const button = "lh-press border border-tone-2 px-3 py-1 text-[13px] font-bold hover:bg-tone";
+	const button = "lh-press lh-btn text-[15px]";
 	return (
 		<>
 			{quiet.map((entry) => (
-				<div key={entry.classId} data-testid="quiet-notice" role="status" className="lh-rise lh-popup flex w-[340px] max-w-full items-start gap-3 px-4 py-3 font-ui text-[13.5px] text-ink">
-					<CalendarClockIcon className="mt-0.5 size-3.5 shrink-0" aria-hidden />
-					<div className="flex min-w-0 flex-1 flex-col gap-1">
-						<p className="font-bold">{quietTitle(entry, now)}</p>
-						<p className="text-xs text-ink-3">{quietLine(entry)}</p>
-						<div className="flex gap-2 pt-1.5">
+				<NoticeCard
+					key={entry.classId}
+					data-testid="quiet-notice"
+					role="status"
+					title={quietTitle(entry, now)}
+					close={{ onClick: () => onDismiss(entry), testId: "quiet-notice-close" }}
+					actions={
+						<>
 							{onShowFolder && (
 								<button type="button" data-testid="quiet-notice-folder" onClick={() => onShowFolder(entry)} className={button}>
 									Show folder
@@ -93,12 +95,11 @@ export function QuietNoticeView({
 							<button type="button" data-testid="quiet-notice-see" onClick={() => onSee(entry)} className={button}>
 								See files
 							</button>
-						</div>
-					</div>
-					<button type="button" data-testid="quiet-notice-close" aria-label="Close" onClick={() => onDismiss(entry)} className="lh-press text-ink-3 hover:text-ink">
-						<XIcon className="size-3.5" aria-hidden />
-					</button>
-				</div>
+						</>
+					}
+				>
+					<NoticeText>{quietLine(entry)}</NoticeText>
+				</NoticeCard>
 			))}
 		</>
 	);

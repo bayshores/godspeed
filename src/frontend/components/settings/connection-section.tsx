@@ -1,9 +1,9 @@
 /**
  * Settings → Connection: outside agents (Claude Code, Codex, any MCP client)
  * connect to godspeed and act as its AI, always on and the only model.
- * "Access": the connection status and the access token; "Your agent":
- * the button that opens it in the godspeed folder (or the setup for
- * another MCP app).
+ * "Your agent": the connection status and the button that opens it in the
+ * godspeed folder (or the setup for another MCP app); "Access": the access
+ * token.
  */
 
 import { useCallback, useEffect, useState } from "react";
@@ -30,7 +30,7 @@ async function request(init?: RequestInit): Promise<AccessView> {
 	return res.json() as Promise<AccessView>;
 }
 
-const MONO = "min-w-0 truncate font-mono text-[12.5px] text-ink-2";
+const OPEN_BELOW = "Open your agent with the button below.";
 
 export function ConnectionSection() {
 	const [access, setAccess] = useState<AccessView | null>(null);
@@ -70,22 +70,36 @@ export function ConnectionSection() {
 	if (!access) return <p className="text-xs text-ink-2">{error ?? "Loading…"}</p>;
 	const token = access.token;
 	const agent = { connected: access.agentConnected, teaching: access.agentTeaching, name: access.agentName ?? undefined, pendingWork: access.pendingWork };
+	const hint = agent.teaching ? null : agent.connected ? teachStep(agent.name) : agent.pendingWork > 0 ? OPEN_BELOW : null;
 
 	return (
 		<>
-			<SettingsGroup label="Access">
-				<SettingsRow
-					label="Status"
-					hint={!agent.teaching && (agent.connected || agent.pendingWork > 0) ? <span data-testid="agent-teach-hint">{teachStep(agent.name)}</span> : undefined}
-				>
-					<span data-testid="agent-status" className="flex min-w-0 items-center gap-2 text-[13.5px] text-ink-2">
-						<span aria-hidden className={cn("size-[7px] shrink-0 rounded-full", access.agentConnected ? "bg-ans-right" : "bg-ink-3")} />
-						<span className="truncate">{agentStatusLabel(agent, 0)}</span>
+			<SettingsGroup label="Your agent">
+				<SettingsRow label="Status">
+					<span className="flex min-w-0 items-start gap-2.5">
+						<span aria-hidden className={cn("mt-[7px] size-3 shrink-0", agent.teaching ? "bg-ans-right" : agent.connected || agent.pendingWork > 0 ? "bg-highlight" : "bg-ink-3")} />
+						<span className="min-w-0">
+							<span data-testid="agent-status" className="block truncate text-[15px] font-medium text-ink">
+								{agentStatusLabel(agent, 0)}
+							</span>
+							{hint && (
+								<span data-testid="agent-teach-hint" className="block text-base text-ink-2">
+									{hint}
+								</span>
+							)}
+						</span>
 					</span>
 				</SettingsRow>
-				<SettingsRow label="Access token" tip="Anyone with this token can use godspeed as you. Make a new one if it leaks.">
+				<div className="flex flex-col gap-3 py-3">
+					<OldSetupWarning />
+					<AgentLauncher />
+				</div>
+			</SettingsGroup>
+
+			<SettingsGroup label="Access">
+				<SettingsRow label="Access token" hint="Anyone with this token can use godspeed as you. Make a new one if it leaks.">
 					<span className="flex min-w-0 items-center gap-2">
-						<span data-testid="agent-token" className={MONO}>
+						<span data-testid="agent-token" className="min-w-0 truncate text-[15px] text-ink">
 							{maskToken(token)}
 						</span>
 						<CopyButton aria-label="Copy access token" className={OUTLINE_BUTTON} text={token} />
@@ -95,16 +109,16 @@ export function ConnectionSection() {
 					</span>
 				</SettingsRow>
 				{(rotate === "asking" || rotate === "making") && (
-					<div data-testid="agent-new-token-confirm" className="flex items-center justify-between gap-4 bg-tone px-3.5 py-2.5">
-						<span className="text-[13px] text-ink-2">Other MCP apps will need the new token. Continue?</span>
+					<div data-testid="agent-new-token-confirm" className="flex items-center justify-between gap-4 py-3">
+						<span className="text-[15px] text-ink">Other MCP apps will need the new token. Continue?</span>
 						<span className="flex shrink-0 items-center gap-2">
-							<button type="button" className="lh-press lh-btn" onClick={() => setRotate("idle")}>
+							<button type="button" className={`lh-press ${OUTLINE_BUTTON}`} onClick={() => setRotate("idle")}>
 								Cancel
 							</button>
 							<button
 								type="button"
 								data-testid="agent-new-token-continue"
-								className={OUTLINE_BUTTON}
+								className={`${OUTLINE_BUTTON} lh-btn-main`}
 								disabled={rotate === "making"}
 								onClick={makeToken}
 							>
@@ -114,18 +128,11 @@ export function ConnectionSection() {
 					</div>
 				)}
 				{rotate === "done" && (
-					<p data-testid="agent-new-token-note" className="text-xs text-ink-2">
+					<p data-testid="agent-new-token-note" className="text-ink-2">
 						New token made. Copy it into your other MCP apps again. Claude Code and Codex pick it up by themselves.
 					</p>
 				)}
-				{error && <p className="text-xs text-ans-wrong">{error}</p>}
-			</SettingsGroup>
-
-			<SettingsGroup label="Your agent">
-				<div className="py-3">
-					<OldSetupWarning />
-					<AgentLauncher />
-				</div>
+				{error && <p className="text-ans-wrong">{error}</p>}
 			</SettingsGroup>
 		</>
 	);

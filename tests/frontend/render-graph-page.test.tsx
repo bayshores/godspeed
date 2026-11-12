@@ -168,7 +168,6 @@ describe("the picked topic", () => {
 		assert.ok(html.includes('class="katex"'), "1/B renders through KaTeX");
 		assert.match(html, /role="img" aria-label="0 of 1 right"/);
 		assert.match(html, /data-testid="study-topic"[\s\S]*?Study Minibatch noise/);
-		assert.ok(!html.includes("lucide"), "no icons from the old look");
 	});
 });
 

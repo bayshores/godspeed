@@ -181,7 +181,7 @@ export interface ClassSignature {
 /** Longest signature, in characters (one line on the cover). */
 export const SIGNATURE_MAX = 60;
 
-/** The subject icons a class can wear (lucide names), with the subject
+/** The subject icons a class can wear with the subject
  *  each stands for. A class without one shows "book-open". */
 export const CLASS_ICONS = {
 	cpu: "Computer science",

@@ -6,20 +6,21 @@
  */
 
 import { useState } from "react";
+import { NoticeCard } from "@/frontend/components/notice-card";
 
 export function RestartNotice() {
 	const [open, setOpen] = useState(true);
 	if (!open) return null;
 	return (
-		<div data-testid="restart-notice" role="status" className="lh-rise lh-popup flex w-[320px] flex-col gap-3 px-4 py-3.5 font-ui">
-			<span className="text-[15px] font-bold text-ink">godspeed restarted after a problem</span>
-			<button
-				type="button"
-				onClick={() => setOpen(false)}
-				className="lh-btn lh-btn-main self-start"
-			>
-				OK
-			</button>
-		</div>
+		<NoticeCard
+			data-testid="restart-notice"
+			role="status"
+			title="godspeed restarted after a problem"
+			actions={
+				<button type="button" onClick={() => setOpen(false)} className="lh-btn text-[15px]">
+					OK
+				</button>
+			}
+		/>
 	);
 }

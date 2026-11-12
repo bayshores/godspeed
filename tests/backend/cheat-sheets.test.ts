@@ -4,7 +4,7 @@
  * once, the agent's answer with or without a new version, the chat and the
  * sheet's rules carried along), PDFs refused for where they are or what
  * they are, the last 5 versions kept, Try again after a failure, pictures
- * and PDFs, pointing at a page, the problem from a session, an older
+ * and PDFs, pointing at a page, an older
  * sheet's asks, a newer PDF from the working folder, the routes (the PDF
  * and the chat's files included), and removing the deadline. Isolated
  * LH_DATA_DIR and godspeed folder (set before any config-loading import).
@@ -336,7 +336,7 @@ describe("cheat sheets", () => {
 		assert.deepEqual(refused, { ok: false, status: 400, error: "fake.pdf is not a PDF." });
 	});
 
-	it("carries the part of a page the student points at, and the problem they are on in a session", async () => {
+	it("carries the part of a page the student points at", async () => {
 		const { classId, deadlineId } = seed();
 		const r = routeFor(classId, deadlineId);
 		const region = { n: 1, page: 2, x: 0.1, y: 0.5, w: 0.4, h: 0.2 };
@@ -346,20 +346,17 @@ describe("cheat sheets", () => {
 		await sheets.cheatSheetIdle(deadlineId);
 		assert.equal((await r.post({ action: "ask", text: "x", region: { ...region, page: 3 } })).status, 400);
 		assert.equal((await r.post({ action: "ask", text: "x", region: { page: 1 } })).status, 400);
-		assert.equal((await r.post({ action: "ask", text: "x", about: { kind: "lesson" } })).status, 400);
 		const png = await sharp({ create: { width: 8, height: 4, channels: 3, background: { r: 255, g: 255, b: 255 } } }).png().toBuffer();
 		const prompts = agent({ text: "I split card 8 into two routes." });
-		const about = { kind: "problem", session: "Counting practice", text: "How many ways to seat 5 people?", work: "5! = 120, like the sheet says" };
-		const res = await r.post({ action: "ask", text: "according to the cheat sheet that's what I did", region, about, attachments: [{ name: "Back, the part you pointed at.png", mimeType: "image/png", data: png.toString("base64") }] });
+		const res = await r.post({ action: "ask", text: "according to the cheat sheet that's what I did", region, attachments: [{ name: "Back, the part you pointed at.png", mimeType: "image/png", data: png.toString("base64") }] });
 		assert.equal(res.status, 200);
 		await sheets.cheatSheetIdle(deadlineId);
 		const content = JSON.parse(prompts[0]!) as Array<{ type: string; text?: string }>;
 		assert.match(content[0]!.text!, /They pointed at version 1, page 2 \(the back\), from 10% to 50% across and 50% to 70% down\. The first picture shows that part\./);
-		assert.match(content[0]!.text!, /The student is on this problem in their session "Counting practice", with the sheet open beside it:\nHow many ways to seat 5 people\?\nWhat they have written for it so far:\n5! = 120, like the sheet says/);
 		assert.equal(content[1]!.type, "image");
 		const asked = (await view(classId, deadlineId)).sheet.messages.at(-2)!;
 		assert.ok(asked.role === "you");
-		assert.deepEqual([asked.region, asked.about], [region, about]);
+		assert.deepEqual(asked.region, region);
 	});
 
 	it("turns an older HTML sheet's asks into the chat, says it can't be shown, and makes it again as a PDF", async () => {
