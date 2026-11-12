@@ -270,7 +270,7 @@ function SpaceDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 			)}
 			{editing && (
 				<>
-					<SpaceIconField icon={icon} disabled={busy} onChange={setIcon} />
+					<SpaceIconField icon={icon} agentPicks={!editing.prep} disabled={busy} onChange={setIcon} />
 					<SpaceColorField color={color} disabled={busy} onChange={setColor} />
 					{!editing.prep && <SpaceSignatureField kind={signature.kind} value={signature.value} disabled={busy} onChange={(kind, value) => setSignature({ kind, value })} />}
 					<div className="flex flex-col gap-1.5">
