@@ -36,7 +36,9 @@ export function SpaceTabs({ selected }: { selected: string }) {
 							className={cn(BAR_TAB, barTabState(selected === c.id))}
 						>
 							<span aria-hidden className="size-2.5 shrink-0" style={{ background: spaceColorVar(c.color) }} />
-							<span title={c.name} className="truncate">
+							{/* Capped: a tab shrinks by its full width, so one long name
+							    would squeeze the others to a letter. */}
+							<span title={c.name} className="max-w-[240px] truncate">
 								{c.name}
 							</span>
 							{tag && (

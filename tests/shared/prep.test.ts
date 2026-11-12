@@ -5,7 +5,7 @@
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { newPrep, parsePrep, prepStudyTopics, prepTopicProgress, sheetProblem, weakestFirst, withEdits, withSheet, type PrepEdits, type WrittenSheet } from "../../src/shared/core/prep.ts";
+import { goalName, newPrep, parsePrep, prepStudyTopics, prepTopicProgress, sheetProblem, weakestFirst, withEdits, withSheet, type PrepEdits, type WrittenSheet } from "../../src/shared/core/prep.ts";
 import type { SpacePrep } from "../../src/shared/core/contracts.ts";
 
 const ids = () => {
@@ -36,6 +36,14 @@ describe("a prep", () => {
 		});
 		assert.equal("date" in newPrep("Interview", "soon")!, false);
 		assert.equal(newPrep("   "), null);
+	});
+	it("is named by a short form of a long goal until the sheet names it", () => {
+		const forty = "Acme online test for a junior web roles!";
+		assert.equal(forty.length, 40);
+		assert.equal(goalName(forty), forty, "40 characters stay whole");
+		assert.equal(goalName(`${forty} and more`), "Acme online test for a junior web roles!…", "a word ending at 40 is kept");
+		assert.equal(goalName("Second round with the platform team at Acme, two hours"), "Second round with the platform team at…");
+		assert.equal(goalName("x".repeat(50)), `${"x".repeat(40)}…`, "one long word is cut inside it");
 	});
 
 	it("takes the teacher's sheet: clean sources, each topic once, a short name", () => {
