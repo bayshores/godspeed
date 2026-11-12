@@ -7,7 +7,7 @@ use gs_core::contracts::space::SPEECH_TOOL_INSTALL;
 
 /// Apps opened from the Dock don't inherit the shell's PATH, so the Homebrew prefixes are
 /// searched explicitly.
-pub(crate) const EXTRA_BIN_DIRS: [&str; 2] = ["/opt/homebrew/bin", "/usr/local/bin"];
+pub const HOMEBREW_BIN_DIRS: [&str; 2] = ["/opt/homebrew/bin", "/usr/local/bin"];
 
 /// Shown on a file's badge when the programs are missing.
 #[derive(Debug, PartialEq)]
@@ -31,8 +31,8 @@ pub(crate) struct Tools {
 }
 
 /// The first executable named `name` on `path_env` or in the `extra` folders (the Homebrew
-/// prefixes in production; tests pass none).
-pub fn find_in(name: &str, path_env: Option<&str>, extra: &[&str]) -> Option<PathBuf> {
+/// prefixes in production; tests pass none) that `accept` takes.
+pub fn find_in(name: &str, path_env: Option<&str>, extra: &[&str], accept: &dyn Fn(&Path) -> bool) -> Option<PathBuf> {
 	let delimiter = if cfg!(windows) { ';' } else { ':' };
 	let exe = format!("{name}.exe");
 	let names: &[&str] = if cfg!(windows) { &[&exe, name] } else { &[name] };
@@ -40,7 +40,7 @@ pub fn find_in(name: &str, path_env: Option<&str>, extra: &[&str]) -> Option<Pat
 	for dir in dirs {
 		for n in names {
 			let candidate = join(dir, n);
-			if is_executable_file(&candidate) {
+			if is_executable_file(&candidate) && accept(&candidate) {
 				return Some(candidate);
 			}
 		}
@@ -50,8 +50,9 @@ pub fn find_in(name: &str, path_env: Option<&str>, extra: &[&str]) -> Option<Pat
 
 /// Both programs, or a WhisperMissingError naming what's missing.
 pub(crate) fn locate_tools(path_env: Option<&str>, extra: &[&str]) -> Result<Tools, WhisperMissingError> {
-	let whisper = find_in("whisper-cli", path_env, extra).or_else(|| find_in("whisper-cpp", path_env, extra));
-	let ffmpeg = find_in("ffmpeg", path_env, extra);
+	let any = |_: &Path| true;
+	let whisper = find_in("whisper-cli", path_env, extra, &any).or_else(|| find_in("whisper-cpp", path_env, extra, &any));
+	let ffmpeg = find_in("ffmpeg", path_env, extra, &any);
 	match (whisper, ffmpeg) {
 		(Some(whisper), Some(ffmpeg)) => Ok(Tools { whisper, ffmpeg }),
 		(whisper, ffmpeg) => Err(WhisperMissingError {
@@ -152,8 +153,19 @@ mod tests {
 		let exe = script(&first, "whisper-cli", 0o755);
 		script(&second, "whisper-cli", 0o755);
 		let path = format!("{}::{}", first.display(), second.display());
-		assert_eq!(find_in("whisper-cli", Some(&path), &[]), Some(exe));
-		assert_eq!(find_in("definitely-not-a-program-xyz", Some(&path), &[]), None);
+		assert_eq!(find_in("whisper-cli", Some(&path), &[], &|_| true), Some(exe));
+		assert_eq!(find_in("definitely-not-a-program-xyz", Some(&path), &[], &|_| true), None);
+	}
+
+	#[test]
+	fn a_program_accept_turns_down_is_passed_over() {
+		let scratch = Scratch::new("programs");
+		let (first, second) = (dir(&scratch, "first"), dir(&scratch, "second"));
+		let stand_in = script(&first, "python3", 0o755);
+		let real = script(&second, "python3", 0o755);
+		let path = format!("{}:{}", first.display(), second.display());
+		assert_eq!(find_in("python3", Some(&path), &[], &|file| file != stand_in), Some(real));
+		assert_eq!(find_in("python3", Some(&path), &[], &|_| false), None);
 	}
 
 	#[test]
@@ -164,8 +176,8 @@ mod tests {
 		std::fs::create_dir(folder.join("ffmpeg")).unwrap();
 		let exe = script(&good, "ffmpeg", 0o700);
 		let path = format!("{}:{}:{}", plain.display(), folder.display(), good.display());
-		assert_eq!(find_in("ffmpeg", Some(&path), &[]), Some(exe));
-		assert_eq!(find_in("ffmpeg", Some(&format!("{}:{}", plain.display(), folder.display())), &[]), None);
+		assert_eq!(find_in("ffmpeg", Some(&path), &[], &|_| true), Some(exe));
+		assert_eq!(find_in("ffmpeg", Some(&format!("{}:{}", plain.display(), folder.display())), &[], &|_| true), None);
 	}
 
 	#[test]
@@ -176,9 +188,9 @@ mod tests {
 		std::os::unix::fs::symlink(&exe, links.join("ffmpeg")).unwrap();
 		script(&extra, "ffmpeg", 0o755);
 		let extra_dir = as_path(&extra);
-		assert_eq!(find_in("ffmpeg", Some(&as_path(&links)), &[&extra_dir]), Some(links.join("ffmpeg")));
-		assert_eq!(find_in("ffmpeg", None, &[&extra_dir]), Some(extra.join("ffmpeg")));
-		assert_eq!(find_in("ffmpeg", Some(""), &[]), None);
+		assert_eq!(find_in("ffmpeg", Some(&as_path(&links)), &[&extra_dir], &|_| true), Some(links.join("ffmpeg")));
+		assert_eq!(find_in("ffmpeg", None, &[&extra_dir], &|_| true), Some(extra.join("ffmpeg")));
+		assert_eq!(find_in("ffmpeg", Some(""), &[], &|_| true), None);
 	}
 
 	#[test]

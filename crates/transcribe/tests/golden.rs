@@ -44,7 +44,7 @@ fn find_in_matches_node() {
 	for case in cases.as_arr().unwrap() {
 		let template = case["path"].as_str();
 		let path_env = template.map(|t| t.replace("$R", &root_text));
-		let found = find_in(case["name"].as_str().unwrap(), path_env.as_deref(), &[]).map(|p| p.to_string_lossy().replace(&root_text, "<root>"));
+		let found = find_in(case["name"].as_str().unwrap(), path_env.as_deref(), &[], &|_| true).map(|p| p.to_string_lossy().replace(&root_text, "<root>"));
 		let note = case["note"].as_str().unwrap();
 		assert_eq!(Json::from(found), case["found"], "{note}");
 	}

@@ -15,7 +15,7 @@ use gs_base::{fsx, ids, text};
 
 use crate::exec::run_program;
 use crate::model::ModelDownload;
-use crate::programs::{EXTRA_BIN_DIRS, WhisperMissingError, locate_tools};
+use crate::programs::{HOMEBREW_BIN_DIRS, WhisperMissingError, locate_tools};
 
 #[derive(Debug, PartialEq)]
 pub enum TranscribeError {
@@ -39,7 +39,7 @@ impl std::error::Error for TranscribeError {}
 /// stops the running program and removes the temp folder.
 pub async fn transcribe_recording(download: &ModelDownload, paths: &Paths, recording: &Path, out_file: &Path) -> Result<String, TranscribeError> {
 	let path_env = std::env::var_os("PATH").map(|p| p.to_string_lossy().into_owned());
-	transcribe_with(download, paths, path_env.as_deref(), &EXTRA_BIN_DIRS, recording, out_file).await
+	transcribe_with(download, paths, path_env.as_deref(), &HOMEBREW_BIN_DIRS, recording, out_file).await
 }
 
 /// `transcribe_recording` with the program search given, so tests can keep the real ones out.
