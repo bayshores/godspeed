@@ -137,6 +137,21 @@ Wave A ports the bottom layers in parallel; wave B builds the services, tools an
 | cheat-sheets | B | sonnet | `crates/services/src/cheat_sheets/`, `crates/server/src/routes/cheat_sheets.rs` |
 | app-misc | B | sonnet | `crates/services/src/app/`, `crates/server/src/routes/app.rs` |
 
+The catch-up with the Node side (spaces, 0.5.50, source citing, preps and mocks) ran as three more waves after the merge of integrate/prep, every package on opus:
+
+| Package | Wave | Owns |
+|---|---|---|
+| rename | C1 | "class" to "space" in every crate, the old names moved or read on first use |
+| space-record | C2 | space colors, `core::spaces::space_work` (the teacher at work), deadlines done today, `appearance` in `/api/boot` |
+| agent-bridge | C2 | the backup teacher, `/api/mcp/compacting`, leaner work items |
+| agent-folder | C2 | start commands, the backup teacher's start script and hooks |
+| lesson-turns | C2 | the one message box, the homework part tool, instant shortening |
+| study-logic | C2 | study by material and standing, predictions, rechecks |
+| shell | C2 | `crates/shell/` following the Electron changes |
+| citations | C3 | `core::messages::{content_reader, citations}`, `services::spaces::citations`, `/api/cited/*` |
+| prep | C3 | `core::preps::prep`, `services::preps::{preps, prep_runs}`, `routes/preps.rs`, `subagents::prep_writer` |
+| mocks | C3 | `core::preps::{mock, mock_run, mock_requests}`, `store::mocks`, `services::preps::{mocks, mock_end, mock_runner}`, `routes/mocks.rs`, `subagents::mock_writer` |
+
 The full instructions per package (TS sources, what to provide to whom, scenarios to pass) come with each package's task. The parts every package needs to know about the others:
 
 - **engine** (wave A) publishes the API wave B builds on, documented in `crates/engine/src/lib.rs`: the tool trait (name, label, description, JSON Schema parameters as TypeBox emits them, `execute(args, ctx)` with the call id and an abort handle, results as pi content parts plus `details`, `is_error`, `terminate`), the result helpers from `tool-execute.ts` (`server_execute` with the 30 s timeout, `to_tool_result`, `invalid_input_result`, `question_result`, `problem_result`, `conclude_result`), the agent loop (prompt, steer, follow-up, abort, the event stream, messages as pi message `Json`), the outside-agent "engine" (`agent_engine`) and the bridge (`Bridge` methods named after `agent-bridge.ts` exports).
@@ -157,6 +172,7 @@ The full instructions per package (TS sources, what to provide to whom, scenario
 
 - Range and conditional requests: the recordings show today's server answers both with the full file (200), so the Rust server does too.
 - Demo checking (headless.ts) ran JavaScript in Electron's browser service through puppeteer. The Rust server asks the desktop shell instead (the shell protocol above); a server without the shell answers the no-browser error.
+- Source marks read Markdown with the `markdown` crate (CommonMark plus math), whose code offsets match mdast-util-from-markdown's, and check a web mark with the `url` crate in place of `URL.canParse`. Both came with the catch-up; the owner is asked to confirm them.
 - Characters in Unicode's last 2048 private-use code points (U+10F800 to U+10FFFF) are the lone-surrogate stand-ins and cannot appear as real text.
 - A mock's Run examples runs JavaScript with the computer's own `node` (PATH, then Homebrew's folders), since the desktop app has no Node of its own; without one it answers "godspeed couldn't find Node.js on this computer. Install Node.js, or answer in Python.". Python is found as Node finds it.
 - Search vectors: if Rust's vectors do not match the stored ones exactly, the tables are rebuilt from saved text (plan decision 8).
