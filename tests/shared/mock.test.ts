@@ -106,10 +106,12 @@ describe("a mock", () => {
 		assert.equal(secondsLeft({ format: FORMAT }, t0), 70 * 60, "not started: the whole time");
 	});
 
-	it("saves answers only while it runs, and the language only on code", () => {
+	it("saves answers only while it runs, and the language and code only on code", () => {
 		const live = running();
-		const saved = withAnswer(withAnswer(live, "q1", { text: "code", language: "python", seconds: 61.4, submitted: true }), "q2", { text: "words", language: "python", seconds: 5, submitted: false });
-		assert.deepEqual(saved.answers.q1, { text: "code", language: "python", seconds: 61, submitted: true });
+		const code = { python: "py", javascript: "js" };
+		const saved = withAnswer(withAnswer(live, "q1", { text: "ignored", language: "python", code, seconds: 61.4, submitted: true }), "q2", { text: "words", language: "python", code, seconds: 5, submitted: false });
+		assert.deepEqual(saved.answers.q1, { text: "py", language: "python", code, seconds: 61, submitted: true }, "the text is the picked language's code");
+		assert.equal(withAnswer(live, "q1", { text: "x", language: "javascript", code: { python: "py" }, seconds: 1, submitted: false }).answers.q1!.text, "", "the picked language is unwritten");
 		assert.deepEqual(saved.answers.q2, { text: "words", seconds: 5, submitted: false });
 		assert.equal(withAnswer(live, "q9", { text: "x", seconds: 1, submitted: true }), live, "no such question");
 		const over = endMock(saved, "2026-11-11T10:30:00.000Z");
@@ -118,7 +120,7 @@ describe("a mock", () => {
 
 	it("needs a grade for every answered question, and counts for the prep's topics", () => {
 		const live = running();
-		const answer = (text: string) => ({ text, seconds: 30, submitted: true });
+		const answer = (text: string) => ({ text, language: "javascript" as const, code: { javascript: text }, seconds: 30, submitted: true });
 		const over = endMock(withAnswer(withAnswer(withAnswer(live, "q1", answer("a")), "q2", answer("b")), "q3", answer("  ")), "2026-11-11T10:30:00.000Z");
 		assert.match(withGrades(over, [{ question: "q1", verdict: "right", feedback: "Good." }]) as string, /No grade for q2/);
 		assert.match(withGrades(over, [{ question: "q1", verdict: "right", feedback: " " }, { question: "q2", verdict: "partly", feedback: "Half." }]) as string, /feedback for q1/);
@@ -133,7 +135,7 @@ describe("a mock", () => {
 
 	it("reads back the same, and refuses a newer build's record", () => {
 		const live = running();
-		const over = endMock(withAnswer(live, "q1", { text: "a", language: "javascript", seconds: 30, submitted: true }), "2026-11-11T10:30:00.000Z");
+		const over = endMock(withAnswer(live, "q1", { text: "a", language: "javascript", code: { javascript: "a", python: "b" }, seconds: 30, submitted: true }), "2026-11-11T10:30:00.000Z");
 		const graded = withGrades(over, [{ question: "q1", verdict: "wrong", feedback: "Off by one." }]) as Mock;
 		assert.deepEqual(parseMock(JSON.parse(JSON.stringify({ version: 1, ...graded }))), graded);
 		assert.equal(parseMock({ ...graded, version: 99 }), "newer");
