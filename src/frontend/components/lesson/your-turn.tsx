@@ -142,42 +142,44 @@ export function YourTurn({
 				)}
 			</div>
 
-			<div key={mode} className={`flex min-h-0 flex-initial flex-col gap-3.5 overflow-y-auto${mode === initialModeRef.current ? "" : " lh-rise"}`}>
-				{pending && kind !== "Question" && (
-					<p data-testid="question-kind" className="shrink-0 font-count text-base text-ink-2">
-						{kind}
-					</p>
-				)}
-				{pending && !revealPending && (
-					<QuestionDock
-						ref={questionRef}
-						toolName={pending.tool as QuestionDockProps["toolName"]}
-						toolCallId={pending.toolCallId}
-						input={pending.input}
-						onSubmit={onSubmitAnswer}
-						initialDraft={initialQuestionDraft}
-						onSaveDraft={onSaveQuestionDraft}
-						onReady={setPicked}
-						boxText={value}
-						onLeaveRows={() => boxRef.current?.focus()}
-						busy={busy}
-					/>
-				)}
-				{!pending && problem && (
-					<>
-						{problem.line && (
-							<p data-testid="problem-line" className="shrink-0 font-count text-base text-ink-2">
-								{problem.line}
-							</p>
-						)}
-						<OpenProblemPane statement={problem.statement} source={problem.source} part={problem.part} />
-					</>
-				)}
-				{!pending && !problem && !busy && (
-					<p data-testid="nothing-to-answer" className="shrink-0 text-base text-ink-2">
-						Nothing to answer right now.
-					</p>
-				)}
+			<div key={mode} className={`flex min-h-0 flex-initial flex-col${mode === initialModeRef.current ? "" : " lh-rise"}`}>
+				<div className="lh-scroll-fade flex min-h-0 flex-col gap-3.5 overflow-y-auto">
+					{pending && kind !== "Question" && (
+						<p data-testid="question-kind" className="shrink-0 font-count text-base text-ink-2">
+							{kind}
+						</p>
+					)}
+					{pending && !revealPending && (
+						<QuestionDock
+							ref={questionRef}
+							toolName={pending.tool as QuestionDockProps["toolName"]}
+							toolCallId={pending.toolCallId}
+							input={pending.input}
+							onSubmit={onSubmitAnswer}
+							initialDraft={initialQuestionDraft}
+							onSaveDraft={onSaveQuestionDraft}
+							onReady={setPicked}
+							boxText={value}
+							onLeaveRows={() => boxRef.current?.focus()}
+							busy={busy}
+						/>
+					)}
+					{!pending && problem && (
+						<>
+							{problem.line && (
+								<p data-testid="problem-line" className="shrink-0 font-count text-base text-ink-2">
+									{problem.line}
+								</p>
+							)}
+							<OpenProblemPane statement={problem.statement} source={problem.source} part={problem.part} />
+						</>
+					)}
+					{!pending && !problem && !busy && (
+						<p data-testid="nothing-to-answer" className="shrink-0 text-base text-ink-2">
+							Nothing to answer right now.
+						</p>
+					)}
+				</div>
 			</div>
 
 			{waitingForAgent && (
