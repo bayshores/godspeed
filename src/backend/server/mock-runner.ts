@@ -9,6 +9,7 @@ import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import type { CodeQuestion, MockLanguage } from "../../shared/core/mock.ts";
 import { RUN_FILE, RUN_SECONDS, readRun, runnerSource, type RunOutcome } from "../../shared/core/mock-run.ts";
 import { HOMEBREW_BIN_DIRS, findProgram } from "./transcribe.ts";
@@ -123,8 +124,9 @@ export function runExamples(question: CodeQuestion, code: string, language: Mock
 		});
 		child.on("error", () => end(() => readRun("", "", mark, question.examples)));
 		child.on("close", () =>
-			// The temp folder's path says nothing to the learner.
-			end(() => readRun(Buffer.concat(out).toString("utf8"), Buffer.concat(err).toString("utf8").replaceAll(dir + path.sep, ""), mark, question.examples)),
+			// The temp folder's path, also as a file:// URL when Node read the
+			// code as a module, says nothing to the learner.
+			end(() => readRun(Buffer.concat(out).toString("utf8"), Buffer.concat(err).toString("utf8").replaceAll(pathToFileURL(dir + path.sep).href, "").replaceAll(dir + path.sep, ""), mark, question.examples)),
 		);
 		// Nothing is typed in: input() ends at once instead of waiting out the time limit.
 		child.stdin.end();
