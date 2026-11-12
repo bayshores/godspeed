@@ -8,7 +8,7 @@ Test tooling, seed data copies and measurements live outside the repo in `/Users
 
 - **Stays:** every screen. The React UI in `src/frontend` keeps its code, look and behavior.
 - **Replaced:** the Node/Next.js server becomes one Rust program (`godspeed-server`). Electron becomes Tauri 2, a small Rust shell that opens a window with the Mac's built-in Safari engine (WKWebView) instead of shipping its own Chrome.
-- **Same files:** the Rust server reads and writes the exact same data files, so your classes, chats, graph and settings carry over untouched.
+- **Same files:** the Rust server reads and writes the exact same data files, so your spaces, chats, graph and settings carry over untouched.
 - **Same agents:** the MCP tools, texts and the `~/godspeed` folder stay word for word, so Claude Code and Codex see no difference.
 
 Expected result (estimates; Phase 0 measures them before anything big is built):
@@ -39,7 +39,7 @@ It makes the app much lighter. It does not make lessons or screens noticeably fa
 
 ### Phase 1: the UI stops needing Next.js (still Electron, still Node)
 - Next.js pages become Vite + React Router; `next/link`, `next/navigation`, `next/dynamic` and page metadata get plain replacements.
-- A new `/api/boot` returns what the root layout reads today (onboarding, What's new, welcome screen, active class, classes, teacher name, sounds), and the lesson and deadline pages get the endpoints they need (homework view, deadline by id).
+- A new `/api/boot` returns what the root layout reads today (onboarding, What's new, welcome screen, active space, spaces, teacher name, sounds), and the lesson and deadline pages get the endpoints they need (homework view, deadline by id).
 - Fonts are stored in the app instead of coming through `next/font`.
 - Ships as a normal release. Screens must match the baseline.
 
