@@ -32,7 +32,7 @@ export function FolderNotice({ agent, afterWelcome }: { agent: FolderAgent; afte
 		window.addEventListener(OPEN_EVENT, show);
 		return () => window.removeEventListener(OPEN_EVENT, show);
 	}, [afterWelcome]);
-	// Close once the terminal is open; the sidebar follows the agent from there.
+	// Close once the terminal is open; the teacher chip follows the agent from there.
 	useEffect(() => {
 		if (launch?.opened === "done" || launch?.opened === "manual") setOpen(false);
 	}, [launch]);

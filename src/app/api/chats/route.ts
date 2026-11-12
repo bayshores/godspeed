@@ -3,11 +3,11 @@ import { createHomework, createLesson, isTurnRunning, listChats, startClassScann
 import type { ChatListItem } from "@/shared/core";
 
 /** The session picker's list: record-derived summaries (phase, pending
- *  question) + live liveness — a running turn marks the session busy
+ *  question) + live liveness: a running turn marks the session busy
  *  (contracts.ts ChatListItem; the store can't see liveness, the route is
- *  the merge point). Background jobs do not count: the sidebar's
- *  Background agents section is their channel (a running spinner per row
- *  would double-signal them), so busy means exactly "a teach turn is in
+ *  the merge point). Background jobs do not count: the transcript's
+ *  dispatch cards are their channel (a running mark per row would
+ *  double-signal them), so busy means exactly "a teach turn is in
  *  flight".
  *
  *  ?class=<id|none> narrows the list to one

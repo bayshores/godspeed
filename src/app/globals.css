@@ -383,6 +383,16 @@ body {
 	.lh-btn-quiet:hover {
 		color: var(--foreground);
 	}
+	/* A button on the dark bar of a lesson or a cheat sheet. */
+	.lh-btn-bar {
+		flex-shrink: 0;
+		border-color: var(--lh-bar-ink);
+		font-size: 15px;
+		color: var(--lh-bar-ink);
+	}
+	.lh-btn-bar:hover {
+		background: color-mix(in oklab, var(--lh-bar-ink) 15%, transparent);
+	}
 }
 
 /* The page under everything: paper with a faint dot grid. */
@@ -430,17 +440,6 @@ body {
 	.lh-teacher-resize {
 		display: none;
 	}
-}
-
-/* A box whose text fades out over its top and bottom 12px, so scrolled
-   or cut-off text never runs hard into an edge. Its padding is at least
-   12px, so nothing fades at rest. */
-.lh-edge-fade {
-	mask-image: linear-gradient(to bottom, transparent, #000 12px, #000 calc(100% - 12px), transparent);
-}
-/* Cut off: the foot fades over the text itself, so it reads as "more". */
-.lh-edge-fade[data-overflow] {
-	mask-image: linear-gradient(to bottom, transparent, #000 12px, #000 calc(100% - 48px), transparent);
 }
 
 /* The block cursor at the end of the text the teacher is writing. */
@@ -1238,10 +1237,8 @@ body:has(.lh-own-bar) .lh-app-bar {
    STEPPED MOTION: fast and stepped, like an e-ink page redrawing. Nothing
    floats or glows. Reduce motion (the OS setting) turns all of it off.
 
-   - .lh-px-in         a countdown pixel that lights in;
    - .lh-block-in      a bar block or fact square that steps in
                        (--lh-block-delay);
-   - .lh-push          a new activity line pushing in at the top;
    - .lh-flash-right/-wrong  a checked answer's card flips to inverse green
                        or red for a beat, then settles;
    - the streaming block cursor blinks. */
@@ -1254,27 +1251,8 @@ body:has(.lh-own-bar) .lh-app-bar {
 	}
 }
 
-@keyframes lh-px-in {
-	from {
-		opacity: 0;
-	}
-}
-.lh-px-in {
-	animation: lh-px-in 1ms steps(1, end) var(--lh-px-delay, 0ms) backwards;
-}
-
 .lh-block-in {
 	animation: lh-appear 1ms steps(1, end) var(--lh-block-delay, 0ms) backwards;
-}
-
-@keyframes lh-push {
-	from {
-		clip-path: inset(0 0 100% 0);
-		transform: translateY(-6px);
-	}
-}
-.lh-push {
-	animation: lh-push 120ms steps(4, end);
 }
 
 @keyframes lh-flash {
@@ -1304,9 +1282,7 @@ body:has(.lh-own-bar) .lh-app-bar {
 }
 
 @media (prefers-reduced-motion: reduce) {
-	.lh-px-in,
 	.lh-block-in,
-	.lh-push,
 	.lh-flash-right [data-testid="answered-card"],
 	.lh-flash-wrong [data-testid="answered-card"],
 	.lh-streaming > :is(p, h1, h2, h3, h4, blockquote):last-child::after,

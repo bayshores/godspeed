@@ -1013,7 +1013,7 @@ describe("single-node deletion (deleteNodeTraces + deleteGraphNode, node interlu
 				ok: false,
 				status: 409,
 				code: "extraction_running",
-				error: "Godspeed is still adding to your graph. Try again when Background jobs in the teacher's panel is empty.",
+				error: "Godspeed is still adding to your graph. Try again when nothing is left under Running in the background in the teacher's Activity.",
 			});
 		} finally {
 			g.__lhExtractionRuns = realRuns;

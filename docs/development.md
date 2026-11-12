@@ -57,7 +57,7 @@ flowchart TB
     LEARNER["the learner"]
 
     subgraph STAGE["STAGE — presentation shell (browser)"]
-        UI["Home · lesson screen · question dock · plan row · graph columns · activity dock · sidebar"]
+        UI["Today · class pages · lesson screen · question dock · plan row · graph columns · activity dock · top bar"]
     end
 
     subgraph CLASSROOM["CLASSROOM — session engine (owns data/chats)"]
@@ -105,14 +105,16 @@ flowchart TB
 
 ```
 src/
-  app/                          Next.js App Router: pages (/ Home, /new, /chat/[id],
-                                /class Overview, /class/files, /graph) + thin API
-                                route handlers. Settings is a dialog, not a page
+  app/                          Next.js App Router: pages (/ Today, /new, /chat/[id],
+                                /class Progress, /class/lessons, /class/files, /graph,
+                                /class/cheat-sheets, /class/deadlines, /settings,
+                                /archived) + thin API route handlers
   proxy.ts                      Next proxy: desktop-only /api gate
   frontend/                     everything the browser runs
-    components/                   Home (home-page/), the lesson screen (lesson/), question
-                                  dock, plan row and plan blocks, Graph page (graph/),
-                                  class Overview and Files, settings dialog (settings/),
+    components/                   the top bar (top-bar/), Today (home-page/), the class
+                                  head and tabs (class-page/, overview/, lessons/, files/,
+                                  graph/), the lesson screen (lesson/), question dock,
+                                  plan row and plan blocks, Settings page (settings/),
                                   onboarding, the welcome screen (welcome/), artifact
                                   renderers (registry: artifacts/), activity dock, keyboard
     lib/utils.ts                  shadcn class-name helper (cn)
@@ -237,7 +239,7 @@ bills the learner's own plan, so nothing has a dollar price: the app only counts
 - **Both MCP versions.** `/api/mcp` serves the 2026-07-28 version (every request carries the client's version and name, and `server/discover` replaces the `initialize` handshake; Claude Code and the folder's scripts) and the older one that starts with `initialize` (Codex).
 - **Agent notes and the briefing.** `remember` / `forget` save short notes about the learner in `data/agent-notes.json` (Settings → Connection lists them). Every `initialize` or `server/discover` puts a "Where you left off" briefing right after the work loop in its instructions: classes, last lessons, next deadlines and notes (`src/backend/server/agent-memory.ts`, `src/shared/core/agent-briefing.ts`), trimmed to end before Claude Code's 4096-character cut.
 
-**Classes and deadlines.** A class (`data/classes/<id>/`) has its own lessons, files, linked folder, deadlines and graph. A file is `study` (turned into facts) or `info` (readable by the teacher, never facts). A linked folder is rescanned every 60 seconds and adds up to 500 files. Recordings are transcribed locally with whisper.cpp. A deadline has a kind (`exam`, `homework`, `quiz` or `project`), a due day, an optional time and the files it covers. Home lists open deadlines (`GET /api/deadlines`); the Graph page shows days left and what to work on next (`GET /api/progress`). The teacher sees the date and the class's open deadlines in a hidden `today-context` message. Lessons without a class are in "No class" and use `data/graph/`.
+**Classes and deadlines.** A class (`data/classes/<id>/`) has its own lessons, files, linked folder, deadlines and graph. A file is `study` (turned into facts) or `info` (readable by the teacher, never facts). A linked folder is rescanned every 60 seconds and adds up to 500 files. Recordings are transcribed locally with whisper.cpp. A deadline has a kind (`exam`, `homework`, `quiz` or `project`), a due day, an optional time and the files it covers. Today lists open deadlines (`GET /api/deadlines`); the Graph tab shows days left and what to work on next (`GET /api/progress`). The teacher sees the date and the class's open deadlines in a hidden `today-context` message. Lessons with no class use `data/graph/`.
 
 **Attachments.** A learner message can carry up to 5 pictures (20 MB each) and PDFs (30 MB each). Pictures are resized and stored inline in the message; PDFs are saved in `data/chats/<id>/` and the message gets a note with the path (`src/backend/server/attachments.ts`).
 
@@ -251,7 +253,7 @@ bills the learner's own plan, so nothing has a dollar price: the app only counts
 
 **The knowledge graph (two channels, one writer).** The write channel: the extraction pipeline — extractor (LLM: sees the source (the session's teacher prose or a notes chunk) plus its own source's digest (**THE GRAPH SO FAR**: propositions + chains already extracted from this source, ids verbatim), so it references existing ids instead of restating them and leans on established conclusions as premises; fully trusted; its deliverable is core ideas + reasoning chains: premises that jointly entail a conclusion, submitted as chains and stored as chains (`chains.jsonl` is the truth, edges a derived view); it also sees RELATED IDEAS, the ~25 existing ideas the app's local search picks for the part, and lists the ones it re-teaches in `reteaches`) → merger (`mergeFindings`, deterministic: a node per new proposition, a credit line for each re-taught idea, resolves and dedupes chains — identical arguments merge under one `arg_` id; then the chain-simplification pass strips provably redundant derivations, chains whose premises already derive their conclusion through the other kept chains — checkpoints coverage) → topic grouping is scheduled. A source's batches run strictly in order (each extractor continues the digest of every earlier merge). No quiz outcomes or understanding assessments live in the graph; practice sessions read it and write nothing back. Triggered when a chat's **uncovered tokens** (message-view fingerprints, `coverage.jsonl`) cross `graph.extractionChunkTokens` (a settings knob, default 4096, floor 500 — read fresh per turn); failure checkpoints nothing, the next trigger re-runs. The same pipeline serves the **notes front door** (`POST /api/graph/import` and the `import_notes` MCP tool: any `*.md`/`*.txt` becomes a source; a "No class" re-import is processed again and adds to that source) and class study files (a changed or removed class file has its old facts removed first, then it is read again). The read channel: `GET /api/graph` derives the snapshot from the ledgers — a pure read (`deriveView` turns each chain into an implication node `⟹` with premise→implication→conclusion arrows, so two arguments for one conclusion stay two). The `/graph` page shows **topics in level columns**: the topic grouper (`src/backend/agent/subagents/topic-grouper.ts`, scheduled by `src/backend/server/topics.ts`) groups facts into topics saved in `topics.jsonl`, and `src/frontend/components/graph/layout.ts` places them in columns by prerequisite depth and draws only direct arrows. Nothing about the layout is stored. Scores, coverage and "Work on next" come from `GET /api/progress` (`src/shared/core/progress.ts`), derived from lesson answers. Clusters are **birth-session groupings**: a node joins the cluster of the session that birthed it (a chat, or an imported notes file as a file-kind session), derived at read. The chain table groups chains by them. The teacher reaches the graph on its own terms through the gated prober tools (`list_sessions` / `list_propositions`, the `agent.graphTools` setting) — there is no automatic context injection.
 
-**Study sessions.** Every new lesson is `kind: "study"`. The learner starts one from the lessons pane's + study button (the study page, `/new`, with its suggestions), Home's due next, a deadline page, the Graph page or the Overview; `start_lesson` over MCP does too. `createLesson` (`src/backend/server/lessons.ts`) writes the picked facts into a `graph-context` marker (`chainsForSelection`, `src/shared/core/chains.ts`), then a `study-context` marker with the session's topics in class order and each topic's mode (teach, problems or check, from `src/shared/core/study.ts`), and saves the matching plan tree. The study agent is the teacher plus `problem` / `conclude` (`src/backend/agent/tools/practice.ts`), with no prober; instructions in `src/backend/agent/prompts/study/`. Study sessions are extracted into the graph. Older `teach` and `practice` lessons keep working; practice sessions are never extracted.
+**Study sessions.** Every new lesson is `kind: "study"`. The learner starts one from "Study something new" on a class's Lessons tab (the study page, `/new`, with its suggestions), a Today row, a deadline page, the Graph tab or the Progress tab; `start_lesson` over MCP does too. `createLesson` (`src/backend/server/lessons.ts`) writes the picked facts into a `graph-context` marker (`chainsForSelection`, `src/shared/core/chains.ts`), then a `study-context` marker with the session's topics in class order and each topic's mode (teach, problems or check, from `src/shared/core/study.ts`), and saves the matching plan tree. The study agent is the teacher plus `problem` / `conclude` (`src/backend/agent/tools/practice.ts`), with no prober; instructions in `src/backend/agent/prompts/study/`. Study sessions are extracted into the graph. Older `teach` and `practice` lessons keep working; practice sessions are never extracted.
 
 ## Testing
 
@@ -260,7 +262,7 @@ Each test lives in the folder of the code it tests: `tests/frontend`, `tests/bac
 1. **Pure core units** — merger (via the real fs adapters, backup-and-restored), derivation, coverage, question grading, plan tree, phases, clusters, topics, graph levels, progress, work pages, agent briefing, tool-parts, prices.
 2. **Server flows** — `handleChatRequest` driven end-to-end with scripted engines: persistence, liveness, steer claiming, the wake pipeline (409 retry, quiz deferral, idempotency), crash recovery, the data-dir seam (including a fresh child process).
 3. **Sub-agent loops** — researcher/demo-builder/visual-maker with fake headless APIs; the extraction pipeline end-to-end (reteach credit, failure-checkpoints-nothing, single-flight, abort).
-4. **Render tests** — transcript, cards, docks, composer, sidebar, coverage, chain table via React server-side rendering.
+4. **Render tests** — transcript, cards, docks, the writing box, the top bar, coverage, chain table via React server-side rendering.
 5. **Golden fixtures** (`tests/fixtures/golden-data/`) — a REAL data dir (real records produced by the app, never hand-edited), copied to a temp dir and read through the production paths via the `LH_DATA_DIR` seam. Pins that real data parses, flattens to a legal LLM wire, derives the graph end-to-end, covers every custom-marker kind, and that reads never write. **The fixture law:** an intentional on-disk format change updates the fixtures in the same commit — see the fixture README.
 
 Run `npm run check` before calling a change done: typecheck, tests, lint and knip must all pass.

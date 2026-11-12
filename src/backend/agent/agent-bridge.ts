@@ -19,7 +19,7 @@
  * connected; only the work loop (wait_for_work, respond, read_work) counts
  * as teaching. The client info a request carries names it ("Claude Code").
  * Status changes go out as the "agent-changed" event so open windows
- * (onboarding, the sidebar, the activity panel) update live.
+ * (onboarding, the top bar, the teacher panel) update live.
  * Requests wait for an agent with no time limit, so work queued while no
  * agent is connected starts by itself once one connects.
  *

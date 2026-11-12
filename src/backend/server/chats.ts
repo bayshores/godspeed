@@ -138,7 +138,7 @@ export async function deleteChatSession(chatId: string, mode: ChatDeleteMode): P
 	return { ok: true, mode, stats, jobsRemoved, graphRevision: graphRevision(scope) };
 }
 
-/** One session's coverage read, for the sidebar menu's coverage block.
+/** One session's coverage read, for the lesson menu's coverage block.
  *  Uncovered stays derived per request (fingerprint the transcript, diff
  *  the coverage ledger), never tracked twice.
  *

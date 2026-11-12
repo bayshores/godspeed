@@ -16,7 +16,7 @@ import type { ArtifactPartProps } from "@/shared/core";
  * quiet settled card replaces this one.
  *
  * The one working-state look everywhere: Braille spinner + Shimmer (the
- * thinking row, this card, the sidebar row).
+ * thinking row, this card, the lesson row).
  */
 interface StreamingToolPart {
 	type: string;

@@ -37,7 +37,7 @@ function chatDir(id: string): string {
  *  DELIBERATELY SILENT: saveMessages fires per turn-persist and would
  *  spam the bus, and every list-visible change it causes (title, order,
  *  phase, busy, pendingQuestion) is already announced by turn-started /
- *  turn-settled, which the sidebar refetches on. Silence here is law,
+ *  turn-settled, which the lesson list refetches on. Silence here is law,
  *  not oversight. */
 function createChat(title: string, kind?: Exclude<ChatKind, "teach">, classId?: string, deadlineId?: string): ChatRecord {
 	const now = new Date().toISOString();
@@ -101,9 +101,9 @@ function chatVersion(id: string): string | null {
 	}
 }
 
-/** Lesson summaries kept in memory, so a sidebar refresh does not re-parse
+/** Lesson summaries kept in memory, so a lesson list refresh does not re-parse
  *  every lesson file. A summary is reused while its file's version is
- *  unchanged; writeChat/deleteChat also drop it. Summaries are SHARED —
+ *  unchanged; writeChat/deleteChat also drop it. Summaries are SHARED:
  *  callers must never mutate them (frozen under tests). */
 const summaryCache = new Map<string, { version: string; summary: ChatSummary | null }>();
 
@@ -141,7 +141,7 @@ function summarize(record: ChatRecord): ChatSummary | null {
 	if (record.kind === "talk") return null;
 	const { messages, tree: _tree, turns: _turns, extractions: _extractions, ...summary } = record;
 	// Per-record isolation: a record whose messages fail the projection
-	// must not blank the whole sidebar — same isolation getChat's per-file
+	// must not blank the whole lesson list, same isolation getChat's per-file
 	// catch gives.
 	try {
 		return {
@@ -203,7 +203,7 @@ function appendExtractionUsage(id: string, entry: ExtractionRunUsage): void {
 
 /** Rename a session (the header's click-to-edit title). Like saveTree, a
  * rename is NOT conversation activity: updatedAt stays put
- * so sidebar order never churns. Same fallback as createChat — the empty
+ * so lesson list order never churns. Same fallback as createChat: the empty
  * string becomes "Untitled session" (the API gate rejects it first; this
  * is the honest floor for any other caller). */
 function renameChat(id: string, title: string): ChatRecord {
@@ -256,7 +256,7 @@ function saveTree(id: string, tree: PlanTree): void {
 	if (!record) throw new Error(`Chat not found: ${id}`);
 	record.tree = tree;
 	// Deliberately does NOT bump updatedAt: tree mutations piggyback on the
-	// turn's saveMessages, and sidebar ordering shouldn't churn on tree edits.
+	// turn's saveMessages, and lesson list ordering shouldn't churn on tree edits.
 	writeChat(record);
 }
 

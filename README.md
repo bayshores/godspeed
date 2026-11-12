@@ -28,7 +28,7 @@ godspeed is a study app for students and self-learners. Claude Code, Codex or an
 <sub>The diagram is an Excalidraw file, [`docs/assets/how-godspeed-works.excalidraw`](docs/assets/how-godspeed-works.excalidraw). Open it at [excalidraw.com](https://excalidraw.com) to edit it.</sub>
 
 1. **Measure.** The teacher finds where your understanding ends on each part the lesson depends on, from your answers, your confidence and what you type in the thinking box.
-2. **Plan.** It maps the steps from there to your goal. The steps beside the lesson show where you are, and the plan changes when your answers say it should.
+2. **Plan.** It maps the steps from there to your goal. A line above the lesson shows which step you're on, and the plan changes when your answers say it should.
 3. **Teach.** Each step builds on something you already understand. You predict, read the explanation, then check yourself. Confusions get fixed before anything is built on them.
 4. **Practice.** Problems make you recall the right idea without being told which one it is.
 
@@ -38,16 +38,16 @@ Everything you learn is saved as facts and the reasoning chains between them, li
 
 - **Study.** One Study button starts a lesson for a topic, a homework method or a question you're stuck on. godspeed picks what to teach first and what to drill from how you've done so far. You can add pictures and PDFs to a message, and the teacher can ask you to write code in an editor.
 - **Classes.** Each class has its own lessons, files, knowledge graph, deadlines and cheat sheets. Add PDFs, Word and PowerPoint files, notes, code, transcripts and lecture recordings (transcribed on your computer with whisper.cpp), or link a folder that's rescanned every minute. Google Drive folders work too.
-- **Home and deadlines.** Add exams, homework, quizzes and projects with a date, an optional time and the files they cover. Home shows what's due next with a countdown, everything else coming up with how ready you are (or how many problems you've done), a grid of every fact in each class colored by how often you get it right, and what you and your agent did lately.
+- **Today and deadlines.** Add exams, homework, quizzes and projects with a date, an optional time and the files they cover. Today lists what to do next across every class, each with the days left, how ready you are (or how many problems you've done) and one button to start. Everything further out sits under Later.
 
 ![Home: the deadline due next with its countdown, the rest coming up with how ready you are, a fact grid for each class and the activity log](docs/assets/home.png)
 
-- **Knowledge graph.** Your agent groups facts into topics, and the Graph page lays them out in columns by level, from what you learn first to what builds on it. Each topic shows one square per fact, colored by how often you get it right. Pick a topic to see what it needs and what it leads to, or open a fact to see where it came from and practice it. The next deadline sits on top with the days left.
+- **Knowledge graph.** Your agent groups facts into topics, and each class's Graph tab lays them out in columns by level, from what you learn first to what builds on it. Each topic shows one square per fact, colored by how often you get it right. Pick a topic to see what it needs and what it leads to, or open a fact to see where it came from and practice it. The next deadline sits on top with the days left.
 
 ![The Graph: topics colored by how often you get them right, with arrows for what to learn first, and the next quiz's days left and what to work on next](docs/assets/graph.png)
 
-- **Homework.** Attach the assignment file to a homework or project and hit work on. The teacher lists its problems and opens them one at a time. The whole problem stays in view beside the lesson while you do the work in the message box, typed or as a photo, and the teacher checks it with hints but never gives you the answer. A problem counts as done once your own work is right.
-- **Overview.** How ready you are for each deadline, how each lesson went, and whether your confidence matches your results (five levels, from guessing to certain).
+- **Homework.** Attach the assignment file to a homework or project and hit Work on it. The teacher lists its problems and opens them one at a time. The whole problem stays in view beside the lesson while you do the work in the one writing box, typed or as a photo, and the teacher checks it with hints but never gives you the answer. A problem counts as done once your own work is right.
+- **Progress.** How ready you are for each deadline, how each lesson went, and whether your confidence matches your results (five levels, from guessing to certain).
 
 ![A class Overview: readiness for each deadline, how lessons went, and a confidence check](docs/assets/overview.png)
 
@@ -56,7 +56,7 @@ Everything you learn is saved as facts and the reasoning chains between them, li
 ![A cheat sheet for the Midterm with the chat that made it and the rules it keeps](docs/assets/cheat-sheet.png)
 
 - **Calculator.** In any box you write in, end a calculation with `=` and the answer shows in grey after it. Click it (or press Tab) to keep it. It does numbers, letters you set on a line above (`x = 3`), expanding and simplifying, `solve 2x + 3 = 11`, derivatives (`d/dx x^3 =`) and integrals (`int x^2 dx =`), all on your computer.
-- **Talk.** Ask your agent to set up classes, add deadlines or answer questions about your classes, with the **talk** button under the teacher in the sidebar.
+- **Talk.** Ask your agent to set up classes, add deadlines or answer questions about your classes, by clicking the teacher in the top bar.
 
 ## Get started
 

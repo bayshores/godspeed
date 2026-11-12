@@ -10,7 +10,7 @@ import { kbdEventForAction } from "@/shared/core";
 import type { useTitleRename } from "./use-title-rename";
 
 /** A button on the dark lesson bar: outlined in the bar's own ink. */
-const BAR_BUTTON = "lh-btn lh-no-drag shrink-0 border-bar-ink text-[15px] text-bar-ink hover:bg-bar-ink/15";
+const BAR_BUTTON = "lh-btn lh-btn-bar lh-no-drag";
 /** A plain word on the bar, as tall as the bar; lit when its panel is open. */
 const NAV_WORD = "lh-no-drag h-12 shrink-0 px-4 text-[15px] text-bar-ink hover:bg-bar-ink/10";
 

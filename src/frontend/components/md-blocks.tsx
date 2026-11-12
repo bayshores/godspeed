@@ -3,7 +3,7 @@
  * (framed tables, the mermaid container, code header bars) is replaced by
  * this component set, wired into Streamdown via its `components` prop:
  *
- * - Tables: a plain PROSE table (no box, no sidebar bg, no buttons bar) —
+ * - Tables: a plain PROSE table (no box, no card bg, no buttons bar):
  *   hairline row rules + a stronger header underline (globals.css), wide
  *   tables scroll inside the column.
  * - Mermaid: the bare chart, part of the message — no label, no container,

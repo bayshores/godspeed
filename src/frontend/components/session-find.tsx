@@ -57,9 +57,6 @@ export function sessionFindHasForegroundLayer(doc: Document): boolean {
 	});
 }
 
-/** A button on the dark lesson bar, outlined in the bar's own ink. */
-const FIND_BUTTON = "lh-btn lh-no-drag shrink-0 border-bar-ink text-[15px] text-bar-ink hover:bg-bar-ink/15 disabled:opacity-40";
-
 /** Lives in the lesson's bar: shows its children (the bar's own buttons)
  * until Find opens, then takes their place. Mounted for the lifetime of ONE
  * Chat (which is keyed by chatId). Closing keeps the query/reading position;
@@ -194,13 +191,13 @@ export function SessionFind({ scopeRef, scrollContextRef, children }: {
 			<output aria-live="polite" data-testid="session-find-count" className="font-count min-w-[6ch] shrink-0 text-[15px]">
 				{query ? `${result.index + 1} of ${result.count}` : ""}
 			</output>
-			<button type="button" className={FIND_BUTTON} disabled={!result.count} onMouseDown={(event) => event.preventDefault()} onClick={() => step(-1)}>
+			<button type="button" className="lh-btn lh-btn-bar lh-no-drag" disabled={!result.count} onMouseDown={(event) => event.preventDefault()} onClick={() => step(-1)}>
 				Previous match
 			</button>
-			<button type="button" className={FIND_BUTTON} disabled={!result.count} onMouseDown={(event) => event.preventDefault()} onClick={() => step(1)}>
+			<button type="button" className="lh-btn lh-btn-bar lh-no-drag" disabled={!result.count} onMouseDown={(event) => event.preventDefault()} onClick={() => step(1)}>
 				Next match
 			</button>
-			<button type="button" className={FIND_BUTTON} onClick={close}>
+			<button type="button" className="lh-btn lh-btn-bar lh-no-drag" onClick={close}>
 				<PixelIcon name="close" />
 				Close Find
 			</button>

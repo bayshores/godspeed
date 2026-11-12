@@ -18,9 +18,6 @@ import { TeacherHead } from "@/frontend/components/halley/teacher-head";
 import { OlderSheet, emptyChatLine, sheetPaper, teacherDoing, versionLabel } from "./studio-states";
 import { remakeSheet, sheetPdfPath, showSheetPdf, useCheatSheet, useSheetFocus } from "./use-cheat-sheet";
 
-/** A button on the dark studio bar: outlined in the bar's own ink. */
-const BAR_BTN = "lh-btn shrink-0 border-bar-ink text-[15px] text-bar-ink hover:bg-bar-ink/15";
-
 /**
  * THE CHEAT SHEET STUDIO: a page of its own under a dark bar (back to the
  * deadline, the sheet's paper, Show in Finder, Print). The canvas on the
@@ -54,7 +51,7 @@ export function CheatSheetStudio({ classId, deadlineId, deadlineName }: { classI
 function StudioBar({ deadlineId, deadlineName, status, children }: { deadlineId: string; deadlineName: string; status?: string; children?: ReactNode }) {
 	return (
 		<div data-testid="studio-bar" className="lh-own-bar lh-drag lh-lights-gutter lh-wco-gutter flex h-12 shrink-0 select-none items-center gap-4 bg-bar px-6 text-bar-ink">
-			<Link href={`/class/deadline/${encodeURIComponent(deadlineId)}`} prefetch={false} data-testid="page-back" className={`${BAR_BTN} max-w-[28ch] px-3`}>
+			<Link href={`/class/deadline/${encodeURIComponent(deadlineId)}`} prefetch={false} data-testid="page-back" className="lh-btn lh-btn-bar max-w-[28ch] px-3">
 				<PixelIcon name="chevron" className="-scale-x-100" />
 				<span className="truncate">{deadlineName}</span>
 			</Link>
@@ -115,7 +112,7 @@ function Studio({
 							Download PDF
 						</a>
 					))}
-				<button type="button" data-testid="cheat-sheet-print" disabled={!current || printing} onClick={print} className={BAR_BTN}>
+				<button type="button" data-testid="cheat-sheet-print" disabled={!current || printing} onClick={print} className="lh-btn lh-btn-bar">
 					Print
 				</button>
 			</StudioBar>

@@ -5,7 +5,7 @@ import { messageAnchorId, messageIdFromHash } from "@/shared/core";
 export type SessionScrollContext = Pick<StickToBottomContext, "scrollRef" | "stopScroll">;
 
 /** Scroll only the session's own containers (including tall question/code
- * areas), never sidebar/chrome. Inner containers move first, then the main
+ * areas), never the rest of the page. Inner containers move first, then the main
  * transcript. stopScroll releases the sticky-bottom animation BEFORE jumping. */
 export function scrollSessionTarget(target: Range | HTMLElement, scope: HTMLElement, context: SessionScrollContext | null): void {
 	const node = "startContainer" in target ? target.startContainer : target;

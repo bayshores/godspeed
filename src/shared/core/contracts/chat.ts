@@ -244,10 +244,10 @@ export interface ChatSummary {
 	pendingProblem: boolean;
 }
 
-/** The sidebar's session row: a summary + live liveness. The chats list
- *  route attaches `busy` from the turn-liveness registry ONLY — a running
- *  teach turn (background jobs show in the sidebar's Background agents
- *  section, so the row spinner means exactly "a turn is in flight"). The store itself
+/** The lesson list's row: a summary + live liveness. The chats list
+ *  route attaches `busy` from the turn-liveness registry ONLY: a running
+ *  teach turn (background jobs show on the transcript's dispatch cards,
+ *  so the row's busy mark means exactly "a turn is in flight"). The store itself
  *  can't see liveness (import law: store never imports server), hence the
  *  split at exactly the record/liveness seam. */
 export interface ChatListItem extends ChatSummary {

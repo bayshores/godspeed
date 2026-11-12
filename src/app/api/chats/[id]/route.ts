@@ -8,7 +8,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 	// The record's messages are native agent history, served verbatim; the
 	// client derives its view (core/view.ts projectView). turnInFlight lets a
 	// returning client re-attach to a running turn (src/backend/server/turn-liveness.ts).
-	// coverage feeds the sidebar menu's coverage block.
+	// coverage feeds the lesson menu's coverage block.
 	return Response.json({
 		...chat,
 		messages: chat.messages,
@@ -22,9 +22,9 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 
 /**
  * Rename: the header's click-to-edit title commits here.
- * Validation is a single rule — a non-empty string after trim (the store's
+ * Validation is a single rule: a non-empty string after trim (the store's
  * "Untitled session" floor is never reached from this route). updatedAt is
- * deliberately NOT bumped: a rename must not reorder the sidebar (same
+ * deliberately NOT bumped: a rename must not reorder the lesson list (same
  * rule as the settings PUT).
  */
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {

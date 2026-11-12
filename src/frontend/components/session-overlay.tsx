@@ -10,8 +10,7 @@ import { useDialogFocus } from "@/frontend/components/use-dialog-focus";
 /**
  * SESSION-SCOPED OVERLAYS: the "fullscreen" expansions (the plan focus,
  * this mermaid focus) do NOT cover the app chrome. They mount ABSOLUTE
- * INSIDE THE SESSION AREA (the `relative` div below the top bar, right of
- * the sidebar), so the 60px drag bar stays draggable and the X can never
+ * INSIDE THE SESSION AREA (the `relative` div below the top bar), so the 60px drag bar stays draggable and the X can never
  * land in drag territory. Surface: 80% background + blur, so the
  * transcript ghosts through.
  *
@@ -26,7 +25,7 @@ import { useDialogFocus } from "@/frontend/components/use-dialog-focus";
  *  the chart source; the figure card's fullscreen button calls openFigure
  *  with the raw svg (+ its invert state). The chat page (which provides
  *  this context) opens the overlay. Null when no chat page is mounted
- *  (sidebar previews etc.) — the buttons simply don't render there. */
+ *  (outside a chat page), the buttons simply don't render there. */
 export const SessionMermaidContext = createContext<{
 	openMermaid: (chart: string) => void;
 	openFigure: (svg: string, inverted: boolean) => void;
@@ -129,8 +128,8 @@ export function MermaidOverlay({
 			tabIndex={-1}
 			data-testid="mermaid-overlay"
 			// SESSION-SCOPED (not fixed): mounts absolute inside the chat
-			// page's session-area div — below the drag bar, right of the
-			// sidebar. 80% + blur: the transcript ghosts through.
+			// page's session-area div, below the drag bar.
+			// 80% + blur: the transcript ghosts through.
 			className="absolute inset-0 z-40 flex flex-col bg-background/80 p-4 backdrop-blur-sm lh-fade"
 			role="dialog"
 			aria-modal="true"

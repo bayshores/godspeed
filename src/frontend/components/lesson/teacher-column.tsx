@@ -65,7 +65,7 @@ export function TeacherColumn({
 		>
 			{/* Side by side only: stacked, the column is full width. */}
 			<div className="lh-teacher-resize">
-				<ResizeHandle paneKey="your-turn" edge="left" width={width} bounds={COLUMN_WIDTH} onWidth={onWidth} label="Resize the teacher column" />
+				<ResizeHandle paneKey="your-turn" width={width} bounds={COLUMN_WIDTH} onWidth={onWidth} label="Resize the teacher column" />
 			</div>
 			<Pane className="flex min-h-0 flex-1 flex-col overflow-hidden">
 				<TeacherHead name={name} color={color} doing={doing} mood={halley?.mood}>

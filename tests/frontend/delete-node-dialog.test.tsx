@@ -74,12 +74,12 @@ describe("DeleteNodeBody — the minimal screen", () => {
 	});
 
 	it("failure: the server's sentence with a Try-again", () => {
-		const line = "Godspeed is still adding to your graph. Try again when Background jobs in Halley's panel is empty.";
+		const line = "Godspeed is still adding to your graph. Try again when nothing is left under Running in the background in the teacher's Activity.";
 		const conflict = bodyAt([{ id: "kepler", name: "Kepler's three laws" }], {
 			failure: line,
 		});
 		assert.match(conflict, /data-testid="node-delete-failure"/);
-		assert.ok(conflict.includes("Godspeed is still adding to your graph. Try again when Background jobs in Halley&#x27;s panel is empty."));
+		assert.ok(conflict.includes("Godspeed is still adding to your graph. Try again when nothing is left under Running in the background in the teacher&#x27;s Activity."));
 		assert.ok(!conflict.includes("activity dock"));
 		assert.match(conflict, /data-testid="node-delete-retry"/);
 

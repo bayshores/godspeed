@@ -310,7 +310,7 @@ export interface GraphSnapshot {
 }
 
 /** The auto-title's character cap: long enough to stay informative in
- *  the sidebar and the top bar, short enough that a first message never
+ *  the lesson list and the top bar, short enough that a first message never
  *  reads as a paragraph. */
 export const TITLE_MAX_CHARS = 72;
 

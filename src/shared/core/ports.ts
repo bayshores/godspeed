@@ -49,7 +49,7 @@ export interface ChatStore {
 	/** The record file's version, read without parsing it: it changes on
 	 *  every write. null when there is no record. */
 	chatVersion(id: string): string | null;
-	/** All sessions, newest activity first (the sidebar's list view). */
+	/** All sessions, newest activity first (the lesson list). */
 	listChats(): ChatSummary[];
 	/** Persist the full native message list (the record IS the agent
 	 * state). */
@@ -63,8 +63,8 @@ export interface ChatStore {
 	/** Append one extraction-run usage entry — idempotent per startedAt. */
 	appendExtractionUsage(id: string, entry: ExtractionRunUsage): void;
 	/** Rename a session (the header's click-to-edit title).
-	 * A rename is NOT conversation activity — updatedAt stays put, so
-	 * sidebar order never churns on a rename. */
+	 * A rename is NOT conversation activity: updatedAt stays put, so
+	 * lesson list order never churns on a rename. */
 	renameChat(id: string, title: string): ChatRecord;
 	/** Delete the session record entirely. False when the id is unknown. The graph-ledger purge and
 	 *  job cleanup are the caller's choreography (core/graph-deletion.ts +
