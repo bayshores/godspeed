@@ -340,7 +340,7 @@
 	{
 		"name": "read_space",
 		"title": "Read a space",
-		"description": "Read one space: its description, how many files are in each status (pending, extracting, ready, failed, needs-whisper) and the files that could not be read, the topics of its knowledge graph with their fact counts, its deadlines (kind, date, time, done, and the files each covers), its lessons, and today's local date and time. With files: true it lists every file instead (id, kind, status, size, path on disk). To find something inside the files, use search_space_files.",
+		"description": "Read one space: its description, how many files are in each status (pending, extracting, ready, failed, needs-whisper) and the files that could not be read, the topics of its knowledge graph with their fact counts, its deadlines (kind, date, time, done, and the files each covers), its lessons, and today's local date and time. A prep (a space made to get ready for one interview, assessment or test) also has its prep sheet: what the learner is preparing for, its day, what it is like, the topics with their ids and how each is going, what a mock is and the mocks taken. With files: true it lists every file instead (id, kind, status, size, path on disk). To find something inside the files, use search_space_files.",
 		"inputSchema": {
 			"type": "object",
 			"$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -873,9 +873,89 @@
 		}
 	},
 	{
+		"name": "update_prep",
+		"title": "Change a prep sheet",
+		"description": "Change a prep's sheet when the learner asks (read_space shows it): move or clear its day, replace what it is like, change what a mock is, add topics, or remove topics by id. Only what you send changes. Refused while the sheet is being written.",
+		"inputSchema": {
+			"type": "object",
+			"$schema": "https://json-schema.org/draft/2020-12/schema",
+			"properties": {
+				"space_id": {
+					"type": "string"
+				},
+				"date": {
+					"description": "The day it happens as YYYY-MM-DD, or null for no day.",
+					"type": [
+						"string",
+						"null"
+					]
+				},
+				"about": {
+					"description": "What it is like, in markdown. Replaces the whole text.",
+					"type": "string",
+					"minLength": 1
+				},
+				"mock": {
+					"description": "What one mock is: how many questions in how many minutes.",
+					"type": "object",
+					"properties": {
+						"questions": {
+							"type": "integer",
+							"minimum": -9007199254740991,
+							"maximum": 9007199254740991
+						},
+						"minutes": {
+							"type": "integer",
+							"minimum": -9007199254740991,
+							"maximum": 9007199254740991
+						}
+					},
+					"required": [
+						"questions",
+						"minutes"
+					]
+				},
+				"add_topics": {
+					"description": "Topics to add at the end of the sheet, each with one line on why it is there.",
+					"type": "array",
+					"items": {
+						"type": "object",
+						"properties": {
+							"name": {
+								"type": "string",
+								"minLength": 1
+							},
+							"why": {
+								"type": "string"
+							}
+						},
+						"required": [
+							"name"
+						]
+					}
+				},
+				"remove_topic_ids": {
+					"description": "Ids of the sheet's topics to remove.",
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				}
+			},
+			"required": [
+				"space_id"
+			]
+		},
+		"annotations": {
+			"destructiveHint": false,
+			"idempotentHint": true,
+			"openWorldHint": false
+		}
+	},
+	{
 		"name": "start_lesson",
 		"title": "Start a lesson",
-		"description": "Start a new study session in godspeed taught by you: you teach what is new and give problems on what needs practice. The topic becomes the learner's first message. With space_id the lesson belongs to that space: it opens with the space's card and its facts go into that space's graph. You teach it through wait_for_work; the learner follows along in the godspeed window.",
+		"description": "Start a new study session in godspeed taught by you: you teach what is new and give problems on what needs practice. The topic becomes the learner's first message. With space_id the lesson belongs to that space: it opens with the space's card and its facts go into that space's graph. In a prep, a topic named exactly like one on its sheet counts for that topic. You teach it through wait_for_work; the learner follows along in the godspeed window.",
 		"inputSchema": {
 			"type": "object",
 			"$schema": "https://json-schema.org/draft/2020-12/schema",

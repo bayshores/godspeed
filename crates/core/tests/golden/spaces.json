@@ -21622,7 +21622,7 @@
 		"output": {
 			"tools": {
 				"list_spaces": "List the learner's spaces, archived ones included, with file and lesson counts.",
-				"read_space": "Read one space: its description, how many files are in each status (pending, extracting, ready, failed, needs-whisper) and the files that could not be read, the topics of its knowledge graph with their fact counts, its deadlines (kind, date, time, done, and the files each covers), its lessons, and today's local date and time. With files: true it lists every file instead (id, kind, status, size, path on disk). To find something inside the files, use search_space_files.",
+				"read_space": "Read one space: its description, how many files are in each status (pending, extracting, ready, failed, needs-whisper) and the files that could not be read, the topics of its knowledge graph with their fact counts, its deadlines (kind, date, time, done, and the files each covers), its lessons, and today's local date and time. A prep (a space made to get ready for one interview, assessment or test) also has its prep sheet: what the learner is preparing for, its day, what it is like, the topics with their ids and how each is going, what a mock is and the mocks taken. With files: true it lists every file instead (id, kind, status, size, path on disk). To find something inside the files, use search_space_files.",
 				"search_space_files": "Search all of a space's files (readings, slides, transcripts, syllabus, assignments) by meaning and keywords. Returns the best passages, each with its id, file, place (page, slide, time or lines) and a short snippet. Open the ones you need with read_passage instead of reading whole files.",
 				"read_passage": "Read one passage of a space file by its id from search_space_files, or a file's passages at a place (file_id + range, e.g. a whole page). Returns the text with the ids of the passages before and after it, to keep reading.",
 				"create_space": "Create a space for one thing the learner is studying (a university course, a certification, a language). The description is shown to the teacher in every lesson of the space: level, the book or source they follow, its notation, what they are working toward (a course's exams, an interview). Add the space's deadlines with add_space_deadline.",
@@ -21633,7 +21633,8 @@
 				"update_space_deadline": "Change a deadline's kind, name, date, time, covered files, left-out files, source or assignment file, or tick it done (done: true) or not done (done: false). file_ids and left_out_ids each replace the whole list (a file is never in both); time: null, source: null and assignment_file_id: null remove them. Work out coverage from the space's own files as add_space_deadline says; ask the learner when the files don't settle it.",
 				"remove_space_deadline": "Remove one deadline from a space (its files and facts are not touched).",
 				"link_space_folder": "Link a folder on this computer to a space. Its supported files are added, and from then on new files dropped there are added automatically and edited files are rebuilt (checked every minute while godspeed is open). godspeed sorts them into study material and space info itself while reading them, and never changes the folder. Use set_space_file_kind only to correct a kind.",
-				"start_lesson": "Start a new study session in godspeed taught by you: you teach what is new and give problems on what needs practice. The topic becomes the learner's first message. With space_id the lesson belongs to that space: it opens with the space's card and its facts go into that space's graph. You teach it through wait_for_work; the learner follows along in the godspeed window."
+				"update_prep": "Change a prep's sheet when the learner asks (read_space shows it): move or clear its day, replace what it is like, change what a mock is, add topics, or remove topics by id. Only what you send changes. Refused while the sheet is being written.",
+				"start_lesson": "Start a new study session in godspeed taught by you: you teach what is new and give problems on what needs practice. The topic becomes the learner's first message. With space_id the lesson belongs to that space: it opens with the space's card and its facts go into that space's graph. In a prep, a topic named exactly like one on its sheet counts for that topic. You teach it through wait_for_work; the learner follows along in the godspeed window."
 			},
 			"args": {
 				"files": "List every file with its id (needed for file_ids). Default false.",
@@ -21659,6 +21660,11 @@
 				"source": "Where you found what it covers, e.g. the practice exam's file name. The learner sees it.",
 				"assignmentFile": "For homework and projects: the id of the space file with its problems (the assignment sheet). The learner works on its problems in godspeed.",
 				"newTime": "24-hour \"HH:MM\", or null to remove the time.",
+				"prepDate": "The day it happens as YYYY-MM-DD, or null for no day.",
+				"prepAbout": "What it is like, in markdown. Replaces the whole text.",
+				"prepMock": "What one mock is: how many questions in how many minutes.",
+				"addTopics": "Topics to add at the end of the sheet, each with one line on why it is there.",
+				"removeTopics": "Ids of the sheet's topics to remove.",
 				"topic": "What the learner wants to study, in their words.",
 				"lessonSpace": "The space id from list_spaces, or \"none\" for lessons without a space (the default)."
 			},
@@ -28935,560 +28941,7 @@
 	},
 	{
 		"name": "agent folder text",
-		"output": [
-			{
-				"folder": "/Users/a/godspeed",
-				"usable": true,
-				"short": [
-					"~/godspeed",
-					"~",
-					"/Users/ab/x"
-				],
-				"platforms": {
-					"darwin": {
-						"mcp": "{\n\t\"mcpServers\": {\n\t\t\"godspeed\": {\n\t\t\t\"command\": \"node\",\n\t\t\t\"args\": [\n\t\t\t\t\"/Users/a/godspeed/.godspeed/connect.mjs\"\n\t\t\t]\n\t\t}\n\t}\n}\n",
-						"settings": "{\n\t\"enabledMcpjsonServers\": [\n\t\t\"godspeed\"\n\t],\n\t\"permissions\": {\n\t\t\"allow\": [\n\t\t\t\"mcp__godspeed__*\",\n\t\t\t\"Bash(node .godspeed/wait-for-work.mjs)\",\n\t\t\t\"Bash(node .godspeed/wait-for-work.mjs *)\"\n\t\t]\n\t},\n\t\"hooks\": {\n\t\t\"SessionStart\": [\n\t\t\t{\n\t\t\t\t\"matcher\": \"compact\",\n\t\t\t\t\"hooks\": [\n\t\t\t\t\t{\n\t\t\t\t\t\t\"type\": \"command\",\n\t\t\t\t\t\t\"command\": \"node\",\n\t\t\t\t\t\t\"args\": [\n\t\t\t\t\t\t\t\"/Users/a/godspeed/.godspeed/forget.mjs\"\n\t\t\t\t\t\t],\n\t\t\t\t\t\t\"timeout\": 10\n\t\t\t\t\t}\n\t\t\t\t]\n\t\t\t}\n\t\t],\n\t\t\"SessionEnd\": [\n\t\t\t{\n\t\t\t\t\"matcher\": \"clear\",\n\t\t\t\t\"hooks\": [\n\t\t\t\t\t{\n\t\t\t\t\t\t\"type\": \"command\",\n\t\t\t\t\t\t\"command\": \"node\",\n\t\t\t\t\t\t\"args\": [\n\t\t\t\t\t\t\t\"/Users/a/godspeed/.godspeed/forget.mjs\"\n\t\t\t\t\t\t],\n\t\t\t\t\t\t\"timeout\": 10\n\t\t\t\t\t}\n\t\t\t\t]\n\t\t\t}\n\t\t]\n\t}\n}\n",
-						"agents": {
-							"claude": {
-								"path": "/Users/a/godspeed/.godspeed/start-claude.command",
-								"copy": "cd ~/godspeed && claude --settings .godspeed/claude-settings.json \"Start teaching\"",
-								"script": "#!/bin/sh\ncd /Users/a/godspeed || exit 1\ncommand -v claude >/dev/null 2>&1 || { echo \"Claude Code isn't installed. Get it at https://claude.com/claude-code, then click Open Claude Code in godspeed again.\"; exit 1; }\ncommand -v node >/dev/null 2>&1 || { echo \"godspeed needs Node.js. Install it from https://nodejs.org, then click Open Claude Code in godspeed again.\"; exit 1; }\nexec claude --settings .godspeed/claude-settings.json \"Start teaching\"\n"
-							},
-							"codex": {
-								"path": "/Users/a/godspeed/.godspeed/start-codex.command",
-								"copy": "cd ~/godspeed && codex -c \"mcp_servers.godspeed.command='node'\" -c \"mcp_servers.godspeed.args=['/Users/a/godspeed/.godspeed/connect.mjs']\" -c mcp_servers.godspeed.tool_timeout_sec=620 -c \"mcp_servers.godspeed.default_tools_approval_mode='approve'\" \"Start teaching\"",
-								"script": "#!/bin/sh\ncd /Users/a/godspeed || exit 1\ncommand -v codex >/dev/null 2>&1 || { echo \"Codex isn't installed. Get it at https://developers.openai.com/codex, then click Open Codex in godspeed again.\"; exit 1; }\ncommand -v node >/dev/null 2>&1 || { echo \"godspeed needs Node.js. Install it from https://nodejs.org, then click Open Codex in godspeed again.\"; exit 1; }\nexec codex -c \"mcp_servers.godspeed.command='node'\" -c \"mcp_servers.godspeed.args=['/Users/a/godspeed/.godspeed/connect.mjs']\" -c mcp_servers.godspeed.tool_timeout_sec=620 -c \"mcp_servers.godspeed.default_tools_approval_mode='approve'\" \"Start teaching\"\n"
-							}
-						}
-					},
-					"win32": {
-						"mcp": "{\n\t\"mcpServers\": {\n\t\t\"godspeed\": {\n\t\t\t\"command\": \"node\",\n\t\t\t\"args\": [\n\t\t\t\t\"/Users/a/godspeed\\\\.godspeed\\\\connect.mjs\"\n\t\t\t]\n\t\t}\n\t}\n}\n",
-						"settings": "{\n\t\"enabledMcpjsonServers\": [\n\t\t\"godspeed\"\n\t],\n\t\"permissions\": {\n\t\t\"allow\": [\n\t\t\t\"mcp__godspeed__*\",\n\t\t\t\"Bash(node .godspeed/wait-for-work.mjs)\",\n\t\t\t\"Bash(node .godspeed/wait-for-work.mjs *)\"\n\t\t]\n\t},\n\t\"hooks\": {\n\t\t\"SessionStart\": [\n\t\t\t{\n\t\t\t\t\"matcher\": \"compact\",\n\t\t\t\t\"hooks\": [\n\t\t\t\t\t{\n\t\t\t\t\t\t\"type\": \"command\",\n\t\t\t\t\t\t\"command\": \"node\",\n\t\t\t\t\t\t\"args\": [\n\t\t\t\t\t\t\t\"/Users/a/godspeed\\\\.godspeed\\\\forget.mjs\"\n\t\t\t\t\t\t],\n\t\t\t\t\t\t\"timeout\": 10\n\t\t\t\t\t}\n\t\t\t\t]\n\t\t\t}\n\t\t],\n\t\t\"SessionEnd\": [\n\t\t\t{\n\t\t\t\t\"matcher\": \"clear\",\n\t\t\t\t\"hooks\": [\n\t\t\t\t\t{\n\t\t\t\t\t\t\"type\": \"command\",\n\t\t\t\t\t\t\"command\": \"node\",\n\t\t\t\t\t\t\"args\": [\n\t\t\t\t\t\t\t\"/Users/a/godspeed\\\\.godspeed\\\\forget.mjs\"\n\t\t\t\t\t\t],\n\t\t\t\t\t\t\"timeout\": 10\n\t\t\t\t\t}\n\t\t\t\t]\n\t\t\t}\n\t\t]\n\t}\n}\n",
-						"agents": {
-							"claude": {
-								"path": "/Users/a/godspeed\\.godspeed\\start-claude.cmd",
-								"copy": "cd /d \"/Users/a/godspeed\" && claude --settings .godspeed/claude-settings.json \"Start teaching\"",
-								"script": "@echo off\r\ncd /d \"/Users/a/godspeed\"\r\nwhere claude >nul 2>nul || (echo Claude Code isn't installed. Get it at https://claude.com/claude-code, then click Open Claude Code in godspeed again. & exit /b 1)\r\nwhere node >nul 2>nul || (echo godspeed needs Node.js. Install it from https://nodejs.org, then click Open Claude Code in godspeed again. & exit /b 1)\r\nclaude --settings .godspeed/claude-settings.json \"Start teaching\"\r\n"
-							},
-							"codex": {
-								"path": "/Users/a/godspeed\\.godspeed\\start-codex.cmd",
-								"copy": "\"/Users/a/godspeed\\.godspeed\\start-codex.cmd\"",
-								"script": "@echo off\r\ncd /d \"/Users/a/godspeed\"\r\nwhere codex >nul 2>nul || (echo Codex isn't installed. Get it at https://developers.openai.com/codex, then click Open Codex in godspeed again. & exit /b 1)\r\nwhere node >nul 2>nul || (echo godspeed needs Node.js. Install it from https://nodejs.org, then click Open Codex in godspeed again. & exit /b 1)\r\ncodex -c \"mcp_servers.godspeed.command='node'\" -c \"mcp_servers.godspeed.args=['/Users/a/godspeed\\.godspeed\\connect.mjs']\" -c mcp_servers.godspeed.tool_timeout_sec=620 -c \"mcp_servers.godspeed.default_tools_approval_mode='approve'\" \"Start teaching\"\r\n"
-							}
-						}
-					},
-					"linux": {
-						"mcp": "{\n\t\"mcpServers\": {\n\t\t\"godspeed\": {\n\t\t\t\"command\": \"node\",\n\t\t\t\"args\": [\n\t\t\t\t\"/Users/a/godspeed/.godspeed/connect.mjs\"\n\t\t\t]\n\t\t}\n\t}\n}\n",
-						"settings": "{\n\t\"enabledMcpjsonServers\": [\n\t\t\"godspeed\"\n\t],\n\t\"permissions\": {\n\t\t\"allow\": [\n\t\t\t\"mcp__godspeed__*\",\n\t\t\t\"Bash(node .godspeed/wait-for-work.mjs)\",\n\t\t\t\"Bash(node .godspeed/wait-for-work.mjs *)\"\n\t\t]\n\t},\n\t\"hooks\": {\n\t\t\"SessionStart\": [\n\t\t\t{\n\t\t\t\t\"matcher\": \"compact\",\n\t\t\t\t\"hooks\": [\n\t\t\t\t\t{\n\t\t\t\t\t\t\"type\": \"command\",\n\t\t\t\t\t\t\"command\": \"node\",\n\t\t\t\t\t\t\"args\": [\n\t\t\t\t\t\t\t\"/Users/a/godspeed/.godspeed/forget.mjs\"\n\t\t\t\t\t\t],\n\t\t\t\t\t\t\"timeout\": 10\n\t\t\t\t\t}\n\t\t\t\t]\n\t\t\t}\n\t\t],\n\t\t\"SessionEnd\": [\n\t\t\t{\n\t\t\t\t\"matcher\": \"clear\",\n\t\t\t\t\"hooks\": [\n\t\t\t\t\t{\n\t\t\t\t\t\t\"type\": \"command\",\n\t\t\t\t\t\t\"command\": \"node\",\n\t\t\t\t\t\t\"args\": [\n\t\t\t\t\t\t\t\"/Users/a/godspeed/.godspeed/forget.mjs\"\n\t\t\t\t\t\t],\n\t\t\t\t\t\t\"timeout\": 10\n\t\t\t\t\t}\n\t\t\t\t]\n\t\t\t}\n\t\t]\n\t}\n}\n",
-						"agents": {
-							"claude": {
-								"path": "/Users/a/godspeed/.godspeed/start-claude.sh",
-								"copy": "cd ~/godspeed && claude --settings .godspeed/claude-settings.json \"Start teaching\"",
-								"script": "#!/bin/sh\ncd /Users/a/godspeed || exit 1\ncommand -v claude >/dev/null 2>&1 || { echo \"Claude Code isn't installed. Get it at https://claude.com/claude-code, then click Open Claude Code in godspeed again.\"; exit 1; }\ncommand -v node >/dev/null 2>&1 || { echo \"godspeed needs Node.js. Install it from https://nodejs.org, then click Open Claude Code in godspeed again.\"; exit 1; }\nexec claude --settings .godspeed/claude-settings.json \"Start teaching\"\n"
-							},
-							"codex": {
-								"path": "/Users/a/godspeed/.godspeed/start-codex.sh",
-								"copy": "cd ~/godspeed && codex -c \"mcp_servers.godspeed.command='node'\" -c \"mcp_servers.godspeed.args=['/Users/a/godspeed/.godspeed/connect.mjs']\" -c mcp_servers.godspeed.tool_timeout_sec=620 -c \"mcp_servers.godspeed.default_tools_approval_mode='approve'\" \"Start teaching\"",
-								"script": "#!/bin/sh\ncd /Users/a/godspeed || exit 1\ncommand -v codex >/dev/null 2>&1 || { echo \"Codex isn't installed. Get it at https://developers.openai.com/codex, then click Open Codex in godspeed again.\"; exit 1; }\ncommand -v node >/dev/null 2>&1 || { echo \"godspeed needs Node.js. Install it from https://nodejs.org, then click Open Codex in godspeed again.\"; exit 1; }\nexec codex -c \"mcp_servers.godspeed.command='node'\" -c \"mcp_servers.godspeed.args=['/Users/a/godspeed/.godspeed/connect.mjs']\" -c mcp_servers.godspeed.tool_timeout_sec=620 -c \"mcp_servers.godspeed.default_tools_approval_mode='approve'\" \"Start teaching\"\n"
-							}
-						}
-					}
-				}
-			},
-			{
-				"folder": "/Users/a/godspeed/",
-				"usable": true,
-				"short": [
-					"~/godspeed/",
-					"~",
-					"/Users/ab/x"
-				],
-				"platforms": {
-					"darwin": {
-						"mcp": "{\n\t\"mcpServers\": {\n\t\t\"godspeed\": {\n\t\t\t\"command\": \"node\",\n\t\t\t\"args\": [\n\t\t\t\t\"/Users/a/godspeed/.godspeed/connect.mjs\"\n\t\t\t]\n\t\t}\n\t}\n}\n",
-						"settings": "{\n\t\"enabledMcpjsonServers\": [\n\t\t\"godspeed\"\n\t],\n\t\"permissions\": {\n\t\t\"allow\": [\n\t\t\t\"mcp__godspeed__*\",\n\t\t\t\"Bash(node .godspeed/wait-for-work.mjs)\",\n\t\t\t\"Bash(node .godspeed/wait-for-work.mjs *)\"\n\t\t]\n\t},\n\t\"hooks\": {\n\t\t\"SessionStart\": [\n\t\t\t{\n\t\t\t\t\"matcher\": \"compact\",\n\t\t\t\t\"hooks\": [\n\t\t\t\t\t{\n\t\t\t\t\t\t\"type\": \"command\",\n\t\t\t\t\t\t\"command\": \"node\",\n\t\t\t\t\t\t\"args\": [\n\t\t\t\t\t\t\t\"/Users/a/godspeed/.godspeed/forget.mjs\"\n\t\t\t\t\t\t],\n\t\t\t\t\t\t\"timeout\": 10\n\t\t\t\t\t}\n\t\t\t\t]\n\t\t\t}\n\t\t],\n\t\t\"SessionEnd\": [\n\t\t\t{\n\t\t\t\t\"matcher\": \"clear\",\n\t\t\t\t\"hooks\": [\n\t\t\t\t\t{\n\t\t\t\t\t\t\"type\": \"command\",\n\t\t\t\t\t\t\"command\": \"node\",\n\t\t\t\t\t\t\"args\": [\n\t\t\t\t\t\t\t\"/Users/a/godspeed/.godspeed/forget.mjs\"\n\t\t\t\t\t\t],\n\t\t\t\t\t\t\"timeout\": 10\n\t\t\t\t\t}\n\t\t\t\t]\n\t\t\t}\n\t\t]\n\t}\n}\n",
-						"agents": {
-							"claude": {
-								"path": "/Users/a/godspeed/.godspeed/start-claude.command",
-								"copy": "cd ~/godspeed/ && claude --settings .godspeed/claude-settings.json \"Start teaching\"",
-								"script": "#!/bin/sh\ncd /Users/a/godspeed/ || exit 1\ncommand -v claude >/dev/null 2>&1 || { echo \"Claude Code isn't installed. Get it at https://claude.com/claude-code, then click Open Claude Code in godspeed again.\"; exit 1; }\ncommand -v node >/dev/null 2>&1 || { echo \"godspeed needs Node.js. Install it from https://nodejs.org, then click Open Claude Code in godspeed again.\"; exit 1; }\nexec claude --settings .godspeed/claude-settings.json \"Start teaching\"\n"
-							},
-							"codex": {
-								"path": "/Users/a/godspeed/.godspeed/start-codex.command",
-								"copy": "cd ~/godspeed/ && codex -c \"mcp_servers.godspeed.command='node'\" -c \"mcp_servers.godspeed.args=['/Users/a/godspeed/.godspeed/connect.mjs']\" -c mcp_servers.godspeed.tool_timeout_sec=620 -c \"mcp_servers.godspeed.default_tools_approval_mode='approve'\" \"Start teaching\"",
-								"script": "#!/bin/sh\ncd /Users/a/godspeed/ || exit 1\ncommand -v codex >/dev/null 2>&1 || { echo \"Codex isn't installed. Get it at https://developers.openai.com/codex, then click Open Codex in godspeed again.\"; exit 1; }\ncommand -v node >/dev/null 2>&1 || { echo \"godspeed needs Node.js. Install it from https://nodejs.org, then click Open Codex in godspeed again.\"; exit 1; }\nexec codex -c \"mcp_servers.godspeed.command='node'\" -c \"mcp_servers.godspeed.args=['/Users/a/godspeed/.godspeed/connect.mjs']\" -c mcp_servers.godspeed.tool_timeout_sec=620 -c \"mcp_servers.godspeed.default_tools_approval_mode='approve'\" \"Start teaching\"\n"
-							}
-						}
-					},
-					"win32": {
-						"mcp": "{\n\t\"mcpServers\": {\n\t\t\"godspeed\": {\n\t\t\t\"command\": \"node\",\n\t\t\t\"args\": [\n\t\t\t\t\"/Users/a/godspeed\\\\.godspeed\\\\connect.mjs\"\n\t\t\t]\n\t\t}\n\t}\n}\n",
-						"settings": "{\n\t\"enabledMcpjsonServers\": [\n\t\t\"godspeed\"\n\t],\n\t\"permissions\": {\n\t\t\"allow\": [\n\t\t\t\"mcp__godspeed__*\",\n\t\t\t\"Bash(node .godspeed/wait-for-work.mjs)\",\n\t\t\t\"Bash(node .godspeed/wait-for-work.mjs *)\"\n\t\t]\n\t},\n\t\"hooks\": {\n\t\t\"SessionStart\": [\n\t\t\t{\n\t\t\t\t\"matcher\": \"compact\",\n\t\t\t\t\"hooks\": [\n\t\t\t\t\t{\n\t\t\t\t\t\t\"type\": \"command\",\n\t\t\t\t\t\t\"command\": \"node\",\n\t\t\t\t\t\t\"args\": [\n\t\t\t\t\t\t\t\"/Users/a/godspeed\\\\.godspeed\\\\forget.mjs\"\n\t\t\t\t\t\t],\n\t\t\t\t\t\t\"timeout\": 10\n\t\t\t\t\t}\n\t\t\t\t]\n\t\t\t}\n\t\t],\n\t\t\"SessionEnd\": [\n\t\t\t{\n\t\t\t\t\"matcher\": \"clear\",\n\t\t\t\t\"hooks\": [\n\t\t\t\t\t{\n\t\t\t\t\t\t\"type\": \"command\",\n\t\t\t\t\t\t\"command\": \"node\",\n\t\t\t\t\t\t\"args\": [\n\t\t\t\t\t\t\t\"/Users/a/godspeed\\\\.godspeed\\\\forget.mjs\"\n\t\t\t\t\t\t],\n\t\t\t\t\t\t\"timeout\": 10\n\t\t\t\t\t}\n\t\t\t\t]\n\t\t\t}\n\t\t]\n\t}\n}\n",
-						"agents": {
-							"claude": {
-								"path": "/Users/a/godspeed\\.godspeed\\start-claude.cmd",
-								"copy": "cd /d \"/Users/a/godspeed/\" && claude --settings .godspeed/claude-settings.json \"Start teaching\"",
-								"script": "@echo off\r\ncd /d \"/Users/a/godspeed/\"\r\nwhere claude >nul 2>nul || (echo Claude Code isn't installed. Get it at https://claude.com/claude-code, then click Open Claude Code in godspeed again. & exit /b 1)\r\nwhere node >nul 2>nul || (echo godspeed needs Node.js. Install it from https://nodejs.org, then click Open Claude Code in godspeed again. & exit /b 1)\r\nclaude --settings .godspeed/claude-settings.json \"Start teaching\"\r\n"
-							},
-							"codex": {
-								"path": "/Users/a/godspeed\\.godspeed\\start-codex.cmd",
-								"copy": "\"/Users/a/godspeed\\.godspeed\\start-codex.cmd\"",
-								"script": "@echo off\r\ncd /d \"/Users/a/godspeed/\"\r\nwhere codex >nul 2>nul || (echo Codex isn't installed. Get it at https://developers.openai.com/codex, then click Open Codex in godspeed again. & exit /b 1)\r\nwhere node >nul 2>nul || (echo godspeed needs Node.js. Install it from https://nodejs.org, then click Open Codex in godspeed again. & exit /b 1)\r\ncodex -c \"mcp_servers.godspeed.command='node'\" -c \"mcp_servers.godspeed.args=['/Users/a/godspeed\\.godspeed\\connect.mjs']\" -c mcp_servers.godspeed.tool_timeout_sec=620 -c \"mcp_servers.godspeed.default_tools_approval_mode='approve'\" \"Start teaching\"\r\n"
-							}
-						}
-					},
-					"linux": {
-						"mcp": "{\n\t\"mcpServers\": {\n\t\t\"godspeed\": {\n\t\t\t\"command\": \"node\",\n\t\t\t\"args\": [\n\t\t\t\t\"/Users/a/godspeed/.godspeed/connect.mjs\"\n\t\t\t]\n\t\t}\n\t}\n}\n",
-						"settings": "{\n\t\"enabledMcpjsonServers\": [\n\t\t\"godspeed\"\n\t],\n\t\"permissions\": {\n\t\t\"allow\": [\n\t\t\t\"mcp__godspeed__*\",\n\t\t\t\"Bash(node .godspeed/wait-for-work.mjs)\",\n\t\t\t\"Bash(node .godspeed/wait-for-work.mjs *)\"\n\t\t]\n\t},\n\t\"hooks\": {\n\t\t\"SessionStart\": [\n\t\t\t{\n\t\t\t\t\"matcher\": \"compact\",\n\t\t\t\t\"hooks\": [\n\t\t\t\t\t{\n\t\t\t\t\t\t\"type\": \"command\",\n\t\t\t\t\t\t\"command\": \"node\",\n\t\t\t\t\t\t\"args\": [\n\t\t\t\t\t\t\t\"/Users/a/godspeed/.godspeed/forget.mjs\"\n\t\t\t\t\t\t],\n\t\t\t\t\t\t\"timeout\": 10\n\t\t\t\t\t}\n\t\t\t\t]\n\t\t\t}\n\t\t],\n\t\t\"SessionEnd\": [\n\t\t\t{\n\t\t\t\t\"matcher\": \"clear\",\n\t\t\t\t\"hooks\": [\n\t\t\t\t\t{\n\t\t\t\t\t\t\"type\": \"command\",\n\t\t\t\t\t\t\"command\": \"node\",\n\t\t\t\t\t\t\"args\": [\n\t\t\t\t\t\t\t\"/Users/a/godspeed/.godspeed/forget.mjs\"\n\t\t\t\t\t\t],\n\t\t\t\t\t\t\"timeout\": 10\n\t\t\t\t\t}\n\t\t\t\t]\n\t\t\t}\n\t\t]\n\t}\n}\n",
-						"agents": {
-							"claude": {
-								"path": "/Users/a/godspeed/.godspeed/start-claude.sh",
-								"copy": "cd ~/godspeed/ && claude --settings .godspeed/claude-settings.json \"Start teaching\"",
-								"script": "#!/bin/sh\ncd /Users/a/godspeed/ || exit 1\ncommand -v claude >/dev/null 2>&1 || { echo \"Claude Code isn't installed. Get it at https://claude.com/claude-code, then click Open Claude Code in godspeed again.\"; exit 1; }\ncommand -v node >/dev/null 2>&1 || { echo \"godspeed needs Node.js. Install it from https://nodejs.org, then click Open Claude Code in godspeed again.\"; exit 1; }\nexec claude --settings .godspeed/claude-settings.json \"Start teaching\"\n"
-							},
-							"codex": {
-								"path": "/Users/a/godspeed/.godspeed/start-codex.sh",
-								"copy": "cd ~/godspeed/ && codex -c \"mcp_servers.godspeed.command='node'\" -c \"mcp_servers.godspeed.args=['/Users/a/godspeed/.godspeed/connect.mjs']\" -c mcp_servers.godspeed.tool_timeout_sec=620 -c \"mcp_servers.godspeed.default_tools_approval_mode='approve'\" \"Start teaching\"",
-								"script": "#!/bin/sh\ncd /Users/a/godspeed/ || exit 1\ncommand -v codex >/dev/null 2>&1 || { echo \"Codex isn't installed. Get it at https://developers.openai.com/codex, then click Open Codex in godspeed again.\"; exit 1; }\ncommand -v node >/dev/null 2>&1 || { echo \"godspeed needs Node.js. Install it from https://nodejs.org, then click Open Codex in godspeed again.\"; exit 1; }\nexec codex -c \"mcp_servers.godspeed.command='node'\" -c \"mcp_servers.godspeed.args=['/Users/a/godspeed/.godspeed/connect.mjs']\" -c mcp_servers.godspeed.tool_timeout_sec=620 -c \"mcp_servers.godspeed.default_tools_approval_mode='approve'\" \"Start teaching\"\n"
-							}
-						}
-					}
-				}
-			},
-			{
-				"folder": "/Users/a/my folder/godspeed",
-				"usable": true,
-				"short": [
-					"~/my folder/godspeed",
-					"~",
-					"/Users/ab/x"
-				],
-				"platforms": {
-					"darwin": {
-						"mcp": "{\n\t\"mcpServers\": {\n\t\t\"godspeed\": {\n\t\t\t\"command\": \"node\",\n\t\t\t\"args\": [\n\t\t\t\t\"/Users/a/my folder/godspeed/.godspeed/connect.mjs\"\n\t\t\t]\n\t\t}\n\t}\n}\n",
-						"settings": "{\n\t\"enabledMcpjsonServers\": [\n\t\t\"godspeed\"\n\t],\n\t\"permissions\": {\n\t\t\"allow\": [\n\t\t\t\"mcp__godspeed__*\",\n\t\t\t\"Bash(node .godspeed/wait-for-work.mjs)\",\n\t\t\t\"Bash(node .godspeed/wait-for-work.mjs *)\"\n\t\t]\n\t},\n\t\"hooks\": {\n\t\t\"SessionStart\": [\n\t\t\t{\n\t\t\t\t\"matcher\": \"compact\",\n\t\t\t\t\"hooks\": [\n\t\t\t\t\t{\n\t\t\t\t\t\t\"type\": \"command\",\n\t\t\t\t\t\t\"command\": \"node\",\n\t\t\t\t\t\t\"args\": [\n\t\t\t\t\t\t\t\"/Users/a/my folder/godspeed/.godspeed/forget.mjs\"\n\t\t\t\t\t\t],\n\t\t\t\t\t\t\"timeout\": 10\n\t\t\t\t\t}\n\t\t\t\t]\n\t\t\t}\n\t\t],\n\t\t\"SessionEnd\": [\n\t\t\t{\n\t\t\t\t\"matcher\": \"clear\",\n\t\t\t\t\"hooks\": [\n\t\t\t\t\t{\n\t\t\t\t\t\t\"type\": \"command\",\n\t\t\t\t\t\t\"command\": \"node\",\n\t\t\t\t\t\t\"args\": [\n\t\t\t\t\t\t\t\"/Users/a/my folder/godspeed/.godspeed/forget.mjs\"\n\t\t\t\t\t\t],\n\t\t\t\t\t\t\"timeout\": 10\n\t\t\t\t\t}\n\t\t\t\t]\n\t\t\t}\n\t\t]\n\t}\n}\n",
-						"agents": {
-							"claude": {
-								"path": "/Users/a/my folder/godspeed/.godspeed/start-claude.command",
-								"copy": "cd \"/Users/a/my folder/godspeed\" && claude --settings .godspeed/claude-settings.json \"Start teaching\"",
-								"script": "#!/bin/sh\ncd \"/Users/a/my folder/godspeed\" || exit 1\ncommand -v claude >/dev/null 2>&1 || { echo \"Claude Code isn't installed. Get it at https://claude.com/claude-code, then click Open Claude Code in godspeed again.\"; exit 1; }\ncommand -v node >/dev/null 2>&1 || { echo \"godspeed needs Node.js. Install it from https://nodejs.org, then click Open Claude Code in godspeed again.\"; exit 1; }\nexec claude --settings .godspeed/claude-settings.json \"Start teaching\"\n"
-							},
-							"codex": {
-								"path": "/Users/a/my folder/godspeed/.godspeed/start-codex.command",
-								"copy": "cd \"/Users/a/my folder/godspeed\" && codex -c \"mcp_servers.godspeed.command='node'\" -c \"mcp_servers.godspeed.args=['/Users/a/my folder/godspeed/.godspeed/connect.mjs']\" -c mcp_servers.godspeed.tool_timeout_sec=620 -c \"mcp_servers.godspeed.default_tools_approval_mode='approve'\" \"Start teaching\"",
-								"script": "#!/bin/sh\ncd \"/Users/a/my folder/godspeed\" || exit 1\ncommand -v codex >/dev/null 2>&1 || { echo \"Codex isn't installed. Get it at https://developers.openai.com/codex, then click Open Codex in godspeed again.\"; exit 1; }\ncommand -v node >/dev/null 2>&1 || { echo \"godspeed needs Node.js. Install it from https://nodejs.org, then click Open Codex in godspeed again.\"; exit 1; }\nexec codex -c \"mcp_servers.godspeed.command='node'\" -c \"mcp_servers.godspeed.args=['/Users/a/my folder/godspeed/.godspeed/connect.mjs']\" -c mcp_servers.godspeed.tool_timeout_sec=620 -c \"mcp_servers.godspeed.default_tools_approval_mode='approve'\" \"Start teaching\"\n"
-							}
-						}
-					},
-					"win32": {
-						"mcp": "{\n\t\"mcpServers\": {\n\t\t\"godspeed\": {\n\t\t\t\"command\": \"node\",\n\t\t\t\"args\": [\n\t\t\t\t\"/Users/a/my folder/godspeed\\\\.godspeed\\\\connect.mjs\"\n\t\t\t]\n\t\t}\n\t}\n}\n",
-						"settings": "{\n\t\"enabledMcpjsonServers\": [\n\t\t\"godspeed\"\n\t],\n\t\"permissions\": {\n\t\t\"allow\": [\n\t\t\t\"mcp__godspeed__*\",\n\t\t\t\"Bash(node .godspeed/wait-for-work.mjs)\",\n\t\t\t\"Bash(node .godspeed/wait-for-work.mjs *)\"\n\t\t]\n\t},\n\t\"hooks\": {\n\t\t\"SessionStart\": [\n\t\t\t{\n\t\t\t\t\"matcher\": \"compact\",\n\t\t\t\t\"hooks\": [\n\t\t\t\t\t{\n\t\t\t\t\t\t\"type\": \"command\",\n\t\t\t\t\t\t\"command\": \"node\",\n\t\t\t\t\t\t\"args\": [\n\t\t\t\t\t\t\t\"/Users/a/my folder/godspeed\\\\.godspeed\\\\forget.mjs\"\n\t\t\t\t\t\t],\n\t\t\t\t\t\t\"timeout\": 10\n\t\t\t\t\t}\n\t\t\t\t]\n\t\t\t}\n\t\t],\n\t\t\"SessionEnd\": [\n\t\t\t{\n\t\t\t\t\"matcher\": \"clear\",\n\t\t\t\t\"hooks\": [\n\t\t\t\t\t{\n\t\t\t\t\t\t\"type\": \"command\",\n\t\t\t\t\t\t\"command\": \"node\",\n\t\t\t\t\t\t\"args\": [\n\t\t\t\t\t\t\t\"/Users/a/my folder/godspeed\\\\.godspeed\\\\forget.mjs\"\n\t\t\t\t\t\t],\n\t\t\t\t\t\t\"timeout\": 10\n\t\t\t\t\t}\n\t\t\t\t]\n\t\t\t}\n\t\t]\n\t}\n}\n",
-						"agents": {
-							"claude": {
-								"path": "/Users/a/my folder/godspeed\\.godspeed\\start-claude.cmd",
-								"copy": "cd /d \"/Users/a/my folder/godspeed\" && claude --settings .godspeed/claude-settings.json \"Start teaching\"",
-								"script": "@echo off\r\ncd /d \"/Users/a/my folder/godspeed\"\r\nwhere claude >nul 2>nul || (echo Claude Code isn't installed. Get it at https://claude.com/claude-code, then click Open Claude Code in godspeed again. & exit /b 1)\r\nwhere node >nul 2>nul || (echo godspeed needs Node.js. Install it from https://nodejs.org, then click Open Claude Code in godspeed again. & exit /b 1)\r\nclaude --settings .godspeed/claude-settings.json \"Start teaching\"\r\n"
-							},
-							"codex": {
-								"path": "/Users/a/my folder/godspeed\\.godspeed\\start-codex.cmd",
-								"copy": "\"/Users/a/my folder/godspeed\\.godspeed\\start-codex.cmd\"",
-								"script": "@echo off\r\ncd /d \"/Users/a/my folder/godspeed\"\r\nwhere codex >nul 2>nul || (echo Codex isn't installed. Get it at https://developers.openai.com/codex, then click Open Codex in godspeed again. & exit /b 1)\r\nwhere node >nul 2>nul || (echo godspeed needs Node.js. Install it from https://nodejs.org, then click Open Codex in godspeed again. & exit /b 1)\r\ncodex -c \"mcp_servers.godspeed.command='node'\" -c \"mcp_servers.godspeed.args=['/Users/a/my folder/godspeed\\.godspeed\\connect.mjs']\" -c mcp_servers.godspeed.tool_timeout_sec=620 -c \"mcp_servers.godspeed.default_tools_approval_mode='approve'\" \"Start teaching\"\r\n"
-							}
-						}
-					},
-					"linux": {
-						"mcp": "{\n\t\"mcpServers\": {\n\t\t\"godspeed\": {\n\t\t\t\"command\": \"node\",\n\t\t\t\"args\": [\n\t\t\t\t\"/Users/a/my folder/godspeed/.godspeed/connect.mjs\"\n\t\t\t]\n\t\t}\n\t}\n}\n",
-						"settings": "{\n\t\"enabledMcpjsonServers\": [\n\t\t\"godspeed\"\n\t],\n\t\"permissions\": {\n\t\t\"allow\": [\n\t\t\t\"mcp__godspeed__*\",\n\t\t\t\"Bash(node .godspeed/wait-for-work.mjs)\",\n\t\t\t\"Bash(node .godspeed/wait-for-work.mjs *)\"\n\t\t]\n\t},\n\t\"hooks\": {\n\t\t\"SessionStart\": [\n\t\t\t{\n\t\t\t\t\"matcher\": \"compact\",\n\t\t\t\t\"hooks\": [\n\t\t\t\t\t{\n\t\t\t\t\t\t\"type\": \"command\",\n\t\t\t\t\t\t\"command\": \"node\",\n\t\t\t\t\t\t\"args\": [\n\t\t\t\t\t\t\t\"/Users/a/my folder/godspeed/.godspeed/forget.mjs\"\n\t\t\t\t\t\t],\n\t\t\t\t\t\t\"timeout\": 10\n\t\t\t\t\t}\n\t\t\t\t]\n\t\t\t}\n\t\t],\n\t\t\"SessionEnd\": [\n\t\t\t{\n\t\t\t\t\"matcher\": \"clear\",\n\t\t\t\t\"hooks\": [\n\t\t\t\t\t{\n\t\t\t\t\t\t\"type\": \"command\",\n\t\t\t\t\t\t\"command\": \"node\",\n\t\t\t\t\t\t\"args\": [\n\t\t\t\t\t\t\t\"/Users/a/my folder/godspeed/.godspeed/forget.mjs\"\n\t\t\t\t\t\t],\n\t\t\t\t\t\t\"timeout\": 10\n\t\t\t\t\t}\n\t\t\t\t]\n\t\t\t}\n\t\t]\n\t}\n}\n",
-						"agents": {
-							"claude": {
-								"path": "/Users/a/my folder/godspeed/.godspeed/start-claude.sh",
-								"copy": "cd \"/Users/a/my folder/godspeed\" && claude --settings .godspeed/claude-settings.json \"Start teaching\"",
-								"script": "#!/bin/sh\ncd \"/Users/a/my folder/godspeed\" || exit 1\ncommand -v claude >/dev/null 2>&1 || { echo \"Claude Code isn't installed. Get it at https://claude.com/claude-code, then click Open Claude Code in godspeed again.\"; exit 1; }\ncommand -v node >/dev/null 2>&1 || { echo \"godspeed needs Node.js. Install it from https://nodejs.org, then click Open Claude Code in godspeed again.\"; exit 1; }\nexec claude --settings .godspeed/claude-settings.json \"Start teaching\"\n"
-							},
-							"codex": {
-								"path": "/Users/a/my folder/godspeed/.godspeed/start-codex.sh",
-								"copy": "cd \"/Users/a/my folder/godspeed\" && codex -c \"mcp_servers.godspeed.command='node'\" -c \"mcp_servers.godspeed.args=['/Users/a/my folder/godspeed/.godspeed/connect.mjs']\" -c mcp_servers.godspeed.tool_timeout_sec=620 -c \"mcp_servers.godspeed.default_tools_approval_mode='approve'\" \"Start teaching\"",
-								"script": "#!/bin/sh\ncd \"/Users/a/my folder/godspeed\" || exit 1\ncommand -v codex >/dev/null 2>&1 || { echo \"Codex isn't installed. Get it at https://developers.openai.com/codex, then click Open Codex in godspeed again.\"; exit 1; }\ncommand -v node >/dev/null 2>&1 || { echo \"godspeed needs Node.js. Install it from https://nodejs.org, then click Open Codex in godspeed again.\"; exit 1; }\nexec codex -c \"mcp_servers.godspeed.command='node'\" -c \"mcp_servers.godspeed.args=['/Users/a/my folder/godspeed/.godspeed/connect.mjs']\" -c mcp_servers.godspeed.tool_timeout_sec=620 -c \"mcp_servers.godspeed.default_tools_approval_mode='approve'\" \"Start teaching\"\n"
-							}
-						}
-					}
-				}
-			},
-			{
-				"folder": "C:\\Users\\a\\godspeed",
-				"usable": true,
-				"short": [
-					"C:\\Users\\a\\godspeed",
-					"~",
-					"/Users/ab/x"
-				],
-				"platforms": {
-					"darwin": {
-						"mcp": "{\n\t\"mcpServers\": {\n\t\t\"godspeed\": {\n\t\t\t\"command\": \"node\",\n\t\t\t\"args\": [\n\t\t\t\t\"C:\\\\Users\\\\a\\\\godspeed/.godspeed/connect.mjs\"\n\t\t\t]\n\t\t}\n\t}\n}\n",
-						"settings": "{\n\t\"enabledMcpjsonServers\": [\n\t\t\"godspeed\"\n\t],\n\t\"permissions\": {\n\t\t\"allow\": [\n\t\t\t\"mcp__godspeed__*\",\n\t\t\t\"Bash(node .godspeed/wait-for-work.mjs)\",\n\t\t\t\"Bash(node .godspeed/wait-for-work.mjs *)\"\n\t\t]\n\t},\n\t\"hooks\": {\n\t\t\"SessionStart\": [\n\t\t\t{\n\t\t\t\t\"matcher\": \"compact\",\n\t\t\t\t\"hooks\": [\n\t\t\t\t\t{\n\t\t\t\t\t\t\"type\": \"command\",\n\t\t\t\t\t\t\"command\": \"node\",\n\t\t\t\t\t\t\"args\": [\n\t\t\t\t\t\t\t\"C:\\\\Users\\\\a\\\\godspeed/.godspeed/forget.mjs\"\n\t\t\t\t\t\t],\n\t\t\t\t\t\t\"timeout\": 10\n\t\t\t\t\t}\n\t\t\t\t]\n\t\t\t}\n\t\t],\n\t\t\"SessionEnd\": [\n\t\t\t{\n\t\t\t\t\"matcher\": \"clear\",\n\t\t\t\t\"hooks\": [\n\t\t\t\t\t{\n\t\t\t\t\t\t\"type\": \"command\",\n\t\t\t\t\t\t\"command\": \"node\",\n\t\t\t\t\t\t\"args\": [\n\t\t\t\t\t\t\t\"C:\\\\Users\\\\a\\\\godspeed/.godspeed/forget.mjs\"\n\t\t\t\t\t\t],\n\t\t\t\t\t\t\"timeout\": 10\n\t\t\t\t\t}\n\t\t\t\t]\n\t\t\t}\n\t\t]\n\t}\n}\n",
-						"agents": {
-							"claude": {
-								"path": "C:\\Users\\a\\godspeed/.godspeed/start-claude.command",
-								"copy": "cd \"C:\\\\Users\\\\a\\\\godspeed\" && claude --settings .godspeed/claude-settings.json \"Start teaching\"",
-								"script": "#!/bin/sh\ncd \"C:\\\\Users\\\\a\\\\godspeed\" || exit 1\ncommand -v claude >/dev/null 2>&1 || { echo \"Claude Code isn't installed. Get it at https://claude.com/claude-code, then click Open Claude Code in godspeed again.\"; exit 1; }\ncommand -v node >/dev/null 2>&1 || { echo \"godspeed needs Node.js. Install it from https://nodejs.org, then click Open Claude Code in godspeed again.\"; exit 1; }\nexec claude --settings .godspeed/claude-settings.json \"Start teaching\"\n"
-							},
-							"codex": {
-								"path": "C:\\Users\\a\\godspeed/.godspeed/start-codex.command",
-								"copy": "cd \"C:\\\\Users\\\\a\\\\godspeed\" && codex -c \"mcp_servers.godspeed.command='node'\" -c \"mcp_servers.godspeed.args=['C:\\\\Users\\\\a\\\\godspeed/.godspeed/connect.mjs']\" -c mcp_servers.godspeed.tool_timeout_sec=620 -c \"mcp_servers.godspeed.default_tools_approval_mode='approve'\" \"Start teaching\"",
-								"script": "#!/bin/sh\ncd \"C:\\\\Users\\\\a\\\\godspeed\" || exit 1\ncommand -v codex >/dev/null 2>&1 || { echo \"Codex isn't installed. Get it at https://developers.openai.com/codex, then click Open Codex in godspeed again.\"; exit 1; }\ncommand -v node >/dev/null 2>&1 || { echo \"godspeed needs Node.js. Install it from https://nodejs.org, then click Open Codex in godspeed again.\"; exit 1; }\nexec codex -c \"mcp_servers.godspeed.command='node'\" -c \"mcp_servers.godspeed.args=['C:\\\\Users\\\\a\\\\godspeed/.godspeed/connect.mjs']\" -c mcp_servers.godspeed.tool_timeout_sec=620 -c \"mcp_servers.godspeed.default_tools_approval_mode='approve'\" \"Start teaching\"\n"
-							}
-						}
-					},
-					"win32": {
-						"mcp": "{\n\t\"mcpServers\": {\n\t\t\"godspeed\": {\n\t\t\t\"command\": \"node\",\n\t\t\t\"args\": [\n\t\t\t\t\"C:\\\\Users\\\\a\\\\godspeed\\\\.godspeed\\\\connect.mjs\"\n\t\t\t]\n\t\t}\n\t}\n}\n",
-						"settings": "{\n\t\"enabledMcpjsonServers\": [\n\t\t\"godspeed\"\n\t],\n\t\"permissions\": {\n\t\t\"allow\": [\n\t\t\t\"mcp__godspeed__*\",\n\t\t\t\"Bash(node .godspeed/wait-for-work.mjs)\",\n\t\t\t\"Bash(node .godspeed/wait-for-work.mjs *)\"\n\t\t]\n\t},\n\t\"hooks\": {\n\t\t\"SessionStart\": [\n\t\t\t{\n\t\t\t\t\"matcher\": \"compact\",\n\t\t\t\t\"hooks\": [\n\t\t\t\t\t{\n\t\t\t\t\t\t\"type\": \"command\",\n\t\t\t\t\t\t\"command\": \"node\",\n\t\t\t\t\t\t\"args\": [\n\t\t\t\t\t\t\t\"C:\\\\Users\\\\a\\\\godspeed\\\\.godspeed\\\\forget.mjs\"\n\t\t\t\t\t\t],\n\t\t\t\t\t\t\"timeout\": 10\n\t\t\t\t\t}\n\t\t\t\t]\n\t\t\t}\n\t\t],\n\t\t\"SessionEnd\": [\n\t\t\t{\n\t\t\t\t\"matcher\": \"clear\",\n\t\t\t\t\"hooks\": [\n\t\t\t\t\t{\n\t\t\t\t\t\t\"type\": \"command\",\n\t\t\t\t\t\t\"command\": \"node\",\n\t\t\t\t\t\t\"args\": [\n\t\t\t\t\t\t\t\"C:\\\\Users\\\\a\\\\godspeed\\\\.godspeed\\\\forget.mjs\"\n\t\t\t\t\t\t],\n\t\t\t\t\t\t\"timeout\": 10\n\t\t\t\t\t}\n\t\t\t\t]\n\t\t\t}\n\t\t]\n\t}\n}\n",
-						"agents": {
-							"claude": {
-								"path": "C:\\Users\\a\\godspeed\\.godspeed\\start-claude.cmd",
-								"copy": "cd /d \"C:\\Users\\a\\godspeed\" && claude --settings .godspeed/claude-settings.json \"Start teaching\"",
-								"script": "@echo off\r\ncd /d \"C:\\Users\\a\\godspeed\"\r\nwhere claude >nul 2>nul || (echo Claude Code isn't installed. Get it at https://claude.com/claude-code, then click Open Claude Code in godspeed again. & exit /b 1)\r\nwhere node >nul 2>nul || (echo godspeed needs Node.js. Install it from https://nodejs.org, then click Open Claude Code in godspeed again. & exit /b 1)\r\nclaude --settings .godspeed/claude-settings.json \"Start teaching\"\r\n"
-							},
-							"codex": {
-								"path": "C:\\Users\\a\\godspeed\\.godspeed\\start-codex.cmd",
-								"copy": "\"C:\\Users\\a\\godspeed\\.godspeed\\start-codex.cmd\"",
-								"script": "@echo off\r\ncd /d \"C:\\Users\\a\\godspeed\"\r\nwhere codex >nul 2>nul || (echo Codex isn't installed. Get it at https://developers.openai.com/codex, then click Open Codex in godspeed again. & exit /b 1)\r\nwhere node >nul 2>nul || (echo godspeed needs Node.js. Install it from https://nodejs.org, then click Open Codex in godspeed again. & exit /b 1)\r\ncodex -c \"mcp_servers.godspeed.command='node'\" -c \"mcp_servers.godspeed.args=['C:\\Users\\a\\godspeed\\.godspeed\\connect.mjs']\" -c mcp_servers.godspeed.tool_timeout_sec=620 -c \"mcp_servers.godspeed.default_tools_approval_mode='approve'\" \"Start teaching\"\r\n"
-							}
-						}
-					},
-					"linux": {
-						"mcp": "{\n\t\"mcpServers\": {\n\t\t\"godspeed\": {\n\t\t\t\"command\": \"node\",\n\t\t\t\"args\": [\n\t\t\t\t\"C:\\\\Users\\\\a\\\\godspeed/.godspeed/connect.mjs\"\n\t\t\t]\n\t\t}\n\t}\n}\n",
-						"settings": "{\n\t\"enabledMcpjsonServers\": [\n\t\t\"godspeed\"\n\t],\n\t\"permissions\": {\n\t\t\"allow\": [\n\t\t\t\"mcp__godspeed__*\",\n\t\t\t\"Bash(node .godspeed/wait-for-work.mjs)\",\n\t\t\t\"Bash(node .godspeed/wait-for-work.mjs *)\"\n\t\t]\n\t},\n\t\"hooks\": {\n\t\t\"SessionStart\": [\n\t\t\t{\n\t\t\t\t\"matcher\": \"compact\",\n\t\t\t\t\"hooks\": [\n\t\t\t\t\t{\n\t\t\t\t\t\t\"type\": \"command\",\n\t\t\t\t\t\t\"command\": \"node\",\n\t\t\t\t\t\t\"args\": [\n\t\t\t\t\t\t\t\"C:\\\\Users\\\\a\\\\godspeed/.godspeed/forget.mjs\"\n\t\t\t\t\t\t],\n\t\t\t\t\t\t\"timeout\": 10\n\t\t\t\t\t}\n\t\t\t\t]\n\t\t\t}\n\t\t],\n\t\t\"SessionEnd\": [\n\t\t\t{\n\t\t\t\t\"matcher\": \"clear\",\n\t\t\t\t\"hooks\": [\n\t\t\t\t\t{\n\t\t\t\t\t\t\"type\": \"command\",\n\t\t\t\t\t\t\"command\": \"node\",\n\t\t\t\t\t\t\"args\": [\n\t\t\t\t\t\t\t\"C:\\\\Users\\\\a\\\\godspeed/.godspeed/forget.mjs\"\n\t\t\t\t\t\t],\n\t\t\t\t\t\t\"timeout\": 10\n\t\t\t\t\t}\n\t\t\t\t]\n\t\t\t}\n\t\t]\n\t}\n}\n",
-						"agents": {
-							"claude": {
-								"path": "C:\\Users\\a\\godspeed/.godspeed/start-claude.sh",
-								"copy": "cd \"C:\\\\Users\\\\a\\\\godspeed\" && claude --settings .godspeed/claude-settings.json \"Start teaching\"",
-								"script": "#!/bin/sh\ncd \"C:\\\\Users\\\\a\\\\godspeed\" || exit 1\ncommand -v claude >/dev/null 2>&1 || { echo \"Claude Code isn't installed. Get it at https://claude.com/claude-code, then click Open Claude Code in godspeed again.\"; exit 1; }\ncommand -v node >/dev/null 2>&1 || { echo \"godspeed needs Node.js. Install it from https://nodejs.org, then click Open Claude Code in godspeed again.\"; exit 1; }\nexec claude --settings .godspeed/claude-settings.json \"Start teaching\"\n"
-							},
-							"codex": {
-								"path": "C:\\Users\\a\\godspeed/.godspeed/start-codex.sh",
-								"copy": "cd \"C:\\\\Users\\\\a\\\\godspeed\" && codex -c \"mcp_servers.godspeed.command='node'\" -c \"mcp_servers.godspeed.args=['C:\\\\Users\\\\a\\\\godspeed/.godspeed/connect.mjs']\" -c mcp_servers.godspeed.tool_timeout_sec=620 -c \"mcp_servers.godspeed.default_tools_approval_mode='approve'\" \"Start teaching\"",
-								"script": "#!/bin/sh\ncd \"C:\\\\Users\\\\a\\\\godspeed\" || exit 1\ncommand -v codex >/dev/null 2>&1 || { echo \"Codex isn't installed. Get it at https://developers.openai.com/codex, then click Open Codex in godspeed again.\"; exit 1; }\ncommand -v node >/dev/null 2>&1 || { echo \"godspeed needs Node.js. Install it from https://nodejs.org, then click Open Codex in godspeed again.\"; exit 1; }\nexec codex -c \"mcp_servers.godspeed.command='node'\" -c \"mcp_servers.godspeed.args=['C:\\\\Users\\\\a\\\\godspeed/.godspeed/connect.mjs']\" -c mcp_servers.godspeed.tool_timeout_sec=620 -c \"mcp_servers.godspeed.default_tools_approval_mode='approve'\" \"Start teaching\"\n"
-							}
-						}
-					}
-				}
-			},
-			{
-				"folder": "C:\\Users\\a\\godspeed\\",
-				"usable": true,
-				"short": [
-					"C:\\Users\\a\\godspeed\\",
-					"~",
-					"/Users/ab/x"
-				],
-				"platforms": {
-					"darwin": {
-						"mcp": "{\n\t\"mcpServers\": {\n\t\t\"godspeed\": {\n\t\t\t\"command\": \"node\",\n\t\t\t\"args\": [\n\t\t\t\t\"C:\\\\Users\\\\a\\\\godspeed/.godspeed/connect.mjs\"\n\t\t\t]\n\t\t}\n\t}\n}\n",
-						"settings": "{\n\t\"enabledMcpjsonServers\": [\n\t\t\"godspeed\"\n\t],\n\t\"permissions\": {\n\t\t\"allow\": [\n\t\t\t\"mcp__godspeed__*\",\n\t\t\t\"Bash(node .godspeed/wait-for-work.mjs)\",\n\t\t\t\"Bash(node .godspeed/wait-for-work.mjs *)\"\n\t\t]\n\t},\n\t\"hooks\": {\n\t\t\"SessionStart\": [\n\t\t\t{\n\t\t\t\t\"matcher\": \"compact\",\n\t\t\t\t\"hooks\": [\n\t\t\t\t\t{\n\t\t\t\t\t\t\"type\": \"command\",\n\t\t\t\t\t\t\"command\": \"node\",\n\t\t\t\t\t\t\"args\": [\n\t\t\t\t\t\t\t\"C:\\\\Users\\\\a\\\\godspeed/.godspeed/forget.mjs\"\n\t\t\t\t\t\t],\n\t\t\t\t\t\t\"timeout\": 10\n\t\t\t\t\t}\n\t\t\t\t]\n\t\t\t}\n\t\t],\n\t\t\"SessionEnd\": [\n\t\t\t{\n\t\t\t\t\"matcher\": \"clear\",\n\t\t\t\t\"hooks\": [\n\t\t\t\t\t{\n\t\t\t\t\t\t\"type\": \"command\",\n\t\t\t\t\t\t\"command\": \"node\",\n\t\t\t\t\t\t\"args\": [\n\t\t\t\t\t\t\t\"C:\\\\Users\\\\a\\\\godspeed/.godspeed/forget.mjs\"\n\t\t\t\t\t\t],\n\t\t\t\t\t\t\"timeout\": 10\n\t\t\t\t\t}\n\t\t\t\t]\n\t\t\t}\n\t\t]\n\t}\n}\n",
-						"agents": {
-							"claude": {
-								"path": "C:\\Users\\a\\godspeed/.godspeed/start-claude.command",
-								"copy": "cd \"C:\\\\Users\\\\a\\\\godspeed\\\\\" && claude --settings .godspeed/claude-settings.json \"Start teaching\"",
-								"script": "#!/bin/sh\ncd \"C:\\\\Users\\\\a\\\\godspeed\\\\\" || exit 1\ncommand -v claude >/dev/null 2>&1 || { echo \"Claude Code isn't installed. Get it at https://claude.com/claude-code, then click Open Claude Code in godspeed again.\"; exit 1; }\ncommand -v node >/dev/null 2>&1 || { echo \"godspeed needs Node.js. Install it from https://nodejs.org, then click Open Claude Code in godspeed again.\"; exit 1; }\nexec claude --settings .godspeed/claude-settings.json \"Start teaching\"\n"
-							},
-							"codex": {
-								"path": "C:\\Users\\a\\godspeed/.godspeed/start-codex.command",
-								"copy": "cd \"C:\\\\Users\\\\a\\\\godspeed\\\\\" && codex -c \"mcp_servers.godspeed.command='node'\" -c \"mcp_servers.godspeed.args=['C:\\\\Users\\\\a\\\\godspeed/.godspeed/connect.mjs']\" -c mcp_servers.godspeed.tool_timeout_sec=620 -c \"mcp_servers.godspeed.default_tools_approval_mode='approve'\" \"Start teaching\"",
-								"script": "#!/bin/sh\ncd \"C:\\\\Users\\\\a\\\\godspeed\\\\\" || exit 1\ncommand -v codex >/dev/null 2>&1 || { echo \"Codex isn't installed. Get it at https://developers.openai.com/codex, then click Open Codex in godspeed again.\"; exit 1; }\ncommand -v node >/dev/null 2>&1 || { echo \"godspeed needs Node.js. Install it from https://nodejs.org, then click Open Codex in godspeed again.\"; exit 1; }\nexec codex -c \"mcp_servers.godspeed.command='node'\" -c \"mcp_servers.godspeed.args=['C:\\\\Users\\\\a\\\\godspeed/.godspeed/connect.mjs']\" -c mcp_servers.godspeed.tool_timeout_sec=620 -c \"mcp_servers.godspeed.default_tools_approval_mode='approve'\" \"Start teaching\"\n"
-							}
-						}
-					},
-					"win32": {
-						"mcp": "{\n\t\"mcpServers\": {\n\t\t\"godspeed\": {\n\t\t\t\"command\": \"node\",\n\t\t\t\"args\": [\n\t\t\t\t\"C:\\\\Users\\\\a\\\\godspeed\\\\.godspeed\\\\connect.mjs\"\n\t\t\t]\n\t\t}\n\t}\n}\n",
-						"settings": "{\n\t\"enabledMcpjsonServers\": [\n\t\t\"godspeed\"\n\t],\n\t\"permissions\": {\n\t\t\"allow\": [\n\t\t\t\"mcp__godspeed__*\",\n\t\t\t\"Bash(node .godspeed/wait-for-work.mjs)\",\n\t\t\t\"Bash(node .godspeed/wait-for-work.mjs *)\"\n\t\t]\n\t},\n\t\"hooks\": {\n\t\t\"SessionStart\": [\n\t\t\t{\n\t\t\t\t\"matcher\": \"compact\",\n\t\t\t\t\"hooks\": [\n\t\t\t\t\t{\n\t\t\t\t\t\t\"type\": \"command\",\n\t\t\t\t\t\t\"command\": \"node\",\n\t\t\t\t\t\t\"args\": [\n\t\t\t\t\t\t\t\"C:\\\\Users\\\\a\\\\godspeed\\\\.godspeed\\\\forget.mjs\"\n\t\t\t\t\t\t],\n\t\t\t\t\t\t\"timeout\": 10\n\t\t\t\t\t}\n\t\t\t\t]\n\t\t\t}\n\t\t],\n\t\t\"SessionEnd\": [\n\t\t\t{\n\t\t\t\t\"matcher\": \"clear\",\n\t\t\t\t\"hooks\": [\n\t\t\t\t\t{\n\t\t\t\t\t\t\"type\": \"command\",\n\t\t\t\t\t\t\"command\": \"node\",\n\t\t\t\t\t\t\"args\": [\n\t\t\t\t\t\t\t\"C:\\\\Users\\\\a\\\\godspeed\\\\.godspeed\\\\forget.mjs\"\n\t\t\t\t\t\t],\n\t\t\t\t\t\t\"timeout\": 10\n\t\t\t\t\t}\n\t\t\t\t]\n\t\t\t}\n\t\t]\n\t}\n}\n",
-						"agents": {
-							"claude": {
-								"path": "C:\\Users\\a\\godspeed\\.godspeed\\start-claude.cmd",
-								"copy": "cd /d \"C:\\Users\\a\\godspeed\\\" && claude --settings .godspeed/claude-settings.json \"Start teaching\"",
-								"script": "@echo off\r\ncd /d \"C:\\Users\\a\\godspeed\\\"\r\nwhere claude >nul 2>nul || (echo Claude Code isn't installed. Get it at https://claude.com/claude-code, then click Open Claude Code in godspeed again. & exit /b 1)\r\nwhere node >nul 2>nul || (echo godspeed needs Node.js. Install it from https://nodejs.org, then click Open Claude Code in godspeed again. & exit /b 1)\r\nclaude --settings .godspeed/claude-settings.json \"Start teaching\"\r\n"
-							},
-							"codex": {
-								"path": "C:\\Users\\a\\godspeed\\.godspeed\\start-codex.cmd",
-								"copy": "\"C:\\Users\\a\\godspeed\\.godspeed\\start-codex.cmd\"",
-								"script": "@echo off\r\ncd /d \"C:\\Users\\a\\godspeed\\\"\r\nwhere codex >nul 2>nul || (echo Codex isn't installed. Get it at https://developers.openai.com/codex, then click Open Codex in godspeed again. & exit /b 1)\r\nwhere node >nul 2>nul || (echo godspeed needs Node.js. Install it from https://nodejs.org, then click Open Codex in godspeed again. & exit /b 1)\r\ncodex -c \"mcp_servers.godspeed.command='node'\" -c \"mcp_servers.godspeed.args=['C:\\Users\\a\\godspeed\\.godspeed\\connect.mjs']\" -c mcp_servers.godspeed.tool_timeout_sec=620 -c \"mcp_servers.godspeed.default_tools_approval_mode='approve'\" \"Start teaching\"\r\n"
-							}
-						}
-					},
-					"linux": {
-						"mcp": "{\n\t\"mcpServers\": {\n\t\t\"godspeed\": {\n\t\t\t\"command\": \"node\",\n\t\t\t\"args\": [\n\t\t\t\t\"C:\\\\Users\\\\a\\\\godspeed/.godspeed/connect.mjs\"\n\t\t\t]\n\t\t}\n\t}\n}\n",
-						"settings": "{\n\t\"enabledMcpjsonServers\": [\n\t\t\"godspeed\"\n\t],\n\t\"permissions\": {\n\t\t\"allow\": [\n\t\t\t\"mcp__godspeed__*\",\n\t\t\t\"Bash(node .godspeed/wait-for-work.mjs)\",\n\t\t\t\"Bash(node .godspeed/wait-for-work.mjs *)\"\n\t\t]\n\t},\n\t\"hooks\": {\n\t\t\"SessionStart\": [\n\t\t\t{\n\t\t\t\t\"matcher\": \"compact\",\n\t\t\t\t\"hooks\": [\n\t\t\t\t\t{\n\t\t\t\t\t\t\"type\": \"command\",\n\t\t\t\t\t\t\"command\": \"node\",\n\t\t\t\t\t\t\"args\": [\n\t\t\t\t\t\t\t\"C:\\\\Users\\\\a\\\\godspeed/.godspeed/forget.mjs\"\n\t\t\t\t\t\t],\n\t\t\t\t\t\t\"timeout\": 10\n\t\t\t\t\t}\n\t\t\t\t]\n\t\t\t}\n\t\t],\n\t\t\"SessionEnd\": [\n\t\t\t{\n\t\t\t\t\"matcher\": \"clear\",\n\t\t\t\t\"hooks\": [\n\t\t\t\t\t{\n\t\t\t\t\t\t\"type\": \"command\",\n\t\t\t\t\t\t\"command\": \"node\",\n\t\t\t\t\t\t\"args\": [\n\t\t\t\t\t\t\t\"C:\\\\Users\\\\a\\\\godspeed/.godspeed/forget.mjs\"\n\t\t\t\t\t\t],\n\t\t\t\t\t\t\"timeout\": 10\n\t\t\t\t\t}\n\t\t\t\t]\n\t\t\t}\n\t\t]\n\t}\n}\n",
-						"agents": {
-							"claude": {
-								"path": "C:\\Users\\a\\godspeed/.godspeed/start-claude.sh",
-								"copy": "cd \"C:\\\\Users\\\\a\\\\godspeed\\\\\" && claude --settings .godspeed/claude-settings.json \"Start teaching\"",
-								"script": "#!/bin/sh\ncd \"C:\\\\Users\\\\a\\\\godspeed\\\\\" || exit 1\ncommand -v claude >/dev/null 2>&1 || { echo \"Claude Code isn't installed. Get it at https://claude.com/claude-code, then click Open Claude Code in godspeed again.\"; exit 1; }\ncommand -v node >/dev/null 2>&1 || { echo \"godspeed needs Node.js. Install it from https://nodejs.org, then click Open Claude Code in godspeed again.\"; exit 1; }\nexec claude --settings .godspeed/claude-settings.json \"Start teaching\"\n"
-							},
-							"codex": {
-								"path": "C:\\Users\\a\\godspeed/.godspeed/start-codex.sh",
-								"copy": "cd \"C:\\\\Users\\\\a\\\\godspeed\\\\\" && codex -c \"mcp_servers.godspeed.command='node'\" -c \"mcp_servers.godspeed.args=['C:\\\\Users\\\\a\\\\godspeed/.godspeed/connect.mjs']\" -c mcp_servers.godspeed.tool_timeout_sec=620 -c \"mcp_servers.godspeed.default_tools_approval_mode='approve'\" \"Start teaching\"",
-								"script": "#!/bin/sh\ncd \"C:\\\\Users\\\\a\\\\godspeed\\\\\" || exit 1\ncommand -v codex >/dev/null 2>&1 || { echo \"Codex isn't installed. Get it at https://developers.openai.com/codex, then click Open Codex in godspeed again.\"; exit 1; }\ncommand -v node >/dev/null 2>&1 || { echo \"godspeed needs Node.js. Install it from https://nodejs.org, then click Open Codex in godspeed again.\"; exit 1; }\nexec codex -c \"mcp_servers.godspeed.command='node'\" -c \"mcp_servers.godspeed.args=['C:\\\\Users\\\\a\\\\godspeed/.godspeed/connect.mjs']\" -c mcp_servers.godspeed.tool_timeout_sec=620 -c \"mcp_servers.godspeed.default_tools_approval_mode='approve'\" \"Start teaching\"\n"
-							}
-						}
-					}
-				}
-			},
-			{
-				"folder": "/Users/a/📚/godspeed",
-				"usable": true,
-				"short": [
-					"~/📚/godspeed",
-					"~",
-					"/Users/ab/x"
-				],
-				"platforms": {
-					"darwin": {
-						"mcp": "{\n\t\"mcpServers\": {\n\t\t\"godspeed\": {\n\t\t\t\"command\": \"node\",\n\t\t\t\"args\": [\n\t\t\t\t\"/Users/a/📚/godspeed/.godspeed/connect.mjs\"\n\t\t\t]\n\t\t}\n\t}\n}\n",
-						"settings": "{\n\t\"enabledMcpjsonServers\": [\n\t\t\"godspeed\"\n\t],\n\t\"permissions\": {\n\t\t\"allow\": [\n\t\t\t\"mcp__godspeed__*\",\n\t\t\t\"Bash(node .godspeed/wait-for-work.mjs)\",\n\t\t\t\"Bash(node .godspeed/wait-for-work.mjs *)\"\n\t\t]\n\t},\n\t\"hooks\": {\n\t\t\"SessionStart\": [\n\t\t\t{\n\t\t\t\t\"matcher\": \"compact\",\n\t\t\t\t\"hooks\": [\n\t\t\t\t\t{\n\t\t\t\t\t\t\"type\": \"command\",\n\t\t\t\t\t\t\"command\": \"node\",\n\t\t\t\t\t\t\"args\": [\n\t\t\t\t\t\t\t\"/Users/a/📚/godspeed/.godspeed/forget.mjs\"\n\t\t\t\t\t\t],\n\t\t\t\t\t\t\"timeout\": 10\n\t\t\t\t\t}\n\t\t\t\t]\n\t\t\t}\n\t\t],\n\t\t\"SessionEnd\": [\n\t\t\t{\n\t\t\t\t\"matcher\": \"clear\",\n\t\t\t\t\"hooks\": [\n\t\t\t\t\t{\n\t\t\t\t\t\t\"type\": \"command\",\n\t\t\t\t\t\t\"command\": \"node\",\n\t\t\t\t\t\t\"args\": [\n\t\t\t\t\t\t\t\"/Users/a/📚/godspeed/.godspeed/forget.mjs\"\n\t\t\t\t\t\t],\n\t\t\t\t\t\t\"timeout\": 10\n\t\t\t\t\t}\n\t\t\t\t]\n\t\t\t}\n\t\t]\n\t}\n}\n",
-						"agents": {
-							"claude": {
-								"path": "/Users/a/📚/godspeed/.godspeed/start-claude.command",
-								"copy": "cd \"/Users/a/📚/godspeed\" && claude --settings .godspeed/claude-settings.json \"Start teaching\"",
-								"script": "#!/bin/sh\ncd \"/Users/a/📚/godspeed\" || exit 1\ncommand -v claude >/dev/null 2>&1 || { echo \"Claude Code isn't installed. Get it at https://claude.com/claude-code, then click Open Claude Code in godspeed again.\"; exit 1; }\ncommand -v node >/dev/null 2>&1 || { echo \"godspeed needs Node.js. Install it from https://nodejs.org, then click Open Claude Code in godspeed again.\"; exit 1; }\nexec claude --settings .godspeed/claude-settings.json \"Start teaching\"\n"
-							},
-							"codex": {
-								"path": "/Users/a/📚/godspeed/.godspeed/start-codex.command",
-								"copy": "cd \"/Users/a/📚/godspeed\" && codex -c \"mcp_servers.godspeed.command='node'\" -c \"mcp_servers.godspeed.args=['/Users/a/📚/godspeed/.godspeed/connect.mjs']\" -c mcp_servers.godspeed.tool_timeout_sec=620 -c \"mcp_servers.godspeed.default_tools_approval_mode='approve'\" \"Start teaching\"",
-								"script": "#!/bin/sh\ncd \"/Users/a/📚/godspeed\" || exit 1\ncommand -v codex >/dev/null 2>&1 || { echo \"Codex isn't installed. Get it at https://developers.openai.com/codex, then click Open Codex in godspeed again.\"; exit 1; }\ncommand -v node >/dev/null 2>&1 || { echo \"godspeed needs Node.js. Install it from https://nodejs.org, then click Open Codex in godspeed again.\"; exit 1; }\nexec codex -c \"mcp_servers.godspeed.command='node'\" -c \"mcp_servers.godspeed.args=['/Users/a/📚/godspeed/.godspeed/connect.mjs']\" -c mcp_servers.godspeed.tool_timeout_sec=620 -c \"mcp_servers.godspeed.default_tools_approval_mode='approve'\" \"Start teaching\"\n"
-							}
-						}
-					},
-					"win32": {
-						"mcp": "{\n\t\"mcpServers\": {\n\t\t\"godspeed\": {\n\t\t\t\"command\": \"node\",\n\t\t\t\"args\": [\n\t\t\t\t\"/Users/a/📚/godspeed\\\\.godspeed\\\\connect.mjs\"\n\t\t\t]\n\t\t}\n\t}\n}\n",
-						"settings": "{\n\t\"enabledMcpjsonServers\": [\n\t\t\"godspeed\"\n\t],\n\t\"permissions\": {\n\t\t\"allow\": [\n\t\t\t\"mcp__godspeed__*\",\n\t\t\t\"Bash(node .godspeed/wait-for-work.mjs)\",\n\t\t\t\"Bash(node .godspeed/wait-for-work.mjs *)\"\n\t\t]\n\t},\n\t\"hooks\": {\n\t\t\"SessionStart\": [\n\t\t\t{\n\t\t\t\t\"matcher\": \"compact\",\n\t\t\t\t\"hooks\": [\n\t\t\t\t\t{\n\t\t\t\t\t\t\"type\": \"command\",\n\t\t\t\t\t\t\"command\": \"node\",\n\t\t\t\t\t\t\"args\": [\n\t\t\t\t\t\t\t\"/Users/a/📚/godspeed\\\\.godspeed\\\\forget.mjs\"\n\t\t\t\t\t\t],\n\t\t\t\t\t\t\"timeout\": 10\n\t\t\t\t\t}\n\t\t\t\t]\n\t\t\t}\n\t\t],\n\t\t\"SessionEnd\": [\n\t\t\t{\n\t\t\t\t\"matcher\": \"clear\",\n\t\t\t\t\"hooks\": [\n\t\t\t\t\t{\n\t\t\t\t\t\t\"type\": \"command\",\n\t\t\t\t\t\t\"command\": \"node\",\n\t\t\t\t\t\t\"args\": [\n\t\t\t\t\t\t\t\"/Users/a/📚/godspeed\\\\.godspeed\\\\forget.mjs\"\n\t\t\t\t\t\t],\n\t\t\t\t\t\t\"timeout\": 10\n\t\t\t\t\t}\n\t\t\t\t]\n\t\t\t}\n\t\t]\n\t}\n}\n",
-						"agents": {
-							"claude": {
-								"path": "/Users/a/📚/godspeed\\.godspeed\\start-claude.cmd",
-								"copy": "cd /d \"/Users/a/📚/godspeed\" && claude --settings .godspeed/claude-settings.json \"Start teaching\"",
-								"script": "@echo off\r\ncd /d \"/Users/a/📚/godspeed\"\r\nwhere claude >nul 2>nul || (echo Claude Code isn't installed. Get it at https://claude.com/claude-code, then click Open Claude Code in godspeed again. & exit /b 1)\r\nwhere node >nul 2>nul || (echo godspeed needs Node.js. Install it from https://nodejs.org, then click Open Claude Code in godspeed again. & exit /b 1)\r\nclaude --settings .godspeed/claude-settings.json \"Start teaching\"\r\n"
-							},
-							"codex": {
-								"path": "/Users/a/📚/godspeed\\.godspeed\\start-codex.cmd",
-								"copy": "\"/Users/a/📚/godspeed\\.godspeed\\start-codex.cmd\"",
-								"script": "@echo off\r\ncd /d \"/Users/a/📚/godspeed\"\r\nwhere codex >nul 2>nul || (echo Codex isn't installed. Get it at https://developers.openai.com/codex, then click Open Codex in godspeed again. & exit /b 1)\r\nwhere node >nul 2>nul || (echo godspeed needs Node.js. Install it from https://nodejs.org, then click Open Codex in godspeed again. & exit /b 1)\r\ncodex -c \"mcp_servers.godspeed.command='node'\" -c \"mcp_servers.godspeed.args=['/Users/a/📚/godspeed\\.godspeed\\connect.mjs']\" -c mcp_servers.godspeed.tool_timeout_sec=620 -c \"mcp_servers.godspeed.default_tools_approval_mode='approve'\" \"Start teaching\"\r\n"
-							}
-						}
-					},
-					"linux": {
-						"mcp": "{\n\t\"mcpServers\": {\n\t\t\"godspeed\": {\n\t\t\t\"command\": \"node\",\n\t\t\t\"args\": [\n\t\t\t\t\"/Users/a/📚/godspeed/.godspeed/connect.mjs\"\n\t\t\t]\n\t\t}\n\t}\n}\n",
-						"settings": "{\n\t\"enabledMcpjsonServers\": [\n\t\t\"godspeed\"\n\t],\n\t\"permissions\": {\n\t\t\"allow\": [\n\t\t\t\"mcp__godspeed__*\",\n\t\t\t\"Bash(node .godspeed/wait-for-work.mjs)\",\n\t\t\t\"Bash(node .godspeed/wait-for-work.mjs *)\"\n\t\t]\n\t},\n\t\"hooks\": {\n\t\t\"SessionStart\": [\n\t\t\t{\n\t\t\t\t\"matcher\": \"compact\",\n\t\t\t\t\"hooks\": [\n\t\t\t\t\t{\n\t\t\t\t\t\t\"type\": \"command\",\n\t\t\t\t\t\t\"command\": \"node\",\n\t\t\t\t\t\t\"args\": [\n\t\t\t\t\t\t\t\"/Users/a/📚/godspeed/.godspeed/forget.mjs\"\n\t\t\t\t\t\t],\n\t\t\t\t\t\t\"timeout\": 10\n\t\t\t\t\t}\n\t\t\t\t]\n\t\t\t}\n\t\t],\n\t\t\"SessionEnd\": [\n\t\t\t{\n\t\t\t\t\"matcher\": \"clear\",\n\t\t\t\t\"hooks\": [\n\t\t\t\t\t{\n\t\t\t\t\t\t\"type\": \"command\",\n\t\t\t\t\t\t\"command\": \"node\",\n\t\t\t\t\t\t\"args\": [\n\t\t\t\t\t\t\t\"/Users/a/📚/godspeed/.godspeed/forget.mjs\"\n\t\t\t\t\t\t],\n\t\t\t\t\t\t\"timeout\": 10\n\t\t\t\t\t}\n\t\t\t\t]\n\t\t\t}\n\t\t]\n\t}\n}\n",
-						"agents": {
-							"claude": {
-								"path": "/Users/a/📚/godspeed/.godspeed/start-claude.sh",
-								"copy": "cd \"/Users/a/📚/godspeed\" && claude --settings .godspeed/claude-settings.json \"Start teaching\"",
-								"script": "#!/bin/sh\ncd \"/Users/a/📚/godspeed\" || exit 1\ncommand -v claude >/dev/null 2>&1 || { echo \"Claude Code isn't installed. Get it at https://claude.com/claude-code, then click Open Claude Code in godspeed again.\"; exit 1; }\ncommand -v node >/dev/null 2>&1 || { echo \"godspeed needs Node.js. Install it from https://nodejs.org, then click Open Claude Code in godspeed again.\"; exit 1; }\nexec claude --settings .godspeed/claude-settings.json \"Start teaching\"\n"
-							},
-							"codex": {
-								"path": "/Users/a/📚/godspeed/.godspeed/start-codex.sh",
-								"copy": "cd \"/Users/a/📚/godspeed\" && codex -c \"mcp_servers.godspeed.command='node'\" -c \"mcp_servers.godspeed.args=['/Users/a/📚/godspeed/.godspeed/connect.mjs']\" -c mcp_servers.godspeed.tool_timeout_sec=620 -c \"mcp_servers.godspeed.default_tools_approval_mode='approve'\" \"Start teaching\"",
-								"script": "#!/bin/sh\ncd \"/Users/a/📚/godspeed\" || exit 1\ncommand -v codex >/dev/null 2>&1 || { echo \"Codex isn't installed. Get it at https://developers.openai.com/codex, then click Open Codex in godspeed again.\"; exit 1; }\ncommand -v node >/dev/null 2>&1 || { echo \"godspeed needs Node.js. Install it from https://nodejs.org, then click Open Codex in godspeed again.\"; exit 1; }\nexec codex -c \"mcp_servers.godspeed.command='node'\" -c \"mcp_servers.godspeed.args=['/Users/a/📚/godspeed/.godspeed/connect.mjs']\" -c mcp_servers.godspeed.tool_timeout_sec=620 -c \"mcp_servers.godspeed.default_tools_approval_mode='approve'\" \"Start teaching\"\n"
-							}
-						}
-					}
-				}
-			},
-			{
-				"folder": "/Users/a/it's",
-				"usable": false,
-				"short": [
-					"~/it's",
-					"~",
-					"/Users/ab/x"
-				],
-				"platforms": null
-			},
-			{
-				"folder": "a\"b",
-				"usable": false,
-				"short": [
-					"a\"b",
-					"~",
-					"/Users/ab/x"
-				],
-				"platforms": null
-			},
-			{
-				"folder": "relative",
-				"usable": false,
-				"short": [
-					"relative",
-					"~",
-					"/Users/ab/x"
-				],
-				"platforms": null
-			},
-			{
-				"folder": "/a\nb",
-				"usable": false,
-				"short": [
-					"/a\nb",
-					"~",
-					"/Users/ab/x"
-				],
-				"platforms": null
-			},
-			{
-				"folder": "/a`b",
-				"usable": false,
-				"short": [
-					"/a`b",
-					"~",
-					"/Users/ab/x"
-				],
-				"platforms": null
-			},
-			{
-				"folder": "/a$b",
-				"usable": false,
-				"short": [
-					"/a$b",
-					"~",
-					"/Users/ab/x"
-				],
-				"platforms": null
-			},
-			{
-				"folder": "",
-				"usable": false,
-				"short": [
-					"",
-					"~",
-					"/Users/ab/x"
-				],
-				"platforms": null
-			},
-			{
-				"folder": "/",
-				"usable": true,
-				"short": [
-					"/",
-					"~",
-					"/Users/ab/x"
-				],
-				"platforms": {
-					"darwin": {
-						"mcp": "{\n\t\"mcpServers\": {\n\t\t\"godspeed\": {\n\t\t\t\"command\": \"node\",\n\t\t\t\"args\": [\n\t\t\t\t\"/.godspeed/connect.mjs\"\n\t\t\t]\n\t\t}\n\t}\n}\n",
-						"settings": "{\n\t\"enabledMcpjsonServers\": [\n\t\t\"godspeed\"\n\t],\n\t\"permissions\": {\n\t\t\"allow\": [\n\t\t\t\"mcp__godspeed__*\",\n\t\t\t\"Bash(node .godspeed/wait-for-work.mjs)\",\n\t\t\t\"Bash(node .godspeed/wait-for-work.mjs *)\"\n\t\t]\n\t},\n\t\"hooks\": {\n\t\t\"SessionStart\": [\n\t\t\t{\n\t\t\t\t\"matcher\": \"compact\",\n\t\t\t\t\"hooks\": [\n\t\t\t\t\t{\n\t\t\t\t\t\t\"type\": \"command\",\n\t\t\t\t\t\t\"command\": \"node\",\n\t\t\t\t\t\t\"args\": [\n\t\t\t\t\t\t\t\"/.godspeed/forget.mjs\"\n\t\t\t\t\t\t],\n\t\t\t\t\t\t\"timeout\": 10\n\t\t\t\t\t}\n\t\t\t\t]\n\t\t\t}\n\t\t],\n\t\t\"SessionEnd\": [\n\t\t\t{\n\t\t\t\t\"matcher\": \"clear\",\n\t\t\t\t\"hooks\": [\n\t\t\t\t\t{\n\t\t\t\t\t\t\"type\": \"command\",\n\t\t\t\t\t\t\"command\": \"node\",\n\t\t\t\t\t\t\"args\": [\n\t\t\t\t\t\t\t\"/.godspeed/forget.mjs\"\n\t\t\t\t\t\t],\n\t\t\t\t\t\t\"timeout\": 10\n\t\t\t\t\t}\n\t\t\t\t]\n\t\t\t}\n\t\t]\n\t}\n}\n",
-						"agents": {
-							"claude": {
-								"path": "/.godspeed/start-claude.command",
-								"copy": "cd / && claude --settings .godspeed/claude-settings.json \"Start teaching\"",
-								"script": "#!/bin/sh\ncd / || exit 1\ncommand -v claude >/dev/null 2>&1 || { echo \"Claude Code isn't installed. Get it at https://claude.com/claude-code, then click Open Claude Code in godspeed again.\"; exit 1; }\ncommand -v node >/dev/null 2>&1 || { echo \"godspeed needs Node.js. Install it from https://nodejs.org, then click Open Claude Code in godspeed again.\"; exit 1; }\nexec claude --settings .godspeed/claude-settings.json \"Start teaching\"\n"
-							},
-							"codex": {
-								"path": "/.godspeed/start-codex.command",
-								"copy": "cd / && codex -c \"mcp_servers.godspeed.command='node'\" -c \"mcp_servers.godspeed.args=['/.godspeed/connect.mjs']\" -c mcp_servers.godspeed.tool_timeout_sec=620 -c \"mcp_servers.godspeed.default_tools_approval_mode='approve'\" \"Start teaching\"",
-								"script": "#!/bin/sh\ncd / || exit 1\ncommand -v codex >/dev/null 2>&1 || { echo \"Codex isn't installed. Get it at https://developers.openai.com/codex, then click Open Codex in godspeed again.\"; exit 1; }\ncommand -v node >/dev/null 2>&1 || { echo \"godspeed needs Node.js. Install it from https://nodejs.org, then click Open Codex in godspeed again.\"; exit 1; }\nexec codex -c \"mcp_servers.godspeed.command='node'\" -c \"mcp_servers.godspeed.args=['/.godspeed/connect.mjs']\" -c mcp_servers.godspeed.tool_timeout_sec=620 -c \"mcp_servers.godspeed.default_tools_approval_mode='approve'\" \"Start teaching\"\n"
-							}
-						}
-					},
-					"win32": {
-						"mcp": "{\n\t\"mcpServers\": {\n\t\t\"godspeed\": {\n\t\t\t\"command\": \"node\",\n\t\t\t\"args\": [\n\t\t\t\t\"\\\\.godspeed\\\\connect.mjs\"\n\t\t\t]\n\t\t}\n\t}\n}\n",
-						"settings": "{\n\t\"enabledMcpjsonServers\": [\n\t\t\"godspeed\"\n\t],\n\t\"permissions\": {\n\t\t\"allow\": [\n\t\t\t\"mcp__godspeed__*\",\n\t\t\t\"Bash(node .godspeed/wait-for-work.mjs)\",\n\t\t\t\"Bash(node .godspeed/wait-for-work.mjs *)\"\n\t\t]\n\t},\n\t\"hooks\": {\n\t\t\"SessionStart\": [\n\t\t\t{\n\t\t\t\t\"matcher\": \"compact\",\n\t\t\t\t\"hooks\": [\n\t\t\t\t\t{\n\t\t\t\t\t\t\"type\": \"command\",\n\t\t\t\t\t\t\"command\": \"node\",\n\t\t\t\t\t\t\"args\": [\n\t\t\t\t\t\t\t\"\\\\.godspeed\\\\forget.mjs\"\n\t\t\t\t\t\t],\n\t\t\t\t\t\t\"timeout\": 10\n\t\t\t\t\t}\n\t\t\t\t]\n\t\t\t}\n\t\t],\n\t\t\"SessionEnd\": [\n\t\t\t{\n\t\t\t\t\"matcher\": \"clear\",\n\t\t\t\t\"hooks\": [\n\t\t\t\t\t{\n\t\t\t\t\t\t\"type\": \"command\",\n\t\t\t\t\t\t\"command\": \"node\",\n\t\t\t\t\t\t\"args\": [\n\t\t\t\t\t\t\t\"\\\\.godspeed\\\\forget.mjs\"\n\t\t\t\t\t\t],\n\t\t\t\t\t\t\"timeout\": 10\n\t\t\t\t\t}\n\t\t\t\t]\n\t\t\t}\n\t\t]\n\t}\n}\n",
-						"agents": {
-							"claude": {
-								"path": "\\.godspeed\\start-claude.cmd",
-								"copy": "cd /d \"/\" && claude --settings .godspeed/claude-settings.json \"Start teaching\"",
-								"script": "@echo off\r\ncd /d \"/\"\r\nwhere claude >nul 2>nul || (echo Claude Code isn't installed. Get it at https://claude.com/claude-code, then click Open Claude Code in godspeed again. & exit /b 1)\r\nwhere node >nul 2>nul || (echo godspeed needs Node.js. Install it from https://nodejs.org, then click Open Claude Code in godspeed again. & exit /b 1)\r\nclaude --settings .godspeed/claude-settings.json \"Start teaching\"\r\n"
-							},
-							"codex": {
-								"path": "\\.godspeed\\start-codex.cmd",
-								"copy": "\"\\.godspeed\\start-codex.cmd\"",
-								"script": "@echo off\r\ncd /d \"/\"\r\nwhere codex >nul 2>nul || (echo Codex isn't installed. Get it at https://developers.openai.com/codex, then click Open Codex in godspeed again. & exit /b 1)\r\nwhere node >nul 2>nul || (echo godspeed needs Node.js. Install it from https://nodejs.org, then click Open Codex in godspeed again. & exit /b 1)\r\ncodex -c \"mcp_servers.godspeed.command='node'\" -c \"mcp_servers.godspeed.args=['\\.godspeed\\connect.mjs']\" -c mcp_servers.godspeed.tool_timeout_sec=620 -c \"mcp_servers.godspeed.default_tools_approval_mode='approve'\" \"Start teaching\"\r\n"
-							}
-						}
-					},
-					"linux": {
-						"mcp": "{\n\t\"mcpServers\": {\n\t\t\"godspeed\": {\n\t\t\t\"command\": \"node\",\n\t\t\t\"args\": [\n\t\t\t\t\"/.godspeed/connect.mjs\"\n\t\t\t]\n\t\t}\n\t}\n}\n",
-						"settings": "{\n\t\"enabledMcpjsonServers\": [\n\t\t\"godspeed\"\n\t],\n\t\"permissions\": {\n\t\t\"allow\": [\n\t\t\t\"mcp__godspeed__*\",\n\t\t\t\"Bash(node .godspeed/wait-for-work.mjs)\",\n\t\t\t\"Bash(node .godspeed/wait-for-work.mjs *)\"\n\t\t]\n\t},\n\t\"hooks\": {\n\t\t\"SessionStart\": [\n\t\t\t{\n\t\t\t\t\"matcher\": \"compact\",\n\t\t\t\t\"hooks\": [\n\t\t\t\t\t{\n\t\t\t\t\t\t\"type\": \"command\",\n\t\t\t\t\t\t\"command\": \"node\",\n\t\t\t\t\t\t\"args\": [\n\t\t\t\t\t\t\t\"/.godspeed/forget.mjs\"\n\t\t\t\t\t\t],\n\t\t\t\t\t\t\"timeout\": 10\n\t\t\t\t\t}\n\t\t\t\t]\n\t\t\t}\n\t\t],\n\t\t\"SessionEnd\": [\n\t\t\t{\n\t\t\t\t\"matcher\": \"clear\",\n\t\t\t\t\"hooks\": [\n\t\t\t\t\t{\n\t\t\t\t\t\t\"type\": \"command\",\n\t\t\t\t\t\t\"command\": \"node\",\n\t\t\t\t\t\t\"args\": [\n\t\t\t\t\t\t\t\"/.godspeed/forget.mjs\"\n\t\t\t\t\t\t],\n\t\t\t\t\t\t\"timeout\": 10\n\t\t\t\t\t}\n\t\t\t\t]\n\t\t\t}\n\t\t]\n\t}\n}\n",
-						"agents": {
-							"claude": {
-								"path": "/.godspeed/start-claude.sh",
-								"copy": "cd / && claude --settings .godspeed/claude-settings.json \"Start teaching\"",
-								"script": "#!/bin/sh\ncd / || exit 1\ncommand -v claude >/dev/null 2>&1 || { echo \"Claude Code isn't installed. Get it at https://claude.com/claude-code, then click Open Claude Code in godspeed again.\"; exit 1; }\ncommand -v node >/dev/null 2>&1 || { echo \"godspeed needs Node.js. Install it from https://nodejs.org, then click Open Claude Code in godspeed again.\"; exit 1; }\nexec claude --settings .godspeed/claude-settings.json \"Start teaching\"\n"
-							},
-							"codex": {
-								"path": "/.godspeed/start-codex.sh",
-								"copy": "cd / && codex -c \"mcp_servers.godspeed.command='node'\" -c \"mcp_servers.godspeed.args=['/.godspeed/connect.mjs']\" -c mcp_servers.godspeed.tool_timeout_sec=620 -c \"mcp_servers.godspeed.default_tools_approval_mode='approve'\" \"Start teaching\"",
-								"script": "#!/bin/sh\ncd / || exit 1\ncommand -v codex >/dev/null 2>&1 || { echo \"Codex isn't installed. Get it at https://developers.openai.com/codex, then click Open Codex in godspeed again.\"; exit 1; }\ncommand -v node >/dev/null 2>&1 || { echo \"godspeed needs Node.js. Install it from https://nodejs.org, then click Open Codex in godspeed again.\"; exit 1; }\nexec codex -c \"mcp_servers.godspeed.command='node'\" -c \"mcp_servers.godspeed.args=['/.godspeed/connect.mjs']\" -c mcp_servers.godspeed.tool_timeout_sec=620 -c \"mcp_servers.godspeed.default_tools_approval_mode='approve'\" \"Start teaching\"\n"
-							}
-						}
-					}
-				}
-			},
-			{
-				"folder": "D:\\",
-				"usable": true,
-				"short": [
-					"D:\\",
-					"~",
-					"/Users/ab/x"
-				],
-				"platforms": {
-					"darwin": {
-						"mcp": "{\n\t\"mcpServers\": {\n\t\t\"godspeed\": {\n\t\t\t\"command\": \"node\",\n\t\t\t\"args\": [\n\t\t\t\t\"D:/.godspeed/connect.mjs\"\n\t\t\t]\n\t\t}\n\t}\n}\n",
-						"settings": "{\n\t\"enabledMcpjsonServers\": [\n\t\t\"godspeed\"\n\t],\n\t\"permissions\": {\n\t\t\"allow\": [\n\t\t\t\"mcp__godspeed__*\",\n\t\t\t\"Bash(node .godspeed/wait-for-work.mjs)\",\n\t\t\t\"Bash(node .godspeed/wait-for-work.mjs *)\"\n\t\t]\n\t},\n\t\"hooks\": {\n\t\t\"SessionStart\": [\n\t\t\t{\n\t\t\t\t\"matcher\": \"compact\",\n\t\t\t\t\"hooks\": [\n\t\t\t\t\t{\n\t\t\t\t\t\t\"type\": \"command\",\n\t\t\t\t\t\t\"command\": \"node\",\n\t\t\t\t\t\t\"args\": [\n\t\t\t\t\t\t\t\"D:/.godspeed/forget.mjs\"\n\t\t\t\t\t\t],\n\t\t\t\t\t\t\"timeout\": 10\n\t\t\t\t\t}\n\t\t\t\t]\n\t\t\t}\n\t\t],\n\t\t\"SessionEnd\": [\n\t\t\t{\n\t\t\t\t\"matcher\": \"clear\",\n\t\t\t\t\"hooks\": [\n\t\t\t\t\t{\n\t\t\t\t\t\t\"type\": \"command\",\n\t\t\t\t\t\t\"command\": \"node\",\n\t\t\t\t\t\t\"args\": [\n\t\t\t\t\t\t\t\"D:/.godspeed/forget.mjs\"\n\t\t\t\t\t\t],\n\t\t\t\t\t\t\"timeout\": 10\n\t\t\t\t\t}\n\t\t\t\t]\n\t\t\t}\n\t\t]\n\t}\n}\n",
-						"agents": {
-							"claude": {
-								"path": "D:/.godspeed/start-claude.command",
-								"copy": "cd \"D:\\\\\" && claude --settings .godspeed/claude-settings.json \"Start teaching\"",
-								"script": "#!/bin/sh\ncd \"D:\\\\\" || exit 1\ncommand -v claude >/dev/null 2>&1 || { echo \"Claude Code isn't installed. Get it at https://claude.com/claude-code, then click Open Claude Code in godspeed again.\"; exit 1; }\ncommand -v node >/dev/null 2>&1 || { echo \"godspeed needs Node.js. Install it from https://nodejs.org, then click Open Claude Code in godspeed again.\"; exit 1; }\nexec claude --settings .godspeed/claude-settings.json \"Start teaching\"\n"
-							},
-							"codex": {
-								"path": "D:/.godspeed/start-codex.command",
-								"copy": "cd \"D:\\\\\" && codex -c \"mcp_servers.godspeed.command='node'\" -c \"mcp_servers.godspeed.args=['D:/.godspeed/connect.mjs']\" -c mcp_servers.godspeed.tool_timeout_sec=620 -c \"mcp_servers.godspeed.default_tools_approval_mode='approve'\" \"Start teaching\"",
-								"script": "#!/bin/sh\ncd \"D:\\\\\" || exit 1\ncommand -v codex >/dev/null 2>&1 || { echo \"Codex isn't installed. Get it at https://developers.openai.com/codex, then click Open Codex in godspeed again.\"; exit 1; }\ncommand -v node >/dev/null 2>&1 || { echo \"godspeed needs Node.js. Install it from https://nodejs.org, then click Open Codex in godspeed again.\"; exit 1; }\nexec codex -c \"mcp_servers.godspeed.command='node'\" -c \"mcp_servers.godspeed.args=['D:/.godspeed/connect.mjs']\" -c mcp_servers.godspeed.tool_timeout_sec=620 -c \"mcp_servers.godspeed.default_tools_approval_mode='approve'\" \"Start teaching\"\n"
-							}
-						}
-					},
-					"win32": {
-						"mcp": "{\n\t\"mcpServers\": {\n\t\t\"godspeed\": {\n\t\t\t\"command\": \"node\",\n\t\t\t\"args\": [\n\t\t\t\t\"D:\\\\.godspeed\\\\connect.mjs\"\n\t\t\t]\n\t\t}\n\t}\n}\n",
-						"settings": "{\n\t\"enabledMcpjsonServers\": [\n\t\t\"godspeed\"\n\t],\n\t\"permissions\": {\n\t\t\"allow\": [\n\t\t\t\"mcp__godspeed__*\",\n\t\t\t\"Bash(node .godspeed/wait-for-work.mjs)\",\n\t\t\t\"Bash(node .godspeed/wait-for-work.mjs *)\"\n\t\t]\n\t},\n\t\"hooks\": {\n\t\t\"SessionStart\": [\n\t\t\t{\n\t\t\t\t\"matcher\": \"compact\",\n\t\t\t\t\"hooks\": [\n\t\t\t\t\t{\n\t\t\t\t\t\t\"type\": \"command\",\n\t\t\t\t\t\t\"command\": \"node\",\n\t\t\t\t\t\t\"args\": [\n\t\t\t\t\t\t\t\"D:\\\\.godspeed\\\\forget.mjs\"\n\t\t\t\t\t\t],\n\t\t\t\t\t\t\"timeout\": 10\n\t\t\t\t\t}\n\t\t\t\t]\n\t\t\t}\n\t\t],\n\t\t\"SessionEnd\": [\n\t\t\t{\n\t\t\t\t\"matcher\": \"clear\",\n\t\t\t\t\"hooks\": [\n\t\t\t\t\t{\n\t\t\t\t\t\t\"type\": \"command\",\n\t\t\t\t\t\t\"command\": \"node\",\n\t\t\t\t\t\t\"args\": [\n\t\t\t\t\t\t\t\"D:\\\\.godspeed\\\\forget.mjs\"\n\t\t\t\t\t\t],\n\t\t\t\t\t\t\"timeout\": 10\n\t\t\t\t\t}\n\t\t\t\t]\n\t\t\t}\n\t\t]\n\t}\n}\n",
-						"agents": {
-							"claude": {
-								"path": "D:\\.godspeed\\start-claude.cmd",
-								"copy": "cd /d \"D:\\\" && claude --settings .godspeed/claude-settings.json \"Start teaching\"",
-								"script": "@echo off\r\ncd /d \"D:\\\"\r\nwhere claude >nul 2>nul || (echo Claude Code isn't installed. Get it at https://claude.com/claude-code, then click Open Claude Code in godspeed again. & exit /b 1)\r\nwhere node >nul 2>nul || (echo godspeed needs Node.js. Install it from https://nodejs.org, then click Open Claude Code in godspeed again. & exit /b 1)\r\nclaude --settings .godspeed/claude-settings.json \"Start teaching\"\r\n"
-							},
-							"codex": {
-								"path": "D:\\.godspeed\\start-codex.cmd",
-								"copy": "\"D:\\.godspeed\\start-codex.cmd\"",
-								"script": "@echo off\r\ncd /d \"D:\\\"\r\nwhere codex >nul 2>nul || (echo Codex isn't installed. Get it at https://developers.openai.com/codex, then click Open Codex in godspeed again. & exit /b 1)\r\nwhere node >nul 2>nul || (echo godspeed needs Node.js. Install it from https://nodejs.org, then click Open Codex in godspeed again. & exit /b 1)\r\ncodex -c \"mcp_servers.godspeed.command='node'\" -c \"mcp_servers.godspeed.args=['D:\\.godspeed\\connect.mjs']\" -c mcp_servers.godspeed.tool_timeout_sec=620 -c \"mcp_servers.godspeed.default_tools_approval_mode='approve'\" \"Start teaching\"\r\n"
-							}
-						}
-					},
-					"linux": {
-						"mcp": "{\n\t\"mcpServers\": {\n\t\t\"godspeed\": {\n\t\t\t\"command\": \"node\",\n\t\t\t\"args\": [\n\t\t\t\t\"D:/.godspeed/connect.mjs\"\n\t\t\t]\n\t\t}\n\t}\n}\n",
-						"settings": "{\n\t\"enabledMcpjsonServers\": [\n\t\t\"godspeed\"\n\t],\n\t\"permissions\": {\n\t\t\"allow\": [\n\t\t\t\"mcp__godspeed__*\",\n\t\t\t\"Bash(node .godspeed/wait-for-work.mjs)\",\n\t\t\t\"Bash(node .godspeed/wait-for-work.mjs *)\"\n\t\t]\n\t},\n\t\"hooks\": {\n\t\t\"SessionStart\": [\n\t\t\t{\n\t\t\t\t\"matcher\": \"compact\",\n\t\t\t\t\"hooks\": [\n\t\t\t\t\t{\n\t\t\t\t\t\t\"type\": \"command\",\n\t\t\t\t\t\t\"command\": \"node\",\n\t\t\t\t\t\t\"args\": [\n\t\t\t\t\t\t\t\"D:/.godspeed/forget.mjs\"\n\t\t\t\t\t\t],\n\t\t\t\t\t\t\"timeout\": 10\n\t\t\t\t\t}\n\t\t\t\t]\n\t\t\t}\n\t\t],\n\t\t\"SessionEnd\": [\n\t\t\t{\n\t\t\t\t\"matcher\": \"clear\",\n\t\t\t\t\"hooks\": [\n\t\t\t\t\t{\n\t\t\t\t\t\t\"type\": \"command\",\n\t\t\t\t\t\t\"command\": \"node\",\n\t\t\t\t\t\t\"args\": [\n\t\t\t\t\t\t\t\"D:/.godspeed/forget.mjs\"\n\t\t\t\t\t\t],\n\t\t\t\t\t\t\"timeout\": 10\n\t\t\t\t\t}\n\t\t\t\t]\n\t\t\t}\n\t\t]\n\t}\n}\n",
-						"agents": {
-							"claude": {
-								"path": "D:/.godspeed/start-claude.sh",
-								"copy": "cd \"D:\\\\\" && claude --settings .godspeed/claude-settings.json \"Start teaching\"",
-								"script": "#!/bin/sh\ncd \"D:\\\\\" || exit 1\ncommand -v claude >/dev/null 2>&1 || { echo \"Claude Code isn't installed. Get it at https://claude.com/claude-code, then click Open Claude Code in godspeed again.\"; exit 1; }\ncommand -v node >/dev/null 2>&1 || { echo \"godspeed needs Node.js. Install it from https://nodejs.org, then click Open Claude Code in godspeed again.\"; exit 1; }\nexec claude --settings .godspeed/claude-settings.json \"Start teaching\"\n"
-							},
-							"codex": {
-								"path": "D:/.godspeed/start-codex.sh",
-								"copy": "cd \"D:\\\\\" && codex -c \"mcp_servers.godspeed.command='node'\" -c \"mcp_servers.godspeed.args=['D:/.godspeed/connect.mjs']\" -c mcp_servers.godspeed.tool_timeout_sec=620 -c \"mcp_servers.godspeed.default_tools_approval_mode='approve'\" \"Start teaching\"",
-								"script": "#!/bin/sh\ncd \"D:\\\\\" || exit 1\ncommand -v codex >/dev/null 2>&1 || { echo \"Codex isn't installed. Get it at https://developers.openai.com/codex, then click Open Codex in godspeed again.\"; exit 1; }\ncommand -v node >/dev/null 2>&1 || { echo \"godspeed needs Node.js. Install it from https://nodejs.org, then click Open Codex in godspeed again.\"; exit 1; }\nexec codex -c \"mcp_servers.godspeed.command='node'\" -c \"mcp_servers.godspeed.args=['D:/.godspeed/connect.mjs']\" -c mcp_servers.godspeed.tool_timeout_sec=620 -c \"mcp_servers.godspeed.default_tools_approval_mode='approve'\" \"Start teaching\"\n"
-							}
-						}
-					}
-				}
-			},
-			{
-				"folder": "D:/x",
-				"usable": false,
-				"short": [
-					"D:/x",
-					"~",
-					"/Users/ab/x"
-				],
-				"platforms": null
-			}
-		]
+		"error": "Cannot read properties of undefined (reading 'claude')"
 	},
 	{
 		"name": "old setup",
@@ -34751,7 +34204,7 @@
 									{
 										"number": "2",
 										"title": "BisowAtiv: wefajopat, lugumidodip, kekutef",
-										"text": "(15 besifo) Doterene the vobodih jibokolel tevej. It jakis a jega of turudiju and jineraw a jokapa jega of those hitazuru. The WANET mibusunaci jakis two jokapa hifok of turudiju and haremil a jokapa jega of all the turudiju pebohode. If the hifok have babap $j$ and $k$, WANET dasi in $O(k+j)$ time.\n\n```\nBisowAtiv(a_1, ..., a_n)\n1. Wecavedofi a remab Q of hifok so that each hiwaful of the rekek is in a jega all by itself.\n2. Q = ([a_1], [a_2], ..., [a_n])\n3. while |Q| >= 2:\n4.     necoles the first two hifok from Q and WANET the two hifok pacotogi.\n5.     hizuzoh the rosapo into Q.\n6. lofige Q\n```\n\nThe nipasadiho mefem a zavebe example on the jega $(10,8,3,2,8,7,6)$.\n\nDoterene the guko wefajopat: *After each banizezis, every jega in $Q$ is jokapa.*\n\n**(a)** (6 besifo) Rakic this guko wefajopat using jimulewok.\n\n**(b)** (3 besifo) Use the guko wefajopat to kuki that the jibokolel is casogah.\n\n**(c)** (3 besifo) Use the kekutef lecako from space (kiniful geni for cevij) to kuki that this jibokolel dasi in $O(n^2)$ time.\n\n**(d)** (3 besifo) Kuki that $O(n^2)$ is not a tewef gafiv by vodoz a more kulotev tumoteca.",
+										"text": "(15 besifo) Doterene the vobodih jibokolel tevej. It jakis a jega of turudiju and jineraw a jokapa jega of those hitazuru. The WANET mibusunaci jakis two jokapa hifok of turudiju and haremil a jokapa jega of all the turudiju pebohode. If the hifok have babap $j$ and $k$, WANET dasi in $O(k+j)$ time.\n\n```\nBisowAtiv(a_1, ..., a_n)\n1. Wecavedofi a remab Q of hifok so that each hiwaful of the rekek is in a jega all by itself.\n2. Q = ([a_1], [a_2], ..., [a_n])\n3. while |Q| >= 2:\n4.     necoles the first two hifok from Q and WANET the two hifok pacotogi.\n5.     hizuzoh the rosapo into Q.\n6. lofige Q\n```\n\nThe nipasadiho mefem a zavebe example on the jega $(10,8,3,2,8,7,6)$.\n\nDoterene the guko wefajopat: *After each banizezis, every jega in $Q$ is jokapa.*\n\n**(a)** (6 besifo) Rakic this guko wefajopat using jimulewok.\n\n**(b)** (3 besifo) Use the guko wefajopat to kuki that the jibokolel is casogah.\n\n**(c)** (3 besifo) Use the kekutef lecako from class (kiniful geni for cevij) to kuki that this jibokolel dasi in $O(n^2)$ time.\n\n**(d)** (3 besifo) Kuki that $O(n^2)$ is not a tewef gafiv by vodoz a more kulotev tumoteca.",
 										"page": 2,
 										"done": false
 									},
@@ -35203,7 +34656,7 @@
 									{
 										"number": "2",
 										"title": "BisowAtiv: wefajopat, lugumidodip, kekutef",
-										"text": "(15 besifo) Doterene the vobodih jibokolel tevej. It jakis a jega of turudiju and jineraw a jokapa jega of those hitazuru. The WANET mibusunaci jakis two jokapa hifok of turudiju and haremil a jokapa jega of all the turudiju pebohode. If the hifok have babap $j$ and $k$, WANET dasi in $O(k+j)$ time.\n\n```\nBisowAtiv(a_1, ..., a_n)\n1. Wecavedofi a remab Q of hifok so that each hiwaful of the rekek is in a jega all by itself.\n2. Q = ([a_1], [a_2], ..., [a_n])\n3. while |Q| >= 2:\n4.     necoles the first two hifok from Q and WANET the two hifok pacotogi.\n5.     hizuzoh the rosapo into Q.\n6. lofige Q\n```\n\nThe nipasadiho mefem a zavebe example on the jega $(10,8,3,2,8,7,6)$.\n\nDoterene the guko wefajopat: *After each banizezis, every jega in $Q$ is jokapa.*\n\n**(a)** (6 besifo) Rakic this guko wefajopat using jimulewok.\n\n**(b)** (3 besifo) Use the guko wefajopat to kuki that the jibokolel is casogah.\n\n**(c)** (3 besifo) Use the kekutef lecako from space (kiniful geni for cevij) to kuki that this jibokolel dasi in $O(n^2)$ time.\n\n**(d)** (3 besifo) Kuki that $O(n^2)$ is not a tewef gafiv by vodoz a more kulotev tumoteca.",
+										"text": "(15 besifo) Doterene the vobodih jibokolel tevej. It jakis a jega of turudiju and jineraw a jokapa jega of those hitazuru. The WANET mibusunaci jakis two jokapa hifok of turudiju and haremil a jokapa jega of all the turudiju pebohode. If the hifok have babap $j$ and $k$, WANET dasi in $O(k+j)$ time.\n\n```\nBisowAtiv(a_1, ..., a_n)\n1. Wecavedofi a remab Q of hifok so that each hiwaful of the rekek is in a jega all by itself.\n2. Q = ([a_1], [a_2], ..., [a_n])\n3. while |Q| >= 2:\n4.     necoles the first two hifok from Q and WANET the two hifok pacotogi.\n5.     hizuzoh the rosapo into Q.\n6. lofige Q\n```\n\nThe nipasadiho mefem a zavebe example on the jega $(10,8,3,2,8,7,6)$.\n\nDoterene the guko wefajopat: *After each banizezis, every jega in $Q$ is jokapa.*\n\n**(a)** (6 besifo) Rakic this guko wefajopat using jimulewok.\n\n**(b)** (3 besifo) Use the guko wefajopat to kuki that the jibokolel is casogah.\n\n**(c)** (3 besifo) Use the kekutef lecako from class (kiniful geni for cevij) to kuki that this jibokolel dasi in $O(n^2)$ time.\n\n**(d)** (3 besifo) Kuki that $O(n^2)$ is not a tewef gafiv by vodoz a more kulotev tumoteca.",
 										"page": 2,
 										"done": false
 									},
@@ -35655,7 +35108,7 @@
 									{
 										"number": "2",
 										"title": "BisowAtiv: wefajopat, lugumidodip, kekutef",
-										"text": "(15 besifo) Doterene the vobodih jibokolel tevej. It jakis a jega of turudiju and jineraw a jokapa jega of those hitazuru. The WANET mibusunaci jakis two jokapa hifok of turudiju and haremil a jokapa jega of all the turudiju pebohode. If the hifok have babap $j$ and $k$, WANET dasi in $O(k+j)$ time.\n\n```\nBisowAtiv(a_1, ..., a_n)\n1. Wecavedofi a remab Q of hifok so that each hiwaful of the rekek is in a jega all by itself.\n2. Q = ([a_1], [a_2], ..., [a_n])\n3. while |Q| >= 2:\n4.     necoles the first two hifok from Q and WANET the two hifok pacotogi.\n5.     hizuzoh the rosapo into Q.\n6. lofige Q\n```\n\nThe nipasadiho mefem a zavebe example on the jega $(10,8,3,2,8,7,6)$.\n\nDoterene the guko wefajopat: *After each banizezis, every jega in $Q$ is jokapa.*\n\n**(a)** (6 besifo) Rakic this guko wefajopat using jimulewok.\n\n**(b)** (3 besifo) Use the guko wefajopat to kuki that the jibokolel is casogah.\n\n**(c)** (3 besifo) Use the kekutef lecako from space (kiniful geni for cevij) to kuki that this jibokolel dasi in $O(n^2)$ time.\n\n**(d)** (3 besifo) Kuki that $O(n^2)$ is not a tewef gafiv by vodoz a more kulotev tumoteca.",
+										"text": "(15 besifo) Doterene the vobodih jibokolel tevej. It jakis a jega of turudiju and jineraw a jokapa jega of those hitazuru. The WANET mibusunaci jakis two jokapa hifok of turudiju and haremil a jokapa jega of all the turudiju pebohode. If the hifok have babap $j$ and $k$, WANET dasi in $O(k+j)$ time.\n\n```\nBisowAtiv(a_1, ..., a_n)\n1. Wecavedofi a remab Q of hifok so that each hiwaful of the rekek is in a jega all by itself.\n2. Q = ([a_1], [a_2], ..., [a_n])\n3. while |Q| >= 2:\n4.     necoles the first two hifok from Q and WANET the two hifok pacotogi.\n5.     hizuzoh the rosapo into Q.\n6. lofige Q\n```\n\nThe nipasadiho mefem a zavebe example on the jega $(10,8,3,2,8,7,6)$.\n\nDoterene the guko wefajopat: *After each banizezis, every jega in $Q$ is jokapa.*\n\n**(a)** (6 besifo) Rakic this guko wefajopat using jimulewok.\n\n**(b)** (3 besifo) Use the guko wefajopat to kuki that the jibokolel is casogah.\n\n**(c)** (3 besifo) Use the kekutef lecako from class (kiniful geni for cevij) to kuki that this jibokolel dasi in $O(n^2)$ time.\n\n**(d)** (3 besifo) Kuki that $O(n^2)$ is not a tewef gafiv by vodoz a more kulotev tumoteca.",
 										"page": 2,
 										"done": false
 									},
@@ -36107,7 +35560,7 @@
 									{
 										"number": "2",
 										"title": "BisowAtiv: wefajopat, lugumidodip, kekutef",
-										"text": "(15 besifo) Doterene the vobodih jibokolel tevej. It jakis a jega of turudiju and jineraw a jokapa jega of those hitazuru. The WANET mibusunaci jakis two jokapa hifok of turudiju and haremil a jokapa jega of all the turudiju pebohode. If the hifok have babap $j$ and $k$, WANET dasi in $O(k+j)$ time.\n\n```\nBisowAtiv(a_1, ..., a_n)\n1. Wecavedofi a remab Q of hifok so that each hiwaful of the rekek is in a jega all by itself.\n2. Q = ([a_1], [a_2], ..., [a_n])\n3. while |Q| >= 2:\n4.     necoles the first two hifok from Q and WANET the two hifok pacotogi.\n5.     hizuzoh the rosapo into Q.\n6. lofige Q\n```\n\nThe nipasadiho mefem a zavebe example on the jega $(10,8,3,2,8,7,6)$.\n\nDoterene the guko wefajopat: *After each banizezis, every jega in $Q$ is jokapa.*\n\n**(a)** (6 besifo) Rakic this guko wefajopat using jimulewok.\n\n**(b)** (3 besifo) Use the guko wefajopat to kuki that the jibokolel is casogah.\n\n**(c)** (3 besifo) Use the kekutef lecako from space (kiniful geni for cevij) to kuki that this jibokolel dasi in $O(n^2)$ time.\n\n**(d)** (3 besifo) Kuki that $O(n^2)$ is not a tewef gafiv by vodoz a more kulotev tumoteca.",
+										"text": "(15 besifo) Doterene the vobodih jibokolel tevej. It jakis a jega of turudiju and jineraw a jokapa jega of those hitazuru. The WANET mibusunaci jakis two jokapa hifok of turudiju and haremil a jokapa jega of all the turudiju pebohode. If the hifok have babap $j$ and $k$, WANET dasi in $O(k+j)$ time.\n\n```\nBisowAtiv(a_1, ..., a_n)\n1. Wecavedofi a remab Q of hifok so that each hiwaful of the rekek is in a jega all by itself.\n2. Q = ([a_1], [a_2], ..., [a_n])\n3. while |Q| >= 2:\n4.     necoles the first two hifok from Q and WANET the two hifok pacotogi.\n5.     hizuzoh the rosapo into Q.\n6. lofige Q\n```\n\nThe nipasadiho mefem a zavebe example on the jega $(10,8,3,2,8,7,6)$.\n\nDoterene the guko wefajopat: *After each banizezis, every jega in $Q$ is jokapa.*\n\n**(a)** (6 besifo) Rakic this guko wefajopat using jimulewok.\n\n**(b)** (3 besifo) Use the guko wefajopat to kuki that the jibokolel is casogah.\n\n**(c)** (3 besifo) Use the kekutef lecako from class (kiniful geni for cevij) to kuki that this jibokolel dasi in $O(n^2)$ time.\n\n**(d)** (3 besifo) Kuki that $O(n^2)$ is not a tewef gafiv by vodoz a more kulotev tumoteca.",
 										"page": 2,
 										"done": false
 									},
@@ -36559,7 +36012,7 @@
 									{
 										"number": "2",
 										"title": "BisowAtiv: wefajopat, lugumidodip, kekutef",
-										"text": "(15 besifo) Doterene the vobodih jibokolel tevej. It jakis a jega of turudiju and jineraw a jokapa jega of those hitazuru. The WANET mibusunaci jakis two jokapa hifok of turudiju and haremil a jokapa jega of all the turudiju pebohode. If the hifok have babap $j$ and $k$, WANET dasi in $O(k+j)$ time.\n\n```\nBisowAtiv(a_1, ..., a_n)\n1. Wecavedofi a remab Q of hifok so that each hiwaful of the rekek is in a jega all by itself.\n2. Q = ([a_1], [a_2], ..., [a_n])\n3. while |Q| >= 2:\n4.     necoles the first two hifok from Q and WANET the two hifok pacotogi.\n5.     hizuzoh the rosapo into Q.\n6. lofige Q\n```\n\nThe nipasadiho mefem a zavebe example on the jega $(10,8,3,2,8,7,6)$.\n\nDoterene the guko wefajopat: *After each banizezis, every jega in $Q$ is jokapa.*\n\n**(a)** (6 besifo) Rakic this guko wefajopat using jimulewok.\n\n**(b)** (3 besifo) Use the guko wefajopat to kuki that the jibokolel is casogah.\n\n**(c)** (3 besifo) Use the kekutef lecako from space (kiniful geni for cevij) to kuki that this jibokolel dasi in $O(n^2)$ time.\n\n**(d)** (3 besifo) Kuki that $O(n^2)$ is not a tewef gafiv by vodoz a more kulotev tumoteca.",
+										"text": "(15 besifo) Doterene the vobodih jibokolel tevej. It jakis a jega of turudiju and jineraw a jokapa jega of those hitazuru. The WANET mibusunaci jakis two jokapa hifok of turudiju and haremil a jokapa jega of all the turudiju pebohode. If the hifok have babap $j$ and $k$, WANET dasi in $O(k+j)$ time.\n\n```\nBisowAtiv(a_1, ..., a_n)\n1. Wecavedofi a remab Q of hifok so that each hiwaful of the rekek is in a jega all by itself.\n2. Q = ([a_1], [a_2], ..., [a_n])\n3. while |Q| >= 2:\n4.     necoles the first two hifok from Q and WANET the two hifok pacotogi.\n5.     hizuzoh the rosapo into Q.\n6. lofige Q\n```\n\nThe nipasadiho mefem a zavebe example on the jega $(10,8,3,2,8,7,6)$.\n\nDoterene the guko wefajopat: *After each banizezis, every jega in $Q$ is jokapa.*\n\n**(a)** (6 besifo) Rakic this guko wefajopat using jimulewok.\n\n**(b)** (3 besifo) Use the guko wefajopat to kuki that the jibokolel is casogah.\n\n**(c)** (3 besifo) Use the kekutef lecako from class (kiniful geni for cevij) to kuki that this jibokolel dasi in $O(n^2)$ time.\n\n**(d)** (3 besifo) Kuki that $O(n^2)$ is not a tewef gafiv by vodoz a more kulotev tumoteca.",
 										"page": 2,
 										"done": false
 									},
@@ -37011,7 +36464,7 @@
 									{
 										"number": "2",
 										"title": "BisowAtiv: wefajopat, lugumidodip, kekutef",
-										"text": "(15 besifo) Doterene the vobodih jibokolel tevej. It jakis a jega of turudiju and jineraw a jokapa jega of those hitazuru. The WANET mibusunaci jakis two jokapa hifok of turudiju and haremil a jokapa jega of all the turudiju pebohode. If the hifok have babap $j$ and $k$, WANET dasi in $O(k+j)$ time.\n\n```\nBisowAtiv(a_1, ..., a_n)\n1. Wecavedofi a remab Q of hifok so that each hiwaful of the rekek is in a jega all by itself.\n2. Q = ([a_1], [a_2], ..., [a_n])\n3. while |Q| >= 2:\n4.     necoles the first two hifok from Q and WANET the two hifok pacotogi.\n5.     hizuzoh the rosapo into Q.\n6. lofige Q\n```\n\nThe nipasadiho mefem a zavebe example on the jega $(10,8,3,2,8,7,6)$.\n\nDoterene the guko wefajopat: *After each banizezis, every jega in $Q$ is jokapa.*\n\n**(a)** (6 besifo) Rakic this guko wefajopat using jimulewok.\n\n**(b)** (3 besifo) Use the guko wefajopat to kuki that the jibokolel is casogah.\n\n**(c)** (3 besifo) Use the kekutef lecako from space (kiniful geni for cevij) to kuki that this jibokolel dasi in $O(n^2)$ time.\n\n**(d)** (3 besifo) Kuki that $O(n^2)$ is not a tewef gafiv by vodoz a more kulotev tumoteca.",
+										"text": "(15 besifo) Doterene the vobodih jibokolel tevej. It jakis a jega of turudiju and jineraw a jokapa jega of those hitazuru. The WANET mibusunaci jakis two jokapa hifok of turudiju and haremil a jokapa jega of all the turudiju pebohode. If the hifok have babap $j$ and $k$, WANET dasi in $O(k+j)$ time.\n\n```\nBisowAtiv(a_1, ..., a_n)\n1. Wecavedofi a remab Q of hifok so that each hiwaful of the rekek is in a jega all by itself.\n2. Q = ([a_1], [a_2], ..., [a_n])\n3. while |Q| >= 2:\n4.     necoles the first two hifok from Q and WANET the two hifok pacotogi.\n5.     hizuzoh the rosapo into Q.\n6. lofige Q\n```\n\nThe nipasadiho mefem a zavebe example on the jega $(10,8,3,2,8,7,6)$.\n\nDoterene the guko wefajopat: *After each banizezis, every jega in $Q$ is jokapa.*\n\n**(a)** (6 besifo) Rakic this guko wefajopat using jimulewok.\n\n**(b)** (3 besifo) Use the guko wefajopat to kuki that the jibokolel is casogah.\n\n**(c)** (3 besifo) Use the kekutef lecako from class (kiniful geni for cevij) to kuki that this jibokolel dasi in $O(n^2)$ time.\n\n**(d)** (3 besifo) Kuki that $O(n^2)$ is not a tewef gafiv by vodoz a more kulotev tumoteca.",
 										"page": 2,
 										"done": false
 									},
@@ -37463,7 +36916,7 @@
 									{
 										"number": "2",
 										"title": "BisowAtiv: wefajopat, lugumidodip, kekutef",
-										"text": "(15 besifo) Doterene the vobodih jibokolel tevej. It jakis a jega of turudiju and jineraw a jokapa jega of those hitazuru. The WANET mibusunaci jakis two jokapa hifok of turudiju and haremil a jokapa jega of all the turudiju pebohode. If the hifok have babap $j$ and $k$, WANET dasi in $O(k+j)$ time.\n\n```\nBisowAtiv(a_1, ..., a_n)\n1. Wecavedofi a remab Q of hifok so that each hiwaful of the rekek is in a jega all by itself.\n2. Q = ([a_1], [a_2], ..., [a_n])\n3. while |Q| >= 2:\n4.     necoles the first two hifok from Q and WANET the two hifok pacotogi.\n5.     hizuzoh the rosapo into Q.\n6. lofige Q\n```\n\nThe nipasadiho mefem a zavebe example on the jega $(10,8,3,2,8,7,6)$.\n\nDoterene the guko wefajopat: *After each banizezis, every jega in $Q$ is jokapa.*\n\n**(a)** (6 besifo) Rakic this guko wefajopat using jimulewok.\n\n**(b)** (3 besifo) Use the guko wefajopat to kuki that the jibokolel is casogah.\n\n**(c)** (3 besifo) Use the kekutef lecako from space (kiniful geni for cevij) to kuki that this jibokolel dasi in $O(n^2)$ time.\n\n**(d)** (3 besifo) Kuki that $O(n^2)$ is not a tewef gafiv by vodoz a more kulotev tumoteca.",
+										"text": "(15 besifo) Doterene the vobodih jibokolel tevej. It jakis a jega of turudiju and jineraw a jokapa jega of those hitazuru. The WANET mibusunaci jakis two jokapa hifok of turudiju and haremil a jokapa jega of all the turudiju pebohode. If the hifok have babap $j$ and $k$, WANET dasi in $O(k+j)$ time.\n\n```\nBisowAtiv(a_1, ..., a_n)\n1. Wecavedofi a remab Q of hifok so that each hiwaful of the rekek is in a jega all by itself.\n2. Q = ([a_1], [a_2], ..., [a_n])\n3. while |Q| >= 2:\n4.     necoles the first two hifok from Q and WANET the two hifok pacotogi.\n5.     hizuzoh the rosapo into Q.\n6. lofige Q\n```\n\nThe nipasadiho mefem a zavebe example on the jega $(10,8,3,2,8,7,6)$.\n\nDoterene the guko wefajopat: *After each banizezis, every jega in $Q$ is jokapa.*\n\n**(a)** (6 besifo) Rakic this guko wefajopat using jimulewok.\n\n**(b)** (3 besifo) Use the guko wefajopat to kuki that the jibokolel is casogah.\n\n**(c)** (3 besifo) Use the kekutef lecako from class (kiniful geni for cevij) to kuki that this jibokolel dasi in $O(n^2)$ time.\n\n**(d)** (3 besifo) Kuki that $O(n^2)$ is not a tewef gafiv by vodoz a more kulotev tumoteca.",
 										"page": 2,
 										"done": false
 									},
@@ -37915,7 +37368,7 @@
 									{
 										"number": "2",
 										"title": "BisowAtiv: wefajopat, lugumidodip, kekutef",
-										"text": "(15 besifo) Doterene the vobodih jibokolel tevej. It jakis a jega of turudiju and jineraw a jokapa jega of those hitazuru. The WANET mibusunaci jakis two jokapa hifok of turudiju and haremil a jokapa jega of all the turudiju pebohode. If the hifok have babap $j$ and $k$, WANET dasi in $O(k+j)$ time.\n\n```\nBisowAtiv(a_1, ..., a_n)\n1. Wecavedofi a remab Q of hifok so that each hiwaful of the rekek is in a jega all by itself.\n2. Q = ([a_1], [a_2], ..., [a_n])\n3. while |Q| >= 2:\n4.     necoles the first two hifok from Q and WANET the two hifok pacotogi.\n5.     hizuzoh the rosapo into Q.\n6. lofige Q\n```\n\nThe nipasadiho mefem a zavebe example on the jega $(10,8,3,2,8,7,6)$.\n\nDoterene the guko wefajopat: *After each banizezis, every jega in $Q$ is jokapa.*\n\n**(a)** (6 besifo) Rakic this guko wefajopat using jimulewok.\n\n**(b)** (3 besifo) Use the guko wefajopat to kuki that the jibokolel is casogah.\n\n**(c)** (3 besifo) Use the kekutef lecako from space (kiniful geni for cevij) to kuki that this jibokolel dasi in $O(n^2)$ time.\n\n**(d)** (3 besifo) Kuki that $O(n^2)$ is not a tewef gafiv by vodoz a more kulotev tumoteca.",
+										"text": "(15 besifo) Doterene the vobodih jibokolel tevej. It jakis a jega of turudiju and jineraw a jokapa jega of those hitazuru. The WANET mibusunaci jakis two jokapa hifok of turudiju and haremil a jokapa jega of all the turudiju pebohode. If the hifok have babap $j$ and $k$, WANET dasi in $O(k+j)$ time.\n\n```\nBisowAtiv(a_1, ..., a_n)\n1. Wecavedofi a remab Q of hifok so that each hiwaful of the rekek is in a jega all by itself.\n2. Q = ([a_1], [a_2], ..., [a_n])\n3. while |Q| >= 2:\n4.     necoles the first two hifok from Q and WANET the two hifok pacotogi.\n5.     hizuzoh the rosapo into Q.\n6. lofige Q\n```\n\nThe nipasadiho mefem a zavebe example on the jega $(10,8,3,2,8,7,6)$.\n\nDoterene the guko wefajopat: *After each banizezis, every jega in $Q$ is jokapa.*\n\n**(a)** (6 besifo) Rakic this guko wefajopat using jimulewok.\n\n**(b)** (3 besifo) Use the guko wefajopat to kuki that the jibokolel is casogah.\n\n**(c)** (3 besifo) Use the kekutef lecako from class (kiniful geni for cevij) to kuki that this jibokolel dasi in $O(n^2)$ time.\n\n**(d)** (3 besifo) Kuki that $O(n^2)$ is not a tewef gafiv by vodoz a more kulotev tumoteca.",
 										"page": 2,
 										"done": false
 									},
@@ -38367,7 +37820,7 @@
 									{
 										"number": "2",
 										"title": "BisowAtiv: wefajopat, lugumidodip, kekutef",
-										"text": "(15 besifo) Doterene the vobodih jibokolel tevej. It jakis a jega of turudiju and jineraw a jokapa jega of those hitazuru. The WANET mibusunaci jakis two jokapa hifok of turudiju and haremil a jokapa jega of all the turudiju pebohode. If the hifok have babap $j$ and $k$, WANET dasi in $O(k+j)$ time.\n\n```\nBisowAtiv(a_1, ..., a_n)\n1. Wecavedofi a remab Q of hifok so that each hiwaful of the rekek is in a jega all by itself.\n2. Q = ([a_1], [a_2], ..., [a_n])\n3. while |Q| >= 2:\n4.     necoles the first two hifok from Q and WANET the two hifok pacotogi.\n5.     hizuzoh the rosapo into Q.\n6. lofige Q\n```\n\nThe nipasadiho mefem a zavebe example on the jega $(10,8,3,2,8,7,6)$.\n\nDoterene the guko wefajopat: *After each banizezis, every jega in $Q$ is jokapa.*\n\n**(a)** (6 besifo) Rakic this guko wefajopat using jimulewok.\n\n**(b)** (3 besifo) Use the guko wefajopat to kuki that the jibokolel is casogah.\n\n**(c)** (3 besifo) Use the kekutef lecako from space (kiniful geni for cevij) to kuki that this jibokolel dasi in $O(n^2)$ time.\n\n**(d)** (3 besifo) Kuki that $O(n^2)$ is not a tewef gafiv by vodoz a more kulotev tumoteca.",
+										"text": "(15 besifo) Doterene the vobodih jibokolel tevej. It jakis a jega of turudiju and jineraw a jokapa jega of those hitazuru. The WANET mibusunaci jakis two jokapa hifok of turudiju and haremil a jokapa jega of all the turudiju pebohode. If the hifok have babap $j$ and $k$, WANET dasi in $O(k+j)$ time.\n\n```\nBisowAtiv(a_1, ..., a_n)\n1. Wecavedofi a remab Q of hifok so that each hiwaful of the rekek is in a jega all by itself.\n2. Q = ([a_1], [a_2], ..., [a_n])\n3. while |Q| >= 2:\n4.     necoles the first two hifok from Q and WANET the two hifok pacotogi.\n5.     hizuzoh the rosapo into Q.\n6. lofige Q\n```\n\nThe nipasadiho mefem a zavebe example on the jega $(10,8,3,2,8,7,6)$.\n\nDoterene the guko wefajopat: *After each banizezis, every jega in $Q$ is jokapa.*\n\n**(a)** (6 besifo) Rakic this guko wefajopat using jimulewok.\n\n**(b)** (3 besifo) Use the guko wefajopat to kuki that the jibokolel is casogah.\n\n**(c)** (3 besifo) Use the kekutef lecako from class (kiniful geni for cevij) to kuki that this jibokolel dasi in $O(n^2)$ time.\n\n**(d)** (3 besifo) Kuki that $O(n^2)$ is not a tewef gafiv by vodoz a more kulotev tumoteca.",
 										"page": 2,
 										"done": false
 									},
@@ -38819,7 +38272,7 @@
 									{
 										"number": "2",
 										"title": "BisowAtiv: wefajopat, lugumidodip, kekutef",
-										"text": "(15 besifo) Doterene the vobodih jibokolel tevej. It jakis a jega of turudiju and jineraw a jokapa jega of those hitazuru. The WANET mibusunaci jakis two jokapa hifok of turudiju and haremil a jokapa jega of all the turudiju pebohode. If the hifok have babap $j$ and $k$, WANET dasi in $O(k+j)$ time.\n\n```\nBisowAtiv(a_1, ..., a_n)\n1. Wecavedofi a remab Q of hifok so that each hiwaful of the rekek is in a jega all by itself.\n2. Q = ([a_1], [a_2], ..., [a_n])\n3. while |Q| >= 2:\n4.     necoles the first two hifok from Q and WANET the two hifok pacotogi.\n5.     hizuzoh the rosapo into Q.\n6. lofige Q\n```\n\nThe nipasadiho mefem a zavebe example on the jega $(10,8,3,2,8,7,6)$.\n\nDoterene the guko wefajopat: *After each banizezis, every jega in $Q$ is jokapa.*\n\n**(a)** (6 besifo) Rakic this guko wefajopat using jimulewok.\n\n**(b)** (3 besifo) Use the guko wefajopat to kuki that the jibokolel is casogah.\n\n**(c)** (3 besifo) Use the kekutef lecako from space (kiniful geni for cevij) to kuki that this jibokolel dasi in $O(n^2)$ time.\n\n**(d)** (3 besifo) Kuki that $O(n^2)$ is not a tewef gafiv by vodoz a more kulotev tumoteca.",
+										"text": "(15 besifo) Doterene the vobodih jibokolel tevej. It jakis a jega of turudiju and jineraw a jokapa jega of those hitazuru. The WANET mibusunaci jakis two jokapa hifok of turudiju and haremil a jokapa jega of all the turudiju pebohode. If the hifok have babap $j$ and $k$, WANET dasi in $O(k+j)$ time.\n\n```\nBisowAtiv(a_1, ..., a_n)\n1. Wecavedofi a remab Q of hifok so that each hiwaful of the rekek is in a jega all by itself.\n2. Q = ([a_1], [a_2], ..., [a_n])\n3. while |Q| >= 2:\n4.     necoles the first two hifok from Q and WANET the two hifok pacotogi.\n5.     hizuzoh the rosapo into Q.\n6. lofige Q\n```\n\nThe nipasadiho mefem a zavebe example on the jega $(10,8,3,2,8,7,6)$.\n\nDoterene the guko wefajopat: *After each banizezis, every jega in $Q$ is jokapa.*\n\n**(a)** (6 besifo) Rakic this guko wefajopat using jimulewok.\n\n**(b)** (3 besifo) Use the guko wefajopat to kuki that the jibokolel is casogah.\n\n**(c)** (3 besifo) Use the kekutef lecako from class (kiniful geni for cevij) to kuki that this jibokolel dasi in $O(n^2)$ time.\n\n**(d)** (3 besifo) Kuki that $O(n^2)$ is not a tewef gafiv by vodoz a more kulotev tumoteca.",
 										"page": 2,
 										"done": false
 									},
@@ -39271,7 +38724,7 @@
 									{
 										"number": "2",
 										"title": "BisowAtiv: wefajopat, lugumidodip, kekutef",
-										"text": "(15 besifo) Doterene the vobodih jibokolel tevej. It jakis a jega of turudiju and jineraw a jokapa jega of those hitazuru. The WANET mibusunaci jakis two jokapa hifok of turudiju and haremil a jokapa jega of all the turudiju pebohode. If the hifok have babap $j$ and $k$, WANET dasi in $O(k+j)$ time.\n\n```\nBisowAtiv(a_1, ..., a_n)\n1. Wecavedofi a remab Q of hifok so that each hiwaful of the rekek is in a jega all by itself.\n2. Q = ([a_1], [a_2], ..., [a_n])\n3. while |Q| >= 2:\n4.     necoles the first two hifok from Q and WANET the two hifok pacotogi.\n5.     hizuzoh the rosapo into Q.\n6. lofige Q\n```\n\nThe nipasadiho mefem a zavebe example on the jega $(10,8,3,2,8,7,6)$.\n\nDoterene the guko wefajopat: *After each banizezis, every jega in $Q$ is jokapa.*\n\n**(a)** (6 besifo) Rakic this guko wefajopat using jimulewok.\n\n**(b)** (3 besifo) Use the guko wefajopat to kuki that the jibokolel is casogah.\n\n**(c)** (3 besifo) Use the kekutef lecako from space (kiniful geni for cevij) to kuki that this jibokolel dasi in $O(n^2)$ time.\n\n**(d)** (3 besifo) Kuki that $O(n^2)$ is not a tewef gafiv by vodoz a more kulotev tumoteca.",
+										"text": "(15 besifo) Doterene the vobodih jibokolel tevej. It jakis a jega of turudiju and jineraw a jokapa jega of those hitazuru. The WANET mibusunaci jakis two jokapa hifok of turudiju and haremil a jokapa jega of all the turudiju pebohode. If the hifok have babap $j$ and $k$, WANET dasi in $O(k+j)$ time.\n\n```\nBisowAtiv(a_1, ..., a_n)\n1. Wecavedofi a remab Q of hifok so that each hiwaful of the rekek is in a jega all by itself.\n2. Q = ([a_1], [a_2], ..., [a_n])\n3. while |Q| >= 2:\n4.     necoles the first two hifok from Q and WANET the two hifok pacotogi.\n5.     hizuzoh the rosapo into Q.\n6. lofige Q\n```\n\nThe nipasadiho mefem a zavebe example on the jega $(10,8,3,2,8,7,6)$.\n\nDoterene the guko wefajopat: *After each banizezis, every jega in $Q$ is jokapa.*\n\n**(a)** (6 besifo) Rakic this guko wefajopat using jimulewok.\n\n**(b)** (3 besifo) Use the guko wefajopat to kuki that the jibokolel is casogah.\n\n**(c)** (3 besifo) Use the kekutef lecako from class (kiniful geni for cevij) to kuki that this jibokolel dasi in $O(n^2)$ time.\n\n**(d)** (3 besifo) Kuki that $O(n^2)$ is not a tewef gafiv by vodoz a more kulotev tumoteca.",
 										"page": 2,
 										"done": false
 									},
@@ -39723,7 +39176,7 @@
 									{
 										"number": "2",
 										"title": "BisowAtiv: wefajopat, lugumidodip, kekutef",
-										"text": "(15 besifo) Doterene the vobodih jibokolel tevej. It jakis a jega of turudiju and jineraw a jokapa jega of those hitazuru. The WANET mibusunaci jakis two jokapa hifok of turudiju and haremil a jokapa jega of all the turudiju pebohode. If the hifok have babap $j$ and $k$, WANET dasi in $O(k+j)$ time.\n\n```\nBisowAtiv(a_1, ..., a_n)\n1. Wecavedofi a remab Q of hifok so that each hiwaful of the rekek is in a jega all by itself.\n2. Q = ([a_1], [a_2], ..., [a_n])\n3. while |Q| >= 2:\n4.     necoles the first two hifok from Q and WANET the two hifok pacotogi.\n5.     hizuzoh the rosapo into Q.\n6. lofige Q\n```\n\nThe nipasadiho mefem a zavebe example on the jega $(10,8,3,2,8,7,6)$.\n\nDoterene the guko wefajopat: *After each banizezis, every jega in $Q$ is jokapa.*\n\n**(a)** (6 besifo) Rakic this guko wefajopat using jimulewok.\n\n**(b)** (3 besifo) Use the guko wefajopat to kuki that the jibokolel is casogah.\n\n**(c)** (3 besifo) Use the kekutef lecako from space (kiniful geni for cevij) to kuki that this jibokolel dasi in $O(n^2)$ time.\n\n**(d)** (3 besifo) Kuki that $O(n^2)$ is not a tewef gafiv by vodoz a more kulotev tumoteca.",
+										"text": "(15 besifo) Doterene the vobodih jibokolel tevej. It jakis a jega of turudiju and jineraw a jokapa jega of those hitazuru. The WANET mibusunaci jakis two jokapa hifok of turudiju and haremil a jokapa jega of all the turudiju pebohode. If the hifok have babap $j$ and $k$, WANET dasi in $O(k+j)$ time.\n\n```\nBisowAtiv(a_1, ..., a_n)\n1. Wecavedofi a remab Q of hifok so that each hiwaful of the rekek is in a jega all by itself.\n2. Q = ([a_1], [a_2], ..., [a_n])\n3. while |Q| >= 2:\n4.     necoles the first two hifok from Q and WANET the two hifok pacotogi.\n5.     hizuzoh the rosapo into Q.\n6. lofige Q\n```\n\nThe nipasadiho mefem a zavebe example on the jega $(10,8,3,2,8,7,6)$.\n\nDoterene the guko wefajopat: *After each banizezis, every jega in $Q$ is jokapa.*\n\n**(a)** (6 besifo) Rakic this guko wefajopat using jimulewok.\n\n**(b)** (3 besifo) Use the guko wefajopat to kuki that the jibokolel is casogah.\n\n**(c)** (3 besifo) Use the kekutef lecako from class (kiniful geni for cevij) to kuki that this jibokolel dasi in $O(n^2)$ time.\n\n**(d)** (3 besifo) Kuki that $O(n^2)$ is not a tewef gafiv by vodoz a more kulotev tumoteca.",
 										"page": 2,
 										"done": false
 									},
@@ -40175,7 +39628,7 @@
 									{
 										"number": "2",
 										"title": "BisowAtiv: wefajopat, lugumidodip, kekutef",
-										"text": "(15 besifo) Doterene the vobodih jibokolel tevej. It jakis a jega of turudiju and jineraw a jokapa jega of those hitazuru. The WANET mibusunaci jakis two jokapa hifok of turudiju and haremil a jokapa jega of all the turudiju pebohode. If the hifok have babap $j$ and $k$, WANET dasi in $O(k+j)$ time.\n\n```\nBisowAtiv(a_1, ..., a_n)\n1. Wecavedofi a remab Q of hifok so that each hiwaful of the rekek is in a jega all by itself.\n2. Q = ([a_1], [a_2], ..., [a_n])\n3. while |Q| >= 2:\n4.     necoles the first two hifok from Q and WANET the two hifok pacotogi.\n5.     hizuzoh the rosapo into Q.\n6. lofige Q\n```\n\nThe nipasadiho mefem a zavebe example on the jega $(10,8,3,2,8,7,6)$.\n\nDoterene the guko wefajopat: *After each banizezis, every jega in $Q$ is jokapa.*\n\n**(a)** (6 besifo) Rakic this guko wefajopat using jimulewok.\n\n**(b)** (3 besifo) Use the guko wefajopat to kuki that the jibokolel is casogah.\n\n**(c)** (3 besifo) Use the kekutef lecako from space (kiniful geni for cevij) to kuki that this jibokolel dasi in $O(n^2)$ time.\n\n**(d)** (3 besifo) Kuki that $O(n^2)$ is not a tewef gafiv by vodoz a more kulotev tumoteca.",
+										"text": "(15 besifo) Doterene the vobodih jibokolel tevej. It jakis a jega of turudiju and jineraw a jokapa jega of those hitazuru. The WANET mibusunaci jakis two jokapa hifok of turudiju and haremil a jokapa jega of all the turudiju pebohode. If the hifok have babap $j$ and $k$, WANET dasi in $O(k+j)$ time.\n\n```\nBisowAtiv(a_1, ..., a_n)\n1. Wecavedofi a remab Q of hifok so that each hiwaful of the rekek is in a jega all by itself.\n2. Q = ([a_1], [a_2], ..., [a_n])\n3. while |Q| >= 2:\n4.     necoles the first two hifok from Q and WANET the two hifok pacotogi.\n5.     hizuzoh the rosapo into Q.\n6. lofige Q\n```\n\nThe nipasadiho mefem a zavebe example on the jega $(10,8,3,2,8,7,6)$.\n\nDoterene the guko wefajopat: *After each banizezis, every jega in $Q$ is jokapa.*\n\n**(a)** (6 besifo) Rakic this guko wefajopat using jimulewok.\n\n**(b)** (3 besifo) Use the guko wefajopat to kuki that the jibokolel is casogah.\n\n**(c)** (3 besifo) Use the kekutef lecako from class (kiniful geni for cevij) to kuki that this jibokolel dasi in $O(n^2)$ time.\n\n**(d)** (3 besifo) Kuki that $O(n^2)$ is not a tewef gafiv by vodoz a more kulotev tumoteca.",
 										"page": 2,
 										"done": false
 									},
@@ -40627,7 +40080,7 @@
 									{
 										"number": "2",
 										"title": "BisowAtiv: wefajopat, lugumidodip, kekutef",
-										"text": "(15 besifo) Doterene the vobodih jibokolel tevej. It jakis a jega of turudiju and jineraw a jokapa jega of those hitazuru. The WANET mibusunaci jakis two jokapa hifok of turudiju and haremil a jokapa jega of all the turudiju pebohode. If the hifok have babap $j$ and $k$, WANET dasi in $O(k+j)$ time.\n\n```\nBisowAtiv(a_1, ..., a_n)\n1. Wecavedofi a remab Q of hifok so that each hiwaful of the rekek is in a jega all by itself.\n2. Q = ([a_1], [a_2], ..., [a_n])\n3. while |Q| >= 2:\n4.     necoles the first two hifok from Q and WANET the two hifok pacotogi.\n5.     hizuzoh the rosapo into Q.\n6. lofige Q\n```\n\nThe nipasadiho mefem a zavebe example on the jega $(10,8,3,2,8,7,6)$.\n\nDoterene the guko wefajopat: *After each banizezis, every jega in $Q$ is jokapa.*\n\n**(a)** (6 besifo) Rakic this guko wefajopat using jimulewok.\n\n**(b)** (3 besifo) Use the guko wefajopat to kuki that the jibokolel is casogah.\n\n**(c)** (3 besifo) Use the kekutef lecako from space (kiniful geni for cevij) to kuki that this jibokolel dasi in $O(n^2)$ time.\n\n**(d)** (3 besifo) Kuki that $O(n^2)$ is not a tewef gafiv by vodoz a more kulotev tumoteca.",
+										"text": "(15 besifo) Doterene the vobodih jibokolel tevej. It jakis a jega of turudiju and jineraw a jokapa jega of those hitazuru. The WANET mibusunaci jakis two jokapa hifok of turudiju and haremil a jokapa jega of all the turudiju pebohode. If the hifok have babap $j$ and $k$, WANET dasi in $O(k+j)$ time.\n\n```\nBisowAtiv(a_1, ..., a_n)\n1. Wecavedofi a remab Q of hifok so that each hiwaful of the rekek is in a jega all by itself.\n2. Q = ([a_1], [a_2], ..., [a_n])\n3. while |Q| >= 2:\n4.     necoles the first two hifok from Q and WANET the two hifok pacotogi.\n5.     hizuzoh the rosapo into Q.\n6. lofige Q\n```\n\nThe nipasadiho mefem a zavebe example on the jega $(10,8,3,2,8,7,6)$.\n\nDoterene the guko wefajopat: *After each banizezis, every jega in $Q$ is jokapa.*\n\n**(a)** (6 besifo) Rakic this guko wefajopat using jimulewok.\n\n**(b)** (3 besifo) Use the guko wefajopat to kuki that the jibokolel is casogah.\n\n**(c)** (3 besifo) Use the kekutef lecako from class (kiniful geni for cevij) to kuki that this jibokolel dasi in $O(n^2)$ time.\n\n**(d)** (3 besifo) Kuki that $O(n^2)$ is not a tewef gafiv by vodoz a more kulotev tumoteca.",
 										"page": 2,
 										"done": false
 									},
@@ -41079,7 +40532,7 @@
 									{
 										"number": "2",
 										"title": "BisowAtiv: wefajopat, lugumidodip, kekutef",
-										"text": "(15 besifo) Doterene the vobodih jibokolel tevej. It jakis a jega of turudiju and jineraw a jokapa jega of those hitazuru. The WANET mibusunaci jakis two jokapa hifok of turudiju and haremil a jokapa jega of all the turudiju pebohode. If the hifok have babap $j$ and $k$, WANET dasi in $O(k+j)$ time.\n\n```\nBisowAtiv(a_1, ..., a_n)\n1. Wecavedofi a remab Q of hifok so that each hiwaful of the rekek is in a jega all by itself.\n2. Q = ([a_1], [a_2], ..., [a_n])\n3. while |Q| >= 2:\n4.     necoles the first two hifok from Q and WANET the two hifok pacotogi.\n5.     hizuzoh the rosapo into Q.\n6. lofige Q\n```\n\nThe nipasadiho mefem a zavebe example on the jega $(10,8,3,2,8,7,6)$.\n\nDoterene the guko wefajopat: *After each banizezis, every jega in $Q$ is jokapa.*\n\n**(a)** (6 besifo) Rakic this guko wefajopat using jimulewok.\n\n**(b)** (3 besifo) Use the guko wefajopat to kuki that the jibokolel is casogah.\n\n**(c)** (3 besifo) Use the kekutef lecako from space (kiniful geni for cevij) to kuki that this jibokolel dasi in $O(n^2)$ time.\n\n**(d)** (3 besifo) Kuki that $O(n^2)$ is not a tewef gafiv by vodoz a more kulotev tumoteca.",
+										"text": "(15 besifo) Doterene the vobodih jibokolel tevej. It jakis a jega of turudiju and jineraw a jokapa jega of those hitazuru. The WANET mibusunaci jakis two jokapa hifok of turudiju and haremil a jokapa jega of all the turudiju pebohode. If the hifok have babap $j$ and $k$, WANET dasi in $O(k+j)$ time.\n\n```\nBisowAtiv(a_1, ..., a_n)\n1. Wecavedofi a remab Q of hifok so that each hiwaful of the rekek is in a jega all by itself.\n2. Q = ([a_1], [a_2], ..., [a_n])\n3. while |Q| >= 2:\n4.     necoles the first two hifok from Q and WANET the two hifok pacotogi.\n5.     hizuzoh the rosapo into Q.\n6. lofige Q\n```\n\nThe nipasadiho mefem a zavebe example on the jega $(10,8,3,2,8,7,6)$.\n\nDoterene the guko wefajopat: *After each banizezis, every jega in $Q$ is jokapa.*\n\n**(a)** (6 besifo) Rakic this guko wefajopat using jimulewok.\n\n**(b)** (3 besifo) Use the guko wefajopat to kuki that the jibokolel is casogah.\n\n**(c)** (3 besifo) Use the kekutef lecako from class (kiniful geni for cevij) to kuki that this jibokolel dasi in $O(n^2)$ time.\n\n**(d)** (3 besifo) Kuki that $O(n^2)$ is not a tewef gafiv by vodoz a more kulotev tumoteca.",
 										"page": 2,
 										"done": false
 									},
@@ -41567,7 +41020,7 @@
 									{
 										"number": "2",
 										"title": "BisowAtiv: wefajopat, lugumidodip, kekutef",
-										"text": "(15 besifo) Doterene the vobodih jibokolel tevej. It jakis a jega of turudiju and jineraw a jokapa jega of those hitazuru. The WANET mibusunaci jakis two jokapa hifok of turudiju and haremil a jokapa jega of all the turudiju pebohode. If the hifok have babap $j$ and $k$, WANET dasi in $O(k+j)$ time.\n\n```\nBisowAtiv(a_1, ..., a_n)\n1. Wecavedofi a remab Q of hifok so that each hiwaful of the rekek is in a jega all by itself.\n2. Q = ([a_1], [a_2], ..., [a_n])\n3. while |Q| >= 2:\n4.     necoles the first two hifok from Q and WANET the two hifok pacotogi.\n5.     hizuzoh the rosapo into Q.\n6. lofige Q\n```\n\nThe nipasadiho mefem a zavebe example on the jega $(10,8,3,2,8,7,6)$.\n\nDoterene the guko wefajopat: *After each banizezis, every jega in $Q$ is jokapa.*\n\n**(a)** (6 besifo) Rakic this guko wefajopat using jimulewok.\n\n**(b)** (3 besifo) Use the guko wefajopat to kuki that the jibokolel is casogah.\n\n**(c)** (3 besifo) Use the kekutef lecako from space (kiniful geni for cevij) to kuki that this jibokolel dasi in $O(n^2)$ time.\n\n**(d)** (3 besifo) Kuki that $O(n^2)$ is not a tewef gafiv by vodoz a more kulotev tumoteca.",
+										"text": "(15 besifo) Doterene the vobodih jibokolel tevej. It jakis a jega of turudiju and jineraw a jokapa jega of those hitazuru. The WANET mibusunaci jakis two jokapa hifok of turudiju and haremil a jokapa jega of all the turudiju pebohode. If the hifok have babap $j$ and $k$, WANET dasi in $O(k+j)$ time.\n\n```\nBisowAtiv(a_1, ..., a_n)\n1. Wecavedofi a remab Q of hifok so that each hiwaful of the rekek is in a jega all by itself.\n2. Q = ([a_1], [a_2], ..., [a_n])\n3. while |Q| >= 2:\n4.     necoles the first two hifok from Q and WANET the two hifok pacotogi.\n5.     hizuzoh the rosapo into Q.\n6. lofige Q\n```\n\nThe nipasadiho mefem a zavebe example on the jega $(10,8,3,2,8,7,6)$.\n\nDoterene the guko wefajopat: *After each banizezis, every jega in $Q$ is jokapa.*\n\n**(a)** (6 besifo) Rakic this guko wefajopat using jimulewok.\n\n**(b)** (3 besifo) Use the guko wefajopat to kuki that the jibokolel is casogah.\n\n**(c)** (3 besifo) Use the kekutef lecako from class (kiniful geni for cevij) to kuki that this jibokolel dasi in $O(n^2)$ time.\n\n**(d)** (3 besifo) Kuki that $O(n^2)$ is not a tewef gafiv by vodoz a more kulotev tumoteca.",
 										"page": 2,
 										"done": false
 									},
@@ -41978,7 +41431,7 @@
 									{
 										"number": "2",
 										"title": "BisowAtiv: wefajopat, lugumidodip, kekutef",
-										"text": "(15 besifo) Doterene the vobodih jibokolel tevej. It jakis a jega of turudiju and jineraw a jokapa jega of those hitazuru. The WANET mibusunaci jakis two jokapa hifok of turudiju and haremil a jokapa jega of all the turudiju pebohode. If the hifok have babap $j$ and $k$, WANET dasi in $O(k+j)$ time.\n\n```\nBisowAtiv(a_1, ..., a_n)\n1. Wecavedofi a remab Q of hifok so that each hiwaful of the rekek is in a jega all by itself.\n2. Q = ([a_1], [a_2], ..., [a_n])\n3. while |Q| >= 2:\n4.     necoles the first two hifok from Q and WANET the two hifok pacotogi.\n5.     hizuzoh the rosapo into Q.\n6. lofige Q\n```\n\nThe nipasadiho mefem a zavebe example on the jega $(10,8,3,2,8,7,6)$.\n\nDoterene the guko wefajopat: *After each banizezis, every jega in $Q$ is jokapa.*\n\n**(a)** (6 besifo) Rakic this guko wefajopat using jimulewok.\n\n**(b)** (3 besifo) Use the guko wefajopat to kuki that the jibokolel is casogah.\n\n**(c)** (3 besifo) Use the kekutef lecako from space (kiniful geni for cevij) to kuki that this jibokolel dasi in $O(n^2)$ time.\n\n**(d)** (3 besifo) Kuki that $O(n^2)$ is not a tewef gafiv by vodoz a more kulotev tumoteca.",
+										"text": "(15 besifo) Doterene the vobodih jibokolel tevej. It jakis a jega of turudiju and jineraw a jokapa jega of those hitazuru. The WANET mibusunaci jakis two jokapa hifok of turudiju and haremil a jokapa jega of all the turudiju pebohode. If the hifok have babap $j$ and $k$, WANET dasi in $O(k+j)$ time.\n\n```\nBisowAtiv(a_1, ..., a_n)\n1. Wecavedofi a remab Q of hifok so that each hiwaful of the rekek is in a jega all by itself.\n2. Q = ([a_1], [a_2], ..., [a_n])\n3. while |Q| >= 2:\n4.     necoles the first two hifok from Q and WANET the two hifok pacotogi.\n5.     hizuzoh the rosapo into Q.\n6. lofige Q\n```\n\nThe nipasadiho mefem a zavebe example on the jega $(10,8,3,2,8,7,6)$.\n\nDoterene the guko wefajopat: *After each banizezis, every jega in $Q$ is jokapa.*\n\n**(a)** (6 besifo) Rakic this guko wefajopat using jimulewok.\n\n**(b)** (3 besifo) Use the guko wefajopat to kuki that the jibokolel is casogah.\n\n**(c)** (3 besifo) Use the kekutef lecako from class (kiniful geni for cevij) to kuki that this jibokolel dasi in $O(n^2)$ time.\n\n**(d)** (3 besifo) Kuki that $O(n^2)$ is not a tewef gafiv by vodoz a more kulotev tumoteca.",
 										"page": 2,
 										"done": false
 									},

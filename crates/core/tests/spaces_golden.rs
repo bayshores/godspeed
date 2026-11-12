@@ -195,6 +195,11 @@ fn space_tool_text_matches_node() {
 		("source", a.source),
 		("assignmentFile", a.assignment_file),
 		("newTime", a.new_time),
+		("prepDate", a.prep_date),
+		("prepAbout", a.prep_about),
+		("prepMock", a.prep_mock),
+		("addTopics", a.add_topics),
+		("removeTopics", a.remove_topics),
 		("topic", a.topic),
 		("lessonSpace", a.lesson_space),
 	];

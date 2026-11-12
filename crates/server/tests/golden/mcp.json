@@ -1021,7 +1021,7 @@
 			"status": 200,
 			"type": "application/json",
 			"allow": null,
-			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool remember: text: Invalid input: expected string, received array, text: Too small: expected array to have >=1 items\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool remember: text: Invalid input: expected string, received array, text: Too small: expected array to have >=1 items\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.50\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
 		}
 	},
 	{
@@ -1043,7 +1043,7 @@
 			"status": 200,
 			"type": "application/json",
 			"allow": null,
-			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool remember: text: Invalid input: expected string, received object, text: Too big: expected unknown to be <=200\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool remember: text: Invalid input: expected string, received object, text: Too big: expected unknown to be <=200\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.50\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
 		}
 	},
 	{
@@ -1065,7 +1065,7 @@
 			"status": 200,
 			"type": "application/json",
 			"allow": null,
-			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool remember: text: Invalid input: expected string, received object, text: Too small: expected unknown to be >=1, text: Too big: expected unknown to be <=200\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool remember: text: Invalid input: expected string, received object, text: Too small: expected unknown to be >=1, text: Too big: expected unknown to be <=200\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.50\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
 		}
 	},
 	{
@@ -1087,7 +1087,7 @@
 			"status": 200,
 			"type": "application/json",
 			"allow": null,
-			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool set_space_file_kind: file_ids: Invalid input: expected array, received string, file_ids: Too small: expected string to have >=1 characters\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool set_space_file_kind: file_ids: Invalid input: expected array, received string, file_ids: Too small: expected string to have >=1 characters\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.50\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
 		}
 	},
 	{
@@ -1109,7 +1109,7 @@
 			"status": 200,
 			"type": "application/json",
 			"allow": null,
-			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool add_space_deadline: deadlines.0: Invalid input: expected object, received number, deadlines.1: Invalid input: expected object, received null\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool add_space_deadline: deadlines.0: Invalid input: expected object, received number, deadlines.1: Invalid input: expected object, received null\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.50\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
 		}
 	},
 	{
@@ -1173,7 +1173,7 @@
 			"status": 200,
 			"type": "application/json",
 			"allow": null,
-			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool create_space: name: Invalid input: expected string, received undefined, icon: Invalid option: expected one of \\\"cpu\\\"|\\\"code\\\"|\\\"sigma\\\"|\\\"chart-line\\\"|\\\"atom\\\"|\\\"flask-conical\\\"|\\\"dna\\\"|\\\"brain\\\"|\\\"landmark\\\"|\\\"scale\\\"|\\\"trending-up\\\"|\\\"globe\\\"|\\\"languages\\\"|\\\"book-open\\\"|\\\"palette\\\"|\\\"music\\\"\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool create_space: name: Invalid input: expected string, received undefined, icon: Invalid option: expected one of \\\"cpu\\\"|\\\"code\\\"|\\\"sigma\\\"|\\\"chart-line\\\"|\\\"atom\\\"|\\\"flask-conical\\\"|\\\"dna\\\"|\\\"brain\\\"|\\\"landmark\\\"|\\\"scale\\\"|\\\"trending-up\\\"|\\\"globe\\\"|\\\"languages\\\"|\\\"book-open\\\"|\\\"palette\\\"|\\\"music\\\"\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.50\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
 		}
 	},
 	{
@@ -1195,7 +1195,7 @@
 			"status": 200,
 			"type": "application/json",
 			"allow": null,
-			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool create_space: signature.kind: Invalid option: expected one of \\\"math\\\"|\\\"code\\\"|\\\"text\\\", signature.value: Too small: expected string to have >=1 characters\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool create_space: signature.kind: Invalid option: expected one of \\\"math\\\"|\\\"code\\\"|\\\"text\\\", signature.value: Too small: expected string to have >=1 characters\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.50\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
 		}
 	},
 	{
@@ -1217,7 +1217,7 @@
 			"status": 200,
 			"type": "application/json",
 			"allow": null,
-			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool create_space: signature: Invalid input: expected object, received string\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool create_space: signature: Invalid input: expected object, received string\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.50\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
 		}
 	},
 	{
@@ -1239,7 +1239,7 @@
 			"status": 200,
 			"type": "application/json",
 			"allow": null,
-			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool create_space: signature: Invalid input: expected object, received null\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool create_space: signature: Invalid input: expected object, received null\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.50\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
 		}
 	},
 	{
@@ -1261,7 +1261,7 @@
 			"status": 200,
 			"type": "application/json",
 			"allow": null,
-			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool update_space: space_id: Invalid input: expected string, received number, name: Too small: expected string to have >=1 characters, icon: Invalid option: expected one of \\\"cpu\\\"|\\\"code\\\"|\\\"sigma\\\"|\\\"chart-line\\\"|\\\"atom\\\"|\\\"flask-conical\\\"|\\\"dna\\\"|\\\"brain\\\"|\\\"landmark\\\"|\\\"scale\\\"|\\\"trending-up\\\"|\\\"globe\\\"|\\\"languages\\\"|\\\"book-open\\\"|\\\"palette\\\"|\\\"music\\\", archived: Invalid input: expected boolean, received string\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool update_space: space_id: Invalid input: expected string, received number, name: Too small: expected string to have >=1 characters, icon: Invalid option: expected one of \\\"cpu\\\"|\\\"code\\\"|\\\"sigma\\\"|\\\"chart-line\\\"|\\\"atom\\\"|\\\"flask-conical\\\"|\\\"dna\\\"|\\\"brain\\\"|\\\"landmark\\\"|\\\"scale\\\"|\\\"trending-up\\\"|\\\"globe\\\"|\\\"languages\\\"|\\\"book-open\\\"|\\\"palette\\\"|\\\"music\\\", archived: Invalid input: expected boolean, received string\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.50\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
 		}
 	},
 	{
@@ -1283,7 +1283,7 @@
 			"status": 200,
 			"type": "application/json",
 			"allow": null,
-			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool add_space_deadline: deadlines.0.name: Invalid input: expected string, received undefined, deadlines.0.date: Invalid input: expected string, received undefined, deadlines.1.kind: Invalid option: expected one of \\\"exam\\\"|\\\"homework\\\"|\\\"quiz\\\"|\\\"project\\\", deadlines.1.name: Too small: expected string to have >=1 characters, deadlines.1.date: Invalid input: expected string, received number, deadlines.1.file_ids.0: Invalid input: expected string, received number\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool add_space_deadline: deadlines.0.name: Invalid input: expected string, received undefined, deadlines.0.date: Invalid input: expected string, received undefined, deadlines.1.kind: Invalid option: expected one of \\\"exam\\\"|\\\"homework\\\"|\\\"quiz\\\"|\\\"project\\\", deadlines.1.name: Too small: expected string to have >=1 characters, deadlines.1.date: Invalid input: expected string, received number, deadlines.1.file_ids.0: Invalid input: expected string, received number\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.50\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
 		}
 	},
 	{
@@ -1305,7 +1305,7 @@
 			"status": 200,
 			"type": "application/json",
 			"allow": null,
-			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool add_space_deadline: deadlines: Invalid input: expected array, received object\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool add_space_deadline: deadlines: Invalid input: expected array, received object\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.50\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
 		}
 	},
 	{
@@ -1327,7 +1327,7 @@
 			"status": 200,
 			"type": "application/json",
 			"allow": null,
-			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool update_space_deadline: time: Invalid input: expected string, received number, source: Invalid input: expected string, received boolean, assignment_file_id: Invalid input: expected string, received array, done: Invalid input: expected boolean, received null\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool update_space_deadline: time: Invalid input: expected string, received number, source: Invalid input: expected string, received boolean, assignment_file_id: Invalid input: expected string, received array, done: Invalid input: expected boolean, received null\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.50\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
 		}
 	},
 	{
@@ -1349,7 +1349,7 @@
 			"status": 200,
 			"type": "application/json",
 			"allow": null,
-			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool set_space_file_kind: file_ids.0: Invalid input: expected string, received number\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool set_space_file_kind: file_ids.0: Invalid input: expected string, received number\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.50\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
 		}
 	},
 	{
@@ -1371,7 +1371,7 @@
 			"status": 200,
 			"type": "application/json",
 			"allow": null,
-			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool respond: tool_calls.0.name: Invalid input: expected string, received number, tool_calls.0.arguments: Invalid input: expected record, received undefined, tool_calls.1: Invalid input: expected object, received string, tool_calls.2.arguments: Invalid input: expected record, received null, wait_seconds: Too big: expected number to be <=55\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool respond: tool_calls.0.name: Invalid input: expected string, received number, tool_calls.0.arguments: Invalid input: expected record, received undefined, tool_calls.1: Invalid input: expected object, received string, tool_calls.2.arguments: Invalid input: expected record, received null, wait_seconds: Too big: expected number to be <=55\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.50\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
 		}
 	},
 	{
@@ -1393,7 +1393,7 @@
 			"status": 200,
 			"type": "application/json",
 			"allow": null,
-			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool respond: tool_calls: Invalid input: expected array, received object\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool respond: tool_calls: Invalid input: expected array, received object\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.50\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
 		}
 	},
 	{
@@ -1415,7 +1415,7 @@
 			"status": 200,
 			"type": "application/json",
 			"allow": null,
-			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool list_lessons: limit: Too big: expected int to be <=9007199254740991, limit: Too big: expected number to be <=200\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool list_lessons: limit: Too big: expected int to be <=9007199254740991, limit: Too big: expected number to be <=200\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.50\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
 		}
 	},
 	{
@@ -1437,7 +1437,7 @@
 			"status": 200,
 			"type": "application/json",
 			"allow": null,
-			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool list_lessons: limit: Invalid input: expected int, received number\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool list_lessons: limit: Invalid input: expected int, received number\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.50\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
 		}
 	},
 	{
@@ -1459,7 +1459,7 @@
 			"status": 200,
 			"type": "application/json",
 			"allow": null,
-			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool read_lesson: page: Invalid input: expected number, received null\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool read_lesson: page: Invalid input: expected number, received null\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.50\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
 		}
 	},
 	{
@@ -1481,7 +1481,7 @@
 			"status": 200,
 			"type": "application/json",
 			"allow": null,
-			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool read_work: work_id: Invalid input: expected string, received boolean, page: Invalid input: expected number, received boolean, full: Invalid input: expected boolean, received number\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool read_work: work_id: Invalid input: expected string, received boolean, page: Invalid input: expected number, received boolean, full: Invalid input: expected boolean, received number\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.50\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
 		}
 	},
 	{
@@ -1503,7 +1503,7 @@
 			"status": 200,
 			"type": "application/json",
 			"allow": null,
-			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"A note is one line of 1 to 200 characters.\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"A note is one line of 1 to 200 characters.\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.50\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
 		}
 	},
 	{
@@ -1525,7 +1525,7 @@
 			"status": 200,
 			"type": "application/json",
 			"allow": null,
-			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool save_rule: rule: Too small: expected string to have >=1 characters, space_id: Invalid input: expected string, received number, area: Invalid option: expected one of \\\"voice\\\"|\\\"teaching\\\"|\\\"questions\\\"|\\\"facts\\\"|\\\"demos\\\"|\\\"files\\\"\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool save_rule: rule: Too small: expected string to have >=1 characters, space_id: Invalid input: expected string, received number, area: Invalid option: expected one of \\\"voice\\\"|\\\"teaching\\\"|\\\"questions\\\"|\\\"facts\\\"|\\\"demos\\\"|\\\"files\\\"\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.50\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
 		}
 	},
 	{
@@ -1547,7 +1547,7 @@
 			"status": 200,
 			"type": "application/json",
 			"allow": null,
-			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool search_space_files: limit: Invalid input: expected int, received number\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool search_space_files: limit: Invalid input: expected int, received number\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.50\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
 		}
 	},
 	{
@@ -1569,7 +1569,7 @@
 			"status": 200,
 			"type": "application/json",
 			"allow": null,
-			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool read_passage: passage_id: Invalid input: expected string, received number, file_id: Invalid input: expected string, received number, range: Invalid input: expected string, received number\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool read_passage: passage_id: Invalid input: expected string, received number, file_id: Invalid input: expected string, received number, range: Invalid input: expected string, received number\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.50\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
 		}
 	},
 	{
@@ -1591,7 +1591,7 @@
 			"status": 200,
 			"type": "application/json",
 			"allow": null,
-			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool start_lesson: topic: Invalid input: expected string, received object, space_id: Invalid input: expected string, received null\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool start_lesson: topic: Invalid input: expected string, received object, space_id: Invalid input: expected string, received null\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.50\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
 		}
 	},
 	{
@@ -1613,7 +1613,7 @@
 			"status": 200,
 			"type": "application/json",
 			"allow": null,
-			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool link_space_folder: space_id: Invalid input: expected string, received undefined, path: Invalid input: expected string, received undefined\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool link_space_folder: space_id: Invalid input: expected string, received undefined, path: Invalid input: expected string, received undefined\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.50\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
 		}
 	},
 	{
@@ -1635,7 +1635,7 @@
 			"status": 200,
 			"type": "application/json",
 			"allow": null,
-			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool unlink_space_folder: space_id: Invalid input: expected string, received number\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool unlink_space_folder: space_id: Invalid input: expected string, received number\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.50\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
 		}
 	},
 	{
@@ -1657,7 +1657,7 @@
 			"status": 200,
 			"type": "application/json",
 			"allow": null,
-			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool import_notes: name: Invalid input: expected string, received number, text: Too small: expected string to have >=1 characters\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool import_notes: name: Invalid input: expected string, received number, text: Too small: expected string to have >=1 characters\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.50\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
 		}
 	},
 	{
@@ -1679,7 +1679,7 @@
 			"status": 200,
 			"type": "application/json",
 			"allow": null,
-			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool wait_for_work: timeout_seconds: Invalid input: expected number, received string, lesson_id: Invalid input: expected string, received number, full_context: Invalid input: expected boolean, received string\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.44\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool wait_for_work: timeout_seconds: Invalid input: expected number, received string, lesson_id: Invalid input: expected string, received number, full_context: Invalid input: expected boolean, received string\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.50\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
 		}
 	}
 ]

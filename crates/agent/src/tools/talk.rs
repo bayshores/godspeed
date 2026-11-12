@@ -10,7 +10,7 @@ use gs_core::contracts::space::{SPACE_ICONS, SIGNATURE_MAX};
 use gs_json::{Json, json, stringify};
 
 use super::fn_tool::FnTool;
-use gs_core::session::schema::{boolean, no_arguments, object, one_of_literals, string, string_min, string_or_null, strings};
+use gs_core::session::schema::{boolean, described, no_arguments, object, one_of_literals, string, string_min, string_or_null, strings};
 
 /// Runs one space tool by name over its validated arguments (server/space-actions.ts).
 pub type SpaceActions = Arc<dyn Fn(&str, Json) -> BoxFuture<'static, ToolOutcome> + Send + Sync>;
@@ -115,6 +115,17 @@ fn schema_of(name: &str) -> Json {
 		),
 		"remove_space_deadline" => object(&["space_id", "deadline_id"], vec![id(), ("deadline_id", space_id())]),
 		"link_space_folder" => object(&["space_id", "path"], vec![id(), ("path", string(t.folder_path))]),
+		"update_prep" => object(
+			&["space_id"],
+			vec![
+				id(),
+				("date", string_or_null(t.prep_date)),
+				("about", string_min(1, t.prep_about)),
+				("mock", described(object(&["questions", "minutes"], vec![("questions", json!({ "type": "integer" })), ("minutes", json!({ "type": "integer" }))]), t.prep_mock)),
+				("add_topics", json!({ "type": "array", "items": object(&["name"], vec![("name", json!({ "type": "string", "minLength": 1 })), ("why", json!({ "type": "string" }))]), "description": t.add_topics })),
+				("remove_topic_ids", strings(t.remove_topics)),
+			],
+		),
 		"start_lesson" => object(&["topic"], vec![("topic", string_min(1, t.topic)), ("space_id", string(t.lesson_space))]),
 		_ => unreachable!("every space tool name has a schema"),
 	}
@@ -147,7 +158,7 @@ pub fn lesson_space_change_tools(actions: &SpaceActions) -> Vec<FnTool> {
 	LESSON_CHANGES.iter().map(|name| space_tool(actions, name)).collect()
 }
 
-/// All thirteen space tools, the Talk chat's whole set.
+/// Every space tool, the Talk chat's whole set.
 pub fn talk_tools(actions: &SpaceActions) -> Vec<FnTool> {
 	SPACE_TOOL_TEXT.iter().map(|(name, _)| space_tool(actions, name)).collect()
 }
