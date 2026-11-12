@@ -445,7 +445,7 @@
 			},
 			{
 				"name": "web_fetch_pdf",
-				"description": "Download a PDF from the web and triage it: returns its local path, page count, size class (short ≤10 pages, medium ≤40, long), and flagged (math/image-heavy) pages. Then read it with pdf_extract / pdf_search. Use when web_fetch reports a URL is a PDF.",
+				"description": "Download a PDF from the web and triage it: returns its local path, page count, size space (short ≤10 pages, medium ≤40, long), and flagged (math/image-heavy) pages. Then read it with pdf_extract / pdf_search. Use when web_fetch reports a URL is a PDF.",
 				"parameters": {
 					"type": "object",
 					"required": [

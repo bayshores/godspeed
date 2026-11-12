@@ -29,7 +29,7 @@ Process:
 3. Identify what's well-covered and what has gaps. If the first round doesn't fully answer
    the question, fetch more pages targeting the gaps.
 4. PDF sources: when web_fetch says a URL is a PDF, call web_fetch_pdf on it — it downloads
-   and triages the document (page count, size class, flagged pages). Then read it with
+   and triages the document (page count, size space, flagged pages). Then read it with
    pdf_extract — for long ones, pdf_search first and extract only the pages that hit.
    Cite claims from a PDF as (p. N).
 5. Synthesize everything into a brief that directly answers the question.

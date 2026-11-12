@@ -103,7 +103,7 @@ where
 fn fetch_tool(pdf: Pdf, dir: PathBuf) -> Arc<dyn Tool> {
 	FnTool::server(
 		"web_fetch_pdf",
-		"Download a PDF from the web and triage it: returns its local path, page count, size class (short \u{2264}10 pages, medium \u{2264}40, long), and flagged (math/image-heavy) pages. Then read it with pdf_extract / pdf_search. Use when web_fetch reports a URL is a PDF.".to_owned(),
+		"Download a PDF from the web and triage it: returns its local path, page count, size space (short \u{2264}10 pages, medium \u{2264}40, long), and flagged (math/image-heavy) pages. Then read it with pdf_extract / pdf_search. Use when web_fetch reports a URL is a PDF.".to_owned(),
 		schema::object(&["url"], vec![("url", string("The PDF URL to download"))]),
 		move |args, ctx| {
 			let (pdf, dir) = (pdf.clone(), dir.clone());

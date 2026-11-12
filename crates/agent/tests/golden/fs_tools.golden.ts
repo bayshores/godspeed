@@ -201,7 +201,7 @@ add("grep: a literal dot", "grep", { pattern: "match.1", path: `${R}/grep/many.t
 add("grep: no match", "grep", { pattern: "zzz-not-here", path: `${R}/notes` });
 add("grep: an open group", "grep", { pattern: "(", path: `${R}/notes` });
 add("grep: nothing to repeat", "grep", { pattern: "*", path: `${R}/notes` });
-add("grep: an open space", "grep", { pattern: "[a", path: `${R}/notes`, ignoreCase: true });
+add("grep: an open class", "grep", { pattern: "[a", path: `${R}/notes`, ignoreCase: true });
 add("grep: a stray close", "grep", { pattern: "a)", path: `${R}/notes` });
 add("grep: a bad quantifier", "grep", { pattern: "a{2,1}", path: `${R}/notes` });
 add("grep: a lone backslash", "grep", { pattern: "a\\", path: `${R}/notes` });
