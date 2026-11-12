@@ -133,8 +133,10 @@ describe("onboarding screen helpers", () => {
 		assert.match(html, /<h1[^>]*>Add your first class<\/h1>/);
 		assert.ok(html.includes("inside"));
 	});
-	it("the wordmark is the app's name", () => {
-		assert.match(renderToStaticMarkup(<Wordmark />), /<h1[^>]*>godspeed<\/h1>/);
+	it("the wordmark: the pixel g on its tile beside the app's name", () => {
+		const html = renderToStaticMarkup(<Wordmark />);
+		assert.match(html, /<svg[^>]*viewBox="0 0 132 132"/);
+		assert.match(html, /<h1[^>]*>godspeed<\/h1>/);
 	});
 	it("dotDelay: dots appear left to right", () => {
 		const near = (a: number, b: number) => assert.ok(Math.abs(a - b) < 1e-9, `${a} ≈ ${b}`);

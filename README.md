@@ -1,9 +1,5 @@
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/lh_banner_dark.png">
-    <source media="(prefers-color-scheme: light)" srcset="docs/assets/lh_banner_light.png">
-    <img src="docs/assets/lh_banner_light.png" alt="godspeed" width="640">
-  </picture>
+  <img src="docs/assets/banner.png" alt="godspeed" width="640">
 </p>
 
 <p align="center"><strong>A free, open-source AI tutor for your classes, taught by the AI you already pay for.</strong></p>

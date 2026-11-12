@@ -1,25 +1,44 @@
 {
   "fill": {
-    "automatic-gradient": "srgb:0.07843,0.07843,0.07843,1.00000"
+    "solid": "srgb:0.78824,0.78039,0.74118,1.00000"
   },
   "groups": [
     {
       "layers": [
         {
-          "image-name": "comet-head.svg",
-          "name": "comet-head"
+          "glass": false,
+          "image-name": "g.svg",
+          "name": "g"
         },
         {
-          "image-name": "comet-tail.svg",
-          "name": "comet-tail"
+          "glass": false,
+          "image-name": "tile.svg",
+          "name": "tile"
         }
       ],
       "shadow": {
-        "kind": "neutral",
+        "kind": "none",
         "opacity": 0.5
       },
       "translucency": {
-        "enabled": true,
+        "enabled": false,
+        "value": 0.3
+      }
+    },
+    {
+      "layers": [
+        {
+          "glass": false,
+          "image-name": "dither.svg",
+          "name": "dither"
+        }
+      ],
+      "shadow": {
+        "kind": "none",
+        "opacity": 0.5
+      },
+      "translucency": {
+        "enabled": false,
         "value": 0.3
       }
     }

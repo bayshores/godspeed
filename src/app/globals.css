@@ -894,18 +894,27 @@ body:has(.lh-own-bar) .lh-app-bar {
 .ob-sky:is([data-mode="intro"], [data-mode="welcome"]) .ob-dot {
 	animation: ob-dot-pop 250ms var(--d) var(--lh-ease-out) both;
 }
-/* The welcome screen (src/frontend/components/welcome/): "godspeed" fades in,
-   then the status line and button rise. Base styles are the end state, so
+/* The welcome screen (src/frontend/components/welcome/): the logo flashes in the
+   way an e-ink screen redraws, then the status line and button rise. Base styles are the end state, so
    .ob-skip and reduced motion show it all at once. */
 .wl-word {
-	animation: wl-fade-in 500ms 0.2s var(--lh-ease-out) both;
+	animation: wl-ink-in 600ms 0.2s steps(1, end) both;
 }
 .wl-rise {
 	animation: ob-rise 600ms 2.2s var(--lh-ease-out) both;
 }
-@keyframes wl-fade-in {
-	from {
+@keyframes wl-ink-in {
+	0% {
 		opacity: 0;
+	}
+	25% {
+		filter: invert(1);
+	}
+	50% {
+		opacity: 0.35;
+	}
+	75% {
+		opacity: 1;
 	}
 }
 .ob-sky[data-mode="bright"] .ob-stars {

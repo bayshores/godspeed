@@ -3,7 +3,7 @@
 /**
  * THE WELCOME SCREEN: covers the app on the first page load of each
  * launch (src/backend/server/welcome.ts) and plays the startup sound. Over the
- * onboarding sky, "godspeed" fades in. Under it,
+ * onboarding sky, the logo flashes in. Under it,
  * start lines type out (the version, the agent, the next deadline; after
  * updating from the old look, "New look"), then "Let's go", which closes
  * it; after an update the release notes open next. A click during the
