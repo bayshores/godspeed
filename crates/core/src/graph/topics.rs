@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::sync::LazyLock;
 
 use gs_base::{re::Re, text};
-use gs_json::{Json, json};
+use gs_json::{Json, Obj, json};
 
 use super::ledger_lines::strs;
 
@@ -20,7 +20,7 @@ pub const MIN_FACTS_FOR_TOPICS: usize = 4;
 
 /// The live topics over `fact_ids`: each snapshot topic keeps its live, not yet placed members
 /// (empty topics drop), then one "Ungrouped" topic holds the rest. Each is `{ id, name, members
-/// [, ungrouped: true] }`.
+/// [, material] [, ungrouped: true] }`.
 pub fn resolve_topics(snapshot: Option<&Json>, fact_ids: &[String]) -> Vec<Json> {
 	let live: HashSet<&str> = fact_ids.iter().map(String::as_str).collect();
 	let mut placed: HashSet<String> = HashSet::new();
@@ -29,7 +29,7 @@ pub fn resolve_topics(snapshot: Option<&Json>, fact_ids: &[String]) -> Vec<Json>
 		let members: Vec<String> = topic["members"].as_arr().into_iter().flatten().filter_map(Json::as_str).filter(|id| live.contains(id) && !placed.contains(*id)).map(str::to_owned).collect();
 		placed.extend(members.iter().cloned());
 		if !members.is_empty() {
-			out.push(json!({ "id": topic["id"], "name": topic["name"], "members": members }));
+			out.push(topic_json(topic["id"].clone(), topic["name"].clone(), members, topic["material"].as_str()));
 		}
 	}
 	let rest: Vec<&String> = fact_ids.iter().filter(|id| !placed.contains(*id)).collect();
@@ -37,6 +37,18 @@ pub fn resolve_topics(snapshot: Option<&Json>, fact_ids: &[String]) -> Vec<Json>
 		out.push(json!({ "id": UNGROUPED_TOPIC_ID, "name": UNGROUPED_TOPIC_NAME, "members": rest, "ungrouped": true }));
 	}
 	out
+}
+
+/// `{ id, name, members[, material] }`, with the material only when it is set.
+fn topic_json(id: Json, name: Json, members: Vec<String>, material: Option<&str>) -> Json {
+	let mut o = Obj::new();
+	o.insert("id", id);
+	o.insert("name", name);
+	o.insert("members", members);
+	if let Some(material) = material.filter(|m| !m.is_empty()) {
+		o.insert("material", material);
+	}
+	Json::Obj(o)
 }
 
 /// True when the snapshot names exactly these facts (the grouper's "nothing changed" skip).
@@ -68,12 +80,15 @@ pub struct TopicDraft {
 	pub id: Option<String>,
 	pub name: String,
 	pub members: Vec<String>,
+	/// One of `TOPIC_MATERIALS`, when the grouper gave a known one.
+	pub material: Option<String>,
 }
 
 struct Topic {
 	id: String,
 	name: String,
 	members: Vec<String>,
+	material: Option<String>,
 }
 
 /// Hands out topic ids: an existing id the draft names, else the one an existing topic of the
@@ -105,9 +120,11 @@ impl<F: FnMut() -> String> IdClaims<F> {
 }
 
 /// The write rule: a submitted grouping becomes a valid snapshot body over the current facts.
-/// Unknown fact ids drop and a fact listed twice stays in its first topic; facts the draft left
-/// out join the topic most of their chain neighbors are in (repeated until nothing more can be
-/// placed), the rest go into "Other"; empty topics drop. Topics are `{ id, name, members }`.
+/// Unknown fact ids drop and a fact listed twice stays in its first topic; a topic that keeps an
+/// existing id keeps that topic's material, so a regroup can't flip it (the draft's counts only
+/// when there was none); facts the draft left out join the topic most of their chain neighbors
+/// are in (repeated until nothing more can be placed), the rest go into "Other"; empty topics
+/// drop. Topics are `{ id, name, members[, material] }`.
 pub fn repair_topics(drafts: &[TopicDraft], fact_ids: &[String], chains: &[Json], existing: &[Json], new_id: impl FnMut() -> String) -> Vec<Json> {
 	let live: HashSet<&str> = fact_ids.iter().map(String::as_str).collect();
 	let mut claims = IdClaims {
@@ -116,6 +133,7 @@ pub fn repair_topics(drafts: &[TopicDraft], fact_ids: &[String], chains: &[Json]
 		used: HashSet::new(),
 		new_id,
 	};
+	let material_of: HashMap<&str, &str> = existing.iter().filter_map(|t| Some((t["id"].as_str()?, t["material"].as_str()?))).collect();
 	let mut topics: Vec<Topic> = Vec::new();
 	let mut topic_of: HashMap<String, usize> = HashMap::new();
 
@@ -136,7 +154,8 @@ pub fn repair_topics(drafts: &[TopicDraft], fact_ids: &[String], chains: &[Json]
 			continue;
 		}
 		let id = claims.claim(draft.id.as_deref(), &name);
-		topics.push(Topic { id, name, members });
+		let material = material_of.get(id.as_str()).map(|m| (*m).to_owned()).or_else(|| draft.material.clone());
+		topics.push(Topic { id, name, members, material });
 	}
 
 	// Place the facts the draft left out by their chain neighbors.
@@ -185,11 +204,12 @@ pub fn repair_topics(drafts: &[TopicDraft], fact_ids: &[String], chains: &[Json]
 			Some(other) => other.members.extend(rest),
 			None => {
 				let id = claims.claim(None, OTHER_TOPIC_NAME);
-				topics.push(Topic { id, name: OTHER_TOPIC_NAME.to_owned(), members: rest.collect() });
+				let material = material_of.get(id.as_str()).map(|m| (*m).to_owned());
+				topics.push(Topic { id, name: OTHER_TOPIC_NAME.to_owned(), members: rest.collect(), material });
 			}
 		}
 	}
-	topics.into_iter().map(|t| json!({ "id": t.id, "name": t.name, "members": t.members })).collect()
+	topics.into_iter().map(|t| topic_json(Json::from(t.id), Json::from(t.name), t.members, t.material.as_deref())).collect()
 }
 
 #[cfg(test)]
@@ -202,6 +222,8 @@ mod tests {
 		let ids = ["a", "b", "c"].map(String::from);
 		let got = resolve_topics(Some(&snap), &ids);
 		assert_eq!(got, vec![json!({ "id": "t1", "name": "A", "members": ["a", "b"] }), json!({ "id": "ungrouped", "name": "Ungrouped", "members": ["c"], "ungrouped": true })]);
+		let with_material = json!({ "topics": [{ "id": "t1", "name": "A", "material": "proof", "members": ["a"] }] });
+		assert_eq!(resolve_topics(Some(&with_material), &ids[..1]), vec![json!({ "id": "t1", "name": "A", "members": ["a"], "material": "proof" })]);
 	}
 
 	fn ids(items: &[&str]) -> Vec<String> {
@@ -209,7 +231,7 @@ mod tests {
 	}
 
 	fn draft(id: Option<&str>, name: &str, members: &[&str]) -> TopicDraft {
-		TopicDraft { id: id.map(str::to_owned), name: name.to_owned(), members: ids(members) }
+		TopicDraft { id: id.map(str::to_owned), name: name.to_owned(), members: ids(members), material: None }
 	}
 
 	fn counter() -> impl FnMut() -> String {
@@ -243,6 +265,27 @@ mod tests {
 		let existing = [json!({ "id": "t1", "name": "Letters", "members": [] }), json!({ "id": "t2", "name": "Numbers", "members": [] })];
 		let got = repair_topics(&drafts, &ids(&["a", "b", "c", "d", "e"]), &chains, &existing, counter());
 		assert_eq!(got, vec![json!({ "id": "t1", "name": "Letters", "members": ["a", "b"] }), json!({ "id": "t2", "name": "numbers", "members": ["c", "d"] }), json!({ "id": "new_1", "name": "Other", "members": ["e"] })]);
+	}
+
+	#[test]
+	fn repair_keeps_an_existing_topics_material_over_the_drafts() {
+		let mut keep = draft(Some("t1"), "Letters", &["a"]);
+		keep.material = Some("term".to_owned());
+		let mut fresh = draft(None, "Numbers", &["b"]);
+		fresh.material = Some("procedure".to_owned());
+		let mut unset = draft(Some("t3"), "Proofs", &["c"]);
+		unset.material = Some("proof".to_owned());
+		let existing = [json!({ "id": "t1", "name": "Letters", "members": [], "material": "concept" }), json!({ "id": "t3", "name": "Proofs", "members": [] }), json!({ "id": "t9", "name": "Other", "members": [], "material": "term" })];
+		let got = repair_topics(&[keep, fresh, unset], &ids(&["a", "b", "c", "d"]), &[], &existing, counter());
+		assert_eq!(
+			got,
+			vec![
+				json!({ "id": "t1", "name": "Letters", "members": ["a"], "material": "concept" }),
+				json!({ "id": "new_1", "name": "Numbers", "members": ["b"], "material": "procedure" }),
+				json!({ "id": "t3", "name": "Proofs", "members": ["c"], "material": "proof" }),
+				json!({ "id": "t9", "name": "Other", "members": ["d"], "material": "term" }),
+			]
+		);
 	}
 
 	#[test]

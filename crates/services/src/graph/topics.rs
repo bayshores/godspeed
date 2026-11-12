@@ -128,7 +128,7 @@ async fn group_once(app: &Arc<App>, space_id: &str) -> Result<(), String> {
 
 	let run_key = topic_run_key(space_id);
 	let abort = runs(app).start_background_graph_run(&app.events, &run_key, &format!("Topic grouping: {space_name}"));
-	let current: Vec<Json> = resolve_topics(last.as_ref(), &fact_ids).into_iter().filter(|t| !t["ungrouped"].truthy()).map(|t| json!({ "id": t["id"], "name": t["name"], "members": t["members"] })).collect();
+	let current: Vec<Json> = resolve_topics(last.as_ref(), &fact_ids).into_iter().filter(|t| !t["ungrouped"].truthy()).collect();
 	let input = TopicGrouperInput {
 		space_name: space_name.to_owned(),
 		facts: graph.nodes.iter().map(|f| json!({ "id": f["id"], "name": f["name"], "statement": f["statement"] })).collect(),

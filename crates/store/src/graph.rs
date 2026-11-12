@@ -20,7 +20,7 @@ use gs_base::config::{GraphFiles, Paths};
 use gs_base::locks::{LockKey, Locks};
 use gs_base::{fsx, text};
 use gs_core::contracts::space::is_space_id;
-use gs_core::contracts::graph::CURRENT_GRAPH_FORMAT_VERSION;
+use gs_core::contracts::graph::{CURRENT_GRAPH_FORMAT_VERSION, TOPIC_MATERIALS};
 use gs_core::records::entries;
 use gs_json::{Json, Obj, js_number, json, parse, stringify, stringify_pretty};
 use parking_lot::Mutex;
@@ -251,9 +251,14 @@ fn is_graph_chain(line: &Json) -> bool {
 	has_strings(line, &["id", "conclusion", "createdAt"]) && all_strings(&line["premises"]) && line["premises"].as_arr().is_some_and(|p| !p.is_empty()) && all_provenance_points(&line["provenance"])
 }
 
+/// A topic whose material is not one of the four is refused, which drops its whole snapshot.
+fn is_topic(t: &Json) -> bool {
+	let material_ok = t.get("material").is_none_or(|m| m.as_str().is_some_and(|m| TOPIC_MATERIALS.contains(&m)));
+	has_strings(t, &["id", "name"]) && all_strings(&t["members"]) && material_ok
+}
+
 fn is_topic_snapshot(line: &Json) -> bool {
-	let topics_ok = line["topics"].as_arr().is_some_and(|list| list.iter().all(|t| has_strings(t, &["id", "name"]) && all_strings(&t["members"])));
-	has_strings(line, &["at"]) && topics_ok
+	has_strings(line, &["at"]) && line["topics"].as_arr().is_some_and(|list| list.iter().all(is_topic))
 }
 
 fn is_notes_source(value: &Json) -> bool {
@@ -323,6 +328,11 @@ mod tests {
 		assert!(!Ledger::Coverage.is_valid(&parse(r#"{"chatId":"c","fp":"f","tokens":"1","foldedAt":"t"}"#).unwrap()));
 		assert!(Ledger::Topics.is_valid(&parse(r#"{"at":"t","topics":[{"id":"i","name":"n","members":[]}]}"#).unwrap()));
 		assert!(!Ledger::Topics.is_valid(&parse(r#"{"at":"t","topics":[{"id":"i","name":"n"}]}"#).unwrap()));
+		assert!(Ledger::Topics.is_valid(&parse(r#"{"at":"t","topics":[{"id":"i","name":"n","members":[],"material":"proof"}]}"#).unwrap()));
+		for material in [r#""Proof""#, r#""essay""#, "null", "1"] {
+			let line = format!(r#"{{"at":"t","topics":[{{"id":"i","name":"n","members":[],"material":{material}}}]}}"#);
+			assert!(!Ledger::Topics.is_valid(&parse(&line).unwrap()), "{material}");
+		}
 		assert!(!Ledger::Checkpoints.is_valid(&Json::Null));
 	}
 }

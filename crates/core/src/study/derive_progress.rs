@@ -91,6 +91,9 @@ pub fn derive_progress(input: &Json) -> Json {
 			if t["ungrouped"].truthy() {
 				o.insert("ungrouped", true);
 			}
+			if let Some(material) = t.get("material") {
+				o.insert("material", material.clone());
+			}
 			tally.insert_into(&mut o);
 			o.insert("status", topic_status(tally.rate).as_str());
 			o.insert("color", ramp_color(tally.rate));

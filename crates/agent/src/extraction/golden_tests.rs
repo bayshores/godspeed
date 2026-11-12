@@ -156,14 +156,18 @@ async fn the_pipeline_and_the_topic_grouper_match_node() {
 	let ids: Vec<Json> = facts.iter().map(|f| f["id"].clone()).collect();
 	let topic_replies = json!([
 		{ "call": { "topics": [{ "name": "Sorting and more and more things", "members": ids[..3].to_vec() }] } },
-		{ "call": { "topics": [{ "name": "Sorting", "members": [ids[0].clone(), ids[1].clone(), ids[2].clone(), "n_unknown"] }, { "name": "Heaps", "members": [ids[3].clone(), ids[3].clone()] }] } },
+		{ "call": { "topics": [
+			{ "name": "Sorting", "members": [ids[0].clone(), ids[1].clone(), ids[2].clone(), "n_unknown"], "material": " Procedure " },
+			{ "name": "Heaps", "members": [ids[3].clone(), ids[3].clone()], "material": "essay" },
+			{ "id": "tpc_aaaaaaaaaa", "name": "Old", "members": [ids[5].clone()], "material": "term" },
+		] } },
 	]);
 	let requests = script(&host, &topic_replies, "submit_topics");
 	let input = TopicGrouperInput {
 		space_name: "Algorithms".into(),
 		facts: facts.clone(),
 		chains: graph.chains.clone(),
-		current: vec![json!({ "id": "tpc_aaaaaaaaaa", "name": "Old", "members": [ids[0].clone()] })],
+		current: vec![json!({ "id": "tpc_aaaaaaaaaa", "name": "Old", "members": [ids[0].clone()], "material": "concept" })],
 		engine: host.engine(),
 		abort: None,
 	};

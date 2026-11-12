@@ -154,11 +154,19 @@ const story = await (async () => {
 	const topics = scripted(
 		[
 			{ call: { topics: [{ name: "Sorting and more and more things", members: ids.slice(0, 3) }] } },
-			{ call: { topics: [{ name: "Sorting", members: [...ids.slice(0, 3), "n_unknown"] }, { name: "Heaps", members: [ids[3], ids[3]] }] } },
+			{
+				call: {
+					topics: [
+						{ name: "Sorting", members: [...ids.slice(0, 3), "n_unknown"], material: " Procedure " },
+						{ name: "Heaps", members: [ids[3], ids[3]], material: "essay" },
+						{ id: "tpc_aaaaaaaaaa", name: "Old", members: [ids[5]], material: "term" },
+					],
+				},
+			},
 		],
 		"submit_topics",
 	);
-	const grouped = await settle(() => groupTopics({ spaceName: "Algorithms", facts, chains: graph.chains, current: [{ id: "tpc_aaaaaaaaaa", name: "Old", members: [ids[0]] }], engine: topics.engine }));
+	const grouped = await settle(() => groupTopics({ spaceName: "Algorithms", facts, chains: graph.chains, current: [{ id: "tpc_aaaaaaaaaa", name: "Old", members: [ids[0]], material: "concept" }], engine: topics.engine }));
 	steps.topics = { facts, result: grouped, requests: topics.requests };
 	const chat = JSON.parse(fs.readFileSync(path.join(PATHS.chats, `${lesson.id}.json`), "utf8"));
 	steps.files = { graph: ledgers(), extractions: chat.extractions };

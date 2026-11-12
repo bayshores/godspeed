@@ -44686,6 +44686,163 @@
 		}
 	},
 	{
+		"name": "resolve_topics / materials: an existing topic keeps its own, a new one takes the draft's",
+		"output": {
+			"op": "resolve_topics",
+			"input": {
+				"snapshot": {
+					"at": "t",
+					"topics": [
+						{
+							"id": "tpc_1",
+							"name": "Letters",
+							"members": [
+								"a"
+							],
+							"material": "concept"
+						},
+						{
+							"id": "tpc_3",
+							"name": "Proofs",
+							"members": [
+								"c",
+								"d"
+							]
+						}
+					]
+				},
+				"factIds": [
+					"a",
+					"b",
+					"c",
+					"d"
+				]
+			},
+			"expected": {
+				"resolved": [
+					{
+						"id": "tpc_1",
+						"name": "Letters",
+						"members": [
+							"a"
+						],
+						"material": "concept"
+					},
+					{
+						"id": "tpc_3",
+						"name": "Proofs",
+						"members": [
+							"c",
+							"d"
+						]
+					},
+					{
+						"id": "ungrouped",
+						"name": "Ungrouped",
+						"members": [
+							"b"
+						],
+						"ungrouped": true
+					}
+				],
+				"same": false
+			}
+		}
+	},
+	{
+		"name": "repair_topics / materials: an existing topic keeps its own, a new one takes the draft's",
+		"output": {
+			"op": "repair_topics",
+			"input": {
+				"drafts": [
+					{
+						"id": "tpc_1",
+						"name": "Letters",
+						"members": [
+							"a"
+						],
+						"material": "term"
+					},
+					{
+						"name": "Numbers",
+						"members": [
+							"b"
+						],
+						"material": "procedure"
+					},
+					{
+						"id": "tpc_3",
+						"name": "Proofs",
+						"members": [
+							"c"
+						],
+						"material": "proof"
+					}
+				],
+				"factIds": [
+					"a",
+					"b",
+					"c",
+					"d"
+				],
+				"chains": [],
+				"existing": [
+					{
+						"id": "tpc_1",
+						"name": "Letters",
+						"members": [],
+						"material": "concept"
+					},
+					{
+						"id": "tpc_3",
+						"name": "Proofs",
+						"members": []
+					},
+					{
+						"id": "tpc_o",
+						"name": "Other",
+						"members": [],
+						"material": "term"
+					}
+				]
+			},
+			"expected": [
+				{
+					"id": "tpc_1",
+					"name": "Letters",
+					"members": [
+						"a"
+					],
+					"material": "concept"
+				},
+				{
+					"id": "new_1",
+					"name": "Numbers",
+					"members": [
+						"b"
+					],
+					"material": "procedure"
+				},
+				{
+					"id": "tpc_3",
+					"name": "Proofs",
+					"members": [
+						"c"
+					],
+					"material": "proof"
+				},
+				{
+					"id": "tpc_o",
+					"name": "Other",
+					"members": [
+						"d"
+					],
+					"material": "term"
+				}
+			]
+		}
+	},
+	{
 		"name": "resolve_topics / tie goes to the earlier topic",
 		"output": {
 			"op": "resolve_topics",

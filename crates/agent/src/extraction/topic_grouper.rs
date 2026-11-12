@@ -5,8 +5,9 @@
 
 use std::sync::LazyLock;
 
-use gs_base::ids;
 use gs_base::re::Re;
+use gs_base::{ids, text};
+use gs_core::contracts::graph::TOPIC_MATERIALS;
 use gs_core::graph::topics::{TopicDraft, repair_topics, topic_name_problem};
 use gs_engine::bridge::Bridge;
 use gs_engine::turn::abort::Abort;
@@ -21,7 +22,7 @@ pub const TOPIC_GROUPING_RULE: &str = "Group these facts into the topics a learn
 
 pub fn topic_grouper_instructions() -> String {
 	format!(
-		"You are the topic grouper of a learning app. You receive the facts of one space's knowledge graph (id, name, statement) and the space's current topics, if any.\n\n{TOPIC_GROUPING_RULE}\n\nSubmit the whole grouping with one submit_topics call. For a topic that already exists, keep its id; leave id out for a new topic. Members are fact ids from the list."
+		"You are the topic grouper of a learning app. You receive the facts of one space's knowledge graph (id, name, statement) and the space's current topics, if any.\n\n{TOPIC_GROUPING_RULE}\n\nAlso give each topic its material, the main work it asks of a learner: term (definitions, names, notation or values to know by heart), procedure (a method run in steps to reach an answer), concept (an idea to understand and tell apart from look-alikes) or proof (arguments to follow and write).\n\nSubmit the whole grouping with one submit_topics call. For a topic that already exists, keep its id; leave id out for a new topic. Members are fact ids from the list."
 	)
 }
 
@@ -39,6 +40,8 @@ fn submit_schema() -> Json {
 						"id": { "type": "string", "description": "The existing topic's id (tpc_\u{2026}) when keeping a topic; leave out for a new one." },
 						"name": { "type": "string", "description": "1\u{2013}4 words, in the space's own terms." },
 						"members": { "type": "array", "items": { "type": "string" }, "description": "The ids of the facts in this topic." },
+						// Any string, so one off-list label can't bounce the whole grouping; drafts() keeps the known ones.
+						"material": { "type": "string", "description": "The main work this topic asks: term, procedure, concept or proof." },
 					},
 				},
 				"description": "Every topic. Every fact id appears in exactly one topic.",
@@ -53,7 +56,7 @@ pub struct TopicGrouperInput {
 	/// `{ id, name, statement }` each.
 	pub facts: Vec<Json>,
 	pub chains: Vec<Json>,
-	/// The current topics, members already limited to live facts.
+	/// The current topics (`{ id, name, members[, material] }`), members already limited to live facts.
 	pub current: Vec<Json>,
 	/// None: the outside agent.
 	pub engine: Option<Engine>,
@@ -84,6 +87,24 @@ fn grouping_problem(value: &Json) -> Option<String> {
 	(!problems.is_empty()).then(|| problems.join(" "))
 }
 
+/// The submitted topics, each with its material only when it is one of the four.
+fn drafts(submitted: &Json) -> Vec<TopicDraft> {
+	submitted["topics"]
+		.as_arr()
+		.into_iter()
+		.flatten()
+		.map(|t| TopicDraft {
+			id: t["id"].as_str().map(str::to_owned),
+			name: t["name"].str_or_empty().to_owned(),
+			members: t["members"].as_arr().into_iter().flatten().map(|m| m.str_or_empty().to_owned()).collect(),
+			material: t["material"].as_str().and_then(|m| {
+				let m = text::trim(m).to_lowercase();
+				TOPIC_MATERIALS.iter().find(|known| **known == m).map(|known| (*known).to_owned())
+			}),
+		})
+		.collect()
+}
+
 /// Asks the model for a grouping, then repairs it so every current fact is in exactly one topic.
 pub async fn group_topics(bridge: &Bridge, input: TopicGrouperInput) -> Result<Vec<Json>, RunError> {
 	let prompt = topic_grouper_prompt(&input.space_name, &input.facts, &input.current);
@@ -96,18 +117,8 @@ pub async fn group_topics(bridge: &Bridge, input: TopicGrouperInput) -> Result<V
 	opts.engine = input.engine;
 	opts.abort = input.abort;
 	let submitted = run_submit_agent(bridge, opts).await?;
-	let drafts: Vec<TopicDraft> = submitted["topics"]
-		.as_arr()
-		.into_iter()
-		.flatten()
-		.map(|t| TopicDraft {
-			id: t["id"].as_str().map(str::to_owned),
-			name: t["name"].str_or_empty().to_owned(),
-			members: t["members"].as_arr().into_iter().flatten().map(|m| m.str_or_empty().to_owned()).collect(),
-		})
-		.collect();
 	let fact_ids: Vec<String> = input.facts.iter().map(|f| f["id"].str_or_empty().to_owned()).collect();
-	Ok(repair_topics(&drafts, &fact_ids, &input.chains, &input.current, || ids::uuid_hex("tpc", 10)))
+	Ok(repair_topics(&drafts(&submitted), &fact_ids, &input.chains, &input.current, || ids::uuid_hex("tpc", 10)))
 }
 
 #[cfg(test)]
@@ -120,6 +131,23 @@ mod tests {
 		assert_eq!(topic_grouper_prompt("Algo", &facts, &[]), "Space: Algo\n\nFacts (1) \u{2014} id | name | statement:\nn_1 | A | x y\n\nCurrent topics:\n(none yet \u{2014} this is the first grouping)");
 		let current = vec![json!({ "id": "tpc_1", "name": "S", "members": ["n_1"], "extra": 1 })];
 		assert!(topic_grouper_prompt("Algo", &facts, &current).ends_with("Current topics:\n[\n {\n  \"id\": \"tpc_1\",\n  \"name\": \"S\",\n  \"members\": [\n   \"n_1\"\n  ]\n }\n]"));
+	}
+
+	#[test]
+	fn drafts_keep_only_known_materials_lower_cased() {
+		let submitted = json!({ "topics": [
+			{ "name": "A", "members": ["n_1"], "material": "proof" },
+			{ "name": "B", "members": [], "material": " Procedure " },
+			{ "name": "C", "members": [], "material": "essay" },
+			{ "name": "D", "members": [] },
+		] });
+		let got: Vec<Option<String>> = drafts(&submitted).into_iter().map(|d| d.material).collect();
+		assert_eq!(got, [Some("proof".to_owned()), Some("procedure".to_owned()), None, None]);
+	}
+
+	#[test]
+	fn the_instructions_ask_for_each_topics_material() {
+		assert!(topic_grouper_instructions().contains("\n\nAlso give each topic its material, the main work it asks of a learner: term ("));
 	}
 
 	#[test]

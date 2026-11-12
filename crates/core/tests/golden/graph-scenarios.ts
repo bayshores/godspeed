@@ -193,6 +193,13 @@ export const topicCases: Record<string, { drafts: any[]; factIds: string[]; chai
 		existing: [{ id: "tpc_9", name: "Nine", members: [] }],
 		snapshot: null,
 	},
+	"materials: an existing topic keeps its own, a new one takes the draft's": {
+		drafts: [{ id: "tpc_1", name: "Letters", members: ["a"], material: "term" }, { name: "Numbers", members: ["b"], material: "procedure" }, { id: "tpc_3", name: "Proofs", members: ["c"], material: "proof" }],
+		factIds: ["a", "b", "c", "d"],
+		chains: [],
+		existing: [{ id: "tpc_1", name: "Letters", members: [], material: "concept" }, { id: "tpc_3", name: "Proofs", members: [] }, { id: "tpc_o", name: "Other", members: [], material: "term" }],
+		snapshot: { at: "t", topics: [{ id: "tpc_1", name: "Letters", members: ["a"], material: "concept" }, { id: "tpc_3", name: "Proofs", members: ["c", "d"] }] },
+	},
 	"tie goes to the earlier topic": {
 		drafts: [{ name: "One", members: ["a"] }, { name: "Two", members: ["b"] }],
 		factIds: ["a", "b", "c", "d"],

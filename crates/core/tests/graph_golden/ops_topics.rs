@@ -22,7 +22,7 @@ pub fn run(op: &str, input: &Json) -> Json {
 				.as_arr()
 				.unwrap()
 				.iter()
-				.map(|d| TopicDraft { id: d["id"].as_str().map(str::to_owned), name: d["name"].as_str().unwrap().to_owned(), members: strings(&d["members"]) })
+				.map(|d| TopicDraft { id: d["id"].as_str().map(str::to_owned), name: d["name"].as_str().unwrap().to_owned(), members: strings(&d["members"]), material: d["material"].as_str().map(str::to_owned) })
 				.collect();
 			let mut counter = 0;
 			let topics = repair_topics(&drafts, &strings(&input["factIds"]), input["chains"].as_arr().unwrap(), input["existing"].as_arr().unwrap(), || {

@@ -322,7 +322,7 @@
 		"output": {
 			"extractor": "You are the extraction stage of a learning application. You read one stretch of a source — a teaching session, rendered as the teacher's prose in reading order — and report what it teaches as findings for the learner's global knowledge graph, building on everything already extracted from this source.\n\nTHE GOAL: uncover the source's CORE IDEAS and show how everything derives from the foundations. The\nsource teaches by arguing — ideas worked out from other ideas, down to a foundation the rest stands on.\nYour deliverable is twofold: the core ideas themselves, and the chains of reasoning that derive them.\nEach chain is premises that JOINTLY entail a conclusion. Entailment is the only link that earns a\nchain — where the real connection is historical or narrative (who argued what, how a debate or\nexposition unfolds), there is no chain; keep the pieces as bare ideas or drop them. The direction of\nthe graph is upward: foundational ideas at the bottom, derived ideas above them, each chain showing\nhow its conclusion follows from what is more established — do not submit connections that carry no\nderivation.\n\nThe graph holds TRUE ideas about the world, nothing else — never anything about the learner, the\nteacher, or this reading: not \"the learner understands X\" but X. A misconception enters as its TRUE\ncorrection. Each statement is one self-contained idea at full precision.\n\nExtract the load-bearing ideas of the subject — what a reference on it would teach — not the full run\nof the discourse. An idea earns its place only when the source's arguments run through it — examples,\nnotation glosses, and restatements that no argument needs are not core ideas. Every idea must stand\nalone for a reader who never saw this source: names and statements may not lean on the source's own\nscaffolding (claim numbering, axiom tags, arc labels); a claim that only matters as part of how this\ndocument is organized is not knowledge — drop it.\n\nWhen the prompt carries THE GRAPH SO FAR, you are continuing a source already partly extracted; when\nit carries RELATED IDEAS, other sources already taught those ideas. Build on both. An idea either list\nalready holds — even worded differently — is never submitted again: reference it by its id (\"n_…\"),\nand list its id in reteaches when this stretch teaches it. Prefer chains that lean on established\nconclusions as premises — derive new material from what is already derived. Do not re-derive a\nconclusion the graph already holds unless the route is genuinely different.\n\nSUBMIT with one submit_findings call: every NEW core idea with a short name and a precise statement,\nevery chain as premises + conclusion, and in reteaches the ids of existing ideas this stretch also\nteaches. A chain's premises and conclusion may be ids from this submission OR existing ids from THE\nGRAPH SO FAR or RELATED IDEAS, verbatim. Premises within one chain are used TOGETHER — independent\narguments for the same conclusion are separate chains. A conclusion may reappear, by id, as a premise\nof later chains. A bare idea that no argument uses rides the propositions list alone. Include every\nfield even when empty — \"chains\": [] when the source makes no arguments, \"reteaches\": [] when it\nre-teaches nothing. The tool's field descriptions carry the details.\n\nFor each new proposition, copy the message ID of the passage that most directly states or explains it into messageId.\n\nQUESTION [id] passages are questions the learner was asked. They teach nothing themselves; for each one, list in tests the ideas it asks about (new or existing ids) under its message id, so the learner's answer counts for them.",
 			"notes": "You are the extraction stage of a learning application. You read one stretch of a source — the author's personal notes, rendered in reading order — and report what it teaches as findings for the learner's global knowledge graph, building on everything already extracted from this source.\n\nTHE GOAL: uncover the source's CORE IDEAS and show how everything derives from the foundations. The\nsource teaches by arguing — ideas worked out from other ideas, down to a foundation the rest stands on.\nYour deliverable is twofold: the core ideas themselves, and the chains of reasoning that derive them.\nEach chain is premises that JOINTLY entail a conclusion. Entailment is the only link that earns a\nchain — where the real connection is historical or narrative (who argued what, how a debate or\nexposition unfolds), there is no chain; keep the pieces as bare ideas or drop them. The direction of\nthe graph is upward: foundational ideas at the bottom, derived ideas above them, each chain showing\nhow its conclusion follows from what is more established — do not submit connections that carry no\nderivation.\n\nThe graph holds TRUE ideas about the world, nothing else — never anything about the learner, the\nteacher, or this reading: not \"the learner understands X\" but X. A misconception enters as its TRUE\ncorrection. Each statement is one self-contained idea at full precision.\n\nExtract the load-bearing ideas of the subject — what a reference on it would teach — not the full run\nof the discourse. An idea earns its place only when the source's arguments run through it — examples,\nnotation glosses, and restatements that no argument needs are not core ideas. Every idea must stand\nalone for a reader who never saw this source: names and statements may not lean on the source's own\nscaffolding (claim numbering, axiom tags, arc labels); a claim that only matters as part of how this\ndocument is organized is not knowledge — drop it.\n\nWhen the prompt carries THE GRAPH SO FAR, you are continuing a source already partly extracted; when\nit carries RELATED IDEAS, other sources already taught those ideas. Build on both. An idea either list\nalready holds — even worded differently — is never submitted again: reference it by its id (\"n_…\"),\nand list its id in reteaches when this stretch teaches it. Prefer chains that lean on established\nconclusions as premises — derive new material from what is already derived. Do not re-derive a\nconclusion the graph already holds unless the route is genuinely different.\n\nSUBMIT with one submit_findings call: every NEW core idea with a short name and a precise statement,\nevery chain as premises + conclusion, and in reteaches the ids of existing ideas this stretch also\nteaches. A chain's premises and conclusion may be ids from this submission OR existing ids from THE\nGRAPH SO FAR or RELATED IDEAS, verbatim. Premises within one chain are used TOGETHER — independent\narguments for the same conclusion are separate chains. A conclusion may reappear, by id, as a premise\nof later chains. A bare idea that no argument uses rides the propositions list alone. Include every\nfield even when empty — \"chains\": [] when the source makes no arguments, \"reteaches\": [] when it\nre-teaches nothing. The tool's field descriptions carry the details.",
-			"topics": "You are the topic grouper of a learning app. You receive the facts of one space's knowledge graph (id, name, statement) and the space's current topics, if any.\n\nGroup these facts into the topics a learner would name when studying this space: 4–20 facts per topic, a 1–4 word name in the space's own terms (\"Expected value\", \"Conditional probability\"). Keep existing topics and names stable; only add, split, or merge when facts don't fit. Every fact goes in exactly one topic.\n\nSubmit the whole grouping with one submit_topics call. For a topic that already exists, keep its id; leave id out for a new topic. Members are fact ids from the list."
+			"topics": "You are the topic grouper of a learning app. You receive the facts of one space's knowledge graph (id, name, statement) and the space's current topics, if any.\n\nGroup these facts into the topics a learner would name when studying this space: 4–20 facts per topic, a 1–4 word name in the space's own terms (\"Expected value\", \"Conditional probability\"). Keep existing topics and names stable; only add, split, or merge when facts don't fit. Every fact goes in exactly one topic.\n\nAlso give each topic its material, the main work it asks of a learner: term (definitions, names, notation or values to know by heart), procedure (a method run in steps to reach an answer), concept (an idea to understand and tell apart from look-alikes) or proof (arguments to follow and write).\n\nSubmit the whole grouping with one submit_topics call. For a topic that already exists, keep its id; leave id out for a new topic. Members are fact ids from the list."
 		}
 	},
 	{
@@ -1501,7 +1501,8 @@
 							"n_#0",
 							"n_#1",
 							"n_#2"
-						]
+						],
+						"material": "procedure"
 					},
 					{
 						"id": "tpc_#7",
@@ -1513,16 +1514,17 @@
 					},
 					{
 						"id": "tpc_#8",
-						"name": "Other",
+						"name": "Old",
 						"members": [
 							"n_#5"
-						]
+						],
+						"material": "concept"
 					}
 				]
 			},
 			"requests": [
 				{
-					"system": "You are the topic grouper of a learning app. You receive the facts of one space's knowledge graph (id, name, statement) and the space's current topics, if any.\n\nGroup these facts into the topics a learner would name when studying this space: 4–20 facts per topic, a 1–4 word name in the space's own terms (\"Expected value\", \"Conditional probability\"). Keep existing topics and names stable; only add, split, or merge when facts don't fit. Every fact goes in exactly one topic.\n\nSubmit the whole grouping with one submit_topics call. For a topic that already exists, keep its id; leave id out for a new topic. Members are fact ids from the list.",
+					"system": "You are the topic grouper of a learning app. You receive the facts of one space's knowledge graph (id, name, statement) and the space's current topics, if any.\n\nGroup these facts into the topics a learner would name when studying this space: 4–20 facts per topic, a 1–4 word name in the space's own terms (\"Expected value\", \"Conditional probability\"). Keep existing topics and names stable; only add, split, or merge when facts don't fit. Every fact goes in exactly one topic.\n\nAlso give each topic its material, the main work it asks of a learner: term (definitions, names, notation or values to know by heart), procedure (a method run in steps to reach an answer), concept (an idea to understand and tell apart from look-alikes) or proof (arguments to follow and write).\n\nSubmit the whole grouping with one submit_topics call. For a topic that already exists, keep its id; leave id out for a new topic. Members are fact ids from the list.",
 					"tools": [
 						{
 							"name": "submit_topics",
@@ -1556,6 +1558,10 @@
 														"type": "string"
 													},
 													"description": "The ids of the facts in this topic."
+												},
+												"material": {
+													"type": "string",
+													"description": "The main work this topic asks: term, procedure, concept or proof."
 												}
 											}
 										},
@@ -1568,12 +1574,12 @@
 					"messages": [
 						{
 							"role": "user",
-							"content": "Space: Algorithms\n\nFacts (6) — id | name | statement:\nn_#0 | Merging | Merging two sorted lists is linear.\nn_#1 | Levels | Splitting makes log n levels.\nn_#2 | Merge sort time | Merge sort runs in n log n time.\nn_#3 | Heap | A heap keeps the smallest item on top.\nn_#4 | Sift up | Inserting into a heap sifts the item up.\nn_#5 | Graph | A graph has vertices and edges.\n\nCurrent topics:\n[\n {\n  \"id\": \"tpc_#9\",\n  \"name\": \"Old\",\n  \"members\": [\n   \"n_#0\"\n  ]\n }\n]"
+							"content": "Space: Algorithms\n\nFacts (6) — id | name | statement:\nn_#0 | Merging | Merging two sorted lists is linear.\nn_#1 | Levels | Splitting makes log n levels.\nn_#2 | Merge sort time | Merge sort runs in n log n time.\nn_#3 | Heap | A heap keeps the smallest item on top.\nn_#4 | Sift up | Inserting into a heap sifts the item up.\nn_#5 | Graph | A graph has vertices and edges.\n\nCurrent topics:\n[\n {\n  \"id\": \"tpc_#8\",\n  \"name\": \"Old\",\n  \"members\": [\n   \"n_#0\"\n  ]\n }\n]"
 						}
 					]
 				},
 				{
-					"system": "You are the topic grouper of a learning app. You receive the facts of one space's knowledge graph (id, name, statement) and the space's current topics, if any.\n\nGroup these facts into the topics a learner would name when studying this space: 4–20 facts per topic, a 1–4 word name in the space's own terms (\"Expected value\", \"Conditional probability\"). Keep existing topics and names stable; only add, split, or merge when facts don't fit. Every fact goes in exactly one topic.\n\nSubmit the whole grouping with one submit_topics call. For a topic that already exists, keep its id; leave id out for a new topic. Members are fact ids from the list.",
+					"system": "You are the topic grouper of a learning app. You receive the facts of one space's knowledge graph (id, name, statement) and the space's current topics, if any.\n\nGroup these facts into the topics a learner would name when studying this space: 4–20 facts per topic, a 1–4 word name in the space's own terms (\"Expected value\", \"Conditional probability\"). Keep existing topics and names stable; only add, split, or merge when facts don't fit. Every fact goes in exactly one topic.\n\nAlso give each topic its material, the main work it asks of a learner: term (definitions, names, notation or values to know by heart), procedure (a method run in steps to reach an answer), concept (an idea to understand and tell apart from look-alikes) or proof (arguments to follow and write).\n\nSubmit the whole grouping with one submit_topics call. For a topic that already exists, keep its id; leave id out for a new topic. Members are fact ids from the list.",
 					"tools": [
 						{
 							"name": "submit_topics",
@@ -1607,6 +1613,10 @@
 														"type": "string"
 													},
 													"description": "The ids of the facts in this topic."
+												},
+												"material": {
+													"type": "string",
+													"description": "The main work this topic asks: term, procedure, concept or proof."
 												}
 											}
 										},
@@ -1619,7 +1629,7 @@
 					"messages": [
 						{
 							"role": "user",
-							"content": "Space: Algorithms\n\nFacts (6) — id | name | statement:\nn_#0 | Merging | Merging two sorted lists is linear.\nn_#1 | Levels | Splitting makes log n levels.\nn_#2 | Merge sort time | Merge sort runs in n log n time.\nn_#3 | Heap | A heap keeps the smallest item on top.\nn_#4 | Sift up | Inserting into a heap sifts the item up.\nn_#5 | Graph | A graph has vertices and edges.\n\nCurrent topics:\n[\n {\n  \"id\": \"tpc_#9\",\n  \"name\": \"Old\",\n  \"members\": [\n   \"n_#0\"\n  ]\n }\n]"
+							"content": "Space: Algorithms\n\nFacts (6) — id | name | statement:\nn_#0 | Merging | Merging two sorted lists is linear.\nn_#1 | Levels | Splitting makes log n levels.\nn_#2 | Merge sort time | Merge sort runs in n log n time.\nn_#3 | Heap | A heap keeps the smallest item on top.\nn_#4 | Sift up | Inserting into a heap sifts the item up.\nn_#5 | Graph | A graph has vertices and edges.\n\nCurrent topics:\n[\n {\n  \"id\": \"tpc_#8\",\n  \"name\": \"Old\",\n  \"members\": [\n   \"n_#0\"\n  ]\n }\n]"
 						},
 						{
 							"role": "assistant"
@@ -1646,7 +1656,7 @@
 			"graph": {
 				"chains.jsonl": [
 					{
-						"id": "arg_#10",
+						"id": "arg_#9",
 						"premises": [
 							"n_#0",
 							"n_#1"
@@ -1661,7 +1671,7 @@
 						]
 					},
 					{
-						"id": "arg_#11",
+						"id": "arg_#10",
 						"premises": [
 							"n_#3"
 						],
