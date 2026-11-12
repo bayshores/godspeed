@@ -104,3 +104,9 @@ Every part passes the Phase 0 recordings before the next one starts.
 - **Cheat sheet printing:** print the stored PDF natively with PDFKit. `window.print()` in WebKit ignores the page size.
 - **Phases 3 and 4 ship together:** nothing is released until the owner merges, so the in-between Electron + Rust build is skipped. The Rust server is proven against the contract recordings and the screenshots in Chromium instead, and demo checking is built once, on the hidden WKWebView, rather than twice.
 - **Server quirks:** the recordings captured about 40 odd behaviours of today's server (for example an empty 500 for a `null` JSON body). The Rust server copies recorded behaviour exactly. Fixing them is separate work after the switch.
+
+## Windows and Linux status (2026-11-11)
+
+- **Built and checked on all three systems:** `cargo build`, `cargo test` and `cargo clippy` on the whole workspace, and `godspeed --self-test` (demo checking, its isolation from the app and this machine, and the refused app commands from a demo). Windows and Linux demos run in a hidden demo window of their own; the Windows installer removes an old Electron install first and builds, and a folder dropped on Windows onboarding fills in its path.
+- **Server recordings:** the file, search and path recordings are checked in their Windows or case-sensitive form where the system differs from the Mac.
+- **Not yet checked by a person on Windows or Linux:** dropping a real folder on onboarding, running the installer, the Linux menu bar (no "godspeed" first menu showed), installing the deb or AppImage, Ctrl-C stop on Windows, symlink fallback on an account without Developer Mode, hard links across drives, and the updater feeds (they need signed builds).
