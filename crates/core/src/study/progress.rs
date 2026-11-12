@@ -4,7 +4,7 @@
 use gs_base::{num, time};
 use gs_json::Json;
 
-pub use super::answers::{collect_answers, facts_by_message, facts_for_answer};
+pub use super::answers::{Tally, collect_answers, facts_by_message, facts_for_answer};
 pub use super::derive_progress::derive_progress;
 pub use super::fact_progress::topic_facts;
 

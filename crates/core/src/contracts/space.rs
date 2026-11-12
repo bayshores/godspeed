@@ -14,8 +14,8 @@ pub const MAX_HOMEWORK_PROBLEMS: usize = 60;
 pub const SIGNATURE_MAX: usize = 60;
 /// Longest space note, in characters.
 pub const NOTE_MAX: usize = 280;
-/// v9: the record file is space.json (class.json before).
-pub const CURRENT_SPACE_VERSION: i64 = 9;
+/// v9: the record file is space.json (class.json before). v10: adds `prep`.
+pub const CURRENT_SPACE_VERSION: i64 = 10;
 pub const FILE_NOT_FOUND: &str = "The file could not be found";
 pub const DEADLINE_KINDS: [&str; 4] = ["exam", "homework", "quiz", "project"];
 

@@ -3,13 +3,14 @@
 
 use std::collections::HashSet;
 
-use gs_json::{Json, Obj};
+use gs_json::{Json, Obj, json};
 
 use super::new_files::is_recent_change;
 use super::space_deadlines::{id_list, squash, with_files};
 use super::space_work::{is_first_round, is_waiting_file};
 use crate::contracts::space::{CURRENT_SPACE_VERSION, clean_signature, compare_deadlines, is_deadline_kind, is_space_color, is_space_icon};
 use gs_base::text::cmp16;
+use crate::preps::prep::parse_prep;
 use crate::records::teaching_areas::sanitize_rules;
 
 fn is_str(v: &Json) -> bool {
@@ -210,6 +211,9 @@ pub fn read_space_record(parsed: &Json, now: i64, fresh_color: impl FnOnce() -> 
 	if let Some(work) = read_work(&parsed["lastWork"]) {
 		out.insert("lastWork", work);
 	}
+	if let Some(prep) = parse_prep(&parsed["prep"]) {
+		out.insert("prep", prep);
+	}
 	if matches!(parsed["version"], Json::Num(_)) {
 		out.insert("version", parsed["version"].clone());
 	}
@@ -269,6 +273,9 @@ pub fn summarize(record: &Json) -> Json {
 	if files_left > 0 && is_first_round(files, record.get("lastWork")) {
 		out.insert("building", true);
 	}
+	if let Some(prep) = record.get("prep") {
+		out.insert("prep", if prep["date"].truthy() { json!({ "date": prep["date"].clone() }) } else { json!({}) });
+	}
 	Json::Obj(out)
 }
 
@@ -323,8 +330,8 @@ mod tests {
 	fn a_record_without_its_basics_does_not_read() {
 		assert!(read_space_record(&json!({ "id": "cls_a", "name": "n", "createdAt": "c" }), 0, || 1).is_none());
 		assert!(read_space_record(&json!([]), 0, || 1).is_none());
-		assert_eq!(newer_version(&json!({ "version": 10 })), Some(10.0));
-		assert_eq!(newer_version(&json!({ "version": 9 })), None);
+		assert_eq!(newer_version(&json!({ "version": 11 })), Some(11.0));
+		assert_eq!(newer_version(&json!({ "version": 10 })), None);
 	}
 
 	#[test]

@@ -44,6 +44,13 @@ pub fn space_card_text(card: &Json) -> String {
 	if !description.is_empty() {
 		lines.extend(["".to_owned(), "About the space (the learner's own words):".to_owned(), description.to_owned()]);
 	}
+	if let Some(prep) = card.get("prep").filter(|p| p.truthy()) {
+		let on = if prep["date"].truthy() { format!(" (on {})", js_string(prep.get("date"))) } else { String::new() };
+		lines.extend(["".to_owned(), format!("This space is a prep. The learner is getting ready for: {}{on}", js_string(prep.get("goal")))]);
+		if prep["about"].truthy() {
+			lines.extend(["".to_owned(), "What it is like (from the prep sheet):".to_owned(), js_string(prep.get("about"))]);
+		}
+	}
 	let readable = readable_files(card);
 	if !readable.is_empty() {
 		let study = readable.iter().filter(|f| f["kind"].as_str() == Some("study")).count();
@@ -129,5 +136,16 @@ mod tests {
 		assert_eq!(space_files_text(&bare), "");
 		assert_eq!(new_space_context_message(&bare)["details"], bare);
 		assert_eq!(new_study_context_message("t", "homework-context")["display"], json!(false));
+	}
+
+	#[test]
+	fn a_preps_card_says_what_the_learner_is_getting_ready_for() {
+		let card = json!({ "name": "Acme test", "description": "", "files": [], "prep": { "goal": "Acme online test", "date": "2026-11-20", "about": "Four questions." } });
+		assert_eq!(
+			space_card_text(&card),
+			"[Space context] — this lesson belongs to one of the learner's spaces:\n\nSpace: Acme test\n\nThis space is a prep. The learner is getting ready for: Acme online test (on 2026-11-20)\n\nWhat it is like (from the prep sheet):\nFour questions."
+		);
+		let unwritten = json!({ "name": "Acme test", "description": "", "files": [], "prep": { "goal": "Acme online test", "about": "" } });
+		assert!(space_card_text(&unwritten).ends_with("\n\nThis space is a prep. The learner is getting ready for: Acme online test"));
 	}
 }

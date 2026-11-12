@@ -22,6 +22,7 @@ pub enum EventKind {
 	AgentAction,
 	RulesChanged,
 	CheatSheetChanged,
+	PrepChanged,
 	FilesAdded,
 	FilesRemoved,
 }
@@ -40,6 +41,7 @@ impl EventKind {
 			EventKind::AgentAction => "agent-action",
 			EventKind::RulesChanged => "rules-changed",
 			EventKind::CheatSheetChanged => "cheat-sheet-changed",
+			EventKind::PrepChanged => "prep-changed",
 			EventKind::FilesAdded => "files-added",
 			EventKind::FilesRemoved => "files-removed",
 		}
