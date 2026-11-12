@@ -95,7 +95,7 @@ export interface NotesSource {
 	extractions?: ExtractionRunUsage[];
 }
 
-/** The main work a topic asks of a student; Study picks its opening move by it. */
+/** The main work a topic asks of a learner; Study picks its opening move by it. */
 export const TOPIC_MATERIALS = ["term", "procedure", "concept", "proof"] as const;
 export type TopicMaterial = (typeof TOPIC_MATERIALS)[number];
 

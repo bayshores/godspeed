@@ -26,7 +26,7 @@ export const TOPIC_GROUPER_INSTRUCTIONS = `You are the topic grouper of a learni
 
 ${TOPIC_GROUPING_RULE}
 
-Also give each topic its material, the main work it asks of a student: term (definitions, names, notation or values to know by heart), procedure (a method run in steps to reach an answer), concept (an idea to understand and tell apart from look-alikes) or proof (arguments to follow and write).
+Also give each topic its material, the main work it asks of a learner: term (definitions, names, notation or values to know by heart), procedure (a method run in steps to reach an answer), concept (an idea to understand and tell apart from look-alikes) or proof (arguments to follow and write).
 
 Submit the whole grouping with one submit_topics call. For a topic that already exists, keep its id; leave id out for a new topic. Members are fact ids from the list.`;
 
