@@ -6,6 +6,7 @@
 //! never opens the browser: a demo iframe sending itself to a web address would open it with
 //! no click, over and over. Links leave through a new window or the shim's `open_link`.
 
+use std::path::Path;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -17,9 +18,13 @@ use tauri::window::Color;
 use tauri::{AppHandle, Manager, State, Url, Webview, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
 
 use crate::commands::{AppOrigin, trusted};
+use crate::paths::Paths;
 use crate::push::push;
 use crate::server::Server;
 use crate::{log, zoom};
+
+/// Paper, the window's color when no dark background is picked.
+const PAPER: Color = Color(0xc9, 0xc7, 0xbd, 0xff);
 
 /// A page that never asks to be shown still gets its window this long after it loaded.
 const SHOW_FALLBACK: Duration = Duration::from_secs(5);
@@ -29,10 +34,11 @@ const SHOW_FALLBACK: Duration = Duration::from_secs(5);
 #[cfg(windows)]
 const MAIN_BROWSER_ARGS: &str = "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --autoplay-policy=no-user-gesture-required";
 
-/// Where the traffic lights sit: the three circles span x 16 to 76 with centers on y 21, as in
-/// the Electron app (tao puts the first circle's left edge at x and its center at y - 2).
+/// Where the traffic lights sit: the three circles span x 16 to 76 with centers on y 23, in the
+/// 48 px top bar, as in the Electron app (tao puts the first circle's left edge at x and its
+/// center at y - 2).
 #[cfg(target_os = "macos")]
-const TRAFFIC_LIGHTS: tauri::LogicalPosition<f64> = tauri::LogicalPosition { x: 16.0, y: 23.0 };
+const TRAFFIC_LIGHTS: tauri::LogicalPosition<f64> = tauri::LogicalPosition { x: 16.0, y: 25.0 };
 
 const SHIM: &str = include_str!("shim.js");
 
@@ -65,7 +71,7 @@ pub fn create(app: &AppHandle) -> tauri::Result<WebviewWindow> {
 		.min_inner_size(640.0, 600.0)
 		.center()
 		.visible(false)
-		.background_color(Color(0x14, 0x14, 0x14, 0xff))
+		.background_color(background(&app.state::<Paths>().data.join("settings.json")))
 		.initialization_script(shim)
 		.zoom_hotkeys_enabled(false)
 		// Tauri's own handler blocks the page's HTML5 drops.
@@ -126,6 +132,13 @@ pub fn create(app: &AppHandle) -> tauri::Result<WebviewWindow> {
 	#[cfg(windows)]
 	crate::win::drop::install(&main)?;
 	Ok(main)
+}
+
+/// The window's own color, shown before the page paints: the dark background picked in Settings,
+/// Appearance, else Paper. Read for each new window, so a pick shows the next time it opens.
+fn background(settings: &Path) -> Color {
+	let saved = std::fs::read_to_string(settings).ok().and_then(|text| serde_json::from_str::<Value>(&text).ok());
+	saved.as_ref().and_then(|saved| saved.pointer("/appearance/background")).and_then(Value::as_str).and_then(|picked| picked.parse().ok()).unwrap_or(PAPER)
 }
 
 fn open_in_browser(url: &Url) {
@@ -304,6 +317,34 @@ mod tests {
 
 	fn url(text: &str) -> Url {
 		text.parse().unwrap()
+	}
+
+	/// The window color for a settings.json holding `text` (none: no file).
+	fn background_for(name: &str, text: Option<&str>) -> Color {
+		let dir = std::env::temp_dir().join(format!("gs-shell-window-{name}-{}", std::process::id()));
+		let _ = std::fs::remove_dir_all(&dir);
+		std::fs::create_dir_all(&dir).unwrap();
+		let file = dir.join("settings.json");
+		if let Some(text) = text {
+			gs_base::fsx::write_text_atomic(&file, text).unwrap();
+		}
+		let color = background(&file);
+		std::fs::remove_dir_all(dir).unwrap();
+		color
+	}
+
+	#[test]
+	fn the_window_takes_the_picked_dark_background() {
+		assert_eq!(background_for("night", Some(r##"{"appearance":{"background":"#1b1d2a"}}"##)), Color(0x1b, 0x1d, 0x2a, 0xff));
+		assert_eq!(background_for("short", Some(r##"{"appearance":{"background":"#123"}}"##)), Color(0x11, 0x22, 0x33, 0xff));
+	}
+
+	#[test]
+	fn the_window_is_paper_when_nothing_is_picked() {
+		assert_eq!(background_for("missing", None), PAPER);
+		for (name, text) in [("null", r#"{"appearance":{"background":null}}"#), ("no-appearance", r#"{"general":{}}"#), ("corrupt", "{"), ("not-a-color", r#"{"appearance":{"background":"paper"}}"#)] {
+			assert_eq!(background_for(name, Some(text)), PAPER, "{name}");
+		}
 	}
 
 	#[test]
