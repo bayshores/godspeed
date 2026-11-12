@@ -724,7 +724,9 @@ describe("a linked folder over time (a synced Drive folder)", () => {
 			if (e.type === "files-removed") removed.push(e.files.map((f) => f.name));
 		}));
 		const summary = () => stores.spaceStore.listSpaces().find((c) => c.id === id)!;
-		assert.equal(summary().lastFolderFileAt, stores.spaceStore.getSpace(id)!.files[0]!.addedAt, "linking counts as the folder's newest files");
+		// The three files can be stamped in different milliseconds, so compare with the newest.
+		const newestAdded = stores.spaceStore.getSpace(id)!.files.map((f) => f.addedAt).sort().at(-1);
+		assert.equal(summary().lastFolderFileAt, newestAdded, "linking counts as the folder's newest files");
 
 		fs.rmSync(path.join(dir, "a.md"));
 		fs.rmSync(path.join(dir, "b.md"));
