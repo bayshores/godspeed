@@ -154,6 +154,11 @@ fn file_url(dir: &str) -> String {
 	url
 }
 
+/// Python on Windows prints each line ending as CRLF; what it printed reads the same everywhere.
+fn unix_newlines(text: &str) -> String {
+	if cfg!(windows) { text.replace("\r\n", "\n") } else { text.to_owned() }
+}
+
 /// `fs.rm(dir, { recursive: true, force: true, maxRetries: 5 })`: Windows lets go of an ended
 /// program's files a moment later.
 async fn remove_run_dir(dir: &Path) {
@@ -269,8 +274,8 @@ pub async fn run_examples(tmp: &Path, question: &Json, code: &str, language: Moc
 			Ok((out, err)) => {
 				// The temp folder's path, also as a file:// URL when Node read the code as a module,
 				// says nothing to the learner.
-				let err = text::from_utf8_lossy(&err).replace(&file_url(&shown_dir), "").replace(&shown_dir, "");
-				read_run(&text::from_utf8_lossy(&out), &err, &mark, examples)
+				let err = unix_newlines(&text::from_utf8_lossy(&err)).replace(&file_url(&shown_dir), "").replace(&shown_dir, "");
+				read_run(&unix_newlines(&text::from_utf8_lossy(&out)), &err, &mark, examples)
 			}
 			Err(TooMuch) => stopped("Your code printed too much and was stopped."),
 		},

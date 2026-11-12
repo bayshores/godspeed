@@ -186,6 +186,11 @@ fn a_python_that_only_opens_an_installer_is_passed_over() {
 
 #[test]
 fn a_folder_is_named_by_url_as_node_names_it() {
+	if cfg!(windows) {
+		assert_eq!(file_url("C:\\Users\\me\\AppData\\Local\\Temp\\godspeed-run-aB3\\"), "file:///C:/Users/me/AppData/Local/Temp/godspeed-run-aB3/");
+		assert_eq!(file_url("C:\\tmp\\a b#c%d\\é\\"), "file:///C:/tmp/a%20b%23c%25d/%C3%A9/");
+		return;
+	}
 	assert_eq!(file_url("/private/var/folders/x_y/T/godspeed-run-aB3/"), "file:///private/var/folders/x_y/T/godspeed-run-aB3/");
 	assert_eq!(file_url("/tmp/a b#c%d/é/"), "file:///tmp/a%20b%23c%25d/%C3%A9/");
 }

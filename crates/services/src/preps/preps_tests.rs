@@ -79,7 +79,7 @@ async fn a_prep_is_made_from_the_learners_words_and_the_teachers_sheet_lands_on_
 	assert_eq!(label, "Prep sheet: Acme online test for a junior web role");
 	assert!(asked.contains("They are preparing for: Acme online test for a junior web role\nToday is "));
 	assert!(asked.contains("It is on 2026-11-20."));
-	assert!(asked.contains("They attached these files. Read them first:\n- posting.txt: ") && asked.contains("/posting.txt"), "the attached file, with where to read it");
+	assert!(asked.contains("They attached these files. Read them first:\n- posting.txt: ") && asked.contains(&format!("{}posting.txt", std::path::MAIN_SEPARATOR)), "the attached file, with where to read it");
 
 	let after = view(&app, &space_id);
 	assert_eq!(after["name"], Json::from("Acme junior web test"));
