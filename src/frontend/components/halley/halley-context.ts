@@ -32,8 +32,8 @@ export interface HalleyApi {
 	go: (action: AgentAction) => void;
 	/** With Follow off: a fresh change on another page, to offer "Go to". */
 	offer: AgentAction | null;
-	/** A class's name by id (Recent rows name the class). */
-	classNameOf: (id: string | null) => string | null;
+	/** A space's name by id (Recent rows name the space). */
+	spaceNameOf: (id: string | null) => string | null;
 }
 
 export const HalleyContext = createContext<HalleyApi | null>(null);

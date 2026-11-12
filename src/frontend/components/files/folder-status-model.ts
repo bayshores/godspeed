@@ -3,7 +3,7 @@
  * checked just now", or a plain warning instead), what its box says about
  * files it can't read, and the summary's "3 new since Tue".
  */
-import { folderName, isGoogleDriveFolder, isNewFolderFile, type ClassFile, type FolderStatus, type SkippedFiles } from "@/shared/core";
+import { folderName, isGoogleDriveFolder, isNewFolderFile, type SpaceFile, type FolderStatus, type SkippedFiles } from "@/shared/core";
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -47,7 +47,7 @@ function checkedAgo(at: string, now: number): string {
 }
 
 /** "3 new since Tue" (the day the oldest new file came), null when none. */
-export function newSince(files: readonly ClassFile[], now: number): string | null {
+export function newSince(files: readonly SpaceFile[], now: number): string | null {
 	const fresh = files.filter((f) => isNewFolderFile(f, now));
 	if (fresh.length === 0) return null;
 	const oldest = Math.min(...fresh.map((f) => Date.parse(f.addedAt)));

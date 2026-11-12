@@ -1,5 +1,5 @@
 /**
- * The Class Overview's small derived values (src/frontend/components/overview/
+ * The Space Overview's small derived values (src/frontend/components/overview/
  * overview-model.ts) and its inline-math splitter.
  */
 import assert from "node:assert/strict";
@@ -97,7 +97,7 @@ describe("overview-model", () => {
 	});
 });
 
-describe("the class's signature and note", () => {
+describe("the space's signature and note", () => {
 	it("the share of facts studied: in a lesson or answered, 0 with no facts", () => {
 		const fact = (inLessons: boolean, answered = false) => ({ inLessons, answers: answered ? [{ chatId: "c", toolCallId: "t", outcome: "right" as const, answeredAt: "" }] : [] });
 		assert.equal(studiedShare([fact(true), fact(false, true), fact(false), fact(false)]), 0.5);
@@ -149,7 +149,7 @@ describe("deadlines on Progress", () => {
 	});
 
 	it("links and numbers", () => {
-		assert.equal(deadlineHref("d 1"), "/class/deadline/d%201");
+		assert.equal(deadlineHref("d 1"), "/space/deadline/d%201");
 		assert.equal(percent(0.385), 39);
 		assert.equal(joinAnd([]), "");
 		assert.equal(joinAnd(["a"]), "a");

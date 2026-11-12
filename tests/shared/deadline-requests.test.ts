@@ -18,7 +18,7 @@ const deadline = (id: string, over: Partial<{ date: string; time: string; fileId
 	done: false,
 	...over,
 });
-const cls = (id: string, over: Partial<{ archived: boolean; files: never[]; deadlines: ReturnType<typeof deadline>[] }> = {}) => ({
+const space = (id: string, over: Partial<{ archived: boolean; files: never[]; deadlines: ReturnType<typeof deadline>[] }> = {}) => ({
 	id,
 	name: id.toUpperCase(),
 	archived: false,
@@ -28,9 +28,9 @@ const cls = (id: string, over: Partial<{ archived: boolean; files: never[]; dead
 });
 
 describe("deadlines godspeed asks about", () => {
-	it("open, unlinked deadlines in classes with a readable study file, each once", () => {
-		const classes = [
-			cls("a", {
+	it("open, unlinked deadlines in spaces with a readable study file, each once", () => {
+		const spaces = [
+			space("a", {
 				deadlines: [
 					deadline("open", { time: "18:30" }),
 					deadline("linked", { fileIds: ["f1"] }),
@@ -39,23 +39,23 @@ describe("deadlines godspeed asks about", () => {
 					deadline("asked"),
 				],
 			}),
-			cls("b", { archived: true, deadlines: [deadline("archived")] }),
-			cls("c", { files: [file("info", "ready"), file("study", "pending")], deadlines: [deadline("unread")] }),
+			space("b", { archived: true, deadlines: [deadline("archived")] }),
+			space("c", { files: [file("info", "ready"), file("study", "pending")], deadlines: [deadline("unread")] }),
 		];
-		const found = unlinkedDeadlines(classes, "2026-11-02", new Set(["asked"]));
-		assert.deepEqual(found, [{ id: "open", name: "Exam open", className: "A", classId: "a", date: "2026-11-04", time: "18:30" }]);
+		const found = unlinkedDeadlines(spaces, "2026-11-02", new Set(["asked"]));
+		assert.deepEqual(found, [{ id: "open", name: "Exam open", spaceName: "A", spaceId: "a", date: "2026-11-04", time: "18:30" }]);
 	});
 
 	it("the request names each deadline for the model, and Talk shows it as from godspeed", () => {
-		const request = coverageRequest(unlinkedDeadlines([cls("a", { deadlines: [deadline("d1")] })], "2026-11-02", new Set()));
+		const request = coverageRequest(unlinkedDeadlines([space("a", { deadlines: [deadline("d1")] })], "2026-11-02", new Set()));
 		assert.equal(request.customType, "app-request");
 		const [llm] = toLlmMessages([request] as never);
 		const text = (llm as { content: { text: string }[] }).content[0]!.text;
 		assert.match(text, /^\[From godspeed, not the learner\] This deadline has no files linked yet:/);
-		assert.match(text, /Exam d1 in A \(class_id a, deadline_id d1, due 2026-11-04\)/);
-		assert.match(text, /update_class_deadline/);
+		assert.match(text, /Exam d1 in A \(space_id a, deadline_id d1, due 2026-11-04\)/);
+		assert.match(text, /update_space_deadline/);
 		const [view] = projectView([request]);
-		assert.deepEqual(view!.parts, [{ type: "data-app-request", id: `ar_${request.id}`, data: { deadlines: [{ id: "d1", name: "Exam d1", className: "A" }] } }]);
+		assert.deepEqual(view!.parts, [{ type: "data-app-request", id: `ar_${request.id}`, data: { deadlines: [{ id: "d1", name: "Exam d1", spaceName: "A" }] } }]);
 		assert.deepEqual([...askedDeadlineIds([request])], ["d1"]);
 	});
 });

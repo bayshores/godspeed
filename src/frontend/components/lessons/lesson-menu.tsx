@@ -4,7 +4,7 @@ import { CoverageMenuBlock } from "@/frontend/components/extraction-coverage";
 
 /**
  * THE LESSON MENU (a lesson row's More button or a right-click): Rename,
- * Export as Markdown, Move to another class, Delete (the destructive
+ * Export as Markdown, Move to another space, Delete (the destructive
  * action last), then below a dotted rule the extraction coverage block. MenuShell owns
  * placement, focus and arrow keys; the list owns dismissal.
  */
@@ -57,8 +57,8 @@ export function LessonMenu({
 			>
 				Export as Markdown
 			</button>
-			<button role="menuitem" type="button" data-testid="ctx-move-class" onClick={onMove} className={`${ITEM} text-ink`}>
-				Move to another class
+			<button role="menuitem" type="button" data-testid="ctx-move-space" onClick={onMove} className={`${ITEM} text-ink`}>
+				Move to another space
 			</button>
 			<button role="menuitem" type="button" data-testid="ctx-delete" onClick={onDelete} className={`${ITEM} text-ans-wrong`}>
 				Delete

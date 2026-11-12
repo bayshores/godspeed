@@ -70,7 +70,7 @@ export function hasCalibration(levels: readonly CalibrationLevel[]): boolean {
 	return levels.some((l) => l.answered > 0);
 }
 
-/** Share of the class's facts studied, 0 to 1 (0 with no facts). A fact
+/** Share of the space's facts studied, 0 to 1 (0 with no facts). A fact
  *  counts once it came up in a lesson, as in the fact grid. */
 export function studiedShare(facts: readonly Pick<FactProgress, "inLessons" | "answers">[]): number {
 	if (facts.length === 0) return 0;
@@ -100,7 +100,7 @@ export function noteWhen(at: string, nowMs: number): string {
 
 /** The deadline's own page. */
 export function deadlineHref(id: string): string {
-	return `/class/deadline/${encodeURIComponent(id)}`;
+	return `/space/deadline/${encodeURIComponent(id)}`;
 }
 
 /** 0.38 → 38. */

@@ -13,7 +13,7 @@ export interface CompactionDividerData {
 
 /** The moment divider: minimal centered small text where
  *  the user currently is — the retrying-message register (SystemLine's
- *  exact classes), NO horizontal rule. The transcript's quiet note that
+ *  exact spaces), NO horizontal rule. The transcript's quiet note that
  *  history was just summarized; the cut divider below carries the seam.
  *  Plain text, no affordance. */
 export function CompactionMomentDivider({ data: _data }: { data: CompactionDividerData }) {

@@ -24,7 +24,7 @@ export function bootLines(
 	upgraded: boolean,
 ): string[] {
 	const head = `godspeed ${version}`;
-	if (upgraded) return [head, "New look", "Loading your classes"];
+	if (upgraded) return [head, "New look", "Loading your spaces"];
 	const who = agent.connected ? `${agent.name?.trim() || "Your agent"} is connected` : "No agent is connected";
 	if (!next) return [head, who];
 	let when: string;

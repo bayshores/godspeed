@@ -52,7 +52,7 @@ const planInitInput = Type.Object({
 		description:
 			"A mermaid graph block (any direction), e.g.:\ngraph TD\n  primitives[Number primitives] --> operators[Arithmetic operators] --> expressions[Evaluating expressions]\n" +
 			"The only strict rule: ids are permanent lowercase slugs (a-z, 0-9, hyphens/underscores) — checks reference them via nodeId. " +
-			"Titles are free single-line text; `-->` means 'from = prerequisite' (chains fine); no subgraphs, styles, or classes.",
+			"Titles are free single-line text; `-->` means 'from = prerequisite' (chains fine); no subgraphs, styles, or spaces.",
 	}),
 });
 

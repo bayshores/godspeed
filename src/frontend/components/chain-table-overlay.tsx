@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import type { GraphChain, GraphNode } from "@/shared/core";
-import { useClasses } from "@/frontend/components/class-context";
+import { useSpaces } from "@/frontend/components/space-context";
 import { DeleteNodeDialog } from "@/frontend/components/delete-node-dialog";
 import { ChainTableBody } from "./chain-table";
 import { nextSort, toggled, withIds, type ChainSort } from "./chain-table-model";
 
 /**
- * "All facts" over the page: it covers the class head too, but not the
+ * "All facts" over the page: it covers the space head too, but not the
  * app's top bar (48px) or the docked teacher panel. It owns the search,
  * sort, open rows and picked facts; Esc and "Close" leave.
  *
@@ -35,7 +35,7 @@ export function ChainTableOverlay({
 	controlledSelection?: ReadonlySet<string>;
 	onSelectionChange?: (next: ReadonlySet<string>) => void;
 }) {
-	const { activeClass } = useClasses();
+	const { activeSpace } = useSpaces();
 	const [query, setQuery] = useState("");
 	const [sort, setSort] = useState<ChainSort>({ col: "name", dir: 1 });
 	const [internalSelection, setInternalSelection] = useState<ReadonlySet<string>>(() => new Set());
@@ -81,7 +81,7 @@ export function ChainTableOverlay({
 					chains={chains}
 					sessions={sessions}
 					fileSources={fileSources}
-					classLabel={activeClass?.name ?? null}
+					spaceLabel={activeSpace?.name ?? null}
 					query={query}
 					onQuery={setQuery}
 					sort={sort}

@@ -96,7 +96,7 @@ export interface NotesSource {
 }
 
 /** One topic: a named group of a graph's facts. Named by the topic grouper (a background model
- *  job) in the course's own terms. */
+ *  job) in the space's own terms. */
 export interface GraphTopic {
 	/** "tpc_" + 10 hex — stable across regroupings (the grouper keeps ids). */
 	id: string;

@@ -36,7 +36,7 @@ export async function runSubmitAgent<T>(opts: {
 	 *  (the cheat sheet's PDF). */
 	validate?: (value: T) => string | null | Promise<string | null>;
 	/** Tools to look things up before submitting (the cheat sheet writer
-	 *  searches the class's files for its rules). */
+	 *  searches the space's files for its rules). */
 	lookups?: AgentTool<any>[];
 	/** Model calls allowed; the default only leaves room for retries. */
 	maxTurns?: number;

@@ -8,7 +8,7 @@ import { drawnSeparators } from "../../src/frontend/components/lesson/message-ro
 
 const step: LhViewPart = { type: "step-start" };
 const text = (t: string): LhViewPart => ({ type: "text", id: t, text: t, state: "done" });
-const hidden: LhViewPart = { type: "tool-search_class_files", state: "output-available", toolCallId: "s" };
+const hidden: LhViewPart = { type: "tool-search_space_files", state: "output-available", toolCallId: "s" };
 const shows = (p: LhViewPart) => p.type === "text";
 
 describe("drawnSeparators", () => {

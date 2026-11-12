@@ -1,13 +1,13 @@
 /** The Deadlines tab: which list a deadline goes in, and each row's words. */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import type { ClassDeadline, DeadlineProgress } from "../../src/shared/core/index.ts";
-import { deadlineLine, deadlineLists } from "../../src/frontend/components/class-page/deadlines-tab-model.ts";
+import type { SpaceDeadline, DeadlineProgress } from "../../src/shared/core/index.ts";
+import { deadlineLine, deadlineLists } from "../../src/frontend/components/space-page/deadlines-tab-model.ts";
 
 // Wed Nov 11 2026, 4:12 PM local.
 const NOW = new Date(2026, 10, 11, 16, 12).getTime();
 
-function d(id: string, kind: ClassDeadline["kind"], date: string, done = false): ClassDeadline {
+function d(id: string, kind: SpaceDeadline["kind"], date: string, done = false): SpaceDeadline {
 	return { id, kind, name: id, date, fileIds: [], done };
 }
 const HW6 = d("hw6", "homework", "2026-11-13");

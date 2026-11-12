@@ -12,7 +12,7 @@ import type { UserSettings } from "../../src/shared/core/settings.ts";
 describe("resolveSettings", () => {
 	it("null record (first boot): every knob lands on its factory default", () => {
 		const eff = resolveSettings(null);
-		assert.deepEqual(eff.general, { autoUpdate: true, activeClass: "none", teacherName: "Teacher", sounds: true });
+		assert.deepEqual(eff.general, { autoUpdate: true, activeSpace: "none", teacherName: "Teacher", sounds: true });
 		assert.deepEqual(eff.agent.tools, {});
 		assert.deepEqual(eff.agent.rules, {});
 		assert.equal(eff.appearance.background, null);

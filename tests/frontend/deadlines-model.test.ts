@@ -1,12 +1,12 @@
 /**
- * Open deadlines across classes: their order.
+ * Open deadlines across spaces: their order.
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { byDue, type OpenDeadline } from "../../src/frontend/components/deadlines-model.ts";
 
 function d(id: string, date: string, time?: string): OpenDeadline {
-	return { id, kind: "homework", name: id, date, ...(time ? { time } : {}), fileIds: [], done: false, classId: "c1", className: "CSE 21" };
+	return { id, kind: "homework", name: id, date, ...(time ? { time } : {}), fileIds: [], done: false, spaceId: "c1", spaceName: "CSE 21" };
 }
 
 describe("byDue", () => {

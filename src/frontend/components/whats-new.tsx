@@ -6,7 +6,7 @@
  * (src/shared/changelog.json, newest first). The root layout passes `since` from
  * src/backend/server/whats-new.ts; Settings → General → Release notes reopens it
  * with the current version's notes (openWhatsNew). Styled as the app's
- * other dialogs (class-dialog.tsx): square panel, tone outline, one white
+ * other dialogs (space-dialog.tsx): square panel, tone outline, one white
  * button.
  */
 

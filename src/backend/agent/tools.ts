@@ -1,7 +1,7 @@
-import { classTools, type ClassToolContext } from "./tools/class.ts";
+import { spaceTools, type SpaceToolContext } from "./tools/space.ts";
 import { ruleTools, type SaveRule } from "./tools/rules.ts";
-import { lessonClassChangeTools } from "./tools/talk.ts";
-import type { ClassActions } from "../../shared/core/class-tools.ts";
+import { lessonSpaceChangeTools } from "./tools/talk.ts";
+import type { SpaceActions } from "../../shared/core/space-tools.ts";
 import type { GraphToolContext } from "./tools/graph.ts";
 import type { AgentTool } from "@earendil-works/pi-agent-core";
 import { invalidInputResult, questionResult } from "./tool-execute.ts";
@@ -287,20 +287,20 @@ export interface ProberToolContext extends ProbeDoneContext {
 	 *  master switch AND the agent.graphTools toggle (settings-resolution).
 	 *  Absent = the gate is closed, no map tools (tests drive this seam). */
 	graphStore?: GraphStore;
-	/** Cross-class map reading (reads may cross classes, writes never
+	/** Cross-space map reading (reads may cross spaces, writes never
 	 *  do) — see GraphToolContext. */
 	graphs?: GraphToolContext["graphs"];
-	/** The lesson's class card reader: present = read_class
-	 *  is registered (lessons in a class only). */
-	classCard?: ClassToolContext["classCard"];
-	todayNote?: ClassToolContext["todayNote"];
-	classSearch?: ClassToolContext["search"];
-	classNote?: ClassToolContext["setNote"];
+	/** The lesson's space card reader: present = read_space
+	 *  is registered (lessons in a space only). */
+	spaceCard?: SpaceToolContext["spaceCard"];
+	todayNote?: SpaceToolContext["todayNote"];
+	spaceSearch?: SpaceToolContext["search"];
+	spaceNote?: SpaceToolContext["setNote"];
 	/** save_rule: present = the teacher can save a teaching rule. */
 	saveRule?: SaveRule;
 	/** The deadline changes a learner may ask for mid-lesson: present =
 	 *  those tools are registered. */
-	classActions?: ClassActions;
+	spaceActions?: SpaceActions;
 }
 
 /** The prober's tool set: probe quiz (no nodeId) + ask + the learner-fs
@@ -362,9 +362,9 @@ export function createProberTools(
 				...(ctx.graphStore
 					? proberGraphTools({ chatStore: ctx.chatStore, graphStore: ctx.graphStore, graphs: ctx.graphs })
 					: {}),
-				...(ctx.classCard ? classTools({ classCard: ctx.classCard, todayNote: ctx.todayNote, search: ctx.classSearch, setNote: ctx.classNote }) : {}),
+				...(ctx.spaceCard ? spaceTools({ spaceCard: ctx.spaceCard, todayNote: ctx.todayNote, search: ctx.spaceSearch, setNote: ctx.spaceNote }) : {}),
 				...(ctx.saveRule ? ruleTools(ctx.saveRule) : {}),
-				...(ctx.classActions ? lessonClassChangeTools(ctx.classActions) : {}),
+				...(ctx.spaceActions ? lessonSpaceChangeTools(ctx.spaceActions) : {}),
 			},
 				withoutMechanics(enabled),
 			),
@@ -444,16 +444,16 @@ export interface TeacherToolContext extends PlanToolContext {
 	 *  rides along — the spawn fires mid-stream, before the tool part is
 	 *  persisted to the transcript (a transcript scan would race it). */
 	spawn: (job: JobRecord, input: ResearchInput | DemoInput | VisualInput | PdfInput) => void;
-	/** The lesson's class card reader: present = read_class. */
-	classCard?: ClassToolContext["classCard"];
-	todayNote?: ClassToolContext["todayNote"];
-	classSearch?: ClassToolContext["search"];
-	classNote?: ClassToolContext["setNote"];
+	/** The lesson's space card reader: present = read_space. */
+	spaceCard?: SpaceToolContext["spaceCard"];
+	todayNote?: SpaceToolContext["todayNote"];
+	spaceSearch?: SpaceToolContext["search"];
+	spaceNote?: SpaceToolContext["setNote"];
 	/** save_rule: present = the teacher can save a teaching rule. */
 	saveRule?: SaveRule;
 	/** The deadline changes a learner may ask for mid-lesson: present =
 	 *  those tools are registered. */
-	classActions?: ClassActions;
+	spaceActions?: SpaceActions;
 }
 
 /** The quizzing mechanics: `tools.explain === true` in the resolved
@@ -517,9 +517,9 @@ export function createTeacherTools(
 			...planTools(ctx),
 			work_plan: workPlanTool,
 			...jobTools({ chatId: ctx.chatId, jobStore: ctx.jobStore, spawn: ctx.spawn }),
-			...(ctx.classCard ? classTools({ classCard: ctx.classCard, todayNote: ctx.todayNote, search: ctx.classSearch, setNote: ctx.classNote }) : {}),
+			...(ctx.spaceCard ? spaceTools({ spaceCard: ctx.spaceCard, todayNote: ctx.todayNote, search: ctx.spaceSearch, setNote: ctx.spaceNote }) : {}),
 				...(ctx.saveRule ? ruleTools(ctx.saveRule) : {}),
-				...(ctx.classActions ? lessonClassChangeTools(ctx.classActions) : {}),
+				...(ctx.spaceActions ? lessonSpaceChangeTools(ctx.spaceActions) : {}),
 		},
 		withoutMechanics(enabled),
 		),

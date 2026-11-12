@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { afterEach, describe, it } from "node:test";
 import type { Root } from "react-dom/client";
 import { parseHTML } from "linkedom";
-import type { ClassDeadline, ClassFile } from "../../src/shared/core/index.ts";
+import type { SpaceDeadline, SpaceFile } from "../../src/shared/core/index.ts";
 
 const dom = parseHTML("<!doctype html><html><body></body></html>");
 // linkedom's document has no "oninput"; without it React would watch text
@@ -29,13 +29,13 @@ Object.assign(globalThis, {
 (dom.window.Element.prototype as unknown as { scrollIntoView: () => void }).scrollIntoView = () => {};
 
 const { createRoot } = await import("react-dom/client");
-const { DeadlineDialog } = await import("../../src/frontend/components/class-page/deadline-dialog.tsx");
+const { DeadlineDialog } = await import("../../src/frontend/components/space-page/deadline-dialog.tsx");
 
-function file(id: string, name: string, kind: "study" | "info" = "study"): ClassFile {
+function file(id: string, name: string, kind: "study" | "info" = "study"): SpaceFile {
 	return { id, origin: "copied", name, path: `${id}/${name}`, kind, contentFp: "", status: "ready", addedAt: "" };
 }
 const FILES = [file("f1", "Lecture 11 2026-10-27.pdf"), file("f2", "Lecture 12.pdf"), file("f3", "Rosen 6.2.pdf"), file("f4", "Syllabus.pdf", "info")];
-const MIDTERM: ClassDeadline = { id: "exm_1", kind: "exam", name: "Midterm 1", date: "2026-10-29", time: "19:00", fileIds: ["f1", "f2"], done: false };
+const MIDTERM: SpaceDeadline = { id: "exm_1", kind: "exam", name: "Midterm 1", date: "2026-10-29", time: "19:00", fileIds: ["f1", "f2"], done: false };
 
 const calls: { method: string; url: string; body?: unknown }[] = [];
 const originalFetch = globalThis.fetch;
@@ -54,12 +54,12 @@ let root: Root | undefined;
 let host: HTMLElement | undefined;
 let closed = 0;
 let removed = 0;
-async function mount(deadline: ClassDeadline | null, files: readonly ClassFile[] = FILES) {
+async function mount(deadline: SpaceDeadline | null, files: readonly SpaceFile[] = FILES) {
 	fakeFetch();
 	host = document.createElement("div");
 	document.body.append(host);
 	root = createRoot(host);
-	const mode = { classId: "cls_a", deadline, files };
+	const mode = { spaceId: "cls_a", deadline, files };
 	await act(async () => {
 		root!.render(<DeadlineDialog mode={mode} onClose={() => closed++} onRemoved={() => removed++} />);
 	});
@@ -122,7 +122,7 @@ describe("Edit deadline", () => {
 		assert.equal((q("deadline-file-f1") as HTMLInputElement).checked, true);
 		assert.equal((q("deadline-file-f3") as HTMLInputElement).checked, false);
 		assert.match(q("deadline-file-f1")!.closest("label")!.textContent!, /Oct 27/, "a dated file shows its day");
-		assert.equal(q("deadline-file-f4"), null, "course info is not offered");
+		assert.equal(q("deadline-file-f4"), null, "space info is not offered");
 		assert.equal(q("deadline-file-filter"), null, "a short list has no filter");
 		assert.equal((q("deadline-done") as HTMLInputElement).checked, false);
 		assert.equal(q("deadline-save")!.textContent, "Save");
@@ -138,7 +138,7 @@ describe("Edit deadline", () => {
 		await check(q("deadline-done"));
 		await click(q("deadline-save"));
 		await settle();
-		assert.deepEqual(calls, [{ method: "PUT", url: "/api/classes/cls_a/deadlines/exm_1", body: { kind: "quiz", time: null, fileIds: ["f1", "f2", "f3"], done: true } }]);
+		assert.deepEqual(calls, [{ method: "PUT", url: "/api/spaces/cls_a/deadlines/exm_1", body: { kind: "quiz", time: null, fileIds: ["f1", "f2", "f3"], done: true } }]);
 		assert.equal(closed, 1);
 	});
 
@@ -193,7 +193,7 @@ describe("Edit deadline", () => {
 		await click(q("deadline-remove"));
 		await click(q("deadline-remove-confirm-go"));
 		await settle();
-		assert.deepEqual(calls, [{ method: "DELETE", url: "/api/classes/cls_a/deadlines/exm_1", body: undefined }]);
+		assert.deepEqual(calls, [{ method: "DELETE", url: "/api/spaces/cls_a/deadlines/exm_1", body: undefined }]);
 		assert.equal(removed, 1);
 		assert.equal(closed, 0);
 	});
@@ -212,7 +212,7 @@ describe("Edit deadline", () => {
 		assert.equal(removed, 1);
 	});
 
-	it("a long file list has a filter; a file the deadline lists stays offered even as course info", async () => {
+	it("a long file list has a filter; a file the deadline lists stays offered even as space info", async () => {
 		const many = [...Array.from({ length: 9 }, (_, i) => file(`g${i}`, `Lecture ${i}.pdf`)), file("info", "Syllabus.pdf", "info")];
 		await mount({ ...MIDTERM, fileIds: ["info"] }, many);
 		assert.equal((q("deadline-file-info") as HTMLInputElement).checked, true);
@@ -248,7 +248,7 @@ describe("Add a deadline", () => {
 		await check(q("deadline-file-f2"));
 		await click(q("deadline-save"));
 		await settle();
-		assert.deepEqual(calls, [{ method: "POST", url: "/api/classes/cls_a/deadlines", body: { kind: "homework", name: "HW 6", date: "2026-11-13", time: "23:59", fileIds: ["f2"] } }]);
+		assert.deepEqual(calls, [{ method: "POST", url: "/api/spaces/cls_a/deadlines", body: { kind: "homework", name: "HW 6", date: "2026-11-13", time: "23:59", fileIds: ["f2"] } }]);
 		assert.equal(closed, 1);
 	});
 });

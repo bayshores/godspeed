@@ -4,7 +4,7 @@
  * another, when it's due, what it covers, how many of its topics are
  * ready, and its Study button), then "Work on next": the strong / shaky /
  * weak / not tested counts and the topics to work on, with Study these N.
- * With no open deadline that has files, the lower sheet covers the whole class.
+ * With no open deadline that has files, the lower sheet covers the whole space.
  */
 import { memo, useCallback, useRef, useState } from "react";
 import { deadlineStudyLabel, type DeadlineProgress, type TopicProgress, type WorkOnNextItem } from "@/shared/core";
@@ -188,7 +188,7 @@ export function WorkOnNextPane({
 	studying,
 	studyError,
 }: {
-	/** The picked deadline, or the whole class. */
+	/** The picked deadline, or the whole space. */
 	scope: Pick<DeadlineProgress, "counts" | "workOnNext">;
 	topics: readonly TopicProgress[];
 	onSelectTopic: (id: string) => void;

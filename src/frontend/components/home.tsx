@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import type { FileCoverage, GraphContextPick, TopicProgress } from "@/shared/core";
 import { NoAgentLine } from "@/frontend/components/agent-folder/no-agent-line";
-import { useClasses } from "@/frontend/components/class-context";
+import { useSpaces } from "@/frontend/components/space-context";
 import { useRiseOnChange } from "@/frontend/components/motion";
 import { useProgress } from "@/frontend/components/use-progress";
 import { displayName } from "@/frontend/components/overview/overview-model";
@@ -20,19 +20,19 @@ import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 
 /**
  * THE STUDY PAGE ("/new"): where every study session starts, in the
- * active class. "Lessons" goes back to the class's lessons. "Study for
+ * active space. "Lessons" goes back to the space's lessons. "Study for
  * <deadline>" for each upcoming deadline ("Continue studying for" while
  * its latest session is unfinished), the topic box ("Start from
  * facts" picks facts from the chain table; Enter or Study starts), then
- * "Suggested for <class>": Continue the latest lesson, Next up (the
+ * "Suggested for <space>": Continue the latest lesson, Next up (the
  * earliest unstudied file) and Work on next (weak or untested topics).
  */
 export function NewLesson() {
-	const { active: activeClassId, activeClass } = useClasses();
+	const { active: activeSpaceId, activeSpace } = useSpaces();
 	const lesson = useLessonStart();
 	const { data } = useProgress();
-	// Progress for a class the window just left is never shown.
-	const progress = data && data.classId === activeClassId ? data : null;
+	// Progress for a space the window just left is never shown.
+	const progress = data && data.spaceId === activeSpaceId ? data : null;
 
 	const [topic, setTopic] = useState("");
 	/* The topic MIRROR: the start reads the ref, kept current at every
@@ -41,15 +41,15 @@ export function NewLesson() {
 	const [picks, setPicks] = useState<GraphContextPick[]>([]);
 	const attachments = useAttachmentDraft();
 	const [pickerOpen, setPickerOpen] = useState(false);
-	// Picks belong to one class's graph — switching class clears them.
-	useEffect(() => setPicks([]), [activeClassId]);
+	// Picks belong to one space's graph — switching space clears them.
+	useEffect(() => setPicks([]), [activeSpaceId]);
 	const pickedIds = useMemo(() => new Set(picks.map((p) => p.id)), [picks]);
-	const snapshot = useGraphSnapshot(activeClassId);
+	const snapshot = useGraphSnapshot(activeSpaceId);
 
 	const topicInputRef = useRef<HTMLTextAreaElement>(null);
-	// Switching class swaps the view: it rises in once.
+	// Switching space swaps the view: it rises in once.
 	const viewRef = useRef<HTMLDivElement>(null);
-	useRiseOnChange(viewRef, activeClassId);
+	useRiseOnChange(viewRef, activeSpaceId);
 
 	const { start, studyTopics, studyDeadline } = lesson;
 	const startTopic = () => void start({ title: topicRef.current, picks, files: attachments.files.map((f) => f.attachment) });
@@ -66,7 +66,7 @@ export function NewLesson() {
 			<div className="min-h-0 flex-1 overflow-y-auto">
 				<div ref={viewRef} className="mx-auto flex w-full max-w-[768px] flex-col gap-9 px-6 pt-[22px] pb-16" style={{ animationDuration: "var(--lh-dur-slow)" }}>
 					<div className="flex flex-col items-start gap-2.5">
-						<Link href="/class/lessons" prefetch={false} data-testid="page-back" className="lh-btn lh-btn-quiet -ml-1 text-[15px]">
+						<Link href="/space/lessons" prefetch={false} data-testid="page-back" className="lh-btn lh-btn-quiet -ml-1 text-[15px]">
 							<PixelIcon name="chevron" className="-scale-x-100" />
 							Lessons
 						</Link>
@@ -97,8 +97,8 @@ export function NewLesson() {
 						)}
 					</div>
 					<SuggestionList
-						key={activeClassId ?? "none"}
-						classLabel={activeClass?.name ?? null}
+						key={activeSpaceId ?? "none"}
+						spaceLabel={activeSpace?.name ?? null}
 						suggestions={suggestions}
 						step={step}
 						busy={lesson.busy}

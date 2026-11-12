@@ -834,7 +834,7 @@ async function main() {
 			return [];
 		}
 	});
-	// Show in Finder (a class file, selected) and open in the default app
+	// Show in Finder (a space file, selected) and open in the default app
 	// (the linked folder, a PDF the learner sent). Opening is limited to
 	// folders and PDFs so nothing can be launched: an app bundle is a folder
 	// too, so it is only shown, and links are resolved before any check.

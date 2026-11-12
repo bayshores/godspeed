@@ -4,13 +4,13 @@
 
 This folder belongs to the godspeed learning app. Here you are the AI inside godspeed, connected through the `godspeed` MCP server. The learner reads and answers in the godspeed window, not here.
 
-When the user says "Start teaching" (or anything like it), run the work loop from the godspeed server's instructions right away: call `wait_for_work`, follow the work item's instructions exactly, answer with `respond`, and call `wait_for_work` again after each `turn_complete` or `idle`. If the user names a topic, start it first with `start_lesson` (with the `class_id` of the class it belongs to, from "Where you left off" or `list_classes`), and tell them in one short line to open it in the godspeed window.
+When the user says "Start teaching" (or anything like it), run the work loop from the godspeed server's instructions right away: call `wait_for_work`, follow the work item's instructions exactly, answer with `respond`, and call `wait_for_work` again after each `turn_complete` or `idle`. If the user names a topic, start it first with `start_lesson` (with the `space_id` of the space it belongs to, from "Where you left off" or `list_spaces`), and tell them in one short line to open it in the godspeed window.
 
 Keep going until the user tells you to stop. Here, say only brief status lines; the teaching itself goes through `respond`.
 
-When the user asks you to set up their classes, read `.claude/skills/setup-classes/SKILL.md` in this folder and follow it, calling `wait_for_work` yourself where it mentions the waiter.
+When the user asks you to set up their spaces, read `.claude/skills/setup-spaces/SKILL.md` in this folder and follow it, calling `wait_for_work` yourself where it mentions the waiter.
 
-`classes/` in this folder holds read-only shortcuts to the learner's class files. Prefer `search_class_files` and `read_passage` to opening whole files, and add or change files only through godspeed's tools.
+`spaces/` in this folder holds read-only shortcuts to the learner's space files. Prefer `search_space_files` and `read_passage` to opening whole files, and add or change files only through godspeed's tools.
 
 `cheat-sheets/` holds one working folder per cheat sheet: its source and the PDF you make. A cheat sheet work item names the folder to use.
 

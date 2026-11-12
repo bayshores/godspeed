@@ -2,7 +2,7 @@
  * The Files page, mounted over linkedom with a fake fetch: groups from the
  * file names with counts, the linked folder, each row's kind and state
  * (coverage bar, Building facts, Failed + Retry), Move and Unlink writing
- * through the class routes, Add files and the Finder drop targets, search
+ * through the space routes, Add files and the Finder drop targets, search
  * and folded groups.
  */
 import React, { act } from "react";
@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 import { afterEach, describe, it } from "node:test";
 import type { Root } from "react-dom/client";
 import { parseHTML } from "linkedom";
-import type { ClassFile, ClassRecord, FileCoverage } from "../../src/shared/core/index.ts";
+import type { SpaceFile, SpaceRecord, FileCoverage } from "../../src/shared/core/index.ts";
 
 const dom = parseHTML("<html><body></body></html>");
 Object.assign(globalThis, {
@@ -43,15 +43,15 @@ Object.defineProperty(dom.window, "localStorage", {
 const { createRoot } = await import("react-dom/client");
 const { FilesPage } = await import("../../src/frontend/components/files/files-page.tsx");
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
-const { ClassProvider } = await import("../../src/frontend/components/class-context.tsx");
+const { SpaceProvider } = await import("../../src/frontend/components/space-context.tsx");
 const { AgentStatusProvider } = await import("../../src/frontend/components/agent-status.tsx");
 const { CopyButton } = await import("../../src/frontend/components/copy-button.tsx");
 
-function file(id: string, name: string, over: Partial<ClassFile> = {}): ClassFile {
+function file(id: string, name: string, over: Partial<SpaceFile> = {}): SpaceFile {
 	return { id, origin: "copied", name, path: `${id}/${name}`, kind: "study", contentFp: "", status: "ready", addedAt: "", ...over };
 }
 
-const RECORD: ClassRecord = {
+const RECORD: SpaceRecord = {
 	id: "cls_a",
 	name: "CSE 21",
 	description: "",
@@ -86,13 +86,13 @@ function fakeFetch() {
 		const url = String(input);
 		const method = init?.method ?? "GET";
 		if (method !== "GET") calls.push({ method, url, body: typeof init?.body === "string" ? JSON.parse(init.body) : undefined });
-		if (url === "/api/classes") return Response.json({ classes: [{ id: "cls_a", name: "CSE 21" }] });
+		if (url === "/api/spaces") return Response.json({ spaces: [{ id: "cls_a", name: "CSE 21" }] });
 		if (url === "/api/mcp-access") return Response.json({ agentConnected: true, agentTeaching, pendingWork: 0 });
-		if (url.startsWith("/api/classes/cls_a") && method === "GET") {
+		if (url.startsWith("/api/spaces/cls_a") && method === "GET") {
 			recordReads++;
-			return recordFails ? Response.json({ error: "boom" }, { status: 500 }) : Response.json({ class: RECORD, folder: { problem: folderProblem, checkedAt: null, settling: 0 } });
+			return recordFails ? Response.json({ error: "boom" }, { status: 500 }) : Response.json({ space: RECORD, folder: { problem: folderProblem, checkedAt: null, settling: 0 } });
 		}
-		if (url.startsWith("/api/progress")) return Response.json({ classId: "cls_a", files: COVERAGE });
+		if (url.startsWith("/api/progress")) return Response.json({ spaceId: "cls_a", files: COVERAGE });
 		return Response.json({ ok: true });
 	}) as typeof fetch;
 }
@@ -108,9 +108,9 @@ async function mount(initialActive: string | null = "cls_a") {
 		root!.render(
 			<ServerEventsProvider connect={connect as never}>
 				<AgentStatusProvider>
-					<ClassProvider initialActive={initialActive}>
+					<SpaceProvider initialActive={initialActive}>
 						<FilesPage />
-					</ClassProvider>
+					</SpaceProvider>
 				</AgentStatusProvider>
 			</ServerEventsProvider>,
 		);
@@ -148,13 +148,13 @@ describe("FilesPage", () => {
 	it("shows the linked folder, the summary, groups from the names with counts, and each row's kind and state", async () => {
 		fakeFetch();
 		await mount();
-		assert.equal(q("class-pick-folder"), null, "a linked class shows its folder, not Link a folder");
-		assert.ok(q("class-add-files"));
-		assert.equal(q("class-folder-status")!.textContent, "Watching CSE 21");
+		assert.equal(q("space-pick-folder"), null, "a linked space shows its folder, not Link a folder");
+		assert.ok(q("space-add-files"));
+		assert.equal(q("space-folder-status")!.textContent, "Watching CSE 21");
 		const today = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][new Date().getDay()];
-		assert.equal(q("files-summary")!.textContent, `7 files, 6 study material, 1 course info, 1 new since ${today}`);
-		assert.ok(q("class-file-new-f2"), "a file a scan just found is marked New");
-		assert.equal(q("class-file-new-f1"), null);
+		assert.equal(q("files-summary")!.textContent, `7 files, 6 study material, 1 space info, 1 new since ${today}`);
+		assert.ok(q("space-file-new-f2"), "a file a scan just found is marked New");
+		assert.equal(q("space-file-new-f1"), null);
 		assert.deepEqual(
 			[...document.querySelectorAll('[data-testid^="files-group-toggle-"]')].map((b) => b.textContent),
 			["Lecture3 files", "Rosen, Probability2 files", "Other2 files"],
@@ -164,41 +164,41 @@ describe("FilesPage", () => {
 			["Lecture 1", "Lecture 5", "Lecture 6"],
 			"in number order",
 		);
-		assert.equal(q("class-file-kind-f5")!.textContent, "Info");
-		assert.equal(q("class-file-kind-f1")!.textContent, "Study");
+		assert.equal(q("space-file-kind-f5")!.textContent, "Info");
+		assert.equal(q("space-file-kind-f1")!.textContent, "Study");
 		// "studied of facts" with the bar, filled by the share that came up.
-		assert.equal(q("class-file-status-f1")!.textContent, "31 of 31 facts studied");
-		assert.match(q("class-file-status-f1")!.innerHTML, /width:\s*100%/);
-		assert.equal(q("class-file-status-f2")!.textContent, "0 of 22 facts studied");
-		assert.match(q("class-file-status-f2")!.innerHTML, /width:\s*0%/, "unstudied file: an empty bar");
-		assert.equal(q("class-file-status-f3")!.textContent, "Building facts");
-		assert.equal(q("class-file-status-f4")!.textContent, "Failed");
-		assert.ok(q("class-file-retry-f4"));
-		assert.equal(q("class-file-status-f5"), null, "course info shows no state");
-		assert.ok(q("class-file-linked-f2"), "a file from the linked folder is marked");
-		assert.equal(q("class-file-linked-f1"), null, "a copied file is not");
-		assert.equal(q("class-folder")!.getAttribute("data-problem"), null);
+		assert.equal(q("space-file-status-f1")!.textContent, "31 of 31 facts studied");
+		assert.match(q("space-file-status-f1")!.innerHTML, /width:\s*100%/);
+		assert.equal(q("space-file-status-f2")!.textContent, "0 of 22 facts studied");
+		assert.match(q("space-file-status-f2")!.innerHTML, /width:\s*0%/, "unstudied file: an empty bar");
+		assert.equal(q("space-file-status-f3")!.textContent, "Building facts");
+		assert.equal(q("space-file-status-f4")!.textContent, "Failed");
+		assert.ok(q("space-file-retry-f4"));
+		assert.equal(q("space-file-status-f5"), null, "space info shows no state");
+		assert.ok(q("space-file-linked-f2"), "a file from the linked folder is marked");
+		assert.equal(q("space-file-linked-f1"), null, "a copied file is not");
+		assert.equal(q("space-folder")!.getAttribute("data-problem"), null);
 	});
 
-	it("No class asks for a class instead of showing a blank page", async () => {
+	it("No space asks for a space instead of showing a blank page", async () => {
 		fakeFetch();
 		const page = await mount(null);
-		assert.match(page.textContent!, /Pick a class to see its files\./);
+		assert.match(page.textContent!, /Pick a space to see its files\./);
 		assert.equal(q("files-summary"), null);
-		assert.ok(q("pick-class-cls_a"), "the classes are right on the page");
-		assert.ok(q("pick-class-new"));
-		await act(async () => q("pick-class-cls_a")!.click());
+		assert.ok(q("pick-space-cls_a"), "the spaces are right on the page");
+		assert.ok(q("pick-space-new"));
+		await act(async () => q("pick-space-cls_a")!.click());
 		await act(async () => {
 			await new Promise((r) => setTimeout(r, 20));
 		});
 		assert.ok(q("files-summary"), "picking one opens its files");
 	});
 
-	it("a class record that fails to load says so, and Try again reads it again", async () => {
+	it("a space record that fails to load says so, and Try again reads it again", async () => {
 		recordFails = true;
 		fakeFetch();
 		const page = await mount();
-		assert.match(page.textContent!, /Couldn't load this class's files\./);
+		assert.match(page.textContent!, /Couldn't load this space's files\./);
 		assert.equal(q("files-summary"), null);
 		const reads = recordReads;
 		recordFails = false;
@@ -211,9 +211,9 @@ describe("FilesPage", () => {
 		assert.equal(q("load-failed"), null);
 	});
 
-	it("says Loading… until the class record arrives", async () => {
+	it("says Loading… until the space record arrives", async () => {
 		globalThis.fetch = (async (input: RequestInfo | URL) => {
-			if (String(input) === "/api/classes") return Response.json({ classes: [{ id: "cls_a", name: "CSE 21" }] });
+			if (String(input) === "/api/spaces") return Response.json({ spaces: [{ id: "cls_a", name: "CSE 21" }] });
 			return new Promise<Response>(() => {});
 		}) as typeof fetch;
 		const page = await mount();
@@ -224,98 +224,98 @@ describe("FilesPage", () => {
 		agentTeaching = false;
 		fakeFetch();
 		await mount();
-		assert.equal(q("class-file-status-f7")!.textContent, "Waiting for your agent");
+		assert.equal(q("space-file-status-f7")!.textContent, "Waiting for your agent");
 	});
 
 	it("a waiting file just says Waiting while an agent is teaching", async () => {
 		fakeFetch();
 		await mount();
-		assert.equal(q("class-file-status-f7")!.textContent, "Waiting");
+		assert.equal(q("space-file-status-f7")!.textContent, "Waiting");
 	});
 
 	it("a recording that needs the speech tool shows the install command inline with Copy", async () => {
 		fakeFetch();
 		await mount();
-		assert.equal(q("class-file-status-f6")!.textContent, "Needs a speech tool");
-		assert.ok(q("class-file-retry-f6"));
-		assert.match(q("class-file-install-f6")!.textContent!, /run this in Terminal, then click Retry\..*brew install whisper-cpp ffmpeg/);
+		assert.equal(q("space-file-status-f6")!.textContent, "Needs a speech tool");
+		assert.ok(q("space-file-retry-f6"));
+		assert.match(q("space-file-install-f6")!.textContent!, /run this in Terminal, then click Retry\..*brew install whisper-cpp ffmpeg/);
 		const copied: string[] = [];
 		Object.defineProperty(globalThis, "navigator", { configurable: true, value: { clipboard: { writeText: async (t: string) => void copied.push(t) } } });
-		await act(async () => q("class-file-install-copy-f6")!.click());
+		await act(async () => q("space-file-install-copy-f6")!.click());
 		assert.deepEqual(copied, ["brew install whisper-cpp ffmpeg"]);
-		assert.equal(q("class-file-install-copy-f6")!.textContent, "Copied");
-		assert.equal(q("class-file-install-f1"), null, "other rows have no install line");
+		assert.equal(q("space-file-install-copy-f6")!.textContent, "Copied");
+		assert.equal(q("space-file-install-f1"), null, "other rows have no install line");
 	});
 
 	it("a missing linked folder says so and offers Pick folder again", async () => {
 		folderProblem = "missing";
 		fakeFetch();
 		await mount();
-		assert.equal(q("class-folder-status")!.textContent, "Can't find this folder");
-		await act(async () => q("class-folder")!.click());
-		assert.match(q("class-folder-problem")!.textContent!, /Its files and facts are kept/);
-		assert.ok(q("class-folder-pick-again"));
-		assert.equal(q("class-folder-open"), null, "no Open in Finder for a folder that isn't there");
+		assert.equal(q("space-folder-status")!.textContent, "Can't find this folder");
+		await act(async () => q("space-folder")!.click());
+		assert.match(q("space-folder-problem")!.textContent!, /Its files and facts are kept/);
+		assert.ok(q("space-folder-pick-again"));
+		assert.equal(q("space-folder-open"), null, "no Open in Finder for a folder that isn't there");
 	});
 
 	it("a folder over the file limit says only the first 500 were added", async () => {
 		folderProblem = "too-many-files";
 		fakeFetch();
 		await mount();
-		assert.equal(q("class-folder-status")!.textContent, "Watching CSE 21");
-		await act(async () => q("class-folder")!.click());
-		assert.match(q("class-folder-problem")!.textContent!, /Only the first 500 files were added/);
-		assert.ok(q("class-folder-pick-again"), "Pick folder again is always there: the safe way to switch folders");
+		assert.equal(q("space-folder-status")!.textContent, "Watching CSE 21");
+		await act(async () => q("space-folder")!.click());
+		assert.match(q("space-folder-problem")!.textContent!, /Only the first 500 files were added/);
+		assert.ok(q("space-folder-pick-again"), "Pick folder again is always there: the safe way to switch folders");
 	});
 
-	it("Move to Study material and Retry write at once; Move to Course info asks first", async () => {
+	it("Move to Study material and Retry write at once; Move to Space info asks first", async () => {
 		fakeFetch();
 		await mount();
-		await act(async () => q("class-file-menu-f5")!.click());
-		assert.equal(q("class-file-move-f5")!.textContent, "Move to Study material");
-		await act(async () => q("class-file-move-f5")!.click());
+		await act(async () => q("space-file-menu-f5")!.click());
+		assert.equal(q("space-file-move-f5")!.textContent, "Move to Study material");
+		await act(async () => q("space-file-move-f5")!.click());
 		assert.equal(q("files-confirm"), null, "moving into study material loses nothing");
-		await act(async () => q("class-file-retry-f4")!.click());
-		await act(async () => q("class-file-menu-f1")!.click());
-		assert.equal(q("class-file-move-f1")!.textContent, "Move to Course info");
-		await act(async () => q("class-file-move-f1")!.click());
-		assert.equal(q("files-confirm")!.getAttribute("aria-label"), "Move to Course info?");
+		await act(async () => q("space-file-retry-f4")!.click());
+		await act(async () => q("space-file-menu-f1")!.click());
+		assert.equal(q("space-file-move-f1")!.textContent, "Move to Space info");
+		await act(async () => q("space-file-move-f1")!.click());
+		assert.equal(q("files-confirm")!.getAttribute("aria-label"), "Move to Space info?");
 		assert.match(q("files-confirm")!.textContent!, /Its 31 facts leave the graph\. The teacher can still read it\./);
 		assert.equal(calls.length, 2, "nothing moves before the OK");
 		await act(async () => q("files-confirm-button")!.click());
 		assert.deepEqual(calls, [
-			{ method: "PUT", url: "/api/classes/cls_a/files/f5", body: { kind: "study" } },
-			{ method: "PUT", url: "/api/classes/cls_a/files/f4", body: { retry: true } },
-			{ method: "PUT", url: "/api/classes/cls_a/files/f1", body: { kind: "info" } },
+			{ method: "PUT", url: "/api/spaces/cls_a/files/f5", body: { kind: "study" } },
+			{ method: "PUT", url: "/api/spaces/cls_a/files/f4", body: { retry: true } },
+			{ method: "PUT", url: "/api/spaces/cls_a/files/f1", body: { kind: "info" } },
 		]);
 	});
 
 	it("Unlink asks first, says how many files and facts go, and points to Pick folder again", async () => {
 		fakeFetch();
 		await mount();
-		await act(async () => q("class-folder")!.click());
-		await act(async () => q("class-unlink-folder")!.click());
+		await act(async () => q("space-folder")!.click());
+		await act(async () => q("space-unlink-folder")!.click());
 		const box = q("files-confirm")!;
 		assert.match(box.textContent!, /Unlink this folder\?/);
 		assert.match(box.textContent!, /Its 1 file leaves CSE 21, along with the 22 facts built from them\. The folder on your computer is not touched\. This cannot be undone\./);
 		assert.match(box.textContent!, /use Pick folder again instead/);
 		await act(async () => q("files-confirm-cancel")!.click());
 		assert.deepEqual(calls, [], "Cancel keeps the folder");
-		await act(async () => q("class-folder")!.click());
-		await act(async () => q("class-unlink-folder")!.click());
+		await act(async () => q("space-folder")!.click());
+		await act(async () => q("space-unlink-folder")!.click());
 		await act(async () => q("files-confirm-button")!.click());
-		assert.deepEqual(calls, [{ method: "DELETE", url: "/api/classes/cls_a/folder", body: undefined }]);
+		assert.deepEqual(calls, [{ method: "DELETE", url: "/api/spaces/cls_a/folder", body: undefined }]);
 	});
 
 	it("Remove asks first and says how many facts go", async () => {
 		fakeFetch();
 		await mount();
-		await act(async () => q("class-file-menu-f1")!.click());
-		await act(async () => q("class-file-remove-f1")!.click());
+		await act(async () => q("space-file-menu-f1")!.click());
+		await act(async () => q("space-file-remove-f1")!.click());
 		assert.match(q("files-confirm")!.textContent!, /Remove Lecture 1 — Counting\.pdf\?.*It leaves CSE 21, along with the 31 facts built from it\./);
 		assert.deepEqual(calls, []);
 		await act(async () => q("files-confirm-button")!.click());
-		assert.deepEqual(calls, [{ method: "DELETE", url: "/api/classes/cls_a/files/f1", body: undefined }]);
+		assert.deepEqual(calls, [{ method: "DELETE", url: "/api/spaces/cls_a/files/f1", body: undefined }]);
 	});
 
 	it("files dragged from Finder show two places to drop them, and each adds as its kind", async () => {
@@ -333,13 +333,13 @@ describe("FilesPage", () => {
 		assert.equal(q("files-drop-targets"), null, "nothing to drop on until files are dragged in");
 		await fire(q("files-page")!, "dragover", transfer(["Files"], [pdf]));
 		assert.equal(q("files-drop-study-title")!.textContent, "Add 1 file as study material");
-		assert.equal(q("files-drop-info-title")!.textContent, "Add 1 file as course info");
+		assert.equal(q("files-drop-info-title")!.textContent, "Add 1 file as space info");
 		assert.match(q("files-drop-study")!.textContent!, /Turned into facts/);
 		await fire(q("files-drop-info")!, "dragover", transfer(["Files"], [pdf]));
 		assert.equal(q("files-drop-info")!.getAttribute("data-over"), "true");
 		await fire(q("files-drop-info")!, "drop", transfer(["Files"], [pdf]));
 		assert.equal(calls.at(-1)!.method, "POST");
-		assert.equal(calls.at(-1)!.url, "/api/classes/cls_a/files");
+		assert.equal(calls.at(-1)!.url, "/api/spaces/cls_a/files");
 		assert.equal(q("files-drop-targets"), null, "the targets leave after the drop");
 
 		// Text dragged over the page is not a file: no targets.
@@ -347,15 +347,15 @@ describe("FilesPage", () => {
 		assert.equal(q("files-drop-targets"), null);
 	});
 
-	it("Add files asks study material or course info before picking files", async () => {
+	it("Add files asks study material or space info before picking files", async () => {
 		fakeFetch();
 		await mount();
-		const input = q("class-file-input") as HTMLInputElement;
+		const input = q("space-file-input") as HTMLInputElement;
 		let picked = 0;
 		input.click = () => void picked++;
-		await act(async () => q("class-add-files")!.click());
-		assert.match(q("class-add-files-menu")!.textContent!, /Study material.*Course info/);
-		await act(async () => q("class-add-info")!.click());
+		await act(async () => q("space-add-files")!.click());
+		assert.match(q("space-add-files-menu")!.textContent!, /Study material.*Space info/);
+		await act(async () => q("space-add-info")!.click());
 		assert.equal(picked, 1);
 		Object.defineProperty(input, "files", { configurable: true, value: [new File(["x"], "HW5.pdf")] });
 		await act(async () => input.dispatchEvent(new window.Event("change", { bubbles: true })));
@@ -366,8 +366,8 @@ describe("FilesPage", () => {
 		fakeFetch();
 		await mount();
 		await typeInto(q("files-search") as HTMLInputElement, "rosen 7");
-		assert.ok(q("class-file-f3"));
-		assert.equal(q("class-file-f2"), null);
+		assert.ok(q("space-file-f3"));
+		assert.equal(q("space-file-f2"), null);
 		assert.equal(q("files-group-lecture"), null, "groups with no match leave");
 		await typeInto(q("files-search") as HTMLInputElement, "zzz");
 		assert.match(q("files-no-match")!.textContent!, /No file names have .zzz./);
@@ -376,29 +376,29 @@ describe("FilesPage", () => {
 		assert.equal(q("files-no-match"), null);
 	});
 
-	it("a group folds and stays folded for this class", async () => {
+	it("a group folds and stays folded for this space", async () => {
 		fakeFetch();
 		await mount();
 		await act(async () => q("files-group-toggle-lecture")!.click());
-		assert.equal(q("class-file-f1"), null);
+		assert.equal(q("space-file-f1"), null);
 		assert.equal(q("files-group-toggle-lecture")!.getAttribute("aria-expanded"), "false");
 		await act(async () => root?.unmount());
 		host?.remove();
 		await mount();
-		assert.equal(q("class-file-f1"), null, "still folded after the page opens again");
+		assert.equal(q("space-file-f1"), null, "still folded after the page opens again");
 		await typeInto(q("files-search") as HTMLInputElement, "lecture 1");
-		assert.ok(q("class-file-f1"), "a search shows matches in folded groups too");
+		assert.ok(q("space-file-f1"), "a search shows matches in folded groups too");
 	});
 
-	it("a class with no files says what to add", async () => {
+	it("a space with no files says what to add", async () => {
 		fakeFetch();
 		const files = RECORD.files;
 		RECORD.files = [];
 		await mount();
 		RECORD.files = files;
-		assert.match(q("files-empty")!.textContent!, /Add lecture notes, readings, recordings or the syllabus/);
+		assert.match(q("files-empty")!.textContent!, /Add notes, readings, recordings or a syllabus/);
 		assert.equal(q("files-summary"), null, "no summary without files");
-		assert.ok(q("class-folder"), "the linked folder still shows");
+		assert.ok(q("space-folder"), "the linked folder still shows");
 		assert.equal(q("files-search"), null, "nothing to search");
 	});
 
@@ -408,15 +408,15 @@ describe("FilesPage", () => {
 		delete RECORD.linkedFolder;
 		await mount();
 		RECORD.linkedFolder = linked;
-		await act(async () => q("class-pick-folder")!.click());
-		assert.ok(q("class-folder-form"), "the path field replaces the folder row");
-		const input = q("class-folder-input") as HTMLInputElement;
+		await act(async () => q("space-pick-folder")!.click());
+		assert.ok(q("space-folder-form"), "the path field replaces the folder row");
+		const input = q("space-folder-input") as HTMLInputElement;
 		await typeInto(input, "/Users/me/New");
 		// linkedom's submit button doesn't submit its form: submit it directly.
 		await act(async () => {
-			q("class-folder-form")!.dispatchEvent(new window.Event("submit", { bubbles: true, cancelable: true }));
+			q("space-folder-form")!.dispatchEvent(new window.Event("submit", { bubbles: true, cancelable: true }));
 		});
-		assert.deepEqual(calls.at(-1), { method: "PUT", url: "/api/classes/cls_a/folder", body: { path: "/Users/me/New" } });
+		assert.deepEqual(calls.at(-1), { method: "PUT", url: "/api/spaces/cls_a/folder", body: { path: "/Users/me/New" } });
 	});
 });
 

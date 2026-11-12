@@ -56,7 +56,7 @@ describe("the level columns", () => {
 
 	it("a picked topic: its row pressed, what it needs and leads to marked, nothing dimmed", () => {
 		const picked = renderToStaticMarkup(
-			<LevelColumns topics={data.topics} links={data.topicLinks} facts={data.facts} inClass focus={null} selectedId="t-mini" onSelect={noop} />,
+			<LevelColumns topics={data.topics} links={data.topicLinks} facts={data.facts} inSpace focus={null} selectedId="t-mini" onSelect={noop} />,
 		);
 		assert.match(picked, /aria-pressed="true"[^>]*aria-label="Minibatch noise/);
 		assert.match(picked, /aria-label="Variance, [^"]*, needed first"/);
@@ -72,13 +72,13 @@ describe("the level columns", () => {
 		assert.equal(count(searched, 'data-dim="true"'), 4);
 	});
 
-	it("an empty class graph points to the Files page; No class doesn't", () => {
+	it("an empty space graph points to the Files page; No space doesn't", () => {
 		const empty = { ...fixture(), topics: [], topicLinks: [] };
-		const inClass = renderToStaticMarkup(body({ data: { ...empty, classId: "cls_a" } }));
-		assert.match(inClass, /Start a lesson or <a[^>]*href="\/class\/files"[^>]*>add files<\/a> to build your graph\./);
-		const noClass = renderToStaticMarkup(body({ data: { ...empty, classId: null } }));
-		assert.ok(noClass.includes("Start a lesson or add files to build your graph."));
-		assert.ok(!noClass.includes("/class/files"));
+		const inSpace = renderToStaticMarkup(body({ data: { ...empty, spaceId: "cls_a" } }));
+		assert.match(inSpace, /Start a lesson or <a[^>]*href="\/space\/files"[^>]*>add files<\/a> to build your graph\./);
+		const noSpace = renderToStaticMarkup(body({ data: { ...empty, spaceId: null } }));
+		assert.ok(noSpace.includes("Start a lesson or add files to build your graph."));
+		assert.ok(!noSpace.includes("/space/files"));
 	});
 });
 
@@ -124,7 +124,7 @@ describe("the right side", () => {
 		assert.ok(!picked.includes('data-testid="work-on-next-pane"'));
 	});
 
-	it("a done deadline, or one with no files, is not offered: work on next covers the class", () => {
+	it("a done deadline, or one with no files, is not offered: work on next covers the space", () => {
 		const [d] = data.deadlines;
 		for (const deadlines of [[{ ...d!, done: true }], [{ ...d!, files: [] }]]) {
 			const html = renderToStaticMarkup(body({ data: { ...data, deadlines } }));
@@ -199,7 +199,7 @@ describe("the picked fact", () => {
 		assert.match(html, /data-testid="practice-fact"[\s\S]*?Practice this fact/);
 	});
 
-	it("a fact from a class file names the file", () => {
+	it("a fact from a space file names the file", () => {
 		const html = pane({ fact: { ...f6, born: "src_a" } });
 		assert.match(html, /From lecture 5\.pdf/);
 	});
@@ -212,13 +212,13 @@ describe("the picked fact", () => {
 });
 
 describe("the top bar", () => {
-	it("Add files opens the Files page in a class; No class picks files right there", () => {
-		const inClass = renderToStaticMarkup(<GraphTopBar hasFacts={false} query="" onQuery={noop} onOpenChains={noop} costs={null} importNotes={null} />);
-		assert.match(inClass, /<a data-testid="add-notes"[^>]*href="\/class\/files"[^>]*>.*Add files<\/a>/);
-		assert.ok(!inClass.includes("import-notes"));
-		const noClass = renderToStaticMarkup(<GraphTopBar hasFacts={false} query="" onQuery={noop} onOpenChains={noop} costs={null} importNotes={{ importing: false, onImportFiles: noop }} />);
-		assert.ok(noClass.includes('data-testid="import-notes"'));
-		assert.ok(!noClass.includes("add-notes"));
+	it("Add files opens the Files page in a space; No space picks files right there", () => {
+		const inSpace = renderToStaticMarkup(<GraphTopBar hasFacts={false} query="" onQuery={noop} onOpenChains={noop} costs={null} importNotes={null} />);
+		assert.match(inSpace, /<a data-testid="add-notes"[^>]*href="\/space\/files"[^>]*>.*Add files<\/a>/);
+		assert.ok(!inSpace.includes("import-notes"));
+		const noSpace = renderToStaticMarkup(<GraphTopBar hasFacts={false} query="" onQuery={noop} onOpenChains={noop} costs={null} importNotes={{ importing: false, onImportFiles: noop }} />);
+		assert.ok(noSpace.includes('data-testid="import-notes"'));
+		assert.ok(!noSpace.includes("add-notes"));
 	});
 
 	it("search and All facts once there are facts; Graph costs once a run is recorded", () => {
@@ -308,7 +308,7 @@ describe("picking in the page", () => {
 });
 
 describe("the deadline picker's menu", () => {
-	it("is the class switcher's width; a long name truncates and shows in full on hover", async () => {
+	it("is the space switcher's width; a long name truncates and shows in full on hover", async () => {
 		const data = fixture();
 		const long = { ...data.deadlines[0]!, id: "ex-2", name: "Final exam covering every lecture from week one through week ten" };
 		host = document.createElement("div");

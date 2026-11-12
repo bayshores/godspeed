@@ -1,6 +1,6 @@
 /**
  * A deadline's page body: the time left, when, the name and how far it is,
- * the topic strip and its counts, What's on it (class days by week, the
+ * the topic strip and its counts, What's on it (days by week, the
  * days before it that it doesn't cover with Add and Leave out, the source,
  * Add files and Ask) and the path with Study, plus the done, past,
  * due-today, nothing-linked and nothing-to-plan states; and a homework's
@@ -63,7 +63,7 @@ function render(d: DeadlineProgress = deadline(), over: Partial<React.ComponentP
 	return renderToStaticMarkup(
 		<DeadlineBody
 			deadline={d}
-			color="var(--lh-class-1)"
+			color="var(--lh-space-1)"
 			topics={[{ id: "t1", right: 2, answered: 5 }, { id: "t3", right: 3, answered: 5 }]}
 			material={material}
 			plan={planDays("2026-11-02", d.date, d.topics)}
@@ -87,9 +87,9 @@ function render(d: DeadlineProgress = deadline(), over: Partial<React.ComponentP
 const count = (html: string, needle: string) => html.split(needle).length - 1;
 
 describe("the deadline page", () => {
-	it("head: the days left on the class's color, kind and when, the name, how ready, and its two buttons", () => {
+	it("head: the days left on the space's color, kind and when, the name, how ready, and its two buttons", () => {
 		const html = render();
-		assert.match(html, /background:var\(--lh-class-1\)[^>]*><span[^>]*>4<\/span><span[^>]*>days</);
+		assert.match(html, /background:var\(--lh-space-1\)[^>]*><span[^>]*>4<\/span><span[^>]*>days</);
 		assert.match(html, /data-testid="deadline-when"[^>]*>Exam, Friday Nov 6, 7:00 PM</);
 		assert.match(html, /data-testid="deadline-name"[^>]*>Midterm</);
 		assert.match(html, /data-testid="deadline-progress".*width:38%.*>38% ready</);
@@ -106,24 +106,24 @@ describe("the deadline page", () => {
 		assert.equal(count(html, 'data-testid="deadline-topic"'), 4);
 		assert.match(html, /deadline-count-untested.*<\/span>1 not tested</);
 	});
-	it("what's on it: class days by week, the source, the day before it that's missing with Add and Leave out", () => {
+	it("what's on it: days by week, the source, the day before it that's missing with Add and Leave out", () => {
 		const html = render();
 		assert.equal(count(html, 'data-testid="deadline-week"'), 1);
 		assert.deepEqual([...html.matchAll(/data-testid="deadline-day-row" data-state="(\w+)"/g)].map((m) => m[1]), ["ready", "reading", "info", "open"]);
-		assert.match(html, /2 class days, 3 files, 1 still being read\. From <span[^>]*>Midterm practice exam\.pdf</);
+		assert.match(html, /2 days, 3 files, 1 still being read\. From <span[^>]*>Midterm practice exam\.pdf</);
 		assert.match(html, /data-testid="deadline-edit-files"[^>]*>Pick files</);
-		assert.match(html, /syllabus\.txt<\/span><span[^>]*>course info, no facts</);
+		assert.match(html, /syllabus\.txt<\/span><span[^>]*>space info, no facts</);
 		assert.match(html, /Not on it, but before the exam/);
 		assert.match(html, /Pigeonhole/);
 		assert.match(html, />Add<\/button>.*>Leave out<\/button>/);
 		assert.ok(!html.includes("Leave all out"), "one day needs no Leave all out");
-		assert.match(html, /data-testid="deadline-add-files"[^>]*href="\/class\/files"|href="\/class\/files"[^>]*data-testid="deadline-add-files"/);
+		assert.match(html, /data-testid="deadline-add-files"[^>]*href="\/space\/files"|href="\/space\/files"[^>]*data-testid="deadline-add-files"/);
 		assert.match(html, /Ask marco to check/);
 	});
 	it("once every day before it is on it or left out, it says so, and left-out days can be shown", () => {
 		const html = render(deadline(), {}, ["d2"]);
 		assert.ok(!html.includes('data-testid="deadline-not-included"'));
-		assert.match(html, /Every class day before the exam is on it or left out\./);
+		assert.match(html, /Every day before the exam is on it or left out\./);
 		assert.match(html, /1 left out, Show/);
 	});
 	it("path: weakest first from today, the deadline day last, Study", () => {

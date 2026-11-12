@@ -42,21 +42,21 @@ export function followReady(s: FollowState, busyNow: boolean, now: number): bool
 	return s.lastBusyAt === null || now - s.lastBusyAt >= RESUME_MS;
 }
 
-/** Pages that show one class (the window's class must match first). A
- *  lesson belongs to its class too. */
-function classScopedPage(page: string): boolean {
-	return page === "/class" || page.startsWith("/class/") || page === "/graph" || page.startsWith("/chat/");
+/** Pages that show one space (the window's space must match first). A
+ *  lesson belongs to its space too. */
+function spaceScopedPage(page: string): boolean {
+	return page === "/space" || page.startsWith("/space/") || page === "/graph" || page.startsWith("/chat/");
 }
 
-/** What Follow must do to show an action's page: switch class, go to the
+/** What Follow must do to show an action's page: switch space, go to the
  *  page, both, or nothing. A lesson with unsent text keeps the window. */
 export function followMoves(
-	action: { page: string; classId: string | null },
-	here: { path: string; activeClass: string | null; lessonDraft: boolean },
-): { switchClass: { to: string | null } | null; go: string | null } {
-	if (here.lessonDraft && here.path.startsWith("/chat/")) return { switchClass: null, go: null };
-	const switchClass = classScopedPage(action.page) && action.classId !== here.activeClass ? { to: action.classId } : null;
-	return { switchClass, go: action.page !== here.path ? action.page : null };
+	action: { page: string; spaceId: string | null },
+	here: { path: string; activeSpace: string | null; lessonDraft: boolean },
+): { switchSpace: { to: string | null } | null; go: string | null } {
+	if (here.lessonDraft && here.path.startsWith("/chat/")) return { switchSpace: null, go: null };
+	const switchSpace = spaceScopedPage(action.page) && action.spaceId !== here.activeSpace ? { to: action.spaceId } : null;
+	return { switchSpace, go: action.page !== here.path ? action.page : null };
 }
 
 /** How long a change on another page keeps its "Go to" button. */
@@ -74,7 +74,7 @@ export function goOffer<A extends { page: string; at: string }>(newest: A | unde
 /** The page's name on the "Go to" button. */
 export function pageName(page: string): string {
 	if (page.startsWith("/chat/")) return "lesson";
-	return ({ "/": "Today", "/class": "Progress", "/class/files": "Files", "/graph": "Graph" } as Record<string, string>)[page] ?? "page";
+	return ({ "/": "Today", "/space": "Progress", "/space/files": "Files", "/graph": "Graph" } as Record<string, string>)[page] ?? "page";
 }
 
 /** The stored Follow choice ("0" = off). On by default. */
@@ -85,5 +85,5 @@ export function parseFollow(raw: string | null): boolean {
 /** Only the app's own pages are ever navigated to (never a raw URL from
  *  the wire). */
 export function safePage(page: string): string | null {
-	return /^\/(?:class(?:\/files)?|graph|chat\/[A-Za-z0-9_-]+)?$/.test(page) ? page : null;
+	return /^\/(?:space(?:\/files)?|graph|chat\/[A-Za-z0-9_-]+)?$/.test(page) ? page : null;
 }

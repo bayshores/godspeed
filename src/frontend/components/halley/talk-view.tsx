@@ -36,7 +36,7 @@ export interface TalkAsk {
 
 /**
  * The Talk tab: one ongoing chat with the teacher outside lessons (set up
- * classes, files and deadlines, ask quick questions), laid out like a
+ * spaces, files and deadlines, ask quick questions), laid out like a
  * script, the speaker's name above each turn. Clear chat sits on the
  * panel's tab row (clearSlot) and empties it.
  */
@@ -259,7 +259,7 @@ function TalkThread({
 				)}
 				{rows.length === 0 && (
 					<p data-testid="talk-empty" className="text-[15px] leading-[22px] text-ink-2">
-						Ask {name} to add a class, link a folder of course files, add deadlines from a syllabus, or anything about your classes.
+						Ask {name} to add a space, link a folder of files, add deadlines from a syllabus or a schedule, or anything about your spaces.
 					</p>
 				)}
 				{rows.map((row, i) => {
@@ -360,7 +360,7 @@ function TalkThread({
 								send();
 								return true;
 							}}
-							placeholder={`Tell ${name} what to set up, or ask about your classes`}
+							placeholder={`Tell ${name} what to set up, or ask about your spaces`}
 							ariaLabel={`Message ${name}`}
 						/>
 					</div>

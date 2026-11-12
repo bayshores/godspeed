@@ -20,7 +20,7 @@ import {
 	type FollowState,
 } from "../../src/frontend/components/halley/follow.ts";
 function action(over: Partial<AgentAction> = {}): AgentAction {
-	return { id: "act_1", at: "2026-10-28T16:00:00.000Z", agent: "Claude Code", label: "Adding HW 5", classId: "cls_a", target: { kind: "deadline", id: "ddl_1" }, page: "/", ...over };
+	return { id: "act_1", at: "2026-10-28T16:00:00.000Z", agent: "Claude Code", label: "Adding HW 5", spaceId: "cls_a", target: { kind: "deadline", id: "ddl_1" }, page: "/", ...over };
 }
 
 describe("visits", () => {
@@ -74,19 +74,19 @@ describe("follow", () => {
 		assert.equal(followReady(typed, false, t + RESUME_MS - 1), false);
 		assert.equal(followReady(typed, false, t + RESUME_MS), true);
 	});
-	it("switches class first on a class page, never for Home", () => {
-		assert.deepEqual(followMoves({ page: "/class/files", classId: "cls_b" }, { path: "/", activeClass: "cls_a", lessonDraft: false }), { switchClass: { to: "cls_b" }, go: "/class/files" });
-		assert.deepEqual(followMoves({ page: "/", classId: "cls_b" }, { path: "/", activeClass: "cls_a", lessonDraft: false }), { switchClass: null, go: null });
-		assert.deepEqual(followMoves({ page: "/class", classId: "cls_a" }, { path: "/graph", activeClass: "cls_a", lessonDraft: false }), { switchClass: null, go: "/class" });
-		assert.deepEqual(followMoves({ page: "/graph", classId: null }, { path: "/graph", activeClass: "cls_a", lessonDraft: false }), { switchClass: { to: null }, go: null });
-		// A lesson opens in its own class, so the sidebar lists it.
-		assert.deepEqual(followMoves({ page: "/chat/c2", classId: "cls_b" }, { path: "/", activeClass: null, lessonDraft: false }), { switchClass: { to: "cls_b" }, go: "/chat/c2" });
+	it("switches space first on a space page, never for Home", () => {
+		assert.deepEqual(followMoves({ page: "/space/files", spaceId: "cls_b" }, { path: "/", activeSpace: "cls_a", lessonDraft: false }), { switchSpace: { to: "cls_b" }, go: "/space/files" });
+		assert.deepEqual(followMoves({ page: "/", spaceId: "cls_b" }, { path: "/", activeSpace: "cls_a", lessonDraft: false }), { switchSpace: null, go: null });
+		assert.deepEqual(followMoves({ page: "/space", spaceId: "cls_a" }, { path: "/graph", activeSpace: "cls_a", lessonDraft: false }), { switchSpace: null, go: "/space" });
+		assert.deepEqual(followMoves({ page: "/graph", spaceId: null }, { path: "/graph", activeSpace: "cls_a", lessonDraft: false }), { switchSpace: { to: null }, go: null });
+		// A lesson opens in its own space, so the sidebar lists it.
+		assert.deepEqual(followMoves({ page: "/chat/c2", spaceId: "cls_b" }, { path: "/", activeSpace: null, lessonDraft: false }), { switchSpace: { to: "cls_b" }, go: "/chat/c2" });
 		// Unsent text in the lesson on screen keeps the window there.
-		assert.deepEqual(followMoves({ page: "/class", classId: "cls_b" }, { path: "/chat/c1", activeClass: "cls_a", lessonDraft: true }), { switchClass: null, go: null });
-		assert.deepEqual(followMoves({ page: "/class", classId: "cls_a" }, { path: "/chat/c1", activeClass: "cls_a", lessonDraft: false }), { switchClass: null, go: "/class" });
+		assert.deepEqual(followMoves({ page: "/space", spaceId: "cls_b" }, { path: "/chat/c1", activeSpace: "cls_a", lessonDraft: true }), { switchSpace: null, go: null });
+		assert.deepEqual(followMoves({ page: "/space", spaceId: "cls_a" }, { path: "/chat/c1", activeSpace: "cls_a", lessonDraft: false }), { switchSpace: null, go: "/space" });
 	});
 	it("only goes to the app's own pages", () => {
-		for (const p of ["/", "/class", "/class/files", "/graph", "/chat/c_12-ab"]) assert.equal(safePage(p), p);
+		for (const p of ["/", "/space", "/space/files", "/graph", "/chat/c_12-ab"]) assert.equal(safePage(p), p);
 		for (const p of ["javascript:alert(1)", "https://x.example", "//x.example", "/chat/../x", "/settings"]) assert.equal(safePage(p), null);
 	});
 	it("with Follow off, offers 'Go to' for a fresh change on another page", () => {
@@ -102,7 +102,7 @@ describe("follow", () => {
 	it("names the page on the button", () => {
 		assert.equal(pageName("/chat/c1"), "lesson");
 		assert.equal(pageName("/"), "Today");
-		assert.equal(pageName("/class"), "Progress");
-		assert.equal(pageName("/class/files"), "Files");
+		assert.equal(pageName("/space"), "Progress");
+		assert.equal(pageName("/space/files"), "Files");
 	});
 });

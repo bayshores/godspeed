@@ -8,8 +8,8 @@ export interface AgentNote {
 	/** "note_" + 8 hex. */
 	id: string;
 	text: string;
-	/** The class the note is about; absent = not about one class. */
-	classId?: string;
+	/** The space the note is about; absent = not about one space. */
+	spaceId?: string;
 	createdAt: string;
 }
 
@@ -28,8 +28,10 @@ export function parseAgentNotes(raw: unknown): AgentNote[] {
 	const list = (raw as { notes?: unknown } | null)?.notes;
 	if (!Array.isArray(list)) return [];
 	return list.flatMap((entry: unknown) => {
-		const n = entry as Partial<Record<keyof AgentNote, unknown>> | null;
+		const n = entry as Partial<Record<keyof AgentNote | "classId", unknown>> | null;
 		if (typeof n?.id !== "string" || typeof n.text !== "string" || typeof n.createdAt !== "string") return [];
-		return [{ id: n.id, text: n.text, ...(typeof n.classId === "string" ? { classId: n.classId } : {}), createdAt: n.createdAt }];
+		// classId: the field's name before the rename.
+		const spaceId = n.spaceId ?? n.classId;
+		return [{ id: n.id, text: n.text, ...(typeof spaceId === "string" ? { spaceId } : {}), createdAt: n.createdAt }];
 	});
 }

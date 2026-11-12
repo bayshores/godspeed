@@ -1,10 +1,10 @@
 /**
  * THE TOPIC GROUPER: one model
- * call that groups a class graph's facts into the topics a student would
+ * call that groups a space graph's facts into the topics a learner would
  * name. Built on the extractor's single-submit seam (runSubmitAgent): the
  * model reads the facts and the current topics, then calls submit_topics
  * once. Runs on the outside agent, so the connected agent gets it as a
- * work item labeled "Topic grouping: <class>".
+ * work item labeled "Topic grouping: <space>".
  *
  * This file only talks to the model. The deterministic rules — names 1–4
  * words (checked here, so the model retries), every fact in exactly one
@@ -20,9 +20,9 @@ import { runSubmitAgent } from "./submit-agent.ts";
 
 /** The core grouping instruction, approved word for word: keep the wording. */
 export const TOPIC_GROUPING_RULE =
-	'Group these facts into the topics a student would name when studying this course: 4–20 facts per topic, a 1–4 word name in the course\'s own terms ("Expected value", "Conditional probability"). Keep existing topics and names stable; only add, split, or merge when facts don\'t fit. Every fact goes in exactly one topic.';
+	'Group these facts into the topics a learner would name when studying this space: 4–20 facts per topic, a 1–4 word name in the space\'s own terms ("Expected value", "Conditional probability"). Keep existing topics and names stable; only add, split, or merge when facts don\'t fit. Every fact goes in exactly one topic.';
 
-export const TOPIC_GROUPER_INSTRUCTIONS = `You are the topic grouper of a learning app. You receive the facts of one course's knowledge graph (id, name, statement) and the course's current topics, if any.
+export const TOPIC_GROUPER_INSTRUCTIONS = `You are the topic grouper of a learning app. You receive the facts of one space's knowledge graph (id, name, statement) and the space's current topics, if any.
 
 ${TOPIC_GROUPING_RULE}
 
@@ -30,7 +30,7 @@ Submit the whole grouping with one submit_topics call. For a topic that already 
 
 const topicSchema = Type.Object({
 	id: Type.Optional(Type.String({ description: "The existing topic's id (tpc_…) when keeping a topic; leave out for a new one." })),
-	name: Type.String({ description: "1–4 words, in the course's own terms." }),
+	name: Type.String({ description: "1–4 words, in the space's own terms." }),
 	members: Type.Array(Type.String(), { description: "The ids of the facts in this topic." }),
 });
 
@@ -47,8 +47,8 @@ interface TopicFact {
 }
 
 interface TopicGrouperInput {
-	/** The class's display name (prompt context + the work-item label). */
-	className: string;
+	/** The space's display name (prompt context + the work-item label). */
+	spaceName: string;
 	facts: readonly TopicFact[];
 	chains: ReadonlyArray<Pick<GraphChain, "premises" | "conclusion">>;
 	/** The current topics, members already limited to live facts. */
@@ -63,22 +63,22 @@ interface TopicGrouperInput {
 const defaultNewId = () => `tpc_${crypto.randomUUID().replace(/-/g, "").slice(0, 10)}`;
 
 /** The prompt: facts one per line, then the current topics as JSON. */
-function topicGrouperPrompt(input: Pick<TopicGrouperInput, "className" | "facts" | "current">): string {
+function topicGrouperPrompt(input: Pick<TopicGrouperInput, "spaceName" | "facts" | "current">): string {
 	const facts = input.facts.map((f) => `${f.id} | ${f.name} | ${f.statement.replace(/\s+/g, " ")}`).join("\n");
 	const current =
 		input.current.length > 0
 			? JSON.stringify(input.current.map((t) => ({ id: t.id, name: t.name, members: t.members })), null, 1)
 			: "(none yet — this is the first grouping)";
-	return `Course: ${input.className}\n\nFacts (${input.facts.length}) — id | name | statement:\n${facts}\n\nCurrent topics:\n${current}`;
+	return `Space: ${input.spaceName}\n\nFacts (${input.facts.length}) — id | name | statement:\n${facts}\n\nCurrent topics:\n${current}`;
 }
 
 /** Ask the model for a grouping, then repair it so every current fact is
  *  in exactly one topic. Throws when the model never submits. */
 export async function groupTopics(input: TopicGrouperInput): Promise<GraphTopic[]> {
 	const submitted = await runSubmitAgent<TopicsSubmit>({
-		taskLabel: `Topic grouping: ${input.className}`,
+		taskLabel: `Topic grouping: ${input.spaceName}`,
 		toolName: "submit_topics",
-		toolDescription: "Submit the full topic grouping for the course's facts.",
+		toolDescription: "Submit the full topic grouping for the space's facts.",
 		parameters: submitSchema,
 		fill: (raw: TopicsSubmit) => raw,
 		validate: (value) => {

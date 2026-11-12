@@ -1,0 +1,31 @@
+/**
+ * POST /api/spaces/[id]/files — add files to a space. Multipart: field "files" (one or more) and "kind"
+ * ("study" = turned into the space's graph facts, "info" = space info the
+ * teacher can read but that never becomes facts).
+ */
+import { addCopiedFile } from "@/backend/server";
+import { isSpaceId } from "@/shared/core";
+
+export const dynamic = "force-dynamic";
+
+export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
+	const { id } = await params;
+	if (!isSpaceId(id)) return Response.json({ error: "No such space" }, { status: 404 });
+	let form: FormData;
+	try {
+		form = await req.formData();
+	} catch {
+		return Response.json({ error: "Invalid form body" }, { status: 400 });
+	}
+	const kind = form.get("kind") === "info" ? "info" : form.get("kind") === "study" ? "study" : null;
+	if (!kind) return Response.json({ error: 'kind must be "study" or "info"' }, { status: 400 });
+	const files = form.getAll("files").filter((f): f is File => f instanceof File);
+	if (files.length === 0) return Response.json({ error: "no files" }, { status: 400 });
+	const results = [];
+	for (const file of files) {
+		const outcome = addCopiedFile(id, file.name, new Uint8Array(await file.arrayBuffer()), kind);
+		results.push(outcome.ok ? { name: file.name, ok: true, file: outcome.value } : { name: file.name, ok: false, error: outcome.error });
+		if (!outcome.ok && outcome.code === "not_found") return Response.json({ error: outcome.error }, { status: 404 });
+	}
+	return Response.json({ results });
+}

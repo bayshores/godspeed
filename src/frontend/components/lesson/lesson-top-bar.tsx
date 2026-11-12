@@ -1,6 +1,6 @@
 import type { RefObject } from "react";
 import Link from "next/link";
-import { useClasses } from "@/frontend/components/class-context";
+import { useSpaces } from "@/frontend/components/space-context";
 import { SessionFind } from "@/frontend/components/session-find";
 import type { SessionScrollContext } from "@/frontend/components/session-navigation";
 import { Hint } from "@/frontend/components/ui/hint";
@@ -16,35 +16,35 @@ const NAV_WORD = "lh-no-drag h-12 shrink-0 px-4 text-[15px] text-bar-ink hover:b
 
 /**
  * THE LESSON'S OWN BAR, in place of the app's top bar: the way back to the
- * class's lessons, the lesson's name (renames in place on a click, or F2),
+ * space's lessons, the lesson's name (renames in place on a click, or F2),
  * then the homework file, the cheat sheet and Find. Opening Find swaps the
  * cheat sheet and Find words for the find field.
  */
 export function LessonTopBar({
 	rename,
-	classId,
+	spaceId,
 	sheet,
 	file,
 	scopeRef,
 	scrollContextRef,
 }: {
 	rename: ReturnType<typeof useTitleRename>;
-	classId: string | undefined;
-	/** The cheat sheet beside the session (a session in a class). */
+	spaceId: string | undefined;
+	/** The cheat sheet beside the session (a session in a space). */
 	sheet?: { open: boolean; onToggle: () => void };
 	/** A homework lesson's assignment file, opened on the desktop. */
 	file?: { name: string; path: string | null };
 	scopeRef: RefObject<HTMLDivElement | null>;
 	scrollContextRef: RefObject<SessionScrollContext | null>;
 }) {
-	const { classes } = useClasses();
-	const backLabel = classes.find((c) => c.id === classId)?.name ?? "Lessons";
+	const { spaces } = useSpaces();
+	const backLabel = spaces.find((c) => c.id === spaceId)?.name ?? "Lessons";
 	const desktop = typeof window !== "undefined" ? window.lh : undefined;
 	const pdf = !!file && /\.pdf$/i.test(file.name);
 	const openFile = file?.path && desktop ? (pdf ? desktop.openPath : desktop.showInFolder) : undefined;
 	return (
 		<div data-testid="lesson-bar" className="lh-own-bar lh-drag lh-lights-gutter lh-wco-gutter flex h-12 shrink-0 select-none items-center gap-4 bg-bar px-6 text-bar-ink">
-			<Link href="/class/lessons" prefetch={false} data-testid="page-back" className={`${BAR_BUTTON} max-w-[28ch] px-3`}>
+			<Link href="/space/lessons" prefetch={false} data-testid="page-back" className={`${BAR_BUTTON} max-w-[28ch] px-3`}>
 				<PixelIcon name="chevron" className="-scale-x-100" />
 				<span className="truncate">{backLabel}</span>
 			</Link>

@@ -1,11 +1,11 @@
 "use client";
 
 /**
- * The corner notices when a class's linked folder brings new files (say,
+ * The corner notices when a space's linked folder brings new files (say,
  * a new lecture landing in a synced Google Drive folder) or loses some:
  * "3 new files in CSE 21" with See files, "2 files removed from CSE 21"
  * with See changes, and a close button. Each stays until one is clicked,
- * and never shows on that class's own Files page (its New badges and
+ * and never shows on that space's own Files page (its New badges and
  * Recent changes say it). With no agent connected, the new-files notice
  * says the study material waits for one.
  */
@@ -14,7 +14,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { usePathname, useRouter } from "next/navigation";
 import { useAgentStatus } from "@/frontend/components/agent-status";
-import { useClasses } from "@/frontend/components/class-context";
+import { useSpaces } from "@/frontend/components/space-context";
 import { NoticeCard, NoticeText } from "@/frontend/components/notice-card";
 import { NOTICE_STACK_ID } from "@/frontend/components/notice-stack";
 import { useServerEvent } from "@/frontend/components/server-events";
@@ -22,21 +22,21 @@ import { changeNames, changeTitle, mergeChange, type FolderChange } from "./file
 
 export function FilesNotice() {
 	const [changes, setChanges] = useState<FolderChange[]>([]);
-	const { classes, active, setActive } = useClasses();
+	const { spaces, active, setActive } = useSpaces();
 	const agent = useAgentStatus();
 	const router = useRouter();
-	// The class whose Files page is open, if any.
-	const onFilesOf = usePathname() === "/class/files" ? active : null;
+	// The space whose Files page is open, if any.
+	const onFilesOf = usePathname() === "/space/files" ? active : null;
 	const onFilesRef = useRef(onFilesOf);
 	useEffect(() => {
 		onFilesRef.current = onFilesOf;
-		if (onFilesOf) setChanges((list) => (list.some((e) => e.classId === onFilesOf) ? list.filter((e) => e.classId !== onFilesOf) : list));
+		if (onFilesOf) setChanges((list) => (list.some((e) => e.spaceId === onFilesOf) ? list.filter((e) => e.spaceId !== onFilesOf) : list));
 	}, [onFilesOf]);
 	useServerEvent("files-added", (next) => {
-		if (next.classId !== onFilesRef.current) setChanges((list) => mergeChange(list, { classId: next.classId, change: "added", files: next.files }));
+		if (next.spaceId !== onFilesRef.current) setChanges((list) => mergeChange(list, { spaceId: next.spaceId, change: "added", files: next.files }));
 	});
 	useServerEvent("files-removed", (next) => {
-		if (next.classId !== onFilesRef.current) setChanges((list) => mergeChange(list, { classId: next.classId, change: "removed", files: next.files }));
+		if (next.spaceId !== onFilesRef.current) setChanges((list) => mergeChange(list, { spaceId: next.spaceId, change: "removed", files: next.files }));
 	});
 	const dismiss = (entry: FolderChange) => setChanges((list) => list.filter((e) => e !== entry));
 	if (typeof document === "undefined") return null;
@@ -44,11 +44,11 @@ export function FilesNotice() {
 		<FilesNoticeView
 			changes={changes}
 			agentConnected={agent?.connected !== false}
-			nameOf={(id) => classes.find((c) => c.id === id)?.name ?? null}
+			nameOf={(id) => spaces.find((c) => c.id === id)?.name ?? null}
 			onSee={(entry) => {
 				dismiss(entry);
-				setActive(entry.classId);
-				router.push("/class/files");
+				setActive(entry.spaceId);
+				router.push("/space/files");
 			}}
 			onDismiss={dismiss}
 		/>,
@@ -66,19 +66,19 @@ export function FilesNoticeView({
 	changes: readonly FolderChange[];
 	/** False while no agent is connected (unknown counts as connected). */
 	agentConnected: boolean;
-	/** The class's name; null hides its entry (the class was deleted). */
-	nameOf: (classId: string) => string | null;
+	/** The space's name; null hides its entry (the space was deleted). */
+	nameOf: (spaceId: string) => string | null;
 	onSee: (entry: FolderChange) => void;
 	onDismiss: (entry: FolderChange) => void;
 }) {
 	return (
 		<>
 			{changes.map((entry) => {
-				const name = nameOf(entry.classId);
+				const name = nameOf(entry.spaceId);
 				if (!name) return null;
 				return (
 					<NoticeCard
-						key={`${entry.classId}:${entry.change}`}
+						key={`${entry.spaceId}:${entry.change}`}
 						data-testid={`files-notice-${entry.change}`}
 						role="status"
 						title={changeTitle(entry, name, agentConnected)}

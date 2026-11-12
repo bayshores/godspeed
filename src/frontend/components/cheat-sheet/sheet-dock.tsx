@@ -9,7 +9,7 @@ import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { DOCK_DEFAULT_W, dockStateKey, dockWidth, makeTarget, parseDockState, pickSheet, sheetChoices, type DockState } from "./dock-model";
 import { SheetCanvas } from "./sheet-canvas";
 import { versionLabel } from "./studio-states";
-import { sheetPdfPath, studioPath, useCheatSheet, useClassSheets } from "./use-cheat-sheet";
+import { sheetPdfPath, studioPath, useCheatSheet, useSpaceSheets } from "./use-cheat-sheet";
 
 const WIDTH_KEY = "lh:sheet-dock-width";
 
@@ -50,19 +50,19 @@ export function useSheetDock(chatId: string) {
 /**
  * THE CHEAT SHEET BESIDE A LESSON: a column between the reading sheet and
  * the teacher, as wide as the learner drags it. It shows the lesson's
- * deadline's sheet, else the class's next one that has a sheet (a picker
+ * deadline's sheet, else the space's next one that has a sheet (a picker
  * when there are several), on the same canvas as the studio (pages one
  * under another, fit to width). It has no chat: asking about the sheet,
  * pointing at a part of it and making one all happen in the studio.
  */
 export function SheetDock({
-	classId,
+	spaceId,
 	sessionDeadlineId,
 	picked,
 	onPick,
 	onClose,
 }: {
-	classId: string;
+	spaceId: string;
 	sessionDeadlineId: string | undefined;
 	/** The deadline picked before in this session. */
 	picked: string | undefined;
@@ -76,7 +76,7 @@ export function SheetDock({
 	}, []);
 	const drag = useRef<{ x: number; w: number } | null>(null);
 
-	const { view: cards, failed, reload } = useClassSheets(classId);
+	const { view: cards, failed, reload } = useSpaceSheets(spaceId);
 	const choices = cards ? sheetChoices(cards.cards) : [];
 	const shown = cards ? pickSheet(cards.cards, sessionDeadlineId, picked) : null;
 	const target = cards ? makeTarget(cards.cards, sessionDeadlineId) : null;
@@ -132,7 +132,7 @@ export function SheetDock({
 			{failed ? (
 				<LoadFailed message="Couldn't load your cheat sheets." onRetry={() => void reload()} className="px-5 py-4" />
 			) : !cards ? null : shown ? (
-				<DockedSheet key={shown} classId={classId} deadlineId={shown} />
+				<DockedSheet key={shown} spaceId={spaceId} deadlineId={shown} />
 			) : (
 				<div data-testid="sheet-dock-none" className="flex min-h-0 flex-1 flex-col items-start gap-3 bg-background px-4 py-5 text-[15px] text-ink-2">
 					<p>No cheat sheet yet.</p>
@@ -141,7 +141,7 @@ export function SheetDock({
 							Make one
 						</Link>
 					) : (
-						<p>Add a deadline to this class to make one.</p>
+						<p>Add a deadline to this space to make one.</p>
 					)}
 				</div>
 			)}
@@ -149,9 +149,9 @@ export function SheetDock({
 	);
 }
 
-function DockedSheet({ classId, deadlineId }: { classId: string; deadlineId: string }) {
-	const { view, loadError, reload } = useCheatSheet(classId, deadlineId);
-	const pdfUrl = useCallback((n: number) => sheetPdfPath(classId, deadlineId, n), [classId, deadlineId]);
+function DockedSheet({ spaceId, deadlineId }: { spaceId: string; deadlineId: string }) {
+	const { view, loadError, reload } = useCheatSheet(spaceId, deadlineId);
+	const pdfUrl = useCallback((n: number) => sheetPdfPath(spaceId, deadlineId, n), [spaceId, deadlineId]);
 	if (loadError) return <LoadFailed message="Couldn't load this cheat sheet." onRetry={() => void reload()} className="px-5 py-4" />;
 	if (!view) return null;
 	const current = currentVersion(view.sheet);

@@ -1,13 +1,13 @@
 /**
- * Home's "Suggested for <class>" rows, derived from the
- * class's ProgressPayload (src/shared/core/progress.ts). Pure, unit-tested.
+ * Home's "Suggested for <space>" rows, derived from the
+ * space's ProgressPayload (src/shared/core/progress.ts). Pure, unit-tested.
  *
- *  - Continue: the class's most recently active lesson (lessons come
+ *  - Continue: the space's most recently active lesson (lessons come
  *    newest first). The app keeps no "finished" flag, so the newest
  *    lesson is the one to continue.
  *  - Next up: the earliest study file not studied yet (payload.nextUp).
  *  - Work on next: the first two topics of the soonest open deadline
- *    that has files, or the class-wide list when none is ahead.
+ *    that has files, or the space-wide list when none is ahead.
  */
 import type {
 	DeadlineProgress,

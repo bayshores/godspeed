@@ -1,18 +1,18 @@
 "use client";
 
 /**
- * THE GRAPH TAB, under the class head: its bar (search, Graph costs, All
- * facts, Add files), then the class's topics as level columns with a
+ * THE GRAPH TAB, under the space head: its bar (search, Graph costs, All
+ * facts, Add files), then the space's topics as level columns with a
  * right side: the picked deadline on top, under it what to work on next,
  * the picked topic, or the picked fact. Data: useProgress (GET /api/progress) and the
  * raw graph (GET /api/graph) for where facts came from, how they link,
- * and the chain table. Keyed by class by the route, so a class switch
+ * and the chain table. Keyed by space by the route, so a space switch
  * starts clean.
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import type { GraphSnapshot } from "@/shared/core";
-import { classQuery, useClasses } from "@/frontend/components/class-context";
+import { spaceQuery, useSpaces } from "@/frontend/components/space-context";
 import { useProgress } from "@/frontend/components/use-progress";
 import { useActivity } from "@/frontend/components/activity-dock";
 import { LazyChainTableOverlay as ChainTableOverlay } from "@/frontend/components/chain-table-lazy.tsx";
@@ -26,12 +26,12 @@ import { useLessonStart } from "@/frontend/components/home/use-lesson-start";
 const GraphBody = dynamic(() => import("./graph-body.tsx").then((m) => m.GraphBody), { ssr: false });
 
 export function GraphScreen() {
-	const { active } = useClasses();
+	const { active } = useSpaces();
 	return <GraphScreenBody key={active ?? "none"} />;
 }
 
 function GraphScreenBody() {
-	const { active } = useClasses();
+	const { active } = useSpaces();
 	const progress = useProgress();
 	const { refresh } = progress;
 	const [query, setQuery] = useState("");
@@ -39,7 +39,7 @@ function GraphScreenBody() {
 	const [snapshot, setSnapshot] = useState<GraphSnapshot | null>(null);
 
 	const loadSnapshot = useCallback(() => {
-		fetch(`/api/graph${classQuery(active)}`)
+		fetch(`/api/graph${spaceQuery(active)}`)
 			.then((res) => {
 				if (!res.ok) throw new Error(String(res.status));
 				return res.json() as Promise<GraphSnapshot>;

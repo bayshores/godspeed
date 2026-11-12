@@ -3,61 +3,61 @@ import { describe, it } from "node:test";
 import type { DeadlineProgress, ProgressPayload } from "../../src/shared/core/index.ts";
 import type { OpenDeadline } from "../../src/frontend/components/deadlines-model.ts";
 import {
-	classesSettled,
+	spacesSettled,
 	countLeft,
-	foldClassesProgress,
+	foldSpacesProgress,
 	laterLine,
 	longDay,
 	todayLists,
 	todayRow,
-	type ClassesProgress,
+	type SpacesProgress,
 } from "../../src/frontend/components/home-page/home-page-model.ts";
 
-const EMPTY: ClassesProgress = { progress: new Map(), errors: new Map() };
+const EMPTY: SpacesProgress = { progress: new Map(), errors: new Map() };
 const payload = (tag: string) => ({ tag }) as unknown as ProgressPayload;
 
-describe("foldClassesProgress", () => {
-	it("records a failed class's error next to the others' payloads", () => {
-		const state = foldClassesProgress(EMPTY, ["a", "b"], [
-			{ classId: "a", payload: payload("a1") },
-			{ classId: "b", error: "HTTP 500" },
+describe("foldSpacesProgress", () => {
+	it("records a failed space's error next to the others' payloads", () => {
+		const state = foldSpacesProgress(EMPTY, ["a", "b"], [
+			{ spaceId: "a", payload: payload("a1") },
+			{ spaceId: "b", error: "HTTP 500" },
 		]);
 		assert.deepEqual([...state.progress.keys()], ["a"]);
 		assert.deepEqual([...state.errors], [["b", "HTTP 500"]]);
 	});
 
-	it("keeps a class's earlier payload when a later read fails, and clears the error on success", () => {
-		const first = foldClassesProgress(EMPTY, ["a"], [{ classId: "a", payload: payload("a1") }]);
-		const failed = foldClassesProgress(first, ["a"], [{ classId: "a", error: "offline" }]);
+	it("keeps a space's earlier payload when a later read fails, and clears the error on success", () => {
+		const first = foldSpacesProgress(EMPTY, ["a"], [{ spaceId: "a", payload: payload("a1") }]);
+		const failed = foldSpacesProgress(first, ["a"], [{ spaceId: "a", error: "offline" }]);
 		assert.equal(failed.progress.get("a"), first.progress.get("a"));
 		assert.equal(failed.errors.get("a"), "offline");
-		const back = foldClassesProgress(failed, ["a"], [{ classId: "a", payload: payload("a2") }]);
+		const back = foldSpacesProgress(failed, ["a"], [{ spaceId: "a", payload: payload("a2") }]);
 		assert.equal(back.errors.size, 0);
 	});
 
-	it("drops classes no longer shown", () => {
-		const first = foldClassesProgress(EMPTY, ["a", "b"], [
-			{ classId: "a", payload: payload("a1") },
-			{ classId: "b", error: "x" },
+	it("drops spaces no longer shown", () => {
+		const first = foldSpacesProgress(EMPTY, ["a", "b"], [
+			{ spaceId: "a", payload: payload("a1") },
+			{ spaceId: "b", error: "x" },
 		]);
-		const next = foldClassesProgress(first, ["a"], [{ classId: "a", payload: payload("a1") }]);
+		const next = foldSpacesProgress(first, ["a"], [{ spaceId: "a", payload: payload("a1") }]);
 		assert.deepEqual([...next.progress.keys()], ["a"]);
 		assert.equal(next.errors.size, 0);
 	});
 });
 
-describe("classesSettled", () => {
-	const state = foldClassesProgress(EMPTY, ["a", "b"], [
-		{ classId: "a", payload: payload("a1") },
-		{ classId: "b", error: "HTTP 500" },
+describe("spacesSettled", () => {
+	const state = foldSpacesProgress(EMPTY, ["a", "b"], [
+		{ spaceId: "a", payload: payload("a1") },
+		{ spaceId: "b", error: "HTTP 500" },
 	]);
 
-	it("one failed class does not hold the others in loading", () => {
-		assert.equal(classesSettled(["a", "b"], state), true);
+	it("one failed space does not hold the others in loading", () => {
+		assert.equal(spacesSettled(["a", "b"], state), true);
 	});
 
-	it("waits while a class has neither data nor an error", () => {
-		assert.equal(classesSettled(["a", "b", "c"], state), false);
+	it("waits while a space has neither data nor an error", () => {
+		assert.equal(spacesSettled(["a", "b", "c"], state), false);
 	});
 });
 
@@ -65,7 +65,7 @@ describe("classesSettled", () => {
 const NOW = new Date(2026, 10, 11, 14, 32).getTime();
 
 function d(id: string, kind: OpenDeadline["kind"], date: string, extra: Partial<OpenDeadline> = {}): OpenDeadline {
-	return { id, kind, name: id, date, fileIds: [], done: false, classId: "c21", className: "CSE 21", ...extra };
+	return { id, kind, name: id, date, fileIds: [], done: false, spaceId: "c21", spaceName: "CSE 21", ...extra };
 }
 
 function progress(extra: Partial<DeadlineProgress>): DeadlineProgress {
@@ -135,7 +135,7 @@ describe("todayRow", () => {
 	];
 
 	it("a test names today's share of the topics that still need work, and starts", () => {
-		const test = d("Test 2", "exam", "2026-11-17", { className: "CSE 29" });
+		const test = d("Test 2", "exam", "2026-11-17", { spaceName: "CSE 29" });
 		// 3 topics need work, 6 days to spread them over: one today.
 		assert.deepEqual(todayRow(test, progress({ topics }), NOW), { title: "Study 1 topic for Test 2", line: "CSE 29, the test is on Tuesday", button: "Start" });
 		const tomorrow = d("Test 2", "exam", "2026-11-12", { time: "19:00" });
@@ -166,7 +166,7 @@ describe("todayRow", () => {
 });
 
 describe("laterLine", () => {
-	it("the class, the day, and how ready or how far", () => {
+	it("the space, the day, and how ready or how far", () => {
 		const final = d("Final", "exam", "2026-12-08");
 		assert.equal(laterLine(final, progress({ ready: 0.19 })), "CSE 21, Tuesday Dec 8. 19% ready");
 		assert.equal(laterLine(final, progress({ problems: { done: 0, total: 4 } })), "CSE 21, Tuesday Dec 8. 0 of 4 problems done");

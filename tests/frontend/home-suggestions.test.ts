@@ -1,7 +1,7 @@
 /**
- * Home's "Suggested for <class>" rows: which lesson is
+ * Home's "Suggested for <space>" rows: which lesson is
  * Continue, Next up, which Work-on-next list counts (the soonest open
- * deadline with files, else the class's), the two-row cap, and the
+ * deadline with files, else the space's), the two-row cap, and the
  * Continue step.
  */
 import assert from "node:assert/strict";
@@ -64,7 +64,7 @@ function deadline(id: string, daysUntil: number, workOnNext: WorkOnNextItem[], o
 
 function payload(over: Partial<ProgressPayload> = {}): ProgressPayload {
 	return {
-		classId: "cls_1",
+		spaceId: "cls_1",
 		today: "2026-10-27",
 		topicsAt: null,
 		grouping: false,
@@ -147,7 +147,7 @@ describe("which Work-on-next list counts", () => {
 		assert.equal(upcomingDeadline(deadlines)?.id, "quiz");
 	});
 
-	it("no deadline ahead: the class-wide list", () => {
+	it("no deadline ahead: the space-wide list", () => {
 		assert.deepEqual(workOnNextList({ deadlines: [deadline("past", -1, [item("a")])], overall }).map((i) => i.topicId), ["d"]);
 		assert.deepEqual(workOnNextList({ deadlines: [], overall }).map((i) => i.topicId), ["d"]);
 	});

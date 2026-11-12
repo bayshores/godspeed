@@ -2,8 +2,8 @@
  * First-launch onboarding: who sees it
  * (server/onboarding.ts, decided once from data/mcp-token and stored as
  * general.onboarded), the settings field, the screens' pure helpers, the
- * constellation's markup, and the class picker following the server's
- * active class after onboarding finishes (router.refresh()).
+ * constellation's markup, and the space picker following the server's
+ * active space after onboarding finishes (router.refresh()).
  */
 import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;
@@ -43,14 +43,14 @@ const { readSettings, writeSettings } = await import("../../src/backend/store/se
 const { readMcpToken, writeNewMcpToken } = await import("../../src/backend/store/mcp-token.ts");
 const { sanitizeUserSettings } = await import("../../src/shared/core/settings.ts");
 const { parseGeneralSettingsBody } = await import("../../src/backend/server/settings-body.ts");
-const { pickedLabel } = await import("../../src/frontend/components/onboarding/class-step-model.ts");
+const { pickedLabel } = await import("../../src/frontend/components/onboarding/space-step-model.ts");
 const { DoneStep } = await import("../../src/frontend/components/onboarding/done-step.tsx");
 const { StepSheet } = await import("../../src/frontend/components/onboarding/step-sheet.tsx");
 const { Wordmark } = await import("../../src/frontend/components/onboarding/wordmark.tsx");
 const { Constellation, DOTS, LINKS, dotDelay } = await import("../../src/frontend/components/onboarding/constellation.tsx");
 const { createRoot } = await import("react-dom/client");
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
-const { ClassProvider, useClasses } = await import("../../src/frontend/components/class-context.tsx");
+const { SpaceProvider, useSpaces } = await import("../../src/frontend/components/space-context.tsx");
 
 describe("onboardingNeeded (who sees the first-launch onboarding)", () => {
 	beforeEach(() => fs.rmSync(dataDir, { recursive: true, force: true }));
@@ -65,11 +65,11 @@ describe("onboardingNeeded (who sees the first-launch onboarding)", () => {
 
 	it("an existing user (token from before): skips it and stores onboarded:true", () => {
 		const token = writeNewMcpToken();
-		writeSettings({ version: 1, general: { activeClass: "cls_x" } });
+		writeSettings({ version: 1, general: { activeSpace: "cls_x" } });
 		assert.equal(onboardingNeeded(), false);
 		const general = readSettings()?.general;
 		assert.equal(general?.onboarded, true);
-		assert.equal(general?.activeClass, "cls_x", "other general fields are kept");
+		assert.equal(general?.activeSpace, "cls_x", "other general fields are kept");
 		assert.equal(readMcpToken(), token, "the old token is kept");
 	});
 
@@ -89,7 +89,7 @@ describe("the onboarded setting", () => {
 		assert.equal(sanitizeUserSettings({ general: { onboarded: "yes" } })?.general?.onboarded, undefined);
 	});
 	it("PUT /api/settings/general accepts a boolean only", () => {
-		const ok = parseGeneralSettingsBody({ onboarded: true, activeClass: "cls_a" });
+		const ok = parseGeneralSettingsBody({ onboarded: true, activeSpace: "cls_a" });
 		assert.ok(ok.ok);
 		assert.equal(ok.settings.onboarded, true);
 		assert.equal(parseGeneralSettingsBody({ onboarded: 1 }).ok, false);
@@ -124,13 +124,13 @@ describe("onboarding screen helpers", () => {
 	});
 	it("a setup step: the step bar with the current step filled, over a sheet with the title and sentence", () => {
 		const html = renderToStaticMarkup(
-			<StepSheet at={2} title="Add your first class" sub="Each class gets its own lessons.">
+			<StepSheet at={2} title="Add your first space" sub="Each space gets its own lessons.">
 				<p>inside</p>
 			</StepSheet>,
 		);
 		assert.match(html, /data-testid="onboarding-steps"/);
-		assert.match(html, /bg-ink text-background[^>]*>2<\/span><span[^>]*>Class</);
-		assert.match(html, /<h1[^>]*>Add your first class<\/h1>/);
+		assert.match(html, /bg-ink text-background[^>]*>2<\/span><span[^>]*>Space</);
+		assert.match(html, /<h1[^>]*>Add your first space<\/h1>/);
 		assert.ok(html.includes("inside"));
 	});
 	it("the wordmark: the pixel g on its tile beside the app's name", () => {
@@ -154,24 +154,24 @@ describe("onboarding screen helpers", () => {
 	});
 });
 
-describe("the class picker after onboarding", () => {
-	it("follows the server's active class when the page refreshes", async () => {
+describe("the space picker after onboarding", () => {
+	it("follows the server's active space when the page refreshes", async () => {
 		const originalFetch = globalThis.fetch;
 		globalThis.fetch = (async () =>
-			new Response(JSON.stringify({ classes: [{ id: "cls_new", name: "CSE 29" }] }), { status: 200 })) as typeof fetch;
+			new Response(JSON.stringify({ spaces: [{ id: "cls_new", name: "CSE 29" }] }), { status: 200 })) as typeof fetch;
 		const host = document.createElement("div");
 		document.body.append(host);
 		const root = createRoot(host);
 		const connect = () => ({ onEvent() {}, onOpen() {}, close() {} });
 		function Probe() {
-			const { active } = useClasses();
+			const { active } = useSpaces();
 			return <span data-testid="active">{active ?? "none"}</span>;
 		}
 		const tree = (initialActive: string | null) => (
 			<ServerEventsProvider connect={connect as never}>
-				<ClassProvider initialActive={initialActive}>
+				<SpaceProvider initialActive={initialActive}>
 					<Probe />
-				</ClassProvider>
+				</SpaceProvider>
 			</ServerEventsProvider>
 		);
 		try {

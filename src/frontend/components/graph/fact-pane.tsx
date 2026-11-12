@@ -1,6 +1,6 @@
 /**
  * One fact, opened from its topic: back to the topic and Close, what it
- * says, its answers, where it came from (a class file opens on the
+ * says, its answers, where it came from (a space file opens on the
  * desktop, a lesson opens in the app), the facts it builds on and leads
  * to (each opens), and Practice.
  */
@@ -93,7 +93,7 @@ export function FactPane({
 	);
 }
 
-/** Where the fact came from: a class file (open it or show it on the desktop) or a lesson. */
+/** Where the fact came from: a space file (open it or show it on the desktop) or a lesson. */
 function Source({ born, sources }: { born: string | null; sources: FactSources | null }) {
 	if (!born || !sources) return null;
 	const file = sources.fileSources[born];

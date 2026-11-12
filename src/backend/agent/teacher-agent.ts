@@ -19,7 +19,7 @@ import { practiceTools, type PracticeToolContext } from "./tools/practice.ts";
 type StudyToolContext = TeacherToolContext & Pick<PracticeToolContext, "graphNodes">;
 import { talkTools } from "./tools/talk.ts";
 import { homeworkTools, type HomeworkToolContext } from "./tools/homework.ts";
-import type { ClassActions } from "../../shared/core/class-tools.ts";
+import type { SpaceActions } from "../../shared/core/space-tools.ts";
 import { healToolRecord } from "./tools/heal.ts";
 import { quizInputObject, quizInputProblems } from "../../shared/core/question-core.ts";
 import { isQuestionTool } from "../../shared/core/pending.ts";
@@ -268,7 +268,7 @@ export function bareQuestionTools(): Record<string, AgentTool<any>> {
  * The PRACTITIONER (practice sessions): built
  * from turn 1 of a kind:"practice" session, with no prober→teacher split.
  * The session runs on problem + conclude, plus the rarely-used read-only
- * file tools, research/pdf, map readers, class tools and save_rule
+ * file tools, research/pdf, map readers, space tools and save_rule
  * (tools/practice.ts); no plan or question tools. The doctrine prompt
  * (prompts/practice/) carries the method. A successful problem pose ends
  * the run, natively for a problem-only batch and via the shared stop hook
@@ -301,10 +301,10 @@ export function createHomeworkAgent(ctx: HomeworkToolContext, opts: AgentBuildOp
 
 /**
  * TALK (the teacher's panel): one ongoing chat outside any lesson, for
- * setting up classes, files and deadlines and quick questions. Its tools
- * are the class actions (tools/talk.ts); no question or teaching tools.
+ * setting up spaces, files and deadlines and quick questions. Its tools
+ * are the space actions (tools/talk.ts); no question or teaching tools.
  */
-export function createTalkAgent(actions: ClassActions, opts: AgentBuildOptions = {}) {
+export function createTalkAgent(actions: SpaceActions, opts: AgentBuildOptions = {}) {
 	return baseAgentOptions("talk", opts, Object.values(opts.tools ?? talkTools(actions)));
 }
 

@@ -11,7 +11,7 @@ import { afterEach, describe, it } from "node:test";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { parseHTML } from "linkedom";
-import type { ClassSummary, HomeworkProblem, PlanStepBar } from "../../src/shared/core/index.ts";
+import type { SpaceSummary, HomeworkProblem, PlanStepBar } from "../../src/shared/core/index.ts";
 
 const dom = parseHTML("<!doctype html><html><body></body></html>");
 // linkedom's document has no "oninput"; without it React would watch text
@@ -35,11 +35,11 @@ Object.assign(globalThis, {
 
 const { PlanRow } = await import("../../src/frontend/components/lesson/plan-row.tsx");
 const { PlanPopup } = await import("../../src/frontend/components/plan-block.tsx");
-const { ClassProvider } = await import("../../src/frontend/components/class-context.tsx");
+const { SpaceProvider } = await import("../../src/frontend/components/space-context.tsx");
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
 const quietEvents = () => ({ onEvent() {}, onOpen() {}, close() {} });
 
-const CLASS = { id: "cse21", name: "CSE 21", color: 3 } as unknown as ClassSummary;
+const SPACE = { id: "cse21", name: "CSE 21", color: 3 } as unknown as SpaceSummary;
 
 const bar: PlanStepBar = {
 	currentIndex: 1,
@@ -57,7 +57,7 @@ const problems: HomeworkProblem[] = [
 ];
 
 type RowProps = Parameters<typeof PlanRow>[0];
-const base: RowProps = { kind: "teach", classId: undefined, stepBar: bar, homework: null, practice: null, onJump: () => {}, onOpenPlan: () => {} };
+const base: RowProps = { kind: "teach", spaceId: undefined, stepBar: bar, homework: null, practice: null, onJump: () => {}, onOpenPlan: () => {} };
 
 let host: HTMLElement | null = null;
 let root: Root | null = null;
@@ -84,17 +84,17 @@ describe("the plan row of a plan lesson", () => {
 		assert.match(html, /data-testid="plan-step-open"[^>]*>See the plan</);
 	});
 
-	it("paints the current block in the class's color, or ink with no class", async () => {
-		const withClass = await mount(
+	it("paints the current block in the space's color, or ink with no space", async () => {
+		const withSpace = await mount(
 			<ServerEventsProvider connect={quietEvents as never}>
-				<ClassProvider initialActive={null} initialClasses={[CLASS]}>
-					<PlanRow {...base} classId="cse21" />
-				</ClassProvider>
+				<SpaceProvider initialActive={null} initialSpaces={[SPACE]}>
+					<PlanRow {...base} spaceId="cse21" />
+				</SpaceProvider>
 			</ServerEventsProvider>,
 		);
-		assert.match(withClass.querySelectorAll('[data-testid="plan-block"] span')[1]!.getAttribute("style") ?? "", /var\(--lh-class-3\)/);
+		assert.match(withSpace.querySelectorAll('[data-testid="plan-block"] span')[1]!.getAttribute("style") ?? "", /var\(--lh-space-3\)/);
 		await act(async () => root!.unmount());
-		withClass.remove();
+		withSpace.remove();
 		const plain = await mount(<PlanRow {...base} />);
 		assert.match(plain.querySelectorAll('[data-testid="plan-block"] span')[1]!.getAttribute("style") ?? "", /var\(--color-ink\)/);
 	});

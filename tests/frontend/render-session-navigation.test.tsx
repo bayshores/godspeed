@@ -1,6 +1,6 @@
 /**
  * The arrival flash on a linked message: it lights the passage, and leaving
- * the session before it fades clears both the class and its timer.
+ * the session before it fades clears both the space and its timer.
  */
 import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;

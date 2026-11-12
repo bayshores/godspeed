@@ -169,7 +169,7 @@ function MermaidInline({ chart }: { chart: string }) {
 }
 
 /** The Streamdown `code` override: inline code passes through with the
- *  house inline classes; block fences split — mermaid renders as the bare
+ *  house inline spaces; block fences split — mermaid renders as the bare
  *  chart above, everything else delegates to streamdown's exported
  *  CodeBlock (shiki highlighting + line numbers preserved) inside a
  *  hover-copy wrapper, with NO children so its sticky button row never

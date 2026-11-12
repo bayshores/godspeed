@@ -1,8 +1,8 @@
 import { Fragment, memo } from "react";
 import dynamic from "next/dynamic";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
-import { paleClassColor } from "@/frontend/components/class-color";
-import { useClasses } from "@/frontend/components/class-context";
+import { paleSpaceColor } from "@/frontend/components/space-color";
+import { useSpaces } from "@/frontend/components/space-context";
 import { Message, MessageContent, MessageResponse } from "@/frontend/components/ai-elements/message";
 import { Reasoning, ReasoningContent, ReasoningTrigger } from "@/frontend/components/ai-elements/reasoning";
 import { LiveToolCard } from "@/frontend/components/artifacts/live-tool-card";
@@ -11,7 +11,7 @@ import { artifactRenderers } from "@/frontend/components/artifacts";
 import { AnsweredCard } from "@/frontend/components/answered-card";
 import { PhaseDivider } from "@/frontend/components/phase-divider";
 import { ThinkingCard, type PracticeThinkingData } from "@/frontend/components/practice-cards";
-import { ClassContextCard, GraphContextCard, type ClassContextData, type GraphContextData } from "@/frontend/components/graph-context-card";
+import { SpaceContextCard, GraphContextCard, type SpaceContextData, type GraphContextData } from "@/frontend/components/graph-context-card";
 import { CompactionCutDivider, CompactionMomentDivider, type CompactionDividerData } from "@/frontend/components/compaction-divider";
 import { Separator } from "@/frontend/components/ui/separator";
 import { cn } from "@/frontend/lib/utils";
@@ -130,18 +130,18 @@ export const MessageRow = memo(function MessageRow({ message: m, index: mi, teac
 	);
 });
 
-/** The learner's message: a bubble on the right in the class's pale color.
+/** The learner's message: a bubble on the right in the space's pale color.
  *  Plain text, since learner text never goes through the model's LaTeX
  *  pipeline; the learner's files sit under it. */
 function UserMessage({ message, className }: { message: LhViewMessage; className?: string }) {
-	const { activeClass } = useClasses();
+	const { activeSpace } = useSpaces();
 	const text = message.parts.filter((p) => p.type === "text").map((p) => p.text).join("\n");
 	return (
 		<div className={cn("my-2 flex w-full justify-end", className)}>
 			<div
 				data-testid="user-message"
 				className="flex w-[520px] max-w-full flex-col gap-2 rounded-sm bg-tone px-3.5 py-2.5"
-				style={activeClass ? { background: paleClassColor(activeClass.color) } : undefined}
+				style={activeSpace ? { background: paleSpaceColor(activeSpace.color) } : undefined}
 			>
 				{text && <div className="whitespace-pre-wrap font-prose text-ink" style={{ fontSize: "calc(var(--lh-prose-size) - 2px)" }}>{text}</div>}
 				<MessageAttachments parts={message.parts} />
@@ -154,8 +154,8 @@ function MarkerPart({ part }: { part: LhViewPart }) {
 	switch (part.type) {
 		case "data-graph-context":
 			return <GraphContextCard data={part.data as GraphContextData} />;
-		case "data-class-context":
-			return <ClassContextCard data={part.data as ClassContextData} />;
+		case "data-space-context":
+			return <SpaceContextCard data={part.data as SpaceContextData} />;
 		case "data-compaction":
 			return <CompactionMomentDivider data={part.data as CompactionDividerData} />;
 		case "data-compaction-cut":

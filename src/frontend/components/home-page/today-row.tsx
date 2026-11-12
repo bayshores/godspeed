@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import type { ClassColor, DeadlineProgress } from "@/shared/core";
-import { classColorVar } from "@/frontend/components/class-color";
+import type { SpaceColor, DeadlineProgress } from "@/shared/core";
+import { spaceColorVar } from "@/frontend/components/space-color";
 import { dueAtMs } from "@/frontend/components/countdown-model";
 import type { OpenDeadline } from "@/frontend/components/deadlines-model";
 import { deadlineHref } from "@/frontend/components/overview/overview-model";
@@ -12,8 +12,8 @@ import { Stamp } from "@/frontend/components/ui/stamp";
 import { cn } from "@/frontend/lib/utils";
 import { countLeft, laterLine, todayRow } from "./home-page-model";
 
-/** The class's color; grey for a class that has gone. */
-const blockColor = (color: ClassColor | undefined) => (color ? classColorVar(color) : "var(--border)");
+/** The space's color; grey for a space that has gone. */
+const blockColor = (color: SpaceColor | undefined) => (color ? spaceColorVar(color) : "var(--border)");
 
 /** A row's two lines of words. */
 function Words({ title, line, dim }: { title: ReactNode; line: string; dim?: boolean }) {
@@ -42,7 +42,7 @@ export function TodayRow({
 }: {
 	deadline: OpenDeadline;
 	progress: DeadlineProgress | undefined;
-	color: ClassColor | undefined;
+	color: SpaceColor | undefined;
 	nowMs: number;
 	/** A lesson is starting. */
 	busy: boolean;
@@ -94,7 +94,7 @@ export function DoneRow({ deadline: d, onUndo }: { deadline: OpenDeadline; onUnd
 					<Stamp>Done</Stamp>
 				</span>
 				<div className="flex min-w-0 flex-1 items-center gap-4 px-6 py-4">
-					<Words title={d.name} line={d.className} dim />
+					<Words title={d.name} line={d.spaceName} dim />
 					<button type="button" data-testid="today-undo" onClick={() => onUndo(d)} className="lh-btn lh-btn-quiet h-[38px] shrink-0 text-[15px]">
 						Undo
 					</button>
@@ -105,7 +105,7 @@ export function DoneRow({ deadline: d, onUndo }: { deadline: OpenDeadline; onUnd
 }
 
 /** A deadline under Later: the whole row opens its page. */
-export function LaterRow({ deadline: d, progress, color, nowMs }: { deadline: OpenDeadline; progress: DeadlineProgress | undefined; color: ClassColor | undefined; nowMs: number }) {
+export function LaterRow({ deadline: d, progress, color, nowMs }: { deadline: OpenDeadline; progress: DeadlineProgress | undefined; color: SpaceColor | undefined; nowMs: number }) {
 	return (
 		<li data-testid={`later-row-${d.id}`} data-halley-target={`deadline:${d.id}`}>
 			<Pane className="overflow-hidden">

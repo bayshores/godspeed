@@ -38,5 +38,5 @@ export function versionLabel(v: SheetVersion, newest: boolean): string {
 export function emptyChatLine(agentName: string, made: boolean): string {
 	return made
 		? `Ask ${agentName} anything about the sheet, point at a part that confuses you, or say what to change.`
-		: `Say what you want on it: the paper, one side or both, what to put first. ${agentName} reads your class's rules in the syllabus, puts your weak topics and mistakes first, and makes it as a PDF.`;
+		: `Say what you want on it: the paper, one side or both, what to put first. ${agentName} reads the rules in your space info files, puts your weak topics and mistakes first, and makes it as a PDF.`;
 }

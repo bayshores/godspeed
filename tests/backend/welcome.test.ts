@@ -45,7 +45,7 @@ describe("bootLines", () => {
 		assert.equal(bootLines("1", on, midterm("2026-10-28", "09:00"), NOW, false)[2], "Midterm 2 is overdue");
 	});
 	it("the first launch after the new look arrives says so", () => {
-		assert.deepEqual(bootLines("0.5.41", on, midterm("2026-10-29"), NOW, true), ["godspeed 0.5.41", "New look", "Loading your classes"]);
+		assert.deepEqual(bootLines("0.5.41", on, midterm("2026-10-29"), NOW, true), ["godspeed 0.5.41", "New look", "Loading your spaces"]);
 	});
 });
 

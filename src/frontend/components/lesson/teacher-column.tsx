@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
-import { paleClassColor } from "@/frontend/components/class-color";
-import { useClasses } from "@/frontend/components/class-context";
+import { paleSpaceColor } from "@/frontend/components/space-color";
+import { useSpaces } from "@/frontend/components/space-context";
 import { useHalley } from "@/frontend/components/halley/halley-context";
 import { TeacherActivity } from "@/frontend/components/halley/teacher-activity";
 import { TeacherHead } from "@/frontend/components/halley/teacher-head";
@@ -21,14 +21,14 @@ export const COLUMN_WIDTH = { initial: 480, min: 340, max: 720 };
  * the teacher's activity list until "Back to your turn".
  */
 export function TeacherColumn({
-	classId,
+	spaceId,
 	width,
 	onWidth,
 	requiresReveal,
 	onReveal,
 	...turn
 }: YourTurnProps & {
-	classId: string | undefined;
+	spaceId: string | undefined;
 	/** The saved width; the lesson's layout sizes the column from it. */
 	width: number;
 	onWidth: (width: number) => void;
@@ -40,7 +40,7 @@ export function TeacherColumn({
 	const { pending, busy, waitingForAgent } = turn;
 	const halley = useHalley();
 	const name = halley?.name ?? DEFAULT_TEACHER_NAME;
-	const color = useClasses().classes.find((c) => c.id === classId)?.color;
+	const color = useSpaces().spaces.find((c) => c.id === spaceId)?.color;
 	const [activityOpen, setActivityOpen] = useState(false);
 
 	// The reveal: false until the learner opens the check. Reset during
@@ -61,7 +61,7 @@ export function TeacherColumn({
 			data-testid="teacher-column"
 			aria-label={name}
 			className="relative flex min-h-0 min-w-0 flex-col [grid-area:teacher]"
-			style={{ "--lh-pale": color ? paleClassColor(color) : "var(--color-tone)" } as React.CSSProperties}
+			style={{ "--lh-pale": color ? paleSpaceColor(color) : "var(--color-tone)" } as React.CSSProperties}
 		>
 			{/* Side by side only: stacked, the column is full width. */}
 			<div className="lh-teacher-resize">

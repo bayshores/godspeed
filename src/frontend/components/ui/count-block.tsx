@@ -1,6 +1,6 @@
 import { cn } from "@/frontend/lib/utils";
 
-/** The block's size and type: a Today row's, the smaller one of a class's
+/** The block's size and type: a Today row's, the smaller one of a space's
  *  Deadlines list, the square on the Progress tab's next deadline, or the
  *  one at the head of a deadline's page. */
 const SIZES = {
@@ -12,15 +12,15 @@ const SIZES = {
 
 /**
  * The block at a row's left: a big count over its unit ("6" over "days"),
- * on the class's color. `pale` washes the color out, for a row that can
+ * on the space's color. `pale` washes the color out, for a row that can
  * wait.
  */
 export function CountBlock({ color, pale, count, unit, size = "row" }: { color: string; pale?: boolean; count: string; unit: string; size?: keyof typeof SIZES }) {
 	const s = SIZES[size];
 	return (
 		<span
-			className={cn("flex shrink-0 flex-col items-center justify-center self-stretch font-count", s.box, pale ? "text-ink" : "text-on-class")}
-			style={{ background: pale ? `color-mix(in srgb, ${color} 57%, var(--lh-class-wash))` : color }}
+			className={cn("flex shrink-0 flex-col items-center justify-center self-stretch font-count", s.box, pale ? "text-ink" : "text-on-space")}
+			style={{ background: pale ? `color-mix(in srgb, ${color} 57%, var(--lh-space-wash))` : color }}
 		>
 			{/* A word ("late") is set smaller than a number so it fits. */}
 			<span className={count.length > 3 ? s.word : s.count}>{count}</span>

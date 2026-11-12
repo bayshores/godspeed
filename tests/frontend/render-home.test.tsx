@@ -1,6 +1,6 @@
 /**
  * The Study page: the topic box ("Start from facts", the filled Study
- * button, Enter starts), the "Suggested for <class>" rows (Continue / Next
+ * button, Enter starts), the "Suggested for <space>" rows (Continue / Next
  * up / Work on next with their buttons and line), the Study for each
  * deadline (Continue studying while its session is unfinished) and what
  * every Study start sends.
@@ -81,7 +81,7 @@ const SUGGESTIONS: Suggestion[] = [
 function list(props: Partial<React.ComponentProps<typeof SuggestionList>> = {}) {
 	return renderToStaticMarkup(
 		<SuggestionList
-			classLabel="CSE 21"
+			spaceLabel="CSE 21"
 			suggestions={SUGGESTIONS}
 			step={{ position: 1, total: 11 }}
 			busy={false}
@@ -137,7 +137,7 @@ describe("Home: the topic box", () => {
 		assert.match(box(), /data-testid="home-start" aria-disabled="true"/);
 	});
 
-	it("no facts in the class: Start from facts is disabled", () => {
+	it("no facts in the space: Start from facts is disabled", () => {
 		assert.match(box({ canPick: false }), /data-testid="facts-picks-chip"[^>]*disabled/);
 	});
 
@@ -153,9 +153,9 @@ describe("Home: the topic box", () => {
 });
 
 describe("Home: suggestions", () => {
-	it("the label names the class; no class: just Suggested", () => {
+	it("the label names the space; no space: just Suggested", () => {
 		assert.ok(list().includes(">Suggested for CSE 21</h2>"));
-		assert.ok(list({ classLabel: null }).includes(">Suggested</h2>"));
+		assert.ok(list({ spaceLabel: null }).includes(">Suggested</h2>"));
 	});
 
 	it("nothing to suggest: nothing renders", () => {
@@ -220,7 +220,7 @@ describe("Home: actions", () => {
 		const practiced: TopicProgress[] = [];
 		const host = await mount(
 			<SuggestionList
-				classLabel="CSE 21"
+				spaceLabel="CSE 21"
 				suggestions={SUGGESTIONS}
 				step={null}
 				busy={false}

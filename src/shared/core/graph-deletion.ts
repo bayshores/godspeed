@@ -217,9 +217,9 @@ export function deleteChatTraces(graphStore: GraphStore, chatId: string, mode: C
 // ─── source deletion ─────────────────────────────────────────────────────────
 
 /**
- * Remove one imported-notes source's traces — the class-file twin of a
- * chat's delete-nodes (a class file was edited, deleted, switched to
- * "course info", or its lesson moved class). Same survival law: a fact
+ * Remove one imported-notes source's traces — the space-file twin of a
+ * chat's delete-nodes (a space file was edited, deleted, switched to
+ * "space info", or its lesson moved space). Same survival law: a fact
  * another lesson or file also produced survives with its identity; only
  * this source's points, phrasings and orphans die. The source record goes
  * too. Synchronous, idempotent.

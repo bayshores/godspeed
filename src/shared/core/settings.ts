@@ -27,14 +27,14 @@
  */
 
 import { isVersion } from "./changelog.ts";
-import { isClassId } from "./contracts/class.ts";
+import { isSpaceId } from "./contracts/space.ts";
 import { oneLine, sanitizeAreaRules, type AreaRules } from "./teaching-areas.ts";
 
 
 /** The schema version this code understands. Bump ONLY when stored records need
  *  upgrading (a field renamed, its meaning or its old default changed); pure
  *  additions never bump. */
-export const CURRENT_SETTINGS_VERSION = 2;
+export const CURRENT_SETTINGS_VERSION = 3;
 
 /** The outside agent's provider id (MCP bridge, src/backend/agent/agent-bridge.ts) —
  *  the ONLY model provider. Every lesson and background job
@@ -52,9 +52,9 @@ export const OUTSIDE_AGENT_CONTEXT_WINDOW = 200_000;
 export interface GeneralSettings {
 	/** Automatic startup/24h update checks (default ON). Manual checks bypass this. */
 	autoUpdate?: boolean;
-	/** The class the window shows: a class id,
-	 *  or "none" = No class (the default). */
-	activeClass?: string;
+	/** The space the window shows: a space id,
+	 *  or "none" = No space (the default). */
+	activeSpace?: string;
 	/** First-launch onboarding: true = done or skipped
 	 *  (existing users); false = in progress (shown until finished);
 	 *  absent = not decided yet (src/backend/server/onboarding.ts decides). */
@@ -200,7 +200,7 @@ export interface FactorySettings {
 
 export const FACTORY_SETTINGS: FactorySettings = {
 	version: CURRENT_SETTINGS_VERSION,
-	general: { autoUpdate: true, activeClass: "none", teacherName: DEFAULT_TEACHER_NAME, sounds: true },
+	general: { autoUpdate: true, activeSpace: "none", teacherName: DEFAULT_TEACHER_NAME, sounds: true },
 	appearance: {
 		background: null, // Paper
 		fontFamily: null, // Literata
@@ -243,8 +243,8 @@ function sanitizeGeneral(raw: Record<string, unknown>): GeneralSettings {
 	const out: GeneralSettings = {};
 	const autoUpdate = boolOrDrop(raw.autoUpdate);
 	if (autoUpdate !== undefined) out.autoUpdate = autoUpdate;
-	if (raw.activeClass === "none" || isClassId(raw.activeClass)) {
-		out.activeClass = raw.activeClass;
+	if (raw.activeSpace === "none" || isSpaceId(raw.activeSpace)) {
+		out.activeSpace = raw.activeSpace;
 	}
 	const onboarded = boolOrDrop(raw.onboarded);
 	if (onboarded !== undefined) out.onboarded = onboarded;

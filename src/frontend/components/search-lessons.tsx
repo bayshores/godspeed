@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { classColorVar } from "@/frontend/components/class-color";
-import { className, useClasses } from "@/frontend/components/class-context";
+import { spaceColorVar } from "@/frontend/components/space-color";
+import { spaceName, useSpaces } from "@/frontend/components/space-context";
 import { lessonAge, matchLessons } from "@/frontend/components/lessons/lessons-model";
 import { useLessonList } from "@/frontend/components/lessons/use-lesson-list";
 import { LoadFailed } from "@/frontend/components/load-failed";
@@ -13,7 +13,7 @@ import { cn } from "@/frontend/lib/utils";
 import { kbdEventForAction } from "@/shared/core";
 
 /**
- * SEARCH LESSONS: one popup over the lessons of every class, opened from
+ * SEARCH LESSONS: one popup over the lessons of every space, opened from
  * Menu or the search shortcut. In the field ↑/↓ walk the matches and Enter
  * opens the walked one (or the first).
  */
@@ -36,7 +36,7 @@ export function SearchLessons() {
 /** The field and its matches; the lessons load when the popup opens. */
 function Results({ onClose }: { onClose: () => void }) {
 	const router = useRouter();
-	const { classes } = useClasses();
+	const { spaces } = useSpaces();
 	const { chats, failed, refresh } = useLessonList();
 	const [query, setQuery] = useState("");
 	const [walked, setWalked] = useState(0);
@@ -93,7 +93,7 @@ function Results({ onClose }: { onClose: () => void }) {
 			) : (
 				<div ref={listRef} className="flex flex-col">
 					{shown.map((c, i) => {
-						const cls = classes.find((k) => k.id === c.classId);
+						const space = spaces.find((k) => k.id === c.spaceId);
 						return (
 							<button
 								key={c.id}
@@ -103,10 +103,10 @@ function Results({ onClose }: { onClose: () => void }) {
 								onClick={() => openLesson(c.id)}
 								className={cn("lh-press flex items-center gap-4 border-b border-dotted border-edge px-2 py-3 text-left last:border-b-0 hover:bg-accent", i === walked && "bg-accent")}
 							>
-								<span aria-hidden className="w-2 shrink-0 self-stretch bg-ink-3" style={cls && { background: classColorVar(cls.color) }} />
+								<span aria-hidden className="w-2 shrink-0 self-stretch bg-ink-3" style={space && { background: spaceColorVar(space.color) }} />
 								<span className="flex min-w-0 flex-1 flex-col gap-0.5">
 									<span className="truncate text-[17px] text-ink">{c.title}</span>
-									<span className="truncate text-sm text-ink-2">{className(classes, c.classId)}</span>
+									<span className="truncate text-sm text-ink-2">{spaceName(spaces, c.spaceId)}</span>
 								</span>
 								<span className="font-count shrink-0 text-sm text-ink-2">{lessonAge(c.updatedAt)}</span>
 								<PixelIcon name="chevron" className="text-ink" />

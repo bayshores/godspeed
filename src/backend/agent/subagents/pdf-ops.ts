@@ -33,7 +33,7 @@ interface PdfPageInfo {
 interface PdfInfo {
 	path: string;
 	page_count: number;
-	/** Mean chars/page — the size class the strategy branches on. */
+	/** Mean chars/page — the size space the strategy branches on. */
 	mean_text_length: number;
 	pages: PdfPageInfo[];
 }

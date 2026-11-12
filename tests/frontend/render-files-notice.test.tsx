@@ -1,5 +1,5 @@
 /**
- * The folder corner notices: one entry per class and change (new or
+ * The folder corner notices: one entry per space and change (new or
  * removed files) that later scans join, its title and names, See files /
  * See changes and close. Mounted over linkedom.
  */
@@ -28,17 +28,17 @@ const { changeNames, changeTitle, mergeChange } = await import("../../src/fronte
 type Kind = "study" | "info";
 const file = (id: string, name: string, kind: Kind = "study") => ({ id, name, kind });
 
-const added = (classId: string, files: ReturnType<typeof file>[]) => ({ classId, change: "added" as const, files });
-const removed = (classId: string, files: { id: string; name: string }[]) => ({ classId, change: "removed" as const, files });
+const added = (spaceId: string, files: ReturnType<typeof file>[]) => ({ spaceId, change: "added" as const, files });
+const removed = (spaceId: string, files: { id: string; name: string }[]) => ({ spaceId, change: "removed" as const, files });
 
 describe("folder notice model", () => {
-	it("merges scans into one entry per class and change, a file counted once", () => {
+	it("merges scans into one entry per space and change, a file counted once", () => {
 		let list = mergeChange([], added("a", [file("1", "Day1.pdf")]));
 		list = mergeChange(list, added("b", [file("9", "HW1.pdf", "info")]));
 		list = mergeChange(list, removed("a", [{ id: "7", name: "Old.pdf" }]));
 		list = mergeChange(list, added("a", [file("1", "Day1.pdf"), file("2", "Day2.pdf")]));
 		assert.deepEqual(
-			list.map((e) => [e.classId, e.change, e.files.map((f) => f.id)]),
+			list.map((e) => [e.spaceId, e.change, e.files.map((f) => f.id)]),
 			[["a", "added", ["1", "2"]], ["b", "added", ["9"]], ["a", "removed", ["7"]]],
 		);
 	});
@@ -53,7 +53,7 @@ describe("folder notice model", () => {
 		const info = added("a", [file("3", "HW5.pdf", "info")]);
 		assert.equal(changeTitle(study, "CSE 21", true), "3 new files in CSE 21");
 		assert.equal(changeTitle(study, "CSE 21", false), "3 new files in CSE 21, read when your agent connects");
-		assert.equal(changeTitle(info, "CSE 21", false), "1 new file in CSE 21", "course info needs no agent");
+		assert.equal(changeTitle(info, "CSE 21", false), "1 new file in CSE 21", "space info needs no agent");
 		assert.equal(changeNames(study.files), "Day1.pdf and 2 more");
 		assert.equal(changeNames(study.files.slice(0, 2)), "Day1.pdf and Day2.pdf");
 		assert.equal(changeNames(info.files), "HW5.pdf");
@@ -67,7 +67,7 @@ afterEach(async () => {
 });
 
 describe("folder notices", () => {
-	it("shows one card per known class and change; See and close report the entry", async () => {
+	it("shows one card per known space and change; See and close report the entry", async () => {
 		const seen: string[] = [];
 		const closed: string[] = [];
 		const host = document.createElement("div");
@@ -83,13 +83,13 @@ describe("folder notices", () => {
 					]}
 					agentConnected={false}
 					nameOf={(id) => (id === "a" ? "CSE 21" : null)}
-					onSee={(e) => seen.push(`${e.classId}:${e.change}`)}
-					onDismiss={(e) => closed.push(`${e.classId}:${e.change}`)}
+					onSee={(e) => seen.push(`${e.spaceId}:${e.change}`)}
+					onDismiss={(e) => closed.push(`${e.spaceId}:${e.change}`)}
 				/>,
 			),
 		);
 		const cards = document.querySelectorAll('[data-testid="files-notice-added"]');
-		assert.equal(cards.length, 1, "a deleted class's entry is hidden");
+		assert.equal(cards.length, 1, "a deleted space's entry is hidden");
 		const gone = document.querySelector('[data-testid="files-notice-removed"]');
 		assert.match(gone?.textContent ?? "", /1 file removed from CSE 21/);
 		assert.match(gone?.textContent ?? "", /Week4\.pdf/);

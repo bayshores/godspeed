@@ -1,12 +1,12 @@
 import { memo } from "react";
-import { DEFAULT_TEACHER_NAME, type ClassNote } from "@/shared/core";
+import { DEFAULT_TEACHER_NAME, type SpaceNote } from "@/shared/core";
 import { useHalley } from "@/frontend/components/halley/halley-provider";
 import { Pane } from "@/frontend/components/ui/pane";
 import { noteWhen } from "./overview-model";
 
-/** THE TEACHER'S NOTE (Progress): what the teacher wrote about the class
+/** THE TEACHER'S NOTE (Progress): what the teacher wrote about the space
  *  after a lesson, and when. */
-export const TeacherNote = memo(function TeacherNote({ note, nowMs }: { note: ClassNote; nowMs: number | null }) {
+export const TeacherNote = memo(function TeacherNote({ note, nowMs }: { note: SpaceNote; nowMs: number | null }) {
 	const teacherName = useHalley()?.name ?? DEFAULT_TEACHER_NAME;
 	const when = nowMs !== null ? noteWhen(note.at, nowMs) : "";
 	return (

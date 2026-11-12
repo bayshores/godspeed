@@ -2222,28 +2222,28 @@ describe("notes import completion and retry reliability", () => {
 		await assert.rejects(createExtractionPipeline({ chatStore, graphStore: ledgers }).importNotes({ ...input, text: "" }), NoEngineError);
 	});
 
-	it("a class file the read finds to be course logistics extracts nothing and stops after the first stretch", async () => {
+	it("a space file the read finds to be logistics extracts nothing and stops after the first stretch", async () => {
 		const ledgers = memoryLedgers();
 		const prompts: string[] = [];
-		const engine = (courseInfo: boolean) =>
+		const engine = (spaceInfo: boolean) =>
 			fauxEngine([
 				(context) => {
 					prompts.push(JSON.stringify(context));
-					return fauxAssistantMessage([fauxToolCall("submit_findings", { ...NOTES_FINDINGS, courseInfo } as unknown as ToolCall["arguments"])], { stopReason: "toolUse" });
+					return fauxAssistantMessage([fauxToolCall("submit_findings", { ...NOTES_FINDINGS, spaceInfo } as unknown as ToolCall["arguments"])], { stopReason: "toolUse" });
 				},
 			]);
-		const make = (courseInfo: boolean) => createExtractionPipeline({ chatStore, graphStore: ledgers, getChunkTokens: () => 1, engineFor: () => engine(courseInfo) });
+		const make = (spaceInfo: boolean) => createExtractionPipeline({ chatStore, graphStore: ledgers, getChunkTokens: () => 1, engineFor: () => engine(spaceInfo) });
 		const text = "first chunk\nsecond chunk\nthird chunk";
-		assert.deepEqual(await make(true).importNotes({ ...input, text, mayBeCourseInfo: true }), { nodes: 0, chains: 0, courseInfo: true });
+		assert.deepEqual(await make(true).importNotes({ ...input, text, mayBeSpaceInfo: true }), { nodes: 0, chains: 0, spaceInfo: true });
 		assert.equal(prompts.length, 1, "one read decides; later stretches never run");
-		assert.match(prompts[0]!, /submit courseInfo: true/);
+		assert.match(prompts[0]!, /submit spaceInfo: true/);
 		assert.equal(ledgers.readNodes().length, 0);
 
 		prompts.length = 0;
 		const stats = await make(true).importNotes({ ...input, filePath: "plain.md", text });
-		assert.equal(stats.courseInfo, undefined, "without the flag the verdict is ignored");
+		assert.equal(stats.spaceInfo, undefined, "without the flag the verdict is ignored");
 		assert.equal(prompts.length, 3);
-		assert.ok(prompts.every((p) => !p.includes("courseInfo")));
+		assert.ok(prompts.every((p) => !p.includes("spaceInfo")));
 	});
 
 	it("isolates an ordinary failed chunk, reports partial, and keeps earlier/later merges and usage", async () => {

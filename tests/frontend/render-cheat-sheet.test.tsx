@@ -5,7 +5,7 @@
  * working and failed lines; Send with the part pointed at,
  * a refused send kept, Stop, Try again, removing a rule, the kept draft),
  * the canvas (each version's pages as labeled artboards, the narrow layout,
- * the toolbar with Point at the sheet), the class's cards, the lesson top
+ * the toolbar with Point at the sheet), the space's cards, the lesson top
  * bar's Cheat sheet button, and the sheet beside a session (which sheet,
  * the picker, No cheat sheet yet with Make one).
  */
@@ -18,7 +18,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { createRoot, type Root } from "react-dom/client";
 import { parseHTML } from "linkedom";
 import { mathBoxView, stubCodeMirrorDom } from "../math-box-dom.ts";
-import { newCheatSheet, type CheatSheetView, type ClassSheetsView, type SheetCard, type SheetVersion } from "../../src/shared/core/index.ts";
+import { newCheatSheet, type CheatSheetView, type SpaceSheetsView, type SheetCard, type SheetVersion } from "../../src/shared/core/index.ts";
 
 const dom = parseHTML("<html><body></body></html>");
 stubCodeMirrorDom(dom);
@@ -45,7 +45,7 @@ const { TeacherHead } = await import("../../src/frontend/components/halley/teach
 const { OlderSheet, emptyChatLine, sheetPaper, teacherDoing, versionLabel } = await import("../../src/frontend/components/cheat-sheet/studio-states.tsx");
 const { SheetChat, pointedLabel } = await import("../../src/frontend/components/cheat-sheet/sheet-chat.tsx");
 const { SheetCanvas } = await import("../../src/frontend/components/cheat-sheet/sheet-canvas.tsx");
-const { SheetCardView } = await import("../../src/frontend/components/cheat-sheet/class-sheets.tsx");
+const { SheetCardView } = await import("../../src/frontend/components/cheat-sheet/space-sheets.tsx");
 const { SheetDock } = await import("../../src/frontend/components/cheat-sheet/sheet-dock.tsx");
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
 const noEvents = () => ({ onEvent() {}, onOpen() {}, close() {} });
@@ -76,7 +76,7 @@ const versions: SheetVersion[] = [
 ];
 
 const view = (over: Partial<CheatSheetView> = {}): CheatSheetView => ({
-	className: "CSE 21",
+	spaceName: "CSE 21",
 	deadlineName: "Midterm",
 	date: "2026-11-04",
 	sheet: newCheatSheet("ddl_1", "t"),
@@ -92,7 +92,7 @@ describe("the studio's status", () => {
 		assert.equal(teacherDoing(view({ running: { messageId: "m1" }, sheet: { ...newCheatSheet("ddl_1", "t"), versions } }), false), "is on your message");
 		assert.equal(teacherDoing(view({ running: { messageId: "m1" } }), true), "No agent connected");
 		const head = renderToStaticMarkup(<TeacherHead name="marco" color={1} doing="is on your message" />);
-		assert.match(head, /var\(--lh-class-1\).*marco.*data-testid="teacher-head-doing"[^>]*>is on your message/);
+		assert.match(head, /var\(--lh-space-1\).*marco.*data-testid="teacher-head-doing"[^>]*>is on your message/);
 		assert.doesNotMatch(renderToStaticMarkup(<TeacherHead name="marco" color={undefined} doing={null} />), /teacher-head-doing/);
 	});
 
@@ -108,7 +108,7 @@ describe("the studio's status", () => {
 	it("labels each version by what made it, and an empty chat by whether there is a sheet", () => {
 		assert.match(versionLabel(versions[1]!, true), /^Current, double sided, and a flowchart$/);
 		assert.match(versionLabel({ ...versions[1]!, fromFolder: true }, false), /^Nov 3, .*, From the working folder$/);
-		assert.match(emptyChatLine("Claude Code", false), /^Say what you want on it.*Claude Code reads your class's rules/);
+		assert.match(emptyChatLine("Claude Code", false), /^Say what you want on it.*Claude Code reads the rules in your space info files/);
 		assert.match(emptyChatLine("Claude Code", true), /point at a part that confuses you/);
 	});
 });
@@ -129,7 +129,7 @@ const chatView = view({
 describe("the sheet's chat", () => {
 	const render = (v: CheatSheetView, over: Partial<React.ComponentProps<typeof SheetChat>> = {}) =>
 		renderToStaticMarkup(
-			inEvents(<SheetChat view={v} classId="cls_1" deadlineId="ddl_1" act={async () => null} agentName="Claude Code" agentGone={false} pointed={null} onClearPointed={() => {}} empty="Say what you want on it." {...over} />),
+			inEvents(<SheetChat view={v} spaceId="cls_1" deadlineId="ddl_1" act={async () => null} agentName="Claude Code" agentGone={false} pointed={null} onClearPointed={() => {}} empty="Say what you want on it." {...over} />),
 		);
 
 	it("shows the sheet's rules, the learner's messages with what they pointed at and their files, and the agent's answers", () => {
@@ -137,7 +137,7 @@ describe("the sheet's chat", () => {
 		assert.match(html, /This sheet&#x27;s rules \(1\).*American spelling.*Saved by Claude Code.*aria-label="Remove rule: American spelling"/);
 		assert.match(html, /data-testid="sheet-you"[^>]*>this card is confusing/);
 		assert.match(html, /data-testid="sheet-pointed"[^>]*>.*Pointed at the back of version 2/);
-		assert.match(html, /data-testid="sheet-picture" src="\/api\/classes\/cls_1\/deadlines\/ddl_1\/cheat-sheet\/files\/abc-Version%202%2C%20Back\.png"/);
+		assert.match(html, /data-testid="sheet-picture" src="\/api\/spaces\/cls_1\/deadlines\/ddl_1\/cheat-sheet\/files\/abc-Version%202%2C%20Back\.png"/);
 		assert.match(html, /data-testid="sheet-file".*notes\.pdf/);
 		assert.match(html, /data-testid="sheet-agent".*<strong[^>]*>card 8<\/strong>/);
 		assert.match(html, /data-testid="sheet-made"[^>]*>.*Made version 2, the sheet now.*Show/);
@@ -176,7 +176,7 @@ describe("the sheet's chat", () => {
 			return body.action === "ask" ? answer : null;
 		};
 		const el = mount(
-			<SheetChat view={chatView} classId="cls_1" deadlineId="ddl_1" act={act_} agentName="Claude Code" agentGone={false} pointed={pointed} onClearPointed={() => cleared++} onShowVersion={(n) => shown.push(n)} empty="" />,
+			<SheetChat view={chatView} spaceId="cls_1" deadlineId="ddl_1" act={act_} agentName="Claude Code" agentGone={false} pointed={pointed} onClearPointed={() => cleared++} onShowVersion={(n) => shown.push(n)} empty="" />,
 		);
 		await settle();
 		const box = await mathBoxView(el);
@@ -202,7 +202,7 @@ describe("the sheet's chat", () => {
 	it("Stop and Try again post their actions", async () => {
 		const posted: Record<string, unknown>[] = [];
 		const act_ = async (body: Record<string, unknown>) => (posted.push(body), null);
-		const props = { classId: "cls_1", deadlineId: "ddl_2", act: act_, agentName: "Claude Code", agentGone: false, pointed: null, onClearPointed: () => {}, empty: "" };
+		const props = { spaceId: "cls_1", deadlineId: "ddl_2", act: act_, agentName: "Claude Code", agentGone: false, pointed: null, onClearPointed: () => {}, empty: "" };
 		const el = mount(<SheetChat view={{ ...chatView, running: { messageId: "m3" } }} {...props} />);
 		await click(el.querySelector("[data-testid='sheet-stop']"));
 		act(() => root!.render(inEvents(<SheetChat view={{ ...chatView, error: { messageId: "m3", text: "x" } }} {...props} />)));
@@ -239,14 +239,14 @@ describe("the canvas", () => {
 	});
 });
 
-describe("a class's cheat sheet cards", () => {
+describe("a space's cheat sheet cards", () => {
 	const card = (over: Partial<SheetCard> = {}): SheetCard => ({ deadlineId: "ddl_1", name: "Midterm", kind: "exam", date: "2026-11-04", time: "09:00", past: false, status: "none", version: null, ...over });
 	const render = (c: SheetCard, show: { label: string; run: () => void } | null = null) =>
-		renderToStaticMarkup(<SheetCardView card={c} classId="cls_1" agentName="Claude Code" onRemake={() => {}} show={show} />);
+		renderToStaticMarkup(<SheetCardView card={c} spaceId="cls_1" agentName="Claude Code" onRemake={() => {}} show={show} />);
 
 	it("a made sheet: its first page's preview from the real PDF, its paper and when it was made, opening the studio", () => {
 		const html = render(card({ status: "made", version: versions[1]! }));
-		assert.match(html, /href="\/class\/deadline\/ddl_1\/cheat-sheet"/);
+		assert.match(html, /href="\/space\/deadline\/ddl_1\/cheat-sheet"/);
 		assert.match(html, /data-testid="cheat-sheet-thumb"[^>]*style="width:44px;height:62px"/);
 		assert.match(html, /Midterm<\/a><\/h3>.*Exam, Wed Nov 4 9:00 AM/);
 		assert.match(html, /A4, front and back, made Nov 3/);
@@ -276,14 +276,14 @@ describe("the cheat sheet beside a session", () => {
 		const asked: string[] = [];
 		(globalThis as Record<string, unknown>).fetch = async (url: string) => {
 			asked.push(url);
-			if (url.endsWith("/cheat-sheets")) return Response.json({ className: "CSE 21", cards } satisfies ClassSheetsView);
+			if (url.endsWith("/cheat-sheets")) return Response.json({ spaceName: "CSE 21", cards } satisfies SpaceSheetsView);
 			const id = /deadlines\/([^/]+)\/cheat-sheet$/.exec(url)?.[1];
 			return id && views[id] ? Response.json(views[id]) : new Response("{}", { status: 404 });
 		};
 		return asked;
 	}
 	const dock = (over: Partial<React.ComponentProps<typeof SheetDock>> = {}) => (
-		<SheetDock classId="cls_1" sessionDeadlineId="ddl_mid" picked={undefined} onPick={() => {}} onClose={() => {}} {...over} />
+		<SheetDock spaceId="cls_1" sessionDeadlineId="ddl_mid" picked={undefined} onPick={() => {}} onClose={() => {}} {...over} />
 	);
 
 	it("shows the session's deadline's sheet without a chat, a picker when there are several, and the studio links", async () => {
@@ -297,8 +297,8 @@ describe("the cheat sheet beside a session", () => {
 		assert.ok(el.querySelector("[data-testid='cheat-sheet-canvas']"));
 		assert.equal(el.querySelector("[data-testid='sheet-chat']"), null);
 		assert.match(el.querySelector("[data-testid='sheet-dock-studio']")!.textContent!, /Open full size/);
-		assert.match(el.querySelector("[data-testid='sheet-dock-studio']")!.getAttribute("href")!, /\/class\/deadline\/ddl_mid\/cheat-sheet$/);
-		assert.match(el.querySelector("[data-testid='sheet-dock-point']")!.getAttribute("href")!, /\/class\/deadline\/ddl_mid\/cheat-sheet$/);
+		assert.match(el.querySelector("[data-testid='sheet-dock-studio']")!.getAttribute("href")!, /\/space\/deadline\/ddl_mid\/cheat-sheet$/);
+		assert.match(el.querySelector("[data-testid='sheet-dock-point']")!.getAttribute("href")!, /\/space\/deadline\/ddl_mid\/cheat-sheet$/);
 		assert.match(el.querySelector("[data-testid='sheet-dock-close']")!.textContent!, /Close/);
 		assert.ok(el.querySelector("[data-testid='cheat-sheet-zoom']"), "the zoom foot");
 		await act(async () => (Object.entries(pick).find(([k]) => k.startsWith("__reactProps"))![1] as unknown as { onChange: (e: unknown) => void }).onChange({ target: { value: "ddl_quiz" } }));
@@ -310,15 +310,15 @@ describe("the cheat sheet beside a session", () => {
 		const el = mount(dock());
 		await settle();
 		assert.match(el.querySelector("[data-testid='sheet-dock-none']")!.textContent!, /No cheat sheet yet\.Make one/);
-		assert.match(el.querySelector("[data-testid='sheet-dock-make']")!.getAttribute("href")!, /\/class\/deadline\/ddl_mid\/cheat-sheet$/);
+		assert.match(el.querySelector("[data-testid='sheet-dock-make']")!.getAttribute("href")!, /\/space\/deadline\/ddl_mid\/cheat-sheet$/);
 		assert.equal(el.querySelector("[data-testid='cheat-sheet-canvas']"), null);
 		assert.ok(asked.every((u) => !u.endsWith("/deadlines/ddl_mid/cheat-sheet")), "nothing to load until the studio");
 	});
 
-	it("tells a class without deadlines to add one", async () => {
+	it("tells a space without deadlines to add one", async () => {
 		serve([], {});
 		const el = mount(dock({ sessionDeadlineId: undefined }));
 		await settle();
-		assert.match(el.querySelector("[data-testid='sheet-dock-none']")!.textContent!, /Add a deadline to this class to make one\./);
+		assert.match(el.querySelector("[data-testid='sheet-dock-none']")!.textContent!, /Add a deadline to this space to make one\./);
 	});
 });

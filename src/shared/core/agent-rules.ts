@@ -1,15 +1,15 @@
 /**
  * Teaching rules an agent saved on its own: where each lives (a teaching
- * area's list, for every lesson, or one class's list) and when it was
+ * area's list, for every lesson, or one space's list) and when it was
  * saved. The rules themselves stay in those lists; this record only marks
  * which ones an agent wrote, so the window can say so. Editing a rule
  * changes its text, so it no longer matches and becomes the learner's.
  * Browser-safe.
  */
-import { isClassId } from "./contracts/class.ts";
+import { isSpaceId } from "./contracts/space.ts";
 import { TEACHING_AREAS, type AreaId } from "./teaching-areas.ts";
 
-export type RuleWhere = { area: AreaId } | { classId: string };
+export type RuleWhere = { area: AreaId } | { spaceId: string };
 
 export interface SavedRule {
 	where: RuleWhere;
@@ -23,14 +23,14 @@ const AREA_IDS = new Set<string>(TEACHING_AREAS.map((a) => a.id));
 /** A rule location from untrusted input, or null. */
 export function parseWhere(raw: unknown): RuleWhere | null {
 	if (!raw || typeof raw !== "object") return null;
-	const r = raw as { area?: unknown; classId?: unknown };
+	const r = raw as { area?: unknown; spaceId?: unknown };
 	if (typeof r.area === "string" && AREA_IDS.has(r.area)) return { area: r.area as AreaId };
-	if (isClassId(r.classId)) return { classId: r.classId };
+	if (isSpaceId(r.spaceId)) return { spaceId: r.spaceId };
 	return null;
 }
 
 export function sameWhere(a: RuleWhere, b: RuleWhere): boolean {
-	return "area" in a ? "area" in b && a.area === b.area : "classId" in b && a.classId === b.classId;
+	return "area" in a ? "area" in b && a.area === b.area : "spaceId" in b && a.spaceId === b.spaceId;
 }
 
 /** The saved-rules file's list, made safe to use. */
@@ -40,20 +40,22 @@ export function parseSavedRules(raw: unknown): SavedRule[] {
 	const out: SavedRule[] = [];
 	for (const entry of list) {
 		const e = entry as { where?: unknown; text?: unknown; at?: unknown };
-		const where = parseWhere(e?.where);
+		// classId: the field's name before the rename.
+		const old = (e?.where as { classId?: unknown } | null)?.classId;
+		const where = parseWhere(e?.where) ?? parseWhere({ spaceId: old });
 		if (where && typeof e.text === "string" && e.text && typeof e.at === "string") out.push({ where, text: e.text, at: e.at });
 	}
 	return out;
 }
 
-/** Who the rule is for, after "Saved a rule for": "every lesson" or the class name. */
-export function ruleFor(where: RuleWhere, className?: string): string {
-	return "classId" in where ? (className ?? "this class") : "every lesson";
+/** Who the rule is for, after "Saved a rule for": "every lesson" or the space name. */
+export function ruleFor(where: RuleWhere, spaceName?: string): string {
+	return "spaceId" in where ? (spaceName ?? "this space") : "every lesson";
 }
 
 /** Where a rule lives, in words: "Every lesson, under Lesson flow" or "Lessons in CSE 21". */
-export function whereLabel(where: RuleWhere, className?: string): string {
-	if ("classId" in where) return `Lessons in ${className ?? "this class"}`;
+export function whereLabel(where: RuleWhere, spaceName?: string): string {
+	if ("spaceId" in where) return `Lessons in ${spaceName ?? "this space"}`;
 	return `Every lesson, under ${TEACHING_AREAS.find((a) => a.id === where.area)?.label ?? "Teaching"}`;
 }
 
@@ -68,7 +70,7 @@ export function savedTimes(saved: SavedRule[], where: RuleWhere): Record<string,
 export interface SaveRuleResult {
 	saved: true;
 	rule: string;
-	/** "every lesson" or the class name. */
+	/** "every lesson" or the space name. */
 	for: string;
 	where: RuleWhere;
 	note: string;

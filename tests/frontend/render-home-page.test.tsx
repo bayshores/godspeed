@@ -1,7 +1,7 @@
 /**
  * Today's rows: ticking a deadline done and undoing it (the shared read),
  * a row under Today (count block, words, Mark done, the one main button),
- * a row stamped Done, a row under Later, and a class's fact grid on
+ * a row stamped Done, a row under Later, and a space's fact grid on
  * Progress.
  */
 import React, { act } from "react";
@@ -29,7 +29,7 @@ Object.assign(globalThis, {
 });
 
 const { TodayRow, DoneRow, LaterRow } = await import("../../src/frontend/components/home-page/today-row.tsx");
-const { ClassFacts } = await import("../../src/frontend/components/overview/class-facts.tsx");
+const { SpaceFacts } = await import("../../src/frontend/components/overview/space-facts.tsx");
 const { OpenDeadlinesProvider, useOpenDeadlines } = await import("../../src/frontend/components/use-open-deadlines.tsx");
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
 const { NoticeStack } = await import("../../src/frontend/components/notice-stack.tsx");
@@ -38,13 +38,13 @@ const { NoticeStack } = await import("../../src/frontend/components/notice-stack
 const NOW = new Date(2026, 9, 28, 16, 12).getTime();
 
 function d(id: string, name: string, date: string, time?: string, extra: Partial<OpenDeadline> = {}): OpenDeadline {
-	return { id, kind: "homework", name, date, ...(time ? { time } : {}), fileIds: [], done: false, classId: "c21", className: "CSE 21", ...extra };
+	return { id, kind: "homework", name, date, ...(time ? { time } : {}), fileIds: [], done: false, spaceId: "c21", spaceName: "CSE 21", ...extra };
 }
 
 const OPEN = [
 	d("late", "HW 4", "2026-10-27", "23:59"),
 	d("quiz", "Reading quiz", "2026-10-28", "17:00", { kind: "quiz" }),
-	d("hw5", "HW 5", "2026-10-30", undefined, { classId: "c29", className: "CSE 29" }),
+	d("hw5", "HW 5", "2026-10-30", undefined, { spaceId: "c29", spaceName: "CSE 29" }),
 	d("mid", "Midterm 2", "2026-11-05", "19:00", { kind: "exam" }),
 	d("far", "Project", "2026-12-01", "12:00", { kind: "project" }),
 ];
@@ -139,8 +139,8 @@ describe("Ticking a deadline done", () => {
 		untick();
 		await settle();
 		assert.deepEqual(writes, [
-			{ url: "/api/classes/c21/deadlines/quiz", body: { done: true } },
-			{ url: "/api/classes/c21/deadlines/late", body: { done: false } },
+			{ url: "/api/spaces/c21/deadlines/quiz", body: { done: true } },
+			{ url: "/api/spaces/c21/deadlines/late", body: { done: false } },
 		]);
 		assert.equal(reads, 3);
 		assert.equal(notice(), null);
@@ -185,9 +185,9 @@ function todayRow(props: Partial<React.ComponentProps<typeof TodayRow>> = {}) {
 }
 
 describe("A row under Today", () => {
-	it("the count block in the class's color, days left", () => {
+	it("the count block in the space's color, days left", () => {
 		const html = todayRow();
-		assert.match(html, /background:var\(--lh-class-3\)/);
+		assert.match(html, /background:var\(--lh-space-3\)/);
 		assert.match(html, />2<\/span>.*>days</);
 		assert.match(todayRow({ deadline: OPEN[1]! }), />48<\/span>.*>min</);
 		assert.match(todayRow({ deadline: OPEN[0]! }), />late</);
@@ -195,7 +195,7 @@ describe("A row under Today", () => {
 
 	it("the title opens the deadline's page and the row is tagged for the teacher", () => {
 		const html = todayRow();
-		assert.match(tag(html, "today-open"), /href="\/class\/deadline\/hw5"/);
+		assert.match(tag(html, "today-open"), /href="\/space\/deadline\/hw5"/);
 		assert.ok(html.includes('data-halley-target="deadline:hw5"'));
 	});
 
@@ -233,7 +233,7 @@ describe("A row under Today", () => {
 });
 
 describe("A row stamped Done", () => {
-	it("the stamp, its name and class, and Undo", async () => {
+	it("the stamp, its name and space, and Undo", async () => {
 		const undone: string[] = [];
 		const el = await mount(<ul><DoneRow deadline={OPEN[2]!} onUndo={(x) => undone.push(x.id)} /></ul>);
 		assert.equal(el.querySelector('[data-testid="today-done-row-hw5"]')!.textContent, "DoneHW 5CSE 29Undo");
@@ -247,35 +247,35 @@ describe("A row under Later", () => {
 
 	it("the whole row opens the deadline's page", () => {
 		const row = section(html, "later-row-far", "</li>");
-		assert.match(row, /<a[^>]*href="\/class\/deadline\/far"/);
+		assert.match(row, /<a[^>]*href="\/space\/deadline\/far"/);
 		assert.ok(!row.includes("<button"));
 		assert.ok(html.includes('data-halley-target="deadline:far"'));
 	});
 
-	it("a pale count block, its name, the class, the day and how ready", () => {
-		assert.match(html, /color-mix\(in srgb, var\(--lh-class-2\) 57%/);
+	it("a pale count block, its name, the space, the day and how ready", () => {
+		assert.match(html, /color-mix\(in srgb, var\(--lh-space-2\) 57%/);
 		assert.match(html, />34<\/span>.*>days</);
 		assert.ok(html.includes("CSE 21, Tuesday Dec 1. 19% ready"));
 	});
 });
 
-// ─── A class's facts ────────────────────────────────────────────────────────
+// ─── A space's facts ────────────────────────────────────────────────────────
 
 function fact(inLessons: boolean, ...outcomes: ("right" | "wrong")[]): FactProgress {
 	return { id: "f", name: "f", statement: "", topicId: "t", born: null, inLessons, answers: outcomes.map((outcome) => ({ outcome })) as never };
 }
 
-describe("A class's facts", () => {
+describe("A space's facts", () => {
 	it("the facts studied, one square per fact, and what the colors mean", () => {
-		const html = renderToStaticMarkup(<ClassFacts progress={{ facts: [fact(true, "right"), fact(true), fact(false)], files: [{} as never] }} />);
+		const html = renderToStaticMarkup(<SpaceFacts progress={{ facts: [fact(true, "right"), fact(true), fact(false)], files: [{} as never] }} />);
 		assert.ok(html.includes("2 of 3 studied"));
 		assert.match(html, /aria-label="2 of 3 facts studied"/);
 		assert.equal(html.split('size-[13px]"').length - 1, 3);
 		assert.ok(html.includes('data-testid="fact-key"'));
 	});
 
-	it("no study files: Add files, to the class's Files tab", () => {
-		const html = renderToStaticMarkup(<ClassFacts progress={{ facts: [], files: [] }} />);
-		assert.match(tag(html, "class-facts-add-files"), /href="\/class\/files"/);
+	it("no study files: Add files, to the space's Files tab", () => {
+		const html = renderToStaticMarkup(<SpaceFacts progress={{ facts: [], files: [] }} />);
+		assert.match(tag(html, "space-facts-add-files"), /href="\/space\/files"/);
 	});
 });

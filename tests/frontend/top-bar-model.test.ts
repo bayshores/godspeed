@@ -19,16 +19,16 @@ describe("the lit tab", () => {
 	it("Today on the first page", () => {
 		assert.equal(selectedTab("/", "c21", tabs), "today");
 	});
-	it("the window's class on every class page and in a lesson", () => {
-		assert.equal(selectedTab("/class", "c21", tabs), "c21");
+	it("the window's space on every space page and in a lesson", () => {
+		assert.equal(selectedTab("/space", "c21", tabs), "c21");
 		assert.equal(selectedTab("/graph", "c29", tabs), "c29");
 		assert.equal(selectedTab("/chat/abc", "c29", tabs), "c29");
 	});
 	it("Menu for the pages only Menu reaches", () => {
 		assert.equal(selectedTab("/settings", "c21", tabs), "menu");
 		assert.equal(selectedTab("/archived", "c21", tabs), "menu");
-		assert.equal(selectedTab("/class/lessons", null, tabs), "menu", "lessons with no class");
-		assert.equal(selectedTab("/class", "old", tabs), "menu", "an archived class has no tab");
+		assert.equal(selectedTab("/space/lessons", null, tabs), "menu", "lessons with no space");
+		assert.equal(selectedTab("/space", "old", tabs), "menu", "an archived space has no tab");
 	});
 });
 
@@ -59,7 +59,7 @@ describe("the teacher chip", () => {
 });
 
 describe("the Follow buttons", () => {
-	const offer: AgentAction = { id: "a1", at: "2026-11-01T10:00:00.000Z", agent: "Claude Code", label: "Reading 06_Counting.pdf", classId: "c21", target: null, page: "/class/files" };
+	const offer: AgentAction = { id: "a1", at: "2026-11-01T10:00:00.000Z", agent: "Claude Code", label: "Reading 06_Counting.pdf", spaceId: "c21", target: null, page: "/space/files" };
 	it("Follow shows only while the teacher works", () => {
 		assert.deepEqual(followButtons({ following: false, working: false, offer: null }), { go: null, follow: null });
 		assert.deepEqual(followButtons({ following: false, working: true, offer: null }), { go: null, follow: "Follow" });

@@ -73,7 +73,7 @@ describe("words", () => {
 		assert.equal(groupName({ label: null, kind: null }), null);
 	});
 
-	it("the count line names the class when there is one", () => {
+	it("the count line names the space when there is one", () => {
 		assert.equal(countLine(221, "CSE 21"), "221 facts in CSE 21");
 		assert.equal(countLine(1, null), "1 fact");
 	});

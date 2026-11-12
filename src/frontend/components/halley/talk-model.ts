@@ -3,17 +3,17 @@
  * godspeed's own requests, the teacher's replies, and one row per change
  * a tool made (from its result's details).
  */
-import { isAttachmentPart, type AgentAction, type AppRequestDeadline, type ClassChange, type LhViewMessage, type LhViewPart } from "@/shared/core";
+import { isAttachmentPart, type AgentAction, type AppRequestDeadline, type SpaceChange, type LhViewMessage, type LhViewPart } from "@/shared/core";
 
 type TalkRow =
 	| { kind: "you"; id: string; text: string; files: LhViewPart[] }
 	| { kind: "teacher"; id: string; text: string }
 	| { kind: "app"; id: string; deadlines: AppRequestDeadline[] }
-	| { kind: "change"; id: string; change: ClassChange };
+	| { kind: "change"; id: string; change: SpaceChange };
 
-function changesOf(output: unknown): ClassChange[] {
+function changesOf(output: unknown): SpaceChange[] {
 	const changes = (output as { changes?: unknown } | null)?.changes;
-	return Array.isArray(changes) ? changes.filter((c): c is ClassChange => typeof c?.label === "string" && typeof c?.page === "string") : [];
+	return Array.isArray(changes) ? changes.filter((c): c is SpaceChange => typeof c?.label === "string" && typeof c?.page === "string") : [];
 }
 
 export function talkRows(messages: readonly LhViewMessage[]): TalkRow[] {
@@ -51,14 +51,14 @@ export function startsTurn(rows: readonly TalkRow[], index: number): boolean {
 
 /** "Asked Marco to work out what's on Midterm (CSE 21) from your files." */
 export function appRequestText(teacher: string, deadlines: readonly AppRequestDeadline[]): string {
-	const names = deadlines.map((d) => `${d.name} (${d.className})`);
+	const names = deadlines.map((d) => `${d.name} (${d.spaceName})`);
 	const list = names.length <= 2 ? names.join(" and ") : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
 	return `Asked ${teacher} to work out what's on ${list} from your files.`;
 }
 
 /** The recorded action behind a change row (newest first), so a click can
  *  go there like the Activity rows do. Null once it left the recent list. */
-export function actionFor(change: ClassChange, recent: readonly AgentAction[]): AgentAction | null {
+export function actionFor(change: SpaceChange, recent: readonly AgentAction[]): AgentAction | null {
 	return recent.find((a) => a.label === change.label && a.page === change.page) ?? null;
 }
 

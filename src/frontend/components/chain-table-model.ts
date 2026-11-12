@@ -137,6 +137,6 @@ export function groupName(group: Pick<ClusterGroup, "label" | "kind">): string |
 export const factCount = (n: number) => `${n} ${n === 1 ? "fact" : "facts"}`;
 
 /** "221 facts in CSE 21" under the title. */
-export function countLine(n: number, className: string | null): string {
-	return className ? `${factCount(n)} in ${className}` : factCount(n);
+export function countLine(n: number, spaceName: string | null): string {
+	return spaceName ? `${factCount(n)} in ${spaceName}` : factCount(n);
 }

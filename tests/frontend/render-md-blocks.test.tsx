@@ -82,7 +82,7 @@ describe("md-blocks — display math", () => {
 		const md = "```js\nconst x = 1;\n```\n\n| A | B |\n| --- | --- |\n| 1 | 2 |";
 		const html = render(md);
 		// No UNNAMED group-hover on the corners: that selector would fire from
-		// the Message container's own `group` class and light every block.
+		// the Message container's own `group` space and light every block.
 		assert.ok(!html.match(/\s group-hover:opacity-100/), "no unnamed group-hover on any corner");
 		assert.ok(html.includes('data-testid="md-table"'), "table present for the contrast");
 	});

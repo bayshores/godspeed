@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { classQuery, useClasses } from "@/frontend/components/class-context";
+import { spaceQuery, useSpaces } from "@/frontend/components/space-context";
 import { DialogSheet, useLastWhileClosing } from "@/frontend/components/ui/dialog-sheet";
 
 type Node = { id: string; name: string };
@@ -21,7 +21,7 @@ export function DeleteNodeDialog({
 	/** Gets every id that was deleted, even when a later one failed. */
 	onDeleted: (nodeIds: string[], graphRevision: number) => void;
 }) {
-	const { active: activeClassId } = useClasses();
+	const { active: activeSpaceId } = useSpaces();
 	const { mounted, state, shown } = useLastWhileClosing(nodes && nodes.length > 0 ? nodes : null);
 	const [busy, setBusy] = useState(false);
 	const [failure, setFailure] = useState<string | null>(null);
@@ -44,7 +44,7 @@ export function DeleteNodeDialog({
 		let revision = 0;
 		try {
 			for (const n of nodes) {
-				const res = await fetch(`/api/graph/nodes/${encodeURIComponent(n.id)}${classQuery(activeClassId)}`, { method: "DELETE" });
+				const res = await fetch(`/api/graph/nodes/${encodeURIComponent(n.id)}${spaceQuery(activeSpaceId)}`, { method: "DELETE" });
 				const body = (await res.json()) as { error?: string; graphRevision?: number };
 				if (!res.ok) {
 					setFailure(body.error ?? `Delete failed (${res.status})`);

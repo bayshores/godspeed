@@ -9,7 +9,7 @@ const GREY = "flex shrink-0 items-center justify-center bg-[color-mix(in_srgb,va
 const BOX = { list: "w-24 self-stretch", head: "size-[120px]" };
 
 /**
- * A deadline's block: the time left on the class's color, the Done stamp,
+ * A deadline's block: the time left on the space's color, the Done stamp,
  * or "was due" once it passed.
  */
 export function DeadlineBlock({
@@ -20,7 +20,7 @@ export function DeadlineBlock({
 	pale,
 }: {
 	deadline: { date: string; time?: string; done: boolean };
-	/** The class's color. */
+	/** The space's color. */
 	color: string;
 	nowMs: number;
 	/** A row of the Deadlines list, or the head of the deadline's page. */

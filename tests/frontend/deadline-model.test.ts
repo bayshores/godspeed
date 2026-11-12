@@ -1,6 +1,6 @@
 /**
- * The deadline page's "What's on it": covered files as class days by week,
- * the class days before it that it doesn't cover (unless left out), the
+ * The deadline page's "What's on it": covered files as days by week,
+ * the days before it that it doesn't cover (unless left out), the
  * left-out ones, and the summary line.
  */
 import assert from "node:assert/strict";
@@ -35,7 +35,7 @@ const deadline = (over: Partial<{ fileIds: string[]; leftOutIds: string[]; kind:
 });
 
 describe("what a deadline covers", () => {
-	it("groups covered files into class days by week, with each day's title, parts and worst state", () => {
+	it("groups covered files into days by week, with each day's title, parts and worst state", () => {
 		const d = deadline();
 		const m = deadlineMaterial(FILES, d, [d], [{ fileId: "s1", facts: 12 }, { fileId: "t1", facts: 5 }, { fileId: "zzz", facts: 99 }]);
 		assert.deepEqual(m.weeks.map((w) => [w.number, w.days.map((x) => x.date)]), [[1, ["2026-09-25", "2026-09-28", "2026-09-30"]], [2, ["2026-10-05"]]]);
@@ -49,21 +49,21 @@ describe("what a deadline covers", () => {
 		assert.deepEqual(m.weeks[0]!.days[2]!.parts, ["evening discussion", "lecture slides"]);
 		assert.equal(m.weeks[1]!.days[0]!.state, "failed");
 		assert.deepEqual(m.undated.map((x) => x.title), ["Midterm practice exam.pdf"]);
-		assert.deepEqual([m.classDays, m.files, m.reading, m.failed, m.facts], [4, 8, 1, 1, 17]);
-		assert.equal(materialSummary(m), "4 class days, 8 files, 1 still being read, 1 couldn't be read");
+		assert.deepEqual([m.dayCount, m.files, m.reading, m.failed, m.facts], [4, 8, 1, 1, 17]);
+		assert.equal(materialSummary(m), "4 days, 8 files, 1 still being read, 1 couldn't be read");
 	});
 
 	it("flags study days before an exam that it doesn't cover, and stops once they're left out", () => {
 		const d = deadline();
 		const m = deadlineMaterial(FILES, d, [d], []);
-		assert.deepEqual(m.notIncluded.map((x) => x.title), ["Sorting", "Searching"], "not course info, not after the exam");
+		assert.deepEqual(m.notIncluded.map((x) => x.title), ["Sorting", "Searching"], "not space info, not after the exam");
 		const out = deadline({ leftOutIds: ["s5"] });
 		const later = deadlineMaterial(FILES, out, [out], []);
 		assert.deepEqual(later.notIncluded.map((x) => x.title), ["Searching"]);
 		assert.deepEqual(later.leftOut.map((x) => x.title), ["Sorting"]);
 	});
 
-	it("an exam's check starts after the class's previous exam", () => {
+	it("an exam's check starts after the space's previous exam", () => {
 		const first = { id: "m1", kind: "exam" as const, date: "2026-10-10", fileIds: [] };
 		const d = deadline({ date: "2026-11-20", fileIds: ["s5"] });
 		const m = deadlineMaterial(FILES, d, [first, d], []);

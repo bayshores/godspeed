@@ -2,12 +2,12 @@ import { useCallback, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { kbdEventForAction } from "@/shared/core";
-import { ClassDialog } from "@/frontend/components/class-dialog";
-import { useClasses } from "@/frontend/components/class-context";
+import { SpaceDialog } from "@/frontend/components/space-dialog";
+import { useSpaces } from "@/frontend/components/space-context";
 import { MenuShell } from "@/frontend/components/menu-shell";
 import { useMenuDismiss } from "@/frontend/components/use-menu-dismiss";
 import { cn } from "@/frontend/lib/utils";
-import { BAR_TAB, barTabState } from "./class-tabs";
+import { BAR_TAB, barTabState } from "./space-tabs";
 
 const ITEM = "lh-press flex items-center px-3 py-2 text-left text-[15px] text-ink hover:bg-accent";
 
@@ -16,11 +16,11 @@ const CREATE = { kind: "create" } as const;
 
 /**
  * Menu, at the top bar's right: the places and actions that belong to no
- * one class. `lit` while the page on screen is one of them.
+ * one space. `lit` while the page on screen is one of them.
  */
 export function AppMenu({ lit }: { lit: boolean }) {
 	const router = useRouter();
-	const { setActive } = useClasses();
+	const { setActive } = useSpaces();
 	const [open, setOpen] = useState(false);
 	const [creating, setCreating] = useState(false);
 	const anchorRef = useRef<HTMLButtonElement>(null);
@@ -55,37 +55,37 @@ export function AppMenu({ lit }: { lit: boolean }) {
 				<button
 					role="menuitem"
 					type="button"
-					data-testid="class-new"
+					data-testid="space-new"
 					onClick={() => {
 						close();
 						setCreating(true);
 					}}
 					className={ITEM}
 				>
-					Add a class
+					Add a space
 				</button>
 				<button
 					role="menuitem"
 					type="button"
-					data-testid="class-option-none"
+					data-testid="space-option-none"
 					onClick={() => {
 						close();
 						setActive(null);
-						router.push("/class/lessons");
+						router.push("/space/lessons");
 					}}
 					className={ITEM}
 				>
-					Lessons with no class
+					Lessons with no space
 				</button>
 				<Link role="menuitem" href="/archived" data-testid="menu-archived" onClick={close} className={ITEM}>
-					Archived classes
+					Archived spaces
 				</Link>
 				<div aria-hidden className="mx-3 my-1.5 border-t border-dotted border-edge" />
 				<Link role="menuitem" href="/settings" data-testid="settings-entry" onClick={close} className={ITEM}>
 					Settings
 				</Link>
 			</MenuShell>
-			<ClassDialog mode={creating ? CREATE : null} onClose={() => setCreating(false)} />
+			<SpaceDialog mode={creating ? CREATE : null} onClose={() => setCreating(false)} />
 		</>
 	);
 }

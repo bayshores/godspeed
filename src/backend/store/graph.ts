@@ -177,8 +177,8 @@ const isCoverageEntry = (v: unknown): v is CoverageEntry =>
 
 // ─── the port implementation ────────────────────────────────────────────────
 
-/** One graph family's store, rooted at `files` (the "No class" graph and
- *  every class graph share this adapter — only the folder differs). */
+/** One graph family's store, rooted at `files` (the "No space" graph and
+ *  every space graph share this adapter — only the folder differs). */
 export function createGraphStore(files: GraphFiles): GraphStore {
 	return {
 		appendNode(node: GraphNode): void {
@@ -279,7 +279,7 @@ export function createGraphStore(files: GraphFiles): GraphStore {
 	};
 }
 
-/** The "No class" graph (data/graph). */
+/** The "No space" graph (data/graph). */
 export const graphStore: GraphStore = createGraphStore(graphFilesIn(PATHS.graph));
 
 /** sources.json — { id: NotesSource }. Read-modify-write, NOT append-only:

@@ -2,7 +2,7 @@ import { Fragment, useCallback, useRef, useState } from "react";
 import { MenuShell } from "@/frontend/components/menu-shell";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { useMenuDismiss } from "@/frontend/components/use-menu-dismiss";
-import { CLASS_FILE_ACCEPT, kindNote, kindTitle } from "./files-model";
+import { SPACE_FILE_ACCEPT, kindNote, kindTitle } from "./files-model";
 
 const ITEM = "lh-press -mx-2 flex flex-col gap-px px-2 py-1 text-left hover:bg-tone";
 
@@ -25,9 +25,9 @@ export function AddFilesButton({ disabled, onAdd }: { disabled?: boolean; onAdd:
 				ref={inputRef}
 				type="file"
 				multiple
-				accept={CLASS_FILE_ACCEPT}
+				accept={SPACE_FILE_ACCEPT}
 				className="hidden"
-				data-testid="class-file-input"
+				data-testid="space-file-input"
 				onChange={(e) => {
 					const picked = Array.from(e.target.files ?? []);
 					e.target.value = "";
@@ -37,7 +37,7 @@ export function AddFilesButton({ disabled, onAdd }: { disabled?: boolean; onAdd:
 			<button
 				ref={anchorRef}
 				type="button"
-				data-testid="class-add-files"
+				data-testid="space-add-files"
 				aria-haspopup="menu"
 				aria-expanded={open}
 				disabled={disabled}
@@ -47,11 +47,11 @@ export function AddFilesButton({ disabled, onAdd }: { disabled?: boolean; onAdd:
 				<PixelIcon name="plus" className="h-3.5" />
 				Add files
 			</button>
-			<MenuShell open={open} anchorRef={anchorRef} testid="class-add-files-menu" preferredSide="down" menuClass="lh-popup flex w-[420px] flex-col gap-2.5 px-[18px] py-3.5">
+			<MenuShell open={open} anchorRef={anchorRef} testid="space-add-files-menu" preferredSide="down" menuClass="lh-popup flex w-[420px] flex-col gap-2.5 px-[18px] py-3.5">
 				{(["study", "info"] as const).map((kind, i) => (
 					<Fragment key={kind}>
 						{i > 0 && <span aria-hidden className="border-t-2 border-dotted border-edge" />}
-						<button role="menuitem" type="button" data-testid={`class-add-${kind}`} onClick={() => pick(kind)} className={ITEM}>
+						<button role="menuitem" type="button" data-testid={`space-add-${kind}`} onClick={() => pick(kind)} className={ITEM}>
 							<span className="text-lg text-ink">{kindTitle(kind)}</span>
 							<span className="text-base text-ink-2">{kindNote(kind)}</span>
 						</button>

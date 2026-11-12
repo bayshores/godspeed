@@ -26,20 +26,20 @@ import { createPortal } from "react-dom";
 import { ThinkingBlock } from "@/frontend/components/thinking-block";
 import { usePopoverDismiss } from "@/frontend/components/popover-dismiss";
 import { usePresence } from "@/frontend/components/presence";
-import { classQuery, useClasses } from "@/frontend/components/class-context";
+import { spaceQuery, useSpaces } from "@/frontend/components/space-context";
 
 /* TARGET NAMES: targets are normalized to opaque node ids at the record
  * seam (the mastery trace groups on them), so the drawer resolves names
- * at render time. One lazy cached fetch of the graph view per class
- * graph (the class the window shows); failures degrade to raw ids, so
+ * at render time. One lazy cached fetch of the graph view per space
+ * graph (the space the window shows); failures degrade to raw ids, so
  * observability never breaks the card, and are not cached, so the next
  * open tries again. */
 const nodeNameMapPromises = new Map<string, Promise<Record<string, string> | null>>();
-function nodeNameMap(classId: string | null): Promise<Record<string, string> | null> {
-	const key = classId ?? "none";
+function nodeNameMap(spaceId: string | null): Promise<Record<string, string> | null> {
+	const key = spaceId ?? "none";
 	const cached = nodeNameMapPromises.get(key);
 	if (cached) return cached;
-	const nodeNameMapPromise = fetch(`/api/graph${classQuery(classId)}`)
+	const nodeNameMapPromise = fetch(`/api/graph${spaceQuery(spaceId)}`)
 		.then((r) => {
 			if (!r.ok) throw new Error(String(r.status));
 			return r.json();
@@ -165,7 +165,7 @@ export function ConcludeCard({ part }: ArtifactPartProps) {
  * conclude card opens the graph-view node-card info box, always BELOW the
  * trigger; any scroll or click outside closes it (plus Esc). Shows every
  * field the agent filled in both the problem call (mode, targets, names
- * resolved lazily) and the conclude call (outcome, rung, miss class,
+ * resolved lazily) and the conclude call (outcome, rung, miss space,
  * retest). Statement and modelSolution stay out: they are the visible
  * card. Small register: label and value rows. */
 function MetadataPopover({
@@ -183,7 +183,7 @@ function MetadataPopover({
 	// box, so there is nothing to track.
 	const [anchor, setAnchor] = useState<{ top: number; left: number } | null>(null);
 	const [names, setNames] = useState<Record<string, string> | null>(null);
-	const { active: activeClassId } = useClasses();
+	const { active: activeSpaceId } = useSpaces();
 	const targets = Array.isArray(problemInput.target)
 		? problemInput.target.filter((t): t is string => typeof t === "string")
 		: [];
@@ -191,13 +191,13 @@ function MetadataPopover({
 	useEffect(() => {
 		if (!open || targets.length === 0 || names) return;
 		let alive = true;
-		void nodeNameMap(activeClassId).then((m) => {
+		void nodeNameMap(activeSpaceId).then((m) => {
 			if (alive && m) setNames(m);
 		});
 		return () => {
 			alive = false;
 		};
-	}, [open, targets.length, names, activeClassId]);
+	}, [open, targets.length, names, activeSpaceId]);
 
 	usePopoverDismiss(rootRef, open, () => setOpen(false));
 	// The box fades out before unmounting.
@@ -277,7 +277,7 @@ function MetadataPopover({
 						<dd className="font-count">{outcome || "–"}</dd>
 						<dt className="text-ink-2">Hint rung</dt>
 						<dd className="font-count">{rung || "none"}</dd>
-						<dt className="text-ink-2">Miss class</dt>
+						<dt className="text-ink-2">Miss space</dt>
 						<dd className="font-count">{miss || "none"}</dd>
 						<dt className="text-ink-2">Retest</dt>
 						<dd className="font-count">{retest === undefined ? "–" : retest ? "yes" : "no"}</dd>

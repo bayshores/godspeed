@@ -74,6 +74,6 @@ describe("homework problems", () => {
 
 	it("without an assignment file, names the ids to attach one with", () => {
 		const text = homeworkContextText("c1", { id: "d1", name: "HW 4", kind: "homework", date: "2026-11-13" }, null, []);
-		assert.match(text, /update_class_deadline \(class_id c1, deadline_id d1, assignment_file_id\)/);
+		assert.match(text, /update_space_deadline \(space_id c1, deadline_id d1, assignment_file_id\)/);
 	});
 });

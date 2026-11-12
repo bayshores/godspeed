@@ -190,7 +190,7 @@ describe("cheat sheet: the agent's PDF", () => {
 		assert.match(pdfProblem({ bytes: 10, head: "%PDF-", pages: [{ widthPt: 72, heightPt: 792 }] })!, /between 2 and 17 inches/);
 	});
 
-	it("is made in a working folder named for the class and deadline", () => {
+	it("is made in a working folder named for the space and deadline", () => {
 		assert.equal(sheetFolderName("CSE 21", "Midterm: part 1"), "CSE 21 Midterm- part 1");
 	});
 });
@@ -218,7 +218,7 @@ describe("cheat sheet: the request", () => {
 	const base = {
 		title: "CSE 21 Midterm",
 		date: "2026-11-04",
-		classNotes: "Rosen's notation.",
+		spaceNotes: "Rosen's notation.",
 		infoFiles: ["syllabus.txt"],
 		rules: [],
 		topics,
@@ -229,13 +229,13 @@ describe("cheat sheet: the request", () => {
 		message,
 	};
 
-	it("says where the class's rules are, the topics with readiness and facts, the mistakes, the working folder, and the message last", () => {
+	it("says where the space's rules are, the topics with readiness and facts, the mistakes, the working folder, and the message last", () => {
 		const text = cheatSheetRequestText(base);
-		assert.match(text, /^Cheat sheet for: CSE 21 Midterm on 2026-11-04\nAbout the class: Rosen's notation\.\nCourse info files \(the rules are likely here\): syllabus\.txt/);
+		assert.match(text, /^Cheat sheet for: CSE 21 Midterm on 2026-11-04\nAbout the space: Rosen's notation\.\nSpace info files \(the rules are likely here\): syllabus\.txt/);
 		assert.match(text, /Counting \| weak, 2 mistakes\n {2}- Permutations: P\(n,k\) = n!\/\(n-k\)!\nSums \| knows it well/);
 		assert.match(text, /answered wrong \(Counting\): "7 students, 3 sections"/);
 		assert.match(text, /Working folder: \/home\/me\/godspeed\/cheat-sheets\/CSE 21 Midterm\nIt is empty\. There is no sheet yet\. Keep its source here so later changes can edit it\./);
-		assert.match(text, /\n\nThe student says:\ndouble sided A4, and a flowchart$/);
+		assert.match(text, /\n\nThe learner says:\ndouble sided A4, and a flowchart$/);
 		assert.doesNotMatch(text, /rules \(follow|chat so far|pointed at|is on this/);
 	});
 
@@ -265,17 +265,17 @@ describe("cheat sheet: the request", () => {
 				region: { n: 1, page: 1, x: 0.1, y: 0.2, w: 0.3, h: 0.1 },
 			},
 		});
-		assert.match(text, /no course info files; search all its files/);
+		assert.match(text, /no space info files; search all its files/);
 		assert.match(text, /This sheet's rules \(follow every one\):\n- A4, both sides\n- American spelling/);
-		assert.match(text, /Topics on this exam \(name \| how the student does\):\nCounting \| weak, 2 mistakes\nSums/, "facts go with the first sheet only");
+		assert.match(text, /Topics on this exam \(name \| how the learner does\):\nCounting \| weak, 2 mistakes\nSums/, "facts go with the first sheet only");
 		assert.match(text, /It has: sheet\.pdf, sheet\.tex\. The sheet now is version 2 \(A4, front and back\), made from the source here\. To change it, edit that source/);
-		assert.match(text, /The chat so far, oldest first:\nStudent: old 2\n.*Student: old 7\nYou: Made it bigger\. \[made version 2\]\nYou: \[made version 1\]/s);
+		assert.match(text, /The chat so far, oldest first:\nLearner: old 2\n.*Learner: old 7\nYou: Made it bigger\. \[made version 2\]\nYou: \[made version 1\]/s);
 		assert.doesNotMatch(text, /old 1\n/, "only the last 8 messages");
 		assert.match(text, /They pointed at version 1, page 1, from 10% to 40% across and 20% to 30% down\. The first picture shows that part\. That is an older version; the sheet now is version 2\./);
-		assert.match(text, /The student says:\naccording to the cheat sheet that's what I did$/);
+		assert.match(text, /The learner says:\naccording to the cheat sheet that's what I did$/);
 		const many = cheatSheetRequestText({ ...base, infoFiles: ["HW1.pdf", ...Array.from({ length: 9 }, (_, i) => `n${i}.txt`), "syllabus.txt"] });
 		assert.match(many, /likely here\): syllabus\.txt, HW1\.pdf, n0\.txt, .*, n5\.txt, and 3 more\n/);
-		assert.match(cheatSheetRequestText({ ...base, message: { ...message, text: "" } }), /The student says:\n\(no words, only the files\)$/);
+		assert.match(cheatSheetRequestText({ ...base, message: { ...message, text: "" } }), /The learner says:\n\(no words, only the files\)$/);
 	});
 
 	it("takes the newest mistakes in the deadline's topics, each question once, and counts them", () => {
@@ -293,7 +293,7 @@ describe("cheat sheet: the request", () => {
 	});
 });
 
-describe("cheat sheet: a class's cheat sheets", () => {
+describe("cheat sheet: a space's cheat sheets", () => {
 	const deadline = (id: string, date: string, over: Record<string, unknown> = {}) => ({ id, kind: "exam" as const, name: id, date, fileIds: [], done: false, ...over });
 	const made = { ...newCheatSheet("d", "t"), versions: [{ n: 2, prompt: "A4", at: "t", pages: [A4] }] };
 

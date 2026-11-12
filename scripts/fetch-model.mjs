@@ -1,5 +1,5 @@
 /**
- * fetch-model.mjs — download the class-search embedding model into models/.
+ * fetch-model.mjs — download the space-search embedding model into models/.
  *
  * models/ is gitignored: the files come from one pinned Hugging Face
  * revision and are checked by sha256, so every build ships the same bytes.

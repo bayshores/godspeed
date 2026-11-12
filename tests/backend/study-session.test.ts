@@ -1,5 +1,5 @@
 /** A study session end to end through the outside-agent bridge: birth
- *  (study plan, plan tree, topics in class order with their modes), the
+ *  (study plan, plan tree, topics in space order with their modes), the
  *  teacher's prompt and tools plus problem/conclude from turn 1, the same
  *  tools every turn, a problem ending the turn, and the old kinds still
  *  building their own agents. Closed network, scratch data dir. */
@@ -32,10 +32,10 @@ after(() => {
 const { handleChatInput } = await import("../../src/backend/server/chat-handler.ts");
 const { isTurnRunning } = await import("../../src/backend/server/turn-liveness.ts");
 const { createLesson } = await import("../../src/backend/server/lessons.ts");
-const { sourceIdFor } = await import("../../src/backend/server/classes.ts");
+const { sourceIdFor } = await import("../../src/backend/server/spaces.ts");
 const { graphStoreFor } = await import("../../src/backend/server/stores.ts");
 const { chatStore } = await import("../../src/backend/store/chats.ts");
-const { classStore } = await import("../../src/backend/store/classes.ts");
+const { spaceStore } = await import("../../src/backend/store/spaces.ts");
 const bridge = await import("../../src/backend/agent/agent-bridge.ts");
 const { ensureMcpToken } = await import("../../src/backend/store/mcp-token.ts");
 const { activeProblemOf } = await import("../../src/shared/core/native-messages.ts");
@@ -63,66 +63,66 @@ const POSE = {
 	modelSolution: "Each element is in or out: $2^3 = 8$.",
 };
 
-/** A class with two dated lectures: "Counting" (2026-09-25, never tested)
+/** A space with two dated lectures: "Counting" (2026-09-25, never tested)
  *  and "Sets" (2026-10-02, tested and missed). */
-function seedClass() {
-	const cls = classStore.createClass({ name: "CSE 21" });
+function seedSpace() {
+	const space = spaceStore.createSpace({ name: "CSE 21" });
 	const file = (id: string, name: string) => ({ id, origin: "copied" as const, name, path: `x/${name}`, kind: "study" as const, contentFp: "", status: "ready" as const, addedAt: "2026-10-26T00:00:00.000Z" });
 	const counting = file("f_aaaaaaaaaaaa", "2026-09-25 Counting.pdf");
 	const sets = file("f_bbbbbbbbbbbb", "2026-10-02 Sets.pdf");
-	classStore.saveFiles(cls.id, [sets, counting]);
-	const store = graphStoreFor(cls.id);
-	const older = chatStore.createChat("Sets quiz", undefined, cls.id);
+	spaceStore.saveFiles(space.id, [sets, counting]);
+	const store = graphStoreFor(space.id);
+	const older = chatStore.createChat("Sets quiz", undefined, space.id);
 	chatStore.saveMessages(older.id, [
 		{ id: "m1", role: "assistant", content: [{ type: "toolCall", id: "q1", name: "quiz", arguments: { nodeId: "x" } }], timestamp: 0 },
 		{ id: "r1", role: "toolResult", toolCallId: "q1", toolName: "quiz", content: [{ type: "text", text: "{}" }], details: { kind: "quiz", correct: false, dontKnow: false, answers: [], answeredAt: "2026-10-20T00:00:00.000Z" }, isError: false, timestamp: 0 },
 	] as never);
 	const node = (id: string, src: string, extra: { chatId: string; messageId: string }[] = []) =>
 		store.appendNode({ id, name: id, statement: `${id} holds`, aliases: [], createdAt: "2026-10-26T00:00:00.000Z", provenance: [{ chatId: src, messageId: "" }, ...extra] });
-	node("n_sets", sourceIdFor(cls.id, sets.id), [{ chatId: older.id, messageId: "m1" }]);
-	node("n_count", sourceIdFor(cls.id, counting.id));
+	node("n_sets", sourceIdFor(space.id, sets.id), [{ chatId: older.id, messageId: "m1" }]);
+	node("n_count", sourceIdFor(space.id, counting.id));
 	store.appendTopics({ at: "2026-10-26T00:00:00.000Z", topics: [{ id: "tpc_sets", name: "Sets", members: ["n_sets"] }, { id: "tpc_count", name: "Counting", members: ["n_count"] }] });
-	return cls;
+	return space;
 }
 
 describe("a study session", () => {
 	ensureMcpToken();
 
-	it("is born with the study plan and a plan tree, topics in class order with their modes", () => {
-		const cls = seedClass();
+	it("is born with the study plan and a plan tree, topics in space order with their modes", () => {
+		const space = seedSpace();
 		const created = createLesson({
 			title: "Study: Sets, Counting",
-			classId: cls.id,
+			spaceId: space.id,
 			picks: [{ id: "n_sets", name: "n_sets", statement: "n_sets holds" }, { id: "n_count", name: "n_count", statement: "n_count holds" }],
 		});
 		assert.ok(created.ok);
 		const record = chatStore.getChat(created.chat.id)!;
 		assert.equal(record.kind, "study");
-		assert.deepEqual(record.messages.map((m) => (m.role === "custom" ? m.customType : m.role)), ["class-context", "graph-context", "study-context"]);
+		assert.deepEqual(record.messages.map((m) => (m.role === "custom" ? m.customType : m.role)), ["space-context", "graph-context", "study-context"]);
 		const plan = record.messages.at(-1)!;
 		assert.ok(plan.role === "custom" && plan.display === false);
 		assert.match(plan.content as string, /1\. Counting — node tpc_count, teach \(never tested\), facts n_count\n2\. Sets — node tpc_sets, problems \(weak or shaky\), facts n_sets/);
 		assert.deepEqual(record.tree?.nodes.map((n) => n.id), ["tpc_count", "tpc_sets"]);
 	});
 
-	it("picked facts with nothing typed are titled after their topics, in class order", () => {
-		const cls = seedClass();
+	it("picked facts with nothing typed are titled after their topics, in space order", () => {
+		const space = seedSpace();
 		const created = createLesson({
 			title: "",
-			classId: cls.id,
+			spaceId: space.id,
 			picks: [{ id: "n_sets", name: "n_sets", statement: "n_sets holds" }, { id: "n_count", name: "n_count", statement: "n_count holds" }],
 		});
 		assert.ok(created.ok);
 		assert.equal(created.title, "Study: Counting, Sets");
 		assert.equal(created.chat.title, "Study: Counting, Sets");
 		assert.deepEqual(created.chat.tree?.nodes.map((n) => n.id), ["tpc_count", "tpc_sets"]);
-		const untitled = createLesson({ title: " ", classId: null });
+		const untitled = createLesson({ title: " ", spaceId: null });
 		assert.ok(untitled.ok);
 		assert.equal(untitled.title, "Untitled session", "nothing typed or picked keeps the floor");
 	});
 
 	it("a typed topic with no facts is one teach topic", () => {
-		const created = createLesson({ title: "Bayes' rule", classId: null });
+		const created = createLesson({ title: "Bayes' rule", spaceId: null });
 		assert.ok(created.ok);
 		const record = chatStore.getChat(created.chat.id)!;
 		assert.match(record.messages.at(-1)!.content as string, /1\. Bayes' rule — node topic, teach \(never tested\), no facts/);
@@ -130,55 +130,55 @@ describe("a study session", () => {
 	});
 
 	it("a start on topics or a deadline picks whole topics up to 64 facts and titles the session after them; each deadline click moves on", () => {
-		// Counting (class day 1) has 40 facts, Sets (class day 2) 30: both don't fit in one session.
-		const cls = classStore.createClass({ name: "CSE 29" });
+		// Counting (day 1) has 40 facts, Sets (day 2) 30: both don't fit in one session.
+		const space = spaceStore.createSpace({ name: "CSE 29" });
 		const file = (id: string, name: string) => ({ id, origin: "copied" as const, name, path: `x/${name}`, kind: "study" as const, contentFp: "", status: "ready" as const, addedAt: "2026-10-26T00:00:00.000Z" });
 		const counting = file("f_cccccccccccc", "2026-09-25 Counting.pdf");
 		const sets = file("f_dddddddddddd", "2026-10-02 Sets.pdf");
-		classStore.saveFiles(cls.id, [sets, counting]);
-		const store = graphStoreFor(cls.id);
+		spaceStore.saveFiles(space.id, [sets, counting]);
+		const store = graphStoreFor(space.id);
 		const facts = (prefix: string, count: number, src: string) =>
 			Array.from({ length: count }, (_, i) => {
 				const id = `${prefix}${i}`;
 				store.appendNode({ id, name: id, statement: `${id} holds`, aliases: [], createdAt: "2026-10-26T00:00:00.000Z", provenance: [{ chatId: src, messageId: "" }] });
 				return id;
 			});
-		const countIds = facts("c", 40, sourceIdFor(cls.id, counting.id));
-		const setIds = facts("s", 30, sourceIdFor(cls.id, sets.id));
+		const countIds = facts("c", 40, sourceIdFor(space.id, counting.id));
+		const setIds = facts("s", 30, sourceIdFor(space.id, sets.id));
 		store.appendTopics({ at: "2026-10-26T00:00:00.000Z", topics: [{ id: "tpc_sets", name: "Sets", members: setIds }, { id: "tpc_count", name: "Counting", members: countIds }] });
-		const deadline = classStore.addDeadline(cls.id, { kind: "exam", name: "Midterm", date: localDay(), fileIds: [counting.id, sets.id] });
+		const deadline = spaceStore.addDeadline(space.id, { kind: "exam", name: "Midterm", date: localDay(), fileIds: [counting.id, sets.id] });
 
-		const graph = createLesson({ classId: cls.id, topicIds: ["tpc_sets", "tpc_count"] });
+		const graph = createLesson({ spaceId: space.id, topicIds: ["tpc_sets", "tpc_count"] });
 		assert.ok(graph.ok);
-		assert.equal(graph.title, "Study: Counting", "class order first; Sets would pass 64 facts");
+		assert.equal(graph.title, "Study: Counting", "space order first; Sets would pass 64 facts");
 		const record = chatStore.getChat(graph.chat.id)!;
 		const picks = record.messages[1]!;
 		assert.ok(picks.role === "custom" && picks.customType === "graph-context");
 		assert.equal((picks.details as { propositions: unknown[] }).propositions.length, 40, "the whole topic, as graph-context picks");
 		chatStore.deleteChat(graph.chat.id);
 
-		const first = createLesson({ classId: cls.id, deadlineId: deadline.id });
+		const first = createLesson({ spaceId: space.id, deadlineId: deadline.id });
 		assert.ok(first.ok);
 		assert.equal(first.title, "Study: Counting");
 		assert.deepEqual(chatStore.getChat(first.chat.id)!.tree?.nodes.map((n) => n.id), ["tpc_count"]);
-		const second = createLesson({ classId: cls.id, deadlineId: deadline.id });
+		const second = createLesson({ spaceId: space.id, deadlineId: deadline.id });
 		assert.ok(second.ok);
 		assert.equal(second.title, "Study: Sets", "Counting was studied today, so Sets comes first");
 
-		assert.deepEqual(createLesson({ classId: cls.id, deadlineId: "ddl_nope" }), { ok: false, status: 404, code: "deadline_not_found", error: "No such deadline" });
+		assert.deepEqual(createLesson({ spaceId: space.id, deadlineId: "ddl_nope" }), { ok: false, status: 404, code: "deadline_not_found", error: "No such deadline" });
 	});
 
 	it("a deadline's Study reopens its latest session until the step bar reaches its last topic", () => {
-		const cls = seedClass();
-		const files = classStore.getClass(cls.id)!.files!.map((f) => f.id);
-		const deadline = classStore.addDeadline(cls.id, { kind: "exam", name: "Midterm", date: localDay(), fileIds: files });
-		const next = () => progressFor(cls.id)!.deadlines.find((d) => d.id === deadline.id)!.continueStudy;
+		const space = seedSpace();
+		const files = spaceStore.getSpace(space.id)!.files!.map((f) => f.id);
+		const deadline = spaceStore.addDeadline(space.id, { kind: "exam", name: "Midterm", date: localDay(), fileIds: files });
+		const next = () => progressFor(space.id)!.deadlines.find((d) => d.id === deadline.id)!.continueStudy;
 		assert.equal(next(), undefined);
 
-		const created = createLesson({ classId: cls.id, deadlineId: deadline.id });
+		const created = createLesson({ spaceId: space.id, deadlineId: deadline.id });
 		assert.ok(created.ok);
 		assert.equal(chatStore.getChat(created.chat.id)!.deadlineId, deadline.id);
-		assert.ok(createLesson({ classId: cls.id, topicIds: ["tpc_sets"] }).ok, "a start on topics never matches");
+		assert.ok(createLesson({ spaceId: space.id, topicIds: ["tpc_sets"] }).ok, "a start on topics never matches");
 		assert.deepEqual(next(), { chatId: created.chat.id, done: 0, total: 2 });
 
 		const tag = (nodeId: string) => {
@@ -191,7 +191,7 @@ describe("a study session", () => {
 		tag("tpc_sets");
 		assert.equal(next(), undefined, "finished: the button starts the next topics again");
 
-		const again = createLesson({ classId: cls.id, deadlineId: deadline.id });
+		const again = createLesson({ spaceId: space.id, deadlineId: deadline.id });
 		assert.ok(again.ok);
 		assert.equal(next()?.chatId, again.chat.id);
 		chatStore.deleteChat(again.chat.id);
@@ -199,8 +199,8 @@ describe("a study session", () => {
 	});
 
 	it("runs the teacher plus problem and conclude from turn 1, with the same tools every turn", async () => {
-		const cls = seedClass();
-		const created = createLesson({ title: "Study: Counting", classId: cls.id, picks: [{ id: "n_count", name: "n_count", statement: "n_count holds" }] });
+		const space = seedSpace();
+		const created = createLesson({ title: "Study: Counting", spaceId: space.id, picks: [{ id: "n_count", name: "n_count", statement: "n_count holds" }] });
 		assert.ok(created.ok);
 		const chatId = created.chat.id;
 
@@ -246,8 +246,8 @@ describe("a study session", () => {
 	});
 
 	it("a message on an open problem: the same tools, the problem stays until the teacher concludes it, and its outcome counts once", async () => {
-		const cls = seedClass();
-		const created = createLesson({ title: "Study: Counting", classId: cls.id, picks: [{ id: "n_count", name: "n_count", statement: "n_count holds" }] });
+		const space = seedSpace();
+		const created = createLesson({ title: "Study: Counting", spaceId: space.id, picks: [{ id: "n_count", name: "n_count", statement: "n_count holds" }] });
 		assert.ok(created.ok);
 		const chatId = created.chat.id;
 		const settle = () => waitFor(() => !isTurnRunning(chatId), 8000, "turn settle");

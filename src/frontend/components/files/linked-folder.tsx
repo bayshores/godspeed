@@ -55,7 +55,7 @@ export function LinkedFolderButton({
 			<button
 				ref={anchorRef}
 				type="button"
-				data-testid="class-folder"
+				data-testid="space-folder"
 				data-problem={problem ?? undefined}
 				aria-haspopup="dialog"
 				aria-expanded={open}
@@ -67,7 +67,7 @@ export function LinkedFolderButton({
 			<MenuShell
 				open={open}
 				anchorRef={anchorRef}
-				testid="class-folder-box"
+				testid="space-folder-box"
 				role="dialog"
 				label="Linked folder"
 				preferredSide="down"
@@ -77,28 +77,28 @@ export function LinkedFolderButton({
 				<h2 className="text-xl text-ink">Linked folder</h2>
 				<p className="font-count text-base break-all text-ink">{path}</p>
 				{problem ? (
-					<p data-testid="class-folder-problem" className="text-[15px] text-ans-wrong">
+					<p data-testid="space-folder-problem" className="text-[15px] text-ans-wrong">
 						{PROBLEM_LINE[problem]}
 					</p>
 				) : (
-					<p className="text-[15px] text-ink-2">New files in it are added and sorted into study material or course info as your agent reads them.</p>
+					<p className="text-[15px] text-ink-2">New files in it are added and sorted into study material or space info as your agent reads them.</p>
 				)}
 				{skipped.length > 0 && (
-					<p data-testid="class-folder-skipped" className="text-[15px] break-words text-ink-2">
+					<p data-testid="space-folder-skipped" className="text-[15px] break-words text-ink-2">
 						{skipped.join(" ")}
 					</p>
 				)}
 				<div className="flex flex-wrap items-center gap-2 pt-1">
-					<button type="button" data-testid="class-folder-pick-again" disabled={disabled} onClick={pick(onPickAgain)} className={ROW_BUTTON}>
+					<button type="button" data-testid="space-folder-pick-again" disabled={disabled} onClick={pick(onPickAgain)} className={ROW_BUTTON}>
 						Pick folder again
 					</button>
 					{openFolder && !unreadable && (
-						<button type="button" data-testid="class-folder-open" onClick={pick(openFolder.run)} className={ROW_BUTTON}>
+						<button type="button" data-testid="space-folder-open" onClick={pick(openFolder.run)} className={ROW_BUTTON}>
 							{openFolder.label}
 						</button>
 					)}
 					<span className="flex-1" />
-					<button type="button" data-testid="class-unlink-folder" disabled={disabled} onClick={pick(onUnlink)} className="lh-btn lh-btn-quiet text-[15px] text-ans-wrong hover:text-ans-wrong-hover">
+					<button type="button" data-testid="space-unlink-folder" disabled={disabled} onClick={pick(onUnlink)} className="lh-btn lh-btn-quiet text-[15px] text-ans-wrong hover:text-ans-wrong-hover">
 						Unlink
 					</button>
 				</div>
@@ -115,7 +115,7 @@ export function FolderStatusLine({ path, status, now }: { path: string; status: 
 	return (
 		<p className="flex items-center gap-2 text-[15px]">
 			<span aria-hidden className={cn("size-2.5 shrink-0", line.warn ? "bg-ans-wrong" : "bg-ans-right")} />
-			<span data-testid="class-folder-status" className={cn("min-w-0", line.warn ? "text-ans-wrong" : "text-ink-2")}>
+			<span data-testid="space-folder-status" className={cn("min-w-0", line.warn ? "text-ans-wrong" : "text-ink-2")}>
 				{line.text}
 			</span>
 		</p>
@@ -125,7 +125,7 @@ export function FolderStatusLine({ path, status, now }: { path: string; status: 
 /** "Link a folder" (no folder linked yet). */
 export function LinkFolderButton({ disabled, onClick }: { disabled?: boolean; onClick: () => void }) {
 	return (
-		<button type="button" data-testid="class-pick-folder" disabled={disabled} onClick={onClick} className={ROW_BUTTON}>
+		<button type="button" data-testid="space-pick-folder" disabled={disabled} onClick={onClick} className={ROW_BUTTON}>
 			Link a folder
 		</button>
 	);
@@ -149,7 +149,7 @@ export function LinkFolderField({
 	const ready = value.trim() !== "" && value.trim() !== initial;
 	return (
 		<form
-			data-testid="class-folder-form"
+			data-testid="space-folder-form"
 			className="flex w-full items-center gap-2.5"
 			onSubmit={(e) => {
 				e.preventDefault();
@@ -158,7 +158,7 @@ export function LinkFolderField({
 		>
 			<input
 				type="text"
-				data-testid="class-folder-input"
+				data-testid="space-folder-input"
 				aria-label="Folder path"
 				value={value}
 				onChange={(e) => setValue(e.target.value)}
@@ -168,14 +168,14 @@ export function LinkFolderField({
 						onCancel();
 					}
 				}}
-				placeholder="/Users/you/School/MATH20C"
+				placeholder="/Users/you/Documents/MATH20C"
 				autoFocus
 				className={FIELD}
 			/>
 			<button type="button" onClick={onCancel} className={ROW_BUTTON}>
 				Cancel
 			</button>
-			<button type="submit" data-testid="class-link-folder" disabled={disabled || !ready} className="lh-btn lh-btn-main h-[38px] shrink-0 text-[15px]">
+			<button type="submit" data-testid="space-link-folder" disabled={disabled || !ready} className="lh-btn lh-btn-main h-[38px] shrink-0 text-[15px]">
 				Link
 			</button>
 		</form>

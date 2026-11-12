@@ -110,7 +110,7 @@ describe("quizInputObject / quizInputProblems (the authoring contract)", () => {
 	});
 
 	it("rejects the observed failure: a correctAnswer slug matching no option value, listing the valid values", () => {
-		// The exact class GLM produced live (Gate 3 + live verification).
+		// The exact space GLM produced live (Gate 3 + live verification).
 		const bad = {
 			question: "What is Nietzsche's genealogical claim about religion?",
 			options: [

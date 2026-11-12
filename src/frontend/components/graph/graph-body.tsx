@@ -71,7 +71,7 @@ export function GraphBody({
 	const focus = matches ?? deadlineTopics;
 
 	const columns = (
-		<LevelColumns topics={data.topics} links={data.topicLinks} facts={data.facts} inClass={data.classId !== null} focus={focus} selectedId={selected?.id ?? null} onSelect={select} />
+		<LevelColumns topics={data.topics} links={data.topicLinks} facts={data.facts} inSpace={data.spaceId !== null} focus={focus} selectedId={selected?.id ?? null} onSelect={select} />
 	);
 	if (data.topics.length === 0) return columns;
 	return (

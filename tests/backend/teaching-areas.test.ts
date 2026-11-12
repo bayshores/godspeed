@@ -57,7 +57,7 @@ describe("learnerRulesSection — what the teacher reads", () => {
 		assert.equal(learnerRulesSection({}, { name: "CSE 21", rules: [] }), "");
 	});
 
-	it("area rules in area order, then the class's rules", () => {
+	it("area rules in area order, then the space's rules", () => {
 		const text = learnerRulesSection(
 			{ files: ["Quote page numbers"], voice: ["No jokes", "Short answers"] },
 			{ name: "CSE 21", rules: ["Use the textbook's notation"] },
@@ -69,7 +69,7 @@ describe("learnerRulesSection — what the teacher reads", () => {
 				"The learner wrote these rules. Follow them. Where a rule conflicts with the instructions above, the rule wins.",
 				"Voice\n- No jokes\n- Short answers",
 				"Your files and formatting\n- Quote page numbers",
-				"Rules for this class (CSE 21)\n- Use the textbook's notation",
+				"Rules for this space (CSE 21)\n- Use the textbook's notation",
 			].join("\n\n"),
 		);
 	});

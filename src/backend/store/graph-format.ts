@@ -16,9 +16,9 @@
  *
  * Version constants: contracts/graph.ts CURRENT_GRAPH_FORMAT_VERSION.
  *
- * Each graph family (the "No class" graph and
- * every class's own graph) carries its own sidecar — the functions take
- * the family's format file, defaulting to the "No class" one.
+ * Each graph family (the "No space" graph and
+ * every space's own graph) carries its own sidecar — the functions take
+ * the family's format file, defaulting to the "No space" one.
  */
 
 import fs from "node:fs";

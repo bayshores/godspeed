@@ -531,7 +531,7 @@ describe("the merger (mergeFindings)", () => {
 	it("derives the sessions index in graphSnapshot", () => {
 		const snap = graphSnapshot(graphDeps);
 		const idByStatement = new Map(snap.nodes.map((n) => [n.statement, n.id]));
-		// No node-state classes and no understanding
+		// No node-state spaces and no understanding
 		// observations: the snapshot carries only the
 		// objective graph + sessions.
 		assert.equal("nodeStates" in snap, false);

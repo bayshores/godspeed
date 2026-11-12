@@ -1,13 +1,13 @@
 /**
- * Deadlines across classes: their order. Pure and unit-tested. The
- * lists come from GET /api/deadlines (non-archived classes, soonest
+ * Deadlines across spaces: their order. Pure and unit-tested. The
+ * lists come from GET /api/deadlines (non-archived spaces, soonest
  * first).
  */
-import type { ClassDeadline } from "@/shared/core";
+import type { SpaceDeadline } from "@/shared/core";
 import { dueAtMs } from "./countdown-model";
 
-/** A deadline with its class: an open one, or one ticked done today. */
-export type OpenDeadline = ClassDeadline & { classId: string; className: string };
+/** A deadline with its space: an open one, or one ticked done today. */
+export type OpenDeadline = SpaceDeadline & { spaceId: string; spaceName: string };
 
 /** Soonest due first (so overdue ones come first), name breaking ties. */
 export function byDue<T extends { date: string; time?: string; name: string }>(list: readonly T[]): T[] {

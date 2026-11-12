@@ -255,7 +255,7 @@ describe("settings restyle", () => {
 
 	it("Remembered lists the agent's notes with a Delete button", async () => {
 		globalThis.fetch = connectionFetch({ token: "tok_c", url: "http://127.0.0.1:1/api/mcp", agentConnected: true, pendingWork: 0 }, [
-			{ id: "note_1", text: "CSE 29 exam is done.", className: "CSE 29", createdAt: "2026-10-30T02:00:00Z" },
+			{ id: "note_1", text: "CSE 29 exam is done.", spaceName: "CSE 29", createdAt: "2026-10-30T02:00:00Z" },
 		]);
 		const el = await mount(<RememberedNotes />);
 		const list = q("remembered-notes")!;
@@ -265,7 +265,7 @@ describe("settings restyle", () => {
 	});
 
 	it("Remembered sends one Delete per click: the button waits for its request", async () => {
-		const notes = [{ id: "note_1", text: "Likes proofs.", className: null, createdAt: "2026-10-30T02:00:00Z" }];
+		const notes = [{ id: "note_1", text: "Likes proofs.", spaceName: null, createdAt: "2026-10-30T02:00:00Z" }];
 		const read = connectionFetch({ token: "tok_c", url: "http://127.0.0.1:1/api/mcp", agentConnected: true, pendingWork: 0 }, notes);
 		let deletes = 0;
 		let finish: () => void = () => {};

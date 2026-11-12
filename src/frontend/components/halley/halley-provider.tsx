@@ -23,7 +23,7 @@ import { DEFAULT_TEACHER_NAME, isAgentEntry } from "@/shared/core";
 import { useServerEvent, useServerResync } from "@/frontend/components/server-events";
 import { useAgentStatus } from "@/frontend/components/agent-status";
 import { useActivity } from "@/frontend/components/activity-dock";
-import { useClasses } from "@/frontend/components/class-context";
+import { useSpaces } from "@/frontend/components/space-context";
 import { prefersReducedMotion } from "@/frontend/components/presence";
 import { useSettingsSaved } from "@/frontend/components/settings-signal";
 import { HalleyPanel } from "./halley-panel";
@@ -73,13 +73,13 @@ export function HalleyProvider({ initialName, children }: { initialName?: string
 	const [name, setName] = useState(initialName?.trim() || DEFAULT_TEACHER_NAME);
 	const agent = useAgentStatus();
 	const { feed } = useActivity();
-	const classes = useClasses();
+	const spaces = useSpaces();
 	const router = useRouter();
 	const pathname = usePathname();
 
 	// ── refs the async tour reads (always the latest render's values) ──
-	const live = useRef({ name, pathname, classes, router });
-	live.current = { name, pathname, classes, router };
+	const live = useRef({ name, pathname, spaces, router });
+	live.current = { name, pathname, spaces, router };
 	const alive = useRef(true);
 	useEffect(() => {
 		alive.current = true;
@@ -199,9 +199,9 @@ export function HalleyProvider({ initialName, children }: { initialName?: string
 	const showPage = useCallback(async (action: AgentAction, asked: boolean) => {
 		const page = safePage(action.page);
 		if (!page) return;
-		const { pathname: path, classes: cls, router: r } = live.current;
-		const moves = followMoves({ page, classId: action.classId }, { path, activeClass: cls.active, lessonDraft: !asked && !!lessonRef.current?.draft });
-		if (moves.switchClass) cls.setActive(moves.switchClass.to);
+		const { pathname: path, spaces: space, router: r } = live.current;
+		const moves = followMoves({ page, spaceId: action.spaceId }, { path, activeSpace: space.active, lessonDraft: !asked && !!lessonRef.current?.draft });
+		if (moves.switchSpace) space.setActive(moves.switchSpace.to);
 		if (moves.go) {
 			r.push(moves.go);
 			const end = Date.now() + 4000;
@@ -309,12 +309,12 @@ export function HalleyProvider({ initialName, children }: { initialName?: string
 		if (inLesson) setPanelOpen(false);
 	}, [inLesson]);
 
-	const classList = classes.classes;
-	const classNameOf = useCallback((id: string | null) => (id ? (classList.find((c) => c.id === id)?.name ?? null) : null), [classList]);
+	const spaceList = spaces.spaces;
+	const spaceNameOf = useCallback((id: string | null) => (id ? (spaceList.find((c) => c.id === id)?.name ?? null) : null), [spaceList]);
 
 	const api = useMemo<HalleyApi>(
-		() => ({ name, follow: followOn, setFollow, panelOpen, setPanelOpen, recent, doing, setLesson, go, offer, classNameOf }),
-		[name, followOn, setFollow, panelOpen, recent, doing, setLesson, go, offer, classNameOf],
+		() => ({ name, follow: followOn, setFollow, panelOpen, setPanelOpen, recent, doing, setLesson, go, offer, spaceNameOf }),
+		[name, followOn, setFollow, panelOpen, recent, doing, setLesson, go, offer, spaceNameOf],
 	);
 
 	return (

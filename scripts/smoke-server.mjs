@@ -66,7 +66,7 @@ function get(url) {
 	});
 }
 
-/** Class search's worker loads onnxruntime-node by a path the tracer can't
+/** Space search's worker loads onnxruntime-node by a path the tracer can't
  *  see, and the model by path: embed one query through the payload's own
  *  worker file. */
 async function verifySearchModel() {

@@ -4,7 +4,7 @@
  * needed, Pick up where you left off, How lessons went (one square per
  * answer, score, lesson links), the confidence chart (target lines, red
  * where a sure level falls short, takeaway, sure-but-wrong links into the
- * lesson), the no-class variant, the clicks, and the head's signature.
+ * lesson), the no-space variant, the clicks, and the head's signature.
  */
 import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;
@@ -63,7 +63,7 @@ const FILES = [
 ];
 
 const PAYLOAD = {
-	classId: "cls_1",
+	spaceId: "cls_1",
 	today: "2026-10-27",
 	topicsAt: null,
 	grouping: false,
@@ -134,8 +134,8 @@ type Props = React.ComponentProps<typeof OverviewBody>;
 function body(props: Partial<Props> = {}) {
 	return (
 		<OverviewBody
-			hasClass
-			color="var(--lh-class-1)"
+			hasSpace
+			color="var(--lh-space-1)"
 			data={{ ...PAYLOAD, deadlines: DEADLINES, facts: FACTS }}
 			nowMs={NOW}
 			busy={false}
@@ -171,20 +171,20 @@ const text = (html: string) => html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " "
 describe("Progress, top to bottom", () => {
 	it("note, next deadline, Most needed, Pick up where you left off, Facts, lessons, confidence", () => {
 		const html = render({ note: { text: "Strong on sets.", at: "2026-10-26T12:00:00" } });
-		const at = ["teacher-note", "next-deadline", "most-needed", "recent-lessons", "class-facts", "overview-lessons", "overview-confidence"].map((id) => html.indexOf(`data-testid="${id}"`));
+		const at = ["teacher-note", "next-deadline", "most-needed", "recent-lessons", "space-facts", "overview-lessons", "overview-confidence"].map((id) => html.indexOf(`data-testid="${id}"`));
 		assert.ok(at.every((i) => i >= 0), "every part shows");
 		assert.deepEqual(at, [...at].sort((a, b) => a - b));
 	});
 
 	it("loading: nothing yet", () => {
 		const html = render({ data: null });
-		for (const id of ["next-deadline", "most-needed", "recent-lessons", "class-facts", "overview-lessons", "overview-confidence"]) assert.ok(!html.includes(id));
+		for (const id of ["next-deadline", "most-needed", "recent-lessons", "space-facts", "overview-lessons", "overview-confidence"]) assert.ok(!html.includes(id));
 	});
 
-	it("no class: lessons and confidence only, under the classes to switch to", () => {
-		const html = render({ hasClass: false, pickClass: <p>pick one</p> });
+	it("no space: lessons and confidence only, under the spaces to switch to", () => {
+		const html = render({ hasSpace: false, pickSpace: <p>pick one</p> });
 		assert.ok(html.indexOf("pick one") < html.indexOf('data-testid="recent-lessons"'));
-		for (const id of ["next-deadline", "most-needed", "class-facts"]) assert.ok(!html.includes(id));
+		for (const id of ["next-deadline", "most-needed", "space-facts"]) assert.ok(!html.includes(id));
 		for (const id of ["overview-lessons", "overview-confidence"]) assert.ok(html.includes(`data-testid="${id}"`));
 	});
 
@@ -215,7 +215,7 @@ describe("The next deadline", () => {
 	it("the soonest open deadline still ahead: days left, day, name, how far, and its page", () => {
 		const html = section(render(), "next-deadline");
 		assert.match(text(html), /2 days Thursday Oct 29 HW 5 2 of 7 problems done\./);
-		assert.match(tag(html, "next-deadline-open"), /href="\/class\/deadline\/d1"/);
+		assert.match(tag(html, "next-deadline-open"), /href="\/space\/deadline\/d1"/);
 		assert.match(html, /width:28\.57/, "the bar is as far as the problems done");
 		assert.match(html, /data-halley-target="deadline:d1"/);
 	});
@@ -275,7 +275,7 @@ describe("Pick up where you left off", () => {
 		assert.match(text(html), /Tracing 2 of 2 right 2 hours ago .*Just started No answers yet yesterday .*Gradient descent 2 of 3 right Oct 20/);
 		assert.ok(!html.includes("Oldest"));
 		assert.match(tag(html, "recent-lesson-c2"), /href="\/chat\/c2"/);
-		assert.match(html, /background:var\(--lh-class-1\)/);
+		assert.match(html, /background:var\(--lh-space-1\)/);
 	});
 });
 
@@ -393,21 +393,21 @@ describe("clicks", () => {
 
 // ─── the head's signature ───────────────────────────────────────────────────
 
-describe("The class's signature", () => {
+describe("The space's signature", () => {
 	const sign = (share: number | null, signature = { kind: "math", value: "E[X]" } as const) => renderToStaticMarkup(<HeadSignature signature={signature} share={share} />);
 
 	it("math in real LaTeX, inked as far as studied, with the share under it", () => {
 		const html = sign(0.4);
 		assert.match(html, /class="katex"/);
-		assert.match(tag(html, "class-signature-ink"), /--ink:40%/);
-		assert.match(tag(html, "class-studied") + text(section(html, "class-studied", "</p>")), /40% studied/);
+		assert.match(tag(html, "space-signature-ink"), /--ink:40%/);
+		assert.match(tag(html, "space-studied") + text(section(html, "space-studied", "</p>")), /40% studied/);
 	});
 
 	it("nothing studied: no ink; loading: no share yet", () => {
-		assert.ok(!sign(0).includes("class-signature-ink"));
+		assert.ok(!sign(0).includes("space-signature-ink"));
 		assert.match(sign(0), /0% studied/);
 		const loading = sign(null);
-		assert.ok(!loading.includes("class-studied") && !loading.includes("class-signature-ink"));
+		assert.ok(!loading.includes("space-studied") && !loading.includes("space-signature-ink"));
 	});
 
 	it("code in mono, text in the serif italic", () => {

@@ -1,5 +1,5 @@
 /**
- * The Lessons tab: the class's own lessons under "Study something new" and
+ * The Lessons tab: the space's own lessons under "Study something new" and
  * the search field. When the server says no, a list that can't be read
  * shows "Try again" (not "No lessons yet."), and a rename that fails keeps
  * the old title and says so under the row.
@@ -41,7 +41,7 @@ Object.assign(dom.window, { innerWidth: 1280, innerHeight: 800 });
 (dom.window.HTMLElement.prototype as unknown as { select: () => void }).select = () => {};
 
 const { LessonsList } = await import("../../src/frontend/components/lessons/lessons-list.tsx");
-const { ClassProvider } = await import("../../src/frontend/components/class-context.tsx");
+const { SpaceProvider } = await import("../../src/frontend/components/space-context.tsx");
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
 const { AppRouterContext } = await import("next/dist/shared/lib/app-router-context.shared-runtime.js");
 
@@ -67,7 +67,7 @@ afterEach(() => {
 	globalThis.fetch = originalFetch;
 });
 
-/** Mounts the tab in a class (none by default); `respond` answers every request. */
+/** Mounts the tab in a space (none by default); `respond` answers every request. */
 async function mount(respond: (url: string, init?: RequestInit) => Response, active: string | null = null) {
 	globalThis.fetch = (async (url: string, init?: RequestInit) => respond(url, init)) as typeof fetch;
 	const router = { push: () => {} } as unknown as React.ContextType<typeof AppRouterContext>;
@@ -79,9 +79,9 @@ async function mount(respond: (url: string, init?: RequestInit) => Response, act
 		root!.render(
 			<AppRouterContext.Provider value={router}>
 				<ServerEventsProvider connect={quietEvents as never}>
-					<ClassProvider initialActive={active} initialClasses={[]}>
+					<SpaceProvider initialActive={active} initialSpaces={[]}>
 						<LessonsList />
-					</ClassProvider>
+					</SpaceProvider>
 				</ServerEventsProvider>
 			</AppRouterContext.Provider>,
 		);
@@ -124,8 +124,8 @@ it("a rename that fails keeps the old title and says so under the row", async ()
 	assert.equal(q("session-rename-failed"), null);
 });
 
-it("lists only the window's class's lessons, under Study something new", async () => {
-	const lessons = [LESSON, { ...LESSON, id: "c2", title: "Pointers", classId: "c29" }];
+it("lists only the window's space's lessons, under Study something new", async () => {
+	const lessons = [LESSON, { ...LESSON, id: "c2", title: "Pointers", spaceId: "c29" }];
 	await mount(() => Response.json({ chats: lessons }), "c29");
 	assert.equal(q("new-session")!.textContent, "Study something new");
 	assert.equal(q("new-session")!.getAttribute("href"), "/new");
@@ -134,8 +134,8 @@ it("lists only the window's class's lessons, under Study something new", async (
 	assert.match(rows[0]!, /Pointers/);
 });
 
-it("with no class, lists the lessons that belong to none", async () => {
-	const lessons = [LESSON, { ...LESSON, id: "c2", title: "Pointers", classId: "c29" }];
+it("with no space, lists the lessons that belong to none", async () => {
+	const lessons = [LESSON, { ...LESSON, id: "c2", title: "Pointers", spaceId: "c29" }];
 	await mount(() => Response.json({ chats: lessons }));
 	const rows = [...document.querySelectorAll("[data-testid='session-row']")].map((r) => r.textContent);
 	assert.equal(rows.length, 1);

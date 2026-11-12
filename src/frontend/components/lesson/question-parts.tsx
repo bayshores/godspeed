@@ -17,7 +17,7 @@ export function QuestionText({ children }: { children: string }) {
 	);
 }
 
-/** A row of the answer list; a picked one sits on the class's pale color. */
+/** A row of the answer list; a picked one sits on the space's pale color. */
 export const ANSWER_ROW = "lh-press flex w-full gap-3 text-left outline-none transition-colors duration-(--lh-dur) ease-(--lh-ease-out)";
 export const PICKED = "bg-(--lh-pale)";
 

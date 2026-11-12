@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { currentVersion, DEFAULT_TEACHER_NAME, type CheatSheetView } from "@/shared/core";
 import { useAgentStatus } from "@/frontend/components/agent-status";
-import { useClasses } from "@/frontend/components/class-context";
+import { useSpaces } from "@/frontend/components/space-context";
 import { LoadFailed } from "@/frontend/components/load-failed";
 import { fileBrowserName } from "@/frontend/components/files/files-model";
 import { useHalley } from "@/frontend/components/halley/halley-provider";
@@ -25,19 +25,19 @@ import { remakeSheet, sheetPdfPath, showSheetPdf, useCheatSheet, useSheetFocus }
  * is a sheet, says what to ask for. The teacher side on the right is the
  * sheet's chat: ask about the sheet, point at part of it, or ask for a change.
  */
-export function CheatSheetStudio({ classId, deadlineId, deadlineName }: { classId: string; deadlineId: string; deadlineName: string }) {
+export function CheatSheetStudio({ spaceId, deadlineId, deadlineName }: { spaceId: string; deadlineId: string; deadlineName: string }) {
 	const router = useRouter();
-	const { active, setActive } = useClasses();
-	const [joined, setJoined] = useState(active === classId);
+	const { active, setActive } = useSpaces();
+	const [joined, setJoined] = useState(active === spaceId);
 	useEffect(() => {
 		if (!joined) {
-			if (active === classId) setJoined(true);
-			else setActive(classId);
-		} else if (active !== classId) router.replace("/class");
-	}, [active, classId, joined, setActive, router]);
+			if (active === spaceId) setJoined(true);
+			else setActive(spaceId);
+		} else if (active !== spaceId) router.replace("/space");
+	}, [active, spaceId, joined, setActive, router]);
 
-	const { view, loadError, reload, act } = useCheatSheet(classId, deadlineId);
-	if (view) return <Studio view={view} classId={classId} deadlineId={deadlineId} act={act} />;
+	const { view, loadError, reload, act } = useCheatSheet(spaceId, deadlineId);
+	if (view) return <Studio view={view} spaceId={spaceId} deadlineId={deadlineId} act={act} />;
 	return (
 		<div className="flex h-full flex-col">
 			<StudioBar deadlineId={deadlineId} deadlineName={deadlineName} />
@@ -51,7 +51,7 @@ export function CheatSheetStudio({ classId, deadlineId, deadlineName }: { classI
 function StudioBar({ deadlineId, deadlineName, status, children }: { deadlineId: string; deadlineName: string; status?: string; children?: ReactNode }) {
 	return (
 		<div data-testid="studio-bar" className="lh-own-bar lh-drag lh-lights-gutter lh-wco-gutter flex h-12 shrink-0 select-none items-center gap-4 bg-bar px-6 text-bar-ink">
-			<Link href={`/class/deadline/${encodeURIComponent(deadlineId)}`} prefetch={false} data-testid="page-back" className="lh-btn lh-btn-bar max-w-[28ch] px-3">
+			<Link href={`/space/deadline/${encodeURIComponent(deadlineId)}`} prefetch={false} data-testid="page-back" className="lh-btn lh-btn-bar max-w-[28ch] px-3">
 				<PixelIcon name="chevron" className="-scale-x-100" />
 				<span className="truncate">{deadlineName}</span>
 			</Link>
@@ -68,25 +68,25 @@ function StudioBar({ deadlineId, deadlineName, status, children }: { deadlineId:
 
 function Studio({
 	view,
-	classId,
+	spaceId,
 	deadlineId,
 	act,
 }: {
 	view: CheatSheetView;
-	classId: string;
+	spaceId: string;
 	deadlineId: string;
 	act: (body: Record<string, unknown>) => Promise<string | null>;
 }) {
 	const agent = useAgentStatus();
 	const agentGone = !!agent && !agent.connected && !agent.teaching;
 	const teacherName = useHalley()?.name ?? DEFAULT_TEACHER_NAME;
-	const { activeClass } = useClasses();
+	const { activeSpace } = useSpaces();
 	const [failed, setFailed] = useState<string | null>(null);
 	const [printing, setPrinting] = useState(false);
 	const { pointed, setPointed, focus, showVersion } = useSheetFocus();
 	const current = currentVersion(view.sheet);
-	const fileName = `${view.className} ${view.deadlineName} cheat sheet`;
-	const pdfUrl = useCallback((n: number) => sheetPdfPath(classId, deadlineId, n), [classId, deadlineId]);
+	const fileName = `${view.spaceName} ${view.deadlineName} cheat sheet`;
+	const pdfUrl = useCallback((n: number) => sheetPdfPath(spaceId, deadlineId, n), [spaceId, deadlineId]);
 	const currentUrl = current ? pdfUrl(current.n) : null;
 	const desktop = typeof window !== "undefined" && !!window.lh?.showInFolder;
 	const fileButton = "lh-btn lh-btn-quiet shrink-0 px-2 text-[15px] font-normal text-bar-ink hover:bg-bar-ink/15 hover:text-bar-ink";
@@ -104,7 +104,7 @@ function Studio({
 				{current &&
 					currentUrl &&
 					(desktop ? (
-						<button type="button" data-testid="cheat-sheet-show-file" onClick={() => void showSheetPdf(classId, deadlineId, current.n).then(setFailed)} className={fileButton}>
+						<button type="button" data-testid="cheat-sheet-show-file" onClick={() => void showSheetPdf(spaceId, deadlineId, current.n).then(setFailed)} className={fileButton}>
 							Show in {fileBrowserName(window.lh?.platform)}
 						</button>
 					) : (
@@ -130,15 +130,15 @@ function Studio({
 							<div aria-hidden className="h-[220px] w-[170px] shrink-0 border border-border bg-background" />
 							<h2 className="text-[28px] leading-tight text-ink">What do you want on your cheat sheet?</h2>
 							<p className="max-w-[520px] text-lg leading-[1.45] text-ink-2">{emptyChatLine(teacherName, false)}</p>
-							{view.sheet.olderFormat && !view.running && <OlderSheet onRemake={() => void remakeSheet(classId, deadlineId).then(setFailed)} />}
+							{view.sheet.olderFormat && !view.running && <OlderSheet onRemake={() => void remakeSheet(spaceId, deadlineId).then(setFailed)} />}
 						</div>
 					)}
 				</div>
 				<Pane data-testid="cheat-sheet-panel" className="flex w-[480px] shrink-0 flex-col overflow-hidden">
-					<TeacherHead name={teacherName} color={activeClass?.id === classId ? activeClass.color : undefined} doing={teacherDoing(view, agentGone)} />
+					<TeacherHead name={teacherName} color={activeSpace?.id === spaceId ? activeSpace.color : undefined} doing={teacherDoing(view, agentGone)} />
 					<SheetChat
 						view={view}
-						classId={classId}
+						spaceId={spaceId}
 						deadlineId={deadlineId}
 						act={act}
 						agentName={teacherName}

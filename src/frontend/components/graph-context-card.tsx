@@ -67,35 +67,35 @@ export function GraphContextCard({ data }: { data: GraphContextData }) {
 	);
 }
 
-/** The class card's details (native-messages.ts ClassCardDetails). */
-export interface ClassContextData {
-	classId: string;
+/** The space card's details (native-messages.ts SpaceCardDetails). */
+export interface SpaceContextData {
+	spaceId: string;
 	name: string;
 	description: string;
 	files: { name: string; kind: "study" | "info"; path: string | null }[];
 }
 
 /**
- * The class card: message[0] of
- * a lesson in a class — the class name, the learner's description, and
- * the class files the teacher can open. Same scaffolding look as the
+ * The space card: message[0] of
+ * a lesson in a space — the space name, the learner's description, and
+ * the space files the teacher can open. Same scaffolding look as the
  * graph-context card: muted, collapsed by default.
  */
-export function ClassContextCard({ data }: { data: ClassContextData }) {
+export function SpaceContextCard({ data }: { data: SpaceContextData }) {
 	const [open, setOpen] = useState(false);
 	const fold = useFold(open);
 	const { name = "", description = "", files = [] } = data ?? {};
 	return (
-		<div data-testid="class-context-card" className="my-1">
+		<div data-testid="space-context-card" className="my-1">
 			<button
 				type="button"
-				data-testid="class-context-toggle"
+				data-testid="space-context-toggle"
 				aria-expanded={open}
 				onClick={() => setOpen((v) => !v)}
 				className="flex w-full cursor-pointer items-center gap-2.5 py-1 text-left text-[15px] text-ink-2 transition-colors duration-(--lh-dur) ease-(--lh-ease-out) hover:text-ink"
 			>
 				<PixelIcon name="chevron" className={cn("transition-transform duration-(--lh-dur) ease-(--lh-ease-out)", open && "rotate-90")} />
-				<span className="text-ink">Class context</span>
+				<span className="text-ink">Space context</span>
 				<span className="min-w-0 flex-1 truncate text-sm">
 					{name}
 					{files.length > 0 ? `, ${files.length} ${files.length === 1 ? "file" : "files"} when this lesson started` : ""}
@@ -104,7 +104,7 @@ export function ClassContextCard({ data }: { data: ClassContextData }) {
 			{fold.mounted && (
 				<div className="lh-collapse" data-state={fold.state}>
 				<div>
-				<div data-testid="class-context-body" className="mt-1 space-y-2 rounded border border-border bg-background px-4 py-3 text-[15px]">
+				<div data-testid="space-context-body" className="mt-1 space-y-2 rounded border border-border bg-background px-4 py-3 text-[15px]">
 					{description.trim() && <p className="font-prose whitespace-pre-wrap text-base leading-relaxed text-ink-2">{description}</p>}
 					{files.map((f, i) => (
 						<div key={i} className="leading-relaxed">

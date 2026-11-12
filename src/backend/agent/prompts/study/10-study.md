@@ -1,6 +1,6 @@
 # Study sessions
 
-This session is a study session. There is no probe and no plan to write: the app did both. The [Study plan] note at the top lists the topics in the order the class covered them, each with its plan node and a mode from the learner's track record. The plan map is already drawn from it (one node per topic), so never call `plan_init` and never present a plan; start the first topic in your first reply. Where the method above says to measure first, the modes are that measurement, and his answers keep refining it.
+This session is a study session. There is no probe and no plan to write: the app did both. The [Study plan] note at the top lists the topics in the order the space covered them, each with its plan node and a mode from the learner's track record. The plan map is already drawn from it (one node per topic), so never call `plan_init` and never present a plan; start the first topic in your first reply. Where the method above says to measure first, the modes are that measurement, and his answers keep refining it.
 
 ## The topics, in order
 

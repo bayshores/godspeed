@@ -1,22 +1,22 @@
 import { Fragment, useState } from "react";
 import { createPortal } from "react-dom";
-import { useClasses } from "@/frontend/components/class-context";
+import { useSpaces } from "@/frontend/components/space-context";
 import { CheckRow } from "@/frontend/components/ui/check-row";
 import { DialogSheet, useLastWhileClosing } from "@/frontend/components/ui/dialog-sheet";
 
-type Lesson = { id: string; title: string; classId?: string };
+type Lesson = { id: string; title: string; spaceId?: string };
 
-/** "Move lesson to another class": the lesson's facts leave the old class's
+/** "Move lesson to another space": the lesson's facts leave the old space's
  *  graph and are rebuilt in the new one. */
-export function MoveLessonDialog({ lesson, onClose, onMoved }: { lesson: Lesson | null; onClose: () => void; onMoved: (id: string, classId: string | null) => void }) {
+export function MoveLessonDialog({ lesson, onClose, onMoved }: { lesson: Lesson | null; onClose: () => void; onMoved: (id: string, spaceId: string | null) => void }) {
 	const { mounted, state, shown } = useLastWhileClosing(lesson);
 	if (!mounted || !shown) return null;
 	return createPortal(<MoveLessonInner lesson={shown} onClose={onClose} onMoved={onMoved} state={state} />, document.body);
 }
 
-function MoveLessonInner({ lesson, onClose, onMoved, state }: { lesson: Lesson; onClose: () => void; onMoved: (id: string, classId: string | null) => void; state: "open" | "closed" }) {
-	const { classes } = useClasses();
-	const from = lesson.classId ?? null;
+function MoveLessonInner({ lesson, onClose, onMoved, state }: { lesson: Lesson; onClose: () => void; onMoved: (id: string, spaceId: string | null) => void; state: "open" | "closed" }) {
+	const { spaces } = useSpaces();
+	const from = lesson.spaceId ?? null;
 	const [target, setTarget] = useState<string | null>(from);
 	const [busy, setBusy] = useState(false);
 	const [error, setError] = useState<string | null>(null);
@@ -27,10 +27,10 @@ function MoveLessonInner({ lesson, onClose, onMoved, state }: { lesson: Lesson; 
 		setBusy(true);
 		setError(null);
 		try {
-			const res = await fetch(`/api/chats/${lesson.id}/class`, {
+			const res = await fetch(`/api/chats/${lesson.id}/space`, {
 				method: "PUT",
 				headers: { "content-type": "application/json" },
-				body: JSON.stringify({ classId: target ?? "none" }),
+				body: JSON.stringify({ spaceId: target ?? "none" }),
 			});
 			const body = (await res.json().catch(() => ({}))) as { error?: string };
 			if (!res.ok) {
@@ -45,12 +45,12 @@ function MoveLessonInner({ lesson, onClose, onMoved, state }: { lesson: Lesson; 
 		}
 	};
 	const options: { id: string | null; name: string }[] = [
-		...classes.filter((c) => !c.archived || c.id === from).map((c) => ({ id: c.id as string | null, name: c.name })),
-		{ id: null, name: "No class" },
+		...spaces.filter((c) => !c.archived || c.id === from).map((c) => ({ id: c.id as string | null, name: c.name })),
+		{ id: null, name: "No space" },
 	];
 	return (
 		<DialogSheet
-			title="Move lesson to another class"
+			title="Move lesson to another space"
 			state={state}
 			testid="move-lesson-dialog"
 			busy={busy}
@@ -70,7 +70,7 @@ function MoveLessonInner({ lesson, onClose, onMoved, state }: { lesson: Lesson; 
 			<p title={lesson.title} className="truncate text-lg text-ink">
 				{lesson.title}
 			</p>
-			<div role="radiogroup" aria-label="Class" className="flex flex-col border-y-[1.5px] border-ink">
+			<div role="radiogroup" aria-label="Space" className="flex flex-col border-y-[1.5px] border-ink">
 				{options.map((o, i) => (
 					<Fragment key={o.id ?? "none"}>
 						{i > 0 && <span aria-hidden className="border-t-2 border-dotted border-ink-3" />}
@@ -79,7 +79,7 @@ function MoveLessonInner({ lesson, onClose, onMoved, state }: { lesson: Lesson; 
 				))}
 			</div>
 			<p className="text-[15px] text-ink-2">
-				Its facts leave the current class&apos;s graph (facts another lesson or file also taught stay) and are rebuilt in the new class&apos;s graph. Rebuilding is done by your agent.
+				Its facts leave the current space&apos;s graph (facts another lesson or file also taught stay) and are rebuilt in the new space&apos;s graph. Rebuilding is done by your agent.
 			</p>
 			{error && (
 				<p role="alert" className="text-[15px] text-ans-wrong">

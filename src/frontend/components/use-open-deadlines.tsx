@@ -1,11 +1,11 @@
 "use client";
 
 /**
- * The deadlines of every non-archived class (GET /api/deadlines): the open
+ * The deadlines of every non-archived space (GET /api/deadlines): the open
  * ones, for Today and the welcome screen, and the ones
  * ticked done today, which Today keeps with Undo. One shared read in
- * OpenDeadlinesProvider: it re-reads when classes change (every deadline
- * edit announces classes-changed) and after the events channel reconnects.
+ * OpenDeadlinesProvider: it re-reads when spaces change (every deadline
+ * edit announces spaces-changed) and after the events channel reconnects.
  * `markDone` ticks one done and `undo` unticks it (PUT done); a save that
  * fails says so in a notice.
  */
@@ -56,7 +56,7 @@ export function OpenDeadlinesProvider({ children }: { children: React.ReactNode 
 	useEffect(() => {
 		void load();
 	}, [load]);
-	useServerEvent("classes-changed", () => void load());
+	useServerEvent("spaces-changed", () => void load());
 	useServerResync(() => void load());
 
 	const [notice, setNotice] = useState<string | null>(null);
@@ -66,7 +66,7 @@ export function OpenDeadlinesProvider({ children }: { children: React.ReactNode 
 			setNotice(null);
 			void (async () => {
 				try {
-					const res = await fetch(`/api/classes/${encodeURIComponent(d.classId)}/deadlines/${encodeURIComponent(d.id)}`, {
+					const res = await fetch(`/api/spaces/${encodeURIComponent(d.spaceId)}/deadlines/${encodeURIComponent(d.id)}`, {
 						method: "PUT",
 						headers: { "Content-Type": "application/json" },
 						body: JSON.stringify({ done }),

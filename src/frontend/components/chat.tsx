@@ -75,15 +75,15 @@ export function Chat({
 	initiallyInFlight,
 	kind = "teach",
 	initialTree,
-	classId,
+	spaceId,
 	deadlineId,
 	homework,
 }: {
 	chatId: string;
 	title: string;
-	/** The session's class and the deadline it was started from: the
+	/** The session's space and the deadline it was started from: the
 	 *  cheat sheet beside it shows that deadline's sheet. */
-	classId?: string;
+	spaceId?: string;
 	deadlineId?: string;
 	initialMessages: LhMessage[];
 	/** A homework lesson's deadline: its problems fill the plan row. */
@@ -467,7 +467,7 @@ export function Chat({
 	);
 
 	const sheet = useSheetDock(chatId);
-	const sheetOpen = !!classId && sheet.state.open;
+	const sheetOpen = !!spaceId && sheet.state.open;
 	const [columnWidth, setColumnWidth] = usePaneWidth("your-turn", COLUMN_WIDTH);
 
 	const problem = activeProblem && {
@@ -491,8 +491,8 @@ export function Chat({
 						<div className="@container/lesson flex h-full min-w-0 flex-1 flex-col">
 							<LessonTopBar
 								rename={rename}
-								classId={classId}
-								sheet={classId ? { open: sheet.state.open, onToggle: () => sheet.update({ open: !sheet.state.open }) } : undefined}
+								spaceId={spaceId}
+								sheet={spaceId ? { open: sheet.state.open, onToggle: () => sheet.update({ open: !sheet.state.open }) } : undefined}
 								file={homework?.assignment ?? undefined}
 								scopeRef={sessionFindScopeRef}
 								scrollContextRef={scrollContextRef}
@@ -505,7 +505,7 @@ export function Chat({
 							>
 								<Pane className="@container/reading flex min-h-0 min-w-0 flex-col [grid-area:reading]">
 									<div className="shrink-0 px-14 pt-[26px] pb-3 empty:hidden @max-[640px]/reading:px-7">
-										<PlanRow kind={kind} classId={classId} stepBar={stepBar} homework={planHomework} practice={stablePractice} onJump={jumpToAnswer} onOpenPlan={openPlan} />
+										<PlanRow kind={kind} spaceId={spaceId} stepBar={stepBar} homework={planHomework} practice={stablePractice} onJump={jumpToAnswer} onOpenPlan={openPlan} />
 									</div>
 									<ReadingPane
 										messages={messages}
@@ -520,10 +520,10 @@ export function Chat({
 										scrollContextRef={scrollContextRef}
 									/>
 								</Pane>
-								{classId && sheetOpen && (
+								{spaceId && sheetOpen && (
 									<div className="flex min-h-0 [grid-area:dock]">
 										<SheetDock
-											classId={classId}
+											spaceId={spaceId}
 											sessionDeadlineId={deadlineId}
 											picked={sheet.state.deadlineId}
 											onPick={(id) => sheet.update({ deadlineId: id })}
@@ -534,7 +534,7 @@ export function Chat({
 								<TeacherColumn
 									// Remounts once the saved drafts are read, so the question starts from them.
 									key={draftsLoaded ? "drafts" : "loading"}
-									classId={classId}
+									spaceId={spaceId}
 									width={columnWidth}
 									onWidth={setColumnWidth}
 									pending={pending}

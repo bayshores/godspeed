@@ -83,20 +83,20 @@
 	--lh-ramp-3: #5f5229;
 	--lh-ramp-4: #52553a;
 	--lh-ramp-5: #3f5948;
-	/* The eight class colors, the same on every background, and the ink
+	/* The eight space colors, the same on every background, and the ink
 	   that sits on them. */
-	--lh-class-1: #6f8da6;
-	--lh-class-2: #957b94;
-	--lh-class-3: #6f9a7e;
-	--lh-class-4: #b3665c;
-	--lh-class-5: #c2aa5c;
-	--lh-class-6: #6e9c9a;
-	--lh-class-7: #8e9467;
-	--lh-class-8: #a9836a;
-	--lh-on-class: #24231f;
-	/* Mixed into a class color for the pale block of a row that can wait:
+	--lh-space-1: #6f8da6;
+	--lh-space-2: #957b94;
+	--lh-space-3: #6f9a7e;
+	--lh-space-4: #b3665c;
+	--lh-space-5: #c2aa5c;
+	--lh-space-6: #6e9c9a;
+	--lh-space-7: #8e9467;
+	--lh-space-8: #a9836a;
+	--lh-on-space: #24231f;
+	/* Mixed into a space color for the pale block of a row that can wait:
 	   white on Paper, black on a dark background. */
-	--lh-class-wash: #ffffff;
+	--lh-space-wash: #ffffff;
 	/* The Done stamp. */
 	--lh-stamp: #b3665c;
 	/* A sheet's outline: ink on Paper, a grey on a dark background. */
@@ -242,7 +242,7 @@
 	--color-bar: var(--lh-bar);
 	--color-bar-ink: var(--lh-bar-ink);
 	--color-highlight: var(--lh-highlight);
-	--color-on-class: var(--lh-on-class);
+	--color-on-space: var(--lh-on-space);
 	--color-stamp: var(--lh-stamp);
 	--color-line: var(--lh-line);
 	/* Right / wrong / didn't know. The confidence and topic ramps are read
@@ -1043,7 +1043,7 @@ body:has(.lh-own-bar) .lh-app-bar {
 	}
 }
 
-/* Class cover ink: the studied part of a class's signature, masked with a
+/* Space cover ink: the studied part of a space's signature, masked with a
    soft edge at --ink. A registered property so the edge can ease: it
    fills in from the left when the page opens, and moves when progress
    changes. The progress line under it grows in the same way. */

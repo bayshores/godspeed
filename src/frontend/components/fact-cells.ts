@@ -1,4 +1,4 @@
-/** The fact grid's colors, one cell per fact (a class's Progress, the graph). Pure and unit-tested. */
+/** The fact grid's colors, one cell per fact (a space's Progress, the graph). Pure and unit-tested. */
 import { UNTESTED_COLOR, rampColor, type FactProgress } from "@/shared/core";
 
 /** An unstudied fact's cell: the pane's own border color. */
@@ -10,7 +10,7 @@ export function factRate(f: Pick<FactProgress, "answers">): number | null {
 	return f.answers.filter((a) => a.outcome === "right").length / f.answers.length;
 }
 
-/** The class's fact grid, one color per fact: answered facts in their
+/** The space's fact grid, one color per fact: answered facts in their
  *  right rate's ramp color, then studied but unanswered ones, then the
  *  unstudied ones dim. */
 export function factCells(facts: readonly Pick<FactProgress, "inLessons" | "answers">[]): string[] {

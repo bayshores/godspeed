@@ -11,13 +11,13 @@ export function clockText(d: Date): string {
 	return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 }
 
-/** Pages that belong to no class: Menu lights up for them. */
+/** Pages that belong to no space: Menu lights up for them. */
 const MENU_PAGES = new Set(["/settings", "/archived"]);
 
 /**
- * The lit tab: "today", a class's id, or "menu" for the pages only the
- * Menu reaches (Settings, Archived classes, lessons with no class, an
- * archived class). Every other page shows the window's class.
+ * The lit tab: "today", a space's id, or "menu" for the pages only the
+ * Menu reaches (Settings, Archived spaces, lessons with no space, an
+ * archived space). Every other page shows the window's space.
  */
 export function selectedTab(pathname: string, active: string | null, tabIds: readonly string[]): string {
 	if (pathname === "/") return "today";

@@ -9,7 +9,7 @@
  * a different concern and are preserved by the sanitizer (core/settings.ts).
  */
 
-import { isClassId, isHexColor, isVersion } from "../../shared/core";
+import { isSpaceId, isHexColor, isVersion } from "../../shared/core";
 import type {
 	AgentSettings,
 	AppearanceSettings,
@@ -36,7 +36,7 @@ function asRecord(body: unknown): Record<string, unknown> | null {
 	return body as Record<string, unknown>;
 }
 
-/** general: { autoUpdate?: boolean; activeClass?: string; onboarded?: boolean; lastSeenVersion?: string; teacherName?: string; sounds?: boolean } */
+/** general: { autoUpdate?: boolean; activeSpace?: string; onboarded?: boolean; lastSeenVersion?: string; teacherName?: string; sounds?: boolean } */
 export function parseGeneralSettingsBody(body: unknown): SettingsBodyResult<GeneralSettings> {
 	const raw = asRecord(body);
 	if (!raw) return { ok: false, error: "Invalid JSON body" };
@@ -47,11 +47,11 @@ export function parseGeneralSettingsBody(body: unknown): SettingsBodyResult<Gene
 		}
 		settings.autoUpdate = raw.autoUpdate;
 	}
-	if (raw.activeClass !== undefined) {
-		if (!(raw.activeClass === "none" || isClassId(raw.activeClass))) {
-			return { ok: false, error: 'activeClass must be a class id or "none"' };
+	if (raw.activeSpace !== undefined) {
+		if (!(raw.activeSpace === "none" || isSpaceId(raw.activeSpace))) {
+			return { ok: false, error: 'activeSpace must be a space id or "none"' };
 		}
-		settings.activeClass = raw.activeClass;
+		settings.activeSpace = raw.activeSpace;
 	}
 	if (raw.onboarded !== undefined) {
 		if (typeof raw.onboarded !== "boolean") {

@@ -1,8 +1,8 @@
 /**
  * The godspeed folder on disk (src/shared/core/agent-folder.ts has the pure
  * parts). Setting it up writes the agent's instructions, its connection and
- * its start scripts there, plus classes/ with shortcuts to the class files
- * (class-shortcuts.ts); the app refreshes them once per start, so an
+ * its start scripts there, plus spaces/ with shortcuts to the space files
+ * (space-shortcuts.ts); the app refreshes them once per start, so an
  * update reaches them. Which folder is used, and whether the one-time
  * "godspeed has its own folder now" notice was seen, live in
  * <data>/agent-folder.json.
@@ -26,8 +26,8 @@ import {
 } from "../../shared/core/agent-folder.ts";
 import { writeFileAtomic } from "../store/write-file-atomic.ts";
 import { oldSetup, removeOldSetup } from "./old-setup.ts";
-import { syncShortcutsSafely, watchShortcuts } from "./class-shortcuts.ts";
-import { classDirs } from "../../shared/core/class-shortcuts.ts";
+import { syncShortcutsSafely, watchShortcuts } from "./space-shortcuts.ts";
+import { spaceDirs } from "../../shared/core/space-shortcuts.ts";
 import { stores } from "./stores.ts";
 
 const STATE_FILE = path.join(PATHS.data, "agent-folder.json");
@@ -54,12 +54,12 @@ interface AgentFolderView {
 	oldSetup: OldSetup;
 }
 
-/** The class's folder of shortcuts in the godspeed folder, when it's there. */
-export function classShortcutDir(classId: string): string | null {
+/** The space's folder of shortcuts in the godspeed folder, when it's there. */
+export function spaceShortcutDir(spaceId: string): string | null {
 	const view = agentFolderView();
 	if (!view.exists) return null;
-	const at = classDirs(stores.classStore.listClasses()).get(classId);
-	const dir = at && path.join(view.folder, "classes", ...at);
+	const at = spaceDirs(stores.spaceStore.listSpaces()).get(spaceId);
+	const dir = at && path.join(view.folder, "spaces", ...at);
 	return dir && fs.existsSync(dir) ? dir : null;
 }
 
@@ -97,7 +97,7 @@ function agentFolder(): string {
 	return readState().folder ?? defaultFolder();
 }
 
-// A dev server keeps its folder inside its own data, so its class list never
+// A dev server keeps its folder inside its own data, so its space list never
 // syncs over the installed app's ~/godspeed shortcuts.
 function defaultFolder(): string {
 	return process.env.NODE_ENV === "development" ? path.join(PATHS.data, "godspeed-folder") : path.join(os.homedir(), "godspeed");
@@ -148,7 +148,9 @@ function writeFolder(folder: string): void {
 	const dot = path.join(folder, ".godspeed");
 	put(path.join(folder, "CLAUDE.md"), template("CLAUDE.md"));
 	put(path.join(folder, "AGENTS.md"), template("AGENTS.md"));
-	put(path.join(folder, ".claude", "skills", "setup-classes", "SKILL.md"), template("setup-classes.md"));
+	put(path.join(folder, ".claude", "skills", "setup-spaces", "SKILL.md"), template("setup-spaces.md"));
+	// The command was /setup-classes before the rename.
+	fs.rmSync(path.join(folder, ".claude", "skills", "setup-classes"), { recursive: true, force: true });
 	put(path.join(folder, ".mcp.json"), mcpJson(folder, p));
 	for (const script of ["connect.mjs", "target.mjs", "wait-for-work.mjs", "forget.mjs", "compacting.mjs"]) put(path.join(dot, script), template(script));
 	put(path.join(dot, "package.json"), `${JSON.stringify({ private: true, type: "module", version: process.env.LH_VERSION ?? "0.0.0" }, null, "\t")}\n`);
@@ -172,7 +174,7 @@ export function setUpAgentFolder(folder = agentFolder()): AgentFolderView {
 	// A moved folder takes its shortcuts along.
 	if (before && path.resolve(before) !== path.resolve(folder)) syncShortcutsSafely(before, { clear: true });
 	syncShortcutsSafely(folder);
-	watchClassShortcuts();
+	watchSpaceShortcuts();
 	try {
 		removeOldSetup();
 	} catch (err) {
@@ -196,22 +198,22 @@ export function refreshAgentFolder(): void {
 		console.error("[agent-folder] refresh failed:", err);
 	}
 	syncShortcutsSafely(folder);
-	watchClassShortcuts();
+	watchSpaceShortcuts();
 }
 
 /** Why a file or folder can't be added from `p`: it's inside the godspeed
- *  folder's classes/, which only holds shortcuts to files godspeed already
+ *  folder's spaces/, which only holds shortcuts to files godspeed already
  *  has. Null when it's fine. */
 export function shortcutPathProblem(p: string): string | null {
-	const root = path.resolve(agentFolder(), "classes");
+	const root = path.resolve(agentFolder(), "spaces");
 	const at = path.resolve(p);
 	return at === root || at.startsWith(root + path.sep)
-		? "That's in godspeed's classes folder, which only holds shortcuts to files godspeed already has. Pick the original file or folder instead."
+		? "That's in godspeed's spaces folder, which only holds shortcuts to files godspeed already has. Pick the original file or folder instead."
 		: null;
 }
 
-/** Keep classes/ in step with the classes while a folder is set up. */
-function watchClassShortcuts(): void {
+/** Keep spaces/ in step with the spaces while a folder is set up. */
+function watchSpaceShortcuts(): void {
 	watchShortcuts(() => {
 		const folder = agentFolder();
 		return agentFolderView(folder).exists ? folder : null;

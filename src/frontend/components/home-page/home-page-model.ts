@@ -1,36 +1,36 @@
-/** Pure helpers for Today (home-page.tsx): per-class progress, which list a deadline goes in, and each row's words. */
+/** Pure helpers for Today (home-page.tsx): per-space progress, which list a deadline goes in, and each row's words. */
 import { hasProblems, localDay, planDays, type DeadlineProgress, type ProgressPayload } from "@/shared/core";
-import { clockLabel, deadlineDateLabel } from "@/frontend/components/class-deadlines-model";
+import { clockLabel, deadlineDateLabel } from "@/frontend/components/space-deadlines-model";
 import { DAY, HOUR, MINUTE, calendarDays, dueAtMs } from "@/frontend/components/countdown-model";
 import type { OpenDeadline } from "@/frontend/components/deadlines-model";
 import { progressWords } from "@/frontend/components/overview/overview-model";
 
-export interface ClassesProgress {
-	/** The latest payload each class has had. */
+export interface SpacesProgress {
+	/** The latest payload each space has had. */
 	progress: ReadonlyMap<string, ProgressPayload>;
-	/** Why a class's last read failed. */
+	/** Why a space's last read failed. */
 	errors: ReadonlyMap<string, string>;
 }
 
-export type ProgressRead = { classId: string; payload: ProgressPayload } | { classId: string; error: string };
+export type ProgressRead = { spaceId: string; payload: ProgressPayload } | { spaceId: string; error: string };
 
 /** One round of reads on top of the last state. A failed read keeps the
- *  class's earlier payload, so a blip never blanks a row that had data. */
-export function foldClassesProgress(prev: ClassesProgress, classIds: readonly string[], reads: readonly ProgressRead[]): ClassesProgress {
+ *  space's earlier payload, so a blip never blanks a row that had data. */
+export function foldSpacesProgress(prev: SpacesProgress, spaceIds: readonly string[], reads: readonly ProgressRead[]): SpacesProgress {
 	const progress = new Map<string, ProgressPayload>();
 	const errors = new Map<string, string>();
-	for (const classId of classIds) {
-		const read = reads.find((r) => r.classId === classId);
-		const payload = read && "payload" in read ? read.payload : prev.progress.get(classId);
-		if (payload) progress.set(classId, payload);
-		if (read && "error" in read) errors.set(classId, read.error);
+	for (const spaceId of spaceIds) {
+		const read = reads.find((r) => r.spaceId === spaceId);
+		const payload = read && "payload" in read ? read.payload : prev.progress.get(spaceId);
+		if (payload) progress.set(spaceId, payload);
+		if (read && "error" in read) errors.set(spaceId, read.error);
 	}
 	return { progress, errors };
 }
 
-/** Every class has either data or a failed read, so no row waits on another. */
-export function classesSettled(classIds: readonly string[], state: ClassesProgress): boolean {
-	return classIds.every((id) => state.progress.has(id) || state.errors.has(id));
+/** Every space has either data or a failed read, so no row waits on another. */
+export function spacesSettled(spaceIds: readonly string[], state: SpacesProgress): boolean {
+	return spaceIds.every((id) => state.progress.has(id) || state.errors.has(id));
 }
 
 /** A deadline at most this many days away is under Today; the rest are Later. */
@@ -92,7 +92,7 @@ export function progressNote(p: DeadlineProgress | undefined): string {
 	return words ? `. ${words}` : "";
 }
 
-/** When an open deadline is due, after its class: "due Friday", "the test
+/** When an open deadline is due, after its space: "due Friday", "the test
  *  is on Tuesday at 7:00 PM", "was due Tue Oct 27". */
 function dueWords(d: OpenDeadline, nowMs: number): string {
 	const dueMs = dueAtMs(d);
@@ -106,7 +106,7 @@ function dueWords(d: OpenDeadline, nowMs: number): string {
 
 interface TodayRowWords {
 	title: string;
-	/** Under the title: the class and when it is due. */
+	/** Under the title: the space and when it is due. */
 	line: string;
 	/** The one main button. "Work on it" works on the assignment's
 	 *  problems; the others study. */
@@ -116,7 +116,7 @@ interface TodayRowWords {
 /** A Today row's words. A test or quiz names today's share of the topics
  *  that still need work; homework and projects say how far they are. */
 export function todayRow(d: OpenDeadline, progress: DeadlineProgress | undefined, nowMs: number): TodayRowWords {
-	const when = `${d.className}, ${dueWords(d, nowMs)}`;
+	const when = `${d.spaceName}, ${dueWords(d, nowMs)}`;
 	if (hasProblems(d.kind)) return { title: d.name, line: `${when}${progressNote(progress)}`, button: "Work on it" };
 	if (progress?.continueStudy) return { title: `Continue studying for ${d.name}`, line: when, button: "Continue" };
 	const topics = progress ? (planDays(localDay(nowMs), d.date, progress.topics)[0]?.topics.length ?? 0) : 0;
@@ -126,5 +126,5 @@ export function todayRow(d: OpenDeadline, progress: DeadlineProgress | undefined
 
 /** Under a Later row's name: "CSE 21, Tuesday Dec 8. 19% ready". */
 export function laterLine(d: OpenDeadline, progress: DeadlineProgress | undefined): string {
-	return `${d.className}, ${longDay(d.date)}${progressNote(progress)}`;
+	return `${d.spaceName}, ${longDay(d.date)}${progressNote(progress)}`;
 }

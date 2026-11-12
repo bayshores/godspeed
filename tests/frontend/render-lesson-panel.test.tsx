@@ -62,7 +62,7 @@ const marco: HalleyApi = {
 	setLesson: () => {},
 	go: () => {},
 	offer: null,
-	classNameOf: () => null,
+	spaceNameOf: () => null,
 };
 const named = (node: React.ReactNode) => <HalleyContext.Provider value={marco}>{node}</HalleyContext.Provider>;
 
@@ -581,7 +581,7 @@ describe("saved drafts", () => {
 
 describe("the teacher column", () => {
 	const column = (over: Partial<React.ComponentProps<typeof TeacherColumn>> = {}) => (
-		<TeacherColumn {...turnProps(over)} classId={undefined} width={480} onWidth={() => {}} requiresReveal={false} onReveal={() => {}} {...over} />
+		<TeacherColumn {...turnProps(over)} spaceId={undefined} width={480} onWidth={() => {}} requiresReveal={false} onReveal={() => {}} {...over} />
 	);
 
 	it("the head names the teacher and says what it is doing, over Your turn", () => {

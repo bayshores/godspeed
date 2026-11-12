@@ -157,7 +157,7 @@ describe("parseProbeDoneInput", () => {
 
 	it("the live crash shape — assessment STRINGIFIED — does not parse", () => {
 		// The exact double-encoding from the modal-realism run: strands died
-		// on `.map` because the card cast the shape. The parse kills the class.
+		// on `.map` because the card cast the shape. The parse kills the space.
 		const stringified = { assessment: JSON.stringify(VALID_ASSESSMENT.assessment) };
 		assert.equal(parseProbeDoneInput(stringified), undefined);
 		const garbage = JSON.stringify(VALID_ASSESSMENT.assessment).slice(0, 30);

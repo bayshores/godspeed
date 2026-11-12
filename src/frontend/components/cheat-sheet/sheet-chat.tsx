@@ -62,7 +62,7 @@ const NOTE = "flex items-center gap-2.5 self-start rounded border border-border 
  */
 export function SheetChat({
 	view,
-	classId,
+	spaceId,
 	deadlineId,
 	act,
 	agentName,
@@ -74,7 +74,7 @@ export function SheetChat({
 	className,
 }: {
 	view: CheatSheetView;
-	classId: string;
+	spaceId: string;
 	deadlineId: string;
 	/** Posts one action; resolves to the error line, or null. */
 	act: (body: Record<string, unknown>) => Promise<string | null>;
@@ -142,7 +142,7 @@ export function SheetChat({
 							<div data-testid="sheet-row" className="flex min-w-0 flex-col gap-1">
 								{first && <span className={cn("truncate", LABEL_TEXT)}>{m.role === "you" ? "You" : agentName}</span>}
 								{m.role === "you" ? (
-									<YouBody message={m} classId={classId} deadlineId={deadlineId} pages={pagesOf} />
+									<YouBody message={m} spaceId={spaceId} deadlineId={deadlineId} pages={pagesOf} />
 								) : (
 									<AgentBody message={m} current={view.sheet.versions.at(-1)?.n ?? null} onShowVersion={onShowVersion} />
 								)}
@@ -205,7 +205,7 @@ function ComposerBar({ attachments, busy, disabled, onSend, onStop }: { attachme
 	);
 }
 
-function YouBody({ message, classId, deadlineId, pages }: { message: Extract<SheetMessage, { role: "you" }>; classId: string; deadlineId: string; pages: (n: number) => number }) {
+function YouBody({ message, spaceId, deadlineId, pages }: { message: Extract<SheetMessage, { role: "you" }>; spaceId: string; deadlineId: string; pages: (n: number) => number }) {
 	const files = message.files ?? [];
 	return (
 		<>
@@ -224,7 +224,7 @@ function YouBody({ message, classId, deadlineId, pages }: { message: Extract<She
 					{files.map((f, i) =>
 						f.file && !/\.pdf$/i.test(f.file) ? (
 							// eslint-disable-next-line @next/next/no-img-element -- the learner's picture, kept beside the sheet
-							<img key={i} data-testid="sheet-picture" src={sheetFilePath(classId, deadlineId, f.file)} alt={f.name} className="block max-h-[160px] w-auto max-w-full rounded border border-border" />
+							<img key={i} data-testid="sheet-picture" src={sheetFilePath(spaceId, deadlineId, f.file)} alt={f.name} className="block max-h-[160px] w-auto max-w-full rounded border border-border" />
 						) : (
 							<span key={i} data-testid="sheet-file" className="flex h-8 max-w-56 items-center rounded border border-border bg-background px-3 text-base text-ink">
 								<span className="truncate" title={f.name}>

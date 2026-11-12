@@ -1,9 +1,9 @@
 /**
- * The Graph tab's bar under the class head: search (topics and facts),
+ * The Graph tab's bar under the space head: search (topics and facts),
  * then Graph costs, All facts (the chain table) and Add files, which
- * opens the class's Files tab (No class has no Files tab, so there it
+ * opens the space's Files tab (No space has no Files tab, so there it
  * picks notes files right here). Search and All facts only show once the
- * class has facts; Graph costs once a graph run has been recorded.
+ * space has facts; Graph costs once a graph run has been recorded.
  */
 import { useEffect, useRef, type RefObject } from "react";
 import Link from "next/link";
@@ -27,7 +27,7 @@ export function GraphTopBar({
 	onOpenChains: () => void;
 	/** null until loaded. */
 	costs: GraphCostSummary | null;
-	/** No class's own file picker; null in a class (Add files opens Files). */
+	/** No space's own file picker; null in a space (Add files opens Files). */
 	importNotes: { importing: boolean; onImportFiles: (files: FileList | null) => void } | null;
 }) {
 	const searchRef = useRef<HTMLInputElement>(null);
@@ -51,7 +51,7 @@ export function GraphTopBar({
 			{importNotes ? (
 				<ImportNotes {...importNotes} />
 			) : (
-				<Link href="/class/files" data-testid="add-notes" className={BUTTON}>
+				<Link href="/space/files" data-testid="add-notes" className={BUTTON}>
 					<PixelIcon name="plus" />
 					Add files
 				</Link>

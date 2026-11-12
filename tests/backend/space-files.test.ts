@@ -1,0 +1,169 @@
+/**
+ * SPACES PINS — the to-text step and the
+ * transcriber's program lookup (no whisper run here).
+ */
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
+import { describe, it } from "node:test";
+import { fileToText, isReadableSpaceFile, looksLikeText, transcriptToText, walkLinkedFolder, RecordingNeedsTranscriptError } from "../../src/backend/server/space-files.ts";
+import { findProgram } from "../../src/backend/server/transcribe.ts";
+import { MAX_LINKED_FILES, safeName } from "../../src/shared/core/contracts.ts";
+
+describe("transcriptToText", () => {
+	it("strips WebVTT headers, timings, tags and rolling duplicates", () => {
+		const vtt = "WEBVTT\n\n1\n00:00:01.000 --> 00:00:03.000\n<v Prof>Today: gradients.</v>\n\n2\n00:00:03.000 --> 00:00:05.000\nToday: gradients.\nThey point uphill.\n";
+		assert.equal(transcriptToText(vtt), "Today: gradients.\nThey point uphill.");
+	});
+	it("strips SRT cue numbers and timings", () => {
+		const srt = "1\r\n00:00:01,000 --> 00:00:02,000\r\nHello\r\n\r\n2\r\n00:00:02,000 --> 00:00:03,000\r\nworld\r\n";
+		assert.equal(transcriptToText(srt), "Hello\nworld");
+	});
+});
+
+describe("fileToText and the folder walk", () => {
+	it("reads text, routes recordings to the transcriber, walks only supported files", async () => {
+		const dir = fs.mkdtempSync(path.join(os.tmpdir(), "lh-space-files-"));
+		try {
+			fs.writeFileSync(path.join(dir, "a.md"), "# Notes");
+			fs.writeFileSync(path.join(dir, "talk.m4a"), "");
+			fs.writeFileSync(path.join(dir, ".hidden.md"), "x");
+			fs.writeFileSync(path.join(dir, "img.png"), "x");
+			fs.mkdirSync(path.join(dir, "sub"));
+			fs.writeFileSync(path.join(dir, "sub", "b.srt"), "1\n00:00:01,000 --> 00:00:02,000\nHi\n");
+			assert.equal(await fileToText(path.join(dir, "a.md")), "# Notes");
+			assert.equal(await fileToText(path.join(dir, "sub", "b.srt")), "Hi");
+			await assert.rejects(fileToText(path.join(dir, "talk.m4a")), RecordingNeedsTranscriptError);
+			assert.deepEqual(walkLinkedFolder(dir), {
+				files: ["a.md", "sub/b.srt", "talk.m4a"],
+				capped: false,
+				unreadable: [],
+				skipped: { count: 1, examples: ["img.png"], google: 0 },
+			});
+		} finally {
+			fs.rmSync(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("reads code and extension-less text, and counts what it can't read", async () => {
+		const dir = fs.mkdtempSync(path.join(os.tmpdir(), "lh-space-files-types-"));
+		try {
+			fs.writeFileSync(path.join(dir, "malloc.c"), "int main(void) { return 0; }\n");
+			fs.writeFileSync(path.join(dir, "SUMMARY - cse29.site, Piazza feed (captured 2026-10-31)"), "Test 2 moved to Friday.\n");
+			fs.writeFileSync(path.join(dir, "blob"), Buffer.from([0x50, 0x4b, 0x00, 0x01]));
+			fs.writeFileSync(path.join(dir, "empty"), "");
+			fs.writeFileSync(path.join(dir, "Plan.gdoc"), '{"doc_id":"x"}');
+			fs.writeFileSync(path.join(dir, "~$Draft.docx"), "lock");
+			fs.writeFileSync(path.join(dir, "notes.md~"), "an editor's backup");
+			assert.equal(await fileToText(path.join(dir, "malloc.c")), "int main(void) { return 0; }\n");
+			assert.equal(await fileToText(path.join(dir, "SUMMARY - cse29.site, Piazza feed (captured 2026-10-31)")), "Test 2 moved to Friday.\n");
+			assert.deepEqual(walkLinkedFolder(dir), {
+				files: ["malloc.c", "SUMMARY - cse29.site, Piazza feed (captured 2026-10-31)"],
+				capped: false,
+				unreadable: [],
+				skipped: { count: 3, examples: ["blob", "empty", "Plan.gdoc"], google: 1 },
+			});
+		} finally {
+			fs.rmSync(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("looksLikeText: UTF-8 without NUL bytes, a character cut at the end allowed", () => {
+		assert.equal(looksLikeText(new TextEncoder().encode("café ∑ notes")), true);
+		assert.equal(looksLikeText(new TextEncoder().encode("é").subarray(0, 1)), true);
+		assert.equal(looksLikeText(Buffer.from([0x68, 0x00, 0x69])), false);
+		assert.equal(looksLikeText(Buffer.from([0xff, 0xfe, 0x41])), false);
+		assert.equal(looksLikeText(new Uint8Array()), false);
+		assert.equal(isReadableSpaceFile("notes", () => true), true);
+		assert.equal(isReadableSpaceFile("photo.heic", () => true), false);
+		assert.equal(isReadableSpaceFile("notes", () => null), null, "couldn't be checked");
+	});
+
+	it("stops at the file limit and says so", () => {
+		const dir = fs.mkdtempSync(path.join(os.tmpdir(), "lh-space-files-cap-"));
+		try {
+			for (let i = 0; i < MAX_LINKED_FILES; i++) fs.writeFileSync(path.join(dir, `${String(i).padStart(3, "0")}.md`), "");
+			assert.equal(walkLinkedFolder(dir).capped, false, "exactly at the limit is fine");
+			fs.writeFileSync(path.join(dir, "zzz.md"), "");
+			const walk = walkLinkedFolder(dir);
+			assert.equal(walk.files.length, MAX_LINKED_FILES);
+			assert.equal(walk.capped, true);
+		} finally {
+			fs.rmSync(dir, { recursive: true, force: true });
+		}
+	});
+});
+
+describe("walkLinkedFolder on an unreadable folder", () => {
+	// Root reads any folder, and Windows ignores the mode bits.
+	const skip = process.platform === "win32" || process.getuid?.() === 0;
+	it("throws instead of reporting it empty", { skip }, () => {
+		const dir = fs.mkdtempSync(path.join(os.tmpdir(), "lh-space-files-locked-"));
+		try {
+			fs.writeFileSync(path.join(dir, "a.md"), "");
+			fs.chmodSync(dir, 0o000);
+			assert.throws(() => walkLinkedFolder(dir));
+		} finally {
+			fs.chmodSync(dir, 0o755);
+			fs.rmSync(dir, { recursive: true, force: true });
+		}
+	});
+	it("lists an unreadable subfolder instead of skipping it silently", { skip }, () => {
+		const dir = fs.mkdtempSync(path.join(os.tmpdir(), "lh-space-files-locked-sub-"));
+		const sub = path.join(dir, "week 2");
+		try {
+			fs.writeFileSync(path.join(dir, "a.md"), "");
+			fs.mkdirSync(sub);
+			fs.writeFileSync(path.join(sub, "b.md"), "");
+			fs.chmodSync(sub, 0o000);
+			assert.deepEqual(walkLinkedFolder(dir), { files: ["a.md"], capped: false, unreadable: ["week 2"], skipped: { count: 0, examples: [], google: 0 } });
+		} finally {
+			fs.chmodSync(sub, 0o755);
+			fs.rmSync(dir, { recursive: true, force: true });
+		}
+	});
+	it("lists a no-extension file it couldn't open as unreadable, never as not text", { skip }, () => {
+		const dir = fs.mkdtempSync(path.join(os.tmpdir(), "lh-space-files-locked-file-"));
+		const note = path.join(dir, "SUMMARY (captured 2026-10-31)");
+		try {
+			fs.writeFileSync(note, "Test 2 moved to Friday.\n");
+			fs.chmodSync(note, 0o000);
+			assert.deepEqual(walkLinkedFolder(dir), { files: [], capped: false, unreadable: ["SUMMARY (captured 2026-10-31)"], skipped: { count: 0, examples: [], google: 0 } });
+		} finally {
+			fs.chmodSync(note, 0o644);
+			fs.rmSync(dir, { recursive: true, force: true });
+		}
+	});
+});
+
+describe("findProgram", () => {
+	it("finds an executable on PATH and returns null when absent", () => {
+		const dir = fs.mkdtempSync(path.join(os.tmpdir(), "lh-bin-"));
+		try {
+			const exe = path.join(dir, "whisper-cli");
+			fs.writeFileSync(exe, "#!/bin/sh\n");
+			fs.chmodSync(exe, 0o755);
+			assert.equal(findProgram("whisper-cli", { PATH: dir }), exe);
+			assert.equal(findProgram("definitely-not-a-program-xyz", { PATH: dir }), null);
+		} finally {
+			fs.rmSync(dir, { recursive: true, force: true });
+		}
+	});
+});
+
+describe("safeName", () => {
+	it("keeps only the last path segment, without control characters", () => {
+		assert.equal(safeName("..\\..\\x.md"), "x.md");
+		assert.equal(safeName("a/b/c.md"), "c.md");
+		assert.equal(safeName("dir/"), "dir");
+		assert.equal(safeName("  notes.md "), "notes.md");
+		assert.equal(safeName("we\u0000ek\u001f1.md"), "week1.md");
+	});
+	it('falls back to "file" for a name with nothing left', () => {
+		for (const name of ["\u0001\u0002", ".", "..", " ", "", "/", "a/.."]) assert.equal(safeName(name), "file", JSON.stringify(name));
+	});
+	it("cuts a long name to 200 characters", () => {
+		assert.equal(safeName(`${"x".repeat(300)}.md`).length, 200);
+	});
+});

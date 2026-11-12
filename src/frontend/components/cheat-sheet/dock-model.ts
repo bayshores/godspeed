@@ -51,7 +51,7 @@ export function pickSheet(cards: readonly SheetCard[], sessionDeadlineId: string
 }
 
 /** Make one: the deadline a new sheet is for (the session's, else the next
- *  upcoming one), or null when the class has none. */
+ *  upcoming one), or null when the space has none. */
 export function makeTarget(cards: readonly SheetCard[], sessionDeadlineId: string | undefined): string | null {
 	if (sessionDeadlineId && cards.some((c) => c.deadlineId === sessionDeadlineId)) return sessionDeadlineId;
 	return (cards.find((c) => !c.past) ?? cards[0])?.deadlineId ?? null;

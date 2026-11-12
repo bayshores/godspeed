@@ -52,7 +52,7 @@ const BASE = {
 	chains: CHAINS,
 	sessions: { chat1: "Ethics lesson", chat2: "Second chat" },
 	fileSources: { notes1: "notes/raw/ethics.md" },
-	classLabel: "CSE 21" as string | null,
+	spaceLabel: "CSE 21" as string | null,
 	query: "",
 	onQuery: () => {},
 	sort: { col: "name", dir: 1 } as ChainSort,
@@ -109,7 +109,7 @@ describe("ChainTableBody — clusters (the outermost layer)", () => {
 });
 
 describe("ChainTableBody — the head", () => {
-	it("All facts, the count line with the class, the search field, Close, the hint and Sort by", () => {
+	it("All facts, the count line with the space, the search field, Close, the hint and Sort by", () => {
 		const html = render();
 		assert.match(html, /<h1[^>]*>All facts</);
 		assert.match(html, /data-testid="chain-table-count"[^>]*>7 facts in CSE 21</);
@@ -121,8 +121,8 @@ describe("ChainTableBody — the head", () => {
 		assert.ok(!html.includes("Pick the facts to start from"), "only while picking");
 	});
 
-	it("without a class the count line is just the count", () => {
-		assert.match(render({ classLabel: null }), /data-testid="chain-table-count"[^>]*>7 facts</);
+	it("without a space the count line is just the count", () => {
+		assert.match(render({ spaceLabel: null }), /data-testid="chain-table-count"[^>]*>7 facts</);
 	});
 
 	it("picking asks for the facts to start from", () => {

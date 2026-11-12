@@ -10,7 +10,7 @@ import { ProgressBar } from "@/frontend/components/ui/progress-bar";
 import { deadlineHref, nextDeadlineButton, progressShare, progressWords } from "./overview-model";
 
 /**
- * THE NEXT DEADLINE (Progress): the class's soonest open deadline with
+ * THE NEXT DEADLINE (Progress): the space's soonest open deadline with
  * the time left, how far it is and the one button that works on it. Its
  * name opens its page. With none: one line and "Add a deadline".
  */
@@ -27,7 +27,7 @@ export const NextDeadline = memo(function NextDeadline({
 	deadline: DeadlineProgress | null;
 	/** What to say with none ahead. */
 	none: string;
-	/** The class's color. */
+	/** The space's color. */
 	color: string;
 	nowMs: number;
 	/** A lesson is starting. */

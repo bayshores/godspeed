@@ -18,7 +18,7 @@ const SORTS = [
 const TALLY = "shrink-0 font-count text-[15px] text-ink-2";
 
 /**
- * "All facts": every fact of the class in three levels, the lesson or
+ * "All facts": every fact of the space in three levels, the lesson or
  * file it came from, its chains written as `A ∧ B ⟹ C`, and each fact's
  * statement. Search, sort and the picked facts come in as props (the
  * overlay owns them), so the render tests draw this directly.
@@ -28,7 +28,7 @@ export function ChainTableBody({
 	chains: storedChains,
 	sessions,
 	fileSources,
-	classLabel,
+	spaceLabel,
 	query,
 	onQuery,
 	sort,
@@ -49,8 +49,8 @@ export function ChainTableBody({
 	chains: GraphChain[];
 	sessions: Record<string, string>;
 	fileSources: Record<string, string>;
-	/** The class's name for the count line. */
-	classLabel: string | null;
+	/** The space's name for the count line. */
+	spaceLabel: string | null;
 	query: string;
 	onQuery: (v: string) => void;
 	sort: ChainSort;
@@ -90,7 +90,7 @@ export function ChainTableBody({
 						<div className="flex min-w-0 flex-1 flex-col gap-0.5">
 							<h1 className="text-[30px] leading-tight text-ink">All facts</h1>
 							<p data-testid="chain-table-count" className="text-[15px] text-ink-2">
-								{countLine(nodes.length, classLabel)}
+								{countLine(nodes.length, spaceLabel)}
 							</p>
 						</div>
 						<input

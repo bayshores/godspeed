@@ -43,7 +43,7 @@ describe("standalone JavaScript tracing exclusions and native workaround policy"
 		assert.deepEqual(nextConfig.outputFileTracingIncludes!["*"], [
 			"node_modules/@puppeteer/browsers/lib/browser-data/**/*.js",
 			"node_modules/pdfjs-dist/legacy/**/*",
-			// Speed plan: the class-PDF text worker, loaded by path.
+			// Speed plan: the space-PDF text worker, loaded by path.
 			"src/backend/server/workers/**/*",
 			"src/backend/server/agent-folder-files/**/*",
 			"node_modules/pdfjs-dist/standard_fonts/**/*",
@@ -54,7 +54,7 @@ describe("standalone JavaScript tracing exclusions and native workaround policy"
 			"node_modules/pdfjs-dist/wasm/**/*",
 			"node_modules/@napi-rs/canvas-*/**/*",
 			"node_modules/@resvg/resvg-js-*/**/*",
-			// Class search: onnxruntime-node, loaded by createRequire; this platform's binding only.
+			// Space search: onnxruntime-node, loaded by createRequire; this platform's binding only.
 			"node_modules/onnxruntime-node/package.json",
 			"node_modules/onnxruntime-node/dist/**/*.js",
 			"node_modules/onnxruntime-common/dist/cjs/**/*.js",

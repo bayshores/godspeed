@@ -44,7 +44,7 @@ const SLUG_RE = /^[a-z0-9]+([_-][a-z0-9]+)*$/;
 /** Any arrow spelling counts as a requires-edge; chains split on it. */
 const ARROW_RE = /-->|==>|-\.->/;
 /** One edge endpoint: `id`, `id[title]`, or `id("title")`. */
-// The id CANDIDATE class is deliberately broad — anything but whitespace,
+// The id CANDIDATE space is deliberately broad — anything but whitespace,
 // brackets, parens — so EVERY bad id (UPPER, dots…) reaches
 // register()'s SPECIFIC slug message instead of dying at the regex layer
 // with a generic parse error the teacher can't act on.
@@ -145,7 +145,7 @@ export function parseMermaidPlan(mermaid: string): PlanParseResult {
 			const node = parseEndpoint(line);
 			if (!node) {
 				problems.push(
-					`line ${no}: can't parse \`${line}\` — ids are the strict part (lowercase slugs: a-z, 0-9, hyphens, underscores); node lines (\`slug[title]\`) and requires-edges (\`a --> b\`) are the accepted forms; subgraphs, styles, and classes are not part of the subset.`,
+					`line ${no}: can't parse \`${line}\` — ids are the strict part (lowercase slugs: a-z, 0-9, hyphens, underscores); node lines (\`slug[title]\`) and requires-edges (\`a --> b\`) are the accepted forms; subgraphs, styles, and spaces are not part of the subset.`,
 				);
 				continue;
 			}

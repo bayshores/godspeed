@@ -1,5 +1,5 @@
 /**
- * The lesson's own bar: the way back with the class's name, the lesson's
+ * The lesson's own bar: the way back with the space's name, the lesson's
  * name, the homework file, "Cheat sheet" and "Find", and Find taking their
  * place in the bar.
  */
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { afterEach, describe, it } from "node:test";
 import type { Root } from "react-dom/client";
 import { parseHTML } from "linkedom";
-import type { ClassSummary } from "../../src/shared/core/index.ts";
+import type { SpaceSummary } from "../../src/shared/core/index.ts";
 
 const dom = parseHTML("<html><body></body></html>");
 (dom.document as unknown as { oninput: null }).oninput = null;
@@ -32,11 +32,11 @@ Object.assign(globalThis, {
 
 const { createRoot } = await import("react-dom/client");
 const { LessonTopBar } = await import("../../src/frontend/components/lesson/lesson-top-bar.tsx");
-const { ClassProvider } = await import("../../src/frontend/components/class-context.tsx");
+const { SpaceProvider } = await import("../../src/frontend/components/space-context.tsx");
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
 const { AppRouterContext } = await import("next/dist/shared/lib/app-router-context.shared-runtime.js");
 
-const CLASSES: ClassSummary[] = [{ id: "c21", name: "CSE 21", description: "", createdAt: "", updatedAt: "", archived: false, fileCount: 3, color: 2 }];
+const SPACES: SpaceSummary[] = [{ id: "c21", name: "CSE 21", description: "", createdAt: "", updatedAt: "", archived: false, fileCount: 3, color: 2 }];
 
 let root: Root | null = null;
 afterEach(() => {
@@ -58,9 +58,9 @@ async function mount(props: Partial<React.ComponentProps<typeof LessonTopBar>> =
 		root!.render(
 			<AppRouterContext.Provider value={router}>
 				<ServerEventsProvider connect={quietEvents as never}>
-					<ClassProvider initialActive="c21" initialClasses={CLASSES}>
-						<LessonTopBar rename={rename()} classId="c21" scopeRef={{ current: null }} scrollContextRef={{ current: null }} {...props} />
-					</ClassProvider>
+					<SpaceProvider initialActive="c21" initialSpaces={SPACES}>
+						<LessonTopBar rename={rename()} spaceId="c21" scopeRef={{ current: null }} scrollContextRef={{ current: null }} {...props} />
+					</SpaceProvider>
 				</ServerEventsProvider>
 			</AppRouterContext.Provider>,
 		);
@@ -72,17 +72,17 @@ const click = (el: HTMLElement) => act(async () => el.click());
 const buttons = () => [...document.querySelectorAll("button")].map((b) => b.textContent?.trim());
 
 describe("the lesson's own bar", () => {
-	it("goes back to the class's lessons under the class's name, and shows the lesson's name", async () => {
+	it("goes back to the space's lessons under the space's name, and shows the lesson's name", async () => {
 		await mount();
 		const back = q("page-back")!;
 		assert.equal(back.textContent, "CSE 21");
-		assert.equal(back.getAttribute("href"), "/class/lessons");
+		assert.equal(back.getAttribute("href"), "/space/lessons");
 		assert.equal(q("lesson-title")!.textContent, "Study: counting");
 		assert.ok(q("lesson-bar")!.className.includes("lh-own-bar"));
 	});
 
-	it("a lesson with no class goes back to Lessons and has no Cheat sheet", async () => {
-		await mount({ classId: undefined });
+	it("a lesson with no space goes back to Lessons and has no Cheat sheet", async () => {
+		await mount({ spaceId: undefined });
 		assert.equal(q("page-back")!.textContent, "Lessons");
 		assert.equal(q("lesson-cheat-sheet"), null);
 		assert.ok(q("lesson-find"));

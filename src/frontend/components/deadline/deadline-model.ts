@@ -1,19 +1,19 @@
 /**
- * The deadline page's "What's on it": the files it covers grouped into class
+ * The deadline page's "What's on it": the files it covers grouped into space
  * days (a day's slides, transcript and discussion are one row) and weeks,
- * the class days before it that it neither covers nor leaves out, and the
+ * the days before it that it neither covers nor leaves out, and the
  * ones left out on purpose. Pure and unit-tested.
  */
-import { dateInName, extensionOf, type ClassDeadline, type ClassFile, type DeadlineKind, type FileCoverage, type TopicProgress } from "@/shared/core";
-import { clockLabel, kindLabel } from "@/frontend/components/class-deadlines-model";
+import { dateInName, extensionOf, type SpaceDeadline, type SpaceFile, type DeadlineKind, type FileCoverage, type TopicProgress } from "@/shared/core";
+import { clockLabel, kindLabel } from "@/frontend/components/space-deadlines-model";
 import { longDay } from "@/frontend/components/home-page/home-page-model";
 
 export type DayState = "ready" | "reading" | "failed" | "info";
 
-type FileLike = Pick<ClassFile, "id" | "name" | "kind" | "status">;
+type FileLike = Pick<SpaceFile, "id" | "name" | "kind" | "status">;
 
-/** One class day: every file dated that day (or one undated file). */
-export interface ClassDay {
+/** One day: every file dated that day (or one undated file). */
+export interface Day {
 	/** The date, or the file id for an undated file. */
 	key: string;
 	/** "YYYY-MM-DD"; null for an undated file. */
@@ -29,19 +29,19 @@ export interface ClassDay {
 }
 
 export interface Week {
-	/** Counted from the week of the class's first dated study file. */
+	/** Counted from the week of the space's first dated study file. */
 	number: number;
-	days: ClassDay[];
+	days: Day[];
 }
 
 export interface Material {
-	/** The covered files' class days by week, then undated files as their own days. */
+	/** The covered files' days by week, then undated files as their own days. */
 	weeks: Week[];
-	undated: ClassDay[];
+	undated: Day[];
 	/** Study days before it that it doesn't cover and that weren't left out. */
-	notIncluded: ClassDay[];
-	leftOut: ClassDay[];
-	classDays: number;
+	notIncluded: Day[];
+	leftOut: Day[];
+	dayCount: number;
 	files: number;
 	reading: number;
 	failed: number;
@@ -95,7 +95,7 @@ function partOf(name: string): string | null {
 	return PART_WORDS.find((w) => lower.includes(w)) ?? null;
 }
 
-function dayOf(key: string, date: string | null, files: FileLike[]): ClassDay {
+function dayOf(key: string, date: string | null, files: FileLike[]): Day {
 	const titles = files.map((f) => titleOf(f.name));
 	const best = titles.reduce((a, b) => (topicWords(b) > topicWords(a) || (topicWords(b) === topicWords(a) && b.length < a.length) ? b : a));
 	return {
@@ -109,8 +109,8 @@ function dayOf(key: string, date: string | null, files: FileLike[]): ClassDay {
 	};
 }
 
-/** Files grouped into class days: dated ones by day (in date order), then each undated one alone (by name). */
-function classDays(files: readonly FileLike[]): ClassDay[] {
+/** Files grouped into days: dated ones by day (in date order), then each undated one alone (by name). */
+function daysOf(files: readonly FileLike[]): Day[] {
 	const byDate = new Map<string, FileLike[]>();
 	const undated: FileLike[] = [];
 	for (const f of files) {
@@ -132,9 +132,9 @@ function weekStart(day: number): number {
 
 const dayNumber = (date: string) => Math.floor(Date.parse(`${date}T00:00:00Z`) / 86_400_000);
 
-type DeadlineLike = Pick<ClassDeadline, "id" | "kind" | "date" | "fileIds" | "leftOutIds">;
+type DeadlineLike = Pick<SpaceDeadline, "id" | "kind" | "date" | "fileIds" | "leftOutIds">;
 
-/** Where the "not on it" check starts: after the class's last earlier exam
+/** Where the "not on it" check starts: after the space's last earlier exam
  *  for an exam, else at its first covered day; null = no check. */
 function checkFrom(d: DeadlineLike, others: readonly DeadlineLike[], coveredDates: string[]): string | null {
 	if (d.kind === "exam") {
@@ -153,7 +153,7 @@ export function deadlineMaterial(
 	const covered = new Set(deadline.fileIds);
 	const leftOut = new Set(deadline.leftOutIds ?? []);
 	const shown = files.filter((f) => covered.has(f.id));
-	const days = classDays(shown);
+	const days = daysOf(shown);
 	const firstDate = files.filter((f) => f.kind === "study").map((f) => dateInName(f.name)).filter((d): d is string => d !== null).sort()[0];
 	// A term that starts on a Friday folds those days into week 1.
 	const base = firstDate ? weekStart(dayNumber(firstDate) + 3) : 0;
@@ -179,9 +179,9 @@ export function deadlineMaterial(
 	return {
 		weeks,
 		undated: days.filter((d) => !d.date),
-		notIncluded: classDays(candidates),
-		leftOut: classDays(files.filter((f) => leftOut.has(f.id))),
-		classDays: coveredDates.length,
+		notIncluded: daysOf(candidates),
+		leftOut: daysOf(files.filter((f) => leftOut.has(f.id))),
+		dayCount: coveredDates.length,
 		files: shown.length,
 		reading: shown.filter((f) => fileState(f) === "reading").length,
 		failed: shown.filter((f) => fileState(f) === "failed").length,
@@ -191,9 +191,9 @@ export function deadlineMaterial(
 
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
-/** "11 class days, 34 files, 2 still being read". */
+/** "11 days, 34 files, 2 still being read". */
 export function materialSummary(m: Material): string {
-	const parts = [m.classDays > 0 ? plural(m.classDays, "class day") : null, plural(m.files, "file")];
+	const parts = [m.dayCount > 0 ? plural(m.dayCount, "day") : null, plural(m.files, "file")];
 	if (m.reading > 0) parts.push(`${m.reading} still being read`);
 	if (m.failed > 0) parts.push(`${m.failed} couldn't be read`);
 	return parts.filter(Boolean).join(", ");
@@ -205,8 +205,8 @@ export function shortDate(date: string): string {
 }
 
 /** The message Ask sends the teacher. */
-export function coverageMessage(className: string, deadline: { name: string; when: string }): string {
-	return `Work out what ${deadline.name} (${deadline.when}) in ${className} covers from my files, like a practice exam, a review sheet or the syllabus. Link those files to it, leave out the earlier ones it doesn't cover, and tell me which file you went by.`;
+export function coverageMessage(spaceName: string, deadline: { name: string; when: string }): string {
+	return `Work out what ${deadline.name} (${deadline.when}) in ${spaceName} covers from my files, like a practice exam, a review sheet or the syllabus. Link those files to it, leave out the earlier ones it doesn't cover, and tell me which file you went by.`;
 }
 
 /** A topic's answers so far. */

@@ -19,10 +19,10 @@ This is the one hard rule, and no request changes it:
 4. When their own work reaches a right answer, `conclude` with solved (or solvedWithHints when you gave hints): that marks it done. If they want to leave it for now, conclude with movedOn.
 5. After a conclude, wait for their go-ahead (*Next problem*, or their own words), then open the first problem not done, starting at its first part, unless they pick another. When they ask for a different problem while one is open, that ask is the go-ahead: conclude the open one with movedOn and open theirs in the same reply. A different part of the open problem needs only `part`.
 
-When every problem is done, say so in one line and remind them to hand it in where their class takes it, then tick it done here.
+When every problem is done, say so in one line and remind them to hand it in where their space takes it, then tick it done here.
 
 ## Tool mechanics
 
 `post_problems` saves the list on the deadline; calling it again replaces it and keeps each problem's done mark by number. `problem` opens one; only one is open at a time. `part` marks the part they're on. `conclude` closes it. A dismissal arrives as a conclude with outcome dismissed: the learner closed the problem; it stays not done. Questions between problems are answered in text and end your turn.
 
-The class tools (read_class, search_class_files, read_passage) find the lectures and readings a problem draws on. The learner's files are read with read, ls, find and grep; PDFs through a pdf job.
+The space tools (read_space, search_space_files, read_passage) find the lectures and readings a problem draws on. The learner's files are read with read, ls, find and grep; PDFs through a pdf job.

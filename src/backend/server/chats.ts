@@ -69,7 +69,7 @@ export function runningWorkBlocker(chatId: string): Extract<ChatDeleteOutcome, {
 }
 
 /** Quiesce one lesson before a synchronous graph rewrite (deletion, or a
- *  class move): refuse while a turn or job runs,
+ *  space move): refuse while a turn or job runs,
  *  abort and wait out its extraction. Null = safe to run the sync block
  *  NOW (no await may sit between this and the rewrite). */
 export async function quiesceChatForRewrite(chatId: string): Promise<Extract<ChatDeleteOutcome, { ok: false }> | null> {
@@ -127,8 +127,8 @@ export async function deleteChatSession(chatId: string, mode: ChatDeleteMode): P
 	if (blocker) return blocker;
 
 	// THE SYNC BLOCK — no awaits below (see the doc comment). Order:
-	// ledgers → jobs → the chat record. The lesson's OWN class graph.
-	const scope = record.classId ?? null;
+	// ledgers → jobs → the chat record. The lesson's OWN space graph.
+	const scope = record.spaceId ?? null;
 	const stats = deleteChatTraces(graphStoreFor(scope), chatId, mode);
 	const jobsRemoved = stores.jobStore.deleteJobsForChat(chatId);
 	if (stores.chatStore.deleteChat(chatId)) {
@@ -160,7 +160,7 @@ interface SessionCoverage {
  *  the caller already read. */
 export function sessionCoverage(record: ChatRecord): SessionCoverage {
 	const chatId = record.id;
-	const entries = graphStoreFor(record.classId ?? null).readCoverage();
+	const entries = graphStoreFor(record.spaceId ?? null).readCoverage();
 	// Coverage reads through the same projection the extraction pipeline folds.
 	const cov = coverageOf(record.messages, entries, chatId);
 	let lastFoldedAt: string | null = null;

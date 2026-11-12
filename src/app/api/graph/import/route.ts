@@ -1,5 +1,5 @@
 /**
- * POST /api/graph/import — No class's Add files (a class adds files on
+ * POST /api/graph/import — No space's Add files (a space adds files on
  * its Files page): raw personal-notes files in, one extraction run
  * per file through the SAME pipeline the sessions use. Multipart form data
  * (field "files", any text format — the extractor is format-agnostic); the

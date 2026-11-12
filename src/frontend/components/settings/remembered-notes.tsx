@@ -1,6 +1,6 @@
 /**
  * Settings → Teaching → Remembered: the notes outside agents saved with
- * remember, each with its class, its date and a Delete button.
+ * remember, each with its space, its date and a Delete button.
  */
 
 import { useCallback, useEffect, useState } from "react";
@@ -10,7 +10,7 @@ import { OUTLINE_BUTTON, SettingsGroup, SettingsRow } from "./controls.tsx";
 interface NoteView {
 	id: string;
 	text: string;
-	className: string | null;
+	spaceName: string | null;
 	createdAt: string;
 }
 
@@ -22,7 +22,7 @@ async function request(query = "", init?: RequestInit): Promise<NoteView[]> {
 
 function savedLabel(note: NoteView): string {
 	const day = savedDay(note.createdAt);
-	return note.className ? `${note.className}, saved ${day}` : `Saved ${day}`;
+	return note.spaceName ? `${note.spaceName}, saved ${day}` : `Saved ${day}`;
 }
 
 export function RememberedNotes() {

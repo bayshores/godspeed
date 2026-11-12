@@ -4,13 +4,13 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { DEFAULT_TEACHER_NAME, hasProblems, planDays } from "@/shared/core";
-import { classColorVar } from "@/frontend/components/class-color";
-import { useClasses } from "@/frontend/components/class-context";
-import { DeadlineDialog } from "@/frontend/components/class-page/deadline-dialog";
+import { spaceColorVar } from "@/frontend/components/space-color";
+import { useSpaces } from "@/frontend/components/space-context";
+import { DeadlineDialog } from "@/frontend/components/space-page/deadline-dialog";
 import { studioPath } from "@/frontend/components/cheat-sheet/use-cheat-sheet";
-import { dueLabel } from "@/frontend/components/class-deadlines-model";
+import { dueLabel } from "@/frontend/components/space-deadlines-model";
 import { useMinute } from "@/frontend/components/countdown";
-import { classFilePathOf, useClassRecord } from "@/frontend/components/files/class-files-api";
+import { spaceFilePathOf, useSpaceRecord } from "@/frontend/components/files/space-files-api";
 import { useHalley } from "@/frontend/components/halley/halley-provider";
 import { askTeacher } from "@/frontend/components/halley/ask-teacher";
 import { useLessonStart } from "@/frontend/components/home/use-lesson-start";
@@ -22,25 +22,25 @@ import { HomeworkCard } from "./homework-card";
 import { coverageMessage, deadlineMaterial } from "./deadline-model";
 
 /**
- * A deadline's page, opened from its row on Today, the class's Deadlines
- * tab or its Progress tab. The page makes the deadline's class the active
- * one (Today lists every class); switching class afterwards goes to that
- * class. Study works on today's topics (all its topics once every one is
+ * A deadline's page, opened from its row on Today, the space's Deadlines
+ * tab or its Progress tab. The page makes the deadline's space the active
+ * one (Today lists every space); switching space afterwards goes to that
+ * space. Study works on today's topics (all its topics once every one is
  * strong).
  */
-export function DeadlinePage({ classId, deadlineId }: { classId: string; deadlineId: string }) {
+export function DeadlinePage({ spaceId, deadlineId }: { spaceId: string; deadlineId: string }) {
 	const router = useRouter();
-	const { active, setActive, activeClass } = useClasses();
-	const [joined, setJoined] = useState(active === classId);
+	const { active, setActive, activeSpace } = useSpaces();
+	const [joined, setJoined] = useState(active === spaceId);
 	useEffect(() => {
 		if (!joined) {
-			if (active === classId) setJoined(true);
-			else setActive(classId);
-		} else if (active !== classId) router.replace("/class");
-	}, [active, classId, joined, setActive, router]);
+			if (active === spaceId) setJoined(true);
+			else setActive(spaceId);
+		} else if (active !== spaceId) router.replace("/space");
+	}, [active, spaceId, joined, setActive, router]);
 
 	const { data, error, refresh } = useProgress();
-	const { record, reload } = useClassRecord(classId);
+	const { record, reload } = useSpaceRecord(spaceId);
 	const teacherName = useHalley()?.name ?? DEFAULT_TEACHER_NAME;
 	const [saving, setSaving] = useState(false);
 	const [saveError, setSaveError] = useState<string | null>(null);
@@ -48,7 +48,7 @@ export function DeadlinePage({ classId, deadlineId }: { classId: string; deadlin
 	const lesson = useLessonStart();
 	const [editing, setEditing] = useState(false);
 
-	const current = data && data.classId === classId ? data : null;
+	const current = data && data.spaceId === spaceId ? data : null;
 	const deadline = current?.deadlines.find((d) => d.id === deadlineId) ?? null;
 	const saved = record?.deadlines?.find((d) => d.id === deadlineId) ?? null;
 	const material = useMemo(
@@ -60,7 +60,7 @@ export function DeadlinePage({ classId, deadlineId }: { classId: string; deadlin
 			setSaving(true);
 			setSaveError(null);
 			try {
-				const res = await fetch(`/api/classes/${encodeURIComponent(classId)}/deadlines/${encodeURIComponent(deadlineId)}`, {
+				const res = await fetch(`/api/spaces/${encodeURIComponent(spaceId)}/deadlines/${encodeURIComponent(deadlineId)}`, {
 					method: "PUT",
 					headers: { "Content-Type": "application/json" },
 					body: JSON.stringify(patch),
@@ -73,7 +73,7 @@ export function DeadlinePage({ classId, deadlineId }: { classId: string; deadlin
 				setSaving(false);
 			}
 		},
-		[classId, deadlineId, reload, refresh],
+		[spaceId, deadlineId, reload, refresh],
 	);
 	// Add puts files on the deadline; Leave out marks them as not on it.
 	const saveFiles = useCallback(
@@ -97,25 +97,25 @@ export function DeadlinePage({ classId, deadlineId }: { classId: string; deadlin
 		const file = record?.files.find((f) => f.id === assignmentId);
 		if (!file || !desktop) return undefined;
 		const open = /\.pdf$/i.test(file.name) ? desktop.openPath : desktop.showInFolder;
-		return open && (() => void classFilePathOf(classId, file.id).then((path) => {
+		return open && (() => void spaceFilePathOf(spaceId, file.id).then((path) => {
 				if (path) void open(path);
 			}));
-	}, [record, assignmentId, classId]);
+	}, [record, assignmentId, spaceId]);
 	const onStart = useCallback(() => {
 		if (deadline) void studyDeadline(deadline);
 	}, [deadline, studyDeadline]);
 	const onAsk = useCallback(() => {
-		if (deadline) askTeacher(coverageMessage(activeClass?.name ?? "class", { name: deadline.name, when: dueLabel(deadline.date, deadline.time) }));
-	}, [deadline, activeClass?.name]);
+		if (deadline) askTeacher(coverageMessage(activeSpace?.name ?? "space", { name: deadline.name, when: dueLabel(deadline.date, deadline.time) }));
+	}, [deadline, activeSpace?.name]);
 
 	// The dialog compares its mode by identity: one object per open.
 	const files = record?.files;
-	const editMode = useMemo(() => (editing && saved && files ? { classId, deadline: saved, files } : null), [editing, classId, saved, files]);
+	const editMode = useMemo(() => (editing && saved && files ? { spaceId, deadline: saved, files } : null), [editing, spaceId, saved, files]);
 
 	return (
 		<div className="h-full overflow-y-auto">
 			<div className="mx-auto flex w-full max-w-[1128px] flex-col gap-[22px] px-6 pt-[22px] pb-9">
-				<Link href="/class/deadlines" prefetch={false} data-testid="page-back" className="lh-btn lh-btn-quiet -ml-1 self-start text-[15px]">
+				<Link href="/space/deadlines" prefetch={false} data-testid="page-back" className="lh-btn lh-btn-quiet -ml-1 self-start text-[15px]">
 					<PixelIcon name="chevron" className="-scale-x-100" />
 					Deadlines
 				</Link>
@@ -126,7 +126,7 @@ export function DeadlinePage({ classId, deadlineId }: { classId: string; deadlin
 				) : current && deadline && nowMs !== null ? (
 					<DeadlineBody
 						deadline={deadline}
-						color={activeClass ? classColorVar(activeClass.color) : "var(--border)"}
+						color={activeSpace ? spaceColorVar(activeSpace.color) : "var(--border)"}
 						topics={current.topics}
 						material={material}
 						plan={plan}
@@ -162,14 +162,14 @@ export function DeadlinePage({ classId, deadlineId }: { classId: string; deadlin
 				) : error ? (
 					<LoadFailed message="Couldn't load this deadline." onRetry={refresh} />
 				) : (
-					// Plain boxes until the class's progress arrives, so nothing jumps.
+					// Plain boxes until the space's progress arrives, so nothing jumps.
 					<div className="flex flex-col gap-[22px]" aria-hidden>
 						<div className="h-[120px] w-full bg-panel" />
 						<div className="h-[320px] w-full bg-panel" />
 					</div>
 				)}
 			</div>
-			<DeadlineDialog mode={editMode} onClose={() => setEditing(false)} onRemoved={() => router.push("/class/deadlines")} />
+			<DeadlineDialog mode={editMode} onClose={() => setEditing(false)} onRemoved={() => router.push("/space/deadlines")} />
 		</div>
 	);
 }

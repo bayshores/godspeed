@@ -1,7 +1,7 @@
 /**
  * The learner's rules: each rule as a chip with a remove button, then the
- * "Add a rule" field. Used by Settings → Teaching (per area) and Edit class
- * (per class). A rule the agent saved says "Saved by" and the teacher's
+ * "Add a rule" field. Used by Settings → Teaching (per area) and Edit space
+ * (per space). A rule the agent saved says "Saved by" and the teacher's
  * name, with the date on hover.
  */
 

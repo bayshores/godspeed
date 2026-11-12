@@ -1,5 +1,5 @@
 import { deadlineStudyLabel, hasProblems, rampColor, topicStatus, type DeadlineProgress, type PlanDay } from "@/shared/core";
-import { clockLabel, deadlineDateLabel } from "@/frontend/components/class-deadlines-model";
+import { clockLabel, deadlineDateLabel } from "@/frontend/components/space-deadlines-model";
 import { Pane } from "@/frontend/components/ui/pane";
 import { cn } from "@/frontend/lib/utils";
 import { rightLabel, type Material, type TopicTally } from "./deadline-model";
@@ -88,5 +88,5 @@ function pathNote(d: DeadlineProgress, hasPlan: boolean, allStrong: boolean, m: 
 	if (allStrong) return "Every topic is strong. Study them to keep it that way.";
 	if (d.files.length === 0) return "A plan shows up once it knows what's on it.";
 	if (m && m.reading > 0) return "Its files are still being read. The plan shows up once their facts are built.";
-	return "Its files have no facts yet, so there is nothing to plan. Course info files never make facts.";
+	return "Its files have no facts yet, so there is nothing to plan. Space info files never make facts.";
 }

@@ -15,7 +15,7 @@ export const RecentLessons = memo(function RecentLessons({
 	nowMs,
 }: {
 	lessons: readonly LessonProgress[];
-	/** The class's color. */
+	/** The space's color. */
 	color: string;
 	/** The window's clock (null before the first client render). */
 	nowMs: number | null;

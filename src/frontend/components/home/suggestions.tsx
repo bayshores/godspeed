@@ -8,20 +8,20 @@ import { suggestionKey, suggestionLine, type LessonStep, type Suggestion } from 
 const ACTION = "lh-btn shrink-0 text-[15px]";
 
 /**
- * "Suggested for <class>": Continue (the latest lesson, Open), Next up
+ * "Suggested for <space>": Continue (the latest lesson, Open), Next up
  * (the earliest unstudied file, Study) and Work on next (topics,
  * Study). Renders nothing when there is nothing to suggest.
  */
 export const SuggestionList = memo(function SuggestionList({
-	classLabel: label,
+	spaceLabel: label,
 	suggestions,
 	step,
 	busy,
 	onStudyFile,
 	onStudyTopic,
 }: {
-	/** The class's name; null = no class. */
-	classLabel: string | null;
+	/** The space's name; null = no space. */
+	spaceLabel: string | null;
 	suggestions: readonly Suggestion[];
 	/** The Continue lesson's plan position, once read. */
 	step: LessonStep | null;

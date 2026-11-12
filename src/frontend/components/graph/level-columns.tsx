@@ -1,5 +1,5 @@
 /**
- * The class's topics as level columns in one sheet: one column per level
+ * The space's topics as level columns in one sheet: one column per level
  * (the longest chain of topics a topic needs first), read top to bottom,
  * no lines and no zoom. A row is the topic's name with one square per
  * fact in its right rate's color; a key under the columns says what the
@@ -19,7 +19,7 @@ export function LevelColumns({
 	topics,
 	links,
 	facts,
-	inClass,
+	inSpace,
 	focus,
 	selectedId,
 	onSelect,
@@ -27,7 +27,7 @@ export function LevelColumns({
 	topics: readonly TopicProgress[];
 	links: readonly TopicLink[];
 	facts: readonly FactProgress[];
-	inClass: boolean;
+	inSpace: boolean;
 	/** The bright topics (a search's matches, or the picked deadline's); null = all. */
 	focus: ReadonlySet<string> | null;
 	selectedId: string | null;
@@ -49,10 +49,10 @@ export function LevelColumns({
 	if (topics.length === 0) {
 		return (
 			<Pane data-testid="graph-empty" className="flex-1 px-6 py-10 text-center text-[15px] text-ink-2">
-				{inClass ? (
+				{inSpace ? (
 					<span>
 						Start a lesson or{" "}
-						<Link href="/class/files" data-testid="graph-empty-add-files" className="text-ink underline hover:text-ink-max">
+						<Link href="/space/files" data-testid="graph-empty-add-files" className="text-ink underline hover:text-ink-max">
 							add files
 						</Link>{" "}
 						to build your graph.

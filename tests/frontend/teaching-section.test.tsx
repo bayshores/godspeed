@@ -133,7 +133,7 @@ it("Teaching: Edit full instructions fills the page, and Teaching brings the are
 });
 
 it("Teaching: Remembered is the last entry of the list and shows the agent's notes", async () => {
-	const notes = [{ id: "n1", text: "Likes proofs.", className: "CSE 21", createdAt: "2026-10-30T12:00:00.000Z" }];
+	const notes = [{ id: "n1", text: "Likes proofs.", spaceName: "CSE 21", createdAt: "2026-10-30T12:00:00.000Z" }];
 	const respond = (url: string) => new Response(JSON.stringify(url === "/api/settings/prompts" ? { segments: [] } : url === "/api/rules" ? RULES : { notes }));
 	await withSection(respond, () => {}, async () => {
 		const ids = [...document.querySelectorAll("[aria-label='Teaching areas'] button")].map((el) => el.getAttribute("data-testid"));

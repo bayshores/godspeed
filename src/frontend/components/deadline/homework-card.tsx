@@ -25,7 +25,7 @@ export const HomeworkCard = memo(function HomeworkCard({
 }: {
 	deadline: DeadlineProgress;
 	problems: readonly HomeworkProblem[];
-	/** The class's files, for the assignment picker. */
+	/** The space's files, for the assignment picker. */
 	files: readonly { id: string; name: string }[];
 	assignmentId: string | undefined;
 	busy: boolean;

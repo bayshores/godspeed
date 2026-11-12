@@ -1,5 +1,5 @@
 import { memo, useCallback, useRef, useState, type Dispatch, type SetStateAction } from "react";
-import { isNewFolderFile, type ClassFile, type FileCoverage } from "@/shared/core";
+import { isNewFolderFile, type SpaceFile, type FileCoverage } from "@/shared/core";
 import { CopyButton } from "@/frontend/components/copy-button";
 import { useMinute } from "@/frontend/components/countdown";
 import { MenuShell } from "@/frontend/components/menu-shell";
@@ -20,11 +20,11 @@ import { canRemove, canRetry, fileState, kindTitle, studiedFill, type FileState 
  */
 
 export interface FileRowActions {
-	/** The menu's Move to the other kind (to Course info asks first). */
-	onKind: (file: ClassFile, kind: "study" | "info") => void;
+	/** The menu's Move to the other kind (to Space info asks first). */
+	onKind: (file: SpaceFile, kind: "study" | "info") => void;
 	onRetry: (fileId: string) => void;
 	/** Asks first. */
-	onRemove: (file: ClassFile) => void;
+	onRemove: (file: SpaceFile) => void;
 	/** "Show in Finder" (desktop app only): its label and action. */
 	show?: { label: string; run: (fileId: string) => void };
 }
@@ -32,10 +32,10 @@ export interface FileRowActions {
 /** The kind label's hover text. */
 const KIND_HELP = {
 	study: { title: "Study material", body: "Turned into facts for the graph." },
-	info: { title: "Course info", body: "Syllabus, assignments and other class details. The teacher reads it, but it never becomes facts." },
+	info: { title: "Space info", body: "Schedules, rules and other details about the space. The teacher reads it, but it never becomes facts." },
 	sorted: {
-		title: "Course info",
-		body: "Sorted as course info by your agent while reading it. If it's study material, pick Move to Study material in the More menu.",
+		title: "Space info",
+		body: "Sorted as space info by your agent while reading it. If it's study material, pick Move to Study material in the More menu.",
 	},
 } as const;
 
@@ -49,7 +49,7 @@ export const FileRow = memo(function FileRow({
 	agentTeaching,
 	actions,
 }: {
-	file: ClassFile;
+	file: SpaceFile;
 	coverage: FileCoverage | undefined;
 	disabled?: boolean;
 	/** An agent is running the work loop (a waiting file says who it waits for). */
@@ -68,14 +68,14 @@ export const FileRow = memo(function FileRow({
 	);
 	return (
 		<li
-			data-testid={`class-file-${file.id}`}
+			data-testid={`space-file-${file.id}`}
 			data-halley-target={`file:${file.id}`}
 			className={cn("group flex flex-wrap items-center gap-x-3 gap-y-1 px-1 py-[7px] hover:bg-panel", menuOpen && "bg-panel")}
 		>
 			<span className="flex min-w-0 flex-1 items-center gap-2">
 				{file.origin === "linked" ? (
 					<Tip title="From your linked folder" body={<span className="break-all">{file.path}</span>} side="bottom" align="start">
-						<span tabIndex={0} data-testid={`class-file-linked-${file.id}`} className="flex min-w-0 outline-none">
+						<span tabIndex={0} data-testid={`space-file-linked-${file.id}`} className="flex min-w-0 outline-none">
 							{name}
 						</span>
 					</Tip>
@@ -83,13 +83,13 @@ export const FileRow = memo(function FileRow({
 					name
 				)}
 				{minute !== null && isNewFolderFile(file, minute) && (
-					<span data-testid={`class-file-new-${file.id}`} className="shrink-0 bg-highlight px-1.5 text-xs font-medium text-ink">
+					<span data-testid={`space-file-new-${file.id}`} className="shrink-0 bg-highlight px-1.5 text-xs font-medium text-ink">
 						New
 					</span>
 				)}
 			</span>
 			<Tip title={help.title} body={<span className="text-xs text-ink-2">{help.body}</span>} side="bottom" className="w-[240px]">
-				<span tabIndex={0} data-testid={`class-file-kind-${file.id}`} className="w-10 shrink-0 text-base text-ink-2 outline-none">
+				<span tabIndex={0} data-testid={`space-file-kind-${file.id}`} className="w-10 shrink-0 text-base text-ink-2 outline-none">
 					{file.kind === "study" ? "Study" : "Info"}
 				</span>
 			</Tip>
@@ -115,33 +115,33 @@ function RowState({
 		case "coverage":
 			if (state.facts === 0) {
 				return (
-					<span data-testid={`class-file-status-${fileId}`} className={STATUS}>
+					<span data-testid={`space-file-status-${fileId}`} className={STATUS}>
 						No facts yet
 					</span>
 				);
 			}
 			return (
-				<span data-testid={`class-file-status-${fileId}`} className={cn(STATUS, "flex items-center gap-2 whitespace-nowrap")}>
+				<span data-testid={`space-file-status-${fileId}`} className={cn(STATUS, "flex items-center gap-2 whitespace-nowrap")}>
 					<ProgressBar share={studiedFill(state)} className="w-14 shrink-0" />
 					{state.inLessons} of {state.facts} facts studied
 				</span>
 			);
 		case "building":
 			return (
-				<span data-testid={`class-file-status-${fileId}`} className={STATUS}>
+				<span data-testid={`space-file-status-${fileId}`} className={STATUS}>
 					Building facts
 				</span>
 			);
 		case "waiting":
 		case "transcript":
 			return (
-				<span data-testid={`class-file-status-${fileId}`} title={state.label} className={cn(STATUS, "truncate")}>
+				<span data-testid={`space-file-status-${fileId}`} title={state.label} className={cn(STATUS, "truncate")}>
 					{state.label}
 				</span>
 			);
 		case "failed": {
 			const label = (
-				<span data-testid={`class-file-status-${fileId}`} tabIndex={state.error ? 0 : undefined} className="min-w-0 truncate text-base text-ans-wrong outline-none">
+				<span data-testid={`space-file-status-${fileId}`} tabIndex={state.error ? 0 : undefined} className="min-w-0 truncate text-base text-ans-wrong outline-none">
 					{state.label}
 				</span>
 			);
@@ -154,7 +154,7 @@ function RowState({
 					) : (
 						label
 					)}
-					<button type="button" data-testid={`class-file-retry-${fileId}`} disabled={disabled} onClick={() => onRetry(fileId)} className={SMALL_BTN}>
+					<button type="button" data-testid={`space-file-retry-${fileId}`} disabled={disabled} onClick={() => onRetry(fileId)} className={SMALL_BTN}>
 						Retry
 					</button>
 				</span>
@@ -169,10 +169,10 @@ function RowState({
 /** The speech tool's install step, under a recording that needs it. */
 function InstallLine({ fileId, command }: { fileId: string; command: string }) {
 	return (
-		<span data-testid={`class-file-install-${fileId}`} className="flex basis-full flex-wrap items-center gap-x-2.5 gap-y-1.5 pt-0.5 pb-2 text-base text-ink-2">
+		<span data-testid={`space-file-install-${fileId}`} className="flex basis-full flex-wrap items-center gap-x-2.5 gap-y-1.5 pt-0.5 pb-2 text-base text-ink-2">
 			<span className="min-w-0 flex-1 basis-[240px]">To turn recordings into text, run this in Terminal, then click Retry.</span>
 			<code className="font-count flex h-8 items-center rounded border border-border bg-background px-2.5 text-sm text-ink">{command}</code>
-			<CopyButton text={command} data-testid={`class-file-install-copy-${fileId}`} className={SMALL_BTN} />
+			<CopyButton text={command} data-testid={`space-file-install-copy-${fileId}`} className={SMALL_BTN} />
 		</span>
 	);
 }
@@ -188,7 +188,7 @@ function RowMenu({
 	open,
 	setOpen,
 }: {
-	file: ClassFile;
+	file: SpaceFile;
 	disabled?: boolean;
 	actions: FileRowActions;
 	open: boolean;
@@ -215,7 +215,7 @@ function RowMenu({
 				aria-label={`More for ${file.name}`}
 				aria-haspopup="menu"
 				aria-expanded={open}
-				data-testid={`class-file-menu-${file.id}`}
+				data-testid={`space-file-menu-${file.id}`}
 				disabled={disabled}
 				onClick={() => setOpen((o) => !o)}
 				className={cn("lh-btn lh-btn-quiet h-7 shrink-0 text-[15px] focus-visible:opacity-100 group-hover:opacity-100", !open && "opacity-0")}
@@ -225,21 +225,21 @@ function RowMenu({
 			<MenuShell
 				open={open}
 				anchorRef={anchorRef}
-				testid={`class-file-menu-body-${file.id}`}
+				testid={`space-file-menu-body-${file.id}`}
 				preferredSide="down"
 				align="right"
 				menuClass="lh-popup flex w-[250px] flex-col py-1.5 text-lg"
 			>
-				<button role="menuitem" type="button" data-testid={`class-file-move-${file.id}`} onClick={pick(() => actions.onKind(file, other))} className={`${MENU_ITEM} text-ink`}>
+				<button role="menuitem" type="button" data-testid={`space-file-move-${file.id}`} onClick={pick(() => actions.onKind(file, other))} className={`${MENU_ITEM} text-ink`}>
 					Move to {kindTitle(other)}
 				</button>
 				{retry && (
-					<button role="menuitem" type="button" data-testid={`class-file-menu-retry-${file.id}`} onClick={pick(() => actions.onRetry(file.id))} className={`${MENU_ITEM} text-ink`}>
+					<button role="menuitem" type="button" data-testid={`space-file-menu-retry-${file.id}`} onClick={pick(() => actions.onRetry(file.id))} className={`${MENU_ITEM} text-ink`}>
 						Retry
 					</button>
 				)}
 				{show && (
-					<button role="menuitem" type="button" data-testid={`class-file-show-${file.id}`} onClick={pick(() => show.run(file.id))} className={`${MENU_ITEM} text-ink`}>
+					<button role="menuitem" type="button" data-testid={`space-file-show-${file.id}`} onClick={pick(() => show.run(file.id))} className={`${MENU_ITEM} text-ink`}>
 						{show.label}
 					</button>
 				)}
@@ -249,7 +249,7 @@ function RowMenu({
 						<button
 							role="menuitem"
 							type="button"
-							data-testid={`class-file-remove-${file.id}`}
+							data-testid={`space-file-remove-${file.id}`}
 							aria-label={`Remove ${file.name}`}
 							onClick={pick(() => actions.onRemove(file))}
 							className={`${MENU_ITEM} text-ans-wrong`}

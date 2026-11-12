@@ -6,12 +6,12 @@ import { SectionToggle } from "./files-sections";
 import { changeDay, type RecentChange } from "./recent-changes-model";
 
 export const RECENT_CHANGES_KEY = "recent-changes";
-/** Changes shown before "Show N more" (a class set up by hand brings dozens at once). */
+/** Changes shown before "Show N more" (a space set up by hand brings dozens at once). */
 const FIRST_SHOWN = 8;
 
 /**
  * RECENT CHANGES (Files page, first in the file list): the files added to
- * or removed from the class lately, newest first, folded like a file
+ * or removed from the space lately, newest first, folded like a file
  * group. A removed file is greyed with "Removed" in red. Past the first
  * few, "Show N more" opens the rest.
  */

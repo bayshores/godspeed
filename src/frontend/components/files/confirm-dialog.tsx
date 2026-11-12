@@ -4,7 +4,7 @@ import type { ConfirmCopy } from "./files-model";
 
 /**
  * The Files page's confirm before Unlink, Remove and the menu's "Move to
- * Course info": the question as its title, what goes, a safer way when
+ * Space info": the question as its title, what goes, a safer way when
  * there is one, then Cancel and the red action. Close, Esc, a click
  * outside and Cancel all keep things as they are.
  */

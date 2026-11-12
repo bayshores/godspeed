@@ -6,8 +6,9 @@
  *
  * This adapter OWNS the lazy migrations:
  *  1. schema-version bumps (CURRENT_SETTINGS_VERSION): v1 → v2 moves the
- *     old summarize threshold default to the new one. Pure additions never
- *     bump, so an up-to-date file is always a no-op pass-through.
+ *     old summarize threshold default to the new one; v2 → v3 renames
+ *     general.activeClass to activeSpace. Pure additions never bump, so an
+ *     up-to-date file is always a no-op pass-through.
  *  2. the retired prompt switches (dropPromptSwitches).
  *
  * Everything off disk is sanitized (core/settings.ts) before it reaches a
@@ -22,6 +23,7 @@ import {
 	sanitizeUserSettings,
 	type UserSettings,
 } from "../../shared/core/settings.ts";
+import { isSpaceId } from "../../shared/core/contracts.ts";
 import type { SettingsStore } from "../../shared/core/ports.ts";
 import { promptOverrides } from "./prompt-overrides.ts";
 import { setAsideCorrupt } from "./set-aside.ts";
@@ -50,10 +52,21 @@ export function readSettings(): UserSettings | null {
 	}
 	// Unknown NEWER versions pass through untouched (the sanitizer preserved unknowns).
 	const upgraded = upgradeToV2(record);
-	if (dropPromptSwitches(parsed) || upgraded) writeSettings(record);
+	const renamed = upgradeToV3(record, parsed);
+	if (dropPromptSwitches(parsed) || upgraded || renamed) writeSettings(record);
 	return record;
 }
 
+/** v2 → v3: the open space was saved as general.activeClass, a key the
+ *  sanitizer drops, so it is read from the raw file. True when the file needs saving. */
+function upgradeToV3(record: UserSettings, parsed: unknown): boolean {
+	if (record.version >= 3) return false;
+	record.version = 3;
+	const old = (parsed as { general?: { activeClass?: unknown } }).general?.activeClass;
+	if (old !== "none" && !isSpaceId(old)) return false;
+	record.general = { ...record.general, activeSpace: old };
+	return true;
+}
 
 /** v1 → v2: the summarize threshold's default dropped from 150k to 40k tokens, so a
  *  record still holding the old default takes the new one. True when the file needs

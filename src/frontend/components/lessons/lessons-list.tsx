@@ -3,7 +3,7 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useClasses } from "@/frontend/components/class-context";
+import { useSpaces } from "@/frontend/components/space-context";
 import { useHalley } from "@/frontend/components/halley/halley-provider";
 import { LoadFailed } from "@/frontend/components/load-failed";
 import { useRiseOnChange } from "@/frontend/components/motion";
@@ -19,25 +19,25 @@ import { useLessonList } from "./use-lesson-list";
 
 /**
  * THE LESSONS TAB: "Study something new", the search field, then the
- * class's lessons and the lesson menu (rename, export, move, delete; a
+ * space's lessons and the lesson menu (rename, export, move, delete; a
  * row's More button or a right-click opens it). In the search field ↑/↓
  * walk the matches, Enter opens the walked row (or the first match) and
  * Esc clears the search.
  */
 export function LessonsList() {
 	const router = useRouter();
-	const { active: activeClassId } = useClasses();
+	const { active: activeSpaceId } = useSpaces();
 	const teacher = useHalley()?.name ?? DEFAULT_TEACHER_NAME;
 	const { chats, setChats, freshIds, failed, refresh } = useLessonList();
 	const [query, setQuery] = useState("");
 	const listRef = useRef<HTMLDivElement>(null);
 	const [kbdIndex, setKbdIndex] = useState<number | null>(null);
-	// Switching class swaps the list: it rises in.
-	useRiseOnChange(listRef, activeClassId ?? "");
+	// Switching space swaps the list: it rises in.
+	useRiseOnChange(listRef, activeSpaceId ?? "");
 
 	const shown = useMemo(
-		() => (chats ? matchLessons(chats.filter((c) => (c.classId ?? null) === activeClassId), query) : null),
-		[chats, query, activeClassId],
+		() => (chats ? matchLessons(chats.filter((c) => (c.spaceId ?? null) === activeSpaceId), query) : null),
+		[chats, query, activeSpaceId],
 	);
 
 	// Keep the walked row in view.
@@ -212,9 +212,9 @@ export function LessonsList() {
 			<MoveLessonDialog
 				lesson={moving}
 				onClose={() => setMoving(null)}
-				onMoved={(id, classId) => {
+				onMoved={(id, spaceId) => {
 					setMoving(null);
-					setChats((prev) => (prev ? prev.map((c) => (c.id === id ? { ...c, classId: classId ?? undefined } : c)) : prev));
+					setChats((prev) => (prev ? prev.map((c) => (c.id === id ? { ...c, spaceId: spaceId ?? undefined } : c)) : prev));
 					window.dispatchEvent(new CustomEvent("lh:graph-revision", { detail: { revision: Date.now() } }));
 				}}
 			/>

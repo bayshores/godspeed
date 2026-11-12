@@ -5,13 +5,13 @@ import { Pane } from "@/frontend/components/ui/pane";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { Tip } from "@/frontend/components/ui/tooltip";
 import { cn } from "@/frontend/lib/utils";
-import { materialSummary, shortDate, type ClassDay, type DayState, type Material } from "./deadline-model";
+import { materialSummary, shortDate, type Day, type DayState, type Material } from "./deadline-model";
 import { RULE, SHEET, SHEET_TITLE } from "./styles";
 
 const SMALL = "lh-btn h-[29px] px-2.5 text-[15px]";
 
 /**
- * WHAT'S ON IT: the deadline's class days by week, the days before it
+ * WHAT'S ON IT: the deadline's days by week, the days before it
  * that it doesn't cover yet (to add or leave out), and the ones left out.
  */
 export function CoversSheet({
@@ -26,7 +26,7 @@ export function CoversSheet({
 	onLeaveOut,
 }: {
 	deadline: DeadlineProgress;
-	/** Null while the class's files load. */
+	/** Null while the space's files load. */
 	material: Material | null;
 	source: string | undefined;
 	teacherName: string;
@@ -114,7 +114,7 @@ export function CoversSheet({
 					{m.notIncluded.length === 0 && (
 						<p data-testid="deadline-all-accounted" className="flex items-center gap-2.5 text-[15px] text-ink-2">
 							<DayMark state="ready" open={false} />
-							Every class day {before} is on it or left out.
+							Every day {before} is on it or left out.
 						</p>
 					)}
 					<div className="flex flex-wrap items-center gap-2.5">
@@ -124,7 +124,7 @@ export function CoversSheet({
 							</button>
 						)}
 						<span className="flex-1" />
-						<Link href="/class/files" data-testid="deadline-add-files" className="lh-btn text-[15px]">
+						<Link href="/space/files" data-testid="deadline-add-files" className="lh-btn text-[15px]">
 							Add files
 						</Link>
 						<button type="button" data-testid="deadline-ask" onClick={onAsk} className="lh-btn text-[15px]">
@@ -148,8 +148,8 @@ export function CoversSheet({
 	);
 }
 
-/** A week's (or the undated files') class days beside its label. */
-function Days({ testid, label, days }: { testid: string; label: string; days: readonly ClassDay[] }) {
+/** A week's (or the undated files') days beside its label. */
+function Days({ testid, label, days }: { testid: string; label: string; days: readonly Day[] }) {
 	return (
 		<div data-testid={testid} className="flex gap-2 py-1">
 			<span className="w-[70px] shrink-0 py-[5px] font-count text-base text-ink">{label}</span>
@@ -165,13 +165,13 @@ function Days({ testid, label, days }: { testid: string; label: string; days: re
 const MARK = "flex size-4 shrink-0 items-center justify-center";
 
 /** A state is a shape, not only a color: read is a check, being read a
- *  half-filled box, couldn't be read a cross, and course info or a day
+ *  half-filled box, couldn't be read a cross, and space info or a day
  *  that isn't on it an empty box. */
 function DayMark({ state, open }: { state: DayState; open: boolean }) {
 	if (open || state === "info") return <span aria-hidden className={cn(MARK, "bg-background")} />;
 	if (state === "ready")
 		return (
-			<span aria-hidden className={cn(MARK, "bg-ans-right text-on-class")}>
+			<span aria-hidden className={cn(MARK, "bg-ans-right text-on-space")}>
 				<PixelIcon name="check" className="h-2" />
 			</span>
 		);
@@ -184,9 +184,9 @@ function DayMark({ state, open }: { state: DayState; open: boolean }) {
 	return <span aria-hidden className={cn(MARK, "border-[1.5px] border-ink bg-[linear-gradient(to_right,var(--color-ink)_50%,transparent_50%)]")} />;
 }
 
-const STATE_WORD: Record<DayState, string> = { ready: "read", reading: "being read", failed: "couldn't be read", info: "course info, no facts" };
+const STATE_WORD: Record<DayState, string> = { ready: "read", reading: "being read", failed: "couldn't be read", info: "space info, no facts" };
 
-function DayRow({ day, open = false, children }: { day: ClassDay; open?: boolean; children?: React.ReactNode }) {
+function DayRow({ day, open = false, children }: { day: Day; open?: boolean; children?: React.ReactNode }) {
 	return (
 		<li data-testid="deadline-day-row" data-state={open ? "open" : day.state} className="flex min-w-0 items-center gap-2.5 py-[5px]">
 			<DayMark state={day.state} open={open} />

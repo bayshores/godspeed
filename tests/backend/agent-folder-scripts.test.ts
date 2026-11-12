@@ -135,15 +135,15 @@ describe("the MCP connector", () => {
 		const { child } = run("connect.mjs", [], app.url);
 		try {
 			const meta = { "io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientCapabilities": {} };
-			child.stdin.write(`${JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "list_classes", arguments: {}, _meta: meta } })}\n`);
+			child.stdin.write(`${JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "list_spaces", arguments: {}, _meta: meta } })}\n`);
 			child.stdin.write(`${JSON.stringify({ jsonrpc: "2.0", id: 2, method: "server/discover", params: { _meta: meta } })}\n`);
-			child.stdin.write(`${JSON.stringify({ jsonrpc: "2.0", id: 3, method: "tools/call", params: { name: "list_classes", arguments: {} } })}\n`);
+			child.stdin.write(`${JSON.stringify({ jsonrpc: "2.0", id: 3, method: "tools/call", params: { name: "list_spaces", arguments: {} } })}\n`);
 			await until(() => app.seen.length === 3);
 			const headers = (id: number) => {
 				const h = app.seen.find((s) => s.body.id === id)!.headers;
 				return { version: h["mcp-protocol-version"], method: h["mcp-method"], name: h["mcp-name"] };
 			};
-			assert.deepEqual(headers(1), { version: "2026-07-28", method: "tools/call", name: "list_classes" });
+			assert.deepEqual(headers(1), { version: "2026-07-28", method: "tools/call", name: "list_spaces" });
 			assert.deepEqual(headers(2), { version: "2026-07-28", method: "server/discover", name: undefined });
 			assert.deepEqual(headers(3), { version: undefined, method: undefined, name: undefined });
 		} finally {

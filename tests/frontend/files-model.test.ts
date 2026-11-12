@@ -6,7 +6,7 @@
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import type { ClassFile, FileCoverage } from "../../src/shared/core/index.ts";
+import type { SpaceFile, FileCoverage } from "../../src/shared/core/index.ts";
 import { groupFileSeries } from "../../src/shared/core/file-series.ts";
 import { fileGroups, pairSeries } from "../../src/shared/core/file-groups.ts";
 import {
@@ -24,7 +24,7 @@ import {
 	studiedFill,
 } from "../../src/frontend/components/files/files-model.ts";
 
-function file(over: Partial<ClassFile>): ClassFile {
+function file(over: Partial<SpaceFile>): SpaceFile {
 	return { id: "f_1", origin: "copied", name: "L1.pdf", path: "f_1/L1.pdf", kind: "study", contentFp: "", status: "ready", addedAt: "", ...over };
 }
 const named = (names: string[]) => names.map((name, i) => file({ id: `f${i}`, name, path: `f${i}/${name}` }));
@@ -53,7 +53,7 @@ describe("files-model", () => {
 		assert.deepEqual(fileState(file({ status: "extracting" }), undefined, true), { kind: "building" });
 		assert.deepEqual(fileState(file({ status: "pending" }), undefined, true), { kind: "waiting", label: "Waiting" });
 		assert.deepEqual(fileState(file({ status: "pending" }), undefined, false), { kind: "waiting", label: "Waiting for your agent" }, "no agent is teaching");
-		assert.deepEqual(fileState(file({ status: "pending", kind: "info" }), undefined, false), { kind: "none" }, "course info has nothing to do");
+		assert.deepEqual(fileState(file({ status: "pending", kind: "info" }), undefined, false), { kind: "none" }, "space info has nothing to do");
 		assert.deepEqual(fileState(file({ status: "failed", error: "boom" }), undefined, true), { kind: "failed", label: "Failed", error: "boom" });
 		assert.deepEqual(fileState(file({ status: "needs-whisper", error: "Run brew" }), undefined, true), {
 			kind: "failed",
@@ -62,12 +62,12 @@ describe("files-model", () => {
 		});
 		assert.deepEqual(fileState(file({ status: "ready" }), cov(10, 4), true), { kind: "coverage", facts: 10, inLessons: 4, share: 0.4 });
 		assert.deepEqual(fileState(file({ status: "ready" }), undefined, true), { kind: "none" }, "no coverage yet: nothing");
-		assert.deepEqual(fileState(file({ status: "ready", kind: "info" }), cov(10, 4), true), { kind: "none" }, "course info shows no coverage");
+		assert.deepEqual(fileState(file({ status: "ready", kind: "info" }), cov(10, 4), true), { kind: "none" }, "space info shows no coverage");
 		const covered = file({ name: "CSE21_Lecture_01_2026-09-25.mp4", transcriptId: "f_t" });
 		assert.deepEqual(fileState(covered, undefined, true), { kind: "transcript", label: "Uses its transcript" });
 	});
 
-	it("confirmCopy says how many files and facts go before Unlink, Remove and Move to Course info", () => {
+	it("confirmCopy says how many files and facts go before Unlink, Remove and Move to Space info", () => {
 		const files = [
 			file({ id: "a", origin: "linked" }),
 			file({ id: "b", origin: "linked" }),
@@ -98,11 +98,11 @@ describe("files-model", () => {
 		assert.equal(
 			confirmCopy({ kind: "remove", file: files[3]! }, "CSE 21", files, coverage).body,
 			"It leaves CSE 21. Your original file is not touched. This cannot be undone.",
-			"course info has no facts",
+			"space info has no facts",
 		);
 
 		assert.deepEqual(confirmCopy({ kind: "move", file: files[0]! }, "CSE 21", files, coverage), {
-			title: "Move to Course info?",
+			title: "Move to Space info?",
 			body: "Its 30 facts leave the graph. The teacher can still read it.",
 			action: "Move file",
 			danger: false,
@@ -131,7 +131,7 @@ describe("files-model", () => {
 
 	it("dropTitle says what a drop will do", () => {
 		assert.equal(dropTitle("study", 2), "Add 2 files as study material");
-		assert.equal(dropTitle("info", 1), "Add 1 file as course info");
+		assert.equal(dropTitle("info", 1), "Add 1 file as space info");
 		assert.equal(dropTitle("study", 0), "Add files as study material");
 	});
 
@@ -228,8 +228,8 @@ describe("files-model", () => {
 	});
 
 	it("filesSummary counts files by kind", () => {
-		assert.equal(filesSummary([file({ id: "a" }), file({ id: "b", kind: "info" }), file({ id: "c" })]), "3 files, 2 study material, 1 course info");
-		assert.equal(filesSummary([file({ id: "a" })]), "1 file, 1 study material, 0 course info");
+		assert.equal(filesSummary([file({ id: "a" }), file({ id: "b", kind: "info" }), file({ id: "c" })]), "3 files, 2 study material, 1 space info");
+		assert.equal(filesSummary([file({ id: "a" })]), "1 file, 1 study material, 0 space info");
 		assert.equal(filesSummary([]), "0 files");
 	});
 

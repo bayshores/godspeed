@@ -1,7 +1,7 @@
 /**
  * STUDY — one session that decides per topic whether to teach, drill or
  * just check. At the start the app turns the picked facts into the
- * session's topics, in the order the class covered them, each with a mode
+ * session's topics, in the order the space covered them, each with a mode
  * from the learner's track record:
  *
  *  - never tested → "teach": a short explanation with a worked example, then a problem
@@ -20,7 +20,7 @@ import { createTree } from "./plan-tree.ts";
 export type StudyMode = "teach" | "problems" | "check";
 
 export interface StudyTopic {
-	/** The plan node id: the class topic's id, or FREE_TOPIC_ID. */
+	/** The plan node id: the space topic's id, or FREE_TOPIC_ID. */
 	id: string;
 	name: string;
 	mode: StudyMode;
@@ -37,12 +37,12 @@ export function studyMode(status: TopicStatus): StudyMode {
 }
 
 /**
- * Each fact's place in the class's order: the files sorted the way the
- * deadline page lists class days (dated files by date, then undated ones
+ * Each fact's place in the space's order: the files sorted the way the
+ * deadline page lists days (dated files by date, then undated ones
  * by name), and a fact sits where the file it came from sits. Facts born
  * in a lesson have no place.
  */
-export function factClassOrder(
+export function factSpaceOrder(
 	facts: ReadonlyArray<{ id: string; born: string | null }>,
 	files: ReadonlyArray<{ name: string; sourceId: string }>,
 ): Map<string, number> {
@@ -61,8 +61,8 @@ export function factClassOrder(
 }
 
 /**
- * The session's topics: the picked facts grouped by their class topic,
- * in class order (a topic sits at its earliest fact; facts from no class
+ * The session's topics: the picked facts grouped by their space topic,
+ * in space order (a topic sits at its earliest fact; facts from no space
  * file go last; ties keep the order the facts were picked in). When no
  * picked fact is in a topic, the typed topic is the one "teach" topic.
  */
@@ -70,7 +70,7 @@ export function studyTopics(input: {
 	/** The picked fact ids, in the order they were sent. */
 	factIds: readonly string[];
 	topics: ReadonlyArray<{ id: string; name: string; members: readonly string[]; status: TopicStatus }>;
-	classOrder: ReadonlyMap<string, number>;
+	spaceOrder: ReadonlyMap<string, number>;
 	freeTopic: string;
 }): StudyTopic[] {
 	const topicOf = new Map<string, (typeof input.topics)[number]>();
@@ -84,13 +84,13 @@ export function studyTopics(input: {
 		else if (!group.factIds.includes(id)) group.factIds.push(id);
 	}
 	if (groups.size === 0) return [{ id: FREE_TOPIC_ID, name: input.freeTopic, mode: "teach", factIds: [] }];
-	return inClassOrder([...groups.values()], input.classOrder);
+	return inSpaceOrder([...groups.values()], input.spaceOrder);
 }
 
-/** Topics sorted by their earliest fact's place in the class; facts from
- *  no class file go last and ties keep their order. */
-function inClassOrder(topics: readonly StudyTopic[], classOrder: ReadonlyMap<string, number>): StudyTopic[] {
-	const rank = (t: StudyTopic) => Math.min(Infinity, ...t.factIds.map((id) => classOrder.get(id) ?? Infinity));
+/** Topics sorted by their earliest fact's place in the space; facts from
+ *  no space file go last and ties keep their order. */
+function inSpaceOrder(topics: readonly StudyTopic[], spaceOrder: ReadonlyMap<string, number>): StudyTopic[] {
+	const rank = (t: StudyTopic) => Math.min(Infinity, ...t.factIds.map((id) => spaceOrder.get(id) ?? Infinity));
 	return topics
 		.map((t) => ({ t, rank: rank(t) }))
 		.sort((a, b) => a.rank - b.rank)
@@ -101,32 +101,32 @@ function inClassOrder(topics: readonly StudyTopic[], classOrder: ReadonlyMap<str
 export const MAX_STUDY_FACTS = 64;
 
 /**
- * A session on class topics (a Study start on topics or on a deadline):
+ * A session on space topics (a Study start on topics or on a deadline):
  * each topic with its facts, the ones to fix first. Whole topics fill the
  * session until the next one would pass MAX_STUDY_FACTS facts (always at
  * least one; one bigger than that keeps its first MAX_STUDY_FACTS facts),
- * and the kept ones are listed in class order.
+ * and the kept ones are listed in space order.
  *
- * Topics fill in class order. A deadline start passes `studiedToday`, so
+ * Topics fill in space order. A deadline start passes `studiedToday`, so
  * each Study click moves on: first the topics that are not strong and
  * were not studied today, then not strong but studied today, then strong,
- * each group in class order.
+ * each group in space order.
  */
 export function topicStudy(input: {
 	topicIds: readonly string[];
 	topics: readonly Pick<TopicProgress, "id" | "name" | "members" | "status">[];
 	facts: readonly FactProgress[];
-	classOrder: ReadonlyMap<string, number>;
+	spaceOrder: ReadonlyMap<string, number>;
 	/** Deadline starts: the topics that are plan nodes of today's study sessions. */
 	studiedToday?: ReadonlySet<string>;
 }): StudyTopic[] {
 	const byId = new Map(input.topics.map((t) => [t.id, t]));
-	const candidates = inClassOrder(
+	const candidates = inSpaceOrder(
 		[...new Set(input.topicIds)].flatMap((id) => {
 			const t = byId.get(id);
 			return t ? [{ id: t.id, name: t.name, mode: studyMode(t.status), factIds: topicFacts(input.facts, t).map((f) => f.id) }] : [];
 		}),
-		input.classOrder,
+		input.spaceOrder,
 	);
 	const today = input.studiedToday;
 	// "check" is exactly the strong topics.
@@ -141,7 +141,7 @@ export function topicStudy(input: {
 	return candidates.filter((t) => kept.has(t)).map((t) => ({ ...t, factIds: t.factIds.slice(0, MAX_STUDY_FACTS) }));
 }
 
-/** A Study start's title and first message on class topics. */
+/** A Study start's title and first message on space topics. */
 export function studyTitle(topics: readonly Pick<StudyTopic, "name">[]): string {
 	return `Study: ${topics.map((t) => t.name).join(", ")}`;
 }
@@ -156,16 +156,16 @@ const MODE_NOTE: Record<StudyMode, string> = {
  *  (the graph context above it carries the statements). */
 export function studyContextText(topics: readonly StudyTopic[]): string {
 	return [
-		"[Study plan] — this session's topics, in the order the class covered them, each with its plan node and its mode from the learner's track record:",
+		"[Study plan] — this session's topics, in the order the space covered them, each with its plan node and its mode from the learner's track record:",
 		...topics.map(
 			(t, i) =>
-				`${i + 1}. ${t.name} — node ${t.id}, ${MODE_NOTE[t.mode]}${t.factIds.length > 0 ? `, facts ${t.factIds.join(", ")}` : ", no facts in the class graph yet"}`,
+				`${i + 1}. ${t.name} — node ${t.id}, ${MODE_NOTE[t.mode]}${t.factIds.length > 0 ? `, facts ${t.factIds.join(", ")}` : ", no facts in the space graph yet"}`,
 		),
 	].join("\n");
 }
 
 /** The plan the app writes for a study session: one node per topic, in
- *  class order (the step bar keeps authored order when there are no edges). */
+ *  space order (the step bar keeps authored order when there are no edges). */
 export function studyPlanTree(topics: readonly StudyTopic[]): PlanTree {
 	return createTree(
 		topics.map((t) => ({ id: t.id, title: t.name })),

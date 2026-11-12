@@ -62,8 +62,8 @@ function mount(node: React.ReactNode): HTMLElement {
 }
 
 const ACTIONS: AgentAction[] = [
-	{ id: "a2", at: "2026-10-28T23:11:00.000Z", agent: "Claude Code", label: "Adding Lab 4", classId: "cls_29", target: { kind: "deadline", id: "d4" }, page: "/" },
-	{ id: "a1", at: "2026-10-28T22:52:00.000Z", agent: "Claude Code", label: "Reading notes", classId: null, target: null, page: "javascript:alert(1)" },
+	{ id: "a2", at: "2026-10-28T23:11:00.000Z", agent: "Claude Code", label: "Adding Lab 4", spaceId: "cls_29", target: { kind: "deadline", id: "d4" }, page: "/" },
+	{ id: "a1", at: "2026-10-28T22:52:00.000Z", agent: "Claude Code", label: "Reading notes", spaceId: null, target: null, page: "javascript:alert(1)" },
 ];
 const names = (id: string | null) => (id === "cls_29" ? "CSE 29" : null);
 
@@ -367,7 +367,7 @@ describe("the teacher's Activity", () => {
 			follow={{ on: false, set: () => {} }}
 			recent={ACTIONS}
 			onPick={() => {}}
-			classNameOf={names}
+			spaceNameOf={names}
 			feed={EMPTY}
 			waiting={null}
 			{...over}
@@ -413,7 +413,7 @@ describe("the teacher's Activity", () => {
 	it("Recent hides when there is nothing yet", () => {
 		assert.equal(mount(list({ recent: [] })).querySelector("[data-testid='halley-recent']"), null);
 	});
-	it("Recent: label, class, how long ago, and an arrow only where it can go", () => {
+	it("Recent: label, space, how long ago, and an arrow only where it can go", () => {
 		const el = mount(list());
 		assert.match(el.textContent ?? "", /Recent/);
 		const rows = [...el.querySelectorAll("[data-testid='halley-recent-row']")];

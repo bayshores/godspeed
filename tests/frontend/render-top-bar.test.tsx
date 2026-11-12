@@ -1,7 +1,7 @@
 /**
- * The frame: the top bar's Today and class tabs, Menu, the "Search
- * lessons" popup it opens, a class page's head with its tabs, and the
- * Archived classes page.
+ * The frame: the top bar's Today and space tabs, Menu, the "Search
+ * lessons" popup it opens, a space page's head with its tabs, and the
+ * Archived spaces page.
  */
 import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { afterEach, describe, it } from "node:test";
 import type { Root } from "react-dom/client";
 import { parseHTML } from "linkedom";
-import type { ChatListItem, ClassSummary } from "../../src/shared/core/index.ts";
+import type { ChatListItem, SpaceSummary } from "../../src/shared/core/index.ts";
 
 const dom = parseHTML("<html><body></body></html>");
 // linkedom's document has no "oninput"; without it React would watch text
@@ -41,21 +41,21 @@ Object.assign(dom.window, { innerWidth: 1280, innerHeight: 800 });
 
 // After the DOM exists, so React hears "input" events.
 const { createRoot } = await import("react-dom/client");
-const { ClassTabs } = await import("../../src/frontend/components/top-bar/class-tabs.tsx");
+const { SpaceTabs } = await import("../../src/frontend/components/top-bar/space-tabs.tsx");
 const { AppMenu } = await import("../../src/frontend/components/top-bar/app-menu.tsx");
 const { SearchLessons } = await import("../../src/frontend/components/search-lessons.tsx");
-const { ClassHead } = await import("../../src/frontend/components/class-page/class-head.tsx");
-const { ArchivedClasses } = await import("../../src/frontend/components/archived-classes.tsx");
+const { SpaceHead } = await import("../../src/frontend/components/space-page/space-head.tsx");
+const { ArchivedSpaces } = await import("../../src/frontend/components/archived-spaces.tsx");
 const { hasUnseenFiles } = await import("../../src/frontend/components/files/files-seen.ts");
-const { ClassProvider } = await import("../../src/frontend/components/class-context.tsx");
+const { SpaceProvider } = await import("../../src/frontend/components/space-context.tsx");
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
 const { AppRouterContext } = await import("next/dist/shared/lib/app-router-context.shared-runtime.js");
 const { PathnameContext } = await import("next/dist/shared/lib/hooks-client-context.shared-runtime.js");
 
-const cls = (id: string, name: string, over: Partial<ClassSummary> = {}): ClassSummary => ({ id, name, description: "", createdAt: "", updatedAt: "", archived: false, fileCount: 33, color: 1, ...over });
-const CLASSES = [cls("c29", "CSE 29", { description: "Systems programming" }), cls("c21", "CSE 21", { color: 2 }), cls("old", "MATH 18", { archived: true, description: "Linear algebra.", fileCount: 1 })];
+const space = (id: string, name: string, over: Partial<SpaceSummary> = {}): SpaceSummary => ({ id, name, description: "", createdAt: "", updatedAt: "", archived: false, fileCount: 33, color: 1, ...over });
+const SPACES = [space("c29", "CSE 29", { description: "Systems programming" }), space("c21", "CSE 21", { color: 2 }), space("old", "MATH 18", { archived: true, description: "Linear algebra.", fileCount: 1 })];
 
-const lesson = (id: string, title: string, classId?: string): ChatListItem => ({
+const lesson = (id: string, title: string, spaceId?: string): ChatListItem => ({
 	id,
 	title,
 	kind: "teach",
@@ -66,7 +66,7 @@ const lesson = (id: string, title: string, classId?: string): ChatListItem => ({
 	pendingQuestion: false,
 	pendingProblem: false,
 	busy: false,
-	...(classId && { classId }),
+	...(spaceId && { spaceId }),
 });
 const LESSONS = [lesson("l1", "Pointers", "c29"), lesson("l2", "Induction", "c21"), lesson("l3", "Loose notes")];
 
@@ -86,9 +86,9 @@ afterEach(() => {
 async function mount(node: React.ReactNode, { pathname = "/", active = "c29" as string | null } = {}) {
 	globalThis.fetch = (async (url: string, init?: RequestInit) => {
 		requests.push(`${init?.method ?? "GET"} ${url}${typeof init?.body === "string" ? ` ${init.body}` : ""}`);
-		if (url === "/api/classes") return Response.json({ classes: CLASSES });
+		if (url === "/api/spaces") return Response.json({ spaces: SPACES });
 		if (url === "/api/chats") return Response.json({ chats: LESSONS });
-		if (url === "/api/classes/c29/cheat-sheets") return Response.json({ cards: [{ status: "made" }, { status: "making" }, { status: "none" }] });
+		if (url === "/api/spaces/c29/cheat-sheets") return Response.json({ cards: [{ status: "made" }, { status: "making" }, { status: "none" }] });
 		return Response.json({});
 	}) as typeof fetch;
 	const router = { push: (href: string) => pushed.push(href), prefetch: () => {} } as unknown as React.ContextType<typeof AppRouterContext>;
@@ -101,9 +101,9 @@ async function mount(node: React.ReactNode, { pathname = "/", active = "c29" as 
 			<AppRouterContext.Provider value={router}>
 				<PathnameContext.Provider value={pathname}>
 					<ServerEventsProvider connect={quietEvents as never}>
-						<ClassProvider initialActive={active} initialClasses={CLASSES}>
+						<SpaceProvider initialActive={active} initialSpaces={SPACES}>
 							{node}
-						</ClassProvider>
+						</SpaceProvider>
 					</ServerEventsProvider>
 				</PathnameContext.Provider>
 			</AppRouterContext.Provider>,
@@ -116,45 +116,45 @@ const texts = (selector: string) => [...document.querySelectorAll(selector)].map
 const click = (el: HTMLElement) => act(async () => el.click());
 
 describe("the top bar's tabs", () => {
-	it("Today, then one tab per class that isn't archived", async () => {
-		await mount(<ClassTabs selected="c29" />);
-		assert.deepEqual(texts("[data-testid='class-tabs'] a"), ["Today", "CSE 29", "CSE 21"]);
+	it("Today, then one tab per space that isn't archived", async () => {
+		await mount(<SpaceTabs selected="c29" />);
+		assert.deepEqual(texts("[data-testid='space-tabs'] a"), ["Today", "CSE 29", "CSE 21"]);
 		assert.equal(q("nav-today")!.getAttribute("href"), "/");
-		assert.equal(q("class-option-old"), null, "archived classes are under Menu");
+		assert.equal(q("space-option-old"), null, "archived spaces are under Menu");
 	});
-	it("marks the lit tab as the current page, and a class tab is the teacher's highlight target", async () => {
-		await mount(<ClassTabs selected="c29" />);
-		assert.equal(q("class-option-c29")!.getAttribute("aria-current"), "page");
-		assert.equal(q("class-option-c21")!.hasAttribute("aria-current"), false);
+	it("marks the lit tab as the current page, and a space tab is the teacher's highlight target", async () => {
+		await mount(<SpaceTabs selected="c29" />);
+		assert.equal(q("space-option-c29")!.getAttribute("aria-current"), "page");
+		assert.equal(q("space-option-c21")!.hasAttribute("aria-current"), false);
 		assert.equal(q("nav-today")!.hasAttribute("aria-current"), false);
-		assert.equal(q("class-option-c29")!.getAttribute("data-halley-target"), "class:c29");
+		assert.equal(q("space-option-c29")!.getAttribute("data-halley-target"), "space:c29");
 	});
-	it("a class's tab opens its Progress page and switches the window to it", async () => {
-		await mount(<ClassTabs selected="today" />);
-		assert.equal(q("class-option-c21")!.getAttribute("href"), "/class");
-		await click(q("class-option-c21")!);
+	it("a space's tab opens its Progress page and switches the window to it", async () => {
+		await mount(<SpaceTabs selected="today" />);
+		assert.equal(q("space-option-c21")!.getAttribute("href"), "/space");
+		await click(q("space-option-c21")!);
 		await act(async () => {});
-		assert.ok(requests.some((r) => r.startsWith("PUT /api/settings/general") && r.includes('"activeClass":"c21"')), "the switch is saved");
+		assert.ok(requests.some((r) => r.startsWith("PUT /api/settings/general") && r.includes('"activeSpace":"c21"')), "the switch is saved");
 	});
 });
 
 describe("Menu", () => {
-	it("lists the places that belong to no one class", async () => {
+	it("lists the places that belong to no one space", async () => {
 		await mount(<AppMenu lit={false} />);
 		assert.equal(q("app-menu")!.textContent, "Menu");
 		assert.equal(q("app-menu")!.getAttribute("aria-expanded"), "false");
 		await click(q("app-menu")!);
-		assert.deepEqual(texts("[data-testid='app-menu-list'] [role='menuitem']"), ["Search lessons", "Add a class", "Lessons with no class", "Archived classes", "Settings"]);
+		assert.deepEqual(texts("[data-testid='app-menu-list'] [role='menuitem']"), ["Search lessons", "Add a space", "Lessons with no space", "Archived spaces", "Settings"]);
 		assert.equal(q("menu-archived")!.getAttribute("href"), "/archived");
 		assert.equal(q("settings-entry")!.getAttribute("href"), "/settings");
 	});
-	it("Lessons with no class leaves the class and opens its lessons", async () => {
+	it("Lessons with no space leaves the space and opens its lessons", async () => {
 		await mount(<AppMenu lit={false} />);
 		await click(q("app-menu")!);
-		await click(q("class-option-none")!);
+		await click(q("space-option-none")!);
 		await act(async () => {});
-		assert.deepEqual(pushed, ["/class/lessons"]);
-		assert.ok(requests.some((r) => r.startsWith("PUT /api/settings/general") && r.includes('"activeClass":"none"')));
+		assert.deepEqual(pushed, ["/space/lessons"]);
+		assert.ok(requests.some((r) => r.startsWith("PUT /api/settings/general") && r.includes('"activeSpace":"none"')));
 	});
 });
 
@@ -181,14 +181,14 @@ describe("Search lessons", () => {
 			field.dispatchEvent(new dom.window.Event("input", { bubbles: true }));
 		});
 	};
-	it("opens from Menu over the lessons of every class, each with its class's name", async () => {
+	it("opens from Menu over the lessons of every space, each with its space's name", async () => {
 		await open();
 		assert.equal(q("search-lessons")!.getAttribute("aria-label"), "Search lessons");
 		const rows = texts("[data-testid='search-lessons-row']");
 		assert.equal(rows.length, 3);
 		assert.match(rows[0]!, /^PointersCSE 29/);
 		assert.match(rows[1]!, /^InductionCSE 21/);
-		assert.match(rows[2]!, /^Loose notesNo class/);
+		assert.match(rows[2]!, /^Loose notesNo space/);
 	});
 	it("typing keeps only the matches; a click opens the lesson and closes the popup", async () => {
 		await open();
@@ -208,23 +208,23 @@ describe("Search lessons", () => {
 	});
 });
 
-describe("a class page's head", () => {
-	it("the class's name and description, Edit class, then its tabs with their counts", async () => {
-		await mount(<ClassHead />, { pathname: "/class/files" });
-		assert.equal(q("class-head-name")!.textContent, "CSE 29");
-		assert.match(q("class-head")!.textContent!, /Systems programming/);
-		assert.equal(q("class-edit")!.textContent, "Edit class");
-		assert.deepEqual(texts("[data-testid='class-head'] nav a"), ["Progress", "Lessons1", "Files33", "Graph", "Cheat sheets2", "Deadlines"]);
+describe("a space page's head", () => {
+	it("the space's name and description, Edit space, then its tabs with their counts", async () => {
+		await mount(<SpaceHead />, { pathname: "/space/files" });
+		assert.equal(q("space-head-name")!.textContent, "CSE 29");
+		assert.match(q("space-head")!.textContent!, /Systems programming/);
+		assert.equal(q("space-edit")!.textContent, "Edit space");
+		assert.deepEqual(texts("[data-testid='space-head'] nav a"), ["Progress", "Lessons1", "Files33", "Graph", "Cheat sheets2", "Deadlines"]);
 		assert.equal(q("nav-files-count")!.textContent, "33");
 		assert.equal(q("nav-cheat-sheets-count")!.textContent, "2", "sheets made or being made");
 		assert.equal(q("nav-files")!.getAttribute("aria-current"), "page");
-		assert.equal(q("nav-progress")!.hasAttribute("aria-current"), false, "/class/files is Files, not Progress");
+		assert.equal(q("nav-progress")!.hasAttribute("aria-current"), false, "/space/files is Files, not Progress");
 	});
-	it("with no class it names the lessons that belong to none: no Edit class, files, cheat sheets or deadlines", async () => {
-		await mount(<ClassHead />, { pathname: "/class/lessons", active: null });
-		assert.equal(q("class-head-name")!.textContent, "Lessons with no class");
-		assert.equal(q("class-edit"), null);
-		assert.deepEqual(texts("[data-testid='class-head'] nav a"), ["Progress", "Lessons1", "Graph"]);
+	it("with no space it names the lessons that belong to none: no Edit space, files, cheat sheets or deadlines", async () => {
+		await mount(<SpaceHead />, { pathname: "/space/lessons", active: null });
+		assert.equal(q("space-head-name")!.textContent, "Lessons with no space");
+		assert.equal(q("space-edit"), null);
+		assert.deepEqual(texts("[data-testid='space-head'] nav a"), ["Progress", "Lessons1", "Graph"]);
 		assert.equal(q("nav-lessons")!.getAttribute("aria-current"), "page");
 	});
 	it("Files is marked new while a scan found files not seen yet", () => {
@@ -237,13 +237,13 @@ describe("a class page's head", () => {
 	});
 });
 
-describe("Archived classes", () => {
-	it("lists only the archived classes; a row opens the class again", async () => {
-		await mount(<ArchivedClasses />, { pathname: "/archived" });
-		assert.deepEqual(texts("[data-testid='archived-classes'] a"), ["MATH 18Linear algebra. 1 file"]);
-		assert.equal(q("class-option-old")!.getAttribute("href"), "/class");
-		await click(q("class-option-old")!);
+describe("Archived spaces", () => {
+	it("lists only the archived spaces; a row opens the space again", async () => {
+		await mount(<ArchivedSpaces />, { pathname: "/archived" });
+		assert.deepEqual(texts("[data-testid='archived-spaces'] a"), ["MATH 18Linear algebra. 1 file"]);
+		assert.equal(q("space-option-old")!.getAttribute("href"), "/space");
+		await click(q("space-option-old")!);
 		await act(async () => {});
-		assert.ok(requests.some((r) => r.startsWith("PUT /api/settings/general") && r.includes('"activeClass":"old"')));
+		assert.ok(requests.some((r) => r.startsWith("PUT /api/settings/general") && r.includes('"activeSpace":"old"')));
 	});
 });

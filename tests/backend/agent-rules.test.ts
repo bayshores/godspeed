@@ -1,6 +1,6 @@
 /**
  * Rules an agent saves on its own: the wording helpers, saving into the
- * learner's lists (every lesson or one class) with a mark, Undo and Edit,
+ * learner's lists (every lesson or one space) with a mark, Undo and Edit,
  * the MCP save_rule tool and its notice event, and /api/rules.
  */
 import assert from "node:assert/strict";
@@ -70,15 +70,15 @@ function post(body: unknown) {
 describe("rule wording", () => {
 	it("names where a rule applies", () => {
 		assert.equal(core.ruleFor({ area: "teaching" }), "every lesson");
-		assert.equal(core.ruleFor({ classId: "cls_a" }, "CSE 21"), "CSE 21");
+		assert.equal(core.ruleFor({ spaceId: "cls_a" }, "CSE 21"), "CSE 21");
 		assert.equal(core.whereLabel({ area: "files" }), "Every lesson, under Your files and formatting");
-		assert.equal(core.whereLabel({ classId: "cls_a" }, "CSE 21"), "Lessons in CSE 21");
+		assert.equal(core.whereLabel({ spaceId: "cls_a" }, "CSE 21"), "Lessons in CSE 21");
 	});
 
 	it("reads only well-formed places and records", () => {
 		assert.deepEqual(core.parseWhere({ area: "voice" }), { area: "voice" });
 		assert.equal(core.parseWhere({ area: "nope" }), null);
-		assert.equal(core.parseWhere({ classId: "../etc" }), null);
+		assert.equal(core.parseWhere({ spaceId: "../etc" }), null);
 		const saved = core.parseSavedRules({ rules: [{ where: { area: "voice" }, text: "Be brief.", at: "2026-10-30T00:00:00.000Z" }, { where: {}, text: "x", at: "y" }] });
 		assert.equal(saved.length, 1);
 		assert.deepEqual(core.savedTimes(saved, { area: "voice" }), { "Be brief.": "2026-10-30T00:00:00.000Z" });
@@ -119,11 +119,11 @@ describe("saving, undoing and editing", () => {
 		assert.match(!full.ok ? full.error : "", /already has 20 rules/);
 	});
 
-	it("saves into a class, and refuses a class that doesn't exist", () => {
-		const cls = stores.classStore.createClass({ name: "CSE 21" });
-		assert.deepEqual(rules.saveRuleByAgent("Use set notation.", { classId: cls.id }), { ok: true, rule: "Use set notation.", for: "CSE 21", where: "Lessons in CSE 21" });
-		assert.deepEqual(stores.classStore.getClass(cls.id)?.rules, ["Use set notation."]);
-		assert.equal(rules.saveRuleByAgent("x", { classId: "cls_missing" }).ok, false);
+	it("saves into a space, and refuses a space that doesn't exist", () => {
+		const space = stores.spaceStore.createSpace({ name: "CSE 21" });
+		assert.deepEqual(rules.saveRuleByAgent("Use set notation.", { spaceId: space.id }), { ok: true, rule: "Use set notation.", for: "CSE 21", where: "Lessons in CSE 21" });
+		assert.deepEqual(stores.spaceStore.getSpace(space.id)?.rules, ["Use set notation."]);
+		assert.equal(rules.saveRuleByAgent("x", { spaceId: "cls_missing" }).ok, false);
 	});
 
 	it("undoes and edits; an edited rule is the learner's", () => {
@@ -160,14 +160,14 @@ describe("saving, undoing and editing", () => {
 describe("save_rule over MCP and /api/rules", () => {
 	beforeEach(() => fs.rmSync(path.join(DATA, "agent-rules.json"), { force: true }));
 
-	it("saves for every lesson by default, or for a class", async () => {
+	it("saves for every lesson by default, or for a space", async () => {
 		const saved = await callTool("save_rule", { rule: "Use Python." });
 		assert.equal(saved.error, false);
 		assert.equal(JSON.parse(saved.text).for, "every lesson");
-		const cls = stores.classStore.createClass({ name: "CSE 29" });
-		const inClass = await callTool("save_rule", { rule: "Use C.", class_id: cls.id });
-		assert.equal(JSON.parse(inClass.text).for, "CSE 29");
-		assert.equal((await callTool("save_rule", { rule: "x", class_id: "cls_nope" })).error, true);
+		const space = stores.spaceStore.createSpace({ name: "CSE 29" });
+		const inSpace = await callTool("save_rule", { rule: "Use C.", space_id: space.id });
+		assert.equal(JSON.parse(inSpace.text).for, "CSE 29");
+		assert.equal((await callTool("save_rule", { rule: "x", space_id: "cls_nope" })).error, true);
 	});
 
 	it("lists, undoes and edits through the route", async () => {

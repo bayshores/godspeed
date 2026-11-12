@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { fileGroups, type FileCoverage, type FolderStatus } from "@/shared/core";
 import { useAgentStatus } from "@/frontend/components/agent-status";
-import { useClasses } from "@/frontend/components/class-context";
+import { useSpaces } from "@/frontend/components/space-context";
 import { useMinute } from "@/frontend/components/countdown";
 import { LoadFailed } from "@/frontend/components/load-failed";
 import { Hint } from "@/frontend/components/ui/hint";
@@ -12,16 +12,16 @@ import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { useProgress } from "@/frontend/components/use-progress";
 import { AddFilesButton } from "./add-files";
 import {
-	classFilePathOf,
-	linkClassFolder,
-	removeClassFile,
-	retryClassFile,
-	setClassFileKind,
-	unlinkClassFolder,
-	uploadClassFiles,
-	useClassRecord,
+	spaceFilePathOf,
+	linkSpaceFolder,
+	removeSpaceFile,
+	retrySpaceFile,
+	setSpaceFileKind,
+	unlinkSpaceFolder,
+	uploadSpaceFiles,
+	useSpaceRecord,
 	type WriteResult,
-} from "./class-files-api";
+} from "./space-files-api";
 import { ConfirmDialog } from "./confirm-dialog";
 import type { FileRowActions } from "./file-row";
 import { FileGroupSection, FinderDropTargets } from "./files-sections";
@@ -30,37 +30,37 @@ import { newSince } from "./folder-status-model";
 import { FolderStatusLine, LinkedFolderButton, LinkFolderButton, LinkFolderField, ROW_BUTTON } from "./linked-folder";
 import { RECENT_CHANGES_KEY, RecentChanges } from "./recent-changes";
 import { recentChanges, removedLately } from "./recent-changes-model";
-import { PickClass } from "@/frontend/components/pick-class";
+import { PickSpace } from "@/frontend/components/pick-space";
 
 /**
- * THE FILES PAGE (a class tab): Add files (pick the kind first), a search
+ * THE FILES PAGE (a space tab): Add files (pick the kind first), a search
  * field, the linked folder, the summary and the folder's live line, then
- * Recent changes and the class's files in groups found from their names
+ * Recent changes and the space's files in groups found from their names
  * (a lecture's notes and transcript together, with the date when a name
  * has one). Dragging files from Finder over the page shows two
- * places to drop them: Study material or Course info. Unlink, Remove and
- * Move to Course info ask first, saying how many facts go.
+ * places to drop them: Study material or Space info. Unlink, Remove and
+ * Move to Space info ask first, saying how many facts go.
  *
  * Coverage per file comes from the shared progress payload; the record
- * re-reads on classes-changed, so statuses update as files are built, and
+ * re-reads on spaces-changed, so statuses update as files are built, and
  * each minute while a folder is linked, so its "checked" time stays true.
  */
 export function FilesPage() {
-	const { active } = useClasses();
-	// Keyed by class, so a class switch starts clean.
+	const { active } = useSpaces();
+	// Keyed by space, so a space switch starts clean.
 	return <FilesPageBody key={active ?? "none"} />;
 }
 
 const NO_FOLDER_STATUS: FolderStatus = { problem: null, checkedAt: null, settling: 0 };
 
-const collapsedKey = (classId: string) => `lh:files-collapsed:${classId}`;
+const collapsedKey = (spaceId: string) => `lh:files-collapsed:${spaceId}`;
 
-/** Folded groups, remembered per class in this browser only. */
-function useCollapsed(classId: string | null) {
+/** Folded groups, remembered per space in this browser only. */
+function useCollapsed(spaceId: string | null) {
 	const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(() => {
-		if (!classId) return new Set();
+		if (!spaceId) return new Set();
 		try {
-			const saved: unknown = JSON.parse(window.localStorage.getItem(collapsedKey(classId)) ?? "[]");
+			const saved: unknown = JSON.parse(window.localStorage.getItem(collapsedKey(spaceId)) ?? "[]");
 			return new Set(Array.isArray(saved) ? saved.filter((k): k is string => typeof k === "string") : []);
 		} catch {
 			return new Set();
@@ -72,20 +72,20 @@ function useCollapsed(classId: string | null) {
 				const next = new Set(prev);
 				if (!next.delete(key)) next.add(key);
 				try {
-					if (classId) window.localStorage.setItem(collapsedKey(classId), JSON.stringify([...next]));
+					if (spaceId) window.localStorage.setItem(collapsedKey(spaceId), JSON.stringify([...next]));
 				} catch {
 					// Only a convenience: the page works without it.
 				}
 				return next;
 			}),
-		[classId],
+		[spaceId],
 	);
 	return { collapsed, toggle };
 }
 
 function FilesPageBody() {
-	const { active } = useClasses();
-	const { record, folder, shortcuts, failed, reload } = useClassRecord(active);
+	const { active } = useSpaces();
+	const { record, folder, shortcuts, failed, reload } = useSpaceRecord(active);
 	const minute = useMinute();
 	const linked = !!record?.linkedFolder;
 	// A new minute (not the first one) re-reads the folder's status.
@@ -104,12 +104,12 @@ function FilesPageBody() {
 	const [query, setQuery] = useState("");
 	const [finderDrag, setFinderDrag] = useState<number | null>(null);
 	const { collapsed, toggle } = useCollapsed(active);
-	const classId = record?.id ?? null;
+	const spaceId = record?.id ?? null;
 	const folderStatus = folder ?? NO_FOLDER_STATUS;
 
 	const coverage = useMemo(() => {
 		const map = new Map<string, FileCoverage>();
-		if (data && data.classId === active) for (const f of data.files) map.set(f.fileId, f);
+		if (data && data.spaceId === active) for (const f of data.files) map.set(f.fileId, f);
 		return map;
 	}, [data, active]);
 	const groups = useMemo(() => fileGroups(record?.files ?? []), [record]);
@@ -133,35 +133,35 @@ function FilesPageBody() {
 	}, []);
 
 	const actions = useMemo<FileRowActions | null>(() => {
-		if (!classId) return null;
+		if (!spaceId) return null;
 		const showInFolder = typeof window !== "undefined" ? window.lh?.showInFolder : undefined;
 		return {
 			onKind: (file, kind) => {
 				if (kind === "info") setConfirm({ kind: "move", file });
-				else void run(() => setClassFileKind(classId, file.id, kind));
+				else void run(() => setSpaceFileKind(spaceId, file.id, kind));
 			},
-			onRetry: (fileId) => void run(() => retryClassFile(classId, fileId)),
+			onRetry: (fileId) => void run(() => retrySpaceFile(spaceId, fileId)),
 			onRemove: (file) => setConfirm({ kind: "remove", file }),
 			show: showInFolder && {
 				label: `Show in ${fileBrowserName(window.lh?.platform)}`,
 				run: (fileId) =>
-					void classFilePathOf(classId, fileId).then((path) => {
+					void spaceFilePathOf(spaceId, fileId).then((path) => {
 						if (path) void showInFolder(path);
 						else setError("Can't find this file on your computer.");
 					}),
 			},
 		};
-	}, [classId, run]);
+	}, [spaceId, run]);
 	const openPath = typeof window !== "undefined" ? window.lh?.openPath : undefined;
 
 	const link = useCallback(
 		(path: string) => {
-			if (!classId) return;
-			void run(() => linkClassFolder(classId, path)).then((ok) => {
+			if (!spaceId) return;
+			void run(() => linkSpaceFolder(spaceId, path)).then((ok) => {
 				if (ok) setLinking(false);
 			});
 		},
-		[classId, run],
+		[spaceId, run],
 	);
 	const onLinkFolder = useCallback(() => {
 		const pick = typeof window !== "undefined" ? window.lh?.pickFolder : undefined;
@@ -178,18 +178,18 @@ function FilesPageBody() {
 	const add = useCallback(
 		(kind: "study" | "info", files: File[]) => {
 			setFinderDrag(null);
-			if (classId) void run(() => uploadClassFiles(classId, files, kind));
+			if (spaceId) void run(() => uploadSpaceFiles(spaceId, files, kind));
 		},
-		[classId, run],
+		[spaceId, run],
 	);
 	const confirmText = useMemo(() => (confirm && record ? confirmCopy(confirm, record.name, record.files, coverage) : null), [confirm, record, coverage]);
 	const closeConfirm = useCallback(() => setConfirm(null), []);
 	const onConfirm = () => {
 		setConfirm(null);
-		if (!classId || !confirm) return;
-		if (confirm.kind === "unlink") void run(() => unlinkClassFolder(classId));
-		else if (confirm.kind === "remove") void run(() => removeClassFile(classId, confirm.file.id));
-		else void run(() => setClassFileKind(classId, confirm.file.id, "info"));
+		if (!spaceId || !confirm) return;
+		if (confirm.kind === "unlink") void run(() => unlinkSpaceFolder(spaceId));
+		else if (confirm.kind === "remove") void run(() => removeSpaceFile(spaceId, confirm.file.id));
+		else void run(() => setSpaceFileKind(spaceId, confirm.file.id, "info"));
 	};
 
 	const showRecent = !searching && changes.length > 0;
@@ -225,9 +225,9 @@ function FilesPageBody() {
 		>
 			<h1 className="sr-only">Files</h1>
 			<div className="mx-auto flex w-full max-w-[908px] flex-col gap-[18px] px-6 pt-[18px] pb-10">
-				{!active && <PickClass line="Pick a class to see its files." />}
+				{!active && <PickSpace line="Pick a space to see its files." />}
 				{active && !record && !failed && <p className="text-[15px] text-ink-2">Loading…</p>}
-				{active && !record && failed && <LoadFailed message="Couldn't load this class's files." onRetry={() => void reload()} />}
+				{active && !record && failed && <LoadFailed message="Couldn't load this space's files." onRetry={() => void reload()} />}
 				{record && actions && (
 					<>
 						<AddFilesButton disabled={disabled} onAdd={add} />
@@ -261,14 +261,14 @@ function FilesPageBody() {
 							</div>
 						)}
 						{error && (
-							<p role="alert" data-testid="class-files-error" className="text-[15px] whitespace-pre-wrap text-ans-wrong">
+							<p role="alert" data-testid="space-files-error" className="text-[15px] whitespace-pre-wrap text-ans-wrong">
 								{error}
 							</p>
 						)}
 						{finderDrag !== null && <FinderDropTargets count={finderDrag} onDrop={add} />}
 						{record.files.length === 0 && finderDrag === null && (
 							<Pane data-testid="files-empty" className="flex flex-col gap-1.5 p-7">
-								<span className="text-[17px] text-ink">Add lecture notes, readings, recordings or the syllabus, or drop them here.</span>
+								<span className="text-[17px] text-ink">Add notes, readings, recordings or a syllabus, or drop them here.</span>
 								<span className="text-[15px] text-ink-2">PDF, Markdown, text, VTT/SRT, audio, video</span>
 							</Pane>
 						)}

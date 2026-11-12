@@ -34,7 +34,7 @@ export function TopicBox({
 	inputRef?: RefObject<HTMLTextAreaElement | null>;
 	/** How many facts are picked. */
 	picks: number;
-	/** The class has facts to pick from. */
+	/** The space has facts to pick from. */
 	canPick: boolean;
 	onOpenPicker: () => void;
 	onClearPicks: () => void;

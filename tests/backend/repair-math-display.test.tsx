@@ -97,7 +97,7 @@ describe("upgraded KaTeX rendering on real question and practice surfaces", () =
 					const html = renderToStaticMarkup(element);
 					assertMath(html, [formula], [...glyphs]);
 					const { document } = parseHTML(html);
-					assert.ok(document.querySelector(".katex-base .katex-strut"), "matching 0.18 internal layout classes");
+					assert.ok(document.querySelector(".katex-base .katex-strut"), "matching 0.18 internal layout spaces");
 					if (name === "fraction and root") assert.ok(document.querySelector(".mfrac .sqrt"));
 					if (name === "accents") assert.ok(document.querySelectorAll(".katex-accent").length >= 2);
 					if (name.endsWith("rows")) assert.ok(document.querySelectorAll(".mtable .mtr").length >= 2 || document.querySelectorAll(".mtable .vlist > span").length >= 2, "two real rows, not repaired-away slashes");

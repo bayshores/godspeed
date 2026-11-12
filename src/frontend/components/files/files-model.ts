@@ -1,12 +1,12 @@
 /**
- * The Files page's small pure helpers. Every value comes from the class
- * record (src/shared/core/contracts/class.ts) and the progress payload's file
+ * The Files page's small pure helpers. Every value comes from the space
+ * record (src/shared/core/contracts/space.ts) and the progress payload's file
  * coverage (src/shared/core/progress.ts).
  */
-import { SPEECH_TOOL_INSTALL, SUPPORTED_CLASS_FILE_EXTENSIONS, type ClassFile, type FileCoverage, type FileGroup } from "@/shared/core";
+import { SPEECH_TOOL_INSTALL, SUPPORTED_SPACE_FILE_EXTENSIONS, type SpaceFile, type FileCoverage, type FileGroup } from "@/shared/core";
 
 /** Accepted by "Add files" (files with no extension can still be dropped). */
-export const CLASS_FILE_ACCEPT = SUPPORTED_CLASS_FILE_EXTENSIONS.join(",");
+export const SPACE_FILE_ACCEPT = SUPPORTED_SPACE_FILE_EXTENSIONS.join(",");
 
 /** The computer's file browser by name, for "Show in …" labels. */
 export function fileBrowserName(platform: string | undefined): string {
@@ -26,7 +26,7 @@ export type FileState =
  * A row's state from its pipeline status and coverage:
  * - extracting → "Building facts"
  * - pending study file → "Waiting", or "Waiting for your agent" when no
- *   agent is teaching (a course-info file has nothing to do)
+ *   agent is teaching (a space-info file has nothing to do)
  * - failed → red label + Retry
  * - needs-whisper → "Needs a speech tool" + Retry, with the install command
  * - ready recording its lecture's transcript covers → "Uses its
@@ -34,9 +34,9 @@ export type FileState =
  *   next to it)
  * - ready study file → the coverage bar and its fact count (once the
  *   progress payload has it)
- * - ready course info → nothing
+ * - ready space info → nothing
  */
-export function fileState(file: ClassFile, coverage: FileCoverage | undefined, agentTeaching: boolean): FileState {
+export function fileState(file: SpaceFile, coverage: FileCoverage | undefined, agentTeaching: boolean): FileState {
 	switch (file.status) {
 		case "extracting":
 			return { kind: "building" };
@@ -55,13 +55,13 @@ export function fileState(file: ClassFile, coverage: FileCoverage | undefined, a
 
 /** The More menu offers Retry while a file is stuck waiting; a failed row
  *  already shows its own Retry. */
-export function canRetry(file: ClassFile): boolean {
+export function canRetry(file: SpaceFile): boolean {
 	return file.status === "pending";
 }
 
 /** Only the app's own copies can be removed; a linked folder's files leave
  *  with Unlink. */
-export function canRemove(file: ClassFile): boolean {
+export function canRemove(file: SpaceFile): boolean {
 	return file.origin === "copied";
 }
 
@@ -73,7 +73,7 @@ export function studiedFill(state: { facts: number; inLessons: number }): number
 
 /** A section's name. */
 export function kindTitle(kind: "study" | "info"): string {
-	return kind === "study" ? "Study material" : "Course info";
+	return kind === "study" ? "Study material" : "Space info";
 }
 
 /** What each kind does, under its name (Add files and the drop targets). */
@@ -86,7 +86,7 @@ function count(n: number, one: string, many: string): string {
 	return `${n} ${n === 1 ? one : many}`;
 }
 
-/** What "Move to Course info" does to a study file's facts (null: not
+/** What "Move to Space info" does to a study file's facts (null: not
  *  known yet). A file with no facts loses nothing, so it says nothing. */
 function factsLeave(facts: number | null): string {
 	if (facts === 0) return "";
@@ -94,7 +94,7 @@ function factsLeave(facts: number | null): string {
 }
 
 /** A change on the Files page that waits for the learner's OK. */
-export type FileConfirm = { kind: "unlink" } | { kind: "remove"; file: ClassFile } | { kind: "move"; file: ClassFile };
+export type FileConfirm = { kind: "unlink" } | { kind: "remove"; file: SpaceFile } | { kind: "move"; file: SpaceFile };
 
 export interface ConfirmCopy {
 	title: string;
@@ -114,18 +114,18 @@ export interface ConfirmCopy {
  */
 export function confirmCopy(
 	change: FileConfirm,
-	className: string,
-	files: readonly ClassFile[],
+	spaceName: string,
+	files: readonly SpaceFile[],
 	coverage: ReadonlyMap<string, FileCoverage>,
 ): ConfirmCopy {
 	const known = coverage.size > 0;
-	const factsOf = (list: readonly ClassFile[]) => (known ? list.reduce((sum, f) => sum + (coverage.get(f.id)?.facts ?? 0), 0) : null);
+	const factsOf = (list: readonly SpaceFile[]) => (known ? list.reduce((sum, f) => sum + (coverage.get(f.id)?.facts ?? 0), 0) : null);
 	const withFacts = (facts: number | null, from: string) =>
 		facts === 0 ? "" : `, along with ${facts === null ? "the facts" : `the ${count(facts, "fact", "facts")}`} built from ${from}`;
 	switch (change.kind) {
 		case "unlink": {
 			const linked = files.filter((f) => f.origin === "linked");
-			const leave = linked.length > 0 ? `Its ${count(linked.length, "file leaves", "files leave")} ${className}${withFacts(factsOf(linked), "them")}. ` : "";
+			const leave = linked.length > 0 ? `Its ${count(linked.length, "file leaves", "files leave")} ${spaceName}${withFacts(factsOf(linked), "them")}. ` : "";
 			return {
 				title: "Unlink this folder?",
 				body: `${leave}The folder on your computer is not touched. This cannot be undone.`,
@@ -138,14 +138,14 @@ export function confirmCopy(
 			const what = change.file.kind === "study" ? withFacts(factsOf([change.file]), "it") : "";
 			return {
 				title: `Remove ${change.file.name}?`,
-				body: `It leaves ${className}${what}. Your original file is not touched. This cannot be undone.`,
+				body: `It leaves ${spaceName}${what}. Your original file is not touched. This cannot be undone.`,
 				action: "Remove file",
 				danger: true,
 			};
 		}
 		case "move":
 			return {
-				title: "Move to Course info?",
+				title: "Move to Space info?",
 				body: `${factsLeave(known ? (coverage.get(change.file.id)?.facts ?? 0) : null)}The teacher can still read it.`,
 				action: "Move file",
 				danger: false,
@@ -189,10 +189,10 @@ export function listRules(open: readonly boolean[]): ("solid" | "dotted" | null)
 	return open.map((o, i) => (i === 0 ? null : o || open[i - 1] ? "solid" : "dotted"));
 }
 
-/** "46 files, 27 study material, 19 course info". */
-export function filesSummary(files: readonly ClassFile[]): string {
+/** "46 files, 27 study material, 19 space info". */
+export function filesSummary(files: readonly SpaceFile[]): string {
 	const info = files.filter((f) => f.kind === "info").length;
 	const parts = [count(files.length, "file", "files")];
-	if (files.length > 0) parts.push(`${files.length - info} study material`, `${info} course info`);
+	if (files.length > 0) parts.push(`${files.length - info} study material`, `${info} space info`);
 	return parts.join(", ");
 }

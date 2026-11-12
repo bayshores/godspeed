@@ -473,14 +473,14 @@ function projectMarker(marker: LhMarkerMessage, out: LhViewMessage[]): void {
 			});
 			return;
 		}
-		case "class-context": {
-			// The lesson's class card: user-side
+		case "space-context": {
+			// The lesson's space card: user-side
 			// scaffolding like the graph-context card — a collapsible card,
 			// never a text bubble.
 			out.push({
 				id: marker.id,
 				role: "user",
-				parts: [{ type: "data-class-context", id: `cc_${marker.id}`, data: marker.details }],
+				parts: [{ type: "data-space-context", id: `cc_${marker.id}`, data: marker.details }],
 			});
 			return;
 		}

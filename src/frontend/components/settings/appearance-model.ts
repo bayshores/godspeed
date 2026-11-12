@@ -134,7 +134,7 @@ export function derivedPalette(background: string): Record<string, string> {
 		"--lh-ink-max": s.max,
 		"--lh-tint": s.tint,
 		"--lh-line": s.line,
-		"--lh-class-wash": s.wash,
+		"--lh-space-wash": s.wash,
 		...Object.fromEntries(status),
 	};
 }

@@ -71,7 +71,7 @@ export function FolderNotice({ agent, afterWelcome }: { agent: FolderAgent; afte
 			}
 		>
 			<p className="text-lg text-ink">
-				Open {name} in {view?.short ?? "~/godspeed"} to study. Your other {name} chats stop loading godspeed, and your classes and lessons stay as
+				Open {name} in {view?.short ?? "~/godspeed"} to study. Your other {name} chats stop loading godspeed, and your spaces and lessons stay as
 				they are.
 			</p>
 			{error && (

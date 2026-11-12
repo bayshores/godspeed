@@ -1,6 +1,6 @@
 /**
- * GET /api/deadlines — from every class that is not archived, soonest due
- * first, each with its class id and name: `deadlines` not yet done, and
+ * GET /api/deadlines — from every space that is not archived, soonest due
+ * first, each with its space id and name: `deadlines` not yet done, and
  * `doneToday` ticked done today. Today reads it. Read-only.
  */
 import { listDeadlinesDoneOn, listOpenDeadlines } from "@/backend/server";

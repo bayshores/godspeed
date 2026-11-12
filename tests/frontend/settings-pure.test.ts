@@ -89,11 +89,11 @@ describe("derivedPalette — every surface and text color follows the background
 		assert.ok(contrast(p["--lh-bar-ink"]!, p["--lh-bar"]!) >= 7);
 	});
 
-	it("a sheet's outline is ink on Paper and the quiet text grey on a dark background; a pale class block washes to white or black", () => {
+	it("a sheet's outline is ink on Paper and the quiet text grey on a dark background; a pale space block washes to white or black", () => {
 		const paper = derivedPalette(PAPER);
-		assert.deepEqual([paper["--lh-line"], paper["--lh-class-wash"]], [paper["--foreground"], "#ffffff"]);
+		assert.deepEqual([paper["--lh-line"], paper["--lh-space-wash"]], [paper["--foreground"], "#ffffff"]);
 		const night = derivedPalette("#1b1b19");
-		assert.deepEqual([night["--lh-line"], night["--lh-class-wash"]], [night["--lh-ink-3"], "#000000"]);
+		assert.deepEqual([night["--lh-line"], night["--lh-space-wash"]], [night["--lh-ink-3"], "#000000"]);
 	});
 
 	it("a dark background gets a top bar a step darker than the page", () => {

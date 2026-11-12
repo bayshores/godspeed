@@ -1,6 +1,6 @@
 import { memo, useMemo, type ReactNode } from "react";
-import type { ClassNote, DeadlineProgress, ProgressPayload } from "@/shared/core";
-import { ClassFacts } from "./class-facts";
+import type { SpaceNote, DeadlineProgress, ProgressPayload } from "@/shared/core";
+import { SpaceFacts } from "./space-facts";
 import { ConfidenceCard } from "./confidence-card";
 import { LessonsCard } from "./lessons-card";
 import { MostNeeded } from "./most-needed";
@@ -10,14 +10,14 @@ import { RecentLessons } from "./recent-lessons";
 import { TeacherNote } from "./teacher-note";
 
 /**
- * The Progress tab under the class head (pure view, the render-test seam),
+ * The Progress tab under the space head (pure view, the render-test seam),
  * top to bottom: the teacher's note, the next deadline, "Most needed",
  * "Pick up where you left off", the fact grid, "How lessons went" and the
  * confidence chart. Each shows only once it has something to show; a
- * class's deadline, topic and facts are left out for "Lessons with no class".
+ * space's deadline, topic and facts are left out for "Lessons with no space".
  */
 export const OverviewBody = memo(function OverviewBody({
-	hasClass,
+	hasSpace,
 	color,
 	note,
 	data,
@@ -27,12 +27,12 @@ export const OverviewBody = memo(function OverviewBody({
 	onStudy,
 	onStartDeadline,
 	onAddDeadline,
-	pickClass,
+	pickSpace,
 }: {
-	hasClass: boolean;
-	/** The class's color (grey with no class). */
+	hasSpace: boolean;
+	/** The space's color (grey with no space). */
 	color: string;
-	note?: ClassNote;
+	note?: SpaceNote;
 	data: ProgressPayload | null;
 	/** The window's clock (null before the first client render). */
 	nowMs: number | null;
@@ -46,18 +46,18 @@ export const OverviewBody = memo(function OverviewBody({
 	onStartDeadline: (d: DeadlineProgress) => void;
 	/** "Add a deadline" (opens the Deadlines tab). */
 	onAddDeadline: () => void;
-	/** With no class: the classes to switch to. */
-	pickClass?: ReactNode;
+	/** With no space: the spaces to switch to. */
+	pickSpace?: ReactNode;
 }) {
 	const answered = useMemo(() => answeredLessons(data?.lessons ?? []), [data?.lessons]);
 	const recent = useMemo(() => recentLessons(data?.lessons ?? []), [data?.lessons]);
 	const upcoming = useMemo(() => (data && nowMs !== null ? upcomingDeadlines(data.deadlines, nowMs) : []), [data, nowMs]);
 	const needed = useMemo(() => mostNeeded(upcoming), [upcoming]);
 	return (
-		<div data-testid="class-overview" className="mx-auto flex w-full max-w-[908px] flex-col gap-[22px] px-6 pt-[22px] pb-9">
-			{pickClass}
+		<div data-testid="space-overview" className="mx-auto flex w-full max-w-[908px] flex-col gap-[22px] px-6 pt-[22px] pb-9">
+			{pickSpace}
 			{note && <TeacherNote note={note} nowMs={nowMs} />}
-			{hasClass && data && nowMs !== null && (
+			{hasSpace && data && nowMs !== null && (
 				<NextDeadline
 					deadline={upcoming[0] ?? null}
 					none={data.deadlines.length === 0 ? "No deadlines yet" : "Nothing is coming up."}
@@ -73,9 +73,9 @@ export const OverviewBody = memo(function OverviewBody({
 					{startError}
 				</p>
 			)}
-			{hasClass && needed && <MostNeeded needed={needed} busy={busy} onStudy={onStudy} />}
+			{hasSpace && needed && <MostNeeded needed={needed} busy={busy} onStudy={onStudy} />}
 			{recent.length > 0 && <RecentLessons lessons={recent} color={color} nowMs={nowMs} />}
-			{hasClass && data && <ClassFacts progress={data} />}
+			{hasSpace && data && <SpaceFacts progress={data} />}
 			{answered.length > 0 && <LessonsCard lessons={answered} />}
 			{data && hasCalibration(data.calibration.levels) && <ConfidenceCard calibration={data.calibration} />}
 		</div>

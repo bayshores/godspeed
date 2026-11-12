@@ -1,5 +1,5 @@
 /**
- * THE CHEAT SHEET: the notes a class lets the learner bring to a deadline,
+ * THE CHEAT SHEET: the notes a space lets the learner bring to a deadline,
  * one per deadline. The agent makes it as a real PDF with its own tools,
  * keeping its source in a working folder so a change edits it. The sheet
  * has a chat: each message from the learner is one request, which the
@@ -7,9 +7,9 @@
  * the last few versions, the chat and the sheet's rules (what should
  * always hold for it). Pure and browser-safe.
  */
-import type { ClassDeadline, DeadlineKind } from "./contracts.ts";
+import type { SpaceDeadline, DeadlineKind } from "./contracts.ts";
 import type { TopicStatus } from "./progress.ts";
-import { safeEntryName } from "./class-shortcuts.ts";
+import { safeEntryName } from "./space-shortcuts.ts";
 import { RULE_MAX_CHARS, RULES_MAX, oneLine as cleanLine } from "./teaching-areas.ts";
 
 // ─── the record ─────────────────────────────────────────────────────────────
@@ -161,8 +161,8 @@ export function pdfProblem(pdf: { bytes: number; head?: string; pages?: readonly
 }
 
 /** The working folder's name: "CSE 21 Midterm", safe on every OS. */
-export function sheetFolderName(className: string, deadlineName: string): string {
-	return safeEntryName(`${className} ${deadlineName}`);
+export function sheetFolderName(spaceName: string, deadlineName: string): string {
+	return safeEntryName(`${spaceName} ${deadlineName}`);
 }
 
 /** The copies Show in Finder writes into the working folder. */
@@ -388,12 +388,12 @@ interface CheatSheetRequest {
 	/** "CSE 21 Midterm". */
 	title: string;
 	date: string;
-	/** The learner's words about the class (notation, textbook). */
-	classNotes: string;
-	/** The class's course info files (syllabus, policies). */
+	/** The learner's words about the space (notation, textbook). */
+	spaceNotes: string;
+	/** The space's space info files (syllabus, policies). */
 	infoFiles: readonly string[];
 	rules: readonly SheetRule[];
-	/** The deadline's topics in class order. */
+	/** The deadline's topics in space order. */
 	topics: readonly RequestTopic[];
 	mistakes: readonly SheetMistake[];
 	/** The working folder's absolute path, and what is in it now. */
@@ -437,7 +437,7 @@ function folderText(r: CheatSheetRequest, current: SheetVersion | null): string 
 
 function earlierText(messages: readonly SheetMessage[]): string {
 	const lines = messages.slice(-EARLIER_SENT).map((m) => {
-		if (m.role === "you") return `Student: ${oneLine(m.text, EARLIER_CHARS) || "(files only)"}`;
+		if (m.role === "you") return `Learner: ${oneLine(m.text, EARLIER_CHARS) || "(files only)"}`;
 		return `You: ${[oneLine(m.text, EARLIER_CHARS), m.version ? `[made version ${m.version}]` : ""].filter(Boolean).join(" ")}`;
 	});
 	return lines.length > 0 ? `The chat so far, oldest first:\n${lines.join("\n")}` : "";
@@ -467,30 +467,30 @@ export function cheatSheetRequestText(r: CheatSheetRequest): string {
 	return [
 		[
 			`Cheat sheet for: ${r.title} on ${r.date}`,
-			r.classNotes ? `About the class: ${oneLine(r.classNotes, 300)}` : "",
-			r.infoFiles.length > 0 ? `Course info files (the rules are likely here): ${infoFileList(r.infoFiles)}` : "The class has no course info files; search all its files for the rules.",
+			r.spaceNotes ? `About the space: ${oneLine(r.spaceNotes, 300)}` : "",
+			r.infoFiles.length > 0 ? `Space info files (the rules are likely here): ${infoFileList(r.infoFiles)}` : "The space has no space info files; search all its files for the rules.",
 		]
 			.filter(Boolean)
 			.join("\n"),
 		r.rules.length > 0 ? `This sheet's rules (follow every one):\n${r.rules.map((x) => `- ${x.text}`).join("\n")}` : "",
-		r.topics.length > 0 ? `Topics on this exam (name | how the student does)${current ? "" : ", with some of the class's facts"}:\n${r.topics.map(topic).join("\n")}` : "",
+		r.topics.length > 0 ? `Topics on this exam (name | how the learner does)${current ? "" : ", with some of the space's facts"}:\n${r.topics.map(topic).join("\n")}` : "",
 		r.mistakes.length > 0 ? `Mistakes from practice:\n${r.mistakes.map(mistake).join("\n")}` : "",
 		folderText(r, current),
 		earlierText(r.earlier),
 		m.region ? regionLine(m.region, r.versions, current) : "",
-		`The student says:\n${m.text.trim() || "(no words, only the files)"}`,
+		`The learner says:\n${m.text.trim() || "(no words, only the files)"}`,
 	]
 		.filter(Boolean)
 		.join("\n\n");
 }
 
-// ─── a class's cheat sheets ─────────────────────────────────────────────────
+// ─── a space's cheat sheets ─────────────────────────────────────────────────
 
 /** Where a deadline's sheet is: made, the agent on it, made in an older
  *  format (or by a newer godspeed), or not there. */
 type SheetStatus = "made" | "making" | "older" | "newer" | "none";
 
-/** One deadline on the class's Cheat sheets page. */
+/** One deadline on the space's Cheat sheets page. */
 export interface SheetCard {
 	deadlineId: string;
 	name: string;
@@ -504,16 +504,16 @@ export interface SheetCard {
 	version: SheetVersion | null;
 }
 
-/** GET /api/classes/<id>/cheat-sheets. */
-export interface ClassSheetsView {
-	className: string;
+/** GET /api/spaces/<id>/cheat-sheets. */
+export interface SpaceSheetsView {
+	spaceName: string;
 	cards: SheetCard[];
 }
 
-/** Every deadline of the class with its sheet: upcoming soonest first, then
+/** Every deadline of the space with its sheet: upcoming soonest first, then
  *  past ones, latest first. */
 export function sheetCards(
-	deadlines: readonly ClassDeadline[],
+	deadlines: readonly SpaceDeadline[],
 	sheetOf: (deadlineId: string) => CheatSheet | "newer" | null,
 	running: (deadlineId: string) => boolean,
 	today: string,
@@ -541,7 +541,7 @@ export function sheetCards(
 /** GET …/cheat-sheet: everything the studio and the sheet beside a
  *  session show. */
 export interface CheatSheetView {
-	className: string;
+	spaceName: string;
 	deadlineName: string;
 	/** The due day, YYYY-MM-DD. */
 	date: string;

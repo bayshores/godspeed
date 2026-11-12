@@ -8,7 +8,7 @@ import type { AgentEvent } from "@earendil-works/pi-agent-core";
  * question gate, answer routing, the option-shuffle seed), so cross-turn
  * duplicates would corrupt all of them at once.
  *
- * THE LAW: ids are uniquified ONCE, at the wire boundary — this class sits
+ * THE LAW: ids are uniquified ONCE, at the wire boundary — this space sits
  * inside runPiTurn, sees every AgentEvent before any view, and applies the
  * same minting at settlement. The client, the persisted record, the dock,
  * the answer flow, and the next turn's provider context (rebuilt from the

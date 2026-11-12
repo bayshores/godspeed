@@ -346,28 +346,37 @@ class GraphTests(unittest.TestCase):
         self.assertTrue(any(item["createdAt"] is None for item in sessions))
         self.assertEqual(snapshot(GOLDEN), before)
 
-    # Classes (2026-10-26): each class has its own graph at classes/<id>/graph.
+    # Spaces (2026-10-26): each space has its own graph at spaces/<id>/graph.
 
-    def test_reads_one_class_graph_and_lists_classes(self):
+    def test_reads_one_space_graph_and_lists_spaces(self):
         before = snapshot(self.root) if self.root.exists() else {}
         cls = "cls_math20c_ab12cd34"
-        self.write_json(f"classes/{cls}/class.json", {
+        self.write_json(f"spaces/{cls}/space.json", {
             "id": cls, "name": "MATH 20C", "description": "Calc III", "archived": False,
             "createdAt": "2026-10-26T00:00:00Z", "updatedAt": "2026-10-26T00:00:00Z",
             "files": [{"id": "f_1", "kind": "study"}, {"id": "f_2", "kind": "info"}],
         })
-        path = self.root / "classes" / cls / "graph" / "nodes.jsonl"
+        path = self.root / "spaces" / cls / "graph" / "nodes.jsonl"
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(node("n_class", "src_file")) + "\n", encoding="utf-8")
+        path.write_text(json.dumps(node("n_space", "src_file")) + "\n", encoding="utf-8")
         self.write_ledger("nodes", [node("n_none", "chat_x")])
-        self.assertEqual([n["id"] for n in self.result("--class", cls, "propositions")], ["n_class"])
+        self.assertEqual([n["id"] for n in self.result("--space", cls, "propositions")], ["n_space"])
         self.assertEqual([n["id"] for n in self.result("propositions")], ["n_none"])
-        self.assertEqual([n["id"] for n in self.result("--class", "none", "propositions")], ["n_none"])
-        classes = self.result("classes")
-        self.assertEqual(classes, [{"id": cls, "name": "MATH 20C", "description": "Calc III", "archived": False, "files": 2, "studyFiles": 1}])
-        status, _, err = self.invoke("--class", "../evil", "propositions")
+        self.assertEqual([n["id"] for n in self.result("--space", "none", "propositions")], ["n_none"])
+        spaces = self.result("spaces")
+        self.assertEqual(spaces, [{"id": cls, "name": "MATH 20C", "description": "Calc III", "archived": False, "files": 2, "studyFiles": 1}])
+        status, _, err = self.invoke("--space", "../evil", "propositions")
         self.assertEqual(status, 1)
-        self.assertIn("Invalid class id", err)
+        self.assertIn("Invalid space id", err)
+
+    def test_reads_a_data_folder_from_before_the_rename(self):
+        old = "cls_old_ab12cd34"
+        self.write_json(f"classes/{old}/class.json", {"id": old, "name": "Old", "files": [{"id": "f_1", "kind": "study"}]})
+        path = self.root / "classes" / old / "graph" / "nodes.jsonl"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(node("n_old", "src_file")) + "\n", encoding="utf-8")
+        self.assertEqual([s["id"] for s in self.result("spaces")], [old])
+        self.assertEqual([n["id"] for n in self.result("--space", old, "propositions")], ["n_old"])
 
 
 if __name__ == "__main__":

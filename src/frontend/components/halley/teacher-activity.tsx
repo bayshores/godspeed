@@ -33,7 +33,7 @@ export function TeacherActivity() {
 			follow={halley ? { on: halley.follow, set: halley.setFollow } : null}
 			recent={halley?.recent ?? []}
 			onPick={(a) => halley?.go(a)}
-			classNameOf={halley?.classNameOf ?? (() => null)}
+			spaceNameOf={halley?.spaceNameOf ?? (() => null)}
 			feed={feed}
 			waiting={agentWaiting(agent) ? waitingNotice(agent?.name) : null}
 		/>
@@ -47,7 +47,7 @@ export function ActivityList({
 	follow,
 	recent,
 	onPick,
-	classNameOf,
+	spaceNameOf,
 	feed,
 	waiting,
 }: {
@@ -56,7 +56,7 @@ export function ActivityList({
 	follow: { on: boolean; set: (on: boolean) => void } | null;
 	recent: readonly AgentAction[];
 	onPick: (action: AgentAction) => void;
-	classNameOf: (id: string | null) => string | null;
+	spaceNameOf: (id: string | null) => string | null;
 	feed: ActivityFeed;
 	waiting: string | null;
 }) {
@@ -102,8 +102,8 @@ export function ActivityList({
 					<h3 className="text-[17px] font-normal text-ink">Recent</h3>
 					<div data-testid="halley-recent" className="flex flex-col border-y-[1.5px] border-ink">
 						{recent.map((a) => {
-							// A class's own row doesn't repeat its name.
-							const cls = a.target?.kind === "class" ? null : classNameOf(a.classId);
+							// A space's own row doesn't repeat its name.
+							const space = a.target?.kind === "space" ? null : spaceNameOf(a.spaceId);
 							const canGo = safePage(a.page) !== null;
 							const label = pastLabel(a.label);
 							return (
@@ -119,7 +119,7 @@ export function ActivityList({
 										<span className="truncate text-[15px] text-ink" title={label}>
 											{label}
 										</span>
-										{cls && <span className="shrink-0 text-[15px] text-ink-2">{cls}</span>}
+										{space && <span className="shrink-0 text-[15px] text-ink-2">{space}</span>}
 									</span>
 									<span data-testid="halley-recent-time" className="shrink-0 font-count text-[15px] text-ink-2">
 										{agoLabel(a.at, now)}

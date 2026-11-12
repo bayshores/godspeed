@@ -17,11 +17,11 @@ import { PathSheet } from "./path-sheet";
 
 interface DeadlineBodyProps {
 	deadline: DeadlineProgress;
-	/** The class's color. */
+	/** The space's color. */
 	color: string;
-	/** The class's topics, for each one's "2 of 5 right". */
+	/** The space's topics, for each one's "2 of 5 right". */
 	topics: readonly TopicTally[];
-	/** Null while the class's files load. */
+	/** Null while the space's files load. */
 	material: Material | null;
 	plan: readonly PlanDay[];
 	nowMs: number;

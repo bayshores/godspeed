@@ -1,12 +1,12 @@
 /**
- * A lecture recording whose transcript is already in the class: it isn't
+ * A lecture recording whose transcript is already in the space: it isn't
  * transcribed again (hours of the computer's time) and its facts come from
  * the transcript. Purely from names, like core/file-series.ts.
  */
-import { FILE_NOT_FOUND, isRecordingFile, isTranscriptFile, type ClassFile } from "./contracts.ts";
+import { FILE_NOT_FOUND, isRecordingFile, isTranscriptFile, type SpaceFile } from "./contracts.ts";
 import { dateInName } from "./file-series.ts";
 
-type Named = Pick<ClassFile, "id" | "name" | "kind">;
+type Named = Pick<SpaceFile, "id" | "name" | "kind">;
 
 const LECTURE_NUMBER = /lecture[\s_\-.]*0*(\d+)/i;
 
@@ -42,12 +42,12 @@ export function transcriptFor<F extends Named>(recording: Named, files: readonly
 
 /**
  * Recordings to process again after the file list changed: one whose
- * transcript left (or became course info) is transcribed after all, and a
+ * transcript left (or became space info) is transcribed after all, and a
  * settled one a newly added transcript covers drops its own facts. Files
  * still waiting or being read see the change when their turn comes, and a
  * recording that is gone waits for the folder scan.
  */
-export function recordingsToRecheck(files: readonly Pick<ClassFile, "id" | "name" | "kind" | "status" | "transcriptId" | "error">[]): string[] {
+export function recordingsToRecheck(files: readonly Pick<SpaceFile, "id" | "name" | "kind" | "status" | "transcriptId" | "error">[]): string[] {
 	return files
 		.filter((f) =>
 			f.transcriptId

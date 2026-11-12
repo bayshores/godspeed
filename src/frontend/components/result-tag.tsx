@@ -2,9 +2,9 @@ import { cn } from "@/frontend/lib/utils";
 
 /** The colored word on a card: how an answer or a problem ended. */
 const TONES = {
-	right: "bg-(--lh-class-3) text-on-class",
-	hints: "bg-(--lh-class-5) text-on-class",
-	wrong: "bg-(--lh-class-4) text-on-class",
+	right: "bg-(--lh-space-3) text-on-space",
+	hints: "bg-(--lh-space-5) text-on-space",
+	wrong: "bg-(--lh-space-4) text-on-space",
 	plain: "bg-tone-2 text-ink",
 } as const;
 

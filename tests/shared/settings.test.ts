@@ -17,9 +17,9 @@ import {
 
 describe("FACTORY_SETTINGS (the compiled factory layer)", () => {
 	it("pins the factory defaults", () => {
-		assert.equal(CURRENT_SETTINGS_VERSION, 2);
+		assert.equal(CURRENT_SETTINGS_VERSION, 3);
 		assert.deepEqual(FACTORY_SETTINGS.compaction, { thresholdTokens: 40_000 });
-		assert.deepEqual(FACTORY_SETTINGS.general, { autoUpdate: true, activeClass: "none", teacherName: "Teacher", sounds: true });
+		assert.deepEqual(FACTORY_SETTINGS.general, { autoUpdate: true, activeSpace: "none", teacherName: "Teacher", sounds: true });
 		// the master switch ONLY + the chunk budget (4096)
 		assert.deepEqual(FACTORY_SETTINGS.graph, { enabled: true, extractionChunkTokens: 4096 });
 		const a = FACTORY_SETTINGS.appearance;

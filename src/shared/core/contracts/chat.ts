@@ -21,7 +21,7 @@ export type ChatKind = "teach" | "practice" | "study" | "homework" | "talk";
 /** A lesson's kind: every kind but Talk. */
 export type LessonKind = Exclude<ChatKind, "talk">;
 
-/** Whether a session's teaching is saved to the class graph: teach and
+/** Whether a session's teaching is saved to the space graph: teach and
  *  study lessons are, practice, homework and Talk are not. */
 export function extractsFacts(kind: ChatKind | undefined): boolean {
 	return kind === undefined || kind === "teach" || kind === "study";
@@ -47,10 +47,10 @@ export interface ChatRecord {
 	messages: LhMessage[];
 	/** The session's kind — absent = teach (pre-practice records). */
 	kind?: ChatKind;
-	/** The class this lesson belongs to —
-	 *  ABSENT = "No class" (pre-classes records never migrate; same rule as
+	/** The space this lesson belongs to —
+	 *  ABSENT = "No space" (pre-spaces records never migrate; same rule as
 	 *  kind). Decides which graph the lesson's facts are written to. */
-	classId?: string;
+	spaceId?: string;
 	/** The deadline a Study session was started from; absent for any other
 	 *  start (and on records from before). Its Study button reopens it. */
 	deadlineId?: string;
@@ -68,16 +68,17 @@ export interface ChatRecord {
 	 *  pipeline run on THIS chat. Same parallel-log discipline as `turns` (nothing rides
 	 *  inside messages). Keyed by startedAt; idempotent appends. */
 	extractions?: ExtractionRunUsage[];
-	/** SCHEMA STAMP: LAZY v1 —
+	/** SCHEMA STAMP: lazy —
 	 *  existing records stay unstamped (absence reads as v1); every write
-	 *  stamps the current version. A record stamped NEWER than this build
+	 *  stamps the current version. v2: `classId`, the "class-context" card
+	 *  and a deadline request's `className` are named for spaces. A record stamped NEWER than this build
 	 *  (the downgrade scenario) is REFUSED on read: a read-modify-write
 	 *  store must never rewrite what it doesn't understand. */
 	version?: number;
 }
 
 /** The chat record format this build writes and understands. */
-export const CURRENT_CHAT_VERSION = 1;
+export const CURRENT_CHAT_VERSION = 2;
 
 
 // ─── Background-extraction usage ─────────────────────────────────────────────
@@ -231,8 +232,8 @@ export interface ChatSummary {
 	/** Normalized kind (absent record field reads as teach). The Talk chat
 	 *  is never listed. */
 	kind: LessonKind;
-	/** The lesson's class — absent = "No class". */
-	classId?: string;
+	/** The lesson's space — absent = "No space". */
+	spaceId?: string;
 	/** The deadline a Study session was started from. */
 	deadlineId?: string;
 	messageCount: number;

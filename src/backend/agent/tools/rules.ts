@@ -9,12 +9,12 @@ import { RULE_MAX_CHARS, TEACHING_AREAS, type AreaId } from "../../../shared/cor
  * learner states a preference. The learner sees it in the chat and can
  * undo or edit it. Returns the saved rule, or the refusal as text.
  */
-export type SaveRule = (rule: string, scope: "every_lesson" | "this_class", area: AreaId | undefined) => SaveRuleResult | string;
+export type SaveRule = (rule: string, scope: "every_lesson" | "this_space", area: AreaId | undefined) => SaveRuleResult | string;
 
 const saveRuleInput = Type.Object({
 	rule: Type.String({ minLength: 1, maxLength: RULE_MAX_CHARS, description: 'One line, an instruction to yourself in plain words, e.g. "Use Python for code examples."' }),
-	for: Type.Union([Type.Literal("every_lesson"), Type.Literal("this_class")], {
-		description: '"every_lesson", or "this_class" when it only matters in this lesson\'s class.',
+	for: Type.Union([Type.Literal("every_lesson"), Type.Literal("this_space")], {
+		description: '"every_lesson", or "this_space" when it only matters in this lesson\'s space.',
 	}),
 	area: Type.Optional(
 		Type.Union(

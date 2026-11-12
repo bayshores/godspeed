@@ -1,6 +1,6 @@
 import { memo, useState } from "react";
-import { classColorVar } from "@/frontend/components/class-color";
-import { useClasses } from "@/frontend/components/class-context";
+import { spaceColorVar } from "@/frontend/components/space-color";
+import { useSpaces } from "@/frontend/components/space-context";
 import { cn } from "@/frontend/lib/utils";
 import type { HomeworkProblem, LessonKind, PlanStepBar } from "@/shared/core";
 import { homeworkRow, practiceRow, stepsRow, type RowBlock, type RowSummary } from "./plan-row-model";
@@ -16,7 +16,7 @@ import { ProblemsDialog } from "./problems-dialog";
  */
 export const PlanRow = memo(function PlanRow({
 	kind,
-	classId,
+	spaceId,
 	stepBar,
 	homework,
 	practice,
@@ -24,17 +24,17 @@ export const PlanRow = memo(function PlanRow({
 	onOpenPlan,
 }: {
 	kind: LessonKind;
-	classId: string | undefined;
+	spaceId: string | undefined;
 	stepBar: PlanStepBar | null;
 	homework: { name: string; problems: readonly HomeworkProblem[]; open: string | null } | null;
 	practice: PracticeProgress | null;
 	onJump: (toolCallId: string) => void;
 	onOpenPlan: () => void;
 }) {
-	const { classes } = useClasses();
+	const { spaces } = useSpaces();
 	const [problemsOpen, setProblemsOpen] = useState(false);
-	const cls = classes.find((c) => c.id === classId);
-	const color = cls ? classColorVar(cls.color) : "var(--color-ink)";
+	const space = spaces.find((c) => c.id === spaceId);
+	const color = space ? spaceColorVar(space.color) : "var(--color-ink)";
 
 	if (homework?.problems.length === 0) {
 		return (
@@ -84,7 +84,7 @@ export const PlanRow = memo(function PlanRow({
 	);
 });
 
-/** One block: done in ink, the current one in the class's color, the rest light. */
+/** One block: done in ink, the current one in the space's color, the rest light. */
 function Block({ block, color, onJump }: { block: RowBlock; color: string; onJump: (toolCallId: string) => void }) {
 	const bar = <span className={cn("block h-2.5 w-full", block.tone === "done" && "bg-ink", block.tone === "later" && "bg-tone-2")} style={block.tone === "current" ? { background: color } : undefined} />;
 	const cls = "flex h-5 w-[22px] min-w-[3px] shrink items-center";
