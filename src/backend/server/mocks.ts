@@ -138,8 +138,9 @@ export function deleteMock(spaceId: string, mockId: string): Outcome<null> {
 	return done;
 }
 
-/** Run a code question's examples on the learner's code, while the mock runs. */
-export async function runMockExamples(spaceId: string, mockId: string, input: { questionId: string; code: string; language: unknown }): Promise<Outcome<RunOutcome>> {
+/** Run a code question's examples on the learner's code, while the mock
+ *  runs; `signal` stops the run when its request goes away. */
+export async function runMockExamples(spaceId: string, mockId: string, input: { questionId: string; code: string; language: unknown }, signal?: AbortSignal): Promise<Outcome<RunOutcome>> {
 	const found = mockOf(spaceId, mockId);
 	if (!found.ok) return found;
 	if (mockState(found.value) !== "running") return fail(409, "This mock isn't running.");
@@ -148,5 +149,5 @@ export async function runMockExamples(spaceId: string, mockId: string, input: { 
 	if (!question || question.kind !== "code") return fail(404, "No such code question");
 	if (!isMockLanguage(input.language)) return fail(400, "Pick JavaScript or Python.");
 	const language: MockLanguage = input.language;
-	return { ok: true, value: await runExamples(question, input.code, language) };
+	return { ok: true, value: await runExamples(question, input.code, language, signal) };
 }

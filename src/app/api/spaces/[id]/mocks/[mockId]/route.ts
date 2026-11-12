@@ -51,7 +51,7 @@ export async function POST(req: Request, { params }: Ctx) {
 		}
 		case "run": {
 			if (typeof body.questionId !== "string" || typeof body.code !== "string" || body.code.length > ANSWER_MAX) return bad("Give questionId and code.");
-			const run = await runMockExamples(id, mockId, { questionId: body.questionId, code: body.code, language: body.language });
+			const run = await runMockExamples(id, mockId, { questionId: body.questionId, code: body.code, language: body.language }, req.signal);
 			return run.ok ? Response.json(run.value) : Response.json({ error: run.error }, { status: run.status });
 		}
 		default:

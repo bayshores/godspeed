@@ -37,7 +37,7 @@ export function askGrades(spaceId: string, mock: Mock): void {
 			// Deleted meanwhile: the learner's programs need not run.
 			if (signal.aborted) return;
 			const answer = mock.answers[q.id]!;
-			if (q.kind === "code" && answer.language) runs[q.id] = await runExamples(q, answer.text, answer.language);
+			if (q.kind === "code" && answer.language) runs[q.id] = await runExamples(q, answer.text, answer.language, signal);
 		}
 		const graded = await gradeMock({ label: mockLabel(mock), prompt: gradeRequestText({ goal: prep.goal, mock, runs }), mock, engine: prepSeams.engine ?? agentEngine(), signal });
 		if (readMock(spaceId, mock.id)) writeMock(spaceId, graded);
