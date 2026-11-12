@@ -43,7 +43,7 @@ impl Search {
 					let mut row = Obj::new();
 					row.insert("id", n["id"].clone());
 					row.insert("hash", hash);
-					Json::Obj(row)
+					Arc::new(Json::Obj(row))
 				})
 				.collect();
 			self.write_table(&at, Table::new(rows, vectors, Obj::new()))?

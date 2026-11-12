@@ -2,6 +2,7 @@
 //! (the space-file half of src/backend/server/search-index.ts).
 
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use gs_base::text;
 use gs_json::{Json, Obj};
@@ -30,7 +31,7 @@ fn place(row: &Json, key: &str) -> f64 {
 
 /// The rows `at` names, by index. A place as the index wrote it wins over the rows around its
 /// point: a transcript's label is rounded, so its number can miss.
-fn picked(rows: &[Json], at: &PassageRef) -> Vec<usize> {
+fn picked(rows: &[Arc<Json>], at: &PassageRef) -> Vec<usize> {
 	match at {
 		PassageRef::Passage(id) => (0..rows.len()).filter(|&i| field(&rows[i], "id") == id).collect(),
 		PassageRef::Place { file_id, range } => {
@@ -93,7 +94,7 @@ impl Search {
 			row.insert("to", chunk.to);
 			row.insert("text", chunk.text);
 			row.insert("hash", hash);
-			rows.push(Json::Obj(row));
+			rows.push(Arc::new(Json::Obj(row)));
 		}
 		all.extend(vectors);
 		let mut files = old.files.clone();
@@ -128,7 +129,7 @@ impl Search {
 		}
 		let query_vector = self.embed(&[query.to_owned()], true).await?;
 		let keywords = keywords_of(&table, || table.rows.iter().map(|r| (field(r, "id").to_owned(), field(r, "text").to_owned())).collect())?;
-		let by_id: HashMap<&str, &Json> = table.rows.iter().map(|r| (field(r, "id"), r)).collect();
+		let by_id: HashMap<&str, &Json> = table.rows.iter().map(|r| (field(r, "id"), &**r)).collect();
 		let hits = rank(&table, &[&query_vector], query, &keywords, limit);
 		let names = file_names(files);
 		let indexed = files.iter().filter(|f| table.files.get(field(f, "id")).is_some_and(Json::truthy)).count();
@@ -151,7 +152,7 @@ impl Search {
 	/// file that covers a place. Empty when there is none.
 	pub fn passages_at(&self, space_id: &str, at: &PassageRef) -> Vec<Json> {
 		let table = self.read_table(&self.passages_file(space_id));
-		picked(&table.rows, at).into_iter().map(|i| table.rows[i].clone()).collect()
+		picked(&table.rows, at).into_iter().map(|i| Json::clone(&table.rows[i])).collect()
 	}
 
 	/// A passage's text (a whole page when opened by file and place) with its file, place and the
@@ -164,7 +165,7 @@ impl Search {
 			return match at {
 				PassageRef::Passage(id) => format!("No passage \"{id}\". Ids come from search_space_files."),
 				PassageRef::Place { file_id, range } => {
-					let all: Vec<&Json> = rows.iter().filter(|r| r["fileId"] == Json::from(file_id.as_str())).collect();
+					let all: Vec<&Arc<Json>> = rows.iter().filter(|r| r["fileId"] == Json::from(file_id.as_str())).collect();
 					match (all.first(), all.last()) {
 						(Some(first), Some(last)) => format!("No passage of file \"{file_id}\" at \"{range}\". Its passages run from \"{}\" to \"{}\".", field(first, "range"), field(last, "range")),
 						_ => format!("No passage of file \"{file_id}\": it is not indexed. A file id is the part of a passage id before the \":\" (or from read_space with files: true)."),
@@ -222,7 +223,7 @@ mod tests {
 			.chunks
 			.iter()
 			.enumerate()
-			.map(|(n, c)| json!({ "id": format!("f_a:{}", n + 1), "fileId": "f_a", "range": c.range, "from": c.from, "to": c.to, "text": c.text, "hash": hash_of(&c.text) }))
+			.map(|(n, c)| Arc::new(json!({ "id": format!("f_a:{}", n + 1), "fileId": "f_a", "range": c.range, "from": c.from, "to": c.to, "text": c.text, "hash": hash_of(&c.text) })))
 			.collect::<Vec<_>>();
 		let vectors = (0..rows.len()).flat_map(|r| vec![r as f32; DIMS]).collect();
 		let mut files = Obj::new();
@@ -292,8 +293,8 @@ mod tests {
 	fn a_place_as_the_index_wrote_it_wins_over_its_point() {
 		// A transcript's place is rounded down, so its number is before the passage starts.
 		let rows = [
-			json!({ "id": "f_t:1", "fileId": "f_t", "range": "12:30–13:40", "from": 750.5, "to": 820 }),
-			json!({ "id": "f_t:2", "fileId": "f_t", "range": "13:40–15:00", "from": 820, "to": 900 }),
+			Arc::new(json!({ "id": "f_t:1", "fileId": "f_t", "range": "12:30–13:40", "from": 750.5, "to": 820 })),
+			Arc::new(json!({ "id": "f_t:2", "fileId": "f_t", "range": "13:40–15:00", "from": 820, "to": 900 })),
 		];
 		let place = |range: &str| picked(&rows, &PassageRef::Place { file_id: "f_t".into(), range: range.into() });
 		assert_eq!(place("12:30–13:40"), [0]);
