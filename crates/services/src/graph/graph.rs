@@ -95,7 +95,7 @@ pub fn delete_graph_node(app: &App, node_id: &str, scope: Option<&str>) -> Resul
 		return Ok(Err(NodeDeleteRefusal {
 			status: 409,
 			code: "extraction_running",
-			error: "Godspeed is still adding to your graph. Try again when Background jobs in the teacher's panel is empty.",
+			error: "Godspeed is still adding to your graph. Try again when nothing is left under Running in the background in the teacher's Activity.",
 		}));
 	}
 	let deleted = {
