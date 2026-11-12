@@ -5,8 +5,10 @@
  * JSON keeps what the Rust side must match: key order, number text and lone surrogates.
  * An `undefined` output is left out, so the Rust test reads a missing `output` as undefined.
  *
- *   npm run golden            every spec
- *   npm run golden -- json    specs whose path contains "json"
+ *   npx tsx scripts/golden.ts         every spec
+ *   npx tsx scripts/golden.ts json    specs whose path contains "json"
+ *
+ * Run it with TZ=America/Los_Angeles and LANG=en_US.UTF-8, as the Rust tests are.
  */
 import fs from "node:fs";
 import path from "node:path";

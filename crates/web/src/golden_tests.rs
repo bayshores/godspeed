@@ -1,5 +1,5 @@
 //! web_fetch against the answers recorded from the TypeScript (tests/golden/web.json, made by
-//! `npm run golden -- web`), served from tests/fixtures by a local server.
+//! `npx tsx scripts/golden.ts web`), served from tests/fixtures by a local server.
 
 use std::collections::HashMap;
 use std::path::PathBuf;

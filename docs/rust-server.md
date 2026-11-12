@@ -12,7 +12,7 @@ All Rust lives in `crates/` (a Cargo workspace; `Cargo.toml` at the repo root, t
 |---|---|---|
 | `json` (gs-json) | `Json`: JSON with JS key order, JS number text, lone surrogates | `JSON.parse` / `JSON.stringify` |
 | `base` (gs-base) | JS-compatible text, numbers, dates, regex, sorting, ids, hashes, the app clock, paths, events, locks, atomic writes, shutdown | Node and V8 behaviour, `src/backend/config.ts`, `src/shared/core/events.ts` |
-| `core` (gs-core) | pure logic: `contracts`, `records`, `messages`, `session`, `graph`, `spaces`, `study` | `src/shared/core` |
+| `core` (gs-core) | pure logic: `contracts`, `records`, `messages`, `session`, `graph`, `spaces`, `study`, `preps` | `src/shared/core` |
 | `store` (gs-store) | every data file, read and written byte for byte like Node | `src/backend/store` |
 | `files` | space files to text, linked folder walks, fingerprints | `office-text.ts`, `space-files.ts` |
 | `pdf` | pdfium on one thread: text, shape, search, page images | `workers/pdf-text-worker.mjs`, `pdf-ops.ts`, page renders |
@@ -49,7 +49,7 @@ A module is named after its TS file in snake_case (`file-series.ts` is `spaces::
 
 **Concurrency.** See "Locks" below. Never hold a lock across `.await`.
 
-**Tests.** Every module gets unit tests. Where the output must equal the TS output (formatting, ranking, merging, texts), add golden cases: `crates/<crate>/tests/golden/<name>.golden.ts` default-exports `{ "case name": () => output }` calling the real TS function; `npm run golden -- <name>` writes `<name>.json` beside it; a Rust test in `crates/<crate>/tests/` replays it (see `crates/base/tests/golden.rs`). Commit the `.json`. Route and MCP work is checked with the contract scenarios (below).
+**Tests.** Every module gets unit tests. Where the output must equal the TS output (formatting, ranking, merging, texts), add golden cases: `crates/<crate>/tests/golden/<name>.golden.ts` default-exports `{ "case name": () => output }` calling the real TS function; `TZ=America/Los_Angeles LANG=en_US.UTF-8 npx tsx scripts/golden.ts <name>` writes `<name>.json` beside it (every spec whose path contains `<name>`; leave it out for all); a Rust test in `crates/<crate>/tests/` replays it (see `crates/base/tests/golden.rs`). Commit the `.json`. Route and MCP work is checked with the contract scenarios (below).
 
 **Style.** Short files with one job, short comments that say why, no history or phase notes in comments, no dead code, no `unsafe`, no new crates without the reviewer (workspace dependencies are listed in the root `Cargo.toml`; a package never edits that list). Tabs, like the TS.
 
@@ -105,7 +105,7 @@ cd /Users/seane/Code/learnharness/.claude/rewrite-lab/contract
 CONTRACT_SERVER_CMD="/bin/sh $PWD/lib/rust-server.sh" CONTRACT_PORTS=48060-48069 node run.mjs check <scenario>
 ```
 
-The recordings come from a production Node build, so they hold only for a release server: a debug build keeps its own godspeed folder (see above) and answers the spaces-folder checks differently, and it is too slow for the timing in some scenarios. `lib/rust-server.sh` makes `rewrite-lab/rust-stage/` with links to the phase 1 build's `ui/`, `models/` and pdf.js, and starts `target/release/godspeed-server` there (`RUST_SERVER_BIN` picks another build). Each scenario gets its own copy of the seed data, its own home, tmp, Claude and Codex folders, and the env above; the launcher stops the server afterwards. On a failure the full result is in `out/<scenario>.actual.json`. `--keep` keeps the run folder. Never point a server at the real data, `~/godspeed`, `~/.claude`, `~/.codex` or Google Drive.
+The recordings come from a production Node build, so they hold only for a release server: a debug build keeps its own godspeed folder (see above) and answers the spaces-folder checks differently, and it is too slow for the timing in some scenarios. `lib/rust-server.sh` makes `rewrite-lab/rust-stage/` with links to the recorded Node build's `ui/`, `models/` and pdf.js (`rewrite-lab/node-merged`), and starts `target/release/godspeed-server` there (`RUST_SERVER_BIN` picks another build). Each scenario gets its own copy of the seed data, its own home, tmp, Claude and Codex folders, and the env above; the launcher stops the server afterwards. On a failure the full result is in `out/<scenario>.actual.json`. `--keep` keeps the run folder. Never point a server at the real data, `~/godspeed`, `~/.claude`, `~/.codex` or Google Drive.
 
 ## Work packages
 
@@ -145,7 +145,7 @@ The full instructions per package (TS sources, what to provide to whom, scenario
   - jobs: `jobs::{deliver_job_result, discard_chat_deliveries, note_steers_durable, reconcile_user_steers, register_live_agent, unregister_live_agent, set_job_respawn, set_turn_runner, settle_steers}`.
   - spaces-service: `spaces::{add_copied_file, replace_copied_file, unlink_folder, update_space_deadline, source_id_for, AGENT_FILE_READING_REFUSAL}`, `space_actions::{space_actions, folder_name, READING_NOTE}` (one method per space tool, `&Json` args in, `ToolOutcome` out), `space_card::{space_card_for, space_file_path}`, `space_shortcuts::{sync_shortcuts_safely, watch_shortcuts}`.
   - extraction: `extraction::extraction` (the registry), `extraction_runs::{abort_extraction, extraction_statuses, runs}`, `topics::{schedule_topic_grouping, cancel_topic_grouping}`, `progress::{progress_for, space_order_for, space_mistakes, hinted_problems, deadline_study_for, study_topics_for, topic_study_for}`, `graph::graph_revision`, `extraction::NotesImportError` (agent side), `submit_agent::run_submit_agent`.
-  - app-misc: `agent_actions::{note_agent_action, record_folder_files, record_answer}`, `agent_memory::current_agent_briefing`, `agent_rules::save_rule_by_agent`, `agent_folder::{cheat_sheets_dir, shortcut_path_problem}`, `today_note::{current_today_note, today_note_for}`.
+  - app-misc: `agent_actions::{note_agent_action, record_folder_files, record_answer}`, `agent_memory::current_agent_briefing`, `agent_rules::save_rule_by_agent`, `agent_folder::{cheat_sheets_dir, shortcut_path_problem, set_start_command, START_TARGETS}`, `today_note::{current_today_note, today_note_for}`.
   - subagents: `runner::create_job_runner`, `pi_run::run_subagent`, `aborts::{fire_job_abort, is_job_live}`, `bg_llm_semaphore::with_bg_llm_slot`, `headless::get_headless`, `cheat_sheet_writer::reply_on_sheet`.
   - lesson-tools: `teacher::teacher_agent::{compose_instructions, create_prober_agent, create_teacher_agent, create_practice_agent, create_study_agent, create_homework_agent, create_talk_agent}`, `tools::heal::heal_tool_record`, `tools::space::search_tools`.
   - file-tools: `fs_tools::{read::read_tool, ls::ls_tool, find::find_tool, grep::grep_tool, fs_shared::resolve_source_path, web::web_tools, pdf_read::create_pdf_read_tools}`.
@@ -158,4 +158,5 @@ The full instructions per package (TS sources, what to provide to whom, scenario
 - Range and conditional requests: the recordings show today's server answers both with the full file (200), so the Rust server does too.
 - Demo checking (headless.ts) ran JavaScript in Electron's browser service through puppeteer. The Rust server asks the desktop shell instead (the shell protocol above); a server without the shell answers the no-browser error.
 - Characters in Unicode's last 2048 private-use code points (U+10F800 to U+10FFFF) are the lone-surrogate stand-ins and cannot appear as real text.
+- A mock's Run examples runs JavaScript with the computer's own `node` (PATH, then Homebrew's folders), since the desktop app has no Node of its own; without one it answers "godspeed couldn't find Node.js on this computer. Install Node.js, or answer in Python.". Python is found as Node finds it.
 - Search vectors: if Rust's vectors do not match the stored ones exactly, the tables are rebuilt from saved text (plan decision 8).

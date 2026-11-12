@@ -163,7 +163,7 @@ fn seed_chats_match_node() {
 	let seed = std::env::var_os("GODSPEED_SEED_CHATS").map_or_else(|| PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../../rewrite-lab/seed-data/chats"), PathBuf::from);
 	let lab_file = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/golden/chats-seed.lab.json");
 	if !seed.is_dir() || !lab_file.is_file() {
-		eprintln!("skipped: no seed copy of the lessons at {} or no {} (run npm run golden -- chats-seed)", seed.display(), lab_file.display());
+		eprintln!("skipped: no seed copy of the lessons at {} or no {} (run npx tsx scripts/golden.ts chats-seed)", seed.display(), lab_file.display());
 		return;
 	}
 	let want = golden_in("chats-seed.lab.json", "seed chats");
