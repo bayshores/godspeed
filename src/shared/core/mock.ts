@@ -242,7 +242,9 @@ export function parseMockCode(raw: unknown): Partial<Record<MockLanguage, string
 
 /** A running mock with one question's answer saved (unknown questions and
  *  mocks that aren't running are left alone). A code answer's text is its
- *  code in the picked language, so what is graded is what was picked. */
+ *  code in the picked language, so what is graded is what was picked; with
+ *  nothing written in it, the language that has code is graded instead, so
+ *  looking at the other one never blanks an answer. */
 export function withAnswer(mock: Mock, questionId: string, answer: MockAnswer): Mock {
 	const question = mock.questions.find((q) => q.id === questionId);
 	if (!question || mockState(mock) !== "running") return mock;
@@ -250,7 +252,8 @@ export function withAnswer(mock: Mock, questionId: string, answer: MockAnswer): 
 	let kept: MockAnswer;
 	if (question.kind === "code") {
 		const code = parseMockCode(answer.code);
-		const language = answer.language;
+		const written = (l: MockLanguage | undefined) => l !== undefined && (code[l]?.trim() ?? "") !== "";
+		const language = written(answer.language) ? answer.language : ((Object.keys(MOCK_LANGUAGES) as MockLanguage[]).find(written) ?? answer.language);
 		kept = { text: (language && code[language]) ?? "", ...(language ? { language } : {}), code, seconds, submitted: answer.submitted };
 	} else kept = { text: answer.text.slice(0, ANSWER_MAX), seconds, submitted: answer.submitted };
 	return { ...mock, answers: { ...mock.answers, [questionId]: kept } };

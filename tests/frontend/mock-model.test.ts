@@ -126,11 +126,11 @@ describe("answering", () => {
 		assert.equal(back.text, py, "switching back grades Python");
 		assert.deepEqual(back.code, { python: py, javascript: js }, "and keeps the JavaScript");
 	});
-	it("grades the picked language even when only the other one is written", () => {
+	it("keeps the written language's code while the other one is looked at", () => {
 		const js = "function twoSum() { return [0, 1]; }";
 		const work = { ...workOf(CODE, undefined, "javascript"), language: "python" as const };
 		const looking = answerOf(CODE, { ...work, code: { ...work.code, javascript: js } });
-		assert.deepEqual(looking, { text: "", language: "python", code: { javascript: js }, seconds: 0, submitted: false });
+		assert.deepEqual(looking.code, { javascript: js });
 		assert.equal(workOf(CODE, looking, "javascript").code.javascript, js, "coming back shows it again");
 	});
 	it("keeps a written answer as typed", () => {

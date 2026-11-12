@@ -111,7 +111,12 @@ describe("a mock", () => {
 		const code = { python: "py", javascript: "js" };
 		const saved = withAnswer(withAnswer(live, "q1", { text: "ignored", language: "python", code, seconds: 61.4, submitted: true }), "q2", { text: "words", language: "python", code, seconds: 5, submitted: false });
 		assert.deepEqual(saved.answers.q1, { text: "py", language: "python", code, seconds: 61, submitted: true }, "the text is the picked language's code");
-		assert.equal(withAnswer(live, "q1", { text: "x", language: "javascript", code: { python: "py" }, seconds: 1, submitted: false }).answers.q1!.text, "", "the picked language is unwritten");
+		assert.deepEqual(
+			withAnswer(live, "q1", { text: "x", language: "javascript", code: { python: "py" }, seconds: 1, submitted: false }).answers.q1,
+			{ text: "py", language: "python", code: { python: "py" }, seconds: 1, submitted: false },
+			"nothing is written in the picked language: the written one is graded",
+		);
+		assert.equal(withAnswer(live, "q1", { text: "x", language: "javascript", code: {}, seconds: 1, submitted: false }).answers.q1!.text, "", "nothing written at all");
 		assert.deepEqual(saved.answers.q2, { text: "words", seconds: 5, submitted: false });
 		assert.equal(withAnswer(live, "q9", { text: "x", seconds: 1, submitted: true }), live, "no such question");
 		const over = endMock(saved, "2026-11-11T10:30:00.000Z");
