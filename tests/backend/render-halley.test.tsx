@@ -42,6 +42,7 @@ const { ActivityList, TeacherActivity } = await import("../../src/frontend/compo
 const { DEFAULT_TEACHER_NAME, sanitizeTeacherName, sanitizeUserSettings, TEACHER_NAME_MAX } = await import("../../src/shared/core/settings.ts");
 const { parseGeneralSettingsBody } = await import("../../src/backend/server/settings-body.ts");
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
+const { MemoryRouter } = await import("react-router");
 const noEvents = () => ({ onEvent() {}, onOpen() {}, close() {} });
 /** The panel listens for server events, as in the window. */
 const inEvents = (node: React.ReactNode) => <ServerEventsProvider connect={noEvents as never}>{node}</ServerEventsProvider>;
@@ -447,7 +448,8 @@ describe("the teacher's Activity", () => {
 	});
 	it("clicking a job opens its detail: what it is doing, cost, context and its lesson", () => {
 		const job = { id: "j1", kind: "demo" as const, chatId: "c1", toolCallId: "t1", status: "running" as const, activity: "building sandbox…", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), title: "Chain-rule demo", contextLimit: null };
-		const el = mount(list({ feed: { jobs: [job], extractions: [] } }));
+		// The detail links to the lesson.
+		const el = mount(<MemoryRouter>{list({ feed: { jobs: [job], extractions: [] } })}</MemoryRouter>);
 		assert.equal(el.querySelector("[data-testid='activity-blob-detail']"), null);
 		act(() => (el.querySelector("[data-testid='activity-blob-job'] button[aria-expanded]") as HTMLElement).click());
 		const detail = el.querySelector("[data-testid='activity-blob-detail']")!;
