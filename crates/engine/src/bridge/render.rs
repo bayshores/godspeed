@@ -1,7 +1,7 @@
 //! The transcript as the outside agent reads it: flat messages, the instructions and tools, and
 //! the fingerprints that tell which messages an agent has already seen.
 
-use gs_base::hash::sha256_text;
+use gs_core::records::agent_seen::print_hash;
 use gs_json::{Json, Obj, json, lone::to_utf16, stringify};
 
 use crate::turn::messages::role;
@@ -123,7 +123,7 @@ fn sorted_names(tools: &Json) -> Vec<Json> {
 }
 
 /// A system message also counts its tool names: the prompt stays the same when the learner
-/// switches tools, and the agent must then get the item in full with the new tools.
+/// switches tools, and the agent must then get the new tools.
 pub fn fingerprint(m: &Json) -> String {
 	let rendered = render_message(m, None);
 	if role(m) != "system" {
@@ -135,7 +135,12 @@ pub fn fingerprint(m: &Json) -> String {
 	stringify(&Json::Obj(out))
 }
 
-/// The first 32 hex digits of the SHA-256 of `value`.
-pub fn hash_of(value: &str) -> String {
-	sha256_text(value)[..32].to_owned()
+/// Each message's fingerprint, the instructions (the leading system message) left out, and the
+/// instructions' own hash: a saved rule or a Settings change rewrites them without changing the
+/// conversation.
+pub fn prints_of(messages: &[Json], extra: Option<&Json>) -> (Vec<String>, String) {
+	let all: Vec<&Json> = messages.iter().chain(extra).collect();
+	let lead_at = all.iter().position(|m| role(m) == "system");
+	let prints = all.iter().enumerate().map(|(i, m)| if Some(i) == lead_at { String::new() } else { fingerprint(m) }).collect();
+	(prints, lead_at.map_or_else(String::new, |i| print_hash(&fingerprint(all[i]))))
 }

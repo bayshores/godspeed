@@ -548,7 +548,7 @@
 					"step": {
 						"op": "label",
 						"conversation": "job_x",
-						"label": "Topic grouping: CSE 21"
+						"label": "Topic grouping: Space A"
 					},
 					"result": null,
 					"events": []
@@ -604,7 +604,7 @@
 								"text": "topics"
 							}
 						],
-						"label": "Topic grouping: CSE 21"
+						"label": "Topic grouping: Space A"
 					},
 					"events": [
 						"activity-changed"
@@ -630,7 +630,7 @@
 								"text": "topics"
 							}
 						],
-						"label": "Topic grouping: CSE 21"
+						"label": "Topic grouping: Space A"
 					},
 					"events": [
 						"activity-changed"
@@ -655,7 +655,7 @@
 									"text": "topics"
 								}
 							],
-							"label": "Topic grouping: CSE 21"
+							"label": "Topic grouping: Space A"
 						}
 					},
 					"events": []
@@ -1127,6 +1127,407 @@
 				},
 				{
 					"step": {
+						"op": "park",
+						"as": "K",
+						"conversation": "chat_l8",
+						"messages": [
+							{
+								"role": "system",
+								"content": "Teach well.",
+								"toolsAdded": [
+									{
+										"name": "quiz",
+										"description": "Ask.",
+										"parameters": {
+											"type": "object",
+											"properties": {
+												"text": {
+													"type": "string"
+												}
+											}
+										}
+									},
+									{
+										"name": "echo",
+										"description": "Echo.",
+										"parameters": {
+											"type": "object",
+											"properties": {
+												"text": {
+													"type": "string"
+												}
+											}
+										}
+									}
+								],
+								"timestamp": "<t>"
+							},
+							{
+								"role": "user",
+								"content": "one",
+								"timestamp": "<t>"
+							}
+						]
+					},
+					"result": null,
+					"events": [
+						"agent-changed"
+					]
+				},
+				{
+					"step": {
+						"op": "wait",
+						"as": "W16",
+						"conversation": "chat_l8",
+						"agent": "agent-F"
+					},
+					"result": {
+						"workId": "<work#7>_1",
+						"conversation": "chat_l8",
+						"continued": false,
+						"instructions": "Teach well.",
+						"tools": [
+							{
+								"name": "quiz",
+								"description": "Ask.",
+								"parameters": {
+									"type": "object",
+									"properties": {
+										"text": {
+											"type": "string"
+										}
+									}
+								}
+							},
+							{
+								"name": "echo",
+								"description": "Echo.",
+								"parameters": {
+									"type": "object",
+									"properties": {
+										"text": {
+											"type": "string"
+										}
+									}
+								}
+							}
+						],
+						"messages": [
+							{
+								"role": "user",
+								"text": "one"
+							}
+						]
+					},
+					"events": [
+						"agent-changed"
+					]
+				},
+				{
+					"step": {
+						"op": "respond",
+						"work": "W16",
+						"text": "Okay.",
+						"hold": 0
+					},
+					"result": {
+						"ok": true,
+						"conversation": "chat_l8",
+						"agent": "agent-F"
+					},
+					"events": [
+						"agent-changed"
+					]
+				},
+				{
+					"step": {
+						"op": "parkNext",
+						"as": "K2",
+						"from": "K",
+						"user": "two",
+						"lead": "Teach well. Explain terms."
+					},
+					"result": null,
+					"events": [
+						"agent-changed"
+					]
+				},
+				{
+					"step": {
+						"op": "wait",
+						"as": "W17",
+						"conversation": "chat_l8",
+						"agent": "agent-F"
+					},
+					"result": {
+						"workId": "<work#8>_1",
+						"conversation": "chat_l8",
+						"continued": true,
+						"instructions": "Teach well. Explain terms.",
+						"tools": [],
+						"toolsAsBefore": [
+							"quiz",
+							"echo"
+						],
+						"messages": [
+							{
+								"role": "user",
+								"text": "two"
+							}
+						]
+					},
+					"events": [
+						"agent-changed"
+					]
+				},
+				{
+					"step": {
+						"op": "respond",
+						"work": "W17",
+						"text": "Sure.",
+						"hold": 0
+					},
+					"result": {
+						"ok": true,
+						"conversation": "chat_l8",
+						"agent": "agent-F"
+					},
+					"events": [
+						"agent-changed"
+					]
+				},
+				{
+					"step": {
+						"op": "parkNext",
+						"as": "K3",
+						"from": "K2",
+						"summarize": 3,
+						"user": "three"
+					},
+					"result": null,
+					"events": [
+						"agent-changed"
+					]
+				},
+				{
+					"step": {
+						"op": "wait",
+						"as": "W18",
+						"conversation": "chat_l8",
+						"agent": "agent-F"
+					},
+					"result": {
+						"workId": "<work#9>_1",
+						"conversation": "chat_l8",
+						"continued": true,
+						"messages": [
+							{
+								"role": "user",
+								"text": "three"
+							}
+						]
+					},
+					"events": [
+						"agent-changed"
+					]
+				},
+				{
+					"step": {
+						"op": "respond",
+						"work": "W18",
+						"text": "Fine.",
+						"hold": 0
+					},
+					"result": {
+						"ok": true,
+						"conversation": "chat_l8",
+						"agent": "agent-F"
+					},
+					"events": [
+						"agent-changed"
+					]
+				},
+				{
+					"step": {
+						"op": "parkNext",
+						"as": "K4",
+						"from": "K3",
+						"summarize": 3,
+						"user": "four"
+					},
+					"result": null,
+					"events": [
+						"agent-changed"
+					]
+				},
+				{
+					"step": {
+						"op": "wait",
+						"as": "W19",
+						"conversation": "chat_l8",
+						"agent": "agent-F"
+					},
+					"result": {
+						"workId": "<work#10>_1",
+						"conversation": "chat_l8",
+						"continued": true,
+						"messages": [
+							{
+								"role": "user",
+								"text": "four"
+							}
+						]
+					},
+					"events": [
+						"agent-changed"
+					]
+				},
+				{
+					"step": {
+						"op": "respond",
+						"work": "W19",
+						"text": "Good.",
+						"hold": 0
+					},
+					"result": {
+						"ok": true,
+						"conversation": "chat_l8",
+						"agent": "agent-F"
+					},
+					"events": [
+						"agent-changed"
+					]
+				},
+				{
+					"step": {
+						"op": "parkNext",
+						"as": "K5",
+						"from": "K4",
+						"user": "five"
+					},
+					"result": null,
+					"events": [
+						"agent-changed"
+					]
+				},
+				{
+					"step": {
+						"op": "wait",
+						"as": "W20",
+						"conversation": "chat_l8",
+						"agent": "agent-G"
+					},
+					"result": {
+						"workId": "<work#11>_1",
+						"conversation": "chat_l8",
+						"continued": false,
+						"instructions": "Teach well. Explain terms.",
+						"tools": [
+							{
+								"name": "quiz",
+								"description": "Ask.",
+								"parameters": {
+									"type": "object",
+									"properties": {
+										"text": {
+											"type": "string"
+										}
+									}
+								}
+							},
+							{
+								"name": "echo",
+								"description": "Echo.",
+								"parameters": {
+									"type": "object",
+									"properties": {
+										"text": {
+											"type": "string"
+										}
+									}
+								}
+							}
+						],
+						"messages": [
+							{
+								"role": "user",
+								"text": "[summary]"
+							},
+							{
+								"role": "assistant",
+								"text": "Fine."
+							},
+							{
+								"role": "user",
+								"text": "four"
+							},
+							{
+								"role": "assistant",
+								"text": "Good."
+							},
+							{
+								"role": "user",
+								"text": "five"
+							}
+						]
+					},
+					"events": [
+						"agent-changed"
+					]
+				},
+				{
+					"step": {
+						"op": "respond",
+						"work": "W20",
+						"text": "Done.",
+						"hold": 0
+					},
+					"result": {
+						"ok": true,
+						"conversation": "chat_l8",
+						"agent": "agent-G"
+					},
+					"events": [
+						"agent-changed"
+					]
+				},
+				{
+					"step": {
+						"op": "result",
+						"of": "K5"
+					},
+					"result": {
+						"role": "assistant",
+						"content": [
+							{
+								"type": "text",
+								"text": "Done."
+							}
+						],
+						"api": "godspeed-agent",
+						"provider": "agent",
+						"model": "outside-agent",
+						"usage": {
+							"input": 84,
+							"output": 2,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 86,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "stop",
+						"timestamp": "<t>"
+					},
+					"events": []
+				},
+				{
+					"step": {
 						"op": "names",
 						"infos": [
 							{
@@ -1162,11 +1563,27 @@
 			"saved": {
 				"agent-B chat_l1": {
 					"count": 5,
-					"hash": "cef44655adbac46ce99d5cda7e62343f"
+					"hash": "46ec9d556b2951b4f717e7f311ff0e88",
+					"last": "2e689183d0186cdc32e05c7863bf46f6",
+					"lead": "7f32ce993cc75a30ea3a22f287a89c41"
 				},
 				"agent-D chat_l4": {
 					"count": 3,
-					"hash": "944eeed9c21dec9532fd63b58d74edad"
+					"hash": "a82df0c9d225ace08417d4740a090d8e",
+					"last": "2acabdb51c70d0a9c9b315aeea6a86e9",
+					"lead": "7f32ce993cc75a30ea3a22f287a89c41"
+				},
+				"agent-F chat_l8": {
+					"count": 5,
+					"hash": "2b21748f4c98a70dbe5fdc914ba954b0",
+					"last": "7ff4e30056b9faa388042966ef45383e",
+					"lead": "d50f0317bb5b75603705c15d1e546ac4"
+				},
+				"agent-G chat_l8": {
+					"count": 7,
+					"hash": "1b160221ac175d35144eec485f22f35f",
+					"last": "2d05ae47fc19079b95a69de6931b009e",
+					"lead": "d50f0317bb5b75603705c15d1e546ac4"
 				}
 			}
 		}

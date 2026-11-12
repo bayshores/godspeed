@@ -42,9 +42,7 @@ impl AgentSeenStore {
 /// sends the lesson again.
 impl SeenStore for AgentSeenStore {
 	fn get(&self, agent: &str, conversation: &str) -> Option<SeenMark> {
-		let file = self.read();
-		let mark = &file["agents"][agent]["conversations"][conversation];
-		Some(SeenMark { count: mark["count"].as_i64()? as usize, hash: mark["hash"].as_str()?.to_owned() })
+		SeenMark::from_json(&self.read()["agents"][agent]["conversations"][conversation])
 	}
 
 	fn set(&self, agent: &str, conversation: &str, mark: &SeenMark) {

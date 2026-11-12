@@ -7,7 +7,7 @@ use gs_core::contracts::chat::{CHAT_ID_PREFIX, TALK_CHAT_ID};
 use gs_core::records::agent_seen::seen_mark;
 use gs_json::Json;
 
-use super::render::{fingerprint, instructions_and_tools};
+use super::render::{instructions_and_tools, prints_of};
 use super::view::{WorkView, remember_seen};
 use super::{Bridge, State, WorkItem, is_background};
 use crate::turn::messages::faux_assistant_message;
@@ -179,8 +179,8 @@ impl Bridge {
 		let mut item = s.items.remove(i);
 		// The agent knows its own reply: the next delivery here starts at the tool results.
 		if !item.agent_forgot {
-			let prints: Vec<String> = item.context.iter().chain([&message]).map(fingerprint).collect();
-			remember_seen(&mut s, self.0.seen.as_ref(), item.agent.as_deref(), &item.conversation, seen_mark(&prints));
+			let (prints, lead) = prints_of(&item.context, Some(&message));
+			remember_seen(&mut s, self.0.seen.as_ref(), item.agent.as_deref(), &item.conversation, seen_mark(&prints, &lead));
 		}
 		s.held.insert(item.conversation.clone(), clock::now_ms() + hold_ms);
 		drop(s);

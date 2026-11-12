@@ -3,7 +3,7 @@
 import { CHANGELOG, compareVersions, entriesSince, entryFor, isVersion } from "../../../../src/shared/core/changelog.ts";
 import { parseAgentNotes, cleanNoteText } from "../../../../src/shared/core/agent-notes.ts";
 import { parseSavedRules, parseWhere, ruleFor, sameWhere, whereLabel } from "../../../../src/shared/core/agent-rules.ts";
-import { parseAgentSeen, seenMark, withSeen } from "../../../../src/shared/core/agent-seen.ts";
+import { parseAgentSeen, resumeAt, seenMark, withSeen } from "../../../../src/shared/core/agent-seen.ts";
 import { isValidSegmentPath } from "../../../../src/shared/core/prompt-segments.ts";
 import { graphToolsEnabled, resolveSettings } from "../../../../src/shared/core/settings-resolution.ts";
 import { isHexColor, sanitizeTeacherName, sanitizeUserSettings } from "../../../../src/shared/core/settings.ts";
@@ -122,16 +122,16 @@ const seenInputs: unknown[] = [
 	{ agents: "x" },
 	{
 		agents: {
-			a: { at: "1", conversations: { c: { count: 2, hash: "h" }, bad: { count: -1, hash: "h" }, frac: { count: 1.5, hash: "h" }, nohash: { count: 1 }, nul: null } },
+			a: { at: "1", conversations: { c: { count: 2, hash: "h", last: "l", lead: "L" }, old: { count: 2, hash: "h" }, nolead: { count: 2, hash: "h", last: "l" }, bad: { count: -1, hash: "h", last: "l", lead: "L" }, frac: { count: 1.5, hash: "h", last: "l", lead: "L" }, nohash: { count: 1, last: "l", lead: "L" }, nul: null } },
 			b: { at: 5, conversations: {} },
 			c: null,
-			d: { at: "2", conversations: [{ count: 0, hash: "z" }] },
+			d: { at: "2", conversations: [{ count: 0, hash: "z", last: "", lead: "" }] },
 			e: { at: "3", conversations: "x" },
 			f: { at: "4" },
 		},
 	},
 	{ agents: [{ at: "1", conversations: {} }], version: 9 },
-	JSON.parse('{"agents":{"__proto__":{"at":"1","conversations":{}},"g":{"at":"2","conversations":{"__proto__":{"count":1,"hash":"h"},"k":{"count":1,"hash":"h"}}}}}'),
+	JSON.parse('{"agents":{"__proto__":{"at":"1","conversations":{}},"g":{"at":"2","conversations":{"__proto__":{"count":1,"hash":"h","last":"l","lead":"L"},"k":{"count":1,"hash":"h","last":"l","lead":"L"}}}}}'),
 ];
 
 const paths = [
@@ -195,22 +195,25 @@ export default {
 	},
 	"agent seen": () => {
 		const prints = ["a", "b", "c", "😀", "", "x\u0000y"];
-		const marks = [0, 1, 2, 3, 6].map((n) => ({ n, output: seenMark(prints.slice(0, n)) }));
+		const marks = [0, 1, 2, 3, 6].map((n) => ({ n, output: seenMark(prints.slice(0, n), n % 2 ? "lead" : "") }));
+		const seen = seenMark(["a", "b", "reply"], "L");
+		const resumes = [["a", "b", "reply"], ["a", "b", "reply", "c"], ["a", "b"], ["summary", "reply", "c"], ["reply", "x", "reply", "c"], ["summary", "c"], [], ["a", "x", "reply"]].map((prints) => ({ prints, output: resumeAt(seen, prints) }));
 		let file = parseAgentSeen(null);
 		const steps: unknown[] = [];
 		for (let i = 0; i < 24; i++) {
-			file = withSeen(file, `agent${i % 23}`, i % 3 === 0 ? "chat" : `chat${i}`, { count: i, hash: `h${i}` }, `2026-01-${String((i % 28) + 1).padStart(2, "0")}T00:00:00.000Z`);
+			file = withSeen(file, `agent${i % 23}`, i % 3 === 0 ? "chat" : `chat${i}`, { count: i, hash: `h${i}`, last: `l${i}`, lead: `L${i}` }, `2026-01-${String((i % 28) + 1).padStart(2, "0")}T00:00:00.000Z`);
 			steps.push(structuredClone(file));
 		}
-		const ties = withSeen(withSeen(parseAgentSeen(null), "x", "c", { count: 1, hash: "h" }, "T"), "y", "c", { count: 1, hash: "h" }, "T");
+		const mark = { count: 1, hash: "h", last: "l", lead: "L" };
+		const ties = withSeen(withSeen(parseAgentSeen(null), "x", "c", mark, "T"), "y", "c", mark, "T");
 		const mixed = withSeen(
 			parseAgentSeen({ agents: { Zed: { at: "b", conversations: {} }, apple: { at: "B", conversations: {} }, mid: { at: "a", conversations: {} } } }),
 			"new",
 			"c",
-			{ count: 2, hash: "q" },
+			{ count: 2, hash: "q", last: "", lead: "" },
 			"A",
 		);
-		return { parsed: seenInputs.map((input) => ({ input, output: parseAgentSeen(input) })), marks, steps, ties, mixed };
+		return { parsed: seenInputs.map((input) => ({ input, output: parseAgentSeen(input) })), marks, resumes, resumeNone: resumeAt(undefined, ["a"]), steps, ties, mixed };
 	},
 	"segment paths": () => paths.map((input) => ({ input, output: isValidSegmentPath(input) })),
 	"changelog": () => {

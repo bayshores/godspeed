@@ -3055,18 +3055,35 @@
 								"conversations": {
 									"c": {
 										"count": 2,
+										"hash": "h",
+										"last": "l",
+										"lead": "L"
+									},
+									"old": {
+										"count": 2,
 										"hash": "h"
+									},
+									"nolead": {
+										"count": 2,
+										"hash": "h",
+										"last": "l"
 									},
 									"bad": {
 										"count": -1,
-										"hash": "h"
+										"hash": "h",
+										"last": "l",
+										"lead": "L"
 									},
 									"frac": {
 										"count": 1.5,
-										"hash": "h"
+										"hash": "h",
+										"last": "l",
+										"lead": "L"
 									},
 									"nohash": {
-										"count": 1
+										"count": 1,
+										"last": "l",
+										"lead": "L"
 									},
 									"nul": null
 								}
@@ -3081,7 +3098,9 @@
 								"conversations": [
 									{
 										"count": 0,
-										"hash": "z"
+										"hash": "z",
+										"last": "",
+										"lead": ""
 									}
 								]
 							},
@@ -3101,7 +3120,9 @@
 								"conversations": {
 									"c": {
 										"count": 2,
-										"hash": "h"
+										"hash": "h",
+										"last": "l",
+										"lead": "L"
 									}
 								}
 							},
@@ -3110,7 +3131,9 @@
 								"conversations": {
 									"0": {
 										"count": 0,
-										"hash": "z"
+										"hash": "z",
+										"last": "",
+										"lead": ""
 									}
 								}
 							}
@@ -3148,11 +3171,15 @@
 								"conversations": {
 									"__proto__": {
 										"count": 1,
-										"hash": "h"
+										"hash": "h",
+										"last": "l",
+										"lead": "L"
 									},
 									"k": {
 										"count": 1,
-										"hash": "h"
+										"hash": "h",
+										"last": "l",
+										"lead": "L"
 									}
 								}
 							}
@@ -3165,7 +3192,9 @@
 								"conversations": {
 									"k": {
 										"count": 1,
-										"hash": "h"
+										"hash": "h",
+										"last": "l",
+										"lead": "L"
 									}
 								}
 							}
@@ -3178,38 +3207,111 @@
 					"n": 0,
 					"output": {
 						"count": 0,
-						"hash": "e3b0c44298fc1c149afbf4c8996fb924"
+						"hash": "e3b0c44298fc1c149afbf4c8996fb924",
+						"last": "e3b0c44298fc1c149afbf4c8996fb924",
+						"lead": ""
 					}
 				},
 				{
 					"n": 1,
 					"output": {
 						"count": 1,
-						"hash": "ffe9aaeaa2a2d5048174df0b80599ef0"
+						"hash": "ffe9aaeaa2a2d5048174df0b80599ef0",
+						"last": "ca978112ca1bbdcafac231b39a23dc4d",
+						"lead": "lead"
 					}
 				},
 				{
 					"n": 2,
 					"output": {
 						"count": 2,
-						"hash": "8fb20ef63ced4145fc2e983ffe597d1d"
+						"hash": "8fb20ef63ced4145fc2e983ffe597d1d",
+						"last": "3e23e8160039594a33894f6564e1b134",
+						"lead": ""
 					}
 				},
 				{
 					"n": 3,
 					"output": {
 						"count": 3,
-						"hash": "13e228567e8249fce53337f25d7970de"
+						"hash": "13e228567e8249fce53337f25d7970de",
+						"last": "2e7d2c03a9507ae265ecf5b5356885a5",
+						"lead": "lead"
 					}
 				},
 				{
 					"n": 6,
 					"output": {
 						"count": 6,
-						"hash": "8355cf270b13351069918b934875f13c"
+						"hash": "8355cf270b13351069918b934875f13c",
+						"last": "ce3890a816f5237a17aa7e1436113bba",
+						"lead": ""
 					}
 				}
 			],
+			"resumes": [
+				{
+					"prints": [
+						"a",
+						"b",
+						"reply"
+					],
+					"output": 3
+				},
+				{
+					"prints": [
+						"a",
+						"b",
+						"reply",
+						"c"
+					],
+					"output": 3
+				},
+				{
+					"prints": [
+						"a",
+						"b"
+					],
+					"output": -1
+				},
+				{
+					"prints": [
+						"summary",
+						"reply",
+						"c"
+					],
+					"output": 2
+				},
+				{
+					"prints": [
+						"reply",
+						"x",
+						"reply",
+						"c"
+					],
+					"output": 3
+				},
+				{
+					"prints": [
+						"summary",
+						"c"
+					],
+					"output": -1
+				},
+				{
+					"prints": [],
+					"output": -1
+				},
+				{
+					"prints": [
+						"a",
+						"x",
+						"reply"
+					],
+					"output": 3
+				}
+			],
+			"resumeNone": -1,
 			"steps": [
 				{
 					"agents": {
@@ -3218,7 +3320,9 @@
 							"conversations": {
 								"chat": {
 									"count": 0,
-									"hash": "h0"
+									"hash": "h0",
+									"last": "l0",
+									"lead": "L0"
 								}
 							}
 						}
@@ -3231,7 +3335,9 @@
 							"conversations": {
 								"chat1": {
 									"count": 1,
-									"hash": "h1"
+									"hash": "h1",
+									"last": "l1",
+									"lead": "L1"
 								}
 							}
 						},
@@ -3240,7 +3346,9 @@
 							"conversations": {
 								"chat": {
 									"count": 0,
-									"hash": "h0"
+									"hash": "h0",
+									"last": "l0",
+									"lead": "L0"
 								}
 							}
 						}
@@ -3253,7 +3361,9 @@
 							"conversations": {
 								"chat2": {
 									"count": 2,
-									"hash": "h2"
+									"hash": "h2",
+									"last": "l2",
+									"lead": "L2"
 								}
 							}
 						},
@@ -3262,7 +3372,9 @@
 							"conversations": {
 								"chat1": {
 									"count": 1,
-									"hash": "h1"
+									"hash": "h1",
+									"last": "l1",
+									"lead": "L1"
 								}
 							}
 						},
@@ -3271,7 +3383,9 @@
 							"conversations": {
 								"chat": {
 									"count": 0,
-									"hash": "h0"
+									"hash": "h0",
+									"last": "l0",
+									"lead": "L0"
 								}
 							}
 						}
@@ -3284,7 +3398,9 @@
 							"conversations": {
 								"chat": {
 									"count": 3,
-									"hash": "h3"
+									"hash": "h3",
+									"last": "l3",
+									"lead": "L3"
 								}
 							}
 						},
@@ -3293,7 +3409,9 @@
 							"conversations": {
 								"chat2": {
 									"count": 2,
-									"hash": "h2"
+									"hash": "h2",
+									"last": "l2",
+									"lead": "L2"
 								}
 							}
 						},
@@ -3302,7 +3420,9 @@
 							"conversations": {
 								"chat1": {
 									"count": 1,
-									"hash": "h1"
+									"hash": "h1",
+									"last": "l1",
+									"lead": "L1"
 								}
 							}
 						},
@@ -3311,7 +3431,9 @@
 							"conversations": {
 								"chat": {
 									"count": 0,
-									"hash": "h0"
+									"hash": "h0",
+									"last": "l0",
+									"lead": "L0"
 								}
 							}
 						}
@@ -3324,7 +3446,9 @@
 							"conversations": {
 								"chat4": {
 									"count": 4,
-									"hash": "h4"
+									"hash": "h4",
+									"last": "l4",
+									"lead": "L4"
 								}
 							}
 						},
@@ -3333,7 +3457,9 @@
 							"conversations": {
 								"chat": {
 									"count": 3,
-									"hash": "h3"
+									"hash": "h3",
+									"last": "l3",
+									"lead": "L3"
 								}
 							}
 						},
@@ -3342,7 +3468,9 @@
 							"conversations": {
 								"chat2": {
 									"count": 2,
-									"hash": "h2"
+									"hash": "h2",
+									"last": "l2",
+									"lead": "L2"
 								}
 							}
 						},
@@ -3351,7 +3479,9 @@
 							"conversations": {
 								"chat1": {
 									"count": 1,
-									"hash": "h1"
+									"hash": "h1",
+									"last": "l1",
+									"lead": "L1"
 								}
 							}
 						},
@@ -3360,7 +3490,9 @@
 							"conversations": {
 								"chat": {
 									"count": 0,
-									"hash": "h0"
+									"hash": "h0",
+									"last": "l0",
+									"lead": "L0"
 								}
 							}
 						}
@@ -3373,7 +3505,9 @@
 							"conversations": {
 								"chat5": {
 									"count": 5,
-									"hash": "h5"
+									"hash": "h5",
+									"last": "l5",
+									"lead": "L5"
 								}
 							}
 						},
@@ -3382,7 +3516,9 @@
 							"conversations": {
 								"chat4": {
 									"count": 4,
-									"hash": "h4"
+									"hash": "h4",
+									"last": "l4",
+									"lead": "L4"
 								}
 							}
 						},
@@ -3391,7 +3527,9 @@
 							"conversations": {
 								"chat": {
 									"count": 3,
-									"hash": "h3"
+									"hash": "h3",
+									"last": "l3",
+									"lead": "L3"
 								}
 							}
 						},
@@ -3400,7 +3538,9 @@
 							"conversations": {
 								"chat2": {
 									"count": 2,
-									"hash": "h2"
+									"hash": "h2",
+									"last": "l2",
+									"lead": "L2"
 								}
 							}
 						},
@@ -3409,7 +3549,9 @@
 							"conversations": {
 								"chat1": {
 									"count": 1,
-									"hash": "h1"
+									"hash": "h1",
+									"last": "l1",
+									"lead": "L1"
 								}
 							}
 						},
@@ -3418,7 +3560,9 @@
 							"conversations": {
 								"chat": {
 									"count": 0,
-									"hash": "h0"
+									"hash": "h0",
+									"last": "l0",
+									"lead": "L0"
 								}
 							}
 						}
@@ -3431,7 +3575,9 @@
 							"conversations": {
 								"chat": {
 									"count": 6,
-									"hash": "h6"
+									"hash": "h6",
+									"last": "l6",
+									"lead": "L6"
 								}
 							}
 						},
@@ -3440,7 +3586,9 @@
 							"conversations": {
 								"chat5": {
 									"count": 5,
-									"hash": "h5"
+									"hash": "h5",
+									"last": "l5",
+									"lead": "L5"
 								}
 							}
 						},
@@ -3449,7 +3597,9 @@
 							"conversations": {
 								"chat4": {
 									"count": 4,
-									"hash": "h4"
+									"hash": "h4",
+									"last": "l4",
+									"lead": "L4"
 								}
 							}
 						},
@@ -3458,7 +3608,9 @@
 							"conversations": {
 								"chat": {
 									"count": 3,
-									"hash": "h3"
+									"hash": "h3",
+									"last": "l3",
+									"lead": "L3"
 								}
 							}
 						},
@@ -3467,7 +3619,9 @@
 							"conversations": {
 								"chat2": {
 									"count": 2,
-									"hash": "h2"
+									"hash": "h2",
+									"last": "l2",
+									"lead": "L2"
 								}
 							}
 						},
@@ -3476,7 +3630,9 @@
 							"conversations": {
 								"chat1": {
 									"count": 1,
-									"hash": "h1"
+									"hash": "h1",
+									"last": "l1",
+									"lead": "L1"
 								}
 							}
 						},
@@ -3485,7 +3641,9 @@
 							"conversations": {
 								"chat": {
 									"count": 0,
-									"hash": "h0"
+									"hash": "h0",
+									"last": "l0",
+									"lead": "L0"
 								}
 							}
 						}
@@ -3498,7 +3656,9 @@
 							"conversations": {
 								"chat7": {
 									"count": 7,
-									"hash": "h7"
+									"hash": "h7",
+									"last": "l7",
+									"lead": "L7"
 								}
 							}
 						},
@@ -3507,7 +3667,9 @@
 							"conversations": {
 								"chat": {
 									"count": 6,
-									"hash": "h6"
+									"hash": "h6",
+									"last": "l6",
+									"lead": "L6"
 								}
 							}
 						},
@@ -3516,7 +3678,9 @@
 							"conversations": {
 								"chat5": {
 									"count": 5,
-									"hash": "h5"
+									"hash": "h5",
+									"last": "l5",
+									"lead": "L5"
 								}
 							}
 						},
@@ -3525,7 +3689,9 @@
 							"conversations": {
 								"chat4": {
 									"count": 4,
-									"hash": "h4"
+									"hash": "h4",
+									"last": "l4",
+									"lead": "L4"
 								}
 							}
 						},
@@ -3534,7 +3700,9 @@
 							"conversations": {
 								"chat": {
 									"count": 3,
-									"hash": "h3"
+									"hash": "h3",
+									"last": "l3",
+									"lead": "L3"
 								}
 							}
 						},
@@ -3543,7 +3711,9 @@
 							"conversations": {
 								"chat2": {
 									"count": 2,
-									"hash": "h2"
+									"hash": "h2",
+									"last": "l2",
+									"lead": "L2"
 								}
 							}
 						},
@@ -3552,7 +3722,9 @@
 							"conversations": {
 								"chat1": {
 									"count": 1,
-									"hash": "h1"
+									"hash": "h1",
+									"last": "l1",
+									"lead": "L1"
 								}
 							}
 						},
@@ -3561,7 +3733,9 @@
 							"conversations": {
 								"chat": {
 									"count": 0,
-									"hash": "h0"
+									"hash": "h0",
+									"last": "l0",
+									"lead": "L0"
 								}
 							}
 						}
@@ -3574,7 +3748,9 @@
 							"conversations": {
 								"chat8": {
 									"count": 8,
-									"hash": "h8"
+									"hash": "h8",
+									"last": "l8",
+									"lead": "L8"
 								}
 							}
 						},
@@ -3583,7 +3759,9 @@
 							"conversations": {
 								"chat7": {
 									"count": 7,
-									"hash": "h7"
+									"hash": "h7",
+									"last": "l7",
+									"lead": "L7"
 								}
 							}
 						},
@@ -3592,7 +3770,9 @@
 							"conversations": {
 								"chat": {
 									"count": 6,
-									"hash": "h6"
+									"hash": "h6",
+									"last": "l6",
+									"lead": "L6"
 								}
 							}
 						},
@@ -3601,7 +3781,9 @@
 							"conversations": {
 								"chat5": {
 									"count": 5,
-									"hash": "h5"
+									"hash": "h5",
+									"last": "l5",
+									"lead": "L5"
 								}
 							}
 						},
@@ -3610,7 +3792,9 @@
 							"conversations": {
 								"chat4": {
 									"count": 4,
-									"hash": "h4"
+									"hash": "h4",
+									"last": "l4",
+									"lead": "L4"
 								}
 							}
 						},
@@ -3619,7 +3803,9 @@
 							"conversations": {
 								"chat": {
 									"count": 3,
-									"hash": "h3"
+									"hash": "h3",
+									"last": "l3",
+									"lead": "L3"
 								}
 							}
 						},
@@ -3628,7 +3814,9 @@
 							"conversations": {
 								"chat2": {
 									"count": 2,
-									"hash": "h2"
+									"hash": "h2",
+									"last": "l2",
+									"lead": "L2"
 								}
 							}
 						},
@@ -3637,7 +3825,9 @@
 							"conversations": {
 								"chat1": {
 									"count": 1,
-									"hash": "h1"
+									"hash": "h1",
+									"last": "l1",
+									"lead": "L1"
 								}
 							}
 						},
@@ -3646,7 +3836,9 @@
 							"conversations": {
 								"chat": {
 									"count": 0,
-									"hash": "h0"
+									"hash": "h0",
+									"last": "l0",
+									"lead": "L0"
 								}
 							}
 						}
@@ -3659,7 +3851,9 @@
 							"conversations": {
 								"chat": {
 									"count": 9,
-									"hash": "h9"
+									"hash": "h9",
+									"last": "l9",
+									"lead": "L9"
 								}
 							}
 						},
@@ -3668,7 +3862,9 @@
 							"conversations": {
 								"chat8": {
 									"count": 8,
-									"hash": "h8"
+									"hash": "h8",
+									"last": "l8",
+									"lead": "L8"
 								}
 							}
 						},
@@ -3677,7 +3873,9 @@
 							"conversations": {
 								"chat7": {
 									"count": 7,
-									"hash": "h7"
+									"hash": "h7",
+									"last": "l7",
+									"lead": "L7"
 								}
 							}
 						},
@@ -3686,7 +3884,9 @@
 							"conversations": {
 								"chat": {
 									"count": 6,
-									"hash": "h6"
+									"hash": "h6",
+									"last": "l6",
+									"lead": "L6"
 								}
 							}
 						},
@@ -3695,7 +3895,9 @@
 							"conversations": {
 								"chat5": {
 									"count": 5,
-									"hash": "h5"
+									"hash": "h5",
+									"last": "l5",
+									"lead": "L5"
 								}
 							}
 						},
@@ -3704,7 +3906,9 @@
 							"conversations": {
 								"chat4": {
 									"count": 4,
-									"hash": "h4"
+									"hash": "h4",
+									"last": "l4",
+									"lead": "L4"
 								}
 							}
 						},
@@ -3713,7 +3917,9 @@
 							"conversations": {
 								"chat": {
 									"count": 3,
-									"hash": "h3"
+									"hash": "h3",
+									"last": "l3",
+									"lead": "L3"
 								}
 							}
 						},
@@ -3722,7 +3928,9 @@
 							"conversations": {
 								"chat2": {
 									"count": 2,
-									"hash": "h2"
+									"hash": "h2",
+									"last": "l2",
+									"lead": "L2"
 								}
 							}
 						},
@@ -3731,7 +3939,9 @@
 							"conversations": {
 								"chat1": {
 									"count": 1,
-									"hash": "h1"
+									"hash": "h1",
+									"last": "l1",
+									"lead": "L1"
 								}
 							}
 						},
@@ -3740,7 +3950,9 @@
 							"conversations": {
 								"chat": {
 									"count": 0,
-									"hash": "h0"
+									"hash": "h0",
+									"last": "l0",
+									"lead": "L0"
 								}
 							}
 						}
@@ -3753,7 +3965,9 @@
 							"conversations": {
 								"chat10": {
 									"count": 10,
-									"hash": "h10"
+									"hash": "h10",
+									"last": "l10",
+									"lead": "L10"
 								}
 							}
 						},
@@ -3762,7 +3976,9 @@
 							"conversations": {
 								"chat": {
 									"count": 9,
-									"hash": "h9"
+									"hash": "h9",
+									"last": "l9",
+									"lead": "L9"
 								}
 							}
 						},
@@ -3771,7 +3987,9 @@
 							"conversations": {
 								"chat8": {
 									"count": 8,
-									"hash": "h8"
+									"hash": "h8",
+									"last": "l8",
+									"lead": "L8"
 								}
 							}
 						},
@@ -3780,7 +3998,9 @@
 							"conversations": {
 								"chat7": {
 									"count": 7,
-									"hash": "h7"
+									"hash": "h7",
+									"last": "l7",
+									"lead": "L7"
 								}
 							}
 						},
@@ -3789,7 +4009,9 @@
 							"conversations": {
 								"chat": {
 									"count": 6,
-									"hash": "h6"
+									"hash": "h6",
+									"last": "l6",
+									"lead": "L6"
 								}
 							}
 						},
@@ -3798,7 +4020,9 @@
 							"conversations": {
 								"chat5": {
 									"count": 5,
-									"hash": "h5"
+									"hash": "h5",
+									"last": "l5",
+									"lead": "L5"
 								}
 							}
 						},
@@ -3807,7 +4031,9 @@
 							"conversations": {
 								"chat4": {
 									"count": 4,
-									"hash": "h4"
+									"hash": "h4",
+									"last": "l4",
+									"lead": "L4"
 								}
 							}
 						},
@@ -3816,7 +4042,9 @@
 							"conversations": {
 								"chat": {
 									"count": 3,
-									"hash": "h3"
+									"hash": "h3",
+									"last": "l3",
+									"lead": "L3"
 								}
 							}
 						},
@@ -3825,7 +4053,9 @@
 							"conversations": {
 								"chat2": {
 									"count": 2,
-									"hash": "h2"
+									"hash": "h2",
+									"last": "l2",
+									"lead": "L2"
 								}
 							}
 						},
@@ -3834,7 +4064,9 @@
 							"conversations": {
 								"chat1": {
 									"count": 1,
-									"hash": "h1"
+									"hash": "h1",
+									"last": "l1",
+									"lead": "L1"
 								}
 							}
 						},
@@ -3843,7 +4075,9 @@
 							"conversations": {
 								"chat": {
 									"count": 0,
-									"hash": "h0"
+									"hash": "h0",
+									"last": "l0",
+									"lead": "L0"
 								}
 							}
 						}
@@ -3856,7 +4090,9 @@
 							"conversations": {
 								"chat11": {
 									"count": 11,
-									"hash": "h11"
+									"hash": "h11",
+									"last": "l11",
+									"lead": "L11"
 								}
 							}
 						},
@@ -3865,7 +4101,9 @@
 							"conversations": {
 								"chat10": {
 									"count": 10,
-									"hash": "h10"
+									"hash": "h10",
+									"last": "l10",
+									"lead": "L10"
 								}
 							}
 						},
@@ -3874,7 +4112,9 @@
 							"conversations": {
 								"chat": {
 									"count": 9,
-									"hash": "h9"
+									"hash": "h9",
+									"last": "l9",
+									"lead": "L9"
 								}
 							}
 						},
@@ -3883,7 +4123,9 @@
 							"conversations": {
 								"chat8": {
 									"count": 8,
-									"hash": "h8"
+									"hash": "h8",
+									"last": "l8",
+									"lead": "L8"
 								}
 							}
 						},
@@ -3892,7 +4134,9 @@
 							"conversations": {
 								"chat7": {
 									"count": 7,
-									"hash": "h7"
+									"hash": "h7",
+									"last": "l7",
+									"lead": "L7"
 								}
 							}
 						},
@@ -3901,7 +4145,9 @@
 							"conversations": {
 								"chat": {
 									"count": 6,
-									"hash": "h6"
+									"hash": "h6",
+									"last": "l6",
+									"lead": "L6"
 								}
 							}
 						},
@@ -3910,7 +4156,9 @@
 							"conversations": {
 								"chat5": {
 									"count": 5,
-									"hash": "h5"
+									"hash": "h5",
+									"last": "l5",
+									"lead": "L5"
 								}
 							}
 						},
@@ -3919,7 +4167,9 @@
 							"conversations": {
 								"chat4": {
 									"count": 4,
-									"hash": "h4"
+									"hash": "h4",
+									"last": "l4",
+									"lead": "L4"
 								}
 							}
 						},
@@ -3928,7 +4178,9 @@
 							"conversations": {
 								"chat": {
 									"count": 3,
-									"hash": "h3"
+									"hash": "h3",
+									"last": "l3",
+									"lead": "L3"
 								}
 							}
 						},
@@ -3937,7 +4189,9 @@
 							"conversations": {
 								"chat2": {
 									"count": 2,
-									"hash": "h2"
+									"hash": "h2",
+									"last": "l2",
+									"lead": "L2"
 								}
 							}
 						},
@@ -3946,7 +4200,9 @@
 							"conversations": {
 								"chat1": {
 									"count": 1,
-									"hash": "h1"
+									"hash": "h1",
+									"last": "l1",
+									"lead": "L1"
 								}
 							}
 						},
@@ -3955,7 +4211,9 @@
 							"conversations": {
 								"chat": {
 									"count": 0,
-									"hash": "h0"
+									"hash": "h0",
+									"last": "l0",
+									"lead": "L0"
 								}
 							}
 						}
@@ -3968,7 +4226,9 @@
 							"conversations": {
 								"chat": {
 									"count": 12,
-									"hash": "h12"
+									"hash": "h12",
+									"last": "l12",
+									"lead": "L12"
 								}
 							}
 						},
@@ -3977,7 +4237,9 @@
 							"conversations": {
 								"chat11": {
 									"count": 11,
-									"hash": "h11"
+									"hash": "h11",
+									"last": "l11",
+									"lead": "L11"
 								}
 							}
 						},
@@ -3986,7 +4248,9 @@
 							"conversations": {
 								"chat10": {
 									"count": 10,
-									"hash": "h10"
+									"hash": "h10",
+									"last": "l10",
+									"lead": "L10"
 								}
 							}
 						},
@@ -3995,7 +4259,9 @@
 							"conversations": {
 								"chat": {
 									"count": 9,
-									"hash": "h9"
+									"hash": "h9",
+									"last": "l9",
+									"lead": "L9"
 								}
 							}
 						},
@@ -4004,7 +4270,9 @@
 							"conversations": {
 								"chat8": {
 									"count": 8,
-									"hash": "h8"
+									"hash": "h8",
+									"last": "l8",
+									"lead": "L8"
 								}
 							}
 						},
@@ -4013,7 +4281,9 @@
 							"conversations": {
 								"chat7": {
 									"count": 7,
-									"hash": "h7"
+									"hash": "h7",
+									"last": "l7",
+									"lead": "L7"
 								}
 							}
 						},
@@ -4022,7 +4292,9 @@
 							"conversations": {
 								"chat": {
 									"count": 6,
-									"hash": "h6"
+									"hash": "h6",
+									"last": "l6",
+									"lead": "L6"
 								}
 							}
 						},
@@ -4031,7 +4303,9 @@
 							"conversations": {
 								"chat5": {
 									"count": 5,
-									"hash": "h5"
+									"hash": "h5",
+									"last": "l5",
+									"lead": "L5"
 								}
 							}
 						},
@@ -4040,7 +4314,9 @@
 							"conversations": {
 								"chat4": {
 									"count": 4,
-									"hash": "h4"
+									"hash": "h4",
+									"last": "l4",
+									"lead": "L4"
 								}
 							}
 						},
@@ -4049,7 +4325,9 @@
 							"conversations": {
 								"chat": {
 									"count": 3,
-									"hash": "h3"
+									"hash": "h3",
+									"last": "l3",
+									"lead": "L3"
 								}
 							}
 						},
@@ -4058,7 +4336,9 @@
 							"conversations": {
 								"chat2": {
 									"count": 2,
-									"hash": "h2"
+									"hash": "h2",
+									"last": "l2",
+									"lead": "L2"
 								}
 							}
 						},
@@ -4067,7 +4347,9 @@
 							"conversations": {
 								"chat1": {
 									"count": 1,
-									"hash": "h1"
+									"hash": "h1",
+									"last": "l1",
+									"lead": "L1"
 								}
 							}
 						},
@@ -4076,7 +4358,9 @@
 							"conversations": {
 								"chat": {
 									"count": 0,
-									"hash": "h0"
+									"hash": "h0",
+									"last": "l0",
+									"lead": "L0"
 								}
 							}
 						}
@@ -4089,7 +4373,9 @@
 							"conversations": {
 								"chat13": {
 									"count": 13,
-									"hash": "h13"
+									"hash": "h13",
+									"last": "l13",
+									"lead": "L13"
 								}
 							}
 						},
@@ -4098,7 +4384,9 @@
 							"conversations": {
 								"chat": {
 									"count": 12,
-									"hash": "h12"
+									"hash": "h12",
+									"last": "l12",
+									"lead": "L12"
 								}
 							}
 						},
@@ -4107,7 +4395,9 @@
 							"conversations": {
 								"chat11": {
 									"count": 11,
-									"hash": "h11"
+									"hash": "h11",
+									"last": "l11",
+									"lead": "L11"
 								}
 							}
 						},
@@ -4116,7 +4406,9 @@
 							"conversations": {
 								"chat10": {
 									"count": 10,
-									"hash": "h10"
+									"hash": "h10",
+									"last": "l10",
+									"lead": "L10"
 								}
 							}
 						},
@@ -4125,7 +4417,9 @@
 							"conversations": {
 								"chat": {
 									"count": 9,
-									"hash": "h9"
+									"hash": "h9",
+									"last": "l9",
+									"lead": "L9"
 								}
 							}
 						},
@@ -4134,7 +4428,9 @@
 							"conversations": {
 								"chat8": {
 									"count": 8,
-									"hash": "h8"
+									"hash": "h8",
+									"last": "l8",
+									"lead": "L8"
 								}
 							}
 						},
@@ -4143,7 +4439,9 @@
 							"conversations": {
 								"chat7": {
 									"count": 7,
-									"hash": "h7"
+									"hash": "h7",
+									"last": "l7",
+									"lead": "L7"
 								}
 							}
 						},
@@ -4152,7 +4450,9 @@
 							"conversations": {
 								"chat": {
 									"count": 6,
-									"hash": "h6"
+									"hash": "h6",
+									"last": "l6",
+									"lead": "L6"
 								}
 							}
 						},
@@ -4161,7 +4461,9 @@
 							"conversations": {
 								"chat5": {
 									"count": 5,
-									"hash": "h5"
+									"hash": "h5",
+									"last": "l5",
+									"lead": "L5"
 								}
 							}
 						},
@@ -4170,7 +4472,9 @@
 							"conversations": {
 								"chat4": {
 									"count": 4,
-									"hash": "h4"
+									"hash": "h4",
+									"last": "l4",
+									"lead": "L4"
 								}
 							}
 						},
@@ -4179,7 +4483,9 @@
 							"conversations": {
 								"chat": {
 									"count": 3,
-									"hash": "h3"
+									"hash": "h3",
+									"last": "l3",
+									"lead": "L3"
 								}
 							}
 						},
@@ -4188,7 +4494,9 @@
 							"conversations": {
 								"chat2": {
 									"count": 2,
-									"hash": "h2"
+									"hash": "h2",
+									"last": "l2",
+									"lead": "L2"
 								}
 							}
 						},
@@ -4197,7 +4505,9 @@
 							"conversations": {
 								"chat1": {
 									"count": 1,
-									"hash": "h1"
+									"hash": "h1",
+									"last": "l1",
+									"lead": "L1"
 								}
 							}
 						},
@@ -4206,7 +4516,9 @@
 							"conversations": {
 								"chat": {
 									"count": 0,
-									"hash": "h0"
+									"hash": "h0",
+									"last": "l0",
+									"lead": "L0"
 								}
 							}
 						}
@@ -4219,7 +4531,9 @@
 							"conversations": {
 								"chat14": {
 									"count": 14,
-									"hash": "h14"
+									"hash": "h14",
+									"last": "l14",
+									"lead": "L14"
 								}
 							}
 						},
@@ -4228,7 +4542,9 @@
 							"conversations": {
 								"chat13": {
 									"count": 13,
-									"hash": "h13"
+									"hash": "h13",
+									"last": "l13",
+									"lead": "L13"
 								}
 							}
 						},
@@ -4237,7 +4553,9 @@
 							"conversations": {
 								"chat": {
 									"count": 12,
-									"hash": "h12"
+									"hash": "h12",
+									"last": "l12",
+									"lead": "L12"
 								}
 							}
 						},
@@ -4246,7 +4564,9 @@
 							"conversations": {
 								"chat11": {
 									"count": 11,
-									"hash": "h11"
+									"hash": "h11",
+									"last": "l11",
+									"lead": "L11"
 								}
 							}
 						},
@@ -4255,7 +4575,9 @@
 							"conversations": {
 								"chat10": {
 									"count": 10,
-									"hash": "h10"
+									"hash": "h10",
+									"last": "l10",
+									"lead": "L10"
 								}
 							}
 						},
@@ -4264,7 +4586,9 @@
 							"conversations": {
 								"chat": {
 									"count": 9,
-									"hash": "h9"
+									"hash": "h9",
+									"last": "l9",
+									"lead": "L9"
 								}
 							}
 						},
@@ -4273,7 +4597,9 @@
 							"conversations": {
 								"chat8": {
 									"count": 8,
-									"hash": "h8"
+									"hash": "h8",
+									"last": "l8",
+									"lead": "L8"
 								}
 							}
 						},
@@ -4282,7 +4608,9 @@
 							"conversations": {
 								"chat7": {
 									"count": 7,
-									"hash": "h7"
+									"hash": "h7",
+									"last": "l7",
+									"lead": "L7"
 								}
 							}
 						},
@@ -4291,7 +4619,9 @@
 							"conversations": {
 								"chat": {
 									"count": 6,
-									"hash": "h6"
+									"hash": "h6",
+									"last": "l6",
+									"lead": "L6"
 								}
 							}
 						},
@@ -4300,7 +4630,9 @@
 							"conversations": {
 								"chat5": {
 									"count": 5,
-									"hash": "h5"
+									"hash": "h5",
+									"last": "l5",
+									"lead": "L5"
 								}
 							}
 						},
@@ -4309,7 +4641,9 @@
 							"conversations": {
 								"chat4": {
 									"count": 4,
-									"hash": "h4"
+									"hash": "h4",
+									"last": "l4",
+									"lead": "L4"
 								}
 							}
 						},
@@ -4318,7 +4652,9 @@
 							"conversations": {
 								"chat": {
 									"count": 3,
-									"hash": "h3"
+									"hash": "h3",
+									"last": "l3",
+									"lead": "L3"
 								}
 							}
 						},
@@ -4327,7 +4663,9 @@
 							"conversations": {
 								"chat2": {
 									"count": 2,
-									"hash": "h2"
+									"hash": "h2",
+									"last": "l2",
+									"lead": "L2"
 								}
 							}
 						},
@@ -4336,7 +4674,9 @@
 							"conversations": {
 								"chat1": {
 									"count": 1,
-									"hash": "h1"
+									"hash": "h1",
+									"last": "l1",
+									"lead": "L1"
 								}
 							}
 						},
@@ -4345,7 +4685,9 @@
 							"conversations": {
 								"chat": {
 									"count": 0,
-									"hash": "h0"
+									"hash": "h0",
+									"last": "l0",
+									"lead": "L0"
 								}
 							}
 						}
@@ -4358,7 +4700,9 @@
 							"conversations": {
 								"chat": {
 									"count": 15,
-									"hash": "h15"
+									"hash": "h15",
+									"last": "l15",
+									"lead": "L15"
 								}
 							}
 						},
@@ -4367,7 +4711,9 @@
 							"conversations": {
 								"chat14": {
 									"count": 14,
-									"hash": "h14"
+									"hash": "h14",
+									"last": "l14",
+									"lead": "L14"
 								}
 							}
 						},
@@ -4376,7 +4722,9 @@
 							"conversations": {
 								"chat13": {
 									"count": 13,
-									"hash": "h13"
+									"hash": "h13",
+									"last": "l13",
+									"lead": "L13"
 								}
 							}
 						},
@@ -4385,7 +4733,9 @@
 							"conversations": {
 								"chat": {
 									"count": 12,
-									"hash": "h12"
+									"hash": "h12",
+									"last": "l12",
+									"lead": "L12"
 								}
 							}
 						},
@@ -4394,7 +4744,9 @@
 							"conversations": {
 								"chat11": {
 									"count": 11,
-									"hash": "h11"
+									"hash": "h11",
+									"last": "l11",
+									"lead": "L11"
 								}
 							}
 						},
@@ -4403,7 +4755,9 @@
 							"conversations": {
 								"chat10": {
 									"count": 10,
-									"hash": "h10"
+									"hash": "h10",
+									"last": "l10",
+									"lead": "L10"
 								}
 							}
 						},
@@ -4412,7 +4766,9 @@
 							"conversations": {
 								"chat": {
 									"count": 9,
-									"hash": "h9"
+									"hash": "h9",
+									"last": "l9",
+									"lead": "L9"
 								}
 							}
 						},
@@ -4421,7 +4777,9 @@
 							"conversations": {
 								"chat8": {
 									"count": 8,
-									"hash": "h8"
+									"hash": "h8",
+									"last": "l8",
+									"lead": "L8"
 								}
 							}
 						},
@@ -4430,7 +4788,9 @@
 							"conversations": {
 								"chat7": {
 									"count": 7,
-									"hash": "h7"
+									"hash": "h7",
+									"last": "l7",
+									"lead": "L7"
 								}
 							}
 						},
@@ -4439,7 +4799,9 @@
 							"conversations": {
 								"chat": {
 									"count": 6,
-									"hash": "h6"
+									"hash": "h6",
+									"last": "l6",
+									"lead": "L6"
 								}
 							}
 						},
@@ -4448,7 +4810,9 @@
 							"conversations": {
 								"chat5": {
 									"count": 5,
-									"hash": "h5"
+									"hash": "h5",
+									"last": "l5",
+									"lead": "L5"
 								}
 							}
 						},
@@ -4457,7 +4821,9 @@
 							"conversations": {
 								"chat4": {
 									"count": 4,
-									"hash": "h4"
+									"hash": "h4",
+									"last": "l4",
+									"lead": "L4"
 								}
 							}
 						},
@@ -4466,7 +4832,9 @@
 							"conversations": {
 								"chat": {
 									"count": 3,
-									"hash": "h3"
+									"hash": "h3",
+									"last": "l3",
+									"lead": "L3"
 								}
 							}
 						},
@@ -4475,7 +4843,9 @@
 							"conversations": {
 								"chat2": {
 									"count": 2,
-									"hash": "h2"
+									"hash": "h2",
+									"last": "l2",
+									"lead": "L2"
 								}
 							}
 						},
@@ -4484,7 +4854,9 @@
 							"conversations": {
 								"chat1": {
 									"count": 1,
-									"hash": "h1"
+									"hash": "h1",
+									"last": "l1",
+									"lead": "L1"
 								}
 							}
 						},
@@ -4493,7 +4865,9 @@
 							"conversations": {
 								"chat": {
 									"count": 0,
-									"hash": "h0"
+									"hash": "h0",
+									"last": "l0",
+									"lead": "L0"
 								}
 							}
 						}
@@ -4506,7 +4880,9 @@
 							"conversations": {
 								"chat16": {
 									"count": 16,
-									"hash": "h16"
+									"hash": "h16",
+									"last": "l16",
+									"lead": "L16"
 								}
 							}
 						},
@@ -4515,7 +4891,9 @@
 							"conversations": {
 								"chat": {
 									"count": 15,
-									"hash": "h15"
+									"hash": "h15",
+									"last": "l15",
+									"lead": "L15"
 								}
 							}
 						},
@@ -4524,7 +4902,9 @@
 							"conversations": {
 								"chat14": {
 									"count": 14,
-									"hash": "h14"
+									"hash": "h14",
+									"last": "l14",
+									"lead": "L14"
 								}
 							}
 						},
@@ -4533,7 +4913,9 @@
 							"conversations": {
 								"chat13": {
 									"count": 13,
-									"hash": "h13"
+									"hash": "h13",
+									"last": "l13",
+									"lead": "L13"
 								}
 							}
 						},
@@ -4542,7 +4924,9 @@
 							"conversations": {
 								"chat": {
 									"count": 12,
-									"hash": "h12"
+									"hash": "h12",
+									"last": "l12",
+									"lead": "L12"
 								}
 							}
 						},
@@ -4551,7 +4935,9 @@
 							"conversations": {
 								"chat11": {
 									"count": 11,
-									"hash": "h11"
+									"hash": "h11",
+									"last": "l11",
+									"lead": "L11"
 								}
 							}
 						},
@@ -4560,7 +4946,9 @@
 							"conversations": {
 								"chat10": {
 									"count": 10,
-									"hash": "h10"
+									"hash": "h10",
+									"last": "l10",
+									"lead": "L10"
 								}
 							}
 						},
@@ -4569,7 +4957,9 @@
 							"conversations": {
 								"chat": {
 									"count": 9,
-									"hash": "h9"
+									"hash": "h9",
+									"last": "l9",
+									"lead": "L9"
 								}
 							}
 						},
@@ -4578,7 +4968,9 @@
 							"conversations": {
 								"chat8": {
 									"count": 8,
-									"hash": "h8"
+									"hash": "h8",
+									"last": "l8",
+									"lead": "L8"
 								}
 							}
 						},
@@ -4587,7 +4979,9 @@
 							"conversations": {
 								"chat7": {
 									"count": 7,
-									"hash": "h7"
+									"hash": "h7",
+									"last": "l7",
+									"lead": "L7"
 								}
 							}
 						},
@@ -4596,7 +4990,9 @@
 							"conversations": {
 								"chat": {
 									"count": 6,
-									"hash": "h6"
+									"hash": "h6",
+									"last": "l6",
+									"lead": "L6"
 								}
 							}
 						},
@@ -4605,7 +5001,9 @@
 							"conversations": {
 								"chat5": {
 									"count": 5,
-									"hash": "h5"
+									"hash": "h5",
+									"last": "l5",
+									"lead": "L5"
 								}
 							}
 						},
@@ -4614,7 +5012,9 @@
 							"conversations": {
 								"chat4": {
 									"count": 4,
-									"hash": "h4"
+									"hash": "h4",
+									"last": "l4",
+									"lead": "L4"
 								}
 							}
 						},
@@ -4623,7 +5023,9 @@
 							"conversations": {
 								"chat": {
 									"count": 3,
-									"hash": "h3"
+									"hash": "h3",
+									"last": "l3",
+									"lead": "L3"
 								}
 							}
 						},
@@ -4632,7 +5034,9 @@
 							"conversations": {
 								"chat2": {
 									"count": 2,
-									"hash": "h2"
+									"hash": "h2",
+									"last": "l2",
+									"lead": "L2"
 								}
 							}
 						},
@@ -4641,7 +5045,9 @@
 							"conversations": {
 								"chat1": {
 									"count": 1,
-									"hash": "h1"
+									"hash": "h1",
+									"last": "l1",
+									"lead": "L1"
 								}
 							}
 						},
@@ -4650,7 +5056,9 @@
 							"conversations": {
 								"chat": {
 									"count": 0,
-									"hash": "h0"
+									"hash": "h0",
+									"last": "l0",
+									"lead": "L0"
 								}
 							}
 						}
@@ -4663,7 +5071,9 @@
 							"conversations": {
 								"chat17": {
 									"count": 17,
-									"hash": "h17"
+									"hash": "h17",
+									"last": "l17",
+									"lead": "L17"
 								}
 							}
 						},
@@ -4672,7 +5082,9 @@
 							"conversations": {
 								"chat16": {
 									"count": 16,
-									"hash": "h16"
+									"hash": "h16",
+									"last": "l16",
+									"lead": "L16"
 								}
 							}
 						},
@@ -4681,7 +5093,9 @@
 							"conversations": {
 								"chat": {
 									"count": 15,
-									"hash": "h15"
+									"hash": "h15",
+									"last": "l15",
+									"lead": "L15"
 								}
 							}
 						},
@@ -4690,7 +5104,9 @@
 							"conversations": {
 								"chat14": {
 									"count": 14,
-									"hash": "h14"
+									"hash": "h14",
+									"last": "l14",
+									"lead": "L14"
 								}
 							}
 						},
@@ -4699,7 +5115,9 @@
 							"conversations": {
 								"chat13": {
 									"count": 13,
-									"hash": "h13"
+									"hash": "h13",
+									"last": "l13",
+									"lead": "L13"
 								}
 							}
 						},
@@ -4708,7 +5126,9 @@
 							"conversations": {
 								"chat": {
 									"count": 12,
-									"hash": "h12"
+									"hash": "h12",
+									"last": "l12",
+									"lead": "L12"
 								}
 							}
 						},
@@ -4717,7 +5137,9 @@
 							"conversations": {
 								"chat11": {
 									"count": 11,
-									"hash": "h11"
+									"hash": "h11",
+									"last": "l11",
+									"lead": "L11"
 								}
 							}
 						},
@@ -4726,7 +5148,9 @@
 							"conversations": {
 								"chat10": {
 									"count": 10,
-									"hash": "h10"
+									"hash": "h10",
+									"last": "l10",
+									"lead": "L10"
 								}
 							}
 						},
@@ -4735,7 +5159,9 @@
 							"conversations": {
 								"chat": {
 									"count": 9,
-									"hash": "h9"
+									"hash": "h9",
+									"last": "l9",
+									"lead": "L9"
 								}
 							}
 						},
@@ -4744,7 +5170,9 @@
 							"conversations": {
 								"chat8": {
 									"count": 8,
-									"hash": "h8"
+									"hash": "h8",
+									"last": "l8",
+									"lead": "L8"
 								}
 							}
 						},
@@ -4753,7 +5181,9 @@
 							"conversations": {
 								"chat7": {
 									"count": 7,
-									"hash": "h7"
+									"hash": "h7",
+									"last": "l7",
+									"lead": "L7"
 								}
 							}
 						},
@@ -4762,7 +5192,9 @@
 							"conversations": {
 								"chat": {
 									"count": 6,
-									"hash": "h6"
+									"hash": "h6",
+									"last": "l6",
+									"lead": "L6"
 								}
 							}
 						},
@@ -4771,7 +5203,9 @@
 							"conversations": {
 								"chat5": {
 									"count": 5,
-									"hash": "h5"
+									"hash": "h5",
+									"last": "l5",
+									"lead": "L5"
 								}
 							}
 						},
@@ -4780,7 +5214,9 @@
 							"conversations": {
 								"chat4": {
 									"count": 4,
-									"hash": "h4"
+									"hash": "h4",
+									"last": "l4",
+									"lead": "L4"
 								}
 							}
 						},
@@ -4789,7 +5225,9 @@
 							"conversations": {
 								"chat": {
 									"count": 3,
-									"hash": "h3"
+									"hash": "h3",
+									"last": "l3",
+									"lead": "L3"
 								}
 							}
 						},
@@ -4798,7 +5236,9 @@
 							"conversations": {
 								"chat2": {
 									"count": 2,
-									"hash": "h2"
+									"hash": "h2",
+									"last": "l2",
+									"lead": "L2"
 								}
 							}
 						},
@@ -4807,7 +5247,9 @@
 							"conversations": {
 								"chat1": {
 									"count": 1,
-									"hash": "h1"
+									"hash": "h1",
+									"last": "l1",
+									"lead": "L1"
 								}
 							}
 						},
@@ -4816,7 +5258,9 @@
 							"conversations": {
 								"chat": {
 									"count": 0,
-									"hash": "h0"
+									"hash": "h0",
+									"last": "l0",
+									"lead": "L0"
 								}
 							}
 						}
@@ -4829,7 +5273,9 @@
 							"conversations": {
 								"chat": {
 									"count": 18,
-									"hash": "h18"
+									"hash": "h18",
+									"last": "l18",
+									"lead": "L18"
 								}
 							}
 						},
@@ -4838,7 +5284,9 @@
 							"conversations": {
 								"chat17": {
 									"count": 17,
-									"hash": "h17"
+									"hash": "h17",
+									"last": "l17",
+									"lead": "L17"
 								}
 							}
 						},
@@ -4847,7 +5295,9 @@
 							"conversations": {
 								"chat16": {
 									"count": 16,
-									"hash": "h16"
+									"hash": "h16",
+									"last": "l16",
+									"lead": "L16"
 								}
 							}
 						},
@@ -4856,7 +5306,9 @@
 							"conversations": {
 								"chat": {
 									"count": 15,
-									"hash": "h15"
+									"hash": "h15",
+									"last": "l15",
+									"lead": "L15"
 								}
 							}
 						},
@@ -4865,7 +5317,9 @@
 							"conversations": {
 								"chat14": {
 									"count": 14,
-									"hash": "h14"
+									"hash": "h14",
+									"last": "l14",
+									"lead": "L14"
 								}
 							}
 						},
@@ -4874,7 +5328,9 @@
 							"conversations": {
 								"chat13": {
 									"count": 13,
-									"hash": "h13"
+									"hash": "h13",
+									"last": "l13",
+									"lead": "L13"
 								}
 							}
 						},
@@ -4883,7 +5339,9 @@
 							"conversations": {
 								"chat": {
 									"count": 12,
-									"hash": "h12"
+									"hash": "h12",
+									"last": "l12",
+									"lead": "L12"
 								}
 							}
 						},
@@ -4892,7 +5350,9 @@
 							"conversations": {
 								"chat11": {
 									"count": 11,
-									"hash": "h11"
+									"hash": "h11",
+									"last": "l11",
+									"lead": "L11"
 								}
 							}
 						},
@@ -4901,7 +5361,9 @@
 							"conversations": {
 								"chat10": {
 									"count": 10,
-									"hash": "h10"
+									"hash": "h10",
+									"last": "l10",
+									"lead": "L10"
 								}
 							}
 						},
@@ -4910,7 +5372,9 @@
 							"conversations": {
 								"chat": {
 									"count": 9,
-									"hash": "h9"
+									"hash": "h9",
+									"last": "l9",
+									"lead": "L9"
 								}
 							}
 						},
@@ -4919,7 +5383,9 @@
 							"conversations": {
 								"chat8": {
 									"count": 8,
-									"hash": "h8"
+									"hash": "h8",
+									"last": "l8",
+									"lead": "L8"
 								}
 							}
 						},
@@ -4928,7 +5394,9 @@
 							"conversations": {
 								"chat7": {
 									"count": 7,
-									"hash": "h7"
+									"hash": "h7",
+									"last": "l7",
+									"lead": "L7"
 								}
 							}
 						},
@@ -4937,7 +5405,9 @@
 							"conversations": {
 								"chat": {
 									"count": 6,
-									"hash": "h6"
+									"hash": "h6",
+									"last": "l6",
+									"lead": "L6"
 								}
 							}
 						},
@@ -4946,7 +5416,9 @@
 							"conversations": {
 								"chat5": {
 									"count": 5,
-									"hash": "h5"
+									"hash": "h5",
+									"last": "l5",
+									"lead": "L5"
 								}
 							}
 						},
@@ -4955,7 +5427,9 @@
 							"conversations": {
 								"chat4": {
 									"count": 4,
-									"hash": "h4"
+									"hash": "h4",
+									"last": "l4",
+									"lead": "L4"
 								}
 							}
 						},
@@ -4964,7 +5438,9 @@
 							"conversations": {
 								"chat": {
 									"count": 3,
-									"hash": "h3"
+									"hash": "h3",
+									"last": "l3",
+									"lead": "L3"
 								}
 							}
 						},
@@ -4973,7 +5449,9 @@
 							"conversations": {
 								"chat2": {
 									"count": 2,
-									"hash": "h2"
+									"hash": "h2",
+									"last": "l2",
+									"lead": "L2"
 								}
 							}
 						},
@@ -4982,7 +5460,9 @@
 							"conversations": {
 								"chat1": {
 									"count": 1,
-									"hash": "h1"
+									"hash": "h1",
+									"last": "l1",
+									"lead": "L1"
 								}
 							}
 						},
@@ -4991,7 +5471,9 @@
 							"conversations": {
 								"chat": {
 									"count": 0,
-									"hash": "h0"
+									"hash": "h0",
+									"last": "l0",
+									"lead": "L0"
 								}
 							}
 						}
@@ -5004,7 +5486,9 @@
 							"conversations": {
 								"chat19": {
 									"count": 19,
-									"hash": "h19"
+									"hash": "h19",
+									"last": "l19",
+									"lead": "L19"
 								}
 							}
 						},
@@ -5013,7 +5497,9 @@
 							"conversations": {
 								"chat": {
 									"count": 18,
-									"hash": "h18"
+									"hash": "h18",
+									"last": "l18",
+									"lead": "L18"
 								}
 							}
 						},
@@ -5022,7 +5508,9 @@
 							"conversations": {
 								"chat17": {
 									"count": 17,
-									"hash": "h17"
+									"hash": "h17",
+									"last": "l17",
+									"lead": "L17"
 								}
 							}
 						},
@@ -5031,7 +5519,9 @@
 							"conversations": {
 								"chat16": {
 									"count": 16,
-									"hash": "h16"
+									"hash": "h16",
+									"last": "l16",
+									"lead": "L16"
 								}
 							}
 						},
@@ -5040,7 +5530,9 @@
 							"conversations": {
 								"chat": {
 									"count": 15,
-									"hash": "h15"
+									"hash": "h15",
+									"last": "l15",
+									"lead": "L15"
 								}
 							}
 						},
@@ -5049,7 +5541,9 @@
 							"conversations": {
 								"chat14": {
 									"count": 14,
-									"hash": "h14"
+									"hash": "h14",
+									"last": "l14",
+									"lead": "L14"
 								}
 							}
 						},
@@ -5058,7 +5552,9 @@
 							"conversations": {
 								"chat13": {
 									"count": 13,
-									"hash": "h13"
+									"hash": "h13",
+									"last": "l13",
+									"lead": "L13"
 								}
 							}
 						},
@@ -5067,7 +5563,9 @@
 							"conversations": {
 								"chat": {
 									"count": 12,
-									"hash": "h12"
+									"hash": "h12",
+									"last": "l12",
+									"lead": "L12"
 								}
 							}
 						},
@@ -5076,7 +5574,9 @@
 							"conversations": {
 								"chat11": {
 									"count": 11,
-									"hash": "h11"
+									"hash": "h11",
+									"last": "l11",
+									"lead": "L11"
 								}
 							}
 						},
@@ -5085,7 +5585,9 @@
 							"conversations": {
 								"chat10": {
 									"count": 10,
-									"hash": "h10"
+									"hash": "h10",
+									"last": "l10",
+									"lead": "L10"
 								}
 							}
 						},
@@ -5094,7 +5596,9 @@
 							"conversations": {
 								"chat": {
 									"count": 9,
-									"hash": "h9"
+									"hash": "h9",
+									"last": "l9",
+									"lead": "L9"
 								}
 							}
 						},
@@ -5103,7 +5607,9 @@
 							"conversations": {
 								"chat8": {
 									"count": 8,
-									"hash": "h8"
+									"hash": "h8",
+									"last": "l8",
+									"lead": "L8"
 								}
 							}
 						},
@@ -5112,7 +5618,9 @@
 							"conversations": {
 								"chat7": {
 									"count": 7,
-									"hash": "h7"
+									"hash": "h7",
+									"last": "l7",
+									"lead": "L7"
 								}
 							}
 						},
@@ -5121,7 +5629,9 @@
 							"conversations": {
 								"chat": {
 									"count": 6,
-									"hash": "h6"
+									"hash": "h6",
+									"last": "l6",
+									"lead": "L6"
 								}
 							}
 						},
@@ -5130,7 +5640,9 @@
 							"conversations": {
 								"chat5": {
 									"count": 5,
-									"hash": "h5"
+									"hash": "h5",
+									"last": "l5",
+									"lead": "L5"
 								}
 							}
 						},
@@ -5139,7 +5651,9 @@
 							"conversations": {
 								"chat4": {
 									"count": 4,
-									"hash": "h4"
+									"hash": "h4",
+									"last": "l4",
+									"lead": "L4"
 								}
 							}
 						},
@@ -5148,7 +5662,9 @@
 							"conversations": {
 								"chat": {
 									"count": 3,
-									"hash": "h3"
+									"hash": "h3",
+									"last": "l3",
+									"lead": "L3"
 								}
 							}
 						},
@@ -5157,7 +5673,9 @@
 							"conversations": {
 								"chat2": {
 									"count": 2,
-									"hash": "h2"
+									"hash": "h2",
+									"last": "l2",
+									"lead": "L2"
 								}
 							}
 						},
@@ -5166,7 +5684,9 @@
 							"conversations": {
 								"chat1": {
 									"count": 1,
-									"hash": "h1"
+									"hash": "h1",
+									"last": "l1",
+									"lead": "L1"
 								}
 							}
 						},
@@ -5175,7 +5695,9 @@
 							"conversations": {
 								"chat": {
 									"count": 0,
-									"hash": "h0"
+									"hash": "h0",
+									"last": "l0",
+									"lead": "L0"
 								}
 							}
 						}
@@ -5188,7 +5710,9 @@
 							"conversations": {
 								"chat20": {
 									"count": 20,
-									"hash": "h20"
+									"hash": "h20",
+									"last": "l20",
+									"lead": "L20"
 								}
 							}
 						},
@@ -5197,7 +5721,9 @@
 							"conversations": {
 								"chat19": {
 									"count": 19,
-									"hash": "h19"
+									"hash": "h19",
+									"last": "l19",
+									"lead": "L19"
 								}
 							}
 						},
@@ -5206,7 +5732,9 @@
 							"conversations": {
 								"chat": {
 									"count": 18,
-									"hash": "h18"
+									"hash": "h18",
+									"last": "l18",
+									"lead": "L18"
 								}
 							}
 						},
@@ -5215,7 +5743,9 @@
 							"conversations": {
 								"chat17": {
 									"count": 17,
-									"hash": "h17"
+									"hash": "h17",
+									"last": "l17",
+									"lead": "L17"
 								}
 							}
 						},
@@ -5224,7 +5754,9 @@
 							"conversations": {
 								"chat16": {
 									"count": 16,
-									"hash": "h16"
+									"hash": "h16",
+									"last": "l16",
+									"lead": "L16"
 								}
 							}
 						},
@@ -5233,7 +5765,9 @@
 							"conversations": {
 								"chat": {
 									"count": 15,
-									"hash": "h15"
+									"hash": "h15",
+									"last": "l15",
+									"lead": "L15"
 								}
 							}
 						},
@@ -5242,7 +5776,9 @@
 							"conversations": {
 								"chat14": {
 									"count": 14,
-									"hash": "h14"
+									"hash": "h14",
+									"last": "l14",
+									"lead": "L14"
 								}
 							}
 						},
@@ -5251,7 +5787,9 @@
 							"conversations": {
 								"chat13": {
 									"count": 13,
-									"hash": "h13"
+									"hash": "h13",
+									"last": "l13",
+									"lead": "L13"
 								}
 							}
 						},
@@ -5260,7 +5798,9 @@
 							"conversations": {
 								"chat": {
 									"count": 12,
-									"hash": "h12"
+									"hash": "h12",
+									"last": "l12",
+									"lead": "L12"
 								}
 							}
 						},
@@ -5269,7 +5809,9 @@
 							"conversations": {
 								"chat11": {
 									"count": 11,
-									"hash": "h11"
+									"hash": "h11",
+									"last": "l11",
+									"lead": "L11"
 								}
 							}
 						},
@@ -5278,7 +5820,9 @@
 							"conversations": {
 								"chat10": {
 									"count": 10,
-									"hash": "h10"
+									"hash": "h10",
+									"last": "l10",
+									"lead": "L10"
 								}
 							}
 						},
@@ -5287,7 +5831,9 @@
 							"conversations": {
 								"chat": {
 									"count": 9,
-									"hash": "h9"
+									"hash": "h9",
+									"last": "l9",
+									"lead": "L9"
 								}
 							}
 						},
@@ -5296,7 +5842,9 @@
 							"conversations": {
 								"chat8": {
 									"count": 8,
-									"hash": "h8"
+									"hash": "h8",
+									"last": "l8",
+									"lead": "L8"
 								}
 							}
 						},
@@ -5305,7 +5853,9 @@
 							"conversations": {
 								"chat7": {
 									"count": 7,
-									"hash": "h7"
+									"hash": "h7",
+									"last": "l7",
+									"lead": "L7"
 								}
 							}
 						},
@@ -5314,7 +5864,9 @@
 							"conversations": {
 								"chat": {
 									"count": 6,
-									"hash": "h6"
+									"hash": "h6",
+									"last": "l6",
+									"lead": "L6"
 								}
 							}
 						},
@@ -5323,7 +5875,9 @@
 							"conversations": {
 								"chat5": {
 									"count": 5,
-									"hash": "h5"
+									"hash": "h5",
+									"last": "l5",
+									"lead": "L5"
 								}
 							}
 						},
@@ -5332,7 +5886,9 @@
 							"conversations": {
 								"chat4": {
 									"count": 4,
-									"hash": "h4"
+									"hash": "h4",
+									"last": "l4",
+									"lead": "L4"
 								}
 							}
 						},
@@ -5341,7 +5897,9 @@
 							"conversations": {
 								"chat": {
 									"count": 3,
-									"hash": "h3"
+									"hash": "h3",
+									"last": "l3",
+									"lead": "L3"
 								}
 							}
 						},
@@ -5350,7 +5908,9 @@
 							"conversations": {
 								"chat2": {
 									"count": 2,
-									"hash": "h2"
+									"hash": "h2",
+									"last": "l2",
+									"lead": "L2"
 								}
 							}
 						},
@@ -5359,7 +5919,9 @@
 							"conversations": {
 								"chat1": {
 									"count": 1,
-									"hash": "h1"
+									"hash": "h1",
+									"last": "l1",
+									"lead": "L1"
 								}
 							}
 						}
@@ -5372,7 +5934,9 @@
 							"conversations": {
 								"chat": {
 									"count": 21,
-									"hash": "h21"
+									"hash": "h21",
+									"last": "l21",
+									"lead": "L21"
 								}
 							}
 						},
@@ -5381,7 +5945,9 @@
 							"conversations": {
 								"chat20": {
 									"count": 20,
-									"hash": "h20"
+									"hash": "h20",
+									"last": "l20",
+									"lead": "L20"
 								}
 							}
 						},
@@ -5390,7 +5956,9 @@
 							"conversations": {
 								"chat19": {
 									"count": 19,
-									"hash": "h19"
+									"hash": "h19",
+									"last": "l19",
+									"lead": "L19"
 								}
 							}
 						},
@@ -5399,7 +5967,9 @@
 							"conversations": {
 								"chat": {
 									"count": 18,
-									"hash": "h18"
+									"hash": "h18",
+									"last": "l18",
+									"lead": "L18"
 								}
 							}
 						},
@@ -5408,7 +5978,9 @@
 							"conversations": {
 								"chat17": {
 									"count": 17,
-									"hash": "h17"
+									"hash": "h17",
+									"last": "l17",
+									"lead": "L17"
 								}
 							}
 						},
@@ -5417,7 +5989,9 @@
 							"conversations": {
 								"chat16": {
 									"count": 16,
-									"hash": "h16"
+									"hash": "h16",
+									"last": "l16",
+									"lead": "L16"
 								}
 							}
 						},
@@ -5426,7 +6000,9 @@
 							"conversations": {
 								"chat": {
 									"count": 15,
-									"hash": "h15"
+									"hash": "h15",
+									"last": "l15",
+									"lead": "L15"
 								}
 							}
 						},
@@ -5435,7 +6011,9 @@
 							"conversations": {
 								"chat14": {
 									"count": 14,
-									"hash": "h14"
+									"hash": "h14",
+									"last": "l14",
+									"lead": "L14"
 								}
 							}
 						},
@@ -5444,7 +6022,9 @@
 							"conversations": {
 								"chat13": {
 									"count": 13,
-									"hash": "h13"
+									"hash": "h13",
+									"last": "l13",
+									"lead": "L13"
 								}
 							}
 						},
@@ -5453,7 +6033,9 @@
 							"conversations": {
 								"chat": {
 									"count": 12,
-									"hash": "h12"
+									"hash": "h12",
+									"last": "l12",
+									"lead": "L12"
 								}
 							}
 						},
@@ -5462,7 +6044,9 @@
 							"conversations": {
 								"chat11": {
 									"count": 11,
-									"hash": "h11"
+									"hash": "h11",
+									"last": "l11",
+									"lead": "L11"
 								}
 							}
 						},
@@ -5471,7 +6055,9 @@
 							"conversations": {
 								"chat10": {
 									"count": 10,
-									"hash": "h10"
+									"hash": "h10",
+									"last": "l10",
+									"lead": "L10"
 								}
 							}
 						},
@@ -5480,7 +6066,9 @@
 							"conversations": {
 								"chat": {
 									"count": 9,
-									"hash": "h9"
+									"hash": "h9",
+									"last": "l9",
+									"lead": "L9"
 								}
 							}
 						},
@@ -5489,7 +6077,9 @@
 							"conversations": {
 								"chat8": {
 									"count": 8,
-									"hash": "h8"
+									"hash": "h8",
+									"last": "l8",
+									"lead": "L8"
 								}
 							}
 						},
@@ -5498,7 +6088,9 @@
 							"conversations": {
 								"chat7": {
 									"count": 7,
-									"hash": "h7"
+									"hash": "h7",
+									"last": "l7",
+									"lead": "L7"
 								}
 							}
 						},
@@ -5507,7 +6099,9 @@
 							"conversations": {
 								"chat": {
 									"count": 6,
-									"hash": "h6"
+									"hash": "h6",
+									"last": "l6",
+									"lead": "L6"
 								}
 							}
 						},
@@ -5516,7 +6110,9 @@
 							"conversations": {
 								"chat5": {
 									"count": 5,
-									"hash": "h5"
+									"hash": "h5",
+									"last": "l5",
+									"lead": "L5"
 								}
 							}
 						},
@@ -5525,7 +6121,9 @@
 							"conversations": {
 								"chat4": {
 									"count": 4,
-									"hash": "h4"
+									"hash": "h4",
+									"last": "l4",
+									"lead": "L4"
 								}
 							}
 						},
@@ -5534,7 +6132,9 @@
 							"conversations": {
 								"chat": {
 									"count": 3,
-									"hash": "h3"
+									"hash": "h3",
+									"last": "l3",
+									"lead": "L3"
 								}
 							}
 						},
@@ -5543,7 +6143,9 @@
 							"conversations": {
 								"chat2": {
 									"count": 2,
-									"hash": "h2"
+									"hash": "h2",
+									"last": "l2",
+									"lead": "L2"
 								}
 							}
 						}
@@ -5556,7 +6158,9 @@
 							"conversations": {
 								"chat22": {
 									"count": 22,
-									"hash": "h22"
+									"hash": "h22",
+									"last": "l22",
+									"lead": "L22"
 								}
 							}
 						},
@@ -5565,7 +6169,9 @@
 							"conversations": {
 								"chat": {
 									"count": 21,
-									"hash": "h21"
+									"hash": "h21",
+									"last": "l21",
+									"lead": "L21"
 								}
 							}
 						},
@@ -5574,7 +6180,9 @@
 							"conversations": {
 								"chat20": {
 									"count": 20,
-									"hash": "h20"
+									"hash": "h20",
+									"last": "l20",
+									"lead": "L20"
 								}
 							}
 						},
@@ -5583,7 +6191,9 @@
 							"conversations": {
 								"chat19": {
 									"count": 19,
-									"hash": "h19"
+									"hash": "h19",
+									"last": "l19",
+									"lead": "L19"
 								}
 							}
 						},
@@ -5592,7 +6202,9 @@
 							"conversations": {
 								"chat": {
 									"count": 18,
-									"hash": "h18"
+									"hash": "h18",
+									"last": "l18",
+									"lead": "L18"
 								}
 							}
 						},
@@ -5601,7 +6213,9 @@
 							"conversations": {
 								"chat17": {
 									"count": 17,
-									"hash": "h17"
+									"hash": "h17",
+									"last": "l17",
+									"lead": "L17"
 								}
 							}
 						},
@@ -5610,7 +6224,9 @@
 							"conversations": {
 								"chat16": {
 									"count": 16,
-									"hash": "h16"
+									"hash": "h16",
+									"last": "l16",
+									"lead": "L16"
 								}
 							}
 						},
@@ -5619,7 +6235,9 @@
 							"conversations": {
 								"chat": {
 									"count": 15,
-									"hash": "h15"
+									"hash": "h15",
+									"last": "l15",
+									"lead": "L15"
 								}
 							}
 						},
@@ -5628,7 +6246,9 @@
 							"conversations": {
 								"chat14": {
 									"count": 14,
-									"hash": "h14"
+									"hash": "h14",
+									"last": "l14",
+									"lead": "L14"
 								}
 							}
 						},
@@ -5637,7 +6257,9 @@
 							"conversations": {
 								"chat13": {
 									"count": 13,
-									"hash": "h13"
+									"hash": "h13",
+									"last": "l13",
+									"lead": "L13"
 								}
 							}
 						},
@@ -5646,7 +6268,9 @@
 							"conversations": {
 								"chat": {
 									"count": 12,
-									"hash": "h12"
+									"hash": "h12",
+									"last": "l12",
+									"lead": "L12"
 								}
 							}
 						},
@@ -5655,7 +6279,9 @@
 							"conversations": {
 								"chat11": {
 									"count": 11,
-									"hash": "h11"
+									"hash": "h11",
+									"last": "l11",
+									"lead": "L11"
 								}
 							}
 						},
@@ -5664,7 +6290,9 @@
 							"conversations": {
 								"chat10": {
 									"count": 10,
-									"hash": "h10"
+									"hash": "h10",
+									"last": "l10",
+									"lead": "L10"
 								}
 							}
 						},
@@ -5673,7 +6301,9 @@
 							"conversations": {
 								"chat": {
 									"count": 9,
-									"hash": "h9"
+									"hash": "h9",
+									"last": "l9",
+									"lead": "L9"
 								}
 							}
 						},
@@ -5682,7 +6312,9 @@
 							"conversations": {
 								"chat8": {
 									"count": 8,
-									"hash": "h8"
+									"hash": "h8",
+									"last": "l8",
+									"lead": "L8"
 								}
 							}
 						},
@@ -5691,7 +6323,9 @@
 							"conversations": {
 								"chat7": {
 									"count": 7,
-									"hash": "h7"
+									"hash": "h7",
+									"last": "l7",
+									"lead": "L7"
 								}
 							}
 						},
@@ -5700,7 +6334,9 @@
 							"conversations": {
 								"chat": {
 									"count": 6,
-									"hash": "h6"
+									"hash": "h6",
+									"last": "l6",
+									"lead": "L6"
 								}
 							}
 						},
@@ -5709,7 +6345,9 @@
 							"conversations": {
 								"chat5": {
 									"count": 5,
-									"hash": "h5"
+									"hash": "h5",
+									"last": "l5",
+									"lead": "L5"
 								}
 							}
 						},
@@ -5718,7 +6356,9 @@
 							"conversations": {
 								"chat4": {
 									"count": 4,
-									"hash": "h4"
+									"hash": "h4",
+									"last": "l4",
+									"lead": "L4"
 								}
 							}
 						},
@@ -5727,7 +6367,9 @@
 							"conversations": {
 								"chat": {
 									"count": 3,
-									"hash": "h3"
+									"hash": "h3",
+									"last": "l3",
+									"lead": "L3"
 								}
 							}
 						}
@@ -5740,7 +6382,9 @@
 							"conversations": {
 								"chat23": {
 									"count": 23,
-									"hash": "h23"
+									"hash": "h23",
+									"last": "l23",
+									"lead": "L23"
 								}
 							}
 						},
@@ -5749,7 +6393,9 @@
 							"conversations": {
 								"chat22": {
 									"count": 22,
-									"hash": "h22"
+									"hash": "h22",
+									"last": "l22",
+									"lead": "L22"
 								}
 							}
 						},
@@ -5758,7 +6404,9 @@
 							"conversations": {
 								"chat": {
 									"count": 21,
-									"hash": "h21"
+									"hash": "h21",
+									"last": "l21",
+									"lead": "L21"
 								}
 							}
 						},
@@ -5767,7 +6415,9 @@
 							"conversations": {
 								"chat20": {
 									"count": 20,
-									"hash": "h20"
+									"hash": "h20",
+									"last": "l20",
+									"lead": "L20"
 								}
 							}
 						},
@@ -5776,7 +6426,9 @@
 							"conversations": {
 								"chat19": {
 									"count": 19,
-									"hash": "h19"
+									"hash": "h19",
+									"last": "l19",
+									"lead": "L19"
 								}
 							}
 						},
@@ -5785,7 +6437,9 @@
 							"conversations": {
 								"chat": {
 									"count": 18,
-									"hash": "h18"
+									"hash": "h18",
+									"last": "l18",
+									"lead": "L18"
 								}
 							}
 						},
@@ -5794,7 +6448,9 @@
 							"conversations": {
 								"chat17": {
 									"count": 17,
-									"hash": "h17"
+									"hash": "h17",
+									"last": "l17",
+									"lead": "L17"
 								}
 							}
 						},
@@ -5803,7 +6459,9 @@
 							"conversations": {
 								"chat16": {
 									"count": 16,
-									"hash": "h16"
+									"hash": "h16",
+									"last": "l16",
+									"lead": "L16"
 								}
 							}
 						},
@@ -5812,7 +6470,9 @@
 							"conversations": {
 								"chat": {
 									"count": 15,
-									"hash": "h15"
+									"hash": "h15",
+									"last": "l15",
+									"lead": "L15"
 								}
 							}
 						},
@@ -5821,7 +6481,9 @@
 							"conversations": {
 								"chat14": {
 									"count": 14,
-									"hash": "h14"
+									"hash": "h14",
+									"last": "l14",
+									"lead": "L14"
 								}
 							}
 						},
@@ -5830,7 +6492,9 @@
 							"conversations": {
 								"chat13": {
 									"count": 13,
-									"hash": "h13"
+									"hash": "h13",
+									"last": "l13",
+									"lead": "L13"
 								}
 							}
 						},
@@ -5839,7 +6503,9 @@
 							"conversations": {
 								"chat": {
 									"count": 12,
-									"hash": "h12"
+									"hash": "h12",
+									"last": "l12",
+									"lead": "L12"
 								}
 							}
 						},
@@ -5848,7 +6514,9 @@
 							"conversations": {
 								"chat11": {
 									"count": 11,
-									"hash": "h11"
+									"hash": "h11",
+									"last": "l11",
+									"lead": "L11"
 								}
 							}
 						},
@@ -5857,7 +6525,9 @@
 							"conversations": {
 								"chat10": {
 									"count": 10,
-									"hash": "h10"
+									"hash": "h10",
+									"last": "l10",
+									"lead": "L10"
 								}
 							}
 						},
@@ -5866,7 +6536,9 @@
 							"conversations": {
 								"chat": {
 									"count": 9,
-									"hash": "h9"
+									"hash": "h9",
+									"last": "l9",
+									"lead": "L9"
 								}
 							}
 						},
@@ -5875,7 +6547,9 @@
 							"conversations": {
 								"chat8": {
 									"count": 8,
-									"hash": "h8"
+									"hash": "h8",
+									"last": "l8",
+									"lead": "L8"
 								}
 							}
 						},
@@ -5884,7 +6558,9 @@
 							"conversations": {
 								"chat7": {
 									"count": 7,
-									"hash": "h7"
+									"hash": "h7",
+									"last": "l7",
+									"lead": "L7"
 								}
 							}
 						},
@@ -5893,7 +6569,9 @@
 							"conversations": {
 								"chat": {
 									"count": 6,
-									"hash": "h6"
+									"hash": "h6",
+									"last": "l6",
+									"lead": "L6"
 								}
 							}
 						},
@@ -5902,7 +6580,9 @@
 							"conversations": {
 								"chat5": {
 									"count": 5,
-									"hash": "h5"
+									"hash": "h5",
+									"last": "l5",
+									"lead": "L5"
 								}
 							}
 						},
@@ -5911,7 +6591,9 @@
 							"conversations": {
 								"chat4": {
 									"count": 4,
-									"hash": "h4"
+									"hash": "h4",
+									"last": "l4",
+									"lead": "L4"
 								}
 							}
 						}
@@ -5925,7 +6607,9 @@
 						"conversations": {
 							"c": {
 								"count": 1,
-								"hash": "h"
+								"hash": "h",
+								"last": "l",
+								"lead": "L"
 							}
 						}
 					},
@@ -5934,7 +6618,9 @@
 						"conversations": {
 							"c": {
 								"count": 1,
-								"hash": "h"
+								"hash": "h",
+								"last": "l",
+								"lead": "L"
 							}
 						}
 					}
@@ -5955,7 +6641,9 @@
 						"conversations": {
 							"c": {
 								"count": 2,
-								"hash": "q"
+								"hash": "q",
+								"last": "",
+								"lead": ""
 							}
 						}
 					},

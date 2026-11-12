@@ -33,7 +33,7 @@ const script: Op[] = [
 	{ op: "claimed" },
 	{ op: "forget", agent: "agent-A", cleared: true },
 	{ op: "wait", as: "W4", agent: "agent-B" },
-	{ op: "label", conversation: "job_x", label: "Topic grouping: CSE 21" },
+	{ op: "label", conversation: "job_x", label: "Topic grouping: Space A" },
 	{ op: "park", as: "D", conversation: "job_x", messages: [{ role: "system", content: "Group topics.", timestamp: 0 }, user("topics")] },
 	{ op: "pending" },
 	{ op: "wait", as: "W5", conversation: "chat_l2", agent: "agent-C", andBackground: true },
@@ -62,6 +62,24 @@ const script: Op[] = [
 	{ op: "wait", as: "W9", conversation: "chat_l4", agent: "agent-D" },
 	{ op: "respond", work: "W9", text: "Marked." },
 	{ op: "result", of: "F" },
+	// A changed lead resends the instructions with only the new messages; after a summary the
+	// agent picks up after its own last reply.
+	{ op: "park", as: "K", conversation: "chat_l8", messages: [sys, user("one")] },
+	{ op: "wait", as: "W16", conversation: "chat_l8", agent: "agent-F" },
+	{ op: "respond", work: "W16", text: "Okay.", hold: 0 },
+	{ op: "parkNext", as: "K2", from: "K", user: "two", lead: "Teach well. Explain terms." },
+	{ op: "wait", as: "W17", conversation: "chat_l8", agent: "agent-F" },
+	{ op: "respond", work: "W17", text: "Sure.", hold: 0 },
+	{ op: "parkNext", as: "K3", from: "K2", summarize: 3, user: "three" },
+	{ op: "wait", as: "W18", conversation: "chat_l8", agent: "agent-F" },
+	{ op: "respond", work: "W18", text: "Fine.", hold: 0 },
+	{ op: "parkNext", as: "K4", from: "K3", summarize: 3, user: "four" },
+	{ op: "wait", as: "W19", conversation: "chat_l8", agent: "agent-F" },
+	{ op: "respond", work: "W19", text: "Good.", hold: 0 },
+	{ op: "parkNext", as: "K5", from: "K4", user: "five" },
+	{ op: "wait", as: "W20", conversation: "chat_l8", agent: "agent-G" },
+	{ op: "respond", work: "W20", text: "Done.", hold: 0 },
+	{ op: "result", of: "K5" },
 	{ op: "names", infos: [{ name: "claude-code" }, { name: " Codex-CLI " }, { name: "x", title: "  My Agent  " }, { name: "n".repeat(70) }, {}, { name: 5 }] },
 ];
 
@@ -113,6 +131,9 @@ async function run() {
 					const reply = (await from.result) as { content: { type: string; id?: string; name?: string }[] };
 					const calls = reply.content.filter((b) => b.type === "toolCall");
 					messages = [...from.messages, reply, ...calls.map((c) => ({ role: "toolResult", toolCallId: c.id, toolName: c.name, content: [{ type: "text", text: s.result }], isError: false, timestamp: 1 }))];
+					if (s.lead) messages[0] = { ...messages[0], content: s.lead };
+					if (s.summarize) messages.splice(1, s.summarize, user("[summary]"));
+					if (s.user) messages.push(user(s.user));
 					conversation = (from as { conversation?: string }).conversation;
 				}
 				const abort = new AbortController();

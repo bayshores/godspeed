@@ -149,6 +149,17 @@ async fn the_bridge_matches_agent_bridge_ts() {
 				for call in reply["content"].as_arr().unwrap().iter().filter(|b| b["type"] == Json::from("toolCall")) {
 					messages.push(json!({ "role": "toolResult", "toolCallId": call["id"].clone(), "toolName": call["name"].clone(), "content": [{ "type": "text", "text": s["result"].clone() }], "isError": false, "timestamp": 1 }));
 				}
+				if let Some(lead) = s["lead"].as_str()
+					&& let Some(first) = messages[0].as_obj_mut()
+				{
+					first.insert("content", lead);
+				}
+				if let Some(n) = s["summarize"].as_i64() {
+					messages.splice(1..1 + n as usize, [json!({ "role": "user", "content": "[summary]", "timestamp": 1 })]);
+				}
+				if let Some(user) = s["user"].as_str() {
+					messages.push(json!({ "role": "user", "content": user, "timestamp": 1 }));
+				}
 				let conversation = from.conversation.clone();
 				parked.insert(text("as"), park_as(&bridge, messages, &conversation));
 				clock::sleep(5).await;
@@ -201,7 +212,7 @@ async fn the_bridge_matches_agent_bridge_ts() {
 	}
 	let mut saved = Obj::new();
 	for (k, m) in marks.0.lock().iter() {
-		saved.insert(k.clone(), json!({ "count": m.count, "hash": m.hash }));
+		saved.insert(k.clone(), m.to_json());
 	}
 	let got = number_ids(&json!({ "steps": steps, "saved": Json::Obj(saved) }), &mut Vec::new());
 	for (i, (g, w)) in got["steps"].as_arr().unwrap().iter().zip(wanted_steps).enumerate() {
@@ -209,14 +220,16 @@ async fn the_bridge_matches_agent_bridge_ts() {
 			assert_eq!(stringify_pretty(&g[key], " "), stringify_pretty(&w[key], " "), "step {i} ({}): {key}", w["step"]["op"].as_str().unwrap());
 		}
 	}
-	// chat_l1's mark covers a reply's random tool-call id, so only its count can match.
+	// chat_l1's mark covers a reply's random tool-call id, so its hash and last cannot match.
 	let (got, want) = (&got["saved"], &want["saved"]);
 	let keys = |v: &Json| v.as_obj().unwrap().keys().cloned().collect::<Vec<_>>();
 	assert_eq!(keys(got), keys(want));
 	for key in keys(want) {
-		assert_eq!(got[key.as_str()]["count"], want[key.as_str()]["count"], "saved {key}");
-		if !key.ends_with("chat_l1") {
-			assert_eq!(got[key.as_str()]["hash"], want[key.as_str()]["hash"], "saved {key}");
+		for field in ["count", "hash", "last", "lead"] {
+			if key.ends_with("chat_l1") && (field == "hash" || field == "last") {
+				continue;
+			}
+			assert_eq!(got[key.as_str()][field], want[key.as_str()][field], "saved {key} {field}");
 		}
 	}
 }
