@@ -126,6 +126,8 @@ pub fn create(app: &AppHandle) -> tauri::Result<WebviewWindow> {
 	let main = builder.build()?;
 	#[cfg(not(target_os = "macos"))]
 	main.hide_menu()?;
+	#[cfg(windows)]
+	crate::win::drop::install(&main)?;
 	Ok(main)
 }
 

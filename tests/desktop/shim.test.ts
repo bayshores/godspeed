@@ -199,7 +199,7 @@ test("on Windows the file goes to the shell in a message and the path comes back
 	const file = { name: "CSE 21" };
 	const first = lh!.pathForFile!(file) as Promise<string>;
 	const second = lh!.pathForFile!(file) as Promise<string>;
-	assert.deepEqual(posted, [[{ lhDrop: 1 }, [file]], [{ lhDrop: 2 }, [file]]]);
+	assert.deepEqual(posted, [[JSON.stringify({ lhDrop: 1 }), [file]], [JSON.stringify({ lhDrop: 2 }), [file]]]);
 	const push = window.__lhPush as (channel: string, payload: unknown) => void;
 	push("drop-path", { n: 2, path: "C:\\Users\\me\\two" });
 	push("drop-path", { n: 1, path: "C:\\Users\\me\\one" });

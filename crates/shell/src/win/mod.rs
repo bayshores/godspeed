@@ -2,3 +2,4 @@
 #![allow(unsafe_code)]
 
 pub mod demo;
+pub mod drop;

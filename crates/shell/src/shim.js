@@ -128,7 +128,9 @@
 		});
 	} else {
 		if (PLATFORM === "win32") {
-			// The file goes to the shell in a message that its Windows hook answers with a push.
+			// The file goes to the shell in a message that its Windows hook answers with a push. A
+			// string message: WebView2 stops at wry's own handler for any other kind, and Tauri only
+			// logs a body it cannot read.
 			pathForFile = (file) =>
 				new Promise((resolve) => {
 					const n = ++lastDrop;
@@ -140,7 +142,7 @@
 					const timer = setTimeout(() => done(""), 2000);
 					drops.set(n, done);
 					try {
-						window.chrome.webview.postMessageWithAdditionalObjects({ lhDrop: n }, [file]);
+						window.chrome.webview.postMessageWithAdditionalObjects(JSON.stringify({ lhDrop: n }), [file]);
 					} catch {
 						done("");
 					}
