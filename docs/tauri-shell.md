@@ -92,7 +92,7 @@ Server side of the protocol: stdin EOF triggers `shutdown::trigger()` (replaces 
 
 ## 3. `window.lh` mapped to Tauri
 
-The shim (`crates/shell/src/shim.js`) is an initialization script (main frame only, Tauri's default) on the main window. It defines `window.lh` with the same members and types as `src/frontend/components/sidebar.tsx` declares, calling `window.__TAURI_INTERNALS__.invoke`. Pushes come from the shell as `webview.eval("window.__lhPush(channel, payload)")`, so the page needs no Tauri event permissions. The shell bakes the app origin into the script text (`const APP_ORIGIN = "http://127.0.0.1:<port>"`; the port is chosen before the window is built, section 5), and the shim does nothing unless `location.origin === APP_ORIGIN` (so the boot page and the login redirect get no `window.lh`).
+The shim (`crates/shell/src/shim.js`) is an initialization script (main frame only, Tauri's default) on the main window. It defines `window.lh` with the same members and types as `src/frontend/components/desktop-env.tsx` declares, calling `window.__TAURI_INTERNALS__.invoke`. Pushes come from the shell as `webview.eval("window.__lhPush(channel, payload)")`, so the page needs no Tauri event permissions. The shell bakes the app origin into the script text (`const APP_ORIGIN = "http://127.0.0.1:<port>"`; the port is chosen before the window is built, section 5), and the shim does nothing unless `location.origin === APP_ORIGIN` (so the boot page and the login redirect get no `window.lh`).
 
 | Member | Electron today | Tauri | Detail |
 |---|---|---|---|

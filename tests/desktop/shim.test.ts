@@ -35,7 +35,7 @@ function page({ body = "", platform = "darwin", origin = ORIGIN, stored = null, 
 			},
 		},
 	};
-	const location = { origin, href: `${origin}/class/x` };
+	const location = { origin, href: `${origin}/space/x` };
 	const localStorage = { getItem: (key: string) => storage.get(key) ?? null, setItem: (key: string, value: string) => void storage.set(key, value) };
 	const source = SOURCE.replace("__APP_ORIGIN__", JSON.stringify(ORIGIN)).replace("__PLATFORM__", JSON.stringify(platform));
 	new Function("window", "document", "location", "localStorage", "Element", source)(window, document, location, localStorage, Element);
@@ -59,7 +59,6 @@ function lay(document: Document, boxes: Record<string, [number, number, number, 
 test("every window.lh member calls its shell command with its arguments", async () => {
 	const { lh, invoked } = page({ reply: (cmd) => (cmd === "get_zoom" ? 1.25 : undefined) });
 	lh!.showWindow!();
-	lh!.expandWindow!();
 	assert.equal(await lh!.getZoom!(), 1.25);
 	await lh!.pickFolder!();
 	await lh!.showInFolder!("/a/b.pdf");
@@ -73,7 +72,6 @@ test("every window.lh member calls its shell command with its arguments", async 
 	lh!.installUpdate!();
 	assert.deepEqual(invoked, [
 		["show_window"],
-		["expand_window"],
 		["get_zoom"],
 		["pick_folder"],
 		["show_in_folder", { path: "/a/b.pdf" }],
@@ -159,7 +157,7 @@ test("a click on a web or mail link opens it in the browser through the shell", 
 
 test("app links, other schemes and links the app handled stay in the page", () => {
 	const { document, invoked, fire } = page({
-		body: `<a id="app" href="/chat/c1">c</a><a id="abs" href="${ORIGIN}/class/y">y</a><a id="file" href="file:///tmp/a">f</a><a id="blob" href="blob:${ORIGIN}/1" download="a.md">d</a><a id="handled" href="https://example.com">h</a><a id="none">n</a>`,
+		body: `<a id="app" href="/chat/c1">c</a><a id="abs" href="${ORIGIN}/space/y">y</a><a id="file" href="file:///tmp/a">f</a><a id="blob" href="blob:${ORIGIN}/1" download="a.md">d</a><a id="handled" href="https://example.com">h</a><a id="none">n</a>`,
 	});
 	document.querySelector("#handled")!.addEventListener("click", (e) => e.preventDefault());
 	for (const id of ["#app", "#abs", "#file", "#blob", "#none"]) assert.equal(fire("click", {}, document.querySelector(id)), false, id);

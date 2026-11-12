@@ -1,4 +1,4 @@
-// window.lh in the desktop app: the members src/frontend/components/sidebar.tsx declares,
+// window.lh in the desktop app: the members src/frontend/components/desktop-env.tsx declares,
 // calling the shell's commands. The shell fills in APP_ORIGIN and PLATFORM; every other page
 // (the boot page, the login redirect) gets nothing.
 (() => {
@@ -163,7 +163,6 @@
 	window.lh = {
 		platform: PLATFORM,
 		showWindow: () => void invoke("show_window"),
-		expandWindow: () => void invoke("expand_window"),
 		onZoom: (cb) => subscribe("zoom", cb),
 		getZoom: () => invoke("get_zoom"),
 		pickFolder: () => invoke("pick_folder"),
