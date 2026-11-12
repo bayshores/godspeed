@@ -90,27 +90,42 @@ async fn the_program_gets_nothing_to_read_and_pythons_prints_in_utf8() {
 	assert_eq!(env["examples"][0], json!({ "returned": "[\"utf-8\",null,[]]", "passed": false }));
 }
 
+/// A program that waits half a minute.
 #[cfg(unix)]
+const WAITS: &str = "'sleep', ['30']";
+#[cfg(windows)]
+const WAITS: &str = "'ping', ['-n', '30', '127.0.0.1']";
+
+#[cfg(unix)]
+fn alive(pid: &str) -> bool {
+	std::process::Command::new("/bin/kill").args(["-0", pid]).stderr(Stdio::null()).status().is_ok_and(|s| s.success())
+}
+
+#[cfg(windows)]
+fn alive(pid: &str) -> bool {
+	let listed = std::process::Command::new("tasklist").args(["/FI", &format!("PID eq {pid}"), "/NH"]).output();
+	listed.is_ok_and(|listed| String::from_utf8_lossy(&listed.stdout).split_whitespace().any(|word| word == pid))
+}
+
 #[tokio::test]
 async fn every_process_the_learners_program_started_is_ended_however_the_run_ends() {
 	let dir = std::env::temp_dir().join(format!("gs-mock-runner-{}", ids::uuid()));
 	std::fs::create_dir_all(&dir).unwrap();
 	let pid_file = dir.join("pids");
-	// Starts a sleeping child that shares the run's output and doesn't keep the program waiting,
+	// Starts a waiting child that shares the run's output and doesn't keep the program waiting,
 	// and notes its pid.
 	let starts = |then: &str| {
 		format!(
-			"function add(a, b) {{ const c = require('node:child_process').spawn('sleep', ['30'], {{ stdio: 'inherit' }}); c.unref(); require('node:fs').appendFileSync({}, c.pid + '\\n'); {then} }}",
+			"function add(a, b) {{ const c = require('node:child_process').spawn({WAITS}, {{ stdio: 'inherit' }}); c.unref(); require('node:fs').appendFileSync({}, c.pid + '\\n'); {then} }}",
 			gs_json::quote(&pid_file.to_string_lossy())
 		)
 	};
-	let alive = |pid: &str| std::process::Command::new("/bin/kill").args(["-0", pid]).stderr(Stdio::null()).status().is_ok_and(|s| s.success());
 	let gone = || async {
 		let text = std::fs::read_to_string(&pid_file).unwrap();
 		std::fs::remove_file(&pid_file).unwrap();
 		let pids: Vec<&str> = text.trim().split('\n').collect();
 		assert!(!pids.is_empty());
-		for _ in 0..50 {
+		for _ in 0..150 {
 			if !pids.iter().any(|p| alive(p)) {
 				break;
 			}
@@ -119,11 +134,15 @@ async fn every_process_the_learners_program_started_is_ended_however_the_run_end
 		assert!(!pids.iter().any(|p| alive(p)), "no child is left running");
 	};
 
-	let t0 = clock::now_ms();
-	let finished = js(&question(), &starts("return a + b;")).await;
-	assert_eq!(finished["examples"], json!([{ "returned": "3", "passed": true }, { "returned": "0", "passed": true }]));
-	assert!(clock::now_ms() - t0 < 4000, "a child holding the output open doesn't keep the run waiting");
-	gone().await;
+	// On Windows an ended program's tree can no longer be found, as with Node.
+	#[cfg(unix)]
+	{
+		let t0 = clock::now_ms();
+		let finished = js(&question(), &starts("return a + b;")).await;
+		assert_eq!(finished["examples"], json!([{ "returned": "3", "passed": true }, { "returned": "0", "passed": true }]));
+		assert!(clock::now_ms() - t0 < 4000, "a child holding the output open doesn't keep the run waiting");
+		gone().await;
+	}
 
 	let looped = js(&question(), &starts("while (true) {}")).await;
 	assert!(looped["error"].str_or_empty().contains("more than 5 seconds"));

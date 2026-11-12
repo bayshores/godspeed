@@ -109,7 +109,13 @@ pub fn stop_command(pid: u32, platform: &str, running: bool) -> Option<Stop> {
 async fn stop_all(pid: u32, running: bool) {
 	let (program, args) = match stop_command(pid, platform(), running) {
 		None => return,
-		Some(Stop::Group(group)) => ("/bin/kill".to_owned(), vec!["-KILL".to_owned(), "--".to_owned(), format!("-{group}")]),
+		Some(Stop::Group(group)) => {
+			// Without unsafe code there is no kill(2): the system's kill program, /bin/kill where
+			// there is one (NixOS has none).
+			let any = |_: &Path| true;
+			let Some(kill) = find_in("kill", Some("/bin"), &[], &any).or_else(|| find_in("kill", path_env().as_deref(), &[], &any)) else { return };
+			(kill.to_string_lossy().into_owned(), vec!["-KILL".to_owned(), "--".to_owned(), format!("-{group}")])
+		}
 		Some(Stop::Command(command)) => (command[0].clone(), command[1..].to_vec()),
 	};
 	let mut stop = Command::new(program);
@@ -148,24 +154,41 @@ fn file_url(dir: &str) -> String {
 	url
 }
 
+/// `fs.rm(dir, { recursive: true, force: true, maxRetries: 5 })`: Windows lets go of an ended
+/// program's files a moment later.
+async fn remove_run_dir(dir: &Path) {
+	for attempt in 1..=6 {
+		match tokio::fs::remove_dir_all(dir).await {
+			Err(err) if err.kind() != std::io::ErrorKind::NotFound && attempt < 6 => clock::sleep(100 * attempt).await,
+			_ => return,
+		}
+	}
+}
+
 /// Ends what is left of a run however it ends (also when the request that asked for it goes
 /// away): its processes, then its folder, which Windows keeps while a program in it runs. One
 /// left behind never holds up the answer.
 struct Cleanup {
-	child: Child,
+	/// Taken only on drop.
+	child: Option<Child>,
 	dir: PathBuf,
 }
 
 impl Drop for Cleanup {
 	fn drop(&mut self) {
-		let running = matches!(self.child.try_wait(), Ok(None));
-		let (pid, dir) = (self.child.id(), self.dir.clone());
-		let Ok(runtime) = tokio::runtime::Handle::try_current() else { return };
+		// Without a runtime the program is killed as it drops (kill_on_drop).
+		let (Some(mut child), Ok(runtime)) = (self.child.take(), tokio::runtime::Handle::try_current()) else { return };
+		let dir = self.dir.clone();
 		runtime.spawn(async move {
+			// The program is ended last: Windows walks the process tree from it, and its open handle
+			// keeps its pid from going to another program until then.
+			let pid = child.id();
+			let running = matches!(child.try_wait(), Ok(None));
 			if let Some(pid) = pid {
 				stop_all(pid, running).await;
 			}
-			let _ = tokio::fs::remove_dir_all(&dir).await;
+			drop(child);
+			remove_run_dir(&dir).await;
 		});
 	}
 }
@@ -217,7 +240,7 @@ pub async fn run_examples(tmp: &Path, question: &Json, code: &str, language: Moc
 	#[cfg(unix)]
 	spawn.process_group(0);
 	hide_window(&mut spawn);
-	let child = match spawn.spawn() {
+	let mut child = match spawn.spawn() {
 		Ok(child) => child,
 		Err(_) => {
 			let _ = std::fs::remove_dir_all(&dir);
@@ -225,13 +248,14 @@ pub async fn run_examples(tmp: &Path, question: &Json, code: &str, language: Moc
 		}
 	};
 	let shown_dir = format!("{}{}", dir.to_string_lossy(), std::path::MAIN_SEPARATOR);
-	let mut run = Cleanup { child, dir };
-	let (Some(out), Some(err), pid) = (run.child.stdout.take(), run.child.stderr.take(), run.child.id()) else { return Err("the run had no output".to_owned()) };
+	let (out, err, pid) = (child.stdout.take(), child.stderr.take(), child.id());
+	let mut run = Cleanup { child: Some(child), dir };
+	let (Some(out), Some(err), Some(child)) = (out, err, run.child.as_mut()) else { return Err("the run had no output".to_owned()) };
 	let finished = async {
 		// What the program started may still hold its output open: end it all once the program
 		// itself is done, so its output closes too.
 		let ended = async {
-			let _ = run.child.wait().await;
+			let _ = child.wait().await;
 			if let Some(pid) = pid {
 				stop_all(pid, false).await;
 			}
