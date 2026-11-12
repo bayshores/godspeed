@@ -1,6 +1,6 @@
 /**
- * A dialog foot that asks before something is lost: the question, the way
- * back and the red way on. `quiet` draws the way on as a red word (throwing
+ * A dialog foot (or a list row) that asks before something is lost: the
+ * question, the way back and the red way on. `quiet` draws the way on as a red word (throwing
  * away typed text); without it the button is filled (deleting something).
  */
 export function FootQuestion({
