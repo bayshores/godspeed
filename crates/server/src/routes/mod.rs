@@ -8,6 +8,7 @@ mod spaces;
 mod graph;
 mod jobs;
 mod mcp;
+mod mocks;
 mod preps;
 
 use std::sync::Arc;
@@ -25,4 +26,5 @@ pub fn api() -> Router<Arc<App>> {
 		.merge(graph::routes())
 		.merge(mcp::routes())
 		.merge(preps::routes())
+		.merge(mocks::routes())
 }

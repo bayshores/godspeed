@@ -8,6 +8,7 @@ pub mod bg_llm_semaphore;
 pub mod cheat_sheet_writer;
 pub mod demo_builder;
 pub mod headless;
+pub mod mock_writer;
 pub mod pdf_reader;
 pub mod pi_run;
 pub mod prep_writer;
