@@ -5,7 +5,6 @@ import {
 	homeworkProblems,
 	latestHomework,
 	mergeProblems,
-	problemLabel,
 	problemSource,
 	problemsDone,
 } from "../../src/shared/core/homework.ts";
@@ -40,6 +39,16 @@ describe("homework problems", () => {
 		assert.equal(open, "2");
 	});
 
+	it("keeps the part marked in the open problem until it closes", () => {
+		const part = (type: string, input: unknown, state = "output-available") => ({ parts: [{ type, input, state }] });
+		const opened = [part("tool-problem", { number: "1", statement: "…" }), part("tool-part", { part: "a" }), part("tool-part", { part: " b " })];
+		assert.equal(homeworkProblems([], opened).part, "b");
+		assert.equal(homeworkProblems([], [...opened, part("tool-part", { part: "c" }, "output-error")]).part, "b");
+		assert.equal(homeworkProblems([], [...opened, part("tool-conclude", { outcome: "movedOn", verdict: "x" })]).part, null);
+		assert.equal(homeworkProblems([], [...opened, part("tool-problem", { number: "2", statement: "…" })]).part, null);
+		assert.equal(homeworkProblems([], [part("tool-part", { part: "a" })]).part, null);
+	});
+
 	it("reopens the latest homework session on a deadline", () => {
 		const sessions = [
 			{ chatId: "a", deadlineId: "d", createdAt: "2026-11-01" },
@@ -50,19 +59,21 @@ describe("homework problems", () => {
 		assert.equal(latestHomework("x", sessions), null);
 	});
 
-	it("names problems and where they are", () => {
-		assert.equal(problemLabel("3"), "Q3");
-		assert.equal(problemLabel("2b"), "Q2b");
-		assert.equal(problemLabel("Ex. 4"), "Ex. 4");
+	it("says where a problem is", () => {
 		assert.equal(problemSource({ name: "hw4.pdf" }, 2), "from hw4.pdf, page 2");
 		assert.equal(problemSource({ name: "hw4.pdf" }, undefined), "from hw4.pdf");
 		assert.equal(problemSource(null, 2), null);
 	});
 
 	it("tells the teacher what is posted and what is done", () => {
-		const text = homeworkContextText({ name: "HW 4", kind: "homework", date: "2026-11-13", time: "23:59" }, { id: "f1", name: "hw4.pdf", path: "/x/hw4.pdf" }, [P("1", true), P("2")]);
+		const text = homeworkContextText("c1", { id: "d1", name: "HW 4", kind: "homework", date: "2026-11-13", time: "23:59" }, { id: "f1", name: "hw4.pdf", path: "/x/hw4.pdf" }, [P("1", true), P("2")]);
 		assert.match(text, /HW 4 \(homework\), due 2026-11-13 23:59/);
 		assert.match(text, /hw4\.pdf \(file id f1\), at \/x\/hw4\.pdf/);
 		assert.match(text, /- 1: t1 \(done\)\n- 2: t2/);
+	});
+
+	it("without an assignment file, names the ids to attach one with", () => {
+		const text = homeworkContextText("c1", { id: "d1", name: "HW 4", kind: "homework", date: "2026-11-13" }, null, []);
+		assert.match(text, /update_space_deadline \(space_id c1, deadline_id d1, assignment_file_id\)/);
 	});
 });

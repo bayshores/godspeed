@@ -80,10 +80,10 @@ describe("who sees the notes", () => {
 	});
 
 	it("an existing user's first update shows notes since 0.4.0", () => {
-		general({ onboarded: true, activeClass: "none" });
+		general({ onboarded: true, activeSpace: "none" });
 		assert.equal(whatsNewSince("0.4.1"), "0.4.0");
 		assert.equal(readSettings()?.general?.lastSeenVersion, "0.4.1");
-		assert.equal(readSettings()?.general?.activeClass, "none", "other settings stay");
+		assert.equal(readSettings()?.general?.activeSpace, "none", "other settings stay");
 	});
 
 	it("shows once per update, then stays quiet", () => {
@@ -98,8 +98,8 @@ describe("who sees the notes", () => {
 		assert.equal(readSettings()?.general?.lastSeenVersion, "0.4.1");
 	});
 
-	it("survives saving the General section (class switch, onboarding)", () => {
-		const parsed = parseGeneralSettingsBody({ activeClass: "none", onboarded: true, lastSeenVersion: "0.4.1" });
+	it("survives saving the General section (space switch, onboarding)", () => {
+		const parsed = parseGeneralSettingsBody({ activeSpace: "none", onboarded: true, lastSeenVersion: "0.4.1" });
 		assert.ok(parsed.ok && parsed.settings.lastSeenVersion === "0.4.1");
 		assert.equal(parseGeneralSettingsBody({ lastSeenVersion: "latest" }).ok, false);
 		assert.equal(sanitizeUserSettings({ version: 1, general: { lastSeenVersion: "0.4.1" } })?.general?.lastSeenVersion, "0.4.1");

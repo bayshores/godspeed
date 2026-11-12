@@ -1,10 +1,10 @@
 /**
  * PRACTICE RECORD MECHANICS (practice sessions): the
  * native shapes beneath the two practice tools — the active-problem fold
- * (conclude-before-next-problem), the thinking marker (label registers),
+ * (conclude-before-next-problem), the learner's work as plain messages,
  * the ask-style dismissal (UI-only marker; the conclude pair rides the
- * NEXT input), and the model-facing flattening (markers labeled, the
- * dismissal filtered, the synthesized pair native).
+ * NEXT input), and the model-facing flattening (old thinking records
+ * labeled, the dismissal filtered, the synthesized pair native).
  */
 
 import assert from "node:assert/strict";
@@ -17,8 +17,8 @@ import {
 	concludedByDismissalPair,
 	newProblemDismissedMarker,
 	newNextMessage,
-	newThinkingMessage,
 	needsContinuation,
+	newUserMessage,
 	pendingProblemDismissalOf,
 	toLlmMessages,
 	PRACTICE_CONCLUDE_TOOL,
@@ -29,6 +29,7 @@ import { CONCLUDE_ACK_TEXT } from "../../src/shared/core/contracts/chat.ts";
 import { dismissAppends, inputAppends, parseChatInput, parseDismissInput } from "../../src/shared/core/input-events.ts";
 import { problemInputForConclude } from "../../src/shared/core/native-messages.ts";
 import { projectView } from "../../src/shared/core/index.ts";
+import { oldThinkingMessage } from "../old-records.ts";
 
 // ── builders (native-shaped test fixtures) ───────────────────────────────────
 
@@ -115,10 +116,10 @@ describe("activeProblemOf (the conclude-before-next-problem gate's fold)", () =>
 		assert.deepEqual(active?.input, { statement: "Show that…", mode: "recall", modelSolution: "Show that…" });
 	});
 
-	it("thinking submissions keep it active (nudges never conclude)", () => {
+	it("the learner's messages keep it active (they never conclude)", () => {
 		const messages = [
 			...problemPose(),
-			newThinkingMessage("call_p1", "stuck at the second step"),
+			newUserMessage("stuck at the second step"),
 		];
 		assert.equal(activeProblemOf(messages)?.toolCallId, "call_p1");
 	});
@@ -192,44 +193,20 @@ describe("pendingProblemDismissalOf (the marker waiting for its synthesis)", () 
 
 // ── the input channel ────────────────────────────────────────────────────────
 
-describe("the thinking input", () => {
-	it("parses and appends the marker against the active problem (ONE lane)", () => {
-		const input = parseChatInput({
-			type: "thinking",
-			problemCallId: "call_p1",
-			text: "I think the inactivity constraint applies here",
-		});
-		assert.deepEqual(input, {
-			type: "thinking",
-			problemCallId: "call_p1",
-			text: "I think the inactivity constraint applies here",
-		});
+describe("work on an open problem", () => {
+	it("is a plain text input: a normal user message, the problem stays active", () => {
+		const input = parseChatInput({ type: "text", text: "I think the inactivity constraint applies here" });
 		const appends = inputAppends({ messages: problemPose() }, input);
 		assert.equal(appends.length, 1);
-		const marker = appends[0] as { customType: string; content: string; details: unknown };
-		assert.equal(marker.customType, "practice-thinking");
-		// The single label: the register is read
-		// from the text by the agent, never declared by a button.
-		assert.match(marker.content, /Your thinking:\n/);
-		assert.deepEqual(marker.details, {
-			problemCallId: "call_p1",
-			text: "I think the inactivity constraint applies here",
-		});
+		const message = appends[0] as { role: string; content: string; customType?: string };
+		assert.equal(message.role, "user");
+		assert.equal(message.content, "I think the inactivity constraint applies here");
+		assert.equal(message.customType, undefined);
+		assert.equal(activeProblemOf([...problemPose(), ...appends])?.toolCallId, "call_p1");
 	});
 
-	it("400s against a stale or unknown problem call", () => {
-		assert.throws(
-			() => inputAppends({ messages: problemPose() }, { type: "thinking", problemCallId: "call_ghost", text: "x" }),
-			/targets no active problem/,
-		);
-		assert.throws(
-			() => inputAppends({ messages: [] }, { type: "thinking", problemCallId: "call_p1", text: "x" }),
-			/targets no active problem/,
-		);
-	});
-
-	it("empty text 400s at parse", () => {
-		assert.throws(() => parseChatInput({ type: "thinking", problemCallId: "c", text: "  " }), /non-empty/);
+	it("the old thinking input is no longer accepted", () => {
+		assert.throws(() => parseChatInput({ type: "thinking", problemCallId: "call_p1", text: "x" }), /unknown input type: thinking/);
 	});
 });
 
@@ -254,7 +231,7 @@ describe("the next input", () => {
 		assert.throws(() => inputAppends({ messages: [] }, { type: "next" }), /practice, study or homework session/);
 	});
 
-	it("400s while a problem is active (mid-problem input rides the dock)", () => {
+	it("400s while a problem is active (mid-problem input is plain text)", () => {
 		assert.throws(() => inputAppends({ messages: problemPose(), kind: "practice" }, { type: "next" }), /no active problem/);
 	});
 
@@ -312,8 +289,8 @@ describe("the dismiss-problem input (ask-style discard)", () => {
 // ── the model-facing seam ────────────────────────────────────────────────────
 
 describe("toLlmMessages (practice shapes)", () => {
-	it("the thinking marker flattens to a labeled user message", () => {
-		const out = toLlmMessages(asAgentMessages([newThinkingMessage("call_p1", "It is 42")]));
+	it("an old thinking record flattens to a labeled user message", () => {
+		const out = toLlmMessages(asAgentMessages([oldThinkingMessage("call_p1", "It is 42")]));
 		assert.equal(out.length, 1);
 		const user = out[0] as { role: string; content: Array<{ type: string; text: string }> };
 		assert.equal(user.role, "user");

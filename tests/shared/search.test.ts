@@ -1,10 +1,10 @@
 /**
- * Class search, the pure parts (src/shared/core/search.ts): passages with their
+ * Space search, the pure parts (src/shared/core/search.ts): passages with their
  * place in the file, the two rankings, and their fusion.
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { classCardText } from "../../src/shared/core/native-messages.ts";
+import { spaceCardText, spaceFilesText } from "../../src/shared/core/native-messages.ts";
 import { chunkFile, chunkText, fuseRankings, keywordIndex, keywordRanking, rangePoint, snippetOf, vectorRanking } from "../../src/shared/core/search.ts";
 
 describe("passages", () => {
@@ -100,20 +100,28 @@ describe("ranking", () => {
 	});
 });
 
-describe("the class outline in the class card", () => {
-	it("shows each file's size and unfinished state, then the topics with fact counts", () => {
-		const text = classCardText({
-			classId: "cls_x",
-			name: "CSE 21",
-			description: "",
-			files: [
-				{ name: "06_Counting.pdf", kind: "study", path: "/c/06.pdf", size: "98 pages", status: "ready" },
-				{ name: "HW4.pdf", kind: "info", path: "/c/hw4.pdf", status: "pending" },
-			],
-			topics: [{ name: "Counting rules", facts: 24 }, { name: "Stars and bars", facts: 6 }],
-		});
+describe("the space outline in the space card", () => {
+	const card = {
+		spaceId: "cls_x",
+		name: "CSE 21",
+		description: "",
+		files: [
+			{ name: "06_Counting.pdf", kind: "study" as const, path: "/c/06.pdf", size: "98 pages", status: "ready" as const },
+			{ name: "HW4.pdf", kind: "info" as const, path: "/c/hw4.pdf", status: "pending" as const },
+		],
+		topics: [{ name: "Counting rules", facts: 24 }, { name: "Stars and bars", facts: 6 }],
+	};
+
+	it("counts the files instead of listing them, then the topics with fact counts", () => {
+		const text = spaceCardText(card);
+		assert.match(text, /^Space files: 1 study material, 1 space info\. /m);
+		assert.doesNotMatch(text, /06_Counting\.pdf/);
+		assert.match(text, /Topics in the space's knowledge graph \(facts in each\):\nCounting rules \(24\), Stars and bars \(6\)$/);
+	});
+
+	it("lists each file's size, unfinished state and path for read_space", () => {
+		const text = spaceFilesText(card);
 		assert.match(text, /^- \[study material\] 06_Counting\.pdf \(98 pages\) — \/c\/06\.pdf$/m);
-		assert.match(text, /^- \[course info\] HW4\.pdf \(pending\) — \/c\/hw4\.pdf$/m);
-		assert.match(text, /Topics in the class's knowledge graph \(facts in each\):\nCounting rules \(24\), Stars and bars \(6\)$/);
+		assert.match(text, /^- \[space info\] HW4\.pdf \(pending\) — \/c\/hw4\.pdf$/m);
 	});
 });

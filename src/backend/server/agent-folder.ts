@@ -1,11 +1,11 @@
 /**
  * The godspeed folder on disk (src/shared/core/agent-folder.ts has the pure
  * parts). Setting it up writes the agent's instructions, its connection and
- * its start scripts there, plus classes/ with shortcuts to the class files
- * (class-shortcuts.ts); the app refreshes them once per start, so an
- * update reaches them. Which folder is used, and whether the one-time
- * "godspeed has its own folder now" notice was seen, live in
- * <data>/agent-folder.json.
+ * its start scripts there, plus spaces/ with shortcuts to the space files
+ * (space-shortcuts.ts); the app refreshes them once per start, so an
+ * update reaches them. Which folder is used, the learner's own start
+ * commands, and whether the one-time "godspeed has its own folder now"
+ * notice was seen, live in <data>/agent-folder.json.
  */
 import fs from "node:fs";
 import os from "node:os";
@@ -15,29 +15,34 @@ import {
 	claudeSettings,
 	copyCommand,
 	mcpJson,
+	savedStartCommands,
 	shortFolder,
 	startScript,
 	startScriptPath,
 	usableFolder,
+	usableStartCommand,
 	type FolderAgent,
 	type OldSetup,
 	type Platform,
+	type StartCommands,
+	type StartTarget,
 } from "../../shared/core/agent-folder.ts";
 import { writeFileAtomic } from "../store/write-file-atomic.ts";
 import { oldSetup, removeOldSetup } from "./old-setup.ts";
-import { syncShortcutsSafely, watchShortcuts } from "./class-shortcuts.ts";
-import { classDirs } from "../../shared/core/class-shortcuts.ts";
+import { syncShortcutsSafely, watchShortcuts } from "./space-shortcuts.ts";
+import { spaceDirs } from "../../shared/core/space-shortcuts.ts";
 import { stores } from "./stores.ts";
 
 const STATE_FILE = path.join(PATHS.data, "agent-folder.json");
 const TEMPLATE = path.join(process.cwd(), "src", "backend", "server", "agent-folder-files");
-const AGENTS: FolderAgent[] = ["claude", "codex"];
+const START_TARGETS: StartTarget[] = ["claude", "claude-backup", "codex"];
 /** Images the waiter saved for the agent are kept this long. */
 const IMAGE_DAYS = 7;
 
 interface FolderState {
 	folder?: string;
 	noticeSeen?: boolean;
+	startCommands?: StartCommands;
 }
 
 interface AgentFolderView {
@@ -48,17 +53,19 @@ interface AgentFolderView {
 	exists: boolean;
 	/** What "Copy the command" copies, per agent. */
 	commands: Record<FolderAgent, string>;
+	/** The learner's own start commands; an agent without one starts the usual way. */
+	startCommands: StartCommands;
 	/** The old setup still left once the folder is set up (the first-time
 	 *  notice covers people without a folder). */
 	oldSetup: OldSetup;
 }
 
-/** The class's folder of shortcuts in the godspeed folder, when it's there. */
-export function classShortcutDir(classId: string): string | null {
+/** The space's folder of shortcuts in the godspeed folder, when it's there. */
+export function spaceShortcutDir(spaceId: string): string | null {
 	const view = agentFolderView();
 	if (!view.exists) return null;
-	const at = classDirs(stores.classStore.listClasses()).get(classId);
-	const dir = at && path.join(view.folder, "classes", ...at);
+	const at = spaceDirs(stores.spaceStore.listSpaces()).get(spaceId);
+	const dir = at && path.join(view.folder, "spaces", ...at);
 	return dir && fs.existsSync(dir) ? dir : null;
 }
 
@@ -78,9 +85,11 @@ function platform(): Platform {
 function readState(): FolderState {
 	try {
 		const raw = JSON.parse(fs.readFileSync(STATE_FILE, "utf8")) as FolderState;
+		const startCommands = savedStartCommands(raw.startCommands);
 		return {
 			...(typeof raw.folder === "string" && usableFolder(raw.folder) ? { folder: raw.folder } : {}),
 			...(raw.noticeSeen === true ? { noticeSeen: true } : {}),
+			...(Object.keys(startCommands).length > 0 ? { startCommands } : {}),
 		};
 	} catch {
 		return {};
@@ -96,7 +105,7 @@ function agentFolder(): string {
 	return readState().folder ?? defaultFolder();
 }
 
-// A dev server keeps its folder inside its own data, so its class list never
+// A dev server keeps its folder inside its own data, so its space list never
 // syncs over the installed app's ~/godspeed shortcuts.
 function defaultFolder(): string {
 	return process.env.NODE_ENV === "development" ? path.join(PATHS.data, "godspeed-folder") : path.join(os.homedir(), "godspeed");
@@ -105,11 +114,13 @@ function defaultFolder(): string {
 export function agentFolderView(folder = agentFolder()): AgentFolderView {
 	const home = os.homedir();
 	const exists = fs.existsSync(path.join(folder, ".godspeed", "connect.mjs"));
+	const startCommands = readState().startCommands ?? {};
 	return {
 		folder,
 		short: shortFolder(folder, home),
 		exists,
-		commands: { claude: copyCommand("claude", folder, home, platform()), codex: copyCommand("codex", folder, home, platform()) },
+		commands: { claude: copyCommand("claude", folder, home, platform(), startCommands), codex: copyCommand("codex", folder, home, platform(), startCommands) },
+		startCommands,
 		oldSetup: exists ? oldSetup() : { plugin: false, codex: false },
 	};
 }
@@ -144,16 +155,28 @@ function dropOldImages(folder: string): void {
 
 function writeFolder(folder: string): void {
 	const p = platform();
+	const startCommands = readState().startCommands ?? {};
 	const dot = path.join(folder, ".godspeed");
 	put(path.join(folder, "CLAUDE.md"), template("CLAUDE.md"));
 	put(path.join(folder, "AGENTS.md"), template("AGENTS.md"));
-	put(path.join(folder, ".claude", "skills", "setup-classes", "SKILL.md"), template("setup-classes.md"));
+	put(path.join(folder, ".claude", "skills", "setup-spaces", "SKILL.md"), template("setup-spaces.md"));
+	// The command was /setup-classes before the rename.
+	fs.rmSync(path.join(folder, ".claude", "skills", "setup-classes"), { recursive: true, force: true });
 	put(path.join(folder, ".mcp.json"), mcpJson(folder, p));
-	for (const script of ["connect.mjs", "target.mjs", "wait-for-work.mjs", "forget.mjs"]) put(path.join(dot, script), template(script));
+	for (const script of ["connect.mjs", "target.mjs", "wait-for-work.mjs", "forget.mjs", "compacting.mjs"]) put(path.join(dot, script), template(script));
 	put(path.join(dot, "package.json"), `${JSON.stringify({ private: true, type: "module", version: process.env.LH_VERSION ?? "0.0.0" }, null, "\t")}\n`);
 	put(path.join(dot, "claude-settings.json"), claudeSettings(folder, p));
-	for (const agent of AGENTS) put(startScriptPath(folder, agent, p), startScript(agent, folder, p), 0o755);
+	for (const target of START_TARGETS) put(startScriptPath(folder, target, p), startScript(target, folder, p, startCommands), 0o755);
 	dropOldImages(folder);
+}
+
+/** writeFolder, with a failure in words for the learner. */
+function writeFolderOrExplain(folder: string): void {
+	try {
+		writeFolder(folder);
+	} catch (err) {
+		throw new AgentFolderError(`Couldn't write to ${folder}: ${(err as Error).message}`);
+	}
 }
 
 /** Make (or update) the folder, remember it, and try to clear out the old
@@ -161,22 +184,33 @@ function writeFolder(folder: string): void {
  *  cleanup only logs: the folder works, and Settings still offers Remove. */
 export function setUpAgentFolder(folder = agentFolder()): AgentFolderView {
 	if (!usableFolder(folder)) throw new AgentFolderError("Pick a folder whose name has no quotes or $ signs in it.");
-	try {
-		writeFolder(folder);
-	} catch (err) {
-		throw new AgentFolderError(`Couldn't write to ${folder}: ${(err as Error).message}`);
-	}
+	writeFolderOrExplain(folder);
 	const before = readState().folder;
 	writeState({ ...readState(), folder, noticeSeen: true });
 	// A moved folder takes its shortcuts along.
 	if (before && path.resolve(/* turbopackIgnore: true */ before) !== path.resolve(/* turbopackIgnore: true */ folder)) syncShortcutsSafely(before, { clear: true });
 	syncShortcutsSafely(folder);
-	watchClassShortcuts();
+	watchSpaceShortcuts();
 	try {
 		removeOldSetup();
 	} catch (err) {
 		console.error("[agent-folder] removing the old setup failed:", err);
 	}
+	return agentFolderView(folder);
+}
+
+/** Start an agent with the learner's own command (empty: the usual one
+ *  again), and put it in the start scripts of a folder that's set up. */
+export function setStartCommand(agent: FolderAgent, command: string): AgentFolderView {
+	const own = command.trim();
+	if (!usableStartCommand(own)) throw new AgentFolderError("Keep the command on one line, 300 characters at most.");
+	const state = readState();
+	const startCommands = { ...state.startCommands };
+	if (own) startCommands[agent] = own;
+	else delete startCommands[agent];
+	writeState({ ...state, startCommands });
+	const folder = agentFolder();
+	if (agentFolderView(folder).exists) writeFolderOrExplain(folder);
 	return agentFolderView(folder);
 }
 
@@ -195,22 +229,22 @@ export function refreshAgentFolder(): void {
 		console.error("[agent-folder] refresh failed:", err);
 	}
 	syncShortcutsSafely(folder);
-	watchClassShortcuts();
+	watchSpaceShortcuts();
 }
 
 /** Why a file or folder can't be added from `p`: it's inside the godspeed
- *  folder's classes/, which only holds shortcuts to files godspeed already
+ *  folder's spaces/, which only holds shortcuts to files godspeed already
  *  has. Null when it's fine. */
 export function shortcutPathProblem(p: string): string | null {
-	const root = path.resolve(agentFolder(), "classes");
+	const root = path.resolve(agentFolder(), "spaces");
 	const at = path.resolve(p);
 	return at === root || at.startsWith(root + path.sep)
-		? "That's in godspeed's classes folder, which only holds shortcuts to files godspeed already has. Pick the original file or folder instead."
+		? "That's in godspeed's spaces folder, which only holds shortcuts to files godspeed already has. Pick the original file or folder instead."
 		: null;
 }
 
-/** Keep classes/ in step with the classes while a folder is set up. */
-function watchClassShortcuts(): void {
+/** Keep spaces/ in step with the spaces while a folder is set up. */
+function watchSpaceShortcuts(): void {
 	watchShortcuts(() => {
 		const folder = agentFolder();
 		return agentFolderView(folder).exists ? folder : null;

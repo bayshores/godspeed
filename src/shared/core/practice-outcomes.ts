@@ -14,6 +14,8 @@ export interface PracticeOutcome {
 	statement: string;
 	/** The fact ids it exercises (absent on untagged problems). */
 	targets: string[];
+	/** The plan node it is about (study problems name one). */
+	nodeId?: string;
 	outcome: ConcludeOutcome;
 	/** When it was concluded, ISO. */
 	at: string;
@@ -48,6 +50,7 @@ export function practiceOutcomes(messages: readonly LhMessage[]): PracticeOutcom
 			problemCallId: open.id,
 			statement: typeof open.args.statement === "string" ? open.args.statement : "",
 			targets,
+			...(typeof open.args.nodeId === "string" && open.args.nodeId ? { nodeId: open.args.nodeId } : {}),
 			outcome: outcome as ConcludeOutcome,
 			at: new Date(m.timestamp).toISOString(),
 		});

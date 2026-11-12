@@ -25,7 +25,7 @@ import { isPdfUrl, USER_AGENT } from "./web.ts";
 /** PDFs run bigger than pages — arxiv papers routinely 5-20 MB. */
 const MAX_PDF_BYTES = 25 * 1024 * 1024;
 
-/** The pdf-reader doctrine's size classes, by page count. */
+/** The pdf-reader doctrine's size spaces, by page count. */
 function sizeClass(pageCount: number): "short" | "medium" | "long" {
 	if (pageCount <= 10) return "short";
 	if (pageCount <= 40) return "medium";
@@ -95,7 +95,7 @@ export function createPdfReadTools(dir: string): Record<string, AgentTool<any>> 
 			name: "web_fetch_pdf",
 			label: "web_fetch_pdf",
 			description:
-				"Download a PDF from the web and triage it: returns its local path, page count, size class " +
+				"Download a PDF from the web and triage it: returns its local path, page count, size space " +
 				"(short ≤10 pages, medium ≤40, long), and flagged (math/image-heavy) pages. " +
 				"Then read it with pdf_extract / pdf_search. Use when web_fetch reports a URL is a PDF.",
 			parameters: pdfFetchInput,

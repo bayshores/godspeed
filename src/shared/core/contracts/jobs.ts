@@ -142,13 +142,13 @@ export function accumulateJobUsage(
  *     is the ack, forever.
  *
  *  2. The background runner (src/backend/agent/subagents/runner.ts) runs the kind's
- *     sub-agent loop — isolated context, the
+ *     sub-agent loop: isolated context, the
  *     verify-never-one-shot doctrine (headless-tested demos, looked-at SVGs,
- *     sourced briefs) — tracking a live activity line in the job record.
+ *     sourced briefs), tracking a live activity line in the job record.
  *     ONE central client poll of GET /api/jobs?chatId=… (in Chat) drives every
  *     job surface: the transcript dispatch cards (live activity by
- *     toolCallId, quiet one-liner after worker completion), the sub-agents sidebar
- *     panel, and the single re-sync when a job settles.
+ *     toolCallId, quiet one-liner after worker completion), the reading pane,
+ *     and the single re-sync when a job settles.
  *
  *  3. Dispatch saves input on the job before spawn. On completion the
  *     runner saves result + terminal worker status + pending delivery in

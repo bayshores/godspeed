@@ -1,13 +1,10 @@
 /**
  * THE PRACTICE SURFACE — SSR render pins (the render-suite discipline:
- * pure bodies, renderToStaticMarkup, testids). The dock (the active
- * problem replaces the composer: statement above, the thinking
- * field below with ONE Send (Enter sends, Shift+Enter is a newline)),
- * the transcript cards (the
- * problem's compact-expandable statement — commitment NEVER renders;
- * the conclusion's outcome + verdict + reveal; the learner's thinking
- * register cards), and the view projection (the thinking marker's
- * data part; the dismissal's silence).
+ * pure bodies, renderToStaticMarkup, testids). The open problem pane (the
+ * whole statement, the learner works in the lesson's message box), the
+ * transcript cards (the problem's statement — commitment NEVER renders;
+ * the conclusion's outcome + verdict + reveal; old saved thinking cards),
+ * and the view projection (old thinking records' data part).
  */
 
 import React from "react";
@@ -17,17 +14,14 @@ import assert from "node:assert/strict";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, it } from "node:test";
 
-import { PracticeDock } from "../../src/frontend/components/practice-dock.tsx";
+import { OpenProblemPane } from "../../src/frontend/components/lesson/open-problem-pane.tsx";
 import { ConcludeCard, ProblemCard, ThinkingCard } from "../../src/frontend/components/practice-cards.tsx";
 import { GraphContextCard } from "../../src/frontend/components/graph-context-card.tsx";
 import { newGraphContextMessage } from "../../src/shared/core/native-messages.ts";
 import { projectView } from "../../src/shared/core/view.ts";
 import type { ArtifactPartProps } from "../../src/shared/core";
-import {
-	newThinkingMessage,
-	PRACTICE_PROBLEM_TOOL,
-	type LhMessage,
-} from "../../src/shared/core/native-messages.ts";
+import { PRACTICE_PROBLEM_TOOL, type LhMessage } from "../../src/shared/core/native-messages.ts";
+import { oldThinkingMessage } from "../old-records.ts";
 
 const part = (over: Partial<ArtifactPartProps["part"]>): ArtifactPartProps["part"] => ({
 	type: "tool-problem",
@@ -36,42 +30,23 @@ const part = (over: Partial<ArtifactPartProps["part"]>): ArtifactPartProps["part
 	...over,
 });
 
-// ── the dock ─────────────────────────────────────────────────────────────────
+// ── the open problem pane ────────────────────────────────────────────────────
 
-describe("PracticeDock", () => {
-	it("the Your-turn panel: statement, thinking field and Send", () => {
-		const html = renderToStaticMarkup(
-			<PracticeDock
-				problemCallId="call_p1"
-				input={{ statement: "Show that the sum is even." }}
-				onSubmit={async () => true}
-			/>,
-		);
-		assert.match(html, /Show that the sum is even\./);
+const pane = (over: Partial<React.ComponentProps<typeof OpenProblemPane>> = {}) =>
+	renderToStaticMarkup(<OpenProblemPane statement="Show that the sum is even." source={null} part={null} {...over} />);
+
+describe("OpenProblemPane", () => {
+	it("shows the whole statement and nothing to type into", () => {
+		const html = pane();
+		assert.match(html, /data-testid="problem-statement"[\s\S]*Show that the sum is even\./);
 		assert.doesNotMatch(html, /problem-number/, "the statement names its own number");
-		assert.match(html, /data-testid="practice-thinking-field"[\s\S]*Work here, think out loud\./, "the thinking box, its placeholder in place of a label");
-		assert.match(html, /data-testid="practice-send"[^>]*disabled/, "Send starts disabled (empty field)");
-		assert.match(html, />Send</);
-		assert.ok(!html.includes("practice-nudge") && !html.includes("practice-commit"), "the two-lane buttons are gone");
-		assert.ok(!html.includes("practice-dock-bar"), "no collapsed bar — the panel is always open");
-		assert.ok(!html.includes('data-testid="stop-turn"'), "no Stop while nothing runs");
+		assert.doesNotMatch(html, /practice-thinking-field|practice-send|data-testid="math-box"/);
+		assert.doesNotMatch(html, /discard-problem|stop-turn/, "the way out sits beside Your turn");
 	});
 
-	it("while the teacher writes, the header has Stop", () => {
-		const html = renderToStaticMarkup(
-			<PracticeDock problemCallId="call_p1" input={{ statement: "x" }} onSubmit={async () => true} busy onStop={() => {}} />,
-		);
-		assert.match(html, /data-testid="stop-turn"/);
-	});
-
-	it("the header says who is writing while a turn runs, like the question dock", () => {
-		const header = (busy: boolean, waitingForAgent: boolean) =>
-			renderToStaticMarkup(
-				<PracticeDock problemCallId="call_p1" input={{ statement: "S" }} onSubmit={async () => true} busy={busy} waitingForAgent={waitingForAgent} />,
-			).match(/data-testid="panel-status"[^>]*>([^<]*)</)?.[1];
-		assert.equal(header(false, false), "", "nothing while it is the learner's turn");
-		assert.equal(header(true, false), "Teacher is writing…");
-		assert.equal(header(true, true), "Waiting for your agent");
+	it("homework shows where the problem is in the file", () => {
+		assert.ok(!pane().includes("problem-source"), "no source line for a practice problem");
+		assert.match(pane({ source: "hw6.pdf, page 2" }), /data-testid="problem-source"[^>]*>hw6\.pdf, page 2</);
 	});
 });
 
@@ -96,7 +71,7 @@ describe("the practice transcript cards", () => {
 		assert.match(html, /Prove the parity claim\./);
 		assert.doesNotMatch(html, /Pair them\./, "the commitment stays hidden");
 		// No chevron, no collapsed bar.
-		assert.doesNotMatch(html, /lucide-chevron|<button/, "nothing collapsible");
+		assert.doesNotMatch(html, /<button/, "nothing collapsible");
 	});
 
 	it("ConcludeCard: the SOLUTION is the hero (the pose's modelSolution via part.reveal); the verdict rides below, low-key", () => {
@@ -174,16 +149,14 @@ describe("the practice transcript cards", () => {
 		assert.doesNotMatch(html, /The solution/);
 	});
 
-	it("ThinkingCard: one label, right side, expanded arrival", () => {
+	it("ThinkingCard (old saved lessons): one label, right side, expanded arrival", () => {
 		const trace = renderToStaticMarkup(<ThinkingCard data={{ problemCallId: "c", commit: false, text: "stuck at step two" }} />);
 		assert.match(trace, /Your thinking/);
-		// Transcript rows arrive EXPANDED (clearly conveyed as sent) as
-		// full-width card-color bands with the 6px rail (the document,
-		// all-in).
+		// Transcript rows arrive expanded (clearly conveyed as sent), in a bordered card.
 		assert.match(trace, /aria-expanded="true"/);
 		assert.ok(trace.includes("stuck at step two"), "the text is visible on arrival");
-		assert.ok(trace.includes("bg-card"), "the card-color band");
-		assert.ok(trace.includes("border-l-[calc(3ch-14px)]"), "narrow rail inside the 3ch inset");
+		assert.ok(trace.includes("border-border"), "a bordered card");
+		assert.ok(trace.includes("border-l-2"), "the quote's rail");
 		const legacy = renderToStaticMarkup(<ThinkingCard data={{ problemCallId: "c", commit: true, text: "It is 42." }} />);
 		assert.match(legacy, /Your thinking/);
 		assert.doesNotMatch(legacy, /Your solution/);
@@ -193,8 +166,8 @@ describe("the practice transcript cards", () => {
 // ── the view projection ──────────────────────────────────────────────────────
 
 describe("the practice view projection", () => {
-	it("the thinking marker projects as a user-side data part (register in details)", () => {
-		const marker = newThinkingMessage("call_p1", "It is 42.");
+	it("an old thinking record projects as a user-side data part (register in details)", () => {
+		const marker = oldThinkingMessage("call_p1", "It is 42.");
 		const view = projectView([marker as LhMessage]);
 		assert.equal(view.length, 1);
 		assert.equal(view[0]!.role, "user");

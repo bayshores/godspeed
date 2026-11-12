@@ -122,7 +122,7 @@ function scripted(steps: FauxResponseStep[]): { engine: PiEngine; calls: string[
 const lastSaw = (calls: string[], needle: string) => calls[calls.length - 1]!.includes(needle);
 
 describe("practice flow (scripted model)", () => {
-	it("pose → thinking commit → conclude + reveal; the pose ack persists and owes nothing", async () => {
+	it("pose → the learner's work → conclude + reveal; the pose ack persists and owes nothing", async () => {
 		const chat = createPracticeChat("Test: practice groups");
 		const { engine, calls } = scripted([
 			// Turn 1: the agent poses immediately (terminate:true ends the run).
@@ -144,11 +144,10 @@ describe("practice flow (scripted model)", () => {
 		assert.equal(needsContinuation(afterPose), false);
 		assert.equal(activeProblemOf(afterPose)?.toolCallId, "call-p1");
 
-		// ── Turn 2: the submission arrives as a single-lane thinking message ──
-		await drainTurn(post(chat.id, { type: "thinking", problemCallId: "call-p1", text: "|G|=p; ⟨x⟩ has order dividing p" }), factory);
-		// The model saw the one label: the
-		// register is read from the text, not declared by a button.
-		assert.ok(lastSaw(calls, "Your thinking:"), "the conclude turn's prompt carries the thinking");
+		// ── Turn 2: the learner's work arrives as a plain message ──
+		await drainTurn(post(chat.id, { type: "text", text: "|G|=p; ⟨x⟩ has order dividing p" }), factory);
+		assert.ok(lastSaw(calls, "|G|=p; ⟨x⟩ has order dividing p"), "the conclude turn's prompt carries the work");
+		assert.ok(!lastSaw(calls, "Your thinking:"), "no label over it");
 		const afterConclude = chatStore.getChat(chat.id)!.messages;
 		const concludeAck = afterConclude.find(
 			(m) => (m as ToolResultMessage).role === "toolResult" && (m as ToolResultMessage).toolName === "conclude",
@@ -162,7 +161,7 @@ describe("practice flow (scripted model)", () => {
 		assert.equal(activeProblemOf(afterConclude), null);
 	});
 
-	it("a working-trace submission keeps the problem active", async () => {
+	it("a working-trace message keeps the problem active", async () => {
 		const chat = createPracticeChat("Test: practice nudge");
 		const { engine, calls } = scripted([
 			() => fauxAssistantMessage([fauxToolCall("problem", POSE, { id: "call-p2" })], { stopReason: "toolUse" }),
@@ -170,8 +169,8 @@ describe("practice flow (scripted model)", () => {
 		]);
 		const factory = practiceFactory(chat.id, engine);
 		await drainTurn(post(chat.id, { type: "text", text: "go" }), factory);
-		await drainTurn(post(chat.id, { type: "thinking", problemCallId: "call-p2", text: "stuck at the second step" }), factory);
-		assert.ok(lastSaw(calls, "Your thinking:"), "the turn's prompt carries the thinking");
+		await drainTurn(post(chat.id, { type: "text", text: "stuck at the second step" }), factory);
+		assert.ok(lastSaw(calls, "stuck at the second step"), "the turn's prompt carries the message");
 		// The problem is still active — a trace never concludes.
 		assert.equal(activeProblemOf(chatStore.getChat(chat.id)!.messages)?.toolCallId, "call-p2");
 	});

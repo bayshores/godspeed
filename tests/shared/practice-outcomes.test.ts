@@ -71,4 +71,17 @@ describe("practice outcomes", () => {
 		];
 		assert.deepEqual(practiceOutcomes(messages)[0]!.targets, ["n_a", "n_b"]);
 	});
+
+	it("carry the plan node a study problem names, so it counts for that topic", () => {
+		clock = 0;
+		const messages = [
+			call("m1", "p1", "problem", { statement: "Problem 1", nodeId: "pt_a" }),
+			done("p1", "problem"),
+			call("c1", "k1", "conclude", { outcome: "surrendered" }),
+			done("k1", "conclude"),
+		];
+		assert.equal(practiceOutcomes(messages)[0]!.nodeId, "pt_a");
+		assert.equal(collectAnswers("chat_p", messages)[0]!.nodeId, "pt_a");
+		assert.equal("nodeId" in practiceOutcomes(session())[0]!, false, "absent when the problem names none");
+	});
 });

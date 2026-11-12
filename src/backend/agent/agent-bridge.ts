@@ -19,9 +19,14 @@
  * connected; only the work loop (wait_for_work, respond, read_work) counts
  * as teaching. The client info a request carries names it ("Claude Code").
  * Status changes go out as the "agent-changed" event so open windows
- * (onboarding, the sidebar, the activity panel) update live.
+ * (onboarding, the top bar, the teacher panel) update live.
  * Requests wait for an agent with no time limit, so work queued while no
  * agent is connected starts by itself once one connects.
+ *
+ * THE BACKUP TEACHER: a second Claude Code session whose waiter says it is
+ * the backup. While a main agent compacts its context (its PreCompact hook
+ * says so), the backup takes the lesson and Talk turns, including the one
+ * the main agent held; otherwise it only waits, which costs nothing.
  */
 import type {
 	AssistantMessage,
@@ -36,9 +41,8 @@ import type {
 // The faux provider's own entry, not the package root: the root loads
 // every provider (~0.15–0.3 s at startup); this subpath is a few small files.
 import { createFauxCore, fauxAssistantMessage } from "@earendil-works/pi-ai/providers/faux";
-import { createHash } from "node:crypto";
 import { CHAT_ID_PREFIX, TALK_CHAT_ID } from "../../shared/core/contracts.ts";
-import { continuesFrom, seenMark, type SeenMark, type SeenStore } from "../../shared/core/agent-seen.ts";
+import { printHash, resumeAt, seenMark, type SeenMark, type SeenStore } from "../../shared/core/agent-seen.ts";
 import { emit } from "../../shared/core/events.ts";
 import { OUTSIDE_AGENT_CONTEXT_WINDOW, OUTSIDE_AGENT_MODEL_ID, OUTSIDE_AGENT_PROVIDER } from "../../shared/core/settings.ts";
 
@@ -107,13 +111,14 @@ export interface WorkView {
 	/** true = `messages` holds only what arrived since the agent's last
 	 *  reply in this conversation; false = the full transcript. */
 	continued: boolean;
-	/** The system prompt — only on a full (non-continued) delivery, and
-	 *  only when its agent hasn't had the same text before. */
+	/** The system prompt — on a full delivery or when it changed since the
+	 *  agent's last reply, and only when its agent hasn't had the same text
+	 *  before. */
 	instructions?: string;
 	/** Instead of `instructions`: the earlier workId whose instructions
 	 *  are the same, which the agent already has. */
 	instructionsAsIn?: string;
-	/** The tools available for this reply — only on a full delivery, and
+	/** The tools available for this reply — with the instructions, and
 	 *  only those its agent hasn't had before with the same schema. */
 	tools?: WorkTool[];
 	/** The names of this reply's other tools, which the agent already has. */
@@ -154,13 +159,17 @@ interface BridgeState {
 	backgroundRuns: Set<string>;
 	/** agent id ("" = no id) → the lesson its waiter stays on. */
 	stayingOn: Map<string, string>;
+	/** agent id → when it started compacting its context. */
+	compacting: Map<string, number>;
+	/** backup agent id ("" = no id) → its last check-in. */
+	backups: Map<string, number>;
 }
 
 const STATE_KEY = Symbol.for("lh.agentBridge");
 
 function state(): BridgeState {
 	const g = globalThis as Record<symbol, BridgeState | undefined>;
-	if (!g[STATE_KEY]) g[STATE_KEY] = { items: new Map(), seenBy: new Map(), waiters: new Set(), lastContact: 0, lastWork: 0, known: new Map(), labels: new Map(), held: new Map(), backgroundRuns: new Set(), stayingOn: new Map() };
+	if (!g[STATE_KEY]) g[STATE_KEY] = { items: new Map(), seenBy: new Map(), waiters: new Set(), lastContact: 0, lastWork: 0, known: new Map(), labels: new Map(), held: new Map(), backgroundRuns: new Set(), stayingOn: new Map(), compacting: new Map(), backups: new Map() };
 	g[STATE_KEY].labels ??= new Map(); // a state built before labels existed (dev reload)
 	g[STATE_KEY].held ??= new Map();
 	g[STATE_KEY].seenBy ??= new Map();
@@ -169,6 +178,8 @@ function state(): BridgeState {
 	g[STATE_KEY].lastWork ??= 0;
 	g[STATE_KEY].known ??= new Map();
 	g[STATE_KEY].stayingOn ??= new Map();
+	g[STATE_KEY].compacting ??= new Map();
+	g[STATE_KEY].backups ??= new Map();
 	return g[STATE_KEY];
 }
 
@@ -215,6 +226,49 @@ export function agentConnected(now = Date.now()): boolean {
  *  tools, and lessons wait. */
 export function agentTeaching(now = Date.now()): boolean {
 	return recent(state().lastWork, now);
+}
+
+/** A compaction that never reported its end stops counting after this long. */
+const COMPACTING_LIMIT_MS = 10 * 60_000;
+
+/** Whether this agent is compacting now (an old mark lapses). */
+function compactingNow(agent: string, now: number): boolean {
+	const since = state().compacting.get(agent);
+	return since !== undefined && now - since < COMPACTING_LIMIT_MS;
+}
+
+/** A main agent is compacting, so a backup answers for it. */
+function someoneCompacting(now: number): boolean {
+	return [...state().compacting.keys()].some((agent) => compactingNow(agent, now));
+}
+
+/** A backup's waiter checked in recently. */
+export function backupConnected(now = Date.now()): boolean {
+	return [...state().backups.values()].some((at) => recent(at, now));
+}
+
+/** The backup is answering: a main agent is compacting and a backup waits. */
+export function backupAnswering(now = Date.now()): boolean {
+	return someoneCompacting(now) && backupConnected(now);
+}
+
+/** The agent started compacting its context (its PreCompact hook). With a
+ *  backup waiting, the lesson and Talk turns it held go back in the queue
+ *  for the backup; its late reply is then refused (the claim count). */
+export function agentCompacting(agent: string, now = Date.now()): void {
+	const s = state();
+	// The backup compacting has no one to answer for it.
+	if (s.backups.has(agent)) return;
+	s.compacting.set(agent, now);
+	if (backupConnected(now)) {
+		for (const item of s.items.values()) {
+			if (item.agent === agent && !isBackground(item) && item.claimedAt !== undefined) item.claimedAt = undefined;
+		}
+	}
+	// The window hears when a mark that never ended lapses.
+	setTimeout(() => emit("agent-changed", {}), COMPACTING_LIMIT_MS + 1000).unref?.();
+	emit("agent-changed", {});
+	wake();
 }
 
 /** Lessons whose current request an agent took and hasn't answered yet,
@@ -328,7 +382,7 @@ function instructionsAndTools(messages: Message[]): { instructions: string; tool
 
 /** A system message counts its tool names too: the prompt text stays the
  *  same when the learner changes tools in Settings, and the agent must then
- *  get the item in full with the new tools. */
+ *  get the new tools. */
 function fingerprint(m: Message): string {
 	if (m.role !== "system") return JSON.stringify(renderMessage(m));
 	const names = (tools: { name: string }[] | undefined) => (tools ?? []).map((t) => t.name).sort();
@@ -364,6 +418,8 @@ export function setSeenStore(store: SeenStore): void {
  *  go to the next agent at once. */
 export function forgetAgent(agent: string, cleared: boolean): void {
 	const s = state();
+	// It came back from compacting: the work is its own again.
+	if (s.compacting.delete(agent)) emit("agent-changed", {});
 	for (const byAgent of s.seenBy.values()) byAgent.delete(agent);
 	s.known.delete(agent);
 	let released = false;
@@ -380,19 +436,27 @@ export function forgetAgent(agent: string, cleared: boolean): void {
 	if (cleared) wake();
 }
 
-function hashOf(value: string): string {
-	return createHash("sha256").update(value).digest("hex").slice(0, 32);
+/** Each message's fingerprint, the instructions (the leading system
+ *  message) left out, and the instructions' own hash: a saved rule or a
+ *  Settings change rewrites them without changing the conversation. */
+function printsOf(messages: Message[], extra?: Message): { prints: string[]; lead: string } {
+	const all = extra ? [...messages, extra] : messages;
+	const leadAt = all.findIndex((m) => m.role === "system");
+	const prints = all.map((m, i) => (i === leadAt ? "" : fingerprint(m)));
+	return { prints, lead: leadAt < 0 ? "" : printHash(fingerprint(all[leadAt]!)) };
 }
 
 /** Present one item, sending only the unseen tail when its agent already
- *  holds this conversation's earlier messages, and only the instructions
- *  and tools it doesn't already have from another conversation. */
+ *  holds this conversation's earlier messages (new instructions too, when
+ *  they changed), and only the instructions and tools it doesn't already
+ *  have from another conversation. */
 function view(item: WorkItem, forceFull: boolean): WorkView {
 	const all = item.context.messages;
-	const prints = all.map(fingerprint);
+	const { prints, lead } = printsOf(all);
 	const seen = forceFull ? undefined : seenOf(item.agent, item.conversation);
-	const continued = continuesFrom(seen, prints);
-	const fresh = continued ? all.slice(seen!.count) : all;
+	const from = resumeAt(seen, prints);
+	const continued = from >= 0;
+	const fresh = continued ? all.slice(from) : all;
 	const images: WorkImage[] = [];
 	const messages = fresh
 		.filter((m) => m.role !== "system" || continued)
@@ -401,20 +465,20 @@ function view(item: WorkItem, forceFull: boolean): WorkView {
 	const label = state().labels.get(item.conversation);
 	const extra = { ...(label ? { label } : {}), ...(images.length ? { images } : {}) };
 	const workId = `${item.id}_${item.claims}`;
-	if (continued) return { workId, conversation: item.conversation, continued, messages, ...extra };
+	if (continued && seen!.lead === lead) return { workId, conversation: item.conversation, continued, messages, ...extra };
 	const { instructions, tools } = instructionsAndTools(all);
 	// Without an id, agents can't be told apart: everything goes in full.
 	if (item.agent === undefined) return { workId, conversation: item.conversation, continued, instructions, tools, messages, ...extra };
 	const s = state();
 	let known = s.known.get(item.agent);
 	if (!known) s.known.set(item.agent, (known = { instructions: new Map(), tools: new Set() }));
-	const instructionsHash = hashOf(instructions);
+	const instructionsHash = printHash(instructions);
 	const instructionsAsIn = forceFull || !instructions ? undefined : known.instructions.get(instructionsHash);
 	if (!instructionsAsIn) known.instructions.set(instructionsHash, workId);
 	const newTools: WorkTool[] = [];
 	const toolsAsBefore: string[] = [];
 	for (const tool of tools) {
-		const toolHash = hashOf(JSON.stringify(tool));
+		const toolHash = printHash(JSON.stringify(tool));
 		if (!forceFull && known.tools.has(toolHash)) toolsAsBefore.push(tool.name);
 		else newTools.push(tool);
 		known.tools.add(toolHash);
@@ -459,10 +523,14 @@ function isBackground(item: WorkItem): boolean {
 interface Taker {
 	conversation?: string;
 	agent?: string;
+	/** The backup teacher's waiter. */
+	backup?: boolean;
 }
 
 function claimable(item: WorkItem, now: number, taker: Taker): boolean {
-	if (item.conversation !== taker.conversation && (state().held.get(item.conversation) ?? 0) > now) return false;
+	if (taker.agent !== undefined && compactingNow(taker.agent, now)) return false;
+	// The backup answers for a compacting agent, so its holds don't count.
+	if (!taker.backup && item.conversation !== taker.conversation && (state().held.get(item.conversation) ?? 0) > now) return false;
 	// An agent may take its own item again (a compaction lost its workId).
 	if (taker.agent !== undefined && item.agent === taker.agent) return true;
 	return item.claimedAt === undefined || now - item.claimedAt > CLAIM_TIMEOUT_MS;
@@ -480,6 +548,12 @@ function oldestClaimable(now: number, taker: Taker, keep: (i: WorkItem) => boole
  *  on one lesson still does the file reading and graph work nobody else would. */
 function pick(now: number, opts: Taker & { andBackground?: boolean }): WorkItem | undefined {
 	const { conversation } = opts;
+	// The backup finishes a turn it began, and takes new lesson and Talk
+	// turns only while a main agent compacts.
+	if (opts.backup) {
+		if (conversation) return oldestClaimable(now, opts, (i) => i.conversation === conversation);
+		return someoneCompacting(now) ? oldestClaimable(now, opts, (i) => !isBackground(i)) : undefined;
+	}
 	if (!conversation) return oldestClaimable(now, opts, () => true);
 	const withTalk = conversation.startsWith(CHAT_ID_PREFIX);
 	return (
@@ -499,7 +573,9 @@ export async function waitForWork(
 	for (;;) {
 		if (opts.signal?.aborted) return null;
 		const now = Date.now();
-		recordCheckIn({ working: true }, now);
+		// A backup that only waits isn't teaching: lessons still need the main agent.
+		if (opts.backup) noteBackup(opts.agent, now);
+		else recordCheckIn({ working: true }, now);
 		const item = pick(now, opts);
 		if (item) {
 			item.claimedAt = now;
@@ -526,6 +602,19 @@ export async function waitForWork(
 			opts.signal?.addEventListener("abort", done, { once: true });
 		});
 	}
+}
+
+/** A backup's waiter checked in; the window hears when the first one does. */
+function noteBackup(agent: string | undefined, now: number): void {
+	const s = state();
+	const was = backupConnected(now);
+	s.backups.set(agent ?? "", now);
+	if (!was) emit("agent-changed", {});
+}
+
+/** Whether this agent's waiter is a backup's (its turn hints say --backup). */
+export function isBackupAgent(agent: string | undefined): boolean {
+	return state().backups.has(agent ?? "");
 }
 
 /** Remember the lesson an agent's waiter stays on (none = any work), so a
@@ -568,7 +657,10 @@ export function respondToWork(
 	emit("agent-changed", {});
 	// The agent already knows its own reply: mark it seen so the next
 	// delivery in this conversation starts at the tool results.
-	if (!item.agentForgot) rememberSeen(item.agent, item.conversation, seenMark([...item.context.messages.map(fingerprint), fingerprint(message)]));
+	if (!item.agentForgot) {
+		const { prints, lead } = printsOf(item.context.messages, message);
+		rememberSeen(item.agent, item.conversation, seenMark(prints, lead));
+	}
 	s.held.set(item.conversation, Date.now() + holdMs);
 	item.resolve(message);
 	return { ok: true, conversation: item.conversation, ...(item.agent ? { agent: item.agent } : {}) };

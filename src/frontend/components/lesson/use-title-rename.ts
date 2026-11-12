@@ -3,9 +3,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 /**
  * The lesson title and its rename: F2 or a click on
  * the title opens edit mode with everything selected; Enter or a click
- * away commits (PUT /api/chats/:id); Escape discards. The sidebar learns
+ * away commits (PUT /api/chats/:id); Escape discards. The lesson list learns
  * at once through the lh:chat-renamed window event, and a rename made in
- * the sidebar patches this title the same way.
+ * the lesson list patches this title the same way.
  */
 export function useTitleRename(chatId: string, initialTitle: string) {
 	const [title, setTitle] = useState(initialTitle);
@@ -52,7 +52,7 @@ export function useTitleRename(chatId: string, initialTitle: string) {
 		return () => window.removeEventListener("lh:kbd-rename-session", start);
 	}, [start]);
 
-	// A rename from the sidebar patches this title in place.
+	// A rename from the lesson list patches this title in place.
 	useEffect(() => {
 		const onRenamed = (e: Event) => {
 			const detail = (e as CustomEvent<{ id: string; title: string }>).detail;

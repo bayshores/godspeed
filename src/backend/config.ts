@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 
 /**
- * LH_DATA_DIR moves every mutable record (chats, classes, graph ledgers,
+ * LH_DATA_DIR moves every mutable record (chats, spaces, graph ledgers,
  * the speech model). The desktop app points it at userData because the
  * .app bundle is read-only. Unset, it is the repo's data/. Read-only assets
  * (prompts) stay under ROOT because they ship inside the bundle.
@@ -22,10 +22,10 @@ export const PATHS = {
 	/** Lessons (pi's own message records, one JSON file per chat). */
 	chats: path.join(DATA_ROOT, "chats"),
 	graph: path.join(DATA_ROOT, "graph"),
-	/** One folder per class:
-	 *  classes/<id>/class.json (the record), files/ (copied class files),
-	 *  graph/ (that class's own graph family, same files as PATHS.graph). */
-	classes: path.join(DATA_ROOT, "classes"),
+	/** One folder per space:
+	 *  spaces/<id>/space.json (the record), files/ (copied space files),
+	 *  graph/ (that space's own graph family, same files as PATHS.graph). */
+	spaces: path.join(DATA_ROOT, "spaces"),
 } as const;
 
 // ─── Models ────────────────────────────────────────────────────────────────
@@ -63,8 +63,8 @@ export interface GraphFiles {
 	topics: string;
 }
 
-/** Every file of one graph family rooted at `dir`: the "No class" graph lives at PATHS.graph, each class's
- *  graph at PATHS.classes/<id>/graph — same layout, same adapter. */
+/** Every file of one graph family rooted at `dir`: the "No space" graph lives at PATHS.graph, each space's
+ *  graph at PATHS.spaces/<id>/graph — same layout, same adapter. */
 export function graphFilesIn(dir: string): GraphFiles {
 	return {
 		nodes: path.join(dir, "nodes.jsonl"),
@@ -77,22 +77,22 @@ export function graphFilesIn(dir: string): GraphFiles {
 	};
 }
 
-const NO_CLASS_GRAPH = graphFilesIn(PATHS.graph);
+const NO_SPACE_GRAPH = graphFilesIn(PATHS.graph);
 
 export const LEDGER_FILES = {
-	nodes: NO_CLASS_GRAPH.nodes,
-	chains: NO_CLASS_GRAPH.chains,
-	sessions: NO_CLASS_GRAPH.sessions,
-	coverage: NO_CLASS_GRAPH.coverage,
-	topics: NO_CLASS_GRAPH.topics,
+	nodes: NO_SPACE_GRAPH.nodes,
+	chains: NO_SPACE_GRAPH.chains,
+	sessions: NO_SPACE_GRAPH.sessions,
+	coverage: NO_SPACE_GRAPH.coverage,
+	topics: NO_SPACE_GRAPH.topics,
 } as const;
 
-export const SOURCES_FILE = NO_CLASS_GRAPH.sources;
+export const SOURCES_FILE = NO_SPACE_GRAPH.sources;
 
 /** The graph-family format stamp sidecar: one version for the whole family — the JSONL ledgers and
  *  sources.json. LAZY v1: absent = v1; the first graph-family write
  *  creates it. */
-export const GRAPH_FORMAT_FILE = NO_CLASS_GRAPH.format;
+export const GRAPH_FORMAT_FILE = NO_SPACE_GRAPH.format;
 
 /**
  * The user settings record: a versioned JSON delta holding only the

@@ -1,12 +1,8 @@
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/lh_banner_dark.png">
-    <source media="(prefers-color-scheme: light)" srcset="docs/assets/lh_banner_light.png">
-    <img src="docs/assets/lh_banner_light.png" alt="godspeed" width="640">
-  </picture>
+  <img src="docs/assets/banner.png" alt="godspeed" width="640">
 </p>
 
-<p align="center"><strong>A free, open-source AI tutor for your classes, taught by the AI you already pay for.</strong></p>
+<p align="center"><strong>A free, open-source AI tutor for anything you study, taught by the AI you already pay for.</strong></p>
 
 <p align="center">
   <a href="https://github.com/bayshores/godspeed/releases/latest"><strong>Download</strong></a> ·
@@ -17,9 +13,9 @@
   <a href="https://github.com/bayshores/godspeed/issues">Issues</a>
 </p>
 
-godspeed is a study app for students and self-learners. Claude Code, Codex or any MCP app becomes your tutor: it checks what you already know, plans a path to your goal or your next deadline, teaches one step at a time, then quizzes you. Every class gets its own lessons, files (PDFs, notes, lecture recordings), knowledge graph, deadlines and cheat sheets. It runs on Mac, Windows and Linux, and needs no API keys.
+godspeed is a study app for students and self-learners. Claude Code, Codex or any MCP app becomes your tutor: it checks what you already know, plans a path to your goal or your next deadline, teaches one step at a time, then quizzes you. You sort what you study into spaces (a course, a certification, a language), and every space gets its own lessons, files (PDFs, notes, recordings), knowledge graph, deadlines and cheat sheets. It runs on Mac, Windows and Linux, and needs no API keys.
 
-![A godspeed lesson: the teacher's explanation on the left, the lesson steps and an open quiz with how sure you are on the right](docs/assets/lesson.png)
+![A godspeed lesson: the teacher's explanation with the lesson steps on the left, and your turn with an open question on the right](docs/assets/lesson.png)
 
 ## How it works
 
@@ -28,7 +24,7 @@ godspeed is a study app for students and self-learners. Claude Code, Codex or an
 <sub>The diagram is an Excalidraw file, [`docs/assets/how-godspeed-works.excalidraw`](docs/assets/how-godspeed-works.excalidraw). Open it at [excalidraw.com](https://excalidraw.com) to edit it.</sub>
 
 1. **Measure.** The teacher finds where your understanding ends on each part the lesson depends on, from your answers, your confidence and what you type in the thinking box.
-2. **Plan.** It maps the steps from there to your goal. The steps beside the lesson show where you are, and the plan changes when your answers say it should.
+2. **Plan.** It maps the steps from there to your goal. A line above the lesson shows which step you're on, and the plan changes when your answers say it should.
 3. **Teach.** Each step builds on something you already understand. You predict, read the explanation, then check yourself. Confusions get fixed before anything is built on them.
 4. **Practice.** Problems make you recall the right idea without being told which one it is.
 
@@ -37,25 +33,26 @@ Everything you learn is saved as facts and the reasoning chains between them, li
 ## What's in it
 
 - **Study.** One Study button starts a lesson for a topic, a homework method or a question you're stuck on. godspeed picks what to teach first and what to drill from how you've done so far. You can add pictures and PDFs to a message, and the teacher can ask you to write code in an editor.
-- **Classes.** Each class has its own lessons, files, knowledge graph, deadlines and cheat sheets. Add PDFs, Word and PowerPoint files, notes, code, transcripts and lecture recordings (transcribed on your computer with whisper.cpp), or link a folder that's rescanned every minute. Google Drive folders work too.
-- **Home and deadlines.** Add exams, homework, quizzes and projects with a date, an optional time and the files they cover. Home shows what's due next with a countdown, everything else coming up with how ready you are (or how many problems you've done), a grid of every fact in each class colored by how often you get it right, and what you and your agent did lately.
+- **Spaces.** A space is one thing you study, like a course, a certification or a language. Each space has its own lessons, files, knowledge graph, deadlines and cheat sheets. Add PDFs, Word and PowerPoint files, notes, code, transcripts and lecture recordings (transcribed on your computer with whisper.cpp), or link a folder that's rescanned every minute. Google Drive folders work too.
+- **Today and deadlines.** Add exams, homework, quizzes and projects with a date, an optional time and the files they cover. Today lists what to do next across every space, each with the days left, how ready you are (or how many problems you've done) and one button to start. Everything further out sits under Later.
 
-![Home: the deadline due next with its countdown, the rest coming up with how ready you are, a fact grid for each class and the activity log](docs/assets/home.png)
+![Today: what to do next across every space, each with the time left and one button to start](docs/assets/today.png)
 
-- **Knowledge graph.** Your agent groups facts into topics, and the Graph page lays them out in columns by level, from what you learn first to what builds on it. Each topic shows one square per fact, colored by how often you get it right. Pick a topic to see what it needs and what it leads to, or open a fact to see where it came from and practice it. The next deadline sits on top with the days left.
+- **Knowledge graph.** Your agent groups facts into topics, and each space's Graph tab lays them out in columns by level, from what you learn first to what builds on it. Each topic shows one square per fact, colored by how often you get it right. Pick a topic to see what it needs and what it leads to, or open a fact to see where it came from and practice it. The next deadline sits on top with the days left.
 
-![The Graph: topics colored by how often you get them right, with arrows for what to learn first, and the next quiz's days left and what to work on next](docs/assets/graph.png)
+![The Graph: topics in columns by level with one square per fact, the next deadline's days left and what to work on next](docs/assets/graph.png)
 
-- **Homework.** Attach the assignment file to a homework or project and hit work on. The teacher lists its problems and opens them one at a time. You do the work, typed or as a photo, and the teacher checks it with hints but never gives you the answer. A problem counts as done once your own work is right.
-- **Overview.** How ready you are for each deadline, how each lesson went, and whether your confidence matches your results (five levels, from guessing to certain).
+- **Homework.** Attach the assignment file to a homework or project and hit Work on it. The teacher lists its problems and opens them one at a time. The whole problem stays in view beside the lesson while you do the work in the one writing box, typed or as a photo, and the teacher checks it with hints but never gives you the answer. A problem counts as done once your own work is right.
+- **Progress.** How ready you are for each deadline, how each lesson went, and whether your confidence matches your results (five levels, from guessing to certain).
 
-![A class Overview: readiness for each deadline, how lessons went, and a confidence check](docs/assets/overview.png)
+![A space's Progress page: the teacher's note, the next deadline with how ready you are, and the topic that needs work most](docs/assets/progress.png)
 
 - **Cheat sheets.** Your agent makes a PDF cheat sheet for a deadline. Tell it what to change in the chat beside the sheet, point at the part you mean, and the rules you give it stick for that sheet. The sheet can also sit beside a lesson.
 
 ![A cheat sheet for the Midterm with the chat that made it and the rules it keeps](docs/assets/cheat-sheet.png)
 
-- **Talk.** Ask your agent to set up classes, add deadlines or answer questions about your classes, with the **talk** button under the teacher in the sidebar.
+- **Calculator.** In any box you write in, end a calculation with `=` and the answer shows in grey after it. Click it (or press Tab) to keep it. It does numbers, letters you set on a line above (`x = 3`), expanding and simplifying, `solve 2x + 3 = 11`, derivatives (`d/dx x^3 =`) and integrals (`int x^2 dx =`), all on your computer.
+- **Talk.** Ask your agent to set up spaces, add deadlines or answer questions about your spaces, by clicking the teacher in the top bar.
 
 ## Get started
 
@@ -77,16 +74,16 @@ To build it yourself instead: `npm install`, then `npm run desktop:local` (an un
 
 While godspeed is open it runs an MCP server, and an agent you already use is its teacher. The agent also does the background jobs: research, diagrams, PDF reading and building your knowledge graph. If no agent is teaching, that work waits and starts when one does. An agent can be connected without teaching; the sidebar and **Settings → Connection** say so and tell you how to start it.
 
-1. Click **Open Claude Code** (the arrow next to it switches to **Codex**). godspeed makes a folder for your agent, `~/godspeed`, and opens a terminal there running it. The folder holds the agent's instructions (`CLAUDE.md`, `AGENTS.md`) and its connection to the app, so godspeed only loads when you study, not in your other chats. You can also run the command yourself: **Copy the command** copies it. In Claude Code, `/setup-classes` builds your classes from your course files.
+1. Click **Open Claude Code** (the arrow next to it switches to **Codex**). godspeed makes a folder for your agent, `~/godspeed`, and opens a terminal there running it. The folder holds the agent's instructions (`CLAUDE.md`, `AGENTS.md`) and its connection to the app, so godspeed only loads when you study, not in your other chats. You can also run the command yourself: **Copy the command** copies it. In Claude Code, `/setup-spaces` builds your spaces from your course files.
    - **Other MCP apps:** pick **Other app** for the address and token (Streamable HTTP, `Authorization: Bearer <token>`).
 2. Start a lesson. You answer in the godspeed window and the agent teaches.
 
-While you think, Claude Code waits in a background script, so the agent spends no tokens until you answer. Agents can also list and read lessons, search your graph and your class files, import notes, and manage classes and deadlines. They can save short notes about you (like "the midterm is over"), and every agent sees those notes and where you left off when it connects. You can see and delete the notes under **Settings → Connection**. Only programs on your computer that hold the token can connect.
+While you think, Claude Code waits in a background script, so the agent spends no tokens until you answer. Open Claude Code also opens a second Claude Code window, the backup teacher. When the main one stops to compact its memory, the backup answers your lesson and Talk messages so you don't wait, and otherwise it just waits for free. Agents can also list and read lessons, search your graph and your space files, import notes, and manage spaces and deadlines. They can save short notes about you (like "the midterm is over"), and every agent sees those notes and where you left off when it connects. You can see and delete the notes under **Settings → Connection**. Only programs on your computer that hold the token can connect.
 
 ## Your plans, your data
 
 - The AI is your own agent, on the plan you already pay for. godspeed has no subscription or markup of its own.
-- Lessons, graphs, class files and settings stay on your machine as plain files you can read.
+- Lessons, graphs, space files and settings stay on your machine as plain files you can read.
 - Each task sends the context it needs to your agent, and web research fetches pages. Local storage doesn't mean offline.
 - System prompts are visible and editable.
 

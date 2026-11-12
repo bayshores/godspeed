@@ -17,7 +17,7 @@ const IMAGE_DAYS: i64 = 7;
 const DOCS: [(&str, &str); 3] = [
 	("CLAUDE.md", include_str!("../../../../src/backend/server/agent-folder-files/CLAUDE.md")),
 	("AGENTS.md", include_str!("../../../../src/backend/server/agent-folder-files/AGENTS.md")),
-	(".claude/skills/setup-classes/SKILL.md", include_str!("../../../../src/backend/server/agent-folder-files/setup-classes.md")),
+	(".claude/skills/setup-classes/SKILL.md", include_str!("../../../../src/backend/server/agent-folder-files/setup-spaces.md")),
 ];
 
 /// The waiter's scripts, copied into `.godspeed/` as they are.

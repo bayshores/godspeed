@@ -8,7 +8,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { parseHTML } from "linkedom";
 import { validateToolArguments } from "@earendil-works/pi-ai";
 import { problemInputObject } from "../../src/backend/agent/tools/practice.ts";
-import { PracticeDock } from "../../src/frontend/components/practice-dock.tsx";
+import { OpenProblemPane } from "../../src/frontend/components/lesson/open-problem-pane.tsx";
 import { QuestionDock } from "../../src/frontend/components/question-dock.tsx";
 import { LatexGlyph } from "../../src/frontend/components/latex-glyph.tsx";
 import { ProblemCard, ConcludeCard } from "../../src/frontend/components/practice-cards.tsx";
@@ -30,8 +30,8 @@ const repairedMatrix = String.raw`\begin{pmatrix}1 & 2 \\ 3 & 4\end{pmatrix}`;
 const part = (input: unknown, over: Partial<ArtifactPartProps["part"]> = {}): ArtifactPartProps["part"] => ({
 	type: "tool-problem", state: "input-available", toolCallId: "call_math", input, ...over,
 });
-const dock = (input: { statement: string }) => (
-	<PracticeDock problemCallId="call_math" input={input} onSubmit={async () => true} />
+const problemPane = (input: { statement: string }) => (
+	<OpenProblemPane statement={input.statement} source={null} part={null} />
 );
 
 function math(html: string) {
@@ -91,13 +91,13 @@ describe("upgraded KaTeX rendering on real question and practice surfaces", () =
 			for (const raw of [`$${formula}$`, `\\(${formula}\\)`, `$$\n${formula}\n$$`, `\\[\n${formula}\n\\]`]) {
 				for (const element of [
 					<MessageResponse mode="static">{raw}</MessageResponse>,
-					<QuestionDock toolName="ask_user_question" toolCallId="security_question" input={{ question: raw }} onSubmit={async () => true} />,
-					dock({ statement: raw }),
+					<QuestionDock toolName="ask_user_question" toolCallId="security_question" input={{ question: raw }} onSubmit={() => {}} onReady={() => {}} boxText="" onLeaveRows={() => {}} />,
+					problemPane({ statement: raw }),
 				]) {
 					const html = renderToStaticMarkup(element);
 					assertMath(html, [formula], [...glyphs]);
 					const { document } = parseHTML(html);
-					assert.ok(document.querySelector(".katex-base .katex-strut"), "matching 0.18 internal layout classes");
+					assert.ok(document.querySelector(".katex-base .katex-strut"), "matching 0.18 internal layout spaces");
 					if (name === "fraction and root") assert.ok(document.querySelector(".mfrac .sqrt"));
 					if (name === "accents") assert.ok(document.querySelectorAll(".katex-accent").length >= 2);
 					if (name.endsWith("rows")) assert.ok(document.querySelectorAll(".mtable .mtr").length >= 2 || document.querySelectorAll(".mtable .vlist > span").length >= 2, "two real rows, not repaired-away slashes");
@@ -105,9 +105,9 @@ describe("upgraded KaTeX rendering on real question and practice surfaces", () =
 			}
 		});
 	}
-	it("preserves escaped currency and code on both dock surfaces", () => {
+	it("preserves escaped currency and code on the question dock and the open problem pane", () => {
 		const raw = "Costs \\$5 and \\$10. `" + clean + "`\n\n```text\n" + doubled + "\n```";
-		for (const element of [dock({ statement: raw }), <QuestionDock toolName="ask_user_question" toolCallId="security_code" input={{ question: raw }} onSubmit={async () => true} />]) {
+		for (const element of [problemPane({ statement: raw }), <QuestionDock toolName="ask_user_question" toolCallId="security_code" input={{ question: raw }} onSubmit={() => {}} onReady={() => {}} boxText="" onLeaveRows={() => {}} />]) {
 			const html = renderToStaticMarkup(element);
 			assert.deepEqual(math(html).annotations, []);
 			assert.ok(parseHTML(html).document.firstElementChild?.textContent?.includes("$5 and $10"));
@@ -133,11 +133,11 @@ describe("practice display surfaces", () => {
 		["clean math", clean, tex, ["∇", "∈", "×"]],
 		["matrix with legitimate row break", matrix, repairedMatrix, ["1", "2", "3", "4"]],
 	] as const) {
-		it(`${name}: expanded dock, settled statement, verdict, committed reveal and legacy fallback`, () => {
+		it(`${name}: open problem pane, settled statement, verdict, committed reveal and legacy fallback`, () => {
 			const input = Object.freeze({ statement: raw, modelSolution: `HIDDEN COMMITMENT ${raw}` });
 			const conclusion = Object.freeze({ outcome: "solved", verdict: raw, solutionReveal: raw });
 			const before = JSON.stringify({ input, conclusion });
-			for (const element of [dock(input), <ProblemCard part={part(input)} />]) {
+			for (const element of [problemPane(input), <ProblemCard part={part(input)} />]) {
 				const html = renderToStaticMarkup(element);
 				assertMath(html, [expected], [...glyphs]);
 				assert.ok(!html.includes("HIDDEN COMMITMENT"));
@@ -150,7 +150,7 @@ describe("practice display surfaces", () => {
 		});
 	}
 
-	it("keeps a boundary-converted numeric statement raw and preserves prior dock passthrough", () => {
+	it("keeps a boundary-converted numeric statement raw and preserves prior passthrough", () => {
 		const raw = { statement: 17, mode: "recall", modelSolution: "Committed solution." };
 		const call = { type: "toolCall", id: "numeric_problem", name: "problem", arguments: raw };
 		const validated = validateToolArguments(
@@ -167,12 +167,12 @@ describe("practice display surfaces", () => {
 		const active = activeProblemOf(messages);
 		assert.ok(active);
 		assert.equal((active.input as { statement: unknown }).statement, 17);
-		// Mirror the existing runtime cast at the Chat -> PracticeDock seam.
+		// Mirror the existing runtime cast at the your-turn panel -> OpenProblemPane seam.
 		const input = active.input as { statement: string };
 		let expanded = "";
-		assert.doesNotThrow(() => { expanded = renderToStaticMarkup(dock(input)); });
+		assert.doesNotThrow(() => { expanded = renderToStaticMarkup(problemPane(input)); });
 		const { document } = parseHTML(expanded);
-		assert.equal(document.querySelector('[data-testid="practice-statement"]')!.innerHTML,
+		assert.equal(document.querySelector('[data-testid="problem-statement"]')!.innerHTML,
 			parseHTML(renderToStaticMarkup(<MessageResponse>{input.statement}</MessageResponse>)).document.firstElementChild!.outerHTML,
 			"non-string values pass through exactly as before, without string coercion or a new fallback");
 		assert.deepEqual(messages, before);
@@ -181,7 +181,7 @@ describe("practice display surfaces", () => {
 
 	it("preserves code spans/fences across every repaired display surface", () => {
 		const raw = "`" + doubled + "`\n\n```text\n" + doubled + "\n```";
-		for (const element of [dock({ statement: raw }), <ProblemCard part={part({ statement: raw })} />,
+		for (const element of [problemPane({ statement: raw }), <ProblemCard part={part({ statement: raw })} />,
 			<ConcludeCard part={part({ outcome: "solved", verdict: raw }, { reveal: raw })} />]) {
 			const html = renderToStaticMarkup(element);
 			assert.deepEqual(math(html).annotations, []);

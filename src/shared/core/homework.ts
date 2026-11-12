@@ -5,7 +5,7 @@
  * (conclude). Pure and browser-safe: the server saves the list on the
  * deadline, the lesson screen folds the same calls over its messages.
  */
-import type { ClassDeadline, HomeworkProblem } from "./contracts/class.ts";
+import type { SpaceDeadline, HomeworkProblem } from "./contracts/space.ts";
 
 /** A problem as the agent posts it; done is the app's to keep. */
 export type PostedProblem = Omit<HomeworkProblem, "done">;
@@ -19,11 +19,6 @@ export interface HomeworkView {
 	assignment: { name: string; path: string | null } | null;
 }
 
-/** A problem's short name: "Q3" for a bare number, else as the assignment writes it. */
-export function problemLabel(number: string): string {
-	return /^\d/.test(number) ? `Q${number}` : number;
-}
-
 /** Where an open problem is in the assignment: "from hw4.pdf, page 2". */
 export function problemSource(assignment: { name: string } | null, page: number | undefined): string | null {
 	if (!assignment) return null;
@@ -31,7 +26,7 @@ export function problemSource(assignment: { name: string } | null, page: number 
 }
 
 /** The kinds of deadline that have problems to work on. */
-export function hasProblems(kind: ClassDeadline["kind"]): boolean {
+export function hasProblems(kind: SpaceDeadline["kind"]): boolean {
 	return kind === "homework" || kind === "project";
 }
 
@@ -72,43 +67,52 @@ type ViewMessage = { parts: ReadonlyArray<{ type: string; state?: string; input?
 
 /** The problems as a homework lesson sees them: the deadline's list when
  *  the page loaded, then every post_problems and done mark in the messages
- *  since, and the number of the problem open now. */
-export function homeworkProblems(initial: readonly HomeworkProblem[], messages: readonly ViewMessage[]): { problems: HomeworkProblem[]; open: string | null } {
+ *  since, the number of the problem open now and the part marked in it. */
+export function homeworkProblems(
+	initial: readonly HomeworkProblem[],
+	messages: readonly ViewMessage[],
+): { problems: HomeworkProblem[]; open: string | null; part: string | null } {
 	let problems = [...initial];
 	let open: string | null = null;
+	let part: string | null = null;
 	for (const m of messages) {
-		for (const part of m.parts) {
+		for (const call of m.parts) {
 			// A refused or still-streaming call changes nothing.
-			if (part.state === "output-error" || part.state === "input-streaming") continue;
-			const input = (part.input ?? {}) as { problems?: unknown; number?: unknown; outcome?: unknown };
-			if (part.type === "tool-post_problems" && Array.isArray(input.problems)) {
+			if (call.state === "output-error" || call.state === "input-streaming") continue;
+			const input = (call.input ?? {}) as { problems?: unknown; number?: unknown; outcome?: unknown; part?: unknown };
+			if (call.type === "tool-post_problems" && Array.isArray(input.problems)) {
 				problems = mergeProblems(problems, input.problems as PostedProblem[]);
-			} else if (part.type === "tool-problem") {
+			} else if (call.type === "tool-problem") {
 				open = typeof input.number === "string" ? input.number : null;
-			} else if (part.type === "tool-conclude") {
+				part = null;
+			} else if (call.type === "tool-part") {
+				if (open !== null && typeof input.part === "string" && input.part.trim()) part = input.part.trim();
+			} else if (call.type === "tool-conclude") {
 				if (open !== null && concludeMarksDone(input.outcome)) {
 					const number = open;
 					problems = problems.map((p) => (p.number === number ? { ...p, done: true } : p));
 				}
 				open = null;
+				part = null;
 			}
 		}
 	}
-	return { problems, open };
+	return { problems, open, part };
 }
 
 /** What the teacher knows when a homework session starts (a hidden
  *  message at its top). */
 export function homeworkContextText(
-	deadline: Pick<ClassDeadline, "name" | "kind" | "date" | "time">,
+	spaceId: string,
+	deadline: Pick<SpaceDeadline, "id" | "name" | "kind" | "date" | "time">,
 	assignment: { id: string; name: string; path: string | null } | null,
 	problems: readonly HomeworkProblem[],
 ): string {
 	const lines = [`[Homework] The learner is working on ${deadline.name} (${deadline.kind}), due ${deadline.date}${deadline.time ? ` ${deadline.time}` : ""}.`];
 	lines.push(
 		assignment
-			? `Its assignment is the class file ${assignment.name} (file id ${assignment.id})${assignment.path ? `, at ${assignment.path}` : ""}.`
-			: "No assignment file is attached yet. Ask the learner which class file it is and attach it with update_class_deadline (assignment_file_id), or work from the problems they paste.",
+			? `Its assignment is the space file ${assignment.name} (file id ${assignment.id})${assignment.path ? `, at ${assignment.path}` : ""}.`
+			: `No assignment file is attached yet. Find it in the space files (search_space_files) and attach it with update_space_deadline (space_id ${spaceId}, deadline_id ${deadline.id}, assignment_file_id) before you post its problems. Ask the learner only when you can't find it, or work from the problems they paste.`,
 	);
 	if (problems.length > 0) {
 		lines.push("Its problems, posted before:", ...problems.map((p) => `- ${p.number}: ${p.title}${p.done ? " (done)" : ""}`), "Open the first one not done unless the learner picks another.");

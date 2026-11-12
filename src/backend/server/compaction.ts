@@ -1,28 +1,18 @@
 /**
- * The compaction service: the trigger
- * plumbing around core/compaction's pure cuts and markers.
+ * The compaction service: the trigger plumbing around core/compaction's
+ * pure cuts and markers. A turn never waits on a summary:
  *
- * TOPOLOGY (why this is simple): question and problem poses TERMINATE
- * their runs, so the "user is thinking" pause is always a BETWEEN-RUNS
- * window. Compaction therefore never touches a live run:
+ *   - SHORTEN — past the threshold godspeed cuts the record and writes its
+ *     own short version of what it dropped (localSummary), at once and
+ *     without a model: at the turn-start gate and when a turn settles.
+ *   - REFINE — once the chat has been quiet for REFINE_QUIET_MS, the
+ *     session's own model writes the real summary through the zero-tool
+ *     one-shot sub-agent seam, and it takes the local version's place.
+ *     A turn that starts meanwhile goes ahead on the local version.
  *
- *   - SETTLE KICK — a turn settles (onFinish, after persist) and the
- *     projected context is over threshold: the summary starts NOW, in
- *     the background, while the learner reads/answers — usually done
- *     long before the next input arrives.
- *   - TURN-START GATE — every turn (client POST or wake) awaits any
- *     in-flight compaction for its chat BEFORE appends or beginTurn;
- *     if the record is STILL over threshold (cold sessions, kicks that
- *     lost their engine), compaction runs synchronously inside the
- *     request. Structurally gated: nothing model-facing for the chat
- *     interleaves with a running compaction, so little can go wrong.
- *   - OVERFLOW RECOVERY — a run that dies on context length needs no
- *     special path: the next turn's gate compacts and the fresh run
- *     starts small.
- *
- * The summary is written by the session's own conversation model via the
- * zero-tool one-shot sub-agent seam; its usage lands in the chat's
- * append-only turns log keyed by the marker's id.
+ * Shortening only runs between turns (canStart), so it never touches a
+ * live run. A run that dies on context length needs no special path: the
+ * next turn's gate shortens and the fresh run starts small.
  */
 
 import type { AgentMessage } from "@earendil-works/pi-agent-core";
@@ -31,6 +21,8 @@ import {
 	activeCompactionOf,
 	buildCompactionPrompt,
 	compactionCutIndex,
+	compactionSpan,
+	localSummary,
 	estimateContextTokens,
 	estimateTokens,
 	newCompactionMarker,
@@ -99,29 +91,6 @@ export interface CompactionDeps {
 	summarize?: Summarizer;
 }
 
-// ─── the registry (module-global on globalThis, jobs.ts's pattern) ─────────
-
-interface CompactionState {
-	inFlight: Map<string, Promise<void>>;
-}
-const g = globalThis as typeof globalThis & { __lhCompaction?: CompactionState };
-function state(): CompactionState {
-	return (g.__lhCompaction ??= { inFlight: new Map() });
-}
-
-/** Is a compaction running for this chat? (The client status event's
- *  server-side twin — tests and the SSE emitter read it.) */
-export function compactionInFlight(chatId: string): boolean {
-	return state().inFlight.has(chatId);
-}
-
-/** Await any in-flight compaction for the chat — the structural gate
- *  every model interaction for the chat passes through. */
-export async function awaitCompaction(chatId: string): Promise<void> {
-	const running = state().inFlight.get(chatId);
-	if (running) await running;
-}
-
 // ─── the estimate over the ACTIVE projection ────────────────────────────────
 
 /** The projected context estimate: what the next LLM call would carry.
@@ -140,81 +109,111 @@ export function projectedContextTokens(messages: readonly LhMessage[], systemPro
 	return estimateTokens(toLlmMessages(messages as readonly AgentMessage[]) as unknown as readonly LhMessage[]) + systemPromptTokens;
 }
 
-// ─── the compaction run ─────────────────────────────────────────────────────
+// ─── shorten: at once, no model ─────────────────────────────────────────────
 
-/** Run one compaction for the chat (the registry mutex is HELD by the
- *  caller — ensureCompacted). Reads the record fresh, cuts, summarizes,
- *  appends the marker, records usage, notifies. Never throws upward
- *  past the registry cleanup. */
-async function compact(deps: CompactionDeps, chatId: string): Promise<void> {
+/** Cut the record and add godspeed's own short version of what was cut,
+ *  when it projects over the threshold. Never while a turn owns the chat. */
+function shorten(deps: CompactionDeps, chatId: string): void {
+	if (deps.canStart?.() === false) return;
 	const record = deps.chatStore.getChat(chatId);
 	if (!record) return;
 	const messages = record.messages;
 	const tokensBefore = projectedContextTokens(messages, deps.systemPromptTokens);
-	if (tokensBefore <= deps.thresholdTokens) return; // settled beneath while we waited
-
+	if (tokensBefore <= deps.thresholdTokens) return;
 	const cut = compactionCutIndex(messages);
 	if (cut <= 0 || cut >= messages.length) return; // no history can be dropped
 
-	// The previous compaction's kept boundary (chained compactions
-	// summarize the old summary + what rode after it).
+	// The span runs from the previous kept boundary to the cut; the previous
+	// summary rides along. When the cut can't move past that boundary, the
+	// kept tail alone carries the projection, and shortening again can't help.
 	const previous = activeCompactionOf(messages);
 	const prevKept = previous ? messages.findIndex((m) => m.id === previous.details.firstKeptMessageId) : -1;
-	// ANTI-CHURN GUARD: when the cut cannot advance past the previous
-	// kept boundary, the span is empty (or repeats it) — the kept tail
-	// alone carries the projection and re-summarizing the same span
-	// cannot shrink it. Reachable only when the threshold sits below
-	// kept-tail + summary (a hand-edited record below the settings
-	// floor); skipping keeps the loop honest instead of churning.
 	if (previous && prevKept !== -1 && cut <= prevKept) {
-		console.info(
-			`[chat ${chatId}] compaction skipped — the kept tail alone exceeds the threshold (raise it or shrink the tail)`,
-		);
+		console.info(`[chat ${chatId}] compaction skipped — the kept tail alone exceeds the threshold (raise it or shrink the tail)`);
 		return;
 	}
-
-	// The span: from the PREVIOUS kept boundary through the cut.
-	let spanStart = 0;
-	let priorSummary: string | null = null;
-	if (previous && prevKept > 0) {
-		spanStart = prevKept;
-		priorSummary = previous.content;
-	}
-	const spanText = serializeForSummary(messages.slice(spanStart, cut));
-	const fullSpan = priorSummary ? `[SYSTEM NOTE — prior compaction summary, still authoritative where not superseded]\n${priorSummary}\n\n${spanText}` : spanText;
-
-	const prompt = buildCompactionPrompt({
-		spanText: fullSpan,
+	const summary = localSummary({
+		span: messages.slice(prevKept > 0 ? prevKept : 0, cut),
+		priorSummary: prevKept > 0 ? previous!.content : null,
 		planTreeText: planTreeToText(record.tree, messages),
+	});
+	const details: CompactionDetails = { firstKeptMessageId: messages[cut]!.id, tokensBefore, at: new Date().toISOString(), local: true };
+	deps.chatStore.saveMessages(chatId, [...messages, newCompactionMarker(summary, details)]);
+	emit("record-changed", { chatId });
+}
+
+/** The turn-start gate: a turn starts on a record that fits. */
+export function ensureCompacted(deps: CompactionDeps, chatId: string): void {
+	shorten(deps, chatId);
+}
+
+/** The settle kick: shorten now if the turn pushed the lesson over, and
+ *  (re)start the quiet wait for the real summary. */
+export function kickCompaction(buildDeps: () => CompactionDeps | null, chatId: string): void {
+	const deps = buildDeps();
+	if (!deps) return;
+	shorten(deps, chatId);
+	refineWhenQuiet(buildDeps, chatId, REFINE_QUIET_MS);
+}
+
+// ─── refine: the model's summary, once the chat is quiet ────────────────────
+
+/** How long a chat sits quiet before its model writes the real summary. */
+const REFINE_QUIET_MS = 5 * 60_000;
+
+const g = globalThis as typeof globalThis & { __lhRefine?: { timers: Map<string, ReturnType<typeof setTimeout>>; running: Set<string> } };
+function refineState() {
+	return (g.__lhRefine ??= { timers: new Map(), running: new Set() });
+}
+
+/** Refine after `delayMs`; a later call starts the wait again, and a turn
+ *  running then pushes it back. */
+function refineWhenQuiet(buildDeps: () => CompactionDeps | null, chatId: string, delayMs: number): void {
+	const { timers } = refineState();
+	clearTimeout(timers.get(chatId));
+	const timer = setTimeout(() => {
+		timers.delete(chatId);
+		const deps = buildDeps();
+		if (!deps) return;
+		if (deps.canStart?.() === false) return refineWhenQuiet(buildDeps, chatId, REFINE_QUIET_MS);
+		void refine(deps, chatId);
+	}, delayMs);
+	timer.unref?.();
+	timers.set(chatId, timer);
+}
+
+/** Replace the chat's local shortening with the model's summary of the same
+ *  messages. Keeps the record as it is when the summary fails or comes back
+ *  empty, or when a newer marker took over meanwhile. */
+export async function refine(deps: CompactionDeps, chatId: string): Promise<void> {
+	const { running } = refineState();
+	const record = deps.chatStore.getChat(chatId);
+	const marker = record ? activeCompactionOf(record.messages) : null;
+	if (!record || !marker?.details.local || running.has(chatId)) return;
+	const covered = compactionSpan(record.messages, marker);
+	if (!covered) return;
+	const spanText = serializeForSummary(covered.span);
+	const prompt = buildCompactionPrompt({
+		spanText: covered.priorSummary ? `[SYSTEM NOTE — prior compaction summary, still authoritative where not superseded]\n${covered.priorSummary}\n\n${spanText}` : spanText,
+		planTreeText: planTreeToText(record.tree, record.messages),
 		kind: deps.kind,
 	});
-
-	emit("compaction-changed", { chatId, running: true });
+	running.add(chatId);
 	try {
-		const summarize = deps.summarize ?? subagentSummarizer;
-		const { summary, usage } = await summarize(prompt, deps.engine);
-		const trimmed = summary.trim();
-		if (!trimmed) return; // an empty summary is a refusal artifact — leave the record honest
-
-		const firstKept = messages[cut]!;
-		// Re-read: other writers (dismiss, artifact-ui, class move) can save
-		// while the summary is awaited, and the cut is keyed by id.
+		const { summary, usage } = await (deps.summarize ?? subagentSummarizer)(prompt, deps.engine);
+		const text = summary.trim();
+		if (!text) return; // an empty summary is a refusal artifact
+		// Re-read: turns and other writers save while the summary is written.
 		const fresh = deps.chatStore.getChat(chatId);
-		if (!fresh || !fresh.messages.some((m) => m.id === firstKept.id)) return;
-		const details: CompactionDetails = {
-			firstKeptMessageId: firstKept.id,
-			tokensBefore,
-			model: deps.modelId,
-			at: new Date().toISOString(),
-		};
-		const marker = newCompactionMarker(trimmed, details);
-		deps.chatStore.saveMessages(chatId, [...fresh.messages, marker]);
-		// The summary is a real model call on the session's own engine; its
-		// usage keys to the marker, where the transcript shows the divider.
+		if (!fresh || activeCompactionOf(fresh.messages)?.id !== marker.id) return;
+		const details: CompactionDetails = { ...marker.details, model: deps.modelId, local: false };
+		const refined = { ...newCompactionMarker(text, details), id: marker.id, timestamp: marker.timestamp };
+		deps.chatStore.saveMessages(chatId, fresh.messages.map((m) => (m.id === marker.id ? refined : m)));
+		// A real model call on the session's own engine: usage keys to the marker.
 		deps.chatStore.appendTurnUsage(chatId, {
 			id: crypto.randomUUID(),
 			messageId: marker.id,
-			at: details.at,
+			at: new Date().toISOString(),
 			model: deps.modelId,
 			steps: [
 				{
@@ -227,62 +226,11 @@ async function compact(deps: CompactionDeps, chatId: string): Promise<void> {
 				},
 			],
 		});
-		// Notify-then-fetch: the record gained the marker (the client's
-		// dividers appear) and the status event ends the send gate.
 		emit("record-changed", { chatId });
 	} catch (err) {
-		// A failed compaction leaves the record untouched — the next
-		// turn-start gate retries (the same self-healing law as the
-		// extraction trigger).
-		console.error(`[chat ${chatId}] compaction failed:`, err);
+		// The local version stays; the next quiet stretch tries again.
+		console.error(`[chat ${chatId}] the lesson summary failed:`, err);
 	} finally {
-		emit("compaction-changed", { chatId, running: false });
+		running.delete(chatId);
 	}
-}
-
-/**
- * The gate + trigger in one: await any in-flight compaction, then — if
- * the record is STILL over threshold — run one synchronously (the
- * caller's request waits). Idempotent
- * under concurrency through the registry mutex.
- */
-export async function ensureCompacted(deps: CompactionDeps, chatId: string): Promise<void> {
-	// Skipped under tests, the extraction-trigger precedent: scripted
-	// chats are fixtures — the service itself is tested directly with an
-	// injected summarizer.
-	if (process.env.NODE_ENV === "test" && !deps.summarize) return;
-	await awaitCompaction(chatId);
-	if (deps.canStart?.() === false) return;
-	const record = deps.chatStore.getChat(chatId);
-	if (!record) return;
-	if (projectedContextTokens(record.messages, deps.systemPromptTokens) <= deps.thresholdTokens) return;
-	const running = state().inFlight.get(chatId);
-	if (running) return running; // a concurrent caller started it while we awaited: wait for it
-	const run = compact(deps, chatId);
-	state().inFlight.set(chatId, run);
-	try {
-		await run;
-	} finally {
-		state().inFlight.delete(chatId);
-	}
-}
-
-/**
- * The settle kick (fire-and-forget): the turn settled, the learner is
- * about to read/answer — if the projection is over threshold, the
- * summary starts NOW and finishes inside the pause. Wired at
- * chat-handler's onFinish tail; engineless or over-threshold-nothing
- * are silent no-ops. The next turn's ensureCompacted gate picks up
- * whatever this leaves running.
- */
-export function kickCompaction(buildDeps: () => CompactionDeps | null, chatId: string): void {
-	if (state().inFlight.has(chatId)) return;
-	const deps = buildDeps();
-	if (!deps || deps.canStart?.() === false) return;
-	const record = deps.chatStore.getChat(chatId);
-	if (!record) return;
-	if (projectedContextTokens(record.messages, deps.systemPromptTokens) <= deps.thresholdTokens) return;
-	const run = compact(deps, chatId);
-	state().inFlight.set(chatId, run);
-	void run.finally(() => state().inFlight.delete(chatId));
 }

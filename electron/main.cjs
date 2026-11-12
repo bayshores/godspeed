@@ -33,10 +33,6 @@ const http = require("node:http");
 const net = require("node:net");
 const path = require("node:path");
 
-// Mirrors SIDEBAR_AUTOCLOSE in src/frontend/components/sidebar.tsx — keep in sync (the
-// renderer owns the number; this is the IPC widen target).
-const SIDEBAR_AUTOCLOSE = 1000;
-
 const PRODUCT_NAME = "godspeed";
 
 // The Application Support dir is exactly "godspeed" in dev AND packaged:
@@ -415,24 +411,25 @@ const SHOW_WINDOW_FALLBACK_MS = 5000;
  *    external web and mail links go to the real browser via
  *    shell.openExternal, every other scheme is dropped. */
 function createWindow(url, serverUp = null) {
+	const colors = windowColors();
 	const win = new BrowserWindow({
 		width: 1440,
 		height: 900,
 		title: PRODUCT_NAME,
-		// Merged chrome: the system title bar is gone; the app's own 44px
+		// Merged chrome: the system title bar is gone; the app's own 48px
 		// top bar IS the title bar. macOS 26 centers each traffic light
-		// about 8px below y, so y 14 centers them on the bar (y 22), with
+		// about 8px below y, so y 16 centers them on the bar (y 24), with
 		// the same gap above them as to their left.
 		// Dragging comes from the renderer's .lh-drag bands (src/frontend/globals.css).
 		...(process.platform === "darwin"
-			? { titleBarStyle: "hiddenInset", trafficLightPosition: { x: 16, y: 14 } }
+			? { titleBarStyle: "hiddenInset", trafficLightPosition: { x: 16, y: 16 } }
 			: {
 				titleBarStyle: "hidden",
 				// Native min/max/close on the right, at the OS's compact default
 				// height. Do not force the zoom-invariant native overlay to match
 				// the renderer's 60 CSS px bar: zooming out would cover its border.
 				// The renderer reserves the actual width via env(titlebar-area-*).
-				titleBarOverlay: { color: "#141414", symbolColor: "#e5e5e5" },
+				titleBarOverlay: { color: colors.bar, symbolColor: colors.symbol },
 				// Keep the custom bar alone; Alt reveals the native menu.
 				autoHideMenuBar: true,
 			}),
@@ -448,18 +445,13 @@ function createWindow(url, serverUp = null) {
 		// Live-resize + first-paint flash: during a resize
 		// the native window surface changes size before Chromium's compositor
 		// has a frame at the new size, and the gap shows the window's NATIVE
-		// background — Electron's default is white, glaring on a dark app.
-		// The app background (#141414) fills the lag instead. `show: false`
+		// background — Electron's default is white.
+		// The app background fills the lag instead. `show: false`
 		// is the same treatment for first paint: the window appears once the
 		// app has drawn its first screen ("lh:show-window", below).
-		backgroundColor: "#141414",
+		backgroundColor: colors.background,
 		show: false,
-		// Narrow-window behavior: 640px is the floor —
-		// below it even a wrapped chrome row gets cramped and the chat header
-		// (lights gutter 92 + toggle + title) runs out of room. The sidebar
-		// auto-closes below SIDEBAR_AUTOCLOSE (a fixed 1000) in the renderer
-		// (src/frontend/components/sidebar.tsx); its "lh:expand-window"
-		// IPC widens the window back to that threshold.
+		// 640px is the floor: below it the top bar runs out of room.
 		minWidth: 640,
 		minHeight: 600,
 	});
@@ -596,6 +588,21 @@ function reportUpdateStatus(status, version = null, percent = null) {
 	} catch {
 		/* Status reporting must never interrupt the updater. */
 	}
+}
+
+/** The window's own colors, shown before the page paints and behind the
+ * native window buttons: Paper with its ink top bar, or the dark background
+ * picked in Settings, Appearance. */
+function windowColors() {
+	let picked = null;
+	try {
+		picked = JSON.parse(fs.readFileSync(path.join(DATA_DIR(), "settings.json"), "utf8"))?.appearance?.background ?? null;
+	} catch {
+		/* no settings yet: Paper */
+	}
+	return typeof picked === "string"
+		? { background: picked, bar: picked, symbol: "#e5e5e5" }
+		: { background: "#c9c7bd", bar: "#24231f", symbol: "#d7d5cb" };
 }
 
 /** Read the SAME data directory passed to the packaged server. Only an
@@ -862,7 +869,7 @@ async function main() {
 			return [];
 		}
 	});
-	// Show in Finder (a class file, selected) and open in the default app
+	// Show in Finder (a space file, selected) and open in the default app
 	// (the linked folder, a PDF the learner sent). Opening is limited to
 	// folders and PDFs so nothing can be launched: an app bundle is a folder
 	// too, so it is only shown, and links are resolved before any check.
@@ -894,16 +901,6 @@ async function main() {
 	ipcMain.handle("lh:zoom:get", (event) => {
 		if (!fromAppWindow(event)) throw untrusted();
 		return BrowserWindow.fromWebContents(event.sender).webContents.getZoomFactor();
-	});
-	// The renderer auto-closes the sidebar below SIDEBAR_AUTOCLOSE; opening
-	// it again at that width widens the window instead, so the layout never
-	// holds a narrow window and an open sidebar. Top-left stays fixed.
-	ipcMain.on("lh:expand-window", (event) => {
-		if (!fromAppWindow(event)) return;
-		const win = BrowserWindow.fromWebContents(event.sender);
-		const { x, y, width, height } = win.getBounds();
-		const target = SIDEBAR_AUTOCLOSE;
-		if (width < target) win.setBounds({ x, y, width: target, height });
 	});
 	// The page drew its first screen: show its window (see createWindow).
 	ipcMain.on("lh:show-window", (event) => {

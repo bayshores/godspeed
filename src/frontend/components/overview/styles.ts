@@ -1,6 +1,8 @@
-/** The Overview's shared card look. */
-export const CARD = "flex w-full flex-col items-start gap-3.5 border border-tone-2 px-[22px] py-5";
-export const CARD_TITLE = "text-[17px] font-extrabold text-ink";
+/** A list's or sheet's title on the Progress tab, over an ink rule. */
+export const TITLE = "border-b-[1.5px] border-ink pb-1.5 text-xl leading-tight text-ink";
+
+/** A row that opens something, with a dotted rule under all but the last. */
+export const ROW = "lh-press flex items-center gap-3.5 border-b border-dotted border-edge px-1 hover:bg-tone focus-visible:bg-tone [li:last-child>&]:border-b-0";
 
 /** Answer outcome → block color (right / wrong / didn't know). */
 export const OUTCOME_BG = {

@@ -4,11 +4,11 @@ import { cn } from "@/frontend/lib/utils";
  *  "Try again", which reads it again. */
 export function LoadFailed({ message, onRetry, className }: { message: string; onRetry: () => void; className?: string }) {
 	return (
-		<p data-testid="load-failed" role="alert" className={cn("flex flex-wrap items-baseline gap-x-3 gap-y-1 text-sm text-ink-2", className)}>
-			{message}
-			<button type="button" data-testid="load-failed-retry" onClick={onRetry} className="lh-press text-sm font-bold text-ink hover:text-ink-max">
+		<div data-testid="load-failed" role="alert" className={cn("flex flex-col items-center gap-3.5 py-[60px] text-center", className)}>
+			<p className="text-[22px] leading-snug text-ink">{message}</p>
+			<button type="button" data-testid="load-failed-retry" onClick={onRetry} className="lh-btn bg-panel text-[15px]">
 				Try again
 			</button>
-		</p>
+		</div>
 	);
 }

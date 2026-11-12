@@ -1,7 +1,7 @@
 /**
  * THE [Today] NOTE: a hidden lesson message that
- * tells the agent today's date, time and time zone, then the class's open
- * deadlines, the files added in the last few days (course info apart, so
+ * tells the agent today's date, time and time zone, then the space's open
+ * deadlines, the files added in the last few days (space info apart, so
  * the teacher knows it can read it), and the practice problems the learner
  * needed hints on lately. It is appended (never rewritten) right before the learner's
  * message when the lesson has none yet, the day changed, the part after the
@@ -10,17 +10,17 @@
  * Pure: `now` and `timeZone` are inputs so tests are deterministic.
  */
 
-import { compareDeadlines, deadlineDueAt, type ClassDeadline } from "./contracts/class.ts";
+import { compareDeadlines, deadlineDueAt, type SpaceDeadline } from "./contracts/space.ts";
 import { daysBetween } from "./progress.ts";
 import { activeCompactionOf, keptIndexFor } from "./compaction.ts";
 import { isRecent, NEW_FILE_DAYS } from "./new-files.ts";
 import { newTodayContextMessage, type LhMarkerMessage, type LhMessage } from "./native-messages.ts";
 
-/** What the note needs to know about the lesson's class (null = no class). */
-export interface TodayNoteClass {
-	deadlines: readonly ClassDeadline[];
+/** What the note needs to know about the lesson's space (null = no space). */
+export interface TodayNoteSpace {
+	deadlines: readonly SpaceDeadline[];
 	files: readonly { id: string; name: string; addedAt?: string; kind?: "study" | "info" }[];
-	/** The class's practice problems solved with hints. */
+	/** The space's practice problems solved with hints. */
 	hinted?: readonly { statement: string; at: string }[];
 }
 
@@ -93,7 +93,7 @@ export function clockLabel(time: string): string {
 }
 
 /** "Fri Oct 30 11:59 PM", or just "Fri Oct 30" when the deadline has no time. */
-export function whenLabel(d: Pick<ClassDeadline, "date" | "time">): string {
+export function whenLabel(d: Pick<SpaceDeadline, "date" | "time">): string {
 	return d.time ? `${dayLabel(d.date)} ${clockLabel(d.time)}` : dayLabel(d.date);
 }
 
@@ -103,7 +103,7 @@ function relativeDay(days: number): string {
 	return `in ${days} days`;
 }
 
-function coversLine(d: ClassDeadline, names: ReadonlyMap<string, string>): string | null {
+function coversLine(d: SpaceDeadline, names: ReadonlyMap<string, string>): string | null {
 	const files = d.fileIds.map((id) => names.get(id)).filter((n): n is string => n !== undefined);
 	if (files.length === 0) return null;
 	if (files.length <= MAX_COVERS) return `  Covers: ${files.join(", ")}`;
@@ -112,27 +112,27 @@ function coversLine(d: ClassDeadline, names: ReadonlyMap<string, string>): strin
 }
 
 /** The note's full text. */
-export function todayNoteText(input: { now: Date; timeZone: string; cls: TodayNoteClass | null }): string {
-	const { now, timeZone, cls } = input;
+export function todayNoteText(input: { now: Date; timeZone: string; space: TodayNoteSpace | null }): string {
+	const { now, timeZone, space } = input;
 	const clock = wallClock(now, timeZone);
 	const [year] = clock.day.split("-");
 	const head = `[Today] ${dayLabel(clock.day)} ${year}, ${clockLabel(clock.time)} (${timeZoneLabel(now, timeZone)})`;
-	const open = (cls?.deadlines ?? []).filter((d) => !d.done).slice().sort(compareDeadlines);
-	const fresh = newFilesPart(cls?.files ?? [], now);
-	const hinted = hintedPart(cls?.hinted ?? [], now, timeZone);
+	const open = (space?.deadlines ?? []).filter((d) => !d.done).slice().sort(compareDeadlines);
+	const fresh = newFilesPart(space?.files ?? [], now);
+	const hinted = hintedPart(space?.hinted ?? [], now, timeZone);
 	if (open.length === 0) return [head, fresh, hinted].filter((part) => part !== null).join("\n\n");
 
 	const nowStamp = `${clock.day}T${clock.time}`;
-	const dueStamp = (d: ClassDeadline) => {
+	const dueStamp = (d: SpaceDeadline) => {
 		const due = deadlineDueAt(d);
 		return `${due.date}T${due.time}:00`;
 	};
 	const overdue = open.filter((d) => dueStamp(d) < nowStamp);
 	const upcoming = open.filter((d) => dueStamp(d) >= nowStamp);
-	const names = new Map((cls?.files ?? []).map((f) => [f.id, f.name]));
+	const names = new Map((space?.files ?? []).map((f) => [f.id, f.name]));
 
-	const lines = [head, "", "Coming up in this class (not marked done):"];
-	const push = (line: string, d: ClassDeadline) => {
+	const lines = [head, "", "Coming up in this space (not marked done):"];
+	const push = (line: string, d: SpaceDeadline) => {
 		lines.push(line);
 		const covers = coversLine(d, names);
 		if (covers) lines.push(covers);
@@ -150,7 +150,7 @@ export function todayNoteText(input: { now: Date; timeZone: string; cls: TodayNo
 }
 
 /** The practice problems the learner needed hints on lately, newest first; null when none. */
-function hintedPart(hinted: NonNullable<TodayNoteClass["hinted"]>, now: Date, timeZone: string): string | null {
+function hintedPart(hinted: NonNullable<TodayNoteSpace["hinted"]>, now: Date, timeZone: string): string | null {
 	const recent = hinted
 		.filter((h) => now.getTime() - Date.parse(h.at) <= HINTED_DAYS * 86_400_000)
 		.sort((a, b) => b.at.localeCompare(a.at))
@@ -167,9 +167,9 @@ function hintedPart(hinted: NonNullable<TodayNoteClass["hinted"]>, now: Date, ti
 }
 
 /** The new files, newest first: "New files (last 3 days): a, b, and 4 more"
- *  for study files, then a course-info line the teacher may read; null when
+ *  for study files, then a space-info line the teacher may read; null when
  *  none. */
-function newFilesPart(files: TodayNoteClass["files"], now: Date): string | null {
+function newFilesPart(files: TodayNoteSpace["files"], now: Date): string | null {
 	const fresh = files.filter((f) => isRecent(f.addedAt, now.getTime())).sort((a, b) => Date.parse(b.addedAt!) - Date.parse(a.addedAt!));
 	const list = (names: string[]) =>
 		names.length <= MAX_NEW_FILES ? names.join(", ") : `${names.slice(0, MAX_NEW_FILES).join(", ")}, and ${names.length - MAX_NEW_FILES} more`;
@@ -177,7 +177,7 @@ function newFilesPart(files: TodayNoteClass["files"], now: Date): string | null 
 	const info = fresh.filter((f) => f.kind === "info").map((f) => f.name);
 	const lines: string[] = [];
 	if (study.length > 0) lines.push(`New files (last ${NEW_FILE_DAYS} days): ${list(study)}`);
-	if (info.length > 0) lines.push(`New course info (last ${NEW_FILE_DAYS} days): ${list(info)}. Read it when it might matter, like an exam change or an announcement.`);
+	if (info.length > 0) lines.push(`New space info (last ${NEW_FILE_DAYS} days): ${list(info)}. Read it when it might matter, like an exam change or an announcement.`);
 	return lines.length > 0 ? lines.join("\n") : null;
 }
 

@@ -7,10 +7,6 @@
  *   window.lh.platform — read-only OS identity for native window-control
  *   gutters (darwin: left traffic lights; win32/linux: right overlay).
  *
- *   window.lh.expandWindow() — widen the window to the sidebar auto-close
- *   threshold (1000px) when the sidebar is opened below it. The main
- *   process clamps: no-op if the window is already wide enough.
- *
  *   window.lh.onZoom(cb) / window.lh.getZoom() — the zoom truth:
  *   every ⌘±/⌘0 change arrives as "lh:zoom" with
  *   the new factor; getZoom covers the first-paint race. The renderer
@@ -27,7 +23,7 @@
  *   window.lh.reportBug() — opens a prefilled GitHub issue in the browser.
  *
  *   window.lh.openAgent(folder, agent) — opens a terminal running the
- *   godspeed folder's start script for "claude" or "codex"; resolves to
+ *   godspeed folder's start script for "claude", "claude-backup" or "codex"; resolves to
  *   null, or a message saying why it couldn't.
  *
  *   window.lh.listFonts() — the installed font families (Appearance).
@@ -67,7 +63,6 @@ contextBridge.exposeInMainWorld("lh", {
 	// A dropped file's or folder's path (onboarding's drop zone links a
 	// dropped folder). Path only — no file access crosses the bridge.
 	pathForFile: (file) => webUtils.getPathForFile(file),
-	expandWindow: () => ipcRenderer.send("lh:expand-window"),
 	showWindow: () => ipcRenderer.send("lh:show-window"),
 	onZoom: (cb) => {
 		const listener = (_event, factor) => cb(factor);

@@ -21,7 +21,7 @@ export type ChatKind = "teach" | "practice" | "study" | "homework" | "talk";
 /** A lesson's kind: every kind but Talk. */
 export type LessonKind = Exclude<ChatKind, "talk">;
 
-/** Whether a session's teaching is saved to the class graph: teach and
+/** Whether a session's teaching is saved to the space graph: teach and
  *  study lessons are, practice, homework and Talk are not. */
 export function extractsFacts(kind: ChatKind | undefined): boolean {
 	return kind === undefined || kind === "teach" || kind === "study";
@@ -47,10 +47,10 @@ export interface ChatRecord {
 	messages: LhMessage[];
 	/** The session's kind — absent = teach (pre-practice records). */
 	kind?: ChatKind;
-	/** The class this lesson belongs to —
-	 *  ABSENT = "No class" (pre-classes records never migrate; same rule as
+	/** The space this lesson belongs to —
+	 *  ABSENT = "No space" (pre-spaces records never migrate; same rule as
 	 *  kind). Decides which graph the lesson's facts are written to. */
-	classId?: string;
+	spaceId?: string;
 	/** The deadline a Study session was started from; absent for any other
 	 *  start (and on records from before). Its Study button reopens it. */
 	deadlineId?: string;
@@ -68,16 +68,17 @@ export interface ChatRecord {
 	 *  pipeline run on THIS chat. Same parallel-log discipline as `turns` (nothing rides
 	 *  inside messages). Keyed by startedAt; idempotent appends. */
 	extractions?: ExtractionRunUsage[];
-	/** SCHEMA STAMP: LAZY v1 —
+	/** SCHEMA STAMP: lazy —
 	 *  existing records stay unstamped (absence reads as v1); every write
-	 *  stamps the current version. A record stamped NEWER than this build
+	 *  stamps the current version. v2: `classId`, the "class-context" card
+	 *  and a deadline request's `className` are named for spaces. A record stamped NEWER than this build
 	 *  (the downgrade scenario) is REFUSED on read: a read-modify-write
 	 *  store must never rewrite what it doesn't understand. */
 	version?: number;
 }
 
 /** The chat record format this build writes and understands. */
-export const CURRENT_CHAT_VERSION = 1;
+export const CURRENT_CHAT_VERSION = 2;
 
 
 // ─── Background-extraction usage ─────────────────────────────────────────────
@@ -173,18 +174,14 @@ export const HANDOFF_TEXT =
 // The model-facing text of every custom marker lives in core/contracts,
 // never in the flattening seam.
 
-/** The label newThinkingMessage prefixes a practice submission with. One
- *  send lane: whether a submission claims an answer is read from the
- *  text, not declared by a button. */
-export const THINKING_LABEL = "Your thinking";
-
 /** The conclude tool's ack — shared by the executed call (agent layer) and
  *  the dismissal-synthesized pair (input-events), so a concluded problem
  *  reads identically to the model however it concluded. The turn ENDS
  *  after concluding (closing words allowed, no more tool calls); the next
- *  problem waits for the learner's explicit go-ahead. */
+ *  problem waits for the learner's explicit go-ahead, which asking for a
+ *  different problem or part is. */
 export const CONCLUDE_ACK_TEXT =
-	"Problem concluded. Say your closing words about the learner's work if useful, then END YOUR TURN — no further tool calls. The next problem is NEVER posed here: it waits for the learner's explicit go-ahead (a *Next problem* message, or their own words asking for the next one). Between problems, answer their questions about the concluded one.";
+	"Problem concluded. Say your closing words about the learner's work if useful, then END YOUR TURN — no further tool calls. The next problem waits for the learner's explicit go-ahead (a *Next problem* message, or their own words asking for the next one). The one exception: when the learner asked for a different problem or part, that ask is the go-ahead, so pose it now. Between problems, answer their questions about the concluded one.";
 
 /** The learner's explicit move-on signal: the model-facing text of the
  *  practice-next marker. */
@@ -235,8 +232,8 @@ export interface ChatSummary {
 	/** Normalized kind (absent record field reads as teach). The Talk chat
 	 *  is never listed. */
 	kind: LessonKind;
-	/** The lesson's class — absent = "No class". */
-	classId?: string;
+	/** The lesson's space — absent = "No space". */
+	spaceId?: string;
 	/** The deadline a Study session was started from. */
 	deadlineId?: string;
 	messageCount: number;
@@ -248,19 +245,14 @@ export interface ChatSummary {
 	pendingProblem: boolean;
 }
 
-/** The sidebar's session row: a summary + live liveness. The chats list
- *  route attaches `busy` from the turn-liveness registry ONLY — a running
- *  teach turn (background jobs show in the sidebar's Background agents
- *  section, so the row spinner means exactly "a turn is in flight"). The store itself
+/** The lesson list's row: a summary + live liveness. The chats list
+ *  route attaches `busy` from the turn-liveness registry ONLY: a running
+ *  teach turn (background jobs show on the transcript's dispatch cards,
+ *  so the row's busy mark means exactly "a turn is in flight"). The store itself
  *  can't see liveness (import law: store never imports server), hence the
  *  split at exactly the record/liveness seam. */
 export interface ChatListItem extends ChatSummary {
 	busy: boolean;
-	/** Live compaction liveness (turn-liveness's twin): true while a
-	 *  background context compaction holds the chat's model gate. The
-	 *  route attaches it from the compaction registry — never
-	 *  record-derived (the marker persists, the RUN is ephemeral). */
-	compacting: boolean;
 }
 
 // ─── Artifact renderer registry (client extension point) ────────────────────

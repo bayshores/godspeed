@@ -1,23 +1,26 @@
 import { useCallback, useState } from "react";
 import { useNavigate } from "react-router";
 import type { ChatAttachment, DeadlineProgress, GraphContextPick } from "@/shared/core";
-import { useClasses } from "@/frontend/components/class-context";
+import { useSpaces } from "@/frontend/components/space-context";
 import { holdStartFiles } from "@/frontend/components/lesson/start-files";
 
 const LESSON_START_FAILED = "Couldn't start the lesson. Try again.";
 
 /** What a start sends POST /api/chats: a typed topic (its title and any
- *  facts picked for it), some class topics, or a deadline. On picked
+ *  facts picked for it), some space topics, topics of a prep's sheet, one
+ *  question of a mock, or a deadline. On picked
  *  facts with no title, topics or a deadline the server picks the
  *  session's topics and writes its title. */
 type StartBody =
 	| { title: string; graphContext?: { propositions: readonly GraphContextPick[] } }
 	| { topicIds: readonly string[] }
+	| { prepTopicIds: readonly string[] }
+	| { mockQuestion: { mockId: string; questionId: string } }
 	| { deadlineId: string; homework?: true };
 
 /**
  * Every Study start (the start page, its suggestions, a deadline, the
- * Graph, the Overview) goes through here, in the active class. The lesson
+ * Graph, the Overview) goes through here, in the active space. The lesson
  * runs on the outside agent; with no agent connected it waits in the agent
  * queue (the lesson shows "Waiting for your agent"). The session's title,
  * as the server returns it, is its first message, with any pictures and
@@ -26,12 +29,12 @@ type StartBody =
  */
 export function useLessonStart() {
 	const navigate = useNavigate();
-	const { active } = useClasses();
+	const { active } = useSpaces();
 	const [busy, setBusy] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
 	const post = useCallback(
-		async (body: StartBody, files: readonly ChatAttachment[] = [], classId = active) => {
+		async (body: StartBody, files: readonly ChatAttachment[] = [], spaceId = active) => {
 			if (busy) return;
 			setBusy(true);
 			setError(null);
@@ -39,7 +42,7 @@ export function useLessonStart() {
 				const res = await fetch("/api/chats", {
 					method: "POST",
 					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify({ ...body, ...(classId ? { classId } : {}) }),
+					body: JSON.stringify({ ...body, ...(spaceId ? { spaceId } : {}) }),
 				});
 				if (!res.ok) throw new Error(`HTTP ${res.status}`);
 				const { id, title } = (await res.json()) as { id: string; title: string };
@@ -64,7 +67,7 @@ export function useLessonStart() {
 		[post],
 	);
 
-	/** Study some of the class's topics. */
+	/** Study some of the space's topics. */
 	const studyTopics = useCallback(
 		(topicIds: readonly string[]) => {
 			if (topicIds.length > 0) return post({ topicIds });
@@ -72,13 +75,19 @@ export function useLessonStart() {
 		[post],
 	);
 
+	/** Study topics of a prep's sheet; none = the ones that most need work. */
+	const studyPrep = useCallback((prepTopicIds: readonly string[], spaceId?: string) => post({ prepTopicIds }, [], spaceId), [post]);
+
+	/** Go over one question of a graded mock. */
+	const goOverMock = useCallback((mockId: string, questionId: string, spaceId: string) => post({ mockQuestion: { mockId, questionId } }, [], spaceId), [post]);
+
 	/** Study for a deadline: reopens its unfinished session, else starts
-	 *  on the next of today's topics that need work. `classId`: the
-	 *  deadline's class when it isn't the active one (Home). */
+	 *  on the next of today's topics that need work. `spaceId`: the
+	 *  deadline's space when it isn't the active one (Home). */
 	const studyDeadline = useCallback(
-		(deadline: Pick<DeadlineProgress, "id" | "continueStudy">, classId?: string) => {
+		(deadline: Pick<DeadlineProgress, "id" | "continueStudy">, spaceId?: string) => {
 			if (deadline.continueStudy) navigate(`/chat/${deadline.continueStudy.chatId}`);
-			else return post({ deadlineId: deadline.id }, [], classId ?? active);
+			else return post({ deadlineId: deadline.id }, [], spaceId ?? active);
 		},
 		[post, navigate, active],
 	);
@@ -86,9 +95,9 @@ export function useLessonStart() {
 	/** Work on a homework or project: reopens its latest homework session,
 	 *  else starts one on its next problem not done. */
 	const workOnHomework = useCallback(
-		(deadline: Pick<DeadlineProgress, "id" | "continueHomework">, classId?: string) => {
+		(deadline: Pick<DeadlineProgress, "id" | "continueHomework">, spaceId?: string) => {
 			if (deadline.continueHomework) navigate(`/chat/${deadline.continueHomework}`);
-			else return post({ deadlineId: deadline.id, homework: true }, [], classId ?? active);
+			else return post({ deadlineId: deadline.id, homework: true }, [], spaceId ?? active);
 		},
 		[post, navigate, active],
 	);
@@ -96,6 +105,8 @@ export function useLessonStart() {
 	return {
 		start,
 		studyTopics,
+		studyPrep,
+		goOverMock,
 		studyDeadline,
 		workOnHomework,
 		busy,

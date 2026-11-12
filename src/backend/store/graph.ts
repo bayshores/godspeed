@@ -40,16 +40,18 @@ import { LEDGER_FILES, PATHS, graphFilesIn, type GraphFiles } from "../config.ts
 import { assertGraphFormat, ensureGraphFormat } from "./graph-format.ts";
 import { isRecord, isString } from "./guards.ts";
 import { writeFileAtomic } from "./write-file-atomic.ts";
-import type {
-	GraphChain,
-	GraphNode,
-	ExtractionRunUsage,
-	NotesSource,
-	ProvenancePoint,
-	CoverageEntry,
-	SessionCheckpoint,
-	GraphTopic,
-	TopicSnapshot,
+import {
+	TOPIC_MATERIALS,
+	type GraphChain,
+	type GraphNode,
+	type ExtractionRunUsage,
+	type NotesSource,
+	type ProvenancePoint,
+	type CoverageEntry,
+	type SessionCheckpoint,
+	type GraphTopic,
+	type TopicMaterial,
+	type TopicSnapshot,
 } from "../../shared/core/contracts.ts";
 import type { GraphStore } from "../../shared/core/ports.ts";
 
@@ -167,7 +169,12 @@ const isCheckpoint = (v: unknown): v is SessionCheckpoint =>
 	isRecord(v) && isString(v.chatId) && isString(v.foldedAt);
 
 const isTopic = (v: unknown): v is GraphTopic =>
-	isRecord(v) && isString(v.id) && isString(v.name) && Array.isArray(v.members) && v.members.every(isString);
+	isRecord(v) &&
+	isString(v.id) &&
+	isString(v.name) &&
+	Array.isArray(v.members) &&
+	v.members.every(isString) &&
+	(v.material === undefined || TOPIC_MATERIALS.includes(v.material as TopicMaterial));
 
 const isTopicSnapshot = (v: unknown): v is TopicSnapshot =>
 	isRecord(v) && isString(v.at) && Array.isArray(v.topics) && v.topics.every(isTopic);
@@ -177,8 +184,8 @@ const isCoverageEntry = (v: unknown): v is CoverageEntry =>
 
 // ─── the port implementation ────────────────────────────────────────────────
 
-/** One graph family's store, rooted at `files` (the "No class" graph and
- *  every class graph share this adapter — only the folder differs). */
+/** One graph family's store, rooted at `files` (the "No space" graph and
+ *  every space graph share this adapter — only the folder differs). */
 export function createGraphStore(files: GraphFiles): GraphStore {
 	return {
 		appendNode(node: GraphNode): void {
@@ -279,7 +286,7 @@ export function createGraphStore(files: GraphFiles): GraphStore {
 	};
 }
 
-/** The "No class" graph (data/graph). */
+/** The "No space" graph (data/graph). */
 export const graphStore: GraphStore = createGraphStore(graphFilesIn(PATHS.graph));
 
 /** sources.json — { id: NotesSource }. Read-modify-write, NOT append-only:

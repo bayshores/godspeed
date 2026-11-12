@@ -3,38 +3,25 @@ import { Link } from "react-router";
 import type { FileCoverage, TopicProgress } from "@/shared/core";
 import { InlineMath } from "@/frontend/components/overview/inline-math";
 import { displayName, lessonHref } from "@/frontend/components/overview/overview-model";
-import { STATUS_COLOR } from "@/frontend/components/graph/derive";
-import { suggestionKey, type LessonStep, type Suggestion } from "./suggestions-model";
-import { LABEL_TEXT } from "@/frontend/components/ui/label-text";
+import { suggestionKey, suggestionLine, type LessonStep, type Suggestion } from "./suggestions-model";
 
-const ACTION = "lh-btn shrink-0";
-
-const KIND_LABEL: Record<Suggestion["kind"], string> = {
-	continue: "Continue",
-	"next-up": "Next up",
-	"work-on-next": "Work on next",
-};
-
-/** Numbers line up in mono; words stay in the UI font. */
-function Num({ children }: { children: ReactNode }) {
-	return <span className="font-mono tabular-nums">{children}</span>;
-}
+const ACTION = "lh-btn shrink-0 text-[15px]";
 
 /**
- * "Suggested for <class>": Continue (the latest lesson, Open), Next up
+ * "Suggested for <space>": Continue (the latest lesson, Open), Next up
  * (the earliest unstudied file, Study) and Work on next (topics,
  * Study). Renders nothing when there is nothing to suggest.
  */
 export const SuggestionList = memo(function SuggestionList({
-	classLabel: label,
+	spaceLabel: label,
 	suggestions,
 	step,
 	busy,
 	onStudyFile,
 	onStudyTopic,
 }: {
-	/** The class's name; null = no class. */
-	classLabel: string | null;
+	/** The space's name; null = no space. */
+	spaceLabel: string | null;
 	suggestions: readonly Suggestion[];
 	/** The Continue lesson's plan position, once read. */
 	step: LessonStep | null;
@@ -44,9 +31,9 @@ export const SuggestionList = memo(function SuggestionList({
 }) {
 	if (suggestions.length === 0) return null;
 	return (
-		<section data-testid="home-suggestions" className="lh-rise flex w-full flex-col gap-2.5">
-			<h2 className={LABEL_TEXT}>{label ? `Suggested for ${label}` : "Suggested"}</h2>
-			<ul className="flex w-full flex-col gap-0.5">
+		<section data-testid="home-suggestions" className="lh-rise flex w-full flex-col">
+			<h2 className="border-b-[1.5px] border-ink pb-1.5 text-xl leading-tight text-ink">{label ? `Suggested for ${label}` : "Suggested"}</h2>
+			<ul className="flex w-full flex-col">
 				{suggestions.map((s) => (
 					<SuggestionRow key={suggestionKey(s)} suggestion={s} step={step} busy={busy} onStudyFile={onStudyFile} onStudyTopic={onStudyTopic} />
 				))}
@@ -68,98 +55,39 @@ const SuggestionRow = memo(function SuggestionRow({
 	onStudyFile: (file: FileCoverage) => void;
 	onStudyTopic: (topic: TopicProgress) => void;
 }) {
-	/** null = no dot; otherwise a class and/or a color. */
-	let dot: { className?: string; color?: string } | null;
 	let title: string;
-	let meta: ReactNode = null;
 	let action: ReactNode;
 	if (s.kind === "continue") {
-		dot = { className: "bg-ink-max" };
 		title = s.lesson.title;
-		if (step) {
-			meta = (
-				<>
-					step{" "}
-					<Num>
-						{step.position} / {step.total}
-					</Num>
-				</>
-			);
-		}
 		action = (
 			<Link to={lessonHref(s.lesson.chatId)} data-testid="home-continue" className={ACTION}>
 				Open
 			</Link>
 		);
 	} else if (s.kind === "next-up") {
-		dot = null;
 		title = displayName(s.file.name);
-		meta = (
-			<>
-				<Num>{s.file.facts}</Num> {s.file.facts === 1 ? "fact" : "facts"}
-			</>
-		);
 		action = (
 			<button type="button" data-testid="home-study-file" disabled={busy} onClick={() => onStudyFile(s.file)} className={ACTION}>
 				Study
 			</button>
 		);
 	} else {
-		const color = STATUS_COLOR[s.topic.status];
-		dot = color ? { color } : { className: "bg-ans-dontknow" };
 		title = s.topic.name;
-		meta =
-			s.topic.answered > 0 ? (
-				<Num>
-					{s.topic.right} / {s.topic.answered}
-				</Num>
-			) : (
-				"not tested"
-			);
 		action = (
-			<button
-				type="button"
-				data-testid="home-study-topic"
-				disabled={busy}
-				onClick={() => onStudyTopic(s.topic)}
-				className={ACTION}
-			>
+			<button type="button" data-testid="home-study-topic" disabled={busy} onClick={() => onStudyTopic(s.topic)} className={ACTION}>
 				Study
 			</button>
 		);
 	}
-	return <Row kind={s.kind} dot={dot} title={title} meta={meta} action={action} />;
-});
-
-function Row({
-	kind,
-	dot,
-	title,
-	meta,
-	action,
-}: {
-	kind: Suggestion["kind"];
-	/** null = no dot (an empty slot keeps the text aligned). */
-	dot: { className?: string; color?: string } | null;
-	title: string;
-	meta: ReactNode;
-	action: ReactNode;
-}) {
 	return (
-		<li data-testid={`home-suggestion-${kind}`} className="flex w-full items-center gap-3 bg-tone px-3.5 py-3">
-			<span
-				aria-hidden
-				className={dot ? `size-2 shrink-0 rounded-full ${dot.className ?? ""}` : "size-2 shrink-0"}
-				style={dot?.color ? { background: dot.color } : undefined}
-			/>
+		<li data-testid={`home-suggestion-${s.kind}`} className="flex w-full items-center gap-3.5 border-b border-dotted border-edge px-1 py-[13px] last:border-b-0">
 			<span className="flex min-w-0 flex-1 flex-col gap-0.5">
-				<span className={LABEL_TEXT}>{KIND_LABEL[kind]}</span>
-				<span className="truncate text-[15px] font-bold text-ink">
+				<span className="truncate text-[17px] leading-tight text-ink">
 					<InlineMath text={title} />
 				</span>
+				<span className="truncate text-base text-ink-2">{suggestionLine(s, step)}</span>
 			</span>
-			{meta && <span className="shrink-0 whitespace-nowrap text-[12.5px] text-ink-3">{meta}</span>}
 			{action}
 		</li>
 	);
-}
+});

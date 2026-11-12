@@ -5,14 +5,14 @@ import assert from "node:assert/strict";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { describe, it } from "node:test";
-import type { ClassDeadline } from "../../src/shared/core/contracts/class.ts";
+import type { SpaceDeadline } from "../../src/shared/core/contracts/space.ts";
 import {
 	deadlinePartOf,
 	localDay,
 	timeZoneLabel,
 	todayNoteText,
 	todayNoteToAppend,
-	type TodayNoteClass,
+	type TodayNoteSpace,
 } from "../../src/shared/core/today-note.ts";
 import { newMessageId } from "../../src/shared/core/message-id.ts";
 import {
@@ -22,7 +22,7 @@ import {
 	type LhMessage,
 } from "../../src/shared/core/native-messages.ts";
 import { projectView } from "../../src/shared/core/view.ts";
-import { classTools } from "../../src/backend/agent/tools/class.ts";
+import { spaceTools } from "../../src/backend/agent/tools/space.ts";
 
 const TZ = "America/Los_Angeles";
 /** Wed Oct 28 2026, 4:12 PM Pacific (PDT, UTC-7). */
@@ -39,12 +39,12 @@ const FILES = [
 	"Lecture 14 · Graphs",
 ].map((name, i) => ({ id: `f${i}`, name }));
 
-function dl(d: Partial<ClassDeadline> & Pick<ClassDeadline, "id" | "kind" | "name" | "date">): ClassDeadline {
+function dl(d: Partial<SpaceDeadline> & Pick<SpaceDeadline, "id" | "kind" | "name" | "date">): SpaceDeadline {
 	return { fileIds: [], done: false, ...d };
 }
 
-/** Board 4's class. */
-const BOARD: TodayNoteClass = {
+/** Board 4's space. */
+const BOARD: TodayNoteSpace = {
 	files: FILES,
 	deadlines: [
 		dl({ id: "b", kind: "exam", name: "Midterm 2", date: "2026-11-05", time: "19:00", fileIds: ["f2", "f3", "f4", "f5", "f6", "f7"] }),
@@ -57,7 +57,7 @@ const BOARD: TodayNoteClass = {
 const BOARD_TEXT = [
 	"[Today] Wed Oct 28 2026, 4:12 PM (Pacific Time)",
 	"",
-	"Coming up in this class (not marked done):",
+	"Coming up in this space (not marked done):",
 	"- Overdue: HW 3 (homework), was due Fri Oct 23 11:59 PM",
 	"- HW 4 (homework), due Fri Oct 30 11:59 PM, in 2 days.",
 	"  Covers: Lecture 4 · Pigeonhole principle, Lecture 5 · Permutations",
@@ -68,7 +68,7 @@ const BOARD_TEXT = [
 describe("[Today] note text", () => {
 	it("lists the practice problems solved only with hints, newest first, for two weeks", () => {
 		const long = `Count the ${"very ".repeat(40)}long strings.`;
-		const cls: TodayNoteClass = {
+		const space: TodayNoteSpace = {
 			deadlines: [],
 			files: [],
 			hinted: [
@@ -77,22 +77,22 @@ describe("[Today] note text", () => {
 				{ statement: long, at: "2026-10-28T18:00:00Z" },
 			],
 		};
-		const text = todayNoteText({ now: NOW, timeZone: TZ, cls });
+		const text = todayNoteText({ now: NOW, timeZone: TZ, space });
 		const lines = text.split("\n");
 		assert.equal(lines[2], "Practice problems the learner solved only with hints (last 14 days), worth coming back to:");
 		assert.match(lines[3]!, /^- "Count the very .*…" \(Wed Oct 28\)$/);
 		assert.equal(lines[3]!.length, '- "'.length + 140 + '" (Wed Oct 28)'.length);
 		assert.equal(lines[4], '- "How many anagrams of BANANA?" (Tue Oct 27)');
 		assert.equal(lines.length, 5, "the old one is past two weeks");
-		assert.notEqual(deadlinePartOf(text), deadlinePartOf(todayNoteText({ now: NOW, timeZone: TZ, cls: { deadlines: [], files: [] } })), "a new hinted problem refreshes the note");
+		assert.notEqual(deadlinePartOf(text), deadlinePartOf(todayNoteText({ now: NOW, timeZone: TZ, space: { deadlines: [], files: [] } })), "a new hinted problem refreshes the note");
 	});
 
 	it("matches board 4 exactly (overdue first, done left out, exam without 'due', more than 4 files)", () => {
-		assert.equal(todayNoteText({ now: NOW, timeZone: TZ, cls: BOARD }), BOARD_TEXT);
+		assert.equal(todayNoteText({ now: NOW, timeZone: TZ, space: BOARD }), BOARD_TEXT);
 	});
 
 	it("today, tomorrow, no time, an overdue item due earlier today, exactly 4 files", () => {
-		const cls: TodayNoteClass = {
+		const space: TodayNoteSpace = {
 			files: FILES,
 			deadlines: [
 				dl({ id: "1", kind: "quiz", name: "Reading quiz", date: "2026-10-28", time: "17:00" }),
@@ -102,11 +102,11 @@ describe("[Today] note text", () => {
 			],
 		};
 		assert.equal(
-			todayNoteText({ now: NOW, timeZone: TZ, cls }),
+			todayNoteText({ now: NOW, timeZone: TZ, space }),
 			[
 				"[Today] Wed Oct 28 2026, 4:12 PM (Pacific Time)",
 				"",
-				"Coming up in this class (not marked done):",
+				"Coming up in this space (not marked done):",
 				"- Overdue: HW 2 (homework), was due Wed Oct 28 9:00 AM",
 				"- Reading quiz (quiz), due Wed Oct 28 5:00 PM, today.",
 				"- Project 1 (project), due Thu Oct 29, tomorrow.",
@@ -117,16 +117,16 @@ describe("[Today] note text", () => {
 	});
 
 	it("an overdue exam drops 'due' like an open one; unknown file ids are skipped", () => {
-		const cls: TodayNoteClass = {
+		const space: TodayNoteSpace = {
 			files: FILES,
 			deadlines: [dl({ id: "1", kind: "exam", name: "Midterm 1", date: "2026-10-22", time: "19:00", fileIds: ["gone", "f0"] })],
 		};
 		assert.equal(
-			todayNoteText({ now: NOW, timeZone: TZ, cls }),
+			todayNoteText({ now: NOW, timeZone: TZ, space }),
 			[
 				"[Today] Wed Oct 28 2026, 4:12 PM (Pacific Time)",
 				"",
-				"Coming up in this class (not marked done):",
+				"Coming up in this space (not marked done):",
 				"- Overdue: Midterm 1 (exam), was Thu Oct 22 7:00 PM",
 				"  Covers: Lecture 4 · Pigeonhole principle",
 			].join("\n"),
@@ -135,19 +135,19 @@ describe("[Today] note text", () => {
 
 	it("a deadline with no time is due at 23:59: still open late in the day", () => {
 		const late = new Date("2026-10-29T06:58:00Z"); // Wed Oct 28, 11:58 PM Pacific
-		const cls: TodayNoteClass = { files: [], deadlines: [dl({ id: "1", kind: "homework", name: "HW 4", date: "2026-10-28" })] };
-		assert.match(todayNoteText({ now: late, timeZone: TZ, cls }), /- HW 4 \(homework\), due Wed Oct 28, today\.$/);
+		const space: TodayNoteSpace = { files: [], deadlines: [dl({ id: "1", kind: "homework", name: "HW 4", date: "2026-10-28" })] };
+		assert.match(todayNoteText({ now: late, timeZone: TZ, space }), /- HW 4 \(homework\), due Wed Oct 28, today\.$/);
 		const after = new Date("2026-10-29T07:00:00Z"); // Thu Oct 29, 12:00 AM
-		assert.match(todayNoteText({ now: after, timeZone: TZ, cls }), /^\[Today\] Thu Oct 29 2026, 12:00 AM/);
-		assert.match(todayNoteText({ now: after, timeZone: TZ, cls }), /- Overdue: HW 4 \(homework\), was due Wed Oct 28$/);
+		assert.match(todayNoteText({ now: after, timeZone: TZ, space }), /^\[Today\] Thu Oct 29 2026, 12:00 AM/);
+		assert.match(todayNoteText({ now: after, timeZone: TZ, space }), /- Overdue: HW 4 \(homework\), was due Wed Oct 28$/);
 	});
 
-	it("only the [Today] line with no open deadlines, and with no class", () => {
+	it("only the [Today] line with no open deadlines, and with no space", () => {
 		const head = "[Today] Wed Oct 28 2026, 4:12 PM (Pacific Time)";
-		const allDone: TodayNoteClass = { files: [], deadlines: [dl({ id: "1", kind: "quiz", name: "Q", date: "2026-10-30", done: true })] };
-		assert.equal(todayNoteText({ now: NOW, timeZone: TZ, cls: allDone }), head);
-		assert.equal(todayNoteText({ now: NOW, timeZone: TZ, cls: { files: [], deadlines: [] } }), head);
-		assert.equal(todayNoteText({ now: NOW, timeZone: TZ, cls: null }), head);
+		const allDone: TodayNoteSpace = { files: [], deadlines: [dl({ id: "1", kind: "quiz", name: "Q", date: "2026-10-30", done: true })] };
+		assert.equal(todayNoteText({ now: NOW, timeZone: TZ, space: allDone }), head);
+		assert.equal(todayNoteText({ now: NOW, timeZone: TZ, space: { files: [], deadlines: [] } }), head);
+		assert.equal(todayNoteText({ now: NOW, timeZone: TZ, space: null }), head);
 		assert.equal(deadlinePartOf(head), "");
 	});
 
@@ -160,36 +160,36 @@ describe("[Today] note text", () => {
 			...[1, 2, 3, 4, 5, 6, 7].map((n) => ({ id: `n${n}`, name: `Day${n}.pdf`, addedAt: hoursAgo(n) })),
 		];
 		assert.equal(
-			todayNoteText({ now: NOW, timeZone: TZ, cls: { files: files.slice(0, 4), deadlines: [] } }),
+			todayNoteText({ now: NOW, timeZone: TZ, space: { files: files.slice(0, 4), deadlines: [] } }),
 			[head, "", "New files (last 3 days): Day1.pdf, Day2.pdf"].join("\n"),
 			"shown with no deadlines; older and undated files left out",
 		);
 		assert.equal(
-			todayNoteText({ now: NOW, timeZone: TZ, cls: { files, deadlines: [] } }),
+			todayNoteText({ now: NOW, timeZone: TZ, space: { files, deadlines: [] } }),
 			[head, "", "New files (last 3 days): Day1.pdf, Day2.pdf, Day3.pdf, Day4.pdf, Day5.pdf, and 2 more"].join("\n"),
 		);
-		assert.equal(todayNoteText({ now: NOW, timeZone: TZ, cls: { files: files.slice(0, 2), deadlines: [] } }), head);
-		const withDeadline = todayNoteText({ now: NOW, timeZone: TZ, cls: { files: files.slice(0, 3), deadlines: [dl({ id: "a", kind: "quiz", name: "Q1", date: "2026-10-30" })] } });
+		assert.equal(todayNoteText({ now: NOW, timeZone: TZ, space: { files: files.slice(0, 2), deadlines: [] } }), head);
+		const withDeadline = todayNoteText({ now: NOW, timeZone: TZ, space: { files: files.slice(0, 3), deadlines: [dl({ id: "a", kind: "quiz", name: "Q1", date: "2026-10-30" })] } });
 		assert.match(withDeadline, /- Q1 \(quiz\), due Fri Oct 30, in 2 days\.\n\nNew files \(last 3 days\): Day1\.pdf$/);
 	});
 
-	it("lists new course info apart, telling the teacher it can read it", () => {
+	it("lists new space info apart, telling the teacher it can read it", () => {
 		const head = "[Today] Wed Oct 28 2026, 4:12 PM (Pacific Time)";
 		const hoursAgo = (h: number) => new Date(NOW.getTime() - h * 3_600_000).toISOString();
 		const files = [
 			{ id: "d", name: "Day4.pdf", addedAt: hoursAgo(1), kind: "study" as const },
 			{ id: "p", name: "Piazza digest.pdf", addedAt: hoursAgo(2), kind: "info" as const },
 		];
-		const courseInfo = "New course info (last 3 days): Piazza digest.pdf. Read it when it might matter, like an exam change or an announcement.";
+		const spaceInfo = "New space info (last 3 days): Piazza digest.pdf. Read it when it might matter, like an exam change or an announcement.";
 		assert.equal(
-			todayNoteText({ now: NOW, timeZone: TZ, cls: { files, deadlines: [] } }),
-			[head, "", "New files (last 3 days): Day4.pdf", courseInfo].join("\n"),
+			todayNoteText({ now: NOW, timeZone: TZ, space: { files, deadlines: [] } }),
+			[head, "", "New files (last 3 days): Day4.pdf", spaceInfo].join("\n"),
 		);
-		assert.equal(todayNoteText({ now: NOW, timeZone: TZ, cls: { files: files.slice(1), deadlines: [] } }), [head, "", courseInfo].join("\n"));
+		assert.equal(todayNoteText({ now: NOW, timeZone: TZ, space: { files: files.slice(1), deadlines: [] } }), [head, "", spaceInfo].join("\n"));
 	});
 
 	it("uses the machine's time zone wall clock and a readable zone name, falling back to the IANA name", () => {
-		assert.match(todayNoteText({ now: NOW, timeZone: "Europe/Berlin", cls: null }), /^\[Today\] Thu Oct 29 2026, 12:12 AM \(Central European Time\)$/);
+		assert.match(todayNoteText({ now: NOW, timeZone: "Europe/Berlin", space: null }), /^\[Today\] Thu Oct 29 2026, 12:12 AM \(Central European Time\)$/);
 		assert.equal(timeZoneLabel(NOW, "Not/AZone"), "Not/AZone");
 	});
 });
@@ -197,7 +197,7 @@ describe("[Today] note text", () => {
 describe("[Today] note append rule", () => {
 	const user = (text: string) => newUserMessage(text) as LhMessage;
 	const note = (text: string, day: string) => newTodayContextMessage(text, day) as LhMessage;
-	const text = todayNoteText({ now: NOW, timeZone: TZ, cls: BOARD });
+	const text = todayNoteText({ now: NOW, timeZone: TZ, space: BOARD });
 
 	it("the first turn gets a note", () => {
 		const added = todayNoteToAppend([], text, "2026-10-28");
@@ -209,14 +209,14 @@ describe("[Today] note append rule", () => {
 	});
 
 	it("same day and same deadlines: no new note, even when the clock time moved", () => {
-		const later = todayNoteText({ now: new Date("2026-10-29T01:40:00Z"), timeZone: TZ, cls: BOARD }); // 6:40 PM
+		const later = todayNoteText({ now: new Date("2026-10-29T01:40:00Z"), timeZone: TZ, space: BOARD }); // 6:40 PM
 		assert.notEqual(later, text);
 		assert.equal(todayNoteToAppend([note(text, "2026-10-28"), user("hi")], later, "2026-10-28"), null);
 	});
 
 	it("a new day gets a note", () => {
-		const tomorrow = todayNoteText({ now: new Date("2026-10-29T17:00:00Z"), timeZone: TZ, cls: null });
-		const msgs = [note(todayNoteText({ now: NOW, timeZone: TZ, cls: null }), "2026-10-28"), user("hi")];
+		const tomorrow = todayNoteText({ now: new Date("2026-10-29T17:00:00Z"), timeZone: TZ, space: null });
+		const msgs = [note(todayNoteText({ now: NOW, timeZone: TZ, space: null }), "2026-10-28"), user("hi")];
 		assert.ok(todayNoteToAppend(msgs, tomorrow, "2026-10-29"));
 	});
 
@@ -224,7 +224,7 @@ describe("[Today] note append rule", () => {
 		const edited = todayNoteText({
 			now: NOW,
 			timeZone: TZ,
-			cls: { ...BOARD, deadlines: BOARD.deadlines.map((d) => (d.id === "a" ? { ...d, date: "2026-10-31" } : d)) },
+			space: { ...BOARD, deadlines: BOARD.deadlines.map((d) => (d.id === "a" ? { ...d, date: "2026-10-31" } : d)) },
 		});
 		assert.ok(todayNoteToAppend([note(text, "2026-10-28"), user("hi")], edited, "2026-10-28"));
 	});
@@ -233,14 +233,14 @@ describe("[Today] note append rule", () => {
 		const done = todayNoteText({
 			now: NOW,
 			timeZone: TZ,
-			cls: { ...BOARD, deadlines: BOARD.deadlines.map((d) => (d.id === "c" ? { ...d, done: true } : d)) },
+			space: { ...BOARD, deadlines: BOARD.deadlines.map((d) => (d.id === "c" ? { ...d, done: true } : d)) },
 		});
 		assert.doesNotMatch(done, /HW 3/);
 		assert.ok(todayNoteToAppend([note(text, "2026-10-28"), user("hi")], done, "2026-10-28"));
 	});
 
 	it("only the newest note counts", () => {
-		const other = todayNoteText({ now: NOW, timeZone: TZ, cls: null });
+		const other = todayNoteText({ now: NOW, timeZone: TZ, space: null });
 		const msgs = [note(other, "2026-10-28"), user("a"), note(text, "2026-10-28"), user("b")];
 		assert.equal(todayNoteToAppend(msgs, text, "2026-10-28"), null);
 	});
@@ -265,7 +265,7 @@ describe("[Today] note append rule", () => {
 });
 
 describe("[Today] note on the wire and on screen", () => {
-	const text = todayNoteText({ now: NOW, timeZone: TZ, cls: BOARD });
+	const text = todayNoteText({ now: NOW, timeZone: TZ, space: BOARD });
 	const marker = newTodayContextMessage(text, "2026-10-28") as LhMessage;
 	const learner = newUserMessage("teach me permutations") as LhMessage;
 
@@ -285,32 +285,32 @@ describe("[Today] note on the wire and on screen", () => {
 	});
 });
 
-describe("read_class and the prompt", () => {
-	it("read_class returns the card, a blank line, then the current note", async () => {
-		const tools = classTools({
-			classCard: () => ({ classId: "cls_x", name: "CSE 21", description: "", files: [] }),
+describe("read_space and the prompt", () => {
+	it("read_space returns the card, a blank line, then the current note", async () => {
+		const tools = spaceTools({
+			spaceCard: () => ({ spaceId: "cls_x", name: "CSE 21", description: "", files: [] }),
 			todayNote: () => BOARD_TEXT,
 		});
-		const out = (await tools.read_class!.execute!("tc", {})).details as string;
-		assert.equal(out, `[Class context] — this lesson belongs to a course the learner is taking:\n\nClass: CSE 21\n\n${BOARD_TEXT}`);
+		const out = (await tools.read_space!.execute!("tc", {})).details as string;
+		assert.equal(out, `[Space context] — this lesson belongs to one of the learner's spaces:\n\nSpace: CSE 21\n\n${BOARD_TEXT}`);
 	});
 
-	it("set_class_note hands the text to the class and returns its reply", async () => {
+	it("set_space_note hands the text to the space and returns its reply", async () => {
 		const saved: string[] = [];
-		const tools = classTools({
-			classCard: () => null,
+		const tools = spaceTools({
+			spaceCard: () => null,
 			setNote: (text) => {
 				saved.push(text);
 				return "Saved.";
 			},
 		});
-		const out = (await tools.set_class_note!.execute!("tc", { text: "Pointers are clicking. PA 3 is next." })).details as string;
+		const out = (await tools.set_space_note!.execute!("tc", { text: "Pointers are clicking. PA 3 is next." })).details as string;
 		assert.equal(out, "Saved.");
 		assert.deepEqual(saved, ["Pointers are clicking. PA 3 is next."]);
 	});
 
-	it("12-class-context.md tells the teacher how to use the deadlines", () => {
-		const prompt = fs.readFileSync(path.join(import.meta.dirname, "../../src/backend/agent/prompts/shared/12-class-context.md"), "utf8");
+	it("12-space-context.md tells the teacher how to use the deadlines", () => {
+		const prompt = fs.readFileSync(path.join(import.meta.dirname, "../../src/backend/agent/prompts/shared/12-space-context.md"), "utf8");
 		assert.ok(
 			prompt.includes(
 				"When the learner hasn't picked a topic, use the deadlines in the [Today] note to choose what to teach first (the soonest one's files). Don't bring up deadlines unless the learner does.",

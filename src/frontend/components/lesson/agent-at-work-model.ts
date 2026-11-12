@@ -25,7 +25,7 @@ export interface AgentWork {
 }
 
 /** Tools whose cards the view stands in for while the reply is in flight. */
-export const STEP_TOOLS: ReadonlySet<string> = new Set(["read", "grep", "find", "ls", "pdf", "research", "demo", "visual", "read_class"]);
+export const STEP_TOOLS: ReadonlySet<string> = new Set(["read", "grep", "find", "ls", "pdf", "research", "demo", "visual", "read_space"]);
 
 const IMAGE_EXT = /\.(jpe?g|png|gif|webp|bmp)$/i;
 
@@ -92,8 +92,8 @@ function stepLabel(tool: string, input: Record<string, unknown>): string | null 
 			return "started building a demo";
 		case "visual":
 			return "started drawing a figure";
-		case "read_class":
-			return "read the class card";
+		case "read_space":
+			return "read the space card";
 		default:
 			return null;
 	}

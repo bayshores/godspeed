@@ -1,22 +1,16 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { CheckIcon, LightbulbIcon } from "lucide-react";
-import { useEnterSubmits } from "@/frontend/components/enter-submits";
+import { useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { ToolContentResponse } from "@/frontend/components/ai-elements/message";
+import { ANSWER_ROW, DontKnowRow, PICKED, proseVars, QuestionText } from "@/frontend/components/lesson/question-parts";
 import { ConfidenceMeter, ConfidenceSquares } from "@/frontend/components/confidence-meter";
-import { ActionBar, KindChip, PanelBody, PanelHeader, HeaderChip, SendButton, skipExit } from "@/frontend/components/lesson/panel-parts";
-import { TurnStatus } from "@/frontend/components/lesson/turn-status";
-import { MathBox } from "@/frontend/components/math-box";
 import { InlineMath } from "@/frontend/components/overview/inline-math";
 import { PickedRow } from "@/frontend/components/lesson/picked-row";
-import { AttachButton, AttachmentTray, attachmentInputProps, useAttachmentDraft } from "@/frontend/components/lesson/attachment-tray";
+import { prefersReducedMotion } from "@/frontend/components/presence";
 import { cn } from "@/frontend/lib/utils";
 import { useSound } from "@/frontend/components/sounds";
 import {
 	answerSound,
-	answerTakesFiles,
 	buildAnswer,
 	normalizeQuizType,
-	questionKindLabel,
 	CONFIDENCE_STOPS,
 	emptyDockSelection,
 	normalizeOptions,
@@ -33,7 +27,6 @@ import {
 	toggleOther,
 	type AnswerRequest,
 	type AskToolInput,
-	type ChatAttachment,
 	type ConfidenceLevel,
 	type DockSelection,
 	type ExplainDisplayInput,
@@ -48,41 +41,43 @@ import {
 import { CodeQuestion } from "@/frontend/components/lesson/code-question";
 
 /**
- * THE QUESTION PANEL: a waiting quiz/ask/
- * explain fills the Your-turn panel — "Your turn" with the question's
- * kind, the question, numbered options (keys 1–n, 0 = I don't know), the
- * 5-bar confidence meter (quiz only; ←/→ or click), "Your thinking", and
- * the full-width "Submit answer" bar.
+ * THE WAITING QUESTION, above the lesson's writing box: the question, its
+ * lettered choices (keys 1–n, 0 = I don't know) and the five "how sure"
+ * squares (quiz only; ←/→ or click). It holds no text box and no buttons
+ * of its own: the writing box under it carries the reasoning (or the
+ * whole answer, for a question answered in words) and "Submit answer".
  *
- * "Your thinking" is the transfer channel of the whole product: never
- * called optional; Enter submits, Shift+Enter is a newline. The ask
- * "Other…" option is an editable row, so picking Other never displaces
- * the thinking. A write_code question has its own form (CodeQuestion).
- * An answer in the learner's own words (explain, recall, ask) takes
- * pictures and PDFs like the message box.
+ * The ask "Other…" choice is an editable row. A write_code question has
+ * its own form (CodeQuestion).
  */
+
+/** What the writing box asks of the question above it. */
+export interface QuestionHandle {
+	/** Sends the answer with the box's text. */
+	submit(): void;
+	/** The learner started writing: an answered list folds into one row. */
+	fold(): void;
+}
 
 export interface QuestionDockProps {
 	toolName: "quiz" | "probe" | "ask_user_question" | "explain" | "recall" | "write_code";
 	toolCallId: string;
 	input: unknown;
-	/** The answer and its files. Resolves false when the send was not taken. */
-	onSubmit: (output: QuestionAnswerData, attachments: ChatAttachment[]) => Promise<boolean>;
-	/** The form as the learner left it (this call's saved draft). */
+	onSubmit: (output: QuestionAnswerData) => void;
+	/** The picks as the learner left them (this call's saved draft). */
 	initialDraft?: QuestionFormDraft;
-	/** Called on every change, so the form survives leaving the lesson. */
+	/** Called on every change, so the picks survive leaving the lesson. */
 	onSaveDraft?: (draft: QuestionFormDraft) => void;
-	/** Opens the skip confirm. */
-	onSkip?: () => void;
-	/** Compaction is running for this chat: the answer would block on the
-	 *  server's compaction gate, so submit waits (the server is the real gate). */
-	compactionRunning?: boolean;
+	/** Whether an answer is picked, so the box's "Submit answer" follows it. */
+	onReady: (ready: boolean) => void;
+	/** What the writing box holds: the reasoning, or the answer itself for
+	 *  a question answered in words. */
+	boxText: string;
+	/** Tab from the choices goes to the writing box. */
+	onLeaveRows: () => void;
 	/** The teacher is replying to a side question: submit waits. */
 	busy?: boolean;
-	/** That reply waits for an agent to take it (the header says so). */
-	waitingForAgent?: boolean;
-	/** A quiet row under the field (the lesson's stats). */
-	footer?: React.ReactNode;
+	ref?: React.Ref<QuestionHandle>;
 }
 
 export function QuestionDock(props: QuestionDockProps) {
@@ -102,14 +97,8 @@ export function QuestionDock(props: QuestionDockProps) {
 					: parseAskInput(input);
 	if (!parsed) {
 		return (
-			<div className="flex min-h-0 flex-1 flex-col">
-				<PanelBody>
-					<PanelHeader status={props.busy && <TurnStatus waitingForAgent={props.waitingForAgent ?? false} />} />
-					<div data-testid="malformed-question" className="mt-3 bg-tone px-3.5 py-3 text-sm text-ink-2">
-						This question came through broken. Skip it and the teacher will ask again.
-					</div>
-				</PanelBody>
-				{props.onSkip && <ActionBar testId="skip-question" label="Skip question" onClick={props.onSkip} />}
+			<div data-testid="malformed-question" className="shrink-0 bg-tone px-3.5 py-3 text-base text-ink-2">
+				This question came through broken. Skip it and the teacher will ask again.
 			</div>
 		);
 	}
@@ -117,42 +106,22 @@ export function QuestionDock(props: QuestionDockProps) {
 	return <QuestionDockForm {...props} input={parsed as QuizDisplayInput | AskToolInput | ExplainDisplayInput} />;
 }
 
-/** A picked row inverts: ink background, page-colored text. */
-const PICKED_INK = "var(--background)";
-const PICKED_TINT = "color-mix(in srgb, var(--background) 12%, transparent)";
+const OPTION_ROW = cn(ANSWER_ROW, "items-start px-2.5 py-[9px]");
+/** The dotted rule between two rows. */
+const ROW_RULE = "border-t-2 border-dotted border-edge";
 
-/** Lesson prose at a given size and color (the markdown renderer reads
- *  these variables), for the question and option text. */
-function proseVars(size: number, leading: number, ink?: string): React.CSSProperties {
-	return {
-		"--lh-prose-size": `${size}px`,
-		"--lh-prose-leading": `${leading / size}`,
-		...(ink ? { "--lh-ink-body": ink, "--lh-ink-strong": ink, "--lh-ink-italic": ink } : {}),
-		// Bold words' block and inline code's block, made readable on the
-		// inverted picked row (their dark fills would hide the dark text).
-		...(ink === PICKED_INK ? { "--lh-mark-bg": PICKED_TINT, "--muted": PICKED_TINT } : {}),
-	} as React.CSSProperties;
-}
-
-const OPTION_ROW = "lh-press flex w-full items-start gap-3 px-3.5 py-3 text-left outline-none transition-colors duration-(--lh-dur) ease-(--lh-ease-out)";
-
-/** An option row's box: empty, or checked when picked (no number-key
- *  badge; the app is used with the mouse). */
-function OptionMark({ selected, outlined }: { selected: boolean; outlined?: boolean }) {
+/** A choice's box: its letter, filled once picked. */
+function OptionMark({ picked, children }: { picked: boolean; children?: React.ReactNode }) {
 	return (
-		<span
-			aria-hidden
-			className={cn(
-				"flex size-6 shrink-0 items-center justify-center",
-				selected ? "bg-background text-ink" : outlined ? "outline outline-1 -outline-offset-1 outline-tone-2" : "bg-tone-2",
-			)}
-		>
-			{selected && <CheckIcon className="size-3.5" strokeWidth={3} />}
+		<span aria-hidden className={cn("flex size-7 shrink-0 items-center justify-center rounded-[2px] border-[1.5px] border-ink text-sm font-medium", picked ? "bg-ink text-background" : "bg-panel text-ink")}>
+			{children}
 		</span>
 	);
 }
 
-/** The question form: everything in the panel while a question waits. */
+const letter = (i: number) => String.fromCharCode(65 + i);
+
+/** A question with its choices (or, answered in words, the question alone). */
 function QuestionDockForm({
 	toolName,
 	toolCallId,
@@ -160,18 +129,14 @@ function QuestionDockForm({
 	onSubmit,
 	initialDraft,
 	onSaveDraft,
-	onSkip,
-	compactionRunning = false,
+	onReady,
+	boxText,
+	onLeaveRows,
 	busy = false,
-	waitingForAgent = false,
-	footer,
+	ref,
 }: Omit<QuestionDockProps, "input"> & { input: QuizDisplayInput | AskToolInput | ExplainDisplayInput }) {
 	const kind = toolQuestionKind(toolName);
 	const play = useSound();
-	// Kept by question until the answer is taken, so a refused send keeps them.
-	const attachments = useAttachmentDraft(toolCallId);
-	const takesFiles = answerTakesFiles(toolName);
-	const hasFiles = takesFiles && attachments.files.length > 0;
 
 	// Canonical QuestionData, built once per question. Quiz options are
 	// shuffled deterministically (seeded by toolCallId) so position never
@@ -216,75 +181,58 @@ function QuestionDockForm({
 
 	// The selection machine lives in question-core (pure, tested).
 	const [sel, setSel] = useState<DockSelection>(() => initialDraft?.selection ?? emptyDockSelection());
-	const [thinking, setThinking] = useState(initialDraft?.thinking ?? "");
 	const [other, setOther] = useState(initialDraft?.other ?? "");
-	const [text, setText] = useState(initialDraft?.text ?? "");
-	// Refs mirror the two text fields: submit (also reached from the
-	// window-level Enter) reads these.
-	const thinkingTextRef = useRef(initialDraft?.thinking ?? "");
-	const answerTextRef = useRef(initialDraft?.text ?? "");
 	// Confidence: an index into CONFIDENCE_STOPS (level − 1), unset until
 	// the learner picks one.
 	const [confIdx, setConfIdx] = useState<number | undefined>(initialDraft?.confidenceIndex);
 	const selectMode: SelectMode = qd.mode === "multi-select" ? "multi-select" : "single-select";
 
-	// Every change is saved, so leaving the lesson keeps the form.
+	// Every change is saved, so leaving the lesson keeps the picks.
 	const saveDraftRef = useRef(onSaveDraft);
 	saveDraftRef.current = onSaveDraft;
 	useEffect(() => {
-		saveDraftRef.current?.({ selection: sel, thinking, other, text, confidenceIndex: confIdx });
-	}, [sel, thinking, other, text, confIdx]);
+		saveDraftRef.current?.({ selection: sel, other, confidenceIndex: confIdx });
+	}, [sel, other, confIdx]);
 
 	const toggle = (idx: number) => setSel(toggleOption(selectMode, sel, idx));
 	const toggleDontKnow = () =>
 		setSel((prev) => ({ ...prev, selected: new Set(), otherSelected: false, dontKnow: !prev.dontKnow }));
 
-	const canSubmit =
-		qd.mode === "text"
-			? text.trim().length > 0 || hasFiles
-			: sel.dontKnow || (sel.otherSelected && other.trim().length > 0) || sel.selected.size > 0;
-
-	const boxFooter = (
-		<>
-			{takesFiles && <AttachButton draft={attachments} />}
-			<SendButton
-				type="submit"
-				testId="question-submit"
-				label={compactionRunning ? "Summarizing the lesson…" : "Submit answer"}
-				disabled={!canSubmit || compactionRunning || busy}
-			/>
-		</>
-	);
+	// Answered in words, the box decides when there is an answer.
+	const canSubmit = qd.mode === "text" || sel.dontKnow || (sel.otherSelected && other.trim().length > 0) || sel.selected.size > 0;
+	const readyRef = useRef(onReady);
+	readyRef.current = onReady;
+	useEffect(() => {
+		readyRef.current(canSubmit);
+		return () => readyRef.current(false);
+	}, [canSubmit]);
 
 	// Writing with an answer picked folds the list into one row (Change opens it).
 	const [folded, setFolded] = useState(false);
 	const showFolded = folded && canSubmit && qd.mode !== "text";
-	const foldOnWrite = () => {
-		if (canSubmit) setFolded(true);
-	};
 
 	const submit = () => {
-		if (!canSubmit || compactionRunning || busy) return;
+		if (!canSubmit || busy) return;
 		const req: AnswerRequest = {
 			dontKnow: sel.dontKnow,
 			values: [...sel.selected].map((i) => qd.options[i]!.value),
 			other: sel.otherSelected ? other : undefined,
-			text: qd.mode === "text" ? answerTextRef.current : undefined,
-			thinking: qd.mode !== "text" ? thinkingTextRef.current.trim() || undefined : undefined,
+			text: qd.mode === "text" ? boxText : undefined,
+			thinking: qd.mode !== "text" ? boxText.trim() || undefined : undefined,
 			// Sent only once picked; buildAnswer drops it on "I don't know".
 			confidence: kind === "quiz" && confIdx !== undefined ? CONFIDENCE_STOPS[confIdx] : undefined,
 		};
 		const answer = buildAnswer(qd, req, toolName);
 		const sound = answerSound(answer);
 		if (sound) play(sound);
-		const files = hasFiles ? attachments.files.map((f) => f.attachment) : [];
-		void onSubmit(answer, files).then((sent) => {
-			if (sent && files.length > 0) attachments.clear();
-		});
+		onSubmit(answer);
 	};
-
-	// Enter submits from anywhere outside a typing surface.
-	useEnterSubmits(submit);
+	useImperativeHandle(ref, () => ({
+		submit,
+		fold() {
+			if (canSubmit) setFolded(true);
+		},
+	}));
 
 	const selectOther = () => setSel(toggleOther(selectMode, sel));
 
@@ -292,12 +240,11 @@ function QuestionDockForm({
 	   1–9 pick an option, 0 = "I don't know" (quiz). ↑/↓ walk every row,
 	   clamped at the ends; Space acts on the walked row like a click; Enter
 	   submits once an answer exists. ←/→ move the confidence level. Tab
-	   from the rows goes to the thinking field. Keys typed into a field keep their
-	   meaning, and modifier combos are never ours. */
+	   from the rows goes to the writing box. Keys typed into a field keep
+	   their meaning, and modifier combos are never ours. */
 	const [kbdIdx, setKbdIdx] = useState<number | null>(null);
-	const rootRef = useRef<HTMLFormElement>(null);
+	const rootRef = useRef<HTMLDivElement>(null);
 	const otherInputRef = useRef<HTMLInputElement>(null);
-	const thinkingRef = useRef<{ focus(): void }>(null);
 	// One row past the options: quiz → don't-know, ask → Other.
 	const optionCount = qd.mode === "text" ? 0 : qd.options.length;
 	const rowCount = qd.mode === "text" ? 0 : optionCount + 1;
@@ -329,13 +276,13 @@ function QuestionDockForm({
 					t.tagName === "TEXTAREA" ||
 					t.isContentEditable);
 			const modded = e.altKey || e.metaKey || e.ctrlKey;
-			// Tab is ours only from the rows or nowhere; elsewhere (the thinking
-			// field included) it moves on as usual, so Submit stays reachable.
+			// Tab is ours only from the rows or nowhere; elsewhere (the writing
+			// box included) it moves on as usual, so Submit stays reachable.
 			const ownsTab = !t || t === document.body || !!t.closest?.("[data-kbdrow]");
 			if (rowCount > 0 && e.key === "Tab" && !e.shiftKey && !modded && ownsTab) {
 				e.preventDefault();
 				e.stopPropagation();
-				if (t?.closest?.("[data-kbdrow]")) thinkingRef.current?.focus();
+				if (t?.closest?.("[data-kbdrow]")) onLeaveRows();
 				else {
 					const idx = kbdIdx ?? 0;
 					setKbdIdx(idx);
@@ -380,6 +327,8 @@ function QuestionDockForm({
 			} else if (e.key === "Enter") {
 				if (kbdIdx === null || !canSubmit) return;
 				e.preventDefault();
+				// The lesson's own Enter listener must not submit it again.
+				e.stopPropagation();
 				submit();
 			}
 		};
@@ -387,228 +336,149 @@ function QuestionDockForm({
 		return () => document.removeEventListener("keydown", onKeyDown);
 	});
 
-	// Keep the walked row visible (the panel scrolls internally).
+	// Keep the walked row visible (the column scrolls).
 	useEffect(() => {
 		if (kbdIdx === null) return;
 		rootRef.current?.querySelector(`[data-kbdrow="${kbdIdx}"]`)?.scrollIntoView({ block: "nearest" });
 	}, [kbdIdx]);
 
-	const label = questionKindLabel(toolName, normalizeQuizType((input as { type?: unknown } | null)?.type));
-	const walked = (i: number, selected: boolean) => i === kbdIdx && !selected && "ring-1 ring-inset ring-ink-3";
+	// A picked answer is rated next, and the meter can sit below the fold.
+	const meterRef = useRef<HTMLDivElement>(null);
+	const ratesNext = kind === "quiz" && selectMode === "single-select" && sel.selected.size > 0;
+	useEffect(() => {
+		if (ratesNext) meterRef.current?.scrollIntoView({ block: "nearest", behavior: prefersReducedMotion() ? "auto" : "smooth" });
+	}, [ratesNext]);
+
+	const walked = (i: number, picked: boolean) => i === kbdIdx && !picked && "ring-2 ring-inset ring-ink-3";
+	const level = confIdx === undefined ? null : ((confIdx + 1) as ConfidenceLevel);
+	const pickedMarks = sel.dontKnow ? null : (
+		<>
+			{[...sel.selected].map((i) => (
+				<OptionMark key={i} picked>
+					{letter(i)}
+				</OptionMark>
+			))}
+			{sel.otherSelected && <OptionMark picked />}
+		</>
+	);
 
 	return (
-		<form
-			ref={rootRef}
-			data-testid="question-dock"
-			className="flex min-h-0 flex-1 flex-col"
-			onSubmit={(e) => {
-				e.preventDefault();
-				submit();
-			}}
-			{...(takesFiles ? attachmentInputProps(attachments) : {})}
-		>
-			<PanelBody>
-				<PanelHeader
-					status={busy && <TurnStatus waitingForAgent={waitingForAgent} />}
-					right={
-						<HeaderChip exit={skipExit(onSkip)}>
-							{label !== "Question" && (
-								<KindChip testId="question-kind">
-									{label === "Prediction" && <LightbulbIcon aria-hidden className="size-3.5" />}
-									{label}
-								</KindChip>
-							)}
-						</HeaderChip>
-					}
-				/>
-				<div data-session-find-root="" className="mt-3 shrink-0 font-bold text-ink" style={proseVars(18, 25, "var(--foreground)")}>
-					<ToolContentResponse>{qd.question}</ToolContentResponse>
+		<div ref={rootRef} data-testid="question-dock" className="flex shrink-0 flex-col gap-3.5">
+			<QuestionText>{qd.question}</QuestionText>
+			{qd.context && (
+				<div className="shrink-0" style={proseVars(15, 22, true)}>
+					<ToolContentResponse>{qd.context}</ToolContentResponse>
 				</div>
-				{qd.context && (
-					<div className="mt-2 shrink-0 text-ink-2" style={proseVars(14, 20, "var(--muted-foreground)")}>
-						<ToolContentResponse>{qd.context}</ToolContentResponse>
-					</div>
-				)}
-				{qd.mode === "multi-select" && !showFolded && <div className="mt-2 shrink-0 text-[13px] text-ink-2">Select all that apply</div>}
+			)}
+			{qd.mode === "multi-select" && !showFolded && <p className="shrink-0 text-[15px] text-ink-2">Select all that apply</p>}
 
-				{showFolded && (
-					<PickedRow
-						marks={<OptionMark selected outlined={sel.dontKnow || sel.otherSelected} />}
-						label={
-							sel.dontKnow ? (
-								"I don't know"
-							) : (
-								<>
-									{[...sel.selected].map((i, n) => (
-										<span key={i}>
-											{n > 0 && ", "}
-											<InlineMath text={qd.options[i]!.label} />
-										</span>
-									))}
-									{sel.otherSelected && `${sel.selected.size > 0 ? ", " : ""}“${other}”`}
-								</>
-							)
-						}
-						sure={
-							kind === "quiz" &&
-							!sel.dontKnow && (
-								<ConfidenceSquares level={confIdx === undefined ? null : ((confIdx + 1) as ConfidenceLevel)} onChange={(level) => setConfIdx(level - 1)} />
-							)
-						}
-						onOpen={() => setFolded(false)}
-					/>
-				)}
-
-				{qd.mode !== "text" && !showFolded && (
-					<div className="mt-4 flex shrink-0 flex-col gap-0.5" role={qd.mode === "multi-select" ? "group" : "radiogroup"}>
-						{qd.options.map((opt, i) => {
-							const isSel = sel.selected.has(i);
-							return (
-								<button
-									key={opt.value}
-									type="button"
-									role={qd.mode === "multi-select" ? "checkbox" : "radio"}
-									aria-checked={isSel}
-									data-kbdrow={i}
-									data-testid="question-option"
-									onClick={() => toggle(i)}
-									className={cn(OPTION_ROW, isSel ? "bg-ink font-bold" : "bg-tone hover:bg-tone-2/60", walked(i, isSel))}
-								>
-									<OptionMark selected={isSel} />
-									<span className="min-w-0 flex-1 pt-0.5" style={proseVars(15, 21, isSel ? PICKED_INK : "var(--foreground)")}>
-										<ToolContentResponse>{opt.label}</ToolContentResponse>
-										{kind !== "quiz" && opt.description && (
-											// Ask-option subtext (quiz options carry none — the model
-											// used them to telegraph correctness).
-											<span className="mt-0.5 block" style={proseVars(13, 18, isSel ? PICKED_INK : "var(--muted-foreground)")}>
-												<ToolContentResponse>{opt.description}</ToolContentResponse>
-											</span>
-										)}
+			{showFolded && (
+				<PickedRow
+					marks={pickedMarks}
+					label={
+						sel.dontKnow ? (
+							"I don't know"
+						) : (
+							<>
+								{[...sel.selected].map((i, n) => (
+									<span key={i}>
+										{n > 0 && ", "}
+										<InlineMath text={qd.options[i]!.label} />
 									</span>
-								</button>
-							);
-						})}
+								))}
+								{sel.otherSelected && `${sel.selected.size > 0 ? ", " : ""}“${other}”`}
+							</>
+						)
+					}
+					sure={kind === "quiz" && !sel.dontKnow && <ConfidenceSquares level={level} onChange={(next) => setConfIdx(next - 1)} />}
+					onOpen={() => setFolded(false)}
+				/>
+			)}
 
-						{kind === "quiz" && (
+			{qd.mode !== "text" && !showFolded && (
+				<div className="flex shrink-0 flex-col" role={qd.mode === "multi-select" ? "group" : "radiogroup"}>
+					{qd.options.map((opt, i) => {
+						const isSel = sel.selected.has(i);
+						return (
+							<button
+								key={opt.value}
+								type="button"
+								role={qd.mode === "multi-select" ? "checkbox" : "radio"}
+								aria-checked={isSel}
+								data-kbdrow={i}
+								data-testid="question-option"
+								onClick={() => toggle(i)}
+								className={cn(OPTION_ROW, i > 0 && ROW_RULE, isSel ? PICKED : "hover:bg-tone", walked(i, isSel))}
+							>
+								<OptionMark picked={isSel}>{letter(i)}</OptionMark>
+								<span className="min-w-0 flex-1" style={proseVars(17, 26)}>
+									<ToolContentResponse>{opt.label}</ToolContentResponse>
+									{kind !== "quiz" && opt.description && (
+										// Only an ask's choices carry a second line: on a quiz it
+										// would give the answer away.
+										<span className="block" style={proseVars(15, 22, true)}>
+											<ToolContentResponse>{opt.description}</ToolContentResponse>
+										</span>
+									)}
+								</span>
+							</button>
+						);
+					})}
+
+					{kind === "quiz" && <DontKnowRow data-kbdrow={optionCount} picked={sel.dontKnow} onClick={toggleDontKnow} className={walked(optionCount, sel.dontKnow)} />}
+
+					{kind === "ask" && (
+						// The row is only a click target; its radio is the box, so the
+						// field isn't nested inside another control.
+						<div
+							data-kbdrow={optionCount}
+							onClick={selectOther}
+							className={cn(OPTION_ROW, ROW_RULE, "cursor-text items-center", sel.otherSelected ? PICKED : "hover:bg-tone", walked(optionCount, sel.otherSelected))}
+						>
 							<button
 								type="button"
-								data-kbdrow={optionCount}
-								data-testid="dont-know-option"
-								aria-pressed={sel.dontKnow}
-								onClick={toggleDontKnow}
-								className={cn(
-									OPTION_ROW,
-									"items-center py-2.5",
-									sel.dontKnow ? "bg-ink font-bold text-background" : "text-ink-2 hover:bg-tone",
-									walked(optionCount, sel.dontKnow),
-								)}
+								role={qd.mode === "multi-select" ? "checkbox" : "radio"}
+								aria-checked={sel.otherSelected}
+								data-testid="other-option"
+								aria-label="Use your own answer"
+								className="shrink-0"
 							>
-								<OptionMark selected={sel.dontKnow} outlined />
-								<span className="text-[15px]">I don't know</span>
+								<OptionMark picked={sel.otherSelected} />
 							</button>
-						)}
-
-						{kind === "ask" && (
-							// The row is only a click target; its radio is the box, so the
-							// field isn't nested inside another control.
-							<div
-								data-kbdrow={optionCount}
-								onClick={selectOther}
-								className={cn(
-									OPTION_ROW,
-									"cursor-text items-center py-2.5",
-									sel.otherSelected ? "bg-ink text-background" : "hover:bg-tone",
-									walked(optionCount, sel.otherSelected),
-								)}
-							>
-								<button
-									type="button"
-									role={qd.mode === "multi-select" ? "checkbox" : "radio"}
-									aria-checked={sel.otherSelected}
-									data-testid="other-option"
-									aria-label="Use your own answer"
-									className="shrink-0"
-								>
-									<OptionMark selected={sel.otherSelected} outlined />
-								</button>
-								<input
-									ref={otherInputRef}
-									value={other}
-									onChange={(e) => {
-										setOther(e.target.value);
-										// Typing selects the row.
-										setSel((prev) => (prev.otherSelected ? prev : toggleOther(selectMode, prev)));
-									}}
-									onKeyDown={(e) => {
-										// Esc leaves the typing (the row stays selected) and is
-										// claimed so the window chain doesn't read it as abort.
-										if (e.key === "Escape") {
-											e.preventDefault();
-											e.stopPropagation();
-											e.currentTarget.blur();
-											setKbdIdx(optionCount);
-										}
-										// One-line field: Enter submits directly.
-										if (e.key === "Enter") {
-											e.preventDefault();
-											submit();
-										}
-									}}
-									placeholder="Type your own answer…"
-									aria-label="Your own answer"
-									className={cn(
-										"lh-input min-w-0 flex-1 bg-transparent text-[15px]! outline-none",
-										sel.otherSelected ? "placeholder:text-background/70" : "placeholder:text-ink-3",
-									)}
-									onClick={(e) => e.stopPropagation()}
-								/>
-							</div>
-						)}
-					</div>
-				)}
-
-				{kind === "quiz" && !showFolded && (
-					<div className="mt-[18px] shrink-0">
-						<ConfidenceMeter
-							level={confIdx === undefined ? null : ((confIdx + 1) as ConfidenceLevel)}
-							onChange={(level) => setConfIdx(level - 1)}
-							disabled={sel.dontKnow}
-						/>
-					</div>
-				)}
-
-				<div className="mt-[18px] flex flex-1 flex-col" data-testid={qd.mode === "text" ? "answer-field" : "thinking-field"}>
-					{takesFiles && <AttachmentTray draft={attachments} />}
-					{qd.mode === "text" ? (
-						<MathBox
-							value={text}
-							onChange={(v) => {
-								answerTextRef.current = v;
-								setText(v);
-							}}
-							onEnter={submit}
-							placeholder="Type your answer…"
-							ariaLabel="Your answer"
-							footer={boxFooter}
-						/>
-					) : (
-						<MathBox
-							ref={thinkingRef}
-							value={thinking}
-							onChange={(v) => {
-								thinkingTextRef.current = v;
-								setThinking(v);
-							}}
-							onEnter={submit}
-							onFocus={foldOnWrite}
-							placeholder="Why this answer? Whatever comes to mind."
-							ariaLabel="Your thinking"
-							footer={boxFooter}
-						/>
+							<input
+								ref={otherInputRef}
+								value={other}
+								onChange={(e) => {
+									setOther(e.target.value);
+									// Typing selects the row.
+									setSel((prev) => (prev.otherSelected ? prev : toggleOther(selectMode, prev)));
+								}}
+								onKeyDown={(e) => {
+									// Esc leaves the typing (the row stays selected) and is
+									// claimed so the window chain doesn't read it as abort.
+									if (e.key === "Escape") {
+										e.preventDefault();
+										e.stopPropagation();
+										e.currentTarget.blur();
+										setKbdIdx(optionCount);
+									}
+									// One-line field: Enter submits directly.
+									if (e.key === "Enter") {
+										e.preventDefault();
+										submit();
+									}
+								}}
+								placeholder="Type your own answer"
+								aria-label="Your own answer"
+								className="lh-input min-w-0 flex-1 bg-transparent font-prose text-[17px]! outline-none placeholder:text-ink-3"
+								onClick={(e) => e.stopPropagation()}
+							/>
+						</div>
 					)}
 				</div>
-				{footer}
-			</PanelBody>
-		</form>
+			)}
+
+			{kind === "quiz" && !showFolded && <ConfidenceMeter ref={meterRef} level={level} onChange={(next) => setConfIdx(next - 1)} disabled={sel.dontKnow} />}
+		</div>
 	);
 }

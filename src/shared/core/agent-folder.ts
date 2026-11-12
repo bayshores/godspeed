@@ -9,6 +9,10 @@
 
 export type FolderAgent = "claude" | "codex";
 
+/** What a start script starts: an agent, or Claude Code as the backup
+ *  teacher, which answers while the main session compacts its context. */
+export type StartTarget = FolderAgent | "claude-backup";
+
 /** The old ways godspeed loaded outside the folder that are still set up:
  *  the retired Claude Code plugin, and the block once pasted into Codex's config. */
 export interface OldSetup {
@@ -18,8 +22,31 @@ export interface OldSetup {
 
 export type Platform = "darwin" | "win32" | "linux";
 
+/** The learner's own command for an agent, run in place of `claude` or
+ *  `codex`: a launcher such as "standardcompute launch claude --". */
+export type StartCommands = Partial<Record<FolderAgent, string>>;
+
+const START_COMMAND_MAX_CHARS = 300;
+
+/** A start command the scripts can hold: one line, not too long. */
+export function usableStartCommand(command: string): boolean {
+	return command.length <= START_COMMAND_MAX_CHARS && !/[\r\n]/.test(command);
+}
+
+/** The start commands in a saved value: the usable ones that aren't empty. */
+export function savedStartCommands(raw: unknown): StartCommands {
+	const saved: StartCommands = {};
+	if (!isRecord(raw)) return saved;
+	for (const agent of ["claude", "codex"] as const) {
+		const command = raw[agent];
+		if (typeof command === "string" && command !== "" && usableStartCommand(command)) saved[agent] = command;
+	}
+	return saved;
+}
+
 /** The prompt each agent starts with; CLAUDE.md and AGENTS.md say what it means. */
 const START_PROMPT = "Start teaching";
+const BACKUP_PROMPT = "Start as the backup teacher";
 
 /** Settings Claude Code loads at launch (--settings), so they apply before the folder is trusted. */
 const CLAUDE_SETTINGS = ".godspeed/claude-settings.json";
@@ -50,14 +77,18 @@ export function mcpJson(folder: string, platform: Platform): string {
 }
 
 /** .godspeed/claude-settings.json: turns on the folder's server, lets the
- *  agent use godspeed's tools and the waiter without asking, and tells the
- *  app when the session loses its context. */
+ *  agent use godspeed's tools, the waiter and web search (a prep sheet is
+ *  looked up online) without asking, and tells the app when the session
+ *  starts compacting and when it lost its context. Fetching a page still
+ *  asks: text hidden in a space file could send the learner's data out. */
 export function claudeSettings(folder: string, platform: Platform): string {
-	const forget = [{ type: "command", command: "node", args: [join(folder, platform, ".godspeed", "forget.mjs")], timeout: 10 }];
+	const hook = (script: string) => [{ type: "command", command: "node", args: [join(folder, platform, ".godspeed", script)], timeout: 10 }];
+	const forget = hook("forget.mjs");
 	const settings = {
 		enabledMcpjsonServers: ["godspeed"],
-		permissions: { allow: ["mcp__godspeed__*", `Bash(${WAITER})`, `Bash(${WAITER} *)`] },
+		permissions: { allow: ["mcp__godspeed__*", `Bash(${WAITER})`, `Bash(${WAITER} *)`, "WebSearch"] },
 		hooks: {
+			PreCompact: [{ hooks: hook("compacting.mjs") }],
 			SessionStart: [{ matcher: "compact", hooks: forget }],
 			SessionEnd: [{ matcher: "clear", hooks: forget }],
 		},
@@ -81,6 +112,11 @@ function codexArgs(folder: string, platform: Platform): string[] {
 
 const CLAUDE_ARGS = ["--settings", CLAUDE_SETTINGS, START_PROMPT];
 
+function startArgs(target: StartTarget, folder: string, platform: Platform): string[] {
+	if (target === "codex") return codexArgs(folder, platform);
+	return target === "claude" ? CLAUDE_ARGS : ["--settings", CLAUDE_SETTINGS, BACKUP_PROMPT];
+}
+
 function posixQuote(arg: string): string {
 	return /^[\w./=-]+$/.test(arg) ? arg : `"${arg.replace(/["\\$`]/g, "\\$&")}"`;
 }
@@ -89,26 +125,27 @@ function cmdQuote(arg: string): string {
 	return /^[\w./=-]+$/.test(arg) ? arg : `"${arg}"`;
 }
 
-function startScriptName(agent: FolderAgent, platform: Platform): string {
-	return `start-${agent}.${platform === "win32" ? "cmd" : platform === "darwin" ? "command" : "sh"}`;
+function startScriptName(target: StartTarget, platform: Platform): string {
+	return `start-${target}.${platform === "win32" ? "cmd" : platform === "darwin" ? "command" : "sh"}`;
 }
 
 /** The start script's path, inside .godspeed/. */
-export function startScriptPath(folder: string, agent: FolderAgent, platform: Platform): string {
-	return join(folder, platform, ".godspeed", startScriptName(agent, platform));
+export function startScriptPath(folder: string, target: StartTarget, platform: Platform): string {
+	return join(folder, platform, ".godspeed", startScriptName(target, platform));
 }
 
 /** The command the "Copy the command" link copies: go to the folder, start the agent. */
-export function copyCommand(agent: FolderAgent, folder: string, home: string, platform: Platform): string {
+export function copyCommand(agent: FolderAgent, folder: string, home: string, platform: Platform, commands: StartCommands): string {
+	const start = commands[agent] ?? agent;
 	if (platform === "win32") {
 		// cmd needs a quoting style of its own for Codex's flags, so it runs the start script.
 		if (agent === "codex") return `"${startScriptPath(folder, agent, platform)}"`;
-		return `cd /d "${folder}" && claude ${CLAUDE_ARGS.map(cmdQuote).join(" ")}`;
+		return `cd /d "${folder}" && ${start} ${CLAUDE_ARGS.map(cmdQuote).join(" ")}`;
 	}
 	const short = shortFolder(folder, home);
 	const cd = /^~[\w./-]*$/.test(short) ? short : posixQuote(folder);
 	const args = agent === "claude" ? CLAUDE_ARGS : codexArgs(folder, platform);
-	return `cd ${cd} && ${agent} ${args.map(posixQuote).join(" ")}`;
+	return `cd ${cd} && ${start} ${args.map(posixQuote).join(" ")}`;
 }
 
 const NOT_INSTALLED: Record<FolderAgent, string> = {
@@ -122,25 +159,39 @@ const NEEDS_NODE: Record<FolderAgent, string> = {
 	codex: "godspeed needs Node.js. Install it from https://nodejs.org, then click Open Codex in godspeed again.",
 };
 
+/** What a start script checks is installed, and what it says when it isn't.
+ *  The learner's own command is checked by its first word when that is a
+ *  plain program name; anything else (a quoted path, a variable) isn't checked. */
+function installCheck(agent: FolderAgent, own: string | undefined): { program: string; missing: string } | null {
+	if (own === undefined) return { program: agent, missing: NOT_INSTALLED[agent] };
+	const program = own.split(/\s/)[0]!;
+	if (!/^[\w./-]+$/.test(program)) return null;
+	return { program, missing: `godspeed couldn't find ${program}. Check the command under Change command in godspeed.` };
+}
+
 /** The start script the button runs in a new terminal window. */
-export function startScript(agent: FolderAgent, folder: string, platform: Platform): string {
-	const args = agent === "claude" ? CLAUDE_ARGS : codexArgs(folder, platform);
+export function startScript(target: StartTarget, folder: string, platform: Platform, commands: StartCommands): string {
+	const agent: FolderAgent = target === "codex" ? "codex" : "claude";
+	const own = commands[agent];
+	const check = installCheck(agent, own);
+	const args = startArgs(target, folder, platform);
 	if (platform === "win32") {
 		return [
 			"@echo off",
 			`cd /d "${folder}"`,
-			`where ${agent} >nul 2>nul || (echo ${NOT_INSTALLED[agent]} & exit /b 1)`,
+			...(check ? [`where ${check.program} >nul 2>nul || (echo ${check.missing} & exit /b 1)`] : []),
 			`where node >nul 2>nul || (echo ${NEEDS_NODE[agent]} & exit /b 1)`,
-			`${agent} ${args.map(cmdQuote).join(" ")}`,
+			`${own ?? agent} ${args.map(cmdQuote).join(" ")}`,
 			"",
 		].join("\r\n");
 	}
 	return [
 		"#!/bin/sh",
 		`cd ${posixQuote(folder)} || exit 1`,
-		`command -v ${agent} >/dev/null 2>&1 || { echo ${posixQuote(NOT_INSTALLED[agent])}; exit 1; }`,
+		...(check ? [`command -v ${check.program} >/dev/null 2>&1 || { echo ${posixQuote(check.missing)}; exit 1; }`] : []),
 		`command -v node >/dev/null 2>&1 || { echo ${posixQuote(NEEDS_NODE[agent])}; exit 1; }`,
-		`exec ${agent} ${args.map(posixQuote).join(" ")}`,
+		// The learner's own command may start with a variable (A=b claude), which exec can't run.
+		`${own === undefined ? `exec ${agent}` : own} ${args.map(posixQuote).join(" ")}`,
 		"",
 	].join("\n");
 }

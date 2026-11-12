@@ -1,21 +1,21 @@
 /**
- * PROGRESS — the server half of GET /api/progress: reads one class scope's
+ * PROGRESS — the server half of GET /api/progress: reads one space scope's
  * graph, topic snapshot, files, deadlines and lessons, and hands them to the
  * pure derivation (core/progress.ts deriveProgress). A study session's
  * topics, and which ones a Study start picks, derive from the same read.
  * Nothing is written.
  */
-import type { ClassRecord, ClassScope } from "../../shared/core/contracts.ts";
+import type { SpaceRecord, SpaceScope } from "../../shared/core/contracts.ts";
 import { getGraph } from "../../shared/core/graph.ts";
 import { collectAnswers, deriveProgress, factsByMessage, factsForAnswer, type AnsweredQuestion, type ProgressPayload } from "../../shared/core/progress.ts";
 import { practiceOutcomes, type PracticeOutcome } from "../../shared/core/practice-outcomes.ts";
-import { deadlineStudyTopicIds, factClassOrder, studyTopics, topicStudy, type StudyTopic } from "../../shared/core/study.ts";
+import { deadlineStudyTopicIds, factSpaceOrder, studyTopics, topicStudy, type StudyTopic } from "../../shared/core/study.ts";
 import type { GraphContextPick } from "../../shared/core/native-messages.ts";
 import { localDay } from "../../shared/core/today-note.ts";
 import { planPositionLh } from "../../shared/core/plan-step-bar.ts";
 import type { DeadlineSession } from "../../shared/core/continue-study.ts";
 import type { HomeworkSession } from "../../shared/core/homework.ts";
-import { sourceIdFor } from "./classes.ts";
+import { sourceIdFor } from "./spaces.ts";
 import { graphStoreFor, stores } from "./stores.ts";
 import { topicGroupingRunning } from "./topics.ts";
 
@@ -47,26 +47,34 @@ function lessonReadout(chatId: string): LessonReadout | null {
 	return readout;
 }
 
-/** The class's problems (practice and study) the learner solved only with hints. */
-export function hintedProblems(classId: string): { statement: string; at: string }[] {
+/** Every graded answer in the space's lessons. */
+export function spaceAnswers(spaceId: string): AnsweredQuestion[] {
 	return stores.chatStore
 		.listChats()
-		.filter((c) => c.classId === classId)
+		.filter((c) => c.spaceId === spaceId)
+		.flatMap((c) => lessonReadout(c.id)?.answers ?? []);
+}
+
+/** The space's problems (practice and study) the learner solved only with hints. */
+export function hintedProblems(spaceId: string): { statement: string; at: string }[] {
+	return stores.chatStore
+		.listChats()
+		.filter((c) => c.spaceId === spaceId)
 		.flatMap((c) => lessonReadout(c.id)?.outcomes ?? [])
 		.filter((o) => o.outcome === "solvedWithHints")
 		.map((o) => ({ statement: o.statement, at: o.at }));
 }
 
-/** The class's mistakes: answers given wrong and problems solved only
+/** The space's mistakes: answers given wrong and problems solved only
  *  with hints, each with the topics its facts are in (the cheat sheet's
  *  Watch out block). */
-export function classMistakes(classId: string, progress: ProgressPayload): { text: string; kind: "wrong" | "hint"; at: string; topicIds: string[] }[] {
-	const index = factsByMessage(getGraph(graphStoreFor(classId)).nodes);
+export function spaceMistakes(spaceId: string, progress: ProgressPayload): { text: string; kind: "wrong" | "hint"; at: string; topicIds: string[] }[] {
+	const index = factsByMessage(getGraph(graphStoreFor(spaceId)).nodes);
 	const topicOf = new Map(progress.facts.map((f) => [f.id, f.topicId]));
 	const topicsOf = (factIds: readonly string[]) => [...new Set(factIds.map((id) => topicOf.get(id)).filter((t): t is string => !!t))];
 	return stores.chatStore
 		.listChats()
-		.filter((c) => c.classId === classId)
+		.filter((c) => c.spaceId === spaceId)
 		.flatMap((c) => {
 			const readout = lessonReadout(c.id);
 			if (!readout) return [];
@@ -77,20 +85,20 @@ export function classMistakes(classId: string, progress: ProgressPayload): { tex
 		});
 }
 
-/** Each fact's place in the class's order (core/study.ts factClassOrder). */
-export function classOrderFor(classId: string, progress: ProgressPayload): Map<string, number> {
-	return factClassOrder(progress.facts, progressFiles(stores.classStore.getClass(classId)));
+/** Each fact's place in the space's order (core/study.ts factSpaceOrder). */
+export function spaceOrderFor(spaceId: string, progress: ProgressPayload): Map<string, number> {
+	return factSpaceOrder(progress.facts, progressFiles(stores.spaceStore.getSpace(spaceId)));
 }
 
-/** The class's files with the source id their facts are born under. */
-function progressFiles(record: ClassRecord | null) {
+/** The space's files with the source id their facts are born under. */
+function progressFiles(record: SpaceRecord | null) {
 	return (record?.files ?? []).map((f) => ({ id: f.id, name: f.name, kind: f.kind, sourceId: f.sourceId ?? sourceIdFor(record!.id, f.id) }));
 }
 
 /** Everything the Overview and the Graph page need for one scope. Returns
- *  null when the class does not exist. */
-export function progressFor(scope: ClassScope, opts: { today?: string } = {}): ProgressPayload | null {
-	const record = scope === null ? null : stores.classStore.getClass(scope);
+ *  null when the space does not exist. */
+export function progressFor(scope: SpaceScope, opts: { today?: string } = {}): ProgressPayload | null {
+	const record = scope === null ? null : stores.spaceStore.getSpace(scope);
 	if (scope !== null && !record) return null;
 	const store = graphStoreFor(scope);
 	const graph = getGraph(store);
@@ -101,7 +109,7 @@ export function progressFor(scope: ClassScope, opts: { today?: string } = {}): P
 	const deadlineSessions: DeadlineSession[] = [];
 	const homeworkSessions: HomeworkSession[] = [];
 	for (const c of chats) {
-		if ((c.classId ?? null) !== scope) continue;
+		if ((c.spaceId ?? null) !== scope) continue;
 		if (c.kind === "homework" && c.deadlineId) homeworkSessions.push({ chatId: c.id, deadlineId: c.deadlineId, createdAt: c.createdAt });
 		const readout = lessonReadout(c.id);
 		if (!readout) continue;
@@ -109,7 +117,7 @@ export function progressFor(scope: ClassScope, opts: { today?: string } = {}): P
 		if (c.deadlineId && readout.steps) deadlineSessions.push({ chatId: c.id, deadlineId: c.deadlineId, createdAt: c.createdAt, ...readout.steps });
 	}
 	return deriveProgress({
-		classId: scope,
+		spaceId: scope,
 		today: opts.today ?? localDay(),
 		facts: graph.nodes,
 		chains: graph.chains,
@@ -123,29 +131,29 @@ export function progressFor(scope: ClassScope, opts: { today?: string } = {}): P
 	});
 }
 
-/** A study session's topics from its picked facts: grouped by class topic,
- *  in class order, each with its mode (core/study.ts). */
-export function studyTopicsFor(scope: ClassScope, factIds: readonly string[], freeTopic: string): StudyTopic[] {
+/** A study session's topics from its picked facts: grouped by space topic,
+ *  in space order, each with its material and standing (core/study.ts). */
+export function studyTopicsFor(scope: SpaceScope, factIds: readonly string[], freeTopic: string): StudyTopic[] {
 	const progress = factIds.length > 0 ? progressFor(scope) : null;
-	const record = scope === null ? null : stores.classStore.getClass(scope);
+	const record = scope === null ? null : stores.spaceStore.getSpace(scope);
 	return studyTopics({
 		factIds,
 		topics: progress?.topics ?? [],
-		classOrder: progress ? factClassOrder(progress.facts, progressFiles(record)) : new Map(),
+		spaceOrder: progress ? factSpaceOrder(progress.facts, progressFiles(record)) : new Map(),
 		freeTopic,
 	});
 }
 
-/** A study session on class topics: its topics (core/study.ts topicStudy)
+/** A study session on space topics: its topics (core/study.ts topicStudy)
  *  and their facts as the graph-context picks. */
 interface TopicStudy {
 	topics: StudyTopic[];
 	picks: GraphContextPick[];
 }
 
-function topicStudyIn(scope: ClassScope, progress: ProgressPayload, topicIds: readonly string[], studiedToday?: ReadonlySet<string>): TopicStudy {
-	const record = scope === null ? null : stores.classStore.getClass(scope);
-	const topics = topicStudy({ topicIds, topics: progress.topics, facts: progress.facts, classOrder: factClassOrder(progress.facts, progressFiles(record)), studiedToday });
+function topicStudyIn(scope: SpaceScope, progress: ProgressPayload, topicIds: readonly string[], studiedToday?: ReadonlySet<string>): TopicStudy {
+	const record = scope === null ? null : stores.spaceStore.getSpace(scope);
+	const topics = topicStudy({ topicIds, topics: progress.topics, facts: progress.facts, spaceOrder: factSpaceOrder(progress.facts, progressFiles(record)), studiedToday });
 	const factById = new Map(progress.facts.map((f) => [f.id, f]));
 	const picks = topics.flatMap((t) =>
 		t.factIds.map((id) => {
@@ -156,27 +164,27 @@ function topicStudyIn(scope: ClassScope, progress: ProgressPayload, topicIds: re
 	return { topics, picks };
 }
 
-/** A Study start on some of the class's topics. */
-export function topicStudyFor(scope: ClassScope, topicIds: readonly string[]): TopicStudy {
+/** A Study start on some of the space's topics. */
+export function topicStudyFor(scope: SpaceScope, topicIds: readonly string[]): TopicStudy {
 	const progress = progressFor(scope);
 	return progress ? topicStudyIn(scope, progress, topicIds) : { topics: [], picks: [] };
 }
 
 /** A Study start on a deadline: its topics for today (deadlineStudyTopicIds),
- *  the next ones that need work first. Null when the class has no such deadline. */
-export function deadlineStudyFor(classId: string, deadlineId: string): (TopicStudy & { name: string }) | null {
-	const progress = progressFor(classId);
+ *  the next ones that need work first, strong ones due a check last. Null when the space has no such deadline. */
+export function deadlineStudyFor(spaceId: string, deadlineId: string): (TopicStudy & { name: string }) | null {
+	const progress = progressFor(spaceId);
 	const deadline = progress?.deadlines.find((d) => d.id === deadlineId);
 	if (!progress || !deadline) return null;
-	const studied = studiedOn(classId, progress.today);
-	return { name: deadline.name, ...topicStudyIn(classId, progress, deadlineStudyTopicIds(progress.today, deadline), studied) };
+	const studied = studiedOn(spaceId, progress.today);
+	return { name: deadline.name, ...topicStudyIn(spaceId, progress, deadlineStudyTopicIds(progress.today, deadline, progress.topics), studied) };
 }
 
-/** The plan nodes of the class's study sessions created on `day` (the learner's local day). */
-function studiedOn(classId: string, day: string): Set<string> {
+/** The plan nodes of the space's study sessions created on `day` (the learner's local day). */
+function studiedOn(spaceId: string, day: string): Set<string> {
 	const ids = new Set<string>();
 	for (const c of stores.chatStore.listChats()) {
-		if (c.kind !== "study" || c.classId !== classId || localDay(Date.parse(c.createdAt)) !== day) continue;
+		if (c.kind !== "study" || c.spaceId !== spaceId || localDay(Date.parse(c.createdAt)) !== day) continue;
 		for (const node of stores.chatStore.getChat(c.id)?.tree?.nodes ?? []) ids.add(node.id);
 	}
 	return ids;

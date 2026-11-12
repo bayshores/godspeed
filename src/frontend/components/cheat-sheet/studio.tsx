@@ -1,85 +1,97 @@
-import { useCallback, useEffect, useState } from "react";
-import { useNavigate } from "react-router";
-import { currentVersion, type CheatSheetView } from "@/shared/core";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { Link, useNavigate } from "react-router";
+import { currentVersion, DEFAULT_TEACHER_NAME, type CheatSheetView } from "@/shared/core";
 import { useAgentStatus } from "@/frontend/components/agent-status";
-import { useClasses } from "@/frontend/components/class-context";
+import { useSpaces } from "@/frontend/components/space-context";
 import { LoadFailed } from "@/frontend/components/load-failed";
-import { useFoldSidebar } from "@/frontend/components/sidebar";
-import { TopBar } from "@/frontend/components/app-bar";
-import { pathLabel } from "@/frontend/components/app-bar-model";
 import { fileBrowserName } from "@/frontend/components/files/files-model";
+import { useHalley } from "@/frontend/components/halley/halley-provider";
+import { Pane } from "@/frontend/components/ui/pane";
+import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { printPdf } from "./print-pdf";
 import { SheetCanvas } from "./sheet-canvas";
 import { SheetChat } from "./sheet-chat";
-import { OlderSheet, StudioStatus, emptyChatLine, versionLabel } from "./studio-states";
+import { TeacherHead } from "@/frontend/components/halley/teacher-head";
+import { OlderSheet, emptyChatLine, sheetPaper, teacherDoing, versionLabel } from "./studio-states";
 import { remakeSheet, sheetPdfFile, sheetPdfPath, showSheetPdf, useCheatSheet, useSheetFocus } from "./use-cheat-sheet";
 
-/** The floating panel's width and its gap from the canvas's edges. */
-const PANEL_W = 380;
-const PANEL_GAP = 16;
-
 /**
- * THE CHEAT SHEET STUDIO: a page of its own with the sidebar folded away.
- * Before there is a sheet, the sheet's chat asks what should go on it.
- * Then the PDF sits on a canvas with the earlier versions beside it, and
- * the chat floats on the right: ask about the sheet, point at part of it,
- * or ask for a change. The top bar says what the agent is doing and the
- * paper, shows the PDF in Finder and prints it.
+ * THE CHEAT SHEET STUDIO: a page of its own under a dark bar (back to the
+ * deadline, the sheet's paper, Show in Finder, Print). The canvas on the
+ * left holds the PDF with the earlier versions beside it, or, before there
+ * is a sheet, says what to ask for. The teacher side on the right is the
+ * sheet's chat: ask about the sheet, point at part of it, or ask for a change.
  */
-export function CheatSheetStudio({ classId, deadlineId }: { classId: string; deadlineId: string }) {
-	useFoldSidebar();
+export function CheatSheetStudio({ spaceId, deadlineId, deadlineName }: { spaceId: string; deadlineId: string; deadlineName: string }) {
 	const navigate = useNavigate();
-	const { active, setActive } = useClasses();
-	const [joined, setJoined] = useState(active === classId);
+	const { active, setActive } = useSpaces();
+	const [joined, setJoined] = useState(active === spaceId);
 	useEffect(() => {
 		if (!joined) {
-			if (active === classId) setJoined(true);
-			else setActive(classId);
-		} else if (active !== classId) navigate("/class", { replace: true });
-	}, [active, classId, joined, setActive, navigate]);
+			if (active === spaceId) setJoined(true);
+			else setActive(spaceId);
+		} else if (active !== spaceId) navigate("/space", { replace: true });
+	}, [active, spaceId, joined, setActive, navigate]);
 
-	const { view, loadError, reload, act } = useCheatSheet(classId, deadlineId);
+	const { view, loadError, reload, act } = useCheatSheet(spaceId, deadlineId);
+	if (view) return <Studio view={view} spaceId={spaceId} deadlineId={deadlineId} act={act} />;
 	return (
 		<div className="flex h-full flex-col">
-			{view ? (
-				<Studio view={view} classId={classId} deadlineId={deadlineId} act={act} />
-			) : (
-				<>
-					<TopBar path={[{ label: "cheat sheet", href: null }]} />
-					{loadError ? <LoadFailed message="Couldn't load this cheat sheet." onRetry={() => void reload()} className="px-[52px] py-6" /> : <div className="flex-1" aria-hidden />}
-				</>
+			<StudioBar deadlineId={deadlineId} deadlineName={deadlineName} />
+			{loadError ? <LoadFailed message="Couldn't load this cheat sheet." onRetry={() => void reload()} className="px-8 py-6" /> : <div className="flex-1" aria-hidden />}
+		</div>
+	);
+}
+
+/** The studio's own bar, in place of the app's top bar (so it is the window's
+ *  drag band too): the way back, the sheet's name, then its status and buttons. */
+function StudioBar({ deadlineId, deadlineName, status, children }: { deadlineId: string; deadlineName: string; status?: string; children?: ReactNode }) {
+	return (
+		<div data-testid="studio-bar" className="lh-own-bar lh-drag lh-lights-gutter lh-wco-gutter flex h-12 shrink-0 select-none items-center gap-4 bg-bar px-6 text-bar-ink">
+			<Link to={`/space/deadline/${encodeURIComponent(deadlineId)}`} data-testid="page-back" className="lh-btn lh-btn-bar max-w-[28ch] px-3">
+				<PixelIcon name="chevron" className="-scale-x-100" />
+				<span className="truncate">{deadlineName}</span>
+			</Link>
+			<h1 className="min-w-0 flex-1 truncate text-lg font-medium">Cheat sheet for {deadlineName}</h1>
+			{status && (
+				<span data-testid="cheat-sheet-status" className="shrink-0 text-base">
+					{status}
+				</span>
 			)}
+			{children}
 		</div>
 	);
 }
 
 function Studio({
 	view,
-	classId,
+	spaceId,
 	deadlineId,
 	act,
 }: {
 	view: CheatSheetView;
-	classId: string;
+	spaceId: string;
 	deadlineId: string;
 	act: (body: Record<string, unknown>) => Promise<string | null>;
 }) {
 	const agent = useAgentStatus();
-	const agentName = agent?.name ?? "Your agent";
 	const agentGone = !!agent && !agent.connected && !agent.teaching;
+	const teacherName = useHalley()?.name ?? DEFAULT_TEACHER_NAME;
+	const { activeSpace } = useSpaces();
 	const [failed, setFailed] = useState<string | null>(null);
 	const [printing, setPrinting] = useState(false);
 	const { pointed, setPointed, focus, showVersion } = useSheetFocus();
 	const current = currentVersion(view.sheet);
-	const fileName = `${view.className} ${view.deadlineName} cheat sheet`;
-	const pdfUrl = useCallback((n: number) => sheetPdfPath(classId, deadlineId, n), [classId, deadlineId]);
+	const fileName = `${view.spaceName} ${view.deadlineName} cheat sheet`;
+	const pdfUrl = useCallback((n: number) => sheetPdfPath(spaceId, deadlineId, n), [spaceId, deadlineId]);
 	const currentUrl = current ? pdfUrl(current.n) : null;
 	const desktop = typeof window !== "undefined" && !!window.lh?.showInFolder;
+	const fileButton = "lh-btn lh-btn-quiet shrink-0 px-2 text-[15px] font-normal text-bar-ink hover:bg-bar-ink/15 hover:text-bar-ink";
 	// The Mac prints the PDF file itself through the system's sheet; elsewhere pdf.js draws it.
 	const printVersion = async (n: number, url: string) => {
 		const printFile = window.lh?.printPdf;
 		if (!printFile) return printPdf(url);
-		const file = await sheetPdfFile(classId, deadlineId, n);
+		const file = await sheetPdfFile(spaceId, deadlineId, n);
 		if ("error" in file) throw new Error(file.error);
 		await printFile(file.path);
 	};
@@ -91,79 +103,58 @@ function Studio({
 			.finally(() => setPrinting(false));
 	};
 
-	const chat = (
-		<SheetChat
-			view={view}
-			classId={classId}
-			deadlineId={deadlineId}
-			act={act}
-			agentName={agentName}
-			agentGone={agentGone}
-			pointed={pointed}
-			onClearPointed={() => setPointed(null)}
-			onShowVersion={current ? showVersion : undefined}
-			empty={emptyChatLine(agentName, !!current)}
-		/>
-	);
-	const fileClass = "lh-btn";
-
 	return (
-		<>
-			<TopBar path={[{ label: pathLabel(view.deadlineName), href: `/class/deadline/${encodeURIComponent(deadlineId)}` }, { label: "cheat sheet", href: null }]}>
-				<StudioStatus view={view} agentName={agentName} agentGone={agentGone} onStop={() => void act({ action: "stop" }).then(setFailed)} />
+		<div className="flex h-full flex-col">
+			<StudioBar deadlineId={deadlineId} deadlineName={view.deadlineName} status={sheetPaper(view)}>
 				{current &&
 					currentUrl &&
 					(desktop ? (
-						<button
-							type="button"
-							data-testid="cheat-sheet-show-file"
-							onClick={() => void showSheetPdf(classId, deadlineId, current.n).then(setFailed)}
-							className={fileClass}
-						>
+						<button type="button" data-testid="cheat-sheet-show-file" onClick={() => void showSheetPdf(spaceId, deadlineId, current.n).then(setFailed)} className={fileButton}>
 							Show in {fileBrowserName(window.lh?.platform)}
 						</button>
 					) : (
-						<a data-testid="cheat-sheet-download" href={currentUrl} download={`${fileName}.pdf`} className={fileClass}>
+						<a data-testid="cheat-sheet-download" href={currentUrl} download={`${fileName}.pdf`} className={fileButton}>
 							Download PDF
 						</a>
 					))}
-				<button
-					type="button"
-					data-testid="cheat-sheet-print"
-					disabled={!current || printing}
-					onClick={print}
-					className="lh-btn lh-btn-main"
-				>
+				<button type="button" data-testid="cheat-sheet-print" disabled={!current || printing} onClick={print} className="lh-btn lh-btn-bar">
 					Print
 				</button>
-			</TopBar>
+			</StudioBar>
 			{failed && (
-				<p role="alert" className="shrink-0 px-[52px] pb-2 text-[13px] text-ans-wrong">
+				<p role="alert" className="shrink-0 px-8 pt-3 text-[15px] text-ans-wrong">
 					{failed}
 				</p>
 			)}
-			{current ? (
-				<div className="relative flex min-h-0 flex-1">
-					<SheetCanvas versions={view.sheet.versions} pdfUrl={pdfUrl} labelFor={versionLabel} inset={PANEL_W + 2 * PANEL_GAP} focus={focus} onPoint={setPointed} />
-					<aside
-						data-testid="cheat-sheet-panel"
-						className="absolute flex flex-col bg-panel outline outline-1 -outline-offset-1 outline-tone-2"
-						style={{ top: PANEL_GAP, right: PANEL_GAP, bottom: PANEL_GAP, width: PANEL_W }}
-					>
-						{chat}
-					</aside>
-				</div>
-			) : (
-				<div className="min-h-0 flex-1 overflow-y-auto">
-					<div className="mx-auto flex h-full w-full max-w-[712px] flex-col gap-7 px-4 pt-[72px] pb-10">
-						<h2 className="font-bold text-[34px] leading-tight text-ink">What do you want on your cheat sheet?</h2>
-						{view.sheet.olderFormat && !view.running && <OlderSheet onRemake={() => void remakeSheet(classId, deadlineId).then(setFailed)} />}
-						<div data-testid="cheat-sheet-panel" className="flex min-h-[420px] flex-1 flex-col bg-panel outline outline-1 -outline-offset-1 outline-tone-2">
-							{chat}
+			<div className="flex min-h-0 flex-1 gap-6 px-8 pt-6 pb-7">
+				<div className="flex min-h-0 min-w-0 flex-1 flex-col border border-border">
+					{current ? (
+						<SheetCanvas versions={view.sheet.versions} pdfUrl={pdfUrl} labelFor={versionLabel} focus={focus} onPoint={setPointed} />
+					) : (
+						<div data-testid="cheat-sheet-empty" className="flex min-h-0 flex-1 flex-col items-center justify-center gap-[18px] overflow-y-auto p-6 text-center">
+							<div aria-hidden className="h-[220px] w-[170px] shrink-0 border border-border bg-background" />
+							<h2 className="text-[28px] leading-tight text-ink">What do you want on your cheat sheet?</h2>
+							<p className="max-w-[520px] text-lg leading-[1.45] text-ink-2">{emptyChatLine(teacherName, false)}</p>
+							{view.sheet.olderFormat && !view.running && <OlderSheet onRemake={() => void remakeSheet(spaceId, deadlineId).then(setFailed)} />}
 						</div>
-					</div>
+					)}
 				</div>
-			)}
-		</>
+				<Pane data-testid="cheat-sheet-panel" className="flex w-[480px] shrink-0 flex-col overflow-hidden">
+					<TeacherHead name={teacherName} color={activeSpace?.id === spaceId ? activeSpace.color : undefined} doing={teacherDoing(view, agentGone)} />
+					<SheetChat
+						view={view}
+						spaceId={spaceId}
+						deadlineId={deadlineId}
+						act={act}
+						agentName={teacherName}
+						agentGone={agentGone}
+						pointed={pointed}
+						onClearPointed={() => setPointed(null)}
+						onShowVersion={current ? showVersion : undefined}
+						empty={current ? emptyChatLine(teacherName, true) : undefined}
+					/>
+				</Pane>
+			</div>
+		</div>
 	);
 }

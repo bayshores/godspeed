@@ -1,53 +1,26 @@
 import { currentVersion, pageSizeLabel, type CheatSheetView, type SheetVersion } from "@/shared/core";
-import { BrailleSpinner } from "@/frontend/components/braille-spinner";
 
-const NO_AGENT = "No agent connected";
-
-/** The top bar's middle: what the agent is doing (or that none is
- *  connected to do it), else the paper. */
-export function StudioStatus({
-	view,
-	agentName,
-	agentGone,
-	onStop,
-}: {
-	view: CheatSheetView;
-	agentName: string;
-	/** No agent connected: a request waits for one instead of running. */
-	agentGone: boolean;
-	onStop: () => void;
-}) {
+/** The studio bar's status: the newest version's paper, or that there is none yet. */
+export function sheetPaper(view: CheatSheetView): string {
 	const current = currentVersion(view.sheet);
-	if (view.running)
-		return (
-			<div data-testid="cheat-sheet-status" className="flex shrink-0 items-center gap-3 text-sm">
-				{agentGone ? (
-					<span className="font-bold text-ink">{NO_AGENT}</span>
-				) : (
-					<>
-						<BrailleSpinner className="h-3.5 text-ink" />
-						<span className="font-bold text-ink">{current ? `${agentName} is on your message` : `${agentName} is making your sheet`}</span>
-					</>
-				)}
-				<button type="button" onClick={onStop} className="lh-press font-bold text-ink-2 hover:text-ink">
-					Stop
-				</button>
-			</div>
-		);
-	return (
-		<span data-testid="cheat-sheet-status" className="shrink-0 text-sm text-ink-2">
-			{current ? pageSizeLabel(current.pages) : "Not made yet"}
-		</span>
-	);
+	return current ? pageSizeLabel(current.pages) : "Not made yet";
+}
+
+/** The line under the teacher's name while a request runs (or waits for
+ *  an agent to run it); null when nothing runs. */
+export function teacherDoing(view: CheatSheetView, agentGone: boolean): string | null {
+	if (!view.running) return null;
+	if (agentGone) return "No agent connected";
+	return currentVersion(view.sheet) ? "is on your message" : "is making your sheet";
 }
 
 /** A sheet an older godspeed made (HTML or blocks) can't become a PDF
  *  without the agent: one click asks for it again. */
 export function OlderSheet({ onRemake }: { onRemake: () => void }) {
 	return (
-		<div data-testid="cheat-sheet-older" className="flex flex-wrap items-center gap-x-3 gap-y-2 px-3.5 py-3 text-sm text-ink-2 outline outline-1 -outline-offset-1 outline-tone-2">
+		<div data-testid="cheat-sheet-older" className="flex max-w-[520px] flex-wrap items-center justify-center gap-x-3 gap-y-2 rounded border border-border bg-background px-3.5 py-3 text-[15px] text-ink">
 			<span>Your sheet was made by an older godspeed and can&apos;t be shown anymore.</span>
-			<button type="button" data-testid="cheat-sheet-remake" onClick={onRemake} className="lh-btn">
+			<button type="button" data-testid="cheat-sheet-remake" onClick={onRemake} className="lh-btn text-[15px]">
 				Make it again
 			</button>
 		</div>
@@ -65,5 +38,5 @@ export function versionLabel(v: SheetVersion, newest: boolean): string {
 export function emptyChatLine(agentName: string, made: boolean): string {
 	return made
 		? `Ask ${agentName} anything about the sheet, point at a part that confuses you, or say what to change.`
-		: `Say what you want on it: the paper, one side or both, what to put first. ${agentName} reads your class's rules in the syllabus, puts your weak topics and mistakes first, and makes it as a PDF.`;
+		: `Say what you want on it: the paper, one side or both, what to put first. ${agentName} reads the rules in your space info files, puts your weak topics and mistakes first, and makes it as a PDF.`;
 }

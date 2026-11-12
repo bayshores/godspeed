@@ -4,7 +4,7 @@ import { RouterProvider } from "react-router/dom";
 import "katex/dist/katex.min.css";
 import "./fonts/fonts.css";
 import "./globals.css";
-import { BootProvider, fetchBoot, showsWelcome } from "@/frontend/components/boot";
+import { BootProvider, fetchBoot } from "@/frontend/components/boot";
 import { router } from "./routes/router";
 
 /** The first page load paints only once /api/boot and the page's own data
@@ -19,8 +19,6 @@ const pageRead = new Promise<void>((resolve) => {
 });
 
 void Promise.all([fetchBoot(), pageRead]).then(([boot]) => {
-	// The panes hold their draw-in while the welcome screen covers them.
-	if (showsWelcome(boot)) document.documentElement.dataset.lhHold = "";
 	createRoot(document.getElementById("root")!).render(
 		<StrictMode>
 			<BootProvider initial={boot}>

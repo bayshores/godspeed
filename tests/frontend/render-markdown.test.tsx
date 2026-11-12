@@ -53,6 +53,13 @@ describe("math delimiter transform (pure unit)", () => {
 		);
 	});
 
+	it("a < before a letter in math stays math, not an HTML tag that hides the rest", () => {
+		assert.equal(transformMathDelimiters("Use $0<r<n$ here."), "Use $0< r< n$ here.");
+		const html = render("Use $0<r<n$ from the problem. Send it.");
+		assert.match(html, /katex/);
+		assert.match(html, /Send it\./);
+	});
+
 	it("leaves currency untouched", () => {
 		const md = "It costs $5 and $10 more. $$big$$ sums too.";
 		assert.equal(transformMathDelimiters(md), md);
@@ -426,7 +433,7 @@ describe("over-escaped command heal — doubled backslashes in tool args", () =>
 	it("the healed question renders ∇ and ⊤ with zero KaTeX errors", () => {
 		const html = render(healOverescapedCommands(GD_QUESTION.replace(/\\/g, "\\\\")));
 		assert.ok(html.includes("∇"), "nabla glyph renders");
-		assert.ok(html.includes("mathbb"), "mathbb R renders (double-struck class)");
+		assert.ok(html.includes("mathbb"), "mathbb R renders (double-struck space)");
 		assert.ok(html.includes("⊤"), "top renders");
 		assert.ok(!html.includes("katex-error"), "no KaTeX errors");
 	});
@@ -438,7 +445,7 @@ describe("over-escaped command heal — doubled backslashes in tool args", () =>
 			"Let $A \\in \\mathbb{R}^{m \\times k}$ and $B \\in \\mathbb{R}^{k \\times n}$, and let $C = AB$ be their matrix product.";
 		const html = render(healOverescapedCommands(ir.replace(/\\/g, "\\\\")));
 		assert.ok(html.includes("∈"), "in renders");
-		assert.ok(html.includes("mathbb"), "mathbb renders (double-struck class)");
+		assert.ok(html.includes("mathbb"), "mathbb renders (double-struck space)");
 		assert.ok(html.includes("×"), "times renders");
 		assert.ok(!html.includes("katex-error"), "no KaTeX errors");
 	});

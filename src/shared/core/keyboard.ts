@@ -19,7 +19,6 @@
  */
 
 export type KeyAction =
-	| "toggle-sidebar"
 	| "sessions-search"
 	| "jump-graph"
 	| "new-session"
@@ -36,13 +35,12 @@ export type KeyAction =
 
 /** Where the cheat sheet groups an action (display only — dispatch is
  *  global; a seam that isn't mounted simply no-ops). */
-type KeyScope = "global" | "chat" | "graph";
+type KeyScope = "global" | "chat";
 
 /** Each scope's heading, in display order (Settings and the cheat sheet). */
 export const KEY_SCOPES: readonly { scope: KeyScope; label: string }[] = [
-	{ scope: "global", label: "Global" },
-	{ scope: "chat", label: "Lesson" },
-	{ scope: "graph", label: "Graph" },
+	{ scope: "global", label: "Everywhere" },
+	{ scope: "chat", label: "In a lesson" },
 ];
 
 interface KeyActionDef {
@@ -58,25 +56,24 @@ interface KeyActionDef {
 }
 
 export const KEYBOARD_ACTIONS: readonly KeyActionDef[] = [
-	{ id: "open-settings", label: "Open settings", scope: "global", binding: "mod+," },
-	{ id: "toggle-sidebar", label: "Toggle sidebar", scope: "global", binding: "mod+b" },
+	{ id: "open-settings", label: "Open Settings", scope: "global", binding: "mod+," },
 	{ id: "sessions-search", label: "Search lessons", scope: "global", binding: "mod+shift+f" },
 	{ id: "jump-graph", label: "Go to Graph", scope: "global", binding: "mod+g" },
 	{ id: "new-session", label: "Study", scope: "global", binding: "mod+n" },
 	{ id: "rename-session", label: "Rename lesson", scope: "chat", binding: "f2" },
-	{ id: "toggle-user-thinking", label: "Toggle all your thinking", scope: "chat", binding: "mod+t" },
+	{ id: "toggle-user-thinking", label: "Show or hide all your thinking", scope: "chat", binding: "mod+t" },
 	// Mod+F is surface-scoped: graph node search and session text Find share
 	// one action/binding. Only the currently mounted surface listens.
 	{ id: "find", label: "Find", scope: "global", binding: "mod+f" },
-	{ id: "cheat-sheet", label: "Shortcut cheat sheet", scope: "global", binding: "?" },
+	{ id: "cheat-sheet", label: "Show keyboard shortcuts", scope: "global", binding: "?" },
 	// The question dock's row machine — displayOnly: the dock owns
 	// the keys while a question is expanded; the registry never dispatches
 	// them, so bare arrows stay free everywhere else.
-	{ id: "question-focus", label: "Question: focus thinking ↔ rows", scope: "chat", binding: "tab", displayOnly: true },
-	{ id: "question-next-row", label: "Question: next row", scope: "chat", binding: "arrowdown", displayOnly: true },
-	{ id: "question-prev-row", label: "Question: previous row", scope: "chat", binding: "arrowup", displayOnly: true },
-	{ id: "question-pick-row", label: "Question: pick row", scope: "chat", binding: "space", displayOnly: true },
-	{ id: "question-submit", label: "Question: submit", scope: "chat", binding: "enter", displayOnly: true },
+	{ id: "question-focus", label: "Move between your thinking and the answers", scope: "chat", binding: "tab", displayOnly: true },
+	{ id: "question-next-row", label: "Next answer", scope: "chat", binding: "arrowdown", displayOnly: true },
+	{ id: "question-prev-row", label: "Previous answer", scope: "chat", binding: "arrowup", displayOnly: true },
+	{ id: "question-pick-row", label: "Pick answer", scope: "chat", binding: "space", displayOnly: true },
+	{ id: "question-submit", label: "Submit answer", scope: "chat", binding: "enter", displayOnly: true },
 ];
 
 const STORAGE_KEY = "lh:keymap";
@@ -193,18 +190,32 @@ const KEY_GLYPH: Record<string, string> = {
 	space: "Space",
 };
 
+/** A binding as its modifiers and its key ("mod+shift++" → ["mod", "shift"], "+"). */
+function splitBinding(binding: string): { mods: string[]; key: string } {
+	// The key itself can be "+", so it is read before splitting.
+	if (binding === "+") return { mods: [], key: "+" };
+	if (binding.endsWith("++")) return { mods: binding.slice(0, -2).split("+"), key: "+" };
+	const parts = binding.split("+");
+	const key = parts.pop()!; // last part is always the key
+	return { mods: parts, key: key === " " ? "space" : key };
+}
+
 /** Format a binding for display: "mod+shift+f" → "⌘⇧F". */
 export function formatBinding(binding: string): string {
-	// The key itself can be "+" ("mod+shift++"), so it is read before splitting.
-	const plusKey = binding === "+" || binding.endsWith("++");
-	const parts = plusKey ? (binding === "+" ? [] : binding.slice(0, -2).split("+")) : binding.split("+");
-	const key = plusKey ? "+" : parts.pop()!; // last part is always the key
+	const { mods, key } = splitBinding(binding);
 	const glyphs: string[] = [];
-	for (const part of parts) {
+	for (const part of mods) {
 		if (part === "mod") glyphs.push(MOD_GLYPH);
 		else if (part === "alt") glyphs.push(ALT_GLYPH);
 		else if (part === "shift") glyphs.push(SHIFT_GLYPH);
 	}
-	const keyGlyph = KEY_GLYPH[key === " " ? "space" : key] ?? key.toUpperCase();
-	return glyphs.join("") + keyGlyph;
+	return glyphs.join("") + (KEY_GLYPH[key] ?? key.toUpperCase());
+}
+
+const KEY_NAME: Record<string, string> = { mod: IS_MAC ? "⌘" : "Ctrl", alt: IS_MAC ? "⌥" : "Alt", shift: "Shift", enter: IS_MAC ? "Return" : "Enter", tab: "Tab" };
+
+/** A binding as one name per key, for a row of keycaps: "mod+shift+f" → ["⌘", "Shift", "F"]. */
+export function bindingKeys(binding: string): string[] {
+	const { mods, key } = splitBinding(binding);
+	return [...mods, key].map((k) => KEY_NAME[k] ?? KEY_GLYPH[k] ?? k.toUpperCase());
 }

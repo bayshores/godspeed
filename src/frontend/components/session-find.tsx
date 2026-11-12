@@ -1,11 +1,10 @@
-import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
-import { ChevronDownIcon, ChevronUpIcon, SearchIcon, XIcon } from "lucide-react";
+import { useCallback, useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { kbdEventForAction, stepSessionMatch } from "@/shared/core";
 import {
 	sameSessionRange, sessionFindRanges, sessionRangeIdentity, type SessionRangeIdentity,
 } from "@/frontend/components/session-find-dom";
 import { scrollSessionTarget, type SessionScrollContext } from "@/frontend/components/session-navigation";
-import { usePresence } from "@/frontend/components/presence";
+import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 
 const SESSION_FIND_HIGHLIGHT = "lh-session-find";
 const SESSION_FIND_ACTIVE_HIGHLIGHT = "lh-session-find-active";
@@ -58,17 +57,19 @@ export function sessionFindHasForegroundLayer(doc: Document): boolean {
 	});
 }
 
-/** Mounted for the lifetime of ONE Chat (which is keyed by chatId). Closing
- * keeps the query/reading position; changing sessions resets all local state.
- * The bar lives outside scopeRef, so it never finds its own query or count. */
-export function SessionFind({ scopeRef, scrollContextRef }: {
+/** Lives in the lesson's bar: shows its children (the bar's own buttons)
+ * until Find opens, then takes their place. Mounted for the lifetime of ONE
+ * Chat (which is keyed by chatId). Closing keeps the query/reading position;
+ * changing sessions resets all local state. The bar lives outside scopeRef,
+ * so it never finds its own query or count. */
+export function SessionFind({ scopeRef, scrollContextRef, children }: {
 	scopeRef: RefObject<HTMLDivElement | null>;
 	scrollContextRef: RefObject<SessionScrollContext | null>;
+	children?: ReactNode;
 }) {
 	const [open, setOpen] = useState(false);
 	const [query, setQuery] = useState("");
 	const [result, setResult] = useState({ index: -1, count: 0 });
-	const presence = usePresence(open);
 	useEffect(injectFindStyles, []);
 	const inputRef = useRef<HTMLInputElement | null>(null);
 	const previousFocus = useRef<HTMLElement | null>(null);
@@ -158,16 +159,13 @@ export function SessionFind({ scopeRef, scrollContextRef }: {
 		if (ranges[index] && scopeRef.current) scrollSessionTarget(ranges[index]!, scopeRef.current, scrollContextRef.current);
 	};
 
-	// The bar fades in and out.
-	if (!presence.mounted) return null;
-	const buttonClass = "lh-press flex size-7 shrink-0 items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-40";
+	if (!open) return <>{children}</>;
 	return (
 		<div
 			role="search"
 			aria-label="Find in lesson"
 			data-testid="session-find"
-			data-state={presence.state}
-			className="lh-fade lh-no-drag flex h-10 shrink-0 items-center gap-2 border-b border-border px-6 font-ui text-sm has-[input:focus]:border-ink-2"
+			className="lh-no-drag flex items-center gap-4"
 			onKeyDown={(event) => {
 				if (event.key === "Enter") {
 					event.stopPropagation(); // NEVER reach question/global Enter submits.
@@ -181,29 +179,27 @@ export function SessionFind({ scopeRef, scrollContextRef }: {
 				}
 			}}
 		>
-			<SearchIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
 			<input
 				ref={inputRef}
 				aria-label="Find in lesson"
-				placeholder="Find in lesson…"
+				placeholder="Find in lesson"
 				value={query}
 				onChange={(event) => setQuery(event.target.value)}
 				spellCheck={false}
-				className="lh-input min-w-0 flex-1 bg-transparent outline-none placeholder:text-muted-foreground"
+				className="h-[34px] w-[200px] rounded-[3px] border-[1.5px] border-bar bg-bar-ink px-3 text-[15px] text-bar outline-none placeholder:text-bar/60"
 			/>
-			<output aria-live="polite" data-testid="session-find-count" className="shrink-0 text-xs font-mono tabular-nums text-muted-foreground">
-				{query ? `${result.index + 1}/${result.count}` : ""}
+			<output aria-live="polite" data-testid="session-find-count" className="font-count min-w-[6ch] shrink-0 text-[15px]">
+				{query ? `${result.index + 1} of ${result.count}` : ""}
 			</output>
-			<button type="button" aria-label="Previous match" title="Previous match" className={buttonClass}
-				disabled={!result.count} onMouseDown={(event) => event.preventDefault()} onClick={() => step(-1)}>
-				<ChevronUpIcon className="size-4" aria-hidden />
+			<button type="button" className="lh-btn lh-btn-bar lh-no-drag" disabled={!result.count} onMouseDown={(event) => event.preventDefault()} onClick={() => step(-1)}>
+				Previous match
 			</button>
-			<button type="button" aria-label="Next match" title="Next match" className={buttonClass}
-				disabled={!result.count} onMouseDown={(event) => event.preventDefault()} onClick={() => step(1)}>
-				<ChevronDownIcon className="size-4" aria-hidden />
+			<button type="button" className="lh-btn lh-btn-bar lh-no-drag" disabled={!result.count} onMouseDown={(event) => event.preventDefault()} onClick={() => step(1)}>
+				Next match
 			</button>
-			<button type="button" aria-label="Close Find" title="Close Find" className={buttonClass} onClick={close}>
-				<XIcon className="size-4" aria-hidden />
+			<button type="button" className="lh-btn lh-btn-bar lh-no-drag" onClick={close}>
+				<PixelIcon name="close" />
+				Close Find
 			</button>
 		</div>
 	);

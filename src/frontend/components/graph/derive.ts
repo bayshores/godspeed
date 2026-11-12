@@ -1,6 +1,6 @@
 /**
  * Pure helpers for the Graph page's columns and panes: status colors,
- * score lines, the topic takeaway, levels, a fact's links, the deadline
+ * score lines, the sure-miss note, levels, a fact's links, the deadline
  * picker's choices and default, search matches. Browser-safe, unit-tested.
  */
 import {
@@ -10,20 +10,11 @@ import {
 	type DeadlineProgress,
 	type FactProgress,
 	type GraphChain,
+	type StatusCounts,
 	type TopicLink,
 	type TopicProgress,
-	type TopicStatus,
 	type WorkOnNextItem,
 } from "@/shared/core";
-
-/** Status → the topic ramp's color (weak red, shaky yellow, strong
- *  green); untested has none (drawn as an empty outline). */
-export const STATUS_COLOR: Record<TopicStatus, string | null> = {
-	strong: RAMP_COLORS[4],
-	shaky: RAMP_COLORS[2],
-	weak: RAMP_COLORS[0],
-	untested: null,
-};
 
 /** Answer blocks in the topic panel use the topic ramp's ends. */
 export const PANEL_ANSWER_COLOR: Record<AnswerOutcome, string> = {
@@ -58,14 +49,39 @@ function sureMisses(answers: readonly Pick<AnswerRef, "outcome" | "level">[]): n
 	return answers.filter((a) => a.outcome === "wrong" && a.level !== undefined && a.level >= 4).length;
 }
 
-/** The topic panel's one-line takeaway: "3 of 7 right. On 4 of the misses
- *  you picked 4 or 5, so you felt sure." */
-export function takeaway(t: Pick<TopicProgress, "right" | "answered" | "answers">): string {
-	if (t.answered === 0) return "Not tested.";
-	const base = `${t.right} of ${t.answered} right.`;
+/** The topic pane's note under its score: "On 4 of the misses you picked
+ *  4 or 5, so you felt sure."; "" with no sure misses. */
+export function sureMissNote(t: Pick<TopicProgress, "answers">): string {
 	const sure = sureMisses(t.answers);
-	if (sure === 0) return base;
-	return `${base} On ${sure} of the misses you picked 4 or 5, so you felt sure.`;
+	return sure === 0 ? "" : `On ${sure} of the misses you picked 4 or 5, so you felt sure.`;
+}
+
+/** "3 of 4 right", or "not tested". */
+function rightOf(t: Pick<TopicProgress, "right" | "answered">): string {
+	return t.answered === 0 ? "not tested" : `${t.right} of ${t.answered} right`;
+}
+
+/** The topic pane's count line: "7 facts, 3 of 4 right". */
+export function topicCountLine(factCount: number, t: Pick<TopicProgress, "right" | "answered">): string {
+	return `${factCount} ${factCount === 1 ? "fact" : "facts"}, ${rightOf(t)}`;
+}
+
+/** A Work-on-next row's line: "shaky, 1 of 2 right", or "not tested". */
+export function workRowLine(t: Pick<TopicProgress, "status" | "right" | "answered">): string {
+	if (t.status === "untested") return "not tested";
+	return `${t.status}, ${rightOf(t)}`;
+}
+
+/** What a fact's square says, for screen readers: "1 of 2 right", "In a
+ *  lesson, not answered" or "Not studied". */
+export function factCellLabel(f: Pick<FactProgress, "answers" | "inLessons">): string {
+	if (f.answers.length === 0) return f.inLessons ? "In a lesson, not answered" : "Not studied";
+	return `${f.answers.filter((a) => a.outcome === "right").length} of ${f.answers.length} right`;
+}
+
+/** "2 strong, 3 shaky, 1 weak, 8 not tested". */
+export function countsLine(c: StatusCounts): string {
+	return `${c.strong} strong, ${c.shaky} shaky, ${c.weak} weak, ${c.untested} not tested`;
 }
 
 /** "Needs first" (arrows in) and "Leads to" (arrows out) for a topic,
@@ -114,15 +130,6 @@ export function deadlineFilesText(files: readonly { name: string }[]): string {
 	return `${files.length} files`;
 }
 
-const STATUS_ORDER: Record<TopicStatus, number> = { strong: 0, shaky: 1, weak: 2, untested: 3 };
-
-/** The "Where you're at" bar: one block per topic, strong first. */
-export function readinessBlocks<T extends Pick<TopicProgress, "status" | "rate" | "name">>(topics: readonly T[]): T[] {
-	return [...topics].sort(
-		(a, b) => STATUS_ORDER[a.status] - STATUS_ORDER[b.status] || (b.rate ?? 0) - (a.rate ?? 0) || a.name.localeCompare(b.name),
-	);
-}
-
 /** Topics matching a search (the topic's name, or any of its facts' name
  *  or statement, case-insensitive). null = no search. */
 export function searchMatches(
@@ -151,7 +158,7 @@ export function topicLevels<T extends Pick<TopicProgress, "column" | "name">>(to
 
 /** A level pane's name: the first says where to start, the last that it's advanced. */
 export function levelName(index: number, count: number): string {
-	const name = `level ${index + 1}`;
+	const name = `Level ${index + 1}`;
 	if (count < 2) return name;
 	if (index === 0) return `${name}, start here`;
 	return index === count - 1 ? `${name}, advanced` : name;

@@ -24,15 +24,17 @@ import type {
 	SessionCheckpoint,
 	TurnUsage,
 	NotesSource,
-	ClassDeadline,
+	SpaceDeadline,
 	DeadlineKind,
 	HomeworkProblem,
-	ClassFile,
-	ClassIcon,
-	ClassNote,
-	ClassRecord,
-	ClassSignature,
-	ClassSummary,
+	SpaceFile,
+	SpaceColor,
+	SpaceIcon,
+	SpaceNote,
+	SpacePrep,
+	SpaceRecord,
+	SpaceSignature,
+	SpaceSummary,
 	RemovedFile,
 	TopicSnapshot,
 } from "./contracts.ts";
@@ -42,13 +44,13 @@ import type { UserSettings } from "./settings.ts";
 
 export interface ChatStore {
 	/** Create a session record (persisted immediately); absent kind = teach. */
-	createChat(title: string, kind?: Exclude<ChatKind, "teach">, classId?: string, deadlineId?: string): ChatRecord;
+	createChat(title: string, kind?: Exclude<ChatKind, "teach">, spaceId?: string, deadlineId?: string): ChatRecord;
 	/** The full record, or null if unknown id / corrupt file. */
 	getChat(id: string): ChatRecord | null;
 	/** The record file's version, read without parsing it: it changes on
 	 *  every write. null when there is no record. */
 	chatVersion(id: string): string | null;
-	/** All sessions, newest activity first (the sidebar's list view). */
+	/** All sessions, newest activity first (the lesson list). */
 	listChats(): ChatSummary[];
 	/** Persist the full native message list (the record IS the agent
 	 * state). */
@@ -62,8 +64,8 @@ export interface ChatStore {
 	/** Append one extraction-run usage entry — idempotent per startedAt. */
 	appendExtractionUsage(id: string, entry: ExtractionRunUsage): void;
 	/** Rename a session (the header's click-to-edit title).
-	 * A rename is NOT conversation activity — updatedAt stays put, so
-	 * sidebar order never churns on a rename. */
+	 * A rename is NOT conversation activity: updatedAt stays put, so
+	 * lesson list order never churns on a rename. */
 	renameChat(id: string, title: string): ChatRecord;
 	/** Delete the session record entirely. False when the id is unknown. The graph-ledger purge and
 	 *  job cleanup are the caller's choreography (core/graph-deletion.ts +
@@ -72,10 +74,10 @@ export interface ChatStore {
 	/** Save a file the learner sent into the lesson's own folder (deleted
 	 *  with the lesson); returns its absolute path. */
 	saveAttachment(id: string, fileName: string, data: Uint8Array): string;
-	/** Set or clear (null = "No class") the lesson's class. Quiet like
+	/** Set or clear (null = "No space") the lesson's space. Quiet like
 	 *  rename: updatedAt stays put. The graph choreography of a move is the
-	 *  caller's (src/backend/server/classes.ts). */
-	setChatClass(id: string, classId: string | null): ChatRecord;
+	 *  caller's (src/backend/server/spaces.ts). */
+	setChatSpace(id: string, spaceId: string | null): ChatRecord;
 }
 
 // ─── GraphStore — the append-only evidence ledgers (data/graph) ──────────────
@@ -110,7 +112,7 @@ export interface GraphStore {
 	upsertSource(source: NotesSource): void;
 	/** Every notes source record, by id order-insensitive. */
 	readSources(): NotesSource[];
-	/** Remove one notes source record (a class file's facts are rebuilt
+	/** Remove one notes source record (a space file's facts are rebuilt
 	 *  or removed — core/graph-deletion.ts
 	 *  deleteSourceTraces owns the ledgers, this only drops the record).
 	 *  False when unknown. */
@@ -141,20 +143,23 @@ export interface GraphStore {
 	}): void;
 }
 
-// ─── ClassStore — the classes' records + copied files (data/classes) ────────
+// ─── SpaceStore — the spaces' records + copied files (data/spaces) ────────
 
-export interface ClassPatch {
+export interface SpacePatch {
 	name?: string;
 	description?: string;
 	archived?: boolean;
 	/** null unlinks. */
 	linkedFolder?: string | null;
 	/** null clears it. */
-	signature?: ClassSignature | null;
-	icon?: ClassIcon;
-	note?: ClassNote;
-	/** Replaces the class's rules; [] clears them. */
+	signature?: SpaceSignature | null;
+	icon?: SpaceIcon;
+	color?: SpaceColor;
+	note?: SpaceNote;
+	/** Replaces the space's rules; [] clears them. */
 	rules?: string[];
+	/** Replaces a prep's sheet (a space never becomes or stops being one). */
+	prep?: SpacePrep;
 }
 
 /** A new deadline as the store takes it. */
@@ -184,37 +189,40 @@ export interface DeadlinePatch {
 	done?: boolean;
 }
 
-export interface ClassStore {
-	createClass(init: { name: string; description?: string; signature?: ClassSignature; icon?: ClassIcon }): ClassRecord;
+export interface SpaceStore {
+	createSpace(init: { name: string; description?: string; signature?: SpaceSignature; icon?: SpaceIcon; prep?: SpacePrep }): SpaceRecord;
 	/** The full record, or null (unknown id, corrupt, or newer-stamped). */
-	getClass(id: string): ClassRecord | null;
-	/** Every class's full record (archived included), most recently updated first. */
-	listClassRecords(): ClassRecord[];
-	/** Every class (archived included), most recently updated first. */
-	listClasses(): ClassSummary[];
+	getSpace(id: string): SpaceRecord | null;
+	/** Every space's full record (archived included), most recently updated first. */
+	listSpaceRecords(): SpaceRecord[];
+	/** Every space (archived included), most recently updated first. */
+	listSpaces(): SpaceSummary[];
 	/** Merge a patch; bumps updatedAt. Throws on unknown id. */
-	updateClass(id: string, patch: ClassPatch): ClassRecord;
+	updateSpace(id: string, patch: SpacePatch): SpaceRecord;
 	/** Replace the whole file list (the file pipeline's write), adding
 	 *  `removed` to the record's removed files. Quiet: no updatedAt bump,
 	 *  no event. */
-	saveFiles(id: string, files: ClassFile[], removed?: readonly RemovedFile[]): ClassRecord;
+	saveFiles(id: string, files: SpaceFile[], removed?: readonly RemovedFile[]): SpaceRecord;
+	/** Forget the last round of work once it has ended (Close). False when
+	 *  the space is unknown or a round is still open. */
+	closeWork(id: string): boolean;
 	/** Add a deadline (validated: a known kind, non-empty name, a
 	 *  YYYY-MM-DD date, an optional HH:MM time, every file id one of the
-	 *  class's files). Starts not done. Bumps updatedAt. Throws
-	 *  ClassDeadlineError on bad input, Error on unknown class. */
-	addDeadline(id: string, deadline: DeadlineInit): ClassDeadline;
+	 *  space's files). Starts not done. Bumps updatedAt. Throws
+	 *  SpaceDeadlineError on bad input, Error on unknown space. */
+	addDeadline(id: string, deadline: DeadlineInit): SpaceDeadline;
 	/** Patch one deadline (same validation). `time: null` clears the time;
 	 *  `done: true` stamps doneAt, `done: false` removes it. Throws
-	 *  ClassDeadlineError when the deadline is unknown or the input is bad. */
-	updateDeadline(id: string, deadlineId: string, patch: DeadlinePatch): ClassDeadline;
+	 *  SpaceDeadlineError when the deadline is unknown or the input is bad. */
+	updateDeadline(id: string, deadlineId: string, patch: DeadlinePatch): SpaceDeadline;
 	/** Remove one deadline. False when unknown. */
 	removeDeadline(id: string, deadlineId: string): boolean;
-	/** Delete the class folder entirely (record, copied files, graph).
+	/** Delete the space folder entirely (record, copied files, graph).
 	 *  False when unknown. Lessons are the caller's choreography. */
-	deleteClass(id: string): boolean;
-	/** The class's own folder for copied files (absolute). */
+	deleteSpace(id: string): boolean;
+	/** The space's own folder for copied files (absolute). */
 	filesDir(id: string): string;
-	/** The class's own graph folder (absolute). */
+	/** The space's own graph folder (absolute). */
 	graphDir(id: string): string;
 }
 

@@ -1,4 +1,4 @@
-import { deleteGraphNode, requestClassScope } from "@/backend/server";
+import { deleteGraphNode, requestSpaceScope } from "@/backend/server";
 
 /**
  * DELETE /api/graph/nodes/[id] — single-node deletion, FULL DEATH (the
@@ -17,8 +17,8 @@ import { deleteGraphNode, requestClassScope } from "@/backend/server";
  */
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
 	const { id } = await params;
-	const scope = requestClassScope(req);
-	if (scope === undefined) return Response.json({ error: "No such class" }, { status: 404 });
+	const scope = requestSpaceScope(req);
+	if (scope === undefined) return Response.json({ error: "No such space" }, { status: 404 });
 	const outcome = deleteGraphNode(id, scope);
 	if (!outcome.ok) {
 		return Response.json({ error: outcome.error, code: outcome.code }, { status: outcome.status });

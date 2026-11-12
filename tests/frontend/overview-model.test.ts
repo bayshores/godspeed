@@ -1,5 +1,5 @@
 /**
- * The Class Overview's small derived values (src/frontend/components/overview/
+ * The Space Overview's small derived values (src/frontend/components/overview/
  * overview-model.ts) and its inline-math splitter.
  */
 import assert from "node:assert/strict";
@@ -7,12 +7,25 @@ import { describe, it } from "node:test";
 import {
 	answeredLessons,
 	calibrationTakeaway,
+	deadlineHref,
 	displayName,
+	fitScale,
 	hasCalibration,
 	isLevelOverconfident,
+	joinAnd,
 	lessonHref,
 	mostMissesTakeaway,
+	mostNeeded,
+	nextDeadlineButton,
+	noteWhen,
+	percent,
+	progressShare,
+	progressWords,
 	questionHref,
+	recentLessons,
+	scoreLine,
+	studiedShare,
+	upcomingDeadlines,
 } from "../../src/frontend/components/overview/overview-model.ts";
 import { splitInlineMath } from "../../src/frontend/components/overview/inline-math.tsx";
 import type { CalibrationLevel, LessonProgress } from "../../src/shared/core/index.ts";
@@ -81,6 +94,91 @@ describe("overview-model", () => {
 	it("hasCalibration once any level has an answer", () => {
 		assert.equal(hasCalibration([lvl(1, 0, 0), lvl(5, 0, 0)]), false);
 		assert.equal(hasCalibration([lvl(1, 0, 0), lvl(5, 0, 1)]), true);
+	});
+});
+
+describe("the space's signature and note", () => {
+	it("the share of facts studied: in a lesson or answered, 0 with no facts", () => {
+		const fact = (inLessons: boolean, answered = false) => ({ inLessons, answers: answered ? [{ chatId: "c", toolCallId: "t", outcome: "right" as const, answeredAt: "" }] : [] });
+		assert.equal(studiedShare([fact(true), fact(false, true), fact(false), fact(false)]), 0.5);
+		assert.equal(studiedShare([]), 0);
+	});
+
+	it("fitScale keeps a signature that fits, and shrinks a long or tall one to its room", () => {
+		const room = { width: 300, height: 44 };
+		assert.equal(fitScale({ width: 200, height: 30 }, room), 1);
+		assert.equal(fitScale({ width: 600, height: 30 }, room), 0.5);
+		assert.equal(fitScale({ width: 200, height: 88 }, room), 0.5);
+		assert.equal(fitScale({ width: 0, height: 0 }, room), 1, "not measured yet");
+	});
+
+	it("when the note was written: today's, yesterday's, a weekday's, then the date", () => {
+		const now = new Date(2026, 10, 11, 15, 0).getTime();
+		assert.equal(noteWhen(new Date(2026, 10, 11, 9, 0).toISOString(), now), "after today's lesson");
+		assert.equal(noteWhen(new Date(2026, 10, 10, 23, 0).toISOString(), now), "after yesterday's lesson");
+		assert.equal(noteWhen(new Date(2026, 10, 8, 12, 0).toISOString(), now), "after Sunday's lesson");
+		assert.equal(noteWhen(new Date(2026, 9, 20, 12, 0).toISOString(), now), "after the Oct 20 lesson");
+		assert.equal(noteWhen("not a date", now), "");
+	});
+});
+
+describe("deadlines on Progress", () => {
+	const NOW = new Date(2026, 9, 27, 12, 0).getTime();
+	const due = (id: string, date: string, extra: object = {}) => ({ id, kind: "homework" as const, name: id, date, done: false, ...extra });
+
+	it("upcoming: open and still ahead, soonest first", () => {
+		const list = [due("later", "2026-11-05"), due("soon", "2026-10-29"), due("past", "2026-10-20"), due("done", "2026-10-28", { done: true }), due("tonight", "2026-10-27", { time: "23:00" })];
+		assert.deepEqual(upcomingDeadlines(list, NOW).map((d) => d.id), ["tonight", "soon", "later"]);
+	});
+
+	it("how far: problems done, else how ready, else nothing", () => {
+		assert.equal(progressWords({ problems: { done: 2, total: 7 }, ready: 0.5 }), "2 of 7 problems done");
+		assert.equal(progressWords({ ready: 0.186 }), "19% ready");
+		assert.equal(progressWords({ ready: null }), null);
+		assert.equal(progressShare({ problems: { done: 2, total: 8 }, ready: 0.5 }), 0.25);
+		assert.equal(progressShare({ problems: { done: 0, total: 0 }, ready: 0.5 }), 0);
+		assert.equal(progressShare({ ready: 0.4 }), 0.4);
+		assert.equal(progressShare({ ready: null }), null);
+	});
+
+	it("the button: work on homework and projects, study for tests", () => {
+		assert.equal(nextDeadlineButton({ kind: "homework", name: "HW6" }), "Work on HW6");
+		assert.equal(nextDeadlineButton({ kind: "project", name: "PA2" }), "Work on PA2");
+		assert.equal(nextDeadlineButton({ kind: "exam", name: "Final" }), "Study for Final");
+		assert.equal(nextDeadlineButton({ kind: "quiz", name: "Quiz 3" }), "Study for Quiz 3");
+	});
+
+	it("links and numbers", () => {
+		assert.equal(deadlineHref("d 1"), "/space/deadline/d%201");
+		assert.equal(percent(0.385), 39);
+		assert.equal(joinAnd([]), "");
+		assert.equal(joinAnd(["a"]), "a");
+		assert.equal(joinAnd(["a", "b"]), "a and b");
+		assert.equal(joinAnd(["a", "b", "c"]), "a, b and c");
+	});
+
+	const topics = (name: string, list: [string, number | null][]) => ({ name, topics: list.map(([id, rate]) => ({ id, name: id, rate })) });
+
+	it("most needed: the lowest rate wins, untested counting as 0", () => {
+		assert.deepEqual(mostNeeded([topics("HW", [["sets", 0.6], ["trees", 0.2]]), topics("Final", [["graphs", null]])]), { topicId: "graphs", name: "graphs", deadlines: ["Final"] });
+	});
+
+	it("most needed: a tie goes to the topic more deadlines cover, then the name", () => {
+		assert.deepEqual(mostNeeded([topics("HW", [["b", 0.2], ["a", 0.2]]), topics("Final", [["b", 0.2]])]), { topicId: "b", name: "b", deadlines: ["HW", "Final"] });
+		assert.equal(mostNeeded([topics("HW", [["b", 0.2], ["a", 0.2]])])?.topicId, "a");
+		assert.equal(mostNeeded([topics("HW", [])]), null);
+	});
+});
+
+describe("pick up where you left off", () => {
+	it("the three lessons worked on last, newest first", () => {
+		const at = (id: string, updatedAt: string) => ({ ...lesson(id, 0, 0), updatedAt });
+		assert.deepEqual(recentLessons([at("a", "2026-10-01"), at("b", "2026-10-04"), at("c", "2026-10-02"), at("d", "2026-10-03")]).map((l) => l.chatId), ["b", "d", "c"]);
+	});
+
+	it("a lesson's score, or that it has no answers", () => {
+		assert.equal(scoreLine({ right: 4, answered: 6 }), "4 of 6 right");
+		assert.equal(scoreLine({ right: 0, answered: 0 }), "No answers yet");
 	});
 });
 

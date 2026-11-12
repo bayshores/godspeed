@@ -7,7 +7,6 @@ import {
 	withComposer,
 	withoutEndedQuestions,
 	withoutSettled,
-	withProblem,
 	withQuestion,
 	type LessonDraft,
 } from "./lesson-drafts-model";
@@ -19,7 +18,7 @@ import {
  * are ignored. Storage can be missing or full: the draft still lives in
  * memory for this visit.
  */
-export function useLessonDrafts(chatId: string, record: readonly LhMessage[], activeProblemId: string | null) {
+export function useLessonDrafts(chatId: string, record: readonly LhMessage[]) {
 	const [draft, setDraft] = useState<LessonDraft | null>(null);
 	const key = lessonDraftKey(chatId);
 	const recordRef = useRef(record);
@@ -48,14 +47,13 @@ export function useLessonDrafts(chatId: string, record: readonly LhMessage[], ac
 
 	const loaded = draft !== null;
 	useEffect(() => {
-		if (loaded) setDraft((d) => d && withoutSettled(d, record, activeProblemId));
-	}, [loaded, record, activeProblemId]);
+		if (loaded) setDraft((d) => d && withoutSettled(d, record));
+	}, [loaded, record]);
 
 	const saveComposer = useCallback((text: string) => setDraft((d) => d && withComposer(d, text)), []);
 	const saveQuestion = useCallback((id: string, patch: Partial<QuestionDraft>) => setDraft((d) => d && withQuestion(d, id, patch)), []);
-	const saveProblem = useCallback((id: string, text: string) => setDraft((d) => d && withProblem(d, id, text)), []);
 
-	return { draft, saveComposer, saveQuestion, saveProblem };
+	return { draft, saveComposer, saveQuestion };
 }
 
 /** A deleted lesson's drafts go with it. */

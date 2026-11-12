@@ -45,7 +45,7 @@ export async function PUT(request: Request, ctx: { params: Promise<{ section: st
 	const record = readSettingsRecord() ?? { version: CURRENT_SETTINGS_VERSION };
 	const next = { ...record, [section]: parsed.settings };
 	writeSettingsRecord(next);
-	// Class files saved while the graph was off wait for it to come back on.
+	// Space files saved while the graph was off wait for it to come back on.
 	if (section === "graph" && !wasOn && effectiveSettings().graph.enabled) queueWaitingFiles();
 	return Response.json({ settings: next });
 }

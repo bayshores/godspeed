@@ -14,7 +14,7 @@ Paths below are relative to the selected **data** directory:
 chats/<session-id>.json    Full session: messages, optional plan, usage metadata
 chats/<session-id>/        PDFs the learner attached to that session (messages name their path)
 agent-notes.json          Short notes agents saved about the learner (remember/forget); the learner sees them in Settings → Connection
-agent-rules.json          Which rules an agent saved: {version: 1, rules: [{where: {area} | {classId}, text, at}]}. A rule whose text no longer matches was edited and counts as the learner's
+agent-rules.json          Which rules an agent saved: {version: 1, rules: [{where: {area} | {spaceId}, text, at}]}. A rule whose text no longer matches was edited and counts as the learner's
 graph/nodes.jsonl          Proposition assertions; IDs can repeat
 graph/chains.jsonl         Reasoning-chain assertions; logical chains can repeat
 graph/sources.json        Imported-note source metadata, keyed by source ID
@@ -23,27 +23,27 @@ graph/sessions.jsonl       Extraction checkpoints, NOT the session index
 graph/coverage.jsonl       Extraction fingerprints, NOT learner assessment
 graph/topics.jsonl        Topic groupings of propositions; each line a full snapshot, the last line wins
 jobs/<job-id>.json        Background work records; delivered artifacts also appear in sessions
-classes/<class-id>/class.json   A class (course): name, description, archived, linkedFolder, files, removedFiles, deadlines, signature, icon, note, rules
-classes/<class-id>/files/       The class's copied files (and recording transcripts)
-classes/<class-id>/graph/       That class's OWN graph: the same files as graph/ above
+spaces/<space-id>/space.json   A space: name, description, archived, linkedFolder, files, removedFiles, deadlines, signature, icon, note, rules
+spaces/<space-id>/files/       The space's copied files (and recording transcripts)
+spaces/<space-id>/graph/       That space's OWN graph: the same files as graph/ above
 ```
 
-**Classes.** A lesson with a `classId` field belongs to that class, and its
-propositions live in `classes/<class-id>/graph/`, not `graph/`. A lesson without
-`classId` is in "No class", whose graph is `graph/`. Each class graph is separate:
-the same idea taught in two classes is two propositions. A class file with kind
-`study` was turned into propositions (its source id is in the class graph's
+**Spaces.** A data folder the app has not opened since spaces were called classes still has `classes/<id>/class.json` and `classId`; the scripts read both. A lesson with a `spaceId` field belongs to that space, and its
+propositions live in `spaces/<space-id>/graph/`, not `graph/`. A lesson without
+`spaceId` is in "No space", whose graph is `graph/`. Each space graph is separate:
+the same idea taught in two spaces is two propositions. A space file with kind
+`study` was turned into propositions (its source id is in the space graph's
 `sources.json`); a file with kind `info` (syllabus, assignments) never was.
-A class record may list `deadlines`: `{id, kind, name, date: "YYYY-MM-DD", time?,
+A space record may list `deadlines`: `{id, kind, name, date: "YYYY-MM-DD", time?,
 fileIds, done, doneAt?, assignmentFileId?, problems?}`. `kind` is `exam`, `homework`, `quiz` or `project`; `time`
 is a 24-hour `"HH:MM"` on the learner's own clock (absent means due at the end of
-that day); `fileIds` are the class files it covers; `doneAt` is the ISO time it was
-ticked done. Homework and projects may name the class file with their problems
+that day); `fileIds` are the space files it covers; `doneAt` is the ISO time it was
+ticked done. Homework and projects may name the space file with their problems
 (`assignmentFileId`) and list `problems`: `{number, title, text, page?, done}`, where
 `done` means the teacher marked the learner's own work right in a homework lesson
-(chat `kind: "homework"`). A class record may list `removedFiles`: `{id, name, at}` for files
+(chat `kind: "homework"`). A space record may list `removedFiles`: `{id, name, at}` for files
 that left it in the last 14 days (gone from the linked folder, or removed by hand).
-Class records are stamped `"version": 7` (v3: deadlines replaced exams; v4:
+Space records are stamped `"version": 7` (v3: deadlines replaced exams; v4:
 `signature` and `note`; v5: `rules`; v6: `removedFiles`; v7: `assignmentFileId` and
 `problems` on deadlines). A version-2 record lists `exams`
 instead (`{id, name, date, fileIds}`), which read as deadlines of kind `exam`, not
@@ -73,7 +73,7 @@ Each `chats/*.json` file is an object with:
 | `messages` | Complete stored chronological history, including custom app markers |
 | `tree` | Optional session plan: nodes, prerequisite edges, revision number |
 | `turns`, `extractions` | Parallel usage/cost-observation logs, not learner answers |
-| `classId` | The class the session belongs to; absent means "No class" |
+| `spaceId` | The space the session belongs to; absent means "No space" |
 | `settings` | Only on older records: an old per-session model choice, not an understanding assessment |
 
 The plan is session scaffolding, not the persistent knowledge graph. Its visited
@@ -171,10 +171,10 @@ recall/explain response: the teacher's subsequent prose is its interpretation.
 
 | `customType` | Interpretation |
 | --- | --- |
-| `practice-thinking` | **Learner-authored work**, including intermediate attempts and claimed answers; raw text is `details.text`, associated through `details.problemCallId` |
+| `practice-thinking` | **Learner-authored work** in older lessons, including intermediate attempts and claimed answers; raw text is `details.text`, associated through `details.problemCallId`. Newer lessons save this work as plain user messages |
 | `graph-context` | Picked propositions/chains supplied as session context; app-injected, not learner speech |
-| `class-context` | The class card shown at the start of a class lesson; app-injected |
-| `today-context` | Today's date and the class's open deadlines, given to the teacher only; app-injected |
+| `space-context` | The space card shown at the start of a space lesson; app-injected |
+| `today-context` | Today's date and the space's open deadlines, given to the teacher only; app-injected |
 | `homework-context` | A homework lesson's deadline, assignment file and posted problems, given to the teacher only; app-injected |
 | `plan-block` | Historical plan presentation snapshot in `details.block` |
 | `subagent-steer` | Delivered teaching artifact; `details.kind` and `details.result` identify the payload |
@@ -185,8 +185,9 @@ recall/explain response: the teacher's subsequent prose is its interpretation.
 | `compaction` | Context-management bookkeeping, not a learner statement or replacement for history |
 
 The practice `problem` tool holds the statement, target proposition IDs, and
-precommitted `modelSolution`. There may be many `practice-thinking` submissions for
-one problem. `conclude` carries the teacher's outcome/verdict; a dismissal can be
+precommitted `modelSolution`. While a problem is open, the learner's user messages
+are their work on it and their questions about it (older lessons: `practice-thinking`
+markers); there may be many for one problem. `conclude` carries the teacher's outcome/verdict; a dismissal can be
 recorded before its synthetic conclude pair appears. Preserve the sequence rather
 than treating only the last submission as the learner's work.
 

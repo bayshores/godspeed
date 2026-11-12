@@ -1,6 +1,6 @@
 /**
  * Settings → Teaching → Remembered: the notes outside agents saved with
- * remember, each with its class, its date and a Delete button.
+ * remember, each with its space, its date and a Delete button.
  */
 
 import { useCallback, useEffect, useState } from "react";
@@ -10,7 +10,7 @@ import { OUTLINE_BUTTON, SettingsGroup, SettingsRow } from "./controls.tsx";
 interface NoteView {
 	id: string;
 	text: string;
-	className: string | null;
+	spaceName: string | null;
 	createdAt: string;
 }
 
@@ -22,7 +22,7 @@ async function request(query = "", init?: RequestInit): Promise<NoteView[]> {
 
 function savedLabel(note: NoteView): string {
 	const day = savedDay(note.createdAt);
-	return note.className ? `${note.className}, saved ${day}` : `Saved ${day}`;
+	return note.spaceName ? `${note.spaceName}, saved ${day}` : `Saved ${day}`;
 }
 
 export function RememberedNotes() {
@@ -46,11 +46,11 @@ export function RememberedNotes() {
 	useEffect(() => load(), [load]);
 
 	return (
-		<SettingsGroup label="Remembered" testid="remembered-notes">
+		<SettingsGroup label="Remembered" about="Notes your agent saved when you told it something worth keeping" testid="remembered-notes">
 			{notes === null ? (
-				<p className="text-xs text-ink-2">{error ?? "Loading…"}</p>
+				<p>{error ?? "Loading…"}</p>
 			) : notes.length === 0 ? (
-				<p className="text-xs text-ink-2">Nothing yet. Your agent saves notes here when you tell it something worth keeping.</p>
+				<p>Nothing yet. Your agent saves notes here when you tell it something worth keeping.</p>
 			) : (
 				notes.map((note) => (
 					<SettingsRow key={note.id} label={note.text} hint={savedLabel(note)}>
@@ -66,7 +66,7 @@ export function RememberedNotes() {
 					</SettingsRow>
 				))
 			)}
-			{notes && error && <p className="text-xs text-ans-wrong">{error}</p>}
+			{notes && error && <p className="text-ans-wrong">{error}</p>}
 		</SettingsGroup>
 	);
 }

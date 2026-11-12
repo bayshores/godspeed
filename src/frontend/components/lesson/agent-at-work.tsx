@@ -1,5 +1,6 @@
 import { memo, useLayoutEffect, useMemo, useRef } from "react";
-import { CheckIcon } from "lucide-react";
+import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
+import { LABEL_TEXT } from "@/frontend/components/ui/label-text";
 import { BrailleSpinner } from "@/frontend/components/braille-spinner";
 import { prefersReducedMotion } from "@/frontend/components/presence";
 import { cn } from "@/frontend/lib/utils";
@@ -14,9 +15,9 @@ import { pdfPageUrl, useReadingDoc, type ReadingDoc } from "./use-reading-doc";
  */
 export function AgentAtWork({ work, agentName }: { work: AgentWork; agentName: string }) {
 	return (
-		<div data-testid="agent-at-work" className="flex gap-7 py-2 font-ui">
+		<div data-testid="agent-at-work" className="flex gap-7 py-2">
 			<div className="flex w-[260px] shrink-0 flex-col gap-4">
-				<div className="text-[13px] text-ink-3">{agentName}</div>
+				<div className="text-[15px] text-ink-2">{agentName}</div>
 				{work.plan ? <PlanList plan={work.plan} steps={work.steps} /> : <Steps steps={work.steps} working />}
 			</div>
 			{work.reading && <PageStage reading={work.reading} />}
@@ -27,19 +28,19 @@ export function AgentAtWork({ work, agentName }: { work: AgentWork; agentName: s
 function PlanList({ plan, steps }: { plan: NonNullable<AgentWork["plan"]>; steps: string[] }) {
 	return (
 		<div className="flex flex-col gap-3">
-			<div className="text-[15px] text-ink">Plan</div>
+			<div className={LABEL_TEXT}>Plan</div>
 			<ol className="flex flex-col gap-3">
 				{plan.items.map((item, i) => {
 					const state = i < plan.done ? "done" : i === plan.done ? "now" : "next";
 					return (
 						<li key={`${i}:${item}`} className="flex gap-2.5">
 							<span className="flex h-5 w-4 shrink-0 items-center justify-center">
-								{state === "done" && <CheckIcon className="size-3.5 text-ink-3" />}
+								{state === "done" && <PixelIcon name="check" className="text-ink-2" />}
 								{state === "now" && <BrailleSpinner label="Working" />}
-								{state === "next" && <span className="size-1 bg-tone-2" />}
+								{state === "next" && <span className="size-1.5 bg-tone-2" />}
 							</span>
 							<div className="flex min-w-0 flex-col gap-2">
-								<span className={cn("text-[14.5px] leading-5", state === "now" ? "text-ink" : state === "done" ? "text-ink-3" : "text-ink-3")}>{item}</span>
+								<span className={cn("text-[15px] leading-5", state === "now" ? "text-ink" : "text-ink-2")}>{item}</span>
 								{state === "now" && <Steps steps={steps} />}
 							</div>
 						</li>
@@ -53,11 +54,11 @@ function PlanList({ plan, steps }: { plan: NonNullable<AgentWork["plan"]>; steps
 function Steps({ steps, working }: { steps: string[]; working?: boolean }) {
 	if (steps.length === 0) return null;
 	return (
-		<ul className="flex flex-col gap-1.5 font-mono text-[12px] leading-4">
+		<ul className="flex flex-col gap-1 font-count text-[15px] leading-5">
 			{steps.map((step, i) => {
 				const last = i === steps.length - 1;
 				return (
-					<li key={`${i}:${step}`} className={cn("lh-step-in flex gap-2 break-words", last ? "text-ink-2" : "text-ink-3")}>
+					<li key={`${i}:${step}`} className={"lh-step-in flex gap-2 break-words text-ink-2"}>
 						{working && last && <BrailleSpinner label="Working" />}
 						{step}
 					</li>
@@ -111,9 +112,9 @@ function PageStage({ reading }: { reading: ReadingTarget }) {
 	return (
 		// The file is not lesson text, and Find could never scroll into this stage.
 		<div data-session-find-exclude="" className="flex min-w-0 flex-1 flex-col gap-2">
-			<div className="flex items-baseline gap-3 text-[13px]">
+			<div className="flex items-baseline gap-3 text-[15px]">
 				<span className="truncate text-ink-2" title={reading.name}>{reading.name}</span>
-				<span className="shrink-0 font-mono text-[11.5px] text-ink-3">{whereLabel(reading, doc)}</span>
+				<span className="shrink-0 font-count text-ink-2">{whereLabel(reading, doc)}</span>
 			</div>
 			<div ref={stageRef} className="relative h-[340px] overflow-hidden">
 				<div className="lh-float h-full px-4 pt-10">
@@ -124,8 +125,8 @@ function PageStage({ reading }: { reading: ReadingTarget }) {
 						</div>
 					</div>
 				</div>
-				<div className="pointer-events-none absolute inset-x-0 top-0 h-14 bg-gradient-to-b from-background to-transparent" />
-				<div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-background to-transparent" />
+				<div className="pointer-events-none absolute inset-x-0 top-0 h-14 bg-gradient-to-b from-panel to-transparent" />
+				<div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-panel to-transparent" />
 			</div>
 		</div>
 	);
@@ -140,7 +141,7 @@ function whereLabel(reading: ReadingTarget, doc: ReadingDoc | null): string {
 	return reading.from ? `from line ${reading.from}` : "";
 }
 
-const PAPER = "bg-[#E9E9E7] text-[#2B2B2B] shadow-[0_18px_40px_rgba(0,0,0,0.75)]";
+const PAPER = "bg-[#E9E9E7] text-[#2B2B2B] border border-edge";
 
 // Memoized: the file can be megabytes, and the pane re-renders on every stream frame and keystroke.
 const TextPages = memo(function TextPages({ text, from, to }: { text: string; from: number | null; to: number | null }) {

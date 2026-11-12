@@ -3,7 +3,7 @@
  * checked just now", or a plain warning instead), what its box says about
  * files it can't read, and the summary's "3 new since Tue".
  */
-import { folderName, isGoogleDriveFolder, isNewFolderFile, type ClassFile, type FolderStatus, type SkippedFiles } from "@/shared/core";
+import { folderName, isGoogleDriveFolder, isNewFolderFile, type SpaceFile, type FolderStatus, type SkippedFiles } from "@/shared/core";
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -31,7 +31,7 @@ export function skippedLines(skipped: SkippedFiles | undefined): string[] {
 	if (!skipped || skipped.count === 0) return [];
 	const { count, examples, google } = skipped;
 	const more = count - examples.length;
-	const names = more > 0 ? `${examples.join(", ")} and ${more} more` : examples.join(", ");
+	const names = more > 0 ? `${examples.join(", ")} and ${more} more` : examples.length > 1 ? `${examples.slice(0, -1).join(", ")} and ${examples.at(-1)}` : examples.join("");
 	const lines = [`${count} ${count === 1 ? "file here can't" : "files here can't"} be read: ${names}.`];
 	if (google > 0) lines.push("Google Docs need saving as PDF or Word to be read.");
 	return lines;
@@ -47,7 +47,7 @@ function checkedAgo(at: string, now: number): string {
 }
 
 /** "3 new since Tue" (the day the oldest new file came), null when none. */
-export function newSince(files: readonly ClassFile[], now: number): string | null {
+export function newSince(files: readonly SpaceFile[], now: number): string | null {
 	const fresh = files.filter((f) => isNewFolderFile(f, now));
 	if (fresh.length === 0) return null;
 	const oldest = Math.min(...fresh.map((f) => Date.parse(f.addedAt)));

@@ -1,20 +1,19 @@
 /**
  * The teacher: one provider in the app shell.
  *
- *  - Mood: follows the app (mood.ts); the mascot shows it wherever it is
- *    drawn (teacher-sprite.tsx).
  *  - Follow: every "agent-action" event is a change the outside agent
  *    made. With Follow on, the window goes to the change's page and the
  *    changed item (data-halley-target) lights up (tour.ts paces it). On
  *    by default; the learner turns it on and off, and the status line
  *    says what the agent is doing (follow-status.ts).
- *  - The panel: Talk, and Activity (Now, Recent, Background jobs).
+ *  - The panel: Talk, and Activity (teacher-activity.tsx). It never opens
+ *    over a lesson: the lesson's teacher column shows the same Activity.
  *
  * The name is the learner's choice (Settings → General → Teacher name) and
  * only ever shown on screen.
  */
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useLocation, useNavigate } from "react-router";
 import type { AgentAction } from "@/shared/core";
@@ -22,18 +21,16 @@ import { DEFAULT_TEACHER_NAME, isAgentEntry } from "@/shared/core";
 import { useServerEvent, useServerResync } from "@/frontend/components/server-events";
 import { useAgentStatus } from "@/frontend/components/agent-status";
 import { useActivity } from "@/frontend/components/activity-dock";
-import { useClasses } from "@/frontend/components/class-context";
-import { useOpenDeadlines } from "@/frontend/components/use-open-deadlines";
-import { dueAtMs } from "@/frontend/components/countdown-model";
+import { useSpaces } from "@/frontend/components/space-context";
 import { prefersReducedMotion } from "@/frontend/components/presence";
 import { useSettingsSaved } from "@/frontend/components/settings-signal";
 import { HalleyPanel } from "./halley-panel";
+import { HalleyContext, useHalley, type HalleyApi, type LessonPresence } from "./halley-context";
 import { useAskTeacher } from "./ask-teacher";
 import type { TalkAsk } from "./talk-view";
-import { REACTION_MS, crossedUnderHour, pickMood, type HalleyMood, type HalleyReaction } from "./mood";
 import { STEP_MS, nextStep } from "./tour";
 import { FOLLOW_DEFAULT, FOLLOW_KEY, GO_OFFER_MS, followMoves, followReady, followReducer, goOffer, parseFollow, safePage, type FollowEvent, type FollowState } from "./follow";
-import { agentDoing, freshAction, type AgentDoing } from "./follow-status";
+import { agentDoing, freshAction } from "./follow-status";
 import { dialogOpen, highlight, isInView, pickTarget, sleep, targetElements, waitForTarget } from "./dom";
 
 /** A run of visits waits this long first, so changes made together are
@@ -41,42 +38,8 @@ import { dialogOpen, highlight, isInView, pickTarget, sleep, targetElements, wai
 const GATHER_MS = 250;
 const RECENT_LIMIT = 20;
 
-interface LessonPresence {
-	/** A teacher message is being written. */
-	streaming: boolean;
-	/** A turn is in flight. */
-	working: boolean;
-	/** The learner has unsent text here: Follow stays on this lesson. */
-	draft: boolean;
-}
-
-interface HalleyApi {
-	name: string;
-	mood: HalleyMood;
-	follow: boolean;
-	setFollow: (on: boolean) => void;
-	panelOpen: boolean;
-	setPanelOpen: (open: boolean) => void;
-	/** Newest first. */
-	recent: AgentAction[];
-	/** What the agent is doing now; null while no agent is connected. */
-	doing: AgentDoing | null;
-	/** A brief mood (a graded answer). */
-	react: (r: HalleyReaction) => void;
-	/** A lesson screen reports itself (null when it leaves). */
-	setLesson: (p: LessonPresence | null) => void;
-	/** Go to a change (a Recent row): its page, then fly to it. */
-	go: (action: AgentAction) => void;
-	/** With Follow off: a fresh change on another page, to offer "Go to". */
-	offer: AgentAction | null;
-}
-
-const HalleyContext = createContext<HalleyApi | null>(null);
-
-/** Halley's state; null outside the app shell (render tests, onboarding). */
-export function useHalley(): HalleyApi | null {
-	return useContext(HalleyContext);
-}
+// Most of the app reads the teacher from here.
+export { useHalley };
 
 /** A lesson screen reports whether the teacher is writing or working, and
  *  whether the learner has unsent text (Follow then stays on the lesson). */
@@ -108,14 +71,13 @@ export function HalleyProvider({ initialName, children }: { initialName?: string
 	const [name, setName] = useState(initialName?.trim() || DEFAULT_TEACHER_NAME);
 	const agent = useAgentStatus();
 	const { feed } = useActivity();
-	const classes = useClasses();
-	const due = useOpenDeadlines();
+	const spaces = useSpaces();
 	const navigate = useNavigate();
 	const { pathname } = useLocation();
 
 	// ── refs the async tour reads (always the latest render's values) ──
-	const live = useRef({ name, pathname, classes, navigate });
-	live.current = { name, pathname, classes, navigate };
+	const live = useRef({ name, pathname, spaces, navigate });
+	live.current = { name, pathname, spaces, navigate };
 	const alive = useRef(true);
 	useEffect(() => {
 		alive.current = true;
@@ -167,44 +129,6 @@ export function HalleyProvider({ initialName, children }: { initialName?: string
 		};
 	}, [followOn, dispatchFollow]);
 
-	// ── reactions (brief moods) ──
-	const [reaction, setReaction] = useState<HalleyReaction | null>(null);
-	const reactionTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-	const react = useCallback((r: HalleyReaction) => {
-		setReaction(r);
-		if (reactionTimer.current) clearTimeout(reactionTimer.current);
-		reactionTimer.current = setTimeout(() => setReaction(null), REACTION_MS[r]);
-	}, []);
-	useEffect(() => () => clearTimeout(reactionTimer.current), []);
-
-	// A job failed (one that wasn't failed when the window opened): @_@.
-	const seenFailed = useRef<Set<string> | null>(null);
-	useEffect(() => {
-		const failed = feed.failed;
-		if (!failed) return;
-		if (seenFailed.current === null) {
-			seenFailed.current = new Set(failed.map((f) => f.id));
-			return;
-		}
-		const fresh = failed.filter((f) => !seenFailed.current!.has(f.id));
-		for (const f of fresh) seenFailed.current.add(f.id);
-		if (fresh.length) react("dizzy");
-	}, [feed.failed, react]);
-
-	// A deadline crossed under one hour left: O_O.
-	const dueRef = useRef(due.deadlines);
-	dueRef.current = due.deadlines;
-	useEffect(() => {
-		let prev = Date.now();
-		const t = setInterval(() => {
-			const now = Date.now();
-			const list = (dueRef.current ?? []).map((d) => ({ id: d.id, dueMs: dueAtMs(d) }));
-			if (crossedUnderHour(list, prev, now).length) react("shocked");
-			prev = now;
-		}, 15_000);
-		return () => clearInterval(t);
-	}, [react]);
-
 	// ── the lesson screen ──
 	const [lesson, setLessonState] = useState<LessonPresence | null>(null);
 	const setLesson = useCallback((p: LessonPresence | null) => {
@@ -247,12 +171,11 @@ export function HalleyProvider({ initialName, children }: { initialName?: string
 		return () => clearTimeout(t);
 	}, [recent, followOn, pathname]);
 
-	// ── what it's doing, and the mood ──
+	// ── what it's doing ──
 	const doing = useMemo(
 		() => agentDoing({ agent, fresh, lesson, extractions: feed.extractions, jobs: feed.jobs }),
 		[agent, fresh, lesson, feed.extractions, feed.jobs],
 	);
-	const mood = pickMood({ reaction, streaming: !!lesson?.streaming, working: !!doing?.working, connected: agent ? agent.connected : null });
 
 	// ── the panel ──
 	const [panelOpen, setPanelOpen] = useState(false);
@@ -274,9 +197,9 @@ export function HalleyProvider({ initialName, children }: { initialName?: string
 	const showPage = useCallback(async (action: AgentAction, asked: boolean) => {
 		const page = safePage(action.page);
 		if (!page) return;
-		const { pathname: path, classes: cls, navigate: nav } = live.current;
-		const moves = followMoves({ page, classId: action.classId }, { path, activeClass: cls.active, lessonDraft: !asked && !!lessonRef.current?.draft });
-		if (moves.switchClass) cls.setActive(moves.switchClass.to);
+		const { pathname: path, spaces: space, navigate: nav } = live.current;
+		const moves = followMoves({ page, spaceId: action.spaceId }, { path, activeSpace: space.active, lessonDraft: !!lessonRef.current?.draft, asked });
+		if (moves.switchSpace) space.setActive(moves.switchSpace.to);
 		if (moves.go) {
 			nav(moves.go);
 			const end = Date.now() + 4000;
@@ -378,31 +301,26 @@ export function HalleyProvider({ initialName, children }: { initialName?: string
 		[run],
 	);
 
-	const api = useMemo<HalleyApi>(
-		() => ({ name, mood, follow: followOn, setFollow, panelOpen, setPanelOpen, recent, doing, react, setLesson, go, offer }),
-		[name, mood, followOn, setFollow, panelOpen, recent, doing, react, setLesson, go, offer],
-	);
+	// A lesson has its own teacher column: the panel shuts when one opens.
+	const inLesson = lesson !== null;
+	useEffect(() => {
+		if (inLesson) setPanelOpen(false);
+	}, [inLesson]);
 
-	const classList = classes.classes;
-	const classNameOf = useCallback((id: string | null) => (id ? (classList.find((c) => c.id === id)?.name ?? null) : null), [classList]);
+	const spaceList = spaces.spaces;
+	const spaceNameOf = useCallback((id: string | null) => (id ? (spaceList.find((c) => c.id === id)?.name ?? null) : null), [spaceList]);
+
+	const api = useMemo<HalleyApi>(
+		() => ({ name, follow: followOn, setFollow, panelOpen, setPanelOpen, recent, doing, setLesson, go, offer, spaceNameOf }),
+		[name, followOn, setFollow, panelOpen, recent, doing, setLesson, go, offer, spaceNameOf],
+	);
 
 	return (
 		<HalleyContext.Provider value={api}>
 			{children}
-			{panelOpen && (
+			{panelOpen && !inLesson && (
 				<PanelPortal>
-					<HalleyPanel
-						name={name}
-						agent={agent}
-						onClose={() => setPanelOpen(false)}
-						doing={doing}
-						recent={recent}
-						onPick={go}
-						classNameOf={classNameOf}
-						ask={ask}
-						onAsked={onAsked}
-						inLesson={lesson !== null}
-					/>
+					<HalleyPanel name={name} agent={agent} onClose={() => setPanelOpen(false)} recent={recent} onPick={go} ask={ask} onAsked={onAsked} />
 				</PanelPortal>
 			)}
 		</HalleyContext.Provider>
@@ -410,19 +328,21 @@ export function HalleyProvider({ initialName, children }: { initialName?: string
 }
 
 /** The open panel, on the page's top layer. It closes on a click elsewhere
- *  and on Esc. */
+ *  and on Esc, except while a dialog opened from it is up. */
 function PanelPortal({ children }: { children: ReactNode }) {
 	const api = useHalley();
 	const close = api?.setPanelOpen;
 	useEffect(() => {
 		if (!close) return;
+		const dialogUp = () => !!document.querySelector('[role="dialog"][aria-modal="true"]');
 		const onDown = (e: PointerEvent) => {
+			if (dialogUp()) return;
 			const t = e.target;
 			if (t instanceof Element && t.closest("[data-halley-panel], [data-halley-panel-toggle]")) return;
 			close(false);
 		};
 		const onKey = (e: KeyboardEvent) => {
-			if (e.key === "Escape") {
+			if (e.key === "Escape" && !dialogUp()) {
 				e.stopPropagation();
 				close(false);
 			}

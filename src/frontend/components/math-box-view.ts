@@ -6,13 +6,14 @@
  * as KaTeX; clicking one swaps in a MathLive field (loaded on first use)
  * to edit it, and leaving the field writes its LaTeX back.
  */
-import { Annotation, EditorState, Prec, StateEffect, StateField, type Range } from "@codemirror/state";
+import { Annotation, Compartment, EditorState, Prec, StateEffect, StateField, type Range } from "@codemirror/state";
 import { Decoration, EditorView, WidgetType, keymap, placeholder, tooltips, type DecorationSet } from "@codemirror/view";
 import { defaultKeymap, history, historyKeymap, insertNewline } from "@codemirror/commands";
 import { autocompletion, closeCompletion, type CompletionContext, type CompletionResult } from "@codemirror/autocomplete";
 import katex from "katex";
 import type { MathfieldElement } from "mathlive";
 import { formatBeforeBreak, hasSlots, isMathBreak, mathSpans, suggestMath, symbolSwap } from "@/shared/core";
+import { calculator, fieldCalculator } from "./math-box-calculator";
 
 /** The math piece being edited, by its range in the document. */
 type Editing = { from: number; to: number } | null;
@@ -88,10 +89,12 @@ class MathWidget extends WidgetType {
 	}
 }
 
-/** The piece being edited: a MathLive field with the caret in it. */
+/** The piece being edited: a MathLive field with the caret in it, then
+ *  the calculator's answer when the piece ends in "=". */
 class EditWidget extends WidgetType {
 	constructor(
 		readonly latex: string,
+		readonly from: number,
 		readonly onEnter: () => boolean,
 	) {
 		super();
@@ -100,14 +103,17 @@ class EditWidget extends WidgetType {
 		return other.latex === this.latex;
 	}
 	toDOM(view: EditorView) {
+		const outer = document.createElement("span");
 		const host = document.createElement("span");
 		host.className = "cm-math cm-math-editing";
 		host.innerHTML = renderMath(this.latex);
+		outer.append(host);
 		void loadMathLive().then((Field) => {
 			if (!host.isConnected) return;
 			const field = new Field();
 			// Its options need the field on the page.
 			host.replaceChildren(field);
+			fieldCalculator(view, field, outer, this.from);
 			field.mathVirtualKeyboardPolicy = "manual";
 			field.popoverPolicy = "off";
 			field.menuItems = [];
@@ -140,7 +146,7 @@ class EditWidget extends WidgetType {
 				field.executeCommand("moveToNextPlaceholder");
 			}
 		});
-		return host;
+		return outer;
 	}
 }
 
@@ -148,7 +154,7 @@ function decorations(state: EditorState, onEnter: () => boolean): DecorationSet 
 	const editing = state.field(editingField);
 	const ranges: Range<Decoration>[] = mathSpans(state.doc.toString()).map((s) =>
 		Decoration.replace({
-			widget: editing?.from === s.from ? new EditWidget(s.latex, onEnter) : new MathWidget(s.latex),
+			widget: editing?.from === s.from ? new EditWidget(s.latex, s.from, onEnter) : new MathWidget(s.latex),
 		}).range(s.from, s.to),
 	);
 	return Decoration.set(ranges);
@@ -208,13 +214,13 @@ const typingRules = EditorView.inputHandler.of((view, from, to, text) => {
 	return true;
 });
 
-/** The app's black writing field: prose font, square edges, quiet list. */
+/** The app's writing field: prose font, square edges, quiet list. */
 const theme = EditorView.theme(
 	{
 		"&": { height: "100%", backgroundColor: "var(--background)", color: "var(--foreground)" },
 		"&.cm-focused": { outline: "none" },
 		".cm-scroller": { fontFamily: "var(--font-prose)", fontSize: "16px", lineHeight: "24px", overflow: "auto" },
-		".cm-content": { padding: "18px 20px", caretColor: "var(--lh-ink-max)" },
+		".cm-content": { padding: "12px 14px", caretColor: "var(--lh-ink-max)" },
 		".cm-line": { padding: "0" },
 		".cm-placeholder": { color: "var(--lh-ink-3)" },
 		".cm-cursor": { borderLeftColor: "var(--lh-ink-max)" },
@@ -237,18 +243,15 @@ const theme = EditorView.theme(
 	{ dark: true },
 );
 
-/** The one-line box under the reading pane (the lesson box): the
- *  smaller type and padding of that row. */
-const compactTheme = EditorView.theme({
-	".cm-scroller": { fontSize: "14px", lineHeight: "20px" },
-	".cm-content": { padding: "10px 14px" },
-});
-
 export interface MathBoxHandle {
 	focus(): void;
 	setValue(text: string): void;
+	/** The words in the empty box and its name, which follow what it is for. */
+	setLabels(placeholderText: string, ariaLabel: string): void;
 	destroy(): void;
 }
+
+const labelsOf = (placeholderText: string, ariaLabel: string) => [placeholder(placeholderText), EditorView.contentAttributes.of({ "aria-label": ariaLabel, "aria-multiline": "true" })];
 
 export function mountMathBox(
 	parent: HTMLElement,
@@ -260,9 +263,9 @@ export function mountMathBox(
 		 *  right now, so it makes a newline. */
 		onEnter: () => boolean;
 		onChange: (text: string) => void;
-		compact?: boolean;
 	},
 ): MathBoxHandle {
+	const labels = new Compartment();
 	const view = new EditorView({
 		parent,
 		state: EditorState.create({
@@ -285,6 +288,7 @@ export function mountMathBox(
 				keymap.of([...defaultKeymap, ...historyKeymap]),
 				editingField,
 				mathPieces(opts.onEnter),
+				calculator((state) => state.field(editingField) !== null),
 				typingRules,
 				// Pasted or dropped files are attachments (the form takes them), not text.
 				EditorView.domEventHandlers({
@@ -296,10 +300,8 @@ export function mountMathBox(
 				// is a transform, which makes CodeMirror position it inside us).
 				tooltips({ parent: parent.ownerDocument.body }),
 				EditorView.lineWrapping,
-				placeholder(opts.placeholder),
+				labels.of(labelsOf(opts.placeholder, opts.ariaLabel)),
 				theme,
-				opts.compact ? Prec.highest(compactTheme) : [],
-				EditorView.contentAttributes.of({ "aria-label": opts.ariaLabel, "aria-multiline": "true" }),
 				EditorView.updateListener.of((u) => {
 					if (u.docChanged && !u.transactions.some((tr) => tr.annotation(fromOutside))) opts.onChange(u.state.doc.toString());
 				}),
@@ -312,6 +314,7 @@ export function mountMathBox(
 			if (text === view.state.doc.toString()) return;
 			view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: text }, effects: setEditing.of(null), annotations: fromOutside.of(true) });
 		},
+		setLabels: (placeholderText, ariaLabel) => view.dispatch({ effects: labels.reconfigure(labelsOf(placeholderText, ariaLabel)) }),
 		destroy: () => view.destroy(),
 	};
 }

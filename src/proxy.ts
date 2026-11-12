@@ -7,7 +7,7 @@ import { desktopAPIAuthorized } from "./backend/server/desktop-access.ts";
 export function proxy(request: NextRequest) {
 	// Outside agents (MCP) carry their own bearer token, checked by the route
 	// (src/backend/server/mcp.ts) — they can never hold the window's desktop secret.
-	if (["/api/mcp", "/api/mcp/forget"].includes(request.nextUrl.pathname)) return NextResponse.next();
+	if (["/api/mcp", "/api/mcp/forget", "/api/mcp/compacting"].includes(request.nextUrl.pathname)) return NextResponse.next();
 	if (!desktopAPIAuthorized(request.headers)) {
 		return NextResponse.json(
 			{ error: "Desktop API access requires the trusted godspeed window." },

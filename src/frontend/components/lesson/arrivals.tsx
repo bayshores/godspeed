@@ -29,7 +29,7 @@ export function useArrivals(): Arrive {
 	}, []);
 }
 
-/** A one-off row (the Thinking…/Compacting placeholders) that rises in
+/** A one-off row (the Thinking… placeholder) that rises in
  *  when it mounts mid-session — decided once, at mount. */
 export function ArrivalRow({
 	live,

@@ -1,10 +1,10 @@
 /**
- * The Class Overview: the page body rendered from a
- * fixture ProgressPayload — Ready for what's due (the runway's stops,
- * rings, lines, "+N later", Most needed), How lessons went (one block per
+ * The Progress tab: the page body rendered from a fixture ProgressPayload:
+ * the teacher's note, the next deadline (its words, bar and button), Most
+ * needed, Pick up where you left off, How lessons went (one square per
  * answer, score, lesson links), the confidence chart (target lines, red
  * where a sure level falls short, takeaway, sure-but-wrong links into the
- * lesson), the No-class variant, and the runway's clicks.
+ * lesson), the no-space variant, the clicks, and the head's signature.
  */
 import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;
@@ -29,6 +29,7 @@ Object.assign(globalThis, {
 
 const { MemoryRouter } = await import("react-router");
 const { OverviewBody } = await import("../../src/frontend/components/overview/overview-body.tsx");
+const { HeadSignature } = await import("../../src/frontend/components/overview/head-signature.tsx");
 
 // ─── fixture ────────────────────────────────────────────────────────────────
 
@@ -60,7 +61,7 @@ const FILES = [
 ];
 
 const PAYLOAD = {
-	classId: "cls_1",
+	spaceId: "cls_1",
 	today: "2026-10-27",
 	topicsAt: null,
 	grouping: false,
@@ -85,104 +86,7 @@ const PAYLOAD = {
 	totals: { answered: 24, right: 14, wrong: 7, dontKnow: 3, rate: 14 / 24 },
 } satisfies ProgressPayload;
 
-function render(props: Partial<React.ComponentProps<typeof OverviewBody>> = {}) {
-	return renderToStaticMarkup(
-		<MemoryRouter initialEntries={["/class"]}>
-			<OverviewBody
-				name="ML Foundations"
-				description="Optimization and learning theory"
-				hasClass
-				classId="cls_ml"
-				data={PAYLOAD}
-				nowMs={NOW}
-				busy={false}
-				startError={null}
-				onStudy={() => {}}
-				{...props}
-			/>
-		</MemoryRouter>,
-	);
-}
-
-/** The opening tag of the element carrying `testid`. */
-function tag(html: string, testid: string): string {
-	const m = html.match(new RegExp(`<[^>]*data-testid="${testid}"[^>]*>`));
-	assert.ok(m, `expected ${testid}`);
-	return m[0];
-}
-
-/** The whole element carrying `testid` (up to its first closing </a>/</section>/</div>). */
-function section(html: string, testid: string, close = "</section>"): string {
-	const start = html.indexOf(`data-testid="${testid}"`);
-	assert.ok(start >= 0, `expected ${testid}`);
-	return html.slice(start, html.indexOf(close, start));
-}
-
-// ─── header ─────────────────────────────────────────────────────────────────
-
-describe("Overview header", () => {
-	it("a class gets the cover: CMU title, description, progress line, tagged for Halley", () => {
-		const html = renderRunway();
-		assert.ok(html.includes('data-testid="class-cover"'));
-		assert.ok(html.includes('data-halley-target="class:cls_ml"'));
-		assert.match(section(html, "class-cover-progress", "</div></header>"), /width:40%.*>40% studied</);
-		assert.ok(!render().includes("class-cover-progress"), "no facts yet, no line");
-		assert.ok(!html.includes("class-signature-ink"), "no signature, no background line");
-		assert.ok(!html.includes("class-cover-note"), "no note, no box");
-	});
-
-	it("a cover without a signature offers 'Add a signature'", () => {
-		assert.match(renderRunway(DEADLINES, { onAddSignature: () => {} }), /Add a signature/);
-		assert.ok(!renderRunway(DEADLINES, { onAddSignature: () => {}, signature: { kind: "code", value: "int *p;" } }).includes("Add a signature"), "has one");
-	});
-
-	it("the signature is set behind the name in its own type and inks in as far as studied", () => {
-		const math = render({ classId: "cls_ml", signature: { kind: "math", value: "\\nabla f(x) = 0" } });
-		assert.match(section(math, "class-signature-ink"), /class="katex"/);
-		assert.ok(!section(math, "class-signature-ink", "</header>").includes("lh-ink"), "nothing studied, no ink");
-		const code = renderRunway(DEADLINES, { signature: { kind: "code", value: "int *p = &x;" } });
-		const sig = section(code, "class-signature-ink", "</header>");
-		assert.match(sig, /font-mono/);
-		assert.match(sig, /aria-hidden="true"/);
-		assert.match(sig, /class="lh-ink[^"]*" style="--ink:40%"/);
-		const text = render({ classId: "cls_ml", signature: { kind: "text", value: "We the People" } });
-		assert.match(section(text, "class-signature-ink"), /italic/);
-	});
-
-	it("the cover shows the description's first sentence only", () => {
-		const html = render({ description: "UCSD CSE 21, taught by Miles Jones. Discrete math: counting.\nTextbook: Rosen." });
-		assert.ok(html.includes(">UCSD CSE 21, taught by Miles Jones.</p>"));
-		assert.ok(!html.includes("Discrete math"));
-	});
-
-	it("Halley's note sits on the cover", () => {
-		const html = render({ classId: "cls_ml", note: { text: "Gradient steps are clicking. Momentum is next.", at: "2026-10-28T10:00:00.000Z" } });
-		const note = section(html, "class-cover-note", "</p>");
-		assert.ok(note.includes("teacher-sprite"));
-		assert.ok(note.includes("Gradient steps are clicking. Momentum is next."));
-		assert.match(section(html, "class-cover-note", "</div></div>"), /Teacher, after /);
-		assert.doesNotMatch(render({ classId: "cls_ml", nowMs: null, note: { text: "x", at: "2026-10-28T10:00:00.000Z" } }), /Teacher, /, "no clock yet, no when");
-	});
-
-	it("loading: no progress line yet", () => {
-		assert.ok(!render({ classId: "cls_ml", data: null }).includes("class-cover-progress"));
-	});
-
-	it("the class name is the bold title; the description sits under it", () => {
-		const html = render();
-		assert.match(tag(html, "overview-name"), /font-bold/);
-		assert.ok(html.includes(">ML Foundations</h1>"));
-		assert.ok(html.includes("Optimization and learning theory"));
-	});
-
-	it("no description: no empty line", () => {
-		assert.doesNotMatch(render({ description: "" }), /<p class="[^"]*text-base/);
-	});
-});
-
-// ─── ready for what's due ───────────────────────────────────────────────────
-
-/** Local noon on the fixture's day (the runway compares against the window's clock). */
+/** Local noon on the fixture's day (the page compares against the window's clock). */
 const NOW = new Date(2026, 9, 27, 12, 0).getTime();
 
 function deadline(id: string, name: string, date: string, extra: Partial<DeadlineProgress> = {}): DeadlineProgress {
@@ -207,11 +111,10 @@ function deadline(id: string, name: string, date: string, extra: Partial<Deadlin
 }
 
 const DEADLINES = [
-	deadline("d1", "HW 5", "2026-10-29", { time: "23:59" }),
 	deadline("d2", "Midterm 2", "2026-11-05", { kind: "exam", time: "19:00", ready: 0.72 }),
-	deadline("d3", "Reading", "2026-11-06", { files: [], topicIds: [], topics: [], ready: null }),
+	deadline("d1", "HW 5", "2026-10-29", { time: "23:59", problems: { done: 2, total: 7 } }),
 	deadline("d0", "Old quiz", "2026-10-20"),
-	deadline("dx", "Done one", "2026-10-30", { done: true }),
+	deadline("dx", "Done one", "2026-10-28", { done: true }),
 ];
 
 const FACTS = [true, true, false, false, false].map((inLessons, i) => ({
@@ -224,101 +127,155 @@ const FACTS = [true, true, false, false, false].map((inLessons, i) => ({
 	answers: [],
 }));
 
-function renderRunway(deadlines: DeadlineProgress[] = DEADLINES, props: Partial<React.ComponentProps<typeof OverviewBody>> = {}) {
-	return render({ data: { ...PAYLOAD, deadlines, facts: FACTS }, ...props });
+type Props = React.ComponentProps<typeof OverviewBody>;
+
+function body(props: Partial<Props> = {}) {
+	return (
+		<MemoryRouter initialEntries={["/space"]}>
+			<OverviewBody
+				hasSpace
+				color="var(--lh-space-1)"
+				data={{ ...PAYLOAD, deadlines: DEADLINES, facts: FACTS }}
+				nowMs={NOW}
+				busy={false}
+				startError={null}
+				onStudy={() => {}}
+				onStartDeadline={() => {}}
+				onAddDeadline={() => {}}
+				{...props}
+			/>
+		</MemoryRouter>
+	);
 }
 
-describe("Ready for what's due", () => {
-	it("Today first, then the open deadlines still ahead, soonest first (no overdue, no done)", () => {
-		const html = renderRunway();
-		const stops = [...html.matchAll(/data-testid="runway-(today|stop-[a-z0-9]+)"/g)].map((m) => m[1]);
-		assert.deepEqual(stops, ["today", "stop-d1", "stop-d2", "stop-d3"]);
-		assert.match(section(html, "runway-today", "</div></div></div>"), /Today<\/span><span[^>]*>Tue Oct 27</);
+const render = (props: Partial<Props> = {}) => renderToStaticMarkup(body(props));
+
+/** The opening tag of the element carrying `testid`. */
+function tag(html: string, testid: string): string {
+	const m = html.match(new RegExp(`<[^>]*data-testid="${testid}"[^>]*>`));
+	assert.ok(m, `expected ${testid}`);
+	return m[0];
+}
+
+/** The whole element carrying `testid`, up to its first `close`. */
+function section(html: string, testid: string, close = "</section>"): string {
+	const start = html.indexOf(`data-testid="${testid}"`);
+	assert.ok(start >= 0, `expected ${testid}`);
+	return html.slice(start, html.indexOf(close, start));
+}
+
+const text = (html: string) => html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
+
+// ─── order ──────────────────────────────────────────────────────────────────
+
+describe("Progress, top to bottom", () => {
+	it("note, next deadline, Most needed, Pick up where you left off, Facts, lessons, confidence", () => {
+		const html = render({ note: { text: "Strong on sets.", at: "2026-10-26T12:00:00" } });
+		const at = ["teacher-note", "next-deadline", "most-needed", "recent-lessons", "space-facts", "overview-lessons", "overview-confidence"].map((id) => html.indexOf(`data-testid="${id}"`));
+		assert.ok(at.every((i) => i >= 0), "every part shows");
+		assert.deepEqual(at, [...at].sort((a, b) => a - b));
 	});
 
-	it("the head is just the title (the cover already says how much is studied)", () => {
-		assert.ok(!renderRunway().includes("runway-facts"));
+	it("loading: nothing yet", () => {
+		const html = render({ data: null });
+		for (const id of ["next-deadline", "most-needed", "recent-lessons", "space-facts", "overview-lessons", "overview-confidence"]) assert.ok(!html.includes(id));
 	});
 
-	it("rings show the ready % in mono; a deadline with no files shows an empty ring with –", () => {
-		const html = renderRunway();
-		assert.match(section(html, "runway-ring-d1", "</a>"), /font-mono[^>]*>38%</);
-		assert.match(section(html, "runway-ring-d2", "</a>"), />72%</);
-		const empty = section(html, "runway-ring-d3", "</a>");
-		assert.match(empty, />–</);
-		assert.doesNotMatch(empty, /runway-arc/);
+	it("no space: lessons and confidence only, under the spaces to switch to", () => {
+		const html = render({ hasSpace: false, pickSpace: <p>pick one</p> });
+		assert.ok(html.indexOf("pick one") < html.indexOf('data-testid="recent-lessons"'));
+		for (const id of ["next-deadline", "most-needed", "space-facts"]) assert.ok(!html.includes(id));
+		for (const id of ["overview-lessons", "overview-confidence"]) assert.ok(html.includes(`data-testid="${id}"`));
 	});
 
-	it("every ring is 88px; the arc uses the ramp color", () => {
-		const html = renderRunway();
-		for (const id of ["d1", "d2", "d3"]) assert.match(section(html, `runway-ring-${id}`, "</a>"), /width:88px;height:88px/);
-		assert.match(section(html, "runway-ring-d2", "</a>"), /data-testid="runway-arc"[^>]*style="stroke:var\(--lh-ramp-4\)"/);
+	it("no lessons, no answers: neither lesson list nor the chart", () => {
+		const empty = { ...PAYLOAD, deadlines: DEADLINES, lessons: [], calibration: { levels: PAYLOAD.calibration.levels.map((l) => level(l.level, 0, 0)), sureButWrong: [] } };
+		const html = render({ data: empty });
+		for (const id of ["recent-lessons", "overview-lessons", "overview-confidence"]) assert.ok(!html.includes(id));
+		assert.ok(html.includes('data-testid="next-deadline"'));
+	});
+});
+
+// ─── the teacher's note ─────────────────────────────────────────────────────
+
+describe("The teacher's note", () => {
+	it("the note, who wrote it and when", () => {
+		const html = render({ note: { text: "Strong on sets.", at: "2026-10-26T12:00:00" } });
+		assert.match(text(section(html, "teacher-note")), /Strong on sets\. Teacher, after yesterday's lesson|Strong on sets\. Teacher, after yesterday&#x27;s lesson/);
 	});
 
-	it("names and meta: exams read 'Exam, Thu Nov 5', others the date", () => {
-		const html = renderRunway();
-		assert.ok(section(html, "runway-stop-d2", "</div></div></div>").includes("Exam, Thu Nov 5"));
-		assert.ok(section(html, "runway-stop-d1", "</div></div></div>").includes(">Thu Oct 29<"));
+	it("no note: no sheet", () => {
+		assert.ok(!render().includes("teacher-note"));
+	});
+});
+
+// ─── the next deadline ──────────────────────────────────────────────────────
+
+describe("The next deadline", () => {
+	it("the soonest open deadline still ahead: days left, day, name, how far, and its page", () => {
+		const html = section(render(), "next-deadline");
+		assert.match(text(html), /2 days Thursday Oct 29 HW 5 2 of 7 problems done\./);
+		assert.match(tag(html, "next-deadline-open"), /href="\/space\/deadline\/d1"/);
+		assert.match(html, /width:28\.57/, "the bar is as far as the problems done");
+		assert.match(html, /data-halley-target="deadline:d1"/);
 	});
 
-	it("lines join the stops only between them, with the days above each", () => {
-		const html = renderRunway();
-		const lines = [...html.matchAll(/data-testid="runway-line"/g)];
-		assert.equal(lines.length, 3, "Today→d1, d1→d2, d2→d3");
-		assert.ok(html.includes(">2 days<"));
-		assert.ok(html.includes(">7 days<"));
-		assert.ok(html.includes(">1 day<"));
-		// The line leaves 10px at each mark: 6px dot + 10, 44px ring + 10.
-		assert.match(html, /left:calc\(50% \+ 16px\);right:calc\(-50% \+ 54px\)/);
+	it("homework is worked on, a test is studied for", () => {
+		assert.match(text(section(render(), "next-deadline-start", "</button>")), /Work on HW 5/);
+		const exam = render({ data: { ...PAYLOAD, deadlines: [DEADLINES[0]!] } });
+		assert.match(text(section(exam, "next-deadline-start", "</button>")), /Study for Midterm 2/);
+		assert.match(text(section(exam, "next-deadline")), /72% ready\./);
 	});
 
-	it("tags each stop for Halley", () => {
-		assert.match(tag(renderRunway(), "runway-stop-d1"), /data-halley-target="deadline:d1"/);
+	it("nothing to measure: says so, with no bar", () => {
+		const html = section(render({ data: { ...PAYLOAD, deadlines: [deadline("d3", "Reading", "2026-11-06", { kind: "exam", topics: [], ready: null })] } }), "next-deadline");
+		assert.match(text(html), /Not measured yet\./);
+		assert.ok(!html.includes("lh-grow"));
 	});
 
-	it("more than 5 open deadlines: 4 rings and '+N later' to Home", () => {
-		const many = ["a", "b", "c", "d", "e", "f", "g"].map((id, i) => deadline(id, `HW ${id}`, `2026-11-${String(i + 1).padStart(2, "0")}`));
-		const html = renderRunway(many);
-		assert.equal([...html.matchAll(/data-testid="runway-stop-/g)].length, 4);
-		assert.match(section(html, "runway-later", "</a>"), /\+3 later/);
-		assert.match(tag(html, "runway-later"), /href="\/"/);
+	it("no deadlines: one line and Add a deadline", () => {
+		const html = render({ data: PAYLOAD });
+		assert.match(text(section(html, "next-deadline-none")), /No deadlines yet Add a deadline/);
+		assert.ok(!html.includes('data-testid="next-deadline"'));
 	});
 
-	it("exactly 5: all five rings, no '+N later'", () => {
-		const five = ["a", "b", "c", "d", "e"].map((id, i) => deadline(id, `HW ${id}`, `2026-11-0${i + 1}`));
-		const html = renderRunway(five);
-		assert.equal([...html.matchAll(/data-testid="runway-stop-/g)].length, 5);
-		assert.ok(!html.includes("runway-later"));
+	it("only done or past ones: nothing is coming up", () => {
+		const html = render({ data: { ...PAYLOAD, deadlines: DEADLINES.slice(2) } });
+		assert.match(text(section(html, "next-deadline-none")), /Nothing is coming up\. Add a deadline/);
 	});
 
-	it("no open deadlines: just Today and a plain line", () => {
-		const html = renderRunway([]);
-		assert.ok(html.includes('data-testid="runway-today"'));
-		assert.ok(!html.includes("runway-stop-"));
-		assert.ok(!html.includes("runway-line"));
-		assert.match(section(html, "runway-empty", "</p>"), /No deadlines yet\. Your agent can add them from the syllabus\./);
-		assert.ok(renderRunway([], { onAddDeadline: () => {} }).includes('data-testid="runway-add-deadline"'), "with Add deadline beside it");
-		assert.ok(!html.includes("runway-most-needed"));
+	it("the button is off while a lesson is starting; a lesson that didn't start says so", () => {
+		assert.match(tag(render({ busy: true }), "next-deadline-start"), /disabled=""/);
+		assert.match(render({ startError: "Couldn't start the lesson. Try again." }), /data-testid="start-error"[^>]*>Couldn&#x27;t start the lesson\. Try again\.</);
+		assert.ok(!render().includes("start-error"));
+	});
+});
+
+// ─── most needed, recent lessons ────────────────────────────────────────────
+
+describe("Most needed", () => {
+	it("the weakest topic on the deadlines ahead and the deadlines it is on", () => {
+		assert.match(text(section(render(), "most-needed")), /Most needed Convexity On HW 5 and Midterm 2 Study/);
 	});
 
-	it("Most needed: the weakest topic and the deadlines that cover it", () => {
-		const row = section(renderRunway(), "runway-most-needed", "</button>");
-		assert.match(row, />Convexity</);
-		assert.match(row, /on HW 5 and Midterm 2/);
-		assert.match(row, /data-testid="runway-study"/);
+	it("no topics ahead: no list", () => {
+		assert.ok(!render({ data: PAYLOAD }).includes("most-needed"));
 	});
+});
 
-	it("No class or loading: no runway", () => {
-		assert.ok(!renderRunway(DEADLINES, { hasClass: false, classId: null }).includes("overview-runway"));
-		assert.ok(!render({ data: null }).includes("overview-runway"));
-		assert.ok(!renderRunway(DEADLINES, { nowMs: null }).includes("overview-runway"));
-	});
-
-	it("No class: the same page without the runway", () => {
-		const html = render({ hasClass: false, classId: null, name: "No class", description: "" });
-		assert.ok(html.includes('data-testid="overview-lessons"'));
-		assert.ok(html.includes('data-testid="overview-confidence"'));
-		assert.ok(html.includes(">No class</h1>"));
+describe("Pick up where you left off", () => {
+	it("the lessons worked on last, each with its score and age, opening the lesson", () => {
+		const lessons = [
+			{ ...lesson("c1", "Gradient descent", "rrw"), updatedAt: "2026-10-20T12:00:00" },
+			{ ...lesson("c2", "Tracing", "rr"), updatedAt: new Date(NOW - 2 * 3_600_000).toISOString() },
+			{ ...lesson("c3", "Just started", ""), updatedAt: new Date(NOW - 26 * 3_600_000).toISOString() },
+			{ ...lesson("c4", "Oldest", "r"), updatedAt: "2026-10-01T12:00:00" },
+		];
+		const html = section(render({ data: { ...PAYLOAD, lessons } }), "recent-lessons");
+		assert.match(text(html), /Tracing 2 of 2 right 2 hours ago .*Just started No answers yet yesterday .*Gradient descent 2 of 3 right Oct 20/);
+		assert.ok(!html.includes("Oldest"));
+		assert.match(tag(html, "recent-lesson-c2"), /href="\/chat\/c2"/);
+		assert.match(html, /background:var\(--lh-space-1\)/);
 	});
 });
 
@@ -326,24 +283,24 @@ describe("Ready for what's due", () => {
 
 describe("How lessons went", () => {
 	it("one row per lesson with answers, linking to the lesson", () => {
-		const html = render();
+		const html = section(render(), "overview-lessons");
 		assert.match(tag(html, "overview-lesson-c1"), /href="\/chat\/c1"/);
 		assert.match(tag(html, "overview-lesson-c2"), /href="\/chat\/c2"/);
 		assert.ok(!html.includes("overview-lesson-c3"), "a lesson with no answers has no row");
 	});
 
-	it("one block per answer, in order, colored right / wrong / didn't know; the score in mono", () => {
+	it("one square per answer, in order, colored right / wrong / didn't know; the score", () => {
 		const row = section(render(), "overview-lesson-c1", "</a>");
-		const outcomes = [...row.matchAll(/data-outcome="(\w+)" class="[^"]*\b(bg-ans-right|bg-ans-wrong|bg-ans-dontknow)\b/g)].map((m) => `${m[1]}:${m[2]}`);
-		assert.equal(outcomes.length, 13);
-		assert.equal(outcomes[0], "right:bg-ans-right");
-		assert.equal(outcomes[9], "wrong:bg-ans-wrong");
-		assert.equal(outcomes[12], "dontKnow:bg-ans-dontknow");
-		assert.match(row, /font-mono[^"]*">9 \/ 13<\/span>/);
+		const outcomes = [...row.matchAll(/data-outcome="(\w+)"/g)].map((m) => m[1]);
+		assert.deepEqual(outcomes, [...Array(9).fill("right"), ...Array(3).fill("wrong"), "dontKnow"]);
+		assert.match(row, /bg-ans-right/);
+		assert.match(row, /bg-ans-wrong/);
+		assert.match(row, /bg-ans-dontknow/);
+		assert.match(text(row), /9 of 13/);
 	});
 
 	it("the takeaway names the lesson with the most misses", () => {
-		assert.ok(render().includes("“Bayesian knowledge tracing” has the most misses."));
+		assert.match(section(render(), "overview-lessons"), /“Bayesian knowledge tracing” has the most misses\./);
 	});
 });
 
@@ -351,67 +308,48 @@ describe("How lessons went", () => {
 
 describe("Can you trust your confidence?", () => {
 	it("five bars: right/answered above, a target line at level × 20 %", () => {
-		const html = render();
-		for (const n of [1, 2, 3, 4, 5]) assert.ok(html.includes(`data-testid="calibration-level-${n}"`));
-		const l1 = section(html, "calibration-level-1", 'data-testid="calibration-level-2"');
-		assert.ok(l1.includes(">2/4<"));
-		assert.match(l1, /data-testid="calibration-target"[^>]*style="top:80%"/);
-		assert.match(l1, /data-testid="calibration-right"[^>]*style="height:50%"/);
-		const l5 = section(html, "calibration-level-5", "</section>");
-		assert.match(l5, /data-testid="calibration-target"[^>]*style="top:0%"/);
+		const html = section(render(), "overview-confidence");
+		for (const [n, score, top] of [[1, "2/4", 80], [2, "6/11", 60], [3, "8/13", 40], [4, "7/12", 20], [5, "5/6", 0]] as const) {
+			const bar = section(html, `calibration-level-${n}`, "</div></div>");
+			assert.ok(bar.includes(`>${score}<`), `level ${n} score`);
+			assert.match(bar, new RegExp(`data-testid="calibration-target"[^>]*style="top:${top}%"`));
+		}
+		assert.match(html, /data-testid="calibration-right"[^>]*style="height:50%"/);
 	});
 
-	it("red where a sure level (4–5) is right less often than it claims; gray otherwise", () => {
-		const html = render();
-		for (const n of [4, 5]) assert.match(tag(html, `calibration-level-${n}`), /data-overconfident="true"/);
-		for (const n of [1, 2, 3]) assert.doesNotMatch(tag(html, `calibration-level-${n}`), /data-overconfident/);
-		const l4 = section(html, "calibration-level-4", 'data-testid="calibration-level-5"');
-		assert.match(l4, /calibration-right" class="[^"]*bg-ans-wrong/);
-		const l2 = section(html, "calibration-level-2", 'data-testid="calibration-level-3"');
-		assert.match(l2, /calibration-right" class="[^"]*bg-ink-3/);
+	it("red where a sure level (4 or 5) is right less often than it claims; green otherwise", () => {
+		const html = section(render(), "overview-confidence");
+		for (const n of [4, 5]) {
+			assert.match(tag(html, `calibration-level-${n}`), /data-overconfident="true"/);
+			assert.match(section(html, `calibration-level-${n}`, "</div></div>"), /data-testid="calibration-right"[^>]*bg-ans-wrong/);
+		}
+		assert.doesNotMatch(tag(html, "calibration-level-2"), /data-overconfident/);
+		assert.match(section(html, "calibration-level-2", "</div></div>"), /data-testid="calibration-right"[^>]*bg-ans-right/);
 	});
 
-	it("the takeaway names the red levels", () => {
-		assert.ok(render().includes("At 4 and 5 you&#x27;re right less often than you think."));
+	it("the takeaway names the red levels, beside what the bars mean", () => {
+		const html = section(render(), "overview-confidence");
+		assert.match(html, /At 4 and 5 you&#x27;re right less often than you think\./);
+		assert.match(text(section(html, "calibration-legend", "</div>")), /How sure you were, from 1 \(guessing\) to 5 \(certain\)\. The fill is how often you were right\./);
 	});
 
 	it("a sure-but-wrong row opens the question in its lesson, with the level picked and real LaTeX", () => {
-		const html = render();
+		const html = section(render(), "overview-confidence");
+		assert.match(html, /Sure but wrong/);
 		assert.match(tag(html, "sure-but-wrong-t7"), /href="\/chat\/c1#message-m7"/);
 		const row = section(html, "sure-but-wrong-t7", "</a>");
-		assert.ok(row.includes("Picked 4"));
-		assert.ok(row.includes('class="katex"'), "math renders through KaTeX");
-		assert.ok(!row.includes("**"), "markdown markers are dropped");
+		assert.match(text(row), /Why momentum damps zigzag at/);
+		assert.match(row, /class="katex"/);
+		assert.match(text(row), /Picked 4/);
 	});
 
-	it("a level with no answers shows a dash and no fill", () => {
-		const data = { ...PAYLOAD, calibration: { ...PAYLOAD.calibration, levels: [level(1, 0, 0), level(2, 1, 1), level(3, 0, 0), level(4, 0, 0), level(5, 0, 0)] } };
-		const l1 = section(render({ data }), "calibration-level-1", 'data-testid="calibration-level-2"');
-		assert.ok(l1.includes(">–<"));
-		assert.ok(!l1.includes("calibration-right"));
-	});
-});
-
-// ─── loading / empty ────────────────────────────────────────────────────────
-
-describe("loading and empty", () => {
-	it("loading: the header alone", () => {
-		const html = render({ data: null });
-		assert.ok(html.includes(">ML Foundations</h1>"));
-		for (const id of ["overview-runway", "overview-lessons", "overview-confidence"]) assert.ok(!html.includes(id));
-	});
-
-	it("no lessons, no answers: only the runway", () => {
-		const empty = {
-			...PAYLOAD,
-			files: [],
-			nextUp: null,
-			lessons: [],
-			calibration: { levels: PAYLOAD.calibration.levels.map((l) => level(l.level, 0, 0)), sureButWrong: [] },
-		};
-		const html = render({ data: empty });
-		for (const id of ["overview-lessons", "overview-confidence"]) assert.ok(!html.includes(id));
-		assert.ok(html.includes('data-testid="overview-runway"'));
+	it("a level with no answers shows a dash and no fill; no misses, no Sure but wrong", () => {
+		const data = { ...PAYLOAD, calibration: { levels: [level(1, 0, 0), ...PAYLOAD.calibration.levels.slice(1)], sureButWrong: [] } };
+		const html = section(render({ data }), "overview-confidence");
+		const bar = section(html, "calibration-level-1", "</div></div>");
+		assert.ok(bar.includes(">–<"));
+		assert.ok(!bar.includes("calibration-right"));
+		assert.ok(!html.includes("Sure but wrong"));
 	});
 });
 
@@ -427,53 +365,53 @@ afterEach(async () => {
 	host = null;
 });
 
-describe("runway clicks", () => {
-	async function mount(onStudy: (id: string) => void) {
+describe("clicks", () => {
+	async function mount(props: Partial<Props>) {
 		host = document.createElement("div");
 		document.body.appendChild(host);
 		root = createRoot(host);
-		await act(async () => {
-			root!.render(
-				<MemoryRouter initialEntries={["/class"]}>
-					<OverviewBody
-						name="ML Foundations"
-						description=""
-						hasClass
-						data={{ ...PAYLOAD, deadlines: DEADLINES, facts: FACTS }}
-						nowMs={NOW}
-						busy={false}
-						startError={null}
-						onStudy={onStudy}
-					/>
-				</MemoryRouter>,
-			);
-		});
+		await act(async () => root!.render(body(props)));
 		return host;
 	}
+	const click = (el: HTMLElement, testid: string) => act(async () => (el.querySelector(`[data-testid="${testid}"]`) as HTMLButtonElement).click());
 
-	it("every ring opens its deadline's page, covered or not", () => {
-		const html = renderRunway();
-		assert.match(tag(html, "runway-ring-d2"), /href="\/class\/deadline\/d2"/);
-		assert.match(tag(html, "runway-ring-d3"), /href="\/class\/deadline\/d3"/);
+	it("the next deadline's button starts it; Study starts a lesson on the Most needed topic", async () => {
+		const started: string[] = [];
+		const el = await mount({ onStartDeadline: (d) => started.push(d.id), onStudy: (id) => started.push(id) });
+		await click(el, "next-deadline-start");
+		await click(el, "most-needed-study");
+		assert.deepEqual(started, ["d1", "t1"]);
 	});
 
-	it("Study starts a lesson on the Most needed topic", async () => {
-		const learned: string[] = [];
-		const el = await mount((id) => learned.push(id));
-		await act(async () => (el.querySelector('[data-testid="runway-study"]') as HTMLButtonElement).click());
-		assert.deepEqual(learned, ["t1"]);
+	it("Add a deadline, with none", async () => {
+		let added = 0;
+		const el = await mount({ data: PAYLOAD, onAddDeadline: () => added++ });
+		await click(el, "next-deadline-add");
+		assert.equal(added, 1);
+	});
+});
+
+// ─── the head's signature ───────────────────────────────────────────────────
+
+describe("The space's signature", () => {
+	const sign = (share: number | null, signature = { kind: "math", value: "E[X]" } as const) => renderToStaticMarkup(<HeadSignature signature={signature} share={share} />);
+
+	it("math in real LaTeX, inked as far as studied, with the share under it", () => {
+		const html = sign(0.4);
+		assert.match(html, /class="katex"/);
+		assert.match(tag(html, "space-signature-ink"), /--ink:40%/);
+		assert.match(tag(html, "space-studied") + text(section(html, "space-studied", "</p>")), /40% studied/);
 	});
 
-	it("a lesson that didn't start says so under Study", () => {
-		const html = renderRunway(DEADLINES, { startError: "Couldn't start the lesson. Try again." });
-		const after = html.slice(html.indexOf('data-testid="runway-study"'));
-		assert.match(after, /data-testid="runway-start-error"[^>]*>Couldn&#x27;t start the lesson\. Try again\.</);
-		assert.ok(!renderRunway(DEADLINES).includes("runway-start-error"));
+	it("nothing studied: no ink; loading: no share yet", () => {
+		assert.ok(!sign(0).includes("space-signature-ink"));
+		assert.match(sign(0), /0% studied/);
+		const loading = sign(null);
+		assert.ok(!loading.includes("space-studied") && !loading.includes("space-signature-ink"));
 	});
 
-	it("Study is disabled while a lesson is starting; the rings still open their pages", () => {
-		const html = renderRunway(DEADLINES, { busy: true });
-		assert.match(tag(html, "runway-study"), /disabled=""/);
-		assert.doesNotMatch(tag(html, "runway-ring-d1"), /disabled/);
+	it("code in mono, text in the serif italic", () => {
+		assert.match(sign(null, { kind: "code", value: "int *p" } as never), /font-mono[^>]*>int \*p</);
+		assert.match(sign(null, { kind: "text", value: "carpe diem" } as never), /italic[^>]*>carpe diem</);
 	});
 });

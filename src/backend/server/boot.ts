@@ -7,7 +7,7 @@
  * extraction), so the first paint doesn't wait for the whole server to load.
  */
 import type { BootInfo } from "../../shared/core/contracts.ts";
-import { classStore } from "../store/classes.ts";
+import { spaceStore } from "../store/spaces.ts";
 import { readSettings } from "../store/settings.ts";
 import { folderNoticeAgent, refreshAgentFolder } from "./agent-folder.ts";
 import { onboardingNeeded } from "./onboarding.ts";
@@ -39,17 +39,19 @@ export function bootInfo(): BootInfo {
 	// Asked even during onboarding, so finishing it doesn't open the welcome
 	// screen right after "You're all set".
 	const firstLoad = firstLoadScreen();
-	const boot: BootInfo = { onboarding, firstLoad, whatsNewSince: whatsNew, folderNotice, activeClass: null, sounds: true };
+	const boot: BootInfo = { onboarding, firstLoad, whatsNewSince: whatsNew, folderNotice, activeSpace: null, sounds: true };
 	try {
-		const general = readSettings()?.general;
-		const raw = general?.activeClass;
-		// A class deleted behind the app's back falls back to No class.
-		boot.activeClass = raw && raw !== "none" && classStore.getClass(raw) ? raw : null;
-		boot.classes = classStore.listClasses();
+		const record = readSettings();
+		const general = record?.general;
+		const raw = general?.activeSpace;
+		// A space deleted behind the app's back falls back to No space.
+		boot.activeSpace = raw && raw !== "none" && spaceStore.getSpace(raw) ? raw : null;
+		boot.spaces = spaceStore.listSpaces();
 		boot.teacherName = general?.teacherName;
 		boot.sounds = general?.sounds !== false;
+		boot.appearance = record?.appearance;
 	} catch {
-		/* unreadable settings: No class */
+		/* unreadable settings: No space */
 	}
 	return boot;
 }

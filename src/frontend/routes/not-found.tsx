@@ -1,20 +1,23 @@
 import { isRouteErrorResponse, Link, useRouteError } from "react-router";
-import { TopBar } from "@/frontend/components/app-bar";
+import { BIG_BUTTON } from "@/frontend/components/ui/big-button";
+import { cn } from "@/frontend/lib/utils";
 import { PageTitle } from "./page-title";
 
 /** A removed lesson's or deadline's link, or any unknown address, in the
  *  app's own look. `page` names the window title, as a gone lesson's
- *  ("godspeed / lesson"). */
+ *  ("godspeed / Lesson"). */
 export function NotFound({ page }: { page?: string }) {
 	return (
-		<div className="flex h-full flex-col">
+		<div className="h-full overflow-y-auto">
 			<PageTitle page={page} />
-			<TopBar inClass={false} path={[{ label: "not-found", href: null }]} />
-			<div data-testid="not-found" className="flex flex-col items-start gap-3 px-[52px] py-6">
-				<p className="text-base text-ink-2">This page isn&apos;t here anymore. It may have been removed.</p>
-				<Link to="/" className="lh-press bg-tone px-3.5 py-2 text-sm font-bold text-ink hover:bg-tone-2">
-					Go Home
-				</Link>
+			<div data-testid="not-found" className="mx-auto flex w-[520px] max-w-full flex-col gap-6 px-6 pt-[220px] pb-10">
+				<h1 className="text-[30px] leading-tight text-ink">This page isn&apos;t here anymore.</h1>
+				<p className="text-[17px] text-ink-2">It may have been removed.</p>
+				<div>
+					<Link to="/" className={cn("lh-btn lh-btn-main", BIG_BUTTON)}>
+						Go to Today
+					</Link>
+				</div>
 			</div>
 		</div>
 	);

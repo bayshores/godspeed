@@ -27,14 +27,14 @@
  */
 
 import { isVersion } from "./changelog.ts";
-import { isClassId } from "./contracts/class.ts";
+import { isSpaceId } from "./contracts/space.ts";
 import { oneLine, sanitizeAreaRules, type AreaRules } from "./teaching-areas.ts";
 
 
 /** The schema version this code understands. Bump ONLY when stored records need
  *  upgrading (a field renamed, its meaning or its old default changed); pure
  *  additions never bump. */
-export const CURRENT_SETTINGS_VERSION = 2;
+export const CURRENT_SETTINGS_VERSION = 3;
 
 /** The outside agent's provider id (MCP bridge, src/backend/agent/agent-bridge.ts) —
  *  the ONLY model provider. Every lesson and background job
@@ -52,9 +52,9 @@ export const OUTSIDE_AGENT_CONTEXT_WINDOW = 200_000;
 export interface GeneralSettings {
 	/** Automatic startup/24h update checks (default ON). Manual checks bypass this. */
 	autoUpdate?: boolean;
-	/** The class the window shows: a class id,
-	 *  or "none" = No class (the default). */
-	activeClass?: string;
+	/** The space the window shows: a space id,
+	 *  or "none" = No space (the default). */
+	activeSpace?: string;
 	/** First-launch onboarding: true = done or skipped
 	 *  (existing users); false = in progress (shown until finished);
 	 *  absent = not decided yet (src/backend/server/onboarding.ts decides). */
@@ -98,7 +98,7 @@ export interface AgentSettings {
 
 /** Markdown-rendering knobs — the bare-bones set. */
 interface MdRenderingSettings {
-	/** Heading font weight (100–900, default 900). CSS resolves the nearest
+	/** Heading font weight (100–900, default 600). CSS resolves the nearest
 	 *  available weight of the chosen font — no font introspection needed. */
 	headingWeight?: number;
 	/** Color for **bold** spans (null = the text color). */
@@ -110,12 +110,12 @@ interface MdRenderingSettings {
 /** Appearance settings — colors, type, markdown emphasis. */
 export interface AppearanceSettings {
 	/** The one user-chosen color; text, panels and borders derive from it
-	 *  in code (dark text on a light one). null = black. */
+	 *  in code. null = Paper, the light default. */
 	background?: string | null;
 	/** The reading font by name, user-chosen from installed fonts.
-	 *  null = Atkinson Hyperlegible Mono. */
+	 *  null = Literata. */
 	fontFamily?: string | null;
-	/** Reading font size in px (12–24, default 15). Headings render as
+	/** Reading font size in px (12–24, default 17). Headings render as
 	 *  multiples of this, so one knob scales the document coherently. */
 	proseFontSize?: number;
 	mdRendering?: MdRenderingSettings;
@@ -200,12 +200,12 @@ export interface FactorySettings {
 
 export const FACTORY_SETTINGS: FactorySettings = {
 	version: CURRENT_SETTINGS_VERSION,
-	general: { autoUpdate: true, activeClass: "none", teacherName: DEFAULT_TEACHER_NAME, sounds: true },
+	general: { autoUpdate: true, activeSpace: "none", teacherName: DEFAULT_TEACHER_NAME, sounds: true },
 	appearance: {
-		background: null, // black
-		fontFamily: null, // Atkinson Hyperlegible Mono
-		proseFontSize: 15,
-		mdRendering: { headingWeight: 900, boldColor: null, italicColor: null },
+		background: null, // Paper
+		fontFamily: null, // Literata
+		proseFontSize: 17,
+		mdRendering: { headingWeight: 600, boldColor: null, italicColor: null },
 	},
 	graph: { enabled: true, extractionChunkTokens: 4096 },
 	compaction: { thresholdTokens: 40_000 },
@@ -243,8 +243,8 @@ function sanitizeGeneral(raw: Record<string, unknown>): GeneralSettings {
 	const out: GeneralSettings = {};
 	const autoUpdate = boolOrDrop(raw.autoUpdate);
 	if (autoUpdate !== undefined) out.autoUpdate = autoUpdate;
-	if (raw.activeClass === "none" || isClassId(raw.activeClass)) {
-		out.activeClass = raw.activeClass;
+	if (raw.activeSpace === "none" || isSpaceId(raw.activeSpace)) {
+		out.activeSpace = raw.activeSpace;
 	}
 	const onboarded = boolOrDrop(raw.onboarded);
 	if (onboarded !== undefined) out.onboarded = onboarded;
@@ -300,7 +300,7 @@ function sanitizeMdRendering(raw: unknown): MdRenderingSettings {
 
 function sanitizeAppearance(raw: Record<string, unknown>): AppearanceSettings {
 	const out: AppearanceSettings = {};
-	// Paper and White were removed (the app is dark only): they read as Black.
+	// The two light colors older versions offered read as Paper.
 	if (raw.background !== undefined) {
 		const background = sanitizeHexOrNull(raw.background);
 		out.background = ["#f4f1ea", "#ffffff"].includes(background?.toLowerCase() ?? "") ? null : background;

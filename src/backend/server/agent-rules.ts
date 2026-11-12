@@ -1,7 +1,7 @@
 /**
  * Teaching rules an agent saves on its own. The rule goes into the same
- * list the learner edits (Settings → Teaching for every lesson, Edit class
- * for one class); data/agent-rules.json only marks it as the agent's.
+ * list the learner edits (Settings → Teaching for every lesson, Edit space
+ * for one space); data/agent-rules.json only marks it as the agent's.
  * The learner can undo or edit it from the chat, the notice or Settings.
  */
 import { emit } from "../../shared/core/events.ts";
@@ -13,22 +13,22 @@ import { stores } from "./stores.ts";
 
 type RuleOutcome = { ok: true; rule: string; for: string; where: string } | { ok: false; error: string; code?: "not_found" | "conflict" };
 
-function className(where: RuleWhere): string | undefined {
-	return "classId" in where ? stores.classStore.getClass(where.classId)?.name : undefined;
+function spaceName(where: RuleWhere): string | undefined {
+	return "spaceId" in where ? stores.spaceStore.getSpace(where.spaceId)?.name : undefined;
 }
 
-/** The rule list at `where`, or null for a class that doesn't exist. */
+/** The rule list at `where`, or null for a space that doesn't exist. */
 function readList(where: RuleWhere): string[] | null {
-	if ("classId" in where) {
-		const record = stores.classStore.getClass(where.classId);
+	if ("spaceId" in where) {
+		const record = stores.spaceStore.getSpace(where.spaceId);
 		return record ? (record.rules ?? []) : null;
 	}
 	return stores.settingsStore.readSettings()?.agent?.rules?.[where.area] ?? [];
 }
 
 function writeList(where: RuleWhere, rules: string[]): void {
-	if ("classId" in where) {
-		stores.classStore.updateClass(where.classId, { rules });
+	if ("spaceId" in where) {
+		stores.spaceStore.updateSpace(where.spaceId, { rules });
 		return;
 	}
 	const record = stores.settingsStore.readSettings() ?? { version: CURRENT_SETTINGS_VERSION };
@@ -55,8 +55,8 @@ export function saveRuleByAgent(text: string, where: RuleWhere, agent?: string):
 	const rule = oneLine(text, RULE_MAX_CHARS);
 	if (!rule) return { ok: false, error: `A rule is one line of 1 to ${RULE_MAX_CHARS} characters.` };
 	const list = readList(where);
-	if (!list) return { ok: false, error: "No such class." };
-	const name = className(where);
+	if (!list) return { ok: false, error: "No such space." };
+	const name = spaceName(where);
 	const saved = { ok: true as const, rule, for: ruleFor(where, name), where: whereLabel(where, name) };
 	// The learner already has it: nothing to save or mark.
 	if (list.includes(rule)) return saved;
@@ -91,7 +91,7 @@ export function editRule(where: RuleWhere, text: string, newText: string): RuleO
 	writeList(where, list.map((r, i) => (i === at ? rule : r)));
 	unmark(where, text);
 	emit("rules-changed", {});
-	const name = className(where);
+	const name = spaceName(where);
 	return { ok: true, rule, for: ruleFor(where, name), where: whereLabel(where, name) };
 }
 

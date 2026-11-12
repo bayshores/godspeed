@@ -1,5 +1,6 @@
 import type { FolderAgent } from "../agent-folder.ts";
-import type { ClassSummary } from "./class.ts";
+import type { AppearanceSettings } from "../settings.ts";
+import type { SpaceSummary } from "./space.ts";
 
 /** GET /api/boot: what the window needs before its first paint. */
 export interface BootInfo {
@@ -11,11 +12,13 @@ export interface BootInfo {
 	whatsNewSince: string | null;
 	/** Set up the old way (plugin or Codex config): asked once to move to the godspeed folder. */
 	folderNotice: FolderAgent | null;
-	/** The class the app opens in; null is No class. */
-	activeClass: string | null;
-	/** Missing when the class list couldn't be read: the app reads it after mount. */
-	classes?: ClassSummary[];
-	/** The teacher mascot's name (Settings, General); missing means the default. */
+	/** The space the app opens in; null is No space. */
+	activeSpace: string | null;
+	/** Missing when the space list couldn't be read: the app reads it after mount. */
+	spaces?: SpaceSummary[];
+	/** The teacher's name (Settings, General); missing means the default. */
 	teacherName?: string;
 	sounds: boolean;
+	/** The saved look, so the first paint already has its colors; missing means the defaults. */
+	appearance?: AppearanceSettings;
 }

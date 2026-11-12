@@ -17,7 +17,7 @@ export interface TeachingArea {
 }
 
 export const TEACHING_AREAS: readonly TeachingArea[] = [
-	{ id: "voice", label: "Voice", about: "How {teacher} talks: plain, direct, no praise", parts: ["shared/10-voice.md"] },
+	{ id: "voice", label: "Voice", about: "How {teacher} talks: plain, direct, no praise", parts: ["shared/10-voice.md", "shared/11-learner-first.md"] },
 	{
 		id: "teaching",
 		label: "Lesson flow",
@@ -49,13 +49,14 @@ export const TEACHING_AREAS: readonly TeachingArea[] = [
 		id: "files",
 		label: "Your files and formatting",
 		about: "Reading your PDFs and laying out answers",
-		parts: ["shared/30-learner-files.md", "shared/40-formatting.md", "shared/12-class-context.md"],
+		parts: ["shared/30-learner-files.md", "shared/40-formatting.md", "shared/12-space-context.md", "shared/13-source-marks.md"],
 	},
 ];
 
 /** The plain name each prompt part shows under in the window. */
 export const PART_NAMES: Readonly<Record<string, string>> = {
 	"shared/10-voice.md": "Voice",
+	"shared/11-learner-first.md": "Your question first",
 	"system-prompt.md": "The goal",
 	"teacher/05-method.md": "Teaching method",
 	"teacher/10-planning.md": "Planning",
@@ -72,11 +73,12 @@ export const PART_NAMES: Readonly<Record<string, string>> = {
 	"teacher/50-demos.md": "Demos and figures",
 	"shared/30-learner-files.md": "Your files",
 	"shared/40-formatting.md": "Formatting",
-	"shared/12-class-context.md": "Class context",
+	"shared/12-space-context.md": "Space context",
+	"shared/13-source-marks.md": "Showing sources",
 };
 
 export const RULE_MAX_CHARS = 200;
-/** Per area and per class: rules ride every turn's prompt, so they stay short. */
+/** Per area and per space: rules ride every turn's prompt, so they stay short. */
 export const RULES_MAX = 20;
 
 /** One line, no control characters, at most `max` characters. */
@@ -112,15 +114,15 @@ export function sanitizeAreaRules(raw: unknown): AreaRules {
 }
 
 /** The section added after the instructions, or "" when there are no
- *  rules. Class rules only come with a lesson in that class. */
-export function learnerRulesSection(rules: AreaRules, lessonClass?: { name: string; rules: string[] }): string {
+ *  rules. Space rules only come with a lesson in that space. */
+export function learnerRulesSection(rules: AreaRules, lessonSpace?: { name: string; rules: string[] }): string {
 	const blocks: string[] = [];
 	for (const area of TEACHING_AREAS) {
 		const list = rules[area.id];
 		if (list?.length) blocks.push([area.label, ...list.map((r) => `- ${r}`)].join("\n"));
 	}
-	if (lessonClass?.rules.length) {
-		blocks.push([`Rules for this class (${lessonClass.name})`, ...lessonClass.rules.map((r) => `- ${r}`)].join("\n"));
+	if (lessonSpace?.rules.length) {
+		blocks.push([`Rules for this space (${lessonSpace.name})`, ...lessonSpace.rules.map((r) => `- ${r}`)].join("\n"));
 	}
 	if (!blocks.length) return "";
 	return [

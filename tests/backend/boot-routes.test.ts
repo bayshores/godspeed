@@ -2,9 +2,10 @@
  * What the window reads before it paints, against a real temp data dir:
  *  - GET /api/boot does a page load's work once (onboarding decided, the
  *    MCP token made, the version recorded, the welcome screen used up) and
- *    reads the active class, the classes, the teacher's name and sounds;
- *  - GET /api/deadlines/[id] finds a deadline's class;
- *  - GET /api/classes/[id]/deadlines/[deadlineId]/homework is a homework
+ *    reads the active space, the spaces, the teacher's name, sounds and the
+ *    saved look;
+ *  - GET /api/deadlines/[id] finds a deadline's space;
+ *  - GET /api/spaces/[id]/deadlines/[deadlineId]/homework is a homework
  *    lesson's view of its deadline.
  */
 import assert from "node:assert/strict";
@@ -30,8 +31,8 @@ after(() => {
 
 const bootRoute = await import("../../src/app/api/boot/route.ts");
 const deadlineByIdRoute = await import("../../src/app/api/deadlines/[id]/route.ts");
-const homeworkRoute = await import("../../src/app/api/classes/[id]/deadlines/[deadlineId]/homework/route.ts");
-const { addClassDeadline, createClass, deleteClass } = await import("../../src/backend/server/index.ts");
+const homeworkRoute = await import("../../src/app/api/spaces/[id]/deadlines/[deadlineId]/homework/route.ts");
+const { addSpaceDeadline, createSpace, deleteSpace } = await import("../../src/backend/server/index.ts");
 const { readSettings, writeSettings } = await import("../../src/backend/store/settings.ts");
 const { readMcpToken } = await import("../../src/backend/store/mcp-token.ts");
 const { CURRENT_SETTINGS_VERSION } = await import("../../src/shared/core/settings.ts");
@@ -47,7 +48,7 @@ const boot = async () => {
 describe("GET /api/boot", () => {
 	it("a fresh install: the onboarding, the welcome screen once, the token made and the version recorded", async () => {
 		const first = await boot();
-		assert.deepEqual(first, { onboarding: true, firstLoad: "welcome", whatsNewSince: null, folderNotice: null, activeClass: null, classes: [], sounds: true });
+		assert.deepEqual(first, { onboarding: true, firstLoad: "welcome", whatsNewSince: null, folderNotice: null, activeSpace: null, spaces: [], sounds: true });
 		assert.equal(readSettings()?.general?.onboarded, false);
 		assert.equal(readSettings()?.general?.lastSeenVersion, pkg.version);
 		assert.ok(readMcpToken(), "the outside-agent token is made");
@@ -57,47 +58,48 @@ describe("GET /api/boot", () => {
 		assert.equal(again.firstLoad, null);
 	});
 
-	it("an existing user: the active class, the classes, the teacher's name, sounds and What's new", async () => {
-		const cls = createClass({ name: "CSE 21" });
-		const general = { onboarded: true, activeClass: cls.id, teacherName: "Ada", sounds: false, lastSeenVersion: "0.4.0" };
-		writeSettings({ version: CURRENT_SETTINGS_VERSION, general });
+	it("an existing user: the active space, the spaces, the teacher's name, sounds, the saved look and What's new", async () => {
+		const space = createSpace({ name: "Geology" });
+		const general = { onboarded: true, activeSpace: space.id, teacherName: "Ada", sounds: false, lastSeenVersion: "0.4.0" };
+		writeSettings({ version: CURRENT_SETTINGS_VERSION, general, appearance: { background: "#1b1b19" } });
 		const read = await boot();
 		assert.equal(read.onboarding, false);
-		assert.equal(read.activeClass, cls.id);
-		assert.deepEqual(read.classes.map((c: { name: string }) => c.name), ["CSE 21"]);
+		assert.equal(read.activeSpace, space.id);
+		assert.deepEqual(read.spaces.map((c: { name: string }) => c.name), ["Geology"]);
+		assert.deepEqual(read.appearance, { background: "#1b1b19" });
 		assert.equal(read.teacherName, "Ada");
 		assert.equal(read.sounds, false);
 		assert.equal(read.whatsNewSince, "0.4.0");
 		assert.equal((await boot()).whatsNewSince, null, "the notes show once");
-		// A class deleted behind the app's back reads as No class.
-		await deleteClass(cls.id);
-		assert.equal((await boot()).activeClass, null);
+		// A space deleted behind the app's back reads as No space.
+		await deleteSpace(space.id);
+		assert.equal((await boot()).activeSpace, null);
 	});
 });
 
 describe("deadline reads", () => {
-	it("GET /api/deadlines/[id]: the deadline with its class; 404 once gone", async () => {
-		const cls = createClass({ name: "CSE 29" });
-		const added = addClassDeadline(cls.id, { kind: "exam", name: "Midterm", date: "2026-11-20" });
+	it("GET /api/deadlines/[id]: the deadline with its space; 404 once gone", async () => {
+		const space = createSpace({ name: "Astronomy" });
+		const added = addSpaceDeadline(space.id, { kind: "exam", name: "Midterm", date: "2026-11-20" });
 		assert.ok(added.ok);
 		const res = await deadlineByIdRoute.GET(get("/x"), ctx({ id: added.value.id }));
 		assert.equal(res.status, 200);
 		const body = await res.json();
-		assert.equal(body.classId, cls.id);
+		assert.equal(body.spaceId, space.id);
 		assert.equal(body.deadline.name, "Midterm");
 		const gone = await deadlineByIdRoute.GET(get("/x"), ctx({ id: "ddl_nope" }));
 		assert.equal(gone.status, 404);
 		assert.deepEqual(await gone.json(), { error: "No such deadline" });
 	});
 
-	it("GET .../homework: name, problems and assignment; 404 for an unknown class or deadline", async () => {
-		const cls = createClass({ name: "MATH 18" });
-		const added = addClassDeadline(cls.id, { kind: "homework", name: "HW 3", date: "2026-11-12" });
+	it("GET .../homework: name, problems and assignment; 404 for an unknown space or deadline", async () => {
+		const space = createSpace({ name: "Botany" });
+		const added = addSpaceDeadline(space.id, { kind: "homework", name: "HW 3", date: "2026-11-12" });
 		assert.ok(added.ok);
-		const res = await homeworkRoute.GET(get("/x"), ctx({ id: cls.id, deadlineId: added.value.id }));
+		const res = await homeworkRoute.GET(get("/x"), ctx({ id: space.id, deadlineId: added.value.id }));
 		assert.equal(res.status, 200);
 		assert.deepEqual(await res.json(), { homework: { name: "HW 3", problems: [], assignment: null } });
-		const unknown: [string, string][] = [[cls.id, "ddl_nope"], ["../etc", added.value.id], ["cls_nope", added.value.id]];
+		const unknown: [string, string][] = [[space.id, "ddl_nope"], ["../etc", added.value.id], ["spc_nope", added.value.id]];
 		for (const [id, deadlineId] of unknown) {
 			const missing = await homeworkRoute.GET(get("/x"), ctx({ id, deadlineId }));
 			assert.equal(missing.status, 404, `${id} ${deadlineId}`);

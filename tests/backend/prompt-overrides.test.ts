@@ -160,7 +160,9 @@ describe("the source-derived segment list", () => {
 				"system-prompt.md",
 				"prober/10-probe-doctrine.md",
 				"shared/10-voice.md",
-				"shared/12-class-context.md",
+				"shared/11-learner-first.md",
+				"shared/12-space-context.md",
+				"shared/13-source-marks.md",
 				"shared/15-accuracy.md",
 				"shared/16-mental-model.md",
 				"shared/20-question-tools.md",
@@ -192,6 +194,12 @@ describe("the source-derived segment list", () => {
 		assert.equal(teacher.some((s) => s.path.startsWith("prober/")), false);
 		// README and other non-numeric files never load.
 		assert.equal(allSegmentPaths().some((p) => p.includes("README")), false);
+	});
+
+	it("every agent, practice, homework and talk included, composes the learner-first fragment", () => {
+		for (const agent of ["prober", "teacher", "practice", "study", "homework", "talk"] as const) {
+			assert.equal(effectivePromptSegments(agent).some((s) => s.path === "shared/11-learner-first.md" && s.shared), true, agent);
+		}
 	});
 
 	it("adapts to source changes by construction: the list is computed, not stored", () => {

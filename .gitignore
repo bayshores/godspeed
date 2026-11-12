@@ -34,7 +34,7 @@ next-env.d.ts
 # Claude Code local state (session worktrees, settings)
 .claude/
 
-# class-search embedding model, filled by scripts/fetch-model.mjs
+# space-search embedding model, filled by scripts/fetch-model.mjs
 models/
 
 # Rust build output (cargo)

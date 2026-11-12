@@ -1,12 +1,12 @@
 /**
- * CLASS SEARCH: the stored index and the embedding model.
+ * SPACE SEARCH: the stored index and the embedding model.
  *
  * Offline and free: a small embedding model (snowflake-arctic-embed-xs,
  * quantized ONNX) runs on a worker thread (workers/embed-worker.mjs) from
  * models/ (scripts/fetch-model.mjs fills it; never downloaded at run time),
  * so indexing never stalls requests. Each graph scope keeps its index
  * next to its graph, in search/:
- *   passages.json + passages.f32  every class file cut into passages
+ *   passages.json + passages.f32  every space file cut into passages
  *   facts.json + facts.f32        the graph's facts
  * The .json holds the rows (passages with their text and place, facts by id),
  * the .f32 one 384-float vector per row in the same order. A row's hash is
@@ -20,7 +20,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { Worker } from "node:worker_threads";
 import type MiniSearch from "minisearch";
-import type { ClassScope, GraphNode } from "../../shared/core/contracts.ts";
+import type { SpaceScope, GraphNode } from "../../shared/core/contracts.ts";
 import { getGraph } from "../../shared/core/graph.ts";
 import type { GraphStore } from "../../shared/core/ports.ts";
 import {
@@ -150,7 +150,7 @@ interface Table {
 const tables = (G.__lhSearchTables ??= new Map());
 const locks = (G.__lhSearchLocks ??= new Map());
 
-function searchDir(scope: ClassScope): string {
+function searchDir(scope: SpaceScope): string {
 	return path.join(path.dirname(graphDirFor(scope)), "search");
 }
 
@@ -236,48 +236,48 @@ function rank(table: Table, queries: Float32Array[], keywordQuery: string, keywo
 	]).slice(0, limit);
 }
 
-// ─── class files ────────────────────────────────────────────────────────────
+// ─── space files ────────────────────────────────────────────────────────────
 
-const passagesFile = (classId: string) => path.join(searchDir(classId), "passages");
+const passagesFile = (spaceId: string) => path.join(searchDir(spaceId), "passages");
 
-/** Drop a deleted class's tables from memory: nothing reads them again.
+/** Drop a deleted space's tables from memory: nothing reads them again.
  *  Its locks stay, so an index run still in flight keeps its order. */
-export function forgetClassSearch(classId: string): void {
-	tables.delete(passagesFile(classId));
-	tables.delete(path.join(searchDir(classId), "facts"));
+export function forgetSpaceSearch(spaceId: string): void {
+	tables.delete(passagesFile(spaceId));
+	tables.delete(path.join(searchDir(spaceId), "facts"));
 }
 
-/** True when this version of the file is in the class's index. */
-export function isFileIndexed(classId: string, fileId: string, fp: string): boolean {
-	return readTable(passagesFile(classId)).files[fileId]?.fp === fp;
+/** True when this version of the file is in the space's index. */
+export function isFileIndexed(spaceId: string, fileId: string, fp: string): boolean {
+	return readTable(passagesFile(spaceId)).files[fileId]?.fp === fp;
 }
 
 /** Each indexed file's size ("98 pages", "52 min", "420 lines"). */
-export function fileExtents(classId: string): Record<string, string> {
-	return Object.fromEntries(Object.entries(readTable(passagesFile(classId)).files).map(([id, f]) => [id, f.extent]));
+export function fileExtents(spaceId: string): Record<string, string> {
+	return Object.fromEntries(Object.entries(readTable(passagesFile(spaceId)).files).map(([id, f]) => [id, f.extent]));
 }
 
-/** Put one version of a class file in its class's index, replacing the
+/** Put one version of a space file in its space's index, replacing the
  *  old one. `text` is what search reads: a PDF's page-headed text, a
  *  caption file's raw cues, or plain text. */
-export function indexClassFile(classId: string, file: { id: string; name: string }, fp: string, text: string): Promise<void> {
-	const at = passagesFile(classId);
+export function indexSpaceFile(spaceId: string, file: { id: string; name: string }, fp: string, text: string): Promise<void> {
+	const at = passagesFile(spaceId);
 	return locked(at, async () => {
 		const old = readTable(at);
 		if (old.files[file.id]?.fp === fp) return;
 		const { chunks, extent } = chunkFile(file.name, text);
 		const rows: StoredPassage[] = chunks.map((c, n) => ({ id: `${file.id}:${n + 1}`, fileId: file.id, ...c, hash: hashOf(c.text) }));
 		const vectors = await withVectors(old, rows, rows.map((r) => r.text));
-		// Removed (or its class deleted) while embedding: never put it back.
-		if (!stores.classStore.getClass(classId)?.files.some((f) => f.id === file.id)) return;
+		// Removed (or its space deleted) while embedding: never put it back.
+		if (!stores.spaceStore.getSpace(spaceId)?.files.some((f) => f.id === file.id)) return;
 		const rest = keepRows(old, (r) => (r as StoredPassage).fileId !== file.id);
 		writeTable(at, { rows: [...rest.rows, ...rows], vectors: concat(rest.vectors, vectors), files: { ...old.files, [file.id]: { fp, extent } } });
 	});
 }
 
-/** Take a removed file out of its class's index. */
-export function dropClassFile(classId: string, fileId: string): Promise<void> {
-	const at = passagesFile(classId);
+/** Take a removed file out of its space's index. */
+export function dropSpaceFile(spaceId: string, fileId: string): Promise<void> {
+	const at = passagesFile(spaceId);
 	return locked(at, async () => {
 		const old = readTable(at);
 		if (!old.files[fileId]) return;
@@ -287,27 +287,27 @@ export function dropClassFile(classId: string, fileId: string): Promise<void> {
 	});
 }
 
-function classFiles(classId: string) {
-	return stores.classStore.getClass(classId)?.files ?? [];
+function spaceFiles(spaceId: string) {
+	return stores.spaceStore.getSpace(spaceId)?.files ?? [];
 }
 
-function fileNames(classId: string): Map<string, string> {
-	return new Map(classFiles(classId).map((f) => [f.id, f.name]));
+function fileNames(spaceId: string): Map<string, string> {
+	return new Map(spaceFiles(spaceId).map((f) => [f.id, f.name]));
 }
 
 /** The best passages for a query, as compact lines: id, file, place, snippet. */
-export async function searchClassFiles(classId: string, query: string, limit: number): Promise<string> {
-	const table = readTable(passagesFile(classId));
-	if (table.rows.length === 0) return "No class files are indexed for search yet (files are indexed once their text is read).";
+export async function searchSpaceFiles(spaceId: string, query: string, limit: number): Promise<string> {
+	const table = readTable(passagesFile(spaceId));
+	if (table.rows.length === 0) return "No space files are indexed for search yet (files are indexed once their text is read).";
 	const queryVector = await embed([query], true);
 	table.keywords ??= keywordIndex((table.rows as StoredPassage[]).map((r) => ({ id: r.id, text: r.text })));
 	const byId = new Map((table.rows as StoredPassage[]).map((r) => [r.id, r]));
 	const hits = rank(table, [queryVector], query, table.keywords, limit);
-	const names = fileNames(classId);
-	const files = classFiles(classId);
+	const names = fileNames(spaceId);
+	const files = spaceFiles(spaceId);
 	const indexed = files.filter((f) => table.files[f.id]).length;
 	const lines = [`Top ${hits.length} of ${table.rows.length} passages for "${query}":`];
-	if (indexed < files.length) lines.unshift(`(Searching ${indexed} of the class's ${files.length} files; the others are not indexed yet.)`);
+	if (indexed < files.length) lines.unshift(`(Searching ${indexed} of the space's ${files.length} files; the others are not indexed yet.)`);
 	for (const id of hits) {
 		const p = byId.get(id)!;
 		lines.push(`${p.id} · ${names.get(p.fileId) ?? p.fileId} · ${p.range}`, `  ${snippetOf(p.text, query)}`);
@@ -320,30 +320,35 @@ function splitRows(vectors: Float32Array): Float32Array[] {
 	return Array.from({ length: vectors.length / DIMS }, (_, i) => vectors.subarray(i * DIMS, (i + 1) * DIMS));
 }
 
+/** The stored passages a reference names: the one passage of an id, or every
+ *  passage of a file that covers a place. Empty when there is none. */
+export function passagesAt(spaceId: string, ref: PassageRef): StoredPassage[] {
+	const rows = readTable(passagesFile(spaceId)).rows as StoredPassage[];
+	if ("passageId" in ref) return rows.filter((r) => r.id === ref.passageId);
+	// The place as the index wrote it wins: a transcript's label is rounded, so its number can miss.
+	const exact = rows.filter((r) => r.fileId === ref.fileId && r.range === ref.range);
+	if (exact.length > 0) return exact;
+	const point = rangePoint(ref.range);
+	return point === null ? [] : rows.filter((r) => r.fileId === ref.fileId && r.from <= point && point <= r.to);
+}
+
 /** A passage's text (a whole page when opened by file and place) with its
  *  file, place and the ids of its neighbors. */
-export function readPassage(classId: string, ref: PassageRef): string {
-	const rows = readTable(passagesFile(classId)).rows as StoredPassage[];
-	let picked: StoredPassage[];
-	if ("passageId" in ref) {
-		const one = rows.find((r) => r.id === ref.passageId);
-		if (!one) return `No passage "${ref.passageId}". Ids come from search_class_files.`;
-		picked = [one];
-	} else {
-		const point = rangePoint(ref.range);
-		picked = point === null ? [] : rows.filter((r) => r.fileId === ref.fileId && r.from <= point && point <= r.to);
-		if (picked.length === 0) {
-			const inFile = rows.filter((r) => r.fileId === ref.fileId);
-			if (inFile.length === 0) return `No passage of file "${ref.fileId}": it is not indexed. A file id is the part of a passage id before the ":" (or from read_class with files: true).`;
-			return `No passage of file "${ref.fileId}" at "${ref.range}". Its passages run from "${inFile[0]!.range}" to "${inFile.at(-1)!.range}".`;
-		}
+export function readPassage(spaceId: string, ref: PassageRef): string {
+	const rows = readTable(passagesFile(spaceId)).rows as StoredPassage[];
+	const picked = passagesAt(spaceId, ref);
+	if (picked.length === 0) {
+		if ("passageId" in ref) return `No passage "${ref.passageId}". Ids come from search_space_files.`;
+		const inFile = rows.filter((r) => r.fileId === ref.fileId);
+		if (inFile.length === 0) return `No passage of file "${ref.fileId}": it is not indexed. A file id is the part of a passage id before the ":" (or from read_space with files: true).`;
+		return `No passage of file "${ref.fileId}" at "${ref.range}". Its passages run from "${inFile[0]!.range}" to "${inFile.at(-1)!.range}".`;
 	}
 	const inFile = rows.filter((r) => r.fileId === picked[0]!.fileId);
 	const first = inFile.indexOf(picked[0]!);
 	const last = inFile.indexOf(picked.at(-1)!);
 	const prev = inFile[first - 1]?.id;
 	const next = inFile[last + 1]?.id;
-	const name = fileNames(classId).get(picked[0]!.fileId) ?? picked[0]!.fileId;
+	const name = fileNames(spaceId).get(picked[0]!.fileId) ?? picked[0]!.fileId;
 	let text = picked.map((r) => r.text).join("\n");
 	if (text.length > READ_LIMIT_CHARS) text = `${text.slice(0, READ_LIMIT_CHARS)}\n[cut at ${READ_LIMIT_CHARS} characters]`;
 	const ids = picked.length === 1 ? picked[0]!.id : `${picked[0]!.id} to ${picked.at(-1)!.id}`;
@@ -357,7 +362,7 @@ const factText = (n: GraphNode) => `${n.name}: ${n.statement}`;
 
 /** The scope's fact table brought up to date with `nodes` (new or changed
  *  facts embedded now: facts arrive between parts of one import). */
-function currentFacts(scope: ClassScope, nodes: readonly GraphNode[]): Promise<Table> {
+function currentFacts(scope: SpaceScope, nodes: readonly GraphNode[]): Promise<Table> {
 	const at = path.join(searchDir(scope), "facts");
 	return locked(at, async () => {
 		const old = readTable(at);
@@ -372,7 +377,7 @@ function currentFacts(scope: ClassScope, nodes: readonly GraphNode[]): Promise<T
 
 /** Ids of the scope's facts (`nodes`, its graph's merged nodes) best
  *  matching a query, at most `limit`. */
-export async function searchFacts(scope: ClassScope, nodes: readonly GraphNode[], query: string, limit: number): Promise<string[]> {
+export async function searchFacts(scope: SpaceScope, nodes: readonly GraphNode[], query: string, limit: number): Promise<string[]> {
 	if (nodes.length === 0) return [];
 	const [table, queryVector] = await Promise.all([currentFacts(scope, nodes), embed([query], true)]);
 	return rank(table, [queryVector], query, table.keywords!, limit);

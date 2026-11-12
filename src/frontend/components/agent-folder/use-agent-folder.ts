@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { FolderAgent } from "@/shared/core";
-import { AGENT_LABEL, rememberedAgent, type FolderView, type Launch } from "./agent-folder-model";
+import { useAgentStatus } from "@/frontend/components/agent-status";
+import { AGENT_LABEL, rememberedAgent, startTargets, type FolderView, type Launch } from "./agent-folder-model";
 
 const AGENT_KEY = "lh-folder-agent";
 const UNREACHABLE = "Couldn't reach godspeed. Try again.";
@@ -30,11 +31,17 @@ export function savedAgent(): string | null {
  * The godspeed folder and its "Open Claude Code" button: open(agent) makes
  * or updates the folder, then asks the desktop app to start the agent in a
  * terminal there (outside the desktop app, the learner runs the command).
- * `launch` is the latest click, for the live log.
+ * Claude Code also gets the backup teacher in a second window, unless one
+ * is already waiting. `launch` is the latest click, for the live log.
  */
 export function useAgentFolder() {
 	const [view, setView] = useState<FolderView | null>(null);
 	const [launch, setLaunch] = useState<Launch | null>(null);
+	const status = useAgentStatus();
+	const backupWaiting = useRef(false);
+	useEffect(() => {
+		backupWaiting.current = !!status?.backupConnected;
+	}, [status]);
 
 	useEffect(() => {
 		fetch("/api/agent-folder", { cache: "no-store" })
@@ -64,8 +71,10 @@ export function useAgentFolder() {
 			return;
 		}
 		setLaunch({ agent, made: "done", opened: "wait" });
-		const error = await openAgent(made.folder, agent).catch(() => "Couldn't open a terminal. Copy the command and run it in yours.");
+		const [main, ...more] = startTargets(agent, backupWaiting.current);
+		const error = await openAgent(made.folder, main!).catch(() => "Couldn't open a terminal. Copy the command and run it in yours.");
 		setLaunch({ agent, made: "done", opened: error ? { error } : "done" });
+		if (!error) for (const target of more) await openAgent(made.folder, target).catch(() => null);
 	}, []);
 
 	/** Use another folder (the native picker); null when cancelled. Resolves to an error message, if any. */
@@ -81,11 +90,21 @@ export function useAgentFolder() {
 		}
 	}, []);
 
-	return { view, launch, open, change };
+	/** Start an agent with the learner's own command (empty: the usual one again). Resolves to an error message, if any. */
+	const setStartCommand = useCallback(async (agent: FolderAgent, command: string): Promise<string | null> => {
+		try {
+			setView(await postAgentFolder({ action: "set-start-command", agent, command }));
+			return null;
+		} catch (err) {
+			return (err as Error).message;
+		}
+	}, []);
+
+	return { view, launch, open, change, setStartCommand };
 }
 
 /** "Open Claude Code" for the agent last opened here (Claude Code when
- *  none): the sidebar's button and the "No agent connected" lines. */
+ *  none): the button on the "No agent connected" lines. */
 export function useReopenAgent() {
 	const { launch, open } = useAgentFolder();
 	const [agent, setAgent] = useState<FolderAgent>("claude");

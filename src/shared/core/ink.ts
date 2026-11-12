@@ -2,8 +2,9 @@
  * Text and edge colors that read well on any dark background. Each level
  * starts from the default gray, takes a hint of the background's hue (in
  * OKLCH, so the tint looks even across colors), then moves lighter until
- * it meets its contrast minimum. The app is dark only, so a picked color
- * is first made dark enough (darkBackground). Browser-safe, pure.
+ * it meets its contrast minimum. A picked color is first made dark enough
+ * (darkBackground); Paper, the one light background, has hand-picked text
+ * (appearance-model.ts). Browser-safe, pure.
  */
 
 export type InkLevel = "text" | "body" | "muted" | "faint" | "edge";
@@ -103,16 +104,20 @@ export function tintFor(background: string): string {
 	return reach(tinted, [background], LEVELS.text.min);
 }
 
-/** `color` moved lighter in small steps, keeping its hue, until it has
- *  `min` contrast on every surface. Stops at white. */
+/** `color` moved in small steps away from the background (lighter on a
+ *  dark one, darker on a light one), keeping its hue, until it has `min`
+ *  contrast on every surface. Stops at white or black. `surfaces[0]` is the
+ *  background. */
 function reach(color: string, surfaces: readonly string[], min: number): string {
 	const start = toOklch(color);
+	const lighter = luminance(surfaces[0]!) < 0.4;
 	let out = color;
 	for (let l = start.l; !surfaces.every((s) => contrast(out, s) >= min); ) {
-		l += 0.01;
+		l += lighter ? 0.01 : -0.01;
 		if (l >= 1) return "#ffffff";
-		// The tint fades as the color nears white, so it stays in gamut.
-		out = fromOklch({ l, c: start.c * Math.min(1, (1 - l) / (1 - start.l)), h: start.h });
+		if (l <= 0) return "#000000";
+		// The tint fades as the color nears white or black, so it stays in gamut.
+		out = fromOklch({ l, c: start.c * Math.min(1, lighter ? (1 - l) / (1 - start.l) : l / start.l), h: start.h });
 	}
 	return out;
 }
@@ -133,7 +138,7 @@ export function inkReaches(background: string, level: InkLevel, panels: readonly
 
 /** A color used as text or a mark (bold, italic, right, wrong, the ramps)
  *  made readable on the background and its panels: unchanged when it
- *  already is, else lighter with the same hue. */
+ *  already is, else moved away from the background with the same hue. */
 export function readableAccent(color: string, background: string, panels: readonly string[] = []): string {
 	return reach(color, [background, ...panels], LEVELS.muted.min);
 }

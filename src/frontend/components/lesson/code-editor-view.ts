@@ -7,6 +7,8 @@ import { EditorView, drawSelection, keymap, lineNumbers } from "@codemirror/view
 import { defaultKeymap, history, historyKeymap, indentLess, indentMore } from "@codemirror/commands";
 import { HighlightStyle, bracketMatching, indentOnInput, indentUnit, syntaxHighlighting } from "@codemirror/language";
 import { cpp } from "@codemirror/lang-cpp";
+import { javascript } from "@codemirror/lang-javascript";
+import { python } from "@codemirror/lang-python";
 import { tags as t } from "@lezer/highlight";
 import { getCM, vim } from "@replit/codemirror-vim";
 import { highlightsAsCpp, vimModeLabel } from "./code-editor-model";
@@ -27,20 +29,28 @@ const tabKeys = keymap.of([
 	},
 ]);
 
-/** The same colors as the app's code blocks (Shiki's github-dark). */
+/** The same colors as the app's code blocks (Shiki's GitHub themes). */
 const highlight = HighlightStyle.define([
-	{ tag: [t.keyword, t.controlKeyword, t.operatorKeyword, t.modifier, t.processingInstruction], color: "#ff7b72" },
-	{ tag: [t.string, t.character, t.special(t.string)], color: "#a5d6ff" },
-	{ tag: [t.number, t.bool, t.null, t.atom, t.constant(t.name)], color: "#79c0ff" },
-	{ tag: [t.typeName, t.standard(t.typeName)], color: "#ffa657" },
-	{ tag: [t.function(t.variableName), t.function(t.definition(t.variableName)), t.macroName], color: "#d2a8ff" },
-	{ tag: [t.comment, t.lineComment, t.blockComment], color: "#8b949e" },
+	{ tag: [t.keyword, t.controlKeyword, t.operatorKeyword, t.modifier, t.processingInstruction], color: "var(--lh-code-keyword)" },
+	{ tag: [t.string, t.character, t.special(t.string)], color: "var(--lh-code-string)" },
+	{ tag: [t.number, t.bool, t.null, t.atom, t.constant(t.name)], color: "var(--lh-code-number)" },
+	{ tag: [t.typeName, t.standard(t.typeName)], color: "var(--lh-code-type)" },
+	{ tag: [t.function(t.variableName), t.function(t.definition(t.variableName)), t.macroName], color: "var(--lh-code-function)" },
+	{ tag: [t.comment, t.lineComment, t.blockComment], color: "var(--lh-code-comment)" },
 ]);
 
-/** The app's black field: its surface, ink and mono tokens, square edges. */
-const theme = EditorView.theme(
+/** The language's syntax colors; any other language is plain text. */
+function syntaxOf(language: string) {
+	if (highlightsAsCpp(language)) return cpp();
+	if (language === "javascript") return javascript();
+	return language === "python" ? python() : [];
+}
+
+/** The app's field: its surface, ink and mono tokens, square edges. It
+ *  grows with the code up to a height, or with `fill` takes its box's. */
+const theme = (fill: boolean) => EditorView.theme(
 	{
-		"&": { backgroundColor: "var(--background)", color: "var(--foreground)", fontSize: "13.5px", maxHeight: "360px" },
+		"&": { backgroundColor: "var(--background)", color: "var(--foreground)", fontSize: "13.5px", ...(fill ? { height: "100%" } : { maxHeight: "360px" }) },
 		"&.cm-focused": { outline: "none" },
 		".cm-scroller": { fontFamily: "var(--font-mono)", lineHeight: "1.6", minHeight: "200px" },
 		".cm-content": { caretColor: "var(--lh-ink-max)", padding: "10px 0" },
@@ -72,6 +82,8 @@ export function mountCodeEditor(
 		doc: string;
 		language: string;
 		vim: boolean;
+		/** Take the whole height of `parent`. */
+		fill: boolean;
 		onChange: (code: string) => void;
 		onVimMode: (label: string) => void;
 	},
@@ -93,9 +105,9 @@ export function mountCodeEditor(
 				EditorState.tabSize.of(4),
 				tabKeys,
 				keymap.of([...defaultKeymap, ...historyKeymap]),
-				highlightsAsCpp(opts.language) ? cpp() : [],
+				syntaxOf(opts.language),
 				syntaxHighlighting(highlight),
-				theme,
+				theme(opts.fill),
 				EditorView.contentAttributes.of({ "aria-label": "Your code", spellcheck: "false", autocorrect: "off", autocapitalize: "off" }),
 				EditorView.updateListener.of((u) => {
 					if (u.docChanged) opts.onChange(u.state.doc.toString());

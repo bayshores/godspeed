@@ -72,7 +72,7 @@ export function recordAgentAction(input: AgentActionInput, now = Date.now()): Ag
 		at: new Date(now).toISOString(),
 		agent,
 		label,
-		classId: input.classId,
+		spaceId: input.spaceId,
 		target: input.target,
 		page: input.page,
 		...(input.removed ? { removed: true as const } : {}),
@@ -98,16 +98,16 @@ const FOLDER_LABEL = /^Added (\d+) files? from (.+)$/;
 
 /** A linked folder's new files, as the app's own entry: "Added 3 files from
  *  Google Drive". Scans a few minutes apart add to the newest such entry. */
-export function recordFolderFiles(classId: string, count: number, from: string, now = Date.now()): void {
+export function recordFolderFiles(spaceId: string, count: number, from: string, now = Date.now()): void {
 	const last = state().list.at(-1);
-	const match = last?.agent === APP_SOURCE && last.classId === classId && now - Date.parse(last.at) < COALESCE_MS ? FOLDER_LABEL.exec(last.label) : null;
+	const match = last?.agent === APP_SOURCE && last.spaceId === spaceId && now - Date.parse(last.at) < COALESCE_MS ? FOLDER_LABEL.exec(last.label) : null;
 	const merged = match && match[2] === from ? Number(match[1]) + count : null;
 	const label = (n: number) => `Added ${n} ${n === 1 ? "file" : "files"} from ${from}`;
 	if (last && merged !== null) {
 		updateNewest(last, label(merged), now);
 		return;
 	}
-	recordAgentAction({ agent: APP_SOURCE, label: label(count), classId, target: null, page: "/class/files" }, now);
+	recordAgentAction({ agent: APP_SOURCE, label: label(count), spaceId, target: null, page: "/space/files" }, now);
 }
 
 /** Right and total answers in an answer entry's label. */
@@ -121,7 +121,7 @@ function answerTally(label: string): { right: number; total: number } | null {
 /** A graded answer (quiz and probe questions; others are graded by the
  *  agent later) as the learner's entry. Answers to a lesson's questions in
  *  a row add up: "Answered 2 of 3 right". */
-export function recordAnswer(lesson: { id: string; classId?: string }, answer: QuestionAnswerData, now = Date.now()): void {
+export function recordAnswer(lesson: { id: string; spaceId?: string }, answer: QuestionAnswerData, now = Date.now()): void {
 	if (answer.kind !== "quiz") return;
 	const right = !answer.dontKnow && answer.correct === true;
 	const last = state().list.at(-1);
@@ -134,12 +134,12 @@ export function recordAnswer(lesson: { id: string; classId?: string }, answer: Q
 		return;
 	}
 	const label = answer.dontKnow ? "Didn't know" : right ? "Answered right" : "Answered wrong";
-	recordAgentAction({ agent: LEARNER_SOURCE, label, classId: lesson.classId ?? null, target: { kind: "lesson", id: lesson.id }, page: `/chat/${lesson.id}` }, now);
+	recordAgentAction({ agent: LEARNER_SOURCE, label, spaceId: lesson.spaceId ?? null, target: { kind: "lesson", id: lesson.id }, page: `/chat/${lesson.id}` }, now);
 }
 
 /** A deadline the learner saved in the app, with the verbs the agent's
  *  entries use: "Added Test 2", "Moved Test 2", "Marked Test 2 done". */
-export function recordDeadlineChange(classId: string, deadline: { id: string; name: string }, change: "added" | DeadlinePatch, now = Date.now()): void {
+export function recordDeadlineChange(spaceId: string, deadline: { id: string; name: string }, change: "added" | DeadlinePatch, now = Date.now()): void {
 	const { name } = deadline;
 	const keys = change === "added" ? [] : Object.keys(change);
 	const label =
@@ -148,7 +148,7 @@ export function recordDeadlineChange(classId: string, deadline: { id: string; na
 			: change.done !== undefined
 				? `Marked ${name} ${change.done ? "done" : "not done"}`
 				: `${keys.length > 0 && keys.every((k) => k === "date" || k === "time") ? "Moved" : "Changed"} ${name}`;
-	recordAgentAction({ agent: LEARNER_SOURCE, label, classId, target: { kind: "deadline", id: deadline.id }, page: "/" }, now);
+	recordAgentAction({ agent: LEARNER_SOURCE, label, spaceId, target: { kind: "deadline", id: deadline.id }, page: "/" }, now);
 }
 
 /** The saved actions, newest first. */

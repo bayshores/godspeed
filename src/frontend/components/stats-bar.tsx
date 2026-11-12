@@ -1,9 +1,9 @@
 import { useCallback, useRef, useState } from "react";
-import { subscriptionLabels, subscriptionLabel, type SessionPricing, type TurnUsage } from "@/shared/core";
-import { formatTokens, planCostLabel, prettyModel } from "@/frontend/components/usage-format";
+import { subscriptionLabels, type SessionPricing, type TurnUsage } from "@/shared/core";
+import { formatTokens, planCostLabel } from "@/frontend/components/usage-format";
 import { usePresence } from "@/frontend/components/presence";
 import { usePopoverDismiss } from "@/frontend/components/popover-dismiss";
-import { Hint } from "@/frontend/components/ui/hint";
+import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 
 /** The meter shows once the lesson is this full (of where it gets summarized). */
 const SHOW_AT = 0.8;
@@ -13,6 +13,14 @@ const SHOW_AT = 0.8;
 export function contextMeter(tokens: number | null, limit: number | null): string | null {
 	if (tokens === null || limit === null || limit <= 0 || tokens < limit * SHOW_AT) return null;
 	return `${formatTokens(tokens)} / ${formatTokens(limit)}`;
+}
+
+/** How big the lesson was after a turn: its last step's input, output and cached tokens
+ *  (the meter's own measure); "–" when the turn recorded none. */
+export function turnSize(turn: TurnUsage): string {
+	const last = turn.steps.at(-1);
+	if (!last || last.inputTokens === undefined) return "–";
+	return formatTokens(last.inputTokens + (last.outputTokens ?? 0) + (last.cacheReadTokens ?? 0) + (last.cacheWriteTokens ?? 0));
 }
 
 /**
@@ -51,71 +59,34 @@ export function StatsBar({
 	const providers = pricing?.subscriptionProviders ?? subscriptionLabels(turns.map((turn) => turn.model));
 	const costLabel = planCostLabel(providers);
 	if (contextLabel === null) return null;
+	const newestFirst = turns.map((turn, i) => ({ turn, n: i + 1 })).reverse();
 
 	return (
-		<div
-			data-testid="stats-bar"
-			className="relative flex items-center justify-between gap-3 px-3 pt-2 text-xs text-muted-foreground"
-		>
+		<div data-testid="stats-bar" className="flex shrink-0 justify-end">
+			{/* The popup and the outside-close ref anchor to this wrapper, so the popup sits over the button. */}
 			<div ref={barRef} className="relative">
-				{/* The popover and the outside-close ref anchor to this wrapper,
-				    so the popover centers over the button, not the whole row.
-				    No tooltip: the numbers describe themselves. */}
-			<Hint label="Summarizes here to keep the lesson small. Change it in Settings. Your agent's own context is separate.">
-				<button
-					type="button"
-					onClick={() => setOpen((o) => !o)}
-					aria-expanded={open}
-					data-testid="stats-summary"
-					className="lh-press flex items-center gap-1.5 font-mono tabular-nums hover:text-foreground"
-				>
-					<span data-testid="stats-context">{contextLabel}</span>
-					<span>lesson</span>
+				<button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} data-testid="stats-summary" className="lh-btn text-[15px]">
+					<PixelIcon name="chevron" className="rotate-90" />
+					<span>
+						<span data-testid="stats-context">{contextLabel}</span> lesson
+					</span>
 				</button>
-			</Hint>
 				{detail.mounted && (
-					<div
-						data-testid="stats-detail"
-						data-side="up"
-						data-state={detail.state}
-						className="lh-pop absolute bottom-full left-1/2 z-40 mb-1.5 w-72 -translate-x-1/2 lh-popup p-3 text-xs"
-					>
-						<div className="mb-2 text-xs font-semibold text-muted-foreground">
-							Session stats
-						</div>
-						<div className="flex flex-col gap-1 text-muted-foreground">
-							<div className="flex justify-between gap-2">
-								<span>Lesson size</span>
-								<span className="font-mono tabular-nums text-card-foreground">
-									{contextLabel}
-								</span>
-							</div>
-							<div className="flex justify-between gap-2">
-								<span>{subscription ? "Usage" : "Total cost"}</span>
-								<span data-testid="stats-cost" className="font-mono tabular-nums text-card-foreground">{costLabel}</span>
-							</div>
-							{unpriced > 0 && (
-								<div className="flex justify-between gap-2">
-									<span>Unpriced turns</span>
-									<span className="font-mono tabular-nums text-card-foreground">{unpriced}</span>
-								</div>
-							)}
-						</div>
+					<div data-testid="stats-detail" data-side="up" data-state={detail.state} className="lh-pop lh-popup absolute right-0 bottom-full z-40 mb-1.5 flex w-[340px] flex-col gap-1 px-4 py-3.5">
+						<h3 className="text-[17px] text-ink">Session stats</h3>
+						<p className="text-base text-ink-2">Summarizes here to keep the lesson small. Change it in Settings. Your agent&apos;s own context is separate.</p>
+						<span className={RULE} aria-hidden />
+						<StatRow label="Lesson size" value={contextLabel} />
+						<StatRow label={subscription ? "Usage" : "Total cost"} value={costLabel} testId="stats-cost" />
+						{unpriced > 0 && <StatRow label="Unpriced turns" value={String(unpriced)} />}
+						<StatRow label="Turns" value={String(turns.length)} />
 						{turns.length > 0 && (
 							<>
-								<div className="mb-1 mt-2.5 border-t pt-2 text-xs font-semibold text-muted-foreground">
-									Turns
-								</div>
-								<ul className="flex max-h-56 flex-col gap-1 overflow-y-auto">
-									{turns.map((turn, i) => (
-										<li key={`${turn.messageId}-${i}`} className="flex items-center justify-between gap-2">
-											<span className="truncate text-muted-foreground">
-												#{i + 1} {prettyModel(turn.model)}
-											</span>
-											<span className="flex shrink-0 items-center gap-2 font-mono tabular-nums text-card-foreground">
-												<span className="text-muted-foreground">{turn.steps.length} steps</span>
-												<span>{subscriptionLabel(turn.model) ?? "–"}</span>
-											</span>
+								<span className={RULE} aria-hidden />
+								<ul className="flex max-h-56 flex-col overflow-y-auto">
+									{newestFirst.map(({ turn, n }) => (
+										<li key={`${turn.messageId}-${n}`}>
+											<StatRow label={`#${n}, ${turn.steps.length} ${turn.steps.length === 1 ? "step" : "steps"}`} value={turnSize(turn)} />
 										</li>
 									))}
 								</ul>
@@ -124,6 +95,19 @@ export function StatsBar({
 					</div>
 				)}
 			</div>
+		</div>
+	);
+}
+
+const RULE = "my-1 h-0 border-t-2 border-dotted border-ink-3";
+
+function StatRow({ label, value, testId }: { label: string; value: string; testId?: string }) {
+	return (
+		<div className="flex items-center justify-between gap-2 py-[7px] text-[15px] text-ink">
+			<span className="min-w-0 truncate">{label}</span>
+			<span data-testid={testId} className="shrink-0 font-count text-ink-2">
+				{value}
+			</span>
 		</div>
 	);
 }

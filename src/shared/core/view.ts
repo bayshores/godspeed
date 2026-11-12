@@ -473,14 +473,14 @@ function projectMarker(marker: LhMarkerMessage, out: LhViewMessage[]): void {
 			});
 			return;
 		}
-		case "class-context": {
-			// The lesson's class card: user-side
+		case "space-context": {
+			// The lesson's space card: user-side
 			// scaffolding like the graph-context card — a collapsible card,
 			// never a text bubble.
 			out.push({
 				id: marker.id,
 				role: "user",
-				parts: [{ type: "data-class-context", id: `cc_${marker.id}`, data: marker.details }],
+				parts: [{ type: "data-space-context", id: `cc_${marker.id}`, data: marker.details }],
 			});
 			return;
 		}
@@ -525,10 +525,9 @@ function projectMarker(marker: LhMarkerMessage, out: LhViewMessage[]): void {
 			return;
 		}
 		case "practice-thinking": {
-			// The learner's working trace / committed answer (practice
-			// sessions): a user-side card keyed on the structured details
-			// (problemCallId, text) — the register lives in the card,
-			// not re-parsed from content.
+			// The learner's work on a problem as older lessons saved it: a
+			// user-side card keyed on the structured details
+			// (problemCallId, text), not re-parsed from content.
 			out.push({
 				id: marker.id,
 				role: "user",
@@ -555,7 +554,7 @@ function projectMarker(marker: LhMarkerMessage, out: LhViewMessage[]): void {
 		case "study-context":
 		case "homework-context":
 			// The [Today] note, the study plan and the homework note are for
-			// the model only: the steps pane shows the topics or problems.
+			// the model only: the plan row shows the topics or problems.
 			return;
 		case "app-request": {
 			// godspeed's own request in Talk: a line from the app, not the learner.

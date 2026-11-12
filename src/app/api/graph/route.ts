@@ -1,4 +1,4 @@
-import { graphView, requestClassScope } from "@/backend/server";
+import { graphView, requestSpaceScope } from "@/backend/server";
 
 /**
  * The home graph view's data endpoint — thin
@@ -9,8 +9,8 @@ import { graphView, requestClassScope } from "@/backend/server";
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
-	// ?class=<id|none> picks which graph (absent = No class).
-	const scope = requestClassScope(req);
-	if (scope === undefined) return Response.json({ error: "No such class" }, { status: 404 });
+	// ?space=<id|none> picks which graph (absent = No space).
+	const scope = requestSpaceScope(req);
+	if (scope === undefined) return Response.json({ error: "No such space" }, { status: 404 });
 	return Response.json(graphView(scope));
 }

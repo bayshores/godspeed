@@ -61,43 +61,34 @@ function askQD(): QuestionData {
 	};
 }
 
+const noop = { onSubmit: () => {}, onReady: () => {}, boxText: "", onLeaveRows: () => {} };
+
 function renderDock(props: {
 	toolName: "quiz" | "probe" | "ask_user_question" | "explain" | "recall";
 	toolCallId: string;
 	input: never;
 }) {
-	// expanded=true renders the full form (the collapsed bar is covered by the
-	// QuestionDockBar test below). No scroll context needed — the DockOverlay
-	// in the chat view owns that.
-	return renderToStaticMarkup(
-		<QuestionDock {...props} onSubmit={async () => true} />,
-	);
+	return renderToStaticMarkup(<QuestionDock {...noop} {...props} />);
 }
 
 describe("question submission draft restoration", () => {
 	const draft = {
 		selection: { selected: new Set([0]), otherSelected: true, dontKnow: false },
-		thinking: "preserved reasoning",
 		other: "preserved custom answer",
-		text: "preserved free-text answer",
 		confidenceIndex: 4,
 	};
 
-	it("restores a quiz selection, thinking, and confidence when its form remounts", () => {
-		const html = renderToStaticMarkup(<QuestionDock toolName="quiz" toolCallId="q1" input={quizInput} onSubmit={async () => true} initialDraft={draft} />);
+	it("restores a quiz selection and confidence when its form remounts", () => {
+		const html = renderToStaticMarkup(<QuestionDock {...noop} toolName="quiz" toolCallId="q1" input={quizInput} initialDraft={draft} />);
 		assert.match(html, /role="radio" aria-checked="true" data-kbdrow="0"/);
-		assert.ok(html.includes("preserved reasoning"));
-		assert.ok(html.includes("> certain</span>"), "index 4 = level 5");
 		assert.match(html, /aria-checked="true" aria-label="5, Certain"/, "the meter shows level 5");
 		assert.match(html, /data-testid="confidence-level-5"[^>]*tabindex="0"/, "Tab lands on the picked level");
 	});
 
-	it("restores an ask's custom answer and a free-text answer", () => {
-		const custom = renderToStaticMarkup(<QuestionDock toolName="ask_user_question" toolCallId="ask1" input={{ question: "Fixture?", options: [{ label: "Listed answer" }, { label: "Another answer" }], multiSelect: true }} onSubmit={async () => true} initialDraft={draft} />);
+	it("restores an ask's custom answer", () => {
+		const custom = renderToStaticMarkup(<QuestionDock {...noop} toolName="ask_user_question" toolCallId="ask1" input={{ question: "Fixture?", options: [{ label: "Listed answer" }, { label: "Another answer" }], multiSelect: true }} initialDraft={draft} />);
 		assert.ok(custom.includes('value="preserved custom answer"'));
 		assert.match(custom, /aria-checked="true" data-testid="other-option"/);
-		const text = renderToStaticMarkup(<QuestionDock toolName="ask_user_question" toolCallId="ask2" input={{ question: "Fixture?" }} onSubmit={async () => true} initialDraft={draft} />);
-		assert.ok(text.includes("preserved free-text answer"));
 	});
 });
 
@@ -146,20 +137,14 @@ describe("render smoke tests", () => {
 		assert.match(html, /Which planet is closest to the sun\?/);
 		assert.match(html, /Mercury/);
 		assert.match(html, /I don&#x27;t know|I don't know/);
-		// The learner's voice: a "Your thinking" composer-twin lives INSIDE
-		// the dock, its placeholder in place of a label, never called optional.
-		assert.ok(html.includes('data-testid="thinking-field"'), "thinking field present");
-		assert.doesNotMatch(html, /Your thinking/, "no label over the box");
-		assert.match(html, /Why this answer\? Whatever comes to mind/, "placeholder invites, not apologizes");
-		assert.ok(!html.includes("optional"), "the field is never called optional");
-		assert.match(html, /Submit answer/, "send becomes Submit answer");
-		assert.ok(!html.includes("Enter"), "mouse-first: no key label on the submit bar");
+		// The reasoning is typed in the lesson's one box, not in the dock.
+		assert.doesNotMatch(html, /thinking-field|math-box|question-submit|Submit answer/, "no box or buttons of its own");
+		assert.ok(!html.includes("Enter"), "mouse-first: no key label");
 		// Mouse-first: the rows carry no number-key badges.
 		assert.doesNotMatch(html, /data-testid="dont-know-option"[\s\S]*?>0</, "no key 0 badge on I don't know");
 		assert.ok(html.includes('data-testid="confidence-meter"'), "the five confidence buttons");
 		assert.match(html, /data-testid="confidence-level-1"[^>]*tabindex="0"/, "Tab reaches the unrated meter at level 1");
 		assert.match(html, /data-testid="confidence-level-2"[^>]*tabindex="-1"/, "the other levels wait for the arrows");
-		assert.ok(html.includes('data-testid="question-kind"'), "the kind chip");
 		// The v1 desync bug: options are buttons with ARIA roles, not native inputs.
 		assert.ok(!html.includes('type="radio"'), "no native radio inputs");
 		assert.ok(html.includes('role="radio"'), "button-based radio role present");
@@ -170,7 +155,7 @@ describe("render smoke tests", () => {
 		assert.ok(!html.includes("innermost"), "explanation must not render pre-answer");
 	});
 
-	it("ask dock renders the editable Other row + thinking field, no grading affordance", () => {
+	it("ask dock renders the editable Other row, no grading affordance", () => {
 		const html = renderDock({
 			toolName: "ask_user_question",
 			toolCallId: "a1",
@@ -181,11 +166,9 @@ describe("render smoke tests", () => {
 		// radio circle + an inline input; picking it never displaces thinking.
 		assert.ok(html.includes('data-testid="other-option"'), "Other is an option row");
 		assert.match(html, /Type your own answer/, "type directly into the option");
-		assert.match(html, /placeholder="Type your own answer…" aria-label="Your own answer"/, "the field has a name, like its siblings");
+		assert.match(html, /placeholder="Type your own answer" aria-label="Your own answer"/, "the field has a name, like its siblings");
 		assert.ok(html.includes('role="radio"'), "Other row keeps the option role");
 		assert.match(html, /aria-checked="false"/, "circle starts unfilled");
-		assert.ok(html.includes('data-testid="thinking-field"'), "thinking field coexists with Other");
-		assert.match(html, /data-testid="thinking-field"[\s\S]*Why this answer\?/, "ask select-mode also gets the learner's voice");
 	});
 
 	it("multi-select ask renders checkbox rows and the select-all hint", () => {
@@ -219,29 +202,17 @@ describe("render smoke tests", () => {
 		});
 		assert.ok(html.includes('data-testid="malformed-question"'));
 		assert.match(html, /This question came through broken\. Skip it and the teacher will ask again\./);
-		assert.ok(!html.includes('data-testid="skip-question"'), "no skip button without a handler");
-		const withSkip = renderToStaticMarkup(
-			<QuestionDock toolName="quiz" toolCallId="bad" input={{ question: "q?", options: "[]" } as never} onSubmit={async () => true} onSkip={() => {}} />,
-		);
-		assert.match(withSkip, /data-testid="skip-question"[^>]*>[\s\S]*?Skip question/, "the broken question's one way on is Skip question");
+		assert.ok(!html.includes('data-testid="skip-question"'), "the way out is the button beside Your turn");
 	});
 
-	it("the thinking field fills the panel column", () => {
-		const html = renderDock({ toolName: "quiz", toolCallId: "q1", input: quizInput as never });
-		const field = html.slice(html.indexOf('data-testid="thinking-field"'));
-		assert.match(field.slice(0, 900), /data-testid="math-box" class="[^"]*flex-1/, "the field grows into the free height");
-	});
-
-	it("text-mode asks keep Enter-to-submit and the answer label", () => {
+	it("text-mode asks show the question alone; the answer is typed in the lesson's box", () => {
 		const html = renderDock({
 			toolName: "ask_user_question",
 			toolCallId: "a2",
 			input: { question: "Explain the chain rule in your own words." } as never,
 		});
-		assert.ok(html.includes('data-testid="answer-field"'), "text mode is the answer field");
-		assert.match(html, /data-testid="answer-field"[\s\S]*Type your answer…/, "the placeholder names the answer");
-		assert.ok(!html.includes('data-testid="thinking-field"'), "no thinking field in text mode (v1)");
-		assert.ok(!html.includes("⌘/Ctrl"), "no dump shortcut hint — Enter already submits");
+		assert.match(html, /Explain the chain rule in your own words\./);
+		assert.doesNotMatch(html, /question-option|other-option|answer-field|thinking-field|math-box/, "no rows, no field");
 	});
 
 	it("AnsweredCard grades quiz answers (✓/✗ + explanation)", () => {
@@ -250,7 +221,7 @@ describe("render smoke tests", () => {
 		assert.match(html, /data-testid="answer-result"[^>]*>.*Wrong/, "the verdict chip");
 		assert.match(html, /data-testid="answer-kind"[^>]*>Quiz/, "the kind");
 		// The details sit behind the Why toggle — never center stage.
-		assert.match(html, /data-testid="answer-toggle"[^>]*>Why ▾/);
+		assert.match(html, /data-testid="answer-toggle"[^>]*>Why</);
 		assert.ok(!html.includes("innermost"), "explanation hidden until opened");
 		assert.ok(!html.includes("tucked-explanation"));
 		const open = renderToStaticMarkup(<AnsweredCard answer={answer} defaultOpen />);
@@ -262,10 +233,10 @@ describe("render smoke tests", () => {
 	it("AnsweredCard shows the confidence level on quiz answers", () => {
 		const answer = buildAnswer(quizQD(), { values: ["Venus"], confidence: 80 });
 		const html = renderToStaticMarkup(<AnsweredCard answer={answer} />);
-		assert.match(html, /data-testid="answered-confidence"[^>]*>Sure 4</);
+		assert.match(html, /data-testid="answered-confidence"[^>]*>, sure 4 of 5</);
 		// Old-grid answers show at their nearest level (70% → 3).
 		const old = renderToStaticMarkup(<AnsweredCard answer={buildAnswer(quizQD(), { values: ["Venus"], confidence: 70 })} />);
-		assert.match(old, /Sure 3/);
+		assert.match(old, /sure 3 of 5/);
 		// It is a RECORD, not a control.
 		assert.ok(!html.includes('type="range"') && !html.includes("confidence-meter"));
 	});
@@ -309,9 +280,6 @@ describe("render smoke tests", () => {
 		assert.ok(html.includes('aria-expanded="false"'), "arrives collapsed");
 		const yourRow = html.slice(html.indexOf('data-testid="your-thinking"'));
 		assert.ok(!yourRow.slice(0, 400).includes("bg-card") && !yourRow.slice(0, 400).includes("bg-accent"), "no band inside the card");
-		const railAt = html.indexOf("border-l-[calc(3ch-14px)]");
-		const trigAt = html.indexOf("your-thinking-trigger");
-		assert.ok(railAt !== -1 && railAt < trigAt, "the rail opens before the label (same quote)");
 		assert.ok(!html.includes("brightness isn&#x27;t distance"), "the text is hidden until expanded");
 		assert.ok(
 			html.indexOf("your-thinking") < html.indexOf("tucked-explanation"),
@@ -508,18 +476,18 @@ describe("AnsweredCard: the explain variant", () => {
 //     both surfaces carry the tool's OWN name ────────────────────────────
 
 describe("probe-phase naming: Warm-up/Recall labels", () => {
-	it("the dock labels a probe quiz as Warm-up (composer surface)", () => {
+	it("a probe quiz renders quiz-shaped, never with the engineering word", () => {
 		const html = renderDock({ toolName: "probe", toolCallId: "p1", input: quizInput as never });
-		assert.match(html, /data-testid="question-kind"[^>]*>Warm-up</, "the opening questions read Warm-up");
 		assert.ok(!html.includes("Probe"), "never the engineering word");
-		assert.ok(!html.includes(">Quiz<"), "not the teach label");
 		assert.match(html, /Which planet is closest to the sun\?/, "still a quiz-shaped card");
+		assert.ok(html.includes('data-testid="question-option"'));
 	});
 
-	it("the dock labels a recall question as Recall", () => {
+	it("a recall question renders explain-shaped: the question alone, written in the box", () => {
 		const html = renderDock({ toolName: "recall", toolCallId: "r1", input: { question: "Explain the chain rule.", correctAnswer: "Outer function times the derivative of the inner." } as never });
-		assert.match(html, /Recall/);
-		assert.ok(!html.includes(">Explain<"), "not the teach label");
+		assert.match(html, /Explain the chain rule\./);
+		assert.ok(!html.includes("Outer function times"), "the commitment never shows before answering");
+		assert.ok(!html.includes('data-testid="question-option"'));
 	});
 
 	it("an answered probe labels Warm-up — the phase boundary visible in the transcript", () => {
@@ -569,40 +537,11 @@ describe("probe-phase naming: Warm-up/Recall labels", () => {
 // explanation (the teaching that follows IS the explanation) while a check's
 // stays inline.
 describe("predict vs check rendering", () => {
-	it("a predict quiz renders the 'Prediction' eyebrow in the dock", () => {
-		const html = renderToStaticMarkup(
-			<QuestionDock
-				{...{
-					toolName: "quiz" as const,
-					toolCallId: "call-p1",
-					input: { ...quizInput, type: "predict", nodeId: "planet-order" },
-				}}
-				onSubmit={async () => true}
-			/>,
-		);
-		assert.ok(html.includes("Prediction"), `eyebrow missing: ${html.slice(0, 200)}`);
-	});
-
-	it("a check quiz reads 'Quiz' (the transcript export's word), never the reveal button's 'Check'", () => {
-		const html = renderToStaticMarkup(
-			<QuestionDock
-				{...{
-					toolName: "quiz" as const,
-					toolCallId: "call-c1",
-					input: { ...quizInput, type: "check", nodeId: "planet-order" },
-				}}
-				onSubmit={async () => true}
-			/>,
-		);
-		assert.match(html, /data-testid="question-kind"[^>]*>Quiz</);
-		assert.ok(!html.includes(">Check<"));
-	});
-
 	it("a prediction answer SHOWS the verdict but TUCKS the explanation behind a toggle", () => {
 		const qd: QuestionData = { ...quizQD(), questionType: "predict" };
 		const answer = buildAnswer(qd, { values: ["Venus"] }); // wrong on purpose
 		const html = renderToStaticMarkup(<AnsweredCard answer={answer} />);
-		assert.ok(html.includes("Prediction"), "the eyebrow distinguishes the card");
+		assert.ok(html.includes("Your prediction"), "the kind distinguishes the card");
 		assert.ok(/incorrect|wrong|&times;|✗/i.test(html), "the verdict still shows (predictions are graded)");
 		assert.ok(!html.includes("innermost"), "the explanation is not center stage");
 		assert.ok(html.includes('data-testid="answer-toggle"'), "it sits behind the toggle");

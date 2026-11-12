@@ -4,7 +4,7 @@
  * `next build` (output: "standalone") produces .next/standalone/ with
  * server.js + the traced node_modules subset. This script adds the built
  * UI (`vite build` → dist-ui/, served from ui/ by src/app/[[...path]]) and
- * models/, the class-search embedding model (scripts/fetch-model.mjs),
+ * models/, the space-search embedding model (scripts/fetch-model.mjs),
  * which the server loads by path, and sanity-checks the result, including
  * the exclusion that keeps the repo's real data/ OUT of the bundle
  * (see next.config.ts outputFileTracingExcludes). It also removes build-only

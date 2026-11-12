@@ -53,8 +53,8 @@ export function buttonKeepsNativeEnter(el: HTMLElement): boolean {
 	return !!el.closest(OVERLAY_ROOTS);
 }
 
-/** Mount-scoped: while the dock is mounted (a problem/question is active),
- *  plain Enter anywhere outside a typing surface or button submits it. */
+/** Mount-scoped: while its caller is mounted, plain Enter anywhere
+ *  outside a typing surface or button submits. */
 export function useEnterSubmits(submit: () => void): void {
 	const submitRef = useRef(submit);
 	submitRef.current = submit;

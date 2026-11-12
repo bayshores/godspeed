@@ -6,10 +6,12 @@
  * moment work arrives, printing the work item (see the output below). The
  * exit wakes the agent, which answers the item with `respond` as usual.
  *
- *   node wait-for-work.mjs [--lesson <lesson id>] [--max-minutes <n>]
+ *   node wait-for-work.mjs [--lesson <lesson id>] [--backup] [--max-minutes <n>]
  *
  * With --lesson it takes that lesson's turns, Talk messages and background
- * jobs. If the lesson is deleted, it waits for any work instead.
+ * jobs. If the lesson is deleted, it waits for any work instead. With
+ * --backup it is the backup teacher's: it takes lesson and Talk turns only
+ * while the main session compacts its context.
  *
  * Exit codes: 0 = work item printed; 2 = nothing arrived within
  * --max-minutes (default 120; run it again to keep waiting); 1 = godspeed
@@ -43,6 +45,7 @@ const flag = (name) => {
 	return at >= 0 ? args[at + 1] : undefined;
 };
 let lessonId = flag("--lesson");
+const backup = args.includes("--backup");
 const agent = process.env.CLAUDE_CODE_SESSION_ID;
 const asked = Number(flag("--max-minutes") ?? 120);
 const maxMinutes = Number.isFinite(asked) && asked > 0 ? asked : 120;
@@ -88,7 +91,7 @@ const ENVELOPE = {
 async function waitOnce() {
 	const { url, token } = target();
 	if (!token) fail(NO_TOKEN);
-	const meta = { ...(modern ? ENVELOPE : {}), ...(agent ? { "godspeed/agent": agent } : {}) };
+	const meta = { ...(modern ? ENVELOPE : {}), ...(agent ? { "godspeed/agent": agent } : {}), ...(backup ? { "godspeed/backup": true } : {}) };
 	const res = await fetch(url, {
 		method: "POST",
 		headers: {

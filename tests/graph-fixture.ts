@@ -72,7 +72,7 @@ export function fixture(): ProgressPayload {
 		fact("f12", "t-attn", "Attention weights sum to one"),
 	];
 	return {
-		classId: "cls-1",
+		spaceId: "cls-1",
 		today: "2026-10-27",
 		topicsAt: "2026-10-26T00:00:00Z",
 		grouping: false,

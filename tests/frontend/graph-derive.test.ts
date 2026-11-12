@@ -7,19 +7,22 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
 	countdownText,
+	countsLine,
 	defaultDeadlineId,
 	deadlineFilesText,
+	factCellLabel,
 	factLinks,
 	levelName,
 	pickableDeadlines,
 	neighbors,
-	readinessBlocks,
 	readyCount,
 	reasonText,
 	searchMatches,
 	statusLine,
-	takeaway,
+	sureMissNote,
+	topicCountLine,
 	topicLevels,
+	workRowLine,
 } from "../../src/frontend/components/graph/derive.ts";
 import { factMark, topicFacts } from "../../src/shared/core/progress.ts";
 import { answers, fact, fixture } from "../graph-fixture.ts";
@@ -36,10 +39,10 @@ describe("levels", () => {
 	});
 
 	it("levelName: the first says start here, the last advanced; one level is just a level", () => {
-		assert.equal(levelName(0, 3), "level 1, start here");
-		assert.equal(levelName(1, 3), "level 2");
-		assert.equal(levelName(2, 3), "level 3, advanced");
-		assert.equal(levelName(0, 1), "level 1");
+		assert.equal(levelName(0, 3), "Level 1, start here");
+		assert.equal(levelName(1, 3), "Level 2");
+		assert.equal(levelName(2, 3), "Level 3, advanced");
+		assert.equal(levelName(0, 1), "Level 1");
 	});
 
 	it("readyCount counts the strong topics", () => {
@@ -74,10 +77,31 @@ describe("panel helpers", () => {
 		assert.equal(reasonText({ reason: "Needed for Momentum" }), "Needed for Momentum");
 	});
 
-	it("takeaway counts the sure misses", () => {
-		assert.equal(takeaway(mini), "3 of 7 right. On 4 of the misses you picked 4 or 5, so you felt sure.");
-		assert.equal(takeaway(byId.get("t-var")!), "4 of 7 right.");
-		assert.equal(takeaway(byId.get("t-mom")!), "Not tested.");
+	it("sureMissNote counts the sure misses, and says nothing without any", () => {
+		assert.equal(sureMissNote(mini), "On 4 of the misses you picked 4 or 5, so you felt sure.");
+		assert.equal(sureMissNote(byId.get("t-var")!), "");
+		assert.equal(sureMissNote(byId.get("t-mom")!), "");
+	});
+
+	it("topicCountLine: the fact count and the score", () => {
+		assert.equal(topicCountLine(6, mini), "6 facts, 3 of 7 right");
+		assert.equal(topicCountLine(1, byId.get("t-mom")!), "1 fact, not tested");
+	});
+
+	it("workRowLine: the status and score, or not tested", () => {
+		assert.equal(workRowLine(mini), "weak, 3 of 7 right");
+		assert.equal(workRowLine(byId.get("t-var")!), "shaky, 4 of 7 right");
+		assert.equal(workRowLine(byId.get("t-mom")!), "not tested");
+	});
+
+	it("countsLine: every status, in order", () => {
+		assert.equal(countsLine({ strong: 2, shaky: 3, weak: 1, untested: 8 }), "2 strong, 3 shaky, 1 weak, 8 not tested");
+	});
+
+	it("factCellLabel: the score, in a lesson, or not studied", () => {
+		assert.equal(factCellLabel(fact("x", "t", "x", answers("rw"))), "1 of 2 right");
+		assert.equal(factCellLabel({ ...fact("x", "t", "x"), inLessons: true }), "In a lesson, not answered");
+		assert.equal(factCellLabel({ ...fact("x", "t", "x"), inLessons: false }), "Not studied");
 	});
 
 	it("topicFacts: wrong first, then don't know, right, untested", () => {
@@ -123,10 +147,6 @@ describe("panel helpers", () => {
 		assert.equal(countdownText(-2), "2 days ago");
 		assert.equal(deadlineFilesText([{ name: "Lecture 1" }]), "Lecture 1");
 		assert.equal(deadlineFilesText([{ name: "a" }, { name: "b" }]), "2 files");
-	});
-
-	it("readinessBlocks: strong, shaky, weak, then not tested", () => {
-		assert.deepEqual(readinessBlocks(data.topics).map((t) => t.status), ["strong", "strong", "shaky", "weak", "untested"]);
 	});
 
 	it("searchMatches: topic names and their facts' names and statements", () => {

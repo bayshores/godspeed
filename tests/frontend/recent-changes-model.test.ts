@@ -5,13 +5,13 @@
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import type { ClassFile } from "../../src/shared/core/contracts.ts";
+import type { SpaceFile } from "../../src/shared/core/contracts.ts";
 import { changeDay, recentChanges, removedLately } from "../../src/frontend/components/files/recent-changes-model.ts";
 
 const DAY = 86_400_000;
 const NOW = Date.parse("2026-11-06T18:00:00.000Z");
 const ago = (days: number) => new Date(NOW - days * DAY).toISOString();
-const file = (id: string, extra: Partial<ClassFile>): ClassFile => ({
+const file = (id: string, extra: Partial<SpaceFile>): SpaceFile => ({
 	id,
 	origin: "linked",
 	name: `${id}.pdf`,

@@ -31,14 +31,16 @@ import { FRAGMENT_RE, isValidSegmentPath, type PromptAgent, type PromptSegmentIn
 
 const PROMPTS_DIR = path.join(PATHS.root, "src", "backend", "agent", "prompts");
 
-/** Shared fragments the PRACTICE agent composes: voice, accuracy and the
- *  mental model are one law across every agent, and formatting too
+/** Shared fragments the PRACTICE agent composes: voice, the learner's
+ *  question first, accuracy and the mental model are one law across every
+ *  agent, and formatting too
  *  (practice writes the same $...$ / $$...$$ LaTeX and markdown). The
  *  question/confidence/file mechanics stay out (practice has no such
  *  tools). */
-const PRACTICE_SHARED_FRAGMENTS = ["10-voice.md", "12-class-context.md", "15-accuracy.md", "16-mental-model.md", "40-formatting.md"];
-/** Talk is a small side panel: the voice only (its own base sets short replies). */
-const TALK_SHARED_FRAGMENTS = ["10-voice.md"];
+const PRACTICE_SHARED_FRAGMENTS = ["10-voice.md", "11-learner-first.md", "12-space-context.md", "13-source-marks.md", "15-accuracy.md", "16-mental-model.md", "40-formatting.md"];
+/** Talk is a small side panel: the voice and the learner's question first
+ *  (its own base sets short replies). */
+const TALK_SHARED_FRAGMENTS = ["10-voice.md", "11-learner-first.md"];
 
 /** Read one override file, or null when absent/invalid — the composition
  *  side's reader (the store's readOverride is the same mirror layout,

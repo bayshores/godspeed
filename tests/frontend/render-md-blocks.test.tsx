@@ -16,7 +16,6 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { MessageResponse } from "../../src/frontend/components/ai-elements/message.tsx";
 import { ThinkingBlock, setAllUserThinkingOpen } from "@/frontend/components/thinking-block";
 import { MermaidOverlay, SessionMermaidContext, chartSize } from "../../src/frontend/components/session-overlay.tsx";
-import { PlanPopup } from "../../src/frontend/components/plan-block.tsx";
 import { codeSource } from "../../src/frontend/components/md-blocks.tsx";
 
 function render(md: string): string {
@@ -27,7 +26,7 @@ describe("md-blocks — code", () => {
 	it("inline code passes through with the house inline styling", () => {
 		const html = render("a `term` b");
 		assert.ok(html.includes('data-streamdown="inline-code"'), "inline code keeps the inline-code path");
-		assert.match(html, /bg-muted/);
+		assert.match(html, /bg-tone/);
 	});
 
 	it("code fences delegate to streamdown's CodeBlock with a hover copy corner", () => {
@@ -41,11 +40,8 @@ describe("md-blocks — code", () => {
 		// once; only the hovered block reveals.
 		assert.ok(html.includes("group/md"), "the block uses the named md group");
 		assert.match(html, /group-hover\/md:opacity-100/, "the corner reveals via the named group only");
-		// No "Copied" pill — the icon flip alone conveys the copy.
-		assert.ok(!html.includes('data-testid="md-copy-pill"'), "no Copied pill anywhere — icon flip is the feedback");
 		const corner = /<button[^>]*data-testid="md-copy"[^>]*>(.*?)<\/button>/.exec(html)?.[1] ?? "";
-		assert.match(corner, /lucide-copy/, "the corner is the shared copy button, icon only");
-		assert.doesNotMatch(corner, />Copy</, "no Copy word in the corner");
+		assert.equal(corner, "Copy", "the corner is the shared copy button, a word");
 	});
 });
 
@@ -86,7 +82,7 @@ describe("md-blocks — display math", () => {
 		const md = "```js\nconst x = 1;\n```\n\n| A | B |\n| --- | --- |\n| 1 | 2 |";
 		const html = render(md);
 		// No UNNAMED group-hover on the corners: that selector would fire from
-		// the Message container's own `group` class and light every block.
+		// the Message container's own `group` space and light every block.
 		assert.ok(!html.match(/\s group-hover:opacity-100/), "no unnamed group-hover on any corner");
 		assert.ok(html.includes('data-testid="md-table"'), "table present for the contrast");
 	});
@@ -123,25 +119,10 @@ describe("session-scoped overlays", () => {
 		assert.match(html, /role="dialog"/, "dialog semantics for Esc/aria");
 	});
 
-	it("the plan popup is session-scoped the same way, and its chart is hidden until the first fit (no top-left flash)", () => {
-		const html = renderToStaticMarkup(<PlanPopup tree={null} messages={[]} onClose={() => {}} />);
-		assert.match(html, /data-testid="plan-popup"/);
-		assert.match(html, /class="absolute inset-0[^"]*z-40/, "absolute inset-0 z-40 — scoped, not fullscreen");
-		assert.ok(html.includes("bg-background/95"), "95% background");
-		assert.ok(!html.includes("backdrop-blur"), "no blur");
-		assert.ok(!html.includes("fixed inset-0"), "never fixed — the drag bar stays uncovered");
-	});
-
 	it("the diagram wrapper is hidden until the first fit applies (no top-left flash)", () => {
-		// Covered in render-plan-block.test.tsx, which has a real tree
-		// fixture (an empty-messages popup renders no diagram to gate) — and
-		// the same gate is asserted on the mermaid overlay's wrapper here:
 		// settled=false at static render → opacity 0.
 		const html = renderToStaticMarkup(<MermaidOverlay chart="graph TD\nA --> B" onClose={() => {}} />);
-		// The chart itself hasn't rendered at static render (async effect) —
-		// the opacity gate is pinned on the plan popup's diagram wrapper in
-		// render-plan-block.test.tsx, which has a real tree fixture (the two
-		// overlays share the settled-gating pattern).
+		// The chart itself hasn't rendered at static render (async effect).
 		assert.ok(html.includes('data-testid="mermaid-overlay-close"'), "overlay shell renders");
 	});
 
@@ -238,8 +219,8 @@ describe("md-blocks — the restored plain blockquote", () => {
 		const html = renderToStaticMarkup(
 			<MessageResponse mode="static">{"Before.\n\n> An ordinary quote.\n\nAfter."}</MessageResponse>,
 		);
-		assert.ok(html.includes("border-l-4"), "the left border is back");
-		assert.ok(html.includes("text-muted-foreground italic"), "muted italic — the quote register");
+		assert.ok(html.includes("border-l-2"), "the left border is back");
+		assert.ok(html.includes("text-ink-2 italic"), "muted italic — the quote register");
 		assert.ok(!html.includes("md-callout"), "a plain quote is not a callout box");
 	});
 });
@@ -251,21 +232,18 @@ describe("ThinkingBlock — the document band + ⌘T sync", () => {
 		assert.match(html, /so /);
 	});
 
-	it("the row is the document band", () => {
+	it("the row is a card", () => {
 		const html = renderToStaticMarkup(<ThinkingBlock text="banded" defaultOpen />);
-		assert.ok(html.includes("bg-card"), "the card-color band");
-		assert.ok(html.includes("border-l-[calc(3ch-14px)]"), "narrow rail — 14px gap inside the 3ch inset");
-		assert.ok(html.includes("py-1") && html.includes("pl-[14px]"), "4px band padding");
-		assert.ok(html.includes("pr-4"), "the text wraps early — air at the band's right edge");
+		assert.ok(html.includes("bg-background") && html.includes("border-border"), "a card of its own");
+		assert.ok(html.includes("border-l-2"), "the text carries a quote rule");
 		assert.ok(html.includes("w-full"), "full width — no chat side");
 		assert.match(html, /aria-expanded="true"/);
 		assert.ok(html.includes("banded"), "text visible on arrival");
 	});
 
-	it("in-card rows take no band — the accent step read too light", () => {
+	it("in-card rows take no card of their own", () => {
 		const html = renderToStaticMarkup(<ThinkingBlock text="in card" inCard />);
-		assert.ok(!html.includes("bg-accent") && !html.includes("bg-card"), "transparent on the card");
-		assert.ok(html.includes("border-l-[calc(3ch-14px)]"), "rail only, same geometry");
+		assert.ok(!html.includes("bg-background") && !html.includes("border-border"), "no card of its own inside a card");
 	});
 
 	it("⌘T sets every row — explicit sets stomp individual state, late mounts honor the last set", () => {

@@ -5,7 +5,7 @@ import {
   CollapsibleTrigger,
 } from "@/frontend/components/ui/collapsible";
 import { cn } from "@/frontend/lib/utils";
-import { ChevronDownIcon } from "lucide-react";
+import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { BrailleSpinner } from "@/frontend/components/braille-spinner";
 import type { ComponentProps } from "react";
 import {
@@ -108,8 +108,8 @@ export const ReasoningTrigger = memo(
     return (
       <CollapsibleTrigger
         className={cn(
-          /* The heading register of the learner's "Your thinking" rows. */
-          "flex w-full items-center gap-2 text-muted-foreground text-xs font-semibold transition-colors duration-(--lh-dur) ease-(--lh-ease-out) hover:text-foreground",
+          /* The register of the learner's "Your thinking" rows. */
+          "flex w-full items-center gap-2.5 text-[15px] text-ink-2 transition-colors duration-(--lh-dur) ease-(--lh-ease-out) hover:text-ink",
           className
         )}
         {...props}
@@ -119,17 +119,15 @@ export const ReasoningTrigger = memo(
            with its own toggle handler. */
         onClick={(e) => blurAfterPointerClick(e)}
       >
+        <PixelIcon
+          name="chevron"
+          className={cn("transition-transform duration-(--lh-dur) ease-(--lh-ease-out)", isOpen && "rotate-90")}
+        />
         {/* The spinner shows while streaming only: motion is the signal.
             It is the placeholder spinner's size, so the handoff is seamless. */}
         {isStreaming && <BrailleSpinner label="Thinking" />}
         {/* A static settled label, pairing with the learner's "Your thinking" rows. */}
         {isStreaming ? <Shimmer>Thinking...</Shimmer> : <p>Agent’s thinking</p>}
-        <ChevronDownIcon
-          className={cn(
-            "size-4 transition-transform duration-(--lh-dur) ease-(--lh-ease-out)",
-            isOpen ? "rotate-180" : "rotate-0"
-          )}
-        />
       </CollapsibleTrigger>
     );
   }
@@ -148,7 +146,7 @@ export const ReasoningContent = memo(
   ({ className, children, ...props }: ReasoningContentProps) => (
     <CollapsibleContent
       className={cn(
-        "mt-4 text-sm text-muted-foreground outline-none",
+        "mt-2 border-l-2 border-tone-2 pl-3 font-prose text-[16px] italic text-ink-2 outline-none",
         /* The app's motion tokens (tw-animate is not loaded). Opening
            rises in; closing fades, and Radix waits for it before unmounting. */
         "motion-safe:data-[state=open]:animate-[lh-rise-in_var(--lh-dur)_var(--lh-ease-out)] motion-safe:data-[state=closed]:animate-[lh-fade-out_var(--lh-dur-fast)_var(--lh-ease-in)_both]",

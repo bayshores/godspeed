@@ -531,7 +531,7 @@ describe("the merger (mergeFindings)", () => {
 	it("derives the sessions index in graphSnapshot", () => {
 		const snap = graphSnapshot(graphDeps);
 		const idByStatement = new Map(snap.nodes.map((n) => [n.statement, n.id]));
-		// No node-state classes and no understanding
+		// No node-state spaces and no understanding
 		// observations: the snapshot carries only the
 		// objective graph + sessions.
 		assert.equal("nodeStates" in snap, false);
@@ -1013,7 +1013,7 @@ describe("single-node deletion (deleteNodeTraces + deleteGraphNode, node interlu
 				ok: false,
 				status: 409,
 				code: "extraction_running",
-				error: "Godspeed is still adding to your graph. Try again when Background jobs in the teacher's panel is empty.",
+				error: "Godspeed is still adding to your graph. Try again when nothing is left under Running in the background in the teacher's Activity.",
 			});
 		} finally {
 			g.__lhExtractionRuns = realRuns;

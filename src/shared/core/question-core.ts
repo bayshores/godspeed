@@ -487,11 +487,11 @@ export const emptyDockSelection = (): DockSelection => ({ selected: new Set(), o
  * drafts). Indices use the call's stable shuffle. */
 export interface QuestionFormDraft {
 	selection: DockSelection;
-	thinking: string;
 	other: string;
-	text: string;
 	/** Absent until the learner picks a level. */
 	confidenceIndex?: number;
+	/** A code question's code, once it is no longer the starter code. */
+	code?: string;
 }
 
 export interface QuestionDraft {

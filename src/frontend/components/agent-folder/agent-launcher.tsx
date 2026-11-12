@@ -1,28 +1,30 @@
-import { useEffect, useState, type ReactNode } from "react";
-import { CheckIcon } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useAgentStatus } from "@/frontend/components/agent-status";
 import { CopyButton } from "@/frontend/components/copy-button";
 import { ACCESS_ERROR, maskToken } from "@/frontend/components/mcp-access";
+import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { cn } from "@/frontend/lib/utils";
 import { logLines, rememberedAgent, type LaunchChoice, type LogLine } from "./agent-folder-model";
 import { OpenAgentButton } from "./open-agent-button";
+import { StartCommandField } from "./start-command-field";
 import { savedAgent, useAgentFolder } from "./use-agent-folder";
 
-const QUIET = "lh-press text-[13px] font-bold text-ink-3 underline underline-offset-2 hover:text-ink";
+const QUIET = "lh-btn lh-btn-quiet text-[15px]";
 
 /**
- * Start your agent in the godspeed folder: the "Open Claude Code" split
- * button, a live log of each step (folder made, terminal opened, agent
- * started, teaching), and quiet links to change the folder or copy the
- * command. "Other app" shows the address and token for any MCP app.
- * Onboarding (step 1) and Settings → Connection use it; `extra` adds a
- * link at the end (onboarding's "I'll do this later").
+ * Start your agent in the godspeed folder: "Open Claude Code" and "Use
+ * another agent", a live log of each step (folder made, terminal opened,
+ * agent started, teaching), and under a dotted rule the folder with quiet
+ * buttons to change it, copy the command or change the command that
+ * starts the agent. "Other app" shows the address and token for any MCP
+ * app. Onboarding (step 1) and Settings → Connection use it.
  */
-export function AgentLauncher({ extra, center = false }: { extra?: ReactNode; center?: boolean }) {
-	const { view, launch, open, change } = useAgentFolder();
+export function AgentLauncher() {
+	const { view, launch, open, change, setStartCommand } = useAgentFolder();
 	const status = useAgentStatus();
 	const [choice, setChoice] = useState<LaunchChoice>("claude");
 	const [error, setError] = useState<string | null>(null);
+	const [changingCommand, setChangingCommand] = useState(false);
 	useEffect(() => setChoice(rememberedAgent(savedAgent())), []);
 
 	const agent = choice === "other" ? null : choice;
@@ -31,59 +33,84 @@ export function AgentLauncher({ extra, center = false }: { extra?: ReactNode; ce
 	const canChange = typeof window !== "undefined" && !!window.lh?.pickFolder;
 
 	return (
-		<div className={cn("flex flex-col gap-6", center ? "items-center" : "items-start")}>
+		<div className="flex w-full flex-col items-start gap-4">
 			<OpenAgentButton
 				choice={choice}
 				onChoose={(c) => {
 					setChoice(c);
 					setError(null);
+					setChangingCommand(false);
 				}}
 				onOpen={() => agent && void open(agent)}
 				busy={busy}
 			/>
 			{choice === "other" ? <OtherAppSetup /> : lines.length > 0 && <Log lines={lines} />}
 			{error && (
-				<p role="alert" className="text-[13px] text-ans-wrong">
+				<p role="alert" className="text-[15px] text-ans-wrong">
 					{error}
 				</p>
 			)}
-			<div className={cn("flex flex-wrap items-center gap-x-5 gap-y-2", center && "justify-center")}>
-				{view && agent && (
-					<span className="text-[13px] text-ink-3" data-testid="agent-folder-path">
-						Folder: <span className="font-mono text-[12.5px]">{view.short}</span>
-					</span>
-				)}
-				{canChange && agent && (
-					<button type="button" data-testid="agent-folder-change" className={QUIET} onClick={() => void change().then(setError)}>
-						Change folder
-					</button>
-				)}
-				{view && agent && (
-					<CopyButton aria-label="Copy the command" className={QUIET} text={view.commands[agent]}>
-						Copy the command
-					</CopyButton>
-				)}
-				{extra}
-			</div>
+			{agent && (view || canChange) && (
+				<>
+					<div aria-hidden className="w-full border-t-2 border-dotted border-ink-3" />
+					<div className="flex w-full flex-wrap items-center gap-x-3.5 gap-y-1">
+						{view && (
+							<span className="mr-auto text-[15px] text-ink-2" data-testid="agent-folder-path">
+								Folder: {view.short}
+							</span>
+						)}
+						{canChange && (
+							<button type="button" data-testid="agent-folder-change" className={cn(QUIET, !view && "ml-auto")} onClick={() => void change().then(setError)}>
+								Change folder
+							</button>
+						)}
+						{view && (
+							<CopyButton aria-label="Copy the command" className={QUIET} text={view.commands[agent]}>
+								Copy the command
+							</CopyButton>
+						)}
+						{view && (
+							<button type="button" data-testid="agent-start-command-change" aria-expanded={changingCommand} className={QUIET} onClick={() => setChangingCommand(!changingCommand)}>
+								Change command
+							</button>
+						)}
+					</div>
+					{view && changingCommand && (
+						<StartCommandField
+							agent={agent}
+							saved={view.startCommands[agent] ?? ""}
+							onSave={(command) =>
+								void setStartCommand(agent, command).then((failed) => {
+									setError(failed);
+									if (!failed) setChangingCommand(false);
+								})
+							}
+						/>
+					)}
+				</>
+			)}
 		</div>
 	);
 }
 
+/** The launch steps: a green square with a tick when done, a half-filled square while running. */
 function Log({ lines }: { lines: LogLine[] }) {
 	return (
-		<div data-testid="agent-launch-log" aria-live="polite" className="flex w-full max-w-[560px] flex-col gap-2.5 border border-tone-2 bg-panel px-5 py-4 text-left font-mono text-[13px]">
+		<div data-testid="agent-launch-log" aria-live="polite" className="flex w-full flex-col py-1.5 text-left text-[15px]">
 			{lines.map((line) => (
-				<div key={line.text} data-state={line.state} className="flex items-start gap-3">
-					<span aria-hidden className="flex h-[19px] w-3.5 shrink-0 items-center justify-center">
-						{line.state === "done" ? (
-							<CheckIcon className="size-3.5 text-ans-right" />
-						) : line.state === "wait" ? (
-							<span className="ob-pulse size-2 rounded-full bg-ink-2" />
-						) : null}
-					</span>
-					<span className={cn(line.state === "done" ? "text-ink-2" : line.state === "error" ? "text-ans-wrong" : line.state === "note" ? "font-sans text-ink-3" : "text-ink")}>
-						{line.text}
-					</span>
+				<div key={line.text} data-state={line.state} className={cn("flex items-center gap-2.5", line.state === "note" ? "pt-1 text-sm text-ink-2" : "py-[3px]")}>
+					{line.state !== "note" && (
+						<span aria-hidden className={cn("flex size-4 shrink-0 items-center justify-center", line.state === "done" && "bg-ans-right text-ink")}>
+							{line.state === "done" ? (
+								<PixelIcon name="check" className="h-[7px]" />
+							) : line.state === "wait" ? (
+								<span className="relative size-4 border-2 border-ink">
+									<span className="ob-pulse absolute inset-y-0 left-0 w-1/2 bg-ink" />
+								</span>
+							) : null}
+						</span>
+					)}
+					<span className={cn(line.state === "error" ? "text-ans-wrong" : line.state === "note" ? "" : "text-ink")}>{line.text}</span>
 				</div>
 			))}
 		</div>
@@ -99,21 +126,20 @@ function OtherAppSetup() {
 			.then((r) => (r.ok ? (r.json() as Promise<{ url: string; token: string }>) : Promise.reject()))
 			.then((a) => setAccess({ url: a.url, token: a.token }), () => setFailed(true));
 	}, []);
-	if (!access) return <p className="text-[13px] text-ink-2">{failed ? ACCESS_ERROR : "Loading…"}</p>;
+	if (!access) return <p className="text-[15px] text-ink-2">{failed ? ACCESS_ERROR : "Loading…"}</p>;
 	return (
-		<div className="flex w-full max-w-[560px] flex-col gap-3 text-left">
-			<p className="text-[14px] text-ink-2">
+		<div className="flex w-full flex-col gap-3 text-left">
+			<p className="text-[15px] text-ink-2">
 				Add a Streamable HTTP MCP server with this address and header, then ask your app to teach you with the godspeed tools. Let it use
 				them without asking your permission.
 			</p>
-			<div className="border border-tone-2 bg-panel">
-				<div className="flex items-center justify-between border-b border-tone-2 px-4 py-2.5">
-					<span className="text-[12.5px] text-ink-3">MCP server</span>
+			<div className="rounded border-[1.5px] border-ink bg-background">
+				<div className="flex items-center justify-between border-b border-line px-4 py-2.5">
+					<span className="text-[15px] text-ink-2">MCP server</span>
 					<CopyButton
 						text={`${access.url}\nAuthorization: Bearer ${access.token}`}
-						icon
 						aria-label="Copy MCP server"
-						className="lh-press flex items-center gap-1.5 text-[12.5px] font-bold text-ink-2 hover:text-ink"
+						className={QUIET}
 					/>
 				</div>
 				<pre className="overflow-x-auto px-4 py-3.5 font-mono text-[13px] leading-[1.9] text-ink">

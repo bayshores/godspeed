@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { Button } from "@/frontend/components/ui/button";
 import { BrailleSpinner } from "@/frontend/components/braille-spinner";
 import { SettingsRow, Toggle } from "./controls.tsx";
 import { hasWhatsNew, openWhatsNew } from "@/frontend/components/whats-new";
@@ -92,24 +91,24 @@ export function UpdateSettings({
 					<>
 						{status && <span className="block" role="status" data-testid="update-status">{status}</span>}
 						{active && <span className="block">{MANUAL_UPDATE_HINT}</span>}
-						{hasWhatsNew(version) ? (
-							<button type="button" onClick={() => openWhatsNew()} className="block underline-offset-2 hover:text-foreground hover:underline" data-testid="release-notes">Release notes</button>
-						) : releaseNotes && <a href={releaseNotes} target="_blank" rel="noopener noreferrer" className="underline-offset-2 hover:text-foreground hover:underline" data-testid="release-notes">Release notes</a>}
 					</>
 				}
 			>
 				<span className="flex items-center gap-2">
+					{hasWhatsNew(version) ? (
+						<button type="button" onClick={() => openWhatsNew()} className="lh-btn lh-btn-quiet text-[15px]" data-testid="release-notes">Release notes</button>
+					) : releaseNotes && <a href={releaseNotes} target="_blank" rel="noopener noreferrer" className="lh-btn lh-btn-quiet text-[15px]" data-testid="release-notes">Release notes</a>}
+					{reportBug && (
+						<button type="button" className="lh-btn text-[15px]" data-testid="report-bug" onClick={() => reportBug()}>Report a bug</button>
+					)}
 					{active && (state.status === "downloaded" ? (
-						<Button type="button" size="xs" className="cursor-pointer" data-testid="update-restart" onClick={() => window.lh?.installUpdate?.()}>Restart now</Button>
+						<button type="button" className="lh-btn lh-btn-main text-[15px]" data-testid="update-restart" onClick={() => window.lh?.installUpdate?.()}>Restart now</button>
 					) : (
-						<Button type="button" size="xs" variant="outline" className="cursor-pointer disabled:cursor-not-allowed" data-testid="update-check" disabled={busy} aria-busy={busy} onClick={check}>
+						<button type="button" className="lh-btn text-[15px]" data-testid="update-check" disabled={busy} aria-busy={busy} onClick={check}>
 							{busy && <BrailleSpinner label={state.status === "downloading" ? "Downloading update" : "Checking for updates"} />}
 							Check for updates
-						</Button>
+						</button>
 					))}
-					{reportBug && (
-						<Button type="button" size="xs" variant="outline" className="cursor-pointer" data-testid="report-bug" onClick={() => reportBug()}>Report a bug</Button>
-					)}
 				</span>
 			</SettingsRow>
 			{active && (

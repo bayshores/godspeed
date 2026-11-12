@@ -1,19 +1,22 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowRightIcon, SquareIcon } from "lucide-react";
+import { createPortal } from "react-dom";
 import type { AgentAction, LhMessage } from "@/shared/core";
-import { MessageResponse } from "@/frontend/components/ai-elements/message";
-import { NoAgentLine } from "@/frontend/components/agent-folder/no-agent-line";
+import { CitedResponse } from "@/frontend/components/citations/cited-response";
 import { agentWaiting, type AgentStatus } from "@/frontend/components/agent-status";
 import { AttachButton, AttachmentTray, attachmentInputProps, useAttachmentDraft, type AttachmentDraft } from "@/frontend/components/lesson/attachment-tray";
 import { restoreUnsent } from "@/frontend/components/lesson/chat-helpers";
 import { lastLearnerText, lessonError, retryAction } from "@/frontend/components/lesson/lesson-error-model";
 import { MessageAttachments } from "@/frontend/components/lesson/message-attachments";
-import { SendButton } from "@/frontend/components/lesson/panel-parts";
+import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
+import { SendButton } from "@/frontend/components/ui/send-button";
 import { MathBox } from "@/frontend/components/math-box";
 import { useLessonDrafts } from "@/frontend/components/lesson/use-lesson-drafts";
 import { useServerEvent } from "@/frontend/components/server-events";
 import { useChatSession } from "@/frontend/components/session";
+import { useSpaces } from "@/frontend/components/space-context";
+import { talkWorkLine } from "@/frontend/components/teacher-work/teacher-work-model";
 import { actionFor, appRequestText, draftWithAsk, speakerOf, startsTurn, talkRows } from "./talk-model";
+import { TalkNoAgent } from "./talk-no-agent";
 import { pastLabel } from "./tour";
 import { LABEL_TEXT } from "@/frontend/components/ui/label-text";
 import { cn } from "@/frontend/lib/utils";
@@ -33,8 +36,9 @@ export interface TalkAsk {
 
 /**
  * The Talk tab: one ongoing chat with the teacher outside lessons (set up
- * classes, files and deadlines, ask quick questions), laid out like a
- * script, the speaker's name in the margin. Clear chat empties it.
+ * spaces, files and deadlines, ask quick questions), laid out like a
+ * script, the speaker's name above each turn. Clear chat sits on the
+ * panel's tab row (clearSlot) and empties it.
  */
 export function TalkView({
 	name,
@@ -43,6 +47,7 @@ export function TalkView({
 	onPick,
 	ask,
 	onAsked,
+	clearSlot,
 }: {
 	name: string;
 	agent: AgentStatus | null;
@@ -50,6 +55,8 @@ export function TalkView({
 	onPick: (action: AgentAction) => void;
 	ask: TalkAsk | null;
 	onAsked?: (id: number) => void;
+	/** Where Clear chat is drawn (the panel's tab row). */
+	clearSlot: HTMLElement | null;
 }) {
 	const [chat, setChat] = useState<TalkChat | null>(null);
 	const [failed, setFailed] = useState(false);
@@ -69,9 +76,9 @@ export function TalkView({
 
 	if (failed)
 		return (
-			<p data-testid="talk-error" className="px-6 py-5 text-[13.5px] text-ink-2">
-				Couldn&apos;t open the chat.{" "}
-				<button type="button" className="lh-press font-bold text-ink underline underline-offset-2" onClick={() => setEpoch((e) => e + 1)}>
+			<p data-testid="talk-error" className="flex flex-wrap items-center gap-x-3 gap-y-2 px-5 py-[18px] text-[15px] text-ink-2">
+				Couldn&apos;t open the chat.
+				<button type="button" className="lh-press lh-btn" onClick={() => setEpoch((e) => e + 1)}>
 					Try again
 				</button>
 			</p>
@@ -87,6 +94,7 @@ export function TalkView({
 			onPick={onPick}
 			ask={ask}
 			onAsked={onAsked}
+			clearSlot={clearSlot}
 			onCleared={() => {
 				setChat(null);
 				setEpoch((e) => e + 1);
@@ -103,6 +111,7 @@ function TalkThread({
 	onPick,
 	ask,
 	onAsked,
+	clearSlot,
 	onCleared,
 }: {
 	chat: TalkChat;
@@ -112,12 +121,14 @@ function TalkThread({
 	onPick: (action: AgentAction) => void;
 	ask: TalkAsk | null;
 	onAsked?: (id: number) => void;
+	clearSlot: HTMLElement | null;
 	onCleared: () => void;
 }) {
 	const session = useChatSession({ chatId: chat.id, initialMessages: chat.messages, initialError: chat.turnError, initiallyInFlight: chat.turnInFlight });
-	// Unsent text is saved like the lesson box's; waiting files stay in
+	const { spaces } = useSpaces();
+	// Unsent text is saved like the lesson's writing box; waiting files stay in
 	// memory while the tab or the panel is closed.
-	const drafts = useLessonDrafts(chat.id, session.nativeMessages, null);
+	const drafts = useLessonDrafts(chat.id, session.nativeMessages);
 	const { saveComposer } = drafts;
 	const draftsLoaded = drafts.draft !== null;
 	const draftRef = useRef(drafts.draft);
@@ -224,7 +235,9 @@ function TalkThread({
 			.catch(() => setClearError("Couldn't clear the chat."));
 	};
 
-	const margin = cn("w-16 shrink-0 truncate", LABEL_TEXT);
+	const noAgent = !!agent && !agent.connected && !agent.teaching;
+	const turnGap = (first: boolean, i: number) => (i === 0 ? "" : first ? "mt-[18px]" : "mt-2");
+	const lastSpeaker = rows.length > 0 ? speakerOf(rows[rows.length - 1]!) : null;
 
 	return (
 		<div
@@ -232,28 +245,35 @@ function TalkThread({
 			className="flex min-h-0 flex-1 flex-col"
 			// Claimed before the panel's own Esc (which closes it) and the box's.
 			onKeyDownCapture={(e) => {
-				if (e.key !== "Escape" || !busy) return;
+				// A key in a dialog opened from here (React passes it up through the portal) is the dialog's.
+				if (e.key !== "Escape" || !busy || !e.currentTarget.contains(e.target as Node)) return;
 				e.preventDefault();
 				e.stopPropagation();
 				stopReply();
 			}}
 		>
-			<div data-testid="talk-thread" className="flex min-h-0 flex-1 flex-col overflow-y-auto px-6 py-5">
+			<div data-testid="talk-thread" className="flex min-h-0 flex-1 flex-col overflow-y-auto px-5 py-[18px]">
+				{rows.length === 0 && noAgent && (
+					<>
+						<TalkNoAgent />
+						<hr className="my-[18px] border-0 border-t-2 border-dotted border-edge" />
+					</>
+				)}
 				{rows.length === 0 && (
-					<p data-testid="talk-empty" className="text-[14px] leading-5 text-ink-2">
-						Ask {name} to add a class, link a folder of course files, add deadlines from a syllabus, or anything about your classes.
+					<p data-testid="talk-empty" className="text-[15px] leading-[22px] text-ink-2">
+						Ask {name} to add a space, link a folder of files, add deadlines from a syllabus or a schedule, or anything about your spaces.
 					</p>
 				)}
 				{rows.map((row, i) => {
 					const first = startsTurn(rows, i);
 					const speaker = speakerOf(row);
-					const who = first ? (speaker === "you" ? "You" : speaker === "app" ? "godspeed" : name) : "";
+					const who = speaker === "you" ? "You" : speaker === "app" ? "godspeed" : name;
 					let body: React.ReactNode;
 					if (row.kind === "you")
 						body = (
 							<>
 								{row.text && (
-									<p data-testid="talk-you" className="text-[14px] leading-5 whitespace-pre-wrap break-words text-ink">
+									<p data-testid="talk-you" className="text-[15px] leading-[22px] whitespace-pre-wrap break-words text-ink">
 										{row.text}
 									</p>
 								)}
@@ -262,7 +282,7 @@ function TalkThread({
 						);
 					else if (row.kind === "app")
 						body = (
-							<p data-testid="talk-app" className="text-[14px] leading-5 text-ink-2">
+							<p data-testid="talk-app" className="text-[15px] leading-[22px] text-ink-2">
 								{appRequestText(name, row.deadlines)}
 							</p>
 						);
@@ -271,103 +291,109 @@ function TalkThread({
 							<div
 								data-testid="talk-teacher"
 								className="min-w-0 break-words text-ink"
-								style={{ "--lh-prose-size": "14px", "--lh-prose-leading": `${20 / 14}` } as React.CSSProperties}
+								style={{ "--lh-prose-size": "16px", "--lh-prose-leading": "1.5" } as React.CSSProperties}
 							>
-								<MessageResponse>{row.text}</MessageResponse>
+								<CitedResponse text={row.text} />
 							</div>
 						);
 					else {
 						const action = actionFor(row.change, recent);
+						const work = talkWorkLine(action, spaces, agent?.teaching ?? true);
 						body = (
 							<button
 								type="button"
 								data-testid="talk-change"
 								disabled={!action}
 								onClick={() => action && onPick(action)}
-								className="lh-press flex w-full items-center gap-2 bg-tone px-3 py-2 text-left text-[13px] text-ink-2 enabled:hover:text-ink disabled:cursor-default"
+								className="lh-press flex w-full items-center gap-2 border border-edge bg-background px-2.5 py-2 text-left text-base text-ink enabled:hover:bg-tone disabled:cursor-default"
 							>
-								<span className="min-w-0 flex-1 truncate" title={pastLabel(row.change.label)}>{pastLabel(row.change.label)}</span>
-								{action && <ArrowRightIcon aria-hidden className="size-[13px] shrink-0 text-ink-3" />}
+								<span className="flex min-w-0 flex-1 flex-col">
+									<span className="truncate" title={pastLabel(row.change.label)}>
+										{pastLabel(row.change.label)}
+									</span>
+									{work && (
+										<span data-testid="talk-change-work" className="truncate text-[15px] text-ink-2">
+											{work}
+										</span>
+									)}
+								</span>
+								{action && <PixelIcon name="chevron" className="text-ink-2" />}
 							</button>
 						);
 					}
 					return (
-						<div key={row.id} data-testid="talk-row" className={first && i > 0 ? "mt-5 flex gap-3" : i > 0 ? "mt-2 flex gap-3" : "flex gap-3"}>
-							<span data-testid="talk-who" className={margin} title={who || undefined}>
-								{who}
-							</span>
-							<div className="min-w-0 flex-1">{body}</div>
+						<div key={row.id} data-testid="talk-row" className={cn("flex flex-col gap-1", turnGap(first, i))}>
+							{first && (
+								<span data-testid="talk-who" className={cn("truncate", LABEL_TEXT)}>
+									{who}
+								</span>
+							)}
+							{body}
 						</div>
 					);
 				})}
 				{/* While no agent has taken the message, the panel's head says so. */}
 				{busy && !agentWaiting(agent) && (
-					<p data-testid="talk-busy" className="mt-4 pl-[76px] text-[13px] text-ink-3">
-						Writing…
-					</p>
+					<div className={cn("flex flex-col gap-1", rows.length > 0 && (lastSpeaker === "teacher" ? "mt-2" : "mt-[18px]"))}>
+						{lastSpeaker !== "teacher" && <span className={cn("truncate", LABEL_TEXT)}>{name}</span>}
+						<p data-testid="talk-busy" className="text-[15px] text-ink-2">
+							Writing…
+						</p>
+					</div>
+				)}
+				{rows.length > 0 && noAgent && (
+					<div className="mt-[18px]">
+						<TalkNoAgent />
+					</div>
 				)}
 				{session.error && !busy && (
-					<p data-testid="talk-failed" className="mt-4 pl-[76px] text-[13px] text-ink-2">
-						{session.error.message}{" "}
-						<button type="button" data-testid="talk-retry" className="lh-press font-bold text-ink underline underline-offset-2" onClick={retry}>
+					<p data-testid="talk-failed" className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 text-[15px] text-ink-2">
+						{session.error.message}
+						<button type="button" data-testid="talk-retry" className="lh-press lh-btn" onClick={retry}>
 							Try again
 						</button>
 					</p>
 				)}
 				{clearError && (
-					<p data-testid="talk-clear-failed" className="mt-4 pl-[76px] text-[13px] text-ink-2">
+					<p data-testid="talk-clear-failed" className="mt-4 text-[15px] text-ink-2">
 						{clearError}
 					</p>
 				)}
 				<div ref={endRef} />
 			</div>
-			<div data-testid="talk-box" className="shrink-0 border-t border-tone-2" {...attachmentInputProps(attachments)}>
-				<NoAgentLine className="px-6 pt-3.5" />
-				<div className="px-6">
-					<AttachmentTray draft={attachments} />
-				</div>
-				<div className="m-4 border border-tone-2 bg-background has-[.cm-focused]:border-ink-2">
-					<div className="flex min-h-[52px]">
+			<div data-testid="talk-box" className="flex shrink-0 flex-col gap-2 border-t border-edge px-3.5 pt-3 pb-3.5" {...attachmentInputProps(attachments)}>
+				<AttachmentTray draft={attachments} />
+				<div className="flex items-end gap-2.5 rounded-[2px] border-[1.5px] border-ink bg-background py-[9px] pr-[9px] pl-3.5">
+					<div className="flex max-h-32 min-h-[34px] min-w-0 flex-1">
 						<MathBox
-							compact
 							value={text}
 							onChange={editText}
-							onEnter={send}
-							placeholder={`Tell ${name} what to set up, or ask about your classes`}
+							onEnter={() => {
+								send();
+								return true;
+							}}
+							placeholder={`Tell ${name} what to set up, or ask about your spaces`}
 							ariaLabel={`Message ${name}`}
 						/>
 					</div>
-					<div className="flex items-center gap-2 p-2">
-						<AttachButton draft={attachments} />
-						{rows.length > 0 && (
-							<button
-								type="button"
-								data-testid="talk-clear"
-								disabled={busy}
-								onClick={clear}
-								className="lh-press px-2 py-1 text-[15px] text-ink-2 hover:bg-tone hover:text-ink disabled:opacity-50"
-							>
-								Clear chat
-							</button>
-						)}
-						{busy ? (
-							<SendButton
-								testId="talk-stop"
-								waiting
-								onClick={stopReply}
-								label={
-									<>
-										<SquareIcon aria-hidden className="size-3.5" />
-										Stop
-									</>
-								}
-							/>
-						) : (
-							<SendButton testId="talk-send" onClick={send} disabled={!text.trim() && attachments.files.length === 0} label="Send" />
-						)}
-					</div>
+					{busy ? (
+						<SendButton testId="talk-stop" onClick={stopReply} label="Stop" />
+					) : (
+						<SendButton testId="talk-send" onClick={send} disabled={!text.trim() && attachments.files.length === 0} label="Send" />
+					)}
+				</div>
+				<div className="flex">
+					<AttachButton draft={attachments} />
 				</div>
 			</div>
+			{clearSlot &&
+				rows.length > 0 &&
+				createPortal(
+					<button type="button" data-testid="talk-clear" disabled={busy} onClick={clear} className="lh-press lh-btn lh-btn-quiet text-[15px]">
+						Clear chat
+					</button>,
+					clearSlot,
+				)}
 		</div>
 	);
 }

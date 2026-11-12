@@ -73,10 +73,10 @@ export function RuleEditBox({ api, draft }: { api: SavedRuleApi; draft: string }
 				}}
 				className="h-[28px] min-w-0 flex-1 basis-60 border border-tone-2 bg-background px-2 text-[13px] text-ink focus-visible:border-ink-3"
 			/>
-			<button type="button" data-testid="saved-rule-save" disabled={api.busy || !draft.trim()} onClick={() => api.save(draft)} className="lh-press font-bold text-ink disabled:opacity-50">
+			<button type="button" data-testid="saved-rule-save" disabled={api.busy || !draft.trim()} onClick={() => api.save(draft)} className="lh-press lh-btn">
 				Save
 			</button>
-			<button type="button" onClick={api.cancel} className="lh-press font-bold text-ink-2 hover:text-ink">
+			<button type="button" onClick={api.cancel} className="lh-press lh-btn">
 				Cancel
 			</button>
 		</>

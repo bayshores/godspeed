@@ -33,15 +33,19 @@ describe("the level columns", () => {
 	const data = fixture();
 	const html = renderToStaticMarkup(body());
 
-	it("one pane per level, named from start to advanced, each topic a row with a square per fact", () => {
+	it("one sheet of level columns, named from start to advanced, each topic a row with a square per fact, and the key", () => {
+		assert.equal(count(html, 'data-testid="level-columns"'), 1);
 		assert.equal(count(html, 'data-testid="level"'), 3);
-		assert.match(html, />level 1, start here</);
-		assert.match(html, />level 2</);
-		assert.match(html, />level 3, advanced</);
+		assert.match(html, />Level 1, start here</);
+		assert.match(html, />Level 2</);
+		assert.match(html, />Level 3, advanced</);
 		assert.equal(count(html, 'data-testid="topic-row"'), 5);
 		const mini = html.slice(html.indexOf('aria-label="Minibatch noise'));
 		assert.match(mini, /^aria-label="Minibatch noise, 3\/7 right, overconfident, 6 facts"/);
-		assert.ok(!html.includes("<svg"), "no map");
+		const columns = html.slice(html.indexOf('data-testid="level-columns"'), html.indexOf('data-testid="graph-side"'));
+		assert.ok(!columns.includes("<svg"), "no map");
+		const key = columns.slice(columns.indexOf('data-testid="cell-key"'));
+		for (const words of ["One square is one fact", "right", "wrong", "in a lesson, not answered", "not studied"]) assert.ok(key.includes(`${words}<`), words);
 	});
 
 	it("topics off the picked deadline dim", () => {
@@ -50,16 +54,17 @@ describe("the level columns", () => {
 		assert.doesNotMatch(row("Variance"), /data-dim/);
 	});
 
-	it("a picked topic: its row pressed, what it needs marked ←, what it leads to →, the rest dim", () => {
+	it("a picked topic: its row pressed, what it needs and leads to marked, nothing dimmed", () => {
 		const picked = renderToStaticMarkup(
-			inRouter(<LevelColumns topics={data.topics} links={data.topicLinks} facts={data.facts} inClass focus={null} selectedId="t-mini" onSelect={noop} />),
+			<LevelColumns topics={data.topics} links={data.topicLinks} facts={data.facts} inSpace focus={null} selectedId="t-mini" onSelect={noop} />,
 		);
 		assert.match(picked, /aria-pressed="true"[^>]*aria-label="Minibatch noise/);
 		assert.match(picked, /aria-label="Variance, [^"]*, needed first"/);
 		assert.match(picked, /aria-label="Derivatives, [^"]*, needed first"/);
 		assert.match(picked, /aria-label="Momentum, [^"]*, comes next"/);
-		assert.equal(count(picked, 'data-testid="topic-mark"'), 3);
-		assert.match(picked.slice(picked.lastIndexOf("<button", picked.indexOf('aria-label="Attention,'))), /^<button[^>]*data-dim="true"/);
+		assert.equal(count(picked, 'data-mark="needs"'), 2);
+		assert.equal(count(picked, 'data-mark="leads"'), 1);
+		assert.ok(!picked.includes("data-dim"));
 	});
 
 	it("a search dims the topics it doesn't match", () => {
@@ -67,13 +72,13 @@ describe("the level columns", () => {
 		assert.equal(count(searched, 'data-dim="true"'), 4);
 	});
 
-	it("an empty class graph points to the Files page; No class doesn't", () => {
+	it("an empty space graph points to the Files page; No space doesn't", () => {
 		const empty = { ...fixture(), topics: [], topicLinks: [] };
-		const inClass = renderToStaticMarkup(body({ data: { ...empty, classId: "cls_a" } }));
-		assert.match(inClass, /Start a lesson or <a[^>]*href="\/class\/files"[^>]*>add files<\/a> to build your graph\./);
-		const noClass = renderToStaticMarkup(body({ data: { ...empty, classId: null } }));
-		assert.ok(noClass.includes("Start a lesson or add files to build your graph."));
-		assert.ok(!noClass.includes("/class/files"));
+		const inSpace = renderToStaticMarkup(body({ data: { ...empty, spaceId: "cls_a" } }));
+		assert.match(inSpace, /Start a lesson or <a[^>]*href="\/space\/files"[^>]*>add files<\/a> to build your graph\./);
+		const noSpace = renderToStaticMarkup(body({ data: { ...empty, spaceId: null } }));
+		assert.ok(noSpace.includes("Start a lesson or add files to build your graph."));
+		assert.ok(!noSpace.includes("/space/files"));
 	});
 });
 
@@ -81,28 +86,33 @@ describe("the right side", () => {
 	const data = fixture();
 	const deadline = data.deadlines[0]!;
 
-	it("the next deadline sits on top: when, its date and files, readiness, and Study", () => {
+	it("the deadline sits on top: its name, when, its files, readiness, and Study", () => {
 		const html = renderToStaticMarkup(
 			<DeadlinePane deadlines={data.deadlines} deadline={deadline} topics={data.topics} onChange={noop} onStudy={noop} studying={false} studyError={null} />,
 		);
-		assert.match(html, />next</);
-		assert.ok(html.includes("Midterm 1"));
-		assert.ok(html.includes("in 9 days"));
-		assert.ok(html.includes("Thu Nov 5, covers 2 files"));
-		const bar = html.slice(html.indexOf('data-testid="readiness"'));
-		assert.equal(count(bar.slice(0, bar.indexOf("</div>")), "<span"), 3);
-		assert.match(html, /data-testid="deadline-ready"[^>]*>0 of 3 ready</);
-		assert.match(html, /data-testid="study-deadline"[^>]*class="lh-btn lh-btn-main[\s\S]*?>study</);
+		assert.match(html, /<h2[^>]*>Midterm 1</);
+		assert.match(html, /data-testid="deadline-countdown"[^>]*>in 9 days, Thursday Nov 5</);
+		assert.match(html, /data-testid="deadline-files"[^>]*>Covers 2 files</);
+		assert.match(html, /data-testid="deadline-ready"[^>]*>0 of 3 topics ready</);
+		assert.match(html, /data-testid="study-deadline"[^>]*class="[^"]*lh-btn-main[\s\S]*?>Study for Midterm 1</);
+		assert.ok(!html.includes("deadline-picker"), "one deadline: nothing to change to");
+		const two = renderToStaticMarkup(
+			<DeadlinePane deadlines={[deadline, { ...deadline, id: "ex-2" }]} deadline={deadline} topics={data.topics} onChange={noop} onStudy={noop} studying={false} studyError={null} />,
+		);
+		assert.match(two, /data-testid="deadline-picker"[^>]*>Change deadline</);
 	});
 
 	it("work on next: the counts, the deadline's topics with status lines and reasons, and Study these", () => {
 		const html = renderToStaticMarkup(<WorkOnNextPane scope={deadline} topics={data.topics} onSelectTopic={noop} onStudy={noop} studying={false} studyError={null} />);
 		assert.equal(count(html, 'data-testid="work-on-next-row"'), 3);
-		assert.ok(html.includes("4/7 right"));
-		assert.ok(html.includes("3/7 right, overconfident"));
+		assert.match(html, /<h2[^>]*>Work on next</);
+		assert.match(html, /data-testid="status-counts"[^>]*>0 strong, 1 shaky, 1 weak, 1 not tested</);
+		assert.ok(html.includes("shaky, 4 of 7 right"));
+		assert.ok(html.includes("weak, 3 of 7 right"));
+		assert.ok(html.includes("Minibatch noise builds on it, so fix it first"));
 		assert.ok(html.includes("You felt sure on most of your misses"));
-		assert.ok(html.includes("not tested"));
-		assert.ok(html.includes("study these 3"));
+		assert.ok(html.includes(">not tested<"));
+		assert.match(html, /data-testid="study-these"[^>]*class="lh-btn h-auto[^"]*"[\s\S]*?>Study these 3</);
 	});
 
 	it("nothing picked: the deadline pane and work on next; a topic picked: the deadline stays and the topic shows under it", () => {
@@ -114,7 +124,7 @@ describe("the right side", () => {
 		assert.ok(!picked.includes('data-testid="work-on-next-pane"'));
 	});
 
-	it("a done deadline, or one with no files, is not offered: work on next covers the class", () => {
+	it("a done deadline, or one with no files, is not offered: work on next covers the space", () => {
 		const [d] = data.deadlines;
 		for (const deadlines of [[{ ...d!, done: true }], [{ ...d!, files: [] }]]) {
 			const html = renderToStaticMarkup(body({ data: { ...data, deadlines } }));
@@ -136,26 +146,28 @@ describe("the picked topic", () => {
 		<TopicPane topic={mini} topics={data.topics} links={data.topicLinks} facts={data.facts} onClose={noop} onSelectTopic={noop} onOpenFact={noop} onStudy={noop} studying={false} studyError={null} />,
 	);
 
-	it("names the topic in the pane, with its score and takeaway", () => {
+	it("names the topic, with Close, its fact count and score, and the sure-miss note", () => {
 		assert.match(html, /<h2[^>]*>Minibatch noise</);
-		assert.match(html, /data-testid="topic-score"[^>]*>3\/7 right, overconfident</);
-		assert.ok(html.includes("3 of 7 right. On 4 of the misses you picked 4 or 5, so you felt sure."));
+		assert.match(html, /data-testid="topic-pane-close"[\s\S]*?Close</);
+		assert.match(html, /data-testid="topic-score"[^>]*>6 facts, 3 of 7 right</);
+		assert.match(html, /data-testid="topic-note"[^>]*>On 4 of the misses you picked 4 or 5, so you felt sure\.</);
 	});
 
-	it("needs first and leads to as bracket buttons", () => {
+	it("needs first and leads to as small outlined buttons", () => {
 		const needs = html.slice(html.indexOf('data-testid="needs-first"'), html.indexOf('data-testid="leads-to"'));
+		assert.ok(needs.includes(">Needs first<"));
 		assert.ok(needs.includes("Variance") && needs.includes("Derivatives"));
-		assert.match(needs, /class="lh-btn max-w-full"/);
+		assert.match(needs, /data-testid="topic-chip"[^>]*class="lh-btn h-auto/);
 		assert.ok(html.slice(html.indexOf('data-testid="leads-to"')).includes("Momentum"));
 	});
 
-	it("the first four facts with marks, show all, math as KaTeX, and Study", () => {
+	it("Facts: the first four with their squares, Show all, math as KaTeX, and Study", () => {
+		assert.ok(html.includes(">Facts<"));
 		assert.equal(count(html, 'data-testid="fact-row"'), 4);
-		assert.ok(html.includes("show all 6"));
+		assert.ok(html.includes("Show all 6"));
 		assert.ok(html.includes('class="katex"'), "1/B renders through KaTeX");
-		assert.match(html, /aria-label="Last answer wrong"/);
-		assert.match(html, /data-testid="study-topic"[\s\S]*?study Minibatch noise/);
-		assert.ok(!html.includes("lucide"), "no icons from the old look");
+		assert.match(html, /role="img" aria-label="0 of 1 right"/);
+		assert.match(html, /data-testid="study-topic"[\s\S]*?Study Minibatch noise/);
 	});
 });
 
@@ -171,41 +183,56 @@ describe("the picked fact", () => {
 		sessions: { "chat-1": "Study: Minibatch noise" },
 	};
 	const pane = (over: Partial<React.ComponentProps<typeof FactPane>> = {}) =>
-		renderToStaticMarkup(inRouter(<FactPane fact={f6} topicName="Minibatch noise" facts={data.facts} sources={sources} onBack={noop} onOpenFact={noop} onPractice={noop} studying={false} studyError={null} {...over} />));
+		renderToStaticMarkup(inRouter(<FactPane fact={f6} topicName="Minibatch noise" facts={data.facts} sources={sources} onBack={noop} onClose={noop} onOpenFact={noop} onPractice={noop} studying={false} studyError={null} {...over} />));
 
-	it("what it says, its answers, where it came from, what it builds on and leads to, and Practice", () => {
+	it("back and Close, what it says, its answers, where it came from, what it builds on and leads to, and Practice", () => {
 		const html = pane();
 		assert.match(html, /data-testid="fact-pane-back"[\s\S]*?Minibatch noise/);
-		assert.match(html, /data-testid="fact-statement" class="lh-prose"/);
+		assert.match(html, /data-testid="fact-pane-close"[\s\S]*?Close</);
+		assert.ok(html.includes('data-testid="fact-statement"'));
 		assert.match(html, /1 of 2 right, last /);
-		assert.match(html, /from the lesson Study: Minibatch noise/);
+		assert.match(html, /From the lesson Study: Minibatch noise/);
 		assert.match(html, /data-testid="fact-source-open"[^>]*href="\/chat\/chat-1"/);
 		const builds = html.slice(html.indexOf('data-testid="builds-on"'), html.indexOf('data-testid="fact-leads-to"'));
 		assert.ok(builds.includes("Variance adds") && builds.includes("Variance scales"));
 		assert.ok(html.slice(html.indexOf('data-testid="fact-leads-to"')).includes("Batch size and learning rate"));
-		assert.match(html, /data-testid="practice-fact"[\s\S]*?practice this fact/);
+		assert.match(html, /data-testid="practice-fact"[\s\S]*?Practice this fact/);
 	});
 
-	it("a fact from a class file names the file", () => {
+	it("a fact from a space file names the file", () => {
 		const html = pane({ fact: { ...f6, born: "src_a" } });
-		assert.match(html, /from lecture 5\.pdf/);
+		assert.match(html, /From lecture 5\.pdf/);
 	});
 
 	it("before the graph loads: no source or links, the rest shows", () => {
 		const html = pane({ sources: null });
 		assert.ok(!html.includes("fact-source") && !html.includes("builds-on"));
-		assert.ok(html.includes("practice this fact"));
+		assert.ok(html.includes("Practice this fact"));
 	});
 });
 
 describe("the top bar", () => {
-	it("Add files opens the Files page in a class; No class picks files right there", () => {
-		const inClass = renderToStaticMarkup(inRouter(<GraphTopBar hasFacts={false} query="" onQuery={noop} onOpenChains={noop} importNotes={null} />));
-		assert.match(inClass, /<a data-testid="add-notes"[^>]*href="\/class\/files"[^>]*>.*Add files<\/a>/);
-		assert.ok(!inClass.includes("import-notes"));
-		const noClass = renderToStaticMarkup(inRouter(<GraphTopBar hasFacts={false} query="" onQuery={noop} onOpenChains={noop} importNotes={{ importing: false, onImportFiles: noop }} />));
-		assert.ok(noClass.includes('data-testid="import-notes"'));
-		assert.ok(!noClass.includes("add-notes"));
+	it("Add files opens the Files page in a space; No space picks files right there", () => {
+		const inSpace = renderToStaticMarkup(inRouter(<GraphTopBar hasFacts={false} query="" onQuery={noop} onOpenChains={noop} costs={null} importNotes={null} />));
+		assert.match(inSpace, /<a data-testid="add-notes"[^>]*href="\/space\/files"[^>]*>.*Add files<\/a>/);
+		assert.ok(!inSpace.includes("import-notes"));
+		const noSpace = renderToStaticMarkup(inRouter(<GraphTopBar hasFacts={false} query="" onQuery={noop} onOpenChains={noop} costs={null} importNotes={{ importing: false, onImportFiles: noop }} />));
+		assert.ok(noSpace.includes('data-testid="import-notes"'));
+		assert.ok(!noSpace.includes("add-notes"));
+	});
+
+	it("search and All facts once there are facts; Graph costs once a run is recorded", () => {
+		const tokens = { inputTokens: 1, outputTokens: 1, cacheReadTokens: 0, cacheWriteTokens: 0, reasoningTokens: 0 };
+		const stage = { runs: 1, unpricedRuns: 0, tokens };
+		const costs = { stages: { extraction: stage, audit: stage }, runs: [{ startedAt: 1, title: "Lecture 1", tokens }] };
+		const bar = (over: Partial<React.ComponentProps<typeof GraphTopBar>>) =>
+			renderToStaticMarkup(inRouter(<GraphTopBar hasFacts query="" onQuery={noop} onOpenChains={noop} costs={null} importNotes={null} {...over} />));
+		const html = bar({ costs });
+		assert.match(html, /data-testid="graph-search"[^>]*placeholder="Search topics and facts"/);
+		assert.match(html, /data-testid="graph-costs"[^>]*>Graph costs</);
+		assert.match(html, /data-testid="open-chain-table"[^>]*>All facts</);
+		assert.ok(!bar({ costs: { ...costs, runs: [] } }).includes("graph-costs"), "no runs: no costs to show");
+		assert.ok(!bar({ hasFacts: false }).includes("graph-search"));
 	});
 });
 
@@ -265,10 +292,21 @@ describe("picking in the page", () => {
 		await act(async () => fire(dom.window as unknown as Element, "keydown", { key: "Escape" }));
 		assert.ok(q("work-on-next-pane") && !q("topic-pane"));
 	});
+
+	it("a fact's Close closes the fact and its topic", async () => {
+		host = document.createElement("div");
+		document.body.append(host);
+		root = createRoot(host);
+		await act(async () => root!.render(body({ initialSelected: "t-mini" })));
+		const q = (id: string) => host!.querySelector<HTMLElement>(`[data-testid="${id}"]`);
+		await act(async () => q("fact-row")!.click());
+		await act(async () => q("fact-pane-close")!.click());
+		assert.ok(q("work-on-next-pane") && !q("fact-pane") && !q("topic-pane"));
+	});
 });
 
 describe("the deadline picker's menu", () => {
-	it("is the class switcher's width; a long name truncates and shows in full on hover", async () => {
+	it("is the space switcher's width; a long name truncates and shows in full on hover", async () => {
 		const data = fixture();
 		const long = { ...data.deadlines[0]!, id: "ex-2", name: "Final exam covering every lecture from week one through week ten" };
 		host = document.createElement("div");

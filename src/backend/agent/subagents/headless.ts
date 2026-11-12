@@ -434,7 +434,7 @@ function svgViewport(svg: string, opts: RenderSvgOptions): { width: number; heig
  *  more standard shape: same stream, zero re-encoding.
  *
  *  Pure Node on purpose (no sharp): a second native image lib (libvips)
- *  in the process makes macOS's ObjC runtime warn about duplicate classes
+ *  in the process makes macOS's ObjC runtime warn about duplicate spaces
  *  and can crash. */
 export function providerSafePng(png: Buffer): Buffer {
 	const SIG_LEN = 8;

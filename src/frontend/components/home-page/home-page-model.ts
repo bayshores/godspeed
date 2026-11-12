@@ -1,87 +1,156 @@
-/** Pure helpers for Home (home-page.tsx): per-class progress, the fact grid, the ready bar and the activity lines. */
-import { APP_SOURCE, LEARNER_SOURCE, UNTESTED_COLOR, rampColor, type AgentAction, type FactProgress, type ProgressPayload } from "@/shared/core";
+/** Pure helpers for Today (home-page.tsx): per-space progress, which list a deadline goes in, and each row's words. */
+import { hasProblems, localDay, planDays, type DeadlineProgress, type ProgressPayload, type SpaceColor, type SpaceSummary } from "@/shared/core";
+import { clockLabel, deadlineDateLabel } from "@/frontend/components/space-deadlines-model";
+import { DAY, HOUR, MINUTE, calendarDays, dueAtMs } from "@/frontend/components/countdown-model";
+import type { OpenDeadline } from "@/frontend/components/deadlines-model";
+import { progressWords } from "@/frontend/components/overview/overview-model";
 
-export interface ClassesProgress {
-	/** The latest payload each class has had. */
+export interface SpacesProgress {
+	/** The latest payload each space has had. */
 	progress: ReadonlyMap<string, ProgressPayload>;
-	/** Why a class's last read failed. */
+	/** Why a space's last read failed. */
 	errors: ReadonlyMap<string, string>;
 }
 
-export type ProgressRead = { classId: string; payload: ProgressPayload } | { classId: string; error: string };
+export type ProgressRead = { spaceId: string; payload: ProgressPayload } | { spaceId: string; error: string };
 
 /** One round of reads on top of the last state. A failed read keeps the
- *  class's earlier payload, so a blip never blanks a card that had data. */
-export function foldClassesProgress(prev: ClassesProgress, classIds: readonly string[], reads: readonly ProgressRead[]): ClassesProgress {
+ *  space's earlier payload, so a blip never blanks a row that had data. */
+export function foldSpacesProgress(prev: SpacesProgress, spaceIds: readonly string[], reads: readonly ProgressRead[]): SpacesProgress {
 	const progress = new Map<string, ProgressPayload>();
 	const errors = new Map<string, string>();
-	for (const classId of classIds) {
-		const read = reads.find((r) => r.classId === classId);
-		const payload = read && "payload" in read ? read.payload : prev.progress.get(classId);
-		if (payload) progress.set(classId, payload);
-		if (read && "error" in read) errors.set(classId, read.error);
+	for (const spaceId of spaceIds) {
+		const read = reads.find((r) => r.spaceId === spaceId);
+		const payload = read && "payload" in read ? read.payload : prev.progress.get(spaceId);
+		if (payload) progress.set(spaceId, payload);
+		if (read && "error" in read) errors.set(spaceId, read.error);
 	}
 	return { progress, errors };
 }
 
-/** Every class has either data or a failed read, so no card waits on another. */
-export function classesSettled(classIds: readonly string[], state: ClassesProgress): boolean {
-	return classIds.every((id) => state.progress.has(id) || state.errors.has(id));
+/** Every space has either data or a failed read, so no row waits on another. */
+export function spacesSettled(spaceIds: readonly string[], state: SpacesProgress): boolean {
+	return spaceIds.every((id) => state.progress.has(id) || state.errors.has(id));
 }
 
-/** What a class's slot shows. Until the blocks are ready they all show the
- *  loading box, so they fill in together. */
-export function classSlot(classId: string, state: ClassesProgress, blocksReady: boolean): "block" | "failed" | "loading" {
-	if (!blocksReady) return "loading";
-	if (state.progress.has(classId)) return "block";
-	return state.errors.has(classId) ? "failed" : "loading";
+/** A deadline at most this many days away is under Today; the rest are Later. */
+const TODAY_DAYS = 7;
+
+/** Due within the week, or overdue. */
+export function dueThisWeek(d: { date: string; time?: string }, nowMs: number): boolean {
+	return calendarDays(nowMs, dueAtMs(d)) <= TODAY_DAYS;
 }
 
-/** An unstudied fact's cell: the pane's own border color. */
-export const UNSTUDIED_CELL = "var(--border)";
-
-/** A fact's share of right answers (0–1); null before its first answer. */
-export function factRate(f: Pick<FactProgress, "answers">): number | null {
-	if (f.answers.length === 0) return null;
-	return f.answers.filter((a) => a.outcome === "right").length / f.answers.length;
+interface TodayLists {
+	/** Open, due within the week or overdue. */
+	today: OpenDeadline[];
+	/** Ticked done today. */
+	done: OpenDeadline[];
+	/** Open, due after the week. */
+	later: OpenDeadline[];
 }
 
-/** The class's fact grid, one color per fact: answered facts in their
- *  right rate's ramp color, then studied but unanswered ones, then the
- *  unstudied ones dim. */
-export function factCells(facts: readonly Pick<FactProgress, "inLessons" | "answers">[]): string[] {
-	const answered = facts.filter((f) => f.answers.length > 0).map((f) => rampColor(factRate(f)));
-	const studied = facts.filter((f) => f.answers.length === 0 && f.inLessons).map(() => UNTESTED_COLOR);
-	const rest = facts.filter((f) => f.answers.length === 0 && !f.inLessons).map(() => UNSTUDIED_CELL);
-	return [...answered, ...studied, ...rest];
+/** Today's three lists, each in the order given (soonest first). A done
+ *  row leaves when the day turns, without a new read. */
+export function todayLists(open: readonly OpenDeadline[], doneToday: readonly OpenDeadline[], nowMs: number): TodayLists {
+	const soon = (d: OpenDeadline) => dueThisWeek(d, nowMs);
+	const day = localDay(nowMs);
+	return {
+		today: open.filter(soon),
+		done: doneToday.filter((d) => d.doneAt !== undefined && localDay(new Date(d.doneAt)) === day),
+		later: open.filter((d) => !soon(d)),
+	};
 }
 
-/** How many of a ready bar's 10 blocks are filled. */
-export function readyBlocks(ready: number): number {
-	return Math.min(10, Math.max(0, Math.round(ready * 10)));
+/** A prep with a day, as a row of Today or Later. */
+export interface PrepDay {
+	spaceId: string;
+	name: string;
+	date: string;
+	color: SpaceColor;
 }
 
-/** Who an activity line is about: the agent, the app (a folder sync) or the learner. */
-export type ActivitySource = "agent" | "app" | "you";
-
-interface ActivityLine {
-	/** "17:49" today, "nov 5" before. */
-	time: string;
-	/** The label's first word, lowercase ("read"). */
-	verb: string;
-	rest: string;
-	source: ActivitySource;
+/** The preps whose day hasn't passed, soonest first: within the week
+ *  under Today, the rest under Later. */
+export function prepDays(spaces: readonly SpaceSummary[], nowMs: number): { today: PrepDay[]; later: PrepDay[] } {
+	const coming = spaces
+		.flatMap((c): PrepDay[] => (c.prep?.date && !c.archived ? [{ spaceId: c.id, name: c.name, date: c.prep.date, color: c.color }] : []))
+		.filter((p) => calendarDays(nowMs, dueAtMs(p)) >= 0)
+		.sort((a, b) => a.date.localeCompare(b.date));
+	return { today: coming.filter((p) => dueThisWeek(p, nowMs)), later: coming.filter((p) => !dueThisWeek(p, nowMs)) };
 }
 
-/** One line of Home's activity pane. */
-export function activityLine(a: Pick<AgentAction, "at" | "label" | "agent">, nowMs: number): ActivityLine {
-	const at = new Date(a.at);
-	const now = new Date(nowMs);
-	const today = at.toDateString() === now.toDateString();
-	const time = today
-		? `${String(at.getHours()).padStart(2, "0")}:${String(at.getMinutes()).padStart(2, "0")}`
-		: `${at.toLocaleString("en-US", { month: "short" }).toLowerCase()} ${at.getDate()}`;
-	const [verb = "", ...rest] = a.label.split(" ");
-	const source: ActivitySource = a.agent === APP_SOURCE ? "app" : a.agent === LEARNER_SOURCE ? "you" : "agent";
-	return { time, verb: verb.toLowerCase(), rest: rest.join(" "), source };
+/** Deadlines and preps as one list, soonest first; on the same moment the
+ *  deadline goes first. */
+export function byDue(deadlines: readonly OpenDeadline[], preps: readonly PrepDay[]): Array<{ deadline: OpenDeadline } | { prep: PrepDay }> {
+	return [...deadlines.map((deadline) => ({ deadline, at: dueAtMs(deadline) })), ...preps.map((prep) => ({ prep, at: dueAtMs(prep) }))]
+		.sort((a, b) => a.at - b.at)
+		.map(({ at: _at, ...item }) => item);
+}
+
+/** The count block: whole days left, hours on the last day, minutes in
+ *  the last hour, "late" once it is due. */
+export function countLeft(dueMs: number, nowMs: number): { count: string; unit: string } {
+	const left = dueMs - nowMs;
+	if (left <= 0) return { count: "late", unit: "" };
+	if (left >= DAY) {
+		const days = calendarDays(nowMs, dueMs);
+		return { count: String(days), unit: days === 1 ? "day" : "days" };
+	}
+	if (left >= HOUR) {
+		const hours = Math.floor(left / HOUR);
+		return { count: String(hours), unit: hours === 1 ? "hour" : "hours" };
+	}
+	return { count: String(Math.ceil(left / MINUTE)), unit: "min" };
+}
+
+/** "Wednesday Nov 11" for 2026-11-11. */
+export function longDay(day: string): string {
+	const [y, m, d] = day.split("-").map(Number) as [number, number, number];
+	const date = new Date(y, m - 1, d);
+	return `${date.toLocaleDateString("en-US", { weekday: "long" })} ${date.toLocaleDateString("en-US", { month: "short" })} ${d}`;
+}
+
+/** ". 2 of 7 problems done", or ". 19% ready" for one with no problems;
+ *  "" with nothing to count. */
+export function progressNote(p: DeadlineProgress | undefined): string {
+	const words = p && progressWords(p);
+	return words ? `. ${words}` : "";
+}
+
+/** When an open deadline is due, after its space: "due Friday", "the test
+ *  is on Tuesday at 7:00 PM", "was due Tue Oct 27". */
+function dueWords(d: OpenDeadline, nowMs: number): string {
+	const dueMs = dueAtMs(d);
+	if (dueMs <= nowMs) return `was due ${deadlineDateLabel(d.date)}`;
+	const days = calendarDays(nowMs, dueMs);
+	const day = days === 0 ? "today" : days === 1 ? "tomorrow" : new Date(dueMs).toLocaleDateString("en-US", { weekday: "long" });
+	const at = d.time ? ` at ${clockLabel(d.time)}` : "";
+	if (hasProblems(d.kind)) return `due ${day}${at}`;
+	return `the ${d.kind === "quiz" ? "quiz" : "test"} is ${days > 1 ? "on " : ""}${day}${at}`;
+}
+
+interface TodayRowWords {
+	title: string;
+	/** Under the title: the space and when it is due. */
+	line: string;
+	/** The one main button. "Work on it" works on the assignment's
+	 *  problems; the others study. */
+	button: "Start" | "Continue" | "Work on it";
+}
+
+/** A Today row's words. A test or quiz names today's share of the topics
+ *  that still need work; homework and projects say how far they are. */
+export function todayRow(d: OpenDeadline, progress: DeadlineProgress | undefined, nowMs: number): TodayRowWords {
+	const when = `${d.spaceName}, ${dueWords(d, nowMs)}`;
+	if (hasProblems(d.kind)) return { title: d.name, line: `${when}${progressNote(progress)}`, button: "Work on it" };
+	if (progress?.continueStudy) return { title: `Continue studying for ${d.name}`, line: when, button: "Continue" };
+	const topics = progress ? (planDays(localDay(nowMs), d.date, progress.topics)[0]?.topics.length ?? 0) : 0;
+	const title = topics > 0 ? `Study ${topics} ${topics === 1 ? "topic" : "topics"} for ${d.name}` : d.name;
+	return { title, line: when, button: "Start" };
+}
+
+/** Under a Later row's name: "CSE 21, Tuesday Dec 8. 19% ready". */
+export function laterLine(d: OpenDeadline, progress: DeadlineProgress | undefined): string {
+	return `${d.spaceName}, ${longDay(d.date)}${progressNote(progress)}`;
 }

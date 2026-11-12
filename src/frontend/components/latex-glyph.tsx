@@ -5,7 +5,7 @@ import katex from "katex";
  * REAL LaTeX glyphs through KaTeX (src/frontend/main.tsx imports the katex
  * stylesheet), never hand-rolled SVGs or font-dependent unicode. Used for
  * the chain table's logical connectives: `A ∧ B ⟹ C`, not the misleading
- * `A → B → C`. Callers pass the class.
+ * `A → B → C`. Callers pass the space.
  */
 
 /** Cached katex HTML per command — the glyph set is tiny and

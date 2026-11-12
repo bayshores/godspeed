@@ -254,7 +254,7 @@ describe("persistent practice nudges", () => {
 	const normalizeWhitespace = (text: string) => text.replace(/\s+/g, " ").trim();
 	const approvedParagraphs = [
 		"- When a nudge does not land, reassess where the learner is stuck and offer only the next necessary piece of information. Do not jump to the full solution. Tentative answers, questions, and thinking aloud remain work in progress.",
-		"**On a wrong answer**, state the verdict plainly and localize the first break without giving the correction. Give the smallest nudge that lets the learner make the next move, then wait. If that nudge does not land, give another minimal nudge based on the new thinking. A failed attempt is never a reason to reveal the correction or conclude the problem. Continue until the learner finds and completes the correct solution.",
+		"**On a wrong answer**, state the verdict plainly and localize the first break without giving the correction. Give the smallest nudge that lets the learner make the next move, then wait. If that nudge does not land, give another minimal nudge based on their new work. A failed attempt is never a reason to reveal the correction or conclude the problem. Continue until the learner finds and completes the correct solution.",
 		"Conclude when the learner has solved the problem correctly or explicitly asks to end it. Do not infer permission to end it from mistakes, elapsed time, the number of attempts, frustration, or an apparent inability to proceed.",
 	];
 
@@ -321,7 +321,8 @@ describe("persistent practice nudges", () => {
 		const description = normalizeWhitespace(tool.description);
 		assert.match(description, /records the outcome \+ verdict, reveals the committed solution, and frees the learner's composer/);
 		assert.match(description, /After the result, say your closing words about the learner's work if useful, then END YOUR TURN — no further tool calls/);
-		assert.ok(description.includes(CONCLUDE_ACK_TEXT.slice(CONCLUDE_ACK_TEXT.indexOf("The next problem"))));
+		const goAhead = "explicit go-ahead (a *Next problem* message, or their own words asking for the next one)";
+		assert.ok(description.includes(goAhead) && CONCLUDE_ACK_TEXT.includes(goAhead), "the description and the ack name the same go-ahead");
 		assert.match(description, /Nothing may conclude unless a problem is active/);
 		assert.doesNotMatch(description, /turn CONTINUES|reveal, then pose the next problem/);
 		assert.deepEqual(concludeInputObject.properties.outcome.anyOf.map((outcome) => outcome.const), [

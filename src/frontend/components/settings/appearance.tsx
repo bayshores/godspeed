@@ -3,17 +3,17 @@
  * variables on <html> (appearance-model.ts builds them). Every surface was
  * built on tokens, so applying is setProperty and nothing re-renders.
  *
- * Mounted in src/frontend/routes/root.tsx: every page picks appearance up
- * on load. The settings dialog writes a section, hands the new appearance
+ * Mounted in src/frontend/routes/root.tsx with /api/boot's saved look.
+ * Settings writes a section, hands the new appearance
  * here, and the variables move immediately.
  */
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { AppearanceSettings, EffectiveAppearance } from "@/shared/core";
 import { appearanceVars, resolveAppearance, staleVarNames } from "./appearance-model.ts";
 
 interface AppearanceContextValue {
-	/** Resolved appearance; factory until the record arrives. */
+	/** Resolved appearance. */
 	appearance: EffectiveAppearance;
 	/** Called by the settings dialog after a successful section PUT. */
 	onAppearanceChange: (delta: AppearanceSettings | undefined) => void;
@@ -28,11 +28,12 @@ export function useAppearance() {
 	return useContext(AppearanceContext);
 }
 
-export function AppearanceProvider({ children }: { children: React.ReactNode }) {
-	const [delta, setDelta] = useState<AppearanceSettings | undefined>(undefined);
+export function AppearanceProvider({ initial, children }: { initial: AppearanceSettings | undefined; children: React.ReactNode }) {
+	const [delta, setDelta] = useState(initial);
 	const appliedRef = useRef<string>("");
 
-	const vars = useMemo(() => appearanceVars(resolveAppearance(delta)), [delta]);
+	const appearance = useMemo(() => resolveAppearance(delta), [delta]);
+	const vars = useMemo(() => appearanceVars(appearance), [appearance]);
 	const key = useMemo(() => JSON.stringify(vars), [vars]);
 	// Every name ever set is tracked: one absent from the new set is removed
 	// so the stylesheet value returns.
@@ -41,6 +42,8 @@ export function AppearanceProvider({ children }: { children: React.ReactNode }) 
 		if (appliedRef.current === key) return;
 		appliedRef.current = key;
 		const root = document.documentElement;
+		// Paper is the one light background.
+		root.classList.toggle("dark", appearance.background !== null);
 		for (const name of staleVarNames([...appliedNamesRef.current], vars)) {
 			root.style.removeProperty(name);
 			appliedNamesRef.current.delete(name);
@@ -49,33 +52,8 @@ export function AppearanceProvider({ children }: { children: React.ReactNode }) 
 			root.style.setProperty(name, value);
 			appliedNamesRef.current.add(name);
 		}
-	}, [key, vars]);
+	}, [key, vars, appearance]);
 
-	// One fetch per app load; resolution happens against the compiled factory.
-	useEffect(() => {
-		let alive = true;
-		fetch("/api/settings")
-			.then((r) => r.json())
-			.then((body: { settings?: Record<string, unknown> }) => {
-				if (!alive) return;
-				const appearance = body.settings?.appearance;
-				setDelta(
-					appearance && typeof appearance === "object" ? (appearance as AppearanceSettings) : undefined,
-				);
-			})
-			.catch(() => {/* settings stay factory — not worth a crash */});
-		return () => {
-			alive = false;
-		};
-	}, []);
-
-	const onAppearanceChange = useCallback((next: AppearanceSettings | undefined) => {
-		setDelta(next);
-	}, []);
-
-	const value = useMemo(
-		() => ({ appearance: resolveAppearance(delta), onAppearanceChange }),
-		[delta, onAppearanceChange],
-	);
+	const value = useMemo(() => ({ appearance, onAppearanceChange: setDelta }), [appearance]);
 	return <AppearanceContext.Provider value={value}>{children}</AppearanceContext.Provider>;
 }

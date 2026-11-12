@@ -25,11 +25,12 @@ import {
 	type AttachmentPart,
 } from "../../src/shared/core/attachments.ts";
 import { ChatInputError, inputAppends, parseChatInput } from "../../src/shared/core/input-events.ts";
-import { newAnswerResult, newSideQuestion, newThinkingMessage, newUserMessage, PRACTICE_PROBLEM_TOOL, toLlmMessages, type LhMessage } from "../../src/shared/core/native-messages.ts";
+import { newAnswerResult, newSideQuestion, newUserMessage, PRACTICE_PROBLEM_TOOL, toLlmMessages, type LhMessage } from "../../src/shared/core/native-messages.ts";
 import { answerTakesFiles } from "../../src/shared/core/pending.ts";
 import { projectView } from "../../src/shared/core/view.ts";
 import { serializeForSummary } from "../../src/shared/core/compaction.ts";
 import { absorbed } from "../../src/frontend/components/session-core.ts";
+import { oldThinkingMessage } from "../old-records.ts";
 
 const MB = 1024 * 1024;
 const PNG = "iVBORw0KGgo="; // well-formed base64; the parse never decodes
@@ -114,14 +115,8 @@ describe("attachment rules", () => {
 describe("the input parse", () => {
 	const att = { name: "a.png", mimeType: "image/png", data: PNG };
 
-	it("text and thinking may carry files, and then may have no text", () => {
+	it("text may carry files, and then may have no text", () => {
 		assert.deepEqual(parseChatInput({ type: "text", text: "", attachments: [att] }), { type: "text", text: "", attachments: [att] });
-		assert.deepEqual(parseChatInput({ type: "thinking", problemCallId: "p", text: " ", attachments: [att] }), {
-			type: "thinking",
-			problemCallId: "p",
-			text: " ",
-			attachments: [att],
-		});
 		assert.deepEqual(parseChatInput({ type: "text", text: "hi" }), { type: "text", text: "hi" });
 	});
 
@@ -138,7 +133,6 @@ describe("the input parse", () => {
 			{ type: "text", text: "hi", attachments: [{ ...att, mimeType: "image/heic" }] },
 			{ type: "text", text: "hi", attachments: [{ ...att, mimeType: "text/plain" }] },
 			{ type: "text", text: "hi", attachments: [null] },
-			{ type: "thinking", problemCallId: "p", text: "", attachments: [] },
 		];
 		for (const input of bad) assert.throws(() => parseChatInput(input), ChatInputError, JSON.stringify(input));
 	});
@@ -161,13 +155,12 @@ describe("stored messages", () => {
 		assert.deepEqual((message as { content: unknown }).content, [{ type: "text", text: "see" }, image]);
 	});
 
-	it("a thinking submission's files reach the model after its text", () => {
-		const thinking = newThinkingMessage("call_p1", "my work", [image, pdf]);
+	it("an old thinking record's files reach the model after its text", () => {
+		const thinking = oldThinkingMessage("call_p1", "my work", [image, pdf]);
 		assert.deepEqual(thinking.attachments, [image, pdf]);
-		assert.deepEqual(thinking.details, { problemCallId: "call_p1", text: "my work" }, "the card's payload is unchanged");
 		const [wire] = toLlmMessages([thinking as never]);
 		assert.deepEqual((wire as { content: unknown }).content, [{ type: "text", text: thinking.content }, image, pdf]);
-		assert.equal(newThinkingMessage("call_p1", "x").attachments, undefined);
+		assert.equal(oldThinkingMessage("call_p1", "x").attachments, undefined);
 	});
 
 	it("an optimistic message with files is absorbed by its saved copy", () => {
@@ -178,7 +171,7 @@ describe("stored messages", () => {
 	});
 
 	it("compaction reads files as text and never their base64", () => {
-		const text = serializeForSummary([newUserMessage("see", [image, pdf]), newThinkingMessage("p", "work", [image])]);
+		const text = serializeForSummary([newUserMessage("see", [image, pdf]), oldThinkingMessage("p", "work", [image])]);
 		assert.ok(!text.includes(image.data));
 		assert.match(text, /\[LEARNER\] see\n\[image\]\n\[Attached PDF\] notes\.pdf/);
 		assert.match(text, /\[SYSTEM NOTE\] Your thinking:\nwork\n\[image\]/);
@@ -196,7 +189,7 @@ describe("the view", () => {
 		]);
 	});
 
-	it("a thinking card carries its files after it", () => {
+	it("an old thinking card carries its files after it", () => {
 		const pose: LhMessage[] = [
 			{
 				id: "a1",
@@ -210,7 +203,7 @@ describe("the view", () => {
 				stopReason: "toolUse",
 			} as LhMessage & AssistantMessage,
 			{ id: "r1", role: "toolResult", toolCallId: "call_p1", toolName: PRACTICE_PROBLEM_TOOL, content: [], details: null, isError: false, timestamp: 2 } as LhMessage & ToolResultMessage,
-			{ ...newThinkingMessage("call_p1", "work", [image]), id: "t1" },
+			{ ...oldThinkingMessage("call_p1", "work", [image]), id: "t1" },
 		];
 		const thinking = projectView(pose).at(-1)!;
 		assert.deepEqual(thinking.parts.map((p) => p.type), ["data-practice-thinking", "data-image"]);

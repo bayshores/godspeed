@@ -15,17 +15,17 @@ const TMP_DATA = fs.mkdtempSync(path.join(os.tmpdir(), "lh-homework-"));
 process.env.LH_DATA_DIR = TMP_DATA;
 
 const server = await import("../../src/backend/server/index.ts");
-const classesRoute = await import("../../src/app/api/classes/route.ts");
-const filesRoute = await import("../../src/app/api/classes/[id]/files/route.ts");
-const deadlinesRoute = await import("../../src/app/api/classes/[id]/deadlines/route.ts");
-const deadlineRoute = await import("../../src/app/api/classes/[id]/deadlines/[deadlineId]/route.ts");
+const spacesRoute = await import("../../src/app/api/spaces/route.ts");
+const filesRoute = await import("../../src/app/api/spaces/[id]/files/route.ts");
+const deadlinesRoute = await import("../../src/app/api/spaces/[id]/deadlines/route.ts");
+const deadlineRoute = await import("../../src/app/api/spaces/[id]/deadlines/[deadlineId]/route.ts");
 const chatsRoute = await import("../../src/app/api/chats/route.ts");
 const { homeworkTools } = await import("../../src/backend/agent/tools/homework.ts");
 const { composeInstructions } = await import("../../src/backend/agent/teacher-agent.ts");
 const { homeworkDeadline } = await import("../../src/backend/server/homework.ts");
 await (await import("../../src/backend/agent/engine-load.ts")).loadAgentCore();
 
-const { stores, updateClassDeadline } = server;
+const { stores, updateSpaceDeadline } = server;
 
 after(() => fs.rmSync(TMP_DATA, { recursive: true, force: true }));
 
@@ -33,9 +33,9 @@ const ctx = <T extends Record<string, string>>(p: T) => ({ params: Promise.resol
 const json = (url: string, method: string, body?: unknown) =>
 	new Request(`http://localhost${url}`, { method, headers: { "content-type": "application/json" }, body: body === undefined ? undefined : JSON.stringify(body) });
 
-async function makeClass(): Promise<string> {
-	const res = await classesRoute.POST(json("/api/classes", "POST", { name: "CSE 21", description: "Discrete math" }));
-	return (await res.json()).class.id;
+async function makeSpace(): Promise<string> {
+	const res = await spacesRoute.POST(json("/api/spaces", "POST", { name: "CSE 21", description: "Discrete math" }));
+	return (await res.json()).space.id;
 }
 
 async function addDeadline(id: string, kind: string, name: string): Promise<string> {
@@ -47,7 +47,7 @@ async function addInfoFile(id: string, name: string): Promise<string> {
 	const form = new FormData();
 	form.append("kind", "info");
 	form.append("files", new File(["1. Prove it."], name));
-	const res = await filesRoute.POST(new Request(`http://localhost/api/classes/${id}/files`, { method: "POST", body: form }), ctx({ id }));
+	const res = await filesRoute.POST(new Request(`http://localhost/api/spaces/${id}/files`, { method: "POST", body: form }), ctx({ id }));
 	return (await res.json()).results[0].file.id;
 }
 
@@ -57,8 +57,8 @@ const PROBLEMS = [
 ];
 
 describe("the deadline's assignment and problems", () => {
-	it("attaches a class file as the assignment, clears it, and refuses an unknown one", async () => {
-		const id = await makeClass();
+	it("attaches a space file as the assignment, clears it, and refuses an unknown one", async () => {
+		const id = await makeSpace();
 		const hw = await addDeadline(id, "homework", "HW 4");
 		const fileId = await addInfoFile(id, "hw4.txt");
 		const put = await deadlineRoute.PUT(json("/x", "PUT", { assignmentFileId: fileId }), ctx({ id, deadlineId: hw }));
@@ -70,7 +70,7 @@ describe("the deadline's assignment and problems", () => {
 	});
 
 	it("saves problems and refuses duplicate numbers", async () => {
-		const id = await makeClass();
+		const id = await makeSpace();
 		const hw = await addDeadline(id, "homework", "HW 5");
 		const deadline = homeworkDeadline(id, hw);
 		assert.equal(deadline.post(PROBLEMS), null);
@@ -85,16 +85,16 @@ describe("the deadline's assignment and problems", () => {
 			deadline.problems().map((p) => [p.number, p.done]),
 			[["1", false], ["2", true], ["3", false]],
 		);
-		const dup = updateClassDeadline(id, hw, { problems: [PROBLEMS[0]!, PROBLEMS[0]!].map((p) => ({ ...p, done: false })) });
+		const dup = updateSpaceDeadline(id, hw, { problems: [PROBLEMS[0]!, PROBLEMS[0]!].map((p) => ({ ...p, done: false })) });
 		assert.equal(dup.ok, false);
 	});
 });
 
 describe("a homework start", () => {
-	it("opens a homework session with the class card and the homework note", async () => {
-		const id = await makeClass();
+	it("opens a homework session with the space card and the homework note", async () => {
+		const id = await makeSpace();
 		const hw = await addDeadline(id, "homework", "HW 6");
-		const res = await chatsRoute.POST(json("/api/chats", "POST", { classId: id, deadlineId: hw, homework: true }));
+		const res = await chatsRoute.POST(json("/api/chats", "POST", { spaceId: id, deadlineId: hw, homework: true }));
 		assert.equal(res.status, 200);
 		const { id: chatId, title } = await res.json();
 		assert.equal(title, "Work on HW 6");
@@ -103,18 +103,19 @@ describe("a homework start", () => {
 		assert.equal(chat.deadlineId, hw);
 		assert.deepEqual(
 			chat.messages.map((m) => (m as { customType?: string }).customType),
-			["class-context", "homework-context"],
+			["space-context", "homework-context"],
 		);
 		const note = String((chat.messages[1] as { content: unknown }).content);
 		assert.match(note, /No assignment file is attached yet/);
+		assert.match(note, new RegExp(`space_id ${id}, deadline_id ${hw}`));
 		assert.match(note, /post them all with post_problems/);
 	});
 
-	it("refuses an exam, a missing deadline and a start with no class", async () => {
-		const id = await makeClass();
+	it("refuses an exam, a missing deadline and a start with no space", async () => {
+		const id = await makeSpace();
 		const exam = await addDeadline(id, "exam", "Midterm");
-		assert.equal((await chatsRoute.POST(json("/api/chats", "POST", { classId: id, deadlineId: exam, homework: true }))).status, 404);
-		assert.equal((await chatsRoute.POST(json("/api/chats", "POST", { classId: id, deadlineId: "d_nope", homework: true }))).status, 404);
+		assert.equal((await chatsRoute.POST(json("/api/chats", "POST", { spaceId: id, deadlineId: exam, homework: true }))).status, 404);
+		assert.equal((await chatsRoute.POST(json("/api/chats", "POST", { spaceId: id, deadlineId: "d_nope", homework: true }))).status, 404);
 		assert.equal((await chatsRoute.POST(json("/api/chats", "POST", { deadlineId: exam, homework: true }))).status, 400);
 	});
 });
@@ -163,10 +164,21 @@ describe("the homework tools", () => {
 		assert.match(text(none), /no problem is open/);
 	});
 
+	it("marks a part only while a problem is open, without ending the turn", async () => {
+		const t = tools(memoryDeadline());
+		assert.match(text(await t.part!.execute("p0", { part: "a" })), /no problem is open/);
+		await t.post_problems!.execute("p1", { problems: PROBLEMS });
+		const opened = await t.problem!.execute("p2", { number: "1", statement: "…" });
+		assert.match(text(opened), /work and questions arrive as their messages/);
+		const marked = await t.part!.execute("p3", { part: "b" });
+		assert.equal(text(marked), "Marked.");
+		assert.notEqual((marked as { terminate?: boolean }).terminate, true);
+	});
+
 	it("carries no solution field and keeps practice's side tools", () => {
 		const t = tools(memoryDeadline());
 		assert.ok(!("modelSolution" in (t.problem!.parameters as { properties: object }).properties));
-		for (const name of ["post_problems", "problem", "conclude", "read", "ls", "find", "grep"]) assert.ok(t[name], name);
+		for (const name of ["post_problems", "problem", "part", "conclude", "read", "ls", "find", "grep"]) assert.ok(t[name], name);
 	});
 });
 

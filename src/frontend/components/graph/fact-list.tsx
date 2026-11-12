@@ -1,18 +1,19 @@
 /**
- * A topic's facts in the topic pane: a mark for the latest answer (a
- * check, a cross or a dash; an empty square when never asked) and the
- * fact's name; a click opens the fact. The first FACTS_SHOWN show until
- * "Show all N". Right-click
- * (or the keyboard's context-menu key) opens a menu whose one action,
- * Delete, opens the shared DeleteNodeDialog; a delete announces
- * lh:graph-revision (the page refreshes on it, as for the chain table).
+ * A topic's facts in the topic sheet: a square in the fact's color and
+ * the fact's name; a click opens the fact. The first FACTS_SHOWN show
+ * until "Show all N". Right-click (or the keyboard's context-menu key)
+ * opens a menu whose one action, Delete, opens the shared
+ * DeleteNodeDialog; a delete announces lh:graph-revision (the page
+ * refreshes on it, as for the chain table).
  */
 import { memo, useCallback, useRef, useState, type MouseEvent } from "react";
-import { factMark, type AnswerOutcome, type FactProgress } from "@/shared/core";
+import type { FactProgress } from "@/shared/core";
 import { MenuShell } from "@/frontend/components/menu-shell";
 import { useMenuDismiss } from "@/frontend/components/use-menu-dismiss";
 import { DeleteNodeDialog } from "@/frontend/components/delete-node-dialog";
+import { factCells } from "@/frontend/components/fact-cells";
 import { InlineMath } from "@/frontend/components/overview/inline-math";
+import { factCellLabel } from "./derive.ts";
 import { MENU_CLASS, MENU_ITEM_CLASS } from "./menu.tsx";
 
 const FACTS_SHOWN = 4;
@@ -55,13 +56,8 @@ export function FactList({
 				))}
 			</ul>
 			{folded && (
-				<button
-					type="button"
-					data-testid="facts-show-all"
-					onClick={() => setShowAll(true)}
-					className="lh-btn self-start"
-				>
-					show all {facts.length}
+				<button type="button" data-testid="facts-show-all" onClick={() => setShowAll(true)} className="lh-btn lh-btn-quiet self-start px-1 text-[15px]">
+					Show all {facts.length}
 				</button>
 			)}
 			{menu && <div ref={anchorRef} className="pointer-events-none fixed size-0" style={{ left: menu.x, top: menu.y }} />}
@@ -102,40 +98,19 @@ const FactRow = memo(function FactRow({
 	onMenu: (fact: FactProgress, e: MouseEvent<HTMLElement>) => void;
 }) {
 	return (
-		<li className="border-b border-tone">
+		<li>
 			<button
 				type="button"
 				data-testid="fact-row"
 				onClick={() => onOpen(fact.id)}
 				onContextMenu={(e) => onMenu(fact, e)}
-				className="lh-press flex w-full items-center gap-2.5 py-2 text-left text-sm text-ink hover:text-ink-max"
+				className="lh-press -mx-1 flex w-[calc(100%+8px)] items-center gap-2 px-1 py-1 text-left text-base text-ink hover:bg-tone"
 			>
-				<FactMark mark={factMark(fact)} />
+				<span role="img" aria-label={factCellLabel(fact)} className="size-[9px] shrink-0" style={{ background: factCells([fact])[0] }} />
 				<span className="min-w-0 flex-1 truncate">
 					<InlineMath text={fact.name} />
-				</span>
-				<span aria-hidden className="shrink-0 text-ink-3">
-					›
 				</span>
 			</button>
 		</li>
 	);
 });
-
-/** The latest answer as a shape, not only a color: check, cross, dash;
- *  an empty square when never asked. */
-const MARKS: Record<AnswerOutcome | "none", { glyph: string; className: string; label: string }> = {
-	right: { glyph: "✓", className: "text-ans-right", label: "Last answer right" },
-	wrong: { glyph: "✗", className: "text-ans-wrong", label: "Last answer wrong" },
-	dontKnow: { glyph: "–", className: "text-ink-3", label: "Last answer: I don't know" },
-	none: { glyph: "□", className: "text-ink-3", label: "Not tested" },
-};
-
-export function FactMark({ mark }: { mark: AnswerOutcome | null }) {
-	const { glyph, className, label } = MARKS[mark ?? "none"];
-	return (
-		<span role="img" aria-label={label} className={`w-3 shrink-0 text-center text-[13px] font-bold ${className}`}>
-			{glyph}
-		</span>
-	);
-}

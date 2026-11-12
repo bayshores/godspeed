@@ -1,7 +1,7 @@
 import { Button } from "@/frontend/components/ui/button";
 import { usePresence } from "@/frontend/components/presence";
+import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { cn } from "@/frontend/lib/utils";
-import { ArrowDownIcon } from "lucide-react";
 import type { ComponentProps } from "react";
 import { useCallback } from "react";
 import { StickToBottom, useStickToBottomContext } from "use-stick-to-bottom";
@@ -94,7 +94,7 @@ export const ConversationScrollButton = ({
         <Button
           aria-label="Scroll to the bottom"
           className={cn(
-            "lh-fade absolute bottom-4 left-[50%] translate-x-[-50%] dark:bg-background dark:hover:bg-muted",
+            "lh-fade absolute bottom-4 left-[50%] translate-x-[-50%] bg-background hover:bg-muted",
             className
           )}
           data-state={presence.state}
@@ -104,7 +104,7 @@ export const ConversationScrollButton = ({
           variant="outline"
           {...props}
         >
-          <ArrowDownIcon className="size-4" />
+          <PixelIcon name="chevron" className="rotate-90" />
         </Button>
       </>
     )

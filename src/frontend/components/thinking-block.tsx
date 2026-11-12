@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ChevronDownIcon } from "lucide-react";
+import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { blurAfterPointerClick } from "@/frontend/components/focus-hygiene";
 import { useFold } from "@/frontend/components/use-fold";
 import { InlineMath } from "@/frontend/components/overview/inline-math";
@@ -8,16 +8,10 @@ import { cn } from "@/frontend/lib/utils";
 /** The unified user-thinking row: ONE visual language for every surface
  *  where the learner's own thinking renders (practice thinking traces,
  *  the reading channel above the answered card, the quiz answer's
- *  thinking). It arrives as a trigger row in the register of the agent's
- *  reasoning rows; expanding opens the quote block (rail, 50% opacity,
- *  italics). User thinking = rail + 50% italic; agent thinking = no rail.
- *
- *  User rows are full-width card-color bands (the authorship mark against
- *  the agent's transparent prose) with the rail along the left edge. The
- *  total inset stays 3ch so the chevrons align with the agent's flush
- *  rows. In-card rows take no band, rail only (`inCard`). `defaultOpen`
- *  marks transcript rows, which arrive expanded so it is clear the
- *  thinking was sent.
+ *  thinking). It arrives as a trigger row with a pixel chevron; expanding
+ *  opens the quote (rail, italics). Transcript rows sit in a card, in-card
+ *  rows take no card (`inCard`). `defaultOpen` marks transcript rows, which
+ *  arrive expanded so it is clear the thinking was sent.
  *
  *  ⌘T (toggle-user-thinking) sets EVERY row to one state via the module
  *  store below — one source of truth, no provider tree: rows subscribe on
@@ -74,19 +68,11 @@ export function ThinkingBlock({
 	// unmounted while closed.
 	const fold = useFold(open);
 	return (
-		/* The rail (border + padding, 3ch) offsets the user row against the
-		   agent's flush reasoning rows. */
 		<div
 			data-testid={testId}
 			data-commit={dataCommit === undefined ? undefined : dataCommit ? "true" : "false"}
-			className={cn(
-				// Total inset 3ch (chevron alignment): 14px gap, padding 4px,
-				// pr-4 keeps the text off the band's right edge. In-card rows
-				// take no band, rail only. Arrival motion rides the transcript
-				// (lesson/arrivals.tsx), so a reopened lesson doesn't replay it per row.
-				"my-2 w-full border-l-[calc(3ch-14px)] border-muted-foreground/30 py-1 pl-[14px] pr-4 font-ui text-xs",
-				inCard ? "" : "bg-card",
-			)}
+			// Arrival motion rides the transcript (lesson/arrivals.tsx), so a reopened lesson doesn't replay it per row.
+			className={cn("w-full font-ui text-[15px]", inCard ? "py-1" : "my-1 rounded border border-border bg-background px-4 py-2.5")}
 		>
 			<button
 				type="button"
@@ -96,15 +82,15 @@ export function ThinkingBlock({
 					blurAfterPointerClick(e);
 				}}
 				aria-expanded={open}
-				className="flex w-full items-center gap-2 font-semibold text-muted-foreground transition-colors duration-(--lh-dur) ease-(--lh-ease-out) hover:text-foreground"
+				className="flex w-full items-center gap-2.5 text-left text-ink-2 transition-colors duration-(--lh-dur) ease-(--lh-ease-out) hover:text-ink"
 			>
+				<PixelIcon name="chevron" className={cn("transition-transform duration-(--lh-dur) ease-(--lh-ease-out)", open && "rotate-90")} />
 				Your thinking
-				<ChevronDownIcon className={cn("size-4 shrink-0 transition-transform duration-(--lh-dur) ease-(--lh-ease-out)", open ? "rotate-180" : "rotate-0")} />
 			</button>
 			{fold.mounted && (
 				<div className="lh-collapse" data-state={fold.state}>
 					<div>
-						<span className="lh-prose mt-1.5 block whitespace-pre-wrap text-[15px] italic text-ink-3">
+						<span className="mt-2 block whitespace-pre-wrap border-l-2 border-tone-2 pl-3 font-prose text-[16px] leading-normal italic text-ink-2">
 							<InlineMath text={text} />
 						</span>
 					</div>

@@ -1,8 +1,8 @@
 /**
- * Numbered series in a class's file names ("Day1 …", "Lecture01_2026-09-25",
+ * Numbered series in a space's file names ("Day1 …", "Lecture01_2026-09-25",
  * "Week 2 Evening Discussion", "HW3_F26", "06_Counting"), so the Files page
  * can group them.
- * Purely from names: nothing here knows what the course actually has.
+ * Purely from names: nothing here knows what the space actually has.
  */
 
 import { extensionOf } from "./contracts.ts";

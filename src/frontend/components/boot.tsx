@@ -3,13 +3,13 @@ import type { BootInfo } from "@/shared/core";
 
 /**
  * What the window reads before its first paint (GET /api/boot): onboarding,
- * the welcome screen, What's new, the active class, the classes, the
- * teacher's name and sounds. Read once per page load; `refresh` reads it
+ * the welcome screen, What's new, the active space, the spaces, the
+ * teacher's name, sounds and the saved look. Read once per page load; `refresh` reads it
  * again (onboarding finishing).
  */
 
-/** What the app shows when the server couldn't answer: the app, No class. */
-const UNREAD: BootInfo = { onboarding: false, firstLoad: null, whatsNewSince: null, folderNotice: null, activeClass: null, sounds: true };
+/** What the app shows when the server couldn't answer: the app, No space. */
+const UNREAD: BootInfo = { onboarding: false, firstLoad: null, whatsNewSince: null, folderNotice: null, activeSpace: null, sounds: true };
 
 export async function fetchBoot(): Promise<BootInfo> {
 	try {

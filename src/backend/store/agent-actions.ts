@@ -12,22 +12,28 @@ import { writeFileAtomic } from "./write-file-atomic.ts";
 
 const ACTIONS_FILE = path.join(PATHS.data, "agent-actions.json");
 const VERSION = 1;
-const TARGET_KINDS = new Set(["deadline", "file", "class", "lesson"]);
+const TARGET_KINDS = new Set(["deadline", "file", "space", "lesson"]);
+
+/** Where a page lives now: /space was /class before the rename. */
+const pageNow = (page: string) => page.replace(/^\/class(?=\/|$)/, "/space");
 
 function parseAction(entry: unknown): AgentAction[] {
-	const a = entry as Partial<Record<keyof AgentAction, unknown>> | null;
+	// classId and the target kind "class" are the names from before the rename.
+	const a = entry as Partial<Record<keyof AgentAction | "classId", unknown>> | null;
 	if (typeof a?.id !== "string" || typeof a.at !== "string" || typeof a.agent !== "string" || typeof a.label !== "string" || typeof a.page !== "string") return [];
 	const t = a.target as { kind?: unknown; id?: unknown } | null | undefined;
-	const target = t && TARGET_KINDS.has(t.kind as string) && typeof t.id === "string" ? { kind: t.kind as NonNullable<AgentAction["target"]>["kind"], id: t.id } : null;
+	const kind = t?.kind === "class" ? "space" : t?.kind;
+	const target = t && TARGET_KINDS.has(kind as string) && typeof t.id === "string" ? { kind: kind as NonNullable<AgentAction["target"]>["kind"], id: t.id } : null;
+	const spaceId = a.spaceId ?? a.classId;
 	return [
 		{
 			id: a.id,
 			at: a.at,
 			agent: a.agent,
 			label: a.label,
-			classId: typeof a.classId === "string" ? a.classId : null,
+			spaceId: typeof spaceId === "string" ? spaceId : null,
 			target,
-			page: a.page,
+			page: pageNow(a.page),
 			...(a.removed === true ? { removed: true as const } : {}),
 			...(a.open === true ? { open: true as const } : {}),
 		},

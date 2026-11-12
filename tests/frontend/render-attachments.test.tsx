@@ -1,9 +1,9 @@
 /**
- * Pictures and PDFs on screen: the composer's waiting files (previews, ✕,
- * the refusal line, the picture button, the busy hold) and the learner's
- * message with its thumbnails and PDF chips (a click shows a picture full
- * size; Esc or a click closes it), the files an answer takes, and waiting
- * files kept by box across leaving a lesson.
+ * Pictures and PDFs on screen: the lesson box's waiting files (previews,
+ * Remove, the refusal line, the picture button, the busy hold) and the
+ * learner's message with its thumbnails and PDF chips (a click shows a
+ * picture full size; Esc or a click closes it), the answers a picture alone
+ * can send, and waiting files kept by box across leaving a lesson.
  */
 import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;
@@ -13,12 +13,12 @@ import { parseHTML } from "linkedom";
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { LessonBox } from "../../src/frontend/components/lesson/lesson-box.tsx";
-import { PracticeDock } from "../../src/frontend/components/practice-dock.tsx";
 import { MessageRow } from "../../src/frontend/components/lesson/message-row.tsx";
-import { useAttachmentDraft, type AttachmentDraft } from "../../src/frontend/components/lesson/attachment-tray.tsx";
-import { HEIC_REFUSAL, newAnswerResult, newThinkingMessage, newUserMessage, pdfNote, projectView, type AttachmentPart, type LhMessage, type QuestionAnswerData } from "../../src/shared/core/index.ts";
-import { QuestionDock } from "../../src/frontend/components/question-dock.tsx";
+import { AttachButton, useAttachmentDraft, type AttachmentDraft } from "../../src/frontend/components/lesson/attachment-tray.tsx";
+import { HEIC_REFUSAL, newAnswerResult, newUserMessage, pdfNote, projectView, type AttachmentPart, type LhMessage } from "../../src/shared/core/index.ts";
+import { lessonBox, questionTurn, type BoxTurn } from "../../src/frontend/components/lesson/lesson-box-model.ts";
 import { stubCodeMirrorDom } from "../math-box-dom.ts";
+import { oldThinkingMessage } from "../old-records.ts";
 
 const dom = parseHTML("<!doctype html><html><body></body></html>");
 Object.assign(globalThis, {
@@ -43,29 +43,31 @@ const draft = (over: Partial<AttachmentDraft> = {}): AttachmentDraft => ({
 	...over,
 });
 
-function composer(over: Partial<React.ComponentProps<typeof LessonBox>> = {}) {
-	return renderToStaticMarkup(
-		<LessonBox busy={false} value="" onChange={() => {}} onSend={() => {}} onStop={() => {}} canSend showStop sideOpen={null} nextReady={false} onNext={() => {}} queuedSteers={[]} attachments={draft()} {...over} />,
-	);
+function composer(over: { attachments?: AttachmentDraft; busy?: boolean; turn?: BoxTurn } = {}) {
+	const attachments = over.attachments ?? draft();
+	const view = lessonBox({ name: "Teacher", busy: over.busy ?? false, waitingForAgent: false, hasText: false, hasFiles: attachments.files.length > 0, turn: over.turn ?? { kind: "none" } });
+	return renderToStaticMarkup(<LessonBox view={view} value="" onChange={() => {}} onAct={() => {}} onFocus={() => {}} queuedSteers={[]} attachments={attachments} boxRef={null} />);
 }
 
-describe("the composer's waiting files", () => {
-	it("previews each file above the box with an ✕, beside a picture button", () => {
+describe("the lesson box's waiting files", () => {
+	it("shows each file above the box with Remove", () => {
 		const html = composer();
 		assert.match(html, /data-testid="attachment-tray"[\s\S]*data-testid="draft-image"[\s\S]*src="data:image\/png;base64,iVBORw0KGgo="/);
 		assert.match(html, /data-testid="draft-pdf"[\s\S]*?title="Week 3 notes\.pdf"[^>]*>Week 3 notes\.pdf/, "a long name shows in full on hover");
 		assert.match(html, /aria-label="Remove graph\.png"/);
 		assert.match(html, /aria-label="Remove Week 3 notes\.pdf"/);
 		assert.ok(html.indexOf("attachment-tray") < html.indexOf('data-testid="math-box"'), "the tray sits above the box");
-		assert.match(html, /data-testid="attach-button"[^>]*aria-label="Add pictures or PDFs"|aria-label="Add pictures or PDFs"[^>]*data-testid="attach-button"/);
-		assert.match(html, /type="file"[^>]*accept="image\/png,image\/jpeg,image\/gif,image\/webp,application\/pdf"/);
 		assert.ok(!html.includes("attachment-note"), "no hold while idle");
 	});
 
-	it("no files: no tray, but the picture button stays", () => {
-		const html = composer({ attachments: draft({ files: [] }) });
-		assert.ok(!html.includes("attachment-tray"));
-		assert.match(html, /data-testid="attach-button"/);
+	it("no files: no tray", () => {
+		assert.ok(!composer({ attachments: draft({ files: [] }) }).includes("attachment-tray"));
+	});
+
+	it("Add pictures or PDFs opens a picker for pictures and PDFs", () => {
+		const html = renderToStaticMarkup(<AttachButton draft={draft()} />);
+		assert.match(html, /data-testid="attach-button"[^>]*>.*?Add pictures or PDFs</);
+		assert.match(html, /type="file"[^>]*accept="image\/png,image\/jpeg,image\/gif,image\/webp,application\/pdf"/);
 	});
 
 	it("a refusal shows in the tray", () => {
@@ -73,17 +75,11 @@ describe("the composer's waiting files", () => {
 		assert.match(html, /data-testid="attachment-error"[^>]*>Can&#x27;t use HEIC photos yet\. Export as JPG\.</);
 	});
 
-	it("while the teacher writes, files wait with a hint and Stop takes Send's place", () => {
-		const html = composer({ busy: true, canSend: false });
+	it("while the teacher writes, files wait with a hint and Send stays off", () => {
+		const html = composer({ busy: true });
 		assert.match(html, /data-testid="attachment-note"[^>]*>Send pictures after the teacher finishes</);
-		assert.match(html, /data-testid="stop-turn"/);
-		assert.ok(!html.includes('data-testid="composer-send"'));
+		assert.match(html, /data-testid="composer-send"[^>]*disabled/);
 		assert.ok(!html.includes("—"), "no em-dashes");
-	});
-
-	it("the practice panel has the same picture button", () => {
-		const html = renderToStaticMarkup(<PracticeDock problemCallId="p1" input={{ statement: "Solve it." }} onSubmit={async () => true} />);
-		assert.match(html, /data-testid="attach-button"/);
 	});
 });
 
@@ -145,53 +141,14 @@ describe("waiting files outlive their box", () => {
 		}
 	});
 
-	it("an answer in the learner's words sends its files; a refused send keeps them, a taken one clears them", async () => {
-		(globalThis as Record<string, unknown>).FileReader = TestFileReader;
-		const host = document.createElement("div");
-		document.body.append(host);
-		const root = createRoot(host);
-		try {
-			// Files dropped on the explain question's box earlier.
-			const earlier = await mountDraft("q_explain");
-			await act(async () => earlier.box.draft!.add([new File(["png"], "work.png", { type: "image/png" })]));
-			await earlier.unmount();
-
-			const sent: { files: string[]; answer: QuestionAnswerData }[] = [];
-			let taken = false;
-			const dock = (
-				<QuestionDock
-					toolName="explain"
-					toolCallId="q_explain"
-					input={{ question: "Show your work.", correctAnswer: "4" }}
-					onSubmit={async (answer, files) => {
-						sent.push({ answer, files: files.map((f) => f.name) });
-						return taken;
-					}}
-				/>
-			);
-			await act(async () => root.render(dock));
-			assert.match(host.innerHTML, /data-testid="attachment-tray"[\s\S]*work\.png/);
-			assert.equal(host.querySelector<HTMLButtonElement>('[data-testid="question-submit"]')!.disabled, false, "a picture alone can be the answer");
-			const submit = () => host.querySelector('[data-testid="question-dock"]')!.dispatchEvent(new dom.window.Event("submit", { bubbles: true, cancelable: true }));
-			await act(async () => void submit());
-			assert.deepEqual(sent.map((s) => s.files), [["work.png"]]);
-			assert.match(host.innerHTML, /work\.png/, "refused: the files wait");
-
-			taken = true;
-			await act(async () => void submit());
-			assert.deepEqual(sent.map((s) => s.files), [["work.png"], ["work.png"]]);
-			assert.ok(!host.innerHTML.includes("attachment-tray"), "taken: the files are gone");
-		} finally {
-			await act(async () => root.unmount());
-			host.remove();
-			delete (globalThis as Record<string, unknown>).FileReader;
-		}
-	});
-
-	it("a quiz takes no files: no picture button", () => {
-		const quiz = { question: "Pick one.", options: [{ label: "A" }, { label: "B" }], correctAnswer: "A" };
-		assert.ok(!renderToStaticMarkup(<QuestionDock toolName="quiz" toolCallId="q_quiz" input={quiz} onSubmit={async () => true} />).includes("attach-button"));
-		assert.match(renderToStaticMarkup(<QuestionDock toolName="ask_user_question" toolCallId="q_ask" input={{ question: "Which?" }} onSubmit={async () => true} />), /data-testid="attach-button"/);
+	it("a picture alone can be the answer to a question in words, not to a choice", () => {
+		const submit = (tool: string, input: unknown) => {
+			const html = composer({ turn: questionTurn(tool, input, false) });
+			return html.match(/<button[^>]*data-testid="question-submit"[^>]*>/)![0];
+		};
+		assert.doesNotMatch(submit("explain", { question: "Show your work.", correctAnswer: "4" }), /disabled/);
+		assert.doesNotMatch(submit("ask_user_question", { question: "Which?" }), /disabled/);
+		assert.match(submit("quiz", { question: "Pick one.", options: [{ label: "A" }, { label: "B" }], correctAnswer: "A" }), /disabled/);
 	});
 });
 
@@ -200,15 +157,14 @@ const pdf = pdfNote("Week 3 notes.pdf", "/data/chats/chat_1/abc-Week 3 notes.pdf
 
 function row(message: Parameters<typeof projectView>[0][number]) {
 	const view = projectView([message]).at(-1)!;
-	return <MessageRow message={view} index={0} teachSeam={false} streamingLast={false} hideSteps={false} arrive={() => undefined} onOpenPlan={() => {}} />;
+	return <MessageRow message={view} spaceId={undefined} index={0} teachSeam={false} streamingLast={false} hideSteps={false} arrive={() => undefined} onOpenPlan={() => {}} />;
 }
 
 describe("the learner's message with files", () => {
-	it("shows the text, a square thumbnail and a PDF chip", () => {
+	it("shows the text, a thumbnail and a PDF chip", () => {
 		const html = renderToStaticMarkup(row({ ...newUserMessage("see this", [image, pdf]), id: "u1" }));
 		assert.match(html, /data-testid="user-message"[\s\S]*see this[\s\S]*data-testid="message-attachments"/);
 		assert.match(html, /data-testid="message-image"[^>]*src="data:image\/jpeg;base64,QUJD"[^>]*class="[^"]*max-h-\[220px\]/);
-		assert.ok(!/rounded/.test(html), "square corners");
 		assert.match(html, /data-testid="message-pdf"[\s\S]*?title="Week 3 notes\.pdf"[^>]*>Week 3 notes\.pdf/, "a long name shows in full on hover");
 		assert.ok(!html.includes("[Attached PDF]"), "the note never shows as text");
 	});
@@ -232,12 +188,12 @@ describe("the learner's message with files", () => {
 		} as unknown as LhMessage;
 		const answer = { kind: "explain", questionText: "Show your work.", dontKnow: false, answers: [], text: "see it" } as never;
 		const view = projectView([call, newAnswerResult("q1", "explain", answer, [image])])[0]!;
-		const html = renderToStaticMarkup(<MessageRow message={view} index={0} teachSeam={false} streamingLast={false} hideSteps={false} arrive={() => undefined} onOpenPlan={() => {}} />);
+		const html = renderToStaticMarkup(<MessageRow message={view} spaceId={undefined} index={0} teachSeam={false} streamingLast={false} hideSteps={false} arrive={() => undefined} onOpenPlan={() => {}} />);
 		assert.match(html, /data-testid="answered-card"[\s\S]*data-testid="message-image"/);
 	});
 
-	it("a thinking card shows its files under it", () => {
-		const html = renderToStaticMarkup(row({ ...newThinkingMessage("p1", "my work", [image]), id: "t1" }));
+	it("an old thinking card shows its files under it", () => {
+		const html = renderToStaticMarkup(row({ ...oldThinkingMessage("p1", "my work", [image]), id: "t1" }));
 		assert.match(html, /data-testid="thinking-card"[\s\S]*data-testid="message-image"/);
 	});
 

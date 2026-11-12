@@ -1,18 +1,17 @@
 import { useLayoutEffect, useRef } from "react";
 import { useLocation } from "react-router";
 import { KeyboardShortcuts } from "@/frontend/components/keyboard-shortcuts";
-import { SettingsDialogProvider } from "@/frontend/components/settings/settings-dialog-provider.tsx";
 import { RuleNotice } from "@/frontend/components/rule-notice";
 import { FilesNotice } from "@/frontend/components/files-notice";
 import { QuietNotice } from "@/frontend/components/quiet-notice";
-import { replayRise } from "@/frontend/components/sidebar/motion";
+import { replayRise } from "@/frontend/components/motion";
 import { OpenDeadlinesProvider } from "@/frontend/components/use-open-deadlines";
 import { HalleyProvider } from "@/frontend/components/halley/halley-provider";
 import { Welcome } from "@/frontend/components/welcome/welcome";
-import { SessionsSidebar } from "@/frontend/components/sidebar";
-import { AppBar, WithAppBar } from "@/frontend/components/app-bar";
+import { AppBar } from "@/frontend/components/app-bar";
+import { SearchLessons } from "@/frontend/components/search-lessons";
 
-/** The view swap: switching between pages (Home, a lesson, Overview…)
+/** The view swap: switching between pages (Today, a lesson, Progress…)
  *  rises the incoming page in once. */
 function ViewSwap({ children }: { children: React.ReactNode }) {
 	const { pathname } = useLocation();
@@ -31,9 +30,8 @@ function ViewSwap({ children }: { children: React.ReactNode }) {
 	);
 }
 
-/** The app frame: the top bar over the sidebar and the page, and the
- *  welcome screen over everything at launch. Rendered once by
- *  src/frontend/routes/root.tsx. */
+/** The app frame: the top bar over the page, and the welcome screen over
+ *  everything at launch. Rendered once by src/frontend/routes/root.tsx. */
 export function AppShell({
 	children,
 	teacherName,
@@ -46,7 +44,7 @@ export function AppShell({
 	whatsNewSince: string | null;
 }) {
 	return (
-		<SettingsDialogProvider>
+		<>
 			<OpenDeadlinesProvider>
 				<Welcome initialOpen={welcome} whatsNewSince={whatsNewSince} />
 				<HalleyProvider initialName={teacherName}>
@@ -54,23 +52,19 @@ export function AppShell({
 						Skip to the page
 					</a>
 					<AppBar />
-					<div className="flex min-h-0 flex-1">
-						<SessionsSidebar />
-						{/* The teacher's open panel pushes the page left (halley-panel.tsx sets the var). */}
-						<main id="lh-page" tabIndex={-1} className="min-w-0 flex-1 pr-(--lh-dock-push,0px) motion-safe:transition-[padding] motion-safe:duration-(--lh-dur) motion-safe:ease-(--lh-ease-out)">
-							<WithAppBar>
-								<ViewSwap>{children}</ViewSwap>
-							</WithAppBar>
-						</main>
-					</div>
+					{/* The teacher's open panel pushes the page left (halley-panel.tsx sets the var). */}
+					<main id="lh-page" tabIndex={-1} className="lh-dots min-h-0 min-w-0 flex-1 pr-(--lh-dock-push,0px) motion-safe:transition-[padding] motion-safe:duration-(--lh-dur) motion-safe:ease-(--lh-ease-out)">
+						<ViewSwap>{children}</ViewSwap>
+					</main>
 				</HalleyProvider>
 			</OpenDeadlinesProvider>
 			{/* The single document-level keydown listener: window-level, so its
 			    place in the tree only matters for the events it dispatches. */}
 			<KeyboardShortcuts />
+			<SearchLessons />
 			<RuleNotice />
 			<FilesNotice />
 			<QuietNotice />
-		</SettingsDialogProvider>
+		</>
 	);
 }

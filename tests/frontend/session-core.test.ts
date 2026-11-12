@@ -24,9 +24,10 @@ import { afterEach, describe, it } from "node:test";
 import { absorbed, errorBodyMessage, pendingCallTool, SessionModel } from "../../src/frontend/components/session-core.ts";
 import type { ChatInput } from "../../src/shared/core/input-events.ts";
 import type { LhMessage } from "../../src/shared/core/native-messages.ts";
-import { newUserMessage, newAnswerResult, newThinkingMessage, needsContinuation, endsInDismissal } from "../../src/shared/core/native-messages.ts";
+import { newUserMessage, newAnswerResult, newNextMessage, newProblemDismissedMarker, needsContinuation, endsInDismissal } from "../../src/shared/core/native-messages.ts";
 import { newCompactionMarker, newPlanBlockMessage, projectView } from "../../src/shared/core/index.ts";
 import { dismissedAnswer } from "../../src/shared/core/question-core.ts";
+import { oldThinkingMessage } from "../old-records.ts";
 import { buildAnswer, type QuestionData } from "../../src/shared/core/question-core.ts";
 
 const realFetch = globalThis.fetch;
@@ -559,7 +560,7 @@ describe("provider-error banner (live and saved)", () => {
 			newUserMessage("retry"),
 			assistantMsg("success", "Hello"),
 			{ ...assistantMsg("aborted", ""), stopReason: "aborted", errorMessage: "Aborted" } as LhMessage,
-			newThinkingMessage("problem", "my attempt"),
+			oldThinkingMessage("problem", "my attempt"),
 			resultMsg("call"),
 			newPlanBlockMessage("plan", { kind: "full", nodes: [], edges: [], current: null }),
 			newCompactionMarker("summary", { firstKeptMessageId: failure.id, tokensBefore: 100, model: "fixture", at: "2026-01-01T00:00:00Z" }),
@@ -1058,8 +1059,8 @@ describe("answer submission recovery", () => {
 		assert.deepEqual(m.getState().nativeMessages, saved);
 	});
 
-	for (const next of [{ type: "text", text: "a distinct new message" }, { type: "thinking", problemCallId: "problem1", text: "new practice thinking" }] as const) {
-		it(`preserves the existing POST/409-wait path for a new ${next.type} submission after an error`, async () => {
+	for (const next of [{ type: "text", text: "a distinct new message" }, { type: "next" }] as const) {
+		it(`preserves the existing POST/409-wait path for a new ${next.type} input after an error`, async () => {
 			const posted: ChatInput[] = [];
 			const m = model({ pollMs: 0, fetch: async (url, init) => {
 				if (String(url) === "/api/chat") {
@@ -1639,11 +1640,9 @@ describe("newAnswerResult two audiences", () => {
 
 // ─── the practice live-view law ─────────────────────────
 //
-// The two-spinners + doubled-card incident: submitting thinking flipped the
-// POSE turn's problem call back to a live spinner mid-transcript (session
-// busyness leaked into per-call state), and the optimistic thinking marker
-// was never absorbed (role "custom" was missing from absorbed()), so the
-// adoption window rendered the submission twice for the whole turn.
+// A busy session must not flip a settled problem call back to a live
+// spinner, and an optimistic marker must be absorbed by the write-ahead's
+// server copy instead of rendering beside it.
 
 /** The post-settle pose-turn record of a practice session. */
 function poseRecord(): LhMessage[] {
@@ -1667,7 +1666,7 @@ function poseRecord(): LhMessage[] {
 
 describe("the live-view law — live is positive evidence, not session busyness", () => {
 	it("a settled problem call NEVER renders live during another turn (the two-spinner bug)", () => {
-		// The thinking turn's live state: inFlight, but NOTHING streams that
+		// Another turn's live state: inFlight, but NOTHING streams that
 		// touches the pose call, and the executions map (per-turn) is empty.
 		const live = { executions: new Map(), inFlight: true, streamingIds: new Set<string>() };
 		const view = projectView(poseRecord(), live);
@@ -1708,31 +1707,30 @@ describe("the live-view law — live is positive evidence, not session busyness"
 	});
 });
 
-describe("absorbed — the custom role (the doubled thinking card)", () => {
-	it("absorbs the optimistic thinking marker by customType + details", () => {
-		const optimistic = { ...newThinkingMessage("call-p1", "my trace"), id: "c_opt1" } as LhMessage;
-		const serverCopy = { ...newThinkingMessage("call-p1", "my trace"), id: "srv_1" } as LhMessage;
-		assert.ok(absorbed(optimistic, [...poseRecord(), serverCopy]), "same submission → the local copy drops");
-		// A DIFFERENT submission (different text) is its own marker.
-		const other = { ...newThinkingMessage("call-p1", "a later, different trace"), id: "srv_2" } as LhMessage;
-		assert.ok(!absorbed(optimistic, [...poseRecord(), other]), "different details → not the same submission");
+describe("absorbed — the custom role (the doubled next-problem line)", () => {
+	it("absorbs the optimistic next marker by customType + details", () => {
+		const optimistic = { ...newNextMessage(), id: "c_opt1" } as LhMessage;
+		const serverCopy = { ...newNextMessage(), id: "srv_1" } as LhMessage;
+		assert.ok(absorbed(optimistic, [...poseRecord(), serverCopy]), "same marker → the local copy drops");
+		// A marker of another type is its own entry.
+		const other = { ...newProblemDismissedMarker("call-p1"), id: "srv_2" } as LhMessage;
+		assert.ok(!absorbed(optimistic, [...poseRecord(), other]), "different customType → not the same marker");
 		// The c_ gate: server stamps are never absorbed, whatever the role.
 		assert.ok(!absorbed(serverCopy, [optimistic]), "server ids never drop");
 	});
 
-	it("the adoption window cannot double the card (model-level end-to-end)", () => {
-		// The exact client sequence of the incident: the optimistic marker in
-		// the tail (client id), then the +400ms adoption fetch swaps in the
-		// write-ahead record (server id). ONE card must remain.
+	it("the adoption window cannot double the line (model-level end-to-end)", () => {
+		// The optimistic marker sits in the tail (client id), then the adoption
+		// fetch swaps in the write-ahead record (server id). ONE line must remain.
 		const m = model({ chatId: "chat_x", initialMessages: poseRecord() });
-		const optimistic = { ...newThinkingMessage("call-p1", "my trace"), id: "c_opt1" } as LhMessage;
+		const optimistic = { ...newNextMessage(), id: "c_opt1" } as LhMessage;
 		m.applyWireEvent({ type: "message_start", message: optimistic });
 		assert.equal(
 			m.getState().nativeMessages.filter((x) => (x as { role?: string }).role === "custom").length,
 			1,
 			"the optimistic marker is in the tail",
 		);
-		const serverCopy = { ...newThinkingMessage("call-p1", "my trace"), id: "srv_1" } as LhMessage;
+		const serverCopy = { ...newNextMessage(), id: "srv_1" } as LhMessage;
 		m.adoptRecord([...poseRecord(), serverCopy]);
 		const customs = m.getState().nativeMessages.filter((x) => (x as { role?: string }).role === "custom");
 		assert.equal(customs.length, 1, "the server copy replaced the optimistic one — no doubling");

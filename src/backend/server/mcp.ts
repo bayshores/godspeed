@@ -11,10 +11,10 @@
  *    job, and graph-fact run parks its model request in agent-bridge.ts;
  *    the agent takes it, answers it, repeats.
  *  - DIRECT ACCESS: list/read lessons, search the knowledge graph and a
- *    class's files, import notes, start a lesson.
- *  - CLASSES: agents set up the learner's classes — create/edit/archive,
+ *    space's files, import notes, start a lesson.
+ *  - SPACES: agents set up the learner's spaces — create/edit/archive,
  *    add files, link folders, read them, start lessons inside them.
- *    Deleting a class is app-only on purpose: no tool here can wipe a class.
+ *    Deleting a space is app-only on purpose: no tool here can wipe a space.
  *  - MEMORY: remember / forget save short notes about the learner; they
  *    and a "Where you left off" briefing follow the work loop in the
  *    instructions an agent gets when it connects, so it knows the learner
@@ -24,13 +24,17 @@ import { timingSafeEqual } from "node:crypto";
 import { CLIENT_INFO_META_KEY, createMcpHandler, isLegacyRequest, McpServer, WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/server";
 import { z } from "zod";
 import {
+	agentCompacting,
 	agentConnected,
 	agentName,
 	agentTeaching,
+	backupAnswering,
+	backupConnected,
 	claimedLessons,
 	displayAgentName,
 	forgetAgent,
 	fullWorkView,
+	isBackupAgent,
 	pendingWorkCount,
 	readWorkPage,
 	recordCheckIn,
@@ -45,15 +49,16 @@ import {
 import { getGraph } from "../../shared/core/graph.ts";
 import { pageBlocks, splitPages } from "../../shared/core/work-pages.ts";
 import { sessionMarkdown } from "../../shared/core/session-markdown.ts";
-import { CLASS_ICONS, parseClassScope, safeName, SIGNATURE_MAX, type ClassIcon, type ClassScope } from "../../shared/core/contracts.ts";
-import { CLASS_ARG_TEXT, CLASS_TOOL_TEXT, DEADLINE_KINDS, FILE_KINDS, lessonStartedLastTurn, type ToolOutcome } from "../../shared/core/class-tools.ts";
+import { SPACE_ICONS, parseSpaceScope, safeName, SIGNATURE_MAX, type SpaceIcon, type SpaceScope } from "../../shared/core/contracts.ts";
+import { SPACE_ARG_TEXT, SPACE_TOOL_TEXT, DEADLINE_KINDS, FILE_KINDS, lessonStartedLastTurn, type ToolOutcome } from "../../shared/core/space-tools.ts";
 import { ensureMcpToken, writeNewMcpToken } from "../store/mcp-token.ts";
 import { handleChatInput } from "./chat-handler.ts";
 import { catchUpForAgent } from "./agent-catch-up.ts";
+import { checkCites } from "./citations.ts";
 import { extraction } from "./extraction.ts";
 import { graphStoreFor, stores } from "./stores.ts";
-import { addCopiedFile, AGENT_FILE_READING_REFUSAL, replaceCopiedFile, unlinkFolder } from "./classes.ts";
-import { classActions, folderName, READING_NOTE } from "./class-actions.ts";
+import { addCopiedFile, AGENT_FILE_READING_REFUSAL, replaceCopiedFile, unlinkFolder } from "./spaces.ts";
+import { spaceActions, folderName, READING_NOTE } from "./space-actions.ts";
 import { searchFacts } from "./search-index.ts";
 import { noteAgentAction } from "./agent-actions.ts";
 import { isTurnRunning } from "./turn-liveness.ts";
@@ -93,27 +98,27 @@ const INSTRUCTIONS = `godspeed is a learning app and you are its AI: the teacher
 
 The work loop:
 1. Call wait_for_work. It returns a work item, or "idle" after a while; then call it again.
-2. A work item is a JSON block with "tools" (what you may call) and "messages" (the conversation so far), then plain-text blocks: its instructions (your system prompt here, the app's teaching method; follow them exactly) and each long message text (the message reads "[text N]" and its block starts with "[text N]"). "continued": true means only new messages follow. "instructionsAsIn" and "toolsAsBefore" point at instructions and tool schemas you already got. A long item comes in pages: read every page with read_work before you respond. "[image N]" marks the images sent with the item, in order.
+2. A work item is a JSON block with "tools" (what you may call) and "messages" (the conversation so far), then plain-text blocks: its instructions (your system prompt here, the app's teaching method; follow them exactly) and each long message text (the message reads "[text N]" and its block starts with "[text N]"). "continued": true means only new messages follow; when it also carries instructions or tools, they changed and replace the ones you had for this conversation. "instructionsAsIn" and "toolsAsBefore" point at instructions and tool schemas you already got. A long item comes in pages: read every page with read_work before you respond. "[image N]" marks the images sent with the item, in order.
 3. Answer with respond: text and/or tool calls, exactly as a model would. If the app needs you again right away (e.g. tool results), respond returns the next work item.
 4. When respond says the turn is complete, the learner is answering in the godspeed window. Call wait_for_work again.
 
 Lost track of a work item (context compacted, or missing the instructions or tools it refers to)? Call read_work with its work_id and full: true. Without the workId, call wait_for_work with full_context: true.
 
-Loop until the user says stop. Use only the work item's tools, never invented ones, called through respond even when this server has one with the same name (like read_class): only then does the lesson keep what you looked up. The learner never sees text outside respond.`;
+Loop until the user says stop. Use only the work item's tools, never invented ones, called through respond even when this server has one with the same name (like read_space): only then does the lesson keep what you looked up. The learner never sees text outside respond.`;
 
-const MEMORY_INSTRUCTIONS = `Memory: "Where you left off" above is the learner's state when you connected; list_lessons and read_class have anything newer. When the learner tells you something outside a lesson that will matter next time (an exam is over, what to study next, how they like to learn), save it with remember, one fact per note, never passwords or private details. Remove out-of-date notes with forget.`;
+const MEMORY_INSTRUCTIONS = `Memory: "Where you left off" above is the learner's state when you connected; list_lessons and read_space have anything newer. When the learner tells you something outside a lesson that will matter next time (an exam is over, what to study next, how they like to learn), save it with remember, one fact per note, never passwords or private details. Remove out-of-date notes with forget.`;
 
-// Last because each class tool's description says the same, so a client's cut loses least here.
-const CLASS_INSTRUCTIONS = `Classes: the learner can sort learning into classes (university courses), each with its own lessons, knowledge graph, description and files. "study" files (notes, readings, transcripts, recordings) become graph facts; "info" files (syllabus, assignments, logistics) are only read by the teacher. godspeed sorts a linked folder's files into study and info itself. Take deadlines (exam, homework, quiz, project: a date, an optional time, the files they cover) from the syllabus or course info with add_class_deadline; change, tick done or remove them with update_class_deadline / remove_class_deadline. If a date, time or the covered files aren't clear, ask the learner instead of guessing. Teach inside a class with start_lesson and class_id; lessons without one are in "No class". Archived classes take no new lessons; ask the learner to unarchive one first. Only the godspeed window can delete a class.`;
+// Last because each space tool's description says the same, so a client's cut loses least here.
+const SPACE_INSTRUCTIONS = `Spaces: the learner can sort learning into spaces (one per thing they study, like a university course or a certification), each with its own lessons, knowledge graph, description and files. "study" files (notes, readings, transcripts, recordings) become graph facts; "info" files (a syllabus, a schedule, logistics) are only read by the teacher. godspeed sorts a linked folder's files into study and info itself. Take deadlines (exam, homework, quiz, project: a date, an optional time, the files they cover) from the space info files with add_space_deadline; change, tick done or remove them with update_space_deadline / remove_space_deadline. If a date, time or the covered files aren't clear, ask the learner instead of guessing. Teach inside a space with start_lesson and space_id; lessons without one are in "No space". Archived spaces take no new lessons; ask the learner to unarchive one first. Only the godspeed window can delete a space.`;
 
-// ─── Class arguments ────────────────────────────────────────────────────────
+// ─── Space arguments ────────────────────────────────────────────────────────
 
-/** A tool's class_id argument, checked: absent / "none" = No class;
- *  otherwise the class must exist. Returns the scope or the refusal text. */
-function classArg(classId: string | undefined): { scope: ClassScope } | { error: string } {
-	const scope = parseClassScope(classId);
-	if (scope === undefined) return { error: `"${classId}" is not a class id. Use list_classes.` };
-	if (scope !== null && !stores.classStore.getClass(scope)) return { error: `No class "${classId}". Use list_classes.` };
+/** A tool's space_id argument, checked: absent / "none" = No space;
+ *  otherwise the space must exist. Returns the scope or the refusal text. */
+function spaceArg(spaceId: string | undefined): { scope: SpaceScope } | { error: string } {
+	const scope = parseSpaceScope(spaceId);
+	if (scope === undefined) return { error: `"${spaceId}" is not a space id. Use list_spaces.` };
+	if (scope !== null && !stores.spaceStore.getSpace(scope)) return { error: `No space "${spaceId}". Use list_spaces.` };
 	return { scope };
 }
 
@@ -123,14 +128,14 @@ const SIGNATURE_ARG = z
 		value: z.string().min(1).max(SIGNATURE_MAX),
 	})
 	.optional()
-	.describe(CLASS_ARG_TEXT.signature);
+	.describe(SPACE_ARG_TEXT.signature);
 
-const ICON_ARG = z.enum(Object.keys(CLASS_ICONS) as [ClassIcon, ...ClassIcon[]]).describe(CLASS_ARG_TEXT.icon);
+const ICON_ARG = z.enum(Object.keys(SPACE_ICONS) as [SpaceIcon, ...SpaceIcon[]]).describe(SPACE_ARG_TEXT.icon);
 
-const CLASS_ID_ARG = z
+const SPACE_ID_ARG = z
 	.string()
 	.optional()
-	.describe(CLASS_ARG_TEXT.lessonClass);
+	.describe(SPACE_ARG_TEXT.lessonSpace);
 
 // ─── Access control ─────────────────────────────────────────────────────────
 
@@ -140,6 +145,8 @@ export function mcpAccessStatus(): {
 	agentConnected: boolean;
 	agentTeaching: boolean;
 	agentName: string | null;
+	backupConnected: boolean;
+	backupAnswering: boolean;
 	pendingWork: number;
 	claimedLessons: { lessonId: string; claimedAt: string }[];
 } {
@@ -148,6 +155,8 @@ export function mcpAccessStatus(): {
 		agentConnected: agentConnected(),
 		agentTeaching: agentTeaching(),
 		agentName: agentName() ?? null,
+		backupConnected: backupConnected(),
+		backupAnswering: backupAnswering(),
 		pendingWork: pendingWorkCount(),
 		claimedLessons: claimedLessons(),
 	};
@@ -249,15 +258,17 @@ function inClaudeCode(caller: string | undefined): boolean {
 	return caller === "Claude Code";
 }
 
-function waiterHint(lessonId?: string): string {
-	return `Wait with the waiter, not by calling wait_for_work yourself: run node .godspeed/wait-for-work.mjs${lessonId ? ` --lesson ${lessonId}` : ""} in the background (CLAUDE.md in the godspeed folder has the exact command) and end your turn. It costs no tokens and wakes you when work arrives.`;
+/** The backup teacher's waiter always says --backup and stays on no lesson. */
+function waiterHint(lessonId?: string, backup = false): string {
+	const flags = backup ? " --backup" : lessonId ? ` --lesson ${lessonId}` : "";
+	return `Wait with the waiter, not by calling wait_for_work yourself: run node .godspeed/wait-for-work.mjs${flags} in the background (CLAUDE.md in the godspeed folder has the exact command) and end your turn. It costs no tokens and wakes you when work arrives.`;
 }
 
-function idle(caller: string | undefined) {
+function idle(caller: string | undefined, backup = false) {
 	return {
 		status: "idle",
 		note: inClaudeCode(caller)
-			? `Nothing to do right now. ${waiterHint()}`
+			? `Nothing to do right now. ${waiterHint(undefined, backup)}`
 			: "Nothing to do right now. Call wait_for_work again to keep waiting (the learner may be reading or answering).",
 	};
 }
@@ -315,6 +326,11 @@ function buildServer(instructions: string, signal: AbortSignal, caller: string |
 		async ({ timeout_seconds, lesson_id, full_context }, ctx) => {
 			if (lesson_id && !stores.chatStore.getChat(lesson_id)) return failure(`No lesson "${lesson_id}". Use list_lessons.`);
 			const agent = agentIdOf(ctx.mcpReq._meta);
+			// The backup teacher's waiter (wait-for-work.mjs --backup).
+			if (ctx.mcpReq._meta?.["godspeed/backup"] === true) {
+				const view = await waitForWork(waitMs(timeout_seconds), { full: full_context, agent, backup: true, signal });
+				return view ? workResult(view) : result(idle(caller, true));
+			}
 			stayOn(agent, lesson_id);
 			// Waiting counts the agent as working at once, so what godspeed queues
 			// for it now (catch-up) reaches this same wait.
@@ -343,30 +359,35 @@ function buildServer(instructions: string, signal: AbortSignal, caller: string |
 		},
 		async ({ work_id, text, tool_calls, wait_seconds }) => {
 			const followUpMs = (wait_seconds ?? 30) * 1000;
-			const answered = respondToWork(work_id, { text, toolCalls: tool_calls as { name: string; arguments: Record<string, never> }[] | undefined }, followUpMs);
-			if (!answered.ok) return failure(answered.error);
+			// Checked before it is stored, so the stored text and the seen-mark fingerprint agree.
+			const checked = text === undefined ? undefined : checkCites(text);
+			const removedMarks = checked?.removed.length ? `Removed source marks that don't point at a passage of a space file: ${checked.removed.join(", ")}. Use ids from search_space_files.` : "";
+			const answered = respondToWork(work_id, { text: checked?.text, toolCalls: tool_calls as { name: string; arguments: Record<string, never> }[] | undefined }, followUpMs);
+			if (!answered.ok) return failure(removedMarks ? `${removedMarks} ${answered.error}` : answered.error);
 			const lesson = stores.chatStore.getChat(answered.conversation);
 			// The Talk chat has no page to go to; its replies show in the panel.
-			if (lesson && lesson.kind !== "talk") noteAgentAction(caller, { label: `Replying in ${lesson.title}`, classId: lesson.classId ?? null, target: { kind: "lesson", id: lesson.id }, page: `/chat/${lesson.id}` });
-			const next = await waitForWork(followUpMs, { conversation: answered.conversation, agent: answered.agent, signal }).finally(() => releaseConversation(answered.conversation));
-			if (next) return workResult(next);
+			if (lesson && lesson.kind !== "talk") noteAgentAction(caller, { label: `Replying in ${lesson.title}`, spaceId: lesson.spaceId ?? null, target: { kind: "lesson", id: lesson.id }, page: `/chat/${lesson.id}` });
+			const backup = isBackupAgent(answered.agent);
+			const next = await waitForWork(followUpMs, { conversation: answered.conversation, agent: answered.agent, backup, signal }).finally(() => releaseConversation(answered.conversation));
+			if (next) {
+				const work = workResult(next);
+				return removedMarks ? { content: [textBlock(removedMarks), ...work.content] } : work;
+			}
 			const chat = stores.chatStore.getChat(answered.conversation);
 			const claudeCode = inClaudeCode(caller);
 			// A Talk reply goes on to the lesson it just started, else back to the
 			// lesson the agent was staying on, not to Talk alone.
 			const talk = chat?.kind === "talk";
 			const started = talk ? lessonStartedLastTurn(chat.messages) : null;
-			if (started) stayOn(answered.agent, started);
+			if (started && !backup) stayOn(answered.agent, started);
 			const lessonId = talk ? (started ?? stayingOn(answered.agent)) : chat?.id;
-			const wait = claudeCode ? waiterHint(lessonId) : `Call wait_for_work to continue${lessonId ? ` (lesson_id "${lessonId}" to stay on this lesson)` : ""}.`;
-			return result({
-				status: "turn_complete",
-				note: !chat
-					? `The task step is done. ${claudeCode ? waiterHint() : "Call wait_for_work for more."}`
-					: talk
-						? `Your reply is in Talk.${started ? " The lesson you started is waiting for you." : ""} ${wait}`
-						: `Your turn is done. The learner is reading and will answer in the godspeed window. ${wait}`,
-			});
+			const wait = claudeCode ? waiterHint(lessonId, backup) : `Call wait_for_work to continue${lessonId ? ` (lesson_id "${lessonId}" to stay on this lesson)` : ""}.`;
+			const note = !chat
+				? `The task step is done. ${claudeCode ? waiterHint() : "Call wait_for_work for more."}`
+				: talk
+					? `Your reply is in Talk.${started ? " The lesson you started is waiting for you." : ""} ${wait}`
+					: `Your turn is done. The learner is reading and will answer in the godspeed window. ${wait}`;
+			return result({ status: "turn_complete", note: removedMarks ? `${removedMarks} ${note}` : note });
 		},
 	);
 
@@ -399,27 +420,27 @@ function buildServer(instructions: string, signal: AbortSignal, caller: string |
 		"list_lessons",
 		{
 			title: "List lessons",
-			description: "List the learner's lessons, newest first, each with its class and kind (study or homework; older ones teach or practice). total says how many match.",
+			description: "List the learner's lessons, newest first, each with its space and kind (study or homework; older ones teach or practice). total says how many match.",
 			inputSchema: z.object({
-				class_id: z.string().optional().describe('Only the lessons of this class (from list_classes), or "none" for lessons without a class. Leave it out for all lessons.'),
+				space_id: z.string().optional().describe('Only the lessons of this space (from list_spaces), or "none" for lessons without a space. Leave it out for all lessons.'),
 				limit: z.number().int().min(1).max(200).optional().describe("Most lessons to return (default 20)."),
 			}),
 			annotations: READ_ONLY,
 		},
-		async ({ class_id, limit }) => {
+		async ({ space_id, limit }) => {
 			let chats = stores.chatStore.listChats();
-			if (class_id !== undefined) {
-				const arg = classArg(class_id);
+			if (space_id !== undefined) {
+				const arg = spaceArg(space_id);
 				if ("error" in arg) return failure(arg.error);
-				chats = chats.filter((c) => (c.classId ?? null) === arg.scope);
+				chats = chats.filter((c) => (c.spaceId ?? null) === arg.scope);
 			}
 			const lessons = chats
 				.map((c) => ({
 					id: c.id,
 					title: c.title,
 					kind: c.kind,
-					classId: c.classId ?? "none",
-					className: c.classId ? (stores.classStore.getClass(c.classId)?.name ?? "Unknown class") : "No class",
+					spaceId: c.spaceId ?? "none",
+					spaceName: c.spaceId ? (stores.spaceStore.getSpace(c.spaceId)?.name ?? "Unknown space") : "No space",
 					phase: c.phase,
 					waitingForLearner: c.pendingQuestion || c.pendingProblem,
 					running: isTurnRunning(c.id),
@@ -456,16 +477,16 @@ function buildServer(instructions: string, signal: AbortSignal, caller: string |
 		"search_graph",
 		{
 			title: "Search the knowledge graph",
-			description: "Search one class's knowledge graph (each class has its own): the facts (propositions) the learner has learned and the reasoning chains connecting them. Without a query, returns the most recent facts.",
+			description: "Search one space's knowledge graph (each space has its own): the facts (propositions) the learner has learned and the reasoning chains connecting them. Without a query, returns the most recent facts.",
 			inputSchema: z.object({
 				query: z.string().optional().describe("What to look for, in plain words (matched by meaning and by keywords)."),
 				limit: z.number().int().min(1).max(200).optional().describe("Most facts to return (default 30)."),
-				class_id: CLASS_ID_ARG,
+				space_id: SPACE_ID_ARG,
 			}),
 			annotations: READ_ONLY,
 		},
-		async ({ query, limit, class_id }) => {
-			const arg = classArg(class_id);
+		async ({ query, limit, space_id }) => {
+			const arg = spaceArg(space_id);
 			if ("error" in arg) return failure(arg.error);
 			const scope = arg.scope;
 			const graph = getGraph(graphStoreFor(scope));
@@ -499,16 +520,16 @@ function buildServer(instructions: string, signal: AbortSignal, caller: string |
 		"import_notes",
 		{
 			title: "Import notes",
-			description: "Add notes to a knowledge graph. godspeed turns them into facts in the background; that work arrives through wait_for_work. Returns right away. With class_id the notes become a study file of that class (to add a file from disk, use add_class_file).",
+			description: "Add notes to a knowledge graph. godspeed turns them into facts in the background; that work arrives through wait_for_work. Returns right away. With space_id the notes become a study file of that space (to add a file from disk, use add_space_file).",
 			inputSchema: z.object({
-				name: z.string().describe("A file-like name for the notes, e.g. \"biology-ch3.md\". In a class, re-importing the same name replaces that file and rebuilds its facts; in No class it is processed again and adds to that import."),
+				name: z.string().describe("A file-like name for the notes, e.g. \"biology-ch3.md\". In a space, re-importing the same name replaces that file and rebuilds its facts; in No space it is processed again and adds to that import."),
 				text: z.string().min(1).describe("The notes."),
-				class_id: CLASS_ID_ARG,
+				space_id: SPACE_ID_ARG,
 			}),
 			annotations: ADDS,
 		},
-		async ({ name, text, class_id }) => {
-			const arg = classArg(class_id);
+		async ({ name, text, space_id }) => {
+			const arg = spaceArg(space_id);
 			if ("error" in arg) return failure(arg.error);
 			const scope = arg.scope;
 			if (scope !== null) {
@@ -516,13 +537,13 @@ function buildServer(instructions: string, signal: AbortSignal, caller: string |
 				const clean = safeName(name);
 				const fileName = /\.(md|markdown|txt)$/i.test(clean) ? clean : `${clean}.md`;
 				const bytes = new TextEncoder().encode(text);
-				const existing = stores.classStore.getClass(scope)?.files.find((f) => f.origin === "copied" && f.name === fileName);
+				const existing = stores.spaceStore.getSpace(scope)?.files.find((f) => f.origin === "copied" && f.name === fileName);
 				const saved = existing ? replaceCopiedFile(scope, existing.id, bytes, "study") : addCopiedFile(scope, fileName, bytes, "study");
 				if (!saved.ok) return failure(saved.error);
-				noteAgentAction(caller, { label: `Reading ${fileName}`, classId: scope, target: { kind: "file", id: saved.value.id }, page: "/class/files" });
+				noteAgentAction(caller, { label: `Reading ${fileName}`, spaceId: scope, target: { kind: "file", id: saved.value.id }, page: "/space/files" });
 				return result({ status: "started", fileId: saved.value.id, note: `Import started. ${READING_NOTE}` });
 			}
-			noteAgentAction(caller, { label: `Reading ${name}`, classId: null, target: null, page: "/graph" });
+			noteAgentAction(caller, { label: `Reading ${name}`, spaceId: null, target: null, page: "/graph" });
 			extraction.importNotes({ filePath: name, text }).catch((err: unknown) => {
 				console.error(`[mcp] import of ${name} failed:`, err);
 			});
@@ -537,12 +558,12 @@ function buildServer(instructions: string, signal: AbortSignal, caller: string |
 			description: `Save a short note about the learner. Every agent that connects to godspeed later sees it under "Where you left off", in any folder. Save what the learner tells you outside lessons that will matter next time: an exam that is over, what they plan to study next, how they like to learn. One fact per note, at most ${NOTE_MAX_CHARS} characters. Never save passwords or private details. The learner can see and delete notes in Settings → Connection.`,
 			inputSchema: z.object({
 				text: z.string().min(1).max(NOTE_MAX_CHARS).describe("The note, one line."),
-				class_id: z.string().optional().describe("The class the note is about, if one (from list_classes)."),
+				space_id: z.string().optional().describe("The space the note is about, if one (from list_spaces)."),
 			}),
 			annotations: ADDS,
 		},
-		async ({ text, class_id }) => {
-			const arg = classArg(class_id);
+		async ({ text, space_id }) => {
+			const arg = spaceArg(space_id);
 			if ("error" in arg) return failure(arg.error);
 			const saved = addAgentNote(text, arg.scope ?? undefined);
 			return saved.ok ? result({ note: saved.value }) : failure(saved.error);
@@ -566,11 +587,11 @@ function buildServer(instructions: string, signal: AbortSignal, caller: string |
 			title: "Save a teaching rule",
 			description:
 				"Save a rule about how godspeed's teacher teaches this learner, when they tell you a lasting preference (\"use Python for code examples\", \"shorter answers\"). " +
-				"It joins the learner's rules in Settings, for every lesson or for one class's lessons, and applies from the next turn. Not for one-off requests or facts about the learner (use remember for those). " +
+				"It joins the learner's rules in Settings, for every lesson or for one space's lessons, and applies from the next turn. Not for one-off requests or facts about the learner (use remember for those). " +
 				"Don't ask first: the godspeed window shows it with Undo and Edit.",
 			inputSchema: z.object({
 				rule: z.string().min(1).max(RULE_MAX_CHARS).describe('One line, an instruction to the teacher, e.g. "Use Python for code examples."'),
-				class_id: z.string().optional().describe("Only for this class's lessons (from list_classes). Leave it out for every lesson."),
+				space_id: z.string().optional().describe("Only for this space's lessons (from list_spaces). Leave it out for every lesson."),
 				area: z
 					.enum(TEACHING_AREAS.map((a) => a.id) as [AreaId, ...AreaId[]])
 					.optional()
@@ -578,92 +599,100 @@ function buildServer(instructions: string, signal: AbortSignal, caller: string |
 			}),
 			annotations: ADDS,
 		},
-		async ({ rule, class_id, area }) => {
-			const arg = classArg(class_id);
+		async ({ rule, space_id, area }) => {
+			const arg = spaceArg(space_id);
 			if ("error" in arg) return failure(arg.error);
-			const where = arg.scope ? { classId: arg.scope } : { area: area ?? ("teaching" as const) };
+			const where = arg.scope ? { spaceId: arg.scope } : { area: area ?? ("teaching" as const) };
 			const saved = saveRuleByAgent(rule, where, caller ?? "Your agent");
 			return saved.ok ? result({ saved: saved.rule, for: saved.for, note: "The learner sees it in the godspeed window and can undo or edit it." }) : failure(saved.error);
 		},
 	);
 
-	registerClassTools(server, caller);
+	registerSpaceTools(server, caller);
 	return server;
 }
 
-const FILE_KIND = z.enum(FILE_KINDS).describe(CLASS_ARG_TEXT.fileKind);
-const DEADLINE_KIND = z.enum(DEADLINE_KINDS).describe(CLASS_ARG_TEXT.deadlineKind);
+const FILE_KIND = z.enum(FILE_KINDS).describe(SPACE_ARG_TEXT.fileKind);
+const DEADLINE_KIND = z.enum(DEADLINE_KINDS).describe(SPACE_ARG_TEXT.deadlineKind);
 
-/** A class action's outcome as an MCP tool result. */
+/** A space action's outcome as an MCP tool result. */
 function reply(outcome: ToolOutcome) {
 	return outcome.ok ? result(outcome.value) : failure(outcome.error);
 }
 
-function registerClassTools(server: McpServer, caller: string | undefined): void {
-	const actions = classActions(caller, (id, text) => handleChatInput(id, { type: "text", text }), { openStarted: false });
+function registerSpaceTools(server: McpServer, caller: string | undefined): void {
+	const actions = spaceActions(caller, (id, text) => handleChatInput(id, { type: "text", text }), { openStarted: false });
 
-	server.registerTool("list_classes", { title: "List classes", description: CLASS_TOOL_TEXT.list_classes, inputSchema: z.object({}), annotations: READ_ONLY }, async () => reply(actions.list_classes()));
-	server.registerTool("read_class", { title: "Read a class", description: CLASS_TOOL_TEXT.read_class, inputSchema: z.object({ class_id: z.string(), files: z.boolean().optional().describe(CLASS_ARG_TEXT.files) }), annotations: READ_ONLY }, async (args) => reply(await actions.read_class(args)));
-	server.registerTool("search_class_files", { title: "Search a class's files", description: CLASS_TOOL_TEXT.search_class_files, inputSchema: z.object({
-			class_id: z.string(),
-			query: z.string().min(1).describe(CLASS_ARG_TEXT.query),
-			limit: z.number().int().min(1).max(20).optional().describe(CLASS_ARG_TEXT.limit),
-		}), annotations: READ_ONLY }, async (args) => reply(await actions.search_class_files(args)));
-	server.registerTool("read_passage", { title: "Read a passage of a class file", description: CLASS_TOOL_TEXT.read_passage, inputSchema: z.object({
-			class_id: z.string(),
-			passage_id: z.string().optional().describe(CLASS_ARG_TEXT.passageId),
-			file_id: z.string().optional().describe(CLASS_ARG_TEXT.fileId),
-			range: z.string().optional().describe(CLASS_ARG_TEXT.range),
+	server.registerTool("list_spaces", { title: "List spaces", description: SPACE_TOOL_TEXT.list_spaces, inputSchema: z.object({}), annotations: READ_ONLY }, async () => reply(actions.list_spaces()));
+	server.registerTool("read_space", { title: "Read a space", description: SPACE_TOOL_TEXT.read_space, inputSchema: z.object({ space_id: z.string(), files: z.boolean().optional().describe(SPACE_ARG_TEXT.files) }), annotations: READ_ONLY }, async (args) => reply(await actions.read_space(args)));
+	server.registerTool("search_space_files", { title: "Search a space's files", description: SPACE_TOOL_TEXT.search_space_files, inputSchema: z.object({
+			space_id: z.string(),
+			query: z.string().min(1).describe(SPACE_ARG_TEXT.query),
+			limit: z.number().int().min(1).max(20).optional().describe(SPACE_ARG_TEXT.limit),
+		}), annotations: READ_ONLY }, async (args) => reply(await actions.search_space_files(args)));
+	server.registerTool("read_passage", { title: "Read a passage of a space file", description: SPACE_TOOL_TEXT.read_passage, inputSchema: z.object({
+			space_id: z.string(),
+			passage_id: z.string().optional().describe(SPACE_ARG_TEXT.passageId),
+			file_id: z.string().optional().describe(SPACE_ARG_TEXT.fileId),
+			range: z.string().optional().describe(SPACE_ARG_TEXT.range),
 		}), annotations: READ_ONLY }, async (args) => reply(await actions.read_passage(args)));
-	server.registerTool("create_class", { title: "Create a class", description: CLASS_TOOL_TEXT.create_class, inputSchema: z.object({
-			name: z.string().min(1).describe(CLASS_ARG_TEXT.name),
-			description: z.string().optional().describe(CLASS_ARG_TEXT.description),
+	server.registerTool("create_space", { title: "Create a space", description: SPACE_TOOL_TEXT.create_space, inputSchema: z.object({
+			name: z.string().min(1).describe(SPACE_ARG_TEXT.name),
+			description: z.string().optional().describe(SPACE_ARG_TEXT.description),
 			signature: SIGNATURE_ARG,
 			icon: ICON_ARG,
-		}), annotations: ADDS }, async (args) => reply(await actions.create_class(args)));
-	server.registerTool("update_class", { title: "Update a class", description: CLASS_TOOL_TEXT.update_class, inputSchema: z.object({
-			class_id: z.string(),
+		}), annotations: ADDS }, async (args) => reply(await actions.create_space(args)));
+	server.registerTool("update_space", { title: "Update a space", description: SPACE_TOOL_TEXT.update_space, inputSchema: z.object({
+			space_id: z.string(),
 			name: z.string().min(1).optional(),
 			description: z.string().optional(),
 			signature: SIGNATURE_ARG,
 			icon: ICON_ARG.optional(),
 			archived: z.boolean().optional(),
-		}), annotations: SETS }, async (args) => reply(await actions.update_class(args)));
-	server.registerTool("add_class_file", { title: "Add a file to a class", description: CLASS_TOOL_TEXT.add_class_file, inputSchema: z.object({ class_id: z.string(), path: z.string().describe(CLASS_ARG_TEXT.filePath), kind: FILE_KIND }), annotations: ADDS }, async (args) => reply(await actions.add_class_file(args)));
-	server.registerTool("set_class_file_kind", { title: "Set class files' kind", description: CLASS_TOOL_TEXT.set_class_file_kind, inputSchema: z.object({ class_id: z.string(), file_ids: z.array(z.string()).min(1).describe(CLASS_ARG_TEXT.fileIds), kind: FILE_KIND }), annotations: REMOVES }, async (args) => reply(await actions.set_class_file_kind(args)));
-	server.registerTool("add_class_deadline", { title: "Add deadlines to a class", description: CLASS_TOOL_TEXT.add_class_deadline, inputSchema: z.object({
-			class_id: z.string(),
+		}), annotations: SETS }, async (args) => reply(await actions.update_space(args)));
+	server.registerTool("add_space_file", { title: "Add a file to a space", description: SPACE_TOOL_TEXT.add_space_file, inputSchema: z.object({ space_id: z.string(), path: z.string().describe(SPACE_ARG_TEXT.filePath), kind: FILE_KIND }), annotations: ADDS }, async (args) => reply(await actions.add_space_file(args)));
+	server.registerTool("set_space_file_kind", { title: "Set space files' kind", description: SPACE_TOOL_TEXT.set_space_file_kind, inputSchema: z.object({ space_id: z.string(), file_ids: z.array(z.string()).min(1).describe(SPACE_ARG_TEXT.fileIds), kind: FILE_KIND }), annotations: REMOVES }, async (args) => reply(await actions.set_space_file_kind(args)));
+	server.registerTool("add_space_deadline", { title: "Add deadlines to a space", description: SPACE_TOOL_TEXT.add_space_deadline, inputSchema: z.object({
+			space_id: z.string(),
 			deadlines: z
 				.array(
 					z.object({
 						kind: DEADLINE_KIND,
-						name: z.string().min(1).describe(CLASS_ARG_TEXT.deadlineName),
-						date: z.string().describe(CLASS_ARG_TEXT.date),
-						time: z.string().optional().describe(CLASS_ARG_TEXT.time),
-						file_ids: z.array(z.string()).optional().describe(CLASS_ARG_TEXT.coveredFiles),
-						left_out_ids: z.array(z.string()).optional().describe(CLASS_ARG_TEXT.leftOutFiles),
-						source: z.string().optional().describe(CLASS_ARG_TEXT.source),
-						assignment_file_id: z.string().optional().describe(CLASS_ARG_TEXT.assignmentFile),
+						name: z.string().min(1).describe(SPACE_ARG_TEXT.deadlineName),
+						date: z.string().describe(SPACE_ARG_TEXT.date),
+						time: z.string().optional().describe(SPACE_ARG_TEXT.time),
+						file_ids: z.array(z.string()).optional().describe(SPACE_ARG_TEXT.coveredFiles),
+						left_out_ids: z.array(z.string()).optional().describe(SPACE_ARG_TEXT.leftOutFiles),
+						source: z.string().optional().describe(SPACE_ARG_TEXT.source),
+						assignment_file_id: z.string().optional().describe(SPACE_ARG_TEXT.assignmentFile),
 					}),
 				)
 				.min(1),
-		}), annotations: ADDS }, async (args) => reply(await actions.add_class_deadline(args)));
-	server.registerTool("update_class_deadline", { title: "Update a class deadline", description: CLASS_TOOL_TEXT.update_class_deadline, inputSchema: z.object({
-			class_id: z.string(),
+		}), annotations: ADDS }, async (args) => reply(await actions.add_space_deadline(args)));
+	server.registerTool("update_space_deadline", { title: "Update a space deadline", description: SPACE_TOOL_TEXT.update_space_deadline, inputSchema: z.object({
+			space_id: z.string(),
 			deadline_id: z.string(),
 			kind: DEADLINE_KIND.optional(),
 			name: z.string().min(1).optional(),
 			date: z.string().optional().describe("YYYY-MM-DD."),
-			time: z.string().nullable().optional().describe(CLASS_ARG_TEXT.newTime),
-			file_ids: z.array(z.string()).optional().describe(CLASS_ARG_TEXT.coveredFiles),
-			left_out_ids: z.array(z.string()).optional().describe(CLASS_ARG_TEXT.leftOutFiles),
-			source: z.string().nullable().optional().describe(CLASS_ARG_TEXT.source),
-			assignment_file_id: z.string().nullable().optional().describe(CLASS_ARG_TEXT.assignmentFile),
+			time: z.string().nullable().optional().describe(SPACE_ARG_TEXT.newTime),
+			file_ids: z.array(z.string()).optional().describe(SPACE_ARG_TEXT.coveredFiles),
+			left_out_ids: z.array(z.string()).optional().describe(SPACE_ARG_TEXT.leftOutFiles),
+			source: z.string().nullable().optional().describe(SPACE_ARG_TEXT.source),
+			assignment_file_id: z.string().nullable().optional().describe(SPACE_ARG_TEXT.assignmentFile),
 			done: z.boolean().optional(),
-		}), annotations: SETS }, async (args) => reply(await actions.update_class_deadline(args)));
-	server.registerTool("remove_class_deadline", { title: "Remove a class deadline", description: CLASS_TOOL_TEXT.remove_class_deadline, inputSchema: z.object({ class_id: z.string(), deadline_id: z.string() }), annotations: REMOVES }, async (args) => reply(await actions.remove_class_deadline(args)));
-	server.registerTool("link_class_folder", { title: "Link a folder to a class", description: CLASS_TOOL_TEXT.link_class_folder, inputSchema: z.object({ class_id: z.string(), path: z.string().describe(CLASS_ARG_TEXT.folderPath) }), annotations: SETS }, async (args) => reply(await actions.link_class_folder(args)));
-	server.registerTool("start_lesson", { title: "Start a lesson", description: CLASS_TOOL_TEXT.start_lesson, inputSchema: z.object({ topic: z.string().min(1).describe(CLASS_ARG_TEXT.topic), class_id: CLASS_ID_ARG }), annotations: ADDS }, async (args) => {
+		}), annotations: SETS }, async (args) => reply(await actions.update_space_deadline(args)));
+	server.registerTool("remove_space_deadline", { title: "Remove a space deadline", description: SPACE_TOOL_TEXT.remove_space_deadline, inputSchema: z.object({ space_id: z.string(), deadline_id: z.string() }), annotations: REMOVES }, async (args) => reply(await actions.remove_space_deadline(args)));
+	server.registerTool("link_space_folder", { title: "Link a folder to a space", description: SPACE_TOOL_TEXT.link_space_folder, inputSchema: z.object({ space_id: z.string(), path: z.string().describe(SPACE_ARG_TEXT.folderPath) }), annotations: SETS }, async (args) => reply(await actions.link_space_folder(args)));
+	server.registerTool("update_prep", { title: "Change a prep sheet", description: SPACE_TOOL_TEXT.update_prep, inputSchema: z.object({
+			space_id: z.string(),
+			date: z.string().nullable().optional().describe(SPACE_ARG_TEXT.prepDate),
+			about: z.string().min(1).optional().describe(SPACE_ARG_TEXT.prepAbout),
+			mock: z.object({ questions: z.number().int(), minutes: z.number().int() }).optional().describe(SPACE_ARG_TEXT.prepMock),
+			add_topics: z.array(z.object({ name: z.string().min(1), why: z.string().optional() })).optional().describe(SPACE_ARG_TEXT.addTopics),
+			remove_topic_ids: z.array(z.string()).optional().describe(SPACE_ARG_TEXT.removeTopics),
+		}), annotations: SETS }, async (args) => reply(await actions.update_prep(args)));
+	server.registerTool("start_lesson", { title: "Start a lesson", description: SPACE_TOOL_TEXT.start_lesson, inputSchema: z.object({ topic: z.string().min(1).describe(SPACE_ARG_TEXT.topic), space_id: SPACE_ID_ARG }), annotations: ADDS }, async (args) => {
 		const outcome = await actions.start_lesson(args);
 		if (!outcome.ok) return failure(outcome.error);
 		const { lessonId } = outcome.value as { lessonId: string };
@@ -671,20 +700,20 @@ function registerClassTools(server: McpServer, caller: string | undefined): void
 	});
 
 	server.registerTool(
-		"unlink_class_folder",
+		"unlink_space_folder",
 		{
-			title: "Unlink a class's folder",
-			description: "Unlink the class's folder: its files leave the class together with their facts. The folder itself is not touched.",
-			inputSchema: z.object({ class_id: z.string() }),
+			title: "Unlink a space's folder",
+			description: "Unlink the space's folder: its files leave the space together with their facts. The folder itself is not touched.",
+			inputSchema: z.object({ space_id: z.string() }),
 			annotations: REMOVES,
 		},
-		async ({ class_id }) => {
-			const before = stores.classStore.getClass(class_id);
-			if (!before) return failure(`No class "${class_id}". Use list_classes.`);
-			const outcome = unlinkFolder(class_id);
+		async ({ space_id }) => {
+			const before = stores.spaceStore.getSpace(space_id);
+			if (!before) return failure(`No space "${space_id}". Use list_spaces.`);
+			const outcome = unlinkFolder(space_id);
 			if (!outcome.ok) return failure(outcome.code === "extraction_running" ? AGENT_FILE_READING_REFUSAL : outcome.error);
-			noteAgentAction(caller, { label: `Unlinking ${folderName(before.linkedFolder)}`, classId: class_id, target: { kind: "class", id: class_id }, page: "/class/files" });
-			return result({ classId: class_id, unlinked: before.linkedFolder, filesRemoved: before.files.filter((f) => f.origin === "linked").length });
+			noteAgentAction(caller, { label: `Unlinking ${folderName(before.linkedFolder)}`, spaceId: space_id, target: { kind: "space", id: space_id }, page: "/space/files" });
+			return result({ spaceId: space_id, unlinked: before.linkedFolder, filesRemoved: before.files.filter((f) => f.origin === "linked").length });
 		},
 	);
 }
@@ -720,16 +749,32 @@ function clientOfMeta(meta: Record<string, unknown> | undefined): string | undef
 	return undefined;
 }
 
+/** A godspeed folder hook's request: the session id it sent and its body, or the refusal. */
+async function hookRequest(req: Request): Promise<{ agent: string; body: Record<string, unknown> } | Response> {
+	const refused = refuse(req);
+	if (refused) return refused;
+	const body = ((await req.json().catch(() => null)) ?? {}) as Record<string, unknown>;
+	const agent = agentIdOf({ "godspeed/agent": body.agent });
+	if (!agent) return Response.json({ error: "Send the agent's session id as \"agent\"." }, { status: 400 });
+	return { agent, body };
+}
+
 /** /api/mcp/forget: the godspeed folder's Claude Code hook says an agent lost its
  *  context (it compacted, or "cleared": /clear ended the session), so its
  *  next items come in full. */
 export async function handleAgentForget(req: Request): Promise<Response> {
-	const refused = refuse(req);
-	if (refused) return refused;
-	const body = (await req.json().catch(() => null)) as { agent?: unknown; cleared?: unknown } | null;
-	const agent = agentIdOf({ "godspeed/agent": body?.agent });
-	if (!agent) return Response.json({ error: "Send the agent's session id as \"agent\"." }, { status: 400 });
-	forgetAgent(agent, body?.cleared === true);
+	const hook = await hookRequest(req);
+	if (hook instanceof Response) return hook;
+	forgetAgent(hook.agent, hook.body.cleared === true);
+	return Response.json({ ok: true });
+}
+
+/** /api/mcp/compacting: the godspeed folder's Claude Code hook says an agent
+ *  started compacting its context, so the backup teacher answers meanwhile. */
+export async function handleAgentCompacting(req: Request): Promise<Response> {
+	const hook = await hookRequest(req);
+	if (hook instanceof Response) return hook;
+	agentCompacting(hook.agent);
 	return Response.json({ ok: true });
 }
 
@@ -753,14 +798,14 @@ function logMcpError(error: Error): void {
 }
 
 /** What an agent gets on connecting: the loop, the briefing, then memory
- *  and classes. The briefing is sized so memory still ends before Claude
+ *  and spaces. The briefing is sized so memory still ends before Claude
  *  Code's cut. (In Claude Code, the godspeed folder's CLAUDE.md says how to
  *  wait with the waiter.) */
 function connectInstructions(): string {
 	const before = INSTRUCTIONS.length + "\n\n".length;
 	const after = "\n\n".length + MEMORY_INSTRUCTIONS.length;
 	const briefing = currentAgentBriefing(INSTRUCTIONS_CUT - CUT_MARGIN - before - after);
-	return [INSTRUCTIONS, briefing, MEMORY_INSTRUCTIONS, CLASS_INSTRUCTIONS].join("\n\n");
+	return [INSTRUCTIONS, briefing, MEMORY_INSTRUCTIONS, SPACE_INSTRUCTIONS].join("\n\n");
 }
 
 /** The /api/mcp transport: one stateless server per request, in either era. */

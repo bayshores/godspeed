@@ -29,16 +29,19 @@ export * from "./events.ts";
 // partition from the server.
 export * from "./plan-tree.ts";
 // The godspeed folder's agents (the "Open Claude Code" button).
-export type { FolderAgent, OldSetup } from "./agent-folder.ts";
+export type { FolderAgent, OldSetup, StartCommands, StartTarget } from "./agent-folder.ts";
 export * from "./phases.ts";
 export * from "./pending.ts";
 export * from "./tool-switches.ts";
 export * from "./prompt-segments.ts";
 export * from "./math-delims.ts";
+// Source marks in teacher text.
+export * from "./citations.ts";
 // The native record (LhMessage) and the input-events contract — pure,
 // browser-safe.
 export * from "./native-messages.ts";
 export * from "./today-note.ts";
+export * from "./space-work.ts";
 export * from "./compaction.ts";
 export * from "./input-events.ts";
 export * from "./attachments.ts";
@@ -62,6 +65,7 @@ export * from "./settings.ts";
 export type { ChatDeleteMode } from "./graph-deletion.ts";
 export * from "./settings-resolution.ts";
 export * from "./math-typing.ts";
+export * from "./calculator.ts";
 export * from "./file-series.ts";
 export * from "./file-groups.ts";
 export * from "./new-files.ts";
@@ -71,7 +75,10 @@ export * from "./study.ts";
 export * from "./continue-study.ts";
 export * from "./homework.ts";
 export * from "./cheat-sheet.ts";
-export type { ClassChange } from "./class-tools.ts";
+export * from "./prep.ts";
+export * from "./mock.ts";
+export { RUN_FILE, type ExampleRun, type RunOutcome } from "./mock-run.ts";
+export type { SpaceChange } from "./space-tools.ts";
 export * from "./teaching-areas.ts";
 export * from "./agent-rules.ts";
 export * from "./ink.ts";

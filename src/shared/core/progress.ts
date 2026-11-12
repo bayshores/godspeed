@@ -2,7 +2,7 @@
  * PROGRESS — every number the Overview and the topic Graph show. Nothing
  * here is saved: it is all
  * derived from what the app already records (lesson answers, graph facts
- * and chains, class files and deadlines) plus the topic grouper's snapshot.
+ * and chains, space files and deadlines) plus the topic grouper's snapshot.
  *
  *  - answers: every graded quiz/probe answer in a lesson
  *  - answer → facts: the facts made from the lesson message that asked it
@@ -15,13 +15,13 @@
  * Pure and browser-safe: no node builtins. The server assembles the inputs
  * (src/backend/server/progress.ts → GET /api/progress).
  */
-import type { ClassDeadline, ClassFileKind, DeadlineKind, GraphChain, LessonKind, ProvenancePoint, TopicSnapshot } from "./contracts.ts";
+import type { SpaceDeadline, SpaceFileKind, DeadlineKind, GraphChain, LessonKind, ProvenancePoint, TopicMaterial, TopicSnapshot } from "./contracts.ts";
 import { compareDeadlines } from "./contracts.ts";
 import { continueStudyFor, type ContinueStudy, type DeadlineSession } from "./continue-study.ts";
 import { latestHomework, problemsDone, type HomeworkSession } from "./homework.ts";
 import type { LhMessage } from "./native-messages.ts";
 import { isGradedTool, isQuestionTool } from "./pending.ts";
-import { confidenceLevel, type ConfidenceLevel, type QuestionAnswerData } from "./question-core.ts";
+import { confidenceLevel, normalizeQuizType, type ConfidenceLevel, type QuestionAnswerData } from "./question-core.ts";
 import { birthSessionOf } from "./session-clusters.ts";
 import { practiceOutcomes, type ConcludeOutcome } from "./practice-outcomes.ts";
 import { resolveTopics } from "./topics.ts";
@@ -72,9 +72,8 @@ export interface AnsweredQuestion {
 	tool: string;
 	/** The facts it names itself (a practice problem's targets). */
 	factIds?: string[];
-	/** The plan node the quiz is about (teach quizzes). */
+	/** The plan node it is about (teach quizzes, study problems). */
 	nodeId?: string;
-	questionType?: string;
 	question: string;
 	outcome: AnswerOutcome;
 	/** Stored percentage (0–100), when the learner gave one. */
@@ -111,7 +110,7 @@ export function isAnswerData(v: unknown): v is QuestionAnswerData {
  *  on is wrong; solved with hints counts neither way. */
 const PRACTICE_OUTCOME: Partial<Record<ConcludeOutcome, AnswerOutcome>> = { solved: "right", movedOn: "wrong", surrendered: "wrong" };
 
-/** Every graded quiz/probe answer in one lesson, in transcript order, then its practice problems' outcomes. */
+/** Every graded quiz/probe answer in one lesson (predictions aside), in transcript order, then its practice problems' outcomes. */
 export function collectAnswers(chatId: string, messages: readonly LhMessage[]): AnsweredQuestion[] {
 	const calls = new Map<string, { messageId: string; context: string[]; tool: string; args: Record<string, unknown> }>();
 	const out: AnsweredQuestion[] = [];
@@ -151,8 +150,9 @@ export function collectAnswers(chatId: string, messages: readonly LhMessage[]): 
 		const ad = result.details;
 		const outcome = answerOutcome(ad);
 		if (!outcome) continue;
+		// A prediction is a guess at what hasn't been taught yet: no evidence either way.
+		if (normalizeQuizType(ad.questionType ?? call.args.type) === "predict") continue;
 		const nodeId = typeof call.args.nodeId === "string" ? call.args.nodeId : undefined;
-		const questionType = ad.questionType ?? (typeof call.args.type === "string" ? call.args.type : undefined);
 		const confidence = typeof ad.confidence === "number" && outcome !== "dontKnow" ? ad.confidence : undefined;
 		out.push({
 			chatId,
@@ -161,7 +161,6 @@ export function collectAnswers(chatId: string, messages: readonly LhMessage[]): 
 			toolCallId: result.toolCallId!,
 			tool: ad.tool ?? call.tool,
 			...(nodeId ? { nodeId } : {}),
-			...(questionType ? { questionType } : {}),
 			question: ad.questionText ?? (typeof call.args.question === "string" ? call.args.question : ""),
 			outcome,
 			...(confidence !== undefined ? { confidence, level: confidenceLevel(confidence) } : {}),
@@ -178,6 +177,7 @@ export function collectAnswers(chatId: string, messages: readonly LhMessage[]): 
 			toolCallId: p.problemCallId,
 			tool: "problem",
 			...(p.targets.length > 0 ? { factIds: p.targets } : {}),
+			...(p.nodeId ? { nodeId: p.nodeId } : {}),
 			question: p.statement,
 			outcome,
 			answeredAt: p.at,
@@ -268,6 +268,7 @@ export interface TopicProgress extends Tally {
 	members: string[];
 	/** The derived "Ungrouped" bucket (facts no snapshot placed yet). */
 	ungrouped?: true;
+	material?: TopicMaterial;
 	status: TopicStatus;
 	/** rampColor(rate). */
 	color: string;
@@ -399,7 +400,7 @@ const fromLesson = (p: ProvenancePoint) => !p.chatId.startsWith("src_");
 interface ProgressFileInput {
 	id: string;
 	name: string;
-	kind: ClassFileKind;
+	kind: SpaceFileKind;
 	/** The notes-source id its facts are born under (server: sourceIdFor). */
 	sourceId: string;
 }
@@ -415,7 +416,7 @@ export interface FileCoverage {
 	share: number | null;
 }
 
-/** Coverage for every STUDY file, in the class's file order. */
+/** Coverage for every STUDY file, in the space's file order. */
 function fileCoverage(
 	files: readonly ProgressFileInput[],
 	facts: ReadonlyArray<{ id: string; provenance: ProvenancePoint[] }>,
@@ -437,7 +438,7 @@ function fileCoverage(
 		});
 }
 
-/** "Next up": the earliest study file (class file order) that has facts
+/** "Next up": the earliest study file (space file order) that has facts
  *  but none of them came up in a lesson yet. */
 function nextUpFile(coverage: readonly FileCoverage[]): FileCoverage | null {
 	return coverage.find((f) => f.facts > 0 && f.inLessons === 0) ?? null;
@@ -561,7 +562,7 @@ export interface DeadlineProgress {
 	continueHomework?: string;
 }
 
-/** The class-wide view (no deadline picked, or none exists). */
+/** The space-wide view (no deadline picked, or none exists). */
 interface OverallProgress {
 	topicIds: string[];
 	counts: StatusCounts;
@@ -634,21 +635,21 @@ export function workOnNext(
 // ─── the whole payload ──────────────────────────────────────────────────────
 
 interface ProgressInput {
-	classId: string | null;
+	spaceId: string | null;
 	/** The learner's calendar day, YYYY-MM-DD (days-until counts from it). */
 	today: string;
 	/** The graph's facts (core/graph.ts getGraph nodes). */
 	facts: ReadonlyArray<{ id: string; name: string; statement: string; provenance: ProvenancePoint[] }>;
 	chains: ReadonlyArray<Pick<GraphChain, "premises" | "conclusion">>;
 	topics: TopicSnapshot | null;
-	/** The class's files (empty for "No class"), in class order. */
+	/** The space's files (empty for "No space"), in space order. */
 	files: readonly ProgressFileInput[];
-	deadlines: readonly ClassDeadline[];
-	/** The lessons in the class (teach and practice). */
+	deadlines: readonly SpaceDeadline[];
+	/** The lessons in the space (teach and practice). */
 	lessons: readonly ProgressLessonInput[];
-	/** The class's Study sessions started from a deadline. */
+	/** The space's Study sessions started from a deadline. */
 	deadlineSessions?: readonly DeadlineSession[];
-	/** The class's homework sessions. */
+	/** The space's homework sessions. */
 	homeworkSessions?: readonly HomeworkSession[];
 	/** A topic-grouping run is going right now. */
 	grouping?: boolean;
@@ -656,7 +657,7 @@ interface ProgressInput {
 
 /** GET /api/progress — everything the Overview and the Graph page need. */
 export interface ProgressPayload {
-	classId: string | null;
+	spaceId: string | null;
 	today: string;
 	/** When the topic snapshot was written; null before the first grouping. */
 	topicsAt: string | null;
@@ -665,7 +666,7 @@ export interface ProgressPayload {
 	topics: TopicProgress[];
 	topicLinks: TopicLink[];
 	facts: FactProgress[];
-	/** Study files only, in class order (empty for "No class"). */
+	/** Study files only, in space order (empty for "No space"). */
 	files: FileCoverage[];
 	nextUp: FileCoverage | null;
 	/** Newest activity first. */
@@ -674,7 +675,7 @@ export interface ProgressPayload {
 	/** Every deadline (done ones too), soonest due first. */
 	deadlines: DeadlineProgress[];
 	overall: OverallProgress;
-	/** Totals over every graded answer in the class. */
+	/** Totals over every graded answer in the space. */
 	totals: Tally;
 }
 
@@ -684,7 +685,7 @@ export function deriveProgress(input: ProgressInput): ProgressPayload {
 	const topicOfFact = new Map<string, string>();
 	for (const t of resolved) for (const id of t.members) topicOfFact.set(id, t.id);
 
-	// Answers, per lesson and for the whole class.
+	// Answers, per lesson and for the whole space.
 	const titles = new Map(input.lessons.map((l) => [l.id, l.title]));
 	const answersByLesson = new Map(input.lessons.map((l) => [l.id, l.answers]));
 	const allAnswers = [...answersByLesson.values()].flat().sort(byTime);
@@ -720,6 +721,7 @@ export function deriveProgress(input: ProgressInput): ProgressPayload {
 			name: t.name,
 			members: t.members,
 			...(t.ungrouped ? { ungrouped: true as const } : {}),
+			...(t.material ? { material: t.material } : {}),
 			...counts,
 			status: topicStatus(counts.rate),
 			color: rampColor(counts.rate),
@@ -792,7 +794,7 @@ export function deriveProgress(input: ProgressInput): ProgressPayload {
 	});
 
 	return {
-		classId: input.classId,
+		spaceId: input.spaceId,
 		today: input.today,
 		topicsAt: input.topics?.at ?? null,
 		grouping: input.grouping === true,

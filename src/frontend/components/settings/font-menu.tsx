@@ -9,9 +9,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import { fuzzyScore } from "@/shared/core";
+import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
+import { cn } from "@/frontend/lib/utils";
+
+const ROW = "lh-press flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-[15px] text-ink hover:bg-accent";
 
 /** The factory reading family (unset = this). */
-export const DEFAULT_READING_FONT = "Atkinson Hyperlegible Mono";
+export const DEFAULT_READING_FONT = "Literata";
 
 /** The menu's rows. The DEFAULT row (null) is searched like any family
  *  (it matches "source", "sans" and "default"), so Enter can never pick a
@@ -108,10 +112,10 @@ export function FontMenuList({
 				}}
 				placeholder="Search fonts…"
 				aria-label="Search fonts"
-				className="lh-input mb-1.5 w-full border bg-background px-2 py-1.5 text-foreground outline-none focus:ring-1 focus:ring-ring"
+				className="mb-1.5 h-9 w-full rounded border-[1.5px] border-ink bg-background px-2.5 text-[15px] text-ink placeholder:text-ink-3"
 			/>
-			{!families && <div className="px-2 py-3 text-center text-muted-foreground">Loading fonts…</div>}
-			<ul ref={listRef} data-testid="font-list" className="flex max-h-72 flex-col overflow-y-auto px-1">
+			{!families && <div className="px-2 py-3 text-center text-[15px] text-ink-2">Loading fonts…</div>}
+			<ul ref={listRef} data-testid="font-list" className="flex max-h-72 flex-col overflow-y-auto">
 				{families &&
 					results.map((family, i) => {
 						const isDefault = family === null;
@@ -123,34 +127,24 @@ export function FontMenuList({
 									data-testid={isDefault ? "font-option-default" : `font-option-${family.replace(/[^a-z0-9-]/gi, "_")}`}
 									data-idx={i}
 									onClick={() => onPick(family)}
-									className={`lh-press flex w-full items-center justify-between gap-3 px-2 py-1.5 text-left outline-none hover:bg-muted ${
-										i === menuIdx ? "bg-accent/40 ring-1 ring-inset ring-border" : ""
-									}${effective && i !== menuIdx ? " bg-muted/60" : ""}`}
+									className={cn(ROW, i === menuIdx && "bg-accent", effective && "font-medium")}
 								>
-									<span className="truncate text-card-foreground">{family ?? DEFAULT_READING_FONT}</span>
-									<span className="shrink-0 text-muted-foreground">{isDefault ? "default" : effective && <span aria-hidden>✓</span>}</span>
+									<span className="truncate">{family ?? DEFAULT_READING_FONT}</span>
+									<span className="shrink-0 text-ink-2">{isDefault ? "default" : effective && <PixelIcon name="check" />}</span>
 								</button>
 							</li>
 						);
 					})}
 				{families && customFamily !== null && (
 					<li>
-						<button
-							type="button"
-							data-testid="font-option-custom"
-							data-idx={0}
-							onClick={() => onPick(customFamily)}
-							className={`lh-press flex w-full items-center justify-between gap-3 px-2 py-1.5 text-left outline-none hover:bg-muted ${
-								menuIdx === 0 ? "bg-accent/40 ring-1 ring-inset ring-border" : ""
-							}`}
-						>
-							<span className="truncate text-card-foreground">Use “{customFamily}”</span>
-							<span className="shrink-0 text-muted-foreground">custom</span>
+						<button type="button" data-testid="font-option-custom" data-idx={0} onClick={() => onPick(customFamily)} className={cn(ROW, menuIdx === 0 && "bg-accent")}>
+							<span className="truncate">Use “{customFamily}”</span>
+							<span className="shrink-0 text-ink-2">custom</span>
 						</button>
 					</li>
 				)}
 			</ul>
-			{footer && <div className="px-2 pt-1.5 text-xs text-muted-foreground">{footer}</div>}
+			{footer && <div className="px-3 pt-1.5 text-sm text-ink-2">{footer}</div>}
 		</>
 	);
 }

@@ -1,5 +1,60 @@
 [
 	{
+		"version": "0.5.50",
+		"date": "2026-11-11",
+		"changes": [
+			"Every problem now shows by itself on the right, in Study and Practice too, like homework. You work on it in the one message box at the bottom.",
+			"A message you send while a problem is open is your work on it, not a side question. The teacher can check it, close the problem or switch to the part you asked for, and you never have to discard a problem first.",
+			"The teacher answers the exact thing you asked first, follows your own method when it works, and keeps replies short when you're stuck. After one explanation that didn't land, it asks one small question to find what's confusing you.",
+			"Problem sets start at the first problem and its first part unless you pick another."
+		]
+	},
+	{
+		"version": "0.5.49",
+		"date": "2026-11-10",
+		"changes": [
+			"The teacher looks up how your class teaches something before explaining it, and uses your class's own words and method.",
+			"When an explanation isn't landing, the teacher stops explaining and asks one small question to find exactly what's confusing you.",
+			"Homework: when the assignment file isn't attached yet, the teacher finds it in your class files and attaches it.",
+			"Lessons use much less of your agent's memory. The class card no longer lists every file, and saving a rule or shortening a lesson no longer sends the whole lesson again."
+		]
+	},
+	{
+		"version": "0.5.48",
+		"date": "2026-11-10",
+		"changes": [
+			"Long lessons no longer make you wait. godspeed shortens the older part at once, and the teacher's written summary takes its place a few minutes later.",
+			"Open Claude Code also opens a backup teacher. When the main one stops to compact its memory, the backup answers your lesson and Talk messages so you don't wait."
+		]
+	},
+	{
+		"version": "0.5.47",
+		"date": "2026-11-10",
+		"changes": [
+			"Buttons are a step brighter, so they stand out from the text around them.",
+			"The attach and send buttons in the lesson's message box sit evenly inside it."
+		]
+	},
+	{
+		"version": "0.5.46",
+		"date": "2026-11-10",
+		"changes": [
+			"Homework: the whole problem stays in the Your turn panel while you work, so you never scroll up to find it. You work in the message box under the lesson, and the teacher checks each message and marks the problem done when your work is right.",
+			"The panel shows which part of a problem you're on, like q3 (b), and scrolls to it.",
+			"Math like 0<r<n no longer cuts off the rest of the teacher's message.",
+			"The teacher in the sidebar says what it's doing in a speech bubble, with talk and follow side by side.",
+			"Buttons that looked like plain text, like discard problem, skip question, cancel and try again, now look like buttons."
+		]
+	},
+	{
+		"version": "0.5.45",
+		"date": "2026-11-09",
+		"changes": [
+			"A calculator in every box you write in. End a calculation with = and the answer shows in grey after it. Click it or press Tab to keep it, or keep typing to skip it.",
+			"It works out numbers, letters you set on a line above (x = 3), expanding and simplifying, solve 2x + 3 = 11, derivatives (d/dx x^3 =) and integrals (int x^2 dx =). Exact answers come with their decimal."
+		]
+	},
+	{
 		"version": "0.5.44",
 		"date": "2026-11-09",
 		"changes": [

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useActivity } from "@/frontend/components/activity-dock";
 
 /**
- * The coverage block in the sidebar's lesson context menu: whether the
+ * The coverage block in the lesson menu: whether the
  * lesson's facts are all in the graph yet, plus a manual "Add to graph".
  * Coverage comes from GET /api/chats/[id] (`coverage`).
  *

@@ -3,7 +3,8 @@ import React from "react";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
-import { GraphCostControl, displayUnpricedRuns } from "../../src/frontend/components/graph/cost-control.tsx";
+import { GraphCostControl } from "../../src/frontend/components/graph/cost-control.tsx";
+import { displayUnpricedRuns } from "../../src/frontend/components/graph/cost-model.ts";
 import { graphCostSummary } from "../../src/shared/core/cost-summary.ts";
 import type { CallUsage, ExtractionRunUsage } from "../../src/shared/core/contracts.ts";
 
@@ -12,11 +13,11 @@ const run = (steps: CallUsage[], model = "anthropic:claude-haiku-4-5", at = 1): 
 const summary = (runs: ExtractionRunUsage[]) => graphCostSummary({ chats: [{ title: "fixture", extractions: runs }], sources: [] });
 const headline = (runs: ExtractionRunUsage[]) => renderToStaticMarkup(<GraphCostControl costs={summary(runs)} />);
 
-test("the top bar button says graph costs, never a dollar figure", () => {
+test("the bar's button says Graph costs, never a dollar figure", () => {
 	const historical = run([usage()]);
 	assert.equal(displayUnpricedRuns(summary([historical])), 1);
 	const html = headline([historical]);
-	assert.match(html, />\s*graph costs\s*<\/button>/);
+	assert.match(html, />\s*Graph costs\s*<\/button>/);
 	assert.doesNotMatch(html, /\$/);
 });
 

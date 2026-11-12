@@ -1,5 +1,5 @@
 /**
- * THE CHEAT SHEET: the notes a class lets the learner bring to a deadline,
+ * THE CHEAT SHEET: the notes a space lets the learner bring to a deadline,
  * one per deadline. The agent makes it as a real PDF with its own tools,
  * keeping its source in a working folder so a change edits it. The sheet
  * has a chat: each message from the learner is one request, which the
@@ -7,9 +7,9 @@
  * the last few versions, the chat and the sheet's rules (what should
  * always hold for it). Pure and browser-safe.
  */
-import type { ClassDeadline, DeadlineKind } from "./contracts.ts";
+import type { SpaceDeadline, DeadlineKind } from "./contracts.ts";
 import type { TopicStatus } from "./progress.ts";
-import { safeEntryName } from "./class-shortcuts.ts";
+import { safeEntryName } from "./space-shortcuts.ts";
 import { RULE_MAX_CHARS, RULES_MAX, oneLine as cleanLine } from "./teaching-areas.ts";
 
 // ─── the record ─────────────────────────────────────────────────────────────
@@ -53,20 +53,9 @@ export interface SheetRegion {
 	h: number;
 }
 
-/** The problem or question the learner is on in a session, sent along
- *  from the sheet beside it. */
-export interface SheetAbout {
-	kind: "problem" | "question";
-	/** The session's title. */
-	session: string;
-	text: string;
-	/** What they have written for it so far. */
-	work?: string;
-}
-
 /** One message in the sheet's chat. */
 export type SheetMessage =
-	| { id: string; role: "you"; text: string; at: string; files?: SheetFile[]; region?: SheetRegion; about?: SheetAbout }
+	| { id: string; role: "you"; text: string; at: string; files?: SheetFile[]; region?: SheetRegion }
 	| {
 			id: string;
 			role: "agent";
@@ -172,8 +161,8 @@ export function pdfProblem(pdf: { bytes: number; head?: string; pages?: readonly
 }
 
 /** The working folder's name: "CSE 21 Midterm", safe on every OS. */
-export function sheetFolderName(className: string, deadlineName: string): string {
-	return safeEntryName(`${className} ${deadlineName}`);
+export function sheetFolderName(spaceName: string, deadlineName: string): string {
+	return safeEntryName(`${spaceName} ${deadlineName}`);
 }
 
 /** The copies Show in Finder writes into the working folder. */
@@ -234,19 +223,12 @@ export function sheetRegionOf(v: unknown): SheetRegion | undefined {
 	return isNumber(n) && isNumber(page) && isNumber(x) && isNumber(y) && isNumber(w) && isNumber(h) ? { n, page, x, y, w, h } : undefined;
 }
 
-/** A session's problem or question as sent or saved, or undefined. */
-export function sheetAboutOf(v: unknown): SheetAbout | undefined {
-	if (!isObject(v) || (v.kind !== "problem" && v.kind !== "question") || !isString(v.session) || !isString(v.text)) return undefined;
-	return { kind: v.kind, session: v.session, text: v.text, ...(isString(v.work) ? { work: v.work } : {}) };
-}
-
 function readMessage(v: unknown): SheetMessage | null {
 	if (!isObject(v) || !isString(v.id) || !isString(v.text) || !isString(v.at)) return null;
 	if (v.role === "you") {
 		const files = list(v.files, readFile);
 		const region = sheetRegionOf(v.region);
-		const about = sheetAboutOf(v.about);
-		return { id: v.id, role: "you", text: v.text, at: v.at, ...(files.length > 0 ? { files } : {}), ...(region ? { region } : {}), ...(about ? { about } : {}) };
+		return { id: v.id, role: "you", text: v.text, at: v.at, ...(files.length > 0 ? { files } : {}), ...(region ? { region } : {}) };
 	}
 	if (v.role !== "agent") return null;
 	const rules = Array.isArray(v.rules) ? v.rules.filter(isString) : [];
@@ -406,12 +388,12 @@ interface CheatSheetRequest {
 	/** "CSE 21 Midterm". */
 	title: string;
 	date: string;
-	/** The learner's words about the class (notation, textbook). */
-	classNotes: string;
-	/** The class's course info files (syllabus, policies). */
+	/** The learner's words about the space (notation, textbook). */
+	spaceNotes: string;
+	/** The space's space info files (syllabus, policies). */
 	infoFiles: readonly string[];
 	rules: readonly SheetRule[];
-	/** The deadline's topics in class order. */
+	/** The deadline's topics in space order. */
 	topics: readonly RequestTopic[];
 	mistakes: readonly SheetMistake[];
 	/** The working folder's absolute path, and what is in it now. */
@@ -437,7 +419,6 @@ const FOLDER_FILES_NAMED = 12;
 /** The chat a request carries: its last few messages, each cut short. */
 const EARLIER_SENT = 8;
 const EARLIER_CHARS = 500;
-const ABOUT_CHARS = 1500;
 
 function namedList(names: readonly string[], max: number): string {
 	const rest = names.length - max;
@@ -456,22 +437,12 @@ function folderText(r: CheatSheetRequest, current: SheetVersion | null): string 
 
 function earlierText(messages: readonly SheetMessage[]): string {
 	const lines = messages.slice(-EARLIER_SENT).map((m) => {
-		if (m.role === "you") return `Student: ${oneLine(m.text, EARLIER_CHARS) || "(files only)"}`;
+		if (m.role === "you") return `Learner: ${oneLine(m.text, EARLIER_CHARS) || "(files only)"}`;
 		return `You: ${[oneLine(m.text, EARLIER_CHARS), m.version ? `[made version ${m.version}]` : ""].filter(Boolean).join(" ")}`;
 	});
 	return lines.length > 0 ? `The chat so far, oldest first:\n${lines.join("\n")}` : "";
 }
 
-function aboutText(a: SheetAbout): string {
-	const what = a.kind === "problem" ? "problem" : "question";
-	return [
-		`The student is on this ${what} in their session "${a.session}", with the sheet open beside it:`,
-		oneLine(a.text, ABOUT_CHARS),
-		a.work?.trim() ? `What they have written for it so far:\n${a.work.trim().slice(0, ABOUT_CHARS)}` : "",
-	]
-		.filter(Boolean)
-		.join("\n");
-}
 
 function regionLine(r: SheetRegion, versions: readonly SheetVersion[], current: SheetVersion | null): string {
 	const v = versions.find((x) => x.n === r.n);
@@ -496,31 +467,30 @@ export function cheatSheetRequestText(r: CheatSheetRequest): string {
 	return [
 		[
 			`Cheat sheet for: ${r.title} on ${r.date}`,
-			r.classNotes ? `About the class: ${oneLine(r.classNotes, 300)}` : "",
-			r.infoFiles.length > 0 ? `Course info files (the rules are likely here): ${infoFileList(r.infoFiles)}` : "The class has no course info files; search all its files for the rules.",
+			r.spaceNotes ? `About the space: ${oneLine(r.spaceNotes, 300)}` : "",
+			r.infoFiles.length > 0 ? `Space info files (the rules are likely here): ${infoFileList(r.infoFiles)}` : "The space has no space info files; search all its files for the rules.",
 		]
 			.filter(Boolean)
 			.join("\n"),
 		r.rules.length > 0 ? `This sheet's rules (follow every one):\n${r.rules.map((x) => `- ${x.text}`).join("\n")}` : "",
-		r.topics.length > 0 ? `Topics on this exam (name | how the student does)${current ? "" : ", with some of the class's facts"}:\n${r.topics.map(topic).join("\n")}` : "",
+		r.topics.length > 0 ? `Topics on this exam (name | how the learner does)${current ? "" : ", with some of the space's facts"}:\n${r.topics.map(topic).join("\n")}` : "",
 		r.mistakes.length > 0 ? `Mistakes from practice:\n${r.mistakes.map(mistake).join("\n")}` : "",
 		folderText(r, current),
 		earlierText(r.earlier),
-		m.about ? aboutText(m.about) : "",
 		m.region ? regionLine(m.region, r.versions, current) : "",
-		`The student says:\n${m.text.trim() || "(no words, only the files)"}`,
+		`The learner says:\n${m.text.trim() || "(no words, only the files)"}`,
 	]
 		.filter(Boolean)
 		.join("\n\n");
 }
 
-// ─── a class's cheat sheets ─────────────────────────────────────────────────
+// ─── a space's cheat sheets ─────────────────────────────────────────────────
 
 /** Where a deadline's sheet is: made, the agent on it, made in an older
  *  format (or by a newer godspeed), or not there. */
 type SheetStatus = "made" | "making" | "older" | "newer" | "none";
 
-/** One deadline on the class's Cheat sheets page. */
+/** One deadline on the space's Cheat sheets page. */
 export interface SheetCard {
 	deadlineId: string;
 	name: string;
@@ -534,16 +504,16 @@ export interface SheetCard {
 	version: SheetVersion | null;
 }
 
-/** GET /api/classes/<id>/cheat-sheets. */
-export interface ClassSheetsView {
-	className: string;
+/** GET /api/spaces/<id>/cheat-sheets. */
+export interface SpaceSheetsView {
+	spaceName: string;
 	cards: SheetCard[];
 }
 
-/** Every deadline of the class with its sheet: upcoming soonest first, then
+/** Every deadline of the space with its sheet: upcoming soonest first, then
  *  past ones, latest first. */
 export function sheetCards(
-	deadlines: readonly ClassDeadline[],
+	deadlines: readonly SpaceDeadline[],
 	sheetOf: (deadlineId: string) => CheatSheet | "newer" | null,
 	running: (deadlineId: string) => boolean,
 	today: string,
@@ -571,7 +541,7 @@ export function sheetCards(
 /** GET …/cheat-sheet: everything the studio and the sheet beside a
  *  session show. */
 export interface CheatSheetView {
-	className: string;
+	spaceName: string;
 	deadlineName: string;
 	/** The due day, YYYY-MM-DD. */
 	date: string;

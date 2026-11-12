@@ -3,7 +3,7 @@
  * (pose: terminates the turn; the commitment rides the call's arguments,
  * hidden from the learner UI) and `conclude` (end the problem: normal
  * result, so closing words may follow; the next pose waits for the
- * learner's go-ahead). The rarely-used extras join in practiceTools. The gating law: an agent cannot pose while a problem is active
+ * learner's go-ahead, which asking for another problem or part is). The rarely-used extras join in practiceTools. The gating law: an agent cannot pose while a problem is active
  * and cannot conclude with nothing active — activeProblemOf is the single
  * fold both gates read.
  *
@@ -21,10 +21,10 @@ import { findTool } from "./find.ts";
 import { grepTool } from "./grep.ts";
 import { jobTools, type JobToolContext } from "./jobs.ts";
 import { proberGraphTools, type GraphToolContext } from "./graph.ts";
-import { classTools, type ClassToolContext } from "./class.ts";
+import { spaceTools, type SpaceToolContext } from "./space.ts";
 import { ruleTools, type SaveRule } from "./rules.ts";
-import { lessonClassChangeTools } from "./talk.ts";
-import type { ClassActions } from "../../../shared/core/class-tools.ts";
+import { lessonSpaceChangeTools } from "./talk.ts";
+import type { SpaceActions } from "../../../shared/core/space-tools.ts";
 import { activeProblemOf } from "../../../shared/core/native-messages.ts";
 import { filterEnabledTools, type EnabledTools } from "../../../shared/core/tool-switches.ts";
 import type { LhMessage } from "../../../shared/core/native-messages.ts";
@@ -47,24 +47,24 @@ export interface PracticeToolContext {
 	 *  Each absent context (tests) = absent from the registry. */
 	graph?: GraphToolContext;
 	jobs?: JobToolContext;
-	/** The lesson's class card reader: present = read_class. */
-	classCard?: ClassToolContext["classCard"];
-	todayNote?: ClassToolContext["todayNote"];
-	classSearch?: ClassToolContext["search"];
-	classNote?: ClassToolContext["setNote"];
+	/** The lesson's space card reader: present = read_space. */
+	spaceCard?: SpaceToolContext["spaceCard"];
+	todayNote?: SpaceToolContext["todayNote"];
+	spaceSearch?: SpaceToolContext["search"];
+	spaceNote?: SpaceToolContext["setNote"];
 	/** save_rule: present = the teacher can save a teaching rule. */
 	saveRule?: SaveRule;
 	/** The deadline changes a learner may ask for mid-lesson: present =
 	 *  those tools are registered. */
-	classActions?: ClassActions;
+	spaceActions?: SpaceActions;
 }
 
 /** TURN-SCOPED GATE STATE: the gates can't read the STORED record — it
  *  freezes at the turn's write-ahead (persistTurn lands only at turn END),
  *  so a mid-turn conclude → pose pair would never see each other and every
- *  pose after a conclude would fail with "a problem is already active".
- *  (The prompt forbids conclude → pose in one turn; the gate only keeps a
- *  slip from failing confusingly.) The gate seeds ONCE from the record at construction
+ *  pose after a conclude would fail with "a problem is already active"
+ *  (the learner asking for another problem or part is exactly that pair).
+ *  The gate seeds ONCE from the record at construction
  *  (one practiceTools per turn — chat-handler builds the agent per
  *  request, so there is no cross-turn leakage), and the executes flip
  *  this closure — the intra-turn truth the record cannot hold yet. */
@@ -113,8 +113,8 @@ export function problemTool(
 		name: "problem",
 		label: "problem",
 		description:
-			"Pose one practice problem. Ends the turn — the learner works in the thinking field; their thinking " +
-			"traces and answer commits arrive back as labeled messages. The modelSolution rides this call's " +
+			"Pose one practice problem. Ends the turn — the problem stays in view beside the lesson, and the " +
+			"learner's work and questions on it arrive back as their messages. The modelSolution rides this call's " +
 			"arguments and stays hidden from the learner until you conclude (conclude shows it verbatim — the " +
 			"reveal needs no new field). Only one problem may be active — conclude it before posing the next.",
 		parameters: problemInputObject,
@@ -165,7 +165,7 @@ export function problemTool(
 				}
 			}
 			gate.problemActive = true;
-			return problemResult();
+			return problemResult("the learner's work and questions on it arrive as their messages.");
 		},
 	};
 }
@@ -246,9 +246,10 @@ export function concludeTool(gate: PracticeGate): AgentTool<typeof concludeInput
 		description:
 			"Conclude the active problem: records the outcome + verdict, reveals the committed solution, and frees " +
 			"the learner's composer. After the result, say your closing words about the learner's work if useful, then " +
-			"END YOUR TURN — no further tool calls. The next problem is NEVER posed here: it waits for the learner's " +
-			"explicit go-ahead (a *Next problem* message, or their own words asking for the next one). Between problems, " +
-			"answer their questions about the concluded one. Nothing may conclude unless a problem is active.",
+			"END YOUR TURN — no further tool calls. The next problem waits for the learner's explicit go-ahead (a " +
+			"*Next problem* message, or their own words asking for the next one). The one exception: when the learner " +
+			"asked for a different problem or part, that ask is the go-ahead, so pose it right after this result. " +
+			"Between problems, answer their questions about the concluded one. Nothing may conclude unless a problem is active.",
 		parameters: concludeInputObject,
 		prepareArguments: (args: unknown) => healEncodedArguments(args, concludeInputObject) as never,
 		executionMode: "sequential",
@@ -281,7 +282,7 @@ export function practiceTools(ctx: PracticeToolContext, enabled?: EnabledTools):
 /** THE RARELY-NEEDED SET practice and homework sessions share:
  *  read/ls/find/grep over the learner's files, the research + pdf jobs
  *  (demo/visual stay teach-only), the prober's map readers when the
- *  settings gate opened, the class tools, save_rule and the deadline
+ *  settings gate opened, the space tools, save_rule and the deadline
  *  changes. The same Settings switches as the teacher's apply to them. */
 export function practiceSideTools(ctx: Omit<PracticeToolContext, "chatId" | "chatStore" | "graphNodes">, enabled?: EnabledTools): Record<string, AgentTool<any>> {
 	const jobs = ctx.jobs ? jobTools(ctx.jobs) : null;
@@ -293,9 +294,9 @@ export function practiceSideTools(ctx: Omit<PracticeToolContext, "chatId" | "cha
 			grep: grepTool,
 			...(jobs ? { research: jobs.research, pdf: jobs.pdf } : {}),
 			...(ctx.graph ? proberGraphTools(ctx.graph) : {}),
-			...(ctx.classCard ? classTools({ classCard: ctx.classCard, todayNote: ctx.todayNote, search: ctx.classSearch, setNote: ctx.classNote }) : {}),
+			...(ctx.spaceCard ? spaceTools({ spaceCard: ctx.spaceCard, todayNote: ctx.todayNote, search: ctx.spaceSearch, setNote: ctx.spaceNote }) : {}),
 			...(ctx.saveRule ? ruleTools(ctx.saveRule) : {}),
-			...(ctx.classActions ? lessonClassChangeTools(ctx.classActions) : {}),
+			...(ctx.spaceActions ? lessonSpaceChangeTools(ctx.spaceActions) : {}),
 		},
 		enabled,
 	);

@@ -8,7 +8,7 @@ import assert from "node:assert/strict";
 import * as path from "node:path";
 import { describe, it } from "node:test";
 import { parsePageSpec, pdfExtract, pdfInfo, pdfProbe, pdfSearch } from "../../src/backend/agent/subagents/pdf-ops.ts";
-import { pdfTextOffThread } from "../../src/backend/server/class-files.ts";
+import { pdfTextOffThread } from "../../src/backend/server/space-files.ts";
 
 const FIXTURE = path.join(import.meta.dirname, "..", "fixtures", "sample-3page.pdf");
 

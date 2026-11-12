@@ -53,8 +53,8 @@ const nextConfig: NextConfig = {
 			"node_modules/pdfjs-dist/legacy/build/pdf.mjs",
 			// pdf.mjs imports its stand-in worker by a relative path the tracer can't see.
 			"node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs",
-			// The class-PDF text worker, loaded by path
-			// (src/backend/server/class-files.ts pdfTextWorkerPath); the tracer can't see it.
+			// The space-PDF text worker, loaded by path
+			// (src/backend/server/space-files.ts pdfTextWorkerPath); the tracer can't see it.
 			"src/backend/server/workers/**/*",
 			// The godspeed folder's files, copied there at runtime (src/backend/server/agent-folder.ts).
 			"src/backend/server/agent-folder-files/**/*",
@@ -77,7 +77,7 @@ const nextConfig: NextConfig = {
 			// resvg rasterizes visual-maker SVGs natively; same
 			// per-platform-binary story as the canvas above (one per build).
 			"node_modules/@resvg/resvg-js-*/**/*",
-			// Class search: transformers loads onnxruntime-node with createRequire,
+			// Space search: transformers loads onnxruntime-node with createRequire,
 			// which the tracer misses. Its binding is per platform; only this
 			// build's is included.
 			"node_modules/onnxruntime-node/package.json",

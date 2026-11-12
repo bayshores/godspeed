@@ -1,6 +1,10 @@
 import { Fragment, memo } from "react";
-import { ArrowRightIcon } from "lucide-react";
-import { Message, MessageContent, MessageResponse } from "@/frontend/components/ai-elements/message";
+import { lazyComponent } from "@/frontend/lib/lazy-component";
+import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
+import { paleSpaceColor } from "@/frontend/components/space-color";
+import { useSpaceColor } from "@/frontend/components/space-context";
+import { Message, MessageContent } from "@/frontend/components/ai-elements/message";
+import { CitedResponse } from "@/frontend/components/citations/cited-response";
 import { Reasoning, ReasoningContent, ReasoningTrigger } from "@/frontend/components/ai-elements/reasoning";
 import { LiveToolCard } from "@/frontend/components/artifacts/live-tool-card";
 import { SubagentSteerCard } from "@/frontend/components/artifacts/steer-card";
@@ -8,11 +12,10 @@ import { artifactRenderers } from "@/frontend/components/artifacts";
 import { AnsweredCard } from "@/frontend/components/answered-card";
 import { PhaseDivider } from "@/frontend/components/phase-divider";
 import { ThinkingCard, type PracticeThinkingData } from "@/frontend/components/practice-cards";
-import { ClassContextCard, GraphContextCard, type ClassContextData, type GraphContextData } from "@/frontend/components/graph-context-card";
+import { SpaceContextCard, GraphContextCard, type SpaceContextData, type GraphContextData } from "@/frontend/components/graph-context-card";
 import { CompactionCutDivider, CompactionMomentDivider, type CompactionDividerData } from "@/frontend/components/compaction-divider";
 import { Separator } from "@/frontend/components/ui/separator";
 import { cn } from "@/frontend/lib/utils";
-import { lazyComponent } from "@/frontend/lib/lazy-component";
 import {
 	firstSourceTextParts,
 	isAttachmentPart,
@@ -37,11 +40,11 @@ import { LABEL_TEXT } from "@/frontend/components/ui/label-text";
 // lesson loader reads it with the record, so it is in the first paint.
 const PlanBlock = lazyComponent(() => import("@/frontend/components/plan-block").then((m) => m.PlanBlock));
 
-/** The quiet system line: centered, muted, small — the transcript's voice
+/** The quiet system line: centered and muted, the transcript's voice
  *  for events that are not speech. */
 function SystemLine({ children, testId }: { children: React.ReactNode; testId?: string }) {
 	return (
-		<div data-testid={testId} className="flex items-center justify-center gap-1.5 py-1 text-xs text-ink-3">
+		<div data-testid={testId} className="flex items-center justify-center gap-1.5 py-1 text-sm text-ink-2">
 			{children}
 		</div>
 	);
@@ -49,6 +52,8 @@ function SystemLine({ children, testId }: { children: React.ReactNode; testId?: 
 
 interface MessageRowProps {
 	message: LhViewMessage;
+	/** The lesson's space: the learner's bubbles wear its color. */
+	spaceId: string | undefined;
 	/** The message's position — arrival slots and the step-boundary rule. */
 	index: number;
 	/** The teaching phase begins at this message (the inferred teach seam). */
@@ -66,7 +71,7 @@ interface MessageRowProps {
  * streams only the message being written redraws — every other row keeps
  * its previous message object (reuseUnchangedMessages) and skips.
  */
-export const MessageRow = memo(function MessageRow({ message: m, index: mi, teachSeam, streamingLast, hideSteps, arrive, onOpenPlan }: MessageRowProps) {
+export const MessageRow = memo(function MessageRow({ message: m, spaceId, index: mi, teachSeam, streamingLast, hideSteps, arrive, onOpenPlan }: MessageRowProps) {
 	if (m.role === "user" && isSubagentSteer(m)) {
 		// Sub-agent delivery: no bubble — the artifact card sits in the column.
 		return (
@@ -94,19 +99,7 @@ export const MessageRow = memo(function MessageRow({ message: m, index: mi, teac
 		);
 	}
 	if (m.role === "user") {
-		// The document row: a full-width band with a "You" label, plain text
-		// (learner text never goes through the model's LaTeX pipeline), then
-		// the learner's files.
-		const text = m.parts.filter((p) => p.type === "text").map((p) => p.text).join("\n");
-		return (
-			<div
-				data-testid="user-message"
-				className={cn("my-2 w-full border-l-2 border-tone-2 bg-panel py-2 pl-4 pr-4 font-ui text-sm", arrive(`${mi}`))}
-			>
-				{text && <div className="lh-prose whitespace-pre-wrap text-ink">{text}</div>}
-				<MessageAttachments parts={m.parts} />
-			</div>
-		);
+		return <UserMessage message={m} spaceId={spaceId} className={arrive(`${mi}`)} />;
 	}
 	// The teach seam's step: -1 = before the whole group; a later index =
 	// at that step boundary, replacing its plain hairline.
@@ -118,7 +111,7 @@ export const MessageRow = memo(function MessageRow({ message: m, index: mi, teac
 	return (
 		<Fragment>
 			{seamStep === -1 && <PhaseDivider phase="teach" />}
-			<Message from="assistant" className="max-w-full">
+			<Message className="max-w-full">
 				<MessageContent className="w-full">
 				{m.parts.map((part, pi) => (
 					<AssistantPart
@@ -140,12 +133,32 @@ export const MessageRow = memo(function MessageRow({ message: m, index: mi, teac
 	);
 });
 
+/** The learner's message: a bubble on the right in the lesson's space color.
+ *  Plain text, since learner text never goes through the model's LaTeX
+ *  pipeline; the learner's files sit under it. */
+function UserMessage({ message, spaceId, className }: { message: LhViewMessage; spaceId: string | undefined; className?: string }) {
+	const color = useSpaceColor(spaceId);
+	const text = message.parts.filter((p) => p.type === "text").map((p) => p.text).join("\n");
+	return (
+		<div className={cn("my-2 flex w-full justify-end", className)}>
+			<div
+				data-testid="user-message"
+				className="flex w-[520px] max-w-full flex-col gap-2 rounded-sm bg-tone px-3.5 py-2.5"
+				style={color ? { background: paleSpaceColor(color) } : undefined}
+			>
+				{text && <div className="whitespace-pre-wrap font-prose text-ink" style={{ fontSize: "calc(var(--lh-prose-size) - 2px)" }}>{text}</div>}
+				<MessageAttachments parts={message.parts} />
+			</div>
+		</div>
+	);
+}
+
 function MarkerPart({ part }: { part: LhViewPart }) {
 	switch (part.type) {
 		case "data-graph-context":
 			return <GraphContextCard data={part.data as GraphContextData} />;
-		case "data-class-context":
-			return <ClassContextCard data={part.data as ClassContextData} />;
+		case "data-space-context":
+			return <SpaceContextCard data={part.data as SpaceContextData} />;
 		case "data-compaction":
 			return <CompactionMomentDivider data={part.data as CompactionDividerData} />;
 		case "data-compaction-cut":
@@ -154,8 +167,8 @@ function MarkerPart({ part }: { part: LhViewPart }) {
 			return <ThinkingCard data={part.data as PracticeThinkingData} />;
 		case "data-practice-next":
 			return (
-				<div data-testid="practice-next-line" className={cn("my-4 flex items-center justify-center gap-1.5 font-ui", LABEL_TEXT)}>
-					<ArrowRightIcon className="size-3" />
+				<div data-testid="practice-next-line" className={cn("my-4 flex items-center justify-center gap-2.5", LABEL_TEXT)}>
+					<PixelIcon name="chevron" />
 					Next problem
 				</div>
 			);
@@ -217,7 +230,7 @@ function AssistantPart({
 					className="lh-source-passage"
 				>
 					{/* While it streams, an unclosed diagram fence shows "still drawing", not a doomed parse. */}
-					<MessageResponse isAnimating={streaming} className={streaming ? "lh-streaming" : undefined}>{part.text}</MessageResponse>
+					<CitedResponse text={part.text ?? ""} isAnimating={streaming} className={streaming ? "lh-streaming" : undefined} />
 				</div>
 			);
 		}
