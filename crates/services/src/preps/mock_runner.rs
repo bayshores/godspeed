@@ -131,20 +131,8 @@ fn hide_window(_command: &mut Command) {}
 /// `fs.mkdtempSync(path.join(tmp, "godspeed-run-"))`, by its real path: it is the one the error
 /// text names.
 fn make_run_dir(tmp: &Path) -> Result<PathBuf, String> {
-	const CHARS: &[u8] = b"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-	loop {
-		let suffix: String = ids::random_bytes(6).iter().map(|b| CHARS[*b as usize % CHARS.len()] as char).collect();
-		let dir = tmp.join(format!("godspeed-run-{suffix}"));
-		#[cfg_attr(not(unix), allow(unused_mut))]
-		let mut builder = std::fs::DirBuilder::new();
-		#[cfg(unix)]
-		std::os::unix::fs::DirBuilderExt::mode(&mut builder, 0o700);
-		match builder.create(&dir) {
-			Ok(()) => return std::fs::canonicalize(&dir).map(fsx::without_long_prefix).map_err(|err| fsx::node_error_message(&err, "realpath", &dir)),
-			Err(err) if err.kind() == std::io::ErrorKind::AlreadyExists => {}
-			Err(err) => return Err(fsx::node_error_message(&err, "mkdtemp", &tmp.join("godspeed-run-XXXXXX"))),
-		}
-	}
+	let dir = fsx::make_temp_dir(tmp, "godspeed-run-")?;
+	std::fs::canonicalize(&dir).map(fsx::without_long_prefix).map_err(|err| fsx::node_error_message(&err, "realpath", &dir))
 }
 
 /// `pathToFileURL(dir).href`: what Node names a module file by.

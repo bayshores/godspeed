@@ -11,7 +11,7 @@ use std::fmt;
 use std::path::{Path, PathBuf};
 
 use gs_base::config::Paths;
-use gs_base::{fsx, ids, text};
+use gs_base::{fsx, text};
 
 use crate::exec::run_program;
 use crate::model::ModelDownload;
@@ -74,20 +74,7 @@ struct WorkDir(PathBuf);
 impl WorkDir {
 	/// `fs.mkdtempSync(path.join(os.tmpdir(), "godspeed-transcribe-"))`.
 	fn create(tmp: &Path) -> Result<WorkDir, String> {
-		const CHARS: &[u8] = b"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-		loop {
-			let suffix: String = ids::random_bytes(6).iter().map(|b| CHARS[*b as usize % CHARS.len()] as char).collect();
-			let dir = tmp.join(format!("godspeed-transcribe-{suffix}"));
-			#[cfg_attr(not(unix), allow(unused_mut))]
-			let mut builder = std::fs::DirBuilder::new();
-			#[cfg(unix)]
-			std::os::unix::fs::DirBuilderExt::mode(&mut builder, 0o700);
-			match builder.create(&dir) {
-				Ok(()) => return Ok(WorkDir(dir)),
-				Err(err) if err.kind() == std::io::ErrorKind::AlreadyExists => {}
-				Err(err) => return Err(fsx::node_error_message(&err, "mkdtemp", &tmp.join("godspeed-transcribe-XXXXXX"))),
-			}
-		}
+		fsx::make_temp_dir(tmp, "godspeed-transcribe-").map(WorkDir)
 	}
 }
 

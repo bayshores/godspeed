@@ -39,6 +39,25 @@ pub fn without_long_prefix(path: PathBuf) -> PathBuf {
 	plain.map_or(path, PathBuf::from)
 }
 
+/// `fs.mkdtempSync(path.join(tmp, prefix))`: a new folder `<prefix><6 random letters>`, owner only,
+/// and Node's error text naming `<prefix>XXXXXX`.
+pub fn make_temp_dir(tmp: &Path, prefix: &str) -> Result<PathBuf, String> {
+	const CHARS: &[u8] = b"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+	loop {
+		let suffix: String = ids::random_bytes(6).iter().map(|b| CHARS[*b as usize % CHARS.len()] as char).collect();
+		let dir = tmp.join(format!("{prefix}{suffix}"));
+		#[cfg_attr(not(unix), allow(unused_mut))]
+		let mut builder = std::fs::DirBuilder::new();
+		#[cfg(unix)]
+		std::os::unix::fs::DirBuilderExt::mode(&mut builder, 0o700);
+		match builder.create(&dir) {
+			Ok(()) => return Ok(dir),
+			Err(err) if err.kind() == io::ErrorKind::AlreadyExists => {}
+			Err(err) => return Err(node_error_message(&err, "mkdtemp", &tmp.join(format!("{prefix}XXXXXX")))),
+		}
+	}
+}
+
 /// Writes through `<file>.tmp-<8 hex>` and a rename, so a crash leaves the old file whole.
 /// `mode` applies to a new file (Unix permissions, e.g. 0o600).
 pub fn write_atomic(file: &Path, data: &[u8], mode: Option<u32>) -> io::Result<()> {
@@ -179,6 +198,19 @@ mod tests {
 		let at = std::time::UNIX_EPOCH + std::time::Duration::new(1_700_000_000, 123_456_900);
 		std::fs::File::options().write(true).open(&f).unwrap().set_modified(at).unwrap();
 		assert_eq!(modified_ms(&std::fs::metadata(&f).unwrap()), 1_700_000_000_123.456_8);
+		std::fs::remove_dir_all(d).unwrap();
+	}
+
+	#[test]
+	fn a_temp_dir_is_new_each_time_and_a_missing_parent_reads_like_mkdtemp() {
+		let d = dir("mkdtemp");
+		let one = make_temp_dir(&d, "run-").unwrap();
+		let two = make_temp_dir(&d, "run-").unwrap();
+		assert_ne!(one, two);
+		let name = one.file_name().unwrap().to_string_lossy().into_owned();
+		assert!(name.starts_with("run-") && name.len() == 10, "{name}");
+		let gone = d.join("gone");
+		assert_eq!(make_temp_dir(&gone, "run-").unwrap_err(), format!("ENOENT: no such file or directory, mkdtemp '{}'", gone.join("run-XXXXXX").display()));
 		std::fs::remove_dir_all(d).unwrap();
 	}
 
