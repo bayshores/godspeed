@@ -224,11 +224,16 @@ mod tests {
 		let root = scratch_dir("folder-view");
 		let app = test_app(&root);
 		let view = agent_folder_view(&app);
-		let home = root.join("home").to_string_lossy().into_owned();
-		assert_eq!(view["folder"].as_str(), Some(format!("{home}/godspeed").as_str()));
-		assert_eq!(view["short"].as_str(), Some("~/godspeed"));
+		let folder = root.join("home").join("godspeed").to_string_lossy().into_owned();
+		assert_eq!(view["folder"].as_str(), Some(folder.as_str()));
 		assert_eq!(stringify(&view["oldSetup"]), r#"{"plugin":false,"codex":false}"#);
-		assert_eq!(view["commands"]["claude"].as_str(), Some("cd ~/godspeed && claude --settings .godspeed/claude-settings.json \"Start teaching\""));
+		if cfg!(windows) {
+			assert_eq!(view["short"].as_str(), Some(folder.as_str()));
+			assert!(view["commands"]["claude"].as_str().unwrap().starts_with(&format!("cd /d \"{folder}\" && claude ")));
+		} else {
+			assert_eq!(view["short"].as_str(), Some("~/godspeed"));
+			assert_eq!(view["commands"]["claude"].as_str(), Some("cd ~/godspeed && claude --settings .godspeed/claude-settings.json \"Start teaching\""));
+		}
 	}
 
 	#[test]

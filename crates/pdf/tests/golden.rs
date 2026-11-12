@@ -16,8 +16,10 @@ fn golden() -> Vec<Json> {
 }
 
 fn cut_root(text: &str) -> String {
-	let root = std::fs::canonicalize(concat!(env!("CARGO_MANIFEST_DIR"), "/../..")).unwrap();
-	text.replace(root.to_str().unwrap(), "<root>")
+	let root = gs_base::fsx::without_long_prefix(std::fs::canonicalize(concat!(env!("CARGO_MANIFEST_DIR"), "/../..")).unwrap());
+	let text = text.replace(root.to_str().unwrap(), "<root>");
+	// Windows paths, in the fixtures folder only: a regex error keeps its backslash.
+	text.replace(r"<root>\crates\pdf\tests", "<root>/crates/pdf/tests").replace(r"\fixtures", "/fixtures").replace(r"fixtures\", "fixtures/")
 }
 
 fn shape(s: gs_pdf::PdfShape) -> Json {
@@ -46,6 +48,15 @@ fn page_image(p: &gs_pdf::RenderedPdfPage) -> Json {
 
 fn hits(hits: Vec<gs_pdf::PdfSearchHit>) -> Json {
 	json!({ "hits": hits.iter().map(|h| h.to_json()).collect::<Vec<_>>() })
+}
+
+/// Windows refuses to open a folder, where Node opens it and fails the read.
+fn folder_error(want: String) -> String {
+	if cfg!(windows) && want.starts_with("EISDIR: illegal operation on a directory, read") {
+		"EACCES: permission denied, open '<root>/crates/pdf/tests/fixtures'".to_owned()
+	} else {
+		want
+	}
 }
 
 async fn run(pdf: &gs_pdf::Pdf, case: &Json) -> Result<Json, String> {
@@ -91,7 +102,7 @@ async fn matches_pdfjs() {
 	for case in golden() {
 		let name = case["name"].as_str().unwrap().to_owned();
 		let expected = match case.get("error") {
-			Some(error) => Err(error.as_str().unwrap().to_owned()),
+			Some(error) => Err(folder_error(error.as_str().unwrap().to_owned())),
 			None => Ok(case["output"].clone()),
 		};
 		let actual = run(&pdf, &case).await;

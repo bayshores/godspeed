@@ -29,7 +29,9 @@ mod tests {
 	#[test]
 	fn a_failed_read_names_no_path() {
 		let dir = std::env::temp_dir();
-		assert_eq!(read_file(&dir), Err("EISDIR: illegal operation on a directory, read".to_owned()));
+		if cfg!(unix) {
+			assert_eq!(read_file(&dir), Err("EISDIR: illegal operation on a directory, read".to_owned()));
+		}
 		let gone = dir.join(format!("gs-files-gone-{}", gs_base::ids::uuid()));
 		assert_eq!(read_file(&gone), Err(format!("ENOENT: no such file or directory, open '{}'", gone.display())));
 		assert_eq!(read_failed(&io::Error::from(io::ErrorKind::PermissionDenied)), "EACCES: permission denied, read");

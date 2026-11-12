@@ -34,6 +34,16 @@ fn s(v: &Json) -> &str {
 	v.as_str().unwrap()
 }
 
+/// An error text with the temp folder as "<dir>" and Windows' backslashes as the recording's slashes.
+fn cut_dir(text: &str, dir: &std::path::Path) -> String {
+	text.replace(dir.to_str().unwrap(), "<dir>").replace(std::path::MAIN_SEPARATOR, "/")
+}
+
+/// Windows refuses to open a folder, where Node opens it and fails the read.
+fn folder_error(want: &str, file: &std::path::Path, dir: &std::path::Path) -> String {
+	if cfg!(windows) && want == "EISDIR: illegal operation on a directory, read" { format!("EACCES: permission denied, open '{}'", cut_dir(&file.display().to_string(), dir)) } else { want.to_owned() }
+}
+
 fn unhex(h: &str) -> Vec<u8> {
 	(0..h.len()).step_by(2).map(|i| u8::from_str_radix(&h[i..i + 2], 16).unwrap()).collect()
 }
@@ -94,7 +104,7 @@ async fn file_to_text_matches_node() {
 			Some(error) => {
 				let err = got.unwrap_err();
 				assert_eq!(matches!(err, FileTextError::NeedsTranscript), c["needsTranscript"].as_bool().unwrap(), "{name}");
-				assert_eq!(err.to_string().replace(dir.path().to_str().unwrap(), "<dir>"), s(error), "{name}");
+				assert_eq!(cut_dir(&err.to_string(), dir.path()), folder_error(s(error), &file, dir.path()), "{name}");
 			}
 			None => assert_eq!(got, Ok(s(&c["text"]).to_owned()), "{name}"),
 		}
@@ -202,7 +212,7 @@ async fn fingerprints_match_node() {
 		};
 		let got = fingerprint_file(&file).await;
 		match c.get("error") {
-			Some(error) => assert_eq!(got.unwrap_err().replace(dir.path().to_str().unwrap(), "<dir>"), s(error), "{name}"),
+			Some(error) => assert_eq!(cut_dir(&got.unwrap_err(), dir.path()), folder_error(s(error), &file, dir.path()), "{name}"),
 			None => assert_eq!(got, Ok(s(&c["fp"]).to_owned()), "{name}"),
 		}
 	}

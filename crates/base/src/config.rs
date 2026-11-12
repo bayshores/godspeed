@@ -154,9 +154,20 @@ mod tests {
 		assert_eq!(p.settings_file, Path::new("/d/settings.json"));
 		assert_eq!(p.prompt_override_file("shared/10-voice.md"), Path::new("/d/prompts/shared/10-voice.md"));
 		assert_eq!(GraphFiles::new(&p.graph).topics, Path::new("/d/graph/topics.jsonl"));
-		assert_eq!(resolve(Path::new("/a/./b/../c")), Path::new("/a/c"));
+		let (messy, clean) = if cfg!(windows) { (r"C:\a\.\b\..\c", r"C:\a\c") } else { ("/a/./b/../c", "/a/c") };
+		assert_eq!(resolve(Path::new(messy)), Path::new(clean));
 		assert!(!VERSION.is_empty());
 		assert_eq!(p.default_agent_folder, Path::new("/h/godspeed"));
+	}
+
+	#[test]
+	#[cfg(windows)]
+	fn a_rooted_path_without_a_drive_takes_the_current_drive() {
+		let cwd = std::env::current_dir().unwrap();
+		let drive = cwd.components().next().unwrap();
+		let got = resolve(Path::new(r"\a\.\b\..\c"));
+		assert_eq!(got.components().next().unwrap(), drive);
+		assert!(got.ends_with(r"a\c"));
 	}
 
 	#[test]

@@ -206,6 +206,7 @@ mod tests {
 	async fn a_missing_model_says_how_to_get_it() {
 		let e = Embedder::new(PathBuf::from("/nowhere/models"));
 		let err = e.embed_batch(vec!["x".to_owned()]).await.unwrap_err();
-		assert_eq!(err, "The search model is missing (/nowhere/models/Snowflake/snowflake-arctic-embed-xs/onnx/model_quantized.onnx). Reinstall or update godspeed to get it back (from source: run `node scripts/fetch-model.mjs`).");
+		let weights = Path::new("/nowhere/models").join(MODEL_ID).join("onnx").join("model_quantized.onnx");
+		assert_eq!(err, format!("The search model is missing ({}). Reinstall or update godspeed to get it back (from source: run `node scripts/fetch-model.mjs`).", weights.display()));
 	}
 }
