@@ -1,5 +1,5 @@
-//! The data-folder lock waits out a server that is still stopping, then gives up. Windows has no
-//! lock.
+//! The data-folder lock is held from the start, waits out a server that is still stopping, then
+//! gives up. Windows has no lock.
 
 #![cfg(unix)]
 
@@ -13,9 +13,10 @@ use gs_server::data_lock;
 async fn waits_for_a_stopping_server_then_gives_up() {
 	let dir = std::env::temp_dir().join(format!("gs-data-lock-{}", ids::uuid()));
 	let paths = Paths::new(dir.join("data"), dir.join("home"), dir.join("tmp"), dir.clone());
-	assert!(data_lock::lock(&paths).await.unwrap().is_none(), "a missing folder is not locked");
+	let first = data_lock::lock(&paths).await.unwrap().expect("a missing folder is made and locked");
+	assert!(File::open(&paths.data).unwrap().try_lock().is_err(), "a second server starting at once finds it locked");
+	drop(first);
 
-	std::fs::create_dir_all(&paths.data).unwrap();
 	let other = File::open(&paths.data).unwrap();
 	other.lock().unwrap();
 	let waiting = tokio::spawn({

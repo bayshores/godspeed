@@ -5,8 +5,9 @@ use std::fs::File;
 
 use gs_base::config::Paths;
 
-/// The held lock, or None when the folder does not exist yet (nothing to guard). Err when another
-/// server still holds it after WAIT_MS.
+/// The held lock, made on a data folder that does not exist yet so it is held from the start, or
+/// None when the folder cannot be made or opened. Err when another server still holds it after
+/// WAIT_MS.
 #[cfg(unix)]
 pub async fn lock(paths: &Paths) -> Result<Option<File>, ()> {
 	use std::fs::TryLockError;
@@ -18,6 +19,7 @@ pub async fn lock(paths: &Paths) -> Result<Option<File>, ()> {
 	const WAIT_MS: i64 = 3000;
 	const RETRY_MS: i64 = 100;
 
+	let _ = std::fs::create_dir_all(&paths.data);
 	let Ok(dir) = File::open(&paths.data) else { return Ok(None) };
 	let give_up = clock::now_ms() + WAIT_MS;
 	loop {
