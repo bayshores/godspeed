@@ -13,7 +13,7 @@
  *
  * Pure and browser-safe (no node builtins): the shell may import it.
  */
-import type { GraphChain, GraphTopic, TopicSnapshot } from "./contracts.ts";
+import type { GraphChain, GraphTopic, TopicMaterial, TopicSnapshot } from "./contracts.ts";
 
 /** The pseudo-topic that holds facts no snapshot has placed yet. Never
  *  stored — derived on read. */
@@ -48,7 +48,7 @@ export function resolveTopics(snapshot: TopicSnapshot | null, factIds: readonly 
 	for (const topic of snapshot?.topics ?? []) {
 		const members = topic.members.filter((id) => live.has(id) && !placed.has(id));
 		for (const id of members) placed.add(id);
-		if (members.length > 0) out.push({ id: topic.id, name: topic.name, members });
+		if (members.length > 0) out.push({ id: topic.id, name: topic.name, members, ...(topic.material ? { material: topic.material } : {}) });
 	}
 	const rest = factIds.filter((id) => !placed.has(id));
 	if (rest.length > 0) out.push({ id: UNGROUPED_TOPIC_ID, name: UNGROUPED_TOPIC_NAME, members: [...rest], ungrouped: true });
@@ -93,6 +93,7 @@ export interface TopicDraft {
 	id?: string;
 	name: string;
 	members: string[];
+	material?: TopicMaterial;
 }
 
 /**
@@ -103,6 +104,9 @@ export interface TopicDraft {
  *  - ids: a draft's id is kept when it names an existing topic (first
  *    claim wins); otherwise an existing topic with the same name (case-
  *    insensitive) lends its id; otherwise a new id (`newId`);
+ *  - material: a topic that keeps an existing id keeps that topic's
+ *    material, so a regroup can't flip it; the draft's material is used
+ *    only when there was none;
  *  - facts the draft left out join the topic most of their chain
  *    neighbors are in (premises ↔ conclusion, and co-premises), repeated
  *    until nothing more can be placed; the rest go into "Other";
@@ -118,6 +122,7 @@ export function repairTopics(
 	const live = new Set(factIds);
 	const existingIds = new Set(existing.map((t) => t.id));
 	const idByName = new Map(existing.map((t) => [cleanTopicName(t.name).toLowerCase(), t.id]));
+	const materialOf = new Map(existing.map((t) => [t.id, t.material]));
 	const usedIds = new Set<string>();
 	const topics: GraphTopic[] = [];
 	const topicOf = new Map<string, number>();
@@ -144,7 +149,8 @@ export function repairTopics(
 		if (members.length === 0) continue;
 		const id = claimId(draft, name);
 		usedIds.add(id);
-		topics.push({ id, name, members });
+		const material = materialOf.get(id) ?? draft.material;
+		topics.push({ id, name, members, ...(material ? { material } : {}) });
 	}
 
 	// Place the facts the draft left out by their chain neighbors.
@@ -189,7 +195,8 @@ export function repairTopics(
 		else {
 			const id = claimId({ name: OTHER_TOPIC_NAME, members: [] }, OTHER_TOPIC_NAME);
 			usedIds.add(id);
-			topics.push({ id, name: OTHER_TOPIC_NAME, members: missing });
+			const material = materialOf.get(id);
+			topics.push({ id, name: OTHER_TOPIC_NAME, members: missing, ...(material ? { material } : {}) });
 		}
 	}
 	return topics;

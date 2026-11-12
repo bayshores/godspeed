@@ -95,6 +95,10 @@ export interface NotesSource {
 	extractions?: ExtractionRunUsage[];
 }
 
+/** The main work a topic asks of a student; Study picks its opening move by it. */
+export const TOPIC_MATERIALS = ["term", "procedure", "concept", "proof"] as const;
+export type TopicMaterial = (typeof TOPIC_MATERIALS)[number];
+
 /** One topic: a named group of a graph's facts. Named by the topic grouper (a background model
  *  job) in the course's own terms. */
 export interface GraphTopic {
@@ -104,6 +108,8 @@ export interface GraphTopic {
 	name: string;
 	/** Fact (GraphNode) ids. */
 	members: string[];
+	/** Set by the grouper and kept across regroupings; topics grouped before it existed have none. */
+	material?: TopicMaterial;
 }
 
 /** One line of topics.jsonl — append-only, each line a FULL snapshot of the

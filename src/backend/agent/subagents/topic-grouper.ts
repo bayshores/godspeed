@@ -14,7 +14,7 @@
 import type { Usage } from "@earendil-works/pi-ai";
 import { Type, type Static } from "typebox";
 import type { PiEngine } from "../models.ts";
-import type { GraphChain, GraphTopic } from "../../../shared/core/contracts.ts";
+import { TOPIC_MATERIALS, type GraphChain, type GraphTopic } from "../../../shared/core/contracts.ts";
 import { repairTopics, topicNameProblem, type TopicDraft } from "../../../shared/core/topics.ts";
 import { runSubmitAgent } from "./submit-agent.ts";
 
@@ -26,12 +26,16 @@ export const TOPIC_GROUPER_INSTRUCTIONS = `You are the topic grouper of a learni
 
 ${TOPIC_GROUPING_RULE}
 
+Also give each topic its material, the main work it asks of a student: term (definitions, names, notation or values to know by heart), procedure (a method run in steps to reach an answer), concept (an idea to understand and tell apart from look-alikes) or proof (arguments to follow and write).
+
 Submit the whole grouping with one submit_topics call. For a topic that already exists, keep its id; leave id out for a new topic. Members are fact ids from the list.`;
 
 const topicSchema = Type.Object({
 	id: Type.Optional(Type.String({ description: "The existing topic's id (tpc_…) when keeping a topic; leave out for a new one." })),
 	name: Type.String({ description: "1–4 words, in the course's own terms." }),
 	members: Type.Array(Type.String(), { description: "The ids of the facts in this topic." }),
+	// Any string, so one off-list label can't bounce the whole grouping; drafts() keeps the known ones.
+	material: Type.Optional(Type.String({ description: "The main work this topic asks: term, procedure, concept or proof." })),
 });
 
 const submitSchema = Type.Object({
@@ -58,6 +62,14 @@ interface TopicGrouperInput {
 	onStep?: (usage: Usage, model: string, step: number) => void;
 	/** New topic ids ("tpc_" + 10 hex by default). */
 	newId?: () => string;
+}
+
+/** The submitted topics, each with its material only when it is one of the four. */
+function drafts(raw: TopicsSubmit): TopicDraft[] {
+	return raw.topics.map(({ material, ...topic }) => {
+		const known = TOPIC_MATERIALS.find((m) => m === material?.trim().toLowerCase());
+		return known ? { ...topic, material: known } : topic;
+	});
 }
 
 const defaultNewId = () => `tpc_${crypto.randomUUID().replace(/-/g, "").slice(0, 10)}`;
@@ -93,9 +105,8 @@ export async function groupTopics(input: TopicGrouperInput): Promise<GraphTopic[
 		onStep: (usage, model, step) => input.onStep?.(usage, model, step),
 		neverSubmitted: "the topic grouper never submitted topics",
 	});
-	const drafts: TopicDraft[] = submitted.topics;
 	return repairTopics(
-		drafts,
+		drafts(submitted),
 		input.facts.map((f) => f.id),
 		input.chains,
 		input.current,

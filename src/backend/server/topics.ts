@@ -141,7 +141,7 @@ async function groupOnce(scope: ClassScope): Promise<void> {
 				className,
 				facts: facts.map((f) => ({ id: f.id, name: f.name, statement: f.statement })),
 				chains: graph.chains,
-				current: current.map(({ id, name, members }) => ({ id, name, members })),
+				current: current.map(({ id, name, members, material }) => ({ id, name, members, ...(material ? { material } : {}) })),
 				engine,
 				signal: controller.signal,
 			}),

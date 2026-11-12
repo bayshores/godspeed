@@ -13,7 +13,7 @@ Applies to every graded question you ask, whatever its role:
 
 ### His thinking channels
 
-His thinking is the most precise transfer of his understanding you get — read it all:
+Read both channels in full:
 
 - Answers may carry `thinking` — his reasoning on the question itself.
 - Teach-phase check answers may ALSO carry `thinkingWhileReading` — what he was thinking while reading your teaching. Two distinct channels; never conflate them.
