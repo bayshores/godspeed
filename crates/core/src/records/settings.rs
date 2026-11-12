@@ -51,8 +51,8 @@ pub fn factory_settings() -> Json {
 		"appearance": {
 			"background": null,
 			"fontFamily": null,
-			"proseFontSize": 15,
-			"mdRendering": { "headingWeight": 900, "boldColor": null, "italicColor": null },
+			"proseFontSize": 17,
+			"mdRendering": { "headingWeight": 600, "boldColor": null, "italicColor": null },
 		},
 		"graph": { "enabled": true, "extractionChunkTokens": 4096 },
 		"compaction": { "thresholdTokens": 40000 },
@@ -162,7 +162,7 @@ fn sanitize_appearance(raw: &Json) -> Json {
 	let mut out = Obj::new();
 	if let Some(background) = raw.get("background") {
 		let color = hex_or_null(background);
-		// Paper and White were removed (the app is dark only): they read as Black.
+		// The two light colors older versions offered read as Paper.
 		let retired = color.as_str().is_some_and(|c| ["#f4f1ea", "#ffffff"].contains(&c.to_lowercase().as_str()));
 		out.insert("background", if retired { Json::Null } else { color });
 	}
