@@ -17,6 +17,7 @@ use gs_core::contracts::space::parse_space_scope;
 use gs_core::graph::graph_deletion::ChatDeleteMode;
 use gs_core::messages::input_events::{TurnInput, dismiss_appends, parse_chat_input, parse_dismiss_input, parse_user_steer_input};
 use gs_core::messages::native_messages::new_user_steer;
+use gs_core::preps::mock::is_mock_id;
 use gs_core::session::download_slug::slugify;
 use gs_core::session::jobs::set_steer_ui_inverted;
 use gs_core::session::prices::session_cost;
@@ -108,8 +109,8 @@ async fn list(State(app): State<Arc<App>>, uri: Uri) -> Result<Response, Unhandl
 	Ok(reply::json(200, &json!({ "chats": chats })))
 }
 
-/// POST /api/chats: a study session (typed, picked facts, topics or a deadline), or with
-/// `homework: true` a homework session on the deadline.
+/// POST /api/chats: a study session (typed, picked facts, topics, a prep's topics, a mock's
+/// question or a deadline), or with `homework: true` a homework session on the deadline.
 async fn create(State(app): State<Arc<App>>, body: Body) -> Result<Response, Unhandled> {
 	let body = fields(body).await?;
 	let title = body["title"].as_str().unwrap_or_default();
@@ -122,15 +123,31 @@ async fn create(State(app): State<Arc<App>>, body: Body) -> Result<Response, Unh
 			Err(not_found) => coded(404, not_found.error, not_found.code),
 		});
 	}
-	let start = match (deadline_id, body["topicIds"].as_arr()) {
-		(Some(deadline_id), _) => LessonStart::Deadline(deadline_id.to_owned()),
-		(None, Some(ids)) => LessonStart::Topics(ids.iter().filter_map(|id| id.as_str().map(str::to_owned)).collect()),
-		(None, None) => LessonStart::Typed { title: title.to_owned(), picks: picks_of(&body["graphContext"]) },
+	let start = if let Some(deadline_id) = deadline_id {
+		LessonStart::Deadline(deadline_id.to_owned())
+	} else if let Some((mock_id, question_id)) = mock_question_of(&body["mockQuestion"]) {
+		LessonStart::MockQuestion { mock_id, question_id }
+	} else if let Some(ids) = body["topicIds"].as_arr() {
+		LessonStart::Topics(strings(ids))
+	} else if let Some(ids) = body["prepTopicIds"].as_arr() {
+		LessonStart::PrepTopics(strings(ids))
+	} else {
+		LessonStart::Typed { title: title.to_owned(), picks: picks_of(&body["graphContext"]) }
 	};
 	Ok(match create_lesson(&app, CreateLessonInput { space_id, start })? {
 		Ok(created) => reply::json(200, &json!({ "id": created.chat["id"], "title": created.title })),
 		Err(not_found) => coded(404, not_found.error, not_found.code),
 	})
+}
+
+/// A graded mock's question to go over: `{mockId, questionId}`.
+fn mock_question_of(raw: &Json) -> Option<(String, String)> {
+	let mock_id = raw["mockId"].as_str().filter(|id| is_mock_id(id))?;
+	Some((mock_id.to_owned(), raw["questionId"].as_str()?.to_owned()))
+}
+
+fn strings(list: &[Json]) -> Vec<String> {
+	list.iter().filter_map(|id| id.as_str().map(str::to_owned)).collect()
 }
 
 /// The picked propositions that ride a typed start: objects with string id, name and statement.
