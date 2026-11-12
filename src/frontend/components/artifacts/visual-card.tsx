@@ -1,7 +1,8 @@
 import { useArtifactInvert } from "@/frontend/components/artifacts/use-artifact-invert";
-import { DownloadIcon, MaximizeIcon } from "lucide-react";
-import { InvertDiscIcon } from "@/frontend/components/artifacts/invert-disc";
-import { Toggle } from "@/frontend/components/settings/controls";
+import { InvertButton } from "@/frontend/components/artifacts/invert-button";
+import { CARD, SMALL_BTN } from "@/frontend/components/ui/card-parts";
+import { ResultTag } from "@/frontend/components/result-tag";
+import { cn } from "@/frontend/lib/utils";
 import { useSessionMermaid } from "@/frontend/components/session-overlay";
 import { downloadFile } from "@/frontend/components/artifacts/download";
 import { DispatchCard } from "@/frontend/components/artifacts/dispatch-card";
@@ -55,7 +56,7 @@ export function VisualOutputCard({
 	const natural = result && typeof result.svg === "string" ? svgNaturalWidth(result.svg) : null;
 	if (!result || typeof result.svg !== "string") {
 		return (
-			<div className=" border bg-card p-4 text-sm text-muted-foreground">
+			<div className={cn(CARD, "text-[15px] text-ink-2")}>
 				Figure completed, but the result could not be displayed.
 			</div>
 		);
@@ -63,27 +64,25 @@ export function VisualOutputCard({
 	const failed = result.svg.length === 0;
 	if (failed) {
 		return (
-			<div className=" border bg-card p-4 text-card-foreground" data-testid="visual-card-failed">
-				<div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+			<div className={cn(CARD, "flex flex-col gap-2 text-card-foreground")} data-testid="visual-card-failed">
+				<div className="flex items-center gap-2.5 text-sm text-ink-2">
 					Figure
-					<span className="bg-tone px-1.5 py-0.5 text-ans-wrong">failed</span>
+					<ResultTag tone="wrong">failed</ResultTag>
 				</div>
-				<p className="mt-2 text-sm text-muted-foreground">{result.notes ?? "The figure could not be drawn."}</p>
+				<p className="text-[15px] text-ink-2">{result.notes ?? "The figure could not be drawn."}</p>
 			</div>
 		);
 	}
 	return (
-		/* NO CARD CHROME: the figure is document
-		   material — no border, no padding box. Image first, then the CAPTION
-		   ROW below: "Figure" left, the controls right, both edges following
-		   the IMAGE's own width (the wrapper carries the natural-sizing law,
-		   so the row hugs a centered narrow figure, not the column). */
+		/* A card around the figure: image first, then the caption row with
+		   "Figure" left and the controls right. The wrapper carries the
+		   natural-sizing law, so a narrow figure gets a narrow card. */
 		<div
-			className={
-				natural !== null
-					? "my-4 mx-auto w-fit max-w-full"
-					: "my-4 w-full"
-			}
+			className={cn(
+				CARD,
+				"flex flex-col gap-2 px-4 py-3",
+				natural !== null ? "mx-auto w-fit max-w-full" : "w-full",
+			)}
 			data-testid="visual-card"
 		>
 			{/* Natural sizing: a declared-width svg sits at
@@ -107,41 +106,28 @@ export function VisualOutputCard({
 					className={natural !== null ? "block h-auto max-w-full" : "block h-auto w-full"}
 				/>
 			</div>
-			<div className="mt-2 flex items-center justify-between gap-2">
-				<div className="text-xs font-semibold text-muted-foreground">Figure</div>
-				<div className="flex items-center gap-1.5">
-					{/* The invert affordance: the disc IS
-					    the half-filled contrast circle; the tooltip names it. */}
-					<Toggle
-						checked={inverted}
-						onChange={toggleInverted}
-						label="Invert figure brightness"
-						title="Invert colors"
-						discIcon={<InvertDiscIcon className="size-3" />}
-					/>
+			<div className="flex flex-wrap items-center gap-2.5">
+				<span className="text-sm text-ink-2">Figure</span>
+				<span className="flex-1" />
+				<InvertButton label="Invert figure brightness" checked={inverted} onToggle={() => toggleInverted(!inverted)} />
+				<button
+					type="button"
+					onClick={() => downloadFile("figure.svg", result.svg, "image/svg+xml")}
+					data-testid="visual-download"
+					className={SMALL_BTN}
+				>
+					Download figure as SVG
+				</button>
+				{overlay && (
 					<button
 						type="button"
-						aria-label="Download figure as SVG"
-						title="Download as SVG"
-						onClick={() => downloadFile("figure.svg", result.svg, "image/svg+xml")}
-						data-testid="visual-download"
-						className=" p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+						onClick={() => overlay.openFigure(result.svg, inverted)}
+						data-testid="visual-open"
+						className={SMALL_BTN}
 					>
-						<DownloadIcon className="size-3.5" />
+						Open figure fullscreen
 					</button>
-					{overlay && (
-						<button
-							type="button"
-							aria-label="Open figure fullscreen"
-							title="Open fullscreen"
-							onClick={() => overlay.openFigure(result.svg, inverted)}
-							data-testid="visual-open"
-							className=" p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-						>
-							<MaximizeIcon className="size-3.5" />
-						</button>
-					)}
-				</div>
+				)}
 			</div>
 		</div>
 	);

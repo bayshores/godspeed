@@ -391,6 +391,39 @@ body {
 	background-size: 16px 16px;
 }
 
+/* The lesson under its bar: the reading sheet, the cheat sheet when open,
+   and the teacher column at its saved width. Stacked in a narrow window,
+   where the teacher side is as tall as what it holds. */
+.lh-lesson-body {
+	display: grid;
+	grid-template: "reading teacher" minmax(0, 1fr) / minmax(420px, 1fr) minmax(340px, var(--lh-turn-w));
+	gap: 24px;
+	padding: 24px 32px 28px;
+}
+.lh-lesson-body[data-dock] {
+	grid-template: "reading dock teacher" minmax(0, 1fr) / minmax(280px, 1fr) minmax(260px, 340px) minmax(340px, var(--lh-turn-w));
+}
+@container lesson (max-width: 999px) {
+	.lh-lesson-body[data-dock] {
+		grid-template: "reading dock" minmax(0, 1fr) "teacher teacher" fit-content(70%) / minmax(0, 1fr) minmax(0, 300px);
+		gap: 16px;
+		padding: 16px;
+	}
+	.lh-lesson-body[data-dock] .lh-teacher-resize {
+		display: none;
+	}
+}
+@container lesson (max-width: 899px) {
+	.lh-lesson-body:not([data-dock]) {
+		grid-template: "reading" minmax(0, 1fr) "teacher" fit-content(70%) / minmax(0, 1fr);
+		gap: 16px;
+		padding: 16px;
+	}
+	.lh-teacher-resize {
+		display: none;
+	}
+}
+
 /* A box whose text fades out over its top and bottom 12px, so scrolled
    or cut-off text never runs hard into an edge. Its padding is at least
    12px, so nothing fades at rest. */
@@ -1197,7 +1230,6 @@ body:has(.lh-own-bar) .lh-app-bar {
    STEPPED MOTION: fast and stepped, like an e-ink page redrawing. Nothing
    floats or glows. Reduce motion (the OS setting) turns all of it off.
 
-   - .lh-hover-bar     the highlight that slides to the hovered row;
    - .lh-px-in         a countdown pixel that lights in;
    - .lh-block-in      a bar block or fact square that steps in
                        (--lh-block-delay);
@@ -1212,17 +1244,6 @@ body:has(.lh-own-bar) .lh-app-bar {
 	to {
 		opacity: 1;
 	}
-}
-
-.lh-hover-bar {
-	position: absolute;
-	top: 0;
-	pointer-events: none;
-	background: var(--accent);
-	transition:
-		transform 90ms var(--lh-ease-out),
-		height 90ms var(--lh-ease-out),
-		opacity 90ms var(--lh-ease-out);
 }
 
 @keyframes lh-px-in {
@@ -1283,8 +1304,5 @@ body:has(.lh-own-bar) .lh-app-bar {
 	.lh-streaming > :is(p, h1, h2, h3, h4, blockquote):last-child::after,
 	.lh-streaming > :is(ul, ol):last-child > li:last-child::after {
 		animation: none;
-	}
-	.lh-hover-bar {
-		transition: none;
 	}
 }

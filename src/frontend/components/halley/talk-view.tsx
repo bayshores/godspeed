@@ -10,7 +10,7 @@ import { AttachButton, AttachmentTray, attachmentInputProps, useAttachmentDraft,
 import { restoreUnsent } from "@/frontend/components/lesson/chat-helpers";
 import { lastLearnerText, lessonError, retryAction } from "@/frontend/components/lesson/lesson-error-model";
 import { MessageAttachments } from "@/frontend/components/lesson/message-attachments";
-import { SendButton } from "@/frontend/components/lesson/panel-parts";
+import { SendButton } from "@/frontend/components/ui/send-button";
 import { MathBox } from "@/frontend/components/math-box";
 import { useLessonDrafts } from "@/frontend/components/lesson/use-lesson-drafts";
 import { useServerEvent } from "@/frontend/components/server-events";
@@ -117,7 +117,7 @@ function TalkThread({
 	onCleared: () => void;
 }) {
 	const session = useChatSession({ chatId: chat.id, initialMessages: chat.messages, initialError: chat.turnError, initiallyInFlight: chat.turnInFlight });
-	// Unsent text is saved like the lesson box's; waiting files stay in
+	// Unsent text is saved like the lesson's writing box; waiting files stay in
 	// memory while the tab or the panel is closed.
 	const drafts = useLessonDrafts(chat.id, session.nativeMessages);
 	const { saveComposer } = drafts;
@@ -329,12 +329,14 @@ function TalkThread({
 					<AttachmentTray draft={attachments} />
 				</div>
 				<div className="m-4 border border-tone-2 bg-background has-[.cm-focused]:border-ink-2">
-					<div className="flex min-h-[52px]">
+					<div className="flex max-h-32 min-h-[52px]">
 						<MathBox
-							compact
 							value={text}
 							onChange={editText}
-							onEnter={send}
+							onEnter={() => {
+								send();
+								return true;
+							}}
 							placeholder={`Tell ${name} what to set up, or ask about your classes`}
 							ariaLabel={`Message ${name}`}
 						/>

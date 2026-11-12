@@ -4,10 +4,12 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { createRoot } from "react-dom/client";
 import { parseHTML } from "linkedom";
-import { mathBoxView, stubCodeMirrorDom } from "../math-box-dom.ts";
-import { QuestionDock } from "../../src/frontend/components/question-dock.tsx";
+import { stubCodeMirrorDom } from "../math-box-dom.ts";
+import { QuestionDock, type QuestionHandle } from "../../src/frontend/components/question-dock.tsx";
 import { AnsweredCard } from "../../src/frontend/components/answered-card.tsx";
 import { newAnswerResult, type QuestionAnswerData } from "../../src/shared/core/index.ts";
+
+const noop = { onSubmit: () => {}, onReady: () => {}, boxText: "", onLeaveRows: () => {} };
 
 const dom = parseHTML("<html><body></body></html>");
 Object.assign(globalThis, { window: dom.window, document: dom.document, Element: dom.window.Element,
@@ -21,20 +23,17 @@ test("actual select → submit → saved result → historical Why uses source d
 	const input = { question, options: [{ label }, { label: "no" }], correctAnswer: label, explanation };
 	const before = structuredClone(input);
 	let answer: QuestionAnswerData | undefined;
+	const ref = React.createRef<QuestionHandle>();
 	const host = document.createElement("div"); document.body.append(host);
 	const root = createRoot(host);
 	try {
-		await act(async () => root.render(<QuestionDock toolName="probe" toolCallId="interactive_source" input={input} onSubmit={async (a) => { answer = a; return true; }} />));
+		await act(async () => root.render(<QuestionDock {...noop} ref={ref} toolName="probe" toolCallId="interactive_source" input={input} onSubmit={(a) => { answer = a; }} />));
 		assert.equal(host.querySelectorAll("mtr").length, 2, "the live matrix retains two rows");
 		const choice = [...host.querySelectorAll<HTMLButtonElement>('[role="radio"]')].find(button => button.querySelector(".katex"))!;
 		assert.ok(choice);
 		await act(async () => choice.click());
 		assert.equal(choice.getAttribute("aria-checked"), "true");
-		const submit = [...host.querySelectorAll<HTMLButtonElement>("button")].find(button => button.textContent?.includes("Submit answer"))!;
-		assert.equal(submit.disabled, false);
-		// linkedom does not implement the browser's default button→form
-		// action; dispatch its native submit event through React instead.
-		await act(async () => submit.closest("form")!.dispatchEvent(new window.Event("submit", { bubbles: true, cancelable: true })));
+		await act(async () => ref.current!.submit());
 		assert.ok(answer);
 		assert.equal(answer.questionText, question);
 		assert.equal(answer.explanation, explanation);
@@ -77,10 +76,12 @@ test("committed-answer reveals keep the first paragraph inline without flattenin
 	} finally { await act(async () => root.unmount()); host.remove(); }
 });
 
-test("Tab from a quiz row goes to the thinking field; Tab from the thinking field moves on as usual", async () => {
+test("Tab from a quiz row goes to the lesson's box; Tab from the box moves on as usual", async () => {
 	const input = { question: "Which planet is closest to the sun?", options: [{ label: "Venus" }, { label: "Mercury" }], correctAnswer: "Mercury", explanation: "Mercury is the innermost planet." };
 	const host = document.createElement("div"); document.body.append(host);
+	const box = document.createElement("textarea"); document.body.append(box);
 	const root = createRoot(host);
+	let left = 0;
 	const tab = (target: Element) => {
 		const e = new window.Event("keydown", { bubbles: true, cancelable: true });
 		Object.defineProperty(e, "key", { value: "Tab" });
@@ -88,11 +89,12 @@ test("Tab from a quiz row goes to the thinking field; Tab from the thinking fiel
 		return e.defaultPrevented;
 	};
 	try {
-		await act(async () => root.render(<QuestionDock toolName="probe" toolCallId="tab_loop" input={input} onSubmit={async () => true} />));
-		assert.equal(tab(host.querySelector('[data-kbdrow="0"]')!), true, "the dock moves focus from the rows to the thinking field");
-		const thinking = (await mathBoxView(host, "Your thinking")).contentDOM;
-		assert.equal(tab(thinking), false, "the browser's own Tab moves on toward Submit");
-	} finally { await act(async () => root.unmount()); host.remove(); }
+		await act(async () => root.render(<QuestionDock {...noop} onLeaveRows={() => { left++; }} toolName="probe" toolCallId="tab_loop" input={input} />));
+		assert.equal(tab(host.querySelector('[data-kbdrow="0"]')!), true, "the dock moves focus from the rows to the box");
+		assert.equal(left, 1);
+		assert.equal(tab(box), false, "the browser's own Tab moves on toward Submit");
+		assert.equal(left, 1);
+	} finally { await act(async () => root.unmount()); host.remove(); box.remove(); }
 });
 
 test("a pointer click on Why does not leave focus on it, like the thinking toggle", async () => {

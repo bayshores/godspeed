@@ -349,7 +349,7 @@ describe("steer card rendering (the delivered artifact)", () => {
 		assert.match(html, /demo-resize/);
 		assert.match(html, /demo-error/);
 		assert.match(html, /Damped oscillator/);
-		assert.match(html, /interactive demo/i);
+		assert.match(html, /Demo/);
 		// the model-facing protocol text never renders for the learner
 		assert.ok(!html.includes("do NOT wait"), "no protocol glue in the bubble");
 	});
@@ -411,10 +411,9 @@ describe("steer card rendering (the delivered artifact)", () => {
 			},
 		);
 		const html = renderToStaticMarkup(<SubagentSteerCard message={projectNative([steer])[0] as never} />);
-		assert.match(html, /Research/);
-		assert.match(html, /complete/);
-		assert.match(html, /2 sources/);
-		assert.match(html, /view brief/, "the expansion affordance is offered");
+		assert.match(html, /Research agent/);
+		assert.match(html, /finished, 2 sources/);
+		assert.match(html, /View brief/, "the expansion affordance is offered");
 		// the one-liner is a native <details> — collapsed by default, so the
 		// brief + sources ride in the DOM but never clutter the transcript
 		// until the learner opens them (the wave-1 "view full research" ask)
@@ -436,9 +435,8 @@ describe("steer card rendering (the delivered artifact)", () => {
 			},
 		);
 		const html = renderToStaticMarkup(<SubagentSteerCard message={projectNative([steer])[0] as never} />);
-		assert.match(html, /PDF/);
-		assert.match(html, /reading complete/);
-		assert.match(html, /\(1 page read\)/, "the badge counts READ pages, not search hits");
+		assert.match(html, /PDF reader/);
+		assert.match(html, /finished, 1 page read/, "the badge counts READ pages, not search hits");
 		assert.match(html, /<details[^>]*data-testid="pdf-complete-badge"/, "a real disclosure like the research badge");
 		assert.ok(!/<details[^>]*open/.test(html), "collapsed by default");
 		assert.ok(html.includes("power rule"), "the brief rides inside the details");
@@ -481,43 +479,34 @@ describe("artifact chrome — scrollbar, invert toggles, downloads", () => {
 		);
 		const html = renderToStaticMarkup(<SubagentSteerCard message={projectNative([steer])[0] as never} />);
 		assert.match(html, /scrolling="no"/, "no internal scrollbar — the wheel chains to the session");
-		assert.match(html, /toggle-invert-demo-brightness/, "the invert switch (house Toggle)");
+		assert.match(html, /toggle-invert-demo-brightness/, "the invert switch");
 		assert.match(html, /data-testid="demo-download"/);
 		assert.ok(!html.includes("hue-rotate"), "inversion is OFF by default — a manual toggle only");
-		assert.match(html, /interactive demo/, "the kind label lives in the caption header");
+		assert.match(html, />Demo</, "the kind label lives in the caption row");
+		assert.match(html, />Invert demo brightness</, "the controls are words");
+		assert.match(html, />Download demo as HTML</);
 		assert.match(html, /Wave interference/, "the title rides beside the kind label");
 	});
 
 	it("figure card: invert + download buttons; NO fullscreen button without a chat page (the context is null there)", () => {
 		const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100"><circle cx="50" cy="50" r="20"/></svg>';
 		const html = renderToStaticMarkup(<VisualOutputCard output={{ svg }} />);
-		assert.match(html, /toggle-invert-figure-brightness/, "the invert switch (house Toggle)");
+		assert.match(html, /toggle-invert-figure-brightness/, "the invert switch");
 		assert.match(html, /data-testid="visual-download"/);
 		assert.ok(!html.includes('data-testid="visual-open"'), "fullscreen needs the session overlay context");
 		assert.ok(!html.includes("hue-rotate"), "inversion OFF by default");
 	});
 
-	it("figure card: NO card chrome, image first, caption row BELOW", () => {
+	it("figure card: image first, caption row BELOW, controls are words", () => {
 		const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100"><circle cx="50" cy="50" r="20"/></svg>';
 		const html = renderToStaticMarkup(<VisualOutputCard output={{ svg }} />);
-		// Document material: the outer box carries no card styling.
-		const rootAt = html.indexOf('data-testid="visual-card"');
-		const root = html.slice(rootAt - 200, rootAt);
-		assert.ok(!root.includes("rounded-xl border"), "no card container");
 		// Image BEFORE the caption row; the caption label and the controls follow it.
 		const svgAt = html.indexOf('data-testid="visual-svg"');
 		const captionAt = html.indexOf(">Figure<");
 		assert.ok(svgAt !== -1 && captionAt !== -1 && svgAt < captionAt, "the caption row sits below the image");
 		assert.ok(captionAt < html.indexOf("visual-download"), "the controls ride the caption row");
-		// The invert affordance: the contrast-circle disc + the tooltip.
-		assert.ok(html.includes("size-3"), "the icon disc");
-		assert.ok(html.includes('title="Invert colors"'), "the tooltip names the toggle");
-		// The half-moon is ACTUALLY filled (lucide's Contrast
-		// renders it hollow — fill="none" default; ours fills currentColor).
-		assert.ok(
-			html.includes('fill="currentColor" stroke="none"'),
-			"the filled half of the invert disc",
-		);
+		assert.match(html, />Invert figure brightness</, "the invert button is a word");
+		assert.match(html, />Download figure as SVG</);
 	});
 
 	it("svgNaturalWidth: declared px sizes parse; %, auto, and absent fall back to null", () => {

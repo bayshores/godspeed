@@ -1,5 +1,4 @@
 import { useContext, useMemo, type RefObject } from "react";
-import Link from "next/link";
 import type { StickToBottomContext } from "use-stick-to-bottom";
 import {
 	Conversation,
@@ -9,24 +8,22 @@ import {
 } from "@/frontend/components/ai-elements/conversation";
 import { Shimmer } from "@/frontend/components/ai-elements/shimmer";
 import { BrailleSpinner } from "@/frontend/components/braille-spinner";
-import { teachStep, useAgentStatus } from "@/frontend/components/agent-status";
+import { useAgentStatus } from "@/frontend/components/agent-status";
 import { JobsContext } from "@/frontend/components/jobs-context";
 import { SessionMessageNavigation } from "@/frontend/components/session-navigation";
 import type { LhViewMessage, Phase3 } from "@/shared/core";
 import { AgentAtWork } from "./agent-at-work";
 import { agentWork } from "./agent-at-work-model";
 import { ArrivalRow, type Arrive } from "./arrivals";
-import { lessonError } from "./lesson-error-model";
 import { MessageRow } from "./message-row";
 import { LABEL_TEXT } from "@/frontend/components/ui/label-text";
 import { cn } from "@/frontend/lib/utils";
 
 /**
- * THE READING PANE: the lesson as one
- * document in a 640px column at the left of the pane — teacher text at
- * 17/1.6 (.lh-reading in globals.css), answered cards
- * inline. Each message is a memoized row, so streaming redraws only the
- * message being written.
+ * THE READING PANE: the lesson as one document on the reading sheet, in
+ * the reading type (.lh-reading in globals.css), answered cards inline.
+ * Each message is a memoized row, so streaming redraws only the message
+ * being written.
  */
 export function ReadingPane({
 	messages,
@@ -35,8 +32,6 @@ export function ReadingPane({
 	busy,
 	turnInFlight,
 	waitingForAgent,
-	error,
-	onRetry,
 	arrivalsLive,
 	arrive,
 	onOpenPlan,
@@ -48,11 +43,8 @@ export function ReadingPane({
 	status: "ready" | "submitted" | "streaming" | "error";
 	busy: boolean;
 	turnInFlight: boolean;
-	/** The turn waits for an agent to take it: one waiting state instead of Thinking…. */
+	/** The turn waits for an agent to take it: the teacher column says so, and no Thinking… shows. */
 	waitingForAgent: boolean;
-	error: { message: string } | null;
-	/** The error banner's Try again. */
-	onRetry: () => void;
 	arrivalsLive: boolean;
 	arrive: Arrive;
 	onOpenPlan: () => void;
@@ -60,17 +52,16 @@ export function ReadingPane({
 }) {
 	const last = messages.length - 1;
 	const jobs = useContext(JobsContext);
-	const agentStatusName = useAgentStatus()?.name?.trim();
-	const agentName = agentStatusName || "Your agent";
+	const agentName = useAgentStatus()?.name?.trim() || "Your agent";
 	// The reply being worked on: its plan, steps and file, until its text lands.
 	const replying = busy && messages[last]?.role === "assistant" ? messages[last] : undefined;
 	const work = useMemo(() => (replying ? agentWork(replying, jobs) : null), [replying, jobs]);
 	const showWork = !!work && !work.replied && (work.plan !== null || work.steps.length > 0);
 	return (
-		<Conversation className="h-full min-w-0 flex-1" initial="instant" contextRef={scrollContextRef}>
+		<Conversation className="min-h-0 min-w-0 flex-1" initial="instant" contextRef={scrollContextRef}>
 			<SessionMessageNavigation />
 			<ConversationContent className="min-h-full gap-0 p-0">
-				<div data-session-find-root="" className="lh-reading flex w-full max-w-[744px] flex-1 flex-col gap-4 px-9 pt-7 pb-24">
+				<div data-session-find-root="" className="lh-reading flex w-full max-w-[872px] flex-1 flex-col gap-4 px-14 pt-5 pb-24 @max-[640px]/reading:px-7">
 					{messages.length === 0 && !busy && (
 						<ConversationEmptyState title="New lesson" description="" />
 					)}
@@ -96,43 +87,15 @@ export function ReadingPane({
 							<AgentAtWork work={work} agentName={agentName} />
 						</ArrivalRow>
 					)}
-					{waitingForAgent ? (
-						<ArrivalRow live={arrivalsLive} as="div" className="flex flex-col items-start gap-1 font-ui text-[13px]">
-							<span data-testid="lesson-waiting" className={LABEL_TEXT}>
-								Waiting for your agent
-							</span>
-							<span className="text-ink-3">{teachStep(agentStatusName)}</span>
-							<Link href="/settings?section=connection" data-testid="lesson-waiting-settings" className="lh-btn mt-1">
-								Open Connection settings
-							</Link>
-						</ArrivalRow>
-					) : (
-						!showWork &&
-						(status === "submitted" || turnInFlight) && (
-							<ArrivalRow live={arrivalsLive} className={cn("flex items-center gap-2 font-ui", LABEL_TEXT)}>
-								<BrailleSpinner label="Thinking" />
-								<Shimmer>Thinking…</Shimmer>
-							</ArrivalRow>
-						)
-					)}
-					{error && (
-						<ArrivalRow live={arrivalsLive} as="div" className="flex flex-wrap items-center gap-x-3 gap-y-2 border border-ans-wrong/50 bg-ans-wrong/10 px-3 py-2 text-sm">
-							<span data-testid="lesson-error" title={error.message}>
-								{lessonError(error.message).text}
-							</span>
-							<button
-								type="button"
-								data-testid="lesson-error-retry"
-								onClick={onRetry}
-								className="lh-press lh-btn"
-							>
-								Try again
-							</button>
+					{!waitingForAgent && !showWork && (status === "submitted" || turnInFlight) && (
+						<ArrivalRow live={arrivalsLive} className={cn("flex items-center gap-2 font-ui", LABEL_TEXT)}>
+							<BrailleSpinner label="Thinking" />
+							<Shimmer>Thinking…</Shimmer>
 						</ArrivalRow>
 					)}
 				</div>
 			</ConversationContent>
-			<ConversationScrollButton className="bottom-6 left-[min(50%,372px)]" />
+			<ConversationScrollButton className="bottom-6 left-1/2" />
 		</Conversation>
 	);
 }

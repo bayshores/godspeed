@@ -5,7 +5,7 @@ import type { CheatSheetView, SheetAbout, SheetMessage, SheetRegion, SheetRule }
 import { MessageResponse } from "@/frontend/components/ai-elements/message";
 import { NoAgentLine } from "@/frontend/components/agent-folder/no-agent-line";
 import { AttachButton, AttachmentTray, attachmentInputProps, useAttachmentDraft, type AttachmentDraft } from "@/frontend/components/lesson/attachment-tray";
-import { SendButton } from "@/frontend/components/lesson/panel-parts";
+import { SendButton } from "@/frontend/components/ui/send-button";
 import { MathBox } from "@/frontend/components/math-box";
 import { savedDay } from "@/frontend/components/rule-chips";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
@@ -182,14 +182,18 @@ export function SheetChat({
 				{pointed && <PointedChip pointed={pointed} pages={pagesOf(pointed.region.n)} onClear={onClearPointed} />}
 				<AttachmentTray draft={attachments} />
 				<div className="flex min-h-[130px] flex-col rounded border-[1.5px] border-ink bg-background">
-					<MathBox
-						compact
-						value={text}
-						onChange={setText}
-						onEnter={() => void send()}
-						placeholder={view.sheet.versions.length > 0 ? "Ask about the sheet, or say what to change" : "What do you want on your cheat sheet?"}
-						ariaLabel={`Message ${agentName} about the cheat sheet`}
-					/>
+					<div className="flex max-h-32 min-h-0 flex-1">
+						<MathBox
+							value={text}
+							onChange={setText}
+							onEnter={() => {
+								void send();
+								return true;
+							}}
+							placeholder={view.sheet.versions.length > 0 ? "Ask about the sheet, or say what to change" : "What do you want on your cheat sheet?"}
+							ariaLabel={`Message ${agentName} about the cheat sheet`}
+						/>
+					</div>
 					<ComposerBar attachments={attachments} busy={busy} disabled={nothing || sending || !!view.newer} onSend={() => void send()} onStop={() => post({ action: "stop" })} />
 				</div>
 			</div>

@@ -394,7 +394,7 @@ export function newGraphContextMessage(picks: readonly GraphContextPick[], chain
 /** A study session's topics with their modes (core/study.ts
  *  studyContextText), or a homework session's deadline and problems
  *  (core/homework.ts homeworkContextText), for the model only: the
- *  steps pane shows the topics or problems. */
+ *  plan row shows the topics or problems. */
 export function newStudyContextMessage(text: string, customType: "study-context" | "homework-context" = "study-context"): LhMarkerMessage {
 	return {
 		id: newMessageId(),

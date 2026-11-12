@@ -46,7 +46,7 @@ import {
 	zoomLabel,
 	zoomStep,
 } from "../../src/frontend/components/cheat-sheet/canvas-model.ts";
-import { DOCK_MIN_W, dockWidth, makeTarget, parseDockState, pickSheet, sessionAbout } from "../../src/frontend/components/cheat-sheet/dock-model.ts";
+import { DOCK_MIN_W, dockWidth, makeTarget, parseDockState, pickSheet } from "../../src/frontend/components/cheat-sheet/dock-model.ts";
 
 const A4: SheetPage = { widthPt: 595.28, heightPt: 841.89 };
 const LETTER: SheetPage = { widthPt: 612, heightPt: 792 };
@@ -442,18 +442,11 @@ describe("cheat sheet: beside a session", () => {
 		assert.equal(makeTarget([], "mid"), null);
 	});
 
-	it("takes the problem and what the learner wrote, else the question and its choices, never the answer", () => {
-		assert.deepEqual(sessionAbout({ session: "Counting", problem: { statement: " Seat 5 ", modelSolution: "5!" }, work: " 120 ", question: null }), { kind: "problem", session: "Counting", text: "Seat 5", work: "120" });
-		const question = { question: "Which?", options: [{ label: "$n!$", value: "a" }, "two"], correctAnswer: "a", explanation: "x" };
-		assert.deepEqual(sessionAbout({ session: "Counting", problem: null, work: undefined, question }), { kind: "question", session: "Counting", text: "Which?\n- $n!$\n- two" });
-		assert.equal(sessionAbout({ session: "Counting", problem: null, work: undefined, question: { question: " " } }), null);
-	});
-
 	it("remembers whether it is open and which sheet, and keeps a width the session can live beside", () => {
 		assert.deepEqual(parseDockState('{"open":true,"deadlineId":"ddl_1"}'), { open: true, deadlineId: "ddl_1" });
 		assert.deepEqual(parseDockState("nope"), { open: false });
 		assert.deepEqual(parseDockState(null), { open: false });
-		assert.equal(dockWidth(900, 1200), 720);
+		assert.equal(dockWidth(900, 1440), 440);
 		assert.equal(dockWidth(100, 1200), DOCK_MIN_W);
 		assert.equal(dockWidth(500.4, 1600), 500);
 	});

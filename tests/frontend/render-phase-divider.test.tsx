@@ -18,7 +18,7 @@ describe("PhaseDivider (transcript boundary)", () => {
 		assert.ok(html.includes('data-testid="phase-divider-plan"'));
 		assert.match(html, /Planning/);
 		assert.ok(html.includes("border-dotted"), "dotted rule");
-		assert.ok(html.includes("border-border"), "monochrome rule");
+		assert.ok(html.includes("border-edge"), "monochrome rule");
 		assert.ok(!html.includes("border-phase-"), "phase-colored rules are retired");
 	});
 

@@ -13,7 +13,7 @@ export function isStartKey(e: { key: string; shiftKey: boolean; isComposing?: bo
  * fact picker; with picks it shows the count and "Clear"), "Add pictures
  * or PDFs" and the filled Study button. Enter starts, Shift+Enter is a new
  * line. Pictures and PDFs (paste, drop or the button) wait above the
- * topic, as in the lesson box, and go with the first message.
+ * topic, as in the lesson's writing box, and go with the first message.
  */
 export function TopicBox({
 	text,

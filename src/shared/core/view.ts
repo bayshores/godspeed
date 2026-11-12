@@ -554,7 +554,7 @@ function projectMarker(marker: LhMarkerMessage, out: LhViewMessage[]): void {
 		case "study-context":
 		case "homework-context":
 			// The [Today] note, the study plan and the homework note are for
-			// the model only: the steps pane shows the topics or problems.
+			// the model only: the plan row shows the topics or problems.
 			return;
 		case "app-request": {
 			// godspeed's own request in Talk: a line from the app, not the learner.

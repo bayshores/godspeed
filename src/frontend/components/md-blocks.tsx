@@ -13,17 +13,16 @@
  *   the buttons go.
  * - Display math: untouched visually, but gains the corner copy.
  *
- * THE ONE AFFORDANCE: a small muted COPY icon at each block's
+ * THE ONE AFFORDANCE: a small "Copy" button at each block's
  * top-right corner, revealed on hover — copying the SOURCE (table →
  * Markdown, code → text, mermaid → chart source, math → the raw TeX). It
  * never fakes a table column or shifts layout, and hover-reveal keeps the
  * reading surface clean — the whole point of the melt. Text selection stays
- * free: the icon lives in dead corner space. Mermaid additionally gets an
- * EXPAND icon (opens the session overlay) when a chat page is mounted.
+ * free: the button lives in dead corner space. Mermaid additionally gets an
+ * "Open fullscreen" button (opens the session overlay) when a chat page is mounted.
  */
 
 import { cloneElement, isValidElement, useEffect, useRef, useState, type ComponentProps, type ReactNode } from "react";
-import { MaximizeIcon } from "lucide-react";
 import { cn } from "@/frontend/lib/utils";
 import {
 	CodeBlock,
@@ -37,14 +36,14 @@ import { MermaidError } from "@/frontend/components/mermaid-error";
 import { blurAfterPointerClick } from "@/frontend/components/focus-hygiene";
 import { CopyButton } from "@/frontend/components/copy-button";
 import { chartSize, useSessionMermaid } from "@/frontend/components/session-overlay";
-import { Hint } from "@/frontend/components/ui/hint";
+import { SMALL_BTN } from "@/frontend/components/ui/card-parts";
 
 // ─── The one affordance: the hover-reveal corner copy ────────────────────────
 
-/** A small muted copy icon for a block's top-right corner. The CONSUMER'S
+/** A small "Copy" button for a block's top-right corner. The CONSUMER'S
  *  wrapper carries `group/md relative` (a NAMED group — the message container
  *  is also a `group`, and an unnamed group-hover would light EVERY corner in
- *  the message at once) and positions this via className; the icon
+ *  the message at once) and positions this via className; the button
  *  self-hides until hover (opacity-0 → group-hover/md:opacity-100). Copies
  *  getText() on click. */
 function CopyCorner({
@@ -60,10 +59,9 @@ function CopyCorner({
 		<span className={cn("relative inline-flex", className)}>
 			<CopyButton
 				text={getText}
-				icon="only"
 				aria-label={label}
 				data-testid="md-copy"
-				className="lh-press flex size-6 items-center justify-center text-ink-3 opacity-0 hover:bg-accent hover:text-foreground focus-visible:opacity-100 group-hover/md:opacity-100"
+				className={cn(SMALL_BTN, "opacity-0 focus-visible:opacity-100 group-hover/md:opacity-100")}
 				onClick={blurAfterPointerClick}
 			/>
 		</span>
@@ -133,7 +131,7 @@ function MermaidInline({ chart }: { chart: string }) {
 	if (incomplete || (svg === null && error === null)) {
 		return (
 			<div data-testid="md-mermaid" className="my-4 flex justify-center p-4" aria-busy="true">
-				<span className="inline-block size-4 animate-spin motion-reduce:animate-none rounded-full border border-current border-b-2 text-muted-foreground" />
+				<span className="inline-block size-4 animate-spin motion-reduce:animate-none rounded-full border border-current border-b-2 text-ink-2" />
 			</div>
 		);
 	}
@@ -150,23 +148,20 @@ function MermaidInline({ chart }: { chart: string }) {
 				style={capW === null ? undefined : { maxWidth: `${capW}px` }}
 				dangerouslySetInnerHTML={{ __html: svg ?? "" }}
 			/>
-			<div className="absolute top-0 right-0 flex items-start gap-0.5">
+			<div className="absolute top-0 right-0 flex items-start gap-1.5">
 				<CopyCorner getText={() => chart} label="Copy diagram source" />
 				{overlay && (
-					<Hint label="Open full-screen" side="bottom">
-						<button
-							type="button"
-							aria-label="Expand diagram"
-							data-testid="md-mermaid-expand"
-							className="lh-press flex size-6 items-center justify-center text-ink-3 opacity-0 hover:bg-accent hover:text-foreground focus-visible:opacity-100 group-hover/md:opacity-100"
-							onClick={(e) => {
-								blurAfterPointerClick(e);
-								overlay.openMermaid(chart);
-							}}
-						>
-							<MaximizeIcon className="size-3.5" />
-						</button>
-					</Hint>
+					<button
+						type="button"
+						data-testid="md-mermaid-expand"
+						className={cn(SMALL_BTN, "opacity-0 focus-visible:opacity-100 group-hover/md:opacity-100")}
+						onClick={(e) => {
+							blurAfterPointerClick(e);
+							overlay.openMermaid(chart);
+						}}
+					>
+						Open fullscreen
+					</button>
 				)}
 			</div>
 		</div>
@@ -187,7 +182,7 @@ function MarkdownCode(props: ComponentProps<"code"> & ExtraProps) {
 	// Inline code: no data-block (the pre handler stamps block fences only).
 	if (!("data-block" in props)) {
 		return (
-			<code className={cn(" bg-muted px-1.5 py-0.5 font-mono text-sm", className)} data-streamdown="inline-code" {...rest}>
+			<code className={cn("rounded-sm bg-tone px-1.5 py-0.5 font-mono text-[0.9em]", className)} data-streamdown="inline-code" {...rest}>
 				{children}
 			</code>
 		);
@@ -293,7 +288,7 @@ function MarkdownBlockquote(props: ComponentProps<"blockquote"> & ExtraProps) {
 		return (
 			<blockquote
 				{...rest}
-				className="my-4 border-l-4 border-muted-foreground/30 pl-4 text-muted-foreground italic"
+				className="my-4 border-l-2 border-tone-2 pl-4 text-ink-2 italic"
 				data-streamdown="blockquote"
 			>
 				{children}

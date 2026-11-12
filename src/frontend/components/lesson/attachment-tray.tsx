@@ -43,8 +43,8 @@ function readBase64(file: File): Promise<string> {
  *  keeps them. Never stored on disk (they can be large); a reload drops them. */
 const waitingFiles = new Map<string, DraftFile[]>();
 
-/** `key` names the box (a lesson's message box, a question), so
- *  its files outlive the box's component. Without one they live and go with it. */
+/** `key` names the box (a lesson's writing box), so its files outlive
+ *  the box's component. Without one they live and go with it. */
 export function useAttachmentDraft(key?: string): AttachmentDraft {
 	const [files, showFiles] = useState(() => (key && waitingFiles.get(key)) || []);
 	const filesRef = useRef(files);
@@ -172,7 +172,7 @@ function DraftChip({ file, onRemove }: { file: ChatAttachment; onRemove: () => v
 }
 
 /** "Add pictures or PDFs": opens the file picker. A quiet word with a
- *  plus beside Send; `outlined` where it sits in a row of outlined buttons. */
+ *  plus; `outlined` where it sits in a row of outlined buttons. */
 export function AttachButton({ draft, outlined }: { draft: AttachmentDraft; outlined?: boolean }) {
 	const inputRef = useRef<HTMLInputElement>(null);
 	return (

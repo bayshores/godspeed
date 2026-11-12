@@ -6,7 +6,7 @@
  * renders nothing: the teacher tells the learner itself.
  */
 
-import { BookmarkCheckIcon } from "lucide-react";
+import { SMALL_BTN } from "@/frontend/components/ui/card-parts";
 import { parseSaveRuleResult, type ArtifactPartProps, type SaveRuleResult } from "@/shared/core";
 import { RuleEditBox, useSavedRule } from "@/frontend/components/saved-rule";
 
@@ -19,8 +19,7 @@ function Line({ saved }: { saved: SaveRuleResult }) {
 	const api = useSavedRule(saved.where, saved.rule);
 	const { mode } = api;
 	return (
-		<div data-testid="rule-saved" className="my-2 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5 font-ui text-[13px] text-ink-2">
-			<BookmarkCheckIcon className="size-3.5 shrink-0 text-ink-3" aria-hidden />
+		<div data-testid="rule-saved" className="my-2 flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1.5 text-[15px] text-ink">
 			{mode.kind === "removed" ? (
 				<span>Removed the rule: {api.rule}</span>
 			) : mode.kind === "editing" ? (
@@ -30,8 +29,8 @@ function Line({ saved }: { saved: SaveRuleResult }) {
 				</>
 			) : (
 				<>
-					<span className="min-w-0">
-						Saved a rule for {saved.for}: <span className="text-ink">{api.rule}</span>
+					<span className="min-w-0 flex-1">
+						Saved a rule for {saved.for}: {api.rule}
 					</span>
 					{mode.kind === "error" ? (
 						<span role="alert" className="text-ans-wrong">
@@ -39,10 +38,10 @@ function Line({ saved }: { saved: SaveRuleResult }) {
 						</span>
 					) : (
 						<>
-							<button type="button" data-testid="rule-saved-undo" disabled={api.busy} onClick={api.undo} className="lh-press lh-btn">
+							<button type="button" data-testid="rule-saved-undo" disabled={api.busy} onClick={api.undo} className={SMALL_BTN}>
 								Undo
 							</button>
-							<button type="button" data-testid="rule-saved-edit" disabled={api.busy} onClick={api.edit} className="lh-press lh-btn">
+							<button type="button" data-testid="rule-saved-edit" disabled={api.busy} onClick={api.edit} className={SMALL_BTN}>
 								Edit
 							</button>
 						</>

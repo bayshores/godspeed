@@ -111,7 +111,6 @@ function OtherAppSetup() {
 					<span className="text-[12.5px] text-ink-3">MCP server</span>
 					<CopyButton
 						text={`${access.url}\nAuthorization: Bearer ${access.token}`}
-						icon
 						aria-label="Copy MCP server"
 						className="lh-press flex items-center gap-1.5 text-[12.5px] font-bold text-ink-2 hover:text-ink"
 					/>

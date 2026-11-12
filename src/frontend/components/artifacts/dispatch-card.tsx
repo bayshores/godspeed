@@ -1,5 +1,7 @@
 import { useContext } from "react";
-import { CheckIcon, XIcon } from "lucide-react";
+import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
+import { CARD } from "@/frontend/components/ui/card-parts";
+import { cn } from "@/frontend/lib/utils";
 import { JobsContext } from "@/frontend/components/jobs-context";
 import type { JobKind, JobRecord } from "@/shared/core";
 import { BrailleSpinner } from "@/frontend/components/braille-spinner";
@@ -35,12 +37,12 @@ export function DispatchCard({ toolCallId, kind }: { toolCallId: string; kind: J
 	const failed = job.status === "error";
 	return (
 		<div
-			className="flex items-center gap-2 text-xs text-muted-foreground"
+			className="flex items-center gap-2.5 text-[15px] text-ink-2"
 			data-testid="dispatch-settled"
 		>
-			{failed ? <XIcon className="size-3.5 text-ans-wrong" /> : <CheckIcon className="size-3.5" />}
-			<span className="font-semibold">{label}</span>
-			<span>{failed ? "failed" : "finished"}</span>
+			<PixelIcon name={failed ? "close" : "check"} className={cn(failed && "text-ans-wrong")} />
+			<span className="text-ink">{label}</span>
+			<span className="text-sm">{failed ? "failed" : "finished"}</span>
 		</div>
 	);
 }
@@ -53,22 +55,22 @@ function DispatchActivityCard({ job, label }: { job: JobRecord | null; label: st
 		job && job.createdAt ? Math.max(0, Math.round((now - Date.parse(job.createdAt)) / 1000)) : null;
 	return (
 		<div
-			className=" border bg-card p-4 text-card-foreground"
+			className={cn(CARD, "flex flex-col gap-2 py-3 text-card-foreground")}
 			data-testid="dispatch-card"
 		>
-			<div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+			<div className="flex items-center gap-2.5 text-base text-ink">
 				{/* The Braille spinner: one working indicator everywhere. */}
 				<BrailleSpinner label={`${label} running`} />
 				{label}
-				{elapsed !== null && <span className="font-normal">{elapsed}s</span>}
+				{elapsed !== null && <span className="font-count text-[15px] text-ink-2">{elapsed}s</span>}
 			</div>
 			{job?.activity && (
-				<div className="mt-1 truncate text-sm text-muted-foreground" data-testid="dispatch-activity-line">
+				<div className="truncate font-count text-[15px] text-ink-2" data-testid="dispatch-activity-line">
 					{job.activity}
 				</div>
 			)}
 			{!job && (
-				<div className="mt-1 text-sm text-muted-foreground" data-testid="dispatch-pending">
+				<div className="text-sm text-ink-2" data-testid="dispatch-pending">
 					Dispatched…
 				</div>
 			)}

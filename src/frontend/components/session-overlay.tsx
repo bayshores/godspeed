@@ -1,10 +1,9 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { XIcon } from "lucide-react";
+import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { cn } from "@/frontend/lib/utils";
 import { usePanZoomViewport, ZoomControls } from "@/frontend/components/pan-zoom-viewport";
 import { renderMermaid } from "@/frontend/components/mermaid-render";
 import { MermaidError } from "@/frontend/components/mermaid-error";
-import { Hint } from "@/frontend/components/ui/hint";
 import { SvgImage } from "@/frontend/components/artifacts/svg-image";
 import { useDialogFocus } from "@/frontend/components/use-dialog-focus";
 
@@ -138,24 +137,22 @@ export function MermaidOverlay({
 			aria-label="Diagram focus"
 		>
 			<div className="mb-2 flex items-center gap-2">
-				<span className="text-sm font-medium">Diagram</span>
-				<span className="text-xs text-muted-foreground">from this lesson</span>
-				<Hint label="Close" side="left">
-<button
+				<span className="text-[15px] font-medium text-ink">Diagram</span>
+				<span className="text-sm text-ink-2">from this lesson</span>
+				<button
 					type="button"
 					onClick={onClose}
-					aria-label="Close"
 					data-testid="mermaid-overlay-close"
-					className="lh-press ml-auto p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
+					className="lh-press lh-btn lh-btn-quiet ml-auto gap-2 px-2.5 text-[15px]"
 				>
-					<XIcon className="size-4" />
+					<PixelIcon name="close" />
+					Close
 				</button>
-</Hint>
 			</div>
 			<div
 				ref={viewportRef}
 				className={cn(
-					"relative min-h-0 flex-1 touch-none overflow-hidden border select-none",
+					"relative min-h-0 flex-1 touch-none overflow-hidden border border-border select-none",
 					atFloor ? "cursor-default" : "cursor-grab",
 				)}
 				onPointerDown={startDrag}
@@ -208,7 +205,7 @@ export function MermaidOverlay({
 						<ZoomControls fitLabel="Fit diagram to view" onStep={stepZoom} onFit={fitView} />
 					</>
 				) : (
-					<div className="flex h-full items-center justify-center gap-2 text-sm text-muted-foreground">
+					<div className="flex h-full items-center justify-center gap-2 text-[15px] text-ink-2">
 						<span className="inline-block size-4 animate-spin motion-reduce:animate-none rounded-full border border-current border-b-2" />
 						Rendering diagram…
 					</div>

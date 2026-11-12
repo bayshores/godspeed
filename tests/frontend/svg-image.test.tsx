@@ -124,9 +124,10 @@ describe("generated SVG image boundary", () => {
 		const holder = document.querySelector("[data-lh-overlay-chart]")!;
 		assert.equal(assertImageBoundary(holder, FIGURE).className, "block h-auto w-full");
 		assert.match(holder.parentElement!.getAttribute("style")!, /width:320px/);
-		for (const label of ["Zoom in", "Zoom out", "Fit diagram to view", "Close"]) {
+		for (const label of ["Zoom in", "Zoom out", "Fit diagram to view"]) {
 			assert.ok(document.querySelector(`button[aria-label="${label}"]`));
 		}
+		assert.equal(document.querySelector('[data-testid="mermaid-overlay-close"]')?.textContent, "Close");
 	});
 });
 

@@ -14,7 +14,8 @@ import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { printPdf } from "./print-pdf";
 import { SheetCanvas } from "./sheet-canvas";
 import { SheetChat } from "./sheet-chat";
-import { OlderSheet, TeacherHead, emptyChatLine, sheetPaper, teacherDoing, versionLabel } from "./studio-states";
+import { TeacherHead } from "@/frontend/components/halley/teacher-head";
+import { OlderSheet, emptyChatLine, sheetPaper, teacherDoing, versionLabel } from "./studio-states";
 import { remakeSheet, sheetPdfPath, showSheetPdf, useCheatSheet, useSheetFocus } from "./use-cheat-sheet";
 
 /** A button on the dark studio bar: outlined in the bar's own ink. */

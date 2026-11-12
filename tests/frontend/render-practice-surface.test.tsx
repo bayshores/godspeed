@@ -33,26 +33,20 @@ const part = (over: Partial<ArtifactPartProps["part"]>): ArtifactPartProps["part
 // ── the open problem pane ────────────────────────────────────────────────────
 
 const pane = (over: Partial<React.ComponentProps<typeof OpenProblemPane>> = {}) =>
-	renderToStaticMarkup(
-		<OpenProblemPane statement="Show that the sum is even." source={null} part={null} busy={false} waitingForAgent={false} onDiscard={() => {}} onStop={() => {}} footer={null} {...over} />,
-	);
+	renderToStaticMarkup(<OpenProblemPane statement="Show that the sum is even." source={null} part={null} {...over} />);
 
 describe("OpenProblemPane", () => {
-	it("shows the whole statement and Discard problem, with no writing box", () => {
+	it("shows the whole statement and nothing to type into", () => {
 		const html = pane();
 		assert.match(html, /data-testid="problem-statement"[\s\S]*Show that the sum is even\./);
-		assert.match(html, /data-testid="discard-problem"[^>]*>Discard problem</);
 		assert.doesNotMatch(html, /problem-number/, "the statement names its own number");
 		assert.doesNotMatch(html, /practice-thinking-field|practice-send|data-testid="math-box"/);
-		assert.ok(!html.includes('data-testid="stop-turn"'), "no Stop while nothing runs");
+		assert.doesNotMatch(html, /discard-problem|stop-turn/, "the way out sits beside Your turn");
 	});
 
-	it("while the teacher writes, the header says who is writing and has Stop", () => {
-		const header = (busy: boolean, waitingForAgent: boolean) => pane({ busy, waitingForAgent }).match(/data-testid="panel-status"[^>]*>([^<]*)</)?.[1];
-		assert.equal(header(false, false), "", "nothing while it is the learner's turn");
-		assert.equal(header(true, false), "Teacher is writing…");
-		assert.equal(header(true, true), "Waiting for your agent");
-		assert.match(pane({ busy: true }), /data-testid="stop-turn"/);
+	it("homework shows where the problem is in the file", () => {
+		assert.ok(!pane().includes("problem-source"), "no source line for a practice problem");
+		assert.match(pane({ source: "hw6.pdf, page 2" }), /data-testid="problem-source"[^>]*>hw6\.pdf, page 2</);
 	});
 });
 
@@ -158,13 +152,11 @@ describe("the practice transcript cards", () => {
 	it("ThinkingCard (old saved lessons): one label, right side, expanded arrival", () => {
 		const trace = renderToStaticMarkup(<ThinkingCard data={{ problemCallId: "c", commit: false, text: "stuck at step two" }} />);
 		assert.match(trace, /Your thinking/);
-		// Transcript rows arrive EXPANDED (clearly conveyed as sent) as
-		// full-width card-color bands with the 6px rail (the document,
-		// all-in).
+		// Transcript rows arrive expanded (clearly conveyed as sent), in a bordered card.
 		assert.match(trace, /aria-expanded="true"/);
 		assert.ok(trace.includes("stuck at step two"), "the text is visible on arrival");
-		assert.ok(trace.includes("bg-card"), "the card-color band");
-		assert.ok(trace.includes("border-l-[calc(3ch-14px)]"), "narrow rail inside the 3ch inset");
+		assert.ok(trace.includes("border-border"), "a bordered card");
+		assert.ok(trace.includes("border-l-2"), "the quote's rail");
 		const legacy = renderToStaticMarkup(<ThinkingCard data={{ problemCallId: "c", commit: true, text: "It is 42." }} />);
 		assert.match(legacy, /Your thinking/);
 		assert.doesNotMatch(legacy, /Your solution/);

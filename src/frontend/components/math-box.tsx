@@ -1,6 +1,5 @@
 import { useEffect, useImperativeHandle, useRef, useState } from "react";
 import type { MathBoxHandle } from "@/frontend/components/math-box-view";
-import { FIELD_EDGE } from "@/frontend/components/lesson/panel-parts";
 
 /** Keys typed in the box stay in it: Esc must not stop the turn, digits
  *  must not pick an option, Enter is the box's own. Modifier shortcuts
@@ -10,9 +9,9 @@ function keepKeysInBox(e: React.KeyboardEvent) {
 }
 
 /**
- * The writing box (thinking, answers, the lesson's message box): text
- * where math formats as you type. CodeMirror loads on mount, so server
- * rendering shows the placeholder.
+ * The writing box's text: math formats as you type. Whoever shows it
+ * draws the edge around it and sets how tall it gets. CodeMirror loads on
+ * mount, so server rendering shows the placeholder.
  */
 export function MathBox({
 	value,
@@ -21,31 +20,22 @@ export function MathBox({
 	onFocus,
 	placeholder,
 	ariaLabel,
-	compact = false,
-	autoFocus = false,
-	footer,
 	ref,
 }: {
 	value: string;
 	onChange: (text: string) => void;
-	/** Enter's action. Absent: Enter is a newline. */
-	onEnter?: () => void;
+	/** Enter's action; false when it has none right now, so Enter is a newline. */
+	onEnter: () => boolean;
 	onFocus?: () => void;
 	placeholder: string;
 	ariaLabel: string;
-	/** One line that grows (the lesson box), its edge drawn by the row. */
-	compact?: boolean;
-	/** Focus once it loads. */
-	autoFocus?: boolean;
-	/** A row inside the box's bottom edge (attach and Send). */
-	footer?: React.ReactNode;
 	ref?: React.Ref<{ focus(): void }>;
 }) {
 	const hostRef = useRef<HTMLDivElement>(null);
 	const handleRef = useRef<MathBoxHandle | null>(null);
 	const [ready, setReady] = useState(false);
-	const latest = useRef({ value, onChange, onEnter });
-	latest.current = { value, onChange, onEnter };
+	const latest = useRef({ value, onChange, onEnter, placeholder, ariaLabel });
+	latest.current = { value, onChange, onEnter, placeholder, ariaLabel };
 
 	useImperativeHandle(ref, () => ({ focus: () => handleRef.current?.focus() }), []);
 
@@ -57,20 +47,14 @@ export function MathBox({
 			if (gone || !host) return;
 			handleRef.current = mountMathBox(host, {
 				doc: latest.current.value,
-				placeholder,
-				ariaLabel,
-				compact,
-				onEnter: () => {
-					const action = latest.current.onEnter;
-					action?.();
-					return action !== undefined;
-				},
+				placeholder: latest.current.placeholder,
+				ariaLabel: latest.current.ariaLabel,
+				onEnter: () => latest.current.onEnter(),
 				onChange: (text) => {
 					latest.current.value = text;
 					latest.current.onChange(text);
 				},
 			});
-			if (autoFocus) handleRef.current.focus();
 			setReady(true);
 		});
 		return () => {
@@ -85,21 +69,19 @@ export function MathBox({
 		handleRef.current?.setValue(value);
 	}, [value]);
 
+	useEffect(() => {
+		handleRef.current?.setLabels(placeholder, ariaLabel);
+	}, [placeholder, ariaLabel, ready]);
+
 	return (
-		<div
-			data-testid="math-box"
-			onKeyDown={keepKeysInBox}
-			onFocus={onFocus}
-			className={`lh-input relative flex w-full min-w-0 flex-1 flex-col overflow-hidden ${compact ? "max-h-32 text-[14px]! leading-5! text-ink" : `min-h-28 ${FIELD_EDGE}`}`}
-		>
+		<div data-testid="math-box" onKeyDown={keepKeysInBox} onFocus={onFocus} className="lh-input relative flex w-full min-w-0 flex-1 flex-col overflow-hidden text-[16px]! leading-6! text-ink">
 			{!ready && (
-				<div aria-hidden className={`${compact ? "px-3.5 py-2.5" : "px-5 py-[18px]"} ${value ? "whitespace-pre-wrap" : "text-ink-3"}`}>
+				<div aria-hidden className={`px-3.5 py-3 ${value ? "whitespace-pre-wrap" : "text-ink-3"}`}>
 					{value || placeholder}
 				</div>
 			)}
 			{/* CodeMirror owns this node's children. */}
 			<div ref={hostRef} className="min-h-0 flex-1" />
-			{footer && <div className="flex shrink-0 items-center gap-2 p-2">{footer}</div>}
 		</div>
 	);
 }

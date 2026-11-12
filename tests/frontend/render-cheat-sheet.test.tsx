@@ -42,12 +42,12 @@ Object.assign(globalThis, {
 // The chat scrolls to its end.
 (dom.window.Element.prototype as unknown as { scrollIntoView: () => void }).scrollIntoView = () => {};
 
-const { OlderSheet, TeacherHead, emptyChatLine, sheetPaper, teacherDoing, versionLabel } = await import("../../src/frontend/components/cheat-sheet/studio-states.tsx");
+const { TeacherHead } = await import("../../src/frontend/components/halley/teacher-head.tsx");
+const { OlderSheet, emptyChatLine, sheetPaper, teacherDoing, versionLabel } = await import("../../src/frontend/components/cheat-sheet/studio-states.tsx");
 const { SheetChat, pointedLabel } = await import("../../src/frontend/components/cheat-sheet/sheet-chat.tsx");
 const { SheetCanvas } = await import("../../src/frontend/components/cheat-sheet/sheet-canvas.tsx");
 const { SheetCardView } = await import("../../src/frontend/components/cheat-sheet/class-sheets.tsx");
 const { SheetDock } = await import("../../src/frontend/components/cheat-sheet/sheet-dock.tsx");
-const { LessonTopBar } = await import("../../src/frontend/components/lesson/lesson-top-bar.tsx");
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
 const noEvents = () => ({ onEvent() {}, onOpen() {}, close() {} });
 const inEvents = (node: React.ReactNode) => <ServerEventsProvider connect={noEvents as never}>{node}</ServerEventsProvider>;
@@ -93,8 +93,8 @@ describe("the studio's status", () => {
 		assert.equal(teacherDoing(view({ running: { messageId: "m1" }, sheet: { ...newCheatSheet("ddl_1", "t"), versions } }), false), "is on your message");
 		assert.equal(teacherDoing(view({ running: { messageId: "m1" } }), true), "No agent connected");
 		const head = renderToStaticMarkup(<TeacherHead name="marco" color={1} doing="is on your message" />);
-		assert.match(head, /var\(--lh-class-1\).*marco.*data-testid="sheet-teacher-doing"[^>]*>is on your message/);
-		assert.doesNotMatch(renderToStaticMarkup(<TeacherHead name="marco" color={undefined} doing={null} />), /sheet-teacher-doing/);
+		assert.match(head, /var\(--lh-class-1\).*marco.*data-testid="teacher-head-doing"[^>]*>is on your message/);
+		assert.doesNotMatch(renderToStaticMarkup(<TeacherHead name="marco" color={undefined} doing={null} />), /teacher-head-doing/);
 	});
 
 	it("names the newest version's paper", () => {
@@ -275,16 +275,6 @@ describe("a class's cheat sheet cards", () => {
 });
 
 describe("the cheat sheet beside a session", () => {
-	const rename = { renaming: false, title: "Counting practice", start() {}, inputRef: { current: null }, draft: "", setDraft() {}, commit: async () => {}, cancel() {} } as never;
-
-	it("opens from a visible Cheat sheet button in the lesson's top bar, for a session in a class", () => {
-		const bar = (sheet?: { open: boolean; onToggle: () => void }) =>
-			renderToStaticMarkup(<LessonTopBar kind="study" rename={rename} practice={null} sheet={sheet} />);
-		assert.match(bar({ open: false, onToggle() {} }), /data-testid="lesson-cheat-sheet" aria-pressed="false"[^>]*>Cheat sheet/);
-		assert.match(bar({ open: true, onToggle() {} }), /aria-pressed="true"/);
-		assert.doesNotMatch(bar(), /lesson-cheat-sheet/);
-	});
-
 	const sheetCard = (deadlineId: string, name: string, version: SheetVersion | null, past = false): SheetCard => ({ deadlineId, name, kind: "exam", date: "2026-11-20", past, status: version ? "made" : "none", version });
 	function serve(cards: SheetCard[], views: Record<string, CheatSheetView>) {
 		const asked: string[] = [];
@@ -297,10 +287,10 @@ describe("the cheat sheet beside a session", () => {
 		return asked;
 	}
 	const dock = (over: Partial<React.ComponentProps<typeof SheetDock>> = {}) => (
-		<SheetDock classId="cls_1" sessionDeadlineId="ddl_mid" picked={undefined} onPick={() => {}} about={null} onClose={() => {}} {...over} />
+		<SheetDock classId="cls_1" sessionDeadlineId="ddl_mid" picked={undefined} onPick={() => {}} onClose={() => {}} {...over} />
 	);
 
-	it("shows the session's deadline's sheet with the chat, a picker when there are several, and Open in the studio", async () => {
+	it("shows the session's deadline's sheet without a chat, a picker when there are several, and the studio links", async () => {
 		const picks: string[] = [];
 		const asked = serve([sheetCard("ddl_quiz", "Quiz 3", versions[0]!), sheetCard("ddl_mid", "Midterm", versions[1]!)], { ddl_mid: view({ sheet: { ...newCheatSheet("ddl_mid", "t"), versions } }) });
 		const el = mount(dock({ onPick: (id) => picks.push(id) }));
@@ -309,22 +299,24 @@ describe("the cheat sheet beside a session", () => {
 		const pick = el.querySelector<HTMLSelectElement>("[data-testid='sheet-dock-pick']")!;
 		assert.deepEqual([...pick.querySelectorAll("option")].map((o) => o.textContent), ["Cheat sheet for Quiz 3", "Cheat sheet for Midterm"]);
 		assert.ok(el.querySelector("[data-testid='cheat-sheet-canvas']"));
-		assert.ok(el.querySelector("[data-testid='sheet-chat']"));
+		assert.equal(el.querySelector("[data-testid='sheet-chat']"), null);
+		assert.match(el.querySelector("[data-testid='sheet-dock-studio']")!.textContent!, /Open full size/);
 		assert.match(el.querySelector("[data-testid='sheet-dock-studio']")!.getAttribute("href")!, /\/class\/deadline\/ddl_mid\/cheat-sheet$/);
+		assert.match(el.querySelector("[data-testid='sheet-dock-point']")!.getAttribute("href")!, /\/class\/deadline\/ddl_mid\/cheat-sheet$/);
+		assert.match(el.querySelector("[data-testid='sheet-dock-close']")!.textContent!, /Close/);
+		assert.ok(el.querySelector("[data-testid='cheat-sheet-zoom']"), "the zoom foot");
 		await act(async () => (Object.entries(pick).find(([k]) => k.startsWith("__reactProps"))![1] as unknown as { onChange: (e: unknown) => void }).onChange({ target: { value: "ddl_quiz" } }));
 		assert.deepEqual(picks, ["ddl_quiz"]);
 	});
 
-	it("says No cheat sheet yet with Make one, which opens the chat for the session's deadline", async () => {
+	it("says No cheat sheet yet with Make one, which leads to the studio for the session's deadline", async () => {
 		const asked = serve([sheetCard("ddl_mid", "Midterm", null)], { ddl_mid: view() });
 		const el = mount(dock());
 		await settle();
 		assert.match(el.querySelector("[data-testid='sheet-dock-none']")!.textContent!, /No cheat sheet yet\.Make one/);
-		await click(el.querySelector("[data-testid='sheet-dock-make']"));
-		await settle();
-		assert.ok(asked.some((u) => u.endsWith("/deadlines/ddl_mid/cheat-sheet")));
-		assert.match(el.querySelector("[data-testid='sheet-chat-empty']")!.textContent!, /^No cheat sheet yet for Midterm\. Say what you want on it/);
+		assert.match(el.querySelector("[data-testid='sheet-dock-make']")!.getAttribute("href")!, /\/class\/deadline\/ddl_mid\/cheat-sheet$/);
 		assert.equal(el.querySelector("[data-testid='cheat-sheet-canvas']"), null);
+		assert.ok(asked.every((u) => !u.endsWith("/deadlines/ddl_mid/cheat-sheet")), "nothing to load until the studio");
 	});
 
 	it("tells a class without deadlines to add one", async () => {

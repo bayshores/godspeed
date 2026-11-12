@@ -19,11 +19,6 @@ export interface HomeworkView {
 	assignment: { name: string; path: string | null } | null;
 }
 
-/** A problem's short name: "Q3" for a bare number, else as the assignment writes it. */
-export function problemLabel(number: string): string {
-	return /^\d/.test(number) ? `Q${number}` : number;
-}
-
 /** Where an open problem is in the assignment: "from hw4.pdf, page 2". */
 export function problemSource(assignment: { name: string } | null, page: number | undefined): string | null {
 	if (!assignment) return null;

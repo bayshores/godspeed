@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { pageCaption, type SheetVersion } from "@/shared/core";
 import { cn } from "@/frontend/lib/utils";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
@@ -52,6 +52,7 @@ export function SheetCanvas({
 	pdfUrl,
 	labelFor,
 	narrow = false,
+	foot,
 	focus,
 	onPoint,
 }: {
@@ -61,6 +62,8 @@ export function SheetCanvas({
 	/** The line above a version's pages. */
 	labelFor: (v: SheetVersion, newest: boolean) => string;
 	narrow?: boolean;
+	/** A row under the toolbar in the narrow foot. */
+	foot?: ReactNode;
 	/** A version to show; a new `seq` shows it again. */
 	focus?: { n: number; seq: number } | null;
 	onPoint?: (pointed: Pointed) => void;
@@ -300,7 +303,10 @@ export function SheetCanvas({
 	return (
 		<div className="flex min-h-0 flex-1 flex-col">
 			{canvas}
-			<div className="flex shrink-0 flex-wrap items-center gap-2 border-t border-border px-3 py-2">{tools}</div>
+			<div className="flex shrink-0 flex-col items-start gap-2 border-t border-border px-3 py-2.5">
+				{tools}
+				{foot}
+			</div>
 		</div>
 	);
 }

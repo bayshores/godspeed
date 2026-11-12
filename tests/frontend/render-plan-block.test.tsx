@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { PlanBlock, PlanPopup } from "../../src/frontend/components/plan-block.tsx";
+import { PlanBlock } from "../../src/frontend/components/plan-block.tsx";
 import {
 	blockLayout,
 	edgePathD,
@@ -12,12 +12,10 @@ import {
 	nodeWidth,
 	estimateLineWidth,
 } from "../../src/frontend/components/plan-block-model.ts";
-import { latestTree, type PopupMessage } from "../../src/frontend/components/plan-latest.ts";
 import type { PlanBlockData, PlanTree } from "../../src/shared/core/contracts.ts";
 
-// Plan blocks: the pure layered layout, the frozen-snapshot rendering
-// (full = borderless + column-filling
-// with the glowing current), and the popup's LIVE derivation.
+// Plan blocks: the pure layered layout and the frozen-snapshot card.
+// "The plan" dialog is tested with the plan row (render-plan-row.test.tsx).
 
 const CHAIN: PlanTree = {
 	nodes: [
@@ -132,7 +130,7 @@ describe("plan block layout (pure)", () => {
 });
 
 describe("plan block render", () => {
-	it("full block: borderless, column-filling, statuses AS CARRIED (never re-derived)", () => {
+	it("the card fills the column, statuses AS CARRIED (never re-derived)", () => {
 		const data: PlanBlockData = {
 			kind: "full",
 			at: "2026-09-09T12:00:00Z",
@@ -145,8 +143,8 @@ describe("plan block render", () => {
 		};
 		const html = renderToStaticMarkup(<PlanBlock data={data} onOpen={() => {}} />);
 		assert.match(html, /data-testid="plan-block-full"/);
-		// Borderless: the wrapper carries no border/rounded chrome.
-		assert.ok(!/data-testid="plan-block-full"[^>]*border/.test(html), "no wrapping chrome");
+		// A card on the lesson's background, like the other cards in the text.
+		assert.match(html, /data-testid="plan-block-full"[^>]*class="[^"]*border-edge bg-background/);
 		// Fills the column UP TO the chat-font cap: the svg is w-full +
 		// mx-auto with maxWidth = extent × TEXT_CAP_SCALE, so node text never
 		// renders past the 16px prose size.
@@ -162,10 +160,8 @@ describe("plan block render", () => {
 		// anchors to its box's midline — the old x=12 left inset is gone.
 		assert.match(html, /<text[^>]*x="49"[^>]*text-anchor="middle"/); // 98/2
 		assert.ok(!/x="12"/.test(html), "no left-inset text");
-		// The in-chat block speaks the dock language:
-		// lighter-background boxes like the composer shells — with INK
-		// outlines.
-		assert.match(html, /<rect[^>]*class="fill-card stroke-ink-max"/);
+		// Panel-colored boxes with ink outlines; no node shows progress.
+		assert.match(html, /<rect[^>]*class="fill-panel stroke-ink"/);
 		// Two stacked nodes: 2*NODE_H + GAP_Y = 136 extent + GRAPH_PAD on
 		// every side (strokes/glow never clip at the edges). The width
 		// rides the hug now: 96-min boxes, not the old 160 slabs.
@@ -176,101 +172,4 @@ describe("plan block render", () => {
 		assert.ok(html.includes('aria-label="Open the full plan"'), "the trigger names itself (tooltip copy)");
 	});
 
-});
-
-describe("plan popup (live derivation)", () => {
-	function messages(): PopupMessage[] {
-		return [
-			{
-				parts: [
-					{
-						type: "tool-plan_init",
-						state: "output-available",
-						output: { ok: true, tree: CHAIN },
-					},
-				],
-			},
-			{
-				parts: [
-					{
-						type: "tool-quiz",
-						state: "output-available",
-						input: { nodeId: "a" },
-						output: { correct: true },
-					},
-				],
-			},
-			{
-				parts: [
-					{
-						type: "tool-quiz",
-						state: "input-available",
-						input: { nodeId: "b" },
-					},
-				],
-			},
-		];
-	}
-
-	it("derives statuses at click time: latest tagged call → current, earlier → visited (glowing)", () => {
-		const html = renderToStaticMarkup(<PlanPopup tree={latestTree(messages())} messages={messages()} onClose={() => {}} />);
-		assert.match(html, /data-testid="plan-popup"/);
-		assert.match(html, /data-testid="plan-node-a" data-status="visited"/);
-		assert.match(html, /data-testid="plan-node-b" data-status="current"/);
-		assert.match(html, /data-testid="plan-node-c" data-status="upcoming"/);
-		// The current node is the glow target: a faint yellow fill, blurred
-		// so it bleeds over the edges — static, no pulse.
-		assert.match(html, /fill-yellow-400\/25/);
-		assert.match(html, /feGaussianBlur/);
-		assert.doesNotMatch(html, /animate-pulse/);
-		// Arrows into not-yet-visited nodes are grayed out.
-		assert.match(html, /marker-end="url\(#.*-dim\)"/);
-		assert.match(html, /Updates as you answer/);
-		// No top-left flash: at static render settled=false, so the diagram
-		// wrapper paints at opacity 0 — the fit runs in an effect AFTER the
-		// first paint and the chart would otherwise flash at the initial
-		// top-left zoom:1 state for a frame (transition-gating alone
-		// doesn't hide it).
-		assert.match(html, /opacity: ?0[;,}]/, "diagram hidden until the first fit applies");
-	});
-
-	it("dims an arrow when EITHER end is gray — white needs both ends white", () => {
-		// x upcoming → y visited: the OLD rule (target-only) painted this
-		// white; the new rule keeps it gray — a gray box's outgoing arrows
-		// stay gray even into covered territory. y → z (visited → current)
-		// stays white: BOTH ends white.
-		const tree: PlanTree = {
-			nodes: [
-				{ id: "x", title: "Gray origin" },
-				{ id: "y", title: "Covered middle" },
-				{ id: "z", title: "Covered latest" },
-			],
-			edges: [
-				{ from: "x", to: "y" },
-				{ from: "y", to: "z" },
-			],
-		};
-		const msgs: PopupMessage[] = [
-			{ parts: [{ type: "tool-plan_init", state: "output-available", output: { ok: true, tree } }] },
-			{ parts: [{ type: "tool-quiz", state: "output-available", input: { nodeId: "y" }, output: { correct: true } }] },
-			{ parts: [{ type: "tool-quiz", state: "output-available", input: { nodeId: "z" }, output: { correct: true } }] },
-		];
-		const html = renderToStaticMarkup(<PlanPopup tree={latestTree(msgs)} messages={msgs} onClose={() => {}} />);
-		assert.match(html, /data-testid="plan-node-x" data-status="upcoming"/);
-		assert.match(html, /data-testid="plan-node-y" data-status="visited"/);
-		assert.match(html, /data-testid="plan-node-z" data-status="current"/);
-		// Exactly one gray edge (x→y, gray origin) and one white edge (y→z,
-		// both ends white): count the head markers, one per edge.
-		const dimHeads = (html.match(/marker-end="url\(#.*-dim\)"/g) ?? []).length;
-		const whiteHeads = (html.match(/marker-end="url\(#(?:R\d+|[a-z0-9-]+)\)"/g) ?? []).length;
-		assert.equal(dimHeads, 1, "the gray-origin edge dims");
-		assert.equal(whiteHeads, 1, "the both-white edge stays white");
-		assert.match(html, /<path[^>]*class="fill-none stroke-border"/);
-		assert.match(html, /<path[^>]*class="fill-none stroke-ink-max"/);
-	});
-
-	it("renders the empty state when the session has no plan", () => {
-		const html = renderToStaticMarkup(<PlanPopup tree={null} messages={[{ parts: [] }]} onClose={() => {}} />);
-		assert.match(html, /No plan in this session yet\./);
-	});
 });

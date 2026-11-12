@@ -7,12 +7,11 @@ import { isQuestionTool, type LhMessage, type LhViewMessage } from "@/shared/cor
  *  dialog), the session overlays (mermaid above plan), then question →
  *  problem → turn. A turn running under a waiting question (a side reply)
  *  stops alone, so the question stays. */
-type EscAbortTarget = "mermaid" | "plan" | "question" | "problem" | "turn" | null;
+type EscAbortTarget = "mermaid" | "question" | "problem" | "turn" | null;
 
 export function escAbortTarget(s: {
 	abortAsk: boolean;
 	mermaidFocus: boolean;
-	planOpen: boolean;
 	pending: boolean;
 	/** An active practice problem: Esc opens the discard confirm — below a
 	 *  pending question, above the turn abort. */
@@ -21,7 +20,6 @@ export function escAbortTarget(s: {
 }): EscAbortTarget {
 	if (s.abortAsk) return null; // the popup's own Esc — claimed by the dialog
 	if (s.mermaidFocus) return "mermaid";
-	if (s.planOpen) return "plan";
 	if (s.pending) return s.busy ? "turn" : "question";
 	if (s.problem) return "problem";
 	if (s.busy) return "turn";
@@ -49,7 +47,7 @@ export function restoreUnsent(unsent: string, draft: string): string {
 	return draft.trim() ? `${unsent}\n${draft}` : unsent;
 }
 
-/** Why the message box can't take text right now (the demo's Send to
+/** Why the writing box can't take text right now (the demo's Send to
  *  teacher shows it as a tip), or null when it can. */
 export function sendBlockedReason(pending: boolean): string | null {
 	return pending ? "Answer or skip the waiting question first." : null;

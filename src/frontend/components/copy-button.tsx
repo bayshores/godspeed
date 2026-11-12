@@ -1,14 +1,10 @@
 import { useEffect, useRef, useState, type ComponentProps } from "react";
-import { CheckIcon, CopyIcon } from "lucide-react";
-import { cn } from "@/frontend/lib/utils";
 
 type CopyButtonProps = Omit<ComponentProps<"button">, "children" | "type"> & {
 	/** What lands on the clipboard. A function is read at click time. */
 	text: string | (() => string);
 	/** The label before a copy. */
 	children?: string;
-	/** Show a copy icon (a check once copied) before the label; "only" shows just the icon. */
-	icon?: boolean | "only";
 };
 
 /** Clipboard write with a fallback: navigator.clipboard needs a permission
@@ -38,14 +34,12 @@ async function copyText(text: string): Promise<boolean> {
 	}
 }
 
-/** Copies `text` and says "Copied" for a moment (an icon-only button flips
- *  to a check). A hidden live line beside it says "Copied" to screen
- *  readers, which don't read a changed button name. */
-export function CopyButton({ text, children = "Copy", icon = false, onClick, ...button }: CopyButtonProps) {
+/** Copies `text` and says "Copied" for a moment. A hidden live line beside
+ *  it says "Copied" to screen readers, which don't read a changed button name. */
+export function CopyButton({ text, children = "Copy", onClick, ...button }: CopyButtonProps) {
 	const [copied, setCopied] = useState(false);
 	const timer = useRef<number | undefined>(undefined);
 	useEffect(() => () => window.clearTimeout(timer.current), []);
-	const Icon = copied ? CheckIcon : CopyIcon;
 	return (
 		<>
 			<button
@@ -61,9 +55,7 @@ export function CopyButton({ text, children = "Copy", icon = false, onClick, ...
 					});
 				}}
 			>
-				{/* With no "Copied" word, the check settles in so the flip reads. */}
-				{icon && <Icon className={cn("size-3.5", copied && icon === "only" && "motion-safe:animate-[lh-dialog-in_var(--lh-dur-fast)_var(--lh-ease-out)]")} aria-hidden />}
-				{icon !== "only" && (copied ? "Copied" : children)}
+				{copied ? "Copied" : children}
 			</button>
 			<span className="sr-only" aria-live="polite">
 				{copied ? "Copied" : ""}

@@ -1,6 +1,4 @@
-import { currentVersion, pageSizeLabel, type CheatSheetView, type ClassColor, type SheetVersion } from "@/shared/core";
-import { classColorVar } from "@/frontend/components/class-color";
-import { TeacherSprite } from "@/frontend/components/halley/teacher-sprite";
+import { currentVersion, pageSizeLabel, type CheatSheetView, type SheetVersion } from "@/shared/core";
 
 /** The studio bar's status: the newest version's paper, or that there is none yet. */
 export function sheetPaper(view: CheatSheetView): string {
@@ -14,29 +12,6 @@ export function teacherDoing(view: CheatSheetView, agentGone: boolean): string |
 	if (!view.running) return null;
 	if (agentGone) return "No agent connected";
 	return currentVersion(view.sheet) ? "is on your message" : "is making your sheet";
-}
-
-/** The top of the teacher side: the mascot on the class's pale color, the
- *  teacher's name and what it is doing. */
-export function TeacherHead({ name, color, doing }: { name: string; color: ClassColor | undefined; doing: string | null }) {
-	return (
-		<div
-			data-testid="sheet-teacher"
-			className="flex shrink-0 items-center gap-3 border-b-2 border-line bg-tone py-3 pr-3.5 pl-5"
-			// The pale class color CountBlock uses.
-			style={color ? { background: `color-mix(in srgb, ${classColorVar(color)} 57%, var(--lh-class-wash))` } : undefined}
-		>
-			<TeacherSprite mood="idle" className="w-[26px] shrink-0" />
-			<div className="flex min-w-0 flex-1 flex-col">
-				<span className="truncate text-[18px] leading-snug font-medium text-ink">{name}</span>
-				{doing && (
-					<span data-testid="sheet-teacher-doing" className="truncate text-base text-ink-2">
-						{doing}
-					</span>
-				)}
-			</div>
-		</div>
-	);
 }
 
 /** A sheet an older godspeed made (HTML or blocks) can't become a PDF

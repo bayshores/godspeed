@@ -39,7 +39,8 @@ export function DialogSheet({
 	/** A save is running: "Close" is off. */
 	busy?: boolean;
 	onClose: () => void;
-	foot: ReactNode;
+	/** The dialog's buttons; a dialog with none has no foot. */
+	foot?: ReactNode;
 	className?: string;
 	children: ReactNode;
 }) {
@@ -77,7 +78,7 @@ export function DialogSheet({
 					</button>
 				</div>
 				<div className="flex min-h-0 flex-1 flex-col gap-3.5 overflow-y-auto px-6 pt-[18px] pb-5">{children}</div>
-				<div className="flex shrink-0 items-center gap-2.5 border-t border-border px-6 py-3.5">{foot}</div>
+				{foot && <div className="flex shrink-0 items-center gap-2.5 border-t border-border px-6 py-3.5">{foot}</div>}
 			</div>
 		</div>
 	);

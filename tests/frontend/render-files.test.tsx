@@ -429,20 +429,18 @@ describe("CopyButton", () => {
 		return host.querySelector("button")!;
 	}
 
-	it("icon-only: no label, reads the text at click time, runs onClick, flips to a check", async () => {
+	it("reads the text at click time, runs onClick, and says Copied", async () => {
 		const copied: string[] = [];
 		Object.defineProperty(globalThis, "navigator", { configurable: true, value: { clipboard: { writeText: async (t: string) => void copied.push(t) } } });
 		let source = "old";
 		let clicks = 0;
-		const button = await mountButton(<CopyButton text={() => source} icon="only" aria-label="Copy code" onClick={() => clicks++} />);
-		assert.equal(button.textContent, "", "no Copy word");
-		assert.match(button.innerHTML, /lucide-copy/);
+		const button = await mountButton(<CopyButton text={() => source} aria-label="Copy code" onClick={() => clicks++} />);
+		assert.equal(button.textContent, "Copy");
 		source = "new";
 		await act(async () => button.click());
 		assert.deepEqual(copied, ["new"]);
 		assert.equal(clicks, 1);
-		assert.equal(button.textContent, "", "no Copied word either");
-		assert.match(button.innerHTML, /lucide-check/);
+		assert.equal(button.textContent, "Copied");
 	});
 
 	it("when the clipboard API refuses, the legacy copy path still copies", async () => {

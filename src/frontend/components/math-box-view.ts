@@ -6,7 +6,7 @@
  * as KaTeX; clicking one swaps in a MathLive field (loaded on first use)
  * to edit it, and leaving the field writes its LaTeX back.
  */
-import { Annotation, EditorState, Prec, StateEffect, StateField, type Range } from "@codemirror/state";
+import { Annotation, Compartment, EditorState, Prec, StateEffect, StateField, type Range } from "@codemirror/state";
 import { Decoration, EditorView, WidgetType, keymap, placeholder, tooltips, type DecorationSet } from "@codemirror/view";
 import { defaultKeymap, history, historyKeymap, insertNewline } from "@codemirror/commands";
 import { autocompletion, closeCompletion, type CompletionContext, type CompletionResult } from "@codemirror/autocomplete";
@@ -220,7 +220,7 @@ const theme = EditorView.theme(
 		"&": { height: "100%", backgroundColor: "var(--background)", color: "var(--foreground)" },
 		"&.cm-focused": { outline: "none" },
 		".cm-scroller": { fontFamily: "var(--font-prose)", fontSize: "16px", lineHeight: "24px", overflow: "auto" },
-		".cm-content": { padding: "18px 20px", caretColor: "var(--lh-ink-max)" },
+		".cm-content": { padding: "12px 14px", caretColor: "var(--lh-ink-max)" },
 		".cm-line": { padding: "0" },
 		".cm-placeholder": { color: "var(--lh-ink-3)" },
 		".cm-cursor": { borderLeftColor: "var(--lh-ink-max)" },
@@ -243,18 +243,15 @@ const theme = EditorView.theme(
 	{ dark: true },
 );
 
-/** The one-line box under the reading pane (the lesson box): the
- *  smaller type and padding of that row. */
-const compactTheme = EditorView.theme({
-	".cm-scroller": { fontSize: "14px", lineHeight: "20px" },
-	".cm-content": { padding: "10px 14px" },
-});
-
 export interface MathBoxHandle {
 	focus(): void;
 	setValue(text: string): void;
+	/** The words in the empty box and its name, which follow what it is for. */
+	setLabels(placeholderText: string, ariaLabel: string): void;
 	destroy(): void;
 }
+
+const labelsOf = (placeholderText: string, ariaLabel: string) => [placeholder(placeholderText), EditorView.contentAttributes.of({ "aria-label": ariaLabel, "aria-multiline": "true" })];
 
 export function mountMathBox(
 	parent: HTMLElement,
@@ -266,9 +263,9 @@ export function mountMathBox(
 		 *  right now, so it makes a newline. */
 		onEnter: () => boolean;
 		onChange: (text: string) => void;
-		compact?: boolean;
 	},
 ): MathBoxHandle {
+	const labels = new Compartment();
 	const view = new EditorView({
 		parent,
 		state: EditorState.create({
@@ -303,10 +300,8 @@ export function mountMathBox(
 				// is a transform, which makes CodeMirror position it inside us).
 				tooltips({ parent: parent.ownerDocument.body }),
 				EditorView.lineWrapping,
-				placeholder(opts.placeholder),
+				labels.of(labelsOf(opts.placeholder, opts.ariaLabel)),
 				theme,
-				opts.compact ? Prec.highest(compactTheme) : [],
-				EditorView.contentAttributes.of({ "aria-label": opts.ariaLabel, "aria-multiline": "true" }),
 				EditorView.updateListener.of((u) => {
 					if (u.docChanged && !u.transactions.some((tr) => tr.annotation(fromOutside))) opts.onChange(u.state.doc.toString());
 				}),
@@ -319,6 +314,7 @@ export function mountMathBox(
 			if (text === view.state.doc.toString()) return;
 			view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: text }, effects: setEditing.of(null), annotations: fromOutside.of(true) });
 		},
+		setLabels: (placeholderText, ariaLabel) => view.dispatch({ effects: labels.reconfigure(labelsOf(placeholderText, ariaLabel)) }),
 		destroy: () => view.destroy(),
 	};
 }

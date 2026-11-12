@@ -1,34 +1,23 @@
 import { useEffect, useRef } from "react";
 import { ToolContentResponse } from "@/frontend/components/ai-elements/message";
 import { prefersReducedMotion } from "@/frontend/components/presence";
-import { HeaderChip, PanelBody, PanelHeader, StopButton } from "./panel-parts";
-import { TurnStatus } from "./turn-status";
+import { proseVars } from "./question-parts";
 
 /**
- * The open problem in the Your turn panel: the whole problem, always in
- * view, scrolled to the part the teacher marked. The learner works in the
- * lesson's message box, so the panel holds no writing box of its own.
+ * The open problem in the teacher column: the whole problem, scrolled to
+ * the part the teacher marked. The learner works on it in the writing box
+ * under it.
  */
 export function OpenProblemPane({
 	statement,
 	source,
 	part,
-	busy,
-	waitingForAgent,
-	onDiscard,
-	onStop,
-	footer,
 }: {
 	statement: string;
 	/** Where it is in the assignment (homework only). */
 	source: string | null;
 	/** The part the learner is on, as the problem labels it (homework only). */
 	part: string | null;
-	busy: boolean;
-	waitingForAgent: boolean;
-	onDiscard: () => void;
-	onStop: () => void;
-	footer: React.ReactNode;
 }) {
 	const statementRef = useRef<HTMLDivElement>(null);
 	useEffect(() => {
@@ -43,29 +32,15 @@ export function OpenProblemPane({
 	}, [part]);
 
 	return (
-		<div data-testid="open-problem" className="flex min-h-0 flex-1 flex-col">
-			{/* The header and footer stay put while the problem scrolls between them. */}
-			<div className="shrink-0 px-6 pt-6">
-				<PanelHeader
-					status={busy && <TurnStatus waitingForAgent={waitingForAgent} />}
-					right={
-						<HeaderChip exit={{ label: "Discard problem", testId: "discard-problem", onClick: onDiscard }}>
-							{busy && <StopButton onStop={onStop} />}
-						</HeaderChip>
-					}
-				/>
+		<div data-testid="open-problem" className="flex shrink-0 flex-col gap-2">
+			<div ref={statementRef} data-testid="problem-statement" style={proseVars(18, 26)}>
+				<ToolContentResponse>{statement}</ToolContentResponse>
 			</div>
-			<PanelBody className="pt-1 pb-3">
-				<div ref={statementRef} data-testid="problem-statement" className="lh-prose py-3 text-[15px] text-ink">
-					<ToolContentResponse>{statement}</ToolContentResponse>
-				</div>
-				{source && (
-					<p data-testid="problem-source" className="text-[13px] text-ink-3">
-						{source}
-					</p>
-				)}
-			</PanelBody>
-			<div className="shrink-0 px-6 pb-5">{footer}</div>
+			{source && (
+				<p data-testid="problem-source" className="text-[15px] text-ink-2">
+					{source}
+				</p>
+			)}
 		</div>
 	);
 }
