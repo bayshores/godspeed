@@ -59,6 +59,7 @@ const FOLDER = {
 	short: "~/godspeed",
 	exists: false,
 	commands: { claude: 'cd ~/godspeed && claude --settings .godspeed/claude-settings.json "Start teaching"', codex: "cd ~/godspeed && codex" },
+	startCommands: {},
 	oldSetup: { plugin: false, codex: false },
 };
 
@@ -230,6 +231,38 @@ describe("settings restyle", () => {
 		assert.ok(el.textContent!.includes("http://127.0.0.1:1/api/mcp"));
 		assert.ok(el.textContent!.includes("Bearer ••••••••••••e77e"));
 		assert.ok(!el.textContent!.includes("Copy the command"), "no command for another app");
+	});
+
+	it("Change command opens a box for the picked agent's own start command, and Save keeps it", async () => {
+		const posted: unknown[] = [];
+		const access = { token: "tok_f", url: "http://127.0.0.1:1/api/mcp", agentConnected: false, pendingWork: 0 };
+		globalThis.fetch = (async (url: string, init?: RequestInit) => {
+			const path = String(url);
+			if (!path.startsWith("/api/agent-folder")) return Response.json(path.startsWith("/api/agent-notes") ? { notes: [] } : access);
+			if (init?.method !== "POST") return Response.json(FOLDER);
+			const body = JSON.parse(String(init.body)) as { command: string };
+			posted.push(body);
+			return Response.json({ ...FOLDER, startCommands: { claude: body.command } });
+		}) as unknown as typeof fetch;
+		const el = await mount(<ConnectionSection />);
+		assert.equal(q("agent-start-command"), null, "closed until asked for");
+		await act(async () => q("agent-start-command-change")!.click());
+		assert.ok(el.textContent!.includes("Command that starts Claude Code"));
+		assert.ok(el.textContent!.includes("Leave empty to use claude"));
+		const input = el.querySelector<HTMLInputElement>("#agent-start-command-input")!;
+		assert.equal(input.value, "");
+		await act(async () => {
+			Object.defineProperty(input, "value", { configurable: true, writable: true, value: "standardcompute launch claude --" });
+			input.dispatchEvent(new dom.window.Event("input", { bubbles: true }));
+		});
+		await act(async () => {
+			q("agent-start-command")!.dispatchEvent(new dom.window.Event("submit", { bubbles: true, cancelable: true }));
+			await new Promise((r) => setTimeout(r, 10));
+		});
+		assert.deepEqual(posted, [{ action: "set-start-command", agent: "claude", command: "standardcompute launch claude --" }]);
+		assert.equal(q("agent-start-command"), null, "saved: the box closes");
+		await act(async () => q("agent-start-command-change")!.click());
+		assert.equal(el.querySelector<HTMLInputElement>("#agent-start-command-input")!.value, "standardcompute launch claude --", "the saved command is there to edit");
 	});
 
 	it("New token asks first, then says to copy the new config", async () => {

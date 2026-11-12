@@ -3,9 +3,9 @@
  * parts). Setting it up writes the agent's instructions, its connection and
  * its start scripts there, plus classes/ with shortcuts to the class files
  * (class-shortcuts.ts); the app refreshes them once per start, so an
- * update reaches them. Which folder is used, and whether the one-time
- * "godspeed has its own folder now" notice was seen, live in
- * <data>/agent-folder.json.
+ * update reaches them. Which folder is used, the learner's own start
+ * commands, and whether the one-time "godspeed has its own folder now"
+ * notice was seen, live in <data>/agent-folder.json.
  */
 import fs from "node:fs";
 import os from "node:os";
@@ -15,13 +15,16 @@ import {
 	claudeSettings,
 	copyCommand,
 	mcpJson,
+	savedStartCommands,
 	shortFolder,
 	startScript,
 	startScriptPath,
 	usableFolder,
+	usableStartCommand,
 	type FolderAgent,
 	type OldSetup,
 	type Platform,
+	type StartCommands,
 	type StartTarget,
 } from "../../shared/core/agent-folder.ts";
 import { writeFileAtomic } from "../store/write-file-atomic.ts";
@@ -39,6 +42,7 @@ const IMAGE_DAYS = 7;
 interface FolderState {
 	folder?: string;
 	noticeSeen?: boolean;
+	startCommands?: StartCommands;
 }
 
 interface AgentFolderView {
@@ -49,6 +53,8 @@ interface AgentFolderView {
 	exists: boolean;
 	/** What "Copy the command" copies, per agent. */
 	commands: Record<FolderAgent, string>;
+	/** The learner's own start commands; an agent without one starts the usual way. */
+	startCommands: StartCommands;
 	/** The old setup still left once the folder is set up (the first-time
 	 *  notice covers people without a folder). */
 	oldSetup: OldSetup;
@@ -79,9 +85,11 @@ function platform(): Platform {
 function readState(): FolderState {
 	try {
 		const raw = JSON.parse(fs.readFileSync(STATE_FILE, "utf8")) as FolderState;
+		const startCommands = savedStartCommands(raw.startCommands);
 		return {
 			...(typeof raw.folder === "string" && usableFolder(raw.folder) ? { folder: raw.folder } : {}),
 			...(raw.noticeSeen === true ? { noticeSeen: true } : {}),
+			...(Object.keys(startCommands).length > 0 ? { startCommands } : {}),
 		};
 	} catch {
 		return {};
@@ -106,11 +114,13 @@ function defaultFolder(): string {
 export function agentFolderView(folder = agentFolder()): AgentFolderView {
 	const home = os.homedir();
 	const exists = fs.existsSync(path.join(folder, ".godspeed", "connect.mjs"));
+	const startCommands = readState().startCommands ?? {};
 	return {
 		folder,
 		short: shortFolder(folder, home),
 		exists,
-		commands: { claude: copyCommand("claude", folder, home, platform()), codex: copyCommand("codex", folder, home, platform()) },
+		commands: { claude: copyCommand("claude", folder, home, platform(), startCommands), codex: copyCommand("codex", folder, home, platform(), startCommands) },
+		startCommands,
 		oldSetup: exists ? oldSetup() : { plugin: false, codex: false },
 	};
 }
@@ -145,6 +155,7 @@ function dropOldImages(folder: string): void {
 
 function writeFolder(folder: string): void {
 	const p = platform();
+	const startCommands = readState().startCommands ?? {};
 	const dot = path.join(folder, ".godspeed");
 	put(path.join(folder, "CLAUDE.md"), template("CLAUDE.md"));
 	put(path.join(folder, "AGENTS.md"), template("AGENTS.md"));
@@ -153,8 +164,17 @@ function writeFolder(folder: string): void {
 	for (const script of ["connect.mjs", "target.mjs", "wait-for-work.mjs", "forget.mjs", "compacting.mjs"]) put(path.join(dot, script), template(script));
 	put(path.join(dot, "package.json"), `${JSON.stringify({ private: true, type: "module", version: process.env.LH_VERSION ?? "0.0.0" }, null, "\t")}\n`);
 	put(path.join(dot, "claude-settings.json"), claudeSettings(folder, p));
-	for (const target of START_TARGETS) put(startScriptPath(folder, target, p), startScript(target, folder, p), 0o755);
+	for (const target of START_TARGETS) put(startScriptPath(folder, target, p), startScript(target, folder, p, startCommands), 0o755);
 	dropOldImages(folder);
+}
+
+/** writeFolder, with a failure in words for the learner. */
+function writeFolderOrExplain(folder: string): void {
+	try {
+		writeFolder(folder);
+	} catch (err) {
+		throw new AgentFolderError(`Couldn't write to ${folder}: ${(err as Error).message}`);
+	}
 }
 
 /** Make (or update) the folder, remember it, and try to clear out the old
@@ -162,11 +182,7 @@ function writeFolder(folder: string): void {
  *  cleanup only logs: the folder works, and Settings still offers Remove. */
 export function setUpAgentFolder(folder = agentFolder()): AgentFolderView {
 	if (!usableFolder(folder)) throw new AgentFolderError("Pick a folder whose name has no quotes or $ signs in it.");
-	try {
-		writeFolder(folder);
-	} catch (err) {
-		throw new AgentFolderError(`Couldn't write to ${folder}: ${(err as Error).message}`);
-	}
+	writeFolderOrExplain(folder);
 	const before = readState().folder;
 	writeState({ ...readState(), folder, noticeSeen: true });
 	// A moved folder takes its shortcuts along.
@@ -178,6 +194,21 @@ export function setUpAgentFolder(folder = agentFolder()): AgentFolderView {
 	} catch (err) {
 		console.error("[agent-folder] removing the old setup failed:", err);
 	}
+	return agentFolderView(folder);
+}
+
+/** Start an agent with the learner's own command (empty: the usual one
+ *  again), and put it in the start scripts of a folder that's set up. */
+export function setStartCommand(agent: FolderAgent, command: string): AgentFolderView {
+	const own = command.trim();
+	if (!usableStartCommand(own)) throw new AgentFolderError("Keep the command on one line, 300 characters at most.");
+	const state = readState();
+	const startCommands = { ...state.startCommands };
+	if (own) startCommands[agent] = own;
+	else delete startCommands[agent];
+	writeState({ ...state, startCommands });
+	const folder = agentFolder();
+	if (agentFolderView(folder).exists) writeFolderOrExplain(folder);
 	return agentFolderView(folder);
 }
 

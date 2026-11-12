@@ -92,7 +92,17 @@ export function useAgentFolder() {
 		}
 	}, []);
 
-	return { view, launch, open, change };
+	/** Start an agent with the learner's own command (empty: the usual one again). Resolves to an error message, if any. */
+	const setStartCommand = useCallback(async (agent: FolderAgent, command: string): Promise<string | null> => {
+		try {
+			setView(await postAgentFolder({ action: "set-start-command", agent, command }));
+			return null;
+		} catch (err) {
+			return (err as Error).message;
+		}
+	}, []);
+
+	return { view, launch, open, change, setStartCommand };
 }
 
 /** "Open Claude Code" for the agent last opened here (Claude Code when

@@ -6,6 +6,7 @@ import { ACCESS_ERROR, maskToken } from "@/frontend/components/mcp-access";
 import { cn } from "@/frontend/lib/utils";
 import { logLines, rememberedAgent, type LaunchChoice, type LogLine } from "./agent-folder-model";
 import { OpenAgentButton } from "./open-agent-button";
+import { StartCommandField } from "./start-command-field";
 import { savedAgent, useAgentFolder } from "./use-agent-folder";
 
 const QUIET = "lh-press lh-btn";
@@ -13,16 +14,18 @@ const QUIET = "lh-press lh-btn";
 /**
  * Start your agent in the godspeed folder: the "Open Claude Code" split
  * button, a live log of each step (folder made, terminal opened, agent
- * started, teaching), and quiet links to change the folder or copy the
- * command. "Other app" shows the address and token for any MCP app.
+ * started, teaching), and quiet links to change the folder, copy the
+ * command or change the command that starts the agent. "Other app" shows
+ * the address and token for any MCP app.
  * Onboarding (step 1) and Settings → Connection use it; `extra` adds a
  * link at the end (onboarding's "I'll do this later").
  */
 export function AgentLauncher({ extra, center = false }: { extra?: ReactNode; center?: boolean }) {
-	const { view, launch, open, change } = useAgentFolder();
+	const { view, launch, open, change, setStartCommand } = useAgentFolder();
 	const status = useAgentStatus();
 	const [choice, setChoice] = useState<LaunchChoice>("claude");
 	const [error, setError] = useState<string | null>(null);
+	const [changingCommand, setChangingCommand] = useState(false);
 	useEffect(() => setChoice(rememberedAgent(savedAgent())), []);
 
 	const agent = choice === "other" ? null : choice;
@@ -37,6 +40,7 @@ export function AgentLauncher({ extra, center = false }: { extra?: ReactNode; ce
 				onChoose={(c) => {
 					setChoice(c);
 					setError(null);
+					setChangingCommand(false);
 				}}
 				onOpen={() => agent && void open(agent)}
 				busy={busy}
@@ -63,8 +67,25 @@ export function AgentLauncher({ extra, center = false }: { extra?: ReactNode; ce
 						Copy the command
 					</CopyButton>
 				)}
+				{view && agent && (
+					<button type="button" data-testid="agent-start-command-change" aria-expanded={changingCommand} className={QUIET} onClick={() => setChangingCommand(!changingCommand)}>
+						Change command
+					</button>
+				)}
 				{extra}
 			</div>
+			{view && agent && changingCommand && (
+				<StartCommandField
+					agent={agent}
+					saved={view.startCommands[agent] ?? ""}
+					onSave={(command) =>
+						void setStartCommand(agent, command).then((failed) => {
+							setError(failed);
+							if (!failed) setChangingCommand(false);
+						})
+					}
+				/>
+			)}
 		</div>
 	);
 }

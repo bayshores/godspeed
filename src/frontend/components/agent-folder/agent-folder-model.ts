@@ -3,7 +3,7 @@
  * and the live log under it. Pure — exported for tests.
  */
 
-import type { FolderAgent, OldSetup, StartTarget } from "@/shared/core";
+import type { FolderAgent, OldSetup, StartCommands, StartTarget } from "@/shared/core";
 
 /** The button's menu: an agent the app opens, or the setup for any other MCP app. */
 export type LaunchChoice = FolderAgent | "other";
@@ -22,6 +22,7 @@ export interface FolderView {
 	short: string;
 	exists: boolean;
 	commands: Record<FolderAgent, string>;
+	startCommands: StartCommands;
 	oldSetup: OldSetup;
 }
 

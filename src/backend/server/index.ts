@@ -43,7 +43,7 @@ export * from "./observability.ts";
 export { recentAgentActions, recordDeadlineChange } from "./agent-actions.ts";
 export { readingDocument, readingPdfPage } from "./reading-pages.ts";
 
-export { AgentFolderError, agentFolderView, classShortcutDir, dismissFolderNotice, setUpAgentFolder, shortcutPathProblem } from "./agent-folder.ts";
+export { AgentFolderError, agentFolderView, classShortcutDir, dismissFolderNotice, setStartCommand, setUpAgentFolder, shortcutPathProblem } from "./agent-folder.ts";
 export { removeOldSetup } from "./old-setup.ts";
 export { handleAgentCompacting, handleAgentForget, handleMcpRequest, mcpAccessStatus, rotateMcpToken } from "./mcp.ts";
 export { agentNotesView, removeAgentNote } from "./agent-memory.ts";
