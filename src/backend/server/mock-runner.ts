@@ -4,7 +4,7 @@
  * run with Node (the app's own) or the computer's Python, with a time
  * limit. What it printed is read by core/mock-run.ts.
  */
-import { execFile, spawn, spawnSync } from "node:child_process";
+import { execFile, spawn, spawnSync, type ChildProcess } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
@@ -59,22 +59,30 @@ function commandFor(language: MockLanguage): string[] | null {
 	return language === "javascript" ? [process.execPath] : pythonCommand();
 }
 
-/** How to end a run and every process it started: on macOS and Linux the
- *  run leads its own process group, so the whole group; on Windows the
- *  process tree. */
-export function stopCommand(pid: number, platform: NodeJS.Platform): { group: number } | { command: string[] } {
-	return platform === "win32" ? { command: ["taskkill", "/T", "/F", "/PID", String(pid)] } : { group: pid };
+/** How to end a run and every process in it, or null when nothing may be
+ *  ended: on macOS and Linux the run leads its own process group, so the
+ *  whole group; on Windows its process tree, only while the program runs,
+ *  since once it has ended its pid may already be another program's. */
+export function stopCommand(pid: number, platform: NodeJS.Platform, running: boolean): { group: number } | { command: string[] } | null {
+	if (platform !== "win32") return { group: pid };
+	return running ? { command: ["taskkill", "/T", "/F", "/PID", String(pid)] } : null;
 }
 
-function stopAll(pid: number): void {
-	const how = stopCommand(pid, process.platform);
-	if ("group" in how) {
+/** End the run's processes, then call `done`. */
+function stopAll(child: ChildProcess, done: () => void): void {
+	const how = child.pid === undefined ? null : stopCommand(child.pid, process.platform, child.exitCode === null && child.signalCode === null);
+	if (how && "command" in how) {
+		execFile(how.command[0]!, how.command.slice(1), { windowsHide: true }, () => done());
+		return;
+	}
+	if (how) {
 		try {
 			process.kill(-how.group, "SIGKILL");
 		} catch {
 			/* every process of it has ended */
 		}
-	} else execFile(how.command[0]!, how.command.slice(1), { windowsHide: true }, () => {});
+	}
+	done();
 }
 
 /** Run the learner's code on the question's examples. `signal` stops it
@@ -99,10 +107,11 @@ export function runExamples(question: CodeQuestion, code: string, language: Mock
 			ended = true;
 			clearTimeout(timer);
 			signal?.removeEventListener("abort", aborted);
-			if (child.pid !== undefined) stopAll(child.pid);
+			// The folder goes once the processes are gone (Windows keeps a running
+			// program's folder), and one left behind never holds up the answer.
+			stopAll(child, () => fs.rm(dir, { recursive: true, force: true, maxRetries: 5 }, () => {}));
 			child.stdout.destroy();
 			child.stderr.destroy();
-			fs.rmSync(dir, { recursive: true, force: true });
 			resolve(outcome());
 		};
 		const stopped = (error: string) => end(() => ({ examples: [], error }));
@@ -119,9 +128,7 @@ export function runExamples(question: CodeQuestion, code: string, language: Mock
 		child.stderr.on("data", keep(err, "err"));
 		// What the program started may still hold its output open: end it all
 		// once the program itself is done, so its output closes too.
-		child.on("exit", () => {
-			if (child.pid !== undefined) stopAll(child.pid);
-		});
+		child.on("exit", () => stopAll(child, () => {}));
 		child.on("error", () => end(() => readRun("", "", mark, question.examples)));
 		child.on("close", () =>
 			// The temp folder's path, also as a file:// URL when Node read the

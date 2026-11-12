@@ -134,10 +134,11 @@ describe("running a code answer's examples", () => {
 		}
 	});
 
-	it("ends a run's whole process group, or on Windows its process tree", () => {
-		assert.deepEqual(stopCommand(4242, "darwin"), { group: 4242 });
-		assert.deepEqual(stopCommand(4242, "linux"), { group: 4242 });
-		assert.deepEqual(stopCommand(4242, "win32"), { command: ["taskkill", "/T", "/F", "/PID", "4242"] });
+	it("ends a run's whole process group, or on Windows its process tree while the program runs", () => {
+		assert.deepEqual(stopCommand(4242, "darwin", true), { group: 4242 });
+		assert.deepEqual(stopCommand(4242, "linux", false), { group: 4242 }, "the group outlives the program while a child of it runs");
+		assert.deepEqual(stopCommand(4242, "win32", true), { command: ["taskkill", "/T", "/F", "/PID", "4242"] });
+		assert.equal(stopCommand(4242, "win32", false), null, "an ended program's pid may be another program's");
 	});
 
 	it("passes over a Python that only opens an installer", () => {
