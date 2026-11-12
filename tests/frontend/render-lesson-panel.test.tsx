@@ -53,14 +53,12 @@ const problem = { toolCallId: "p1", statement: "Find E[N].", line: "Practice, pr
 
 const marco: HalleyApi = {
 	name: "marco",
-	mood: "idle",
 	follow: false,
 	setFollow: () => {},
 	panelOpen: false,
 	setPanelOpen: () => {},
 	recent: [],
 	doing: null,
-	react: () => {},
 	setLesson: () => {},
 	go: () => {},
 	offer: null,

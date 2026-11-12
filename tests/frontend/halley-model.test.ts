@@ -1,12 +1,10 @@
 /**
- * The teacher's pure parts: mood precedence, visit pacing and the >5
+ * The teacher's pure parts: visit pacing and the >5
  * burst, and Follow (stop / pause / resume).
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { AgentAction } from "../../src/shared/core/events.ts";
-import { HOUR } from "../../src/frontend/components/countdown-model.ts";
-import { crossedUnderHour, pickMood, REACTION_MS } from "../../src/frontend/components/halley/mood.ts";
 import { BURST_LIMIT, STEP_MS, nextStep, pastLabel, targetKey } from "../../src/frontend/components/halley/tour.ts";
 import {
 	FOLLOW_DEFAULT,
@@ -24,35 +22,6 @@ import {
 function action(over: Partial<AgentAction> = {}): AgentAction {
 	return { id: "act_1", at: "2026-10-28T16:00:00.000Z", agent: "Claude Code", label: "Adding HW 5", classId: "cls_a", target: { kind: "deadline", id: "ddl_1" }, page: "/", ...over };
 }
-
-describe("mood", () => {
-	const base = { reaction: null, streaming: false, working: false, connected: true } as const;
-	it("a reaction shows over everything", () => {
-		assert.equal(pickMood({ ...base, reaction: "happy", streaming: true, working: true }), "happy");
-		assert.equal(pickMood({ ...base, reaction: "dizzy", connected: false }), "dizzy");
-	});
-	it("then talking, sleepy, thinking, idle", () => {
-		assert.equal(pickMood({ ...base, streaming: true, working: true }), "talking");
-		assert.equal(pickMood({ ...base, working: true }), "thinking");
-		assert.equal(pickMood({ ...base, connected: false, working: true }), "sleepy", "no agent: nobody is working");
-		assert.equal(pickMood({ ...base }), "idle");
-		assert.equal(pickMood({ ...base, connected: null }), "idle", "not known yet is not asleep");
-	});
-	it("reactions are brief", () => {
-		for (const ms of Object.values(REACTION_MS)) assert.ok(ms > 0 && ms <= 3000);
-	});
-	it("O_O fires once, when a deadline crosses under an hour", () => {
-		const now = Date.parse("2026-10-28T16:00:00");
-		const list = [
-			{ id: "crossing", dueMs: now + HOUR - 1000 },
-			{ id: "far", dueMs: now + 3 * HOUR },
-			{ id: "already", dueMs: now + 10 * 60_000 },
-			{ id: "late", dueMs: now - 1000 },
-		];
-		assert.deepEqual(crossedUnderHour(list, now - 15_000, now), ["crossing"]);
-		assert.deepEqual(crossedUnderHour(list, now, now + 15_000), []);
-	});
-});
 
 describe("visits", () => {
 	it("visits one change at a time, about 0.6 s apart", () => {

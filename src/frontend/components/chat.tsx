@@ -18,7 +18,6 @@ import { AbortTurnDialog, type AbortMode } from "@/frontend/components/abort-tur
 import { currentUserThinkingOpen, setAllUserThinkingOpen } from "@/frontend/components/thinking-block";
 import {
 	activeProblemOf,
-	answerOutcome,
 	answerTakesFiles,
 	dismissedAnswer,
 	findPendingToolCall,
@@ -54,7 +53,7 @@ import { Pane } from "@/frontend/components/ui/pane";
 import { usePaneWidth } from "@/frontend/components/ui/resize-handle";
 import { useAttachmentDraft } from "@/frontend/components/lesson/attachment-tray";
 import { takeStartFiles } from "@/frontend/components/lesson/start-files";
-import { useHalley, useHalleyLesson } from "@/frontend/components/halley/halley-provider";
+import { useHalleyLesson } from "@/frontend/components/halley/halley-provider";
 import { SheetDock, useSheetDock } from "@/frontend/components/cheat-sheet/sheet-dock";
 
 // The plan popup (and dagre, its layout engine) loads on first open.
@@ -176,7 +175,6 @@ export function Chat({
 		return () => clearInterval(t);
 	}, [claimedAt]);
 	const stuckMinutes = busy ? stuckClaimMinutes(claimedAt, now) : null;
-	const halley = useHalley();
 
 	// The abort is always the remote kill (turns are server processes); a
 	// local view also detaches at once and keeps the partial.
@@ -392,10 +390,6 @@ export function Chat({
 			if (typed.trim()) editText(restoreUnsent(typed, textRef.current));
 			if (files.length > 0) attachments.restore(files);
 		});
-		// Graded right or wrong: the teacher reacts for a moment.
-		const outcome = answerOutcome(output);
-		if (outcome === "right") halley?.react("happy");
-		else if (outcome === "wrong") halley?.react("oops");
 	};
 
 	// "Check your understanding": what was typed while reading is kept as

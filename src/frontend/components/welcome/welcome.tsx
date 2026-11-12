@@ -3,8 +3,7 @@
 /**
  * THE WELCOME SCREEN: covers the app on the first page load of each
  * launch (src/backend/server/welcome.ts) and plays the startup sound. Over the
- * onboarding sky, "godspeed" fades in, the teacher mascot flies in and lands
- * on its left, and the word slides right to make room: the logo. Under it,
+ * onboarding sky, "godspeed" fades in. Under it,
  * start lines type out (the version, the agent, the next deadline; after
  * updating from the old look, "New look"), then "Let's go", which closes
  * it; after an update the release notes open next. A click during the
@@ -31,7 +30,7 @@ import { bootLines, lookUpgraded } from "./welcome-model";
 /** When the button has risen (.wl-rise in globals.css). */
 const ANIMATION_MS = 2800;
 const LEAVE_MS = 400;
-/** The boot log starts once the logo has landed, and types this fast. */
+/** When the boot log starts, and how fast it types. */
 const BOOT_START_MS = 2200;
 const LETTER_MS = 12;
 const VERSION = process.env.LH_VERSION ?? "";
@@ -95,7 +94,7 @@ function WelcomeScreen({ leaving, onClose, upgraded }: { leaving: boolean; onClo
 		>
 			<div aria-hidden className="lh-drag absolute inset-x-0 top-0 z-10 h-12" />
 			<Constellation mode="welcome" />
-			<Wordmark markClassName="wl-mark" wordClassName="wl-word" />
+			<Wordmark className="wl-word" />
 			<div className={cn("wl-rise relative flex flex-col items-center gap-[30px]", !ready && "pointer-events-none")}>
 				<BootLog lines={agent && nowMs !== null ? bootLines(VERSION, agent, next, nowMs, upgraded) : []} skipped={skipped} />
 				<button

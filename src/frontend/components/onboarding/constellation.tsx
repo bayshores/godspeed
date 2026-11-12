@@ -1,11 +1,9 @@
 /**
  * The onboarding constellation: the intro and the setup screens'
  * backdrop. One SVG drawn in a 1440×900 space and cropped to the window.
- * Under it all, a faint dot grid. In the intro a comet streaks in from the
- * bottom-left and drops topic dots along its trail; they link up, then dim
- * to a faint backdrop that stays behind every setup step. The welcome
- * screen draws the same sky without this comet (the mascot flies in
- * instead). Pure SVG + CSS animation (src/app/globals.css,
+ * Under it all, a faint dot grid. In the intro and on the welcome screen
+ * topic dots appear from the bottom-left outward and link up, then dim to
+ * a faint backdrop that stays behind every setup step. Pure SVG + CSS animation (src/app/globals.css,
  * "Onboarding"); with reduced motion every element simply shows its final
  * state.
  */
@@ -42,26 +40,17 @@ export const LINKS: readonly (readonly [number, number])[] = [
 	[16, 19], [18, 17],
 ];
 
-/** Where the comet enters and where it brakes (the intro's path). */
+/** Where the dots start and the middle of the sky. */
 const START: readonly [number, number] = [130, 752];
 const STOP: readonly [number, number] = [740, 400];
 
-/** When a dot pops up (seconds into the intro): as the comet passes it on
- *  the way in, then — right of where it brakes — spreading outward. */
+/** When a dot pops up (seconds into the intro): left to right up to the
+ *  middle, then faster outward. */
 export function dotDelay(x: number): number {
 	if (x <= STOP[0]) return 0.6 + 0.7 * Math.max(0, (x - START[0]) / (STOP[0] - START[0]));
 	return 1.3 + 0.4 * Math.min(1, (x - STOP[0]) / (1300 - STOP[0]));
 }
 
-/** The comet's head radius. */
-const HEAD_R = 10.9;
-/** The tail at rest: as wide as the head where they meet, about three
- *  head-widths long, pointing along +x (rotated to trail the path). */
-const TAIL = `M0,${-HEAD_R} Q26,-4 66,0 Q26,4 0,${HEAD_R} Z`;
-/** The tail points back down the path, from STOP toward START. */
-const TAIL_ANGLE = (Math.atan2(START[1] - STOP[1], START[0] - STOP[0]) * 180) / Math.PI;
-
-/** "welcome": the intro's dots and links, without the comet. */
 export type ConstellationMode = "intro" | "welcome" | "backdrop" | "bright" | "gone";
 
 export function Constellation({ mode }: { mode: ConstellationMode }) {
@@ -74,19 +63,6 @@ export function Constellation({ mode }: { mode: ConstellationMode }) {
 			viewBox="0 0 1440 900"
 			preserveAspectRatio="xMidYMid slice"
 		>
-			<defs>
-				<radialGradient id="ob-glow">
-					<stop offset="0" style={{ stopColor: "var(--foreground)" }} stopOpacity="0.16" />
-					<stop offset="1" style={{ stopColor: "var(--foreground)" }} stopOpacity="0" />
-				</radialGradient>
-				<linearGradient id="ob-tail">
-					<stop offset="0" style={{ stopColor: "var(--foreground)" }} stopOpacity="0.85" />
-					<stop offset="1" style={{ stopColor: "var(--foreground)" }} stopOpacity="0" />
-				</linearGradient>
-				<filter id="ob-tail-blur" x="-20%" y="-100%" width="140%" height="300%">
-					<feGaussianBlur stdDeviation="3" />
-				</filter>
-			</defs>
 			<g className="ob-stars">
 				{LINKS.map(([a, b]) => {
 					const [ax, ay] = DOTS[a]!;
@@ -116,13 +92,6 @@ export function Constellation({ mode }: { mode: ConstellationMode }) {
 						style={{ "--d": `${dotDelay(x).toFixed(2)}s` } as React.CSSProperties}
 					/>
 				))}
-			</g>
-			<g className="ob-comet">
-				<circle r="90" fill="url(#ob-glow)" />
-				<g transform={`rotate(${TAIL_ANGLE.toFixed(1)})`}>
-					<path className="ob-tail" d={TAIL} fill="url(#ob-tail)" filter="url(#ob-tail-blur)" />
-				</g>
-				<circle r={HEAD_R} className="fill-ink" />
 			</g>
 		</svg>
 	);

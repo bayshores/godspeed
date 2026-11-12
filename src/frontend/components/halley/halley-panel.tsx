@@ -16,7 +16,6 @@ import { tabListKeys } from "@/frontend/components/ui/tab-list";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { useHalley } from "./halley-context";
 import type { AgentDoing } from "./follow-status";
-import { TeacherSprite } from "./teacher-sprite";
 import { TalkView, type TalkAsk } from "./talk-view";
 import { TeacherActivity } from "./teacher-activity";
 import { DOCK_WIDTH, dockPush, dockWidth } from "./dock-model";
@@ -91,7 +90,6 @@ export function HalleyPanel({
 			className="lh-slide-in fixed top-12 right-0 bottom-0 z-[41] flex max-w-full flex-col border-l-2 border-line bg-panel font-ui"
 		>
 			<div className="flex shrink-0 items-center gap-3 pt-4 pr-3.5 pb-3 pl-5">
-				<TeacherSprite mood={halley?.mood ?? "idle"} className="w-[30px] shrink-0" />
 				<span className="flex min-w-0 flex-1 flex-col gap-px">
 					<span data-testid="halley-panel-name" className="truncate text-xl leading-snug font-medium text-ink">
 						{name}

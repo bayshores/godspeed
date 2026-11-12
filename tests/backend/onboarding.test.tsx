@@ -133,12 +133,10 @@ describe("onboarding screen helpers", () => {
 		assert.match(html, /<h1[^>]*>Add your first class<\/h1>/);
 		assert.ok(html.includes("inside"));
 	});
-	it("the wordmark: the teacher mascot beside godspeed", () => {
-		const html = renderToStaticMarkup(<Wordmark />);
-		assert.ok(html.includes('data-testid="teacher-sprite"'));
-		assert.match(html, /<h1[^>]*>godspeed<\/h1>/);
+	it("the wordmark is the app's name", () => {
+		assert.match(renderToStaticMarkup(<Wordmark />), /<h1[^>]*>godspeed<\/h1>/);
 	});
-	it("dotDelay: dots appear as the comet passes, left to right", () => {
+	it("dotDelay: dots appear left to right", () => {
 		const near = (a: number, b: number) => assert.ok(Math.abs(a - b) < 1e-9, `${a} ≈ ${b}`);
 		near(dotDelay(130), 0.6);
 		near(dotDelay(740), 1.3);

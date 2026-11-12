@@ -1,6 +1,5 @@
 /**
- * The teacher's screens: the face (one svg, every
- * mood, plain black eyes), the panel (head, the Talk and Activity tabs:
+ * The teacher's screens: the panel (head, the Talk and Activity tabs:
  * Now, Recent, Background jobs) and the teacher name setting.
  */
 import React, { act } from "react";
@@ -34,8 +33,6 @@ Object.assign(globalThis, {
 // The Talk thread scrolls to its end.
 (dom.window.Element.prototype as unknown as { scrollIntoView: () => void }).scrollIntoView = () => {};
 
-const { TeacherSprite } = await import("../../src/frontend/components/halley/teacher-sprite.tsx");
-const { HALLEY_MOODS } = await import("../../src/frontend/components/halley/mood.ts");
 const { HalleyPanel, agentLine } = await import("../../src/frontend/components/halley/halley-panel.tsx");
 const { dockPush, dockWidth } = await import("../../src/frontend/components/halley/dock-model.ts");
 const { draftWithAsk, startsTurn } = await import("../../src/frontend/components/halley/talk-model.ts");
@@ -69,22 +66,6 @@ const ACTIONS: AgentAction[] = [
 	{ id: "a1", at: "2026-10-28T22:52:00.000Z", agent: "Claude Code", label: "Reading notes", classId: null, target: null, page: "javascript:alert(1)" },
 ];
 const names = (id: string | null) => (id === "cls_29" ? "CSE 29" : null);
-
-describe("the mascot", () => {
-	it("a pixel picture on a 10×13 grid, with a face for every mood", () => {
-		const html = renderToStaticMarkup(<TeacherSprite mood="thinking" />);
-		assert.match(html, /viewBox="0 0 10 13"/);
-		assert.match(html, /shape-rendering="crispEdges"/);
-		assert.match(html, /fill="#F2F4FF"/, "the white body");
-		assert.match(html, /fill="#2A3270"/, "the cap");
-		const faces = Object.fromEntries(HALLEY_MOODS.map((m) => [m, /data-face="(\w+)"/.exec(renderToStaticMarkup(<TeacherSprite mood={m} />))?.[1]]));
-		assert.deepEqual(faces, { idle: "idle", talking: "reading", thinking: "thinking", happy: "happy", oops: "oops", shocked: "oops", dizzy: "oops", sleepy: "blink" });
-	});
-	it("only the idle face blinks", () => {
-		assert.match(renderToStaticMarkup(<TeacherSprite mood="idle" />), /lh-sprite-blink/);
-		assert.doesNotMatch(renderToStaticMarkup(<TeacherSprite mood="happy" />), /lh-sprite-blink/);
-	});
-});
 
 describe("the panel", () => {
 	const panel = (over: Partial<React.ComponentProps<typeof HalleyPanel>> = {}) => (

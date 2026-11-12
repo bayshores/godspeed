@@ -2,7 +2,7 @@
 
 /**
  * The deadlines of every non-archived class (GET /api/deadlines): the open
- * ones, for Today, the teacher mascot and the welcome screen, and the ones
+ * ones, for Today and the welcome screen, and the ones
  * ticked done today, which Today keeps with Undo. One shared read in
  * OpenDeadlinesProvider: it re-reads when classes change (every deadline
  * edit announces classes-changed) and after the events channel reconnects.

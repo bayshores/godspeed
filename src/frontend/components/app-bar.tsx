@@ -17,7 +17,6 @@ import { useClasses } from "@/frontend/components/class-context";
 import { useMinute } from "@/frontend/components/countdown";
 import { announceDelay } from "@/frontend/components/halley/follow-status";
 import { useHalley } from "@/frontend/components/halley/halley-provider";
-import { TeacherSprite } from "@/frontend/components/halley/teacher-sprite";
 import { AppMenu } from "@/frontend/components/top-bar/app-menu";
 import { BAR_TAB, barTabState, ClassTabs } from "@/frontend/components/top-bar/class-tabs";
 import { FollowButton } from "@/frontend/components/top-bar/follow-button";
@@ -41,7 +40,7 @@ export function AppBar() {
 	);
 }
 
-/** The teacher's mascot with what it is doing; a click opens its panel. */
+/** The teacher's name with what it is doing; a click opens its panel. */
 function TeacherChip() {
 	const halley = useHalley();
 	const agent = useAgentStatus();
@@ -58,7 +57,6 @@ function TeacherChip() {
 				onClick={() => halley.setPanelOpen(!halley.panelOpen)}
 				className={cn(BAR_TAB, "ml-1 max-w-[340px] shrink", barTabState(halley.panelOpen))}
 			>
-				<TeacherSprite mood={halley.mood} className="w-4 shrink-0" />
 				<span className="truncate">{text}</span>
 			</button>
 			{halley.doing && <Announce text={text} />}

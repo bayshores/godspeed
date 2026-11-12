@@ -68,7 +68,7 @@ export function TeacherColumn({
 				<ResizeHandle paneKey="your-turn" width={width} bounds={COLUMN_WIDTH} onWidth={onWidth} label="Resize the teacher column" />
 			</div>
 			<Pane className="flex min-h-0 flex-1 flex-col overflow-hidden">
-				<TeacherHead name={name} color={color} doing={doing} mood={halley?.mood}>
+				<TeacherHead name={name} color={color} doing={doing}>
 					{activityOpen ? (
 						<button type="button" data-testid="teacher-activity-back" onClick={() => setActivityOpen(false)} className="lh-btn shrink-0">
 							<PixelIcon name="chevron" className="-scale-x-100" />

@@ -3,8 +3,6 @@
 /**
  * The teacher: one provider in the app shell.
  *
- *  - Mood: follows the app (mood.ts); the mascot shows it wherever it is
- *    drawn (teacher-sprite.tsx).
  *  - Follow: every "agent-action" event is a change the outside agent
  *    made. With Follow on, the window goes to the change's page and the
  *    changed item (data-halley-target) lights up (tour.ts paces it). On
@@ -26,15 +24,12 @@ import { useServerEvent, useServerResync } from "@/frontend/components/server-ev
 import { useAgentStatus } from "@/frontend/components/agent-status";
 import { useActivity } from "@/frontend/components/activity-dock";
 import { useClasses } from "@/frontend/components/class-context";
-import { useOpenDeadlines } from "@/frontend/components/use-open-deadlines";
-import { dueAtMs } from "@/frontend/components/countdown-model";
 import { prefersReducedMotion } from "@/frontend/components/presence";
 import { useSettingsSaved } from "@/frontend/components/settings-signal";
 import { HalleyPanel } from "./halley-panel";
 import { HalleyContext, useHalley, type HalleyApi, type LessonPresence } from "./halley-context";
 import { useAskTeacher } from "./ask-teacher";
 import type { TalkAsk } from "./talk-view";
-import { REACTION_MS, crossedUnderHour, pickMood, type HalleyReaction } from "./mood";
 import { STEP_MS, nextStep } from "./tour";
 import { FOLLOW_DEFAULT, FOLLOW_KEY, GO_OFFER_MS, followMoves, followReady, followReducer, goOffer, parseFollow, safePage, type FollowEvent, type FollowState } from "./follow";
 import { agentDoing, freshAction } from "./follow-status";
@@ -79,7 +74,6 @@ export function HalleyProvider({ initialName, children }: { initialName?: string
 	const agent = useAgentStatus();
 	const { feed } = useActivity();
 	const classes = useClasses();
-	const due = useOpenDeadlines();
 	const router = useRouter();
 	const pathname = usePathname();
 
@@ -137,44 +131,6 @@ export function HalleyProvider({ initialName, children }: { initialName?: string
 		};
 	}, [followOn, dispatchFollow]);
 
-	// ── reactions (brief moods) ──
-	const [reaction, setReaction] = useState<HalleyReaction | null>(null);
-	const reactionTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-	const react = useCallback((r: HalleyReaction) => {
-		setReaction(r);
-		if (reactionTimer.current) clearTimeout(reactionTimer.current);
-		reactionTimer.current = setTimeout(() => setReaction(null), REACTION_MS[r]);
-	}, []);
-	useEffect(() => () => clearTimeout(reactionTimer.current), []);
-
-	// A job failed (one that wasn't failed when the window opened): @_@.
-	const seenFailed = useRef<Set<string> | null>(null);
-	useEffect(() => {
-		const failed = feed.failed;
-		if (!failed) return;
-		if (seenFailed.current === null) {
-			seenFailed.current = new Set(failed.map((f) => f.id));
-			return;
-		}
-		const fresh = failed.filter((f) => !seenFailed.current!.has(f.id));
-		for (const f of fresh) seenFailed.current.add(f.id);
-		if (fresh.length) react("dizzy");
-	}, [feed.failed, react]);
-
-	// A deadline crossed under one hour left: O_O.
-	const dueRef = useRef(due.deadlines);
-	dueRef.current = due.deadlines;
-	useEffect(() => {
-		let prev = Date.now();
-		const t = setInterval(() => {
-			const now = Date.now();
-			const list = (dueRef.current ?? []).map((d) => ({ id: d.id, dueMs: dueAtMs(d) }));
-			if (crossedUnderHour(list, prev, now).length) react("shocked");
-			prev = now;
-		}, 15_000);
-		return () => clearInterval(t);
-	}, [react]);
-
 	// ── the lesson screen ──
 	const [lesson, setLessonState] = useState<LessonPresence | null>(null);
 	const setLesson = useCallback((p: LessonPresence | null) => {
@@ -217,12 +173,11 @@ export function HalleyProvider({ initialName, children }: { initialName?: string
 		return () => clearTimeout(t);
 	}, [recent, followOn, pathname]);
 
-	// ── what it's doing, and the mood ──
+	// ── what it's doing ──
 	const doing = useMemo(
 		() => agentDoing({ agent, fresh, lesson, extractions: feed.extractions, jobs: feed.jobs }),
 		[agent, fresh, lesson, feed.extractions, feed.jobs],
 	);
-	const mood = pickMood({ reaction, streaming: !!lesson?.streaming, working: !!doing?.working, connected: agent ? agent.connected : null });
 
 	// ── the panel ──
 	const [panelOpen, setPanelOpen] = useState(false);
@@ -358,8 +313,8 @@ export function HalleyProvider({ initialName, children }: { initialName?: string
 	const classNameOf = useCallback((id: string | null) => (id ? (classList.find((c) => c.id === id)?.name ?? null) : null), [classList]);
 
 	const api = useMemo<HalleyApi>(
-		() => ({ name, mood, follow: followOn, setFollow, panelOpen, setPanelOpen, recent, doing, react, setLesson, go, offer, classNameOf }),
-		[name, mood, followOn, setFollow, panelOpen, recent, doing, react, setLesson, go, offer, classNameOf],
+		() => ({ name, follow: followOn, setFollow, panelOpen, setPanelOpen, recent, doing, setLesson, go, offer, classNameOf }),
+		[name, followOn, setFollow, panelOpen, recent, doing, setLesson, go, offer, classNameOf],
 	);
 
 	return (
