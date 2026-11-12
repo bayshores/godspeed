@@ -14,6 +14,7 @@ use gs_core::session::work_pages::{WORK_PAGE_BYTES, page_blocks};
 use gs_engine::bridge::{AgentReply, ReplyCall, WaitOptions, WorkView};
 use gs_json::{Json, Obj, json, stringify};
 use gs_services::App;
+use gs_services::spaces::citations::check_cites;
 
 use super::caller::{agent_id_of, in_claude_code};
 use super::reply::{failure, result, text_block};
@@ -189,10 +190,17 @@ pub async fn respond(call: &ToolCall<'_>, args: &Json) -> Json {
 	let app = call.app;
 	let follow_up_ms = (args["wait_seconds"].as_f64().unwrap_or(RESPOND_DEFAULT_WAIT_S) * 1000.0) as i64;
 	let tool_calls = args["tool_calls"].as_arr().into_iter().flatten().map(|c| ReplyCall { name: c["name"].as_str().unwrap_or_default().to_owned(), arguments: c["arguments"].clone() });
-	let reply = AgentReply { text: args["text"].as_str().map(str::to_owned), tool_calls: tool_calls.collect() };
+	// Checked before it is stored, so the stored text and the seen-mark fingerprint agree.
+	let (text, removed) = args["text"].as_str().map(|text| check_cites(app, text)).unzip();
+	let removed_marks = match removed.filter(|r| !r.is_empty()) {
+		Some(removed) => format!("Removed source marks that don't point at a passage of a space file: {}. Use ids from search_space_files.", removed.join(", ")),
+		None => String::new(),
+	};
+	let with_removed = |note: String| if removed_marks.is_empty() { note } else { format!("{removed_marks} {note}") };
+	let reply = AgentReply { text, tool_calls: tool_calls.collect() };
 	let answered = match app.bridge.respond_to_work(args["work_id"].as_str().unwrap_or_default(), reply, follow_up_ms) {
 		Ok(answered) => answered,
-		Err(error) => return failure(&error),
+		Err(error) => return failure(&with_removed(error)),
 	};
 	// The Talk chat has no page to go to; its replies show in the panel.
 	if let Some(lesson) = app.stores.chats.get_chat(&answered.conversation).filter(|l| l["kind"].as_str() != Some("talk")) {
@@ -205,9 +213,16 @@ pub async fn respond(call: &ToolCall<'_>, args: &Json) -> Json {
 		app.bridge.wait_for_work(follow_up_ms, opts).await
 	};
 	if let Some(next) = next {
-		return work_result(app, &next);
+		let mut work = work_result(app, &next);
+		if !removed_marks.is_empty()
+			&& let Some(content) = work.as_obj_mut().and_then(|w| w.get_mut("content")).and_then(Json::as_arr_mut)
+		{
+			content.insert(0, text_block(&removed_marks));
+		}
+		return work;
 	}
-	result(&turn_complete(app, call.caller, &answered.conversation, answered.agent.as_deref(), backup))
+	let note = turn_complete_note(app, call.caller, &answered.conversation, answered.agent.as_deref(), backup);
+	result(&json!({ "status": "turn_complete", "note": with_removed(note) }))
 }
 
 fn note_replying(app: &Arc<App>, caller: Option<&str>, lesson: &Json) {
@@ -221,8 +236,8 @@ fn note_replying(app: &Arc<App>, caller: Option<&str>, lesson: &Json) {
 	gs_services::app::agent_actions::note_agent_action(app, caller, &action);
 }
 
-/// The answer when no follow-up came: where the agent goes next. The backup stays on no lesson.
-fn turn_complete(app: &App, caller: Option<&str>, conversation: &str, agent: Option<&str>, backup: bool) -> Json {
+/// The note when no follow-up came: where the agent goes next. The backup stays on no lesson.
+fn turn_complete_note(app: &App, caller: Option<&str>, conversation: &str, agent: Option<&str>, backup: bool) -> String {
 	let chat = app.stores.chats.get_chat(conversation);
 	let claude_code = in_claude_code(caller);
 	// A Talk reply goes on to the lesson it just started, else back to the lesson the agent was
@@ -240,12 +255,11 @@ fn turn_complete(app: &App, caller: Option<&str>, conversation: &str, agent: Opt
 		let stay = lesson_id.as_deref().map(|l| format!(" (lesson_id \"{l}\" to stay on this lesson)")).unwrap_or_default();
 		format!("Call wait_for_work to continue{stay}.")
 	};
-	let note = match &chat {
+	match &chat {
 		None => format!("The task step is done. {}", if claude_code { waiter_hint(None, false) } else { "Call wait_for_work for more.".to_owned() }),
 		Some(_) if talk => format!("Your reply is in Talk.{} {wait}", if started.is_some() { " The lesson you started is waiting for you." } else { "" }),
 		Some(_) => format!("Your turn is done. The learner is reading and will answer in the godspeed window. {wait}"),
-	};
-	json!({ "status": "turn_complete", "note": note })
+	}
 }
 
 pub fn read_work(call: &ToolCall<'_>, args: &Json) -> Json {
