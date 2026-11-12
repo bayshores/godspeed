@@ -15,7 +15,7 @@
 
 godspeed is a study app for students and self-learners. Claude Code, Codex or any MCP app becomes your tutor: it checks what you already know, plans a path to your goal or your next deadline, teaches one step at a time, then quizzes you. You sort what you study into spaces (a course, a certification, a language), and every space gets its own lessons, files (PDFs, notes, recordings), knowledge graph, deadlines and cheat sheets. It runs on Mac, Windows and Linux, and needs no API keys.
 
-![A godspeed lesson: the teacher's explanation on the left, the lesson steps and an open quiz with how sure you are on the right](docs/assets/lesson.png)
+![A godspeed lesson: the teacher's explanation with the lesson steps on the left, and your turn with an open question on the right](docs/assets/lesson.png)
 
 ## How it works
 
@@ -36,16 +36,16 @@ Everything you learn is saved as facts and the reasoning chains between them, li
 - **Spaces.** A space is one thing you study, like a course, a certification or a language. Each space has its own lessons, files, knowledge graph, deadlines and cheat sheets. Add PDFs, Word and PowerPoint files, notes, code, transcripts and lecture recordings (transcribed on your computer with whisper.cpp), or link a folder that's rescanned every minute. Google Drive folders work too.
 - **Today and deadlines.** Add exams, homework, quizzes and projects with a date, an optional time and the files they cover. Today lists what to do next across every space, each with the days left, how ready you are (or how many problems you've done) and one button to start. Everything further out sits under Later.
 
-![Home: the deadline due next with its countdown, the rest coming up with how ready you are, a fact grid for each space and the activity log](docs/assets/home.png)
+![Today: what to do next across every space, each with the time left and one button to start](docs/assets/today.png)
 
 - **Knowledge graph.** Your agent groups facts into topics, and each space's Graph tab lays them out in columns by level, from what you learn first to what builds on it. Each topic shows one square per fact, colored by how often you get it right. Pick a topic to see what it needs and what it leads to, or open a fact to see where it came from and practice it. The next deadline sits on top with the days left.
 
-![The Graph: topics colored by how often you get them right, with arrows for what to learn first, and the next quiz's days left and what to work on next](docs/assets/graph.png)
+![The Graph: topics in columns by level with one square per fact, the next deadline's days left and what to work on next](docs/assets/graph.png)
 
 - **Homework.** Attach the assignment file to a homework or project and hit Work on it. The teacher lists its problems and opens them one at a time. The whole problem stays in view beside the lesson while you do the work in the one writing box, typed or as a photo, and the teacher checks it with hints but never gives you the answer. A problem counts as done once your own work is right.
 - **Progress.** How ready you are for each deadline, how each lesson went, and whether your confidence matches your results (five levels, from guessing to certain).
 
-![A space Overview: readiness for each deadline, how lessons went, and a confidence check](docs/assets/overview.png)
+![A space's Progress page: the teacher's note, the next deadline with how ready you are, and the topic that needs work most](docs/assets/progress.png)
 
 - **Cheat sheets.** Your agent makes a PDF cheat sheet for a deadline. Tell it what to change in the chat beside the sheet, point at the part you mean, and the rules you give it stick for that sheet. The sheet can also sit beside a lesson.
 

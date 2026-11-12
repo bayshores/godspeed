@@ -2,7 +2,7 @@
 
 Status: **the canonical architecture spec** for the app as built. When this file and the code disagree, the code is right and this file gets fixed. The file-by-file layout lives in [development.md](development.md).
 
-**What this is.** A standalone learning app (web + Electron desktop): the learner's knowledge accumulates into a persistent, cross-session knowledge graph per space, built from tutoring sessions in which a teacher agent authors a formal, visible dependency tree (the plan tree) and verifies understanding with structured questions. Home (`src/app/page.tsx`) shows what is coming up across spaces; each space's graph is drawn as a Graph page at `/graph`; the session is the classroom.
+**What this is.** A standalone learning app (web + Electron desktop): the learner's knowledge accumulates into a persistent, cross-session knowledge graph per space, built from tutoring sessions in which a teacher agent authors a formal, visible dependency tree (the plan tree) and verifies understanding with structured questions. Today (`src/app/page.tsx`) shows what is coming up across spaces; each space's graph is drawn as a Graph page at `/graph`; the session is the classroom.
 
 **Design principles, in priority order:**
 

@@ -2,7 +2,7 @@
 
 For people working on godspeed itself, not using it.
 
-godspeed is a learning app: a Next.js web app inside an Electron desktop shell. The model is always an **outside agent** (Claude Code, Codex or any MCP app) connected over MCP; the server runs it through the pi-ai agent engine. A **teacher agent** runs probe→teach lessons with graded questions and a **plan tree** it writes once (`plan_init`); progress on the plan is derived from tagged quiz calls. Lessons are organized into **spaces**, each with its own files, deadlines and **knowledge graph** of facts (propositions) and the reasoning chains between them. Home (`/`) shows what is coming up across spaces; each space's graph is drawn as a Graph page at `/graph`.
+godspeed is a learning app: a Next.js web app inside an Electron desktop shell. The model is always an **outside agent** (Claude Code, Codex or any MCP app) connected over MCP; the server runs it through the pi-ai agent engine. A **teacher agent** runs probe→teach lessons with graded questions and a **plan tree** it writes once (`plan_init`); progress on the plan is derived from tagged quiz calls. Lessons are organized into **spaces**, each with its own files, deadlines and **knowledge graph** of facts (propositions) and the reasoning chains between them. Today (`/`) shows what is coming up across spaces; each space's graph is drawn as a Graph page at `/graph`.
 
 The extraction pipeline turns teacher prose and space files into graph facts. The teacher reaches back into the graph through read-only tools when it wants to, so later lessons build on earlier ones.
 
