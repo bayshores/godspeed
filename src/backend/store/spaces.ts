@@ -66,10 +66,13 @@ function adoptOldFolder(): void {
 		}
 		let stayed = 0;
 		for (const name of fs.readdirSync(old)) {
+			const from = path.join(old, name);
 			const to = path.join(PATHS.spaces, name);
 			try {
-				if (fs.lstatSync(to, { throwIfNoEntry: false })) stayed++;
-				else fs.renameSync(path.join(old, name), to);
+				if (!fs.lstatSync(to, { throwIfNoEntry: false })) fs.renameSync(from, to);
+				// Finder's file on both sides would keep data/classes for good.
+				else if (name === ".DS_Store" && fs.lstatSync(from).isFile()) fs.unlinkSync(from);
+				else stayed++;
 			} catch {
 				stayed++;
 			}

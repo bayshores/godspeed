@@ -8,6 +8,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { syncBuiltinESMExports } from "node:module";
 import { after, describe, it, mock } from "node:test";
 
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), "lh-space-merge-"));
@@ -35,9 +36,21 @@ write("spaces/cls_both/space.json", record("cls_both", "Kept"));
 write("classes/cls_both/class.json", record("cls_both", "Old copy"));
 write("classes/cls_old1/class.json", record("cls_old1", "Old Space"));
 write("classes/cls_old1/files/f1/notes.txt", "notes");
+write("classes/cls_stuck/class.json", record("cls_stuck", "Stuck"));
+write("classes/.DS_Store", "finder");
+write("spaces/.DS_Store", "finder");
 
 const errors = mock.method(console, "error", () => {});
+// One space can't move this start, as when another program holds it open.
+const realRename = fs.renameSync;
+const rename = mock.method(fs, "renameSync", (from: fs.PathLike, to: fs.PathLike) => {
+	if (String(from).endsWith("cls_stuck")) throw new Error("busy");
+	realRename(from, to);
+});
+syncBuiltinESMExports();
 const { spaceStore } = await import("../../src/backend/store/spaces.ts");
+rename.mock.restore();
+syncBuiltinESMExports();
 
 after(() => {
 	mock.restoreAll();
@@ -52,13 +65,23 @@ describe("data/classes beside data/spaces", () => {
 		assert.deepEqual(spaceStore.listSpaces().map((s) => s.id).sort(), ["cls_both", "cls_old1", "spc_new1"]);
 	});
 
+	it("one space that can't move doesn't stop the others", () => {
+		assert.ok(fs.existsSync(path.join(DATA, "classes", "cls_stuck", "class.json")));
+		assert.ok(fs.existsSync(path.join(DATA, "spaces", "cls_old1")));
+	});
+
+	it("Finder's file on both sides is not counted as a space that stayed", () => {
+		assert.equal(fs.existsSync(path.join(DATA, "classes", ".DS_Store")), false);
+		assert.ok(fs.existsSync(path.join(DATA, "spaces", ".DS_Store")));
+	});
+
 	it("a space both folders have is neither overwritten nor merged, and one line says how many stayed", () => {
 		assert.equal(spaceStore.getSpace("cls_both")?.name, "Kept");
 		assert.equal(fs.existsSync(path.join(DATA, "spaces", "cls_both", "class.json")), false);
 		assert.equal(JSON.parse(fs.readFileSync(path.join(DATA, "classes", "cls_both", "class.json"), "utf8")).name, "Old copy");
 		const lines = errors.mock.calls.map((c) => c.arguments.join(" "));
 		assert.equal(lines.length, 1);
-		assert.match(lines[0]!, /1 entries stayed in data\/classes/);
+		assert.match(lines[0]!, /2 entries stayed in data\/classes/);
 		assert.doesNotMatch(lines[0]!, /Old copy|cls_both/);
 	});
 
@@ -68,5 +91,7 @@ describe("data/classes beside data/spaces", () => {
 		await import(nextStart);
 		assert.equal(fs.existsSync(path.join(DATA, "classes")), false);
 		assert.equal(spaceStore.getSpace("cls_both")?.name, "Old copy");
+		assert.equal(spaceStore.getSpace("cls_stuck")?.name, "Stuck");
+		assert.equal(errors.mock.callCount(), 1);
 	});
 });
