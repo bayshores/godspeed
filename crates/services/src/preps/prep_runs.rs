@@ -7,6 +7,7 @@ use std::future::Future;
 use std::sync::Arc;
 
 use gs_base::events::EventKind;
+use gs_base::locks::LockKey;
 use gs_engine::turn::abort::Abort;
 use gs_json::json;
 use parking_lot::Mutex;
@@ -53,6 +54,8 @@ struct RunEnd {
 
 impl Drop for RunEnd {
 	fn drop(&mut self) {
+		// The space lock: a space delete that stopped this run finishes before the run ends.
+		let _guard = self.app.locks.lock(LockKey::Space(&self.space_id));
 		{
 			let mut runs = self.app.preps.runs.0.lock();
 			if runs.running.get(&self.key).is_some_and(|(n, _)| *n == self.n) {
