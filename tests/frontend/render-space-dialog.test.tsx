@@ -238,6 +238,8 @@ describe("Edit space dialog", () => {
 		assert.ok(q("space-icon"), "the icon can still be picked");
 		assert.doesNotMatch(q("space-dialog")!.textContent!, /Your agent picks one/);
 		assert.ok(q("space-description"), "the teacher reads the description in a prep's lessons too");
+		await click(q("space-delete"));
+		assert.match(q("space-delete-confirm")!.textContent!, /removes the prep, all its lessons, its mocks, its copied files/);
 	});
 
 	it("Edit space says the agent picks the icon", async () => {
@@ -268,6 +270,7 @@ describe("Delete space", () => {
 			await click(q("space-delete"));
 			assert.equal(q("space-dialog")!.getAttribute("aria-label"), "Delete CSE 21?");
 			assert.match(q("space-delete-confirm")!.textContent!, /This cannot be undone\./);
+			assert.doesNotMatch(q("space-delete-confirm")!.textContent!, /mocks/, "an ordinary space has none");
 			await click(q("space-delete-confirm-button"));
 			await act(async () => {
 				await new Promise((r) => setTimeout(r, 10));

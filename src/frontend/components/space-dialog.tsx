@@ -184,7 +184,7 @@ function SpaceDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 				}
 			>
 				<p data-testid="space-delete-confirm" className="text-lg text-ink">
-					This permanently removes the {noun}, all its lessons, its copied files, and its knowledge graph. A linked folder on your computer is not touched. This cannot be undone.
+					This permanently removes the {noun}, all its lessons, {record.prep ? "its mocks, " : ""}its copied files, and its knowledge graph. A linked folder on your computer is not touched. This cannot be undone.
 				</p>
 				{errorLine}
 			</DialogSheet>
