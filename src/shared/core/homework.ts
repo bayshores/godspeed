@@ -5,7 +5,7 @@
  * (conclude). Pure and browser-safe: the server saves the list on the
  * deadline, the lesson screen folds the same calls over its messages.
  */
-import type { ClassDeadline, HomeworkProblem } from "./contracts/class.ts";
+import type { SpaceDeadline, HomeworkProblem } from "./contracts/space.ts";
 
 /** A problem as the agent posts it; done is the app's to keep. */
 export type PostedProblem = Omit<HomeworkProblem, "done">;
@@ -19,11 +19,6 @@ export interface HomeworkView {
 	assignment: { name: string; path: string | null } | null;
 }
 
-/** A problem's short name: "Q3" for a bare number, else as the assignment writes it. */
-export function problemLabel(number: string): string {
-	return /^\d/.test(number) ? `Q${number}` : number;
-}
-
 /** Where an open problem is in the assignment: "from hw4.pdf, page 2". */
 export function problemSource(assignment: { name: string } | null, page: number | undefined): string | null {
 	if (!assignment) return null;
@@ -31,7 +26,7 @@ export function problemSource(assignment: { name: string } | null, page: number 
 }
 
 /** The kinds of deadline that have problems to work on. */
-export function hasProblems(kind: ClassDeadline["kind"]): boolean {
+export function hasProblems(kind: SpaceDeadline["kind"]): boolean {
 	return kind === "homework" || kind === "project";
 }
 
@@ -108,16 +103,16 @@ export function homeworkProblems(
 /** What the teacher knows when a homework session starts (a hidden
  *  message at its top). */
 export function homeworkContextText(
-	classId: string,
-	deadline: Pick<ClassDeadline, "id" | "name" | "kind" | "date" | "time">,
+	spaceId: string,
+	deadline: Pick<SpaceDeadline, "id" | "name" | "kind" | "date" | "time">,
 	assignment: { id: string; name: string; path: string | null } | null,
 	problems: readonly HomeworkProblem[],
 ): string {
 	const lines = [`[Homework] The learner is working on ${deadline.name} (${deadline.kind}), due ${deadline.date}${deadline.time ? ` ${deadline.time}` : ""}.`];
 	lines.push(
 		assignment
-			? `Its assignment is the class file ${assignment.name} (file id ${assignment.id})${assignment.path ? `, at ${assignment.path}` : ""}.`
-			: `No assignment file is attached yet. Find it in the class files (search_class_files) and attach it with update_class_deadline (class_id ${classId}, deadline_id ${deadline.id}, assignment_file_id) before you post its problems. Ask the learner only when you can't find it, or work from the problems they paste.`,
+			? `Its assignment is the space file ${assignment.name} (file id ${assignment.id})${assignment.path ? `, at ${assignment.path}` : ""}.`
+			: `No assignment file is attached yet. Find it in the space files (search_space_files) and attach it with update_space_deadline (space_id ${spaceId}, deadline_id ${deadline.id}, assignment_file_id) before you post its problems. Ask the learner only when you can't find it, or work from the problems they paste.`,
 	);
 	if (problems.length > 0) {
 		lines.push("Its problems, posted before:", ...problems.map((p) => `- ${p.number}: ${p.title}${p.done ? " (done)" : ""}`), "Open the first one not done unless the learner picks another.");

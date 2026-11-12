@@ -1,94 +1,70 @@
-import { enterAction } from "./enter-action";
-import { QueuedSteersBody, type QueuedSteerLine } from "@/frontend/components/queued-steers";
-import { SendButton, StopButton } from "./panel-parts";
 import { MathBox } from "@/frontend/components/math-box";
-import { AttachButton, AttachmentTray, attachmentInputProps, type AttachmentDraft } from "./attachment-tray";
+import { QueuedSteersBody, type QueuedSteerLine } from "@/frontend/components/queued-steers";
+import { cn } from "@/frontend/lib/utils";
+import { AttachmentTray, attachmentInputProps, type AttachmentDraft } from "./attachment-tray";
+import type { BoxAction, BoxButton, BoxView } from "./lesson-box-model";
+
+const BUTTON_ID: Record<BoxButton["action"], string> = {
+	send: "composer-send",
+	submit: "question-submit",
+	reveal: "teach-check-reveal",
+	next: "next-problem-button",
+};
 
 /**
- * The lesson's one message box, at the foot of the reading pane. It never
- * moves: with a question open, a message is a side question and the
- * question stays open; otherwise it is a plain lesson message, which with
- * a problem open is the learner's work on it. While the teacher writes,
- * typed text steers the turn ("Send when ready") and an empty box holds
- * Stop.
- *
- * Enter follows enterAction: send (or steer) when there is text, stop on an
- * empty box while the teacher writes, and in a practice pause an empty
- * Enter asks for the next problem.
+ * The lesson's one writing box, at the foot of the teacher column: every
+ * message, answer in words, reasoning and piece of work is typed here.
+ * Which buttons it shows and what Enter does come from lessonBox; this
+ * only draws them.
  */
 export function LessonBox({
-	busy,
+	view,
 	value,
 	onChange,
-	onSend,
-	onStop,
-	canSend,
-	sideOpen,
-	nextReady,
-	onNext,
+	onAct,
+	onFocus,
 	queuedSteers,
 	attachments,
-	notice,
+	boxRef,
 }: {
-	busy: boolean;
+	view: BoxView;
 	value: string;
 	onChange: (v: string) => void;
-	onSend: () => void;
-	onStop: () => void;
-	canSend: boolean;
-	/** A question waits in the Your turn panel; messages are side questions. */
-	sideOpen: boolean;
-	/** The pause between problems: an empty Enter asks for the next one. */
-	nextReady: boolean;
-	onNext: () => void;
+	onAct: (action: BoxAction) => void;
+	onFocus: () => void;
 	queuedSteers: QueuedSteerLine[];
 	attachments: AttachmentDraft;
-	/** A line above the box (the stuck-turn notice). */
-	notice?: React.ReactNode;
+	boxRef: React.Ref<{ focus(): void }>;
 }) {
-	const act = () => {
-		const action = enterAction({ busy, canSend, nextProblem: nextReady, hasFiles: attachments.files.length > 0 });
-		if (action === "stop") onStop();
-		else if (action === "send") onSend();
-		else if (action === "next") onNext();
-	};
-	const steering = busy && !sideOpen;
+	const button = (b: BoxButton, className?: string) => (
+		<button type="button" data-testid={BUTTON_ID[b.action]} disabled={b.disabled} onClick={() => onAct(b.action)} className={cn("lh-btn shrink-0", b.filled && "lh-btn-main", className)}>
+			{b.label}
+		</button>
+	);
 	return (
-		<form
-			data-testid="composer"
-			className="flex shrink-0 flex-col gap-2 px-6 pt-2 pb-4"
-			onSubmit={(e) => {
-				e.preventDefault();
-				act();
-			}}
-			{...attachmentInputProps(attachments)}
-		>
-			{notice}
+		<div data-testid="composer" className="flex min-h-[112px] flex-1 flex-col gap-2" {...attachmentInputProps(attachments)}>
 			{queuedSteers.length > 0 && <QueuedSteersBody steers={queuedSteers} />}
-			<AttachmentTray draft={attachments} note={steering ? "Send pictures after the teacher finishes" : undefined} />
-			<div className="flex items-end gap-1 border border-tone-2 bg-background p-0.5 has-[.cm-focused]:border-ink-2">
-				{/* Both buttons sit centered on the box's one-line height (h-10), so
-				    the gaps above, below and beside them match. */}
-				<div className="flex h-10 items-center">
-					<AttachButton draft={attachments} />
-				</div>
-				<div className="flex min-w-0 flex-1 flex-col self-stretch">
-					{/* Enter sends, Shift+Enter is a newline, ⌘/Ctrl+Enter sends too. */}
-					<MathBox compact value={value} onChange={onChange} onEnter={act} placeholder="Message the teacher…" ariaLabel="Message the teacher" />
-				</div>
-				<div className="flex h-10 items-center pr-[5px]">
-					{busy && !canSend ? (
-						<StopButton onStop={onStop} />
-					) : (
-						<SendButton type="submit" testId="composer-send" label={busy ? "Send when ready" : "Send"} waiting={busy} disabled={!canSend} />
-					)}
+			<AttachmentTray draft={attachments} note={view.note ?? undefined} />
+			<div className="flex min-h-0 flex-1 flex-col rounded-[2px] border-[1.5px] border-ink bg-background">
+				<MathBox
+					ref={boxRef}
+					value={value}
+					onChange={onChange}
+					onEnter={() => {
+						if (view.enter === null) return false;
+						onAct(view.enter);
+						return true;
+					}}
+					onFocus={onFocus}
+					placeholder={view.placeholder}
+					ariaLabel={view.placeholder}
+				/>
+				<div className="flex shrink-0 flex-wrap items-center gap-2 pr-2.5 pb-2.5 pl-3.5">
+					{view.left && button(view.left)}
+					{/* Stays at the right edge when a narrow column wraps the row. */}
+					{button(view.right, "ml-auto")}
 				</div>
 			</div>
-			{sideOpen && (
-				<p data-testid="side-question-note" className="text-sm leading-5 text-ink-3">
-					Your question stays open while you ask.
-				</p>
-			)}
-		</form>
+		</div>
 	);
 }

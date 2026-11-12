@@ -2,9 +2,9 @@
 
 For people working on godspeed itself, not using it.
 
-godspeed is a learning app: a Next.js web app inside an Electron desktop shell. The model is always an **outside agent** (Claude Code, Codex or any MCP app) connected over MCP; the server runs it through the pi-ai agent engine. A **teacher agent** runs probe→teach lessons with graded questions and a **plan tree** it writes once (`plan_init`); progress on the plan is derived from tagged quiz calls. Lessons are organized into **classes**, each with its own files, deadlines and **knowledge graph** of facts (propositions) and the reasoning chains between them. Home (`/`) shows what is coming up across classes; each class's graph is drawn as a Graph page at `/graph`.
+godspeed is a learning app: a Next.js web app inside an Electron desktop shell. The model is always an **outside agent** (Claude Code, Codex or any MCP app) connected over MCP; the server runs it through the pi-ai agent engine. A **teacher agent** runs probe→teach lessons with graded questions and a **plan tree** it writes once (`plan_init`); progress on the plan is derived from tagged quiz calls. Lessons are organized into **spaces**, each with its own files, deadlines and **knowledge graph** of facts (propositions) and the reasoning chains between them. Today (`/`) shows what is coming up across spaces; each space's graph is drawn as a Graph page at `/graph`.
 
-The extraction pipeline turns teacher prose and class files into graph facts. The teacher reaches back into the graph through read-only tools when it wants to, so later lessons build on earlier ones.
+The extraction pipeline turns teacher prose and space files into graph facts. The teacher reaches back into the graph through read-only tools when it wants to, so later lessons build on earlier ones.
 
 Other docs:
 
@@ -17,7 +17,7 @@ Other docs:
 
 ```bash
 npm install          # once
-node scripts/fetch-model.mjs   # once: the class-search model into models/ (the desktop builds run it too)
+node scripts/fetch-model.mjs   # once: the space-search model into models/ (the desktop builds run it too)
 
 npm run dev          # http://localhost:3000
 npm run dev:fresh    # a fresh instance with empty data at http://localhost:3005 (tests onboarding)
@@ -34,7 +34,7 @@ npm run desktop:local  # unsigned local macOS arm64 app in dist/
 npm run desktop:dist   # local signed/notarized macOS arm64 build (LH_NOTARY keychain)
 ```
 
-A change is done when `npm run check` passes. To bulk-import notes, use the app: a class's linked folder or Files page, the Graph's Add files (No class only), or the `import_notes` MCP tool. All extraction runs on the connected agent.
+A change is done when `npm run check` passes. To bulk-import notes, use the app: a space's linked folder or Files page, the Graph's Add files (No space only), or the `import_notes` MCP tool. All extraction runs on the connected agent.
 
 For Windows/Linux packages and the three-OS CI/release flow, see [`desktop-release.md`](desktop-release.md). Native renderer binaries are traced per platform, so release builds run on the target OS, not as cross-builds from macOS.
 
@@ -57,7 +57,7 @@ flowchart TB
     LEARNER["the learner"]
 
     subgraph STAGE["STAGE — presentation shell (browser)"]
-        UI["Home · lesson screen · question dock · plan steps pane · graph columns · activity dock · sidebar"]
+        UI["Today · space pages · lesson screen · question dock · plan row · graph columns · activity dock · top bar"]
     end
 
     subgraph CLASSROOM["CLASSROOM — session engine (owns data/chats)"]
@@ -74,7 +74,7 @@ flowchart TB
     subgraph LIBRARY["LIBRARY: world model (owns the graph ledgers)"]
         EXTRACT["extraction pipeline:<br/>extractor → merger<br/>(the SOLE fact and chain writer, one at a time)"]
         DERIVE["derivation: graphSnapshot · progress<br/>(pure reads)"]
-        LEDG[("append-only ledgers<br/>data/graph/ and data/classes/&lt;id&gt;/graph/")]
+        LEDG[("append-only ledgers<br/>data/graph/ and data/spaces/&lt;id&gt;/graph/")]
     end
 
     AGENT["outside agent over MCP<br/>(does every model call)"]
@@ -105,17 +105,19 @@ flowchart TB
 
 ```
 src/
-  app/                          Next.js App Router: pages (/ Home, /new, /chat/[id],
-                                /class Overview, /class/files, /graph) + thin API
-                                route handlers. Settings is a dialog, not a page
+  app/                          Next.js App Router: pages (/ Today, /new, /chat/[id],
+                                /space Progress, /space/lessons, /space/files, /graph,
+                                /space/cheat-sheets, /space/deadlines, /settings,
+                                /archived) + thin API route handlers
   proxy.ts                      Next proxy: desktop-only /api gate
   frontend/                     everything the browser runs
-    components/                   Home (home-page/), the lesson screen (lesson/), question
-                                  dock, plan steps pane and plan blocks, Graph page (graph/),
-                                  class Overview and Files, settings dialog (settings/),
+    components/                   the top bar (top-bar/), Today (home-page/), the space
+                                  head and tabs (space-page/, overview/, lessons/, files/,
+                                  graph/), the lesson screen (lesson/), question dock,
+                                  plan row and plan blocks, Settings page (settings/),
                                   onboarding, the welcome screen (welcome/), artifact
                                   renderers (registry: artifacts/), activity dock, keyboard
-    lib/utils.ts                  shadcn class-name helper (cn)
+    lib/utils.ts                  shadcn space-name helper (cn)
   backend/                      everything the server runs (Node only)
     config.ts                     paths (data dir, prompts) + engine construction facts
     agent/
@@ -131,10 +133,10 @@ src/
       tools/plan.ts               plan_init (author-once mermaid plan, deterministic parser)
       tools/probe.ts              probe_done (probe→teach handoff seam)
       tools/practice.ts           problem / conclude (practice and study sessions)
-      tools/class.ts              read_class, set_class_note, search_class_files, read_passage
+      tools/space.ts              read_space, set_space_note, search_space_files, read_passage
       tools/graph.ts              list_sessions, list_propositions (the gated map readers)
       tools/rules.ts              save_rule
-      tools/talk.ts               the Talk chat's class tools (no deletes)
+      tools/talk.ts               the Talk chat's space tools (no deletes)
       tools/{read,ls,find,grep}.ts  the learner-file tools
       tools/work-plan.ts          work_plan (the plan shown while the teacher works)
       tools/jobs.ts               research / demo / visual / pdf tool surfaces
@@ -148,17 +150,17 @@ src/
                                   runner (async protocol), native renderers +
                                   browser-service helper, abort registry
     server/chat-handler.ts       THE turn composition root (liveness · steers · persist · stream)
-    server/mcp.ts                the MCP server at /api/mcp: work loop, lesson, class,
+    server/mcp.ts                the MCP server at /api/mcp: work loop, lesson, space,
                                  deadline and note tools; the /api/mcp/forget hook
     server/agent-memory.ts       the "Where you left off" briefing + the notes list
-    server/classes.ts            class files, linked folders (scanned every 60 s), lesson
+    server/spaces.ts            space files, linked folders (scanned every 60 s), lesson
                                  moves, cascade delete
-    server/class-files.ts        a class file → text (PDF on a worker thread, Office,
+    server/space-files.ts        a space file → text (PDF on a worker thread, Office,
                                  captions) and the linked-folder walk
     server/transcribe.ts         recordings → text with whisper.cpp
-    server/search-index.ts       class file and fact search (local embedding model on a
+    server/search-index.ts       space file and fact search (local embedding model on a
                                  worker thread + BM25)
-    server/lessons.ts            lesson birth (class card, picked facts)
+    server/lessons.ts            lesson birth (space card, picked facts)
     server/talk.ts               the Talk chat outside lessons
     server/attachments.ts        pictures and PDFs on learner messages
     server/turn-service.ts       turn seams: persist · extraction trigger
@@ -169,15 +171,15 @@ src/
     server/observability.ts       the activity feed (running jobs + extraction, abort)
     server/pi/                    ui-stream (pi agent events → SSE) · call-ids
     server/index.ts               the server barrel (the only server import src/app/ may use)
-    store/                        fs adapters: chats · classes · graph ledgers (+
+    store/                        fs adapters: chats · spaces · graph ledgers (+
                                   graph-format) · jobs · settings · prompt-overrides ·
                                   mcp-token · agent-notes · agent-seen · agent-rules ·
                                   agent-actions · cheat-sheets
   shared/                       pure logic both sides import (no IO)
     changelog.json              release notes shown in What's new
-    core/contracts/{chat,class,graph,jobs,plan,probe}.ts
+    core/contracts/{chat,space,graph,jobs,plan,probe}.ts
                                   the contracts — one file per domain
-    core/ports.ts                 storage ports — ChatStore · GraphStore · ClassStore ·
+    core/ports.ts                 storage ports — ChatStore · GraphStore · SpaceStore ·
                                   JobStore · SettingsStore · PromptOverrideStore
                                   (core code depends on these types only)
     core/                         native-messages (the record), input-events (what
@@ -205,12 +207,12 @@ scripts/                        build-server.mjs (packaging guards), fetch-model
                                 dev-fresh.sh
 data/                           runtime state, git-ignored:
                                 chats/ (+ chats/<id>/ attached PDFs) ·
-                                graph/ ("No class": nodes/chains/sessions/coverage/
+                                graph/ ("No space": nodes/chains/sessions/coverage/
                                 topics ledgers + sources.json, format.json) ·
-                                classes/<id>/ (class.json, files/ with saved texts/
+                                spaces/<id>/ (space.json, files/ with saved texts/
                                 and transcripts/, graph/, search/, cheat-sheets/
                                 one per deadline) · search/ ("No
-                                class" facts) · jobs/ ·
+                                space" facts) · jobs/ ·
                                 prompts/ (edited system prompts) · models/ (the
                                 downloaded speech model) · settings.json ·
                                 mcp-token · mcp-endpoint.json (desktop only) ·
@@ -233,25 +235,25 @@ bills the learner's own plan, so nothing has a dollar price: the app only counts
 - **Per-agent seen tracking.** Later items in a lesson carry only the new messages. What each agent (by its session id) has seen of each lesson is saved in `data/agent-seen.json`, so a restart or a second agent gets the right part. Instructions and tools an agent already got come by reference in a new conversation (`instructionsAsIn`, `toolsAsBefore`).
 - **Waiting.** Claude Code waits in a background script in the godspeed folder (`.godspeed/wait-for-work.mjs`) for free. Codex has no waiter. It waits with `wait_for_work` up to its MCP tool timeout. Its start command sets `tool_timeout_sec=620` with `-c` flags (`src/shared/core/agent-folder.ts`), so it can ask for waits up to 600 s.
 - **The forget hook.** The forget hook in `.godspeed/claude-settings.json` runs `.godspeed/forget.mjs` when Claude Code compacts or the learner runs `/clear`. It calls `POST /api/mcp/forget` so that agent's next item comes in full, or edits `agent-seen.json` itself when the app is closed.
-- **The other tools.** `list_lessons` takes `class_id` and `limit` and returns `total`; `read_lesson` comes in pages like a work item; `read_class` gives file counts and only the failed files unless asked for `files: true`; `add_class_deadline` and `set_class_file_kind` take lists (`deadlines`, `file_ids`) and return failed items under `refused`. Inside a work item the agent uses only that item's tools, through `respond`. See [architecture.md](architecture.md) §8.1.
+- **The other tools.** `list_lessons` takes `space_id` and `limit` and returns `total`; `read_lesson` comes in pages like a work item; `read_space` gives file counts and only the failed files unless asked for `files: true`; `add_space_deadline` and `set_space_file_kind` take lists (`deadlines`, `file_ids`) and return failed items under `refused`. Inside a work item the agent uses only that item's tools, through `respond`. See [architecture.md](architecture.md) §8.1.
 - **Both MCP versions.** `/api/mcp` serves the 2026-07-28 version (every request carries the client's version and name, and `server/discover` replaces the `initialize` handshake; Claude Code and the folder's scripts) and the older one that starts with `initialize` (Codex).
-- **Agent notes and the briefing.** `remember` / `forget` save short notes about the learner in `data/agent-notes.json` (Settings → Connection lists them). Every `initialize` or `server/discover` puts a "Where you left off" briefing right after the work loop in its instructions: classes, last lessons, next deadlines and notes (`src/backend/server/agent-memory.ts`, `src/shared/core/agent-briefing.ts`), trimmed to end before Claude Code's 4096-character cut.
+- **Agent notes and the briefing.** `remember` / `forget` save short notes about the learner in `data/agent-notes.json` (Settings → Connection lists them). Every `initialize` or `server/discover` puts a "Where you left off" briefing right after the work loop in its instructions: spaces, last lessons, next deadlines and notes (`src/backend/server/agent-memory.ts`, `src/shared/core/agent-briefing.ts`), trimmed to end before Claude Code's 4096-character cut.
 
-**Classes and deadlines.** A class (`data/classes/<id>/`) has its own lessons, files, linked folder, deadlines and graph. A file is `study` (turned into facts) or `info` (readable by the teacher, never facts). A linked folder is rescanned every 60 seconds and adds up to 500 files. Recordings are transcribed locally with whisper.cpp. A deadline has a kind (`exam`, `homework`, `quiz` or `project`), a due day, an optional time and the files it covers. Home lists open deadlines (`GET /api/deadlines`); the Graph page shows days left and what to work on next (`GET /api/progress`). The teacher sees the date and the class's open deadlines in a hidden `today-context` message. Lessons without a class are in "No class" and use `data/graph/`.
+**Spaces and deadlines.** A space (`data/spaces/<id>/`) has its own lessons, files, linked folder, deadlines and graph. A file is `study` (turned into facts) or `info` (readable by the teacher, never facts). A linked folder is rescanned every 60 seconds and adds up to 500 files. Recordings are transcribed locally with whisper.cpp. A deadline has a kind (`exam`, `homework`, `quiz` or `project`), a due day, an optional time and the files it covers. Today lists open deadlines (`GET /api/deadlines`); the Graph tab shows days left and what to work on next (`GET /api/progress`). The teacher sees the date and the space's open deadlines in a hidden `today-context` message. Lessons with no space use `data/graph/`.
 
 **Attachments.** A learner message can carry up to 5 pictures (20 MB each) and PDFs (30 MB each). Pictures are resized and stored inline in the message; PDFs are saved in `data/chats/<id>/` and the message gets a note with the path (`src/backend/server/attachments.ts`).
 
 **Client-side question tools.** `probe`, `quiz`, `ask_user_question`, `explain`, `recall` and `write_code` only check their input on the server and end the turn. The tool call streams to the browser, the learner answers in the dock, and the client builds the answer with `question-core` (grading multiple choice) and POSTs it to `/api/chat` as an input event. The server saves it as the call's tool result and the next turn runs. `write_code` (`src/shared/core/code-question.ts`) gives the learner a code editor; the app never runs or grades the code, the teacher reads it. Options are shuffled deterministically (seeded by toolCallId) so server and client renders match. A pending question saved in the chat record is exactly what makes **resume mid-question free**.
 
-**Side questions.** The lesson has one message box, under the reading pane (`LessonBox` in `src/frontend/components/lesson/lesson-box.tsx`). While a question waits, a message from it is a side question (with a problem open it is a plain message, the learner's work on the problem): the learner asks the teacher something else first, with pictures and PDFs, and the box says the question stays open. It posts a `side` input event (`src/shared/core/input-events.ts`), saved as a user message with `side: true` (`newSideQuestion` in `src/shared/core/native-messages.ts`). The question stays open: `danglingQuestionOf` looks past side questions and their replies. `isSideTurn` marks the reply turn. It keeps the same tool list, but the question tools refuse (`sideTurnTools` in `src/backend/agent/teacher-agent.ts`), so the outside agent still gets a small delta. A side turn gets no `today-context` note and no job results (`src/backend/server/chat-handler.ts`). The model sees a placeholder result right after the question call, then the side question as a plain user message; the learner's later answer reaches it as a user message at the point where it was given (`toLlmMessages`). Tests: `tests/backend/side-questions.test.ts`.
+**Side questions.** The lesson has one writing box, at the foot of the teacher column (`LessonBox` in `src/frontend/components/lesson/lesson-box.tsx`; `lessonBox` in `lesson-box-model.ts` decides its buttons and what Enter does). While a question waits, a message from it is a side question (with a problem open it is a plain message, the learner's work on the problem): the learner asks the teacher something else first, with pictures and PDFs, and the box says the question stays open. It posts a `side` input event (`src/shared/core/input-events.ts`), saved as a user message with `side: true` (`newSideQuestion` in `src/shared/core/native-messages.ts`). The question stays open: `danglingQuestionOf` looks past side questions and their replies. `isSideTurn` marks the reply turn. It keeps the same tool list, but the question tools refuse (`sideTurnTools` in `src/backend/agent/teacher-agent.ts`), so the outside agent still gets a small delta. A side turn gets no `today-context` note and no job results (`src/backend/server/chat-handler.ts`). The model sees a placeholder result right after the question call, then the side question as a plain user message; the learner's later answer reaches it as a user message at the point where it was given (`toLlmMessages`). Tests: `tests/backend/side-questions.test.ts`.
 
-**The formal plan tree (author-once).** The teacher authors the session's dependency tree with one schema-validated tool — `plan_init`, whose mermaid-subset input is parsed deterministically (line-numbered errors) and validated as a DAG. The tree persists in the chat record; progress is never mutated — `current`/`visited`/upcoming are **derived** from tagged quiz calls in the transcript, and the lesson's steps pane (`src/frontend/components/lesson/steps-pane.tsx`, its steps from `src/shared/core/plan-step-bar.ts`) and plan blocks render that derivation.
+**The formal plan tree (author-once).** The teacher authors the session's dependency tree with one schema-validated tool — `plan_init`, whose mermaid-subset input is parsed deterministically (line-numbered errors) and validated as a DAG. The tree persists in the chat record; progress is never mutated — `current`/`visited`/upcoming are **derived** from tagged quiz calls in the transcript, and the lesson's plan row (`src/frontend/components/lesson/plan-row.tsx`, its steps from `src/shared/core/plan-step-bar.ts`) and plan blocks render that derivation.
 
 **The async sub-agent protocol (ack-and-steer).** `research` / `demo` / `visual` / `pdf` are server-executed tools: the call resolves immediately mid-turn with a fire-and-forget ack and the teacher keeps teaching; a background runner works in parallel (the client learns about changes through the `/api/events` push channel and then reads `/api/activity` and `/api/jobs`). On completion the runner builds a **steer message**, a `subagent-steer` custom marker whose `content` is the model-facing result and whose `details` carry the full result for the client, and the **wake pipeline** delivers it: a per-chat serialized queue waits for the turn to end and no question to be pending, then fires a server-side teacher turn that weaves the result into the lesson. Delivery is exactly-once (deterministic steer ids, delivered-flag checks at every claim point); stalled jobs are recovered on read; aborted jobs deliver an abort steer. The client adopts the wake turn through the same `turnInFlight` machinery as returning mid-stream (busy shimmer, composer gate) and renders steers as artifacts — never a bubble. Sub-agents **verify, never one-shot**: the demo-builder executes its HTML in the app's own Chromium browser-service (system Chrome fallback) before delivery; the visual-maker rasterizes each SVG natively and looks at it (the connected agent must accept images).
 
-**The knowledge graph (two channels, one writer).** The write channel: the extraction pipeline — extractor (LLM: sees the source (the session's teacher prose or a notes chunk) plus its own source's digest (**THE GRAPH SO FAR**: propositions + chains already extracted from this source, ids verbatim), so it references existing ids instead of restating them and leans on established conclusions as premises; fully trusted; its deliverable is core ideas + reasoning chains: premises that jointly entail a conclusion, submitted as chains and stored as chains (`chains.jsonl` is the truth, edges a derived view); it also sees RELATED IDEAS, the ~25 existing ideas the app's local search picks for the part, and lists the ones it re-teaches in `reteaches`) → merger (`mergeFindings`, deterministic: a node per new proposition, a credit line for each re-taught idea, resolves and dedupes chains — identical arguments merge under one `arg_` id; then the chain-simplification pass strips provably redundant derivations, chains whose premises already derive their conclusion through the other kept chains — checkpoints coverage) → topic grouping is scheduled. A source's batches run strictly in order (each extractor continues the digest of every earlier merge). No quiz outcomes or understanding assessments live in the graph; practice sessions read it and write nothing back. Triggered when a chat's **uncovered tokens** (message-view fingerprints, `coverage.jsonl`) cross `graph.extractionChunkTokens` (a settings knob, default 4096, floor 500 — read fresh per turn); failure checkpoints nothing, the next trigger re-runs. The same pipeline serves the **notes front door** (`POST /api/graph/import` and the `import_notes` MCP tool: any `*.md`/`*.txt` becomes a source; a "No class" re-import is processed again and adds to that source) and class study files (a changed or removed class file has its old facts removed first, then it is read again). The read channel: `GET /api/graph` derives the snapshot from the ledgers — a pure read (`deriveView` turns each chain into an implication node `⟹` with premise→implication→conclusion arrows, so two arguments for one conclusion stay two). The `/graph` page shows **topics in level columns**: the topic grouper (`src/backend/agent/subagents/topic-grouper.ts`, scheduled by `src/backend/server/topics.ts`) groups facts into topics saved in `topics.jsonl`, and `src/frontend/components/graph/layout.ts` places them in columns by prerequisite depth and draws only direct arrows. Nothing about the layout is stored. Scores, coverage and "Work on next" come from `GET /api/progress` (`src/shared/core/progress.ts`), derived from lesson answers. Clusters are **birth-session groupings**: a node joins the cluster of the session that birthed it (a chat, or an imported notes file as a file-kind session), derived at read. The chain table groups chains by them. The teacher reaches the graph on its own terms through the gated prober tools (`list_sessions` / `list_propositions`, the `agent.graphTools` setting) — there is no automatic context injection.
+**The knowledge graph (two channels, one writer).** The write channel: the extraction pipeline — extractor (LLM: sees the source (the session's teacher prose or a notes chunk) plus its own source's digest (**THE GRAPH SO FAR**: propositions + chains already extracted from this source, ids verbatim), so it references existing ids instead of restating them and leans on established conclusions as premises; fully trusted; its deliverable is core ideas + reasoning chains: premises that jointly entail a conclusion, submitted as chains and stored as chains (`chains.jsonl` is the truth, edges a derived view); it also sees RELATED IDEAS, the ~25 existing ideas the app's local search picks for the part, and lists the ones it re-teaches in `reteaches`) → merger (`mergeFindings`, deterministic: a node per new proposition, a credit line for each re-taught idea, resolves and dedupes chains — identical arguments merge under one `arg_` id; then the chain-simplification pass strips provably redundant derivations, chains whose premises already derive their conclusion through the other kept chains — checkpoints coverage) → topic grouping is scheduled. A source's batches run strictly in order (each extractor continues the digest of every earlier merge). No quiz outcomes or understanding assessments live in the graph; practice sessions read it and write nothing back. Triggered when a chat's **uncovered tokens** (message-view fingerprints, `coverage.jsonl`) cross `graph.extractionChunkTokens` (a settings knob, default 4096, floor 500 — read fresh per turn); failure checkpoints nothing, the next trigger re-runs. The same pipeline serves the **notes front door** (`POST /api/graph/import` and the `import_notes` MCP tool: any `*.md`/`*.txt` becomes a source; a "No space" re-import is processed again and adds to that source) and space study files (a changed or removed space file has its old facts removed first, then it is read again). The read channel: `GET /api/graph` derives the snapshot from the ledgers — a pure read (`deriveView` turns each chain into an implication node `⟹` with premise→implication→conclusion arrows, so two arguments for one conclusion stay two). The `/graph` page shows **topics in level columns**: the topic grouper (`src/backend/agent/subagents/topic-grouper.ts`, scheduled by `src/backend/server/topics.ts`) groups facts into topics saved in `topics.jsonl`, and `src/frontend/components/graph/layout.ts` places them in columns by prerequisite depth and draws only direct arrows. Nothing about the layout is stored. Scores, coverage and "Work on next" come from `GET /api/progress` (`src/shared/core/progress.ts`), derived from lesson answers. Clusters are **birth-session groupings**: a node joins the cluster of the session that birthed it (a chat, or an imported notes file as a file-kind session), derived at read. The chain table groups chains by them. The teacher reaches the graph on its own terms through the gated prober tools (`list_sessions` / `list_propositions`, the `agent.graphTools` setting) — there is no automatic context injection.
 
-**Study sessions.** Every new lesson is `kind: "study"`. The learner starts one from the lessons pane's + study button (the study page, `/new`, with its suggestions), Home's due next, a deadline page, the Graph page or the Overview; `start_lesson` over MCP does too. `createLesson` (`src/backend/server/lessons.ts`) writes the picked facts into a `graph-context` marker (`chainsForSelection`, `src/shared/core/chains.ts`), then a `study-context` marker with the session's topics in class order and each topic's material and standing (from `src/shared/core/study.ts`; the move table in `prompts/study/10-study.md` picks the move from that pair), and saves the matching plan tree. The study agent is the teacher plus `problem` / `conclude` (`src/backend/agent/tools/practice.ts`), with no prober; instructions in `src/backend/agent/prompts/study/`. Study sessions are extracted into the graph. Older `teach` and `practice` lessons keep working; practice sessions are never extracted.
+**Study sessions.** Every new lesson is `kind: "study"`. The learner starts one from "Study something new" on a space's Lessons tab (the study page, `/new`, with its suggestions), a Today row, a deadline page, the Graph tab or the Progress tab; `start_lesson` over MCP does too. `createLesson` (`src/backend/server/lessons.ts`) writes the picked facts into a `graph-context` marker (`chainsForSelection`, `src/shared/core/chains.ts`), then a `study-context` marker with the session's topics in space order and each topic's material and standing (from `src/shared/core/study.ts`; the move table in `prompts/study/10-study.md` picks the move from that pair), and saves the matching plan tree. The study agent is the teacher plus `problem` / `conclude` (`src/backend/agent/tools/practice.ts`), with no prober; instructions in `src/backend/agent/prompts/study/`. Study sessions are extracted into the graph. Older `teach` and `practice` lessons keep working; practice sessions are never extracted.
 
 ## Testing
 
@@ -260,13 +262,13 @@ Each test lives in the folder of the code it tests: `tests/frontend`, `tests/bac
 1. **Pure core units** — merger (via the real fs adapters, backup-and-restored), derivation, coverage, question grading, plan tree, phases, clusters, topics, graph levels, progress, work pages, agent briefing, tool-parts, prices.
 2. **Server flows** — `handleChatRequest` driven end-to-end with scripted engines: persistence, liveness, steer claiming, the wake pipeline (409 retry, quiz deferral, idempotency), crash recovery, the data-dir seam (including a fresh child process).
 3. **Sub-agent loops** — researcher/demo-builder/visual-maker with fake headless APIs; the extraction pipeline end-to-end (reteach credit, failure-checkpoints-nothing, single-flight, abort).
-4. **Render tests** — transcript, cards, docks, composer, sidebar, coverage, chain table via React server-side rendering.
+4. **Render tests** — transcript, cards, docks, the writing box, the top bar, coverage, chain table via React server-side rendering.
 5. **Golden fixtures** (`tests/fixtures/golden-data/`) — a REAL data dir (real records produced by the app, never hand-edited), copied to a temp dir and read through the production paths via the `LH_DATA_DIR` seam. Pins that real data parses, flattens to a legal LLM wire, derives the graph end-to-end, covers every custom-marker kind, and that reads never write. **The fixture law:** an intentional on-disk format change updates the fixtures in the same commit — see the fixture README.
 
 Run `npm run check` before calling a change done: typecheck, tests, lint and knip must all pass.
 
 ## Data
 
-Nothing under `data/` is ever tracked by git. Chats, classes, graph ledgers, jobs, agent notes and the settings record are plain files (JSON/JSONL) — inspect them freely; they are the canonical records. `mcp-token` is a secret: don't share it. The desktop app relocates the whole directory via `LH_DATA_DIR`.
+Nothing under `data/` is ever tracked by git. Chats, spaces, graph ledgers, jobs, agent notes and the settings record are plain files (JSON/JSONL) — inspect them freely; they are the canonical records. `mcp-token` is a secret: don't share it. The desktop app relocates the whole directory via `LH_DATA_DIR`.
 
-**Schema stamps:** chat records carry `version` (stamped at the store's write choke point; absence reads as v1 — lazy migration, no mass rewrite). Class records carry their own `version` (now 5). The settings record carries one too (now 2: a v1 record that still holds the old 150,000-token summarize default is moved to the new 40,000 default on read). The graph family (ledgers and `sources.json`) shares one sidecar `graph/format.json`, created on the family's first write. A record stamped NEWER than the running build is refused on read — honest refusal for the downgrade scenario: a read-modify-write store never rewrites what it doesn't understand.
+**Schema stamps:** chat records carry `version` (stamped at the store's write choke point; absence reads as v1 — lazy migration, no mass rewrite). Space records carry their own `version` (now 5). The settings record carries one too (now 2: a v1 record that still holds the old 150,000-token summarize default is moved to the new 40,000 default on read). The graph family (ledgers and `sources.json`) shares one sidecar `graph/format.json`, created on the family's first write. A record stamped NEWER than the running build is refused on read — honest refusal for the downgrade scenario: a read-modify-write store never rewrites what it doesn't understand.

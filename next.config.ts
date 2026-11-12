@@ -43,8 +43,8 @@ const nextConfig: NextConfig = {
 			// puppeteer-core would fail before browser startup.
 			"node_modules/@puppeteer/browsers/lib/browser-data/**/*.js",
 			"node_modules/pdfjs-dist/legacy/**/*",
-			// The class-PDF text worker, loaded by path
-			// (src/backend/server/class-files.ts pdfTextWorkerPath); the tracer can't see it.
+			// The space-PDF text worker, loaded by path
+			// (src/backend/server/space-files.ts pdfTextWorkerPath); the tracer can't see it.
 			"src/backend/server/workers/**/*",
 			// The godspeed folder's files, copied there at runtime (src/backend/server/agent-folder.ts).
 			"src/backend/server/agent-folder-files/**/*",
@@ -64,7 +64,7 @@ const nextConfig: NextConfig = {
 			// resvg rasterizes visual-maker SVGs natively; same
 			// per-platform-binary story as the canvas above (one per build).
 			"node_modules/@resvg/resvg-js-*/**/*",
-			// Class search: transformers loads onnxruntime-node with createRequire,
+			// Space search: transformers loads onnxruntime-node with createRequire,
 			// which the tracer misses. Its binding is per platform; only this
 			// build's is included.
 			"node_modules/onnxruntime-node/package.json",

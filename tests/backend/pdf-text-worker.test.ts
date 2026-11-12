@@ -1,5 +1,5 @@
 /**
- * SPEED PLAN PINS, fix 2 — class PDFs never
+ * SPEED PLAN PINS, fix 2 — space PDFs never
  * stall the server:
  *  - the worker-thread reader returns exactly what the in-process reader
  *    did (pdf-text-worker.mjs duplicates pdfExtract's page format)
@@ -21,13 +21,13 @@ process.env.LH_DATA_DIR = TMP_DATA;
 const FIXTURE = path.join(import.meta.dirname, "..", "fixtures", "sample-3page.pdf");
 
 const { pdfExtract } = await import("../../src/backend/agent/subagents/pdf-ops.ts");
-const { fingerprintFile, pdfTextOffThread } = await import("../../src/backend/server/class-files.ts");
+const { fingerprintFile, pdfTextOffThread } = await import("../../src/backend/server/space-files.ts");
 const server = await import("../../src/backend/server/index.ts");
-const classesRoute = await import("../../src/app/api/classes/route.ts");
-const filesRoute = await import("../../src/app/api/classes/[id]/files/route.ts");
-const fileRoute = await import("../../src/app/api/classes/[id]/files/[fileId]/route.ts");
+const spacesRoute = await import("../../src/app/api/spaces/route.ts");
+const filesRoute = await import("../../src/app/api/spaces/[id]/files/route.ts");
+const fileRoute = await import("../../src/app/api/spaces/[id]/files/[fileId]/route.ts");
 
-const { extraction, stores, classIdle, enqueueFile } = server;
+const { extraction, stores, spaceIdle, enqueueFile } = server;
 
 const imports: string[] = [];
 const original = extraction.importNotes;
@@ -62,31 +62,31 @@ describe("PDF text off the server thread", () => {
 
 describe("saved PDF text", () => {
 	it("is saved by fingerprint, reused unchanged, and removed with the file", async () => {
-		const created = await classesRoute.POST(
-			new Request("http://localhost/api/classes", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: "PHYS 2A" }) }),
+		const created = await spacesRoute.POST(
+			new Request("http://localhost/api/spaces", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: "PHYS 2A" }) }),
 		);
-		const id = (await created.json()).class.id as string;
+		const id = (await created.json()).space.id as string;
 		const form = new FormData();
 		form.append("kind", "study");
 		form.append("files", new File([fs.readFileSync(FIXTURE)], "reading.pdf"));
-		const up = await (await filesRoute.POST(new Request(`http://localhost/api/classes/${id}/files`, { method: "POST", body: form }), ctx({ id }))).json();
+		const up = await (await filesRoute.POST(new Request(`http://localhost/api/spaces/${id}/files`, { method: "POST", body: form }), ctx({ id }))).json();
 		const fileId = up.results[0].file.id as string;
-		await classIdle(id);
+		await spaceIdle(id);
 		assert.match(imports.at(-1)!, /Calculus/);
 
 		const fp = await fingerprintFile(FIXTURE);
-		const saved = path.join(stores.classStore.filesDir(id), "texts", `${fileId}.${fp}.v2.txt`);
+		const saved = path.join(stores.spaceStore.filesDir(id), "texts", `${fileId}.${fp}.v2.txt`);
 		assert.equal(fs.readFileSync(saved, "utf-8"), imports.at(-1));
 
 		// Unfinished last time (a relaunch): the saved text is used, the PDF is not re-read.
 		fs.writeFileSync(saved, "SAVED TEXT", "utf-8");
-		const record = stores.classStore.getClass(id)!;
-		stores.classStore.saveFiles(id, record.files.map((f) => (f.id === fileId ? { ...f, status: "pending" as const } : f)));
+		const record = stores.spaceStore.getSpace(id)!;
+		stores.spaceStore.saveFiles(id, record.files.map((f) => (f.id === fileId ? { ...f, status: "pending" as const } : f)));
 		enqueueFile(id, fileId);
-		await classIdle(id);
+		await spaceIdle(id);
 		assert.equal(imports.at(-1), "SAVED TEXT");
 
-		const removed = await fileRoute.DELETE(new Request(`http://localhost/api/classes/${id}/files/${fileId}`, { method: "DELETE" }), ctx({ id, fileId }));
+		const removed = await fileRoute.DELETE(new Request(`http://localhost/api/spaces/${id}/files/${fileId}`, { method: "DELETE" }), ctx({ id, fileId }));
 		assert.equal(removed.status, 200);
 		assert.equal(fs.existsSync(saved), false);
 	});

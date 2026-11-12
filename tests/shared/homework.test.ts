@@ -5,7 +5,6 @@ import {
 	homeworkProblems,
 	latestHomework,
 	mergeProblems,
-	problemLabel,
 	problemSource,
 	problemsDone,
 } from "../../src/shared/core/homework.ts";
@@ -60,10 +59,7 @@ describe("homework problems", () => {
 		assert.equal(latestHomework("x", sessions), null);
 	});
 
-	it("names problems and where they are", () => {
-		assert.equal(problemLabel("3"), "Q3");
-		assert.equal(problemLabel("2b"), "Q2b");
-		assert.equal(problemLabel("Ex. 4"), "Ex. 4");
+	it("says where a problem is", () => {
 		assert.equal(problemSource({ name: "hw4.pdf" }, 2), "from hw4.pdf, page 2");
 		assert.equal(problemSource({ name: "hw4.pdf" }, undefined), "from hw4.pdf");
 		assert.equal(problemSource(null, 2), null);
@@ -78,6 +74,6 @@ describe("homework problems", () => {
 
 	it("without an assignment file, names the ids to attach one with", () => {
 		const text = homeworkContextText("c1", { id: "d1", name: "HW 4", kind: "homework", date: "2026-11-13" }, null, []);
-		assert.match(text, /update_class_deadline \(class_id c1, deadline_id d1, assignment_file_id\)/);
+		assert.match(text, /update_space_deadline \(space_id c1, deadline_id d1, assignment_file_id\)/);
 	});
 });

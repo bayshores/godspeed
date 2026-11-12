@@ -39,6 +39,7 @@ export * from "./math-delims.ts";
 // browser-safe.
 export * from "./native-messages.ts";
 export * from "./today-note.ts";
+export * from "./space-work.ts";
 export * from "./compaction.ts";
 export * from "./input-events.ts";
 export * from "./attachments.ts";
@@ -72,7 +73,7 @@ export * from "./study.ts";
 export * from "./continue-study.ts";
 export * from "./homework.ts";
 export * from "./cheat-sheet.ts";
-export type { ClassChange } from "./class-tools.ts";
+export type { SpaceChange } from "./space-tools.ts";
 export * from "./teaching-areas.ts";
 export * from "./agent-rules.ts";
 export * from "./ink.ts";

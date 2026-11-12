@@ -12,9 +12,9 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import type { FolderAgent } from "@/shared/core";
 import { usePresence } from "@/frontend/components/presence";
+import { DialogSheet } from "@/frontend/components/ui/dialog-sheet";
 import { AGENT_LABEL } from "./agent-folder-model";
 import { useAgentFolder } from "./use-agent-folder";
-import { useDialogFocus } from "@/frontend/components/use-dialog-focus";
 
 const OPEN_EVENT = "lh:folder-notice";
 
@@ -25,7 +25,6 @@ export function openFolderNotice(): void {
 export function FolderNotice({ agent, afterWelcome }: { agent: FolderAgent; afterWelcome: boolean }) {
 	const [open, setOpen] = useState(false);
 	const presence = usePresence(open);
-	const dialogRef = useDialogFocus<HTMLDivElement>(open);
 	const { view, launch, open: openAgent } = useAgentFolder();
 	useEffect(() => {
 		if (!afterWelcome) setOpen(true);
@@ -33,17 +32,7 @@ export function FolderNotice({ agent, afterWelcome }: { agent: FolderAgent; afte
 		window.addEventListener(OPEN_EVENT, show);
 		return () => window.removeEventListener(OPEN_EVENT, show);
 	}, [afterWelcome]);
-	useEffect(() => {
-		if (!open) return;
-		const onKey = (e: KeyboardEvent) => {
-			if (e.key !== "Escape") return;
-			e.stopPropagation();
-			setOpen(false);
-		};
-		document.addEventListener("keydown", onKey);
-		return () => document.removeEventListener("keydown", onKey);
-	}, [open]);
-	// Close once the terminal is open; the sidebar follows the agent from there.
+	// Close once the terminal is open; the teacher chip follows the agent from there.
 	useEffect(() => {
 		if (launch?.opened === "done" || launch?.opened === "manual") setOpen(false);
 	}, [launch]);
@@ -58,30 +47,15 @@ export function FolderNotice({ agent, afterWelcome }: { agent: FolderAgent; afte
 
 	if (!presence.mounted || typeof document === "undefined") return null;
 	return createPortal(
-		<div
-			ref={dialogRef}
-			tabIndex={-1}
-			role="dialog"
-			aria-modal="true"
-			aria-label="godspeed has its own folder now"
-			data-testid="folder-notice"
-			data-state={presence.state}
-			inert={presence.state === "closed"}
-			className="lh-fade fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm"
-		>
-			<div data-state={presence.state} className="lh-dialog mx-4 w-full max-w-[500px] border border-tone-2 bg-panel p-7 shadow-lg">
-				<h2 className="font-bold text-[26px] leading-tight text-ink">godspeed has its own folder now</h2>
-				<p className="mt-2.5 text-[14.5px] leading-relaxed text-ink-2">
-					Open {name} in {view?.short ?? "~/godspeed"} to study. Your other {name} chats stop loading godspeed, and your classes and lessons
-					stay as they are.
-				</p>
-				{error && (
-					<p role="alert" className="mt-3 text-[13px] text-ans-wrong">
-						{error}
-					</p>
-				)}
-				<div className="mt-6 flex items-center justify-end gap-5">
-					<button type="button" data-testid="folder-notice-later" className="lh-press lh-btn" onClick={later}>
+		<DialogSheet
+			title="godspeed has its own folder now"
+			state={presence.state}
+			testid="folder-notice"
+			onClose={() => setOpen(false)}
+			foot={
+				<>
+					<span className="flex-1" />
+					<button type="button" data-testid="folder-notice-later" className="lh-btn text-[15px]" onClick={later}>
 						Later
 					</button>
 					<button
@@ -89,13 +63,23 @@ export function FolderNotice({ agent, afterWelcome }: { agent: FolderAgent; afte
 						data-testid="folder-notice-setup"
 						disabled={busy}
 						onClick={() => void openAgent(agent)}
-						className="lh-btn lh-btn-main"
+						className="lh-btn lh-btn-main text-[15px]"
 					>
 						Set up my folder
 					</button>
-				</div>
-			</div>
-		</div>,
+				</>
+			}
+		>
+			<p className="text-lg text-ink">
+				Open {name} in {view?.short ?? "~/godspeed"} to study. Your other {name} chats stop loading godspeed, and your spaces and lessons stay as
+				they are.
+			</p>
+			{error && (
+				<p role="alert" className="text-[15px] text-ans-wrong">
+					{error}
+				</p>
+			)}
+		</DialogSheet>,
 		document.body,
 	);
 }

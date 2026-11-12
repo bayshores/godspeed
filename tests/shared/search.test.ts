@@ -1,10 +1,10 @@
 /**
- * Class search, the pure parts (src/shared/core/search.ts): passages with their
+ * Space search, the pure parts (src/shared/core/search.ts): passages with their
  * place in the file, the two rankings, and their fusion.
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { classCardText, classFilesText } from "../../src/shared/core/native-messages.ts";
+import { spaceCardText, spaceFilesText } from "../../src/shared/core/native-messages.ts";
 import { chunkFile, chunkText, fuseRankings, keywordIndex, keywordRanking, rangePoint, snippetOf, vectorRanking } from "../../src/shared/core/search.ts";
 
 describe("passages", () => {
@@ -100,9 +100,9 @@ describe("ranking", () => {
 	});
 });
 
-describe("the class outline in the class card", () => {
+describe("the space outline in the space card", () => {
 	const card = {
-		classId: "cls_x",
+		spaceId: "cls_x",
 		name: "CSE 21",
 		description: "",
 		files: [
@@ -113,15 +113,15 @@ describe("the class outline in the class card", () => {
 	};
 
 	it("counts the files instead of listing them, then the topics with fact counts", () => {
-		const text = classCardText(card);
-		assert.match(text, /^Class files: 1 study material, 1 course info\. /m);
+		const text = spaceCardText(card);
+		assert.match(text, /^Space files: 1 study material, 1 space info\. /m);
 		assert.doesNotMatch(text, /06_Counting\.pdf/);
-		assert.match(text, /Topics in the class's knowledge graph \(facts in each\):\nCounting rules \(24\), Stars and bars \(6\)$/);
+		assert.match(text, /Topics in the space's knowledge graph \(facts in each\):\nCounting rules \(24\), Stars and bars \(6\)$/);
 	});
 
-	it("lists each file's size, unfinished state and path for read_class", () => {
-		const text = classFilesText(card);
+	it("lists each file's size, unfinished state and path for read_space", () => {
+		const text = spaceFilesText(card);
 		assert.match(text, /^- \[study material\] 06_Counting\.pdf \(98 pages\) — \/c\/06\.pdf$/m);
-		assert.match(text, /^- \[course info\] HW4\.pdf \(pending\) — \/c\/hw4\.pdf$/m);
+		assert.match(text, /^- \[space info\] HW4\.pdf \(pending\) — \/c\/hw4\.pdf$/m);
 	});
 });

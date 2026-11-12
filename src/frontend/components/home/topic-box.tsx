@@ -1,6 +1,6 @@
 import type { RefObject } from "react";
-import { PlusIcon, XIcon } from "lucide-react";
 import { AttachButton, AttachmentTray, attachmentInputProps, type AttachmentDraft } from "@/frontend/components/lesson/attachment-tray";
+import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 
 /** Enter starts the lesson; Shift+Enter is a new line, and an IME
  *  composition's Enter only confirms the text. */
@@ -10,10 +10,10 @@ export function isStartKey(e: { key: string; shiftKey: boolean; isComposing?: bo
 
 /**
  * The topic box: the learner's topic, then "Start from facts" (opens the
- * fact picker; with picks it shows the count and a clear button) and the
- * white Study button. Enter starts, Shift+Enter is a new line. Pictures
- * and PDFs (paste, drop or the picture button) wait above the topic, as in
- * the lesson box, and go with the first message.
+ * fact picker; with picks it shows the count and "Clear"), "Add pictures
+ * or PDFs" and the filled Study button. Enter starts, Shift+Enter is a new
+ * line. Pictures and PDFs (paste, drop or the button) wait above the
+ * topic, as in the lesson's writing box, and go with the first message.
  */
 export function TopicBox({
 	text,
@@ -34,7 +34,7 @@ export function TopicBox({
 	inputRef?: RefObject<HTMLTextAreaElement | null>;
 	/** How many facts are picked. */
 	picks: number;
-	/** The class has facts to pick from. */
+	/** The space has facts to pick from. */
 	canPick: boolean;
 	onOpenPicker: () => void;
 	onClearPicks: () => void;
@@ -44,7 +44,7 @@ export function TopicBox({
 	return (
 		<form
 			data-testid="home-topic-box"
-			className="flex min-h-[132px] w-full flex-col justify-between bg-panel outline outline-1 -outline-offset-1 outline-tone-2 focus-within:outline-ink-3"
+			className="flex min-h-[170px] w-full flex-col rounded border-[1.5px] border-ink bg-background pt-0.5 pr-2.5 pb-2.5 pl-4"
 			onSubmit={(e) => {
 				e.preventDefault();
 				if (empty) inputRef?.current?.focus();
@@ -52,9 +52,7 @@ export function TopicBox({
 			}}
 			{...attachmentInputProps(attachments)}
 		>
-			<div className="px-[18px]">
-				<AttachmentTray draft={attachments} />
-			</div>
+			<AttachmentTray draft={attachments} />
 			<textarea
 				ref={inputRef}
 				data-testid="home-topic-input"
@@ -67,53 +65,26 @@ export function TopicBox({
 						if (!empty) onStart();
 					}
 				}}
-				placeholder="A topic, a homework method, or a question you're stuck on…"
+				placeholder="A topic, a homework method, or a question you're stuck on"
 				autoFocus
 				rows={2}
-				className="field-sizing-content lh-input max-h-60 min-h-[86px] w-full resize-none bg-transparent px-[18px] py-4 text-[17px] leading-snug text-ink outline-none placeholder:text-ink-3"
+				className="field-sizing-content max-h-60 min-h-[86px] w-full flex-1 resize-none bg-transparent pt-3 pb-3 font-prose text-[17px] leading-snug text-ink outline-none placeholder:text-ink-3"
 			/>
-			<div className="flex items-center justify-between gap-3 pl-3.5">
-				<div className="flex min-w-0 items-center gap-1">
-					<button
-						type="button"
-						data-testid="facts-picks-chip"
-						disabled={!canPick && picks === 0}
-						onClick={onOpenPicker}
-						className="lh-press lh-btn"
-					>
-						<PlusIcon aria-hidden className="size-[13px]" />
-						{picks > 0 ? (
-							<span>
-								<span className="font-mono tabular-nums">{picks}</span> {picks === 1 ? "fact" : "facts"} picked
-							</span>
-						) : (
-							"Start from facts"
-						)}
+			<div className="flex flex-wrap items-center gap-2">
+				<button type="button" data-testid="facts-picks-chip" disabled={!canPick && picks === 0} onClick={onOpenPicker} className="lh-btn text-[15px]">
+					{picks > 0 ? `${picks} ${picks === 1 ? "fact" : "facts"} picked` : "Start from facts"}
+				</button>
+				{picks > 0 && (
+					<button type="button" data-testid="facts-picks-clear" onClick={onClearPicks} className="lh-btn lh-btn-quiet text-[15px]">
+						Clear
 					</button>
-					{picks > 0 && (
-						<button
-							type="button"
-							data-testid="facts-picks-clear"
-							aria-label="Clear picked facts"
-							onClick={onClearPicks}
-							className="lh-press lh-fade flex size-6 items-center justify-center text-ink-3 hover:text-ink"
-						>
-							<XIcon aria-hidden className="size-3.5" />
-						</button>
-					)}
-				</div>
-				<div className="flex shrink-0 items-center gap-1">
-					<AttachButton draft={attachments} />
-					<button
-						type="submit"
-						data-testid="home-start"
-						aria-disabled={empty || busy}
-						disabled={busy}
-						className="lh-btn lh-btn-main h-auto shrink-0 self-stretch"
-					>
-						Study
-					</button>
-				</div>
+				)}
+				<AttachButton draft={attachments} outlined />
+				<span className="flex-1" />
+				<button type="submit" data-testid="home-start" aria-disabled={empty || busy} disabled={busy} className="lh-btn lh-btn-main shrink-0 text-[15px]">
+					<PixelIcon name="play" />
+					Study
+				</button>
 			</div>
 		</form>
 	);

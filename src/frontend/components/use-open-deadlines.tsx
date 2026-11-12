@@ -1,47 +1,40 @@
 "use client";
 
 /**
- * The open deadlines of every non-archived class (GET /api/deadlines), for
- * Home, the teacher mascot and the welcome screen. One shared
- * read in OpenDeadlinesProvider: it re-reads when classes change (every
- * deadline edit announces classes-changed) and after the events channel
- * reconnects. `markDone` ticks one done (PUT done: true); the row fades
- * out while the list re-reads. The fade is per caller; the notice after it
- * ("Marked done" with Undo, or why it failed) is shared.
+ * The deadlines of every non-archived space (GET /api/deadlines): the open
+ * ones, for Today and the welcome screen, and the ones
+ * ticked done today, which Today keeps with Undo. One shared read in
+ * OpenDeadlinesProvider: it re-reads when spaces change (every deadline
+ * edit announces spaces-changed) and after the events channel reconnects.
+ * `markDone` ticks one done and `undo` unticks it (PUT done); a save that
+ * fails says so in a notice.
  */
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useServerEvent, useServerResync } from "@/frontend/components/server-events";
-import { byDue, type OpenDeadline } from "@/frontend/components/deadlines-model";
-import { DoneNotice, type DoneNoticeState } from "@/frontend/components/done-notice";
+import type { OpenDeadline } from "@/frontend/components/deadlines-model";
+import { DoneNotice } from "@/frontend/components/done-notice";
 
-/** How long a ticked row fades before it leaves (just over --lh-dur). */
-const LEAVE_MS = 200;
-
-/** Save a deadline's done; throws when the save fails. */
-async function saveDone(d: { classId: string; id: string }, done: boolean): Promise<void> {
-	const res = await fetch(`/api/classes/${encodeURIComponent(d.classId)}/deadlines/${encodeURIComponent(d.id)}`, {
-		method: "PUT",
-		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify({ done }),
-	});
-	if (!res.ok) throw new Error(`HTTP ${res.status}`);
+interface Fetched {
+	open: OpenDeadline[];
+	doneToday: OpenDeadline[];
 }
 
 interface SharedDeadlines {
 	/** null until the first response. */
-	fetched: OpenDeadline[] | null;
+	fetched: Fetched | null;
 	/** Why the last read failed; null once one succeeds. */
 	error: string | null;
 	load: () => Promise<void>;
-	/** Show the notice after a tick (null hides it). */
-	notify: (notice: DoneNoticeState | null) => void;
+	/** Save a deadline's done and read the lists again; `failed` is the
+	 *  notice when the save doesn't work. */
+	setDone: (d: OpenDeadline, done: boolean, failed: string) => void;
 }
 
-const OpenDeadlinesContext = createContext<SharedDeadlines>({ fetched: null, error: null, load: async () => {}, notify: () => {} });
+const OpenDeadlinesContext = createContext<SharedDeadlines>({ fetched: null, error: null, load: async () => {}, setDone: () => {} });
 
 export function OpenDeadlinesProvider({ children }: { children: React.ReactNode }) {
-	const [fetched, setFetched] = useState<OpenDeadline[] | null>(null);
+	const [fetched, setFetched] = useState<Fetched | null>(null);
 	const [error, setError] = useState<string | null>(null);
 	const request = useRef(0);
 
@@ -50,9 +43,9 @@ export function OpenDeadlinesProvider({ children }: { children: React.ReactNode 
 		try {
 			const res = await fetch("/api/deadlines", { cache: "no-store" });
 			if (!res.ok) throw new Error(`HTTP ${res.status}`);
-			const body = (await res.json()) as { deadlines?: OpenDeadline[] };
+			const body = (await res.json()) as { deadlines?: OpenDeadline[]; doneToday?: OpenDeadline[] };
 			if (id !== request.current) return;
-			setFetched(Array.isArray(body.deadlines) ? body.deadlines : []);
+			setFetched({ open: Array.isArray(body.deadlines) ? body.deadlines : [], doneToday: Array.isArray(body.doneToday) ? body.doneToday : [] });
 			setError(null);
 		} catch (err) {
 			// Keep what we have; the error only matters before a first list.
@@ -63,82 +56,58 @@ export function OpenDeadlinesProvider({ children }: { children: React.ReactNode 
 	useEffect(() => {
 		void load();
 	}, [load]);
-	useServerEvent("classes-changed", () => void load());
+	useServerEvent("spaces-changed", () => void load());
 	useServerResync(() => void load());
 
-	const [notice, setNotice] = useState<DoneNoticeState | null>(null);
+	const [notice, setNotice] = useState<string | null>(null);
 	const clearNotice = useCallback(() => setNotice(null), []);
-	const undo = useCallback(
-		async (d: { classId: string; id: string }) => {
+	const setDone = useCallback(
+		(d: OpenDeadline, done: boolean, failed: string) => {
 			setNotice(null);
-			try {
-				await saveDone(d, false);
-				await load();
-			} catch {
-				setNotice({ text: "Couldn't undo that. Untick it in Edit class." });
-			}
+			void (async () => {
+				try {
+					const res = await fetch(`/api/spaces/${encodeURIComponent(d.spaceId)}/deadlines/${encodeURIComponent(d.id)}`, {
+						method: "PUT",
+						headers: { "Content-Type": "application/json" },
+						body: JSON.stringify({ done }),
+					});
+					if (!res.ok) throw new Error(`HTTP ${res.status}`);
+					await load();
+				} catch {
+					setNotice(failed);
+				}
+			})();
 		},
 		[load],
 	);
 
-	const value = useMemo(() => ({ fetched, error, load, notify: setNotice }), [fetched, error, load]);
+	const value = useMemo(() => ({ fetched, error, load, setDone }), [fetched, error, load, setDone]);
 	return (
 		<OpenDeadlinesContext.Provider value={value}>
 			{children}
-			{notice && <DoneNotice notice={notice} onUndo={() => notice.undo && void undo(notice.undo)} onExpire={clearNotice} />}
+			{notice && <DoneNotice text={notice} onExpire={clearNotice} />}
 		</OpenDeadlinesContext.Provider>
 	);
 }
 
 interface OpenDeadlinesState {
-	/** null until the first response. Rows fading out stay in it. */
+	/** The open deadlines; null until the first response. */
 	deadlines: OpenDeadline[] | null;
+	/** The ones ticked done today. */
+	doneToday: OpenDeadline[];
 	/** Why the last read failed; null once one succeeds. */
 	error: string | null;
-	/** Ids fading out after a done tick. */
-	leaving: ReadonlySet<string>;
 	markDone: (d: OpenDeadline) => void;
-	/** Read the list again now (Try again). */
+	undo: (d: OpenDeadline) => void;
+	/** Read the lists again now (Try again). */
 	reload: () => Promise<void>;
 }
 
+const NONE: OpenDeadline[] = [];
+
 export function useOpenDeadlines(): OpenDeadlinesState {
-	const { fetched, error, load, notify } = useContext(OpenDeadlinesContext);
-	// A ticked row stays (fading) until its fade ends, even once the
-	// re-read list no longer has it.
-	const [leavingRows, setLeavingRows] = useState<ReadonlyMap<string, OpenDeadline>>(new Map());
-
-	const markDone = useCallback(
-		(d: OpenDeadline) => {
-			setLeavingRows((m) => new Map(m).set(d.id, d));
-			const drop = () =>
-				setLeavingRows((m) => {
-					const next = new Map(m);
-					next.delete(d.id);
-					return next;
-				});
-			const faded = new Promise((resolve) => setTimeout(resolve, LEAVE_MS));
-			void (async () => {
-				try {
-					await saveDone(d, true);
-					await Promise.all([faded, load()]);
-					notify({ text: "Marked done", undo: { classId: d.classId, id: d.id } });
-				} catch {
-					// Not saved: the row comes back.
-					notify({ text: "Couldn't mark it done. Try again." });
-				}
-				drop();
-			})();
-		},
-		[load, notify],
-	);
-
-	const deadlines = useMemo(() => {
-		if (!fetched) return null;
-		const ghosts = [...leavingRows.values()].filter((g) => !fetched.some((d) => d.id === g.id));
-		return ghosts.length === 0 ? fetched : byDue([...fetched, ...ghosts]);
-	}, [fetched, leavingRows]);
-	const leaving = useMemo(() => new Set(leavingRows.keys()), [leavingRows]);
-
-	return { deadlines, error, leaving, markDone, reload: load };
+	const { fetched, error, load, setDone } = useContext(OpenDeadlinesContext);
+	const markDone = useCallback((d: OpenDeadline) => setDone(d, true, "Couldn't mark it done. Try again."), [setDone]);
+	const undo = useCallback((d: OpenDeadline) => setDone(d, false, "Couldn't undo that. Try again."), [setDone]);
+	return { deadlines: fetched?.open ?? null, doneToday: fetched?.doneToday ?? NONE, error, markDone, undo, reload: load };
 }

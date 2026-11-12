@@ -31,3 +31,8 @@ export function composeRules(agent: AgentSettings | undefined, area: AreaId, rul
 export function areaParts(area: TeachingArea, segments: PromptSegmentInfo[]): PromptSegmentInfo[] {
 	return area.parts.flatMap((path) => segments.filter((s) => s.path === path));
 }
+
+/** Whether the learner saved their own version of any part of the area. */
+export function areaEdited(area: TeachingArea, segments: PromptSegmentInfo[]): boolean {
+	return areaParts(area, segments).some((s) => s.overrideText !== null);
+}

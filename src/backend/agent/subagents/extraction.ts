@@ -165,14 +165,14 @@ const sessionFindingsSchema = Type.Object({
 	)),
 });
 
-// THE COURSE-INFO EXTENSION: a class file godspeed may sort by itself
+// THE SPACE-INFO EXTENSION: a space file godspeed may sort by itself
 // adds one optional verdict, so the read that would extract it also says
-// when it is course logistics (no extra agent call).
-const courseInfoFindingsSchema = Type.Object({
+// when it is logistics (no extra agent call).
+const spaceInfoFindingsSchema = Type.Object({
 	...findingsSchema.properties,
-	courseInfo: Type.Optional(
+	spaceInfo: Type.Optional(
 		Type.Boolean({
-			description: "true when this file is course logistics, not material to learn from; then propositions, chains and reteaches stay empty.",
+			description: "true when this file is logistics, not material to learn from; then propositions, chains and reteaches stay empty.",
 		}),
 	),
 });
@@ -182,7 +182,7 @@ const courseInfoFindingsSchema = Type.Object({
  *  the aliases and lifts it straight into SessionFindings (chains are
  *  stored AS-IS, no edge translation at any seam). */
 type FindingsSubmit = Static<typeof findingsSchema>;
-type CourseInfoFindingsSubmit = Static<typeof courseInfoFindingsSchema>;
+type SpaceInfoFindingsSubmit = Static<typeof spaceInfoFindingsSchema>;
 
 /** The SESSION wire — the notes shape plus the REQUIRED messageId anchor
  *  on every proposition. */
@@ -358,10 +358,10 @@ const SESSION_QUESTION_RULE =
 export const EXTRACTOR_INSTRUCTIONS = `${SESSION_PREAMBLE}\n\n${EXTRACTION_CORE}\n\n${SESSION_MESSAGE_ID_RULE}\n\n${SESSION_QUESTION_RULE}`;
 export const NOTES_EXTRACTOR_INSTRUCTIONS = `${NOTES_PREAMBLE}\n\n${EXTRACTION_CORE}`;
 
-/** Added for class files godspeed may sort by itself. */
-const COURSE_INFO_RULE =
-	"This file is from a class folder. If it is course logistics rather than material to learn from " +
-	"(announcements, emails, grade or submission notices, schedules, forum digests), submit courseInfo: true " +
+/** Added for space files godspeed may sort by itself. */
+const SPACE_INFO_RULE =
+	"This file is from a space folder. If it is logistics rather than material to learn from " +
+	"(announcements, emails, grade or submission notices, schedules, forum digests), submit spaceInfo: true " +
 	"with empty propositions, chains and reteaches.";
 
 // ── the prompt's graph context ──
@@ -433,31 +433,31 @@ function runExtractor(
 /** The extractor over ONE source of raw personal notes (the format-agnostic
  *  front door): same single-submit shape, notes-mode prompt + schema —
  *  the BASE wire (no messageId: notes have no passages, and a stray one
- *  is stripped at the fill seam). `mayBeCourseInfo` adds the course-info
- *  verdict (a class file godspeed may sort by itself). */
+ *  is stripped at the fill seam). `mayBeSpaceInfo` adds the space-info
+ *  verdict (a space file godspeed may sort by itself). */
 function runNotesExtractor(
 	engine: PiEngine | undefined,
 	taskLabel: string,
 	prompt: string,
 	existingIds: ReadonlySet<string>,
-	mayBeCourseInfo: boolean,
+	mayBeSpaceInfo: boolean,
 	signal: AbortSignal | undefined,
 	onStep: (usage: Usage, model: string, step: number, finishReason: string, tools: string) => void,
-): Promise<{ findings: SessionFindings; courseInfo: boolean }> {
-	return runSubmitAgent<CourseInfoFindingsSubmit>({
+): Promise<{ findings: SessionFindings; spaceInfo: boolean }> {
+	return runSubmitAgent<SpaceInfoFindingsSubmit>({
 		taskLabel,
 		toolName: "submit_findings",
 		toolDescription: "Submit the notes findings.",
-		parameters: mayBeCourseInfo ? courseInfoFindingsSchema : findingsSchema,
+		parameters: mayBeSpaceInfo ? spaceInfoFindingsSchema : findingsSchema,
 		fill: fillNotesFindings,
 		validate: (value) => validateFindingsChains(value, existingIds),
-		systemPrompt: mayBeCourseInfo ? `${NOTES_EXTRACTOR_INSTRUCTIONS}\n\n${COURSE_INFO_RULE}` : NOTES_EXTRACTOR_INSTRUCTIONS,
+		systemPrompt: mayBeSpaceInfo ? `${NOTES_EXTRACTOR_INSTRUCTIONS}\n\n${SPACE_INFO_RULE}` : NOTES_EXTRACTOR_INSTRUCTIONS,
 		prompt,
 		engine,
 		signal,
 		onStep,
 		neverSubmitted: "the extractor never submitted findings",
-	}).then((raw) => ({ findings: asSessionFindings(raw), courseInfo: mayBeCourseInfo && raw.courseInfo === true }));
+	}).then((raw) => ({ findings: asSessionFindings(raw), spaceInfo: mayBeSpaceInfo && raw.spaceInfo === true }));
 }
 
 /** The graph lock: a FIFO promise chain — extract + merge run one job
@@ -495,8 +495,8 @@ interface ExtractionPipelineDeps extends GraphDeps, ExtractionModels {
 	 *  factory default (4096) so test fixtures stay minimal; the server
 	 *  callers wire the live effective settings. */
 	getChunkTokens?: () => number;
-	/** The graph a LESSON writes to (its class's own graph, or "No
-	 *  class"). Absent = deps.graphStore for every chat
+	/** The graph a LESSON writes to (its space's own graph, or "No
+	 *  space"). Absent = deps.graphStore for every chat
 	 *  (test fixtures, single-graph callers). */
 	graphStoreForChat?: (chatId: string) => GraphStore;
 	/** Called after a run that may have written a graph ends (done, partial
@@ -518,21 +518,21 @@ interface NotesImportInput {
 	filePath: string;
 	/** The file's raw content, VERBATIM — any format. */
 	text: string;
-	/** The graph to import into (a class's own graph).
-	 *  Absent = deps.graphStore ("No class"). */
+	/** The graph to import into (a space's own graph).
+	 *  Absent = deps.graphStore ("No space"). */
 	graphStore?: GraphStore;
-	/** An explicit source id (class files: src_ + hash of class + file id,
-	 *  so the same filename in two classes never collides). Absent = the
+	/** An explicit source id (space files: src_ + hash of space + file id,
+	 *  so the same filename in two spaces never collides). Absent = the
 	 *  path-hash id. */
 	sourceId?: string;
-	/** A class file godspeed may sort by itself: the first stretch's read
-	 *  also says whether the file is course logistics (courseInfo). */
-	mayBeCourseInfo?: boolean;
+	/** A space file godspeed may sort by itself: the first stretch's read
+	 *  also says whether the file is logistics (spaceInfo). */
+	mayBeSpaceInfo?: boolean;
 }
 
-/** A finished notes import. `courseInfo`: the read found course logistics,
+/** A finished notes import. `spaceInfo`: the read found logistics,
  *  so nothing was extracted. */
-type NotesImportResult = EmissionStats & { courseInfo?: true };
+type NotesImportResult = EmissionStats & { spaceInfo?: true };
 
 /** A notes import did not finish. Earlier graph writes and logged usage are
  * retained; partialStats describe known merges, not an all-or-nothing result. */
@@ -595,9 +595,9 @@ export function createExtractionPipeline(deps: ExtractionPipelineDeps): Extracti
 	const runningExtractions = runs().running;
 	const inFlight = runs().inFlight;
 
-	/** WHICH GRAPH a source writes to (writes never cross classes). A
+	/** WHICH GRAPH a source writes to (writes never cross spaces). A
 	 *  notes import registers its
-	 *  target for the run's lifetime; a chat resolves through its class. */
+	 *  target for the run's lifetime; a chat resolves through its space. */
 	const sourceStores = new Map<string, GraphStore>();
 	function storeFor(sourceId: string): GraphStore {
 		const registered = sourceStores.get(sourceId);
@@ -852,7 +852,7 @@ export function createExtractionPipeline(deps: ExtractionPipelineDeps): Extracti
 			// No engine = refuse BEFORE any stage runs (typed — the trigger
 			// skips, routes surface 503).
 			refuseIfStagesUnready();
-			// The lesson's class graph, fixed for the whole run (a class
+			// The lesson's space graph, fixed for the whole run (a space
 			// move is refused while extraction runs).
 			const chatGraph = storeFor(chatId);
 			const covered = coverageOf(record.messages, chatGraph.readCoverage(), chatId);
@@ -987,8 +987,8 @@ export function createExtractionPipeline(deps: ExtractionPipelineDeps): Extracti
 
 	async function notesExtract(
 		jobKey: string,
-		input: { id: string; filePath: string; text: string; part?: { i: number; n: number }; mayBeCourseInfo: boolean },
-	): Promise<{ findings: SessionFindings; courseInfo: boolean }> {
+		input: { id: string; filePath: string; text: string; part?: { i: number; n: number }; mayBeSpaceInfo: boolean },
+	): Promise<{ findings: SessionFindings; spaceInfo: boolean }> {
 		// jobKey: the registry key ("src#i" for chunk jobs) so the abort
 		// signal reaches the call; input.id stays the SOURCE id.
 		const signal = runningExtractions.get(jobKey)?.controller.signal;
@@ -1006,7 +1006,7 @@ export function createExtractionPipeline(deps: ExtractionPipelineDeps): Extracti
 			extractionTaskLabel(jobKey),
 			prompt,
 			new Set(graph.nodes.map((n) => n.id)),
-			input.mayBeCourseInfo,
+			input.mayBeSpaceInfo,
 			signal,
 			(usage, model, step, finishReason, tools) => {
 				recordStep(jobKey, callUsage(usage), model);
@@ -1022,7 +1022,7 @@ export function createExtractionPipeline(deps: ExtractionPipelineDeps): Extracti
 		filePath: string;
 		text: string;
 		importedAt: string;
-		mayBeCourseInfo: boolean;
+		mayBeSpaceInfo: boolean;
 	}): Promise<NotesImportResult> {
 		const { id } = input;
 		// importNotes owns the source exclusion, including metadata and cleanup.
@@ -1043,8 +1043,8 @@ export function createExtractionPipeline(deps: ExtractionPipelineDeps): Extracti
 			// part rides the registry entry (feed suffix "· i/N") only when
 			// the file actually chunked.
 			const settled: PromiseSettledResult<EmissionStats>[] = [];
-			// Only the first stretch decides course info; then nothing is extracted.
-			let courseInfo = false;
+			// Only the first stretch decides space info; then nothing is extracted.
+			let spaceInfo = false;
 			for (const [chunkIndex, chunk] of chunks.entries()) {
 				const part = chunks.length > 1 ? { i: chunkIndex + 1, n: chunks.length } : undefined;
 				try {
@@ -1057,10 +1057,10 @@ export function createExtractionPipeline(deps: ExtractionPipelineDeps): Extracti
 									...input,
 									text: chunk,
 									part,
-									mayBeCourseInfo: input.mayBeCourseInfo && chunkIndex === 0,
+									mayBeSpaceInfo: input.mayBeSpaceInfo && chunkIndex === 0,
 								});
-								if (read.courseInfo) {
-									courseInfo = true;
+								if (read.spaceInfo) {
+									spaceInfo = true;
 									return { nodes: 0, chains: 0 };
 								}
 								setPhase(jobKey, "merging", "notes", input.filePath, part);
@@ -1086,9 +1086,9 @@ export function createExtractionPipeline(deps: ExtractionPipelineDeps): Extracti
 					// run; isolated failures keep going.
 					if (err instanceof Error && err.name === "AbortError") break;
 				}
-				if (courseInfo) {
-					console.info(`[extraction ${id}] course info, nothing extracted (${input.filePath})`);
-					return { nodes: 0, chains: 0, courseInfo: true };
+				if (spaceInfo) {
+					console.info(`[extraction ${id}] space info, nothing extracted (${input.filePath})`);
+					return { nodes: 0, chains: 0, spaceInfo: true };
 				}
 			}
 			const stats = aggregateJobs(id, settled);
@@ -1128,7 +1128,7 @@ export function createExtractionPipeline(deps: ExtractionPipelineDeps): Extracti
 		try {
 			const importedAt = new Date().toISOString();
 			target.upsertSource({ id, filePath: input.filePath, importedAt });
-			return await runNotesExtraction({ id, filePath: input.filePath, text: input.text, importedAt, mayBeCourseInfo: input.mayBeCourseInfo === true });
+			return await runNotesExtraction({ id, filePath: input.filePath, text: input.text, importedAt, mayBeSpaceInfo: input.mayBeSpaceInfo === true });
 		} catch (err) {
 			if (err instanceof NotesImportError || err instanceof NoEngineError) throw err;
 			throw new NotesImportError("failed", { nodes: 0, chains: 0 }, err instanceof Error ? err.message : String(err), { cause: err });

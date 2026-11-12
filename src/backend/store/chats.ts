@@ -37,9 +37,9 @@ function chatDir(id: string): string {
  *  DELIBERATELY SILENT: saveMessages fires per turn-persist and would
  *  spam the bus, and every list-visible change it causes (title, order,
  *  phase, busy, pendingQuestion) is already announced by turn-started /
- *  turn-settled, which the sidebar refetches on. Silence here is law,
+ *  turn-settled, which the lesson list refetches on. Silence here is law,
  *  not oversight. */
-function createChat(title: string, kind?: Exclude<ChatKind, "teach">, classId?: string, deadlineId?: string): ChatRecord {
+function createChat(title: string, kind?: Exclude<ChatKind, "teach">, spaceId?: string, deadlineId?: string): ChatRecord {
 	const now = new Date().toISOString();
 	const record: ChatRecord = {
 		id: kind === "talk" ? TALK_CHAT_ID : `${CHAT_ID_PREFIX}${Date.now().toString(36)}_${crypto.randomUUID().slice(0, 8)}`,
@@ -49,8 +49,8 @@ function createChat(title: string, kind?: Exclude<ChatKind, "teach">, classId?: 
 		messages: [],
 		// Teach stays ABSENT (absence reads as teach; old records never migrate).
 		...(kind ? { kind } : {}),
-		// The lesson's class; ABSENT = "No class".
-		...(classId ? { classId } : {}),
+		// The lesson's space; ABSENT = "No space".
+		...(spaceId ? { spaceId } : {}),
 		...(deadlineId ? { deadlineId } : {}),
 	};
 	writeChat(record);
@@ -65,6 +65,28 @@ function createChat(title: string, kind?: Exclude<ChatKind, "teach">, classId?: 
 function writeChat(record: ChatRecord): void {
 	summaryCache.delete(record.id);
 	writeFileAtomic(chatFile(record.id), JSON.stringify({ ...record, version: CURRENT_CHAT_VERSION }, null, "\t"));
+}
+
+function rename(o: Record<string, unknown>, from: string, to: string): void {
+	if (!(from in o)) return;
+	o[to] = o[from];
+	delete o[from];
+}
+
+/** v1 → v2: a record from before spaces were called spaces takes the new
+ *  names. In memory only; the next write saves them. */
+function upgradeToV2(record: Record<string, unknown>, messages: unknown[]): void {
+	if (typeof record.version === "number" && record.version >= 2) return;
+	rename(record, "classId", "spaceId");
+	for (const m of messages) {
+		if (!isRecord(m)) continue;
+		if (m.customType === "class-context") {
+			m.customType = "space-context";
+			if (isRecord(m.details)) rename(m.details, "classId", "spaceId");
+		} else if (m.customType === "app-request" && isRecord(m.details) && Array.isArray(m.details.deadlines)) {
+			for (const d of m.details.deadlines) if (isRecord(d)) rename(d, "className", "spaceName");
+		}
+	}
 }
 
 function getChat(id: string): ChatRecord | null {
@@ -87,6 +109,7 @@ function getChat(id: string): ChatRecord | null {
 		console.error(`[chat ${id}] record stamped with schema version ${v} > ${CURRENT_CHAT_VERSION} — this app build is older; refusing to read it`);
 		return null;
 	}
+	upgradeToV2(parsed, parsed.messages);
 	return parsed as unknown as ChatRecord;
 }
 
@@ -101,9 +124,9 @@ function chatVersion(id: string): string | null {
 	}
 }
 
-/** Lesson summaries kept in memory, so a sidebar refresh does not re-parse
+/** Lesson summaries kept in memory, so a lesson list refresh does not re-parse
  *  every lesson file. A summary is reused while its file's version is
- *  unchanged; writeChat/deleteChat also drop it. Summaries are SHARED —
+ *  unchanged; writeChat/deleteChat also drop it. Summaries are SHARED:
  *  callers must never mutate them (frozen under tests). */
 const summaryCache = new Map<string, { version: string; summary: ChatSummary | null }>();
 
@@ -141,7 +164,7 @@ function summarize(record: ChatRecord): ChatSummary | null {
 	if (record.kind === "talk") return null;
 	const { messages, tree: _tree, turns: _turns, extractions: _extractions, ...summary } = record;
 	// Per-record isolation: a record whose messages fail the projection
-	// must not blank the whole sidebar — same isolation getChat's per-file
+	// must not blank the whole lesson list, same isolation getChat's per-file
 	// catch gives.
 	try {
 		return {
@@ -203,7 +226,7 @@ function appendExtractionUsage(id: string, entry: ExtractionRunUsage): void {
 
 /** Rename a session (the header's click-to-edit title). Like saveTree, a
  * rename is NOT conversation activity: updatedAt stays put
- * so sidebar order never churns. Same fallback as createChat — the empty
+ * so lesson list order never churns. Same fallback as createChat: the empty
  * string becomes "Untitled session" (the API gate rejects it first; this
  * is the honest floor for any other caller). */
 function renameChat(id: string, title: string): ChatRecord {
@@ -237,14 +260,14 @@ function saveAttachment(id: string, fileName: string, data: Uint8Array): string 
 	return file;
 }
 
-/** Set or clear the lesson's class. Quiet like
+/** Set or clear the lesson's space. Quiet like
  *  rename — updatedAt stays put — but it changes which list the lesson
  *  shows in, so it announces chats-changed (a list-SHAPE mutation). */
-function setChatClass(id: string, classId: string | null): ChatRecord {
+function setChatSpace(id: string, spaceId: string | null): ChatRecord {
 	const record = getChat(id);
 	if (!record) throw new Error(`Chat not found: ${id}`);
-	if (classId) record.classId = classId;
-	else delete record.classId;
+	if (spaceId) record.spaceId = spaceId;
+	else delete record.spaceId;
 	writeChat(record);
 	emit("chats-changed", {});
 	return record;
@@ -256,7 +279,7 @@ function saveTree(id: string, tree: PlanTree): void {
 	if (!record) throw new Error(`Chat not found: ${id}`);
 	record.tree = tree;
 	// Deliberately does NOT bump updatedAt: tree mutations piggyback on the
-	// turn's saveMessages, and sidebar ordering shouldn't churn on tree edits.
+	// turn's saveMessages, and lesson list ordering shouldn't churn on tree edits.
 	writeChat(record);
 }
 
@@ -270,7 +293,7 @@ export const chatStore: ChatStore = {
 	renameChat,
 	deleteChat,
 	saveAttachment,
-	setChatClass,
+	setChatSpace,
 	appendTurnUsage,
 	appendExtractionUsage,
 };

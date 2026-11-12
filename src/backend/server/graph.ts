@@ -1,6 +1,6 @@
 import * as fs from "node:fs";
 import { graphFilesIn } from "../config.ts";
-import type { ClassScope, GraphSnapshot } from "../../shared/core/contracts.ts";
+import type { SpaceScope, GraphSnapshot } from "../../shared/core/contracts.ts";
 import type { GraphCostSummary } from "../../shared/core/cost-summary.ts";
 import { graphCostSummary } from "../../shared/core/cost-summary.ts";
 import { graphSnapshot } from "../../shared/core/graph.ts";
@@ -17,18 +17,18 @@ import { graphDirFor, graphStoreFor, stores } from "./stores.ts";
  * answers in sessions (turn-service), never from here — the home view
  * reflects whatever the pipeline has merged so far.
  */
-export function graphView(scope: ClassScope = null): GraphSnapshot {
+export function graphView(scope: SpaceScope = null): GraphSnapshot {
 	return graphSnapshot({ chatStore: stores.chatStore, graphStore: graphStoreFor(scope) });
 }
 
 /** The graph view's cost surface (GET /api/graph/costs): a pure read of
  *  the chat records (chat-front-door runs) and the notes sources
  *  (notes-front-door runs), folded into stage totals + recent runs. */
-export function graphCosts(scope: ClassScope = null): GraphCostSummary {
+export function graphCosts(scope: SpaceScope = null): GraphCostSummary {
 	const chats = stores.chatStore
 		.listChats()
-		// A graph's costs are its own class's lessons only.
-		.filter((summary) => (summary.classId ?? null) === scope)
+		// A graph's costs are its own space's lessons only.
+		.filter((summary) => (summary.spaceId ?? null) === scope)
 		.flatMap((summary) => {
 			const record = stores.chatStore.getChat(summary.id);
 			return record?.extractions?.length
@@ -48,7 +48,7 @@ export function graphCosts(scope: ClassScope = null): GraphCostSummary {
  * never moves on reads, and needs no bookkeeping of its own: the fs
  * IS the counter. The DELETE responses return it so the graph
  *  knows to refetch — the "graph changed underneath me" signal. */
-export function graphRevision(scope: ClassScope = null): number {
+export function graphRevision(scope: SpaceScope = null): number {
 	let revision = 0;
 	const files = graphFilesIn(graphDirFor(scope));
 	for (const file of [files.nodes, files.chains, files.sessions, files.coverage, files.topics]) {
@@ -91,7 +91,7 @@ type NodeDeleteOutcome =
  *     mergeFindings ignores linkTo ids that no longer exist (the
  *     existingIds guard) — no dangling edges, no resurrection.
  */
-export function deleteGraphNode(nodeId: string, scope: ClassScope = null): NodeDeleteOutcome {
+export function deleteGraphNode(nodeId: string, scope: SpaceScope = null): NodeDeleteOutcome {
 	// Topic-grouping runs only read facts and write topics.jsonl — they
 	// never block a deletion (readers drop members that are gone).
 	if (extractionStatuses().some((run) => run.kind !== "topics")) {
@@ -99,7 +99,7 @@ export function deleteGraphNode(nodeId: string, scope: ClassScope = null): NodeD
 			ok: false,
 			status: 409,
 			code: "extraction_running",
-			error: "Godspeed is still adding to your graph. Try again when Background jobs in the teacher's panel is empty.",
+			error: "Godspeed is still adding to your graph. Try again when nothing is left under Running in the background in the teacher's Activity.",
 		};
 	}
 	// THE SYNC BLOCK — no awaits below (the doc above): the gate and the

@@ -55,7 +55,6 @@
 		"font-list": "^2.0.1",
 		"katex": "0.18.2",
 		"linkedom": "^0.18.13",
-		"lucide-react": "^1.33.0",
 		"mathlive": "0.111.1",
 		"mdast-util-from-markdown": "2.0.3",
 		"mdast-util-math": "3.0.0",

@@ -1,96 +1,83 @@
 import { memo, useMemo, type ReactNode } from "react";
-import type { ClassNote, ClassSignature, ProgressPayload } from "@/shared/core";
-import { ClassCover } from "./class-cover";
+import type { SpaceNote, DeadlineProgress, ProgressPayload } from "@/shared/core";
+import { SpaceFacts } from "./space-facts";
 import { ConfidenceCard } from "./confidence-card";
 import { LessonsCard } from "./lessons-card";
-import { answeredLessons, hasCalibration } from "./overview-model";
-import { RunwayCard } from "./runway-card";
-import { studiedFacts } from "./runway-model";
-import { Decode } from "@/frontend/components/ui/decode";
+import { MostNeeded } from "./most-needed";
+import { NextDeadline } from "./next-deadline";
+import { answeredLessons, hasCalibration, mostNeeded, recentLessons, upcomingDeadlines } from "./overview-model";
+import { RecentLessons } from "./recent-lessons";
+import { TeacherNote } from "./teacher-note";
 
 /**
- * The Overview page below the top bar (pure view — the render-test seam):
- * the header (a class's cover; "No class" gets just its name), then Ready
- * for what's due (classes only) and the How-lessons-went / confidence row. Each card shows only
- * once it has something to show; while loading the cards are absent.
+ * The Progress tab under the space head (pure view, the render-test seam),
+ * top to bottom: the teacher's note, the next deadline, "Most needed",
+ * "Pick up where you left off", the fact grid, "How lessons went" and the
+ * confidence chart. Each shows only once it has something to show; a
+ * space's deadline, topic and facts are left out for "Lessons with no space".
  */
 export const OverviewBody = memo(function OverviewBody({
-	name,
-	description,
-	hasClass,
-	classId,
-	signature,
+	hasSpace,
+	color,
 	note,
 	data,
 	nowMs,
 	busy,
 	startError,
 	onStudy,
-	onAddSignature,
-	pickClass,
+	onStartDeadline,
 	onAddDeadline,
+	pickSpace,
 }: {
-	name: string;
-	description: string;
-	hasClass: boolean;
-	/** The class shown (Halley flies to its header). */
-	classId?: string | null;
-	signature?: ClassSignature;
-	note?: ClassNote;
+	hasSpace: boolean;
+	/** The space's color (grey with no space). */
+	color: string;
+	note?: SpaceNote;
 	data: ProgressPayload | null;
 	/** The window's clock (null before the first client render). */
 	nowMs: number | null;
+	/** A lesson is starting. */
 	busy: boolean;
-	/** Why the last lesson didn't start (shown in the runway). */
+	/** Why the last lesson didn't start. */
 	startError: string | null;
 	/** "Most needed" → Study. */
 	onStudy: (topicId: string) => void;
-	/** The cover's "Add a signature" (opens Edit class). */
-	onAddSignature?: () => void;
-	/** Under the No class title: the classes to switch to. */
-	pickClass?: ReactNode;
-	/** The runway's Add deadline (opens Edit class with a new deadline). */
-	onAddDeadline?: () => void;
+	/** The next deadline's button. */
+	onStartDeadline: (d: DeadlineProgress) => void;
+	/** "Add a deadline" (opens the Deadlines tab). */
+	onAddDeadline: () => void;
+	/** With no space: the spaces to switch to. */
+	pickSpace?: ReactNode;
 }) {
-	const lessons = useMemo(() => answeredLessons(data?.lessons ?? []), [data?.lessons]);
-	const facts = useMemo(() => studiedFacts(data?.facts ?? []), [data?.facts]);
-	const showRunway = hasClass && !!data && nowMs !== null;
-	const showConfidence = !!data && hasCalibration(data.calibration.levels);
+	const answered = useMemo(() => answeredLessons(data?.lessons ?? []), [data?.lessons]);
+	const recent = useMemo(() => recentLessons(data?.lessons ?? []), [data?.lessons]);
+	const upcoming = useMemo(() => (data && nowMs !== null ? upcomingDeadlines(data.deadlines, nowMs) : []), [data, nowMs]);
+	const needed = useMemo(() => mostNeeded(upcoming), [upcoming]);
 	return (
-		<div data-testid="class-overview" className="@container flex w-full flex-col pb-4">
-			{classId ? (
-				<ClassCover classId={classId} name={name} description={description} signature={signature} note={note} facts={data ? facts : null} nowMs={nowMs} onAddSignature={onAddSignature} />
-			) : (
-				<header className="flex flex-col gap-2 px-[52px] py-6">
-					<h1 data-testid="overview-name" className="font-bold text-[40px] leading-[48px] tracking-tight text-ink">
-						<Decode text={name} />
-					</h1>
-					{pickClass}
-				</header>
+		<div data-testid="space-overview" className="mx-auto flex w-full max-w-[908px] flex-col gap-[22px] px-6 pt-[22px] pb-9">
+			{pickSpace}
+			{note && <TeacherNote note={note} nowMs={nowMs} />}
+			{hasSpace && data && nowMs !== null && (
+				<NextDeadline
+					deadline={upcoming[0] ?? null}
+					none={data.deadlines.length === 0 ? "No deadlines yet" : "Nothing is coming up."}
+					color={color}
+					nowMs={nowMs}
+					busy={busy}
+					onStart={onStartDeadline}
+					onAddDeadline={onAddDeadline}
+				/>
 			)}
-			<div className="flex flex-col gap-3 px-[52px]">
-				{showRunway && (
-					<RunwayCard
-						deadlines={data.deadlines}
-						today={data.today}
-						nowMs={nowMs}
-						busy={busy}
-						startError={startError}
-						onStudy={onStudy}
-						onAddDeadline={onAddDeadline}
-					/>
-				)}
-				{(lessons.length > 0 || showConfidence) && (
-					<div className="flex flex-col items-start gap-3 @4xl:flex-row">
-						{lessons.length > 0 && (
-							<div className="w-full min-w-0 flex-1">
-								<LessonsCard lessons={lessons} />
-							</div>
-						)}
-						{showConfidence && <ConfidenceCard calibration={data.calibration} className="@4xl:min-w-0 @4xl:flex-1" />}
-					</div>
-				)}
-			</div>
+			{startError && (
+				<p role="alert" data-testid="start-error" className="text-[15px] text-ans-wrong">
+					{startError}
+				</p>
+			)}
+			{hasSpace && needed && <MostNeeded needed={needed} busy={busy} onStudy={onStudy} />}
+			{recent.length > 0 && <RecentLessons lessons={recent} color={color} nowMs={nowMs} />}
+			{hasSpace && data && <SpaceFacts progress={data} />}
+			{answered.length > 0 && <LessonsCard lessons={answered} />}
+			{data && hasCalibration(data.calibration.levels) && <ConfidenceCard calibration={data.calibration} />}
 		</div>
 	);
 });

@@ -41,7 +41,7 @@ export function lastLearnerText(messages: readonly LhMessage[]): string | null {
 	return null;
 }
 
-/** What Try again does: send the message box again, send the learner's
+/** What Try again does: send the writing box again, send the learner's
  *  last message again, run a failed reply to anything else (an answer)
  *  again, or read the lesson again. */
 export function retryAction(

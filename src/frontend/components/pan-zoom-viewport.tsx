@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type PointerEvent } from "react";
-import { MaximizeIcon, MinusIcon, PlusIcon } from "lucide-react";
 import { fitGraphView, fitZoomFor, zoomedGraphView, type Viewport } from "@/frontend/components/pan-zoom";
 import { Hint } from "@/frontend/components/ui/hint";
+import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 
 /**
  * The pan/zoom viewport wiring shared by the plan popup and the diagram
@@ -102,7 +102,7 @@ export function usePanZoomViewport(box: { w: number; h: number }, ready: boolean
 }
 
 const ZOOM_BUTTON =
-	"lh-press pointer-events-auto flex size-7 items-center justify-center border border-border/70 bg-card/80 text-muted-foreground backdrop-blur hover:bg-accent hover:text-foreground";
+	"lh-press pointer-events-auto flex h-7 min-w-7 items-center justify-center rounded-[2px] border-[1.5px] border-ink bg-panel px-2 text-sm text-ink hover:bg-highlight";
 
 /** The viewport's bottom bar: the pan hint and zoom out / fit / zoom in. */
 export function ZoomControls({
@@ -122,17 +122,17 @@ export function ZoomControls({
 			<div className="flex gap-1">
 				<Hint label="Zoom out" side="bottom">
 					<button type="button" aria-label="Zoom out" onClick={() => onStep(1 / 1.25)} className={ZOOM_BUTTON}>
-						<MinusIcon className="size-3.5" />
+						<PixelIcon name="minus" />
 					</button>
 				</Hint>
 				<Hint label={fitLabel} side="bottom">
 					<button type="button" aria-label={fitLabel} onClick={onFit} data-testid={fitTestId} className={ZOOM_BUTTON}>
-						<MaximizeIcon className="size-3.5" />
+						Fit
 					</button>
 				</Hint>
 				<Hint label="Zoom in" side="bottom">
 					<button type="button" aria-label="Zoom in" onClick={() => onStep(1.25)} className={ZOOM_BUTTON}>
-						<PlusIcon className="size-3.5" />
+						<PixelIcon name="plus" />
 					</button>
 				</Hint>
 			</div>

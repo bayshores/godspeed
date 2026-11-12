@@ -7,7 +7,7 @@
  * topic grouper: one request that carries the sheet's context and the last
  * few messages, so it stays out of the Talk chat and the lessons. The
  * agent answers, and may make or change the PDF in the sheet's working
- * folder (the godspeed folder's cheat-sheets/<class deadline>/, so its
+ * folder (the godspeed folder's cheat-sheets/<space deadline>/, so its
  * source is there for the next change); the PDF is copied into the app's
  * data, so nothing here depends on that folder afterwards. A PDF changed
  * in that folder outside godspeed comes in as a new version when the sheet
@@ -36,9 +36,8 @@ import {
 	withoutRule,
 	type CheatSheet,
 	type CheatSheetView,
-	type ClassSheetsView,
+	type SpaceSheetsView,
 	type RequestTopic,
-	type SheetAbout,
 	type SheetFile,
 	type SheetMistake,
 	type SheetRegion,
@@ -49,15 +48,15 @@ import { ChatInputError } from "../../shared/core/input-events.ts";
 import { topicFacts, topicStatus } from "../../shared/core/progress.ts";
 import { localDay } from "../../shared/core/today-note.ts";
 import { agentEngine, type PiEngine } from "../agent/models.ts";
-import { searchTools } from "../agent/tools/class.ts";
+import { searchTools } from "../agent/tools/space.ts";
 import { replyOnSheet } from "../agent/subagents/cheat-sheet-writer.ts";
-import { uniqueName } from "../../shared/core/class-shortcuts.ts";
+import { uniqueName } from "../../shared/core/space-shortcuts.ts";
 import { readCheatSheet, readCheatSheetFile, readSheetPdf, removeSheetPdfs, saveCheatSheetFile, saveSheetPdf, writeCheatSheet } from "../store/cheat-sheets.ts";
 import { cheatSheetsDir } from "./agent-folder.ts";
 import { takeSheetPdf } from "./cheat-sheet-pdf.ts";
 import { storeAttachments } from "./attachments.ts";
-import { classMistakes, classOrderFor, progressFor } from "./progress.ts";
-import { readPassage, searchClassFiles } from "./search-index.ts";
+import { spaceMistakes, spaceOrderFor, progressFor } from "./progress.ts";
+import { readPassage, searchSpaceFiles } from "./search-index.ts";
 import { stores } from "./stores.ts";
 
 /** Test seam: a scripted engine in place of the outside agent. */
@@ -65,8 +64,6 @@ export const cheatSheetSeams: { engine?: PiEngine } = {};
 
 /** Facts sent per topic, to keep the request short. */
 const FACTS_PER_TOPIC = 5;
-/** The longest problem or work text a message carries from a session. */
-const ABOUT_MAX = 4000;
 
 interface SheetState {
 	/** The message each sheet's agent is answering. */
@@ -92,30 +89,30 @@ const changed = (deadlineId: string) => emit("cheat-sheet-changed", { deadlineId
 const NEWER = "A newer godspeed saved this cheat sheet. Update godspeed to change it.";
 const BUSY = "Your agent is still answering your last message about this sheet.";
 
-/** Everything one request needs: the class, the deadline, its topics. */
+/** Everything one request needs: the space, the deadline, its topics. */
 interface Context {
-	classId: string;
-	className: string;
-	classNotes: string;
+	spaceId: string;
+	spaceName: string;
+	spaceNotes: string;
 	infoFiles: string[];
 	deadline: { id: string; name: string; date: string };
-	/** The deadline's topics in class order. */
+	/** The deadline's topics in space order. */
 	topics: RequestTopic[];
 	mistakes: SheetMistake[];
 	/** The saved sheet, or null. */
 	saved: CheatSheet | "newer" | null;
 }
 
-function contextFor(classId: string, deadlineId: string): Outcome<Context> {
-	const record = stores.classStore.getClass(classId);
+function contextFor(spaceId: string, deadlineId: string): Outcome<Context> {
+	const record = stores.spaceStore.getSpace(spaceId);
 	const deadline = record?.deadlines?.find((d) => d.id === deadlineId);
-	const progress = record && deadline ? progressFor(classId) : null;
+	const progress = record && deadline ? progressFor(spaceId) : null;
 	const due = progress?.deadlines.find((d) => d.id === deadlineId);
 	if (!record || !deadline || !progress || !due) return fail(404, "No such deadline");
-	const order = classOrderFor(classId, progress);
+	const order = spaceOrderFor(spaceId, progress);
 	const rank = (topicId: string) => Math.min(...(progress.topics.find((t) => t.id === topicId)?.members.map((id) => order.get(id) ?? Infinity) ?? [Infinity]));
 	const ids = [...due.topicIds].sort((a, b) => rank(a) - rank(b));
-	const all = classMistakes(classId, progress);
+	const all = spaceMistakes(spaceId, progress);
 	const counts = mistakeCounts(all, ids);
 	const topics = ids.map((id) => {
 		const t = progress.topics.find((x) => x.id === id)!;
@@ -132,30 +129,30 @@ function contextFor(classId: string, deadlineId: string): Outcome<Context> {
 	return {
 		ok: true,
 		value: {
-			classId,
-			className: record.name,
-			classNotes: record.description,
+			spaceId,
+			spaceName: record.name,
+			spaceNotes: record.description,
 			infoFiles: (record.files ?? []).filter((f) => f.kind === "info").map((f) => f.name),
 			deadline: { id: deadline.id, name: deadline.name, date: deadline.date },
 			topics,
 			mistakes: sheetMistakes(all, ids),
-			saved: readCheatSheet(classId, deadlineId),
+			saved: readCheatSheet(spaceId, deadlineId),
 		},
 	};
 }
 
 /** The latest saved sheet, or a new one. */
 function sheetNow(ctx: Context): CheatSheet {
-	const now = readCheatSheet(ctx.classId, ctx.deadline.id);
+	const now = readCheatSheet(ctx.spaceId, ctx.deadline.id);
 	return now && now !== "newer" ? now : newCheatSheet(ctx.deadline.id, new Date().toISOString());
 }
 
 /** GET: the view the studio and the sheet beside a session show, after
  *  taking a newer PDF from the working folder. */
-export async function cheatSheetView(classId: string, deadlineId: string): Promise<Outcome<CheatSheetView>> {
-	let got = contextFor(classId, deadlineId);
+export async function cheatSheetView(spaceId: string, deadlineId: string): Promise<Outcome<CheatSheetView>> {
+	let got = contextFor(spaceId, deadlineId);
 	if (!got.ok) return got;
-	if (await takeFolderPdf(got.value)) got = contextFor(classId, deadlineId);
+	if (await takeFolderPdf(got.value)) got = contextFor(spaceId, deadlineId);
 	if (!got.ok) return got;
 	const ctx = got.value;
 	const s = state();
@@ -164,7 +161,7 @@ export async function cheatSheetView(classId: string, deadlineId: string): Promi
 	return {
 		ok: true,
 		value: {
-			className: ctx.className,
+			spaceName: ctx.spaceName,
 			deadlineName: ctx.deadline.name,
 			date: ctx.deadline.date,
 			sheet: ctx.saved && ctx.saved !== "newer" ? ctx.saved : newCheatSheet(deadlineId, new Date().toISOString()),
@@ -208,11 +205,11 @@ async function takeFolderPdf(ctx: Context): Promise<boolean> {
 	}
 	const now = sheetNow(ctx);
 	const latest = currentVersion(now);
-	if (latest && readSheetPdf(ctx.classId, ctx.deadline.id, latest.n)?.equals(pdf.bytes)) return false;
+	if (latest && readSheetPdf(ctx.spaceId, ctx.deadline.id, latest.n)?.equals(pdf.bytes)) return false;
 	const next = withVersion(now, { prompt: "", at: new Date().toISOString(), pages: pdf.pages, file: pdf.file, fromFolder: true });
-	saveSheetPdf(ctx.classId, ctx.deadline.id, currentVersion(next.sheet)!.n, pdf.bytes);
-	writeCheatSheet(ctx.classId, next.sheet);
-	removeSheetPdfs(ctx.classId, ctx.deadline.id, next.dropped);
+	saveSheetPdf(ctx.spaceId, ctx.deadline.id, currentVersion(next.sheet)!.n, pdf.bytes);
+	writeCheatSheet(ctx.spaceId, next.sheet);
+	removeSheetPdfs(ctx.spaceId, ctx.deadline.id, next.dropped);
 	return true;
 }
 
@@ -221,12 +218,12 @@ function engine(): PiEngine {
 }
 
 /** The sheet's working folder, made if missing: the one it was given at
- *  its first request, else a new one named for the class and deadline. */
+ *  its first request, else a new one named for the space and deadline. */
 function workingFolder(ctx: Context, sheet: CheatSheet): { sheet: CheatSheet; path: string; files: string[] } {
 	const root = cheatSheetsDir();
 	fs.mkdirSync(root, { recursive: true });
 	const taken = new Set(fs.readdirSync(root).map((n) => n.toLowerCase()));
-	const name = sheet.folder ?? uniqueName(sheetFolderName(ctx.className, ctx.deadline.name), taken);
+	const name = sheet.folder ?? uniqueName(sheetFolderName(ctx.spaceName, ctx.deadline.name), taken);
 	const dir = path.join(root, name);
 	fs.mkdirSync(dir, { recursive: true });
 	const files = fs.readdirSync(dir).filter((n) => !n.startsWith(".")).sort();
@@ -237,9 +234,9 @@ const PICTURE_TYPES: Record<string, string> = { png: "image/png", jpg: "image/jp
 
 /** A message's files as the agent reads them: pictures inline, PDFs as a
  *  note naming their path. Files that are gone are left out. */
-function filesForAgent(classId: string, deadlineId: string, files: readonly SheetFile[]): AttachmentPart[] {
+function filesForAgent(spaceId: string, deadlineId: string, files: readonly SheetFile[]): AttachmentPart[] {
 	return files.flatMap((f): AttachmentPart[] => {
-		const saved = f.file ? readCheatSheetFile(classId, deadlineId, f.file) : null;
+		const saved = f.file ? readCheatSheetFile(spaceId, deadlineId, f.file) : null;
 		if (!saved) return [];
 		if (/\.pdf$/i.test(f.file!)) return [pdfNote(f.name, saved.path)];
 		const mimeType = PICTURE_TYPES[f.file!.split(".").pop()!] ?? "image/png";
@@ -262,7 +259,7 @@ function startRun(ctx: Context, messageId: string): Outcome<null> {
 		return fail(500, `Couldn't make the cheat sheet's folder: ${(err as Error).message}`);
 	}
 	// Saved now, so a retry or a renamed deadline keeps the same folder.
-	if (folder.sheet.folder !== ctx.saved?.folder) writeCheatSheet(ctx.classId, folder.sheet);
+	if (folder.sheet.folder !== ctx.saved?.folder) writeCheatSheet(ctx.spaceId, folder.sheet);
 	const index = folder.sheet.messages.findIndex((m) => m.id === messageId);
 	const message = folder.sheet.messages[index];
 	if (!message || message.role !== "you") return fail(409, "That message is gone.");
@@ -271,9 +268,9 @@ function startRun(ctx: Context, messageId: string): Outcome<null> {
 	s.failed.delete(id);
 	changed(id);
 	const text = cheatSheetRequestText({
-		title: `${ctx.className} ${ctx.deadline.name}`,
+		title: `${ctx.spaceName} ${ctx.deadline.name}`,
 		date: ctx.deadline.date,
-		classNotes: ctx.classNotes,
+		spaceNotes: ctx.spaceNotes,
 		infoFiles: ctx.infoFiles,
 		rules: folder.sheet.rules,
 		topics: ctx.topics,
@@ -283,11 +280,11 @@ function startRun(ctx: Context, messageId: string): Outcome<null> {
 		earlier: folder.sheet.messages.slice(0, index),
 		message,
 	});
-	const parts = filesForAgent(ctx.classId, id, message.files ?? []);
+	const parts = filesForAgent(ctx.spaceId, id, message.files ?? []);
 	const prompt: UserMessage["content"] = parts.length > 0 ? [{ type: "text", text }, ...parts] : text;
-	const lookups = Object.values(searchTools({ searchFiles: (query, limit) => searchClassFiles(ctx.classId, query, limit), readPassage: (ref) => readPassage(ctx.classId, ref) }));
+	const lookups = Object.values(searchTools({ searchFiles: (query, limit) => searchSpaceFiles(ctx.spaceId, query, limit), readPassage: (ref) => readPassage(ctx.spaceId, ref) }));
 	const takePdf = (pdfPath: string) => takeSheetPdf(folder.path, pdfPath);
-	void replyOnSheet({ title: `${ctx.className} ${ctx.deadline.name}`, prompt, lookups, takePdf, engine: engine(), signal: controller.signal })
+	void replyOnSheet({ title: `${ctx.spaceName} ${ctx.deadline.name}`, prompt, lookups, takePdf, engine: engine(), signal: controller.signal })
 		.then((reply) => {
 			const at = new Date().toISOString();
 			let sheet = sheetNow(ctx);
@@ -295,8 +292,8 @@ function startRun(ctx: Context, messageId: string): Outcome<null> {
 			if (reply.pdf) {
 				const next = withVersion(sheet, { prompt: message.text, at, pages: reply.pdf.pages, file: reply.pdf.file });
 				version = currentVersion(next.sheet)!.n;
-				saveSheetPdf(ctx.classId, id, version, reply.pdf.bytes);
-				removeSheetPdfs(ctx.classId, id, next.dropped);
+				saveSheetPdf(ctx.spaceId, id, version, reply.pdf.bytes);
+				removeSheetPdfs(ctx.spaceId, id, next.dropped);
 				sheet = next.sheet;
 			}
 			const kept = withRules(sheet, reply.rules, at);
@@ -308,7 +305,7 @@ function startRun(ctx: Context, messageId: string): Outcome<null> {
 				...(version ? { version } : {}),
 				...(kept.added.length > 0 ? { rules: kept.added } : {}),
 			});
-			writeCheatSheet(ctx.classId, { ...sheet, updatedAt: at });
+			writeCheatSheet(ctx.spaceId, { ...sheet, updatedAt: at });
 		})
 		.catch((err: unknown) => {
 			if (controller.signal.aborted) return;
@@ -325,10 +322,10 @@ function startRun(ctx: Context, messageId: string): Outcome<null> {
 /** Show in Finder: where a version's PDF is in the sheet's working folder.
  *  Its own file while it is still that version, else godspeed's copy
  *  written there as "cheat sheet v<n>.pdf". */
-export function sheetPdfFile(classId: string, deadlineId: string, n: number): Outcome<string> {
-	const saved = readCheatSheet(classId, deadlineId);
+export function sheetPdfFile(spaceId: string, deadlineId: string, n: number): Outcome<string> {
+	const saved = readCheatSheet(spaceId, deadlineId);
 	const version = saved && saved !== "newer" ? saved.versions.find((v) => v.n === n) : null;
-	const bytes = saved && saved !== "newer" && version ? cheatSheetPdf(classId, deadlineId, n) : null;
+	const bytes = saved && saved !== "newer" && version ? cheatSheetPdf(spaceId, deadlineId, n) : null;
 	if (!saved || saved === "newer" || !version || !bytes || !saved.folder) return fail(404, "No such cheat sheet");
 	const same = (file: string) => {
 		try {
@@ -347,32 +344,32 @@ export function sheetPdfFile(classId: string, deadlineId: string, n: number): Ou
 	return { ok: true, value: copy };
 }
 
-/** GET the class's Cheat sheets page: each deadline and where its sheet is. */
-export function classSheetsView(classId: string): Outcome<ClassSheetsView> {
-	const record = stores.classStore.getClass(classId);
-	if (!record) return fail(404, "No such class");
+/** GET the space's Cheat sheets page: each deadline and where its sheet is. */
+export function spaceSheetsView(spaceId: string): Outcome<SpaceSheetsView> {
+	const record = stores.spaceStore.getSpace(spaceId);
+	if (!record) return fail(404, "No such space");
 	const runs = state().runs;
-	const cards = sheetCards(record.deadlines ?? [], (id) => readCheatSheet(classId, id), (id) => runs.has(id), localDay());
-	return { ok: true, value: { className: record.name, cards } };
+	const cards = sheetCards(record.deadlines ?? [], (id) => readCheatSheet(spaceId, id), (id) => runs.has(id), localDay());
+	return { ok: true, value: { spaceName: record.name, cards } };
 }
 
 /** A version's PDF, as the agent made it; null when there is none. */
-export function cheatSheetPdf(classId: string, deadlineId: string, n: number): Buffer | null {
-	return stores.classStore.getClass(classId)?.deadlines?.some((d) => d.id === deadlineId) ? readSheetPdf(classId, deadlineId, n) : null;
+export function cheatSheetPdf(spaceId: string, deadlineId: string, n: number): Buffer | null {
+	return stores.spaceStore.getSpace(spaceId)?.deadlines?.some((d) => d.id === deadlineId) ? readSheetPdf(spaceId, deadlineId, n) : null;
 }
 
 /** A picture or PDF sent in the sheet's chat, with its type; null when there is none. */
-export function cheatSheetFile(classId: string, deadlineId: string, file: string): { bytes: Buffer; type: string } | null {
-	const known = stores.classStore.getClass(classId)?.deadlines?.some((d) => d.id === deadlineId);
-	const saved = known ? readCheatSheetFile(classId, deadlineId, file) : null;
+export function cheatSheetFile(spaceId: string, deadlineId: string, file: string): { bytes: Buffer; type: string } | null {
+	const known = stores.spaceStore.getSpace(spaceId)?.deadlines?.some((d) => d.id === deadlineId);
+	const saved = known ? readCheatSheetFile(spaceId, deadlineId, file) : null;
 	if (!saved) return null;
 	return { bytes: saved.bytes, type: /\.pdf$/i.test(file) ? "application/pdf" : (PICTURE_TYPES[file.split(".").pop()!] ?? "application/octet-stream") };
 }
 
 /** Keep a message's files beside the sheet: pictures resized as the
  *  lessons keep them, PDFs as sent. */
-async function keepFiles(classId: string, deadlineId: string, attachments: readonly ChatAttachment[]): Promise<SheetFile[]> {
-	const parts = await storeAttachments(attachments, (fileName, bytes) => saveCheatSheetFile(classId, deadlineId, fileName, bytes));
+async function keepFiles(spaceId: string, deadlineId: string, attachments: readonly ChatAttachment[]): Promise<SheetFile[]> {
+	const parts = await storeAttachments(attachments, (fileName, bytes) => saveCheatSheetFile(spaceId, deadlineId, fileName, bytes));
 	return parts.map((part, i) => {
 		const name = attachments[i]!.name;
 		if (part.type === "text") return { name, file: path.basename(pdfNoteOf(part.text)?.path ?? "") };
@@ -380,25 +377,25 @@ async function keepFiles(classId: string, deadlineId: string, attachments: reado
 		const hash = createHash("sha256").update(bytes).digest("hex");
 		// Named like a kept PDF (content hash, cleaned name), with the picture's own type.
 		const file = pdfFileName(name.replace(/\.\w+$/, ""), hash).replace(/\.pdf$/, part.mimeType === "image/png" ? ".png" : ".jpg");
-		saveCheatSheetFile(classId, deadlineId, file, bytes);
+		saveCheatSheetFile(spaceId, deadlineId, file, bytes);
 		return { name, file };
 	});
 }
 
-/** A message in the sheet's chat, from the studio or the sheet beside a
- *  session: kept, then the agent answers it. Pictures go to the agent as
- *  pictures (a region's picture first), PDFs as a note with their path. */
+/** A message in the sheet's chat: kept, then the agent answers it.
+ *  Pictures go to the agent as pictures (a region's picture first), PDFs
+ *  as a note with their path. */
 export async function askCheatSheet(
-	classId: string,
+	spaceId: string,
 	deadlineId: string,
-	input: { text: string; attachments?: readonly ChatAttachment[]; region?: SheetRegion; about?: SheetAbout },
+	input: { text: string; attachments?: readonly ChatAttachment[]; region?: SheetRegion },
 ): Promise<Outcome<null>> {
 	const text = input.text.trim();
 	const attachments = input.attachments ?? [];
 	if (!text && attachments.length === 0) return fail(400, "Say what you want to ask or change.");
 	if (text.length > PROMPT_MAX) return fail(400, `Keep it under ${PROMPT_MAX} characters.`);
 	if (attachments.some((a) => !isPdfType(a.mimeType) && !a.mimeType.startsWith("image/"))) return fail(400, "Send pictures or PDFs.");
-	const got = contextFor(classId, deadlineId);
+	const got = contextFor(spaceId, deadlineId);
 	if (!got.ok) return got;
 	if (got.value.saved === "newer") return fail(409, NEWER);
 	if (state().runs.has(deadlineId)) return fail(409, BUSY);
@@ -407,12 +404,11 @@ export async function askCheatSheet(
 	if (regionWrong) return fail(400, regionWrong);
 	let files: SheetFile[];
 	try {
-		files = await keepFiles(classId, deadlineId, attachments);
+		files = await keepFiles(spaceId, deadlineId, attachments);
 	} catch (err) {
 		if (err instanceof ChatInputError) return fail(400, err.message);
 		throw err;
 	}
-	const about = input.about && { ...input.about, text: input.about.text.slice(0, ABOUT_MAX), ...(input.about.work ? { work: input.about.work.slice(0, ABOUT_MAX) } : {}) };
 	const message: YouMessage = {
 		id: randomUUID(),
 		role: "you",
@@ -420,17 +416,16 @@ export async function askCheatSheet(
 		at: new Date().toISOString(),
 		...(files.length > 0 ? { files } : {}),
 		...(input.region ? { region: input.region } : {}),
-		...(about ? { about } : {}),
 	};
-	writeCheatSheet(classId, withMessage(sheet, message));
-	return startRun({ ...got.value, saved: readCheatSheet(classId, deadlineId) }, message.id);
+	writeCheatSheet(spaceId, withMessage(sheet, message));
+	return startRun({ ...got.value, saved: readCheatSheet(spaceId, deadlineId) }, message.id);
 }
 
 /** Try again: the message the last request failed on, sent again. */
-export function retryCheatSheet(classId: string, deadlineId: string): Outcome<null> {
+export function retryCheatSheet(spaceId: string, deadlineId: string): Outcome<null> {
 	const failed = state().failed.get(deadlineId);
 	if (!failed) return fail(409, "Nothing to try again.");
-	const got = contextFor(classId, deadlineId);
+	const got = contextFor(spaceId, deadlineId);
 	return got.ok ? startRun(got.value, failed.messageId) : got;
 }
 
@@ -440,12 +435,12 @@ export function stopCheatSheet(deadlineId: string): void {
 }
 
 /** Delete one of the sheet's rules. */
-export function removeSheetRule(classId: string, deadlineId: string, text: string): Outcome<null> {
-	const got = contextFor(classId, deadlineId);
+export function removeSheetRule(spaceId: string, deadlineId: string, text: string): Outcome<null> {
+	const got = contextFor(spaceId, deadlineId);
 	if (!got.ok) return got;
 	if (got.value.saved === "newer") return fail(409, NEWER);
 	const sheet = sheetNow(got.value);
-	writeCheatSheet(classId, withoutRule(sheet, text));
+	writeCheatSheet(spaceId, withoutRule(sheet, text));
 	changed(deadlineId);
 	return { ok: true, value: null };
 }

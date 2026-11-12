@@ -2,20 +2,20 @@
  * Settings → Appearance:
  * background presets on top, the type controls on the left and a live
  * lesson preview on the right. The preview uses the real lesson styles,
- * so every saved change shows in it (and in the app behind the dialog).
+ * so every saved change shows in it (and in the app behind the page).
  */
 
 import { useEffect, useRef, useState } from "react";
-import { ChevronDownIcon, PipetteIcon, PlusIcon } from "lucide-react";
 import type { AppearanceSettings } from "@/shared/core";
 import { MenuShell } from "@/frontend/components/menu-shell";
 import { cn } from "@/frontend/lib/utils";
 import { useAppearance } from "./appearance.tsx";
-import { BACKGROUND_PRESETS, HEADING_WEIGHTS, INK_PRESETS, derivedPalette, readableBackground } from "./appearance-model.ts";
+import { BACKGROUND_PRESETS, HEADING_WEIGHTS, INK_PRESETS, PAPER, derivedPalette, readableBackground } from "./appearance-model.ts";
 import { DEFAULT_READING_FONT, FontMenuList } from "./font-menu";
-import { SettingsGroup, Slider } from "./controls.tsx";
-import { LABEL_TEXT } from "@/frontend/components/ui/label-text";
-
+import { Slider } from "./controls.tsx";
+import { RULE } from "@/frontend/components/deadline/styles";
+import { Pane } from "@/frontend/components/ui/pane";
+import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 
 /** Offered when the installed list can't be read (a plain browser). */
 export const CURATED_FALLBACK_FONTS: readonly string[] = [
@@ -49,7 +49,7 @@ export function AppearanceSection({
 	const { appearance: resolved } = useAppearance();
 	const md = appearance?.mdRendering;
 	const background = appearance?.background ?? null;
-	const shownBackground = background ?? "#000000";
+	const shownBackground = background ?? PAPER;
 	const isPreset = BACKGROUND_PRESETS.some((p) => p.color === background);
 	const weightIndex = Math.max(0, HEADING_WEIGHTS.findIndex((w) => w.weight >= resolved.mdRendering.headingWeight));
 	const ink = md?.boldColor ?? null;
@@ -58,45 +58,41 @@ export function AppearanceSection({
 		onSectionChange({ ...appearance, mdRendering: { ...md, boldColor: color, italicColor: color } });
 
 	return (
-		<>
-			<SettingsGroup label="Background" testid="group-background">
-				<div className="grid grid-cols-5 gap-2.5">
+		<div className="flex flex-col gap-5">
+			<Pane data-testid="group-background" className="flex flex-col gap-3.5 px-6 py-[18px]">
+				<h2 className="text-xl leading-tight text-ink">Background</h2>
+				<div className="grid grid-cols-7 gap-2.5">
 					{BACKGROUND_PRESETS.map((preset) => (
 						<ThemeTile
 							key={preset.name}
 							name={preset.name}
-							color={preset.color ?? "#000000"}
+							color={preset.color ?? PAPER}
 							on={preset.color === background}
 							onPick={() => onSectionChange({ ...appearance, background: preset.color })}
 						/>
 					))}
-					<label className="lh-press flex cursor-pointer flex-col gap-[7px]" data-testid="theme-custom">
+					<label className="lh-press flex cursor-pointer flex-col items-center gap-1.5" data-testid="theme-custom">
 						<span
 							className={cn(
-								"relative flex h-16 items-center justify-center border",
-								!isPreset ? "border-2 border-ink" : "border-tone-2",
+								"relative flex h-16 w-full items-center justify-center rounded-[3px] border bg-background",
+								!isPreset ? "border-2 border-ink" : "border-edge",
 							)}
-							style={{
-								background: !isPreset && background ? readableBackground(background) : "conic-gradient(#e4573f, #d2a24c, #93b08a, #4a6fd1, #e4573f)",
-							}}
+							style={!isPreset && background ? { background: readableBackground(background) } : undefined}
 						>
 							<span className="flex size-[26px] items-center justify-center bg-background text-ink">
-								<PlusIcon className="size-3.5" aria-hidden />
+								<PixelIcon name="plus" className="h-3.5" />
 							</span>
 							<ColorInput label="Custom background color" value={shownBackground} onCommit={(c) => onSectionChange({ ...appearance, background: c })} />
 						</span>
-						<span className={cn("text-[12.5px]", !isPreset ? "font-bold text-ink" : "text-ink-2")}>Custom</span>
+						<span className={cn("text-sm text-ink", !isPreset && "font-medium")}>Custom</span>
 					</label>
 				</div>
-			</SettingsGroup>
+			</Pane>
 
-			<div className="mt-[22px] flex gap-6">
-				<div className="flex w-[300px] shrink-0 flex-col gap-[18px]">
+			<div className="flex items-start gap-5">
+				<Pane className="flex w-[340px] shrink-0 flex-col gap-[18px] px-6 py-5">
 					<Control label="Reading font">
-						<FontPicker
-							family={appearance?.fontFamily ?? null}
-							onPick={(family) => onSectionChange(composeFontFamily(appearance, family))}
-						/>
+						<FontPicker family={appearance?.fontFamily ?? null} onPick={(family) => onSectionChange(composeFontFamily(appearance, family))} />
 					</Control>
 					<Control label="Text size">
 						<Slider
@@ -121,34 +117,41 @@ export function AppearanceSection({
 						/>
 					</Control>
 					<Control label="Bold and italic color">
-						<div className="flex items-center gap-1.5">
-							<InkSwatch color={derivedPalette(readableBackground(shownBackground))["--foreground"]!} label="Same as text" on={ink === null} onPick={() => setInk(null)} />
+						<div className="flex flex-wrap items-center gap-2">
+							<button
+								type="button"
+								aria-pressed={ink === null}
+								onClick={() => setInk(null)}
+								className={cn("lh-press h-7 rounded-[3px] border-[1.5px] border-ink px-2.5 text-sm", ink === null ? "bg-tint text-background" : "text-ink hover:bg-tone")}
+							>
+								Same as text
+							</button>
 							{INK_PRESETS.map((c) => (
-								<InkSwatch key={c} color={c} label={c} on={ink === c} onPick={() => setInk(c)} />
+								<InkSwatch key={c} color={c} on={ink === c} onPick={() => setInk(c)} />
 							))}
 							<label
 								className={cn(
-									"lh-press relative flex size-7 cursor-pointer items-center justify-center border text-ink-2 hover:text-ink",
-									customInk ? "border-2 border-ink" : "border-tone-2",
+									"lh-press relative flex size-7 cursor-pointer items-center justify-center rounded-[3px] border bg-background text-ink",
+									customInk ? "border-2 border-ink" : "border-edge",
 								)}
 								style={customInk ? { background: ink } : undefined}
 							>
-								<PipetteIcon className="size-[13px]" aria-hidden />
+								<PixelIcon name="plus" className="h-[10.5px]" />
 								<ColorInput label="Custom bold and italic color" value={ink ?? "#ffffff"} onCommit={setInk} />
 							</label>
 						</div>
 					</Control>
-				</div>
+				</Pane>
 				<Preview />
 			</div>
-		</>
+		</div>
 	);
 }
 
 function Control({ label, children }: { label: string; children: React.ReactNode }) {
 	return (
 		<div className="flex flex-col gap-2">
-			<p className={LABEL_TEXT}>{label}</p>
+			<p className="text-lg font-medium text-ink">{label}</p>
 			{children}
 		</div>
 	);
@@ -157,16 +160,16 @@ function Control({ label, children }: { label: string; children: React.ReactNode
 function ThemeTile({ name, color, on, onPick }: { name: string; color: string; on: boolean; onPick: () => void }) {
 	const p = derivedPalette(color);
 	return (
-		<button type="button" aria-pressed={on} data-testid={`theme-${name.toLowerCase()}`} onClick={onPick} className="lh-press flex flex-col gap-[7px] text-left">
+		<button type="button" aria-pressed={on} data-testid={`theme-${name.toLowerCase()}`} onClick={onPick} className="lh-press flex flex-col items-center gap-1.5">
 			<span
-				className={cn("flex h-16 flex-col gap-[5px] px-2.5 py-2.5", on ? "border-2 border-ink" : "border")}
+				className={cn("flex h-16 w-full flex-col gap-1.5 rounded-[3px] p-2.5", on ? "border-2 border-ink" : "border")}
 				style={{ background: color, borderColor: on ? undefined : p["--border"] }}
 			>
-				<span className="h-1.5 w-11" style={{ background: p["--foreground"] }} />
-				<span className="h-1 w-full" style={{ background: p["--muted-foreground"] }} />
-				<span className="h-1 w-[30px]" style={{ background: p["--muted-foreground"] }} />
+				<span className="h-[5px] w-10" style={{ background: p["--foreground"] }} />
+				<span className="h-[3px] w-[70px] max-w-full" style={{ background: p["--foreground"] }} />
+				<span className="h-[3px] w-[54px] max-w-full" style={{ background: p["--foreground"] }} />
 			</span>
-			<span className={cn("text-[12.5px]", on ? "font-bold text-ink" : "text-ink-2")}>{name}</span>
+			<span className={cn("text-sm text-ink", on && "font-medium")}>{name}</span>
 		</button>
 	);
 }
@@ -187,14 +190,14 @@ function ColorInput({ label, value, onCommit }: { label: string; value: string; 
 	);
 }
 
-function InkSwatch({ color, label, on, onPick }: { color: string; label: string; on: boolean; onPick: () => void }) {
+function InkSwatch({ color, on, onPick }: { color: string; on: boolean; onPick: () => void }) {
 	return (
 		<button
 			type="button"
-			aria-label={label}
+			aria-label={color}
 			aria-pressed={on}
 			onClick={onPick}
-			className={cn("lh-press size-7", on ? "outline-2 outline-offset-2 outline-ink" : "")}
+			className={cn("lh-press size-7 rounded-[3px] border border-edge", on && "outline-2 outline-offset-2 outline-ink")}
 			style={{ background: color, outlineStyle: on ? "solid" : undefined }}
 		/>
 	);
@@ -203,10 +206,11 @@ function InkSwatch({ color, label, on, onPick }: { color: string; label: string;
 /** The sample lesson, drawn with the real lesson styles. */
 function Preview() {
 	return (
-		<div className="min-w-0 flex-1 self-start border border-tone-2 bg-background px-5 py-[18px]" data-testid="appearance-preview">
-			<p className={cn("pb-2", LABEL_TEXT)}>Preview</p>
-			<h4 className="font-bold pb-2 text-[22px] leading-tight text-ink">Why a derivative is a slope</h4>
+		<Pane data-testid="appearance-preview" className="flex min-w-0 flex-1 flex-col gap-3 px-7 py-5">
+			<h2 className="text-xl leading-tight text-ink">Preview</h2>
+			<div className={RULE} />
 			<div className="lh-prose flex flex-col gap-2.5">
+				<h4 className="text-[1.4em]">Why a derivative is a slope</h4>
 				<p>
 					Zoom in on a smooth curve and it <strong>looks straight</strong>.
 				</p>
@@ -216,7 +220,7 @@ function Preview() {
 				<h4 className="text-[1.1em]">Picking the line</h4>
 				<p>Take two points and slide one toward the other.</p>
 			</div>
-		</div>
+		</Pane>
 	);
 }
 
@@ -273,12 +277,12 @@ function FontPicker({ family, onPick }: { family: string | null; onPick: (family
 				aria-expanded={open}
 				data-testid="font-trigger"
 				onClick={toggle}
-				className="lh-press flex w-full items-center justify-between gap-2 bg-tone px-3 py-[9px] text-left text-[15px] text-ink hover:bg-tone-2"
+				className="lh-press flex h-10 w-full items-center justify-between gap-2.5 rounded border-[1.5px] border-ink bg-panel px-3 text-left text-[15px] font-medium text-ink hover:bg-tone"
 			>
 				<span className="min-w-0 truncate" style={{ fontFamily: family ? `"${family}"` : undefined }}>
 					{family || DEFAULT_READING_FONT}
 				</span>
-				<ChevronDownIcon className="size-3.5 shrink-0 text-ink-2" aria-hidden />
+				<PixelIcon name="chevron" className="h-[10.5px] rotate-90" />
 			</button>
 			<MenuShell
 				open={open}
@@ -287,7 +291,7 @@ function FontPicker({ family, onPick }: { family: string | null; onPick: (family
 				testid="font-menu"
 				role="dialog"
 				label="Reading font"
-				menuClass="lh-popup flex w-[18rem] flex-col gap-0.5 p-2 text-xs"
+				menuClass="lh-popup flex w-[18rem] flex-col p-1.5"
 			>
 				<FontMenuList
 					families={fonts === undefined ? undefined : (fonts ?? [...CURATED_FALLBACK_FONTS])}

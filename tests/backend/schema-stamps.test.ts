@@ -21,7 +21,7 @@ const TMP_DATA = fs.mkdtempSync(path.join(os.tmpdir(), "lh-stamps-"));
 process.env.LH_DATA_DIR = TMP_DATA;
 
 const { chatStore } = await import("../../src/backend/store/chats.ts");
-const { classStore } = await import("../../src/backend/store/classes.ts");
+const { spaceStore } = await import("../../src/backend/store/spaces.ts");
 const { graphStore } = await import("../../src/backend/store/graph.ts");
 const { GRAPH_FORMAT_FILE } = await import("../../src/backend/config.ts");
 
@@ -31,11 +31,11 @@ test.after(() => {
 
 // ── chats: lazy stamp at the write choke point ──────────────────────────────
 
-test("chats: createChat stamps version 1 on disk", () => {
+test("chats: createChat stamps version 2 on disk", () => {
 	const r = chatStore.createChat("stamp test");
-	assert.equal(r.version, 1, "the in-memory twin is stamped");
+	assert.equal(r.version, 2, "the in-memory twin is stamped");
 	const onDisk = JSON.parse(fs.readFileSync(path.join(TMP_DATA, "chats", `${r.id}.json`), "utf8"));
-	assert.equal(onDisk.version, 1, "the record carries the stamp");
+	assert.equal(onDisk.version, 2, "the record carries the stamp");
 });
 
 test("chats: an UNSTAMPED legacy record reads fine (absence = v1) and is stamped by its next write", () => {
@@ -50,7 +50,7 @@ test("chats: an UNSTAMPED legacy record reads fine (absence = v1) and is stamped
 	assert.ok(r, "unstamped record reads (lazy v1)");
 	chatStore.saveMessages(id, []);
 	const onDisk = JSON.parse(fs.readFileSync(path.join(TMP_DATA, "chats", `${id}.json`), "utf8"));
-	assert.equal(onDisk.version, 1, "the write choke point stamped it");
+	assert.equal(onDisk.version, 2, "the write choke point stamped it");
 });
 
 test("chats: a NEWER-stamped record is refused honestly (the downgrade scenario)", () => {
@@ -67,31 +67,33 @@ test("chats: a NEWER-stamped record is refused honestly (the downgrade scenario)
 	assert.equal(onDisk.version, 99, "the future record survives untouched");
 });
 
-// ── classes: version 7 since homework problems (v6 removed files, v5 rules, v4 signature + note, v3 deadlines, v2 exams)
+// ── spaces: version 9 since space.json (v8 space colors, v7 homework problems, v6 removed files, v5 rules, v4 signature + note, v3 deadlines, v2 exams)
 
-test("classes: writes stamp version 7; older records still read; a newer one is refused", () => {
-	const r = classStore.createClass({ name: "stamp class" });
-	assert.equal(r.version, 7);
-	const file = path.join(TMP_DATA, "classes", r.id, "class.json");
-	assert.equal(JSON.parse(fs.readFileSync(file, "utf8")).version, 7);
+test("spaces: writes stamp version 9; older records still read; a newer one is refused", () => {
+	const r = spaceStore.createSpace({ name: "stamp space" });
+	assert.equal(r.version, 9);
+	const file = path.join(TMP_DATA, "spaces", r.id, "space.json");
+	assert.equal(JSON.parse(fs.readFileSync(file, "utf8")).version, 9);
 	const raw = JSON.parse(fs.readFileSync(file, "utf8"));
 	fs.writeFileSync(file, JSON.stringify({ ...raw, version: 1 }), "utf-8");
-	assert.equal(classStore.getClass(r.id)?.version, 1, "v1 reads as-is (no deadlines)");
+	assert.equal(spaceStore.getSpace(r.id)?.version, 1, "v1 reads as-is (no deadlines)");
 	fs.writeFileSync(file, JSON.stringify({ ...raw, version: 2, exams: [{ id: "exm_000000000001", name: "Midterm", date: "2026-11-05", fileIds: [] }] }), "utf-8");
-	const v2 = classStore.getClass(r.id);
+	const v2 = spaceStore.getSpace(r.id);
 	assert.equal(v2?.version, 2, "v2 reads");
 	assert.deepEqual(v2?.deadlines?.map((d) => [d.id, d.kind, d.done]), [["exm_000000000001", "exam", false]], "its exams read as deadlines");
 	fs.writeFileSync(file, JSON.stringify({ ...raw, version: 3 }), "utf-8");
-	assert.equal(classStore.getClass(r.id)?.version, 3, "v3 reads (no signature, note or rules)");
+	assert.equal(spaceStore.getSpace(r.id)?.version, 3, "v3 reads (no signature, note or rules)");
 	fs.writeFileSync(file, JSON.stringify({ ...raw, version: 4 }), "utf-8");
-	assert.equal(classStore.getClass(r.id)?.version, 4, "v4 reads (no rules)");
+	assert.equal(spaceStore.getSpace(r.id)?.version, 4, "v4 reads (no rules)");
 	fs.writeFileSync(file, JSON.stringify({ ...raw, version: 5 }), "utf-8");
-	assert.equal(classStore.getClass(r.id)?.version, 5, "v5 reads (no removed files)");
+	assert.equal(spaceStore.getSpace(r.id)?.version, 5, "v5 reads (no removed files)");
 	fs.writeFileSync(file, JSON.stringify({ ...raw, version: 6 }), "utf-8");
-	assert.equal(classStore.getClass(r.id)?.version, 6, "v6 reads (no homework problems)");
-	fs.writeFileSync(file, JSON.stringify({ ...raw, version: 8 }), "utf-8");
-	assert.equal(classStore.getClass(r.id), null, "a newer build's record is refused");
-	assert.equal(JSON.parse(fs.readFileSync(file, "utf8")).version, 8, "and left untouched");
+	assert.equal(spaceStore.getSpace(r.id)?.version, 6, "v6 reads (no homework problems)");
+	fs.writeFileSync(file, JSON.stringify({ ...raw, version: 7 }), "utf-8");
+	assert.equal(spaceStore.getSpace(r.id)?.version, 7, "v7 reads");
+	fs.writeFileSync(file, JSON.stringify({ ...raw, version: 10 }), "utf-8");
+	assert.equal(spaceStore.getSpace(r.id), null, "a newer build's record is refused");
+	assert.equal(JSON.parse(fs.readFileSync(file, "utf8")).version, 10, "and left untouched");
 });
 
 // ── the graph family: the lazy format.json sidecar ──────────────────────────

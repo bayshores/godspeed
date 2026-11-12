@@ -22,12 +22,12 @@ LEARNING_TOOLS = QUESTION_TOOLS | {"problem", "conclude", "probe_done", "plan_in
 OPERATION_TOOLS = {
     "read", "ls", "grep", "find", "bash", "write", "edit", "list_sessions",
     "list_propositions", "get_session", "get_proposition", "search", "web_search", "web_fetch",
-    "read_class", "search_class_files", "read_passage", "work_plan",
+    "read_space", "search_space_files", "read_passage", "work_plan",
 }
 MARKERS = {
     "graph-context", "probe-handoff", "subagent-steer", "subagent-abort", "plan-block",
     "practice-thinking", "practice-next", "problem-dismissed", "compaction",
-    "class-context", "today-context", "app-request",
+    "space-context", "class-context", "today-context", "app-request",
 }
 ACCOUNTING = {
     "provider", "api", "model", "usage", "stopReason", "thinkingSignature",
@@ -423,8 +423,9 @@ def list_sessions(root: Path) -> dict[str, Any]:
             continue
         entry = {key: record.get(key, "teach" if key == "kind" else None)
                  for key in ("id", "title", "kind", "createdAt", "updatedAt")}
-        # Absent classId means "No class".
-        entry["classId"] = record.get("classId") if isinstance(record.get("classId"), str) else None
+        # Absent spaceId means "No space". A lesson saved before the rename has classId.
+        space_id = record.get("spaceId", record.get("classId"))
+        entry["spaceId"] = space_id if isinstance(space_id, str) else None
         sessions.append(entry)
     return {"data_dir": str(root), "sessions": sessions, "skipped": skipped, "skipped_count": len(skipped)}
 
@@ -448,7 +449,7 @@ def main(argv: list[str] | None = None) -> int:
             else:
                 print(f"# Sessions\n\nData directory: {_text(root)}\n")
                 for session in value["sessions"]:
-                    print(f"- {_text(session['id'])} · {_text(session['title'])} · {_text(session['kind'])} · class {_text(session['classId'] or 'none')} · created {_text(session['createdAt'])} · updated {_text(session['updatedAt'])}")
+                    print(f"- {_text(session['id'])} · {_text(session['title'])} · {_text(session['kind'])} · space {_text(session['spaceId'] or 'none')} · created {_text(session['createdAt'])} · updated {_text(session['updatedAt'])}")
                 print(f"\nSkipped/unreadable sessions: {value['skipped_count']}")
                 for skipped in value["skipped"]:
                     print(f"- {_text(skipped['id'])}: {_text(skipped['error'])}")

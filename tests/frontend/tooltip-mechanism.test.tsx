@@ -29,7 +29,7 @@ describe("spot-pins: the dev-speak cull", () => {
 });
 
 describe("Hint — the mechanism (SSR: the tooltip itself stays closed)", () => {
-	it("asChild: no wrapper DOM — the control keeps its own testid and classes", () => {
+	it("asChild: no wrapper DOM — the control keeps its own testid and spaces", () => {
 		const html = renderToStaticMarkup(
 			createElement(Hint, {
 				label: "Settings",

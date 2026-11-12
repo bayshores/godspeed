@@ -21,7 +21,7 @@ import { usePresence } from "@/frontend/components/presence";
  *    menus' discipline (the settings dialog's inner content scroll
  *    included).
  *
- * Sites: the class switcher, file rows, the files page, graph fact lists
+ * Sites: the space switcher, file rows, the files page, graph fact lists
  * and the settings font menu (the graph popovers and the stats-bar summary
  * popover stay bespoke). Menus portal out of any overflow-hidden frame so
  * they can extend beyond a dialog.
@@ -128,7 +128,7 @@ interface MenuBodyProps {
 	preferredSide: MenuSide;
 	/** Which anchor edge the menu's horizontal position keys off. */
 	align?: MenuAlign;
-	/** The menu body classes: width, border, bg, padding, text — the
+	/** The menu body spaces: width, border, bg, padding, text — the
 	 *  shell adds position, z-index, the height cap, and scrolling. */
 	menuClass: string;
 	children: ReactNode;

@@ -4,7 +4,7 @@
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import type { ClassFile, FolderStatus } from "../../src/shared/core/contracts.ts";
+import type { SpaceFile, FolderStatus } from "../../src/shared/core/contracts.ts";
 import { folderName, folderSource, isGoogleDriveFolder } from "../../src/shared/core/linked-folder.ts";
 import { folderStatusLine, newSince, skippedLines } from "../../src/frontend/components/files/folder-status-model.ts";
 
@@ -40,6 +40,10 @@ describe("the folder line", () => {
 			"Google Docs need saving as PDF or Word to be read.",
 		]);
 		assert.deepEqual(skippedLines({ count: 1, examples: ["notes.key"], google: 0 }), ["1 file here can't be read: notes.key."]);
+		assert.deepEqual(skippedLines({ count: 2, examples: ["Quiz 3 key.gdoc", "Notes.gdoc"], google: 2 }), [
+			"2 files here can't be read: Quiz 3 key.gdoc and Notes.gdoc.",
+			"Google Docs need saving as PDF or Word to be read.",
+		]);
 		assert.deepEqual(skippedLines(undefined), []);
 	});
 
@@ -56,7 +60,7 @@ describe("the folder line", () => {
 });
 
 describe("new since", () => {
-	const file = (id: string, addedAt: string, foundByScan = true): ClassFile => ({
+	const file = (id: string, addedAt: string, foundByScan = true): SpaceFile => ({
 		id, origin: "linked", name: id, path: id, kind: "study", contentFp: "", status: "ready", addedAt, ...(foundByScan ? { foundByScan: true as const } : {}),
 	});
 	it("counts files a scan found in the last 3 days, since the day the oldest came", () => {

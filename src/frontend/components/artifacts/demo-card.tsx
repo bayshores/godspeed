@@ -1,7 +1,8 @@
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
-import { DownloadIcon } from "lucide-react";
-import { Toggle } from "@/frontend/components/settings/controls";
-import { InvertDiscIcon } from "@/frontend/components/artifacts/invert-disc";
+import { InvertButton } from "@/frontend/components/artifacts/invert-button";
+import { CARD, SMALL_BTN } from "@/frontend/components/ui/card-parts";
+import { ResultTag } from "@/frontend/components/result-tag";
+import { cn } from "@/frontend/lib/utils";
 import { ChatActionsContext } from "@/frontend/components/chat-actions-context";
 import { useArtifactInvert } from "@/frontend/components/artifacts/use-artifact-invert";
 import { downloadFile, slugFilename } from "@/frontend/components/artifacts/download";
@@ -102,7 +103,7 @@ export function DemoOutputCard({
 	const result = output as DemoResult | undefined;
 	if (!result || typeof result.html !== "string" || typeof result.title !== "string") {
 		return (
-			<div className=" border bg-card p-4 text-sm text-muted-foreground">
+			<div className={cn(CARD, "text-[15px] text-ink-2")}>
 				Demo completed, but the result could not be displayed.
 			</div>
 		);
@@ -110,12 +111,12 @@ export function DemoOutputCard({
 	const failed = result.html.length === 0;
 	if (failed) {
 		return (
-			<div className=" border bg-card p-4 text-card-foreground" data-testid="demo-card-failed">
-				<div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+			<div className={cn(CARD, "flex flex-col gap-2 text-card-foreground")} data-testid="demo-card-failed">
+				<div className="flex items-center gap-2.5 text-sm text-ink-2">
 					Interactive demo
-					<span className="bg-tone px-1.5 py-0.5 text-ans-wrong">failed</span>
+					<ResultTag tone="wrong">failed</ResultTag>
 				</div>
-				<p className="mt-2 text-sm text-muted-foreground">{result.notes ?? "The demo could not be built."}</p>
+				<p className="text-[15px] text-ink-2">{result.notes ?? "The demo could not be built."}</p>
 			</div>
 		);
 	}
@@ -156,36 +157,22 @@ function DemoFrame({
 	}, []);
 
 	return (
-		<div className=" border bg-card p-4 text-card-foreground" data-testid="demo-card">
-			{/* Caption header: kind label + title in the
-			   label's size/tracking (title normal-case, foreground) — the
-			   figure card's grammar plus a name. Switch + download far right. */}
-			<div className="flex items-center justify-between gap-2">
-				<div className="flex min-w-0 items-baseline gap-2">
-					<span className="shrink-0 text-xs font-semibold text-muted-foreground">
-						interactive demo
-					</span>
-					<span className="truncate text-xs font-semibold text-foreground">{title}</span>
-				</div>
-				<div className="flex shrink-0 items-center gap-1.5">
-					<Toggle
-						checked={inverted}
-						onChange={toggleInverted}
-						label="Invert demo brightness"
-						title="Invert colors"
-						discIcon={<InvertDiscIcon className="size-3" />}
-					/>
-					<button
-						type="button"
-						aria-label="Download demo as HTML"
-						title="Download as HTML"
-						onClick={() => downloadFile(`${slugFilename(title)}.html`, html, "text/html")}
-						data-testid="demo-download"
-						className=" p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-					>
-						<DownloadIcon className="size-3.5" />
-					</button>
-				</div>
+		<div className={cn(CARD, "flex flex-col gap-2 px-4 py-3 text-card-foreground")} data-testid="demo-card">
+			{/* Caption row: the kind and the demo's name left, the controls right. */}
+			<div className="flex flex-wrap items-center gap-2.5">
+				<span className="flex min-w-0 flex-1 items-baseline gap-2 text-sm text-ink-2">
+					<span className="shrink-0">Demo</span>
+					<span className="truncate text-ink">{title}</span>
+				</span>
+				<InvertButton label="Invert demo brightness" checked={inverted} onToggle={() => toggleInverted(!inverted)} />
+				<button
+					type="button"
+					onClick={() => downloadFile(`${slugFilename(title)}.html`, html, "text/html")}
+					data-testid="demo-download"
+					className={SMALL_BTN}
+				>
+					Download demo as HTML
+				</button>
 			</div>
 			{state.error && (
 				<DemoErrorChip
@@ -207,7 +194,7 @@ function DemoFrame({
 				// the wheel (session scrolling stalls over the demo). With
 				// scrolling disabled the wheel chains straight to the session.
 				scrolling="no"
-				className="mt-2 w-full border bg-white"
+				className="w-full border border-border bg-white"
 				// content-box: the bridge reports the CONTENT height — with the
 				// preflight's border-box the 2px border would eat into it and clip
 				// the bottom of the demo.
@@ -234,11 +221,11 @@ export function DemoErrorChip({
 }) {
 	return (
 		<div
-			className="mt-2 flex flex-wrap items-center gap-2 bg-tone px-3 py-2 text-sm text-ans-wrong"
+			className="flex flex-wrap items-center gap-2.5 rounded-sm bg-tone px-3 py-2 text-[15px] text-ans-wrong"
 			data-testid="demo-error-chip"
 		>
 			<span className="font-medium">This demo threw an error</span>
-			<span className="min-w-0 flex-1 truncate font-mono text-xs" title={message}>
+			<span className="min-w-0 flex-1 truncate font-mono text-sm" title={message}>
 				{message}
 			</span>
 			{onSend && (
@@ -247,7 +234,7 @@ export function DemoErrorChip({
 					onClick={onSend}
 					disabled={blocked !== null}
 					title={blocked ?? undefined}
-					className="border border-ans-wrong px-2 py-1 text-xs font-medium hover:bg-background disabled:opacity-50"
+					className={cn(SMALL_BTN, "border-ans-wrong text-ans-wrong disabled:opacity-50")}
 					data-testid="demo-error-send"
 				>
 					Send to teacher

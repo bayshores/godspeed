@@ -32,6 +32,19 @@ import { isValidSegmentPath } from "../../shared/core/prompt-segments.ts";
 import type { PromptOverrideStore } from "../../shared/core/ports.ts";
 import { writeFileAtomic } from "./write-file-atomic.ts";
 
+/** A saved "Space context" part was shared/12-class-context.md before the
+ *  rename: it moves to its new name the first time this build starts. */
+function adoptOldName(): void {
+	const old = promptOverrideFile("shared/12-class-context.md");
+	const now = promptOverrideFile("shared/12-space-context.md");
+	try {
+		if (fs.existsSync(old) && !fs.existsSync(now)) fs.renameSync(old, now);
+	} catch (err) {
+		console.error("[prompts] renaming the saved space context part failed:", err);
+	}
+}
+adoptOldName();
+
 /** The store adapter (core/ports.ts). */
 export const promptOverrides: PromptOverrideStore = {
 	listOverrides(): string[] {

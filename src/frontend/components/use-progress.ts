@@ -1,18 +1,18 @@
 /**
  * useProgress: the active
- * class's ProgressPayload from GET /api/progress — shared by the class
+ * space's ProgressPayload from GET /api/progress — shared by the space
  * Overview and the topic Graph page.
  *
- * Re-reads when the class changes, when a turn settles (new answers), when
+ * Re-reads when the space changes, when a turn settles (new answers), when
  * background activity changes (a graph build or the topic grouper
- * finished; debounced so a burst of updates causes one fetch), when classes
+ * finished; debounced so a burst of updates causes one fetch), when spaces
  * change (deadlines edited) and after the events channel reconnects.
- * A stale response for a previous class is dropped.
+ * A stale response for a previous space is dropped.
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { localDay, type ProgressPayload } from "@/shared/core";
-import { classQuery, useClasses } from "@/frontend/components/class-context";
+import { spaceQuery, useSpaces } from "@/frontend/components/space-context";
 import { useServerEvent, useServerResync } from "@/frontend/components/server-events";
 
 
@@ -27,7 +27,7 @@ interface ProgressState {
 }
 
 export function useProgress(): ProgressState {
-	const { active } = useClasses();
+	const { active } = useSpaces();
 	const [data, setData] = useState<ProgressPayload | null>(null);
 	const [error, setError] = useState<string | null>(null);
 	const [loading, setLoading] = useState(true);
@@ -37,7 +37,7 @@ export function useProgress(): ProgressState {
 	const load = useCallback(() => {
 		const id = ++request.current;
 		setLoading(true);
-		fetch(`/api/progress${classQuery(active)}&today=${localDay()}`)
+		fetch(`/api/progress${spaceQuery(active)}&today=${localDay()}`)
 			.then(async (res) => {
 				const body = await res.json();
 				if (!res.ok) throw new Error(typeof body?.error === "string" ? body.error : `HTTP ${res.status}`);
@@ -62,7 +62,7 @@ export function useProgress(): ProgressState {
 		timer.current = setTimeout(load, REFRESH_DEBOUNCE_MS);
 	}, [load]);
 
-	// A class switch shows nothing stale: clear, then load at once.
+	// A space switch shows nothing stale: clear, then load at once.
 	useEffect(() => {
 		setData(null);
 		load();
@@ -73,7 +73,7 @@ export function useProgress(): ProgressState {
 
 	useServerEvent("turn-settled", refresh);
 	useServerEvent("activity-changed", refresh);
-	useServerEvent("classes-changed", refresh);
+	useServerEvent("spaces-changed", refresh);
 	useServerResync(refresh);
 
 	return { data, error, loading, refresh };

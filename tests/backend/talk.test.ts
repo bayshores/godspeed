@@ -1,8 +1,8 @@
 /**
  * The Talk chat: one fixed chat outside lessons that every lesson list
  * skips, its rows (messages and the changes the tools made), and its
- * tools, which run the same class actions as the MCP server, record each
- * change for the panel and never delete a class or a file; its short
+ * tools, which run the same space actions as the MCP server, record each
+ * change for the panel and never delete a space or a file; its short
  * prompt and its own summary shape.
  */
 import assert from "node:assert/strict";
@@ -29,17 +29,17 @@ after(() => {
 const { TALK_CHAT_ID } = await import("../../src/shared/core/contracts.ts");
 const { chatStore } = await import("../../src/backend/store/chats.ts");
 const { openTalk, clearTalk } = await import("../../src/backend/server/talk.ts");
-const { classActions } = await import("../../src/backend/server/class-actions.ts");
+const { spaceActions } = await import("../../src/backend/server/space-actions.ts");
 const { clearAgentActions, recentAgentActions } = await import("../../src/backend/server/agent-actions.ts");
-const { lessonClassChangeTools, talkTools } = await import("../../src/backend/agent/tools/talk.ts");
+const { lessonSpaceChangeTools, talkTools } = await import("../../src/backend/agent/tools/talk.ts");
 const { createTeacherTools } = await import("../../src/backend/agent/tools.ts");
 const { practiceTools } = await import("../../src/backend/agent/tools/practice.ts");
 const { jobStore } = await import("../../src/backend/store/jobs.ts");
 const { actionFor, appRequestText, speakerOf, startsTurn, talkRows } = await import("../../src/frontend/components/halley/talk-model.ts");
 const { composeInstructions } = await import("../../src/backend/agent/teacher-agent.ts");
 const { buildCompactionPrompt } = await import("../../src/shared/core/compaction.ts");
-const { lessonStartedLastTurn } = await import("../../src/shared/core/class-tools.ts");
-type ClassActions = import("../../src/shared/core/class-tools.ts").ClassActions;
+const { lessonStartedLastTurn } = await import("../../src/shared/core/space-tools.ts");
+type SpaceActions = import("../../src/shared/core/space-tools.ts").SpaceActions;
 type LhMessage = import("../../src/shared/core/native-messages.ts").LhMessage;
 
 const sent: { chatId: string; text: string }[] = [];
@@ -73,13 +73,13 @@ describe("the Talk rows", () => {
 	it("your messages, the teacher's replies, and one row per change", () => {
 		const rows = talkRows([
 			{ id: "u1", role: "user", parts: [{ type: "text", text: "Add CSE 21" }] },
-			{ id: "g1", role: "user", parts: [{ type: "data-app-request", id: "ar_g1", data: { deadlines: [{ id: "d1", name: "Midterm", className: "CSE 21" }] } }] },
+			{ id: "g1", role: "user", parts: [{ type: "data-app-request", id: "ar_g1", data: { deadlines: [{ id: "d1", name: "Midterm", spaceName: "CSE 21" }] } }] },
 			{
 				id: "a1",
 				role: "assistant",
 				parts: [
-					{ type: "tool-create_class", toolCallId: "t1", state: "output-available", input: {}, output: { changes: [{ label: "Creating CSE 21", page: "/class" }, { label: 3 }] } },
-					{ type: "tool-list_classes", toolCallId: "t0", state: "output-available", input: {}, output: { changes: [] } },
+					{ type: "tool-create_space", toolCallId: "t1", state: "output-available", input: {}, output: { changes: [{ label: "Creating CSE 21", page: "/space" }, { label: 3 }] } },
+					{ type: "tool-list_spaces", toolCallId: "t0", state: "output-available", input: {}, output: { changes: [] } },
 					{ type: "text", text: "Done, CSE 21 is set up." },
 					{ type: "text", text: "  " },
 				],
@@ -124,69 +124,69 @@ describe("the Talk rows", () => {
 		] as never);
 		assert.deepEqual(rows.map(speakerOf), ["you", "app", "teacher"]);
 		assert.deepEqual(rows.map((_, i) => startsTurn(rows, i)), [true, true, true]);
-		const one = [{ id: "d1", name: "Midterm", className: "CSE 21" }];
+		const one = [{ id: "d1", name: "Midterm", spaceName: "CSE 21" }];
 		assert.equal(appRequestText("Marco", one), "Asked Marco to work out what's on Midterm (CSE 21) from your files.");
-		const three = [...one, { id: "d2", name: "HW 5", className: "CSE 21" }, { id: "d3", name: "Final", className: "CSE 29" }];
+		const three = [...one, { id: "d2", name: "HW 5", spaceName: "CSE 21" }, { id: "d3", name: "Final", spaceName: "CSE 29" }];
 		assert.equal(appRequestText("Marco", three), "Asked Marco to work out what's on Midterm (CSE 21), HW 5 (CSE 21) and Final (CSE 29) from your files.");
 	});
 	it("a change row opens its recorded action while it is still recent", () => {
-		const action: AgentAction = { id: "x", at: "2026-11-01T10:00:00.000Z", agent: "Claude Code", label: "Creating CSE 21", classId: "c", target: null, page: "/class" };
-		assert.equal(actionFor({ label: "Creating CSE 21", page: "/class" }, [action]), action);
-		assert.equal(actionFor({ label: "Creating CSE 21", page: "/class" }, []), null);
+		const action: AgentAction = { id: "x", at: "2026-11-01T10:00:00.000Z", agent: "Claude Code", label: "Creating CSE 21", spaceId: "c", target: null, page: "/space" };
+		assert.equal(actionFor({ label: "Creating CSE 21", page: "/space" }, [action]), action);
+		assert.equal(actionFor({ label: "Creating CSE 21", page: "/space" }, []), null);
 	});
 });
 
-describe("class changes in a lesson", () => {
-	const actions = () => classActions("Claude Code", sendOk, { openStarted: true });
-	it("a lesson takes only the deadline changes and the class list", () => {
-		assert.deepEqual(Object.keys(lessonClassChangeTools(actions())).sort(), ["add_class_deadline", "list_classes", "remove_class_deadline", "update_class_deadline"]);
+describe("space changes in a lesson", () => {
+	const actions = () => spaceActions("Claude Code", sendOk, { openStarted: true });
+	it("a lesson takes only the deadline changes and the space list", () => {
+		assert.deepEqual(Object.keys(lessonSpaceChangeTools(actions())).sort(), ["add_space_deadline", "list_spaces", "remove_space_deadline", "update_space_deadline"]);
 	});
-	it("the teacher's and practice's tools include them when given the class actions", () => {
-		const teacher = createTeacherTools({ chatId: "c1", chatStore, jobStore, spawn: () => {}, classActions: actions() });
-		assert.ok(teacher.add_class_deadline && teacher.list_classes);
-		assert.equal(createTeacherTools({ chatId: "c1", chatStore, jobStore, spawn: () => {} }).add_class_deadline, undefined);
-		assert.ok(practiceTools({ chatId: "c1", chatStore, classActions: actions() }).add_class_deadline);
+	it("the teacher's and practice's tools include them when given the space actions", () => {
+		const teacher = createTeacherTools({ chatId: "c1", chatStore, jobStore, spawn: () => {}, spaceActions: actions() });
+		assert.ok(teacher.add_space_deadline && teacher.list_spaces);
+		assert.equal(createTeacherTools({ chatId: "c1", chatStore, jobStore, spawn: () => {} }).add_space_deadline, undefined);
+		assert.ok(practiceTools({ chatId: "c1", chatStore, spaceActions: actions() }).add_space_deadline);
 	});
 });
 
 describe("the Talk tools", () => {
-	it("offer the class tools, none that deletes a class or a file", () => {
-		const names = Object.keys(talkTools(classActions("Claude Code", sendOk, { openStarted: true })));
-		assert.ok(names.includes("create_class") && names.includes("add_class_deadline"));
-		assert.ok(names.every((n) => !/delete|unlink|remove_class(_file)?$/.test(n)), names.join(", "));
+	it("offer the space tools, none that deletes a space or a file", () => {
+		const names = Object.keys(talkTools(spaceActions("Claude Code", sendOk, { openStarted: true })));
+		assert.ok(names.includes("create_space") && names.includes("add_space_deadline"));
+		assert.ok(names.every((n) => !/delete|unlink|remove_space(_file)?$/.test(n)), names.join(", "));
 	});
 	it("a change is recorded for the panel and returned as the result's changes", async () => {
 		clearAgentActions();
-		const tools = talkTools(classActions("Claude Code", sendOk, { openStarted: true }));
-		const result = await tools.create_class!.execute("t1", { name: "CSE 21", icon: "sigma" });
-		assert.deepEqual(result.details, { changes: [{ label: "Creating CSE 21", page: "/class" }] });
+		const tools = talkTools(spaceActions("Claude Code", sendOk, { openStarted: true }));
+		const result = await tools.create_space!.execute("t1", { name: "CSE 21", icon: "sigma" });
+		assert.deepEqual(result.details, { changes: [{ label: "Creating CSE 21", page: "/space" }] });
 		const [recorded] = recentAgentActions();
 		assert.equal(recorded?.label, "Creating CSE 21");
 		assert.equal(recorded?.agent, "Claude Code");
-		const listed = await tools.list_classes!.execute("t2", {});
+		const listed = await tools.list_spaces!.execute("t2", {});
 		assert.deepEqual(listed.details, { changes: [] });
 		assert.match((listed.content[0] as { text: string }).text, /CSE 21/);
 	});
-	it("every class action names a missing class the same way, so the agent knows to list classes", async () => {
-		const actions = classActions("Claude Code", sendOk, { openStarted: true });
-		const missing = { class_id: "cls_missing" };
+	it("every space action names a missing space the same way, so the agent knows to list spaces", async () => {
+		const actions = spaceActions("Claude Code", sendOk, { openStarted: true });
+		const missing = { space_id: "cls_missing" };
 		const outcomes = [
-			actions.read_class(missing),
-			actions.update_class({ ...missing, name: "x" }),
-			actions.add_class_file({ ...missing, path: "/tmp/x.md", kind: "study" }),
-			actions.set_class_file_kind({ ...missing, file_ids: ["f_x"], kind: "info" }),
-			actions.add_class_deadline({ ...missing, deadlines: [{ kind: "exam", name: "Final", date: "2026-12-10" }] }),
-			actions.update_class_deadline({ ...missing, deadline_id: "ddl_x", done: true }),
-			actions.remove_class_deadline({ ...missing, deadline_id: "ddl_x" }),
-			actions.link_class_folder({ ...missing, path: "/tmp" }),
+			actions.read_space(missing),
+			actions.update_space({ ...missing, name: "x" }),
+			actions.add_space_file({ ...missing, path: "/tmp/x.md", kind: "study" }),
+			actions.set_space_file_kind({ ...missing, file_ids: ["f_x"], kind: "info" }),
+			actions.add_space_deadline({ ...missing, deadlines: [{ kind: "exam", name: "Final", date: "2026-12-10" }] }),
+			actions.update_space_deadline({ ...missing, deadline_id: "ddl_x", done: true }),
+			actions.remove_space_deadline({ ...missing, deadline_id: "ddl_x" }),
+			actions.link_space_folder({ ...missing, path: "/tmp" }),
 		];
 		outcomes.push(await actions.start_lesson({ topic: "Sets", ...missing }));
-		for (const outcome of outcomes) assert.deepEqual(outcome, { ok: false, error: 'No class "cls_missing". Use list_classes.' });
+		for (const outcome of outcomes) assert.deepEqual(outcome, { ok: false, error: 'No space "cls_missing". Use list_spaces.' });
 	});
 	it("start_lesson starts a lesson on the learner's words and opens it in the window", async () => {
 		clearAgentActions();
 		sent.length = 0;
-		const tools = talkTools(classActions("Claude Code", sendOk, { openStarted: true }));
+		const tools = talkTools(spaceActions("Claude Code", sendOk, { openStarted: true }));
 		const result = await tools.start_lesson!.execute("t4", { topic: "the CSE 29 problem set" });
 		const [change] = (result.details as { changes: { page: string }[] }).changes;
 		const lessonId = change!.page.slice("/chat/".length);
@@ -196,13 +196,13 @@ describe("the Talk tools", () => {
 	});
 	it("start_lesson from the outside agent leaves opening the lesson to Follow", async () => {
 		clearAgentActions();
-		const outcome = await classActions("Codex", sendOk, { openStarted: false }).start_lesson({ topic: "Pointers" });
+		const outcome = await spaceActions("Codex", sendOk, { openStarted: false }).start_lesson({ topic: "Pointers" });
 		assert.equal(outcome.ok, true);
 		assert.equal(recentAgentActions()[0]?.open, undefined);
 	});
 	it("a failed first message is the agent's error", async () => {
 		const failing = async () => new Response("busy", { status: 409 });
-		const outcome = await classActions("Codex", failing, { openStarted: false }).start_lesson({ topic: "Pointers" });
+		const outcome = await spaceActions("Codex", failing, { openStarted: false }).start_lesson({ topic: "Pointers" });
 		assert.deepEqual(outcome, { ok: false, error: "The lesson was created but could not start: busy" });
 	});
 	it("finds the lesson the last turn started, so the agent goes on to teach it", () => {
@@ -216,8 +216,8 @@ describe("the Talk tools", () => {
 		assert.equal(lessonStartedLastTurn([user, call, started(false), call, user, call]), null);
 	});
 	it("a refusal reaches the model as an error", async () => {
-		const refuse = { read_class: () => ({ ok: false, error: 'No class "nope". Use list_classes.' }) } as unknown as ClassActions;
-		await assert.rejects(talkTools(refuse).read_class!.execute("t3", { class_id: "nope" }), /No class "nope"/);
+		const refuse = { read_space: () => ({ ok: false, error: 'No space "nope". Use list_spaces.' }) } as unknown as SpaceActions;
+		await assert.rejects(talkTools(refuse).read_space!.execute("t3", { space_id: "nope" }), /No space "nope"/);
 	});
 });
 

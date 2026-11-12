@@ -9,8 +9,8 @@ The rule: **from their work, diagnose the first question in the loop the learner
 The ladder, least to most revealing:
 
 - **R0 — attention redirect.** "Re-read the second given." Costs nothing.
-- **R1 — pattern re-description.** "What you are looking at is a sum of many small things." Names the pattern class; no proposition. Costs almost nothing.
-- **R2 — candidate class.** "Something from this cluster applies." Narrows the space; discrimination within the class remains.
+- **R1 — pattern re-description.** "What you are looking at is a sum of many small things." Names the pattern space; no proposition. Costs almost nothing.
+- **R2 — candidate space.** "Something from this cluster applies." Narrows the space; discrimination within the space remains.
 - **R3 — the proposition, named.** The retrieval event is surrendered; execution remains.
 - **R4 — the move outlined.** Execution is surrendered too; the learner fills it in.
 - **R5 — the worked step.** Everything is surrendered except the boundary lesson.

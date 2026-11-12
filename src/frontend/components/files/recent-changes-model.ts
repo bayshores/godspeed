@@ -3,7 +3,7 @@
  * RECENT_CHANGE_DAYS, newest first, and the summary's "2 removed". Files
  * that came with linking the folder are not changes.
  */
-import { isRecent, isRecentChange, type ClassFile, type RemovedFile } from "@/shared/core";
+import { isRecent, isRecentChange, type SpaceFile, type RemovedFile } from "@/shared/core";
 
 export interface RecentChange {
 	change: "added" | "removed";
@@ -12,7 +12,7 @@ export interface RecentChange {
 	at: string;
 }
 
-export function recentChanges(files: readonly ClassFile[], removed: readonly RemovedFile[], now: number): RecentChange[] {
+export function recentChanges(files: readonly SpaceFile[], removed: readonly RemovedFile[], now: number): RecentChange[] {
 	const added = files
 		.filter((f) => (f.foundByScan || f.origin === "copied") && isRecentChange(f.addedAt, now))
 		.map((f): RecentChange => ({ change: "added", id: f.id, name: f.name, at: f.addedAt }));

@@ -77,43 +77,53 @@ def union_points(target, points):
             seen.add(key)
 
 
-CLASS_ID = re.compile(r"^cls_[A-Za-z0-9_-]+$")
+SPACE_ID = re.compile(r"^(spc|cls)_[A-Za-z0-9_-]+$")
 
 
-def graph_dir(class_id=None):
-    """The graph folder: graph/ ("No class") or classes/<id>/graph/."""
-    if class_id in (None, "none"):
+def spaces_dir(root):
+    """spaces/, or classes/ in a data folder the app has not opened since spaces were called classes."""
+    if not safe_path(root, "spaces").is_dir() and safe_path(root, "classes").is_dir():
+        return "classes"
+    return "spaces"
+
+
+def graph_dir(root, space_id=None):
+    """The graph folder: graph/ ("No space") or spaces/<id>/graph/."""
+    if space_id in (None, "none"):
         return "graph"
-    if not CLASS_ID.match(class_id):
-        raise DataError(f"Invalid class id: {class_id}")
-    return f"classes/{class_id}/graph"
+    if not SPACE_ID.match(space_id):
+        raise DataError(f"Invalid space id: {space_id}")
+    return f"{spaces_dir(root)}/{space_id}/graph"
 
 
-def load_classes(root):
-    """Class records (classes/<id>/class.json): id, name, description, archived, file count."""
-    folder = safe_path(root, "classes")
-    classes = []
+def load_spaces(root):
+    """Space records (spaces/<id>/space.json, class.json before the rename): id, name, description, archived, file count."""
+    base = spaces_dir(root)
+    folder = safe_path(root, base)
+    spaces = []
     if not folder.is_dir():
-        return classes
+        return spaces
     for path in sorted(folder.iterdir()):
-        if not CLASS_ID.match(path.name):
+        if not SPACE_ID.match(path.name):
             continue
-        record = read_json(root, f"classes/{path.name}/class.json", missing=None)
+        record = read_json(root, f"{base}/{path.name}/space.json", missing=None)
+        if record is None:
+            record = read_json(root, f"{base}/{path.name}/class.json", missing=None)
         if not isinstance(record, dict) or not isinstance(record.get("name"), str):
-            warn(f"classes/{path.name}/class.json: unreadable class record; skipped")
+            warn(f"{base}/{path.name}/space.json: unreadable space record; skipped")
             continue
         files = record.get("files") if isinstance(record.get("files"), list) else []
-        classes.append({
+        spaces.append({
             "id": path.name, "name": record["name"], "description": record.get("description") or "",
             "archived": record.get("archived") is True, "files": len(files),
             "studyFiles": sum(1 for f in files if isinstance(f, dict) and f.get("kind") == "study"),
         })
-    return classes
+    return spaces
 
 
-def load_graph(root, class_id=None):
+def load_graph(root, space_id=None):
     """Merge ledger lines using getGraph's first-identity/union semantics."""
-    base = graph_dir(class_id)
+    base = graph_dir(root, space_id)
     stamp = read_json(root, f"{base}/format.json", missing=None)
     if stamp is not None:
         version = stamp.get("version") if isinstance(stamp, dict) else None
@@ -146,9 +156,9 @@ def birth_session(node):
     return node["provenance"][0]["chatId"] if node["provenance"] else None
 
 
-def load_metadata(root, class_id=None):
+def load_metadata(root, space_id=None):
     """Read only stored metadata, never the filePath references in sources."""
-    base = graph_dir(class_id)
+    base = graph_dir(root, space_id)
     sources = read_json(root, f"{base}/sources.json", missing={})
     if not isinstance(sources, dict):
         raise DataError(f"{base}/sources.json: expected an object keyed by source id")
@@ -286,8 +296,8 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     add_common_arguments(parser)
     commands = parser.add_subparsers(dest="command", required=True)
-    parser.add_argument("--class", dest="class_id", metavar="ID", help='Read one class\'s graph (an id from the "classes" command); default: the "No class" graph')
-    commands.add_parser("classes", help="List the learner's classes (each has its own graph)")
+    parser.add_argument("--space", dest="space_id", metavar="ID", help='Read one space\'s graph (an id from the "spaces" command); default: the "No space" graph')
+    commands.add_parser("spaces", help="List the learner's spaces (each has its own graph)")
     commands.add_parser("sessions", help="List birth sessions, most recently active first")
     propositions = commands.add_parser("propositions", help="Read full propositions; optionally filter by birth session")
     propositions.add_argument("--session", metavar="ID", type=nonempty)
@@ -298,15 +308,15 @@ def main(argv=None):
     args = parser.parse_args(argv)
     try:
         root = data_root(args.data_dir)
-        if args.command == "classes":
-            classes = load_classes(root)
+        if args.command == "spaces":
+            spaces = load_spaces(root)
             if args.format == "json":
-                print_json({"data_dir": str(root), "records": classes})
+                print_json({"data_dir": str(root), "records": spaces})
             else:
-                print(f"# Classes\n\nData directory: {root}\n")
-                if not classes:
-                    print("No classes. Every lesson is in \"No class\" (the default graph).")
-                for item in classes:
+                print(f"# Spaces\n\nData directory: {root}\n")
+                if not spaces:
+                    print("No spaces. Every lesson is in \"No space\" (the default graph).")
+                for item in spaces:
                     archived = " (archived)" if item["archived"] else ""
                     print(f"## {item['name']}{archived} (`{item['id']}`)\n")
                     print(f"- Files: {item['files']} ({item['studyFiles']} study material)")
@@ -314,8 +324,8 @@ def main(argv=None):
                         print(f"- About: {item['description']}")
                     print()
             return 0
-        graph = load_graph(root, args.class_id)
-        metadata = load_metadata(root, args.class_id) if args.command == "sessions" or args.format == "markdown" else {}
+        graph = load_graph(root, args.space_id)
+        metadata = load_metadata(root, args.space_id) if args.command == "sessions" or args.format == "markdown" else {}
         if args.command == "sessions":
             result = session_index(graph, metadata)
         elif args.command in ("propositions", "find"):

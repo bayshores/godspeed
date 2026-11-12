@@ -4,52 +4,51 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { DEFAULT_TEACHER_NAME, hasProblems, planDays } from "@/shared/core";
-import { useClasses } from "@/frontend/components/class-context";
-import { ClassDialog } from "@/frontend/components/class-dialog";
+import { spaceColorVar } from "@/frontend/components/space-color";
+import { useSpaces } from "@/frontend/components/space-context";
+import { DeadlineDialog } from "@/frontend/components/space-page/deadline-dialog";
 import { studioPath } from "@/frontend/components/cheat-sheet/use-cheat-sheet";
-import { dueLabel } from "@/frontend/components/class-deadlines-model";
+import { dueLabel } from "@/frontend/components/space-deadlines-model";
 import { useMinute } from "@/frontend/components/countdown";
-import { classFilePathOf, useClassRecord } from "@/frontend/components/files/class-files-api";
+import { spaceFilePathOf, useSpaceRecord } from "@/frontend/components/files/space-files-api";
 import { useHalley } from "@/frontend/components/halley/halley-provider";
 import { askTeacher } from "@/frontend/components/halley/ask-teacher";
 import { useLessonStart } from "@/frontend/components/home/use-lesson-start";
 import { LoadFailed } from "@/frontend/components/load-failed";
-import { TopBar } from "@/frontend/components/app-bar";
-import { pathLabel } from "@/frontend/components/app-bar-model";
+import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { useProgress } from "@/frontend/components/use-progress";
 import { DeadlineBody } from "./deadline-body";
 import { HomeworkCard } from "./homework-card";
 import { coverageMessage, deadlineMaterial } from "./deadline-model";
 
 /**
- * A deadline's page, opened from its ring on the Overview or its row in
- * Coming up. The page makes the deadline's class the active one (Coming up
- * lists every class); switching class afterwards goes to that class's
- * Overview. Study works on today's topics (all its topics once every one
- * is strong).
+ * A deadline's page, opened from its row on Today, the space's Deadlines
+ * tab or its Progress tab. The page makes the deadline's space the active
+ * one (Today lists every space); switching space afterwards goes to that
+ * space. Study works on today's topics (all its topics once every one is
+ * strong).
  */
-export function DeadlinePage({ classId, deadlineId }: { classId: string; deadlineId: string }) {
+export function DeadlinePage({ spaceId, deadlineId }: { spaceId: string; deadlineId: string }) {
 	const router = useRouter();
-	const { active, setActive, activeClass } = useClasses();
-	const [joined, setJoined] = useState(active === classId);
+	const { active, setActive, activeSpace } = useSpaces();
+	const [joined, setJoined] = useState(active === spaceId);
 	useEffect(() => {
 		if (!joined) {
-			if (active === classId) setJoined(true);
-			else setActive(classId);
-		} else if (active !== classId) router.replace("/class");
-	}, [active, classId, joined, setActive, router]);
+			if (active === spaceId) setJoined(true);
+			else setActive(spaceId);
+		} else if (active !== spaceId) router.replace("/space");
+	}, [active, spaceId, joined, setActive, router]);
 
 	const { data, error, refresh } = useProgress();
-	const { record, reload } = useClassRecord(classId);
+	const { record, reload } = useSpaceRecord(spaceId);
 	const teacherName = useHalley()?.name ?? DEFAULT_TEACHER_NAME;
 	const [saving, setSaving] = useState(false);
 	const [saveError, setSaveError] = useState<string | null>(null);
 	const nowMs = useMinute();
 	const lesson = useLessonStart();
-	// "class": Edit class as it opens anywhere; "deadline": with this deadline's row open.
-	const [editing, setEditing] = useState<"class" | "deadline" | null>(null);
+	const [editing, setEditing] = useState(false);
 
-	const current = data && data.classId === classId ? data : null;
+	const current = data && data.spaceId === spaceId ? data : null;
 	const deadline = current?.deadlines.find((d) => d.id === deadlineId) ?? null;
 	const saved = record?.deadlines?.find((d) => d.id === deadlineId) ?? null;
 	const material = useMemo(
@@ -61,7 +60,7 @@ export function DeadlinePage({ classId, deadlineId }: { classId: string; deadlin
 			setSaving(true);
 			setSaveError(null);
 			try {
-				const res = await fetch(`/api/classes/${encodeURIComponent(classId)}/deadlines/${encodeURIComponent(deadlineId)}`, {
+				const res = await fetch(`/api/spaces/${encodeURIComponent(spaceId)}/deadlines/${encodeURIComponent(deadlineId)}`, {
 					method: "PUT",
 					headers: { "Content-Type": "application/json" },
 					body: JSON.stringify(patch),
@@ -74,7 +73,7 @@ export function DeadlinePage({ classId, deadlineId }: { classId: string; deadlin
 				setSaving(false);
 			}
 		},
-		[classId, deadlineId, reload, refresh],
+		[spaceId, deadlineId, reload, refresh],
 	);
 	// Add puts files on the deadline; Leave out marks them as not on it.
 	const saveFiles = useCallback(
@@ -98,45 +97,36 @@ export function DeadlinePage({ classId, deadlineId }: { classId: string; deadlin
 		const file = record?.files.find((f) => f.id === assignmentId);
 		if (!file || !desktop) return undefined;
 		const open = /\.pdf$/i.test(file.name) ? desktop.openPath : desktop.showInFolder;
-		return open && (() => void classFilePathOf(classId, file.id).then((path) => {
+		return open && (() => void spaceFilePathOf(spaceId, file.id).then((path) => {
 				if (path) void open(path);
 			}));
-	}, [record, assignmentId, classId]);
+	}, [record, assignmentId, spaceId]);
 	const onStart = useCallback(() => {
 		if (deadline) void studyDeadline(deadline);
 	}, [deadline, studyDeadline]);
 	const onAsk = useCallback(() => {
-		if (deadline) askTeacher(coverageMessage(activeClass?.name ?? "class", { name: deadline.name, when: dueLabel(deadline.date, deadline.time) }));
-	}, [deadline, activeClass?.name]);
+		if (deadline) askTeacher(coverageMessage(activeSpace?.name ?? "space", { name: deadline.name, when: dueLabel(deadline.date, deadline.time) }));
+	}, [deadline, activeSpace?.name]);
 
-	const editMode = useMemo(
-		() => (editing ? { kind: "edit" as const, classId, deadline: editing === "deadline" ? deadlineId : undefined } : null),
-		[editing, classId, deadlineId],
-	);
+	// The dialog compares its mode by identity: one object per open.
+	const files = record?.files;
+	const editMode = useMemo(() => (editing && saved && files ? { spaceId, deadline: saved, files } : null), [editing, spaceId, saved, files]);
 
 	return (
-		<div className="flex h-full flex-col">
-			<TopBar path={[{ label: deadline ? pathLabel(deadline.name) : "deadline", href: null }]}>
-				<button
-					type="button"
-					data-testid="deadline-edit-class"
-					onClick={() => setEditing("class")}
-					className="lh-btn"
-				>
-					Edit class
-				</button>
-			</TopBar>
-			<div className="min-h-0 flex-1 overflow-y-auto">
+		<div className="h-full overflow-y-auto">
+			<div className="mx-auto flex w-full max-w-[1128px] flex-col gap-[22px] px-6 pt-[22px] pb-9">
+				<Link href="/space/deadlines" prefetch={false} data-testid="page-back" className="lh-btn lh-btn-quiet -ml-1 self-start text-[15px]">
+					<PixelIcon name="chevron" className="-scale-x-100" />
+					Deadlines
+				</Link>
 				{current && !deadline ? (
-					<div data-testid="deadline-removed" className="flex flex-col items-start gap-3 px-[52px] py-6">
-						<p className="text-base text-ink-2">This deadline was removed.</p>
-						<Link href="/class" className="lh-btn">
-							Go to the class
-						</Link>
-					</div>
+					<p data-testid="deadline-removed" className="text-lg text-ink-2">
+						This deadline was removed.
+					</p>
 				) : current && deadline && nowMs !== null ? (
 					<DeadlineBody
 						deadline={deadline}
+						color={activeSpace ? spaceColorVar(activeSpace.color) : "var(--border)"}
 						topics={current.topics}
 						material={material}
 						plan={plan}
@@ -144,7 +134,7 @@ export function DeadlinePage({ classId, deadlineId }: { classId: string; deadlin
 						busy={lesson.busy}
 						startError={lesson.error ?? saveError}
 						onStart={onStart}
-						onEditClass={() => setEditing("deadline")}
+						onEdit={() => setEditing(true)}
 						source={saved?.source}
 						teacherName={teacherName}
 						saving={saving}
@@ -170,16 +160,16 @@ export function DeadlinePage({ classId, deadlineId }: { classId: string; deadlin
 						}
 					/>
 				) : error ? (
-					<LoadFailed message="Couldn't load this deadline." onRetry={refresh} className="px-[52px] py-6" />
+					<LoadFailed message="Couldn't load this deadline." onRetry={refresh} />
 				) : (
-					// Plain boxes until the class's progress arrives, so nothing jumps.
-					<div className="flex flex-col gap-4 px-[52px] py-6" aria-hidden>
-						<div className="h-[96px] w-full bg-panel" />
+					// Plain boxes until the space's progress arrives, so nothing jumps.
+					<div className="flex flex-col gap-[22px]" aria-hidden>
+						<div className="h-[120px] w-full bg-panel" />
 						<div className="h-[320px] w-full bg-panel" />
 					</div>
 				)}
 			</div>
-			<ClassDialog mode={editMode} onClose={() => setEditing(null)} />
+			<DeadlineDialog mode={editMode} onClose={() => setEditing(false)} onRemoved={() => router.push("/space/deadlines")} />
 		</div>
 	);
 }

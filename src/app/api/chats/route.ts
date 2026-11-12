@@ -1,24 +1,24 @@
-import { type GraphContextPick, parseClassScope } from "@/shared/core";
-import { createHomework, createLesson, isTurnRunning, listChats, startClassScanner } from "@/backend/server";
+import { type GraphContextPick, parseSpaceScope } from "@/shared/core";
+import { createHomework, createLesson, isTurnRunning, listChats, startSpaceScanner } from "@/backend/server";
 import type { ChatListItem } from "@/shared/core";
 
 /** The session picker's list: record-derived summaries (phase, pending
- *  question) + live liveness — a running turn marks the session busy
+ *  question) + live liveness: a running turn marks the session busy
  *  (contracts.ts ChatListItem; the store can't see liveness, the route is
- *  the merge point). Background jobs do not count: the sidebar's
- *  Background agents section is their channel (a running spinner per row
- *  would double-signal them), so busy means exactly "a teach turn is in
+ *  the merge point). Background jobs do not count: the transcript's
+ *  dispatch cards are their channel (a running mark per row would
+ *  double-signal them), so busy means exactly "a teach turn is in
  *  flight".
  *
- *  ?class=<id|none> narrows the list to one
- *  class's lessons ("none" = No class); absent = every lesson. */
+ *  ?space=<id|none> narrows the list to one
+ *  space's lessons ("none" = No space); absent = every lesson. */
 export async function GET(req: Request) {
-	startClassScanner();
-	const raw = new URL(req.url).searchParams.get("class");
-	const scope = raw === null ? undefined : parseClassScope(raw);
-	if (raw !== null && scope === undefined) return Response.json({ error: "bad class" }, { status: 400 });
+	startSpaceScanner();
+	const raw = new URL(req.url).searchParams.get("space");
+	const scope = raw === null ? undefined : parseSpaceScope(raw);
+	if (raw !== null && scope === undefined) return Response.json({ error: "bad space" }, { status: 400 });
 	const chats: ChatListItem[] = listChats()
-		.filter((c) => scope === undefined || (c.classId ?? null) === scope)
+		.filter((c) => scope === undefined || (c.spaceId ?? null) === scope)
 		.map((c) => ({
 			...c,
 			busy: isTurnRunning(c.id),
@@ -27,26 +27,26 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-	const body = (await req.json().catch(() => ({}))) as { title?: unknown; graphContext?: unknown; classId?: unknown; topicIds?: unknown; deadlineId?: unknown; homework?: unknown };
+	const body = (await req.json().catch(() => ({}))) as { title?: unknown; graphContext?: unknown; spaceId?: unknown; topicIds?: unknown; deadlineId?: unknown; homework?: unknown };
 	const title = typeof body.title === "string" ? body.title : "";
-	// The lesson's class (absent/"none" = No class).
-	const classId = parseClassScope(typeof body.classId === "string" ? body.classId : undefined);
-	if (classId === undefined) return Response.json({ error: "bad classId" }, { status: 400 });
+	// The lesson's space (absent/"none" = No space).
+	const spaceId = parseSpaceScope(typeof body.spaceId === "string" ? body.spaceId : undefined);
+	if (spaceId === undefined) return Response.json({ error: "bad spaceId" }, { status: 400 });
 	// A new lesson is a study session (src/backend/server/lessons.ts), or with
 	// homework: true a homework session on the deadline (homework.ts). A start
 	// on topics or a deadline gets its topics and title from the server.
 	if (body.homework === true) {
-		if (typeof classId !== "string" || typeof body.deadlineId !== "string") return Response.json({ error: "homework needs a classId and a deadlineId" }, { status: 400 });
-		const homework = createHomework(classId, body.deadlineId);
+		if (typeof spaceId !== "string" || typeof body.deadlineId !== "string") return Response.json({ error: "homework needs a spaceId and a deadlineId" }, { status: 400 });
+		const homework = createHomework(spaceId, body.deadlineId);
 		if (!homework.ok) return Response.json({ error: homework.error, code: homework.code }, { status: homework.status });
 		return Response.json({ id: homework.chat.id, title: homework.title });
 	}
 	const created =
 		typeof body.deadlineId === "string"
-			? createLesson({ classId, deadlineId: body.deadlineId })
+			? createLesson({ spaceId, deadlineId: body.deadlineId })
 			: Array.isArray(body.topicIds)
-				? createLesson({ classId, topicIds: body.topicIds.filter((id): id is string => typeof id === "string") })
-				: createLesson({ classId, title, picks: picksOf(body.graphContext) });
+				? createLesson({ spaceId, topicIds: body.topicIds.filter((id): id is string => typeof id === "string") })
+				: createLesson({ spaceId, title, picks: picksOf(body.graphContext) });
 	if (!created.ok) return Response.json({ error: created.error, code: created.code }, { status: created.status });
 	return Response.json({ id: created.chat.id, title: created.title });
 }

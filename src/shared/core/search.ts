@@ -1,5 +1,5 @@
 /**
- * CLASS SEARCH, the pure parts: class files cut into passages (each with
+ * SPACE SEARCH, the pure parts: space files cut into passages (each with
  * where it sits in its file), keyword ranking (MiniSearch BM25+), vector
  * ranking over normalized embeddings, and the fusion of the two.
  *
@@ -8,7 +8,7 @@
 import MiniSearch from "minisearch";
 import { extensionOf, isTranscriptFile } from "./contracts.ts";
 
-/** One piece of a class file, before it gets an id and a hash. `from`/`to`
+/** One piece of a space file, before it gets an id and a hash. `from`/`to`
  *  locate it: pages (PDFs), slides (PowerPoint), seconds (captions) or
  *  lines (text). */
 export interface PassageChunk {
@@ -18,7 +18,7 @@ export interface PassageChunk {
 	text: string;
 }
 
-/** A file's passages plus its size for the class outline ("98 pages"). */
+/** A file's passages plus its size for the space outline ("98 pages"). */
 interface ChunkedFile {
 	chunks: PassageChunk[];
 	extent: string;
@@ -32,7 +32,7 @@ const TEXT_WINDOW_CHARS = 1200;
 const CAPTION_WINDOW_MIN_S = 60;
 const CAPTION_WINDOW_MAX_S = 90;
 
-/** Cut a class file's text into passages. PDFs (text with "--- Page N ---"
+/** Cut a space file's text into passages. PDFs (text with "--- Page N ---"
  *  heads) by page, PowerPoint ("--- Slide N ---") by slide, .srt/.vtt (the
  *  raw caption file) by time, everything else by paragraph windows with
  *  line ranges. */

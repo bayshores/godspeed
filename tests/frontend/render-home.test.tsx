@@ -1,7 +1,7 @@
 /**
- * The start page: the topic box ("Start from facts", the white Study
- * button, Enter starts), the "Suggested for <class>" rows (Continue / Next
- * up / Work on next with their buttons and meta), the Study for each
+ * The Study page: the topic box ("Start from facts", the filled Study
+ * button, Enter starts), the "Suggested for <space>" rows (Continue / Next
+ * up / Work on next with their buttons and line), the Study for each
  * deadline (Continue studying while its session is unfinished) and what
  * every Study start sends.
  */
@@ -81,7 +81,7 @@ const SUGGESTIONS: Suggestion[] = [
 function list(props: Partial<React.ComponentProps<typeof SuggestionList>> = {}) {
 	return renderToStaticMarkup(
 		<SuggestionList
-			classLabel="CSE 21"
+			spaceLabel="CSE 21"
 			suggestions={SUGGESTIONS}
 			step={{ position: 1, total: 11 }}
 			busy={false}
@@ -119,42 +119,43 @@ function row(html: string, testid: string): string {
 // ─── static ─────────────────────────────────────────────────────────────────
 
 describe("Home: the topic box", () => {
-	it("the box: the placeholder, Start from facts and the white Study", () => {
+	it("the box: the placeholder, Start from facts and the filled Study", () => {
 		const html = box();
-		assert.ok(html.includes("A topic, a homework method, or a question you&#x27;re stuck on…"));
+		assert.ok(html.includes('placeholder="A topic, a homework method, or a question you&#x27;re stuck on"'));
 		assert.ok(html.includes('aria-label="What do you want to study?"'));
 		assert.ok(html.includes("Start from facts"));
-		assert.match(html, /data-testid="home-start"[^>]*class="lh-btn lh-btn-main[^"]*"[^>]*>Study</);
+		assert.match(html, /data-testid="home-start"[^>]*class="lh-btn lh-btn-main[^"]*"[^>]*><svg.*<\/svg>Study</);
 		assert.doesNotMatch(html, /facts-picks-clear/);
 	});
 
-	it("picked facts: the count and a clear button", () => {
+	it("picked facts: the count and Clear", () => {
 		const html = box({ picks: 3 });
-		assert.match(html, /<span class="font-mono tabular-nums">3<\/span> facts picked/);
-		assert.ok(html.includes('data-testid="facts-picks-clear"'));
+		assert.match(html, /data-testid="facts-picks-chip"[^>]*>3 facts picked</);
+		assert.match(box({ picks: 1 }), />1 fact picked</);
+		assert.match(html, /data-testid="facts-picks-clear"[^>]*>Clear</);
 		assert.match(html, /data-testid="home-start" aria-disabled="false"/, "picks alone can start Study");
 		assert.match(box(), /data-testid="home-start" aria-disabled="true"/);
 	});
 
-	it("no facts in the class: Start from facts is disabled", () => {
+	it("no facts in the space: Start from facts is disabled", () => {
 		assert.match(box({ canPick: false }), /data-testid="facts-picks-chip"[^>]*disabled/);
 	});
 
-	it("takes pictures and PDFs like the lesson box: a picture button beside Study and the files above the topic", () => {
+	it("takes pictures and PDFs like the lesson box: Add pictures or PDFs beside Study and the files above the topic", () => {
 		const empty = box();
-		assert.match(empty, /aria-label="Add pictures or PDFs"/);
+		assert.match(empty, /data-testid="attach-button"[^>]*>Add pictures or PDFs</);
 		assert.ok(empty.indexOf('data-testid="attach-button"') < empty.indexOf('data-testid="home-start"'), "beside Study, before it");
 		assert.doesNotMatch(empty, /attachment-tray/);
 		const html = box({ attachments: { ...NO_FILES, files: [{ id: "f1", attachment: { name: "hw4.png", mimeType: "image/png", data: "QUJD" } }] } });
 		assert.ok(html.indexOf('data-testid="attachment-tray"') < html.indexOf("<textarea"), "the files wait above the topic");
-		assert.match(html, /aria-label="Remove hw4\.png"/);
+		assert.match(html, /hw4\.png<\/span><button[^>]*aria-label="Remove hw4\.png"[^>]*>Remove</);
 	});
 });
 
 describe("Home: suggestions", () => {
-	it("the label names the class; no class: just Suggested", () => {
+	it("the label names the space; no space: just Suggested", () => {
 		assert.ok(list().includes(">Suggested for CSE 21</h2>"));
-		assert.ok(list({ classLabel: null }).includes(">Suggested</h2>"));
+		assert.ok(list({ spaceLabel: null }).includes(">Suggested</h2>"));
 	});
 
 	it("nothing to suggest: nothing renders", () => {
@@ -166,37 +167,33 @@ describe("Home: suggestions", () => {
 		assert.deepEqual(kinds, ["continue", "next-up", "work-on-next", "work-on-next"]);
 	});
 
-	it("Continue: white dot, the lesson, step N / M in mono, Open links to the lesson", () => {
+	it("Continue: the lesson, its step, Open links to the lesson", () => {
 		const html = row(list(), "home-suggestion-continue");
-		assert.ok(html.includes(">Continue</span>"));
 		assert.ok(html.includes("HW4 methods: expected value"));
-		assert.match(html, /rounded-full bg-ink-max/);
-		assert.match(html, /step <span class="font-mono tabular-nums">1 \/ 11<\/span>/);
+		assert.ok(html.includes(">Continue, step 1 of 11</span>"));
 		assert.match(html, /<a[^>]*href="\/chat\/c1"[^>]*data-testid="home-continue"|data-testid="home-continue"[^>]*href="\/chat\/c1"/);
 	});
 
-	it("Continue before its step is read: no meta", () => {
-		assert.doesNotMatch(row(list({ step: null }), "home-suggestion-continue"), /step /);
+	it("Continue before its step is read: no step", () => {
+		assert.ok(row(list({ step: null }), "home-suggestion-continue").includes(">Continue</span>"));
 	});
 
-	it("Next up: no dot, the file name without its extension, the fact count, Study", () => {
+	it("Next up: the file name without its extension, the fact count, Study", () => {
 		const html = row(list(), "home-suggestion-next-up");
 		assert.ok(html.includes("Rosen 6.2 — Probability theory<"));
 		assert.doesNotMatch(html, /\.pdf/);
-		assert.doesNotMatch(html, /rounded-full/);
-		assert.match(html, /<span class="font-mono tabular-nums">22<\/span> facts/);
+		assert.ok(html.includes(">Next up, 22 facts</span>"));
 		assert.match(html, /data-testid="home-study-file"[^>]*>Study</);
 	});
 
-	it("Work on next: the status color dot, right / answered, or untested on the gray dot", () => {
+	it("Work on next: how many right of how many answered, or not tested", () => {
 		const html = list();
-		const weak = html.slice(html.indexOf("Conditional probability") - 600, html.indexOf("Linearity of expectation"));
-		assert.match(weak, /background:var\(--lh-ramp-1\)/);
-		assert.match(weak, /<span class="font-mono tabular-nums">2 \/ 6<\/span>/);
+		const weak = row(html, "home-suggestion-work-on-next");
+		assert.ok(weak.includes("Conditional probability"));
+		assert.ok(weak.includes(">Work on next, 2 of 6 right</span>"));
 		const untested = row(html.slice(html.indexOf("Conditional probability")), "home-suggestion-work-on-next");
 		assert.ok(untested.includes("Linearity of expectation"));
-		assert.match(untested, /bg-ans-dontknow/);
-		assert.ok(untested.includes(">not tested</span>"));
+		assert.ok(untested.includes(">Work on next, not tested</span>"));
 	});
 });
 
@@ -223,7 +220,7 @@ describe("Home: actions", () => {
 		const practiced: TopicProgress[] = [];
 		const host = await mount(
 			<SuggestionList
-				classLabel="CSE 21"
+				spaceLabel="CSE 21"
 				suggestions={SUGGESTIONS}
 				step={null}
 				busy={false}

@@ -1,8 +1,6 @@
 /**
- * The teacher's screens: the face (one svg, every
- * mood, plain black eyes), the panel (head, the Talk and Activity tabs:
- * Now, Recent, Background jobs), the Follow chip, the teacher name setting, and the
- * sidebar footer opening the panel instead of the old popup.
+ * The teacher's screens: the panel (head, the Talk and Activity tabs:
+ * Now, Recent, Background jobs) and the teacher name setting.
  */
 import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;
@@ -26,7 +24,7 @@ Object.assign(globalThis, {
 	CustomEvent: dom.window.CustomEvent,
 	IS_REACT_ACT_ENVIRONMENT: true,
 	self: globalThis,
-	// The Follow chip measures its content; linkedom has no layout.
+	// The panel measures its content; linkedom has no layout.
 	ResizeObserver: class {
 		observe() {}
 		disconnect() {}
@@ -35,15 +33,12 @@ Object.assign(globalThis, {
 // The Talk thread scrolls to its end.
 (dom.window.Element.prototype as unknown as { scrollIntoView: () => void }).scrollIntoView = () => {};
 
-const { TeacherSprite } = await import("../../src/frontend/components/halley/teacher-sprite.tsx");
-const { HALLEY_MOODS } = await import("../../src/frontend/components/halley/mood.ts");
 const { HalleyPanel, agentLine } = await import("../../src/frontend/components/halley/halley-panel.tsx");
 const { dockPush, dockWidth } = await import("../../src/frontend/components/halley/dock-model.ts");
 const { draftWithAsk, startsTurn } = await import("../../src/frontend/components/halley/talk-model.ts");
 const { askTeacher, useAskTeacher } = await import("../../src/frontend/components/halley/ask-teacher.ts");
-const { TeacherPaneView } = await import("../../src/frontend/components/halley/teacher-pane.tsx");
 const { waitingNotice } = await import("../../src/frontend/components/agent-status.tsx");
-const { ActivitySection } = await import("../../src/frontend/components/activity-dock.tsx");
+const { ActivityList, TeacherActivity } = await import("../../src/frontend/components/halley/teacher-activity.tsx");
 const { DEFAULT_TEACHER_NAME, sanitizeTeacherName, sanitizeUserSettings, TEACHER_NAME_MAX } = await import("../../src/shared/core/settings.ts");
 const { parseGeneralSettingsBody } = await import("../../src/backend/server/settings-body.ts");
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
@@ -67,26 +62,10 @@ function mount(node: React.ReactNode): HTMLElement {
 }
 
 const ACTIONS: AgentAction[] = [
-	{ id: "a2", at: "2026-10-28T23:11:00.000Z", agent: "Claude Code", label: "Adding Lab 4", classId: "cls_29", target: { kind: "deadline", id: "d4" }, page: "/" },
-	{ id: "a1", at: "2026-10-28T22:52:00.000Z", agent: "Claude Code", label: "Reading notes", classId: null, target: null, page: "javascript:alert(1)" },
+	{ id: "a2", at: "2026-10-28T23:11:00.000Z", agent: "Claude Code", label: "Adding Lab 4", spaceId: "cls_29", target: { kind: "deadline", id: "d4" }, page: "/" },
+	{ id: "a1", at: "2026-10-28T22:52:00.000Z", agent: "Claude Code", label: "Reading notes", spaceId: null, target: null, page: "javascript:alert(1)" },
 ];
 const names = (id: string | null) => (id === "cls_29" ? "CSE 29" : null);
-
-describe("the mascot", () => {
-	it("a pixel picture on a 10×13 grid, with a face for every mood", () => {
-		const html = renderToStaticMarkup(<TeacherSprite mood="thinking" />);
-		assert.match(html, /viewBox="0 0 10 13"/);
-		assert.match(html, /shape-rendering="crispEdges"/);
-		assert.match(html, /fill="#F2F4FF"/, "the white body");
-		assert.match(html, /fill="#2A3270"/, "the cap");
-		const faces = Object.fromEntries(HALLEY_MOODS.map((m) => [m, /data-face="(\w+)"/.exec(renderToStaticMarkup(<TeacherSprite mood={m} />))?.[1]]));
-		assert.deepEqual(faces, { idle: "idle", talking: "reading", thinking: "thinking", happy: "happy", oops: "oops", shocked: "oops", dizzy: "oops", sleepy: "blink" });
-	});
-	it("only the idle face blinks", () => {
-		assert.match(renderToStaticMarkup(<TeacherSprite mood="idle" />), /lh-sprite-blink/);
-		assert.doesNotMatch(renderToStaticMarkup(<TeacherSprite mood="happy" />), /lh-sprite-blink/);
-	});
-});
 
 describe("the panel", () => {
 	const panel = (over: Partial<React.ComponentProps<typeof HalleyPanel>> = {}) => (
@@ -94,11 +73,8 @@ describe("the panel", () => {
 			name="Halley"
 			agent={{ connected: true, teaching: true, name: "Claude Code", backupConnected: false, backupAnswering: false, pendingWork: 0, claimedLessons: [] }}
 			onClose={() => {}}
-			doing={{ text: "Reading syllabus.pdf", count: "2 of 5", working: true }}
 			recent={ACTIONS}
 			onPick={() => {}}
-			classNameOf={names}
-			jobs={<div data-testid="jobs-slot" />}
 			{...over}
 		/>
 	);
@@ -116,34 +92,23 @@ describe("the panel", () => {
 			for (let i = 0; i < 5; i++) await new Promise((r) => setTimeout(r, 0));
 		});
 	const talkText = async (el: HTMLElement) => (await mathBoxView(el, `Message Halley`)).state.doc.toString();
-	const onActivity = (over: Parameters<typeof panel>[0] = {}) => {
-		const el = mount(panel(over));
-		act(() => (el.querySelector("[data-testid='halley-tab-activity']") as HTMLElement).click());
-		return el;
-	};
 
-	it("opens on Talk, which opens the chat; Activity is the other tab", () => {
+	it("opens on Talk, which opens the chat; Activity is the other tab, the teacher's Activity list", () => {
 		talkCalls.length = 0;
 		const el = mount(panel());
 		assert.equal(el.querySelector("[data-testid='halley-tab-talk']")?.getAttribute("aria-selected"), "true");
 		assert.deepEqual(talkCalls, ["POST /api/talk"]);
-		assert.equal(el.querySelector("[data-testid='halley-recent']"), null);
+		assert.equal(el.querySelector("[data-testid='halley-activity']"), null);
 		act(() => (el.querySelector("[data-testid='halley-tab-activity']") as HTMLElement).click());
 		assert.equal(el.querySelector("[data-testid='halley-tab-activity']")?.getAttribute("aria-selected"), "true");
-		assert.ok(el.querySelector("[data-testid='halley-recent']"));
+		// Outside the app shell there is no teacher state: the list says what will show there.
+		assert.ok(el.querySelector("[data-testid='halley-activity'] [data-testid='halley-activity-empty']"));
 	});
-	it("in a lesson, Talk hides: the lesson's own box talks to the teacher", () => {
-		talkCalls.length = 0;
-		const el = mount(panel({ inLesson: true }));
-		assert.equal(el.querySelector("[data-testid='halley-tab-talk']"), null);
-		assert.equal(el.querySelector("[role='tablist']"), null);
-		assert.ok(el.querySelector("[data-testid='halley-recent']"), "Activity shows");
-		assert.deepEqual(talkCalls, [], "no Talk chat opens");
-	});
-	it("head: the name, the agent and a close button (Follow is the top bar's chip)", () => {
+	it("head: the name, the teacher's status and a Close button (Follow is the top bar's chip)", () => {
 		const html = renderToStaticMarkup(panel());
 		assert.match(html, /data-testid="halley-panel-name"[^>]*>Halley</);
-		assert.match(html, /data-testid="halley-panel-agent"[^>]*>Claude Code</);
+		assert.match(html, /data-testid="halley-panel-agent"[^>]*>Teaching, idle</);
+		assert.match(html, /data-testid="halley-close"[^>]*>[\s\S]*Close</);
 		assert.doesNotMatch(html, /role="switch"/);
 		const closes: number[] = [];
 		const el = mount(panel({ onClose: () => closes.push(1) }));
@@ -152,10 +117,10 @@ describe("the panel", () => {
 	});
 	it("docks on the right edge as a solid panel with no blur", () => {
 		const html = renderToStaticMarkup(panel());
-		assert.match(html, /data-testid="halley-panel"[^>]*class="[^"]*fixed top-11 right-0 bottom-0[^"]*border-l[^"]*bg-panel/);
+		assert.match(html, /data-testid="halley-panel"[^>]*class="[^"]*fixed top-12 right-0 bottom-0[^"]*border-l-2[^"]*border-line[^"]*bg-panel/);
 		assert.doesNotMatch(html, /lh-popup|rounded|blur/);
 	});
-	it("Talk reads like a script: the speaker's name once per turn, no bubbles, a white Send bar", async () => {
+	it("Talk reads like a script: the speaker's name above each turn, no bubbles, Send in the box", async () => {
 		talkChat = {
 			id: "chat_talk",
 			turnInFlight: false,
@@ -167,9 +132,38 @@ describe("the panel", () => {
 		const el = mount(panel());
 		await settle();
 		const who = [...el.querySelectorAll("[data-testid='talk-who']")].map((n) => n.textContent);
-		assert.deepEqual(who, ["You", ""]);
+		assert.deepEqual(who, ["You"], "the second message of a turn has no name of its own");
 		assert.equal(el.querySelector("[data-testid='talk-you']")?.className.includes("bg-"), false, "no bubbles");
 		assert.ok(el.querySelector("[data-testid='talk-send']"));
+		talkChat = null;
+	});
+	it("Clear chat sits on the tab row, and only once there is something to clear", async () => {
+		talkChat = { id: "chat_talk", turnInFlight: false, messages: [] };
+		const empty = mount(panel());
+		await settle();
+		assert.equal(empty.querySelector("[data-testid='talk-clear']"), null);
+		act(() => root?.unmount());
+		talkChat = { id: "chat_talk", turnInFlight: false, messages: [{ id: "u1", role: "user", content: "add my midterm", timestamp: 1 }] };
+		const el = mount(panel());
+		await settle();
+		const clear = el.querySelector("[data-testid='talk-clear']")!;
+		assert.equal(clear.textContent, "Clear chat");
+		assert.ok(clear.closest("[role='tablist']") === null && clear.parentElement?.previousElementSibling?.getAttribute("role") === "tablist", "beside the tabs, not inside the thread");
+		act(() => (el.querySelector("[data-testid='halley-tab-activity']") as HTMLElement).click());
+		assert.equal(el.querySelector("[data-testid='talk-clear']"), null, "Talk only");
+		talkChat = null;
+	});
+	it("with no agent connected the thread says so in the teacher's words, with the button that opens one", async () => {
+		talkChat = { id: "chat_talk", turnInFlight: false, messages: [] };
+		const idle = { connected: false, teaching: false, backupConnected: false, backupAnswering: false, pendingWork: 0, claimedLessons: [] };
+		const el = mount(panel({ agent: idle }));
+		await settle();
+		assert.match(el.querySelector("[data-testid='halley-panel-agent']")?.textContent ?? "", /^Not connected$/);
+		assert.match(el.querySelector("[data-testid='no-agent']")?.textContent ?? "", /I'm not connected yet\. Open Claude Code and I'll start\./);
+		assert.equal(el.querySelector("[data-testid='no-agent-open']")?.textContent, "Open Claude Code");
+		assert.ok(el.querySelector("[data-testid='talk-empty']"), "the prompt stays below it");
+		act(() => root?.unmount());
+		assert.equal(mount(panel()).querySelector("[data-testid='no-agent']"), null, "gone while an agent teaches");
 		talkChat = null;
 	});
 	it("Talk takes pictures and PDFs like the lesson box, and shows them under your message", async () => {
@@ -202,9 +196,9 @@ describe("the panel", () => {
 		assert.ok(rows[1]!.querySelector("[data-testid='message-image']"));
 		const box = el.querySelector("[data-testid='talk-box']")!;
 		const button = box.querySelector("[data-testid='attach-button']");
-		assert.equal(button?.getAttribute("aria-label"), "Add pictures or PDFs");
+		assert.equal(button?.textContent, "Add pictures or PDFs");
 		assert.equal(box.querySelector("[data-testid='attachment-input']")?.getAttribute("accept"), "image/png,image/jpeg,image/gif,image/webp,application/pdf");
-		assert.ok(box.innerHTML.indexOf('data-testid="attach-button"') < box.innerHTML.indexOf('data-testid="talk-send"'), "beside Send, before it");
+		assert.ok(box.innerHTML.indexOf('data-testid="talk-send"') < box.innerHTML.indexOf('data-testid="attach-button"'), "under the box that holds Send");
 		talkChat = null;
 	});
 	it("a turn starts when the speaker changes; a change row is the teacher's", () => {
@@ -322,12 +316,15 @@ describe("the panel", () => {
 			talkChat = null;
 		}
 	});
-	it("the agent line is empty with no agent, and shows the waiting notice while work waits", () => {
+	it("the status line says Not connected with no agent, and shows the waiting notice while work waits", () => {
 		const idle = { connected: false, teaching: false, backupConnected: false, backupAnswering: false, pendingWork: 0, claimedLessons: [] };
-		assert.equal(agentLine(idle), null);
-		assert.equal(agentLine(null), null);
+		assert.equal(agentLine(idle), "Not connected");
+		assert.equal(agentLine(null), null, "nothing until the first read");
+		assert.equal(agentLine({ ...idle, connected: true, teaching: true }), "Teaching, idle");
+		assert.equal(agentLine({ ...idle, connected: true, teaching: true }, { text: "Reading a PDF", working: true }), "Reading a PDF");
 		assert.equal(agentLine({ ...idle, connected: true, name: "Codex" }), "Codex connected, not teaching");
 		assert.equal(agentLine({ ...idle, connected: true, name: "Codex", pendingWork: 1 }), waitingNotice("Codex"));
+		assert.equal(agentLine({ ...idle, connected: true, teaching: true, backupAnswering: true }), "Catching up on my notes. My backup is answering for a minute.");
 		assert.ok(renderToStaticMarkup(panel({ agent: { ...idle, pendingWork: 2 } })).includes(waitingNotice()));
 	});
 	it("a Talk message no agent has taken says it waits once, in the head", async () => {
@@ -338,61 +335,15 @@ describe("the panel", () => {
 		assert.equal(el.textContent!.split("Waiting for your agent").length - 1, 1);
 		talkChat = null;
 	});
-	it("Now shows what it is doing, and hides while it is idle", () => {
-		assert.match(onActivity().querySelector("[data-testid='halley-now']")?.textContent ?? "", /^Reading syllabus\.pdf2 of 5$/);
-		act(() => root?.unmount());
-		assert.equal(onActivity({ doing: { text: "Idle", working: false } }).querySelector("[data-testid='halley-now']"), null);
+	it("is 400 wide, and the whole window when narrow", () => {
+		assert.equal(dockWidth(1440), 400);
+		assert.equal(dockWidth(600), 600);
 	});
-	it("with nothing in it, Activity says what will show there", () => {
-		const el = onActivity({ doing: { text: "Idle", working: false }, recent: [], jobs: undefined });
-		assert.equal(el.querySelector("[data-testid='halley-activity-empty']")?.textContent, "Nothing yet. What Halley reads and builds shows here.");
-		act(() => root?.unmount());
-		assert.equal(onActivity().querySelector("[data-testid='halley-activity-empty']"), null);
-	});
-	it("Recent hides when there is nothing yet", () => {
-		assert.equal(onActivity({ recent: [] }).querySelector("[data-testid='halley-recent']"), null);
-	});
-	it("Recent: time, label, class, and an arrow only where it can go", () => {
-		const el = onActivity();
-		const rows = [...el.querySelectorAll("[data-testid='halley-recent-row']")];
-		assert.equal(rows.length, 2);
-		assert.match(rows[0]!.textContent ?? "", /Added Lab 4CSE 29/);
-		assert.match(rows[0]!.querySelector(".font-mono")?.textContent ?? "", /^\d{1,2}:\d{2} (AM|PM)$/);
-		assert.ok(rows[0]!.querySelector("svg"), "arrow");
-		assert.equal(rows[1]!.hasAttribute("disabled"), true, "a page that isn't the app's is never followed");
-	});
-	it("Recent shows at most 8 rows", () => {
-		const many = Array.from({ length: 12 }, (_, i) => ({ ...ACTIONS[0]!, id: `a${i}` }));
-		const el = onActivity({ recent: many });
-		assert.equal(el.querySelectorAll("[data-testid='halley-recent-row']").length, 8);
-	});
-	it("clicking a Recent row goes there", () => {
-		const picked: string[] = [];
-		const el = onActivity({ onPick: (a) => picked.push(a.id) });
-		act(() => (el.querySelector("[data-testid='halley-recent-row']") as HTMLElement).click());
-		assert.deepEqual(picked, ["a2"]);
-	});
-	it("Background jobs live in the panel", () => {
-		assert.ok(onActivity().querySelector("[data-testid='jobs-slot']"));
-		const jobs = renderToStaticMarkup(<ActivitySection feed={{ jobs: [], extractions: [], failed: [{ id: "j1", kind: "pdf", chatId: "c1", title: "06_Counting.pdf", error: "The PDF could not be read", at: "2026-10-28T16:00:00Z" }] }} />);
-		assert.match(jobs, /Background jobs/);
-		assert.match(jobs, /data-testid="activity-failed"/);
-		assert.match(jobs, /Failed: The PDF could not be read/);
-	});
-	it("is 400 wide, as wide as a wider Your turn panel to cover it, and the whole window when narrow", () => {
-		assert.equal(dockWidth(1440, null), 400);
-		assert.equal(dockWidth(1440, 520), 520);
-		assert.equal(dockWidth(1440, 340), 400);
-		assert.equal(dockWidth(600, null), 600);
-		assert.equal(dockWidth(1000, 1000), 400, "a stacked Your turn panel (narrow window) isn't covered");
-	});
-	it("pushes the page left by the part not over the Your turn panel", () => {
-		assert.equal(dockPush(1440, 1184, null), 400);
-		assert.equal(dockPush(1440, 1184, 520), 0, "a wider Your turn panel is covered, no push");
-		assert.equal(dockPush(1440, 1184, 340), 60);
-		assert.equal(dockPush(600, 600, null), 0, "the whole window: no push");
-		assert.equal(dockPush(1000, 1000, null), 400);
-		assert.equal(dockPush(800, 544, null), 0, "a page too narrow to push is covered instead");
+	it("pushes the page left by its width", () => {
+		assert.equal(dockPush(1440, 1184), 400);
+		assert.equal(dockPush(600, 600), 0, "the whole window: no push");
+		assert.equal(dockPush(1000, 1000), 400);
+		assert.equal(dockPush(800, 544), 0, "a page too narrow to push is covered instead");
 	});
 	it("askTeacher reaches the panel's listener with the text", () => {
 		const heard: string[] = [];
@@ -407,68 +358,103 @@ describe("the panel", () => {
 	});
 });
 
-describe("the teacher pane", () => {
-	const reading = { text: "Reading 06_Counting.pdf", count: "3 of 12", working: true };
-	const pane = (over: Partial<React.ComponentProps<typeof TeacherPaneView>> = {}) => (
-		<TeacherPaneView
-			name="Marco"
-			mood="talking"
-			doing={reading}
-			idleLine="Claude Code"
-			disconnected={false}
-			backupAnswering={false}
-			following
-			onFollow={() => {}}
-			offer={null}
-			onGo={() => {}}
-			talkOpen={false}
-			onTalk={() => {}}
+describe("the teacher's Activity", () => {
+	const EMPTY = { jobs: [], extractions: [] };
+	const list = (over: Partial<React.ComponentProps<typeof ActivityList>> = {}) => (
+		<ActivityList
+			name="Halley"
+			doing={{ text: "Reading syllabus.pdf", count: "2 of 5", working: true }}
+			follow={{ on: false, set: () => {} }}
+			recent={ACTIONS}
+			onPick={() => {}}
+			spaceNameOf={names}
+			feed={EMPTY}
+			waiting={null}
 			{...over}
 		/>
 	);
-	it("the name cut into the border, the mascot, and what it says in its bubble: the verb over the rest", () => {
-		const el = mount(pane());
-		assert.equal(el.querySelector("[data-testid='teacher-pane'] h2")?.textContent, "marco");
-		assert.equal(el.querySelector("[data-testid='teacher-sprite']")?.getAttribute("data-face"), "reading");
-		assert.match(el.querySelector("[data-testid='teacher-doing']")?.textContent ?? "", /^reading06_Counting\.pdf3 of 12$/);
+
+	it("without the teacher's state (outside the app shell) it shows the empty line", () => {
+		assert.match(renderToStaticMarkup(<TeacherActivity />), /data-testid="halley-activity-empty"[^>]*>Nothing yet\. What Teacher reads and builds shows here\.</);
 	});
-	it("idle: one quiet line", () => {
-		const html = renderToStaticMarkup(pane({ doing: { text: "Idle", working: false } }));
-		assert.match(html, /data-testid="teacher-doing"[^>]*>idle</);
+	it("scrolls inside its parent, with no padding of its own", () => {
+		assert.match(renderToStaticMarkup(list()), /data-testid="halley-activity" class="flex min-h-0 flex-1 flex-col gap-3\.5 overflow-y-auto"/);
 	});
-	it("follow turns on and off; talk opens the panel", () => {
-		const follows: boolean[] = [];
-		let talked = 0;
-		const el = mount(pane({ onFollow: (on) => follows.push(on), onTalk: () => talked++ }));
-		assert.equal(el.querySelector("[data-testid='follow-stop']")?.textContent, "following");
-		act(() => (el.querySelector("[data-testid='follow-stop']") as HTMLElement).click());
-		act(() => (el.querySelector("[data-testid='teacher-talk']") as HTMLElement).click());
-		assert.deepEqual(follows, [false]);
-		assert.equal(talked, 1);
-		const off = mount(pane({ following: false, onFollow: (on) => follows.push(on) }));
-		act(() => (off.querySelector("[data-testid='follow-start']") as HTMLElement).click());
-		assert.deepEqual(follows, [false, true]);
+	it("the now box: what it is doing, its count and Follow; hidden while idle", () => {
+		const el = mount(list());
+		const now = el.querySelector("[data-testid='halley-now']")!;
+		assert.equal(now.textContent, "Reading syllabus.pdf2 of 5Follow");
+		assert.equal(now.className.includes("bg-highlight"), true);
+		act(() => root?.unmount());
+		assert.equal(mount(list({ doing: { text: "Idle", working: false } })).querySelector("[data-testid='halley-now']"), null);
 	});
-	it("screen readers hear the line in a polite live region", () => {
-		assert.match(renderToStaticMarkup(pane()), /aria-live="polite"[^>]*>Marco: Reading 06_Counting\.pdf</);
+	it("Follow turns following on and off, and reads Following while on", () => {
+		const set: boolean[] = [];
+		const el = mount(list({ follow: { on: false, set: (on) => set.push(on) } }));
+		const button = el.querySelector("[data-testid='activity-follow']") as HTMLElement;
+		assert.equal(button.getAttribute("aria-pressed"), "false");
+		act(() => button.click());
+		assert.deepEqual(set, [true]);
+		act(() => root?.unmount());
+		const on = mount(list({ follow: { on: true, set: () => {} } })).querySelector("[data-testid='activity-follow']");
+		assert.equal(on?.textContent, "Following");
+		assert.equal(on?.getAttribute("aria-pressed"), "true");
+		act(() => root?.unmount());
+		assert.equal(mount(list({ follow: null })).querySelector("[data-testid='activity-follow']"), null);
 	});
-	it("with Follow off, a change on another page offers to go there", () => {
-		const offer: AgentAction = { id: "act_1", at: new Date().toISOString(), agent: "Claude Code", label: "Starting CSE 29 review", classId: null, target: null, page: "/chat/c1" };
-		const went: AgentAction[] = [];
-		const el = mount(pane({ following: false, offer, onGo: (a) => went.push(a) }));
-		assert.match(el.querySelector("[data-testid='follow-offer']")?.textContent ?? "", /^starting cse 29 reviewgo to lesson$/);
-		act(() => (el.querySelector("[data-testid='follow-go']") as HTMLElement).click());
-		assert.deepEqual(went, [offer]);
+	it("with nothing in it, says what will show there", () => {
+		const el = mount(list({ doing: { text: "Idle", working: false }, recent: [] }));
+		assert.equal(el.querySelector("[data-testid='halley-activity-empty']")?.textContent, "Nothing yet. What Halley reads and builds shows here.");
+		act(() => root?.unmount());
+		assert.equal(mount(list()).querySelector("[data-testid='halley-activity-empty']"), null);
+		act(() => root?.unmount());
+		assert.equal(mount(list({ doing: null, recent: [], waiting: waitingNotice() })).querySelector("[data-testid='halley-activity-empty']"), null, "the waiting line is something");
 	});
-	it("while the agent compacts, the bubble says the backup is answering", () => {
-		const html = renderToStaticMarkup(pane({ backupAnswering: true }));
-		assert.match(html, /data-testid="teacher-backup"[^>]*>Catching up on my notes\. My backup is answering for a minute\.</);
-		assert.doesNotMatch(html, /teacher-doing/);
+	it("Recent hides when there is nothing yet", () => {
+		assert.equal(mount(list({ recent: [] })).querySelector("[data-testid='halley-recent']"), null);
 	});
-	it("no agent yet: the agent line in the bubble, no follow button", () => {
-		const html = renderToStaticMarkup(pane({ doing: null, idleLine: "No agent connected" }));
-		assert.match(html, /data-testid="teacher-bubble"[^>]*><p[^>]*>No agent connected</);
-		assert.doesNotMatch(html, /follow-st/);
+	it("Recent: label, space, how long ago, and an arrow only where it can go", () => {
+		const el = mount(list());
+		assert.match(el.textContent ?? "", /Recent/);
+		const rows = [...el.querySelectorAll("[data-testid='halley-recent-row']")];
+		assert.equal(rows.length, 2);
+		assert.match(rows[0]!.textContent ?? "", /Added Lab 4CSE 29/);
+		assert.match(rows[0]!.querySelector("[data-testid='halley-recent-time']")?.textContent ?? "", /^(Oct 2[89]|\d+ (min|hours?|days)|yesterday)$/);
+		assert.ok(rows[0]!.querySelector("svg"), "arrow");
+		assert.equal(rows[1]!.querySelector("svg"), null);
+		assert.equal(rows[1]!.hasAttribute("disabled"), true, "a page that isn't the app's is never followed");
+	});
+	it("Recent lists every row the server sent, scrolling inside the tab", () => {
+		const many = Array.from({ length: 12 }, (_, i) => ({ ...ACTIONS[0]!, id: `a${i}` }));
+		const el = mount(list({ recent: many }));
+		assert.equal(el.querySelectorAll("[data-testid='halley-recent-row']").length, 12);
+		assert.match(el.querySelector("[data-testid='halley-activity']")?.className ?? "", /overflow-y-auto/);
+	});
+	it("clicking a Recent row goes there", () => {
+		const picked: string[] = [];
+		const el = mount(list({ onPick: (a) => picked.push(a.id) }));
+		act(() => (el.querySelector("[data-testid='halley-recent-row']") as HTMLElement).click());
+		assert.deepEqual(picked, ["a2"]);
+	});
+	it("Running in the background sits above Recent, with failed jobs and the waiting line", () => {
+		const failed = [{ id: "j1", kind: "pdf" as const, chatId: "c1", title: "06_Counting.pdf", error: "The PDF could not be read", at: "2026-10-28T16:00:00Z" }];
+		const html = renderToStaticMarkup(list({ feed: { ...EMPTY, failed }, waiting: waitingNotice("Codex") }));
+		assert.match(html, /Running in the background/);
+		assert.match(html, /data-testid="activity-failed"/);
+		assert.match(html, /Failed: The PDF could not be read/);
+		assert.match(html, /data-testid="activity-waiting"[^>]*>Waiting for your agent\. Tell Codex to start teaching\.</);
+		assert.ok(html.indexOf("Running in the background") < html.indexOf(">Recent<"));
+	});
+	it("clicking a job opens its detail: what it is doing, cost, context and its lesson", () => {
+		const job = { id: "j1", kind: "demo" as const, chatId: "c1", toolCallId: "t1", status: "running" as const, activity: "building sandbox…", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), title: "Chain-rule demo", contextLimit: null };
+		const el = mount(list({ feed: { jobs: [job], extractions: [] } }));
+		assert.equal(el.querySelector("[data-testid='activity-blob-detail']"), null);
+		act(() => (el.querySelector("[data-testid='activity-blob-job'] button[aria-expanded]") as HTMLElement).click());
+		const detail = el.querySelector("[data-testid='activity-blob-detail']")!;
+		assert.match(detail.textContent ?? "", /building sandbox…/);
+		assert.equal(detail.querySelector("[data-testid='activity-blob-cost']")?.textContent, "–");
+		assert.equal(detail.querySelector("[data-testid='activity-blob-context']")?.textContent, "–");
+		assert.equal(detail.querySelector("a")?.getAttribute("href"), "/chat/c1");
 	});
 });
 

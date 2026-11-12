@@ -1,4 +1,5 @@
-import { ClipboardCheckIcon } from "lucide-react";
+import { CARD } from "@/frontend/components/ui/card-parts";
+import { cn } from "@/frontend/lib/utils";
 import { parseProbeDoneInput, type ProbeDoneResult } from "@/shared/core";
 
 /**
@@ -35,31 +36,28 @@ export function ProbeDoneCard({ part }: { part: { input?: unknown; output?: unkn
 	const strands = assessment && Array.isArray(assessment.strands) ? assessment.strands : null;
 
 	return (
-		<div data-testid="probe-done-card" className="my-3 border bg-card/60 p-3">
-			<div className="mb-2 flex items-center gap-2 text-xs font-semibold text-muted-foreground">
-				<ClipboardCheckIcon className="size-3.5 text-primary" />
-				Warm-up done: what you already know
-			</div>
+		<div data-testid="probe-done-card" className={cn(CARD, "my-3 flex flex-col gap-2.5")}>
+			<div className="text-lg text-ink">Warm-up done: what you already know</div>
 			{output && !output.ok ? (
-				<p className="text-sm text-muted-foreground">The teacher tried again: {output.error}</p>
+				<p className="font-prose text-[16px] text-ink-2">The teacher tried again: {output.error}</p>
 			) : state === "output-error" ? (
-				<p className="text-sm text-muted-foreground">
+				<p className="font-prose text-[16px] text-ink-2">
 					The assessment was malformed. The teacher tried again with a corrected one.
 				</p>
 			) : strands ? (
-				<div className="space-y-2">
+				<div className="flex flex-col gap-2">
 					{strands.map((s, i) => (
-						<div key={i} className=" bg-background/60 px-3 py-2">
-							<div className="text-sm font-medium">{s.strand}</div>
-							<div className="mt-0.5 text-sm text-muted-foreground">{s.assessment}</div>
+						<div key={i} className="rounded-sm bg-panel px-3 py-2">
+							<div className="text-[15px] font-medium text-ink">{s.strand}</div>
+							<div className="mt-0.5 font-prose text-[16px] text-ink-2">{s.assessment}</div>
 						</div>
 					))}
 					{assessment?.summary && (
-						<p className="px-1 text-sm text-muted-foreground">{assessment.summary}</p>
+						<p className="px-1 font-prose text-[16px] text-ink-2">{assessment.summary}</p>
 					)}
 				</div>
 			) : (
-				<p className="text-sm text-muted-foreground">Writing the assessment…</p>
+				<p className="font-prose text-[16px] text-ink-2">Writing the assessment…</p>
 			)}
 		</div>
 	);

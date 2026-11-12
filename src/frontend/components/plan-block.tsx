@@ -1,212 +1,143 @@
-import { useEffect, useId, useMemo } from "react";
-import { XIcon } from "lucide-react";
+import { useId, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { cn } from "@/frontend/lib/utils";
 import { usePanZoomViewport, ZoomControls } from "@/frontend/components/pan-zoom-viewport";
 import type { PlanBlockData, PlanNodeStatus, PlanTree } from "@/shared/core";
-import { derivedNodeStatus, derivePlanStatuses } from "@/shared/core";
+import { derivedNodeStatus, derivePlanStatuses, planStepBar } from "@/shared/core";
 import { Hint } from "@/frontend/components/ui/hint";
+import { DialogSheet } from "@/frontend/components/ui/dialog-sheet";
+import { PlanList, PlanListRow } from "@/frontend/components/lesson/plan-list";
+import { jumpTarget, rightCountLabel } from "@/frontend/components/lesson/plan-row-model";
 import type { PopupMessage } from "@/frontend/components/plan-latest";
 import { ARROW_HEAD, blockLayout, edgePathD, HEAD_H, HEAD_W, LINE_H, NODE_H, NODE_W_MIN, STROKE_W, wrapTitle, type LayoutNode } from "@/frontend/components/plan-block-model";
-import { useDialogFocus } from "@/frontend/components/use-dialog-focus";
 
 /**
- * PLAN BLOCKS: persisted `data-plan-block` parts render as DAG blocks in
- * the transcript flow.
+ * PLAN BLOCKS: persisted `data-plan-block` parts render as DAG cards in
+ * the transcript flow, and the plan dialog shows the live plan.
  *
- * - kind "full": the whole DAG, borderless. The SVG scales to the column
- *   width (viewBox = layout extent + GRAPH_PAD, so strokes and glow never
- *   clip), capped at the chat prose font size (TEXT_CAP_SCALE).
- * - Clicking opens the LIVE plan in a session-scoped focus overlay: the
- *   latest tree with statuses derived at click time. Blocks are frozen
- *   snapshots rendered as carried; the popup is the live view.
+ * - The card shows the whole DAG. The SVG scales to the column width
+ *   (viewBox = layout extent + GRAPH_PAD, so strokes never clip), capped
+ *   at the reading text size (TEXT_CAP_SCALE).
+ * - Clicking it opens the LIVE plan in "The plan" dialog: the steps list
+ *   and the diagram, statuses derived at click time. Cards are frozen
+ *   snapshots rendered as carried; the dialog is the live view.
  *
  * Placement and edge geometry live in plan-block-model.ts; the SVG skin
  * is here. Pan/zoom uses fit-floor semantics: fully zoomed out IS the fit.
  */
 
-// ─── Geometry caps ───────────────────────────────────────────────────────────
-
 /** SVG-unit padding around the layout extent: strokes are centered on the
- *  geometry (half bleeds outside the extent) and the glow halo reaches −4 —
- *  without this pad the outermost node borders clip at the svg edge. */
+ *  geometry (half bleeds outside the extent), so the outermost node
+ *  borders would clip at the svg edge without it. */
 const GRAPH_PAD = 8;
-/** The current node's yellow glow: a fill blurred so it bleeds over the
- *  node's edges. A Gaussian's visible spread is ≈3σ, so the glow
- *  reaches GLOW_MARGIN + 3·GLOW_BLUR past the node; any surface that
- *  shows the glow must pad its viewBox by GLOW_REACH or the blur clips
- *  at the frame edge. */
-const GLOW_MARGIN = 8;
-const GLOW_BLUR = 5;
-const GLOW_REACH = GLOW_MARGIN + 3 * GLOW_BLUR;
-/** Node titles render at text-xs (12px) in svg units. The in-chat block
- *  scales up to fill the column but NEVER past the chat prose size
- *  (--lh-prose-size, 15px, the ladder's reading rung): the width cap
- *  that makes that hold. */
-const TEXT_CAP_SCALE = 15 / 12;
+/** Node titles render at text-xs (12px) in svg units. The card scales up
+ *  to fill the column but never past the reading text size (17px): the
+ *  width cap that makes that hold. */
+const TEXT_CAP_SCALE = 17 / 12;
 
-// ─── Status styling ──────────────────────────────────────────────────────────
-
-// Rectangular boxes, white
-// outlines/arrows/text; no fill on visited, today's gray look on upcoming,
-// and the current node carries a faint yellow glow (a blurred yellow fill
-// bleeding over the edges). The IN-CHAT block is monochrome white instead
-// — no status language; the popup/window show the progression.
 const BOX: Record<PlanNodeStatus, string> = {
-	// 50%-opacity app background instead of true transparency: a routed
-	// edge passing behind the box composites UNDER the fill — dimmed to
-	// half, not shown straight through.
-	visited: "fill-background/50 stroke-ink-max",
-	current: "fill-background/50 stroke-ink-max",
-	upcoming: "fill-card stroke-border",
+	// 50%-opacity fill instead of true transparency: a routed edge passing
+	// behind the box composites UNDER the fill, dimmed to half, not shown
+	// straight through.
+	visited: "fill-panel/50 stroke-ink",
+	current: "fill-highlight stroke-ink",
+	upcoming: "fill-panel/50 stroke-ink",
 };
 const TEXT: Record<PlanNodeStatus, string> = {
-	visited: "fill-ink-max text-xs",
-	current: "fill-ink-max text-xs font-medium",
-	upcoming: "fill-muted-foreground/80 text-xs",
+	visited: "fill-ink text-xs",
+	current: "fill-ink text-xs font-medium",
+	upcoming: "fill-ink-2 text-xs",
 };
-// The in-chat block uses the dock look: boxes in the lighter background
-// variant like the composer/dock shells, with white outlines.
-const MONO_BOX = "fill-card stroke-ink-max";
-const MONO_TEXT = "fill-foreground text-xs";
+// The card shows no progress: every node looks the same.
+const MONO_BOX = "fill-panel stroke-ink";
+const MONO_TEXT = "fill-ink text-xs";
 
-/** The diagram itself: positioned nodes + bezier edges. Pure-ish render —
+/** The diagram itself: positioned nodes + bezier edges. Pure-ish render:
  *  every input is data, so SSR render tests pin the whole thing. The root
  *  sets font-family var(--font-prose): node titles render in the READING
- *  font, not the mono UI font, and the runtime var
- *  rides the Appearance reading-font override (the utility can't: @theme
- *  inline bakes literals). */
+ *  font, and the runtime var rides the Appearance reading-font override
+ *  (the utility can't: @theme inline bakes literals). */
 function PlanDiagram({
 	nodes,
 	edges,
 	statusOf,
-	glowId,
 	markerId,
-	viewBoxOverride,
-	pad: padUnits,
+	pad,
 	textCapScale,
 	naturalSize,
 	monochrome,
-	fill,
 }: {
 	nodes: readonly LayoutNode[];
 	edges: ReadonlyArray<{ from: string; to: string }>;
 	statusOf: (id: string) => PlanNodeStatus;
-	glowId?: string | null;
 	markerId: string;
-	/** A windowed viewBox (the plan window) instead of the full extent. */
-	viewBoxOverride?: string;
-	/** Pads the viewBox by this many svg units so centered strokes and the
-	 *  glow halo never clip at the extent edges (full-extent renders only). */
-	pad?: number;
-	/** Caps the rendered width at extent × scale — the chat-font-size zoom
-	 *  ceiling for the in-chat block (fills the column, never past prose). */
+	/** Pads the viewBox by this many svg units so centered strokes never
+	 *  clip at the extent edges. */
+	pad: number;
+	/** Caps the rendered width at extent × scale: the card fills the
+	 *  column but never grows past reading size. */
 	textCapScale?: number;
-	/** Renders at the viewBox width in px (1 svg unit = 1 px at zoom 1) —
-	 *  the popup's transform math depends on it; w-full inside the popup's
-	 *  shrink-to-fit wrapper resolved to the popup width and broke fit. */
+	/** Renders at the viewBox width in px (1 svg unit = 1 px at zoom 1);
+	 *  the dialog's transform math depends on it. */
 	naturalSize?: boolean;
-	/** The in-chat block's mode: every node white (fill-none, white stroke
-	 *  and text, no glow); statuses never show in the transcript. */
+	/** The card's mode: every node the same, statuses never show. */
 	monochrome?: boolean;
-	/** Meet-fits the diagram inside a fixed box (h-full w-full — the svg's
-	 *  default preserveAspectRatio centers + contains the viewBox): the
-	 *  dock band's marginalia mode, where the diagram must fit BOTH the
-	 *  flank's width and the band's height rather than run width-first. */
-	fill?: boolean;
 }) {
 	const layout = useMemo(() => blockLayout(nodes, edges), [nodes, edges]);
-	// Pad only the full-extent render — the plan window's override viewBox is
-	// a deliberate viewport crop, and the popup keeps its own fit margins.
-	const pad = viewBoxOverride ? 0 : (padUnits ?? 0);
 	const w = Math.max(layout.width, 1);
 	const h = Math.max(layout.height, 1);
 	const vbW = w + 2 * pad;
 	const vbH = h + 2 * pad;
 	// The origin rides the ink extent: an arrow bulging past zero shifts
 	// the viewBox with it instead of clipping.
-	const ox = viewBoxOverride ? 0 : (layout.originX ?? 0);
-	const oy = viewBoxOverride ? 0 : (layout.originY ?? 0);
+	const ox = layout.originX ?? 0;
+	const oy = layout.originY ?? 0;
 	return (
 		<svg
-			viewBox={viewBoxOverride ?? `${ox - pad} ${oy - pad} ${vbW} ${vbH}`}
-			className={`block ${fill ? "h-full w-full" : `h-auto${naturalSize ? "" : " w-full"}`}${textCapScale ? " mx-auto" : ""}`}
+			viewBox={`${ox - pad} ${oy - pad} ${vbW} ${vbH}`}
+			className={`block h-auto${naturalSize ? "" : " w-full"}${textCapScale ? " mx-auto" : ""}`}
 			style={{
-				// The READING font via the runtime var, NOT
-				// the font-prose utility: @theme inline bakes the literal into
-				// utilities, which would freeze the
-				// graph at the default font and ignore the Appearance reading-font
-				// override. var(--font-prose) rides it.
+				// The READING font via the runtime var, NOT the font-prose
+				// utility: @theme inline bakes the literal into utilities,
+				// which would ignore the Appearance reading-font override.
 				fontFamily: "var(--font-prose)",
-				...(textCapScale
-					? { maxWidth: `${Math.round(vbW * textCapScale * 100) / 100}px` }
-					: naturalSize
-						? { width: `${vbW}px` }
-						: {}),
+				...(textCapScale ? { maxWidth: `${Math.round(vbW * textCapScale * 100) / 100}px` } : naturalSize ? { width: `${vbW}px` } : {}),
 			}}
 			role="img"
 			aria-label="Plan diagram"
 		>
 			<defs>
-				<marker
-					id={markerId}
-					viewBox="0 0 50.2 104"
-					refX={27.2}
-					refY={52}
-					markerWidth={HEAD_W}
-					markerHeight={HEAD_H}
-					markerUnits="userSpaceOnUse"
-					orient="auto"
-				>
-					{/* The mouth (x 27.2) sits at refX so the
-					    line ends AT the notch — the tip beyond it is solid fill. */}
-					<path d={ARROW_HEAD} className="fill-ink-max" />
+				<marker id={markerId} viewBox="0 0 50.2 104" refX={27.2} refY={52} markerWidth={HEAD_W} markerHeight={HEAD_H} markerUnits="userSpaceOnUse" orient="auto">
+					{/* The mouth (x 27.2) sits at refX so the line ends AT the
+					    notch; the tip beyond it is solid fill. */}
+					<path d={ARROW_HEAD} className="fill-ink-2" />
 				</marker>
-				{/* Same head, grayed — arrows into not-yet-visited nodes are
-				    grayed out like the nodes themselves. */}
-				<marker
-					id={`${markerId}-dim`}
-					viewBox="0 0 50.2 104"
-					refX={27.2}
-					refY={52}
-					markerWidth={HEAD_W}
-					markerHeight={HEAD_H}
-					markerUnits="userSpaceOnUse"
-					orient="auto"
-				>
+				{/* Same head, light: links into not-yet-visited nodes fade like the nodes' text. */}
+				<marker id={`${markerId}-dim`} viewBox="0 0 50.2 104" refX={27.2} refY={52} markerWidth={HEAD_W} markerHeight={HEAD_H} markerUnits="userSpaceOnUse" orient="auto">
 					<path d={ARROW_HEAD} className="fill-border" />
 				</marker>
-				{/* The current node's highlight: a faint yellow fill BLURRED so it
-				    bleeds out over the node's edges. Generous filter region
-				    so the blur never clips at its own bounds. */}
-				<filter id={`${markerId}-glow`} x="-60%" y="-60%" width="220%" height="220%">
-					<feGaussianBlur stdDeviation={GLOW_BLUR} />
-				</filter>
 			</defs>
 			{edges.map((e) => {
-				// Dagre's route for this edge: border-intersected waypoints —
-				// the line leaves/enters nodes on whatever side dagre chose.
-				// Unroutable edges
-				// (dangling endpoints) draw nothing.
+				// Dagre's route for this edge: border-intersected waypoints.
+				// Unroutable edges (dangling endpoints) draw nothing.
 				const pts = layout.edgePts.get(`${e.from}->${e.to}`);
 				if (!pts) return null;
-				// The target's box — drives the docking gap + entry-angle clamp.
+				// The target's box drives the docking gap + entry-angle clamp.
 				const tx = layout.x.get(e.to);
 				const ty = layout.y.get(e.to);
 				const target =
 					tx !== undefined && ty !== undefined
 						? { x: tx, y: ty, w: layout.nodeW.get(e.to) ?? NODE_W_MIN, h: layout.nodeH.get(e.to) ?? NODE_H }
 						: undefined;
-				// An arrow is white only when BOTH its ends are white: a gray
-				// box's outgoing arrows stay gray even when they point into
-				// covered territory. The in-chat block stays all-white.
-				const dim =
-					!monochrome &&
-					(statusOf(e.from) === "upcoming" || statusOf(e.to) === "upcoming");
+				// A link is dark only when BOTH its ends are: a light box's
+				// outgoing links stay light even when they point into covered
+				// territory.
+				const dim = !monochrome && (statusOf(e.from) === "upcoming" || statusOf(e.to) === "upcoming");
 				return (
 					<path
 						key={`${e.from}->${e.to}`}
 						d={edgePathD(pts, target)}
-						className={dim ? "fill-none stroke-border" : "fill-none stroke-ink-max"}
+						className={dim ? "fill-none stroke-border" : "fill-none stroke-ink-2"}
 						strokeWidth={STROKE_W}
 						markerEnd={`url(#${markerId}${dim ? "-dim" : ""})`}
 					/>
@@ -214,48 +145,16 @@ function PlanDiagram({
 			})}
 			{nodes.map((n) => {
 				const status = statusOf(n.id);
-				const glow = n.id === glowId && !monochrome;
 				const lines = wrapTitle(n.title);
 				// The box hugs its wrapped content; text centers in it both ways.
-				const h = layout.nodeH.get(n.id) ?? NODE_H;
-				const w = layout.nodeW.get(n.id) ?? NODE_W_MIN;
-				const y0 = (h - lines.length * LINE_H) / 2 + 10;
+				const nodeH = layout.nodeH.get(n.id) ?? NODE_H;
+				const nodeW = layout.nodeW.get(n.id) ?? NODE_W_MIN;
+				const y0 = (nodeH - lines.length * LINE_H) / 2 + 10;
 				return (
-					<g
-						key={n.id}
-						transform={`translate(${layout.x.get(n.id) ?? 0}, ${layout.y.get(n.id) ?? 0})`}
-						data-testid={`plan-node-${n.id}`}
-						data-status={status}
-					>
-						{/* Rectangular: no corner rounding. */}
-						<rect
-							width={w}
-							height={h}
-							className={monochrome ? MONO_BOX : BOX[status]}
-							strokeWidth={STROKE_W}
-						/>
-						{glow && (
-							// The current node's highlight: faint yellow, blurred so it
-							// bleeds over the edges, static, no pulse. Paints ABOVE the
-							// box fill so the fill doesn't dim the glow, while edges
-							// behind the box still dim under that fill.
-							<rect
-								x={-GLOW_MARGIN}
-								y={-GLOW_MARGIN}
-								width={w + 2 * GLOW_MARGIN}
-								height={h + 2 * GLOW_MARGIN}
-								className="fill-yellow-400/25"
-								filter={`url(#${markerId}-glow)`}
-							/>
-						)}
+					<g key={n.id} transform={`translate(${layout.x.get(n.id) ?? 0}, ${layout.y.get(n.id) ?? 0})`} data-testid={`plan-node-${n.id}`} data-status={status}>
+						<rect width={nodeW} height={nodeH} className={monochrome ? MONO_BOX : BOX[status]} strokeWidth={STROKE_W} />
 						{lines.map((line, i) => (
-							<text
-								key={i}
-								x={w / 2}
-								y={y0 + i * LINE_H}
-								textAnchor="middle"
-								className={monochrome ? MONO_TEXT : TEXT[status]}
-							>
+							<text key={i} x={nodeW / 2} y={y0 + i * LINE_H} textAnchor="middle" className={monochrome ? MONO_TEXT : TEXT[status]}>
 								{line}
 							</text>
 						))}
@@ -266,12 +165,9 @@ function PlanDiagram({
 	);
 }
 
-// ─── The transcript block ─────────────────────────────────────────────────────
-
 /**
  * A persisted plan-block part, rendered as carried (snapshot statuses,
- * never re-derived): borderless and column-filling, it opens the live plan
- * popup.
+ * never re-derived): a card that opens the live plan dialog.
  */
 export function PlanBlock({ data, onOpen }: { data: PlanBlockData; onOpen: () => void }) {
 	const markerId = useId().replace(/[^a-zA-Z0-9-]/g, "");
@@ -279,173 +175,110 @@ export function PlanBlock({ data, onOpen }: { data: PlanBlockData; onOpen: () =>
 	const statusOf = (id: string): PlanNodeStatus => statusMap.get(id) ?? "upcoming";
 	return (
 		<Hint label="Open the full plan" side="bottom">
-<button
-			type="button"
-			data-testid="plan-block-full"
-			aria-label="Open the full plan"
-			onClick={onOpen}
-			className="block w-full text-left"
-		>
-			{/* pad keeps centered strokes + the glow halo inside the frame; the
-		    cap keeps node text at or below chat prose size while still filling
-		    the column when it can. */}
-		<PlanDiagram
-			nodes={data.nodes}
-			edges={data.edges}
-			statusOf={statusOf}
-			markerId={markerId}
-			pad={GRAPH_PAD}
-			textCapScale={TEXT_CAP_SCALE}
-			monochrome
-		/>
-		</button>
-</Hint>
+			<button
+				type="button"
+				data-testid="plan-block-full"
+				aria-label="Open the full plan"
+				onClick={onOpen}
+				className="block w-full rounded border border-edge bg-background px-4 py-3 text-left"
+			>
+				<PlanDiagram nodes={data.nodes} edges={data.edges} statusOf={statusOf} markerId={markerId} pad={GRAPH_PAD} textCapScale={TEXT_CAP_SCALE} monochrome />
+			</button>
+		</Hint>
 	);
 }
 
-// ─── The live plan popup ──────────────────────────────────────────────────────
-
-/** The popup shows the glow, so its frame pads by the glow's reach —
- *  the in-chat block (monochrome, no glow) stays tight at GRAPH_PAD. */
-const POPUP_PAD = GLOW_REACH;
-
 /**
- * The full plan, live: the lesson's plan + statuses derived at click
- * time. Esc, backdrop click, or the X close it; drag pans, wheel zooms to
- * the cursor, the zoom floor is the fit (panning locks at it — nothing to move).
- *
- * Session-scoped: it mounts absolute inside the chat page's session-area
- * div (chat.tsx), below the 60px drag bar and right of the sidebar, so the
- * top bar stays draggable and the X can never land in drag territory.
- * Surface 80% + blur: the transcript ghosts through.
+ * "The plan" dialog, live: the lesson's steps and its plan diagram with
+ * statuses derived at click time. A done step goes back to its first
+ * answer; drag pans the diagram, wheel zooms to the cursor, and the zoom
+ * floor is the fit (panning locks at it, nothing to move).
  */
 export function PlanPopup({
 	tree,
 	messages,
 	onClose,
+	onJump,
 	state = "open",
 }: {
-	/** The lesson's plan (the same one its step bar shows). */
+	/** The lesson's plan (the same one its step row shows). */
 	tree: PlanTree | null;
 	messages: readonly PopupMessage[];
 	onClose: () => void;
-	/** Fade state: the caller keeps the popup mounted through its exit
+	/** A done step's click: scroll the lesson to its first answer. */
+	onJump: (toolCallId: string) => void;
+	/** Fade state: the caller keeps the dialog mounted through its exit
 	 *  with usePresence. */
 	state?: "open" | "closed";
 }) {
-	const statuses = useMemo(
-		() => (tree ? derivePlanStatuses(tree, messages as Parameters<typeof derivePlanStatuses>[1]) : null),
-		[tree, messages],
-	);
+	const statuses = useMemo(() => (tree ? derivePlanStatuses(tree, messages as Parameters<typeof derivePlanStatuses>[1]) : null), [tree, messages]);
 	const statusOf = (id: string): PlanNodeStatus => (statuses ? derivedNodeStatus(statuses, id) : "upcoming");
-
-	// Esc closes, claimed at the DOCUMENT level: a surfaced layer's Esc is
-	// exactly one action. The window-level chain (abort) is the fallback for when
-	// NOTHING is surfaced; a window listener here could never stop it —
-	// same-node listeners all fire.
-	useEffect(() => {
-		const onKey = (e: KeyboardEvent) => {
-			if (e.key === "Escape") {
-				e.preventDefault();
-				e.stopPropagation();
-				onClose();
-			}
-		};
-		document.addEventListener("keydown", onKey);
-		return () => document.removeEventListener("keydown", onKey);
-	}, [onClose]);
+	const bar = useMemo(() => planStepBar(tree, messages as Parameters<typeof planStepBar>[1]), [tree, messages]);
 
 	const layout = useMemo(() => (tree ? blockLayout(tree.nodes, tree.edges) : null), [tree]);
-	// The fit box is the PADDED ink box — the diagram renders with POPUP_PAD
-	// (= the glow's reach) so the blurred glow never clips at the frame, and
-	// the fit must account for that padding.
-	const box = useMemo(
-		() => (layout ? { w: layout.width + 2 * POPUP_PAD, h: layout.height + 2 * POPUP_PAD } : { w: 0, h: 0 }),
-		[layout],
-	);
+	// The fit box is the PADDED ink box: the diagram renders with GRAPH_PAD.
+	const box = useMemo(() => (layout ? { w: layout.width + 2 * GRAPH_PAD, h: layout.height + 2 * GRAPH_PAD } : { w: 0, h: 0 }), [layout]);
 	const { viewportRef, view, atFloor, settled, panning, startDrag, moveDrag, endDrag, stepZoom, fitView } = usePanZoomViewport(box, true);
-
 	const markerId = useId().replace(/[^a-zA-Z0-9-]/g, "");
-	const dialogRef = useDialogFocus<HTMLDivElement>(state === "open");
 
-	return (
-		<div
-			ref={dialogRef}
-			tabIndex={-1}
-			data-testid="plan-popup"
-			// SESSION-SCOPED (absolute, not fixed): the chat page mounts this
-			// INSIDE the session-area div — below the drag bar, right of the
-			// sidebar. 80% + blur: the transcript ghosts through.
-			className="absolute inset-0 z-40 flex flex-col bg-background/80 p-4 backdrop-blur-sm lh-fade"
-			data-state={state}
-			role="dialog"
-			aria-modal="true"
-			aria-label="The full plan"
-			onClick={(e) => {
-				if (e.target === e.currentTarget) onClose();
-			}}
-		>
-			<div className="mb-2 flex items-center gap-2">
-				<span className="text-sm font-medium">The plan</span>
-				<span className="text-xs text-muted-foreground">Updates as you answer</span>
-				<Hint label="Close" side="left">
-<button
-					type="button"
-					onClick={onClose}
-					aria-label="Close"
-					data-testid="plan-popup-close"
-					className="lh-press ml-auto p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
-				>
-					<XIcon className="size-4" />
-				</button>
-</Hint>
-			</div>
-			<div
-				ref={viewportRef}
-				className={cn(
-					"relative min-h-0 flex-1 touch-none overflow-hidden border select-none",
-					atFloor ? "cursor-default" : "cursor-grab",
-				)}
-				onPointerDown={startDrag}
-				onPointerMove={moveDrag}
-				onPointerUp={endDrag}
-				onPointerCancel={endDrag}
-			>
-				{tree ? (
-					<>
+	if (typeof document === "undefined") return null;
+	return createPortal(
+		<DialogSheet title="The plan" state={state} testid="plan-popup" onClose={onClose} className="w-[640px]">
+			<p className="text-[14px] text-ink-2">Updates as you answer</p>
+			{tree ? (
+				<>
+					<PlanList label="Plan steps">
+						{bar.steps.map((step, i) => {
+							const target = jumpTarget(step);
+							return (
+								<PlanListRow
+									key={step.id}
+									testid="plan-step"
+									status={step.status}
+									tone={step.status === "visited" ? "done" : step.status === "current" ? "current" : "later"}
+									number={String(i + 1)}
+									name={step.title}
+									note={rightCountLabel(step.answers)}
+									onClick={
+										target
+											? () => {
+													onClose();
+													onJump(target);
+												}
+											: undefined
+									}
+								/>
+							);
+						})}
+					</PlanList>
+					<div
+						ref={viewportRef}
+						className={cn("relative h-[280px] shrink-0 touch-none overflow-hidden border border-edge bg-background select-none", atFloor ? "cursor-default" : "cursor-grab")}
+						onPointerDown={startDrag}
+						onPointerMove={moveDrag}
+						onPointerUp={endDrag}
+						onPointerCancel={endDrag}
+					>
 						<div
 							className="absolute top-0 left-0 origin-top-left"
 							style={{
 								transform: `translate(${view.x}px, ${view.y}px) scale(${view.zoom})`,
-								// Hidden until the first fit has APPLIED — the fit runs in an
-								// effect (after paint), so an opacity-gated chart can never flash
-								// at the initial top-left zoom:1 state (same fix as the mermaid
-								// overlay; transition-gating alone doesn't hide the fly-in).
+								// Hidden until the first fit has APPLIED: the fit runs in an
+								// effect (after paint), so the diagram can never flash at the
+								// initial top-left zoom:1 state.
 								opacity: settled ? 1 : 0,
-								transition:
-									panning || !settled
-										? "none"
-										: "transform 180ms ease-out, opacity 160ms ease-out",
+								transition: panning || !settled ? "none" : "transform 180ms ease-out, opacity 160ms ease-out",
 							}}
 						>
-							<PlanDiagram
-								nodes={tree.nodes}
-								edges={tree.edges}
-								statusOf={statusOf}
-								glowId={statuses?.current ?? null}
-								markerId={markerId}
-								pad={POPUP_PAD}
-								naturalSize
-							/>
+							<PlanDiagram nodes={tree.nodes} edges={tree.edges} statusOf={statusOf} markerId={markerId} pad={GRAPH_PAD} naturalSize />
 						</div>
 						<ZoomControls fitLabel="Fit plan to screen" fitTestId="plan-popup-fit" onStep={stepZoom} onFit={fitView} />
-					</>
-				) : (
-					<div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-						No plan in this session yet.
 					</div>
-				)}
-			</div>
-		</div>
+				</>
+			) : (
+				<p className="text-[15px] text-ink-2">No plan in this session yet.</p>
+			)}
+		</DialogSheet>,
+		document.body,
 	);
 }

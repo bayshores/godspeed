@@ -11,8 +11,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { parseHTML } from "linkedom";
 import { UpdateSettings, updateStatusText, MANUAL_UPDATE_HINT, AUTO_UPDATE_HINT, type UpdateState } from "../../src/frontend/components/settings/update-settings.tsx";
 import UpdateBanner from "../../src/frontend/components/update-banner.tsx";
-import { SettingsDialogBody } from "../../src/frontend/components/settings/settings-dialog.tsx";
-import { SettingsDialogProvider } from "../../src/frontend/components/settings/settings-dialog-provider.tsx";
+import { SettingsPage } from "../../src/frontend/components/settings/settings-page.tsx";
 import nextConfig from "../../next.config.ts";
 import { ServerEventsProvider } from "../../src/frontend/components/server-events.tsx";
 const quietEvents = () => ({ onEvent() {}, onOpen() {}, close() {} });
@@ -35,21 +34,18 @@ function deferred<T>() {
 function bridge(initial = state(), snapshot = Promise.resolve(initial)) {
 	const listeners = new Set<(value: UpdateState) => void>();
 	const calls = { check: 0, install: 0, get: 0 };
-	let onOpen: ((section: string) => void) | null = null;
 	let checkFailure: Error | null = null;
 	window.lh = {
-		expandWindow() {},
 		getUpdateState: () => { calls.get++; return snapshot; },
 		onUpdateStatus: cb => { listeners.add(cb); return () => { listeners.delete(cb); }; },
 		checkForUpdates: async () => { calls.check++; if (checkFailure) throw checkFailure; },
 		installUpdate: () => { calls.install++; },
-		onOpenSettings: cb => { onOpen = cb; return () => { onOpen = null; }; },
+		onOpenSettings: () => () => {},
 	};
 	return {
 		calls, listeners,
 		failCheck: () => { checkFailure = new Error("sensitive raw diagnostics"); },
 		push: async (value: UpdateState) => { await act(async () => { for (const listener of listeners) listener(value); }); },
-		open: async () => { await act(async () => onOpen?.("general")); },
 	};
 }
 
@@ -162,7 +158,7 @@ describe("General update rows", () => {
 		const host = await mount(<><UpdateSettings {...props} /><UpdateBanner /></>);
 		assert.ok(q(host, "update-restart")); assert.ok(q(host, "update-banner"));
 		assert.ok(q(host, "update-banner")!.textContent!.includes("0.3.8"));
-		await click(q(host, "update-banner")!.querySelector("button")); assert.equal(b.calls.install, 1);
+		await click(q(host, "update-restart-now")); assert.equal(b.calls.install, 1);
 		assert.equal(b.calls.check, 0);
 	});
 
@@ -208,20 +204,9 @@ describe("Settings integration", () => {
 			}
 			return Response.json({ settings: record });
 		};
-		const host = await mount(<SettingsDialogBody initialSection="general" onClose={() => {}} />);
+		const host = await mount(<SettingsPage section="general" />);
 		await click(q(host, "toggle-auto-update"));
 		assert.deepEqual(puts, [{ autoUpdate: false, futureSibling: "keep" }]);
 		assert.equal(q(host, "toggle-auto-update")!.getAttribute("aria-checked"), "false");
-	});
-
-	it("the shell's navigation request opens General, but opening alone never checks", async () => {
-		const b = bridge();
-		globalThis.fetch = async () => Response.json({ settings: { version: 1 } });
-		const host = await mount(<SettingsDialogProvider><span>app</span></SettingsDialogProvider>);
-		assert.equal(q(document, "settings-dialog"), null);
-		await b.open();
-		assert.equal(q(document, "settings-nav-general")!.getAttribute("aria-current"), "true");
-		assert.ok(q(document, "row-version")); assert.equal(b.calls.check, 0);
-		assert.ok(host.textContent!.includes("app"));
 	});
 });

@@ -27,7 +27,7 @@ function writeNotes(notes: AgentNote[]): void {
 	writeFileAtomic(NOTES_FILE, JSON.stringify({ version: VERSION, notes }, null, "\t"));
 }
 
-export function addAgentNote(text: string, classId: string | undefined): { ok: true; value: AgentNote } | { ok: false; error: string } {
+export function addAgentNote(text: string, spaceId: string | undefined): { ok: true; value: AgentNote } | { ok: false; error: string } {
 	const clean = cleanNoteText(text);
 	if (!clean) return { ok: false, error: `A note is one line of 1 to ${NOTE_MAX_CHARS} characters.` };
 	const notes = listAgentNotes();
@@ -35,7 +35,7 @@ export function addAgentNote(text: string, classId: string | undefined): { ok: t
 		const saved = notes.map((n) => `- ${n.id}: ${n.text}`).join("\n");
 		return { ok: false, error: `godspeed already keeps ${NOTES_MAX} notes. Forget one that is out of date first.\n${saved}` };
 	}
-	const note: AgentNote = { id: `note_${randomBytes(4).toString("hex")}`, text: clean, ...(classId ? { classId } : {}), createdAt: new Date().toISOString() };
+	const note: AgentNote = { id: `note_${randomBytes(4).toString("hex")}`, text: clean, ...(spaceId ? { spaceId } : {}), createdAt: new Date().toISOString() };
 	writeNotes([...notes, note]);
 	return { ok: true, value: note };
 }

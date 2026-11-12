@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { cn } from "@/frontend/lib/utils";
 import { draggedWidth, keyedWidth, storedWidth, type PaneBounds } from "./pane-width-model";
 
 const storageKey = (key: string) => `lh:pane-width:${key}`;
@@ -33,19 +32,16 @@ function saveWidth(key: string, width: number | null) {
  * width is saved when the drag ends, and a double-click puts back the
  * default. From the keyboard the arrows, Home and End move it
  * (keyedWidth). While dragging, `data-lh-resizing` on the page turns off the
- * sidebar's slide so the pane follows the pointer.
+ * pane's slide so the pane follows the pointer.
  */
 export function ResizeHandle({
 	paneKey,
-	edge,
 	width,
 	bounds,
 	onWidth,
 	label,
 }: {
 	paneKey: string;
-	/** The side of the pane the handle sits on. */
-	edge: "left" | "right";
 	width: number;
 	bounds: PaneBounds;
 	onWidth: (width: number) => void;
@@ -73,7 +69,7 @@ export function ResizeHandle({
 			aria-valuemax={bounds.max}
 			tabIndex={0}
 			onKeyDown={(e) => {
-				const next = keyedWidth(width, e.key, edge, bounds);
+				const next = keyedWidth(width, e.key, bounds);
 				if (next === null) return;
 				e.preventDefault();
 				e.stopPropagation();
@@ -93,7 +89,7 @@ export function ResizeHandle({
 			onPointerMove={(e) => {
 				const d = drag.current;
 				if (!d) return;
-				d.last = draggedWidth(d.startWidth, d.startX, e.clientX, edge, bounds);
+				d.last = draggedWidth(d.startWidth, d.startX, e.clientX, bounds);
 				onWidth(d.last);
 			}}
 			onPointerUp={end}
@@ -102,17 +98,11 @@ export function ResizeHandle({
 				onWidth(bounds.initial);
 				saveWidth(paneKey, null);
 			}}
-			className={cn(
-				"group lh-no-drag absolute inset-y-0 z-20 w-1.5 cursor-col-resize touch-none",
-				edge === "right" ? "right-0" : "left-0",
-			)}
+			className="group lh-no-drag absolute inset-y-0 left-0 z-20 w-1.5 cursor-col-resize touch-none"
 		>
 			<span
 				aria-hidden
-				className={cn(
-					"absolute inset-y-0 w-px transition-colors duration-(--lh-dur) group-hover:bg-ink-3 group-focus-visible:bg-ink-2 group-data-[dragging]:bg-ink-2",
-					edge === "right" ? "right-0" : "left-0",
-				)}
+				className="absolute inset-y-0 left-0 w-px transition-colors duration-(--lh-dur) group-hover:bg-ink-3 group-focus-visible:bg-ink-2 group-data-[dragging]:bg-ink-2"
 			/>
 		</div>
 	);

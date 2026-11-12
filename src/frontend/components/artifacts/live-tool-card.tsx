@@ -1,4 +1,6 @@
-import { ChevronRight } from "lucide-react";
+import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
+import { CARD } from "@/frontend/components/ui/card-parts";
+import { cn } from "@/frontend/lib/utils";
 import { BrailleSpinner } from "@/frontend/components/braille-spinner";
 import { Shimmer } from "@/frontend/components/ai-elements/shimmer";
 import { toolActivityLabel } from "@/shared/core";
@@ -14,7 +16,7 @@ import type { ArtifactPartProps } from "@/shared/core";
  * quiet settled card replaces this one.
  *
  * The one working-state look everywhere: Braille spinner + Shimmer (the
- * thinking row, this card, the sidebar row).
+ * thinking row, this card, the lesson row).
  */
 interface StreamingToolPart {
 	type: string;
@@ -41,17 +43,17 @@ export function LiveToolCard({ part }: ArtifactPartProps) {
 			data-tool={tool}
 			className="group my-1 w-full max-w-2xl select-none"
 		>
-			<summary className="flex cursor-pointer list-none items-center gap-2 text-xs text-muted-foreground [&::-webkit-details-marker]:hidden">
+			<summary className="flex cursor-pointer list-none items-center gap-2.5 text-[15px] text-ink-2 transition-colors duration-(--lh-dur) ease-(--lh-ease-out) hover:text-ink [&::-webkit-details-marker]:hidden">
 				<BrailleSpinner label={`${toolActivityLabel(tool)} (live)`} />
-				<Shimmer className="text-xs">
+				<Shimmer className="text-[15px]">
 					{toolActivityLabel(tool)}
 				</Shimmer>
 				{arg && <span className="truncate" title={arg}>{arg}</span>}
-				<ChevronRight className="size-3 shrink-0 opacity-50 transition-transform group-open:rotate-90" />
+				<PixelIcon name="chevron" className="shrink-0 transition-transform duration-(--lh-dur) ease-(--lh-ease-out) group-open:rotate-90" />
 			</summary>
-			<div className="mt-2 border bg-card p-3 text-xs">
-				<div className="mb-1 font-semibold text-muted-foreground">Input (streaming)</div>
-				<pre className="max-h-32 overflow-auto whitespace-pre-wrap break-all font-mono text-[11px] leading-relaxed">
+			<div className={cn(CARD, "mt-2 flex flex-col gap-1.5 py-3")}>
+				<div className="text-[15px] text-ink-2">Input (streaming)</div>
+				<pre className="max-h-32 overflow-auto whitespace-pre-wrap break-all font-mono text-[13px] leading-relaxed text-ink">
 					{hasInput ? JSON.stringify(p.input, null, 2) : "…"}
 				</pre>
 			</div>

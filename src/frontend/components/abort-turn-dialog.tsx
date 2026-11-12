@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { createPortal } from "react-dom";
-import { useBackdropDismiss } from "@/frontend/components/backdrop-dismiss";
-import { usePresence } from "@/frontend/components/presence";
-import { useDialogFocus } from "@/frontend/components/use-dialog-focus";
+import { useHalley } from "@/frontend/components/halley/halley-context";
+import { DialogSheet, useLastWhileClosing } from "@/frontend/components/ui/dialog-sheet";
+import { DEFAULT_TEACHER_NAME } from "@/shared/core";
 
 /**
  * The stop guard: the global Esc → abort chain and the Skip question and
@@ -12,9 +12,9 @@ import { useDialogFocus } from "@/frontend/components/use-dialog-focus";
  * dialog is open: two window listeners fire per Esc and stopPropagation
  * alone cannot order them.
  *
- * MINIMAL, the delete-node dialog's tone: title, one line, Cancel +
- * action. No busy state — both actions are local (a fetch that fires
- * and forgets, an answer submit whose own machinery shows progress).
+ * Title, one line, Cancel + action. No busy state: both actions are local
+ * (a fetch that fires and forgets, an answer submit whose own machinery
+ * shows progress).
  *
  * What "abort" means is mode-dependent: from a running turn it kills
  * the turn (partial stays); from a pending question there is no turn to
@@ -27,21 +27,21 @@ import { useDialogFocus } from "@/frontend/components/use-dialog-focus";
 /** What is being stopped, skipped or discarded: drives copy and the confirm action. */
 export type AbortMode = "turn" | "question" | "problem";
 
-const COPY: Record<AbortMode, { title: string; line: string; action: string }> = {
+const COPY: Record<AbortMode, { title: string; line: (teacher: string) => string; action: string }> = {
 	turn: {
 		title: "Stop this reply?",
-		line: "What the teacher wrote so far stays in the lesson.",
-		action: "Stop",
+		line: (teacher) => `What ${teacher} wrote so far stays in the lesson.`,
+		action: "Stop reply",
 	},
 	question: {
 		title: "Skip this question?",
-		line: "The teacher moves on without it.",
-		action: "Skip",
+		line: (teacher) => `${teacher} moves on without it.`,
+		action: "Skip question",
 	},
 	problem: {
 		title: "Discard this problem?",
-		line: "The problem is dropped. No solution is revealed.",
-		action: "Discard",
+		line: () => "The problem is dropped. No solution is revealed.",
+		action: "Discard problem",
 	},
 };
 
@@ -63,56 +63,37 @@ export function AbortTurnBody({
 	/** "closed" while the exit plays — inert. */
 	state?: "open" | "closed";
 }) {
-	const dialogRef = useDialogFocus<HTMLDivElement>(state === "open");
-	const backdropDismiss = useBackdropDismiss(onClose);
+	const teacher = useHalley()?.name ?? DEFAULT_TEACHER_NAME;
 	const copy = COPY[mode];
 	return (
-		<div
-			ref={dialogRef}
-			tabIndex={-1}
-			role="dialog"
-			aria-modal="true"
-			aria-label={copy.title}
-			data-testid="abort-turn-dialog"
-			data-state={state}
-			inert={state === "closed"}
-			className="lh-fade fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm"
-			// A genuine click on the scrim cancels — the cautious default, like Esc.
-			{...backdropDismiss}
-		>
-			<div
-				data-state={state}
-				className="lh-dialog mx-4 w-full max-w-sm border bg-card p-5 shadow-lg"
-				onClick={(e) => e.stopPropagation()}
-			>
-				<h2 className="text-sm font-semibold text-card-foreground" data-testid="abort-turn-title">
-					{copy.title}
-				</h2>
-				<p className="mt-1.5 text-xs text-muted-foreground" data-testid="abort-turn-line">
-					{copy.line}
-					{busy && mode !== "turn" ? " The teacher's reply stops too." : ""}
-				</p>
-				<div className="mt-4 flex justify-end gap-2">
-					<button
-						type="button"
-						data-testid="abort-turn-cancel"
-						onClick={onClose}
-						className="lh-press lh-btn"
-					>
+		<DialogSheet
+			title={copy.title}
+			state={state}
+			testid="abort-turn-dialog"
+			onClose={onClose}
+			className="w-[480px]"
+			foot={
+				<>
+					<span className="flex-1" />
+					<button type="button" data-testid="abort-turn-cancel" onClick={onClose} className="lh-btn text-[15px]">
 						Cancel
 					</button>
 					<button
 						type="button"
 						data-testid="abort-turn-confirm"
 						onClick={onConfirm}
-						// Destructive red — the app's established destructive pair.
-						className="lh-press border border-destructive/50 bg-destructive/10 px-3 py-1.5 text-xs text-destructive hover:bg-destructive/20"
+						className={`lh-btn text-[15px] ${mode === "problem" ? "lh-btn-danger" : "lh-btn-main"}`}
 					>
 						{copy.action}
 					</button>
-				</div>
-			</div>
-		</div>
+				</>
+			}
+		>
+			<p data-testid="abort-turn-line" className="text-lg text-ink">
+				{copy.line(teacher)}
+				{busy && mode !== "turn" ? ` ${teacher}'s reply stops too.` : ""}
+			</p>
+		</DialogSheet>
 	);
 }
 
@@ -128,46 +109,25 @@ export function AbortTurnDialog({
 	onConfirm: (mode: AbortMode) => void;
 	busy?: boolean;
 }) {
-	// Exit motion: the last mode stays on
-	// screen while the dialog fades out.
-	const presence = usePresence(mode !== null);
-	const [lastMode, setLastMode] = useState(mode);
-	if (mode !== null && mode !== lastMode) setLastMode(mode);
-	const shown = mode ?? lastMode;
+	// Exit motion: the last mode stays on screen while the dialog fades out.
+	const { mounted, state, shown } = useLastWhileClosing(mode);
 
-	// Esc cancels the popup (claimed — never a chained abort).
+	// Enter and digits behind the popup belong to it: without this, the
+	// dock's Enter submit and the option digits still fire underneath
+	// (Enter on "Discard this problem?" would send the problem instead).
+	// Capture on document runs before every dock listener.
 	useEffect(() => {
 		if (mode === null) return;
-		const onKeyDown = (e: KeyboardEvent) => {
-			if (e.key === "Escape") {
-				// Claim Esc at the document level: a window-level stopPropagation cannot stop
-				// the earlier-registered global window listener.
-				e.preventDefault();
-				e.stopPropagation();
-				onClose();
-			}
-		};
-		// Enter and digits behind the popup belong to it: without this, the
-		// dock's Enter submit and the option digits still fire underneath
-		// (Enter on "Discard this problem?" would send the problem instead).
-		// Capture on document runs before every dock listener.
 		const onCapture = (e: KeyboardEvent) => {
 			if (e.key !== "Enter" && !/^[0-9]$/.test(e.key)) return;
 			if ((e.target as Element | null)?.closest?.('[data-testid="abort-turn-dialog"]')) return;
 			e.preventDefault();
 			e.stopPropagation();
 		};
-		document.addEventListener("keydown", onKeyDown);
 		document.addEventListener("keydown", onCapture, true);
-		return () => {
-			document.removeEventListener("keydown", onKeyDown);
-			document.removeEventListener("keydown", onCapture, true);
-		};
-	}, [mode, onClose]);
+		return () => document.removeEventListener("keydown", onCapture, true);
+	}, [mode]);
 
-	if (!presence.mounted || shown === null || typeof document === "undefined") return null;
-	return createPortal(
-		<AbortTurnBody mode={shown} onClose={onClose} onConfirm={() => onConfirm(shown)} busy={busy} state={presence.state} />,
-		document.body,
-	);
+	if (!mounted || shown === null || typeof document === "undefined") return null;
+	return createPortal(<AbortTurnBody mode={shown} onClose={onClose} onConfirm={() => onConfirm(shown)} busy={busy} state={state} />, document.body);
 }

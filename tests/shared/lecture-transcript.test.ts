@@ -1,5 +1,5 @@
 /**
- * A lecture recording finds the transcript already in its class by date,
+ * A lecture recording finds the transcript already in its space by date,
  * or by lecture number when a name has no date (the real CSE 21 names).
  */
 import assert from "node:assert/strict";
@@ -19,7 +19,7 @@ describe("a recording's transcript", () => {
 		assert.equal(transcriptFor(REC, [REC, pdf, srt])?.id, "srt");
 	});
 
-	it("ignores other days, slides, other recordings and course info", () => {
+	it("ignores other days, slides, other recordings and space info", () => {
 		const files = [
 			REC,
 			f("other", "Lecture02_2026-09-28.srt"),
@@ -48,7 +48,7 @@ describe("a recording's transcript", () => {
 		const covered = { ...REC, status: "ready" as const, transcriptId: "srt" };
 		assert.deepEqual(recordingsToRecheck([covered, srt]), []);
 		assert.deepEqual(recordingsToRecheck([covered]), ["rec"], "its transcript was removed");
-		assert.deepEqual(recordingsToRecheck([covered, { ...srt, kind: "info" as const }]), ["rec"], "its transcript became course info");
+		assert.deepEqual(recordingsToRecheck([covered, { ...srt, kind: "info" as const }]), ["rec"], "its transcript became space info");
 		assert.deepEqual(recordingsToRecheck([{ ...REC, status: "ready" as const }, srt]), ["rec"], "transcribed before its transcript came");
 		assert.deepEqual(recordingsToRecheck([{ ...REC, status: "failed" as const }, srt]), ["rec"]);
 		assert.deepEqual(recordingsToRecheck([{ ...REC, status: "failed" as const, error: FILE_NOT_FOUND }, srt]), [], "a gone recording waits for the scan");

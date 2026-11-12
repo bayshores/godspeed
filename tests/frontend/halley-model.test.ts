@@ -1,12 +1,10 @@
 /**
- * The teacher's pure parts: mood precedence, visit pacing and the >5
+ * The teacher's pure parts: visit pacing and the >5
  * burst, and Follow (stop / pause / resume).
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { AgentAction } from "../../src/shared/core/events.ts";
-import { HOUR } from "../../src/frontend/components/countdown-model.ts";
-import { crossedUnderHour, pickMood, REACTION_MS } from "../../src/frontend/components/halley/mood.ts";
 import { BURST_LIMIT, STEP_MS, nextStep, pastLabel, targetKey } from "../../src/frontend/components/halley/tour.ts";
 import {
 	FOLLOW_DEFAULT,
@@ -22,37 +20,8 @@ import {
 	type FollowState,
 } from "../../src/frontend/components/halley/follow.ts";
 function action(over: Partial<AgentAction> = {}): AgentAction {
-	return { id: "act_1", at: "2026-10-28T16:00:00.000Z", agent: "Claude Code", label: "Adding HW 5", classId: "cls_a", target: { kind: "deadline", id: "ddl_1" }, page: "/", ...over };
+	return { id: "act_1", at: "2026-10-28T16:00:00.000Z", agent: "Claude Code", label: "Adding HW 5", spaceId: "cls_a", target: { kind: "deadline", id: "ddl_1" }, page: "/", ...over };
 }
-
-describe("mood", () => {
-	const base = { reaction: null, streaming: false, working: false, connected: true } as const;
-	it("a reaction shows over everything", () => {
-		assert.equal(pickMood({ ...base, reaction: "happy", streaming: true, working: true }), "happy");
-		assert.equal(pickMood({ ...base, reaction: "dizzy", connected: false }), "dizzy");
-	});
-	it("then talking, sleepy, thinking, idle", () => {
-		assert.equal(pickMood({ ...base, streaming: true, working: true }), "talking");
-		assert.equal(pickMood({ ...base, working: true }), "thinking");
-		assert.equal(pickMood({ ...base, connected: false, working: true }), "sleepy", "no agent: nobody is working");
-		assert.equal(pickMood({ ...base }), "idle");
-		assert.equal(pickMood({ ...base, connected: null }), "idle", "not known yet is not asleep");
-	});
-	it("reactions are brief", () => {
-		for (const ms of Object.values(REACTION_MS)) assert.ok(ms > 0 && ms <= 3000);
-	});
-	it("O_O fires once, when a deadline crosses under an hour", () => {
-		const now = Date.parse("2026-10-28T16:00:00");
-		const list = [
-			{ id: "crossing", dueMs: now + HOUR - 1000 },
-			{ id: "far", dueMs: now + 3 * HOUR },
-			{ id: "already", dueMs: now + 10 * 60_000 },
-			{ id: "late", dueMs: now - 1000 },
-		];
-		assert.deepEqual(crossedUnderHour(list, now - 15_000, now), ["crossing"]);
-		assert.deepEqual(crossedUnderHour(list, now, now + 15_000), []);
-	});
-});
 
 describe("visits", () => {
 	it("visits one change at a time, about 0.6 s apart", () => {
@@ -105,19 +74,19 @@ describe("follow", () => {
 		assert.equal(followReady(typed, false, t + RESUME_MS - 1), false);
 		assert.equal(followReady(typed, false, t + RESUME_MS), true);
 	});
-	it("switches class first on a class page, never for Home", () => {
-		assert.deepEqual(followMoves({ page: "/class/files", classId: "cls_b" }, { path: "/", activeClass: "cls_a", lessonDraft: false }), { switchClass: { to: "cls_b" }, go: "/class/files" });
-		assert.deepEqual(followMoves({ page: "/", classId: "cls_b" }, { path: "/", activeClass: "cls_a", lessonDraft: false }), { switchClass: null, go: null });
-		assert.deepEqual(followMoves({ page: "/class", classId: "cls_a" }, { path: "/graph", activeClass: "cls_a", lessonDraft: false }), { switchClass: null, go: "/class" });
-		assert.deepEqual(followMoves({ page: "/graph", classId: null }, { path: "/graph", activeClass: "cls_a", lessonDraft: false }), { switchClass: { to: null }, go: null });
-		// A lesson opens in its own class, so the sidebar lists it.
-		assert.deepEqual(followMoves({ page: "/chat/c2", classId: "cls_b" }, { path: "/", activeClass: null, lessonDraft: false }), { switchClass: { to: "cls_b" }, go: "/chat/c2" });
+	it("switches space first on a space page, never for Home", () => {
+		assert.deepEqual(followMoves({ page: "/space/files", spaceId: "cls_b" }, { path: "/", activeSpace: "cls_a", lessonDraft: false }), { switchSpace: { to: "cls_b" }, go: "/space/files" });
+		assert.deepEqual(followMoves({ page: "/", spaceId: "cls_b" }, { path: "/", activeSpace: "cls_a", lessonDraft: false }), { switchSpace: null, go: null });
+		assert.deepEqual(followMoves({ page: "/space", spaceId: "cls_a" }, { path: "/graph", activeSpace: "cls_a", lessonDraft: false }), { switchSpace: null, go: "/space" });
+		assert.deepEqual(followMoves({ page: "/graph", spaceId: null }, { path: "/graph", activeSpace: "cls_a", lessonDraft: false }), { switchSpace: { to: null }, go: null });
+		// A lesson opens in its own space, so the sidebar lists it.
+		assert.deepEqual(followMoves({ page: "/chat/c2", spaceId: "cls_b" }, { path: "/", activeSpace: null, lessonDraft: false }), { switchSpace: { to: "cls_b" }, go: "/chat/c2" });
 		// Unsent text in the lesson on screen keeps the window there.
-		assert.deepEqual(followMoves({ page: "/class", classId: "cls_b" }, { path: "/chat/c1", activeClass: "cls_a", lessonDraft: true }), { switchClass: null, go: null });
-		assert.deepEqual(followMoves({ page: "/class", classId: "cls_a" }, { path: "/chat/c1", activeClass: "cls_a", lessonDraft: false }), { switchClass: null, go: "/class" });
+		assert.deepEqual(followMoves({ page: "/space", spaceId: "cls_b" }, { path: "/chat/c1", activeSpace: "cls_a", lessonDraft: true }), { switchSpace: null, go: null });
+		assert.deepEqual(followMoves({ page: "/space", spaceId: "cls_a" }, { path: "/chat/c1", activeSpace: "cls_a", lessonDraft: false }), { switchSpace: null, go: "/space" });
 	});
 	it("only goes to the app's own pages", () => {
-		for (const p of ["/", "/class", "/class/files", "/graph", "/chat/c_12-ab"]) assert.equal(safePage(p), p);
+		for (const p of ["/", "/space", "/space/files", "/graph", "/chat/c_12-ab"]) assert.equal(safePage(p), p);
 		for (const p of ["javascript:alert(1)", "https://x.example", "//x.example", "/chat/../x", "/settings"]) assert.equal(safePage(p), null);
 	});
 	it("with Follow off, offers 'Go to' for a fresh change on another page", () => {
@@ -132,7 +101,8 @@ describe("follow", () => {
 	});
 	it("names the page on the button", () => {
 		assert.equal(pageName("/chat/c1"), "lesson");
-		assert.equal(pageName("/"), "Home");
-		assert.equal(pageName("/class/files"), "Files");
+		assert.equal(pageName("/"), "Today");
+		assert.equal(pageName("/space"), "Progress");
+		assert.equal(pageName("/space/files"), "Files");
 	});
 });

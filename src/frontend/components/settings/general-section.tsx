@@ -1,7 +1,6 @@
 /**
- * Settings → General: the
- * teacher's name, sounds, when long lessons get summarized, how the graph
- * grows, and updates.
+ * Settings → General: the teacher's name, sounds, when long lessons get
+ * summarized, how the graph grows, and updates.
  */
 
 import {
@@ -51,9 +50,9 @@ export function GeneralSection({
 					<Toggle checked={effective.general.sounds} label="Sounds" onChange={(on) => onGeneralChange({ ...record.general, sounds: on })} />
 				</SettingsRow>
 			</SettingsGroup>
-			<SettingsGroup label="Lessons" testid="group-lessons">
+			<SettingsGroup label="Lessons and graph" testid="group-lessons">
 				<SettingsRow label="Summarize long lessons after" hint="Older parts of a long lesson get summarized so it keeps fitting" testid="row-compaction">
-					<span className="w-[300px] shrink-0">
+					<span className="w-[354px] shrink-0">
 						<Slider
 							value={effective.compaction.thresholdTokens}
 							min={COMPACTION_THRESHOLD_FLOOR}
@@ -66,8 +65,6 @@ export function GeneralSection({
 						/>
 					</span>
 				</SettingsRow>
-			</SettingsGroup>
-			<SettingsGroup label="Graph" testid="section-graph">
 				<SettingsRow label="Build the graph from lessons" hint="Off: the graph stops growing" testid="graph-row-enabled">
 					<Toggle checked={effective.graph.enabled} label="build the graph" onChange={(on) => onGraphChange({ ...graph, enabled: on })} />
 				</SettingsRow>
@@ -77,7 +74,7 @@ export function GeneralSection({
 					testid="graph-row-chunk-tokens"
 					dimmed={!effective.graph.enabled}
 				>
-					<span className="w-[300px] shrink-0">
+					<span className="w-[354px] shrink-0">
 						<Slider
 							value={effective.graph.extractionChunkTokens}
 							min={EXTRACTION_CHUNK_TOKENS_FLOOR}

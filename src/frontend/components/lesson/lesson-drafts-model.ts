@@ -1,6 +1,6 @@
 /**
  * Unsent lesson drafts: what the learner typed but hasn't sent yet (the
- * message box, each waiting question's form and reading thoughts). Saved
+ * writing box, each waiting question's picks and reading thoughts). Saved
  * per lesson so leaving the lesson or a window reload never loses it. Pure.
  */
 import { answeredCallIds, danglingQuestionOf, type LhMessage, type QuestionDraft, type QuestionFormDraft } from "@/shared/core";
@@ -21,7 +21,7 @@ export function lessonDraftKey(chatId: string): string {
 function formEmpty(f: QuestionFormDraft | undefined): boolean {
 	if (!f) return true;
 	const s = f.selection;
-	return s.selected.size === 0 && !s.otherSelected && !s.dontKnow && !f.thinking.trim() && !f.other.trim() && !f.text.trim() && f.confidenceIndex === undefined;
+	return s.selected.size === 0 && !s.otherSelected && !s.dontKnow && !f.other.trim() && !f.code?.trim() && f.confidenceIndex === undefined;
 }
 
 function questionEmpty(q: QuestionDraft): boolean {
@@ -94,10 +94,9 @@ function parseForm(v: unknown): QuestionFormDraft | undefined {
 	const selected = Array.isArray(sel.selected) ? sel.selected.filter((i): i is number => Number.isInteger(i)) : [];
 	return {
 		selection: { selected: new Set(selected), otherSelected: sel.otherSelected === true, dontKnow: sel.dontKnow === true },
-		thinking: str(v.thinking),
 		other: str(v.other),
-		text: str(v.text),
 		...(Number.isInteger(v.confidenceIndex) ? { confidenceIndex: v.confidenceIndex as number } : {}),
+		...(typeof v.code === "string" ? { code: v.code } : {}),
 	};
 }
 

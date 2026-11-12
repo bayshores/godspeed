@@ -7,10 +7,6 @@
  *   window.lh.platform — read-only OS identity for native window-control
  *   gutters (darwin: left traffic lights; win32/linux: right overlay).
  *
- *   window.lh.expandWindow() — widen the window to the sidebar auto-close
- *   threshold (1000px) when the sidebar is opened below it. The main
- *   process clamps: no-op if the window is already wide enough.
- *
  *   window.lh.onZoom(cb) / window.lh.getZoom() — the zoom truth:
  *   every ⌘±/⌘0 change arrives as "lh:zoom" with
  *   the new factor; getZoom covers the first-paint race. The renderer
@@ -64,7 +60,6 @@ contextBridge.exposeInMainWorld("lh", {
 	// A dropped file's or folder's path (onboarding's drop zone links a
 	// dropped folder). Path only — no file access crosses the bridge.
 	pathForFile: (file) => webUtils.getPathForFile(file),
-	expandWindow: () => ipcRenderer.send("lh:expand-window"),
 	onZoom: (cb) => {
 		const listener = (_event, factor) => cb(factor);
 		ipcRenderer.on("lh:zoom", listener);

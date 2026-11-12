@@ -1,5 +1,5 @@
 /**
- * A practice lesson's progress for its top bar ("2 of 3 solved") and the
+ * A practice lesson's progress for its plan row ("2 of 3 solved") and the
  * Your-turn chip ("Problem 3"). Pure: derived from the view messages —
  * every posed problem that went through, closed by the conclude call that
  * follows it.

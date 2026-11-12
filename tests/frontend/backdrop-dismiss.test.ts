@@ -231,8 +231,9 @@ describe("backdrop dismissal requires a whole primary gesture on the scrim", () 
 				onConfirm: () => { actions++; },
 			}));
 		});
-		const backdrop = element("abort-turn-dialog");
-		dispatch(element("abort-turn-title"), "pointerdown");
+		const sheet = element("abort-turn-dialog");
+		const backdrop = sheet.parentElement!;
+		dispatch(sheet, "pointerdown");
 		dispatch(backdrop, "pointerup");
 		dispatch(backdrop, "click");
 		assert.equal(closes, 0);

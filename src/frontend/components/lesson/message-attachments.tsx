@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { FileTextIcon } from "lucide-react";
 import { isAttachmentPart, type LhViewPart } from "@/shared/core";
+import { SMALL_BTN } from "@/frontend/components/ui/card-parts";
+import { cn } from "@/frontend/lib/utils";
 import { useDialogFocus } from "@/frontend/components/use-dialog-focus";
 
 /**
@@ -23,7 +24,7 @@ export function MessageAttachments({ parts }: { parts: readonly LhViewPart[] }) 
 					return (
 						<button key={part.id} type="button" aria-label="Show picture full size" onClick={() => setOpen(src)} className="lh-press block">
 							{/* eslint-disable-next-line @next/next/no-img-element -- the learner's picture, stored in the lesson */}
-							<img data-testid="message-image" src={src} alt="" className="block max-h-[220px] w-auto max-w-full border border-tone-2" />
+							<img data-testid="message-image" src={src} alt="" className="block max-h-[220px] w-auto max-w-full rounded border border-border" />
 						</button>
 					);
 				}
@@ -35,9 +36,8 @@ export function MessageAttachments({ parts }: { parts: readonly LhViewPart[] }) 
 						data-testid="message-pdf"
 						disabled={!openPath || !pdf.path}
 						onClick={() => void openPath?.(pdf.path)}
-						className="lh-press flex h-10 max-w-64 items-center gap-2 border border-tone-2 bg-tone px-3 text-[13px] text-ink hover:bg-tone-2 disabled:cursor-default disabled:hover:bg-tone"
+						className={cn(SMALL_BTN, "max-w-64 disabled:cursor-default")}
 					>
-						<FileTextIcon aria-hidden className="size-4 shrink-0 text-ink-2" />
 						<span className="truncate" title={pdf.name}>{pdf.name}</span>
 					</button>
 				);

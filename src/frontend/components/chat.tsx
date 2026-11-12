@@ -7,7 +7,6 @@ import { useChatSession } from "@/frontend/components/session";
 import { visibleQueuedSteers } from "@/frontend/components/session-core";
 import { prefersReducedMotion, usePresence } from "@/frontend/components/presence";
 import { cn } from "@/frontend/lib/utils";
-import { useEnterSubmits } from "@/frontend/components/enter-submits";
 import { JobsContext } from "@/frontend/components/jobs-context";
 import { ChatActionsContext } from "@/frontend/components/chat-actions-context";
 import { StatsBar } from "@/frontend/components/stats-bar";
@@ -16,11 +15,10 @@ import { agentWaiting, useAgentStatus } from "@/frontend/components/agent-status
 import { latestTree } from "@/frontend/components/plan-latest";
 import { MermaidOverlay, SessionMermaidContext } from "@/frontend/components/session-overlay";
 import { AbortTurnDialog, type AbortMode } from "@/frontend/components/abort-turn-dialog";
-import { SessionFind } from "@/frontend/components/session-find";
 import { currentUserThinkingOpen, setAllUserThinkingOpen } from "@/frontend/components/thinking-block";
 import {
 	activeProblemOf,
-	answerOutcome,
+	answerTakesFiles,
 	dismissedAnswer,
 	findPendingToolCall,
 	firstPhase,
@@ -28,11 +26,9 @@ import {
 	kbdEventForAction,
 	phaseTimeline,
 	planStepBar,
-	problemLabel,
 	problemSource,
 	questionNeedsReveal,
 	toolQuestionKind,
-	type ChatAttachment,
 	type HomeworkView,
 	type LessonKind,
 	type LhMessage,
@@ -49,27 +45,26 @@ import { practiceProgress } from "@/frontend/components/lesson/practice-progress
 import { useLessonServer } from "@/frontend/components/lesson/use-lesson-server";
 import { useTitleRename } from "@/frontend/components/lesson/use-title-rename";
 import { LessonTopBar } from "@/frontend/components/lesson/lesson-top-bar";
-import { ProblemsPane } from "@/frontend/components/lesson/problems-pane";
+import { PlanRow } from "@/frontend/components/lesson/plan-row";
+import { homeworkProblemLine } from "@/frontend/components/lesson/plan-row-model";
 import { ReadingPane } from "@/frontend/components/lesson/reading-pane";
-import { YourTurnPanel } from "@/frontend/components/lesson/your-turn-panel";
-import { LessonBox } from "@/frontend/components/lesson/lesson-box";
-import { StepsPane } from "@/frontend/components/lesson/steps-pane";
+import { COLUMN_WIDTH, TeacherColumn } from "@/frontend/components/lesson/teacher-column";
 import { Pane } from "@/frontend/components/ui/pane";
+import { usePaneWidth } from "@/frontend/components/ui/resize-handle";
 import { useAttachmentDraft } from "@/frontend/components/lesson/attachment-tray";
 import { takeStartFiles } from "@/frontend/components/lesson/start-files";
-import { useHalley, useHalleyLesson } from "@/frontend/components/halley/halley-provider";
-import { useFoldSidebar } from "@/frontend/components/sidebar";
+import { useHalleyLesson } from "@/frontend/components/halley/halley-provider";
 import { SheetDock, useSheetDock } from "@/frontend/components/cheat-sheet/sheet-dock";
-import { sessionAbout } from "@/frontend/components/cheat-sheet/dock-model";
 
 // The plan popup (and dagre, its layout engine) loads on first open.
 const PlanPopup = dynamic(() => import("@/frontend/components/plan-block").then((m) => m.PlanPopup), { ssr: false });
 
 /**
- * THE LESSON: the reading pane with the one message box under it on the
- * left, the right column (steps pane, Your-turn panel) on the right (below
- * the text in narrow windows). This component owns the lesson's state and wiring; the
- * pieces live in src/frontend/components/lesson/.
+ * THE LESSON: its own bar, the reading sheet on the left and the teacher
+ * column with the one writing box on the right (below the text in a narrow
+ * window), the cheat sheet between them when open. This component owns the
+ * lesson's state and wiring; the pieces live in
+ * src/frontend/components/lesson/.
  */
 export function Chat({
 	chatId,
@@ -80,18 +75,18 @@ export function Chat({
 	initiallyInFlight,
 	kind = "teach",
 	initialTree,
-	classId,
+	spaceId,
 	deadlineId,
 	homework,
 }: {
 	chatId: string;
 	title: string;
-	/** The session's class and the deadline it was started from: the
+	/** The session's space and the deadline it was started from: the
 	 *  cheat sheet beside it shows that deadline's sheet. */
-	classId?: string;
+	spaceId?: string;
 	deadlineId?: string;
 	initialMessages: LhMessage[];
-	/** A homework lesson's deadline: its problems fill the steps pane. */
+	/** A homework lesson's deadline: its problems fill the plan row. */
 	homework?: HomeworkView;
 	/** Memory-only settlement notice supplied on reopening. */
 	initialError?: string;
@@ -180,7 +175,6 @@ export function Chat({
 		return () => clearInterval(t);
 	}, [claimedAt]);
 	const stuckMinutes = busy ? stuckClaimMinutes(claimedAt, now) : null;
-	const halley = useHalley();
 
 	// The abort is always the remote kill (turns are server processes); a
 	// local view also detaches at once and keeps the partial.
@@ -213,31 +207,17 @@ export function Chat({
 	// A teach-phase check waits behind "Check your understanding".
 	const requiresReveal = pending !== null && questionNeedsReveal(pending.tool, pending.input, phase);
 
-	/* The reading-thinking channel: thoughts noted while
-	 * reading, riding the check's answer (or its dismissal) as the separate
-	 * readingThinking field. Reset per pending question. */
-	const [readingThinking, setReadingThinking] = useState("");
+	/* The reading-thinking channel: thoughts noted in the box while reading,
+	 * kept when the check opens and riding its answer (or its dismissal) as
+	 * the separate readingThinking field. Each question has its own. */
 	const readingThinkingRef = useRef("");
-	const applyReadingThinking = useCallback((v: string) => {
-		readingThinkingRef.current = v;
-		setReadingThinking(v);
-	}, []);
-	const clearReadingThinking = useCallback(() => applyReadingThinking(""), [applyReadingThinking]);
 	const pendingQuestionId = pending?.toolCallId ?? null;
-	// Each question restores its own reading thoughts (once the drafts are read).
 	const draftsLoaded = drafts.draft !== null;
 	const draftRef = useRef(drafts.draft);
 	draftRef.current = drafts.draft;
 	useEffect(() => {
-		applyReadingThinking(pendingQuestionId ? draftRef.current?.questions[pendingQuestionId]?.readingThinking ?? "" : "");
-	}, [pendingQuestionId, draftsLoaded, applyReadingThinking]);
-	const editReadingThinking = useCallback(
-		(v: string) => {
-			applyReadingThinking(v);
-			if (pendingQuestionId) saveQuestion(pendingQuestionId, { readingThinking: v });
-		},
-		[applyReadingThinking, pendingQuestionId, saveQuestion],
-	);
+		readingThinkingRef.current = pendingQuestionId ? (draftRef.current?.questions[pendingQuestionId]?.readingThinking ?? "") : "";
+	}, [pendingQuestionId, draftsLoaded]);
 
 	// ⌘T: set every "your thinking" row in the lesson to one state.
 	useEffect(() => {
@@ -246,7 +226,7 @@ export function Chat({
 		return () => window.removeEventListener(kbdEventForAction("toggle-user-thinking"), onToggle);
 	}, []);
 
-	// ── overlays: plan map, mermaid and figure focus, abort confirm ──
+	// ── overlays: the plan, mermaid and figure focus, abort confirm ──
 	const [planOpen, setPlanOpen] = useState(false);
 	const planPresence = usePresence(planOpen);
 	const openPlan = useCallback(() => setPlanOpen(true), []);
@@ -260,26 +240,25 @@ export function Chat({
 	const lastFigureRef = useRef(figureFocus);
 	if (figureFocus !== null) lastFigureRef.current = figureFocus;
 
-	// THE LAYERED ESC: an open overlay claims Esc first;
-	// then the abort chain opens its confirm (question → problem → turn).
+	// THE LAYERED ESC: an open focus claims Esc first (the plan's dialog
+	// takes its own); then the abort chain opens its confirm (question →
+	// problem → turn).
 	// The handler reads refs — the window listener is mount-scoped.
 	const [abortAsk, setAbortAsk] = useState<AbortMode | null>(null);
-	const escStateRef = useRef({ abortAsk, mermaid: false, planOpen });
-	escStateRef.current = { abortAsk, mermaid: mermaidFocus !== null || figureFocus !== null, planOpen };
+	const escStateRef = useRef({ abortAsk, mermaid: false });
+	escStateRef.current = { abortAsk, mermaid: mermaidFocus !== null || figureFocus !== null };
 	useEffect(() => {
 		const onAbort = () => {
 			const s = escStateRef.current;
 			const target = escAbortTarget({
 				abortAsk: s.abortAsk !== null,
 				mermaidFocus: s.mermaid,
-				planOpen: s.planOpen,
 				pending: pendingRef.current !== null,
 				problem: activeProblemRef.current !== null,
 				busy: busyRef.current,
 			});
 			if (target === "question" || target === "problem" || target === "turn") setAbortAsk(target);
 			else if (target === "mermaid") setMermaidFocus(null);
-			else if (target === "plan") setPlanOpen(false);
 		};
 		window.addEventListener("lh:kbd-abort-turn", onAbort);
 		return () => window.removeEventListener("lh:kbd-abort-turn", onAbort);
@@ -297,7 +276,7 @@ export function Chat({
 			if (p) {
 				const question = (p.input as { question?: string } | null)?.question ?? "";
 				const reading = readingThinkingRef.current.trim() || undefined;
-				clearReadingThinking();
+				readingThinkingRef.current = "";
 				const answer = dismissedAnswer(toolQuestionKind(p.tool), question);
 				void dismissQuestion(p.toolCallId, reading ? { ...answer, readingThinking: reading } : answer);
 				if (busyRef.current) abortInFlightTurn();
@@ -310,10 +289,10 @@ export function Chat({
 				if (busyRef.current) abortInFlightTurn();
 			}
 		},
-		[abortInFlightTurn, dismissQuestion, dismissProblem, clearReadingThinking],
+		[abortInFlightTurn, dismissQuestion, dismissProblem],
 	);
 
-	// ── the message box ──
+	// ── the writing box ──
 	const [text, setText] = useState("");
 	const textRef = useRef("");
 	const applyText = useCallback((v: string) => {
@@ -337,22 +316,17 @@ export function Chat({
 	// Halley rests in the reading pane: Talking while the teacher writes,
 	// Thinking while the turn runs.
 	useHalleyLesson(status === "streaming", busy, draftHeld);
-	// A lesson takes the whole width; the top bar's toggle still opens the sidebar.
-	useFoldSidebar();
 	const attachments = useAttachmentDraft(chatId);
-	const hasFiles = attachments.files.length > 0;
 
-	// A running turn never gates the box: Enter while busy STEERS it (text
+	// A running turn never gates the box: a send while busy STEERS it (text
 	// only, so waiting files hold the send). Under a waiting question the
 	// box asks a side question, never while the teacher replies. An open
 	// problem is worked on in the box itself: plain messages.
 	const sideOpen = pending !== null;
 	const sendBlocked = sendBlockedReason(sideOpen);
-	const canSend = (text.trim().length > 0 || hasFiles) && !(busy && (sideOpen || hasFiles));
 
 	/* THE PRACTICE PAUSE (practice and study): between problems, once a
-	 * problem has ever been posed — Enter on an empty box (or anywhere)
-	 * asks for the next one. */
+	 * problem has ever been posed, the box offers the next one. */
 	const posedAny = useMemo(
 		() =>
 			nativeMessages.some(
@@ -368,7 +342,6 @@ export function Chat({
 		if (!nextReady) return;
 		void send({ type: "next" });
 	}, [nextReady, send]);
-	useEnterSubmits(sendNext);
 
 	/* STEER VS SEND: a send while a turn runs (ours or
 	 * a wake) steers it; idle takes the plain send (a raced settle 409s and
@@ -398,19 +371,39 @@ export function Chat({
 	};
 
 	// THE ANSWER IS THE QUESTION CALL'S TOOL RESULT: one input event, one
-	// turn. The reading-thinking draft and the answer's files ride along.
-	const onSubmitAnswer = (output: QuestionAnswerData, files: ChatAttachment[]) => {
-		if (!pending) return Promise.resolve(false);
+	// turn. The reading thoughts ride along, and so do the box's files for
+	// an answer that takes them. The box empties; a refused answer puts
+	// its text and files back.
+	const onSubmitAnswer = (output: QuestionAnswerData) => {
+		if (!pending) return;
 		const reading = readingThinkingRef.current.trim() || undefined;
-		const sent = submitAnswer(pending.toolCallId, reading ? { ...output, readingThinking: reading } : output, files);
-		// Graded right or wrong: Halley reacts for a moment.
-		const outcome = answerOutcome(output);
-		if (outcome === "right") halley?.react("happy");
-		else if (outcome === "wrong") halley?.react("oops");
-		return sent;
+		const typed = textRef.current;
+		const files = answerTakesFiles(pending.tool) ? attachments.files : [];
+		editText("");
+		if (files.length > 0) attachments.clear();
+		void submitAnswer(
+			pending.toolCallId,
+			reading ? { ...output, readingThinking: reading } : output,
+			files.map((f) => f.attachment),
+		).then((sent) => {
+			if (sent) return;
+			if (typed.trim()) editText(restoreUnsent(typed, textRef.current));
+			if (files.length > 0) attachments.restore(files);
+		});
 	};
 
-	// ── the top bar's data ──
+	// "Check your understanding": what was typed while reading is kept as
+	// the reading thoughts, and the box empties for the answer.
+	const revealCheck = () => {
+		const thoughts = textRef.current.trim();
+		if (!thoughts || !pendingQuestionId) return;
+		const all = readingThinkingRef.current ? `${readingThinkingRef.current}\n${thoughts}` : thoughts;
+		readingThinkingRef.current = all;
+		saveQuestion(pendingQuestionId, { readingThinking: all });
+		editText("");
+	};
+
+	// ── the plan row's data ──
 	const planTree = useMemo(() => latestTree(messages) ?? initialTree ?? null, [messages, initialTree]);
 	const freshBar = useMemo(() => (kind === "practice" || kind === "homework" ? null : planStepBar(planTree, messages)), [kind, planTree, messages]);
 	// A homework lesson's problems: the deadline's list plus this lesson's posts and done marks.
@@ -418,12 +411,14 @@ export function Chat({
 	const problemsKey = freshProblems ? JSON.stringify(freshProblems) : "";
 	const problems = useMemo(() => freshProblems, [problemsKey]);
 	const openProblem = problems?.open ? problems.problems.find((p) => p.number === problems.open) : undefined;
+	const homeworkName = homework?.name ?? title;
+	const planHomework = useMemo(() => (problems ? { name: homeworkName, problems: problems.problems, open: problems.open } : null), [problems, homeworkName]);
 	// Stable while nothing in it changed, so streaming never redraws the bar.
 	const barKey = freshBar ? JSON.stringify(freshBar) : "";
 	const stepBar = useMemo(() => freshBar, [barKey]);
 	const stepIdsKey = stepBar ? stepBar.steps.map((s) => s.id).join("\n") : "";
 	const stepNumbers = useMemo(() => new Map(stepBar?.steps.map((s, i) => [s.id, i + 1]) ?? []), [stepIdsKey]);
-	// Problem numbers (and practice's top bar blocks).
+	// Problem numbers (and practice's plan row blocks).
 	const practice = useMemo(() => (kind === "teach" ? null : practiceProgress(messages, activeProblem !== null)), [kind, messages, activeProblem]);
 	const practiceKey = practice ? JSON.stringify(practice) : "";
 	const stablePractice = useMemo(() => practice, [practiceKey]);
@@ -438,7 +433,7 @@ export function Chat({
 	// Click a done step: scroll back to its first answered question.
 	const jumpToAnswer = useCallback((toolCallId: string) => scrollToCard(answerAnchorSelector(toolCallId)), [scrollToCard]);
 
-	// The demo's error report follows the message box's rules: never past a
+	// The demo's error report follows the writing box's rules: never past a
 	// waiting question, and a running turn is steered.
 	const chatActions = useMemo(
 		() => ({
@@ -453,7 +448,7 @@ export function Chat({
 		[chatId, send, steer, sendBlocked],
 	);
 
-	// The error banner's Try again: send again what didn't go through, run a
+	// The error notice's Try again: send again what didn't go through, run a
 	// failed reply again, or read the lesson again (and attach to a running reply).
 	const retry = () => {
 		if (!error) return;
@@ -471,31 +466,47 @@ export function Chat({
 		[],
 	);
 
-	// The cheat sheet beside the session; a message from it takes the problem or question the learner is on.
 	const sheet = useSheetDock(chatId);
-	const problemWork = activeProblem ? text : undefined;
-	const sheetAbout = useMemo(
-		() => sessionAbout({ session: rename.title, problem: activeProblem?.input, work: problemWork, question: pending?.input }),
-		[rename.title, activeProblem, problemWork, pending],
-	);
+	const sheetOpen = !!spaceId && sheet.state.open;
+	const [columnWidth, setColumnWidth] = usePaneWidth("your-turn", COLUMN_WIDTH);
+
+	const problem = activeProblem && {
+		toolCallId: activeProblem.toolCallId,
+		statement: (activeProblem.input as { statement: string }).statement,
+		line:
+			openProblem && problems
+				? homeworkProblemLine(homeworkName, problems.problems.length, openProblem.number, problems.part ?? null)
+				: practice
+					? `Problem ${practice.blocks.length}`
+					: null,
+		source: openProblem ? problemSource(homework?.assignment ?? null, openProblem.page) : null,
+		part: openProblem ? (problems?.part ?? null) : null,
+	};
 
 	return (
 		<ChatActionsContext.Provider value={chatActions}>
 			<SessionMermaidContext.Provider value={mermaidActions}>
 				<JobsContext.Provider value={jobs}>
 					<LessonStepsContext.Provider value={stepNumbers}>
-						<div className="flex h-full min-w-0 flex-1">
-							<div className="@container/lesson flex min-w-0 flex-1 flex-col">
-								<LessonTopBar
-									kind={kind}
-									rename={rename}
-									practice={stablePractice}
-									sheet={classId ? { open: sheet.state.open, onToggle: () => sheet.update({ open: !sheet.state.open }) } : undefined}
-									file={homework?.assignment ?? undefined}
-								/>
-								<SessionFind scopeRef={sessionFindScopeRef} scrollContextRef={scrollContextRef} />
-								<div ref={sessionFindScopeRef} className="relative flex min-h-0 flex-1 flex-col gap-4 px-5 pt-6 pb-5 @min-[760px]/lesson:flex-row">
-									<Pane className="flex min-h-0 min-w-0 flex-1 flex-col">
+						<div className="@container/lesson flex h-full min-w-0 flex-1 flex-col">
+							<LessonTopBar
+								rename={rename}
+								spaceId={spaceId}
+								sheet={spaceId ? { open: sheet.state.open, onToggle: () => sheet.update({ open: !sheet.state.open }) } : undefined}
+								file={homework?.assignment ?? undefined}
+								scopeRef={sessionFindScopeRef}
+								scrollContextRef={scrollContextRef}
+							/>
+							<div
+								ref={sessionFindScopeRef}
+								data-dock={sheetOpen ? "" : undefined}
+								className="lh-dots lh-lesson-body relative min-h-0 flex-1"
+								style={{ "--lh-turn-w": `${columnWidth}px` } as React.CSSProperties}
+							>
+								<Pane className="@container/reading flex min-h-0 min-w-0 flex-col [grid-area:reading]">
+									<div className="shrink-0 px-14 pt-[26px] pb-3 empty:hidden @max-[640px]/reading:px-7">
+										<PlanRow kind={kind} spaceId={spaceId} stepBar={stepBar} homework={planHomework} practice={stablePractice} onJump={jumpToAnswer} onOpenPlan={openPlan} />
+									</div>
 									<ReadingPane
 										messages={messages}
 										phases={phases}
@@ -503,97 +514,70 @@ export function Chat({
 										busy={busy}
 										turnInFlight={turnInFlight}
 										waitingForAgent={waitingForAgent}
-										error={error}
-										onRetry={retry}
 										arrivalsLive={arrivalsLive}
 										arrive={arrive}
 										onOpenPlan={openPlan}
 										scrollContextRef={scrollContextRef}
 									/>
-									<LessonBox
-										busy={busy}
-										value={text}
-										onChange={editText}
-										onSend={onSend}
-										onStop={abortInFlightTurn}
-										canSend={canSend}
-										sideOpen={sideOpen}
-										nextReady={nextReady}
-										onNext={sendNext}
-										queuedSteers={visibleQueuedSteers(steerQueue, nativeMessages)}
-										attachments={attachments}
-										notice={
-											stuck ? (
-												<p data-testid="turn-stuck" className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm leading-5 text-ink-2">
-													Your agent took this {stuckMinutes} minutes ago and hasn't answered.
-													<button type="button" data-testid="turn-stuck-stop" onClick={stopAndRetry} className="lh-press lh-btn">
-														{stuck.type === "text" ? "Stop and send again?" : "Stop and try again?"}
-													</button>
-												</p>
-											) : undefined
-										}
-									/>
-									</Pane>
-									<YourTurnPanel
-										// Remounts once the saved drafts are read, so the forms start from them.
-										key={draftsLoaded ? "drafts" : "loading"}
-										steps={
-											problems ? (
-												<ProblemsPane name={homework?.name ?? title} problems={problems.problems} open={problems.open} />
-											) : kind !== "practice" && stepBar && stepBar.steps.length > 0 ? (
-												<StepsPane bar={stepBar} onJump={jumpToAnswer} onOpenPlan={openPlan} />
-											) : null
-										}
-										homeworkProblem={
-											openProblem && { label: problemLabel(openProblem.number), source: problemSource(homework?.assignment ?? null, openProblem.page), part: problems?.part ?? null }
-										}
-										pending={pending}
-										requiresReveal={requiresReveal}
-										initialQuestionDraft={pendingQuestionId ? drafts.draft?.questions[pendingQuestionId]?.form : undefined}
-										onSaveQuestionDraft={(form) => {
-											if (pendingQuestionId) saveQuestion(pendingQuestionId, { form });
-										}}
-										onSubmitAnswer={onSubmitAnswer}
-										onSkipQuestion={() => setAbortAsk("question")}
-										readingThinking={readingThinking}
-										onReadingThinking={editReadingThinking}
-										practice={activeProblem}
-										onDiscardProblem={() => setAbortAsk("problem")}
-										busy={busy}
-										waitingForAgent={waitingForAgent}
-										onStop={abortInFlightTurn}
-										next={nextReady ? (kind === "study" ? "Continue" : "Next problem") : undefined}
-										onNext={sendNext}
-										stats={<StatsBar turns={turns} contextTokens={contextTokens} summarizeAt={summarizeAt} pricing={pricing} />}
-									/>
-
-
-									{/* The session-scoped focuses: absolute over the lesson area, below
-									    the top bar; each fades out through usePresence. */}
-									{mermaidPresence.mounted && lastMermaidRef.current !== null && (
-										<div className={cn("absolute inset-0 z-40", mermaidPresence.state === "closed" && "lh-fade")} data-state={mermaidPresence.state}>
-											<MermaidOverlay chart={lastMermaidRef.current} onClose={() => setMermaidFocus(null)} />
-										</div>
-									)}
-									{figurePresence.mounted && lastFigureRef.current !== null && (
-										<div className={cn("absolute inset-0 z-40", figurePresence.state === "closed" && "lh-fade")} data-state={figurePresence.state}>
-											<MermaidOverlay svg={lastFigureRef.current.svg} inverted={lastFigureRef.current.inverted} onClose={() => setFigureFocus(null)} />
-										</div>
-									)}
-									{planPresence.mounted && <PlanPopup tree={planTree} messages={messages} onClose={() => setPlanOpen(false)} state={planPresence.state} />}
-									<AbortTurnDialog mode={abortAsk} onClose={() => setAbortAsk(null)} onConfirm={confirmAbort} busy={busy} />
-								</div>
-							</div>
-							{classId && sheet.state.open && (
-								<SheetDock
-									classId={classId}
-									sessionDeadlineId={deadlineId}
-									picked={sheet.state.deadlineId}
-									onPick={(id) => sheet.update({ deadlineId: id })}
-									about={sheetAbout}
-									onClose={() => sheet.update({ open: false })}
+								</Pane>
+								{spaceId && sheetOpen && (
+									<div className="flex min-h-0 [grid-area:dock]">
+										<SheetDock
+											spaceId={spaceId}
+											sessionDeadlineId={deadlineId}
+											picked={sheet.state.deadlineId}
+											onPick={(id) => sheet.update({ deadlineId: id })}
+											onClose={() => sheet.update({ open: false })}
+										/>
+									</div>
+								)}
+								<TeacherColumn
+									// Remounts once the saved drafts are read, so the question starts from them.
+									key={draftsLoaded ? "drafts" : "loading"}
+									spaceId={spaceId}
+									width={columnWidth}
+									onWidth={setColumnWidth}
+									pending={pending}
+									requiresReveal={requiresReveal}
+									onReveal={revealCheck}
+									initialQuestionDraft={pendingQuestionId ? drafts.draft?.questions[pendingQuestionId]?.form : undefined}
+									onSaveQuestionDraft={(form) => {
+										if (pendingQuestionId) saveQuestion(pendingQuestionId, { form });
+									}}
+									onSubmitAnswer={onSubmitAnswer}
+									onSkipQuestion={() => setAbortAsk("question")}
+									problem={problem}
+									onDiscardProblem={() => setAbortAsk("problem")}
+									busy={busy}
+									waitingForAgent={waitingForAgent}
+									onStop={abortInFlightTurn}
+									next={nextReady ? (kind === "study" ? "Continue" : "Next problem") : undefined}
+									onNext={sendNext}
+									value={text}
+									onChange={editText}
+									onSend={onSend}
+									queuedSteers={visibleQueuedSteers(steerQueue, nativeMessages)}
+									attachments={attachments}
+									stuck={stuck && stuckMinutes !== null ? { minutes: stuckMinutes, label: stuck.type === "text" ? "Stop and send again?" : "Stop and try again?", onStop: stopAndRetry } : null}
+									error={error && { text: lessonError(error.message).text, detail: error.message, onRetry: retry }}
+									stats={<StatsBar turns={turns} contextTokens={contextTokens} summarizeAt={summarizeAt} pricing={pricing} />}
 								/>
-							)}
+
+								{/* The session-scoped focuses: absolute over the lesson area, below
+								    the lesson's bar; each fades out through usePresence. */}
+								{mermaidPresence.mounted && lastMermaidRef.current !== null && (
+									<div className={cn("absolute inset-0 z-40", mermaidPresence.state === "closed" && "lh-fade")} data-state={mermaidPresence.state}>
+										<MermaidOverlay chart={lastMermaidRef.current} onClose={() => setMermaidFocus(null)} />
+									</div>
+								)}
+								{figurePresence.mounted && lastFigureRef.current !== null && (
+									<div className={cn("absolute inset-0 z-40", figurePresence.state === "closed" && "lh-fade")} data-state={figurePresence.state}>
+										<MermaidOverlay svg={lastFigureRef.current.svg} inverted={lastFigureRef.current.inverted} onClose={() => setFigureFocus(null)} />
+									</div>
+								)}
+								{planPresence.mounted && <PlanPopup tree={planTree} messages={messages} onClose={() => setPlanOpen(false)} onJump={jumpToAnswer} state={planPresence.state} />}
+								<AbortTurnDialog mode={abortAsk} onClose={() => setAbortAsk(null)} onConfirm={confirmAbort} busy={busy} />
+							</div>
 						</div>
 					</LessonStepsContext.Provider>
 				</JobsContext.Provider>

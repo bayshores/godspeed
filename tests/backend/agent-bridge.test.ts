@@ -30,7 +30,7 @@ const { handleChatInput } = await import("../../src/backend/server/chat-handler.
 const { isTurnRunning } = await import("../../src/backend/server/turn-liveness.ts");
 const { abortTurn } = await import("../../src/backend/server/turn-runs.ts");
 const { chatStore } = await import("../../src/backend/store/chats.ts");
-const { classStore } = await import("../../src/backend/store/classes.ts");
+const { spaceStore } = await import("../../src/backend/store/spaces.ts");
 const bridge = await import("../../src/backend/agent/agent-bridge.ts");
 const mcp = await import("../../src/backend/server/mcp.ts");
 const { ensureMcpToken } = await import("../../src/backend/store/mcp-token.ts");
@@ -295,32 +295,32 @@ describe("the /api/mcp door", () => {
 		const tools = await (await mcp.handleMcpRequest(rpc(listTools, auth))).json();
 		const names = tools.result.tools.map((t: { name: string }) => t.name).sort();
 		assert.deepEqual(names, [
-			"add_class_deadline",
-			"add_class_file",
-			"create_class",
+			"add_space_deadline",
+			"add_space_file",
+			"create_space",
 			"forget",
 			"import_notes",
-			"link_class_folder",
-			"list_classes",
+			"link_space_folder",
 			"list_lessons",
-			"read_class",
+			"list_spaces",
 			"read_lesson",
 			"read_passage",
+			"read_space",
 			"read_work",
 			"remember",
-			"remove_class_deadline",
+			"remove_space_deadline",
 			"respond",
 			"save_rule",
-			"search_class_files",
 			"search_graph",
-			"set_class_file_kind",
+			"search_space_files",
+			"set_space_file_kind",
 			"start_lesson",
-			"unlink_class_folder",
-			"update_class",
-			"update_class_deadline",
+			"unlink_space_folder",
+			"update_space",
+			"update_space_deadline",
 			"wait_for_work",
 		]);
-		assert.ok(!names.some((n: string) => n.includes("delete")), "deleting a class is app-only");
+		assert.ok(!names.some((n: string) => n.includes("delete")), "deleting a space is app-only");
 
 		const call = await (await mcp.handleMcpRequest(rpc({ jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "list_lessons", arguments: {} } }, auth))).json();
 		const lessons = JSON.parse(call.result.content[0].text).lessons;
@@ -451,7 +451,7 @@ describe("the /api/mcp door", () => {
 			const res = await mcp.handleMcpRequest(rpc({ jsonrpc: "2.0", id: 0, method: "initialize", params: { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "codex-mcp-client", version: "1" } } }, auth()));
 			assert.match(res.headers.get("content-type") ?? "", /^application\/json/);
 			const instructions = (await res.json()).result.instructions as string;
-			assert.match(instructions, /The work loop:[\s\S]*\n\n## Where you left off\n[\s\S]*\n\nMemory: [\s\S]*\n\nClasses: the learner/);
+			assert.match(instructions, /The work loop:[\s\S]*\n\n## Where you left off\n[\s\S]*\n\nMemory: [\s\S]*\n\nSpaces: the learner/);
 			assert.doesNotMatch(instructions, /wait-for-work\.mjs/);
 			assert.equal(mcp.mcpAccessStatus().agentName, "Codex");
 		});
@@ -463,7 +463,7 @@ describe("the /api/mcp door", () => {
 			const result = (await res.json()).result;
 			assert.ok(result.supportedVersions.includes("2026-07-28"));
 			assert.deepEqual(result.capabilities.tools, { listChanged: false }, "so Claude Code opens no subscriptions/listen stream");
-			assert.match(result.instructions, /The work loop:[\s\S]*\n\n## Where you left off\n[\s\S]*\n\nMemory: [\s\S]*\n\nClasses: the learner/);
+			assert.match(result.instructions, /The work loop:[\s\S]*\n\n## Where you left off\n[\s\S]*\n\nMemory: [\s\S]*\n\nSpaces: the learner/);
 			assert.doesNotMatch(result.instructions, /wait-for-work\.mjs/, "the godspeed folder's CLAUDE.md says how to wait");
 			assert.equal(mcp.mcpAccessStatus().agentName, "Claude Code");
 		});
@@ -471,9 +471,9 @@ describe("the /api/mcp door", () => {
 		it("modern: a tool call with no handshake before it names the agent and works", async () => {
 			await mcp.handleMcpRequest(rpc({ jsonrpc: "2.0", id: 0, method: "initialize", params: { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "other-agent", version: "1" } } }, auth()));
 			assert.equal(mcp.mcpAccessStatus().agentName, "other-agent");
-			const res = await modern(2, "tools/call", { name: "list_classes", arguments: {} });
+			const res = await modern(2, "tools/call", { name: "list_spaces", arguments: {} });
 			assert.equal(res.status, 200, await res.clone().text());
-			assert.ok(Array.isArray(JSON.parse((await res.json()).result.content[0].text).classes));
+			assert.ok(Array.isArray(JSON.parse((await res.json()).result.content[0].text).spaces));
 			assert.equal(mcp.mcpAccessStatus().agentName, "Claude Code");
 		});
 
@@ -492,7 +492,7 @@ describe("the /api/mcp door", () => {
 
 		it("modern: a tool call without its Mcp-Method header is refused, and the server log says why", async () => {
 			const logged = await loggedErrors(async () => {
-				const res = await modern(3, "tools/call", { name: "list_classes", arguments: {} }, "mcp-method");
+				const res = await modern(3, "tools/call", { name: "list_spaces", arguments: {} }, "mcp-method");
 				assert.equal(res.status, 400);
 				assert.equal((await res.json()).error.code, -32020);
 			});
@@ -526,49 +526,49 @@ describe("the /api/mcp door", () => {
 		});
 	});
 
-	it("sets up a class and reads it back", async () => {
+	it("sets up a space and reads it back", async () => {
 		const token = ensureMcpToken();
 		const auth = { authorization: `Bearer ${token}` };
 		const call = async (name: string, args: Record<string, unknown>) => {
 			const res = await (await mcp.handleMcpRequest(rpc({ jsonrpc: "2.0", id: 9, method: "tools/call", params: { name, arguments: args } }, auth))).json();
 			return { error: res.result.isError === true, body: (() => { try { return JSON.parse(res.result.content[0].text); } catch { return res.result.content[0].text; } })() };
 		};
-		assert.equal((await call("create_class", { name: "PHYS 2B" })).error, true, "a new class needs an icon");
-		assert.equal((await call("create_class", { name: "PHYS 2B", icon: "rocket" })).error, true, "only the listed icons");
-		const created = await call("create_class", { name: "PHYS 2B", description: "Griffiths, chapters 1-4", icon: "atom" });
-		const id = created.body.class.id as string;
-		assert.match(id, /^cls_/);
-		assert.equal(created.body.class.icon, "atom");
-		const listed = await call("list_classes", {});
-		assert.ok(listed.body.classes.some((c: { id: string; icon: string }) => c.id === id && c.icon === "atom"));
-		const updated = await call("update_class", { class_id: id, description: "Griffiths 1-5", icon: "sigma" });
-		assert.deepEqual(updated.body, { classId: id, changed: { description: "Griffiths 1-5", icon: "sigma" } }, "only what changed comes back");
-		// An archived class takes no new lessons.
-		await call("update_class", { class_id: id, archived: true });
-		const refused = await call("start_lesson", { topic: "Gauss's law", class_id: id });
+		assert.equal((await call("create_space", { name: "PHYS 2B" })).error, true, "a new space needs an icon");
+		assert.equal((await call("create_space", { name: "PHYS 2B", icon: "rocket" })).error, true, "only the listed icons");
+		const created = await call("create_space", { name: "PHYS 2B", description: "Griffiths, chapters 1-4", icon: "atom" });
+		const id = created.body.space.id as string;
+		assert.match(id, /^spc_/);
+		assert.equal(created.body.space.icon, "atom");
+		const listed = await call("list_spaces", {});
+		assert.ok(listed.body.spaces.some((c: { id: string; icon: string }) => c.id === id && c.icon === "atom"));
+		const updated = await call("update_space", { space_id: id, description: "Griffiths 1-5", icon: "sigma" });
+		assert.deepEqual(updated.body, { spaceId: id, changed: { description: "Griffiths 1-5", icon: "sigma" } }, "only what changed comes back");
+		// An archived space takes no new lessons.
+		await call("update_space", { space_id: id, archived: true });
+		const refused = await call("start_lesson", { topic: "Gauss's law", space_id: id });
 		assert.equal(refused.error, true);
 		assert.match(String(refused.body), /archived/);
-		await call("update_class", { class_id: id, archived: false });
-		const read = await call("read_class", { class_id: id });
+		await call("update_space", { space_id: id, archived: false });
+		const read = await call("read_space", { space_id: id });
 		assert.deepEqual([read.body.fileCounts, read.body.failedFiles, read.body.files], [{}, [], undefined]);
-		assert.deepEqual((await call("read_class", { class_id: id, files: true })).body.files, []);
-		const bad = await call("search_graph", { class_id: "cls_missing" });
+		assert.deepEqual((await call("read_space", { space_id: id, files: true })).body.files, []);
+		const bad = await call("search_graph", { space_id: "cls_missing" });
 		assert.equal(bad.error, true);
-		const missingFile = await call("add_class_file", { class_id: id, path: "/definitely/not/here.md", kind: "info" });
+		const missingFile = await call("add_space_file", { space_id: id, path: "/definitely/not/here.md", kind: "info" });
 		assert.equal(missingFile.error, true);
-		// A REAL class id is accepted (a class id is a string too — it once
-		// read as a refusal and every class-scoped tool failed).
-		const searched = await call("search_graph", { class_id: id, query: "anything" });
+		// A REAL space id is accepted (a space id is a string too — it once
+		// read as a refusal and every space-scoped tool failed).
+		const searched = await call("search_graph", { space_id: id, query: "anything" });
 		assert.equal(searched.error, false, JSON.stringify(searched.body));
 
 		// Deadlines: add from the syllabus, fix, tick done, remove.
-		const added = await call("add_class_deadline", { class_id: id, deadlines: [{ kind: "homework", name: "HW 1", date: "2026-11-05", time: "17:00" }] });
+		const added = await call("add_space_deadline", { space_id: id, deadlines: [{ kind: "homework", name: "HW 1", date: "2026-11-05", time: "17:00" }] });
 		assert.equal(added.error, false, JSON.stringify(added.body));
 		const deadlineId = added.body.deadlines[0].id as string;
 		assert.match(deadlineId, /^ddl_/);
 		assert.equal(added.body.refused, undefined);
-		const allRefused = await call("add_class_deadline", {
-			class_id: id,
+		const allRefused = await call("add_space_deadline", {
+			space_id: id,
 			deadlines: [
 				{ kind: "exam", name: "Final", date: "next week" },
 				{ kind: "exam", name: "Final", date: "2026-12-10", time: "8am" },
@@ -577,32 +577,32 @@ describe("the /api/mcp door", () => {
 		});
 		assert.equal(allRefused.error, true, "nothing added is an error");
 		assert.equal(String(allRefused.body).split("\n").length, 3, "with one line per refused deadline");
-		assert.equal((await call("add_class_deadline", { class_id: id, deadlines: [{ kind: "essay", name: "Final", date: "2026-12-10" }] })).error, true);
-		assert.equal((await call("add_class_deadline", { class_id: "cls_missing", deadlines: [{ kind: "exam", name: "Final", date: "2026-12-10" }] })).error, true);
-		const some = await call("add_class_deadline", { class_id: id, deadlines: [{ kind: "exam", name: "Midterm", date: "2026-11-20" }, { kind: "exam", name: "Final", date: "soon" }] });
+		assert.equal((await call("add_space_deadline", { space_id: id, deadlines: [{ kind: "essay", name: "Final", date: "2026-12-10" }] })).error, true);
+		assert.equal((await call("add_space_deadline", { space_id: "cls_missing", deadlines: [{ kind: "exam", name: "Final", date: "2026-12-10" }] })).error, true);
+		const some = await call("add_space_deadline", { space_id: id, deadlines: [{ kind: "exam", name: "Midterm", date: "2026-11-20" }, { kind: "exam", name: "Final", date: "soon" }] });
 		assert.equal(some.error, false, "the good ones are added");
 		assert.deepEqual(some.body.deadlines.map((d: { name: string }) => d.name), ["Midterm"]);
 		assert.equal(some.body.refused.length, 1);
 		assert.equal(some.body.refused[0].name, "Final");
-		assert.equal((await call("remove_class_deadline", { class_id: id, deadline_id: some.body.deadlines[0].id })).error, false);
-		const moved = await call("update_class_deadline", { class_id: id, deadline_id: deadlineId, date: "2026-11-06", kind: "quiz", done: true });
+		assert.equal((await call("remove_space_deadline", { space_id: id, deadline_id: some.body.deadlines[0].id })).error, false);
+		const moved = await call("update_space_deadline", { space_id: id, deadline_id: deadlineId, date: "2026-11-06", kind: "quiz", done: true });
 		assert.equal(moved.body.deadline.date, "2026-11-06");
 		assert.equal(moved.body.deadline.done, true);
-		const withDeadline = await call("read_class", { class_id: id });
-		assert.match(withDeadline.body.today, /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/, "read_class carries the local date and time");
+		const withDeadline = await call("read_space", { space_id: id });
+		assert.match(withDeadline.body.today, /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/, "read_space carries the local date and time");
 		assert.deepEqual(withDeadline.body.deadlines, [{ id: deadlineId, kind: "quiz", name: "HW 1", date: "2026-11-06", time: "17:00", done: true, files: [] }]);
-		const cleared = await call("update_class_deadline", { class_id: id, deadline_id: deadlineId, time: null, done: false });
+		const cleared = await call("update_space_deadline", { space_id: id, deadline_id: deadlineId, time: null, done: false });
 		assert.equal(cleared.error, false, JSON.stringify(cleared.body));
-		assert.deepEqual((await call("read_class", { class_id: id })).body.deadlines, [
+		assert.deepEqual((await call("read_space", { space_id: id })).body.deadlines, [
 			{ id: deadlineId, kind: "quiz", name: "HW 1", date: "2026-11-06", done: false, files: [] },
 		]);
-		assert.equal((await call("update_class_deadline", { class_id: id, deadline_id: "ddl_nope", name: "x" })).error, true);
-		assert.equal((await call("remove_class_deadline", { class_id: id, deadline_id: deadlineId })).error, false);
-		assert.equal((await call("remove_class_deadline", { class_id: id, deadline_id: deadlineId })).error, true);
-		assert.deepEqual((await call("read_class", { class_id: id })).body.deadlines, []);
+		assert.equal((await call("update_space_deadline", { space_id: id, deadline_id: "ddl_nope", name: "x" })).error, true);
+		assert.equal((await call("remove_space_deadline", { space_id: id, deadline_id: deadlineId })).error, false);
+		assert.equal((await call("remove_space_deadline", { space_id: id, deadline_id: deadlineId })).error, true);
+		assert.deepEqual((await call("read_space", { space_id: id })).body.deadlines, []);
 	});
 
-	it("keeps class and lesson results small: file counts, batches, filtered lessons, lesson pages", async () => {
+	it("keeps space and lesson results small: file counts, batches, filtered lessons, lesson pages", async () => {
 		const auth = { authorization: `Bearer ${ensureMcpToken()}` };
 		const raw = async (name: string, args: Record<string, unknown>) =>
 			(await (await mcp.handleMcpRequest(rpc({ jsonrpc: "2.0", id: 9, method: "tools/call", params: { name, arguments: args } }, auth))).json()).result;
@@ -610,38 +610,38 @@ describe("the /api/mcp door", () => {
 			const res = await raw(name, args);
 			return { error: res.isError === true, body: (() => { try { return JSON.parse(res.content[0].text); } catch { return res.content[0].text; } })() };
 		};
-		const id = (await call("create_class", { name: "CSE 30", icon: "cpu" })).body.class.id as string;
+		const id = (await call("create_space", { name: "CSE 30", icon: "cpu" })).body.space.id as string;
 
 		// Files: counts by default, the whole list on request, kinds switched in one call.
 		const syllabus = path.join(scratch, "syllabus.md");
 		fs.writeFileSync(syllabus, "# Syllabus\n");
-		const added = await call("add_class_file", { class_id: id, path: syllabus, kind: "info" });
+		const added = await call("add_space_file", { space_id: id, path: syllabus, kind: "info" });
 		assert.equal(added.body.note, "Added.", "an info file is not read as facts");
 		const fileId = added.body.file.id as string;
-		await waitFor(() => classStore.getClass(id)?.files[0]?.status === "ready", 5000, "info file ready");
-		assert.deepEqual((await call("read_class", { class_id: id })).body.fileCounts, { ready: 1 });
-		assert.deepEqual((await call("read_class", { class_id: id, files: true })).body.files.map((f: { id: string }) => f.id), [fileId]);
-		const kinds = await call("set_class_file_kind", { class_id: id, file_ids: [fileId, "f_nope"], kind: "info" });
+		await waitFor(() => spaceStore.getSpace(id)?.files[0]?.status === "ready", 5000, "info file ready");
+		assert.deepEqual((await call("read_space", { space_id: id })).body.fileCounts, { ready: 1 });
+		assert.deepEqual((await call("read_space", { space_id: id, files: true })).body.files.map((f: { id: string }) => f.id), [fileId]);
+		const kinds = await call("set_space_file_kind", { space_id: id, file_ids: [fileId, "f_nope"], kind: "info" });
 		assert.deepEqual(kinds.body.files, [{ id: fileId, name: "syllabus.md", kind: "info", status: "ready" }]);
 		assert.deepEqual(kinds.body.refused.map((r: { fileId: string }) => r.fileId), ["f_nope"]);
-		assert.equal((await call("set_class_file_kind", { class_id: id, file_ids: ["f_nope"], kind: "info" })).error, true);
+		assert.equal((await call("set_space_file_kind", { space_id: id, file_ids: ["f_nope"], kind: "info" })).error, true);
 
 		// A linked folder: linking says who reads the files; unlinking says only what went.
 		const folder = fs.mkdtempSync(path.join(scratch, "linked-"));
-		const linked = await call("link_class_folder", { class_id: id, path: folder });
+		const linked = await call("link_space_folder", { space_id: id, path: folder });
 		assert.match(linked.body.note, /wait_for_work/);
-		assert.equal(linked.body.class.files, undefined, "no file list unless asked");
-		assert.deepEqual((await call("unlink_class_folder", { class_id: id })).body, { classId: id, unlinked: folder, filesRemoved: 0 });
-		assert.equal((await call("unlink_class_folder", { class_id: "cls_missing" })).body, 'No class "cls_missing". Use list_classes.');
+		assert.equal(linked.body.space.files, undefined, "no file list unless asked");
+		assert.deepEqual((await call("unlink_space_folder", { space_id: id })).body, { spaceId: id, unlinked: folder, filesRemoved: 0 });
+		assert.equal((await call("unlink_space_folder", { space_id: "cls_missing" })).body, 'No space "cls_missing". Use list_spaces.');
 
-		// Lessons: by class, newest first, limited, with the total.
+		// Lessons: by space, newest first, limited, with the total.
 		for (const title of ["Pointers", "Structs", "Malloc"]) chatStore.createChat(title, undefined, id);
-		const listed = await call("list_lessons", { class_id: id, limit: 2 });
+		const listed = await call("list_lessons", { space_id: id, limit: 2 });
 		assert.equal(listed.body.lessons.length, 2);
-		assert.ok(listed.body.lessons.every((l: { classId: string; model?: string }) => l.classId === id && !("model" in l)));
+		assert.ok(listed.body.lessons.every((l: { spaceId: string; model?: string }) => l.spaceId === id && !("model" in l)));
 		assert.equal(listed.body.total, 3);
-		assert.ok((await call("list_lessons", { class_id: "none" })).body.lessons.every((l: { classId: string }) => l.classId === "none"));
-		assert.equal((await call("list_lessons", { class_id: "cls_missing" })).error, true);
+		assert.ok((await call("list_lessons", { space_id: "none" })).body.lessons.every((l: { spaceId: string }) => l.spaceId === "none"));
+		assert.equal((await call("list_lessons", { space_id: "cls_missing" })).error, true);
 
 		// A long lesson comes in pages that fit the same budget as work items.
 		const long = chatStore.createChat("Long lesson");
@@ -665,7 +665,7 @@ describe("the /api/mcp door", () => {
 		for (const [name, a] of hints) assert.equal(a.openWorldHint, false, name);
 		assert.equal(hints.get("read_work")!.readOnlyHint, true);
 		const destructive = [...hints].filter(([, a]) => a.destructiveHint === true).map(([name]) => name).sort();
-		assert.deepEqual(destructive, ["forget", "remove_class_deadline", "set_class_file_kind", "unlink_class_folder"]);
+		assert.deepEqual(destructive, ["forget", "remove_space_deadline", "set_space_file_kind", "unlink_space_folder"]);
 		for (const [name, a] of hints) assert.ok(a.readOnlyHint === true || a.destructiveHint !== undefined, `${name} says whether it destroys`);
 	});
 });
@@ -745,9 +745,9 @@ describe("the [Today] note and the outside agent", () => {
 		work.messages.filter((m) => m.role === "user").map((m) => ("text" in m ? (m as { text: string }).text : ""));
 
 	it("goes before the learner's first message, is skipped when nothing changed, and a new one keeps continued: true", async () => {
-		const { classStore } = await import("../../src/backend/store/classes.ts");
-		const cls = classStore.createClass({ name: "CSE 21" });
-		const chat = chatStore.createChat("Counting", undefined, cls.id);
+		const { spaceStore } = await import("../../src/backend/store/spaces.ts");
+		const space = spaceStore.createSpace({ name: "CSE 21" });
+		const chat = chatStore.createChat("Counting", undefined, space.id);
 
 		const first = await turn(chat.id, "teach me counting");
 		assert.equal(first.continued, false);
@@ -759,11 +759,11 @@ describe("the [Today] note and the outside agent", () => {
 		assert.equal(second.continued, true);
 		assert.deepEqual(userTexts(second), ["go on"], "same day, same deadlines: no new note");
 
-		classStore.addDeadline(cls.id, { kind: "homework", name: "HW 9", date: "2099-01-01", time: "23:59", fileIds: [] });
+		spaceStore.addDeadline(space.id, { kind: "homework", name: "HW 9", date: "2099-01-01", time: "23:59", fileIds: [] });
 		const third = await turn(chat.id, "and now?");
 		assert.equal(third.continued, true, "an appended note still sends only the new messages");
 		const [note, learner] = userTexts(third);
-		assert.match(note ?? "", /\n\nComing up in this class \(not marked done\):\n- HW 9 \(homework\), due Thu Jan 1 11:59 PM, in \d+ days\.$/);
+		assert.match(note ?? "", /\n\nComing up in this space \(not marked done\):\n- HW 9 \(homework\), due Thu Jan 1 11:59 PM, in \d+ days\.$/);
 		assert.equal(learner, "and now?");
 
 		const record = chatStore.getChat(chat.id)!;
@@ -772,7 +772,7 @@ describe("the [Today] note and the outside agent", () => {
 		assert.ok(notes.every((n) => n.role === "custom" && n.display === false));
 	});
 
-	it("a practice lesson gets the note too; a lesson with no class gets only the date", async () => {
+	it("a practice lesson gets the note too; a lesson with no space gets only the date", async () => {
 		const practice = chatStore.createChat("Practice", "practice");
 		const work = await turn(practice.id, "practice counting");
 		const users = userTexts(work);

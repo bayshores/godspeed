@@ -1,8 +1,8 @@
 /**
- * Text → embedding vectors on a worker thread (class search).
+ * Text → embedding vectors on a worker thread (space search).
  *
  * onnxruntime-node runs a model synchronously on the thread that calls it:
- * on the server's main thread, indexing a class froze every request for
+ * on the server's main thread, indexing a space froze every request for
  * about a second per batch. This worker holds the model and embeds what the
  * server sends, one message at a time.
  *

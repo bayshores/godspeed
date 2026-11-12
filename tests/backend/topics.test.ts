@@ -22,7 +22,7 @@ process.env.LH_DATA_DIR = TMP_DATA;
 const { repairTopics, resolveTopics, sameFactSet, topicNameProblem, UNGROUPED_TOPIC_ID } = await import("../../src/shared/core/topics.ts");
 const { groupTopics, TOPIC_GROUPER_INSTRUCTIONS, TOPIC_GROUPING_RULE } = await import("../../src/backend/agent/subagents/topic-grouper.ts");
 const topics = await import("../../src/backend/server/topics.ts");
-const { classStore } = await import("../../src/backend/store/classes.ts");
+const { spaceStore } = await import("../../src/backend/store/spaces.ts");
 const { graphStoreFor } = await import("../../src/backend/server/stores.ts");
 const { extractionStatuses } = await import("../../src/backend/agent/subagents/extraction-runs.ts");
 const bridge = await import("../../src/backend/agent/agent-bridge.ts");
@@ -81,12 +81,12 @@ describe("topics: the read rule", () => {
 	});
 
 	it("the store reads the last valid snapshot line and reuses it while the file is unchanged", () => {
-		const cls = classStore.createClass({ name: "Ledger read" });
-		const store = graphStoreFor(cls.id);
+		const space = spaceStore.createSpace({ name: "Ledger read" });
+		const store = graphStoreFor(space.id);
 		assert.equal(store.readTopics(), null);
 		store.appendTopics({ at: "t1", topics: [{ id: "tpc_a", name: "First", members: ["n1"] }] });
 		store.appendTopics({ at: "t2", topics: [{ id: "tpc_a", name: "Second", members: ["n1"] }] });
-		const file = path.join(TMP_DATA, "classes", cls.id, "graph", "topics.jsonl");
+		const file = path.join(TMP_DATA, "spaces", space.id, "graph", "topics.jsonl");
 		fs.appendFileSync(file, `{"at":"torn"\n${JSON.stringify({ at: "t3", topics: "bad" })}\n`);
 		const snap = store.readTopics();
 		assert.equal(snap?.at, "t2");
@@ -177,14 +177,14 @@ describe("topics: the grouper (fake model)", () => {
 			{ topics: [{ id: "tpc_old", name: "Counting", members: ["n1", "n2"] }, { name: "Proofs", members: ["n3"] }] },
 		);
 		const out = await groupTopics({
-			className: "CSE 21",
+			spaceName: "CSE 21",
 			facts: ["n1", "n2", "n3", "n4"].map((id) => ({ id, name: `Fact ${id}`, statement: `${id} holds` })),
 			chains: [{ premises: ["n3"], conclusion: "n4" }],
 			current: [{ id: "tpc_old", name: "Counting", members: ["n1"] }],
 			engine,
 			newId,
 		});
-		assert.match(prompts[0]!, /Course: CSE 21/);
+		assert.match(prompts[0]!, /Space: CSE 21/);
 		assert.match(prompts[0]!, /n1 \| Fact n1 \| n1 holds/);
 		assert.match(prompts[0]!, /"tpc_old"/);
 		assert.deepEqual(out.map((t) => [t.id, t.name, t.members]), [
@@ -204,7 +204,7 @@ describe("topics: the grouper (fake model)", () => {
 			],
 		});
 		const out = await groupTopics({
-			className: "MATH 1A",
+			spaceName: "MATH 1A",
 			facts: ["n1", "n2", "n3", "n4"].map((id) => ({ id, name: `Fact ${id}`, statement: `${id} holds` })),
 			chains: [],
 			current: [{ id: "tpc_old", name: "Counting", members: ["n1"], material: "procedure" }],
@@ -225,7 +225,7 @@ describe("topics: the grouper (fake model)", () => {
 				{ name: "Sets", members: ["n2"], material: "definition" },
 			],
 		});
-		const out = await groupTopics({ className: "MATH 1A", facts: ["n1", "n2"].map((id) => ({ id, name: `Fact ${id}`, statement: `${id} holds` })), chains: [], current: [], engine, newId });
+		const out = await groupTopics({ spaceName: "MATH 1A", facts: ["n1", "n2"].map((id) => ({ id, name: `Fact ${id}`, statement: `${id} holds` })), chains: [], current: [], engine, newId });
 		assert.deepEqual(out.map((t) => [t.name, t.material]), [
 			["Counting", "procedure"],
 			["Sets", undefined],
@@ -243,17 +243,17 @@ describe("topics: the scheduler", () => {
 	});
 
 	const fact = (id: string) => ({ id, name: id, statement: `${id} holds`, aliases: [], createdAt: "2026-10-27T00:00:00.000Z", provenance: [{ chatId: "src_file", messageId: "" }] });
-	const seed = (classId: string, n: number) => {
-		const store = graphStoreFor(classId);
-		for (let i = 1; i <= n; i++) store.appendNode(fact(`n_${classId.slice(-4)}_${i}`));
+	const seed = (spaceId: string, n: number) => {
+		const store = graphStoreFor(spaceId);
+		for (let i = 1; i <= n; i++) store.appendNode(fact(`n_${spaceId.slice(-4)}_${i}`));
 		return store;
 	};
 	const tick = (ms: number) => new Promise((r) => setTimeout(r, ms));
 	/** A scheduled run with no debounce, awaited to its end. */
-	const scheduleAndSettle = async (classId: string) => {
-		topics.scheduleTopicGrouping(classId, 0);
+	const scheduleAndSettle = async (spaceId: string) => {
+		topics.scheduleTopicGrouping(spaceId, 0);
 		await tick(10);
-		await topics.topicGroupingIdle(classId);
+		await topics.topicGroupingIdle(spaceId);
 	};
 	/** A faux engine putting every current fact in one topic, counting calls. */
 	const groupAllEngine = (store: ReturnType<typeof graphStoreFor>, name: string) => {
@@ -269,62 +269,62 @@ describe("topics: the scheduler", () => {
 	};
 
 	it("skips under 4 facts and when nothing changed; writes a snapshot otherwise", async () => {
-		const cls = classStore.createClass({ name: "CSE 21" });
-		const store = seed(cls.id, 3);
+		const space = spaceStore.createSpace({ name: "CSE 21" });
+		const store = seed(space.id, 3);
 		const counter = groupAllEngine(store, "Counting");
-		await scheduleAndSettle(cls.id);
+		await scheduleAndSettle(space.id);
 		assert.equal(counter.calls, 0, "too few facts");
 		assert.equal(store.readTopics(), null);
-		store.appendNode(fact(`n_${cls.id.slice(-4)}_4`));
+		store.appendNode(fact(`n_${space.id.slice(-4)}_4`));
 		const ids = store.readNodes().map((n) => n.id);
-		await scheduleAndSettle(cls.id);
+		await scheduleAndSettle(space.id);
 		assert.equal(counter.calls, 1);
 		const snap = store.readTopics()!;
 		assert.deepEqual(snap.topics[0]!.members, ids);
 		assert.match(snap.topics[0]!.id, /^tpc_[0-9a-f]{10}$/);
-		assert.ok(fs.existsSync(path.join(TMP_DATA, "classes", cls.id, "graph", "topics.jsonl")));
-		await scheduleAndSettle(cls.id);
+		assert.ok(fs.existsSync(path.join(TMP_DATA, "spaces", space.id, "graph", "topics.jsonl")));
+		await scheduleAndSettle(space.id);
 		assert.equal(counter.calls, 1, "the fact set is unchanged");
 		await scheduleAndSettle("cls_gone_1");
-		assert.equal(counter.calls, 1, "no such class");
+		assert.equal(counter.calls, 1, "no such space");
 	});
 
 	it("a regroup keeps a stored topic's material", async () => {
-		const cls = classStore.createClass({ name: "MATH 18" });
-		const store = seed(cls.id, 4);
+		const space = spaceStore.createSpace({ name: "MATH 18" });
+		const store = seed(space.id, 4);
 		const ids = store.readNodes().map((n) => n.id);
 		store.appendTopics({ at: "2026-10-27T00:00:00.000Z", topics: [{ id: "tpc_kept000001", name: "Matrices", members: ids.slice(0, 3), material: "procedure" }] });
 		const counter = groupAllEngine(store, "Matrices");
-		await scheduleAndSettle(cls.id);
+		await scheduleAndSettle(space.id);
 		assert.equal(counter.calls, 1);
 		assert.deepEqual(store.readTopics()!.topics.map((t) => [t.id, t.members.length, t.material]), [["tpc_kept000001", 4, "procedure"]]);
 	});
 
-	it("a scheduled run waits while a class file is still pending", async () => {
-		const cls = classStore.createClass({ name: "CSE 29" });
-		const store = seed(cls.id, 4);
+	it("a scheduled run waits while a space file is still pending", async () => {
+		const space = spaceStore.createSpace({ name: "CSE 29" });
+		const store = seed(space.id, 4);
 		const file = { id: "f_000000000001", origin: "copied" as const, name: "notes.md", path: "notes.md", kind: "study" as const, contentFp: "", addedAt: "2026-10-27T00:00:00.000Z" };
-		classStore.saveFiles(cls.id, [{ ...file, status: "pending" }]);
+		spaceStore.saveFiles(space.id, [{ ...file, status: "pending" }]);
 		const counter = groupAllEngine(store, "Pointers");
-		await scheduleAndSettle(cls.id);
+		await scheduleAndSettle(space.id);
 		assert.equal(counter.calls, 0, "a file is waiting");
 		assert.equal(store.readTopics(), null);
-		classStore.saveFiles(cls.id, [{ ...file, status: "ready" }]);
-		await scheduleAndSettle(cls.id);
+		spaceStore.saveFiles(space.id, [{ ...file, status: "ready" }]);
+		await scheduleAndSettle(space.id);
 		assert.equal(counter.calls, 1);
 		assert.equal(store.readTopics()!.topics[0]!.name, "Pointers");
 	});
 
 	it("debounces scheduled runs and runs once more after a busy one", async () => {
-		const cls = classStore.createClass({ name: "MATH 20C" });
-		const store = seed(cls.id, 4);
+		const space = spaceStore.createSpace({ name: "MATH 20C" });
+		const store = seed(space.id, 4);
 		const ids = store.readNodes().map((n) => n.id);
 		const counter = groupAllEngine(store, "Vectors");
 		topics.topicGroupingSeams.debounceMs = 30;
 		try {
-			for (let i = 0; i < 5; i++) topics.scheduleTopicGrouping(cls.id); // five files finishing together
+			for (let i = 0; i < 5; i++) topics.scheduleTopicGrouping(space.id); // five files finishing together
 			await tick(80);
-			await topics.topicGroupingIdle(cls.id);
+			await topics.topicGroupingIdle(space.id);
 		} finally {
 			topics.topicGroupingSeams.debounceMs = undefined;
 		}
@@ -333,14 +333,14 @@ describe("topics: the scheduler", () => {
 
 		// The outside agent holds the run open, so requests land while it is going.
 		topics.topicGroupingSeams.engine = { model: bridge.agentModel(), streamFn: bridge.agentStream };
-		store.appendNode(fact(`n_${cls.id.slice(-4)}_5`));
-		topics.scheduleTopicGrouping(cls.id, 0);
+		store.appendNode(fact(`n_${space.id.slice(-4)}_5`));
+		topics.scheduleTopicGrouping(space.id, 0);
 		const first = await bridge.waitForWork(5000);
 		assert.ok(first, "the first run parked a work item");
-		assert.equal(topics.topicGroupingRunning(cls.id), true);
-		store.appendNode(fact(`n_${cls.id.slice(-4)}_6`));
+		assert.equal(topics.topicGroupingRunning(space.id), true);
+		store.appendNode(fact(`n_${space.id.slice(-4)}_6`));
 		for (let i = 0; i < 2; i++) {
-			topics.scheduleTopicGrouping(cls.id, 0);
+			topics.scheduleTopicGrouping(space.id, 0);
 			await tick(10);
 		}
 		const answer = () => ({ toolCalls: [{ name: "submit_topics", arguments: { topics: [{ name: "Vectors", members: store.readNodes().map((n) => n.id) }] } }] });
@@ -348,31 +348,31 @@ describe("topics: the scheduler", () => {
 		const followUp = await bridge.waitForWork(5000);
 		assert.ok(followUp, "two requests while busy queue one follow-up run");
 		assert.equal(bridge.respondToWork(followUp.workId, answer(), 0).ok, true);
-		await topics.topicGroupingIdle(cls.id);
+		await topics.topicGroupingIdle(space.id);
 		assert.equal(bridge.pendingWorkCount(), 0, "no third run");
 		assert.equal(store.readTopics()!.topics[0]!.members.length, 6);
 	});
 
 	it("shows in the activity registry and reaches an outside agent as a labeled work item", async () => {
-		const cls = classStore.createClass({ name: "PHYS 2B" });
-		const store = seed(cls.id, 4);
+		const space = spaceStore.createSpace({ name: "PHYS 2B" });
+		const store = seed(space.id, 4);
 		const ids = store.readNodes().map((n) => n.id);
 		topics.topicGroupingSeams.engine = { model: bridge.agentModel(), streamFn: bridge.agentStream };
-		topics.scheduleTopicGrouping(cls.id, 0);
+		topics.scheduleTopicGrouping(space.id, 0);
 		const work = await bridge.waitForWork(5000);
 		assert.ok(work, "the grouper parked a work item");
 		assert.equal(work.label, "Topic grouping: PHYS 2B");
 		assert.match(work.instructions ?? "", /topic grouper/);
 		assert.ok(work.tools?.some((t) => t.name === "submit_topics"));
-		const row = extractionStatuses().find((r) => r.chatId === topics.topicRunKey(cls.id));
+		const row = extractionStatuses().find((r) => r.chatId === topics.topicRunKey(space.id));
 		assert.ok(row, "the dock lists the run");
 		assert.equal(row.kind, "topics");
 		assert.equal(row.phase, "grouping");
 		assert.equal(row.label, "Topic grouping: PHYS 2B");
 		const answered = bridge.respondToWork(work.workId, { toolCalls: [{ name: "submit_topics", arguments: { topics: [{ name: "Electrostatics", members: ids }] } }] }, 0);
 		assert.equal(answered.ok, true);
-		await topics.topicGroupingIdle(cls.id);
-		assert.ok(!extractionStatuses().some((r) => r.chatId === topics.topicRunKey(cls.id)), "the row leaves the dock");
+		await topics.topicGroupingIdle(space.id);
+		assert.ok(!extractionStatuses().some((r) => r.chatId === topics.topicRunKey(space.id)), "the row leaves the dock");
 		assert.equal(store.readTopics()!.topics[0]!.name, "Electrostatics");
 	});
 });

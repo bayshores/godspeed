@@ -1,46 +1,48 @@
 import { memo, useMemo } from "react";
 import Link from "next/link";
 import type { LessonProgress } from "@/shared/core";
+import { Pane } from "@/frontend/components/ui/pane";
+import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
+import { cn } from "@/frontend/lib/utils";
 import { lessonHref, mostMissesTakeaway } from "./overview-model";
-import { CARD, CARD_TITLE, OUTCOME_BG } from "./styles";
+import { OUTCOME_BG, ROW, TITLE } from "./styles";
 
 /**
- * HOW LESSONS WENT (Class Overview): one row per lesson with answers —
- * one block per answer in order (right / wrong / didn't know) and the
- * score. A row opens its lesson.
+ * HOW LESSONS WENT (Progress): one row per lesson with answers: one
+ * square per answer in order (right / wrong / didn't know) and the score.
+ * A row opens its lesson.
  */
 export const LessonsCard = memo(function LessonsCard({ lessons }: { lessons: readonly LessonProgress[] }) {
 	const takeaway = useMemo(() => mostMissesTakeaway(lessons), [lessons]);
 	return (
-		<section data-testid="overview-lessons" className={CARD}>
-			<h2 className={CARD_TITLE}>How lessons went</h2>
-			<ul className="-my-[7px] flex w-full flex-col">
+		<Pane data-testid="overview-lessons" className="flex flex-col px-6 pt-[18px] pb-4">
+			<h2 className={TITLE}>How lessons went</h2>
+			<ul className="flex flex-col">
 				{lessons.map((lesson) => (
 					<LessonRow key={lesson.chatId} lesson={lesson} />
 				))}
 			</ul>
-			{takeaway && <p className="text-[13.5px] text-ink-3">{takeaway}</p>}
-		</section>
+			{takeaway && <p className="pt-3 text-[15px] text-ink-2">{takeaway}</p>}
+		</Pane>
 	);
 });
 
 const LessonRow = memo(function LessonRow({ lesson }: { lesson: LessonProgress }) {
 	return (
 		<li>
-			<Link
-				href={lessonHref(lesson.chatId)}
-				data-testid={`overview-lesson-${lesson.chatId}`}
-				className="lh-press -mx-2 flex items-center gap-3.5 px-2 py-[7px] hover:bg-tone focus-visible:bg-tone"
-			>
-				<span title={lesson.title} className="min-w-0 flex-[3] truncate text-[14.5px] font-bold text-ink">{lesson.title}</span>
-				<span className="flex min-w-0 flex-[2] items-center gap-[3px]" aria-hidden>
+			<Link href={lessonHref(lesson.chatId)} prefetch={false} data-testid={`overview-lesson-${lesson.chatId}`} className={cn(ROW, "gap-4 py-[11px]")}>
+				<span title={lesson.title} className="min-w-0 flex-1 truncate text-lg text-ink">
+					{lesson.title}
+				</span>
+				<span className="flex max-w-[45%] shrink-0 flex-wrap justify-end gap-[3px]" aria-hidden>
 					{lesson.answers.map((a) => (
-						<span key={a.toolCallId} data-outcome={a.outcome} className={`h-[18px] min-w-0.5 shrink basis-3.5 ${OUTCOME_BG[a.outcome]}`} />
+						<span key={a.toolCallId} data-outcome={a.outcome} className={cn("size-3", OUTCOME_BG[a.outcome])} />
 					))}
 				</span>
-				<span className="shrink-0 font-mono text-[13px] tabular-nums text-ink-2">
-					{lesson.right} / {lesson.answered}
+				<span className="w-16 shrink-0 font-count text-[15px] text-ink tabular-nums">
+					{lesson.right} of {lesson.answered}
 				</span>
+				<PixelIcon name="chevron" className="h-3.5 text-ink" />
 			</Link>
 		</li>
 	);

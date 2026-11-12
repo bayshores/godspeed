@@ -27,15 +27,15 @@ import {
 import { runPiTurn } from "./pi/ui-stream.ts";
 import { collectToolCallIds } from "./pi/call-ids.ts";
 import { allGraphScopes, effectiveSettings, graphStoreFor, stores } from "./stores.ts";
-import { classCardFor } from "./class-card.ts";
+import { spaceCardFor } from "./space-card.ts";
 import { homeworkDeadline } from "./homework.ts";
-import type { ClassSearch } from "../agent/tools/class.ts";
+import type { SpaceSearch } from "../agent/tools/space.ts";
 import type { TeacherToolContext } from "../agent/tools.ts";
-import { readPassage, searchClassFiles } from "./search-index.ts";
+import { readPassage, searchSpaceFiles } from "./search-index.ts";
 import { currentTodayNote, todayNoteFor } from "./today-note.ts";
 import { graphToolsEnabled } from "../../shared/core/settings-resolution.ts";
 import { effectiveThresholdTokens } from "../../shared/core/compaction.ts";
-import { classActions } from "./class-actions.ts";
+import { spaceActions } from "./space-actions.ts";
 import { agentName } from "../agent/agent-bridge.ts";
 import { learnerRulesSection } from "../../shared/core/teaching-areas.ts";
 import { beginTurn, endTurn, isTurnRunning } from "./turn-liveness.ts";
@@ -99,10 +99,10 @@ const jobRunner = createJobRunner({
 setTurnRunner(async (chatId, input) => (await handleChatInput(chatId, input)).status);
 setJobRespawn((jobId) => void jobRunner.runJob(jobId));
 
-/** The lesson's class name and rules, for the learner's-rules section. */
-function lessonClassRules(classId: string | undefined): { name: string; rules: string[] } | undefined {
-	const cls = classId ? stores.classStore.getClass(classId) : null;
-	return cls ? { name: cls.name, rules: cls.rules ?? [] } : undefined;
+/** The lesson's space name and rules, for the learner's-rules section. */
+function lessonSpaceRules(spaceId: string | undefined): { name: string; rules: string[] } | undefined {
+	const space = spaceId ? stores.spaceStore.getSpace(spaceId) : null;
+	return space ? { name: space.name, rules: space.rules ?? [] } : undefined;
 }
 
 /** The compaction settings for a lesson, shared by the turn-start gate and
@@ -335,79 +335,79 @@ export async function handleChatInput(
 			chatId,
 			// Read per turn, like the tool delta: a rule added mid-lesson applies
 			// on the next turn.
-			learnerRules: learnerRulesSection(effective.agent.rules, lessonClassRules(record.classId)),
+			learnerRules: learnerRulesSection(effective.agent.rules, lessonSpaceRules(record.spaceId)),
 			sideTurn,
 		};
 		// PRACTICE BRANCH: a kind:"practice"
 		// session builds the practitioner from turn 1, with no prober→teacher
 		// split. The session runs on problem + conclude, plus the rarely-used
-		// read-only file tools, research/pdf, map readers, class tools and
+		// read-only file tools, research/pdf, map readers, space tools and
 		// save_rule (tools/practice.ts); no plan or question tools.
 		// buildAgent stays honored (the test seam is uniform across kinds).
-		// CLASS SCOPE: the lesson's class.
+		// SPACE SCOPE: the lesson's space.
 		// Writes (extraction, practice targets) stay in its OWN graph; the map
-		// readers see every class (reads may cross classes, writes never do);
-		// read_class serves its live card (lessons in a class only).
-		const lessonScope = record.classId ?? null;
+		// readers see every space (reads may cross spaces, writes never do);
+		// read_space serves its live card (lessons in a space only).
+		const lessonScope = record.spaceId ?? null;
 		const scopedGraphs = () =>
-			allGraphScopes().map((g) => ({ className: g.name, graphStore: graphStoreFor(g.scope), own: g.scope === lessonScope }));
-		const classCard =
+			allGraphScopes().map((g) => ({ spaceName: g.name, graphStore: graphStoreFor(g.scope), own: g.scope === lessonScope }));
+		const spaceCard =
 			lessonScope === null
 				? undefined
 				: () => {
-						const cls = stores.classStore.getClass(lessonScope);
-						return cls ? classCardFor(cls) : null;
+						const space = stores.spaceStore.getSpace(lessonScope);
+						return space ? spaceCardFor(space) : null;
 					};
-		// read_class ends with the current [Today] note (built at call time).
+		// read_space ends with the current [Today] note (built at call time).
 		const todayNote = () => currentTodayNote(lessonScope ?? undefined);
-		// search_class_files / read_passage over the lesson's class files.
-		const classSearch: ClassSearch | undefined =
+		// search_space_files / read_passage over the lesson's space files.
+		const spaceSearch: SpaceSearch | undefined =
 			lessonScope === null
 				? undefined
-				: { searchFiles: (query, limit) => searchClassFiles(lessonScope, query, limit), readPassage: (ref) => readPassage(lessonScope, ref) };
-		// set_class_note: Halley's note on the class's cover.
-		const classNote = (text: string): string => {
-			if (lessonScope === null || !stores.classStore.getClass(lessonScope)) return "This lesson's class no longer exists.";
-			stores.classStore.updateClass(lessonScope, { note: { text: text.trim(), at: new Date().toISOString() } });
-			return "Saved. It shows on the class's cover.";
+				: { searchFiles: (query, limit) => searchSpaceFiles(lessonScope, query, limit), readPassage: (ref) => readPassage(lessonScope, ref) };
+		// set_space_note: Halley's note on the space's cover.
+		const spaceNote = (text: string): string => {
+			if (lessonScope === null || !stores.spaceStore.getSpace(lessonScope)) return "This lesson's space no longer exists.";
+			stores.spaceStore.updateSpace(lessonScope, { note: { text: text.trim(), at: new Date().toISOString() } });
+			return "Saved. It shows on the space's cover.";
 		};
 		// save_rule: the rule joins the learner's rules; the chat shows it with Undo and Edit.
 		const saveRule: SaveRule = (rule, scope, area) => {
-			if (scope === "this_class" && lessonScope === null) return "This lesson isn't in a class. Save the rule for every lesson instead.";
-			const where = scope === "this_class" && lessonScope !== null ? { classId: lessonScope } : { area: area ?? ("teaching" as const) };
+			if (scope === "this_space" && lessonScope === null) return "This lesson isn't in a space. Save the rule for every lesson instead.";
+			const where = scope === "this_space" && lessonScope !== null ? { spaceId: lessonScope } : { area: area ?? ("teaching" as const) };
 			const saved = saveRuleByAgent(rule, where);
 			if (!saved.ok) return saved.error;
 			return { saved: true, rule: saved.rule, for: saved.for, where, note: "Saved. The learner sees it in the chat and can undo or edit it." };
 		};
-		// Talk's class actions, named for the agent; lessons take the changes
+		// Talk's space actions, named for the agent; lessons take the changes
 		// ("add HW 4, due Friday") too.
-		const agentClassActions = classActions(agentName(), (id, text) => handleChatInput(id, { type: "text", text }), { openStarted: true });
+		const agentSpaceActions = spaceActions(agentName(), (id, text) => handleChatInput(id, { type: "text", text }), { openStarted: true });
 		const teacherContext: TeacherToolContext = {
 			chatId,
 			chatStore: stores.chatStore,
 			jobStore: stores.jobStore,
 			spawn: (job, input) => void jobRunner.runJob(job.id, input),
-			...(classCard ? { classCard, todayNote, classSearch, classNote } : {}),
+			...(spaceCard ? { spaceCard, todayNote, spaceSearch, spaceNote } : {}),
 			saveRule,
-			classActions: agentClassActions,
+			spaceActions: agentSpaceActions,
 		};
 		// Practice and homework sessions: the rarely-needed set (research +
 		// pdf jobs and the map readers behind the SAME settings gate as the
-		// prober's), the class tools and save_rule.
+		// prober's), the space tools and save_rule.
 		const practiceContext = {
 			chatId,
 			chatStore: stores.chatStore,
 			jobs: { chatId, jobStore: stores.jobStore, spawn: teacherContext.spawn },
 			...(graphToolsEnabled(effective) ? { graph: { chatStore: stores.chatStore, graphStore: graphStoreFor(lessonScope), graphs: scopedGraphs } } : {}),
-			...(classCard ? { classCard, todayNote, classSearch, classNote } : {}),
+			...(spaceCard ? { spaceCard, todayNote, spaceSearch, spaceNote } : {}),
 			saveRule,
-			classActions: agentClassActions,
+			spaceActions: agentSpaceActions,
 		};
 		const constructed: TeachingAgent = buildAgent
 			? buildAgent({ ...agentOpts, teaching })
 			: record.kind === "talk"
-				? // TALK: the class actions, named for the agent that runs them; no lesson rules.
-					createTalkAgent(agentClassActions, { ...agentOpts, learnerRules: undefined })
+				? // TALK: the space actions, named for the agent that runs them; no lesson rules.
+					createTalkAgent(agentSpaceActions, { ...agentOpts, learnerRules: undefined })
 			: record.kind === "practice"
 				? createPracticeAgent(
 						{
@@ -416,18 +416,18 @@ export async function handleChatInput(
 							// WHOLE graph fresh per pose — targets validate against every
 							// proposition, not just the session's picks (so pickless
 							// sessions stay valid).
-							// Targets are the lesson's OWN class graph (writes never cross
-							// classes).
-							graphNodes: () => graphStoreFor(record.classId ?? null).readNodes(),
+							// Targets are the lesson's OWN space graph (writes never cross
+							// spaces).
+							graphNodes: () => graphStoreFor(record.spaceId ?? null).readNodes(),
 						},
 						agentOpts,
 					)
-			: record.kind === "homework" && record.classId && record.deadlineId
+			: record.kind === "homework" && record.spaceId && record.deadlineId
 				? // HOMEWORK: practice's side tools plus the deadline's problems.
-					createHomeworkAgent({ ...practiceContext, homework: homeworkDeadline(record.classId, record.deadlineId) }, agentOpts)
+					createHomeworkAgent({ ...practiceContext, homework: homeworkDeadline(record.spaceId, record.deadlineId) }, agentOpts)
 				: record.kind === "study"
 				? // STUDY: the teacher from turn 1 plus problem/conclude; problem
-					// targets validate against the lesson's own class graph.
+					// targets validate against the lesson's own space graph.
 					createStudyAgent({ ...teacherContext, graphNodes: () => graphStoreFor(lessonScope).readNodes() }, agentOpts)
 				: teaching
 				? createTeacherAgent(teacherContext, agentOpts)
@@ -444,9 +444,9 @@ export async function handleChatInput(
 							// knowledge graph through tools when the gate opens —
 							// graph master switch AND the agent.graphTools toggle.
 							...(graphToolsEnabled(effective) ? { graphStore: graphStoreFor(lessonScope), graphs: scopedGraphs } : {}),
-							...(classCard ? { classCard, todayNote, classSearch, classNote } : {}),
+							...(spaceCard ? { spaceCard, todayNote, spaceSearch, spaceNote } : {}),
 							saveRule,
-							classActions: agentClassActions,
+							spaceActions: agentSpaceActions,
 						},
 						agentOpts,
 					);
@@ -538,7 +538,7 @@ export async function handleChatInput(
 					// Fresh per-turn read of the graph section's chunk budget: the
 					// trigger compares against it and the pipeline's batches share it.
 					triggerExtraction(
-						{ chatStore: stores.chatStore, graphStore: graphStoreFor(record.classId ?? null), graphOn: () => effectiveSettings().graph.enabled },
+						{ chatStore: stores.chatStore, graphStore: graphStoreFor(record.spaceId ?? null), graphOn: () => effectiveSettings().graph.enabled },
 						extraction,
 						chatId,
 						effective.graph.extractionChunkTokens,

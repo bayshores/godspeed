@@ -177,10 +177,10 @@ describe("list_propositions", () => {
 	});
 });
 
-// ─── reads cross classes ──────────
+// ─── reads cross spaces ──────────
 
-describe("prober graph tools — cross-class reads", () => {
-	it("list_sessions lists every class graph, the lesson's own class first, tagged by class", async () => {
+describe("prober graph tools — cross-space reads", () => {
+	it("list_sessions lists every space graph, the lesson's own space first, tagged by space", async () => {
 		const own = fakeStores([node("n1", "Gradients", [pt("c1")])], { chats: [{ id: "c1", title: "Calc lesson" }] } as never);
 		const other = fakeStores([node("n2", "Matrices", [pt("c2")])], { chats: [{ id: "c2", title: "Linear algebra lesson" }] } as never);
 		const chatStore = {
@@ -193,32 +193,32 @@ describe("prober graph tools — cross-class reads", () => {
 			chatStore,
 			graphStore: own.graphStore,
 			graphs: () => [
-				{ className: "MATH 18", graphStore: other.graphStore, own: false },
-				{ className: "MATH 20C", graphStore: own.graphStore, own: true },
+				{ spaceName: "MATH 18", graphStore: other.graphStore, own: false },
+				{ spaceName: "MATH 20C", graphStore: own.graphStore, own: true },
 			],
 		});
 		const out = (await tools.list_sessions!.execute!("tc", {})).details as string;
 		const lines = out.split("\n");
-		assert.match(lines[1]!, /Calc lesson .*class: MATH 20C \(this lesson's class\)/);
-		assert.match(lines[2]!, /Linear algebra lesson .*class: MATH 18 — id: c2/);
+		assert.match(lines[1]!, /Calc lesson .*space: MATH 20C \(this lesson's space\)/);
+		assert.match(lines[2]!, /Linear algebra lesson .*space: MATH 18 — id: c2/);
 		const props = (await tools.list_propositions!.execute!("tc", { session: "c2" })).details as string;
 		assert.match(props, /- Matrices/);
 	});
 });
 
-describe("read_class", () => {
-	it("is registered only with a class card reader and returns the live card", async () => {
+describe("read_space", () => {
+	it("is registered only with a space card reader and returns the live card", async () => {
 		const { chatStore } = fakeStores([]);
-		assert.equal("read_class" in createProberTools({ ...baseCtx, chatStore }), false);
+		assert.equal("read_space" in createProberTools({ ...baseCtx, chatStore }), false);
 		const tools = createProberTools({
 			...baseCtx,
 			chatStore,
-			classCard: () => ({ classId: "cls_x", name: "PHYS 2B", description: "Uses Griffiths", files: [{ name: "syllabus.pdf", kind: "info", path: "/tmp/s.pdf" }] }),
+			spaceCard: () => ({ spaceId: "cls_x", name: "PHYS 2B", description: "Uses Griffiths", files: [{ name: "syllabus.pdf", kind: "info", path: "/tmp/s.pdf" }] }),
 		});
-		const out = (await tools.read_class!.execute!("tc", {})).details as string;
-		assert.match(out, /^\[Class context\]/);
-		assert.match(out, /Class: PHYS 2B/);
+		const out = (await tools.read_space!.execute!("tc", {})).details as string;
+		assert.match(out, /^\[Space context\]/);
+		assert.match(out, /Space: PHYS 2B/);
 		assert.match(out, /Uses Griffiths/);
-		assert.match(out, /\[course info\] syllabus\.pdf — \/tmp\/s\.pdf/);
+		assert.match(out, /\[space info\] syllabus\.pdf — \/tmp\/s\.pdf/);
 	});
 });

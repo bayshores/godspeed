@@ -39,7 +39,7 @@ import {
 	HANDOFF_TEXT,
 	NEXT_PROBLEM_TEXT,
 } from "./contracts/chat.ts";
-import type { ClassFileStatus } from "./contracts/class.ts";
+import type { SpaceFileStatus } from "./contracts/space.ts";
 import { compactAnswerForModel, type QuestionAnswerData } from "./question-core.ts";
 import { activeCompactionOf, keptIndexFor } from "./compaction.ts";
 import { newMessageId } from "./message-id.ts";
@@ -86,7 +86,7 @@ export interface LhMarkerMessage {
 	role: "custom";
 	customType:
 		| "graph-context"
-		| "class-context"
+		| "space-context"
 		| "study-context"
 		| "homework-context"
 		| "today-context"
@@ -394,7 +394,7 @@ export function newGraphContextMessage(picks: readonly GraphContextPick[], chain
 /** A study session's topics with their modes (core/study.ts
  *  studyContextText), or a homework session's deadline and problems
  *  (core/homework.ts homeworkContextText), for the model only: the
- *  steps pane shows the topics or problems. */
+ *  plan row shows the topics or problems. */
 export function newStudyContextMessage(text: string, customType: "study-context" | "homework-context" = "study-context"): LhMarkerMessage {
 	return {
 		id: newMessageId(),
@@ -407,81 +407,81 @@ export function newStudyContextMessage(text: string, customType: "study-context"
 	};
 }
 
-// ─── classes ─────────────────────────────────────────────────────────────────
+// ─── spaces ─────────────────────────────────────────────────────────────────
 
-/** One file line of the class card. `path` is where the teacher can read
+/** One file line of the space card. `path` is where the teacher can read
  *  it (a recording's transcript once it exists; null when not readable). */
-interface ClassCardFile {
+interface SpaceCardFile {
 	name: string;
 	kind: "study" | "info";
 	path: string | null;
 	/** Once indexed for search: "98 pages", "52 min", "420 lines". */
 	size?: string;
 	/** Shown when not "ready" (still being read, failed…). */
-	status?: ClassFileStatus;
+	status?: SpaceFileStatus;
 }
 
-/** The class card's UI payload (the transcript's collapsible card). */
-export interface ClassCardDetails {
-	classId: string;
+/** The space card's UI payload (the transcript's collapsible card). */
+export interface SpaceCardDetails {
+	spaceId: string;
 	name: string;
 	description: string;
-	files: ClassCardFile[];
-	/** The class graph's topics with their fact counts. */
+	files: SpaceCardFile[];
+	/** The space graph's topics with their fact counts. */
 	topics?: { name: string; facts: number }[];
 }
 
-/** The model-facing class card text. Bracket-labelled like the graph
+/** The model-facing space card text. Bracket-labelled like the graph
  *  context (PREAMBLE LAW: markers flatten to user-role messages, so the
  *  card must read as injected context, never learner speech). Data only:
- *  how to use it is doctrine (prompts/shared/12-class-context.md). */
-export function classCardText(card: ClassCardDetails): string {
+ *  how to use it is doctrine (prompts/shared/12-space-context.md). */
+export function spaceCardText(card: SpaceCardDetails): string {
 	const lines = [
-		"[Class context] — this lesson belongs to a course the learner is taking:",
+		"[Space context] — this lesson belongs to one of the learner's spaces:",
 		"",
-		`Class: ${card.name}`,
+		`Space: ${card.name}`,
 	];
-	if (card.description.trim()) lines.push("", "About the class (the learner's own words):", card.description.trim());
+	if (card.description.trim()) lines.push("", "About the space (the learner's own words):", card.description.trim());
 	const readable = card.files.filter((f) => f.path !== null);
 	if (readable.length > 0) {
 		const study = readable.filter((f) => f.kind === "study").length;
 		lines.push(
 			"",
-			`Class files: ${study} study material, ${readable.length - study} course info. Find what's in them with search_class_files; read_class lists them with their paths.`,
+			`Space files: ${study} study material, ${readable.length - study} space info. Find what's in them with search_space_files; read_space lists them with their paths.`,
 		);
 	}
 	if (card.topics?.length) {
-		lines.push("", "Topics in the class's knowledge graph (facts in each):", card.topics.map((t) => `${t.name} (${t.facts})`).join(", "));
+		lines.push("", "Topics in the space's knowledge graph (facts in each):", card.topics.map((t) => `${t.name} (${t.facts})`).join(", "));
 	}
 	return lines.join("\n");
 }
 
-/** The class's readable files, one line each with its path (read_class
+/** The space's readable files, one line each with its path (read_space
  *  only: the card just counts them, so lessons don't carry the list). */
-export function classFilesText(card: ClassCardDetails): string {
+export function spaceFilesText(card: SpaceCardDetails): string {
 	const readable = card.files.filter((f) => f.path !== null);
 	if (readable.length === 0) return "";
-	const lines = ["Class files (study material = turned into the class's knowledge graph; course info = syllabus, assignments, logistics):"];
+	const lines = ["Space files (study material = turned into the space's knowledge graph; space info = a syllabus, a schedule, logistics):"];
 	for (const f of readable) {
 		const about = [f.size, f.status && f.status !== "ready" ? f.status : undefined].filter(Boolean).join(", ");
-		lines.push(`- [${f.kind === "study" ? "study material" : "course info"}] ${f.name}${about ? ` (${about})` : ""} — ${f.path}`);
+		lines.push(`- [${f.kind === "study" ? "study material" : "space info"}] ${f.name}${about ? ` (${about})` : ""} — ${f.path}`);
 	}
 	return lines.join("\n");
 }
 
-export function newClassContextMessage(card: ClassCardDetails): LhMarkerMessage {
+export function newSpaceContextMessage(card: SpaceCardDetails): LhMarkerMessage {
 	return {
 		id: newMessageId(),
 		role: "custom",
-		customType: "class-context",
-		content: classCardText(card),
+		customType: "space-context",
+		content: spaceCardText(card),
 		display: true,
 		details: card,
 		timestamp: Date.now(),
 	};
 }
 
-/** The [Today] note: today's date and the class's open
+/** The [Today] note: today's date and the space's open
  *  deadlines, for the model only (`display: false`; the view renders
  *  nothing). Bracket-labelled per the PREAMBLE LAW. `details.day` is the
  *  local day it was written for (core/today-note.ts decides when a new one
@@ -502,7 +502,7 @@ export function newTodayContextMessage(text: string, day: string): LhMarkerMessa
 export interface AppRequestDeadline {
 	id: string;
 	name: string;
-	className: string;
+	spaceName: string;
 }
 
 /** A request godspeed makes in Talk by itself, not the learner (work out

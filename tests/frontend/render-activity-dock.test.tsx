@@ -1,7 +1,9 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { ActivitySection, formatElapsed, toBlobs, type ActivityFeed, type FeedExtraction } from "../../src/frontend/components/activity-dock.tsx";
+import type { ActivityFeed, FeedExtraction } from "../../src/frontend/components/activity-dock.tsx";
+import { agoLabel, blobLabel, formatElapsed, toBlobs } from "../../src/frontend/components/halley/activity-model.ts";
+import { BackgroundJobs } from "../../src/frontend/components/halley/background-jobs.tsx";
 import { formatTokens, pagesLabel } from "../../src/frontend/components/usage-format.ts";
 import { agentWaiting, parseAgentStatus, sameAgentStatus, teachStep, waitingNotice, type AgentStatus } from "../../src/frontend/components/agent-status.tsx";
 
@@ -14,8 +16,8 @@ describe("the waiting-for-your-agent notice", () => {
 		assert.equal(agentWaiting(status()), false);
 		assert.equal(agentWaiting(null), false);
 	});
-	it("says to open an agent from the sidebar, or to tell the connected one to start", () => {
-		assert.equal(waitingNotice(), "Waiting for your agent. Open your agent from the sidebar.");
+	it("says to open an agent, or to tell the connected one to start", () => {
+		assert.equal(waitingNotice(), "Waiting for your agent. Open your agent to start.");
 		assert.equal(waitingNotice("Claude Code"), "Waiting for your agent. Tell Claude Code to start teaching.");
 		assert.equal(teachStep("Codex"), "Tell Codex to start teaching.");
 	});
@@ -39,11 +41,11 @@ describe("the waiting-for-your-agent notice", () => {
 		assert.equal(sameAgentStatus(s, { ...s, backupAnswering: true }), false);
 		assert.equal(sameAgentStatus(s, { ...s, claimedLessons: [{ lessonId: "c1", claimedAt: "2026-10-30T12:00:00Z" }] }), false);
 	});
-	it("the activity panel shows the notice text", () => {
-		const html = renderToStaticMarkup(<ActivitySection feed={{ jobs: [], extractions: [] }} waiting />);
+	it("the background jobs show the notice text", () => {
+		const html = renderToStaticMarkup(<BackgroundJobs feed={{ jobs: [], extractions: [] }} waiting={waitingNotice()} />);
 		assert.ok(html.includes('data-testid="activity-waiting"'));
 		assert.ok(html.includes(waitingNotice()));
-		assert.ok(!renderToStaticMarkup(<ActivitySection feed={{ jobs: [], extractions: [] }} />).includes("activity-waiting"));
+		assert.ok(!renderToStaticMarkup(<BackgroundJobs feed={{ jobs: [], extractions: [] }} waiting={null} />).includes("activity-waiting"));
 	});
 });
 
@@ -171,6 +173,25 @@ describe("activity dock pure layer", () => {
 		assert.equal(blob.context, null);
 	});
 
+	it("names each job by what it is", () => {
+		assert.equal(blobLabel({ process: "extraction" }), "Building facts");
+		assert.equal(blobLabel({ process: "job", jobKind: "research" }), "Research agent");
+		assert.equal(blobLabel({ process: "job", jobKind: "pdf" }), "PDF reader");
+		assert.equal(blobLabel({ process: "job" }), "Sub-agent");
+	});
+
+	it("says how long ago a change was", () => {
+		const at = (msAgo: number) => new Date(NOW - msAgo).toISOString();
+		assert.equal(agoLabel(at(20_000), NOW), "now");
+		assert.equal(agoLabel(at(2 * 60_000), NOW), "2 min");
+		assert.equal(agoLabel(at(60 * 60_000), NOW), "1 hour");
+		assert.equal(agoLabel(at(5 * 60 * 60_000), NOW), "5 hours");
+		assert.equal(agoLabel(at(30 * 60 * 60_000), NOW), "yesterday");
+		assert.equal(agoLabel(at(3 * 24 * 60 * 60_000), NOW), "3 days");
+		assert.match(agoLabel(at(20 * 24 * 60 * 60_000), NOW), /^Aug 2[01]$/);
+		assert.equal(agoLabel("not a date", NOW), "");
+	});
+
 	it("formatElapsed ticks compactly", () => {
 		assert.equal(formatElapsed(45_000), "45s");
 		assert.equal(formatElapsed(184_000), "3m 04s");
@@ -189,37 +210,34 @@ describe("activity dock pure layer", () => {
 	});
 });
 
-describe("activity section render", () => {
+describe("background jobs render", () => {
 	it("renders nothing while idle", () => {
-		assert.equal(renderToStaticMarkup(<ActivitySection feed={{ jobs: [], extractions: [] }} />), "");
+		assert.equal(renderToStaticMarkup(<BackgroundJobs feed={{ jobs: [], extractions: [] }} waiting={null} />), "");
 	});
 
-	it("renders one blob per running process with cost, elapsed, and the abort affordance", () => {
+	it("one row per running job: name, what it is with elapsed, and Stop", () => {
 		const html = renderToStaticMarkup(
-			<ActivitySection
+			<BackgroundJobs
 				feed={{
 					jobs: [job({ id: "j1", kind: "demo", activity: "building sandbox…", title: "Chain-rule demo" })],
 					extractions: [{ id: "cx", chatId: "cx", kind: "chat", title: "Old lesson", phase: "merging", startedAt: NOW - 60_000 }],
 				}}
+				waiting={null}
 			/>,
 		);
 		assert.match(html, /data-testid="activity-section"/);
 		assert.match(html, /data-testid="activity-blob-job"/);
 		assert.match(html, /data-testid="activity-blob-extraction"/);
-		assert.match(html, /Chain-rule demo/);
-		assert.match(html, /building sandbox…/);
-		assert.match(html, /Extraction: merging/);
-		// Unpriced job → "–", never $0.0000 (doctrine); both blobs show it.
-		assert.match(html, /activity-blob-cost[^>]*>–</);
-		assert.match(html, /data-testid="activity-abort"/, "END on the blob face, popover-independent");
-		assert.match(html, /\bEnd\b/, "the explicit END button");
-		assert.match(html, /Background jobs/);
-		// Total cost: nothing priced → "–" in the header.
+		assert.match(html, /Running in the background/);
+		assert.match(html, /Demo builder, <span data-testid="activity-blob-elapsed">/);
+		assert.match(html, /Building facts, <span data-testid="activity-blob-elapsed">/);
+		assert.match(html, /data-testid="activity-abort"[^>]*>Stop</, "Stop on every row");
+		assert.match(html, /aria-label="Stop Demo builder in Chain-rule demo"/);
+		assert.doesNotMatch(html, /building sandbox…/, "the activity line is in the detail");
+		// Total cost: nothing priced → "–" beside the heading.
 		assert.match(html, /activity-total-cost[^>]*>–</);
-		// Truncation-reveals KEEP native title (tooltip wave mechanism rule):
-		// the truncated activity + title spans carry title= — a styled
-		// tooltip adds nothing over an ellipsis reveal.
-		assert.match(html, /title="building sandbox…"/);
+		// A cut-off name keeps its native title.
+		assert.match(html, /title="Chain-rule demo"/);
 	});
 
 
@@ -234,7 +252,7 @@ describe("activity section render", () => {
 			steps: 1,
 		};
 		const html = renderToStaticMarkup(
-			<ActivitySection
+			<BackgroundJobs
 				feed={{
 					jobs: [
 						job({ id: "a", usage }),
@@ -242,6 +260,7 @@ describe("activity section render", () => {
 					],
 					extractions: [],
 				}}
+				waiting={null}
 			/>,
 		);
 		assert.match(html, /activity-total-cost[^>]*>Your agent</);

@@ -2,15 +2,14 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowUpRightIcon, XIcon } from "lucide-react";
-import { currentVersion, type SheetAbout } from "@/shared/core";
-import { useAgentStatus } from "@/frontend/components/agent-status";
+import { currentVersion } from "@/shared/core";
 import { LoadFailed } from "@/frontend/components/load-failed";
+import { Pane } from "@/frontend/components/ui/pane";
+import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { DOCK_DEFAULT_W, dockStateKey, dockWidth, makeTarget, parseDockState, pickSheet, sheetChoices, type DockState } from "./dock-model";
 import { SheetCanvas } from "./sheet-canvas";
-import { SheetChat } from "./sheet-chat";
-import { emptyChatLine, versionLabel } from "./studio-states";
-import { sheetPdfPath, studioPath, useCheatSheet, useClassSheets, useSheetFocus } from "./use-cheat-sheet";
+import { versionLabel } from "./studio-states";
+import { sheetPdfPath, studioPath, useCheatSheet, useSpaceSheets } from "./use-cheat-sheet";
 
 const WIDTH_KEY = "lh:sheet-dock-width";
 
@@ -49,27 +48,25 @@ export function useSheetDock(chatId: string) {
 }
 
 /**
- * THE CHEAT SHEET BESIDE A SESSION: docked on the window's right, as wide
- * as the learner drags it. It shows the session's deadline's sheet, else
- * the class's next one that has a sheet (a picker when there are several),
- * on the same canvas as the studio (pages one under another, fit to
- * width), with the same chat below it. A message sent from here takes the
- * problem or question the learner is on with it.
+ * THE CHEAT SHEET BESIDE A LESSON: a column between the reading sheet and
+ * the teacher, as wide as the learner drags it. It shows the lesson's
+ * deadline's sheet, else the space's next one that has a sheet (a picker
+ * when there are several), on the same canvas as the studio (pages one
+ * under another, fit to width). It has no chat: asking about the sheet,
+ * pointing at a part of it and making one all happen in the studio.
  */
 export function SheetDock({
-	classId,
+	spaceId,
 	sessionDeadlineId,
 	picked,
 	onPick,
-	about,
 	onClose,
 }: {
-	classId: string;
+	spaceId: string;
 	sessionDeadlineId: string | undefined;
 	/** The deadline picked before in this session. */
 	picked: string | undefined;
 	onPick: (deadlineId: string) => void;
-	about: SheetAbout | null;
 	onClose: () => void;
 }) {
 	const [width, setWidth] = useState(DOCK_DEFAULT_W);
@@ -79,21 +76,20 @@ export function SheetDock({
 	}, []);
 	const drag = useRef<{ x: number; w: number } | null>(null);
 
-	const { view: cards, failed, reload } = useClassSheets(classId);
-	const [making, setMaking] = useState<string | null>(null);
+	const { view: cards, failed, reload } = useSpaceSheets(spaceId);
 	const choices = cards ? sheetChoices(cards.cards) : [];
-	const shown = cards ? (pickSheet(cards.cards, sessionDeadlineId, picked) ?? making) : null;
+	const shown = cards ? pickSheet(cards.cards, sessionDeadlineId, picked) : null;
 	const target = cards ? makeTarget(cards.cards, sessionDeadlineId) : null;
 	const shownName = cards?.cards.find((c) => c.deadlineId === shown)?.name;
 
 	return (
-		<aside data-testid="sheet-dock" aria-label="Cheat sheet" style={{ width }} className="relative flex h-full shrink-0 flex-col border-l border-tone-2 bg-panel font-ui">
+		<Pane data-testid="sheet-dock" aria-label="Cheat sheet" style={{ "--lh-dock-w": `${width}px` } as React.CSSProperties} className="lh-sheet-dock flex h-full min-h-0 shrink-0 flex-col">
 			<div
 				role="separator"
 				aria-orientation="vertical"
 				aria-label="Drag to resize the cheat sheet"
 				data-testid="sheet-dock-resize"
-				className="absolute top-0 bottom-0 -left-1 z-10 w-2 cursor-col-resize hover:bg-tone-2"
+				className="lh-dock-resize absolute top-0 bottom-0 -left-3 z-10 w-3 cursor-col-resize hover:bg-tone-2"
 				onPointerDown={(e) => {
 					e.currentTarget.setPointerCapture(e.pointerId);
 					drag.current = { x: e.clientX, w: width };
@@ -107,90 +103,77 @@ export function SheetDock({
 					writeStorage(WIDTH_KEY, String(width));
 				}}
 			/>
-			<header className="lh-drag flex h-14 shrink-0 items-center gap-3 border-b border-tone-2 pr-3 pl-5">
+			<header className="flex shrink-0 items-center gap-2 border-b border-border py-2.5 pr-2 pl-3">
 				{choices.length > 1 && shown ? (
-					<select
-						data-testid="sheet-dock-pick"
-						aria-label="Which cheat sheet"
-						value={shown}
-						onChange={(e) => onPick(e.target.value)}
-						className="lh-no-drag min-w-0 flex-1 truncate border border-tone-2 bg-panel px-2 py-1 text-[15px] font-bold text-ink"
-					>
-						{choices.map((c) => (
-							<option key={c.deadlineId} value={c.deadlineId}>
-								Cheat sheet for {c.name}
-							</option>
-						))}
-					</select>
+					<div className="relative min-w-0 flex-1">
+						<select
+							data-testid="sheet-dock-pick"
+							aria-label="Which cheat sheet"
+							value={shown}
+							onChange={(e) => onPick(e.target.value)}
+							className="h-9 w-full appearance-none truncate rounded border-[1.5px] border-ink bg-panel pr-9 pl-3 text-[15px] font-medium text-ink"
+						>
+							{choices.map((c) => (
+								<option key={c.deadlineId} value={c.deadlineId}>
+									Cheat sheet for {c.name}
+								</option>
+							))}
+						</select>
+						<PixelIcon name="chevron" className="pointer-events-none absolute top-1/2 right-3 h-[10px] -translate-y-1/2 rotate-90 text-ink" />
+					</div>
 				) : (
-					<span className="min-w-0 flex-1 truncate text-[15px] font-bold text-ink">{shownName ? `Cheat sheet for ${shownName}` : "Cheat sheet"}</span>
+					<span className="min-w-0 flex-1 truncate px-1 text-[15px] font-medium text-ink">{shownName ? `Cheat sheet for ${shownName}` : "Cheat sheet"}</span>
 				)}
-				{shown && (
-					<Link
-						href={studioPath(shown)}
-						data-testid="sheet-dock-studio"
-						aria-label="Open the cheat sheet full size"
-						title="Open full size"
-						className="lh-no-drag lh-press flex size-8 shrink-0 items-center justify-center text-ink-3 hover:bg-tone hover:text-ink"
-					>
-						<ArrowUpRightIcon className="size-4" aria-hidden />
-					</Link>
-				)}
-				<button type="button" data-testid="sheet-dock-close" aria-label="Close the cheat sheet" onClick={onClose} className="lh-no-drag lh-press flex size-8 shrink-0 items-center justify-center text-ink-3 hover:bg-tone hover:text-ink">
-					<XIcon className="size-4" aria-hidden />
+				<button type="button" data-testid="sheet-dock-close" onClick={onClose} className="lh-btn lh-btn-quiet shrink-0 text-[15px]">
+					<PixelIcon name="close" />
+					Close
 				</button>
 			</header>
 			{failed ? (
 				<LoadFailed message="Couldn't load your cheat sheets." onRetry={() => void reload()} className="px-5 py-4" />
 			) : !cards ? null : shown ? (
-				<DockedSheet key={shown} classId={classId} deadlineId={shown} about={about} />
+				<DockedSheet key={shown} spaceId={spaceId} deadlineId={shown} />
 			) : (
-				<div data-testid="sheet-dock-none" className="flex flex-col items-start gap-3 px-5 py-5 text-[14px] text-ink-2">
+				<div data-testid="sheet-dock-none" className="flex min-h-0 flex-1 flex-col items-start gap-3 bg-background px-4 py-5 text-[15px] text-ink-2">
 					<p>No cheat sheet yet.</p>
 					{target ? (
-						<button type="button" data-testid="sheet-dock-make" onClick={() => setMaking(target)} className="lh-btn lh-btn-main">
+						<Link href={studioPath(target)} data-testid="sheet-dock-make" className="lh-btn lh-btn-main text-[15px]">
 							Make one
-						</button>
+						</Link>
 					) : (
-						<p>Add a deadline to this class to make one.</p>
+						<p>Add a deadline to this space to make one.</p>
 					)}
 				</div>
 			)}
-		</aside>
+		</Pane>
 	);
 }
 
-function DockedSheet({ classId, deadlineId, about }: { classId: string; deadlineId: string; about: SheetAbout | null }) {
-	const { view, loadError, reload, act } = useCheatSheet(classId, deadlineId);
-	const agent = useAgentStatus();
-	const agentName = agent?.name ?? "Your agent";
-	const { pointed, setPointed, focus, showVersion } = useSheetFocus();
-	const pdfUrl = useCallback((n: number) => sheetPdfPath(classId, deadlineId, n), [classId, deadlineId]);
+function DockedSheet({ spaceId, deadlineId }: { spaceId: string; deadlineId: string }) {
+	const { view, loadError, reload } = useCheatSheet(spaceId, deadlineId);
+	const pdfUrl = useCallback((n: number) => sheetPdfPath(spaceId, deadlineId, n), [spaceId, deadlineId]);
 	if (loadError) return <LoadFailed message="Couldn't load this cheat sheet." onRetry={() => void reload()} className="px-5 py-4" />;
 	if (!view) return null;
 	const current = currentVersion(view.sheet);
+	if (!current) return null;
 	return (
-		<>
-			{current && (
-				<div className="flex min-h-0 flex-[55] flex-col border-b border-tone-2">
-					<SheetCanvas versions={[current]} pdfUrl={pdfUrl} labelFor={versionLabel} narrow focus={focus} onPoint={setPointed} />
+		<SheetCanvas
+			versions={[current]}
+			pdfUrl={pdfUrl}
+			labelFor={versionLabel}
+			narrow
+			foot={
+				<div className="flex w-full items-center gap-2">
+					{/* Pointing sends a picture with a message, so it happens where the chat is. */}
+					<Link href={studioPath(deadlineId)} data-testid="sheet-dock-point" className="lh-btn text-[15px]">
+						Point at the sheet
+					</Link>
+					<span className="flex-1" />
+					<Link href={studioPath(deadlineId)} data-testid="sheet-dock-studio" className="lh-btn lh-btn-quiet text-[15px]">
+						Open full size
+					</Link>
 				</div>
-			)}
-			<div className={current ? "flex min-h-[260px] flex-[45] flex-col" : "flex min-h-0 flex-1 flex-col"}>
-				<SheetChat
-					view={view}
-					classId={classId}
-					deadlineId={deadlineId}
-					act={act}
-					agentName={agentName}
-					agentGone={!!agent && !agent.connected && !agent.teaching}
-					pointed={pointed}
-					onClearPointed={() => setPointed(null)}
-					about={about}
-					onShowVersion={current ? (n) => n === current.n && showVersion(n) : undefined}
-					empty={current ? emptyChatLine(agentName, true) : `No cheat sheet yet for ${view.deadlineName}. ${emptyChatLine(agentName, false)}`}
-				/>
-			</div>
-		</>
+			}
+		/>
 	);
 }

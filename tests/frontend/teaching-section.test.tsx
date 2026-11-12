@@ -11,6 +11,7 @@ async function withSection(
 	respond: (url: string) => Response,
 	onSectionChange: (next: AgentSettings) => void,
 	run: (win: Window & typeof globalThis) => Promise<void>,
+	onFullPage: (open: boolean) => void = () => {},
 ) {
 	const dom = parseHTML("<html><body><div id='root'></div></body></html>");
 	// linkedom's document has no "oninput"; without it React would watch text
@@ -45,6 +46,7 @@ async function withSection(
 						graph={undefined}
 						teacherName="Halley"
 						onSectionChange={onSectionChange}
+						onFullPage={onFullPage}
 					/>
 				</ServerEventsProvider>,
 			);
@@ -70,15 +72,15 @@ it("Teaching: the research switch and a new rule each write the whole agent sect
 	let written: AgentSettings | undefined;
 	await withSection(respond, (next) => (written = next), async (win) => {
 		assert.match(document.querySelector('[data-testid="rules-voice"]')!.textContent!, /No jokesSaved by Halley/, "the agent's rule is labeled");
+		await act(async () => document.querySelector<HTMLButtonElement>('[data-testid="area-facts"]')!.click());
 		const toggle = document.querySelector<HTMLButtonElement>('[data-testid="toggle-web-research"]')!;
 		assert.equal(toggle.hasAttribute("disabled"), false);
 		assert.equal(toggle.getAttribute("aria-checked"), "true");
 		await act(async () => toggle.click());
 		assert.deepEqual(written, { tools: { research: false }, rules: { voice: ["No jokes"] } });
 
-		await act(async () => document.querySelector<HTMLButtonElement>('[data-testid="rules-facts-add"]')!.click());
 		const input = document.querySelector<HTMLInputElement>('[data-testid="rules-facts-input"]')!;
-		assert.ok(input, "Add a rule opens an input");
+		assert.ok(input, "the Add a rule field is always there");
 		await act(async () => {
 			Object.defineProperty(input, "value", { configurable: true, writable: true, value: "Cite the textbook" });
 			input.dispatchEvent(new win.Event("input", { bubbles: true }));
@@ -107,5 +109,36 @@ it("Teaching: instructions that fail to load say so, and Try again reads them ag
 		await act(async () => document.querySelector<HTMLButtonElement>('[data-testid="load-failed-retry"]')!.click());
 		assert.equal(document.querySelector('[data-testid="load-failed"]'), null, "the retry's answer clears it");
 		assert.equal(document.querySelector('[data-testid="area-voice-instructions"]')!.hasAttribute("disabled"), false);
+	});
+});
+
+const PART = { path: "shared/10-voice.md", sourceText: "Be plain.", overrideText: null, shared: true };
+
+it("Teaching: Edit full instructions fills the page, and Teaching brings the areas back", async () => {
+	const respond = (url: string) => new Response(JSON.stringify(url === "/api/settings/prompts" ? { segments: [PART] } : RULES));
+	const fullPage: boolean[] = [];
+	await withSection(respond, () => {}, async () => {
+		await act(async () => document.querySelector<HTMLButtonElement>('[data-testid="area-voice-instructions"]')!.click());
+		const panel = document.querySelector('[data-testid="instructions-panel"]')!;
+		assert.ok(panel, "the instructions open");
+		assert.match(panel.textContent!, /Voice, full instructions/);
+		assert.match(panel.textContent!, /What Halley reads before every lesson/);
+		assert.equal(document.querySelector('[data-testid="area-voice"]'), null, "the areas list is gone");
+		assert.equal(fullPage.at(-1), true, "the page is told to hide its heading");
+		await act(async () => panel.querySelector<HTMLButtonElement>("button")!.click());
+		assert.equal(document.querySelector('[data-testid="instructions-panel"]'), null);
+		assert.ok(document.querySelector('[data-testid="area-voice"]'), "back on the areas");
+		assert.equal(fullPage.at(-1), false);
+	}, (open) => fullPage.push(open));
+});
+
+it("Teaching: Remembered is the last entry of the list and shows the agent's notes", async () => {
+	const notes = [{ id: "n1", text: "Likes proofs.", spaceName: "CSE 21", createdAt: "2026-10-30T12:00:00.000Z" }];
+	const respond = (url: string) => new Response(JSON.stringify(url === "/api/settings/prompts" ? { segments: [] } : url === "/api/rules" ? RULES : { notes }));
+	await withSection(respond, () => {}, async () => {
+		const ids = [...document.querySelectorAll("[aria-label='Teaching areas'] button")].map((el) => el.getAttribute("data-testid"));
+		assert.equal(ids.at(-1), "area-remembered");
+		await act(async () => document.querySelector<HTMLButtonElement>('[data-testid="area-remembered"]')!.click());
+		assert.match(document.querySelector('[data-testid="remembered-notes"]')!.textContent!, /Likes proofs\.CSE 21, saved/);
 	});
 });

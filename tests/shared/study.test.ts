@@ -1,5 +1,5 @@
 /**
- * STUDY (core/study.ts): each topic's material and standing, the class
+ * STUDY (core/study.ts): each topic's material and standing, the space
  * order, the typed-topic fallback, the study context text, the plan the
  * app writes, and the topics a deadline's Study button picks.
  */
@@ -7,7 +7,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
 	deadlineStudyTopicIds,
-	factClassOrder,
+	factSpaceOrder,
 	FREE_TOPIC_ID,
 	MAX_STUDY_FACTS,
 	studyContextText,
@@ -30,9 +30,9 @@ const TOPICS = [
 	{ id: "tpc_graph", name: "Graphs", members: ["f7"], material: "concept" as const, status: "weak" as const, answers: answered("wrong", "wrong", "right") },
 ];
 
-describe("factClassOrder", () => {
-	it("orders facts by their file's class day, undated files after by name, lesson facts nowhere", () => {
-		const order = factClassOrder(
+describe("factSpaceOrder", () => {
+	it("orders facts by their file's day, undated files after by name, lesson facts nowhere", () => {
+		const order = factSpaceOrder(
 			[
 				{ id: "late", born: "src_b" },
 				{ id: "early", born: "src_a" },
@@ -53,20 +53,20 @@ describe("factClassOrder", () => {
 });
 
 describe("studyTopics", () => {
-	it("groups the picks by topic, in class order, with each topic's material and standing", () => {
-		const classOrder = new Map([
+	it("groups the picks by topic, in space order, with each topic's material and standing", () => {
+		const spaceOrder = new Map([
 			["f1", 2],
 			["f3", 0],
 			["f5", 1],
 		]);
-		const topics = studyTopics({ factIds: ["f1", "f2", "f5", "f3", "f4", "f6", "f7"], topics: TOPICS, classOrder, freeTopic: "unused" });
+		const topics = studyTopics({ factIds: ["f1", "f2", "f5", "f3", "f4", "f6", "f7"], topics: TOPICS, spaceOrder, freeTopic: "unused" });
 		assert.deepEqual(
 			topics.map((t) => [t.id, t.material, t.status, t.latestWrong, t.factIds]),
 			[
 				["tpc_count", "procedure", "untested", undefined, ["f3", "f4"]],
 				["tpc_prob", undefined, "shaky", undefined, ["f5"]],
 				["tpc_sets", "term", "strong", undefined, ["f1", "f2"]],
-				// No class file: last.
+				// No space file: last.
 				["tpc_logic", "proof", "weak", true, ["f6"]],
 				["tpc_graph", "concept", "weak", undefined, ["f7"]],
 			],
@@ -75,37 +75,37 @@ describe("studyTopics", () => {
 
 	it("a weak topic whose latest answer was not right is marked, whatever came before", () => {
 		const weak = (...outcomes: ("right" | "wrong" | "dontKnow")[]) =>
-			studyTopics({ factIds: ["f6"], topics: [{ ...TOPICS[3]!, answers: answered(...outcomes) }], classOrder: new Map(), freeTopic: "x" })[0]!.latestWrong;
+			studyTopics({ factIds: ["f6"], topics: [{ ...TOPICS[3]!, answers: answered(...outcomes) }], spaceOrder: new Map(), freeTopic: "x" })[0]!.latestWrong;
 		assert.equal(weak("wrong"), true);
 		assert.equal(weak("right", "dontKnow"), true, "I don't know is not right");
 		assert.equal(weak("wrong", "wrong", "right"), undefined, "caught up since");
 	});
 
-	it("keeps the picked order when the class order can't tell topics apart", () => {
-		const topics = studyTopics({ factIds: ["f6", "f1"], topics: TOPICS, classOrder: new Map(), freeTopic: "x" });
+	it("keeps the picked order when the space order can't tell topics apart", () => {
+		const topics = studyTopics({ factIds: ["f6", "f1"], topics: TOPICS, spaceOrder: new Map(), freeTopic: "x" });
 		assert.deepEqual(topics.map((t) => t.id), ["tpc_logic", "tpc_sets"]);
 	});
 
 	it("a typed topic with no matched facts is one untested topic with no material", () => {
-		assert.deepEqual(studyTopics({ factIds: [], topics: TOPICS, classOrder: new Map(), freeTopic: "Bayes' rule" }), [
+		assert.deepEqual(studyTopics({ factIds: [], topics: TOPICS, spaceOrder: new Map(), freeTopic: "Bayes' rule" }), [
 			{ id: FREE_TOPIC_ID, name: "Bayes' rule", status: "untested", factIds: [] },
 		]);
 		// Picks that are no longer in the graph count as none.
-		assert.equal(studyTopics({ factIds: ["gone"], topics: TOPICS, classOrder: new Map(), freeTopic: "x" })[0]!.id, FREE_TOPIC_ID);
+		assert.equal(studyTopics({ factIds: ["gone"], topics: TOPICS, spaceOrder: new Map(), freeTopic: "x" })[0]!.id, FREE_TOPIC_ID);
 	});
 });
 
 describe("topicStudy", () => {
-	/** A topic with `size` facts born in class file `rank`. */
+	/** A topic with `size` facts born in space file `rank`. */
 	function build(spec: { id: string; size: number; rank: number; status: "untested" | "weak" | "shaky" | "strong" }[]) {
 		const topics = spec.map((s) => ({ id: s.id, name: s.id.toUpperCase(), status: s.status, answers: [], members: Array.from({ length: s.size }, (_, i) => `${s.id}_${i}`) }));
 		const facts = topics.flatMap((t) => t.members.map((id) => ({ id, name: id, statement: `${id} holds`, topicId: t.id, born: null, inLessons: false, answers: [] })));
-		const classOrder = new Map(spec.flatMap((s, i) => topics[i]!.members.map((id) => [id, s.rank] as const)));
-		return { topics, facts, classOrder };
+		const spaceOrder = new Map(spec.flatMap((s, i) => topics[i]!.members.map((id) => [id, s.rank] as const)));
+		return { topics, facts, spaceOrder };
 	}
 	const ids = (topics: { id: string }[]) => topics.map((t) => t.id);
 
-	it("fills whole topics in class order up to 64 facts, listed in class order", () => {
+	it("fills whole topics in space order up to 64 facts, listed in space order", () => {
 		const input = build([
 			{ id: "a", size: 30, rank: 2, status: "weak" },
 			{ id: "b", size: 30, rank: 0, status: "untested" },
@@ -134,7 +134,7 @@ describe("topicStudy", () => {
 			{ id: "t4", size: 20, rank: 2, status: "shaky" },
 		]);
 		const topics = topicStudy({ ...input, topicIds: ["t1", "t2", "t3", "t4"], studiedToday: new Set(["t2"]) });
-		assert.deepEqual(ids(topics), ["t2", "t4", "t1"], "t4, t1, then t2 fill it; listed in class order; strong t3 waits");
+		assert.deepEqual(ids(topics), ["t2", "t4", "t1"], "t4, t1, then t2 fill it; listed in space order; strong t3 waits");
 		assert.deepEqual(topics.map((t) => t.status), ["weak", "shaky", "untested"]);
 	});
 
@@ -146,7 +146,7 @@ describe("topicStudy", () => {
 		const second = topicStudy({ ...input, topicIds, studiedToday: new Set(ids(first)) });
 		assert.deepEqual(ids(second), ["t2", "t3"]);
 		const all = topicStudy({ ...input, topicIds, studiedToday: new Set(topicIds) });
-		assert.deepEqual(ids(all), ["t0", "t1"], "every topic studied today: back to class order");
+		assert.deepEqual(ids(all), ["t0", "t1"], "every topic studied today: back to space order");
 	});
 
 	it("drops unknown topics and repeats", () => {
@@ -163,7 +163,7 @@ describe("the study context and plan", () => {
 	];
 
 	it("lists names, nodes, material and standing, and fact ids only", () => {
-		const text = studyContextText(studyTopics({ factIds: ["f3", "f5", "f1", "f6", "f7"], topics: TOPICS, classOrder: new Map(), freeTopic: "x" }));
+		const text = studyContextText(studyTopics({ factIds: ["f3", "f5", "f1", "f6", "f7"], topics: TOPICS, spaceOrder: new Map(), freeTopic: "x" }));
 		assert.match(text, /^\[Study plan\]/);
 		assert.equal(
 			text.split("\n").slice(1).join("\n"),
@@ -175,7 +175,7 @@ describe("the study context and plan", () => {
 				"5. Graphs — node tpc_graph, concept, weak, facts f7",
 			].join("\n"),
 		);
-		assert.match(studyContextText([{ id: FREE_TOPIC_ID, name: "Bayes", status: "untested", factIds: [] }]), /1\. Bayes — node topic, untested, no facts in the class graph yet/);
+		assert.match(studyContextText([{ id: FREE_TOPIC_ID, name: "Bayes", status: "untested", factIds: [] }]), /1\. Bayes — node topic, untested, no facts in the space graph yet/);
 	});
 
 	it("the plan has one node per topic, in order, and problems tag position", () => {

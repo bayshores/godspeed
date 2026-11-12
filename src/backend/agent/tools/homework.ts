@@ -8,7 +8,7 @@
  */
 import { Type } from "typebox";
 import type { AgentTool } from "@earendil-works/pi-agent-core";
-import { MAX_HOMEWORK_PROBLEMS, type HomeworkProblem } from "../../../shared/core/contracts/class.ts";
+import { MAX_HOMEWORK_PROBLEMS, type HomeworkProblem } from "../../../shared/core/contracts/space.ts";
 import { concludeMarksDone, type PostedProblem } from "../../../shared/core/homework.ts";
 import { activeProblemOf } from "../../../shared/core/native-messages.ts";
 import type { EnabledTools } from "../../../shared/core/tool-switches.ts";
@@ -16,7 +16,7 @@ import { concludeResult, invalidInputResult, problemResult } from "../tool-execu
 import { healEncodedArguments, healToolRecord } from "./heal.ts";
 import { practiceSideTools, type PracticeToolContext } from "./practice.ts";
 
-/** The session's deadline, read and written through the class store. */
+/** The session's deadline, read and written through the space store. */
 export interface HomeworkDeadline {
 	problems(): readonly HomeworkProblem[];
 	/** Saves the list (done marks kept by number); an error text when refused. */

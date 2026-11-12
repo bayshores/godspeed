@@ -2,7 +2,7 @@ import type { LhViewPart } from "@/shared/core";
 
 /**
  * The step separators a reply row draws: one only between two steps that
- * each show something. Steps of hidden work (a class-file search) would
+ * each show something. Steps of hidden work (a space-file search) would
  * otherwise stack empty lines.
  */
 export function drawnSeparators(parts: readonly LhViewPart[], shows: (part: LhViewPart) => boolean): Set<number> {

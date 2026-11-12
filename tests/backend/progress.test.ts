@@ -13,10 +13,10 @@ const TMP_DATA = fs.mkdtempSync(path.join(os.tmpdir(), "lh-progress-"));
 process.env.LH_DATA_DIR = TMP_DATA;
 
 const P = await import("../../src/shared/core/progress.ts");
-const { classStore } = await import("../../src/backend/store/classes.ts");
+const { spaceStore } = await import("../../src/backend/store/spaces.ts");
 const { chatStore } = await import("../../src/backend/store/chats.ts");
 const { graphStoreFor } = await import("../../src/backend/server/stores.ts");
-const { sourceIdFor } = await import("../../src/backend/server/classes.ts");
+const { sourceIdFor } = await import("../../src/backend/server/spaces.ts");
 const progressRoute = await import("../../src/app/api/progress/route.ts");
 
 after(() => fs.rmSync(TMP_DATA, { recursive: true, force: true }));
@@ -109,7 +109,7 @@ const FILES = [
 
 const payload = () =>
 	P.deriveProgress({
-		classId: "cls_test_1",
+		spaceId: "cls_test_1",
 		today: "2026-10-27",
 		facts: FACTS,
 		chains: CHAINS,
@@ -252,7 +252,7 @@ describe("progress: deriveProgress", () => {
 		assert.equal(p.facts.find((f) => f.id === "f2")!.inLessons, false);
 	});
 
-	it("covers study files in class order and picks Next up", () => {
+	it("covers study files in space order and picks Next up", () => {
 		assert.deepEqual(p.files.map((f) => [f.fileId, f.facts, f.inLessons, f.share]), [
 			["fA", 4, 1, 0.25],
 			["fB", 4, 3, 0.75],
@@ -330,7 +330,7 @@ describe("progress: deriveProgress", () => {
 		assert.deepEqual(hw.topics, []);
 	});
 
-	it("falls back to a class-wide view without the Ungrouped bucket", () => {
+	it("falls back to a space-wide view without the Ungrouped bucket", () => {
 		assert.deepEqual(p.overall.topicIds, ["tpc_1", "tpc_2", "tpc_3", "tpc_4"]);
 		assert.deepEqual(p.overall.workOnNext.at(-1), { topicId: "tpc_4", name: "Graphs", status: "untested", reason: "" });
 	});
@@ -351,8 +351,8 @@ describe("progress: deriveProgress", () => {
 		]);
 	});
 
-	it("works with no topics, no files and no deadlines (No class)", () => {
-		const empty = P.deriveProgress({ classId: null, today: "2026-10-27", facts: FACTS.slice(0, 2), chains: [], topics: null, files: [], deadlines: [], lessons: [] });
+	it("works with no topics, no files and no deadlines (No space)", () => {
+		const empty = P.deriveProgress({ spaceId: null, today: "2026-10-27", facts: FACTS.slice(0, 2), chains: [], topics: null, files: [], deadlines: [], lessons: [] });
 		assert.deepEqual(empty.topics.map((t) => [t.id, t.members]), [["ungrouped", ["f1", "f2"]]]);
 		assert.deepEqual([empty.files, empty.nextUp, empty.deadlines, empty.topicsAt], [[], null, [], null]);
 		assert.deepEqual(empty.overall, { topicIds: [], counts: { strong: 0, shaky: 0, weak: 0, untested: 0 }, workOnNext: [] });
@@ -362,44 +362,44 @@ describe("progress: deriveProgress", () => {
 // ─── GET /api/progress ──────────────────────────────────────────────────────
 
 describe("GET /api/progress", () => {
-	it("assembles one class's graph, files, deadlines and lessons", async () => {
-		const cls = classStore.createClass({ name: "CSE 21" });
+	it("assembles one space's graph, files, deadlines and lessons", async () => {
+		const space = spaceStore.createSpace({ name: "CSE 21" });
 		const file = { id: "f_aaaaaaaaaaaa", origin: "copied" as const, name: "lecture1.md", path: "x/lecture1.md", kind: "study" as const, contentFp: "", status: "ready" as const, addedAt: "2026-10-26T00:00:00.000Z" };
-		classStore.saveFiles(cls.id, [file]); // no sourceId recorded: the server derives it
-		classStore.addDeadline(cls.id, { kind: "exam", name: "Midterm", date: "2026-11-05", fileIds: [file.id] });
-		const src = sourceIdFor(cls.id, file.id);
-		const store = graphStoreFor(cls.id);
-		const chat = chatStore.createChat("Counting", undefined, cls.id);
+		spaceStore.saveFiles(space.id, [file]); // no sourceId recorded: the server derives it
+		spaceStore.addDeadline(space.id, { kind: "exam", name: "Midterm", date: "2026-11-05", fileIds: [file.id] });
+		const src = sourceIdFor(space.id, file.id);
+		const store = graphStoreFor(space.id);
+		const chat = chatStore.createChat("Counting", undefined, space.id);
 		chatStore.saveMessages(chat.id, [ask("m1", "q1", "quiz", { nodeId: "a" }), answer("q1", "quiz", { correct: true, confidence: 100 })]);
 		for (const id of ["n1", "n2"]) {
 			store.appendNode({ id, name: id, statement: `${id} holds`, aliases: [], createdAt: "2026-10-26T00:00:00.000Z", provenance: [{ chatId: src, messageId: "" }, ...(id === "n1" ? [{ chatId: chat.id, messageId: "m1" }] : [])] });
 		}
 		store.appendTopics({ at: "2026-10-26T00:00:00.000Z", topics: [{ id: "tpc_x", name: "Counting", members: ["n1", "n2"] }] });
-		// A lesson in another class never counts here.
-		const other = classStore.createClass({ name: "Other" });
+		// A lesson in another space never counts here.
+		const other = spaceStore.createSpace({ name: "Other" });
 		const stray = chatStore.createChat("Elsewhere", undefined, other.id);
 		chatStore.saveMessages(stray.id, [ask("m1", "q9", "quiz", {}), answer("q9", "quiz", { correct: false })]);
 
-		const res = await progressRoute.GET(new Request(`http://localhost/api/progress?class=${cls.id}&today=2026-10-27`));
+		const res = await progressRoute.GET(new Request(`http://localhost/api/progress?space=${space.id}&today=2026-10-27`));
 		assert.equal(res.status, 200);
 		const body = (await res.json()) as import("../../src/shared/core/progress.ts").ProgressPayload;
-		assert.equal(body.classId, cls.id);
+		assert.equal(body.spaceId, space.id);
 		assert.equal(body.grouping, false);
 		assert.deepEqual(body.topics.map((t) => [t.name, t.answered, t.status]), [["Counting", 1, "strong"]]);
 		assert.deepEqual(body.files.map((f) => [f.name, f.facts, f.inLessons]), [["lecture1.md", 2, 1]]);
 		assert.deepEqual(body.lessons.map((l) => l.chatId), [chat.id]);
 		assert.deepEqual(body.deadlines.map((d) => [d.name, d.kind, d.daysUntil, d.topicIds, d.ready]), [["Midterm", "exam", 9, ["tpc_x"], 1]]);
 
-		const none = await progressRoute.GET(new Request("http://localhost/api/progress?class=none"));
+		const none = await progressRoute.GET(new Request("http://localhost/api/progress?space=none"));
 		assert.equal(none.status, 200);
-		assert.equal((await none.json()).classId, null);
-		assert.equal((await progressRoute.GET(new Request("http://localhost/api/progress?class=cls_missing_1"))).status, 404);
-		assert.equal((await progressRoute.GET(new Request(`http://localhost/api/progress?class=${cls.id}&today=soon`))).status, 400);
+		assert.equal((await none.json()).spaceId, null);
+		assert.equal((await progressRoute.GET(new Request("http://localhost/api/progress?space=cls_missing_1"))).status, 404);
+		assert.equal((await progressRoute.GET(new Request(`http://localhost/api/progress?space=${space.id}&today=soon`))).status, 400);
 	});
 
 	it("parses a lesson again only after it changes", async () => {
-		const cls = classStore.createClass({ name: "Cached" });
-		const chat = chatStore.createChat("Counting", undefined, cls.id);
+		const space = spaceStore.createSpace({ name: "Cached" });
+		const chat = chatStore.createChat("Counting", undefined, space.id);
 		chatStore.saveMessages(chat.id, [ask("m1", "q1", "quiz", {}), answer("q1", "quiz", { correct: true })]);
 		const read = chatStore.getChat;
 		let reads = 0;
@@ -409,7 +409,7 @@ describe("GET /api/progress", () => {
 		};
 		try {
 			const answered = async () => {
-				const res = await progressRoute.GET(new Request(`http://localhost/api/progress?class=${cls.id}`));
+				const res = await progressRoute.GET(new Request(`http://localhost/api/progress?space=${space.id}`));
 				return ((await res.json()) as import("../../src/shared/core/progress.ts").ProgressPayload).totals.answered;
 			};
 			assert.equal(await answered(), 1);

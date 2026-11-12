@@ -31,15 +31,15 @@ export interface AgentAction {
 	agent: string;
 	/** Short and plain: "Adding HW 5", "Reading syllabus.pdf". */
 	label: string;
-	classId: string | null;
+	spaceId: string | null;
 	/** The thing that changed, as tagged in the page (data-halley-target). */
-	target: { kind: "deadline" | "file" | "class" | "lesson"; id: string } | null;
-	/** The app path where it shows ("/", "/class", "/class/files", "/chat/<id>"). */
+	target: { kind: "deadline" | "file" | "space" | "lesson"; id: string } | null;
+	/** The app path where it shows ("/", "/space", "/space/files", "/chat/<id>"). */
 	page: string;
 	/** The target was removed (it fades out after the visit). */
 	removed?: true;
-	/** The learner asked for it (a lesson started from Talk): the window
-	 *  goes there even with Follow off. */
+	/** The learner asked for it (a lesson or a space made from Talk): the
+	 *  window goes there even with Follow off. */
 	open?: true;
 }
 
@@ -71,9 +71,9 @@ export interface ServerEvents {
 	"activity-changed": Record<string, never>;
 	/** The session list changed (create, delete, title). */
 	"chats-changed": Record<string, never>;
-	/** The class list or a class record changed (create, edit, archive,
+	/** The space list or a space record changed (create, edit, archive,
 	 *  delete, files). */
-	"classes-changed": Record<string, never>;
+	"spaces-changed": Record<string, never>;
 	/** The outside agent's status changed: it checked in, went quiet, or
 	 *  a request started or stopped waiting for it (agent-bridge.ts). */
 	"agent-changed": Record<string, never>;
@@ -85,11 +85,11 @@ export interface ServerEvents {
 	"agent-action": AgentAction;
 	/** A teaching rule was saved, undone or edited. `saved` when an outside
 	 *  agent saved one from the terminal (the window shows a notice). */
-	"rules-changed": { saved?: { text: string; where: { area: string } | { classId: string }; label: string; agent: string } };
-	/** A class's linked folder brought new files (the window shows a notice). */
-	"files-added": { classId: string; files: { id: string; name: string; kind: "study" | "info" }[] };
-	/** Files left a class's linked folder (the window shows a notice). */
-	"files-removed": { classId: string; files: { id: string; name: string }[] };
+	"rules-changed": { saved?: { text: string; where: { area: string } | { spaceId: string }; label: string; agent: string } };
+	/** A space's linked folder brought new files (the window shows a notice). */
+	"files-added": { spaceId: string; files: { id: string; name: string; kind: "study" | "info" }[] };
+	/** Files left a space's linked folder (the window shows a notice). */
+	"files-removed": { spaceId: string; files: { id: string; name: string }[] };
 	/** A deadline's cheat sheet or its agent request changed. */
 	"cheat-sheet-changed": { deadlineId: string };
 }
@@ -105,7 +105,7 @@ export const SERVER_EVENT_TYPES = [
 	"jobs-changed",
 	"activity-changed",
 	"chats-changed",
-	"classes-changed",
+	"spaces-changed",
 	"agent-changed",
 	"record-changed",
 	"agent-action",

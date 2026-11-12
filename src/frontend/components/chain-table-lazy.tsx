@@ -1,14 +1,14 @@
 import { useState, type ComponentProps } from "react";
 import dynamic from "next/dynamic";
-import type { ChainTableOverlay as Overlay } from "@/frontend/components/chain-table.tsx";
+import type { ChainTableOverlay as Overlay } from "@/frontend/components/chain-table-overlay.tsx";
 
 /**
- * The fact-chain overlay, loaded on its first open. The overlay pulls in
- * KaTeX for its logic glyphs; Home and Graph only need it once someone
- * opens it. After the first open it stays mounted, so its search and sort
- * survive closing and reopening.
+ * "All facts", loaded on its first open: it pulls in KaTeX for its logic
+ * glyphs, which the Graph tab and the Study page only need once someone
+ * opens it. After that it stays mounted, so its search and sort survive
+ * closing and reopening.
  */
-const ChainTableOverlay = dynamic(() => import("@/frontend/components/chain-table.tsx").then((m) => m.ChainTableOverlay), { ssr: false });
+const ChainTableOverlay = dynamic(() => import("@/frontend/components/chain-table-overlay.tsx").then((m) => m.ChainTableOverlay), { ssr: false });
 
 export function LazyChainTableOverlay(props: ComponentProps<typeof Overlay>) {
 	const [wanted, setWanted] = useState(props.open);

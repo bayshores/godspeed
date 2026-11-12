@@ -1,16 +1,11 @@
 /**
- * The "What's new" dialog body (src/frontend/components/whats-new.tsx opens it).
- * Same shell as the class dialog: square panel, tone outline, header with
- * a close button, one white button in the footer.
+ * The "What's new" dialog body (src/frontend/components/whats-new.tsx opens it):
+ * one dated list of changes per version, and a "Got it" button.
  */
 
 import { useEffect } from "react";
-import { XIcon } from "lucide-react";
-import { useBackdropDismiss } from "@/frontend/components/backdrop-dismiss";
-import { Hint } from "@/frontend/components/ui/hint";
 import type { ChangelogEntry } from "@/shared/core";
-import { useDialogFocus } from "@/frontend/components/use-dialog-focus";
-import { LABEL_TEXT } from "@/frontend/components/ui/label-text";
+import { DialogSheet } from "@/frontend/components/ui/dialog-sheet";
 
 /** "2026-10-27" → "Oct 27, 2026" (fixed locale and zone: no hydration drift). */
 export function formatChangelogDate(date: string): string {
@@ -28,8 +23,6 @@ export function WhatsNewDialog({
 	state: "open" | "closed";
 	onClose: () => void;
 }) {
-	const backdropDismiss = useBackdropDismiss(onClose);
-	const dialogRef = useDialogFocus<HTMLDivElement>(state === "open");
 	useEffect(() => {
 		if (state === "closed") return;
 		const onKeyDown = (e: KeyboardEvent) => {
@@ -47,60 +40,33 @@ export function WhatsNewDialog({
 	const single = entries.length === 1;
 	const title = single && entries[0] ? `What's new in ${entries[0].version}` : "What's new";
 	return (
-		<div data-state={state} inert={state === "closed"} className="lh-fade fixed inset-0 z-50 flex items-center justify-center bg-black/70" {...backdropDismiss}>
-			<div
-				ref={dialogRef}
-				tabIndex={-1}
-				role="dialog"
-				aria-modal="true"
-				aria-label={title}
-				data-testid="whats-new"
-				data-state={state}
-				className="lh-dialog flex max-h-[85vh] w-[480px] max-w-[calc(100vw-2rem)] flex-col bg-panel shadow-[0_0_40px_#000000e6] outline outline-1 -outline-offset-1 outline-tone-2"
-			>
-				<div className="flex shrink-0 items-center justify-between px-5 py-[18px]">
-					<h2 className="text-base font-bold text-ink">{title}</h2>
-					<Hint label="Close" side="left">
-						<button
-							type="button"
-							aria-label="Close"
-							data-testid="whats-new-close"
-							onClick={onClose}
-							className="lh-press -m-1.5 flex size-7 shrink-0 items-center justify-center text-ink-2 hover:text-ink"
-						>
-							<XIcon className="size-4" aria-hidden />
-						</button>
-					</Hint>
-				</div>
-				<div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-5 pb-5">
-					{entries.map((entry) => (
-						<section key={entry.version} data-testid="whats-new-entry" className="flex flex-col gap-2">
-							<p className={LABEL_TEXT}>
-								{single ? formatChangelogDate(entry.date) : `${entry.version}, ${formatChangelogDate(entry.date)}`}
-							</p>
-							<ul className="flex flex-col gap-1.5">
-								{entry.changes.map((change) => (
-									<li key={change} className="flex gap-2.5 text-[14.5px] leading-[21px] text-ink">
-										<span aria-hidden className="mt-[8px] size-[5px] shrink-0 bg-ink-3" />
-										<span>{change}</span>
-									</li>
-								))}
-							</ul>
-						</section>
-					))}
-				</div>
-				<div className="flex shrink-0 justify-end border-t border-tone-2 px-5 py-3.5">
-					<button
-						type="button"
-						data-autofocus
-						data-testid="whats-new-done"
-						onClick={onClose}
-						className="lh-btn lh-btn-main"
-					>
+		<DialogSheet
+			title={title}
+			state={state}
+			testid="whats-new"
+			onClose={onClose}
+			foot={
+				<>
+					<span className="flex-1" />
+					<button type="button" data-autofocus data-testid="whats-new-done" onClick={onClose} className="lh-btn lh-btn-main text-[15px]">
 						Got it
 					</button>
-				</div>
-			</div>
-		</div>
+				</>
+			}
+		>
+			{entries.map((entry) => (
+				<section key={entry.version} data-testid="whats-new-entry" className="mt-2 flex flex-col gap-3.5 first:mt-0">
+					<p className="text-[15px] text-ink-2">{single ? formatChangelogDate(entry.date) : `${entry.version}, ${formatChangelogDate(entry.date)}`}</p>
+					<ul className="flex flex-col gap-3.5">
+						{entry.changes.map((change) => (
+							<li key={change} className="flex gap-3 text-lg text-ink">
+								<span aria-hidden className="mt-[9px] size-1.5 shrink-0 bg-ink" />
+								<span>{change}</span>
+							</li>
+						))}
+					</ul>
+				</section>
+			))}
+		</DialogSheet>
 	);
 }

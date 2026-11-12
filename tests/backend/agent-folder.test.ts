@@ -152,14 +152,14 @@ describe("writing the folder", () => {
 		assert.equal(view.folder, path.join(home, "godspeed"));
 		assert.equal(view.short, "~/godspeed");
 		assert.equal(view.exists, true);
-		for (const file of ["CLAUDE.md", "AGENTS.md", ".mcp.json", ".claude/skills/setup-classes/SKILL.md", ".godspeed/connect.mjs", ".godspeed/target.mjs", ".godspeed/wait-for-work.mjs", ".godspeed/forget.mjs", ".godspeed/compacting.mjs", ".godspeed/package.json", ".godspeed/claude-settings.json"]) {
+		for (const file of ["CLAUDE.md", "AGENTS.md", ".mcp.json", ".claude/skills/setup-spaces/SKILL.md", ".godspeed/connect.mjs", ".godspeed/target.mjs", ".godspeed/wait-for-work.mjs", ".godspeed/forget.mjs", ".godspeed/compacting.mjs", ".godspeed/package.json", ".godspeed/claude-settings.json"]) {
 			assert.ok(fs.existsSync(path.join(view.folder, file)), file);
 		}
 		if (process.platform !== "win32") {
 			const script = core.startScriptPath(view.folder, "claude", process.platform === "darwin" ? "darwin" : "linux");
 			assert.equal(fs.statSync(script).mode & 0o111, 0o111, "the start script can run");
 		}
-		assert.match(fs.readFileSync(path.join(view.folder, ".claude/skills/setup-classes/SKILL.md"), "utf8"), /^---\nname: setup-classes\n/);
+		assert.match(fs.readFileSync(path.join(view.folder, ".claude/skills/setup-spaces/SKILL.md"), "utf8"), /^---\nname: setup-spaces\n/);
 		assert.match(fs.readFileSync(path.join(view.folder, "CLAUDE.md"), "utf8"), /^<!-- godspeed rewrites this file each time it starts\. Put your own notes for Claude in CLAUDE\.local\.md\. -->\n/);
 		assert.match(fs.readFileSync(path.join(view.folder, "AGENTS.md"), "utf8"), /^<!-- godspeed rewrites this file each time it starts\. Put your own notes for Codex in ~\/\.codex\/AGENTS\.md\. -->\n/);
 	});
@@ -178,6 +178,14 @@ describe("writing the folder", () => {
 		assert.deepEqual(server.setStartCommand("claude", "").startCommands, { codex: "standardcompute launch codex --" });
 		assert.match(script(), posix ? /\nexec claude --settings / : /\r\nclaude --settings /);
 		assert.throws(() => server.setStartCommand("claude", "claude\nrm -rf ~"), { name: "Error", message: "Keep the command on one line, 300 characters at most." });
+	});
+
+	it("removes the setup command under its old name", () => {
+		const old = path.join(home, "godspeed", ".claude", "skills", "setup-classes");
+		fs.mkdirSync(old, { recursive: true });
+		fs.writeFileSync(path.join(old, "SKILL.md"), "old");
+		server.setUpAgentFolder();
+		assert.equal(fs.existsSync(old), false);
 	});
 
 	it("moves people off the old setup: notice first, then the plugin and the Codex block go", () => {

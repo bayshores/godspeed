@@ -25,15 +25,15 @@ import type { ChatStore, GraphStore } from "../../../shared/core/ports.ts";
 export interface GraphToolContext {
 	chatStore: ChatStore;
 	graphStore: GraphStore;
-	/** CROSS-CLASS READS: every class graph plus "No class", each named,
-	 *  `own` marking the lesson's class. Present = the map tools read across
-	 *  all of them (a strand held solid in another class needs no
+	/** CROSS-SPACE READS: every space graph plus "No space", each named,
+	 *  `own` marking the lesson's space. Present = the map tools read across
+	 *  all of them (a strand held solid in another space needs no
 	 *  re-probing); absent = the one graphStore above. Read-only. */
 	graphs?: () => ScopedGraph[];
 }
 
 interface ScopedGraph {
-	className: string;
+	spaceName: string;
 	graphStore: GraphStore;
 	own: boolean;
 }
@@ -59,7 +59,7 @@ export function proberGraphTools(ctx: GraphToolContext): Record<string, AgentToo
 				"Reading this first shows what he has already covered and when, before you probe anything.",
 			parameters: listSessionsInput,
 			execute: serverExecute("list_sessions", listSessionsInput, async (): Promise<string> => {
-				if (ctx.graphs) return listAcrossClasses(ctx.chatStore, ctx.graphs());
+				if (ctx.graphs) return listAcrossSpaces(ctx.chatStore, ctx.graphs());
 				const sessions = graphSessionIndex(deps);
 				if (sessions.length === 0) return "The knowledge graph is empty — no session has contributed propositions yet.";
 				const lines = sessions.map((s, i) =>
@@ -77,7 +77,7 @@ export function proberGraphTools(ctx: GraphToolContext): Record<string, AgentToo
 				"Names only — no statement text, no session contents (the map's ORGANIZATION is your business, its prose is not).",
 			parameters: listPropositionsInput,
 			execute: serverExecute("list_propositions", listPropositionsInput, async ({ session }): Promise<string> => {
-				// Cross-class: the session lives in exactly one class graph.
+				// Cross-space: the session lives in exactly one space graph.
 				let propositions: ReturnType<typeof graphSessionPropositions> = [];
 				for (const g of ctx.graphs?.() ?? []) {
 					propositions = graphSessionPropositions({ chatStore: ctx.chatStore, graphStore: g.graphStore }, session);
@@ -94,19 +94,19 @@ export function proberGraphTools(ctx: GraphToolContext): Record<string, AgentToo
 	};
 }
 
-/** list_sessions across classes: the lesson's own class first, then the
- *  others, each line tagged with its class. */
-function listAcrossClasses(chatStore: ChatStore, graphs: ScopedGraph[]): string {
+/** list_sessions across spaces: the lesson's own space first, then the
+ *  others, each line tagged with its space. */
+function listAcrossSpaces(chatStore: ChatStore, graphs: ScopedGraph[]): string {
 	const ordered = [...graphs.filter((g) => g.own), ...graphs.filter((g) => !g.own)];
 	const lines: string[] = [];
 	for (const g of ordered) {
 		for (const s of graphSessionIndex({ chatStore, graphStore: g.graphStore })) {
 			lines.push(
 				`${lines.length + 1}. ${s.name} (${s.kind}, ${s.propositions} proposition${s.propositions === 1 ? "" : "s"}, ` +
-					`born ${s.createdAt ?? "unknown date"}${s.updatedAt ? `, last active ${s.updatedAt}` : ""}) — class: ${g.className}${g.own ? " (this lesson's class)" : ""} — id: ${s.id}`,
+					`born ${s.createdAt ?? "unknown date"}${s.updatedAt ? `, last active ${s.updatedAt}` : ""}) — space: ${g.spaceName}${g.own ? " (this lesson's space)" : ""} — id: ${s.id}`,
 			);
 		}
 	}
 	if (lines.length === 0) return "The knowledge graph is empty — no session has contributed propositions yet.";
-	return `${lines.length} session(s) across the learner's classes (this lesson's class first, then the others; most recent first within each):\n${lines.join("\n")}`;
+	return `${lines.length} session(s) across the learner's spaces (this lesson's space first, then the others; most recent first within each):\n${lines.join("\n")}`;
 }

@@ -21,10 +21,10 @@ import { findTool } from "./find.ts";
 import { grepTool } from "./grep.ts";
 import { jobTools, type JobToolContext } from "./jobs.ts";
 import { proberGraphTools, type GraphToolContext } from "./graph.ts";
-import { classTools, type ClassToolContext } from "./class.ts";
+import { spaceTools, type SpaceToolContext } from "./space.ts";
 import { ruleTools, type SaveRule } from "./rules.ts";
-import { lessonClassChangeTools } from "./talk.ts";
-import type { ClassActions } from "../../../shared/core/class-tools.ts";
+import { lessonSpaceChangeTools } from "./talk.ts";
+import type { SpaceActions } from "../../../shared/core/space-tools.ts";
 import { activeProblemOf } from "../../../shared/core/native-messages.ts";
 import { filterEnabledTools, type EnabledTools } from "../../../shared/core/tool-switches.ts";
 import type { LhMessage } from "../../../shared/core/native-messages.ts";
@@ -47,16 +47,16 @@ export interface PracticeToolContext {
 	 *  Each absent context (tests) = absent from the registry. */
 	graph?: GraphToolContext;
 	jobs?: JobToolContext;
-	/** The lesson's class card reader: present = read_class. */
-	classCard?: ClassToolContext["classCard"];
-	todayNote?: ClassToolContext["todayNote"];
-	classSearch?: ClassToolContext["search"];
-	classNote?: ClassToolContext["setNote"];
+	/** The lesson's space card reader: present = read_space. */
+	spaceCard?: SpaceToolContext["spaceCard"];
+	todayNote?: SpaceToolContext["todayNote"];
+	spaceSearch?: SpaceToolContext["search"];
+	spaceNote?: SpaceToolContext["setNote"];
 	/** save_rule: present = the teacher can save a teaching rule. */
 	saveRule?: SaveRule;
 	/** The deadline changes a learner may ask for mid-lesson: present =
 	 *  those tools are registered. */
-	classActions?: ClassActions;
+	spaceActions?: SpaceActions;
 }
 
 /** TURN-SCOPED GATE STATE: the gates can't read the STORED record — it
@@ -282,7 +282,7 @@ export function practiceTools(ctx: PracticeToolContext, enabled?: EnabledTools):
 /** THE RARELY-NEEDED SET practice and homework sessions share:
  *  read/ls/find/grep over the learner's files, the research + pdf jobs
  *  (demo/visual stay teach-only), the prober's map readers when the
- *  settings gate opened, the class tools, save_rule and the deadline
+ *  settings gate opened, the space tools, save_rule and the deadline
  *  changes. The same Settings switches as the teacher's apply to them. */
 export function practiceSideTools(ctx: Omit<PracticeToolContext, "chatId" | "chatStore" | "graphNodes">, enabled?: EnabledTools): Record<string, AgentTool<any>> {
 	const jobs = ctx.jobs ? jobTools(ctx.jobs) : null;
@@ -294,9 +294,9 @@ export function practiceSideTools(ctx: Omit<PracticeToolContext, "chatId" | "cha
 			grep: grepTool,
 			...(jobs ? { research: jobs.research, pdf: jobs.pdf } : {}),
 			...(ctx.graph ? proberGraphTools(ctx.graph) : {}),
-			...(ctx.classCard ? classTools({ classCard: ctx.classCard, todayNote: ctx.todayNote, search: ctx.classSearch, setNote: ctx.classNote }) : {}),
+			...(ctx.spaceCard ? spaceTools({ spaceCard: ctx.spaceCard, todayNote: ctx.todayNote, search: ctx.spaceSearch, setNote: ctx.spaceNote }) : {}),
 			...(ctx.saveRule ? ruleTools(ctx.saveRule) : {}),
-			...(ctx.classActions ? lessonClassChangeTools(ctx.classActions) : {}),
+			...(ctx.spaceActions ? lessonSpaceChangeTools(ctx.spaceActions) : {}),
 		},
 		enabled,
 	);

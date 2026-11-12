@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { CheckIcon, XIcon } from "lucide-react";
 import { blurAfterPointerClick } from "@/frontend/components/focus-hygiene";
 import { GlyphMark } from "@/frontend/components/ui/glyph-mark";
+import { CARD, SMALL_BTN } from "@/frontend/components/ui/card-parts";
+import { ResultTag } from "@/frontend/components/result-tag";
 import { ThinkingBlock } from "@/frontend/components/thinking-block";
 import { useFold } from "@/frontend/components/use-fold";
 import { useStepNumber } from "@/frontend/components/lesson/step-context";
@@ -9,7 +10,6 @@ import { cn } from "@/frontend/lib/utils";
 import { MessageResponse, ToolContentResponse } from "@/frontend/components/ai-elements/message";
 import type { QuestionAnswerData } from "@/shared/core";
 import { answerForPresentation, confidenceLevel, fencedCode, parseAskInput, parseQuizInput, questionKindLabel } from "@/shared/core";
-import { LABEL_TEXT } from "@/frontend/components/ui/label-text";
 
 /** Lesson prose at a given size/leading/color (the markdown renderer reads
  *  these variables). */
@@ -17,28 +17,26 @@ function proseVars(size: number, leading: number, ink: string): React.CSSPropert
 	return { "--lh-prose-size": `${size}px`, "--lh-prose-leading": `${leading / size}`, "--lh-ink-body": ink } as React.CSSProperties;
 }
 
+/** The board names a prediction as the learner's own; other kinds keep their word. */
+const kindWords = (label: string) => (label === "Prediction" ? "Your prediction" : label);
+
 /** Old answers carry no tool name: their kind stands in for it. */
 const KIND_TOOL = { quiz: "quiz", explain: "explain", code: "write_code", ask: "ask" } as const;
 
-/** The verdict chip: Right / Wrong / Didn't know (quiz answers only). */
+/** The verdict tag: Right / Wrong / Didn't know (quiz answers only). */
 function ResultChip({ answer }: { answer: QuestionAnswerData }) {
-	const [cls, icon, word] = answer.dontKnow
-		? ["bg-ans-dontknow text-white", null, "Didn't know"]
-		: answer.correct
-			? ["bg-ans-right text-background", <CheckIcon key="i" aria-hidden className="size-3.5" strokeWidth={3} />, "Right"]
-			: ["bg-ans-wrong text-background", <XIcon key="i" aria-hidden className="size-3.5" strokeWidth={3} />, "Wrong"];
+	const [tone, word] = answer.dontKnow ? (["plain", "Didn't know"] as const) : answer.correct ? (["right", "Right"] as const) : (["wrong", "Wrong"] as const);
 	return (
-		<span data-testid="answer-result" className={cn("flex shrink-0 items-center gap-1.5 px-2 py-[3px] text-[13px] font-extrabold", cls)}>
-			{icon}
+		<ResultTag tone={tone} testId="answer-result">
 			{word}
-		</span>
+		</ResultTag>
 	);
 }
 
 /**
  * An answered question in the lesson: one
- * compact card — "Right · Check · step 10 · Sure 4 · Why ▾" over the
- * question. The rest opens under the toggle: the graded options and the
+ * compact card: the verdict, "Your prediction, step 10, sure 4 of 5" and
+ * a Why button over the question. The rest opens under the toggle: the graded options and the
  * explanation (quiz), the committed answer (explain), the learner's
  * thinking.
  *
@@ -63,7 +61,7 @@ export function AnsweredCard({
 	const step = useStepNumber(input);
 	if (answer.dismissed) {
 		return (
-			<div data-testid="answered-card" className="bg-panel px-4 py-3.5 text-sm text-ink-3">
+			<div data-testid="answered-card" className={cn(CARD, "text-[15px] text-ink-2")}>
 				<span className="text-ink-2">{answer.questionText}</span> (skipped)
 			</div>
 		);
@@ -99,18 +97,18 @@ export function AnsweredCard({
 			{answer.readingThinking && (
 				<ThinkingBlock testId="reading-thinking-block" text={answer.readingThinking} defaultOpen />
 			)}
-			<div data-testid="answered-card" className="flex flex-col gap-2 bg-panel px-4 py-3.5 text-card-foreground">
-				<div className="flex items-center gap-2.5 text-[13px]">
+			<div data-testid="answered-card" className={cn(CARD, "flex flex-col gap-2.5 text-card-foreground")}>
+				<div className="flex flex-wrap items-center gap-2.5">
 					{isQuiz && <ResultChip answer={answer} />}
-					<span data-testid="answer-kind" className={LABEL_TEXT}>
-						{questionKindLabel(answer.tool ?? KIND_TOOL[answer.kind], answer.questionType)}
-						{step !== undefined && `, step ${step}`}
-					</span>
-					{isQuiz && !answer.dontKnow && answer.confidence != null && (
-						<span data-testid="answered-confidence" className="text-ink-3">
-							Sure {confidenceLevel(answer.confidence)}
+					<span className="font-count text-[15px] text-ink-2">
+						<span data-testid="answer-kind">
+							{kindWords(questionKindLabel(answer.tool ?? KIND_TOOL[answer.kind], answer.questionType))}
+							{step !== undefined && `, step ${step}`}
 						</span>
-					)}
+						{isQuiz && !answer.dontKnow && answer.confidence != null && (
+							<span data-testid="answered-confidence">, sure {confidenceLevel(answer.confidence)} of 5</span>
+						)}
+					</span>
 					<span className="flex-1" aria-hidden />
 					{hasDetails && (
 						<button
@@ -121,32 +119,32 @@ export function AnsweredCard({
 								setOpen((v) => !v);
 								blurAfterPointerClick(e);
 							}}
-							className="lh-press shrink-0 font-bold text-ink-2 hover:text-ink"
+							className={cn(SMALL_BTN, open && "bg-tone-2")}
 						>
-							{toggleLabel} {open ? "▴" : "▾"}
+							{toggleLabel}
 						</button>
 					)}
 				</div>
-				<div className="text-ink-2" style={proseVars(15, 21, "var(--muted-foreground)")}>
+				<div className="text-ink-2" style={proseVars(16, 24, "var(--muted-foreground)")}>
 					<ToolContentResponse>{answer.questionText}</ToolContentResponse>
 				</div>
 				{(said.length > 0 || answer.other) && (
-					<div data-testid="answered-said" className="flex flex-col gap-0.5 text-[15px] text-ink">
+					<div data-testid="answered-said" className="flex flex-col gap-1 text-[15px] text-ink">
 						{said.map((o) => (
-							<div key={o.index} className="bg-tone px-3 py-2">
+							<div key={o.index} className="rounded-sm bg-panel px-3 py-2">
 								<ToolContentResponse>{o.label}</ToolContentResponse>
 							</div>
 						))}
 						{/* The learner's own typed answer: a row like its siblings,
 						    quoted (the learner's words). */}
 						{answer.other && (
-							<div data-testid="answered-other" className="bg-tone px-3 py-2">
+							<div data-testid="answered-other" className="rounded-sm bg-panel px-3 py-2">
 								“{answer.other}”
 							</div>
 						)}
 					</div>
 				)}
-				{answer.text && <div className="lh-prose whitespace-pre-wrap text-ink">“{answer.text}”</div>}
+				{answer.text && <div className="lh-prose whitespace-pre-wrap border-l-2 border-tone-2 pl-3 text-ink">“{answer.text}”</div>}
 				{isCode && answer.code && (
 					<div data-testid="answered-code">
 						<MessageResponse>{fencedCode(answer.code, answer.language ?? "")}</MessageResponse>
@@ -158,12 +156,12 @@ export function AnsweredCard({
 					<div className="lh-collapse" data-state={fold.state} data-testid="answer-details">
 						<div className="flex flex-col gap-2 pt-1">
 							{parsedDetails && (
-								<div className="text-ink-3" style={proseVars(14, 20, "var(--lh-ink-3)")}>
+								<div className="text-ink-2" style={proseVars(15, 22, "var(--muted-foreground)")}>
 									<ToolContentResponse>{parsedDetails}</ToolContentResponse>
 								</div>
 							)}
 							{isQuiz && (answer.options?.length ?? 0) > 0 && (
-								<div className="flex flex-col gap-0.5 text-sm">
+								<div className="flex flex-col gap-1 text-[15px]">
 									{answer.options?.map((opt) => {
 										const sel = selectedIdx.has(opt.index);
 										const key = correctIdx.has(opt.index);
@@ -171,7 +169,7 @@ export function AnsweredCard({
 											<div
 												key={opt.index}
 												data-testid="answered-option"
-												className={cn("flex items-center gap-2.5 bg-tone px-3 py-2", sel && "ring-1 ring-inset", sel && key && "ring-ans-right", sel && !key && "ring-ans-wrong")}
+												className={cn("flex items-center gap-2.5 rounded-sm bg-panel px-3 py-2", sel && "ring-1 ring-inset", sel && key && "ring-ans-right", sel && !key && "ring-ans-wrong")}
 											>
 												{/* The LaTeX \ding check/cross shapes (ui/glyph-mark). */}
 												<span
@@ -187,21 +185,21 @@ export function AnsweredCard({
 											</div>
 										);
 									})}
-									{answer.dontKnow && <div className="px-3 py-1 text-ink-3">Answered “I don't know”.</div>}
+									{answer.dontKnow && <div className="px-3 py-1 text-ink-2">Answered “I don't know”.</div>}
 								</div>
 							)}
 							{isAsk && descByIndex.size > 0 && (
-								<div className="flex flex-col gap-0.5 text-sm">
+								<div className="flex flex-col gap-1 text-[15px]">
 									{/* The wrappers keep each text block's height auto: inside the
 									    fold's grid, the renderer's full height would otherwise fill
 									    the row and push the description under the next option. */}
 									{answer.options?.map((opt) => (
-										<div key={opt.index} className="bg-tone px-3 py-2">
-											<div style={proseVars(14, 20, selectedIdx.has(opt.index) ? "var(--foreground)" : "var(--muted-foreground)")}>
+										<div key={opt.index} className="rounded-sm bg-panel px-3 py-2">
+											<div style={proseVars(15, 22, selectedIdx.has(opt.index) ? "var(--foreground)" : "var(--muted-foreground)")}>
 												<ToolContentResponse>{opt.label}</ToolContentResponse>
 											</div>
 											{descByIndex.get(opt.index) && (
-												<div className="mt-0.5" style={proseVars(13, 18, "var(--lh-ink-3)")}>
+												<div className="mt-0.5" style={proseVars(14, 20, "var(--muted-foreground)")}>
 													<ToolContentResponse>{descByIndex.get(opt.index)}</ToolContentResponse>
 												</div>
 											)}
@@ -211,13 +209,13 @@ export function AnsweredCard({
 							)}
 							{thinking && <ThinkingBlock testId="your-thinking" text={thinking} inCard />}
 							{isQuiz && answer.explanation && (
-								<div data-testid="tucked-explanation" className="bg-tone px-3 py-2 text-sm text-ink-2">
+								<div data-testid="tucked-explanation" className="rounded-sm bg-panel px-3 py-2 text-[15px] text-ink-2">
 									<ToolContentResponse className="[&>p:first-child]:mt-0">{answer.explanation}</ToolContentResponse>
 								</div>
 							)}
 							{isExplain && answer.committed && (
-								<div data-testid="committed-answer" className="bg-tone px-3 py-2 text-sm text-ink-2">
-									<span className="font-bold text-ink">The answer: </span>
+								<div data-testid="committed-answer" className="rounded-sm bg-panel px-3 py-2 text-[15px] text-ink-2">
+									<span className="font-medium text-ink">The answer: </span>
 									<ToolContentResponse className="inline [&>p:first-child]:m-0 [&>p:first-child]:inline">{answer.committed}</ToolContentResponse>
 								</div>
 							)}

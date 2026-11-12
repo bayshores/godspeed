@@ -24,11 +24,11 @@ const G = globalThis as typeof globalThis & { __lhLessonsCaughtUp?: boolean; __l
 function catchUpLessons(now: number): void {
 	if (G.__lhLessonsCaughtUp || !effectiveSettings().graph.enabled) return;
 	G.__lhLessonsCaughtUp = true;
-	const archived = new Set(stores.classStore.listClasses().filter((c) => c.archived).map((c) => c.id));
+	const archived = new Set(stores.spaceStore.listSpaces().filter((c) => c.archived).map((c) => c.id));
 	for (const { id } of stores.chatStore.listChats()) {
 		const record = stores.chatStore.getChat(id);
-		if (!record || !extractsFacts(record.kind) || (record.classId && archived.has(record.classId)) || isTurnRunning(id)) continue;
-		const graphStore = graphStoreFor(record.classId ?? null);
+		if (!record || !extractsFacts(record.kind) || (record.spaceId && archived.has(record.spaceId)) || isTurnRunning(id)) continue;
+		const graphStore = graphStoreFor(record.spaceId ?? null);
 		if (coverageOf(record.messages, graphStore.readCoverage(), id).uncoveredTokens === 0) continue;
 		const idleFor = now - Date.parse(record.updatedAt);
 		if (idleFor < LEFTOVER_IDLE_MS) extractWhenIdle({ chatStore: stores.chatStore, graphStore, graphOn: () => effectiveSettings().graph.enabled }, extraction, id, LEFTOVER_IDLE_MS - idleFor);
@@ -41,7 +41,7 @@ function askAboutDeadlines(now: number): void {
 	if (G.__lhAskingDeadlines || isTurnRunning(TALK_CHAT_ID)) return;
 	const talk = stores.chatStore.getChat(TALK_CHAT_ID);
 	if (!talkQuiet(talk, now)) return;
-	const deadlines = unlinkedDeadlines(stores.classStore.listClassRecords(), localDay(now), askedDeadlineIds(talk?.messages ?? []));
+	const deadlines = unlinkedDeadlines(stores.spaceStore.listSpaceRecords(), localDay(now), askedDeadlineIds(talk?.messages ?? []));
 	if (deadlines.length === 0) return;
 	if (!talk) stores.chatStore.createChat("Talk", "talk");
 	G.__lhAskingDeadlines = true;

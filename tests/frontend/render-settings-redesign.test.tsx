@@ -32,7 +32,7 @@ Object.assign(globalThis, {
 });
 
 const { createRoot } = await import("react-dom/client");
-const { SettingsDialogBody, sectionFor } = await import("../../src/frontend/components/settings/settings-dialog.tsx");
+const { SettingsPage, sectionFor } = await import("../../src/frontend/components/settings/settings-page.tsx");
 const { ConnectionSection } = await import("../../src/frontend/components/settings/connection-section.tsx");
 const { RememberedNotes } = await import("../../src/frontend/components/settings/remembered-notes.tsx");
 const { maskToken } = await import("../../src/frontend/components/mcp-access.ts");
@@ -88,74 +88,36 @@ describe("settings restyle", () => {
 		assert.equal(sectionFor("nope"), "connection");
 	});
 
-	it("General holds the update rows and the Graph group (extraction, chunk budget)", async () => {
+	it("General holds the update rows and the Lessons and graph group (extraction, chunk budget)", async () => {
 		globalThis.fetch = (async () => Response.json({ settings: { version: 1 } })) as typeof fetch;
-		await mount(<SettingsDialogBody initialSection="general" onClose={() => {}} />);
-		assert.equal(q("settings-section-title")!.textContent, "General");
+		await mount(<SettingsPage section="general" />);
+		assert.equal(q("settings-nav-general")!.getAttribute("aria-current"), "true");
 		assert.ok(q("row-version"));
-		const graph = q("section-graph")!;
-		assert.ok(graph, "the Graph group");
+		const graph = q("group-lessons")!;
+		assert.ok(graph, "the Lessons and graph group");
 		for (const id of ["graph-row-enabled", "graph-row-chunk-tokens"]) {
 			assert.ok(graph.querySelector(`[data-testid="${id}"]`), id);
 		}
 		assert.equal(graph.querySelector('[data-testid="graph-row-rendering"]'), null, "the dead rendering switch is gone");
 	});
 
-	it("Escape in the teacher name field drops the edit and keeps Settings open; a plain Escape closes it", async () => {
+	it("Escape in the teacher name field drops the edit without saving it", async () => {
 		const puts: string[] = [];
 		globalThis.fetch = (async (url: string, init?: RequestInit) => {
 			if (init?.method === "PUT") puts.push(String(url));
 			return Response.json({ settings: { version: 1 } });
 		}) as typeof fetch;
-		let closes = 0;
-		await mount(<SettingsDialogBody initialSection="general" onClose={() => closes++} />);
+		await mount(<SettingsPage section="general" />);
 		const input = q("teacher-name") as HTMLInputElement;
-		const escape = () => {
-			const e = new dom.window.Event("keydown", { bubbles: true, cancelable: true });
-			Object.defineProperty(e, "key", { value: "Escape" });
-			return e;
-		};
 		await act(async () => {
 			Object.defineProperty(input, "value", { configurable: true, writable: true, value: "Ada" });
 			input.dispatchEvent(new dom.window.Event("input", { bubbles: true }));
 		});
-		const fieldEscape = escape();
-		await act(async () => input.dispatchEvent(fieldEscape));
-		// In the app React listens on document, beside the dialog's listener,
-		// so the field marks its Escape used instead of hiding it.
-		assert.equal(fieldEscape.defaultPrevented, true, "the field claims its Escape");
-		const used = escape();
-		used.preventDefault();
-		await act(async () => input.dispatchEvent(used));
-		assert.equal(closes, 0, "an Escape a field used does not close Settings");
+		const escape = new dom.window.Event("keydown", { bubbles: true, cancelable: true });
+		Object.defineProperty(escape, "key", { value: "Escape" });
+		await act(async () => input.dispatchEvent(escape));
+		assert.equal(escape.defaultPrevented, true, "the field claims its Escape");
 		assert.deepEqual(puts, [], "the dropped edit is not saved");
-		await act(async () => document.body.dispatchEvent(escape()));
-		assert.equal(closes, 1, "a plain Escape closes Settings");
-	});
-
-	it("Escape while a tooltip shows closes Settings and never reaches the window's abort", async () => {
-		globalThis.fetch = (async () => Response.json({ settings: { version: 1 } })) as typeof fetch;
-		// An open Radix tooltip prevents Escape in a document capture listener
-		// (added first: linkedom runs capture listeners in the bubble pass).
-		const tooltip = (e: KeyboardEvent) => {
-			if (e.key === "Escape") e.preventDefault();
-		};
-		let windowSaw = 0;
-		const onWindow = () => windowSaw++;
-		document.addEventListener("keydown", tooltip, true);
-		window.addEventListener("keydown", onWindow);
-		let closes = 0;
-		try {
-			await mount(<SettingsDialogBody initialSection="general" onClose={() => closes++} />);
-			const e = new dom.window.Event("keydown", { bubbles: true, cancelable: true });
-			Object.defineProperty(e, "key", { value: "Escape" });
-			await act(async () => document.body.dispatchEvent(e));
-		} finally {
-			document.removeEventListener("keydown", tooltip, true);
-			window.removeEventListener("keydown", onWindow);
-		}
-		assert.equal(closes, 1, "one Escape closes Settings");
-		assert.equal(windowSaw, 0, "the window's Esc (abort the turn) never sees it");
 	});
 
 	it("Connection: Access, the token masked, connection status, and the button that opens your agent", async () => {
@@ -211,6 +173,13 @@ describe("settings restyle", () => {
 		await mount(<ConnectionSection />);
 		assert.equal(q("agent-status")!.textContent, "Codex connected, not teaching");
 		assert.equal(q("agent-teach-hint")!.textContent, "Tell Codex to start teaching.");
+	});
+
+	it("work waiting with no agent says to open one with the button below", async () => {
+		globalThis.fetch = connectionFetch({ token: "tok_w", url: "http://127.0.0.1:1/api/mcp", agentConnected: false, agentTeaching: false, pendingWork: 2 });
+		await mount(<ConnectionSection />);
+		assert.equal(q("agent-status")!.textContent, "Waiting for your agent");
+		assert.equal(q("agent-teach-hint")!.textContent, "Open your agent with the button below.");
 	});
 
 	it("the menu switches the button to Codex, and Other app shows the address and a masked token", async () => {
@@ -319,7 +288,7 @@ describe("settings restyle", () => {
 
 	it("Remembered lists the agent's notes with a Delete button", async () => {
 		globalThis.fetch = connectionFetch({ token: "tok_c", url: "http://127.0.0.1:1/api/mcp", agentConnected: true, pendingWork: 0 }, [
-			{ id: "note_1", text: "CSE 29 exam is done.", className: "CSE 29", createdAt: "2026-10-30T02:00:00Z" },
+			{ id: "note_1", text: "CSE 29 exam is done.", spaceName: "CSE 29", createdAt: "2026-10-30T02:00:00Z" },
 		]);
 		const el = await mount(<RememberedNotes />);
 		const list = q("remembered-notes")!;
@@ -329,7 +298,7 @@ describe("settings restyle", () => {
 	});
 
 	it("Remembered sends one Delete per click: the button waits for its request", async () => {
-		const notes = [{ id: "note_1", text: "Likes proofs.", className: null, createdAt: "2026-10-30T02:00:00Z" }];
+		const notes = [{ id: "note_1", text: "Likes proofs.", spaceName: null, createdAt: "2026-10-30T02:00:00Z" }];
 		const read = connectionFetch({ token: "tok_c", url: "http://127.0.0.1:1/api/mcp", agentConnected: true, pendingWork: 0 }, notes);
 		let deletes = 0;
 		let finish: () => void = () => {};

@@ -5,7 +5,7 @@
  */
 
 import { agentBriefing } from "../../shared/core/agent-briefing.ts";
-import { missingSetup } from "../../shared/core/class-setup.ts";
+import { missingSetup } from "../../shared/core/space-setup.ts";
 import { listAgentNotes } from "../store/agent-notes.ts";
 import { stores } from "./stores.ts";
 import { localTimeZone } from "./today-note.ts";
@@ -17,7 +17,7 @@ export function currentAgentBriefing(maxChars: number): string {
 		now: new Date(),
 		maxChars,
 		timeZone: localTimeZone(),
-		classes: stores.classStore.listClassRecords().map((r) => ({
+		spaces: stores.spaceStore.listSpaceRecords().map((r) => ({
 			id: r.id,
 			name: r.name,
 			archived: r.archived,
@@ -27,7 +27,7 @@ export function currentAgentBriefing(maxChars: number): string {
 		lessons: stores.chatStore.listChats().map((c) => ({
 			id: c.id,
 			title: c.title,
-			...(c.classId ? { classId: c.classId } : {}),
+			...(c.spaceId ? { spaceId: c.spaceId } : {}),
 			updatedAt: c.updatedAt,
 			waiting: c.pendingQuestion || c.pendingProblem,
 		})),
@@ -35,12 +35,12 @@ export function currentAgentBriefing(maxChars: number): string {
 	});
 }
 
-/** The notes with their class names, oldest first. */
-export function agentNotesView(): { id: string; text: string; className: string | null; createdAt: string }[] {
+/** The notes with their space names, oldest first. */
+export function agentNotesView(): { id: string; text: string; spaceName: string | null; createdAt: string }[] {
 	return listAgentNotes().map((n) => ({
 		id: n.id,
 		text: n.text,
-		className: n.classId ? (stores.classStore.getClass(n.classId)?.name ?? null) : null,
+		spaceName: n.spaceId ? (stores.spaceStore.getSpace(n.spaceId)?.name ?? null) : null,
 		createdAt: n.createdAt,
 	}));
 }

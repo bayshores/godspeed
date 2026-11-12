@@ -4,8 +4,7 @@
  * or snapshot/event, visible with the downloaded
  * status, Restart wired to the bridge. The subscribe effect only runs
  * client-side, so the SSR pass pins the hidden state; the pushed state is
- * exercised by mounting with the bridge stubbed (classic-JSX shim as in
- * render-sidebar.test.tsx).
+ * exercised by mounting with the bridge stubbed.
  */
 import React from "react";
 (globalThis as Record<string, unknown>).React = React;
@@ -21,7 +20,7 @@ import type { UpdateState } from "../../src/frontend/components/settings/update-
 
 // linkedom as the DOM for the interactive pass (first createRoot test in
 // the repo — the banner's push→render→click flow needs real effects).
-// The window.lh bridge type is declared globally by src/frontend/components/sidebar.tsx.
+// The window.lh bridge type is declared globally by src/frontend/components/electron-env.tsx.
 const dom = parseHTML("<html><body></body></html>");
 (globalThis as Record<string, unknown>).window = dom.window;
 (globalThis as Record<string, unknown>).document = dom.document;
@@ -73,7 +72,7 @@ describe("update banner (Wave C)", () => {
 		assert.ok(host.innerHTML.includes("0.3.1"), "the version renders");
 		assert.ok(host.innerHTML.includes("Restart"), "the restart affordance renders");
 
-		const button = host.querySelector<HTMLButtonElement>("[data-testid='update-banner'] button");
+		const button = host.querySelector<HTMLButtonElement>("[data-testid='update-restart-now']");
 		assert.ok(button, "restart button exists");
 		button!.click();
 		assert.equal(installed, 1, "Restart asks the shell to quit-and-install");

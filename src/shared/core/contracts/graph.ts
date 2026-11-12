@@ -100,7 +100,7 @@ export const TOPIC_MATERIALS = ["term", "procedure", "concept", "proof"] as cons
 export type TopicMaterial = (typeof TOPIC_MATERIALS)[number];
 
 /** One topic: a named group of a graph's facts. Named by the topic grouper (a background model
- *  job) in the course's own terms. */
+ *  job) in the space's own terms. */
 export interface GraphTopic {
 	/** "tpc_" + 10 hex — stable across regroupings (the grouper keeps ids). */
 	id: string;
@@ -316,7 +316,7 @@ export interface GraphSnapshot {
 }
 
 /** The auto-title's character cap: long enough to stay informative in
- *  the sidebar and the top bar, short enough that a first message never
+ *  the lesson list and the top bar, short enough that a first message never
  *  reads as a paragraph. */
 export const TITLE_MAX_CHARS = 72;
 

@@ -34,7 +34,7 @@ describe("agentWork", () => {
 		const work = agentWork(
 			reply(
 				tool("work_plan", { items: ["a", "b", "c"], done: 0 }, "p1"),
-				tool("read_class", {}),
+				tool("read_space", {}),
 				tool("work_plan", { items: ["a", "b", "c"], done: 1 }, "p2"),
 				tool("ls", { path: "Documents/CSE 21" }),
 			),

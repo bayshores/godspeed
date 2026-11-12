@@ -1,17 +1,17 @@
 /**
  * TOPIC GROUPING — scheduling and running the topic grouper.
  *
- *  - After an extraction ends in a class graph (onGraphWritten), and when a
- *    class's file queue drains, scheduleTopicGrouping(classId) runs:
- *    DEBOUNCED (20 s) and SINGLE-FLIGHT per class (a request while a run is
+ *  - After an extraction ends in a space graph (onGraphWritten), and when a
+ *    space's file queue drains, scheduleTopicGrouping(spaceId) runs:
+ *    DEBOUNCED (20 s) and SINGLE-FLIGHT per space (a request while a run is
  *    going queues exactly one more run after it).
  *  - A run is skipped when the graph has fewer than 4 facts, when the
- *    knowledge graph is off, when the class still has files waiting or
+ *    knowledge graph is off, when the space still has files waiting or
  *    being read (grouping re-reads the whole graph, so an import of many
  *    files groups once, at the end), or when the fact set is exactly the
  *    one the last snapshot grouped.
  *  - The run shows in the activity dock (the extraction registry, kind
- *    "topics", label "Topic grouping: <class>"); the dock's abort stops it.
+ *    "topics", label "Topic grouping: <space>"); the dock's abort stops it.
  *  - It runs on the outside agent (MCP) as a labeled work item.
  *  - Result: one full snapshot appended to the graph's topics.jsonl.
  */
@@ -19,7 +19,7 @@ import { abortExtraction, finishBackgroundGraphRun, startBackgroundGraphRun } fr
 import { groupTopics } from "../agent/subagents/topic-grouper.ts";
 import { withBgLlmSlot } from "../agent/subagents/bg-llm-semaphore.ts";
 import { agentEngine, type PiEngine } from "../agent/models.ts";
-import type { ClassScope } from "../../shared/core/contracts.ts";
+import type { SpaceScope } from "../../shared/core/contracts.ts";
 import { getGraph } from "../../shared/core/graph.ts";
 import { MIN_FACTS_FOR_TOPICS, resolveTopics, sameFactSet } from "../../shared/core/topics.ts";
 import { effectiveSettings, graphStoreFor, stores } from "./stores.ts";
@@ -45,21 +45,21 @@ function state(): TopicGroupingState {
 	return (g.__lhTopicGrouping ??= { timers: new Map(), running: new Map(), again: new Set() });
 }
 
-const keyOf = (scope: ClassScope) => scope ?? "none";
-const scopeOf = (key: string): ClassScope => (key === "none" ? null : key);
+const keyOf = (scope: SpaceScope) => scope ?? "none";
+const scopeOf = (key: string): SpaceScope => (key === "none" ? null : key);
 
 /** The dock / abort key of a scope's grouping run. */
-export function topicRunKey(scope: ClassScope): string {
+export function topicRunKey(scope: SpaceScope): string {
 	return `topics:${keyOf(scope)}`;
 }
 
 /** True while a grouping run for the scope is going. */
-export function topicGroupingRunning(scope: ClassScope): boolean {
+export function topicGroupingRunning(scope: SpaceScope): boolean {
 	return state().running.has(keyOf(scope));
 }
 
 /** Debounced, single-flight request for a grouping run. */
-export function scheduleTopicGrouping(scope: ClassScope, delayMs = topicGroupingSeams.debounceMs ?? TOPIC_GROUPING_DEBOUNCE_MS): void {
+export function scheduleTopicGrouping(scope: SpaceScope, delayMs = topicGroupingSeams.debounceMs ?? TOPIC_GROUPING_DEBOUNCE_MS): void {
 	if (process.env.NODE_ENV === "test" && !topicGroupingSeams.enabledInTests) return;
 	const s = state();
 	const key = keyOf(scope);
@@ -73,8 +73,8 @@ export function scheduleTopicGrouping(scope: ClassScope, delayMs = topicGrouping
 	s.timers.set(key, timer);
 }
 
-/** Drop a pending run and stop a running one (a class is being deleted). */
-export function cancelTopicGrouping(scope: ClassScope): void {
+/** Drop a pending run and stop a running one (a space is being deleted). */
+export function cancelTopicGrouping(scope: SpaceScope): void {
 	const s = state();
 	const key = keyOf(scope);
 	const timer = s.timers.get(key);
@@ -85,7 +85,7 @@ export function cancelTopicGrouping(scope: ClassScope): void {
 }
 
 /** Resolves when no grouping run for the scope is going (tests). */
-export async function topicGroupingIdle(scope: ClassScope): Promise<void> {
+export async function topicGroupingIdle(scope: SpaceScope): Promise<void> {
 	for (;;) {
 		const running = state().running.get(keyOf(scope));
 		if (!running) return;
@@ -114,10 +114,10 @@ function backgroundEngine(): PiEngine {
 	return topicGroupingSeams.engine ?? agentEngine();
 }
 
-async function groupOnce(scope: ClassScope): Promise<void> {
-	const record = scope === null ? null : stores.classStore.getClass(scope);
-	const className = scope === null ? "No class" : record?.name;
-	if (className === undefined) return;
+async function groupOnce(scope: SpaceScope): Promise<void> {
+	const record = scope === null ? null : stores.spaceStore.getSpace(scope);
+	const spaceName = scope === null ? "No space" : record?.name;
+	if (spaceName === undefined) return;
 	if (!effectiveSettings().graph.enabled) return;
 	if (record?.files.some((f) => f.status === "pending" || f.status === "extracting")) {
 		return;
@@ -132,13 +132,13 @@ async function groupOnce(scope: ClassScope): Promise<void> {
 	const engine = backgroundEngine();
 
 	const runKey = topicRunKey(scope);
-	const controller = startBackgroundGraphRun(runKey, `Topic grouping: ${className}`);
+	const controller = startBackgroundGraphRun(runKey, `Topic grouping: ${spaceName}`);
 	const t0 = performance.now();
 	try {
 		const current = resolveTopics(last, factIds).filter((t) => !t.ungrouped);
 		const topics = await withBgLlmSlot(controller.signal, () =>
 			groupTopics({
-				className,
+				spaceName,
 				facts: facts.map((f) => ({ id: f.id, name: f.name, statement: f.statement })),
 				chains: graph.chains,
 				current: current.map(({ id, name, members, material }) => ({ id, name, members, ...(material ? { material } : {}) })),
@@ -146,8 +146,8 @@ async function groupOnce(scope: ClassScope): Promise<void> {
 				signal: controller.signal,
 			}),
 		);
-		// A class deleted mid-run: never recreate its folder.
-		if (scope !== null && !stores.classStore.getClass(scope)) return;
+		// A space deleted mid-run: never recreate its folder.
+		if (scope !== null && !stores.spaceStore.getSpace(scope)) return;
 		store.appendTopics({ at: new Date().toISOString(), topics });
 		console.info(`[topics ${keyOf(scope)}] ${topics.length} topics over ${facts.length} facts (${Math.round(performance.now() - t0)}ms)`);
 	} catch (err) {

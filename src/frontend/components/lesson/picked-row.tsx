@@ -14,15 +14,10 @@ export function PickedRow({
 	onOpen: () => void;
 }) {
 	return (
-		<div data-testid="picked-row" className="mt-[18px] flex w-full shrink-0 items-center gap-3 bg-tone px-3 py-2.5">
-			<button
-				type="button"
-				data-testid="picked-open"
-				onClick={onOpen}
-				className="lh-press flex min-w-0 flex-1 items-center gap-3 text-left outline-none"
-			>
+		<div data-testid="picked-row" className="flex w-full shrink-0 flex-wrap items-center gap-x-3 gap-y-1 bg-(--lh-pale) px-2.5 py-[9px]">
+			<button type="button" data-testid="picked-open" onClick={onOpen} className="lh-press flex min-w-0 flex-1 items-center gap-3 text-left outline-none">
 				<span className="flex shrink-0 gap-1">{marks}</span>
-				<span className="min-w-0 flex-1 truncate text-[15px] text-ink">{label}</span>
+				<span className="min-w-0 flex-1 truncate font-prose text-[17px] text-ink">{label}</span>
 			</button>
 			{sure}
 			<button type="button" data-testid="picked-change" onClick={onOpen} className="lh-press lh-btn shrink-0">

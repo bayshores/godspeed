@@ -31,7 +31,7 @@ const part = (input: unknown, over: Partial<ArtifactPartProps["part"]> = {}): Ar
 	type: "tool-problem", state: "input-available", toolCallId: "call_math", input, ...over,
 });
 const problemPane = (input: { statement: string }) => (
-	<OpenProblemPane statement={input.statement} source={null} part={null} busy={false} waitingForAgent={false} onDiscard={() => {}} onStop={() => {}} footer={null} />
+	<OpenProblemPane statement={input.statement} source={null} part={null} />
 );
 
 function math(html: string) {
@@ -91,13 +91,13 @@ describe("upgraded KaTeX rendering on real question and practice surfaces", () =
 			for (const raw of [`$${formula}$`, `\\(${formula}\\)`, `$$\n${formula}\n$$`, `\\[\n${formula}\n\\]`]) {
 				for (const element of [
 					<MessageResponse mode="static">{raw}</MessageResponse>,
-					<QuestionDock toolName="ask_user_question" toolCallId="security_question" input={{ question: raw }} onSubmit={async () => true} />,
+					<QuestionDock toolName="ask_user_question" toolCallId="security_question" input={{ question: raw }} onSubmit={() => {}} onReady={() => {}} boxText="" onLeaveRows={() => {}} />,
 					problemPane({ statement: raw }),
 				]) {
 					const html = renderToStaticMarkup(element);
 					assertMath(html, [formula], [...glyphs]);
 					const { document } = parseHTML(html);
-					assert.ok(document.querySelector(".katex-base .katex-strut"), "matching 0.18 internal layout classes");
+					assert.ok(document.querySelector(".katex-base .katex-strut"), "matching 0.18 internal layout spaces");
 					if (name === "fraction and root") assert.ok(document.querySelector(".mfrac .sqrt"));
 					if (name === "accents") assert.ok(document.querySelectorAll(".katex-accent").length >= 2);
 					if (name.endsWith("rows")) assert.ok(document.querySelectorAll(".mtable .mtr").length >= 2 || document.querySelectorAll(".mtable .vlist > span").length >= 2, "two real rows, not repaired-away slashes");
@@ -107,7 +107,7 @@ describe("upgraded KaTeX rendering on real question and practice surfaces", () =
 	}
 	it("preserves escaped currency and code on the question dock and the open problem pane", () => {
 		const raw = "Costs \\$5 and \\$10. `" + clean + "`\n\n```text\n" + doubled + "\n```";
-		for (const element of [problemPane({ statement: raw }), <QuestionDock toolName="ask_user_question" toolCallId="security_code" input={{ question: raw }} onSubmit={async () => true} />]) {
+		for (const element of [problemPane({ statement: raw }), <QuestionDock toolName="ask_user_question" toolCallId="security_code" input={{ question: raw }} onSubmit={() => {}} onReady={() => {}} boxText="" onLeaveRows={() => {}} />]) {
 			const html = renderToStaticMarkup(element);
 			assert.deepEqual(math(html).annotations, []);
 			assert.ok(parseHTML(html).document.firstElementChild?.textContent?.includes("$5 and $10"));

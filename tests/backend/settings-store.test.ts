@@ -73,9 +73,9 @@ describe("the settings store", () => {
 		fs.writeFileSync(SETTINGS_FILE, JSON.stringify({ version: 1, compaction: { thresholdTokens: 150_000 } }), "utf-8");
 		const out = readSettings();
 		assert.ok(out);
-		assert.equal(out.version, 2);
+		assert.equal(out.version, 3);
 		assert.deepEqual(out.compaction, {});
-		assert.equal(JSON.parse(fs.readFileSync(SETTINGS_FILE, "utf-8")).version, 2, "the upgrade is saved");
+		assert.equal(JSON.parse(fs.readFileSync(SETTINGS_FILE, "utf-8")).version, 3, "the upgrade is saved");
 	});
 
 	it("a v1 record with a threshold the learner picked keeps it", () => {

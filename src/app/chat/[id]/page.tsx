@@ -11,7 +11,7 @@ const chatFor = cache(getChat);
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
 	const { id } = await params;
-	return { title: (chatFor(id)?.title || "lesson").toLowerCase() };
+	return { title: chatFor(id)?.title || "Lesson" };
 }
 
 export default async function ChatPage({
@@ -25,7 +25,7 @@ export default async function ChatPage({
 	const chat = chatFor(id);
 	// The Talk chat lives in the teacher's panel, never on a lesson page.
 	if (!chat || chat.kind === "talk") notFound();
-	const homework = chat.kind === "homework" && chat.classId && chat.deadlineId ? homeworkView(chat.classId, chat.deadlineId) : null;
+	const homework = chat.kind === "homework" && chat.spaceId && chat.deadlineId ? homeworkView(chat.spaceId, chat.deadlineId) : null;
 	return (
 		<Chat
 			key={chat.id}
@@ -34,7 +34,7 @@ export default async function ChatPage({
 			kind={chat.kind ?? "teach"}
 			// A study session's plan is written at birth, not by a plan_init call.
 			initialTree={chat.tree}
-			classId={chat.classId}
+			spaceId={chat.spaceId}
 			deadlineId={chat.deadlineId}
 			homework={homework ?? undefined}
 			// The record IS native agent history — the client view is

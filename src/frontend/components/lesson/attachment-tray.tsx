@@ -1,13 +1,12 @@
 import { useCallback, useMemo, useRef, useState } from "react";
-import { FileTextIcon, ImagePlusIcon, XIcon } from "lucide-react";
-import { Hint } from "@/frontend/components/ui/hint";
+import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
+import { cn } from "@/frontend/lib/utils";
 import { ATTACHMENT_ACCEPT, MAX_ATTACHMENTS, attachmentType, isPdfType, pickAttachments, type ChatAttachment } from "@/shared/core";
 
 /**
- * The files waiting in a message box (the lesson composer, the side
- * question box and Talk): paste, drop or the picture
- * button add them, small previews show them above the box, and the send
- * carries them.
+ * The files waiting in a message box (a lesson's, Talk's, a cheat sheet's
+ * and the Study page's): paste, drop or "Add pictures or PDFs" add them,
+ * small chips show them above the text, and the send carries them.
  */
 
 interface DraftFile {
@@ -44,8 +43,8 @@ function readBase64(file: File): Promise<string> {
  *  keeps them. Never stored on disk (they can be large); a reload drops them. */
 const waitingFiles = new Map<string, DraftFile[]>();
 
-/** `key` names the box (a lesson's message box, a question), so
- *  its files outlive the box's component. Without one they live and go with it. */
+/** `key` names the box (a lesson's writing box), so its files outlive
+ *  the box's component. Without one they live and go with it. */
 export function useAttachmentDraft(key?: string): AttachmentDraft {
 	const [files, showFiles] = useState(() => (key && waitingFiles.get(key)) || []);
 	const filesRef = useRef(files);
@@ -137,7 +136,7 @@ export function attachmentInputProps(draft: AttachmentDraft) {
 	};
 }
 
-/** The waiting files above the box, each with an ✕, and the last refusal. */
+/** The waiting files above the text, each with "Remove", and the last refusal. */
 export function AttachmentTray({ draft, note }: { draft: AttachmentDraft; note?: string }) {
 	if (draft.files.length === 0 && !draft.error) return null;
 	return (
@@ -145,47 +144,36 @@ export function AttachmentTray({ draft, note }: { draft: AttachmentDraft; note?:
 			{draft.files.length > 0 && (
 				<div className="flex flex-wrap gap-2">
 					{draft.files.map((f) => (
-						<DraftPreview key={f.id} file={f.attachment} onRemove={() => draft.remove(f.id)} />
+						<DraftChip key={f.id} file={f.attachment} onRemove={() => draft.remove(f.id)} />
 					))}
 				</div>
 			)}
-			{note && <p data-testid="attachment-note" className="text-xs text-ink-2">{note}</p>}
-			{draft.error && <p data-testid="attachment-error" className="text-xs text-ink-2">{draft.error}</p>}
+			{note && <p data-testid="attachment-note" className="text-base text-ink-2">{note}</p>}
+			{draft.error && <p data-testid="attachment-error" className="text-base text-ink-2">{draft.error}</p>}
 		</div>
 	);
 }
 
-function DraftPreview({ file, onRemove }: { file: ChatAttachment; onRemove: () => void }) {
-	const remove = (
-		<button
-			type="button"
-			aria-label={`Remove ${file.name}`}
-			onClick={onRemove}
-			className="lh-press absolute top-0.5 right-0.5 flex size-5 items-center justify-center bg-background/80 text-ink-2 hover:text-ink"
-		>
-			<XIcon aria-hidden className="size-3" />
-		</button>
-	);
-	if (isPdfType(file.mimeType)) {
-		return (
-			<div data-testid="draft-pdf" className="relative flex h-14 max-w-48 items-center gap-2 border border-tone-2 bg-tone pr-8 pl-3 text-[13px] text-ink">
-				<FileTextIcon aria-hidden className="size-4 shrink-0 text-ink-2" />
-				<span className="truncate" title={file.name}>{file.name}</span>
-				{remove}
-			</div>
-		);
-	}
+/** One waiting file: a picture's small preview, the file's name, "Remove". */
+function DraftChip({ file, onRemove }: { file: ChatAttachment; onRemove: () => void }) {
+	const pdf = isPdfType(file.mimeType);
 	return (
-		<div data-testid="draft-image" className="relative size-14 shrink-0 border border-tone-2 bg-background">
-			{/* eslint-disable-next-line @next/next/no-img-element -- a local data URL, nothing to optimize */}
-			<img src={`data:${file.mimeType};base64,${file.data}`} alt={file.name} className="size-full object-cover" />
-			{remove}
+		<div data-testid={pdf ? "draft-pdf" : "draft-image"} className={cn("flex h-[47px] max-w-72 items-center gap-1.5 overflow-hidden rounded border-[1.5px] border-ink bg-panel pr-1.5", pdf && "pl-3")}>
+			{!pdf && (
+				// eslint-disable-next-line @next/next/no-img-element -- a local data URL, nothing to optimize
+				<img src={`data:${file.mimeType};base64,${file.data}`} alt="" className="size-11 shrink-0 object-cover" />
+			)}
+			<span className="min-w-0 truncate text-base text-ink" title={file.name}>{file.name}</span>
+			<button type="button" aria-label={`Remove ${file.name}`} onClick={onRemove} className="lh-btn lh-btn-quiet h-7 shrink-0 text-[15px]">
+				Remove
+			</button>
 		</div>
 	);
 }
 
-/** The picture button beside Send: opens the file picker. */
-export function AttachButton({ draft }: { draft: AttachmentDraft }) {
+/** "Add pictures or PDFs": opens the file picker. A quiet word with a
+ *  plus; `outlined` where it sits in a row of outlined buttons. */
+export function AttachButton({ draft, outlined }: { draft: AttachmentDraft; outlined?: boolean }) {
 	const inputRef = useRef<HTMLInputElement>(null);
 	return (
 		<>
@@ -201,17 +189,10 @@ export function AttachButton({ draft }: { draft: AttachmentDraft }) {
 					e.target.value = "";
 				}}
 			/>
-			<Hint label="Add pictures or PDFs">
-				<button
-					type="button"
-					aria-label="Add pictures or PDFs"
-					data-testid="attach-button"
-					onClick={() => inputRef.current?.click()}
-					className="lh-press flex size-9 shrink-0 items-center justify-center text-ink-2 hover:bg-tone hover:text-ink"
-				>
-					<ImagePlusIcon aria-hidden className="size-5" />
-				</button>
-			</Hint>
+			<button type="button" data-testid="attach-button" onClick={() => inputRef.current?.click()} className={cn("lh-btn shrink-0 text-[15px]", !outlined && "lh-btn-quiet")}>
+				{!outlined && <PixelIcon name="plus" />}
+				Add pictures or PDFs
+			</button>
 		</>
 	);
 }

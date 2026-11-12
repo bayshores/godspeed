@@ -18,50 +18,26 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import { useBackdropDismiss } from "@/frontend/components/backdrop-dismiss";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import {
-	actionForBinding,
-	bindingForAction,
-	eventBinding,
-	formatBinding,
-	isTypingSurface,
-	kbdEventForAction,
-	KEYBOARD_ACTIONS,
-	KEY_SCOPES,
-} from "@/shared/core";
-import { useSettingsDialog } from "@/frontend/components/settings/settings-dialog-provider.tsx";
+import { actionForBinding, bindingForAction, bindingKeys, eventBinding, isTypingSurface, kbdEventForAction, KEYBOARD_ACTIONS, KEY_SCOPES } from "@/shared/core";
 import { showFocusRingAfterTab, trapTabInDialog } from "@/frontend/components/focus-hygiene";
-import { useDialogFocus } from "@/frontend/components/use-dialog-focus";
-
-// Re-exported for the contract pin (tests/frontend/keyboard-toggle-sidebar.test.ts):
-// the dispatcher composes event names through the ONE helper — a second
-// spelling here would drift (it broke ⌘B once).
-export { kbdEventForAction };
+import { usePresence } from "@/frontend/components/presence";
+import { DialogSheet } from "@/frontend/components/ui/dialog-sheet";
 
 export function KeyboardShortcuts() {
 	const router = useRouter();
-	const [cheatOpen, setCheatOpen] = useState(false);
-	const { open: openSettings } = useSettingsDialog();
+	const [shortcutsOpen, setShortcutsOpen] = useState(false);
+	const presence = usePresence(shortcutsOpen);
 
-	// Router + cheat + settings state inside a ref so the keydown listener
-	// (attached once) never goes stale.
-	const handlersRef = useRef<{
-		router: ReturnType<typeof useRouter>;
-		setCheatOpen: (v: boolean) => void;
-		openSettings: () => void;
-	}>({ router, setCheatOpen, openSettings });
-	handlersRef.current = { router, setCheatOpen, openSettings };
+	// The router inside a ref so the keydown listener (attached once) never
+	// goes stale.
+	const routerRef = useRef(router);
+	routerRef.current = router;
 
 	useEffect(() => {
 		const onKeyDown = (e: KeyboardEvent) => {
 			if (e.key === "Escape") {
-				// Our own overlay is the topmost layer.
-				if (cheatOpen) {
-					setCheatOpen(false);
-					e.preventDefault();
-					return;
-				}
 				// THE ONE-ESC LAW: one Esc, one action, on the topmost active
 				// layer. Field-level handlers claim at their element (focus in
 				// a field: the field's action); every SURFACED layer (popovers,
@@ -88,16 +64,16 @@ export function KeyboardShortcuts() {
 			// ride the window event for the mounted surface to catch.
 			switch (action) {
 				case "new-session":
-					handlersRef.current.router.push("/new");
+					routerRef.current.push("/new");
 					break;
 				case "open-settings":
-					handlersRef.current.openSettings();
+					routerRef.current.push("/settings");
 					break;
 				case "jump-graph":
-					handlersRef.current.router.push("/graph");
+					routerRef.current.push("/graph");
 					break;
 				case "cheat-sheet":
-					handlersRef.current.setCheatOpen(true);
+					setShortcutsOpen(true);
 					break;
 				case "find":
 					// The mounted surface owns Find (session text / graph nodes).
@@ -111,7 +87,10 @@ export function KeyboardShortcuts() {
 		};
 		window.addEventListener("keydown", onKeyDown);
 		return () => window.removeEventListener("keydown", onKeyDown);
-	}, [cheatOpen]);
+	}, []);
+
+	// The desktop app's own menu opens Settings on a section.
+	useEffect(() => window.lh?.onOpenSettings?.((section) => routerRef.current.push(`/settings?section=${encodeURIComponent(section)}`)), []);
 
 	useEffect(() => {
 		document.addEventListener("keydown", trapTabInDialog, true);
@@ -122,56 +101,37 @@ export function KeyboardShortcuts() {
 		};
 	}, []);
 
-	return <CheatSheet open={cheatOpen} onClose={() => setCheatOpen(false)} />;
+	if (!presence.mounted) return null;
+	return createPortal(
+		<DialogSheet title="Keyboard shortcuts" state={presence.state} testid="shortcuts" onClose={() => setShortcutsOpen(false)} className="w-[780px]">
+			<ShortcutList />
+		</DialogSheet>,
+		document.body,
+	);
 }
 
-/** The ? overlay — the registry rendered as a table (grouped by scope),
- *  so shortcuts stay discoverable. */
-function CheatSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
-	const backdropDismiss = useBackdropDismiss(onClose);
-	const dialogRef = useDialogFocus<HTMLDivElement>(open);
-	if (!open) return null;
+/** Every shortcut with its keys, one column per place it works in. */
+function ShortcutList() {
 	return (
-		<div
-			ref={dialogRef}
-			tabIndex={-1}
-			role="dialog"
-			aria-modal="true"
-			aria-label="Keyboard shortcuts"
-			data-testid="cheat-sheet"
-			className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-			{...backdropDismiss}
-		>
-			<div
-				className="max-h-[80vh] w-full max-w-[36rem] overflow-y-auto border bg-card p-5 shadow-2xl"
-				onClick={(e) => e.stopPropagation()}
-			>
-				<div className="mb-4 flex items-baseline justify-between">
-					<span className="text-sm font-medium text-card-foreground">Keyboard shortcuts</span>
-					<span className="text-xs text-muted-foreground">Esc to close</span>
-				</div>
-				{KEY_SCOPES.map(({ scope, label }) => {
-					const actions = KEYBOARD_ACTIONS.filter((a) => a.scope === scope);
-					if (actions.length === 0) return null;
-					return (
-						<div key={scope} className="mb-4">
-							<div className="mb-1.5 text-xs font-semibold text-ink-3">
-								{label}
-							</div>
-							<div className="flex flex-col gap-1">
-								{actions.map((a) => (
-									<div key={a.id} className="flex items-center justify-between gap-4 text-sm">
-										<span className="text-muted-foreground">{a.label}</span>
-										<kbd className=" border border-border bg-background px-1.5 py-0.5 font-mono text-xs text-card-foreground">
-											{formatBinding(bindingForAction(a.id))}
-										</kbd>
-									</div>
+		<div className="grid gap-x-10 gap-y-6 sm:grid-cols-2">
+			{KEY_SCOPES.map(({ scope, label }) => (
+				<div key={scope} className="flex flex-col gap-0.5">
+					<h3 className="text-lg text-ink">{label}</h3>
+					<div className="h-[1.5px] bg-ink" />
+					{KEYBOARD_ACTIONS.filter((a) => a.scope === scope).map((a) => (
+						<div key={a.id} className="flex items-center justify-between gap-4 py-1.5 text-[15px] text-ink">
+							{a.label}
+							<span className="flex shrink-0 gap-1.5">
+								{bindingKeys(bindingForAction(a.id)).map((key, i) => (
+									<kbd key={i} className="rounded-[2px] border-[1.5px] border-ink bg-background px-2 py-0.5 font-[inherit] text-sm">
+										{key}
+									</kbd>
 								))}
-							</div>
+							</span>
 						</div>
-					);
-				})}
-			</div>
+					))}
+				</div>
+			))}
 		</div>
 	);
 }

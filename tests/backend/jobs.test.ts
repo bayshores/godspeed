@@ -1508,7 +1508,7 @@ describe("prompt composition", () => {
 		);
 	});
 
-	it("guards prompt size — no fragment can silently balloon (the README-leak class)", () => {
+	it("guards prompt size — no fragment can silently balloon (the README-leak space)", () => {
 		// The wave-1 leak: README.md (815 bytes / ~200 tokens) rode into every
 		// teacher turn until the numeric-prefix filter stopped it. This guard
 		// catches the sibling failure mode — an accidental dump pasted into a

@@ -1,64 +1,72 @@
-import { SearchIcon } from "lucide-react";
-import { TopBar } from "@/frontend/components/app-bar";
-import { pathLabel } from "@/frontend/components/app-bar-model";
+import type { RefObject } from "react";
+import Link from "next/link";
+import { useSpaces } from "@/frontend/components/space-context";
+import { SessionFind } from "@/frontend/components/session-find";
+import type { SessionScrollContext } from "@/frontend/components/session-navigation";
 import { Hint } from "@/frontend/components/ui/hint";
+import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { cn } from "@/frontend/lib/utils";
-import { kbdEventForAction, type LessonKind } from "@/shared/core";
-import type { PracticeProgress } from "./practice-progress";
+import { kbdEventForAction } from "@/shared/core";
 import type { useTitleRename } from "./use-title-rename";
 
+/** A button on the dark lesson bar: outlined in the bar's own ink. */
+const BAR_BUTTON = "lh-btn lh-btn-bar lh-no-drag";
+/** A plain word on the bar, as tall as the bar; lit when its panel is open. */
+const NAV_WORD = "lh-no-drag h-12 shrink-0 px-4 text-[15px] text-bar-ink hover:bg-bar-ink/10";
+
 /**
- * THE LESSON'S PART OF THE TOP BAR: the path ends in the lesson's name,
- * which renames in place on a click (or F2). Its buttons: in practice,
- * one block per problem; in homework, the assignment file; the cheat
- * sheet beside the session; and Find.
+ * THE LESSON'S OWN BAR, in place of the app's top bar: the way back to the
+ * space's lessons, the lesson's name (renames in place on a click, or F2),
+ * then the homework file, the cheat sheet and Find. Opening Find swaps the
+ * cheat sheet and Find words for the find field.
  */
 export function LessonTopBar({
-	kind,
 	rename,
-	practice,
+	spaceId,
 	sheet,
 	file,
+	scopeRef,
+	scrollContextRef,
 }: {
-	kind: LessonKind;
 	rename: ReturnType<typeof useTitleRename>;
-	practice: PracticeProgress | null;
-	/** The cheat sheet beside the session (a session in a class). */
+	spaceId: string | undefined;
+	/** The cheat sheet beside the session (a session in a space). */
 	sheet?: { open: boolean; onToggle: () => void };
 	/** A homework lesson's assignment file, opened on the desktop. */
 	file?: { name: string; path: string | null };
+	scopeRef: RefObject<HTMLDivElement | null>;
+	scrollContextRef: RefObject<SessionScrollContext | null>;
 }) {
+	const { spaces } = useSpaces();
+	const backLabel = spaces.find((c) => c.id === spaceId)?.name ?? "Lessons";
 	const desktop = typeof window !== "undefined" ? window.lh : undefined;
 	const pdf = !!file && /\.pdf$/i.test(file.name);
 	const openFile = file?.path && desktop ? (pdf ? desktop.openPath : desktop.showInFolder) : undefined;
 	return (
-		<>
+		<div data-testid="lesson-bar" className="lh-own-bar lh-drag lh-lights-gutter lh-wco-gutter flex h-12 shrink-0 select-none items-center gap-4 bg-bar px-6 text-bar-ink">
+			<Link href="/space/lessons" prefetch={false} data-testid="page-back" className={`${BAR_BUTTON} max-w-[28ch] px-3`}>
+				<PixelIcon name="chevron" className="-scale-x-100" />
+				<span className="truncate">{backLabel}</span>
+			</Link>
 			<h1 className="sr-only">{rename.title}</h1>
-			<TopBar path={[]} tail={rename.renaming ? <RenameInput rename={rename} /> : <TitleButton rename={rename} />}>
-			{kind === "practice" && practice && practice.blocks.length > 0 && <PracticeBlocks progress={practice} />}
+			<div className="flex min-w-0 shrink text-lg font-medium">{rename.renaming ? <RenameInput rename={rename} /> : <TitleButton rename={rename} />}</div>
+			<div className="flex-1" aria-hidden />
 			{file && openFile && (
-				<button type="button" data-testid="lesson-assignment" title={file.name} onClick={() => void openFile(file.path!)} className="lh-btn max-w-[24ch]">
+				<button type="button" data-testid="lesson-assignment" title={file.name} onClick={() => void openFile(file.path!)} className={`${BAR_BUTTON} max-w-[24ch]`}>
 					<span className="truncate">{file.name}</span>
 				</button>
 			)}
-			{sheet && (
-				<button type="button" data-testid="lesson-cheat-sheet" aria-pressed={sheet.open} onClick={sheet.onToggle} className={cn("lh-btn", sheet.open && "border-tint text-tint")}>
-					cheat sheet
+			<SessionFind scopeRef={scopeRef} scrollContextRef={scrollContextRef}>
+				{sheet && (
+					<button type="button" data-testid="lesson-cheat-sheet" aria-pressed={sheet.open} onClick={sheet.onToggle} className={cn(NAV_WORD, sheet.open && "bg-bar-ink font-medium text-bar hover:bg-bar-ink")}>
+						Cheat sheet
+					</button>
+				)}
+				<button type="button" data-testid="lesson-find" onClick={() => window.dispatchEvent(new CustomEvent(kbdEventForAction("find")))} className={NAV_WORD}>
+					Find
 				</button>
-			)}
-			<Hint label="Find" side="bottom">
-				<button
-					type="button"
-					data-testid="lesson-find"
-					aria-label="Find"
-					onClick={() => window.dispatchEvent(new CustomEvent(kbdEventForAction("find")))}
-					className="lh-press flex size-7 shrink-0 items-center justify-center text-ink-3 hover:text-ink"
-				>
-					<SearchIcon className="size-4" />
-				</button>
-			</Hint>
-			</TopBar>
-		</>
+			</SessionFind>
+		</div>
 	);
 }
 
@@ -69,9 +77,9 @@ function TitleButton({ rename }: { rename: ReturnType<typeof useTitleRename> }) 
 				type="button"
 				data-testid="lesson-title"
 				onClick={rename.start}
-				className="lh-no-drag min-w-0 shrink cursor-text truncate text-left font-bold text-ink"
+				className="lh-no-drag min-w-0 shrink cursor-text truncate text-left"
 			>
-				{pathLabel(rename.title)}
+				{rename.title}
 			</button>
 		</Hint>
 	);
@@ -94,35 +102,7 @@ function RenameInput({ rename }: { rename: ReturnType<typeof useTitleRename> }) 
 			onBlur={() => void rename.commit(rename.draft)}
 			spellCheck={false}
 			aria-label="Lesson name"
-			className="lh-no-drag min-w-[8ch] max-w-full shrink bg-transparent font-bold text-ink caret-current outline-none [field-sizing:content]"
+			className="lh-no-drag min-w-[8ch] max-w-full shrink bg-transparent caret-current outline-none [field-sizing:content]"
 		/>
-	);
-}
-
-/** Practice: one block per finished problem (gray solved, dark not),
- *  the active problem white, then the count. */
-function PracticeBlocks({ progress }: { progress: PracticeProgress }) {
-	return (
-		<div data-testid="practice-progress" className="flex shrink-0 items-center gap-3">
-			<span className="flex items-center gap-[3px]" aria-hidden>
-				{progress.blocks.map((b, i) => (
-					<span
-						key={i}
-						data-block={b}
-						className={cn(
-							"block h-1.5 w-2.5",
-							b === "current" && "bg-ink",
-							b === "solved" && "bg-ink-2",
-							b === "missed" && "bg-tone-2",
-						)}
-					/>
-				))}
-			</span>
-			{progress.finished > 0 && (
-				<span className="text-sm text-ink-2 tabular-nums">
-					{progress.solved} of {progress.finished} solved
-				</span>
-			)}
-		</div>
 	);
 }

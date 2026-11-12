@@ -5,15 +5,15 @@ import { cn } from "@/frontend/lib/utils"
 
 // lh-press: eased hover colors and a 97% press-down; disabled buttons never press.
 const buttonVariants = cva(
-  "lh-press inline-flex shrink-0 items-center justify-center gap-2 text-sm font-medium whitespace-nowrap disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "lh-press inline-flex shrink-0 items-center justify-center gap-2 text-sm font-medium whitespace-nowrap disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
         default: "bg-primary text-primary-foreground hover:bg-primary/90",
         outline:
-          "border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
+          "border-[1.5px] border-foreground hover:bg-accent",
         ghost:
-          "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
+          "hover:bg-accent",
       },
       size: {
         xs: "h-6 gap-1 px-2 text-xs has-[>svg]:px-1.5 [&_svg:not([class*='size-'])]:size-3",

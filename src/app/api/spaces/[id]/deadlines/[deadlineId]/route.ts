@@ -1,0 +1,51 @@
+/**
+ * /api/spaces/[id]/deadlines/[deadlineId]
+ *  PUT    — patch { kind?, name?, date?: "YYYY-MM-DD", time?: "HH:MM" | null (null clears), fileIds?, leftOutIds?, source?: string | null, assignmentFileId?: string | null, done? }
+ *  DELETE — remove the deadline
+ */
+import { recordDeadlineChange, removeSpaceDeadline, updateSpaceDeadline } from "@/backend/server";
+import { isSpaceId, type DeadlineKind, type DeadlinePatch } from "@/shared/core";
+
+export const dynamic = "force-dynamic";
+
+type Ctx = { params: Promise<{ id: string; deadlineId: string }> };
+
+export async function PUT(req: Request, { params }: Ctx) {
+	const { id, deadlineId } = await params;
+	if (!isSpaceId(id)) return Response.json({ error: "No such space" }, { status: 404 });
+	const body = (await req.json().catch(() => ({}))) as {
+		kind?: unknown;
+		name?: unknown;
+		date?: unknown;
+		time?: unknown;
+		fileIds?: unknown;
+		leftOutIds?: unknown;
+		source?: unknown;
+		assignmentFileId?: unknown;
+		done?: unknown;
+	};
+	if (body.done !== undefined && typeof body.done !== "boolean") return Response.json({ error: "done must be true or false" }, { status: 400 });
+	const patch: DeadlinePatch = {
+		...(body.kind !== undefined ? { kind: body.kind as DeadlineKind } : {}),
+		...(body.name !== undefined ? { name: body.name as string } : {}),
+		...(body.date !== undefined ? { date: body.date as string } : {}),
+		...(body.time !== undefined ? { time: body.time as string | null } : {}),
+		...(body.fileIds !== undefined ? { fileIds: body.fileIds as string[] } : {}),
+		...(body.leftOutIds !== undefined ? { leftOutIds: body.leftOutIds as string[] } : {}),
+		...(body.source !== undefined ? { source: body.source as string | null } : {}),
+		...(body.assignmentFileId !== undefined ? { assignmentFileId: body.assignmentFileId as string | null } : {}),
+		...(body.done !== undefined ? { done: body.done } : {}),
+	};
+	const outcome = updateSpaceDeadline(id, deadlineId, patch);
+	if (!outcome.ok) return Response.json({ error: outcome.error, code: outcome.code }, { status: outcome.status });
+	recordDeadlineChange(id, outcome.value, patch);
+	return Response.json({ deadline: outcome.value });
+}
+
+export async function DELETE(_req: Request, { params }: Ctx) {
+	const { id, deadlineId } = await params;
+	if (!isSpaceId(id)) return Response.json({ error: "No such space" }, { status: 404 });
+	const outcome = removeSpaceDeadline(id, deadlineId);
+	if (!outcome.ok) return Response.json({ error: outcome.error, code: outcome.code }, { status: outcome.status });
+	return Response.json({ ok: true });
+}

@@ -324,9 +324,9 @@ describe("desktop shell guards", () => {
 	it("every IPC channel ignores a subframe or a foreign sender", async () => {
 		const f = fixture(); f.setSettings({ general: { autoUpdate: false } }); await f.run("main()");
 		const sender = f.windows[0]!.webContents;
-		const channels = ["lh:update-install", "lh:update:get", "lh:update:check", "lh:report-bug", "lh:pick-folder", "lh:fonts", "lh:show-in-folder", "lh:open-path", "lh:open-agent", "lh:zoom:get", "lh:expand-window"];
+		const channels = ["lh:update-install", "lh:update:get", "lh:update:check", "lh:report-bug", "lh:pick-folder", "lh:fonts", "lh:show-in-folder", "lh:open-path", "lh:open-agent", "lh:zoom:get"];
 		assert.deepEqual([...f.handles.keys()].sort(), [...channels].sort());
-		const sendOnly = new Set(["lh:update-install", "lh:report-bug", "lh:expand-window"]);
+		const sendOnly = new Set(["lh:update-install", "lh:report-bug"]);
 		for (const bad of [{ sender: {}, senderFrame: sender.mainFrame }, { sender, senderFrame: { url: sender.mainFrame.url } }]) {
 			for (const channel of channels) {
 				const call = async () => f.handles.get(channel)!(bad, "/Users/me/CSE 21");

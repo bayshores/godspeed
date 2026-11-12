@@ -1,13 +1,14 @@
 /**
- * The learner's rules as chips: each rule with a remove ✕, then "Add a
- * rule", which turns into a one-line input. Used by Settings → Teaching
- * (per area) and Edit class (per class). A rule the agent saved says
- * "Saved by" and the teacher's name, with the date on hover.
+ * The learner's rules: each rule as a chip with a remove button, then the
+ * "Add a rule" field. Used by Settings → Teaching (per area) and Edit space
+ * (per space). A rule the agent saved says "Saved by" and the teacher's
+ * name, with the date on hover.
  */
 
 import { useState } from "react";
-import { PlusIcon, XIcon } from "lucide-react";
 import { RULE_MAX_CHARS, RULES_MAX, oneLine } from "@/shared/core";
+import { FIELD } from "@/frontend/components/ui/field";
+import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 
 export function RuleChips({
 	rules,
@@ -23,68 +24,52 @@ export function RuleChips({
 	saved: Record<string, string>;
 	teacherName: string;
 }) {
-	const [adding, setAdding] = useState(false);
 	const [draft, setDraft] = useState("");
+	// Enter and clicking away both add the rule, so no key is needed.
 	const commit = () => {
 		const rule = oneLine(draft, RULE_MAX_CHARS);
 		if (rule && !rules.includes(rule)) onChange([...rules, rule]);
 		setDraft("");
-		setAdding(false);
 	};
 	return (
-		<div data-testid={testid} className="flex flex-wrap items-center gap-1.5">
-			{rules.map((rule) => (
-				<span key={rule} className="flex max-w-full items-center gap-2 bg-tone-2 py-[5px] pl-[11px] pr-[9px] text-[13px] text-ink">
-					<span className="min-w-0 break-words">{rule}</span>
-					{saved[rule] && (
-						<span title={savedDay(saved[rule])} className="shrink-0 text-xs whitespace-nowrap text-ink-2">
-							Saved by {teacherName}
+		<div data-testid={testid} className="flex flex-col gap-1.5">
+			{rules.length > 0 && (
+				<div className="flex flex-wrap items-center gap-1.5">
+					{rules.map((rule) => (
+						<span key={rule} className="flex max-w-full items-center gap-2.5 rounded border border-border bg-background py-1.5 pr-2 pl-3 text-base text-ink">
+							<span className="min-w-0 break-words">{rule}</span>
+							{saved[rule] && (
+								<span title={savedDay(saved[rule])} className="shrink-0 text-sm whitespace-nowrap text-ink-2">
+									Saved by {teacherName}
+								</span>
+							)}
+							<button type="button" aria-label={`Remove rule: ${rule}`} className="lh-press shrink-0 p-0.5 text-ink-2 hover:text-ink" onClick={() => onChange(rules.filter((r) => r !== rule))}>
+								<PixelIcon name="close" className="h-[10.5px]" />
+							</button>
 						</span>
-					)}
-					<button
-						type="button"
-						aria-label={`Remove rule: ${rule}`}
-						className="lh-press shrink-0 text-ink-2 hover:text-ink"
-						onClick={() => onChange(rules.filter((r) => r !== rule))}
-					>
-						<XIcon className="size-3" aria-hidden />
-					</button>
-				</span>
-			))}
-			{adding ? (
+					))}
+				</div>
+			)}
+			{rules.length < RULES_MAX && (
 				<input
 					type="text"
-					autoFocus
 					value={draft}
 					maxLength={RULE_MAX_CHARS}
-					aria-label="New rule"
-					placeholder="Type a rule"
+					aria-label="Add a rule"
+					placeholder="Add a rule"
 					data-testid={testid ? `${testid}-input` : undefined}
 					onChange={(e) => setDraft(e.target.value)}
 					onBlur={commit}
 					onKeyDown={(e) => {
 						if (e.key === "Enter") commit();
-						if (e.key === "Escape") {
-							// The dialog behind closes on Escape; this one only cancels.
+						// The dialog behind closes on Escape; with text typed this one only clears it.
+						if (e.key === "Escape" && draft !== "") {
 							e.stopPropagation();
 							setDraft("");
-							setAdding(false);
 						}
 					}}
-					className="h-[30px] min-w-60 flex-1 border border-edge bg-background px-2.5 text-[13px] text-ink placeholder:text-ink-3 focus-visible:border-ink"
+					className={FIELD}
 				/>
-			) : (
-				rules.length < RULES_MAX && (
-					<button
-						type="button"
-						data-testid={testid ? `${testid}-add` : undefined}
-						className="lh-press lh-btn"
-						onClick={() => setAdding(true)}
-					>
-						<PlusIcon className="size-[13px]" aria-hidden />
-						Add a rule
-					</button>
-				)
 			)}
 		</div>
 	);

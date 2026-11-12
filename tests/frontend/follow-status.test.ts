@@ -12,7 +12,7 @@ const action = (over: Partial<AgentAction> = {}): AgentAction => ({
 	at: new Date(t).toISOString(),
 	agent: "Claude Code",
 	label: "Adding HW 5",
-	classId: "cls_a",
+	spaceId: "cls_a",
 	target: { kind: "deadline", id: "ddl_1" },
 	page: "/",
 	...over,

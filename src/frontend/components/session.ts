@@ -100,7 +100,7 @@ export function useChatSession({ chatId, initialMessages, initialError, initiall
 
 	// THE TURN-STATE BROADCAST: the instant a turn starts locally
 	// (submitted: send, answer, session start, reattach, wake attach) the
-	// sidebar learns it without waiting for its 2.5s poll; at settle the
+	// lesson list learns it without waiting for the server event; at settle the
 	// event clears the row and triggers one immediate refetch. The model
 	// stays pure; this adapter owns the window seam (the lh:chat-renamed
 	// pattern).

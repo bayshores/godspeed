@@ -1,5 +1,7 @@
 import { ToolContentResponse } from "@/frontend/components/ai-elements/message";
-import { cn } from "@/frontend/lib/utils";
+import { ResultTag, type ResultTone } from "@/frontend/components/result-tag";
+import { CARD, SMALL_BTN } from "@/frontend/components/ui/card-parts";
+import { LABEL_TEXT } from "@/frontend/components/ui/label-text";
 import type { ArtifactPartProps } from "@/shared/core";
 
 /**
@@ -24,20 +26,20 @@ import { createPortal } from "react-dom";
 import { ThinkingBlock } from "@/frontend/components/thinking-block";
 import { usePopoverDismiss } from "@/frontend/components/popover-dismiss";
 import { usePresence } from "@/frontend/components/presence";
-import { classQuery, useClasses } from "@/frontend/components/class-context";
+import { spaceQuery, useSpaces } from "@/frontend/components/space-context";
 
 /* TARGET NAMES: targets are normalized to opaque node ids at the record
  * seam (the mastery trace groups on them), so the drawer resolves names
- * at render time. One lazy cached fetch of the graph view per class
- * graph (the class the window shows); failures degrade to raw ids, so
+ * at render time. One lazy cached fetch of the graph view per space
+ * graph (the space the window shows); failures degrade to raw ids, so
  * observability never breaks the card, and are not cached, so the next
  * open tries again. */
 const nodeNameMapPromises = new Map<string, Promise<Record<string, string> | null>>();
-function nodeNameMap(classId: string | null): Promise<Record<string, string> | null> {
-	const key = classId ?? "none";
+function nodeNameMap(spaceId: string | null): Promise<Record<string, string> | null> {
+	const key = spaceId ?? "none";
 	const cached = nodeNameMapPromises.get(key);
 	if (cached) return cached;
-	const nodeNameMapPromise = fetch(`/api/graph${classQuery(classId)}`)
+	const nodeNameMapPromise = fetch(`/api/graph${spaceQuery(spaceId)}`)
 		.then((r) => {
 			if (!r.ok) throw new Error(String(r.status));
 			return r.json();
@@ -65,16 +67,21 @@ export interface PracticeThinkingData {
 	text: string;
 }
 
+/** A problem or conclusion card: the answered card's look. */
+const STACK = `${CARD} my-1 flex flex-col gap-2.5`;
+
+/** The card's statement in Literata 16. */
+const PROSE_16 = { "--lh-prose-size": "16px", "--lh-prose-leading": "1.5", "--lh-ink-body": "var(--muted-foreground)" } as React.CSSProperties;
+
 export function ProblemCard({ part }: ArtifactPartProps) {
-	// Always open, no chevron: the record IS the statement, in the same
-	// container + eyebrow as the answered card. The
-	// commitment never renders, only the call's statement.
+	// Always open, no chevron: the record IS the statement, in the answered
+	// card's container. The commitment never renders, only the call's statement.
 	const input = (part.input ?? {}) as { statement?: string };
 	const statement = typeof input.statement === "string" ? input.statement : "";
 	return (
-		<div data-testid="problem-card" data-problem-call={part.toolCallId} className="my-1 scroll-mt-4 border bg-card p-4">
-			<div className="mb-1 text-xs font-semibold text-muted-foreground">Problem</div>
-			<div className="lh-prose text-[15px]">
+		<div data-testid="problem-card" data-problem-call={part.toolCallId} className={`${STACK} scroll-mt-4`}>
+			<div className="font-count text-[15px] text-ink-2">Problem</div>
+			<div className="text-ink-2" style={PROSE_16}>
 				<ToolContentResponse>{statement}</ToolContentResponse>
 			</div>
 		</div>
@@ -89,17 +96,15 @@ const OUTCOME_LABEL: Record<string, string> = {
 	dismissed: "Dismissed",
 };
 
-/* The outcome chips: the EXACT register of the
- * quiz cards' correct/incorrect bubbles. Colors per outcome — solved reads
- * green (the "correct" twin), solved-with-hints yellow (succeeded with
- * cost), surrendered red (the problem beat the learner), moved on muted
- * (the agent's call, not a verdict against him). */
-const OUTCOME_CHIP: Record<string, string> = {
-	solved: "bg-tone text-ans-right",
-	solvedWithHints: "bg-tone text-(--lh-ramp-3)",
-	movedOn: "bg-muted text-muted-foreground",
-	surrendered: "bg-tone text-ans-wrong",
-	dismissed: "bg-muted text-muted-foreground",
+/* The outcome tags: solved reads green, solved-with-hints yellow, surrendered
+ * red (the problem beat the learner), moved on grey (the agent's call, not a
+ * verdict against the learner). */
+const OUTCOME_TONE: Record<string, ResultTone> = {
+	solved: "right",
+	solvedWithHints: "hints",
+	movedOn: "plain",
+	surrendered: "wrong",
+	dismissed: "plain",
 };
 
 export function ConcludeCard({ part }: ArtifactPartProps) {
@@ -117,39 +122,32 @@ export function ConcludeCard({ part }: ArtifactPartProps) {
 	// learner clicked; the record needs only the fact).
 	if (outcome === "dismissed") {
 		return (
-			<div data-testid="conclude-card" className="my-1 px-1 text-sm text-ink-3">
+			<div data-testid="conclude-card" className="my-1 px-1 text-[15px] text-ink-2">
 				Problem dismissed.
 			</div>
 		);
 	}
 
 	return (
-		<div data-testid="conclude-card" className="relative my-1 border bg-card p-4">
-			{/* The heading row: plain 'Concluded' eyebrow + the outcome in the
-			    quiz cards' chip register. */}
-			<div className="mb-1 flex items-center gap-2 text-xs font-semibold text-muted-foreground">
-				Concluded
-				{(OUTCOME_LABEL[outcome] ?? "") !== "" && (
-					<span className={cn(" px-1.5 py-0.5", OUTCOME_CHIP[outcome] ?? OUTCOME_CHIP.movedOn)}>
-						{OUTCOME_LABEL[outcome]}
-					</span>
-				)}
+		<div data-testid="conclude-card" className={`${STACK} relative`}>
+			{/* The heading row: the outcome tag, then what the card is. */}
+			<div className="flex items-center gap-2.5">
+				{(OUTCOME_LABEL[outcome] ?? "") !== "" && <ResultTag tone={OUTCOME_TONE[outcome] ?? "plain"}>{OUTCOME_LABEL[outcome]!}</ResultTag>}
+				<span className="font-count text-[15px] text-ink-2">Concluded</span>
 			</div>
-			{/* The verdict: plain prose under the heading, no 'Verdict:' label,
-			    in the same quiet 50% register as quiz explanations. */}
 			{verdict.length > 0 && (
-				<div className="text-sm text-ink-3">
+				<div className="text-ink-2" style={PROSE_16}>
 					<ToolContentResponse>{verdict}</ToolContentResponse>
 				</div>
 			)}
-			{/* Then the divider, then the labeled model solution (the pose's
+			{/* Then a rule, then the labeled model solution (the pose's
 			    commitment, verbatim). */}
 			{reveal.length > 0 && (
 				<>
-					<div className="my-3 border-t" />
-					<div>
-						<div className="mb-0.5 text-xs font-semibold text-muted-foreground">Model solution</div>
-						<div className="lh-prose text-[15px]">
+					<div className="border-t border-border" />
+					<div className="flex flex-col gap-1">
+						<div className={LABEL_TEXT}>Model solution</div>
+						<div className="text-ink" style={{ ...PROSE_16, "--lh-ink-body": "var(--foreground)" } as React.CSSProperties}>
 							<ToolContentResponse>{reveal}</ToolContentResponse>
 						</div>
 					</div>
@@ -163,13 +161,13 @@ export function ConcludeCard({ part }: ArtifactPartProps) {
 	);
 }
 
-/* THE METADATA POPOVER: a quiet METADATA trigger at the bottom of the
+/* THE METADATA POPOVER: a Metadata button at the bottom of the
  * conclude card opens the graph-view node-card info box, always BELOW the
  * trigger; any scroll or click outside closes it (plus Esc). Shows every
  * field the agent filled in both the problem call (mode, targets, names
- * resolved lazily) and the conclude call (outcome, rung, miss class,
+ * resolved lazily) and the conclude call (outcome, rung, miss space,
  * retest). Statement and modelSolution stay out: they are the visible
- * card. Small register: text-xs rows, mono values. */
+ * card. Small register: label and value rows. */
 function MetadataPopover({
 	concludeInput,
 	problemInput,
@@ -185,7 +183,7 @@ function MetadataPopover({
 	// box, so there is nothing to track.
 	const [anchor, setAnchor] = useState<{ top: number; left: number } | null>(null);
 	const [names, setNames] = useState<Record<string, string> | null>(null);
-	const { active: activeClassId } = useClasses();
+	const { active: activeSpaceId } = useSpaces();
 	const targets = Array.isArray(problemInput.target)
 		? problemInput.target.filter((t): t is string => typeof t === "string")
 		: [];
@@ -193,13 +191,13 @@ function MetadataPopover({
 	useEffect(() => {
 		if (!open || targets.length === 0 || names) return;
 		let alive = true;
-		void nodeNameMap(activeClassId).then((m) => {
+		void nodeNameMap(activeSpaceId).then((m) => {
 			if (alive && m) setNames(m);
 		});
 		return () => {
 			alive = false;
 		};
-	}, [open, targets.length, names, activeClassId]);
+	}, [open, targets.length, names, activeSpaceId]);
 
 	usePopoverDismiss(rootRef, open, () => setOpen(false));
 	// The box fades out before unmounting.
@@ -221,7 +219,7 @@ function MetadataPopover({
 	if (!mode && targets.length === 0 && !rung && !miss && retest === undefined) return null;
 
 	return (
-		<div ref={rootRef} className="relative mt-3">
+		<div ref={rootRef} className="relative">
 			<button
 				type="button"
 				data-testid="metadata-toggle"
@@ -240,7 +238,7 @@ function MetadataPopover({
 					});
 				}}
 				aria-expanded={open}
-				className="lh-press lh-btn"
+				className={SMALL_BTN}
 			>
 				Metadata
 			</button>
@@ -257,11 +255,11 @@ function MetadataPopover({
 						style={{ position: "fixed", top: anchor.top, left: anchor.left }}
 						className="lh-pop z-50 lh-popup w-80 max-w-[calc(100vw-1rem)] p-4 text-left"
 					>
-				<dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-xs">
-						<dt className="text-muted-foreground">Mode</dt>
-						<dd className="font-mono">{mode || "–"}</dd>
-						<dt className="text-muted-foreground">Targets</dt>
-						<dd className="font-mono">
+				<dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-[15px]">
+						<dt className="text-ink-2">Mode</dt>
+						<dd className="font-count">{mode || "–"}</dd>
+						<dt className="text-ink-2">Targets</dt>
+						<dd className="font-count">
 							{targets.length === 0 ? (
 								"untagged"
 							) : (
@@ -275,14 +273,14 @@ function MetadataPopover({
 								</span>
 							)}
 						</dd>
-						<dt className="text-muted-foreground">Outcome</dt>
-						<dd className="font-mono">{outcome || "–"}</dd>
-						<dt className="text-muted-foreground">Hint rung</dt>
-						<dd className="font-mono">{rung || "none"}</dd>
-						<dt className="text-muted-foreground">Miss class</dt>
-						<dd className="font-mono">{miss || "none"}</dd>
-						<dt className="text-muted-foreground">Retest</dt>
-						<dd className="font-mono">{retest === undefined ? "–" : retest ? "yes" : "no"}</dd>
+						<dt className="text-ink-2">Outcome</dt>
+						<dd className="font-count">{outcome || "–"}</dd>
+						<dt className="text-ink-2">Hint rung</dt>
+						<dd className="font-count">{rung || "none"}</dd>
+						<dt className="text-ink-2">Miss space</dt>
+						<dd className="font-count">{miss || "none"}</dd>
+						<dt className="text-ink-2">Retest</dt>
+						<dd className="font-count">{retest === undefined ? "–" : retest ? "yes" : "no"}</dd>
 					</dl>
 					</div>,
 					document.body,

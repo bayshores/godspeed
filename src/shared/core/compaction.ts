@@ -422,15 +422,15 @@ export function planTreeToText(tree: PlanTree | undefined, messages: readonly Lh
 /** The Talk chat's summary: what the learner asked for and what was done,
  *  so a later "yes, add them too" still makes sense. */
 function talkCompactionPrompt(spanText: string): string {
-	return `You are compacting the earlier part of the learner's Talk chat with their teacher in a learning app (outside lessons: setting up classes, files and deadlines, quick questions). Write the summary your future self will read INSTEAD of that transcript. The transcript labels the learner as [LEARNER], you as [TUTOR], tool traffic as [RESULT …]/[SYSTEM NOTE].
+	return `You are compacting the earlier part of the learner's Talk chat with their teacher in a learning app (outside lessons: setting up spaces, files and deadlines, quick questions). Write the summary your future self will read INSTEAD of that transcript. The transcript labels the learner as [LEARNER], you as [TUTOR], tool traffic as [RESULT …]/[SYSTEM NOTE].
 
 Write the summary with EXACTLY these sections, in this order:
 
 ## Done
-What the learner asked for and what you did about it: classes created or changed, folders linked, files added or switched, deadlines added, moved or removed. Keep every class id, file id, deadline id, name, date and path exact.
+What the learner asked for and what you did about it: spaces created or changed, folders linked, files added or switched, deadlines added, moved or removed. Keep every space id, file id, deadline id, name, date and path exact.
 
 ## Learned about the learner
-Facts they told you that matter later (their courses, schedule, preferences).
+Facts they told you that matter later (their spaces, schedule, preferences).
 
 ## Open
 Anything still waiting: a question you asked them, a promise you made, a request not finished.

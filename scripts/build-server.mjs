@@ -4,7 +4,7 @@
  * `next build` (output: "standalone") produces .next/standalone/ with
  * server.js + the traced node_modules subset, but leaves two pieces
  * outside that the docs require us to copy: public/ and .next/static/.
- * This script finishes the job — plus models/, the class-search embedding
+ * This script finishes the job — plus models/, the space-search embedding
  * model (scripts/fetch-model.mjs), which the server loads by path — and
  * sanity-checks the result, including
  * the exclusion that keeps the repo's real data/ OUT of the bundle

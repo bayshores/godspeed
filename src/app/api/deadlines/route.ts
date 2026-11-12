@@ -1,12 +1,13 @@
 /**
- * GET /api/deadlines — every deadline not yet done, from
- * every class that is not archived, soonest due first, each with its class
- * id and name. Home reads it. Read-only.
+ * GET /api/deadlines — from every space that is not archived, soonest due
+ * first, each with its space id and name: `deadlines` not yet done, and
+ * `doneToday` ticked done today. Today reads it. Read-only.
  */
-import { listOpenDeadlines } from "@/backend/server";
+import { listDeadlinesDoneOn, listOpenDeadlines } from "@/backend/server";
+import { localDay } from "@/shared/core";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-	return Response.json({ deadlines: listOpenDeadlines() });
+	return Response.json({ deadlines: listOpenDeadlines(), doneToday: listDeadlinesDoneOn(localDay()) });
 }

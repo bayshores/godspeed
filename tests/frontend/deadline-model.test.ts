@@ -1,11 +1,11 @@
 /**
- * The deadline page's "What's on it": covered files as class days by week,
- * the class days before it that it doesn't cover (unless left out), the
+ * The deadline page's "What's on it": covered files as days by week,
+ * the days before it that it doesn't cover (unless left out), the
  * left-out ones, and the summary line.
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { coverageMessage, deadlineMaterial, materialSummary, rightLabel, shortDate } from "../../src/frontend/components/deadline/deadline-model.ts";
+import { coverageMessage, deadlineMaterial, materialSummary, rightLabel, shortDate, whenLine } from "../../src/frontend/components/deadline/deadline-model.ts";
 
 type Kind = "study" | "info";
 type Status = "pending" | "extracting" | "ready" | "failed" | "needs-whisper";
@@ -35,7 +35,7 @@ const deadline = (over: Partial<{ fileIds: string[]; leftOutIds: string[]; kind:
 });
 
 describe("what a deadline covers", () => {
-	it("groups covered files into class days by week, with each day's title, parts and worst state", () => {
+	it("groups covered files into days by week, with each day's title, parts and worst state", () => {
 		const d = deadline();
 		const m = deadlineMaterial(FILES, d, [d], [{ fileId: "s1", facts: 12 }, { fileId: "t1", facts: 5 }, { fileId: "zzz", facts: 99 }]);
 		assert.deepEqual(m.weeks.map((w) => [w.number, w.days.map((x) => x.date)]), [[1, ["2026-09-25", "2026-09-28", "2026-09-30"]], [2, ["2026-10-05"]]]);
@@ -49,21 +49,21 @@ describe("what a deadline covers", () => {
 		assert.deepEqual(m.weeks[0]!.days[2]!.parts, ["evening discussion", "lecture slides"]);
 		assert.equal(m.weeks[1]!.days[0]!.state, "failed");
 		assert.deepEqual(m.undated.map((x) => x.title), ["Midterm practice exam.pdf"]);
-		assert.deepEqual([m.classDays, m.files, m.reading, m.failed, m.facts], [4, 8, 1, 1, 17]);
-		assert.equal(materialSummary(m), "4 class days, 8 files, 1 still being read, 1 couldn't be read");
+		assert.deepEqual([m.dayCount, m.files, m.reading, m.failed, m.facts], [4, 8, 1, 1, 17]);
+		assert.equal(materialSummary(m), "4 days, 8 files, 1 still being read, 1 couldn't be read");
 	});
 
 	it("flags study days before an exam that it doesn't cover, and stops once they're left out", () => {
 		const d = deadline();
 		const m = deadlineMaterial(FILES, d, [d], []);
-		assert.deepEqual(m.notIncluded.map((x) => x.title), ["Sorting", "Searching"], "not course info, not after the exam");
+		assert.deepEqual(m.notIncluded.map((x) => x.title), ["Sorting", "Searching"], "not space info, not after the exam");
 		const out = deadline({ leftOutIds: ["s5"] });
 		const later = deadlineMaterial(FILES, out, [out], []);
 		assert.deepEqual(later.notIncluded.map((x) => x.title), ["Searching"]);
 		assert.deepEqual(later.leftOut.map((x) => x.title), ["Sorting"]);
 	});
 
-	it("an exam's check starts after the class's previous exam", () => {
+	it("an exam's check starts after the space's previous exam", () => {
 		const first = { id: "m1", kind: "exam" as const, date: "2026-10-10", fileIds: [] };
 		const d = deadline({ date: "2026-11-20", fileIds: ["s5"] });
 		const m = deadlineMaterial(FILES, d, [first, d], []);
@@ -82,6 +82,9 @@ describe("what a deadline covers", () => {
 	it("labels, dates and the message Ask sends", () => {
 		assert.equal(rightLabel({ right: 2, answered: 5 }), "2 of 5 right");
 		assert.equal(rightLabel({ right: 0, answered: 0 }), "not tested");
+		assert.equal(rightLabel(undefined), "not tested");
+		assert.equal(whenLine({ kind: "exam", date: "2026-12-08", time: "23:59" }), "Exam, Tuesday Dec 8, 11:59 PM");
+		assert.equal(whenLine({ kind: "homework", date: "2026-11-13" }), "Homework, Friday Nov 13");
 		assert.equal(shortDate("2026-09-25"), "Sep 25");
 		const msg = coverageMessage("CSE 21", { name: "Midterm", when: "Wed Nov 4, 6:30 PM" });
 		assert.match(msg, /^Work out what Midterm \(Wed Nov 4, 6:30 PM\) in CSE 21 covers from my files/);

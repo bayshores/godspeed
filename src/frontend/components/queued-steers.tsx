@@ -2,8 +2,7 @@
  * THE QUEUED-STEER INDICATOR: steers sent but not
  * yet drained render as quiet one-liners in the composer panel, under its
  * header and above the text box, right-aligned, truncated with an
- * ellipsis, no background, no container, roughly half opacity. Visible
- * but very quiet.
+ * ellipsis, no background, no container. Visible but quiet.
  *
  * A line dies the moment its card lands in the transcript: the drain's
  * verbatim message events upsert the real user card by the client-minted
@@ -26,7 +25,7 @@ export function QueuedSteersBody({ steers }: { steers: QueuedSteerLine[] }) {
 				<span
 					key={s.id}
 					title={s.text}
-					className="lh-rise block max-w-[240px] truncate font-ui text-xs text-ink-3"
+					className="lh-rise block max-w-[240px] truncate font-prose text-[15px] text-ink-2"
 				>
 					{s.text}
 				</span>
