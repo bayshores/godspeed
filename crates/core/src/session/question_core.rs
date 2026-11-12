@@ -68,6 +68,15 @@ pub fn confidence_level(percent: f64) -> u8 {
 	best
 }
 
+/// A quiz's role in the teaching cycle, "predict" or "check", read past a model's copy debris.
+pub fn normalize_quiz_type(raw: &Json) -> Option<&'static str> {
+	match strip_model_value_debris(raw.as_str()?).as_str() {
+		"predict" => Some("predict"),
+		"check" => Some("check"),
+		_ => None,
+	}
+}
+
 /// Models sometimes send `options` as a JSON-encoded string. A string that parses to an array
 /// becomes that array; anything else comes back untouched so validation reports it.
 pub fn parse_options_if_string(options: Option<&Json>) -> Option<Json> {
@@ -288,6 +297,14 @@ mod tests {
 	use gs_json::{json, stringify};
 
 	use super::*;
+
+	#[test]
+	fn quiz_types_read_past_debris() {
+		assert_eq!(normalize_quiz_type(&json!(" \"predict\"")), Some("predict"));
+		assert_eq!(normalize_quiz_type(&json!("check")), Some("check"));
+		assert_eq!(normalize_quiz_type(&json!("Predict")), None);
+		assert_eq!(normalize_quiz_type(&json!(1)), None);
+	}
 
 	#[test]
 	fn compact_answer_keeps_the_typescript_order() {

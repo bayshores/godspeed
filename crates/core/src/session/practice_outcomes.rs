@@ -49,7 +49,7 @@ fn targets_of(args: &Json) -> Json {
 }
 
 /// Each concluded practice problem, oldest first: `{ messageId, problemCallId, statement,
-/// targets, outcome, at }`.
+/// targets[, nodeId], outcome, at }` (a study problem names its plan node).
 pub fn practice_outcomes(messages: &[Json]) -> Vec<Json> {
 	let mut calls: HashMap<&str, Call> = HashMap::new();
 	let mut out = Vec::new();
@@ -82,6 +82,9 @@ pub fn practice_outcomes(messages: &[Json]) -> Vec<Json> {
 		entry.insert("problemCallId", problem.call_id);
 		entry.insert("statement", problem.args["statement"].as_str().unwrap_or_default());
 		entry.insert("targets", targets_of(problem.args));
+		if let Some(node_id) = problem.args["nodeId"].as_str().filter(|n| !n.is_empty()) {
+			entry.insert("nodeId", node_id);
+		}
 		entry.insert("outcome", outcome);
 		entry.insert("at", iso_of(m.get("timestamp")));
 		out.push(Json::Obj(entry));
@@ -117,6 +120,21 @@ mod tests {
 		let out = practice_outcomes(&messages);
 		assert_eq!(out.len(), 1);
 		assert_eq!(stringify(&out[0]), r#"{"messageId":"m1","problemCallId":"p1","statement":"S","targets":["f1","f2"],"outcome":"solved","at":"2023-11-14T22:13:20.123Z"}"#);
+	}
+
+	#[test]
+	fn a_study_problem_carries_its_plan_node() {
+		let messages = [
+			assistant("m1", json!([{ "type": "toolCall", "id": "p1", "name": "problem", "arguments": { "statement": "S", "nodeId": "tpc_1" } }, { "type": "toolCall", "id": "p2", "name": "problem", "arguments": { "statement": "T", "nodeId": "" } }])),
+			result("p1", 1, false),
+			assistant("m2", json!([{ "type": "toolCall", "id": "c1", "name": "conclude", "arguments": { "outcome": "movedOn" } }, { "type": "toolCall", "id": "c2", "name": "conclude", "arguments": { "outcome": "solved" } }])),
+			result("c1", 2, false),
+			result("p2", 3, false),
+			result("c2", 4, false),
+		];
+		let out = practice_outcomes(&messages);
+		assert_eq!(stringify(&out[0]), r#"{"messageId":"m1","problemCallId":"p1","statement":"S","targets":[],"nodeId":"tpc_1","outcome":"movedOn","at":"1970-01-01T00:00:00.002Z"}"#);
+		assert!(out[1].get("nodeId").is_none());
 	}
 
 	#[test]
