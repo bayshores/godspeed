@@ -1,4 +1,4 @@
-import { createBrowserRouter } from "react-router";
+import type { RouteObject } from "react-router";
 import { HomePage } from "@/frontend/components/home-page/home-page";
 import { NewLesson } from "@/frontend/components/home";
 import { PrepStart } from "@/frontend/components/prep/prep-start";
@@ -22,7 +22,7 @@ import { MockRoute, mockLoader } from "./mock";
 /** Every screen. A page that needs data first (a lesson, a deadline, a
  *  mock) has a loader: a navigation keeps the old page until it is read,
  *  and one that is gone shows NotFound inside the app frame. */
-export const router = createBrowserRouter([
+export const routes: RouteObject[] = [
 	{
 		element: <Root />,
 		children: [
@@ -87,4 +87,4 @@ export const router = createBrowserRouter([
 			},
 		],
 	},
-]);
+];

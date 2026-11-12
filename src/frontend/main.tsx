@@ -1,11 +1,14 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { createBrowserRouter } from "react-router";
 import { RouterProvider } from "react-router/dom";
 import "katex/dist/katex.min.css";
 import "./fonts/fonts.css";
 import "./globals.css";
 import { BootProvider, fetchBoot } from "@/frontend/components/boot";
-import { router } from "./routes/router";
+import { routes } from "./routes/router";
+
+const router = createBrowserRouter(routes);
 
 /** The first page load paints only once /api/boot and the page's own data
  *  are in, so the first paint is complete (the welcome screen at launch). */
