@@ -1,6 +1,7 @@
 import { memo } from "react";
 import type { DeadlineProgress, HomeworkProblem } from "@/shared/core";
 import { nextDeadlineButton } from "@/frontend/components/overview/overview-model";
+import { SELECT, SELECT_ARROW } from "@/frontend/components/ui/field";
 import { Pane } from "@/frontend/components/ui/pane";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { cn } from "@/frontend/lib/utils";
@@ -69,20 +70,23 @@ export const HomeworkCard = memo(function HomeworkCard({
 			<span className={RULE} />
 			<label className="flex items-center gap-2.5 text-[15px] text-ink">
 				<span className="min-w-0 flex-1">Assignment file</span>
-				<select
-					data-testid="homework-assignment"
-					value={assignmentId ?? ""}
-					disabled={saving}
-					onChange={(e) => onPickAssignment(e.target.value || null)}
-					className="h-9 w-[220px] max-w-[55%] shrink-0 truncate rounded border-[1.5px] border-ink bg-panel px-2.5 text-[15px] text-ink"
-				>
-					<option value="">None picked</option>
-					{files.map((f) => (
-						<option key={f.id} value={f.id}>
-							{f.name}
-						</option>
-					))}
-				</select>
+				<span className="relative w-[220px] max-w-[55%] shrink-0">
+					<select
+						data-testid="homework-assignment"
+						value={assignmentId ?? ""}
+						disabled={saving}
+						onChange={(e) => onPickAssignment(e.target.value || null)}
+						className={SELECT}
+					>
+						<option value="">None picked</option>
+						{files.map((f) => (
+							<option key={f.id} value={f.id}>
+								{f.name}
+							</option>
+						))}
+					</select>
+					<PixelIcon name="chevron" className={SELECT_ARROW} />
+				</span>
 				{assignmentId && onOpenAssignment && (
 					<button type="button" data-testid="homework-assignment-open" onClick={onOpenAssignment} className="lh-btn lh-btn-quiet shrink-0 text-[15px]">
 						Open

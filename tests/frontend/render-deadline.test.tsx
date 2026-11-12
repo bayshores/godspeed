@@ -14,6 +14,7 @@ import { describe, it } from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { parseHTML } from "linkedom";
 import type { DeadlineProgress } from "../../src/shared/core/index.ts";
+import { SELECT, SELECT_ARROW } from "../../src/frontend/components/ui/field.ts";
 
 const dom = parseHTML("<html><body></body></html>");
 Object.assign(globalThis, { window: dom.window, document: dom.document, self: globalThis });
@@ -217,6 +218,13 @@ describe("a homework's Problems sheet", () => {
 		assert.match(html, /Assignment file.*<option value="a" selected="">hw4.pdf<\/option>/);
 		assert.ok(!html.includes("homework-assignment-open"), "a browser can't open the file");
 		assert.match(homework(HW_PROBLEMS, { onOpenAssignment: () => {} }), /data-testid="homework-assignment-open"[^>]*>Open</);
+	});
+
+	it("its Assignment file dropdown is drawn like the cheat sheet dock's, with the pixel arrow", () => {
+		const { document } = parseHTML(homework());
+		const select = document.querySelector("[data-testid='homework-assignment']")!;
+		assert.equal(select.getAttribute("class"), SELECT);
+		assert.ok(select.nextElementSibling?.getAttribute("class")?.includes(SELECT_ARROW));
 	});
 
 	it("with no problems says how they get listed; a done deadline offers Mark not done", () => {

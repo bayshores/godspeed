@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { currentVersion } from "@/shared/core";
 import { LoadFailed } from "@/frontend/components/load-failed";
+import { SELECT, SELECT_ARROW } from "@/frontend/components/ui/field";
 import { Pane } from "@/frontend/components/ui/pane";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { DOCK_DEFAULT_W, dockStateKey, dockWidth, makeTarget, parseDockState, pickSheet, sheetChoices, type DockState } from "./dock-model";
@@ -111,7 +112,7 @@ export function SheetDock({
 							aria-label="Which cheat sheet"
 							value={shown}
 							onChange={(e) => onPick(e.target.value)}
-							className="h-9 w-full appearance-none truncate rounded border-[1.5px] border-ink bg-panel pr-9 pl-3 text-[15px] font-medium text-ink"
+							className={SELECT}
 						>
 							{choices.map((c) => (
 								<option key={c.deadlineId} value={c.deadlineId}>
@@ -119,7 +120,7 @@ export function SheetDock({
 								</option>
 							))}
 						</select>
-						<PixelIcon name="chevron" className="pointer-events-none absolute top-1/2 right-3 h-[10px] -translate-y-1/2 rotate-90 text-ink" />
+						<PixelIcon name="chevron" className={SELECT_ARROW} />
 					</div>
 				) : (
 					<span className="min-w-0 flex-1 truncate px-1 text-[15px] font-medium text-ink">{shownName ? `Cheat sheet for ${shownName}` : "Cheat sheet"}</span>

@@ -18,6 +18,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { createRoot, type Root } from "react-dom/client";
 import { parseHTML } from "linkedom";
 import { mathBoxView, stubCodeMirrorDom } from "../math-box-dom.ts";
+import { SELECT } from "../../src/frontend/components/ui/field.ts";
 import { newCheatSheet, type CheatSheetView, type SpaceSheetsView, type SheetCard, type SheetVersion } from "../../src/shared/core/index.ts";
 
 const dom = parseHTML("<html><body></body></html>");
@@ -294,6 +295,7 @@ describe("the cheat sheet beside a session", () => {
 		assert.ok(asked.some((u) => u.endsWith("/deadlines/ddl_mid/cheat-sheet")), "the session's own deadline");
 		const pick = el.querySelector<HTMLSelectElement>("[data-testid='sheet-dock-pick']")!;
 		assert.deepEqual([...pick.querySelectorAll("option")].map((o) => o.textContent), ["Cheat sheet for Quiz 3", "Cheat sheet for Midterm"]);
+		assert.equal(pick.className, SELECT, "drawn like every dropdown");
 		assert.ok(el.querySelector("[data-testid='cheat-sheet-canvas']"));
 		assert.equal(el.querySelector("[data-testid='sheet-chat']"), null);
 		assert.match(el.querySelector("[data-testid='sheet-dock-studio']")!.textContent!, /Open full size/);
