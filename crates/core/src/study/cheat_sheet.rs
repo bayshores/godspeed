@@ -18,7 +18,7 @@ use crate::spaces::space_shortcuts::safe_entry_name;
 use crate::records::teaching_areas::{RULE_MAX_CHARS, RULES_MAX, one_line};
 
 pub use super::sheet_cards::sheet_cards;
-pub use super::sheet_parse::{ParsedSheet, parse_cheat_sheet, sheet_about_of, sheet_region_of};
+pub use super::sheet_parse::{ParsedSheet, parse_cheat_sheet, sheet_region_of};
 pub use super::sheet_request::{cheat_sheet_request_text, mistake_counts, sheet_mistakes};
 
 /// The record format this build writes, stamped as "version" (3 kept the learner's asks without

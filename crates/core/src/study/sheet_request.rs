@@ -19,7 +19,6 @@ const FOLDER_FILES_NAMED: usize = 12;
 /// The chat a request carries: its last few messages, each cut short.
 const EARLIER_SENT: usize = 8;
 const EARLIER_CHARS: i64 = 500;
-const ABOUT_CHARS: i64 = 1500;
 
 /// One line of at most `max` UTF-16 units, cut with an ellipsis.
 fn one_line(raw: &str, max: i64) -> String {
@@ -123,20 +122,6 @@ fn earlier_text(messages: &[Json]) -> String {
 	if lines.is_empty() { String::new() } else { format!("The chat so far, oldest first:\n{}", lines.join("\n")) }
 }
 
-fn about_text(a: &Json) -> String {
-	let what = if a["kind"].as_str() == Some("problem") { "problem" } else { "question" };
-	let work = a["work"].as_str().map(text::trim).filter(|w| !w.is_empty()).map(|w| format!("What they have written for it so far:\n{}", text::slice16(w, 0, Some(ABOUT_CHARS))));
-	[
-		format!("The student is on this {what} in their session \"{}\", with the sheet open beside it:", a["session"].as_str().unwrap_or("")),
-		one_line(a["text"].as_str().unwrap_or(""), ABOUT_CHARS),
-		work.unwrap_or_default(),
-	]
-	.into_iter()
-	.filter(|p| !p.is_empty())
-	.collect::<Vec<_>>()
-	.join("\n")
-}
-
 fn region_line(r: &Json, versions: &[Json], current: Option<&Json>) -> String {
 	let pages = versions.iter().find(|v| v["n"] == r["n"]).map_or(1, |v| items(&v["pages"]).len());
 	let older = match current {
@@ -208,7 +193,6 @@ pub fn cheat_sheet_request_text(r: &Json) -> String {
 		},
 		folder_text(r, current),
 		earlier_text(items(&r["earlier"])),
-		if m["about"].truthy() { about_text(&m["about"]) } else { String::new() },
 		if m["region"].truthy() { region_line(&m["region"], versions, current) } else { String::new() },
 		{
 			let said = text::trim(m["text"].as_str().unwrap_or(""));
@@ -270,7 +254,7 @@ mod tests {
 		assert!(later.contains("Topics on this exam (name | how the learner does):\nSums | weak, 2 mistakes\n\n"));
 		assert!(later.contains("It is empty. The sheet now is version 2 (Letter, one side), made from the source here."));
 		assert!(later.contains("The chat so far, oldest first:\nLearner: (files only)\nYou: Done [made version 2]\n\n"));
-		assert!(later.contains("The student is on this problem in their session \"HW 4\", with the sheet open beside it:\nFind x\nWhat they have written for it so far:\nx = 2\n\n"));
+		assert!(!later.contains("HW 4"), "a message carries no session problem");
 		assert!(later.contains("They pointed at version 1, page 1, from 10% to 40% across and 10% to 30% down. The first picture shows that part. That is an older version; the sheet now is version 2.\n\n"));
 		assert!(later.ends_with("The learner says:\n(no words, only the files)"));
 	}

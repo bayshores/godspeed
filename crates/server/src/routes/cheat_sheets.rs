@@ -10,7 +10,7 @@ use axum::response::Response;
 use gs_base::re::Re;
 use gs_core::contracts::space::is_space_id;
 use gs_core::messages::input_events::parse_attachments;
-use gs_core::study::cheat_sheet::{sheet_about_of, sheet_region_of};
+use gs_core::study::cheat_sheet::sheet_region_of;
 use gs_json::{Json, json};
 use gs_services::App;
 use gs_services::cheat_sheets::{AskInput, Outcome, Stop, ask, cheat_sheet_file, cheat_sheet_pdf, cheat_sheet_view, space_sheets_view, remove_rule, retry, sheet_pdf_file, stop};
@@ -84,14 +84,10 @@ async fn post_sheet(State(app): State<Arc<App>>, Path((id, deadline_id)): Path<(
 				Err(refusal) => return Ok(error(400, &refusal.0)),
 			};
 			let region = body.get("region").map(sheet_region_of);
-			let about = body.get("about").map(sheet_about_of);
 			if region == Some(None) {
 				return Ok(error(400, "Give the region as n, page, x, y, w and h."));
 			}
-			if about == Some(None) {
-				return Ok(error(400, "Give about as kind, session and text."));
-			}
-			done(ask(&app, &id, &deadline_id, AskInput { text: text.to_owned(), attachments, region: region.flatten(), about: about.flatten() }))
+			done(ask(&app, &id, &deadline_id, AskInput { text: text.to_owned(), attachments, region: region.flatten() }))
 		}
 		Some("retry") => done(retry(&app, &id, &deadline_id)),
 		Some("remove-rule") => match body["text"].as_str() {

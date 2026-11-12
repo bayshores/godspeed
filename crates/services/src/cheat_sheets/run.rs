@@ -7,7 +7,7 @@ use gs_agent::subagents::cheat_sheet_writer::{SheetReply, SheetRequest, reply_on
 use gs_agent::tools::space::search_tools;
 use gs_base::ids::uuid;
 use gs_base::locks::LockKey;
-use gs_base::text::{len16, slice16, trim};
+use gs_base::text::{len16, trim};
 use gs_base::time::iso_now;
 use gs_core::messages::attachments::{ChatAttachment, is_pdf_type};
 use gs_core::study::cheat_sheet::{PROMPT_MAX, cheat_sheet_request_text, current_version, new_cheat_sheet, region_problem, with_message, with_rules, with_version, without_rule};
@@ -23,38 +23,19 @@ use super::{BUSY, Failed, NEWER, Outcome, Running, Stop, changed, refuse};
 use crate::App;
 use crate::spaces::space_search::space_search;
 
-/// The longest problem or work text a message carries from a session.
-const ABOUT_MAX: i64 = 4000;
-
 /// A message as the route parsed it.
 pub struct AskInput {
 	pub text: String,
 	pub attachments: Option<Vec<ChatAttachment>>,
 	pub region: Option<Json>,
-	pub about: Option<Json>,
 }
 
 fn items(v: &Json) -> &[Json] {
 	v.as_arr().map_or(&[], |a| a.as_slice())
 }
 
-/// The `about` a message carries, its texts cut short.
-fn short_about(about: &Json) -> Json {
-	let mut about = about.clone();
-	if let Some(o) = about.as_obj_mut() {
-		let cut = |v: &Json| Json::from(slice16(v.as_str().unwrap_or(""), 0, Some(ABOUT_MAX)));
-		if let Some(text) = o.get("text").map(cut) {
-			o.insert("text", text);
-		}
-		if let Some(work) = o.get("work").filter(|w| w.truthy()).map(cut) {
-			o.insert("work", work);
-		}
-	}
-	about
-}
-
-/// A message in the sheet's chat, from the studio or the sheet beside a session: kept, then the
-/// agent answers it. Pictures go to the agent as pictures, PDFs as a note with their path.
+/// A message in the sheet's chat: kept, then the agent answers it. Pictures go to the agent as
+/// pictures, PDFs as a note with their path.
 pub fn ask(app: &Arc<App>, space_id: &str, deadline_id: &str, input: AskInput) -> Outcome<()> {
 	let text = trim(&input.text);
 	let attachments = input.attachments.unwrap_or_default();
@@ -91,9 +72,6 @@ pub fn ask(app: &Arc<App>, space_id: &str, deadline_id: &str, input: AskInput) -
 	}
 	if let Some(region) = &input.region {
 		message.insert("region", region.clone());
-	}
-	if let Some(about) = &input.about {
-		message.insert("about", short_about(about));
 	}
 	let message = Json::Obj(message);
 	app.stores.cheat_sheets.write_cheat_sheet(space_id, &with_message(&sheet, &message))?;

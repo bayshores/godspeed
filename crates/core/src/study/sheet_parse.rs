@@ -66,22 +66,6 @@ pub fn sheet_region_of(v: &Json) -> Option<Json> {
 	keys.iter().all(|k| is_number(&v[*k])).then(|| Json::Obj(keys.iter().map(|k| (*k, v[*k].clone())).collect()))
 }
 
-/// A session's problem or question as sent or saved, or None.
-pub fn sheet_about_of(v: &Json) -> Option<Json> {
-	v.as_obj()?;
-	if !matches!(v["kind"].as_str(), Some("problem" | "question")) || v["session"].as_str().is_none() || v["text"].as_str().is_none() {
-		return None;
-	}
-	let mut o = Obj::new();
-	for key in ["kind", "session", "text"] {
-		o.insert(key, v[key].clone());
-	}
-	if v["work"].as_str().is_some() {
-		o.insert("work", v["work"].clone());
-	}
-	Some(Json::Obj(o))
-}
-
 fn read_message(v: &Json) -> Option<Json> {
 	if v.as_obj().is_none() || v["id"].as_str().is_none() || v["text"].as_str().is_none() || v["at"].as_str().is_none() {
 		return None;
@@ -98,9 +82,6 @@ fn read_message(v: &Json) -> Option<Json> {
 			}
 			if let Some(region) = sheet_region_of(&v["region"]) {
 				o.insert("region", region);
-			}
-			if let Some(about) = sheet_about_of(&v["about"]) {
-				o.insert("about", about);
 			}
 		}
 		Some("agent") => {
@@ -217,7 +198,7 @@ mod tests {
 		let got = sheet(
 			r#"{"deadlineId":"d","version":4,"folder":"CSE","updatedAt":"t",
 			"versions":[{"n":1,"prompt":"p","at":"a","pages":[{"widthPt":1,"heightPt":2,"x":9},{"widthPt":"no"}],"file":"f","fromFolder":true},{"n":2,"prompt":"p","at":"a","pages":[]}],
-			"messages":[{"id":"m1","role":"you","text":"hi","at":"a","files":["x.png",{"name":"y.png","file":"f.png"},3],"region":{"n":1,"page":1,"x":0,"y":0,"w":1,"h":1},"about":{"kind":"bogus"}},
+			"messages":[{"id":"m1","role":"you","text":"hi","at":"a","files":["x.png",{"name":"y.png","file":"f.png"},3],"region":{"n":1,"page":1,"x":0,"y":0,"w":1,"h":1},"about":{"kind":"problem","session":"S","text":"t"}},
 			{"id":"m2","role":"agent","text":"ok","at":"b","version":1,"rules":["r",1]},{"id":"m3","role":"robot","text":"","at":"c"}],
 			"rules":[{"text":"t","at":"a"},{"text":"t"}],"olderFormat":true}"#,
 		);

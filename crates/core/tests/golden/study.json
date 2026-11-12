@@ -70956,12 +70956,6 @@
 							"y": 0.2,
 							"w": 0.3,
 							"h": 0.4
-						},
-						"about": {
-							"kind": "problem",
-							"session": "S",
-							"text": "Q",
-							"work": "w"
 						}
 					},
 					{
@@ -70976,11 +70970,6 @@
 							"y": 0.2,
 							"w": 0.3,
 							"h": 0.4
-						},
-						"about": {
-							"kind": "question",
-							"session": "S",
-							"text": "Q"
 						}
 					},
 					{
@@ -71001,11 +70990,6 @@
 							"y": 0,
 							"w": 1,
 							"h": 1
-						},
-						"about": {
-							"kind": "problem",
-							"session": "S",
-							"text": ""
 						}
 					}
 				],
@@ -78394,7 +78378,7 @@
 					}
 				}
 			},
-			"result": "Cheat sheet for: CSE 21 Midterm on 2026-11-04\nAbout the space: We use Rosen. Notation: |A| is size.\nSpace info files (the rules are likely here): syllabus.txt, Course Policies.pdf, week1.pdf, week2.pdf\n\nThis sheet's rules (follow every one):\n- A4, both sides\n- No colour\n\nTopics on this exam (name | how the learner does), with some of the space's facts:\nCounting | weak, 3 mistakes\n  - Sum rule: Adds disjoint counts.\n  - Long: LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL…\nProbability | not tested yet, 1 mistake\n  - Bayes: P(A|B).\nSorting | knows it well\nGraphs | shaky\n  - Edge: A pair.\n\nMistakes from practice:\n- answered wrong (Counting): \"What is the sum rule?\"\n- needed hints (Probability): \"Bayes problem\"\n- answered wrong (tx): \"Outside\"\n\nWorking folder: /home/x/godspeed/cheat-sheets/CSE 21 Midterm\nIt is empty. There is no sheet yet. Keep its source here so later changes can edit it.\n\nThe student is on this problem in their session \"HW5\", with the sheet open beside it:\nProve the invariant holds.\nWhat they have written for it so far:\nLet lo <= r.\n\nThe learner says:\nMake it denser."
+			"result": "Cheat sheet for: CSE 21 Midterm on 2026-11-04\nAbout the space: We use Rosen. Notation: |A| is size.\nSpace info files (the rules are likely here): syllabus.txt, Course Policies.pdf, week1.pdf, week2.pdf\n\nThis sheet's rules (follow every one):\n- A4, both sides\n- No colour\n\nTopics on this exam (name | how the learner does), with some of the space's facts:\nCounting | weak, 3 mistakes\n  - Sum rule: Adds disjoint counts.\n  - Long: LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL…\nProbability | not tested yet, 1 mistake\n  - Bayes: P(A|B).\nSorting | knows it well\nGraphs | shaky\n  - Edge: A pair.\n\nMistakes from practice:\n- answered wrong (Counting): \"What is the sum rule?\"\n- needed hints (Probability): \"Bayes problem\"\n- answered wrong (tx): \"Outside\"\n\nWorking folder: /home/x/godspeed/cheat-sheets/CSE 21 Midterm\nIt is empty. There is no sheet yet. Keep its source here so later changes can edit it.\n\nThe learner says:\nMake it denser."
 		}
 	},
 	{
@@ -78509,7 +78493,7 @@
 					}
 				}
 			},
-			"result": "Cheat sheet for: CSE 21 Midterm on 2026-11-04\nAbout the space: We use Rosen. Notation: |A| is size.\nSpace info files (the rules are likely here): syllabus.txt, Course Policies.pdf, week1.pdf, week2.pdf\n\nThis sheet's rules (follow every one):\n- A4, both sides\n- No colour\n\nTopics on this exam (name | how the learner does), with some of the space's facts:\nCounting | weak, 3 mistakes\n  - Sum rule: Adds disjoint counts.\n  - Long: LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL…\nProbability | not tested yet, 1 mistake\n  - Bayes: P(A|B).\nSorting | knows it well\nGraphs | shaky\n  - Edge: A pair.\n\nMistakes from practice:\n- answered wrong (Counting): \"What is the sum rule?\"\n- needed hints (Probability): \"Bayes problem\"\n- answered wrong (tx): \"Outside\"\n\nWorking folder: /home/x/godspeed/cheat-sheets/CSE 21 Midterm\nIt is empty. There is no sheet yet. Keep its source here so later changes can edit it.\n\nThe student is on this question in their session \"Study: Counting\", with the sheet open beside it:\nHow many?\n\nThe learner says:\nMake it denser."
+			"result": "Cheat sheet for: CSE 21 Midterm on 2026-11-04\nAbout the space: We use Rosen. Notation: |A| is size.\nSpace info files (the rules are likely here): syllabus.txt, Course Policies.pdf, week1.pdf, week2.pdf\n\nThis sheet's rules (follow every one):\n- A4, both sides\n- No colour\n\nTopics on this exam (name | how the learner does), with some of the space's facts:\nCounting | weak, 3 mistakes\n  - Sum rule: Adds disjoint counts.\n  - Long: LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL…\nProbability | not tested yet, 1 mistake\n  - Bayes: P(A|B).\nSorting | knows it well\nGraphs | shaky\n  - Edge: A pair.\n\nMistakes from practice:\n- answered wrong (Counting): \"What is the sum rule?\"\n- needed hints (Probability): \"Bayes problem\"\n- answered wrong (tx): \"Outside\"\n\nWorking folder: /home/x/godspeed/cheat-sheets/CSE 21 Midterm\nIt is empty. There is no sheet yet. Keep its source here so later changes can edit it.\n\nThe learner says:\nMake it denser."
 		}
 	},
 	{
@@ -78625,7 +78609,7 @@
 					}
 				}
 			},
-			"result": "Cheat sheet for: CSE 21 Midterm on 2026-11-04\nAbout the space: We use Rosen. Notation: |A| is size.\nSpace info files (the rules are likely here): syllabus.txt, Course Policies.pdf, week1.pdf, week2.pdf\n\nThis sheet's rules (follow every one):\n- A4, both sides\n- No colour\n\nTopics on this exam (name | how the learner does), with some of the space's facts:\nCounting | weak, 3 mistakes\n  - Sum rule: Adds disjoint counts.\n  - Long: LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL…\nProbability | not tested yet, 1 mistake\n  - Bayes: P(A|B).\nSorting | knows it well\nGraphs | shaky\n  - Edge: A pair.\n\nMistakes from practice:\n- answered wrong (Counting): \"What is the sum rule?\"\n- needed hints (Probability): \"Bayes problem\"\n- answered wrong (tx): \"Outside\"\n\nWorking folder: /home/x/godspeed/cheat-sheets/CSE 21 Midterm\nIt is empty. There is no sheet yet. Keep its source here so later changes can edit it.\n\nThe student is on this problem in their session \"S\", with the sheet open beside it:\nPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP…\nWhat they have written for it so far:\nWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW\n\nThe learner says:\nMake it denser."
+			"result": "Cheat sheet for: CSE 21 Midterm on 2026-11-04\nAbout the space: We use Rosen. Notation: |A| is size.\nSpace info files (the rules are likely here): syllabus.txt, Course Policies.pdf, week1.pdf, week2.pdf\n\nThis sheet's rules (follow every one):\n- A4, both sides\n- No colour\n\nTopics on this exam (name | how the learner does), with some of the space's facts:\nCounting | weak, 3 mistakes\n  - Sum rule: Adds disjoint counts.\n  - Long: LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL…\nProbability | not tested yet, 1 mistake\n  - Bayes: P(A|B).\nSorting | knows it well\nGraphs | shaky\n  - Edge: A pair.\n\nMistakes from practice:\n- answered wrong (Counting): \"What is the sum rule?\"\n- needed hints (Probability): \"Bayes problem\"\n- answered wrong (tx): \"Outside\"\n\nWorking folder: /home/x/godspeed/cheat-sheets/CSE 21 Midterm\nIt is empty. There is no sheet yet. Keep its source here so later changes can edit it.\n\nThe learner says:\nMake it denser."
 		}
 	},
 	{

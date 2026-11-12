@@ -105,7 +105,7 @@ fn ask_input(body: &Json) -> AskInput {
 		let text = |a: &Json, key: &str| a[key].as_str().unwrap().to_owned();
 		all.as_arr().unwrap().iter().map(|a| ChatAttachment { name: text(a, "name"), mime_type: text(a, "mimeType"), data: text(a, "data") }).collect()
 	});
-	AskInput { text: body["text"].as_str().unwrap().to_owned(), attachments, region: body.get("region").cloned(), about: body.get("about").cloned() }
+	AskInput { text: body["text"].as_str().unwrap().to_owned(), attachments, region: body.get("region").cloned() }
 }
 
 async fn replay(app: &Arc<App>, mask: &Mask, home: &Path, data: &Path, step: &Json) -> Json {
