@@ -1,5 +1,5 @@
 /** A study session end to end through the outside-agent bridge: birth
- *  (study plan, plan tree, topics in class order with their modes), the
+ *  (study plan, plan tree, topics in class order with their material and standing), the
  *  teacher's prompt and tools plus problem/conclude from turn 1, the same
  *  tools every turn, a problem ending the turn, and the old kinds still
  *  building their own agents. Closed network, scratch data dir. */
@@ -63,8 +63,8 @@ const POSE = {
 	modelSolution: "Each element is in or out: $2^3 = 8$.",
 };
 
-/** A class with two dated lectures: "Counting" (2026-09-25, never tested)
- *  and "Sets" (2026-10-02, tested and missed). */
+/** A class with two dated lectures: "Counting" (2026-09-25, a procedure,
+ *  never tested) and "Sets" (2026-10-02, no material, tested and missed). */
 function seedClass() {
 	const cls = classStore.createClass({ name: "CSE 21" });
 	const file = (id: string, name: string) => ({ id, origin: "copied" as const, name, path: `x/${name}`, kind: "study" as const, contentFp: "", status: "ready" as const, addedAt: "2026-10-26T00:00:00.000Z" });
@@ -81,14 +81,14 @@ function seedClass() {
 		store.appendNode({ id, name: id, statement: `${id} holds`, aliases: [], createdAt: "2026-10-26T00:00:00.000Z", provenance: [{ chatId: src, messageId: "" }, ...extra] });
 	node("n_sets", sourceIdFor(cls.id, sets.id), [{ chatId: older.id, messageId: "m1" }]);
 	node("n_count", sourceIdFor(cls.id, counting.id));
-	store.appendTopics({ at: "2026-10-26T00:00:00.000Z", topics: [{ id: "tpc_sets", name: "Sets", members: ["n_sets"] }, { id: "tpc_count", name: "Counting", members: ["n_count"] }] });
+	store.appendTopics({ at: "2026-10-26T00:00:00.000Z", topics: [{ id: "tpc_sets", name: "Sets", members: ["n_sets"] }, { id: "tpc_count", name: "Counting", members: ["n_count"], material: "procedure" }] });
 	return cls;
 }
 
 describe("a study session", () => {
 	ensureMcpToken();
 
-	it("is born with the study plan and a plan tree, topics in class order with their modes", () => {
+	it("is born with the study plan and a plan tree, topics in class order with their material and standing", () => {
 		const cls = seedClass();
 		const created = createLesson({
 			title: "Study: Sets, Counting",
@@ -101,7 +101,7 @@ describe("a study session", () => {
 		assert.deepEqual(record.messages.map((m) => (m.role === "custom" ? m.customType : m.role)), ["class-context", "graph-context", "study-context"]);
 		const plan = record.messages.at(-1)!;
 		assert.ok(plan.role === "custom" && plan.display === false);
-		assert.match(plan.content as string, /1\. Counting — node tpc_count, teach \(never tested\), facts n_count\n2\. Sets — node tpc_sets, problems \(weak or shaky\), facts n_sets/);
+		assert.match(plan.content as string, /1\. Counting — node tpc_count, procedure, untested, facts n_count\n2\. Sets — node tpc_sets, weak \(latest wrong\), facts n_sets/);
 		assert.deepEqual(record.tree?.nodes.map((n) => n.id), ["tpc_count", "tpc_sets"]);
 	});
 
@@ -121,11 +121,11 @@ describe("a study session", () => {
 		assert.equal(untitled.title, "Untitled session", "nothing typed or picked keeps the floor");
 	});
 
-	it("a typed topic with no facts is one teach topic", () => {
+	it("a typed topic with no facts is one untested topic", () => {
 		const created = createLesson({ title: "Bayes' rule", classId: null });
 		assert.ok(created.ok);
 		const record = chatStore.getChat(created.chat.id)!;
-		assert.match(record.messages.at(-1)!.content as string, /1\. Bayes' rule — node topic, teach \(never tested\), no facts/);
+		assert.match(record.messages.at(-1)!.content as string, /1\. Bayes' rule — node topic, untested, no facts/);
 		assert.deepEqual(record.tree?.nodes, [{ id: "topic", title: "Bayes' rule" }]);
 	});
 

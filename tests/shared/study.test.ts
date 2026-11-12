@@ -1,5 +1,5 @@
 /**
- * STUDY (core/study.ts): the mode per topic from its readiness, the class
+ * STUDY (core/study.ts): each topic's material and standing, the class
  * order, the typed-topic fallback, the study context text, the plan the
  * app writes, and the topics a deadline's Study button picks.
  */
@@ -11,7 +11,6 @@ import {
 	FREE_TOPIC_ID,
 	MAX_STUDY_FACTS,
 	studyContextText,
-	studyMode,
 	studyPlanTree,
 	studyTitle,
 	studyTopics,
@@ -21,21 +20,15 @@ import { firstPhase, phaseAt3Lh, phaseTimeline } from "../../src/shared/core/pha
 import { derivePlanStatusesLh } from "../../src/shared/core/contracts.ts";
 import type { LhMessage } from "../../src/shared/core/native-messages.ts";
 
+const answered = (...outcomes: ("right" | "wrong" | "dontKnow")[]) => outcomes.map((outcome) => ({ chatId: "c", toolCallId: "q", outcome, answeredAt: "" }));
 const TOPICS = [
-	{ id: "tpc_sets", name: "Sets", members: ["f1", "f2"], status: "strong" as const },
-	{ id: "tpc_count", name: "Counting", members: ["f3", "f4"], status: "untested" as const },
-	{ id: "tpc_prob", name: "Probability", members: ["f5"], status: "shaky" as const },
-	{ id: "tpc_logic", name: "Logic", members: ["f6"], status: "weak" as const },
+	{ id: "tpc_sets", name: "Sets", members: ["f1", "f2"], material: "term" as const, status: "strong" as const, answers: answered("right") },
+	{ id: "tpc_count", name: "Counting", members: ["f3", "f4"], material: "procedure" as const, status: "untested" as const, answers: [] },
+	// Grouped before topics had a material.
+	{ id: "tpc_prob", name: "Probability", members: ["f5"], status: "shaky" as const, answers: answered("wrong", "right", "right") },
+	{ id: "tpc_logic", name: "Logic", members: ["f6"], material: "proof" as const, status: "weak" as const, answers: answered("right", "wrong") },
+	{ id: "tpc_graph", name: "Graphs", members: ["f7"], material: "concept" as const, status: "weak" as const, answers: answered("wrong", "wrong", "right") },
 ];
-
-describe("studyMode", () => {
-	it("never tested teaches, weak or shaky drills, strong checks", () => {
-		assert.equal(studyMode("untested"), "teach");
-		assert.equal(studyMode("weak"), "problems");
-		assert.equal(studyMode("shaky"), "problems");
-		assert.equal(studyMode("strong"), "check");
-	});
-});
 
 describe("factClassOrder", () => {
 	it("orders facts by their file's class day, undated files after by name, lesson facts nowhere", () => {
@@ -60,23 +53,32 @@ describe("factClassOrder", () => {
 });
 
 describe("studyTopics", () => {
-	it("groups the picks by topic, in class order, with each topic's mode", () => {
+	it("groups the picks by topic, in class order, with each topic's material and standing", () => {
 		const classOrder = new Map([
 			["f1", 2],
 			["f3", 0],
 			["f5", 1],
 		]);
-		const topics = studyTopics({ factIds: ["f1", "f2", "f5", "f3", "f4", "f6"], topics: TOPICS, classOrder, freeTopic: "unused" });
+		const topics = studyTopics({ factIds: ["f1", "f2", "f5", "f3", "f4", "f6", "f7"], topics: TOPICS, classOrder, freeTopic: "unused" });
 		assert.deepEqual(
-			topics.map((t) => [t.id, t.mode, t.factIds]),
+			topics.map((t) => [t.id, t.material, t.status, t.latestWrong, t.factIds]),
 			[
-				["tpc_count", "teach", ["f3", "f4"]],
-				["tpc_prob", "problems", ["f5"]],
-				["tpc_sets", "check", ["f1", "f2"]],
+				["tpc_count", "procedure", "untested", undefined, ["f3", "f4"]],
+				["tpc_prob", undefined, "shaky", undefined, ["f5"]],
+				["tpc_sets", "term", "strong", undefined, ["f1", "f2"]],
 				// No class file: last.
-				["tpc_logic", "problems", ["f6"]],
+				["tpc_logic", "proof", "weak", true, ["f6"]],
+				["tpc_graph", "concept", "weak", undefined, ["f7"]],
 			],
 		);
+	});
+
+	it("a weak topic whose latest answer was not right is marked, whatever came before", () => {
+		const weak = (...outcomes: ("right" | "wrong" | "dontKnow")[]) =>
+			studyTopics({ factIds: ["f6"], topics: [{ ...TOPICS[3]!, answers: answered(...outcomes) }], classOrder: new Map(), freeTopic: "x" })[0]!.latestWrong;
+		assert.equal(weak("wrong"), true);
+		assert.equal(weak("right", "dontKnow"), true, "I don't know is not right");
+		assert.equal(weak("wrong", "wrong", "right"), undefined, "caught up since");
 	});
 
 	it("keeps the picked order when the class order can't tell topics apart", () => {
@@ -84,9 +86,9 @@ describe("studyTopics", () => {
 		assert.deepEqual(topics.map((t) => t.id), ["tpc_logic", "tpc_sets"]);
 	});
 
-	it("a typed topic with no matched facts is one teach topic", () => {
+	it("a typed topic with no matched facts is one untested topic with no material", () => {
 		assert.deepEqual(studyTopics({ factIds: [], topics: TOPICS, classOrder: new Map(), freeTopic: "Bayes' rule" }), [
-			{ id: FREE_TOPIC_ID, name: "Bayes' rule", mode: "teach", factIds: [] },
+			{ id: FREE_TOPIC_ID, name: "Bayes' rule", status: "untested", factIds: [] },
 		]);
 		// Picks that are no longer in the graph count as none.
 		assert.equal(studyTopics({ factIds: ["gone"], topics: TOPICS, classOrder: new Map(), freeTopic: "x" })[0]!.id, FREE_TOPIC_ID);
@@ -96,7 +98,7 @@ describe("studyTopics", () => {
 describe("topicStudy", () => {
 	/** A topic with `size` facts born in class file `rank`. */
 	function build(spec: { id: string; size: number; rank: number; status: "untested" | "weak" | "shaky" | "strong" }[]) {
-		const topics = spec.map((s) => ({ id: s.id, name: s.id.toUpperCase(), status: s.status, members: Array.from({ length: s.size }, (_, i) => `${s.id}_${i}`) }));
+		const topics = spec.map((s) => ({ id: s.id, name: s.id.toUpperCase(), status: s.status, answers: [], members: Array.from({ length: s.size }, (_, i) => `${s.id}_${i}`) }));
 		const facts = topics.flatMap((t) => t.members.map((id) => ({ id, name: id, statement: `${id} holds`, topicId: t.id, born: null, inLessons: false, answers: [] })));
 		const classOrder = new Map(spec.flatMap((s, i) => topics[i]!.members.map((id) => [id, s.rank] as const)));
 		return { topics, facts, classOrder };
@@ -133,7 +135,7 @@ describe("topicStudy", () => {
 		]);
 		const topics = topicStudy({ ...input, topicIds: ["t1", "t2", "t3", "t4"], studiedToday: new Set(["t2"]) });
 		assert.deepEqual(ids(topics), ["t2", "t4", "t1"], "t4, t1, then t2 fill it; listed in class order; strong t3 waits");
-		assert.deepEqual(topics.map((t) => t.mode), ["problems", "problems", "teach"]);
+		assert.deepEqual(topics.map((t) => t.status), ["weak", "shaky", "untested"]);
 	});
 
 	it("each deadline Study click moves on to the next topics", () => {
@@ -156,16 +158,24 @@ describe("topicStudy", () => {
 
 describe("the study context and plan", () => {
 	const topics = [
-		{ id: "tpc_count", name: "Counting", mode: "teach" as const, factIds: ["f3", "f4"] },
-		{ id: "tpc_sets", name: "Sets", mode: "check" as const, factIds: ["f1"] },
+		{ id: "tpc_count", name: "Counting", status: "untested" as const, factIds: ["f3", "f4"] },
+		{ id: "tpc_sets", name: "Sets", status: "strong" as const, factIds: ["f1"] },
 	];
 
-	it("lists names, nodes, modes and fact ids only", () => {
-		const text = studyContextText(topics);
+	it("lists names, nodes, material and standing, and fact ids only", () => {
+		const text = studyContextText(studyTopics({ factIds: ["f3", "f5", "f1", "f6", "f7"], topics: TOPICS, classOrder: new Map(), freeTopic: "x" }));
 		assert.match(text, /^\[Study plan\]/);
-		assert.match(text, /1\. Counting — node tpc_count, teach \(never tested\), facts f3, f4/);
-		assert.match(text, /2\. Sets — node tpc_sets, check \(strong\), facts f1/);
-		assert.match(studyContextText([{ id: FREE_TOPIC_ID, name: "Bayes", mode: "teach", factIds: [] }]), /no facts in the class graph yet/);
+		assert.equal(
+			text.split("\n").slice(1).join("\n"),
+			[
+				"1. Counting — node tpc_count, procedure, untested, facts f3",
+				"2. Probability — node tpc_prob, shaky, facts f5",
+				"3. Sets — node tpc_sets, term, strong, facts f1",
+				"4. Logic — node tpc_logic, proof, weak (latest wrong), facts f6",
+				"5. Graphs — node tpc_graph, concept, weak, facts f7",
+			].join("\n"),
+		);
+		assert.match(studyContextText([{ id: FREE_TOPIC_ID, name: "Bayes", status: "untested", factIds: [] }]), /1\. Bayes — node topic, untested, no facts in the class graph yet/);
 	});
 
 	it("the plan has one node per topic, in order, and problems tag position", () => {

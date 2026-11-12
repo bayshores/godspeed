@@ -15,7 +15,7 @@
  * Pure and browser-safe: no node builtins. The server assembles the inputs
  * (src/backend/server/progress.ts → GET /api/progress).
  */
-import type { ClassDeadline, ClassFileKind, DeadlineKind, GraphChain, LessonKind, ProvenancePoint, TopicSnapshot } from "./contracts.ts";
+import type { ClassDeadline, ClassFileKind, DeadlineKind, GraphChain, LessonKind, ProvenancePoint, TopicMaterial, TopicSnapshot } from "./contracts.ts";
 import { compareDeadlines } from "./contracts.ts";
 import { continueStudyFor, type ContinueStudy, type DeadlineSession } from "./continue-study.ts";
 import { latestHomework, problemsDone, type HomeworkSession } from "./homework.ts";
@@ -267,6 +267,7 @@ export interface TopicProgress extends Tally {
 	members: string[];
 	/** The derived "Ungrouped" bucket (facts no snapshot placed yet). */
 	ungrouped?: true;
+	material?: TopicMaterial;
 	status: TopicStatus;
 	/** rampColor(rate). */
 	color: string;
@@ -719,6 +720,7 @@ export function deriveProgress(input: ProgressInput): ProgressPayload {
 			name: t.name,
 			members: t.members,
 			...(t.ungrouped ? { ungrouped: true as const } : {}),
+			...(t.material ? { material: t.material } : {}),
 			...counts,
 			status: topicStatus(counts.rate),
 			color: rampColor(counts.rate),

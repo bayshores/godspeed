@@ -124,7 +124,7 @@ export function progressFor(scope: ClassScope, opts: { today?: string } = {}): P
 }
 
 /** A study session's topics from its picked facts: grouped by class topic,
- *  in class order, each with its mode (core/study.ts). */
+ *  in class order, each with its material and standing (core/study.ts). */
 export function studyTopicsFor(scope: ClassScope, factIds: readonly string[], freeTopic: string): StudyTopic[] {
 	const progress = factIds.length > 0 ? progressFor(scope) : null;
 	const record = scope === null ? null : stores.classStore.getClass(scope);

@@ -1,30 +1,29 @@
 /**
- * STUDY — one session that decides per topic whether to teach, drill or
- * just check. At the start the app turns the picked facts into the
- * session's topics, in the order the class covered them, each with a mode
- * from the learner's track record:
- *
- *  - never tested → "teach": a short explanation with a worked example, then a problem
- *  - weak or shaky → "problems": problems with hints, a short re-teach on a miss
- *  - strong → "check": one quick problem, then move on
+ * STUDY: one session over the picked topics. At the start the app turns
+ * the picked facts into the session's topics, in the order the class
+ * covered them, each with its material (from the topic grouper) and where
+ * the learner stands on it from his track record. The study prompt's move
+ * table picks each topic's move from that pair.
  *
  * The topics become the study context the agent reads and the plan the
  * step bar shows (one node per topic). Pure and browser-safe.
  */
 import { daysBetween, topicFacts, type DeadlineProgress, type FactProgress, type TopicProgress, type TopicStatus } from "./progress.ts";
-import type { PlanTree } from "./contracts.ts";
+import type { PlanTree, TopicMaterial } from "./contracts.ts";
 import { planDays } from "./deadline-plan.ts";
 import { dateInName } from "./file-series.ts";
 import { createTree } from "./plan-tree.ts";
 import { localDay } from "./today-note.ts";
 
-export type StudyMode = "teach" | "problems" | "check";
-
 export interface StudyTopic {
 	/** The plan node id: the class topic's id, or FREE_TOPIC_ID. */
 	id: string;
 	name: string;
-	mode: StudyMode;
+	material?: TopicMaterial;
+	status: TopicStatus;
+	/** Weak and his latest answer on it was not right (the status is a lifetime
+	 *  rate, so a topic can stay weak after he has caught up). */
+	latestWrong?: true;
 	/** The picked facts in this topic (empty for a typed topic). */
 	factIds: string[];
 }
@@ -32,9 +31,18 @@ export interface StudyTopic {
 /** The plan node of a typed topic that matches no fact. */
 export const FREE_TOPIC_ID = "topic";
 
-export function studyMode(status: TopicStatus): StudyMode {
-	if (status === "untested") return "teach";
-	return status === "strong" ? "check" : "problems";
+type StudiedTopic = Pick<TopicProgress, "id" | "name" | "members" | "material" | "status" | "answers">;
+
+function studyTopic(t: StudiedTopic, factIds: string[]): StudyTopic {
+	const latestWrong = t.status === "weak" && t.answers.at(-1)?.outcome !== "right";
+	return {
+		id: t.id,
+		name: t.name,
+		...(t.material ? { material: t.material } : {}),
+		status: t.status,
+		...(latestWrong ? { latestWrong: true as const } : {}),
+		factIds,
+	};
 }
 
 /**
@@ -65,12 +73,12 @@ export function factClassOrder(
  * The session's topics: the picked facts grouped by their class topic,
  * in class order (a topic sits at its earliest fact; facts from no class
  * file go last; ties keep the order the facts were picked in). When no
- * picked fact is in a topic, the typed topic is the one "teach" topic.
+ * picked fact is in a topic, the typed topic is the one untested topic.
  */
 export function studyTopics(input: {
 	/** The picked fact ids, in the order they were sent. */
 	factIds: readonly string[];
-	topics: ReadonlyArray<{ id: string; name: string; members: readonly string[]; status: TopicStatus }>;
+	topics: readonly StudiedTopic[];
 	classOrder: ReadonlyMap<string, number>;
 	freeTopic: string;
 }): StudyTopic[] {
@@ -81,10 +89,10 @@ export function studyTopics(input: {
 		const topic = topicOf.get(id);
 		if (!topic) continue;
 		const group = groups.get(topic.id);
-		if (!group) groups.set(topic.id, { id: topic.id, name: topic.name, mode: studyMode(topic.status), factIds: [id] });
+		if (!group) groups.set(topic.id, studyTopic(topic, [id]));
 		else if (!group.factIds.includes(id)) group.factIds.push(id);
 	}
-	if (groups.size === 0) return [{ id: FREE_TOPIC_ID, name: input.freeTopic, mode: "teach", factIds: [] }];
+	if (groups.size === 0) return [{ id: FREE_TOPIC_ID, name: input.freeTopic, status: "untested", factIds: [] }];
 	return inClassOrder([...groups.values()], input.classOrder);
 }
 
@@ -115,7 +123,7 @@ export const MAX_STUDY_FACTS = 64;
  */
 export function topicStudy(input: {
 	topicIds: readonly string[];
-	topics: readonly Pick<TopicProgress, "id" | "name" | "members" | "status">[];
+	topics: readonly StudiedTopic[];
 	facts: readonly FactProgress[];
 	classOrder: ReadonlyMap<string, number>;
 	/** Deadline starts: the topics that are plan nodes of today's study sessions. */
@@ -125,13 +133,12 @@ export function topicStudy(input: {
 	const candidates = inClassOrder(
 		[...new Set(input.topicIds)].flatMap((id) => {
 			const t = byId.get(id);
-			return t ? [{ id: t.id, name: t.name, mode: studyMode(t.status), factIds: topicFacts(input.facts, t).map((f) => f.id) }] : [];
+			return t ? [studyTopic(t, topicFacts(input.facts, t).map((f) => f.id))] : [];
 		}),
 		input.classOrder,
 	);
 	const today = input.studiedToday;
-	// "check" is exactly the strong topics.
-	const tier = (t: StudyTopic) => (!today ? 0 : t.mode === "check" ? 2 : today.has(t.id) ? 1 : 0);
+	const tier = (t: StudyTopic) => (!today ? 0 : t.status === "strong" ? 2 : today.has(t.id) ? 1 : 0);
 	const kept = new Set<StudyTopic>();
 	let count = 0;
 	for (const t of [...candidates].sort((a, b) => tier(a) - tier(b))) {
@@ -147,20 +154,19 @@ export function studyTitle(topics: readonly Pick<StudyTopic, "name">[]): string 
 	return `Study: ${topics.map((t) => t.name).join(", ")}`;
 }
 
-const MODE_NOTE: Record<StudyMode, string> = {
-	teach: "teach (never tested)",
-	problems: "problems (weak or shaky)",
-	check: "check (strong)",
-};
+/** "procedure, weak (latest wrong)": the pair the study prompt's move table reads. */
+function standing(t: StudyTopic): string {
+	return `${t.material ? `${t.material}, ` : ""}${t.status}${t.latestWrong ? " (latest wrong)" : ""}`;
+}
 
-/** The study context's model-facing text: names, modes and fact ids only
- *  (the graph context above it carries the statements). */
+/** The study context's model-facing text: names, standings and fact ids
+ *  only (the graph context above it carries the statements). */
 export function studyContextText(topics: readonly StudyTopic[]): string {
 	return [
-		"[Study plan] — this session's topics, in the order the class covered them, each with its plan node and its mode from the learner's track record:",
+		"[Study plan] — this session's topics, in the order the class covered them, each with its plan node, its material and where he stands from his track record:",
 		...topics.map(
 			(t, i) =>
-				`${i + 1}. ${t.name} — node ${t.id}, ${MODE_NOTE[t.mode]}${t.factIds.length > 0 ? `, facts ${t.factIds.join(", ")}` : ", no facts in the class graph yet"}`,
+				`${i + 1}. ${t.name} — node ${t.id}, ${standing(t)}${t.factIds.length > 0 ? `, facts ${t.factIds.join(", ")}` : ", no facts in the class graph yet"}`,
 		),
 	].join("\n");
 }

@@ -1,8 +1,9 @@
 /**
  * TOPICS:
  *  - the read rule (last snapshot, dead members dropped, "Ungrouped")
- *  - the write rule (every fact in exactly one topic; ids kept stable)
- *  - the topic grouper against a fake model (names validated → retry)
+ *  - the write rule (every fact in exactly one topic; ids and material kept stable)
+ *  - the topic grouper against a fake model (names validated → retry,
+ *    material optional)
  *  - the scheduler: < 4 facts skip, unchanged skip, files-waiting skip,
  *    debounce, single-flight,
  *    the activity-dock entry, and the outside agent's labeled work item
@@ -65,6 +66,9 @@ describe("topics: the read rule", () => {
 		]);
 		assert.equal(out.at(-1)!.ungrouped, true);
 		assert.deepEqual(resolveTopics(null, ["n1"]).map((t) => t.name), ["Ungrouped"]);
+		const withMaterial = resolveTopics({ at: "t", topics: [{ id: "tpc_a", name: "Counting", members: ["n1"], material: "procedure" }, { id: "tpc_b", name: "Old", members: ["n2"] }] }, ["n1", "n2"]);
+		assert.deepEqual(withMaterial.map((t) => t.material), ["procedure", undefined], "a topic grouped before material has none");
+		assert.equal("material" in withMaterial[1]!, false);
 		assert.deepEqual(resolveTopics(null, []), []);
 	});
 
@@ -87,6 +91,10 @@ describe("topics: the read rule", () => {
 		const snap = store.readTopics();
 		assert.equal(snap?.at, "t2");
 		assert.equal(store.readTopics(), snap, "an unchanged file is not parsed again");
+		store.appendTopics({ at: "t4", topics: [{ id: "tpc_a", name: "Second", members: ["n1"], material: "term" }] });
+		assert.equal(store.readTopics()?.topics[0]!.material, "term");
+		fs.appendFileSync(file, `${JSON.stringify({ at: "t5", topics: [{ id: "tpc_a", name: "Second", members: ["n1"], material: "fact" }] })}\n`);
+		assert.equal(store.readTopics()?.at, "t4", "an unknown material is a corrupt line");
 	});
 
 	it("names are 1–4 words", () => {
@@ -113,6 +121,35 @@ describe("topics: the write rule", () => {
 		assert.equal(out[0]!.id, "tpc_old");
 		assert.match(out[1]!.id, /^tpc_new/, "the name-match id is already used — a new id");
 		assert.match(out[2]!.id, /^tpc_new/, "an invented id is not kept");
+	});
+
+	it("a topic that keeps an existing id keeps its material; the draft's is used only when there was none", () => {
+		const out = repairTopics(
+			[
+				{ id: "tpc_proc", name: "Counting", members: ["n1"], material: "concept" },
+				{ name: "proofs", members: ["n2"], material: "term" }, // borrows tpc_proof by name
+				{ id: "tpc_none", name: "Sets", members: ["n3"], material: "term" },
+				{ name: "Graphs", members: ["n4"], material: "concept" },
+				{ name: "Trees", members: ["n5", "n6"] },
+			],
+			facts,
+			[],
+			[
+				{ id: "tpc_proc", name: "Counting", members: ["n1"], material: "procedure" },
+				{ id: "tpc_proof", name: "Proofs", members: ["n2"], material: "proof" },
+				{ id: "tpc_none", name: "Sets", members: ["n3"] },
+			],
+			newId,
+		);
+		assert.deepEqual(out.map((t) => [t.name, t.material]), [
+			["Counting", "procedure"],
+			["proofs", "proof"],
+			["Sets", "term"],
+			["Graphs", "concept"],
+			["Trees", undefined],
+		]);
+		assert.equal(out[1]!.id, "tpc_proof");
+		assert.equal("material" in out[4]!, false);
 	});
 
 	it("places left-out facts by chain neighbors, the rest in Other", () => {
@@ -153,6 +190,31 @@ describe("topics: the grouper (fake model)", () => {
 		assert.deepEqual(out.map((t) => [t.id, t.name, t.members]), [
 			["tpc_old", "Counting", ["n1", "n2"]],
 			[out[1]!.id, "Proofs", ["n3", "n4"]],
+		]);
+	});
+
+	it("asks for each topic's material after the grouping rule and takes a grouping with or without it", async () => {
+		const rule = TOPIC_GROUPER_INSTRUCTIONS.indexOf(TOPIC_GROUPING_RULE);
+		assert.ok(TOPIC_GROUPER_INSTRUCTIONS.indexOf("Also give each topic its material") > rule);
+		const { engine } = submitEngine({
+			topics: [
+				{ id: "tpc_old", name: "Counting", members: ["n1", "n2"], material: "concept" },
+				{ name: "Proofs", members: ["n3"], material: "proof" },
+				{ name: "Sets", members: ["n4"] },
+			],
+		});
+		const out = await groupTopics({
+			className: "MATH 1A",
+			facts: ["n1", "n2", "n3", "n4"].map((id) => ({ id, name: `Fact ${id}`, statement: `${id} holds` })),
+			chains: [],
+			current: [{ id: "tpc_old", name: "Counting", members: ["n1"], material: "procedure" }],
+			engine,
+			newId,
+		});
+		assert.deepEqual(out.map((t) => [t.name, t.material]), [
+			["Counting", "procedure"],
+			["Proofs", "proof"],
+			["Sets", undefined],
 		]);
 	});
 });
@@ -211,6 +273,17 @@ describe("topics: the scheduler", () => {
 		assert.equal(counter.calls, 1, "the fact set is unchanged");
 		await scheduleAndSettle("cls_gone_1");
 		assert.equal(counter.calls, 1, "no such class");
+	});
+
+	it("a regroup keeps a stored topic's material", async () => {
+		const cls = classStore.createClass({ name: "MATH 18" });
+		const store = seed(cls.id, 4);
+		const ids = store.readNodes().map((n) => n.id);
+		store.appendTopics({ at: "2026-10-27T00:00:00.000Z", topics: [{ id: "tpc_kept000001", name: "Matrices", members: ids.slice(0, 3), material: "procedure" }] });
+		const counter = groupAllEngine(store, "Matrices");
+		await scheduleAndSettle(cls.id);
+		assert.equal(counter.calls, 1);
+		assert.deepEqual(store.readTopics()!.topics.map((t) => [t.id, t.members.length, t.material]), [["tpc_kept000001", 4, "procedure"]]);
 	});
 
 	it("a scheduled run waits while a class file is still pending", async () => {

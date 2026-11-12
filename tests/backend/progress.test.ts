@@ -88,7 +88,7 @@ const TOPICS = {
 	at: "2026-10-26T00:00:00.000Z",
 	topics: [
 		{ id: "tpc_1", name: "Counting", members: ["f1", "f2", "f3"] },
-		{ id: "tpc_2", name: "Proofs", members: ["f4", "f5", "gone"] },
+		{ id: "tpc_2", name: "Proofs", members: ["f4", "f5", "gone"], material: "proof" as const },
 		{ id: "tpc_3", name: "Induction", members: ["f7", "f8"] },
 		{ id: "tpc_4", name: "Graphs", members: ["f9", "f10"] },
 	],
@@ -233,6 +233,11 @@ describe("progress: deriveProgress", () => {
 		assert.equal(topic("tpc_3").status, "weak");
 		assert.deepEqual([topic("tpc_4").status, topic("tpc_4").color], ["untested", P.UNTESTED_COLOR]);
 		assert.deepEqual(p.totals, { answered: 5, right: 1, wrong: 3, dontKnow: 1, rate: 0.2 });
+	});
+
+	it("carries each topic's material; a topic grouped before material has none", () => {
+		assert.deepEqual(p.topics.map((t) => t.material), [undefined, "proof", undefined, undefined, undefined]);
+		assert.equal("material" in topic("tpc_1"), false);
 	});
 
 	it("draws topic arrows and columns", () => {
