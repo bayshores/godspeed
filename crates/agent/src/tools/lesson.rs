@@ -18,7 +18,7 @@ use super::jobs::{JobToolContext, job_tools};
 use super::plan::{PlanContext, plan_init_tool};
 use super::practice::{GraphNodes, LessonRecord, NodeCheck, TurnGate, problem_is_active, study_problem_tools};
 use super::probe::{ProbeDoneContext, ProbeGate, probe_done_tool};
-use super::questions::{ask_user_question_tool, node_id_problem, probe_explain_tool, probe_quiz_tool, teach_explain_tool, teach_quiz_tool, write_code_tool};
+use super::questions::{ask_user_question_tool, node_id_problem, probe_explain_tool, probe_quiz_tool, study_quiz_tool, teach_explain_tool, teach_quiz_tool, write_code_tool};
 use super::side::{LessonSide, file_tools, filter_enabled, graph_and_side};
 use super::topic_done::{CheckMarks, topic_done_tool};
 use super::work_plan::work_plan_tool;
@@ -112,7 +112,13 @@ pub fn prober_tools(ctx: &ProberToolContext, enabled: Option<&Json>) -> Vec<FnTo
 /// The teacher's tools: the teach questions (validated nodeId), plan, jobs and the learner's
 /// files. `enabled` drops any tool explicitly off.
 pub fn teacher_tools(ctx: &TeacherToolContext, enabled: Option<&Json>) -> Vec<FnTool> {
-	let mut tools = vec![if free_recall(enabled) { teach_explain_tool(&ctx.plan) } else { teach_quiz_tool(&ctx.plan) }, ask_user_question_tool(), write_code_tool()];
+	let question = if free_recall(enabled) { teach_explain_tool(&ctx.plan) } else { teach_quiz_tool(&ctx.plan) };
+	teacher_tools_asking(ctx, enabled, question)
+}
+
+/// The teacher's tools with `question` as the graded question tool.
+fn teacher_tools_asking(ctx: &TeacherToolContext, enabled: Option<&Json>, question: FnTool) -> Vec<FnTool> {
+	let mut tools = vec![question, ask_user_question_tool(), write_code_tool()];
 	tools.extend(file_tools());
 	tools.extend([plan_init_tool(&ctx.plan), work_plan_tool()]);
 	let jobs = job_tools(&ctx.jobs);
@@ -121,14 +127,16 @@ pub fn teacher_tools(ctx: &TeacherToolContext, enabled: Option<&Json>) -> Vec<Fn
 	heal_tool_record(filter_enabled(tools, without_mechanics(enabled).as_ref()))
 }
 
-/// A study session's tools: the teacher's plus practice's problem and conclude, the problem
-/// naming its plan node like a quiz, and topic_done after a finished topic.
+/// A study session's tools: the teacher's (its quiz takes `standalone`) plus practice's problem
+/// and conclude, the problem naming its plan node like a quiz, and topic_done after a finished
+/// topic.
 pub fn study_tools(ctx: &StudyToolContext, enabled: Option<&Json>) -> Vec<FnTool> {
 	let plan = ctx.teacher.plan.clone();
 	let node_check: NodeCheck = Arc::new(move |node_id| node_id_problem(&plan, node_id));
 	let record = LessonRecord { chat_id: ctx.teacher.plan.chat_id.clone(), chat_store: ctx.teacher.plan.chat_store.clone() };
 	let gate = TurnGate::new(problem_is_active(&record.chat_store, &record.chat_id));
-	let mut tools = teacher_tools(&ctx.teacher, enabled);
+	let question = if free_recall(enabled) { teach_explain_tool(&ctx.teacher.plan) } else { study_quiz_tool(&ctx.teacher.plan) };
+	let mut tools = teacher_tools_asking(&ctx.teacher, enabled, question);
 	tools.extend(study_problem_tools(&gate, record.clone(), ctx.graph_nodes.clone(), node_check.clone()));
 	tools.push(topic_done_tool(record, &gate, ctx.check_marks.clone(), node_check, !free_recall(enabled)));
 	heal_tool_record(tools)

@@ -6,6 +6,7 @@ use std::sync::Arc;
 use gs_core::session::code_question::{write_code_input_problems, write_code_input_schema};
 use gs_core::session::question_core::{
 	ask_input_schema, ask_option_problems, explain_input_base, explain_input_object, explain_input_problems, parse_options_if_string, probe_quiz_input_schema, quiz_input_object, quiz_input_problems,
+	study_quiz_input_object,
 };
 use gs_engine::turn::tool_execute::{invalid_input_result, question_result};
 use gs_json::{Json, json, stringify_pretty};
@@ -162,8 +163,18 @@ pub fn node_id_problem(ctx: &PlanContext, node_id: &str) -> Option<String> {
 
 /// The teach quiz: the shared authoring rules plus the plan-node check.
 pub fn teach_quiz_tool(ctx: &PlanContext) -> FnTool {
+	node_quiz_tool(ctx, quiz_input_object())
+}
+
+/// The Study quiz: the teach quiz whose schema adds `standalone`, which marks a quiz godspeed may
+/// ask again weeks later.
+pub fn study_quiz_tool(ctx: &PlanContext) -> FnTool {
+	node_quiz_tool(ctx, study_quiz_input_object())
+}
+
+fn node_quiz_tool(ctx: &PlanContext, schema: Json) -> FnTool {
 	let ctx = ctx.clone();
-	FnTool::immediate("quiz", quiz_description("quiz", true), quiz_input_object(), move |args| {
+	FnTool::immediate("quiz", quiz_description("quiz", true), schema, move |args| {
 		let mut problems = quiz_input_problems(&args);
 		problems.extend(node_id_problem(&ctx, args["nodeId"].as_str().unwrap_or_default()));
 		verdict("quiz", &problems)

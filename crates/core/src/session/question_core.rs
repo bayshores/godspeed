@@ -242,6 +242,16 @@ pub fn quiz_input_object() -> Json {
 	object(&required, fields)
 }
 
+/// The Study quiz input: the teach quiz plus `standalone`, which marks a quiz godspeed may ask
+/// again weeks later as a question from earlier.
+pub fn study_quiz_input_object() -> Json {
+	let mut schema = quiz_input_object();
+	if let Some(properties) = schema.get_mut("properties").and_then(Json::as_obj_mut) {
+		properties.insert("standalone", boolean("True when it makes sense weeks later with no lesson around it."));
+	}
+	schema
+}
+
 /// The probe-side quiz input: the shared fields with no map yet, so no `nodeId` and no `type`.
 pub fn probe_quiz_input_schema() -> Json {
 	object(&QUIZ_REQUIRED, quiz_fields())
@@ -352,5 +362,9 @@ mod tests {
 		assert_eq!(stringify(&explain_input_base()["required"]), r#"["question","correctAnswer"]"#);
 		assert_eq!(stringify(&ask_input_schema()["required"]), r#"["question"]"#);
 		assert_eq!(stringify(&explain_input_object()["required"]), r#"["type","nodeId","question","correctAnswer"]"#);
+		let study = study_quiz_input_object();
+		assert_eq!(study["required"], quiz["required"], "standalone is optional");
+		assert_eq!(study["properties"].as_obj().unwrap().keys().last().map(String::as_str), Some("standalone"));
+		assert_eq!(stringify(&study["properties"]["standalone"]), r#"{"type":"boolean","description":"True when it makes sense weeks later with no lesson around it."}"#);
 	}
 }
