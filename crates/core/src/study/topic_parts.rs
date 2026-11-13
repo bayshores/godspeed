@@ -1,6 +1,6 @@
 //! The parts a Study topic opens with, read from the record (src/shared/core/topic-parts.ts; both
 //! replay tests/golden/topic_parts.json). A reply is one assistant message; its topic is the
-//! nodeId its calls name (refused calls aside), else the topic of the latest earlier reply. A
+//! nodeId its calls name (refused calls aside), else the latest earlier reply's or shown opener's. A
 //! topic's page is the first quoted source mark in the shown opener's lead, else in the reply that
 //! opens the topic; later replies never give one.
 
@@ -30,6 +30,7 @@ pub fn topic_parts(messages: &[Json]) -> Vec<Json> {
 		{
 			let lead_of = opener["topicDoneCallId"].clone();
 			out.push(json!({ "nodeId": node_id, "page": first_quoted(opener["lead"].as_str().unwrap_or_default(), Json::Null, lead_of) }));
+			current = Some(node_id.to_owned());
 			continue;
 		}
 		if m["role"].as_str() != Some("assistant") {
