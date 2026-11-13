@@ -1,4 +1,4 @@
-import { useContext, useState } from "react";
+import { useContext, useRef, useState } from "react";
 import { blurAfterPointerClick } from "@/frontend/components/focus-hygiene";
 import { CARD, SMALL_BTN } from "@/frontend/components/ui/card-parts";
 import { ResultTag } from "@/frontend/components/result-tag";
@@ -72,8 +72,20 @@ export function KeptCard({ kept, answer: savedAnswer, input, toolCallId }: { kep
 	const step = useStepNumber(input);
 	const answer = answerForPresentation(savedAnswer, input);
 	const drop = actions?.dropKept;
+	// Dropping or bringing back the phrase removes the button he pressed, so
+	// focus moves to the one that takes its place once it is on the page.
+	const focusNext = useRef<"drop" | "bring" | null>(null);
+	const takesFocus = (which: "drop" | "bring") => (el: HTMLButtonElement | null) => {
+		if (!el || focusNext.current !== which) return;
+		focusNext.current = null;
+		el.focus();
+	};
+	const dropPhrase = (back: boolean) => {
+		focusNext.current = back ? "drop" : "bring";
+		drop?.(toolCallId, "phrase", back);
+	};
 	return (
-		<div data-testid="kept-card" data-kept="" className={cn(CARD, "flex flex-col text-card-foreground")}>
+		<div data-testid="kept-card" data-kept="" role="group" aria-label="Right, kept sentence" className={cn(CARD, "flex flex-col text-card-foreground")}>
 			<KeptSentence text={view.statement} />
 			{view.phrase && phrase.mounted && (
 				<div className="lh-collapse" data-state={phrase.state}>
@@ -83,7 +95,7 @@ export function KeptCard({ kept, answer: savedAnswer, input, toolCallId }: { kep
 								<KeptPhrase line={view.phrase.line} />
 							</div>
 							{drop && (
-								<button type="button" data-testid="kept-drop-phrase" aria-label="Drop this phrase" onClick={() => drop(toolCallId, "phrase", false)} className={QUIET_BTN}>
+								<button type="button" ref={takesFocus("drop")} data-testid="kept-drop-phrase" aria-label="Drop this phrase" onClick={() => dropPhrase(false)} className={QUIET_BTN}>
 									Drop this
 								</button>
 							)}
@@ -107,7 +119,7 @@ export function KeptCard({ kept, answer: savedAnswer, input, toolCallId }: { kep
 				{view.source && <KeptSource cite={view.source} />}
 				<span className="flex-1" aria-hidden />
 				{drop && view.phrase && !view.phrase.shown && (
-					<button type="button" data-testid="kept-bring-phrase" onClick={() => drop(toolCallId, "phrase", true)} className={QUIET_BTN}>
+					<button type="button" ref={takesFocus("bring")} data-testid="kept-bring-phrase" onClick={() => dropPhrase(true)} className={QUIET_BTN}>
 						Bring the phrase back
 					</button>
 				)}

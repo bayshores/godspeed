@@ -83,6 +83,10 @@ describe("KeptCard", () => {
 		assert.match(html, /data-testid="kept-why"/);
 	});
 
+	it("is a group named for a right answer, so a screen reader hears Right before Why opens", () => {
+		assert.match(render(FULL), /^<div data-testid="kept-card" data-kept="" role="group" aria-label="Right, kept sentence"/);
+	});
+
 	it("outside a lesson it offers no drop", () => {
 		const html = renderToStaticMarkup(<KeptCard kept={FULL} answer={keepAnswer("right")} input={{}} toolCallId="call_k" />);
 		assert.doesNotMatch(html, /Drop this|Bring the/);
@@ -118,6 +122,36 @@ describe("KeptCard", () => {
 		await act(async () => click("kept-why"));
 		const why = host.querySelector("[data-testid='kept-why-details']")?.textContent ?? "";
 		assert.match(why, /Right[\s\S]*Quiz, sure 4 of 5[\s\S]*Where is that weight now\?[\s\S]*6[\s\S]*moves to 6/);
+		await act(async () => root.unmount());
+	});
+
+	it("after the phrase is dropped or brought back, focus moves to the other control", async () => {
+		const { document, window } = parseHTML("<!doctype html><html><body></body></html>");
+		Object.assign(globalThis, { window, document, IS_REACT_ACT_ENVIRONMENT: true });
+		// linkedom tracks no focus, so focus() here records which button took it.
+		const focused: string[] = [];
+		(window.HTMLElement.prototype as unknown as { focus: () => void }).focus = function (this: HTMLElement) {
+			focused.push(this.getAttribute("data-testid") ?? "");
+		};
+		const host = document.createElement("div");
+		document.body.appendChild(host);
+		const root = createRoot(host as unknown as HTMLElement);
+		let kept = FULL;
+		const mount = () =>
+			root.render(
+				<ChatActionsContext.Provider value={{ chatId: "c1", sendBlocked: null, sendText: () => {}, dropKept: (_of, _part, back) => void (kept = { ...kept, phraseDropped: !back }) }}>
+					<KeptCard kept={kept} answer={keepAnswer("right")} input={{ type: "check", nodeId: "reg" }} toolCallId="call_k" />
+				</ChatActionsContext.Provider>,
+			);
+		const click = (id: string) => (host.querySelector(`[data-testid='${id}']`) as unknown as HTMLElement).click();
+		await act(async () => mount());
+		await act(async () => click("kept-drop-phrase"));
+		await act(async () => mount());
+		assert.deepEqual(focused, ["kept-bring-phrase"]);
+		await act(async () => click("kept-bring-phrase"));
+		await act(async () => mount());
+		await act(async () => mount());
+		assert.deepEqual(focused, ["kept-bring-phrase", "kept-drop-phrase"]);
 		await act(async () => root.unmount());
 	});
 });
