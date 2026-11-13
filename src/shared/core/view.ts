@@ -36,7 +36,9 @@ import type { AssistantMessage, ToolResultMessage } from "@earendil-works/pi-ai"
 import type { LhMarkerMessage, LhMessage } from "./native-messages.ts";
 import { answeredCallIds, interruptedQuestions, PRACTICE_CONCLUDE_TOOL, problemInputForConclude, SEND_TO_USER_TOOL, sendToUserText, sideHeldQuestions } from "./native-messages.ts";
 import { activeCompactionOf, type CompactionDetails } from "./compaction.ts";
-import { isQuestionTool } from "./pending.ts";
+import { isQuestionTool, type AppPosed } from "./pending.ts";
+import { dismissedAnswer } from "./question-core.ts";
+import { shownOpeners, type ShownOpener } from "./topic-end.ts";
 import type { SubagentArtifactData, SubagentResultMeta } from "./contracts/jobs.ts";
 import type { PlanBlockData } from "./contracts/chat.ts";
 import { pdfNoteOf, type AttachmentPart } from "./attachments.ts";
@@ -153,6 +155,9 @@ export function projectView(messages: readonly LhMessage[], live?: LiveTurnState
 	const answered = answeredCallIds(messages);
 	const interrupted = interruptedQuestions(messages);
 	const movedParts = new Map<string, LhViewPart>();
+	// Kept-going openers draw right after their topic_done result, wherever
+	// the Keep going marker sits.
+	const openers = shownOpeners(messages);
 
 	const lastAssistant = (): LhViewMessage | undefined => {
 		const last = out[out.length - 1];
@@ -225,6 +230,12 @@ export function projectView(messages: readonly LhMessage[], live?: LiveTurnState
 				continue;
 			}
 			applyResultTo(findToolPart(result.toolCallId), result);
+			const opener = openers.get(result.toolCallId);
+			if (opener) {
+				const group = lastAssistant();
+				if (group) group.parts.push({ type: "step-start" }, ...openerParts(opener));
+				else out.push({ id: `opener_${opener.topicDoneCallId}`, role: "assistant", parts: [{ type: "step-start" }, ...openerParts(opener)] });
+			}
 			continue;
 		}
 
@@ -321,6 +332,25 @@ export function projectView(messages: readonly LhMessage[], live?: LiveTurnState
 	}
 
 	return out;
+}
+
+/** A shown opener's parts: its lead as teacher text, then its question as
+ *  a quiz part the app posed. Answered once an opener-answer exists; a skip
+ *  shows as a skipped question. */
+function openerParts(opener: ShownOpener): LhViewPart[] {
+	const question: LhViewPart = {
+		type: "tool-quiz",
+		toolCallId: `opener_${opener.topicDoneCallId}`,
+		input: opener.quiz,
+		state: "input-available",
+		appPosed: { kind: "opener", ref: opener.topicDoneCallId } satisfies AppPosed,
+	};
+	if (opener.answer) {
+		const answeredAt = new Date(opener.answer.timestamp).toISOString();
+		question.state = "output-available";
+		question.output = opener.answer.answer ?? { ...dismissedAnswer("quiz", String(opener.quiz.question ?? "")), answeredAt };
+	}
+	return [...(opener.lead ? [{ type: "text", id: `opener_${opener.topicDoneCallId}-lead`, text: opener.lead, state: "done" }] : []), question];
 }
 
 // ─── reuse unchanged messages ───────────────────────────────────────────────
@@ -568,6 +598,14 @@ function projectMarker(marker: LhMarkerMessage, out: LhViewMessage[]): void {
 		case "problem-dismissed":
 			// UI-only (the ask-style dismissal): the synthesized conclude
 			// pair — which rides the NEXT input — carries the record's face.
+			return;
+		case "keep-going":
+		case "opener-answer":
+			// Drawn at the stop instead: the opener's parts after its
+			// topic_done result (openerParts), answered by its answer.
+			return;
+		case "app-note":
+			// Hidden lines for the agent only.
 			return;
 		case "compaction": {
 			// THE MOMENT DIVIDER: minimal centered small

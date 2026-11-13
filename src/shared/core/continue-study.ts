@@ -13,9 +13,14 @@ export interface DeadlineSession {
 	done: number;
 	/** The session's plan topics. */
 	total: number;
+	/** Set while it waits at a stop he has not kept going from: when, and
+	 *  what is next. */
+	stop?: { at: string; next: string | null };
+	/** The topic it is in the middle of, when it is not at a stop. */
+	inTopic?: string;
 }
 
-export type ContinueStudy = Pick<DeadlineSession, "chatId" | "done" | "total">;
+export type ContinueStudy = Pick<DeadlineSession, "chatId" | "done" | "total" | "stop" | "inTopic">;
 
 /** The session a deadline's Study button reopens: the latest one started
  *  from it, while unfinished. */

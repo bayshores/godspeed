@@ -36,6 +36,15 @@ interface PendingToolCall {
 	tool: string;
 	/** Tool input (the question tool's args) — lets the composer pick note vs answer mode. */
 	input: unknown;
+	/** Set on a question the app posed, which has no tool call of its own. */
+	appPosed?: AppPosed;
+}
+
+/** A question the app posed from stored data: the next topic's opener,
+ *  `ref` its topic_done call id. */
+export interface AppPosed {
+	kind: "opener";
+	ref: string;
 }
 
 /** Tools that render in the question dock and gate the composer. The
@@ -84,7 +93,8 @@ export function findPendingToolCall(messages: UIMessage[]): PendingToolCall | nu
 			if (isToolUIPart(part) && part.state === "input-available") {
 				const tool = part.type.slice("tool-".length);
 				if (isQuestionTool(tool)) {
-					return { toolCallId: part.toolCallId as string, tool, input: part.input };
+					const appPosed = part.appPosed as AppPosed | undefined;
+					return { toolCallId: part.toolCallId as string, tool, input: part.input, ...(appPosed ? { appPosed } : {}) };
 				}
 			}
 		}
