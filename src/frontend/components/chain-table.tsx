@@ -102,7 +102,7 @@ export function ChainTableBody({
 							spellCheck={false}
 							className={cn(FIELD, "w-[260px] max-w-full")}
 						/>
-						<button type="button" data-testid="chain-table-close" onClick={onClose} className="lh-btn bg-panel text-[15px]">
+						<button type="button" data-testid="chain-table-close" onClick={onClose} className="lh-btn text-[15px]">
 							<PixelIcon name="close" />
 							Close
 						</button>
@@ -126,7 +126,7 @@ export function ChainTableBody({
 									data-testid={`sort-${col}`}
 									onClick={() => onSort(col)}
 									aria-sort={on ? (sort.dir === 1 ? "ascending" : "descending") : "none"}
-									className={cn("lh-btn text-[15px]", on ? "h-auto bg-panel px-2.5 py-[5px]" : "lh-btn-quiet")}
+									className={cn("lh-btn text-[15px]", on ? "h-auto px-2.5 py-[5px]" : "lh-btn-quiet")}
 								>
 									{label}
 									{on && <PixelIcon name="chevron" className={cn("h-2", sort.dir === 1 ? "-rotate-90" : "rotate-90")} />}

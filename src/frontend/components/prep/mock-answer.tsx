@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { MOCK_LANGUAGES, RUN_FILE, type CodeQuestion, type MockLanguage, type RunOutcome } from "@/shared/core";
 import { CodeEditor } from "@/frontend/components/lesson/code-editor";
-import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { cn } from "@/frontend/lib/utils";
 import { exampleLine } from "./mock-model";
 import { postMock } from "./use-mock";
@@ -96,8 +95,7 @@ export function CodeAnswer({
 			/>
 			<section data-testid="mock-examples" aria-label="Examples" className="flex max-h-[40%] shrink-0 flex-col gap-2.5 overflow-y-auto border-t-2 border-line bg-panel px-5 py-3.5">
 				<div className="flex flex-wrap items-center gap-x-3.5 gap-y-2">
-					<button type="button" data-testid="mock-run-examples" disabled={running} onClick={() => void run()} className="lh-btn shrink-0 bg-background text-[15px]">
-						<PixelIcon name="play" />
+					<button type="button" data-testid="mock-run-examples" disabled={running} onClick={() => void run()} className="lh-btn shrink-0 text-[15px]">
 						{running ? "Running" : "Run examples"}
 					</button>
 					<p className="min-w-0 flex-1 basis-[260px] text-[15px] leading-snug text-ink-3">

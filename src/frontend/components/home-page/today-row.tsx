@@ -76,7 +76,6 @@ export function TodayRow({
 							onClick={() => onStart(d)}
 							className={cn("lh-btn", work ? "h-[38px] text-[15px]" : "lh-btn-main h-[53px] gap-2.5 px-[22px] text-[17px]")}
 						>
-							{!work && <PixelIcon name="play" />}
 							{words.button}
 						</button>
 					</span>
@@ -108,7 +107,6 @@ export function PrepTodayRow({ prep, nowMs, busy, onOpen, onStudy }: { prep: Pre
 						line={`It is on ${longDay(prep.date)}`}
 					/>
 					<button type="button" data-testid="today-prep-study" disabled={busy} onClick={() => onStudy(prep)} className="lh-btn lh-btn-main h-[53px] shrink-0 gap-2.5 px-[22px] text-[17px]">
-						<PixelIcon name="play" />
 						Study
 					</button>
 				</div>

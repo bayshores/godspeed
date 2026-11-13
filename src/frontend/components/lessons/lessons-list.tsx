@@ -4,7 +4,6 @@ import { useSpaces } from "@/frontend/components/space-context";
 import { useHalley } from "@/frontend/components/halley/halley-provider";
 import { LoadFailed } from "@/frontend/components/load-failed";
 import { useRiseOnChange } from "@/frontend/components/motion";
-import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { useMenuDismiss } from "@/frontend/components/use-menu-dismiss";
 import { DEFAULT_TEACHER_NAME, type ChatDeleteMode, type ChatListItem } from "@/shared/core";
 import { DeleteLessonDialog } from "./delete-lesson-dialog";
@@ -150,7 +149,6 @@ export function LessonsList() {
 				/>
 				{/* New lessons start on the start page ("/new"). */}
 				<Link to="/new" data-testid="new-session" className="lh-btn lh-btn-main h-11 justify-center text-base">
-					<PixelIcon name="play" />
 					Study something new
 				</Link>
 			</div>

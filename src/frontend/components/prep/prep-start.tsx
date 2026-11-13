@@ -141,7 +141,6 @@ export function PrepStart() {
 
 				<div className="flex flex-col items-start gap-3">
 					<button type="submit" data-testid="prep-write" aria-disabled={!goal.trim()} disabled={busy} className={cn("lh-btn lh-btn-main", BIG_BUTTON)}>
-						<PixelIcon name="play" />
 						Write my prep sheet
 					</button>
 					<p className="text-[15px] text-ink-2">{teacher} looks it up online, then writes what it is like and what to study. It takes a few minutes.</p>

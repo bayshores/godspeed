@@ -2,4 +2,4 @@
 export const CARD = "rounded border border-border bg-background p-4";
 
 /** A small outlined button on such a card. */
-export const SMALL_BTN = "lh-press lh-btn h-7 shrink-0 bg-panel px-2.5 text-[15px]";
+export const SMALL_BTN = "lh-press lh-btn h-7 shrink-0 px-2.5 text-[15px]";

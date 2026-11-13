@@ -44,7 +44,6 @@ function PrepMocks({ spaceId }: { spaceId: string }) {
 				<h2>Mocks</h2>
 				{format && !open && (
 					<button type="button" data-testid="mocks-take" disabled={take.busy} onClick={() => void take.take()} className="lh-btn lh-btn-main mb-1 text-[15px]">
-						<PixelIcon name="play" />
 						Take a mock
 					</button>
 				)}

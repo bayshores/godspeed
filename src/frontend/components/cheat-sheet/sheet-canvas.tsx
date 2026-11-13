@@ -285,7 +285,7 @@ export function SheetCanvas({
 					onPointerDown={(e) => e.stopPropagation()}
 				>
 					<span className="min-w-0 truncate">{pointError ?? "Drag a box around the part you mean"}</span>
-					<button type="button" onClick={() => setPointing(false)} className="lh-btn h-7 shrink-0 border-background px-3 text-[15px] text-background hover:bg-background/15">
+					<button type="button" onClick={() => setPointing(false)} className="lh-btn h-7 shrink-0 px-3 text-[15px] text-background [--lh-key:color-mix(in_srgb,var(--background)_20%,var(--foreground))] [--lh-key-hover:color-mix(in_srgb,var(--background)_30%,var(--foreground))]">
 						Cancel
 					</button>
 				</div>
@@ -311,7 +311,7 @@ export function SheetCanvas({
 
 function ToolButton({ label, onClick, className, children }: { label: string; onClick: () => void; className?: string; children: React.ReactNode }) {
 	return (
-		<button type="button" aria-label={label} title={label} onClick={onClick} className={cn("lh-btn bg-panel text-[15px] hover:bg-tone", className)}>
+		<button type="button" aria-label={label} title={label} onClick={onClick} className={cn("lh-btn text-[15px]", className)}>
 			{children}
 		</button>
 	);
