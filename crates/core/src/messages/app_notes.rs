@@ -10,7 +10,7 @@ use gs_json::js_text::js_string;
 use super::input_events::{About, ChatInput, messages_of};
 use super::lesson_markers::{ANALOGY_DROP, new_app_note_marker};
 use crate::session::question_core::{confidence_level, keep_of};
-use crate::study::kept::{KEEP_NOTE, keep_notes};
+use crate::study::kept::{KEEP_NOTE, dropped, keep_notes};
 use crate::study::topic_end::{resume_due, shown_openers};
 
 const RESUMED_LINE: &str = "[Resumed] He came back to this session after a stop.";
@@ -85,18 +85,16 @@ fn analogy_dropped_lines(record: &Json) -> Vec<String> {
 	let messages = messages_of(record);
 	let told = |m: &Json| matches!(m["customType"].as_str(), Some("app-note" | "opener-answer")) && m["content"].as_str().is_some_and(|c| c.lines().any(|l| l.starts_with(ANALOGY_DROPPED)));
 	let since = messages.iter().rposition(told).map_or(0, |i| i + 1);
-	let mut last: Vec<(&str, bool)> = Vec::new();
-	for m in messages[since..].iter().filter(|m| m["customType"].as_str() == Some(ANALOGY_DROP)) {
-		let Some(of) = m["details"]["of"].as_str() else { continue };
-		let dropped = !m["details"]["back"].truthy();
-		match last.iter_mut().find(|(o, _)| *o == of) {
-			Some(entry) => entry.1 = dropped,
-			None => last.push((of, dropped)),
+	let mut changed: Vec<&str> = Vec::new();
+	for of in messages[since..].iter().filter(|m| m["customType"].as_str() == Some(ANALOGY_DROP)).filter_map(|m| m["details"]["of"].as_str()) {
+		if !changed.contains(&of) {
+			changed.push(of);
 		}
 	}
-	last.into_iter()
-		.filter(|(_, dropped)| *dropped)
-		.filter_map(|(of, _)| {
+	changed
+		.into_iter()
+		.filter(|of| dropped(messages, ANALOGY_DROP, of))
+		.filter_map(|of| {
 			let args = messages.iter().flat_map(|m| m["content"].as_arr().into_iter().flatten()).find(|b| b["type"].as_str() == Some("toolCall") && b["id"].as_str() == Some(of))?.get("arguments")?;
 			let fits = keep_of(args)?["fits"].as_str().map(first_words)?;
 			Some(format!("{ANALOGY_DROPPED} {}: \"{fits}\"", node_title(record, args["nodeId"].as_str().unwrap_or_default())))

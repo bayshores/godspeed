@@ -3,8 +3,9 @@
  * it carries a `keep`, the server's keep-check said "shown", and his answer
  * was right (not I don't know, not skipped). Every other case keeps the
  * shipped answered card. The analogy lines and the phrase show unless the
- * last drop marker of their kind for that quiz took them away. Pure and
- * browser-safe.
+ * last drop marker of their kind for that quiz took them away. Twin of the
+ * server's crates/core/src/study/kept.rs; both replay
+ * crates/core/tests/golden/kept.json. Pure and browser-safe.
  */
 import type { LhMessage } from "./native-messages.ts";
 import type { KeepCheckDetails, KeptDropDetails } from "./contracts/chat.ts";
@@ -37,10 +38,11 @@ function keepOf(args: unknown): Record<string, unknown> | null {
 
 const textOf = (value: unknown): string | undefined => (typeof value === "string" && value.trim() !== "" ? value : undefined);
 
-/** A right answer that counts: graded right, not I don't know, not skipped. */
+/** A right answer that counts: graded right, not I don't know, not skipped
+ *  (any truthy flag, as the server's answer_outcome reads them). */
 function rightAnswer(details: unknown): boolean {
 	const d = details as { kind?: unknown; correct?: unknown; dontKnow?: unknown; dismissed?: unknown } | null | undefined;
-	return d?.kind === "quiz" && d.correct === true && d.dontKnow !== true && d.dismissed !== true;
+	return d?.kind === "quiz" && d.correct === true && !d.dontKnow && !d.dismissed;
 }
 
 /** Each quiz call that shows as a kept card, by its call id. */
@@ -66,7 +68,7 @@ function keptCards(messages: readonly LhMessage[]): Map<string, KeptCardData> {
 			} else if (m.customType === "analogy-drop" || m.customType === "phrase-drop") {
 				const d = m.details as KeptDropDetails | null | undefined;
 				if (typeof d?.of !== "string") continue;
-				(m.customType === "analogy-drop" ? analogyDropped : phraseDropped).set(d.of, d.back !== true);
+				(m.customType === "analogy-drop" ? analogyDropped : phraseDropped).set(d.of, !d.back);
 			}
 		}
 	}

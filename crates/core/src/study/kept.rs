@@ -3,7 +3,8 @@
 //! refuses the quiz: a keep that breaks a rule is not stored and the teacher reads why after his
 //! answer. A topic keeps at most 2 sentences and shows the analogy lines on at most 1, a keep
 //! needs a reply with nothing new before it, and a reply stores one. A sentence he kept comes back
-//! on the row of a question from earlier about its topic.
+//! on the row of a question from earlier about its topic. Which quiz shows a kept card, and with
+//! which parts, is twin to src/shared/core/kept-view.ts; both replay tests/golden/kept.json.
 
 use std::collections::{HashMap, HashSet};
 

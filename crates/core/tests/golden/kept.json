@@ -1,0 +1,1355 @@
+[
+	{
+		"name": "a right answer shows every part",
+		"output": {
+			"args": {
+				"messages": [
+					{
+						"role": "assistant",
+						"id": "m1",
+						"content": [
+							{
+								"type": "text",
+								"text": "So."
+							},
+							{
+								"type": "toolCall",
+								"id": "q1",
+								"name": "quiz",
+								"arguments": {
+									"type": "check",
+									"nodeId": "reg",
+									"question": "Where is that weight now?",
+									"options": [
+										{
+											"label": "6"
+										},
+										{
+											"label": "3"
+										}
+									],
+									"correctAnswer": "A",
+									"explanation": "Linear in y.",
+									"keep": {
+										"text": "Lambda prices large weights; it does not cap them.",
+										"source": "[[f_1a2b3c4d5e6f:7]]",
+										"fits": "The leash fits one part: for the data you have.",
+										"stops": "It stops at new data.",
+										"phrase": "Price, not cap"
+									}
+								}
+							}
+						],
+						"timestamp": 1
+					},
+					{
+						"role": "custom",
+						"customType": "keep-check",
+						"content": "",
+						"display": false,
+						"details": {
+							"quizCallId": "q1",
+							"keep": "shown",
+							"fits": true,
+							"phrase": true,
+							"source": "ok",
+							"sourceMark": "[[f_1a2b3c4d5e6f/p. 14/Lecture 6.pdf]]"
+						},
+						"timestamp": 2
+					},
+					{
+						"role": "toolResult",
+						"toolCallId": "q1",
+						"toolName": "quiz",
+						"isError": false,
+						"content": [],
+						"details": {
+							"kind": "quiz",
+							"correct": true,
+							"dontKnow": false,
+							"answers": [
+								{
+									"index": 1,
+									"label": "6"
+								}
+							]
+						},
+						"timestamp": 3
+					}
+				]
+			},
+			"result": {
+				"q1": {
+					"text": "Lambda prices large weights; it does not cap them.",
+					"analogy": true,
+					"phrase": true,
+					"source": "[[f_1a2b3c4d5e6f/p. 14/Lecture 6.pdf]]"
+				}
+			}
+		}
+	},
+	{
+		"name": "a wrong answer keeps the answered card",
+		"output": {
+			"args": {
+				"messages": [
+					{
+						"role": "assistant",
+						"id": "m1",
+						"content": [
+							{
+								"type": "text",
+								"text": "So."
+							},
+							{
+								"type": "toolCall",
+								"id": "q1",
+								"name": "quiz",
+								"arguments": {
+									"type": "check",
+									"nodeId": "reg",
+									"question": "Where is that weight now?",
+									"options": [
+										{
+											"label": "6"
+										},
+										{
+											"label": "3"
+										}
+									],
+									"correctAnswer": "A",
+									"explanation": "Linear in y.",
+									"keep": {
+										"text": "Lambda prices large weights; it does not cap them.",
+										"source": "[[f_1a2b3c4d5e6f:7]]",
+										"fits": "The leash fits one part: for the data you have.",
+										"stops": "It stops at new data.",
+										"phrase": "Price, not cap"
+									}
+								}
+							}
+						],
+						"timestamp": 1
+					},
+					{
+						"role": "custom",
+						"customType": "keep-check",
+						"content": "",
+						"display": false,
+						"details": {
+							"quizCallId": "q1",
+							"keep": "shown",
+							"fits": true,
+							"phrase": true,
+							"source": "ok",
+							"sourceMark": "[[f_1a2b3c4d5e6f/p. 14/Lecture 6.pdf]]"
+						},
+						"timestamp": 2
+					},
+					{
+						"role": "toolResult",
+						"toolCallId": "q1",
+						"toolName": "quiz",
+						"isError": false,
+						"content": [],
+						"details": {
+							"kind": "quiz",
+							"correct": false,
+							"dontKnow": false,
+							"answers": [
+								{
+									"index": 1,
+									"label": "6"
+								}
+							]
+						},
+						"timestamp": 3
+					}
+				]
+			},
+			"result": {
+				"q1": null
+			}
+		}
+	},
+	{
+		"name": "I don't know sent as 1 is not a right answer",
+		"output": {
+			"args": {
+				"messages": [
+					{
+						"role": "assistant",
+						"id": "m1",
+						"content": [
+							{
+								"type": "text",
+								"text": "So."
+							},
+							{
+								"type": "toolCall",
+								"id": "q1",
+								"name": "quiz",
+								"arguments": {
+									"type": "check",
+									"nodeId": "reg",
+									"question": "Where is that weight now?",
+									"options": [
+										{
+											"label": "6"
+										},
+										{
+											"label": "3"
+										}
+									],
+									"correctAnswer": "A",
+									"explanation": "Linear in y.",
+									"keep": {
+										"text": "Lambda prices large weights; it does not cap them.",
+										"source": "[[f_1a2b3c4d5e6f:7]]",
+										"fits": "The leash fits one part: for the data you have.",
+										"stops": "It stops at new data.",
+										"phrase": "Price, not cap"
+									}
+								}
+							}
+						],
+						"timestamp": 1
+					},
+					{
+						"role": "custom",
+						"customType": "keep-check",
+						"content": "",
+						"display": false,
+						"details": {
+							"quizCallId": "q1",
+							"keep": "shown",
+							"fits": true,
+							"phrase": true,
+							"source": "ok",
+							"sourceMark": "[[f_1a2b3c4d5e6f/p. 14/Lecture 6.pdf]]"
+						},
+						"timestamp": 2
+					},
+					{
+						"role": "toolResult",
+						"toolCallId": "q1",
+						"toolName": "quiz",
+						"isError": false,
+						"content": [],
+						"details": {
+							"kind": "quiz",
+							"correct": true,
+							"dontKnow": 1,
+							"answers": [
+								{
+									"index": 1,
+									"label": "6"
+								}
+							]
+						},
+						"timestamp": 3
+					}
+				]
+			},
+			"result": {
+				"q1": null
+			}
+		}
+	},
+	{
+		"name": "a skip sent as a string is not a right answer",
+		"output": {
+			"args": {
+				"messages": [
+					{
+						"role": "assistant",
+						"id": "m1",
+						"content": [
+							{
+								"type": "text",
+								"text": "So."
+							},
+							{
+								"type": "toolCall",
+								"id": "q1",
+								"name": "quiz",
+								"arguments": {
+									"type": "check",
+									"nodeId": "reg",
+									"question": "Where is that weight now?",
+									"options": [
+										{
+											"label": "6"
+										},
+										{
+											"label": "3"
+										}
+									],
+									"correctAnswer": "A",
+									"explanation": "Linear in y.",
+									"keep": {
+										"text": "Lambda prices large weights; it does not cap them.",
+										"source": "[[f_1a2b3c4d5e6f:7]]",
+										"fits": "The leash fits one part: for the data you have.",
+										"stops": "It stops at new data.",
+										"phrase": "Price, not cap"
+									}
+								}
+							}
+						],
+						"timestamp": 1
+					},
+					{
+						"role": "custom",
+						"customType": "keep-check",
+						"content": "",
+						"display": false,
+						"details": {
+							"quizCallId": "q1",
+							"keep": "shown",
+							"fits": true,
+							"phrase": true,
+							"source": "ok",
+							"sourceMark": "[[f_1a2b3c4d5e6f/p. 14/Lecture 6.pdf]]"
+						},
+						"timestamp": 2
+					},
+					{
+						"role": "toolResult",
+						"toolCallId": "q1",
+						"toolName": "quiz",
+						"isError": false,
+						"content": [],
+						"details": {
+							"kind": "quiz",
+							"correct": true,
+							"dontKnow": false,
+							"answers": [
+								{
+									"index": 1,
+									"label": "6"
+								}
+							],
+							"dismissed": "yes"
+						},
+						"timestamp": 3
+					}
+				]
+			},
+			"result": {
+				"q1": null
+			}
+		}
+	},
+	{
+		"name": "correct sent as 1 is not a right answer",
+		"output": {
+			"args": {
+				"messages": [
+					{
+						"role": "assistant",
+						"id": "m1",
+						"content": [
+							{
+								"type": "text",
+								"text": "So."
+							},
+							{
+								"type": "toolCall",
+								"id": "q1",
+								"name": "quiz",
+								"arguments": {
+									"type": "check",
+									"nodeId": "reg",
+									"question": "Where is that weight now?",
+									"options": [
+										{
+											"label": "6"
+										},
+										{
+											"label": "3"
+										}
+									],
+									"correctAnswer": "A",
+									"explanation": "Linear in y.",
+									"keep": {
+										"text": "Lambda prices large weights; it does not cap them.",
+										"source": "[[f_1a2b3c4d5e6f:7]]",
+										"fits": "The leash fits one part: for the data you have.",
+										"stops": "It stops at new data.",
+										"phrase": "Price, not cap"
+									}
+								}
+							}
+						],
+						"timestamp": 1
+					},
+					{
+						"role": "custom",
+						"customType": "keep-check",
+						"content": "",
+						"display": false,
+						"details": {
+							"quizCallId": "q1",
+							"keep": "shown",
+							"fits": true,
+							"phrase": true,
+							"source": "ok",
+							"sourceMark": "[[f_1a2b3c4d5e6f/p. 14/Lecture 6.pdf]]"
+						},
+						"timestamp": 2
+					},
+					{
+						"role": "toolResult",
+						"toolCallId": "q1",
+						"toolName": "quiz",
+						"isError": false,
+						"content": [],
+						"details": {
+							"kind": "quiz",
+							"correct": 1,
+							"dontKnow": false,
+							"answers": [
+								{
+									"index": 1,
+									"label": "6"
+								}
+							]
+						},
+						"timestamp": 3
+					}
+				]
+			},
+			"result": {
+				"q1": null
+			}
+		}
+	},
+	{
+		"name": "a dropped verdict keeps the answered card",
+		"output": {
+			"args": {
+				"messages": [
+					{
+						"role": "assistant",
+						"id": "m1",
+						"content": [
+							{
+								"type": "text",
+								"text": "So."
+							},
+							{
+								"type": "toolCall",
+								"id": "q1",
+								"name": "quiz",
+								"arguments": {
+									"type": "check",
+									"nodeId": "reg",
+									"question": "Where is that weight now?",
+									"options": [
+										{
+											"label": "6"
+										},
+										{
+											"label": "3"
+										}
+									],
+									"correctAnswer": "A",
+									"explanation": "Linear in y.",
+									"keep": {
+										"text": "Lambda prices large weights; it does not cap them.",
+										"source": "[[f_1a2b3c4d5e6f:7]]",
+										"fits": "The leash fits one part: for the data you have.",
+										"stops": "It stops at new data.",
+										"phrase": "Price, not cap"
+									}
+								}
+							}
+						],
+						"timestamp": 1
+					},
+					{
+						"role": "custom",
+						"customType": "keep-check",
+						"content": "",
+						"display": false,
+						"details": {
+							"quizCallId": "q1",
+							"keep": "dropped",
+							"fits": false,
+							"phrase": false,
+							"note": "keep not stored: this topic already has 2 kept sentences."
+						},
+						"timestamp": 2
+					},
+					{
+						"role": "toolResult",
+						"toolCallId": "q1",
+						"toolName": "quiz",
+						"isError": false,
+						"content": [],
+						"details": {
+							"kind": "quiz",
+							"correct": true,
+							"dontKnow": false,
+							"answers": [
+								{
+									"index": 1,
+									"label": "6"
+								}
+							]
+						},
+						"timestamp": 3
+					}
+				]
+			},
+			"result": {
+				"q1": null
+			}
+		}
+	},
+	{
+		"name": "no verdict (an old lesson) keeps the answered card",
+		"output": {
+			"args": {
+				"messages": [
+					{
+						"role": "assistant",
+						"id": "m1",
+						"content": [
+							{
+								"type": "text",
+								"text": "So."
+							},
+							{
+								"type": "toolCall",
+								"id": "q1",
+								"name": "quiz",
+								"arguments": {
+									"type": "check",
+									"nodeId": "reg",
+									"question": "Where is that weight now?",
+									"options": [
+										{
+											"label": "6"
+										},
+										{
+											"label": "3"
+										}
+									],
+									"correctAnswer": "A",
+									"explanation": "Linear in y.",
+									"keep": {
+										"text": "Lambda prices large weights; it does not cap them.",
+										"source": "[[f_1a2b3c4d5e6f:7]]",
+										"fits": "The leash fits one part: for the data you have.",
+										"stops": "It stops at new data.",
+										"phrase": "Price, not cap"
+									}
+								}
+							}
+						],
+						"timestamp": 1
+					},
+					{
+						"role": "toolResult",
+						"toolCallId": "q1",
+						"toolName": "quiz",
+						"isError": false,
+						"content": [],
+						"details": {
+							"kind": "quiz",
+							"correct": true,
+							"dontKnow": false,
+							"answers": [
+								{
+									"index": 1,
+									"label": "6"
+								}
+							]
+						},
+						"timestamp": 3
+					}
+				]
+			},
+			"result": {
+				"q1": null
+			}
+		}
+	},
+	{
+		"name": "no answer yet shows no card",
+		"output": {
+			"args": {
+				"messages": [
+					{
+						"role": "assistant",
+						"id": "m1",
+						"content": [
+							{
+								"type": "text",
+								"text": "So."
+							},
+							{
+								"type": "toolCall",
+								"id": "q1",
+								"name": "quiz",
+								"arguments": {
+									"type": "check",
+									"nodeId": "reg",
+									"question": "Where is that weight now?",
+									"options": [
+										{
+											"label": "6"
+										},
+										{
+											"label": "3"
+										}
+									],
+									"correctAnswer": "A",
+									"explanation": "Linear in y.",
+									"keep": {
+										"text": "Lambda prices large weights; it does not cap them.",
+										"source": "[[f_1a2b3c4d5e6f:7]]",
+										"fits": "The leash fits one part: for the data you have.",
+										"stops": "It stops at new data.",
+										"phrase": "Price, not cap"
+									}
+								}
+							}
+						],
+						"timestamp": 1
+					},
+					{
+						"role": "custom",
+						"customType": "keep-check",
+						"content": "",
+						"display": false,
+						"details": {
+							"quizCallId": "q1",
+							"keep": "shown",
+							"fits": true,
+							"phrase": true,
+							"source": "ok",
+							"sourceMark": "[[f_1a2b3c4d5e6f/p. 14/Lecture 6.pdf]]"
+						},
+						"timestamp": 2
+					}
+				]
+			},
+			"result": {
+				"q1": null
+			}
+		}
+	},
+	{
+		"name": "the topic's analogy already showed, so no analogy lines",
+		"output": {
+			"args": {
+				"messages": [
+					{
+						"role": "assistant",
+						"id": "m1",
+						"content": [
+							{
+								"type": "text",
+								"text": "So."
+							},
+							{
+								"type": "toolCall",
+								"id": "q1",
+								"name": "quiz",
+								"arguments": {
+									"type": "check",
+									"nodeId": "reg",
+									"question": "Where is that weight now?",
+									"options": [
+										{
+											"label": "6"
+										},
+										{
+											"label": "3"
+										}
+									],
+									"correctAnswer": "A",
+									"explanation": "Linear in y.",
+									"keep": {
+										"text": "Lambda prices large weights; it does not cap them.",
+										"source": "[[f_1a2b3c4d5e6f:7]]",
+										"fits": "The leash fits one part: for the data you have.",
+										"stops": "It stops at new data.",
+										"phrase": "Price, not cap"
+									}
+								}
+							}
+						],
+						"timestamp": 1
+					},
+					{
+						"role": "custom",
+						"customType": "keep-check",
+						"content": "",
+						"display": false,
+						"details": {
+							"quizCallId": "q1",
+							"keep": "shown",
+							"fits": false,
+							"phrase": true,
+							"source": "ok",
+							"sourceMark": "[[f_1a2b3c4d5e6f/p. 14/Lecture 6.pdf]]"
+						},
+						"timestamp": 2
+					},
+					{
+						"role": "toolResult",
+						"toolCallId": "q1",
+						"toolName": "quiz",
+						"isError": false,
+						"content": [],
+						"details": {
+							"kind": "quiz",
+							"correct": true,
+							"dontKnow": false,
+							"answers": [
+								{
+									"index": 1,
+									"label": "6"
+								}
+							]
+						},
+						"timestamp": 3
+					}
+				]
+			},
+			"result": {
+				"q1": {
+					"text": "Lambda prices large weights; it does not cap them.",
+					"analogy": false,
+					"phrase": true,
+					"source": "[[f_1a2b3c4d5e6f/p. 14/Lecture 6.pdf]]"
+				}
+			}
+		}
+	},
+	{
+		"name": "a source that does not point at a passage",
+		"output": {
+			"args": {
+				"messages": [
+					{
+						"role": "assistant",
+						"id": "m1",
+						"content": [
+							{
+								"type": "text",
+								"text": "So."
+							},
+							{
+								"type": "toolCall",
+								"id": "q1",
+								"name": "quiz",
+								"arguments": {
+									"type": "check",
+									"nodeId": "reg",
+									"question": "Where is that weight now?",
+									"options": [
+										{
+											"label": "6"
+										},
+										{
+											"label": "3"
+										}
+									],
+									"correctAnswer": "A",
+									"explanation": "Linear in y.",
+									"keep": {
+										"text": "Lambda prices large weights; it does not cap them.",
+										"source": "[[f_1a2b3c4d5e6f:7]]",
+										"fits": "The leash fits one part: for the data you have.",
+										"stops": "It stops at new data.",
+										"phrase": "Price, not cap"
+									}
+								}
+							}
+						],
+						"timestamp": 1
+					},
+					{
+						"role": "custom",
+						"customType": "keep-check",
+						"content": "",
+						"display": false,
+						"details": {
+							"quizCallId": "q1",
+							"keep": "shown",
+							"fits": true,
+							"phrase": true,
+							"source": "dropped"
+						},
+						"timestamp": 2
+					},
+					{
+						"role": "toolResult",
+						"toolCallId": "q1",
+						"toolName": "quiz",
+						"isError": false,
+						"content": [],
+						"details": {
+							"kind": "quiz",
+							"correct": true,
+							"dontKnow": false,
+							"answers": [
+								{
+									"index": 1,
+									"label": "6"
+								}
+							]
+						},
+						"timestamp": 3
+					}
+				]
+			},
+			"result": {
+				"q1": {
+					"text": "Lambda prices large weights; it does not cap them.",
+					"analogy": true,
+					"phrase": true,
+					"source": null
+				}
+			}
+		}
+	},
+	{
+		"name": "the keep sent as a JSON string",
+		"output": {
+			"args": {
+				"messages": [
+					{
+						"role": "assistant",
+						"id": "m1",
+						"content": [
+							{
+								"type": "text",
+								"text": "So."
+							},
+							{
+								"type": "toolCall",
+								"id": "q1",
+								"name": "quiz",
+								"arguments": {
+									"type": "check",
+									"nodeId": "reg",
+									"question": "Where is that weight now?",
+									"options": [
+										{
+											"label": "6"
+										},
+										{
+											"label": "3"
+										}
+									],
+									"correctAnswer": "A",
+									"explanation": "Linear in y.",
+									"keep": "{\"text\":\"Lambda prices large weights; it does not cap them.\",\"source\":\"[[f_1a2b3c4d5e6f:7]]\",\"fits\":\"The leash fits one part: for the data you have.\",\"stops\":\"It stops at new data.\",\"phrase\":\"Price, not cap\"}"
+								}
+							}
+						],
+						"timestamp": 1
+					},
+					{
+						"role": "custom",
+						"customType": "keep-check",
+						"content": "",
+						"display": false,
+						"details": {
+							"quizCallId": "q1",
+							"keep": "shown",
+							"fits": true,
+							"phrase": true,
+							"source": "ok",
+							"sourceMark": "[[f_1a2b3c4d5e6f/p. 14/Lecture 6.pdf]]"
+						},
+						"timestamp": 2
+					},
+					{
+						"role": "toolResult",
+						"toolCallId": "q1",
+						"toolName": "quiz",
+						"isError": false,
+						"content": [],
+						"details": {
+							"kind": "quiz",
+							"correct": true,
+							"dontKnow": false,
+							"answers": [
+								{
+									"index": 1,
+									"label": "6"
+								}
+							]
+						},
+						"timestamp": 3
+					}
+				]
+			},
+			"result": {
+				"q1": {
+					"text": "Lambda prices large weights; it does not cap them.",
+					"analogy": true,
+					"phrase": true,
+					"source": "[[f_1a2b3c4d5e6f/p. 14/Lecture 6.pdf]]"
+				}
+			}
+		}
+	},
+	{
+		"name": "the analogy and the phrase dropped",
+		"output": {
+			"args": {
+				"messages": [
+					{
+						"role": "assistant",
+						"id": "m1",
+						"content": [
+							{
+								"type": "text",
+								"text": "So."
+							},
+							{
+								"type": "toolCall",
+								"id": "q1",
+								"name": "quiz",
+								"arguments": {
+									"type": "check",
+									"nodeId": "reg",
+									"question": "Where is that weight now?",
+									"options": [
+										{
+											"label": "6"
+										},
+										{
+											"label": "3"
+										}
+									],
+									"correctAnswer": "A",
+									"explanation": "Linear in y.",
+									"keep": {
+										"text": "Lambda prices large weights; it does not cap them.",
+										"source": "[[f_1a2b3c4d5e6f:7]]",
+										"fits": "The leash fits one part: for the data you have.",
+										"stops": "It stops at new data.",
+										"phrase": "Price, not cap"
+									}
+								}
+							}
+						],
+						"timestamp": 1
+					},
+					{
+						"role": "custom",
+						"customType": "keep-check",
+						"content": "",
+						"display": false,
+						"details": {
+							"quizCallId": "q1",
+							"keep": "shown",
+							"fits": true,
+							"phrase": true,
+							"source": "ok",
+							"sourceMark": "[[f_1a2b3c4d5e6f/p. 14/Lecture 6.pdf]]"
+						},
+						"timestamp": 2
+					},
+					{
+						"role": "toolResult",
+						"toolCallId": "q1",
+						"toolName": "quiz",
+						"isError": false,
+						"content": [],
+						"details": {
+							"kind": "quiz",
+							"correct": true,
+							"dontKnow": false,
+							"answers": [
+								{
+									"index": 1,
+									"label": "6"
+								}
+							]
+						},
+						"timestamp": 3
+					},
+					{
+						"role": "custom",
+						"customType": "analogy-drop",
+						"content": "",
+						"display": false,
+						"details": {
+							"of": "q1"
+						},
+						"timestamp": 4
+					},
+					{
+						"role": "custom",
+						"customType": "phrase-drop",
+						"content": "",
+						"display": false,
+						"details": {
+							"of": "q1"
+						},
+						"timestamp": 4
+					}
+				]
+			},
+			"result": {
+				"q1": {
+					"text": "Lambda prices large weights; it does not cap them.",
+					"analogy": false,
+					"phrase": false,
+					"source": "[[f_1a2b3c4d5e6f/p. 14/Lecture 6.pdf]]"
+				}
+			}
+		}
+	},
+	{
+		"name": "the last drop marker wins",
+		"output": {
+			"args": {
+				"messages": [
+					{
+						"role": "assistant",
+						"id": "m1",
+						"content": [
+							{
+								"type": "text",
+								"text": "So."
+							},
+							{
+								"type": "toolCall",
+								"id": "q1",
+								"name": "quiz",
+								"arguments": {
+									"type": "check",
+									"nodeId": "reg",
+									"question": "Where is that weight now?",
+									"options": [
+										{
+											"label": "6"
+										},
+										{
+											"label": "3"
+										}
+									],
+									"correctAnswer": "A",
+									"explanation": "Linear in y.",
+									"keep": {
+										"text": "Lambda prices large weights; it does not cap them.",
+										"source": "[[f_1a2b3c4d5e6f:7]]",
+										"fits": "The leash fits one part: for the data you have.",
+										"stops": "It stops at new data.",
+										"phrase": "Price, not cap"
+									}
+								}
+							}
+						],
+						"timestamp": 1
+					},
+					{
+						"role": "custom",
+						"customType": "keep-check",
+						"content": "",
+						"display": false,
+						"details": {
+							"quizCallId": "q1",
+							"keep": "shown",
+							"fits": true,
+							"phrase": true,
+							"source": "ok",
+							"sourceMark": "[[f_1a2b3c4d5e6f/p. 14/Lecture 6.pdf]]"
+						},
+						"timestamp": 2
+					},
+					{
+						"role": "toolResult",
+						"toolCallId": "q1",
+						"toolName": "quiz",
+						"isError": false,
+						"content": [],
+						"details": {
+							"kind": "quiz",
+							"correct": true,
+							"dontKnow": false,
+							"answers": [
+								{
+									"index": 1,
+									"label": "6"
+								}
+							]
+						},
+						"timestamp": 3
+					},
+					{
+						"role": "custom",
+						"customType": "analogy-drop",
+						"content": "",
+						"display": false,
+						"details": {
+							"of": "q1"
+						},
+						"timestamp": 4
+					},
+					{
+						"role": "custom",
+						"customType": "analogy-drop",
+						"content": "",
+						"display": false,
+						"details": {
+							"of": "q1",
+							"back": true
+						},
+						"timestamp": 4
+					},
+					{
+						"role": "custom",
+						"customType": "phrase-drop",
+						"content": "",
+						"display": false,
+						"details": {
+							"of": "q1",
+							"back": true
+						},
+						"timestamp": 4
+					},
+					{
+						"role": "custom",
+						"customType": "phrase-drop",
+						"content": "",
+						"display": false,
+						"details": {
+							"of": "q1"
+						},
+						"timestamp": 4
+					}
+				]
+			},
+			"result": {
+				"q1": {
+					"text": "Lambda prices large weights; it does not cap them.",
+					"analogy": true,
+					"phrase": false,
+					"source": "[[f_1a2b3c4d5e6f/p. 14/Lecture 6.pdf]]"
+				}
+			}
+		}
+	},
+	{
+		"name": "back sent as 1 brings the part back",
+		"output": {
+			"args": {
+				"messages": [
+					{
+						"role": "assistant",
+						"id": "m1",
+						"content": [
+							{
+								"type": "text",
+								"text": "So."
+							},
+							{
+								"type": "toolCall",
+								"id": "q1",
+								"name": "quiz",
+								"arguments": {
+									"type": "check",
+									"nodeId": "reg",
+									"question": "Where is that weight now?",
+									"options": [
+										{
+											"label": "6"
+										},
+										{
+											"label": "3"
+										}
+									],
+									"correctAnswer": "A",
+									"explanation": "Linear in y.",
+									"keep": {
+										"text": "Lambda prices large weights; it does not cap them.",
+										"source": "[[f_1a2b3c4d5e6f:7]]",
+										"fits": "The leash fits one part: for the data you have.",
+										"stops": "It stops at new data.",
+										"phrase": "Price, not cap"
+									}
+								}
+							}
+						],
+						"timestamp": 1
+					},
+					{
+						"role": "custom",
+						"customType": "keep-check",
+						"content": "",
+						"display": false,
+						"details": {
+							"quizCallId": "q1",
+							"keep": "shown",
+							"fits": true,
+							"phrase": true,
+							"source": "ok",
+							"sourceMark": "[[f_1a2b3c4d5e6f/p. 14/Lecture 6.pdf]]"
+						},
+						"timestamp": 2
+					},
+					{
+						"role": "toolResult",
+						"toolCallId": "q1",
+						"toolName": "quiz",
+						"isError": false,
+						"content": [],
+						"details": {
+							"kind": "quiz",
+							"correct": true,
+							"dontKnow": false,
+							"answers": [
+								{
+									"index": 1,
+									"label": "6"
+								}
+							]
+						},
+						"timestamp": 3
+					},
+					{
+						"role": "custom",
+						"customType": "analogy-drop",
+						"content": "",
+						"display": false,
+						"details": {
+							"of": "q1"
+						},
+						"timestamp": 4
+					},
+					{
+						"role": "custom",
+						"customType": "analogy-drop",
+						"content": "",
+						"display": false,
+						"details": {
+							"of": "q1",
+							"back": 1
+						},
+						"timestamp": 4
+					}
+				]
+			},
+			"result": {
+				"q1": {
+					"text": "Lambda prices large weights; it does not cap them.",
+					"analogy": true,
+					"phrase": true,
+					"source": "[[f_1a2b3c4d5e6f/p. 14/Lecture 6.pdf]]"
+				}
+			}
+		}
+	},
+	{
+		"name": "back sent as false keeps the part dropped",
+		"output": {
+			"args": {
+				"messages": [
+					{
+						"role": "assistant",
+						"id": "m1",
+						"content": [
+							{
+								"type": "text",
+								"text": "So."
+							},
+							{
+								"type": "toolCall",
+								"id": "q1",
+								"name": "quiz",
+								"arguments": {
+									"type": "check",
+									"nodeId": "reg",
+									"question": "Where is that weight now?",
+									"options": [
+										{
+											"label": "6"
+										},
+										{
+											"label": "3"
+										}
+									],
+									"correctAnswer": "A",
+									"explanation": "Linear in y.",
+									"keep": {
+										"text": "Lambda prices large weights; it does not cap them.",
+										"source": "[[f_1a2b3c4d5e6f:7]]",
+										"fits": "The leash fits one part: for the data you have.",
+										"stops": "It stops at new data.",
+										"phrase": "Price, not cap"
+									}
+								}
+							}
+						],
+						"timestamp": 1
+					},
+					{
+						"role": "custom",
+						"customType": "keep-check",
+						"content": "",
+						"display": false,
+						"details": {
+							"quizCallId": "q1",
+							"keep": "shown",
+							"fits": true,
+							"phrase": true,
+							"source": "ok",
+							"sourceMark": "[[f_1a2b3c4d5e6f/p. 14/Lecture 6.pdf]]"
+						},
+						"timestamp": 2
+					},
+					{
+						"role": "toolResult",
+						"toolCallId": "q1",
+						"toolName": "quiz",
+						"isError": false,
+						"content": [],
+						"details": {
+							"kind": "quiz",
+							"correct": true,
+							"dontKnow": false,
+							"answers": [
+								{
+									"index": 1,
+									"label": "6"
+								}
+							]
+						},
+						"timestamp": 3
+					},
+					{
+						"role": "custom",
+						"customType": "phrase-drop",
+						"content": "",
+						"display": false,
+						"details": {
+							"of": "q1",
+							"back": false
+						},
+						"timestamp": 4
+					}
+				]
+			},
+			"result": {
+				"q1": {
+					"text": "Lambda prices large weights; it does not cap them.",
+					"analogy": true,
+					"phrase": false,
+					"source": "[[f_1a2b3c4d5e6f/p. 14/Lecture 6.pdf]]"
+				}
+			}
+		}
+	}
+]
