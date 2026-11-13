@@ -235,11 +235,11 @@ pub struct LessonRecord {
 	pub chat_store: Arc<dyn ChatPort>,
 }
 
-/// Concludes under the gate; `stop` gives the result for the record's messages as they were
+/// Concludes under the gate; `result` gives the result for the record's messages as they were
 /// before this turn.
-fn gated_conclude(name: &'static str, description: String, gate: &Arc<TurnGate>, record: LessonRecord, stop: impl Fn(&Json, &[Json]) -> Json + Send + Sync + 'static) -> FnTool {
+fn gated_conclude(description: String, gate: &Arc<TurnGate>, record: LessonRecord, result: impl Fn(&Json, &[Json]) -> Json + Send + Sync + 'static) -> FnTool {
 	let gate = gate.clone();
-	FnTool::immediate(name, description, conclude_parameters(), move |args| {
+	FnTool::immediate("conclude", description, conclude_parameters(), move |args| {
 		{
 			let mut active = gate.problem_active.lock();
 			if !*active {
@@ -247,14 +247,14 @@ fn gated_conclude(name: &'static str, description: String, gate: &Arc<TurnGate>,
 			}
 			*active = false;
 		}
-		stop(&args, &record_messages(&record.chat_store, &record.chat_id))
+		result(&args, &record_messages(&record.chat_store, &record.chat_id))
 	})
 	.sequential()
 }
 
 /// Practice's conclude: a problem that took long ends on a stop; the text is unchanged.
 fn conclude_tool(gate: &Arc<TurnGate>, record: LessonRecord) -> FnTool {
-	gated_conclude("conclude", conclude_description(" \u{2014} no further tool calls."), gate, record, |_, messages| conclude_result(long_problem_stop(messages, clock::now_ms())))
+	gated_conclude(conclude_description(" \u{2014} no further tool calls."), gate, record, |_, messages| conclude_result(long_problem_stop(messages, clock::now_ms())))
 }
 
 /// Study's conclude: one that finishes its problem's topic ends on that topic's stop and tells the
@@ -264,7 +264,7 @@ fn study_conclude_tool(gate: &Arc<TurnGate>, record: LessonRecord) -> FnTool {
 		", with no further tool calls. When this conclude finishes a topic, the verdict is your closing words: write no other prose, then read what the next topic needs and call topic_done in its own reply.",
 	);
 	let ended = gate.clone();
-	gated_conclude("conclude", description, gate, record, move |args, messages| {
+	gated_conclude(description, gate, record, move |args, messages| {
 		let now = clock::now_ms();
 		let stop = match ends_topic(args, active_problem_of(messages).as_ref()) {
 			Some(node_id) => {
