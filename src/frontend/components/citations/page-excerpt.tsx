@@ -41,13 +41,22 @@ export function PageExcerpt({ cite, onOpen }: { cite: FileCite; onOpen: () => vo
 				onClick={onOpen}
 				className="block w-full border-l-2 border-tone-2 pl-4 text-left font-prose text-[length:var(--lh-prose-size)] leading-[var(--lh-prose-leading)] whitespace-pre-wrap text-ink-2"
 			>
-				{quote.before}
-				<mark className={MARK}>{quote.marked}</mark>
-				{quote.after}
+				<MarkedText {...quote} />
 			</button>
 		);
 	}
 	return null;
+}
+
+/** Text with its quoted words on the highlighter. */
+export function MarkedText({ before, marked, after }: { before: string; marked: string; after: string }) {
+	return (
+		<>
+			{before}
+			<mark className={MARK}>{marked}</mark>
+			{after}
+		</>
+	);
 }
 
 function PdfExcerpt({ cite, page, boxes, onOpen }: { cite: FileCite; page: number; boxes: readonly PageMarkBox[]; onOpen: () => void }) {
