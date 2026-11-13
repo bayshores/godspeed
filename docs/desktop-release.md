@@ -12,7 +12,7 @@ godspeed's desktop app is a Tauri shell (`crates/shell`) that starts the Rust se
 
 Windows code signing is off on purpose. SmartScreen may warn about an unknown publisher on the first install.
 
-Linux builds run in an Ubuntu 22.04 container so the app runs on Ubuntu 22.04 and Debian 12. A release step fails if `godspeed` or `godspeed-server` needs a glibc newer than 2.35.
+Linux builds run in an Ubuntu 22.04 container so the app runs on Ubuntu 22.04 and Debian 12. A release step fails if `godspeed`, `godspeed-server`, `libpdfium.so` or `libonnxruntime.so` needs a glibc newer than 2.35 or a libstdc++ newer than GLIBCXX 3.4.30.
 
 The Mac icon is the Icon Composer file `crates/shell/icons/icon.icon`. The bundler compiles it with `actool` from Xcode 26 or newer, which needs macOS 26. `icon.icns` is the fallback for older macOS. The Windows and Linux icons are committed; `npx tauri icon` makes them again.
 
@@ -22,7 +22,7 @@ Each OS builds its own app. Nothing is cross-built.
 
 1. `npm ci`.
 2. `node scripts/fetch-model.mjs` downloads the space-search model into `models/`.
-3. `node scripts/fetch-pdfium.mjs` downloads pdfium's library into `.stage/` and checks its sha256.
+3. `node scripts/fetch-pdfium.mjs` downloads pdfium's library into `.stage/` and checks its sha256. On Linux, `node scripts/fetch-onnxruntime.mjs` does the same for Microsoft's ONNX Runtime library, which the Linux server loads at run time from its resources folder. macOS and Windows link ONNX Runtime into the server.
 4. `node scripts/stage-app.mjs` builds the UI (`dist-ui/`), builds the release server for this OS's target triple, copies it to `crates/shell/binaries/`, and copies the pdf.js files to `.stage/pdfjs-dist/`. It refuses a UI folder that holds `data/` or a secrets file.
 5. `node scripts/smoke-server.mjs` starts that server from a folder of the staged files, with a throwaway home and data folder, and checks `/`, `/api/boot`, `/api/graph`, `/api/settings` and a pdf.js file.
 6. `TAURI_APP_PATH=crates/shell npx tauri build --config crates/shell/tauri.bundle.conf.json [--config crates/shell/tauri.bundle.<windows|linux>.conf.json] --target <triple> --bundles <app,dmg | nsis | appimage,deb>`. Its `beforeBuildCommand` runs step 4 again (fast, everything is built). With `TAURI_SIGNING_PRIVATE_KEY` set, the bundler writes a `.sig` beside each updater file.

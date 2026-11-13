@@ -22,6 +22,7 @@ You need Node, a Rust toolchain (`rust-toolchain.toml` pins it) and `cargo-mache
 ```bash
 npm install          # once
 node scripts/fetch-model.mjs   # once: the space-search model into models/ (the desktop builds run it too)
+node scripts/fetch-onnxruntime.mjs  # once, Linux only: ONNX Runtime's library into .stage/ (search loads it)
 
 npm run dev          # Vite serves the screens at http://localhost:3000; the debug Rust server serves /api on 4000
 npm run dev:fresh    # a fresh instance with empty data at http://localhost:3005 (tests onboarding)
@@ -163,7 +164,8 @@ tests/                          frontend/ and shared/ (same split as src/) and d
                                 Python tests; perf/ the lesson-stream benchmark. Rust
                                 tests sit in each crate's tests/ and next to the code
 docs/                           docs; design mockups + exports live in docs/design/
-scripts/                        fetch-model.mjs, fetch-pdfium.mjs, dev-resources.mjs,
+scripts/                        fetch-model.mjs, fetch-pdfium.mjs, fetch-onnxruntime.mjs
+                                (both on fetch-library.mjs), dev-resources.mjs,
                                 stage-app.mjs, smoke-server.mjs, release-assets.mjs,
                                 verify-release.ts, mac-dist.sh, dev-fresh.sh
 data/                           runtime state, git-ignored:
