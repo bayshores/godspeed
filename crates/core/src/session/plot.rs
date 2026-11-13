@@ -109,9 +109,11 @@ impl Plot {
 		self.lines.iter().position(|l| l.label == label)
 	}
 
-	/// The line's value at `x` with the slider at `slider` (not finite where it has none).
+	/// The line's value at `x` with the slider at `slider` (not finite where it has none). A value
+	/// under a billionth of the y range is float noise and reads 0.
 	pub fn line_value(&self, line: usize, x: f64, slider: f64) -> f64 {
-		self.lines[line].expr.eval(&[x, slider])
+		let value = self.lines[line].expr.eval(&[x, slider]);
+		if value.abs() < 1e-9 * (self.y.1 - self.y.0) { 0.0 } else { value }
 	}
 
 	/// The values the agent is told at slider start: x at min, middle and max, every line.
@@ -542,6 +544,16 @@ mod tests {
 		assert_eq!(round_out(5e-324, 5e-324), (-1.0, 1.0), "the smallest numbers never overflow the step");
 		let huge = json!({ "title": "t", "x": { "name": "a", "label": "a", "min": 700, "max": 709 }, "y": { "label": "y" }, "slider": { "name": "s", "min": 0, "max": 1, "start": 0 }, "lines": [{ "label": "up", "expr": "1.5*exp(a)" }, { "label": "down", "expr": "-1.5*exp(a)" }] });
 		assert_eq!(problems(huge), ["y: values run from -1.23e308 to 1.23e308 but most lie in -1e308 to 1e308. Give y.min and y.max."], "never a range that is not a number");
+	}
+
+	/// `0.1*3 - 0.3` is 5.55e-17 in floats, which no option's words could name.
+	#[test]
+	fn a_value_that_is_zero_up_to_rounding_is_zero() {
+		let plot = check_plot(&with(with(leash(), &["lines", "0", "expr"], json!("a*0.1 - 0.3")), &["lines", "1", "expr"], json!("sin(a)"))).unwrap();
+		assert_eq!(plot.line_value(0, 3.0, 1.0), 0.0);
+		assert_eq!(plot.line_value(1, std::f64::consts::PI, 1.0), 0.0);
+		assert!(option_names_value("It crosses 0.", plot.line_value(0, 3.0, 1.0)));
+		assert!(plot.line_value(0, 3.001, 1.0) > 0.0, "a small value the plot can show stays");
 	}
 
 	#[test]
