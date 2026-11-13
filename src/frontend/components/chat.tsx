@@ -172,6 +172,7 @@ export function Chat({
 		chatId,
 		waiting: kind === "study" && (busy || noAgent),
 		open: teacherPending !== null || activeProblem !== null,
+		busy,
 		onAnswered: adoptAppendOnly,
 	});
 	const pending = useMemo(() => findPendingToolCall(withOpenReview(messages, reviewQuestion)), [messages, reviewQuestion]);

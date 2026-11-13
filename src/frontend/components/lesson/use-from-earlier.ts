@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import type { QuestionAnswerData, ReviewQuestion } from "@/shared/core";
+import { fromEarlierAsk } from "./from-earlier-ask-model";
 
 /** One request to the lesson's review route. */
 function postReview(chatId: string, input: unknown): Promise<Response> {
@@ -13,17 +14,19 @@ function postReview(chatId: string, input: unknown): Promise<Response> {
 /**
  * Questions from earlier in a Study lesson. While the teacher reads or
  * writes, or no agent is teaching, and nothing else is open, the route is
- * asked once for a question; after an answer or a skip it is asked again,
- * until the wait ends. The server decides whether one may show, so no
+ * asked for a question when that wait begins and when a turn starts or
+ * ends; after an answer or a skip it is asked again, until the wait ends. The server decides whether one may show, so no
  * question is a normal answer. The question on screen stays open after the
  * wait ends, to be answered or skipped.
  */
-export function useFromEarlier({ chatId, waiting, open, onAnswered }: {
+export function useFromEarlier({ chatId, waiting, open, busy, onAnswered }: {
 	chatId: string;
 	/** A Study lesson waiting on its teacher or its agent. */
 	waiting: boolean;
 	/** The teacher's question or a problem is open. */
 	open: boolean;
+	/** A turn runs. */
+	busy: boolean;
 	/** His answer was saved: show it, even while a turn runs. */
 	onAnswered: () => void;
 }) {
@@ -34,14 +37,14 @@ export function useFromEarlier({ chatId, waiting, open, onAnswered }: {
 	// His last answer was refused: the question was no longer due. Says so
 	// until the next question shows or the wait ends.
 	const [refused, setRefused] = useState(false);
-	const ask = waiting && !open && question === null && !sending;
+	const ask = fromEarlierAsk({ waiting, open, shown: question !== null, sending, busy });
 
 	useEffect(() => {
 		if (!waiting) setRefused(false);
 	}, [waiting]);
 
 	useEffect(() => {
-		if (!ask) return;
+		if (ask === null) return;
 		let live = true;
 		void postReview(chatId, { type: "next" })
 			.then(async (res) => (res.ok ? ((await res.json()) as { question?: ReviewQuestion | null }) : null))
