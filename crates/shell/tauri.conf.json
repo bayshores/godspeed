@@ -14,7 +14,7 @@
     "linux": { "deb": { "depends": [] } }
   },
   "plugins": {
-    "updater": { "pubkey": "", "endpoints": ["https://github.com/bayshores/godspeed/releases/latest/download/latest.json"],
+    "updater": { "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IENFMjlGNDg1OERGQUJENzMKUldSenZmcU5oZlFwemk0cTZVSzBJaWZWOG0yYTdiUTZLNWxzNy8wWDlwYlUwQ2E4SGRNS29MbVYK", "endpoints": ["https://github.com/bayshores/godspeed/releases/latest/download/latest.json"],
       "windows": { "installMode": "passive" } }
   }
 }
