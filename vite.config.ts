@@ -10,7 +10,7 @@ const pkg = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), 
 const uiPort = Number(process.env.PORT ?? 3000);
 const api = `http://localhost:${uiPort + 1000}`;
 
-/** The window's UI as static files (dist-ui/). The Next server only answers /api and /pdfjs. */
+/** The window's UI as static files (dist-ui/). The Rust server serves them, plus /api and /pdfjs. */
 export default defineConfig({
 	root: "src/frontend",
 	publicDir: "../../public",
@@ -22,6 +22,6 @@ export default defineConfig({
 		"process.env.LH_HOMEPAGE": JSON.stringify(pkg.homepage),
 	},
 	server: { port: uiPort, strictPort: true, proxy: { "/api": api, "/pdfjs": api } },
-	// The same browser targets Next built for, so the CSS comes out the same.
+	// Old enough to cover the webviews the desktop shell runs on.
 	build: { outDir: "../../dist-ui", emptyOutDir: true, target: ["chrome111", "edge111", "firefox111", "safari16.4"] },
 });

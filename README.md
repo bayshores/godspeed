@@ -90,13 +90,14 @@ While you think, Claude Code waits in a background script, so the agent spends n
 ## Development
 
 ```bash
-npm run check        # typecheck + tests + lint + dead-code check (knip): what CI runs
-npm test             # tests only. deterministic: no LLM, no network
+npm run check        # typecheck + tests + lint + dead-code check (knip) + Rust tests, clippy and cargo machete: what CI runs
+npm test             # frontend and shared tests only. deterministic: no LLM, no network
+npm run rust:check   # the Rust half alone
 ```
 
 A change is done when `npm run check` passes.
 
-The code is split in `src/`: `frontend/` is what the browser runs, `backend/` is the server, the agent loops and the files on disk, and `shared/` is the pure logic both use. `src/app/` holds the API routes. The screens live in `src/frontend` and are built by Vite. Tests mirror that split under `tests/`.
+The code is split in two. `src/` is the Vite and React screens (`frontend/`) and the pure logic they share (`shared/core/`). `crates/` is the Rust server, the agent loops, the files on disk, and the Tauri desktop shell. Tests sit beside what they test: `tests/` for TypeScript, and each crate's `tests/` and `src/` for Rust.
 
 See the [development guide](docs/development.md) and [architecture](docs/architecture.md). Bugs and requests go to [GitHub Issues](https://github.com/bayshores/godspeed/issues).
 
