@@ -49,7 +49,7 @@ export const TEACHING_AREAS: readonly TeachingArea[] = [
 		id: "files",
 		label: "Your files and formatting",
 		about: "Reading your PDFs and laying out answers",
-		parts: ["shared/30-learner-files.md", "shared/40-formatting.md", "shared/12-space-context.md", "shared/13-source-marks.md"],
+		parts: ["shared/30-learner-files.md", "shared/40-formatting.md", "shared/12-space-context.md", "shared/14-deadline-changes.md", "shared/13-source-marks.md"],
 	},
 ];
 
