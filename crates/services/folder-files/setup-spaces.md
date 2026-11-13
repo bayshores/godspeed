@@ -21,7 +21,7 @@ Request: $ARGUMENTS
 
 Rules:
 - Never delete anything. Deleting a space is only possible in the godspeed window.
-- Supported files: .md .txt, code files (.c .py .java .js and the like), plain text with no extension, .pdf .docx .pptx, .vtt .srt, .mp3 .m4a .wav .mp4 .mov. Google Docs links (.gdoc) can't be read: ask the learner to save them as PDF or Word. Skip others and say so.
+- Supported files: .md .txt, code files (.c .py .java .js and the like), plain text with no extension, .pdf .docx .pptx .epub, .vtt .srt, .mp3 .m4a .wav .mp4 .mov. Google Docs links (.gdoc) can't be read: ask the learner to save them as PDF or Word. Skip others and say so.
 - Turning study files into facts is work for you (the connected agent): it comes through `wait_for_work`, and it waits until an agent is taking work. Large folders take a while; progress shows in the godspeed window.
 - To teach inside a space afterwards, use `start_lesson` with the space's `space_id`.
 
