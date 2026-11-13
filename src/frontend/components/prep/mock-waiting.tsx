@@ -5,7 +5,6 @@ import { NoAgentLine } from "@/frontend/components/agent-folder/no-agent-line";
 import { BrailleSpinner } from "@/frontend/components/braille-spinner";
 import { useTeacher } from "@/frontend/components/teacher/teacher-provider";
 import { BIG_BUTTON } from "@/frontend/components/ui/big-button";
-import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { cn } from "@/frontend/lib/utils";
 import { postMock, removeMock } from "./use-mock";
 
@@ -31,7 +30,6 @@ export function MockWaiting({ view, state }: { view: MockView; state: Exclude<Mo
 					{size}. The clock starts when you start and keeps running if you leave. {teacher} stays quiet until it ends, then grades everything.
 				</p>
 				<button type="button" data-testid="mock-start" onClick={() => void act("start")} className={cn("lh-btn lh-btn-main", BIG_BUTTON)}>
-					<PixelIcon name="play" />
 					Start the mock
 				</button>
 			</>

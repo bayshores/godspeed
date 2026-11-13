@@ -160,7 +160,7 @@ export function MockRun({ view }: { view: MockView }) {
 						{notSubmitted === 0 ? `All ${questions.length} are submitted.` : `${notSubmitted} of ${questions.length} ${notSubmitted === 1 ? "is" : "are"} not submitted.`} End Mock {mock.n} now? {teacher} grades
 						what you have written.
 					</p>
-					<button type="button" data-testid="mock-end-keep" onClick={() => setConfirmEnd(false)} className="lh-btn bg-panel text-[15px]">
+					<button type="button" data-testid="mock-end-keep" onClick={() => setConfirmEnd(false)} className="lh-btn text-[15px]">
 						Keep going
 					</button>
 					<button type="button" data-testid="mock-end-yes" disabled={ending} onClick={() => void end()} className="lh-btn lh-btn-main text-[15px]">

@@ -95,7 +95,6 @@ export const HomeworkCard = memo(function HomeworkCard({
 			</label>
 			{!d.done && (
 				<button type="button" data-testid="homework-work" disabled={busy} onClick={onWork} className="lh-btn lh-btn-main mt-1 h-[52px] w-full justify-center gap-2.5 px-[22px] text-[17px]">
-					<PixelIcon name="play" />
 					<span className="min-w-0 truncate">{nextDeadlineButton(d)}</span>
 				</button>
 			)}

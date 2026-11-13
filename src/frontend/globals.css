@@ -330,19 +330,25 @@ body {
 	line-height: 1.25;
 }
 
-/* Buttons: a 2px-cornered box with a thin ink outline. .lh-btn-main is
-   the one filled action of a view; .lh-btn-quiet is a plain word. In the
-   components layer, so a size utility on one button wins. */
+/* Buttons are keycaps: a rounded face on a darker bottom edge, which
+   sinks while pressed. .lh-btn-main is the one bright key of a view;
+   .lh-btn-quiet is a plain word. In the components layer, so a size
+   utility on one button wins. */
 @layer components {
 	.lh-btn {
+		--lh-key: color-mix(in srgb, var(--foreground) 22%, var(--background));
+		--lh-key-hover: color-mix(in srgb, var(--foreground) 30%, var(--background));
+		--lh-lip: 4px;
 		display: inline-flex;
 		align-items: center;
 		gap: 8px;
-		height: 32px;
-		padding: 0 14px;
-		border-radius: 2px;
-		border: 1.5px solid var(--foreground);
-		background: transparent;
+		height: 36px;
+		padding: 0 16px;
+		/* The bottom edge is a border, so the label centers on the face. */
+		border: 0 solid transparent;
+		border-bottom: var(--lh-lip) solid color-mix(in srgb, var(--lh-key) 60%, #000);
+		border-radius: 10px;
+		background: var(--lh-key) padding-box;
 		font-family: var(--font-ui);
 		font-size: 14px;
 		font-weight: 500;
@@ -353,32 +359,31 @@ body {
 		transition: background-color var(--lh-dur-fast) var(--lh-ease-out);
 	}
 	.lh-btn:hover {
-		background: color-mix(in oklab, var(--foreground) 10%, transparent);
+		background-color: var(--lh-key-hover);
+	}
+	.lh-btn:active {
+		border-top-width: var(--lh-lip);
+		border-bottom-width: 0;
 	}
 	.lh-btn:disabled {
 		opacity: 0.5;
 		pointer-events: none;
 	}
-	/* The button that deletes or removes: filled red. */
+	/* The button that deletes or removes: a red key. */
 	.lh-btn-danger {
-		border-color: var(--color-ans-wrong);
-		background: var(--color-ans-wrong);
+		--lh-key: var(--color-ans-wrong);
+		--lh-key-hover: var(--color-ans-wrong-hover);
 		color: var(--background);
-	}
-	.lh-btn-danger:hover {
-		border-color: var(--color-ans-wrong-hover);
-		background: var(--color-ans-wrong-hover);
 	}
 	.lh-btn-main {
-		border-color: var(--lh-tint);
-		background: var(--lh-tint);
+		--lh-key: var(--lh-tint);
+		--lh-key-hover: color-mix(in srgb, var(--lh-tint) 88%, #fff);
 		color: var(--background);
 	}
-	.lh-btn-main:hover {
-		background: color-mix(in oklab, var(--lh-tint) 86%, var(--background));
-	}
 	.lh-btn-quiet {
-		border-color: transparent;
+		--lh-key: transparent;
+		--lh-key-hover: color-mix(in srgb, var(--foreground) 10%, transparent);
+		--lh-lip: 0px;
 		padding: 0 6px;
 		color: var(--muted-foreground);
 	}
@@ -387,13 +392,11 @@ body {
 	}
 	/* A button on the dark bar of a lesson or a cheat sheet. */
 	.lh-btn-bar {
+		--lh-key: color-mix(in srgb, var(--lh-bar-ink) 22%, var(--lh-bar));
+		--lh-key-hover: color-mix(in srgb, var(--lh-bar-ink) 32%, var(--lh-bar));
 		flex-shrink: 0;
-		border-color: var(--lh-bar-ink);
 		font-size: 15px;
 		color: var(--lh-bar-ink);
-	}
-	.lh-btn-bar:hover {
-		background: color-mix(in oklab, var(--lh-bar-ink) 15%, transparent);
 	}
 }
 

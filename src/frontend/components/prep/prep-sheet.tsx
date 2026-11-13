@@ -152,7 +152,6 @@ function Sheet({ view, teacher, act }: { view: PrepView; teacher: string; act: A
 				</div>
 				<div className="flex flex-col gap-2.5">
 					<button type="button" data-testid="prep-study" disabled={lesson.busy || topics.length === 0} onClick={() => void lesson.studyPrep([])} className={cn("lh-btn lh-btn-main justify-center", BIG_BUTTON)}>
-						<PixelIcon name="play" />
 						Study
 					</button>
 					{lesson.error && (

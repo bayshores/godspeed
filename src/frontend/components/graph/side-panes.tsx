@@ -49,7 +49,6 @@ export function StudyButton({
 				onClick={onClick}
 				className={cn("lh-btn h-auto w-full justify-center py-3 text-[15px]", main && "lh-btn-main")}
 			>
-				{main && <PixelIcon name="play" />}
 				<span className="min-w-0 truncate">{label}</span>
 			</button>
 			{error && (

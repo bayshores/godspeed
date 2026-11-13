@@ -63,7 +63,6 @@ export const NextDeadline = memo(function NextDeadline({
 				</div>
 			</div>
 			<button type="button" data-testid="next-deadline-start" disabled={busy} onClick={() => onStart(d)} className="lh-btn lh-btn-main h-[53px] w-full justify-center gap-2.5 px-[22px] text-[17px]">
-				<PixelIcon name="play" />
 				<span className="min-w-0 truncate">{nextDeadlineButton(d)}</span>
 			</button>
 		</Pane>

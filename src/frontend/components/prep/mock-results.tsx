@@ -6,7 +6,6 @@ import { useLessonStart } from "@/frontend/components/home/use-lesson-start";
 import { TITLE } from "@/frontend/components/overview/styles";
 import { BIG_BUTTON } from "@/frontend/components/ui/big-button";
 import { Pane } from "@/frontend/components/ui/pane";
-import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { localDay } from "@/shared/core";
 import { cn } from "@/frontend/lib/utils";
 import { MockBar } from "./mock-bar";
@@ -66,7 +65,6 @@ export function MockResults({ view }: { view: MockView }) {
 									</ul>
 								</div>
 								<button type="button" data-testid="mock-study" disabled={lesson.busy} onClick={() => void lesson.studyPrep(fix.map((t) => t.id), spaceId)} className={cn("lh-btn lh-btn-main justify-center", BIG_BUTTON)}>
-									<PixelIcon name="play" />
 									Study these
 								</button>
 							</div>
