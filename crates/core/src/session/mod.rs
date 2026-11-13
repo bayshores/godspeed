@@ -14,6 +14,7 @@ pub mod work_pages;
 pub mod practice_outcomes;
 pub mod session_markdown;
 pub mod question_core;
+pub mod plot_expr;
 pub mod code_question;
 pub mod argument_heal;
 pub mod prices;

@@ -1,0 +1,1303 @@
+[
+	{
+		"name": "the leash",
+		"output": {
+			"args": {
+				"src": "min(a, 4/(1+lambda))",
+				"names": [
+					"a",
+					"lambda"
+				],
+				"at": [
+					[
+						0,
+						1
+					],
+					[
+						2,
+						1
+					],
+					[
+						4,
+						1
+					],
+					[
+						8,
+						1
+					],
+					[
+						8,
+						3
+					],
+					[
+						10,
+						0.5
+					]
+				]
+			},
+			"result": {
+				"values": [
+					0,
+					2,
+					2,
+					2,
+					1,
+					2.6666666666666665
+				]
+			}
+		}
+	},
+	{
+		"name": "the penalty",
+		"output": {
+			"args": {
+				"src": "a/(1+lambda)",
+				"names": [
+					"a",
+					"lambda"
+				],
+				"at": [
+					[
+						0,
+						1
+					],
+					[
+						8,
+						1
+					],
+					[
+						10,
+						4
+					]
+				]
+			},
+			"result": {
+				"values": [
+					0,
+					4,
+					2
+				]
+			}
+		}
+	},
+	{
+		"name": "sums and products go left to right",
+		"output": {
+			"args": {
+				"src": "a - lambda - 1 + a/2/2",
+				"names": [
+					"a",
+					"lambda"
+				],
+				"at": [
+					[
+						8,
+						1
+					]
+				]
+			},
+			"result": {
+				"values": [
+					8
+				]
+			}
+		}
+	},
+	{
+		"name": "powers bind tighter and group to the right",
+		"output": {
+			"args": {
+				"src": "2+3*a^2 + 2^3^2",
+				"names": [
+					"a",
+					"lambda"
+				],
+				"at": [
+					[
+						2,
+						0
+					]
+				]
+			},
+			"result": {
+				"values": [
+					526
+				]
+			}
+		}
+	},
+	{
+		"name": "a sign binds looser than a power",
+		"output": {
+			"args": {
+				"src": "-a^2 + (-a)^2 + 2^-1",
+				"names": [
+					"a",
+					"lambda"
+				],
+				"at": [
+					[
+						3,
+						0
+					]
+				]
+			},
+			"result": {
+				"values": [
+					0.5
+				]
+			}
+		}
+	},
+	{
+		"name": "signs stack",
+		"output": {
+			"args": {
+				"src": "+a - -a - - -lambda",
+				"names": [
+					"a",
+					"lambda"
+				],
+				"at": [
+					[
+						2,
+						5
+					]
+				]
+			},
+			"result": {
+				"values": [
+					-1
+				]
+			}
+		}
+	},
+	{
+		"name": "brackets",
+		"output": {
+			"args": {
+				"src": "((a+1))*(lambda-1)",
+				"names": [
+					"a",
+					"lambda"
+				],
+				"at": [
+					[
+						2,
+						3
+					]
+				]
+			},
+			"result": {
+				"values": [
+					6
+				]
+			}
+		}
+	},
+	{
+		"name": "constants",
+		"output": {
+			"args": {
+				"src": "pi*e + pi",
+				"names": [
+					"a",
+					"lambda"
+				],
+				"at": [
+					[
+						0,
+						0
+					]
+				]
+			},
+			"result": {
+				"values": [
+					11.681326876263359
+				]
+			}
+		}
+	},
+	{
+		"name": "one-argument functions",
+		"output": {
+			"args": {
+				"src": "sin(a) + cos(a) + tan(a) + exp(a) + ln(lambda) + log10(lambda) + sqrt(lambda) + abs(-a)",
+				"names": [
+					"a",
+					"lambda"
+				],
+				"at": [
+					[
+						0.5,
+						2
+					],
+					[
+						1.25,
+						100
+					]
+				]
+			},
+			"result": {
+				"values": [
+					6.460422599635516,
+					25.61938979906362
+				]
+			}
+		}
+	},
+	{
+		"name": "min and max",
+		"output": {
+			"args": {
+				"src": "max(a, lambda) - min(a, lambda)",
+				"names": [
+					"a",
+					"lambda"
+				],
+				"at": [
+					[
+						1,
+						3
+					],
+					[
+						5,
+						-2
+					]
+				]
+			},
+			"result": {
+				"values": [
+					2,
+					7
+				]
+			}
+		}
+	},
+	{
+		"name": "decimals",
+		"output": {
+			"args": {
+				"src": "0.5*a + .25 + 10.75",
+				"names": [
+					"a",
+					"lambda"
+				],
+				"at": [
+					[
+						2,
+						0
+					]
+				]
+			},
+			"result": {
+				"values": [
+					12
+				]
+			}
+		}
+	},
+	{
+		"name": "whitespace is free",
+		"output": {
+			"args": {
+				"src": " a\t*\n2 ",
+				"names": [
+					"a",
+					"lambda"
+				],
+				"at": [
+					[
+						3,
+						0
+					]
+				]
+			},
+			"result": {
+				"values": [
+					6
+				]
+			}
+		}
+	},
+	{
+		"name": "names with digits and underscores",
+		"output": {
+			"args": {
+				"src": "w_0 + k2",
+				"names": [
+					"w_0",
+					"k2"
+				],
+				"at": [
+					[
+						1,
+						2
+					]
+				]
+			},
+			"result": {
+				"values": [
+					3
+				]
+			}
+		}
+	},
+	{
+		"name": "a pole",
+		"output": {
+			"args": {
+				"src": "1/(a-lambda)",
+				"names": [
+					"a",
+					"lambda"
+				],
+				"at": [
+					[
+						1,
+						1
+					],
+					[
+						1,
+						2
+					],
+					[
+						2,
+						1
+					]
+				]
+			},
+			"result": {
+				"values": [
+					"Infinity",
+					-1,
+					1
+				]
+			}
+		}
+	},
+	{
+		"name": "tan near its pole",
+		"output": {
+			"args": {
+				"src": "tan(a)",
+				"names": [
+					"a",
+					"lambda"
+				],
+				"at": [
+					[
+						1.5707963267948966,
+						0
+					],
+					[
+						3,
+						0
+					]
+				]
+			},
+			"result": {
+				"values": [
+					16331239353195370,
+					-0.1425465430742778
+				]
+			}
+		}
+	},
+	{
+		"name": "fast growth",
+		"output": {
+			"args": {
+				"src": "exp(lambda*a)",
+				"names": [
+					"a",
+					"lambda"
+				],
+				"at": [
+					[
+						10,
+						4
+					],
+					[
+						1000,
+						1
+					]
+				]
+			},
+			"result": {
+				"values": [
+					235385266837019970,
+					"Infinity"
+				]
+			}
+		}
+	},
+	{
+		"name": "logs and roots of the wrong sign",
+		"output": {
+			"args": {
+				"src": "ln(a) + sqrt(lambda)",
+				"names": [
+					"a",
+					"lambda"
+				],
+				"at": [
+					[
+						0,
+						1
+					],
+					[
+						-1,
+						1
+					],
+					[
+						1,
+						-1
+					]
+				]
+			},
+			"result": {
+				"values": [
+					"-Infinity",
+					"NaN",
+					"NaN"
+				]
+			}
+		}
+	},
+	{
+		"name": "zero over zero",
+		"output": {
+			"args": {
+				"src": "0/0 + a",
+				"names": [
+					"a",
+					"lambda"
+				],
+				"at": [
+					[
+						1,
+						1
+					]
+				]
+			},
+			"result": {
+				"values": [
+					"NaN"
+				]
+			}
+		}
+	},
+	{
+		"name": "a negative number to a fractional power",
+		"output": {
+			"args": {
+				"src": "a^(1/3)",
+				"names": [
+					"a",
+					"lambda"
+				],
+				"at": [
+					[
+						-8,
+						0
+					],
+					[
+						8,
+						0
+					]
+				]
+			},
+			"result": {
+				"values": [
+					"NaN",
+					2
+				]
+			}
+		}
+	},
+	{
+		"name": "one to a power that is not a number",
+		"output": {
+			"args": {
+				"src": "1^(a/0)",
+				"names": [
+					"a",
+					"lambda"
+				],
+				"at": [
+					[
+						0,
+						0
+					]
+				]
+			},
+			"result": {
+				"values": [
+					"NaN"
+				]
+			}
+		}
+	},
+	{
+		"name": "minus one to an infinite power",
+		"output": {
+			"args": {
+				"src": "(-1)^(1/a)",
+				"names": [
+					"a",
+					"lambda"
+				],
+				"at": [
+					[
+						0,
+						0
+					]
+				]
+			},
+			"result": {
+				"values": [
+					"NaN"
+				]
+			}
+		}
+	},
+	{
+		"name": "min with a side that is not a number",
+		"output": {
+			"args": {
+				"src": "min(a, 0/0) + max(0/0, a)",
+				"names": [
+					"a",
+					"lambda"
+				],
+				"at": [
+					[
+						1,
+						0
+					]
+				]
+			},
+			"result": {
+				"values": [
+					"NaN"
+				]
+			}
+		}
+	},
+	{
+		"name": "unknown name",
+		"output": {
+			"args": {
+				"src": "a/(1+lamda)",
+				"names": [
+					"a",
+					"lambda"
+				],
+				"at": []
+			},
+			"result": {
+				"error": "unknown name \"lamda\". Use only a, lambda, pi, e."
+			}
+		}
+	},
+	{
+		"name": "hostile name toString",
+		"output": {
+			"args": {
+				"src": "toString",
+				"names": [
+					"a",
+					"lambda"
+				],
+				"at": []
+			},
+			"result": {
+				"error": "unknown name \"toString\". Use only a, lambda, pi, e."
+			}
+		}
+	},
+	{
+		"name": "hostile name constructor",
+		"output": {
+			"args": {
+				"src": "constructor(a)",
+				"names": [
+					"a",
+					"lambda"
+				],
+				"at": []
+			},
+			"result": {
+				"error": "unknown name \"constructor\". Use only a, lambda, pi, e."
+			}
+		}
+	},
+	{
+		"name": "hostile name valueOf",
+		"output": {
+			"args": {
+				"src": "valueOf + 1",
+				"names": [
+					"a",
+					"lambda"
+				],
+				"at": []
+			},
+			"result": {
+				"error": "unknown name \"valueOf\". Use only a, lambda, pi, e."
+			}
+		}
+	},
+	{
+		"name": "hostile name __proto__",
+		"output": {
+			"args": {
+				"src": "__proto__",
+				"names": [
+					"a",
+					"lambda"
+				],
+				"at": []
+			},
+			"result": {
+				"error": "unknown name \"__proto__\". Use only a, lambda, pi, e."
+			}
+		}
+	},
+	{
+		"name": "hostile name hasOwnProperty",
+		"output": {
+			"args": {
+				"src": "a + hasOwnProperty(a)",
+				"names": [
+					"a",
+					"lambda"
+				],
+				"at": []
+			},
+			"result": {
+				"error": "unknown name \"hasOwnProperty\". Use only a, lambda, pi, e."
+			}
+		}
+	},
+	{
+		"name": "a capital is another name",
+		"output": {
+			"args": {
+				"src": "Lambda + PI",
+				"names": [
+					"a",
+					"lambda"
+				],
+				"at": []
+			},
+			"result": {
+				"error": "unknown name \"Lambda\". Use only a, lambda, pi, e."
+			}
+		}
+	},
+	{
+		"name": "implicit multiplication after a number",
+		"output": {
+			"args": {
+				"src": "2a",
+				"names": [
+					"a",
+					"lambda"
+				],
+				"at": []
+			},
+			"result": {
+				"error": "write * between \"2\" and \"a\"."
+			}
+		}
+	},
+	{
+		"name": "implicit multiplication before a bracket",
+		"output": {
+			"args": {
+				"src": "2(a+1)",
+				"names": [
+					"a",
+					"lambda"
+				],
+				"at": []
+			},
+			"result": {
+				"error": "write * between \"2\" and \"(\"."
+			}
+		}
+	},
+	{
+		"name": "implicit multiplication between brackets",
+		"output": {
+			"args": {
+				"src": "(a+1)(a-1)",
+				"names": [
+					"a",
+					"lambda"
+				],
+				"at": []
+			},
+			"result": {
+				"error": "write * between \")\" and \"(\"."
+			}
+		}
+	},
+	{
+		"name": "implicit multiplication between calls",
+		"output": {
+			"args": {
+				"src": "sin(a)cos(a)",
+				"names": [
+					"a",
+					"lambda"
+				],
+				"at": []
+			},
+			"result": {
+				"error": "write * between \")\" and \"cos\"."
+			}
+		}
+	},
+	{
+		"name": "implicit multiplication between names",
+		"output": {
+			"args": {
+				"src": "a lambda",
+				"names": [
+					"a",
+					"lambda"
+				],
+				"at": []
+			},
+			"result": {
+				"error": "write * between \"a\" and \"lambda\"."
+			}
+		}
+	},
+	{
+		"name": "implicit multiplication after a power",
+		"output": {
+			"args": {
+				"src": "2^3a",
+				"names": [
+					"a",
+					"lambda"
+				],
+				"at": []
+			},
+			"result": {
+				"error": "write * between \"3\" and \"a\"."
+			}
+		}
+	},
+	{
+		"name": "a name before a bracket",
+		"output": {
+			"args": {
+				"src": "a(1+lambda)",
+				"names": [
+					"a",
+					"lambda"
+				],
+				"at": []
+			},
+			"result": {
+				"error": "write * between \"a\" and \"(\"."
+			}
+		}
+	},
+	{
+		"name": "e notation is not a number",
+		"output": {
+			"args": {
+				"src": "1e3",
+				"names": [
+					"a",
+					"lambda"
+				],
+				"at": []
+			},
+			"result": {
+				"error": "write * between \"1\" and \"e3\"."
+			}
+		}
+	},
+	{
+		"name": "min takes two",
+		"output": {
+			"args": {
+				"src": "min(a)",
+				"names": [
+					"a",
+					"lambda"
+				],
+				"at": []
+			},
+			"result": {
+				"error": "min takes 2 arguments, got 1."
+			}
+		}
+	},
+	{
+		"name": "sin takes one",
+		"output": {
+			"args": {
+				"src": "sin(a, lambda)",
+				"names": [
+					"a",
+					"lambda"
+				],
+				"at": []
+			},
+			"result": {
+				"error": "sin takes 1 argument, got 2."
+			}
+		}
+	},
+	{
+		"name": "an empty call",
+		"output": {
+			"args": {
+				"src": "sqrt()",
+				"names": [
+					"a",
+					"lambda"
+				],
+				"at": []
+			},
+			"result": {
+				"error": "sqrt takes 1 argument, got 0."
+			}
+		}
+	},
+	{
+		"name": "a function needs brackets",
+		"output": {
+			"args": {
+				"src": "sin a",
+				"names": [
+					"a",
+					"lambda"
+				],
+				"at": []
+			},
+			"result": {
+				"error": "sin needs brackets around what it takes, like sin(a)."
+			}
+		}
+	},
+	{
+		"name": "an unclosed bracket",
+		"output": {
+			"args": {
+				"src": "min(a, 4/(1+lambda)",
+				"names": [
+					"a",
+					"lambda"
+				],
+				"at": []
+			},
+			"result": {
+				"error": "ends too early. Check the brackets."
+			}
+		}
+	},
+	{
+		"name": "a stray closing bracket",
+		"output": {
+			"args": {
+				"src": "a)",
+				"names": [
+					"a",
+					"lambda"
+				],
+				"at": []
+			},
+			"result": {
+				"error": "unexpected \")\". Check the brackets."
+			}
+		}
+	},
+	{
+		"name": "a comma outside a call",
+		"output": {
+			"args": {
+				"src": "(a, lambda)",
+				"names": [
+					"a",
+					"lambda"
+				],
+				"at": []
+			},
+			"result": {
+				"error": "unexpected \",\". Check the brackets."
+			}
+		}
+	},
+	{
+		"name": "a trailing operator",
+		"output": {
+			"args": {
+				"src": "a +",
+				"names": [
+					"a",
+					"lambda"
+				],
+				"at": []
+			},
+			"result": {
+				"error": "ends too early. Check the brackets."
+			}
+		}
+	},
+	{
+		"name": "a trailing power",
+		"output": {
+			"args": {
+				"src": "a^",
+				"names": [
+					"a",
+					"lambda"
+				],
+				"at": []
+			},
+			"result": {
+				"error": "ends too early. Check the brackets."
+			}
+		}
+	},
+	{
+		"name": "a leading operator",
+		"output": {
+			"args": {
+				"src": "* a",
+				"names": [
+					"a",
+					"lambda"
+				],
+				"at": []
+			},
+			"result": {
+				"error": "unexpected \"*\". Put a number or name before it."
+			}
+		}
+	},
+	{
+		"name": "a doubled operator",
+		"output": {
+			"args": {
+				"src": "a ** 2",
+				"names": [
+					"a",
+					"lambda"
+				],
+				"at": []
+			},
+			"result": {
+				"error": "unexpected \"*\". Put a number or name before it."
+			}
+		}
+	},
+	{
+		"name": "empty brackets",
+		"output": {
+			"args": {
+				"src": "()",
+				"names": [
+					"a",
+					"lambda"
+				],
+				"at": []
+			},
+			"result": {
+				"error": "unexpected \")\". Check the brackets."
+			}
+		}
+	},
+	{
+		"name": "a dot alone",
+		"output": {
+			"args": {
+				"src": "1. + a",
+				"names": [
+					"a",
+					"lambda"
+				],
+				"at": []
+			},
+			"result": {
+				"error": "\".\" is not allowed. Use numbers, names, + - * / ^ and brackets."
+			}
+		}
+	},
+	{
+		"name": "two dots",
+		"output": {
+			"args": {
+				"src": "1.2.3",
+				"names": [
+					"a",
+					"lambda"
+				],
+				"at": []
+			},
+			"result": {
+				"error": "write * between \"1.2\" and \".3\"."
+			}
+		}
+	},
+	{
+		"name": "a Greek letter",
+		"output": {
+			"args": {
+				"src": "λ + 1",
+				"names": [
+					"a",
+					"lambda"
+				],
+				"at": []
+			},
+			"result": {
+				"error": "\"λ\" is not allowed. Use numbers, names, + - * / ^ and brackets."
+			}
+		}
+	},
+	{
+		"name": "an equals sign",
+		"output": {
+			"args": {
+				"src": "a = 2",
+				"names": [
+					"a",
+					"lambda"
+				],
+				"at": []
+			},
+			"result": {
+				"error": "\"=\" is not allowed. Use numbers, names, + - * / ^ and brackets."
+			}
+		}
+	},
+	{
+		"name": "LaTeX is not plain math",
+		"output": {
+			"args": {
+				"src": "\\frac{a}{2}",
+				"names": [
+					"a",
+					"lambda"
+				],
+				"at": []
+			},
+			"result": {
+				"error": "\"\\\" is not allowed. Use numbers, names, + - * / ^ and brackets."
+			}
+		}
+	},
+	{
+		"name": "dollar signs",
+		"output": {
+			"args": {
+				"src": "$a$",
+				"names": [
+					"a",
+					"lambda"
+				],
+				"at": []
+			},
+			"result": {
+				"error": "\"$\" is not allowed. Use numbers, names, + - * / ^ and brackets."
+			}
+		}
+	},
+	{
+		"name": "a character outside the basic plane",
+		"output": {
+			"args": {
+				"src": "a + 𝑥",
+				"names": [
+					"a",
+					"lambda"
+				],
+				"at": []
+			},
+			"result": {
+				"error": "\"𝑥\" is not allowed. Use numbers, names, + - * / ^ and brackets."
+			}
+		}
+	},
+	{
+		"name": "empty",
+		"output": {
+			"args": {
+				"src": "",
+				"names": [
+					"a",
+					"lambda"
+				],
+				"at": []
+			},
+			"result": {
+				"error": "is empty. Write the line's formula."
+			}
+		}
+	},
+	{
+		"name": "blank",
+		"output": {
+			"args": {
+				"src": "   ",
+				"names": [
+					"a",
+					"lambda"
+				],
+				"at": []
+			},
+			"result": {
+				"error": "is empty. Write the line's formula."
+			}
+		}
+	},
+	{
+		"name": "200 characters is the cap",
+		"output": {
+			"args": {
+				"src": "a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a ",
+				"names": [
+					"a",
+					"lambda"
+				],
+				"at": [
+					[
+						1,
+						0
+					]
+				]
+			},
+			"result": {
+				"values": [
+					100
+				]
+			}
+		}
+	},
+	{
+		"name": "201 characters is too long",
+		"output": {
+			"args": {
+				"src": "a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a",
+				"names": [
+					"a",
+					"lambda"
+				],
+				"at": []
+			},
+			"result": {
+				"error": "longer than 200 characters."
+			}
+		}
+	},
+	{
+		"name": "32 brackets deep",
+		"output": {
+			"args": {
+				"src": "((((((((((((((((((((((((((((((((a))))))))))))))))))))))))))))))))",
+				"names": [
+					"a",
+					"lambda"
+				],
+				"at": [
+					[
+						7,
+						0
+					]
+				]
+			},
+			"result": {
+				"values": [
+					7
+				]
+			}
+		}
+	},
+	{
+		"name": "33 brackets deep",
+		"output": {
+			"args": {
+				"src": "(((((((((((((((((((((((((((((((((a)))))))))))))))))))))))))))))))))",
+				"names": [
+					"a",
+					"lambda"
+				],
+				"at": []
+			},
+			"result": {
+				"error": "nested more than 32 deep. Write it more simply."
+			}
+		}
+	},
+	{
+		"name": "33 signs deep",
+		"output": {
+			"args": {
+				"src": "---------------------------------a",
+				"names": [
+					"a",
+					"lambda"
+				],
+				"at": []
+			},
+			"result": {
+				"error": "nested more than 32 deep. Write it more simply."
+			}
+		}
+	},
+	{
+		"name": "33 powers deep",
+		"output": {
+			"args": {
+				"src": "a^a^a^a^a^a^a^a^a^a^a^a^a^a^a^a^a^a^a^a^a^a^a^a^a^a^a^a^a^a^a^a^a^a",
+				"names": [
+					"a",
+					"lambda"
+				],
+				"at": []
+			},
+			"result": {
+				"error": "nested more than 32 deep. Write it more simply."
+			}
+		}
+	},
+	{
+		"name": "calls nest too",
+		"output": {
+			"args": {
+				"src": "sin(sin(sin(sin(sin(sin(sin(sin(sin(sin(sin(sin(sin(sin(sin(sin(sin(sin(sin(sin(sin(sin(sin(sin(sin(sin(sin(sin(sin(sin(sin(sin(sin(a)))))))))))))))))))))))))))))))))",
+				"names": [
+					"a",
+					"lambda"
+				],
+				"at": []
+			},
+			"result": {
+				"error": "nested more than 32 deep. Write it more simply."
+			}
+		}
+	},
+	{
+		"name": "no names given",
+		"output": {
+			"args": {
+				"src": "x + 1",
+				"names": [],
+				"at": []
+			},
+			"result": {
+				"error": "unknown name \"x\". Use only pi, e."
+			}
+		}
+	}
+]

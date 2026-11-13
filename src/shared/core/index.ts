@@ -61,6 +61,8 @@ export * from "./continue-study.ts";
 // Stops and openers: the state Today and the lesson window read.
 export * from "./topic-end.ts";
 export * from "./topic-parts.ts";
+// Plot formulas: the grammar the server checks them with, and their typeset form.
+export * from "./plot-expr.ts";
 export * from "./homework.ts";
 export * from "./cheat-sheet.ts";
 export * from "./prep.ts";
