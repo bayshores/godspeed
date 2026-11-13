@@ -5,10 +5,10 @@
 use std::path::Path;
 use std::sync::Arc;
 
-use gs_core::messages::citations::{CheckedMarks, CiteMark, DroppedQuote, cut_unreadable_quotes, file_cite_mark, replace_cite_marks};
+use gs_core::messages::citations::{CheckedMarks, CiteMark, DroppedQuote, MARK_MAX, cut_unreadable_quotes, file_cite_mark, replace_cite_marks};
 use gs_base::text;
 use gs_core::contracts::space::{extension_of, plain_text_extensions};
-use gs_core::messages::quote_find::{check_quote, find_once};
+use gs_core::messages::quote_find::{QuoteMiss, check_quote, find_once};
 use gs_json::{Json, json};
 use gs_search::chunks::{range_point, unix_lines};
 use gs_search::index::PassageRef;
@@ -37,8 +37,8 @@ fn passage_text(passages: &[Json]) -> String {
 /// The text with every space file mark checked. A passage id becomes the stored mark (file, place,
 /// file name, and its quote with single spaces when the quoted words are found once in that
 /// passage); a mark that
-/// points at nothing is taken out and listed once, and a quote that does not hold is dropped and
-/// listed once. Web marks stay as written.
+/// points at nothing is taken out and listed once, and a quote that does not hold (or would make the
+/// stored mark too long to read) is dropped and listed once. Web marks stay as written.
 pub fn check_cites(app: &App, text: &str) -> CheckedMarks {
 	let (text, mut dropped) = cut_unreadable_quotes(text);
 	let mut removed: Vec<String> = Vec::new();
@@ -59,18 +59,23 @@ pub fn check_cites(app: &App, text: &str) -> CheckedMarks {
 					PassageRef::Passage(_) => passage["range"].as_str().unwrap_or_default().to_owned(),
 					PassageRef::Place { range, .. } => range.clone(),
 				};
-				let quote = quote.filter(|quote| match check_quote(&passage_text(&passages), quote) {
-					Ok(_) => true,
-					Err(miss) => {
-						let drop = DroppedQuote { mark: written.clone(), quote: quote.clone(), miss };
-						if !dropped.contains(&drop) {
-							dropped.push(drop);
-						}
-						false
+				let mut note_drop = |quote: &str, miss| {
+					let drop = DroppedQuote { mark: written.clone(), quote: quote.to_owned(), miss };
+					if !dropped.contains(&drop) {
+						dropped.push(drop);
 					}
-				});
+				};
+				let quote = quote.filter(|quote| check_quote(&passage_text(&passages), quote).map_err(|miss| note_drop(quote, miss)).is_ok());
 				let quote = quote.map(|q| q.split_whitespace().collect::<Vec<_>>().join(" "));
-				return file_cite_mark(&file_id, &range, name_of(&file), quote.as_deref());
+				let stored = file_cite_mark(&file_id, &range, name_of(&file), quote.as_deref());
+				// A long name plus the quote would no longer read as a mark; the plain one may.
+				if let Some(quote) = &quote
+					&& text::len16(&stored) > MARK_MAX + 4
+				{
+					note_drop(quote, QuoteMiss::Shape);
+					return file_cite_mark(&file_id, &range, name_of(&file), None);
+				}
+				return stored;
 			}
 		}
 		if !removed.contains(&written) {
@@ -188,7 +193,6 @@ pub async fn cited_page(app: &App, file_id: &str, page: &str) -> Result<Arc<Vec<
 
 #[cfg(test)]
 mod tests {
-	use gs_core::messages::quote_find::QuoteMiss;
 	use gs_json::stringify;
 
 	use super::*;
@@ -276,6 +280,36 @@ mod tests {
 				dropped: vec![drop("a[0] heap", QuoteMiss::Unsafe), drop("costs $5 each", QuoteMiss::Unsafe), drop("a heap", QuoteMiss::Twice), drop("a stack", QuoteMiss::Absent), drop("heap", QuoteMiss::Shape)],
 			}
 		);
+	}
+
+	#[test]
+	fn a_quote_that_would_make_the_stored_mark_too_long_is_dropped() {
+		let root = scratch_dir("cites-long-name");
+		let app = test_app(&root);
+		make_space(&app);
+		let record = app.stores.spaces.list_space_records().remove(0);
+		// A linked folder's path as the name: its plain mark fits, with the quote it would not.
+		let long = format!("{}heaps.docx", "deep folder name/".repeat(21));
+		let mut files = record["files"].as_arr().unwrap().to_vec();
+		for file in &mut files {
+			if file["id"].as_str() == Some(DOC)
+				&& let Some(file) = file.as_obj_mut()
+			{
+				file.insert("name", long.as_str());
+			}
+		}
+		app.stores.spaces.save_files(record["id"].as_str().unwrap(), files, &[]).unwrap();
+		let plain = file_cite_mark(DOC, "lines 1–2", &long, None);
+		assert_eq!(
+			check_cites(&app, &format!("Heaps. [[{DOC}:1 \"smallest key\"]]")),
+			CheckedMarks { text: format!("Heaps. {plain}"), removed: vec![], dropped: vec![DroppedQuote { mark: format!("{DOC}:1"), quote: "smallest key".into(), miss: QuoteMiss::Shape }] }
+		);
+		let mut read = 0;
+		replace_cite_marks(&plain, |_| {
+			read += 1;
+			String::new()
+		});
+		assert_eq!(read, 1);
 	}
 
 	#[tokio::test]

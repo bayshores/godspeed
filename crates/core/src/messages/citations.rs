@@ -19,7 +19,10 @@ pub enum CiteMark {
 	Web { url: String },
 }
 
-static MARK: LazyLock<Re> = LazyLock::new(|| Re::new(r"\[\[([^[\]\n]{1,400})\]\]", "g"));
+/// The longest mark body read as a mark, in UTF-16 units (inside the `[[` and `]]`).
+pub const MARK_MAX: usize = 400;
+
+static MARK: LazyLock<Re> = LazyLock::new(|| Re::new(&format!(r"\[\[([^[\]\n]{{1,{MARK_MAX}}})\]\]"), "g"));
 
 fn read_mark(body: &str) -> Option<CiteMark> {
 	static PASSAGE: LazyLock<Re> = LazyLock::new(|| Re::new(r#"^(f_[0-9a-f]{12}:\d+)(?: "(.+)")?$"#, ""));
