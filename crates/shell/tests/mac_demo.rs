@@ -159,7 +159,7 @@ setTimeout(() => {{ location.href = "https://example.com/"; }}, 100);
 		let probe = "({ answer: window.answer, href: location.href })";
 		let result = check(folder, &html, Some(probe), |mtm| look_at_demo_window(mtm, seen));
 		assert!(!result.ok);
-		assert_eq!(result.console_errors, vec![r#"planted {"a":1}"#.to_owned()]);
+		assert_eq!(result.console_errors, vec![r#"planted {"a":1}"#.to_owned()], "{result:?}");
 		assert!(result.page_errors.iter().any(|e| e.contains("planted uncaught")), "{:?}", result.page_errors);
 		let failed = result.failed_requests.join("\n");
 		assert!(failed.contains("https://does-not-exist.invalid/lib.js (script failed to load)"), "{failed}");
