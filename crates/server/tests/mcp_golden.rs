@@ -5,7 +5,7 @@
 use std::sync::Arc;
 
 use axum::http::{HeaderMap, HeaderName, HeaderValue, Method};
-use gs_base::config::Paths;
+use gs_base::config::{Paths, VERSION};
 use gs_base::{fsx, ids};
 use gs_json::{Json, parse};
 use gs_server::mcp::handle_mcp_request;
@@ -44,6 +44,8 @@ async fn answers_like_the_ts_handler() {
 		assert_eq!(status as f64, expected["status"].as_f64().unwrap(), "{name}: status");
 		assert_eq!(kind, expected["type"], "{name}: content-type");
 		assert_eq!(allow, expected["allow"], "{name}: allow");
-		assert_eq!(text, expected["body"].as_str().unwrap(), "{name}: body");
+		// The recording names the release it was made on; the server names the one it was built from.
+		let body = expected["body"].as_str().unwrap().replace(r#""name":"godspeed","version":"0.5.50""#, &format!(r#""name":"godspeed","version":"{VERSION}""#));
+		assert_eq!(text, body, "{name}: body");
 	}
 }
