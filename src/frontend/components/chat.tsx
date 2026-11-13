@@ -32,6 +32,7 @@ import {
 	type LhMessage,
 	type PlanTree,
 	type QuestionAnswerData,
+	withOpenReview,
 } from "@/shared/core";
 import { escAbortTarget, initialPromptOwed, restoreUnsent, sendBlockedReason, stuckClaimMinutes, stuckRetry } from "@/frontend/components/lesson/chat-helpers";
 import { holdsDraft } from "@/frontend/components/lesson/lesson-drafts-model";
@@ -43,6 +44,7 @@ import { practiceProgress } from "@/frontend/components/lesson/practice-progress
 import { useLessonServer } from "@/frontend/components/lesson/use-lesson-server";
 import { useTitleRename } from "@/frontend/components/lesson/use-title-rename";
 import { useLessonStop } from "@/frontend/components/lesson/use-lesson-stop";
+import { useFromEarlier } from "@/frontend/components/lesson/use-from-earlier";
 import { LessonTopBar } from "@/frontend/components/lesson/lesson-top-bar";
 import { LessonWorkFrame } from "@/frontend/components/lesson/lesson-work-frame";
 import { PlanRow } from "@/frontend/components/lesson/plan-row";
@@ -105,7 +107,7 @@ export function Chat({
 	const session = useChatSession({ chatId, initialMessages, initialError, initiallyInFlight });
 	const { messages, nativeMessages, contextTokens, send, continueIfOwed, steer, steerQueue, submitAnswer, dismissQuestion, dismissProblem, keepGoing, status, error, stop, clearError, resumeStream } = session;
 	const summarizeAt = useSummarizePoint();
-	const { turnInFlight, localStreamRef, jobs, turns, pricing } = useLessonServer({
+	const { turnInFlight, localStreamRef, jobs, turns, pricing, adoptAppendOnly } = useLessonServer({
 		chatId,
 		session,
 		initiallyInFlight: initiallyInFlight ?? false,
@@ -144,9 +146,7 @@ export function Chat({
 		// mount-only by design
 	}, []);
 
-	const pending = useMemo(() => findPendingToolCall(messages), [messages]);
-	const pendingRef = useRef(pending);
-	pendingRef.current = pending;
+	const teacherPending = useMemo(() => findPendingToolCall(messages), [messages]);
 	// The active practice problem, from the native record (the fold the
 	// tools themselves read). It owns the panel like a pending question.
 	const activeProblem = useMemo(() => activeProblemOf(nativeMessages), [nativeMessages]);
@@ -162,8 +162,21 @@ export function Chat({
 	// in the composer (it starts by itself once the agent connects).
 	const agentStatus = useAgentStatus();
 	const waitingForAgent = busy && agentWaiting(agentStatus);
+	const noAgent = lessonAgentWaiting(agentStatus);
 	const busyRef = useRef(busy);
 	busyRef.current = busy;
+
+	// Questions from earlier fill a Study lesson's wait for its teacher or
+	// its agent. The open one shows before the teacher's own question.
+	const { question: reviewQuestion, answer: answerReview, skip: skipReview } = useFromEarlier({
+		chatId,
+		waiting: kind === "study" && (busy || noAgent),
+		open: teacherPending !== null || activeProblem !== null,
+		onAnswered: adoptAppendOnly,
+	});
+	const pending = useMemo(() => findPendingToolCall(withOpenReview(messages, reviewQuestion)), [messages, reviewQuestion]);
+	const pendingRef = useRef(pending);
+	pendingRef.current = pending;
 	// An agent took this turn and hasn't answered for a while: offer to stop
 	// it (the minutes refresh while the line shows).
 	const claimedAt = agentStatus?.claimedLessons.find((c) => c.lessonId === chatId)?.claimedAt;
@@ -205,7 +218,7 @@ export function Chat({
 	const phases = useMemo(() => phaseTimeline(messages, firstPhase(kind)), [messages, kind]);
 	const phase = phases.at(-1) ?? firstPhase(kind);
 	// A teach-phase check waits behind "Check your understanding".
-	const requiresReveal = pending !== null && questionNeedsReveal(pending.tool, pending.input, phase);
+	const requiresReveal = pending !== null && pending.appPosed?.kind !== "review" && questionNeedsReveal(pending.tool, pending.input, phase);
 
 	/* The reading-thinking channel: thoughts noted in the box while reading,
 	 * kept when the check opens and riding its answer (or its dismissal) as
@@ -273,9 +286,14 @@ export function Chat({
 			// A pending question's dismiss is silent (no turn); mid-turn it also
 			// kills the running turn, and the route parks the dismissal.
 			const p = pendingRef.current;
+			// A question from earlier is skipped alone: the teacher writes on.
+			if (p?.appPosed?.kind === "review") {
+				skipReview();
+				return;
+			}
 			// The opener has no call of its own: its skip is an answer of none,
 			// sent after the running turn is stopped, as the dialog says.
-			if (p?.appPosed) {
+			if (p?.appPosed?.kind === "opener") {
 				if (busyRef.current) abortInFlightTurn();
 				void send({ type: "opener-answer", topicDoneCallId: p.appPosed.ref, answer: null });
 				return;
@@ -296,7 +314,7 @@ export function Chat({
 				if (busyRef.current) abortInFlightTurn();
 			}
 		},
-		[abortInFlightTurn, dismissQuestion, dismissProblem, send],
+		[abortInFlightTurn, dismissQuestion, dismissProblem, send, skipReview],
 	);
 
 	// ── the writing box ──
@@ -354,7 +372,7 @@ export function Chat({
 	 * a wake) steers it; idle takes the plain send (a raced settle 409s and
 	 * falls back to exactly that). Under a waiting question it is a side
 	 * question. */
-	const onSend = () => {
+	const onSend = (picked: string[] = []) => {
 		const t = textRef.current.trim();
 		const files = attachments.files.map((f) => f.attachment);
 		// A steer of the running turn is text only.
@@ -370,11 +388,12 @@ export function Chat({
 		const drafts = attachments.files;
 		editText("");
 		attachments.clear();
-		// A question about the opener leaves it open, like a side question.
-		const opener = pending?.appPosed;
-		const input = opener
-			? ({ type: "text", text: t, about: { opener: opener.ref } } as const)
-			: ({ type: sideOpen ? "side" : "text", text: t } as const);
+		// A question about the opener or a question from earlier leaves it
+		// open, like a side question.
+		const posed = pending?.appPosed;
+		const about =
+			posed?.kind === "opener" ? { opener: posed.ref } : posed?.kind === "review" ? { reviewOf: posed.ref, ...(picked.length > 0 ? { picked } : {}) } : null;
+		const input = about ? ({ type: "text", text: t, about } as const) : ({ type: sideOpen ? "side" : "text", text: t } as const);
 		void send({ ...input, ...(files.length > 0 ? { attachments: files } : {}) }).then((sent) => {
 			if (sent) return;
 			editText(restoreUnsent(t, textRef.current));
@@ -394,9 +413,13 @@ export function Chat({
 		editText("");
 		if (files.length > 0) attachments.clear();
 		const answer = reading ? { ...output, readingThinking: reading } : output;
-		const sending = pending.appPosed
-			? send({ type: "opener-answer", topicDoneCallId: pending.appPosed.ref, answer })
-			: submitAnswer(pending.toolCallId, answer, files.map((f) => f.attachment));
+		const posed = pending.appPosed;
+		const sending =
+			posed?.kind === "review"
+				? answerReview(answer)
+				: posed
+					? send({ type: "opener-answer", topicDoneCallId: posed.ref, answer })
+					: submitAnswer(pending.toolCallId, answer, files.map((f) => f.attachment));
 		void sending.then((sent) => {
 			if (sent) return;
 			if (typed.trim()) editText(restoreUnsent(typed, textRef.current));
@@ -564,7 +587,7 @@ export function Chat({
 											onWidth={setColumnWidth}
 											pending={pending}
 											requiresReveal={requiresReveal}
-											noAgent={lessonAgentWaiting(agentStatus)}
+											noAgent={noAgent}
 											onReveal={revealCheck}
 											initialQuestionDraft={pendingQuestionId ? drafts.draft?.questions[pendingQuestionId]?.form : undefined}
 											onSaveQuestionDraft={(form) => {
@@ -603,7 +626,7 @@ export function Chat({
 											</div>
 										)}
 										{planPresence.mounted && <PlanPopup tree={planTree} messages={messages} onClose={() => setPlanOpen(false)} onJump={jumpToAnswer} state={planPresence.state} />}
-										<AbortTurnDialog mode={abortAsk} onClose={() => setAbortAsk(null)} onConfirm={confirmAbort} busy={busy} />
+										<AbortTurnDialog mode={abortAsk} onClose={() => setAbortAsk(null)} onConfirm={confirmAbort} busy={busy && pending?.appPosed?.kind !== "review"} />
 									</div>
 								</LessonWorkFrame>
 							</div>

@@ -63,6 +63,7 @@ export function CodeQuestion({
 		},
 		// The editor never folds away.
 		fold() {},
+		picked: () => [],
 	}));
 
 	return (

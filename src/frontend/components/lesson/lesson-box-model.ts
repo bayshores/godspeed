@@ -3,7 +3,7 @@
  * which buttons the box shows, what Enter does in it and which way out sits
  * beside "Your turn". Pure.
  */
-import { answerTakesFiles, parseAskInput, parseExplainInput, toolQuestionKind } from "@/shared/core";
+import { answerTakesFiles, parseAskInput, parseExplainInput, toolQuestionKind, type AppPosed } from "@/shared/core";
 
 /** What waits in the column. */
 export type BoxTurn =
@@ -16,9 +16,10 @@ export type BoxTurn =
 	/** A check waits behind "Check your understanding". */
 	| { kind: "read-first" }
 	/** The answer is picked above the box (choices, or the code editor).
-	 *  `appPosed`: the app asked it (the next topic's opener), so no turn
-	 *  of its own runs and its way out stays "Skip question". */
-	| { kind: "choice"; picked: boolean; appPosed?: true }
+	 *  `appPosed`: the app asked it (the next topic's opener, or a question
+	 *  from earlier), so no turn of its own runs and its way out stays
+	 *  "Skip question". */
+	| { kind: "choice"; picked: boolean; appPosed?: AppPosed["kind"] }
 	/** The box text is the answer. */
 	| { kind: "written"; takesFiles: boolean };
 
@@ -46,12 +47,12 @@ export interface BoxView {
 /** A waiting question as the box sees it: written in the box, or picked
  *  above it (`picked` says whether an answer is). A question that came
  *  through broken is never answered, so it counts as nothing picked. */
-export function questionTurn(tool: string, input: unknown, picked: boolean, appPosed = false): BoxTurn {
+export function questionTurn(tool: string, input: unknown, picked: boolean, appPosed?: AppPosed["kind"]): BoxTurn {
 	const kind = toolQuestionKind(tool);
 	const ask = kind === "ask" ? parseAskInput(input) : undefined;
 	const written = kind === "explain" ? parseExplainInput(input) !== undefined : ask !== undefined && !ask.options?.length;
 	if (written) return { kind: "written", takesFiles: answerTakesFiles(tool) };
-	return { kind: "choice", picked, ...(appPosed ? { appPosed: true as const } : {}) };
+	return { kind: "choice", picked, ...(appPosed ? { appPosed } : {}) };
 }
 
 export function lessonBox(s: {
@@ -114,7 +115,8 @@ export function lessonBox(s: {
 		};
 	}
 	const ready = turn.kind === "choice" ? turn.picked : s.hasText || (turn.takesFiles && s.hasFiles);
-	const canSubmit = ready && !s.busy;
+	// An answer to a question from earlier wakes nobody, so it goes in while the teacher writes.
+	const canSubmit = ready && (!s.busy || (turn.kind === "choice" && turn.appPosed === "review"));
 	return {
 		placeholder: turn.kind === "choice" ? `Your reasoning, or a question for ${s.name}` : `Type your answer, or a question for ${s.name}`,
 		left: ask,

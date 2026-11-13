@@ -96,7 +96,8 @@ export function useLessonServer({
 	});
 
 	// Append-only adoption: server-delivered content (sub-agent artifacts,
-	// abort notes) shows the moment it persists, mid-turn included.
+	// abort notes, answers to questions from earlier) shows the moment it
+	// persists, mid-turn included.
 	const adoptAppendOnly = useCallback(async () => {
 		try {
 			const res = await fetch(`/api/chats/${chatId}`);
@@ -267,5 +268,6 @@ export function useLessonServer({
 		jobs,
 		turns,
 		pricing,
+		adoptAppendOnly,
 	};
 }

@@ -57,6 +57,8 @@ export interface QuestionHandle {
 	submit(): void;
 	/** The learner started writing: an answered list folds into one row. */
 	fold(): void;
+	/** The option labels picked so far, in the order shown. */
+	picked(): string[];
 }
 
 export interface QuestionDockProps {
@@ -232,6 +234,7 @@ function QuestionDockForm({
 		fold() {
 			if (canSubmit) setFolded(true);
 		},
+		picked: () => [...sel.selected].sort((a, b) => a - b).map((i) => qd.options[i]!.label),
 	}));
 
 	const selectOther = () => setSel(toggleOther(selectMode, sel));

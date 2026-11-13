@@ -40,7 +40,9 @@ export interface YourTurnProps {
 	/** The writing box's text. */
 	value: string;
 	onChange: (v: string) => void;
-	onSend: () => void;
+	/** Sends the box; `picked` is the waiting question's option labels
+	 *  picked so far, for a question about it. */
+	onSend: (picked: string[]) => void;
 	queuedSteers: QueuedSteerLine[];
 	attachments: AttachmentDraft;
 	/** An agent took the turn and went quiet: stop it and run it again. */
@@ -107,7 +109,7 @@ export function YourTurn({
 	const turn: BoxTurn = revealPending
 		? { kind: "read-first" }
 		: pending
-			? questionTurn(pending.tool, pending.input, picked, pending.appPosed !== undefined)
+			? questionTurn(pending.tool, pending.input, picked, pending.appPosed?.kind)
 			: problem
 				? { kind: "problem" }
 				: stop
@@ -116,7 +118,7 @@ export function YourTurn({
 	const view = lessonBox({ name, busy, waitingForAgent, hasText: value.trim().length > 0, hasFiles: attachments.files.length > 0, turn });
 
 	const act = (action: BoxAction) => {
-		if (action === "send") onSend();
+		if (action === "send") onSend(questionRef.current?.picked() ?? []);
 		else if (action === "submit") questionRef.current?.submit();
 		else if (action === "reveal") onReveal();
 		else if (action === "next") onNext();
@@ -130,7 +132,8 @@ export function YourTurn({
 
 	const exit = view.exit && EXIT[view.exit];
 	const onExit = view.exit === "skip" ? onSkipQuestion : view.exit === "discard" ? onDiscardProblem : onStop;
-	const kind = pending ? questionKindLabel(pending.tool, normalizeQuizType((pending.input as { type?: unknown } | null)?.type)) : "Question";
+	const fromEarlier = pending?.appPosed?.kind === "review";
+	const kind = fromEarlier ? "From earlier" : pending ? questionKindLabel(pending.tool, normalizeQuizType((pending.input as { type?: unknown } | null)?.type)) : "Question";
 
 	const mode = revealPending
 		? `reveal:${pending?.toolCallId}`
@@ -174,7 +177,7 @@ export function YourTurn({
 							onReady={setPicked}
 							boxText={value}
 							onLeaveRows={() => boxRef.current?.focus()}
-							busy={busy}
+							busy={busy && !fromEarlier}
 						/>
 					)}
 					{!pending && problem && (

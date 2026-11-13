@@ -24,6 +24,7 @@ import {
 	teachStepIndex,
 	textPartMessageId,
 	type ArtifactPartProps,
+	type FromEarlierData,
 	type LhViewMessage,
 	type LhViewPart,
 	type PlanBlockData,
@@ -34,6 +35,7 @@ import type { Arrive } from "./arrivals";
 import { isSubagentSteer } from "./chat-helpers";
 import { MessageAttachments } from "./message-attachments";
 import { drawnSeparators } from "./message-row-model";
+import { FromEarlierCard } from "./from-earlier-card";
 import { LABEL_TEXT } from "@/frontend/components/ui/label-text";
 
 // A plan diagram (and dagre, its layout engine) is its own chunk; the
@@ -165,6 +167,8 @@ function MarkerPart({ part }: { part: LhViewPart }) {
 			return <CompactionCutDivider data={part.data as CompactionDividerData} />;
 		case "data-practice-thinking":
 			return <ThinkingCard data={part.data as PracticeThinkingData} />;
+		case "data-from-earlier":
+			return <FromEarlierCard data={part.data as FromEarlierData} />;
 		case "data-practice-next":
 			return (
 				<div data-testid="practice-next-line" className={cn("my-4 flex items-center justify-center gap-2.5", LABEL_TEXT)}>

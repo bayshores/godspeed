@@ -48,15 +48,18 @@ export function TeacherColumn({
 
 	// The reveal: false until the learner opens the check. Reset during
 	// render when a new question lands, and open at once only when it
-	// follows another question (the reading already happened).
+	// follows another of the teacher's questions (the reading already
+	// happened; a question from earlier fills the wait before it).
 	const pendingId = pending?.toolCallId ?? null;
 	const [revealed, setRevealed] = useState(false);
 	const prevPendingIdRef = useRef(pendingId);
+	const prevFromEarlierRef = useRef(false);
 	if (pendingId !== prevPendingIdRef.current) {
-		const wasQuestion = prevPendingIdRef.current !== null;
+		const wasQuestion = prevPendingIdRef.current !== null && !prevFromEarlierRef.current;
 		prevPendingIdRef.current = pendingId;
 		if (pendingId && requiresReveal) setRevealed(wasQuestion);
 	}
+	prevFromEarlierRef.current = pending?.appPosed?.kind === "review";
 
 	// With no agent teaching, the head says so and opens Connection settings.
 	const doing = noAgent ? "Waiting for your agent" : busy ? `${name} is writing…` : teacher?.doing?.working ? teacher.doing.text : null;
