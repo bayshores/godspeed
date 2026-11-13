@@ -129,7 +129,7 @@ fn part_flag(part: &str) -> &'static str {
 /// A sentence he kept, as a question from earlier carries it: its quiz, its topic, the sentence
 /// (`{of: {chatId, messageId, toolCallId}, text, source?, phrase?}`, never the analogy lines; the
 /// phrase unless he dropped it) and when he answered its quiz.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone)]
 pub struct KeptSentence {
 	pub node_id: String,
 	pub sentence: Json,
