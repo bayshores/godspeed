@@ -38,6 +38,10 @@ fn is_letter(unit: u16) -> bool {
 	char::from_u32(u32::from(unit)).is_some_and(char::is_alphabetic)
 }
 
+fn is_word(unit: u16) -> bool {
+	unit == u16::from(b'_') || char::from_u32(u32::from(unit)).is_some_and(char::is_alphanumeric)
+}
+
 fn is_lower(unit: u16) -> bool {
 	char::from_u32(u32::from(unit)).is_some_and(char::is_lowercase)
 }
@@ -115,16 +119,18 @@ fn unsafe_quote(quote: &str) -> bool {
 }
 
 /// Where `quote` sits in `text` as UTF-16 offsets `(start, end)`, when it is there exactly once.
+/// A quote that starts or ends with a letter or digit matches only where a word starts or ends.
 pub fn find_once(text: &str, quote: &str) -> Result<(usize, usize), QuoteMiss> {
 	if unsafe_quote(quote) {
 		return Err(QuoteMiss::Unsafe);
 	}
 	let (needle, _) = fold_for_match(quote);
-	if needle.is_empty() {
-		return Err(QuoteMiss::Absent);
-	}
+	let (Some(&first), Some(&last)) = (needle.first(), needle.last()) else { return Err(QuoteMiss::Absent) };
 	let (hay, from) = fold_for_match(text);
-	let mut found = hay.windows(needle.len()).enumerate().filter(|(_, w)| *w == needle.as_slice()).map(|(at, _)| at);
+	let bounded = |at: usize| {
+		(!is_word(first) || at == 0 || !is_word(hay[at - 1])) && (!is_word(last) || hay.get(at + needle.len()).is_none_or(|&u| !is_word(u)))
+	};
+	let mut found = hay.windows(needle.len()).enumerate().filter(|(at, w)| *w == needle.as_slice() && bounded(*at)).map(|(at, _)| at);
 	match (found.next(), found.next()) {
 		(None, _) => Err(QuoteMiss::Absent),
 		(Some(_), Some(_)) => Err(QuoteMiss::Twice),
@@ -181,9 +187,20 @@ mod tests {
 	#[test]
 	fn found_twice_or_not_at_all_gives_none() {
 		assert_eq!(find_once("p + 1 and p + 1", "p + 1"), Err(QuoteMiss::Twice));
-		assert_eq!(find_once("aaa", "aa"), Err(QuoteMiss::Twice));
+		assert_eq!(find_once("1 + 1 + 1", "1 + 1"), Err(QuoteMiss::Twice), "overlapping");
 		assert_eq!(find_once("degree 12", "degree 13"), Err(QuoteMiss::Absent));
 		assert_eq!(find_once("degree 12", "  \n "), Err(QuoteMiss::Absent));
+	}
+
+	#[test]
+	fn a_quote_matches_whole_words_only() {
+		assert_eq!(find_once("Use degree 12 here", "degree 1"), Err(QuoteMiss::Absent));
+		assert_eq!(find_once("the model and the models", "the model"), Ok((0, 9)));
+		assert_eq!(find_once("my_p + 1 and p + 1", "p + 1"), Ok((13, 18)));
+		assert_eq!(find_once("the e\u{fb01}t is \u{fb01}ne", "is fine"), Ok((8, 14)));
+		// A quote that starts or ends with a mark other than a letter or digit may sit against a word.
+		assert_eq!(find_once("q = p->next;", "->next"), Ok((5, 11)));
+		assert_eq!(find_once("call f(x) now", "f("), Ok((5, 7)));
 	}
 
 	#[test]
