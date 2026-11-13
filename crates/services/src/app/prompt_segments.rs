@@ -83,7 +83,7 @@ mod tests {
 		assert_eq!(save_prompt_segment(&app, "teacher/99-new.md", &Json::Null).unwrap().0, 400);
 		let (status, answer) = save_prompt_segment(&app, "talk/00-base.md", &json!({ "text": "x" })).unwrap();
 		assert_eq!((status, answer["error"].as_str()), (400, Some("\"talk/00-base.md\" is not a current source segment")));
-		assert_eq!(answer["supported"].as_arr().map(Vec::len), Some(25));
+		assert_eq!(answer["supported"].as_arr().map(Vec::len), Some(26));
 		assert_eq!(save_prompt_segment(&app, "system-prompt.md", &json!({ "text": "" })).unwrap(), (200, json!({ "path": "system-prompt.md", "text": "" })));
 		assert_eq!(reset_prompt_segment(&app, "system-prompt.md"), (200, json!({ "path": "system-prompt.md", "deleted": true })));
 		assert_eq!(reset_prompt_segment(&app, "system-prompt.md").0, 200);

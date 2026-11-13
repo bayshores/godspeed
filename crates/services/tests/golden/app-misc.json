@@ -705,7 +705,7 @@
 				{
 					"path": "shared/10-voice.md",
 					"shared": true,
-					"sourceSha": "bf8a9d2d13b070bf0eae84a8b4f95b7b6d9fba1ea29a9e4dd5f1ec799952e3b0"
+					"sourceSha": "feeef8bdd9037157727430d820c9fb77d441ed1d3169db7aed8b53c76edff22c"
 				},
 				{
 					"path": "shared/11-learner-first.md",
@@ -715,12 +715,17 @@
 				{
 					"path": "shared/12-space-context.md",
 					"shared": true,
-					"sourceSha": "55fd5de593587730512263f2ca6f59008fe80dfb203f3360e761a7c5c1ab5d66"
+					"sourceSha": "247aed176a7ec284025b11837a73677ecb4cc5025a1381a2f2d1acdac6b6578c"
 				},
 				{
 					"path": "shared/13-source-marks.md",
 					"shared": true,
-					"sourceSha": "6652042ec2891d2f6d13ff2f8d8876b5edb2270342f7567c4aadb5fcdeb62e35"
+					"sourceSha": "50db2657440e425bb8d75951d3c0e0f03ecaa28241f7126ee043725f08737f54"
+				},
+				{
+					"path": "shared/14-deadline-changes.md",
+					"shared": true,
+					"sourceSha": "2e181aa8088d364dc858e18c147d4abc19a244147e292f8ab82ed7ea1c2cee98"
 				},
 				{
 					"path": "shared/15-accuracy.md",
@@ -773,6 +778,7 @@
 				"shared/11-learner-first.md",
 				"shared/12-space-context.md",
 				"shared/13-source-marks.md",
+				"shared/14-deadline-changes.md",
 				"shared/15-accuracy.md",
 				"shared/16-mental-model.md",
 				"shared/20-question-tools.md",

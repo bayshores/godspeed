@@ -3,7 +3,7 @@
 //! The shared base comes first, then the agent's own numbered fragments in file order, then the
 //! shared fragments as a trailing appendix. Practice, homework and talk skip the base (their own
 //! 00-base.md plays that role) and take only a curated shared set. Study is the teacher plus the
-//! practice hint rules plus its own fragment. A saved version is used in place of the source; one
+//! practice hint rules plus its own fragment, without the deadline changes. A saved version is used in place of the source; one
 //! keyed to a part the app no longer ships stops composing by itself.
 
 use gs_store::prompt_overrides::PromptOverrides;
@@ -24,7 +24,9 @@ pub enum AgentKind {
 /// Voice, the learner's question first, accuracy and the mental model are one law across every
 /// agent, and formatting too (practice writes the same LaTeX and markdown). The question,
 /// confidence and file mechanics stay out: practice has no such tools.
-const PRACTICE_SHARED: [&str; 7] = ["10-voice.md", "11-learner-first.md", "12-space-context.md", "13-source-marks.md", "15-accuracy.md", "16-mental-model.md", "40-formatting.md"];
+const PRACTICE_SHARED: [&str; 8] = ["10-voice.md", "11-learner-first.md", "12-space-context.md", "13-source-marks.md", "14-deadline-changes.md", "15-accuracy.md", "16-mental-model.md", "40-formatting.md"];
+/// Study has no deadline tools: its own text sends deadline changes to Talk.
+const STUDY_SKIPPED_SHARED: &str = "shared/14-deadline-changes.md";
 /// Talk is a small side panel: the voice and the learner's question first (its own base sets
 /// short replies).
 const TALK_SHARED: [&str; 2] = ["10-voice.md", "11-learner-first.md"];
@@ -73,7 +75,7 @@ fn source_segments(kind: AgentKind) -> Vec<Source> {
 		AgentKind::Talk => Some(&TALK_SHARED),
 		_ => None,
 	};
-	parts.extend(folder("shared", allowed));
+	parts.extend(folder("shared", allowed).into_iter().filter(|(path, _)| kind != AgentKind::Study || *path != STUDY_SKIPPED_SHARED));
 	parts
 }
 
@@ -92,4 +94,33 @@ pub fn all_segment_paths() -> Vec<&'static str> {
 	paths.sort_unstable();
 	paths.dedup();
 	paths
+}
+
+#[cfg(test)]
+mod tests {
+	use gs_base::config::Paths;
+
+	use super::*;
+	use crate::teacher::teacher_agent::compose_instructions;
+
+	const DEADLINE_SENTENCE: &str = "When the learner asks you to add, move or remove a deadline mid-lesson, do it with the deadline tools";
+	const TALK_LINE: &str = "Deadline changes happen in Talk: when he asks for one, say so in one line and go back to the lesson.";
+
+	fn composed(kind: AgentKind) -> String {
+		// No folder there, so no saved versions.
+		let none = std::env::temp_dir().join("gs-prompt-segments-no-overrides");
+		compose_instructions(kind, &PromptOverrides::new(&Paths::new(none.clone(), none.clone(), none.clone(), none)))
+	}
+
+	#[test]
+	fn study_sends_deadline_changes_to_talk_and_the_other_lessons_keep_the_tools_sentence() {
+		let study = composed(AgentKind::Study);
+		assert!(!study.contains(DEADLINE_SENTENCE) && study.contains(TALK_LINE));
+		for kind in [AgentKind::Teacher, AgentKind::Prober, AgentKind::Practice, AgentKind::Homework] {
+			let text = composed(kind);
+			assert_eq!(text.matches(DEADLINE_SENTENCE).count(), 1, "{kind:?}");
+			assert!(!text.contains(TALK_LINE), "{kind:?}");
+		}
+		assert!(!composed(AgentKind::Talk).contains(DEADLINE_SENTENCE));
+	}
 }
