@@ -350,7 +350,12 @@ function openerParts(opener: ShownOpener): LhViewPart[] {
 		question.state = "output-available";
 		question.output = opener.answer.answer ?? { ...dismissedAnswer("quiz", String(opener.quiz.question ?? "")), answeredAt };
 	}
-	return [...(opener.lead ? [{ type: "text", id: `opener_${opener.topicDoneCallId}-lead`, text: opener.lead, state: "done" }] : []), question];
+	return [...(opener.lead ? [{ type: "text", id: openerLeadId(opener.topicDoneCallId), text: opener.lead, state: "done" }] : []), question];
+}
+
+/** The text part id of a shown opener's lead. */
+export function openerLeadId(topicDoneCallId: string): string {
+	return `opener_${topicDoneCallId}-lead`;
 }
 
 /** One From earlier card: the questions from earlier answered in a row in

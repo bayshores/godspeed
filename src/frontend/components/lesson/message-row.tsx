@@ -5,6 +5,7 @@ import { paleSpaceColor } from "@/frontend/components/space-color";
 import { useSpaceColor } from "@/frontend/components/space-context";
 import { Message, MessageContent } from "@/frontend/components/ai-elements/message";
 import { CitedResponse } from "@/frontend/components/citations/cited-response";
+import { excerptParts } from "@/frontend/components/citations/page-excerpt-model";
 import { Reasoning, ReasoningContent, ReasoningTrigger } from "@/frontend/components/ai-elements/reasoning";
 import { LiveToolCard } from "@/frontend/components/artifacts/live-tool-card";
 import { SubagentSteerCard } from "@/frontend/components/artifacts/steer-card";
@@ -64,6 +65,8 @@ interface MessageRowProps {
 	streamingLast: boolean;
 	/** The agent-at-work view stands in for this message's step cards. */
 	hideSteps: boolean;
+	/** Each Study topic's stored page mark, by the text it sits in (topicPageMarks). */
+	pageMarks: ReadonlyMap<string, string>;
 	arrive: Arrive;
 	onOpenPlan: () => void;
 }
@@ -73,7 +76,7 @@ interface MessageRowProps {
  * streams only the message being written redraws — every other row keeps
  * its previous message object (reuseUnchangedMessages) and skips.
  */
-export const MessageRow = memo(function MessageRow({ message: m, spaceId, index: mi, teachSeam, streamingLast, hideSteps, arrive, onOpenPlan }: MessageRowProps) {
+export const MessageRow = memo(function MessageRow({ message: m, spaceId, index: mi, teachSeam, streamingLast, hideSteps, pageMarks, arrive, onOpenPlan }: MessageRowProps) {
 	if (m.role === "user" && isSubagentSteer(m)) {
 		// Sub-agent delivery: no bubble — the artifact card sits in the column.
 		return (
@@ -110,6 +113,7 @@ export const MessageRow = memo(function MessageRow({ message: m, spaceId, index:
 	// its anchors alone.
 	const anchors = new Set(firstSourceTextParts([m]).values());
 	const separators = drawnSeparators(m.parts, (part) => partShows(part, hideSteps));
+	const pages = excerptParts(m.parts, pageMarks);
 	return (
 		<Fragment>
 			{seamStep === -1 && <PhaseDivider phase="teach" />}
@@ -123,6 +127,7 @@ export const MessageRow = memo(function MessageRow({ message: m, spaceId, index:
 						separator={separators.has(pi)}
 						teachBoundary={seamStep === pi}
 						anchor={part.type === "text" && part.id && anchors.has(part.id) ? part.id : undefined}
+						page={pages.get(pi)}
 						streaming={streamingLast && pi === m.parts.length - 1}
 						hideSteps={hideSteps}
 						arrive={arrive}
@@ -198,6 +203,7 @@ function AssistantPart({
 	separator,
 	teachBoundary,
 	anchor,
+	page,
 	streaming,
 	hideSteps,
 	arrive,
@@ -209,6 +215,8 @@ function AssistantPart({
 	separator: boolean;
 	teachBoundary: boolean;
 	anchor?: string;
+	/** The topic's stored page mark this text draws the page of. */
+	page?: string;
 	streaming: boolean;
 	hideSteps: boolean;
 	arrive: Arrive;
@@ -234,7 +242,7 @@ function AssistantPart({
 					className="lh-source-passage"
 				>
 					{/* While it streams, an unclosed diagram fence shows "still drawing", not a doomed parse. */}
-					<CitedResponse text={part.text ?? ""} isAnimating={streaming} className={streaming ? "lh-streaming" : undefined} />
+					<CitedResponse text={part.text ?? ""} page={page} isAnimating={streaming} className={streaming ? "lh-streaming" : undefined} />
 				</div>
 			);
 		}

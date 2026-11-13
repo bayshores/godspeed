@@ -1,43 +1,24 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { createPortal } from "react-dom";
-import type { Cite } from "@/shared/core";
 import { DialogSheet, useLastWhileClosing } from "@/frontend/components/ui/dialog-sheet";
-
-export type FileCite = Extract<Cite, { kind: "file" }>;
-type Passage = { page: number | null; text: string };
+import { CodeLines, PageMarks } from "./page-excerpt";
+import type { FileCite } from "./page-excerpt-model";
+import { useCited } from "./use-cited";
 
 /** The place in a space file a source points at: the PDF page as an image,
- *  or the passage text. */
+ *  or the passage text, with the words the source quotes marked. */
 export function CiteDialog({ cite, onClose }: { cite: FileCite | null; onClose: () => void }) {
 	const { mounted, state, shown } = useLastWhileClosing(cite);
 	if (!mounted || !shown) return null;
 	return createPortal(<CiteSheet cite={shown} state={state} onClose={onClose} />, document.body);
 }
 
-/** GET /api/cited: null while loading, "gone" when the file or place is missing. */
-function usePassage({ fileId, range }: FileCite): Passage | "gone" | null {
-	const [got, setGot] = useState<{ key: string; passage: Passage | "gone" } | null>(null);
-	const key = `${fileId}/${range}`;
-	useEffect(() => {
-		let live = true;
-		fetch(`/api/cited/${fileId}?range=${encodeURIComponent(range)}`)
-			.then((res): Promise<Passage | "gone"> => (res.ok ? res.json() : Promise.resolve("gone")))
-			.catch((): "gone" => "gone")
-			.then((passage) => {
-				if (live) setGot({ key, passage });
-			});
-		return () => {
-			live = false;
-		};
-	}, [fileId, range, key]);
-	return got && got.key === key ? got.passage : null;
-}
-
 function CiteSheet({ cite, state, onClose }: { cite: FileCite; state: "open" | "closed"; onClose: () => void }) {
-	const passage = usePassage(cite);
+	const passage = useCited(cite);
 	const [brokenImage, setBrokenImage] = useState(false);
 	const found = passage === "gone" ? null : passage;
 	const showImage = !!found && found.page !== null && !brokenImage;
+	const marks = found?.marks ?? null;
 	return (
 		<DialogSheet title={cite.name} state={state} testid="cite-dialog" className="w-[780px]" onClose={onClose}>
 			{passage === null ? null : !found || (!showImage && found.text === "") ? (
@@ -50,20 +31,38 @@ function CiteSheet({ cite, state, onClose }: { cite: FileCite; state: "open" | "
 						{cite.range}
 					</p>
 					{showImage ? (
-						<img
-							data-testid="cite-page"
-							src={`/api/cited/${cite.fileId}/page/${found.page}`}
-							alt={`Page ${found.page} of ${cite.name}`}
-							onError={() => setBrokenImage(true)}
-							className="w-full border border-line"
-						/>
+						<div className="relative shrink-0 border border-line">
+							<img
+								data-testid="cite-page"
+								src={`/api/cited/${cite.fileId}/page/${found.page}`}
+								alt={`Page ${found.page} of ${cite.name}`}
+								// Scrolled to the marked words once the page has its height.
+								onLoad={(e) => e.currentTarget.parentElement?.querySelector('[data-testid="page-mark"]')?.scrollIntoView({ block: "center" })}
+								onError={() => setBrokenImage(true)}
+								className="block w-full"
+							/>
+							{marks?.kind === "page" && <PageMarks boxes={marks.boxes} />}
+						</div>
+					) : marks?.kind === "lines" ? (
+						<CodeLines name={cite.name} marks={marks} />
 					) : (
 						<div data-testid="cite-text" className="border border-line p-3.5 text-[15px] whitespace-pre-wrap text-ink">
-							{found.text}
+							{marks?.kind === "passage" ? <MarkedText text={found.text} start={marks.start} end={marks.end} /> : found.text}
 						</div>
 					)}
 				</>
 			)}
 		</DialogSheet>
+	);
+}
+
+/** The passage with the quoted words on the highlighter. */
+function MarkedText({ text, start, end }: { text: string; start: number; end: number }) {
+	return (
+		<>
+			{text.slice(0, start)}
+			<mark className="bg-highlight text-inherit">{text.slice(start, end)}</mark>
+			{text.slice(end)}
+		</>
 	);
 }

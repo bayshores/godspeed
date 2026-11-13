@@ -27,6 +27,7 @@ import {
 	problemSource,
 	questionNeedsReveal,
 	toolQuestionKind,
+	topicParts,
 	type HomeworkView,
 	type LessonKind,
 	type LhMessage,
@@ -50,6 +51,7 @@ import { LessonWorkFrame } from "@/frontend/components/lesson/lesson-work-frame"
 import { PlanRow } from "@/frontend/components/lesson/plan-row";
 import { homeworkProblemLine } from "@/frontend/components/lesson/plan-row-model";
 import { ReadingPane } from "@/frontend/components/lesson/reading-pane";
+import { topicPageMarks } from "@/frontend/components/citations/page-excerpt-model";
 import { COLUMN_WIDTH, TeacherColumn } from "@/frontend/components/lesson/teacher-column";
 import { Pane } from "@/frontend/components/ui/pane";
 import { usePaneWidth } from "@/frontend/components/ui/resize-handle";
@@ -68,6 +70,9 @@ const PlanPopup = lazyComponent(() => import("@/frontend/components/plan-block")
  * lesson's state and wiring; the pieces live in
  * src/frontend/components/lesson/.
  */
+/** A lesson with no topic pages. */
+const NO_PAGES: ReadonlyMap<string, string> = new Map();
+
 export function Chat({
 	chatId,
 	title,
@@ -458,6 +463,10 @@ export function Chat({
 	const practice = useMemo(() => (kind === "teach" ? null : practiceProgress(messages, activeProblem !== null)), [kind, messages, activeProblem]);
 	const practiceKey = practice ? JSON.stringify(practice) : "";
 	const stablePractice = useMemo(() => practice, [practiceKey]);
+	// Each Study topic's page mark; stable while none changed.
+	const freshPageMarks = useMemo(() => (kind === "study" ? topicPageMarks(topicParts(nativeMessages)) : NO_PAGES), [kind, nativeMessages]);
+	const pageMarksKey = JSON.stringify([...freshPageMarks]);
+	const pageMarks = useMemo(() => freshPageMarks, [pageMarksKey]);
 	const lessonStop = useLessonStop({
 		nativeMessages,
 		kind,
@@ -564,6 +573,7 @@ export function Chat({
 												turnInFlight={turnInFlight}
 												waitingForAgent={waitingForAgent}
 												arrivalsLive={arrivalsLive}
+												pageMarks={pageMarks}
 												arrive={arrive}
 												onOpenPlan={openPlan}
 												scrollContextRef={scrollContextRef}

@@ -28,7 +28,7 @@ interface TopicPage {
 
 /** One topic's parts: its page, and the message id of the reply holding
  *  its plot. */
-interface TopicParts {
+export interface TopicParts {
 	nodeId: string;
 	page: TopicPage | null;
 	plot: string | null;
