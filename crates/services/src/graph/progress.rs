@@ -11,7 +11,7 @@ use gs_core::graph::graph::get_graph;
 use gs_core::session::plan_step_bar::{current_step_title, plan_position_lh};
 use gs_core::session::practice_outcomes::practice_outcomes;
 use gs_core::study::progress::{collect_answers, derive_progress, facts_by_message, facts_for_answer};
-use gs_core::study::review::review_items;
+use gs_core::study::review::{review_items, reviewable_topics};
 use gs_core::study::study::{deadline_study_topic_ids, fact_space_order, study_topics, topic_study};
 use gs_core::study::topic_end::lesson_stop;
 use gs_json::{Json, Obj, json};
@@ -268,7 +268,8 @@ pub fn deadline_study_for(app: &App, space_id: &str, deadline_id: &str) -> Resul
 	let Some(deadline) = items(&progress["deadlines"]).iter().find(|d| d["id"].as_str() == Some(deadline_id)) else { return Ok(None) };
 	let today = progress["today"].str_or_empty();
 	let studied = studied_on(app, space_id, today);
-	let reviewed: HashSet<String> = space_reviews(app, space_id).items.iter().filter_map(|i| i["nodeId"].as_str().map(str::to_owned)).collect();
+	let reviews = space_reviews(app, space_id);
+	let reviewed = reviewable_topics(&reviews.answers, &reviews.items);
 	let topic_ids = deadline_study_topic_ids(today, deadline, items(&progress["topics"]), &reviewed);
 	let study = topic_study_in(app, Some(space_id), &progress, &topic_ids, Some(&studied));
 	Ok(Some(DeadlineStudy { name: deadline["name"].str_or_empty().to_owned(), topics: study.topics, picks: study.picks }))

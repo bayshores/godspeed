@@ -227,18 +227,7 @@ pub fn pick_reviews(space: &ReviewSpace, sitting: &ReviewSitting) -> Vec<Json> {
 			shown.entry(item_key(a)).or_default().push(day);
 		}
 	}
-	// The question each topic missed the last time it came back from earlier.
-	let mut last_from_earlier: Vec<&Json> = space.answers.iter().filter(from_earlier).collect();
-	last_from_earlier.sort_by_key(|a| a["answeredAt"].as_str().and_then(time::parse_date).unwrap_or(i64::MIN));
-	let mut missed_last: HashMap<&str, String> = HashMap::new();
-	for a in last_from_earlier {
-		let Some(node) = a["nodeId"].as_str() else { continue };
-		if a["outcome"].as_str() == Some("right") {
-			missed_last.remove(node);
-		} else {
-			missed_last.insert(node, item_key(a));
-		}
-	}
+	let missed_last = missed_last(space.answers);
 	let open = |d: &&Json| !d["done"].truthy();
 	let close: Option<HashSet<&str>> = sitting
 		.deadline_id
@@ -268,6 +257,33 @@ pub fn pick_reviews(space: &ReviewSpace, sitting: &ReviewSitting) -> Vec<Json> {
 		.into_iter()
 		.take(left)
 		.map(|p| json!({ "of": p.item["of"].clone(), "nodeId": p.item["nodeId"].clone(), "topic": p.topic["name"].clone(), "quiz": p.item["quiz"].clone() }))
+		.collect()
+}
+
+/// The question each topic missed the last time it came back from earlier, by node id.
+fn missed_last(answers: &[Json]) -> HashMap<&str, String> {
+	let mut from_earlier: Vec<&Json> = answers.iter().filter(|a| a["tool"].as_str() == Some("review")).collect();
+	from_earlier.sort_by_key(|a| a["answeredAt"].as_str().and_then(time::parse_date).unwrap_or(i64::MIN));
+	let mut out: HashMap<&str, String> = HashMap::new();
+	for a in from_earlier {
+		let Some(node) = a["nodeId"].as_str() else { continue };
+		if a["outcome"].as_str() == Some("right") {
+			out.remove(node);
+		} else {
+			out.insert(node, item_key(a));
+		}
+	}
+	out
+}
+
+/// The topics that come back as questions from earlier: those with a question that is not the
+/// one missed the last time it came back. `answers` and `items` are as in ReviewSpace.
+pub fn reviewable_topics(answers: &[Json], items: &[Json]) -> HashSet<String> {
+	let missed = missed_last(answers);
+	items
+		.iter()
+		.filter_map(|item| item["nodeId"].as_str().filter(|node| missed.get(node) != Some(&item_key(&item["of"]))))
+		.map(str::to_owned)
 		.collect()
 }
 
@@ -532,6 +548,15 @@ mod tests {
 
 	fn result(call: &str, name: &str, details: Json, is_error: bool) -> Json {
 		json!({ "role": "toolResult", "toolCallId": call, "toolName": name, "details": details, "isError": is_error, "timestamp": 2 })
+	}
+
+	#[test]
+	fn a_topic_whose_only_question_was_missed_last_is_not_reviewable() {
+		let items = [item("bayes", "b1"), item("gd", "g1"), item("gd", "g2")];
+		let answers = [from_earlier(&items[0], "2026-11-11", "wrong"), from_earlier(&items[1], "2026-11-11", "wrong")];
+		assert_eq!(reviewable_topics(&answers, &items), ["gd".to_owned()].into(), "Bayes' rule has no other question, Gradient descent still has g2");
+		let again = [answers[0].clone(), from_earlier(&items[0], "2026-11-20", "right")];
+		assert!(reviewable_topics(&again, &items).contains("bayes"), "a right answer since lifts the bar");
 	}
 
 	#[test]

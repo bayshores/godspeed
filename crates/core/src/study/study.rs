@@ -221,8 +221,8 @@ const RECHECK_DAYS: i64 = 7;
 
 /// The topic ids a deadline's Study button studies: today's planned topics and the strong ones
 /// not answered for `RECHECK_DAYS` days, or all its topics once every one is strong (or the plan
-/// is over). A topic in `reviewed` (it has a question from earlier) comes back through review
-/// instead, so it is never rechecked here. `deadline` is a progress deadline (`date`, `topics` of
+/// is over). A topic in `reviewed` (it has a question from earlier it may still be asked) comes
+/// back through review instead, so it is never rechecked here. `deadline` is a progress deadline (`date`, `topics` of
 /// `{ id, name, rate }`); `topics` are the progress topics (`id`, `status`, `answers` oldest
 /// first).
 pub fn deadline_study_topic_ids(today: &str, deadline: &Json, topics: &[Json], reviewed: &HashSet<String>) -> Vec<String> {
