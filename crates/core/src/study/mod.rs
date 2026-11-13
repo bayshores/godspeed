@@ -7,6 +7,7 @@ pub mod homework;
 pub mod deadline_plan;
 pub mod cheat_sheet;
 pub mod topic_end;
+pub mod review;
 
 mod answers;
 mod calibration;

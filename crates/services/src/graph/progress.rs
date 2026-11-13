@@ -11,6 +11,7 @@ use gs_core::graph::graph::get_graph;
 use gs_core::session::plan_step_bar::{current_step_title, plan_position_lh};
 use gs_core::session::practice_outcomes::practice_outcomes;
 use gs_core::study::progress::{collect_answers, derive_progress, facts_by_message, facts_for_answer};
+use gs_core::study::review::review_items;
 use gs_core::study::study::{deadline_study_topic_ids, fact_space_order, study_topics, topic_study};
 use gs_core::study::topic_end::lesson_stop;
 use gs_json::{Json, Obj, json};
@@ -21,13 +22,15 @@ use super::topics::topic_grouping_running;
 use crate::App;
 use crate::spaces::source_id_for;
 
-/// A lesson's graded answers, practice outcomes and (a Study session started from a deadline)
-/// where the session stands. Progress is read again after every background update, and parsing
-/// every lesson each time grows with the term, so each is kept while its record file is unchanged.
+/// A lesson's graded answers, practice outcomes, questions from earlier and (a Study session
+/// started from a deadline) where the session stands. Progress is read again after every
+/// background update, and parsing every lesson each time grows with the term, so each is kept
+/// while its record file is unchanged.
 struct Readout {
 	version: String,
 	answers: Vec<Json>,
 	outcomes: Vec<Json>,
+	reviews: Vec<Json>,
 	session: Option<Obj>,
 }
 
@@ -42,7 +45,7 @@ fn lesson_readout(app: &App, chat_id: &str) -> Option<Arc<Readout>> {
 	let record = app.stores.chats.get_chat(chat_id)?;
 	let messages = items(&record["messages"]);
 	let session = (record["deadlineId"].truthy() && record["tree"].truthy()).then(|| deadline_session(&record["tree"], messages));
-	let readout = Arc::new(Readout { version, answers: collect_answers(chat_id, messages), outcomes: practice_outcomes(messages), session });
+	let readout = Arc::new(Readout { version, answers: collect_answers(chat_id, messages), outcomes: practice_outcomes(messages), reviews: review_items(chat_id, messages), session });
 	app.graph.readouts.0.lock().insert(chat_id.to_owned(), readout.clone());
 	Some(readout)
 }
@@ -76,6 +79,25 @@ fn space_lessons(app: &App, space_id: &str) -> Vec<Json> {
 /// Every graded answer in the space's lessons.
 pub fn space_answers(app: &App, space_id: &str) -> Vec<Json> {
 	space_lessons(app, space_id).iter().filter_map(|c| lesson_readout(app, c["id"].str_or_empty())).flat_map(|readout| readout.answers.clone()).collect()
+}
+
+/// What the review schedule reads from a space's lessons: every graded answer, every problem
+/// outcome and every question from earlier they hold.
+#[derive(Default)]
+pub struct SpaceReviews {
+	pub answers: Vec<Json>,
+	pub outcomes: Vec<Json>,
+	pub items: Vec<Json>,
+}
+
+pub fn space_reviews(app: &App, space_id: &str) -> SpaceReviews {
+	let mut out = SpaceReviews::default();
+	for readout in space_lessons(app, space_id).iter().filter_map(|c| lesson_readout(app, c["id"].str_or_empty())) {
+		out.answers.extend(readout.answers.iter().cloned());
+		out.outcomes.extend(readout.outcomes.iter().cloned());
+		out.items.extend(readout.reviews.iter().cloned());
+	}
+	out
 }
 
 /// The space's problems (practice and study) the learner solved only with hints.
@@ -246,7 +268,8 @@ pub fn deadline_study_for(app: &App, space_id: &str, deadline_id: &str) -> Resul
 	let Some(deadline) = items(&progress["deadlines"]).iter().find(|d| d["id"].as_str() == Some(deadline_id)) else { return Ok(None) };
 	let today = progress["today"].str_or_empty();
 	let studied = studied_on(app, space_id, today);
-	let topic_ids = deadline_study_topic_ids(today, deadline, items(&progress["topics"]));
+	let reviewed: HashSet<String> = space_reviews(app, space_id).items.iter().filter_map(|i| i["nodeId"].as_str().map(str::to_owned)).collect();
+	let topic_ids = deadline_study_topic_ids(today, deadline, items(&progress["topics"]), &reviewed);
 	let study = topic_study_in(app, Some(space_id), &progress, &topic_ids, Some(&studied));
 	Ok(Some(DeadlineStudy { name: deadline["name"].str_or_empty().to_owned(), topics: study.topics, picks: study.picks }))
 }

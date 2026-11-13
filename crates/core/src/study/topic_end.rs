@@ -22,7 +22,7 @@ const MINUTE_MS: f64 = 60_000.0;
 /// A longer gap between lesson events counts as this long.
 const GAP_CAP_MS: f64 = 5.0 * MINUTE_MS;
 /// A gap this long or longer starts a new sitting.
-const SITTING_GAP_MS: f64 = 30.0 * MINUTE_MS;
+pub const SITTING_GAP_MS: f64 = 30.0 * MINUTE_MS;
 
 /// A problem that took this many active minutes ends on a stop.
 const LONG_PROBLEM_MINUTES: i64 = 25;
@@ -41,6 +41,21 @@ pub fn active_minutes(timestamps: &[f64], now_ms: f64) -> i64 {
 		ms = if gap >= SITTING_GAP_MS { 0.0 } else { ms + gap.min(GAP_CAP_MS) };
 	}
 	(ms / MINUTE_MS).floor() as i64
+}
+
+/// When the sitting `now_ms` is in began (ms): the oldest of the newest lesson event times with no
+/// gap of 30 minutes or more between them and up to now, or now when none is that recent.
+pub fn sitting_start(timestamps: &[f64], now_ms: f64) -> f64 {
+	let mut points: Vec<f64> = timestamps.iter().copied().filter(|t| *t <= now_ms).collect();
+	points.sort_by(f64::total_cmp);
+	let mut start = now_ms;
+	for t in points.into_iter().rev() {
+		if start - t >= SITTING_GAP_MS {
+			break;
+		}
+		start = t;
+	}
+	start
 }
 
 /// Whether Keep going came in a later sitting than its stop: a gap of 30 minutes or more somewhere
@@ -275,6 +290,11 @@ fn stored_openers(messages: &[Json]) -> Vec<StoredOpener<'_>> {
 	out
 }
 
+/// The topics the lesson finished: the nodes of its topic stops.
+pub fn ended_topics(messages: &[Json]) -> HashSet<String> {
+	record_stops(messages).into_iter().filter(|s| s.stop["kind"].as_str() == Some("topic")).filter_map(|s| s.node_id).collect()
+}
+
 /// Whether the record holds a stop carried by the call `call_id`.
 pub fn has_stop(messages: &[Json], call_id: &str) -> bool {
 	record_stops(messages).iter().any(|s| s.stop_of == call_id)
@@ -384,6 +404,15 @@ mod tests {
 	fn a_gap_of_30_minutes_starts_a_new_sitting() {
 		assert_eq!(active_minutes(&[at(0.0), at(4.0), at(34.0), at(36.0)], at(38.0)), 4);
 		assert_eq!(active_minutes(&[at(0.0), at(4.0), at(33.0)], at(35.0)), 11, "29 minutes is one sitting: it counts 5");
+	}
+
+	#[test]
+	fn a_sitting_starts_after_the_last_gap_of_30_minutes() {
+		assert_eq!(sitting_start(&[at(0.0), at(4.0), at(34.0), at(36.0)], at(38.0)), at(34.0));
+		assert_eq!(sitting_start(&[at(4.0), at(0.0), at(33.0)], at(35.0)), at(0.0), "29 minutes is one sitting");
+		assert_eq!(sitting_start(&[at(0.0)], at(30.0)), at(30.0), "nothing recent: it starts now");
+		assert_eq!(sitting_start(&[], at(5.0)), at(5.0));
+		assert_eq!(sitting_start(&[at(0.0), at(50.0)], at(10.0)), at(0.0), "a later time does not count");
 	}
 
 	#[test]

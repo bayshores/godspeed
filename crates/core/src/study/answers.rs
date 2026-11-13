@@ -33,8 +33,8 @@ fn or_json(a: &Json, b: impl Into<Json>) -> Json {
 	if a.is_null() { b.into() } else { a.clone() }
 }
 
-/// Every graded quiz/probe answer in one lesson (predictions aside), in transcript order, then
-/// its practice problems' outcomes.
+/// Every graded quiz/probe answer and question from earlier in one lesson (predictions aside), in
+/// transcript order, then its practice problems' outcomes.
 pub fn collect_answers(chat_id: &str, messages: &[Json]) -> Vec<Json> {
 	let mut calls: HashMap<&str, Call> = HashMap::new();
 	let mut out = Vec::new();
@@ -54,6 +54,7 @@ pub fn collect_answers(chat_id: &str, messages: &[Json]) -> Vec<Json> {
 				}
 				turn.push(m["id"].as_str().unwrap_or(""));
 			}
+			Some("custom") if m["customType"].as_str() == Some("review") => out.extend(review_answer(&m["details"])),
 			Some("toolResult") => {
 				// Any question's answer is the learner speaking: a new turn starts.
 				if is_question_tool(m["toolName"].as_str().unwrap_or("")) {
@@ -92,6 +93,31 @@ pub fn collect_answers(chat_id: &str, messages: &[Json]) -> Vec<Json> {
 		out.push(Json::Obj(a));
 	}
 	out
+}
+
+/// A question from earlier as an answer: it names the quiz it was copied from (`of`), so it counts
+/// for the facts made at that quiz's message, and the quiz's topic.
+fn review_answer(details: &Json) -> Option<Json> {
+	let answer = &details["answer"];
+	let outcome = answer_outcome(answer)?;
+	let of = &details["of"];
+	let mut a = Obj::new();
+	a.insert("chatId", or_json(&of["chatId"], ""));
+	a.insert("messageId", of["messageId"].clone());
+	a.insert("contextMessageIds", Json::Arr(vec![]));
+	a.insert("toolCallId", or_json(&of["toolCallId"], ""));
+	a.insert("tool", "review");
+	if let Some(node_id) = details["nodeId"].as_str().filter(|s| !s.is_empty()) {
+		a.insert("nodeId", node_id);
+	}
+	a.insert("question", details["quiz"]["question"].as_str().unwrap_or(""));
+	a.insert("outcome", outcome);
+	if let Some(c) = answer["confidence"].as_f64().filter(|_| outcome != "dontKnow") {
+		a.insert("confidence", c);
+		a.insert("level", u32::from(confidence_level(c)));
+	}
+	a.insert("answeredAt", or_json(&answer["answeredAt"], ""));
+	Some(Json::Obj(a))
 }
 
 /// The answer a result `details` makes for its call, or None when it is not graded.
@@ -276,6 +302,25 @@ mod tests {
 		let ids: Vec<&str> = got.iter().map(|a| a["toolCallId"].as_str().unwrap()).collect();
 		assert_eq!(ids, ["q3", "q4"]);
 		assert_eq!(stringify(&got[1]), r#"{"chatId":"c","messageId":"m_q4","contextMessageIds":[],"toolCallId":"q4","tool":"quiz","nodeId":"n4","question":"","outcome":"wrong","answeredAt":"t"}"#);
+	}
+
+	#[test]
+	fn a_question_from_earlier_counts_for_the_quiz_it_came_from() {
+		let review = |answer: Json| {
+			let of = json!({ "chatId": "src", "messageId": "m_src", "toolCallId": "t1" });
+			json!({ "role": "custom", "customType": "review", "content": "", "details": { "of": of, "nodeId": "bayes", "topic": "Bayes' rule", "quiz": { "question": "How likely?" }, "answer": answer } })
+		};
+		let messages = [
+			review(json!({ "kind": "quiz", "correct": false, "confidence": 60, "answers": [{ "index": 1, "label": "About 60%" }], "answeredAt": "2026-11-11T21:01:00.000Z" })),
+			review(json!({ "kind": "quiz", "dontKnow": true, "confidence": 20, "answers": [], "answeredAt": "2026-11-11T21:02:00.000Z" })),
+			review(json!({ "kind": "quiz", "dismissed": true })),
+		];
+		let got = collect_answers("here", &messages);
+		assert_eq!(got.len(), 2, "a dismissal is no answer");
+		assert_eq!(stringify(&got[0]), r#"{"chatId":"src","messageId":"m_src","contextMessageIds":[],"toolCallId":"t1","tool":"review","nodeId":"bayes","question":"How likely?","outcome":"wrong","confidence":60,"level":3,"answeredAt":"2026-11-11T21:01:00.000Z"}"#);
+		assert_eq!((got[1]["outcome"].as_str(), got[1].get("level")), (Some("dontKnow"), None));
+		let facts = [json!({ "id": "f1", "provenance": [{ "chatId": "src", "messageId": "m_src" }] })];
+		assert_eq!(facts_for_answer(&got[0], &facts_by_message(&facts)), ["f1"], "its facts resolve at the source quiz");
 	}
 
 	#[test]

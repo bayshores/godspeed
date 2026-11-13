@@ -128,7 +128,7 @@ fn replay(cases: &[Json], c: &Json) {
 		same(name, Json::Arr(study::topic_study(&strings(&args["topicIds"]), &topics, &facts, &order, studied.as_ref())), want);
 	} else if name.starts_with("deadline study topics ") {
 		let topics = if args["from"].is_null() { list(&args["topics"]) } else { from_progress("topics") };
-		same(name, strs(study::deadline_study_topic_ids(text(&args["today"]), &args["deadline"], &topics)), want);
+		same(name, strs(study::deadline_study_topic_ids(text(&args["today"]), &args["deadline"], &topics, &HashSet::new())), want);
 	} else if name.starts_with("plan days") {
 		same(name, Json::Arr(deadline_plan::plan_days(text(&args["today"]), text(&args["due"]), &list(&args["topics"]))), want);
 	} else if name.starts_with("topics to work on") {
