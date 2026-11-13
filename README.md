@@ -23,7 +23,7 @@ godspeed is a study app for students and self-learners. Claude Code, Codex or an
 
 <sub>The diagram is an Excalidraw file, [`docs/assets/how-godspeed-works.excalidraw`](docs/assets/how-godspeed-works.excalidraw). Open it at [excalidraw.com](https://excalidraw.com) to edit it.</sub>
 
-1. **Measure.** The teacher finds where your understanding ends on each part the lesson depends on, from your answers, your confidence and what you type in the thinking box.
+1. **Measure.** The teacher finds where your understanding ends on each part the lesson depends on, from your answers, your confidence and the reasoning you write with them.
 2. **Plan.** It maps the steps from there to your goal. A line above the lesson shows which step you're on, and the plan changes when your answers say it should.
 3. **Teach.** Each step builds on something you already understand. You predict, read the explanation, then check yourself. Confusions get fixed before anything is built on them.
 4. **Practice.** Problems make you recall the right idea without being told which one it is.
@@ -32,7 +32,7 @@ Everything you learn is saved as facts and the reasoning chains between them, li
 
 ## What's in it
 
-- **Study.** One Study button starts a lesson for a topic, a homework method or a question you're stuck on. godspeed picks what to teach first and what to drill from how you've done so far. You can add pictures and PDFs to a message, and the teacher can ask you to write code in an editor.
+- **Study.** One Study button starts a lesson for a topic, a homework method or a question you're stuck on. godspeed picks what to teach first and what to drill from how you've done so far. You can add pictures and PDFs to a message, and the teacher can ask you to write code in an editor. When the teacher uses your space's files or a web page, a small number marks it, and clicking it shows that page.
 - **Spaces.** A space is one thing you study, like a course, a certification or a language. Each space has its own lessons, files, knowledge graph, deadlines and cheat sheets. Add PDFs, Word and PowerPoint files, notes, code, transcripts and lecture recordings (transcribed on your computer with whisper.cpp), or link a folder that's rescanned every minute. Google Drive folders work too.
 - **Today and deadlines.** Add exams, homework, quizzes and projects with a date, an optional time and the files they cover. Today lists what to do next across every space, each with the days left, how ready you are (or how many problems you've done) and one button to start. Everything further out sits under Later.
 
@@ -43,6 +43,7 @@ Everything you learn is saved as facts and the reasoning chains between them, li
 ![The Graph: topics in columns by level with one square per fact, the next deadline's days left and what to work on next](docs/assets/graph.png)
 
 - **Homework.** Attach the assignment file to a homework or project and hit Work on it. The teacher lists its problems and opens them one at a time. The whole problem stays in view beside the lesson while you do the work in the one writing box, typed or as a photo, and the teacher checks it with hints but never gives you the answer. A problem counts as done once your own work is right.
+- **Preps.** For one interview or test, **Prepare for something** in the menu makes a prep. You say what it is and add files like the job posting, and the teacher looks it up and writes a prep sheet with the topics to study in order. Take timed mocks like the real thing (code questions run their examples on your computer), then study what you got wrong.
 - **Progress.** How ready you are for each deadline, how each lesson went, and whether your confidence matches your results (five levels, from guessing to certain).
 
 ![A space's Progress page: the teacher's note, the next deadline with how ready you are, and the topic that needs work most](docs/assets/progress.png)
@@ -72,9 +73,9 @@ To build it yourself instead: `npm install`, then `npm run desktop:local` (an un
 
 ## Outside agents (MCP)
 
-While godspeed is open it runs an MCP server, and an agent you already use is its teacher. The agent also does the background jobs: research, diagrams, PDF reading and building your knowledge graph. If no agent is teaching, that work waits and starts when one does. An agent can be connected without teaching; the sidebar and **Settings → Connection** say so and tell you how to start it.
+While godspeed is open it runs an MCP server, and an agent you already use is its teacher. The agent also does the background jobs: research, diagrams, PDF reading and building your knowledge graph. If no agent is teaching, that work waits and starts when one does. An agent can be connected without teaching. The teacher panel and **Settings → Connection** say so and tell you how to start it.
 
-1. Click **Open Claude Code** (the arrow next to it switches to **Codex**). godspeed makes a folder for your agent, `~/godspeed`, and opens a terminal there running it. The folder holds the agent's instructions (`CLAUDE.md`, `AGENTS.md`) and its connection to the app, so godspeed only loads when you study, not in your other chats. You can also run the command yourself: **Copy the command** copies it. In Claude Code, `/setup-spaces` builds your spaces from your course files.
+1. Click **Open Claude Code** (the arrow next to it switches to **Codex**). godspeed makes a folder for your agent, `~/godspeed`, and opens a terminal there running it. The folder holds the agent's instructions (`CLAUDE.md`, `AGENTS.md`) and its connection to the app, so godspeed only loads when you study, not in your other chats. You can also run the command yourself: **Copy the command** copies it. If you start your agent through a launcher, **Change command** under the button sets the command godspeed runs instead of `claude` or `codex`. In Claude Code, `/setup-spaces` builds your spaces from your course files.
    - **Other MCP apps:** pick **Other app** for the address and token (Streamable HTTP, `Authorization: Bearer <token>`).
 2. Start a lesson. You answer in the godspeed window and the agent teaches.
 
