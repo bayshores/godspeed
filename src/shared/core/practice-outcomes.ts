@@ -7,7 +7,7 @@ import type { LhMessage } from "./native-messages.ts";
 
 export type ConcludeOutcome = "solved" | "solvedWithHints" | "movedOn" | "surrendered" | "dismissed";
 
-export interface PracticeOutcome {
+interface PracticeOutcome {
 	/** The assistant message that posed it. */
 	messageId: string;
 	problemCallId: string;

@@ -25,7 +25,7 @@ type Tab = (typeof TABS)[number];
  *  compacts, the waiting notice while work waits, what the agent is doing
  *  while it works, then whether it is teaching. Nothing until the first
  *  read of the agent. */
-export function agentLine(agent: AgentStatus | null, doing: AgentDoing | null = null): string | null {
+function agentLine(agent: AgentStatus | null, doing: AgentDoing | null = null): string | null {
 	if (!agent) return null;
 	if (agent.backupAnswering) return "Catching up on my notes. My backup is answering for a minute.";
 	if (agentWaiting(agent)) return waitingNotice(agent.name);

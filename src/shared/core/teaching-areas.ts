@@ -89,7 +89,7 @@ export function oneLine(raw: string, max: number): string {
 
 /** A rule list made safe to store: strings only, cleaned, no blanks or
  *  repeats, at most RULES_MAX. Non-arrays read as no rules. */
-export function sanitizeRules(raw: unknown): string[] {
+function sanitizeRules(raw: unknown): string[] {
 	if (!Array.isArray(raw)) return [];
 	const out: string[] = [];
 	for (const entry of raw) {
@@ -113,21 +113,3 @@ export function sanitizeAreaRules(raw: unknown): AreaRules {
 	return out;
 }
 
-/** The section added after the instructions, or "" when there are no
- *  rules. Space rules only come with a lesson in that space. */
-export function learnerRulesSection(rules: AreaRules, lessonSpace?: { name: string; rules: string[] }): string {
-	const blocks: string[] = [];
-	for (const area of TEACHING_AREAS) {
-		const list = rules[area.id];
-		if (list?.length) blocks.push([area.label, ...list.map((r) => `- ${r}`)].join("\n"));
-	}
-	if (lessonSpace?.rules.length) {
-		blocks.push([`Rules for this space (${lessonSpace.name})`, ...lessonSpace.rules.map((r) => `- ${r}`)].join("\n"));
-	}
-	if (!blocks.length) return "";
-	return [
-		"## The learner's rules",
-		"The learner wrote these rules. Follow them. Where a rule conflicts with the instructions above, the rule wins.",
-		...blocks,
-	].join("\n\n");
-}

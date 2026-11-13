@@ -24,8 +24,6 @@ export interface ChatAttachment {
 export type AttachmentPart = TextContent | ImageContent;
 
 export const MAX_ATTACHMENTS = 5;
-/** The long side of a stored picture, in pixels. */
-export const MAX_IMAGE_SIDE = 1568;
 
 const MB = 1024 * 1024;
 const MAX_IMAGE_BYTES = 20 * MB;

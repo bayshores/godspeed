@@ -119,8 +119,6 @@ export interface RemovedFile {
 
 export type DeadlineKind = "exam" | "homework" | "quiz" | "project";
 
-const DEADLINE_KINDS: readonly DeadlineKind[] = ["exam", "homework", "quiz", "project"];
-
 /** One deadline of a space: added by the learner (Edit space) or by an
  *  outside agent from the syllabus (MCP add_space_deadline). Its topics are
  *  the topics with facts born in its files. */
@@ -164,12 +162,7 @@ export interface HomeworkProblem {
 	done: boolean;
 }
 
-/** At most this many problems in one assignment. */
-export const MAX_HOMEWORK_PROBLEMS = 60;
-
 export type SignatureKind = "math" | "code" | "text";
-
-const SIGNATURE_KINDS: readonly SignatureKind[] = ["math", "code", "text"];
 
 /** The space's signature: one line that sums up the subject, set huge and
  *  dim on its Overview cover. "math" is LaTeX (no `$`), "code" a line of
@@ -205,31 +198,8 @@ export const SPACE_ICONS = {
 
 export type SpaceIcon = keyof typeof SPACE_ICONS;
 
-export function isSpaceIcon(name: unknown): name is SpaceIcon {
-	return typeof name === "string" && Object.hasOwn(SPACE_ICONS, name);
-}
-
-/** How many space colors there are (--lh-space-1 to --lh-space-8). */
-const SPACE_COLOR_COUNT = 8;
-
 /** A space's color: 1 to SPACE_COLOR_COUNT. */
 export type SpaceColor = number;
-
-export function isSpaceColor(color: unknown): color is SpaceColor {
-	return typeof color === "number" && Number.isInteger(color) && color >= 1 && color <= SPACE_COLOR_COUNT;
-}
-
-/** The color a new space takes: the one the fewest spaces wear, lowest
- *  number first. */
-export function nextSpaceColor(taken: readonly SpaceColor[]): SpaceColor {
-	let best = 1;
-	let fewest = Infinity;
-	for (let color = 1; color <= SPACE_COLOR_COUNT; color++) {
-		const uses = taken.filter((t) => t === color).length;
-		if (uses < fewest) [best, fewest] = [color, uses];
-	}
-	return best;
-}
 
 /** Halley's note on the cover: the teacher's two sentences on where the
  *  learner stands in the space and what's next (set_space_note). */
@@ -237,22 +207,6 @@ export interface SpaceNote {
 	text: string;
 	/** ISO time it was written. */
 	at: string;
-}
-
-/** Longest note, in characters. */
-export const NOTE_MAX = 280;
-
-function isSignatureKind(kind: unknown): kind is SignatureKind {
-	return typeof kind === "string" && (SIGNATURE_KINDS as readonly string[]).includes(kind);
-}
-
-/** A signature as given (by an agent or the Edit space dialog), cleaned:
- *  one line, trimmed. Null when the kind is unknown, the value is empty
- *  or longer than SIGNATURE_MAX. */
-export function cleanSignature(raw: { kind?: unknown; value?: unknown }): SpaceSignature | null {
-	if (!isSignatureKind(raw.kind) || typeof raw.value !== "string") return null;
-	const value = raw.value.replace(/\s+/g, " ").trim();
-	return value && value.length <= SIGNATURE_MAX ? { kind: raw.kind, value } : null;
 }
 
 /** One round of the teacher reading a space's files: what it read and the
@@ -299,33 +253,6 @@ export interface SpaceRecord {
 	version?: number;
 }
 
-/** The space record format this build writes and understands.
- *  v2: adds `exams`. A v1 record reads unchanged; the bump
- *  makes an older build REFUSE a v2 record rather than drop its exams on
- *  its next write (its reader rebuilds the record field by field).
- *  v3: exams become deadlines (`deadlines`; a v2 record's
- *  `exams` read as deadlines of kind "exam").
- *  v4: adds `signature` and `note`.
- *  v5: adds `rules`.
- *  v6: adds `removedFiles`.
- *  v7: deadlines add `assignmentFileId` and `problems`.
- *  v8: adds `color`.
- *  v9: the record file is space.json (class.json before).
- *  v10: adds `prep`. */
-export const CURRENT_SPACE_VERSION = 10;
-
-/** Why a deadline write was refused (the store's validation; the server
- *  maps it to a 400 / 404 with this message). */
-export class SpaceDeadlineError extends Error {
-	constructor(
-		public readonly code: "bad_name" | "bad_kind" | "bad_date" | "bad_time" | "bad_source" | "bad_problems" | "unknown_file" | "deadline_not_found",
-		message: string,
-	) {
-		super(message);
-		this.name = "SpaceDeadlineError";
-	}
-}
-
 /** True when `date` is a real calendar date written YYYY-MM-DD. */
 export function isCalendarDate(date: unknown): date is string {
 	if (typeof date !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return false;
@@ -339,21 +266,9 @@ export function isClockTime(time: unknown): time is string {
 	return typeof time === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(time);
 }
 
-export function isDeadlineKind(kind: unknown): kind is DeadlineKind {
-	return typeof kind === "string" && (DEADLINE_KINDS as readonly string[]).includes(kind);
-}
-
 /** When a deadline is due: its day and time, with no time meaning 23:59. */
 export function deadlineDueAt(d: { date: string; time?: string }): { date: string; time: string } {
 	return { date: d.date, time: d.time ?? "23:59" };
-}
-
-/** Sort order for deadlines: due date, then due time (none = 23:59),
- *  then name. */
-export function compareDeadlines(a: { date: string; time?: string; name: string }, b: { date: string; time?: string; name: string }): number {
-	const da = deadlineDueAt(a);
-	const db = deadlineDueAt(b);
-	return da.date.localeCompare(db.date) || da.time.localeCompare(db.time) || a.name.localeCompare(b.name);
 }
 
 /** The list view: the record minus its file list, plus counts. */
@@ -382,25 +297,11 @@ export interface SpaceSummary {
 	prep?: { date?: string };
 }
 
-/** The "No space" space's wire name (query strings, MCP inputs). */
-const NO_SPACE = "none";
-
-/** A space-scope value as the server sees it: a space id, or null for
- *  "No space". */
-export type SpaceScope = string | null;
-
 const SPACE_ID = /^(spc|cls)_[A-Za-z0-9_-]+$/;
 
 /** True when `id` looks like a space id (path-safe). */
 export function isSpaceId(id: unknown): id is string {
 	return typeof id === "string" && SPACE_ID.test(id);
-}
-
-/** Parse a wire space value ("none" / absent / a space id) into a scope.
- *  Returns undefined when the value is malformed. */
-export function parseSpaceScope(raw: string | null | undefined): SpaceScope | undefined {
-	if (raw === null || raw === undefined || raw === "" || raw === NO_SPACE) return null;
-	return isSpaceId(raw) ? raw : undefined;
 }
 
 /** File types the pipeline can turn into text. Plain text and code are
@@ -413,12 +314,12 @@ const CODE_EXTENSIONS = [
 	".rb", ".swift", ".kt", ".cs", ".sql", ".sh", ".r", ".scala", ".hs", ".lua", ".php",
 ] as const;
 const OFFICE_EXTENSIONS = [".docx", ".pptx"] as const;
-export const DOCUMENT_EXTENSIONS = [".pdf", ...OFFICE_EXTENSIONS] as const;
+const DOCUMENT_EXTENSIONS = [".pdf", ...OFFICE_EXTENSIONS] as const;
 const TRANSCRIPT_EXTENSIONS = [".vtt", ".srt"] as const;
 const RECORDING_EXTENSIONS = [".mp3", ".m4a", ".wav", ".mp4", ".mov"] as const;
 
 /** Read as UTF-8 text, as they are. */
-export const PLAIN_TEXT_EXTENSIONS: readonly string[] = [...TEXT_EXTENSIONS, ...CODE_EXTENSIONS];
+const PLAIN_TEXT_EXTENSIONS: readonly string[] = [...TEXT_EXTENSIONS, ...CODE_EXTENSIONS];
 
 /** Every supported extension, for lists people and agents read. */
 export const SUPPORTED_SPACE_FILE_EXTENSIONS: readonly string[] = [
@@ -439,27 +340,13 @@ export function extensionOf(name: string): string {
 	return /^\.[a-z0-9]{1,10}$/.test(ext) ? ext : "";
 }
 
-/** A filename safe to store (no folders, no control chars). */
-export function safeName(name: string): string {
-	const base = (name.replace(/\\/g, "/").replace(/\/+$/, "").split("/").pop() ?? "").replace(/[\u0000-\u001f]/g, "").trim();
-	return base.length > 0 && base !== "." && base !== ".." ? base.slice(0, 200) : "file";
-}
-
-export function isSupportedSpaceFile(name: string): boolean {
-	return SUPPORTED_SPACE_FILE_EXTENSIONS.includes(extensionOf(name));
-}
-
-export function isRecordingFile(name: string): boolean {
+function isRecordingFile(name: string): boolean {
 	return (RECORDING_EXTENSIONS as readonly string[]).includes(extensionOf(name));
 }
 
 /** Captions (.srt / .vtt), read with their times. */
-export function isTranscriptFile(name: string): boolean {
+function isTranscriptFile(name: string): boolean {
 	return (TRANSCRIPT_EXTENSIONS as readonly string[]).includes(extensionOf(name));
-}
-
-export function isOfficeFile(name: string): boolean {
-	return (OFFICE_EXTENSIONS as readonly string[]).includes(extensionOf(name));
 }
 
 /** The lecture-audio side of a lecture: captions or a recording. */
@@ -467,5 +354,3 @@ export function isRecordingOrCaptions(name: string): boolean {
 	return isRecordingFile(name) || isTranscriptFile(name);
 }
 
-/** The error of a file that is gone from its place. */
-export const FILE_NOT_FOUND = "The file could not be found";

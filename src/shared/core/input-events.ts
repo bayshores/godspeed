@@ -61,15 +61,6 @@ export type ChatInput =
 	 *  only with nothing active. */
 	| { type: "next" };
 
-/** A wake-pipeline steer delivery — same turn composition, server-origin.
- *  The idle wake carries EVERY queued marker as its input appends (the
- *  in-run path hands markers to pi's own follow-up queue instead, so it
- *  never builds an input event). */
-export type SteerInput = { type: "steers"; steers: LhMessage[] };
-
-/** Every input the turn composition accepts. */
-export type TurnInput = ChatInput | SteerInput;
-
 /** The dismissal event: NEVER composes a
  *  turn — the silent route appends + persists and wakes nothing. The
  *  answer rides the event (mirroring the answer event) but must actually
@@ -105,29 +96,6 @@ export function parseDismissInput(input: unknown): DismissInput {
 		throw new ChatInputError("dismiss input's answer must be a dismissal (dismissed: true)");
 	}
 	return { type: "dismiss", toolCallId: i.toolCallId, answer };
-}
-
-/** A mid-turn steer: the learner's composer message
- *  for a RUNNING turn — queued on pi's steering rail (agent.steer, drained
- *  at the next response boundary INSIDE the same run). NOT a follow-up:
- *  it never extends an ended run, and it never composes a turn of its own
- *  (a send with no live turn is a plain text send, which already exists).
- *  The id is client-minted (steer_<localid>): the queued indicator keys on
- *  it, and the drain's message events upsert the real card by the same id. */
-type UserSteerInput = { type: "steer"; id: string; text: string };
-
-/** Parse and validate a steer event off a request body. */
-export function parseUserSteerInput(input: unknown): UserSteerInput {
-	if (typeof input !== "object" || input === null) throw new ChatInputError("input must be an object");
-	const i = input as Record<string, unknown>;
-	if (i.type !== "steer") throw new ChatInputError(`unknown input type: ${String(i.type)}`);
-	if (typeof i.id !== "string" || i.id.length === 0) {
-		throw new ChatInputError("steer input requires a client-minted id");
-	}
-	if (typeof i.text !== "string" || i.text.trim().length === 0) {
-		throw new ChatInputError("steer input requires non-empty text");
-	}
-	return { type: "steer", id: i.id, text: i.text };
 }
 
 /** The native appends a dismissal makes (pure — same orphan discipline
@@ -196,7 +164,7 @@ const BASE64 = /^[A-Za-z0-9+/]+={0,2}$/;
 
 /** An input's files: absent, or 1 to MAX_ATTACHMENTS well-formed files the
  *  composer would have accepted. Anything else is a 400. */
-export function parseAttachments(raw: unknown): ChatAttachment[] | undefined {
+function parseAttachments(raw: unknown): ChatAttachment[] | undefined {
 	if (raw === undefined) return undefined;
 	if (!Array.isArray(raw) || raw.length === 0) throw new ChatInputError("attachments must be a non-empty list");
 	if (raw.length > MAX_ATTACHMENTS) throw new ChatInputError(TOO_MANY_REFUSAL);

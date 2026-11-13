@@ -1,22 +1,9 @@
 /**
- * THE CORE PUBLIC API — the only module the shell (src/app/, src/frontend/components/) may
- * import. Everything exported here is browser-safe: pure logic + types,
- * no node builtins, no fs, no network.
- *
- * Server-side surfaces (chat streaming, store reads) live behind
- * src/backend/server's barrel instead — the import law (eslint.config.mjs):
- *
- *   src/frontend/components/**  →  "@/shared/core"        (this barrel, ONLY)
- *   src/app/**         →  "@/shared/core" + "@/backend/server"
- *
- * Server-only core modules (core/graph.ts emission/derivation) are pure
- * but need storage ports passed in by a server caller, so they are
- * deliberately NOT re-exported here — the server imports them directly.
- * The storage PORT TYPES are types-only and browser-safe, hence re-exported.
+ * The core's public API: the only module src/frontend may import (the import law, eslint.config.mjs).
+ * Everything exported here is browser-safe: pure logic and types, no node builtins, no fs, no network.
  */
 
 export * from "./contracts.ts";
-export * from "./ports.ts";
 export * from "./chains.ts";
 
 export * from "./question-core.ts";
@@ -25,8 +12,6 @@ export * from "./code-question.ts";
 // for every layer; the browser shell consumes the types + the runtime names
 // through this barrel (shell law: pure core via @/shared/core only).
 export * from "./events.ts";
-// clusters.ts is deliberately NOT re-exported: the snapshot carries the
-// partition from the server.
 export * from "./plan-tree.ts";
 // The godspeed folder's agents (the "Open Claude Code" button).
 export type { FolderAgent, OldSetup, StartCommands, StartTarget } from "./agent-folder.ts";
@@ -86,15 +71,10 @@ export * from "./session-find.ts";
 export * from "./session-navigation.ts";
 // keyboard.ts: the shortcut registry + binding normalization (pure, browser-safe).
 export * from "./keyboard.ts";
-// coverage.ts is server-only (node:crypto); its callers import it directly.
 // Topics (the grouper's read/repair rules) and the derived progress
 // numbers — pure, browser-safe.
-export * from "./topics.ts";
 export * from "./progress.ts";
 export * from "./plan-step-bar.ts";
-// session-markdown.ts: session to markdown, used by the markdown export
-// and the MCP read_lesson tool. Pure, browser-safe.
-export * from "./session-markdown.ts";
 // changelog.ts: the release notes (src/shared/changelog.json)
 // and the version math the "What's new" dialog uses. Pure, browser-safe.
 export * from "./changelog.ts";

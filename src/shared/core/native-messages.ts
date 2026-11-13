@@ -33,14 +33,11 @@
 
 import type { AgentMessage } from "@earendil-works/pi-agent-core";
 import type { AssistantMessage, Message, ToolResultMessage, UserMessage } from "@earendil-works/pi-ai";
-import { citesInWords } from "./citations.ts";
 import { isQuestionTool } from "./pending.ts";
 import {
 	CONCLUDE_ACK_TEXT,
-	HANDOFF_TEXT,
 	NEXT_PROBLEM_TEXT,
 } from "./contracts/chat.ts";
-import type { SpaceFileStatus } from "./contracts/space.ts";
 import { compactAnswerForModel, type QuestionAnswerData } from "./question-core.ts";
 import { activeCompactionOf, keptIndexFor } from "./compaction.ts";
 import { newMessageId } from "./message-id.ts";
@@ -54,11 +51,11 @@ const INTERRUPTED_TEXT =
 /** The model's result for a question the learner asked a side question
  *  around: providers need a result right after the call, and the real
  *  answer comes later (SIDE_ANSWER_LEAD). */
-export const SIDE_PENDING_TEXT =
+const SIDE_PENDING_TEXT =
 	"Not answered yet. The learner asked a side question first. Answer it. The question stays open in their window, so don't repeat it or ask another.";
 
 /** How that later answer (or skip) reaches the model, at its own place. */
-export const SIDE_ANSWER_LEAD = "The learner answered your open question: ";
+const SIDE_ANSWER_LEAD = "The learner answered your open question: ";
 
 /** SIDE_ANSWER_LEAD, naming the question when its message asked several:
  *  out of place, the answer no longer sits next to its own call. */
@@ -142,39 +139,6 @@ export function sendToUserText(block: unknown): string | undefined {
 	if (!call.arguments || typeof call.arguments !== "object") return undefined;
 	const message = (call.arguments as { message?: unknown }).message;
 	return typeof message === "string" && message.trim() ? message : undefined;
-}
-
-/** Learner-facing prose, in content order. Only the explicit output tool
- * joins ordinary text here — thinking and all other tool inputs stay out.
- * Shared by coverage/extraction and Markdown; native history stays intact. */
-export function userFacingTextOf(content: unknown, failedOutputCalls?: ReadonlySet<string>): string[] {
-	if (typeof content === "string") return content.trim() ? [citesInWords(content)] : [];
-	if (!Array.isArray(content)) return [];
-	const out: string[] = [];
-	for (const block of content) {
-		if (!block || typeof block !== "object") continue;
-		if (block.type === "toolCall" && failedOutputCalls?.has(block.id)) continue;
-		const text = block.type === "text" ? block.text : sendToUserText(block);
-		if (typeof text === "string" && text.trim()) out.push(citesInWords(text));
-	}
-	return out;
-}
-
-/** Failed output calls remain retry context, not delivered teaching.
- * Truncated calls can have valid-looking partial arguments. Failed/aborted
- * generations do not execute their calls at all, so may have no result. */
-export function failedOutputCallIds(messages: readonly LhMessage[]): ReadonlySet<string> {
-	const failed = new Set<string>();
-	for (const message of messages) {
-		if (message.role === "toolResult" && message.toolName === SEND_TO_USER_TOOL && message.isError) {
-			failed.add(message.toolCallId);
-		} else if (message.role === "assistant" && (message.stopReason === "error" || message.stopReason === "aborted")) {
-			for (const block of message.content) {
-				if (block.type === "toolCall" && block.name === SEND_TO_USER_TOOL) failed.add(block.id);
-			}
-		}
-	}
-	return failed;
 }
 
 // ─── constructors (the input-event → native append mapping lives in
@@ -262,23 +226,6 @@ export function sideHeldQuestions(messages: readonly LhMessage[]): Map<string, {
 	return held;
 }
 
-/** Does this turn answer a side question: the newest input (a learner
- *  message, a job result) is one, and the question it was asked around
- *  is still open? */
-export function isSideTurn(messages: readonly LhMessage[]): boolean {
-	const input = messages.findLast((m) => m.role === "user" || (m.role === "custom" && !isBookkeeping(m)));
-	return input !== undefined && isSideQuestion(input) && danglingQuestionOf(messages) !== null;
-}
-
-/** A steered user message (mid-turn composer steering):
- *  a plain user message with the CLIENT-minted steer id — the same object
- *  rides agent.steer(), the live stream's message events, and the settled
- *  record, so the optimistic queued indicator and the transcript card
- *  upsert by one identity. */
-export function newUserSteer(text: string, id: string): LhMessage & UserMessage {
-	return { id, role: "user", content: text, timestamp: Date.now() };
-}
-
 /** The learner's answer — the question call's tool result.
  *  TWO AUDIENCES: the MODEL sees the
  *  compact learner-only record (compactAnswerForModel — the call's own
@@ -302,22 +249,6 @@ export function newAnswerResult(
 		// our payloads are JSON-safe answer structures, so the cast is honest.
 		details: answer as ToolResultMessage["details"],
 		isError: false,
-		timestamp: Date.now(),
-	};
-}
-
-/** The probe→teach handoff wake: scaffolding, not speech — the model reads
- *  HANDOFF_TEXT, the UI renders the quiet system line. probe_done queues it
- *  through the wake pipeline; the id is fixed per chat so redelivery does
- *  nothing, and it carries no artifact. */
-export function newHandoffMessage(chatId: string): LhMarkerMessage {
-	return {
-		id: `steer_probe_${chatId}`,
-		role: "custom",
-		customType: "probe-handoff",
-		content: HANDOFF_TEXT,
-		display: true,
-		details: { chatId },
 		timestamp: Date.now(),
 	};
 }
@@ -392,139 +323,13 @@ export function newGraphContextMessage(picks: readonly GraphContextPick[], chain
 	};
 }
 
-/** A study session's topics with their modes (core/study.ts
- *  studyContextText), or a homework session's deadline and problems
- *  (core/homework.ts homeworkContextText), for the model only: the
- *  plan row shows the topics or problems. */
-export function newStudyContextMessage(text: string, customType: "study-context" | "homework-context" = "study-context"): LhMarkerMessage {
-	return {
-		id: newMessageId(),
-		role: "custom",
-		customType,
-		content: text,
-		display: false,
-		details: null,
-		timestamp: Date.now(),
-	};
-}
-
 // ─── spaces ─────────────────────────────────────────────────────────────────
-
-/** One file line of the space card. `path` is where the teacher can read
- *  it (a recording's transcript once it exists; null when not readable). */
-interface SpaceCardFile {
-	name: string;
-	kind: "study" | "info";
-	path: string | null;
-	/** Once indexed for search: "98 pages", "52 min", "420 lines". */
-	size?: string;
-	/** Shown when not "ready" (still being read, failed…). */
-	status?: SpaceFileStatus;
-}
-
-/** The space card's UI payload (the transcript's collapsible card). */
-export interface SpaceCardDetails {
-	spaceId: string;
-	name: string;
-	description: string;
-	files: SpaceCardFile[];
-	/** The space graph's topics with their fact counts. */
-	topics?: { name: string; facts: number }[];
-	/** Set when the space is a prep: what the learner is getting ready for. */
-	prep?: { goal: string; date?: string; about: string };
-}
-
-/** The model-facing space card text. Bracket-labelled like the graph
- *  context (PREAMBLE LAW: markers flatten to user-role messages, so the
- *  card must read as injected context, never learner speech). Data only:
- *  how to use it is doctrine (prompts/shared/12-space-context.md). */
-export function spaceCardText(card: SpaceCardDetails): string {
-	const lines = [
-		"[Space context] — this lesson belongs to one of the learner's spaces:",
-		"",
-		`Space: ${card.name}`,
-	];
-	if (card.description.trim()) lines.push("", "About the space (the learner's own words):", card.description.trim());
-	if (card.prep) {
-		lines.push("", `This space is a prep. The learner is getting ready for: ${card.prep.goal}${card.prep.date ? ` (on ${card.prep.date})` : ""}`);
-		if (card.prep.about) lines.push("", "What it is like (from the prep sheet):", card.prep.about);
-	}
-	const readable = card.files.filter((f) => f.path !== null);
-	if (readable.length > 0) {
-		const study = readable.filter((f) => f.kind === "study").length;
-		lines.push(
-			"",
-			`Space files: ${study} study material, ${readable.length - study} space info. Find what's in them with search_space_files; read_space lists them with their paths.`,
-		);
-	}
-	if (card.topics?.length) {
-		lines.push("", "Topics in the space's knowledge graph (facts in each):", card.topics.map((t) => `${t.name} (${t.facts})`).join(", "));
-	}
-	return lines.join("\n");
-}
-
-/** The space's readable files, one line each with its path (read_space
- *  only: the card just counts them, so lessons don't carry the list). */
-export function spaceFilesText(card: SpaceCardDetails): string {
-	const readable = card.files.filter((f) => f.path !== null);
-	if (readable.length === 0) return "";
-	const lines = ["Space files (study material = turned into the space's knowledge graph; space info = a syllabus, a schedule, logistics):"];
-	for (const f of readable) {
-		const about = [f.size, f.status && f.status !== "ready" ? f.status : undefined].filter(Boolean).join(", ");
-		lines.push(`- [${f.kind === "study" ? "study material" : "space info"}] ${f.name}${about ? ` (${about})` : ""} — ${f.path}`);
-	}
-	return lines.join("\n");
-}
-
-export function newSpaceContextMessage(card: SpaceCardDetails): LhMarkerMessage {
-	return {
-		id: newMessageId(),
-		role: "custom",
-		customType: "space-context",
-		content: spaceCardText(card),
-		display: true,
-		details: card,
-		timestamp: Date.now(),
-	};
-}
-
-/** The [Today] note: today's date and the space's open
- *  deadlines, for the model only (`display: false`; the view renders
- *  nothing). Bracket-labelled per the PREAMBLE LAW. `details.day` is the
- *  local day it was written for (core/today-note.ts decides when a new one
- *  is due). */
-export function newTodayContextMessage(text: string, day: string): LhMarkerMessage {
-	return {
-		id: newMessageId(),
-		role: "custom",
-		customType: "today-context",
-		content: text,
-		display: false,
-		details: { day },
-		timestamp: Date.now(),
-	};
-}
 
 /** A deadline an app request asks about. */
 export interface AppRequestDeadline {
 	id: string;
 	name: string;
 	spaceName: string;
-}
-
-/** A request godspeed makes in Talk by itself, not the learner (work out
- *  what deadlines with nothing linked cover). `details.deadlines` is what
- *  the Talk row shows, and lets the app ask about each deadline once. */
-export function newAppRequestMessage(text: string, deadlines: readonly AppRequestDeadline[]): LhMarkerMessage {
-	return {
-		id: newMessageId(),
-		role: "custom",
-		customType: "app-request",
-		content: `[From godspeed, not the learner] ${text}`,
-		display: true,
-		details: { deadlines: [...deadlines] },
-		timestamp: Date.now(),
-	};
 }
 
 /** The learner's explicit move-on signal: appended by
@@ -912,15 +717,6 @@ function repliesToSideQuestion(messages: readonly LhMessage[], i: number): boole
 	return false;
 }
 
-/** The probe→teach construction seam (chat-handler): a probe_done call
- *  whose result is neither an error nor a refusal means the probe is
- *  concluded: teach. Anything else keeps probing, as phaseAt3Lh does. */
-export function hasProbeDone(messages: readonly LhMessage[]): boolean {
-	return messages.some(
-		(m) => m.role === "toolResult" && m.toolName === "probe_done" && !m.isError && (m.details as { ok?: unknown } | undefined)?.ok !== false,
-	);
-}
-
 /** Every toolResult id in the record — answer-event validation (the call
  *  must be a DANGLING question call, not an already-answered one). */
 export function answeredCallIds(messages: readonly LhMessage[]): Set<string> {
@@ -947,19 +743,6 @@ function isDismissedResult(m: LhMessage): boolean {
 export function endsInDismissal(messages: readonly LhMessage[]): boolean {
 	const last = messages[messages.length - 1];
 	return last !== undefined && isDismissedResult(last);
-}
-
-/** The record a continue runs from: everything before a trailing failed or
- *  stopped reply. pi can't continue from an assistant message, and the
- *  providers skip those replies anyway. The saved record keeps them. */
-export function retryContext(messages: readonly LhMessage[]): LhMessage[] {
-	let end = messages.length;
-	while (end > 0) {
-		const m = messages[end - 1] as { role?: string; stopReason?: string };
-		if (m.role !== "assistant" || (m.stopReason !== "error" && m.stopReason !== "aborted")) break;
-		end--;
-	}
-	return messages.slice(0, end);
 }
 
 /**

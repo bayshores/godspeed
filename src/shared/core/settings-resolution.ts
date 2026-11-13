@@ -29,7 +29,7 @@ import type { AreaRules } from "./teaching-areas.ts";
 export type EffectiveAppearance = FactorySettings["appearance"];
 
 /** The concrete view: every knob resolved, no absent fields. */
-export interface EffectiveSettings {
+interface EffectiveSettings {
 	general: Required<Omit<GeneralSettings, "onboarded" | "lastSeenVersion">>;
 	agent: {
 		/** Delta map as stored — consumers resolve absent key → enabled. */
@@ -106,5 +106,4 @@ export function graphToolsEnabled(effective: {
 }): boolean {
 	return effective.graph.enabled && (effective.agent.graphTools.enabled ?? true);
 }
-
 

@@ -16,18 +16,18 @@ const IMAGE_DAYS: i64 = 7;
 
 /// The agent's instructions and the space-setup skill, copied into the folder as they are.
 const DOCS: [(&str, &str); 3] = [
-	("CLAUDE.md", include_str!("../../../../src/backend/server/agent-folder-files/CLAUDE.md")),
-	("AGENTS.md", include_str!("../../../../src/backend/server/agent-folder-files/AGENTS.md")),
-	(".claude/skills/setup-spaces/SKILL.md", include_str!("../../../../src/backend/server/agent-folder-files/setup-spaces.md")),
+	("CLAUDE.md", include_str!("../../folder-files/CLAUDE.md")),
+	("AGENTS.md", include_str!("../../folder-files/AGENTS.md")),
+	(".claude/skills/setup-spaces/SKILL.md", include_str!("../../folder-files/setup-spaces.md")),
 ];
 
 /// The waiter's and the hooks' scripts, copied into `.godspeed/` as they are.
 const SCRIPTS: [(&str, &str); 5] = [
-	("connect.mjs", include_str!("../../../../src/backend/server/agent-folder-files/connect.mjs")),
-	("target.mjs", include_str!("../../../../src/backend/server/agent-folder-files/target.mjs")),
-	("wait-for-work.mjs", include_str!("../../../../src/backend/server/agent-folder-files/wait-for-work.mjs")),
-	("forget.mjs", include_str!("../../../../src/backend/server/agent-folder-files/forget.mjs")),
-	("compacting.mjs", include_str!("../../../../src/backend/server/agent-folder-files/compacting.mjs")),
+	("connect.mjs", include_str!("../../folder-files/connect.mjs")),
+	("target.mjs", include_str!("../../folder-files/target.mjs")),
+	("wait-for-work.mjs", include_str!("../../folder-files/wait-for-work.mjs")),
+	("forget.mjs", include_str!("../../folder-files/forget.mjs")),
+	("compacting.mjs", include_str!("../../folder-files/compacting.mjs")),
 ];
 
 /// Write a file only when it changed, so a refresh leaves the folder alone.

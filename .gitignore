@@ -1,6 +1,5 @@
 node_modules/
 data/
-.next/
 *.log
 .DS_Store
 *.tsbuildinfo
@@ -27,9 +26,6 @@ graphify-out/
 
 # Playwright MCP helper screenshots
 .playwright-mcp/
-
-# Next.js regenerates this on every dev/build run
-next-env.d.ts
 
 # Claude Code local state (session worktrees, settings)
 .claude/

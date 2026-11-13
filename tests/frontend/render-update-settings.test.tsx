@@ -1,4 +1,4 @@
-/** Update UI with a fake preload bridge: no Electron, network or updates. */
+/** Update UI with a fake shell bridge: no desktop shell, network or updates. */
 import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;
 (globalThis as Record<string, unknown>).IS_REACT_ACT_ENVIRONMENT = true;
@@ -12,7 +12,7 @@ import { parseHTML } from "linkedom";
 import { UpdateSettings, updateStatusText, MANUAL_UPDATE_HINT, AUTO_UPDATE_HINT, type UpdateState } from "../../src/frontend/components/settings/update-settings.tsx";
 import UpdateBanner from "../../src/frontend/components/update-banner.tsx";
 import { SettingsPage } from "../../src/frontend/components/settings/settings-page.tsx";
-import nextConfig from "../../next.config.ts";
+import viteConfig from "../../vite.config.ts";
 import { ServerEventsProvider } from "../../src/frontend/components/server-events.tsx";
 const quietEvents = () => ({ onEvent() {}, onOpen() {}, close() {} });
 
@@ -70,9 +70,12 @@ afterEach(async () => {
 });
 
 describe("version and contextual copy", () => {
-	it("build metadata comes from package.json and exposes only the public version", () => {
+	it("build metadata comes from package.json and exposes only the public version and homepage", () => {
 		const pkg = JSON.parse(readFileSync(new URL("../../package.json", import.meta.url), "utf8"));
-		assert.deepEqual(nextConfig.env, { LH_VERSION: pkg.version });
+		assert.deepEqual(viteConfig.define, {
+			"process.env.LH_VERSION": JSON.stringify(pkg.version),
+			"process.env.LH_HOMEPAGE": JSON.stringify(pkg.homepage),
+		});
 	});
 
 	it("never claims live/latest information and keeps updater errors generic", () => {

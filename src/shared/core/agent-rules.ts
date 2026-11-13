@@ -29,7 +29,7 @@ export function parseWhere(raw: unknown): RuleWhere | null {
 	return null;
 }
 
-export function sameWhere(a: RuleWhere, b: RuleWhere): boolean {
+function sameWhere(a: RuleWhere, b: RuleWhere): boolean {
 	return "area" in a ? "area" in b && a.area === b.area : "spaceId" in b && a.spaceId === b.spaceId;
 }
 
@@ -46,17 +46,6 @@ export function parseSavedRules(raw: unknown): SavedRule[] {
 		if (where && typeof e.text === "string" && e.text && typeof e.at === "string") out.push({ where, text: e.text, at: e.at });
 	}
 	return out;
-}
-
-/** Who the rule is for, after "Saved a rule for": "every lesson" or the space name. */
-export function ruleFor(where: RuleWhere, spaceName?: string): string {
-	return "spaceId" in where ? (spaceName ?? "this space") : "every lesson";
-}
-
-/** Where a rule lives, in words: "Every lesson, under Lesson flow" or "Lessons in CSE 21". */
-export function whereLabel(where: RuleWhere, spaceName?: string): string {
-	if ("spaceId" in where) return `Lessons in ${spaceName ?? "this space"}`;
-	return `Every lesson, under ${TEACHING_AREAS.find((a) => a.id === where.area)?.label ?? "Teaching"}`;
 }
 
 /** The saved time of each agent-saved rule in one list, by rule text. */

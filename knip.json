@@ -1,18 +1,14 @@
 {
 	"$schema": "https://unpkg.com/knip@5/schema.json",
 	"entry": [
-		"electron/*.cjs",
 		"scripts/*.{ts,mjs,cjs}",
-		"src/backend/server/agent-folder-files/*.mjs",
-		"src/backend/server/workers/*.mjs",
+		"crates/services/folder-files/*.mjs",
 		"tests/**/*.test.{ts,tsx}",
 		"tests/perf/*.{ts,tsx}"
 	],
 	"project": ["**/*.{ts,tsx,js,mjs,cjs}"],
-	// The Rust server; scripts/golden.ts loads the crates' golden specs by path.
-	"ignore": ["crates/**"],
 	// globals.css loads it with `@import "tailwindcss"`, which knip does not read.
 	"ignoreDependencies": ["tailwindcss"],
-	// knip reads the `-c electron/electron-builder.yml` argument in release.yml as a binary.
-	"ignoreBinaries": ["electron/electron-builder.yml"]
+	// The release workflows still run the Electron build.
+	"ignoreBinaries": ["electron", "electron-builder", "electron/electron-builder.yml"]
 }

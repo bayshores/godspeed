@@ -98,9 +98,8 @@ export const CHEAT_SHEET_FORMAT = 4;
 /** Smallest and largest page side, in inches. */
 const PAGE_MIN_IN = 2;
 const PAGE_MAX_IN = 17;
-export const MAX_PAGES = 4;
+const MAX_PAGES = 4;
 const PDF_MAX_BYTES = 20 * 1024 * 1024;
-export const PROMPT_MAX = 2000;
 const MESSAGES_KEPT = 100;
 /** Versions kept on the canvas: enough to compare, few enough to stay light. */
 const VERSIONS_KEPT = 5;
@@ -217,7 +216,7 @@ function readFile(v: unknown): SheetFile | null {
 }
 
 /** A region as sent or saved, or undefined when it isn't one. */
-export function sheetRegionOf(v: unknown): SheetRegion | undefined {
+function sheetRegionOf(v: unknown): SheetRegion | undefined {
 	if (!isObject(v)) return undefined;
 	const { n, page, x, y, w, h } = v;
 	return isNumber(n) && isNumber(page) && isNumber(x) && isNumber(y) && isNumber(w) && isNumber(h) ? { n, page, x, y, w, h } : undefined;
@@ -333,7 +332,7 @@ interface SheetTopic {
 }
 
 /** One mistake from the learner's lessons. */
-export interface SheetMistake {
+interface SheetMistake {
 	topicId: string;
 	/** The question or problem, one line. */
 	text: string;
@@ -380,7 +379,7 @@ export function mistakeCounts(answers: ReadonlyArray<{ topicIds: readonly string
 }
 
 /** A topic as the request lists it, with a few of its facts. */
-export interface RequestTopic extends SheetTopic {
+interface RequestTopic extends SheetTopic {
 	facts: { name: string; statement: string }[];
 }
 
@@ -442,7 +441,6 @@ function earlierText(messages: readonly SheetMessage[]): string {
 	});
 	return lines.length > 0 ? `The chat so far, oldest first:\n${lines.join("\n")}` : "";
 }
-
 
 function regionLine(r: SheetRegion, versions: readonly SheetVersion[], current: SheetVersion | null): string {
 	const v = versions.find((x) => x.n === r.n);

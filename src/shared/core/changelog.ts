@@ -15,7 +15,7 @@ export interface ChangelogEntry {
 	changes: string[];
 }
 
-export const CHANGELOG: readonly ChangelogEntry[] = entries;
+const CHANGELOG: readonly ChangelogEntry[] = entries;
 
 const VERSION = /^(\d+)\.(\d+)\.(\d+)$/;
 

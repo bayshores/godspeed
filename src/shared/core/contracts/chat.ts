@@ -21,19 +21,6 @@ export type ChatKind = "teach" | "practice" | "study" | "homework" | "talk";
 /** A lesson's kind: every kind but Talk. */
 export type LessonKind = Exclude<ChatKind, "talk">;
 
-/** Whether a session's teaching is saved to the space graph: teach and
- *  study lessons are, practice, homework and Talk are not. */
-export function extractsFacts(kind: ChatKind | undefined): boolean {
-	return kind === undefined || kind === "teach" || kind === "study";
-}
-
-/** Every lesson id starts with this (store/chats.ts makes them). The
- *  outside-agent bridge uses it to tell lesson work from background jobs. */
-export const CHAT_ID_PREFIX = "chat_";
-
-/** The Talk chat's id: one ongoing chat, so it is always the same file. */
-export const TALK_CHAT_ID = `${CHAT_ID_PREFIX}talk`;
-
 /** One persisted session: data/chats/<id>.json. The stored messages are
  *  pi-NATIVE history (LhMessage), so the record IS the agent state and
  *  replay is `state.messages = record.messages` + continue(). The client
@@ -76,10 +63,6 @@ export interface ChatRecord {
 	 *  store must never rewrite what it doesn't understand. */
 	version?: number;
 }
-
-/** The chat record format this build writes and understands. */
-export const CURRENT_CHAT_VERSION = 2;
-
 
 // ─── Background-extraction usage ─────────────────────────────────────────────
 
@@ -154,22 +137,6 @@ export interface TurnUsage {
 	steps: CallUsage[];
 }
 
-/** The model-facing text of the probe→teach handoff wake (the custom-message
- *  scheme): the wake message carries only the data-probe-handoff part, and
- *  the adapter flattens it to THIS. Single-sourced so the prober's seam, the
- *  tests, and reality can't drift apart.
- *
- *  The wake paces the launch turn: a bare "author now" cue made the
- *  teacher skip the deliberation, so it asks to reason out the optimal
- *  way to teach BEFORE plan_init. Presenting the plan ends the turn; the
- *  learner's next message is a change request or the go-ahead. */
-export const HANDOFF_TEXT =
-	"Next: plan the full teaching arc from my current understanding to the goal understanding. " +
-	"Apply the teaching methodology in your system prompt, and find the optimal way to teach me this. " +
-	"Find the unconditional truths, plan the motivated derivations/discoveries, so every reasoning step has to land as obviously true. " +
-	"Take your time here and really think this through. " +
-	"When it's genuinely reasoned out, call plan_init and present the plan; I'll accept it or ask for changes.";
-
 // ─── Practice sessions — marker + ack texts ─────────────────────────────────
 // The model-facing text of every custom marker lives in core/contracts,
 // never in the flattening seam.
@@ -195,7 +162,6 @@ export const NEXT_PROBLEM_TEXT =
  *  distrusts the seam. */
 export const COMPACTED_HISTORY_HEADER =
 	"[SESSION HISTORY COMPACTED] The transcript before this point was summarized to fit the context window; the summary below replaces it. Everything after this message is the verbatim recent transcript.";
-
 
 /** A SNAPSHOT of the plan at plan_init, rendered as a block in the chat
  *  flow. It never reaches the model; it reappears identically on reload
@@ -224,7 +190,7 @@ export interface PlanBlockData {
  *  quiz/explain call tagged with a nodeId; derived from the native
  *  transcript (core/phases.ts phaseAt3Lh).
  */
-export interface ChatSummary {
+interface ChatSummary {
 	id: string;
 	title: string;
 	createdAt: string;

@@ -28,7 +28,7 @@ import type { ArtifactPartProps, DemoResult } from "@/shared/core";
 
 // ─── bridge injection + message handling (pure, testable) ───────────────────
 
-export const DEMO_BRIDGE_SCRIPT = `<script>(function(){
+const DEMO_BRIDGE_SCRIPT = `<script>(function(){
 var send=function(m){try{parent.postMessage(m,"*")}catch(e){}};
 var post=function(){
 var b=document.body;
@@ -47,7 +47,7 @@ setTimeout(post,400);
 })();</script>`;
 
 /** Inject the bridge before </body> (or at the end of a body-less document). */
-export function buildDemoSrcDoc(html: string): string {
+function buildDemoSrcDoc(html: string): string {
 	if (/<\/body>/i.test(html)) return html.replace(/<\/body>/i, `${DEMO_BRIDGE_SCRIPT}</body>`);
 	return `${html}${DEMO_BRIDGE_SCRIPT}`;
 }
@@ -57,13 +57,13 @@ interface DemoBridgeState {
 	error: string | null;
 }
 
-export const INITIAL_DEMO_BRIDGE_STATE: DemoBridgeState = { height: null, error: null };
+const INITIAL_DEMO_BRIDGE_STATE: DemoBridgeState = { height: null, error: null };
 
 const MIN_HEIGHT = 80;
 const MAX_HEIGHT = 2400;
 
 /** Pure reducer over incoming postMessage data (the messages DEMO_BRIDGE_SCRIPT posts). */
-export function reduceDemoBridgeState(state: DemoBridgeState, data: unknown): DemoBridgeState {
+function reduceDemoBridgeState(state: DemoBridgeState, data: unknown): DemoBridgeState {
 	if (typeof data !== "object" || data === null) return state;
 	const message = data as { type?: unknown; height?: unknown; message?: unknown };
 	if (message.type === "demo-resize") {
@@ -209,7 +209,7 @@ function DemoFrame({
 	);
 }
 
-export function DemoErrorChip({
+function DemoErrorChip({
 	message,
 	onSend,
 	blocked,

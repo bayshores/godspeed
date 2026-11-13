@@ -24,8 +24,6 @@ export interface RunOutcome {
 	printed?: string;
 }
 
-/** Seconds one run may take. */
-export const RUN_SECONDS = 5;
 const PRINTED_MAX = 2000;
 const ERROR_LINES = 12;
 

@@ -7,7 +7,7 @@ import { groupFileSeries } from "./file-series.ts";
 
 /** How long an arrived file counts as new (the Files page's New mark and the
  *  agent's [Today] note). */
-export const NEW_FILE_DAYS = 3;
+const NEW_FILE_DAYS = 3;
 const NEW_FILE_MS = NEW_FILE_DAYS * 86_400_000;
 
 /** How long an added or removed file shows in the Files page's Recent

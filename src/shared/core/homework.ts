@@ -8,7 +8,7 @@
 import type { SpaceDeadline, HomeworkProblem } from "./contracts/space.ts";
 
 /** A problem as the agent posts it; done is the app's to keep. */
-export type PostedProblem = Omit<HomeworkProblem, "done">;
+type PostedProblem = Omit<HomeworkProblem, "done">;
 
 /** What a homework lesson shows of its deadline: its name, its problems
  *  when the page loaded and its assignment file (the path opens it on the
@@ -43,7 +43,7 @@ export function problemsDone(problems: readonly HomeworkProblem[] | undefined): 
 }
 
 /** A homework session on a deadline. */
-export interface HomeworkSession {
+interface HomeworkSession {
 	chatId: string;
 	deadlineId: string;
 	createdAt: string;
@@ -59,7 +59,7 @@ export function latestHomework(deadlineId: string, sessions: readonly HomeworkSe
 const SOLVED = new Set(["solved", "solvedWithHints"]);
 
 /** Whether a conclude outcome marks the problem done. */
-export function concludeMarksDone(outcome: unknown): boolean {
+function concludeMarksDone(outcome: unknown): boolean {
 	return typeof outcome === "string" && SOLVED.has(outcome);
 }
 

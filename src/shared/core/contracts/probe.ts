@@ -83,11 +83,3 @@ export interface ProbeDoneResult {
 	error?: string;
 }
 
-/** The probe_done ack's model-facing text: the assessment is the CALL's arguments — durable in the
- *  transcript, streamed to the learner — so echoing it back in the
- *  result would duplicate the probe phase's largest payload in every
- *  future context. The agent sees this fixed line instead; `details`
- *  carries only {ok:true} for the record/UI. Same doctrine as
- *  CONCLUDE_ACK_TEXT. */
-export const PROBE_DONE_ACK_TEXT =
-	"Assessment recorded — it is shown to the learner now and the teacher plans from it. Say your closing sentence and end your turn; the teaching phase takes over from here.";

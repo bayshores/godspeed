@@ -30,18 +30,11 @@ import { isVersion } from "./changelog.ts";
 import { isSpaceId } from "./contracts/space.ts";
 import { oneLine, sanitizeAreaRules, type AreaRules } from "./teaching-areas.ts";
 
-
 /** The schema version this code understands. Bump ONLY when stored records need
  *  upgrading (a field renamed, its meaning or its old default changed); pure
  *  additions never bump. */
 export const CURRENT_SETTINGS_VERSION = 3;
 
-/** The outside agent's provider id (MCP bridge, src/backend/agent/agent-bridge.ts) —
- *  the ONLY model provider. Every lesson and background job
- *  runs through the agent that connects over /api/mcp. */
-export const OUTSIDE_AGENT_PROVIDER = "agent";
-/** The outside agent's one model id (the provider:id stamp on usage). */
-export const OUTSIDE_AGENT_MODEL_ID = "outside-agent";
 /** The context budget the app plans compaction around (and the lesson's
  *  context meter shows). Claude- and GPT-class agents both hold well over
  *  this; staying modest keeps lessons compact. */
@@ -72,10 +65,10 @@ export interface GeneralSettings {
 /** The teacher's name when none is set. */
 export const DEFAULT_TEACHER_NAME = "Teacher";
 /** The longest teacher name kept. */
-export const TEACHER_NAME_MAX = 40;
+const TEACHER_NAME_MAX = 40;
 
 /** A teacher name made safe to show. "" = use the default. */
-export function sanitizeTeacherName(raw: string): string {
+function sanitizeTeacherName(raw: string): string {
 	return oneLine(raw, TEACHER_NAME_MAX);
 }
 
@@ -125,7 +118,7 @@ export interface AppearanceSettings {
 export interface GraphSettings {
 	/** The master switch: off = no extraction. Clustering is
 	 *  the free birth-session partition derived on read
-	 *  (core/session-clusters.ts), labels ARE session names, and the prober
+	 *  and labels are session names. The prober
 	 *  graph tools read the ledgers directly — so there is nothing else to
 	 *  configure. Data stays stored either way. */
 	enabled?: boolean;

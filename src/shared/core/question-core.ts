@@ -54,20 +54,6 @@ const askOptionProps = {
 	),
 };
 
-/** Models sometimes emit `options` as a JSON-encoded string instead of an
- *  array. The tools' prepareArguments parse it before validation; anything
- *  else is returned untouched so validation reports it. */
-export function parseOptionsIfString<T>(options: string | T[] | undefined): unknown {
-	if (typeof options !== "string") return options;
-	try {
-		const parsed: unknown = JSON.parse(options);
-		if (Array.isArray(parsed)) return parsed;
-	} catch {
-		/* not JSON — fall through untouched */
-	}
-	return options;
-}
-
 // ─── cross-field authoring validation (tool-schema refinements) ──────────
 // Enforced at the tool-call boundary (see the superRefines below): an invalid
 // question NEVER reaches the learner — the SDK returns the validation error
@@ -247,7 +233,6 @@ const planNodeId = Type.String({
 		"For off-map checks use ask_user_question.",
 });
 
-
 /** The TEACH-side quiz object. The required pair leads the property
  *  order because models drop trailing fields on long calls; fields
  *  generated first get dropped least. */
@@ -354,7 +339,6 @@ export const askInputSchema = Type.Object({
 export type QuizDisplayInput = Static<typeof quizDisplayInputSchema>;
 export type AskToolInput = Static<typeof askInputSchema>;
 export type ExplainDisplayInput = Static<typeof explainDisplayInputSchema>;
-
 
 /** A real selected answer, in the order the options were displayed. */
 interface OptionAnswer {

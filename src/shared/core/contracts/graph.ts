@@ -11,7 +11,6 @@
  */
 // ─── Knowledge graph (vision §1 — global, cross-session) ────────────────────
 
-import type { ExtractionRunUsage } from "./chat.ts";
 
 /** One relation of the DERIVED view. Chains are the stored truth, and
  *  the snapshot derives UNTYPED arrows from them: every premise → the
@@ -73,58 +72,9 @@ export interface ProvenancePoint {
 	messageId: string;
 }
 
-/** One imported notes file — the format-agnostic front door's bookkeeping:
- *  personal notes in ARBITRARY formats run through the
- *  same extractor → merger pipeline, with the file itself as the
- *  provenance anchor. There is no chat: the detail card shows the file path
- *  as a STATIC entry (not a link). The run's usage log lives here,
- *  mirroring ChatRecord.extractions. Ids are "src_" + hash of the file
- *  path — deterministic, so re-importing the same file re-runs extraction
- *  against the same source id (re-merges dedupe by it). */
-export interface NotesSource {
-	id: string;
-	filePath: string;
-	/** ISO — when this file was imported (the checkpoint's foldedAt). */
-	importedAt: string;
-	/** Legacy content fingerprint. Accepted when reading old records, but
-	 * ignored: every explicit notes import processes the whole file. New
-	 * imports do not compute or write this field. No migration is needed. */
-	contentFp?: string;
-	/** The run's usage log — same append-only discipline as
-	 *  ChatRecord.extractions, idempotent per startedAt. */
-	extractions?: ExtractionRunUsage[];
-}
-
 /** The main work a topic asks of a learner; Study picks its opening move by it. */
 export const TOPIC_MATERIALS = ["term", "procedure", "concept", "proof"] as const;
 export type TopicMaterial = (typeof TOPIC_MATERIALS)[number];
-
-/** One topic: a named group of a graph's facts. Named by the topic grouper (a background model
- *  job) in the space's own terms. */
-export interface GraphTopic {
-	/** "tpc_" + 10 hex — stable across regroupings (the grouper keeps ids). */
-	id: string;
-	/** 1–4 words: "Expected value", "Conditional probability". */
-	name: string;
-	/** Fact (GraphNode) ids. */
-	members: string[];
-	/** Set by the grouper and kept across regroupings; topics grouped before it existed have none. */
-	material?: TopicMaterial;
-}
-
-/** One line of topics.jsonl — append-only, each line a FULL snapshot of the
- *  graph's topics. Readers take the last valid line, drop members that are
- *  no longer facts, and treat facts in no topic as "Ungrouped". */
-export interface TopicSnapshot {
-	/** ISO — when the grouper wrote it. */
-	at: string;
-	topics: GraphTopic[];
-}
-
-/** The graph-family format version this build writes and understands
- *  (the format.json sidecar — src/backend/store/graph-format.ts). */
-export const CURRENT_GRAPH_FORMAT_VERSION = 1;
-
 
 export interface GraphNode {
 	/** Opaque stable id, store-assigned: "n_" + nanoid-like. */
@@ -146,116 +96,6 @@ export interface GraphNode {
 	createdAt: string;
 	/** Every (chat, message) point where this proposition came up. */
 	provenance: ProvenancePoint[];
-}
-
-/** sessions.jsonl line — the emission checkpoint for one chat (which chats
- *  have been folded, and through which updatedAt — never fold twice). */
-export interface SessionCheckpoint {
-	chatId: string;
-	/** The chat record's `updatedAt` at the time of the fold. */
-	foldedAt: string;
-}
-
-/** coverage.jsonl line: ONE MESSAGE of one chat has been extracted — by content fingerprint over
- *  exactly what the extraction view sees. The MESSAGE is the unit of
- *  coverage; "uncovered" is derived (fingerprint the current transcript,
- *  diff) — never dual-tracked. Only a change to the message's teacher
- *  prose changes its fingerprint and re-opens it, and only it. Chat extractions write these instead of whole-chat checkpoints;
- *  notes imports keep the checkpoint (a file is one shot). */
-export interface CoverageEntry {
-	chatId: string;
-	/** sha256 of the message's view lines — "covered" means exactly this. */
-	fp: string;
-	/** chars/4 estimate of the message's view — display + budgeting. */
-	tokens: number;
-	/** ISO — when this message's last extraction run merged. */
-	foldedAt: string;
-}
-
-/**
- * Store format (src/backend/store/graph.ts): JSONL ledgers at config.LEDGER_FILES
- * (nodes/chains/sessions/coverage/topics), all append-only. Edges are NEVER stored — the
- * derived view (implication nodes + untyped arrows) is rebuilt from chains
- * on every read.
- *
- *   nodes.jsonl    one line per node — the FIRST line for an id defines
- *                  name/statement/createdAt; later lines for the
- *                  same id are link-appends (a session's re-encounter):
- *                  their statements/aliases join `aliases`, their
- *                  provenance unions; the name stays the first line's.
- *                  getGraph merges by id.
- *   chains.jsonl   one line per chain ASSERTION; readers merge by
- *                  (premises, conclusion), unioning provenance — the
- *                  first line's arg_ id is the chain's identity.
- *
- * The derived graph is rebuilt by reading the ledgers — store events,
- * derive state. sessions.jsonl is the extraction checkpoint: which chats
- * the extraction pipeline has processed, and through which updatedAt
- * (never extract the same turns twice).
- *
- * The EXTRACTION PIPELINE is the sole graph writer (extractor → merger):
- * the extractor reads one stretch of a source next to that source's
- * earlier findings and the related ideas the graph already holds, and
- * submits new ideas, chains and the existing ideas it re-teaches; the
- * merger (core/graph.ts, deterministic) appends them.
- */
-
-// ─── Extraction findings (extractor output → merger input) ───────────────────
-
-/** One proposed proposition — a node candidate (or a re-encounter of one). */
-interface ExtractedProposition {
-	/** Extractor-local id ("p1", …) referenced by chains. */
-	id: string;
-	/** A very short label — a few words, a compact handle like a glossary
-	 *  headword. Not a sentence, needn't be unique or self-contained: the
-	 *  statement carries the precision. Becomes the node's name on create;
-	 *  on link, the existing node keeps its name. */
-	name: string;
-	/** The minimal proposition — a true, self-contained, world-facing
-	 *  statement, at full precision. No learner / teacher / session
-	 *  references: misconceptions are stated as the true correction, and
-	 *  wrongness is never recorded in the graph. */
-	statement: string;
-	/** Verbatim phrasings the session used. */
-	aliases: string[];
-	/** OPTIONAL, SESSION PATH ONLY: the message id of
-	 *  the ONE teacher passage this proposition came from — the extractor
-	 *  copies it from the view's "TEACHER [id]" label (core/coverage.ts
-	 *  messageViewLines) and the submit seam validates it against the
-	 *  CURRENT batch. The merger stamps it into the node's provenance
-	 *  point {chatId, messageId} (new nodes AND link-appends); chains
-	 *  stay chat-level. Notes imports have none: undefined → messageId ""
-	 *  (chat-level). */
-	messageId?: string;
-}
-
-/** One proposed argument. Endpoints are
- *  extractor-local proposition ids ("p1", …) — the extractor is the ONLY
- *  stage that ever proposes chains; the merger resolves them to node ids. */
-export interface ExtractedChain {
-	/** Proposition ids that JOINTLY entail the conclusion. */
-	premises: string[];
-	/** The proposition id the premises jointly imply. */
-	conclusion: string;
-}
-
-/** The ideas one question in a lesson asks about: proposition ids from
- *  the same submit or existing node ids. The merge anchors them at the
- *  question's message, so the learner's answer counts for them. */
-export interface QuestionTest {
-	messageId: string;
-	ids: string[];
-}
-
-/** The extractor's output shape: the raw reasoning chains, plus the
- *  existing graph ideas this stretch also teaches (`reteaches` — the merge
- *  credits the source for them, so re-taught ideas never duplicate), and
- *  for lessons, what each question tests (notes have none). */
-export interface SessionFindings {
-	propositions: ExtractedProposition[];
-	chains: ExtractedChain[];
-	reteaches: string[];
-	tests?: QuestionTest[];
 }
 
 /** The GET /api/graph payload — everything the home view's PURE renderer needs. */
@@ -306,7 +146,7 @@ export interface GraphSnapshot {
 	fileSources: Record<string, string>;
 	/** nodeId → chatIds that touched the node (click-through provenance). */
 	nodeSessions: Record<string, string[]>;
-	/** Birth-session communities (core/session-clusters.ts: each
+	/** Birth-session communities (each
 	 * proposition joins the cluster of the session that birthed it —
 	 * session provenance, no Louvain, no embeddings), MIN_CLUSTER_SIZE
 	 * ≥ 3 as the hull presentation rule. Propositions only — implication

@@ -9,29 +9,10 @@ export const TOGGLEABLE_TOOLS = ["research", "demo", "visual", "pdf"] as const;
 
 export type ToggleableTool = (typeof TOGGLEABLE_TOOLS)[number];
 
-/** The keys the settings WRITE side accepts in agent.tools: the plain
- *  toggleables PLUS the quizzing-mechanics switch (`explain: true` arms
- *  free-recall quizzing and drops the MC quiz — see quizMechanics in
- *  agent/tools.ts). `quiz` itself stays unwritable:
- *  mechanics-managed, never individually toggleable. */
-export const WRITABLE_TOOL_KEYS = [...TOGGLEABLE_TOOLS, "explain"] as const;
-
 /** The resolved settings → factory seam shape: a partial record keyed by
  *  tool name. Absent key / undefined = enabled. Any explicit `false`
  *  removes that tool from the registry, whatever its name. */
-export type EnabledTools = Partial<Record<string, boolean>>;
-
-/** Drop every tool the resolved settings mark as disabled. The single
- *  filtering site every factory shares (prober/teacher/practice). */
-export function filterEnabledTools<T>(tools: Record<string, T>, enabled?: EnabledTools): Record<string, T> {
-	if (!enabled) return tools;
-	const out: Record<string, T> = {};
-	for (const [name, tool] of Object.entries(tools)) {
-		if (enabled[name] === false) continue;
-		out[name] = tool;
-	}
-	return out;
-}
+type EnabledTools = Partial<Record<string, boolean>>;
 
 /** The switch names Settings shows. The prompt note uses the same ones so
  *  the model and the learner call each tool the same thing. */

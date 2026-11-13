@@ -16,10 +16,10 @@ const ABOUT_MAX = 4000;
 const NAME_MAX = 60;
 export const TOPIC_NAME_MAX = 80;
 const TOPIC_WHY_MAX = 200;
-export const MAX_PREP_TOPICS = 12;
+const MAX_PREP_TOPICS = 12;
 const MAX_PREP_SOURCES = 8;
-export const MOCK_QUESTIONS = { min: 1, max: 10 } as const;
-export const MOCK_MINUTES = { min: 5, max: 240 } as const;
+const MOCK_QUESTIONS = { min: 1, max: 10 } as const;
+const MOCK_MINUTES = { min: 5, max: 240 } as const;
 const MOCK_RANGE = `mock must be ${MOCK_QUESTIONS.min} to ${MOCK_QUESTIONS.max} questions in ${MOCK_MINUTES.min} to ${MOCK_MINUTES.max} minutes.`;
 
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
@@ -227,24 +227,6 @@ export function prepStudyTopics(topics: readonly PrepTopicProgress[], topicIds: 
 }
 
 // ─── what the teacher is asked, what the page shows ─────────────────────────
-
-/** The sheet writer's request: the learner's words, the day, the files
- *  they attached, and the topics the sheet already has. */
-export function prepRequestText(input: {
-	goal: string;
-	date?: string;
-	today: string;
-	/** Attached files with where to read them. */
-	files: ReadonlyArray<{ name: string; path: string }>;
-	topics: readonly PrepTopic[];
-}): string {
-	return [
-		`They are preparing for: ${input.goal}`,
-		`Today is ${input.today}. ${input.date ? `It is on ${input.date}.` : "They have no date for it yet."}`,
-		...(input.files.length > 0 ? ["", "They attached these files. Read them first:", ...input.files.map((f) => `- ${f.name}: ${f.path}`)] : []),
-		...(input.topics.length > 0 ? ["", "The sheet's topics now (keep a name where it still fits):", ...input.topics.map((t) => `- ${t.name}`)] : []),
-	].join("\n");
-}
 
 /** A prep as its page shows it. */
 export interface PrepView {

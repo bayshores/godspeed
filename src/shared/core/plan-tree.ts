@@ -15,7 +15,7 @@ import type { PlanEdge, PlanNode, PlanTree } from "./contracts.ts";
  */
 
 /** Error thrown by every op on invalid input. Message is agent-readable. */
-export class PlanTreeError extends Error {
+class PlanTreeError extends Error {
 	constructor(message: string) {
 		super(message);
 		this.name = "PlanTreeError";

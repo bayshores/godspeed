@@ -4,32 +4,32 @@
 //! fragments are already in the order they compose.
 
 pub const SOURCES: [(&str, &str); 26] = [
-	("system-prompt.md", include_str!("../../../../src/backend/agent/system-prompt.md")),
-	("homework/00-base.md", include_str!("../../../../src/backend/agent/prompts/homework/00-base.md")),
-	("practice/00-base.md", include_str!("../../../../src/backend/agent/prompts/practice/00-base.md")),
-	("practice/10-doctrine.md", include_str!("../../../../src/backend/agent/prompts/practice/10-doctrine.md")),
-	("practice/20-hints.md", include_str!("../../../../src/backend/agent/prompts/practice/20-hints.md")),
-	("prober/10-probe-doctrine.md", include_str!("../../../../src/backend/agent/prompts/prober/10-probe-doctrine.md")),
-	("shared/10-voice.md", include_str!("../../../../src/backend/agent/prompts/shared/10-voice.md")),
-	("shared/11-learner-first.md", include_str!("../../../../src/backend/agent/prompts/shared/11-learner-first.md")),
-	("shared/12-space-context.md", include_str!("../../../../src/backend/agent/prompts/shared/12-space-context.md")),
-	("shared/13-source-marks.md", include_str!("../../../../src/backend/agent/prompts/shared/13-source-marks.md")),
-	("shared/15-accuracy.md", include_str!("../../../../src/backend/agent/prompts/shared/15-accuracy.md")),
-	("shared/16-mental-model.md", include_str!("../../../../src/backend/agent/prompts/shared/16-mental-model.md")),
-	("shared/20-question-tools.md", include_str!("../../../../src/backend/agent/prompts/shared/20-question-tools.md")),
-	("shared/25-confidence.md", include_str!("../../../../src/backend/agent/prompts/shared/25-confidence.md")),
-	("shared/30-learner-files.md", include_str!("../../../../src/backend/agent/prompts/shared/30-learner-files.md")),
-	("shared/35-work-plan.md", include_str!("../../../../src/backend/agent/prompts/shared/35-work-plan.md")),
-	("shared/40-formatting.md", include_str!("../../../../src/backend/agent/prompts/shared/40-formatting.md")),
-	("study/10-study.md", include_str!("../../../../src/backend/agent/prompts/study/10-study.md")),
-	("talk/00-base.md", include_str!("../../../../src/backend/agent/prompts/talk/00-base.md")),
-	("teacher/05-method.md", include_str!("../../../../src/backend/agent/prompts/teacher/05-method.md")),
-	("teacher/10-planning.md", include_str!("../../../../src/backend/agent/prompts/teacher/10-planning.md")),
-	("teacher/20-teaching.md", include_str!("../../../../src/backend/agent/prompts/teacher/20-teaching.md")),
-	("teacher/28-predictions.md", include_str!("../../../../src/backend/agent/prompts/teacher/28-predictions.md")),
-	("teacher/30-question-principles.md", include_str!("../../../../src/backend/agent/prompts/teacher/30-question-principles.md")),
-	("teacher/40-jobs.md", include_str!("../../../../src/backend/agent/prompts/teacher/40-jobs.md")),
-	("teacher/50-demos.md", include_str!("../../../../src/backend/agent/prompts/teacher/50-demos.md")),
+	("system-prompt.md", include_str!("../../prompts/system-prompt.md")),
+	("homework/00-base.md", include_str!("../../prompts/homework/00-base.md")),
+	("practice/00-base.md", include_str!("../../prompts/practice/00-base.md")),
+	("practice/10-doctrine.md", include_str!("../../prompts/practice/10-doctrine.md")),
+	("practice/20-hints.md", include_str!("../../prompts/practice/20-hints.md")),
+	("prober/10-probe-doctrine.md", include_str!("../../prompts/prober/10-probe-doctrine.md")),
+	("shared/10-voice.md", include_str!("../../prompts/shared/10-voice.md")),
+	("shared/11-learner-first.md", include_str!("../../prompts/shared/11-learner-first.md")),
+	("shared/12-space-context.md", include_str!("../../prompts/shared/12-space-context.md")),
+	("shared/13-source-marks.md", include_str!("../../prompts/shared/13-source-marks.md")),
+	("shared/15-accuracy.md", include_str!("../../prompts/shared/15-accuracy.md")),
+	("shared/16-mental-model.md", include_str!("../../prompts/shared/16-mental-model.md")),
+	("shared/20-question-tools.md", include_str!("../../prompts/shared/20-question-tools.md")),
+	("shared/25-confidence.md", include_str!("../../prompts/shared/25-confidence.md")),
+	("shared/30-learner-files.md", include_str!("../../prompts/shared/30-learner-files.md")),
+	("shared/35-work-plan.md", include_str!("../../prompts/shared/35-work-plan.md")),
+	("shared/40-formatting.md", include_str!("../../prompts/shared/40-formatting.md")),
+	("study/10-study.md", include_str!("../../prompts/study/10-study.md")),
+	("talk/00-base.md", include_str!("../../prompts/talk/00-base.md")),
+	("teacher/05-method.md", include_str!("../../prompts/teacher/05-method.md")),
+	("teacher/10-planning.md", include_str!("../../prompts/teacher/10-planning.md")),
+	("teacher/20-teaching.md", include_str!("../../prompts/teacher/20-teaching.md")),
+	("teacher/28-predictions.md", include_str!("../../prompts/teacher/28-predictions.md")),
+	("teacher/30-question-principles.md", include_str!("../../prompts/teacher/30-question-principles.md")),
+	("teacher/40-jobs.md", include_str!("../../prompts/teacher/40-jobs.md")),
+	("teacher/50-demos.md", include_str!("../../prompts/teacher/50-demos.md")),
 ];
 
 #[cfg(test)]
@@ -40,7 +40,7 @@ mod tests {
 
 	#[test]
 	fn the_embedded_segments_are_every_fragment_the_app_ships_in_path_order() {
-		let prompts = concat!(env!("CARGO_MANIFEST_DIR"), "/../../src/backend/agent/prompts");
+		let prompts = concat!(env!("CARGO_MANIFEST_DIR"), "/prompts");
 		let mut on_disk = Vec::new();
 		for dir in std::fs::read_dir(prompts).unwrap().flatten().filter(|d| d.path().is_dir()) {
 			for file in std::fs::read_dir(dir.path()).unwrap().flatten() {

@@ -81,11 +81,11 @@ export interface Mock {
 }
 
 /** The record format this build writes, stamped as "version". */
-export const MOCK_FORMAT_VERSION = 1;
+const MOCK_FORMAT_VERSION = 1;
 
 const TITLE_MAX = 80;
 const STATEMENT_MAX = 6000;
-export const ANSWER_MAX = 20000;
+const ANSWER_MAX = 20000;
 const FEEDBACK_MAX = 2000;
 const MAX_EXAMPLES = 6;
 const MAX_PARAMS = 6;
@@ -117,7 +117,7 @@ function isFunctionName(name: string): boolean {
 
 const areParams = (params: readonly string[]) => params.length <= MAX_PARAMS && params.every(isPlainName) && new Set(params).size === params.length;
 
-export function isMockId(id: unknown): id is string {
+function isMockId(id: unknown): id is string {
 	return typeof id === "string" && /^mock_[a-f0-9]{8}$/.test(id);
 }
 
@@ -233,7 +233,7 @@ export function startMock(mock: Mock, now: string): Mock {
 
 /** A code answer's code by language, from anything: strings in known
  *  languages only, each cut to the longest answer. */
-export function parseMockCode(raw: unknown): Partial<Record<MockLanguage, string>> {
+function parseMockCode(raw: unknown): Partial<Record<MockLanguage, string>> {
 	const out: Partial<Record<MockLanguage, string>> = {};
 	if (!isRecord(raw)) return out;
 	for (const [language, code] of Object.entries(raw)) if (isMockLanguage(language) && typeof code === "string") out[language] = code.slice(0, ANSWER_MAX);
@@ -264,12 +264,12 @@ export function endMock(mock: Mock, now: string): Mock {
 }
 
 /** Something was written for the question. */
-export const isAnswered = (a: MockAnswer | undefined): a is MockAnswer => a !== undefined && a.text.trim().length > 0;
+const isAnswered = (a: MockAnswer | undefined): a is MockAnswer => a !== undefined && a.text.trim().length > 0;
 
 // ─── the teacher's grades ───────────────────────────────────────────────────
 
 /** A grade as the teacher sends it. */
-export interface WrittenGrade {
+interface WrittenGrade {
 	/** "q1", "q2". */
 	question: string;
 	verdict: MockVerdict;
@@ -339,22 +339,6 @@ export interface MockSummary {
 	working: boolean;
 	/** Why the last write or grading failed. */
 	error?: string;
-}
-
-export function mockSummary(mock: Mock, working: boolean, error: string | undefined): MockSummary {
-	const state = mockState(mock);
-	return {
-		id: mock.id,
-		n: mock.n,
-		state,
-		format: mock.format,
-		createdAt: mock.createdAt,
-		...(mock.startedAt ? { startedAt: mock.startedAt } : {}),
-		...(mock.endedAt ? { endedAt: mock.endedAt } : {}),
-		...(state === "graded" ? { solved: solvedCount(mock) } : {}),
-		working,
-		...(error ? { error } : {}),
-	};
 }
 
 /** A mock as its own page shows it. */

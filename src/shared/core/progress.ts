@@ -15,16 +15,12 @@
  * Pure and browser-safe: no node builtins. The server assembles the inputs
  * (src/backend/server/progress.ts → GET /api/progress).
  */
-import type { SpaceDeadline, SpaceFileKind, DeadlineKind, GraphChain, LessonKind, ProvenancePoint, TopicMaterial, TopicSnapshot } from "./contracts.ts";
-import { compareDeadlines } from "./contracts.ts";
-import { continueStudyFor, type ContinueStudy, type DeadlineSession } from "./continue-study.ts";
-import { latestHomework, problemsDone, type HomeworkSession } from "./homework.ts";
+import type { DeadlineKind, LessonKind, TopicMaterial } from "./contracts.ts";
+import { type ContinueStudy } from "./continue-study.ts";
 import type { LhMessage } from "./native-messages.ts";
 import { isGradedTool, isQuestionTool } from "./pending.ts";
 import { confidenceLevel, normalizeQuizType, type ConfidenceLevel, type QuestionAnswerData } from "./question-core.ts";
-import { birthSessionOf } from "./session-clusters.ts";
 import { practiceOutcomes, type ConcludeOutcome } from "./practice-outcomes.ts";
-import { resolveTopics } from "./topics.ts";
 
 // ─── the color ramp + statuses ──────────────────────────────────────────────
 
@@ -59,7 +55,7 @@ export function topicStatus(rate: number | null): TopicStatus {
 export type AnswerOutcome = "right" | "wrong" | "dontKnow";
 
 /** One graded answer from a lesson: a quiz or probe answer, or a practice problem's outcome. */
-export interface AnsweredQuestion {
+interface AnsweredQuestion {
 	chatId: string;
 	/** The assistant message that asked (holds the quiz tool call). */
 	messageId: string;
@@ -91,7 +87,6 @@ export interface AnswerRef {
 	level?: ConfidenceLevel;
 	answeredAt: string;
 }
-
 
 /** The outcome of a graded answer; null when it isn't one (ask/explain,
  *  dismissed, or a record without a verdict). */
@@ -188,21 +183,6 @@ export function collectAnswers(chatId: string, messages: readonly LhMessage[]): 
 
 const pointKey = (chatId: string, messageId: string) => `${chatId}\u0000${messageId}`;
 
-/** (chatId, messageId) → the facts with a provenance point there. */
-export function factsByMessage(facts: ReadonlyArray<{ id: string; provenance: ProvenancePoint[] }>): Map<string, string[]> {
-	const index = new Map<string, string[]>();
-	for (const fact of facts) {
-		for (const p of fact.provenance) {
-			if (!p.messageId) continue;
-			const key = pointKey(p.chatId, p.messageId);
-			const list = index.get(key);
-			if (!list) index.set(key, [fact.id]);
-			else if (!list.includes(fact.id)) list.push(fact.id);
-		}
-	}
-	return index;
-}
-
 /** The facts an answer counts for: the ones it names itself; else those
  *  made from (or tested at) the message that asked it; when that message
  *  has none, the nearest earlier teacher message of the same turn that does. */
@@ -214,16 +194,6 @@ export function factsForAnswer(answer: Pick<AnsweredQuestion, "chatId" | "messag
 	}
 	return [];
 }
-
-const refOf = (a: AnsweredQuestion): AnswerRef => ({
-	chatId: a.chatId,
-	toolCallId: a.toolCallId,
-	outcome: a.outcome,
-	...(a.level ? { level: a.level } : {}),
-	answeredAt: a.answeredAt,
-});
-
-const byTime = (a: { answeredAt: string }, b: { answeredAt: string }) => a.answeredAt.localeCompare(b.answeredAt);
 
 // ─── tallies ────────────────────────────────────────────────────────────────
 
@@ -247,16 +217,6 @@ export function tally(answers: ReadonlyArray<{ outcome: AnswerOutcome }>): Tally
 	}
 	const answered = right + wrong + dontKnow;
 	return { answered, right, wrong, dontKnow, rate: answered === 0 ? null : right / answered };
-}
-
-/** Overconfident: at least 2 answers given at level 4–5, right less often
- *  than those answers claimed (each answer claims level × 20 %). */
-export function isOverconfident(answers: ReadonlyArray<{ outcome: AnswerOutcome; level?: ConfidenceLevel }>): boolean {
-	const sure = answers.filter((a) => a.outcome !== "dontKnow" && a.level !== undefined && a.level >= 4);
-	if (sure.length < 2) return false;
-	const right = sure.filter((a) => a.outcome === "right").length;
-	const claimed = sure.reduce((sum, a) => sum + a.level! * 20, 0) / sure.length / 100;
-	return right / sure.length < claimed;
 }
 
 // ─── topics: stats, links, columns ──────────────────────────────────────────
@@ -286,79 +246,6 @@ export interface TopicLink {
 	to: string;
 	/** How many reasoning chains run from `from` into `to`. */
 	weight: number;
-}
-
-/**
- * Arrows between topics: a chain with a premise in topic A and its
- * conclusion in topic B (A ≠ B) adds 1 to A → B (once per chain). Cycles
- * are broken by keeping the heaviest edges first (ties: from, then to, in
- * id order) and dropping any edge that would close a loop.
- */
-export function topicLinks(
-	chains: ReadonlyArray<Pick<GraphChain, "premises" | "conclusion">>,
-	topicOfFact: ReadonlyMap<string, string>,
-): TopicLink[] {
-	const weights = new Map<string, TopicLink>();
-	for (const chain of chains) {
-		const to = topicOfFact.get(chain.conclusion);
-		if (!to) continue;
-		const froms = new Set(chain.premises.map((p) => topicOfFact.get(p)).filter((t): t is string => !!t && t !== to));
-		for (const from of froms) {
-			const key = `${from}\u0000${to}`;
-			const link = weights.get(key);
-			if (link) link.weight++;
-			else weights.set(key, { from, to, weight: 1 });
-		}
-	}
-	const sorted = [...weights.values()].sort((a, b) => b.weight - a.weight || a.from.localeCompare(b.from) || a.to.localeCompare(b.to));
-	const out = new Map<string, string[]>();
-	const reaches = (start: string, goal: string): boolean => {
-		const stack = [start];
-		const seen = new Set<string>();
-		while (stack.length > 0) {
-			const at = stack.pop()!;
-			if (at === goal) return true;
-			if (seen.has(at)) continue;
-			seen.add(at);
-			stack.push(...(out.get(at) ?? []));
-		}
-		return false;
-	};
-	const kept: TopicLink[] = [];
-	for (const link of sorted) {
-		if (reaches(link.to, link.from)) continue; // would close a loop
-		kept.push(link);
-		const list = out.get(link.from);
-		if (list) list.push(link.to);
-		else out.set(link.from, [link.to]);
-	}
-	return kept;
-}
-
-/** Column per topic: the longest path from a topic with no incoming arrow
- *  (links must be acyclic — topicLinks guarantees it). */
-export function topicColumns(topicIds: readonly string[], links: readonly TopicLink[]): Map<string, number> {
-	const incoming = new Map<string, string[]>();
-	for (const l of links) {
-		const list = incoming.get(l.to);
-		if (list) list.push(l.from);
-		else incoming.set(l.to, [l.from]);
-	}
-	const memo = new Map<string, number>();
-	const visiting = new Set<string>();
-	const column = (id: string): number => {
-		const known = memo.get(id);
-		if (known !== undefined) return known;
-		if (visiting.has(id)) return 0; // defensive: never loops on bad input
-		visiting.add(id);
-		let best = 0;
-		for (const from of incoming.get(id) ?? []) best = Math.max(best, column(from) + 1);
-		visiting.delete(id);
-		memo.set(id, best);
-		return best;
-	};
-	for (const id of topicIds) column(id);
-	return memo;
 }
 
 // ─── facts ──────────────────────────────────────────────────────────────────
@@ -392,18 +279,7 @@ export function topicFacts(facts: readonly FactProgress[], topic: Pick<TopicProg
 		.sort((a, b) => MARK_ORDER[factMark(a) ?? "none"]! - MARK_ORDER[factMark(b) ?? "none"]! || a.name.localeCompare(b.name));
 }
 
-/** A provenance point from a lesson (not a notes/file source). */
-const fromLesson = (p: ProvenancePoint) => !p.chatId.startsWith("src_");
-
 // ─── files ──────────────────────────────────────────────────────────────────
-
-interface ProgressFileInput {
-	id: string;
-	name: string;
-	kind: SpaceFileKind;
-	/** The notes-source id its facts are born under (server: sourceIdFor). */
-	sourceId: string;
-}
 
 export interface FileCoverage {
 	fileId: string;
@@ -416,44 +292,7 @@ export interface FileCoverage {
 	share: number | null;
 }
 
-/** Coverage for every STUDY file, in the space's file order. */
-function fileCoverage(
-	files: readonly ProgressFileInput[],
-	facts: ReadonlyArray<{ id: string; provenance: ProvenancePoint[] }>,
-): FileCoverage[] {
-	const bySource = new Map<string, { facts: number; inLessons: number }>();
-	for (const fact of facts) {
-		const born = birthSessionOf(fact);
-		if (!born) continue;
-		const entry = bySource.get(born) ?? { facts: 0, inLessons: 0 };
-		entry.facts++;
-		if (fact.provenance.some(fromLesson)) entry.inLessons++;
-		bySource.set(born, entry);
-	}
-	return files
-		.filter((f) => f.kind === "study")
-		.map((f) => {
-			const entry = bySource.get(f.sourceId) ?? { facts: 0, inLessons: 0 };
-			return { fileId: f.id, name: f.name, facts: entry.facts, inLessons: entry.inLessons, share: entry.facts === 0 ? null : entry.inLessons / entry.facts };
-		});
-}
-
-/** "Next up": the earliest study file (space file order) that has facts
- *  but none of them came up in a lesson yet. */
-function nextUpFile(coverage: readonly FileCoverage[]): FileCoverage | null {
-	return coverage.find((f) => f.facts > 0 && f.inLessons === 0) ?? null;
-}
-
 // ─── lessons + calibration ──────────────────────────────────────────────────
-
-interface ProgressLessonInput {
-	id: string;
-	title: string;
-	kind?: LessonKind;
-	updatedAt: string;
-	/** The lesson's graded answers (collectAnswers). */
-	answers: readonly AnsweredQuestion[];
-}
 
 export interface LessonProgress {
 	chatId: string;
@@ -493,28 +332,6 @@ export interface Calibration {
 	levels: CalibrationLevel[];
 	/** Wrong answers given at level 4–5, newest first, at most 5. */
 	sureButWrong: SureButWrong[];
-}
-
-function calibration(answers: readonly AnsweredQuestion[], titleOf: (chatId: string) => string): Calibration {
-	const levels: CalibrationLevel[] = ([1, 2, 3, 4, 5] as const).map((level) => {
-		const at = answers.filter((a) => a.level === level && a.outcome !== "dontKnow");
-		const right = at.filter((a) => a.outcome === "right").length;
-		return { level, target: level * 20, answered: at.length, right, rate: at.length === 0 ? null : right / at.length };
-	});
-	const sureButWrong = answers
-		.filter((a) => a.outcome === "wrong" && a.level !== undefined && a.level >= 4)
-		.sort((a, b) => b.answeredAt.localeCompare(a.answeredAt))
-		.slice(0, 5)
-		.map((a) => ({
-			chatId: a.chatId,
-			lessonTitle: titleOf(a.chatId),
-			messageId: a.messageId,
-			toolCallId: a.toolCallId,
-			question: a.question,
-			level: a.level!,
-			answeredAt: a.answeredAt,
-		}));
-	return { levels, sureButWrong };
 }
 
 // ─── deadlines + "Work on next" ────────────────────────────────────────────
@@ -578,82 +395,7 @@ export function daysBetween(today: string, date: string): number {
 	return Math.round((utc(date) - utc(today)) / 86_400_000);
 }
 
-function statusCounts(topics: ReadonlyArray<Pick<TopicProgress, "status">>): StatusCounts {
-	const counts: StatusCounts = { strong: 0, shaky: 0, weak: 0, untested: 0 };
-	for (const t of topics) counts[t.status]++;
-	return counts;
-}
-
-/**
- * "Work on next" over a set of topics, in four groups:
- *  1. weak/shaky topics another weak/shaky topic in the set builds on
- *     ("<dependent> builds on it, so fix it first");
- *  2. overconfident topics ("overconfident");
- *  3. the remaining weak/shaky ones ("Needed for <dependent>" when a topic
- *     in the set builds on it, else "<n>% right");
- *  4. untested topics (no reason: the status line already says "Not tested").
- * Within a group: lowest right rate first, then earlier column, then name.
- */
-export function workOnNext(
-	topics: readonly TopicProgress[],
-	links: readonly TopicLink[],
-): WorkOnNextItem[] {
-	const inSet = new Map(topics.map((t) => [t.id, t]));
-	const struggling = (t: TopicProgress | undefined) => !!t && (t.status === "weak" || t.status === "shaky");
-	const dependents = (id: string, filter: (t: TopicProgress) => boolean): TopicProgress[] =>
-		links
-			.filter((l) => l.from === id && inSet.has(l.to) && filter(inSet.get(l.to)!))
-			.sort((a, b) => b.weight - a.weight || a.to.localeCompare(b.to))
-			.map((l) => inSet.get(l.to)!);
-	const order = (a: TopicProgress, b: TopicProgress) =>
-		(a.rate ?? 2) - (b.rate ?? 2) || a.column - b.column || a.name.localeCompare(b.name);
-	const out: WorkOnNextItem[] = [];
-	const listed = new Set<string>();
-	const add = (t: TopicProgress, reason: string) => {
-		listed.add(t.id);
-		out.push({ topicId: t.id, name: t.name, status: t.status, reason });
-	};
-	const sorted = [...topics].sort(order);
-	for (const t of sorted) {
-		if (!struggling(t)) continue;
-		const dep = dependents(t.id, (d) => d.id !== t.id && struggling(d))[0];
-		if (dep) add(t, `${dep.name} builds on it, so fix it first`);
-	}
-	for (const t of sorted) if (!listed.has(t.id) && t.overconfident) add(t, "overconfident");
-	for (const t of sorted) {
-		if (listed.has(t.id) || !struggling(t)) continue;
-		const dep = dependents(t.id, () => true)[0];
-		add(t, dep ? `Needed for ${dep.name}` : `${Math.round((t.rate ?? 0) * 100)}% right`);
-	}
-	for (const t of sorted) {
-		if (listed.has(t.id) || t.status !== "untested") continue;
-		add(t, "");
-	}
-	return out;
-}
-
 // ─── the whole payload ──────────────────────────────────────────────────────
-
-interface ProgressInput {
-	spaceId: string | null;
-	/** The learner's calendar day, YYYY-MM-DD (days-until counts from it). */
-	today: string;
-	/** The graph's facts (core/graph.ts getGraph nodes). */
-	facts: ReadonlyArray<{ id: string; name: string; statement: string; provenance: ProvenancePoint[] }>;
-	chains: ReadonlyArray<Pick<GraphChain, "premises" | "conclusion">>;
-	topics: TopicSnapshot | null;
-	/** The space's files (empty for "No space"), in space order. */
-	files: readonly ProgressFileInput[];
-	deadlines: readonly SpaceDeadline[];
-	/** The lessons in the space (teach and practice). */
-	lessons: readonly ProgressLessonInput[];
-	/** The space's Study sessions started from a deadline. */
-	deadlineSessions?: readonly DeadlineSession[];
-	/** The space's homework sessions. */
-	homeworkSessions?: readonly HomeworkSession[];
-	/** A topic-grouping run is going right now. */
-	grouping?: boolean;
-}
 
 /** GET /api/progress — everything the Overview and the Graph page need. */
 export interface ProgressPayload {
@@ -679,134 +421,3 @@ export interface ProgressPayload {
 	totals: Tally;
 }
 
-export function deriveProgress(input: ProgressInput): ProgressPayload {
-	const factIds = input.facts.map((f) => f.id);
-	const resolved = resolveTopics(input.topics, factIds);
-	const topicOfFact = new Map<string, string>();
-	for (const t of resolved) for (const id of t.members) topicOfFact.set(id, t.id);
-
-	// Answers, per lesson and for the whole space.
-	const titles = new Map(input.lessons.map((l) => [l.id, l.title]));
-	const answersByLesson = new Map(input.lessons.map((l) => [l.id, l.answers]));
-	const allAnswers = [...answersByLesson.values()].flat().sort(byTime);
-
-	// Answer → facts → topics.
-	const index = factsByMessage(input.facts);
-	const factAnswers = new Map<string, AnsweredQuestion[]>();
-	const topicAnswers = new Map<string, AnsweredQuestion[]>();
-	for (const answer of allAnswers) {
-		const facts = factsForAnswer(answer, index);
-		const topicsHit = new Set<string>();
-		for (const id of facts) {
-			const list = factAnswers.get(id);
-			if (list) list.push(answer);
-			else factAnswers.set(id, [answer]);
-			const topic = topicOfFact.get(id);
-			if (topic) topicsHit.add(topic);
-		}
-		for (const topic of topicsHit) {
-			const list = topicAnswers.get(topic);
-			if (list) list.push(answer);
-			else topicAnswers.set(topic, [answer]);
-		}
-	}
-
-	const links = topicLinks(input.chains, topicOfFact);
-	const columns = topicColumns(resolved.map((t) => t.id), links);
-	const topics: TopicProgress[] = resolved.map((t) => {
-		const answers = topicAnswers.get(t.id) ?? [];
-		const counts = tally(answers);
-		return {
-			id: t.id,
-			name: t.name,
-			members: t.members,
-			...(t.ungrouped ? { ungrouped: true as const } : {}),
-			...(t.material ? { material: t.material } : {}),
-			...counts,
-			status: topicStatus(counts.rate),
-			color: rampColor(counts.rate),
-			overconfident: isOverconfident(answers),
-			answers: answers.map(refOf),
-			column: columns.get(t.id) ?? 0,
-		};
-	});
-
-	const facts: FactProgress[] = input.facts.map((f) => ({
-		id: f.id,
-		name: f.name,
-		statement: f.statement,
-		topicId: topicOfFact.get(f.id)!,
-		born: birthSessionOf(f),
-		inLessons: f.provenance.some(fromLesson),
-		answers: (factAnswers.get(f.id) ?? []).map(refOf),
-	}));
-
-	const files = fileCoverage(input.files, input.facts);
-
-	const lessons: LessonProgress[] = input.lessons
-		.map((l) => {
-			const answers = answersByLesson.get(l.id) ?? [];
-			const counts = tally(answers);
-			return {
-				chatId: l.id,
-				title: l.title,
-				kind: l.kind ?? "teach",
-				updatedAt: l.updatedAt,
-				answers: answers.map(refOf),
-				right: counts.right,
-				answered: counts.answered,
-				score: counts.rate,
-			};
-		})
-		.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
-
-	// Deadlines: topics born in the deadline's files. The "Ungrouped"
-	// bucket is never a recommendation.
-	const grouped = topics.filter((t) => !t.ungrouped);
-	const bornIn = new Map(input.facts.map((f) => [f.id, birthSessionOf(f)]));
-	const sourceOfFile = new Map(input.files.map((f) => [f.id, f.sourceId]));
-	const nameOfFile = new Map(input.files.map((f) => [f.id, f.name]));
-	const deadlines: DeadlineProgress[] = [...input.deadlines].sort(compareDeadlines).map((d) => {
-		const sources = new Set(d.fileIds.map((id) => sourceOfFile.get(id)).filter((s): s is string => !!s));
-		const covered = grouped.filter((t) => t.members.some((id) => sources.has(bornIn.get(id) ?? "")));
-		const weakest = [...covered].sort((a, b) => (a.rate ?? 0) - (b.rate ?? 0) || a.name.localeCompare(b.name));
-		const next = continueStudyFor(d.id, input.deadlineSessions ?? []);
-		const done = problemsDone(d.problems);
-		const homework = latestHomework(d.id, input.homeworkSessions ?? []);
-		return {
-			id: d.id,
-			kind: d.kind,
-			name: d.name,
-			date: d.date,
-			...(d.time !== undefined ? { time: d.time } : {}),
-			done: d.done,
-			daysUntil: daysBetween(input.today, d.date),
-			files: d.fileIds.map((id) => ({ id, name: nameOfFile.get(id) ?? id })),
-			topicIds: covered.map((t) => t.id),
-			counts: statusCounts(covered),
-			workOnNext: workOnNext(covered, links),
-			ready: covered.length === 0 ? null : covered.reduce((sum, t) => sum + (t.rate ?? 0), 0) / covered.length,
-			topics: weakest.map((t) => ({ id: t.id, name: t.name, rate: t.rate })),
-			...(next ? { continueStudy: next } : {}),
-			...(done ? { problems: done } : {}),
-			...(homework ? { continueHomework: homework } : {}),
-		};
-	});
-
-	return {
-		spaceId: input.spaceId,
-		today: input.today,
-		topicsAt: input.topics?.at ?? null,
-		grouping: input.grouping === true,
-		topics,
-		topicLinks: links,
-		facts,
-		files,
-		nextUp: nextUpFile(files),
-		lessons,
-		calibration: calibration(allAnswers, (id) => titles.get(id) ?? id),
-		deadlines,
-		overall: { topicIds: grouped.map((t) => t.id), counts: statusCounts(grouped), workOnNext: workOnNext(grouped, links) },
-		totals: tally(allAnswers),
-	};
-}
