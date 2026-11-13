@@ -4,11 +4,15 @@
 //! time, so a batch never holds up the async threads. Each batch is padded to its longest text and
 //! cut at 512 tokens like the transformers.js pipeline, takes the [CLS] row and divides it by its
 //! length the way transformers.js rounds (f32 sums of f64 squares).
+//!
+//! A batch's rows change each other's numbers (the model quantizes each layer's input over the whole
+//! batch), so batches are never regrouped: that keeps the vectors equal to the Node server's.
 
 use std::path::{Path, PathBuf};
 use std::sync::mpsc;
+use std::time::Duration;
 
-use ort::session::Session;
+use ort::session::{RunOptions, Session};
 use ort::value::Tensor;
 use parking_lot::Mutex;
 use tokenizers::Tokenizer;
@@ -18,6 +22,9 @@ pub const MODEL_ID: &str = "Snowflake/snowflake-arctic-embed-xs";
 pub const DIMS: usize = 384;
 /// The model reads at most this many tokens.
 const MAX_TOKENS: usize = 512;
+
+/// How long the model thread waits for a batch before shrinking its arena.
+const IDLE: Duration = Duration::from_secs(5);
 
 /// What a batch gets when the model thread is gone (the worker's exit message).
 const STOPPED: &str = "The search worker stopped (code 1)";
@@ -77,15 +84,29 @@ impl Embedder {
 }
 
 /// Loads once (a failed load answers every batch with its error, like the worker's rejected
-/// `ready`), then embeds what arrives.
+/// `ready`), then embeds what arrives. After a quiet spell it hands the arena's free memory back.
 fn serve(dir: &Path, jobs: &mpsc::Receiver<Job>) {
 	let mut model = Model::load(dir);
-	for job in jobs {
-		let out = match &mut model {
-			Ok(m) => m.embed(&job.texts),
-			Err(e) => Err(e.clone()),
-		};
-		let _ = job.reply.send(out);
+	let mut grown = false;
+	loop {
+		match jobs.recv_timeout(IDLE) {
+			Ok(job) => {
+				let out = match &mut model {
+					Ok(m) => m.embed(&job.texts, false),
+					Err(e) => Err(e.clone()),
+				};
+				grown = true;
+				let _ = job.reply.send(out);
+			}
+			Err(mpsc::RecvTimeoutError::Timeout) => {
+				if grown && let Ok(m) = &mut model {
+					// The arena shrinks only at the end of a run, so a one-token run does it.
+					let _ = m.embed(&[String::new()], true);
+				}
+				grown = false;
+			}
+			Err(mpsc::RecvTimeoutError::Disconnected) => return,
+		}
 	}
 }
 
@@ -93,17 +114,31 @@ struct Model {
 	tokenizer: Tokenizer,
 	session: Session,
 	inputs: Vec<String>,
+	shrink: RunOptions,
 }
 
 impl Model {
 	fn load(dir: &Path) -> Result<Model, String> {
 		let tokenizer = load_tokenizer(dir)?;
-		let session = Session::builder().map_err(|e| e.to_string())?.commit_from_file(dir.join("onnx").join("model_quantized.onnx")).map_err(|e| e.to_string())?;
+		// Every batch has its own shape, so a memory plan kept per shape only grows the arena: an
+		// index rebuild peaked about 250 MB higher with it.
+		let session = Session::builder()
+			.map_err(|e| e.to_string())?
+			.with_memory_pattern(false)
+			.map_err(|e| e.to_string())?
+			.commit_from_file(dir.join("onnx").join("model_quantized.onnx"))
+			.map_err(|e| e.to_string())?;
 		let inputs = session.inputs().iter().map(|i| i.name().to_owned()).collect();
-		Ok(Model { tokenizer, session, inputs })
+		// ONNX Runtime frees its arena only at the end of a run that asks for it. Asking on every
+		// batch of a rebuild leaves hundreds of MB of freed blocks that macOS takes minutes to
+		// reclaim, so only the run after a quiet spell asks.
+		let mut shrink = RunOptions::new().map_err(|e| e.to_string())?;
+		shrink.set("memory.enable_memory_arena_shrinkage", "cpu:0").map_err(|e| e.to_string())?;
+		Ok(Model { tokenizer, session, inputs, shrink })
 	}
 
-	fn embed(&mut self, texts: &[String]) -> Result<Vec<f32>, String> {
+	/// `shrink`: free the arena's unused memory once the run is done.
+	fn embed(&mut self, texts: &[String], shrink: bool) -> Result<Vec<f32>, String> {
 		let batch = encode(&self.tokenizer, texts)?;
 		let mut feed = Vec::new();
 		for name in &self.inputs {
@@ -116,7 +151,7 @@ impl Model {
 			let tensor = Tensor::from_array(([batch.rows, batch.width], data)).map_err(|e| e.to_string())?;
 			feed.push((name.clone(), tensor));
 		}
-		let outputs = self.session.run(feed).map_err(|e| e.to_string())?;
+		let outputs = if shrink { self.session.run_with_options(feed, &self.shrink) } else { self.session.run(feed) }.map_err(|e| e.to_string())?;
 		let (_, hidden) = outputs["last_hidden_state"].try_extract_tensor::<f32>().map_err(|e| e.to_string())?;
 		let mut out = Vec::with_capacity(batch.rows * DIMS);
 		for r in 0..batch.rows {

@@ -2,7 +2,7 @@
 //! file + rename (src/backend/store/write-file-atomic.ts), broken JSON set aside
 //! (set-aside.ts), and fs error texts worded like Node's.
 
-use std::io;
+use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 
 use gs_json::{Json, parse};
@@ -61,15 +61,12 @@ pub fn make_temp_dir(tmp: &Path, prefix: &str) -> Result<PathBuf, String> {
 /// Writes through `<file>.tmp-<8 hex>` and a rename, so a crash leaves the old file whole.
 /// `mode` applies to a new file (Unix permissions, e.g. 0o600).
 pub fn write_atomic(file: &Path, data: &[u8], mode: Option<u32>) -> io::Result<()> {
-	if let Some(dir) = file.parent() {
-		std::fs::create_dir_all(dir)?;
-	}
-	let tmp = file.with_file_name(format!("{}.tmp-{}", file.file_name().map(|n| n.to_string_lossy()).unwrap_or_default(), &ids::uuid()[..8]));
-	let written = write_new(&tmp, data, mode).and_then(|()| std::fs::rename(&tmp, file));
-	if written.is_err() {
-		let _ = std::fs::remove_file(&tmp);
-	}
-	written
+	replace(file, mode, |out| out.write_all(data))
+}
+
+/// `write_atomic` for a file written piece by piece, so a big file is never built in memory first.
+pub fn write_atomic_with(file: &Path, write: impl FnOnce(&mut dyn Write) -> io::Result<()>) -> io::Result<()> {
+	replace(file, None, write)
 }
 
 /// `writeFileAtomic(file, text)`: the text as Node encodes it.
@@ -77,8 +74,19 @@ pub fn write_text_atomic(file: &Path, content: &str) -> io::Result<()> {
 	write_atomic(file, &text::utf8_bytes(content), None)
 }
 
-fn write_new(file: &Path, data: &[u8], mode: Option<u32>) -> io::Result<()> {
-	use std::io::Write;
+fn replace(file: &Path, mode: Option<u32>, write: impl FnOnce(&mut dyn Write) -> io::Result<()>) -> io::Result<()> {
+	if let Some(dir) = file.parent() {
+		std::fs::create_dir_all(dir)?;
+	}
+	let tmp = file.with_file_name(format!("{}.tmp-{}", file.file_name().map(|n| n.to_string_lossy()).unwrap_or_default(), &ids::uuid()[..8]));
+	let written = write_new(&tmp, mode, write).and_then(|()| std::fs::rename(&tmp, file));
+	if written.is_err() {
+		let _ = std::fs::remove_file(&tmp);
+	}
+	written
+}
+
+fn write_new(file: &Path, mode: Option<u32>, write: impl FnOnce(&mut dyn Write) -> io::Result<()>) -> io::Result<()> {
 	let mut options = std::fs::OpenOptions::new();
 	options.write(true).create(true).truncate(true);
 	#[cfg(unix)]
@@ -87,7 +95,9 @@ fn write_new(file: &Path, data: &[u8], mode: Option<u32>) -> io::Result<()> {
 	}
 	#[cfg(not(unix))]
 	let _ = mode;
-	options.open(file)?.write_all(data)
+	let mut out = io::BufWriter::new(options.open(file)?);
+	write(&mut out)?;
+	out.flush()
 }
 
 /// Renames a file that is not valid JSON to `<file>.corrupt-<Date.now()>`, so the next save
@@ -172,6 +182,22 @@ mod tests {
 		assert!(!f.exists());
 		let aside = std::fs::read_dir(d.join("sub")).unwrap().next().unwrap().unwrap().file_name();
 		assert!(aside.to_string_lossy().starts_with("a.json.corrupt-"));
+		std::fs::remove_dir_all(d).unwrap();
+	}
+
+	#[test]
+	fn a_file_written_in_pieces_is_whole_or_left_as_it_was() {
+		let d = dir("pieces");
+		let f = d.join("a.f32");
+		write_atomic_with(&f, |out| (0..3).try_for_each(|i| out.write_all(&[i]))).unwrap();
+		assert_eq!(std::fs::read(&f).unwrap(), [0, 1, 2]);
+		let failed = write_atomic_with(&f, |out| {
+			out.write_all(b"half")?;
+			Err(io::Error::other("stopped"))
+		});
+		assert_eq!(failed.unwrap_err().to_string(), "stopped");
+		assert_eq!(std::fs::read(&f).unwrap(), [0, 1, 2]);
+		assert_eq!(std::fs::read_dir(&d).unwrap().count(), 1);
 		std::fs::remove_dir_all(d).unwrap();
 	}
 

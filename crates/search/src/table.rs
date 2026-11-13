@@ -6,7 +6,7 @@ use std::io;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, OnceLock};
 
-use gs_base::fsx;
+use gs_base::{fsx, text};
 use gs_json::{Json, Obj, js_number, parse, quote, stringify};
 
 use crate::embed::{DIMS, MODEL_ID};
@@ -51,6 +51,20 @@ impl Table {
 		}
 		(rows, vectors)
 	}
+
+	/// `keep_rows` that moves the kept vectors down in this table's own buffer.
+	pub fn into_kept_rows(self, keep: impl Fn(&Json) -> bool) -> (Vec<Arc<Json>>, Vec<f32>) {
+		let Table { rows, mut vectors, .. } = self;
+		let mut kept = Vec::with_capacity(rows.len());
+		for (i, row) in rows.into_iter().enumerate() {
+			if keep(&row) {
+				vectors.copy_within(i * DIMS..(i + 1) * DIMS, kept.len() * DIMS);
+				kept.push(row);
+			}
+		}
+		vectors.truncate(kept.len() * DIMS);
+		(kept, vectors)
+	}
 }
 
 fn with_suffix(base: &Path, suffix: &str) -> PathBuf {
@@ -81,29 +95,26 @@ pub fn load(base: &Path) -> Table {
 	Table::new(rows, vectors, files)
 }
 
-/// Writes the vectors, then the rows (files only when there are any). The text is written row by
-/// row, as `JSON.stringify` of `{ format, model, rows, files? }` would, without copying the rows.
+/// Writes the vectors, then the rows (files only when there are any). Both stream to disk: the
+/// text is written row by row, as `JSON.stringify` of `{ format, model, rows, files? }` would. An
+/// index rebuild writes its table once per file, and whole copies of it lingered as freed memory.
 pub fn save(base: &Path, table: &Table) -> io::Result<()> {
-	let mut bytes = Vec::with_capacity(table.vectors.len() * 4);
-	for v in &table.vectors {
-		bytes.extend_from_slice(&v.to_le_bytes());
-	}
-	fsx::write_atomic(&with_suffix(base, ".f32"), &bytes, None)?;
-	drop(bytes);
-	let mut text = format!("{{\"format\":{},\"model\":{},\"rows\":[", js_number(FORMAT), quote(MODEL_ID));
-	for (i, row) in table.rows.iter().enumerate() {
-		if i > 0 {
-			text.push(',');
+	fsx::write_atomic_with(&with_suffix(base, ".f32"), |out| table.vectors.iter().try_for_each(|v| out.write_all(&v.to_le_bytes())))?;
+	fsx::write_atomic_with(&with_suffix(base, ".json"), |out| {
+		write!(out, "{{\"format\":{},\"model\":{},\"rows\":[", js_number(FORMAT), quote(MODEL_ID))?;
+		for (i, row) in table.rows.iter().enumerate() {
+			if i > 0 {
+				out.write_all(b",")?;
+			}
+			out.write_all(&text::utf8_bytes(&stringify(row)))?;
 		}
-		text.push_str(&stringify(row));
-	}
-	text.push(']');
-	if !table.files.is_empty() {
-		text.push_str(",\"files\":");
-		text.push_str(&stringify(&Json::Obj(table.files.clone())));
-	}
-	text.push('}');
-	fsx::write_text_atomic(&with_suffix(base, ".json"), &text)
+		out.write_all(b"]")?;
+		if !table.files.is_empty() {
+			out.write_all(b",\"files\":")?;
+			out.write_all(&text::utf8_bytes(&stringify(&Json::Obj(table.files.clone()))))?;
+		}
+		out.write_all(b"}")
+	})
 }
 
 #[cfg(test)]
@@ -123,6 +134,17 @@ mod tests {
 		assert!(load(&base).rows.is_empty());
 		assert!(load(&dir.join("missing")).rows.is_empty());
 		std::fs::remove_dir_all(dir).unwrap();
+	}
+
+	#[test]
+	fn rows_kept_in_place_match_rows_kept_by_copy() {
+		let rows: Vec<Arc<Json>> = (0..5).map(|i| Arc::new(parse(&format!(r#"{{"id":"r{i}","keep":{}}}"#, i % 2 == 0)).unwrap())).collect();
+		let vectors = (0..5).flat_map(|i| vec![i as f32; DIMS]).collect();
+		let table = Table::new(rows, vectors, Obj::new());
+		let keep = |r: &Json| r["keep"].truthy();
+		let copied = table.keep_rows(keep);
+		assert_eq!(copied.1.iter().step_by(DIMS).copied().collect::<Vec<_>>(), [0.0, 2.0, 4.0]);
+		assert_eq!(table.into_kept_rows(keep), copied);
 	}
 
 	#[test]

@@ -84,6 +84,18 @@ impl Search {
 		self.tables.lock().remove(base);
 	}
 
+	/// A writer's kept rows and vectors. The cached table is taken apart in place when no search
+	/// holds it: a rebuild writes its table once per file, and a freed copy of the vectors each
+	/// time added up to hundreds of MB that macOS took minutes to reclaim. Until `write_table`, a
+	/// read takes the table from disk.
+	pub(crate) fn take_rows(&self, base: &Path, keep: impl Fn(&Json) -> bool) -> (Vec<Arc<Json>>, Vec<f32>) {
+		let table = self.tables.lock().remove(base).unwrap_or_else(|| Arc::new(table::load(base)));
+		match Arc::try_unwrap(table) {
+			Ok(table) => table.into_kept_rows(keep),
+			Err(shared) => shared.keep_rows(keep),
+		}
+	}
+
 	pub(crate) fn write_table(&self, base: &Path, table: Table) -> Result<Arc<Table>, String> {
 		table::save(base, &table).map_err(|e| e.to_string())?;
 		let table = Arc::new(table);

@@ -84,7 +84,9 @@ impl Search {
 		let hashes: Vec<String> = texts.iter().map(|t| hash_of(t)).collect();
 		let vectors = self.with_vectors(&old, &hashes, &texts).await?;
 		let Some(_listed) = still_listed() else { return Ok(()) };
-		let (mut rows, mut all) = old.keep_rows(|r| r["fileId"] != Json::from(file_id));
+		let mut files = old.files.clone();
+		drop(old);
+		let (mut rows, mut all) = self.take_rows(&at, |r| r["fileId"] != Json::from(file_id));
 		for (n, (chunk, hash)) in chunked.chunks.into_iter().zip(hashes).enumerate() {
 			let mut row = Obj::new();
 			row.insert("id", format!("{file_id}:{}", n + 1));
@@ -97,7 +99,6 @@ impl Search {
 			rows.push(Arc::new(Json::Obj(row)));
 		}
 		all.extend(vectors);
-		let mut files = old.files.clone();
 		let mut entry = Obj::new();
 		entry.insert("fp", fp);
 		entry.insert("extent", chunked.extent);
@@ -114,9 +115,10 @@ impl Search {
 		if !old.files.get(file_id).is_some_and(Json::truthy) {
 			return Ok(());
 		}
-		let (rows, vectors) = old.keep_rows(|r| r["fileId"] != Json::from(file_id));
 		let mut files = old.files.clone();
+		drop(old);
 		files.remove(file_id);
+		let (rows, vectors) = self.take_rows(&at, |r| r["fileId"] != Json::from(file_id));
 		self.write_table(&at, Table::new(rows, vectors, files)).map(drop)
 	}
 
@@ -247,6 +249,17 @@ mod tests {
 		assert_eq!(stored(&s)["files"], json!({ "f_a": { "fp": "v2", "extent": "40 lines" } }));
 		let f32 = std::fs::read(s.passages_file(SPACE).with_extension("f32")).unwrap();
 		assert_eq!(f32[DIMS * 4..DIMS * 4 + 4], 1f32.to_le_bytes());
+		std::fs::remove_dir_all(dir).unwrap();
+	}
+
+	#[tokio::test]
+	async fn a_table_a_search_still_holds_is_left_as_it_was() {
+		let (s, dir) = search("held");
+		seed(&s);
+		let held = s.read_table(&s.passages_file(SPACE));
+		s.drop_space_file(SPACE, "f_a").await.unwrap();
+		assert_eq!((held.rows.len(), held.vectors.len()), (3, 3 * DIMS));
+		assert!(s.read_table(&s.passages_file(SPACE)).rows.is_empty());
 		std::fs::remove_dir_all(dir).unwrap();
 	}
 
