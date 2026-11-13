@@ -1,6 +1,6 @@
 //! The parts a Study topic opens with, read from the record (src/shared/core/topic-parts.ts; both
 //! replay tests/golden/topic_parts.json). A reply is one assistant message; its topic is the
-//! nodeId its calls name (refused calls aside), else the topic of the latest earlier reply. A
+//! nodeId its calls name (refused calls aside), else the latest earlier reply's or shown opener's. A
 //! topic's page is the first quoted source mark in the shown opener's lead, else in the reply that
 //! opens the topic; later replies never give one. `reply_parts_problems` (Rust only) is the check
 //! Study's lesson-parts hook runs on a reply before its plot and guess are stored; `visits` (Rust
@@ -77,6 +77,7 @@ fn walk(messages: &[Json], reply: Option<&Json>) -> (Vec<Json>, Vec<Visit>) {
 			let page = first_quoted(opener["lead"].as_str().unwrap_or_default(), Json::Null, lead_of);
 			visits.push(Visit { at: index, node_id: node_id.to_owned(), page: !page.is_null(), plot: false, keep: false });
 			out.push(json!({ "nodeId": node_id, "page": page }));
+			current = Some(node_id.to_owned());
 			continue;
 		}
 		if m["role"].as_str() != Some("assistant") {

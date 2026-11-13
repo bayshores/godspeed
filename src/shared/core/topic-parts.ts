@@ -1,7 +1,7 @@
 /**
  * The parts a Study topic opens with, read from the record. A reply is one
  * assistant message; its topic is the nodeId its calls name (refused calls
- * aside), else the topic of the latest earlier reply. A topic's page is the
+ * aside), else the latest earlier reply's or shown opener's. A topic's page is the
  * first quoted source mark in the shown opener's lead, else in the reply
  * that opens the topic; later replies never give one. The server keeps a
  * Rust copy (crates/core/src/study/topic_parts.rs); both replay
@@ -41,6 +41,7 @@ export function topicParts(messages: readonly LhMessage[]): TopicParts[] {
 		const openerNode = opener?.quiz.nodeId;
 		if (opener && typeof openerNode === "string" && !out.some((t) => t.nodeId === openerNode)) {
 			out.push({ nodeId: openerNode, page: firstQuoted(opener.lead ?? "", { messageId: null, leadOf: opener.topicDoneCallId }) });
+			current = openerNode;
 			continue;
 		}
 		if (m.role !== "assistant") continue;

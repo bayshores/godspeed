@@ -59,14 +59,16 @@ const sameCite = (a: Cite, b: Cite) =>
 
 /** Teacher text ready to render: each mark is a numbered tag, and `cites`
  *  lists the sources in the order they first appear (tag n is cites[n-1]).
- *  Marks of one place are one source, which keeps the first mark's quote.
- *  A passage id that was never checked shows nothing. */
+ *  Marks of one place are one source, which keeps the first quote any of
+ *  them has. A passage id that was never checked shows nothing. */
 export function citeView(text: string): { text: string; cites: Cite[] } {
 	const cites: Cite[] = [];
 	const shown = replaceCiteMarks(text, (mark) => {
 		if (mark.kind === "passage") return "";
 		let at = cites.findIndex((c) => sameCite(c, mark));
 		if (at < 0) at = cites.push(mark) - 1;
+		const kept = cites[at]!;
+		if (kept.kind === "file" && !kept.quote && mark.kind === "file" && mark.quote) cites[at] = { ...kept, quote: mark.quote };
 		return `<${CITE_TAG} n="${at + 1}"></${CITE_TAG}>`;
 	});
 	return { text: shown, cites };

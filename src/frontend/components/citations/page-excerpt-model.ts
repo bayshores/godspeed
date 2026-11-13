@@ -6,7 +6,7 @@
 import { fromMarkdown } from "mdast-util-from-markdown";
 import { mathFromMarkdown } from "mdast-util-math";
 import { math } from "micromark-extension-math";
-import { CITE_TAG, citeView, fileCiteMark, openerLeadId, textPartMessageId, type Cite, type LhViewPart, type TopicParts } from "@/shared/core";
+import { CITE_TAG, citeView, fileCiteMark, openerLeadId, replaceCiteMarks, textPartMessageId, type Cite, type LhViewPart, type TopicParts } from "@/shared/core";
 
 /** A source in a space file. */
 export type FileCite = Extract<Cite, { kind: "file" }>;
@@ -61,20 +61,34 @@ export function excerptParts(parts: readonly LhViewPart[], marks: ReadonlyMap<st
 	return out;
 }
 
-/** The page's source in a text's numbered sources: its number and the
- *  source with the quote, which is what the page and its dialog mark. */
-export function pageSource(cites: readonly Cite[], mark: string): { n: number; cite: FileCite } | null {
+/** The page's source in a text's numbered sources (`cites` of
+ *  `citeView(text)`): its number, which of that number's places in the text
+ *  the stored mark is (from 0), and the source with the quote, which is what
+ *  the page and its dialog mark. */
+export function pageSource(text: string, cites: readonly Cite[], mark: string): { n: number; nth: number; cite: FileCite } | null {
 	const page = citeView(mark).cites[0];
 	if (page?.kind !== "file") return null;
-	const at = cites.findIndex((c) => c.kind === "file" && c.fileId === page.fileId && c.range === page.range);
-	return at < 0 ? null : { n: at + 1, cite: page };
+	const samePlace = (c: Cite) => c.kind === "file" && c.fileId === page.fileId && c.range === page.range;
+	const at = cites.findIndex(samePlace);
+	if (at < 0) return null;
+	let count = 0;
+	let nth = -1;
+	replaceCiteMarks(text, (m) => {
+		if (m.kind !== "file" || !samePlace(m)) return "";
+		if (nth < 0 && m.quote === page.quote) nth = count;
+		count++;
+		return "";
+	});
+	return { n: at + 1, nth: Math.max(nth, 0), cite: page };
 }
 
-/** Rendered teacher text split after the block holding source `n`'s first
- *  number, so the page draws right under that paragraph (or list, or
- *  quote). The whole text and "" when the number is not there. */
-export function splitAfterSource(text: string, n: number): [string, string] {
-	const at = text.indexOf(`<${CITE_TAG} n="${n}">`);
+/** Rendered teacher text split after the block holding source `n`'s
+ *  `nth` number (from 0), so the page draws right under that paragraph (or
+ *  list, or quote). The whole text and "" when the number is not there. */
+export function splitAfterSource(text: string, n: number, nth: number): [string, string] {
+	const tag = `<${CITE_TAG} n="${n}">`;
+	let at = text.indexOf(tag);
+	for (let i = 0; i < nth && at >= 0; i++) at = text.indexOf(tag, at + 1);
 	if (at < 0) return [text, ""];
 	const tree = fromMarkdown(text, { extensions: [math({ singleDollarTextMath: true })], mdastExtensions: [mathFromMarkdown()] });
 	const end = tree.children.find((block) => (block.position?.start.offset ?? 0) <= at && at < (block.position?.end.offset ?? 0))?.position?.end.offset;
@@ -162,10 +176,34 @@ export function markRuns<T extends { content: string }>(runs: readonly T[], mark
 	return out;
 }
 
-/** A .docx or .pptx quote: the lines holding the marked words, cut in three. */
+/** About how many characters a quote block shows with the marked words. */
+const QUOTE_ROOM = 200;
+
+/** A .docx, .pptx or transcript quote, cut in three: the sentence or
+ *  sentences holding the marked words. When that is still over about 200
+ *  characters (a transcript has no sentence ends), it is cut nearer the
+ *  words at word edges, with "…" at each cut end. */
 export function passageQuote(text: string, start: number, end: number): { before: string; marked: string; after: string } {
 	const from = text.slice(0, start).lastIndexOf("\n") + 1;
 	const stop = text.indexOf("\n", end);
-	const to = stop < 0 ? text.length : stop;
-	return { before: text.slice(from, start), marked: text.slice(start, end), after: text.slice(end, to) };
+	let before = text.slice(from, start);
+	let after = text.slice(end, stop < 0 ? text.length : stop);
+	const lastEnd = [...before.matchAll(/[.!?]["')\]]*\s+/g)].at(-1);
+	if (lastEnd) before = before.slice(lastEnd.index + lastEnd[0].length);
+	const nextEnd = /[.!?]["')\]]*(?=\s|$)/.exec(after);
+	if (nextEnd) after = after.slice(0, nextEnd.index + nextEnd[0].length);
+	const room = Math.max(0, QUOTE_ROOM - (end - start));
+	if (before.length + after.length > room) {
+		const keepBefore = Math.min(before.length, Math.max(Math.floor(room / 2), room - after.length));
+		const keepAfter = Math.min(after.length, room - keepBefore);
+		if (keepBefore < before.length) {
+			const kept = before.slice(before.length - keepBefore);
+			before = `…${/\s/.test(before[before.length - keepBefore - 1]!) ? kept : kept.replace(/^\S*\s+/, "")}`;
+		}
+		if (keepAfter < after.length) {
+			const kept = after.slice(0, keepAfter);
+			after = `${/\s/.test(after[keepAfter]!) ? kept : kept.replace(/\s+\S*$/, "")}…`;
+		}
+	}
+	return { before, marked: text.slice(start, end), after };
 }

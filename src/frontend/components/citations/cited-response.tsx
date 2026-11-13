@@ -19,9 +19,10 @@ export function CitedResponse({
 	className,
 	page,
 }: { text: string; page?: string } & Pick<ComponentProps<typeof MessageResponse>, "isAnimating" | "className">) {
-	const view = useMemo(() => citeView(isAnimating ? text.replace(HALF_MARK, "") : text), [text, isAnimating]);
-	const source = useMemo(() => (page ? pageSource(view.cites, page) : null), [page, view.cites]);
-	const [head, tail] = useMemo(() => (source ? splitAfterSource(view.text, source.n) : [view.text, ""]), [source, view.text]);
+	const shown = isAnimating ? text.replace(HALF_MARK, "") : text;
+	const view = useMemo(() => citeView(shown), [shown]);
+	const source = useMemo(() => (page ? pageSource(shown, view.cites, page) : null), [page, shown, view.cites]);
+	const [head, tail] = useMemo(() => (source ? splitAfterSource(view.text, source.n, source.nth) : [view.text, ""]), [source, view.text]);
 	const [opened, setOpened] = useState<FileCite | null>(null);
 	const open = useCallback((cite: Cite) => {
 		if (cite.kind === "file") setOpened(cite);
