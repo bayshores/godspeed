@@ -174,19 +174,22 @@ fn changelog_matches_node() {
 		json!({ "version": "0.4.0", "date": "d", "changes": [] }),
 		json!({ "version": "bad", "date": "d", "changes": [] }),
 	];
+	// The recording stops at its newest entry; releases after it must not change the answers.
+	let newest = all["first"]["version"].as_str().unwrap();
+	let recorded: Vec<Json> = changelog().iter().filter(|e| compare_versions(e["version"].as_str().unwrap(), newest) <= 0.0).cloned().collect();
 	let versions = |entries: Vec<Json>| Json::from(entries.iter().map(|e| e["version"].clone()).collect::<Vec<_>>());
 	for row in all["since"].as_arr().unwrap() {
 		let (since, current) = (row["since"].as_str().unwrap(), row["current"].as_str().unwrap());
-		same(&format!("since {since} {current}"), &versions(entries_since(since, current, changelog())), &row["output"]);
+		same(&format!("since {since} {current}"), &versions(entries_since(since, current, &recorded)), &row["output"]);
 		same(&format!("small since {since} {current}"), &versions(entries_since(since, current, &small)), &row["small"]);
 	}
 	for row in all["entry"].as_arr().unwrap() {
 		let version = row["version"].as_str().unwrap();
-		let date = entry_for(version, changelog()).map(|e| e["date"].clone());
+		let date = entry_for(version, &recorded).map(|e| e["date"].clone());
 		same(version, &Json::from(date), &row["output"]);
 		same(version, &Json::from(entry_for(version, &small)), &row["small"]);
 	}
-	assert_eq!(changelog().len() as i64, all["length"].as_i64().unwrap());
-	same("first", &changelog()[0], &all["first"]);
-	same("last", &changelog()[changelog().len() - 1], &all["last"]);
+	assert_eq!(recorded.len() as i64, all["length"].as_i64().unwrap());
+	same("first", &recorded[0], &all["first"]);
+	same("last", &recorded[recorded.len() - 1], &all["last"]);
 }
