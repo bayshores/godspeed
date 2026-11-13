@@ -1,6 +1,6 @@
 [
 	{
-		"version": "0.6.0",
+		"version": "0.6.1",
 		"date": "2026-11-12",
 		"changes": [
 			"godspeed is a new app underneath. It looks and works the same, and the download is about a quarter of the size.",
