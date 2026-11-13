@@ -61,6 +61,8 @@ mod tests {
 		assert_eq!(continue_study_for("d1", &[stopped]), Some(json!({ "chatId": "a", "done": 1, "total": 3, "stop": stop })));
 		let mid = json!({ "chatId": "a", "deadlineId": "d1", "createdAt": "1", "done": 2, "total": 3, "inTopic": "Cross-validation" });
 		assert_eq!(continue_study_for("d1", &[mid]), Some(json!({ "chatId": "a", "done": 2, "total": 3, "inTopic": "Cross-validation" })));
+		let fresh = json!({ "chatId": "a", "deadlineId": "d1", "createdAt": "1", "done": 0, "total": 3, "inTopic": "Regularization" });
+		assert_eq!(continue_study_for("d1", &[fresh]), Some(json!({ "chatId": "a", "done": 0, "total": 3, "inTopic": "Regularization" })));
 		let ended = json!({ "chatId": "a", "deadlineId": "d1", "createdAt": "1", "done": 2, "total": 3, "endedAt": "2026-11-18T22:40:00.000Z" });
 		assert_eq!(continue_study_for("d1", &[ended]), None);
 	}
