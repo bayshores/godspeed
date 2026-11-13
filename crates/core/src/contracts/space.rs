@@ -126,7 +126,7 @@ const CODE_EXTENSIONS: [&str; 24] = [
 	".c", ".h", ".cpp", ".cc", ".hpp", ".py", ".java", ".js", ".jsx", ".ts", ".tsx", ".go", ".rs", ".rb", ".swift", ".kt", ".cs", ".sql", ".sh", ".r", ".scala", ".hs", ".lua", ".php",
 ];
 const OFFICE_EXTENSIONS: [&str; 2] = [".docx", ".pptx"];
-pub const DOCUMENT_EXTENSIONS: [&str; 3] = [".pdf", ".docx", ".pptx"];
+pub const DOCUMENT_EXTENSIONS: [&str; 4] = [".pdf", ".docx", ".pptx", ".epub"];
 const TRANSCRIPT_EXTENSIONS: [&str; 2] = [".vtt", ".srt"];
 const RECORDING_EXTENSIONS: [&str; 5] = [".mp3", ".m4a", ".wav", ".mp4", ".mov"];
 
@@ -211,7 +211,7 @@ mod tests {
 		assert_eq!(extension_of("x.tar-gz"), "");
 		assert_eq!(safe_name("dir\\sub/..//"), "file");
 		assert_eq!(safe_name(" a\u{1}b.pdf "), "ab.pdf");
-		assert!(is_supported_space_file("lec.pptx") && is_recording_or_captions("a.srt") && !is_supported_space_file("a.zip"));
+		assert!(is_supported_space_file("lec.pptx") && is_supported_space_file("Book.EPUB") && is_recording_or_captions("a.srt") && !is_supported_space_file("a.zip"));
 		assert_eq!(clean_signature(&json!({ "kind": "math", "value": "  e^{i\\pi}\n + 1 " })), Some(json!({ "kind": "math", "value": "e^{i\\pi} + 1" })));
 		assert_eq!(clean_signature(&json!({ "kind": "tex", "value": "x" })), None);
 		let a = json!({ "date": "2026-11-09", "name": "B" });

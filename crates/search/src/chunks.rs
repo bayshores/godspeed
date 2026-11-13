@@ -10,8 +10,8 @@ use gs_core::contracts::space::{extension_of, is_transcript_file};
 use gs_json::js_number as finite_number;
 use gs_json::lone::{from_utf16, to_utf16};
 
-/// One piece of a space file. `from`/`to` locate it: pages (PDFs), slides (PowerPoint), seconds
-/// (captions) or lines (text).
+/// One piece of a space file. `from`/`to` locate it: pages (PDFs), slides (PowerPoint), chapters
+/// (EPUB), seconds (captions) or lines (text).
 #[derive(Clone, Debug, PartialEq)]
 pub struct PassageChunk {
 	pub range: String,
@@ -35,12 +35,13 @@ const TEXT_WINDOW_CHARS: usize = 1200;
 const CAPTION_WINDOW_MIN_S: f64 = 60.0;
 const CAPTION_WINDOW_MAX_S: f64 = 90.0;
 
-/// PDFs (text with "--- Page N ---" heads) by page, PowerPoint ("--- Slide N ---") by slide,
-/// .srt/.vtt (the raw caption file) by time, everything else by paragraph windows.
+/// PDFs (text with "--- Page N ---" heads) by page, PowerPoint ("--- Slide N ---") by slide, EPUB
+/// ("--- Chapter N ---") by chapter, .srt/.vtt (the raw caption file) by time, everything else by paragraph windows.
 pub fn chunk_file(name: &str, text: &str) -> ChunkedFile {
 	match extension_of(name).as_str() {
 		".pdf" => chunk_headed(text, "Page", "p.", "page"),
 		".pptx" => chunk_headed(text, "Slide", "slide", "slide"),
+		".epub" => chunk_headed(text, "Chapter", "chapter", "chapter"),
 		_ if is_transcript_file(name) => chunk_captions(text),
 		_ => chunk_text(text),
 	}
@@ -338,6 +339,9 @@ mod tests {
 		assert_eq!(f.extent, "3 pages");
 		assert_eq!(chunk_file("deck.pptx", "--- Slide 1 ---\nhi").extent, "1 slide");
 		assert_eq!(chunk_file("deck.pptx", "no heads").extent, "0 slides");
+		let book = chunk_file("book.epub", "--- Chapter 1 ---\nSets\nA set is a collection.\n\n--- Chapter 2 ---\nLogic");
+		assert_eq!((book.chunks[1].range.as_str(), book.chunks[1].text.as_str(), book.extent.as_str()), ("chapter 2", "Logic", "2 chapters"));
+		assert_eq!(range_point("chapter 2"), Some(2.0));
 	}
 
 	#[test]

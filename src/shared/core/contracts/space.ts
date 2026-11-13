@@ -307,7 +307,7 @@ export function isSpaceId(id: unknown): id is string {
 }
 
 /** File types the pipeline can turn into text. Plain text and code are
- *  read as they are; documents (PDF, Word, PowerPoint) have their text
+ *  read as they are; documents (PDF, Word, PowerPoint, EPUB) have their text
  *  pulled out and saved. A file with no extension is read as plain text
  *  when its bytes are text (the server checks). */
 const TEXT_EXTENSIONS = [".md", ".markdown", ".txt"] as const;
@@ -316,7 +316,7 @@ const CODE_EXTENSIONS = [
 	".rb", ".swift", ".kt", ".cs", ".sql", ".sh", ".r", ".scala", ".hs", ".lua", ".php",
 ] as const;
 const OFFICE_EXTENSIONS = [".docx", ".pptx"] as const;
-const DOCUMENT_EXTENSIONS = [".pdf", ...OFFICE_EXTENSIONS] as const;
+const DOCUMENT_EXTENSIONS = [".pdf", ...OFFICE_EXTENSIONS, ".epub"] as const;
 const TRANSCRIPT_EXTENSIONS = [".vtt", ".srt"] as const;
 const RECORDING_EXTENSIONS = [".mp3", ".m4a", ".wav", ".mp4", ".mov"] as const;
 
