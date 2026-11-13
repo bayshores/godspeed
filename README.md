@@ -14,7 +14,7 @@
 </p>
 
 <p align="center">
-  <a href="https://m8ven.ai/mcp/bayshores-godspeed-1epilf?s=readme"><img src="https://m8ven.ai/badge/mcp/bayshores-godspeed-1epilf?v=728b4720e18253335813d7676aae6cd6" alt="M8ven Score"></a>
+  <a href="https://m8ven.ai/mcp/bayshores-godspeed-1epilf?s=readme"><img src="https://m8ven.ai/badge/mcp/bayshores-godspeed-1epilf" alt="M8ven Score"></a>
 </p>
 
 godspeed is a study app for students and self-learners. Claude Code, Codex or any MCP app becomes your tutor: it checks what you already know, plans a path to your goal or your next deadline, teaches one step at a time, then quizzes you. You sort what you study into spaces (a course, a certification, a language), and every space gets its own lessons, files (PDFs, notes, recordings), knowledge graph, deadlines and cheat sheets. It runs on Mac, Windows and Linux, and needs no API keys.
