@@ -55,6 +55,12 @@ describe("PlotPart", () => {
 		assert.match(html, /This plot could not be drawn\./);
 	});
 
+	it("keeps whatever its math draws inside its box", () => {
+		for (const html of [render({ state: "output-available", output: LEASH_RESULT, guessOpen: true }), render({ state: "input-streaming" })]) {
+			assert.match(html, /<figure [^>]*class="[^"]*\boverflow-hidden\b/);
+		}
+	});
+
 	it("a call that never got a result draws nothing", () => {
 		assert.equal(render({ state: "input-available" }), "");
 	});

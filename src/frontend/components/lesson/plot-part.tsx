@@ -36,9 +36,11 @@ function Label({ text }: { text: string }) {
 	);
 }
 
+/** KaTeX caps only positive sizes, so a negative kern or raise in a label
+ *  could reach past the box; the box cuts it off. */
 function PlotBox({ title, state, children }: { title: string; state: string; children: React.ReactNode }) {
 	return (
-		<figure data-testid="plot-part" data-state={state} className="m-0 flex w-full flex-col rounded-[2px] border border-border px-5 pt-4 pb-3.5">
+		<figure data-testid="plot-part" data-state={state} className="m-0 flex w-full flex-col overflow-hidden rounded-[2px] border border-border px-5 pt-4 pb-3.5">
 			<figcaption className="font-ui text-[16px] leading-[22px] text-ink">
 				<Label text={title} />
 			</figcaption>
