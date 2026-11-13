@@ -2,7 +2,7 @@ import { memo, useState } from "react";
 import { spaceColorVar } from "@/frontend/components/space-color";
 import { useSpaces } from "@/frontend/components/space-context";
 import { cn } from "@/frontend/lib/utils";
-import type { HomeworkProblem, LessonKind, PlanStepBar } from "@/shared/core";
+import type { HomeworkProblem, LessonKind, LessonStop, PlanStepBar } from "@/shared/core";
 import { homeworkRow, practiceRow, stepsRow, type RowBlock, type RowSummary } from "./plan-row-model";
 import type { PracticeProgress } from "./practice-progress";
 import { ProblemsDialog } from "./problems-dialog";
@@ -18,6 +18,7 @@ export const PlanRow = memo(function PlanRow({
 	kind,
 	spaceId,
 	stepBar,
+	stop,
 	homework,
 	practice,
 	onJump,
@@ -26,6 +27,8 @@ export const PlanRow = memo(function PlanRow({
 	kind: LessonKind;
 	spaceId: string | undefined;
 	stepBar: PlanStepBar | null;
+	/** The lesson's stop: the row stays on a topic that just ended. */
+	stop: LessonStop | null;
 	homework: { name: string; problems: readonly HomeworkProblem[]; open: string | null } | null;
 	practice: PracticeProgress | null;
 	onJump: (toolCallId: string) => void;
@@ -53,7 +56,7 @@ export const PlanRow = memo(function PlanRow({
 	} else if (kind === "practice") {
 		summary = practice && practiceRow(practice);
 	} else {
-		summary = stepBar && stepsRow(stepBar);
+		summary = stepBar && stepsRow(stepBar, stop);
 		action = { label: "See the plan", testid: "plan-step-open", onClick: onOpenPlan };
 	}
 	if (!summary) return null;

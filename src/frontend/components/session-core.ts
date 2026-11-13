@@ -35,6 +35,7 @@ import {
 	type ChatAttachment,
 	type QuestionAnswerData,
 } from "../../shared/core";
+import { keepGoingOwesNext } from "./lesson/stop-card-model";
 
 type SessionStatus = "ready" | "submitted" | "streaming" | "error";
 
@@ -56,6 +57,11 @@ interface SessionModelDeps {
 let localSeq = 0;
 function localId(): string {
 	return `c_${Date.now().toString(36)}_${(localSeq++).toString(36)}`;
+}
+
+/** An optimistic UI marker; the server writes its own copy. */
+function localMarker(customType: "keep-going" | "opener-answer", details: unknown): LhMessage {
+	return { id: localId(), role: "custom", customType, content: "", display: true, details, timestamp: Date.now() };
 }
 
 function delay(ms: number, signal?: AbortSignal): Promise<void> {
@@ -708,6 +714,8 @@ export class SessionModel {
 			const result = { ...newAnswerResult(input.toolCallId, tool, input.answer, files), id: localId() };
 			optimistic.push(result);
 			this.unconfirmedAnswers.set(result.id, input.toolCallId);
+		} else if (input.type === "opener-answer") {
+			optimistic.push(localMarker("opener-answer", { topicDoneCallId: input.topicDoneCallId, answer: input.answer }));
 		}
 		if (optimistic.length > 0) this.mutate(() => {
 			this.tail = [...this.tail, ...optimistic];
@@ -843,6 +851,28 @@ export class SessionModel {
 		}
 	}
 
+	/** Keep going at a stop: the UI-only marker lands optimistically (the
+	 *  next topic's stored opener shows at once), then the route stores it,
+	 *  even during a turn; it never starts one. With no opener stored and
+	 *  no turn running, the go-ahead follows (continueIfOwed). */
+	async keepGoing(stopOf: string): Promise<void> {
+		this.mutate(() => {
+			this.tail = [...this.tail, localMarker("keep-going", { stopOf, at: new Date().toISOString() })];
+		});
+		try {
+			const res = await this.fetch(`/api/chats/${this.chatId}/keep-going`, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ input: { stopOf } }),
+			});
+			if (!res.ok) throw new Error(errorBodyMessage(await res.text()) || `Keep going failed (${res.status}).`);
+			const { opener } = (await res.json()) as { opener?: boolean };
+			if (!opener) await this.continueIfOwed([...this.base, ...this.tail]);
+		} catch (err) {
+			this.setError((err as Error).message);
+		}
+	}
+
 	/** The problem discard (practice sessions): the ask-style dismissal.
 	 *  The UI-only marker lands optimistically, then the SILENT route
 	 *  persists it (no turn, no wake; parked mid-turn). The composer
@@ -915,11 +945,12 @@ export class SessionModel {
 	}
 
 	/** Automatic mount/sync continuation is never permission to retry a
-	 * failed turn. Read current model truth, not a stale React closure. */
+	 * failed turn. Read current model truth, not a stale React closure.
+	 * A Keep going whose stop has no stored opener is owed the go-ahead. */
 	async continueIfOwed(record: readonly LhMessage[]): Promise<void> {
-		if (this.statusValue === "ready" && !this.automaticContinuationBlocked && this.getState().error === null && needsContinuation(record)) {
-			await this.send({ type: "continue" });
-		}
+		if (this.statusValue !== "ready" || this.automaticContinuationBlocked || this.getState().error !== null) return;
+		if (needsContinuation(record)) await this.send({ type: "continue" });
+		else if (keepGoingOwesNext(record)) await this.send({ type: "next" });
 	}
 
 	clearError(): void {

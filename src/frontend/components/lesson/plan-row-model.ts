@@ -1,4 +1,4 @@
-import { stepPosition, type HomeworkProblem, type PlanStep, type PlanStepBar, type StepAnswer } from "@/shared/core";
+import { stepPosition, type HomeworkProblem, type LessonStop, type PlanStep, type PlanStepBar, type StepAnswer } from "@/shared/core";
 import type { PracticeProgress } from "./practice-progress";
 
 /** How a block or a list row reads: done in ink, the one in progress, the rest light. */
@@ -53,14 +53,17 @@ export function problemTone(problem: HomeworkProblem, open: string | null): Tone
 	return problem.done ? "done" : problem.number === open ? "current" : "later";
 }
 
-/** A plan lesson's row: "Step 2 of 4", one block per step. Null with no steps. */
-export function stepsRow(bar: PlanStepBar): RowSummary | null {
+/** A plan lesson's row: "Step 2 of 4", one block per step. Null with no
+ *  steps. At a topic's stop he has not kept going from, the row stays on
+ *  that topic with its block in ink, as finished. */
+export function stepsRow(bar: PlanStepBar, stop: LessonStop | null = null): RowSummary | null {
 	if (bar.steps.length === 0) return null;
+	const finished = stop && stop.kind !== "problem" && !stop.keptGoing ? stop.nodeId : null;
 	return {
 		count: `Step ${stepPosition(bar.steps)} of ${bar.steps.length}`,
 		blocks: bar.steps.map((step) => ({
 			key: step.id,
-			tone: step.status === "visited" ? "done" : step.status === "current" ? "current" : "later",
+			tone: step.status === "visited" || (step.status === "current" && step.id === finished) ? "done" : step.status === "current" ? "current" : "later",
 			name: step.title,
 			state: step.status,
 			jump: jumpTarget(step),

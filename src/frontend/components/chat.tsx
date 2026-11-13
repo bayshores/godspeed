@@ -9,7 +9,7 @@ import { JobsContext } from "@/frontend/components/jobs-context";
 import { ChatActionsContext } from "@/frontend/components/chat-actions-context";
 import { StatsBar } from "@/frontend/components/stats-bar";
 import { useSummarizePoint } from "@/frontend/components/use-summarize-point";
-import { agentWaiting, useAgentStatus } from "@/frontend/components/agent-status";
+import { agentWaiting, lessonAgentWaiting, useAgentStatus } from "@/frontend/components/agent-status";
 import { latestTree } from "@/frontend/components/plan-latest";
 import { MermaidOverlay, SessionMermaidContext } from "@/frontend/components/session-overlay";
 import { AbortTurnDialog, type AbortMode } from "@/frontend/components/abort-turn-dialog";
@@ -42,6 +42,7 @@ import { LessonStepsContext, answerAnchorSelector } from "@/frontend/components/
 import { practiceProgress } from "@/frontend/components/lesson/practice-progress";
 import { useLessonServer } from "@/frontend/components/lesson/use-lesson-server";
 import { useTitleRename } from "@/frontend/components/lesson/use-title-rename";
+import { useLessonStop } from "@/frontend/components/lesson/use-lesson-stop";
 import { LessonTopBar } from "@/frontend/components/lesson/lesson-top-bar";
 import { PlanRow } from "@/frontend/components/lesson/plan-row";
 import { homeworkProblemLine } from "@/frontend/components/lesson/plan-row-model";
@@ -101,7 +102,7 @@ export function Chat({
 	// THE SESSION HOOK: the record is native history; the view is derived
 	// client-side (core/view.ts projectView).
 	const session = useChatSession({ chatId, initialMessages, initialError, initiallyInFlight });
-	const { messages, nativeMessages, contextTokens, send, continueIfOwed, steer, steerQueue, submitAnswer, dismissQuestion, dismissProblem, status, error, stop, clearError, resumeStream } = session;
+	const { messages, nativeMessages, contextTokens, send, continueIfOwed, steer, steerQueue, submitAnswer, dismissQuestion, dismissProblem, keepGoing, status, error, stop, clearError, resumeStream } = session;
 	const summarizeAt = useSummarizePoint();
 	const { turnInFlight, localStreamRef, jobs, turns, pricing } = useLessonServer({
 		chatId,
@@ -271,6 +272,11 @@ export function Chat({
 			// A pending question's dismiss is silent (no turn); mid-turn it also
 			// kills the running turn, and the route parks the dismissal.
 			const p = pendingRef.current;
+			// The opener has no call of its own: its skip is an answer of none.
+			if (p?.appPosed) {
+				void send({ type: "opener-answer", topicDoneCallId: p.appPosed.ref, answer: null });
+				return;
+			}
 			if (p) {
 				const question = (p.input as { question?: string } | null)?.question ?? "";
 				const reading = readingThinkingRef.current.trim() || undefined;
@@ -287,7 +293,7 @@ export function Chat({
 				if (busyRef.current) abortInFlightTurn();
 			}
 		},
-		[abortInFlightTurn, dismissQuestion, dismissProblem],
+		[abortInFlightTurn, dismissQuestion, dismissProblem, send],
 	);
 
 	// ── the writing box ──
@@ -361,7 +367,12 @@ export function Chat({
 		const drafts = attachments.files;
 		editText("");
 		attachments.clear();
-		void send({ type: sideOpen ? "side" : "text", text: t, ...(files.length > 0 ? { attachments: files } : {}) }).then((sent) => {
+		// A question about the opener leaves it open, like a side question.
+		const opener = pending?.appPosed;
+		const input = opener
+			? ({ type: "text", text: t, about: { opener: opener.ref } } as const)
+			: ({ type: sideOpen ? "side" : "text", text: t } as const);
+		void send({ ...input, ...(files.length > 0 ? { attachments: files } : {}) }).then((sent) => {
 			if (sent) return;
 			editText(restoreUnsent(t, textRef.current));
 			attachments.restore(drafts);
@@ -379,11 +390,11 @@ export function Chat({
 		const files = answerTakesFiles(pending.tool) ? attachments.files : [];
 		editText("");
 		if (files.length > 0) attachments.clear();
-		void submitAnswer(
-			pending.toolCallId,
-			reading ? { ...output, readingThinking: reading } : output,
-			files.map((f) => f.attachment),
-		).then((sent) => {
+		const answer = reading ? { ...output, readingThinking: reading } : output;
+		const sending = pending.appPosed
+			? send({ type: "opener-answer", topicDoneCallId: pending.appPosed.ref, answer })
+			: submitAnswer(pending.toolCallId, answer, files.map((f) => f.attachment));
+		void sending.then((sent) => {
 			if (sent) return;
 			if (typed.trim()) editText(restoreUnsent(typed, textRef.current));
 			if (files.length > 0) attachments.restore(files);
@@ -420,6 +431,16 @@ export function Chat({
 	const practice = useMemo(() => (kind === "teach" ? null : practiceProgress(messages, activeProblem !== null)), [kind, messages, activeProblem]);
 	const practiceKey = practice ? JSON.stringify(practice) : "";
 	const stablePractice = useMemo(() => practice, [practiceKey]);
+	const lessonStop = useLessonStop({
+		nativeMessages,
+		kind,
+		tree: planTree,
+		problems: problems?.problems ?? null,
+		deadlineId,
+		keepGoing,
+		scopeRef: sessionFindScopeRef,
+		scrollContextRef,
+	});
 
 	// Scroll the lesson to a card in it.
 	const scrollToCard = useCallback((selector: string) => {
@@ -503,7 +524,7 @@ export function Chat({
 							>
 								<Pane className="@container/reading flex min-h-0 min-w-0 flex-col [grid-area:reading]">
 									<div className="shrink-0 px-14 pt-[26px] pb-3 empty:hidden @max-[640px]/reading:px-7">
-										<PlanRow kind={kind} spaceId={spaceId} stepBar={stepBar} homework={planHomework} practice={stablePractice} onJump={jumpToAnswer} onOpenPlan={openPlan} />
+										<PlanRow kind={kind} spaceId={spaceId} stepBar={stepBar} stop={lessonStop.stop} homework={planHomework} practice={stablePractice} onJump={jumpToAnswer} onOpenPlan={openPlan} />
 									</div>
 									<ReadingPane
 										spaceId={spaceId}
@@ -538,6 +559,7 @@ export function Chat({
 									onWidth={setColumnWidth}
 									pending={pending}
 									requiresReveal={requiresReveal}
+									noAgent={lessonAgentWaiting(agentStatus)}
 									onReveal={revealCheck}
 									initialQuestionDraft={pendingQuestionId ? drafts.draft?.questions[pendingQuestionId]?.form : undefined}
 									onSaveQuestionDraft={(form) => {
@@ -547,6 +569,7 @@ export function Chat({
 									onSkipQuestion={() => setAbortAsk("question")}
 									problem={problem}
 									onDiscardProblem={() => setAbortAsk("problem")}
+									stop={lessonStop.card}
 									busy={busy}
 									waitingForAgent={waitingForAgent}
 									onStop={abortInFlightTurn}

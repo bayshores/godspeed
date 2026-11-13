@@ -10,10 +10,15 @@ export type BoxTurn =
 	/** Nothing to answer; `next` is the go-ahead in the pause between problems. */
 	| { kind: "none"; next?: string }
 	| { kind: "problem" }
+	/** The stop card: no way out beside "Your turn", since stopping the
+	 *  teacher's reading would lose the next topic's opener. */
+	| { kind: "stop" }
 	/** A check waits behind "Check your understanding". */
 	| { kind: "read-first" }
-	/** The answer is picked above the box (choices, or the code editor). */
-	| { kind: "choice"; picked: boolean }
+	/** The answer is picked above the box (choices, or the code editor).
+	 *  `appPosed`: the app asked it (the next topic's opener), so no turn
+	 *  of its own runs and its way out stays "Skip question". */
+	| { kind: "choice"; picked: boolean; appPosed?: true }
 	/** The box text is the answer. */
 	| { kind: "written"; takesFiles: boolean };
 
@@ -41,11 +46,12 @@ export interface BoxView {
 /** A waiting question as the box sees it: written in the box, or picked
  *  above it (`picked` says whether an answer is). A question that came
  *  through broken is never answered, so it counts as nothing picked. */
-export function questionTurn(tool: string, input: unknown, picked: boolean): BoxTurn {
+export function questionTurn(tool: string, input: unknown, picked: boolean, appPosed = false): BoxTurn {
 	const kind = toolQuestionKind(tool);
 	const ask = kind === "ask" ? parseAskInput(input) : undefined;
 	const written = kind === "explain" ? parseExplainInput(input) !== undefined : ask !== undefined && !ask.options?.length;
-	return written ? { kind: "written", takesFiles: answerTakesFiles(tool) } : { kind: "choice", picked };
+	if (written) return { kind: "written", takesFiles: answerTakesFiles(tool) };
+	return { kind: "choice", picked, ...(appPosed ? { appPosed: true as const } : {}) };
 }
 
 export function lessonBox(s: {
@@ -62,17 +68,18 @@ export function lessonBox(s: {
 	const canSend = s.hasText || s.hasFiles;
 	const empty = !canSend;
 
-	if (turn.kind === "none" || turn.kind === "problem") {
+	if (turn.kind === "none" || turn.kind === "problem" || turn.kind === "stop") {
 		const placeholder = turn.kind === "problem" ? `Message ${s.name}, or type your work` : `Message ${s.name}`;
 		if (s.busy) {
 			// Typed text steers the reply; a steer carries no files.
 			const canSteer = s.hasText && !s.hasFiles;
+			const canStop = turn.kind !== "stop";
 			return {
 				placeholder,
 				left: null,
 				right: { action: "send", label: s.waitingForAgent ? "Send" : "Send when ready", filled: false, disabled: !canSteer },
-				enter: canSteer ? "send" : empty ? "stop" : null,
-				exit: "stop",
+				enter: canSteer ? "send" : empty && canStop ? "stop" : null,
+				exit: canStop ? "stop" : null,
 				note: s.hasFiles ? "Send pictures after the teacher finishes" : null,
 			};
 		}
@@ -93,8 +100,9 @@ export function lessonBox(s: {
 
 	// A question waits: the box can always ask about it instead, once the teacher is free.
 	const ask: BoxButton = { action: "send", label: `Ask ${s.name}`, filled: false, disabled: s.busy || !canSend };
-	const exit = s.busy ? "stop" : "skip";
-	const idleEnter = s.busy && empty ? "stop" : null;
+	const stoppable = s.busy && !(turn.kind === "choice" && turn.appPosed);
+	const exit = stoppable ? "stop" : "skip";
+	const idleEnter = stoppable && empty ? "stop" : null;
 	if (turn.kind === "read-first") {
 		return {
 			placeholder: "Whatever comes to mind as you read.",

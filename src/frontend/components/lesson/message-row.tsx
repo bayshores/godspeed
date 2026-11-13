@@ -287,7 +287,7 @@ function AssistantPart({
 			const Renderer = artifactRenderers[part.type.slice("tool-".length)];
 			if (!Renderer) return null;
 			return (
-				<div className={cn("flex flex-col empty:hidden", arrive(slot))}>
+				<div data-tool-call={part.toolCallId} className={cn("flex flex-col empty:hidden", arrive(slot))}>
 					<Renderer part={part as ArtifactPartProps["part"]} />
 				</div>
 			);

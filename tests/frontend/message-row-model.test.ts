@@ -16,6 +16,11 @@ describe("drawnSeparators", () => {
 		assert.deepEqual([...drawnSeparators([step, text("a"), step, text("b")], shows)], [2]);
 	});
 
+	it("draws no line before the next topic's opener lead", () => {
+		const lead: LhViewPart = { type: "text", id: "opener_t1-lead", text: "Now split the data.", state: "done" };
+		assert.deepEqual([...drawnSeparators([step, text("a"), step, hidden, step, lead], shows)], []);
+	});
+
 	it("draws nothing for steps of hidden work", () => {
 		const parts = [step, text("a"), step, hidden, step, hidden, hidden, step, hidden];
 		assert.deepEqual([...drawnSeparators(parts, shows)], []);

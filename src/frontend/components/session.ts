@@ -134,6 +134,7 @@ export function useChatSession({ chatId, initialMessages, initialError, initiall
 		(toolCallId: string, answer: QuestionAnswerData) => void model.dismissQuestion(toolCallId, answer),
 		[model],
 	);
+	const keepGoing = useCallback((stopOf: string) => void model.keepGoing(stopOf), [model]);
 	const dismissProblem = useCallback(
 		(problemCallId: string) => void model.dismissProblem(problemCallId),
 		[model],
@@ -157,6 +158,7 @@ export function useChatSession({ chatId, initialMessages, initialError, initiall
 		submitAnswer,
 		dismissQuestion,
 		dismissProblem,
+		keepGoing,
 		setMessages,
 		adoptRecord,
 		stop,

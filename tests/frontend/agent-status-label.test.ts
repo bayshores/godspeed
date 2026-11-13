@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { agentStatusLabel } from "../../src/frontend/components/agent-status.tsx";
+import { agentStatusLabel, lessonAgentWaiting } from "../../src/frontend/components/agent-status.tsx";
 
 describe("agentStatusLabel: '<agent>, N jobs'", () => {
 	const teaching = { connected: true, teaching: true, pendingWork: 0 };
@@ -28,5 +28,20 @@ describe("agentStatusLabel: '<agent>, N jobs'", () => {
 		assert.equal(agentStatusLabel({ ...off, pendingWork: 1 }, 1), "Waiting for your agent, 1 job");
 		assert.equal(agentStatusLabel({ ...off, pendingWork: 2 }, 0), "Waiting for your agent");
 		assert.equal(agentStatusLabel({ ...teaching, name: "Codex", pendingWork: 2 }, 0), "Codex", "a teaching agent is taking it");
+	});
+});
+
+describe("lessonAgentWaiting: the lesson head says Waiting for your agent", () => {
+	const status = { connected: false, teaching: false, backupConnected: false, backupAnswering: false, pendingWork: 0, claimedLessons: [] };
+	it("with no agent connected, turn or no turn", () => {
+		assert.equal(lessonAgentWaiting(status), true);
+		assert.equal(lessonAgentWaiting({ ...status, pendingWork: 1 }), true);
+	});
+	it("with an agent connected but not teaching", () => {
+		assert.equal(lessonAgentWaiting({ ...status, connected: true, name: "Claude Code" }), true);
+	});
+	it("not with an agent teaching, nor before the first read", () => {
+		assert.equal(lessonAgentWaiting({ ...status, connected: true, teaching: true }), false);
+		assert.equal(lessonAgentWaiting(null), false);
 	});
 });

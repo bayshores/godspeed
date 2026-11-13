@@ -28,7 +28,9 @@ import { newUserMessage, newAnswerResult, newNextMessage, newProblemDismissedMar
 import { newCompactionMarker, newPlanBlockMessage, projectView } from "../../src/shared/core/index.ts";
 import { dismissedAnswer } from "../../src/shared/core/question-core.ts";
 import { oldThinkingMessage } from "../old-records.ts";
-import { buildAnswer, type QuestionData } from "../../src/shared/core/question-core.ts";
+import { buildAnswer, type QuestionAnswerData, type QuestionData } from "../../src/shared/core/question-core.ts";
+import { findPendingToolCall } from "../../src/shared/core/pending.ts";
+import { keepGoing, regularizationEnds, text } from "../stop-fixtures.ts";
 
 const realFetch = globalThis.fetch;
 afterEach(() => {
@@ -1799,5 +1801,51 @@ describe("steer (the settle race)", () => {
 		} });
 		assert.equal(await m.steer("wait, why?"), false, "the caller keeps the text");
 		assert.deepEqual(m.getState().steerQueue, []);
+	});
+});
+
+describe("Keep going and the opener", () => {
+	// A turn that ended after its conclude, with no topic_done.
+	const concluded = [...regularizationEnds().slice(0, 4), text("w", "Solid.", 48.2)];
+	const posts = (calls: Array<{ url: string; body?: string }>, url: string) => calls.filter((c) => c.url === url).map((c) => JSON.parse(c.body!).input);
+	function scripted(opener: boolean, record: LhMessage[]) {
+		const calls: Array<{ url: string; body?: string }> = [];
+		const fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+			const url = String(input);
+			calls.push({ url, body: typeof init?.body === "string" ? init.body : undefined });
+			if (url === "/api/chats/chat_x/keep-going") return Response.json({ ok: true, opener });
+			if (url === "/api/chat") return Response.json({ ok: true });
+			if (url === "/api/chats/chat_x") return Response.json({ messages: record });
+			if (url === "/api/chats/chat_x/stream") return sseResponse("[DONE]");
+			throw new Error(`unexpected fetch: ${url}`);
+		}) as typeof globalThis.fetch;
+		return { calls, fetch };
+	}
+
+	it("shows the stored opener at once and wakes no one", async () => {
+		const { calls, fetch } = scripted(true, regularizationEnds());
+		const m = model({ initialMessages: regularizationEnds(), fetch });
+		await m.keepGoing("c1");
+		assert.deepEqual(posts(calls, "/api/chats/chat_x/keep-going"), [{ stopOf: "c1" }]);
+		assert.equal(findPendingToolCall(m.getState().messages)?.appPosed?.ref, "t1", "the opener is the question in Your turn");
+		assert.deepEqual(posts(calls, "/api/chat"), [], "no agent call");
+	});
+
+	it("with no opener stored, sends the go-ahead", async () => {
+		const { calls, fetch } = scripted(false, concluded);
+		const m = model({ initialMessages: concluded, fetch });
+		await m.keepGoing("c1");
+		assert.deepEqual(posts(calls, "/api/chat"), [{ type: "next" }]);
+	});
+
+	it("an answer to the opener is an opener-answer input that settles it at once", async () => {
+		const kept = [...regularizationEnds(), keepGoing("c1", 50)];
+		const { calls, fetch } = scripted(true, kept);
+		const m = model({ initialMessages: kept, fetch });
+		const answer = { kind: "quiz", questionText: "q", dontKnow: false, answers: [{ index: 0, label: "It can move a lot", value: "It can move a lot" }], correct: true } as QuestionAnswerData;
+		const sending = m.send({ type: "opener-answer", topicDoneCallId: "t1", answer });
+		assert.equal(findPendingToolCall(m.getState().messages), null, "answered before the server replies");
+		await sending;
+		assert.deepEqual(posts(calls, "/api/chat"), [{ type: "opener-answer", topicDoneCallId: "t1", answer }]);
 	});
 });

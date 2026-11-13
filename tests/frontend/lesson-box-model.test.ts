@@ -133,3 +133,35 @@ describe("lessonBox, a question", () => {
 		assert.equal(box({ kind: "choice", picked: true }, { busy: true }).enter, "stop");
 	});
 });
+
+describe("lessonBox at a stop", () => {
+	it("has no way out beside Your turn, idle or while the teacher reads ahead", () => {
+		const idle = box({ kind: "stop" });
+		assert.equal(idle.exit, null);
+		assert.equal(idle.placeholder, "Message marco");
+		assert.deepEqual(idle.right, { action: "send", label: "Send", filled: false, disabled: true });
+		const busy = box({ kind: "stop" }, { busy: true });
+		assert.equal(busy.exit, null);
+		assert.equal(busy.enter, null, "Enter in an empty box never stops the reading");
+		assert.deepEqual(busy.right, { action: "send", label: "Send when ready", filled: false, disabled: true });
+		assert.equal(box({ kind: "stop" }, { busy: true, hasText: true }).enter, "send", "a typed question waits as a steer");
+	});
+});
+
+describe("lessonBox, the opener the app posed", () => {
+	const quiz = { question: "q", options: [{ label: "a" }, { label: "b" }], correctAnswer: "a", explanation: "e", type: "predict" };
+
+	it("is a choice marked as the app's", () => {
+		assert.deepEqual(questionTurn("quiz", quiz, false, true), { kind: "choice", picked: false, appPosed: true });
+	});
+
+	it("keeps Skip question and Ask Teacher while a turn runs; Ask and Submit wait for the teacher", () => {
+		const view = box(questionTurn("quiz", quiz, true, true), { busy: true, hasText: true });
+		assert.equal(view.exit, "skip");
+		assert.equal(view.left?.label, "Ask marco");
+		assert.equal(view.left?.disabled, true);
+		assert.equal(view.right.disabled, true);
+		assert.equal(box(questionTurn("quiz", quiz, false, true), { busy: true }).enter, null);
+		assert.equal(box(questionTurn("quiz", quiz, true, true)).exit, "skip");
+	});
+});

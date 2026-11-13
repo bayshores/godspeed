@@ -26,6 +26,7 @@ export function TeacherColumn({
 	onWidth,
 	requiresReveal,
 	onReveal,
+	noAgent,
 	...turn
 }: YourTurnProps & {
 	spaceId: string | undefined;
@@ -36,8 +37,10 @@ export function TeacherColumn({
 	requiresReveal: boolean;
 	/** The learner opens the check. */
 	onReveal: () => void;
+	/** No agent is teaching (agent-status.tsx lessonAgentWaiting). */
+	noAgent: boolean;
 }) {
-	const { pending, busy, waitingForAgent } = turn;
+	const { pending, busy } = turn;
 	const halley = useHalley();
 	const name = halley?.name ?? DEFAULT_TEACHER_NAME;
 	const color = useSpaceColor(spaceId);
@@ -55,7 +58,8 @@ export function TeacherColumn({
 		if (pendingId && requiresReveal) setRevealed(wasQuestion);
 	}
 
-	const doing = waitingForAgent ? "Waiting for your agent" : busy ? `${name} is writing…` : halley?.doing?.working ? halley.doing.text : null;
+	// With no agent teaching, the head says so and opens Connection settings.
+	const doing = noAgent ? "Waiting for your agent" : busy ? `${name} is writing…` : halley?.doing?.working ? halley.doing.text : null;
 	return (
 		<aside
 			data-testid="teacher-column"
@@ -68,7 +72,7 @@ export function TeacherColumn({
 				<ResizeHandle paneKey="your-turn" width={width} bounds={COLUMN_WIDTH} onWidth={onWidth} label="Resize the teacher column" />
 			</div>
 			<Pane className="flex min-h-0 flex-1 flex-col overflow-hidden">
-				<TeacherHead name={name} color={color} doing={doing}>
+				<TeacherHead name={name} color={color} doing={doing} doingTo={noAgent ? "/settings?section=connection" : undefined}>
 					{activityOpen ? (
 						<button type="button" data-testid="teacher-activity-back" onClick={() => setActivityOpen(false)} className="lh-btn shrink-0">
 							<PixelIcon name="chevron" className="-scale-x-100" />

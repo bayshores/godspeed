@@ -16,6 +16,7 @@ import { mathBoxView, stubCodeMirrorDom } from "../math-box-dom.ts";
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { YourTurn } from "../../src/frontend/components/lesson/your-turn.tsx";
+import { stopCard } from "../../src/frontend/components/lesson/stop-card-model.ts";
 import { TeacherColumn } from "../../src/frontend/components/lesson/teacher-column.tsx";
 import { practiceProgress } from "../../src/frontend/components/lesson/practice-progress.ts";
 import { ReadingPane } from "../../src/frontend/components/lesson/reading-pane.tsx";
@@ -93,6 +94,7 @@ function turnProps(over: Partial<TurnProps> = {}): TurnProps {
 		onSkipQuestion: () => {},
 		problem: null,
 		onDiscardProblem: () => {},
+		stop: null,
 		busy: false,
 		waitingForAgent: false,
 		onStop: () => {},
@@ -142,6 +144,24 @@ describe("Your turn in each state", () => {
 		assert.match(out, /data-testid="composer"[\s\S]*data-testid="math-box"[\s\S]*Message Teacher/, "the one writing box");
 		assert.match(out, /data-testid="composer-send"[^>]*disabled[\s\S]*?>Send</, "Send waits for text");
 		assert.doesNotMatch(out, /skip-question|discard-problem|stop-turn/);
+	});
+
+	it("a stop: the card, no way out, and the Stop button stays hidden while the teacher reads ahead", () => {
+		const view = stopCard({ kind: "topic", at: "2026-11-18T21:48:00.000Z", nodeId: "reg", stopOf: "c1", next: "Cross-validation", activeMinutes: 48, keptGoing: false });
+		for (const busy of [false, true]) {
+			const out = html({ busy, stop: { key: "c1", view, onAction: () => {} } });
+			assert.match(out, /data-mode="stop"/);
+			assert.match(out, /data-testid="stop-card"[\s\S]*Cross-validation is next\.[\s\S]*data-testid="composer"/, "the card, then the box under it");
+			assert.doesNotMatch(out, /nothing-to-answer|skip-question|discard-problem|stop-turn/);
+		}
+	});
+
+	it("an app-posed opener keeps Skip question while a turn runs", () => {
+		const opener = { ...quiz, input: { ...quizInput, type: "predict" }, appPosed: { kind: "opener" as const, ref: "t1" } };
+		const out = html({ pending: opener, busy: true });
+		assert.match(out, /data-testid="question-kind"[^>]*>Prediction</);
+		assert.match(out, /data-testid="skip-question"[^>]*>Skip question</);
+		assert.doesNotMatch(out, /stop-turn/);
 	});
 
 	it("the box names the teacher", () => {
@@ -308,13 +328,11 @@ describe("Your turn in each state", () => {
 		});
 	});
 
-	it("while the turn waits for an agent it says so, with the Connection settings button", () => {
+	it("while the turn waits for an agent the box says Send, with nothing under it", () => {
 		const out = html({ busy: true, waitingForAgent: true });
-		assert.match(out, /data-testid="lesson-waiting"/);
-		assert.match(out, /data-testid="lesson-waiting-settings"[^>]*>Open Connection settings</);
 		assert.match(out, /data-testid="composer-send"[^>]*disabled[\s\S]*?>Send</, "the box says Send, not Send when ready");
 		assert.doesNotMatch(out, /Send when ready/);
-		assert.doesNotMatch(html(), /lesson-waiting/);
+		assert.doesNotMatch(out, /lesson-waiting|no-agent|Open Connection settings/);
 	});
 
 	it("a turn an agent took and went quiet on says how long, and Stop runs it again", async () => {
@@ -597,7 +615,7 @@ describe("saved drafts", () => {
 
 describe("the teacher column", () => {
 	const column = (over: Partial<React.ComponentProps<typeof TeacherColumn>> = {}) => (
-		<TeacherColumn {...turnProps(over)} spaceId={undefined} width={480} onWidth={() => {}} requiresReveal={false} onReveal={() => {}} {...over} />
+		<TeacherColumn {...turnProps(over)} spaceId={undefined} width={480} onWidth={() => {}} requiresReveal={false} onReveal={() => {}} noAgent={false} {...over} />
 	);
 
 	it("the head names the teacher and says what it is doing, over Your turn", () => {
@@ -605,8 +623,11 @@ describe("the teacher column", () => {
 		assert.match(idle, /data-testid="teacher-head"[\s\S]*marco[\s\S]*data-testid="teacher-activity-open"[^>]*>Activity<[\s\S]*data-testid="your-turn"/);
 		assert.doesNotMatch(idle, /teacher-head-doing/);
 		assert.match(renderToStaticMarkup(named(column({ busy: true }))), /data-testid="teacher-head-doing"[^>]*>marco is writing…</);
-		const waiting = renderToStaticMarkup(<MemoryRouter initialEntries={["/chat/ses_1"]}>{named(column({ busy: true, waitingForAgent: true }))}</MemoryRouter>);
-		assert.match(waiting, /data-testid="teacher-head-doing"[^>]*>Waiting for your agent</);
+		for (const busy of [true, false]) {
+			const waiting = renderToStaticMarkup(<MemoryRouter initialEntries={["/chat/ses_1"]}>{named(column({ busy, noAgent: true }))}</MemoryRouter>);
+			const link = /<a[^>]*data-testid="teacher-head-doing"[^>]*>Waiting for your agent</.exec(waiting)?.[0] ?? "";
+			assert.match(link, /href="\/settings\?section=connection"/, "the status opens Connection settings, turn or no turn");
+		}
 		assert.match(renderToStaticMarkup(column()), /Teacher/, "the default name");
 	});
 
@@ -704,7 +725,7 @@ describe("the reading pane", () => {
 		);
 		assert.match(bubble, /data-testid="user-message"[^>]*style="[^"]*var\(--lh-space-5\)/);
 		assert.doesNotMatch(bubble, /--lh-space-3/);
-		assert.match(inSpaces(named(<TeacherColumn {...turnProps()} spaceId="spc_lesson" width={480} onWidth={() => {}} requiresReveal={false} onReveal={() => {}} />)), /--lh-pale:[^"]*var\(--lh-space-5\)/);
+		assert.match(inSpaces(named(<TeacherColumn {...turnProps()} spaceId="spc_lesson" width={480} onWidth={() => {}} requiresReveal={false} noAgent={false} onReveal={() => {}} />)), /--lh-pale:[^"]*var\(--lh-space-5\)/);
 		assert.doesNotMatch(pane({ messages, busy: false, status: "ready" }), /data-testid="user-message"[^>]*style=/, "a lesson with no space keeps the plain bubble");
 	});
 });
