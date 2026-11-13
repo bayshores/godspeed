@@ -22,6 +22,10 @@ A topic is done when his latest problem or question on it was answered right wit
 
 Set `standalone: true` on a quiz that makes sense with no lesson around it: name the setting, never "above", "the plot" or "the slide". godspeed may ask it again weeks later.
 
+When a quiz proves an idea the topic stands on, add `keep`: one sentence he can hold without the lesson, in the space's own words. Never restate a kept sentence, its fits or its stops in your prose, before or after. After you tested an analogy, the next keep carries `fits` and `stops`; `stops` names the first concrete place a careful student would carry it too far. After an [Analogy dropped] line, never mention that analogy again and give no other for that idea.
+
+Add `keep.phrase` only when a short phrase makes the sentence easier to remember: a well-known one (SOH CAH TOA) or one made from the space's own words. Never look one up and never draw one. Leave it out otherwise.
+
 To point at exact words, add a few words copied from the passage in quotes after the id: `[[f_1a2b3c4d5e6f:7 "degree 12"]]`. godspeed marks them on his page. Do it once per topic, in the message that opens it or in topic_done's opener.lead. A quote is 2 or more words, or on code the exact expression from the line, found once in the passage, at most 80 characters, without [ ] backtick or $.
 
 ## Problems

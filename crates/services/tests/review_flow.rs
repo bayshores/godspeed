@@ -1,8 +1,8 @@
 //! Questions from earlier, end to end: which lessons and moments may show one, three a local day
 //! per space across lessons, the same question after a reload, a skip that stores nothing, an
 //! answer written during a turn that lands before the reply and reaches the agent once as a
-//! [From earlier] line, Ask Teacher on one, and the refusals. The app clock is moved, so this
-//! file's tests run one at a time.
+//! [From earlier] line, Ask Teacher on one, the refusals, and the kept sentence a row brings back.
+//! The app clock is moved, so this file's tests run one at a time.
 
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex, MutexGuard};
@@ -298,4 +298,48 @@ async fn ask_teacher_while_the_teachers_question_waits_behind_it_keeps_that_ques
 	let seen = stringify(&Json::Arr(seen));
 	assert!(seen.contains("The learner asked a side question first") && !seen.contains("interrupted"), "the agent reads it as held, not interrupted: {seen}");
 	assert!(seen.contains("[From earlier] He asked about this question from earlier"), "the note still rides with it");
+}
+
+/// A lesson where he kept two sentences on Bayes' rule, the first an hour before the second.
+fn kept_on_bayes(then: i64) -> Vec<Json> {
+	let keep_quiz = |id: &str, at: i64, keep: Json| {
+		let mut args = quiz("bayes");
+		args.as_obj_mut().unwrap().insert("keep", keep);
+		let right = json!({ "kind": "quiz", "dontKnow": false, "correct": true, "answers": [{ "index": 1, "label": "A", "value": "A" }], "answeredAt": time::iso(at) });
+		[
+			json!({ "role": "assistant", "id": format!("m-{id}"), "content": [{ "type": "toolCall", "id": id, "name": "quiz", "arguments": args }], "timestamp": at }),
+			json!({ "role": "custom", "customType": "keep-check", "content": "", "display": false, "details": { "quizCallId": id, "keep": "shown", "fits": true, "phrase": true }, "timestamp": at }),
+			json!({ "role": "toolResult", "toolCallId": id, "toolName": "quiz", "details": right, "isError": false, "timestamp": at }),
+		]
+	};
+	let first = json!({ "text": "Divide by everyone who got an A.", "fits": "A sieve fits one part.", "stops": "It stops at rates.", "phrase": "A over all A" });
+	[keep_quiz("k1", then - 3_600_000, first), keep_quiz("k2", then, json!({ "text": "The base rate weighs in." }))].concat()
+}
+
+fn last_row(fx: &Fixture, chat_id: &str) -> Json {
+	fx.messages(chat_id).into_iter().rfind(|m| m["customType"].as_str() == Some("review")).unwrap()["details"].clone()
+}
+
+#[test]
+fn a_question_from_earlier_brings_back_the_sentence_he_kept_shown_longest_ago() {
+	let fx = Fixture::new();
+	let kept_in = fx.lesson(&kept_on_bayes(clock::now_ms() - 10 * DAY_MS));
+	let id = fx.lesson(&[user("Study", clock::now_ms())]);
+	assert_eq!(topic(&Some(fx.answer(&id))), Some("bayes"));
+	let first = json!({ "of": { "chatId": kept_in, "messageId": "m-k1", "toolCallId": "k1" }, "text": "Divide by everyone who got an A.", "phrase": "A over all A" });
+	assert_eq!(last_row(&fx, &id)["kept"], first, "kept first, never the analogy lines");
+	assert_eq!(topic(&Some(fx.answer(&id))), Some("eig"));
+	assert!(last_row(&fx, &id).get("kept").is_none(), "a topic with no kept sentence");
+
+	clock::advance(8 * DAY_MS);
+	let later = fx.lesson(&[user("Study", clock::now_ms())]);
+	let bayes = loop {
+		let question = fx.next(&later).expect("Bayes' rule comes back");
+		if question["nodeId"] == json!("bayes") {
+			break question;
+		}
+		assert_eq!(skip_review(&fx.app, &later, &question["of"]).unwrap(), ReviewReply::Done);
+	};
+	assert_eq!(answer_review(&fx.app, &later, &bayes["of"], &graded()).unwrap(), ReviewReply::Done);
+	assert_eq!(last_row(&fx, &later)["kept"]["text"], json!("The base rate weighs in."), "the other one was shown longer ago");
 }

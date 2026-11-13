@@ -1,10 +1,12 @@
-//! What the learner does in a lesson that is no input for the agent: Keep going at a stop. It is
-//! written to the lesson at once, even while a turn runs, so nothing is lost if he quits during a
-//! long wait, and it never starts a turn.
+//! What the learner does in a lesson that is no input for the agent: Keep going at a stop, and
+//! dropping a kept sentence's analogy or phrase (or bringing it back). Each is written to the
+//! lesson at once, even while a turn runs, so nothing is lost if he quits during a long wait, and
+//! none starts a turn.
 
 use gs_base::events::EventKind;
 use gs_base::locks::LockKey;
-use gs_core::messages::lesson_markers::new_keep_going_marker;
+use gs_core::messages::lesson_markers::{ANALOGY_DROP, PHRASE_DROP, new_keep_going_marker, new_kept_drop_marker};
+use gs_core::study::kept::has_kept_part;
 use gs_core::study::topic_end::{has_opener, has_stop};
 use gs_json::json;
 
@@ -40,6 +42,46 @@ pub fn keep_going(app: &App, chat_id: &str, stop_of: &str) -> Result<KeepGoing, 
 	};
 	app.events.emit(EventKind::RecordChanged, json!({ "chatId": chat_id }));
 	Ok(kept)
+}
+
+/// The part of a kept sentence a drop takes away.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum KeptPart {
+	/// Its fits and stops lines.
+	Analogy,
+	/// Its memory phrase.
+	Phrase,
+}
+
+/// How a drop landed.
+#[derive(Debug, PartialEq, Eq)]
+pub enum KeptDrop {
+	Done,
+	UnknownLesson,
+	/// The quiz call earned no kept sentence he saw with that part.
+	NoSuchPart,
+}
+
+/// Drops (or with `back`, brings back) a part of the kept sentence the quiz call `of` earned. His
+/// answer is in the record before any turn it starts, so this checks the record even during a
+/// turn. Err: the lesson could not be saved.
+pub fn drop_kept_part(app: &App, chat_id: &str, of: &str, part: KeptPart, back: bool) -> Result<KeptDrop, String> {
+	{
+		let _guard = app.locks.lock(LockKey::Chat(chat_id));
+		let Some(record) = app.stores.chats.get_chat(chat_id) else { return Ok(KeptDrop::UnknownLesson) };
+		let mut messages = record["messages"].as_arr().cloned().unwrap_or_default();
+		let (custom_type, name) = match part {
+			KeptPart::Analogy => (ANALOGY_DROP, "analogy"),
+			KeptPart::Phrase => (PHRASE_DROP, "phrase"),
+		};
+		if !has_kept_part(&messages, of, name) {
+			return Ok(KeptDrop::NoSuchPart);
+		}
+		messages.push(new_kept_drop_marker(custom_type, of, back));
+		app.stores.chats.save_messages(chat_id, &messages)?;
+	}
+	app.events.emit(EventKind::RecordChanged, json!({ "chatId": chat_id }));
+	Ok(KeptDrop::Done)
 }
 
 #[cfg(test)]
@@ -97,6 +139,48 @@ mod tests {
 		assert_eq!(keep_going(&app, &id, "nope"), Ok(KeepGoing::NoStop));
 		assert_eq!(keep_going(&app, "chat_gone", "c1"), Ok(KeepGoing::UnknownLesson));
 		assert!(markers(&app, &id).is_empty());
+	}
+
+	/// Reply 5's quiz kept a sentence with an analogy and a phrase; he answered `q5` right.
+	fn kept(right: bool) -> Vec<Json> {
+		let keep = json!({ "text": "Lambda prices large weights.", "fits": "The leash fits one part.", "stops": "It stops at new data.", "phrase": "Price, not cap" });
+		vec![
+			json!({ "role": "assistant", "content": [{ "type": "toolCall", "id": "q5", "name": "quiz", "arguments": { "nodeId": "reg", "keep": keep } }], "timestamp": 1 }),
+			json!({ "role": "custom", "customType": "keep-check", "content": "", "details": { "quizCallId": "q5", "keep": "shown", "fits": true, "phrase": true }, "timestamp": 1 }),
+			json!({ "role": "toolResult", "toolCallId": "q5", "toolName": "quiz", "details": { "kind": "quiz", "correct": right }, "isError": false, "timestamp": 2 }),
+		]
+	}
+
+	fn drops(app: &App, id: &str) -> Vec<Json> {
+		let record = app.stores.chats.get_chat(id).unwrap();
+		record["messages"].as_arr().unwrap().iter().filter(|m| matches!(m["customType"].as_str(), Some("analogy-drop" | "phrase-drop"))).map(|m| json!([m["customType"], m["details"]["of"], m["details"]["back"]])).collect()
+	}
+
+	#[test]
+	fn a_drop_and_a_bring_back_are_written_even_during_a_turn() {
+		let root = scratch_dir("kept-drop");
+		let app = test_app(&root);
+		let id = lesson(&app, &kept(true));
+		let mut events = app.events.subscribe();
+		assert_eq!(drop_kept_part(&app, &id, "q5", KeptPart::Analogy, false), Ok(KeptDrop::Done));
+		assert_eq!(events.try_recv().unwrap().kind, EventKind::RecordChanged);
+		assert!(begin_turn(&app, &id));
+		assert_eq!(drop_kept_part(&app, &id, "q5", KeptPart::Analogy, true), Ok(KeptDrop::Done));
+		end_turn(&app, &id);
+		assert_eq!(drop_kept_part(&app, &id, "q5", KeptPart::Phrase, false), Ok(KeptDrop::Done));
+		assert_eq!(drops(&app, &id), [json!(["analogy-drop", "q5", null]), json!(["analogy-drop", "q5", true]), json!(["phrase-drop", "q5", null])]);
+	}
+
+	#[test]
+	fn only_a_kept_sentence_he_saw_with_that_part_can_lose_it() {
+		let root = scratch_dir("kept-drop-refused");
+		let app = test_app(&root);
+		let missed = lesson(&app, &kept(false));
+		assert_eq!(drop_kept_part(&app, &missed, "q5", KeptPart::Analogy, false), Ok(KeptDrop::NoSuchPart), "never shown");
+		let shown = lesson(&app, &kept(true));
+		assert_eq!(drop_kept_part(&app, &shown, "q9", KeptPart::Phrase, false), Ok(KeptDrop::NoSuchPart));
+		assert_eq!(drop_kept_part(&app, "chat_gone", "q5", KeptPart::Analogy, false), Ok(KeptDrop::UnknownLesson));
+		assert!(drops(&app, &missed).is_empty() && drops(&app, &shown).is_empty());
 	}
 
 	#[test]

@@ -10,6 +10,7 @@ use gs_core::spaces::today_note::local_day;
 use gs_core::graph::graph::get_graph;
 use gs_core::session::plan_step_bar::{current_step_title, plan_position_lh};
 use gs_core::session::practice_outcomes::practice_outcomes;
+use gs_core::study::kept::{KeptSentence, kept_comebacks, kept_sentences};
 use gs_core::study::progress::{collect_answers, derive_progress, facts_by_message, facts_for_answer};
 use gs_core::study::review::{review_items, reviewable_topics};
 use gs_core::study::study::{deadline_study_topic_ids, fact_space_order, study_topics, topic_study};
@@ -22,8 +23,8 @@ use super::topics::topic_grouping_running;
 use crate::App;
 use crate::spaces::source_id_for;
 
-/// A lesson's graded answers, practice outcomes, questions from earlier and (a Study session
-/// started from a deadline) where the session stands. Progress is read again after every
+/// A lesson's graded answers, practice outcomes, questions from earlier, kept sentences and when
+/// they came back, and (a Study session started from a deadline) where the session stands. Progress is read again after every
 /// background update, and parsing every lesson each time grows with the term, so each is kept
 /// while its record file is unchanged.
 struct Readout {
@@ -31,6 +32,8 @@ struct Readout {
 	answers: Vec<Json>,
 	outcomes: Vec<Json>,
 	reviews: Vec<Json>,
+	kept: Vec<KeptSentence>,
+	comebacks: Vec<(String, i64)>,
 	session: Option<Obj>,
 }
 
@@ -45,7 +48,15 @@ fn lesson_readout(app: &App, chat_id: &str) -> Option<Arc<Readout>> {
 	let record = app.stores.chats.get_chat(chat_id)?;
 	let messages = items(&record["messages"]);
 	let session = (record["deadlineId"].truthy() && record["tree"].truthy()).then(|| deadline_session(&record["tree"], messages));
-	let readout = Arc::new(Readout { version, answers: collect_answers(chat_id, messages), outcomes: practice_outcomes(messages), reviews: review_items(chat_id, messages), session });
+	let readout = Arc::new(Readout {
+		version,
+		answers: collect_answers(chat_id, messages),
+		outcomes: practice_outcomes(messages),
+		reviews: review_items(chat_id, messages),
+		kept: kept_sentences(chat_id, messages),
+		comebacks: kept_comebacks(messages),
+		session,
+	});
 	app.graph.readouts.0.lock().insert(chat_id.to_owned(), readout.clone());
 	Some(readout)
 }
@@ -82,12 +93,14 @@ pub fn space_answers(app: &App, space_id: &str) -> Vec<Json> {
 }
 
 /// What the review schedule reads from a space's lessons: every graded answer, every problem
-/// outcome and every question from earlier they hold.
+/// outcome, every question from earlier, every kept sentence and each time one came back.
 #[derive(Default)]
 pub struct SpaceReviews {
 	pub answers: Vec<Json>,
 	pub outcomes: Vec<Json>,
 	pub items: Vec<Json>,
+	pub kept: Vec<KeptSentence>,
+	pub comebacks: Vec<(String, i64)>,
 }
 
 pub fn space_reviews(app: &App, space_id: &str) -> SpaceReviews {
@@ -96,6 +109,8 @@ pub fn space_reviews(app: &App, space_id: &str) -> SpaceReviews {
 		out.answers.extend(readout.answers.iter().cloned());
 		out.outcomes.extend(readout.outcomes.iter().cloned());
 		out.items.extend(readout.reviews.iter().cloned());
+		out.kept.extend(readout.kept.iter().cloned());
+		out.comebacks.extend(readout.comebacks.iter().cloned());
 	}
 	out
 }

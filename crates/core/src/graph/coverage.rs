@@ -7,10 +7,11 @@ use crate::contracts::chat::TOPIC_DONE_TOOL;
 use crate::messages::citations::cites_in_words;
 use crate::messages::native_messages::{failed_output_call_ids, user_facing_text_of};
 use crate::messages::pending::is_graded_tool;
+use crate::session::question_core::keep_of;
 
-/// The extraction-relevant lines of one message: for a teacher message, one line per prose block
-/// and topic_done opener lead, then one per graded question (topic_done's opener and review
-/// questions too); everything else yields none. `mid` is part of each line, so the
+/// The extraction-relevant lines of one message: for a teacher message, one line per prose block,
+/// topic_done opener lead and kept sentence, then one per graded question (topic_done's opener and
+/// review questions too); everything else yields none. `mid` is part of each line, so the
 /// same prose in two messages is two slots. `failed` defaults to this message's own failures.
 pub fn message_view_lines(message: &Json, mid: &str, failed: Option<&HashSet<String>>) -> Vec<String> {
 	if message["role"].as_str() != Some("assistant") {
@@ -27,9 +28,17 @@ pub fn message_view_lines(message: &Json, mid: &str, failed: Option<&HashSet<Str
 	let content = &message["content"];
 	let prose = user_facing_text_of(content, Some(failed)).into_iter().map(|t| format!("TEACHER [{mid}] {}", text::trim(&t)));
 	let (leads, opener_questions) = topic_done_texts(content);
-	let leads = leads.into_iter().map(|lead| format!("TEACHER [{mid}] {lead}"));
+	let leads = leads.into_iter().chain(kept_texts(content)).map(|line| format!("TEACHER [{mid}] {line}"));
 	let questions = graded_questions_of(content).into_iter().chain(opener_questions).map(|q| format!("QUESTION [{mid}] {q}"));
 	prose.chain(leads).chain(questions).collect()
+}
+
+/// The sentence each quiz call offers him to keep, as its question counts.
+fn kept_texts(content: &Json) -> Vec<String> {
+	let quizzes = content.as_arr().into_iter().flatten().filter(|b| b["type"].as_str() == Some("toolCall") && b["name"].as_str() == Some("quiz"));
+	quizzes
+		.filter_map(|b| keep_of(&b["arguments"])?["text"].as_str().map(|t| text::trim(t).to_owned()).filter(|t| !t.is_empty()))
+		.collect()
 }
 
 /// What a topic_done call teaches: the opener's lead, and the questions of its opener and review.
@@ -179,6 +188,14 @@ mod tests {
 		assert_eq!(message_view_lines(&message, "m1", None), ["TEACHER [m1] Done.", "TEACHER [m1] Now split the data.", "QUESTION [m1] How much does it move?", "QUESTION [m1] Why ridge?"]);
 		let bare = json!({ "id": "m2", "role": "assistant", "content": [{ "type": "toolCall", "id": "t2", "name": "topic_done", "arguments": { "nodeId": "reg" } }] });
 		assert!(message_view_lines(&bare, "m2", None).is_empty(), "a free-recall topic_done teaches nothing new");
+	}
+
+	#[test]
+	fn a_kept_sentence_joins_the_teaching_lines() {
+		let keep = json!({ "text": " Lambda prices large weights. ", "fits": "The leash fits one part." });
+		let quiz = json!({ "type": "toolCall", "id": "q5", "name": "quiz", "arguments": { "question": "Where is it now?", "keep": keep } });
+		let message = json!({ "id": "m5", "role": "assistant", "content": [quiz] });
+		assert_eq!(message_view_lines(&message, "m5", None), ["TEACHER [m5] Lambda prices large weights.", "QUESTION [m5] Where is it now?"]);
 	}
 
 	#[test]

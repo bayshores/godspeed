@@ -7,7 +7,7 @@ use gs_core::session::argument_heal::heal_encoded_arguments;
 use gs_core::session::code_question::{write_code_input_problems, write_code_input_schema};
 use gs_core::session::question_core::{
 	ask_input_schema, ask_option_problems, explain_input_base, explain_input_object, explain_input_problems, parse_options_if_string, probe_quiz_input_schema, quiz_input_object, quiz_input_problems,
-	study_quiz_input_object,
+	study_quiz_input_object, without_broken_keep,
 };
 use gs_engine::turn::tool_execute::{invalid_input_result, question_result};
 use gs_engine::turn::validate::validate_tool_arguments;
@@ -169,14 +169,15 @@ pub fn teach_quiz_tool(ctx: &PlanContext) -> FnTool {
 }
 
 /// The Study quiz: the teach quiz whose schema adds `standalone`, which marks a quiz godspeed may
-/// ask again weeks later, and `onPlot`.
+/// ask again weeks later, `onPlot` and `keep`.
 pub fn study_quiz_tool(ctx: &PlanContext) -> FnTool {
 	node_quiz_tool(ctx, study_quiz_input_object()).prepared(prepare_study_quiz)
 }
 
-/// The Study quiz's preparation: `options` sent as a string, then any field sent JSON-encoded.
+/// The Study quiz's preparation: a keep that breaks its own rules leaves the prepared copy, so the
+/// quiz is never refused for it; then `options` sent as a string, then any field sent JSON-encoded.
 fn prepare_study_quiz(args: Json) -> Result<Json, String> {
-	Ok(heal_encoded_arguments(&prepare_question_arguments(args)?, &study_quiz_input_object()))
+	Ok(heal_encoded_arguments(&prepare_question_arguments(without_broken_keep(args))?, &study_quiz_input_object()))
 }
 
 /// A Study quiz call as its tool takes it: the arguments after its preparation (and validation,

@@ -184,6 +184,23 @@ mod tests {
 	}
 
 	#[test]
+	fn a_keep_verdict_and_a_dropped_analogy_reach_the_agent_as_lines_only() {
+		let keep = json!({ "text": "Lambda prices large weights.", "fits": "The leash fits one part.", "stops": "It stops at new data." });
+		let mut messages = vec![
+			json!({ "id": "m5", "role": "assistant", "content": [{ "type": "toolCall", "id": "q5", "name": "quiz", "arguments": { "nodeId": "reg", "keep": keep } }], "timestamp": 1 }),
+			json!({ "id": "k", "role": "custom", "customType": "keep-check", "content": "", "details": { "quizCallId": "q5", "keep": "shown", "fits": true, "phrase": true }, "timestamp": 2 }),
+			json!({ "id": "a", "role": "toolResult", "toolCallId": "q5", "toolName": "quiz", "content": [{ "type": "text", "text": "{}" }], "details": { "kind": "quiz", "correct": true }, "timestamp": 3 }),
+			json!({ "id": "d", "role": "custom", "customType": "analogy-drop", "content": "", "details": { "of": "q5" }, "timestamp": 4 }),
+			json!({ "id": "p", "role": "custom", "customType": "phrase-drop", "content": "", "details": { "of": "q5" }, "timestamp": 5 }),
+		];
+		let note = app_note_for(&json!({ "messages": messages }), &ChatInput::Next, None).unwrap();
+		messages.push(note);
+		let seen = to_llm_messages(&messages);
+		assert_eq!(seen.len(), 3, "the call, its answer and the note");
+		assert_eq!(seen[2]["content"][0]["text"], json!("[Analogy dropped] reg: \"The leash fits one part\""));
+	}
+
+	#[test]
 	fn an_unanswered_call_gets_the_interrupted_result() {
 		let out = to_llm_messages(&[quiz_call("q1")]);
 		assert_eq!(out.len(), 2);

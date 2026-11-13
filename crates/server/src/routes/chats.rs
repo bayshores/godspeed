@@ -31,7 +31,7 @@ use gs_services::turns::chat_handler::{ChatReply, REVIEW_NOT_OPEN, ReplyBody, ha
 use gs_services::turns::chats::{delete_chat_session, session_coverage};
 use gs_services::turns::dismissal_park::park_dismissal;
 use gs_services::turns::homework::create_homework;
-use gs_services::turns::lesson_events::{KeepGoing, keep_going};
+use gs_services::turns::lesson_events::{KeepGoing, KeptDrop, KeptPart, drop_kept_part, keep_going};
 use gs_services::turns::lessons::{CreateLessonInput, LessonStart, create_lesson};
 use gs_services::turns::review::{ReviewReply, answer_review, next_review, skip_review};
 use gs_services::turns::talk::{clear_talk, open_talk};
@@ -51,6 +51,7 @@ pub fn routes() -> Router<Arc<App>> {
 		.route("/api/chats/{id}/space", ApiRoute::new().put(move_space).into_route())
 		.route("/api/chats/{id}/dismiss", ApiRoute::new().post(dismiss).into_route())
 		.route("/api/chats/{id}/keep-going", ApiRoute::new().post(keep_going_at).into_route())
+		.route("/api/chats/{id}/kept", ApiRoute::new().post(kept).into_route())
 		.route("/api/chats/{id}/markdown", ApiRoute::new().get(markdown).into_route())
 		.route("/api/chats/{id}/review", ApiRoute::new().post(review).into_route())
 		.route("/api/chats/{id}/steer", ApiRoute::new().post(steer).into_route())
@@ -268,6 +269,33 @@ async fn keep_going_at(State(app): State<Arc<App>>, Path(id): Path<String>, body
 		KeepGoing::Kept { opener, running } => reply::json(200, &json!({ "ok": true, "opener": opener, "running": running })),
 		KeepGoing::UnknownLesson => error(404, "Unknown chat"),
 		KeepGoing::NoStop => error(400, "No stop on that call"),
+	})
+}
+
+/// POST /api/chats/{id}/kept: `{input: {of, part: "analogy" | "phrase", back?: true}}` drops a part
+/// of the kept sentence the quiz call `of` earned, or brings it back, answering `{ok: true}`.
+/// Allowed during a turn, which it never starts. 404 for an unknown lesson; 400 for a malformed
+/// input or a quiz with no kept sentence he saw with that part.
+async fn kept(State(app): State<Arc<App>>, Path(id): Path<String>, body: Body) -> Result<Response, Unhandled> {
+	let body = json_body(body).await.unwrap_or(Json::Null);
+	let input = &body["input"];
+	let part = match input["part"].as_str() {
+		Some("analogy") => Some(KeptPart::Analogy),
+		Some("phrase") => Some(KeptPart::Phrase),
+		_ => None,
+	};
+	let back = match input.get("back") {
+		None | Some(Json::Null) => Some(false),
+		Some(Json::Bool(true)) => Some(true),
+		Some(_) => None,
+	};
+	let (Some(of), Some(part), Some(back)) = (input["of"].as_str().filter(|s| !s.is_empty()), part, back) else {
+		return Ok(error(400, "input must be { of: string, part: \"analogy\" | \"phrase\", back?: true }"));
+	};
+	Ok(match drop_kept_part(&app, &id, of, part, back)? {
+		KeptDrop::Done => reply::json(200, &json!({ "ok": true })),
+		KeptDrop::UnknownLesson => error(404, "Unknown chat"),
+		KeptDrop::NoSuchPart => error(400, "No kept sentence with that part on that call"),
 	})
 }
 

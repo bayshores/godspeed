@@ -101,7 +101,10 @@ export interface LhMarkerMessage {
 		| "keep-going"
 		| "opener-answer"
 		| "app-note"
-		| "review";
+		| "review"
+		| "keep-check"
+		| "analogy-drop"
+		| "phrase-drop";
 	/** The model-facing text ("" for plan blocks — UI-only). */
 	content: string;
 	/** Model-facing files after the text: the pictures and PDF notes of an
@@ -198,7 +201,7 @@ export function interruptedQuestions(messages: readonly LhMessage[]): Set<string
  *  bookkeeping that lands between a question and the next learner message
  *  without being part of either. */
 function isBookkeeping(m: LhMessage): boolean {
-	return m.role === "custom" && ["compaction", "plan-block", "problem-dismissed", "keep-going", "review"].includes(m.customType);
+	return m.role === "custom" && ["compaction", "plan-block", "problem-dismissed", "keep-going", "review", "keep-check", "analogy-drop", "phrase-drop"].includes(m.customType);
 }
 
 /** A hidden note for the agent that rides right ahead of the learner's

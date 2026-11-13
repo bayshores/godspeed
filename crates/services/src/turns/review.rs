@@ -12,6 +12,7 @@ use gs_base::locks::LockKey;
 use gs_base::{clock, time};
 use gs_core::messages::input_events::stamped_quiz_answer;
 use gs_core::messages::lesson_markers::new_review_marker;
+use gs_core::study::kept::kept_for;
 use gs_core::study::review::{ReviewSitting, ReviewSpace, item_key, pick_reviews, review_window_open, teaching_topics};
 use gs_core::study::topic_end::{SITTING_GAP_MS, sitting_start};
 use gs_json::{Json, json};
@@ -119,8 +120,9 @@ fn asked_this_sitting(record: &Json, now: i64) -> Option<&Json> {
 }
 
 /// His answer to a question from earlier still askable, as the window graded it: written as a
-/// `review` marker with the server's clock and the start of his sitting, and counted in the
-/// activity feed like any quiz answer of the lesson. Err: the lesson could not be saved.
+/// `review` marker with the server's clock, the start of his sitting and the sentence he kept on
+/// its topic that was shown longest ago (`kept`, when there is one), and counted in the activity
+/// feed like any quiz answer of the lesson. Err: the lesson could not be saved.
 pub fn answer_review(app: &App, chat_id: &str, of: &Json, answer: &Json) -> Result<ReviewReply, String> {
 	let graded = answer["dontKnow"].truthy() || answer["correct"].as_bool().is_some();
 	let Some(stamped) = stamped_quiz_answer(answer).filter(|_| graded && !answer["dismissed"].truthy()) else { return Ok(ReviewReply::NotAnAnswer) };
@@ -129,9 +131,14 @@ pub fn answer_review(app: &App, chat_id: &str, of: &Json, answer: &Json) -> Resu
 		let Some(record) = app.stores.chats.get_chat(chat_id) else { return Ok(ReviewReply::UnknownLesson) };
 		let Some(question) = askable(app, chat_id, &record, of)? else { return Ok(ReviewReply::NotOpen) };
 		let mut details = question;
+		let space = space_reviews(app, record["spaceId"].str_or_empty());
+		let kept = kept_for(details["nodeId"].str_or_empty(), &space.kept, &space.comebacks).cloned();
 		if let Some(d) = details.as_obj_mut() {
 			d.insert("answer", stamped);
 			d.insert("sitting", time::iso(sitting_start(&times(&record), clock::now_ms() as f64) as i64));
+			if let Some(kept) = kept {
+				d.insert("kept", kept);
+			}
 		}
 		let mut messages = record["messages"].as_arr().cloned().unwrap_or_default();
 		messages.push(new_review_marker(details));
