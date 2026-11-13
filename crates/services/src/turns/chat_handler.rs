@@ -16,10 +16,11 @@ use gs_base::{ids, text, time};
 use gs_core::contracts::chat::extracts_facts;
 use gs_core::messages::app_notes::app_note_for;
 use gs_core::messages::attachments::ChatAttachment;
-use gs_core::messages::input_events::{ChatInput, ChatInputError, TurnInput, input_appends};
+use gs_core::messages::input_events::{About, ChatInput, ChatInputError, TurnInput, input_appends};
 use gs_core::messages::native_messages::{dangling_question_of, has_probe_done, is_side_turn, retry_context};
 use gs_core::session::compaction::effective_threshold_tokens;
 use gs_core::session::jobs::steer_delivered;
+use gs_core::study::review::item_key;
 use gs_engine::turn::agent::Agent;
 use gs_engine::turn::call_ids::collect_tool_call_ids;
 use gs_engine::turn::events::AgentEvent;
@@ -33,6 +34,7 @@ use super::compaction::{CompactionDeps, ensure_compacted, kick_compaction, or_ze
 use super::dismissal_park::apply_parked_dismissal;
 use super::job_host::run_job;
 use super::lesson_agent::{TurnAgent, build_lesson_agent};
+use super::review::open_question;
 use super::turn_liveness::{begin_turn, end_turn, turn_started};
 use super::turn_runs::{register_turn, remember_turn_failure, unregister_turn};
 use super::turn_service::{PERSISTENCE_ERROR, persist_turn, trigger_extraction};
@@ -45,6 +47,8 @@ use crate::jobs::{note_steers_durable, reconcile_user_steers, register_live_agen
 /// The live update window of a turn's stream.
 const UPDATE_FLUSH_MS: i64 = 100;
 const NOT_SAVED: &str = "Your input could not be saved. Please try again.";
+/// Ask Teacher on a question from earlier that is no longer the open one.
+pub const REVIEW_NOT_OPEN: &str = "That question from earlier is not open";
 
 /// What a turn request answers, like the TS `Response`.
 #[derive(Clone, Debug, PartialEq)]
@@ -198,6 +202,16 @@ fn write_ahead(app: &Arc<App>, chat_id: &str, input: &TurnInput, attachments: &[
 	let Some(record) = app.stores.chats.get_chat(chat_id) else { return Err(ChatReply::error(404, "Unknown chat")) };
 	let messages = record["messages"].as_arr().cloned().unwrap_or_default();
 
+	// Ask Teacher on a question from earlier: it must be the open one, and its note carries it whole.
+	let asked = match input {
+		TurnInput::Chat(ChatInput::Text { about: Some(About::Review { of, .. }), .. }) => match open_question(app, chat_id, &record) {
+			Ok(Some(open)) if item_key(&open["of"]) == item_key(of) => Some(open),
+			Ok(_) => return Err(ChatReply::error(400, REVIEW_NOT_OPEN)),
+			Err(err) => return Err(ChatReply::thrown(err)),
+		},
+		_ => None,
+	};
+
 	// The wake carries every queued marker; one already in the record is a re-fire.
 	let mut appends = match input {
 		TurnInput::Steers(steers) => steers.iter().filter(|s| !steer_delivered(&messages, s["id"].as_str().unwrap_or_default())).cloned().collect(),
@@ -208,7 +222,7 @@ fn write_ahead(app: &Arc<App>, chat_id: &str, input: &TurnInput, attachments: &[
 	// compaction call for a fresh one. The app note goes there too.
 	if let TurnInput::Chat(chat @ (ChatInput::Text { .. } | ChatInput::Next)) = input {
 		let at = appends.len().saturating_sub(1);
-		let notes = today_note_for(app, &record).into_iter().chain(app_note_for(&record, chat));
+		let notes = today_note_for(app, &record).into_iter().chain(app_note_for(&record, chat, asked.as_ref()));
 		appends.splice(at..at, notes);
 	}
 	let mut merged: Vec<Json> = messages.iter().chain(&appends).cloned().collect();
@@ -220,7 +234,7 @@ fn write_ahead(app: &Arc<App>, chat_id: &str, input: &TurnInput, attachments: &[
 	// sits between two results of one call batch.
 	if let TurnInput::Chat(chat @ ChatInput::Answer { .. }) = input
 		&& !sibling_waits
-		&& let Some(note) = app_note_for(&record, chat)
+		&& let Some(note) = app_note_for(&record, chat, None)
 	{
 		appends.push(note.clone());
 		merged.push(note);

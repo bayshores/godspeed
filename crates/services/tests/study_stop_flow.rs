@@ -11,7 +11,7 @@ use std::sync::Arc;
 use gs_base::config::Paths;
 use gs_base::{clock, ids};
 use gs_core::contracts::chat::{CONCLUDE_ACK_TEXT, STUDY_TOPIC_END_ACK_TEXT, TOPIC_DONE_STORED_TEXT};
-use gs_core::messages::input_events::{ChatInput, TurnInput};
+use gs_core::messages::input_events::{About, ChatInput, TurnInput};
 use gs_core::study::topic_end::{lesson_stop, shown_openers};
 use gs_engine::bridge::{AgentReply, ReplyCall, WaitOptions};
 use gs_json::{Json, json};
@@ -207,7 +207,7 @@ async fn asking_about_the_opener_keeps_it_open_and_skipping_it_says_so() {
 	end_regularization(&fx.app, &chat_id, true).await;
 	let (_, done_id) = call_of(&messages(&fx.app, &chat_id), "topic_done");
 
-	let ask = ChatInput::Text { text: "What is a split?".to_owned(), attachments: None, about: Some(done_id.clone()) };
+	let ask = ChatInput::Text { text: "What is a split?".to_owned(), attachments: None, about: Some(About::Opener(done_id.clone())) };
 	send(&fx.app, &chat_id, ask).await;
 	let seen = answer(&fx.app, &chat_id, says("A split is one way to divide the data.")).await;
 	let users: Vec<&str> = seen.iter().filter(|m| m["role"].as_str() == Some("user")).filter_map(|m| m["text"].as_str()).collect();

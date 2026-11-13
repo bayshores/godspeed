@@ -1,40 +1,95 @@
 //! The hidden lines an input carries to the agent about what happened in the app: he came back to
-//! a stopped session ([Resumed]), and what he did with the next topic's opener ([Opener]). An
-//! opener answer carries its lines in its own marker; any other input gets one app-note marker.
+//! a stopped session ([Resumed]), what he did with the next topic's opener ([Opener]), and the
+//! questions from earlier he answered or asks about ([From earlier]). An opener answer carries its
+//! lines in its own marker; any other input gets one app-note marker.
 
 use gs_json::Json;
 use gs_json::js_text::js_string;
 
-use super::input_events::{ChatInput, messages_of};
+use super::input_events::{About, ChatInput, messages_of};
 use super::lesson_markers::new_app_note_marker;
 use crate::session::question_core::confidence_level;
 use crate::study::topic_end::{resume_due, shown_openers};
 
 const RESUMED_LINE: &str = "[Resumed] He came back to this session after a stop.";
+const FROM_EARLIER: &str = "[From earlier]";
 
 /// The opener-answer marker's content: [Resumed] first when due, then what he picked, or that he
-/// skipped it (a null `answer`).
+/// skipped it (a null `answer`), then the questions from earlier he answered since the agent last
+/// heard of them.
 pub fn opener_answer_text(record: &Json, topic_done_call_id: &str, answer: &Json) -> String {
 	let topic = opener_topic(record, topic_done_call_id);
 	let line = if answer.is_null() { format!("[Opener] {topic}: he skipped it.") } else { format!("[Opener] {topic}: {}", picked_words(answer)) };
-	let resumed = resume_due(messages_of(record)).then_some(RESUMED_LINE.to_owned());
-	resumed.into_iter().chain(std::iter::once(line)).collect::<Vec<_>>().join("\n")
+	let messages = messages_of(record);
+	let resumed = resume_due(messages).then_some(RESUMED_LINE.to_owned());
+	resumed.into_iter().chain(std::iter::once(line)).chain(from_earlier_line(messages)).collect::<Vec<_>>().join("\n")
 }
 
 /// The app-note marker an input carries, or none. An opener answer carries its lines itself, and a
-/// continue is not his input.
-pub fn app_note_for(record: &Json, input: &ChatInput) -> Option<Json> {
+/// continue is not his input. `asked` is the question from earlier a text about one asks about.
+pub fn app_note_for(record: &Json, input: &ChatInput, asked: Option<&Json>) -> Option<Json> {
 	if matches!(input, ChatInput::Continue | ChatInput::OpenerAnswer { .. }) {
 		return None;
 	}
+	let messages = messages_of(record);
 	let mut lines = Vec::new();
-	if resume_due(messages_of(record)) {
+	if resume_due(messages) {
 		lines.push(RESUMED_LINE.to_owned());
 	}
-	if let ChatInput::Text { about: Some(opener), .. } = input {
-		lines.push(format!("[Opener] {}: he asked about it before answering; it stays open. Answer his question and end your turn.", opener_topic(record, opener)));
+	lines.extend(from_earlier_line(messages));
+	match input {
+		ChatInput::Text { about: Some(About::Opener(opener)), .. } => {
+			lines.push(format!("[Opener] {}: he asked about it before answering; it stays open. Answer his question and end your turn.", opener_topic(record, opener)));
+		}
+		ChatInput::Text { about: Some(About::Review { picked, .. }), .. } => lines.extend(asked.map(|item| review_ask_line(item, picked))),
+		_ => {}
 	}
 	(!lines.is_empty()).then(|| new_app_note_marker(&lines))
+}
+
+/// "[From earlier] Eigenvalues right, sure 4. Bayes' rule wrong, sure 3, picked About 9%.": the
+/// questions from earlier he answered after the last note that told the agent about them.
+fn from_earlier_line(messages: &[Json]) -> Option<String> {
+	let told = |m: &Json| matches!(m["customType"].as_str(), Some("app-note" | "opener-answer")) && m["content"].as_str().is_some_and(|c| c.lines().any(|l| l.starts_with(FROM_EARLIER)));
+	let since = messages.iter().rposition(told).map_or(0, |i| i + 1);
+	let answered: Vec<String> = messages[since..].iter().filter(|m| m["role"].as_str() == Some("custom") && m["customType"].as_str() == Some("review")).map(|m| review_words(&m["details"])).collect();
+	(!answered.is_empty()).then(|| format!("{FROM_EARLIER} {}", answered.join(" ")))
+}
+
+/// One answered question from earlier: "Bayes' rule wrong, sure 3, picked About 9%.", "Eigenvalues
+/// right, sure 4." or "Bayes' rule: he did not know."
+fn review_words(details: &Json) -> String {
+	let answer = &details["answer"];
+	let topic = review_topic(details);
+	if answer["dontKnow"].truthy() {
+		return format!("{topic}: he did not know.");
+	}
+	let sure = answer.get("confidence").map_or_else(String::new, |c| format!(", sure {}", confidence_level(c.as_f64().unwrap_or(f64::NAN))));
+	if answer["correct"].as_bool() == Some(true) {
+		return format!("{topic} right{sure}.");
+	}
+	let picks: Vec<String> = answer["answers"].as_arr().into_iter().flatten().map(|a| js_string(a.get("label"))).collect();
+	format!("{topic} wrong{sure}, picked {}.", picks.join(" and "))
+}
+
+/// A question from earlier's topic name, else its node id.
+fn review_topic(item: &Json) -> String {
+	item["topic"].as_str().or(item["nodeId"].as_str()).unwrap_or_default().to_owned()
+}
+
+/// What Ask Teacher on a question from earlier tells the agent before his message: the question,
+/// its options, what he picked so far and the stored explanation.
+fn review_ask_line(item: &Json, picked: &[String]) -> String {
+	let quiz = &item["quiz"];
+	let options: Vec<String> = quiz["options"].as_arr().into_iter().flatten().map(|o| js_string(o.get("label"))).collect();
+	let pick = if picked.is_empty() { "He has not picked yet.".to_owned() } else { format!("He picked {} so far.", picked.join(" and ")) };
+	format!(
+		"{FROM_EARLIER} He asked about this question from earlier before answering; it stays open and godspeed grades his answer. {}: {} Options: {}. {pick} Explanation: {} Answer his question without giving the answer away, and end your turn.",
+		review_topic(item),
+		js_string(quiz.get("question")),
+		options.join("; "),
+		js_string(quiz.get("explanation")),
+	)
 }
 
 /// The opener question's topic: its plan step's title, else its node id.
@@ -127,25 +182,76 @@ mod tests {
 		let record = kept_at(24 * 60);
 		assert_eq!(opener_answer_text(&record, "t1", &Json::Null), "[Resumed] He came back to this session after a stop.\n[Opener] Cross-validation: he skipped it.");
 		let text = ChatInput::Text { text: "why?".into(), attachments: None, about: None };
-		let note = app_note_for(&record, &text).unwrap();
+		let note = app_note_for(&record, &text, None).unwrap();
 		assert_eq!(note["content"], json!("[Resumed] He came back to this session after a stop."));
-		assert!(app_note_for(&kept_at(50), &text).is_none(), "same sitting");
+		assert!(app_note_for(&kept_at(50), &text, None).is_none(), "same sitting");
 	}
 
 	#[test]
 	fn ask_teacher_on_an_opener_says_it_stays_open() {
-		let ask = ChatInput::Text { text: "why?".into(), attachments: None, about: Some("t1".into()) };
-		let note = app_note_for(&kept_at(50), &ask).unwrap();
+		let ask = ChatInput::Text { text: "why?".into(), attachments: None, about: Some(About::Opener("t1".into())) };
+		let note = app_note_for(&kept_at(50), &ask, None).unwrap();
 		assert_eq!(note["content"], json!("[Opener] Cross-validation: he asked about it before answering; it stays open. Answer his question and end your turn."));
-		let both = app_note_for(&kept_at(24 * 60), &ask).unwrap();
+		let both = app_note_for(&kept_at(24 * 60), &ask, None).unwrap();
 		assert_eq!(both["content"].as_str().unwrap().lines().count(), 2, "[Resumed] and [Opener]");
 	}
 
 	#[test]
 	fn a_continue_and_an_opener_answer_carry_no_note() {
 		let record = kept_at(24 * 60);
-		assert!(app_note_for(&record, &ChatInput::Continue).is_none());
-		assert!(app_note_for(&record, &ChatInput::OpenerAnswer { topic_done_call_id: "t1".into(), answer: None }).is_none());
-		assert!(app_note_for(&record, &ChatInput::Next).is_some());
+		assert!(app_note_for(&record, &ChatInput::Continue, None).is_none());
+		assert!(app_note_for(&record, &ChatInput::OpenerAnswer { topic_done_call_id: "t1".into(), answer: None }, None).is_none());
+		assert!(app_note_for(&record, &ChatInput::Next, None).is_some());
+	}
+
+	fn options() -> Json {
+		json!([{ "label": "About 60%" }, { "label": "About 25%" }, { "label": "About 10%" }, { "label": "About 9%" }])
+	}
+
+	fn reviewed(topic: &str, answer: Json) -> Json {
+		let details = json!({ "of": { "chatId": "c0", "messageId": "m0", "toolCallId": "t0" }, "nodeId": "n", "topic": topic, "quiz": { "question": "How likely?", "options": options() }, "answer": answer, "sitting": "2026-11-11T21:00:00.000Z" });
+		json!({ "role": "custom", "customType": "review", "content": "", "display": true, "details": details, "timestamp": at(1) })
+	}
+
+	fn graded(correct: bool, label: &str, confidence: i64) -> Json {
+		json!({ "kind": "quiz", "dontKnow": false, "correct": correct, "answers": [pick(1, label)], "confidence": confidence })
+	}
+
+	#[test]
+	fn questions_from_earlier_reach_the_agent_once_on_his_next_input() {
+		let mut messages = vec![
+			reviewed("Bayes' rule", graded(false, "About 60%", 60)),
+			reviewed("Eigenvalues", graded(true, "x", 80)),
+			reviewed("Gradient descent", json!({ "kind": "quiz", "dontKnow": true, "answers": [] })),
+		];
+		let record = json!({ "messages": messages });
+		let next = app_note_for(&record, &ChatInput::Next, None).unwrap();
+		assert_eq!(next["content"], json!("[From earlier] Bayes' rule wrong, sure 3, picked About 60%. Eigenvalues right, sure 4. Gradient descent: he did not know."));
+		messages.push(next);
+		let told = json!({ "messages": messages });
+		assert!(app_note_for(&told, &ChatInput::Next, None).is_none(), "once");
+		messages.push(reviewed("Regularization", graded(true, "x", 80)));
+		let answer = ChatInput::Answer { tool_call_id: "q".into(), answer: json!({}), attachments: None };
+		assert_eq!(app_note_for(&json!({ "messages": messages }), &answer, None).unwrap()["content"], json!("[From earlier] Regularization right, sure 4."));
+	}
+
+	#[test]
+	fn an_opener_answer_carries_the_questions_from_earlier_after_its_line() {
+		let mut record = kept_at(50);
+		record.get_mut("messages").and_then(Json::as_arr_mut).unwrap().push(reviewed("Bayes' rule", graded(true, "About 9%", 60)));
+		assert_eq!(opener_answer_text(&record, "t1", &Json::Null), "[Opener] Cross-validation: he skipped it.\n[From earlier] Bayes' rule right, sure 3.");
+	}
+
+	#[test]
+	fn ask_teacher_on_a_question_from_earlier_sends_it_whole() {
+		let item = json!({ "of": { "chatId": "c0", "toolCallId": "t0" }, "nodeId": "n", "topic": "Bayes' rule", "quiz": { "question": "A student got an A. How likely is the tutor?", "options": options(), "correctAnswer": "About 25%", "explanation": "0.06 of 0.24 is a quarter." } });
+		let ask = |picked: Vec<String>| ChatInput::Text { text: "Do I divide by all the A students?".into(), attachments: None, about: Some(About::Review { of: item["of"].clone(), picked }) };
+		let note = app_note_for(&json!({ "messages": [] }), &ask(vec!["About 60%".into()]), Some(&item)).unwrap();
+		assert_eq!(
+			note["content"],
+			json!("[From earlier] He asked about this question from earlier before answering; it stays open and godspeed grades his answer. Bayes' rule: A student got an A. How likely is the tutor? Options: About 60%; About 25%; About 10%; About 9%. He picked About 60% so far. Explanation: 0.06 of 0.24 is a quarter. Answer his question without giving the answer away, and end your turn.")
+		);
+		let unpicked = app_note_for(&json!({ "messages": [] }), &ask(vec![]), Some(&item)).unwrap();
+		assert!(unpicked["content"].as_str().unwrap().contains(" He has not picked yet. "));
 	}
 }

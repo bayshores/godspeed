@@ -4,7 +4,7 @@
 use std::collections::HashSet;
 
 use gs_core::messages::attachments::{attachment_refusal, base64_bytes, content_text, keeps_png, pdf_file_name, pdf_note, pdf_note_of};
-use gs_core::messages::input_events::{ChatInput, DismissInput, dismiss_appends, input_appends, parse_chat_input, parse_dismiss_input, parse_user_steer_input};
+use gs_core::messages::input_events::{About, ChatInput, DismissInput, dismiss_appends, input_appends, parse_chat_input, parse_dismiss_input, parse_user_steer_input};
 use gs_core::messages::native_messages::{
 	active_problem_of, space_card_text, space_files_text, concluded_by_dismissal_pair, dangling_question_of, ends_in_dismissal, failed_output_call_ids, has_probe_done, is_side_turn, new_answer_result, new_app_request_message,
 	new_space_context_message, new_graph_context_message, new_handoff_message, new_next_message, new_plan_block_message, new_problem_dismissed_marker, new_side_question, new_study_context_message,
@@ -184,8 +184,13 @@ fn chat_input_json(input: &ChatInput) -> Json {
 	match input {
 		ChatInput::Text { text, attachments, about } => {
 			let mut text = with_files(event("text", vec![("text", text.as_str().into())]), attachments);
-			if let (Some(opener), Some(o)) = (about, text.as_obj_mut()) {
-				o.insert("about", json!({ "opener": opener }));
+			let about = match about {
+				Some(About::Opener(opener)) => json!({ "opener": opener }),
+				Some(About::Review { of, picked }) => json!({ "reviewOf": of, "picked": picked }),
+				None => Json::Null,
+			};
+			if let (false, Some(o)) = (about.is_null(), text.as_obj_mut()) {
+				o.insert("about", about);
 			}
 			text
 		}

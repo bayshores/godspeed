@@ -34,12 +34,21 @@ fn refuse<T>(message: impl Into<String>) -> Result<T, ChatInputError> {
 	Err(ChatInputError(message.into()))
 }
 
+/// What Ask Teacher asks about. Either question stays open.
+#[derive(Clone, Debug, PartialEq)]
+pub enum About {
+	/// A shown opener, by its topic_done call id.
+	Opener(String),
+	/// The open question from earlier, by the call it came from (`{chatId, toolCallId}`), with the
+	/// labels of the options he has picked so far.
+	Review { of: Json, picked: Vec<String> },
+}
+
 /// One client input event (the POST body's `input`).
 #[derive(Clone, Debug, PartialEq)]
 pub enum ChatInput {
-	/// A learner-authored message. `about`: Ask Teacher on a shown opener (its topic_done call id);
-	/// the opener stays open.
-	Text { text: String, attachments: Option<Vec<ChatAttachment>>, about: Option<String> },
+	/// A learner-authored message; `about` when Ask Teacher sent it.
+	Text { text: String, attachments: Option<Vec<ChatAttachment>>, about: Option<About> },
 	/// The pending question's graded result.
 	Answer { tool_call_id: String, answer: Json, attachments: Option<Vec<ChatAttachment>> },
 	/// Run the next turn on the current record.
@@ -182,13 +191,22 @@ pub fn parse_chat_input(input: &Json) -> Result<ChatInput, ChatInputError> {
 	}
 }
 
-/// A text input's `about`: absent, or the opener it asks about.
-fn parse_about(raw: Option<&Json>) -> Result<Option<String>, ChatInputError> {
+/// A text input's `about`: absent, the opener it asks about, or the question from earlier.
+fn parse_about(raw: Option<&Json>) -> Result<Option<About>, ChatInputError> {
 	let Some(raw) = raw else { return Ok(None) };
-	match non_empty_str(&raw["opener"]) {
-		Some(opener) => Ok(Some(opener.to_owned())),
-		None => refuse("about requires opener, a topic_done call id"),
+	if let Some(opener) = non_empty_str(&raw["opener"]) {
+		return Ok(Some(About::Opener(opener.to_owned())));
 	}
+	let of = &raw["reviewOf"];
+	let (Some(chat_id), Some(tool_call_id)) = (non_empty_str(&of["chatId"]), non_empty_str(&of["toolCallId"])) else {
+		return refuse("about requires opener (a topic_done call id) or reviewOf ({chatId, toolCallId})");
+	};
+	let picked = match raw.get("picked") {
+		None => Vec::new(),
+		Some(Json::Arr(labels)) if labels.iter().all(|l| l.as_str().is_some()) => labels.iter().filter_map(|l| l.as_str().map(str::to_owned)).collect(),
+		Some(_) => return refuse("about.picked must be a list of option labels"),
+	};
+	Ok(Some(About::Review { of: json!({ "chatId": chat_id, "toolCallId": tool_call_id }), picked }))
 }
 
 /// The input's text, which may be blank only when files came with it.
@@ -242,7 +260,7 @@ pub fn input_appends(record: &Json, input: &ChatInput, attachments: &[Json]) -> 
 	let messages = messages_of(record);
 	match input {
 		ChatInput::Text { text, about, .. } => {
-			if let Some(opener) = about {
+			if let Some(About::Opener(opener)) = about {
 				open_opener(messages, opener)?;
 			}
 			Ok(with_dismissal_conclusion(messages, new_user_message(text, attachments)))
@@ -274,23 +292,27 @@ pub fn input_appends(record: &Json, input: &ChatInput, attachments: &[Json]) -> 
 			open_opener(messages, topic_done_call_id)?;
 			let stamped = match answer {
 				None => Json::Null,
-				Some(answer) => {
-					let picked = answer["dontKnow"].truthy() || answer["answers"].as_arr().is_some_and(|a| !a.is_empty());
-					if answer["kind"].as_str() != Some("quiz") || !picked {
-						return refuse("an opener answer is a quiz answer with a pick, or I don't know");
-					}
-					// Stamped with the server's clock, like every record time.
-					let mut stamped = answer.clone();
-					if let Some(o) = stamped.as_obj_mut() {
-						o.insert("answeredAt", time::iso(clock::now_ms()));
-					}
-					stamped
-				}
+				Some(answer) => match stamped_quiz_answer(answer) {
+					Some(stamped) => stamped,
+					None => return refuse("an opener answer is a quiz answer with a pick, or I don't know"),
+				},
 			};
 			let content = opener_answer_text(record, topic_done_call_id, &stamped);
 			Ok(with_dismissal_conclusion(messages, new_opener_answer_marker(content, json!({ "topicDoneCallId": topic_done_call_id, "answer": stamped }))))
 		}
 	}
+}
+
+/// A quiz answer with a pick or I don't know, stamped with the server's clock like every record
+/// time; none for anything else.
+pub fn stamped_quiz_answer(answer: &Json) -> Option<Json> {
+	let picked = answer["dontKnow"].truthy() || answer["answers"].as_arr().is_some_and(|a| !a.is_empty());
+	if answer["kind"].as_str() != Some("quiz") || !picked {
+		return None;
+	}
+	let mut stamped = answer.clone();
+	stamped.as_obj_mut()?.insert("answeredAt", time::iso(clock::now_ms()));
+	Some(stamped)
 }
 
 /// The 400s of an input about an opener: it must be on screen (its stop kept going) and not
@@ -431,12 +453,19 @@ mod tests {
 	}
 
 	#[test]
-	fn text_takes_about_an_opener() {
+	fn text_takes_about_an_opener_or_a_question_from_earlier() {
 		let ask = parse_chat_input(&json!({ "type": "text", "text": "why?", "about": { "opener": "t1" } })).unwrap();
-		assert_eq!(ask, ChatInput::Text { text: "why?".into(), attachments: None, about: Some("t1".into()) });
-		for about in [json!({}), json!(null), json!({ "opener": "" })] {
-			assert_eq!(error_of(parse_chat_input(&json!({ "type": "text", "text": "why?", "about": about }))), "about requires opener, a topic_done call id");
+		assert_eq!(ask, ChatInput::Text { text: "why?".into(), attachments: None, about: Some(About::Opener("t1".into())) });
+		let review = parse_chat_input(&json!({ "type": "text", "text": "why?", "about": { "reviewOf": { "chatId": "c", "toolCallId": "t1", "x": 1 }, "picked": ["About 60%"] } })).unwrap();
+		let of = json!({ "chatId": "c", "toolCallId": "t1" });
+		assert_eq!(review, ChatInput::Text { text: "why?".into(), attachments: None, about: Some(About::Review { of: of.clone(), picked: vec!["About 60%".into()] }) });
+		let unpicked = parse_chat_input(&json!({ "type": "text", "text": "why?", "about": { "reviewOf": of } })).unwrap();
+		assert_eq!(unpicked, ChatInput::Text { text: "why?".into(), attachments: None, about: Some(About::Review { of: of.clone(), picked: vec![] }) });
+		for about in [json!({}), json!(null), json!({ "opener": "" }), json!({ "reviewOf": { "chatId": "c" } })] {
+			assert_eq!(error_of(parse_chat_input(&json!({ "type": "text", "text": "why?", "about": about }))), "about requires opener (a topic_done call id) or reviewOf ({chatId, toolCallId})");
 		}
+		let bad = json!({ "type": "text", "text": "why?", "about": { "reviewOf": of, "picked": [1] } });
+		assert_eq!(error_of(parse_chat_input(&bad)), "about.picked must be a list of option labels");
 	}
 
 	/// Regularization ends on a conclude, topic_done stores the opener, and he kept going.
@@ -481,7 +510,7 @@ mod tests {
 			let input = ChatInput::OpenerAnswer { topic_done_call_id: "t1".into(), answer: Some(answer) };
 			assert_eq!(error_of(input_appends(&study(kept()), &input, &[])), "an opener answer is a quiz answer with a pick, or I don't know");
 		}
-		let ask = ChatInput::Text { text: "What is a fold?".into(), attachments: None, about: Some("t1".into()) };
+		let ask = ChatInput::Text { text: "What is a fold?".into(), attachments: None, about: Some(About::Opener("t1".into())) };
 		assert_eq!(error_of(input_appends(&study(not_kept), &ask, &[])), "no opener is shown for that topic_done (no Keep going at its stop)");
 		let appends = input_appends(&study(kept()), &ask, &[]).unwrap();
 		assert_eq!(appends[0]["role"], json!("user"));

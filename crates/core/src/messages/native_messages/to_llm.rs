@@ -126,6 +126,8 @@ pub fn to_llm_messages(messages: &[Json]) -> Vec<Json> {
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use crate::messages::app_notes::app_note_for;
+	use crate::messages::input_events::ChatInput;
 
 	fn quiz_call(id: &str) -> Json {
 		json!({ "id": "m1", "role": "assistant", "content": [{ "type": "toolCall", "id": id, "name": "quiz", "arguments": { "question": "?" } }], "timestamp": 5 })
@@ -164,6 +166,21 @@ mod tests {
 				json!({ "role": "user", "content": [{ "type": "text", "text": "[Opener] Cross-validation: he skipped it." }], "timestamp": 5 }),
 			]
 		);
+	}
+
+	#[test]
+	fn questions_from_earlier_reach_the_agent_as_one_line_only() {
+		let review = |topic: &str, at: i64| {
+			let details = json!({ "of": { "chatId": "c0", "toolCallId": "t0" }, "nodeId": "n", "topic": topic, "quiz": { "question": "?" }, "answer": { "kind": "quiz", "correct": true, "answers": [{ "label": "A" }], "confidence": 80 } });
+			json!({ "id": topic, "role": "custom", "customType": "review", "content": "", "display": true, "details": details, "timestamp": at })
+		};
+		let mut messages = vec![review("Eigenvalues", 1), review("Gradient descent", 2)];
+		let note = app_note_for(&json!({ "messages": messages }), &ChatInput::Next, None).unwrap();
+		messages.push(note);
+		messages.push(json!({ "id": "n", "role": "custom", "customType": "practice-next", "content": "[NEXT PROBLEM]", "timestamp": 3 }));
+		let seen = to_llm_messages(&messages);
+		let texts: Vec<&str> = seen.iter().filter_map(|m| m["content"][0]["text"].as_str()).collect();
+		assert_eq!(texts, ["[From earlier] Eigenvalues right, sure 4. Gradient descent right, sure 4.", "[NEXT PROBLEM]"]);
 	}
 
 	#[test]
