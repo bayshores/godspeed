@@ -23,7 +23,8 @@ import { ReadingPane } from "../../src/frontend/components/lesson/reading-pane.t
 import { TeacherContext, type TeacherApi } from "../../src/frontend/components/teacher/teacher-context.ts";
 import { SpaceProvider } from "../../src/frontend/components/space-context.tsx";
 import { ServerEventsProvider } from "../../src/frontend/components/server-events.tsx";
-import { CONFIDENCE_STOPS, newUserMessage, projectView, reuseUnchangedMessages, type LhMessage, type QuestionAnswerData, type QuestionFormDraft, type SpaceSummary } from "../../src/shared/core/index.ts";
+import { call, CONCLUDE_SOLVED, result, userText } from "../stop-fixtures.ts";
+import { activeProblemOf, CONFIDENCE_STOPS, findPendingToolCall, newUserMessage, projectView, reuseUnchangedMessages, type LhMessage, type QuestionAnswerData, type QuestionFormDraft, type SpaceSummary } from "../../src/shared/core/index.ts";
 
 const dom = parseHTML("<!doctype html><html><body></body></html>");
 const store = new Map<string, string>();
@@ -312,6 +313,37 @@ describe("Your turn in each state", () => {
 
 	it("a problem without a line shows only the statement", () => {
 		assert.doesNotMatch(html({ problem: { ...problem, line: null } }), /problem-line/);
+	});
+
+	it("a quiz asked while a problem is still open (a strong topic's extra question) is answered first, then the problem is back until its conclude", async () => {
+		const posed: LhMessage[] = [
+			call("p1", "problem", { statement: "Find E[N].", nodeId: "reg" }, 30),
+			result("p1", "problem", null, 30),
+			userText("u1", "E[N] = 2", 32),
+			call("q1", "quiz", { ...quizInput, nodeId: "reg" }, 33),
+		];
+		const asked = findPendingToolCall(projectView(posed));
+		assert.equal(asked?.toolCallId, "q1");
+		assert.equal(activeProblemOf(posed)?.toolCallId, "p1", "the problem stays open under the quiz");
+		const out = html({ pending: asked, problem });
+		assert.match(out, /data-mode="question"/);
+		assert.match(out, /data-testid="question-dock"[\s\S]*Which planet is closest[\s\S]*Submit answer/);
+		assert.match(out, /data-testid="skip-question"[^>]*>Skip question</, "he may skip it");
+		assert.doesNotMatch(out, /open-problem|discard-problem/);
+
+		const answers: QuestionAnswerData[] = [];
+		await mounted(turn({ pending: asked, problem, onSubmitAnswer: (a) => answers.push(a) }), async (host) => {
+			await act(async () => optionNamed(host, "Mercury").click());
+			await click(host, "question-submit");
+		});
+		assert.equal(answers[0]?.correct, true);
+
+		const answered = [...posed, result("q1", "quiz", answers[0], 34)];
+		assert.equal(findPendingToolCall(projectView(answered)), null);
+		assert.equal(activeProblemOf(answered)?.toolCallId, "p1");
+		assert.match(html({ problem }), /data-mode="practice"[\s\S]*data-testid="discard-problem"/);
+		const concluded = [...answered, call("c1", "conclude", CONCLUDE_SOLVED, 35), result("c1", "conclude", null, 35)];
+		assert.equal(activeProblemOf(concluded), null);
 	});
 
 	it("Skip question, Discard problem and Stop are the way out of each state", async () => {
