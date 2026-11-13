@@ -3,9 +3,13 @@ name: Desktop release
 on:
   push:
     tags: ["v*"]
-  # Manual runs are artifact-only, unsigned, and NEVER create a release.
-  # Use this for the first Windows/Linux dress rehearsal without secrets.
+  # Manual runs are rehearsals: no Apple signing, a throwaway updater key, artifacts only.
+  # They NEVER create, change or upload to a release.
   workflow_dispatch:
+    inputs:
+      staging_percentage:
+        description: Share (0 to 100) of Electron Macs the hand-over feed offers this version to
+        default: "10"
 
 permissions:
   contents: read
@@ -16,39 +20,46 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  NEXT_TELEMETRY_DISABLED: "1"
+  CARGO_TERM_COLOR: always
+  TAURI_APP_PATH: crates/shell
+  # The share of Electron Macs that latest-mac.yml offers this version to. 10 is for the first
+  # Tauri release; set it to 100 (no staging) once that move is done (docs/desktop-release.md).
+  MAC_STAGING_PERCENTAGE: ${{ inputs.staging_percentage || '10' }}
 
 jobs:
   quality:
     name: Release gates
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v7
+      - name: Tag must match package.json
+        if: github.event_name == 'push'
+        run: |
+          version=$(node -p 'require("./package.json").version')
+          if [[ "$GITHUB_REF_NAME" != "v$version" ]]; then
+            echo "::error::Release tag must equal v$version"
+            exit 1
+          fi
+      - name: Linux packages for the shell
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev patchelf
       - uses: actions/setup-node@v7
         with:
           node-version: "26"
           cache: npm
+      - name: Rust toolchain (the version pinned in rust-toolchain.toml)
+        run: rustup toolchain install
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo install cargo-machete --locked --version 0.9.2
       - run: npm ci
-      - name: Tag must match package.json
-        if: github.event_name == 'push'
-        run: |
-          node --input-type=module -e '
-            import fs from "node:fs";
-            const {version} = JSON.parse(fs.readFileSync("package.json", "utf8"));
-            if (process.env.GITHUB_REF_NAME !== `v${version}`) {
-              console.error("Release tag must equal v" + version);
-              process.exit(1);
-            }
-          '
-      - run: npm run typecheck
-      - run: npm test
-      - run: npm run lint
-      - run: npm run deadcode
+      - run: npm run check
+      - name: Skill tests (Python)
+        run: python3 -B -m unittest discover -s tests/skills
 
-  # Speed: the draft and the three package jobs start right away, in
-  # parallel with the quality gates. A failed gate still blocks the release:
-  # verify needs quality, and only a verified draft gets published.
+  # Speed: the draft and the three package jobs start right away, in parallel with the gates.
+  # A failed gate still blocks the release: verify needs quality, and only the owner publishes.
   draft:
     name: Prepare one draft
     runs-on: ubuntu-24.04
@@ -56,15 +67,14 @@ jobs:
     permissions:
       contents: write
     steps:
-      # Only the changelog: the release page shows the same notes as the
-      # app's "What's new" dialog.
+      # Only the changelog: the release page shows the same notes as the app's "What's new".
       - uses: actions/checkout@v7
         if: github.event_name == 'push'
         with:
           sparse-checkout: src/shared/changelog.json
           sparse-checkout-cone-mode: false
       # This job succeeds without creating anything on manual rehearsals.
-      # Preparing once avoids the publisher's list-miss/create race between OS jobs.
+      # Preparing once means the OS jobs never race to create the draft.
       - name: Create or reuse the tag's draft
         if: github.event_name == 'push'
         uses: actions/github-script@v9
@@ -79,8 +89,8 @@ jobs:
             if (!entry || !Array.isArray(entry.changes) || entry.changes.length === 0) {
               throw new Error(`src/shared/changelog.json has no notes for ${version}; add them before releasing.`);
             }
-            // Download links first, for people new to GitHub. These names
-            // match the artifactName settings in electron/electron-builder.yml.
+            // Download links first, for people new to GitHub. These names are the ones
+            // scripts/release-assets.mjs gives the bundler's files.
             const link = name => `[${name}](https://github.com/${owner}/${repo}/releases/download/${tag}/${name})`;
             const body = [
               "## Download",
@@ -128,154 +138,235 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # Xcode 26's actool compiles the .icon app icon and needs macOS 26.
           - os: macos-26
-            platform: mac-arm64
-            builder_args: --mac --arm64
+            platform: mac
+            triple: aarch64-apple-darwin
+            bundles: app,dmg
+            config: ""
           - os: windows-2025
-            platform: windows-x64
-            builder_args: --win --x64
+            platform: windows
+            triple: x86_64-pc-windows-msvc
+            bundles: nsis
+            config: --config crates/shell/tauri.bundle.windows.conf.json
+          # Built on the oldest Ubuntu the Linux app supports (glibc 2.35).
           - os: ubuntu-24.04
-            platform: linux-x64
-            builder_args: --linux --x64
+            platform: linux
+            container: ubuntu:22.04
+            triple: x86_64-unknown-linux-gnu
+            bundles: appimage,deb
+            config: --config crates/shell/tauri.bundle.linux.conf.json
     runs-on: ${{ matrix.os }}
-    # Apple's notarization queue has taken ~2 hours for this team.
+    container: ${{ matrix.container }}
+    # Apple's notarization queue has taken about 2 hours for this team.
     timeout-minutes: 180
+    env:
+      # No FUSE in containers; the AppImage tools unpack themselves instead.
+      APPIMAGE_EXTRACT_AND_RUN: "1"
     defaults:
       run:
         shell: bash
+    steps:
+      - name: Linux packages (Ubuntu 22.04 container)
+        if: runner.os == 'Linux'
+        run: |
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends ca-certificates git python3 xvfb xauth binutils \
+            libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain none --profile minimal
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+      # The upload step needs gh, which the container does not have (GitHub's own apt repository).
+      - name: GitHub CLI (Ubuntu 22.04 container)
+        if: runner.os == 'Linux' && github.event_name == 'push'
+        run: |
+          mkdir -p -m 755 /etc/apt/keyrings
+          curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg -o /etc/apt/keyrings/githubcli-archive-keyring.gpg
+          chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg
+          echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" > /etc/apt/sources.list.d/github-cli.list
+          apt-get update
+          apt-get install -y gh
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "26"
+          cache: npm
+      - name: Select Xcode 26+ for actool (the Mac icon)
+        if: runner.os == 'macOS'
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+      - name: Rust toolchain (the version pinned in rust-toolchain.toml)
+        run: |
+          rustup toolchain install
+          rustup target add ${{ matrix.triple }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: release-${{ matrix.platform }}
+      - run: npm ci
+      - run: node scripts/fetch-model.mjs
+      - run: node scripts/fetch-pdfium.mjs
+      # Stage once here so the smoke runs before the slow bundler (tauri build stages again, cached).
+      - run: node scripts/stage-app.mjs
+      - run: node scripts/smoke-server.mjs
+
+      - name: Check the signing secrets
+        if: github.event_name == 'push'
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          APPLE_CERTIFICATE: ${{ runner.os != 'macOS' && 'not needed' || secrets.MAC_CSC_LINK }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ runner.os != 'macOS' && 'not needed' || secrets.MAC_CSC_KEY_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ runner.os != 'macOS' && 'not needed' || secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ runner.os != 'macOS' && 'not needed' || secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ runner.os != 'macOS' && 'not needed' || secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ runner.os != 'macOS' && 'not needed' || secrets.APPLE_TEAM_ID }}
+        # The bundler only warns and skips notarization when the Apple ID secrets are missing.
+        run: |
+          for name in TAURI_SIGNING_PRIVATE_KEY TAURI_SIGNING_PRIVATE_KEY_PASSWORD APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_SIGNING_IDENTITY APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID; do
+            if [[ -z "${!name}" ]]; then
+              echo "::error::Missing signing secret for $name"
+              exit 1
+            fi
+          done
+
+      - name: Build, sign and notarize (macOS release)
+        if: github.event_name == 'push' && runner.os == 'macOS'
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          APPLE_CERTIFICATE: ${{ secrets.MAC_CSC_LINK }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: npx tauri build --config crates/shell/tauri.bundle.conf.json ${{ matrix.config }} --target ${{ matrix.triple }} --bundles ${{ matrix.bundles }}
+      - name: Build (Windows and Linux release)
+        if: github.event_name == 'push' && runner.os != 'macOS'
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: npx tauri build --config crates/shell/tauri.bundle.conf.json ${{ matrix.config }} --target ${{ matrix.triple }} --bundles ${{ matrix.bundles }}
+      # A throwaway key still writes the .sig files, so the feeds job rehearses too. Without an
+      # Apple identity the bundler signs nothing on the Mac.
+      - name: Build (rehearsal, no Apple signing, throwaway updater key)
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          npx tauri signer generate --ci -p "" -w "$RUNNER_TEMP/rehearsal.key"
+          TAURI_SIGNING_PRIVATE_KEY="$RUNNER_TEMP/rehearsal.key" TAURI_SIGNING_PRIVATE_KEY_PASSWORD="" \
+            npx tauri build --config crates/shell/tauri.bundle.conf.json ${{ matrix.config }} --target ${{ matrix.triple }} --bundles ${{ matrix.bundles }}
+
+      - run: node scripts/release-assets.mjs ${{ matrix.platform }}
+
+      # Squirrel.Mac checks the new app against the running Electron app's designated requirement,
+      # so the Tauri app must satisfy that exact text, in the bundle and in the zip Electron gets.
+      - name: Check the Mac signature, notarization and hand-over requirement
+        if: github.event_name == 'push' && runner.os == 'macOS'
+        run: |
+          set -euo pipefail
+          requirement="=$(cat crates/shell/release/electron-requirement.txt)"
+          version=$(node -p 'require("./package.json").version')
+          unzipped=$(mktemp -d)
+          ditto -x -k "dist/godspeed-$version-arm64-mac.zip" "$unzipped"
+          for app in "target/${{ matrix.triple }}/release/bundle/macos/godspeed.app" "$unzipped/godspeed.app"; do
+            echo "checking $app"
+            codesign --verify --deep --strict --all-architectures -R "$requirement" "$app"
+            spctl --assess --type execute --verbose=2 "$app"
+            xcrun stapler validate "$app"
+          done
+
+      # Linux builds must run on Ubuntu 22.04 and Debian 12 (glibc 2.35 and 2.36).
+      - name: Check the glibc the Linux binaries need
+        if: runner.os == 'Linux'
+        run: |
+          set -euo pipefail
+          for bin in "target/${{ matrix.triple }}/release/godspeed" "target/${{ matrix.triple }}/release/godspeed-server"; do
+            newest=$(objdump -T "$bin" | grep -o 'GLIBC_[0-9.]*' | sed 's/GLIBC_//' | sort -V | tail -n 1)
+            echo "$bin needs glibc $newest"
+            if [[ "$(printf '%s\n2.35\n' "$newest" | sort -V | tail -n 1)" != "2.35" ]]; then
+              echo "::error::$bin needs glibc $newest, above 2.35"
+              exit 1
+            fi
+          done
+
+      - name: Demo runner self-test in the real app
+        run: |
+          cargo build -p gs-shell --features self-test
+          case "$RUNNER_OS" in
+            Windows) target/debug/godspeed.exe --self-test ;;
+            Linux) xvfb-run -a target/debug/godspeed --self-test ;;
+            *) target/debug/godspeed --self-test ;;
+          esac
+
+      - name: Save the downloads and signatures
+        uses: actions/upload-artifact@v7
+        with:
+          name: godspeed-${{ matrix.platform }}
+          retention-days: 7
+          if-no-files-found: error
+          path: dist/
+
+      - name: Upload the downloads to the draft
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # The .sig files are not assets; their text goes into latest.json.
+        run: |
+          shopt -s extglob
+          gh release upload "$GITHUB_REF_NAME" dist/!(*.sig) --clobber -R "$GITHUB_REPOSITORY"
+
+  feeds:
+    name: Write the update feeds
+    needs: package
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
           node-version: "26"
           cache: npm
-      # The mac icon is the Icon Composer document (electron/build/icon.icon);
-      # compiling it needs both macOS 26+ and actool ≥ 26 (Xcode 26+).
-      # Xcode 26's asset compiler crashes on macOS 15's older frameworks.
-      # Select the latest stable Xcode; no-op for Windows/Linux.
-      - name: Select Xcode 26+ for actool (mac icon compile)
-        if: runner.os == 'macOS'
-        uses: maxim-lobanov/setup-xcode@v1
-        with:
-          xcode-version: latest-stable
-      # Electron and electron-builder download ~100-200 MB of binaries per
-      # build; keep them between runs (restored BEFORE npm ci, whose
-      # electron postinstall reads this cache).
-      - name: Cache Electron downloads
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/Library/Caches/electron
-            ~/Library/Caches/electron-builder
-            ~/.cache/electron
-            ~/.cache/electron-builder
-            ~/AppData/Local/electron/Cache
-            ~/AppData/Local/electron-builder/Cache
-          key: electron-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-          restore-keys: electron-${{ runner.os }}-
       - run: npm ci
-      - name: Native renderer tests on this OS
-        run: npx electron --import tsx --test tests/backend/pdf-native-render.test.ts tests/backend/pdf-ops.test.ts tests/backend/svg-native-render.test.ts tests/backend/browser-service.test.ts
-        env:
-          NODE_ENV: test
-          ELECTRON_RUN_AS_NODE: "1"
-      # Next's incremental build cache: later releases rebuild only what changed.
-      - name: Cache Next build
-        uses: actions/cache@v4
+      - name: Gather the three systems' downloads
+        uses: actions/download-artifact@v8
         with:
-          path: .next/cache
-          key: next-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-${{ github.sha }}
-          restore-keys: next-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-
-      - run: node scripts/fetch-model.mjs
-      - run: npm run build
-      - run: node scripts/build-server.mjs
-      - run: node scripts/smoke-server.mjs --electron
-      - name: Validate macOS release secrets
-        if: github.event_name == 'push' && runner.os == 'macOS'
-        env:
-          CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
-          CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: |
-          for name in CSC_LINK CSC_KEY_PASSWORD APPLE_ID APPLE_APP_SPECIFIC_PASSWORD APPLE_TEAM_ID; do
-            if [[ -z "${!name}" ]]; then
-              echo "::error::Missing signing/notarization secret: $name"
-              exit 1
-            fi
-          done
-      - name: Signed and notarized macOS release → draft
-        if: github.event_name == 'push' && runner.os == 'macOS'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
-          CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: npx electron-builder -c electron/electron-builder.yml ${{ matrix.builder_args }} --publish always -c.forceCodeSigning=true
-      - name: Windows/Linux release → draft
-        if: github.event_name == 'push' && runner.os != 'macOS'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx electron-builder -c electron/electron-builder.yml ${{ matrix.builder_args }} --publish always
-      - name: Unsigned macOS rehearsal (no publish, no notarization)
-        if: github.event_name == 'workflow_dispatch' && runner.os == 'macOS'
-        env:
-          CSC_IDENTITY_AUTO_DISCOVERY: "false"
-        run: npx electron-builder -c electron/electron-builder.yml ${{ matrix.builder_args }} --publish never -c.mac.notarize=false
-      - name: Windows/Linux rehearsal (no publish)
-        if: github.event_name == 'workflow_dispatch' && runner.os != 'macOS'
-        run: npx electron-builder -c electron/electron-builder.yml ${{ matrix.builder_args }} --publish never
-      - name: Exercise packaged demo runtime (own Electron, no system Chrome)
-        run: |
-          case "$RUNNER_OS" in
-            macOS)
-              app="dist/mac-arm64/godspeed.app/Contents"
-              node scripts/smoke-demo-runtime.mjs --standalone "$app/Resources/server/standalone" --runtime "$app/MacOS/godspeed" --browser
-              ;;
-            Windows)
-              node scripts/smoke-demo-runtime.mjs --standalone dist/win-unpacked/resources/server/standalone --runtime dist/win-unpacked/godspeed.exe --browser
-              ;;
-            Linux)
-              xvfb-run -a node scripts/smoke-demo-runtime.mjs --standalone dist/linux-unpacked/resources/server/standalone --runtime dist/linux-unpacked/godspeed --browser
-              ;;
-          esac
-      - name: Save installers and update metadata
+          pattern: godspeed-*
+          path: dist
+          merge-multiple: true
+      - run: node scripts/release-feeds.mjs dist --mac-staging "$MAC_STAGING_PERCENTAGE"
+      - name: Save the feeds
         uses: actions/upload-artifact@v7
         with:
-          name: godspeed-${{ matrix.platform }}
+          name: godspeed-feeds
           retention-days: 7
           if-no-files-found: error
           path: |
-            dist/*.dmg
-            dist/*.zip
-            dist/*.exe
-            dist/*.AppImage
-            dist/*.deb
-            dist/*.blockmap
+            dist/latest.json
             dist/latest*.yml
+      - name: Upload the feeds to the draft
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "$GITHUB_REF_NAME" dist/latest.json dist/latest-mac.yml dist/latest.yml dist/latest-linux.yml --clobber -R "$GITHUB_REPOSITORY"
 
-  # The last gate before a human publishes: after ALL three packaging jobs
-  # have uploaded, fail the run unless the tag's single draft release holds
-  # exactly the 11 verified assets (4 installers + mac updater ZIP + their
-  # blockmaps + 3 latest*.yml feeds) and the feeds reference those uploads
-  # by exact name at the package.json version. Read-only: it never creates,
-  # edits, publishes, or deletes anything. Manual rehearsals upload nothing,
+  # The last gate before a human publishes: fail the run unless the tag's single draft holds
+  # exactly the ten assets and the four feeds point at them at the package.json version.
+  # Read-only: it never creates, edits, publishes or deletes anything. Rehearsals upload nothing,
   # so there is no draft to verify and the job stays skipped.
   verify:
     name: Verify draft release
-    needs: [quality, package]
+    needs: [quality, feeds]
     if: github.event_name == 'push'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
-    # GitHub hides drafts from tokens without push access. The commands below
-    # remain GET-only; expose this token only to the two API-reading steps.
+    # GitHub hides drafts from tokens without push access. The commands below stay GET-only;
+    # only the two API-reading steps see this token.
     permissions:
       contents: write
     steps:
-      # The tagged revision — verify exactly what was packaged, not a moving default.
+      # The tagged revision: verify exactly what was packaged.
       - uses: actions/checkout@v7
         with:
           ref: ${{ github.sha }}
@@ -288,19 +379,18 @@ jobs:
       - name: List every release, drafts included
         env:
           GH_TOKEN: ${{ github.token }}
-        # --slurp wraps the paginated pages into one JSON document
-        # ([[release,...],[release,...]]); the validator flattens it.
+        # --slurp wraps the pages into one JSON document; the validator flattens it.
         run: gh api --paginate --slurp "repos/$GITHUB_REPOSITORY/releases?per_page=100" > "$RUNNER_TEMP/releases.json"
       - name: Select the tag's single draft
         # Machine JSON on stdout (release id + asset ids); warnings on stderr.
         run: npx tsx scripts/verify-release.ts select "$RUNNER_TEMP/releases.json" --tag "$GITHUB_REF_NAME" > "$RUNNER_TEMP/draft.json"
-      - name: Download the three update feeds
+      - name: Download the four update feeds
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          mkdir -p "$RUNNER_TEMP/metadata"
-          for name in latest-mac.yml latest.yml latest-linux.yml; do
+          mkdir -p "$RUNNER_TEMP/feeds"
+          for name in latest.json latest-mac.yml latest.yml latest-linux.yml; do
             id=$(DRAFT="$RUNNER_TEMP/draft.json" NAME="$name" node -e '
               const fs = require("node:fs");
               const draft = JSON.parse(fs.readFileSync(process.env.DRAFT, "utf8"));
@@ -308,8 +398,8 @@ jobs:
               if (asset == null) { console.error("draft has no " + process.env.NAME); process.exit(1); }
               console.log(asset.id);
             ')
-            gh api "repos/$GITHUB_REPOSITORY/releases/assets/$id" -H "Accept: application/octet-stream" > "$RUNNER_TEMP/metadata/$name"
-            echo "downloaded $name ($(wc -c < "$RUNNER_TEMP/metadata/$name") bytes)"
+            gh api "repos/$GITHUB_REPOSITORY/releases/assets/$id" -H "Accept: application/octet-stream" > "$RUNNER_TEMP/feeds/$name"
+            echo "downloaded $name ($(wc -c < "$RUNNER_TEMP/feeds/$name") bytes)"
           done
       - name: Verify draft assets and update feeds
-        run: npx tsx scripts/verify-release.ts verify "$RUNNER_TEMP/releases.json" "$RUNNER_TEMP/metadata" --tag "$GITHUB_REF_NAME"
+        run: npx tsx scripts/verify-release.ts verify "$RUNNER_TEMP/releases.json" "$RUNNER_TEMP/feeds" --tag "$GITHUB_REF_NAME"

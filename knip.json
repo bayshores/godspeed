@@ -8,7 +8,5 @@
 	],
 	"project": ["**/*.{ts,tsx,js,mjs,cjs}"],
 	// globals.css loads it with `@import "tailwindcss"`, which knip does not read.
-	"ignoreDependencies": ["tailwindcss"],
-	// The release workflows still run the Electron build.
-	"ignoreBinaries": ["electron", "electron-builder", "electron/electron-builder.yml"]
+	"ignoreDependencies": ["tailwindcss"]
 }

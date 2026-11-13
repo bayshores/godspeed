@@ -1,10 +1,7 @@
 /**
- * The final release gate (scripts/verify-release.ts) — pure-function tests
- * plus CLI end-to-end runs, all offline against fixtures. The expected asset
- * names asserted here are the ones verified against the INSTALLED
- * app-builder-lib 26.15.3 (see the script header for the derivation):
- * 11 assets — 4 installers (dmg / NSIS exe / AppImage / deb), the mac
- * updater ZIP, its/exe/dmg blockmaps, and the three latest*.yml feeds.
+ * The final release gate (scripts/verify-release.ts): pure-function tests plus CLI runs, all
+ * offline. The healthy feeds come from scripts/release-feeds.mjs, so the feeds a release writes are
+ * the feeds this gate accepts.
  */
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
@@ -16,64 +13,78 @@ import { fileURLToPath } from "node:url";
 import { describe, it } from "node:test";
 
 import {
-	checkVersion, expectedAssets, feedExpectations, isPlainAssetName, normalizeReleasePages,
-	parseReleases, selectDraft, verifyAssets, verifyConfigAssumptions, verifyMetadataFiles,
+	checkVersion, expectedAssets, isPlainAssetName, LEGACY_TEMPLATES, normalizeReleasePages,
+	parseReleases, selectDraft, verifyAssets, verifyConfigAssumptions, verifyFeeds,
 	type ReleaseAsset, type ReleaseRecord,
 } from "../../scripts/verify-release.ts";
+import { legacyFeed, macFeed, tauriFeed } from "../../scripts/release-feeds.mjs";
 
 const require = createRequire(import.meta.url);
+const yaml = require("js-yaml") as { load(source: string): any };
 const repoRoot = path.resolve(fileURLToPath(new URL("../..", import.meta.url)));
 const script = path.join(repoRoot, "scripts", "verify-release.ts");
+const releaseDir = path.join(repoRoot, "crates", "shell", "release");
 const VERSION = "0.2.0";
 const TAG = `v${VERSION}`;
+const NOW = "2026-11-12T10:00:00.000Z";
 
-/** A base64-looking sha512 (the gate checks shape, not the actual digest). */
+/** A base64-looking sha512 (the gate checks shape, not the digest). */
 const sha512 = (seed: string) => Buffer.from(seed.padEnd(64, "0")).toString("base64");
+/** A `.sig` file's text as the bundler writes it for `version`. */
+const signature = (version: string, file = "x") =>
+	Buffer.from(
+		"untrusted comment: signature from tauri secret key\nRUQy9ev4aR89LuWPzHIWi1yg\n" +
+		`trusted comment: timestamp:1794536654\tfile:${file}\tversion:${version}\nZBGjkwkTJWB/Tcy5T6CMvE==`,
+	).toString("base64");
 
 function asset(id: number, name: string, overrides: Partial<ReleaseAsset> = {}): ReleaseAsset {
 	return { id, name, size: 5000, state: "uploaded", ...overrides };
 }
 
-/** The complete, healthy 11-asset draft for a version. */
+/** The complete, healthy ten-asset draft for a version. */
 function healthyRelease(version: string, tagForm: "v" | "bare" = "v"): ReleaseRecord {
-	const e = expectedAssets(version);
 	return {
 		id: 42,
 		tag_name: tagForm === "v" ? `v${version}` : version,
 		draft: true,
-		assets: e.files.map((name, index) => asset(1000 + index, name)),
+		assets: expectedAssets(version).files.map((name, index) => asset(1000 + index, name)),
 	};
 }
 
-/** The three update feeds exactly as app-builder-lib writes them. */
-function healthyFeeds(version: string, release: ReleaseRecord): Record<string, string> {
-	const byName = new Map(release.assets.map((entry) => [entry.name, entry]));
-	const feeds: Record<string, string> = {};
-	for (const expectation of feedExpectations(expectedAssets(version))) {
-		const files = expectation.urls.map((url) => {
-			const found = byName.get(url);
-			assert.ok(found, `fixture needs ${url}`);
-			return `  - url: ${url}\n    sha512: ${sha512(url)}\n    size: ${found.size}\n`;
-		});
-		const first = expectation.urls[0]!;
-		feeds[expectation.file] =
-			`version: ${version}\nfiles:\n${files.join("")}` +
-			`path: ${first}\nsha512: ${sha512(first)}\nreleaseDate: '2026-10-13T09:37:13.265Z'\n`;
-	}
+const templates = () =>
+	Object.fromEntries(Object.entries(LEGACY_TEMPLATES).map(([feed, file]) => [feed, fs.readFileSync(path.join(releaseDir, file), "utf8")]));
+
+/** The four feeds exactly as scripts/release-feeds.mjs writes them. */
+function healthyFeeds(version: string, staging = 10): Record<string, string> {
+	const e = expectedAssets(version);
+	const keys = ["darwin-aarch64-app", "windows-x86_64-nsis", "linux-x86_64-appimage", "linux-x86_64-deb"];
+	const feeds: Record<string, string> = {
+		[e.tauriFeed]: tauriFeed(version, NOW, Object.fromEntries(keys.map((key) => [key, signature(version)]))),
+		[e.mac.feed]: macFeed({
+			version,
+			zip: { url: e.mac.zip, sha512: sha512(e.mac.zip), size: 5000 },
+			dmg: { url: e.mac.dmg, sha512: sha512(e.mac.dmg), size: 5000 },
+			releaseDate: NOW,
+			staging,
+		}),
+	};
+	for (const [feed, template] of Object.entries(templates())) feeds[feed] = legacyFeed(template, version);
 	return feeds;
 }
 
-describe("release gate — expected asset inventory", () => {
-	it("is exactly the 11 verified builder outputs for the version", () => {
+const check = (feeds: Record<string, string>, release = healthyRelease(VERSION), legacy = templates()) =>
+	verifyFeeds(feeds, legacy, release, expectedAssets(VERSION));
+
+describe("release gate: expected asset inventory", () => {
+	it("is exactly the ten release files for the version", () => {
 		assert.deepEqual(expectedAssets(VERSION).files, [
 			"godspeed-mac-apple-silicon.dmg",
-			"godspeed-0.2.0-arm64-mac.zip",
 			"godspeed-windows-x64-setup.exe",
 			"godspeed-linux-x64.AppImage",
 			"godspeed-linux-x64.deb",
-			"godspeed-mac-apple-silicon.dmg.blockmap",
-			"godspeed-0.2.0-arm64-mac.zip.blockmap",
-			"godspeed-windows-x64-setup.exe.blockmap",
+			"godspeed-mac-apple-silicon.app.tar.gz",
+			"latest.json",
+			"godspeed-0.2.0-arm64-mac.zip",
 			"latest-mac.yml",
 			"latest.yml",
 			"latest-linux.yml",
@@ -97,7 +108,7 @@ describe("release gate — expected asset inventory", () => {
 	});
 });
 
-describe("release gate — release-list parsing", () => {
+describe("release gate: release-list parsing", () => {
 	it("flattens gh --paginate --slurp pages and accepts a plain array", () => {
 		const release = healthyRelease(VERSION);
 		const paged = normalizeReleasePages([[release], [], [release]]);
@@ -113,21 +124,19 @@ describe("release gate — release-list parsing", () => {
 	});
 
 	it("rejects malformed release entries and assets", () => {
-		const bad = [{ id: 1, tag_name: "v0.2.0", draft: "yes", assets: [] }];
-		assert.ok(!parseReleases(bad).ok);
-		const badAssets = [{ id: 1, tag_name: "v0.2.0", draft: true, assets: [{ id: 1, name: "x", size: 1, state: "" }] }];
-		assert.ok(!parseReleases(badAssets).ok);
+		assert.ok(!parseReleases([{ id: 1, tag_name: "v0.2.0", draft: "yes", assets: [] }]).ok);
+		assert.ok(!parseReleases([{ id: 1, tag_name: "v0.2.0", draft: true, assets: [{ id: 1, name: "x", size: 1, state: "" }] }]).ok);
 		assert.ok(parseReleases([healthyRelease(VERSION)]).ok);
 	});
 });
 
-describe("release gate — draft selection (fail-closed, existing tag matching)", () => {
+describe("release gate: draft selection", () => {
 	it("selects the single draft carrying the v-tag", () => {
 		const selection = selectDraft([healthyRelease(VERSION)], TAG, VERSION);
 		assert.ok(selection.ok && selection.release.id === 42 && selection.warnings.length === 0);
 	});
 
-	it("still matches the legacy unprefixed tag form but reports the hazard", () => {
+	it("still matches the unprefixed tag form but reports the hazard", () => {
 		const selection = selectDraft([healthyRelease(VERSION, "bare")], TAG, VERSION);
 		assert.ok(selection.ok);
 		assert.equal(selection.warnings.length, 1);
@@ -141,23 +150,21 @@ describe("release gate — draft selection (fail-closed, existing tag matching)"
 		assert.match(selection.errors.join("\n"), /no release matches/);
 	});
 
-	it("fails when the match is already published — never modifies it", () => {
-		const published = { ...healthyRelease(VERSION), draft: false };
-		const selection = selectDraft([published], TAG, VERSION);
+	it("fails when the match is already published", () => {
+		const selection = selectDraft([{ ...healthyRelease(VERSION), draft: false }], TAG, VERSION);
 		assert.ok(!selection.ok);
 		assert.match(selection.errors.join("\n"), /already published/);
 	});
 
-	it("fails on ambiguous v-tag + bare-version drafts", () => {
+	it("fails on a v-tag draft and a bare-version draft together", () => {
 		const selection = selectDraft([healthyRelease(VERSION), healthyRelease(VERSION, "bare")], TAG, VERSION);
 		assert.ok(!selection.ok);
 		assert.match(selection.errors.join("\n"), /2 releases match/);
 	});
 });
 
-describe("release gate — packaging-config drift guard", () => {
-	const yaml = require("js-yaml") as { load(source: string): unknown };
-	const realConfig = yaml.load(fs.readFileSync(path.join(repoRoot, "electron", "electron-builder.yml"), "utf8"));
+describe("release gate: packaging config drift guard", () => {
+	const realConfig = JSON.parse(fs.readFileSync(path.join(repoRoot, "crates", "shell", "tauri.conf.json"), "utf8"));
 	const realPkg = JSON.parse(fs.readFileSync(path.join(repoRoot, "package.json"), "utf8"));
 
 	it("accepts the repository's real configuration", () => {
@@ -165,53 +172,57 @@ describe("release gate — packaging-config drift guard", () => {
 		assert.ok(verdict.ok, JSON.stringify(verdict, null, 2));
 	});
 
-	const drifts: Array<[string, (config: Record<string, unknown>) => void]> = [
-		["linux artifactName", (config) => { (config.linux as Record<string, unknown>).artifactName = "${name}-${version}-${arch}.${ext}"; }],
-		["win artifactName", (config) => { (config.win as Record<string, unknown>).artifactName = "${productName}-${version}-setup.${ext}"; }],
-		["dmg artifactName", (config) => { (config.dmg as Record<string, unknown>).artifactName = "${productName}-${version}.${ext}"; }],
-		["mac artifactName", (config) => { (config.mac as Record<string, unknown>).artifactName = "${productName}-${version}.${ext}"; }],
-		["top-level artifactName", (config) => { config.artifactName = "${name}-${version}.${ext}"; }],
-		["productName", (config) => { config.productName = "Godspeed"; }],
-		["mac targets", (config) => { (config.mac as Record<string, unknown>).target = [{ target: "dmg", arch: ["arm64"] }]; }],
-		["win target", (config) => { (config.win as Record<string, unknown>).target = [{ target: "appx", arch: ["x64"] }]; }],
-		["linux targets", (config) => { (config.linux as Record<string, unknown>).target = [{ target: "AppImage", arch: ["x64"] }]; }],
-		["publish provider", (config) => { config.publish = [{ provider: "github", releaseType: "prerelease" }]; }],
-		["package name", () => { /* pkg checked below */ }],
+	const drifts: Array<[string, (config: any) => void, RegExp]> = [
+		["productName", (config) => { config.productName = "Godspeed"; }, /productName is "Godspeed"/],
+		["mainBinaryName", (config) => { config.mainBinaryName = "app"; }, /mainBinaryName/],
+		["identifier", (config) => { config.identifier = "com.example.godspeed"; }, /identifier/],
+		["version source", (config) => { config.version = "0.6.0"; }, /version is "0\.6\.0"/],
+		["bundle targets", (config) => { config.bundle.targets = ["app", "dmg", "msi"]; }, /bundle\.targets/],
+		["updater artifacts", (config) => { config.bundle.createUpdaterArtifacts = "v1Compatible"; }, /createUpdaterArtifacts/],
+		["Mac minimum", (config) => { config.bundle.macOS.minimumSystemVersion = "13.0"; }, /minimumSystemVersion/],
+		["updater endpoint", (config) => { config.plugins.updater.endpoints = ["https://example.com/latest.json"]; }, /endpoints/],
+		["empty pubkey", (config) => { config.plugins.updater.pubkey = ""; }, /pubkey is empty/],
+		["missing pubkey", (config) => { delete config.plugins.updater.pubkey; }, /pubkey is empty/],
 	];
-	for (const [label, mutate] of drifts) {
-		it(`fails when ${label} drifts (expectations must be re-derived)`, () => {
-			const config = structuredClone(realConfig) as Record<string, unknown>;
+	for (const [label, mutate, pattern] of drifts) {
+		it(`fails when the ${label} drifts`, () => {
+			const config = structuredClone(realConfig);
 			mutate(config);
-			const pkg = label === "package name" ? { ...realPkg, name: "other" } : realPkg;
-			const verdict = verifyConfigAssumptions(config, pkg);
+			const verdict = verifyConfigAssumptions(config, realPkg);
 			assert.ok(!verdict.ok);
-			assert.match(verdict.errors.join("\n"), /expected names no longer hold|would not land in the draft|no longer "godspeed"|productName is /);
+			assert.match(verdict.errors.join("\n"), pattern);
 		});
 	}
+
+	it("fails when package.json is no longer godspeed", () => {
+		const verdict = verifyConfigAssumptions(realConfig, { ...realPkg, name: "other" });
+		assert.ok(!verdict.ok);
+		assert.match(verdict.errors.join("\n"), /no longer "godspeed"/);
+	});
 });
 
-describe("release gate — asset inventory", () => {
+describe("release gate: asset inventory", () => {
 	it("passes a complete draft and names every deviation", () => {
 		assert.ok(verifyAssets(healthyRelease(VERSION), expectedAssets(VERSION)).ok);
 		const release = healthyRelease(VERSION);
-		release.assets = release.assets.filter((entry) => entry.name !== "godspeed-windows-x64-setup.exe.blockmap");
-		release.assets.push(asset(9999, "godspeed-0.2.0-x64.AppImage"));
-		release.assets.push(asset(9998, "godspeed-0.1.0-x64-setup.exe"));
+		release.assets = release.assets.filter((entry) => entry.name !== "latest.json");
+		release.assets.push(asset(9999, "godspeed-mac-apple-silicon.dmg.blockmap"));
+		release.assets.push(asset(9998, "godspeed-0.1.0-arm64-mac.zip"));
 		release.assets.push(asset(9997, "godspeed-mac-apple-silicon.dmg", { size: 0 }));
 		release.assets.push(asset(9996, "godspeed-mac-apple-silicon.dmg", { state: "starter" }));
 		const verdict = verifyAssets(release, expectedAssets(VERSION));
 		assert.ok(!verdict.ok);
 		const joined = verdict.errors.join("\n");
-		assert.match(joined, /windows-x64-setup\.exe\.blockmap: missing/);
-		assert.match(joined, /x64\.AppImage: unexpected/);
-		assert.match(joined, /0\.1\.0-x64-setup\.exe: unexpected/);
+		assert.match(joined, /latest\.json: missing/);
+		assert.match(joined, /dmg\.blockmap: unexpected/);
+		assert.match(joined, /0\.1\.0-arm64-mac\.zip: unexpected/);
 		assert.match(joined, /duplicate asset name/);
 		assert.match(joined, /zero-size/);
 		assert.match(joined, /state is "starter"/);
 	});
 });
 
-describe("release gate — updater reference hygiene", () => {
+describe("release gate: feed reference hygiene", () => {
 	it("accepts bare asset names only", () => {
 		assert.ok(isPlainAssetName("godspeed-mac-apple-silicon.dmg"));
 		for (const bad of ["", ".", "..", "../godspeed.zip", "dist/godspeed.zip", "https://evil.example/app.zip",
@@ -219,119 +230,116 @@ describe("release gate — updater reference hygiene", () => {
 			assert.equal(isPlainAssetName(bad), false, bad);
 		}
 	});
+
+	it("the committed legacy templates are 0.5.51's feeds pointing into its own release", () => {
+		for (const [feed, text] of Object.entries(templates())) {
+			const info = yaml.load(text);
+			assert.equal(info.version, "0.5.51", feed);
+			assert.equal(info.newApp, undefined, `${feed}: newApp is added at release time`);
+			for (const entry of info.files) assert.match(entry.url, /^\.\.\/v0\.5\.51\/godspeed-[^/]+$/, feed);
+			assert.match(info.path, /^\.\.\/v0\.5\.51\//, feed);
+		}
+	});
 });
 
-describe("release gate — update feeds", () => {
-	it("accepts the healthy feeds for the complete draft", () => {
-		const release = healthyRelease(VERSION);
-		const verdict = verifyMetadataFiles(healthyFeeds(VERSION, release), release, expectedAssets(VERSION));
-		assert.ok(verdict.ok, JSON.stringify(verdict, null, 2));
+describe("release gate: update feeds", () => {
+	it("accepts the feeds release-feeds.mjs writes, with or without a staged share", () => {
+		for (const staging of [0, 10, 50, 99, 100]) {
+			const verdict = check(healthyFeeds(VERSION, staging));
+			assert.ok(verdict.ok, `${staging}: ${JSON.stringify(verdict, null, 2)}`);
+		}
 	});
 
-	it("accepts either AppImage/deb order in latest-linux.yml (builder order is not deterministic)", () => {
-		const release = healthyRelease(VERSION);
-		const e = expectedAssets(VERSION);
-		const feeds = healthyFeeds(VERSION, release);
-		// Same content, deb entry first (writeUpdateInfoFiles keeps whichever
-		// target finished first; the gate must accept both).
-		feeds["latest-linux.yml"] = [
-			`version: ${VERSION}`,
-			"files:",
-			`  - url: ${e.linux.deb}`,
-			`    sha512: ${sha512(e.linux.deb)}`,
-			"    size: 5000",
-			`  - url: ${e.linux.appImage}`,
-			`    sha512: ${sha512(e.linux.appImage)}`,
-			"    size: 5000",
-			`path: ${e.linux.deb}`,
-			`sha512: ${sha512(e.linux.deb)}`,
-			"releaseDate: '2026-10-13T09:37:13.265Z'",
-		].join("\n") + "\n";
-		const verdict = verifyMetadataFiles(feeds, release, expectedAssets(VERSION));
-		assert.ok(verdict.ok, JSON.stringify(verdict, null, 2));
-	});
-
-	type Mutation = (feeds: Record<string, string>, release: ReleaseRecord) => void;
+	type Mutation = (feeds: Record<string, string>) => void;
+	const e = expectedAssets(VERSION);
+	const json = (feeds: Record<string, string>, change: (info: any) => void) => {
+		const info = JSON.parse(feeds["latest.json"]!);
+		change(info);
+		feeds["latest.json"] = JSON.stringify(info);
+	};
 	const mutations: Array<[string, Mutation, RegExp]> = [
-		["wrong version in latest.yml", (feeds) => { feeds["latest.yml"] = feeds["latest.yml"]!.replace(`version: ${VERSION}`, "version: 0.3.0"); }, /latest\.yml: version is "0\.3\.0"/],
-		["path traversal in a reference", (feeds, release) => {
-			const e = expectedAssets(VERSION);
-			feeds["latest.yml"] = feeds["latest.yml"]!.replace(`url: ${e.win.exe}`, "url: ../../dist/app.exe");
-			void release;
-		}, /latest\.yml: files\[0\]\.url is not a bare asset name/],
-		["absolute-URL reference", (feeds) => {
-			const e = expectedAssets(VERSION);
-			feeds["latest.yml"] = feeds["latest.yml"]!.replace(`url: ${e.win.exe}`, "url: https://evil.example/app.exe");
-		}, /is not a bare asset name/],
-		["reference to an asset the release does not hold", (feeds) => {
-			const e = expectedAssets(VERSION);
-			feeds["latest.yml"] = feeds["latest.yml"]!.replace(`url: ${e.win.exe}`, "url: godspeed-0.1.0-x64-setup.exe");
-		}, /references "godspeed-0\.1\.0-x64-setup\.exe" which is not an asset/],
-		["size disagreeing with the uploaded asset", (feeds) => {
-			const e = expectedAssets(VERSION);
-			feeds["latest.yml"] = feeds["latest.yml"]!.replace("size: 5000", "size: 4999");
-			void e;
-		}, /size 4999 ≠ release asset size 5000/],
-		["mac ZIP not first (legacy path/sha512 would mislead the updater)", (feeds) => {
-			const e = expectedAssets(VERSION);
-			feeds["latest-mac.yml"] = feeds["latest-mac.yml"]!.replace(
-				`files:\n  - url: ${e.mac.zip}\n    sha512: ${sha512(e.mac.zip)}\n    size: 5000\n  - url: ${e.mac.dmg}\n    sha512: ${sha512(e.mac.dmg)}\n    size: 5000\n`,
-				`files:\n  - url: ${e.mac.dmg}\n    sha512: ${sha512(e.mac.dmg)}\n    size: 5000\n  - url: ${e.mac.zip}\n    sha512: ${sha512(e.mac.zip)}\n    size: 5000\n`,
-			).replace(`path: ${e.mac.zip}\nsha512: ${sha512(e.mac.zip)}\n`, `path: ${e.mac.dmg}\nsha512: ${sha512(e.mac.dmg)}\n`);
-		}, /files\[0\] must be/],
-		["mac legacy path pointing away from files[0]", (feeds) => {
-			const e = expectedAssets(VERSION);
-			feeds["latest-mac.yml"] = feeds["latest-mac.yml"]!.replace(`path: ${e.mac.zip}`, `path: ${e.mac.dmg}`);
-		}, /top-level path is/],
-		["mac legacy sha512 not matching files[0]", (feeds) => {
-			feeds["latest-mac.yml"] = feeds["latest-mac.yml"]!.replace(`sha512: ${sha512("godspeed-0.2.0-arm64-mac.zip")}\nreleaseDate`, `sha512: ${sha512("tampered")}\nreleaseDate`);
-		}, /top-level sha512 does not match/],
-		["missing deb entry in latest-linux.yml", (feeds) => {
-			const e = expectedAssets(VERSION);
-			feeds["latest-linux.yml"] = feeds["latest-linux.yml"]!.replace(
-				`  - url: ${e.linux.deb}\n    sha512: ${sha512(e.linux.deb)}\n    size: 5000\n`, "",
-			).replace(`path: ${e.linux.appImage}`, `path: ${e.linux.appImage}`);
-		}, /must reference exactly/],
-		["extra entry in latest.yml", (feeds) => {
-			const e = expectedAssets(VERSION);
-			feeds["latest.yml"] = feeds["latest.yml"]!.replace("path:", `  - url: ${e.mac.zip}\n    sha512: ${sha512(e.mac.zip)}\n    size: 5000\npath:`);
-		}, /must reference exactly/],
-		["garbage sha512", (feeds) => {
-			const e = expectedAssets(VERSION);
-			feeds["latest.yml"] = feeds["latest.yml"]!.replace(`sha512: ${sha512(e.win.exe)}`, "sha512: deadbeef");
-		}, /sha512 is not a base64 digest/],
-		["unparseable feed", (feeds) => { feeds["latest.yml"] = "\tversion: [unclosed"; }, /does not parse as YAML/],
-		["non-mapping feed", (feeds) => { feeds["latest.yml"] = "- just\n- a\n- list\n"; }, /top level is not a mapping/],
-		["feed not downloaded", (feeds) => { delete feeds["latest-linux.yml"]; }, /not downloaded/],
+		// latest.json
+		["a wrong version in latest.json", (f) => json(f, (info) => { info.version = "0.3.0"; }), /latest\.json: version is "0\.3\.0"/],
+		["a missing platform key", (f) => json(f, (info) => { delete info.platforms["linux-x86_64-deb"]; }), /platforms are \[.*\] but must be exactly/],
+		["an extra platform key", (f) => json(f, (info) => { info.platforms["darwin-x86_64"] = info.platforms["darwin-aarch64-app"]; }), /must be exactly/],
+		["a URL into another release", (f) => json(f, (info) => { info.platforms["windows-x86_64-nsis"].url = `https://github.com/bayshores/godspeed/releases/download/v0.1.0/${e.win.exe}`; }), /windows-x86_64-nsis\.url/],
+		["a URL on another host", (f) => json(f, (info) => { info.platforms["darwin-aarch64-app"].url = `https://evil.example/${e.mac.archive}`; }), /darwin-aarch64-app\.url/],
+		["the wrong asset under a key", (f) => json(f, (info) => { info.platforms["linux-x86_64-deb"].url = `https://github.com/bayshores/godspeed/releases/download/v${VERSION}/${e.linux.appImage}`; }), /linux-x86_64-deb\.url/],
+		["an empty signature", (f) => json(f, (info) => { info.platforms["linux-x86_64-appimage"].signature = ""; }), /linux-x86_64-appimage\.signature/],
+		["a signature for another version", (f) => json(f, (info) => { info.platforms["darwin-aarch64-app"].signature = signature("0.1.0"); }), /darwin-aarch64-app\.signature/],
+		["a signature that is not one", (f) => json(f, (info) => { info.platforms["windows-x86_64-nsis"].signature = "c2lnbmF0dXJl"; }), /windows-x86_64-nsis\.signature/],
+		["a bad pub_date", (f) => json(f, (info) => { info.pub_date = "yesterday"; }), /pub_date/],
+		["an unparseable latest.json", (f) => { f["latest.json"] = "{"; }, /latest\.json: does not parse as JSON/],
+		// latest-mac.yml
+		["a wrong version in latest-mac.yml", (f) => { f["latest-mac.yml"] = f["latest-mac.yml"]!.replace(`version: ${VERSION}`, "version: 0.3.0"); }, /latest-mac\.yml: version is "0\.3\.0"/],
+		["the DMG first", (f) => {
+			f["latest-mac.yml"] = macFeed({ version: VERSION, zip: { url: e.mac.dmg, sha512: sha512(e.mac.dmg), size: 5000 }, dmg: { url: e.mac.zip, sha512: sha512(e.mac.zip), size: 5000 }, releaseDate: NOW, staging: 10 });
+		}, /the zip first/],
+		["a legacy path away from files[0]", (f) => { f["latest-mac.yml"] = f["latest-mac.yml"]!.replace(`path: ${e.mac.zip}`, `path: ${e.mac.dmg}`); }, /top-level path is/],
+		["a legacy sha512 not matching files[0]", (f) => { f["latest-mac.yml"] = f["latest-mac.yml"]!.replace(`sha512: ${sha512(e.mac.zip)}\nreleaseDate`, `sha512: ${sha512("tampered")}\nreleaseDate`); }, /top-level sha512 does not match/],
+		["a size disagreeing with the upload", (f) => { f["latest-mac.yml"] = f["latest-mac.yml"]!.replace("size: 5000", "size: 4999"); }, /size 4999 ≠ release asset size 5000/],
+		["a path in a file URL", (f) => { f["latest-mac.yml"] = f["latest-mac.yml"]!.replace(`url: ${e.mac.zip}`, `url: ../v0.1.0/${e.mac.zip}`); }, /files\[0\]\.url is not a bare asset name/],
+		["a garbage sha512", (f) => { f["latest-mac.yml"] = f["latest-mac.yml"]!.replace(`sha512: ${sha512(e.mac.dmg)}`, "sha512: deadbeef"); }, /sha512 is not a base64 digest/],
+		["a wrong minimum system", (f) => { f["latest-mac.yml"] = f["latest-mac.yml"]!.replace("minimumSystemVersion: 23.0.0", "minimumSystemVersion: 22.0.0"); }, /minimumSystemVersion is "22\.0\.0"/],
+		["no minimum system", (f) => { f["latest-mac.yml"] = f["latest-mac.yml"]!.replace("minimumSystemVersion: 23.0.0\n", ""); }, /minimumSystemVersion is undefined/],
+		["a share of 100", (f) => { f["latest-mac.yml"] = f["latest-mac.yml"]!.replace("stagingPercentage: 10", "stagingPercentage: 100"); }, /stagingPercentage is 100/],
+		["a share that is not a whole number", (f) => { f["latest-mac.yml"] = f["latest-mac.yml"]!.replace("stagingPercentage: 10", "stagingPercentage: '10'"); }, /stagingPercentage is "10"/],
+		["an unknown field", (f) => { f["latest-mac.yml"] += "newApp: 0.2.0\n"; }, /latest-mac\.yml: unexpected field "newApp"/],
+		["an unparseable latest-mac.yml", (f) => { f["latest-mac.yml"] = "\tversion: [unclosed"; }, /does not parse as YAML/],
+		// latest.yml, latest-linux.yml
+		["no newApp", (f) => { f["latest.yml"] = templates()["latest.yml"]!; }, /latest\.yml: is not its committed template plus "newApp: 0\.2\.0"/],
+		["a wrong newApp", (f) => { f["latest-linux.yml"] = legacyFeed(templates()["latest-linux.yml"]!, "0.1.0"); }, /latest-linux\.yml: is not its committed template/],
+		["a changed file entry", (f) => { f["latest.yml"] = f["latest.yml"]!.replace("size: 220792779", "size: 1"); }, /latest\.yml: is not its committed template/],
+		["the new version in a legacy feed", (f) => { f["latest-linux.yml"] = f["latest-linux.yml"]!.replace("version: 0.5.51", `version: ${VERSION}`); }, /latest-linux\.yml: is not its committed template/],
+		["a feed not downloaded", (f) => { delete f["latest-linux.yml"]; }, /latest-linux\.yml: not downloaded/],
 	];
 	for (const [label, mutate, pattern] of mutations) {
 		it(`fails on ${label}`, () => {
-			const release = healthyRelease(VERSION);
-			const feeds = healthyFeeds(VERSION, release);
-			mutate(feeds, release);
-			const verdict = verifyMetadataFiles(feeds, release, expectedAssets(VERSION));
+			const feeds = healthyFeeds(VERSION);
+			mutate(feeds);
+			const verdict = check(feeds);
 			assert.ok(!verdict.ok, `expected failure for: ${label}`);
 			assert.match(verdict.errors.join("\n"), pattern);
 		});
 	}
+
+	it("fails on a latest.json naming an asset the release does not hold", () => {
+		const release = healthyRelease(VERSION);
+		release.assets = release.assets.filter((entry) => entry.name !== e.linux.deb);
+		assert.match((check(healthyFeeds(VERSION), release) as { errors: string[] }).errors.join("\n"), /linux-x86_64-deb names "godspeed-linux-x64\.deb" which is not an asset/);
+	});
+
+	it("fails on a legacy template that points into the new release", () => {
+		const legacy = templates();
+		legacy["latest.yml"] = legacy["latest.yml"]!.replaceAll("../v0.5.51/", "");
+		const feeds = healthyFeeds(VERSION);
+		feeds["latest.yml"] = legacyFeed(legacy["latest.yml"], VERSION);
+		assert.match((check(feeds, healthyRelease(VERSION), legacy) as { errors: string[] }).errors.join("\n"), /template for latest\.yml: "godspeed-windows-x64-setup\.exe" is not \.\.\/v0\.5\.51\/<file name>/);
+	});
+
+	it("fails when a legacy template is missing", () => {
+		const legacy = templates();
+		delete legacy["latest-linux.yml"];
+		assert.match((check(healthyFeeds(VERSION), healthyRelease(VERSION), legacy) as { errors: string[] }).errors.join("\n"), /legacy-latest-linux\.yml is missing/);
+	});
 });
 
-describe("release gate — workflow wiring", () => {
-	const yaml = require("js-yaml") as { load(source: string): any };
+describe("release gate: workflow wiring", () => {
 	const workflow = yaml.load(fs.readFileSync(path.join(repoRoot, ".github", "workflows", "release.yml"), "utf8"));
 	const verify = workflow.jobs.verify;
+	const readers = ["List every release, drafts included", "Download the four update feeds"];
 
-	it("can see drafts after ALL packaging jobs, only on real tag pushes", () => {
+	it("can see drafts after the feeds are up, only on real tag pushes", () => {
 		assert.ok(verify);
-		assert.deepEqual(verify.needs, ["quality", "package"]);
+		assert.deepEqual(verify.needs, ["quality", "feeds"]);
+		assert.equal(workflow.jobs.feeds.needs, "package");
 		assert.equal(verify.if, "github.event_name == 'push'");
 		// GitHub's release-list API hides drafts from read-only tokens.
 		assert.deepEqual(verify.permissions, { contents: "write" });
 		assert.equal(verify.env?.GH_TOKEN, undefined);
 	});
 
-	it("exposes the elevated token only to the two API-reading steps", () => {
-		const readers = ["List every release, drafts included", "Download the three update feeds"];
+	it("exposes the token only to the two API-reading steps", () => {
 		for (const step of verify.steps) {
 			if (readers.includes(step.name)) assert.equal(step.env?.GH_TOKEN, "${{ github.token }}");
 			else assert.equal(step.env?.GH_TOKEN, undefined, String(step.name ?? step.uses));
@@ -339,10 +347,8 @@ describe("release gate — workflow wiring", () => {
 		assert.equal(verify.steps.filter((step: any) => step.env?.GH_TOKEN).length, 2);
 	});
 
-	it("uses only implicit GET requests, never release-mutating commands", () => {
-		const calls: string[] = verify.steps.flatMap((step: any) =>
-			(step.run ?? "").split("\n").filter((line: string) => /^\s*gh\s/.test(line)),
-		);
+	it("uses only GET requests, never release-changing commands", () => {
+		const calls: string[] = verify.steps.flatMap((step: any) => (step.run ?? "").split("\n").filter((line: string) => /^\s*gh\s/.test(line)));
 		assert.equal(calls.length, 2);
 		for (const call of calls) {
 			assert.match(call, /^\s*gh api /);
@@ -350,59 +356,57 @@ describe("release gate — workflow wiring", () => {
 		}
 	});
 
-	it("checks out the tagged revision and runs select + verify", () => {
+	it("checks out the tagged revision and runs select and verify", () => {
 		const checkout = verify.steps.find((step: any) => step.uses?.startsWith("actions/checkout"));
 		assert.deepEqual(checkout.with, { ref: "${{ github.sha }}", "persist-credentials": false });
-		const select = verify.steps.find((step: any) => step.run?.includes("verify-release.ts select"));
 		const final = verify.steps.find((step: any) => step.run?.includes("verify-release.ts verify"));
-		assert.ok(select && final);
+		assert.ok(verify.steps.find((step: any) => step.run?.includes("verify-release.ts select")) && final);
 		assert.match(final.run, /--tag "\$GITHUB_REF_NAME"/);
-		// The gate's own job: nothing here may create, edit, publish, or delete.
-		for (const step of verify.steps) {
-			assert.equal(step.run?.includes("create") ?? false, false, String(step.name));
-		}
+		for (const step of verify.steps) assert.equal(step.run?.includes("create") ?? false, false, String(step.name));
 	});
 
-	it("download step fetches exactly the three update feeds from the selected draft", () => {
-		const download = verify.steps.find((step: any) => step.name === "Download the three update feeds");
-		assert.ok(download);
-		for (const feed of ["latest-mac.yml", "latest.yml", "latest-linux.yml"]) assert.ok(download.run.includes(feed));
+	it("downloads exactly the four update feeds from the selected draft", () => {
+		const download = verify.steps.find((step: any) => step.name === "Download the four update feeds");
+		for (const feed of ["latest.json", "latest-mac.yml", "latest.yml", "latest-linux.yml"]) assert.ok(download.run.includes(feed));
 		assert.match(download.run, /releases\/assets\/\$id/);
+	});
+
+	it("never publishes, and uploads only on tag pushes", () => {
+		const text = fs.readFileSync(path.join(repoRoot, ".github", "workflows", "release.yml"), "utf8");
+		assert.doesNotMatch(text, /draft:\s*false|--draft=false|gh release edit|updateRelease\(\{[^}]*draft/);
+		for (const job of Object.values<any>(workflow.jobs)) {
+			for (const step of job.steps ?? []) {
+				if (/gh release upload/.test(step.run ?? "")) assert.match(step.if, /github\.event_name == 'push'/, String(step.name));
+			}
+		}
 	});
 });
 
-describe("release gate — CLI (offline, repo config)", () => {
-	// CLI fixtures follow the real package version; pure-core fixtures above
-	// intentionally stay at 0.2.0. A release version bump must not break tests.
+describe("release gate: CLI (offline, repo config)", () => {
+	// The CLI reads the real package version, so these fixtures follow it.
 	const VERSION = (JSON.parse(fs.readFileSync(path.join(repoRoot, "package.json"), "utf8")) as { version: string }).version;
 	const TAG = `v${VERSION}`;
 	const tsxImport = fileURLToPath(import.meta.resolve("tsx"));
-	function run(args: string[], cwd = repoRoot) {
-		return spawnSync(process.execPath, ["--import", tsxImport, script, ...args], {
-			cwd, encoding: "utf8", timeout: 60_000,
-		});
-	}
+	const run = (args: string[], cwd = repoRoot) =>
+		spawnSync(process.execPath, ["--import", tsxImport, script, ...args], { cwd, encoding: "utf8", timeout: 60_000 });
 
 	function workspace(tagForm: "v" | "bare" = "v", version = VERSION) {
-		const root = fs.mkdtempSync(path.join(os.tmpdir(), "lh-release-gate-"));
+		const root = fs.mkdtempSync(path.join(os.tmpdir(), "gs-release-gate-"));
 		const release = healthyRelease(version, tagForm);
 		fs.writeFileSync(path.join(root, "releases.json"), JSON.stringify([release]));
-		fs.mkdirSync(path.join(root, "metadata"));
-		for (const [name, content] of Object.entries(healthyFeeds(version, release))) {
-			fs.writeFileSync(path.join(root, "metadata", name), content);
-		}
+		fs.mkdirSync(path.join(root, "feeds"));
+		for (const [name, content] of Object.entries(healthyFeeds(version))) fs.writeFileSync(path.join(root, "feeds", name), content);
 		return { root, release };
 	}
+	const verifyIn = (root: string, tag = TAG, cwd = repoRoot) =>
+		run(["verify", path.join(root, "releases.json"), path.join(root, "feeds"), "--tag", tag], cwd);
 
 	it("select emits machine JSON for the workflow's download step", () => {
 		const { root, release } = workspace();
 		try {
 			const result = run(["select", path.join(root, "releases.json"), "--tag", TAG]);
 			assert.equal(result.status, 0, String(result.stderr));
-			const report = JSON.parse(result.stdout) as {
-				releaseId: number; tag: string; matchedTagName: string; warnings: string[];
-				assets: Array<{ id: number; name: string; size: number; state: string }>;
-			};
+			const report = JSON.parse(result.stdout) as { releaseId: number; matchedTagName: string; warnings: string[]; assets: Array<{ name: string }> };
 			assert.equal(report.releaseId, release.id);
 			assert.equal(report.matchedTagName, TAG);
 			assert.deepEqual(report.warnings, []);
@@ -415,26 +419,28 @@ describe("release gate — CLI (offline, repo config)", () => {
 	it("verify passes the complete draft and exits 0", () => {
 		const { root } = workspace();
 		try {
-			const result = run(["verify", path.join(root, "releases.json"), path.join(root, "metadata"), "--tag", TAG]);
+			const result = verifyIn(root);
 			assert.equal(result.status, 0, String(result.stderr));
-			assert.match(result.stdout, /11\/11 expected files present/);
+			assert.match(result.stdout, /10\/10 expected files present/);
 			assert.ok(result.stdout.includes(`OK: draft for ${TAG} is complete`));
 		} finally {
 			fs.rmSync(root, { recursive: true, force: true });
 		}
 	});
 
-	it("verify fails a draft with a missing blockmap and a stale asset", () => {
+	it("verify fails a draft with a missing feed and a stale asset", () => {
 		const { root } = workspace();
 		try {
 			const release = healthyRelease(VERSION);
-			release.assets = release.assets.filter((entry) => entry.name !== "godspeed-mac-apple-silicon.dmg.blockmap");
-			release.assets.push(asset(9999, "godspeed-0.1.0-x64-setup.exe"));
+			release.assets = release.assets.filter((entry) => entry.name !== "latest.json");
+			release.assets.push(asset(9999, "godspeed-0.1.0-arm64-mac.zip"));
 			fs.writeFileSync(path.join(root, "releases.json"), JSON.stringify([release]));
-			const result = run(["verify", path.join(root, "releases.json"), path.join(root, "metadata"), "--tag", TAG]);
+			fs.rmSync(path.join(root, "feeds", "latest.json"));
+			const result = verifyIn(root);
 			assert.equal(result.status, 1);
-			assert.match(result.stderr, /mac-apple-silicon\.dmg\.blockmap: missing from the release/);
-			assert.match(result.stderr, /0\.1\.0-x64-setup\.exe: unexpected asset/);
+			assert.match(result.stderr, /latest\.json: missing from the release/);
+			assert.match(result.stderr, /latest\.json: not downloaded/);
+			assert.match(result.stderr, /0\.1\.0-arm64-mac\.zip: unexpected asset/);
 			assert.match(result.stderr, /do not publish/);
 		} finally {
 			fs.rmSync(root, { recursive: true, force: true });
@@ -444,8 +450,7 @@ describe("release gate — CLI (offline, repo config)", () => {
 	it("verify fails closed when the tag disagrees with package.json", () => {
 		const { root } = workspace();
 		try {
-			const wrongTag = TAG === "v0.3.0" ? "v0.2.0" : "v0.3.0";
-			const result = run(["verify", path.join(root, "releases.json"), path.join(root, "metadata"), "--tag", wrongTag]);
+			const result = verifyIn(root, TAG === "v0.3.0" ? "v0.2.0" : "v0.3.0");
 			assert.equal(result.status, 1);
 			assert.match(result.stderr, /does not equal "v" \+ package\.json version/);
 		} finally {
@@ -459,9 +464,10 @@ describe("release gate — CLI (offline, repo config)", () => {
 		try {
 			const pkg = JSON.parse(fs.readFileSync(path.join(repoRoot, "package.json"), "utf8"));
 			fs.writeFileSync(path.join(root, "package.json"), JSON.stringify({ ...pkg, version: futureVersion }));
-			fs.mkdirSync(path.join(root, "electron"));
-			fs.copyFileSync(path.join(repoRoot, "electron", "electron-builder.yml"), path.join(root, "electron", "electron-builder.yml"));
-			const result = run(["verify", path.join(root, "releases.json"), path.join(root, "metadata"), "--tag", `v${futureVersion}`], root);
+			fs.mkdirSync(path.join(root, "crates", "shell", "release"), { recursive: true });
+			fs.copyFileSync(path.join(repoRoot, "crates", "shell", "tauri.conf.json"), path.join(root, "crates", "shell", "tauri.conf.json"));
+			for (const file of Object.values(LEGACY_TEMPLATES)) fs.copyFileSync(path.join(releaseDir, file), path.join(root, "crates", "shell", "release", file));
+			const result = verifyIn(root, `v${futureVersion}`, root);
 			assert.equal(result.status, 0, String(result.stderr));
 			assert.ok(result.stdout.includes(`OK: draft for v${futureVersion} is complete`));
 		} finally {
@@ -469,15 +475,13 @@ describe("release gate — CLI (offline, repo config)", () => {
 		}
 	});
 
-	it("select warns loudly for the legacy unprefixed draft tag", () => {
+	it("select warns loudly for the unprefixed draft tag", () => {
 		const { root } = workspace("bare");
 		try {
 			const result = run(["select", path.join(root, "releases.json"), "--tag", TAG]);
 			assert.equal(result.status, 0, String(result.stdout));
-			assert.ok(result.stderr.includes("WARNING:"));
-			assert.ok(result.stderr.includes(`unprefixed tag "${VERSION}"`));
-			const report = JSON.parse(result.stdout) as { warnings: string[] };
-			assert.equal(report.warnings.length, 1);
+			assert.ok(result.stderr.includes(`WARNING:`) && result.stderr.includes(`unprefixed tag "${VERSION}"`));
+			assert.equal((JSON.parse(result.stdout) as { warnings: string[] }).warnings.length, 1);
 		} finally {
 			fs.rmSync(root, { recursive: true, force: true });
 		}

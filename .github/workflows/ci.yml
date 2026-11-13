@@ -17,77 +17,88 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  NEXT_TELEMETRY_DISABLED: "1"
+  CARGO_TERM_COLOR: always
 
 jobs:
   quality:
     name: Typecheck, tests, lint, dead code, Rust
     runs-on: ubuntu-24.04
-    timeout-minutes: 40
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v7
+      # cargo builds the Tauri shell too, which links against WebKitGTK.
+      - name: Linux packages for the shell
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev patchelf
       - uses: actions/setup-node@v7
         with:
           node-version: "26"
           cache: npm
-      - run: npm ci
-      - run: npm run typecheck
-      - run: npm test
-      - name: Skill tests (Python)
-        run: python3 -B -m unittest discover -s tests/skills
-      - run: npm run lint
-      - run: npm run deadcode
       - name: Rust toolchain (the version pinned in rust-toolchain.toml)
         run: rustup toolchain install
+      - uses: Swatinem/rust-cache@v2
       - run: cargo install cargo-machete --locked --version 0.9.2
-      - run: npm run rust:check
+      - run: npm ci
+      # Typecheck, tests, lint, knip, then cargo test, clippy and cargo machete.
+      - run: npm run check
+      - name: Skill tests (Python)
+        run: python3 -B -m unittest discover -s tests/skills
 
-  standalone:
-    name: Standalone (${{ matrix.platform }})
+  desktop:
+    name: Desktop (${{ matrix.platform }})
     strategy:
       fail-fast: false
       matrix:
         include:
-          # Standard macos-15 runners are Apple Silicon (not macos-15-intel).
+          # Standard macos-15 runners are Apple Silicon.
           - os: macos-15
-            platform: mac-arm64
+            platform: mac
           - os: windows-2025
-            platform: windows-x64
+            platform: windows
+          # The oldest Ubuntu the Linux app supports, as the release builds it.
           - os: ubuntu-24.04
-            platform: linux-x64
+            platform: linux
+            container: ubuntu:22.04
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 25
+    container: ${{ matrix.container }}
+    timeout-minutes: 60
     defaults:
       run:
         shell: bash
     steps:
+      - name: Linux packages (Ubuntu 22.04 container)
+        if: runner.os == 'Linux'
+        run: |
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends ca-certificates git python3 xvfb xauth \
+            libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain none --profile minimal
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
           node-version: "26"
           cache: npm
-      - name: Cache Electron downloads
-        uses: actions/cache@v4
+      - name: Rust toolchain (the version pinned in rust-toolchain.toml)
+        run: rustup toolchain install
+      - uses: Swatinem/rust-cache@v2
         with:
-          path: |
-            ~/Library/Caches/electron
-            ~/.cache/electron
-            ~/AppData/Local/electron/Cache
-          key: electron-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-          restore-keys: electron-${{ runner.os }}-
+          key: ${{ matrix.platform }}
       - run: npm ci
-      - name: Native renderer tests on this OS
-        run: npx electron --import tsx --test tests/backend/pdf-native-render.test.ts tests/backend/pdf-ops.test.ts tests/backend/svg-native-render.test.ts tests/backend/browser-service.test.ts
-        env:
-          NODE_ENV: test
-          ELECTRON_RUN_AS_NODE: "1"
-      - name: Cache Next build
-        uses: actions/cache@v4
-        with:
-          path: .next/cache
-          key: next-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-${{ github.sha }}
-          restore-keys: next-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-
       - run: node scripts/fetch-model.mjs
-      - run: npm run build
-      - run: node scripts/build-server.mjs
-      - run: node scripts/smoke-server.mjs --electron
+      - run: node scripts/fetch-pdfium.mjs
+      # The UI, the release server and the pdf.js files, as `tauri build` stages them.
+      - run: node scripts/stage-app.mjs
+      - run: node scripts/smoke-server.mjs
+      - name: Shell tests
+        run: |
+          if [[ "$RUNNER_OS" == Linux ]]; then xvfb-run -a cargo test -p gs-shell; else cargo test -p gs-shell; fi
+      - name: Demo runner self-test in the real app
+        run: |
+          cargo build -p gs-shell --features self-test
+          case "$RUNNER_OS" in
+            Windows) target/debug/godspeed.exe --self-test ;;
+            Linux) xvfb-run -a target/debug/godspeed --self-test ;;
+            *) target/debug/godspeed --self-test ;;
+          esac
