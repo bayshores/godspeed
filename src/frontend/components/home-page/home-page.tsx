@@ -84,8 +84,10 @@ export function HomePage() {
 	const laterCount = (lists?.later.length ?? 0) + preps.later.length;
 
 	return (
-		<div data-testid="home-page" className="h-full overflow-y-auto">
-			<div className="mx-auto flex w-full max-w-[808px] flex-col gap-8 px-6 pt-12 pb-10">
+		// A short page sits a little above the middle of the window: the space left over is
+		// shared 2 to 3 above and below it.
+		<div data-testid="home-page" className="flex h-full flex-col overflow-y-auto before:flex-[2] after:flex-[3]">
+			<div className="mx-auto flex w-full max-w-[808px] shrink-0 flex-col gap-8 px-6 pt-12 pb-10">
 				<div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
 					<h1 className="text-[56px] leading-none text-ink">Today</h1>
 					{nowMs !== null && (
@@ -143,7 +145,7 @@ export function HomePage() {
 							</ul>
 						)}
 						{shown.length > 0 && (
-							<section className="flex flex-col gap-4">
+							<section className="flex flex-col gap-4 pt-4">
 								<div className="flex min-h-9 items-center justify-between gap-4">
 									<h2 className="text-[24px] leading-snug text-ink">{laterCount > 0 && "Later"}</h2>
 									{withDeadlines.length > 0 && <AddDeadline spaces={withDeadlines} onPick={addDeadline} />}
@@ -187,7 +189,7 @@ function AddDeadline({ spaces, onPick }: { spaces: readonly SpaceSummary[]; onPi
 				aria-haspopup={single ? undefined : "menu"}
 				aria-expanded={single ? undefined : open}
 				onClick={() => (single ? onPick(single.id) : setOpen((v) => !v))}
-				className="lh-btn lh-btn-quiet h-[38px] text-[15px]"
+				className="lh-btn lh-btn-quiet -mr-[7.5px] h-[38px] text-[15px]"
 			>
 				<PixelIcon name="plus" />
 				Add a deadline
