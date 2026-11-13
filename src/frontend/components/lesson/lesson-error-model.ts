@@ -7,14 +7,16 @@ import { pdfNoteOf, type LhMessage } from "@/shared/core";
 import { STREAM_DROPPED } from "@/frontend/components/session-core";
 
 /** send: the learner's input didn't go through (it is back where they typed
- *  it). reply: the teacher's reply failed. sync: the window lost track of
- *  the lesson and should read it again. */
+ *  it). reply: the teacher's reply failed. sync: a change he made didn't
+ *  save, or the window lost track of the lesson; it should read it again. */
 type LessonErrorKind = "send" | "reply" | "sync";
 
 export function lessonError(message: string): { text: string; kind: LessonErrorKind } {
 	if (/^(The send failed|The steer failed|Your input could not be saved)/.test(message)) return { text: "Your message didn't go through.", kind: "send" };
 	if (message.startsWith("A turn is already running")) return { text: "The teacher was still busy, so your message didn't go through.", kind: "send" };
 	if (message.startsWith("The dismissal failed")) return { text: "Skipping or discarding didn't save.", kind: "sync" };
+	if (message.startsWith("Keep going failed")) return { text: "Keep going didn't save.", kind: "sync" };
+	if (message.startsWith("The kept change failed")) return { text: "That change didn't save.", kind: "sync" };
 	if (
 		message === STREAM_DROPPED ||
 		message.startsWith("Failed to attach") ||

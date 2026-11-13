@@ -33,6 +33,7 @@ import { findPendingToolCall } from "../../src/shared/core/pending.ts";
 import { lessonStop } from "../../src/shared/core/topic-end.ts";
 import { keepGoing, regularizationEnds, text, TREE } from "../stop-fixtures.ts";
 import { keptLesson } from "../kept-fixtures.ts";
+import { lessonError, retryAction } from "../../src/frontend/components/lesson/lesson-error-model.ts";
 
 const realFetch = globalThis.fetch;
 afterEach(() => {
@@ -1847,7 +1848,7 @@ describe("Keep going and the opener", () => {
 		assert.deepEqual(posts(calls, "/api/chat"), []);
 	});
 
-	it("a failed Keep going brings the stop card back with the plain send failure", async () => {
+	it("a failed Keep going brings the stop card back and says Keep going didn't save", async () => {
 		for (const kept of [() => Response.json({ error: "No stop on that call" }, { status: 400 }), () => { throw new Error("Failed to fetch"); }]) {
 			const { fetch } = scripted(true, regularizationEnds(), kept);
 			const m = model({ initialMessages: regularizationEnds(), fetch });
@@ -1858,7 +1859,8 @@ describe("Keep going and the opener", () => {
 		const { fetch } = scripted(true, regularizationEnds(), () => Response.json({ error: "No stop on that call" }, { status: 400 }));
 		const m = model({ initialMessages: regularizationEnds(), fetch });
 		await m.keepGoing("c1");
-		assert.equal(m.getState().error?.message, "The send failed (400).");
+		assert.equal(m.getState().error?.message, "Keep going failed: status 400");
+		assert.deepEqual(retryAction(lessonError(m.getState().error!.message).kind, { boxHasText: true, lastText: null }), { type: "resync" }, "Try again never sends his draft");
 	});
 
 	it("a refused opener answer shows the plain send failure", async () => {
@@ -1911,11 +1913,18 @@ describe("Drop this analogy and the phrase", () => {
 		]);
 	});
 
-	it("a failed store takes the drop back with the plain send failure", async () => {
-		const { fetch } = scripted(() => Response.json({ error: "No kept sentence with that part on that call" }, { status: 400 }));
-		const m = model({ initialMessages: keptLesson(), fetch });
-		await m.dropKept("call_k", "analogy", false);
-		assert.equal(card(m)?.analogyDropped, false);
-		assert.equal(m.getState().error?.message, "The send failed (400).");
+	it("a failed store takes the drop back and says the change didn't save", async () => {
+		for (const [kept, message] of [
+			[() => Response.json({ error: "No kept sentence with that part on that call" }, { status: 400 }), "The kept change failed: status 400"],
+			[() => { throw new Error("Failed to fetch"); }, "The kept change failed: Failed to fetch"],
+		] as const) {
+			const { fetch } = scripted(kept);
+			const m = model({ initialMessages: keptLesson(), fetch });
+			await m.dropKept("call_k", "analogy", false);
+			assert.equal(card(m)?.analogyDropped, false);
+			assert.equal(m.getState().error?.message, message);
+			assert.deepEqual(lessonError(message), { text: "That change didn't save.", kind: "sync" });
+			assert.deepEqual(retryAction("sync", { boxHasText: true, lastText: null }), { type: "resync" }, "Try again never sends his draft");
+		}
 	});
 });

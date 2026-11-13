@@ -870,15 +870,15 @@ export class SessionModel {
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({ input: { stopOf } }),
 			});
-			// The server's refusal words are for logs; he sees the plain send failure.
-			if (!res.ok) throw new Error(`The send failed (${res.status}).`);
+			// The server's refusal words are for logs; he sees that Keep going didn't save.
+			if (!res.ok) throw new Error(`status ${res.status}`);
 			const { opener, running } = (await res.json()) as { opener?: boolean; running?: boolean };
 			if (!opener && !running) await this.continueIfOwed([...this.base, ...this.tail]);
 		} catch (err) {
 			this.mutate(() => {
 				this.tail = this.tail.filter((m) => m !== marker);
 			});
-			this.setError((err as Error).message);
+			this.setError(`Keep going failed: ${(err as Error).message}`);
 		}
 	}
 
@@ -898,12 +898,12 @@ export class SessionModel {
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({ input: { of, part, ...(back ? { back: true } : {}) } }),
 			});
-			if (!res.ok) throw new Error(`The send failed (${res.status}).`);
+			if (!res.ok) throw new Error(`status ${res.status}`);
 		} catch (err) {
 			this.mutate(() => {
 				this.tail = this.tail.filter((m) => m !== marker);
 			});
-			this.setError((err as Error).message);
+			this.setError(`The kept change failed: ${(err as Error).message}`);
 		}
 	}
 
