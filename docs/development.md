@@ -46,7 +46,7 @@ For Windows/Linux packages and the three-OS CI/release flow, see [`desktop-relea
 
 ## Environment
 
-There are no model settings, model keys or sign-ins: the only model is an outside agent connected over MCP (Settings → Connection), which picks its own model and effort in its own harness. The one optional key is the learner's own Tavily key (Settings → Web search), kept in `data/search-key` (mode 0600, never in `settings.json`): with it the research job gets a `web_search` tool, without it the agent may use its own web search. The extraction batch threshold is an app setting (`graph.extractionChunkTokens`, default 4096, floor 500). The server makes the access token `data/mcp-token` on the first page load. The server's environment variables are listed in [rust-server.md](rust-server.md).
+There are no model settings, model keys or sign-ins: the only model is an outside agent connected over MCP (Settings → Connection), which picks its own model and effort in its own harness. The one optional key is the learner's own Tavily key (a card in Settings → Connection), kept in `data/search-key` (mode 0600, never in `settings.json`): with it the research job gets a `web_search` tool, without it the agent may use its own web search. The extraction batch threshold is an app setting (`graph.extractionChunkTokens`, default 4096, floor 500). The server makes the access token `data/mcp-token` on the first page load. The server's environment variables are listed in [rust-server.md](rust-server.md).
 
 ## Architecture
 
@@ -124,7 +124,7 @@ src/                            the screens and the logic they share
                                   graph/), the lesson screen (lesson/), question dock,
                                   plan row and plan blocks, Settings page (settings/),
                                   source marks (citations/), preps and mocks (prep/), the
-                                  teacher's work (teacher-work/), onboarding, the welcome
+                                  work frame (work/), onboarding, the welcome
                                   screen (welcome/), artifact renderers (registry:
                                   artifacts/), activity dock, keyboard
     lib/utils.ts                  shadcn class-name helper (cn)
