@@ -22,9 +22,9 @@ const text = (id: string, body: string): LhViewPart => ({ type: "text", id, text
 describe("which text draws a topic's page", () => {
 	it("a reply's page is keyed by its message, an opener lead's by its part", () => {
 		const marks = topicPageMarks([
-			{ nodeId: "reg", page: { messageId: "m_r1", leadOf: null, fileId: FILE, range: "p. 14", name: "Lecture 6.pdf", quote: "degree 12" } },
-			{ nodeId: "cv", page: { messageId: null, leadOf: "t1", fileId: FILE, range: "p. 3", name: "Lecture 7.pdf", quote: "a different 12" } },
-			{ nodeId: "ms", page: null },
+			{ nodeId: "reg", page: { messageId: "m_r1", leadOf: null, fileId: FILE, range: "p. 14", name: "Lecture 6.pdf", quote: "degree 12" }, plot: null },
+			{ nodeId: "cv", page: { messageId: null, leadOf: "t1", fileId: FILE, range: "p. 3", name: "Lecture 7.pdf", quote: "a different 12" }, plot: null },
+			{ nodeId: "ms", page: null, plot: null },
 		]);
 		assert.deepEqual([...marks], [
 			["m_r1", page14],
