@@ -11,7 +11,7 @@ use gs_base::text;
 use gs_json::{Json, Obj, json, parse};
 
 use gs_json::js_text::js_string;
-use super::schema::{array, boolean, object, one_of_literals, string};
+use super::schema::{array, boolean, described, object, one_of_literals, string};
 use crate::messages::value_debris::strip_model_value_debris;
 
 /// The answer record as the model sees it: only what is new information, in this key order.
@@ -243,11 +243,15 @@ pub fn quiz_input_object() -> Json {
 }
 
 /// The Study quiz input: the teach quiz plus `standalone`, which marks a quiz godspeed may ask
-/// again weeks later as a question from earlier.
+/// again weeks later as a question from earlier, and `onPlot`, which makes it the guess on the
+/// plot sent in the same reply.
 pub fn study_quiz_input_object() -> Json {
 	let mut schema = quiz_input_object();
 	if let Some(properties) = schema.get_mut("properties").and_then(Json::as_obj_mut) {
 		properties.insert("standalone", boolean("True when it makes sense weeks later with no lesson around it."));
+		let number = |description: &str| json!({ "type": "number", "description": description });
+		let on_plot = object(&["line", "x"], vec![("line", string("A line's label.")), ("x", number("The x the guess asks about.")), ("slider", number("The slider value; start if left out."))]);
+		properties.insert("onPlot", described(on_plot, "For the plot in this reply: the right option must name this line's value there."));
 	}
 	schema
 }
@@ -364,7 +368,11 @@ mod tests {
 		assert_eq!(stringify(&explain_input_object()["required"]), r#"["type","nodeId","question","correctAnswer"]"#);
 		let study = study_quiz_input_object();
 		assert_eq!(study["required"], quiz["required"], "standalone is optional");
-		assert_eq!(study["properties"].as_obj().unwrap().keys().last().map(String::as_str), Some("standalone"));
+		assert_eq!(study["properties"].as_obj().unwrap().keys().rev().take(2).map(String::as_str).collect::<Vec<_>>(), ["onPlot", "standalone"]);
+		assert_eq!(
+			stringify(&study["properties"]["onPlot"]),
+			r#"{"type":"object","required":["line","x"],"properties":{"line":{"type":"string","description":"A line's label."},"x":{"type":"number","description":"The x the guess asks about."},"slider":{"type":"number","description":"The slider value; start if left out."}},"description":"For the plot in this reply: the right option must name this line's value there."}"#
+		);
 		assert_eq!(stringify(&study["properties"]["standalone"]), r#"{"type":"boolean","description":"True when it makes sense weeks later with no lesson around it."}"#);
 	}
 }

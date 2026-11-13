@@ -3211,6 +3211,28 @@
 						"standalone": {
 							"type": "boolean",
 							"description": "True when it makes sense weeks later with no lesson around it."
+						},
+						"onPlot": {
+							"type": "object",
+							"required": [
+								"line",
+								"x"
+							],
+							"properties": {
+								"line": {
+									"type": "string",
+									"description": "A line's label."
+								},
+								"x": {
+									"type": "number",
+									"description": "The x the guess asks about."
+								},
+								"slider": {
+									"type": "number",
+									"description": "The slider value; start if left out."
+								}
+							},
+							"description": "For the plot in this reply: the right option must name this line's value there."
 						}
 					}
 				},
@@ -3942,6 +3964,130 @@
 						"retest": {
 							"type": "boolean",
 							"description": "REQUIRED — true marks the problem for a fresh-surface retest before the session ends."
+						}
+					}
+				},
+				"executionMode": "sequential"
+			},
+			{
+				"name": "plot",
+				"description": "Draws one or two lines over x with one slider, instead of demo, when the idea is a curve and one knob. Send it with a prediction on it (quiz.onPlot) in the same reply; it stays locked until he answers. Leave one plain reply after his marked page or a keep.",
+				"parameters": {
+					"type": "object",
+					"required": [
+						"title",
+						"x",
+						"y",
+						"slider",
+						"lines"
+					],
+					"properties": {
+						"title": {
+							"type": "string",
+							"maxLength": 60,
+							"description": "What the plot shows."
+						},
+						"x": {
+							"type": "object",
+							"required": [
+								"name",
+								"label",
+								"min",
+								"max"
+							],
+							"properties": {
+								"name": {
+									"type": "string",
+									"pattern": "^[a-z][a-z0-9_]{0,11}$",
+									"description": "Its name in expr, like a."
+								},
+								"label": {
+									"type": "string",
+									"maxLength": 40,
+									"description": "The axis title."
+								},
+								"min": {
+									"type": "number"
+								},
+								"max": {
+									"type": "number"
+								}
+							}
+						},
+						"y": {
+							"type": "object",
+							"required": [
+								"label"
+							],
+							"properties": {
+								"label": {
+									"type": "string",
+									"maxLength": 40,
+									"description": "The axis title."
+								},
+								"min": {
+									"type": "number"
+								},
+								"max": {
+									"type": "number"
+								}
+							},
+							"description": "Give min and max both, or leave both out and godspeed picks them."
+						},
+						"slider": {
+							"type": "object",
+							"required": [
+								"name",
+								"min",
+								"max",
+								"start"
+							],
+							"properties": {
+								"name": {
+									"type": "string",
+									"pattern": "^[a-z][a-z0-9_]{0,11}$",
+									"description": "Its name in expr; a Greek letter's name shows as its symbol."
+								},
+								"min": {
+									"type": "number"
+								},
+								"max": {
+									"type": "number"
+								},
+								"start": {
+									"type": "number",
+									"description": "where the thumb starts; inside min to max"
+								}
+							}
+						},
+						"lines": {
+							"type": "array",
+							"items": {
+								"type": "object",
+								"required": [
+									"label",
+									"expr"
+								],
+								"properties": {
+									"label": {
+										"type": "string",
+										"maxLength": 40,
+										"description": "One word, shown beside the line."
+									},
+									"expr": {
+										"type": "string",
+										"maxLength": 200,
+										"description": "Plain math, not LaTeX, in the x and slider names: + - * / ^, brackets, sin cos tan exp ln log10 sqrt abs, min max, pi, e. Example: min(a, 4/(1+lambda))"
+									},
+									"hidden": {
+										"type": "boolean",
+										"description": "Held back until he answers; use it for the true line when the plot tests an analogy."
+									}
+								}
+							},
+							"minItems": 1,
+							"maxItems": 2,
+							"description": "First solid, second dashed."
 						}
 					}
 				},
@@ -9308,6 +9454,7 @@
 					"remove_space_deadline",
 					"problem",
 					"conclude",
+					"plot",
 					"topic_done"
 				],
 				"messages": 1

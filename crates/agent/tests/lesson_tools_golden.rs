@@ -14,6 +14,7 @@ use gs_agent::tools::fn_tool::FnTool;
 use gs_agent::tools::graph::{GraphToolContext, ScopedGraph};
 use gs_agent::tools::homework::{HomeworkDeadline, HomeworkToolContext, homework_tools};
 use gs_agent::tools::jobs::JobToolContext;
+use gs_agent::tools::lesson_parts::LessonParts;
 use gs_agent::tools::lesson::{ProberToolContext, StudyToolContext, TeacherToolContext, prober_tools, study_tools, teacher_tools};
 use gs_agent::tools::mermaid_plan::parse_mermaid_plan;
 use gs_agent::tools::plan::PlanContext;
@@ -541,7 +542,7 @@ async fn run_cases(data: &Path) -> Vec<(&'static str, Json)> {
 	case("registry: teacher minimal", describe(&teacher_tools(&w.teacher("lesson"), None)));
 	case("registry: teacher full", describe(&teacher_tools(&teacher_full, None)));
 	case("registry: teacher free recall and toggles", describe(&teacher_tools(&teacher_full, Some(&json!({ "explain": true, "demo": false, "visual": false })))));
-	case("registry: study full", describe(&study_tools(&study_ctx, None)));
+	case("registry: study full", describe(&study_tools(&study_ctx, None, &LessonParts::new(&study_ctx.teacher.plan))));
 	case("registry: practice minimal", describe(&practice_tools(&w.practice("lesson"), None)));
 	case("registry: practice full", describe(&practice_tools(&practice_full, Some(&json!({ "pdf": false })))));
 	case("registry: homework full", describe(&homework_tools(&homework_full, None)));
@@ -760,7 +761,8 @@ async fn run_cases(data: &Path) -> Vec<(&'static str, Json)> {
 	.collect();
 	let out = script(&reg, vec![("problem", with(&problem_args(), vec![("target", json!(["unknown"]))])), ("problem", with(&problem_args(), vec![("target", json!(["n_a"]))]))]).await;
 	case("practice: targets", json!({ "prepared": prepared, "out": out }));
-	let reg = study_tools(&StudyToolContext { teacher: w.teacher("lesson"), graph_nodes: Some(nodes_of(Vec::new())), check_marks: marks_kept() }, None);
+	let study_ctx = StudyToolContext { teacher: w.teacher("lesson"), graph_nodes: Some(nodes_of(Vec::new())), check_marks: marks_kept() };
+	let reg = study_tools(&study_ctx, None, &LessonParts::new(&study_ctx.teacher.plan));
 	case(
 		"practice: study problem",
 		script(&reg, vec![("problem", with(&problem_args(), vec![("nodeId", "missing".into())])), ("problem", with(&problem_args(), vec![("nodeId", "alpha".into())])), ("conclude", conclude_args())]).await,

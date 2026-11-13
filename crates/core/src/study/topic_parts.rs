@@ -133,17 +133,18 @@ pub struct PartsVerdict {
 /// whatever order the reply lists them in: one plot and one guess, the guess a prediction whose
 /// right option names the drawn value, one plot a topic, and neither this reply nor the topic's
 /// reply before it carrying a page or a plot. `quiz_passes` says whether the guess passes the
-/// quiz's own checks. A plot that fails its own checks is refused by its preparation; this only
-/// refuses its guess with it.
+/// quiz's own checks; a guess that fails them is left to them. A plot that fails its own checks is
+/// refused by its preparation; this only refuses its guess with it.
 pub fn reply_parts_problems(lesson_messages: &[Json], reply: &Json, quiz_passes: &dyn Fn(&Json) -> bool) -> PartsVerdict {
 	let id = |c: &Json| c["id"].as_str().unwrap_or_default().to_owned();
 	let plots: Vec<&Json> = calls(reply).filter(|c| c["name"].as_str() == Some(PLOT_TOOL)).collect();
 	let guesses: Vec<&Json> = calls(reply).filter(|c| c["name"].as_str() == Some("quiz") && c["arguments"]["onPlot"].as_obj().is_some()).collect();
+	// A guess that fails the quiz's own checks is refused by them, in their words.
+	let refuse_guesses = |verdict: &mut PartsVerdict, line: &str| verdict.refused.extend(guesses.iter().filter(|g| quiz_passes(&g["arguments"])).map(|g| (id(g), line.to_owned())));
 	let mut verdict = PartsVerdict::default();
 	let [plot_call] = plots.as_slice() else {
-		let (plot_line, guess_line) = if plots.is_empty() { ("", NO_PLOT) } else { ("plot: send one plot a reply.", WITH_THE_PLOT) };
-		verdict.refused.extend(plots.iter().map(|p| (id(p), plot_line.to_owned())));
-		verdict.refused.extend(guesses.iter().map(|g| (id(g), guess_line.to_owned())));
+		verdict.refused.extend(plots.iter().map(|p| (id(p), "plot: send one plot a reply.".to_owned())));
+		refuse_guesses(&mut verdict, if plots.is_empty() { NO_PLOT } else { WITH_THE_PLOT });
 		return verdict;
 	};
 	let checked = check_plot(&plot_call["arguments"]);
@@ -154,7 +155,10 @@ pub fn reply_parts_problems(lesson_messages: &[Json], reply: &Json, quiz_passes:
 	};
 	let mut value = None;
 	if let (Ok(plot), [guess]) = (&checked, guesses.as_slice()) {
-		value = guess_value(plot, &guess["arguments"], quiz_passes, &mut problems);
+		if !quiz_passes(&guess["arguments"]) {
+			problems.push("plot: refused with its quiz. Fix the quiz and re-send both.".to_owned());
+		}
+		value = guess_value(plot, &guess["arguments"], &mut problems);
 	}
 	problems.extend(spacing_problems(lesson_messages, reply));
 	if problems.is_empty()
@@ -166,7 +170,7 @@ pub fn reply_parts_problems(lesson_messages: &[Json], reply: &Json, quiz_passes:
 	if checked.is_ok() {
 		verdict.refused.push((id(plot_call), problems.join("\n")));
 	}
-	verdict.refused.extend(guesses.iter().map(|g| (id(g), WITH_THE_PLOT.to_owned())));
+	refuse_guesses(&mut verdict, WITH_THE_PLOT);
 	verdict
 }
 
@@ -180,10 +184,7 @@ fn number(v: &Json) -> Option<f64> {
 }
 
 /// The guess's own problems; the drawn value it asks about when it names a point on a line.
-fn guess_value(plot: &Plot, quiz: &Json, quiz_passes: &dyn Fn(&Json) -> bool, problems: &mut Vec<String>) -> Option<f64> {
-	if !quiz_passes(quiz) {
-		problems.push("plot: refused with its quiz. Fix the quiz and re-send both.".to_owned());
-	}
+fn guess_value(plot: &Plot, quiz: &Json, problems: &mut Vec<String>) -> Option<f64> {
 	if normalize_quiz_type(&quiz["type"]) != Some("predict") {
 		problems.push("onPlot: the guess on a plot is type \"predict\".".to_owned());
 	}
@@ -343,6 +344,7 @@ mod tests {
 				"onPlot.slider: 6 is outside min 0.5 to max 4.",
 			]
 		);
+		assert_eq!(verdict.refused.len(), 1, "the guess is refused by its own checks, in their words");
 		assert!(!verdict.refused[0].1.contains("Received arguments"));
 	}
 
