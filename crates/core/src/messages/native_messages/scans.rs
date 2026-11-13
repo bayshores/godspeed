@@ -51,6 +51,12 @@ pub(super) fn is_bookkeeping(m: &Json) -> bool {
 	role(m) == "custom" && (custom_type == Some("compaction") || is_ui_only(custom_type))
 }
 
+/// A hidden note for the agent that rides right ahead of the learner's message it came with: the
+/// [Today] note or an app note.
+pub(super) fn rides_ahead(m: &Json) -> bool {
+	role(m) == "custom" && matches!(m["customType"].as_str(), Some("today-context" | "app-note"))
+}
+
 /// The ids of every tool result in `messages`.
 pub(super) fn result_ids_from(messages: &[Json]) -> HashSet<&str> {
 	messages.iter().filter(|m| role(m) == "toolResult").filter_map(|m| m["toolCallId"].as_str()).collect()

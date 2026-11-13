@@ -263,6 +263,11 @@ pub fn input_appends(record: &Json, input: &ChatInput, attachments: &[Json]) -> 
 			if let Some(About::Opener(opener)) = about {
 				open_opener(messages, opener)?;
 			}
+			// Ask Teacher on a question from earlier while the teacher's own question waits behind
+			// it: a side question, so that one stays open and is posed again.
+			if matches!(about, Some(About::Review { .. })) && dangling_question_of(messages).is_some() {
+				return Ok(vec![new_side_question(text, attachments)]);
+			}
 			Ok(with_dismissal_conclusion(messages, new_user_message(text, attachments)))
 		}
 		ChatInput::Answer { tool_call_id, answer, .. } => {
@@ -408,6 +413,8 @@ mod tests {
 		let mismatched = parse_dismiss_input(&json!({ "type": "dismiss", "toolCallId": "q1", "answer": { "kind": "text", "dismissed": true } })).unwrap();
 		assert_eq!(error_of(dismiss_appends(&record, &mismatched)), "dismiss input's answer kind does not match the question");
 		assert_eq!(input_appends(&record, &ChatInput::Side { text: "q".into(), attachments: None }, &[]).unwrap()[0]["side"], json!(true));
+		let ask = ChatInput::Text { text: "Why?".into(), attachments: None, about: Some(About::Review { of: json!({ "chatId": "c", "toolCallId": "t" }), picked: vec![] }) };
+		assert_eq!(input_appends(&record, &ask, &[]).unwrap()[0]["side"], json!(true), "Ask Teacher on a question from earlier keeps the waiting one open");
 	}
 
 	#[test]

@@ -9,13 +9,14 @@ use std::sync::Arc;
 use gs_base::config::Paths;
 use gs_base::{clock, ids, time};
 use gs_core::messages::input_events::{About, ChatInput, TurnInput};
+use gs_core::messages::native_messages::dangling_question_of;
 use gs_engine::bridge::{AgentReply, WaitOptions};
 use gs_json::{Json, json, stringify};
 use gs_services::App;
 use gs_services::turns::chat_handler::REVIEW_NOT_OPEN;
 use gs_services::turns::handle_chat_input;
 use gs_services::turns::is_turn_running;
-use gs_services::turns::review::{ReviewReply, answer_review, next_review, skip_review};
+use gs_services::turns::review::{ReviewReply, answer_review, next_review, open_question, skip_review};
 use gs_store::graph::Ledger;
 
 const DAY_MS: i64 = 86_400_000;
@@ -254,4 +255,22 @@ async fn ask_teacher_sends_the_open_question_whole_and_refuses_another() {
 	assert_eq!(note, "[From earlier] He asked about this question from earlier before answering; it stays open and godspeed grades his answer. Bayes' rule: A question on bayes? Options: A; B. He picked B so far. Explanation: Because A. Answer his question without giving the answer away, and end your turn.");
 	assert_eq!(fx.next(&id), None, "the reply landed");
 	assert_eq!(answer_review(&fx.app, &id, &open["of"], &graded()).unwrap(), ReviewReply::Done, "it stays open to answer");
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn ask_teacher_while_the_teachers_question_waits_behind_it_keeps_that_question_open() {
+	let fx = Fixture::new();
+	let now = clock::now_ms();
+	let teacher = json!({ "role": "assistant", "id": "m-teach", "content": [{ "type": "toolCall", "id": "q-teacher", "name": "quiz", "arguments": quiz("reg") }], "timestamp": now });
+	let id = fx.lesson(&[user("Study", now - 60_000), teacher]);
+	// The question from earlier showed while the turn ran; the teacher's quiz then landed behind it.
+	let open = open_question(&fx.app, &id, &fx.app.stores.chats.get_chat(&id).unwrap()).unwrap().expect("a question from earlier");
+	let ask = About::Review { of: json!({ "chatId": open["of"]["chatId"], "toolCallId": open["of"]["toolCallId"] }), picked: vec![] };
+	assert_eq!(send(&fx.app, &id, text("Why?", Some(ask))).await.0, 200);
+	let seen = agent_says(&fx.app, &id, "Think about what the question asks.").await;
+	settled(&fx.app, &id).await;
+	assert_eq!(dangling_question_of(&fx.messages(&id)).map(|d| d.tool_call_id).as_deref(), Some("q-teacher"), "the teacher's question still waits");
+	let seen = stringify(&Json::Arr(seen));
+	assert!(seen.contains("The learner asked a side question first") && !seen.contains("interrupted"), "the agent reads it as held, not interrupted: {seen}");
+	assert!(seen.contains("[From earlier] He asked about this question from earlier"), "the note still rides with it");
 }

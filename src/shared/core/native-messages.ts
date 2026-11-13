@@ -201,12 +201,19 @@ function isBookkeeping(m: LhMessage): boolean {
 	return m.role === "custom" && ["compaction", "plan-block", "problem-dismissed", "keep-going", "review"].includes(m.customType);
 }
 
+/** A hidden note for the agent that rides right ahead of the learner's
+ *  message it came with: the [Today] note or an app note. */
+function ridesAhead(m: LhMessage): boolean {
+	return m.role === "custom" && (m.customType === "today-context" || m.customType === "app-note");
+}
+
 /** The index of the side question right after the assistant message at `i`
- *  (past its tool results and bookkeeping), or -1. */
+ *  (past its tool results, bookkeeping and the notes riding ahead of it),
+ *  or -1. */
 function sideQuestionAfter(messages: readonly LhMessage[], i: number): number {
 	for (let j = i + 1; j < messages.length; j++) {
 		const m = messages[j]!;
-		if (m.role === "toolResult" || isBookkeeping(m)) continue;
+		if (m.role === "toolResult" || isBookkeeping(m) || ridesAhead(m)) continue;
 		return isSideQuestion(m) ? j : -1;
 	}
 	return -1;

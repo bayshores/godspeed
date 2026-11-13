@@ -5,7 +5,7 @@ use std::collections::HashMap;
 
 use gs_json::{Json, quote};
 
-use super::scans::{dangling_question_of, is_bookkeeping, is_side_question, tool_calls};
+use super::scans::{dangling_question_of, is_bookkeeping, is_side_question, rides_ahead, tool_calls};
 use crate::messages::pending::is_question_tool;
 
 /// The model's result for a question the learner asked a side question around: providers need a
@@ -22,10 +22,10 @@ pub struct HeldQuestion {
 	pub side_at: usize,
 }
 
-/// The side question right after the assistant message at `i`, past its tool results and
-/// bookkeeping.
+/// The side question right after the assistant message at `i`, past its tool results,
+/// bookkeeping and the notes riding ahead of it.
 fn side_question_after(messages: &[Json], i: usize) -> Option<usize> {
-	let j = (i + 1..messages.len()).find(|&j| messages[j]["role"].as_str() != Some("toolResult") && !is_bookkeeping(&messages[j]))?;
+	let j = (i + 1..messages.len()).find(|&j| messages[j]["role"].as_str() != Some("toolResult") && !is_bookkeeping(&messages[j]) && !rides_ahead(&messages[j]))?;
 	is_side_question(&messages[j]).then_some(j)
 }
 
@@ -102,6 +102,14 @@ mod tests {
 		let answered = vec![messages[0].clone(), json!({ "role": "toolResult", "toolCallId": "a" }), side()];
 		assert!(!side_held_questions(&answered).contains_key("a"));
 		assert!(side_held_questions(&answered).contains_key("b"));
+	}
+
+	#[test]
+	fn a_note_riding_ahead_of_a_side_question_still_holds_the_call() {
+		let note = json!({ "role": "custom", "customType": "app-note", "content": "[From earlier] He asked." });
+		let messages = vec![json!({ "role": "assistant", "content": [quiz("a")] }), note, side()];
+		assert_eq!(side_held_questions(&messages)["a"], HeldQuestion { call_at: 0, side_at: 2 });
+		assert!(is_side_turn(&messages));
 	}
 
 	#[test]
