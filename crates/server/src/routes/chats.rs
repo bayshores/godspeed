@@ -31,6 +31,7 @@ use gs_services::turns::chat_handler::{ChatReply, ReplyBody, handle_chat_input};
 use gs_services::turns::chats::{delete_chat_session, session_coverage};
 use gs_services::turns::dismissal_park::park_dismissal;
 use gs_services::turns::homework::create_homework;
+use gs_services::turns::lesson_events::{KeepGoing, keep_going};
 use gs_services::turns::lessons::{CreateLessonInput, LessonStart, create_lesson};
 use gs_services::turns::talk::{clear_talk, open_talk};
 use gs_services::turns::turn_liveness::is_turn_running;
@@ -48,6 +49,7 @@ pub fn routes() -> Router<Arc<App>> {
 		.route("/api/chats/{id}/artifact-ui", ApiRoute::new().post(artifact_ui).into_route())
 		.route("/api/chats/{id}/space", ApiRoute::new().put(move_space).into_route())
 		.route("/api/chats/{id}/dismiss", ApiRoute::new().post(dismiss).into_route())
+		.route("/api/chats/{id}/keep-going", ApiRoute::new().post(keep_going_at).into_route())
 		.route("/api/chats/{id}/markdown", ApiRoute::new().get(markdown).into_route())
 		.route("/api/chats/{id}/steer", ApiRoute::new().post(steer).into_route())
 		.route("/api/chats/{id}/stream", ApiRoute::new().get(stream).into_route())
@@ -251,6 +253,19 @@ async fn dismiss(State(app): State<Arc<App>>, Path(id): Path<String>, body: Body
 	}
 	app.events.emit(EventKind::RecordChanged, json!({ "chatId": id }));
 	Ok(reply::json(200, &json!({ "ok": true })))
+}
+
+/// POST /api/chats/{id}/keep-going: `{input: {stopOf}}`, Keep going at the stop that call carries.
+/// Written at once, even during a turn; it never starts one. `opener`: the next topic's stored
+/// opener now shows, so the window needs no agent call.
+async fn keep_going_at(State(app): State<Arc<App>>, Path(id): Path<String>, body: Body) -> Result<Response, Unhandled> {
+	let body = json_body(body).await.unwrap_or(Json::Null);
+	let Some(stop_of) = body["input"]["stopOf"].as_str().filter(|s| !s.is_empty()) else { return Ok(error(400, "input must be { stopOf: string }")) };
+	Ok(match keep_going(&app, &id, stop_of)? {
+		KeepGoing::Kept { opener } => reply::json(200, &json!({ "ok": true, "opener": opener })),
+		KeepGoing::UnknownLesson => error(404, "Unknown chat"),
+		KeepGoing::NoStop => error(400, "No stop on that call"),
+	})
 }
 
 /// GET /api/chats/{id}/markdown: the whole session as one markdown download.

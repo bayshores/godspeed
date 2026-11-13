@@ -205,9 +205,39 @@ fn is_learner_input(m: &Json) -> bool {
 /// `answer` (`{answer, timestamp}`, a null answer is a skip) the first opener-answer for it.
 pub fn shown_openers(messages: &[Json]) -> Obj {
 	let mut out = Obj::new();
-	let stops = record_stops(messages);
 	let kept: HashSet<&str> = keep_going_markers(messages).filter_map(|(_, k)| k["stopOf"].as_str()).collect();
+	for stored in stored_openers(messages).into_iter().filter(|o| o.stop_of.is_some_and(|s| kept.contains(s))) {
+		let mut opener = Obj::new();
+		opener.insert("topicDoneCallId", stored.id);
+		if let Some(lead) = stored.details["lead"].as_str() {
+			opener.insert("lead", lead);
+		}
+		opener.insert("quiz", stored.quiz.clone());
+		out.insert(stored.id, opener);
+	}
+	for m in messages.iter().filter(|m| m["role"].as_str() == Some("custom") && m["customType"].as_str() == Some("opener-answer")) {
+		let details = &m["details"];
+		let Some(opener) = details["topicDoneCallId"].as_str().and_then(|id| out.get_mut(id)).and_then(Json::as_obj_mut) else { continue };
+		if !opener.contains_key("answer") {
+			opener.insert("answer", json!({ "answer": details["answer"].clone(), "timestamp": m["timestamp"].clone() }));
+		}
+	}
+	out
+}
+
+/// A stored topic_done with an opener, and the stop that opener waits on.
+struct StoredOpener<'a> {
+	id: &'a str,
+	details: &'a Json,
+	quiz: &'a Json,
+	stop_of: Option<&'a str>,
+}
+
+/// Every clean topic_done result whose call holds an opener question, in record order.
+fn stored_openers(messages: &[Json]) -> Vec<StoredOpener<'_>> {
+	let stops = record_stops(messages);
 	let calls = call_args(messages);
+	let mut out = Vec::new();
 	for (index, m) in messages.iter().enumerate() {
 		let details = &m["details"];
 		if m["role"].as_str() != Some("toolResult") || m["toolName"].as_str() != Some(TOPIC_DONE_TOOL) || m["isError"].truthy() || details["part"].as_str() != Some("topic_done") || details.as_obj().is_none() {
@@ -225,25 +255,19 @@ pub fn shown_openers(messages: &[Json]) -> Obj {
 		} else {
 			stops.iter().rev().find(|s| s.index < index && s.stop["kind"].as_str() == Some("topic") && args["nodeId"].as_str().is_some_and(|n| s.stop["nodeId"].as_str() == Some(n))).map(|s| s.stop_of)
 		};
-		if !stop_of.is_some_and(|s| kept.contains(s)) {
-			continue;
-		}
-		let mut opener = Obj::new();
-		opener.insert("topicDoneCallId", id);
-		if let Some(lead) = details["lead"].as_str() {
-			opener.insert("lead", lead);
-		}
-		opener.insert("quiz", quiz.clone());
-		out.insert(id, opener);
-	}
-	for m in messages.iter().filter(|m| m["role"].as_str() == Some("custom") && m["customType"].as_str() == Some("opener-answer")) {
-		let details = &m["details"];
-		let Some(opener) = details["topicDoneCallId"].as_str().and_then(|id| out.get_mut(id)).and_then(Json::as_obj_mut) else { continue };
-		if !opener.contains_key("answer") {
-			opener.insert("answer", json!({ "answer": details["answer"].clone(), "timestamp": m["timestamp"].clone() }));
-		}
+		out.push(StoredOpener { id, details, quiz, stop_of });
 	}
 	out
+}
+
+/// Whether the record holds a stop carried by the call `call_id`.
+pub fn has_stop(messages: &[Json], call_id: &str) -> bool {
+	record_stops(messages).iter().any(|s| s.stop_of == call_id)
+}
+
+/// Whether a stored opener waits on the stop carried by `stop_of`, so Keep going there shows it.
+pub fn has_opener(messages: &[Json], stop_of: &str) -> bool {
+	stored_openers(messages).iter().any(|o| o.stop_of == Some(stop_of))
 }
 
 /// The node ids of shown openers' questions, by topic_done call id (the native plan position reads
@@ -451,6 +475,21 @@ mod tests {
 		let mut refused = regularization_ends();
 		refused[5].as_obj_mut().unwrap().insert("isError", true);
 		assert!(!topic_done_stored(&refused, "reg"));
+	}
+
+	#[test]
+	fn keep_going_finds_its_stop_and_the_opener_waiting_on_it() {
+		let ended = regularization_ends();
+		assert!(has_stop(&ended, "c1"));
+		assert!(!has_stop(&ended, "t1") && !has_stop(&ended, "p1"), "neither carries a stop");
+		assert!(has_opener(&ended, "c1"), "shown or not, it waits on the conclude's stop");
+		assert!(!has_opener(&ended[..4], "c1"), "no topic_done yet");
+		let by_quiz = [quiz("q1", "cv", "check", true, 50.0), vec![
+			json!({ "role": "assistant", "content": [{ "type": "toolCall", "id": "t2", "name": "topic_done", "arguments": { "nodeId": "cv", "opener": { "lead": "Next.", "quiz": { "type": "predict", "nodeId": "ms" } } } }], "timestamp": at(51.0) }),
+			json!({ "role": "toolResult", "toolCallId": "t2", "toolName": "topic_done", "details": { "part": "topic_done", "v": 1, "stop": { "kind": "topic", "nodeId": "cv", "activeMinutes": 3, "at": iso(51.0) } }, "isError": false, "timestamp": at(51.0) }),
+		]]
+		.concat();
+		assert!(has_stop(&by_quiz, "t2") && has_opener(&by_quiz, "t2"), "a quiz-ended topic's stop rides its topic_done");
 	}
 
 	#[test]

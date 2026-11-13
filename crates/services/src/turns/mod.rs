@@ -10,6 +10,7 @@ pub mod dismissal_park;
 pub mod homework;
 mod job_host;
 mod lesson_agent;
+pub mod lesson_events;
 pub mod lessons;
 pub mod talk;
 pub mod turn_liveness;
