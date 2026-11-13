@@ -120,6 +120,15 @@ async function mount(mode: { kind: "create" } | { kind: "edit"; spaceId: string 
 	});
 	pushed.length = 0;
 }
+/** A promise the test ends by hand. */
+function held() {
+	let resolve = () => {};
+	const promise = new Promise<void>((done) => {
+		resolve = done;
+	});
+	return { promise, resolve: () => resolve() };
+}
+
 const q = (id: string) => document.querySelector<HTMLElement>(`[data-testid="${id}"]`);
 async function click(el: HTMLElement | null) {
 	assert.ok(el, "missing click target");
@@ -295,7 +304,7 @@ describe("Delete space", () => {
 describe("Delete space, while the server deletes it", () => {
 	it("leaves the space first, so nothing asks for it again, then goes to Today", async () => {
 		fakeFetch();
-		const deleting = Promise.withResolvers<void>();
+		const deleting = held();
 		const fallback = globalThis.fetch;
 		globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
 			if (String(input) === "/api/spaces/cls_a" && init?.method === "DELETE") await deleting.promise;
@@ -421,7 +430,7 @@ describe("Esc on the space dialogs", () => {
 
 	it("while Save runs, Esc is claimed but the dialog stays open and the close button is off", async () => {
 		fakeFetch();
-		const saving = Promise.withResolvers<void>();
+		const saving = held();
 		const fallback = globalThis.fetch;
 		globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
 			if (String(input) === "/api/spaces/cls_a" && init?.method === "PUT") await saving.promise;

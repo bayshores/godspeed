@@ -141,8 +141,9 @@ fn the_scenario_matches_node() {
 	let mut counts = [0, 0];
 	let store = &lab.store;
 	for (k, raw) in want["steps"].as_arr().unwrap().iter().enumerate() {
-		let step = resolve(raw, &aliases);
+		// Read before `$now` resolves, so that time falls inside this step's window too.
 		let first = clock::now_ms();
+		let step = resolve(raw, &aliases);
 		let id = step["id"].as_str().unwrap_or("");
 		let result = match s(&step["op"]) {
 			"list" => outcome(Ok(Json::Arr(store.list_spaces()))),
