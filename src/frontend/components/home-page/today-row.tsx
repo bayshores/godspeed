@@ -53,7 +53,7 @@ export function TodayRow({
 	const words = todayRow(d, progress, nowMs);
 	const work = words.button === "Work on it";
 	return (
-		<li data-testid={`today-row-${d.id}`} data-halley-target={`deadline:${d.id}`}>
+		<li data-testid={`today-row-${d.id}`} data-teacher-target={`deadline:${d.id}`}>
 			<Pane className="flex min-h-[104px] overflow-hidden">
 				<CountBlock color={blockColor(color)} {...countLeft(dueAtMs(d), nowMs)} />
 				<div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-3 px-6 py-4">
@@ -156,7 +156,7 @@ export function DoneRow({ deadline: d, onUndo }: { deadline: OpenDeadline; onUnd
 /** A deadline under Later: the whole row opens its page. */
 export function LaterRow({ deadline: d, progress, color, nowMs }: { deadline: OpenDeadline; progress: DeadlineProgress | undefined; color: SpaceColor | undefined; nowMs: number }) {
 	return (
-		<li data-testid={`later-row-${d.id}`} data-halley-target={`deadline:${d.id}`}>
+		<li data-testid={`later-row-${d.id}`} data-teacher-target={`deadline:${d.id}`}>
 			<Pane className="overflow-hidden">
 				<Link to={deadlineHref(d.id)} className="flex min-h-[104px] transition-colors hover:bg-tone">
 					<CountBlock pale color={blockColor(color)} {...countLeft(dueAtMs(d), nowMs)} />

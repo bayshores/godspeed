@@ -43,6 +43,7 @@ import { practiceProgress } from "@/frontend/components/lesson/practice-progress
 import { useLessonServer } from "@/frontend/components/lesson/use-lesson-server";
 import { useTitleRename } from "@/frontend/components/lesson/use-title-rename";
 import { LessonTopBar } from "@/frontend/components/lesson/lesson-top-bar";
+import { LessonWorkFrame } from "@/frontend/components/lesson/lesson-work-frame";
 import { PlanRow } from "@/frontend/components/lesson/plan-row";
 import { homeworkProblemLine } from "@/frontend/components/lesson/plan-row-model";
 import { ReadingPane } from "@/frontend/components/lesson/reading-pane";
@@ -51,7 +52,7 @@ import { Pane } from "@/frontend/components/ui/pane";
 import { usePaneWidth } from "@/frontend/components/ui/resize-handle";
 import { useAttachmentDraft } from "@/frontend/components/lesson/attachment-tray";
 import { takeStartFiles } from "@/frontend/components/lesson/start-files";
-import { useHalleyLesson } from "@/frontend/components/halley/halley-provider";
+import { useTeacherLesson } from "@/frontend/components/teacher/teacher-provider";
 import { SheetDock, useSheetDock } from "@/frontend/components/cheat-sheet/sheet-dock";
 
 // The plan popup (and dagre, its layout engine) loads on first open.
@@ -311,9 +312,9 @@ export function Chat({
 
 	// Follow never takes the window away from unsent text.
 	const draftHeld = drafts.draft !== null && holdsDraft(drafts.draft, pendingQuestionId);
-	// Halley rests in the reading pane: Talking while the teacher writes,
-	// Thinking while the turn runs.
-	useHalleyLesson(status === "streaming", busy, draftHeld);
+	// The teacher's status in a lesson: Talking while it writes, Thinking
+	// while the turn runs.
+	useTeacherLesson(status === "streaming", busy, draftHeld);
 	const attachments = useAttachmentDraft(chatId);
 
 	// A running turn never gates the box: a send while busy STEERS it (text
@@ -495,87 +496,91 @@ export function Chat({
 								scopeRef={sessionFindScopeRef}
 								scrollContextRef={scrollContextRef}
 							/>
-							<div
-								ref={sessionFindScopeRef}
-								data-dock={sheetOpen ? "" : undefined}
-								className="lh-dots lh-lesson-body relative min-h-0 flex-1"
-								style={{ "--lh-turn-w": `${columnWidth}px` } as React.CSSProperties}
-							>
-								<Pane className="@container/reading flex min-h-0 min-w-0 flex-col [grid-area:reading]">
-									<div className="shrink-0 px-14 pt-[26px] pb-3 empty:hidden @max-[640px]/reading:px-7">
-										<PlanRow kind={kind} spaceId={spaceId} stepBar={stepBar} homework={planHomework} practice={stablePractice} onJump={jumpToAnswer} onOpenPlan={openPlan} />
-									</div>
-									<ReadingPane
-										spaceId={spaceId}
-										messages={messages}
-										phases={phases}
-										status={status}
-										busy={busy}
-										turnInFlight={turnInFlight}
-										waitingForAgent={waitingForAgent}
-										arrivalsLive={arrivalsLive}
-										arrive={arrive}
-										onOpenPlan={openPlan}
-										scrollContextRef={scrollContextRef}
-									/>
-								</Pane>
-								{spaceId && sheetOpen && (
-									<div className="flex min-h-0 [grid-area:dock]">
-										<SheetDock
+							<div className="min-h-0 flex-1">
+								<LessonWorkFrame chatId={chatId}>
+									<div
+										ref={sessionFindScopeRef}
+										data-dock={sheetOpen ? "" : undefined}
+										className="lh-dots lh-lesson-body relative h-full"
+										style={{ "--lh-turn-w": `${columnWidth}px` } as React.CSSProperties}
+									>
+										<Pane className="@container/reading flex min-h-0 min-w-0 flex-col [grid-area:reading]">
+											<div className="shrink-0 px-14 pt-[26px] pb-3 empty:hidden @max-[640px]/reading:px-7">
+												<PlanRow kind={kind} spaceId={spaceId} stepBar={stepBar} homework={planHomework} practice={stablePractice} onJump={jumpToAnswer} onOpenPlan={openPlan} />
+											</div>
+											<ReadingPane
+												spaceId={spaceId}
+												messages={messages}
+												phases={phases}
+												status={status}
+												busy={busy}
+												turnInFlight={turnInFlight}
+												waitingForAgent={waitingForAgent}
+												arrivalsLive={arrivalsLive}
+												arrive={arrive}
+												onOpenPlan={openPlan}
+												scrollContextRef={scrollContextRef}
+											/>
+										</Pane>
+										{spaceId && sheetOpen && (
+											<div className="flex min-h-0 [grid-area:dock]">
+												<SheetDock
+													spaceId={spaceId}
+													sessionDeadlineId={deadlineId}
+													picked={sheet.state.deadlineId}
+													onPick={(id) => sheet.update({ deadlineId: id })}
+													onClose={() => sheet.update({ open: false })}
+												/>
+											</div>
+										)}
+										<TeacherColumn
+											// Remounts once the saved drafts are read, so the question starts from them.
+											key={draftsLoaded ? "drafts" : "loading"}
 											spaceId={spaceId}
-											sessionDeadlineId={deadlineId}
-											picked={sheet.state.deadlineId}
-											onPick={(id) => sheet.update({ deadlineId: id })}
-											onClose={() => sheet.update({ open: false })}
+											width={columnWidth}
+											onWidth={setColumnWidth}
+											pending={pending}
+											requiresReveal={requiresReveal}
+											onReveal={revealCheck}
+											initialQuestionDraft={pendingQuestionId ? drafts.draft?.questions[pendingQuestionId]?.form : undefined}
+											onSaveQuestionDraft={(form) => {
+												if (pendingQuestionId) saveQuestion(pendingQuestionId, { form });
+											}}
+											onSubmitAnswer={onSubmitAnswer}
+											onSkipQuestion={() => setAbortAsk("question")}
+											problem={problem}
+											onDiscardProblem={() => setAbortAsk("problem")}
+											busy={busy}
+											waitingForAgent={waitingForAgent}
+											onStop={abortInFlightTurn}
+											next={nextReady ? (kind === "study" ? "Continue" : "Next problem") : undefined}
+											onNext={sendNext}
+											value={text}
+											onChange={editText}
+											onSend={onSend}
+											queuedSteers={visibleQueuedSteers(steerQueue, nativeMessages)}
+											attachments={attachments}
+											stuck={stuck && stuckMinutes !== null ? { minutes: stuckMinutes, label: stuck.type === "text" ? "Stop and send again?" : "Stop and try again?", onStop: stopAndRetry } : null}
+											error={error && { text: lessonError(error.message).text, detail: error.message, onRetry: retry }}
+											stats={<StatsBar turns={turns} contextTokens={contextTokens} summarizeAt={summarizeAt} pricing={pricing} />}
 										/>
-									</div>
-								)}
-								<TeacherColumn
-									// Remounts once the saved drafts are read, so the question starts from them.
-									key={draftsLoaded ? "drafts" : "loading"}
-									spaceId={spaceId}
-									width={columnWidth}
-									onWidth={setColumnWidth}
-									pending={pending}
-									requiresReveal={requiresReveal}
-									onReveal={revealCheck}
-									initialQuestionDraft={pendingQuestionId ? drafts.draft?.questions[pendingQuestionId]?.form : undefined}
-									onSaveQuestionDraft={(form) => {
-										if (pendingQuestionId) saveQuestion(pendingQuestionId, { form });
-									}}
-									onSubmitAnswer={onSubmitAnswer}
-									onSkipQuestion={() => setAbortAsk("question")}
-									problem={problem}
-									onDiscardProblem={() => setAbortAsk("problem")}
-									busy={busy}
-									waitingForAgent={waitingForAgent}
-									onStop={abortInFlightTurn}
-									next={nextReady ? (kind === "study" ? "Continue" : "Next problem") : undefined}
-									onNext={sendNext}
-									value={text}
-									onChange={editText}
-									onSend={onSend}
-									queuedSteers={visibleQueuedSteers(steerQueue, nativeMessages)}
-									attachments={attachments}
-									stuck={stuck && stuckMinutes !== null ? { minutes: stuckMinutes, label: stuck.type === "text" ? "Stop and send again?" : "Stop and try again?", onStop: stopAndRetry } : null}
-									error={error && { text: lessonError(error.message).text, detail: error.message, onRetry: retry }}
-									stats={<StatsBar turns={turns} contextTokens={contextTokens} summarizeAt={summarizeAt} pricing={pricing} />}
-								/>
 
-								{/* The session-scoped focuses: absolute over the lesson area, below
-								    the lesson's bar; each fades out through usePresence. */}
-								{mermaidPresence.mounted && lastMermaidRef.current !== null && (
-									<div className={cn("absolute inset-0 z-40", mermaidPresence.state === "closed" && "lh-fade")} data-state={mermaidPresence.state}>
-										<MermaidOverlay chart={lastMermaidRef.current} onClose={() => setMermaidFocus(null)} />
+										{/* The session-scoped focuses: absolute over the lesson area, below
+										    the lesson's bar; each fades out through usePresence. */}
+										{mermaidPresence.mounted && lastMermaidRef.current !== null && (
+											<div className={cn("absolute inset-0 z-40", mermaidPresence.state === "closed" && "lh-fade")} data-state={mermaidPresence.state}>
+												<MermaidOverlay chart={lastMermaidRef.current} onClose={() => setMermaidFocus(null)} />
+											</div>
+										)}
+										{figurePresence.mounted && lastFigureRef.current !== null && (
+											<div className={cn("absolute inset-0 z-40", figurePresence.state === "closed" && "lh-fade")} data-state={figurePresence.state}>
+												<MermaidOverlay svg={lastFigureRef.current.svg} inverted={lastFigureRef.current.inverted} onClose={() => setFigureFocus(null)} />
+											</div>
+										)}
+										{planPresence.mounted && <PlanPopup tree={planTree} messages={messages} onClose={() => setPlanOpen(false)} onJump={jumpToAnswer} state={planPresence.state} />}
+										<AbortTurnDialog mode={abortAsk} onClose={() => setAbortAsk(null)} onConfirm={confirmAbort} busy={busy} />
 									</div>
-								)}
-								{figurePresence.mounted && lastFigureRef.current !== null && (
-									<div className={cn("absolute inset-0 z-40", figurePresence.state === "closed" && "lh-fade")} data-state={figurePresence.state}>
-										<MermaidOverlay svg={lastFigureRef.current.svg} inverted={lastFigureRef.current.inverted} onClose={() => setFigureFocus(null)} />
-									</div>
-								)}
-								{planPresence.mounted && <PlanPopup tree={planTree} messages={messages} onClose={() => setPlanOpen(false)} onJump={jumpToAnswer} state={planPresence.state} />}
-								<AbortTurnDialog mode={abortAsk} onClose={() => setAbortAsk(null)} onConfirm={confirmAbort} busy={busy} />
+								</LessonWorkFrame>
 							</div>
 						</div>
 					</LessonStepsContext.Provider>

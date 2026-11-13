@@ -1218,3 +1218,29 @@ body:has(.lh-own-bar) .lh-app-bar {
 		animation: none;
 	}
 }
+
+/* The work frame's top edge: ink stripes on the highlighter that slide
+   slowly while work runs. The tile is one stripe period wide, so the slide
+   loops without a jump. */
+.lh-work-stripes {
+	background: repeating-linear-gradient(135deg, var(--lh-line) 0 5.657px, var(--lh-highlight) 5.657px 11.314px) 0 0 / 16px 100%;
+}
+.lh-work-stripes[data-state="working"] {
+	animation: lh-work-slide 1.6s linear infinite;
+}
+.lh-work-stripes[data-state="waiting"] {
+	background-image: repeating-linear-gradient(135deg, var(--lh-edge) 0 5.657px, var(--accent) 5.657px 11.314px);
+}
+.lh-work-stripes[data-state="done"] {
+	background: var(--lh-highlight);
+}
+@keyframes lh-work-slide {
+	to {
+		background-position: 16px 0;
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	.lh-work-stripes[data-state="working"] {
+		animation: none;
+	}
+}

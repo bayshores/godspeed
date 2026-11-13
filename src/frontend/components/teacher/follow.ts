@@ -1,7 +1,7 @@
 /**
  * Follow mode. Pure.
  *
- * With Follow on (the default), Halley takes you to the page of each
+ * With Follow on (the default), the window goes to the page of each
  * change. Only the Follow chip's Stop turns it off. While you
  * type or a dialog is open it waits, and catches up RESUME_MS after you
  * stop. It never leaves a lesson where you have unsent text, or a mock,

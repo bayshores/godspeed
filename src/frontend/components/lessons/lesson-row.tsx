@@ -65,7 +65,7 @@ export const LessonRow = memo(function LessonRow({ chat, teacher, onOpen, kbdSel
 				type="button"
 				onClick={() => onOpen(chat.id)}
 				data-testid={kbdSelected ? "session-row-kbd" : "session-row"}
-				data-halley-target={`lesson:${chat.id}`}
+				data-teacher-target={`lesson:${chat.id}`}
 				className="flex min-w-0 flex-1 flex-col items-start gap-1 text-left after:absolute after:inset-0"
 			>
 				<span className="w-full truncate text-[17px] text-ink">{chat.title}</span>

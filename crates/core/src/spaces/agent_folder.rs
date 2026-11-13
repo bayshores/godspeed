@@ -25,26 +25,28 @@ impl FolderAgent {
 	}
 }
 
-/// What a start script starts: an agent, or Claude Code as the backup teacher, which answers
-/// while the main session compacts its context.
+/// What a start script starts: an agent as the teacher, or as the helper, which does the
+/// background jobs in a second window.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum StartTarget {
 	Claude,
-	ClaudeBackup,
+	ClaudeHelper,
 	Codex,
+	CodexHelper,
 }
 
 impl StartTarget {
 	fn name(self) -> &'static str {
 		match self {
 			StartTarget::Claude => "claude",
-			StartTarget::ClaudeBackup => "claude-backup",
+			StartTarget::ClaudeHelper => "claude-helper",
 			StartTarget::Codex => "codex",
+			StartTarget::CodexHelper => "codex-helper",
 		}
 	}
 
 	fn agent(self) -> FolderAgent {
-		if self == StartTarget::Codex { FolderAgent::Codex } else { FolderAgent::Claude }
+		if matches!(self, StartTarget::Codex | StartTarget::CodexHelper) { FolderAgent::Codex } else { FolderAgent::Claude }
 	}
 }
 
@@ -102,7 +104,7 @@ pub enum Platform {
 
 /// The prompt each agent starts with; CLAUDE.md and AGENTS.md say what it means.
 const START_PROMPT: &str = "Start teaching";
-const BACKUP_PROMPT: &str = "Start as the backup teacher";
+const HELPER_PROMPT: &str = "Start as the helper";
 
 /// Settings Claude Code loads at launch (--settings), so they apply before the folder is trusted.
 const CLAUDE_SETTINGS: &str = ".godspeed/claude-settings.json";
@@ -166,7 +168,7 @@ pub fn claude_settings(folder: &str, platform: Platform) -> String {
 /// Codex's arguments: godspeed's server through the folder's connector, its tools pre-approved,
 /// and a timeout longer than wait_for_work's 600 s. TOML literal strings ('...'), so no value
 /// needs escaping.
-fn codex_args(folder: &str, platform: Platform) -> Vec<String> {
+fn codex_args(folder: &str, platform: Platform, prompt: &str) -> Vec<String> {
 	let server = "mcp_servers.godspeed";
 	let connector = join(folder, platform, &[".godspeed", "connect.mjs"]);
 	vec![
@@ -178,7 +180,7 @@ fn codex_args(folder: &str, platform: Platform) -> Vec<String> {
 		format!("{server}.tool_timeout_sec=620"),
 		"-c".to_owned(),
 		format!("{server}.default_tools_approval_mode='approve'"),
-		START_PROMPT.to_owned(),
+		prompt.to_owned(),
 	]
 }
 
@@ -202,9 +204,10 @@ fn claude_args() -> Vec<String> {
 
 fn start_args(target: StartTarget, folder: &str, platform: Platform) -> Vec<String> {
 	match target {
-		StartTarget::Codex => codex_args(folder, platform),
+		StartTarget::Codex => codex_args(folder, platform, START_PROMPT),
+		StartTarget::CodexHelper => codex_args(folder, platform, HELPER_PROMPT),
 		StartTarget::Claude => claude_args(),
-		StartTarget::ClaudeBackup => vec!["--settings".to_owned(), CLAUDE_SETTINGS.to_owned(), BACKUP_PROMPT.to_owned()],
+		StartTarget::ClaudeHelper => vec!["--settings".to_owned(), CLAUDE_SETTINGS.to_owned(), HELPER_PROMPT.to_owned()],
 	}
 }
 
@@ -236,7 +239,7 @@ pub fn copy_command(agent: FolderAgent, folder: &str, home: &str, platform: Plat
 	static HOME_RELATIVE: LazyLock<Re> = LazyLock::new(|| Re::new(r"^~[\w./-]*$", ""));
 	let short = short_folder(folder, home);
 	let cd = if HOME_RELATIVE.test(&short) { short } else { posix_quote(folder) };
-	let args = if agent == FolderAgent::Claude { claude_args() } else { codex_args(folder, platform) };
+	let args = if agent == FolderAgent::Claude { claude_args() } else { codex_args(folder, platform, START_PROMPT) };
 	let args: Vec<String> = args.iter().map(|a| posix_quote(a)).collect();
 	format!("cd {cd} && {start} {}", args.join(" "))
 }
@@ -329,7 +332,7 @@ mod tests {
 		assert_eq!(copy_command(FolderAgent::Claude, "/h/godspeed", "/h", Platform::Darwin, &none()), "cd ~/godspeed && claude --settings .godspeed/claude-settings.json \"Start teaching\"");
 		assert!(start_script(StartTarget::Codex, "/h/my godspeed", Platform::Linux, &none()).contains("cd \"/h/my godspeed\" || exit 1\n"));
 		assert_eq!(start_script_path("C:\\g", StartTarget::Codex, Platform::Win32), "C:\\g\\.godspeed\\start-codex.cmd");
-		assert_eq!(start_script_path("/g", StartTarget::ClaudeBackup, Platform::Darwin), "/g/.godspeed/start-claude-backup.command");
+		assert_eq!(start_script_path("/g", StartTarget::ClaudeHelper, Platform::Darwin), "/g/.godspeed/start-claude-helper.command");
 	}
 
 	#[test]
@@ -341,8 +344,9 @@ mod tests {
 	}
 
 	#[test]
-	fn the_backup_teacher_starts_claude_with_its_own_prompt() {
-		assert!(start_script(StartTarget::ClaudeBackup, "/Users/me/godspeed", Platform::Linux, &none()).ends_with("\nexec claude --settings .godspeed/claude-settings.json \"Start as the backup teacher\"\n"));
+	fn the_helper_starts_each_agent_with_its_own_prompt() {
+		assert!(start_script(StartTarget::ClaudeHelper, "/Users/me/godspeed", Platform::Linux, &none()).ends_with("\nexec claude --settings .godspeed/claude-settings.json \"Start as the helper\"\n"));
+		assert!(start_script(StartTarget::CodexHelper, "/Users/me/godspeed", Platform::Linux, &none()).ends_with("'approve'\" \"Start as the helper\"\n"));
 	}
 
 	#[test]
@@ -356,7 +360,7 @@ mod tests {
 		assert!(script.contains("\ncommand -v standardcompute >/dev/null 2>&1 || { echo \"godspeed couldn't find standardcompute. Check the command under Change command in godspeed.\"; exit 1; }\n"), "{script}");
 		assert!(script.ends_with("\nstandardcompute launch claude -- --settings .godspeed/claude-settings.json \"Start teaching\"\n"));
 		assert!(!script.contains("command -v claude") && !script.contains("exec "));
-		assert!(start_script(StartTarget::ClaudeBackup, "/Users/me/godspeed", Platform::Linux, &own).ends_with("\nstandardcompute launch claude -- --settings .godspeed/claude-settings.json \"Start as the backup teacher\"\n"));
+		assert!(start_script(StartTarget::ClaudeHelper, "/Users/me/godspeed", Platform::Linux, &own).ends_with("\nstandardcompute launch claude -- --settings .godspeed/claude-settings.json \"Start as the helper\"\n"));
 		assert!(start_script(StartTarget::Codex, "/Users/me/godspeed", Platform::Linux, &own).contains("\nexec codex -c "));
 
 		let codex = StartCommands { claude: None, codex: Some("standardcompute launch codex --".to_owned()) };

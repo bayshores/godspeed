@@ -48,7 +48,7 @@ export const NextDeadline = memo(function NextDeadline({
 	}
 	const share = progressShare(d);
 	return (
-		<Pane data-testid="next-deadline" data-halley-target={`deadline:${d.id}`} className="flex flex-col gap-[18px] p-5">
+		<Pane data-testid="next-deadline" data-teacher-target={`deadline:${d.id}`} className="flex flex-col gap-[18px] p-5">
 			<div className="flex gap-7">
 				<CountBlock size="square" color={color} {...countLeft(dueAtMs(d), nowMs)} />
 				<div className="flex min-w-0 flex-1 flex-col gap-1.5">

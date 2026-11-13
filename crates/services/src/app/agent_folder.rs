@@ -22,7 +22,7 @@ use crate::App;
 use crate::spaces::space_shortcuts::{sync_shortcuts_safely, watch_shortcuts};
 
 /// Every start script the folder holds.
-pub const START_TARGETS: [StartTarget; 3] = [StartTarget::Claude, StartTarget::ClaudeBackup, StartTarget::Codex];
+pub const START_TARGETS: [StartTarget; 4] = [StartTarget::Claude, StartTarget::ClaudeHelper, StartTarget::Codex, StartTarget::CodexHelper];
 
 const STATE: LockKey<'static> = LockKey::AppFile("agent-folder.json");
 

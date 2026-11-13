@@ -53,7 +53,7 @@ describe("LessonRow", () => {
 	});
 
 	it("the row is the teacher's highlight target, and the search walk marks its row", () => {
-		assert.match(render(item({})), /data-testid="session-row"[^>]*data-halley-target="lesson:c1"/);
+		assert.match(render(item({})), /data-testid="session-row"[^>]*data-teacher-target="lesson:c1"/);
 		assert.ok(render(item({}), { kbdSelected: true }).includes('data-testid="session-row-kbd"'));
 	});
 

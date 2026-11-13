@@ -7,10 +7,10 @@
 //!
 //! Check-ins: every authorized MCP request counts as the agent being connected; only the work
 //! loop (wait, respond, read) counts as teaching. Status changes go out as "agent-changed".
-//! A backup teacher answers while a main agent compacts its context (`backup`).
+//! A helper does the background jobs, and answers while a teacher compacts its context (`helper`).
 
-mod backup;
 mod checkin;
+mod helper;
 mod render;
 mod stream;
 mod view;
@@ -30,6 +30,7 @@ use tokio::task::JoinHandle;
 use waiters::Waiters;
 
 pub use checkin::display_agent_name;
+pub use helper::UNNAMED_HELPER;
 pub use stream::agent_model;
 pub use view::WorkView;
 pub use work::{AgentReply, Answered, ReplyCall, WaitOptions};
@@ -104,8 +105,8 @@ struct State {
 	staying_on: HashMap<String, String>,
 	/// agent → when it started compacting its context.
 	compacting: HashMap<String, i64>,
-	/// backup agent ("" = no id) → its last check-in.
-	backups: HashMap<String, i64>,
+	/// helper session ("" = no id) → its last check-in.
+	helpers: HashMap<String, i64>,
 }
 
 /// Lessons use their chat id as the conversation; everything else is a background job.
@@ -150,6 +151,11 @@ impl Bridge {
 	/// How many requests wait for (or are being handled by) the agent.
 	pub fn pending_work_count(&self) -> usize {
 		self.0.state.lock().items.len()
+	}
+
+	/// How many of those are lesson or Talk turns; the rest are background jobs.
+	pub fn pending_turn_count(&self) -> usize {
+		self.0.state.lock().items.iter().filter(|item| !is_background(&item.conversation)).count()
 	}
 
 	/// Remembers the lesson an agent's waiter stays on (none: any work), so a Talk reply can

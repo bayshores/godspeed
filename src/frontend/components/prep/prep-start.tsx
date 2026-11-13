@@ -5,7 +5,7 @@ import { NoAgentLine } from "@/frontend/components/agent-folder/no-agent-line";
 import { useSpaces } from "@/frontend/components/space-context";
 import { send } from "@/frontend/components/files/space-files-api";
 import { SPACE_FILE_ACCEPT } from "@/frontend/components/files/files-model";
-import { useHalley } from "@/frontend/components/halley/halley-provider";
+import { useTeacher } from "@/frontend/components/teacher/teacher-provider";
 import { isStartKey } from "@/frontend/components/home/topic-box";
 import { BIG_BUTTON } from "@/frontend/components/ui/big-button";
 import { FIELD } from "@/frontend/components/ui/field";
@@ -22,7 +22,7 @@ import { cn } from "@/frontend/lib/utils";
 export function PrepStart() {
 	const navigate = useNavigate();
 	const { refresh, setActive } = useSpaces();
-	const teacher = useHalley()?.name ?? DEFAULT_TEACHER_NAME;
+	const teacher = useTeacher()?.name ?? DEFAULT_TEACHER_NAME;
 	const [goal, setGoal] = useState("");
 	const [date, setDate] = useState("");
 	const [files, setFiles] = useState<File[]>([]);

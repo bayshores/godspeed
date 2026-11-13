@@ -1,21 +1,19 @@
 import { useNavigate } from "react-router";
-import { DEFAULT_TEACHER_NAME, type SpaceSummary } from "@/shared/core";
-import { useAgentStatus } from "@/frontend/components/agent-status";
-import { useHalley } from "@/frontend/components/halley/halley-context";
+import type { SpaceSummary } from "@/shared/core";
 import { spaceColorVar } from "@/frontend/components/space-color";
 import { useSpaces } from "@/frontend/components/space-context";
 import { Pane } from "@/frontend/components/ui/pane";
-import { todayWorkLine } from "./teacher-work-model";
+import { useWorker } from "./use-worker";
+import { todayWorkLine } from "./work-model";
 
-/** On Today: one strip per space whose files the teacher still has to
- *  read, with a button that opens the space. */
+/** On Today: one strip per space with files still to read, with a button
+ *  that opens the space. */
 export function TodayWork({ spaces }: { spaces: readonly SpaceSummary[] }) {
 	const { setActive } = useSpaces();
 	const navigate = useNavigate();
-	const teaching = useAgentStatus()?.teaching ?? true;
-	const teacher = useHalley()?.name ?? DEFAULT_TEACHER_NAME;
+	const { worker } = useWorker();
 	const strips = spaces.flatMap((space) => {
-		const line = todayWorkLine(space, teacher, teaching);
+		const line = todayWorkLine(space, worker);
 		return line ? [{ space, line }] : [];
 	});
 	if (strips.length === 0) return null;

@@ -8,6 +8,8 @@ When the user says "Start teaching" (or anything like it), run the work loop fro
 
 Keep going until the user tells you to stop. Here, say only brief status lines; the teaching itself goes through `respond`.
 
+When the user says "Start as the helper", you are the helper: a second session beside the teacher. Run the same loop, but pass `helper: true` on every `wait_for_work` call, never a `lesson_id`, and never start lessons. godspeed then sends you the background jobs (reading space files, building the graph, making sheets), so the teacher stays free for the learner.
+
 When the user asks you to set up their spaces, read `.claude/skills/setup-spaces/SKILL.md` in this folder and follow it, calling `wait_for_work` yourself where it mentions the waiter.
 
 `spaces/` in this folder holds read-only shortcuts to the learner's space files. Prefer `search_space_files` and `read_passage` to opening whole files, and add or change files only through godspeed's tools.

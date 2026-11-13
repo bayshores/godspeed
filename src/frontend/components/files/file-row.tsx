@@ -69,7 +69,7 @@ export const FileRow = memo(function FileRow({
 	return (
 		<li
 			data-testid={`space-file-${file.id}`}
-			data-halley-target={`file:${file.id}`}
+			data-teacher-target={`file:${file.id}`}
 			className={cn("group flex flex-wrap items-center gap-x-3 gap-y-1 px-1 py-[7px] hover:bg-panel", menuOpen && "bg-panel")}
 		>
 			<span className="flex min-w-0 flex-1 items-center gap-2">

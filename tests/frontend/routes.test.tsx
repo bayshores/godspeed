@@ -9,7 +9,7 @@ import { createMemoryRouter, isRouteErrorResponse, matchRoutes, type DataRouter 
 import { routes } from "../../src/frontend/routes/router.tsx";
 import { PageError } from "../../src/frontend/routes/not-found.tsx";
 import { spaceTabs } from "../../src/frontend/components/space-page/space-head-model.ts";
-import { safePage } from "../../src/frontend/components/halley/follow.ts";
+import { safePage } from "../../src/frontend/components/teacher/follow.ts";
 import viteConfig from "../../vite.config.ts";
 import pkg from "../../package.json" with { type: "json" };
 

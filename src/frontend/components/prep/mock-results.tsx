@@ -1,6 +1,6 @@
 import { DEFAULT_TEACHER_NAME, MOCK_LANGUAGES, minutesUsed, questionResult, solvedCount, type MockQuestion, type MockView } from "@/shared/core";
 import { MessageResponse } from "@/frontend/components/ai-elements/message";
-import { useHalley } from "@/frontend/components/halley/halley-provider";
+import { useTeacher } from "@/frontend/components/teacher/teacher-provider";
 import { longDay } from "@/frontend/components/home-page/home-page-model";
 import { useLessonStart } from "@/frontend/components/home/use-lesson-start";
 import { TITLE } from "@/frontend/components/overview/styles";
@@ -21,7 +21,7 @@ import { useTakeMock } from "./use-mock";
  */
 export function MockResults({ view }: { view: MockView }) {
 	const { spaceId, mock } = view;
-	const teacher = useHalley()?.name ?? DEFAULT_TEACHER_NAME;
+	const teacher = useTeacher()?.name ?? DEFAULT_TEACHER_NAME;
 	const lesson = useLessonStart();
 	const another = useTakeMock(spaceId);
 	const fix = fixFirst(mock, view.topics);

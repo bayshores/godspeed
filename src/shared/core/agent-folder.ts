@@ -9,9 +9,9 @@
 
 export type FolderAgent = "claude" | "codex";
 
-/** What a start script starts: an agent, or Claude Code as the backup
- *  teacher, which answers while the main session compacts its context. */
-export type StartTarget = FolderAgent | "claude-backup";
+/** What a start script starts: an agent as the teacher, or as the helper,
+ *  which does the background jobs in a second window. */
+export type StartTarget = FolderAgent | `${FolderAgent}-helper`;
 
 /** The old ways godspeed loaded outside the folder that are still set up:
  *  the retired Claude Code plugin, and the block once pasted into Codex's config. */

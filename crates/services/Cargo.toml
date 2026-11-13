@@ -18,6 +18,7 @@ gs-pdf.workspace = true
 gs-search.workspace = true
 gs-media.workspace = true
 gs-transcribe.workspace = true
+gs-web.workspace = true
 gs-shell-rpc.workspace = true
 futures-util.workspace = true
 tokio.workspace = true

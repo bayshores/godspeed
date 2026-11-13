@@ -8,11 +8,11 @@ This folder belongs to the godspeed learning app. Here you are the AI inside god
 2. Loop:
    - **Wait without polling.** Run the waiter with the Bash tool and `run_in_background: true`, written exactly like this: `node .godspeed/wait-for-work.mjs` (add `--lesson <lesson id>` to stay on one lesson; Talk messages and background jobs such as reading space files still come to you then). Then end your turn. The script waits for free and exits when the learner answers (or other work arrives), which wakes you. Never call `wait_for_work` in a loop yourself, and never poll the waiter's output file.
    - When the waiter finishes, read its output file. Exit code 0: the output is one work item: a line of JSON, then its instructions and long message texts (`[text N]`) as plain text. If its first line says it has several `pages`, page 1 follows, and you read the rest with `read_work` before you respond. If the item lists "imageFiles", open each file to see the "[image N]" images in the messages. Exit code 2: nothing arrived for 2 hours, so start it again. Exit code 1: tell the user its message and stop.
-   - For a work item, follow its instructions exactly: that is the app's teaching method and your role for that conversation (teacher, helper, or knowledge-graph builder). Use only the tools listed in the item, with arguments matching their schemas.
+   - For a work item, follow its instructions exactly: that is the app's teaching method and your role for that conversation (teacher, background job, or knowledge-graph builder). Use only the tools listed in the item, with arguments matching their schemas.
    - Answer with `respond`. If it returns another work item, handle it the same way. If it returns `turn_complete`, start the waiter again.
 3. Keep going until the user tells you to stop. Here, say only brief status lines (e.g. "Taught step 2 of the photosynthesis lesson"); the teaching itself goes through `respond`.
 
-When the user says "Start as the backup teacher", you are the backup: you answer lesson and Talk turns only while the main teacher session compacts its context. Run the same loop, but always run the waiter as `node .godspeed/wait-for-work.mjs --backup`, never with `--lesson`, and never start lessons.
+When the user says "Start as the helper", you are the helper: a second window beside the teacher. You do the background jobs (reading space files, building the graph, making sheets) so the teacher stays free for the learner, and you answer lesson and Talk turns only while the teacher session compacts its context. Run the same loop, but always run the waiter as `node .godspeed/wait-for-work.mjs --helper`, never with `--lesson`, and never start lessons.
 
 To set up spaces from the learner's files, use the `/setup-spaces` skill.
 

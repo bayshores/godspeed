@@ -23,7 +23,7 @@ use parking_lot::Mutex;
 use super::headless::HeadlessApi;
 use super::stream_once::message_text;
 
-/// Why a helper agent's run ended without a result.
+/// Why a job agent's run ended without a result.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RunError {
 	/// The caller's abort fired (TS: an `AbortError` with the message "aborted").

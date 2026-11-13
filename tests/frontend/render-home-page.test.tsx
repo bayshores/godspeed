@@ -199,7 +199,7 @@ describe("A row under Today", () => {
 	it("the title opens the deadline's page and the row is tagged for the teacher", () => {
 		const html = todayRow();
 		assert.match(tag(html, "today-open"), /href="\/space\/deadline\/hw5"/);
-		assert.ok(html.includes('data-halley-target="deadline:hw5"'));
+		assert.ok(html.includes('data-teacher-target="deadline:hw5"'));
 	});
 
 	it("homework: its name, how far it is, and Work on it", () => {
@@ -264,7 +264,7 @@ describe("A row under Later", () => {
 		const row = section(html, "later-row-far", "</li>");
 		assert.match(row, /<a[^>]*href="\/space\/deadline\/far"/);
 		assert.ok(!row.includes("<button"));
-		assert.ok(html.includes('data-halley-target="deadline:far"'));
+		assert.ok(html.includes('data-teacher-target="deadline:far"'));
 	});
 
 	it("a pale count block, its name, the space, the day and how ready", () => {

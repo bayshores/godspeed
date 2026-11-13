@@ -12,7 +12,7 @@ const CHOICES: { id: LaunchChoice; label: string }[] = [
 	{ id: "other", label: "Other app" },
 ];
 
-/** "Open Claude Code", and beside it "Use another agent", whose menu switches the first button to Codex or another app. */
+/** "Open Claude Code", and beside it "Use another agent". */
 export function OpenAgentButton({
 	choice,
 	onChoose,
@@ -24,29 +24,28 @@ export function OpenAgentButton({
 	onOpen: () => void;
 	busy?: boolean;
 }) {
+	const label = choice === "other" ? "Show the setup" : `Open ${AGENT_LABEL[choice]}`;
+	return (
+		<div className="flex flex-wrap items-center gap-2.5">
+			<button type="button" data-testid="open-agent" disabled={busy} onClick={onOpen} className={cn("lh-btn lh-btn-main", BIG_BUTTON)}>
+				{label}
+			</button>
+			<AgentMenu choice={choice} onChoose={onChoose} className={BIG_BUTTON} />
+		</div>
+	);
+}
+
+/** "Use another agent": its menu picks Claude Code, Codex or another app. */
+export function AgentMenu({ choice, onChoose, className }: { choice: LaunchChoice; onChoose: (choice: LaunchChoice) => void; className?: string }) {
 	const [menu, setMenu] = useState(false);
 	const anchorRef = useRef<HTMLButtonElement>(null);
 	const close = useCallback(() => setMenu(false), []);
 	useMenuDismiss(menu, close, anchorRef);
-	const label = choice === "other" ? "Show the setup" : `Open ${AGENT_LABEL[choice]}`;
 	return (
 		<>
-			<div className="flex flex-wrap items-center gap-2.5">
-				<button type="button" data-testid="open-agent" disabled={busy} onClick={onOpen} className={cn("lh-btn lh-btn-main", BIG_BUTTON)}>
-					{label}
-				</button>
-				<button
-					ref={anchorRef}
-					type="button"
-					data-testid="open-agent-menu"
-					aria-haspopup="menu"
-					aria-expanded={menu}
-					onClick={() => setMenu((v) => !v)}
-					className={cn("lh-btn", BIG_BUTTON)}
-				>
-					Use another agent
-				</button>
-			</div>
+			<button ref={anchorRef} type="button" data-testid="open-agent-menu" aria-haspopup="menu" aria-expanded={menu} onClick={() => setMenu((v) => !v)} className={cn("lh-btn", className)}>
+				Use another agent
+			</button>
 			<MenuShell open={menu} anchorRef={anchorRef} testid="open-agent-choices" preferredSide="down" align="left" menuClass="lh-popup flex w-[220px] flex-col gap-0.5 p-1.5">
 				{CHOICES.map((c) => (
 					<button

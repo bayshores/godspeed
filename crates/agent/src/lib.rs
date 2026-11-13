@@ -1,4 +1,4 @@
-//! The agents: prompt composition, lesson tools, file tools, helper jobs and extraction.
+//! The agents: prompt composition, lesson tools, file tools, background jobs and extraction.
 
 pub mod teacher;
 pub mod tools;

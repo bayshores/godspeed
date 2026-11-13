@@ -12,7 +12,7 @@ import type { AgentAction } from "@/shared/core";
 import { agentWaiting, agentStatusLabel, waitingNotice, type AgentStatus } from "@/frontend/components/agent-status";
 import { tabListKeys } from "@/frontend/components/ui/tab-list";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
-import { useHalley } from "./halley-context";
+import { useTeacher } from "./teacher-context";
 import type { AgentDoing } from "./follow-status";
 import { TalkView, type TalkAsk } from "./talk-view";
 import { TeacherActivity } from "./teacher-activity";
@@ -21,25 +21,26 @@ import { DOCK_WIDTH, dockPush, dockWidth } from "./dock-model";
 const TABS = ["talk", "activity"] as const;
 type Tab = (typeof TABS)[number];
 
-/** The status line under the name: the backup notice while the agent
+/** The status line under the name: the helper notice while the agent
  *  compacts, the waiting notice while work waits, what the agent is doing
  *  while it works, then whether it is teaching. Nothing until the first
  *  read of the agent. */
 export function agentLine(agent: AgentStatus | null, doing: AgentDoing | null = null): string | null {
 	if (!agent) return null;
-	if (agent.backupAnswering) return "Catching up on my notes. My backup is answering for a minute.";
+	if (agent.helperCovering) return "Catching up on my notes. My helper is answering for a minute.";
 	if (agentWaiting(agent)) return waitingNotice(agent.name);
 	if (doing?.working) return doing.text;
 	if (agent.teaching) return "Teaching, idle";
-	return agent.connected ? agentStatusLabel(agent, 0) : "Not connected";
+	return agent.connected ? agentStatusLabel(agent) : "Not connected";
 }
 
 /** The page's push while the panel is open (main's padding reads it). */
 const PUSH_VAR = "--lh-dock-push";
 
-export function HalleyPanel({
+export function TeacherPanel({
 	name,
 	agent,
+	startTab = "talk",
 	onClose,
 	recent,
 	onPick,
@@ -48,6 +49,8 @@ export function HalleyPanel({
 }: {
 	name: string;
 	agent: AgentStatus | null;
+	/** The tab it opens on, and switches to when this changes. */
+	startTab?: Tab;
 	onClose: () => void;
 	recent: readonly AgentAction[];
 	onPick: (action: AgentAction) => void;
@@ -55,10 +58,11 @@ export function HalleyPanel({
 	ask?: TalkAsk | null;
 	onAsked?: (id: number) => void;
 }) {
-	const [tab, setTab] = useState<Tab>("talk");
+	const [tab, setTab] = useState<Tab>(startTab);
+	useEffect(() => setTab(startTab), [startTab]);
 	const [clearSlot, setClearSlot] = useState<HTMLElement | null>(null);
-	const halley = useHalley();
-	const line = agentLine(agent, halley?.doing ?? null);
+	const teacher = useTeacher();
+	const line = agentLine(agent, teacher?.doing ?? null);
 	const tabsId = useId();
 	const [width, setWidth] = useState(DOCK_WIDTH);
 	useEffect(() => {
@@ -81,24 +85,24 @@ export function HalleyPanel({
 
 	return (
 		<section
-			data-halley-panel=""
-			data-testid="halley-panel"
+			data-teacher-panel=""
+			data-testid="teacher-panel"
 			aria-label={name}
 			style={{ width }}
 			className="lh-slide-in fixed top-12 right-0 bottom-0 z-[41] flex max-w-full flex-col border-l-2 border-line bg-panel font-ui"
 		>
 			<div className="flex shrink-0 items-center gap-3 pt-4 pr-3.5 pb-3 pl-5">
 				<span className="flex min-w-0 flex-1 flex-col gap-px">
-					<span data-testid="halley-panel-name" className="truncate text-xl leading-snug font-medium text-ink">
+					<span data-testid="teacher-panel-name" className="truncate text-xl leading-snug font-medium text-ink">
 						{name}
 					</span>
 					{line && (
-						<span data-testid="halley-panel-agent" className="text-base text-ink-2">
+						<span data-testid="teacher-panel-agent" className="text-base text-ink-2">
 							{line}
 						</span>
 					)}
 				</span>
-				<button type="button" data-testid="halley-close" onClick={onClose} className="lh-btn lh-btn-quiet shrink-0 text-[15px]">
+				<button type="button" data-testid="teacher-panel-close" onClick={onClose} className="lh-btn lh-btn-quiet shrink-0 text-[15px]">
 					<PixelIcon name="close" />
 					Close
 				</button>
@@ -120,7 +124,7 @@ export function HalleyPanel({
 							aria-selected={tab === t}
 							aria-controls={`${tabsId}-panel`}
 							tabIndex={tab === t ? 0 : -1}
-							data-testid={`halley-tab-${t}`}
+							data-testid={`teacher-tab-${t}`}
 							onClick={() => setTab(t)}
 							className={cn(
 								"lh-press -mb-px border-b-2 px-3.5 py-2.5 text-lg",

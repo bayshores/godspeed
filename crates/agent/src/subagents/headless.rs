@@ -1,4 +1,4 @@
-//! What the helper jobs check their work
+//! What the background jobs check their work
 //! with. SVGs go to PNG through gs_media and PDF pages through gs_pdf, both in this process.
 //!
 //! Running a demo's JavaScript needs a browser, and SVGs gs_media cannot draw go to one too. The

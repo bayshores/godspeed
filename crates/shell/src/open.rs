@@ -52,10 +52,10 @@ fn without_verbatim_prefix(path: &Path) -> PathBuf {
 }
 
 /// The start script for this agent in this folder, or None when the request isn't one.
-/// "claude-backup" starts the backup teacher.
+/// "claude-helper" and "codex-helper" start the helper.
 fn start_script(folder: &str, agent: &str, os: &str) -> Option<PathBuf> {
 	let folder = Path::new(folder);
-	if !folder.is_absolute() || !matches!(agent, "claude" | "claude-backup" | "codex") {
+	if !folder.is_absolute() || !matches!(agent, "claude" | "claude-helper" | "codex" | "codex-helper") {
 		return None;
 	}
 	let extension = match os {
@@ -111,8 +111,8 @@ fn spawn_detached(program: &str, args: &[String]) -> bool {
 	true
 }
 
-/// Opens a terminal running the godspeed folder's start script for "claude", "claude-backup" or
-/// "codex": None once one opened, else a message saying why not.
+/// Opens a terminal running the godspeed folder's start script for an agent or its helper: None
+/// once one opened, else a message saying why not.
 pub fn open_agent(folder: &str, agent: &str) -> Option<String> {
 	let os = std::env::consts::OS;
 	let Some(script) = start_script(folder, agent, os) else { return Some(NOT_SET_UP.to_owned()) };
@@ -155,9 +155,9 @@ mod tests {
 		assert_eq!(start_script(folder, "claude", "linux"), Some(dir.join(".godspeed/start-claude.sh")));
 		assert_eq!(start_script(folder, "rm -rf", "linux"), None);
 		assert_eq!(start_script(folder, "codex", "linux"), None);
-		assert_eq!(start_script(folder, "claude-backup", "linux"), None);
-		gs_base::fsx::write_text_atomic(&dir.join(".godspeed/start-claude-backup.sh"), "#!/bin/sh\n").unwrap();
-		assert_eq!(start_script(folder, "claude-backup", "linux"), Some(dir.join(".godspeed/start-claude-backup.sh")));
+		assert_eq!(start_script(folder, "claude-helper", "linux"), None);
+		gs_base::fsx::write_text_atomic(&dir.join(".godspeed/start-claude-helper.sh"), "#!/bin/sh\n").unwrap();
+		assert_eq!(start_script(folder, "claude-helper", "linux"), Some(dir.join(".godspeed/start-claude-helper.sh")));
 		assert_eq!(start_script(folder, "claude-other", "linux"), None);
 		assert_eq!(start_script("relative", "claude", "linux"), None);
 		assert_eq!(start_script(dir.join("nowhere").to_str().unwrap(), "claude", "linux"), None);

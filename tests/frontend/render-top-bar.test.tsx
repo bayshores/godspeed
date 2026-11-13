@@ -141,7 +141,7 @@ describe("the top bar's tabs", () => {
 		assert.equal(q("space-option-c29")!.getAttribute("aria-current"), "page");
 		assert.equal(q("space-option-c21")!.hasAttribute("aria-current"), false);
 		assert.equal(q("nav-today")!.hasAttribute("aria-current"), false);
-		assert.equal(q("space-option-c29")!.getAttribute("data-halley-target"), "space:c29");
+		assert.equal(q("space-option-c29")!.getAttribute("data-teacher-target"), "space:c29");
 	});
 	it("a space's tab opens its Progress page and switches the window to it", async () => {
 		await mount(<SpaceTabs selected="today" />);

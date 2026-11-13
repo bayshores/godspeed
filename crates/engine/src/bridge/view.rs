@@ -5,6 +5,7 @@ use gs_core::contracts::chat::CHAT_ID_PREFIX;
 use gs_core::records::agent_seen::{SeenMark, SeenStore, print_hash, resume_at};
 use gs_json::{Json, stringify};
 
+use super::helper::UNNAMED_HELPER;
 use super::render::{instructions_and_tools, prints_of, render_message};
 use super::{Bridge, State, WorkItem};
 use crate::turn::messages::role;
@@ -32,9 +33,10 @@ pub struct WorkView {
 	pub images: Option<Vec<Json>>,
 }
 
-/// Only lessons outlive a restart; background jobs never come back.
+/// Only lessons outlive a restart; background jobs never come back. A helper with no session id
+/// may be a new session each time, so its marks are not saved either.
 fn saves_seen(agent: Option<&str>, conversation: &str) -> bool {
-	agent.is_some_and(|a| !a.is_empty()) && conversation.starts_with(CHAT_ID_PREFIX)
+	agent.is_some_and(|a| !a.is_empty() && a != UNNAMED_HELPER) && conversation.starts_with(CHAT_ID_PREFIX)
 }
 
 pub(super) fn seen_of(state: &State, store: &dyn SeenStore, agent: Option<&str>, conversation: &str) -> Option<SeenMark> {

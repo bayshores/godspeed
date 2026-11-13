@@ -1,0 +1,116 @@
+import { useEffect, useState } from "react";
+import { DEFAULT_TEACHER_NAME } from "@/shared/core";
+import { useActivity } from "@/frontend/components/activity-dock";
+import { AGENT_LABEL, logLines, rememberedAgent, type LaunchChoice } from "@/frontend/components/agent-folder/agent-folder-model";
+import { launchStatus, Log, OtherAppSetup } from "@/frontend/components/agent-folder/agent-launcher";
+import { FolderLine } from "@/frontend/components/agent-folder/folder-line";
+import { OldSetupWarning } from "@/frontend/components/agent-folder/old-setup";
+import { AgentMenu } from "@/frontend/components/agent-folder/open-agent-button";
+import { savedAgent, useAgentFolder } from "@/frontend/components/agent-folder/use-agent-folder";
+import type { AgentStatus } from "@/frontend/components/agent-status";
+import { backgroundLine } from "@/frontend/components/teacher/follow-status";
+import { useTeacher } from "@/frontend/components/teacher/teacher-context";
+import { useSpaces } from "@/frontend/components/space-context";
+import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
+import { HELPER_NAME } from "@/frontend/components/work/work-model";
+import { cn } from "@/frontend/lib/utils";
+import { filesLine, helperTile, teacherTile, windowsHeadline, type WindowTile } from "./agent-windows-model";
+
+/**
+ * "Your agent": which of the two windows are open and what each is doing.
+ * A closed window's tile carries the button that opens it; under the tiles,
+ * the folder they run in. "Other app" shows the setup for any MCP app.
+ */
+export function AgentWindows({ agent }: { agent: AgentStatus }) {
+	const { view, launch, open, openHelper, change, setStartCommand } = useAgentFolder();
+	const panel = useTeacher();
+	const { spaces } = useSpaces();
+	const { feed } = useActivity();
+	const [choice, setChoice] = useState<LaunchChoice>("claude");
+	const [error, setError] = useState<string | null>(null);
+	useEffect(() => setChoice(rememberedAgent(savedAgent())), []);
+
+	const folderAgent = choice === "other" ? null : choice;
+	const teacherName = panel?.name ?? DEFAULT_TEACHER_NAME;
+	const filesLeft = spaces.reduce((sum, s) => sum + (s.archived ? 0 : s.filesLeft), 0);
+	const teacher = teacherTile(agent, panel?.doing ?? null);
+	const helper = helperTile({ agent, background: backgroundLine(feed.extractions, feed.jobs), files: filesLine(spaces), filesLeft, teacher: teacherName });
+	const lines = launch && view ? logLines(launch, launchStatus(agent), view.short, window.lh?.platform === "darwin") : [];
+	const busy = !!launch && (launch.made === "wait" || launch.opened === "wait");
+
+	return (
+		<section data-testid="agent-windows" className="flex flex-col gap-5 rounded border-2 border-line bg-panel p-6">
+			<div className="flex flex-wrap items-start gap-x-4 gap-y-2">
+				<div className="min-w-0 flex-1">
+					<h2 data-testid="agent-status" className="text-[28px] leading-tight text-ink">
+						{windowsHeadline(agent)}
+					</h2>
+					<p className="text-[15px] text-ink-2">Your agent is {agent.name ?? (folderAgent ? AGENT_LABEL[folderAgent] : "another app")}</p>
+				</div>
+				<AgentMenu
+					choice={choice}
+					onChoose={(c) => {
+						setChoice(c);
+						setError(null);
+					}}
+					className="shrink-0"
+				/>
+			</div>
+			<div className="grid gap-4 min-[860px]:grid-cols-2">
+				<Tile id="teacher" name="Teacher" icon="window" tile={teacher} onOpen={folderAgent && (() => void open(folderAgent))} busy={busy} />
+				<Tile id="helper" name={HELPER_NAME} icon="pages" tile={helper} onOpen={folderAgent && (() => void openHelper(folderAgent))} busy={busy} />
+			</div>
+			<OldSetupWarning />
+			{choice === "other" ? <OtherAppSetup /> : lines.length > 0 && <Log lines={lines} />}
+			{error && (
+				<p role="alert" className="text-[15px] text-ans-wrong">
+					{error}
+				</p>
+			)}
+			{folderAgent && (
+				<FolderLine key={folderAgent} agent={folderAgent} view={view} change={change} setStartCommand={setStartCommand} onError={setError}>
+					<PixelIcon name="folder" className="h-3" />
+					{view?.short}
+				</FolderLine>
+			)}
+		</section>
+	);
+}
+
+const CHIP: Record<string, string> = {
+	Teaching: "bg-ans-right text-background",
+	Open: "bg-ans-right text-background",
+	Closed: "bg-tone text-ink",
+};
+
+/** One window: its icon, name and status chip, then what it is doing. */
+function Tile({ id, name, icon, tile, onOpen, busy }: { id: string; name: string; icon: "window" | "pages"; tile: WindowTile; onOpen: (() => void) | null; busy: boolean }) {
+	const off = tile.tone === "off";
+	return (
+		<div data-testid={`agent-window-${id}`} data-tone={tile.tone} className={cn("flex min-w-0 flex-col border-2", off ? "border-edge" : "border-line bg-background")}>
+			<div aria-hidden data-state={tile.tone === "busy" ? "working" : undefined} className={cn("h-3 shrink-0", tile.tone === "busy" ? "lh-work-stripes" : off ? "bg-tone-2" : "bg-ink")} />
+			<div className="flex min-w-0 items-start gap-4 p-4">
+				<span aria-hidden className={cn("flex size-16 shrink-0 items-center justify-center", tile.tone === "busy" ? "bg-highlight text-ink" : off ? "bg-tone text-ink-2" : "bg-ink text-background")}>
+					<PixelIcon name={icon} className="h-9" />
+				</span>
+				<div className="flex min-w-0 flex-1 flex-col items-start gap-0.5">
+					<div className="flex items-center gap-2.5">
+						<h3 className={cn("text-[22px] leading-tight", off ? "text-ink-2" : "text-ink")}>{name}</h3>
+						<span data-testid={`agent-window-${id}-chip`} className={cn("px-2 py-0.5 text-sm", CHIP[tile.chip] ?? "bg-highlight text-ink")}>
+							{tile.chip}
+						</span>
+					</div>
+					<p data-testid={`agent-window-${id}-line`} title={tile.line} className={cn("max-w-full truncate text-base", off ? "text-ink-2" : "text-ink")}>
+						{tile.line}
+					</p>
+					<p className="text-[15px] text-ink-2">{tile.note}</p>
+					{tile.open && onOpen && (
+						<button type="button" data-testid={`agent-window-${id}-open`} disabled={busy} onClick={onOpen} className="lh-btn lh-btn-main mt-2">
+							{tile.open}
+						</button>
+					)}
+				</div>
+			</div>
+		</div>
+	);
+}

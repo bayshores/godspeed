@@ -8,8 +8,8 @@ import { studioPath } from "@/frontend/components/cheat-sheet/use-cheat-sheet";
 import { dueLabel } from "@/frontend/components/space-deadlines-model";
 import { useMinute } from "@/frontend/components/countdown";
 import { spaceFilePathOf, useSpaceRecord } from "@/frontend/components/files/space-files-api";
-import { useHalley } from "@/frontend/components/halley/halley-provider";
-import { askTeacher } from "@/frontend/components/halley/ask-teacher";
+import { useTeacher } from "@/frontend/components/teacher/teacher-provider";
+import { askTeacher } from "@/frontend/components/teacher/ask-teacher";
 import { useLessonStart } from "@/frontend/components/home/use-lesson-start";
 import { LoadFailed } from "@/frontend/components/load-failed";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
@@ -38,7 +38,7 @@ export function DeadlinePage({ spaceId, deadlineId }: { spaceId: string; deadlin
 
 	const { data, error, refresh } = useProgress();
 	const { record, reload } = useSpaceRecord(spaceId);
-	const teacherName = useHalley()?.name ?? DEFAULT_TEACHER_NAME;
+	const teacherName = useTeacher()?.name ?? DEFAULT_TEACHER_NAME;
 	const [saving, setSaving] = useState(false);
 	const [saveError, setSaveError] = useState<string | null>(null);
 	const nowMs = useMinute();

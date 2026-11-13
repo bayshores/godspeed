@@ -5,7 +5,7 @@ import { NoAgentLine } from "@/frontend/components/agent-folder/no-agent-line";
 import { MessageResponse } from "@/frontend/components/ai-elements/message";
 import { BrailleSpinner } from "@/frontend/components/braille-spinner";
 import { useMinute } from "@/frontend/components/countdown";
-import { useHalley } from "@/frontend/components/halley/halley-provider";
+import { useTeacher } from "@/frontend/components/teacher/teacher-provider";
 import { longDay } from "@/frontend/components/home-page/home-page-model";
 import { useLessonStart } from "@/frontend/components/home/use-lesson-start";
 import { LoadFailed } from "@/frontend/components/load-failed";
@@ -16,6 +16,7 @@ import { FootQuestion } from "@/frontend/components/ui/foot-question";
 import { Pane } from "@/frontend/components/ui/pane";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { ProgressBar } from "@/frontend/components/ui/progress-bar";
+import { JobFrame } from "@/frontend/components/work/job-frame";
 import { cn } from "@/frontend/lib/utils";
 import { lastMockLine, mockHref, openMock, openMockLabel } from "./mock-model";
 import { STATUS_WORD, formatLine, meterBoxes, prepCount, solidLine, solidShare } from "./prep-model";
@@ -31,16 +32,18 @@ import { usePrep } from "./use-prep";
  */
 export function PrepSheet({ spaceId }: { spaceId: string }) {
 	const { view, loadError, reload, act } = usePrep(spaceId);
-	const teacher = useHalley()?.name ?? DEFAULT_TEACHER_NAME;
+	const teacher = useTeacher()?.name ?? DEFAULT_TEACHER_NAME;
 	if (!view) {
 		return loadError ? <LoadFailed message="Couldn't load this prep." onRetry={() => void reload()} /> : null;
 	}
 	return (
-		<div data-testid="prep-sheet" className="h-full overflow-y-auto">
-			<div className="mx-auto w-full max-w-[908px] px-6 pt-7 pb-16">
-				{view.prep.writtenAt ? <Sheet view={view} teacher={teacher} act={act} /> : <NoSheetYet view={view} teacher={teacher} act={act} />}
+		<JobFrame doing={view.writing ? "writing your prep sheet" : null} column>
+			<div data-testid="prep-sheet" className="h-full overflow-y-auto">
+				<div className="mx-auto w-full max-w-[908px] px-6 pt-7 pb-16">
+					{view.prep.writtenAt ? <Sheet view={view} teacher={teacher} act={act} /> : <NoSheetYet view={view} teacher={teacher} act={act} />}
+				</div>
 			</div>
-		</div>
+		</JobFrame>
 	);
 }
 

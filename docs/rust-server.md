@@ -21,7 +21,7 @@ All Rust lives in `crates/` (a Cargo workspace; `Cargo.toml` at the repo root, t
 | `web` | web page to markdown, PDF downloads |
 | `transcribe` | recordings to captions with brew's ffmpeg and whisper |
 | `engine` | the turn loop and the work bridge to the outside agent |
-| `agent` | prompts, lesson tools, file tools, helper jobs, extraction |
+| `agent` | prompts, lesson tools, file tools, background jobs, extraction |
 | `services` | `App` (all server state) and the server's services |
 | `server` (gs-server, binary `godspeed-server`) | the HTTP layer, the /api routes, the MCP endpoint |
 
