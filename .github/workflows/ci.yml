@@ -88,6 +88,8 @@ jobs:
       - run: npm ci
       - run: node scripts/fetch-model.mjs
       - run: node scripts/fetch-pdfium.mjs
+      - if: runner.os == 'Linux'
+        run: node scripts/fetch-onnxruntime.mjs
       # The UI, the release server and the pdf.js files, as `tauri build` stages them.
       - run: node scripts/stage-app.mjs
       - run: node scripts/smoke-server.mjs

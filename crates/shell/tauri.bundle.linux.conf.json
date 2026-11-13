@@ -1,3 +1,3 @@
 {
-  "bundle": { "resources": { "../../.stage/libpdfium.so": "libpdfium.so" } }
+  "bundle": { "resources": { "../../.stage/libpdfium.so": "libpdfium.so", "../../.stage/libonnxruntime.so": "libonnxruntime.so" } }
 }

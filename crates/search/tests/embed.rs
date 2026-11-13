@@ -1,6 +1,8 @@
 //! The embedder against vectors the Node worker made for the same batches (tests/golden/embed.json,
 //! recorded from the Node server). Needs models/ at the repo root (node scripts/fetch-model.mjs).
 
+mod common;
+
 use std::path::PathBuf;
 
 use gs_json::{Json, parse};
@@ -36,6 +38,7 @@ fn cosine(a: &[f32], b: &[f32]) -> f32 {
 #[tokio::test]
 async fn vectors_match_the_node_worker_bit_for_bit() {
 	let embedder = Embedder::new(models());
+	common::load_runtime();
 	let want = golden("vectors");
 	for (name, batch) in golden("batches").as_obj().unwrap().iter() {
 		let texts = batch.as_arr().unwrap().iter().map(|t| t.as_str().unwrap().to_owned()).collect();

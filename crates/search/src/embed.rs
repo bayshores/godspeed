@@ -43,7 +43,7 @@ pub struct Embedder {
 }
 
 impl Embedder {
-	/// `models` is `<resources>/models`.
+	/// `models` is `<resources>/models`; on Linux, ONNX Runtime's library sits beside it.
 	pub fn new(models: PathBuf) -> Embedder {
 		Embedder { models, worker: Mutex::new(None) }
 	}
@@ -73,6 +73,8 @@ impl Embedder {
 		if !weights.exists() {
 			return Err(format!("The search model is missing ({}). Reinstall or update godspeed to get it back (from source: run `node scripts/fetch-model.mjs`).", weights.display()));
 		}
+		#[cfg(target_os = "linux")]
+		load_runtime(&self.models)?;
 		let (tx, rx) = mpsc::channel::<Job>();
 		let dir = self.models.join(MODEL_ID);
 		std::thread::Builder::new()
@@ -81,6 +83,21 @@ impl Embedder {
 			.map_err(|e| e.to_string())?;
 		Ok(worker.insert(tx))
 	}
+}
+
+/// Linux loads ONNX Runtime at run time from `libonnxruntime.so` beside `models/`, once per process.
+/// After a failed load ort's library slot is left unusable, so the first answer stands.
+#[cfg(target_os = "linux")]
+fn load_runtime(models: &Path) -> Result<(), String> {
+	static LOADED: std::sync::OnceLock<Result<(), String>> = std::sync::OnceLock::new();
+	LOADED
+		.get_or_init(|| {
+			let library = models.with_file_name("libonnxruntime.so");
+			let environment = ort::init_from(&library).map_err(|e| format!("The search engine could not load: {e}. Reinstall or update godspeed to fix it (from source: run `node scripts/fetch-onnxruntime.mjs`)."))?;
+			environment.commit();
+			Ok(())
+		})
+		.clone()
 }
 
 /// Loads once (a failed load answers every batch with its error, like the worker's rejected

@@ -28,6 +28,8 @@ const PROBES = ["/api/boot", "/api/graph", "/api/settings", "/pdfjs/pdf.worker.m
 const triple = execFileSync("rustc", ["--print", "host-tuple"], { encoding: "utf8" }).trim();
 const server = path.join(ROOT, "target", triple, "release", WINDOWS ? "godspeed-server.exe" : "godspeed-server");
 const staged = { ui: path.join(ROOT, "dist-ui"), models: path.join(ROOT, "models"), "pdfjs-dist": path.join(ROOT, ".stage", "pdfjs-dist") };
+// Linux loads ONNX Runtime from the resources folder, as the bundle ships it.
+if (process.platform === "linux") staged["libonnxruntime.so"] = path.join(ROOT, ".stage", "libonnxruntime.so");
 const pdfium = path.join(ROOT, ".stage", PDFIUM);
 
 for (const missing of [server, pdfium, ...Object.values(staged)].filter((file) => !fs.existsSync(file))) {

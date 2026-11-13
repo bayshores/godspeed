@@ -3,6 +3,8 @@
 //! facts.json and the hashes of every stored vector) and the recorded search answers
 //! (tests/fixtures/search-vectors.json, taken from the recording). Needs models/ at the repo root.
 
+mod common;
+
 use std::path::{Path, PathBuf};
 
 use gs_base::config::Paths;
@@ -70,6 +72,7 @@ async fn the_search_vectors_scenario_comes_out_as_recorded() {
 	let dir = std::env::temp_dir().join(format!("gs-search-recorded-{}", std::process::id()));
 	let paths = Paths::new(dir.join("data"), dir.join("home"), dir.join("tmp"), root);
 	let search = Search::new(&paths);
+	common::load_runtime();
 	let want = recorded();
 	let fps = parse(s(&want["passagesJson"])).unwrap()["files"].clone();
 
