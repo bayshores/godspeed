@@ -8,12 +8,13 @@
 
 use std::collections::{HashMap, HashSet};
 
-use gs_base::time;
+use gs_base::{text, time};
 use gs_json::{Json, Obj, json};
 
 use super::items;
 use super::review::item_key;
 use super::topic_parts::{kept_calls, visits};
+use crate::messages::citations::MARK_MAX;
 use crate::messages::lesson_markers::{KEEP_CHECK, PHRASE_DROP};
 use crate::session::question_core::{keep_fields_note, keep_of, keep_phrase_note, normalize_quiz_type};
 
@@ -102,7 +103,9 @@ fn shown(id: &str, keep: &Json, analogy_shown: bool, check_source: &dyn Fn(&str)
 	notes.extend(phrase_note);
 	let mut out: Obj = [("quizCallId", Json::from(id)), ("keep", "shown".into()), ("fits", fits.into()), ("phrase", phrase.into())].into_iter().collect();
 	if let Some(source) = words(keep, "source") {
-		match check_source(source) {
+		// Longer than one mark can be, it points at no single passage and is never checked.
+		let one_mark = text::len16(source) <= MARK_MAX + "[[]]".len();
+		match one_mark.then(|| check_source(source)).flatten() {
 			Some(mark) => {
 				out.insert("source", "ok");
 				out.insert("sourceMark", mark);
@@ -340,6 +343,18 @@ mod tests {
 			keep_verdicts(&messages, &no_source),
 			[json!({ "quizCallId": "q3", "keep": "shown", "fits": false, "phrase": false, "source": "dropped", "note": "keep.phrase not shown: 74 characters, at most 60. keep.source dropped: it does not point at a passage." })]
 		);
+	}
+
+	#[test]
+	fn a_source_longer_than_a_mark_is_dropped_unchecked_and_the_sentence_stays() {
+		let mut messages = lesson();
+		messages.push(reply("r3", "", vec![quiz("q3", json!({ "text": "t", "source": "x".repeat(2_000_000) }))]));
+		let never = |_: &str| -> Option<String> { panic!("checked a source longer than a mark") };
+		assert_eq!(keep_verdicts(&messages, &never), [json!({ "quizCallId": "q3", "keep": "shown", "fits": false, "phrase": false, "source": "dropped", "note": NO_PASSAGE })]);
+		messages.pop();
+		let longest = format!("[[{}]]", "x".repeat(MARK_MAX));
+		messages.push(reply("r3", "", vec![quiz("q3", json!({ "text": "t", "source": longest }))]));
+		assert_eq!(keep_verdicts(&messages, &|_| Some(MARK.to_owned()))[0]["source"], json!("ok"), "the longest mark is checked");
 	}
 
 	#[test]
