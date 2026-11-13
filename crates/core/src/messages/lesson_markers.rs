@@ -34,8 +34,8 @@ pub fn new_opener_answer_marker(content: String, details: Json) -> Json {
 }
 
 /// Hidden lines for the agent about what happened in the app, joined by a newline.
-pub fn new_app_note_marker(lines: &[String], kinds: &[&str]) -> Json {
-	Json::Obj(marker(new_message_id(), "app-note", lines.join("\n"), false, json!({ "kinds": kinds.to_vec() })))
+pub fn new_app_note_marker(lines: &[String]) -> Json {
+	Json::Obj(marker(new_message_id(), "app-note", lines.join("\n"), false, json!({})))
 }
 
 #[cfg(test)]
@@ -63,9 +63,8 @@ mod tests {
 		assert_eq!((answer["customType"].as_str(), answer["display"].as_bool()), (Some("opener-answer"), Some(true)));
 		assert_eq!(answer["content"], json!("[Opener] Cross-validation: he skipped it."));
 		assert_eq!(answer["details"], json!({ "topicDoneCallId": "t1", "answer": null }));
-		let note = new_app_note_marker(&["[Resumed] a".into(), "[Opener] b".into()], &["resumed", "opener"]);
+		let note = new_app_note_marker(&["[Resumed] a".into(), "[Opener] b".into()]);
 		assert_eq!((note["customType"].as_str(), note["display"].as_bool()), (Some("app-note"), Some(false)));
 		assert_eq!(note["content"], json!("[Resumed] a\n[Opener] b"));
-		assert_eq!(note["details"], json!({ "kinds": ["resumed", "opener"] }));
 	}
 }

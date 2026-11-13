@@ -28,16 +28,13 @@ pub fn app_note_for(record: &Json, input: &ChatInput) -> Option<Json> {
 		return None;
 	}
 	let mut lines = Vec::new();
-	let mut kinds = Vec::new();
 	if resume_due(messages_of(record)) {
 		lines.push(RESUMED_LINE.to_owned());
-		kinds.push("resumed");
 	}
 	if let ChatInput::Text { about: Some(opener), .. } = input {
 		lines.push(format!("[Opener] {}: he asked about it before answering; it stays open. Answer his question and end your turn.", opener_topic(record, opener)));
-		kinds.push("opener");
 	}
-	(!lines.is_empty()).then(|| new_app_note_marker(&lines, &kinds))
+	(!lines.is_empty()).then(|| new_app_note_marker(&lines))
 }
 
 /// The opener question's topic: its plan step's title, else its node id.
@@ -48,11 +45,13 @@ fn opener_topic(record: &Json, topic_done_call_id: &str) -> String {
 	title.map_or_else(|| id.to_owned(), |t| js_string(Some(t)))
 }
 
-/// "he picked A, It can move a lot, sure 3." with his reasoning after it when he wrote some.
+/// "he picked A, It can move a lot, sure 3." with his thinking after it when he wrote some. "did
+/// not know" and "his thinking" are the words a quiz answer reads with in a past lesson
+/// (session_markdown).
 fn picked_words(answer: &Json) -> String {
-	let reasoning = if answer["thinking"].truthy() { format!(" His reasoning: {}", js_string(Some(&answer["thinking"]))) } else { String::new() };
+	let thinking = if answer["thinking"].truthy() { format!(" His thinking: {}", js_string(Some(&answer["thinking"]))) } else { String::new() };
 	if answer["dontKnow"].truthy() {
-		return format!("he didn't know.{reasoning}");
+		return format!("he did not know.{thinking}");
 	}
 	let picks: Vec<String> = answer["answers"]
 		.as_arr()
@@ -64,7 +63,7 @@ fn picked_words(answer: &Json) -> String {
 		})
 		.collect();
 	let sure = answer.get("confidence").map_or_else(String::new, |c| format!(", sure {}", confidence_level(c.as_f64().unwrap_or(f64::NAN))));
-	format!("he picked {}{sure}.{reasoning}", picks.join(" and "))
+	format!("he picked {}{sure}.{thinking}", picks.join(" and "))
 }
 
 #[cfg(test)]
@@ -111,9 +110,9 @@ mod tests {
 		assert_eq!(opener_answer_text(&record, "t1", &answer), "[Opener] Cross-validation: he picked A, It can move a lot, sure 3.");
 		assert_eq!(opener_answer_text(&record, "t1", &Json::Null), "[Opener] Cross-validation: he skipped it.");
 		let two = json!({ "kind": "quiz", "dontKnow": false, "answers": [pick(1, "One"), pick(3, "Three")], "thinking": "Folds are small." });
-		assert_eq!(opener_answer_text(&record, "t1", &two), "[Opener] Cross-validation: he picked A, One and C, Three. His reasoning: Folds are small.");
+		assert_eq!(opener_answer_text(&record, "t1", &two), "[Opener] Cross-validation: he picked A, One and C, Three. His thinking: Folds are small.");
 		let unsure = json!({ "kind": "quiz", "dontKnow": true, "answers": [], "thinking": "No idea." });
-		assert_eq!(opener_answer_text(&record, "t1", &unsure), "[Opener] Cross-validation: he didn't know. His reasoning: No idea.");
+		assert_eq!(opener_answer_text(&record, "t1", &unsure), "[Opener] Cross-validation: he did not know. His thinking: No idea.");
 	}
 
 	#[test]
@@ -130,7 +129,6 @@ mod tests {
 		let text = ChatInput::Text { text: "why?".into(), attachments: None, about: None };
 		let note = app_note_for(&record, &text).unwrap();
 		assert_eq!(note["content"], json!("[Resumed] He came back to this session after a stop."));
-		assert_eq!(note["details"], json!({ "kinds": ["resumed"] }));
 		assert!(app_note_for(&kept_at(50), &text).is_none(), "same sitting");
 	}
 
@@ -139,9 +137,8 @@ mod tests {
 		let ask = ChatInput::Text { text: "why?".into(), attachments: None, about: Some("t1".into()) };
 		let note = app_note_for(&kept_at(50), &ask).unwrap();
 		assert_eq!(note["content"], json!("[Opener] Cross-validation: he asked about it before answering; it stays open. Answer his question and end your turn."));
-		assert_eq!(note["details"], json!({ "kinds": ["opener"] }));
 		let both = app_note_for(&kept_at(24 * 60), &ask).unwrap();
-		assert_eq!(both["details"], json!({ "kinds": ["resumed", "opener"] }));
+		assert_eq!(both["content"].as_str().unwrap().lines().count(), 2, "[Resumed] and [Opener]");
 	}
 
 	#[test]
