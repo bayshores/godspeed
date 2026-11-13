@@ -7,7 +7,7 @@ use crate::contracts::chat::TOPIC_DONE_TOOL;
 use crate::messages::citations::cites_in_words;
 use crate::messages::native_messages::{failed_output_call_ids, user_facing_text_of};
 use crate::messages::pending::is_graded_tool;
-use crate::session::question_core::keep_of;
+use crate::session::question_core::{keep_fields_note, keep_of};
 
 /// The extraction-relevant lines of one message: for a teacher message, one line per prose block,
 /// topic_done opener lead and kept sentence, then one per graded question (topic_done's opener and
@@ -33,11 +33,13 @@ pub fn message_view_lines(message: &Json, mid: &str, failed: Option<&HashSet<Str
 	prose.chain(leads).chain(questions).collect()
 }
 
-/// The sentence each quiz call offers him to keep, as its question counts.
+/// The sentence each quiz call offers him to keep, as its question counts, when its fields hold
+/// (a keep that breaks them is never shown, at any length).
 fn kept_texts(content: &Json) -> Vec<String> {
 	let quizzes = content.as_arr().into_iter().flatten().filter(|b| b["type"].as_str() == Some("toolCall") && b["name"].as_str() == Some("quiz"));
 	quizzes
-		.filter_map(|b| keep_of(&b["arguments"])?["text"].as_str().map(|t| text::trim(t).to_owned()).filter(|t| !t.is_empty()))
+		.filter_map(|b| keep_of(&b["arguments"]).filter(|k| keep_fields_note(k).is_none()))
+		.filter_map(|k| k["text"].as_str().map(|t| text::trim(t).to_owned()))
 		.collect()
 }
 
@@ -192,10 +194,12 @@ mod tests {
 
 	#[test]
 	fn a_kept_sentence_joins_the_teaching_lines() {
-		let keep = json!({ "text": " Lambda prices large weights. ", "fits": "The leash fits one part." });
-		let quiz = json!({ "type": "toolCall", "id": "q5", "name": "quiz", "arguments": { "question": "Where is it now?", "keep": keep } });
-		let message = json!({ "id": "m5", "role": "assistant", "content": [quiz] });
-		assert_eq!(message_view_lines(&message, "m5", None), ["TEACHER [m5] Lambda prices large weights.", "QUESTION [m5] Where is it now?"]);
+		let quiz = |keep: Json| json!({ "id": "m5", "role": "assistant", "content": [{ "type": "toolCall", "id": "q5", "name": "quiz", "arguments": { "question": "Where is it now?", "keep": keep } }] });
+		let keep = json!({ "text": " Lambda prices large weights. ", "fits": "The leash fits one part.", "stops": "It stops at new data." });
+		assert_eq!(message_view_lines(&quiz(keep), "m5", None), ["TEACHER [m5] Lambda prices large weights.", "QUESTION [m5] Where is it now?"]);
+		for broken in [json!({ "text": "x".repeat(50_000) }), json!({ "text": "Lambda prices large weights.", "fits": "The leash fits one part." })] {
+			assert_eq!(message_view_lines(&quiz(broken), "m5", None), ["QUESTION [m5] Where is it now?"], "never shown, never counted");
+		}
 	}
 
 	#[test]
