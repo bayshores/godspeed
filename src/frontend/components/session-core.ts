@@ -735,7 +735,8 @@ export class SessionModel {
 				throw new Error("A turn is already running. Try again in a moment.");
 			}
 			if (!res.ok) {
-				throw new Error(errorBodyMessage(await res.text()) || `The send failed (${res.status}).`);
+				// An opener answer's refusal words are for logs; he sees the plain send failure.
+				throw new Error((input.type === "opener-answer" ? "" : errorBodyMessage(await res.text())) || `The send failed (${res.status}).`);
 			}
 			// The POST acknowledges and closes; there is no stream
 			// on this response to consume. Attach through the SAME reattach wire
@@ -854,10 +855,13 @@ export class SessionModel {
 	/** Keep going at a stop: the UI-only marker lands optimistically (the
 	 *  next topic's stored opener shows at once), then the route stores it,
 	 *  even during a turn; it never starts one. With no opener stored and
-	 *  no turn running, the go-ahead follows (continueIfOwed). */
+	 *  no turn running on the server, the go-ahead follows (continueIfOwed);
+	 *  a running turn's end drives the next step instead. A failed store
+	 *  takes the marker back, so the stop card returns. */
 	async keepGoing(stopOf: string): Promise<void> {
+		const marker = localMarker("keep-going", { stopOf, at: new Date().toISOString() });
 		this.mutate(() => {
-			this.tail = [...this.tail, localMarker("keep-going", { stopOf, at: new Date().toISOString() })];
+			this.tail = [...this.tail, marker];
 		});
 		try {
 			const res = await this.fetch(`/api/chats/${this.chatId}/keep-going`, {
@@ -865,10 +869,14 @@ export class SessionModel {
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({ input: { stopOf } }),
 			});
-			if (!res.ok) throw new Error(errorBodyMessage(await res.text()) || `Keep going failed (${res.status}).`);
-			const { opener } = (await res.json()) as { opener?: boolean };
-			if (!opener) await this.continueIfOwed([...this.base, ...this.tail]);
+			// The server's refusal words are for logs; he sees the plain send failure.
+			if (!res.ok) throw new Error(`The send failed (${res.status}).`);
+			const { opener, running } = (await res.json()) as { opener?: boolean; running?: boolean };
+			if (!opener && !running) await this.continueIfOwed([...this.base, ...this.tail]);
 		} catch (err) {
+			this.mutate(() => {
+				this.tail = this.tail.filter((m) => m !== marker);
+			});
 			this.setError((err as Error).message);
 		}
 	}

@@ -14,8 +14,9 @@ use crate::App;
 /// How Keep going landed.
 #[derive(Debug, PartialEq, Eq)]
 pub enum KeepGoing {
-	/// Written; `opener`: a stored opener waits on that stop, so the window shows it at once.
-	Kept { opener: bool },
+	/// Written; `opener`: a stored opener waits on that stop, so the window shows it at once;
+	/// `running`: a turn was running, and its end drives the next step.
+	Kept { opener: bool, running: bool },
 	UnknownLesson,
 	/// No turn runs and the record holds no stop on that call.
 	NoStop,
@@ -25,19 +26,20 @@ pub enum KeepGoing {
 /// live stream, so the marker is stored unchecked; one whose stop never lands is ignored when the
 /// lesson is read. Err: the lesson could not be saved.
 pub fn keep_going(app: &App, chat_id: &str, stop_of: &str) -> Result<KeepGoing, String> {
-	let opener = {
+	let kept = {
 		let _guard = app.locks.lock(LockKey::Chat(chat_id));
 		let Some(record) = app.stores.chats.get_chat(chat_id) else { return Ok(KeepGoing::UnknownLesson) };
 		let mut messages = record["messages"].as_arr().cloned().unwrap_or_default();
-		if !is_turn_running(app, chat_id) && !has_stop(&messages, stop_of) {
+		let running = is_turn_running(app, chat_id);
+		if !running && !has_stop(&messages, stop_of) {
 			return Ok(KeepGoing::NoStop);
 		}
 		messages.push(new_keep_going_marker(stop_of));
 		app.stores.chats.save_messages(chat_id, &messages)?;
-		has_opener(&messages, stop_of)
+		KeepGoing::Kept { opener: has_opener(&messages, stop_of), running }
 	};
 	app.events.emit(EventKind::RecordChanged, json!({ "chatId": chat_id }));
-	Ok(KeepGoing::Kept { opener })
+	Ok(kept)
 }
 
 #[cfg(test)]
@@ -79,11 +81,11 @@ mod tests {
 		let app = test_app(&root);
 		let with = lesson(&app, &ended(true));
 		let mut events = app.events.subscribe();
-		assert_eq!(keep_going(&app, &with, "c1"), Ok(KeepGoing::Kept { opener: true }));
+		assert_eq!(keep_going(&app, &with, "c1"), Ok(KeepGoing::Kept { opener: true, running: false }));
 		assert_eq!(markers(&app, &with), [json!("c1")]);
 		assert_eq!(events.try_recv().unwrap().kind, EventKind::RecordChanged);
 		let without = lesson(&app, &ended(false));
-		assert_eq!(keep_going(&app, &without, "c1"), Ok(KeepGoing::Kept { opener: false }), "no topic_done: the window sends the go-ahead");
+		assert_eq!(keep_going(&app, &without, "c1"), Ok(KeepGoing::Kept { opener: false, running: false }), "no topic_done: the window sends the go-ahead");
 	}
 
 	#[test]
@@ -103,7 +105,7 @@ mod tests {
 		let app = test_app(&root);
 		let id = lesson(&app, &[]);
 		assert!(begin_turn(&app, &id));
-		assert_eq!(keep_going(&app, &id, "c9"), Ok(KeepGoing::Kept { opener: false }));
+		assert_eq!(keep_going(&app, &id, "c9"), Ok(KeepGoing::Kept { opener: false, running: true }));
 		end_turn(&app, &id);
 		assert_eq!(markers(&app, &id), [json!("c9")]);
 	}

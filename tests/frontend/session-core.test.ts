@@ -30,7 +30,8 @@ import { dismissedAnswer } from "../../src/shared/core/question-core.ts";
 import { oldThinkingMessage } from "../old-records.ts";
 import { buildAnswer, type QuestionAnswerData, type QuestionData } from "../../src/shared/core/question-core.ts";
 import { findPendingToolCall } from "../../src/shared/core/pending.ts";
-import { keepGoing, regularizationEnds, text } from "../stop-fixtures.ts";
+import { lessonStop } from "../../src/shared/core/topic-end.ts";
+import { keepGoing, regularizationEnds, text, TREE } from "../stop-fixtures.ts";
 
 const realFetch = globalThis.fetch;
 afterEach(() => {
@@ -1808,13 +1809,13 @@ describe("Keep going and the opener", () => {
 	// A turn that ended after its conclude, with no topic_done.
 	const concluded = [...regularizationEnds().slice(0, 4), text("w", "Solid.", 48.2)];
 	const posts = (calls: Array<{ url: string; body?: string }>, url: string) => calls.filter((c) => c.url === url).map((c) => JSON.parse(c.body!).input);
-	function scripted(opener: boolean, record: LhMessage[]) {
+	function scripted(opener: boolean, record: LhMessage[], kept: () => Response = () => Response.json({ ok: true, opener, running: false }), chat: () => Response = () => Response.json({ ok: true })) {
 		const calls: Array<{ url: string; body?: string }> = [];
 		const fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
 			const url = String(input);
 			calls.push({ url, body: typeof init?.body === "string" ? init.body : undefined });
-			if (url === "/api/chats/chat_x/keep-going") return Response.json({ ok: true, opener });
-			if (url === "/api/chat") return Response.json({ ok: true });
+			if (url === "/api/chats/chat_x/keep-going") return kept();
+			if (url === "/api/chat") return chat();
 			if (url === "/api/chats/chat_x") return Response.json({ messages: record });
 			if (url === "/api/chats/chat_x/stream") return sseResponse("[DONE]");
 			throw new Error(`unexpected fetch: ${url}`);
@@ -1836,6 +1837,35 @@ describe("Keep going and the opener", () => {
 		const m = model({ initialMessages: concluded, fetch });
 		await m.keepGoing("c1");
 		assert.deepEqual(posts(calls, "/api/chat"), [{ type: "next" }]);
+	});
+
+	it("while the server still runs a turn, waits for its end instead of sending the go-ahead", async () => {
+		const { calls, fetch } = scripted(false, concluded, () => Response.json({ ok: true, opener: false, running: true }));
+		const m = model({ initialMessages: concluded, fetch });
+		await m.keepGoing("c1");
+		assert.deepEqual(posts(calls, "/api/chat"), []);
+	});
+
+	it("a failed Keep going brings the stop card back with the plain send failure", async () => {
+		for (const kept of [() => Response.json({ error: "No stop on that call" }, { status: 400 }), () => { throw new Error("Failed to fetch"); }]) {
+			const { fetch } = scripted(true, regularizationEnds(), kept);
+			const m = model({ initialMessages: regularizationEnds(), fetch });
+			await m.keepGoing("c1");
+			assert.equal(lessonStop(m.getState().nativeMessages, TREE)?.keptGoing, false, "the marker is taken back");
+			assert.ok(!m.getState().error?.message.includes("No stop"), "never the server's words");
+		}
+		const { fetch } = scripted(true, regularizationEnds(), () => Response.json({ error: "No stop on that call" }, { status: 400 }));
+		const m = model({ initialMessages: regularizationEnds(), fetch });
+		await m.keepGoing("c1");
+		assert.equal(m.getState().error?.message, "The send failed (400).");
+	});
+
+	it("a refused opener answer shows the plain send failure", async () => {
+		const kept = [...regularizationEnds(), keepGoing("c1", 50)];
+		const { fetch } = scripted(true, kept, undefined, () => Response.json({ error: "that opener was already answered" }, { status: 400 }));
+		const m = model({ initialMessages: kept, fetch });
+		await m.send({ type: "opener-answer", topicDoneCallId: "t1", answer: null });
+		assert.equal(m.getState().error?.message, "The send failed (400).");
 	});
 
 	it("an answer to the opener is an opener-answer input that settles it at once", async () => {

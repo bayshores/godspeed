@@ -1,6 +1,6 @@
 //! POST /api/chats/{id}/keep-going: Keep going at a stop. 404 for an unknown lesson, 400 for a
 //! malformed input or (no turn running) a call that carries no stop, and 200 saying whether the
-//! next topic's stored opener now shows.
+//! next topic's stored opener now shows and whether a turn was running.
 
 use std::sync::Arc;
 
@@ -9,6 +9,7 @@ use gs_base::ids;
 use gs_json::{Json, json, parse};
 use gs_server::http::access::Access;
 use gs_services::App;
+use gs_services::turns::turn_liveness::{begin_turn, end_turn};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 
@@ -55,7 +56,11 @@ async fn keep_going_answers_each_case() {
 	assert_eq!(post(port, "/api/chats/chat_gone/keep-going", r#"{"input":{"stopOf":"c1"}}"#).await, (404, json!({ "error": "Unknown chat" })));
 	assert_eq!(post(port, &path, r#"{"input":{}}"#).await, (400, json!({ "error": "input must be { stopOf: string }" })));
 	assert_eq!(post(port, &path, r#"{"input":{"stopOf":"t1"}}"#).await, (400, json!({ "error": "No stop on that call" })));
-	assert_eq!(post(port, &path, r#"{"input":{"stopOf":"c1"}}"#).await, (200, json!({ "ok": true, "opener": true })));
+	assert_eq!(post(port, &path, r#"{"input":{"stopOf":"c1"}}"#).await, (200, json!({ "ok": true, "opener": true, "running": false })));
 	let record = app.stores.chats.get_chat(&chat_id).unwrap();
 	assert_eq!(record["messages"].as_arr().unwrap().last().unwrap()["customType"], json!("keep-going"));
+
+	assert!(begin_turn(&app, &chat_id));
+	assert_eq!(post(port, &path, r#"{"input":{"stopOf":"c9"}}"#).await, (200, json!({ "ok": true, "opener": false, "running": true })), "during a turn: stored unchecked");
+	end_turn(&app, &chat_id);
 }

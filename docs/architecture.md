@@ -547,7 +547,7 @@ The client learns about server-side change by **push**, not polling: exactly one
 | `chats-changed` | `{}` | list-shape writes only: chat create/rename/delete-that-removed |
 | `spaces-changed` | `{}` | a space was created, edited, archived or deleted, or its files changed |
 | `agent-changed` | `{}` | the outside agent checked in or went quiet, or a request started or stopped waiting for it |
-| `record-changed` | `{chatId}` | a chat record changed without a turn: a dismissal, a Keep going at a stop (also written during a turn), an answer that leaves a sibling question open, or a finished compaction |
+| `record-changed` | `{chatId}` | a chat record changed without a turn: a dismissal, a Keep going at a stop (also written during a turn: `POST /api/chats/{id}/keep-going` then answers `running: true` and the window leaves the next step to that turn's end), an answer that leaves a sibling question open, or a finished compaction |
 | `agent-action` | the action | a new line in the activity log: an outside agent, the app or the learner changed something (`services::app::agent_actions`, saved in `data/agent-actions.json`) |
 | `rules-changed` | `{saved?}` | a teaching rule was saved, undone or edited (`services::app::agent_rules`); `saved` carries the rule when an outside agent saved it from the terminal |
 | `prep-changed` | `{spaceId}` | a prep's sheet or one of its mocks changed, or a request for either started or ended (`services::preps`: `preps`, `prep_runs`, `mock_end`); a saved mock answer is silent |

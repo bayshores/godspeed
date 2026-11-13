@@ -257,12 +257,13 @@ async fn dismiss(State(app): State<Arc<App>>, Path(id): Path<String>, body: Body
 
 /// POST /api/chats/{id}/keep-going: `{input: {stopOf}}`, Keep going at the stop that call carries.
 /// Written at once, even during a turn; it never starts one. `opener`: the next topic's stored
-/// opener now shows, so the window needs no agent call.
+/// opener now shows, so the window needs no agent call. `running`: a turn was running, so the
+/// window leaves the next step to that turn's end.
 async fn keep_going_at(State(app): State<Arc<App>>, Path(id): Path<String>, body: Body) -> Result<Response, Unhandled> {
 	let body = json_body(body).await.unwrap_or(Json::Null);
 	let Some(stop_of) = body["input"]["stopOf"].as_str().filter(|s| !s.is_empty()) else { return Ok(error(400, "input must be { stopOf: string }")) };
 	Ok(match keep_going(&app, &id, stop_of)? {
-		KeepGoing::Kept { opener } => reply::json(200, &json!({ "ok": true, "opener": opener })),
+		KeepGoing::Kept { opener, running } => reply::json(200, &json!({ "ok": true, "opener": opener, "running": running })),
 		KeepGoing::UnknownLesson => error(404, "Unknown chat"),
 		KeepGoing::NoStop => error(400, "No stop on that call"),
 	})

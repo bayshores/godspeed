@@ -145,7 +145,7 @@ async fn end_regularization(app: &Arc<App>, chat_id: &str, keep_mid_turn: bool) 
 	assert_eq!(result["text"], json!(STUDY_TOPIC_END_ACK_TEXT), "the Study topic-end text");
 	let conclude_id = result["toolCallId"].as_str().unwrap().to_owned();
 	if keep_mid_turn {
-		assert_eq!(keep_going(app, chat_id, &conclude_id), Ok(KeepGoing::Kept { opener: false }), "stored unchecked during the turn");
+		assert_eq!(keep_going(app, chat_id, &conclude_id), Ok(KeepGoing::Kept { opener: false, running: true }), "stored unchecked during the turn");
 	}
 	answer(app, chat_id, call("topic_done", topic_done_args())).await;
 	settled(app, chat_id).await;
@@ -189,7 +189,7 @@ async fn keep_going_after_the_opener_landed_shows_it_and_his_pick_reaches_the_ag
 	let fx = Fixture::new();
 	let chat_id = study_lesson(&fx.app).await;
 	let conclude_id = end_regularization(&fx.app, &chat_id, false).await;
-	assert_eq!(keep_going(&fx.app, &chat_id, &conclude_id), Ok(KeepGoing::Kept { opener: true }));
+	assert_eq!(keep_going(&fx.app, &chat_id, &conclude_id), Ok(KeepGoing::Kept { opener: true, running: false }));
 
 	let (_, done_id) = call_of(&messages(&fx.app, &chat_id), "topic_done");
 	let answer_data = json!({ "kind": "quiz", "dontKnow": false, "answers": [{ "index": 1, "label": "It can move a lot", "value": "It can move a lot" }], "confidence": 60 });
@@ -227,7 +227,7 @@ async fn coming_back_the_next_day_tells_the_agent_he_resumed() {
 	let chat_id = study_lesson(&fx.app).await;
 	let conclude_id = end_regularization(&fx.app, &chat_id, false).await;
 	clock::advance(24 * 60 * MINUTE_MS);
-	assert_eq!(keep_going(&fx.app, &chat_id, &conclude_id), Ok(KeepGoing::Kept { opener: true }));
+	assert_eq!(keep_going(&fx.app, &chat_id, &conclude_id), Ok(KeepGoing::Kept { opener: true, running: false }));
 	let (_, done_id) = call_of(&messages(&fx.app, &chat_id), "topic_done");
 	send(&fx.app, &chat_id, ChatInput::OpenerAnswer { topic_done_call_id: done_id, answer: None }).await;
 	let seen = answer(&fx.app, &chat_id, says("Let's start with the split.")).await;
