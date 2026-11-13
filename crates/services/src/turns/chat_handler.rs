@@ -205,22 +205,28 @@ fn write_ahead(app: &Arc<App>, chat_id: &str, input: &TurnInput, attachments: &[
 	};
 
 	// The [Today] note goes right before a learner message when the day, the open deadlines or a
-	// compaction call for a fresh one. The app note goes there too, and after an answer, where the
-	// agent reads it with the answer.
+	// compaction call for a fresh one. The app note goes there too.
 	if let TurnInput::Chat(chat @ (ChatInput::Text { .. } | ChatInput::Next)) = input {
 		let at = appends.len().saturating_sub(1);
 		let notes = today_note_for(app, &record).into_iter().chain(app_note_for(&record, chat));
 		appends.splice(at..at, notes);
 	}
-	if let TurnInput::Chat(chat @ ChatInput::Answer { .. }) = input {
-		appends.extend(app_note_for(&record, chat));
-	}
-	let merged: Vec<Json> = messages.iter().chain(&appends).cloned().collect();
+	let mut merged: Vec<Json> = messages.iter().chain(&appends).cloned().collect();
 
 	// An answer that leaves a sibling question waiting starts no turn: the last answer fires the
 	// one reaction turn with every result next to its calls.
+	let sibling_waits = matches!(input, TurnInput::Chat(ChatInput::Answer { .. })) && dangling_question_of(&merged).is_some();
+	// The app note follows the batch's last answer, where the agent reads it with the answers; none
+	// sits between two results of one call batch.
+	if let TurnInput::Chat(chat @ ChatInput::Answer { .. }) = input
+		&& !sibling_waits
+		&& let Some(note) = app_note_for(&record, chat)
+	{
+		appends.push(note.clone());
+		merged.push(note);
+	}
 	if let TurnInput::Chat(ChatInput::Answer { answer, .. }) = input
-		&& dangling_question_of(&merged).is_some()
+		&& sibling_waits
 	{
 		if let Err(err) = app.stores.chats.save_messages(chat_id, &merged) {
 			eprintln!("[chat {chat_id}] write-ahead persist failed: {err}");
@@ -565,6 +571,20 @@ mod tests {
 		assert_eq!(types[types.len() - 2..], ["toolResult", "app-note"]);
 		let record = app.stores.chats.get_chat(&answered).unwrap();
 		assert_eq!(record["messages"].as_arr().unwrap().last().unwrap()["content"], json!("[Resumed] He came back to this session after a stop."));
+	}
+
+	#[test]
+	fn the_app_note_waits_for_the_last_answer_of_a_call_batch() {
+		let root = scratch_dir("chat-app-note-batch");
+		let app = test_app(&root);
+		let both = json!({ "role": "assistant", "content": [{ "type": "toolCall", "id": "q1", "name": "quiz", "arguments": {} }, { "type": "toolCall", "id": "q2", "name": "quiz", "arguments": {} }], "stopReason": "toolUse", "timestamp": clock::now_ms() });
+		let chat_id = resumed_lesson(&app, vec![both]);
+		let answer = |id: &str| TurnInput::Chat(ChatInput::Answer { tool_call_id: id.to_owned(), answer: json!({ "kind": "quiz", "dontKnow": true }), attachments: None });
+		assert!(write_ahead(&app, &chat_id, &answer("q1"), &[]).is_err(), "q2 still waits: no turn");
+		assert_eq!(custom_types(&app, &chat_id)[3..], ["assistant", "toolResult"]);
+		assert!(write_ahead(&app, &chat_id, &answer("q2"), &[]).is_ok());
+		end_turn(&app, &chat_id);
+		assert_eq!(custom_types(&app, &chat_id)[3..], ["assistant", "toolResult", "toolResult", "app-note"]);
 	}
 
 	#[tokio::test(flavor = "multi_thread")]
