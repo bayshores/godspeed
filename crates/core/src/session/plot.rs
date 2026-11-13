@@ -180,6 +180,10 @@ impl Problems {
 			self.add(format!("{path}.min: must be less than {path}.max."));
 			return None;
 		}
+		if !(max - min).is_finite() {
+			self.add(format!("{path}: {} to {} is too wide. Narrow it.", short(min), short(max)));
+			return None;
+		}
 		Some((min, max))
 	}
 }
@@ -334,15 +338,17 @@ fn quantile(sorted: &[f64], q: f64) -> f64 {
 /// all lines and slider values, rounded out to round ticks. Refused, with the line the agent gets,
 /// when all values run more than 20 times wider, since a pole or fast growth would then squash
 /// the curve flat.
-pub fn y_range(values: &[f64]) -> Result<(f64, f64), String> {
+fn y_range(values: &[f64]) -> Result<(f64, f64), String> {
 	let mut sorted: Vec<f64> = values.iter().copied().filter(|v| v.is_finite()).collect();
 	if sorted.is_empty() {
 		return Ok((-1.0, 1.0));
 	}
 	sorted.sort_by(f64::total_cmp);
-	let (lo, hi) = round_out(quantile(&sorted, 0.02), quantile(&sorted, 0.98));
+	let (q_lo, q_hi) = (quantile(&sorted, 0.02), quantile(&sorted, 0.98));
+	// Values too far apart to round are refused below with their own numbers.
+	let (lo, hi) = if (q_hi - q_lo).is_finite() { round_out(q_lo, q_hi) } else { (q_lo, q_hi) };
 	let (all_lo, all_hi) = (sorted[0], sorted[sorted.len() - 1]);
-	if all_hi - all_lo > SPREAD_MAX * (hi - lo) {
+	if !(hi - lo).is_finite() || !(all_hi - all_lo).is_finite() || all_hi - all_lo > SPREAD_MAX * (hi - lo) {
 		return Err(format!("y: values run from {} to {} but most lie in {} to {}. Give y.min and y.max.", short(all_lo), short(all_hi), short(lo), short(hi)));
 	}
 	Ok((lo, hi))
@@ -351,14 +357,18 @@ pub fn y_range(values: &[f64]) -> Result<(f64, f64), String> {
 /// Widens `lo..hi` to multiples of a 1, 2 or 5 step, about four steps across; a flat range first
 /// gets a tenth of its value (or 1) on each side.
 fn round_out(lo: f64, hi: f64) -> (f64, f64) {
-	let (lo, hi) = if hi - lo <= f64::EPSILON * hi.abs().max(lo.abs()) {
-		let pad = if lo == 0.0 { 1.0 } else { lo.abs() / 10.0 };
+	let flat = hi - lo <= f64::EPSILON * hi.abs().max(lo.abs());
+	let (lo, hi) = if flat {
+		let pad = if lo.abs() > 1e-300 { lo.abs() / 10.0 } else { 1.0 };
 		(lo - pad, hi + pad)
 	} else {
 		(lo, hi)
 	};
 	let raw = (hi - lo) / 4.0;
-	let power = raw.log10().floor() as i32;
+	if !raw.is_normal() {
+		return (lo, hi);
+	}
+	let power = (raw.log10().floor() as i32).clamp(-300, 308);
 	let unit = 10f64.powi(power);
 	let step = [1.0, 2.0, 5.0, 10.0].into_iter().map(|m| m * unit).find(|s| *s >= raw).unwrap_or(10.0 * unit);
 	let decimals = (-power).max(0) as usize;
@@ -482,6 +492,8 @@ mod tests {
 		assert_eq!(problems(json!({})), ["title: must be a string.", "x: must be an object.", "y: must be an object.", "slider: must be an object.", "lines: must be a list of 1 or 2 lines."]);
 		let loose = with(with(leash(), &["x", "max"], json!("10")), &["lines", "0", "hidden"], json!("yes"));
 		assert_eq!(problems(loose), ["lines[0].hidden: must be true or false."], "a number may come as text");
+		let wide = with(leash(), &["x"], json!({ "name": "a", "label": "a", "min": -1.7e308, "max": 1.7e308 }));
+		assert_eq!(problems(wide), ["x: -1.7e308 to 1.7e308 is too wide. Narrow it."]);
 	}
 
 	#[test]
@@ -508,6 +520,10 @@ mod tests {
 		assert_eq!(lone("a/(1+lambda)", 10.0).unwrap(), (0.0, 6.0));
 		assert_eq!(lone("2", 10.0).unwrap(), (1.8, 2.2), "a flat line gets room around it");
 		assert_eq!(lone("0.001*a", 10.0).unwrap(), (0.0, 0.01));
+		assert_eq!(round_out(0.0, 0.0), (-1.0, 1.0));
+		assert_eq!(round_out(5e-324, 5e-324), (-1.0, 1.0), "the smallest numbers never overflow the step");
+		let huge = json!({ "title": "t", "x": { "name": "a", "label": "a", "min": 700, "max": 709 }, "y": { "label": "y" }, "slider": { "name": "s", "min": 0, "max": 1, "start": 0 }, "lines": [{ "label": "up", "expr": "1.5*exp(a)" }, { "label": "down", "expr": "-1.5*exp(a)" }] });
+		assert_eq!(problems(huge), ["y: values run from -1.23e308 to 1.23e308 but most lie in -1e308 to 1e308. Give y.min and y.max."], "never a range that is not a number");
 	}
 
 	#[test]
