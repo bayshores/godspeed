@@ -182,7 +182,7 @@ function progressFor(id: string, extra: Partial<DeadlineProgress>): DeadlineProg
 function todayRow(props: Partial<React.ComponentProps<typeof TodayRow>> = {}) {
 	return renderToStaticMarkup(
 		<MemoryRouter initialEntries={["/"]}>
-			<TodayRow deadline={OPEN[2]!} progress={undefined} color={3} nowMs={NOW} busy={false} onStart={() => {}} onDone={() => {}} {...props} />
+			<TodayRow deadline={OPEN[2]!} progress={undefined} color={3} nowMs={NOW} main={false} busy={false} onStart={() => {}} onDone={() => {}} {...props} />
 		</MemoryRouter>,
 	);
 }
@@ -207,16 +207,22 @@ describe("A row under Today", () => {
 		assert.match(section(html, "today-open", "</a>"), />HW 5$/);
 		assert.ok(html.includes("CSE 29, due Friday. 2 of 7 problems done"));
 		assert.match(section(html, "today-start", "</button>"), />Work on it$/);
-		assert.ok(!tag(html, "today-start").includes("lh-btn-main"), "the outlined button");
+		assert.ok(!tag(html, "today-start").includes("lh-btn-main"), "soft unless it is the main row");
+		assert.ok(tag(todayRow({ main: true }), "today-start").includes("lh-btn-main"));
+		assert.doesNotMatch(section(todayRow({ main: true }), "today-start", "</button>"), /<svg/, "no play icon on Work on it");
 	});
 
-	it("a test: today's topics and Start; an unfinished session continues", () => {
+	it("a test: Study for it and Start, the play icon only when dark; an unfinished session continues", () => {
 		const topics = [1, 2, 3].map((n) => ({ id: `t${n}`, name: `t${n}`, rate: null }));
-		const html = todayRow({ deadline: OPEN[3]!, progress: progressFor("mid", { topics }) });
-		assert.match(section(html, "today-open", "</a>"), />Study 1 topic for Midterm 2$/);
+		const html = todayRow({ deadline: OPEN[3]!, progress: progressFor("mid", { topics }), main: true });
+		assert.match(section(html, "today-open", "</a>"), />Study for Midterm 2$/);
 		assert.ok(html.includes("CSE 21, the test is on Thursday at 7:00 PM"));
 		assert.match(section(html, "today-start", "</button>"), /Start$/);
 		assert.ok(tag(html, "today-start").includes("lh-btn-main"));
+		assert.match(section(html, "today-start", "</button>"), /<svg/);
+		const soft = todayRow({ deadline: OPEN[3]!, progress: progressFor("mid", { topics }) });
+		assert.ok(!tag(soft, "today-start").includes("lh-btn-main"));
+		assert.doesNotMatch(section(soft, "today-start", "</button>"), /<svg/);
 		const cont = todayRow({ deadline: OPEN[3]!, progress: progressFor("mid", { topics, continueStudy: { chatId: "c", done: 1, total: 3 } }) });
 		assert.match(section(cont, "today-open", "</a>"), />Continue studying for Midterm 2$/);
 		assert.match(section(cont, "today-start", "</button>"), /Continue$/);
@@ -227,7 +233,7 @@ describe("A row under Today", () => {
 		const done: string[] = [];
 		const el = await mount(
 			<MemoryRouter initialEntries={["/"]}>
-				<ul><TodayRow deadline={OPEN[1]!} progress={undefined} color={1} nowMs={NOW} busy={false} onStart={(x) => started.push(x.id)} onDone={(x) => done.push(x.id)} /></ul>
+				<ul><TodayRow deadline={OPEN[1]!} progress={undefined} color={1} nowMs={NOW} main busy={false} onStart={(x) => started.push(x.id)} onDone={(x) => done.push(x.id)} /></ul>
 			</MemoryRouter>,
 		);
 		await act(async () => {

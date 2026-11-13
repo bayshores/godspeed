@@ -1,5 +1,5 @@
 /** Pure helpers for Today (home-page.tsx): per-space progress, which list a deadline goes in, and each row's words. */
-import { hasProblems, localDay, planDays, type DeadlineProgress, type ProgressPayload, type SpaceColor, type SpaceSummary } from "@/shared/core";
+import { hasProblems, localDay, type DeadlineProgress, type ProgressPayload, type SpaceColor, type SpaceSummary } from "@/shared/core";
 import { clockLabel, deadlineDateLabel } from "@/frontend/components/space-deadlines-model";
 import { DAY, HOUR, MINUTE, calendarDays, dueAtMs } from "@/frontend/components/countdown-model";
 import type { OpenDeadline } from "@/frontend/components/deadlines-model";
@@ -134,20 +134,48 @@ interface TodayRowWords {
 	title: string;
 	/** Under the title: the space and when it is due. */
 	line: string;
-	/** The one main button. "Work on it" works on the assignment's
-	 *  problems; the others study. */
-	button: "Start" | "Continue" | "Work on it";
+	/** The row's button. "Work on it" works on the assignment's
+	 *  problems; the others study ("Study more" starts a new session after
+	 *  one reached its end today). */
+	button: "Start" | "Continue" | "Study more" | "Work on it";
 }
 
-/** A Today row's words. A test or quiz names today's share of the topics
- *  that still need work; homework and projects say how far they are. */
+/** A Today row's words. Homework and projects say how far they are; a
+ *  test or quiz says where its Study session stopped, the topic it is in
+ *  the middle of, or that nothing more is planned today. */
 export function todayRow(d: OpenDeadline, progress: DeadlineProgress | undefined, nowMs: number): TodayRowWords {
 	const when = `${d.spaceName}, ${dueWords(d, nowMs)}`;
 	if (hasProblems(d.kind)) return { title: d.name, line: `${when}${progressNote(progress)}`, button: "Work on it" };
-	if (progress?.continueStudy) return { title: `Continue studying for ${d.name}`, line: when, button: "Continue" };
-	const topics = progress ? (planDays(localDay(nowMs), d.date, progress.topics)[0]?.topics.length ?? 0) : 0;
-	const title = topics > 0 ? `Study ${topics} ${topics === 1 ? "topic" : "topics"} for ${d.name}` : d.name;
-	return { title, line: when, button: "Start" };
+	const next = progress?.continueStudy;
+	if (next) {
+		const line = next.stop?.next ? `${d.spaceName}, ${next.stop.next} is next.` : next.inTopic ? `${d.spaceName}, in the middle of ${next.inTopic}.` : when;
+		return { title: `Continue studying for ${d.name}`, line, button: "Continue" };
+	}
+	if (progress?.studyEndedToday) return { title: `Study for ${d.name}`, line: `${d.spaceName}, nothing more is planned today.`, button: "Study more" };
+	return { title: `Study for ${d.name}`, line: when, button: "Start" };
+}
+
+/** The key of a Today row: its deadline's id, or "prep:" and its space. */
+export function todayRowKey(item: { deadline: OpenDeadline } | { prep: PrepDay }): string {
+	return "prep" in item ? `prep:${item.prep.spaceId}` : item.deadline.id;
+}
+
+/** The one row of Today whose button is dark: a session stopped before
+ *  today, else the soonest row. A session that stopped or ended today is
+ *  never pulled back into the same evening. `items` are soonest first. */
+export function mainRowKey(items: ReadonlyArray<{ deadline: OpenDeadline } | { prep: PrepDay }>, progress: ReadonlyMap<string, DeadlineProgress>, nowMs: number): string | null {
+	const today = localDay(nowMs);
+	const stopDay = (item: (typeof items)[number]) => {
+		const at = "deadline" in item ? progress.get(item.deadline.id)?.continueStudy?.stop?.at : undefined;
+		return at === undefined ? null : localDay(Date.parse(at));
+	};
+	const stoppedBefore = items.find((item) => {
+		const day = stopDay(item);
+		return day !== null && day < today;
+	});
+	if (stoppedBefore) return todayRowKey(stoppedBefore);
+	const soonest = items.find((item) => stopDay(item) !== today && !("deadline" in item && progress.get(item.deadline.id)?.studyEndedToday));
+	return soonest ? todayRowKey(soonest) : null;
 }
 
 /** Under a Later row's name: "CSE 21, Tuesday Dec 8. 19% ready". */

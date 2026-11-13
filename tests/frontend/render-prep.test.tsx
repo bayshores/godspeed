@@ -161,7 +161,7 @@ describe("Today's prep rows", () => {
 	it("under Today: the days left, the name that opens the sheet, and Study", () => {
 		const html = renderToStaticMarkup(
 			<MemoryRouter initialEntries={["/"]}>
-				<PrepTodayRow prep={prep} nowMs={NOW} busy={false} onOpen={() => {}} onStudy={() => {}} />
+				<PrepTodayRow prep={prep} nowMs={NOW} main busy={false} onOpen={() => {}} onStudy={() => {}} />
 			</MemoryRouter>,
 		);
 		assert.match(html, /data-testid="today-prep-spc_a"/);

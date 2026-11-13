@@ -28,15 +28,33 @@ function Words({ title, line, dim }: { title: ReactNode; line: string; dim?: boo
 	);
 }
 
+/** A Today row's button: dark on the one main row (home-page-model.ts
+ *  mainRowKey), soft on the rest; the play icon only on a dark Start. */
+function RowButton({ main, icon, testId, busy, onClick, children }: { main: boolean; icon: boolean; testId: string; busy: boolean; onClick: () => void; children: ReactNode }) {
+	return (
+		<button
+			type="button"
+			data-testid={testId}
+			disabled={busy}
+			onClick={onClick}
+			className={cn("lh-btn shrink-0", main ? "lh-btn-main h-[53px] gap-2.5 px-[22px] text-[17px]" : "h-[38px] text-[15px]")}
+		>
+			{main && icon && <PixelIcon name="play" />}
+			{children}
+		</button>
+	);
+}
+
 /**
  * A deadline under Today: its count block, what to do for it, "Mark done"
- * and the one main button. The title opens the deadline's page.
+ * and its button. The title opens the deadline's page.
  */
 export function TodayRow({
 	deadline: d,
 	progress,
 	color,
 	nowMs,
+	main,
 	busy,
 	onStart,
 	onDone,
@@ -45,13 +63,14 @@ export function TodayRow({
 	progress: DeadlineProgress | undefined;
 	color: SpaceColor | undefined;
 	nowMs: number;
+	/** Its button is Today's one dark button. */
+	main: boolean;
 	/** A lesson is starting. */
 	busy: boolean;
 	onStart: (d: OpenDeadline) => void;
 	onDone: (d: OpenDeadline) => void;
 }) {
 	const words = todayRow(d, progress, nowMs);
-	const work = words.button === "Work on it";
 	return (
 		<li data-testid={`today-row-${d.id}`} data-halley-target={`deadline:${d.id}`}>
 			<Pane className="flex min-h-[104px] overflow-hidden">
@@ -69,16 +88,9 @@ export function TodayRow({
 						<button type="button" data-testid="today-done" onClick={() => onDone(d)} className="lh-btn lh-btn-quiet h-[38px] text-[15px]">
 							Mark done
 						</button>
-						<button
-							type="button"
-							data-testid="today-start"
-							disabled={busy}
-							onClick={() => onStart(d)}
-							className={cn("lh-btn", work ? "h-[38px] text-[15px]" : "lh-btn-main h-[53px] gap-2.5 px-[22px] text-[17px]")}
-						>
-							{!work && <PixelIcon name="play" />}
+						<RowButton main={main} icon={words.button === "Start"} testId="today-start" busy={busy} onClick={() => onStart(d)}>
 							{words.button}
-						</button>
+						</RowButton>
 					</span>
 				</div>
 			</Pane>
@@ -93,7 +105,21 @@ const prepBlock = (prep: PrepDay, nowMs: number) => prepCount(prep.date, nowMs) 
  * A prep under Today: the days left, its name (which opens its sheet), its
  * day, and Study, which starts on the topics that most need work.
  */
-export function PrepTodayRow({ prep, nowMs, busy, onOpen, onStudy }: { prep: PrepDay; nowMs: number; busy: boolean; onOpen: (prep: PrepDay) => void; onStudy: (prep: PrepDay) => void }) {
+export function PrepTodayRow({
+	prep,
+	nowMs,
+	main,
+	busy,
+	onOpen,
+	onStudy,
+}: {
+	prep: PrepDay;
+	nowMs: number;
+	main: boolean;
+	busy: boolean;
+	onOpen: (prep: PrepDay) => void;
+	onStudy: (prep: PrepDay) => void;
+}) {
 	return (
 		<li data-testid={`today-prep-${prep.spaceId}`}>
 			<Pane className="flex min-h-[104px] overflow-hidden">
@@ -107,10 +133,9 @@ export function PrepTodayRow({ prep, nowMs, busy, onOpen, onStudy }: { prep: Pre
 						}
 						line={`It is on ${longDay(prep.date)}`}
 					/>
-					<button type="button" data-testid="today-prep-study" disabled={busy} onClick={() => onStudy(prep)} className="lh-btn lh-btn-main h-[53px] shrink-0 gap-2.5 px-[22px] text-[17px]">
-						<PixelIcon name="play" />
+					<RowButton main={main} icon testId="today-prep-study" busy={busy} onClick={() => onStudy(prep)}>
 						Study
-					</button>
+					</RowButton>
 				</div>
 			</Pane>
 		</li>
