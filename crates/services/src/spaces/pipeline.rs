@@ -380,12 +380,33 @@ mod tests {
 	use crate::app::test_support::scratch_dir;
 	use crate::spaces::add_copied_file;
 
+	/// The folder the search model loads from: the repo root, which holds `models/`.
+	#[cfg(not(any(target_os = "linux", all(target_os = "macos", target_arch = "x86_64"))))]
+	fn resources(_root: &Path, repo: &Path) -> std::path::PathBuf {
+		repo.to_owned()
+	}
+
+	/// Linux and Intel Macs also load ONNX Runtime from beside the model, so there the folder
+	/// links to `models/` and to the copy `node scripts/fetch-onnxruntime.mjs` puts in `.stage/`.
+	#[cfg(any(target_os = "linux", all(target_os = "macos", target_arch = "x86_64")))]
+	fn resources(root: &Path, repo: &Path) -> std::path::PathBuf {
+		use std::os::unix::fs::symlink;
+		#[cfg(target_os = "linux")]
+		let library = root.join("res/libonnxruntime.so");
+		#[cfg(target_os = "macos")]
+		let library = root.join("Frameworks/libonnxruntime.dylib");
+		std::fs::create_dir_all(root.join("res")).unwrap();
+		std::fs::create_dir_all(library.parent().unwrap()).unwrap();
+		symlink(repo.join("models"), root.join("res/models")).unwrap();
+		symlink(repo.join(".stage").join(library.file_name().unwrap()), &library).unwrap();
+		root.join("res")
+	}
+
 	#[tokio::test]
 	async fn a_book_is_read_once_and_searched_by_section() {
 		let root = scratch_dir("epub");
-		// The repo root holds the search model (and ONNX Runtime where it is loaded at run time).
 		let repo = Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/../.."));
-		let app = App::new(gs_base::config::Paths::new(root.join("data"), root.join("home"), root.join("tmp"), repo.to_owned()), None);
+		let app = App::new(gs_base::config::Paths::new(root.join("data"), root.join("home"), root.join("tmp"), resources(&root, repo)), None);
 		let space_id = app.stores.spaces.create_space(&gs_json::json!({ "name": "Discrete math" })).unwrap()["id"].as_str().unwrap().to_owned();
 		let book = std::fs::read(repo.join("tests/fixtures/sample-book.epub")).unwrap();
 		let file_id = add_copied_file(&app, &space_id, "Sample Book.epub", &book, "info").unwrap()["id"].as_str().unwrap().to_owned();
