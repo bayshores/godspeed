@@ -3,7 +3,7 @@
 //! Position comes from the tagged question CALLS in the transcript, never from their results: the
 //! latest tagged call's node is current, nodes of earlier tagged calls are visited.
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use gs_json::Json;
 
@@ -31,15 +31,22 @@ pub fn derived_node_status(statuses: &PlanStatuses, node_id: &str) -> &'static s
 
 /// `derivePlanStatusesLh`: statuses from the native record's tagging calls, in any state. A tag
 /// that is not a node of the tree moves nothing, and consecutive repeats count as one stay.
-pub fn derive_plan_statuses_lh(tree: &Json, messages: &[Json]) -> PlanStatuses {
+/// `opener_nodes` maps each topic_done whose opener is shown to the opener question's node: that
+/// call tags it, as the opener's question does in the window.
+pub fn derive_plan_statuses_lh(tree: &Json, messages: &[Json], opener_nodes: &HashMap<String, String>) -> PlanStatuses {
 	let ids: HashSet<&str> = tree["nodes"].as_arr().into_iter().flatten().filter_map(|n| n["id"].as_str()).collect();
 	let mut stays: Vec<&str> = Vec::new();
 	for m in messages.iter().filter(|m| m["role"].as_str() == Some("assistant")) {
 		for block in m["content"].as_arr().into_iter().flatten() {
-			if block["type"].as_str() != Some("toolCall") || !block["name"].as_str().is_some_and(|n| TAGGING_TOOLS.contains(&n)) {
+			if block["type"].as_str() != Some("toolCall") {
 				continue;
 			}
-			let Some(node_id) = block["arguments"]["nodeId"].as_str().filter(|id| ids.contains(id)) else { continue };
+			let tag = if block["name"].as_str().is_some_and(|n| TAGGING_TOOLS.contains(&n)) {
+				block["arguments"]["nodeId"].as_str()
+			} else {
+				block["id"].as_str().and_then(|id| opener_nodes.get(id)).map(String::as_str)
+			};
+			let Some(node_id) = tag.filter(|id| ids.contains(id)) else { continue };
 			if stays.last() != Some(&node_id) {
 				stays.push(node_id);
 			}
@@ -64,11 +71,22 @@ mod tests {
 	fn latest_tag_is_current_and_earlier_ones_visited() {
 		let tree = json!({ "nodes": [{ "id": "a" }, { "id": "b" }, { "id": "c" }], "edges": [] });
 		let messages = [call("quiz", "a"), call("quiz", "a"), call("explain", "b"), call("quiz", "zzz"), call("read", "c"), call("problem", "a")];
-		let s = derive_plan_statuses_lh(&tree, &messages);
+		let s = derive_plan_statuses_lh(&tree, &messages, &HashMap::new());
 		assert_eq!(s.current.as_deref(), Some("a"));
 		assert_eq!(derived_node_status(&s, "a"), "current");
 		assert_eq!(derived_node_status(&s, "b"), "visited");
 		assert_eq!(derived_node_status(&s, "c"), "upcoming");
-		assert!(derive_plan_statuses_lh(&tree, &[]).current.is_none());
+		assert!(derive_plan_statuses_lh(&tree, &[], &HashMap::new()).current.is_none());
+	}
+
+	#[test]
+	fn a_shown_opener_tags_its_question_node() {
+		let tree = json!({ "nodes": [{ "id": "a" }, { "id": "b" }], "edges": [] });
+		let done = json!({ "role": "assistant", "content": [{ "type": "toolCall", "id": "t1", "name": "topic_done", "arguments": { "nodeId": "a" } }] });
+		let messages = [call("quiz", "a"), done];
+		assert_eq!(derive_plan_statuses_lh(&tree, &messages, &HashMap::new()).current.as_deref(), Some("a"));
+		let shown = HashMap::from([("t1".to_owned(), "b".to_owned())]);
+		let s = derive_plan_statuses_lh(&tree, &messages, &shown);
+		assert_eq!((s.current.as_deref(), derived_node_status(&s, "a")), (Some("b"), "visited"));
 	}
 }

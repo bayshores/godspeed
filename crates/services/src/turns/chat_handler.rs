@@ -99,7 +99,7 @@ pub type ReplyFuture = Pin<Box<dyn Future<Output = ChatReply> + Send>>;
 pub fn send_first_message(app: &Arc<App>) -> SendFirstMessage {
 	let app = app.clone();
 	Arc::new(move |chat_id, text| {
-		let sent = handle_chat_input(&app, &chat_id, TurnInput::Chat(ChatInput::Text { text, attachments: None }));
+		let sent = handle_chat_input(&app, &chat_id, TurnInput::Chat(ChatInput::Text { text, attachments: None, about: None }));
 		Box::pin(async move {
 			let reply = sent.await;
 			if reply.ok() { Ok(()) } else { Err(reply.text()) }
@@ -478,7 +478,7 @@ mod tests {
 	}
 
 	fn text(text: &str) -> TurnInput {
-		TurnInput::Chat(ChatInput::Text { text: text.to_owned(), attachments: None })
+		TurnInput::Chat(ChatInput::Text { text: text.to_owned(), attachments: None, about: None })
 	}
 
 	fn saved(app: &App, chat_id: &str, text: &str) -> bool {

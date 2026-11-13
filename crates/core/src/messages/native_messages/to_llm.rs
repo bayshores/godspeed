@@ -7,6 +7,7 @@ use gs_json::{Json, Obj, json};
 use super::scans::tool_calls;
 use super::side_questions::{SIDE_PENDING_TEXT, side_answer_lead, side_held_questions};
 use crate::messages::compaction_marks::{active_compaction_of, kept_index_for};
+use crate::messages::lesson_markers::is_ui_only;
 use gs_json::js_text::js_string;
 
 /// The wording for an aborted turn's unanswered calls. Kept verbatim so the model's view never
@@ -70,7 +71,7 @@ pub fn to_llm_messages(messages: &[Json]) -> Vec<Json> {
 		match m["role"].as_str() {
 			Some("custom") => {
 				let custom_type = m["customType"].as_str();
-				if matches!(custom_type, Some("plan-block" | "problem-dismissed")) {
+				if is_ui_only(custom_type) {
 					continue;
 				}
 				// The active compaction marker already rendered as the head.
@@ -142,6 +143,25 @@ mod tests {
 			vec![
 				json!({ "role": "user", "content": "hi", "timestamp": 1 }),
 				json!({ "role": "user", "content": [{ "type": "text", "text": "t" }, { "type": "image" }], "timestamp": 3 }),
+			]
+		);
+	}
+
+	#[test]
+	fn ui_only_markers_never_reach_the_agent_and_app_notes_do() {
+		let marker = |custom_type: &str, content: &str, at: i64| json!({ "id": custom_type, "role": "custom", "customType": custom_type, "content": content, "timestamp": at });
+		let messages = vec![
+			marker("keep-going", "", 1),
+			marker("problem-dismissed", "", 2),
+			marker("plan-block", "", 3),
+			marker("app-note", "[Resumed] He came back to this session after a stop.", 4),
+			marker("opener-answer", "[Opener] Cross-validation: he skipped it.", 5),
+		];
+		assert_eq!(
+			to_llm_messages(&messages),
+			vec![
+				json!({ "role": "user", "content": [{ "type": "text", "text": "[Resumed] He came back to this session after a stop." }], "timestamp": 4 }),
+				json!({ "role": "user", "content": [{ "type": "text", "text": "[Opener] Cross-validation: he skipped it." }], "timestamp": 5 }),
 			]
 		);
 	}

@@ -9,7 +9,7 @@ use gs_json::{Json, Obj};
 
 use super::answers::{Tally, answer_ref, facts_by_message, facts_for_answer, is_overconfident};
 use super::calibration::calibration;
-use super::continue_study::continue_study_for;
+use super::continue_study::{continue_study_for, ended_today_for};
 use super::fact_progress::{file_coverage, from_lesson, next_up_file};
 use super::homework::{latest_homework, problems_done};
 use super::progress::{days_between, ramp_color, topic_status};
@@ -201,6 +201,9 @@ pub fn derive_progress(input: &Json) -> Json {
 			o.insert("topics", weakest.iter().map(|t| gs_json::json!({ "id": t.id, "name": t.name, "rate": t.rate })).collect::<Json>());
 			if let Some(next) = continue_study_for(deadline_id, deadline_sessions) {
 				o.insert("continueStudy", next);
+			}
+			if ended_today_for(deadline_id, deadline_sessions, today) {
+				o.insert("studyEndedToday", true);
 			}
 			if let Some(done) = problems_done(&d["problems"]) {
 				o.insert("problems", done);

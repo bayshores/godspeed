@@ -182,11 +182,18 @@ fn event(kind: &str, fields: Vec<(&str, Json)>) -> Obj {
 
 fn chat_input_json(input: &ChatInput) -> Json {
 	match input {
-		ChatInput::Text { text, attachments } => with_files(event("text", vec![("text", text.as_str().into())]), attachments),
+		ChatInput::Text { text, attachments, about } => {
+			let mut text = with_files(event("text", vec![("text", text.as_str().into())]), attachments);
+			if let (Some(opener), Some(o)) = (about, text.as_obj_mut()) {
+				o.insert("about", json!({ "opener": opener }));
+			}
+			text
+		}
 		ChatInput::Answer { tool_call_id, answer, attachments } => with_files(event("answer", vec![("toolCallId", tool_call_id.as_str().into()), ("answer", answer.clone())]), attachments),
 		ChatInput::Continue => Json::Obj(event("continue", vec![])),
 		ChatInput::Side { text, attachments } => with_files(event("side", vec![("text", text.as_str().into())]), attachments),
 		ChatInput::Next => Json::Obj(event("next", vec![])),
+		ChatInput::OpenerAnswer { topic_done_call_id, answer } => Json::Obj(event("opener-answer", vec![("topicDoneCallId", topic_done_call_id.as_str().into()), ("answer", answer.clone().unwrap_or(Json::Null))])),
 	}
 }
 

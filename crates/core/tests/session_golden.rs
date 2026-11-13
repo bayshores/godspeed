@@ -2,6 +2,8 @@
 //! the answer; the real-chat case recomputes everything from tests/fixtures/session_chats.json.
 //! Ids and clock stamps the constructors make are masked the same way on both sides.
 
+use std::collections::HashMap;
+
 use gs_base::text;
 use gs_core::session::argument_heal::heal_encoded_arguments;
 use gs_core::session::code_question::{fenced_code, write_code_input_problems, write_code_input_schema};
@@ -142,7 +144,7 @@ fn check_chat(chat: &Json, want: &Json) {
 	check("markdownTitled", text::slice16(&session_markdown(messages, chat["title"].as_str()), 0, Some(200)).into());
 	check("outcomes", practice_outcomes(messages).into());
 	check("position", tree.map(|t| plan_position_lh(t, messages)).into());
-	let statuses = tree.map(|t| derive_plan_statuses_lh(t, messages));
+	let statuses = tree.map(|t| derive_plan_statuses_lh(t, messages, &HashMap::new()));
 	check("current", statuses.as_ref().and_then(|st| st.current.clone()).into());
 	let node_statuses = match (tree, &statuses) {
 		(Some(t), Some(st)) => arr(&t["nodes"]).iter().map(|n| derived_node_status(st, n["id"].as_str().unwrap_or_default())).collect(),
@@ -256,7 +258,7 @@ fn plan_statuses_and_step_bar_match_node() {
 	let tree = &case["tree"];
 	each(&case["runs"], "statuses", |i| {
 		let messages = arr(i);
-		let statuses = derive_plan_statuses_lh(tree, messages);
+		let statuses = derive_plan_statuses_lh(tree, messages, &HashMap::new());
 		object(vec![
 			("current", statuses.current.clone().into()),
 			("statuses", arr(&tree["nodes"]).iter().map(|n| derived_node_status(&statuses, s(&n["id"]))).collect()),

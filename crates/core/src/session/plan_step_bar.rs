@@ -6,6 +6,7 @@ use std::collections::HashMap;
 use gs_json::{Json, Obj};
 
 use super::plan::{derive_plan_statuses_lh, derived_node_status};
+use crate::study::topic_end::opener_nodes;
 
 fn id_of(node: &Json) -> &str {
 	node["id"].as_str().unwrap_or_default()
@@ -13,7 +14,7 @@ fn id_of(node: &Json) -> &str {
 
 /// Plan node ids in learning order: prerequisites first, ties in authored order. A malformed
 /// tree (a cycle) keeps the rest in authored order. A duplicated id resolves to its last node.
-fn ordered_plan_ids(tree: &Json) -> Vec<&str> {
+pub(crate) fn ordered_plan_ids(tree: &Json) -> Vec<&str> {
 	let nodes: &[Json] = tree["nodes"].as_arr().map_or(&[], Vec::as_slice);
 	let index: HashMap<&str, usize> = nodes.iter().enumerate().map(|(i, n)| (id_of(n), i)).collect();
 	let mut indegree: HashMap<&str, usize> = nodes.iter().map(|n| (id_of(n), 0)).collect();
@@ -53,9 +54,10 @@ pub fn step_position(statuses: &[&str]) -> usize {
 	statuses.iter().position(|s| *s == "current").map_or_else(|| statuses.iter().filter(|s| **s == "visited").count(), |i| i + 1)
 }
 
-/// `planPositionLh`: `{done, total}` over the native record.
+/// `planPositionLh`: `{done, total}` over the native record. A shown opener's question moves it,
+/// as it does in the window.
 pub fn plan_position_lh(tree: &Json, messages: &[Json]) -> Json {
-	let derived = derive_plan_statuses_lh(tree, messages);
+	let derived = derive_plan_statuses_lh(tree, messages, &opener_nodes(messages));
 	let statuses: Vec<&str> = ordered_plan_ids(tree).into_iter().map(|id| derived_node_status(&derived, id)).collect();
 	let mut out = Obj::new();
 	out.insert("done", step_position(&statuses) as f64);

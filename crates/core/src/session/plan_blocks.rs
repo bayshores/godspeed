@@ -2,7 +2,7 @@
 //! frozen snapshot marker right after the turn that carried the successful plan_init call. Its
 //! statuses are true at that instant; position afterwards derives live from the transcript.
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use gs_base::time::iso_now;
 use gs_json::{Json, Obj};
@@ -18,7 +18,7 @@ fn pick(record: &Json, keys: &[&str]) -> Obj {
 /// The snapshot payload: statuses derived at emission time from the transcript's question calls
 /// (results feed nothing). The block never re-derives.
 fn snapshot(tree: &Json, messages: &[Json]) -> Json {
-	let statuses = derive_plan_statuses_lh(tree, messages);
+	let statuses = derive_plan_statuses_lh(tree, messages, &HashMap::new());
 	let nodes: Json = tree["nodes"]
 		.as_arr()
 		.into_iter()
