@@ -33,7 +33,7 @@ pub const LEFTOVER_IDLE_MS: i64 = 5 * 60_000;
 /// - a cleanly posed question's placeholder result is never saved (the record ends at the
 ///   unanswered call); an errored question call is (the model's retry context);
 /// - one frozen plan block per successful plan_init call;
-/// - one keep-check verdict per new Study quiz that carries a keep.
+/// - in a Study lesson, one keep-check verdict per new quiz that carries a keep.
 ///
 /// Returns the stamped new messages. Err is PERSISTENCE_ERROR.
 pub fn persist_turn(app: &App, chat_id: &str, base_count: usize, turn_messages: &[Json]) -> Result<Vec<Json>, String> {
@@ -58,7 +58,10 @@ fn save_turn(app: &App, chat_id: &str, base_count: usize, turn_messages: &[Json]
 	let transcript: Vec<Json> = messages.iter().chain(&stamped).cloned().collect();
 	let tree = record.get("tree").filter(|t| !t.is_null());
 	let blocks = plan_blocks_for(messages, &stamped, tree, &transcript);
-	let verdicts: Vec<Json> = keep_verdicts(&transcript, &|source| passage_mark(app, source)).into_iter().map(new_keep_check_marker).collect();
+	// Only a Study quiz takes a keep; one sent to another lesson's quiz is ignored.
+	let study = record["kind"].as_str() == Some("study");
+	let verdicts: Vec<Json> = if study { keep_verdicts(&transcript, &|source| passage_mark(app, source)) } else { Vec::new() };
+	let verdicts = verdicts.into_iter().map(new_keep_check_marker);
 	let all: Vec<Json> = transcript.into_iter().chain(blocks).chain(verdicts).collect();
 	app.stores.chats.save_messages(chat_id, &all)?;
 	Ok(stamped)

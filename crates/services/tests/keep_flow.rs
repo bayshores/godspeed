@@ -2,7 +2,8 @@
 //! rules never refuses its quiz, the call is stored as sent and the teacher reads why right after
 //! his answer; a stored keep gets its verdict when the turn is saved; dropping its analogy during a
 //! turn reaches the teacher as one [Analogy dropped] line on his next input, and none when he
-//! brought it back first; no keep-check or drop marker ever reaches the agent.
+//! brought it back first; no keep-check or drop marker ever reaches the agent; only a Study lesson
+//! stores verdicts.
 
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -15,6 +16,7 @@ use gs_engine::bridge::{AgentReply, ReplyCall, WaitOptions};
 use gs_json::{Json, json, stringify};
 use gs_services::App;
 use gs_services::turns::lesson_events::{KeptDrop, KeptPart, drop_kept_part};
+use gs_services::turns::turn_service::persist_turn;
 use gs_services::turns::{handle_chat_input, is_turn_running};
 
 /// An app over a fresh folder, removed when dropped.
@@ -185,4 +187,16 @@ async fn a_dropped_analogy_reaches_the_teacher_once_and_not_when_brought_back() 
 	let seen = answer(&fx.app, &chat_id, says("Sure.")).await;
 	settled(&fx.app, &chat_id).await;
 	assert_eq!(lines_seen(&seen, "[Analogy dropped]").len(), 1, "brought back before his input: no new line");
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn only_a_study_lesson_stores_a_verdict() {
+	let fx = Fixture::new();
+	for (kind, verdicts) in [(Some("study"), 1), (None, 0), (Some("practice"), 0)] {
+		let chat_id = fx.app.stores.chats.create_chat("Lesson", kind, None, None).unwrap()["id"].as_str().unwrap().to_owned();
+		let reply = json!({ "role": "assistant", "content": [{ "type": "toolCall", "id": "q1", "name": "quiz", "arguments": quiz(leash()) }] });
+		persist_turn(&fx.app, &chat_id, 0, &[reply]).unwrap();
+		let checks = messages(&fx.app, &chat_id).iter().filter(|m| m["customType"].as_str() == Some("keep-check")).count();
+		assert_eq!(checks, verdicts, "{kind:?}");
+	}
 }
