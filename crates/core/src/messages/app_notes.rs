@@ -1,18 +1,23 @@
 //! The hidden lines an input carries to the agent about what happened in the app: he came back to
-//! a stopped session ([Resumed]), what he did with the next topic's opener ([Opener]), and the
-//! questions from earlier he answered or asks about ([From earlier]). An opener answer carries its
-//! lines in its own marker; any other input gets one app-note marker.
+//! a stopped session ([Resumed]), what he did with the next topic's opener ([Opener]), the
+//! questions from earlier he answered or asks about ([From earlier]), the analogies he dropped
+//! ([Analogy dropped]) and, after his answer to a quiz with a keep, why it was not all shown. An
+//! opener answer carries its lines in its own marker; any other input gets one app-note marker.
 
 use gs_json::{Json, json};
 use gs_json::js_text::js_string;
 
 use super::input_events::{About, ChatInput, messages_of};
-use super::lesson_markers::new_app_note_marker;
-use crate::session::question_core::confidence_level;
+use super::lesson_markers::{ANALOGY_DROP, new_app_note_marker};
+use crate::session::question_core::{confidence_level, keep_of};
+use crate::study::kept::keep_note;
 use crate::study::topic_end::{resume_due, shown_openers};
 
 const RESUMED_LINE: &str = "[Resumed] He came back to this session after a stop.";
 const FROM_EARLIER: &str = "[From earlier]";
+const ANALOGY_DROPPED: &str = "[Analogy dropped]";
+/// The most words of an analogy's fits line that name it.
+const ANALOGY_WORDS: usize = 8;
 
 /// The opener-answer marker's content: [Resumed] first when due, then what he picked, or that he
 /// skipped it (a null `answer`), then the questions from earlier he answered since the agent last
@@ -22,7 +27,7 @@ pub fn opener_answer_text(record: &Json, topic_done_call_id: &str, answer: &Json
 	let line = if answer.is_null() { format!("[Opener] {topic}: he skipped it.") } else { format!("[Opener] {topic}: {}", picked_words(answer)) };
 	let messages = messages_of(record);
 	let resumed = resume_due(messages).then_some(RESUMED_LINE.to_owned());
-	resumed.into_iter().chain(std::iter::once(line)).chain(from_earlier_line(messages)).collect::<Vec<_>>().join("\n")
+	resumed.into_iter().chain(std::iter::once(line)).chain(from_earlier_line(messages)).chain(analogy_dropped_lines(record)).collect::<Vec<_>>().join("\n")
 }
 
 /// The app-note marker an input carries, or none. An opener answer carries its lines itself, and a
@@ -37,8 +42,10 @@ pub fn app_note_for(record: &Json, input: &ChatInput, asked: Option<&Json>) -> O
 		lines.push(RESUMED_LINE.to_owned());
 	}
 	lines.extend(from_earlier_line(messages));
+	lines.extend(analogy_dropped_lines(record));
 	let mut details = json!({});
 	match input {
+		ChatInput::Answer { tool_call_id, .. } => lines.extend(keep_note(messages, tool_call_id).map(str::to_owned)),
 		ChatInput::Text { about: Some(About::Opener(opener)), .. } => {
 			lines.push(format!("[Opener] {}: he asked about it before answering; it stays open. Answer his question and end your turn.", opener_topic(record, opener)));
 		}
@@ -61,6 +68,38 @@ fn from_earlier_line(messages: &[Json]) -> Option<String> {
 	let since = messages.iter().rposition(told).map_or(0, |i| i + 1);
 	let answered: Vec<String> = messages[since..].iter().filter(|m| m["role"].as_str() == Some("custom") && m["customType"].as_str() == Some("review")).map(|m| review_words(&m["details"])).collect();
 	(!answered.is_empty()).then(|| format!("{FROM_EARLIER} {}", answered.join(" ")))
+}
+
+/// `[Analogy dropped] Regularization: "The leash fits one part"`, one per kept sentence whose
+/// analogy he dropped after the last note that told the agent, unless he brought it back since.
+fn analogy_dropped_lines(record: &Json) -> Vec<String> {
+	let messages = messages_of(record);
+	let told = |m: &Json| matches!(m["customType"].as_str(), Some("app-note" | "opener-answer")) && m["content"].as_str().is_some_and(|c| c.lines().any(|l| l.starts_with(ANALOGY_DROPPED)));
+	let since = messages.iter().rposition(told).map_or(0, |i| i + 1);
+	let mut last: Vec<(&str, bool)> = Vec::new();
+	for m in messages[since..].iter().filter(|m| m["customType"].as_str() == Some(ANALOGY_DROP)) {
+		let Some(of) = m["details"]["of"].as_str() else { continue };
+		let dropped = !m["details"]["back"].truthy();
+		match last.iter_mut().find(|(o, _)| *o == of) {
+			Some(entry) => entry.1 = dropped,
+			None => last.push((of, dropped)),
+		}
+	}
+	last.into_iter()
+		.filter(|(_, dropped)| *dropped)
+		.filter_map(|(of, _)| {
+			let args = messages.iter().flat_map(|m| m["content"].as_arr().into_iter().flatten()).find(|b| b["type"].as_str() == Some("toolCall") && b["id"].as_str() == Some(of))?.get("arguments")?;
+			let fits = keep_of(args)?["fits"].as_str().map(first_words)?;
+			Some(format!("{ANALOGY_DROPPED} {}: \"{fits}\"", node_title(record, args["nodeId"].as_str().unwrap_or_default())))
+		})
+		.collect()
+}
+
+/// The words an analogy's fits line opens with: up to its first `:`, `;`, `,` or `.`, at most
+/// ANALOGY_WORDS words.
+fn first_words(fits: &str) -> String {
+	let head = fits.split([':', ';', ',', '.']).next().unwrap_or_default();
+	head.split_whitespace().take(ANALOGY_WORDS).collect::<Vec<_>>().join(" ")
 }
 
 /// One answered question from earlier: "Bayes' rule wrong, sure 3, picked About 9%.", "Eigenvalues
@@ -102,7 +141,11 @@ fn review_ask_line(item: &Json, picked: &[String]) -> String {
 /// The opener question's topic: its plan step's title, else its node id.
 fn opener_topic(record: &Json, topic_done_call_id: &str) -> String {
 	let openers = shown_openers(messages_of(record));
-	let id = openers.get(topic_done_call_id).and_then(|o| o["quiz"]["nodeId"].as_str()).unwrap_or_default();
+	node_title(record, openers.get(topic_done_call_id).and_then(|o| o["quiz"]["nodeId"].as_str()).unwrap_or_default())
+}
+
+/// A plan node's title, else its id.
+fn node_title(record: &Json, id: &str) -> String {
 	let title = record["tree"]["nodes"].as_arr().into_iter().flatten().find(|n| n["id"].as_str() == Some(id)).map(|n| &n["title"]).filter(|t| !t.is_null());
 	title.map_or_else(|| id.to_owned(), |t| js_string(Some(t)))
 }
@@ -247,6 +290,61 @@ mod tests {
 		let mut record = kept_at(50);
 		record.get_mut("messages").and_then(Json::as_arr_mut).unwrap().push(reviewed("Bayes' rule", graded(true, "About 9%", 60)));
 		assert_eq!(opener_answer_text(&record, "t1", &Json::Null), "[Opener] Cross-validation: he skipped it.\n[From earlier] Bayes' rule right, sure 3.");
+	}
+
+	/// Reply 5's quiz carries a keep with an analogy and its verdict; he answered it right.
+	fn kept(note: Option<&str>) -> Vec<Json> {
+		let keep = json!({ "text": "Lambda prices large weights; it does not cap them.", "fits": "The leash fits one part: for the data you have, a larger lambda gives a shorter leash.", "stops": "It stops at new data." });
+		let mut verdict = json!({ "quizCallId": "q5", "keep": "shown", "fits": true, "phrase": false });
+		if let (Some(note), Some(v)) = (note, verdict.as_obj_mut()) {
+			v.insert("note", note);
+		}
+		vec![
+			json!({ "role": "assistant", "content": [{ "type": "toolCall", "id": "q5", "name": "quiz", "arguments": { "type": "check", "nodeId": "reg", "keep": keep } }], "timestamp": at(9) }),
+			json!({ "role": "custom", "customType": "keep-check", "content": "", "display": false, "details": verdict, "timestamp": at(9) }),
+		]
+	}
+
+	fn drop(back: bool) -> Json {
+		json!({ "role": "custom", "customType": "analogy-drop", "content": "", "display": false, "details": if back { json!({ "of": "q5", "back": true }) } else { json!({ "of": "q5" }) }, "timestamp": at(10) })
+	}
+
+	#[test]
+	fn the_keep_note_follows_his_answer_to_its_quiz() {
+		let record = json!({ "messages": kept(Some("keep.fits not shown: this topic already has an analogy.")), "tree": tree() });
+		let answer = |id: &str| ChatInput::Answer { tool_call_id: id.into(), answer: json!({ "kind": "quiz", "correct": true }), attachments: None };
+		assert_eq!(app_note_for(&record, &answer("q5"), None).unwrap()["content"], json!("keep.fits not shown: this topic already has an analogy."));
+		assert!(app_note_for(&record, &answer("q9"), None).is_none(), "another quiz");
+		assert!(app_note_for(&json!({ "messages": kept(None) }), &answer("q5"), None).is_none(), "nothing to say");
+	}
+
+	#[test]
+	fn a_dropped_analogy_reaches_the_agent_once_on_his_next_input_of_any_kind() {
+		let mut messages = kept(None);
+		messages.push(drop(false));
+		let record = json!({ "messages": messages.clone(), "tree": tree() });
+		let line = "[Analogy dropped] Regularization: \"The leash fits one part\"";
+		let note = app_note_for(&record, &ChatInput::Next, None).unwrap();
+		assert_eq!(note["content"], json!(line));
+		let answer = ChatInput::Answer { tool_call_id: "q6".into(), answer: json!({}), attachments: None };
+		assert_eq!(app_note_for(&record, &answer, None).unwrap()["content"], json!(line));
+		messages.push(note);
+		assert!(app_note_for(&json!({ "messages": messages.clone(), "tree": tree() }), &ChatInput::Next, None).is_none(), "once");
+		let mut back = kept(None);
+		back.extend([drop(false), drop(true)]);
+		assert!(app_note_for(&json!({ "messages": back }), &ChatInput::Next, None).is_none(), "brought back first");
+
+		let mut stopped = ended();
+		stopped.extend(kept(None));
+		stopped.extend([json!({ "role": "custom", "customType": "keep-going", "content": "", "details": { "stopOf": "c1" }, "timestamp": at(50) }), drop(false)]);
+		let opener = opener_answer_text(&json!({ "messages": stopped, "tree": tree() }), "t1", &Json::Null);
+		assert_eq!(opener, format!("[Opener] Cross-validation: he skipped it.\n{line}"));
+	}
+
+	#[test]
+	fn an_analogy_is_named_by_its_first_words() {
+		assert_eq!(first_words("The leash fits one part: for the data you have."), "The leash fits one part");
+		assert_eq!(first_words("one two three four five six seven eight nine ten"), "one two three four five six seven eight");
 	}
 
 	#[test]
