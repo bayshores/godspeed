@@ -101,8 +101,8 @@ export function useAgentStatus(): AgentStatus | null {
 	return useContext(AgentStatusContext);
 }
 
-/** The agent's status line (the teacher pane, Settings → Connection and
- *  the teacher panel). Pure, exported for tests. */
+/** The agent's status line (the top bar and the teacher panel). Pure,
+ *  exported for tests. */
 export function agentStatusLabel(agent: Pick<AgentStatus, "connected" | "teaching" | "name" | "pendingWork"> | null): string {
 	const name = agent?.name?.trim() || "Your agent";
 	return !agent

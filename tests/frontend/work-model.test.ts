@@ -5,7 +5,7 @@
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { jobFrame, spaceFrame, tabWorkTag, talkWorkLine, todayWorkLine, workChip, workerName, workState } from "../../src/frontend/components/work/work-model.ts";
+import { files, filesProgress, jobFrame, spaceFrame, tabWorkTag, talkWorkLine, todayWorkLine, workChip, workerName, workState } from "../../src/frontend/components/work/work-model.ts";
 import type { AgentAction, SpaceFile, SpaceFileStatus, SpaceSummary } from "../../src/shared/core/index.ts";
 
 const file = (id: string, status: SpaceFileStatus, extra: Partial<SpaceFile> = {}): SpaceFile => ({
@@ -99,6 +99,16 @@ describe("elsewhere", () => {
 	it("the tab's tag", () => {
 		assert.equal(tabWorkTag(space({ filesLeft: 15 })), "15 left");
 		assert.equal(tabWorkTag(space({})), null);
+	});
+
+	it("files progress adds up the spaces being read and skips archived and finished ones", () => {
+		const reading = space({ filesLeft: 11, filesRead: 6 });
+		const unread = space({ filesLeft: 2 });
+		const progress = filesProgress([reading, unread, space({ filesLeft: 4, archived: true }), space({})]);
+		assert.deepEqual(progress, { live: [reading, unread], read: 6, left: 13 });
+		assert.deepEqual(filesProgress([]), { live: [], read: 0, left: 0 });
+		assert.equal(files(1), "1 file");
+		assert.equal(files(19), "19 files");
 	});
 
 	it("the top bar chip counts the files of every space being read, else the jobs", () => {

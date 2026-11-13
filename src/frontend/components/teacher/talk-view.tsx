@@ -14,6 +14,7 @@ import { useLessonDrafts } from "@/frontend/components/lesson/use-lesson-drafts"
 import { useServerEvent } from "@/frontend/components/server-events";
 import { useChatSession } from "@/frontend/components/session";
 import { useSpaces } from "@/frontend/components/space-context";
+import { useWorker } from "@/frontend/components/work/use-worker";
 import { talkWorkLine } from "@/frontend/components/work/work-model";
 import { actionFor, appRequestText, draftWithAsk, speakerOf, startsTurn, talkRows } from "./talk-model";
 import { TalkNoAgent } from "./talk-no-agent";
@@ -78,7 +79,7 @@ export function TalkView({
 		return (
 			<p data-testid="talk-error" className="flex flex-wrap items-center gap-x-3 gap-y-2 px-5 py-[18px] text-[15px] text-ink-2">
 				Couldn&apos;t open the chat.
-				<button type="button" className="lh-press lh-btn" onClick={() => setEpoch((e) => e + 1)}>
+				<button type="button" className="lh-btn" onClick={() => setEpoch((e) => e + 1)}>
 					Try again
 				</button>
 			</p>
@@ -126,6 +127,7 @@ function TalkThread({
 }) {
 	const session = useChatSession({ chatId: chat.id, initialMessages: chat.messages, initialError: chat.turnError, initiallyInFlight: chat.turnInFlight });
 	const { spaces } = useSpaces();
+	const { worker } = useWorker();
 	// Unsent text is saved like the lesson's writing box; waiting files stay in
 	// memory while the tab or the panel is closed.
 	const drafts = useLessonDrafts(chat.id, session.nativeMessages);
@@ -298,7 +300,7 @@ function TalkThread({
 						);
 					else {
 						const action = actionFor(row.change, recent);
-						const work = talkWorkLine(action, spaces, !agent || agent.teaching || agent.helperHere);
+						const work = talkWorkLine(action, spaces, worker !== null);
 						body = (
 							<button
 								type="button"
@@ -349,7 +351,7 @@ function TalkThread({
 				{session.error && !busy && (
 					<p data-testid="talk-failed" className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 text-[15px] text-ink-2">
 						{session.error.message}
-						<button type="button" data-testid="talk-retry" className="lh-press lh-btn" onClick={retry}>
+						<button type="button" data-testid="talk-retry" className="lh-btn" onClick={retry}>
 							Try again
 						</button>
 					</p>
@@ -389,7 +391,7 @@ function TalkThread({
 			{clearSlot &&
 				rows.length > 0 &&
 				createPortal(
-					<button type="button" data-testid="talk-clear" disabled={busy} onClick={clear} className="lh-press lh-btn lh-btn-quiet text-[15px]">
+					<button type="button" data-testid="talk-clear" disabled={busy} onClick={clear} className="lh-btn lh-btn-quiet text-[15px]">
 						Clear chat
 					</button>,
 					clearSlot,

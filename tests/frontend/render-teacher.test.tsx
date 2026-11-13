@@ -324,7 +324,7 @@ describe("the panel", () => {
 		assert.equal(agentLine({ ...idle, connected: true, teaching: true }, { text: "Reading a PDF", working: true }), "Reading a PDF");
 		assert.equal(agentLine({ ...idle, connected: true, name: "Codex" }), "Codex connected, not teaching");
 		assert.equal(agentLine({ ...idle, connected: true, name: "Codex", pendingWork: 1 }), waitingNotice("Codex"));
-		assert.equal(agentLine({ ...idle, connected: true, teaching: true, helperCovering: true }), "Catching up on my notes. My helper is answering for a minute.");
+		assert.equal(agentLine({ ...idle, connected: true, teaching: true, helperCovering: true }), "Tidying my memory. My helper is answering for a minute.");
 		assert.ok(renderToStaticMarkup(panel({ agent: { ...idle, pendingWork: 2 } })).includes(waitingNotice()));
 	});
 	it("a Talk message no agent has taken says it waits once, in the head", async () => {

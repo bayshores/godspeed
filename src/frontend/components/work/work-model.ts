@@ -27,7 +27,16 @@ type WorkState =
 	| { kind: "grouping" }
 	| { kind: "done"; read: number; failed: number };
 
-const files = (n: number) => `${n} file${n === 1 ? "" : "s"}`;
+export const files = (n: number) => `${n} file${n === 1 ? "" : "s"}`;
+
+type ProgressSpace = Pick<SpaceSummary, "filesLeft" | "filesRead" | "archived">;
+
+/** The spaces whose files are being read, with the files read so far and
+ *  the ones left, over all of them. */
+export function filesProgress<S extends ProgressSpace>(spaces: readonly S[]): { live: S[]; read: number; left: number } {
+	const live = spaces.filter((s) => !s.archived && s.filesLeft > 0);
+	return { live, read: live.reduce((sum, s) => sum + (s.filesRead ?? 0), 0), left: live.reduce((sum, s) => sum + s.filesLeft, 0) };
+}
 
 const isFresh = (work: SpaceWork | undefined, nowMs: number): work is SpaceWork & { endedAt: string } => !!work?.endedAt && nowMs - Date.parse(work.endedAt) < SHOWN_MS;
 
@@ -95,14 +104,10 @@ export function tabWorkTag(space: Pick<SpaceSummary, "filesLeft">): string | nul
  * "Helper, 6 of 17 files" while files are read, else the number of jobs.
  * Null when nothing runs or no agent takes the work.
  */
-export function workChip(i: { worker: string | null; spaces: readonly Pick<SpaceSummary, "filesLeft" | "filesRead" | "archived">[]; jobs: number }): string | null {
+export function workChip(i: { worker: string | null; spaces: readonly ProgressSpace[]; jobs: number }): string | null {
 	if (!i.worker) return null;
-	const live = i.spaces.filter((s) => !s.archived && s.filesLeft > 0);
-	if (live.length > 0) {
-		const read = live.reduce((sum, s) => sum + (s.filesRead ?? 0), 0);
-		const left = live.reduce((sum, s) => sum + s.filesLeft, 0);
-		return `${i.worker}, ${read} of ${files(read + left)}`;
-	}
+	const { live, read, left } = filesProgress(i.spaces);
+	if (live.length > 0) return `${i.worker}, ${read} of ${files(read + left)}`;
 	return i.jobs > 0 ? `${i.worker}, ${i.jobs} job${i.jobs === 1 ? "" : "s"}` : null;
 }
 

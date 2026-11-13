@@ -48,7 +48,7 @@ describe("the teacher chip", () => {
 		assert.equal(chipText({ name: "marco", doing: null, agent: { ...off, pendingWork: 1 } }), "Waiting for your agent");
 	});
 	it("says so while the helper answers", () => {
-		assert.equal(chipText({ name: "marco", doing: reading, agent: { ...teaching, helperCovering: true } }), "marco, catching up on notes");
+		assert.equal(chipText({ name: "marco", doing: reading, agent: { ...teaching, helperCovering: true } }), "marco, tidying its memory");
 	});
 	it("just the name before the agent's state is read", () => {
 		assert.equal(chipText({ name: "marco", doing: null, agent: null }), "marco");

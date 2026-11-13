@@ -27,7 +27,7 @@ type Tab = (typeof TABS)[number];
  *  read of the agent. */
 export function agentLine(agent: AgentStatus | null, doing: AgentDoing | null = null): string | null {
 	if (!agent) return null;
-	if (agent.helperCovering) return "Catching up on my notes. My helper is answering for a minute.";
+	if (agent.helperCovering) return "Tidying my memory. My helper is answering for a minute.";
 	if (agentWaiting(agent)) return waitingNotice(agent.name);
 	if (doing?.working) return doing.text;
 	if (agent.teaching) return "Teaching, idle";

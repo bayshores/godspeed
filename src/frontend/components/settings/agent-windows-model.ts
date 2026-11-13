@@ -5,6 +5,7 @@
 import type { SpaceSummary } from "@/shared/core";
 import { teachStep, type AgentStatus } from "@/frontend/components/agent-status";
 import type { AgentDoing } from "@/frontend/components/teacher/follow-status";
+import { files, filesProgress } from "@/frontend/components/work/work-model";
 
 export interface WindowTile {
 	/** on: open. busy: working (striped edge). off: closed. */
@@ -36,14 +37,10 @@ export function teacherTile(agent: Agent, doing: AgentDoing | null): WindowTile 
 	return { tone: "off", chip: "Closed", line: agent.pendingTurns > 0 ? "Your lesson is waiting" : "Not open", note: "Open it and it starts teaching", open: "Open teacher" };
 }
 
-const files = (n: number) => `${n} file${n === 1 ? "" : "s"}`;
-
 /** "6 of 17 files in Machine Learning", over every space being read; null when none is. */
 export function filesLine(spaces: readonly Pick<SpaceSummary, "name" | "filesLeft" | "filesRead" | "archived">[]): string | null {
-	const live = spaces.filter((s) => !s.archived && s.filesLeft > 0);
+	const { live, read, left } = filesProgress(spaces);
 	if (live.length === 0) return null;
-	const read = live.reduce((sum, s) => sum + (s.filesRead ?? 0), 0);
-	const left = live.reduce((sum, s) => sum + s.filesLeft, 0);
 	return `${read} of ${files(read + left)} in ${live.length === 1 ? live[0]!.name : `${live.length} spaces`}`;
 }
 

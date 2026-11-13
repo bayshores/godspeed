@@ -16,7 +16,7 @@ const UNREACHABLE = "Couldn't reach godspeed. Try again.";
 
 async function request(path: string, init?: RequestInit): Promise<WebSearchView> {
 	const res = await fetch(path, { cache: "no-store", ...init, headers: { "Content-Type": "application/json" } }).catch(() => null);
-	const body = (await res?.json().catch(() => null)) as (WebSearchView & { error?: string }) | null;
+	const body = (await res?.json().catch(() => null)) as WebSearchView | null;
 	if (!res?.ok || !body) throw new Error(body?.error ?? UNREACHABLE);
 	return body;
 }

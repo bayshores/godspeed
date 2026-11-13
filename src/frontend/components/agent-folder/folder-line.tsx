@@ -1,11 +1,10 @@
 import { useState, type ReactNode } from "react";
 import type { FolderAgent } from "@/shared/core";
 import { CopyButton } from "@/frontend/components/copy-button";
+import { QUIET_KEY } from "@/frontend/components/settings/controls";
 import { cn } from "@/frontend/lib/utils";
 import type { FolderView } from "./agent-folder-model";
 import { StartCommandField } from "./start-command-field";
-
-const QUIET = "lh-btn lh-btn-quiet text-[15px]";
 
 /**
  * The godspeed folder as one quiet line: where it is, then buttons to
@@ -39,17 +38,17 @@ export function FolderLine({
 					</span>
 				)}
 				{canChange && (
-					<button type="button" data-testid="agent-folder-change" className={cn(QUIET, !view && "ml-auto")} onClick={() => void change().then(onError)}>
+					<button type="button" data-testid="agent-folder-change" className={cn(QUIET_KEY, !view && "ml-auto")} onClick={() => void change().then(onError)}>
 						Change folder
 					</button>
 				)}
 				{view && (
-					<CopyButton aria-label="Copy the command" className={QUIET} text={view.commands[agent]}>
+					<CopyButton aria-label="Copy the command" className={QUIET_KEY} text={view.commands[agent]}>
 						Copy the command
 					</CopyButton>
 				)}
 				{view && (
-					<button type="button" data-testid="agent-start-command-change" aria-expanded={changingCommand} className={QUIET} onClick={() => setChangingCommand(!changingCommand)}>
+					<button type="button" data-testid="agent-start-command-change" aria-expanded={changingCommand} className={QUIET_KEY} onClick={() => setChangingCommand(!changingCommand)}>
 						Change command
 					</button>
 				)}

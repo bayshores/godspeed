@@ -35,7 +35,7 @@ const lowerFirst = (text: string) => text.slice(0, 1).toLowerCase() + text.slice
 export function chipText(i: { name: string; doing: AgentDoing | null; agent: AgentStatus | null }): string {
 	// Before the first read of the agent's state: just the name.
 	if (!i.agent) return i.name;
-	if (i.agent.helperCovering) return `${i.name}, catching up on notes`;
+	if (i.agent.helperCovering) return `${i.name}, tidying its memory`;
 	if (i.doing?.working) return `${i.name}, ${lowerFirst(i.doing.text)}`;
 	return i.agent.teaching ? i.name : agentStatusLabel(i.agent);
 }

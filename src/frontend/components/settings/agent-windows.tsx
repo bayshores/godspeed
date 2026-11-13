@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { DEFAULT_TEACHER_NAME } from "@/shared/core";
 import { useActivity } from "@/frontend/components/activity-dock";
-import { AGENT_LABEL, logLines, rememberedAgent, type LaunchChoice } from "@/frontend/components/agent-folder/agent-folder-model";
-import { launchStatus, Log, OtherAppSetup } from "@/frontend/components/agent-folder/agent-launcher";
+import { AGENT_LABEL, rememberedAgent, type LaunchChoice } from "@/frontend/components/agent-folder/agent-folder-model";
+import { Log, OtherAppSetup } from "@/frontend/components/agent-folder/agent-launcher";
 import { FolderLine } from "@/frontend/components/agent-folder/folder-line";
 import { OldSetupWarning } from "@/frontend/components/agent-folder/old-setup";
 import { AgentMenu } from "@/frontend/components/agent-folder/open-agent-button";
@@ -12,7 +12,7 @@ import { backgroundLine } from "@/frontend/components/teacher/follow-status";
 import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import { useSpaces } from "@/frontend/components/space-context";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
-import { HELPER_NAME } from "@/frontend/components/work/work-model";
+import { HELPER_NAME, filesProgress } from "@/frontend/components/work/work-model";
 import { cn } from "@/frontend/lib/utils";
 import { filesLine, helperTile, teacherTile, windowsHeadline, type WindowTile } from "./agent-windows-model";
 
@@ -22,7 +22,7 @@ import { filesLine, helperTile, teacherTile, windowsHeadline, type WindowTile } 
  * the folder they run in. "Other app" shows the setup for any MCP app.
  */
 export function AgentWindows({ agent }: { agent: AgentStatus }) {
-	const { view, launch, open, openHelper, change, setStartCommand } = useAgentFolder();
+	const { view, lines, busy, open, openHelper, change, setStartCommand } = useAgentFolder();
 	const panel = useTeacher();
 	const { spaces } = useSpaces();
 	const { feed } = useActivity();
@@ -32,11 +32,9 @@ export function AgentWindows({ agent }: { agent: AgentStatus }) {
 
 	const folderAgent = choice === "other" ? null : choice;
 	const teacherName = panel?.name ?? DEFAULT_TEACHER_NAME;
-	const filesLeft = spaces.reduce((sum, s) => sum + (s.archived ? 0 : s.filesLeft), 0);
+	const { left: filesLeft } = filesProgress(spaces);
 	const teacher = teacherTile(agent, panel?.doing ?? null);
 	const helper = helperTile({ agent, background: backgroundLine(feed.extractions, feed.jobs), files: filesLine(spaces), filesLeft, teacher: teacherName });
-	const lines = launch && view ? logLines(launch, launchStatus(agent), view.short, window.lh?.platform === "darwin") : [];
-	const busy = !!launch && (launch.made === "wait" || launch.opened === "wait");
 
 	return (
 		<section data-testid="agent-windows" className="flex flex-col gap-5 rounded border-2 border-line bg-panel p-6">

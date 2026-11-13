@@ -1,15 +1,13 @@
 import { useEffect, useState } from "react";
-import { useAgentStatus, type AgentStatus } from "@/frontend/components/agent-status";
 import { CopyButton } from "@/frontend/components/copy-button";
 import { ACCESS_ERROR, maskToken } from "@/frontend/components/mcp-access";
+import { QUIET_KEY } from "@/frontend/components/settings/controls";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { cn } from "@/frontend/lib/utils";
-import { logLines, rememberedAgent, type LaunchChoice, type LogLine } from "./agent-folder-model";
+import { rememberedAgent, type LaunchChoice, type LogLine } from "./agent-folder-model";
 import { FolderLine } from "./folder-line";
 import { OpenAgentButton } from "./open-agent-button";
 import { savedAgent, useAgentFolder } from "./use-agent-folder";
-
-const QUIET = "lh-btn lh-btn-quiet text-[15px]";
 
 /**
  * Start your agent in the godspeed folder: "Open Claude Code" and "Use
@@ -20,15 +18,12 @@ const QUIET = "lh-btn lh-btn-quiet text-[15px]";
  * app. Onboarding (step 1) uses it.
  */
 export function AgentLauncher() {
-	const { view, launch, open, change, setStartCommand } = useAgentFolder();
-	const status = useAgentStatus();
+	const { view, lines, busy, open, change, setStartCommand } = useAgentFolder();
 	const [choice, setChoice] = useState<LaunchChoice>("claude");
 	const [error, setError] = useState<string | null>(null);
 	useEffect(() => setChoice(rememberedAgent(savedAgent())), []);
 
 	const agent = choice === "other" ? null : choice;
-	const lines = launch && view ? logLines(launch, launchStatus(status), view.short, window.lh?.platform === "darwin") : [];
-	const busy = !!launch && (launch.made === "wait" || launch.opened === "wait");
 
 	return (
 		<div className="flex w-full flex-col items-start gap-4">
@@ -57,11 +52,6 @@ export function AgentLauncher() {
 			)}
 		</div>
 	);
-}
-
-/** The agent's live state as the launch log reads it. */
-export function launchStatus(status: AgentStatus | null): { connected: boolean; teaching: boolean; helperHere: boolean } {
-	return { connected: !!status?.connected, teaching: !!status?.teaching, helperHere: !!status?.helperHere };
 }
 
 /** The launch steps: a green square with a tick when done, a half-filled square while running. */
@@ -110,7 +100,7 @@ export function OtherAppSetup() {
 					<CopyButton
 						text={`${access.url}\nAuthorization: Bearer ${access.token}`}
 						aria-label="Copy MCP server"
-						className={QUIET}
+						className={QUIET_KEY}
 					/>
 				</div>
 				<pre className="overflow-x-auto px-4 py-3.5 font-mono text-[13px] leading-[1.9] text-ink">

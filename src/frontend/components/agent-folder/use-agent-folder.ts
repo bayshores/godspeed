@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { FolderAgent } from "@/shared/core";
 import { useAgentStatus } from "@/frontend/components/agent-status";
-import { AGENT_LABEL, rememberedAgent, startTargets, type FolderView, type Launch } from "./agent-folder-model";
+import { AGENT_LABEL, logLines, rememberedAgent, startTargets, type FolderView, type Launch } from "./agent-folder-model";
 
 const AGENT_KEY = "lh-folder-agent";
 const UNREACHABLE = "Couldn't reach godspeed. Try again.";
@@ -32,8 +32,8 @@ export function savedAgent(): string | null {
  * or updates the folder, then asks the desktop app to start the agent in a
  * terminal there (outside the desktop app, the learner runs the command).
  * The helper opens in a second window, unless one is already here;
- * openHelper opens that window alone. `launch` is the latest click, for the
- * live log.
+ * openHelper opens that window alone. `launch` is the latest click, `lines`
+ * its live log and `busy` whether a step is still running.
  */
 export function useAgentFolder() {
 	const [view, setView] = useState<FolderView | null>(null);
@@ -106,19 +106,22 @@ export function useAgentFolder() {
 		}
 	}, []);
 
-	return { view, launch, open, openHelper, change, setStartCommand };
+	const lines = launch && view ? logLines(launch, { connected: !!status?.connected, teaching: !!status?.teaching, helperHere: !!status?.helperHere }, view.short, window.lh?.platform === "darwin") : [];
+	const busy = !!launch && (launch.made === "wait" || launch.opened === "wait");
+
+	return { view, launch, lines, busy, open, openHelper, change, setStartCommand };
 }
 
 /** "Open Claude Code" for the agent last opened here (Claude Code when
  *  none): the button on the "No agent connected" lines. */
 export function useReopenAgent() {
-	const { launch, open } = useAgentFolder();
+	const { launch, busy, open } = useAgentFolder();
 	const [agent, setAgent] = useState<FolderAgent>("claude");
 	useEffect(() => setAgent(rememberedAgent(savedAgent())), []);
 	return {
 		label: `Open ${AGENT_LABEL[agent]}`,
 		open: () => void open(agent),
-		busy: !!launch && (launch.made === "wait" || launch.opened === "wait"),
+		busy,
 		error: typeof launch?.made === "object" ? launch.made.error : typeof launch?.opened === "object" ? launch.opened.error : null,
 		/** Outside the desktop app: the learner runs the command. */
 		manual: launch?.opened === "manual",
