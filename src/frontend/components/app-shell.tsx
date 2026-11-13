@@ -48,7 +48,7 @@ export function AppShell({
 			<OpenDeadlinesProvider>
 				<Welcome initialOpen={welcome} whatsNewSince={whatsNewSince} />
 				<TeacherProvider initialName={teacherName}>
-					<a href="#lh-page" className="lh-btn sr-only focus:not-sr-only focus:fixed focus:top-1.5 focus:left-1.5 focus:z-50 focus:bg-card">
+					<a href="#lh-page" className="lh-btn sr-only focus:not-sr-only focus:fixed focus:top-1.5 focus:left-1.5 focus:z-50">
 						Skip to the page
 					</a>
 					<AppBar />

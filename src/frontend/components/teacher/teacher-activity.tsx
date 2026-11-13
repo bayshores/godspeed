@@ -77,7 +77,7 @@ export function ActivityList({
 									data-testid="activity-follow"
 									aria-pressed={follow.on}
 									onClick={() => follow.set(!follow.on)}
-									className={cn("lh-btn ml-auto text-[15px]", follow.on ? "lh-btn-main" : "bg-panel")}
+									className={cn("lh-btn ml-auto text-[15px]", follow.on && "lh-btn-main")}
 								>
 									{followWord}
 								</button>

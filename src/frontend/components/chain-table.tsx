@@ -204,7 +204,7 @@ export function ChainTableBody({
 								data-testid="chain-practice-done"
 								onClick={onSelect}
 								aria-label={`Done picking: ${factCount(selection.size)} selected`}
-								className={cn(ON_INK, "bg-background text-ink hover:bg-background/90")}
+								className={cn(ON_INK, "text-ink [--lh-key:var(--background)] [--lh-key-hover:color-mix(in_srgb,var(--background)_90%,var(--foreground))]")}
 							>
 								Done
 							</button>

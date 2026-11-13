@@ -194,7 +194,7 @@ export function SheetCanvas({
 						setPointError(null);
 						setPointing((p) => !p);
 					}}
-					className={cn("lh-btn text-[15px]", pointing ? "lh-btn-main" : "bg-panel hover:bg-tone")}
+					className={cn("lh-btn text-[15px]", pointing && "lh-btn-main")}
 				>
 					Point at the sheet
 				</button>

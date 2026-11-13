@@ -5,7 +5,7 @@ import { followButtons } from "./top-bar-model";
 /** The button on the dark top bar, and on a paper sheet. */
 const TONE = {
 	bar: { button: "lh-press shrink-0 self-center rounded-[2px] px-2.5 py-1 text-sm whitespace-nowrap", plain: "text-bar-ink hover:bg-bar-ink/10", marked: "bg-highlight font-medium text-ink" },
-	sheet: { button: "lh-btn shrink-0", plain: "lh-btn-quiet", marked: "bg-highlight" },
+	sheet: { button: "lh-btn shrink-0", plain: "lh-btn-quiet", marked: "[--lh-key:var(--lh-highlight)] [--lh-key-hover:var(--lh-highlight)]" },
 };
 
 /**
