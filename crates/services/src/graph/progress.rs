@@ -12,6 +12,7 @@ use gs_core::session::plan_step_bar::plan_position_lh;
 use gs_core::session::practice_outcomes::practice_outcomes;
 use gs_core::study::progress::{collect_answers, derive_progress, facts_by_message, facts_for_answer};
 use gs_core::study::study::{deadline_study_topic_ids, fact_space_order, study_topics, topic_study};
+use gs_core::study::topic_end::lesson_stop;
 use gs_json::{Json, Obj, json};
 use parking_lot::Mutex;
 
@@ -21,13 +22,13 @@ use crate::App;
 use crate::spaces::source_id_for;
 
 /// A lesson's graded answers, practice outcomes and (a Study session started from a deadline)
-/// its step bar's count. Progress is read again after every background update, and parsing every
-/// lesson each time grows with the term, so each is kept while its record file is unchanged.
+/// where the session stands. Progress is read again after every background update, and parsing
+/// every lesson each time grows with the term, so each is kept while its record file is unchanged.
 struct Readout {
 	version: String,
 	answers: Vec<Json>,
 	outcomes: Vec<Json>,
-	steps: Option<Json>,
+	session: Option<Obj>,
 }
 
 #[derive(Default)]
@@ -40,10 +41,25 @@ fn lesson_readout(app: &App, chat_id: &str) -> Option<Arc<Readout>> {
 	}
 	let record = app.stores.chats.get_chat(chat_id)?;
 	let messages = items(&record["messages"]);
-	let steps = (record["deadlineId"].truthy() && record["tree"].truthy()).then(|| plan_position_lh(&record["tree"], messages));
-	let readout = Arc::new(Readout { version, answers: collect_answers(chat_id, messages), outcomes: practice_outcomes(messages), steps });
+	let session = (record["deadlineId"].truthy() && record["tree"].truthy()).then(|| deadline_session(&record["tree"], messages));
+	let readout = Arc::new(Readout { version, answers: collect_answers(chat_id, messages), outcomes: practice_outcomes(messages), session });
 	app.graph.readouts.0.lock().insert(chat_id.to_owned(), readout.clone());
 	Some(readout)
+}
+
+/// Where a Study session started from a deadline stands: its step bar's count (`done`, `total`),
+/// the stop it waits at until he keeps going (`stop`: `{at, next}`) and when it reached its end
+/// (`endedAt`).
+fn deadline_session(tree: &Json, messages: &[Json]) -> Obj {
+	let mut out = picked(&plan_position_lh(tree, messages), &["done", "total"]);
+	if let Some(stop) = lesson_stop(messages, Some(tree), None) {
+		if stop["kind"].as_str() == Some("end") {
+			out.insert("endedAt", stop["at"].clone());
+		} else if !stop["keptGoing"].truthy() {
+			out.insert("stop", json!({ "at": stop["at"], "next": stop["next"] }));
+		}
+	}
+	out
 }
 
 fn items(v: &Json) -> &[Json] {
@@ -148,15 +164,14 @@ pub fn progress_for<'a>(app: &App, scope: impl Into<Option<&'a str>>, today: Opt
 		let mut lesson = picked(c, &["id", "title", "kind", "updatedAt"]);
 		lesson.insert("answers", readout.answers.clone());
 		lessons.push(Json::Obj(lesson));
-		if let (true, Some(steps)) = (c["deadlineId"].truthy(), &readout.steps) {
+		if let (true, Some(stands)) = (c["deadlineId"].truthy(), &readout.session) {
 			let mut session = Obj::new();
 			session.insert("chatId", c["id"].clone());
 			session.insert("deadlineId", c["deadlineId"].clone());
 			if let Some(created) = c.get("createdAt") {
 				session.insert("createdAt", created.clone());
 			}
-			session.insert("done", steps["done"].clone());
-			session.insert("total", steps["total"].clone());
+			session.extend(stands.clone());
 			deadline_sessions.push(Json::Obj(session));
 		}
 	}
@@ -248,4 +263,60 @@ fn studied_on(app: &App, space_id: &str, day: &str) -> HashSet<String> {
 		}
 	}
 	ids
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use crate::app::test_support::{scratch_dir, test_app};
+
+	fn tree() -> Json {
+		json!({ "nodes": [{ "id": "reg", "title": "Regularization" }, { "id": "cv", "title": "Cross-validation" }], "edges": [{ "from": "reg", "to": "cv" }] })
+	}
+
+	/// The concluding pair that ends `node` on a topic stop now.
+	fn ended(call: &str, node: &str) -> Vec<Json> {
+		let stop = json!({ "kind": "topic", "nodeId": node, "activeMinutes": 30, "at": time::iso(clock::now_ms()) });
+		vec![
+			json!({ "role": "assistant", "content": [{ "type": "toolCall", "id": call, "name": "conclude", "arguments": { "outcome": "solved" } }], "timestamp": clock::now_ms() }),
+			json!({ "role": "toolResult", "toolCallId": call, "toolName": "conclude", "details": { "stop": stop }, "isError": false, "timestamp": clock::now_ms() }),
+		]
+	}
+
+	fn kept_going(call: &str) -> Json {
+		json!({ "role": "custom", "customType": "keep-going", "content": "", "details": { "stopOf": call, "at": time::iso(clock::now_ms()) }, "timestamp": clock::now_ms() })
+	}
+
+	fn midterm(app: &App, space_id: &str, deadline_id: &str) -> Json {
+		let progress = progress_for(app, space_id, None).unwrap().unwrap();
+		items(&progress["deadlines"]).iter().find(|d| d["id"].as_str() == Some(deadline_id)).unwrap().clone()
+	}
+
+	#[test]
+	fn a_deadline_session_carries_its_stop_until_he_keeps_going_and_closes_at_its_end() {
+		let root = scratch_dir("progress-stop");
+		let app = test_app(&root);
+		let space_id = app.stores.spaces.create_space(&json!({ "name": "Machine Learning Foundations" })).unwrap()["id"].str_or_empty().to_owned();
+		let deadline = app.stores.spaces.add_deadline(&space_id, &json!({ "name": "Midterm", "kind": "exam", "date": "2099-01-15" })).unwrap();
+		let deadline_id = deadline["id"].str_or_empty().to_owned();
+		let chat_id = app.stores.chats.create_chat("Study for Midterm", Some("study"), Some(&space_id), Some(&deadline_id)).unwrap()["id"].str_or_empty().to_owned();
+		app.stores.chats.save_tree(&chat_id, &tree()).unwrap();
+
+		let stopped = ended("c1", "reg");
+		app.stores.chats.save_messages(&chat_id, &stopped).unwrap();
+		let at = stopped[1]["details"]["stop"]["at"].clone();
+		let d = midterm(&app, &space_id, &deadline_id);
+		assert_eq!(d["continueStudy"]["stop"], json!({ "at": at, "next": "Cross-validation" }));
+		assert_eq!(d.get("studyEndedToday"), None);
+
+		let going = [stopped.clone(), vec![kept_going("c1")]].concat();
+		app.stores.chats.save_messages(&chat_id, &going).unwrap();
+		assert_eq!(midterm(&app, &space_id, &deadline_id)["continueStudy"].get("stop"), None, "he kept going");
+
+		let end = [going, ended("c2", "cv")].concat();
+		app.stores.chats.save_messages(&chat_id, &end).unwrap();
+		let d = midterm(&app, &space_id, &deadline_id);
+		assert_eq!(d.get("continueStudy"), None, "a session that reached its end is not continued");
+		assert_eq!(d["studyEndedToday"], json!(true));
+	}
 }
