@@ -83,7 +83,7 @@ fn walk(messages: &[Json]) -> (Vec<Json>, Vec<Visit>) {
 		{
 			parts.insert("plot", m["id"].clone());
 		}
-		if is_seen(m) {
+		if is_seen(m, &refused) {
 			visits.push(Visit { node_id, page: gave_page, plot });
 		}
 	}
@@ -94,10 +94,10 @@ fn calls(m: &Json) -> impl Iterator<Item = &Json> {
 	items(&m["content"]).iter().filter(|b| b["type"].as_str() == Some("toolCall"))
 }
 
-/// A reply the learner sees: words, a question or a plot.
-fn is_seen(m: &Json) -> bool {
+/// A reply the learner sees: words, or a question or a plot that was not refused.
+fn is_seen(m: &Json, refused: &HashSet<&str>) -> bool {
 	items(&m["content"]).iter().any(|b| b["type"].as_str() == Some("text") && b["text"].as_str().is_some_and(|t| !t.trim().is_empty()))
-		|| calls(m).any(|c| c["name"].as_str().is_some_and(|name| name == PLOT_TOOL || is_question_tool(name)))
+		|| calls(m).any(|c| c["name"].as_str().is_some_and(|name| name == PLOT_TOOL || is_question_tool(name)) && !c["id"].as_str().is_some_and(|id| refused.contains(id)))
 }
 
 /// The topic a reply's calls name: the first call with a nodeId that was not refused.
@@ -389,6 +389,18 @@ mod tests {
 		assert_eq!(reply_parts_problems(&with_plot, &again, &passes).refused[0].1.lines().collect::<Vec<_>>(), ["plot: this topic already has a plot.", "plot: send it after one reply with no page, plot or keep."]);
 		let refused_before = [lesson(), vec![pair(true, penalty_at_8(), "C"), result("q3", "quiz", true), result("p3", "plot", true)]].concat();
 		assert!(reply_parts_problems(&refused_before, &again, &passes).refused.is_empty(), "a refused plot is no plot");
+	}
+
+	/// Re-sending a refused pair with no words between is not the plain reply the rule asks for.
+	#[test]
+	fn a_reply_of_refused_calls_alone_is_not_seen() {
+		let after_page = lesson()[..2].to_vec();
+		let bare_pair = |n: &str| reply(&format!("r{n}"), "", vec![call(&format!("q{n}"), "quiz", guess("B", penalty_at_8())), call(&format!("p{n}"), "plot", plot_args())]);
+		assert_eq!(reply_parts_problems(&after_page, &bare_pair("2"), &passes).refused[0].1, "plot: send it after one reply with no page, plot or keep.");
+		let refused = [after_page, vec![bare_pair("2"), result("q2", "quiz", true), result("p2", "plot", true)]].concat();
+		let again = reply_parts_problems(&refused, &bare_pair("3"), &passes);
+		assert_eq!(again.on_plot, None);
+		assert_eq!(again.refused[0].1, "plot: send it after one reply with no page, plot or keep.");
 	}
 
 	#[test]
