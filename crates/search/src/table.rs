@@ -2,7 +2,7 @@
 //! file's fingerprint and size) next to `<base>.f32` (one 384-float little-endian vector per row,
 //! in row order).
 
-use std::io;
+use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, OnceLock};
 
@@ -95,12 +95,13 @@ pub fn load(base: &Path) -> Table {
 	Table::new(rows, vectors, files)
 }
 
-/// Writes the vectors, then the rows (files only when there are any). Both stream to disk: the
-/// text is written row by row, as `JSON.stringify` of `{ format, model, rows, files? }` would. An
-/// index rebuild writes its table once per file, and whole copies of it lingered as freed memory.
+/// Writes the vectors and the rows (files only when there are any), both before either is renamed
+/// into place, as the TS's writeTable does. Both stream to disk: the text is written row by row, as
+/// `JSON.stringify` of `{ format, model, rows, files? }` would. An index rebuild writes its table
+/// once per file, and whole copies of it lingered as freed memory.
 pub fn save(base: &Path, table: &Table) -> io::Result<()> {
-	fsx::write_atomic_with(&with_suffix(base, ".f32"), |out| table.vectors.iter().try_for_each(|v| out.write_all(&v.to_le_bytes())))?;
-	fsx::write_atomic_with(&with_suffix(base, ".json"), |out| {
+	let vectors = |out: &mut dyn Write| table.vectors.iter().try_for_each(|v| out.write_all(&v.to_le_bytes()));
+	let rows = |out: &mut dyn Write| {
 		write!(out, "{{\"format\":{},\"model\":{},\"rows\":[", js_number(FORMAT), quote(MODEL_ID))?;
 		for (i, row) in table.rows.iter().enumerate() {
 			if i > 0 {
@@ -114,7 +115,8 @@ pub fn save(base: &Path, table: &Table) -> io::Result<()> {
 			out.write_all(&text::utf8_bytes(&stringify(&Json::Obj(table.files.clone()))))?;
 		}
 		out.write_all(b"}")
-	})
+	};
+	fsx::write_atomic_pair(&with_suffix(base, ".f32"), vectors, &with_suffix(base, ".json"), rows)
 }
 
 #[cfg(test)]

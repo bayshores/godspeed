@@ -86,8 +86,8 @@ impl Search {
 
 	/// A writer's kept rows and vectors. The cached table is taken apart in place when no search
 	/// holds it: a rebuild writes its table once per file, and a freed copy of the vectors each
-	/// time added up to hundreds of MB that macOS took minutes to reclaim. Until `write_table`, a
-	/// read takes the table from disk.
+	/// time added up to hundreds of MB that macOS took minutes to reclaim. A read before
+	/// `write_table` caches the new table loads the old files, which are still whole then.
 	pub(crate) fn take_rows(&self, base: &Path, keep: impl Fn(&Json) -> bool) -> (Vec<Arc<Json>>, Vec<f32>) {
 		let table = self.tables.lock().remove(base).unwrap_or_else(|| Arc::new(table::load(base)));
 		match Arc::try_unwrap(table) {
@@ -96,10 +96,15 @@ impl Search {
 		}
 	}
 
+	/// Caches the new table before its files are swapped, so no read loads them halfway. A failed
+	/// save forgets it again: the next read loads the old files, which the failed save left whole.
 	pub(crate) fn write_table(&self, base: &Path, table: Table) -> Result<Arc<Table>, String> {
-		table::save(base, &table).map_err(|e| e.to_string())?;
 		let table = Arc::new(table);
 		self.tables.lock().insert(base.to_owned(), table.clone());
+		table::save(base, &table).map_err(|e| {
+			self.drop_cached(base);
+			e.to_string()
+		})?;
 		Ok(table)
 	}
 

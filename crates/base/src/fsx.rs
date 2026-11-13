@@ -61,12 +61,26 @@ pub fn make_temp_dir(tmp: &Path, prefix: &str) -> Result<PathBuf, String> {
 /// Writes through `<file>.tmp-<8 hex>` and a rename, so a crash leaves the old file whole.
 /// `mode` applies to a new file (Unix permissions, e.g. 0o600).
 pub fn write_atomic(file: &Path, data: &[u8], mode: Option<u32>) -> io::Result<()> {
-	replace(file, mode, |out| out.write_all(data))
+	let tmp = write_temp(file, mode, |out| out.write_all(data))?;
+	std::fs::rename(&tmp, file).inspect_err(|_| {
+		let _ = std::fs::remove_file(&tmp);
+	})
 }
 
-/// `write_atomic` for a file written piece by piece, so a big file is never built in memory first.
-pub fn write_atomic_with(file: &Path, write: impl FnOnce(&mut dyn Write) -> io::Result<()>) -> io::Result<()> {
-	replace(file, None, write)
+/// `write_atomic` for two files that go together, each written piece by piece so a big file is
+/// never built in memory first. Both temp files are written before either is renamed, so a failed
+/// write leaves both old files in place.
+pub fn write_atomic_pair(first: &Path, write_first: impl FnOnce(&mut dyn Write) -> io::Result<()>, second: &Path, write_second: impl FnOnce(&mut dyn Write) -> io::Result<()>) -> io::Result<()> {
+	let first_tmp = write_temp(first, None, write_first)?;
+	let placed = write_temp(second, None, write_second).and_then(|second_tmp| {
+		std::fs::rename(&first_tmp, first).and_then(|()| std::fs::rename(&second_tmp, second)).inspect_err(|_| {
+			let _ = std::fs::remove_file(&second_tmp);
+		})
+	});
+	if placed.is_err() {
+		let _ = std::fs::remove_file(&first_tmp);
+	}
+	placed
 }
 
 /// `writeFileAtomic(file, text)`: the text as Node encodes it.
@@ -74,16 +88,19 @@ pub fn write_text_atomic(file: &Path, content: &str) -> io::Result<()> {
 	write_atomic(file, &text::utf8_bytes(content), None)
 }
 
-fn replace(file: &Path, mode: Option<u32>, write: impl FnOnce(&mut dyn Write) -> io::Result<()>) -> io::Result<()> {
+/// `file`'s new content in a temp file beside it, removed again if the write fails.
+fn write_temp(file: &Path, mode: Option<u32>, write: impl FnOnce(&mut dyn Write) -> io::Result<()>) -> io::Result<PathBuf> {
 	if let Some(dir) = file.parent() {
 		std::fs::create_dir_all(dir)?;
 	}
 	let tmp = file.with_file_name(format!("{}.tmp-{}", file.file_name().map(|n| n.to_string_lossy()).unwrap_or_default(), &ids::uuid()[..8]));
-	let written = write_new(&tmp, mode, write).and_then(|()| std::fs::rename(&tmp, file));
-	if written.is_err() {
-		let _ = std::fs::remove_file(&tmp);
+	match write_new(&tmp, mode, write) {
+		Ok(()) => Ok(tmp),
+		Err(err) => {
+			let _ = std::fs::remove_file(&tmp);
+			Err(err)
+		}
 	}
-	written
 }
 
 fn write_new(file: &Path, mode: Option<u32>, write: impl FnOnce(&mut dyn Write) -> io::Result<()>) -> io::Result<()> {
@@ -186,18 +203,19 @@ mod tests {
 	}
 
 	#[test]
-	fn a_file_written_in_pieces_is_whole_or_left_as_it_was() {
-		let d = dir("pieces");
-		let f = d.join("a.f32");
-		write_atomic_with(&f, |out| (0..3).try_for_each(|i| out.write_all(&[i]))).unwrap();
-		assert_eq!(std::fs::read(&f).unwrap(), [0, 1, 2]);
-		let failed = write_atomic_with(&f, |out| {
+	fn a_pair_written_in_pieces_is_whole_or_both_left_as_they_were() {
+		let d = dir("pair");
+		let (a, b) = (d.join("t.f32"), d.join("t.json"));
+		write_atomic_pair(&a, |out| (0..3).try_for_each(|i| out.write_all(&[i])), &b, |out| out.write_all(b"one")).unwrap();
+		assert_eq!((std::fs::read(&a).unwrap(), std::fs::read(&b).unwrap()), (vec![0, 1, 2], b"one".to_vec()));
+		let stop = |out: &mut dyn Write| {
 			out.write_all(b"half")?;
 			Err(io::Error::other("stopped"))
-		});
-		assert_eq!(failed.unwrap_err().to_string(), "stopped");
-		assert_eq!(std::fs::read(&f).unwrap(), [0, 1, 2]);
-		assert_eq!(std::fs::read_dir(&d).unwrap().count(), 1);
+		};
+		assert_eq!(write_atomic_pair(&a, |out| out.write_all(b"new"), &b, stop).unwrap_err().to_string(), "stopped");
+		assert_eq!(write_atomic_pair(&a, stop, &b, |out| out.write_all(b"new")).unwrap_err().to_string(), "stopped");
+		assert_eq!((std::fs::read(&a).unwrap(), std::fs::read(&b).unwrap()), (vec![0, 1, 2], b"one".to_vec()));
+		assert_eq!(std::fs::read_dir(&d).unwrap().count(), 2);
 		std::fs::remove_dir_all(d).unwrap();
 	}
 

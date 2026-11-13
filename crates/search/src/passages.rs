@@ -263,6 +263,43 @@ mod tests {
 		std::fs::remove_dir_all(dir).unwrap();
 	}
 
+	#[test]
+	fn a_read_while_a_table_is_rewritten_sees_a_whole_table() {
+		let (s, dir) = search("swap");
+		seed(&s);
+		let at = s.passages_file(SPACE);
+		drop(s.read_table(&at));
+		let (rows, vectors) = s.take_rows(&at, |r| field(r, "id") != "f_a:3");
+		let between = s.read_table(&at);
+		assert_eq!((between.rows.len(), between.vectors.len(), between.vector(2)[0]), (3, 3 * DIMS, 2.0));
+		drop(between);
+		s.write_table(&at, Table::new(rows, vectors, Obj::new())).unwrap();
+		let after = s.read_table(&at);
+		assert_eq!((after.rows.len(), after.vector(1)[0]), (2, 1.0));
+		let stored = table::load(&at);
+		assert_eq!((stored.rows, stored.vectors), (after.rows.clone(), after.vectors.clone()));
+		std::fs::remove_dir_all(dir).unwrap();
+	}
+
+	#[cfg(unix)]
+	#[test]
+	fn a_failed_save_leaves_the_old_table_for_the_next_read() {
+		use std::os::unix::fs::PermissionsExt;
+		let (s, dir) = search("failed");
+		seed(&s);
+		let at = s.passages_file(SPACE);
+		let (rows, vectors) = s.take_rows(&at, |_| true);
+		let folder = at.parent().unwrap();
+		std::fs::set_permissions(folder, std::fs::Permissions::from_mode(0o555)).unwrap();
+		let failed = s.write_table(&at, Table::new(rows[..1].to_vec(), vectors[..DIMS].to_vec(), Obj::new()));
+		std::fs::set_permissions(folder, std::fs::Permissions::from_mode(0o755)).unwrap();
+		assert!(failed.is_err());
+		let back = s.read_table(&at);
+		assert_eq!((back.rows.len(), back.vectors.len(), back.files.len()), (3, 3 * DIMS, 1));
+		assert_eq!(std::fs::read_dir(folder).unwrap().count(), 2);
+		std::fs::remove_dir_all(dir).unwrap();
+	}
+
 	#[tokio::test]
 	async fn a_file_gone_while_embedding_is_not_put_back() {
 		let (s, dir) = search("gone");
