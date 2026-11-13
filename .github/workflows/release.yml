@@ -265,6 +265,21 @@ jobs:
 
       - run: node scripts/release-assets.mjs ${{ matrix.platform }}
 
+      # The steps so far build the app and test its parts. This starts the finished app once,
+      # installed the way people get it.
+      - name: Start the packaged app
+        run: |
+          case "$RUNNER_OS" in
+            Windows)
+              powershell -NoProfile -Command '$p = Start-Process -Wait -PassThru dist\godspeed-windows-x64-setup.exe -ArgumentList "/S"; exit $p.ExitCode'
+              node scripts/smoke-app.mjs "$LOCALAPPDATA/godspeed/godspeed.exe" ;;
+            Linux)
+              apt-get install -y ./dist/godspeed-linux-x64.deb
+              xvfb-run -a node scripts/smoke-app.mjs /usr/bin/godspeed
+              xvfb-run -a node scripts/smoke-app.mjs dist/godspeed-linux-x64.AppImage ;;
+            *) node scripts/smoke-app.mjs "target/${{ matrix.triple }}/release/bundle/macos/godspeed.app/Contents/MacOS/godspeed" ;;
+          esac
+
       # Squirrel.Mac checks the new app against the running Electron app's designated requirement,
       # so the Tauri app must satisfy that exact text, in the bundle and in the zip Electron gets.
       - name: Check the Mac signature, notarization and hand-over requirement

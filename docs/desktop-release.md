@@ -27,8 +27,9 @@ Each OS builds its own app. Nothing is cross-built.
 5. `node scripts/smoke-server.mjs` starts that server from a folder of the staged files, with a throwaway home and data folder, and checks `/`, `/api/boot`, `/api/graph`, `/api/settings` and a pdf.js file.
 6. `TAURI_APP_PATH=crates/shell npx tauri build --config crates/shell/tauri.bundle.conf.json --config crates/shell/tauri.bundle.<macos|windows|linux>.conf.json --target <triple> --bundles <app,dmg | nsis | appimage,deb>`. Its `beforeBuildCommand` runs step 4 again (fast, everything is built). With `TAURI_SIGNING_PRIVATE_KEY` set, the bundler writes a `.sig` beside each updater file.
 7. `node scripts/release-assets.mjs <mac|windows|linux>` copies the bundler's files into `dist/` under the names people download, with their `.sig` files. On the Mac it also zips the app for the Electron hand-over.
-8. The release checks (below), then `cargo build -p gs-shell --features self-test` and `godspeed --self-test`, which checks the demo runner in the real app on that OS (`xvfb-run` on Linux).
-9. `node scripts/release-feeds.mjs dist --mac-staging <share>` runs once, on all three systems' `dist/` together, and writes the four feeds.
+8. `node scripts/smoke-app.mjs <the app's binary>` starts the packaged app once (the installed setup on Windows, the installed `.deb` and the AppImage on Linux, the `.app` on the Mac) and waits for its "window open" log line. It refuses to run outside CI, because a packaged app uses the real godspeed data of whoever runs it.
+9. The release checks (below), then `cargo build -p gs-shell --features self-test` and `godspeed --self-test`, which checks the demo runner in the real app on that OS (`xvfb-run` on Linux).
+10. `node scripts/release-feeds.mjs dist --mac-staging <share>` runs once, on all three systems' `dist/` together, and writes the four feeds.
 
 Local builds:
 
