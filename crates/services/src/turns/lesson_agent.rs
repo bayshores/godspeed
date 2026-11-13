@@ -172,13 +172,43 @@ pub(super) fn build_lesson_agent(app: &Arc<App>, record: &Json, effective: &Json
 		(Some("study"), ..) => {
 			let marks_app = app.clone();
 			let check_marks = Arc::new(move |text: &str| check_cites(&marks_app, text));
-			create_study_agent(&StudyToolContext { teacher: teacher(), graph_nodes: Some(graph_nodes(app, lesson_scope)), check_marks }, opts)
+			// Study sends deadline changes to Talk, so it has no deadline tools.
+			let teacher = TeacherToolContext { side: LessonSide { space_actions: None, ..side.clone() }, ..teacher() };
+			create_study_agent(&StudyToolContext { teacher, graph_nodes: Some(graph_nodes(app, lesson_scope)), check_marks }, opts)
 		}
 		_ if teaching => create_teacher_agent(Some(&teacher()), opts),
 		_ => {
 			let deliver_app = app.clone();
 			let probe = ProbeDoneContext { chat_id: chat_id.clone(), chat_store: chats.clone(), deliver: Arc::new(move |steer| deliver_job_result(&deliver_app, steer)) };
 			create_prober_agent(&ProberToolContext { probe, jobs, graph: graph_tools(app, effective, lesson_scope), side }, opts)
+		}
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use gs_engine::turn::models::agent_engine;
+
+	use super::*;
+	use crate::app::test_support::{scratch_dir, test_app};
+
+	fn tool_names(app: &Arc<App>, kind: &str) -> Vec<String> {
+		let record = json!({ "id": "chat_a", "kind": kind, "messages": [] });
+		let effective = app.stores.settings.effective_settings().unwrap();
+		let turn = TurnAgent { chat_id: "chat_a".to_owned(), messages: Vec::new(), teaching: false, side_turn: false, engine: agent_engine(&app.bridge) };
+		let agent = build_lesson_agent(app, &record, &effective, turn);
+		agent.messages()[0]["toolsAdded"].as_arr().unwrap().iter().map(|t| t["name"].as_str().unwrap().to_owned()).collect()
+	}
+
+	#[test]
+	fn study_sends_deadline_changes_to_talk_and_other_lessons_keep_the_tools() {
+		let root = scratch_dir("lesson-agent");
+		let app = test_app(&root);
+		let study = tool_names(&app, "study");
+		assert!(study.contains(&"topic_done".to_owned()));
+		assert!(!study.iter().any(|t| t.contains("deadline") || t == "list_spaces"), "{study:?}");
+		for kind in ["practice", "lesson"] {
+			assert!(tool_names(&app, kind).contains(&"add_space_deadline".to_owned()), "{kind}");
 		}
 	}
 }

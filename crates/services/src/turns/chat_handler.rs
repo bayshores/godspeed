@@ -1,5 +1,5 @@
 //! One chat turn over the server-owned record (chat-handler.ts). POST /api/chat carries one input
-//! event (text, answer, side, next, continue), never a client transcript; the wake
+//! event (text, answer, side, next, continue, opener-answer), never a client transcript; the wake
 //! pipeline's steers come through here too. The event becomes record appends (written ahead, before
 //! the turn runs), the agent is built from the record, and the turn runs as a background object
 //! that views attach to through GET /api/chats/{id}/stream. The POST only acknowledges.
@@ -14,6 +14,7 @@ use gs_base::events::EventKind;
 use gs_base::locks::LockKey;
 use gs_base::{ids, text, time};
 use gs_core::contracts::chat::extracts_facts;
+use gs_core::messages::app_notes::app_note_for;
 use gs_core::messages::attachments::ChatAttachment;
 use gs_core::messages::input_events::{ChatInput, ChatInputError, TurnInput, input_appends};
 use gs_core::messages::native_messages::{dangling_question_of, has_probe_done, is_side_turn, retry_context};
@@ -204,12 +205,15 @@ fn write_ahead(app: &Arc<App>, chat_id: &str, input: &TurnInput, attachments: &[
 	};
 
 	// The [Today] note goes right before a learner message when the day, the open deadlines or a
-	// compaction call for a fresh one.
-	if matches!(input, TurnInput::Chat(ChatInput::Text { .. } | ChatInput::Next))
-		&& let Some(note) = today_note_for(app, &record)
-	{
+	// compaction call for a fresh one. The app note goes there too, and after an answer, where the
+	// agent reads it with the answer.
+	if let TurnInput::Chat(chat @ (ChatInput::Text { .. } | ChatInput::Next)) = input {
 		let at = appends.len().saturating_sub(1);
-		appends.insert(at, note);
+		let notes = today_note_for(app, &record).into_iter().chain(app_note_for(&record, chat));
+		appends.splice(at..at, notes);
+	}
+	if let TurnInput::Chat(chat @ ChatInput::Answer { .. }) = input {
+		appends.extend(app_note_for(&record, chat));
 	}
 	let merged: Vec<Json> = messages.iter().chain(&appends).cloned().collect();
 
@@ -468,6 +472,8 @@ pub(crate) fn wire(app: &Arc<App>) {
 
 #[cfg(test)]
 mod tests {
+	use gs_base::clock;
+
 	use super::*;
 	use crate::app::test_support::{scratch_dir, test_app};
 	use crate::turns::turn_liveness::is_turn_running;
@@ -520,6 +526,45 @@ mod tests {
 		let turn_events: Vec<EventKind> = std::iter::from_fn(|| events.try_recv().ok()).map(|e| e.kind).filter(|kind| matches!(kind, EventKind::TurnStarted | EventKind::TurnSettled)).collect();
 		assert_eq!(turn_events, [EventKind::TurnStarted, EventKind::TurnSettled]);
 		assert!(!is_turn_running(&app, &chat_id));
+	}
+
+	/// A stop a day ago that he kept going from an hour ago, then `tail`.
+	fn resumed_lesson(app: &App, tail: Vec<Json>) -> String {
+		let (day_ago, hour_ago) = (clock::now_ms() - 24 * 3_600_000, clock::now_ms() - 3_600_000);
+		let mut messages = vec![
+			json!({ "role": "assistant", "content": [{ "type": "toolCall", "id": "c1", "name": "conclude", "arguments": { "outcome": "solved" } }], "timestamp": day_ago }),
+			json!({ "role": "toolResult", "toolCallId": "c1", "toolName": "conclude", "details": { "stop": { "kind": "problem", "activeMinutes": 30, "at": time::iso(day_ago) } }, "isError": false, "timestamp": day_ago }),
+			json!({ "role": "custom", "customType": "keep-going", "content": "", "details": { "stopOf": "c1", "at": time::iso(hour_ago) }, "timestamp": hour_ago }),
+		];
+		messages.extend(tail);
+		let chat_id = lesson(app);
+		app.stores.chats.save_messages(&chat_id, &messages).unwrap();
+		chat_id
+	}
+
+	fn custom_types(app: &App, chat_id: &str) -> Vec<String> {
+		let record = app.stores.chats.get_chat(chat_id).unwrap();
+		record["messages"].as_arr().unwrap().iter().map(|m| m["customType"].as_str().or(m["role"].as_str()).unwrap_or_default().to_owned()).collect()
+	}
+
+	#[test]
+	fn the_app_note_goes_before_his_message_and_after_his_answer() {
+		let root = scratch_dir("chat-app-note");
+		let app = test_app(&root);
+		let typed = resumed_lesson(&app, Vec::new());
+		assert!(write_ahead(&app, &typed, &text("Where were we?"), &[]).is_ok());
+		end_turn(&app, &typed);
+		assert_eq!(custom_types(&app, &typed)[3..], ["today-context", "app-note", "user"]);
+
+		let quiz = json!({ "role": "assistant", "content": [{ "type": "toolCall", "id": "q1", "name": "quiz", "arguments": {} }], "stopReason": "toolUse", "timestamp": clock::now_ms() });
+		let answered = resumed_lesson(&app, vec![quiz]);
+		let answer = TurnInput::Chat(ChatInput::Answer { tool_call_id: "q1".to_owned(), answer: json!({ "kind": "quiz", "dontKnow": true }), attachments: None });
+		assert!(write_ahead(&app, &answered, &answer, &[]).is_ok());
+		end_turn(&app, &answered);
+		let types = custom_types(&app, &answered);
+		assert_eq!(types[types.len() - 2..], ["toolResult", "app-note"]);
+		let record = app.stores.chats.get_chat(&answered).unwrap();
+		assert_eq!(record["messages"].as_arr().unwrap().last().unwrap()["content"], json!("[Resumed] He came back to this session after a stop."));
 	}
 
 	#[tokio::test(flavor = "multi_thread")]
