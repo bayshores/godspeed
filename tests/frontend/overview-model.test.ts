@@ -9,7 +9,6 @@ import {
 	calibrationTakeaway,
 	deadlineHref,
 	displayName,
-	fitScale,
 	hasCalibration,
 	isLevelOverconfident,
 	joinAnd,
@@ -24,7 +23,6 @@ import {
 	questionHref,
 	recentLessons,
 	scoreLine,
-	studiedShare,
 	upcomingDeadlines,
 } from "../../src/frontend/components/overview/overview-model.ts";
 import { splitInlineMath } from "../../src/frontend/components/overview/inline-math.tsx";
@@ -97,21 +95,7 @@ describe("overview-model", () => {
 	});
 });
 
-describe("the space's signature and note", () => {
-	it("the share of facts studied: in a lesson or answered, 0 with no facts", () => {
-		const fact = (inLessons: boolean, answered = false) => ({ inLessons, answers: answered ? [{ chatId: "c", toolCallId: "t", outcome: "right" as const, answeredAt: "" }] : [] });
-		assert.equal(studiedShare([fact(true), fact(false, true), fact(false), fact(false)]), 0.5);
-		assert.equal(studiedShare([]), 0);
-	});
-
-	it("fitScale keeps a signature that fits, and shrinks a long or tall one to its room", () => {
-		const room = { width: 300, height: 44 };
-		assert.equal(fitScale({ width: 200, height: 30 }, room), 1);
-		assert.equal(fitScale({ width: 600, height: 30 }, room), 0.5);
-		assert.equal(fitScale({ width: 200, height: 88 }, room), 0.5);
-		assert.equal(fitScale({ width: 0, height: 0 }, room), 1, "not measured yet");
-	});
-
+describe("the teacher's note", () => {
 	it("when the note was written: today's, yesterday's, a weekday's, then the date", () => {
 		const now = new Date(2026, 10, 11, 15, 0).getTime();
 		assert.equal(noteWhen(new Date(2026, 10, 11, 9, 0).toISOString(), now), "after today's lesson");

@@ -1,6 +1,6 @@
 import { memo } from "react";
 import { SIGNATURE_MAX, type SignatureKind } from "@/shared/core";
-import { SignatureText } from "@/frontend/components/overview/head-signature";
+import { SignatureText } from "@/frontend/components/space-page/head-signature";
 import { FIELD } from "@/frontend/components/ui/field";
 import { LABEL_TEXT } from "@/frontend/components/ui/label-text";
 import { Segmented } from "@/frontend/components/ui/segmented";

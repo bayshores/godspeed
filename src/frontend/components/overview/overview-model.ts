@@ -3,7 +3,7 @@
  * Pure: every number comes from the ProgressPayload (src/shared/core/progress.ts);
  * this file only shapes it for the page and is unit-tested on its own.
  */
-import type { CalibrationLevel, DeadlineProgress, FactProgress, LessonProgress } from "@/shared/core";
+import type { CalibrationLevel, DeadlineProgress, LessonProgress } from "@/shared/core";
 import { hasProblems, messageAnchorId } from "@/shared/core";
 import { byDue, isOverdue } from "@/frontend/components/deadlines-model";
 
@@ -68,19 +68,6 @@ export function calibrationTakeaway(levels: readonly CalibrationLevel[]): string
 /** Calibration has something to show once any level has an answer. */
 export function hasCalibration(levels: readonly CalibrationLevel[]): boolean {
 	return levels.some((l) => l.answered > 0);
-}
-
-/** Share of the space's facts studied, 0 to 1 (0 with no facts). A fact
- *  counts once it came up in a lesson, as in the fact grid. */
-export function studiedShare(facts: readonly Pick<FactProgress, "inLessons" | "answers">[]): number {
-	if (facts.length === 0) return 0;
-	return facts.filter((f) => f.inLessons || f.answers.length > 0).length / facts.length;
-}
-
-/** How much to shrink a signature so it fits its room (1 = as is). */
-export function fitScale(natural: { width: number; height: number }, room: { width: number; height: number }): number {
-	if (natural.width <= 0 || natural.height <= 0) return 1;
-	return Math.min(1, room.width / natural.width, room.height / natural.height);
 }
 
 const DAY_MS = 86_400_000;

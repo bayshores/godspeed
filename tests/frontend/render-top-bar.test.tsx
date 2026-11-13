@@ -1,7 +1,7 @@
 /**
  * The frame: the top bar's Today and space tabs, Menu, the "Search
- * lessons" popup it opens, a space page's head with its tabs, and the
- * Archived spaces page.
+ * lessons" popup it opens, a space page's head with its signature and
+ * tabs, and the Archived spaces page.
  */
 import React, { act, useEffect } from "react";
 (globalThis as Record<string, unknown>).React = React;
@@ -9,6 +9,7 @@ import React, { act, useEffect } from "react";
 import assert from "node:assert/strict";
 import { afterEach, describe, it } from "node:test";
 import type { Root } from "react-dom/client";
+import { renderToStaticMarkup } from "react-dom/server";
 import { parseHTML } from "linkedom";
 import type { ChatListItem, SpaceSummary } from "../../src/shared/core/index.ts";
 
@@ -43,6 +44,7 @@ const { SpaceTabs } = await import("../../src/frontend/components/top-bar/space-
 const { AppMenu } = await import("../../src/frontend/components/top-bar/app-menu.tsx");
 const { SearchLessons } = await import("../../src/frontend/components/search-lessons.tsx");
 const { SpaceHead } = await import("../../src/frontend/components/space-page/space-head.tsx");
+const { HeadSignature } = await import("../../src/frontend/components/space-page/head-signature.tsx");
 const { ArchivedSpaces } = await import("../../src/frontend/components/archived-spaces.tsx");
 const { hasUnseenFiles } = await import("../../src/frontend/components/files/files-seen.ts");
 const { SpaceProvider } = await import("../../src/frontend/components/space-context.tsx");
@@ -50,7 +52,7 @@ const { ServerEventsProvider } = await import("../../src/frontend/components/ser
 const { MemoryRouter, useLocation } = await import("react-router");
 
 const space = (id: string, name: string, over: Partial<SpaceSummary> = {}): SpaceSummary => ({ id, name, description: "", createdAt: "", updatedAt: "", archived: false, fileCount: 33, color: 1, filesLeft: 0, ...over });
-const SPACES = [space("c29", "CSE 29", { description: "Systems programming" }), space("c21", "CSE 21", { color: 2, filesLeft: 2 }), space("old", "MATH 18", { archived: true, description: "Linear algebra.", fileCount: 1 })];
+const SPACES = [space("c29", "CSE 29", { description: "Systems programming", signature: { kind: "code", value: "*p" } }), space("c21", "CSE 21", { color: 2, filesLeft: 2 }), space("old", "MATH 18", { archived: true, description: "Linear algebra.", fileCount: 1 })];
 
 const lesson = (id: string, title: string, spaceId?: string): ChatListItem => ({
 	id,
@@ -95,6 +97,7 @@ async function mount(node: React.ReactNode, { pathname = "/", active = "c29" as 
 		if (url === "/api/spaces") return Response.json({ spaces: SPACES });
 		if (url === "/api/chats") return Response.json({ chats: LESSONS });
 		if (url === "/api/spaces/c29/cheat-sheets") return Response.json({ cards: [{ status: "made" }, { status: "making" }, { status: "none" }] });
+		if (url.startsWith("/api/progress")) return Response.json({ spaceId: "c29", facts: [true, false, false, false].map((inLessons) => ({ inLessons, answers: [] })) });
 		return Response.json({});
 	}) as typeof fetch;
 	const quietEvents = () => ({ onEvent() {}, onOpen() {}, close() {} });
@@ -221,12 +224,14 @@ describe("Search lessons", () => {
 });
 
 describe("a space page's head", () => {
-	it("the space's name and description, Edit space, then its tabs with their counts", async () => {
+	it("the space's name and signature, then its tabs with their counts and Edit space", async () => {
 		await mount(<SpaceHead />, { pathname: "/space/files" });
 		assert.equal(q("space-head-name")!.textContent, "CSE 29");
-		assert.match(q("space-head")!.textContent!, /Systems programming/);
+		assert.doesNotMatch(q("space-head")!.textContent!, /Systems programming/, "the description is the teacher's, not the head's");
+		assert.match(q("space-signature-ink")!.getAttribute("style")!, /--ink:\s*25%/, "inked as far as studied, on every tab");
 		assert.equal(q("space-edit")!.textContent, "Edit space");
-		assert.deepEqual(texts("[data-testid='space-head'] nav a"), ["Progress", "Lessons1", "Files33", "Graph", "Cheat sheets2", "Deadlines"]);
+		assert.equal(document.querySelector("[data-testid='space-head'] nav")!.nextElementSibling, q("space-edit"), "Edit space ends the tab row");
+		assert.deepEqual(texts("[data-testid='space-head'] nav a"), ["Progress25%", "Lessons1", "Files33", "Graph", "Cheat sheets2", "Deadlines"]);
 		assert.equal(q("nav-files-count")!.textContent, "33");
 		assert.equal(q("nav-cheat-sheets-count")!.textContent, "2", "sheets made or being made");
 		assert.equal(q("nav-files")!.getAttribute("aria-current"), "page");
@@ -236,8 +241,21 @@ describe("a space page's head", () => {
 		await mount(<SpaceHead />, { pathname: "/space/lessons", active: null });
 		assert.equal(q("space-head-name")!.textContent, "Lessons with no space");
 		assert.equal(q("space-edit"), null);
+		assert.equal(q("space-signature"), null);
 		assert.deepEqual(texts("[data-testid='space-head'] nav a"), ["Progress", "Lessons1", "Graph"]);
 		assert.equal(q("nav-lessons")!.getAttribute("aria-current"), "page");
+	});
+	it("the signature: math in real LaTeX, code in mono, text in the serif italic", () => {
+		const sign = (kind: "math" | "code" | "text", value: string) => renderToStaticMarkup(<HeadSignature signature={{ kind, value }} share={null} />);
+		assert.match(sign("math", "E[X]"), /class="katex"/);
+		assert.match(sign("code", "int *p"), /font-mono[^>]*>int \*p</);
+		assert.match(sign("text", "carpe diem"), /italic[^>]*>carpe diem</);
+	});
+	it("the signature has no ink with nothing studied, or before the progress has loaded", () => {
+		const sign = (share: number | null) => renderToStaticMarkup(<HeadSignature signature={{ kind: "math", value: "E[X]" }} share={share} />);
+		assert.match(sign(0.4), /data-testid="space-signature-ink"[^>]*--ink:40%/);
+		assert.ok(!sign(0).includes("space-signature-ink"));
+		assert.ok(!sign(null).includes("space-signature-ink"));
 	});
 	it("Files is marked new while a scan found files not seen yet", () => {
 		const now = Date.parse("2026-11-01T12:00:00Z");

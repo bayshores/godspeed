@@ -4,7 +4,7 @@
  * needed, Pick up where you left off, How lessons went (one square per
  * answer, score, lesson links), the confidence chart (target lines, red
  * where a sure level falls short, takeaway, sure-but-wrong links into the
- * lesson), the no-space variant, the clicks, and the head's signature.
+ * lesson), the no-space variant, and the clicks.
  */
 import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;
@@ -29,7 +29,6 @@ Object.assign(globalThis, {
 
 const { MemoryRouter } = await import("react-router");
 const { OverviewBody } = await import("../../src/frontend/components/overview/overview-body.tsx");
-const { HeadSignature } = await import("../../src/frontend/components/overview/head-signature.tsx");
 
 // ─── fixture ────────────────────────────────────────────────────────────────
 
@@ -388,30 +387,5 @@ describe("clicks", () => {
 		const el = await mount({ data: PAYLOAD, onAddDeadline: () => added++ });
 		await click(el, "next-deadline-add");
 		assert.equal(added, 1);
-	});
-});
-
-// ─── the head's signature ───────────────────────────────────────────────────
-
-describe("The space's signature", () => {
-	const sign = (share: number | null, signature = { kind: "math", value: "E[X]" } as const) => renderToStaticMarkup(<HeadSignature signature={signature} share={share} />);
-
-	it("math in real LaTeX, inked as far as studied, with the share under it", () => {
-		const html = sign(0.4);
-		assert.match(html, /class="katex"/);
-		assert.match(tag(html, "space-signature-ink"), /--ink:40%/);
-		assert.match(tag(html, "space-studied") + text(section(html, "space-studied", "</p>")), /40% studied/);
-	});
-
-	it("nothing studied: no ink; loading: no share yet", () => {
-		assert.ok(!sign(0).includes("space-signature-ink"));
-		assert.match(sign(0), /0% studied/);
-		const loading = sign(null);
-		assert.ok(!loading.includes("space-studied") && !loading.includes("space-signature-ink"));
-	});
-
-	it("code in mono, text in the serif italic", () => {
-		assert.match(sign(null, { kind: "code", value: "int *p" } as never), /font-mono[^>]*>int \*p</);
-		assert.match(sign(null, { kind: "text", value: "carpe diem" } as never), /italic[^>]*>carpe diem</);
 	});
 });

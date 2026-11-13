@@ -2,7 +2,7 @@ import { memo, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } 
 import katex from "katex";
 import type { SpaceSignature } from "@/shared/core";
 import { cn } from "@/frontend/lib/utils";
-import { fitScale, percent } from "./overview-model";
+import { fitScale } from "./space-head-model";
 
 /** A signature in its own type: math through KaTeX, code in mono, text in
  *  the KaTeX serif italic. */
@@ -23,12 +23,12 @@ export const SignatureText = memo(function SignatureText({ signature, className 
 });
 
 /** The most room a signature gets in the space head. */
-const ROOM = { width: 300, height: 44 };
+const ROOM = { width: 320, height: 64 };
 
 /**
- * THE SPACE'S SIGNATURE (the space head, on Progress): pale, inked over as
- * far as the space's facts are studied, with the share under it. A long or
- * tall one shrinks to fit. `share` is null until the progress has loaded.
+ * THE SPACE'S SIGNATURE (the space head): pale, inked over as far as the
+ * space's facts are studied. A long or tall one shrinks to fit. `share` is
+ * null until the progress has loaded, and for a space with no facts.
  */
 export const HeadSignature = memo(function HeadSignature({ signature, share }: { signature: SpaceSignature; share: number | null }) {
 	const ref = useRef<HTMLDivElement>(null);
@@ -48,27 +48,25 @@ export const HeadSignature = memo(function HeadSignature({ signature, share }: {
 		return () => observer.disconnect();
 	}, [signature]);
 	return (
-		<div data-testid="space-signature" className="flex flex-col gap-0.5">
-			{/* Decorative: the space name says the same to a screen reader. */}
-			<div aria-hidden className={cn("pointer-events-none relative select-none", !fit && "invisible")} style={fit ? { width: fit.width, height: fit.height } : undefined}>
-				<div
-					ref={ref}
-					className={cn("absolute top-0 left-0 w-max origin-top-left leading-tight", signature.kind === "math" ? "text-[22px]" : "text-[26px]")}
-					style={{ scale: String(fit?.scale ?? 1) }}
-				>
-					<SignatureText signature={signature} className="text-ink-2/40" />
-					{share !== null && share > 0 && (
-						<div data-testid="space-signature-ink" className="lh-ink absolute inset-0 text-ink-2" style={{ "--ink": `${share * 100}%` } as CSSProperties}>
-							<SignatureText signature={signature} />
-						</div>
-					)}
-				</div>
+		// Decorative: the space name says the same to a screen reader.
+		<div
+			data-testid="space-signature"
+			aria-hidden
+			className={cn("pointer-events-none relative shrink-0 select-none", !fit && "invisible")}
+			style={fit ? { width: fit.width, height: fit.height } : undefined}
+		>
+			<div
+				ref={ref}
+				className={cn("absolute top-0 left-0 w-max origin-top-left leading-tight", signature.kind === "math" ? "text-[44px]" : "text-[48px]")}
+				style={{ scale: String(fit?.scale ?? 1) }}
+			>
+				<SignatureText signature={signature} className="text-ink-2/65" />
+				{share !== null && share > 0 && (
+					<div data-testid="space-signature-ink" className="lh-ink absolute inset-0 text-ink" style={{ "--ink": `${share * 100}%` } as CSSProperties}>
+						<SignatureText signature={signature} />
+					</div>
+				)}
 			</div>
-			{share !== null && (
-				<p data-testid="space-studied" className="font-count text-[15px] leading-tight text-ink-2">
-					{percent(share)}% studied
-				</p>
-			)}
 		</div>
 	);
 });
