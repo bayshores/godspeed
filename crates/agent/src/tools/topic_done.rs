@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 use futures_util::future::BoxFuture;
 use gs_base::{clock, text};
-use gs_core::contracts::chat::{TOPIC_DONE_STORED_TEXT, TOPIC_DONE_TOOL};
+use gs_core::contracts::chat::{TOPIC_DONE_NO_OPENER_TEXT, TOPIC_DONE_STORED_TEXT, TOPIC_DONE_TOOL};
 use gs_core::messages::citations::CheckedMarks;
 use gs_core::messages::quote_find::QuoteMiss;
 use gs_core::session::argument_heal::heal_encoded_arguments;
@@ -207,7 +207,8 @@ impl TopicDone {
 		if by_quiz {
 			details.insert("stop", topic_stop(&messages, &done, clock::now_ms()));
 		}
-		Ok(json!({ "content": [text_block(TOPIC_DONE_STORED_TEXT)], "details": Json::Obj(details), "terminate": true }))
+		let text = if args["opener"].as_obj().is_some() { TOPIC_DONE_STORED_TEXT } else { TOPIC_DONE_NO_OPENER_TEXT };
+		Ok(json!({ "content": [text_block(text)], "details": Json::Obj(details), "terminate": true }))
 	}
 }
 
@@ -428,6 +429,14 @@ mod tests {
 		let stop = &done["details"]["stop"];
 		assert_eq!((stop["kind"].as_str(), stop["nodeId"].as_str(), stop["activeMinutes"].as_f64()), (Some("topic"), Some("n3"), Some(0.0)));
 		assert_eq!(done["terminate"], Json::Bool(true));
+	}
+
+	#[tokio::test]
+	async fn with_no_opener_the_result_names_none() {
+		let (tool, gate) = tool_on(Vec::new(), true);
+		concluded_now(&gate);
+		let last = json!({ "nodeId": "n3", "review": quiz("check", "n3") });
+		assert_eq!(call(&tool, last).await.unwrap()["content"], json!([{ "type": "text", "text": TOPIC_DONE_NO_OPENER_TEXT }]));
 	}
 
 	#[test]

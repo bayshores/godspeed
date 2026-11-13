@@ -14,7 +14,7 @@ use std::sync::Arc;
 
 use gs_base::config::Paths;
 use gs_base::{clock, fsx, ids, time};
-use gs_core::contracts::chat::{STUDY_TOPIC_END_ACK_TEXT, TOPIC_DONE_STORED_TEXT};
+use gs_core::contracts::chat::{STUDY_TOPIC_END_ACK_TEXT, TOPIC_DONE_NO_OPENER_TEXT, TOPIC_DONE_STORED_TEXT};
 use gs_core::messages::input_events::{ChatInput, TurnInput};
 use gs_core::spaces::today_note::local_day;
 use gs_core::study::kept::KeptPart;
@@ -471,7 +471,9 @@ async fn two_days_of_study_for_the_midterm() {
 	calls(app, chat, vec![("topic_done", last)]).await;
 	settled(app, chat).await;
 	let record = messages(app, chat);
-	let stop = &result_of(&record, &id_of(&last_call(&record, "topic_done")))["details"]["stop"];
+	let done_ms = result_of(&record, &id_of(&last_call(&record, "topic_done")));
+	assert_eq!(done_ms["content"], json!([{ "type": "text", "text": TOPIC_DONE_NO_OPENER_TEXT }]), "no opener comes after the last topic");
+	let stop = &done_ms["details"]["stop"];
 	assert_eq!((stop["kind"].as_str(), stop["nodeId"].as_str()), (Some("topic"), Some("ms")));
 	assert_eq!(lesson_stop(&record, Some(&plan), None).unwrap()["kind"], json!("end"), "nothing more is planned today");
 	let today = midterm(app, &space_id, &deadline_id);

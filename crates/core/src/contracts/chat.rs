@@ -32,8 +32,11 @@ pub const STUDY_TOPIC_END_ACK_TEXT: &str = "Problem concluded. This finishes the
 /// Its result ends the agent's turn.
 pub const TOPIC_DONE_TOOL: &str = "topic_done";
 
-/// topic_done's result text.
+/// topic_done's result text when it carries the next topic's opener.
 pub const TOPIC_DONE_STORED_TEXT: &str = "Stored. He sees the stop now; the opener shows when he goes on.";
+
+/// topic_done's result text when it carries no opener, as after the lesson's last topic.
+pub const TOPIC_DONE_NO_OPENER_TEXT: &str = "Stored. He sees the stop now.";
 
 pub const NEXT_PROBLEM_TEXT: &str = "[NEXT PROBLEM] — the learner's explicit go-ahead: pose the next problem now per the selection rules, or wrap the session in text if the arc is complete.";
 
