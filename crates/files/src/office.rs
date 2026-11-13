@@ -52,7 +52,7 @@ fn entity_text(name: &str) -> Option<&'static str> {
 }
 
 /// The code point a numeric reference names, or None past U+10FFFF.
-fn code_point(code: &str) -> Option<u32> {
+pub(crate) fn code_point(code: &str) -> Option<u32> {
 	let (digits, radix) = match code.as_bytes()[1] {
 		b'x' | b'X' => (&code[2..], 16),
 		_ => (&code[1..], 10),

@@ -1,4 +1,4 @@
-//! A space file as text for the notes pipeline: plain reads, PDF text, Word and PowerPoint text,
+//! A space file as text for the notes pipeline: plain reads, PDF text, Word, PowerPoint and EPUB text,
 //! caption cleanup. No model here. Also which files count as readable at all.
 
 use std::collections::HashMap;
@@ -14,6 +14,7 @@ use gs_core::contracts::space::{extension_of, is_office_file, is_recording_file,
 use gs_pdf::worker::Pdf;
 use parking_lot::Mutex;
 
+use crate::epub::epub_text;
 use crate::ioerr::read_file;
 use crate::office::office_text;
 
@@ -79,6 +80,9 @@ pub async fn file_to_text(pdf: &Pdf, file: &Path) -> Result<String, FileTextErro
 	}
 	if is_office_file(&name) {
 		return office_text(file).map_err(failed);
+	}
+	if ext == ".epub" {
+		return epub_text(file).map_err(failed);
 	}
 	if is_recording_file(&name) {
 		return Err(FileTextError::NeedsTranscript);
