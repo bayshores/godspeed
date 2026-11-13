@@ -17,7 +17,7 @@ use gs_core::study::topic_end::{finished_topic, topic_done_stored, topic_stop};
 use gs_engine::turn::messages::text_block;
 use gs_engine::turn::tool::{ExecutionMode, Tool, ToolContext};
 use gs_engine::turn::validate::argument_problems;
-use gs_json::{Json, Obj, json, stringify_pretty};
+use gs_json::{Json, Obj, json, stringify};
 
 use super::fn_tool::FnTool;
 use super::practice::{LessonRecord, NodeCheck, TurnGate, record_messages};
@@ -35,7 +35,7 @@ fn description(multiple_choice: bool) -> String {
 	if !multiple_choice {
 		return DESCRIPTION_START.to_owned();
 	}
-	let example = stringify_pretty(&example(), "  ");
+	let example = stringify(&example());
 	format!("{DESCRIPTION_START} Ends your turn. review and opener.quiz take the same fields as quiz; godspeed checks them now.\nExample arguments:\n```json\n{example}\n```")
 }
 
@@ -252,7 +252,6 @@ mod tests {
 	use gs_engine::turn::messages::faux_assistant_message;
 	use gs_base::re::Re;
 	use gs_core::messages::citations::DroppedQuote;
-	use gs_json::stringify;
 
 	use super::*;
 	use crate::tools::test_record::record;
@@ -327,7 +326,7 @@ mod tests {
 	async fn the_described_example_passes_every_check() {
 		let (tool, gate) = tool_on(Vec::new(), true);
 		concluded_now(&gate);
-		assert!(tool.description().ends_with(&format!("```json\n{}\n```", stringify_pretty(&example(), "  "))));
+		assert!(tool.description().ends_with(&format!("```json\n{}\n```", stringify(&example()))));
 		let stored = call(&tool, example()).await.unwrap();
 		assert_eq!(stored["terminate"], json!(true));
 	}
