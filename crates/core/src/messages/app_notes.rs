@@ -102,11 +102,33 @@ fn analogy_dropped_lines(record: &Json) -> Vec<String> {
 		.collect()
 }
 
-/// The words an analogy's fits line opens with: up to its first `:`, `;`, `,` or `.`, at most
-/// ANALOGY_WORDS words.
+/// The words an analogy's fits line opens with: up to its first `:`, `;`, `,` or `.` that ends a
+/// clause (a space or the end after it, outside `$...$`), at most ANALOGY_WORDS words, never
+/// stopping inside math.
 fn first_words(fits: &str) -> String {
-	let head = fits.split([':', ';', ',', '.']).next().unwrap_or_default();
-	head.split_whitespace().take(ANALOGY_WORDS).collect::<Vec<_>>().join(" ")
+	let mut math = false;
+	let mut end = fits.len();
+	let mut chars = fits.char_indices().peekable();
+	while let Some((i, c)) = chars.next() {
+		match c {
+			'$' => math = !math,
+			':' | ';' | ',' | '.' if !math && chars.peek().is_none_or(|(_, next)| next.is_whitespace()) => {
+				end = i;
+				break;
+			}
+			_ => {}
+		}
+	}
+	let mut words = Vec::new();
+	let mut open = false;
+	for word in fits[..end].split_whitespace() {
+		if words.len() >= ANALOGY_WORDS && !open {
+			break;
+		}
+		open ^= word.matches('$').count() % 2 == 1;
+		words.push(word);
+	}
+	words.join(" ")
 }
 
 /// One answered question from earlier: "Bayes' rule wrong, sure 3, picked About 9%.", "Eigenvalues
@@ -374,6 +396,10 @@ mod tests {
 	fn an_analogy_is_named_by_its_first_words() {
 		assert_eq!(first_words("The leash fits one part: for the data you have."), "The leash fits one part");
 		assert_eq!(first_words("one two three four five six seven eight nine ten"), "one two three four five six seven eight");
+		assert_eq!(first_words("At $\\lambda = 0.5$ the leash is short: it pulls hard."), "At $\\lambda = 0.5$ the leash is short", "a decimal point is no clause end");
+		assert_eq!(first_words("The pull $a, b; c.$ grows fast."), "The pull $a, b; c.$ grows fast", "nor a separator inside math");
+		assert_eq!(first_words("one two three four five six seven $x + y$ nine"), "one two three four five six seven $x + y$", "the last word's math stays whole");
+		assert_eq!(first_words("Ends at 3.5"), "Ends at 3.5");
 	}
 
 	#[test]
