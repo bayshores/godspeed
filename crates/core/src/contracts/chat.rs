@@ -5,7 +5,9 @@ pub const CHAT_ID_PREFIX: &str = "chat_";
 /// The Talk chat's fixed id.
 pub const TALK_CHAT_ID: &str = "chat_talk";
 /// v2: `classId`, the "class-context" card and a deadline request's `className` are named for spaces.
-pub const CURRENT_CHAT_VERSION: i64 = 2;
+/// v3: no field changes, but new markers (keep-going, opener-answer, app-note) and stops in result
+/// details, which an older build would send to the agent as empty messages.
+pub const CURRENT_CHAT_VERSION: i64 = 3;
 
 /// Whether a session's teaching is saved to the graph: teach (absent kind) and study lessons.
 pub fn extracts_facts(kind: Option<&str>) -> bool {

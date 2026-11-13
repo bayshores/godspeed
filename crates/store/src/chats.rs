@@ -326,6 +326,9 @@ fn upgrade_to_v2(record: &mut Json) {
 	}
 }
 
+// v2 to v3 changes no field: the stamp alone closes these lessons to older builds, which would send
+// the new UI-only markers (Keep going) to the agent as empty messages.
+
 #[cfg(test)]
 mod tests {
 	use super::*;
@@ -380,7 +383,7 @@ mod tests {
 		assert!(id.starts_with("chat_"));
 		let raw = std::fs::read_to_string(fx.file(id)).unwrap();
 		assert!(raw.starts_with(&format!("{{\n\t\"id\": \"{id}\",\n\t\"title\": \"Limits\",")));
-		assert!(raw.ends_with("\"messages\": [],\n\t\"spaceId\": \"cls_1\",\n\t\"version\": 2\n}"));
+		assert!(raw.ends_with("\"messages\": [],\n\t\"spaceId\": \"cls_1\",\n\t\"version\": 3\n}"));
 		assert_eq!(fx.store.get_chat(id), Some(record));
 		assert_eq!(changes.try_recv().unwrap().kind, EventKind::ChatsChanged);
 	}
@@ -406,12 +409,15 @@ mod tests {
 		assert_eq!(std::fs::read_to_string(fx.file("chat_old")).unwrap(), v1);
 		fx.store.rename_chat("chat_old", "Now").unwrap();
 		let saved = std::fs::read_to_string(fx.file("chat_old")).unwrap();
-		assert!(saved.contains("\"spaceId\": \"cls_1\"") && saved.contains("space-context") && !saved.contains("classId") && !saved.contains("class-context") && saved.ends_with("\"version\": 2\n}"));
+		assert!(saved.contains("\"spaceId\": \"cls_1\"") && saved.contains("space-context") && !saved.contains("classId") && !saved.contains("class-context") && saved.ends_with("\"version\": 3\n}"));
 
-		// A v2 record is read as it is.
+		// A v2 record is read as it is, and its next write stamps 3 with no other change.
 		let v2 = r#"{"id":"chat_new","classId":"kept","updatedAt":"x","messages":[{"customType":"class-context"}],"version":2}"#;
 		fsx::write_text_atomic(&fx.file("chat_new"), v2).unwrap();
 		assert_eq!(gs_json::stringify(&fx.store.get_chat("chat_new").unwrap()), v2.replace('\n', ""));
+		fx.store.save_tree("chat_new", &json!({ "nodes": [] })).unwrap();
+		let saved = fx.store.get_chat("chat_new").unwrap();
+		assert_eq!(gs_json::stringify(&saved), r#"{"id":"chat_new","classId":"kept","updatedAt":"x","messages":[{"customType":"class-context"}],"version":3,"tree":{"nodes":[]}}"#);
 	}
 
 	#[test]
@@ -432,7 +438,7 @@ mod tests {
 		let plain = r#"{"id":"plain","updatedAt":"x","messages":[],"version":1}"#;
 		put("broken", "{ nope");
 		put("shapeless", r#"{"id":"shapeless","messages":[]}"#);
-		put("future", r#"{"id":"future","updatedAt":"x","messages":[],"version":3}"#);
+		put("future", r#"{"id":"future","updatedAt":"x","messages":[],"version":4}"#);
 		put("plain", plain);
 		for id in ["broken", "shapeless", "future", "missing", "../escape", ""] {
 			assert!(fx.store.get_chat(id).is_none(), "{id}");
