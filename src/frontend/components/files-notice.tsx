@@ -82,7 +82,7 @@ export function FilesNoticeView({
 						title={changeTitle(entry, name, agentConnected)}
 						close={{ onClick: () => onDismiss(entry), testId: "files-notice-close" }}
 						actions={
-							<button type="button" data-testid="files-notice-see" onClick={() => onSee(entry)} className="lh-press lh-btn text-[15px]">
+							<button type="button" data-testid="files-notice-see" onClick={() => onSee(entry)} className="lh-btn text-[15px]">
 								{entry.change === "added" ? "See files" : "See changes"}
 							</button>
 						}

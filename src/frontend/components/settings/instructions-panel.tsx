@@ -9,7 +9,7 @@ import { PART_NAMES, type PromptSegmentInfo, type TeachingArea } from "@/shared/
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { tabListKeys } from "@/frontend/components/ui/tab-list";
 import { cn } from "@/frontend/lib/utils";
-import { OUTLINE_BUTTON } from "./controls.tsx";
+import { SMALL_KEY } from "./controls.tsx";
 
 export function InstructionsPanel({
 	area,
@@ -141,10 +141,10 @@ export function InstructionsPanel({
 				<span className="min-w-0 flex-1 text-[15px] text-ink-2">
 					{error ?? (dirty ? "Unsaved changes" : part.overrideText !== null ? "Your version is in use" : "The original is in use")}
 				</span>
-				<button type="button" disabled={busy || (part.overrideText === null && !dirty)} onClick={() => void reset()} className={OUTLINE_BUTTON}>
+				<button type="button" disabled={busy || (part.overrideText === null && !dirty)} onClick={() => void reset()} className={SMALL_KEY}>
 					Reset to original
 				</button>
-				<button type="button" disabled={busy || !dirty} onClick={() => void save()} className={cn(OUTLINE_BUTTON, "lh-btn-main")}>
+				<button type="button" disabled={busy || !dirty} onClick={() => void save()} className={cn(SMALL_KEY, "lh-btn-main")}>
 					Save
 				</button>
 			</footer>

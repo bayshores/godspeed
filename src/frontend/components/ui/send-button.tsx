@@ -1,7 +1,7 @@
 import { cn } from "@/frontend/lib/utils";
 
-/** The send button inside a writing box's bottom edge: filled, outlined
- *  while it waits. */
+/** The send button inside a writing box's bottom edge: the bright key, a
+ *  plain key while it waits. */
 export function SendButton({
 	label,
 	onClick,

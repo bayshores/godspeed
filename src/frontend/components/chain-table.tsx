@@ -3,6 +3,7 @@ import { chainsForSelection, formatChainLine } from "@/shared/core";
 import type { GraphChain, GraphNode } from "@/shared/core";
 import { usePresence } from "@/frontend/components/presence";
 import { LatexGlyph } from "@/frontend/components/latex-glyph";
+import { KEY_ON_INK } from "@/frontend/components/ui/card-parts";
 import { FIELD } from "@/frontend/components/ui/field";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { cn } from "@/frontend/lib/utils";
@@ -219,8 +220,8 @@ export function ChainTableBody({
 	);
 }
 
-/** A button on the dark picked bar: outlined in the paper color. */
-const ON_INK = "lh-btn shrink-0 border-background text-[15px] text-background hover:bg-background/15";
+/** A button on the dark picked bar: a key in the paper color. */
+const ON_INK = cn("lh-btn shrink-0 text-[15px] text-background", KEY_ON_INK);
 
 /** A chain's row (its facts as chips joined by ∧ and ⟹) and, opened,
  *  each fact's statement. */

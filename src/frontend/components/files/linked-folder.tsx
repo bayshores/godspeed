@@ -14,7 +14,7 @@ const PROBLEM_LINE: Record<FolderProblem, string> = {
 };
 
 /** A plain button in the Files page's top row and the folder box. */
-export const ROW_BUTTON = "lh-btn h-[38px] shrink-0 bg-panel text-[15px]";
+export const ROW_BUTTON = "lh-btn h-[38px] shrink-0 text-[15px]";
 
 /**
  * "Linked folder" (Files page): opens a box with the full path, what the

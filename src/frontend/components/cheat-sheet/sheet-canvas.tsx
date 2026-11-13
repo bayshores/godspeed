@@ -1,6 +1,7 @@
 import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { pageCaption, type SheetVersion } from "@/shared/core";
 import { cn } from "@/frontend/lib/utils";
+import { KEY_ON_INK } from "@/frontend/components/ui/card-parts";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import {
 	artboards,
@@ -285,7 +286,7 @@ export function SheetCanvas({
 					onPointerDown={(e) => e.stopPropagation()}
 				>
 					<span className="min-w-0 truncate">{pointError ?? "Drag a box around the part you mean"}</span>
-					<button type="button" onClick={() => setPointing(false)} className="lh-btn h-7 shrink-0 px-3 text-[15px] text-background [--lh-key:color-mix(in_srgb,var(--background)_20%,var(--foreground))] [--lh-key-hover:color-mix(in_srgb,var(--background)_30%,var(--foreground))]">
+					<button type="button" onClick={() => setPointing(false)} className={cn("lh-btn h-7 shrink-0 px-3 text-[15px] text-background", KEY_ON_INK)}>
 						Cancel
 					</button>
 				</div>

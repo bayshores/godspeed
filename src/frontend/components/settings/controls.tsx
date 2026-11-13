@@ -244,5 +244,9 @@ export function CommitInput({
 		/>
 	);
 }
-/** The settings' small outlined button ("Copy", "New token"). */
-export const OUTLINE_BUTTON = "lh-btn shrink-0 text-[15px]";
+
+/** The settings' small key (a plain "Continue" or "Cancel"). */
+export const SMALL_KEY = "lh-btn shrink-0 text-[15px]";
+
+/** A small key with no face, just a word ("Copy", "New token"). */
+export const QUIET_KEY = "lh-btn lh-btn-quiet text-[15px]";

@@ -12,7 +12,7 @@ import { CopyButton } from "@/frontend/components/copy-button";
 import { ACCESS_ERROR, maskToken } from "@/frontend/components/mcp-access";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { AgentWindows } from "./agent-windows.tsx";
-import { OUTLINE_BUTTON } from "./controls.tsx";
+import { QUIET_KEY, SMALL_KEY } from "./controls.tsx";
 import { WebSearch } from "./web-search.tsx";
 
 interface AccessView {
@@ -24,8 +24,6 @@ async function request(init?: RequestInit): Promise<AccessView> {
 	if (!res.ok) throw new Error(ACCESS_ERROR);
 	return res.json() as Promise<AccessView>;
 }
-
-const QUIET = "lh-btn lh-btn-quiet text-[15px]";
 
 export function ConnectionSection() {
 	const [access, setAccess] = useState<AccessView | null>(null);
@@ -39,11 +37,10 @@ export function ConnectionSection() {
 		setAccess(a);
 		setError(null);
 	}, []);
-	const refresh = useCallback(() => {
+	const live = useAgentStatus();
+	useEffect(() => {
 		request().then(loaded, (e: Error) => setError(e.message));
 	}, [loaded]);
-	const live = useAgentStatus();
-	useEffect(refresh, [refresh]);
 
 	const makeToken = () => {
 		setRotate("making");
@@ -75,8 +72,8 @@ export function ConnectionSection() {
 					<span data-testid="agent-token" className="mr-auto min-w-0 truncate text-ink">
 						{maskToken(token)}
 					</span>
-					<CopyButton aria-label="Copy access token" className={QUIET} text={token} />
-					<button type="button" data-testid="agent-new-token" className={QUIET} disabled={rotate === "asking" || rotate === "making"} onClick={() => setRotate("asking")}>
+					<CopyButton aria-label="Copy access token" className={QUIET_KEY} text={token} />
+					<button type="button" data-testid="agent-new-token" className={QUIET_KEY} disabled={rotate === "asking" || rotate === "making"} onClick={() => setRotate("asking")}>
 						New token
 					</button>
 				</div>
@@ -84,10 +81,10 @@ export function ConnectionSection() {
 					<div data-testid="agent-new-token-confirm" className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
 						<span className="text-ink">Other MCP apps will need the new token. Continue?</span>
 						<span className="flex shrink-0 items-center gap-2">
-							<button type="button" className={`lh-press ${OUTLINE_BUTTON}`} onClick={() => setRotate("idle")}>
+							<button type="button" className={SMALL_KEY} onClick={() => setRotate("idle")}>
 								Cancel
 							</button>
-							<button type="button" data-testid="agent-new-token-continue" className={`${OUTLINE_BUTTON} lh-btn-main`} disabled={rotate === "making"} onClick={makeToken}>
+							<button type="button" data-testid="agent-new-token-continue" className={`${SMALL_KEY} lh-btn-main`} disabled={rotate === "making"} onClick={makeToken}>
 								Continue
 							</button>
 						</span>

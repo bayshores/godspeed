@@ -105,17 +105,17 @@ export function KeyboardSection() {
 									<SettingsRow key={def.id} label={def.label} testid={`kbd-row-${def.id}`}>
 										<span className="flex items-center gap-2">
 											{rebinding !== def.id && overridden(def.id) && (
-												<button type="button" onClick={() => resetOne(def.id)} data-testid={`kbd-reset-${def.id}`} className="lh-press lh-btn lh-btn-quiet text-[15px]">
+												<button type="button" onClick={() => resetOne(def.id)} data-testid={`kbd-reset-${def.id}`} className="lh-btn lh-btn-quiet text-[15px]">
 													Reset
 												</button>
 											)}
 											<kbd className={cn(KEY, "min-w-24")}>{rebinding === def.id ? "Press keys…" : formatBinding(effective)}</kbd>
 											{rebinding === def.id ? (
-												<button type="button" onClick={() => setRebinding(null)} className="lh-press lh-btn text-[15px]">
+												<button type="button" onClick={() => setRebinding(null)} className="lh-btn text-[15px]">
 													Cancel
 												</button>
 											) : (
-												<button type="button" onClick={() => setRebinding(def.id)} data-testid={`kbd-rebind-${def.id}`} className="lh-press lh-btn text-[15px]">
+												<button type="button" onClick={() => setRebinding(def.id)} data-testid={`kbd-rebind-${def.id}`} className="lh-btn text-[15px]">
 													Rebind
 												</button>
 											)}
@@ -139,7 +139,7 @@ export function KeyboardSection() {
 			})}
 			<div className="flex items-center justify-between gap-4">
 				<span className="text-[15px] text-ink-2">Stored on this device</span>
-				<button type="button" onClick={resetAll} data-testid="kbd-reset-all" className="lh-press lh-btn text-[15px]">
+				<button type="button" onClick={resetAll} data-testid="kbd-reset-all" className="lh-btn text-[15px]">
 					Reset all to defaults
 				</button>
 			</div>

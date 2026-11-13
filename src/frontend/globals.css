@@ -733,7 +733,8 @@ body:has(.lh-own-bar) .lh-app-bar {
    - .lh-fade      backdrops and anything that only fades
    - .lh-rise      one-shot arrival (messages, cards, view content):
                    fade + 4px rise (no exit)
-   - .lh-press     buttons: ease the hover colors, dip to 97% while pressed
+   - .lh-press     pressable things that are not keys: ease the hover colors,
+                   dip to 97% while pressed
    - .lh-collapse  a folding section: grid-rows 0fr ↔ 1fr (data-state)
 
    Reduced motion: every animation and transform here turns off; colors

@@ -3,6 +3,7 @@ import { isNewFolderFile, type SpaceFile, type FileCoverage } from "@/shared/cor
 import { CopyButton } from "@/frontend/components/copy-button";
 import { useMinute } from "@/frontend/components/countdown";
 import { MenuShell } from "@/frontend/components/menu-shell";
+import { SMALL_BTN } from "@/frontend/components/ui/card-parts";
 import { ProgressBar } from "@/frontend/components/ui/progress-bar";
 import { Tip } from "@/frontend/components/ui/tooltip";
 import { cn } from "@/frontend/lib/utils";
@@ -40,7 +41,6 @@ const KIND_HELP = {
 } as const;
 
 const STATUS = "w-[236px] shrink-0 text-base text-ink-2";
-const SMALL_BTN = "lh-btn h-7 shrink-0 bg-panel px-2.5 text-[15px]";
 
 export const FileRow = memo(function FileRow({
 	file,

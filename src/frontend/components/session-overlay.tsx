@@ -142,7 +142,7 @@ export function MermaidOverlay({
 					type="button"
 					onClick={onClose}
 					data-testid="mermaid-overlay-close"
-					className="lh-press lh-btn lh-btn-quiet ml-auto gap-2 px-2.5 text-[15px]"
+					className="lh-btn lh-btn-quiet ml-auto gap-2 px-2.5 text-[15px]"
 				>
 					<PixelIcon name="close" />
 					Close

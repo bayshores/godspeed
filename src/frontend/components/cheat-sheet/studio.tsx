@@ -87,7 +87,7 @@ function Studio({
 	const pdfUrl = useCallback((n: number) => sheetPdfPath(spaceId, deadlineId, n), [spaceId, deadlineId]);
 	const currentUrl = current ? pdfUrl(current.n) : null;
 	const desktop = typeof window !== "undefined" && !!window.lh?.showInFolder;
-	const fileButton = "lh-btn lh-btn-quiet shrink-0 px-2 text-[15px] font-normal text-bar-ink hover:bg-bar-ink/15 hover:text-bar-ink";
+	const fileButton = "lh-btn lh-btn-quiet shrink-0 px-2 text-[15px] font-normal text-bar-ink [--lh-key-hover:color-mix(in_srgb,var(--lh-bar-ink)_15%,transparent)] hover:text-bar-ink";
 	// The Mac prints the PDF file itself through the system's sheet; elsewhere pdf.js draws it.
 	const printVersion = async (n: number, url: string) => {
 		const printFile = window.lh?.printPdf;
