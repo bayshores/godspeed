@@ -186,6 +186,28 @@ export interface OpenerAnswerDetails {
 	answer: QuestionAnswerData | null;
 }
 
+/** The quiz call a question from earlier was first asked by. */
+export interface ReviewOf {
+	chatId: string;
+	toolCallId: string;
+}
+
+/** A question from earlier as POST /api/chats/{id}/review serves it: its
+ *  source, its topic and a copy of the quiz. */
+export interface ReviewQuestion {
+	of: ReviewOf & { messageId?: string };
+	nodeId: string;
+	topic: string;
+	quiz: { question: string } & Record<string, unknown>;
+}
+
+/** The review marker's details: the question, his graded answer and the
+ *  start of the sitting it was answered in. */
+export interface ReviewDetails extends ReviewQuestion {
+	answer: QuestionAnswerData;
+	sitting: string;
+}
+
 /** The learner's explicit move-on signal: the model-facing text of the
  *  practice-next marker. */
 export const NEXT_PROBLEM_TEXT =

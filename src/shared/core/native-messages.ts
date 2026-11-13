@@ -100,7 +100,8 @@ export interface LhMarkerMessage {
 		| "app-request"
 		| "keep-going"
 		| "opener-answer"
-		| "app-note";
+		| "app-note"
+		| "review";
 	/** The model-facing text ("" for plan blocks — UI-only). */
 	content: string;
 	/** Model-facing files after the text: the pictures and PDF notes of an
@@ -193,10 +194,11 @@ export function interruptedQuestions(messages: readonly LhMessage[]): Set<string
 }
 
 /** A compaction marker or a UI-only marker (a plan block, a problem
- *  dismissal, Keep going): bookkeeping that lands between a question and
- *  the next learner message without being part of either. */
+ *  dismissal, Keep going, an answer to a question from earlier):
+ *  bookkeeping that lands between a question and the next learner message
+ *  without being part of either. */
 function isBookkeeping(m: LhMessage): boolean {
-	return m.role === "custom" && ["compaction", "plan-block", "problem-dismissed", "keep-going"].includes(m.customType);
+	return m.role === "custom" && ["compaction", "plan-block", "problem-dismissed", "keep-going", "review"].includes(m.customType);
 }
 
 /** The index of the side question right after the assistant message at `i`
@@ -763,8 +765,9 @@ export function endsInDismissal(messages: readonly LhMessage[]): boolean {
  * never fires a turn).
  */
 export function needsContinuation(record: readonly LhMessage[]): boolean {
-	// Compaction and UI-only markers (a Keep going written mid-turn) are not
-	// part of the turn, so the fold reads past them.
+	// Compaction and UI-only markers (a Keep going or an answer to a
+	// question from earlier written mid-turn) are not part of the turn, so
+	// the fold reads past them.
 	const messages = record.filter((m) => !isBookkeeping(m));
 	const last = messages[messages.length - 1];
 	if (!last || (last as { role?: string }).role !== "toolResult") return false;

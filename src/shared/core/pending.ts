@@ -4,6 +4,7 @@
  * toolCallId. The server-side record scans (danglingQuestionOf over native
  * LhMessage[]) live in native-messages.ts.
  */
+import type { ReviewOf } from "./contracts/chat.ts";
 import type { QuestionKind } from "./question-core.ts";
 
 interface UIMessage {
@@ -40,12 +41,10 @@ interface PendingToolCall {
 	appPosed?: AppPosed;
 }
 
-/** A question the app posed from stored data: the next topic's opener,
- *  `ref` its topic_done call id. */
-export interface AppPosed {
-	kind: "opener";
-	ref: string;
-}
+/** A question the app posed from stored data: the next topic's opener
+ *  (`ref` its topic_done call id), or a question from earlier (`ref` the
+ *  quiz call it was first asked by). */
+export type AppPosed = { kind: "opener"; ref: string } | { kind: "review"; ref: ReviewOf };
 
 /** Tools that render in the question dock and gate the composer. The
  *  probe-phase names (probe/recall) join their teach

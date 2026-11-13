@@ -30,6 +30,7 @@
  */
 
 import type { QuestionAnswerData } from "./question-core.ts";
+import type { ReviewOf } from "./contracts/chat.ts";
 import type { LhMessage } from "./native-messages.ts";
 import {
 	activeProblemOf,
@@ -54,9 +55,10 @@ import {
 
 /** One client-originated input event (the POST body's `input`). */
 export type ChatInput =
-	/** `about.opener`: Ask Teacher on a shown opener (its topic_done call
-	 *  id); the opener stays open. */
-	| { type: "text"; text: string; attachments?: ChatAttachment[]; about?: { opener: string } }
+	/** `about`: Ask Teacher on a shown opener (its topic_done call id) or
+	 *  on the open question from earlier (with the option labels picked so
+	 *  far); either stays open. */
+	| { type: "text"; text: string; attachments?: ChatAttachment[]; about?: { opener: string } | { reviewOf: ReviewOf; picked?: string[] } }
 	| { type: "answer"; toolCallId: string; answer: QuestionAnswerData; attachments?: ChatAttachment[] }
 	| { type: "continue" }
 	| { type: "side"; text: string; attachments?: ChatAttachment[] }

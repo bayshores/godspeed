@@ -40,7 +40,7 @@ import { isQuestionTool, type AppPosed } from "./pending.ts";
 import { dismissedAnswer } from "./question-core.ts";
 import { shownOpeners, type ShownOpener } from "./topic-end.ts";
 import type { SubagentArtifactData, SubagentResultMeta } from "./contracts/jobs.ts";
-import type { PlanBlockData } from "./contracts/chat.ts";
+import type { PlanBlockData, ReviewDetails, ReviewQuestion } from "./contracts/chat.ts";
 import { pdfNoteOf, type AttachmentPart } from "./attachments.ts";
 
 /** A view part — the loose part vocabulary the renderers consume
@@ -353,6 +353,31 @@ function openerParts(opener: ShownOpener): LhViewPart[] {
 	return [...(opener.lead ? [{ type: "text", id: `opener_${opener.topicDoneCallId}-lead`, text: opener.lead, state: "done" }] : []), question];
 }
 
+/** One From earlier card: the questions from earlier answered in a row in
+ *  one sitting. */
+export interface FromEarlierData {
+	sitting: string;
+	rows: ReviewDetails[];
+}
+
+/** The view with the open question from earlier as a pending quiz the app
+ *  posed, after everything else: the pending scan reads newest first, so it
+ *  stays in view when the teacher's own question lands and is finished
+ *  first. Its call id is the source quiz's, which also seeds the option
+ *  shuffle, so a reload shows the same order. */
+export function withOpenReview(view: LhViewMessage[], question: ReviewQuestion | null): LhViewMessage[] {
+	if (!question) return view;
+	const { chatId, toolCallId } = question.of;
+	const part: LhViewPart = {
+		type: "tool-quiz",
+		toolCallId,
+		input: question.quiz,
+		state: "input-available",
+		appPosed: { kind: "review", ref: { chatId, toolCallId } } satisfies AppPosed,
+	};
+	return [...view, { id: `review_${chatId}_${toolCallId}`, role: "assistant", parts: [part] }];
+}
+
 // ─── reuse unchanged messages ───────────────────────────────────────────────
 
 /** Equal when both are the same value, or both are plain objects/arrays
@@ -607,6 +632,24 @@ function projectMarker(marker: LhMarkerMessage, out: LhViewMessage[]): void {
 		case "app-note":
 			// Hidden lines for the agent only.
 			return;
+		case "review": {
+			// Answers to questions from earlier in a row in one sitting share
+			// one card, a row each.
+			const details = marker.details as ReviewDetails | null | undefined;
+			if (!details?.answer || !details.of) return;
+			const card = out[out.length - 1]?.parts[0];
+			const data = card?.type === "data-from-earlier" ? (card.data as FromEarlierData) : null;
+			if (data && data.sitting === details.sitting) {
+				data.rows.push(details);
+				return;
+			}
+			out.push({
+				id: marker.id,
+				role: "user",
+				parts: [{ type: "data-from-earlier", id: `fe_${marker.id}`, data: { sitting: details.sitting, rows: [details] } satisfies FromEarlierData }],
+			});
+			return;
+		}
 		case "compaction": {
 			// THE MOMENT DIVIDER: minimal centered small
 			// text at the compaction moment — where the user currently is

@@ -4,7 +4,7 @@
  */
 import type { LhMessage } from "../src/shared/core/native-messages.ts";
 import type { PlanTree } from "../src/shared/core/contracts/plan.ts";
-import type { StopDetails } from "../src/shared/core/contracts/chat.ts";
+import type { ReviewDetails, StopDetails } from "../src/shared/core/contracts/chat.ts";
 
 /** Wednesday 21:00 (local time on the test machine is irrelevant: tests
  *  compare the same clock). */
@@ -93,4 +93,35 @@ export function regularizationEnds(): LhMessage[] {
 		call("t1", "topic_done", { nodeId: "reg", opener: { lead: "Now split the data.", quiz: OPENER_QUIZ } }, 49),
 		result("t1", "topic_done", { part: "topic_done", v: 1, lead: "Now split the data." }, 49),
 	];
+}
+
+/** A graded answer to a question from earlier on `topic`, as the review
+ *  route stores it: right picks B, wrong picks A; B is the right answer. */
+export function reviewDetails(topic: string, verdict: "right" | "wrong" | "dontKnow", sittingMinutes: number, sure = 80): ReviewDetails {
+	const options = ["About 60%", "About 25%", "About 10%", "About 6%"].map((label, i) => ({ index: i + 1, label }));
+	const pick = verdict === "dontKnow" ? [] : [options[verdict === "right" ? 1 : 0]!];
+	return {
+		of: { chatId: "chat_old", messageId: `m_${topic}`, toolCallId: `rv_${topic}` },
+		nodeId: topic.toLowerCase(),
+		topic,
+		quiz: { question: `A question on ${topic}?`, options: options.map(({ label }) => ({ label })), correctAnswer: "About 25%", explanation: "Bayes." },
+		answer: {
+			kind: "quiz",
+			tool: "quiz",
+			questionText: `A question on ${topic}?`,
+			options,
+			dontKnow: verdict === "dontKnow",
+			answers: pick.map((o) => ({ ...o, value: o.label })),
+			correctIndices: [2],
+			explanation: "Bayes.",
+			correct: verdict === "right",
+			...(verdict === "dontKnow" ? {} : { confidence: sure }),
+			answeredAt: iso(sittingMinutes + 1),
+		},
+		sitting: iso(sittingMinutes),
+	};
+}
+
+export function review(id: string, details: ReviewDetails, minutes: number): LhMessage {
+	return marker(id, "review", details, minutes);
 }
