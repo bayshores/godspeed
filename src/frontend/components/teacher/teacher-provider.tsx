@@ -3,7 +3,7 @@
  *
  *  - Follow: every "agent-action" event is a change the outside agent
  *    made. With Follow on, the window goes to the change's page and the
- *    changed item (data-halley-target) lights up (tour.ts paces it). On
+ *    changed item (data-teacher-target) lights up (tour.ts paces it). On
  *    by default; the learner turns it on and off, and the status line
  *    says what the agent is doing (follow-status.ts).
  *  - The panel: Talk, and Activity (teacher-activity.tsx). It never opens
@@ -24,8 +24,8 @@ import { useActivity } from "@/frontend/components/activity-dock";
 import { useSpaces } from "@/frontend/components/space-context";
 import { prefersReducedMotion } from "@/frontend/components/presence";
 import { useSettingsSaved } from "@/frontend/components/settings-signal";
-import { HalleyPanel } from "./halley-panel";
-import { HalleyContext, useHalley, type HalleyApi, type LessonPresence } from "./halley-context";
+import { TeacherPanel } from "./teacher-panel";
+import { TeacherContext, useTeacher, type TeacherApi, type LessonPresence } from "./teacher-context";
 import { useAskTeacher } from "./ask-teacher";
 import type { TalkAsk } from "./talk-view";
 import { STEP_MS, nextStep } from "./tour";
@@ -39,12 +39,12 @@ const GATHER_MS = 250;
 const RECENT_LIMIT = 20;
 
 // Most of the app reads the teacher from here.
-export { useHalley };
+export { useTeacher };
 
 /** A lesson screen reports whether the teacher is writing or working, and
  *  whether the learner has unsent text (Follow then stays on the lesson). */
-export function useHalleyLesson(streaming: boolean, working: boolean, draft: boolean): void {
-	const api = useHalley();
+export function useTeacherLesson(streaming: boolean, working: boolean, draft: boolean): void {
+	const api = useTeacher();
 	const set = api?.setLesson;
 	useEffect(() => {
 		set?.({ streaming, working, draft });
@@ -67,7 +67,7 @@ function writeStored(key: string, value: string): void {
 	}
 }
 
-export function HalleyProvider({ initialName, children }: { initialName?: string; children: ReactNode }) {
+export function TeacherProvider({ initialName, children }: { initialName?: string; children: ReactNode }) {
 	const [name, setName] = useState(initialName?.trim() || DEFAULT_TEACHER_NAME);
 	const agent = useAgentStatus();
 	const { feed } = useActivity();
@@ -179,6 +179,15 @@ export function HalleyProvider({ initialName, children }: { initialName?: string
 
 	// ── the panel ──
 	const [panelOpen, setPanelOpen] = useState(false);
+	const [showsActivity, setShowsActivity] = useState(false);
+	const openPanel = useCallback((open: boolean) => {
+		setShowsActivity(false);
+		setPanelOpen(open);
+	}, []);
+	const showActivity = useCallback(() => {
+		setShowsActivity(true);
+		setPanelOpen(true);
+	}, []);
 	// A message asked from elsewhere (askTeacher), until Talk sends it.
 	const [ask, setAsk] = useState<TalkAsk | null>(null);
 	const askCount = useRef(0);
@@ -310,27 +319,27 @@ export function HalleyProvider({ initialName, children }: { initialName?: string
 	const spaceList = spaces.spaces;
 	const spaceNameOf = useCallback((id: string | null) => (id ? (spaceList.find((c) => c.id === id)?.name ?? null) : null), [spaceList]);
 
-	const api = useMemo<HalleyApi>(
-		() => ({ name, follow: followOn, setFollow, panelOpen, setPanelOpen, recent, doing, setLesson, go, offer, spaceNameOf }),
-		[name, followOn, setFollow, panelOpen, recent, doing, setLesson, go, offer, spaceNameOf],
+	const api = useMemo<TeacherApi>(
+		() => ({ name, follow: followOn, setFollow, panelOpen, setPanelOpen: openPanel, showActivity, recent, doing, setLesson, go, offer, spaceNameOf }),
+		[name, followOn, setFollow, panelOpen, openPanel, showActivity, recent, doing, setLesson, go, offer, spaceNameOf],
 	);
 
 	return (
-		<HalleyContext.Provider value={api}>
+		<TeacherContext.Provider value={api}>
 			{children}
 			{panelOpen && !inLesson && (
 				<PanelPortal>
-					<HalleyPanel name={name} agent={agent} onClose={() => setPanelOpen(false)} recent={recent} onPick={go} ask={ask} onAsked={onAsked} />
+					<TeacherPanel name={name} agent={agent} startTab={showsActivity ? "activity" : "talk"} onClose={() => setPanelOpen(false)} recent={recent} onPick={go} ask={ask} onAsked={onAsked} />
 				</PanelPortal>
 			)}
-		</HalleyContext.Provider>
+		</TeacherContext.Provider>
 	);
 }
 
 /** The open panel, on the page's top layer. It closes on a click elsewhere
  *  and on Esc, except while a dialog opened from it is up. */
 function PanelPortal({ children }: { children: ReactNode }) {
-	const api = useHalley();
+	const api = useTeacher();
 	const close = api?.setPanelOpen;
 	useEffect(() => {
 		if (!close) return;
@@ -338,7 +347,7 @@ function PanelPortal({ children }: { children: ReactNode }) {
 		const onDown = (e: PointerEvent) => {
 			if (dialogUp()) return;
 			const t = e.target;
-			if (t instanceof Element && t.closest("[data-halley-panel], [data-halley-panel-toggle]")) return;
+			if (t instanceof Element && t.closest("[data-teacher-panel], [data-teacher-panel-toggle]")) return;
 			close(false);
 		};
 		const onKey = (e: KeyboardEvent) => {

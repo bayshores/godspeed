@@ -31,16 +31,17 @@ export function savedAgent(): string | null {
  * The godspeed folder and its "Open Claude Code" button: open(agent) makes
  * or updates the folder, then asks the desktop app to start the agent in a
  * terminal there (outside the desktop app, the learner runs the command).
- * Claude Code also gets the backup teacher in a second window, unless one
- * is already waiting. `launch` is the latest click, for the live log.
+ * The helper opens in a second window, unless one is already here;
+ * openHelper opens that window alone. `launch` is the latest click, for the
+ * live log.
  */
 export function useAgentFolder() {
 	const [view, setView] = useState<FolderView | null>(null);
 	const [launch, setLaunch] = useState<Launch | null>(null);
 	const status = useAgentStatus();
-	const backupWaiting = useRef(false);
+	const helperHere = useRef(false);
 	useEffect(() => {
-		backupWaiting.current = !!status?.backupConnected;
+		helperHere.current = !!status?.helperHere;
 	}, [status]);
 
 	useEffect(() => {
@@ -50,32 +51,37 @@ export function useAgentFolder() {
 			.catch(() => {/* the button sets it up on click */});
 	}, []);
 
-	const open = useCallback(async (agent: FolderAgent) => {
+	const start = useCallback(async (agent: FolderAgent, helperOnly: boolean) => {
+		const launch: Pick<Launch, "agent" | "helperOnly"> = helperOnly ? { agent, helperOnly: true } : { agent };
 		try {
 			localStorage.setItem(AGENT_KEY, agent);
 		} catch {
 			/* remembering is a convenience */
 		}
-		setLaunch({ agent, made: "wait" });
+		setLaunch({ ...launch, made: "wait" });
 		let made: FolderView;
 		try {
 			made = await postAgentFolder({ action: "setup" });
 		} catch (err) {
-			setLaunch({ agent, made: { error: (err as Error).message } });
+			setLaunch({ ...launch, made: { error: (err as Error).message } });
 			return;
 		}
 		setView(made);
 		const openAgent = window.lh?.openAgent;
 		if (!openAgent) {
-			setLaunch({ agent, made: "done", opened: "manual" });
+			setLaunch({ ...launch, made: "done", opened: "manual" });
 			return;
 		}
-		setLaunch({ agent, made: "done", opened: "wait" });
-		const [main, ...more] = startTargets(agent, backupWaiting.current);
+		setLaunch({ ...launch, made: "done", opened: "wait" });
+		const [main, ...more] = startTargets(agent, helperHere.current, helperOnly);
 		const error = await openAgent(made.folder, main!).catch(() => "Couldn't open a terminal. Copy the command and run it in yours.");
-		setLaunch({ agent, made: "done", opened: error ? { error } : "done" });
+		setLaunch({ ...launch, made: "done", opened: error ? { error } : "done" });
 		if (!error) for (const target of more) await openAgent(made.folder, target).catch(() => null);
 	}, []);
+
+	const open = useCallback((agent: FolderAgent) => start(agent, false), [start]);
+	/** Open the helper's window alone. */
+	const openHelper = useCallback((agent: FolderAgent) => start(agent, true), [start]);
 
 	/** Use another folder (the native picker); null when cancelled. Resolves to an error message, if any. */
 	const change = useCallback(async (): Promise<string | null> => {
@@ -100,7 +106,7 @@ export function useAgentFolder() {
 		}
 	}, []);
 
-	return { view, launch, open, change, setStartCommand };
+	return { view, launch, open, openHelper, change, setStartCommand };
 }
 
 /** "Open Claude Code" for the agent last opened here (Claude Code when

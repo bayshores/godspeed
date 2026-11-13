@@ -1,6 +1,6 @@
 import { cn } from "@/frontend/lib/utils";
 
-/** The small on/off switch beside a short label (Halley's Follow, the code
+/** The small on/off switch beside a short label (the teacher's Follow, the code
  *  editor's Vim). */
 export function SmallSwitch({
 	on,

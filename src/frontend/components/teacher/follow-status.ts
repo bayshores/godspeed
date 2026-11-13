@@ -30,7 +30,7 @@ interface Extraction {
 }
 
 interface DoingInputs {
-	agent: { connected: boolean; teaching: boolean; pendingWork: number } | null;
+	agent: { connected: boolean; teaching: boolean; helperHere: boolean; pendingWork: number; pendingTurns: number } | null;
 	/** The agent's newest change while it is fresh (freshAction). */
 	fresh: AgentAction | null;
 	/** The lesson on screen, if one is. */
@@ -84,11 +84,19 @@ export function agentDoing(i: DoingInputs): AgentDoing | null {
 	if (!agent.teaching) return { text: "Not teaching yet", working: false };
 	if (i.lesson?.streaming) return { text: "Writing the lesson", working: true };
 	if (i.lesson?.working) return { text: "Working on the lesson", working: true };
-	// The run in progress first; the rest wait their turn behind it.
-	const run = i.extractions.find((r) => r.phase !== "waiting") ?? i.extractions[0];
-	if (run) return { ...readingLine(run), working: true };
-	const job = i.jobs[0];
-	if (job) return { text: JOB_TEXT[job.kind], working: true };
-	if (agent.pendingWork > 0) return { text: "Working", working: true };
+	// A helper does the background work, so the teacher's line leaves it out.
+	const background = agent.helperHere ? null : backgroundLine(i.extractions, i.jobs);
+	if (background) return { ...background, working: true };
+	if ((agent.helperHere ? agent.pendingTurns : agent.pendingWork) > 0) return { text: "Working", working: true };
 	return { text: "Idle", working: false };
+}
+
+/** The background work under way, in words: a file or lesson read for
+ *  facts, else a job. Null when none runs. */
+export function backgroundLine(extractions: readonly Extraction[], jobs: readonly { kind: JobKind }[]): Omit<AgentDoing, "working"> | null {
+	// The run in progress first; the rest wait their turn behind it.
+	const run = extractions.find((r) => r.phase !== "waiting") ?? extractions[0];
+	if (run) return readingLine(run);
+	const job = jobs[0];
+	return job ? { text: JOB_TEXT[job.kind] } : null;
 }

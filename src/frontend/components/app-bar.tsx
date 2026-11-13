@@ -13,12 +13,14 @@ import { useActivity } from "@/frontend/components/activity-dock";
 import { useAgentStatus } from "@/frontend/components/agent-status";
 import { useSpaces } from "@/frontend/components/space-context";
 import { useMinute } from "@/frontend/components/countdown";
-import { announceDelay } from "@/frontend/components/halley/follow-status";
-import { useHalley } from "@/frontend/components/halley/halley-provider";
+import { announceDelay } from "@/frontend/components/teacher/follow-status";
+import { useTeacher } from "@/frontend/components/teacher/teacher-provider";
 import { AppMenu } from "@/frontend/components/top-bar/app-menu";
 import { BAR_TAB, barTabState, SpaceTabs } from "@/frontend/components/top-bar/space-tabs";
 import { FollowButton } from "@/frontend/components/top-bar/follow-button";
 import { chipText, clockText, selectedTab } from "@/frontend/components/top-bar/top-bar-model";
+import { useWorker } from "@/frontend/components/work/use-worker";
+import { workChip } from "@/frontend/components/work/work-model";
 import { cn } from "@/frontend/lib/utils";
 
 export function AppBar() {
@@ -31,6 +33,7 @@ export function AppBar() {
 			<span className="flex shrink-0 items-center pr-4 pl-5 text-[17px] font-medium">godspeed</span>
 			<SpaceTabs selected={selected} />
 			<FollowButton />
+			<WorkChip />
 			<TeacherChip />
 			<AppMenu lit={selected === "menu"} />
 			<Clock />
@@ -38,26 +41,41 @@ export function AppBar() {
 	);
 }
 
+/** While background work runs: who does it and how far it is, on the
+ *  highlighter. A click opens the teacher's panel on its Activity list. */
+function WorkChip() {
+	const teacher = useTeacher();
+	const { spaces } = useSpaces();
+	const { feed } = useActivity();
+	const { worker } = useWorker();
+	const text = workChip({ worker, spaces, jobs: feed.jobs.length + feed.extractions.length });
+	if (!teacher || !text) return null;
+	return (
+		<button type="button" data-testid="bar-work" onClick={() => teacher.showActivity()} className="lh-press my-2 ml-1 flex min-w-0 max-w-[280px] shrink items-center bg-highlight px-3 text-[15px] whitespace-nowrap text-ink">
+			<span className="truncate">{text}</span>
+		</button>
+	);
+}
+
 /** The teacher's name with what it is doing; a click opens its panel. */
 function TeacherChip() {
-	const halley = useHalley();
+	const teacher = useTeacher();
 	const agent = useAgentStatus();
-	const { feed } = useActivity();
-	if (!halley) return null;
-	const text = chipText({ name: halley.name, doing: halley.doing, agent, jobs: feed.jobs.length + feed.extractions.length });
+	if (!teacher) return null;
+	const text = chipText({ name: teacher.name, doing: teacher.doing, agent });
 	return (
 		<>
 			<button
 				type="button"
 				data-testid="bar-teacher"
-				data-halley-panel-toggle=""
-				aria-expanded={halley.panelOpen}
-				onClick={() => halley.setPanelOpen(!halley.panelOpen)}
-				className={cn(BAR_TAB, "ml-1 max-w-[340px] shrink", barTabState(halley.panelOpen))}
+				data-teacher-panel-toggle=""
+				aria-expanded={teacher.panelOpen}
+				onClick={() => teacher.setPanelOpen(!teacher.panelOpen)}
+				className={cn(BAR_TAB, "ml-1 max-w-[340px] shrink", barTabState(teacher.panelOpen))}
 			>
 				<span className="truncate">{text}</span>
 			</button>
-			{halley.doing && <Announce text={text} />}
+			{teacher.doing && <Announce text={text} />}
 		</>
 	);
 }

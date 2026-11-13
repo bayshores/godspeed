@@ -14,7 +14,7 @@ import { useLessonDrafts } from "@/frontend/components/lesson/use-lesson-drafts"
 import { useServerEvent } from "@/frontend/components/server-events";
 import { useChatSession } from "@/frontend/components/session";
 import { useSpaces } from "@/frontend/components/space-context";
-import { talkWorkLine } from "@/frontend/components/teacher-work/teacher-work-model";
+import { talkWorkLine } from "@/frontend/components/work/work-model";
 import { actionFor, appRequestText, draftWithAsk, speakerOf, startsTurn, talkRows } from "./talk-model";
 import { TalkNoAgent } from "./talk-no-agent";
 import { pastLabel } from "./tour";
@@ -298,7 +298,7 @@ function TalkThread({
 						);
 					else {
 						const action = actionFor(row.change, recent);
-						const work = talkWorkLine(action, spaces, agent?.teaching ?? true);
+						const work = talkWorkLine(action, spaces, !agent || agent.teaching || agent.helperHere);
 						body = (
 							<button
 								type="button"

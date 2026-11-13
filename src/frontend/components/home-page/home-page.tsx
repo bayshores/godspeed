@@ -10,7 +10,7 @@ import { MenuShell } from "@/frontend/components/menu-shell";
 import { useMenuDismiss } from "@/frontend/components/use-menu-dismiss";
 import { useLessonStart } from "@/frontend/components/home/use-lesson-start";
 import { useOpenDeadlines } from "@/frontend/components/use-open-deadlines";
-import { TodayWork } from "@/frontend/components/teacher-work/today-work";
+import { TodayWork } from "@/frontend/components/work/today-work";
 import type { OpenDeadline } from "@/frontend/components/deadlines-model";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { byDue, spacesSettled, longDay, prepDays, todayLists, type PrepDay } from "./home-page-model";

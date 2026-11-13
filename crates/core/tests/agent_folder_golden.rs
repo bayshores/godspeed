@@ -18,7 +18,7 @@ fn s(v: &Json) -> &str {
 
 const PLATFORMS: [(&str, Platform); 3] = [("darwin", Platform::Darwin), ("win32", Platform::Win32), ("linux", Platform::Linux)];
 const AGENTS: [(&str, FolderAgent); 2] = [("claude", FolderAgent::Claude), ("codex", FolderAgent::Codex)];
-const TARGETS: [(&str, StartTarget); 3] = [("claude", StartTarget::Claude), ("claude-backup", StartTarget::ClaudeBackup), ("codex", StartTarget::Codex)];
+const TARGETS: [(&str, StartTarget); 4] = [("claude", StartTarget::Claude), ("claude-helper", StartTarget::ClaudeHelper), ("codex", StartTarget::Codex), ("codex-helper", StartTarget::CodexHelper)];
 
 #[test]
 fn agent_folder_text_matches_node() {

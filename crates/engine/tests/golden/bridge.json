@@ -1129,14 +1129,14 @@
 					"step": {
 						"op": "status",
 						"agents": [
-							"backup-1",
+							"helper-1",
 							"main-1"
 						]
 					},
 					"result": {
-						"connected": false,
-						"answering": false,
-						"backups": [
+						"here": false,
+						"covering": false,
+						"helpers": [
 							false,
 							false
 						]
@@ -1245,8 +1245,8 @@
 					"step": {
 						"op": "wait",
 						"as": "none4",
-						"agent": "backup-1",
-						"backup": true
+						"agent": "helper-1",
+						"helper": true
 					},
 					"result": null,
 					"events": [
@@ -1257,14 +1257,14 @@
 					"step": {
 						"op": "status",
 						"agents": [
-							"backup-1",
+							"helper-1",
 							"main-1"
 						]
 					},
 					"result": {
-						"connected": true,
-						"answering": false,
-						"backups": [
+						"here": true,
+						"covering": false,
+						"helpers": [
 							true,
 							false
 						]
@@ -1274,7 +1274,7 @@
 				{
 					"step": {
 						"op": "compacting",
-						"agent": "backup-1"
+						"agent": "helper-1"
 					},
 					"result": null,
 					"events": []
@@ -1293,14 +1293,14 @@
 					"step": {
 						"op": "status",
 						"agents": [
-							"backup-1",
+							"helper-1",
 							"main-1"
 						]
 					},
 					"result": {
-						"connected": true,
-						"answering": true,
-						"backups": [
+						"here": true,
+						"covering": true,
+						"helpers": [
 							true,
 							false
 						]
@@ -1361,8 +1361,8 @@
 					"step": {
 						"op": "wait",
 						"as": "W11",
-						"agent": "backup-1",
-						"backup": true
+						"agent": "helper-1",
+						"helper": true
 					},
 					"result": {
 						"workId": "<work#7>_2",
@@ -1428,7 +1428,7 @@
 					"result": {
 						"ok": true,
 						"conversation": "chat_l6",
-						"agent": "backup-1"
+						"agent": "helper-1"
 					},
 					"events": [
 						"agent-changed"
@@ -1484,14 +1484,14 @@
 					"step": {
 						"op": "status",
 						"agents": [
-							"backup-1",
+							"helper-1",
 							"main-1"
 						]
 					},
 					"result": {
-						"connected": true,
-						"answering": false,
-						"backups": [
+						"here": true,
+						"covering": false,
+						"helpers": [
 							true,
 							false
 						]
@@ -1501,18 +1501,9 @@
 				{
 					"step": {
 						"op": "wait",
-						"as": "none6",
-						"agent": "backup-1",
-						"backup": true
-					},
-					"result": null,
-					"events": []
-				},
-				{
-					"step": {
-						"op": "wait",
 						"as": "W12",
-						"agent": "main-1"
+						"agent": "helper-1",
+						"helper": true
 					},
 					"result": {
 						"workId": "<work#8>_1",
@@ -1533,6 +1524,15 @@
 				},
 				{
 					"step": {
+						"op": "wait",
+						"as": "none6",
+						"agent": "main-1"
+					},
+					"result": null,
+					"events": []
+				},
+				{
+					"step": {
 						"op": "respond",
 						"work": "W12",
 						"text": "Read.",
@@ -1541,7 +1541,7 @@
 					"result": {
 						"ok": true,
 						"conversation": "job_y",
-						"agent": "main-1"
+						"agent": "helper-1"
 					},
 					"events": [
 						"agent-changed"
@@ -1728,8 +1728,8 @@
 					"step": {
 						"op": "wait",
 						"as": "W14",
-						"agent": "backup-1",
-						"backup": true
+						"agent": "helper-1",
+						"helper": true
 					},
 					"result": {
 						"workId": "<work#10>_1",
@@ -1780,7 +1780,7 @@
 					"result": {
 						"ok": true,
 						"conversation": "chat_l7",
-						"agent": "backup-1"
+						"agent": "helper-1"
 					},
 					"events": [
 						"agent-changed"
@@ -1838,8 +1838,8 @@
 						"op": "wait",
 						"as": "W15",
 						"conversation": "chat_l7",
-						"agent": "backup-1",
-						"backup": true
+						"agent": "helper-1",
+						"helper": true
 					},
 					"result": {
 						"workId": "<work#11>_1",
@@ -1866,7 +1866,7 @@
 					"result": {
 						"ok": true,
 						"conversation": "chat_l7",
-						"agent": "backup-1"
+						"agent": "helper-1"
 					},
 					"events": [
 						"agent-changed"
@@ -2366,13 +2366,13 @@
 					"last": "2acabdb51c70d0a9c9b315aeea6a86e9",
 					"lead": "7f32ce993cc75a30ea3a22f287a89c41"
 				},
-				"backup-1 chat_l6": {
+				"helper-1 chat_l6": {
 					"count": 3,
 					"hash": "304ef847846aafa2b8a852ae84cacd30",
 					"last": "73699b70b88bc58b0885597b77936d06",
 					"lead": "7f32ce993cc75a30ea3a22f287a89c41"
 				},
-				"backup-1 chat_l7": {
+				"helper-1 chat_l7": {
 					"count": 7,
 					"hash": "4defbc9e7698508dd1d89a7ad7a1ad8b",
 					"last": "d612697a601af31d18b3f726b674ab8f",

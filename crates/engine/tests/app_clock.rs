@@ -1,6 +1,6 @@
 //! Limits that only end on the app clock: a stuck tool's 30 s timeout and grace, a claim nobody
-//! answered for 10 minutes, and a compaction that never reported its end. One test, because the
-//! clock is shared by the whole binary.
+//! answered for 10 minutes, a compaction that never reported its end, and a helper busy on one
+//! long job. One test, because the clock is shared by the whole binary.
 
 use std::sync::Arc;
 
@@ -93,4 +93,19 @@ async fn the_app_clock_ends_stuck_tools_and_stale_claims() {
 	let work = bridge.wait_for_work(0, agent("main-1")).await.unwrap();
 	bridge.respond_to_work(&work.work_id, reply("Back."), 0).unwrap();
 	assert_eq!(call.await.unwrap()["content"], json!([{ "type": "text", "text": "Back." }]));
+
+	// A helper busy on one long job sends no check-ins, yet still counts as here, so the teacher
+	// leaves it the next job until its claim runs out.
+	let bridge = Bridge::new(&Events::new(), Arc::new(Marks::default()));
+	let _sheet = park(&bridge, vec![json!({ "role": "user", "content": "make the sheet", "timestamp": 1 })], "job_sheet", &Abort::new());
+	settle().await;
+	bridge.wait_for_work(0, WaitOptions { helper: true, ..agent("helper-1") }).await.unwrap();
+	let _read = park(&bridge, vec![json!({ "role": "user", "content": "read this file", "timestamp": 1 })], "job_read", &Abort::new());
+	settle().await;
+	clock::advance(4 * 60_000);
+	assert!(bridge.helper_here(clock::now_ms()));
+	assert!(bridge.wait_for_work(0, agent("main-1")).await.is_none());
+	clock::advance(6 * 60_000 + 1);
+	assert!(!bridge.helper_here(clock::now_ms()));
+	assert_eq!(bridge.wait_for_work(0, agent("main-1")).await.unwrap().conversation, "job_sheet");
 }

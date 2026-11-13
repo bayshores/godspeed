@@ -3,8 +3,8 @@
  */
 import type { AgentAction } from "@/shared/core";
 import { agentStatusLabel, type AgentStatus } from "@/frontend/components/agent-status";
-import { pageName } from "@/frontend/components/halley/follow";
-import type { AgentDoing } from "@/frontend/components/halley/follow-status";
+import { pageName } from "@/frontend/components/teacher/follow";
+import type { AgentDoing } from "@/frontend/components/teacher/follow-status";
 
 /** The clock: 24-hour "17:51". */
 export function clockText(d: Date): string {
@@ -32,13 +32,12 @@ const lowerFirst = (text: string) => text.slice(0, 1).toLowerCase() + text.slice
  * ("marco, reading Lecture 14 notes"), or the agent's state when none is
  * teaching ("No agent connected").
  */
-export function chipText(i: { name: string; doing: AgentDoing | null; agent: AgentStatus | null; jobs: number }): string {
+export function chipText(i: { name: string; doing: AgentDoing | null; agent: AgentStatus | null }): string {
 	// Before the first read of the agent's state: just the name.
 	if (!i.agent) return i.name;
-	if (i.agent.backupAnswering) return `${i.name}, catching up on notes`;
+	if (i.agent.helperCovering) return `${i.name}, catching up on notes`;
 	if (i.doing?.working) return `${i.name}, ${lowerFirst(i.doing.text)}`;
-	if (!i.agent.teaching) return agentStatusLabel(i.agent, i.jobs);
-	return i.jobs > 0 ? `${i.name}, ${i.jobs} job${i.jobs === 1 ? "" : "s"}` : i.name;
+	return i.agent.teaching ? i.name : agentStatusLabel(i.agent);
 }
 
 /**

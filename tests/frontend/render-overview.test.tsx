@@ -216,7 +216,7 @@ describe("The next deadline", () => {
 		assert.match(text(html), /2 days Thursday Oct 29 HW 5 2 of 7 problems done\./);
 		assert.match(tag(html, "next-deadline-open"), /href="\/space\/deadline\/d1"/);
 		assert.match(html, /width:28\.57/, "the bar is as far as the problems done");
-		assert.match(html, /data-halley-target="deadline:d1"/);
+		assert.match(html, /data-teacher-target="deadline:d1"/);
 	});
 
 	it("homework is worked on, a test is studied for", () => {

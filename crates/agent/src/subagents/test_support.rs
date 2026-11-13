@@ -1,4 +1,4 @@
-//! What the helper-job tests share: a bridge with marks in memory and a scripted engine.
+//! What the background-job tests share: a bridge with marks in memory and a scripted engine.
 
 use std::path::Path;
 use std::sync::Arc;
@@ -16,7 +16,7 @@ use parking_lot::Mutex;
 use super::headless::{DemoRunResult, HeadlessApi};
 use super::pi_run::HelperOptions;
 
-/// No saved marks: the helper jobs never read them.
+/// No saved marks: the background jobs never read them.
 struct NoMarks;
 
 impl SeenStore for NoMarks {

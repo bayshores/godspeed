@@ -103,7 +103,7 @@ function DeadlineRow({
 	onUndo: () => void;
 }) {
 	return (
-		<li data-testid={`deadline-row-${d.id}`} data-halley-target={`deadline:${d.id}`}>
+		<li data-testid={`deadline-row-${d.id}`} data-teacher-target={`deadline:${d.id}`}>
 			<Pane className="flex min-h-[84px] items-center overflow-hidden transition-colors hover:bg-tone">
 				<DeadlineBlock deadline={d} color={color} nowMs={nowMs} size="list" pale={!dueThisWeek(d, nowMs)} />
 				<span className="flex min-w-0 flex-1 flex-col gap-[3px] px-5 py-3">

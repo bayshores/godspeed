@@ -6,7 +6,7 @@ import { useServerEvent, useServerResync } from "@/frontend/components/server-ev
  * THE ACTIVITY FEED: one feed of GET /api/activity (running sub-agent jobs
  * across all lessons, title-joined, the fact-building runs, and jobs that
  * failed lately), fetched when truth moves. The teacher's Activity list
- * (halley/teacher-activity.tsx) draws it. Teaching turns are not in it:
+ * (teacher/teacher-activity.tsx) draws it. Teaching turns are not in it:
  * a turn in flight shows where it happens.
  */
 

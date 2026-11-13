@@ -64,7 +64,7 @@ describe("TeachingSection (SSR)", () => {
 	const render = (props: Partial<React.ComponentProps<typeof TeachingSection>> = {}) =>
 		renderToStaticMarkup(
 			<ServerEventsProvider connect={quietEvents as never}>
-				<TeachingSection agent={undefined} graph={undefined} teacherName="Halley" onSectionChange={() => {}} onFullPage={() => {}} {...props} />
+				<TeachingSection agent={undefined} graph={undefined} teacherName="Ada" onSectionChange={() => {}} onFullPage={() => {}} {...props} />
 			</ServerEventsProvider>,
 		);
 
@@ -74,7 +74,7 @@ describe("TeachingSection (SSR)", () => {
 		assert.deepEqual(ids, [...TEACHING_AREAS.map((a) => a.id), "remembered"]);
 		assert.ok(tagOf(html, `area-${TEACHING_AREAS[0]!.id}`).includes('aria-current="true"'), "the first area is picked");
 		assert.ok(html.includes('data-testid="area-detail"'));
-		assert.ok(html.includes("How Halley teaches you."), "the teacher's name in the lead line");
+		assert.ok(html.includes("How Ada teaches you."), "the teacher's name in the lead line");
 	});
 
 	it("the picked area's Full instructions button waits disabled until the texts load", () => {
@@ -97,7 +97,7 @@ describe("AreaDetail (SSR)", () => {
 					area={area(id)}
 					agent={undefined}
 					graphOn
-					teacherName="Halley"
+					teacherName="Ada"
 					savedAt={{}}
 					edited={false}
 					instructionsReady

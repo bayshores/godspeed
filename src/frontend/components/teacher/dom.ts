@@ -1,6 +1,6 @@
 /**
  * Follow's page helpers (browser only): finding a change's element
- * (data-halley-target), lighting it up, and whether a dialog is open.
+ * (data-teacher-target), lighting it up, and whether a dialog is open.
  */
 import type { AgentAction } from "@/shared/core";
 import { targetKey } from "./tour";
@@ -25,7 +25,7 @@ function shown(el: HTMLElement): boolean {
 export function targetElements(target: AgentAction["target"]): HTMLElement[] {
 	if (!target || typeof document === "undefined") return [];
 	const key = CSS.escape(targetKey(target));
-	const all = [...document.querySelectorAll<HTMLElement>(`[data-halley-target="${key}"]`)].filter(shown);
+	const all = [...document.querySelectorAll<HTMLElement>(`[data-teacher-target="${key}"]`)].filter(shown);
 	const inMain = (el: HTMLElement) => (el.closest("main") ? 0 : 1);
 	return all.sort((a, b) => inMain(a) - inMain(b));
 }

@@ -7,7 +7,7 @@ use gs_core::contracts::chat::{CHAT_ID_PREFIX, TALK_CHAT_ID};
 use gs_core::records::agent_seen::seen_mark;
 use gs_json::Json;
 
-use super::backup::{compacting_now, someone_compacting};
+use super::helper::{self, compacting_now, someone_compacting};
 use super::render::{instructions_and_tools, prints_of};
 use super::view::{WorkView, remember_seen};
 use super::{Bridge, State, WorkItem, is_background};
@@ -15,7 +15,7 @@ use crate::turn::messages::faux_assistant_message;
 
 /// A claimed item with no reply after this long goes back in the queue (the agent crashed or
 /// lost track of it).
-const CLAIM_TIMEOUT_MS: i64 = 10 * 60_000;
+pub(super) const CLAIM_TIMEOUT_MS: i64 = 10 * 60_000;
 
 /// A wait wakes at least this often to look again.
 const WAIT_SLICE_MS: i64 = 15_000;
@@ -32,8 +32,8 @@ pub struct WaitOptions {
 	/// With a conversation, also take background jobs, so an agent staying on one lesson
 	/// still does the file reading and graph work nobody else would.
 	pub and_background: bool,
-	/// The backup teacher's waiter.
-	pub backup: bool,
+	/// The helper's waiter.
+	pub helper: bool,
 }
 
 /// One tool call in an agent's reply.
@@ -62,7 +62,7 @@ fn no_item(work_id: &str) -> String {
 }
 
 /// The open item a workId names, only while that claim is its latest.
-fn open_item(state: &State, work_id: &str) -> Option<usize> {
+pub(super) fn open_item(state: &State, work_id: &str) -> Option<usize> {
 	let (id, claims) = work_id.rsplit_once('_')?;
 	state.items.iter().position(|i| i.id == id && i.claims.to_string() == claims)
 }
@@ -72,8 +72,10 @@ fn claimable(state: &State, item: &WorkItem, now: i64, taker: &WaitOptions) -> b
 	if agent.is_some_and(|a| compacting_now(state, a, now)) {
 		return false;
 	}
-	// The backup answers for a compacting agent, so its holds do not count.
-	if !taker.backup && Some(item.conversation.as_str()) != taker.conversation.as_deref() && state.held.get(&item.conversation).is_some_and(|until| *until > now) {
+	let held = Some(item.conversation.as_str()) != taker.conversation.as_deref() && state.held.get(&item.conversation).is_some_and(|until| *until > now);
+	// The helper answers a compacting teacher's lessons and Talk, so those holds do not count.
+	let covers = taker.helper && !is_background(&item.conversation) && someone_compacting(state, now);
+	if held && !covers {
 		return false;
 	}
 	// An agent may take its own item again (a compaction lost its workId).
@@ -93,22 +95,23 @@ fn oldest(state: &State, now: i64, opts: &WaitOptions, keep: impl Fn(&WorkItem) 
 	})
 }
 
-/// The next item: any, or the conversation's (a lesson also takes Talk's, oldest first, so Talk
-/// never waits on a lesson), then background jobs when asked.
+/// The next item. A teacher: any, or its conversation's (a lesson also takes Talk's, oldest first,
+/// so Talk never waits on a lesson), then background jobs when asked; it leaves background jobs to
+/// a helper that is here. A helper: background jobs, and what it began.
 fn pick(state: &State, now: i64, opts: &WaitOptions) -> Option<usize> {
-	// The backup finishes a turn it began, and takes new lesson and Talk turns only while a main
-	// agent compacts.
-	if opts.backup {
-		return match opts.conversation.as_deref() {
+	if opts.helper {
+		// A compacting teacher's lesson and Talk turns come first, so they wait one job step at most.
+		let covered = if someone_compacting(state, now) { oldest(state, now, opts, |i| !is_background(&i.conversation)) } else { None };
+		return covered.or_else(|| match opts.conversation.as_deref() {
 			Some(conversation) => oldest(state, now, opts, |i| i.conversation == conversation),
-			None if someone_compacting(state, now) => oldest(state, now, opts, |i| !is_background(&i.conversation)),
-			None => None,
-		};
+			None => oldest(state, now, opts, |i| is_background(&i.conversation)),
+		});
 	}
-	let Some(conversation) = opts.conversation.as_deref() else { return oldest(state, now, opts, |_| true) };
+	let alone = !helper::here(state, now);
+	let Some(conversation) = opts.conversation.as_deref() else { return oldest(state, now, opts, |i| alone || !is_background(&i.conversation)) };
 	let with_talk = conversation.starts_with(CHAT_ID_PREFIX);
 	oldest(state, now, opts, |i| i.conversation == conversation || (with_talk && i.conversation == TALK_CHAT_ID))
-		.or_else(|| if opts.and_background { oldest(state, now, opts, |i| is_background(&i.conversation)) } else { None })
+		.or_else(|| if opts.and_background && alone { oldest(state, now, opts, |i| is_background(&i.conversation)) } else { None })
 }
 
 enum Claim {
@@ -151,9 +154,9 @@ impl Bridge {
 				return None;
 			}
 			let now = clock::now_ms();
-			// A backup that only waits is not teaching: lessons still need the main agent.
-			if opts.backup {
-				self.note_backup(opts.agent.as_deref(), now);
+			// A helper is not teaching: lessons still need the teacher.
+			if opts.helper {
+				self.note_helper(opts.agent.as_deref(), now);
 			} else {
 				self.record_check_in(None, true, now);
 			}
@@ -176,7 +179,7 @@ impl Bridge {
 	/// Answers a work item. The conversation's next item is held for the answering agent for
 	/// `hold_ms` (it waits for it right after; `release_conversation` ends the hold).
 	pub fn respond_to_work(&self, work_id: &str, reply: AgentReply, hold_ms: i64) -> Result<Answered, String> {
-		self.record_check_in(None, true, clock::now_ms());
+		self.check_in_for(work_id);
 		let mut s = self.0.state.lock();
 		let i = open_item(&s, work_id).ok_or_else(|| no_item(work_id))?;
 		let item = &s.items[i];
@@ -225,7 +228,7 @@ impl Bridge {
 
 	/// One page of an open item (its text blocks) and the page count; the page counts as read.
 	pub fn read_work_page(&self, work_id: &str, page: i64) -> Result<(Vec<String>, usize), String> {
-		self.record_check_in(None, true, clock::now_ms());
+		self.check_in_for(work_id);
 		let mut s = self.0.state.lock();
 		let i = open_item(&s, work_id).ok_or_else(|| no_item(work_id))?;
 		let item = &mut s.items[i];
@@ -240,7 +243,7 @@ impl Bridge {
 	/// The open item a workId names, presented again in full: instructions, every tool and the
 	/// whole transcript (the agent lost track of it).
 	pub fn full_work_view(&self, work_id: &str) -> Result<WorkView, String> {
-		self.record_check_in(None, true, clock::now_ms());
+		self.check_in_for(work_id);
 		let mut s = self.0.state.lock();
 		let i = open_item(&s, work_id).ok_or_else(|| no_item(work_id))?;
 		s.items[i].agent_forgot = false;

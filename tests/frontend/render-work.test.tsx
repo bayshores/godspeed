@@ -1,6 +1,6 @@
 /**
- * The teacher's work on a space, on screen: the strip under a space's
- * head (live, done, unfolded, Close) and Today's strip per space.
+ * Background work on a space, on screen: the work frame around a space's
+ * pages (reading, done, Close) and Today's strip per space.
  */
 import React, { act, useEffect } from "react";
 (globalThis as Record<string, unknown>).React = React;
@@ -23,8 +23,8 @@ Object.assign(globalThis, {
 });
 
 const { createRoot } = await import("react-dom/client");
-const { TeacherWork } = await import("../../src/frontend/components/teacher-work/teacher-work.tsx");
-const { TodayWork } = await import("../../src/frontend/components/teacher-work/today-work.tsx");
+const { SpaceWorkFrame } = await import("../../src/frontend/components/work/space-work-frame.tsx");
+const { TodayWork } = await import("../../src/frontend/components/work/today-work.tsx");
 const { SpaceProvider } = await import("../../src/frontend/components/space-context.tsx");
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
 const { MemoryRouter, useLocation } = await import("react-router");
@@ -64,7 +64,6 @@ async function mount(node: React.ReactNode, space: SpaceRecord | null = null) {
 		requests.push(`${init?.method ?? "GET"} ${url}`);
 		if (url === "/api/spaces") return Response.json({ spaces: SPACES });
 		if (url === "/api/spaces/spc_ml") return Response.json({ space, folder: null });
-		if (url.startsWith("/api/progress")) return Response.json({ grouping: false, files: [{ fileId: "a", name: "a.pdf", facts: 9, inLessons: 0, share: 0 }] });
 		return Response.json({ ok: true });
 	}) as typeof fetch;
 	const quietEvents = () => ({ onEvent() {}, onOpen() {}, close() {} });
@@ -91,40 +90,32 @@ async function mount(node: React.ReactNode, space: SpaceRecord | null = null) {
 const text = (host: HTMLElement, testid: string) => host.querySelector(`[data-testid="${testid}"]`)?.textContent ?? null;
 const click = (host: HTMLElement, testid: string) => act(async () => host.querySelector<HTMLElement>(`[data-testid="${testid}"]`)!.click());
 
-describe("The strip under a space's head", () => {
-	it("shows nothing when nothing is going on", async () => {
-		const host = await mount(<TeacherWork />, record({ files: [file("a", "ready")] }));
-		assert.equal(host.querySelector('[data-testid="teacher-work"]'), null);
-		assert.ok(!requests.some((r) => r.includes("/api/progress")), "progress is read only when there is work to show");
+describe("The work frame around a space's pages", () => {
+	const page = <SpaceWorkFrame><p data-testid="page">The page</p></SpaceWorkFrame>;
+
+	it("no frame when nothing is going on, and the page is there", async () => {
+		const host = await mount(page, record({ files: [file("a", "ready")] }));
+		assert.equal(host.querySelector('[data-testid="work-frame"]'), null);
+		assert.equal(text(host, "page"), "The page");
 	});
 
-	it("a space being built: the file read now, unfolded with what it made so far", async () => {
+	it("files being read: the striped frame and its tag, with the page still inside", async () => {
 		const files = [file("a", "ready"), file("week2", "extracting"), file("c", "pending")];
-		const host = await mount(<TeacherWork />, record({ files, lastWork: { startedAt: "x", fileIds: ["a"], deadlineIds: [] } }));
-		assert.equal(text(host, "teacher-work-title"), "Teacher is building this space");
-		assert.equal(text(host, "teacher-work-detail"), "Reading week2.pdf now. 1 left.");
-		assert.equal(host.querySelector('[data-testid="teacher-work-close"]'), null);
-		const made = text(host, "teacher-work-files")!;
-		assert.match(made, /week2\.pdfreading now/);
-		assert.match(made, /a\.pdf9 facts/);
-		assert.match(made, /c\.pdfwaiting/);
-		assert.equal(text(host, "teacher-work-fold"), "Hide what it made");
-		await click(host, "teacher-work-fold");
-		assert.equal(host.querySelector('[data-testid="teacher-work-files"]'), null);
+		const host = await mount(page, record({ files, lastWork: { startedAt: "x", fileIds: ["a"], deadlineIds: [] } }));
+		assert.equal(host.querySelector('[data-testid="work-frame"]')?.getAttribute("data-state"), "working");
+		assert.equal(text(host, "work-frame-tag"), "Teacher is working on this page1 of 3 files");
+		assert.equal(text(host, "page"), "The page");
+		assert.equal(host.querySelector('[data-testid="work-frame-close"]'), null);
 	});
 
-	it("done: a folded summary that unfolds to its files and deadlines, and Close removes it", async () => {
-		const files = [file("old", "ready"), file("a", "ready")];
-		const deadlines = [{ id: "ddl_1", kind: "exam" as const, name: "Midterm", date: "2026-12-01", fileIds: [], done: false }];
-		const lastWork = { startedAt: "x", endedAt: new Date().toISOString(), fileIds: ["a"], deadlineIds: ["ddl_1"] };
-		const host = await mount(<TeacherWork />, record({ files, deadlines, lastWork }));
-		assert.equal(text(host, "teacher-work-title"), "Teacher read 1 file");
-		assert.match(text(host, "teacher-work-detail")!, /^9 facts and 1 deadline added\. Finished at \d\d:\d\d\.$/);
-		assert.equal(host.querySelector('[data-testid="teacher-work-files"]'), null, "folded: the space has older files");
-		await click(host, "teacher-work-fold");
-		assert.match(text(host, "teacher-work-deadlines")!, /MidtermDec 1/);
-		await click(host, "teacher-work-close");
-		assert.equal(host.querySelector('[data-testid="teacher-work"]'), null);
+	it("done: what the round read, and Close takes the frame off", async () => {
+		const lastWork = { startedAt: "x", endedAt: new Date().toISOString(), fileIds: ["a"], deadlineIds: [] };
+		const host = await mount(page, record({ files: [file("old", "ready"), file("a", "ready")], lastWork }));
+		assert.equal(host.querySelector('[data-testid="work-frame"]')?.getAttribute("data-state"), "done");
+		assert.match(text(host, "work-frame-tag")!, /^Your agent read 1 file\./);
+		await click(host, "work-frame-close");
+		assert.equal(host.querySelector('[data-testid="work-frame"]'), null);
+		assert.equal(text(host, "page"), "The page");
 		assert.ok(requests.includes("DELETE /api/spaces/spc_ml/work"));
 	});
 });

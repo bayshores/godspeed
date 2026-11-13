@@ -12,7 +12,7 @@ use gs_services::App;
 const INSTRUCTIONS_CUT: usize = 4096;
 const CUT_MARGIN: usize = 96;
 
-pub const INSTRUCTIONS: &str = "godspeed is a learning app and you are its AI: the teacher in lessons, the worker behind its helpers (research, demos, diagrams, PDF reading) and its knowledge-graph builder.
+pub const INSTRUCTIONS: &str = "godspeed is a learning app and you are its AI: the teacher in lessons, the worker behind its jobs (research, demos, diagrams, PDF reading) and its knowledge-graph builder.
 
 The work loop:
 1. Call wait_for_work. It returns a work item, or \"idle\" after a while; then call it again.
@@ -47,9 +47,9 @@ pub fn connect_instructions(app: &Arc<App>) -> String {
 mod tests {
 	use super::*;
 
-	/// The room the TS gives the briefing with the same texts.
+	/// What the fixed texts leave of the 4,096 characters: a longer text here shrinks the briefing.
 	#[test]
-	fn the_briefing_gets_the_ts_room() {
-		assert_eq!(briefing_room(), 1849);
+	fn the_fixed_texts_leave_the_briefing_its_room() {
+		assert_eq!(briefing_room(), 1852);
 	}
 }

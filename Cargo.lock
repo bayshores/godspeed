@@ -2028,6 +2028,7 @@ dependencies = [
  "gs-shell-rpc",
  "gs-store",
  "gs-transcribe",
+ "gs-web",
  "parking_lot",
  "tokio",
 ]
@@ -2102,6 +2103,7 @@ dependencies = [
  "dom_smoothie",
  "gs-base",
  "gs-json",
+ "gs-web",
  "htmd",
  "reqwest",
  "tokio",

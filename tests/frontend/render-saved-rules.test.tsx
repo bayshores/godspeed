@@ -1,7 +1,7 @@
 /**
  * Rules an agent saved, in the window: the chat line ("Saved a rule for
  * every lesson: …" with Undo and Edit), the corner notice for a rule saved
- * from the terminal, and the "Saved by Halley" label in a rule list.
+ * from the terminal, and the "Saved by Ada" label in a rule list.
  * Mounted over linkedom with a fake fetch.
  */
 import React, { act } from "react";
@@ -141,9 +141,9 @@ describe("the terminal notice", () => {
 describe("the Settings label", () => {
 	it("marks only the rules the agent saved", () => {
 		const html = renderToStaticMarkup(
-			<RuleChips rules={["Mine.", "Use Python."]} onChange={() => {}} saved={{ "Use Python.": "2026-10-30T12:00:00.000Z" }} teacherName="Halley" />,
+			<RuleChips rules={["Mine.", "Use Python."]} onChange={() => {}} saved={{ "Use Python.": "2026-10-30T12:00:00.000Z" }} teacherName="Ada" />,
 		);
-		assert.equal(html.match(/Saved by Halley</g)?.length, 1);
+		assert.equal(html.match(/Saved by Ada</g)?.length, 1);
 		assert.match(html, /title="Oct 30"/);
 	});
 });

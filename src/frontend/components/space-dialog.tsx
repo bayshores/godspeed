@@ -17,7 +17,7 @@ import { RuleChips } from "@/frontend/components/rule-chips";
 import { changedFields } from "@/frontend/components/space-deadlines-model";
 import { jsonInit, send, useSpaceRecord } from "@/frontend/components/files/space-files-api";
 import { DEFAULT_TEACHER_NAME, savedTimes, type SpaceColor, type SpaceIcon, type SpaceRecord, type SpaceSignature, type SignatureKind } from "@/shared/core";
-import { useHalley } from "@/frontend/components/halley/halley-provider";
+import { useTeacher } from "@/frontend/components/teacher/teacher-provider";
 import { useSavedRules } from "@/frontend/components/use-saved-rules";
 import { SpaceSignatureField } from "@/frontend/components/space-signature-field";
 import { SpaceIconField } from "@/frontend/components/space-icon-field";
@@ -63,7 +63,7 @@ function SpaceDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 	const [color, setColor] = useState<SpaceColor>(1);
 	const [rules, setRules] = useState<string[]>([]);
 	const savedRules = useSavedRules(record?.rules);
-	const teacherName = useHalley()?.name ?? DEFAULT_TEACHER_NAME;
+	const teacherName = useTeacher()?.name ?? DEFAULT_TEACHER_NAME;
 	const [error, setError] = useState<string | null>(null);
 	const [busy, setBusy] = useState(false);
 	const [asking, setAsking] = useState<"discard" | "delete" | null>(null);

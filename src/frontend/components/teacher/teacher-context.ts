@@ -1,4 +1,4 @@
-/** The teacher's state, as the provider (halley-provider.tsx) shares it. In
+/** The teacher's state, as the provider (teacher-provider.tsx) shares it. In
  *  its own file so parts the provider draws can read it without an import
  *  cycle. */
 import { createContext, useContext } from "react";
@@ -14,12 +14,14 @@ export interface LessonPresence {
 	draft: boolean;
 }
 
-export interface HalleyApi {
+export interface TeacherApi {
 	name: string;
 	follow: boolean;
 	setFollow: (on: boolean) => void;
 	panelOpen: boolean;
 	setPanelOpen: (open: boolean) => void;
+	/** Open the panel on its Activity list. */
+	showActivity: () => void;
 	/** Newest first. */
 	recent: AgentAction[];
 	/** What the agent is doing now; null while no agent is connected. */
@@ -34,9 +36,9 @@ export interface HalleyApi {
 	spaceNameOf: (id: string | null) => string | null;
 }
 
-export const HalleyContext = createContext<HalleyApi | null>(null);
+export const TeacherContext = createContext<TeacherApi | null>(null);
 
 /** The teacher's state; null outside the app shell (render tests, onboarding). */
-export function useHalley(): HalleyApi | null {
-	return useContext(HalleyContext);
+export function useTeacher(): TeacherApi | null {
+	return useContext(TeacherContext);
 }

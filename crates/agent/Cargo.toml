@@ -23,6 +23,7 @@ parking_lot.workspace = true
 
 [dev-dependencies]
 gs-pdf = { workspace = true, features = ["test-support"] }
+gs-web = { workspace = true, features = ["test-support"] }
 
 [lints]
 workspace = true

@@ -4,7 +4,7 @@
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { isFirstRound, isWaitingFile, workAfterDeadline, workAfterFiles } from "../../src/shared/core/space-work.ts";
+import { isWaitingFile, workAfterDeadline, workAfterFiles } from "../../src/shared/core/space-work.ts";
 import type { SpaceFile, SpaceFileStatus } from "../../src/shared/core/contracts.ts";
 
 const file = (id: string, status: SpaceFileStatus, kind: "study" | "info" = "study"): SpaceFile => ({
@@ -79,14 +79,5 @@ describe("workAfterDeadline", () => {
 		const ended = { ...open, endedAt: T2 };
 		assert.equal(workAfterDeadline(ended, "ddl_1"), ended);
 		assert.equal(workAfterDeadline(undefined, "ddl_1"), undefined);
-	});
-});
-
-describe("isFirstRound", () => {
-	it("is true while every read study file was read in this round", () => {
-		const work = { startedAt: T1, fileIds: ["a"], deadlineIds: [] };
-		assert.equal(isFirstRound([file("a", "ready"), file("b", "pending"), file("s", "ready", "info")], work), true);
-		assert.equal(isFirstRound([file("a", "ready"), file("old", "ready"), file("b", "pending")], work), false);
-		assert.equal(isFirstRound([file("b", "pending")], undefined), true);
 	});
 });

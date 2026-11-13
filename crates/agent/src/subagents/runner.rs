@@ -1,6 +1,6 @@
 //! The background job runner.
 //!
-//! `run_job` runs the job kind's helper agent in the background (a lesson's job tool starts it
+//! `run_job` runs the job kind's agent in the background (a lesson's job tool starts it
 //! and does not wait), updating the job's activity line as it goes. When the agent ends, the
 //! runner saves the outcome with a pending delivery and hands the steer message to `deliver`
 //! without waiting: the lesson owns the delivery from then on.
@@ -45,6 +45,8 @@ pub trait JobHost: Send + Sync {
 	/// `os.tmpdir()`: the research job's PDF folder goes here.
 	fn tmp_dir(&self) -> &Path;
 	fn headless(&self) -> Arc<dyn HeadlessApi>;
+	/// The person's Tavily key, read when a research job starts.
+	fn search_key(&self) -> Option<String>;
 	/// The engine for a model role ("researcher", "demoBuilder", "visualMaker", "pdfReader");
 	/// None refuses the job.
 	fn engine_for(&self, role: &str) -> Option<Engine>;
@@ -120,7 +122,7 @@ impl JobRunner {
 		LoopContext { abort, on_usage }
 	}
 
-	/// Runs one job's helper agent to the end; never fails. The tool input rides along from the
+	/// Runs one job's agent to the end; never fails. The tool input rides along from the
 	/// dispatch; recovery reads the saved input, or the transcript for older jobs.
 	pub async fn run_job(self: Arc<Self>, job_id: String, input: Option<Json>) {
 		let Some(job) = self.jobs().get_job(&job_id) else {
@@ -314,6 +316,7 @@ impl JobRunner {
 			on_usage: Some(ctx.on_usage.clone()),
 			on_tool_start: Some(on_tool_start),
 			task_label: Some(format!("Research: {question}")),
+			search_key: self.host.search_key(),
 		};
 		let outcome = match run_researcher_agent(self.host.bridge(), &prompt, opts).await {
 			Ok(brief) if trim(&brief).is_empty() => Err(RunError::Failed("the researcher produced no text".to_owned())),

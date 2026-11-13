@@ -1,5 +1,5 @@
 //! The single-submit agent seam (submit-agent.ts): one schema-checked submit call is the whole
-//! deliverable, run as a helper agent only so the model can retry a refused call. The value is
+//! deliverable, run as a background agent only so the model can retry a refused call. The value is
 //! captured where the engine runs a schema-valid call; `fill` and `validate` apply there.
 
 use std::sync::Arc;

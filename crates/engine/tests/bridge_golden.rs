@@ -1,6 +1,6 @@
 //! Replays tests/golden/bridge.json (the real agent-bridge.ts, recorded from the Node server): the same
 //! script of operations on the Rust Bridge gives the same views, errors, replies, events, saved
-//! marks and backup teacher status.
+//! marks and helper status.
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -170,7 +170,7 @@ async fn the_bridge_matches_agent_bridge_ts() {
 					agent: s["agent"].as_str().map(str::to_owned),
 					full: s["full"].truthy(),
 					and_background: s["andBackground"].truthy(),
-					backup: s["backup"].truthy(),
+					helper: s["helper"].truthy(),
 				};
 				if let Some(view) = bridge.wait_for_work(0, opts).await {
 					works.insert(text("as"), view.work_id.clone());
@@ -205,8 +205,8 @@ async fn the_bridge_matches_agent_bridge_ts() {
 			"compacting" => bridge.agent_compacting(&text("agent"), clock::now_ms()),
 			"status" => {
 				let now = clock::now_ms();
-				let backups: Json = s["agents"].as_arr().unwrap().iter().map(|a| Json::from(bridge.is_backup_agent(a.as_str()))).collect();
-				result = json!({ "connected": bridge.backup_connected(now), "answering": bridge.backup_answering(now), "backups": backups });
+				let helpers: Json = s["agents"].as_arr().unwrap().iter().map(|a| Json::from(bridge.is_helper_agent(a.as_str()))).collect();
+				result = json!({ "here": bridge.helper_here(now), "covering": bridge.helper_covering(now), "helpers": helpers });
 			}
 			"names" => result = s["infos"].as_arr().unwrap().iter().map(|i| display_agent_name(i).map_or(Json::Null, Json::from)).collect(),
 			other => panic!("unknown op {other}"),

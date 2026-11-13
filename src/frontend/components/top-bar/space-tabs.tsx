@@ -1,7 +1,7 @@
 import { Link } from "react-router";
 import { useSpaces } from "@/frontend/components/space-context";
 import { spaceColorVar } from "@/frontend/components/space-color";
-import { tabWorkTag } from "@/frontend/components/teacher-work/teacher-work-model";
+import { tabWorkTag } from "@/frontend/components/work/work-model";
 import { cn } from "@/frontend/lib/utils";
 
 /** A top bar tab: the lit one is a block of the page's paper. */
@@ -29,7 +29,7 @@ export function SpaceTabs({ selected }: { selected: string }) {
 							key={c.id}
 							to="/space"
 							data-testid={`space-option-${c.id}`}
-							data-halley-target={`space:${c.id}`}
+							data-teacher-target={`space:${c.id}`}
 							aria-current={selected === c.id ? "page" : undefined}
 							onClick={() => setActive(c.id)}
 							className={cn(BAR_TAB, barTabState(selected === c.id))}

@@ -47,6 +47,9 @@ impl JobHost for Host {
 	fn headless(&self) -> Arc<dyn HeadlessApi> {
 		self.headless.clone()
 	}
+	fn search_key(&self) -> Option<String> {
+		None
+	}
 	fn engine_for(&self, _role: &str) -> Option<Engine> {
 		self.engine.clone()
 	}

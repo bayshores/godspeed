@@ -32,9 +32,3 @@ export function workAfterFiles(work: SpaceWork | undefined, before: readonly Spa
 export function workAfterDeadline(work: SpaceWork | undefined, deadlineId: string): SpaceWork | undefined {
 	return isOpen(work) ? { ...work, deadlineIds: [...work.deadlineIds, deadlineId] } : work;
 }
-
-/** True while every study file read so far was read in this round: the
- *  teacher is building the space, not adding to it. */
-export function isFirstRound(files: readonly SpaceFile[], work: SpaceWork | undefined): boolean {
-	return !files.some((f) => f.kind === "study" && f.status === "ready" && !work?.fileIds.includes(f.id));
-}

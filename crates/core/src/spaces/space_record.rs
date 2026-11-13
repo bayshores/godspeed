@@ -273,6 +273,11 @@ pub fn summarize(record: &Json) -> Json {
 	if files_left > 0 && is_first_round(files, record.get("lastWork")) {
 		out.insert("building", true);
 	}
+	// The open round's files finished so far, for "6 of 17 files".
+	let files_read = record.get("lastWork").filter(|work| !work["endedAt"].truthy()).and_then(|work| work["fileIds"].as_arr()).map_or(0, Vec::len);
+	if files_left > 0 && files_read > 0 {
+		out.insert("filesRead", files_read);
+	}
 	if let Some(prep) = record.get("prep") {
 		out.insert("prep", if prep["date"].truthy() { json!({ "date": prep["date"].clone() }) } else { json!({}) });
 	}
@@ -386,5 +391,8 @@ mod tests {
 		record.as_obj_mut().unwrap().insert("files", json!([file("f1", "copied", "t"), waiting]));
 		record.as_obj_mut().unwrap().insert("lastWork", json!({ "startedAt": "s", "fileIds": [], "deadlineIds": [] }));
 		assert!(summarize(&record).get("building").is_none());
+		assert!(summarize(&record).get("filesRead").is_none());
+		record.as_obj_mut().unwrap().insert("lastWork", json!({ "startedAt": "s", "fileIds": ["f1"], "deadlineIds": [] }));
+		assert_eq!(summarize(&record)["filesRead"], Json::from(1));
 	}
 }

@@ -2,7 +2,7 @@
 	{
 		"name": "wait_for_work",
 		"title": "Wait for work",
-		"description": "Wait for the next request from godspeed (a lesson turn, a Talk message, a helper job, or a knowledge-graph run). Returns a work item, or status \"idle\" if nothing arrived in time — then call again.",
+		"description": "Wait for the next request from godspeed (a lesson turn, a Talk message, a background job, or a knowledge-graph run). Returns a work item, or status \"idle\" if nothing arrived in time — then call again.",
 		"inputSchema": {
 			"type": "object",
 			"$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -14,11 +14,15 @@
 					"maximum": 600
 				},
 				"lesson_id": {
-					"description": "Stay on this lesson: take its turns and Talk messages, plus background jobs (file reading, graph building, helpers) so they never get stuck. Other lessons wait.",
+					"description": "Stay on this lesson: take its turns and Talk messages, plus background jobs (file reading, graph building, research) while no helper is open, so they never get stuck. Other lessons wait.",
 					"type": "string"
 				},
 				"full_context": {
 					"description": "Send the whole conversation and instructions again, even if you saw them before (use after losing your context).",
+					"type": "boolean"
+				},
+				"helper": {
+					"description": "Send true on every call when you are the helper: a second session beside the teacher, started when the user says \"Start as the helper\". A helper takes the background jobs (file reading, graph building, sheets), and lesson or Talk turns only while the teacher tidies its memory.",
 					"type": "boolean"
 				}
 			}

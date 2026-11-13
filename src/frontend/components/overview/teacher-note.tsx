@@ -1,13 +1,13 @@
 import { memo } from "react";
 import { DEFAULT_TEACHER_NAME, type SpaceNote } from "@/shared/core";
-import { useHalley } from "@/frontend/components/halley/halley-provider";
+import { useTeacher } from "@/frontend/components/teacher/teacher-provider";
 import { Pane } from "@/frontend/components/ui/pane";
 import { noteWhen } from "./overview-model";
 
 /** THE TEACHER'S NOTE (Progress): what the teacher wrote about the space
  *  after a lesson, and when. */
 export const TeacherNote = memo(function TeacherNote({ note, nowMs }: { note: SpaceNote; nowMs: number | null }) {
-	const teacherName = useHalley()?.name ?? DEFAULT_TEACHER_NAME;
+	const teacherName = useTeacher()?.name ?? DEFAULT_TEACHER_NAME;
 	const when = nowMs !== null ? noteWhen(note.at, nowMs) : "";
 	return (
 		<Pane data-testid="teacher-note" className="flex flex-col gap-0.5 px-[18px] py-3.5">

@@ -3,7 +3,7 @@ import { useNavigate } from "react-router";
 import { DEFAULT_TEACHER_NAME, type MockState, type MockView } from "@/shared/core";
 import { NoAgentLine } from "@/frontend/components/agent-folder/no-agent-line";
 import { BrailleSpinner } from "@/frontend/components/braille-spinner";
-import { useHalley } from "@/frontend/components/halley/halley-provider";
+import { useTeacher } from "@/frontend/components/teacher/teacher-provider";
 import { BIG_BUTTON } from "@/frontend/components/ui/big-button";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { cn } from "@/frontend/lib/utils";
@@ -16,7 +16,7 @@ import { postMock, removeMock } from "./use-mock";
  */
 export function MockWaiting({ view, state }: { view: MockView; state: Exclude<MockState, "running" | "graded"> }) {
 	const navigate = useNavigate();
-	const teacher = useHalley()?.name ?? DEFAULT_TEACHER_NAME;
+	const teacher = useTeacher()?.name ?? DEFAULT_TEACHER_NAME;
 	const [error, setError] = useState<string | null>(null);
 	const { spaceId, mock } = view;
 	const act = async (action: string) => setError((await postMock(spaceId, mock.id, { action })).error);

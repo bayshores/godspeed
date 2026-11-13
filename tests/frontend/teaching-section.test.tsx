@@ -44,7 +44,7 @@ async function withSection(
 					<TeachingSection
 						agent={{ tools: { research: true }, rules: { voice: ["No jokes"] } }}
 						graph={undefined}
-						teacherName="Halley"
+						teacherName="Ada"
 						onSectionChange={onSectionChange}
 						onFullPage={onFullPage}
 					/>
@@ -71,7 +71,7 @@ it("Teaching: the research switch and a new rule each write the whole agent sect
 	};
 	let written: AgentSettings | undefined;
 	await withSection(respond, (next) => (written = next), async (win) => {
-		assert.match(document.querySelector('[data-testid="rules-voice"]')!.textContent!, /No jokesSaved by Halley/, "the agent's rule is labeled");
+		assert.match(document.querySelector('[data-testid="rules-voice"]')!.textContent!, /No jokesSaved by Ada/, "the agent's rule is labeled");
 		await act(async () => document.querySelector<HTMLButtonElement>('[data-testid="area-facts"]')!.click());
 		const toggle = document.querySelector<HTMLButtonElement>('[data-testid="toggle-web-research"]')!;
 		assert.equal(toggle.hasAttribute("disabled"), false);
@@ -122,7 +122,7 @@ it("Teaching: Edit full instructions fills the page, and Teaching brings the are
 		const panel = document.querySelector('[data-testid="instructions-panel"]')!;
 		assert.ok(panel, "the instructions open");
 		assert.match(panel.textContent!, /Voice, full instructions/);
-		assert.match(panel.textContent!, /What Halley reads before every lesson/);
+		assert.match(panel.textContent!, /What Ada reads before every lesson/);
 		assert.equal(document.querySelector('[data-testid="area-voice"]'), null, "the areas list is gone");
 		assert.equal(fullPage.at(-1), true, "the page is told to hide its heading");
 		await act(async () => panel.querySelector<HTMLButtonElement>("button")!.click());

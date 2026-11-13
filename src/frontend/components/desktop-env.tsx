@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import type { UpdateState } from "@/frontend/components/settings/update-settings.tsx";
+import type { StartTarget } from "@/shared/core";
 
 declare global {
 	interface Window {
@@ -14,7 +15,7 @@ declare global {
 			/** Opens this folder in Finder (File Explorer), or this PDF in its default app. */
 			openPath?: (path: string) => Promise<void>;
 			/** Opens a terminal running the godspeed folder's start script: null, or why it couldn't. */
-			openAgent?: (folder: string, agent: "claude" | "claude-backup" | "codex") => Promise<string | null>;
+			openAgent?: (folder: string, agent: StartTarget) => Promise<string | null>;
 			/** A dropped file's or folder's absolute path, or "" where the OS gives none (onboarding drop zone). */
 			pathForFile?: (file: File) => Promise<string>;
 			/** The first screen is drawn: show the window (hidden until then). */

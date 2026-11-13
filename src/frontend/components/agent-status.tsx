@@ -16,12 +16,14 @@ export interface AgentStatus {
 	teaching: boolean;
 	/** The agent's name from its MCP client info ("Claude Code"). */
 	name?: string;
-	/** The backup teacher's waiter checked in recently. */
-	backupConnected: boolean;
-	/** The main agent is compacting its context and the backup answers meanwhile. */
-	backupAnswering: boolean;
+	/** A helper waits, or still works on an item it took. */
+	helperHere: boolean;
+	/** The teacher is compacting its context and the helper answers meanwhile. */
+	helperCovering: boolean;
 	/** Requests waiting for (or being handled by) the agent. */
 	pendingWork: number;
+	/** Those that are lesson or Talk turns; the rest are background jobs. */
+	pendingTurns: number;
 	/** Lessons whose current request an agent took and hasn't answered, with the ISO claim time. */
 	claimedLessons: { lessonId: string; claimedAt: string }[];
 }
@@ -44,14 +46,15 @@ export function agentWaiting(status: AgentStatus | null): boolean {
 /** Parse the /api/mcp-access body (pure — exported for tests). */
 export function parseAgentStatus(body: unknown): AgentStatus | null {
 	if (!body || typeof body !== "object") return null;
-	const b = body as { agentConnected?: unknown; agentTeaching?: unknown; agentName?: unknown; backupConnected?: unknown; backupAnswering?: unknown; pendingWork?: unknown; claimedLessons?: unknown };
+	const b = body as { agentConnected?: unknown; agentTeaching?: unknown; agentName?: unknown; helperHere?: unknown; helperCovering?: unknown; pendingWork?: unknown; pendingTurns?: unknown; claimedLessons?: unknown };
 	return {
 		connected: b.agentConnected === true,
 		teaching: b.agentTeaching === true,
 		...(typeof b.agentName === "string" && b.agentName.trim() ? { name: b.agentName.trim() } : {}),
-		backupConnected: b.backupConnected === true,
-		backupAnswering: b.backupAnswering === true,
+		helperHere: b.helperHere === true,
+		helperCovering: b.helperCovering === true,
 		pendingWork: typeof b.pendingWork === "number" && b.pendingWork > 0 ? b.pendingWork : 0,
+		pendingTurns: typeof b.pendingTurns === "number" && b.pendingTurns > 0 ? b.pendingTurns : 0,
 		claimedLessons: Array.isArray(b.claimedLessons)
 			? b.claimedLessons.filter((c): c is { lessonId: string; claimedAt: string } =>
 				!!c && typeof c.lessonId === "string" && typeof c.claimedAt === "string")
@@ -62,8 +65,8 @@ export function parseAgentStatus(body: unknown): AgentStatus | null {
 /** True when two statuses read the same, so a poll can keep the old object
  *  and consumers skip a render (pure — exported for tests). */
 export function sameAgentStatus(a: AgentStatus | null, b: AgentStatus): boolean {
-	return !!a && a.connected === b.connected && a.teaching === b.teaching && a.name === b.name && a.pendingWork === b.pendingWork
-		&& a.backupConnected === b.backupConnected && a.backupAnswering === b.backupAnswering
+	return !!a && a.connected === b.connected && a.teaching === b.teaching && a.name === b.name && a.pendingWork === b.pendingWork && a.pendingTurns === b.pendingTurns
+		&& a.helperHere === b.helperHere && a.helperCovering === b.helperCovering
 		&& JSON.stringify(a.claimedLessons) === JSON.stringify(b.claimedLessons);
 }
 
@@ -100,9 +103,9 @@ export function useAgentStatus(): AgentStatus | null {
 
 /** The agent's status line (the teacher pane, Settings → Connection and
  *  the teacher panel). Pure, exported for tests. */
-export function agentStatusLabel(agent: Pick<AgentStatus, "connected" | "teaching" | "name" | "pendingWork"> | null, jobs: number): string {
+export function agentStatusLabel(agent: Pick<AgentStatus, "connected" | "teaching" | "name" | "pendingWork"> | null): string {
 	const name = agent?.name?.trim() || "Your agent";
-	const who = !agent
+	return !agent
 		? "No agent connected"
 		: agent.teaching
 			? name
@@ -111,5 +114,4 @@ export function agentStatusLabel(agent: Pick<AgentStatus, "connected" | "teachin
 				: agent.pendingWork > 0
 					? "Waiting for your agent"
 					: "No agent connected";
-	return jobs > 0 ? `${who}, ${jobs} job${jobs === 1 ? "" : "s"}` : who;
 }
