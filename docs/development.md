@@ -165,9 +165,9 @@ tests/                          frontend/ and shared/ (same split as src/) and d
                                 tests sit in each crate's tests/ and next to the code
 docs/                           docs; design mockups + exports live in docs/design/
 scripts/                        fetch-model.mjs, fetch-pdfium.mjs, fetch-onnxruntime.mjs
-                                (both on fetch-library.mjs), dev-resources.mjs,
-                                stage-app.mjs, smoke-server.mjs, release-assets.mjs,
-                                verify-release.ts, mac-dist.sh, dev-fresh.sh
+                                (both on fetch-library.mjs), compile-icon.mjs,
+                                dev-resources.mjs, stage-app.mjs, smoke-server.mjs,
+                                release-assets.mjs, verify-release.ts, mac-dist.sh, dev-fresh.sh
 data/                           runtime state, git-ignored:
                                 chats/ (+ chats/<id>/ attached PDFs) ·
                                 graph/ ("No space": nodes/chains/sessions/coverage/

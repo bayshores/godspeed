@@ -146,7 +146,7 @@ jobs:
             platform: mac
             triple: aarch64-apple-darwin
             bundles: app,dmg
-            config: ""
+            config: --config crates/shell/tauri.bundle.macos.conf.json
           - os: windows-2025
             platform: windows
             triple: x86_64-pc-windows-msvc
@@ -198,24 +198,6 @@ jobs:
         uses: maxim-lobanov/setup-xcode@v1
         with:
           xcode-version: latest-stable
-      - name: TEMP icon compiler probe
-        if: runner.os == 'macOS'
-        continue-on-error: true
-        run: |
-          try() {
-            label=$1; dir=$2; shift 2
-            rm -rf "$dir"; mkdir -p "$dir/out"; cp -R crates/shell/icons/icon.icon "$dir/Icon.icon"
-            if env "$@" actool "$dir/Icon.icon" --compile "$dir/out" --output-format human-readable-text --notices --warnings --output-partial-info-plist "$dir/out/assetcatalog_generated_info.plist" --app-icon Icon --include-all-app-icons --accent-color AccentColor --enable-on-demand-resources NO --development-region en --target-device mac --minimum-deployment-target 26.0 --platform macosx > "$dir/log.txt" 2>&1; then echo "PROBE $label: ok"; else echo "PROBE $label: FAILED"; head -3 "$dir/log.txt"; fi
-          }
-          actool --version | grep -A1 short-bundle
-          sw_vers
-          try plain "$RUNNER_TEMP/probe1" A=1
-          try plain-again "$RUNNER_TEMP/probe2" A=1
-          try hidden-dir "$TMPDIR/.tmpProbe1" A=1
-          try tmpdir-visible "$TMPDIR/probe3" A=1
-          try deployment-env "$RUNNER_TEMP/probe4" MACOSX_DEPLOYMENT_TARGET=14.0
-          try hidden-and-env "$TMPDIR/.tmpProbe2" MACOSX_DEPLOYMENT_TARGET=14.0
-          ls -la crates/shell/icons/icon.icon crates/shell/icons/icon.icon/Assets
       - name: Rust toolchain (the version pinned in rust-toolchain.toml)
         run: |
           rustup toolchain install
@@ -228,6 +210,8 @@ jobs:
       - run: node scripts/fetch-pdfium.mjs
       - if: runner.os == 'Linux'
         run: node scripts/fetch-onnxruntime.mjs
+      - if: runner.os == 'macOS'
+        run: node scripts/compile-icon.mjs
       # Stage once here so the smoke runs before the slow bundler (tauri build stages again, cached).
       - run: node scripts/stage-app.mjs
       - run: node scripts/smoke-server.mjs

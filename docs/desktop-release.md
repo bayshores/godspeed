@@ -14,7 +14,7 @@ Windows code signing is off on purpose. SmartScreen may warn about an unknown pu
 
 Linux builds run in an Ubuntu 22.04 container so the app runs on Ubuntu 22.04 and Debian 12. A release step fails if `godspeed`, `godspeed-server`, `libpdfium.so` or `libonnxruntime.so` needs a glibc newer than 2.35 or a libstdc++ newer than GLIBCXX 3.4.30.
 
-The Mac icon is the Icon Composer file `crates/shell/icons/icon.icon`. The bundler compiles it with `actool` from Xcode 26 or newer, which needs macOS 26. `icon.icns` is the fallback for older macOS. The Windows and Linux icons are committed; `npx tauri icon` makes them again.
+The Mac icon is the Icon Composer file `crates/shell/icons/icon.icon`. `node scripts/compile-icon.mjs` compiles it into `.stage/Assets.car` with `actool` from Xcode 26 or newer, which needs macOS 26, and `tauri.bundle.macos.conf.json` ships that file. The bundler can compile the icon itself, but its `actool` call crashes on GitHub's macOS 26 runners. `icon.icns` is the fallback for older macOS. The Windows and Linux icons are committed; `npx tauri icon` makes them again.
 
 ## Build pipeline
 
@@ -22,10 +22,10 @@ Each OS builds its own app. Nothing is cross-built.
 
 1. `npm ci`.
 2. `node scripts/fetch-model.mjs` downloads the space-search model into `models/`.
-3. `node scripts/fetch-pdfium.mjs` downloads pdfium's library into `.stage/` and checks its sha256. On Linux, `node scripts/fetch-onnxruntime.mjs` does the same for Microsoft's ONNX Runtime library, which the Linux server loads at run time from its resources folder. macOS and Windows link ONNX Runtime into the server.
+3. `node scripts/fetch-pdfium.mjs` downloads pdfium's library into `.stage/` and checks its sha256. On Linux, `node scripts/fetch-onnxruntime.mjs` does the same for Microsoft's ONNX Runtime library, which the Linux server loads at run time from its resources folder. macOS and Windows link ONNX Runtime into the server. On the Mac, `node scripts/compile-icon.mjs` compiles the app icon into `.stage/Assets.car`.
 4. `node scripts/stage-app.mjs` builds the UI (`dist-ui/`), builds the release server for this OS's target triple, copies it to `crates/shell/binaries/`, and copies the pdf.js files to `.stage/pdfjs-dist/`. It refuses a UI folder that holds `data/` or a secrets file.
 5. `node scripts/smoke-server.mjs` starts that server from a folder of the staged files, with a throwaway home and data folder, and checks `/`, `/api/boot`, `/api/graph`, `/api/settings` and a pdf.js file.
-6. `TAURI_APP_PATH=crates/shell npx tauri build --config crates/shell/tauri.bundle.conf.json [--config crates/shell/tauri.bundle.<windows|linux>.conf.json] --target <triple> --bundles <app,dmg | nsis | appimage,deb>`. Its `beforeBuildCommand` runs step 4 again (fast, everything is built). With `TAURI_SIGNING_PRIVATE_KEY` set, the bundler writes a `.sig` beside each updater file.
+6. `TAURI_APP_PATH=crates/shell npx tauri build --config crates/shell/tauri.bundle.conf.json --config crates/shell/tauri.bundle.<macos|windows|linux>.conf.json --target <triple> --bundles <app,dmg | nsis | appimage,deb>`. Its `beforeBuildCommand` runs step 4 again (fast, everything is built). With `TAURI_SIGNING_PRIVATE_KEY` set, the bundler writes a `.sig` beside each updater file.
 7. `node scripts/release-assets.mjs <mac|windows|linux>` copies the bundler's files into `dist/` under the names people download, with their `.sig` files. On the Mac it also zips the app for the Electron hand-over.
 8. The release checks (below), then `cargo build -p gs-shell --features self-test` and `godspeed --self-test`, which checks the demo runner in the real app on that OS (`xvfb-run` on Linux).
 9. `node scripts/release-feeds.mjs dist --mac-staging <share>` runs once, on all three systems' `dist/` together, and writes the four feeds.

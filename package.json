@@ -14,7 +14,7 @@
 		"dev": "node scripts/dev-resources.mjs && concurrently -k -n api,ui \"cargo build -p gs-server && cd .dev-resources && PORT=$((${PORT:-3000}+1000)) LH_DATA_DIR=\\\"${LH_DATA_DIR:-$INIT_CWD/data}\\\" ../target/debug/godspeed-server\" \"vite\"",
 		"desktop:dev": "node scripts/dev-resources.mjs && cargo build -p gs-server && concurrently -k -n ui,app \"vite --host 127.0.0.1\" \"TAURI_APP_PATH=crates/shell tauri dev\"",
 		"build": "vite build",
-		"desktop:local": "node scripts/fetch-model.mjs && node scripts/fetch-pdfium.mjs && TAURI_APP_PATH=crates/shell tauri build -c crates/shell/tauri.bundle.conf.json --bundles app --no-sign",
+		"desktop:local": "node scripts/fetch-model.mjs && node scripts/fetch-pdfium.mjs && node scripts/compile-icon.mjs && TAURI_APP_PATH=crates/shell tauri build -c crates/shell/tauri.bundle.conf.json -c crates/shell/tauri.bundle.macos.conf.json --bundles app --no-sign",
 		"desktop:dist": "bash scripts/mac-dist.sh",
 		"test": "NODE_ENV=test tsx --test tests/*/*.test.ts tests/*/*.test.tsx",
 		"lint": "eslint .",

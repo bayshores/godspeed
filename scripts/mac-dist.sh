@@ -18,12 +18,13 @@ if [ -z "$APPLE_SIGNING_IDENTITY" ]; then
 	exit 1
 fi
 export APPLE_ID APPLE_TEAM_ID APPLE_PASSWORD APPLE_SIGNING_IDENTITY
-# The app icon is compiled by actool from Xcode 26 or later.
+# compile-icon.mjs needs actool from Xcode 26 or later.
 export DEVELOPER_DIR="${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer}"
 
 node scripts/fetch-model.mjs
 node scripts/fetch-pdfium.mjs
-TAURI_APP_PATH=crates/shell npx tauri build -c crates/shell/tauri.bundle.conf.json --bundles app,dmg
+node scripts/compile-icon.mjs
+TAURI_APP_PATH=crates/shell npx tauri build -c crates/shell/tauri.bundle.conf.json -c crates/shell/tauri.bundle.macos.conf.json --bundles app,dmg
 
 app=target/release/bundle/macos/godspeed.app
 xcrun stapler validate "$app"
