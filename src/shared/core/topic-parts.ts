@@ -24,7 +24,7 @@ interface TopicPage {
 }
 
 /** One topic's parts. */
-interface TopicParts {
+export interface TopicParts {
 	nodeId: string;
 	page: TopicPage | null;
 }

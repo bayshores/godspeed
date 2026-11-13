@@ -690,6 +690,7 @@ describe("the reading pane", () => {
 				turnInFlight={false}
 				waitingForAgent={false}
 				arrivalsLive={false}
+				pageMarks={new Map()}
 				arrive={() => undefined}
 				onOpenPlan={() => {}}
 				scrollContextRef={{ current: null }}
@@ -728,7 +729,7 @@ describe("the reading pane", () => {
 				</ServerEventsProvider>,
 			);
 		const bubble = inSpaces(
-			<ReadingPane spaceId="spc_lesson" messages={messages} phases={[]} status="ready" busy={false} turnInFlight={false} waitingForAgent={false} arrivalsLive={false} arrive={() => undefined} onOpenPlan={() => {}} scrollContextRef={{ current: null }} />,
+			<ReadingPane spaceId="spc_lesson" messages={messages} phases={[]} status="ready" busy={false} turnInFlight={false} waitingForAgent={false} arrivalsLive={false} pageMarks={new Map()} arrive={() => undefined} onOpenPlan={() => {}} scrollContextRef={{ current: null }} />,
 		);
 		assert.match(bubble, /data-testid="user-message"[^>]*style="[^"]*var\(--lh-space-5\)/);
 		assert.doesNotMatch(bubble, /--lh-space-3/);

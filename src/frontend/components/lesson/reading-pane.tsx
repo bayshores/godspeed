@@ -34,6 +34,7 @@ export function ReadingPane({
 	turnInFlight,
 	waitingForAgent,
 	arrivalsLive,
+	pageMarks,
 	arrive,
 	onOpenPlan,
 	scrollContextRef,
@@ -49,6 +50,8 @@ export function ReadingPane({
 	/** The turn waits for an agent to take it: the teacher column says so, and no Thinking… shows. */
 	waitingForAgent: boolean;
 	arrivalsLive: boolean;
+	/** Each Study topic's stored page mark, by the text it sits in. */
+	pageMarks: ReadonlyMap<string, string>;
 	arrive: Arrive;
 	onOpenPlan: () => void;
 	scrollContextRef: RefObject<StickToBottomContext | null>;
@@ -79,6 +82,7 @@ export function ReadingPane({
 							teachSeam={m.role === "assistant" && mi > 0 && phases[mi] === "teach" && phases[mi - 1] !== "teach"}
 							streamingLast={status === "streaming" && mi === last}
 							hideSteps={showWork && mi === last}
+							pageMarks={pageMarks}
 							arrive={arrive}
 							onOpenPlan={onOpenPlan}
 						/>
