@@ -1,6 +1,6 @@
 //! A deadline's Study button reopens the latest unfinished Study session started from it, until it
-//! is finished (its step bar's count reaches its last topic, or it reached its end)
-//! (continue-study.ts).
+//! is finished: it reached its end, or its step bar's count reached its last topic with no stop
+//! left to go on from (continue-study.ts).
 
 use gs_base::time;
 use gs_json::{Json, Obj};
@@ -9,7 +9,8 @@ use super::latest_session;
 use crate::spaces::today_note::local_day;
 
 /// The session a deadline's Study button reopens, `{ chatId, done, total, stop?, inTopic? }`: the
-/// latest one started from it, while unfinished. `sessions` are `{ chatId, deadlineId, createdAt,
+/// latest one started from it, while unfinished. A count at its last topic still continues at a
+/// stop, since a skipped topic may be left. `sessions` are `{ chatId, deadlineId, createdAt,
 /// done, total, stop?, endedAt?, inTopic? }`: `stop` (`{at, next}`) is set while it waits at a stop
 /// he has not kept going from, `endedAt` once it reached its end, `inTopic` while it is in the
 /// middle of a topic.
@@ -17,7 +18,8 @@ pub fn continue_study_for(deadline_id: &str, sessions: &[Json]) -> Option<Json> 
 	let latest = latest_session(deadline_id, sessions)?;
 	let (done, total) = (latest["done"].as_f64(), latest["total"].as_f64());
 	// `done >= total` is false when either is missing, so such a session stays open.
-	if matches!((done, total), (Some(d), Some(t)) if d >= t) || latest["endedAt"].truthy() {
+	let counted_out = matches!((done, total), (Some(d), Some(t)) if d >= t) && !latest["stop"].truthy();
+	if counted_out || latest["endedAt"].truthy() {
 		return None;
 	}
 	let mut out = Obj::new();
@@ -65,6 +67,17 @@ mod tests {
 		assert_eq!(continue_study_for("d1", &[fresh]), Some(json!({ "chatId": "a", "done": 0, "total": 3, "inTopic": "Regularization" })));
 		let ended = json!({ "chatId": "a", "deadlineId": "d1", "createdAt": "1", "done": 2, "total": 3, "endedAt": "2026-11-18T22:40:00.000Z" });
 		assert_eq!(continue_study_for("d1", &[ended]), None);
+	}
+
+	#[test]
+	fn a_full_count_still_continues_at_a_stop() {
+		let stop = json!({ "at": "2026-11-18T21:48:00.000Z", "next": "Cross-validation" });
+		let skipped_left = json!({ "chatId": "a", "deadlineId": "d1", "createdAt": "1", "done": 3, "total": 3, "stop": stop.clone() });
+		assert_eq!(continue_study_for("d1", &[skipped_left]), Some(json!({ "chatId": "a", "done": 3, "total": 3, "stop": stop })), "a skipped topic is left");
+		let old_finished = json!({ "chatId": "a", "deadlineId": "d1", "createdAt": "1", "done": 3, "total": 3 });
+		assert_eq!(continue_study_for("d1", &[old_finished]), None, "finished before stops existed");
+		let mid_last = json!({ "chatId": "a", "deadlineId": "d1", "createdAt": "1", "done": 3, "total": 3, "inTopic": "Model selection" });
+		assert_eq!(continue_study_for("d1", &[mid_last]), None, "in the middle of the last topic");
 	}
 
 	#[test]
