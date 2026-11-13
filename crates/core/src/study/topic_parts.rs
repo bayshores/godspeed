@@ -2,9 +2,8 @@
 //! replay tests/golden/topic_parts.json). A reply is one assistant message; its topic is the
 //! nodeId its calls name (refused calls aside), else the topic of the latest earlier reply. A
 //! topic's page is the first quoted source mark in the shown opener's lead, else in the reply that
-//! opens the topic; later replies never give one. Its plot is the first reply holding a plot call
-//! that was not refused. `reply_parts_problems` (Rust only) is the check Study's lesson-parts hook
-//! runs on a reply before its plot and guess are stored.
+//! opens the topic; later replies never give one. `reply_parts_problems` (Rust only) is the check
+//! Study's lesson-parts hook runs on a reply before its plot and guess are stored.
 
 use std::collections::HashSet;
 
@@ -17,10 +16,9 @@ use crate::messages::pending::is_question_tool;
 use crate::session::plot::{PLOT_TOOL, Plot, check_plot, option_names_value, short};
 use crate::session::question_core::{coerce_correct_answer, normalize_quiz_type, parse_options_if_string};
 
-/// Every topic the lesson reached, in the order it reached them: `{ nodeId, page, plot }`, where
-/// `page` is null or `{ messageId, leadOf, fileId, range, name, quote }` (the reply's message id,
-/// or the call id of the topic_done whose opener lead holds the mark) and `plot` is null or the
-/// message id of the reply holding the topic's plot.
+/// Every topic the lesson reached, in the order it reached them: `{ nodeId, page }`, where `page`
+/// is null or `{ messageId, leadOf, fileId, range, name, quote }` (the reply's message id, or the
+/// call id of the topic_done whose opener lead holds the mark).
 pub fn topic_parts(messages: &[Json]) -> Vec<Json> {
 	walk(messages).0
 }
@@ -50,7 +48,7 @@ fn walk(messages: &[Json]) -> (Vec<Json>, Vec<Visit>) {
 			let lead_of = opener["topicDoneCallId"].clone();
 			let page = first_quoted(opener["lead"].as_str().unwrap_or_default(), Json::Null, lead_of);
 			visits.push(Visit { node_id: node_id.to_owned(), page: !page.is_null(), plot: false });
-			out.push(json!({ "nodeId": node_id, "page": page, "plot": null }));
+			out.push(json!({ "nodeId": node_id, "page": page }));
 			continue;
 		}
 		if m["role"].as_str() != Some("assistant") {
@@ -59,7 +57,7 @@ fn walk(messages: &[Json]) -> (Vec<Json>, Vec<Visit>) {
 		current = call_topic(m, &refused).or(current);
 		let Some(node_id) = current.clone() else { continue };
 		let at = reached(&out, &node_id).unwrap_or_else(|| {
-			out.push(json!({ "nodeId": node_id, "page": null, "plot": null }));
+			out.push(json!({ "nodeId": node_id, "page": null }));
 			out.len() - 1
 		});
 		let mut gave_page = false;
@@ -77,12 +75,6 @@ fn walk(messages: &[Json]) -> (Vec<Json>, Vec<Visit>) {
 			}
 		}
 		let plot = calls(m).any(|c| c["name"].as_str() == Some(PLOT_TOOL) && !c["id"].as_str().is_some_and(|id| refused.contains(id)));
-		if plot
-			&& out[at]["plot"].is_null()
-			&& let Some(parts) = out[at].as_obj_mut()
-		{
-			parts.insert("plot", m["id"].clone());
-		}
 		if is_seen(m, &refused) {
 			visits.push(Visit { node_id, page: gave_page, plot });
 		}
@@ -401,13 +393,5 @@ mod tests {
 		let again = reply_parts_problems(&refused, &bare_pair("3"), &passes);
 		assert_eq!(again.on_plot, None);
 		assert_eq!(again.refused[0].1, "plot: send it after one reply with no page, plot or keep.");
-	}
-
-	#[test]
-	fn the_topic_names_its_plot_reply() {
-		let with_plot = [lesson(), vec![pair(true, penalty_at_8(), "B"), result("q3", "quiz", false), result("p3", "plot", false)]].concat();
-		assert_eq!(topic_parts(&with_plot)[0]["plot"], json!("r3"));
-		let refused = [lesson(), vec![pair(true, penalty_at_8(), "C"), result("q3", "quiz", true), result("p3", "plot", true)]].concat();
-		assert_eq!(topic_parts(&refused)[0]["plot"], Json::Null);
 	}
 }
