@@ -14,7 +14,7 @@ use super::items;
 use super::review::item_key;
 use super::topic_parts::{kept_calls, visits};
 use crate::messages::lesson_markers::{KEEP_CHECK, PHRASE_DROP};
-use crate::session::question_core::{keep_fields_note, keep_of, keep_phrase_note};
+use crate::session::question_core::{keep_fields_note, keep_of, keep_phrase_note, normalize_quiz_type};
 
 /// At most this many kept sentences a topic.
 const PER_TOPIC: usize = 2;
@@ -22,6 +22,7 @@ const PER_TOPIC: usize = 2;
 /// Every keep note starts with this word.
 pub(crate) const KEEP_NOTE: &str = "keep";
 const SPACING: &str = "keep not stored: this reply or the last one has a page, plot or keep. Add it to a later quiz.";
+const NOT_A_CHECK: &str = "keep not stored: a keep goes on a check quiz, not a prediction. Add it to a later quiz.";
 const TWO_A_TOPIC: &str = "keep not stored: this topic already has 2 kept sentences.";
 const ONE_ANALOGY: &str = "keep.fits not shown: this topic already has an analogy.";
 const NO_PASSAGE: &str = "keep.source dropped: it does not point at a passage.";
@@ -74,7 +75,8 @@ pub fn keep_verdicts(messages: &[Json], check_source: &dyn Fn(&str) -> Option<St
 			let crowded = stores_one || own.is_some_and(|i| visits[i].page || visits[i].plot) || before.is_some_and(|v| v.page || v.plot || v.keep);
 			let topic: Vec<bool> = seen.iter().filter(|(a, n, _)| *a < at && *n == node).map(|(_, _, fits)| *fits).collect();
 			let keep = keep_of(&call["arguments"]).unwrap_or_else(|| call["arguments"]["keep"].clone());
-			let dropped = keep_fields_note(&keep).or_else(|| crowded.then(|| SPACING.to_owned())).or_else(|| (topic.len() >= PER_TOPIC).then(|| TWO_A_TOPIC.to_owned()));
+			let check = normalize_quiz_type(&call["arguments"]["type"]) == Some("check");
+			let dropped = (!check).then(|| NOT_A_CHECK.to_owned()).or_else(|| keep_fields_note(&keep)).or_else(|| crowded.then(|| SPACING.to_owned())).or_else(|| (topic.len() >= PER_TOPIC).then(|| TWO_A_TOPIC.to_owned()));
 			let verdict = match dropped {
 				Some(note) => json!({ "quizCallId": id, "keep": "dropped", "fits": false, "phrase": false, "note": note }),
 				None => shown(id, &keep, topic.contains(&true), check_source),
@@ -288,6 +290,15 @@ mod tests {
 		messages.extend([check(verdict.clone()), answer("q8", true), reply("r9", "Plain.", vec![quiz("q9", Json::Null)]), answer("q9", true)]);
 		messages.push(reply("r10", "", vec![quiz("q10", json!({ "text": "Four." }))]));
 		assert_eq!(keep_verdicts(&messages, &no_source)[0]["note"], json!(TWO_A_TOPIC));
+	}
+
+	#[test]
+	fn a_keep_on_a_prediction_is_not_stored() {
+		let mut messages = lesson();
+		let mut guess = quiz("q3", json!({ "text": "Lambda prices large weights." }));
+		guess.get_mut("arguments").and_then(Json::as_obj_mut).unwrap().insert("type", "predict");
+		messages.push(reply("r3", "", vec![guess]));
+		assert_eq!(keep_verdicts(&messages, &no_source), [json!({ "quizCallId": "q3", "keep": "dropped", "fits": false, "phrase": false, "note": NOT_A_CHECK })]);
 	}
 
 	#[test]
