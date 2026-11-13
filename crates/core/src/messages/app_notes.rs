@@ -10,7 +10,7 @@ use gs_json::js_text::js_string;
 use super::input_events::{About, ChatInput, messages_of};
 use super::lesson_markers::{ANALOGY_DROP, new_app_note_marker};
 use crate::session::question_core::{confidence_level, keep_of};
-use crate::study::kept::keep_note;
+use crate::study::kept::{KEEP_NOTE, keep_notes};
 use crate::study::topic_end::{resume_due, shown_openers};
 
 const RESUMED_LINE: &str = "[Resumed] He came back to this session after a stop.";
@@ -45,7 +45,7 @@ pub fn app_note_for(record: &Json, input: &ChatInput, asked: Option<&Json>) -> O
 	lines.extend(analogy_dropped_lines(record));
 	let mut details = json!({});
 	match input {
-		ChatInput::Answer { tool_call_id, .. } => lines.extend(keep_note(messages, tool_call_id).map(str::to_owned)),
+		ChatInput::Answer { tool_call_id, .. } => lines.extend(keep_notes(messages, &answered_since_keep_note(messages, tool_call_id)).into_iter().map(str::to_owned)),
 		ChatInput::Text { about: Some(About::Opener(opener)), .. } => {
 			lines.push(format!("[Opener] {}: he asked about it before answering; it stays open. Answer his question and end your turn.", opener_topic(record, opener)));
 		}
@@ -68,6 +68,15 @@ fn from_earlier_line(messages: &[Json]) -> Option<String> {
 	let since = messages.iter().rposition(told).map_or(0, |i| i + 1);
 	let answered: Vec<String> = messages[since..].iter().filter(|m| m["role"].as_str() == Some("custom") && m["customType"].as_str() == Some("review")).map(|m| review_words(&m["details"])).collect();
 	(!answered.is_empty()).then(|| format!("{FROM_EARLIER} {}", answered.join(" ")))
+}
+
+/// The quizzes he answered after the last note that carried a keep note, then `answered` (his
+/// answer, not in the record yet): a batch's earlier answers wait for its last one's note.
+fn answered_since_keep_note<'a>(messages: &'a [Json], answered: &'a str) -> Vec<&'a str> {
+	let told = |m: &Json| m["customType"].as_str() == Some("app-note") && m["content"].as_str().is_some_and(|c| c.lines().any(|l| l.starts_with(KEEP_NOTE)));
+	let since = messages.iter().rposition(told).map_or(0, |i| i + 1);
+	let results = messages[since..].iter().filter(|m| m["role"].as_str() == Some("toolResult") && !m["isError"].truthy() && !m["details"]["dismissed"].truthy());
+	results.filter_map(|m| m["toolCallId"].as_str()).chain([answered]).collect()
 }
 
 /// `[Analogy dropped] Regularization: "The leash fits one part"`, one per kept sentence whose
@@ -316,6 +325,28 @@ mod tests {
 		assert_eq!(app_note_for(&record, &answer("q5"), None).unwrap()["content"], json!("keep.fits not shown: this topic already has an analogy."));
 		assert!(app_note_for(&record, &answer("q9"), None).is_none(), "another quiz");
 		assert!(app_note_for(&json!({ "messages": kept(None) }), &answer("q5"), None).is_none(), "nothing to say");
+	}
+
+	#[test]
+	fn a_batch_s_last_answer_carries_the_keep_notes_of_every_quiz_answered_since_the_last_one() {
+		let check = |id: &str, note: &str| json!({ "role": "custom", "customType": "keep-check", "content": "", "display": false, "details": { "quizCallId": id, "keep": "dropped", "fits": false, "phrase": false, "note": note } });
+		let result = |id: &str, details: Json| json!({ "role": "toolResult", "toolCallId": id, "toolName": "quiz", "isError": false, "details": details });
+		let long = "keep not stored: text 212 characters, at most 160. Add it to a later quiz.";
+		let spacing = "keep not stored: this reply or the last one has a page, plot or keep. Add it to a later quiz.";
+		let mut messages = vec![
+			json!({ "role": "assistant", "content": [{ "type": "toolCall", "id": "q3", "name": "quiz", "arguments": {} }, { "type": "toolCall", "id": "q4", "name": "quiz", "arguments": {} }] }),
+			check("q3", long),
+			check("q4", spacing),
+			result("q3", json!({ "kind": "quiz", "correct": true })),
+		];
+		let answer = |id: &str| ChatInput::Answer { tool_call_id: id.into(), answer: json!({}), attachments: None };
+		let note = app_note_for(&json!({ "messages": messages.clone() }), &answer("q4"), None).unwrap();
+		assert_eq!(note["content"], json!(format!("{long}\n{spacing}")), "the sibling answered first keeps its note");
+		messages.extend([result("q4", json!({ "kind": "quiz", "correct": true })), note]);
+		messages.extend([json!({ "role": "assistant", "content": [{ "type": "toolCall", "id": "q5", "name": "quiz", "arguments": {} }] }), check("q5", long)]);
+		assert_eq!(app_note_for(&json!({ "messages": messages.clone() }), &answer("q5"), None).unwrap()["content"], json!(long), "each note once");
+		let skipped = vec![messages[0].clone(), check("q3", long), result("q3", json!({ "kind": "quiz", "dismissed": true }))];
+		assert!(app_note_for(&json!({ "messages": skipped }), &answer("q9"), None).is_none(), "a skipped quiz sends no note");
 	}
 
 	#[test]

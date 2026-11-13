@@ -19,6 +19,8 @@ use crate::session::question_core::{keep_fields_note, keep_of, keep_phrase_note}
 /// At most this many kept sentences a topic.
 const PER_TOPIC: usize = 2;
 
+/// Every keep note starts with this word.
+pub(crate) const KEEP_NOTE: &str = "keep";
 const SPACING: &str = "keep not stored: this reply or the last one has a page, plot or keep. Add it to a later quiz.";
 const TWO_A_TOPIC: &str = "keep not stored: this topic already has 2 kept sentences.";
 const ONE_ANALOGY: &str = "keep.fits not shown: this topic already has an analogy.";
@@ -114,9 +116,10 @@ fn shown(id: &str, keep: &Json, analogy_shown: bool, check_source: &dyn Fn(&str)
 	Json::Obj(out)
 }
 
-/// The note a quiz's keep left for the teacher, read after his answer to it.
-pub fn keep_note<'a>(messages: &'a [Json], quiz_call_id: &str) -> Option<&'a str> {
-	verdicts(messages).get(quiz_call_id).and_then(|v| v["note"].as_str())
+/// The notes the keeps of these quizzes left for the teacher, read after his answers to them.
+pub fn keep_notes<'a>(messages: &'a [Json], quiz_call_ids: &[&str]) -> Vec<&'a str> {
+	let verdicts = verdicts(messages);
+	quiz_call_ids.iter().filter_map(|id| verdicts.get(id)?["note"].as_str()).collect()
 }
 
 /// Whether his last drop marker of `custom_type` (ANALOGY_DROP or PHRASE_DROP) for the quiz call
@@ -330,7 +333,7 @@ mod tests {
 	#[test]
 	fn the_note_drops_and_kept_parts_read_from_the_record() {
 		let mut messages = with_keep(lesson(), "q3", json!({ "text": "t", "fits": "f", "stops": "s", "phrase": "SOH CAH TOA" }), true);
-		assert_eq!(keep_note(&messages, "q3"), None);
+		assert!(keep_notes(&messages, &["q3"]).is_empty());
 		assert!(has_kept_part(&messages, "q3", "analogy") && has_kept_part(&messages, "q3", "phrase"));
 		assert!(!has_kept_part(&messages, "q1", "analogy"));
 		messages.push(json!({ "role": "custom", "customType": ANALOGY_DROP, "details": { "of": "q3" } }));
