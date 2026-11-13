@@ -72,7 +72,10 @@ fn prepare(agent: &Agent, call: &Json, abort: &Abort) -> Prepared {
 	let Some(tool) = agent.tools.iter().find(|t| t.name() == name) else {
 		return Prepared::Immediate(refused(call, &format!("Tool {name} not found")));
 	};
-	let args = tool.prepare_arguments(call["arguments"].clone());
+	let args = match tool.prepare_arguments(call["arguments"].clone()) {
+		Ok(args) => args,
+		Err(message) => return Prepared::Immediate(refused(call, &message)),
+	};
 	match validate_tool_arguments(&name, tool.parameters(), &args) {
 		Err(message) => Prepared::Immediate(refused(call, &message)),
 		Ok(_) if abort.is_aborted() => Prepared::Immediate(refused(call, "Operation aborted")),
@@ -177,4 +180,46 @@ pub(super) fn fail_truncated_calls(agent: &Agent, calls: &[Json]) -> Batch {
 		})
 		.collect();
 	Batch { messages, terminate: false }
+}
+
+#[cfg(test)]
+mod tests {
+	use futures_util::future::BoxFuture;
+	use gs_json::{Json, json};
+
+	use super::*;
+	use crate::turn::agent::AgentOptions;
+	use crate::turn::faux::{Engine, Scripted, faux_model};
+
+	struct Refusing(Json);
+
+	impl Tool for Refusing {
+		fn name(&self) -> &str {
+			"refusing"
+		}
+		fn description(&self) -> &str {
+			"Refuses every call in its preparation."
+		}
+		fn parameters(&self) -> &Json {
+			&self.0
+		}
+		fn prepare_arguments(&self, _args: Json) -> Result<Json, String> {
+			Err("nodeId: missing.\nopener.lead: too long.".to_owned())
+		}
+		fn execute(&self, _args: Json, _ctx: ToolContext) -> BoxFuture<'_, Result<Json, String>> {
+			Box::pin(async { panic!("a refused call never runs") })
+		}
+	}
+
+	#[tokio::test]
+	async fn a_preparation_error_is_the_whole_result_with_no_echo() {
+		let mut options = AgentOptions::new(Engine { model: faux_model("m", "p", "faux", "Faux", 1000.0, 100.0), respond: Scripted::new() });
+		options.tools = vec![Arc::new(Refusing(json!({ "type": "object", "properties": { "nodeId": { "type": "string" } }, "required": ["nodeId"] })))];
+		let agent = Agent::new(options);
+		let call = json!({ "type": "toolCall", "id": "call_1", "name": "refusing", "arguments": { "secret": "never shown" } });
+		let batch = execute_tool_calls(&agent, &[call], &Abort::new()).await;
+		assert_eq!(batch.messages[0]["content"], json!([{ "type": "text", "text": "nodeId: missing.\nopener.lead: too long." }]));
+		assert_eq!(batch.messages[0]["isError"], Json::Bool(true));
+		assert!(!batch.terminate);
+	}
 }

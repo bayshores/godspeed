@@ -134,8 +134,8 @@ impl Tool for DemoTool {
 		&self.parameters
 	}
 
-	fn prepare_arguments(&self, args: Json) -> Json {
-		heal_encoded_arguments(&args, &self.parameters)
+	fn prepare_arguments(&self, args: Json) -> Result<Json, String> {
+		Ok(heal_encoded_arguments(&args, &self.parameters))
 	}
 
 	fn execute(&self, args: Json, ctx: ToolContext) -> BoxFuture<'_, Result<Json, String>> {

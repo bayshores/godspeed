@@ -15,12 +15,12 @@ use super::plan::PlanContext;
 
 /// Models sometimes send `options` as a JSON-encoded string; this runs before validation so a
 /// double-encoded call lands instead of costing a retry. Anything unparseable passes through.
-fn prepare_question_arguments(mut args: Json) -> Json {
+fn prepare_question_arguments(mut args: Json) -> Result<Json, String> {
 	let parsed = args["options"].as_str().and_then(|_| parse_options_if_string(Some(&args["options"]))).filter(|p| p.as_arr().is_some());
 	if let (Some(parsed), Some(obj)) = (parsed, args.as_obj_mut()) {
 		obj.insert("options", parsed);
 	}
-	args
+	Ok(args)
 }
 
 /// The tool's answer for the authoring problems found: an error result to retry on, or the

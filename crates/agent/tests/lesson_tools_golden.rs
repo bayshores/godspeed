@@ -375,7 +375,7 @@ async fn script(reg: &[FnTool], calls: Vec<(&str, Json)>) -> Json {
 			continue;
 		};
 		n += 1;
-		let prepared = tool.prepare_arguments(args);
+		let prepared = tool.prepare_arguments(args).unwrap();
 		let ctx = ToolContext { tool_call_id: format!("call_{n}"), abort: Abort::new() };
 		out.push(match tool.execute(prepared.clone(), ctx).await {
 			Ok(result) => json!({ "name": name, "prepared": prepared, "out": result }),
@@ -749,7 +749,7 @@ async fn run_cases(data: &Path) -> Vec<(&'static str, Json)> {
 		with(&problem_args(), vec![("target", json!(["n_a"]))]),
 	]
 	.into_iter()
-	.map(|args| problem.prepare_arguments(args))
+	.map(|args| problem.prepare_arguments(args).unwrap())
 	.collect();
 	let out = script(&reg, vec![("problem", with(&problem_args(), vec![("target", json!(["unknown"]))])), ("problem", with(&problem_args(), vec![("target", json!(["n_a"]))]))]).await;
 	case("practice: targets", json!({ "prepared": prepared, "out": out }));
@@ -762,9 +762,9 @@ async fn run_cases(data: &Path) -> Vec<(&'static str, Json)> {
 	case(
 		"practice: heal",
 		json!([
-			tool(&reg, "problem").prepare_arguments(json!({ "statement": "s", "mode": "\"recall\"", "modelSolution": "m", "target": "[]" })),
-			tool(&reg, "conclude").prepare_arguments(json!({ "outcome": "\"solved\"", "verdict": "v", "rung": "\"R1\"", "missClass": "null", "retest": "true" })),
-			tool(&reg, "conclude").prepare_arguments(Json::from("not an object")),
+			tool(&reg, "problem").prepare_arguments(json!({ "statement": "s", "mode": "\"recall\"", "modelSolution": "m", "target": "[]" })).unwrap(),
+			tool(&reg, "conclude").prepare_arguments(json!({ "outcome": "\"solved\"", "verdict": "v", "rung": "\"R1\"", "missClass": "null", "retest": "true" })).unwrap(),
+			tool(&reg, "conclude").prepare_arguments(Json::from("not an object")).unwrap(),
 		]),
 	);
 

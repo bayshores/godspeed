@@ -30,9 +30,10 @@ pub trait Tool: Send + Sync {
 	fn execution_mode(&self) -> ExecutionMode {
 		ExecutionMode::Parallel
 	}
-	/// pi's `prepareArguments`: runs on the raw arguments before validation.
-	fn prepare_arguments(&self, args: Json) -> Json {
-		args
+	/// pi's `prepareArguments`: runs on the raw arguments before validation. `Err(message)`
+	/// refuses the call with that text alone, so the arguments are never echoed back.
+	fn prepare_arguments(&self, args: Json) -> Result<Json, String> {
+		Ok(args)
 	}
 	/// Runs one call with validated arguments. `Ok` is pi's `AgentToolResult` record:
 	/// `{content: [pi content parts], details?, isError?, terminate?}` in the tool's own key

@@ -144,7 +144,7 @@ fn problem_tool(gate: &Arc<AtomicBool>, graph_nodes: Option<GraphNodes>, paramet
 		problem_result("the learner's work and questions on it arrive as their messages.")
 	})
 	.sequential()
-	.prepared(move |args| normalize_target(heal_encoded_arguments(&args, &plain), prepare_nodes.as_ref()))
+	.prepared(move |args| Ok(normalize_target(heal_encoded_arguments(&args, &plain), prepare_nodes.as_ref())))
 }
 
 fn conclude_parameters() -> Json {
