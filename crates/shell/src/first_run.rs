@@ -11,13 +11,15 @@ use crate::log;
 const MARKER: &str = "Local State";
 
 /// Top level of userData only, never a pattern; the marker goes last.
-const LEFTOVERS: [&str; 41] = [
+const LEFTOVERS: [&str; 45] = [
 	"Cache",
 	"Code Cache",
 	"GPUCache",
+	"GPUPersistentCache",
 	"DawnCache",
 	"DawnGraphiteCache",
 	"DawnWebGPUCache",
+	"GraphiteDawnCache",
 	"GrShaderCache",
 	"ShaderCache",
 	"Local Storage",
@@ -46,6 +48,8 @@ const LEFTOVERS: [&str; 41] = [
 	"shared_proto_db",
 	"QuotaManager",
 	"QuotaManager-journal",
+	"declarative_performance_observer.db",
+	"declarative_performance_observer.db-journal",
 	"Partitions",
 	"SingletonLock",
 	"SingletonCookie",
