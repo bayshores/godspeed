@@ -3,7 +3,9 @@
  * assistant message; its topic is the nodeId its calls name (refused calls
  * aside), else the latest earlier reply's or shown opener's. A topic's page is the
  * first quoted source mark in the shown opener's lead, else in the reply
- * that opens the topic; later replies never give one. The server keeps a
+ * that opens the topic; later replies never give one. The replies before
+ * the first topic name none and are the first topic's: it takes a page
+ * quoted there when its own opening reply has none. The server keeps a
  * Rust copy (crates/core/src/study/topic_parts.rs); both replay
  * crates/core/tests/golden/topic_parts.json. Pure and browser-safe.
  */
@@ -36,6 +38,8 @@ export function topicParts(messages: readonly LhMessage[]): TopicParts[] {
 	const out: TopicParts[] = [];
 	const opened = new Set<string>();
 	let current: string | null = null;
+	// The first page quoted before any topic is reached.
+	let held: TopicPage | null = null;
 	for (const m of messages) {
 		const opener = m.role === "toolResult" ? openers.get(m.toolCallId) : undefined;
 		const openerNode = opener?.quiz.nodeId;
@@ -47,11 +51,16 @@ export function topicParts(messages: readonly LhMessage[]): TopicParts[] {
 		if (m.role !== "assistant") continue;
 		const nodeId: string | null = callTopic(m, refused) ?? current;
 		current = nodeId;
-		if (nodeId === null || opened.has(nodeId)) continue;
+		if (nodeId === null) {
+			held ??= replyPage(m);
+			continue;
+		}
+		if (opened.has(nodeId)) continue;
 		opened.add(nodeId);
 		let parts = out.find((t) => t.nodeId === nodeId);
 		if (!parts) out.push((parts = { nodeId, page: null }));
-		for (const block of m.content) if (block.type === "text" && !parts.page) parts.page = firstQuoted(block.text, { messageId: m.id, leadOf: null });
+		parts.page ??= replyPage(m) ?? held;
+		held = null;
 	}
 	return out;
 }
@@ -63,6 +72,15 @@ function callTopic(m: Extract<LhMessage, { role: "assistant" }>, refused: Readon
 		if (block.type !== "toolCall" || refused.has(block.id)) continue;
 		const nodeId = (block.arguments as { nodeId?: unknown } | undefined)?.nodeId;
 		if (typeof nodeId === "string") return nodeId;
+	}
+	return null;
+}
+
+/** The first quoted page in a reply's words. */
+function replyPage(m: Extract<LhMessage, { role: "assistant" }>): TopicPage | null {
+	for (const block of m.content) {
+		const page = block.type === "text" ? firstQuoted(block.text, { messageId: m.id, leadOf: null }) : null;
+		if (page) return page;
 	}
 	return null;
 }

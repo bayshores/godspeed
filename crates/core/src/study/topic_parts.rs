@@ -2,7 +2,8 @@
 //! replay tests/golden/topic_parts.json). A reply is one assistant message; its topic is the
 //! nodeId its calls name (refused calls aside), else the latest earlier reply's or shown opener's. A
 //! topic's page is the first quoted source mark in the shown opener's lead, else in the reply that
-//! opens the topic; later replies never give one. `reply_parts_problems` (Rust only) is the check
+//! opens the topic; later replies never give one. The replies before the first topic name none and
+//! are the first topic's: it takes a page quoted there when its own opening reply has none. `reply_parts_problems` (Rust only) is the check
 //! Study's lesson-parts hook runs on a reply before its plot and guess are stored; `visits` (Rust
 //! only) is what the spacing between a topic's new parts reads, kept sentences included.
 
@@ -67,6 +68,10 @@ fn walk(messages: &[Json], reply: Option<&Json>) -> (Vec<Json>, Vec<Visit>) {
 	let reached = |out: &[Json], node_id: &str| out.iter().position(|t| t["nodeId"].as_str() == Some(node_id));
 	let mut opened: HashSet<String> = HashSet::new();
 	let mut current: Option<String> = None;
+	// Before any topic is reached: the first page quoted and where its reply sits, and the replies
+	// he saw. They all belong to the first topic.
+	let mut held: Option<(usize, Json)> = None;
+	let mut early: Vec<Visit> = Vec::new();
 	for (index, m) in messages.iter().chain(reply).enumerate() {
 		let opener = (m["role"].as_str() == Some("toolResult")).then(|| m["toolCallId"].as_str().and_then(|id| openers.get(id))).flatten();
 		if let Some(opener) = opener
@@ -84,32 +89,60 @@ fn walk(messages: &[Json], reply: Option<&Json>) -> (Vec<Json>, Vec<Visit>) {
 			continue;
 		}
 		current = call_topic(m, &refused).or(current);
-		let Some(node_id) = current.clone() else { continue };
+		let visit = is_seen(m, &refused).then(|| Visit {
+			at: index,
+			node_id: current.clone().unwrap_or_default(),
+			page: false,
+			plot: calls(m).any(|c| c["name"].as_str() == Some(PLOT_TOOL) && !c["id"].as_str().is_some_and(|id| refused.contains(id))),
+			keep: calls(m).any(|c| c["id"].as_str().is_some_and(|id| kept.contains(id))),
+		});
+		let Some(node_id) = current.clone() else {
+			if held.is_none() {
+				held = reply_page(m).map(|page| (index, page));
+			}
+			early.extend(visit);
+			continue;
+		};
 		let at = reached(&out, &node_id).unwrap_or_else(|| {
 			out.push(json!({ "nodeId": node_id, "page": null }));
 			out.len() - 1
 		});
 		let mut gave_page = false;
 		if opened.insert(node_id.clone()) {
-			let page = items(&m["content"])
-				.iter()
-				.filter(|b| b["type"].as_str() == Some("text"))
-				.map(|b| first_quoted(b["text"].as_str().unwrap_or_default(), m["id"].clone(), Json::Null))
-				.find(|page| !page.is_null());
-			if let Some(page) = page.filter(|_| out[at]["page"].is_null())
-				&& let Some(parts) = out[at].as_obj_mut()
-			{
-				parts.insert("page", page);
-				gave_page = true;
+			let earlier = held.take();
+			let mut page_at = None;
+			if out[at]["page"].is_null() {
+				let page = match (reply_page(m), earlier) {
+					(Some(page), _) => {
+						gave_page = true;
+						Some(page)
+					}
+					(None, Some((held_at, page))) => {
+						page_at = Some(held_at);
+						Some(page)
+					}
+					(None, None) => None,
+				};
+				if let Some(page) = page
+					&& let Some(parts) = out[at].as_obj_mut()
+				{
+					parts.insert("page", page);
+				}
 			}
+			visits.extend(early.drain(..).map(|v| Visit { node_id: node_id.clone(), page: page_at == Some(v.at), ..v }));
 		}
-		let plot = calls(m).any(|c| c["name"].as_str() == Some(PLOT_TOOL) && !c["id"].as_str().is_some_and(|id| refused.contains(id)));
-		if is_seen(m, &refused) {
-			let keep = calls(m).any(|c| c["id"].as_str().is_some_and(|id| kept.contains(id)));
-			visits.push(Visit { at: index, node_id, page: gave_page, plot, keep });
-		}
+		visits.extend(visit.map(|v| Visit { page: gave_page, ..v }));
 	}
 	(out, visits)
+}
+
+/// The first quoted page in a reply's words.
+fn reply_page(m: &Json) -> Option<Json> {
+	items(&m["content"])
+		.iter()
+		.filter(|b| b["type"].as_str() == Some("text"))
+		.map(|b| first_quoted(b["text"].as_str().unwrap_or_default(), m["id"].clone(), Json::Null))
+		.find(|page| !page.is_null())
 }
 
 pub(super) fn calls(m: &Json) -> impl Iterator<Item = &Json> {
@@ -409,6 +442,20 @@ mod tests {
 		assert_eq!(reply_parts_problems(&with_plot, &again, &passes).refused[0].1.lines().collect::<Vec<_>>(), ["plot: this topic already has a plot.", "plot: send it after one reply with no page, plot or keep."]);
 		let refused_before = [lesson(), vec![pair(true, penalty_at_8(), "C"), result("q3", "quiz", true), result("p3", "plot", true)]].concat();
 		assert!(reply_parts_problems(&refused_before, &again, &passes).refused.is_empty(), "a refused plot is no plot");
+	}
+
+	/// Replies before any topic is reached are the first topic's, and a page quoted there is its
+	/// page in that reply: the plot may come one plain reply after it, with or without a call.
+	#[test]
+	fn a_page_quoted_before_the_first_topic_spaces_the_plot_from_its_own_reply() {
+		let opening = vec![reply("r0", &format!("Here the curve misses.{MARK}"), Vec::new())];
+		assert_eq!(topic_parts(&opening), Vec::<Json>::new(), "no topic is reached yet");
+		assert_eq!(reply_parts_problems(&opening, &pair(true, penalty_at_8(), "B"), &passes).refused[0].1, "plot: send it after one reply with no page, plot or keep.");
+		let with_quiz = [opening.clone(), vec![reply("r1", "So the curve calms.", vec![call("q1", "quiz", guess("B", Json::Null))]), result("q1", "quiz", false)]].concat();
+		assert_eq!(topic_parts(&with_quiz)[0]["page"]["messageId"], json!("r0"));
+		assert!(reply_parts_problems(&with_quiz, &pair(true, penalty_at_8(), "B"), &passes).refused.is_empty());
+		let words_only = [opening, vec![reply("r1", "So the curve calms.", Vec::new())]].concat();
+		assert!(reply_parts_problems(&words_only, &pair(true, penalty_at_8(), "B"), &passes).refused.is_empty());
 	}
 
 	/// Re-sending a refused pair with no words between is not the plain reply the rule asks for.

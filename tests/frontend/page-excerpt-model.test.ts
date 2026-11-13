@@ -13,7 +13,8 @@ import {
 	splitAfterSource,
 	topicPageMarks,
 } from "../../src/frontend/components/citations/page-excerpt-model.ts";
-import { citeView, fileCiteMark, openerLeadId, type LhViewPart } from "../../src/shared/core/index.ts";
+import { citeView, fileCiteMark, openerLeadId, projectView, topicParts, type LhViewPart } from "../../src/shared/core/index.ts";
+import { call, text as replyText } from "../stop-fixtures.ts";
 
 const FILE = "f_1a2b3c4d5e6f";
 const page14 = fileCiteMark(FILE, "p. 14", "Lecture 6.pdf", "degree 12");
@@ -43,6 +44,14 @@ describe("which text draws a topic's page", () => {
 		const marks = new Map([[openerLeadId("t1"), lead]]);
 		const parts = [text("m_x-t0", "Done with that."), { type: "step-start" } as LhViewPart, text(openerLeadId("t1"), `Here λ is picked.${lead}`)];
 		assert.deepEqual([...excerptParts(parts, marks)], [[2, lead]]);
+	});
+
+	it("a page quoted in a plain opening reply draws under that reply, before the first call names the topic", () => {
+		const record = [replyText("r0", `Here the curve misses.${page14}`, 1), call("q1", "quiz", { type: "check", nodeId: "reg", question: "Which fits?" }, 2)];
+		const topics = topicParts(record);
+		assert.deepEqual(topics.map((t) => [t.nodeId, t.page?.messageId]), [["reg", "m_r0"]]);
+		const [row] = projectView(record);
+		assert.deepEqual([...excerptParts(row!.parts, topicPageMarks(topics))], [[1, page14]], "the text part after the row's step-start");
 	});
 
 	it("text whose mark lost its quote draws nothing", () => {
