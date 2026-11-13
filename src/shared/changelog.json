@@ -1,5 +1,15 @@
 [
 	{
+		"version": "0.6.0",
+		"date": "2026-11-12",
+		"changes": [
+			"godspeed is a new app underneath. It looks and works the same, and the download is about a quarter of the size.",
+			"Your spaces, lessons and settings carry over. The first time the new app opens, it saves a copy of your data before it changes anything.",
+			"On a Mac it arrives like any update and needs macOS 14 or newer.",
+			"On Windows and Linux, download it once and install it. It takes the place of the old app, and after that it updates by itself."
+		]
+	},
+	{
 		"version": "0.5.51",
 		"date": "2026-11-12",
 		"changes": [
