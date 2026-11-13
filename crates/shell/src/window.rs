@@ -89,9 +89,10 @@ pub fn create(app: &AppHandle) -> tauri::Result<WebviewWindow> {
 		// traffic lights back to their default place, so only a real change is passed on.
 		.on_document_title_changed(|window, title| {
 			if !title.is_empty() && window.title().is_ok_and(|current| current != title) {
-				let _ = window.set_title(&title);
 				#[cfg(target_os = "macos")]
-				put_lights_back(window);
+				crate::mac::window::set_title(&window, &title);
+				#[cfg(not(target_os = "macos"))]
+				let _ = window.set_title(&title);
 			}
 		})
 		.on_page_load(move |window, payload| {
@@ -216,15 +217,6 @@ fn show(window: &WebviewWindow) -> tauri::Result<()> {
 	#[cfg(target_os = "macos")]
 	window.set_title(&window.title()?)?;
 	Ok(())
-}
-
-/// The title change takes effect on the main thread a moment after `set_title` returns.
-#[cfg(target_os = "macos")]
-fn put_lights_back(window: WebviewWindow) {
-	std::thread::spawn(move || {
-		std::thread::sleep(Duration::from_millis(50));
-		crate::mac::window::redraw_lights(&window);
-	});
 }
 
 /// Sends the page to a Settings section: now if it has loaded, else once it has.

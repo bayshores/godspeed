@@ -56,14 +56,17 @@ pub fn double_click_action() -> DoubleClick {
 }
 
 /// AppKit moves the traffic lights back to their default place when the title changes, and tao
-/// puts them in ours only while it draws its content view, so that view is asked to draw again.
-pub fn redraw_lights(window: &WebviewWindow) {
-	let ns_window = window.clone();
+/// puts them in ours only while it draws its content view. Both happen here in one turn of the
+/// main thread, so the lights are never seen out of place.
+pub fn set_title(window: &WebviewWindow, title: &str) {
+	let (handle, title) = (window.clone(), title.to_owned());
 	let _ = window.run_on_main_thread(move || {
 		// SAFETY: Tauri hands over this window's NSWindow, autoreleased, on the main thread.
-		let ns_window = ns_window.ns_window().ok().and_then(|ptr| unsafe { Retained::retain(ptr.cast::<NSWindow>()) });
-		if let Some(view) = ns_window.and_then(|window| window.contentView()) {
+		let Some(ns_window) = handle.ns_window().ok().and_then(|ptr| unsafe { Retained::retain(ptr.cast::<NSWindow>()) }) else { return };
+		ns_window.setTitle(&NSString::from_str(&title));
+		if let Some(view) = ns_window.contentView() {
 			view.setNeedsDisplay(true);
+			view.displayIfNeeded();
 		}
 	});
 }
