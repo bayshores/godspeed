@@ -6,7 +6,7 @@
 import { fromMarkdown } from "mdast-util-from-markdown";
 import { mathFromMarkdown } from "mdast-util-math";
 import { math } from "micromark-extension-math";
-import { CITE_TAG, citeView, fileCiteMark, openerLeadId, textPartMessageId, type Cite, type LhViewPart, type TopicParts } from "@/shared/core";
+import { CITE_TAG, citeView, fileCiteMark, openerLeadId, replaceCiteMarks, textPartMessageId, type Cite, type LhViewPart, type TopicParts } from "@/shared/core";
 
 /** A source in a space file. */
 export type FileCite = Extract<Cite, { kind: "file" }>;
@@ -61,20 +61,34 @@ export function excerptParts(parts: readonly LhViewPart[], marks: ReadonlyMap<st
 	return out;
 }
 
-/** The page's source in a text's numbered sources: its number and the
- *  source with the quote, which is what the page and its dialog mark. */
-export function pageSource(cites: readonly Cite[], mark: string): { n: number; cite: FileCite } | null {
+/** The page's source in a text's numbered sources (`cites` of
+ *  `citeView(text)`): its number, which of that number's places in the text
+ *  the stored mark is (from 0), and the source with the quote, which is what
+ *  the page and its dialog mark. */
+export function pageSource(text: string, cites: readonly Cite[], mark: string): { n: number; nth: number; cite: FileCite } | null {
 	const page = citeView(mark).cites[0];
 	if (page?.kind !== "file") return null;
-	const at = cites.findIndex((c) => c.kind === "file" && c.fileId === page.fileId && c.range === page.range);
-	return at < 0 ? null : { n: at + 1, cite: page };
+	const samePlace = (c: Cite) => c.kind === "file" && c.fileId === page.fileId && c.range === page.range;
+	const at = cites.findIndex(samePlace);
+	if (at < 0) return null;
+	let count = 0;
+	let nth = -1;
+	replaceCiteMarks(text, (m) => {
+		if (m.kind !== "file" || !samePlace(m)) return "";
+		if (nth < 0 && m.quote === page.quote) nth = count;
+		count++;
+		return "";
+	});
+	return { n: at + 1, nth: Math.max(nth, 0), cite: page };
 }
 
-/** Rendered teacher text split after the block holding source `n`'s first
- *  number, so the page draws right under that paragraph (or list, or
- *  quote). The whole text and "" when the number is not there. */
-export function splitAfterSource(text: string, n: number): [string, string] {
-	const at = text.indexOf(`<${CITE_TAG} n="${n}">`);
+/** Rendered teacher text split after the block holding source `n`'s
+ *  `nth` number (from 0), so the page draws right under that paragraph (or
+ *  list, or quote). The whole text and "" when the number is not there. */
+export function splitAfterSource(text: string, n: number, nth: number): [string, string] {
+	const tag = `<${CITE_TAG} n="${n}">`;
+	let at = text.indexOf(tag);
+	for (let i = 0; i < nth && at >= 0; i++) at = text.indexOf(tag, at + 1);
 	if (at < 0) return [text, ""];
 	const tree = fromMarkdown(text, { extensions: [math({ singleDollarTextMath: true })], mdastExtensions: [mathFromMarkdown()] });
 	const end = tree.children.find((block) => (block.position?.start.offset ?? 0) <= at && at < (block.position?.end.offset ?? 0))?.position?.end.offset;
