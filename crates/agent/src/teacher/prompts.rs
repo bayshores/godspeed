@@ -3,7 +3,7 @@
 //! is also how a learner's saved version is keyed. Sorted by folder then file name, so a folder's
 //! fragments are already in the order they compose.
 
-pub const SOURCES: [(&str, &str); 26] = [
+pub const SOURCES: [(&str, &str); 27] = [
 	("system-prompt.md", include_str!("../../prompts/system-prompt.md")),
 	("homework/00-base.md", include_str!("../../prompts/homework/00-base.md")),
 	("practice/00-base.md", include_str!("../../prompts/practice/00-base.md")),
@@ -14,6 +14,7 @@ pub const SOURCES: [(&str, &str); 26] = [
 	("shared/11-learner-first.md", include_str!("../../prompts/shared/11-learner-first.md")),
 	("shared/12-space-context.md", include_str!("../../prompts/shared/12-space-context.md")),
 	("shared/13-source-marks.md", include_str!("../../prompts/shared/13-source-marks.md")),
+	("shared/14-deadline-changes.md", include_str!("../../prompts/shared/14-deadline-changes.md")),
 	("shared/15-accuracy.md", include_str!("../../prompts/shared/15-accuracy.md")),
 	("shared/16-mental-model.md", include_str!("../../prompts/shared/16-mental-model.md")),
 	("shared/20-question-tools.md", include_str!("../../prompts/shared/20-question-tools.md")),

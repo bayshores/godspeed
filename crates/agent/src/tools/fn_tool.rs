@@ -11,7 +11,7 @@ use gs_json::Json;
 
 /// What a call does: the validated arguments in, pi's result record (or a throw) out.
 pub type Run = Arc<dyn Fn(Json, ToolContext) -> BoxFuture<'static, Result<Json, String>> + Send + Sync>;
-type Prepare = Arc<dyn Fn(Json) -> Json + Send + Sync>;
+type Prepare = Arc<dyn Fn(Json) -> Result<Json, String> + Send + Sync>;
 
 #[derive(Clone)]
 pub struct FnTool {
@@ -75,8 +75,9 @@ impl FnTool {
 		self
 	}
 
-	/// Replaces the arguments' preparation (pi's `prepareArguments`, before validation).
-	pub fn prepared(mut self, prepare: impl Fn(Json) -> Json + Send + Sync + 'static) -> FnTool {
+	/// Replaces the arguments' preparation (pi's `prepareArguments`, before validation); its
+	/// `Err` refuses the call with that text alone.
+	pub fn prepared(mut self, prepare: impl Fn(Json) -> Result<Json, String> + Send + Sync + 'static) -> FnTool {
 		self.prepare = Some(Arc::new(prepare));
 		self
 	}
@@ -85,8 +86,11 @@ impl FnTool {
 	pub fn healed(mut self) -> FnTool {
 		let (inner, schema) = (self.prepare.take(), self.parameters.clone());
 		self.prepare = Some(Arc::new(move |args| {
-			let prepared = inner.as_ref().map_or(args.clone(), |prepare| prepare(args));
-			heal_encoded_arguments(&prepared, &schema)
+			let prepared = match &inner {
+				Some(prepare) => prepare(args)?,
+				None => args,
+			};
+			Ok(heal_encoded_arguments(&prepared, &schema))
 		}));
 		self
 	}
@@ -119,8 +123,11 @@ impl Tool for FnTool {
 		self.mode
 	}
 
-	fn prepare_arguments(&self, args: Json) -> Json {
-		self.prepare.as_ref().map_or(args.clone(), |prepare| prepare(args))
+	fn prepare_arguments(&self, args: Json) -> Result<Json, String> {
+		match &self.prepare {
+			Some(prepare) => prepare(args),
+			None => Ok(args),
+		}
 	}
 
 	fn execute(&self, args: Json, ctx: ToolContext) -> BoxFuture<'_, Result<Json, String>> {

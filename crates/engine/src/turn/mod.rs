@@ -15,4 +15,4 @@ pub mod tool_execute;
 pub mod transcript;
 pub mod ui_stream;
 mod usage;
-mod validate;
+pub mod validate;

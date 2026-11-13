@@ -28,6 +28,7 @@ import {
 	pdfNoteOf,
 	projectView,
 	type ChatInput,
+	type KeptPart,
 	type LhMarkerMessage,
 	type LhMessage,
 	type LhViewMessage,
@@ -35,6 +36,7 @@ import {
 	type ChatAttachment,
 	type QuestionAnswerData,
 } from "../../shared/core";
+import { keepGoingOwesNext } from "./lesson/stop-card-model";
 
 type SessionStatus = "ready" | "submitted" | "streaming" | "error";
 
@@ -56,6 +58,11 @@ interface SessionModelDeps {
 let localSeq = 0;
 function localId(): string {
 	return `c_${Date.now().toString(36)}_${(localSeq++).toString(36)}`;
+}
+
+/** An optimistic UI marker; the server writes its own copy. */
+function localMarker(customType: "keep-going" | "opener-answer" | "analogy-drop" | "phrase-drop", details: unknown): LhMessage {
+	return { id: localId(), role: "custom", customType, content: "", display: true, details, timestamp: Date.now() };
 }
 
 function delay(ms: number, signal?: AbortSignal): Promise<void> {
@@ -279,6 +286,8 @@ export class SessionModel {
 	// The single live consume (POST response or reattach stream): a newer
 	// consume cancels the older — one reader at a time.
 	private consumeAbort: AbortController | null = null;
+	/** The last kept drop's store, which the next one waits for; never rejects. */
+	private keptStores: Promise<void> = Promise.resolve();
 	/** Synchronous ready check for the gate (send/read mount logic). */
 	readyRef = true;
 
@@ -708,6 +717,8 @@ export class SessionModel {
 			const result = { ...newAnswerResult(input.toolCallId, tool, input.answer, files), id: localId() };
 			optimistic.push(result);
 			this.unconfirmedAnswers.set(result.id, input.toolCallId);
+		} else if (input.type === "opener-answer") {
+			optimistic.push(localMarker("opener-answer", { topicDoneCallId: input.topicDoneCallId, answer: input.answer }));
 		}
 		if (optimistic.length > 0) this.mutate(() => {
 			this.tail = [...this.tail, ...optimistic];
@@ -727,7 +738,8 @@ export class SessionModel {
 				throw new Error("A turn is already running. Try again in a moment.");
 			}
 			if (!res.ok) {
-				throw new Error(errorBodyMessage(await res.text()) || `The send failed (${res.status}).`);
+				// An opener answer's refusal words are for logs; he sees the plain send failure.
+				throw new Error((input.type === "opener-answer" ? "" : errorBodyMessage(await res.text())) || `The send failed (${res.status}).`);
 			}
 			// The POST acknowledges and closes; there is no stream
 			// on this response to consume. Attach through the SAME reattach wire
@@ -843,6 +855,68 @@ export class SessionModel {
 		}
 	}
 
+	/** Keep going at a stop: the UI-only marker lands optimistically (the
+	 *  next topic's stored opener shows at once), then the route stores it,
+	 *  even during a turn; it never starts one. With no opener stored and
+	 *  no turn running on the server, the go-ahead follows (continueIfOwed);
+	 *  a running turn's end drives the next step instead. A failed store
+	 *  takes the marker back, so the stop card returns. */
+	async keepGoing(stopOf: string): Promise<void> {
+		const marker = localMarker("keep-going", { stopOf, at: new Date().toISOString() });
+		this.mutate(() => {
+			this.tail = [...this.tail, marker];
+		});
+		try {
+			const res = await this.fetch(`/api/chats/${this.chatId}/keep-going`, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ input: { stopOf } }),
+			});
+			// The server's refusal words are for logs; he sees that Keep going didn't save.
+			if (!res.ok) throw new Error(`status ${res.status}`);
+			const { opener, running } = (await res.json()) as { opener?: boolean; running?: boolean };
+			if (!opener && !running) await this.continueIfOwed([...this.base, ...this.tail]);
+		} catch (err) {
+			this.mutate(() => {
+				this.tail = this.tail.filter((m) => m !== marker);
+			});
+			this.setError(`Keep going failed: ${(err as Error).message}`);
+		}
+	}
+
+	/** Drop a kept card's analogy lines or phrase, or bring them back: the
+	 *  UI-only marker lands optimistically (the card changes at once), then
+	 *  the route stores it, even during a turn; it never starts one. Each
+	 *  click's local marker sits after the record, so his last click wins
+	 *  until the next full sync. Each store waits for the one before it, so
+	 *  the server keeps his clicks in order. A failed store takes the
+	 *  marker back. */
+	async dropKept(of: string, part: KeptPart, back: boolean): Promise<void> {
+		const marker = localMarker(part === "analogy" ? "analogy-drop" : "phrase-drop", { of, ...(back ? { back: true } : {}), at: new Date().toISOString() });
+		this.mutate(() => {
+			this.tail = [...this.tail, marker];
+		});
+		const stored = this.keptStores.then(() => this.storeKept(of, part, back, marker));
+		this.keptStores = stored;
+		await stored;
+	}
+
+	private async storeKept(of: string, part: KeptPart, back: boolean, marker: LhMessage): Promise<void> {
+		try {
+			const res = await this.fetch(`/api/chats/${this.chatId}/kept`, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ input: { of, part, ...(back ? { back: true } : {}) } }),
+			});
+			if (!res.ok) throw new Error(`status ${res.status}`);
+		} catch (err) {
+			this.mutate(() => {
+				this.tail = this.tail.filter((m) => m !== marker);
+			});
+			this.setError(`The kept change failed: ${(err as Error).message}`);
+		}
+	}
+
 	/** The problem discard (practice sessions): the ask-style dismissal.
 	 *  The UI-only marker lands optimistically, then the SILENT route
 	 *  persists it (no turn, no wake; parked mid-turn). The composer
@@ -915,11 +989,12 @@ export class SessionModel {
 	}
 
 	/** Automatic mount/sync continuation is never permission to retry a
-	 * failed turn. Read current model truth, not a stale React closure. */
+	 * failed turn. Read current model truth, not a stale React closure.
+	 * A Keep going whose stop has no stored opener is owed the go-ahead. */
 	async continueIfOwed(record: readonly LhMessage[]): Promise<void> {
-		if (this.statusValue === "ready" && !this.automaticContinuationBlocked && this.getState().error === null && needsContinuation(record)) {
-			await this.send({ type: "continue" });
-		}
+		if (this.statusValue !== "ready" || this.automaticContinuationBlocked || this.getState().error !== null) return;
+		if (needsContinuation(record)) await this.send({ type: "continue" });
+		else if (keepGoingOwesNext(record)) await this.send({ type: "next" });
 	}
 
 	clearError(): void {

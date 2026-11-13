@@ -195,7 +195,8 @@ fn page_png(outcome: Result<Arc<Vec<u8>>, ReadingError>) -> Result<Response, Unh
 async fn cited(State(app): State<Arc<App>>, Path(file_id): Path<String>, uri: Uri) -> Result<Response, Unhandled> {
 	let params = search_params(uri.query().unwrap_or_default());
 	let Some(range) = param(&params, "range").filter(|range| !range.is_empty()) else { return Ok(error(400, "range is required")) };
-	match cited_passage(&app, &file_id, range) {
+	let quote = param(&params, "quote").filter(|quote| !quote.is_empty());
+	match cited_passage(&app, &file_id, range, quote).await {
 		Ok(passage) => Ok(reply::json_no_store(200, &passage)),
 		Err(ReadingError::Refused(status, message)) => Ok(error(status, message)),
 		Err(ReadingError::Failed(message)) => Err(Unhandled::from(message)),

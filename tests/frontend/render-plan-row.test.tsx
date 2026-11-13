@@ -57,7 +57,7 @@ const problems: HomeworkProblem[] = [
 ];
 
 type RowProps = Parameters<typeof PlanRow>[0];
-const base: RowProps = { kind: "teach", spaceId: undefined, stepBar: bar, homework: null, practice: null, onJump: () => {}, onOpenPlan: () => {} };
+const base: RowProps = { kind: "teach", spaceId: undefined, stepBar: bar, stop: null, homework: null, practice: null, onJump: () => {}, onOpenPlan: () => {} };
 
 let host: HTMLElement | null = null;
 let root: Root | null = null;

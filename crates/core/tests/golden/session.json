@@ -327,6 +327,7 @@
 						"targets": [],
 						"nodeId": "huhec",
 						"outcome": "movedOn",
+						"rung": "R3",
 						"at": "2026-11-04T00:29:00.121Z"
 					}
 				],

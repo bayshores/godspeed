@@ -144,7 +144,8 @@ struct Cue {
 }
 
 /// `\r\n` and lone `\r` as `\n`.
-fn unix_lines(text: &str) -> String {
+/// The text with `\n` line ends, as text files are cut into lines.
+pub fn unix_lines(text: &str) -> String {
 	text.replace("\r\n", "\n").replace('\r', "\n")
 }
 

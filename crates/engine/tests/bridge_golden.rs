@@ -169,7 +169,7 @@ async fn the_bridge_matches_agent_bridge_ts() {
 					conversation: s["conversation"].as_str().map(str::to_owned),
 					agent: s["agent"].as_str().map(str::to_owned),
 					full: s["full"].truthy(),
-					and_background: s["andBackground"].truthy(),
+					and_others: s["andBackground"].truthy(),
 					helper: s["helper"].truthy(),
 				};
 				if let Some(view) = bridge.wait_for_work(0, opts).await {

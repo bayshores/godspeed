@@ -36,6 +36,7 @@ import type { AssistantMessage, Message, ToolResultMessage, UserMessage } from "
 import { isQuestionTool } from "./pending.ts";
 import {
 	CONCLUDE_ACK_TEXT,
+	TOPIC_DONE_TOOL,
 	NEXT_PROBLEM_TEXT,
 } from "./contracts/chat.ts";
 import { compactAnswerForModel, type QuestionAnswerData } from "./question-core.ts";
@@ -96,7 +97,14 @@ export interface LhMarkerMessage {
 		| "practice-next"
 		| "problem-dismissed"
 		| "compaction"
-		| "app-request";
+		| "app-request"
+		| "keep-going"
+		| "opener-answer"
+		| "app-note"
+		| "review"
+		| "keep-check"
+		| "analogy-drop"
+		| "phrase-drop";
 	/** The model-facing text ("" for plan blocks — UI-only). */
 	content: string;
 	/** Model-facing files after the text: the pictures and PDF notes of an
@@ -188,18 +196,27 @@ export function interruptedQuestions(messages: readonly LhMessage[]): Set<string
 	return out;
 }
 
-/** A plan block or compaction marker: bookkeeping that lands between a
- *  question and the next learner message without being part of either. */
+/** A compaction marker or a UI-only marker (a plan block, a problem
+ *  dismissal, Keep going, an answer to a question from earlier):
+ *  bookkeeping that lands between a question and the next learner message
+ *  without being part of either. */
 function isBookkeeping(m: LhMessage): boolean {
-	return m.role === "custom" && (m.customType === "plan-block" || m.customType === "compaction");
+	return m.role === "custom" && ["compaction", "plan-block", "problem-dismissed", "keep-going", "review", "keep-check", "analogy-drop", "phrase-drop"].includes(m.customType);
+}
+
+/** A hidden note for the agent that rides right ahead of the learner's
+ *  message it came with: the [Today] note or an app note. */
+function ridesAhead(m: LhMessage): boolean {
+	return m.role === "custom" && (m.customType === "today-context" || m.customType === "app-note");
 }
 
 /** The index of the side question right after the assistant message at `i`
- *  (past its tool results and bookkeeping), or -1. */
+ *  (past its tool results, bookkeeping and the notes riding ahead of it),
+ *  or -1. */
 function sideQuestionAfter(messages: readonly LhMessage[], i: number): number {
 	for (let j = i + 1; j < messages.length; j++) {
 		const m = messages[j]!;
-		if (m.role === "toolResult" || isBookkeeping(m)) continue;
+		if (m.role === "toolResult" || isBookkeeping(m) || ridesAhead(m)) continue;
 		return isSideQuestion(m) ? j : -1;
 	}
 	return -1;
@@ -758,11 +775,10 @@ export function endsInDismissal(messages: readonly LhMessage[]): boolean {
  * never fires a turn).
  */
 export function needsContinuation(record: readonly LhMessage[]): boolean {
-	// Compaction can append its marker between a question call and its
-	// answer; it is not part of the turn, so the fold reads past it.
-	const messages = record.filter(
-		(m) => !((m as { role?: string }).role === "custom" && (m as LhMarkerMessage).customType === "compaction"),
-	);
+	// Compaction and UI-only markers (a Keep going or an answer to a
+	// question from earlier written mid-turn) are not part of the turn, so
+	// the fold reads past them.
+	const messages = record.filter((m) => !isBookkeeping(m));
 	const last = messages[messages.length - 1];
 	if (!last || (last as { role?: string }).role !== "toolResult") return false;
 	// The trailing results batch (contiguous by construction — the agent
@@ -792,16 +808,14 @@ export function needsContinuation(record: readonly LhMessage[]): boolean {
 	const content = (owner as { content?: unknown }).content;
 	if (!Array.isArray(content)) return false;
 	const results = messages.slice(start) as ToolResultMessage[];
-	// PRACTICE: a batch acking a problem POSE
-	// owes nothing — terminate:true ended that turn DELIBERATELY (the
-	// learner's next message is the next turn), and unlike a
-	// question's placeholder this ack PERSISTS (the model reads its own
-	// "Problem posed" result later). Without this fold a reload after a
-	// pose would wake a phantom continuation turn.
-	const posedProblem = results.some(
-		(m) => m.toolName === PRACTICE_PROBLEM_TOOL && !m.isError && m.details == null,
+	// A batch acking a problem POSE or a stored topic_done owes nothing:
+	// terminate:true ended that turn DELIBERATELY (the learner's next input
+	// is the next turn), and unlike a question's placeholder the result
+	// PERSISTS. Without this fold a reload would wake a phantom turn.
+	const endedTurn = results.some(
+		(m) => !m.isError && ((m.toolName === PRACTICE_PROBLEM_TOOL && m.details == null) || m.toolName === TOPIC_DONE_TOOL),
 	);
-	if (posedProblem) return false;
+	if (endedTurn) return false;
 	const answered = resultIdsFrom(messages.slice(ownerAt + 1));
 	const calls = (content as Array<{ type?: string; id?: string }>).filter(
 		(b) => b.type === "toolCall" && typeof b.id === "string",

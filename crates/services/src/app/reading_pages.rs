@@ -12,9 +12,9 @@ use gs_json::{Json, json};
 
 use crate::App;
 
-const TEXT_MAX_BYTES: u64 = 2 * 1024 * 1024;
+pub(crate) const TEXT_MAX_BYTES: u64 = 2 * 1024 * 1024;
 const PAGE_DPI: f64 = 100.0;
-const CACHE_LIMIT: usize = 48;
+pub(crate) const CACHE_LIMIT: usize = 48;
 
 /// Why a file or page can't be shown.
 #[derive(Debug, PartialEq)]

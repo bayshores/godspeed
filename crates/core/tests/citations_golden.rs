@@ -23,8 +23,8 @@ fn text_of(want: &Json, key: &str) -> String {
 /// A mark as the TS object.
 fn mark_json(mark: &CiteMark) -> Json {
 	match mark {
-		CiteMark::Passage { passage_id } => json!({ "kind": "passage", "passageId": passage_id }),
-		CiteMark::File { file_id, range, name } => json!({ "kind": "file", "fileId": file_id, "range": range, "name": name }),
+		CiteMark::Passage { passage_id, .. } => json!({ "kind": "passage", "passageId": passage_id }),
+		CiteMark::File { file_id, range, name, .. } => json!({ "kind": "file", "fileId": file_id, "range": range, "name": name }),
 		CiteMark::Web { url } => json!({ "kind": "web", "url": url }),
 	}
 }
@@ -59,7 +59,7 @@ fn marks_read() {
 fn stored_marks() {
 	for want in each("stored marks") {
 		let name = text_of(&want, "name");
-		let mark = file_cite_mark("f_1a2b3c4d5e6f", "p. 3", &name);
+		let mark = file_cite_mark("f_1a2b3c4d5e6f", "p. 3", &name, None);
 		let words = cites_in_words(&format!("It frees memory. {mark} Then $x+1$ and `free`."));
 		assert_eq!(stringify(&json!({ "name": name, "mark": mark, "words": words })), stringify(&want), "{name:?}");
 	}

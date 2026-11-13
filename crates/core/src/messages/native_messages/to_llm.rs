@@ -7,6 +7,7 @@ use gs_json::{Json, Obj, json};
 use super::scans::tool_calls;
 use super::side_questions::{SIDE_PENDING_TEXT, side_answer_lead, side_held_questions};
 use crate::messages::compaction_marks::{active_compaction_of, kept_index_for};
+use crate::messages::lesson_markers::is_ui_only;
 use gs_json::js_text::js_string;
 
 /// The wording for an aborted turn's unanswered calls. Kept verbatim so the model's view never
@@ -70,7 +71,7 @@ pub fn to_llm_messages(messages: &[Json]) -> Vec<Json> {
 		match m["role"].as_str() {
 			Some("custom") => {
 				let custom_type = m["customType"].as_str();
-				if matches!(custom_type, Some("plan-block" | "problem-dismissed")) {
+				if is_ui_only(custom_type) {
 					continue;
 				}
 				// The active compaction marker already rendered as the head.
@@ -125,6 +126,8 @@ pub fn to_llm_messages(messages: &[Json]) -> Vec<Json> {
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use crate::messages::app_notes::app_note_for;
+	use crate::messages::input_events::ChatInput;
 
 	fn quiz_call(id: &str) -> Json {
 		json!({ "id": "m1", "role": "assistant", "content": [{ "type": "toolCall", "id": id, "name": "quiz", "arguments": { "question": "?" } }], "timestamp": 5 })
@@ -144,6 +147,57 @@ mod tests {
 				json!({ "role": "user", "content": [{ "type": "text", "text": "t" }, { "type": "image" }], "timestamp": 3 }),
 			]
 		);
+	}
+
+	#[test]
+	fn ui_only_markers_never_reach_the_agent_and_app_notes_do() {
+		let marker = |custom_type: &str, content: &str, at: i64| json!({ "id": custom_type, "role": "custom", "customType": custom_type, "content": content, "timestamp": at });
+		let messages = vec![
+			marker("keep-going", "", 1),
+			marker("problem-dismissed", "", 2),
+			marker("plan-block", "", 3),
+			marker("app-note", "[Resumed] He came back to this session after a stop.", 4),
+			marker("opener-answer", "[Opener] Cross-validation: he skipped it.", 5),
+		];
+		assert_eq!(
+			to_llm_messages(&messages),
+			vec![
+				json!({ "role": "user", "content": [{ "type": "text", "text": "[Resumed] He came back to this session after a stop." }], "timestamp": 4 }),
+				json!({ "role": "user", "content": [{ "type": "text", "text": "[Opener] Cross-validation: he skipped it." }], "timestamp": 5 }),
+			]
+		);
+	}
+
+	#[test]
+	fn questions_from_earlier_reach_the_agent_as_one_line_only() {
+		let review = |topic: &str, at: i64| {
+			let details = json!({ "of": { "chatId": "c0", "toolCallId": "t0" }, "nodeId": "n", "topic": topic, "quiz": { "question": "?" }, "answer": { "kind": "quiz", "correct": true, "answers": [{ "label": "A" }], "confidence": 80 } });
+			json!({ "id": topic, "role": "custom", "customType": "review", "content": "", "display": true, "details": details, "timestamp": at })
+		};
+		let mut messages = vec![review("Eigenvalues", 1), review("Gradient descent", 2)];
+		let note = app_note_for(&json!({ "messages": messages }), &ChatInput::Next, None).unwrap();
+		messages.push(note);
+		messages.push(json!({ "id": "n", "role": "custom", "customType": "practice-next", "content": "[NEXT PROBLEM]", "timestamp": 3 }));
+		let seen = to_llm_messages(&messages);
+		let texts: Vec<&str> = seen.iter().filter_map(|m| m["content"][0]["text"].as_str()).collect();
+		assert_eq!(texts, ["[From earlier] Eigenvalues right, sure 4. Gradient descent right, sure 4.", "[NEXT PROBLEM]"]);
+	}
+
+	#[test]
+	fn a_keep_verdict_and_a_dropped_analogy_reach_the_agent_as_lines_only() {
+		let keep = json!({ "text": "Lambda prices large weights.", "fits": "The leash fits one part.", "stops": "It stops at new data." });
+		let mut messages = vec![
+			json!({ "id": "m5", "role": "assistant", "content": [{ "type": "toolCall", "id": "q5", "name": "quiz", "arguments": { "nodeId": "reg", "keep": keep } }], "timestamp": 1 }),
+			json!({ "id": "k", "role": "custom", "customType": "keep-check", "content": "", "details": { "quizCallId": "q5", "keep": "shown", "fits": true, "phrase": true }, "timestamp": 2 }),
+			json!({ "id": "a", "role": "toolResult", "toolCallId": "q5", "toolName": "quiz", "content": [{ "type": "text", "text": "{}" }], "details": { "kind": "quiz", "correct": true }, "timestamp": 3 }),
+			json!({ "id": "d", "role": "custom", "customType": "analogy-drop", "content": "", "details": { "of": "q5" }, "timestamp": 4 }),
+			json!({ "id": "p", "role": "custom", "customType": "phrase-drop", "content": "", "details": { "of": "q5" }, "timestamp": 5 }),
+		];
+		let note = app_note_for(&json!({ "messages": messages }), &ChatInput::Next, None).unwrap();
+		messages.push(note);
+		let seen = to_llm_messages(&messages);
+		assert_eq!(seen.len(), 3, "the call, its answer and the note");
+		assert_eq!(seen[2]["content"][0]["text"], json!("[Analogy dropped] reg: \"The leash fits one part\""));
 	}
 
 	#[test]

@@ -670,7 +670,7 @@
 				{
 					"path": "teacher/05-method.md",
 					"shared": false,
-					"sourceSha": "be7b8cf41950f1b2527a5097300472de441b1f6c4394d79453233ce994366d92"
+					"sourceSha": "24ecb9a32cb9ceeac1d6caafee04374b6e26a933af8d145761e90189d02d29a6"
 				},
 				{
 					"path": "teacher/10-planning.md",
@@ -680,12 +680,12 @@
 				{
 					"path": "teacher/20-teaching.md",
 					"shared": false,
-					"sourceSha": "6bf84d6f3c5ed991cc2f6aee4087b19b02f758f96e32225b860b42ea30e62cf1"
+					"sourceSha": "3bc8f097d02452d4a6a0cc906801a487b96210a1c289b6831bddb471cc217f51"
 				},
 				{
 					"path": "teacher/28-predictions.md",
 					"shared": false,
-					"sourceSha": "2cfb033e21a7c46d698f0492b07ac5cee86f31533f56d753730ee2b98f13eb52"
+					"sourceSha": "f082506c2a5aab44d2873c30784138509b9efa7cf820d5a7d34ca99d3b5de201"
 				},
 				{
 					"path": "teacher/30-question-principles.md",
@@ -705,7 +705,7 @@
 				{
 					"path": "shared/10-voice.md",
 					"shared": true,
-					"sourceSha": "bf8a9d2d13b070bf0eae84a8b4f95b7b6d9fba1ea29a9e4dd5f1ec799952e3b0"
+					"sourceSha": "feeef8bdd9037157727430d820c9fb77d441ed1d3169db7aed8b53c76edff22c"
 				},
 				{
 					"path": "shared/11-learner-first.md",
@@ -715,12 +715,17 @@
 				{
 					"path": "shared/12-space-context.md",
 					"shared": true,
-					"sourceSha": "55fd5de593587730512263f2ca6f59008fe80dfb203f3360e761a7c5c1ab5d66"
+					"sourceSha": "247aed176a7ec284025b11837a73677ecb4cc5025a1381a2f2d1acdac6b6578c"
 				},
 				{
 					"path": "shared/13-source-marks.md",
 					"shared": true,
-					"sourceSha": "6652042ec2891d2f6d13ff2f8d8876b5edb2270342f7567c4aadb5fcdeb62e35"
+					"sourceSha": "50db2657440e425bb8d75951d3c0e0f03ecaa28241f7126ee043725f08737f54"
+				},
+				{
+					"path": "shared/14-deadline-changes.md",
+					"shared": true,
+					"sourceSha": "391b58ba04bac9b8dddde09a13b2caaff3e447e39cc2f156c2816eeb1d23f1c5"
 				},
 				{
 					"path": "shared/15-accuracy.md",
@@ -773,6 +778,7 @@
 				"shared/11-learner-first.md",
 				"shared/12-space-context.md",
 				"shared/13-source-marks.md",
+				"shared/14-deadline-changes.md",
 				"shared/15-accuracy.md",
 				"shared/16-mental-model.md",
 				"shared/20-question-tools.md",

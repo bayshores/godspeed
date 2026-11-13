@@ -16,3 +16,8 @@ export function useStepNumber(input: unknown): number | undefined {
 export function answerAnchorSelector(toolCallId: string): string {
 	return `[data-answer-call="${toolCallId.replace(/["\\]/g, "\\$&")}"]`;
 }
+
+/** The transcript anchor of a tool's card (a Concluded card). */
+export function toolCardSelector(toolCallId: string): string {
+	return `[data-tool-call="${toolCallId.replace(/["\\]/g, "\\$&")}"]`;
+}

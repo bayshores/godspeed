@@ -8,7 +8,9 @@ use std::sync::Arc;
 
 use gs_core::contracts::space::MAX_HOMEWORK_PROBLEMS;
 use gs_core::messages::native_messages::active_problem_of;
+use gs_base::clock;
 use gs_core::study::homework::conclude_marks_done;
+use gs_core::study::topic_end::long_problem_stop;
 use gs_engine::turn::tool_execute::{conclude_result, invalid_input_result, problem_result};
 use gs_json::{Json, js_number, json, quote};
 use parking_lot::Mutex;
@@ -18,7 +20,7 @@ use super::graph::GraphToolContext;
 use super::heal::heal_tool_record;
 use super::jobs::JobToolContext;
 use super::ports::ChatPort;
-use super::practice::practice_side_tools;
+use super::practice::{practice_side_tools, record_messages};
 use gs_core::session::schema::{object, one_of_literals, string};
 use super::side::LessonSide;
 
@@ -116,8 +118,8 @@ fn part_tool(open: &Arc<Mutex<Option<String>>>) -> FnTool {
 	.sequential()
 }
 
-fn conclude_tool(homework: Arc<dyn HomeworkDeadline>, open: &Arc<Mutex<Option<String>>>) -> FnTool {
-	let open = open.clone();
+fn conclude_tool(ctx: &HomeworkToolContext, open: &Arc<Mutex<Option<String>>>) -> FnTool {
+	let (open, homework, chat_id, chat_store) = (open.clone(), ctx.homework.clone(), ctx.chat_id.clone(), ctx.chat_store.clone());
 	let parameters = object(
 		&["outcome", "verdict"],
 		vec![
@@ -140,7 +142,9 @@ fn conclude_tool(homework: Arc<dyn HomeworkDeadline>, open: &Arc<Mutex<Option<St
 		if conclude_marks_done(&args["outcome"]) {
 			homework.mark_done(&number);
 		}
-		conclude_result()
+		// With every problem done, the done bar shows instead of a stop.
+		let left = homework.problems().iter().any(|p| !p["done"].truthy());
+		conclude_result(left.then(|| long_problem_stop(&record_messages(&chat_store, &chat_id), clock::now_ms())).flatten())
 	})
 	.sequential()
 }
@@ -148,7 +152,54 @@ fn conclude_tool(homework: Arc<dyn HomeworkDeadline>, open: &Arc<Mutex<Option<St
 /// The homework agent's whole registry; `enabled` filters the side tools as in practice.
 pub fn homework_tools(ctx: &HomeworkToolContext, enabled: Option<&Json>) -> Vec<FnTool> {
 	let open = Arc::new(Mutex::new(open_problem_of(ctx)));
-	let mut tools = vec![post_problems_tool(ctx.homework.clone()), problem_tool(ctx.homework.clone(), &open), part_tool(&open), conclude_tool(ctx.homework.clone(), &open)];
+	let mut tools = vec![post_problems_tool(ctx.homework.clone()), problem_tool(ctx.homework.clone(), &open), part_tool(&open), conclude_tool(ctx, &open)];
 	tools.extend(practice_side_tools(ctx.jobs.as_ref(), ctx.graph.as_ref(), &ctx.side, enabled));
 	heal_tool_record(tools)
+}
+
+#[cfg(test)]
+mod tests {
+	use gs_engine::turn::abort::Abort;
+	use gs_engine::turn::tool::{Tool, ToolContext};
+
+	use super::*;
+	use crate::tools::practice::LessonRecord;
+	use crate::tools::test_record::{learner_at, record};
+
+	struct Deadline(Mutex<Vec<Json>>);
+
+	impl HomeworkDeadline for Deadline {
+		fn problems(&self) -> Vec<Json> {
+			self.0.lock().clone()
+		}
+		fn post(&self, _problems: &[Json]) -> Option<String> {
+			None
+		}
+		fn mark_done(&self, number: &str) {
+			for p in self.0.lock().iter_mut().filter(|p| p["number"].as_str() == Some(number)) {
+				p.as_obj_mut().unwrap().insert("done", true);
+			}
+		}
+	}
+
+	/// Problem 1 open for 26 active minutes, with problem 2 after it.
+	async fn conclude_one(outcome: &str, problems: Json) -> Json {
+		let posed = json!({ "role": "assistant", "content": [{ "type": "toolCall", "id": "h1", "name": "problem", "arguments": { "number": "1", "statement": "s" } }], "timestamp": clock::now_ms() - 26 * 60_000 });
+		let result = json!({ "role": "toolResult", "toolCallId": "h1", "toolName": "problem", "details": null, "isError": false, "timestamp": clock::now_ms() - 26 * 60_000 });
+		let worked: Vec<Json> = (0..6).map(|i| learner_at(22 - 4 * i)).collect();
+		let LessonRecord { chat_id, chat_store } = record([vec![posed, result], worked].concat());
+		let homework = Arc::new(Deadline(Mutex::new(problems.as_arr().unwrap().clone())));
+		let ctx = HomeworkToolContext { chat_id, chat_store, homework, graph: None, jobs: None, side: LessonSide::default() };
+		let tool = homework_tools(&ctx, None).into_iter().find(|t| t.name() == "conclude").unwrap();
+		tool.execute(json!({ "outcome": outcome, "verdict": "v" }), ToolContext { tool_call_id: "c1".to_owned(), abort: Abort::new() }).await.unwrap()
+	}
+
+	#[tokio::test]
+	async fn a_long_problem_stops_unless_none_is_left() {
+		let two = json!([{ "number": "1" }, { "number": "2" }]);
+		let stop = &conclude_one("solved", two).await["details"]["stop"];
+		assert_eq!((stop["kind"].as_str(), stop["activeMinutes"].as_f64()), (Some("problem"), Some(26.0)));
+		assert_eq!(conclude_one("solved", json!([{ "number": "1" }, { "number": "2", "done": true }])).await["details"], Json::Null, "the done bar shows instead");
+		assert_eq!(conclude_one("movedOn", json!([{ "number": "1" }])).await["details"]["stop"]["kind"].as_str(), Some("problem"), "problem 1 is still undone");
+	}
 }

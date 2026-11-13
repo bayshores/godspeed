@@ -36,6 +36,35 @@ export interface PlanTree {
 /** Derived, never stored: status of a node for the panel (vision §2). */
 export type PlanNodeStatus = "current" | "visited" | "upcoming";
 
+/** Plan nodes in learning order: prerequisites first, ties in authored order. */
+export function orderedPlanNodes(tree: PlanTree): PlanTree["nodes"] {
+	const index = new Map(tree.nodes.map((n, i) => [n.id, i]));
+	const indegree = new Map(tree.nodes.map((n) => [n.id, 0]));
+	const next = new Map<string, string[]>();
+	for (const e of tree.edges) {
+		if (!index.has(e.from) || !index.has(e.to)) continue;
+		indegree.set(e.to, (indegree.get(e.to) ?? 0) + 1);
+		const list = next.get(e.from);
+		if (list) list.push(e.to);
+		else next.set(e.from, [e.to]);
+	}
+	const ready = tree.nodes.filter((n) => indegree.get(n.id) === 0).map((n) => n.id);
+	const out: string[] = [];
+	while (ready.length > 0) {
+		ready.sort((a, b) => index.get(a)! - index.get(b)!);
+		const id = ready.shift()!;
+		out.push(id);
+		for (const to of next.get(id) ?? []) {
+			const d = indegree.get(to)! - 1;
+			indegree.set(to, d);
+			if (d === 0) ready.push(to);
+		}
+	}
+	// A malformed tree (a cycle) keeps the rest in authored order.
+	for (const n of tree.nodes) if (!out.includes(n.id)) out.push(n.id);
+	return out.map((id) => tree.nodes[index.get(id)!]!);
+}
+
 // ─── derived statuses: position from CALLS, never from results ─────────────
 //
 // The teacher AUTHORS the map (plan_init, mermaid — re-callable rewrite) and never tracks progress.
@@ -88,7 +117,7 @@ function statusesFromTags(tree: PlanTree, tags: Iterable<unknown>): DerivedPlanS
 
 /** The tools whose calls tag position: either quizzing tool, and a study
  *  session's problems (practice problems carry no nodeId). */
-const TAGGING_TOOLS = new Set(["quiz", "explain", "problem"]);
+export const TAGGING_TOOLS: ReadonlySet<string> = new Set(["quiz", "explain", "problem"]);
 
 function* partTags(messages: readonly PartsCarrier[]): Generator<unknown> {
 	for (const m of messages) {
@@ -103,19 +132,23 @@ export function derivePlanStatuses(tree: PlanTree, messages: readonly PartsCarri
 }
 
 /** The native record's tagging CALLS, in any state: a dangling call
- *  still moves position, and results feed nothing. */
-function* nativeTags(messages: readonly LhMessage[]): Generator<unknown> {
+ *  still moves position, and results feed nothing. A topic_done whose
+ *  opener is shown tags the opener's node, as the view's opener part does. */
+function* nativeTags(messages: readonly LhMessage[], openerNodes: ReadonlyMap<string, string>): Generator<unknown> {
 	for (const m of messages) {
 		if ((m as { role?: string }).role !== "assistant") continue;
 		const content = (m as { content?: unknown }).content;
 		if (!Array.isArray(content)) continue;
-		for (const block of content as Array<{ type?: string; name?: string; arguments?: unknown }>) {
-			if (block.type === "toolCall" && block.name !== undefined && TAGGING_TOOLS.has(block.name)) yield (block.arguments as { nodeId?: unknown } | undefined)?.nodeId;
+		for (const block of content as Array<{ type?: string; id?: string; name?: string; arguments?: unknown }>) {
+			if (block.type !== "toolCall") continue;
+			if (block.name !== undefined && TAGGING_TOOLS.has(block.name)) yield (block.arguments as { nodeId?: unknown } | undefined)?.nodeId;
+			else if (block.id !== undefined && openerNodes.has(block.id)) yield openerNodes.get(block.id);
 		}
 	}
 }
 
-/** derivePlanStatuses over the native record. */
-export function derivePlanStatusesLh(tree: PlanTree, messages: readonly LhMessage[]): DerivedPlanStatuses {
-	return statusesFromTags(tree, nativeTags(messages));
+/** derivePlanStatuses over the native record. `openerNodes` maps each
+ *  topic_done whose opener is shown to the opener question's node. */
+export function derivePlanStatusesLh(tree: PlanTree, messages: readonly LhMessage[], openerNodes: ReadonlyMap<string, string> = new Map()): DerivedPlanStatuses {
+	return statusesFromTags(tree, nativeTags(messages, openerNodes));
 }

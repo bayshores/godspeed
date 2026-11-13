@@ -28,7 +28,12 @@ import { newUserMessage, newAnswerResult, newNextMessage, newProblemDismissedMar
 import { newCompactionMarker, newPlanBlockMessage, projectView } from "../../src/shared/core/index.ts";
 import { dismissedAnswer } from "../../src/shared/core/question-core.ts";
 import { oldThinkingMessage } from "../old-records.ts";
-import { buildAnswer, type QuestionData } from "../../src/shared/core/question-core.ts";
+import { buildAnswer, type QuestionAnswerData, type QuestionData } from "../../src/shared/core/question-core.ts";
+import { findPendingToolCall } from "../../src/shared/core/pending.ts";
+import { lessonStop } from "../../src/shared/core/topic-end.ts";
+import { keepGoing, regularizationEnds, text, TREE } from "../stop-fixtures.ts";
+import { keptLesson } from "../kept-fixtures.ts";
+import { lessonError, retryAction } from "../../src/frontend/components/lesson/lesson-error-model.ts";
 
 const realFetch = globalThis.fetch;
 afterEach(() => {
@@ -1799,5 +1804,149 @@ describe("steer (the settle race)", () => {
 		} });
 		assert.equal(await m.steer("wait, why?"), false, "the caller keeps the text");
 		assert.deepEqual(m.getState().steerQueue, []);
+	});
+});
+
+describe("Keep going and the opener", () => {
+	// A turn that ended after its conclude, with no topic_done.
+	const concluded = [...regularizationEnds().slice(0, 4), text("w", "Solid.", 48.2)];
+	const posts = (calls: Array<{ url: string; body?: string }>, url: string) => calls.filter((c) => c.url === url).map((c) => JSON.parse(c.body!).input);
+	function scripted(opener: boolean, record: LhMessage[], kept: () => Response = () => Response.json({ ok: true, opener, running: false }), chat: () => Response = () => Response.json({ ok: true })) {
+		const calls: Array<{ url: string; body?: string }> = [];
+		const fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+			const url = String(input);
+			calls.push({ url, body: typeof init?.body === "string" ? init.body : undefined });
+			if (url === "/api/chats/chat_x/keep-going") return kept();
+			if (url === "/api/chat") return chat();
+			if (url === "/api/chats/chat_x") return Response.json({ messages: record });
+			if (url === "/api/chats/chat_x/stream") return sseResponse("[DONE]");
+			throw new Error(`unexpected fetch: ${url}`);
+		}) as typeof globalThis.fetch;
+		return { calls, fetch };
+	}
+
+	it("shows the stored opener at once and wakes no one", async () => {
+		const { calls, fetch } = scripted(true, regularizationEnds());
+		const m = model({ initialMessages: regularizationEnds(), fetch });
+		await m.keepGoing("c1");
+		assert.deepEqual(posts(calls, "/api/chats/chat_x/keep-going"), [{ stopOf: "c1" }]);
+		assert.equal(findPendingToolCall(m.getState().messages)?.appPosed?.ref, "t1", "the opener is the question in Your turn");
+		assert.deepEqual(posts(calls, "/api/chat"), [], "no agent call");
+	});
+
+	it("with no opener stored, sends the go-ahead", async () => {
+		const { calls, fetch } = scripted(false, concluded);
+		const m = model({ initialMessages: concluded, fetch });
+		await m.keepGoing("c1");
+		assert.deepEqual(posts(calls, "/api/chat"), [{ type: "next" }]);
+	});
+
+	it("while the server still runs a turn, waits for its end instead of sending the go-ahead", async () => {
+		const { calls, fetch } = scripted(false, concluded, () => Response.json({ ok: true, opener: false, running: true }));
+		const m = model({ initialMessages: concluded, fetch });
+		await m.keepGoing("c1");
+		assert.deepEqual(posts(calls, "/api/chat"), []);
+	});
+
+	it("a failed Keep going brings the stop card back and says Keep going didn't save", async () => {
+		for (const kept of [() => Response.json({ error: "No stop on that call" }, { status: 400 }), () => { throw new Error("Failed to fetch"); }]) {
+			const { fetch } = scripted(true, regularizationEnds(), kept);
+			const m = model({ initialMessages: regularizationEnds(), fetch });
+			await m.keepGoing("c1");
+			assert.equal(lessonStop(m.getState().nativeMessages, TREE)?.keptGoing, false, "the marker is taken back");
+			assert.ok(!m.getState().error?.message.includes("No stop"), "never the server's words");
+		}
+		const { fetch } = scripted(true, regularizationEnds(), () => Response.json({ error: "No stop on that call" }, { status: 400 }));
+		const m = model({ initialMessages: regularizationEnds(), fetch });
+		await m.keepGoing("c1");
+		assert.equal(m.getState().error?.message, "Keep going failed: status 400");
+		assert.deepEqual(retryAction(lessonError(m.getState().error!.message).kind, { boxHasText: true, lastText: null }), { type: "resync" }, "Try again never sends his draft");
+	});
+
+	it("a refused opener answer shows the plain send failure", async () => {
+		const kept = [...regularizationEnds(), keepGoing("c1", 50)];
+		const { fetch } = scripted(true, kept, undefined, () => Response.json({ error: "that opener was already answered" }, { status: 400 }));
+		const m = model({ initialMessages: kept, fetch });
+		await m.send({ type: "opener-answer", topicDoneCallId: "t1", answer: null });
+		assert.equal(m.getState().error?.message, "The send failed (400).");
+	});
+
+	it("an answer to the opener is an opener-answer input that settles it at once", async () => {
+		const kept = [...regularizationEnds(), keepGoing("c1", 50)];
+		const { calls, fetch } = scripted(true, kept);
+		const m = model({ initialMessages: kept, fetch });
+		const answer = { kind: "quiz", questionText: "q", dontKnow: false, answers: [{ index: 0, label: "It can move a lot", value: "It can move a lot" }], correct: true } as QuestionAnswerData;
+		const sending = m.send({ type: "opener-answer", topicDoneCallId: "t1", answer });
+		assert.equal(findPendingToolCall(m.getState().messages), null, "answered before the server replies");
+		await sending;
+		assert.deepEqual(posts(calls, "/api/chat"), [{ type: "opener-answer", topicDoneCallId: "t1", answer }]);
+	});
+});
+
+describe("Drop this analogy and the phrase", () => {
+	function scripted(kept: () => Response) {
+		const bodies: unknown[] = [];
+		const fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+			const url = String(input);
+			if (url === "/api/chats/chat_x/kept") {
+				bodies.push(JSON.parse(String(init?.body)).input);
+				return kept();
+			}
+			throw new Error(`unexpected fetch: ${url}`);
+		}) as typeof globalThis.fetch;
+		return { bodies, fetch };
+	}
+	const card = (m: ReturnType<typeof model>) => m.getState().messages.flatMap((v) => v.parts).find((p) => p.type === "tool-quiz")?.kept as { analogyDropped?: boolean; phraseDropped?: boolean } | undefined;
+
+	it("changes the card at once and posts the drop, then the bring back, without starting a turn", async () => {
+		const { bodies, fetch } = scripted(() => Response.json({ ok: true }));
+		const m = model({ initialMessages: keptLesson(), fetch });
+		await m.dropKept("call_k", "analogy", false);
+		assert.equal(card(m)?.analogyDropped, true);
+		await m.dropKept("call_k", "phrase", false);
+		await m.dropKept("call_k", "analogy", true);
+		assert.deepEqual([card(m)?.analogyDropped, card(m)?.phraseDropped], [false, true]);
+		assert.deepEqual(bodies, [
+			{ of: "call_k", part: "analogy" },
+			{ of: "call_k", part: "phrase" },
+			{ of: "call_k", part: "analogy", back: true },
+		]);
+	});
+
+	it("each store waits for the one before it, so a fast drop then bring back lands in order", async () => {
+		const order: string[] = [];
+		let release!: () => void;
+		const first = new Promise<void>((resolve) => (release = resolve));
+		const fetch = (async (_input: RequestInfo | URL, init?: RequestInit) => {
+			const input = JSON.parse(String(init?.body)).input as { back?: true };
+			order.push(input.back ? "back sent" : "drop sent");
+			if (!input.back) await first;
+			order.push(input.back ? "back stored" : "drop stored");
+			return Response.json({ ok: true });
+		}) as typeof globalThis.fetch;
+		const m = model({ initialMessages: keptLesson(), fetch });
+		const dropping = m.dropKept("call_k", "analogy", false);
+		const bringing = m.dropKept("call_k", "analogy", true);
+		assert.equal(card(m)?.analogyDropped, false, "his last click shows at once");
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		assert.deepEqual(order, ["drop sent"], "the bring back waits");
+		release();
+		await Promise.all([dropping, bringing]);
+		assert.deepEqual(order, ["drop sent", "drop stored", "back sent", "back stored"]);
+	});
+
+	it("a failed store takes the drop back and says the change didn't save", async () => {
+		for (const [kept, message] of [
+			[() => Response.json({ error: "No kept sentence with that part on that call" }, { status: 400 }), "The kept change failed: status 400"],
+			[() => { throw new Error("Failed to fetch"); }, "The kept change failed: Failed to fetch"],
+		] as const) {
+			const { fetch } = scripted(kept);
+			const m = model({ initialMessages: keptLesson(), fetch });
+			await m.dropKept("call_k", "analogy", false);
+			assert.equal(card(m)?.analogyDropped, false);
+			assert.equal(m.getState().error?.message, message);
+			assert.deepEqual(lessonError(message), { text: "That change didn't save.", kind: "sync" });
+			assert.deepEqual(retryAction("sync", { boxHasText: true, lastText: null }), { type: "resync" }, "Try again never sends his draft");
+		}
 	});
 });

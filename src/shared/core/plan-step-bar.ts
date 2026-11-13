@@ -6,7 +6,7 @@
  */
 import type { LhMessage } from "./native-messages.ts";
 import type { PlanNodeStatus, PlanTree } from "./contracts.ts";
-import { derivedNodeStatus, derivePlanStatuses, derivePlanStatusesLh } from "./contracts.ts";
+import { derivedNodeStatus, derivePlanStatuses, derivePlanStatusesLh, orderedPlanNodes } from "./contracts.ts";
 import { answerOutcome, isAnswerData, type AnswerOutcome } from "./progress.ts";
 import { confidenceLevel, type ConfidenceLevel } from "./question-core.ts";
 
@@ -34,35 +34,6 @@ export interface PlanStepBar {
 	steps: PlanStep[];
 	/** Index of the current step; -1 before the first tagged question. */
 	currentIndex: number;
-}
-
-/** Plan nodes in learning order: prerequisites first, ties in authored order. */
-function orderedPlanNodes(tree: PlanTree): PlanTree["nodes"] {
-	const index = new Map(tree.nodes.map((n, i) => [n.id, i]));
-	const indegree = new Map(tree.nodes.map((n) => [n.id, 0]));
-	const next = new Map<string, string[]>();
-	for (const e of tree.edges) {
-		if (!index.has(e.from) || !index.has(e.to)) continue;
-		indegree.set(e.to, (indegree.get(e.to) ?? 0) + 1);
-		const list = next.get(e.from);
-		if (list) list.push(e.to);
-		else next.set(e.from, [e.to]);
-	}
-	const ready = tree.nodes.filter((n) => indegree.get(n.id) === 0).map((n) => n.id);
-	const out: string[] = [];
-	while (ready.length > 0) {
-		ready.sort((a, b) => index.get(a)! - index.get(b)!);
-		const id = ready.shift()!;
-		out.push(id);
-		for (const to of next.get(id) ?? []) {
-			const d = indegree.get(to)! - 1;
-			indegree.set(to, d);
-			if (d === 0) ready.push(to);
-		}
-	}
-	// A malformed tree (a cycle) keeps the rest in authored order.
-	for (const n of tree.nodes) if (!out.includes(n.id)) out.push(n.id);
-	return out.map((id) => tree.nodes[index.get(id)!]!);
 }
 
 /** The step bar for a lesson: the plan's nodes in order with their status

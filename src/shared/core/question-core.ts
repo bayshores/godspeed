@@ -681,9 +681,10 @@ export function buildAnswer(qd: QuestionData, req: AnswerRequest, tool?: string)
 }
 
 /** The sound a submitted answer makes. Only quiz answers are graded on
- *  submit; "I don't know", ask and explain answers stay silent. */
+ *  submit; "I don't know", ask and explain answers stay silent, and so does
+ *  a prediction, since a guess is never marked. */
 export function answerSound(answer: QuestionAnswerData): "right" | "wrong" | null {
-	if (answer.kind !== "quiz" || answer.dontKnow) return null;
+	if (answer.kind !== "quiz" || answer.dontKnow || answer.questionType === "predict") return null;
 	return answer.correct ? "right" : "wrong";
 }
 

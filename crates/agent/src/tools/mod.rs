@@ -7,8 +7,10 @@ pub mod heal;
 pub mod homework;
 pub mod jobs;
 pub mod lesson;
+pub mod lesson_parts;
 pub mod mermaid_plan;
 pub mod plan;
+pub mod plot;
 pub mod ports;
 pub mod practice;
 pub mod probe;
@@ -16,4 +18,7 @@ pub mod questions;
 pub mod rules;
 pub mod side;
 pub mod talk;
+#[cfg(test)]
+mod test_record;
+pub mod topic_done;
 pub mod work_plan;

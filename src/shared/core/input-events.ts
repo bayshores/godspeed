@@ -20,6 +20,9 @@
  *             (text, files or both) while a question waits, which stays
  *             open around it. With a problem open, a message is plain
  *             text: the learner's work on it, or a question about it.
+ *   opener-answer — the answer to the next topic's opener (a question
+ *             topic_done stored, shown by the app after Keep going), or
+ *             its skip.
  *
  * Server-originated delivery (the wake pipeline's steers) is NOT a client
  * input — the handler accepts it on the same path (TurnInput) so every
@@ -27,6 +30,7 @@
  */
 
 import type { QuestionAnswerData } from "./question-core.ts";
+import type { ReviewOf } from "./contracts/chat.ts";
 import type { LhMessage } from "./native-messages.ts";
 import {
 	activeProblemOf,
@@ -51,7 +55,10 @@ import {
 
 /** One client-originated input event (the POST body's `input`). */
 export type ChatInput =
-	| { type: "text"; text: string; attachments?: ChatAttachment[] }
+	/** `about`: Ask Teacher on a shown opener (its topic_done call id) or
+	 *  on the open question from earlier (with the option labels picked so
+	 *  far); either stays open. */
+	| { type: "text"; text: string; attachments?: ChatAttachment[]; about?: { opener: string } | { reviewOf: ReviewOf; picked?: string[] } }
 	| { type: "answer"; toolCallId: string; answer: QuestionAnswerData; attachments?: ChatAttachment[] }
 	| { type: "continue" }
 	| { type: "side"; text: string; attachments?: ChatAttachment[] }
@@ -59,7 +66,10 @@ export type ChatInput =
 	 *  explicit go-ahead during the between-problems pause — the Next
 	 *  chip or Enter on an empty composer. Practice sessions only, and
 	 *  only with nothing active. */
-	| { type: "next" };
+	| { type: "next" }
+	/** His answer to the next topic's opener, which has no tool call of
+	 *  its own; null is Skip question. */
+	| { type: "opener-answer"; topicDoneCallId: string; answer: QuestionAnswerData | null };
 
 /** The dismissal event: NEVER composes a
  *  turn — the silent route appends + persists and wakes nothing. The
@@ -231,6 +241,9 @@ export function inputAppends(
 			}
 			return [...dismissalConclusion(record), newNextMessage()];
 		}
+		case "opener-answer":
+			// Only the server's copy reads the record's openers.
+			throw new ChatInputError("opener-answer input is appended by the server");
 	}
 }
 

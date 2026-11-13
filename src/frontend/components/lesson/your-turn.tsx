@@ -1,7 +1,4 @@
 import { useRef, useState } from "react";
-import { Link } from "react-router";
-import { NoAgentLine } from "@/frontend/components/agent-folder/no-agent-line";
-import { teachStep, useAgentStatus } from "@/frontend/components/agent-status";
 import { useEnterSubmits } from "@/frontend/components/enter-submits";
 import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import { QuestionDock, type QuestionDockProps, type QuestionHandle } from "@/frontend/components/question-dock";
@@ -11,6 +8,8 @@ import { AttachButton, type AttachmentDraft } from "./attachment-tray";
 import { LessonBox } from "./lesson-box";
 import { lessonBox, questionTurn, type BoxAction, type BoxTurn, type BoxView } from "./lesson-box-model";
 import { OpenProblemPane } from "./open-problem-pane";
+import { StopCard } from "./stop-card";
+import type { StopAction, StopCardView } from "./stop-card-model";
 
 type Pending = NonNullable<ReturnType<typeof findPendingToolCall>>;
 
@@ -21,11 +20,16 @@ export interface YourTurnProps {
 	onSubmitAnswer: (output: QuestionAnswerData) => void;
 	/** Opens the skip confirm for the waiting question. */
 	onSkipQuestion: () => void;
+	/** His answer to a question from earlier was refused: it was no longer due. */
+	reviewRefused: boolean;
 	/** The open problem, with its line ("HW6, problem 3 of 7") and, for
 	 *  homework, where it is in the file and the part the learner is on. */
 	problem: { toolCallId: string; statement: string; line: string | null; source: string | null; part: string | null } | null;
 	/** Opens the discard confirm for the open problem. */
 	onDiscardProblem: () => void;
+	/** A place to stop he has not kept going from, keyed by the call that
+	 *  made it. */
+	stop: { key: string; view: StopCardView; onAction: (action: StopAction) => void } | null;
 	busy: boolean;
 	/** The turn waits for an agent to take it. */
 	waitingForAgent: boolean;
@@ -38,7 +42,9 @@ export interface YourTurnProps {
 	/** The writing box's text. */
 	value: string;
 	onChange: (v: string) => void;
-	onSend: () => void;
+	/** Sends the box; `picked` is the waiting question's option labels
+	 *  picked so far, for a question about it. */
+	onSend: (picked: string[]) => void;
 	queuedSteers: QueuedSteerLine[];
 	attachments: AttachmentDraft;
 	/** An agent took the turn and went quiet: stop it and run it again. */
@@ -62,6 +68,7 @@ const EXIT: Record<NonNullable<BoxView["exit"]>, { label: string; testId: string
  *   first and can note thoughts in the box);
  * - a waiting question (QuestionDock);
  * - the open problem (worked on in the box);
+ * - a place to stop (the stop card);
  * - otherwise nothing to answer, with Next problem / Continue in the pause
  *   between problems.
  * The button beside "Your turn" is the way out of that state.
@@ -74,8 +81,10 @@ export function YourTurn({
 	onSaveQuestionDraft,
 	onSubmitAnswer,
 	onSkipQuestion,
+	reviewRefused,
 	problem,
 	onDiscardProblem,
+	stop,
 	busy,
 	waitingForAgent,
 	onStop,
@@ -95,7 +104,6 @@ export function YourTurn({
 	onReveal: () => void;
 }) {
 	const name = useTeacher()?.name ?? DEFAULT_TEACHER_NAME;
-	const agentName = useAgentStatus()?.name?.trim();
 	// Whether the question above the box has an answer picked.
 	const [picked, setPicked] = useState(false);
 	const questionRef = useRef<QuestionHandle>(null);
@@ -104,14 +112,16 @@ export function YourTurn({
 	const turn: BoxTurn = revealPending
 		? { kind: "read-first" }
 		: pending
-			? questionTurn(pending.tool, pending.input, picked)
+			? questionTurn(pending.tool, pending.input, picked, pending.appPosed?.kind)
 			: problem
 				? { kind: "problem" }
-				: { kind: "none", next };
+				: stop
+					? { kind: "stop" }
+					: { kind: "none", next };
 	const view = lessonBox({ name, busy, waitingForAgent, hasText: value.trim().length > 0, hasFiles: attachments.files.length > 0, turn });
 
 	const act = (action: BoxAction) => {
-		if (action === "send") onSend();
+		if (action === "send") onSend(questionRef.current?.picked() ?? []);
 		else if (action === "submit") questionRef.current?.submit();
 		else if (action === "reveal") onReveal();
 		else if (action === "next") onNext();
@@ -125,9 +135,18 @@ export function YourTurn({
 
 	const exit = view.exit && EXIT[view.exit];
 	const onExit = view.exit === "skip" ? onSkipQuestion : view.exit === "discard" ? onDiscardProblem : onStop;
-	const kind = pending ? questionKindLabel(pending.tool, normalizeQuizType((pending.input as { type?: unknown } | null)?.type)) : "Question";
+	const fromEarlier = pending?.appPosed?.kind === "review";
+	const kind = fromEarlier ? "From earlier" : pending ? questionKindLabel(pending.tool, normalizeQuizType((pending.input as { type?: unknown } | null)?.type)) : "Question";
 
-	const mode = revealPending ? `reveal:${pending?.toolCallId}` : pending ? `question:${pending.toolCallId}` : problem ? `practice:${problem.toolCallId}` : "chat";
+	const mode = revealPending
+		? `reveal:${pending?.toolCallId}`
+		: pending
+			? `question:${pending.toolCallId}`
+			: problem
+				? `practice:${problem.toolCallId}`
+				: stop
+					? `stop:${stop.key}`
+					: "chat";
 	// The opening state appears still; later states rise in.
 	const initialModeRef = useRef(mode);
 
@@ -141,6 +160,12 @@ export function YourTurn({
 					</button>
 				)}
 			</div>
+
+			{reviewRefused && (
+				<p data-testid="review-refused" className="shrink-0 text-base text-ink-2">
+					That question is no longer due, so nothing was saved.
+				</p>
+			)}
 
 			<div key={mode} className={`flex min-h-0 flex-initial flex-col${mode === initialModeRef.current ? "" : " lh-rise"}`}>
 				<div className="lh-scroll-fade flex min-h-0 flex-col gap-3.5 overflow-y-auto">
@@ -161,7 +186,7 @@ export function YourTurn({
 							onReady={setPicked}
 							boxText={value}
 							onLeaveRows={() => boxRef.current?.focus()}
-							busy={busy}
+							busy={busy && !fromEarlier}
 						/>
 					)}
 					{!pending && problem && (
@@ -174,7 +199,8 @@ export function YourTurn({
 							<OpenProblemPane statement={problem.statement} source={problem.source} part={problem.part} />
 						</>
 					)}
-					{!pending && !problem && !busy && (
+					{!pending && !problem && stop && <StopCard view={stop.view} onAction={stop.onAction} />}
+					{!pending && !problem && !stop && !busy && (
 						<p data-testid="nothing-to-answer" className="shrink-0 text-base text-ink-2">
 							Nothing to answer right now.
 						</p>
@@ -182,14 +208,6 @@ export function YourTurn({
 				</div>
 			</div>
 
-			{waitingForAgent && (
-				<div data-testid="lesson-waiting" className="flex shrink-0 flex-col items-start gap-2">
-					{agentName && <p className="text-[15px] text-ink-2">{teachStep(agentName)}</p>}
-					<Link to="/settings?section=connection" data-testid="lesson-waiting-settings" className="lh-btn">
-						Open Connection settings
-					</Link>
-				</div>
-			)}
 			{stuck && (
 				<div data-testid="turn-stuck" className="flex shrink-0 flex-col items-start gap-2.5 bg-highlight px-3.5 py-3 text-base text-ink">
 					Your agent took this {stuck.minutes} minutes ago and hasn't answered.
@@ -224,7 +242,6 @@ export function YourTurn({
 				<span className="flex-1" />
 				{stats}
 			</div>
-			<NoAgentLine />
 		</div>
 	);
 }

@@ -6,6 +6,7 @@ use std::collections::HashMap;
 use gs_json::{Json, Obj};
 
 use super::plan::{derive_plan_statuses_lh, derived_node_status};
+use crate::study::topic_end::opener_nodes;
 
 fn id_of(node: &Json) -> &str {
 	node["id"].as_str().unwrap_or_default()
@@ -13,7 +14,7 @@ fn id_of(node: &Json) -> &str {
 
 /// Plan node ids in learning order: prerequisites first, ties in authored order. A malformed
 /// tree (a cycle) keeps the rest in authored order. A duplicated id resolves to its last node.
-fn ordered_plan_ids(tree: &Json) -> Vec<&str> {
+pub(crate) fn ordered_plan_ids(tree: &Json) -> Vec<&str> {
 	let nodes: &[Json] = tree["nodes"].as_arr().map_or(&[], Vec::as_slice);
 	let index: HashMap<&str, usize> = nodes.iter().enumerate().map(|(i, n)| (id_of(n), i)).collect();
 	let mut indegree: HashMap<&str, usize> = nodes.iter().map(|n| (id_of(n), 0)).collect();
@@ -53,14 +54,23 @@ pub fn step_position(statuses: &[&str]) -> usize {
 	statuses.iter().position(|s| *s == "current").map_or_else(|| statuses.iter().filter(|s| **s == "visited").count(), |i| i + 1)
 }
 
-/// `planPositionLh`: `{done, total}` over the native record.
+/// `planPositionLh`: `{done, total}` over the native record. A shown opener's question moves it,
+/// as it does in the window.
 pub fn plan_position_lh(tree: &Json, messages: &[Json]) -> Json {
-	let derived = derive_plan_statuses_lh(tree, messages);
+	let derived = derive_plan_statuses_lh(tree, messages, &opener_nodes(messages));
 	let statuses: Vec<&str> = ordered_plan_ids(tree).into_iter().map(|id| derived_node_status(&derived, id)).collect();
 	let mut out = Obj::new();
 	out.insert("done", step_position(&statuses) as f64);
 	out.insert("total", statuses.len() as f64);
 	Json::Obj(out)
+}
+
+/// The current step's title, a shown opener's question moving it as in `plan_position_lh`; none
+/// before the first tagged call or when that step has no title.
+pub fn current_step_title(tree: &Json, messages: &[Json]) -> Option<Json> {
+	let current = derive_plan_statuses_lh(tree, messages, &opener_nodes(messages)).current?;
+	let node = tree["nodes"].as_arr()?.iter().find(|n| id_of(n) == current)?;
+	node["title"].as_str().filter(|t| !t.is_empty()).map(Json::from)
 }
 
 #[cfg(test)]
@@ -87,5 +97,14 @@ mod tests {
 		assert_eq!(plan_position_lh(&tree, &[]), json!({ "done": 0, "total": 3 }));
 		assert_eq!(plan_position_lh(&tree, &[call("a"), call("b")]), json!({ "done": 2, "total": 3 }));
 		assert_eq!(step_position(&["visited", "upcoming", "visited"]), 2);
+	}
+
+	#[test]
+	fn the_current_step_title_needs_a_tagged_call_and_a_title() {
+		let tree = json!({ "nodes": [{ "id": "a", "title": "Regularization" }, { "id": "b", "title": "" }], "edges": [] });
+		assert_eq!(current_step_title(&tree, &[]), None);
+		assert_eq!(current_step_title(&tree, &[call("a")]), Some(json!("Regularization")));
+		assert_eq!(current_step_title(&tree, &[call("a"), call("b")]), None);
+		assert_eq!(current_step_title(&tree, &[call("zz")]), None);
 	}
 }

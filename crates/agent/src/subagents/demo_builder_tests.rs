@@ -102,5 +102,5 @@ async fn the_tools_are_declared_like_typebox() {
 		gs_json::stringify(tools[1].parameters()),
 		r#"{"type":"object","properties":{"probe":{"type":"string","description":"Optional JS expression evaluated in the page after settling, e.g. \"document.querySelectorAll('input').length\"."}}}"#
 	);
-	assert_eq!(tools[0].prepare_arguments(json!({ "html": "<p>" })), json!({ "html": "<p>" }));
+	assert_eq!(tools[0].prepare_arguments(json!({ "html": "<p>" })), Ok(json!({ "html": "<p>" })));
 }

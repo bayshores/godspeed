@@ -49,7 +49,8 @@ fn targets_of(args: &Json) -> Json {
 }
 
 /// Each concluded practice problem, oldest first: `{ messageId, problemCallId, statement,
-/// targets[, nodeId], outcome, at }` (a study problem names its plan node).
+/// targets[, nodeId], outcome[, rung], at }` (a study problem names its plan node; `rung` is the
+/// hint rung its conclude named, R0 to R5).
 pub fn practice_outcomes(messages: &[Json]) -> Vec<Json> {
 	let mut calls: HashMap<&str, Call> = HashMap::new();
 	let mut out = Vec::new();
@@ -86,6 +87,9 @@ pub fn practice_outcomes(messages: &[Json]) -> Vec<Json> {
 			entry.insert("nodeId", node_id);
 		}
 		entry.insert("outcome", outcome);
+		if let Some(rung) = call.args["rung"].as_str() {
+			entry.insert("rung", rung);
+		}
 		entry.insert("at", iso_of(m.get("timestamp")));
 		out.push(Json::Obj(entry));
 	}
@@ -135,6 +139,20 @@ mod tests {
 		let out = practice_outcomes(&messages);
 		assert_eq!(stringify(&out[0]), r#"{"messageId":"m1","problemCallId":"p1","statement":"S","targets":[],"nodeId":"tpc_1","outcome":"movedOn","at":"1970-01-01T00:00:00.002Z"}"#);
 		assert!(out[1].get("nodeId").is_none());
+	}
+
+	#[test]
+	fn an_outcome_keeps_the_rung_its_conclude_named() {
+		let concluded = |rung: Json| {
+			let messages = [
+				assistant("m1", json!([{ "type": "toolCall", "id": "p1", "name": "problem", "arguments": { "statement": "S" } }, { "type": "toolCall", "id": "c1", "name": "conclude", "arguments": { "outcome": "solvedWithHints", "rung": rung } }])),
+				result("p1", 1, false),
+				result("c1", 2, false),
+			];
+			practice_outcomes(&messages).remove(0)
+		};
+		assert_eq!(stringify(&concluded(json!("R1"))), r#"{"messageId":"m1","problemCallId":"p1","statement":"S","targets":[],"outcome":"solvedWithHints","rung":"R1","at":"1970-01-01T00:00:00.002Z"}"#);
+		assert!(concluded(Json::Null).get("rung").is_none(), "no hint given");
 	}
 
 	#[test]

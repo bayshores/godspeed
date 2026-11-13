@@ -5,13 +5,15 @@
 //! with nothing active.
 
 use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, Ordering};
 
+use gs_base::clock;
 use gs_core::graph::chains::resolve_target_id;
 use gs_core::messages::native_messages::active_problem_of;
 use gs_core::session::argument_heal::heal_encoded_arguments;
-use gs_engine::turn::tool_execute::{conclude_result, invalid_input_result, problem_result};
+use gs_core::study::topic_end::{ends_topic, long_problem_stop, topic_stop};
+use gs_engine::turn::tool_execute::{conclude_result, invalid_input_result, problem_result, study_conclude_result};
 use gs_json::{Json, json, stringify};
+use parking_lot::Mutex;
 
 use super::fn_tool::FnTool;
 use super::graph::GraphToolContext;
@@ -41,10 +43,45 @@ pub struct PracticeToolContext {
 	pub side: LessonSide,
 }
 
-/// Whether a problem is open in the stored record. A turn's gate starts from this: the record only
-/// updates when the turn ends, so the tools flip their own copy for the rest of the turn.
+/// The stored record's messages (none when the lesson is gone).
+pub(super) fn record_messages(chat_store: &Arc<dyn ChatPort>, chat_id: &str) -> Vec<Json> {
+	match chat_store.get_chat(chat_id).and_then(|mut record| record.as_obj_mut()?.remove("messages")) {
+		Some(Json::Arr(messages)) => messages,
+		_ => Vec::new(),
+	}
+}
+
+/// Whether a problem is open in the stored record.
 pub fn problem_is_active(chat_store: &Arc<dyn ChatPort>, chat_id: &str) -> bool {
-	chat_store.get_chat(chat_id).is_some_and(|record| active_problem_of(record["messages"].as_arr().map_or(&[][..], Vec::as_slice)).is_some())
+	active_problem_of(&record_messages(chat_store, chat_id)).is_some()
+}
+
+/// A topic finished this turn, and whether its topic_done is stored yet.
+#[derive(Clone)]
+pub(super) struct TopicEnd {
+	pub node_id: String,
+	pub stored: bool,
+}
+
+/// One turn's gate, shared by problem, conclude and topic_done. It starts from the record, which
+/// only updates when the turn ends, so the tools keep their own copy for the rest of the turn.
+pub struct TurnGate {
+	problem_active: Mutex<bool>,
+	topic_ended: Mutex<Option<TopicEnd>>,
+}
+
+impl TurnGate {
+	pub fn new(problem_active: bool) -> Arc<TurnGate> {
+		Arc::new(TurnGate { problem_active: Mutex::new(problem_active), topic_ended: Mutex::new(None) })
+	}
+
+	pub(super) fn topic_ended(&self) -> Option<TopicEnd> {
+		self.topic_ended.lock().clone()
+	}
+
+	pub(super) fn set_topic_ended(&self, node_id: &str, stored: bool) {
+		*self.topic_ended.lock() = Some(TopicEnd { node_id: node_id.to_owned(), stored });
+	}
 }
 
 fn problem_parameters() -> Json {
@@ -112,7 +149,7 @@ fn normalize_target(mut args: Json, graph_nodes: Option<&GraphNodes>) -> Json {
 }
 
 /// The pose, with its extra checks for a study session (`node_check`).
-fn problem_tool(gate: &Arc<AtomicBool>, graph_nodes: Option<GraphNodes>, parameters: Json, node_check: Option<NodeCheck>) -> FnTool {
+fn problem_tool(gate: &Arc<TurnGate>, graph_nodes: Option<GraphNodes>, parameters: Json, node_check: Option<NodeCheck>) -> FnTool {
 	let description = "Pose one practice problem. Ends the turn \u{2014} the problem stays in view beside the lesson, and the \
 		learner's work and questions on it arrive back as their messages. The modelSolution rides this call's \
 		arguments and stays hidden from the learner until you conclude (conclude shows it verbatim \u{2014} the \
@@ -123,7 +160,8 @@ fn problem_tool(gate: &Arc<AtomicBool>, graph_nodes: Option<GraphNodes>, paramet
 		if let Some(problem) = node_check.as_ref().and_then(|check| check(args["nodeId"].as_str().unwrap_or_default())) {
 			return invalid_input_result("problem", &[problem]);
 		}
-		if gate.load(Ordering::SeqCst) {
+		let mut active = gate.problem_active.lock();
+		if *active {
 			return invalid_input_result("problem", &["a problem is already active \u{2014} call conclude on it before posing the next one".to_owned()]);
 		}
 		// Only tagged problems are checked: an absent target poses freely.
@@ -140,11 +178,11 @@ fn problem_tool(gate: &Arc<AtomicBool>, graph_nodes: Option<GraphNodes>, paramet
 				);
 			}
 		}
-		gate.store(true, Ordering::SeqCst);
+		*active = true;
 		problem_result("the learner's work and questions on it arrive as their messages.")
 	})
 	.sequential()
-	.prepared(move |args| normalize_target(heal_encoded_arguments(&args, &plain), prepare_nodes.as_ref()))
+	.prepared(move |args| Ok(normalize_target(heal_encoded_arguments(&args, &plain), prepare_nodes.as_ref())))
 }
 
 fn conclude_parameters() -> Json {
@@ -178,36 +216,79 @@ fn conclude_parameters() -> Json {
 	)
 }
 
-fn conclude_tool(gate: &Arc<AtomicBool>) -> FnTool {
-	let gate = gate.clone();
-	let description = "Conclude the active problem: records the outcome + verdict, reveals the committed solution, and frees \
+/// The conclude description around how the turn ends after it.
+fn conclude_description(turn_end: &str) -> String {
+	format!(
+		"Conclude the active problem: records the outcome + verdict, reveals the committed solution, and frees \
 		the learner's composer. After the result, say your closing words about the learner's work if useful, then \
-		END YOUR TURN \u{2014} no further tool calls. The next problem waits for the learner's explicit go-ahead (a \
+		END YOUR TURN{turn_end} The next problem waits for the learner's explicit go-ahead (a \
 		*Next problem* message, or their own words asking for the next one). The one exception: when the learner \
 		asked for a different problem or part, that ask is the go-ahead, so pose it right after this result. \
-		Between problems, answer their questions about the concluded one. Nothing may conclude unless a problem is active.";
-	FnTool::immediate("conclude", description, conclude_parameters(), move |_args| {
-		if !gate.load(Ordering::SeqCst) {
-			return invalid_input_result("conclude", &["no active problem to conclude \u{2014} pose one first".to_owned()]);
+		Between problems, answer their questions about the concluded one. Nothing may conclude unless a problem is active."
+	)
+}
+
+/// Where the lesson record is, for the stop a conclude makes.
+#[derive(Clone)]
+pub struct LessonRecord {
+	pub chat_id: String,
+	pub chat_store: Arc<dyn ChatPort>,
+}
+
+/// Concludes under the gate; `result` gives the result for the record's messages as they were
+/// before this turn.
+fn gated_conclude(description: String, gate: &Arc<TurnGate>, record: LessonRecord, result: impl Fn(&Json, &[Json]) -> Json + Send + Sync + 'static) -> FnTool {
+	let gate = gate.clone();
+	FnTool::immediate("conclude", description, conclude_parameters(), move |args| {
+		{
+			let mut active = gate.problem_active.lock();
+			if !*active {
+				return invalid_input_result("conclude", &["no active problem to conclude \u{2014} pose one first".to_owned()]);
+			}
+			*active = false;
 		}
-		gate.store(false, Ordering::SeqCst);
-		conclude_result()
+		result(&args, &record_messages(&record.chat_store, &record.chat_id))
 	})
 	.sequential()
 }
 
-/// A study session's problem and conclude, sharing one turn gate. The problem names its plan node
-/// like a quiz does.
-pub fn study_problem_tools(chat_id: &str, chat_store: &Arc<dyn ChatPort>, graph_nodes: Option<GraphNodes>, node_check: NodeCheck) -> Vec<FnTool> {
-	let gate = Arc::new(AtomicBool::new(problem_is_active(chat_store, chat_id)));
-	vec![problem_tool(&gate, graph_nodes, study_problem_parameters(), Some(node_check)), conclude_tool(&gate)]
+/// Practice's conclude: a problem that took long ends on a stop; the text is unchanged.
+fn conclude_tool(gate: &Arc<TurnGate>, record: LessonRecord) -> FnTool {
+	gated_conclude(conclude_description(" \u{2014} no further tool calls."), gate, record, |_, messages| conclude_result(long_problem_stop(messages, clock::now_ms())))
+}
+
+/// Study's conclude: one that finishes its problem's topic ends on that topic's stop and tells the
+/// agent to call topic_done; otherwise it is practice's.
+fn study_conclude_tool(gate: &Arc<TurnGate>, record: LessonRecord) -> FnTool {
+	let description = conclude_description(
+		", with no further tool calls. When this conclude finishes a topic, the verdict is your closing words: write no other prose, then read what the next topic needs and call topic_done in its own reply.",
+	);
+	let ended = gate.clone();
+	gated_conclude(description, gate, record, move |args, messages| {
+		let now = clock::now_ms();
+		let stop = match ends_topic(args, active_problem_of(messages).as_ref()) {
+			Some(node_id) => {
+				ended.set_topic_ended(&node_id, false);
+				Some(topic_stop(messages, &node_id, now))
+			}
+			None => long_problem_stop(messages, now),
+		};
+		study_conclude_result(stop)
+	})
+}
+
+/// A study session's problem and conclude, under the turn gate topic_done shares. The problem
+/// names its plan node like a quiz does.
+pub fn study_problem_tools(gate: &Arc<TurnGate>, record: LessonRecord, graph_nodes: Option<GraphNodes>, node_check: NodeCheck) -> Vec<FnTool> {
+	vec![problem_tool(gate, graph_nodes, study_problem_parameters(), Some(node_check)), study_conclude_tool(gate, record)]
 }
 
 /// The practice agent's whole registry. Any side tool `enabled` sets to false is dropped;
 /// problem and conclude are the session, so they never are.
 pub fn practice_tools(ctx: &PracticeToolContext, enabled: Option<&Json>) -> Vec<FnTool> {
-	let gate = Arc::new(AtomicBool::new(problem_is_active(&ctx.chat_store, &ctx.chat_id)));
-	let mut tools = vec![problem_tool(&gate, ctx.graph_nodes.clone(), problem_parameters(), None), conclude_tool(&gate)];
+	let gate = TurnGate::new(problem_is_active(&ctx.chat_store, &ctx.chat_id));
+	let record = LessonRecord { chat_id: ctx.chat_id.clone(), chat_store: ctx.chat_store.clone() };
+	let mut tools = vec![problem_tool(&gate, ctx.graph_nodes.clone(), problem_parameters(), None), conclude_tool(&gate, record)];
 	tools.extend(practice_side_tools(ctx.jobs.as_ref(), ctx.graph.as_ref(), &ctx.side, enabled));
 	heal_tool_record(tools)
 }
@@ -223,4 +304,60 @@ pub fn practice_side_tools(jobs: Option<&JobToolContext>, graph: Option<&GraphTo
 	}
 	tools.extend(graph_and_side(graph, side));
 	filter_enabled(tools, enabled)
+}
+
+#[cfg(test)]
+mod tests {
+	use gs_core::contracts::chat::{CONCLUDE_ACK_TEXT, STUDY_TOPIC_END_ACK_TEXT};
+	use gs_engine::turn::abort::Abort;
+	use gs_engine::turn::tool::{Tool, ToolContext};
+
+	use super::*;
+	use crate::tools::test_record::{learner_at, record};
+
+	/// A problem on `reg` posed `minutes` ago, worked on every 4 minutes since.
+	fn worked(minutes: i64) -> Vec<Json> {
+		let posed = json!({ "role": "assistant", "content": [{ "type": "toolCall", "id": "p1", "name": "problem", "arguments": { "statement": "s", "nodeId": "reg" } }], "timestamp": clock::now_ms() - minutes * 60_000 });
+		let result = json!({ "role": "toolResult", "toolCallId": "p1", "toolName": "problem", "details": null, "isError": false, "timestamp": clock::now_ms() - minutes * 60_000 });
+		[vec![posed, result], (0..minutes / 4).map(|i| learner_at(minutes - 4 * (i + 1))).collect()].concat()
+	}
+
+	async fn conclude(tool: &FnTool, outcome: &str, rung: Json) -> Json {
+		let args = json!({ "outcome": outcome, "verdict": "v", "rung": rung, "missClass": null, "retest": false });
+		tool.execute(args, ToolContext { tool_call_id: "c1".to_owned(), abort: Abort::new() }).await.unwrap()
+	}
+
+	fn study_conclude(minutes: i64) -> (FnTool, Arc<TurnGate>) {
+		let gate = TurnGate::new(true);
+		let tools = study_problem_tools(&gate, record(worked(minutes)), None, Arc::new(|_| None));
+		(tools.into_iter().find(|t| t.name() == "conclude").unwrap(), gate)
+	}
+
+	#[tokio::test]
+	async fn a_study_conclude_that_finishes_its_topic_stops_there() {
+		let (tool, gate) = study_conclude(12);
+		let out = conclude(&tool, "solvedWithHints", json!("R2")).await;
+		assert_eq!(out["content"][0]["text"].as_str(), Some(STUDY_TOPIC_END_ACK_TEXT));
+		let stop = &out["details"]["stop"];
+		assert_eq!((stop["kind"].as_str(), stop["nodeId"].as_str(), stop["activeMinutes"].as_f64()), (Some("topic"), Some("reg"), Some(12.0)));
+		assert_eq!(gate.topic_ended().map(|t| (t.node_id, t.stored)), Some(("reg".to_owned(), false)));
+	}
+
+	#[tokio::test]
+	async fn a_long_problem_stops_on_the_shipped_text() {
+		let (tool, gate) = study_conclude(26);
+		let out = conclude(&tool, "solvedWithHints", json!("R3")).await;
+		assert_eq!(out["content"][0]["text"].as_str(), Some(CONCLUDE_ACK_TEXT));
+		assert_eq!((out["details"]["stop"]["kind"].as_str(), out["details"]["stop"]["activeMinutes"].as_f64()), (Some("problem"), Some(26.0)));
+		assert!(gate.topic_ended().is_none());
+
+		let practice = |minutes| {
+			let LessonRecord { chat_id, chat_store } = record(worked(minutes));
+			let ctx = PracticeToolContext { chat_id, chat_store, graph_nodes: None, graph: None, jobs: None, side: LessonSide::default() };
+			practice_tools(&ctx, None).into_iter().find(|t| t.name() == "conclude").unwrap()
+		};
+		let out = conclude(&practice(26), "solved", Json::Null).await;
+		assert_eq!((out["content"][0]["text"].as_str(), out["details"]["stop"]["kind"].as_str()), (Some(CONCLUDE_ACK_TEXT), Some("problem")));
+		assert_eq!(conclude(&practice(20), "solved", Json::Null).await, conclude_result(None), "under 25 minutes: no stop");
+	}
 }

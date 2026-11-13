@@ -94,7 +94,7 @@ fn now() -> Json {
 }
 
 /// A marker message: `content` is what the model reads, `details` what the view shows.
-fn marker(id: String, custom_type: &str, content: impl Into<Json>, display: bool, details: Json) -> Obj {
+pub(crate) fn marker(id: String, custom_type: &str, content: impl Into<Json>, display: bool, details: Json) -> Obj {
 	[
 		("id", Json::from(id)),
 		("role", "custom".into()),

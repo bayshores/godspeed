@@ -215,14 +215,17 @@ pub fn study_plan_tree(topics: &[Json]) -> Result<Json, String> {
 	create_tree(&nodes, &[])
 }
 
-/// A strong topic is checked again once its newest answer is this many days old.
+/// A strong topic with no question from earlier is checked again once its newest answer is this
+/// many days old.
 const RECHECK_DAYS: i64 = 7;
 
 /// The topic ids a deadline's Study button studies: today's planned topics and the strong ones
 /// not answered for `RECHECK_DAYS` days, or all its topics once every one is strong (or the plan
-/// is over). `deadline` is a progress deadline (`date`, `topics` of `{ id, name, rate }`);
-/// `topics` are the progress topics (`id`, `status`, `answers` oldest first).
-pub fn deadline_study_topic_ids(today: &str, deadline: &Json, topics: &[Json]) -> Vec<String> {
+/// is over). A topic in `reviewed` (it has a question from earlier it may still be asked) comes
+/// back through review instead, so it is never rechecked here. `deadline` is a progress deadline (`date`, `topics` of
+/// `{ id, name, rate }`); `topics` are the progress topics (`id`, `status`, `answers` oldest
+/// first).
+pub fn deadline_study_topic_ids(today: &str, deadline: &Json, topics: &[Json], reviewed: &HashSet<String>) -> Vec<String> {
 	let deadline_topics = items(&deadline["topics"]);
 	let id_of = |t: &Json| t["id"].as_str().unwrap_or("").to_owned();
 	let plan = plan_days(today, deadline["date"].as_str().unwrap_or(""), deadline_topics);
@@ -232,7 +235,7 @@ pub fn deadline_study_topic_ids(today: &str, deadline: &Json, topics: &[Json]) -
 		let newest = items(&t["answers"]).last().and_then(|a| a["answeredAt"].as_str()).filter(|at| !at.is_empty());
 		// An unreadable time is NaN days old in JS, which never reaches the limit.
 		let old_enough = newest.and_then(time::parse_date).is_some_and(|ms| days_between(&local_day(ms), today) >= RECHECK_DAYS);
-		t["id"].as_str().is_some_and(|id| in_deadline.contains(id)) && t["status"].as_str() == Some("strong") && old_enough
+		t["id"].as_str().is_some_and(|id| in_deadline.contains(id) && !reviewed.contains(id)) && t["status"].as_str() == Some("strong") && old_enough
 	};
 	items(&day["topics"]).iter().chain(topics.iter().filter(due_again)).map(id_of).collect()
 }
@@ -318,9 +321,9 @@ mod tests {
 	#[test]
 	fn a_deadline_studies_todays_topics_or_all_of_them() {
 		let deadline = json!({ "date": "2026-11-12", "topics": [{ "id": "a", "name": "A", "rate": 0.1 }, { "id": "b", "name": "B", "rate": 0.2 }] });
-		assert_eq!(deadline_study_topic_ids("2026-11-10", &deadline, &[]), ["a"]);
+		assert_eq!(deadline_study_topic_ids("2026-11-10", &deadline, &[], &HashSet::new()), ["a"]);
 		let over = json!({ "date": "2026-11-01", "topics": deadline["topics"] });
-		assert_eq!(deadline_study_topic_ids("2026-11-10", &over, &[]), ["a", "b"]);
+		assert_eq!(deadline_study_topic_ids("2026-11-10", &over, &[], &HashSet::new()), ["a", "b"]);
 	}
 
 	#[test]
@@ -334,7 +337,9 @@ mod tests {
 			json!({ "id": "n", "status": "strong", "answers": [] }),
 			json!({ "id": "a", "status": "weak", "answers": [{ "outcome": "wrong", "answeredAt": "2026-10-01T12:00:00.000Z" }] }),
 		];
-		assert_eq!(deadline_study_topic_ids("2026-11-10", &deadline, &topics), ["a", "s"]);
-		assert_eq!(deadline_study_topic_ids("2026-11-11", &deadline, &topics), ["a", "s", "r"]);
+		assert_eq!(deadline_study_topic_ids("2026-11-10", &deadline, &topics, &HashSet::new()), ["a", "s"]);
+		assert_eq!(deadline_study_topic_ids("2026-11-11", &deadline, &topics, &HashSet::new()), ["a", "s", "r"]);
+		let reviewed: HashSet<String> = ["s".to_owned()].into();
+		assert_eq!(deadline_study_topic_ids("2026-11-11", &deadline, &topics, &reviewed), ["a", "r"], "a topic with a question from earlier comes back through review");
 	}
 }

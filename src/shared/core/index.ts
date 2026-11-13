@@ -58,6 +58,13 @@ export * from "./linked-folder.ts";
 export * from "./deadline-plan.ts";
 export * from "./study.ts";
 export * from "./continue-study.ts";
+// Stops and openers: the state Today and the lesson window read.
+export * from "./topic-end.ts";
+export * from "./topic-parts.ts";
+// Plot formulas: the grammar the server checks them with, and their typeset form.
+export * from "./plot-expr.ts";
+// The kept card a right answer to a quiz with a kept sentence shows.
+export type { KeptCardData } from "./kept-view.ts";
 export * from "./homework.ts";
 export * from "./cheat-sheet.ts";
 export * from "./prep.ts";

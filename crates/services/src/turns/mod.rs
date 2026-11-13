@@ -1,4 +1,4 @@
-//! Lessons, turns, Talk and catch-up. One module per TS file; the live registries the TS kept on `globalThis` are
+//! Lessons, turns, questions from earlier, Talk and catch-up. One module per TS file; the live registries the TS kept on `globalThis` are
 //! the fields of `TurnsState`.
 
 pub mod agent_catch_up;
@@ -10,7 +10,9 @@ pub mod dismissal_park;
 pub mod homework;
 mod job_host;
 mod lesson_agent;
+pub mod lesson_events;
 pub mod lessons;
+pub mod review;
 pub mod talk;
 pub mod turn_liveness;
 pub mod turn_runs;
@@ -57,4 +59,6 @@ pub struct TurnsState {
 	lessons_caught_up: AtomicBool,
 	/// A deadline request to Talk is on its way.
 	asking_deadlines: AtomicBool,
+	/// The questions from earlier skipped in each lesson's sitting (review).
+	review_skips: Mutex<HashMap<String, review::Skips>>,
 }

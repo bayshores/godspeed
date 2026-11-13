@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import { useNavigate } from "react-router";
-import type { ChatAttachment, DeadlineProgress, GraphContextPick } from "@/shared/core";
+import { lessonStop, type ChatAttachment, type DeadlineProgress, type GraphContextPick, type LhMessage } from "@/shared/core";
 import { useSpaces } from "@/frontend/components/space-context";
 import { holdStartFiles } from "@/frontend/components/lesson/start-files";
 
@@ -92,6 +92,34 @@ export function useLessonStart() {
 		[post, navigate, active],
 	);
 
+	/** Continue a Study session at its stop: Keep going is stored first, so
+	 *  the next topic's opener shows with no agent, then the lesson opens
+	 *  with the stop's card lit once. A failed read or store opens it at the
+	 *  stop, where the card offers Keep going again. */
+	const continueStopped = useCallback(
+		async (chatId: string) => {
+			if (busy) return;
+			setBusy(true);
+			const lesson = `/chat/${encodeURIComponent(chatId)}`;
+			try {
+				const res = await fetch(`/api/chats/${encodeURIComponent(chatId)}`);
+				if (!res.ok) throw new Error(`HTTP ${res.status}`);
+				const stop = lessonStop(((await res.json()) as { messages: LhMessage[] }).messages, null);
+				if (!stop || stop.keptGoing) throw new Error("no stop to go on from");
+				const kept = await fetch(`/api/chats/${encodeURIComponent(chatId)}/keep-going`, {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({ input: { stopOf: stop.stopOf } }),
+				});
+				if (!kept.ok) throw new Error(`HTTP ${kept.status}`);
+				navigate(`${lesson}?lit=stop`);
+			} catch {
+				navigate(lesson);
+			}
+		},
+		[busy, navigate],
+	);
+
 	/** Work on a homework or project: reopens its latest homework session,
 	 *  else starts one on its next problem not done. */
 	const workOnHomework = useCallback(
@@ -108,6 +136,7 @@ export function useLessonStart() {
 		studyPrep,
 		goOverMock,
 		studyDeadline,
+		continueStopped,
 		workOnHomework,
 		busy,
 		error,

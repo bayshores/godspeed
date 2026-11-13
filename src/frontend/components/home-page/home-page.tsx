@@ -1,5 +1,5 @@
-import { useCallback, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router";
 import { hasProblems, localDay, type SpaceSummary, type DeadlineProgress } from "@/shared/core";
 import { spaceColorVar } from "@/frontend/components/space-color";
 import { useSpaces } from "@/frontend/components/space-context";
@@ -13,7 +13,8 @@ import { useOpenDeadlines } from "@/frontend/components/use-open-deadlines";
 import { TodayWork } from "@/frontend/components/work/today-work";
 import type { OpenDeadline } from "@/frontend/components/deadlines-model";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
-import { byDue, spacesSettled, longDay, prepDays, todayLists, type PrepDay } from "./home-page-model";
+import { highlight, waitForTarget } from "@/frontend/components/teacher/dom";
+import { byDue, mainRowKey, spacesSettled, longDay, prepDays, todayLists, todayRowKey, type PrepDay } from "./home-page-model";
 import { DoneRow, LaterRow, PrepLaterRow, PrepTodayRow, TodayRow } from "./today-row";
 import { useSpacesProgress } from "./use-spaces-progress";
 
@@ -57,7 +58,7 @@ export function HomePage() {
 	}, [spacesProgress]);
 	const colors = useMemo(() => new Map(shown.map((c) => [c.id, c.color])), [shown]);
 
-	const { studyDeadline, workOnHomework, studyPrep } = lesson;
+	const { studyDeadline, workOnHomework, studyPrep, continueStopped } = lesson;
 	const openPrep = useCallback((p: PrepDay) => setActive(p.spaceId), [setActive]);
 	const onStudyPrep = useCallback(
 		(p: PrepDay) => {
@@ -70,10 +71,13 @@ export function HomePage() {
 		(d: OpenDeadline) => {
 			setActive(d.spaceId);
 			const progress = deadlineProgress.get(d.id);
+			const next = progress?.continueStudy;
 			if (hasProblems(d.kind)) void workOnHomework({ id: d.id, continueHomework: progress?.continueHomework }, d.spaceId);
-			else void studyDeadline({ id: d.id, continueStudy: progress?.continueStudy }, d.spaceId);
+			// Continue at a stop goes on from it: the next topic's opener shows.
+			else if (next?.stop) void continueStopped(next.chatId);
+			else void studyDeadline({ id: d.id, continueStudy: next }, d.spaceId);
 		},
-		[setActive, studyDeadline, workOnHomework, deadlineProgress],
+		[setActive, studyDeadline, workOnHomework, continueStopped, deadlineProgress],
 	);
 
 	const ready = nowMs !== null && loaded && (deadlines !== null || deadlinesError !== null) && (shown.length === 0 || progressReady);
@@ -82,6 +86,32 @@ export function HomePage() {
 	// A prep has no Deadlines tab.
 	const withDeadlines = useMemo(() => shown.filter((c) => !c.prep), [shown]);
 	const laterCount = (lists?.later.length ?? 0) + preps.later.length;
+	const todayItems = useMemo(() => (lists ? byDue(lists.today, preps.today) : []), [lists, preps]);
+	const mainKey = nowMs === null ? null : mainRowKey(todayItems, deadlineProgress, nowMs);
+
+	// Back from a lesson's Stop here (?lit=deadline:<id>): its row lights once.
+	const [params, setParams] = useSearchParams();
+	const lit = params.get("lit");
+	useEffect(() => {
+		if (!lit?.startsWith("deadline:") || !ready) return;
+		let alive = true;
+		void waitForTarget({ kind: "deadline", id: lit.slice("deadline:".length) }, 3000, () => alive).then((els) => {
+			if (!alive) return;
+			// The row's pane, which covers its list item.
+			const row = els[0]?.firstElementChild;
+			if (row instanceof HTMLElement) highlight(row);
+			setParams(
+				(p) => {
+					p.delete("lit");
+					return p;
+				},
+				{ replace: true },
+			);
+		});
+		return () => {
+			alive = false;
+		};
+	}, [lit, ready, setParams]);
 
 	return (
 		// A short page sits a little above the middle of the window: the space left over is
@@ -123,9 +153,9 @@ export function HomePage() {
 							</p>
 						) : (
 							<ul data-testid="today-list" className="flex flex-col gap-3">
-								{byDue(lists.today, preps.today).map((item) =>
+								{todayItems.map((item) =>
 									"prep" in item ? (
-										<PrepTodayRow key={item.prep.spaceId} prep={item.prep} nowMs={nowMs} busy={lesson.busy} onOpen={openPrep} onStudy={onStudyPrep} />
+										<PrepTodayRow key={item.prep.spaceId} prep={item.prep} nowMs={nowMs} main={mainKey === todayRowKey(item)} busy={lesson.busy} onOpen={openPrep} onStudy={onStudyPrep} />
 									) : (
 										<TodayRow
 											key={item.deadline.id}
@@ -133,6 +163,7 @@ export function HomePage() {
 											progress={deadlineProgress.get(item.deadline.id)}
 											color={colors.get(item.deadline.spaceId)}
 											nowMs={nowMs}
+											main={mainKey === todayRowKey(item)}
 											busy={lesson.busy}
 											onStart={onStart}
 											onDone={markDone}

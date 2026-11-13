@@ -22,16 +22,19 @@ use gs_core::session::download_slug::slugify;
 use gs_core::session::jobs::set_steer_ui_inverted;
 use gs_core::session::prices::session_cost;
 use gs_core::session::session_markdown::session_markdown;
+use gs_core::study::kept::KeptPart;
 use gs_engine::turn::ui_stream::SSE_HEADERS;
 use gs_json::{Json, Obj, json};
 use gs_services::App;
 use gs_services::spaces::{move_chat_to_space, start_space_scanner};
 use gs_services::jobs::steer_live_chat;
-use gs_services::turns::chat_handler::{ChatReply, ReplyBody, handle_chat_input};
+use gs_services::turns::chat_handler::{ChatReply, REVIEW_NOT_OPEN, ReplyBody, handle_chat_input};
 use gs_services::turns::chats::{delete_chat_session, session_coverage};
 use gs_services::turns::dismissal_park::park_dismissal;
 use gs_services::turns::homework::create_homework;
+use gs_services::turns::lesson_events::{KeepGoing, KeptDrop, drop_kept_part, keep_going};
 use gs_services::turns::lessons::{CreateLessonInput, LessonStart, create_lesson};
+use gs_services::turns::review::{ReviewReply, answer_review, next_review, skip_review};
 use gs_services::turns::talk::{clear_talk, open_talk};
 use gs_services::turns::turn_liveness::is_turn_running;
 use gs_services::turns::turn_runs::{attach_turn, settled_turn_frames, turn_failure};
@@ -48,7 +51,10 @@ pub fn routes() -> Router<Arc<App>> {
 		.route("/api/chats/{id}/artifact-ui", ApiRoute::new().post(artifact_ui).into_route())
 		.route("/api/chats/{id}/space", ApiRoute::new().put(move_space).into_route())
 		.route("/api/chats/{id}/dismiss", ApiRoute::new().post(dismiss).into_route())
+		.route("/api/chats/{id}/keep-going", ApiRoute::new().post(keep_going_at).into_route())
+		.route("/api/chats/{id}/kept", ApiRoute::new().post(kept).into_route())
 		.route("/api/chats/{id}/markdown", ApiRoute::new().get(markdown).into_route())
+		.route("/api/chats/{id}/review", ApiRoute::new().post(review).into_route())
 		.route("/api/chats/{id}/steer", ApiRoute::new().post(steer).into_route())
 		.route("/api/chats/{id}/stream", ApiRoute::new().get(stream).into_route())
 		.route("/api/talk", ApiRoute::new().post(talk_open).delete(talk_clear).into_route())
@@ -251,6 +257,72 @@ async fn dismiss(State(app): State<Arc<App>>, Path(id): Path<String>, body: Body
 	}
 	app.events.emit(EventKind::RecordChanged, json!({ "chatId": id }));
 	Ok(reply::json(200, &json!({ "ok": true })))
+}
+
+/// POST /api/chats/{id}/keep-going: `{input: {stopOf}}`, Keep going at the stop that call carries.
+/// Written at once, even during a turn; it never starts one. `opener`: the next topic's stored
+/// opener now shows, so the window needs no agent call. `running`: a turn was running, so the
+/// window leaves the next step to that turn's end.
+async fn keep_going_at(State(app): State<Arc<App>>, Path(id): Path<String>, body: Body) -> Result<Response, Unhandled> {
+	let body = json_body(body).await.unwrap_or(Json::Null);
+	let Some(stop_of) = body["input"]["stopOf"].as_str().filter(|s| !s.is_empty()) else { return Ok(error(400, "input must be { stopOf: string }")) };
+	Ok(match keep_going(&app, &id, stop_of)? {
+		KeepGoing::Kept { opener, running } => reply::json(200, &json!({ "ok": true, "opener": opener, "running": running })),
+		KeepGoing::UnknownLesson => error(404, "Unknown chat"),
+		KeepGoing::NoStop => error(400, "No stop on that call"),
+	})
+}
+
+/// POST /api/chats/{id}/kept: `{input: {of, part: "analogy" | "phrase", back?: true}}` drops a part
+/// of the kept sentence the quiz call `of` earned, or brings it back, answering `{ok: true}`.
+/// Allowed during a turn, which it never starts. 404 for an unknown lesson; 400 for a malformed
+/// input or a quiz with no kept sentence he saw with that part.
+async fn kept(State(app): State<Arc<App>>, Path(id): Path<String>, body: Body) -> Result<Response, Unhandled> {
+	let body = json_body(body).await.unwrap_or(Json::Null);
+	let input = &body["input"];
+	let part = match input["part"].as_str() {
+		Some("analogy") => Some(KeptPart::Analogy),
+		Some("phrase") => Some(KeptPart::Phrase),
+		_ => None,
+	};
+	let back = match input.get("back") {
+		None | Some(Json::Null) => Some(false),
+		Some(Json::Bool(true)) => Some(true),
+		Some(_) => None,
+	};
+	let (Some(of), Some(part), Some(back)) = (input["of"].as_str().filter(|s| !s.is_empty()), part, back) else {
+		return Ok(error(400, "input must be { of: string, part: \"analogy\" | \"phrase\", back?: true }"));
+	};
+	Ok(match drop_kept_part(&app, &id, of, part, back)? {
+		KeptDrop::Done => reply::json(200, &json!({ "ok": true })),
+		KeptDrop::UnknownLesson => error(404, "Unknown chat"),
+		KeptDrop::NoSuchPart => error(400, "No kept sentence with that part on that call"),
+	})
+}
+
+/// POST /api/chats/{id}/review: questions from earlier. `{input: {type: "next"}}` answers
+/// `{question}`, null when none shows now; `{type: "answer", of, answer}` writes his graded answer
+/// and `{type: "skip", of}` stores nothing, both answering `{ok: true}`. Allowed during a turn and
+/// never 409, since it starts none. 404 for an unknown lesson; 400 for a malformed input, an answer
+/// that is not a graded quiz answer, or a question that is not the open one.
+async fn review(State(app): State<Arc<App>>, Path(id): Path<String>, body: Body) -> Result<Response, Unhandled> {
+	let body = json_body(body).await.unwrap_or(Json::Null);
+	let input = &body["input"];
+	let of = &input["of"];
+	let names_one = [&of["chatId"], &of["toolCallId"]].iter().all(|v| v.as_str().is_some_and(|s| !s.is_empty()));
+	let reply = match (input["type"].as_str(), names_one) {
+		(Some("next"), _) => next_review(&app, &id)?,
+		(Some("answer"), true) if input["answer"].as_obj().is_some() => answer_review(&app, &id, of, &input["answer"])?,
+		(Some("skip"), true) => skip_review(&app, &id, of)?,
+		_ => return Ok(error(400, "input must be { type: \"next\" }, { type: \"answer\", of, answer } or { type: \"skip\", of }")),
+	};
+	Ok(match reply {
+		ReviewReply::Next(question) => reply::json(200, &json!({ "question": question.unwrap_or(Json::Null) })),
+		ReviewReply::Done => reply::json(200, &json!({ "ok": true })),
+		ReviewReply::UnknownLesson => error(404, "Unknown chat"),
+		ReviewReply::NotOpen => error(400, REVIEW_NOT_OPEN),
+		ReviewReply::NotAnAnswer => error(400, "An answer is a graded quiz answer with a pick, or I don't know"),
+	})
 }
 
 /// GET /api/chats/{id}/markdown: the whole session as one markdown download.

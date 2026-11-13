@@ -8,8 +8,9 @@
  *
  *   node wait-for-work.mjs [--lesson <lesson id>] [--helper] [--max-minutes <n>]
  *
- * With --lesson it takes that lesson's turns, Talk messages and background
- * jobs. If the lesson is deleted, it waits for any work instead. With
+ * With --lesson it takes that lesson's turns, Talk messages, background jobs
+ * and other lessons' turns no other waiter waits for. If the lesson is
+ * deleted, it waits for any work instead. With
  * --helper it is the helper's: it takes the background jobs, and lesson
  * and Talk turns only while the teacher session compacts its context.
  *

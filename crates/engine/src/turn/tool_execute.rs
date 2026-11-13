@@ -5,7 +5,7 @@
 use std::future::Future;
 
 use gs_base::clock;
-use gs_core::contracts::chat::CONCLUDE_ACK_TEXT;
+use gs_core::contracts::chat::{CONCLUDE_ACK_TEXT, STUDY_TOPIC_END_ACK_TEXT};
 use gs_json::{Json, json, stringify};
 
 use super::messages::text_block;
@@ -121,7 +121,21 @@ pub fn problem_result(arrives: &str) -> Json {
 	})
 }
 
-/// The conclude ack: not terminating, so the agent can add closing words.
-pub fn conclude_result() -> Json {
-	json!({ "content": [text_block(CONCLUDE_ACK_TEXT)], "details": null })
+/// The conclude ack: not terminating, so the agent can add closing words. A place to stop rides
+/// `details` when there is one.
+pub fn conclude_result(stop: Option<Json>) -> Json {
+	json!({ "content": [text_block(CONCLUDE_ACK_TEXT)], "details": stop_details(stop) })
+}
+
+/// The study conclude's ack: a topic end gets its own text, so the agent never reads "END YOUR
+/// TURN" and "call topic_done" in one result.
+pub fn study_conclude_result(stop: Option<Json>) -> Json {
+	if stop.as_ref().is_some_and(|s| s["kind"].as_str() == Some("topic")) {
+		return json!({ "content": [text_block(STUDY_TOPIC_END_ACK_TEXT)], "details": stop_details(stop) });
+	}
+	conclude_result(stop)
+}
+
+fn stop_details(stop: Option<Json>) -> Json {
+	stop.map_or(Json::Null, |stop| json!({ "stop": stop }))
 }

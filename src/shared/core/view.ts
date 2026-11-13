@@ -36,10 +36,14 @@ import type { AssistantMessage, ToolResultMessage } from "@earendil-works/pi-ai"
 import type { LhMarkerMessage, LhMessage } from "./native-messages.ts";
 import { answeredCallIds, interruptedQuestions, PRACTICE_CONCLUDE_TOOL, problemInputForConclude, SEND_TO_USER_TOOL, sendToUserText, sideHeldQuestions } from "./native-messages.ts";
 import { activeCompactionOf, type CompactionDetails } from "./compaction.ts";
-import { isQuestionTool } from "./pending.ts";
+import { isQuestionTool, type AppPosed } from "./pending.ts";
+import { dismissedAnswer } from "./question-core.ts";
+import { shownOpeners, type ShownOpener } from "./topic-end.ts";
 import type { SubagentArtifactData, SubagentResultMeta } from "./contracts/jobs.ts";
-import type { PlanBlockData } from "./contracts/chat.ts";
+import type { PlanBlockData, ReviewDetails, ReviewQuestion } from "./contracts/chat.ts";
 import { pdfNoteOf, type AttachmentPart } from "./attachments.ts";
+import { joinPlots } from "./plot-view.ts";
+import { joinKept } from "./kept-view.ts";
 
 /** A view part — the loose part vocabulary the renderers consume
  *  (UIMessage-style shape names, which the renderer switch and the
@@ -153,6 +157,9 @@ export function projectView(messages: readonly LhMessage[], live?: LiveTurnState
 	const answered = answeredCallIds(messages);
 	const interrupted = interruptedQuestions(messages);
 	const movedParts = new Map<string, LhViewPart>();
+	// Kept-going openers draw right after their topic_done result, wherever
+	// the Keep going marker sits.
+	const openers = shownOpeners(messages);
 
 	const lastAssistant = (): LhViewMessage | undefined => {
 		const last = out[out.length - 1];
@@ -225,6 +232,12 @@ export function projectView(messages: readonly LhMessage[], live?: LiveTurnState
 				continue;
 			}
 			applyResultTo(findToolPart(result.toolCallId), result);
+			const opener = openers.get(result.toolCallId);
+			if (opener) {
+				const group = lastAssistant();
+				if (group) group.parts.push({ type: "step-start" }, ...openerParts(opener));
+				else out.push({ id: `opener_${opener.topicDoneCallId}`, role: "assistant", parts: [{ type: "step-start" }, ...openerParts(opener)] });
+			}
 			continue;
 		}
 
@@ -320,7 +333,59 @@ export function projectView(messages: readonly LhMessage[], live?: LiveTurnState
 		}
 	}
 
+	joinPlots(out);
+	joinKept(out, messages);
 	return out;
+}
+
+/** A shown opener's parts: its lead as teacher text, then its question as
+ *  a quiz part the app posed. Answered once an opener-answer exists; a skip
+ *  shows as a skipped question. */
+function openerParts(opener: ShownOpener): LhViewPart[] {
+	const question: LhViewPart = {
+		type: "tool-quiz",
+		toolCallId: `opener_${opener.topicDoneCallId}`,
+		input: opener.quiz,
+		state: "input-available",
+		appPosed: { kind: "opener", ref: opener.topicDoneCallId } satisfies AppPosed,
+	};
+	if (opener.answer) {
+		const answeredAt = new Date(opener.answer.timestamp).toISOString();
+		question.state = "output-available";
+		question.output = opener.answer.answer ?? { ...dismissedAnswer("quiz", String(opener.quiz.question ?? "")), answeredAt };
+	}
+	return [...(opener.lead ? [{ type: "text", id: openerLeadId(opener.topicDoneCallId), text: opener.lead, state: "done" }] : []), question];
+}
+
+/** The text part id of a shown opener's lead. */
+export function openerLeadId(topicDoneCallId: string): string {
+	return `opener_${topicDoneCallId}-lead`;
+}
+
+/** One From earlier card: the questions from earlier answered in a row in
+ *  one sitting. */
+export interface FromEarlierData {
+	sitting: string;
+	rows: ReviewDetails[];
+}
+
+/** The view with the open question from earlier as a pending quiz the app
+ *  posed, after everything else: the pending scan reads newest first, so it
+ *  stays in view when the teacher's own question lands and is finished
+ *  first. Its call id is made from its source lesson and quiz, so it seeds
+ *  the same option shuffle after a reload and never equals a question this
+ *  lesson already settled (its draft would be dropped). */
+export function withOpenReview(view: LhViewMessage[], question: ReviewQuestion | null): LhViewMessage[] {
+	if (!question) return view;
+	const { chatId, toolCallId } = question.of;
+	const part: LhViewPart = {
+		type: "tool-quiz",
+		toolCallId: `review_${chatId}_${toolCallId}`,
+		input: question.quiz,
+		state: "input-available",
+		appPosed: { kind: "review", ref: { chatId, toolCallId } } satisfies AppPosed,
+	};
+	return [...view, { id: `review_${chatId}_${toolCallId}`, role: "assistant", parts: [part] }];
 }
 
 // ─── reuse unchanged messages ───────────────────────────────────────────────
@@ -345,7 +410,9 @@ function sameViewMessage(a: LhViewMessage, b: LhViewMessage): boolean {
 	if (a.id !== b.id || a.role !== b.role || a.parts.length !== b.parts.length) return false;
 	if (!sameValue(a.metadata, b.metadata, 1)) return false;
 	for (let i = 0; i < a.parts.length; i++) {
-		if (!sameValue(a.parts[i], b.parts[i], 2)) return false;
+		// A From earlier card's rows are a fresh list of record objects.
+		const depth = a.parts[i]!.type === "data-from-earlier" ? 3 : 2;
+		if (!sameValue(a.parts[i], b.parts[i], depth)) return false;
 	}
 	return true;
 }
@@ -569,6 +636,37 @@ function projectMarker(marker: LhMarkerMessage, out: LhViewMessage[]): void {
 			// UI-only (the ask-style dismissal): the synthesized conclude
 			// pair — which rides the NEXT input — carries the record's face.
 			return;
+		case "keep-going":
+		case "opener-answer":
+			// Drawn at the stop instead: the opener's parts after its
+			// topic_done result (openerParts), answered by its answer.
+			return;
+		case "app-note":
+			// Hidden lines for the agent only.
+			return;
+		case "keep-check":
+		case "analogy-drop":
+		case "phrase-drop":
+			// Read by the kept card instead (joinKept).
+			return;
+		case "review": {
+			// Answers to questions from earlier in a row in one sitting share
+			// one card, a row each.
+			const details = marker.details as ReviewDetails | null | undefined;
+			if (!details?.answer || !details.of) return;
+			const card = out[out.length - 1]?.parts[0];
+			const data = card?.type === "data-from-earlier" ? (card.data as FromEarlierData) : null;
+			if (data && data.sitting === details.sitting) {
+				data.rows.push(details);
+				return;
+			}
+			out.push({
+				id: marker.id,
+				role: "user",
+				parts: [{ type: "data-from-earlier", id: `fe_${marker.id}`, data: { sitting: details.sitting, rows: [details] } satisfies FromEarlierData }],
+			});
+			return;
+		}
 		case "compaction": {
 			// THE MOMENT DIVIDER: minimal centered small
 			// text at the compaction moment — where the user currently is

@@ -6,6 +6,7 @@ use std::collections::HashSet;
 use gs_json::Json;
 
 use super::{PRACTICE_CONCLUDE_TOOL, PRACTICE_PROBLEM_TOOL};
+use crate::messages::lesson_markers::is_ui_only;
 use crate::messages::pending::is_question_tool;
 use crate::messages::phases::refused_probe;
 
@@ -42,10 +43,18 @@ pub(super) fn is_plain_learner_message(m: &Json) -> bool {
 	role(m) == "user" && m["side"] != Json::Bool(true)
 }
 
-/// A plan block or compaction marker: bookkeeping that lands between a question and the next
-/// learner message without being part of either.
+/// A compaction marker or a UI-only marker (a plan block, a problem dismissal, Keep going):
+/// bookkeeping that lands between a question and the next learner message without being part of
+/// either.
 pub(super) fn is_bookkeeping(m: &Json) -> bool {
-	role(m) == "custom" && matches!(m["customType"].as_str(), Some("plan-block" | "compaction"))
+	let custom_type = m["customType"].as_str();
+	role(m) == "custom" && (custom_type == Some("compaction") || is_ui_only(custom_type))
+}
+
+/// A hidden note for the agent that rides right ahead of the learner's message it came with: the
+/// [Today] note or an app note.
+pub(super) fn rides_ahead(m: &Json) -> bool {
+	role(m) == "custom" && matches!(m["customType"].as_str(), Some("today-context" | "app-note"))
 }
 
 /// The ids of every tool result in `messages`.

@@ -9,7 +9,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
-import { reuseUnchangedMessages, type ChatAttachment, type ChatInput, type LhMessage, type QuestionAnswerData } from "@/shared/core";
+import { reuseUnchangedMessages, type ChatAttachment, type ChatInput, type KeptPart, type LhMessage, type QuestionAnswerData } from "@/shared/core";
 import { SessionModel, type SessionState } from "@/frontend/components/session-core";
 
 /** The streaming redraw's safety net when animation frames pause (a
@@ -134,6 +134,8 @@ export function useChatSession({ chatId, initialMessages, initialError, initiall
 		(toolCallId: string, answer: QuestionAnswerData) => void model.dismissQuestion(toolCallId, answer),
 		[model],
 	);
+	const keepGoing = useCallback((stopOf: string) => void model.keepGoing(stopOf), [model]);
+	const dropKept = useCallback((of: string, part: KeptPart, back: boolean) => void model.dropKept(of, part, back), [model]);
 	const dismissProblem = useCallback(
 		(problemCallId: string) => void model.dismissProblem(problemCallId),
 		[model],
@@ -157,6 +159,8 @@ export function useChatSession({ chatId, initialMessages, initialError, initiall
 		submitAnswer,
 		dismissQuestion,
 		dismissProblem,
+		keepGoing,
+		dropKept,
 		setMessages,
 		adoptRecord,
 		stop,

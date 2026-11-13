@@ -1,6 +1,7 @@
 /**
  * Source marks (core/citations.ts): reading each kind of mark, leaving
  * look-alikes alone, the stored form, numbering and the plain-text readers.
+ * Quoted marks are read in the shared cases (citations-quotes-golden.test.ts).
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
@@ -97,6 +98,15 @@ describe("citeView", () => {
 	it("the same file at another place is another source", () => {
 		const view = citeView(`${FILE} [[f_1a2b3c4d5e6f/p. 13/Week 6 slides.pdf]]`);
 		assert.equal(view.cites.length, 2);
+	});
+
+	it("marks of one place are one source, which keeps the first quote any of them has", () => {
+		const at = (tail: string) => `[[f_1a2b3c4d5e6f/p. 14/Lecture 6.pdf${tail}]]`;
+		const view = citeView(`A ${at("|degree 12")} B ${at("|15 training points")} C ${at("")}`);
+		assert.deepEqual(view.cites, [{ kind: "file", fileId: "f_1a2b3c4d5e6f", range: "p. 14", name: "Lecture 6.pdf", quote: "degree 12" }]);
+		assert.deepEqual([...view.text.matchAll(/n="(\d)"/g)].map((m) => m[1]), ["1", "1", "1"]);
+		assert.equal(citeLabel(view.cites[0]!), "Lecture 6.pdf, p. 14");
+		assert.deepEqual(citeView(`A ${at("")} B ${at("|degree 12")}`).cites, view.cites);
 	});
 
 	it("a passage id that was never checked shows nothing", () => {

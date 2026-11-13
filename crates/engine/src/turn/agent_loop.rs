@@ -8,7 +8,7 @@ use super::agent::{Agent, FinishedTurn};
 use super::events::AgentEvent;
 use super::faux::{self, Partial};
 use super::messages::{role, tool_calls};
-use super::tool_batch::{Batch, execute_tool_calls, fail_truncated_calls};
+use super::tool_batch::{Batch, Reply, execute_tool_calls, fail_truncated_calls};
 use super::transcript::{declare_tool_changes, tool_declaration};
 
 impl Agent {
@@ -58,7 +58,12 @@ impl Agent {
 				let mut results = Vec::new();
 				more_tool_calls = false;
 				if !calls.is_empty() {
-					let batch: Batch = if stop == "length" { fail_truncated_calls(self, &calls) } else { execute_tool_calls(self, &calls, abort).await };
+					let batch: Batch = if stop == "length" {
+						fail_truncated_calls(self, &calls)
+					} else {
+						let before = &context[..context.len() - 1];
+						execute_tool_calls(self, Reply { before, message: &message }, &calls, abort).await
+					};
 					more_tool_calls = !batch.terminate;
 					results = batch.messages;
 					context.extend(results.iter().cloned());

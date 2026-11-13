@@ -6,6 +6,10 @@ pub mod continue_study;
 pub mod homework;
 pub mod deadline_plan;
 pub mod cheat_sheet;
+pub mod topic_end;
+pub mod review;
+pub mod topic_parts;
+pub mod kept;
 
 mod answers;
 mod calibration;

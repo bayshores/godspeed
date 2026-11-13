@@ -2,6 +2,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { lessonBox, questionTurn, type BoxTurn } from "../../src/frontend/components/lesson/lesson-box-model.ts";
+import { findPendingToolCall } from "../../src/shared/core/pending.ts";
+import { projectView, withOpenReview } from "../../src/shared/core/view.ts";
+import type { ReviewQuestion } from "../../src/shared/core/contracts/chat.ts";
+import { call } from "../stop-fixtures.ts";
 
 const box = (turn: BoxTurn, over: Partial<Parameters<typeof lessonBox>[0]> = {}) =>
 	lessonBox({ name: "marco", busy: false, waitingForAgent: false, hasText: false, hasFiles: false, turn, ...over });
@@ -131,5 +135,62 @@ describe("lessonBox, a question", () => {
 		assert.equal(view.exit, "stop");
 		assert.equal(view.enter, null);
 		assert.equal(box({ kind: "choice", picked: true }, { busy: true }).enter, "stop");
+	});
+});
+
+describe("lessonBox at a stop", () => {
+	it("has no way out beside Your turn, idle or while the teacher reads ahead", () => {
+		const idle = box({ kind: "stop" });
+		assert.equal(idle.exit, null);
+		assert.equal(idle.placeholder, "Message marco");
+		assert.deepEqual(idle.right, { action: "send", label: "Send", filled: false, disabled: true });
+		const busy = box({ kind: "stop" }, { busy: true });
+		assert.equal(busy.exit, null);
+		assert.equal(busy.enter, null, "Enter in an empty box never stops the reading");
+		assert.deepEqual(busy.right, { action: "send", label: "Send when ready", filled: false, disabled: true });
+		assert.equal(box({ kind: "stop" }, { busy: true, hasText: true }).enter, "send", "a typed question waits as a steer");
+	});
+});
+
+describe("lessonBox, the opener the app posed", () => {
+	const quiz = { question: "q", options: [{ label: "a" }, { label: "b" }], correctAnswer: "a", explanation: "e", type: "predict" };
+
+	it("is a choice marked as the app's", () => {
+		assert.deepEqual(questionTurn("quiz", quiz, false, "opener"), { kind: "choice", picked: false, appPosed: "opener" });
+	});
+
+	it("keeps Skip question and Ask Teacher while a turn runs; Ask and Submit wait for the teacher", () => {
+		const view = box(questionTurn("quiz", quiz, true, "opener"), { busy: true, hasText: true });
+		assert.equal(view.exit, "skip");
+		assert.equal(view.left?.label, "Ask marco");
+		assert.equal(view.left?.disabled, true);
+		assert.equal(view.right.disabled, true);
+		assert.equal(box(questionTurn("quiz", quiz, false, "opener"), { busy: true }).enter, null);
+		assert.equal(box(questionTurn("quiz", quiz, true, "opener")).exit, "skip");
+	});
+});
+
+describe("lessonBox, a question from earlier", () => {
+	const quiz = { question: "q", options: [{ label: "a" }, { label: "b" }], correctAnswer: "a", explanation: "e" };
+	const teacherQuiz = { ...quiz, question: "The teacher's?" };
+	const fromEarlier: ReviewQuestion = { of: { chatId: "c_old", toolCallId: "rv1" }, nodeId: "bayes", topic: "Bayes' rule", quiz };
+	const view = projectView([call("q1", "quiz", teacherQuiz, 1)]);
+
+	it("shows first, then the teacher's question once it is answered or skipped", () => {
+		const first = findPendingToolCall(withOpenReview(view, fromEarlier))!;
+		assert.equal(first.toolCallId, "review_c_old_rv1");
+		assert.deepEqual(questionTurn(first.tool, first.input, false, first.appPosed?.kind), { kind: "choice", picked: false, appPosed: "review" });
+		const then = findPendingToolCall(withOpenReview(view, null))!;
+		assert.equal(then.toolCallId, "q1");
+		assert.equal(then.appPosed, undefined);
+	});
+
+	it("takes its answer while the teacher writes; Ask waits, and the way out stays Skip question", () => {
+		const busy = box(questionTurn("quiz", quiz, true, "review"), { busy: true });
+		assert.equal(busy.right.disabled, false);
+		assert.equal(busy.enter, "submit");
+		assert.equal(busy.left?.disabled, true);
+		assert.equal(busy.exit, "skip");
+		assert.equal(box(questionTurn("quiz", quiz, false, "review"), { busy: true }).right.disabled, true, "nothing picked");
 	});
 });

@@ -33,6 +33,20 @@ pub struct FinishedTurn<'a> {
 pub type ConvertFn = Box<dyn Fn(&[Json]) -> Vec<Json> + Send + Sync>;
 /// pi's `finishTurn`: true ends the run at this turn (before the steering poll).
 pub type FinishFn = Box<dyn FnMut(&FinishedTurn) -> bool + Send>;
+
+/// One call the `before_tool_call` hook decides on, with the whole reply it came in.
+pub struct BeforeToolCall<'a> {
+	/// The transcript before this reply.
+	pub messages: &'a [Json],
+	/// The assistant message holding every call of the reply, in any order.
+	pub message: &'a Json,
+	pub call: &'a Json,
+	/// The call's prepared and validated arguments.
+	pub args: &'a Json,
+}
+
+/// pi's `beforeToolCall`: `Some(reason)` refuses the call with that text alone (no echo).
+pub type BeforeToolCallFn = Box<dyn Fn(&BeforeToolCall) -> Option<String> + Send + Sync>;
 /// An event listener; called in subscription order, outside the agent's locks.
 pub type Listener = Arc<dyn Fn(&AgentEvent) + Send + Sync>;
 
@@ -48,6 +62,8 @@ pub struct AgentOptions {
 	/// None keeps the user, assistant, tool result and system messages.
 	pub convert_to_llm: Option<ConvertFn>,
 	pub finish_turn: Option<FinishFn>,
+	/// Runs after a call's arguments are prepared and validated, before it runs.
+	pub before_tool_call: Option<BeforeToolCallFn>,
 }
 
 impl AgentOptions {
@@ -61,6 +77,7 @@ impl AgentOptions {
 			steering_mode: QueueMode::OneAtATime,
 			convert_to_llm: None,
 			finish_turn: None,
+			before_tool_call: None,
 		}
 	}
 }
@@ -71,6 +88,7 @@ pub struct Agent {
 	pub(super) session_id: Option<String>,
 	pub(super) convert_to_llm: Option<ConvertFn>,
 	pub(super) finish_turn: Mutex<Option<FinishFn>>,
+	pub(super) before_tool_call: Option<BeforeToolCallFn>,
 	messages: Mutex<Vec<Json>>,
 	steering: Mutex<Vec<Json>>,
 	steering_mode: QueueMode,
@@ -115,6 +133,7 @@ impl Agent {
 			session_id: options.session_id,
 			convert_to_llm: options.convert_to_llm,
 			finish_turn: Mutex::new(options.finish_turn),
+			before_tool_call: options.before_tool_call,
 			messages: Mutex::new(messages),
 			steering: Mutex::new(Vec::new()),
 			steering_mode: options.steering_mode,

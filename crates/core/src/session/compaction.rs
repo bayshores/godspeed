@@ -11,6 +11,8 @@
 //!
 //! `activeCompactionOf` and `keptIndexFor` live in `messages::compaction_marks`.
 
+use std::collections::HashMap;
+
 use gs_base::{clock, text};
 use gs_json::{Json, Obj, stringify};
 
@@ -19,6 +21,7 @@ use super::plan::{PlanStatuses, derive_plan_statuses_lh, derived_node_status};
 use crate::contracts::chat::COMPACTED_HISTORY_HEADER;
 use crate::messages::attachments::content_text;
 use crate::messages::compaction_marks::{active_compaction_of, kept_index_for};
+use crate::messages::lesson_markers::is_ui_only;
 use crate::messages::message_id::new_message_id;
 use crate::records::settings::factory_settings;
 
@@ -163,7 +166,8 @@ pub fn estimate_tokens(messages: &[Json]) -> f64 {
 /// Whether a message can be a cut candidate. Compaction markers are boundaries and UI-only markers
 /// have no context.
 fn has_context(message: &Json) -> bool {
-	!(message["role"].as_str() == Some("custom") && matches!(message["customType"].as_str(), Some("compaction" | "plan-block" | "problem-dismissed")))
+	let custom_type = message["customType"].as_str();
+	!(message["role"].as_str() == Some("custom") && (custom_type == Some("compaction") || is_ui_only(custom_type)))
 }
 
 /// The cut rule of Pi's findCutPoint: walk backwards to the budget, then take the nearest valid cut at or
@@ -254,7 +258,7 @@ fn summary_lines(messages: &[Json]) -> Vec<String> {
 				lines.push(format!("[RESULT for {}{failed}] {shown}", field_text(m, "toolName")));
 			}
 			Some("custom") => {
-				if m["customType"].as_str() == Some("plan-block") {
+				if is_ui_only(m["customType"].as_str()) {
 					continue;
 				}
 				let mut parts = vec![or_empty(m.get("content"))];
@@ -331,7 +335,7 @@ pub fn plan_tree_to_text(tree: Option<&Json>, messages: &[Json]) -> Option<Strin
 	if nodes.is_empty() {
 		return None;
 	}
-	let statuses: PlanStatuses = derive_plan_statuses_lh(tree, messages);
+	let statuses: PlanStatuses = derive_plan_statuses_lh(tree, messages, &HashMap::new());
 	let mut lines: Vec<String> = Vec::new();
 	for node in nodes {
 		let id = node["id"].as_str().unwrap_or_default();
@@ -509,6 +513,27 @@ mod tests {
 		assert!(parts[2].ends_with("y\u{2026}[truncated]"));
 		assert_eq!(parts[3], "[SYSTEM NOTE] note\natt");
 		assert_eq!(parts.len(), 4);
+	}
+
+	#[test]
+	fn ui_only_markers_never_reach_the_agent_and_app_notes_do() {
+		let big = "x".repeat(400);
+		let marker = |custom_type: &str, content: &str| json!({ "role": "custom", "customType": custom_type, "content": content, "id": custom_type });
+		let messages = [
+			user(&big),
+			marker("keep-going", ""),
+			marker("problem-dismissed", ""),
+			marker("plan-block", ""),
+			marker("app-note", "[Resumed] He came back to this session after a stop."),
+			marker("opener-answer", "[Opener] Cross-validation: he skipped it."),
+		];
+		let text = serialize_for_summary(&messages);
+		assert_eq!(text.split("\n\n").collect::<Vec<_>>()[1..], ["[SYSTEM NOTE] [Resumed] He came back to this session after a stop.", "[SYSTEM NOTE] [Opener] Cross-validation: he skipped it."]);
+		// Keep going is metadata like a plan block: never a cut point, kept with the tail. A note is a cut point.
+		let kept = [user(&big), assistant(&big, 0), marker("keep-going", ""), user(&big), assistant(&big, 0)];
+		assert_eq!(compaction_cut_index(&kept, 150.0), 2);
+		let noted = [user(&big), assistant(&big, 0), marker("app-note", &big), assistant(&big, 0)];
+		assert_eq!(compaction_cut_index(&noted, 150.0), 2);
 	}
 
 	#[test]

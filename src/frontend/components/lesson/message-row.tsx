@@ -5,11 +5,13 @@ import { paleSpaceColor } from "@/frontend/components/space-color";
 import { useSpaceColor } from "@/frontend/components/space-context";
 import { Message, MessageContent } from "@/frontend/components/ai-elements/message";
 import { CitedResponse } from "@/frontend/components/citations/cited-response";
+import { excerptParts } from "@/frontend/components/citations/page-excerpt-model";
 import { Reasoning, ReasoningContent, ReasoningTrigger } from "@/frontend/components/ai-elements/reasoning";
 import { LiveToolCard } from "@/frontend/components/artifacts/live-tool-card";
 import { SubagentSteerCard } from "@/frontend/components/artifacts/steer-card";
 import { artifactRenderers } from "@/frontend/components/artifacts";
 import { AnsweredCard } from "@/frontend/components/answered-card";
+import { isPrediction } from "@/frontend/components/answered-card-model";
 import { PhaseDivider } from "@/frontend/components/phase-divider";
 import { ThinkingCard, type PracticeThinkingData } from "@/frontend/components/practice-cards";
 import { SpaceContextCard, GraphContextCard, type SpaceContextData, type GraphContextData } from "@/frontend/components/graph-context-card";
@@ -24,6 +26,8 @@ import {
 	teachStepIndex,
 	textPartMessageId,
 	type ArtifactPartProps,
+	type FromEarlierData,
+	type KeptCardData,
 	type LhViewMessage,
 	type LhViewPart,
 	type PlanBlockData,
@@ -34,6 +38,8 @@ import type { Arrive } from "./arrivals";
 import { isSubagentSteer } from "./chat-helpers";
 import { MessageAttachments } from "./message-attachments";
 import { drawnSeparators } from "./message-row-model";
+import { FromEarlierCard } from "./from-earlier-card";
+import { KeptCard } from "./kept-card";
 import { LABEL_TEXT } from "@/frontend/components/ui/label-text";
 
 // A plan diagram (and dagre, its layout engine) is its own chunk; the
@@ -62,6 +68,8 @@ interface MessageRowProps {
 	streamingLast: boolean;
 	/** The agent-at-work view stands in for this message's step cards. */
 	hideSteps: boolean;
+	/** Each Study topic's stored page mark, by the text it sits in (topicPageMarks). */
+	pageMarks: ReadonlyMap<string, string>;
 	arrive: Arrive;
 	onOpenPlan: () => void;
 }
@@ -71,7 +79,7 @@ interface MessageRowProps {
  * streams only the message being written redraws — every other row keeps
  * its previous message object (reuseUnchangedMessages) and skips.
  */
-export const MessageRow = memo(function MessageRow({ message: m, spaceId, index: mi, teachSeam, streamingLast, hideSteps, arrive, onOpenPlan }: MessageRowProps) {
+export const MessageRow = memo(function MessageRow({ message: m, spaceId, index: mi, teachSeam, streamingLast, hideSteps, pageMarks, arrive, onOpenPlan }: MessageRowProps) {
 	if (m.role === "user" && isSubagentSteer(m)) {
 		// Sub-agent delivery: no bubble — the artifact card sits in the column.
 		return (
@@ -108,6 +116,7 @@ export const MessageRow = memo(function MessageRow({ message: m, spaceId, index:
 	// its anchors alone.
 	const anchors = new Set(firstSourceTextParts([m]).values());
 	const separators = drawnSeparators(m.parts, (part) => partShows(part, hideSteps));
+	const pages = excerptParts(m.parts, pageMarks);
 	return (
 		<Fragment>
 			{seamStep === -1 && <PhaseDivider phase="teach" />}
@@ -121,6 +130,7 @@ export const MessageRow = memo(function MessageRow({ message: m, spaceId, index:
 						separator={separators.has(pi)}
 						teachBoundary={seamStep === pi}
 						anchor={part.type === "text" && part.id && anchors.has(part.id) ? part.id : undefined}
+						page={pages.get(pi)}
 						streaming={streamingLast && pi === m.parts.length - 1}
 						hideSteps={hideSteps}
 						arrive={arrive}
@@ -165,6 +175,8 @@ function MarkerPart({ part }: { part: LhViewPart }) {
 			return <CompactionCutDivider data={part.data as CompactionDividerData} />;
 		case "data-practice-thinking":
 			return <ThinkingCard data={part.data as PracticeThinkingData} />;
+		case "data-from-earlier":
+			return <FromEarlierCard data={part.data as FromEarlierData} />;
 		case "data-practice-next":
 			return (
 				<div data-testid="practice-next-line" className={cn("my-4 flex items-center justify-center gap-2.5", LABEL_TEXT)}>
@@ -194,6 +206,7 @@ function AssistantPart({
 	separator,
 	teachBoundary,
 	anchor,
+	page,
 	streaming,
 	hideSteps,
 	arrive,
@@ -205,6 +218,8 @@ function AssistantPart({
 	separator: boolean;
 	teachBoundary: boolean;
 	anchor?: string;
+	/** The topic's stored page mark this text draws the page of. */
+	page?: string;
 	streaming: boolean;
 	hideSteps: boolean;
 	arrive: Arrive;
@@ -230,7 +245,7 @@ function AssistantPart({
 					className="lh-source-passage"
 				>
 					{/* While it streams, an unclosed diagram fence shows "still drawing", not a doomed parse. */}
-					<CitedResponse text={part.text ?? ""} isAnimating={streaming} className={streaming ? "lh-streaming" : undefined} />
+					<CitedResponse text={part.text ?? ""} page={page} isAnimating={streaming} className={streaming ? "lh-streaming" : undefined} />
 				</div>
 			);
 		}
@@ -267,7 +282,11 @@ function AssistantPart({
 			if (part.state !== "output-available") return null;
 			return (
 				<div data-answer-call={part.toolCallId} className={cn("flex scroll-mt-4 flex-col gap-2", arrive(slot), arrive(slot) && answerFlash(part.output as QuestionAnswerData))}>
-					<AnsweredCard answer={part.output as QuestionAnswerData} input={part.input} />
+					{part.kept ? (
+						<KeptCard kept={part.kept as KeptCardData} answer={part.output as QuestionAnswerData} input={part.input} toolCallId={part.toolCallId!} />
+					) : (
+						<AnsweredCard answer={part.output as QuestionAnswerData} input={part.input} plotValue={part.plotValue as number | undefined} />
+					)}
 					{part.files && <MessageAttachments parts={part.files} />}
 				</div>
 			);
@@ -276,7 +295,8 @@ function AssistantPart({
 			// A tool call being written: the live card (spinner + activity
 			// label). Live and settled cards share one wrapper slot, so the
 			// swap never replays the rise.
-			if (part.state === "input-streaming") {
+			// A plot being checked draws its own box ("Drawing the plot").
+			if (part.state === "input-streaming" && part.type !== "tool-plot") {
 				return (
 					<div className={cn("flex flex-col", arrive(slot))}>
 						<LiveToolCard part={part as ArtifactPartProps["part"]} />
@@ -287,7 +307,7 @@ function AssistantPart({
 			const Renderer = artifactRenderers[part.type.slice("tool-".length)];
 			if (!Renderer) return null;
 			return (
-				<div className={cn("flex flex-col empty:hidden", arrive(slot))}>
+				<div data-tool-call={part.toolCallId} className={cn("flex flex-col empty:hidden", arrive(slot))}>
 					<Renderer part={part as ArtifactPartProps["part"]} />
 				</div>
 			);
@@ -295,8 +315,9 @@ function AssistantPart({
 	}
 }
 
-/** A just-checked graded answer flashes green or red (globals.css). */
+/** A just-checked graded answer flashes green or red (globals.css); a
+ *  prediction is never marked. */
 function answerFlash(answer: QuestionAnswerData): string | undefined {
-	if (answer.dontKnow || answer.correct === undefined) return undefined;
+	if (answer.dontKnow || answer.correct === undefined || isPrediction(answer)) return undefined;
 	return answer.correct ? "lh-flash-right" : "lh-flash-wrong";
 }

@@ -8,10 +8,13 @@ use std::sync::Arc;
 use gs_base::{clock, time};
 use gs_core::spaces::today_note::local_day;
 use gs_core::graph::graph::get_graph;
-use gs_core::session::plan_step_bar::plan_position_lh;
+use gs_core::session::plan_step_bar::{current_step_title, plan_position_lh};
 use gs_core::session::practice_outcomes::practice_outcomes;
+use gs_core::study::kept::{KeptSentence, kept_comebacks, kept_sentences};
 use gs_core::study::progress::{collect_answers, derive_progress, facts_by_message, facts_for_answer};
+use gs_core::study::review::{review_items, reviewable_topics};
 use gs_core::study::study::{deadline_study_topic_ids, fact_space_order, study_topics, topic_study};
+use gs_core::study::topic_end::lesson_stop;
 use gs_json::{Json, Obj, json};
 use parking_lot::Mutex;
 
@@ -20,14 +23,18 @@ use super::topics::topic_grouping_running;
 use crate::App;
 use crate::spaces::source_id_for;
 
-/// A lesson's graded answers, practice outcomes and (a Study session started from a deadline)
-/// its step bar's count. Progress is read again after every background update, and parsing every
-/// lesson each time grows with the term, so each is kept while its record file is unchanged.
+/// A lesson's graded answers, practice outcomes, questions from earlier, kept sentences and when
+/// they came back, and (a Study session started from a deadline) where the session stands. Progress is read again after every
+/// background update, and parsing every lesson each time grows with the term, so each is kept
+/// while its record file is unchanged.
 struct Readout {
 	version: String,
 	answers: Vec<Json>,
 	outcomes: Vec<Json>,
-	steps: Option<Json>,
+	reviews: Vec<Json>,
+	kept: Vec<KeptSentence>,
+	comebacks: Vec<(String, i64)>,
+	session: Option<Obj>,
 }
 
 #[derive(Default)]
@@ -40,10 +47,35 @@ fn lesson_readout(app: &App, chat_id: &str) -> Option<Arc<Readout>> {
 	}
 	let record = app.stores.chats.get_chat(chat_id)?;
 	let messages = items(&record["messages"]);
-	let steps = (record["deadlineId"].truthy() && record["tree"].truthy()).then(|| plan_position_lh(&record["tree"], messages));
-	let readout = Arc::new(Readout { version, answers: collect_answers(chat_id, messages), outcomes: practice_outcomes(messages), steps });
+	let session = (record["deadlineId"].truthy() && record["tree"].truthy()).then(|| deadline_session(&record["tree"], messages));
+	let readout = Arc::new(Readout {
+		version,
+		answers: collect_answers(chat_id, messages),
+		outcomes: practice_outcomes(messages),
+		reviews: review_items(chat_id, messages),
+		kept: kept_sentences(chat_id, messages),
+		comebacks: kept_comebacks(messages),
+		session,
+	});
 	app.graph.readouts.0.lock().insert(chat_id.to_owned(), readout.clone());
 	Some(readout)
+}
+
+/// Where a Study session started from a deadline stands: its step bar's count (`done`, `total`),
+/// the stop it waits at until he keeps going (`stop`: `{at, next}`), when it reached its end
+/// (`endedAt`), and otherwise the topic it is in the middle of (`inTopic`, the current step's
+/// title).
+fn deadline_session(tree: &Json, messages: &[Json]) -> Obj {
+	let mut out = picked(&plan_position_lh(tree, messages), &["done", "total"]);
+	let (key, value) = match lesson_stop(messages, Some(tree), None) {
+		Some(stop) if stop["kind"].as_str() == Some("end") => ("endedAt", Some(stop["at"].clone())),
+		Some(stop) if !stop["keptGoing"].truthy() => ("stop", Some(json!({ "at": stop["at"], "next": stop["next"] }))),
+		_ => ("inTopic", current_step_title(tree, messages)),
+	};
+	if let Some(value) = value {
+		out.insert(key, value);
+	}
+	out
 }
 
 fn items(v: &Json) -> &[Json] {
@@ -58,6 +90,29 @@ fn space_lessons(app: &App, space_id: &str) -> Vec<Json> {
 /// Every graded answer in the space's lessons.
 pub fn space_answers(app: &App, space_id: &str) -> Vec<Json> {
 	space_lessons(app, space_id).iter().filter_map(|c| lesson_readout(app, c["id"].str_or_empty())).flat_map(|readout| readout.answers.clone()).collect()
+}
+
+/// What the review schedule reads from a space's lessons: every graded answer, every problem
+/// outcome, every question from earlier, every kept sentence and each time one came back.
+#[derive(Default)]
+pub struct SpaceReviews {
+	pub answers: Vec<Json>,
+	pub outcomes: Vec<Json>,
+	pub items: Vec<Json>,
+	pub kept: Vec<KeptSentence>,
+	pub comebacks: Vec<(String, i64)>,
+}
+
+pub fn space_reviews(app: &App, space_id: &str) -> SpaceReviews {
+	let mut out = SpaceReviews::default();
+	for readout in space_lessons(app, space_id).iter().filter_map(|c| lesson_readout(app, c["id"].str_or_empty())) {
+		out.answers.extend(readout.answers.iter().cloned());
+		out.outcomes.extend(readout.outcomes.iter().cloned());
+		out.items.extend(readout.reviews.iter().cloned());
+		out.kept.extend(readout.kept.iter().cloned());
+		out.comebacks.extend(readout.comebacks.iter().cloned());
+	}
+	out
 }
 
 /// The space's problems (practice and study) the learner solved only with hints.
@@ -148,15 +203,14 @@ pub fn progress_for<'a>(app: &App, scope: impl Into<Option<&'a str>>, today: Opt
 		let mut lesson = picked(c, &["id", "title", "kind", "updatedAt"]);
 		lesson.insert("answers", readout.answers.clone());
 		lessons.push(Json::Obj(lesson));
-		if let (true, Some(steps)) = (c["deadlineId"].truthy(), &readout.steps) {
+		if let (true, Some(stands)) = (c["deadlineId"].truthy(), &readout.session) {
 			let mut session = Obj::new();
 			session.insert("chatId", c["id"].clone());
 			session.insert("deadlineId", c["deadlineId"].clone());
 			if let Some(created) = c.get("createdAt") {
 				session.insert("createdAt", created.clone());
 			}
-			session.insert("done", steps["done"].clone());
-			session.insert("total", steps["total"].clone());
+			session.extend(stands.clone());
 			deadline_sessions.push(Json::Obj(session));
 		}
 	}
@@ -229,7 +283,9 @@ pub fn deadline_study_for(app: &App, space_id: &str, deadline_id: &str) -> Resul
 	let Some(deadline) = items(&progress["deadlines"]).iter().find(|d| d["id"].as_str() == Some(deadline_id)) else { return Ok(None) };
 	let today = progress["today"].str_or_empty();
 	let studied = studied_on(app, space_id, today);
-	let topic_ids = deadline_study_topic_ids(today, deadline, items(&progress["topics"]));
+	let reviews = space_reviews(app, space_id);
+	let reviewed = reviewable_topics(&reviews.answers, &reviews.items);
+	let topic_ids = deadline_study_topic_ids(today, deadline, items(&progress["topics"]), &reviewed);
 	let study = topic_study_in(app, Some(space_id), &progress, &topic_ids, Some(&studied));
 	Ok(Some(DeadlineStudy { name: deadline["name"].str_or_empty().to_owned(), topics: study.topics, picks: study.picks }))
 }
@@ -248,4 +304,92 @@ fn studied_on(app: &App, space_id: &str, day: &str) -> HashSet<String> {
 		}
 	}
 	ids
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use crate::app::test_support::{scratch_dir, test_app};
+
+	fn tree() -> Json {
+		json!({ "nodes": [{ "id": "reg", "title": "Regularization" }, { "id": "cv", "title": "Cross-validation" }, { "id": "gd", "title": "Gradient descent" }], "edges": [{ "from": "reg", "to": "cv" }] })
+	}
+
+	/// The concluding pair that ends `node` on a topic stop now.
+	fn ended(call: &str, node: &str) -> Vec<Json> {
+		let stop = json!({ "kind": "topic", "nodeId": node, "activeMinutes": 30, "at": time::iso(clock::now_ms()) });
+		vec![
+			json!({ "role": "assistant", "content": [{ "type": "toolCall", "id": call, "name": "conclude", "arguments": { "outcome": "solved" } }], "timestamp": clock::now_ms() }),
+			json!({ "role": "toolResult", "toolCallId": call, "toolName": "conclude", "details": { "stop": stop }, "isError": false, "timestamp": clock::now_ms() }),
+		]
+	}
+
+	fn asked(node: &str) -> Json {
+		json!({ "role": "assistant", "content": [{ "type": "toolCall", "id": format!("q-{node}"), "name": "quiz", "arguments": { "nodeId": node } }], "timestamp": clock::now_ms() })
+	}
+
+	/// The topic_done after `node` ended, storing the opener of the topic after it.
+	fn opener_after(node: &str, next: &str) -> Vec<Json> {
+		vec![
+			json!({ "role": "assistant", "content": [{ "type": "toolCall", "id": "t1", "name": "topic_done", "arguments": { "nodeId": node, "opener": { "lead": "Now split the data.", "quiz": { "question": "?", "type": "predict", "nodeId": next } } } }], "timestamp": clock::now_ms() }),
+			json!({ "role": "toolResult", "toolCallId": "t1", "toolName": "topic_done", "details": { "part": "topic_done", "v": 1, "lead": "Now split the data." }, "isError": false, "timestamp": clock::now_ms() }),
+		]
+	}
+
+	fn kept_going(call: &str) -> Json {
+		json!({ "role": "custom", "customType": "keep-going", "content": "", "details": { "stopOf": call, "at": time::iso(clock::now_ms()) }, "timestamp": clock::now_ms() })
+	}
+
+	fn midterm(app: &App, space_id: &str, deadline_id: &str) -> Json {
+		let progress = progress_for(app, space_id, None).unwrap().unwrap();
+		items(&progress["deadlines"]).iter().find(|d| d["id"].as_str() == Some(deadline_id)).unwrap().clone()
+	}
+
+	#[test]
+	fn a_deadline_session_is_mid_topic_or_at_its_stop_until_he_keeps_going_and_closes_at_its_end() {
+		let root = scratch_dir("progress-stop");
+		let app = test_app(&root);
+		let space_id = app.stores.spaces.create_space(&json!({ "name": "Machine Learning Foundations" })).unwrap()["id"].str_or_empty().to_owned();
+		let deadline = app.stores.spaces.add_deadline(&space_id, &json!({ "name": "Midterm", "kind": "exam", "date": "2099-01-15" })).unwrap();
+		let deadline_id = deadline["id"].str_or_empty().to_owned();
+		let chat_id = app.stores.chats.create_chat("Study for Midterm", Some("study"), Some(&space_id), Some(&deadline_id)).unwrap()["id"].str_or_empty().to_owned();
+		app.stores.chats.save_tree(&chat_id, &tree()).unwrap();
+
+		assert_eq!(midterm(&app, &space_id, &deadline_id)["continueStudy"].get("inTopic"), None, "nothing asked yet");
+		let fresh = vec![asked("reg")];
+		app.stores.chats.save_messages(&chat_id, &fresh).unwrap();
+		let d = midterm(&app, &space_id, &deadline_id);
+		assert_eq!(d["continueStudy"]["inTopic"], json!("Regularization"), "asked, nothing answered");
+		assert_eq!(d["continueStudy"].get("stop"), None);
+
+		let stopped = [fresh, ended("c1", "reg"), opener_after("reg", "cv")].concat();
+		app.stores.chats.save_messages(&chat_id, &stopped).unwrap();
+		let at = stopped[2]["details"]["stop"]["at"].clone();
+		let d = midterm(&app, &space_id, &deadline_id);
+		assert_eq!(d["continueStudy"]["stop"], json!({ "at": at, "next": "Cross-validation" }));
+		assert_eq!(d["continueStudy"].get("inTopic"), None, "a stop is not mid-topic");
+		assert_eq!(d.get("studyEndedToday"), None);
+
+		let going = [stopped.clone(), vec![kept_going("c1")]].concat();
+		app.stores.chats.save_messages(&chat_id, &going).unwrap();
+		let d = midterm(&app, &space_id, &deadline_id);
+		assert_eq!(d["continueStudy"].get("stop"), None, "he kept going");
+		assert_eq!(d["continueStudy"]["inTopic"], json!("Cross-validation"), "the opener moved him to the next topic");
+
+		let typed = |words: &str| json!({ "role": "user", "content": words, "timestamp": clock::now_ms() });
+		let question = [stopped.clone(), vec![typed("Why does lambda shrink the weights?"), json!({ "role": "assistant", "content": [{ "type": "text", "text": "The penalty grows with them." }], "timestamp": clock::now_ms() })]].concat();
+		app.stores.chats.save_messages(&chat_id, &question).unwrap();
+		assert_eq!(midterm(&app, &space_id, &deadline_id)["continueStudy"]["stop"]["next"], json!("Cross-validation"), "a question about the finished topic leaves the stop");
+		let typed_on = [stopped.clone(), vec![typed("ok, go on"), asked("cv")]].concat();
+		app.stores.chats.save_messages(&chat_id, &typed_on).unwrap();
+		let d = midterm(&app, &space_id, &deadline_id);
+		assert_eq!(d["continueStudy"].get("stop"), None, "the teacher went on with no Keep going");
+		assert_eq!(d["continueStudy"]["inTopic"], json!("Cross-validation"));
+
+		let end = [going, ended("c2", "cv"), ended("c3", "gd")].concat();
+		app.stores.chats.save_messages(&chat_id, &end).unwrap();
+		let d = midterm(&app, &space_id, &deadline_id);
+		assert_eq!(d.get("continueStudy"), None, "a session that reached its end is not continued");
+		assert_eq!(d["studyEndedToday"], json!(true));
+	}
 }

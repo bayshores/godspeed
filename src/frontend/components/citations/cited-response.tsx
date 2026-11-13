@@ -3,15 +3,26 @@ import { citeLabel, citeView, type Cite } from "@/shared/core";
 import { MessageResponse } from "@/frontend/components/ai-elements/message";
 import { LABEL_TEXT } from "@/frontend/components/ui/label-text";
 import { CiteContext } from "./cite-context";
-import { CiteDialog, type FileCite } from "./cite-dialog";
+import { CiteDialog } from "./cite-dialog";
+import { PageExcerpt } from "./page-excerpt";
+import { pageSource, splitAfterSource, type FileCite } from "./page-excerpt-model";
 
 /** A mark still being written, at the end of text that is streaming in. */
 const HALF_MARK = /\[\[[^\]\n]*\]?$/;
 
 /** The teacher's text with its source marks as numbers, a "Sources" list
- *  under it, and the popup a space file's source opens. */
-export function CitedResponse({ text, isAnimating, className }: { text: string } & Pick<ComponentProps<typeof MessageResponse>, "isAnimating" | "className">) {
-	const view = useMemo(() => citeView(isAnimating ? text.replace(HALF_MARK, "") : text), [text, isAnimating]);
+ *  under it, and the popup a space file's source opens. `page` is a topic's
+ *  stored page mark: its page draws under the paragraph that cites it. */
+export function CitedResponse({
+	text,
+	isAnimating,
+	className,
+	page,
+}: { text: string; page?: string } & Pick<ComponentProps<typeof MessageResponse>, "isAnimating" | "className">) {
+	const shown = isAnimating ? text.replace(HALF_MARK, "") : text;
+	const view = useMemo(() => citeView(shown), [shown]);
+	const source = useMemo(() => (page ? pageSource(shown, view.cites, page) : null), [page, shown, view.cites]);
+	const [head, tail] = useMemo(() => (source ? splitAfterSource(view.text, source.n, source.nth) : [view.text, ""]), [source, view.text]);
 	const [opened, setOpened] = useState<FileCite | null>(null);
 	const open = useCallback((cite: Cite) => {
 		if (cite.kind === "file") setOpened(cite);
@@ -19,9 +30,23 @@ export function CitedResponse({ text, isAnimating, className }: { text: string }
 	const context = useMemo(() => ({ cites: view.cites, open }), [view.cites, open]);
 	return (
 		<CiteContext.Provider value={context}>
-			<MessageResponse isAnimating={isAnimating} className={className}>
-				{view.text}
-			</MessageResponse>
+			{source ? (
+				<div className="flex flex-col gap-4">
+					<MessageResponse isAnimating={isAnimating} className={className}>
+						{head}
+					</MessageResponse>
+					<PageExcerpt cite={source.cite} onOpen={() => setOpened(source.cite)} />
+					{tail && (
+						<MessageResponse isAnimating={isAnimating} className={className}>
+							{tail}
+						</MessageResponse>
+					)}
+				</div>
+			) : (
+				<MessageResponse isAnimating={isAnimating} className={className}>
+					{view.text}
+				</MessageResponse>
+			)}
 			{view.cites.length > 0 && (
 				<div data-testid="cite-list" className="mt-3 flex flex-col gap-1 border-t border-border pt-2">
 					<div className={LABEL_TEXT}>Sources</div>

@@ -1,5 +1,20 @@
 [
 	{
+		"version": "0.6.2",
+		"date": "2026-11-13",
+		"changes": [
+			"A Study session stops at the end of each topic. A card lets you keep going or stop there, and Today picks up where you stopped.",
+			"Questions from topics you learned earlier come back when they're due, up to 3 a day. godspeed asks and checks them itself.",
+			"When the teacher quotes your lecture, that page shows in the lesson with the quoted words highlighted.",
+			"The teacher can show a plot. You guess first, then the plot opens.",
+			"After a right answer the teacher can leave you one sentence to keep, sometimes with a short phrase to remember it by. You can drop an analogy or a phrase you don't like.",
+			"Open Claude Code opens a helper beside the teacher that reads files and builds the graph, so the teacher keeps teaching. Web search can use your own Tavily key, in Settings, Connection.",
+			"godspeed now runs on Intel Macs, with its own download.",
+			"Buttons look like keys that sink when clicked, the space head shows its signature on every tab, and the Lessons tab is tidier.",
+			"A second lesson no longer waits minutes for its first reply while your agent is still on the first one."
+		]
+	},
+	{
 		"version": "0.6.1",
 		"date": "2026-11-12",
 		"changes": [

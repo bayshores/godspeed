@@ -2,85 +2,118 @@
   <img src="docs/assets/banner.png" alt="godspeed" width="640">
 </p>
 
-<p align="center"><strong>A free, open-source AI tutor for anything you study, taught by the AI you already pay for.</strong></p>
+<h3 align="center">The AI agent you already use teaches you, and godspeed remembers where you got stuck.</h3>
+
+<p align="center">A free, open-source study app. It runs on the Claude or ChatGPT plan you already pay for, with no API keys.</p>
 
 <p align="center">
-  <a href="https://github.com/bayshores/godspeed/releases/latest"><strong>Download</strong></a> ·
-  <a href="https://learnatgodspeed.com/">Website</a> ·
-  <a href="#how-it-works">How it works</a> ·
-  <a href="#outside-agents-mcp">Outside agents</a> ·
-  <a href="docs/development.md">Docs</a> ·
+  <a href="https://github.com/bayshores/godspeed/releases/latest/download/godspeed-mac-apple-silicon.dmg"><img src="https://img.shields.io/badge/Mac_(Apple_chip)-c9c6bb?style=for-the-badge" alt="Download for Mac with an Apple chip"></a>
+  <a href="https://github.com/bayshores/godspeed/releases/latest/download/godspeed-mac-intel.dmg"><img src="https://img.shields.io/badge/Mac_(Intel)-c9c6bb?style=for-the-badge" alt="Download for Mac with an Intel chip"></a>
+  <a href="https://github.com/bayshores/godspeed/releases/latest/download/godspeed-windows-x64-setup.exe"><img src="https://img.shields.io/badge/Windows-c9c6bb?style=for-the-badge" alt="Download for Windows"></a>
+  <a href="https://github.com/bayshores/godspeed/releases/latest/download/godspeed-linux-x64.AppImage"><img src="https://img.shields.io/badge/Linux-c9c6bb?style=for-the-badge" alt="Download for Linux"></a>
+</p>
+
+<p align="center">
+  <a href="https://learnatgodspeed.com/">Website</a>&emsp;
+  <a href="#how-it-works">How it works</a>&emsp;
+  <a href="#get-started">Get started</a>&emsp;
+  <a href="docs/development.md">Docs</a>&emsp;
   <a href="https://github.com/bayshores/godspeed/issues">Issues</a>
 </p>
 
-godspeed is a study app for students and self-learners. Claude Code, Codex or any MCP app becomes your tutor: it checks what you already know, plans a path to your goal or your next deadline, teaches one step at a time, then quizzes you. You sort what you study into spaces (a course, a certification, a language), and every space gets its own lessons, files (PDFs, notes, recordings), knowledge graph, deadlines and cheat sheets. It runs on Mac, Windows and Linux, and needs no API keys.
+<p align="center">
+  <a href="https://github.com/bayshores/godspeed/releases/latest"><img src="https://img.shields.io/github/v/release/bayshores/godspeed?label=version&color=b85c57" alt="Latest version"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-b85c57" alt="License AGPL-3.0"></a>
+  <a href="https://m8ven.ai/mcp/bayshores-godspeed-1epilf?s=readme"><img src="https://m8ven.ai/badge/mcp/bayshores-godspeed-1epilf" alt="M8ven Score"></a>
+</p>
 
-![A godspeed lesson: the teacher's explanation with the lesson steps on the left, and your turn with an open question on the right](docs/assets/lesson.png)
+<p align="center">
+  <img src="docs/assets/lesson.gif" alt="One topic of a godspeed lesson: Today says what to study next, the teacher explains and quotes the lecture, a quiz is answered right, a sentence is kept, and the lesson stops at the end of the topic" width="1000">
+</p>
+
+<p align="center"><sub>Recorded in the app on a made-up machine learning space. The teacher's replies are replayed from a real lesson, so a live agent takes longer to answer.</sub></p>
+
+## Why I made it
+
+I made godspeed because I was using Claude to study for CSE 21 and it kept going in circles. I'd get stuck on a counting problem, work through it with Claude, and ten days later get stuck on basically the same problem in a new chat that had no idea we'd done this before. I'd even written a tutoring skill so it would give hints instead of answers. Didn't matter much. Every chat started from zero.
+
+So godspeed saves all of that outside the chat. It's a desktop app that keeps your lessons, your answers, how sure you were on each one, and a graph of what you know. Claude Code, Codex or any other agent that supports MCP teaches from all of it.
+
+## One topic, start to finish
+
+That GIF up top is one topic of a Study lesson. Here's what happens in it.
+
+1. Today says what to study next, and one button starts it.
+2. The teacher explains one step at a time and quotes your own lecture. The page it quoted shows under the reply with those words marked.
+3. You answer, and you say how sure you are, from guessing to certain.
+4. After a right answer the teacher can hand you one sentence to keep. It comes back later next to the question it answered.
+5. The lesson stops at the end of every topic. **Keep going** starts the next one. **Stop here** saves your place, and Today picks it up.
+
+Two things the GIF doesn't get to. Questions from earlier lessons come back when they're due, and godspeed asks and grades those itself without calling your agent. And when a plot would help, you guess what it will show first, then it opens.
+
+## Everything around the lesson
+
+<p align="center">
+  <img src="docs/assets/tour.gif" alt="A tour of godspeed: Today, a space's Progress page, the knowledge graph, the files list, and a deadline page with what is on it" width="1000">
+</p>
+
+| Part | What it does |
+| --- | --- |
+| **Spaces** | A space is one thing you study, like a course, a certification or a language. Each one has its own lessons, files, knowledge graph, deadlines and cheat sheets. Add PDFs, Word and PowerPoint files, EPUB books, notes, code, transcripts and lecture recordings (transcribed on your computer with whisper.cpp), or link a folder that's rescanned every minute. Google Drive folders work too. |
+| **Today and deadlines** | Add exams, homework, quizzes and projects with a date and the files they cover. Today lists what to do next across every space, each with the days left, how ready you are and one button to start. |
+| **Knowledge graph** | Your agent groups what you learn into topics, laid out in columns from what you learn first to what builds on it. Each topic shows one square per fact, colored by how often you get it right. |
+| **Homework** | Attach the assignment file and hit Work on it. The teacher opens its problems one at a time and checks your work with hints, but never gives you the answer. A problem counts as done once your own work is right. |
+| **Preps** | For one interview or test. You say what it is and add files like the job posting, and the teacher writes a prep sheet with the topics in order. Take timed mocks (code questions run their examples on your computer), then study what you got wrong. |
+| **Progress** | How ready you are for each deadline, how each lesson went, and whether your confidence matches your results. |
+| **Cheat sheets** | Your agent makes a PDF cheat sheet for a deadline. Point at the part you mean, say what to change, and the rules you give it stick for that sheet. |
+| **Calculator** | In any box you write in, end a calculation with `=` and the answer shows in grey after it. It does numbers, algebra, `solve 2x + 3 = 11`, derivatives and integrals, all on your computer. |
+| **Talk** | Click the teacher in the top bar to have your agent set up spaces, add deadlines or answer questions about them. |
 
 ## How it works
 
 ![How godspeed works: you study in the godspeed app, your own agent teaches through MCP, and your data stays on your computer](docs/assets/how-godspeed-works.png)
 
-<sub>The diagram is an Excalidraw file, [`docs/assets/how-godspeed-works.excalidraw`](docs/assets/how-godspeed-works.excalidraw). Open it at [excalidraw.com](https://excalidraw.com) to edit it.</sub>
-
 1. **Measure.** The teacher finds where your understanding ends on each part the lesson depends on, from your answers, your confidence and the reasoning you write with them.
-2. **Plan.** It maps the steps from there to your goal. A line above the lesson shows which step you're on, and the plan changes when your answers say it should.
+2. **Plan.** It maps the steps from there to your goal or your next deadline, and the plan changes when your answers say it should.
 3. **Teach.** Each step builds on something you already understand. You predict, read the explanation, then check yourself. Confusions get fixed before anything is built on them.
 4. **Practice.** Problems make you recall the right idea without being told which one it is.
 
 Everything you learn is saved as facts and the reasoning chains between them, linked back to the lesson they came from. Later lessons read that graph instead of starting from zero.
 
-## What's in it
-
-- **Study.** One Study button starts a lesson for a topic, a homework method or a question you're stuck on. godspeed picks what to teach first and what to drill from how you've done so far. You can add pictures and PDFs to a message, and the teacher can ask you to write code in an editor. When the teacher uses your space's files or a web page, a small number marks it, and clicking it shows that page.
-- **Spaces.** A space is one thing you study, like a course, a certification or a language. Each space has its own lessons, files, knowledge graph, deadlines and cheat sheets. Add PDFs, Word and PowerPoint files, EPUB books, notes, code, transcripts and lecture recordings (transcribed on your computer with whisper.cpp), or link a folder that's rescanned every minute. Google Drive folders work too.
-- **Today and deadlines.** Add exams, homework, quizzes and projects with a date, an optional time and the files they cover. Today lists what to do next across every space, each with the days left, how ready you are (or how many problems you've done) and one button to start. Everything further out sits under Later.
-
-![Today: what to do next across every space, each with the time left and one button to start](docs/assets/today.png)
-
-- **Knowledge graph.** Your agent groups facts into topics, and each space's Graph tab lays them out in columns by level, from what you learn first to what builds on it. Each topic shows one square per fact, colored by how often you get it right. Pick a topic to see what it needs and what it leads to, or open a fact to see where it came from and practice it. The next deadline sits on top with the days left.
-
-![The Graph: topics in columns by level with one square per fact, the next deadline's days left and what to work on next](docs/assets/graph.png)
-
-- **Homework.** Attach the assignment file to a homework or project and hit Work on it. The teacher lists its problems and opens them one at a time. The whole problem stays in view beside the lesson while you do the work in the one writing box, typed or as a photo, and the teacher checks it with hints but never gives you the answer. A problem counts as done once your own work is right.
-- **Preps.** For one interview or test, **Prepare for something** in the menu makes a prep. You say what it is and add files like the job posting, and the teacher looks it up and writes a prep sheet with the topics to study in order. Take timed mocks like the real thing (code questions run their examples on your computer), then study what you got wrong.
-- **Progress.** How ready you are for each deadline, how each lesson went, and whether your confidence matches your results (five levels, from guessing to certain).
-
-![A space's Progress page: the teacher's note, the next deadline with how ready you are, and the topic that needs work most](docs/assets/progress.png)
-
-- **Cheat sheets.** Your agent makes a PDF cheat sheet for a deadline. Tell it what to change in the chat beside the sheet, point at the part you mean, and the rules you give it stick for that sheet. The sheet can also sit beside a lesson.
-
-![A cheat sheet for the Midterm with the chat that made it and the rules it keeps](docs/assets/cheat-sheet.png)
-
-- **Calculator.** In any box you write in, end a calculation with `=` and the answer shows in grey after it. Click it (or press Tab) to keep it. It does numbers, letters you set on a line above (`x = 3`), expanding and simplifying, `solve 2x + 3 = 11`, derivatives (`d/dx x^3 =`) and integrals (`int x^2 dx =`), all on your computer.
-- **Talk.** Ask your agent to set up spaces, add deadlines or answer questions about your spaces, by clicking the teacher in the top bar.
-
 ## Get started
 
-Download godspeed for your computer:
+| Your computer | Download | Good to know |
+| --- | --- | --- |
+| Mac with an Apple chip (M1 or newer) | [godspeed-mac-apple-silicon.dmg](https://github.com/bayshores/godspeed/releases/latest/download/godspeed-mac-apple-silicon.dmg) | Open the file, then drag godspeed into Applications. It needs macOS 14 or newer. |
+| Mac with an Intel chip | [godspeed-mac-intel.dmg](https://github.com/bayshores/godspeed/releases/latest/download/godspeed-mac-intel.dmg) | The same steps. It also needs macOS 14 or newer, which Intel Macs from 2018 on can run. |
+| Windows | [godspeed-windows-x64-setup.exe](https://github.com/bayshores/godspeed/releases/latest/download/godspeed-windows-x64-setup.exe) | If Windows says "Windows protected your PC", click **More info**, then **Run anyway**. The app isn't signed on Windows. |
+| Linux | [AppImage](https://github.com/bayshores/godspeed/releases/latest/download/godspeed-linux-x64.AppImage) or [.deb](https://github.com/bayshores/godspeed/releases/latest/download/godspeed-linux-x64.deb) | The AppImage runs on most computers once you make it executable. The .deb is for Ubuntu 22.04 or newer and Debian 12 or newer. |
 
-- **[Mac with an Apple chip (M1 or newer)](https://github.com/bayshores/godspeed/releases/latest/download/godspeed-mac-apple-silicon.dmg):** open the file, then drag godspeed into Applications. It needs macOS 14 or newer.
-- **[Mac with an Intel chip](https://github.com/bayshores/godspeed/releases/latest/download/godspeed-mac-intel.dmg):** the same steps. It also needs macOS 14 or newer, which Intel Macs from 2018 on can run.
-- **[Windows](https://github.com/bayshores/godspeed/releases/latest/download/godspeed-windows-x64-setup.exe):** open the file. If Windows says "Windows protected your PC", click **More info**, then **Run anyway**. (The app isn't signed on Windows.)
-- **Linux:** [AppImage](https://github.com/bayshores/godspeed/releases/latest/download/godspeed-linux-x64.AppImage) (most computers) or [.deb](https://github.com/bayshores/godspeed/releases/latest/download/godspeed-linux-x64.deb) (Ubuntu 22.04 or newer, Debian 12 or newer). Make the AppImage executable, then open it.
+Each link downloads the newest version. The app checks for updates once a day and installs them when you quit.
 
-Each link downloads the newest version directly.
+Then connect your agent. The first launch walks you through it, and the same steps are under **Settings → Connection** later.
 
-The app checks for updates once a day and installs them when you quit. **Settings → General → Check for updates** checks right away.
-
-The first launch walks you through connecting your agent (below). You can find the same steps later under **Settings → Connection**.
-
-To build it yourself instead: `npm install`, then `npm run desktop:local` (an unsigned Mac app in `target/release/bundle/macos/`), or `node scripts/fetch-model.mjs` once and then `npm run dev` (http://localhost:3000).
-
-## Outside agents (MCP)
-
-While godspeed is open it runs an MCP server, and an agent you already use is its teacher. The agent also does the background jobs: research, diagrams, PDF reading and building your knowledge graph. If no agent is teaching, that work waits and starts when one does. An agent can be connected without teaching. The teacher panel and **Settings → Connection** say so and tell you how to start it.
-
-1. Click **Open Claude Code** (the arrow next to it switches to **Codex**). godspeed makes a folder for your agent, `~/godspeed`, and opens a terminal there running it. The folder holds the agent's instructions (`CLAUDE.md`, `AGENTS.md`) and its connection to the app, so godspeed only loads when you study, not in your other chats. You can also run the command yourself: **Copy the command** copies it. If you start your agent through a launcher, **Change command** under the button sets the command godspeed runs instead of `claude` or `codex`. In Claude Code, `/setup-spaces` builds your spaces from your course files.
-   - **Other MCP apps:** pick **Other app** for the address and token (Streamable HTTP, `Authorization: Bearer <token>`). For a helper, start a second session and tell it "Start as the helper".
+1. Click **Open Claude Code** (the arrow next to it switches to **Codex**). godspeed makes a folder for your agent, `~/godspeed`, and opens a terminal there running it.
 2. Start a lesson. You answer in the godspeed window and the agent teaches.
 
-While you think, Claude Code waits in a background script, so the agent spends no tokens until you answer. Open Claude Code and Open Codex each open a second window of the same agent, the helper. It reads your files and builds the graph so the teacher stays free for you, and when the teacher stops to tidy its memory, the helper answers your lesson and Talk messages so you don't wait. With nothing to do it just waits for free. **Settings → Connection** shows what each window is doing. Agents can also list and read lessons, search your graph and your space files, import notes, and manage spaces and deadlines. They can save short notes about you (like "the midterm is over"), and every agent sees those notes and where you left off when it connects. You can see and delete the notes under **Settings → Connection**. Only programs on your computer that hold the token can connect.
+Any other MCP app works too. Pick **Other app** for the address and token (Streamable HTTP, `Authorization: Bearer <token>`).
+
+<details>
+<summary>More about how the agent connects</summary>
+
+<br>
+
+While godspeed is open it runs an MCP server, and an agent you already use is its teacher. The agent also does the background jobs, which are research, diagrams, PDF reading and building your knowledge graph. If no agent is teaching, that work waits and starts when one does.
+
+The `~/godspeed` folder holds the agent's instructions (`CLAUDE.md`, `AGENTS.md`) and its connection to the app, so godspeed only loads when you study and stays out of your other chats. **Copy the command** copies the start command if you'd rather run it yourself. If you start your agent through a launcher, **Change command** sets the command godspeed runs instead of `claude` or `codex`. In Claude Code, `/setup-spaces` builds your spaces from your course files.
+
+While you think, Claude Code waits in a background script, so the agent spends no tokens until you answer.
+
+Open Claude Code and Open Codex each open a second window of the same agent, the helper. It reads your files and builds the graph so the teacher stays free for you. When the teacher stops to tidy its memory, the helper answers your lesson and Talk messages so you don't wait. For another MCP app, start a second session and tell it "Start as the helper". **Settings → Connection** shows what each window is doing.
+
+Agents can also list and read lessons, search your graph and your space files, import notes, and manage spaces and deadlines. They can save short notes about you (like "the midterm is over"), and every agent sees those notes and where you left off when it connects. You can see and delete the notes under **Settings → Connection**. Only programs on your computer that hold the token can connect.
+
+</details>
 
 ## Your plans, your data
 
@@ -93,16 +126,20 @@ While you think, Claude Code waits in a background script, so the agent spends n
 ## Development
 
 ```bash
-npm run check        # typecheck + tests + lint + dead-code check (knip) + Rust tests, clippy and cargo machete: what CI runs
-npm test             # frontend and shared tests only. deterministic: no LLM, no network
-npm run rust:check   # the Rust half alone
+npm install
+node scripts/fetch-model.mjs   # once
+npm run dev                    # http://localhost:3000
+npm run desktop:local          # an unsigned Mac app in target/release/bundle/macos/
+npm run check                  # typecheck, tests, lint, dead-code check, Rust tests, clippy and cargo machete. CI runs the same
+npm test                       # frontend and shared tests only, with no LLM and no network
+npm run rust:check             # the Rust half alone
 ```
 
 A change is done when `npm run check` passes.
 
-The code is split in two. `src/` is the Vite and React screens (`frontend/`) and the pure logic they share (`shared/core/`). `crates/` is the Rust server, the agent loops, the files on disk, and the Tauri desktop shell. Tests sit beside what they test: `tests/` for TypeScript, and each crate's `tests/` and `src/` for Rust.
+The code is split in two. `src/` is the Vite and React screens (`frontend/`) and the pure logic they share (`shared/core/`). `crates/` is the Rust server, the agent loops, the files on disk, and the Tauri desktop shell. Tests sit beside what they test, in `tests/` for TypeScript and in each crate for Rust.
 
-See the [development guide](docs/development.md) and [architecture](docs/architecture.md). Bugs and requests go to [GitHub Issues](https://github.com/bayshores/godspeed/issues).
+See the [development guide](docs/development.md) and [architecture](docs/architecture.md). The diagram above is an Excalidraw file, [`docs/assets/how-godspeed-works.excalidraw`](docs/assets/how-godspeed-works.excalidraw). Bugs and requests go to [GitHub Issues](https://github.com/bayshores/godspeed/issues).
 
 ## License
 

@@ -4,6 +4,7 @@
  * toolCallId. The server-side record scans (danglingQuestionOf over native
  * LhMessage[]) live in native-messages.ts.
  */
+import type { ReviewOf } from "./contracts/chat.ts";
 import type { QuestionKind } from "./question-core.ts";
 
 interface UIMessage {
@@ -36,7 +37,14 @@ interface PendingToolCall {
 	tool: string;
 	/** Tool input (the question tool's args) — lets the composer pick note vs answer mode. */
 	input: unknown;
+	/** Set on a question the app posed, which has no tool call of its own. */
+	appPosed?: AppPosed;
 }
+
+/** A question the app posed from stored data: the next topic's opener
+ *  (`ref` its topic_done call id), or a question from earlier (`ref` the
+ *  quiz call it was first asked by). */
+export type AppPosed = { kind: "opener"; ref: string } | { kind: "review"; ref: ReviewOf };
 
 /** Tools that render in the question dock and gate the composer. The
  *  probe-phase names (probe/recall) join their teach
@@ -84,7 +92,8 @@ export function findPendingToolCall(messages: UIMessage[]): PendingToolCall | nu
 			if (isToolUIPart(part) && part.state === "input-available") {
 				const tool = part.type.slice("tool-".length);
 				if (isQuestionTool(tool)) {
-					return { toolCallId: part.toolCallId as string, tool, input: part.input };
+					const appPosed = part.appPosed as AppPosed | undefined;
+					return { toolCallId: part.toolCallId as string, tool, input: part.input, ...(appPosed ? { appPosed } : {}) };
 				}
 			}
 		}

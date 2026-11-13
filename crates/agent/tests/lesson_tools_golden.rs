@@ -14,6 +14,7 @@ use gs_agent::tools::fn_tool::FnTool;
 use gs_agent::tools::graph::{GraphToolContext, ScopedGraph};
 use gs_agent::tools::homework::{HomeworkDeadline, HomeworkToolContext, homework_tools};
 use gs_agent::tools::jobs::JobToolContext;
+use gs_agent::tools::lesson_parts::LessonParts;
 use gs_agent::tools::lesson::{ProberToolContext, StudyToolContext, TeacherToolContext, prober_tools, study_tools, teacher_tools};
 use gs_agent::tools::mermaid_plan::parse_mermaid_plan;
 use gs_agent::tools::plan::PlanContext;
@@ -24,8 +25,10 @@ use gs_agent::tools::questions::bare_question_tools;
 use gs_agent::tools::rules::SaveRule;
 use gs_agent::tools::side::LessonSide;
 use gs_agent::tools::talk::{SpaceActions, talk_tools};
+use gs_agent::tools::topic_done::CheckMarks;
 use gs_base::config::Paths;
 use gs_base::fsx;
+use gs_core::messages::citations::CheckedMarks;
 use gs_core::spaces::space_tools::{SpaceChange, ToolOutcome};
 use gs_core::contracts::space::SPACE_ICONS;
 use gs_core::graph::ports::{ChatListing, GraphStore, LedgerRewrite};
@@ -347,6 +350,11 @@ impl World {
 	}
 }
 
+/// topic_done's mark check, keeping every mark as written.
+fn marks_kept() -> CheckMarks {
+	Arc::new(|text: &str| CheckedMarks { text: text.to_owned(), ..CheckedMarks::default() })
+}
+
 fn nodes_of(nodes: Vec<Json>) -> GraphNodes {
 	Arc::new(move || nodes.clone())
 }
@@ -375,7 +383,7 @@ async fn script(reg: &[FnTool], calls: Vec<(&str, Json)>) -> Json {
 			continue;
 		};
 		n += 1;
-		let prepared = tool.prepare_arguments(args);
+		let prepared = tool.prepare_arguments(args).unwrap();
 		let ctx = ToolContext { tool_call_id: format!("call_{n}"), abort: Abort::new() };
 		out.push(match tool.execute(prepared.clone(), ctx).await {
 			Ok(result) => json!({ "name": name, "prepared": prepared, "out": result }),
@@ -466,7 +474,7 @@ fn agents(prompts: &PromptOverrides) -> Json {
 	let rules = || Some("The learner's rules:\n- Use Python.".to_owned());
 	let off = || json!({ "research": false, "pdf": false });
 	let teacher = || TeacherToolContext { plan: w.plan("lesson"), jobs: w.jobs("lesson"), side: w.side() };
-	let study = StudyToolContext { teacher: teacher(), graph_nodes: Some(nodes_of(Vec::new())) };
+	let study = StudyToolContext { teacher: teacher(), graph_nodes: Some(nodes_of(Vec::new())), check_marks: marks_kept() };
 	let deadline = Deadline::new(Vec::new());
 	let explicit: Vec<Arc<dyn Tool>> = bare_question_tools().into_iter().map(FnTool::into_arc).collect();
 	json!({
@@ -518,7 +526,7 @@ async fn run_cases(data: &Path) -> Vec<(&'static str, Json)> {
 	prober_recall.side = w.side();
 	prober_recall.graph = Some(w.graph(w.own.clone(), false));
 	let teacher_full = TeacherToolContext { side: w.side(), ..w.teacher("lesson") };
-	let study_ctx = StudyToolContext { teacher: teacher_full.clone(), graph_nodes: Some(nodes_of(vec![json!({ "id": "n_a", "name": "Alpha" })])) };
+	let study_ctx = StudyToolContext { teacher: teacher_full.clone(), graph_nodes: Some(nodes_of(vec![json!({ "id": "n_a", "name": "Alpha" })])), check_marks: marks_kept() };
 	let practice_full = PracticeToolContext {
 		graph_nodes: Some(nodes_of(Vec::new())),
 		graph: Some(w.graph(w.own.clone(), true)),
@@ -534,7 +542,7 @@ async fn run_cases(data: &Path) -> Vec<(&'static str, Json)> {
 	case("registry: teacher minimal", describe(&teacher_tools(&w.teacher("lesson"), None)));
 	case("registry: teacher full", describe(&teacher_tools(&teacher_full, None)));
 	case("registry: teacher free recall and toggles", describe(&teacher_tools(&teacher_full, Some(&json!({ "explain": true, "demo": false, "visual": false })))));
-	case("registry: study full", describe(&study_tools(&study_ctx, None)));
+	case("registry: study full", describe(&study_tools(&study_ctx, None, &LessonParts::new(&study_ctx.teacher.plan))));
 	case("registry: practice minimal", describe(&practice_tools(&w.practice("lesson"), None)));
 	case("registry: practice full", describe(&practice_tools(&practice_full, Some(&json!({ "pdf": false })))));
 	case("registry: homework full", describe(&homework_tools(&homework_full, None)));
@@ -749,11 +757,12 @@ async fn run_cases(data: &Path) -> Vec<(&'static str, Json)> {
 		with(&problem_args(), vec![("target", json!(["n_a"]))]),
 	]
 	.into_iter()
-	.map(|args| problem.prepare_arguments(args))
+	.map(|args| problem.prepare_arguments(args).unwrap())
 	.collect();
 	let out = script(&reg, vec![("problem", with(&problem_args(), vec![("target", json!(["unknown"]))])), ("problem", with(&problem_args(), vec![("target", json!(["n_a"]))]))]).await;
 	case("practice: targets", json!({ "prepared": prepared, "out": out }));
-	let reg = study_tools(&StudyToolContext { teacher: w.teacher("lesson"), graph_nodes: Some(nodes_of(Vec::new())) }, None);
+	let study_ctx = StudyToolContext { teacher: w.teacher("lesson"), graph_nodes: Some(nodes_of(Vec::new())), check_marks: marks_kept() };
+	let reg = study_tools(&study_ctx, None, &LessonParts::new(&study_ctx.teacher.plan));
 	case(
 		"practice: study problem",
 		script(&reg, vec![("problem", with(&problem_args(), vec![("nodeId", "missing".into())])), ("problem", with(&problem_args(), vec![("nodeId", "alpha".into())])), ("conclude", conclude_args())]).await,
@@ -762,9 +771,9 @@ async fn run_cases(data: &Path) -> Vec<(&'static str, Json)> {
 	case(
 		"practice: heal",
 		json!([
-			tool(&reg, "problem").prepare_arguments(json!({ "statement": "s", "mode": "\"recall\"", "modelSolution": "m", "target": "[]" })),
-			tool(&reg, "conclude").prepare_arguments(json!({ "outcome": "\"solved\"", "verdict": "v", "rung": "\"R1\"", "missClass": "null", "retest": "true" })),
-			tool(&reg, "conclude").prepare_arguments(Json::from("not an object")),
+			tool(&reg, "problem").prepare_arguments(json!({ "statement": "s", "mode": "\"recall\"", "modelSolution": "m", "target": "[]" })).unwrap(),
+			tool(&reg, "conclude").prepare_arguments(json!({ "outcome": "\"solved\"", "verdict": "v", "rung": "\"R1\"", "missClass": "null", "retest": "true" })).unwrap(),
+			tool(&reg, "conclude").prepare_arguments(Json::from("not an object")).unwrap(),
 		]),
 	);
 

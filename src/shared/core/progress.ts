@@ -372,6 +372,8 @@ export interface DeadlineProgress {
 	topics: { id: string; name: string; rate: number | null }[];
 	/** The unfinished Study session its Study button reopens (continue-study.ts). */
 	continueStudy?: ContinueStudy;
+	/** Its latest Study session reached its end today. */
+	studyEndedToday?: true;
 	/** Homework and projects: how many of its problems are done. */
 	problems?: { done: number; total: number };
 	/** The latest homework session on it, which Work on reopens. */

@@ -107,7 +107,7 @@ describe("DispatchCard — failed jobs", () => {
 	const inJobs = (jobs: JobRecord[]) => (
 		<JobsContext.Provider value={jobs}>
 			<ChatActionsContext.Provider
-				value={{ chatId: "c1", sendBlocked: null, sendText: () => {} }}
+				value={{ chatId: "c1", sendBlocked: null, sendText: () => {}, dropKept: () => {} }}
 			>
 				<DispatchCard toolCallId="t1" kind="research" />
 			</ChatActionsContext.Provider>
@@ -537,15 +537,56 @@ describe("probe-phase naming: Warm-up/Recall labels", () => {
 // explanation (the teaching that follows IS the explanation) while a check's
 // stays inline.
 describe("predict vs check rendering", () => {
-	it("a prediction answer SHOWS the verdict but TUCKS the explanation behind a toggle", () => {
+	it("a prediction answer has NO verdict tag and TUCKS the explanation behind a toggle", () => {
 		const qd: QuestionData = { ...quizQD(), questionType: "predict" };
 		const answer = buildAnswer(qd, { values: ["Venus"] }); // wrong on purpose
 		const html = renderToStaticMarkup(<AnsweredCard answer={answer} />);
 		assert.ok(html.includes("Your prediction"), "the kind distinguishes the card");
-		assert.ok(/incorrect|wrong|&times;|✗/i.test(html), "the verdict still shows (predictions are graded)");
+		assert.ok(!html.includes('data-testid="answer-result"'), "a guess is never marked right or wrong");
 		assert.ok(!html.includes("innermost"), "the explanation is not center stage");
 		assert.ok(html.includes('data-testid="answer-toggle"'), "it sits behind the toggle");
 		assert.ok(renderToStaticMarkup(<AnsweredCard answer={answer} defaultOpen />).includes("tucked-explanation"));
+	});
+
+	it("a missed plain guess names the right answer; a right one adds nothing", () => {
+		const qd: QuestionData = { ...quizQD(), questionType: "predict" };
+		const missed = renderToStaticMarkup(<AnsweredCard answer={buildAnswer(qd, { values: ["Venus"] })} />);
+		assert.match(missed, /data-testid="guess-result"[\s\S]*The answer was B, Mercury\./);
+		const unsure = renderToStaticMarkup(<AnsweredCard answer={buildAnswer(qd, { dontKnow: true })} />);
+		assert.match(unsure, /The answer was B, Mercury\./, "I don't know names it too");
+		const right = renderToStaticMarkup(<AnsweredCard answer={buildAnswer(qd, { values: ["Mercury"] })} />);
+		assert.ok(!right.includes("guess-result"), "a right guess needs no line");
+	});
+
+	it("a plot guess says what he picked and what the line gives, right or not", () => {
+		const options = normalizeOptions([{ label: "At 2, the leash's length." }, { label: "At 4." }]);
+		const qd: QuestionData = { kind: "quiz", question: "Where does the penalty put it?", mode: "single-select", options, correctIndices: [2], questionType: "predict" };
+		const input = { type: "predict", question: qd.question, options: [{ label: "At 2, the leash's length." }, { label: "At 4." }], correctAnswer: "At 4.", onPlot: { line: "penalty", x: 8 } };
+		const picked = renderToStaticMarkup(<AnsweredCard answer={buildAnswer(qd, { values: [options[0]!.value] })} input={input} plotValue={4} />);
+		assert.match(picked, /You picked: at 2, the leash&#x27;s length\. The penalty line gives 4\./);
+		assert.ok(!picked.includes('data-testid="answer-result"'), "no tag");
+		const right = renderToStaticMarkup(<AnsweredCard answer={buildAnswer(qd, { values: [options[1]!.value] })} input={input} plotValue={4} />);
+		assert.match(right, /You picked: at 4\. The penalty line gives 4\./);
+		const unsure = renderToStaticMarkup(<AnsweredCard answer={buildAnswer(qd, { dontKnow: true })} input={input} plotValue={4} />);
+		assert.match(unsure, /data-testid="guess-result"[^>]*>[\s\S]*?The penalty line gives 4\./);
+		assert.ok(!unsure.includes("You picked"));
+	});
+
+	it("a plot guess keeps a single capital letter, which names a quantity", () => {
+		const labels = [{ label: "N stays at 4." }, { label: "X = 2" }, { label: "A line at 4." }];
+		const options = normalizeOptions(labels);
+		const qd: QuestionData = { kind: "quiz", question: "What happens?", mode: "single-select", options, correctIndices: [1], questionType: "predict" };
+		const input = { type: "predict", question: qd.question, options: labels, correctAnswer: "N stays at 4.", onPlot: { line: "penalty", x: 8 } };
+		const said = (i: number) => renderToStaticMarkup(<AnsweredCard answer={buildAnswer(qd, { values: [options[i]!.value] })} input={input} plotValue={4} />);
+		assert.match(said(0), /You picked: N stays at 4\./);
+		assert.match(said(1), /You picked: X = 2\./);
+		assert.match(said(2), /You picked: a line at 4\./);
+	});
+
+	it("a quiz keeps its Right and Wrong tag", () => {
+		const html = renderToStaticMarkup(<AnsweredCard answer={buildAnswer(quizQD(), { values: ["Mercury"] })} />);
+		assert.match(html, /data-testid="answer-result"[^>]*>Right/);
+		assert.ok(!html.includes("guess-result"));
 	});
 
 	it("a check answer tucks the explanation like every question", () => {

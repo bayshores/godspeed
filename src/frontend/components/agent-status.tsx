@@ -43,6 +43,12 @@ export function agentWaiting(status: AgentStatus | null): boolean {
 	return !!status && !status.teaching && status.pendingWork > 0;
 }
 
+/** True in a lesson when no agent is teaching (none connected, or one not
+ *  running the work loop), whether or not a turn is running. */
+export function lessonAgentWaiting(status: AgentStatus | null): boolean {
+	return !!status && !status.teaching;
+}
+
 /** Parse the /api/mcp-access body (pure — exported for tests). */
 export function parseAgentStatus(body: unknown): AgentStatus | null {
 	if (!body || typeof body !== "object") return null;

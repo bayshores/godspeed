@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { homeworkProblemLine, homeworkRow, jumpTarget, practiceRow, rightCountLabel, stepsRow } from "../../src/frontend/components/lesson/plan-row-model.ts";
-import type { HomeworkProblem, PlanStepBar } from "../../src/shared/core/index.ts";
+import type { HomeworkProblem, LessonStop, PlanStepBar } from "../../src/shared/core/index.ts";
 
 const bar: PlanStepBar = {
 	currentIndex: 1,
@@ -61,5 +61,25 @@ describe("the plan row's logic", () => {
 		assert.equal(homeworkProblemLine("HW6", 7, "3", null), "HW6, problem 3 of 7");
 		assert.equal(homeworkProblemLine("HW6", 7, "3", "b"), "HW6, problem 3 of 7, part b");
 		assert.equal(homeworkProblemLine("HW6", 7, "Ex. 4", null), "HW6, Ex. 4", "a name the assignment wrote stays");
+	});
+});
+
+describe("the plan row at a stop", () => {
+	const stop: LessonStop = { kind: "topic", at: "2026-11-18T21:48:00.000Z", nodeId: "b", stopOf: "c1", next: "Variance", activeMinutes: 48, keptGoing: false };
+
+	it("stays on the topic that just ended, its block in ink", () => {
+		const row = stepsRow(bar, stop)!;
+		assert.equal(row.count, "Step 2 of 3");
+		assert.equal(row.here, "Gradient as an expectation");
+		assert.deepEqual(row.blocks.map((b) => b.tone), ["done", "done", "later"]);
+	});
+
+	it("the last topic's end reads the same", () => {
+		assert.deepEqual(stepsRow(bar, { ...stop, kind: "end", next: null })!.blocks.map((b) => b.tone), ["done", "done", "later"]);
+	});
+
+	it("after Keep going, and at a problem's stop, the block is current again", () => {
+		assert.deepEqual(stepsRow(bar, { ...stop, keptGoing: true })!.blocks.map((b) => b.tone), ["done", "current", "later"]);
+		assert.deepEqual(stepsRow(bar, { ...stop, kind: "problem" })!.blocks.map((b) => b.tone), ["done", "current", "later"]);
 	});
 });

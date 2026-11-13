@@ -1,5 +1,5 @@
 //! One chat turn over the server-owned record (chat-handler.ts). POST /api/chat carries one input
-//! event (text, answer, side, next, continue), never a client transcript; the wake
+//! event (text, answer, side, next, continue, opener-answer), never a client transcript; the wake
 //! pipeline's steers come through here too. The event becomes record appends (written ahead, before
 //! the turn runs), the agent is built from the record, and the turn runs as a background object
 //! that views attach to through GET /api/chats/{id}/stream. The POST only acknowledges.
@@ -14,8 +14,9 @@ use gs_base::events::EventKind;
 use gs_base::locks::LockKey;
 use gs_base::{ids, text, time};
 use gs_core::contracts::chat::extracts_facts;
+use gs_core::messages::app_notes::app_note_for;
 use gs_core::messages::attachments::ChatAttachment;
-use gs_core::messages::input_events::{ChatInput, ChatInputError, TurnInput, input_appends};
+use gs_core::messages::input_events::{About, ChatInput, ChatInputError, TurnInput, input_appends};
 use gs_core::messages::native_messages::{dangling_question_of, has_probe_done, is_side_turn, retry_context};
 use gs_core::session::compaction::effective_threshold_tokens;
 use gs_core::session::jobs::steer_delivered;
@@ -32,6 +33,7 @@ use super::compaction::{CompactionDeps, ensure_compacted, kick_compaction, or_ze
 use super::dismissal_park::apply_parked_dismissal;
 use super::job_host::run_job;
 use super::lesson_agent::{TurnAgent, build_lesson_agent};
+use super::review::askable;
 use super::turn_liveness::{begin_turn, end_turn, turn_started};
 use super::turn_runs::{register_turn, remember_turn_failure, unregister_turn};
 use super::turn_service::{PERSISTENCE_ERROR, persist_turn, trigger_extraction};
@@ -44,6 +46,8 @@ use crate::jobs::{note_steers_durable, reconcile_user_steers, register_live_agen
 /// The live update window of a turn's stream.
 const UPDATE_FLUSH_MS: i64 = 100;
 const NOT_SAVED: &str = "Your input could not be saved. Please try again.";
+/// Ask Teacher on a question from earlier that is no longer the open one.
+pub const REVIEW_NOT_OPEN: &str = "That question from earlier is not open";
 
 /// What a turn request answers, like the TS `Response`.
 #[derive(Clone, Debug, PartialEq)]
@@ -99,7 +103,7 @@ pub type ReplyFuture = Pin<Box<dyn Future<Output = ChatReply> + Send>>;
 pub fn send_first_message(app: &Arc<App>) -> SendFirstMessage {
 	let app = app.clone();
 	Arc::new(move |chat_id, text| {
-		let sent = handle_chat_input(&app, &chat_id, TurnInput::Chat(ChatInput::Text { text, attachments: None }));
+		let sent = handle_chat_input(&app, &chat_id, TurnInput::Chat(ChatInput::Text { text, attachments: None, about: None }));
 		Box::pin(async move {
 			let reply = sent.await;
 			if reply.ok() { Ok(()) } else { Err(reply.text()) }
@@ -197,6 +201,16 @@ fn write_ahead(app: &Arc<App>, chat_id: &str, input: &TurnInput, attachments: &[
 	let Some(record) = app.stores.chats.get_chat(chat_id) else { return Err(ChatReply::error(404, "Unknown chat")) };
 	let messages = record["messages"].as_arr().cloned().unwrap_or_default();
 
+	// Ask Teacher on a question from earlier: it must still be askable, and its note carries it whole.
+	let asked = match input {
+		TurnInput::Chat(ChatInput::Text { about: Some(About::Review { of, .. }), .. }) => match askable(app, chat_id, &record, of) {
+			Ok(Some(open)) => Some(open),
+			Ok(None) => return Err(ChatReply::error(400, REVIEW_NOT_OPEN)),
+			Err(err) => return Err(ChatReply::thrown(err)),
+		},
+		_ => None,
+	};
+
 	// The wake carries every queued marker; one already in the record is a re-fire.
 	let mut appends = match input {
 		TurnInput::Steers(steers) => steers.iter().filter(|s| !steer_delivered(&messages, s["id"].as_str().unwrap_or_default())).cloned().collect(),
@@ -204,19 +218,28 @@ fn write_ahead(app: &Arc<App>, chat_id: &str, input: &TurnInput, attachments: &[
 	};
 
 	// The [Today] note goes right before a learner message when the day, the open deadlines or a
-	// compaction call for a fresh one.
-	if matches!(input, TurnInput::Chat(ChatInput::Text { .. } | ChatInput::Next))
-		&& let Some(note) = today_note_for(app, &record)
-	{
+	// compaction call for a fresh one. The app note goes there too.
+	if let TurnInput::Chat(chat @ (ChatInput::Text { .. } | ChatInput::Next)) = input {
 		let at = appends.len().saturating_sub(1);
-		appends.insert(at, note);
+		let notes = today_note_for(app, &record).into_iter().chain(app_note_for(&record, chat, asked.as_ref()));
+		appends.splice(at..at, notes);
 	}
-	let merged: Vec<Json> = messages.iter().chain(&appends).cloned().collect();
+	let mut merged: Vec<Json> = messages.iter().chain(&appends).cloned().collect();
 
 	// An answer that leaves a sibling question waiting starts no turn: the last answer fires the
 	// one reaction turn with every result next to its calls.
+	let sibling_waits = matches!(input, TurnInput::Chat(ChatInput::Answer { .. })) && dangling_question_of(&merged).is_some();
+	// The app note follows the batch's last answer, where the agent reads it with the answers; none
+	// sits between two results of one call batch.
+	if let TurnInput::Chat(chat @ ChatInput::Answer { .. }) = input
+		&& !sibling_waits
+		&& let Some(note) = app_note_for(&record, chat, None)
+	{
+		appends.push(note.clone());
+		merged.push(note);
+	}
 	if let TurnInput::Chat(ChatInput::Answer { answer, .. }) = input
-		&& dangling_question_of(&merged).is_some()
+		&& sibling_waits
 	{
 		if let Err(err) = app.stores.chats.save_messages(chat_id, &merged) {
 			eprintln!("[chat {chat_id}] write-ahead persist failed: {err}");
@@ -468,6 +491,8 @@ pub(crate) fn wire(app: &Arc<App>) {
 
 #[cfg(test)]
 mod tests {
+	use gs_base::clock;
+
 	use super::*;
 	use crate::app::test_support::{scratch_dir, test_app};
 	use crate::turns::turn_liveness::is_turn_running;
@@ -478,7 +503,7 @@ mod tests {
 	}
 
 	fn text(text: &str) -> TurnInput {
-		TurnInput::Chat(ChatInput::Text { text: text.to_owned(), attachments: None })
+		TurnInput::Chat(ChatInput::Text { text: text.to_owned(), attachments: None, about: None })
 	}
 
 	fn saved(app: &App, chat_id: &str, text: &str) -> bool {
@@ -520,6 +545,59 @@ mod tests {
 		let turn_events: Vec<EventKind> = std::iter::from_fn(|| events.try_recv().ok()).map(|e| e.kind).filter(|kind| matches!(kind, EventKind::TurnStarted | EventKind::TurnSettled)).collect();
 		assert_eq!(turn_events, [EventKind::TurnStarted, EventKind::TurnSettled]);
 		assert!(!is_turn_running(&app, &chat_id));
+	}
+
+	/// A stop a day ago that he kept going from an hour ago, then `tail`.
+	fn resumed_lesson(app: &App, tail: Vec<Json>) -> String {
+		let (day_ago, hour_ago) = (clock::now_ms() - 24 * 3_600_000, clock::now_ms() - 3_600_000);
+		let mut messages = vec![
+			json!({ "role": "assistant", "content": [{ "type": "toolCall", "id": "c1", "name": "conclude", "arguments": { "outcome": "solved" } }], "timestamp": day_ago }),
+			json!({ "role": "toolResult", "toolCallId": "c1", "toolName": "conclude", "details": { "stop": { "kind": "problem", "activeMinutes": 30, "at": time::iso(day_ago) } }, "isError": false, "timestamp": day_ago }),
+			json!({ "role": "custom", "customType": "keep-going", "content": "", "details": { "stopOf": "c1", "at": time::iso(hour_ago) }, "timestamp": hour_ago }),
+		];
+		messages.extend(tail);
+		let chat_id = lesson(app);
+		app.stores.chats.save_messages(&chat_id, &messages).unwrap();
+		chat_id
+	}
+
+	fn custom_types(app: &App, chat_id: &str) -> Vec<String> {
+		let record = app.stores.chats.get_chat(chat_id).unwrap();
+		record["messages"].as_arr().unwrap().iter().map(|m| m["customType"].as_str().or(m["role"].as_str()).unwrap_or_default().to_owned()).collect()
+	}
+
+	#[test]
+	fn the_app_note_goes_before_his_message_and_after_his_answer() {
+		let root = scratch_dir("chat-app-note");
+		let app = test_app(&root);
+		let typed = resumed_lesson(&app, Vec::new());
+		assert!(write_ahead(&app, &typed, &text("Where were we?"), &[]).is_ok());
+		end_turn(&app, &typed);
+		assert_eq!(custom_types(&app, &typed)[3..], ["today-context", "app-note", "user"]);
+
+		let quiz = json!({ "role": "assistant", "content": [{ "type": "toolCall", "id": "q1", "name": "quiz", "arguments": {} }], "stopReason": "toolUse", "timestamp": clock::now_ms() });
+		let answered = resumed_lesson(&app, vec![quiz]);
+		let answer = TurnInput::Chat(ChatInput::Answer { tool_call_id: "q1".to_owned(), answer: json!({ "kind": "quiz", "dontKnow": true }), attachments: None });
+		assert!(write_ahead(&app, &answered, &answer, &[]).is_ok());
+		end_turn(&app, &answered);
+		let types = custom_types(&app, &answered);
+		assert_eq!(types[types.len() - 2..], ["toolResult", "app-note"]);
+		let record = app.stores.chats.get_chat(&answered).unwrap();
+		assert_eq!(record["messages"].as_arr().unwrap().last().unwrap()["content"], json!("[Resumed] He came back to this session after a stop."));
+	}
+
+	#[test]
+	fn the_app_note_waits_for_the_last_answer_of_a_call_batch() {
+		let root = scratch_dir("chat-app-note-batch");
+		let app = test_app(&root);
+		let both = json!({ "role": "assistant", "content": [{ "type": "toolCall", "id": "q1", "name": "quiz", "arguments": {} }, { "type": "toolCall", "id": "q2", "name": "quiz", "arguments": {} }], "stopReason": "toolUse", "timestamp": clock::now_ms() });
+		let chat_id = resumed_lesson(&app, vec![both]);
+		let answer = |id: &str| TurnInput::Chat(ChatInput::Answer { tool_call_id: id.to_owned(), answer: json!({ "kind": "quiz", "dontKnow": true }), attachments: None });
+		assert!(write_ahead(&app, &chat_id, &answer("q1"), &[]).is_err(), "q2 still waits: no turn");
+		assert_eq!(custom_types(&app, &chat_id)[3..], ["assistant", "toolResult"]);
+		assert!(write_ahead(&app, &chat_id, &answer("q2"), &[]).is_ok());
+		end_turn(&app, &chat_id);
+		assert_eq!(custom_types(&app, &chat_id)[3..], ["assistant", "toolResult", "toolResult", "app-note"]);
 	}
 
 	#[tokio::test(flavor = "multi_thread")]
