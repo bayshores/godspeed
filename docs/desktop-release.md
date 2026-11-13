@@ -90,7 +90,7 @@ The workflow maps the certificate secrets to electron-builder's `CSC_LINK` / `CS
 
 ## Release runbook
 
-1. Push the change. If it touches `electron/`, native modules, packaging or updater configuration, or Electron itself, run the manual Desktop release workflow and smoke-test the Windows/Linux artifacts by hand: install and open, window buttons and dragging, sidebar at narrow widths, zoom, onboarding and agent connection, a lesson and resume, native PDF/SVG verification and the demo helper.
+1. Push the change. If it touches `electron/`, native modules, packaging or updater configuration, or Electron itself, run the manual Desktop release workflow and smoke-test the Windows/Linux artifacts by hand: install and open, window buttons and dragging, the top bar at narrow widths, zoom, onboarding and agent connection, a lesson and resume, native PDF/SVG verification and the demo helper.
 2. Bump `package.json` and the lockfile to the release version, run `npm run check`, and push a matching `v...` tag.
 3. Wait for **all three** packaging jobs **and the final Verify draft release job**. The gate checks the draft's 11 assets and the three update feeds (single draft, right names/version/sizes/upload state, feeds referencing only what the release actually holds). If it fails, fix the cause and re-run the workflow before publishing; electron-builder replaces same-named assets on re-upload, and the gate rejects leftovers.
 4. The owner publishes the complete draft, then checks the real update path from a prior installed version.
