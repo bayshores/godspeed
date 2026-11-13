@@ -74,6 +74,7 @@ export const PART_NAMES: Readonly<Record<string, string>> = {
 	"shared/30-learner-files.md": "Your files",
 	"shared/40-formatting.md": "Formatting",
 	"shared/12-space-context.md": "Space context",
+	"shared/14-deadline-changes.md": "Deadline changes",
 	"shared/13-source-marks.md": "Showing sources",
 };
 

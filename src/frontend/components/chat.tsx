@@ -272,8 +272,10 @@ export function Chat({
 			// A pending question's dismiss is silent (no turn); mid-turn it also
 			// kills the running turn, and the route parks the dismissal.
 			const p = pendingRef.current;
-			// The opener has no call of its own: its skip is an answer of none.
+			// The opener has no call of its own: its skip is an answer of none,
+			// sent after the running turn is stopped, as the dialog says.
 			if (p?.appPosed) {
+				if (busyRef.current) abortInFlightTurn();
 				void send({ type: "opener-answer", topicDoneCallId: p.appPosed.ref, answer: null });
 				return;
 			}

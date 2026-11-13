@@ -207,4 +207,9 @@ describe("mainRowKey: one dark button on Today", () => {
 	it("a session that ended today stays soft", () => {
 		assert.equal(mainRowKey([{ deadline: mid }, { deadline: hw }], new Map([["mid", progress({ studyEndedToday: true })]]), NOW), "hw");
 	});
+
+	it("a lone row that stopped or ended today keeps the dark button", () => {
+		assert.equal(mainRowKey([{ deadline: mid }], stopped(today), NOW), "mid");
+		assert.equal(mainRowKey([{ deadline: mid }], new Map([["mid", progress({ studyEndedToday: true })]]), NOW), "mid");
+	});
 });

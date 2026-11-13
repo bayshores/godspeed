@@ -162,7 +162,7 @@ export function todayRowKey(item: { deadline: OpenDeadline } | { prep: PrepDay }
 
 /** The one row of Today whose button is dark: a session stopped before
  *  today, else the soonest row. A session that stopped or ended today is
- *  never pulled back into the same evening. `items` are soonest first. */
+ *  passed over while another row is left. `items` are soonest first. */
 export function mainRowKey(items: ReadonlyArray<{ deadline: OpenDeadline } | { prep: PrepDay }>, progress: ReadonlyMap<string, DeadlineProgress>, nowMs: number): string | null {
 	const today = localDay(nowMs);
 	const stopDay = (item: (typeof items)[number]) => {
@@ -175,7 +175,8 @@ export function mainRowKey(items: ReadonlyArray<{ deadline: OpenDeadline } | { p
 	});
 	if (stoppedBefore) return todayRowKey(stoppedBefore);
 	const soonest = items.find((item) => stopDay(item) !== today && !("deadline" in item && progress.get(item.deadline.id)?.studyEndedToday));
-	return soonest ? todayRowKey(soonest) : null;
+	const main = soonest ?? items[0];
+	return main ? todayRowKey(main) : null;
 }
 
 /** Under a Later row's name: "CSE 21, Tuesday Dec 8. 19% ready". */
