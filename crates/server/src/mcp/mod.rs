@@ -136,7 +136,7 @@ pub fn handle_agent_forget(app: &App, headers: &HeaderMap, body: Option<Json>) -
 }
 
 /// /api/mcp/compacting: the godspeed folder's Claude Code hook says an agent started compacting
-/// its context, so the backup teacher answers meanwhile.
+/// its context, so the helper answers meanwhile.
 pub fn handle_agent_compacting(app: &App, headers: &HeaderMap, body: Option<Json>) -> Response {
 	hook_request(app, headers, body, |agent, _| app.bridge.agent_compacting(agent, clock::now_ms()))
 }
@@ -149,9 +149,10 @@ pub fn mcp_access_status(app: &App) -> Result<Json, String> {
 		"agentConnected": app.bridge.agent_connected(now),
 		"agentTeaching": app.bridge.agent_teaching(now),
 		"agentName": app.bridge.agent_name(now),
-		"backupConnected": app.bridge.backup_connected(now),
-		"backupAnswering": app.bridge.backup_answering(now),
+		"helperHere": app.bridge.helper_here(now),
+		"helperCovering": app.bridge.helper_covering(now),
 		"pendingWork": app.bridge.pending_work_count(),
+		"pendingTurns": app.bridge.pending_turn_count(),
 		"claimedLessons": app.bridge.claimed_lessons(),
 	}))
 }

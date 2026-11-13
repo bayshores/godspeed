@@ -10,10 +10,11 @@ export type LaunchChoice = FolderAgent | "other";
 
 export const AGENT_LABEL: Record<FolderAgent, string> = { claude: "Claude Code", codex: "Codex" };
 
-/** The terminals a click opens: Claude Code also gets the backup teacher,
- *  unless one is already waiting. */
-export function startTargets(agent: FolderAgent, backupWaiting: boolean): StartTarget[] {
-	return agent === "claude" && !backupWaiting ? ["claude", "claude-backup"] : [agent];
+/** The terminals a click opens: the agent, and its helper in a second
+ *  window unless one is already here; or the helper alone. */
+export function startTargets(agent: FolderAgent, helperHere: boolean, helperOnly: boolean): StartTarget[] {
+	if (helperOnly) return [`${agent}-helper`];
+	return helperHere ? [agent] : [agent, `${agent}-helper`];
 }
 
 /** What the server says about the folder (GET /api/agent-folder). */
@@ -33,6 +34,8 @@ type StepState = "wait" | "done" | { error: string };
  *  opening ("manual" outside the desktop app: the learner runs the command). */
 export interface Launch {
 	agent: FolderAgent;
+	/** Only the helper's window was asked for. */
+	helperOnly?: true;
 	made: StepState;
 	opened?: StepState | "manual";
 }
@@ -43,7 +46,7 @@ export interface LogLine {
 }
 
 /** The log's lines for a launch and the live agent status. */
-export function logLines(launch: Launch, status: { connected: boolean; teaching: boolean }, short: string, mac: boolean): LogLine[] {
+export function logLines(launch: Launch, status: { connected: boolean; teaching: boolean; helperHere: boolean }, short: string, mac: boolean): LogLine[] {
 	const name = AGENT_LABEL[launch.agent];
 	const terminal = mac ? "Terminal" : "a terminal";
 	const lines: LogLine[] = [];
@@ -55,6 +58,8 @@ export function logLines(launch: Launch, status: { connected: boolean; teaching:
 	if (opened === "manual") lines.push({ text: "Copy the command and run it in your terminal", state: status.connected ? "done" : "wait" });
 	else lines.push(opened === "done" ? { text: `Opened ${terminal} in it`, state: "done" } : { text: `Opening ${terminal}…`, state: "wait" });
 	if (opened === "wait") return lines;
+	const helper: LogLine = status.helperHere ? { text: "Started the helper", state: "done" } : { text: "Waiting for the helper to start…", state: "wait" };
+	if (launch.helperOnly) return [...lines, helper];
 	if (!status.connected) {
 		lines.push({ text: `Waiting for ${name} to start…`, state: "wait" });
 		lines.push({ text: `If ${name} asks whether to trust the folder, choose Yes.`, state: "note" });
@@ -62,6 +67,8 @@ export function logLines(launch: Launch, status: { connected: boolean; teaching:
 	}
 	lines.push({ text: `Started ${name}`, state: "done" });
 	lines.push(status.teaching ? { text: `${name} is teaching`, state: "done" } : { text: `Waiting for ${name} to start teaching…`, state: "wait" });
+	// Outside the desktop app the learner starts one window by hand.
+	if (opened === "done") lines.push(helper);
 	return lines;
 }
 

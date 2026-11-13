@@ -60,6 +60,7 @@ Everything you learn is saved as facts and the reasoning chains between them, li
 Download godspeed for your computer:
 
 - **[Mac with an Apple chip (M1 or newer)](https://github.com/bayshores/godspeed/releases/latest/download/godspeed-mac-apple-silicon.dmg):** open the file, then drag godspeed into Applications. It needs macOS 14 or newer.
+- **[Mac with an Intel chip](https://github.com/bayshores/godspeed/releases/latest/download/godspeed-mac-intel.dmg):** the same steps. It also needs macOS 14 or newer, which Intel Macs from 2018 on can run.
 - **[Windows](https://github.com/bayshores/godspeed/releases/latest/download/godspeed-windows-x64-setup.exe):** open the file. If Windows says "Windows protected your PC", click **More info**, then **Run anyway**. (The app isn't signed on Windows.)
 - **Linux:** [AppImage](https://github.com/bayshores/godspeed/releases/latest/download/godspeed-linux-x64.AppImage) (most computers) or [.deb](https://github.com/bayshores/godspeed/releases/latest/download/godspeed-linux-x64.deb) (Ubuntu 22.04 or newer, Debian 12 or newer). Make the AppImage executable, then open it.
 
@@ -76,16 +77,17 @@ To build it yourself instead: `npm install`, then `npm run desktop:local` (an un
 While godspeed is open it runs an MCP server, and an agent you already use is its teacher. The agent also does the background jobs: research, diagrams, PDF reading and building your knowledge graph. If no agent is teaching, that work waits and starts when one does. An agent can be connected without teaching. The teacher panel and **Settings → Connection** say so and tell you how to start it.
 
 1. Click **Open Claude Code** (the arrow next to it switches to **Codex**). godspeed makes a folder for your agent, `~/godspeed`, and opens a terminal there running it. The folder holds the agent's instructions (`CLAUDE.md`, `AGENTS.md`) and its connection to the app, so godspeed only loads when you study, not in your other chats. You can also run the command yourself: **Copy the command** copies it. If you start your agent through a launcher, **Change command** under the button sets the command godspeed runs instead of `claude` or `codex`. In Claude Code, `/setup-spaces` builds your spaces from your course files.
-   - **Other MCP apps:** pick **Other app** for the address and token (Streamable HTTP, `Authorization: Bearer <token>`).
+   - **Other MCP apps:** pick **Other app** for the address and token (Streamable HTTP, `Authorization: Bearer <token>`). For a helper, start a second session and tell it "Start as the helper".
 2. Start a lesson. You answer in the godspeed window and the agent teaches.
 
-While you think, Claude Code waits in a background script, so the agent spends no tokens until you answer. Open Claude Code also opens a second Claude Code window, the backup teacher. When the main one stops to compact its memory, the backup answers your lesson and Talk messages so you don't wait, and otherwise it just waits for free. Agents can also list and read lessons, search your graph and your space files, import notes, and manage spaces and deadlines. They can save short notes about you (like "the midterm is over"), and every agent sees those notes and where you left off when it connects. You can see and delete the notes under **Settings → Connection**. Only programs on your computer that hold the token can connect.
+While you think, Claude Code waits in a background script, so the agent spends no tokens until you answer. Open Claude Code and Open Codex each open a second window of the same agent, the helper. It reads your files and builds the graph so the teacher stays free for you, and when the teacher stops to tidy its memory, the helper answers your lesson and Talk messages so you don't wait. With nothing to do it just waits for free. **Settings → Connection** shows what each window is doing. Agents can also list and read lessons, search your graph and your space files, import notes, and manage spaces and deadlines. They can save short notes about you (like "the midterm is over"), and every agent sees those notes and where you left off when it connects. You can see and delete the notes under **Settings → Connection**. Only programs on your computer that hold the token can connect.
 
 ## Your plans, your data
 
 - The AI is your own agent, on the plan you already pay for. godspeed has no subscription or markup of its own.
 - Lessons, graphs, space files and settings stay on your machine as plain files you can read.
 - Each task sends the context it needs to your agent, and web research fetches pages. Local storage doesn't mean offline.
+- Your agent looks things up with its own web search. If you'd rather use Tavily, paste your own Tavily key under **Settings → Connection**. It stays in a private file on your computer, and your search words go to Tavily.
 - System prompts are visible and editable.
 
 ## Development

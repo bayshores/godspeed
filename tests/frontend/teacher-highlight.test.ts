@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import { afterEach, describe, it, mock } from "node:test";
 
 (globalThis as Record<string, unknown>).window ??= globalThis;
-const { highlight } = await import("../../src/frontend/components/halley/dom.ts");
+const { highlight } = await import("../../src/frontend/components/teacher/dom.ts");
 
 afterEach(() => mock.timers.reset());
 

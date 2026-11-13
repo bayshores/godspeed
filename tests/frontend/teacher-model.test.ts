@@ -5,7 +5,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { AgentAction } from "../../src/shared/core/events.ts";
-import { BURST_LIMIT, STEP_MS, nextStep, pastLabel, targetKey } from "../../src/frontend/components/halley/tour.ts";
+import { BURST_LIMIT, STEP_MS, nextStep, pastLabel, targetKey } from "../../src/frontend/components/teacher/tour.ts";
 import {
 	FOLLOW_DEFAULT,
 	GO_OFFER_MS,
@@ -18,7 +18,7 @@ import {
 	parseFollow,
 	safePage,
 	type FollowState,
-} from "../../src/frontend/components/halley/follow.ts";
+} from "../../src/frontend/components/teacher/follow.ts";
 function action(over: Partial<AgentAction> = {}): AgentAction {
 	return { id: "act_1", at: "2026-10-28T16:00:00.000Z", agent: "Claude Code", label: "Adding HW 5", spaceId: "cls_a", target: { kind: "deadline", id: "ddl_1" }, page: "/", ...over };
 }

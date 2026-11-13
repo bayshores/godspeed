@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
-import { useHalley } from "@/frontend/components/halley/halley-context";
+import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import { DialogSheet, useLastWhileClosing } from "@/frontend/components/ui/dialog-sheet";
 import { DEFAULT_TEACHER_NAME } from "@/shared/core";
 
@@ -63,7 +63,7 @@ export function AbortTurnBody({
 	/** "closed" while the exit plays — inert. */
 	state?: "open" | "closed";
 }) {
-	const teacher = useHalley()?.name ?? DEFAULT_TEACHER_NAME;
+	const teacher = useTeacher()?.name ?? DEFAULT_TEACHER_NAME;
 	const copy = COPY[mode];
 	return (
 		<DialogSheet

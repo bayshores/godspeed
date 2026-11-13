@@ -6,12 +6,12 @@
  * moment work arrives, printing the work item (see the output below). The
  * exit wakes the agent, which answers the item with `respond` as usual.
  *
- *   node wait-for-work.mjs [--lesson <lesson id>] [--backup] [--max-minutes <n>]
+ *   node wait-for-work.mjs [--lesson <lesson id>] [--helper] [--max-minutes <n>]
  *
  * With --lesson it takes that lesson's turns, Talk messages and background
  * jobs. If the lesson is deleted, it waits for any work instead. With
- * --backup it is the backup teacher's: it takes lesson and Talk turns only
- * while the main session compacts its context.
+ * --helper it is the helper's: it takes the background jobs, and lesson
+ * and Talk turns only while the teacher session compacts its context.
  *
  * Exit codes: 0 = work item printed; 2 = nothing arrived within
  * --max-minutes (default 120; run it again to keep waiting); 1 = godspeed
@@ -45,7 +45,7 @@ const flag = (name) => {
 	return at >= 0 ? args[at + 1] : undefined;
 };
 let lessonId = flag("--lesson");
-const backup = args.includes("--backup");
+const helper = args.includes("--helper");
 const agent = process.env.CLAUDE_CODE_SESSION_ID;
 const asked = Number(flag("--max-minutes") ?? 120);
 const maxMinutes = Number.isFinite(asked) && asked > 0 ? asked : 120;
@@ -58,6 +58,9 @@ function fail(text) {
 	process.stdout.write(`${text}\n`);
 	process.exit(1);
 }
+
+// A window still open from an older godspeed passes --backup, and would teach as a second teacher.
+if (args.includes("--backup")) fail("godspeed was updated. Close this window and open your agent from godspeed again.");
 
 const EXTENSIONS = { "image/png": "png", "image/jpeg": "jpg", "image/gif": "gif", "image/webp": "webp", "image/svg+xml": "svg" };
 
@@ -91,7 +94,7 @@ const ENVELOPE = {
 async function waitOnce() {
 	const { url, token } = target();
 	if (!token) fail(NO_TOKEN);
-	const meta = { ...(modern ? ENVELOPE : {}), ...(agent ? { "godspeed/agent": agent } : {}), ...(backup ? { "godspeed/backup": true } : {}) };
+	const meta = { ...(modern ? ENVELOPE : {}), ...(agent ? { "godspeed/agent": agent } : {}) };
 	const res = await fetch(url, {
 		method: "POST",
 		headers: {
@@ -106,7 +109,7 @@ async function waitOnce() {
 			method: "tools/call",
 			params: {
 				name: "wait_for_work",
-				arguments: { timeout_seconds: 55, ...(lessonId ? { lesson_id: lessonId } : {}) },
+				arguments: { timeout_seconds: 55, ...(lessonId ? { lesson_id: lessonId } : {}), ...(helper ? { helper: true } : {}) },
 				...(Object.keys(meta).length ? { _meta: meta } : {}),
 			},
 		}),

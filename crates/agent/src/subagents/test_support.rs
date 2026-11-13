@@ -1,4 +1,4 @@
-//! What the helper-job tests share: a bridge with marks in memory and a scripted engine.
+//! What the background-job tests share: a bridge with marks in memory and a scripted engine.
 
 use std::path::Path;
 use std::sync::Arc;
@@ -14,9 +14,9 @@ use gs_pdf::RenderedPdfPage;
 use parking_lot::Mutex;
 
 use super::headless::{DemoRunResult, HeadlessApi};
-use super::pi_run::HelperOptions;
+use super::pi_run::JobAgentOptions;
 
-/// No saved marks: the helper jobs never read them.
+/// No saved marks: the background jobs never read them.
 struct NoMarks;
 
 impl SeenStore for NoMarks {
@@ -91,10 +91,10 @@ impl HeadlessApi for FakeHeadless {
 	}
 }
 
-/// Helper options on a scripted engine, recording activity lines.
-pub fn helper_options(script: &Arc<Scripted>, headless: Arc<dyn HeadlessApi>) -> (HelperOptions, Arc<Mutex<Vec<String>>>) {
+/// Job agent options on a scripted engine, recording activity lines.
+pub fn job_agent_options(script: &Arc<Scripted>, headless: Arc<dyn HeadlessApi>) -> (JobAgentOptions, Arc<Mutex<Vec<String>>>) {
 	let lines = Arc::new(Mutex::new(Vec::new()));
-	let opts = HelperOptions {
+	let opts = JobAgentOptions {
 		bridge: bridge(),
 		engine: Some(faux_engine(script)),
 		headless,

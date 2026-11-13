@@ -55,7 +55,7 @@ export interface GeneralSettings {
 	 *  ("0.4.1"). Absent = not recorded yet. */
 	lastSeenVersion?: string;
 	/** The on-screen teacher's name. Only shown in
-	 *  the window; the agent's prompts never use it. Default "Halley". */
+	 *  the window; the agent's prompts never use it. Default "Teacher". */
 	teacherName?: string;
 	/** Startup, onboarding and right/wrong answer sounds (default ON). */
 	sounds?: boolean;

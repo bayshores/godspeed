@@ -43,7 +43,7 @@ Object.assign(globalThis, {
 // The chat scrolls to its end.
 (dom.window.Element.prototype as unknown as { scrollIntoView: () => void }).scrollIntoView = () => {};
 
-const { TeacherHead } = await import("../../src/frontend/components/halley/teacher-head.tsx");
+const { TeacherHead } = await import("../../src/frontend/components/teacher/teacher-head.tsx");
 const { OlderSheet, emptyChatLine, sheetPaper, teacherDoing, versionLabel } = await import("../../src/frontend/components/cheat-sheet/studio-states.tsx");
 const { SheetChat, pointedLabel } = await import("../../src/frontend/components/cheat-sheet/sheet-chat.tsx");
 const { SheetCanvas } = await import("../../src/frontend/components/cheat-sheet/sheet-canvas.tsx");

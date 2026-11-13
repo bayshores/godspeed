@@ -1,5 +1,4 @@
 import { useReopenAgent } from "@/frontend/components/agent-folder/use-agent-folder";
-import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 
 /** In the Talk thread while no agent is connected: the teacher says so and
  *  the button opens one. */
@@ -9,7 +8,6 @@ export function TalkNoAgent() {
 		<div data-testid="no-agent" className="lh-rise flex flex-col items-start gap-3.5">
 			<p className="font-prose text-lg leading-6 text-ink">I&apos;m not connected yet. {reopen.label} and I&apos;ll start.</p>
 			<button type="button" data-testid="no-agent-open" disabled={reopen.busy} onClick={reopen.open} className="lh-btn lh-btn-main text-[15px]">
-				<PixelIcon name="play" />
 				{reopen.label}
 			</button>
 			{reopen.error && (

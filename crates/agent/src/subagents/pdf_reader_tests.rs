@@ -7,7 +7,7 @@ use gs_pdf::test_support::shared_pdf;
 use parking_lot::Mutex;
 
 use super::*;
-use crate::subagents::test_support::{FakeHeadless, calls, helper_options, reply_seeing, result_texts, says};
+use crate::subagents::test_support::{FakeHeadless, calls, job_agent_options, reply_seeing, result_texts, says};
 
 /// pdf/tests/fixtures/lines.pdf: synthetic pages of numbered lines.
 fn lines_pdf() -> String {
@@ -45,7 +45,7 @@ async fn unreadable_sources_fail_before_any_model_call() {
 	std::fs::create_dir(scratch.path("folder.pdf")).unwrap();
 	gs_base::fsx::write_text_atomic(Path::new(&scratch.path("empty.pdf")), "").unwrap();
 	let script = Scripted::new();
-	let (opts, _) = helper_options(&script, FakeHeadless::new(no_demo()));
+	let (opts, _) = job_agent_options(&script, FakeHeadless::new(no_demo()));
 	let pdf = Pdf::new(Path::new("/nonexistent"));
 	let folder = run_pdf_reader_agent(&scratch.path("folder.pdf"), "Anything?", &pdf, &opts).await;
 	assert_eq!(folder, json!({ "path": scratch.path("folder.pdf"), "question": "Anything?", "brief": "PDF failed: not a regular file", "pagesRead": [], "pagesConsulted": [] }));
@@ -67,7 +67,7 @@ async fn the_gate_sends_an_unread_finish_back_once() {
 	reply_seeing(&script, says("Nothing to see."), &seen);
 	reply_seeing(&script, calls(&[("pdf_extract", json!({ "pages": "1" })), ("pdf_render", json!({ "pages": "2-3", "dpi": 72 })), ("pdf_render", json!({ "pages": "x" }))]), &seen);
 	reply_seeing(&script, says(" It lists lines (p. 1). "), &seen);
-	let (opts, lines) = helper_options(&script, FakeHeadless::new(no_demo()));
+	let (opts, lines) = job_agent_options(&script, FakeHeadless::new(no_demo()));
 	let result = run_pdf_reader_agent(&lines_pdf(), "What is on it?", &pdf, &opts).await;
 	assert_eq!(result["brief"], Json::from("It lists lines (p. 1)."));
 	assert_eq!(result["pagesRead"], json!([1, 2, 3]));
@@ -93,7 +93,7 @@ async fn searches_consult_without_reading() {
 	let seen = Arc::new(Mutex::new(Vec::new()));
 	script.reply(calls(&[("pdf_search", json!({ "query": "zzzzz" })), ("pdf_search", json!({ "query": "(" })), ("pdf_nope", json!({})), ("pdf_search", json!({ "query": 1, "literal": "yes", "context_lines": 0 }))]));
 	reply_seeing(&script, says("Found it."), &seen);
-	let (opts, lines) = helper_options(&script, FakeHeadless::new(no_demo()));
+	let (opts, lines) = job_agent_options(&script, FakeHeadless::new(no_demo()));
 	let result = run_pdf_reader_agent(&lines_pdf(), "", &pdf, &opts).await;
 	let texts = result_texts(&seen.lock()[0]);
 	assert_eq!(texts[0], "No hits.");
@@ -114,14 +114,14 @@ async fn the_iteration_limit_and_crashes_fail() {
 	for _ in 0..MAX_ITERATIONS {
 		script.reply(calls(&[("pdf_info", json!({}))]));
 	}
-	let (opts, _) = helper_options(&script, FakeHeadless::new(no_demo()));
+	let (opts, _) = job_agent_options(&script, FakeHeadless::new(no_demo()));
 	let result = run_pdf_reader_agent(&lines_pdf(), "", &pdf, &opts).await;
 	assert_eq!(result["brief"], Json::from("PDF failed: iteration limit (14) reached without a brief."));
 
 	let script = Scripted::new();
 	script.reply(calls(&[("pdf_extract", json!({ "pages": "1" }))]));
 	script.run(|_| Box::pin(async { Err("overloaded".to_owned()) }));
-	let (opts, _) = helper_options(&script, FakeHeadless::new(no_demo()));
+	let (opts, _) = job_agent_options(&script, FakeHeadless::new(no_demo()));
 	let result = run_pdf_reader_agent(&lines_pdf(), "", &pdf, &opts).await;
 	assert_eq!(result["brief"], Json::from("PDF failed: the reader crashed: overloaded"));
 	assert_eq!(result["pagesRead"], json!([1]), "pages read before the crash stay");

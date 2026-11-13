@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Claude Code hook (PreCompact): this session is about to compact its
- * context, so godspeed lets the backup teacher answer its lesson and Talk
+ * context, so godspeed lets the helper answer its lesson and Talk
  * turns meanwhile. Reads the hook's JSON from stdin and tells the app the
  * session id. Prints nothing (Claude Code would read it as compaction
  * instructions) and always exits 0 (exit 2 would stop the compaction).

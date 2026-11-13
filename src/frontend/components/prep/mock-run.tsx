@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { DEFAULT_TEACHER_NAME, secondsLeft, starterCode, type Mock, type MockLanguage, type MockQuestion, type MockView } from "@/shared/core";
 import { MessageResponse } from "@/frontend/components/ai-elements/message";
-import { useHalley } from "@/frontend/components/halley/halley-provider";
+import { useTeacher } from "@/frontend/components/teacher/teacher-provider";
 import { TITLE } from "@/frontend/components/overview/styles";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { cn } from "@/frontend/lib/utils";
@@ -31,7 +31,7 @@ function readLanguage(): MockLanguage {
 export function MockRun({ view }: { view: MockView }) {
 	const { spaceId, mock } = view;
 	const questions = mock.questions;
-	const teacher = useHalley()?.name ?? DEFAULT_TEACHER_NAME;
+	const teacher = useTeacher()?.name ?? DEFAULT_TEACHER_NAME;
 	const [works, setWorks] = useState<Record<string, Work>>(() => {
 		const preferred = readLanguage();
 		return Object.fromEntries(questions.map((q) => [q.id, workOf(q, mock.answers[q.id], preferred)]));
@@ -160,7 +160,7 @@ export function MockRun({ view }: { view: MockView }) {
 						{notSubmitted === 0 ? `All ${questions.length} are submitted.` : `${notSubmitted} of ${questions.length} ${notSubmitted === 1 ? "is" : "are"} not submitted.`} End Mock {mock.n} now? {teacher} grades
 						what you have written.
 					</p>
-					<button type="button" data-testid="mock-end-keep" onClick={() => setConfirmEnd(false)} className="lh-btn bg-panel text-[15px]">
+					<button type="button" data-testid="mock-end-keep" onClick={() => setConfirmEnd(false)} className="lh-btn text-[15px]">
 						Keep going
 					</button>
 					<button type="button" data-testid="mock-end-yes" disabled={ending} onClick={() => void end()} className="lh-btn lh-btn-main text-[15px]">

@@ -8,13 +8,17 @@ publish.workspace = true
 
 [dependencies]
 gs-base.workspace = true
+gs-json.workspace = true
 reqwest.workspace = true
 htmd.workspace = true
 dom_smoothie.workspace = true
 tokio.workspace = true
 
+[features]
+test-support = []
+
 [dev-dependencies]
-gs-json.workspace = true
+gs-web = { workspace = true, features = ["test-support"] }
 
 [lints]
 workspace = true

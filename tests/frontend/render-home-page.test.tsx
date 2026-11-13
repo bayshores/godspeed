@@ -199,7 +199,7 @@ describe("A row under Today", () => {
 	it("the title opens the deadline's page and the row is tagged for the teacher", () => {
 		const html = todayRow();
 		assert.match(tag(html, "today-open"), /href="\/space\/deadline\/hw5"/);
-		assert.ok(html.includes('data-halley-target="deadline:hw5"'));
+		assert.ok(html.includes('data-teacher-target="deadline:hw5"'));
 	});
 
 	it("homework: its name, how far it is, and Work on it", () => {
@@ -209,20 +209,17 @@ describe("A row under Today", () => {
 		assert.match(section(html, "today-start", "</button>"), />Work on it$/);
 		assert.ok(!tag(html, "today-start").includes("lh-btn-main"), "soft unless it is the main row");
 		assert.ok(tag(todayRow({ main: true }), "today-start").includes("lh-btn-main"));
-		assert.doesNotMatch(section(todayRow({ main: true }), "today-start", "</button>"), /<svg/, "no play icon on Work on it");
 	});
 
-	it("a test: Study for it and Start, the play icon only when dark; an unfinished session continues", () => {
+	it("a test: Study for it and Start, the bright key only on the main row; an unfinished session continues", () => {
 		const topics = [1, 2, 3].map((n) => ({ id: `t${n}`, name: `t${n}`, rate: null }));
 		const html = todayRow({ deadline: OPEN[3]!, progress: progressFor("mid", { topics }), main: true });
 		assert.match(section(html, "today-open", "</a>"), />Study for Midterm 2$/);
 		assert.ok(html.includes("CSE 21, the test is on Thursday at 7:00 PM"));
 		assert.match(section(html, "today-start", "</button>"), /Start$/);
 		assert.ok(tag(html, "today-start").includes("lh-btn-main"));
-		assert.match(section(html, "today-start", "</button>"), /<svg/);
 		const soft = todayRow({ deadline: OPEN[3]!, progress: progressFor("mid", { topics }) });
 		assert.ok(!tag(soft, "today-start").includes("lh-btn-main"));
-		assert.doesNotMatch(section(soft, "today-start", "</button>"), /<svg/);
 		const cont = todayRow({ deadline: OPEN[3]!, progress: progressFor("mid", { topics, continueStudy: { chatId: "c", done: 1, total: 3 } }) });
 		assert.match(section(cont, "today-open", "</a>"), />Continue studying for Midterm 2$/);
 		assert.match(section(cont, "today-start", "</button>"), /Continue$/);
@@ -270,7 +267,7 @@ describe("A row under Later", () => {
 		const row = section(html, "later-row-far", "</li>");
 		assert.match(row, /<a[^>]*href="\/space\/deadline\/far"/);
 		assert.ok(!row.includes("<button"));
-		assert.ok(html.includes('data-halley-target="deadline:far"'));
+		assert.ok(html.includes('data-teacher-target="deadline:far"'));
 	});
 
 	it("a pale count block, its name, the space, the day and how ready", () => {

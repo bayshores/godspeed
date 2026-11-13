@@ -1,6 +1,5 @@
 import type { RefObject } from "react";
 import { AttachButton, AttachmentTray, attachmentInputProps, type AttachmentDraft } from "@/frontend/components/lesson/attachment-tray";
-import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 
 /** Enter starts the lesson; Shift+Enter is a new line, and an IME
  *  composition's Enter only confirms the text. */
@@ -82,7 +81,6 @@ export function TopicBox({
 				<AttachButton draft={attachments} outlined />
 				<span className="flex-1" />
 				<button type="submit" data-testid="home-start" aria-disabled={empty || busy} disabled={busy} className="lh-btn lh-btn-main shrink-0 text-[15px]">
-					<PixelIcon name="play" />
 					Study
 				</button>
 			</div>

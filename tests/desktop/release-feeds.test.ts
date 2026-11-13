@@ -20,7 +20,7 @@ const dmg = { url: "godspeed-mac-apple-silicon.dmg", sha512: "dmgsha", size: 9 }
 describe("tauriFeed", () => {
 	it("names each platform's own download in this version's release, with its signature", () => {
 		const feed = JSON.parse(tauriFeed("0.6.0", DATE, {
-			"darwin-aarch64-app": "s-mac", "windows-x86_64-nsis": "s-win", "linux-x86_64-appimage": "s-appimage", "linux-x86_64-deb": "s-deb",
+			"darwin-aarch64-app": "s-mac", "darwin-x86_64-app": "s-mac-intel", "windows-x86_64-nsis": "s-win", "linux-x86_64-appimage": "s-appimage", "linux-x86_64-deb": "s-deb",
 		}));
 		const base = "https://github.com/bayshores/godspeed/releases/download/v0.6.0";
 		assert.deepEqual(feed, {
@@ -28,6 +28,7 @@ describe("tauriFeed", () => {
 			pub_date: DATE,
 			platforms: {
 				"darwin-aarch64-app": { signature: "s-mac", url: `${base}/godspeed-mac-apple-silicon.app.tar.gz` },
+				"darwin-x86_64-app": { signature: "s-mac-intel", url: `${base}/godspeed-mac-intel.app.tar.gz` },
 				"windows-x86_64-nsis": { signature: "s-win", url: `${base}/godspeed-windows-x64-setup.exe` },
 				"linux-x86_64-appimage": { signature: "s-appimage", url: `${base}/godspeed-linux-x64.AppImage` },
 				"linux-x86_64-deb": { signature: "s-deb", url: `${base}/godspeed-linux-x64.deb` },
@@ -97,13 +98,13 @@ describe("release-feeds.mjs (CLI)", () => {
 	const { version } = JSON.parse(fs.readFileSync(path.join(repoRoot, "package.json"), "utf8")) as { version: string };
 	const run = (args: string[]) => spawnSync(process.execPath, [script, ...args], { cwd: repoRoot, encoding: "utf8", timeout: 60_000 });
 
-	/** A dist/ folder as the three packaging jobs leave it. */
+	/** A dist/ folder as the four packaging jobs leave it. */
 	function dist() {
 		const dir = fs.mkdtempSync(path.join(os.tmpdir(), "gs-release-feeds-"));
 		const put = (name: string, text: string) => fs.writeFileSync(path.join(dir, name), text);
 		put(`godspeed-${version}-arm64-mac.zip`, "zip bytes");
 		put("godspeed-mac-apple-silicon.dmg", "dmg bytes!");
-		for (const name of ["godspeed-mac-apple-silicon.app.tar.gz", "godspeed-windows-x64-setup.exe", "godspeed-linux-x64.AppImage", "godspeed-linux-x64.deb"]) {
+		for (const name of ["godspeed-mac-apple-silicon.app.tar.gz", "godspeed-mac-intel.app.tar.gz", "godspeed-windows-x64-setup.exe", "godspeed-linux-x64.AppImage", "godspeed-linux-x64.deb"]) {
 			put(name, "x");
 			put(`${name}.sig`, `sig-of-${name}\n`);
 		}

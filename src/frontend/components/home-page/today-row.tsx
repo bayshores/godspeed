@@ -28,18 +28,17 @@ function Words({ title, line, dim }: { title: ReactNode; line: string; dim?: boo
 	);
 }
 
-/** A Today row's button: dark on the one main row (home-page-model.ts
- *  mainRowKey), soft on the rest; the play icon only on a dark Start. */
-function RowButton({ main, icon, testId, busy, onClick, children }: { main: boolean; icon: boolean; testId: string; busy: boolean; onClick: () => void; children: ReactNode }) {
+/** A Today row's button: the bright key on the one main row
+ *  (home-page-model.ts mainRowKey), a plain key on the rest. */
+function RowButton({ main, testId, busy, onClick, children }: { main: boolean; testId: string; busy: boolean; onClick: () => void; children: ReactNode }) {
 	return (
 		<button
 			type="button"
 			data-testid={testId}
 			disabled={busy}
 			onClick={onClick}
-			className={cn("lh-btn shrink-0", main ? "lh-btn-main h-[53px] gap-2.5 px-[22px] text-[17px]" : "h-[38px] text-[15px]")}
+			className={cn("lh-btn shrink-0", main ? "lh-btn-main h-[53px] px-[22px] text-[17px]" : "h-[38px] text-[15px]")}
 		>
-			{main && icon && <PixelIcon name="play" />}
 			{children}
 		</button>
 	);
@@ -72,7 +71,7 @@ export function TodayRow({
 }) {
 	const words = todayRow(d, progress, nowMs);
 	return (
-		<li data-testid={`today-row-${d.id}`} data-halley-target={`deadline:${d.id}`}>
+		<li data-testid={`today-row-${d.id}`} data-teacher-target={`deadline:${d.id}`}>
 			<Pane className="flex min-h-[104px] overflow-hidden">
 				<CountBlock color={blockColor(color)} {...countLeft(dueAtMs(d), nowMs)} />
 				<div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-3 px-6 py-4">
@@ -88,7 +87,7 @@ export function TodayRow({
 						<button type="button" data-testid="today-done" onClick={() => onDone(d)} className="lh-btn lh-btn-quiet h-[38px] text-[15px]">
 							Mark done
 						</button>
-						<RowButton main={main} icon={words.button === "Start"} testId="today-start" busy={busy} onClick={() => onStart(d)}>
+						<RowButton main={main} testId="today-start" busy={busy} onClick={() => onStart(d)}>
 							{words.button}
 						</RowButton>
 					</span>
@@ -133,7 +132,7 @@ export function PrepTodayRow({
 						}
 						line={`It is on ${longDay(prep.date)}`}
 					/>
-					<RowButton main={main} icon testId="today-prep-study" busy={busy} onClick={() => onStudy(prep)}>
+					<RowButton main={main} testId="today-prep-study" busy={busy} onClick={() => onStudy(prep)}>
 						Study
 					</RowButton>
 				</div>
@@ -147,7 +146,7 @@ export function PrepLaterRow({ prep, nowMs, onOpen }: { prep: PrepDay; nowMs: nu
 	return (
 		<li data-testid={`later-prep-${prep.spaceId}`}>
 			<Pane className="overflow-hidden">
-				<Link to="/space" onClick={() => onOpen(prep)} className="flex min-h-[104px] transition-colors hover:bg-tone">
+				<Link to="/space" onClick={() => onOpen(prep)} className="flex min-h-[100px] transition-colors hover:bg-tone">
 					<CountBlock pale color={spaceColorVar(prep.color)} {...prepBlock(prep, nowMs)} />
 					<span className="flex min-w-0 flex-1 items-center gap-4 px-6 py-4">
 						<Words title={prep.name} line={`It is on ${longDay(prep.date)}`} />
@@ -181,9 +180,9 @@ export function DoneRow({ deadline: d, onUndo }: { deadline: OpenDeadline; onUnd
 /** A deadline under Later: the whole row opens its page. */
 export function LaterRow({ deadline: d, progress, color, nowMs }: { deadline: OpenDeadline; progress: DeadlineProgress | undefined; color: SpaceColor | undefined; nowMs: number }) {
 	return (
-		<li data-testid={`later-row-${d.id}`} data-halley-target={`deadline:${d.id}`}>
+		<li data-testid={`later-row-${d.id}`} data-teacher-target={`deadline:${d.id}`}>
 			<Pane className="overflow-hidden">
-				<Link to={deadlineHref(d.id)} className="flex min-h-[104px] transition-colors hover:bg-tone">
+				<Link to={deadlineHref(d.id)} className="flex min-h-[100px] transition-colors hover:bg-tone">
 					<CountBlock pale color={blockColor(color)} {...countLeft(dueAtMs(d), nowMs)} />
 					<span className="flex min-w-0 flex-1 items-center gap-4 px-6 py-4">
 						<Words title={d.name} line={laterLine(d, progress)} />

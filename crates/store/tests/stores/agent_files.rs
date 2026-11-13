@@ -6,6 +6,7 @@ use gs_store::agent_notes::AgentNotesStore;
 use gs_store::agent_rules::AgentRulesStore;
 use gs_store::agent_seen::AgentSeenStore;
 use gs_store::mcp_token::McpTokenStore;
+use gs_store::search_key::SearchKeyStore;
 
 use crate::support::{Lab, tabbed};
 
@@ -269,9 +270,9 @@ fn the_seed_seen_file_is_read() {
 }
 
 #[cfg(unix)]
-fn token_mode(lab: &Lab) -> u32 {
+fn file_mode(lab: &Lab, rel: &str) -> u32 {
 	use std::os::unix::fs::PermissionsExt;
-	std::fs::metadata(lab.file("mcp-token")).unwrap().permissions().mode() & 0o777
+	std::fs::metadata(lab.file(rel)).unwrap().permissions().mode() & 0o777
 }
 
 #[test]
@@ -283,7 +284,7 @@ fn the_token_is_made_once_as_64_hex_characters_readable_only_by_the_owner() {
 	assert_eq!(token.len(), 64);
 	assert!(token.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b)));
 	#[cfg(unix)]
-	assert_eq!(token_mode(&lab), 0o600);
+	assert_eq!(file_mode(&lab, "mcp-token"), 0o600);
 	assert_eq!(lab.get("mcp-token"), token);
 	assert_eq!(store.ensure_mcp_token().unwrap(), token);
 	assert_eq!(store.read_mcp_token(), Some(token));
@@ -312,5 +313,30 @@ fn rotating_the_token_writes_a_different_one() {
 	assert_ne!(first, second);
 	assert_eq!(store.read_mcp_token(), Some(second));
 	#[cfg(unix)]
-	assert_eq!(token_mode(&lab), 0o600);
+	assert_eq!(file_mode(&lab, "mcp-token"), 0o600);
+}
+
+#[test]
+fn the_search_key_is_saved_readable_only_by_the_owner_and_removed() {
+	let lab = Lab::new("search-key");
+	let store = SearchKeyStore::new(&lab.paths);
+	assert_eq!(store.read_search_key(), None);
+	store.write_search_key("tvly-dev-abcd1234").unwrap();
+	#[cfg(unix)]
+	assert_eq!(file_mode(&lab, "search-key"), 0o600);
+	assert_eq!(store.read_search_key().as_deref(), Some("tvly-dev-abcd1234"));
+	assert!(!lab.exists("settings.json"));
+	store.remove_search_key().unwrap();
+	assert!(!lab.exists("search-key"));
+	assert_eq!(store.read_search_key(), None);
+	store.remove_search_key().unwrap();
+}
+
+#[test]
+fn a_blank_search_key_file_counts_as_no_key() {
+	let lab = Lab::new("search-key-blank");
+	lab.put("search-key", "  \n");
+	assert_eq!(SearchKeyStore::new(&lab.paths).read_search_key(), None);
+	lab.put("search-key", " tvly-x \n");
+	assert_eq!(SearchKeyStore::new(&lab.paths).read_search_key().as_deref(), Some("tvly-x"));
 }

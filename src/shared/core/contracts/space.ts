@@ -201,7 +201,7 @@ export type SpaceIcon = keyof typeof SPACE_ICONS;
 /** A space's color: 1 to SPACE_COLOR_COUNT. */
 export type SpaceColor = number;
 
-/** Halley's note on the cover: the teacher's two sentences on where the
+/** The note on the cover: the teacher's two sentences on where the
  *  learner stands in the space and what's next (set_space_note). */
 export interface SpaceNote {
 	text: string;
@@ -293,6 +293,8 @@ export interface SpaceSummary {
 	filesLeft: number;
 	/** Those are the space's first files: it is being built. */
 	building?: true;
+	/** Files of the round under way that are finished; absent when none. */
+	filesRead?: number;
 	/** A prep, with its day when it has one. */
 	prep?: { date?: string };
 }

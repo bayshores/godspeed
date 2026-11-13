@@ -53,6 +53,10 @@ impl JobHost for AppJobs {
 		get_headless(&self.0.pdf, self.0.shell.as_ref())
 	}
 
+	fn search_key(&self) -> Option<String> {
+		self.0.stores.search_key.read_search_key()
+	}
+
 	fn engine_for(&self, _role: &str) -> Option<Engine> {
 		Some(agent_engine(&self.0.bridge))
 	}
@@ -63,7 +67,7 @@ impl JobHost for AppJobs {
 	}
 }
 
-/// Runs a job's helper agent in the background. `input` rides along when the spawn happens
+/// Runs a job's agent in the background. `input` rides along when the spawn happens
 /// before the tool call is saved. Like Node's `void runJob()`, the job runs here up to its first
 /// wait (a job that fails its checks has failed when this returns), then goes on in the
 /// background once its lesson's running turn has called the model again.

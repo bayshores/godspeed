@@ -73,7 +73,7 @@ impl Embedder {
 		if !weights.exists() {
 			return Err(format!("The search model is missing ({}). Reinstall or update godspeed to get it back (from source: run `node scripts/fetch-model.mjs`).", weights.display()));
 		}
-		#[cfg(target_os = "linux")]
+		#[cfg(any(target_os = "linux", all(target_os = "macos", target_arch = "x86_64")))]
 		load_runtime(&self.models)?;
 		let (tx, rx) = mpsc::channel::<Job>();
 		let dir = self.models.join(MODEL_ID);
@@ -85,14 +85,20 @@ impl Embedder {
 	}
 }
 
-/// Linux loads ONNX Runtime at run time from `libonnxruntime.so` beside `models/`, once per process.
-/// After a failed load ort's library slot is left unusable, so the first answer stands.
+/// ONNX Runtime's library, from the folder that holds `models/`. The Mac app signs it in `Frameworks`.
 #[cfg(target_os = "linux")]
+const RUNTIME_LIBRARY: &str = "libonnxruntime.so";
+#[cfg(all(target_os = "macos", target_arch = "x86_64"))]
+const RUNTIME_LIBRARY: &str = "../Frameworks/libonnxruntime.dylib";
+
+/// Linux and Intel Macs load ONNX Runtime at run time, once per process. After a failed load
+/// ort's library slot is left unusable, so the first answer stands.
+#[cfg(any(target_os = "linux", all(target_os = "macos", target_arch = "x86_64")))]
 fn load_runtime(models: &Path) -> Result<(), String> {
 	static LOADED: std::sync::OnceLock<Result<(), String>> = std::sync::OnceLock::new();
 	LOADED
 		.get_or_init(|| {
-			let library = models.with_file_name("libonnxruntime.so");
+			let library = models.with_file_name(RUNTIME_LIBRARY);
 			let environment = ort::init_from(&library).map_err(|e| format!("The search engine could not load: {e}. Reinstall or update godspeed to fix it (from source: run `node scripts/fetch-onnxruntime.mjs`)."))?;
 			environment.commit();
 			Ok(())

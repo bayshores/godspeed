@@ -7,7 +7,7 @@
 
 import { useState } from "react";
 import { NoticeCard, NoticeText } from "@/frontend/components/notice-card";
-import { OUTLINE_BUTTON } from "@/frontend/components/settings/controls";
+import { SMALL_KEY } from "@/frontend/components/settings/controls";
 import { oldSetupLines, removedNote } from "./agent-folder-model";
 import { useOldSetup } from "./use-old-setup";
 
@@ -30,7 +30,7 @@ export function OldSetupNotice() {
 					</button>
 				) : (
 					<>
-						<button type="button" data-testid="old-setup-later" onClick={() => setHidden(true)} className="lh-press lh-btn text-[15px]">
+						<button type="button" data-testid="old-setup-later" onClick={() => setHidden(true)} className="lh-btn text-[15px]">
 							Later
 						</button>
 						<button type="button" data-testid="old-setup-remove" disabled={busy} onClick={() => void remove()} className="lh-btn text-[15px]">
@@ -68,7 +68,7 @@ export function OldSetupWarning() {
 				<span className="flex min-w-0 items-center gap-2 text-[13.5px] text-ink">
 					{lines.map((line) => line.short).join(" ")}
 				</span>
-				<button type="button" className={OUTLINE_BUTTON} disabled={busy} onClick={() => void remove()}>
+				<button type="button" className={SMALL_KEY} disabled={busy} onClick={() => void remove()}>
 					Remove
 				</button>
 			</div>

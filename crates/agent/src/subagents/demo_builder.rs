@@ -18,7 +18,7 @@ use gs_json::{Json, json, stringify};
 use parking_lot::Mutex;
 
 use super::headless::{DemoRunResult, HeadlessApi};
-use super::pi_run::{HelperOptions, OnActivity, OnToolStart, SubagentRunOptions, run_subagent};
+use super::pi_run::{JobAgentOptions, OnActivity, OnToolStart, SubagentRunOptions, run_subagent};
 
 const INSTRUCTIONS: &str = r#"You are a demo builder — a specialist sub-agent inside a learning application. You
 receive a brief for ONE interactive teaching instrument and deliver a single self-contained HTML document
@@ -194,7 +194,7 @@ fn failed(title: &str, notes: &str) -> Json {
 }
 
 /// Builds the demo. Never fails: a failure is the failure shape.
-pub async fn run_demo_builder(title: &str, brief: &str, opts: &HelperOptions) -> Json {
+pub async fn run_demo_builder(title: &str, brief: &str, opts: &JobAgentOptions) -> Json {
 	let title = match trim(title) {
 		"" => "Interactive demo",
 		t => t,

@@ -1,9 +1,9 @@
 import { useRef, useState } from "react";
 import { paleSpaceColor } from "@/frontend/components/space-color";
 import { useSpaceColor } from "@/frontend/components/space-context";
-import { useHalley } from "@/frontend/components/halley/halley-context";
-import { TeacherActivity } from "@/frontend/components/halley/teacher-activity";
-import { TeacherHead } from "@/frontend/components/halley/teacher-head";
+import { useTeacher } from "@/frontend/components/teacher/teacher-context";
+import { TeacherActivity } from "@/frontend/components/teacher/teacher-activity";
+import { TeacherHead } from "@/frontend/components/teacher/teacher-head";
 import { FollowButton } from "@/frontend/components/top-bar/follow-button";
 import { Pane } from "@/frontend/components/ui/pane";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
@@ -41,8 +41,8 @@ export function TeacherColumn({
 	noAgent: boolean;
 }) {
 	const { pending, busy } = turn;
-	const halley = useHalley();
-	const name = halley?.name ?? DEFAULT_TEACHER_NAME;
+	const teacher = useTeacher();
+	const name = teacher?.name ?? DEFAULT_TEACHER_NAME;
 	const color = useSpaceColor(spaceId);
 	const [activityOpen, setActivityOpen] = useState(false);
 
@@ -59,7 +59,7 @@ export function TeacherColumn({
 	}
 
 	// With no agent teaching, the head says so and opens Connection settings.
-	const doing = noAgent ? "Waiting for your agent" : busy ? `${name} is writing…` : halley?.doing?.working ? halley.doing.text : null;
+	const doing = noAgent ? "Waiting for your agent" : busy ? `${name} is writing…` : teacher?.doing?.working ? teacher.doing.text : null;
 	return (
 		<aside
 			data-testid="teacher-column"

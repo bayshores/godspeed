@@ -6,7 +6,7 @@ use gs_json::{Json, json, stringify};
 use parking_lot::Mutex;
 
 use super::*;
-use crate::subagents::test_support::{FakeHeadless, calls, helper_options, reply_seeing, result_texts, says};
+use crate::subagents::test_support::{FakeHeadless, calls, job_agent_options, reply_seeing, result_texts, says};
 
 const SVG: &str = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 120 60\">\n  <rect x=\"5\"/>\n  <rect x=\"45\"/>\n  <circle r=\"10\" fill=\"red\"/>\n</svg>";
 
@@ -21,7 +21,7 @@ async fn a_looked_at_figure_is_delivered_with_notes() {
 	script.reply(calls(&[("write_svg", json!({ "svg": SVG }))]));
 	reply_seeing(&script, calls(&[("render_svg", json!({}))]), &seen);
 	reply_seeing(&script, says("  Two boxes and a dot.  "), &seen);
-	let (opts, lines) = helper_options(&script, FakeHeadless::new(ok_demo()));
+	let (opts, lines) = job_agent_options(&script, FakeHeadless::new(ok_demo()));
 	let result = run_visual_maker("  Two boxes and a dot.\nSecond line", &opts).await;
 	assert_eq!(result, json!({ "svg": SVG, "notes": "Two boxes and a dot." }));
 	let seen = seen.lock();
@@ -39,7 +39,7 @@ async fn finishing_unlooked_shows_the_render_first() {
 	script.reply(calls(&[("write_svg", json!({ "svg": SVG })), ("edit_svg", json!({ "old_text": "r=\"10\"", "new_text": "r=\"$&$$10\"" }))]));
 	script.reply(says("Done."));
 	reply_seeing(&script, says(""), &seen);
-	let (opts, lines) = helper_options(&script, FakeHeadless::new(ok_demo()));
+	let (opts, lines) = job_agent_options(&script, FakeHeadless::new(ok_demo()));
 	let result = run_visual_maker("x", &opts).await;
 	assert_eq!(result, json!({ "svg": SVG.replace("r=\"10\"", "r=\"$&$$10\"") }), "an empty final text leaves notes out");
 	let last = seen.lock()[0].last().unwrap().clone();
@@ -66,7 +66,7 @@ async fn every_tool_error_text() {
 		("render_svg", json!({})),
 	]));
 	reply_seeing(&script, says("Gave up."), &seen);
-	let (opts, _) = helper_options(&script, FakeHeadless::new(ok_demo()));
+	let (opts, _) = job_agent_options(&script, FakeHeadless::new(ok_demo()));
 	let result = run_visual_maker("x", &opts).await;
 	assert_eq!(result, json!({ "svg": "", "notes": "FAILED: rendering the final SVG failed: bad svg" }));
 	let texts = result_texts(&seen.lock()[0]);
@@ -98,14 +98,14 @@ async fn the_iteration_limit_keeps_only_a_looked_at_svg() {
 	for _ in 0..7 {
 		script.reply(calls(&[("render_svg", json!({}))]));
 	}
-	let (opts, _) = helper_options(&script, FakeHeadless::new(ok_demo()));
+	let (opts, _) = job_agent_options(&script, FakeHeadless::new(ok_demo()));
 	assert_eq!(run_visual_maker("x", &opts).await, json!({ "svg": SVG, "notes": "Iteration limit reached — delivering the last verified SVG." }));
 
 	let script = Scripted::new();
 	for _ in 0..8 {
 		script.reply(calls(&[("edit_svg", json!({ "old_text": "a", "new_text": "b" }))]));
 	}
-	let (opts, _) = helper_options(&script, FakeHeadless::new(ok_demo()));
+	let (opts, _) = job_agent_options(&script, FakeHeadless::new(ok_demo()));
 	assert_eq!(run_visual_maker("x", &opts).await, json!({ "svg": "", "notes": "FAILED: iteration limit (8) reached without a verified SVG." }));
 }
 
@@ -113,22 +113,22 @@ async fn the_iteration_limit_keeps_only_a_looked_at_svg() {
 async fn no_svg_unavailable_and_crashes_fail() {
 	let script = Scripted::new();
 	script.reply(says(&"n".repeat(400)));
-	let (opts, _) = helper_options(&script, FakeHeadless::new(ok_demo()));
+	let (opts, _) = job_agent_options(&script, FakeHeadless::new(ok_demo()));
 	let result = run_visual_maker("", &opts).await;
 	assert_eq!(result["notes"], Json::from(format!("FAILED: the maker never wrote an SVG. ({})", "n".repeat(300))));
 
 	let fake = FakeHeadless { unavailable: Some("no engine".to_owned()), demo: ok_demo(), demo_runs: Mutex::new(Vec::new()) };
-	let (opts, _) = helper_options(&script, Arc::new(fake));
+	let (opts, _) = job_agent_options(&script, Arc::new(fake));
 	assert_eq!(run_visual_maker("x", &opts).await, json!({ "svg": "", "notes": "FAILED: no engine" }));
 
 	let script = Scripted::new();
 	script.run(|_| Box::pin(async { Err("rate limited".to_owned()) }));
-	let (opts, _) = helper_options(&script, FakeHeadless::new(ok_demo()));
+	let (opts, _) = job_agent_options(&script, FakeHeadless::new(ok_demo()));
 	assert_eq!(stringify(&run_visual_maker("x", &opts).await), r#"{"svg":"","notes":"FAILED: the maker crashed: rate limited"}"#);
 
 	let script = Scripted::new();
 	script.reply(says("too late"));
-	let (mut opts, _) = helper_options(&script, FakeHeadless::new(ok_demo()));
+	let (mut opts, _) = job_agent_options(&script, FakeHeadless::new(ok_demo()));
 	let abort = Abort::new();
 	abort.abort();
 	opts.abort_signal = Some(abort);

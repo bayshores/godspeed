@@ -5,13 +5,14 @@ import { useAgentStatus } from "@/frontend/components/agent-status";
 import { useSpaces } from "@/frontend/components/space-context";
 import { LoadFailed } from "@/frontend/components/load-failed";
 import { fileBrowserName } from "@/frontend/components/files/files-model";
-import { useHalley } from "@/frontend/components/halley/halley-provider";
+import { useTeacher } from "@/frontend/components/teacher/teacher-provider";
 import { Pane } from "@/frontend/components/ui/pane";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { printPdf } from "./print-pdf";
 import { SheetCanvas } from "./sheet-canvas";
 import { SheetChat } from "./sheet-chat";
-import { TeacherHead } from "@/frontend/components/halley/teacher-head";
+import { TeacherHead } from "@/frontend/components/teacher/teacher-head";
+import { JobFrame } from "@/frontend/components/work/job-frame";
 import { OlderSheet, emptyChatLine, sheetPaper, teacherDoing, versionLabel } from "./studio-states";
 import { remakeSheet, sheetPdfFile, sheetPdfPath, showSheetPdf, useCheatSheet, useSheetFocus } from "./use-cheat-sheet";
 
@@ -76,7 +77,7 @@ function Studio({
 }) {
 	const agent = useAgentStatus();
 	const agentGone = !!agent && !agent.connected && !agent.teaching;
-	const teacherName = useHalley()?.name ?? DEFAULT_TEACHER_NAME;
+	const teacherName = useTeacher()?.name ?? DEFAULT_TEACHER_NAME;
 	const { activeSpace } = useSpaces();
 	const [failed, setFailed] = useState<string | null>(null);
 	const [printing, setPrinting] = useState(false);
@@ -86,7 +87,7 @@ function Studio({
 	const pdfUrl = useCallback((n: number) => sheetPdfPath(spaceId, deadlineId, n), [spaceId, deadlineId]);
 	const currentUrl = current ? pdfUrl(current.n) : null;
 	const desktop = typeof window !== "undefined" && !!window.lh?.showInFolder;
-	const fileButton = "lh-btn lh-btn-quiet shrink-0 px-2 text-[15px] font-normal text-bar-ink hover:bg-bar-ink/15 hover:text-bar-ink";
+	const fileButton = "lh-btn lh-btn-quiet shrink-0 px-2 text-[15px] font-normal text-bar-ink [--lh-key-hover:color-mix(in_srgb,var(--lh-bar-ink)_15%,transparent)] hover:text-bar-ink";
 	// The Mac prints the PDF file itself through the system's sheet; elsewhere pdf.js draws it.
 	const printVersion = async (n: number, url: string) => {
 		const printFile = window.lh?.printPdf;
@@ -126,34 +127,38 @@ function Studio({
 					{failed}
 				</p>
 			)}
-			<div className="flex min-h-0 flex-1 gap-6 px-8 pt-6 pb-7">
-				<div className="flex min-h-0 min-w-0 flex-1 flex-col border border-border">
-					{current ? (
-						<SheetCanvas versions={view.sheet.versions} pdfUrl={pdfUrl} labelFor={versionLabel} focus={focus} onPoint={setPointed} />
-					) : (
-						<div data-testid="cheat-sheet-empty" className="flex min-h-0 flex-1 flex-col items-center justify-center gap-[18px] overflow-y-auto p-6 text-center">
-							<div aria-hidden className="h-[220px] w-[170px] shrink-0 border border-border bg-background" />
-							<h2 className="text-[28px] leading-tight text-ink">What do you want on your cheat sheet?</h2>
-							<p className="max-w-[520px] text-lg leading-[1.45] text-ink-2">{emptyChatLine(teacherName, false)}</p>
-							{view.sheet.olderFormat && !view.running && <OlderSheet onRemake={() => void remakeSheet(spaceId, deadlineId).then(setFailed)} />}
+			<div className="min-h-0 flex-1">
+				<JobFrame doing={view.running ? (current ? "changing your sheet" : "making your sheet") : null}>
+					<div className="flex h-full gap-6 px-8 pt-6 pb-7">
+						<div className="flex min-h-0 min-w-0 flex-1 flex-col border border-border">
+							{current ? (
+								<SheetCanvas versions={view.sheet.versions} pdfUrl={pdfUrl} labelFor={versionLabel} focus={focus} onPoint={setPointed} />
+							) : (
+								<div data-testid="cheat-sheet-empty" className="flex min-h-0 flex-1 flex-col items-center justify-center gap-[18px] overflow-y-auto p-6 text-center">
+									<div aria-hidden className="h-[220px] w-[170px] shrink-0 border border-border bg-background" />
+									<h2 className="text-[28px] leading-tight text-ink">What do you want on your cheat sheet?</h2>
+									<p className="max-w-[520px] text-lg leading-[1.45] text-ink-2">{emptyChatLine(teacherName, false)}</p>
+									{view.sheet.olderFormat && !view.running && <OlderSheet onRemake={() => void remakeSheet(spaceId, deadlineId).then(setFailed)} />}
+								</div>
+							)}
 						</div>
-					)}
-				</div>
-				<Pane data-testid="cheat-sheet-panel" className="flex w-[480px] shrink-0 flex-col overflow-hidden">
-					<TeacherHead name={teacherName} color={activeSpace?.id === spaceId ? activeSpace.color : undefined} doing={teacherDoing(view, agentGone)} />
-					<SheetChat
-						view={view}
-						spaceId={spaceId}
-						deadlineId={deadlineId}
-						act={act}
-						agentName={teacherName}
-						agentGone={agentGone}
-						pointed={pointed}
-						onClearPointed={() => setPointed(null)}
-						onShowVersion={current ? showVersion : undefined}
-						empty={current ? emptyChatLine(teacherName, true) : undefined}
-					/>
-				</Pane>
+						<Pane data-testid="cheat-sheet-panel" className="flex w-[480px] shrink-0 flex-col overflow-hidden">
+							<TeacherHead name={teacherName} color={activeSpace?.id === spaceId ? activeSpace.color : undefined} doing={teacherDoing(view, agentGone)} />
+							<SheetChat
+								view={view}
+								spaceId={spaceId}
+								deadlineId={deadlineId}
+								act={act}
+								agentName={teacherName}
+								agentGone={agentGone}
+								pointed={pointed}
+								onClearPointed={() => setPointed(null)}
+								onShowVersion={current ? showVersion : undefined}
+								empty={current ? emptyChatLine(teacherName, true) : undefined}
+							/>
+						</Pane>
+					</div>
+				</JobFrame>
 			</div>
 		</div>
 	);

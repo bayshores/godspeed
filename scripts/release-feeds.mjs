@@ -3,7 +3,7 @@
  *
  *   node scripts/release-feeds.mjs <dir> --mac-staging <0-100>
  *     <dir> holds every download of the release and the updater signatures beside them
- *     (scripts/release-assets.mjs's dist/ from all three systems). Writes into <dir>:
+ *     (scripts/release-assets.mjs's dist/ from every package job). Writes into <dir>:
  *       latest.json       the Tauri updater's feed, one entry per platform key, signatures inlined
  *       latest-mac.yml    electron-updater's feed for Electron Macs: the zip of the new app
  *       latest.yml        Electron on Windows and Linux: the last Electron release, from the
@@ -25,6 +25,7 @@ const ROOT = path.resolve(import.meta.dirname, "..");
 const DOWNLOAD = "https://github.com/bayshores/godspeed/releases/download";
 /** Darwin 23 is macOS 14; electron-updater compares this with `os.release()`. */
 const MAC_MINIMUM_DARWIN = "23.0.0";
+const PLATFORMS = ["mac", "mac-intel", "windows", "linux"];
 const LEGACY = { "latest.yml": "legacy-latest.yml", "latest-linux.yml": "legacy-latest-linux.yml" };
 
 /** The base64 sha512 electron-updater checks a download against. @param {string} file */
@@ -51,7 +52,7 @@ export function stagingShare(value) {
  */
 export function tauriFeed(version, pubDate, signatures) {
 	const platforms = {};
-	for (const platform of ["mac", "windows", "linux"]) {
+	for (const platform of PLATFORMS) {
 		for (const { to, updater } of assetPlan(platform, version)) {
 			if (updater) platforms[updater] = { signature: signatures[updater], url: `${DOWNLOAD}/v${version}/${to}` };
 		}
@@ -108,7 +109,7 @@ async function main(argv) {
 	};
 
 	const signatures = {};
-	for (const platform of ["mac", "windows", "linux"]) {
+	for (const platform of PLATFORMS) {
 		for (const { to, updater } of assetPlan(platform, version)) {
 			if (updater) signatures[updater] = fs.readFileSync(file(`${to}.sig`), "utf8").trim();
 		}

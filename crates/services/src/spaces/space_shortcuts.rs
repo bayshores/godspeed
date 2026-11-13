@@ -243,10 +243,7 @@ fn sync_shortcuts(app: &App, folder: &Path, clear: bool) -> Result<(), String> {
 	let old_root = folder.join("classes");
 	if old_dirs.iter().any(|d| *d == old_root.to_string_lossy()) {
 		let note = old_root.join(README_NAME);
-		match std::fs::remove_file(&note) {
-			Err(err) if err.kind() != std::io::ErrorKind::NotFound => return Err(fsx::node_error_message(&err, "rm", &note)),
-			_ => {}
-		}
+		fsx::remove_if_present(&note, "rm")?;
 	}
 
 	let readme = root.join(README_NAME);

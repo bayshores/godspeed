@@ -11,7 +11,7 @@ export function StopCard({ view, onAction }: { view: StopCardView; onAction: (ac
 			{view.next && <p className="mt-2 text-[15px] leading-[22px] text-ink-2">{view.next}</p>}
 			<div className="mt-3 flex flex-wrap justify-end gap-2">
 				{view.buttons.map((b) => (
-					<button key={b.action} type="button" data-testid={`stop-${b.action}`} onClick={() => onAction(b.action)} className={cn("lh-btn", b.dark ? "lh-btn-main" : "bg-panel")}>
+					<button key={b.action} type="button" data-testid={`stop-${b.action}`} onClick={() => onAction(b.action)} className={cn("lh-btn", b.dark && "lh-btn-main")}>
 						{b.label}
 					</button>
 				))}

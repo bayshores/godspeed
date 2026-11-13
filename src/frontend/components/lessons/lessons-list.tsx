@@ -1,10 +1,9 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { useSpaces } from "@/frontend/components/space-context";
-import { useHalley } from "@/frontend/components/halley/halley-provider";
+import { useTeacher } from "@/frontend/components/teacher/teacher-provider";
 import { LoadFailed } from "@/frontend/components/load-failed";
 import { useRiseOnChange } from "@/frontend/components/motion";
-import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { useMenuDismiss } from "@/frontend/components/use-menu-dismiss";
 import { DEFAULT_TEACHER_NAME, type ChatDeleteMode, type ChatListItem } from "@/shared/core";
 import { DeleteLessonDialog } from "./delete-lesson-dialog";
@@ -24,7 +23,7 @@ import { useLessonList } from "./use-lesson-list";
 export function LessonsList() {
 	const navigate = useNavigate();
 	const { active: activeSpaceId } = useSpaces();
-	const teacher = useHalley()?.name ?? DEFAULT_TEACHER_NAME;
+	const teacher = useTeacher()?.name ?? DEFAULT_TEACHER_NAME;
 	const { chats, setChats, freshIds, failed, refresh } = useLessonList();
 	const [query, setQuery] = useState("");
 	const listRef = useRef<HTMLDivElement>(null);
@@ -40,7 +39,7 @@ export function LessonsList() {
 	// Keep the walked row in view.
 	useEffect(() => {
 		if (kbdIndex === null) return;
-		listRef.current?.querySelectorAll("[data-halley-target^='lesson:']")[kbdIndex]?.scrollIntoView({ block: "nearest" });
+		listRef.current?.querySelectorAll("[data-teacher-target^='lesson:']")[kbdIndex]?.scrollIntoView({ block: "nearest" });
 	}, [kbdIndex]);
 
 	/* The lesson menu. The anchor is the right-clicked row or its More
@@ -150,7 +149,6 @@ export function LessonsList() {
 				/>
 				{/* New lessons start on the start page ("/new"). */}
 				<Link to="/new" data-testid="new-session" className="lh-btn lh-btn-main h-11 justify-center text-base">
-					<PixelIcon name="play" />
 					Study something new
 				</Link>
 			</div>

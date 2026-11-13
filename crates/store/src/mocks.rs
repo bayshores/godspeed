@@ -79,10 +79,7 @@ impl MockStore {
 	pub fn remove_mock(&self, space_id: &str, mock_id: &str) -> Result<(), String> {
 		let file = self.mock_file(space_id, mock_id)?;
 		let _guard = self.locks.lock(LockKey::Space(space_id));
-		match std::fs::remove_file(&file) {
-			Err(err) if err.kind() != std::io::ErrorKind::NotFound => Err(fsx::node_error_message(&err, "rm", &file)),
-			_ => Ok(()),
-		}
+		fsx::remove_if_present(&file, "rm")
 	}
 }
 

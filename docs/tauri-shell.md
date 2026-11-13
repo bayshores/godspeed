@@ -408,7 +408,7 @@ Kept: `data/`, `logs/`, `shell.pid`, `.updaterId`, every `data-backup-*`. Fresh 
 | `godspeed-<v>-arm64-mac.zip` | `ditto` of the stapled app (Electron hand-over) |
 | `latest-mac.yml`, `latest.yml`, `latest-linux.yml` | `release-feeds.mjs` (section 7) |
 
-Ten assets. Mac stays Apple Silicon only (`aarch64-apple-darwin`), Windows and Linux x64, as today. The release notes table keeps the four links.
+Ten assets at the move: Apple Silicon Mac (`aarch64-apple-darwin`), Windows x64 and Linux x64. The release notes table keeps the four links. The Intel Mac build came after the move and added two assets; [`desktop-release.md`](desktop-release.md) has the current list.
 
 **Workflows.**
 - Both: `actions/checkout`, `setup-node` 26, Rust from `rust-toolchain.toml`, `Swatinem/rust-cache@v2`, Linux packages `libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev patchelf`. Electron and Next caches go.

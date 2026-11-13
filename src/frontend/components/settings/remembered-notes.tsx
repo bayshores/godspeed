@@ -5,7 +5,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { savedDay } from "@/frontend/components/rule-chips";
-import { OUTLINE_BUTTON, SettingsGroup, SettingsRow } from "./controls.tsx";
+import { SMALL_KEY, SettingsGroup, SettingsRow } from "./controls.tsx";
 
 interface NoteView {
 	id: string;
@@ -57,7 +57,7 @@ export function RememberedNotes() {
 						<button
 							type="button"
 							aria-label={`Delete note: ${note.text}`}
-							className={OUTLINE_BUTTON}
+							className={SMALL_KEY}
 							disabled={busy}
 							onClick={() => load(`?id=${encodeURIComponent(note.id)}`, { method: "DELETE" })}
 						>

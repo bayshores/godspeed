@@ -26,7 +26,7 @@ export default function UpdateBanner() {
 			actions={
 				ready && (
 					<>
-						<button type="button" data-testid="update-later" onClick={() => setLater(true)} className="lh-press lh-btn text-[15px]">
+						<button type="button" data-testid="update-later" onClick={() => setLater(true)} className="lh-btn text-[15px]">
 							Later
 						</button>
 						<button type="button" data-testid="update-restart-now" onClick={() => window.lh?.installUpdate?.()} className="lh-btn lh-btn-main text-[15px]">

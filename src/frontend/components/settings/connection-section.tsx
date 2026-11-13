@@ -1,27 +1,22 @@
 /**
  * Settings → Connection: outside agents (Claude Code, Codex, any MCP client)
  * connect to godspeed and act as its AI, always on and the only model.
- * "Your agent": the connection status and the button that opens it in the
- * godspeed folder (or the setup for another MCP app); "Access": the access
- * token.
+ * "Your agent": the teacher and helper windows, what each is doing and the
+ * buttons that open them; "Web search": the optional search key; then the
+ * access token as one quiet line.
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { agentStatusLabel, teachStep, useAgentStatus } from "@/frontend/components/agent-status";
-import { AgentLauncher } from "@/frontend/components/agent-folder/agent-launcher";
-import { OldSetupWarning } from "@/frontend/components/agent-folder/old-setup";
+import { useAgentStatus } from "@/frontend/components/agent-status";
 import { CopyButton } from "@/frontend/components/copy-button";
 import { ACCESS_ERROR, maskToken } from "@/frontend/components/mcp-access";
-import { cn } from "@/frontend/lib/utils";
-import { OUTLINE_BUTTON, SettingsGroup, SettingsRow } from "./controls.tsx";
+import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
+import { AgentWindows } from "./agent-windows.tsx";
+import { QUIET_KEY, SMALL_KEY } from "./controls.tsx";
+import { WebSearch } from "./web-search.tsx";
 
 interface AccessView {
 	token: string;
-	url: string;
-	agentConnected: boolean;
-	agentTeaching: boolean;
-	agentName: string | null;
-	pendingWork: number;
 }
 
 async function request(init?: RequestInit): Promise<AccessView> {
@@ -29,8 +24,6 @@ async function request(init?: RequestInit): Promise<AccessView> {
 	if (!res.ok) throw new Error(ACCESS_ERROR);
 	return res.json() as Promise<AccessView>;
 }
-
-const OPEN_BELOW = "Open your agent with the button below.";
 
 export function ConnectionSection() {
 	const [access, setAccess] = useState<AccessView | null>(null);
@@ -44,14 +37,10 @@ export function ConnectionSection() {
 		setAccess(a);
 		setError(null);
 	}, []);
-	const refresh = useCallback(() => {
-		request().then(loaded, (e: Error) => setError(e.message));
-	}, [loaded]);
-	// Re-read whenever the live agent status changes (agent-status.tsx).
 	const live = useAgentStatus();
 	useEffect(() => {
-		refresh();
-	}, [refresh, live]);
+		request().then(loaded, (e: Error) => setError(e.message));
+	}, [loaded]);
 
 	const makeToken = () => {
 		setRotate("making");
@@ -67,61 +56,35 @@ export function ConnectionSection() {
 		);
 	};
 
-	if (!access) return <p className="text-xs text-ink-2">{error ?? "Loading…"}</p>;
+	if (!access || !live) return <p className="text-xs text-ink-2">{error ?? "Loading…"}</p>;
 	const token = access.token;
-	const agent = { connected: access.agentConnected, teaching: access.agentTeaching, name: access.agentName ?? undefined, pendingWork: access.pendingWork };
-	const hint = agent.teaching ? null : agent.connected ? teachStep(agent.name) : agent.pendingWork > 0 ? OPEN_BELOW : null;
 
 	return (
 		<>
-			<SettingsGroup label="Your agent">
-				<SettingsRow label="Status">
-					<span className="flex min-w-0 items-start gap-2.5">
-						<span aria-hidden className={cn("mt-[7px] size-3 shrink-0", agent.teaching ? "bg-ans-right" : agent.connected || agent.pendingWork > 0 ? "bg-highlight" : "bg-ink-3")} />
-						<span className="min-w-0">
-							<span data-testid="agent-status" className="block truncate text-[15px] font-medium text-ink">
-								{agentStatusLabel(agent, 0)}
-							</span>
-							{hint && (
-								<span data-testid="agent-teach-hint" className="block text-base text-ink-2">
-									{hint}
-								</span>
-							)}
-						</span>
+			<AgentWindows agent={live} />
+			<WebSearch />
+			<div className="flex flex-col gap-2 px-1 text-[15px]">
+				<div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+					<PixelIcon name="lock" className="h-3.5 text-ink-2" />
+					<span title="Anyone with this token can use godspeed as you. Make a new one if it leaks." className="text-ink-2">
+						Access token
 					</span>
-				</SettingsRow>
-				<div className="flex flex-col gap-3 py-3">
-					<OldSetupWarning />
-					<AgentLauncher />
+					<span data-testid="agent-token" className="mr-auto min-w-0 truncate text-ink">
+						{maskToken(token)}
+					</span>
+					<CopyButton aria-label="Copy access token" className={QUIET_KEY} text={token} />
+					<button type="button" data-testid="agent-new-token" className={QUIET_KEY} disabled={rotate === "asking" || rotate === "making"} onClick={() => setRotate("asking")}>
+						New token
+					</button>
 				</div>
-			</SettingsGroup>
-
-			<SettingsGroup label="Access">
-				<SettingsRow label="Access token" hint="Anyone with this token can use godspeed as you. Make a new one if it leaks.">
-					<span className="flex min-w-0 items-center gap-2">
-						<span data-testid="agent-token" className="min-w-0 truncate text-[15px] text-ink">
-							{maskToken(token)}
-						</span>
-						<CopyButton aria-label="Copy access token" className={OUTLINE_BUTTON} text={token} />
-						<button type="button" data-testid="agent-new-token" className={OUTLINE_BUTTON} disabled={rotate === "asking" || rotate === "making"} onClick={() => setRotate("asking")}>
-							New token
-						</button>
-					</span>
-				</SettingsRow>
 				{(rotate === "asking" || rotate === "making") && (
-					<div data-testid="agent-new-token-confirm" className="flex items-center justify-between gap-4 py-3">
-						<span className="text-[15px] text-ink">Other MCP apps will need the new token. Continue?</span>
+					<div data-testid="agent-new-token-confirm" className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+						<span className="text-ink">Other MCP apps will need the new token. Continue?</span>
 						<span className="flex shrink-0 items-center gap-2">
-							<button type="button" className={`lh-press ${OUTLINE_BUTTON}`} onClick={() => setRotate("idle")}>
+							<button type="button" className={SMALL_KEY} onClick={() => setRotate("idle")}>
 								Cancel
 							</button>
-							<button
-								type="button"
-								data-testid="agent-new-token-continue"
-								className={`${OUTLINE_BUTTON} lh-btn-main`}
-								disabled={rotate === "making"}
-								onClick={makeToken}
-							>
+							<button type="button" data-testid="agent-new-token-continue" className={`${SMALL_KEY} lh-btn-main`} disabled={rotate === "making"} onClick={makeToken}>
 								Continue
 							</button>
 						</span>
@@ -133,11 +96,11 @@ export function ConnectionSection() {
 					</p>
 				)}
 				{error && <p className="text-ans-wrong">{error}</p>}
-			</SettingsGroup>
+			</div>
 		</>
 	);
 }
 
 /** The section's head tooltip: what outside agents do, and how to use one. */
 export const CONNECTION_SECTION_HINT =
-	"Claude Code, Codex, or another MCP app is your teacher. It teaches your lessons and does the helper and graph work too. Open it with the button under Your agent.";
+	"Claude Code, Codex, or another MCP app is your teacher. It teaches your lessons, and a second window of it, the helper, reads your files and builds the graph. Open both under Your agent.";

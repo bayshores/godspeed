@@ -1,4 +1,4 @@
-//! The shared helper-agent runner. The
+//! The shared job-agent runner. The
 //! researcher, the demo builder, the extractor and topic grouper (through `run_submit_agent`)
 //! and the compaction summarizer run on it: an agent built per call, without saved state,
 //! driven to completion.
@@ -23,7 +23,7 @@ use parking_lot::Mutex;
 use super::headless::HeadlessApi;
 use super::stream_once::message_text;
 
-/// Why a helper agent's run ended without a result.
+/// Why a job agent's run ended without a result.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RunError {
 	/// The caller's abort fired (TS: an `AbortError` with the message "aborted").
@@ -92,7 +92,7 @@ pub type OnActivity = Arc<dyn Fn(&str) + Send + Sync>;
 
 /// What the runner hands the demo builder, the visual maker and the pdf reader.
 #[derive(Clone)]
-pub struct HelperOptions {
+pub struct JobAgentOptions {
 	/// Names the job's conversation for the outside agent and runs it when `engine` is None.
 	pub bridge: Bridge,
 	pub engine: Option<Engine>,
@@ -104,7 +104,7 @@ pub struct HelperOptions {
 	pub on_activity: Option<OnActivity>,
 }
 
-impl HelperOptions {
+impl JobAgentOptions {
 	pub(super) fn activity(&self, line: &str) {
 		if let Some(f) = &self.on_activity {
 			f(line);

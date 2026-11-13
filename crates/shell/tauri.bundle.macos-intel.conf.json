@@ -1,0 +1,3 @@
+{
+  "bundle": { "macOS": { "frameworks": ["../../.stage/libpdfium.dylib", "../../.stage/libonnxruntime.dylib"] } }
+}

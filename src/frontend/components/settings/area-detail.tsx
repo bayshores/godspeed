@@ -6,7 +6,7 @@
 import { TOOL_SWITCH_LABELS, type AgentSettings, type TeachingArea, type ToggleableTool } from "@/shared/core";
 import { RuleChips } from "@/frontend/components/rule-chips";
 import { Segmented } from "@/frontend/components/ui/segmented";
-import { OUTLINE_BUTTON, SettingsGroup, SettingsRow, Toggle } from "./controls.tsx";
+import { SMALL_KEY, SettingsGroup, SettingsRow, Toggle } from "./controls.tsx";
 import { composeGraphTools, composeQuizStyle, composeRules, composeTool } from "./teaching-model.ts";
 
 const QUIZ_STYLES = [
@@ -95,7 +95,7 @@ export function AreaDetail({
 				/>
 			</div>
 			<SettingsRow label="Full instructions" hint={`What ${teacherName} reads before every lesson.${edited ? " You changed these." : ""}`}>
-				<button type="button" data-testid={`area-${area.id}-instructions`} disabled={!instructionsReady} onClick={onOpenInstructions} className={OUTLINE_BUTTON}>
+				<button type="button" data-testid={`area-${area.id}-instructions`} disabled={!instructionsReady} onClick={onOpenInstructions} className={SMALL_KEY}>
 					Edit full instructions
 				</button>
 			</SettingsRow>

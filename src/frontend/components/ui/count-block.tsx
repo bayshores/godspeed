@@ -22,8 +22,9 @@ export function CountBlock({ color, pale, count, unit, size = "row" }: { color: 
 			className={cn("flex shrink-0 flex-col items-center justify-center self-stretch font-count", s.box, pale ? "text-ink" : "text-on-space")}
 			style={{ background: pale ? `color-mix(in srgb, ${color} 57%, var(--lh-space-wash))` : color }}
 		>
-			{/* A word ("late") is set smaller than a number so it fits. */}
-			<span className={count.length > 3 ? s.word : s.count}>{count}</span>
+			{/* A word ("late") is set smaller than a number so it fits. The digits sit low in their
+			    line, so a number is pulled up to leave the same room above it as below its unit. */}
+			<span className={count.length > 3 ? s.word : cn(s.count, "-mt-[0.16em]")}>{count}</span>
 			{unit && <span className={cn("leading-none", s.unit)}>{unit}</span>}
 		</span>
 	);

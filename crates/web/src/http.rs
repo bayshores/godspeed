@@ -1,12 +1,14 @@
 //! A GET the way Node's fetch does it: up to 20 redirects, no proxy, Node's wording for failures.
-//! Dropping the future cancels the request, which is how the tool guard's timeout and Stop work.
+//! Private and local addresses are refused (crate::guard). Dropping the future cancels the
+//! request, which is how the tool guard's timeout and Stop work.
 
 use std::future::Future;
 use std::time::Duration;
 
 use gs_base::clock;
-use reqwest::redirect::Policy;
 use reqwest::{Client, Response, Url};
+
+use crate::guard;
 
 const MAX_REDIRECTS: usize = 20;
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
@@ -32,7 +34,8 @@ pub async fn get(url: &str, headers: &[(&str, &str)]) -> Result<Response, String
 	if !parsed.username().is_empty() || parsed.password().is_some() {
 		return Err(format!("Request cannot be constructed from a URL that includes credentials: {url}"));
 	}
-	let client = Client::builder().redirect(Policy::limited(MAX_REDIRECTS)).connect_timeout(CONNECT_TIMEOUT).no_proxy().build().map_err(|_| FETCH_FAILED.to_owned())?;
+	guard::check(&parsed).map_err(|refused| refused.to_string())?;
+	let client = Client::builder().redirect(guard::redirects(MAX_REDIRECTS)).dns_resolver(guard::PublicOnly).connect_timeout(CONNECT_TIMEOUT).no_proxy().build().map_err(|_| FETCH_FAILED.to_owned())?;
 	let mut request = client.get(parsed);
 	for (name, value) in headers {
 		request = request.header(*name, *value);
@@ -44,6 +47,7 @@ pub async fn get(url: &str, headers: &[(&str, &str)]) -> Result<Response, String
 	}
 	match within(SILENCE_LIMIT_MS, request.send()).await {
 		Some(Ok(response)) => Ok(response),
+		Some(Err(err)) if guard::was_refused(&err) => Err(guard::REFUSED.to_owned()),
 		_ => Err(FETCH_FAILED.to_owned()),
 	}
 }

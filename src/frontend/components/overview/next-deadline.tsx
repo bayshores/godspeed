@@ -48,7 +48,7 @@ export const NextDeadline = memo(function NextDeadline({
 	}
 	const share = progressShare(d);
 	return (
-		<Pane data-testid="next-deadline" data-halley-target={`deadline:${d.id}`} className="flex flex-col gap-[18px] p-5">
+		<Pane data-testid="next-deadline" data-teacher-target={`deadline:${d.id}`} className="flex flex-col gap-[18px] p-5">
 			<div className="flex gap-7">
 				<CountBlock size="square" color={color} {...countLeft(dueAtMs(d), nowMs)} />
 				<div className="flex min-w-0 flex-1 flex-col gap-1.5">
@@ -63,7 +63,6 @@ export const NextDeadline = memo(function NextDeadline({
 				</div>
 			</div>
 			<button type="button" data-testid="next-deadline-start" disabled={busy} onClick={() => onStart(d)} className="lh-btn lh-btn-main h-[53px] w-full justify-center gap-2.5 px-[22px] text-[17px]">
-				<PixelIcon name="play" />
 				<span className="min-w-0 truncate">{nextDeadlineButton(d)}</span>
 			</button>
 		</Pane>

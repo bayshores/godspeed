@@ -32,7 +32,7 @@ export interface AgentAction {
 	/** Short and plain: "Adding HW 5", "Reading syllabus.pdf". */
 	label: string;
 	spaceId: string | null;
-	/** The thing that changed, as tagged in the page (data-halley-target). */
+	/** The thing that changed, as tagged in the page (data-teacher-target). */
 	target: { kind: "deadline" | "file" | "space" | "lesson"; id: string } | null;
 	/** The app path where it shows ("/", "/space", "/space/files", "/chat/<id>"). */
 	page: string;

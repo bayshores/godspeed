@@ -46,7 +46,7 @@ For Windows/Linux packages and the three-OS CI/release flow, see [`desktop-relea
 
 ## Environment
 
-There are no model settings, API keys or sign-ins: the only model is an outside agent connected over MCP (Settings → Connection), which picks its own model and effort in its own harness. The extraction batch threshold is an app setting (`graph.extractionChunkTokens`, default 4096, floor 500). The server makes the access token `data/mcp-token` on the first page load. The server's environment variables are listed in [rust-server.md](rust-server.md).
+There are no model settings, model keys or sign-ins: the only model is an outside agent connected over MCP (Settings → Connection), which picks its own model and effort in its own harness. The one optional key is the learner's own Tavily key (a card in Settings → Connection), kept in `data/search-key` (mode 0600, never in `settings.json`): with it the research job gets a `web_search` tool, without it the agent may use its own web search. The extraction batch threshold is an app setting (`graph.extractionChunkTokens`, default 4096, floor 500). The server makes the access token `data/mcp-token` on the first page load. The server's environment variables are listed in [rust-server.md](rust-server.md).
 
 ## Architecture
 
@@ -124,7 +124,7 @@ src/                            the screens and the logic they share
                                   graph/), the lesson screen (lesson/), question dock,
                                   plan row and plan blocks, Settings page (settings/),
                                   source marks (citations/), preps and mocks (prep/), the
-                                  teacher's work (teacher-work/), onboarding, the welcome
+                                  work frame (work/), onboarding, the welcome
                                   screen (welcome/), artifact renderers (registry:
                                   artifacts/), activity dock, keyboard
     lib/utils.ts                  shadcn class-name helper (cn)
@@ -149,7 +149,7 @@ crates/                         the Rust workspace (details: rust-server.md)
   files pdf search media web    space files to text, pdfium, the embedding model and
   transcribe                    BM25 search, images and SVG, web pages, recordings
   engine                        the turn loop and the work bridge to the outside agent
-  agent                         prompts (prompts/), lesson tools, file tools, helper jobs
+  agent                         prompts (prompts/), lesson tools, file tools, background jobs
                                 and the extraction pipeline
   services                      App (all server state) and the services: turns, jobs,
                                 spaces, graph, cheat sheets, preps and mocks, app
@@ -178,7 +178,8 @@ data/                           runtime state, git-ignored:
                                 space" facts) · jobs/ ·
                                 prompts/ (edited system prompts) · models/ (the
                                 downloaded speech model) · settings.json ·
-                                mcp-token · mcp-endpoint.json (desktop only) ·
+                                mcp-token · search-key (optional) ·
+                                mcp-endpoint.json (desktop only) ·
                                 agent-notes.json · agent-seen.json · agent-rules.json
                                 (marks agent-saved rules) · agent-actions.json (the
                                 activity log) · agent-folder.json (the godspeed
@@ -189,7 +190,7 @@ data/                           runtime state, git-ignored:
 
 See [compaction and accounting](compaction-accounting.md) for the local cutoff port and the measurement-only context meter. Lessons are shortened past `compaction.thresholdTokens` (default 40,000; Settings → General shows it in pages): godspeed cuts the old part at once with its own short version (`local_summary`), so nobody waits, and the agent's written summary replaces that version after 5 quiet minutes (`crates/services/src/turns/compaction.rs`). Every call runs on the outside agent, which bills the learner's own plan, so nothing has a dollar price: the app only counts tokens.
 
-**The outside agent is the only model.** `crates/engine/src/bridge/` parks every model request (lesson turns, helper jobs, extraction, topic grouping) as a work item. The connected agent takes it with `wait_for_work` and answers with `respond` (`crates/server/src/mcp/work.rs`). If no agent is teaching, the work waits. Any MCP request in the last 3 minutes counts as connected; only `wait_for_work`, `respond` and `read_work` count as teaching, and the teacher pane and Settings → Connection show "connected, not teaching" when only the first holds. Access needs the token in `data/mcp-token` and a local, non-browser request. Details:
+**The outside agent is the only model.** `crates/engine/src/bridge/` parks every model request (lesson turns, background jobs, extraction, topic grouping) as a work item. The connected agent takes it with `wait_for_work` and answers with `respond` (`crates/server/src/mcp/work.rs`). If no agent is teaching, the work waits. Any MCP request in the last 3 minutes counts as connected; only `wait_for_work`, `respond` and `read_work` count as teaching, and the teacher pane and the Teacher tile under Settings → Connection say to start teaching when only the first holds. A second session started as the helper (`wait_for_work` with `helper: true`) takes the background jobs, and covers lesson and Talk turns while the teacher compacts (`crates/engine/src/bridge/helper.rs`). Access needs the token in `data/mcp-token` and a local, non-browser request. Details:
 
 - **The item's shape.** A compact JSON block, then the instructions and long message texts (`[text N]`) as plain-text blocks.
 - **Paging.** A long work item comes in pages of at most 24,000 UTF-8 bytes (`crates/core/src/session/work_pages.rs`). The agent reads pages 2 and up with `read_work`; `respond` is refused until every page is read. `read_work` with `full: true` sends the item again in full.

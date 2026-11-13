@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { StickToBottomContext } from "use-stick-to-bottom";
 import { useNavigate, useSearchParams } from "react-router";
 import { lessonStop, type HomeworkProblem, type LessonKind, type LhMessage, type PlanTree } from "@/shared/core";
-import { highlight, isInView } from "@/frontend/components/halley/dom";
+import { highlight, isInView } from "@/frontend/components/teacher/dom";
 import { stopCard, stopLightSelector, type StopAction } from "./stop-card-model";
 
 /** How long the reading pane takes to stick to its bottom on open. */

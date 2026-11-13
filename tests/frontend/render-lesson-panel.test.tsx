@@ -20,7 +20,7 @@ import { stopCard } from "../../src/frontend/components/lesson/stop-card-model.t
 import { TeacherColumn } from "../../src/frontend/components/lesson/teacher-column.tsx";
 import { practiceProgress } from "../../src/frontend/components/lesson/practice-progress.ts";
 import { ReadingPane } from "../../src/frontend/components/lesson/reading-pane.tsx";
-import { HalleyContext, type HalleyApi } from "../../src/frontend/components/halley/halley-context.ts";
+import { TeacherContext, type TeacherApi } from "../../src/frontend/components/teacher/teacher-context.ts";
 import { SpaceProvider } from "../../src/frontend/components/space-context.tsx";
 import { ServerEventsProvider } from "../../src/frontend/components/server-events.tsx";
 import { CONFIDENCE_STOPS, newUserMessage, projectView, reuseUnchangedMessages, type LhMessage, type QuestionAnswerData, type QuestionFormDraft, type SpaceSummary } from "../../src/shared/core/index.ts";
@@ -58,12 +58,13 @@ const check = { tool: "quiz", toolCallId: "t1", input: { ...quizInput, type: "ch
 const written = { tool: "ask_user_question", toolCallId: "a1", input: { question: "Why does it converge?" } };
 const problem = { toolCallId: "p1", statement: "Find E[N].", line: "Practice, problem 2", source: null, part: null };
 
-const marco: HalleyApi = {
+const marco: TeacherApi = {
 	name: "marco",
 	follow: false,
 	setFollow: () => {},
 	panelOpen: false,
 	setPanelOpen: () => {},
+	showActivity: () => {},
 	recent: [],
 	doing: null,
 	setLesson: () => {},
@@ -71,7 +72,7 @@ const marco: HalleyApi = {
 	offer: null,
 	spaceNameOf: () => null,
 };
-const named = (node: React.ReactNode) => <HalleyContext.Provider value={marco}>{node}</HalleyContext.Provider>;
+const named = (node: React.ReactNode) => <TeacherContext.Provider value={marco}>{node}</TeacherContext.Provider>;
 
 const attachments = {
 	files: [],

@@ -3,6 +3,7 @@ import { chainsForSelection, formatChainLine } from "@/shared/core";
 import type { GraphChain, GraphNode } from "@/shared/core";
 import { usePresence } from "@/frontend/components/presence";
 import { LatexGlyph } from "@/frontend/components/latex-glyph";
+import { KEY_ON_INK } from "@/frontend/components/ui/card-parts";
 import { FIELD } from "@/frontend/components/ui/field";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { cn } from "@/frontend/lib/utils";
@@ -102,7 +103,7 @@ export function ChainTableBody({
 							spellCheck={false}
 							className={cn(FIELD, "w-[260px] max-w-full")}
 						/>
-						<button type="button" data-testid="chain-table-close" onClick={onClose} className="lh-btn bg-panel text-[15px]">
+						<button type="button" data-testid="chain-table-close" onClick={onClose} className="lh-btn text-[15px]">
 							<PixelIcon name="close" />
 							Close
 						</button>
@@ -126,7 +127,7 @@ export function ChainTableBody({
 									data-testid={`sort-${col}`}
 									onClick={() => onSort(col)}
 									aria-sort={on ? (sort.dir === 1 ? "ascending" : "descending") : "none"}
-									className={cn("lh-btn text-[15px]", on ? "h-auto bg-panel px-2.5 py-[5px]" : "lh-btn-quiet")}
+									className={cn("lh-btn text-[15px]", on ? "h-auto px-2.5 py-[5px]" : "lh-btn-quiet")}
 								>
 									{label}
 									{on && <PixelIcon name="chevron" className={cn("h-2", sort.dir === 1 ? "-rotate-90" : "rotate-90")} />}
@@ -203,7 +204,7 @@ export function ChainTableBody({
 								data-testid="chain-practice-done"
 								onClick={onSelect}
 								aria-label={`Done picking: ${factCount(selection.size)} selected`}
-								className={cn(ON_INK, "bg-background text-ink hover:bg-background/90")}
+								className={cn(ON_INK, "text-ink [--lh-key:var(--background)] [--lh-key-hover:color-mix(in_srgb,var(--background)_90%,var(--foreground))]")}
 							>
 								Done
 							</button>
@@ -219,8 +220,8 @@ export function ChainTableBody({
 	);
 }
 
-/** A button on the dark picked bar: outlined in the paper color. */
-const ON_INK = "lh-btn shrink-0 border-background text-[15px] text-background hover:bg-background/15";
+/** A button on the dark picked bar: a key in the paper color. */
+const ON_INK = cn("lh-btn shrink-0 text-[15px] text-background", KEY_ON_INK);
 
 /** A chain's row (its facts as chips joined by ∧ and ⟹) and, opened,
  *  each fact's statement. */

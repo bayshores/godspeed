@@ -52,7 +52,7 @@ export const HomeworkCard = memo(function HomeworkCard({
 					{problems.map((p) => (
 						<li key={p.number} data-testid="homework-problem" data-done={p.done || undefined} data-next={p === next || undefined} className="flex min-w-0 items-center gap-3 py-[7px] text-[15px]">
 							<span aria-hidden className="flex w-4 shrink-0 justify-center text-ink">
-								{p.done ? <PixelIcon name="check" className="h-2" /> : p === next ? <PixelIcon name="play" className="h-3" /> : null}
+								{p.done && <PixelIcon name="check" className="h-2" />}
 							</span>
 							<span className="w-7 shrink-0 font-count text-ink">{p.number}</span>
 							<span title={p.title} className={cn("min-w-0 flex-1 truncate", p.done ? "text-ink-2" : "text-ink")}>
@@ -95,7 +95,6 @@ export const HomeworkCard = memo(function HomeworkCard({
 			</label>
 			{!d.done && (
 				<button type="button" data-testid="homework-work" disabled={busy} onClick={onWork} className="lh-btn lh-btn-main mt-1 h-[52px] w-full justify-center gap-2.5 px-[22px] text-[17px]">
-					<PixelIcon name="play" />
 					<span className="min-w-0 truncate">{nextDeadlineButton(d)}</span>
 				</button>
 			)}

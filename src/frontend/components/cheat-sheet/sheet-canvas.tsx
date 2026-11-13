@@ -1,6 +1,7 @@
 import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { pageCaption, type SheetVersion } from "@/shared/core";
 import { cn } from "@/frontend/lib/utils";
+import { KEY_ON_INK } from "@/frontend/components/ui/card-parts";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import {
 	artboards,
@@ -193,7 +194,7 @@ export function SheetCanvas({
 						setPointError(null);
 						setPointing((p) => !p);
 					}}
-					className={cn("lh-btn text-[15px]", pointing ? "lh-btn-main" : "bg-panel hover:bg-tone")}
+					className={cn("lh-btn text-[15px]", pointing && "lh-btn-main")}
 				>
 					Point at the sheet
 				</button>
@@ -285,7 +286,7 @@ export function SheetCanvas({
 					onPointerDown={(e) => e.stopPropagation()}
 				>
 					<span className="min-w-0 truncate">{pointError ?? "Drag a box around the part you mean"}</span>
-					<button type="button" onClick={() => setPointing(false)} className="lh-btn h-7 shrink-0 border-background px-3 text-[15px] text-background hover:bg-background/15">
+					<button type="button" onClick={() => setPointing(false)} className={cn("lh-btn h-7 shrink-0 px-3 text-[15px] text-background", KEY_ON_INK)}>
 						Cancel
 					</button>
 				</div>
@@ -311,7 +312,7 @@ export function SheetCanvas({
 
 function ToolButton({ label, onClick, className, children }: { label: string; onClick: () => void; className?: string; children: React.ReactNode }) {
 	return (
-		<button type="button" aria-label={label} title={label} onClick={onClick} className={cn("lh-btn bg-panel text-[15px] hover:bg-tone", className)}>
+		<button type="button" aria-label={label} title={label} onClick={onClick} className={cn("lh-btn text-[15px]", className)}>
 			{children}
 		</button>
 	);

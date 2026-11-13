@@ -16,6 +16,12 @@ const BUILDS = {
 		member: "lib/libpdfium.dylib",
 		librarySha256: "a45c44645523968525c710462691dd974f4efb1013ce1c249919a0939cfb373a",
 	},
+	"darwin-x64": {
+		archive: "pdfium-mac-x64.tgz",
+		archiveSha256: "8a5193535b80c7215d8932f6647ae5097465b6dba2811602c21e120c2af112b0",
+		member: "lib/libpdfium.dylib",
+		librarySha256: "a9f428a16f46bab89646c8724b348e01c3fe707e3126d9356026cd876a74aecb",
+	},
 	"win32-x64": {
 		archive: "pdfium-win-x64.tgz",
 		archiveSha256: "9a964261760cff52570aabf038ab346d3a5034dd8b30d0d5fe8861235d356b8b",

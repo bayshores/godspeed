@@ -103,6 +103,11 @@ pub fn write_folder(folder: &str, platform: Platform, commands: &StartCommands) 
 	for target in START_TARGETS {
 		put(Path::new(&start_script_path(folder, target, platform)), &start_script(target, folder, platform, commands), Some(0o755))?;
 	}
+	// An older godspeed left a start script the helper's replaces.
+	for extension in ["command", "cmd", "sh"] {
+		let old_script = dot.join(format!("start-claude-backup.{extension}"));
+		fsx::remove_if_present(&old_script, "rm")?;
+	}
 	drop_old_images(root)
 }
 
@@ -121,7 +126,7 @@ mod tests {
 		let folder = root.join("godspeed");
 		let name = folder.to_string_lossy().into_owned();
 		write_folder(&name, platform(), &StartCommands::default()).unwrap();
-		for file in ["CLAUDE.md", "AGENTS.md", ".mcp.json", ".claude/skills/setup-spaces/SKILL.md", ".godspeed/connect.mjs", ".godspeed/target.mjs", ".godspeed/wait-for-work.mjs", ".godspeed/forget.mjs", ".godspeed/compacting.mjs", ".godspeed/package.json", ".godspeed/claude-settings.json", ".godspeed/start-claude.sh", ".godspeed/start-claude-backup.sh", ".godspeed/start-codex.sh"] {
+		for file in ["CLAUDE.md", "AGENTS.md", ".mcp.json", ".claude/skills/setup-spaces/SKILL.md", ".godspeed/connect.mjs", ".godspeed/target.mjs", ".godspeed/wait-for-work.mjs", ".godspeed/forget.mjs", ".godspeed/compacting.mjs", ".godspeed/package.json", ".godspeed/claude-settings.json", ".godspeed/start-claude.sh", ".godspeed/start-claude-helper.sh", ".godspeed/start-codex.sh", ".godspeed/start-codex-helper.sh"] {
 			assert!(folder.join(file).is_file(), "{file}");
 		}
 		let first = std::fs::metadata(folder.join("CLAUDE.md")).unwrap().modified().unwrap();
@@ -130,19 +135,22 @@ mod tests {
 		#[cfg(unix)]
 		{
 			use std::os::unix::fs::PermissionsExt;
-			for script in ["start-claude.sh", "start-claude-backup.sh", "start-codex.sh"] {
+			for script in ["start-claude.sh", "start-claude-helper.sh", "start-codex.sh", "start-codex-helper.sh"] {
 				assert_eq!(std::fs::metadata(folder.join(".godspeed").join(script)).unwrap().permissions().mode() & 0o777, 0o755, "{script}");
 			}
 		}
 	}
 
 	#[test]
-	fn the_old_setup_skill_goes() {
+	fn the_old_setup_skill_and_backup_script_go() {
 		let root = scratch_dir("folder-files-old-skill");
 		let old = root.join(".claude/skills/setup-classes");
 		write_file_atomic(&old.join("SKILL.md"), "old").unwrap();
+		let old_script = root.join(".godspeed/start-claude-backup.sh");
+		write_file_atomic(&old_script, "#!/bin/sh\n").unwrap();
 		write_folder(&root.to_string_lossy(), platform(), &StartCommands::default()).unwrap();
 		assert!(!old.exists() && root.join(".claude/skills/setup-spaces/SKILL.md").is_file());
+		assert!(!old_script.exists() && root.join(".godspeed/start-claude-helper.sh").is_file());
 	}
 
 	#[test]

@@ -1,17 +1,19 @@
 /**
  * verify-release.ts — the final desktop-release gate.
  *
- * Runs in the release workflow's last job, after the three packaging jobs and the feeds job have
+ * Runs in the release workflow's last job, after the four packaging jobs and the feeds job have
  * uploaded to the tag's one draft GitHub Release, and fails the workflow unless that draft holds
  * exactly what people and both updaters need. The workflow never publishes; this script only
  * reads (the release list and the four feeds, which the workflow fetches with GET-only calls; the
  * token needs contents: write because GitHub hides drafts from read-only tokens).
  *
- * The ten assets (names from scripts/release-assets.mjs and scripts/release-feeds.mjs, kept
+ * The twelve assets (names from scripts/release-assets.mjs and scripts/release-feeds.mjs, kept
  * separately here so a rename in either fails this gate instead of passing it):
- *   godspeed-mac-apple-silicon.dmg, godspeed-windows-x64-setup.exe, godspeed-linux-x64.AppImage,
- *   godspeed-linux-x64.deb             the downloads the README links to (no version in the name)
- *   godspeed-mac-apple-silicon.app.tar.gz   the Tauri updater's Mac archive
+ *   godspeed-mac-apple-silicon.dmg, godspeed-mac-intel.dmg, godspeed-windows-x64-setup.exe,
+ *   godspeed-linux-x64.AppImage, godspeed-linux-x64.deb
+ *                                      the downloads the README links to (no version in the name)
+ *   godspeed-mac-apple-silicon.app.tar.gz, godspeed-mac-intel.app.tar.gz
+ *                                      the Tauri updater's Mac archives
  *   latest.json                        the Tauri updater's feed
  *   godspeed-<v>-arm64-mac.zip, latest-mac.yml   the hand-over for Electron Macs
  *   latest.yml, latest-linux.yml       Electron on Windows and Linux: the last Electron release
@@ -54,6 +56,7 @@ export type DraftSelection = { ok: true; release: ReleaseRecord; warnings: strin
 export type ExpectedAssets = {
 	version: string;
 	mac: { dmg: string; archive: string; zip: string; feed: string };
+	macIntel: { dmg: string; archive: string };
 	win: { exe: string; feed: string };
 	linux: { appImage: string; deb: string; feed: string };
 	tauriFeed: string;
@@ -83,16 +86,18 @@ export function expectedAssets(version: string): ExpectedAssets {
 		zip: `godspeed-${version}-arm64-mac.zip`,
 		feed: "latest-mac.yml",
 	};
+	const macIntel = { dmg: "godspeed-mac-intel.dmg", archive: "godspeed-mac-intel.app.tar.gz" };
 	const win = { exe: "godspeed-windows-x64-setup.exe", feed: "latest.yml" };
 	const linux = { appImage: "godspeed-linux-x64.AppImage", deb: "godspeed-linux-x64.deb", feed: "latest-linux.yml" };
 	const tauriFeed = "latest.json";
 	return {
 		version,
 		mac,
+		macIntel,
 		win,
 		linux,
 		tauriFeed,
-		files: [mac.dmg, win.exe, linux.appImage, linux.deb, mac.archive, tauriFeed, mac.zip, mac.feed, win.feed, linux.feed],
+		files: [mac.dmg, macIntel.dmg, win.exe, linux.appImage, linux.deb, mac.archive, macIntel.archive, tauriFeed, mac.zip, mac.feed, win.feed, linux.feed],
 	};
 }
 
@@ -100,6 +105,7 @@ export function expectedAssets(version: string): ExpectedAssets {
 function tauriPlatforms(expected: ExpectedAssets): Record<string, string> {
 	return {
 		"darwin-aarch64-app": expected.mac.archive,
+		"darwin-x86_64-app": expected.macIntel.archive,
 		"windows-x86_64-nsis": expected.win.exe,
 		"linux-x86_64-appimage": expected.linux.appImage,
 		"linux-x86_64-deb": expected.linux.deb,
@@ -346,7 +352,7 @@ function isBundlerSignature(signature: unknown, version: string): boolean {
 	return text.startsWith("untrusted comment:") && new RegExp(`^trusted comment: .*\\bversion:${version.replaceAll(".", "\\.")}$`, "m").test(text);
 }
 
-/** latest.json: the version, exactly the four platform keys, each this release's own asset. */
+/** latest.json: the version, exactly the five platform keys, each this release's own asset. */
 function verifyTauriFeed(content: string, release: ReleaseRecord, expected: ExpectedAssets, errors: Issues) {
 	const file = expected.tauriFeed;
 	let info: unknown;

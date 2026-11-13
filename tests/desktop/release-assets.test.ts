@@ -14,6 +14,13 @@ describe("assetPlan", () => {
 		assert.equal(handOverZip("0.6.0"), "godspeed-0.6.0-arm64-mac.zip");
 	});
 
+	it("names the Intel Mac downloads under their own latest.json key", () => {
+		assert.deepEqual(assetPlan("mac-intel", "0.6.0"), [
+			{ from: "dmg/godspeed_0.6.0_x64.dmg", to: "godspeed-mac-intel.dmg", updater: null },
+			{ from: "macos/godspeed.app.tar.gz", to: "godspeed-mac-intel.app.tar.gz", updater: "darwin-x86_64-app" },
+		]);
+	});
+
 	it("names the Windows and Linux downloads, each under its latest.json key", () => {
 		assert.deepEqual(assetPlan("windows", "0.6.0"), [
 			{ from: "nsis/godspeed_0.6.0_x64-setup.exe", to: "godspeed-windows-x64-setup.exe", updater: "windows-x86_64-nsis" },

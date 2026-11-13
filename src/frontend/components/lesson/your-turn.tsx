@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { useEnterSubmits } from "@/frontend/components/enter-submits";
-import { useHalley } from "@/frontend/components/halley/halley-context";
+import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import { QuestionDock, type QuestionDockProps, type QuestionHandle } from "@/frontend/components/question-dock";
 import type { QueuedSteerLine } from "@/frontend/components/queued-steers";
 import { DEFAULT_TEACHER_NAME, normalizeQuizType, questionKindLabel, type findPendingToolCall, type QuestionAnswerData, type QuestionFormDraft } from "@/shared/core";
@@ -98,7 +98,7 @@ export function YourTurn({
 	revealPending: boolean;
 	onReveal: () => void;
 }) {
-	const name = useHalley()?.name ?? DEFAULT_TEACHER_NAME;
+	const name = useTeacher()?.name ?? DEFAULT_TEACHER_NAME;
 	// Whether the question above the box has an answer picked.
 	const [picked, setPicked] = useState(false);
 	const questionRef = useRef<QuestionHandle>(null);

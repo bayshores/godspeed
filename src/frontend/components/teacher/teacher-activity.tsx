@@ -6,7 +6,7 @@ import { useNow } from "@/frontend/components/use-now";
 import { followButtons } from "@/frontend/components/top-bar/top-bar-model";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { cn } from "@/frontend/lib/utils";
-import { useHalley } from "./halley-context";
+import { useTeacher } from "./teacher-context";
 import { BackgroundJobs } from "./background-jobs";
 import { safePage } from "./follow";
 import type { AgentDoing } from "./follow-status";
@@ -21,17 +21,17 @@ import { agoLabel } from "./activity-model";
  */
 
 export function TeacherActivity() {
-	const halley = useHalley();
+	const teacher = useTeacher();
 	const { feed } = useActivity();
 	const agent = useAgentStatus();
 	return (
 		<ActivityList
-			name={halley?.name ?? DEFAULT_TEACHER_NAME}
-			doing={halley?.doing ?? null}
-			follow={halley ? { on: halley.follow, set: halley.setFollow } : null}
-			recent={halley?.recent ?? []}
-			onPick={(a) => halley?.go(a)}
-			spaceNameOf={halley?.spaceNameOf ?? (() => null)}
+			name={teacher?.name ?? DEFAULT_TEACHER_NAME}
+			doing={teacher?.doing ?? null}
+			follow={teacher ? { on: teacher.follow, set: teacher.setFollow } : null}
+			recent={teacher?.recent ?? []}
+			onPick={(a) => teacher?.go(a)}
+			spaceNameOf={teacher?.spaceNameOf ?? (() => null)}
 			feed={feed}
 			waiting={agentWaiting(agent) ? waitingNotice(agent?.name) : null}
 		/>
@@ -64,9 +64,9 @@ export function ActivityList({
 	const followWord = follow ? followButtons({ following: follow.on, working, offer: null }).follow : null;
 
 	return (
-		<div data-testid="halley-activity" className="flex min-h-0 flex-1 flex-col gap-3.5 overflow-y-auto">
+		<div data-testid="activity-list" className="flex min-h-0 flex-1 flex-col gap-3.5 overflow-y-auto">
 			{doing && working && (
-				<div data-testid="halley-now" className="flex shrink-0 flex-col gap-2 bg-highlight px-3.5 py-3">
+				<div data-testid="activity-now" className="flex shrink-0 flex-col gap-2 bg-highlight px-3.5 py-3">
 					<p className="break-words text-lg text-ink">{doing.text}</p>
 					{(doing.count || followWord) && (
 						<div className="flex items-center gap-2">
@@ -77,7 +77,7 @@ export function ActivityList({
 									data-testid="activity-follow"
 									aria-pressed={follow.on}
 									onClick={() => follow.set(!follow.on)}
-									className={cn("lh-btn ml-auto text-[15px]", follow.on ? "lh-btn-main" : "bg-panel")}
+									className={cn("lh-btn ml-auto text-[15px]", follow.on && "lh-btn-main")}
 								>
 									{followWord}
 								</button>
@@ -88,7 +88,7 @@ export function ActivityList({
 			)}
 
 			{!working && recent.length === 0 && !jobs && (
-				<p data-testid="halley-activity-empty" className="text-[15px] text-ink-2">
+				<p data-testid="activity-empty" className="text-[15px] text-ink-2">
 					Nothing yet. What {name} reads and builds shows here.
 				</p>
 			)}
@@ -98,7 +98,7 @@ export function ActivityList({
 			{recent.length > 0 && (
 				<section className="flex flex-col gap-3.5">
 					<h3 className="text-[17px] font-normal text-ink">Recent</h3>
-					<div data-testid="halley-recent" className="flex flex-col border-y-[1.5px] border-ink">
+					<div data-testid="activity-recent" className="flex flex-col border-y-[1.5px] border-ink">
 						{recent.map((a) => {
 							// A space's own row doesn't repeat its name.
 							const space = a.target?.kind === "space" ? null : spaceNameOf(a.spaceId);
@@ -108,7 +108,7 @@ export function ActivityList({
 								<button
 									key={a.id}
 									type="button"
-									data-testid="halley-recent-row"
+									data-testid="activity-recent-row"
 									disabled={!canGo}
 									onClick={() => onPick(a)}
 									className="lh-press flex w-full items-center gap-3 border-b border-dotted border-edge py-[9px] text-left last:border-b-0 hover:bg-tone disabled:cursor-default disabled:hover:bg-transparent"
@@ -119,7 +119,7 @@ export function ActivityList({
 										</span>
 										{space && <span className="shrink-0 text-[15px] text-ink-2">{space}</span>}
 									</span>
-									<span data-testid="halley-recent-time" className="shrink-0 font-count text-[15px] text-ink-2">
+									<span data-testid="activity-recent-time" className="shrink-0 font-count text-[15px] text-ink-2">
 										{agoLabel(a.at, now)}
 									</span>
 									{canGo ? <PixelIcon name="chevron" className="text-ink-2" /> : <span aria-hidden className="w-2 shrink-0" />}
