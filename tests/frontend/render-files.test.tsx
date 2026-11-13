@@ -9,7 +9,7 @@ import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;
 
 import assert from "node:assert/strict";
-import { afterEach, describe, it } from "node:test";
+import { afterEach, describe, it, mock } from "node:test";
 import type { Root } from "react-dom/client";
 import { parseHTML } from "linkedom";
 import type { SpaceFile, SpaceRecord, FileCoverage } from "../../src/shared/core/index.ts";
@@ -140,6 +140,7 @@ afterEach(async () => {
 	recordReads = 0;
 	globalThis.fetch = originalFetch;
 	stored.clear();
+	mock.timers.reset();
 });
 
 describe("FilesPage", () => {
@@ -193,6 +194,8 @@ describe("FilesPage", () => {
 	});
 
 	it("a space record that fails to load says so, and Try again reads it again", async () => {
+		// A held clock: a new minute would add the linked folder's own re-read to the count.
+		mock.timers.enable({ apis: ["Date"], now: Date.now() });
 		recordFails = true;
 		fakeFetch();
 		const page = await mount();
