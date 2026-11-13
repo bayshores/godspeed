@@ -1,6 +1,6 @@
 //! EPUB books to text. An EPUB is a zip: `META-INF/container.xml` names the package file, whose
-//! spine lists the chapters (XHTML) in reading order. Each chapter with text is headed
-//! "--- Chapter N ---" like PDF pages, with its first heading as its first line. Headings,
+//! spine lists its sections (XHTML files) in reading order. Each section with text is headed
+//! "--- Section N ---" like PDF pages, with its first heading as its first line. Headings,
 //! paragraphs and list items are lines; scripts, styles and navigation are left out.
 
 use std::path::Path;
@@ -16,7 +16,7 @@ use crate::zipfile::Zip;
 
 const NOT_EPUB: &str = "This file can't be opened as an EPUB book. Save it again as .epub or PDF.";
 const COPY_PROTECTED: &str = "This book is copy-protected (DRM), so its text can't be read. Add a copy without DRM, or a PDF.";
-/// Most all chapters together may unpack to: the zip reader caps one part, but a spine can list
+/// Most all sections together may unpack to: the zip reader caps one part, but a spine can list
 /// the same big part again and again.
 const MAX_BOOK_BYTES: usize = 128 * 1024 * 1024;
 /// Font obfuscation (IDPF's and Adobe's) scrambles only the fonts; the text stays readable.
@@ -115,7 +115,7 @@ fn is_copy_protected(zip: &Zip) -> Result<bool, String> {
 	Ok(ENCRYPTION_METHOD.captures_iter(&xml).iter().any(|m| attr(&m.as_string(), "Algorithm").is_none_or(|algorithm| !FONT_OBFUSCATION.contains(&algorithm.as_str()))))
 }
 
-/// The chapter parts in spine order, as names inside the archive.
+/// The section parts in spine order, as names inside the archive.
 fn spine_parts(zip: &Zip) -> Result<Vec<String>, String> {
 	let container = zip.read_text("META-INF/container.xml")?.ok_or(NOT_EPUB)?;
 	let package = ROOTFILE.captures(&container).and_then(|m| attr(&m.as_string(), "full-path")).and_then(|path| in_archive("", &path)).ok_or(NOT_EPUB)?;
@@ -144,7 +144,7 @@ fn spine_parts(zip: &Zip) -> Result<Vec<String>, String> {
 	if parts.is_empty() { Err(NOT_EPUB.to_owned()) } else { Ok(parts) }
 }
 
-/// One chapter's lines as they are read.
+/// One section's lines as they are read.
 #[derive(Default)]
 struct Lines {
 	lines: Vec<String>,
@@ -209,8 +209,8 @@ fn tag_name(tag: &str) -> String {
 	name.rsplit(':').next().unwrap_or_default().to_ascii_lowercase()
 }
 
-/// A chapter's XHTML as lines of text, its first heading first.
-fn chapter_text(xhtml: &str) -> String {
+/// A section's XHTML as lines of text, its first heading first.
+fn section_text(xhtml: &str) -> String {
 	let doc = xhtml.replace("\r\n", "\n");
 	let mut out = Lines::default();
 	// The skipped element being passed over, and how deep in it we are.
@@ -283,20 +283,20 @@ fn book_text(buf: Vec<u8>) -> Result<String, String> {
 		return Err(COPY_PROTECTED.to_owned());
 	}
 	let mut unpacked = 0;
-	let mut chapters = Vec::new();
+	let mut sections = Vec::new();
 	for part in spine_parts(&zip)? {
 		let Some(xhtml) = zip.read_text(&part)? else { continue };
 		unpacked += xhtml.len();
 		if unpacked > MAX_BOOK_BYTES {
 			return Err(NOT_EPUB.to_owned());
 		}
-		// A cover picture or an empty page is not a chapter.
-		let text = chapter_text(&xhtml);
+		// A cover picture or an empty page is not a section.
+		let text = section_text(&xhtml);
 		if !text.is_empty() {
-			chapters.push(format!("--- Chapter {} ---\n{text}", chapters.len() + 1));
+			sections.push(format!("--- Section {} ---\n{text}", sections.len() + 1));
 		}
 	}
-	Ok(chapters.join("\n\n"))
+	Ok(sections.join("\n\n"))
 }
 
 /// An .epub file's text. The error is a plain message for files that aren't really EPUB books
@@ -372,18 +372,18 @@ mod tests {
 	}
 
 	#[test]
-	fn chapters_come_in_spine_order_as_lines() {
+	fn sections_come_in_spine_order_as_lines() {
 		let text = book_text(book(&[])).unwrap();
 		assert_eq!(
 			text,
-			"--- Chapter 1 ---\nSets & Logic\nAn epigraph & a quote\nA set is a collection of things\u{2026} like x\u{2208}A.\nFirst\nSecond &unknown; <b>\nlet x = 1;\n  x + 1\nA smaller heading\n\n--- Chapter 2 ---\nChapter two text."
+			"--- Section 1 ---\nSets & Logic\nAn epigraph & a quote\nA set is a collection of things\u{2026} like x\u{2208}A.\nFirst\nSecond &unknown; <b>\nlet x = 1;\n  x + 1\nA smaller heading\n\n--- Section 2 ---\nChapter two text."
 		);
 	}
 
 	#[test]
 	fn font_obfuscation_is_fine_but_drm_is_refused() {
 		let fonts = r#"<encryption><EncryptedData><EncryptionMethod Algorithm="http://www.idpf.org/2008/embedding"/><CipherData><CipherReference URI="OEBPS/font.otf"/></CipherData></EncryptedData></encryption>"#;
-		assert!(book_text(book(&[("META-INF/encryption.xml", fonts)])).unwrap().starts_with("--- Chapter 1 ---"));
+		assert!(book_text(book(&[("META-INF/encryption.xml", fonts)])).unwrap().starts_with("--- Section 1 ---"));
 		let drm = r#"<enc:encryption xmlns:enc="http://www.w3.org/2001/04/xmlenc#"><enc:EncryptedData><enc:EncryptionMethod Algorithm="http://www.w3.org/2001/04/xmlenc#aes128-cbc"/><enc:CipherData><enc:CipherReference URI="OEBPS/text/two.xhtml"/></enc:CipherData></enc:EncryptedData></enc:encryption>"#;
 		assert_eq!(book_text(book(&[("META-INF/encryption.xml", drm)])), Err(COPY_PROTECTED.to_owned()));
 	}

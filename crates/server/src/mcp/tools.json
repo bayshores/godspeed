@@ -419,7 +419,7 @@
 					"type": "string"
 				},
 				"range": {
-					"description": "With file_id: the place, e.g. \"p. 12\", \"slide 4\", \"12:30\" or \"lines 40\".",
+					"description": "With file_id: the place, e.g. \"p. 12\", \"slide 4\", \"section 3\", \"12:30\" or \"lines 40\".",
 					"type": "string"
 				}
 			},

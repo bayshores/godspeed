@@ -381,7 +381,7 @@ mod tests {
 	use crate::spaces::add_copied_file;
 
 	#[tokio::test]
-	async fn a_book_is_read_once_and_searched_by_chapter() {
+	async fn a_book_is_read_once_and_searched_by_section() {
 		let root = scratch_dir("epub");
 		// The repo root holds the search model (and ONNX Runtime where it is loaded at run time).
 		let repo = Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/../.."));
@@ -399,13 +399,13 @@ mod tests {
 			}
 			clock::sleep(50).await;
 		}
-		assert_eq!(app.search.file_extents(&space_id).get(&file_id), Some(&Json::from("2 chapters")));
+		assert_eq!(app.search.file_extents(&space_id).get(&file_id), Some(&Json::from("2 sections")));
 		let saved = read_cached_text(&app, &space_id, &file_id, &fp).unwrap();
 		assert_eq!(
 			saved,
-			"--- Chapter 1 ---\nSets\nA set is a collection of distinct objects, called its elements.\nThe empty set has no elements & is written \u{2205}.\n\n--- Chapter 2 ---\nLogic\nA proposition is a statement that is either true or false.\nConjunction: p and q\nDisjunction: p or q"
+			"--- Section 1 ---\nSets\nA set is a collection of distinct objects, called its elements.\nThe empty set has no elements & is written \u{2205}.\n\n--- Section 2 ---\nLogic\nA proposition is a statement that is either true or false.\nConjunction: p and q\nDisjunction: p or q"
 		);
-		let second = app.search.passages_at(&space_id, &PassageRef::Place { file_id: file_id.clone(), range: "chapter 2".into() });
-		assert_eq!((second.len(), second[0]["range"].as_str(), second[0]["text"].as_str().map(|t| t.starts_with("Logic\nA proposition"))), (1, Some("chapter 2"), Some(true)));
+		let second = app.search.passages_at(&space_id, &PassageRef::Place { file_id: file_id.clone(), range: "section 2".into() });
+		assert_eq!((second.len(), second[0]["range"].as_str(), second[0]["text"].as_str().map(|t| t.starts_with("Logic\nA proposition"))), (1, Some("section 2"), Some(true)));
 	}
 }

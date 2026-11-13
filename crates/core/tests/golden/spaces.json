@@ -21642,7 +21642,7 @@
 				"limit": "Most passages to return (default 8).",
 				"passageId": "A passage id from search_space_files (or a previous/next id).",
 				"fileId": "Instead of passage_id: a file id from read_space, with range.",
-				"range": "With file_id: the place, e.g. \"p. 12\", \"slide 4\", \"12:30\" or \"lines 40\".",
+				"range": "With file_id: the place, e.g. \"p. 12\", \"slide 4\", \"section 3\", \"12:30\" or \"lines 40\".",
 				"name": "The space's name, e.g. \"MATH 20C – Calculus III\" or \"Conversational Spanish\".",
 				"description": "What the teacher should know about the space, in the learner's terms.",
 				"signature": "The space's signature: ONE line that sums up the subject, shown huge on the space's cover. kind \"math\" = LaTeX without $ (math, physics, chemistry, economics), \"code\" = a line of code (programming spaces), \"text\" = anything else (a line from a primary source, a sequence, a date). At most 60 characters. Pick something iconic for the subject; ask the learner when unsure.",
