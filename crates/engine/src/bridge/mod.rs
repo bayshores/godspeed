@@ -105,7 +105,7 @@ struct State {
 	staying_on: HashMap<String, String>,
 	/// agent → when it started compacting its context.
 	compacting: HashMap<String, i64>,
-	/// helper session ("" = no id) → its last check-in.
+	/// helper session (`UNNAMED_HELPER` when its client sends no id) → its last check-in.
 	helpers: HashMap<String, i64>,
 }
 

@@ -1,4 +1,4 @@
-//! Settings → Web search: the person's Tavily key and its searches this month. Only the key's
+//! The Web search card in Settings → Connection: the person's Tavily key and its searches this month. Only the key's
 //! last four characters reach the window, and the numbers are asked of Tavily each time, so
 //! nothing about the key's state is stored.
 

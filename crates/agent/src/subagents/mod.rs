@@ -1,6 +1,6 @@
 //! The background jobs: the job runner, the researcher, the PDF
 //! reader, the demo builder, the visual maker, the cheat sheet writer, the prep sheet writer, and
-//! what they share (the helper-agent runner, one raw model call, job aborts, the background-model
+//! what they share (the job-agent runner, one raw model call, job aborts, the background-model
 //! permits and the headless checks).
 
 pub mod aborts;

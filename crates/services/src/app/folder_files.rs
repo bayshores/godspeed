@@ -106,10 +106,7 @@ pub fn write_folder(folder: &str, platform: Platform, commands: &StartCommands) 
 	// An older godspeed left a start script the helper's replaces.
 	for extension in ["command", "cmd", "sh"] {
 		let old_script = dot.join(format!("start-claude-backup.{extension}"));
-		match std::fs::remove_file(&old_script) {
-			Err(err) if err.kind() != std::io::ErrorKind::NotFound => return Err(fsx::node_error_message(&err, "rm", &old_script)),
-			_ => {}
-		}
+		fsx::remove_if_present(&old_script, "rm")?;
 	}
 	drop_old_images(root)
 }

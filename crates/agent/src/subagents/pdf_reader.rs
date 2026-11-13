@@ -19,7 +19,7 @@ use gs_json::js_text::js_string;
 use gs_json::{Json, js_number, json};
 use gs_pdf::{Pdf, ops};
 
-use super::pi_run::{HelperOptions, RunError};
+use super::pi_run::{JobAgentOptions, RunError};
 use super::stream_once::{message_text, png_message, stream_once, tool_text, user_text};
 use crate::fs_tools::fs_shared::resolve_source_path;
 
@@ -108,7 +108,7 @@ fn pdf_tools() -> Vec<Json> {
 
 /// Reads the PDF at `path` (resolved like the file tools: `~` and relative mean home) for
 /// `question`. Never fails: a failure is a brief starting "PDF failed:".
-pub async fn run_pdf_reader_agent(path: &str, question: &str, pdf: &Pdf, opts: &HelperOptions) -> Json {
+pub async fn run_pdf_reader_agent(path: &str, question: &str, pdf: &Pdf, opts: &JobAgentOptions) -> Json {
 	let pdf_path = resolve_source_path(Some(path));
 	let shown = pdf_path.to_string_lossy().into_owned();
 	let mut reader = Reader { pdf, path: &pdf_path, messages: Vec::new(), consulted: BTreeSet::new(), read: BTreeSet::new() };
@@ -152,7 +152,7 @@ impl Reader<'_> {
 	}
 
 	/// The loop: the brief, or None at the iteration limit.
-	async fn run(&mut self, engine: &gs_engine::turn::faux::Engine, session_id: &str, abort: &gs_engine::turn::abort::Abort, opts: &HelperOptions) -> Result<Option<String>, RunError> {
+	async fn run(&mut self, engine: &gs_engine::turn::faux::Engine, session_id: &str, abort: &gs_engine::turn::abort::Abort, opts: &JobAgentOptions) -> Result<Option<String>, RunError> {
 		let tools = pdf_tools();
 		let mut nudged = false;
 		for _ in 0..MAX_ITERATIONS {
@@ -191,7 +191,7 @@ impl Reader<'_> {
 	}
 
 	/// Runs one tool call: its text, or the error it threw.
-	async fn call(&mut self, call: &Json, rendered: &mut Vec<(i64, Vec<u8>)>, opts: &HelperOptions) -> Result<String, String> {
+	async fn call(&mut self, call: &Json, rendered: &mut Vec<(i64, Vec<u8>)>, opts: &JobAgentOptions) -> Result<String, String> {
 		let args = &call["arguments"];
 		let name = call["name"].as_str().unwrap_or_default();
 		match name {

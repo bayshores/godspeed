@@ -8,7 +8,7 @@ use std::sync::Arc;
 use futures_util::future::BoxFuture;
 use gs_agent::subagents::demo_builder::run_demo_builder;
 use gs_agent::subagents::headless::{DemoRunResult, HeadlessApi};
-use gs_agent::subagents::pi_run::HelperOptions;
+use gs_agent::subagents::pi_run::JobAgentOptions;
 use gs_agent::subagents::visual_maker::run_visual_maker;
 use gs_base::events::Events;
 use gs_core::records::agent_seen::{SeenMark, SeenStore};
@@ -116,7 +116,7 @@ async fn the_loops_match_the_typescript() {
 		let script = script(&config["steps"], &last);
 		let activity = Arc::new(Mutex::new(Vec::<String>::new()));
 		let stand = Stand { unavailable: config["unavailable"].as_str().map(str::to_owned), demo: config["demo"].as_arr().cloned().unwrap_or_default(), calls: Mutex::new(0) };
-		let opts = HelperOptions {
+		let opts = JobAgentOptions {
 			bridge: Bridge::new(&Events::new(), Arc::new(NoMarks)),
 			engine: Some(Engine { model: faux_model("faux", "faux", "faux-1", "Faux", 128_000.0, 16_000.0), respond: script }),
 			headless: Arc::new(stand),

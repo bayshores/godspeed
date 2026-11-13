@@ -179,10 +179,7 @@ impl SpaceStore {
 		stamped.insert("version", CURRENT_SPACE_VERSION);
 		fsx::write_text_atomic(&file, &stringify_pretty(&Json::Obj(stamped), "\t")).map_err(|e| fsx::node_error_message(&e, "open", &file))?;
 		let old = self.old_record_file(id)?;
-		match std::fs::remove_file(&old) {
-			Err(e) if e.kind() != std::io::ErrorKind::NotFound => Err(fsx::node_error_message(&e, "rm", &old)),
-			_ => Ok(()),
-		}
+		fsx::remove_if_present(&old, "rm")
 	}
 
 	/// The colors the other spaces wear, read straight from their records.

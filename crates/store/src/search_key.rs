@@ -1,7 +1,6 @@
 //! The person's Tavily key, one secret in data/search-key (mode 0600), beside the MCP token.
 //! It stays out of settings.json, which the window reads whole.
 
-use std::io::ErrorKind;
 use std::path::PathBuf;
 
 use gs_base::config::Paths;
@@ -29,9 +28,6 @@ impl SearchKeyStore {
 
 	/// Removing a key that is not there is fine.
 	pub fn remove_search_key(&self) -> Result<(), String> {
-		match std::fs::remove_file(&self.file) {
-			Err(err) if err.kind() != ErrorKind::NotFound => Err(fsx::node_error_message(&err, "unlink", &self.file)),
-			_ => Ok(()),
-		}
+		fsx::remove_if_present(&self.file, "unlink")
 	}
 }

@@ -117,6 +117,15 @@ fn write_new(file: &Path, mode: Option<u32>, write: impl FnOnce(&mut dyn Write) 
 	out.flush()
 }
 
+/// Deletes a file; one that is not there counts as done. Other failures read like Node's
+/// `fs.unlinkSync` (`syscall` "unlink") or `fs.rmSync` (`syscall` "rm").
+pub fn remove_if_present(file: &Path, syscall: &str) -> Result<(), String> {
+	match std::fs::remove_file(file) {
+		Err(err) if err.kind() != io::ErrorKind::NotFound => Err(node_error_message(&err, syscall, file)),
+		_ => Ok(()),
+	}
+}
+
 /// Renames a file that is not valid JSON to `<file>.corrupt-<Date.now()>`, so the next save
 /// cannot overwrite it. Never fails: the read still answers empty.
 pub fn set_aside_corrupt(file: &Path) {
@@ -216,6 +225,20 @@ mod tests {
 		assert_eq!(write_atomic_pair(&a, stop, &b, |out| out.write_all(b"new")).unwrap_err().to_string(), "stopped");
 		assert_eq!((std::fs::read(&a).unwrap(), std::fs::read(&b).unwrap()), (vec![0, 1, 2], b"one".to_vec()));
 		assert_eq!(std::fs::read_dir(&d).unwrap().count(), 2);
+		std::fs::remove_dir_all(d).unwrap();
+	}
+
+	#[test]
+	fn removing_a_missing_file_is_fine_and_other_failures_read_like_node() {
+		let d = dir("remove");
+		let f = d.join("a.txt");
+		write_text_atomic(&f, "x").unwrap();
+		remove_if_present(&f, "rm").unwrap();
+		assert!(!f.exists());
+		remove_if_present(&f, "rm").unwrap();
+		assert!(remove_if_present(&d, "rm").is_err());
+		let reason = remove_if_present(&d, "unlink").unwrap_err();
+		assert!(reason.ends_with(&format!("unlink '{}'", d.display())), "{reason}");
 		std::fs::remove_dir_all(d).unwrap();
 	}
 

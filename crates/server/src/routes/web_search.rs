@@ -1,4 +1,4 @@
-//! /api/web-search (Settings → Web search: the key's last four characters and this month's
+//! /api/web-search (the Web search card in Settings → Connection: the key's last four characters and this month's
 //! searches) and /api/web-search/key (save a key Tavily accepts, or remove it). For the desktop
 //! window only, like every other /api route.
 

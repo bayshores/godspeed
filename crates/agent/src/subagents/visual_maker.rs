@@ -17,7 +17,7 @@ use gs_base::text::{is_js_space, len16, slice16, trim};
 use gs_engine::turn::messages::tool_calls;
 use gs_json::{Json, json};
 
-use super::pi_run::{HelperOptions, RunError};
+use super::pi_run::{JobAgentOptions, RunError};
 use super::stream_once::{message_text, png_message, stream_once, tool_text, user_text};
 
 const INSTRUCTIONS: &str = r#"You are a visual maker — a diagram author + renderer for precise, spatial figures. You
@@ -102,7 +102,7 @@ fn failed(notes: &str) -> Json {
 }
 
 /// Makes the figure for `brief`. Never fails: a failure is the failure shape.
-pub async fn run_visual_maker(brief: &str, opts: &HelperOptions) -> Json {
+pub async fn run_visual_maker(brief: &str, opts: &JobAgentOptions) -> Json {
 	let brief = match trim(brief) {
 		"" => "(no brief)",
 		b => b,
@@ -146,7 +146,7 @@ struct Figure {
 
 impl Figure {
 	/// The loop: Some(result) when it ends with one, None at the iteration limit.
-	async fn run(&mut self, engine: &gs_engine::turn::faux::Engine, tools: &[Json], session_id: &str, abort: &gs_engine::turn::abort::Abort, opts: &HelperOptions) -> Result<Option<Json>, RunError> {
+	async fn run(&mut self, engine: &gs_engine::turn::faux::Engine, tools: &[Json], session_id: &str, abort: &gs_engine::turn::abort::Abort, opts: &JobAgentOptions) -> Result<Option<Json>, RunError> {
 		for _ in 0..MAX_ITERATIONS {
 			let result = stream_once(engine, INSTRUCTIONS, &self.messages, tools, session_id, abort, &mut |u| opts.usage(u)).await?;
 			// Every render already in the messages was part of that call's input.
@@ -185,7 +185,7 @@ impl Figure {
 	}
 
 	/// Runs one tool call; its text result.
-	async fn call(&mut self, call: &Json, render_png: &mut Option<Vec<u8>>, opts: &HelperOptions) -> String {
+	async fn call(&mut self, call: &Json, render_png: &mut Option<Vec<u8>>, opts: &JobAgentOptions) -> String {
 		let args = &call["arguments"];
 		match call["name"].as_str().unwrap_or_default() {
 			"write_svg" => {
