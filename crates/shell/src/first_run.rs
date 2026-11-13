@@ -215,6 +215,11 @@ mod tests {
 		electron_leftovers(&dir);
 		let locked = dir.join("data/chats");
 		std::fs::set_permissions(&locked, std::fs::Permissions::from_mode(0o000)).unwrap();
+		// Root reads a locked folder anyway, so the backup cannot be made to fail there.
+		if std::fs::read_dir(&locked).is_ok() {
+			std::fs::remove_dir_all(dir).unwrap();
+			return;
+		}
 		run(&dir, &dir.join("updater-cache"), "0.6.0");
 		std::fs::set_permissions(&locked, std::fs::Permissions::from_mode(0o755)).unwrap();
 		assert!(!dir.join("data-backup-0.6.0").exists());
