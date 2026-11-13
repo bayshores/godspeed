@@ -1,0 +1,12 @@
+version: 0.5.51
+files:
+  - url: ../v0.5.51/godspeed-linux-x64.AppImage
+    sha512: WvY8ClE6GgjYX8RqpCbNxti1b3120Ojb1+nHtpx/Q/GmRmEZgjmyvSZTXXp0rJMG338GfwUqf443/c0ZiSVHKw==
+    size: 450716536
+    blockMapSize: 463756
+  - url: ../v0.5.51/godspeed-linux-x64.deb
+    sha512: /CmI0Q23/PS+vWBY5NMiOkB6K3MBhypEi5D6P+Cf/RAg5fXBITBSUhXDVg7sRCHGCu73VBXjDHxFS1wrH16A6A==
+    size: 355717832
+path: ../v0.5.51/godspeed-linux-x64.AppImage
+sha512: WvY8ClE6GgjYX8RqpCbNxti1b3120Ojb1+nHtpx/Q/GmRmEZgjmyvSZTXXp0rJMG338GfwUqf443/c0ZiSVHKw==
+releaseDate: '2026-11-13T01:23:18.874Z'

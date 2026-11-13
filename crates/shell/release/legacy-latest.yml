@@ -1,0 +1,8 @@
+version: 0.5.51
+files:
+  - url: ../v0.5.51/godspeed-windows-x64-setup.exe
+    sha512: 1izj+a0iinNm6fplMRNfSeFmLblmobanjr7AJ6gZ9gmaqlmRTENkXvwZ6vWzs0MX0nqjV6sfeYwEkd9el4HNMg==
+    size: 220792779
+path: ../v0.5.51/godspeed-windows-x64-setup.exe
+sha512: 1izj+a0iinNm6fplMRNfSeFmLblmobanjr7AJ6gZ9gmaqlmRTENkXvwZ6vWzs0MX0nqjV6sfeYwEkd9el4HNMg==
+releaseDate: '2026-11-13T01:22:12.978Z'
