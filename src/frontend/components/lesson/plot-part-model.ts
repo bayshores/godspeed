@@ -91,8 +91,13 @@ export function ticks(min: number, max: number): number[] {
 	const power = 10 ** Math.floor(Math.log10(rough));
 	const error = rough / power;
 	const step = (error >= Math.sqrt(50) ? 10 : error >= Math.sqrt(10) ? 5 : error >= Math.sqrt(2) ? 2 : 1) * power;
+	// Past 2^52 steps from 0, i++ no longer moves i, so such a range shows only its ends.
+	if (!(step > 0) || Math.max(Math.abs(min), Math.abs(max)) / step > 2 ** 52) return min < max ? [min, max] : [min];
 	const out: number[] = [];
-	for (let i = Math.ceil(min / step - 1e-9); i * step <= max + step * 1e-9; i++) out.push(Number((i * step).toPrecision(12)));
+	for (let i = Math.ceil(min / step - 1e-9); i * step <= max + step * 1e-9 && out.length < 50; i++) {
+		const tick = Number((i * step).toPrecision(12));
+		if (tick !== out.at(-1)) out.push(tick);
+	}
 	return out;
 }
 

@@ -184,8 +184,17 @@ impl Problems {
 			self.add(format!("{path}: {} to {} is too wide. Narrow it.", short(min), short(max)));
 			return None;
 		}
+		if narrow(min, max) {
+			self.add(format!("{path}: {} to {} is too narrow for numbers this large. Shift it to start near 0 and the formulas with it, like 0 to {}.", short(min), short(max), short(max - min)));
+			return None;
+		}
 		Some((min, max))
 	}
+}
+
+/// Whether `min..max` is too narrow beside its numbers for the window to tell its ticks apart.
+fn narrow(min: f64, max: f64) -> bool {
+	max - min < 1e-9 * min.abs().max(max.abs())
 }
 
 /// The value at a dotted path; `lines[0]` style steps index arrays.
@@ -351,6 +360,9 @@ fn y_range(values: &[f64]) -> Result<(f64, f64), String> {
 	if !(hi - lo).is_finite() || !(all_hi - all_lo).is_finite() || all_hi - all_lo > SPREAD_MAX * (hi - lo) {
 		return Err(format!("y: values run from {} to {} but most lie in {} to {}. Give y.min and y.max.", short(all_lo), short(all_hi), short(lo), short(hi)));
 	}
+	if narrow(lo, hi) {
+		return Err(format!("y: the lines run from {} to {}, too narrow for numbers this large. Shift the formulas nearer 0.", short(all_lo), short(all_hi)));
+	}
 	Ok((lo, hi))
 }
 
@@ -494,6 +506,19 @@ mod tests {
 		assert_eq!(problems(loose), ["lines[0].hidden: must be true or false."], "a number may come as text");
 		let wide = with(leash(), &["x"], json!({ "name": "a", "label": "a", "min": -1.7e308, "max": 1.7e308 }));
 		assert_eq!(problems(wide), ["x: -1.7e308 to 1.7e308 is too wide. Narrow it."]);
+	}
+
+	/// The window could not tell such a range's ticks apart.
+	#[test]
+	fn a_range_too_narrow_for_its_numbers_is_refused() {
+		let far = |range: Json| json!({ "name": "s", "label": "s", "min": range[0].clone(), "max": range[1].clone(), "start": range[0].clone() });
+		let args = json!({ "title": "t", "x": { "name": "a", "label": "a", "min": 1e18, "max": 1e18 + 256.0 }, "y": { "label": "y", "min": 1e18, "max": 1.000_000_000_000_000_3e18 }, "slider": far(json!([-1e17, -1e17 + 96.0])), "lines": [{ "label": "f", "expr": "a - 1000000000000000000" }] });
+		let fix = "is too narrow for numbers this large. Shift it to start near 0 and the formulas with it, like 0 to";
+		assert_eq!(problems(args), [format!("x: 1e18 to 1e18 {fix} 256."), format!("y: 1e18 to 1e18 {fix} 256."), format!("slider: -1e17 to -1e17 {fix} 96.")]);
+		let lone = json!({ "title": "t", "x": { "name": "a", "label": "a", "min": 0, "max": 10 }, "y": { "label": "y" }, "slider": far(json!([0, 1])), "lines": [{ "label": "f", "expr": "a*100 + 1000000000000000000" }] });
+		assert_eq!(problems(lone), ["y: the lines run from 1e18 to 1e18, too narrow for numbers this large. Shift the formulas nearer 0."]);
+		let fine = with(leash(), &["x"], json!({ "name": "a", "label": "a", "min": 1e6, "max": 1e6 + 1.0 }));
+		assert!(check_plot(&fine).is_ok(), "a million and one is fine");
 	}
 
 	#[test]

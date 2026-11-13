@@ -64,6 +64,14 @@ describe("ticks", () => {
 		assert.deepEqual(ticks(0, 0.3), [0, 0.1, 0.2, 0.3], "no float dust");
 	});
 
+	it("a range too narrow for its numbers shows its ends and never repeats a tick", () => {
+		assert.deepEqual(ticks(1e18, 1e18 + 256), [1e18, 1e18 + 256], "past 2^52 steps the count stops moving");
+		const near = ticks(1e17, 1e17 + 96);
+		assert.equal(new Set(near).size, near.length);
+		assert.deepEqual(ticks(3, 3), [3]);
+		assert.ok(ticks(0, 1e9).length <= 50);
+	});
+
 	it("the slider shows both ends and the round ticks clear of them", () => {
 		assert.deepEqual(sliderTicks(0.5, 4, 510), [0.5, 1, 2, 3, 4]);
 		assert.deepEqual(sliderTicks(0.9, 4, 510), [0.9, 2, 3, 4], "1 sits too close to 0.9");
