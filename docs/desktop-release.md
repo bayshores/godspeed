@@ -7,6 +7,7 @@ godspeed's desktop app is a Tauri shell (`crates/shell`) that starts the Rust se
 | Platform | Build runner | Downloads | In-app update |
 |---|---|---|---|
 | macOS 14 or newer, Apple Silicon | `macos-26` with Xcode 26 | signed and notarized DMG | Tauri updater, from `godspeed-mac-apple-silicon.app.tar.gz` |
+| macOS 14 or newer, Intel | `macos-26-intel` with Xcode 26 | signed and notarized DMG | Tauri updater, from `godspeed-mac-intel.app.tar.gz` |
 | Windows, x64 | `windows-2025` | per-user NSIS installer, not code signed | Tauri updater, runs the new installer |
 | Linux, x64 | `ubuntu-24.04` runner, `ubuntu:22.04` container | AppImage and `.deb` | Tauri updater, replaces the AppImage or installs the deb |
 
@@ -18,18 +19,20 @@ The Mac icon is the Icon Composer file `crates/shell/icons/icon.icon`. `node scr
 
 ## Build pipeline
 
-Each OS builds its own app. Nothing is cross-built.
+Each OS builds its own app, and each kind of Mac chip builds its own. Nothing is cross-built.
 
 1. `npm ci`.
 2. `node scripts/fetch-model.mjs` downloads the space-search model into `models/`.
-3. `node scripts/fetch-pdfium.mjs` downloads pdfium's library into `.stage/` and checks its sha256. On Linux, `node scripts/fetch-onnxruntime.mjs` does the same for Microsoft's ONNX Runtime library, which the Linux server loads at run time from its resources folder. macOS and Windows link ONNX Runtime into the server. On the Mac, `node scripts/compile-icon.mjs` compiles the app icon into `.stage/Assets.car`.
+3. `node scripts/fetch-pdfium.mjs` downloads pdfium's library into `.stage/` and checks its sha256. On Linux and Intel Macs, `node scripts/fetch-onnxruntime.mjs` does the same for Microsoft's ONNX Runtime library, which the server loads at run time (Linux from its resources folder, the Intel Mac app from `Contents/Frameworks`). Intel Macs get ONNX Runtime 1.23.2, the last version Microsoft released for them, and `ort` is built to ask for no newer API there (`crates/search/Cargo.toml`). Apple Silicon Macs and Windows link ONNX Runtime into the server. On the Mac, `node scripts/compile-icon.mjs` compiles the app icon into `.stage/Assets.car`.
 4. `node scripts/stage-app.mjs` builds the UI (`dist-ui/`), builds the release server for this OS's target triple, copies it to `crates/shell/binaries/`, and copies the pdf.js files to `.stage/pdfjs-dist/`. It refuses a UI folder that holds `data/` or a secrets file.
 5. `node scripts/smoke-server.mjs` starts that server from a folder of the staged files, with a throwaway home and data folder, and checks `/`, `/api/boot`, `/api/graph`, `/api/settings` and a pdf.js file.
-6. `TAURI_APP_PATH=crates/shell npx tauri build --config crates/shell/tauri.bundle.conf.json --config crates/shell/tauri.bundle.<macos|windows|linux>.conf.json --target <triple> --bundles <app,dmg | nsis | appimage,deb>`. Its `beforeBuildCommand` runs step 4 again (fast, everything is built). With `TAURI_SIGNING_PRIVATE_KEY` set, the bundler writes a `.sig` beside each updater file.
-7. `node scripts/release-assets.mjs <mac|windows|linux>` copies the bundler's files into `dist/` under the names people download, with their `.sig` files. On the Mac it also zips the app for the Electron hand-over.
+6. `TAURI_APP_PATH=crates/shell npx tauri build --config crates/shell/tauri.bundle.conf.json --config crates/shell/tauri.bundle.<macos|windows|linux>.conf.json --target <triple> --bundles <app,dmg | nsis | appimage,deb>`. The Intel Mac build adds `--config crates/shell/tauri.bundle.macos-intel.conf.json`, which ships ONNX Runtime's library. Its `beforeBuildCommand` runs step 4 again (fast, everything is built). With `TAURI_SIGNING_PRIVATE_KEY` set, the bundler writes a `.sig` beside each updater file.
+7. `node scripts/release-assets.mjs <mac|mac-intel|windows|linux>` copies the bundler's files into `dist/` under the names people download, with their `.sig` files. For `mac` (Apple Silicon) it also zips the app for the Electron hand-over. Electron godspeed never ran on Intel Macs, so `mac-intel` has no zip.
 8. `node scripts/smoke-app.mjs <the app's binary>` starts the packaged app once (the installed setup on Windows, the installed `.deb` and the AppImage on Linux, the `.app` on the Mac) and waits for its "window open" log line. It refuses to run outside CI, because a packaged app uses the real godspeed data of whoever runs it.
 9. The release checks (below), then `cargo build -p gs-shell --features self-test` and `godspeed --self-test`, which checks the demo runner in the real app on that OS (`xvfb-run` on Linux).
-10. `node scripts/release-feeds.mjs dist --mac-staging <share>` runs once, on all three systems' `dist/` together, and writes the four feeds.
+10. `node scripts/release-feeds.mjs dist --mac-staging <share>` runs once, on every package job's `dist/` together, and writes the four feeds.
+
+The Intel Mac job also runs `cargo test -p gs-search` before it builds. No other job runs the search model on the ONNX Runtime that Intel Macs load.
 
 Local builds:
 
@@ -46,10 +49,10 @@ Local builds:
 
 `.github/workflows/release.yml` has two modes.
 
-- **Manual run (Run workflow).** A rehearsal. It builds all three systems without Apple signing and signs the updater files with a throwaway key it makes in the run. It saves `dist/` and the four feeds as workflow artifacts for 7 days. It never creates a release or uploads to one, and the verify job is skipped. The `staging_percentage` input sets the share written into the rehearsal's `latest-mac.yml`.
-- **Push the tag `v<package.json version>`.** The gates run (the tag must match `package.json`, then `npm run check`). One job makes or reuses a **single draft release** with the download table and the notes from `src/shared/changelog.json`. The three OS jobs build, sign, check and upload their downloads to that draft. The `feeds` job then writes the four feeds from all downloads and uploads them. Last, the read-only `verify` job checks the draft. The workflow never publishes. A published or doubled release fails the draft job instead of being changed.
+- **Manual run (Run workflow).** A rehearsal. It builds all four apps without Apple signing and signs the updater files with a throwaway key it makes in the run. It saves `dist/` and the four feeds as workflow artifacts for 7 days. It never creates a release or uploads to one, and the verify job is skipped. The `staging_percentage` input sets the share written into the rehearsal's `latest-mac.yml`.
+- **Push the tag `v<package.json version>`.** The gates run (the tag must match `package.json`, then `npm run check`). One job makes or reuses a **single draft release** with the download table and the notes from `src/shared/changelog.json`. The four package jobs build, sign, check and upload their downloads to that draft. The `feeds` job then writes the four feeds from all downloads and uploads them. Last, the read-only `verify` job checks the draft. The workflow never publishes. A published or doubled release fails the draft job instead of being changed.
 
-On a tag push the Mac job also checks the app, and the app unzipped from the hand-over zip, three ways:
+On a tag push each Mac job also checks its app three ways, and the Apple Silicon job checks the app unzipped from the hand-over zip the same way:
 
 - `codesign --verify --deep --strict --all-architectures -R "=<crates/shell/release/electron-requirement.txt>"`: the new app meets the designated requirement of the published 0.5.51 Electron app, which Squirrel.Mac checks before it swaps the app.
 - `spctl --assess --type execute`: Gatekeeper accepts it.
@@ -63,24 +66,26 @@ On a tag push the Mac job also checks the app, and the app unzipped from the han
 
 - finds the draft whose tag is `v<version>` or the bare `<version>`. No match, two matches or an already published match fail. A bare-version match passes with a warning to rename it.
 - checks `crates/shell/tauri.conf.json` still has the shape the names come from (product name, binary name, identifier, bundle targets, updater artifacts, `minimumSystemVersion` 14.0, the update endpoint) and a `pubkey` that is not empty. The bundler signs without reading `pubkey`, so an app built without one could never check an update.
-- fails unless the draft holds exactly these ten assets, each non-empty and fully uploaded:
+- fails unless the draft holds exactly these twelve assets, each non-empty and fully uploaded:
 
 | Asset | What it is |
 |---|---|
-| `godspeed-mac-apple-silicon.dmg` | Mac download |
+| `godspeed-mac-apple-silicon.dmg` | Mac download, Apple Silicon |
+| `godspeed-mac-intel.dmg` | Mac download, Intel |
 | `godspeed-windows-x64-setup.exe` | Windows download, also the Windows update |
 | `godspeed-linux-x64.AppImage` | Linux download, also its update |
 | `godspeed-linux-x64.deb` | Linux download for Ubuntu and Debian, also its update |
-| `godspeed-mac-apple-silicon.app.tar.gz` | Mac update for Tauri installs |
+| `godspeed-mac-apple-silicon.app.tar.gz` | Apple Silicon Mac update for Tauri installs |
+| `godspeed-mac-intel.app.tar.gz` | Intel Mac update |
 | `latest.json` | Tauri updater feed |
-| `godspeed-<v>-arm64-mac.zip` | the new Mac app for Electron installs |
+| `godspeed-<v>-arm64-mac.zip` | the new Apple Silicon app for Electron installs |
 | `latest-mac.yml` | Electron Mac feed, points at the zip |
 | `latest.yml` | Electron Windows feed, points at 0.5.51 |
 | `latest-linux.yml` | Electron Linux feed, points at 0.5.51 |
 
-  The four downloads carry no version in their names, so the README and the website link to `releases/latest/download/<name>`.
+  The five downloads carry no version in their names, so the README and the website link to `releases/latest/download/<name>`.
 - downloads the four feeds and checks them:
-  - `latest.json`: the version, a valid `pub_date`, exactly the keys `darwin-aarch64-app`, `windows-x86_64-nsis`, `linux-x86_64-appimage` and `linux-x86_64-deb`, each URL `https://github.com/bayshores/godspeed/releases/download/v<v>/<asset>` for an asset the draft holds, and each signature one the bundler wrote for this version.
+  - `latest.json`: the version, a valid `pub_date`, exactly the keys `darwin-aarch64-app`, `darwin-x86_64-app`, `windows-x86_64-nsis`, `linux-x86_64-appimage` and `linux-x86_64-deb`, each URL `https://github.com/bayshores/godspeed/releases/download/v<v>/<asset>` for an asset the draft holds, and each signature one the bundler wrote for this version.
   - `latest-mac.yml`: the version, the zip first and the DMG second, bare names only, sizes equal to the uploaded sizes, the top-level `path` and `sha512` equal to the zip's, `minimumSystemVersion: 23.0.0`, and either no `stagingPercentage` or a whole number from 0 to 99. No other fields.
   - `latest.yml` and `latest-linux.yml`: exactly the committed templates in `crates/shell/release/` plus `newApp: <v>`, and the templates point only at `../v0.5.51/<file>`.
 
@@ -105,7 +110,7 @@ The public half of the update key is `plugins.updater.pubkey` in `crates/shell/t
 
 1. If the change touches `crates/shell`, the bundle config, the updater or the workflows, run the manual Desktop release workflow first. Install the Windows and Linux artifacts by hand and open them: window buttons and dragging, the top bar at narrow widths, zoom, onboarding and the agent connection, a lesson and resume, a demo.
 2. Bump `package.json` and the lockfile to the release version, add its notes to `src/shared/changelog.json`, run `npm run check`, and push a matching `v...` tag.
-3. Wait for all three package jobs, the feeds job and the verify job. If one fails, fix the cause and run the workflow again on the tag. Uploads replace assets of the same name, and the gate rejects leftovers.
+3. Wait for all four package jobs, the feeds job and the verify job. If one fails, fix the cause and run the workflow again on the tag. Uploads replace assets of the same name, and the gate rejects leftovers.
 4. The owner reads the draft, adds anything the notes still need, and publishes it.
 5. Check the real update path from an installed older version.
 

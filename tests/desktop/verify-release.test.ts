@@ -41,7 +41,7 @@ function asset(id: number, name: string, overrides: Partial<ReleaseAsset> = {}):
 	return { id, name, size: 5000, state: "uploaded", ...overrides };
 }
 
-/** The complete, healthy ten-asset draft for a version. */
+/** The complete, healthy twelve-asset draft for a version. */
 function healthyRelease(version: string, tagForm: "v" | "bare" = "v"): ReleaseRecord {
 	return {
 		id: 42,
@@ -57,7 +57,7 @@ const templates = () =>
 /** The four feeds exactly as scripts/release-feeds.mjs writes them. */
 function healthyFeeds(version: string, staging = 10): Record<string, string> {
 	const e = expectedAssets(version);
-	const keys = ["darwin-aarch64-app", "windows-x86_64-nsis", "linux-x86_64-appimage", "linux-x86_64-deb"];
+	const keys = ["darwin-aarch64-app", "darwin-x86_64-app", "windows-x86_64-nsis", "linux-x86_64-appimage", "linux-x86_64-deb"];
 	const feeds: Record<string, string> = {
 		[e.tauriFeed]: tauriFeed(version, NOW, Object.fromEntries(keys.map((key) => [key, signature(version)]))),
 		[e.mac.feed]: macFeed({
@@ -76,13 +76,15 @@ const check = (feeds: Record<string, string>, release = healthyRelease(VERSION),
 	verifyFeeds(feeds, legacy, release, expectedAssets(VERSION));
 
 describe("release gate: expected asset inventory", () => {
-	it("is exactly the ten release files for the version", () => {
+	it("is exactly the twelve release files for the version", () => {
 		assert.deepEqual(expectedAssets(VERSION).files, [
 			"godspeed-mac-apple-silicon.dmg",
+			"godspeed-mac-intel.dmg",
 			"godspeed-windows-x64-setup.exe",
 			"godspeed-linux-x64.AppImage",
 			"godspeed-linux-x64.deb",
 			"godspeed-mac-apple-silicon.app.tar.gz",
+			"godspeed-mac-intel.app.tar.gz",
 			"latest.json",
 			"godspeed-0.2.0-arm64-mac.zip",
 			"latest-mac.yml",
@@ -93,8 +95,8 @@ describe("release gate: expected asset inventory", () => {
 
 	it("matches the download links on the release page", () => {
 		const workflow = fs.readFileSync(path.join(repoRoot, ".github", "workflows", "release.yml"), "utf8");
-		const { mac, win, linux } = expectedAssets(VERSION);
-		for (const name of [mac.dmg, win.exe, linux.appImage, linux.deb]) {
+		const { mac, macIntel, win, linux } = expectedAssets(VERSION);
+		for (const name of [mac.dmg, macIntel.dmg, win.exe, linux.appImage, linux.deb]) {
 			assert.ok(workflow.includes(`link("${name}")`), `release.yml should link ${name}`);
 		}
 	});
@@ -421,7 +423,7 @@ describe("release gate: CLI (offline, repo config)", () => {
 		try {
 			const result = verifyIn(root);
 			assert.equal(result.status, 0, String(result.stderr));
-			assert.match(result.stdout, /10\/10 expected files present/);
+			assert.match(result.stdout, /12\/12 expected files present/);
 			assert.ok(result.stdout.includes(`OK: draft for ${TAG} is complete`));
 		} finally {
 			fs.rmSync(root, { recursive: true, force: true });

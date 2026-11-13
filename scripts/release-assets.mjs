@@ -1,10 +1,11 @@
 /**
- * release-assets.mjs <mac|windows|linux> — give the bundler's outputs the names people download.
+ * release-assets.mjs <mac|mac-intel|windows|linux> — give the bundler's outputs the names people download.
  *
  * The bundler names files godspeed_<version>_<arch>.<ext> and has no setting for that, so this
  * copies each one into dist/ under the fixed name the README links to, with its updater signature
- * beside it when latest.json points at it. On the Mac it also zips the stapled app for the
- * Electron hand-over, which updates from godspeed-<v>-arm64-mac.zip. dist/ is what the release
+ * beside it when latest.json points at it. For Apple silicon Macs it also zips the stapled app for
+ * the Electron hand-over, which updates from godspeed-<v>-arm64-mac.zip (Electron godspeed never
+ * ran on Intel Macs). dist/ is what the release
  * workflow uploads (the `.sig` files go into latest.json, scripts/release-feeds.mjs).
  */
 import { execFileSync } from "node:child_process";
@@ -26,6 +27,10 @@ export function assetPlan(platform, version) {
 			[`dmg/godspeed_${version}_aarch64.dmg`, "godspeed-mac-apple-silicon.dmg", null],
 			["macos/godspeed.app.tar.gz", "godspeed-mac-apple-silicon.app.tar.gz", "darwin-aarch64-app"],
 		],
+		"mac-intel": [
+			[`dmg/godspeed_${version}_x64.dmg`, "godspeed-mac-intel.dmg", null],
+			["macos/godspeed.app.tar.gz", "godspeed-mac-intel.app.tar.gz", "darwin-x86_64-app"],
+		],
 		windows: [[`nsis/godspeed_${version}_x64-setup.exe`, "godspeed-windows-x64-setup.exe", "windows-x86_64-nsis"]],
 		linux: [
 			[`appimage/godspeed_${version}_amd64.AppImage`, "godspeed-linux-x64.AppImage", "linux-x86_64-appimage"],
@@ -35,7 +40,7 @@ export function assetPlan(platform, version) {
 	return (plans[platform] ?? []).map(([from, to, updater]) => ({ from, to, updater }));
 }
 
-/** The zip of the stapled Mac app that Electron installs update from. @param {string} version */
+/** The zip of the stapled Apple silicon app that Electron installs update from. @param {string} version */
 export const handOverZip = (version) => `godspeed-${version}-arm64-mac.zip`;
 
 /**
@@ -54,7 +59,7 @@ function main(platform) {
 	const { version } = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8"));
 	const plan = assetPlan(platform, version);
 	if (!plan.length) {
-		console.error("usage: node scripts/release-assets.mjs <mac|windows|linux>");
+		console.error("usage: node scripts/release-assets.mjs <mac|mac-intel|windows|linux>");
 		process.exit(1);
 	}
 	// `tauri build --target <triple>` writes under target/<triple>/, a plain build under target/.
