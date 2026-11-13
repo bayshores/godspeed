@@ -1,9 +1,9 @@
 //! Kept sentences: the one sentence a Study quiz's `keep` gives him when he answers it right. Its
 //! verdict is decided once, when the turn that posed it is saved (a keep-check marker), and never
 //! refuses the quiz: a keep that breaks a rule is not stored and the teacher reads why after his
-//! answer. A topic keeps at most 2 sentences and shows the analogy lines on at most 1, and a keep
-//! needs a reply with nothing new before it. A sentence he kept comes back on the row of a question
-//! from earlier about its topic.
+//! answer. A topic keeps at most 2 sentences and shows the analogy lines on at most 1, a keep
+//! needs a reply with nothing new before it, and a reply stores one. A sentence he kept comes back
+//! on the row of a question from earlier about its topic.
 
 use std::collections::{HashMap, HashSet};
 
@@ -51,25 +51,34 @@ pub fn keep_verdicts(messages: &[Json], check_source: &dyn Fn(&str) -> Option<St
 	let mut seen: Vec<(usize, &str, bool)> = Vec::new();
 	let mut out = Vec::new();
 	for (at, m) in messages.iter().enumerate().filter(|(_, m)| m["role"].as_str() == Some("assistant")) {
+		// Whether this reply already stores a keep: a second one is crowded out, so it never
+		// reaches the topic's count either.
+		let mut stores_one = false;
 		for call in calls(m).filter(|c| c["name"].as_str() == Some("quiz") && c["arguments"].get("keep").is_some_and(|k| !k.is_null())) {
 			let id = call["id"].as_str().unwrap_or_default();
 			let node = call["arguments"]["nodeId"].as_str().unwrap_or_default();
 			if kept.contains(id) {
 				seen.push((at, node, checked.get(id).is_some_and(|v| v["fits"] == Json::Bool(true))));
 			}
-			if refused.contains(id) || checked.contains_key(id) {
+			if refused.contains(id) {
+				continue;
+			}
+			if let Some(verdict) = checked.get(id) {
+				stores_one |= verdict["keep"].as_str() == Some("shown");
 				continue;
 			}
 			let own = visits.iter().position(|v| v.at == at);
 			let before = own.and_then(|i| visits[..i].iter().rev().find(|v| v.node_id == visits[i].node_id));
-			let crowded = own.is_some_and(|i| visits[i].page || visits[i].plot) || before.is_some_and(|v| v.page || v.plot || v.keep);
+			let crowded = stores_one || own.is_some_and(|i| visits[i].page || visits[i].plot) || before.is_some_and(|v| v.page || v.plot || v.keep);
 			let topic: Vec<bool> = seen.iter().filter(|(a, n, _)| *a < at && *n == node).map(|(_, _, fits)| *fits).collect();
 			let keep = keep_of(&call["arguments"]).unwrap_or_else(|| call["arguments"]["keep"].clone());
 			let dropped = keep_fields_note(&keep).or_else(|| crowded.then(|| SPACING.to_owned())).or_else(|| (topic.len() >= PER_TOPIC).then(|| TWO_A_TOPIC.to_owned()));
-			out.push(match dropped {
+			let verdict = match dropped {
 				Some(note) => json!({ "quizCallId": id, "keep": "dropped", "fits": false, "phrase": false, "note": note }),
 				None => shown(id, &keep, topic.contains(&true), check_source),
-			});
+			};
+			stores_one |= verdict["keep"].as_str() == Some("shown");
+			out.push(verdict);
 		}
 	}
 	out
@@ -276,6 +285,21 @@ mod tests {
 		messages.extend([check(verdict.clone()), answer("q8", true), reply("r9", "Plain.", vec![quiz("q9", Json::Null)]), answer("q9", true)]);
 		messages.push(reply("r10", "", vec![quiz("q10", json!({ "text": "Four." }))]));
 		assert_eq!(keep_verdicts(&messages, &no_source)[0]["note"], json!(TWO_A_TOPIC));
+	}
+
+	#[test]
+	fn a_second_keep_in_one_reply_is_not_stored() {
+		let mut messages = with_keep(lesson(), "q3", json!({ "text": "One." }), true);
+		messages.extend([reply("r4", "Plain.", vec![quiz("q4", Json::Null)]), answer("q4", true)]);
+		messages.push(reply("r5", "", vec![quiz("q5", sentence("Two.")), quiz("q6", sentence("Three."))]));
+		let verdicts = keep_verdicts(&messages, &no_source);
+		assert_eq!(verdicts[0], json!({ "quizCallId": "q5", "keep": "shown", "fits": true, "phrase": false }));
+		assert_eq!(verdicts[1], json!({ "quizCallId": "q6", "keep": "dropped", "fits": false, "phrase": false, "note": SPACING }));
+		messages.extend(verdicts.into_iter().map(check));
+		messages.extend([answer("q5", true), answer("q6", true)]);
+		assert_eq!(kept_sentences("c", &messages).len(), 2, "the topic keeps 2");
+		let broken_first = vec![reply("r1", "", vec![quiz("q1", json!({ "text": "x".repeat(212) })), quiz("q2", json!({ "text": "t" }))])];
+		assert_eq!(keep_verdicts(&broken_first, &no_source)[1]["keep"], json!("shown"), "a keep the reply does not store crowds nothing");
 	}
 
 	#[test]
