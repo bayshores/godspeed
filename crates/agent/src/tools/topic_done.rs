@@ -15,7 +15,7 @@ use gs_core::study::topic_end::{finished_topic, topic_done_stored, topic_stop};
 use gs_engine::turn::messages::text_block;
 use gs_engine::turn::tool::{ExecutionMode, Tool, ToolContext};
 use gs_engine::turn::validate::argument_problems;
-use gs_json::{Json, Obj, json};
+use gs_json::{Json, Obj, json, stringify_pretty};
 
 use super::fn_tool::FnTool;
 use super::practice::{LessonRecord, TurnGate, record_messages};
@@ -33,7 +33,35 @@ fn description(multiple_choice: bool) -> String {
 	if !multiple_choice {
 		return DESCRIPTION_START.to_owned();
 	}
-	format!("{DESCRIPTION_START} Ends your turn. review and opener.quiz take the same fields as quiz; godspeed checks them now.")
+	let example = stringify_pretty(&example(), "  ");
+	format!("{DESCRIPTION_START} Ends your turn. review and opener.quiz take the same fields as quiz; godspeed checks them now.\nExample arguments:\n```json\n{example}\n```")
+}
+
+/// Written in the quiz example's form, so its escaping is the one models already copy.
+fn example() -> Json {
+	let options = |labels: [&str; 4]| -> Json { Json::Arr(labels.iter().zip(["A", "B", "C", "D"]).map(|(label, value)| json!({ "label": *label, "value": value })).collect()) };
+	json!({
+		"nodeId": "n3",
+		"review": {
+			"type": "check",
+			"nodeId": "n3",
+			"question": "For which $\\lambda$ is $X^\\top X + \\lambda I$ always invertible?",
+			"options": options(["Every $\\lambda > 0$.", "Only $\\lambda \\ge 1$.", "Only when $X^\\top X$ is invertible.", "No $\\lambda$."]),
+			"explanation": "$v^\\top(X^\\top X+\\lambda I)v = \\|Xv\\|^2 + \\lambda\\|v\\|^2 > 0$ for $v \\ne 0$.",
+			"correctAnswer": "A",
+		},
+		"opener": {
+			"lead": "Here $\\lambda$ is picked on one split of the 60 points, then on another.[[f_1a2b3c4d5e6f:3]]",
+			"quiz": {
+				"type": "predict",
+				"nodeId": "n4",
+				"question": "Pick the $\\lambda$ with the lowest validation error on Split 1, then again on Split 2. What happens to the best $\\lambda$?",
+				"options": options(["It can move a lot.", "It stays the same, since the data are the same.", "It always gets larger.", "It always gets smaller."]),
+				"explanation": "Each split picks its own $\\lambda$.",
+				"correctAnswer": "A",
+			},
+		},
+	})
 }
 
 fn quiz_schema(description: &str) -> Json {
@@ -265,6 +293,15 @@ mod tests {
 
 	fn concluded_now(gate: &TurnGate) {
 		gate.set_topic_ended("n3", false);
+	}
+
+	#[tokio::test]
+	async fn the_described_example_passes_every_check() {
+		let (tool, gate) = tool_on(Vec::new(), true);
+		concluded_now(&gate);
+		assert!(tool.description().ends_with(&format!("```json\n{}\n```", stringify_pretty(&example(), "  "))));
+		let stored = call(&tool, example()).await.unwrap();
+		assert_eq!(stored["terminate"], json!(true));
 	}
 
 	#[tokio::test]
