@@ -9,6 +9,7 @@ pub mod cheat_sheet;
 pub mod topic_end;
 pub mod review;
 pub mod topic_parts;
+pub mod kept;
 
 mod answers;
 mod calibration;

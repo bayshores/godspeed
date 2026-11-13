@@ -4,15 +4,18 @@
 //! topic's page is the first quoted source mark in the shown opener's lead, else in the reply that
 //! opens the topic; later replies never give one. Its plot is the first reply holding a plot call
 //! that was not refused. `reply_parts_problems` (Rust only) is the check Study's lesson-parts hook
-//! runs on a reply before its plot and guess are stored.
+//! runs on a reply before its plot and guess are stored; `visits` (Rust only) is what the spacing
+//! between a topic's new parts reads, kept sentences included.
 
 use std::collections::HashSet;
 
 use gs_json::{Json, json};
 
 use super::items;
+use super::progress::answer_outcome;
 use super::topic_end::shown_openers;
 use crate::messages::citations::{CiteMark, replace_cite_marks};
+use crate::messages::lesson_markers::KEEP_CHECK;
 use crate::messages::pending::is_question_tool;
 use crate::session::plot::{PLOT_TOOL, Plot, check_plot, option_names_value, short};
 use crate::session::question_core::{coerce_correct_answer, normalize_quiz_type, parse_options_if_string};
@@ -25,23 +28,47 @@ pub fn topic_parts(messages: &[Json]) -> Vec<Json> {
 	walk(messages).0
 }
 
-/// One reply the learner sees (or a shown opener's lead), in record order: its topic and whether
-/// it carries the topic's page or a plot. Replies of reads alone are not seen.
-struct Visit {
-	node_id: String,
-	page: bool,
-	plot: bool,
+/// One reply the learner sees (or a shown opener's lead), in record order: where it sits in the
+/// record, its topic and whether it carries the topic's page, a plot or a kept sentence he saw.
+/// Replies of reads alone are not seen.
+pub(crate) struct Visit {
+	pub(crate) at: usize,
+	pub(crate) node_id: String,
+	pub(crate) page: bool,
+	pub(crate) plot: bool,
+	pub(crate) keep: bool,
+}
+
+/// The visits of a lesson, in record order.
+pub(crate) fn visits(messages: &[Json]) -> Vec<Visit> {
+	walk(messages).1
+}
+
+/// The quiz calls whose kept sentence he saw: its keep-check stored it and he answered it right.
+pub(crate) fn kept_calls(messages: &[Json]) -> HashSet<&str> {
+	let shown: HashSet<&str> = messages
+		.iter()
+		.filter(|m| m["customType"].as_str() == Some(KEEP_CHECK) && m["details"]["keep"].as_str() == Some("shown"))
+		.filter_map(|m| m["details"]["quizCallId"].as_str())
+		.collect();
+	messages
+		.iter()
+		.filter(|m| m["role"].as_str() == Some("toolResult") && answer_outcome(&m["details"]) == Some("right"))
+		.filter_map(|m| m["toolCallId"].as_str())
+		.filter(|id| shown.contains(id))
+		.collect()
 }
 
 fn walk(messages: &[Json]) -> (Vec<Json>, Vec<Visit>) {
 	let openers = shown_openers(messages);
+	let kept = kept_calls(messages);
 	let refused: HashSet<&str> = messages.iter().filter(|m| m["role"].as_str() == Some("toolResult") && m["isError"] == Json::Bool(true)).filter_map(|m| m["toolCallId"].as_str()).collect();
 	let mut out: Vec<Json> = Vec::new();
 	let mut visits = Vec::new();
 	let reached = |out: &[Json], node_id: &str| out.iter().position(|t| t["nodeId"].as_str() == Some(node_id));
 	let mut opened: HashSet<String> = HashSet::new();
 	let mut current: Option<String> = None;
-	for m in messages {
+	for (index, m) in messages.iter().enumerate() {
 		let opener = (m["role"].as_str() == Some("toolResult")).then(|| m["toolCallId"].as_str().and_then(|id| openers.get(id))).flatten();
 		if let Some(opener) = opener
 			&& let Some(node_id) = opener["quiz"]["nodeId"].as_str()
@@ -49,7 +76,7 @@ fn walk(messages: &[Json]) -> (Vec<Json>, Vec<Visit>) {
 		{
 			let lead_of = opener["topicDoneCallId"].clone();
 			let page = first_quoted(opener["lead"].as_str().unwrap_or_default(), Json::Null, lead_of);
-			visits.push(Visit { node_id: node_id.to_owned(), page: !page.is_null(), plot: false });
+			visits.push(Visit { at: index, node_id: node_id.to_owned(), page: !page.is_null(), plot: false, keep: false });
 			out.push(json!({ "nodeId": node_id, "page": page, "plot": null }));
 			continue;
 		}
@@ -84,7 +111,8 @@ fn walk(messages: &[Json]) -> (Vec<Json>, Vec<Visit>) {
 			parts.insert("plot", m["id"].clone());
 		}
 		if is_seen(m) {
-			visits.push(Visit { node_id, page: gave_page, plot });
+			let keep = calls(m).any(|c| c["id"].as_str().is_some_and(|id| kept.contains(id)));
+			visits.push(Visit { at: index, node_id, page: gave_page, plot, keep });
 		}
 	}
 	(out, visits)
@@ -235,8 +263,8 @@ fn guess_value(plot: &Plot, quiz: &Json, problems: &mut Vec<String>) -> Option<f
 	Some(value)
 }
 
-/// One plot a topic, and a plot only after a topic reply with no page, plot or keep, its own
-/// reply carrying no page either.
+/// One plot a topic, and a plot only after a topic reply with no page, plot or kept sentence, its
+/// own reply carrying no page either. A keep in its own reply yields to the plot: it is not stored.
 fn spacing_problems(lesson_messages: &[Json], reply: &Json) -> Vec<String> {
 	let mut messages = lesson_messages.to_vec();
 	messages.push(reply.clone());
@@ -247,7 +275,7 @@ fn spacing_problems(lesson_messages: &[Json], reply: &Json) -> Vec<String> {
 	if topic.iter().any(|v| v.plot) {
 		problems.push("plot: this topic already has a plot.".to_owned());
 	}
-	if own.page || topic.last().is_some_and(|v| v.page || v.plot) {
+	if own.page || topic.last().is_some_and(|v| v.page || v.plot || v.keep) {
 		problems.push("plot: send it after one reply with no page, plot or keep.".to_owned());
 	}
 	problems
@@ -380,6 +408,16 @@ mod tests {
 		assert_eq!(reply_parts_problems(&with_plot, &again, &passes).refused[0].1.lines().collect::<Vec<_>>(), ["plot: this topic already has a plot.", "plot: send it after one reply with no page, plot or keep."]);
 		let refused_before = [lesson(), vec![pair(true, penalty_at_8(), "C"), result("q3", "quiz", true), result("p3", "plot", true)]].concat();
 		assert!(reply_parts_problems(&refused_before, &again, &passes).refused.is_empty(), "a refused plot is no plot");
+	}
+
+	#[test]
+	fn a_plot_waits_one_plain_reply_after_a_kept_sentence_he_saw() {
+		let mut keep_quiz = guess("B", Json::Null);
+		keep_quiz.as_obj_mut().unwrap().insert("keep", json!({ "text": "Lambda prices large weights." }));
+		let verdict = json!({ "role": "custom", "customType": "keep-check", "content": "", "details": { "quizCallId": "qk", "keep": "shown", "fits": false, "phrase": false } });
+		let kept = |right: bool| [lesson(), vec![reply("rk", "", vec![call("qk", "quiz", keep_quiz.clone())]), verdict.clone(), json!({ "role": "toolResult", "toolCallId": "qk", "toolName": "quiz", "isError": false, "details": { "kind": "quiz", "correct": right } })]].concat();
+		assert_eq!(reply_parts_problems(&kept(true), &pair(true, penalty_at_8(), "B"), &passes).refused[0].1, "plot: send it after one reply with no page, plot or keep.");
+		assert!(reply_parts_problems(&kept(false), &pair(true, penalty_at_8(), "B"), &passes).refused.is_empty(), "a missed keep was never seen");
 	}
 
 	#[test]
