@@ -34,6 +34,7 @@ use crate::App;
 use crate::app::agent_rules::save_rule_by_agent;
 use crate::app::today_note::current_today_note;
 use crate::spaces::space_actions::space_actions;
+use crate::spaces::citations::check_cites;
 use crate::spaces::space_card::space_card_for;
 use crate::spaces::space_search::space_search;
 use crate::jobs::deliver_job_result;
@@ -168,7 +169,11 @@ pub(super) fn build_lesson_agent(app: &Arc<App>, record: &Json, effective: &Json
 			let ctx = HomeworkToolContext { chat_id, chat_store: chats, homework: homework_deadline(app, space_id, deadline_id), graph: graph_tools(app, effective, lesson_scope), jobs: Some(jobs), side };
 			create_homework_agent(&ctx, opts)
 		}
-		(Some("study"), ..) => create_study_agent(&StudyToolContext { teacher: teacher(), graph_nodes: Some(graph_nodes(app, lesson_scope)) }, opts),
+		(Some("study"), ..) => {
+			let marks_app = app.clone();
+			let check_marks = Arc::new(move |text: &str| check_cites(&marks_app, text));
+			create_study_agent(&StudyToolContext { teacher: teacher(), graph_nodes: Some(graph_nodes(app, lesson_scope)), check_marks }, opts)
+		}
 		_ if teaching => create_teacher_agent(Some(&teacher()), opts),
 		_ => {
 			let deliver_app = app.clone();

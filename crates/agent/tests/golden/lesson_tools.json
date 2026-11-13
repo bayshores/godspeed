@@ -3834,7 +3834,7 @@
 			},
 			{
 				"name": "conclude",
-				"description": "Conclude the active problem: records the outcome + verdict, reveals the committed solution, and frees the learner's composer. After the result, say your closing words about the learner's work if useful, then END YOUR TURN — no further tool calls. The next problem waits for the learner's explicit go-ahead (a *Next problem* message, or their own words asking for the next one). The one exception: when the learner asked for a different problem or part, that ask is the go-ahead, so pose it right after this result. Between problems, answer their questions about the concluded one. Nothing may conclude unless a problem is active.",
+				"description": "Conclude the active problem: records the outcome + verdict, reveals the committed solution, and frees the learner's composer. After the result, say your closing words about the learner's work if useful, then END YOUR TURN, with no further tool calls. When this conclude finishes a topic, the verdict is your closing words: write no other prose, then read what the next topic needs and call topic_done in its own reply. The next problem waits for the learner's explicit go-ahead (a *Next problem* message, or their own words asking for the next one). The one exception: when the learner asked for a different problem or part, that ask is the go-ahead, so pose it right after this result. Between problems, answer their questions about the concluded one. Nothing may conclude unless a problem is active.",
 				"parameters": {
 					"type": "object",
 					"required": [
@@ -3937,6 +3937,202 @@
 						"retest": {
 							"type": "boolean",
 							"description": "REQUIRED — true marks the problem for a fresh-surface retest before the session ends."
+						}
+					}
+				},
+				"executionMode": "sequential"
+			},
+			{
+				"name": "topic_done",
+				"description": "Study only. Call after the conclude that finishes a topic, once you have read what the next topic needs. Ends your turn. review and opener.quiz take the same fields as quiz; godspeed checks them now.",
+				"parameters": {
+					"type": "object",
+					"required": [
+						"nodeId"
+					],
+					"properties": {
+						"nodeId": {
+							"type": "string",
+							"description": "the topic just finished (concluded, or ended by a right quiz)"
+						},
+						"review": {
+							"type": "object",
+							"required": [
+								"type",
+								"nodeId",
+								"question",
+								"options",
+								"explanation",
+								"correctAnswer"
+							],
+							"properties": {
+								"type": {
+									"anyOf": [
+										{
+											"type": "string",
+											"const": "predict"
+										},
+										{
+											"type": "string",
+											"const": "check"
+										}
+									],
+									"description": "REQUIRED — the question's role in the teaching cycle, as a bare word (no quotes): predict = posed BEFORE you teach the step (its own turn; the learner answers, then your teaching resolves it — arrives open, never collapsed); check = posed AFTER the step's teaching is complete (arrives collapsed behind the Check your understanding reveal). ONE question per turn either way."
+								},
+								"nodeId": {
+									"type": "string",
+									"description": "REQUIRED plan-tree node id this question is about — must EXACTLY match one of this session's plan_init node slugs (validated at call time; a mismatched id is rejected back to you). The lesson's position on the map derives from these tags (the node the latest tagged question is about is where the map stands; earlier ones count as visited). A node takes as many questions as it deserves: stay on one node for as many turns as the understanding needs — one reasoning step at a time, never rush forward. For off-map checks use ask_user_question."
+								},
+								"question": {
+									"type": "string",
+									"description": "The single quiz question to ask. ONE question per turn: ask, then end your turn — the answer determines the next question."
+								},
+								"options": {
+									"type": "array",
+									"items": {
+										"type": "object",
+										"required": [
+											"label"
+										],
+										"properties": {
+											"label": {
+												"type": "string",
+												"description": "Display label for the answer option — a bare claim, no reasoning"
+											},
+											"value": {
+												"type": "string",
+												"description": "Optional machine-readable value returned for the option. Defaults to the label."
+											}
+										}
+									},
+									"minItems": 2,
+									"description": "REQUIRED. The answer options (2 or more) as a JSON ARRAY of option objects — never a JSON-encoded string. Options only — there is no free-text mode. Give each option a stable `value`; you reference the correct one by that value in correctAnswer. Never add your own 'I don't know' option — that choice is added for you."
+								},
+								"multiSelect": {
+									"type": "boolean",
+									"description": "Set to true when more than one option is correct and the learner must select all of them."
+								},
+								"explanation": {
+									"type": "string",
+									"description": "REQUIRED. Explanation revealed AFTER the learner answers (shown whether they got it right or wrong). Use it to reinforce why the correct answer is correct. It is written BEFORE correctAnswer by design: reason it out first, then commit the answer the reasoning supports."
+								},
+								"correctAnswer": {
+									"anyOf": [
+										{
+											"type": "string"
+										},
+										{
+											"type": "array",
+											"items": {
+												"type": "string"
+											}
+										}
+									],
+									"description": "REQUIRED. The correct answer as the option value(s) — the `value` field of the option you intend. Single-select: a single string (e.g. \"mercury\"). Multi-select: an array of strings (e.g. [\"belize\", \"niue\"]); the learner is only correct if their selection matches this set exactly. Always pass the value, not a position number — this is self-checking and prevents miscounting. A value that matches no option fails validation and the call is returned to you to fix."
+								},
+								"details": {
+									"type": "string",
+									"description": "Optional extra context or instructions shown under the question."
+								}
+							},
+							"description": "One standalone check on this topic, stored and asked weeks later, never shown now."
+						},
+						"opener": {
+							"type": "object",
+							"required": [
+								"lead",
+								"quiz"
+							],
+							"properties": {
+								"lead": {
+									"type": "string",
+									"maxLength": 700,
+									"description": "Its first words; source marks go here."
+								},
+								"quiz": {
+									"type": "object",
+									"required": [
+										"type",
+										"nodeId",
+										"question",
+										"options",
+										"explanation",
+										"correctAnswer"
+									],
+									"properties": {
+										"type": {
+											"anyOf": [
+												{
+													"type": "string",
+													"const": "predict"
+												},
+												{
+													"type": "string",
+													"const": "check"
+												}
+											],
+											"description": "REQUIRED — the question's role in the teaching cycle, as a bare word (no quotes): predict = posed BEFORE you teach the step (its own turn; the learner answers, then your teaching resolves it — arrives open, never collapsed); check = posed AFTER the step's teaching is complete (arrives collapsed behind the Check your understanding reveal). ONE question per turn either way."
+										},
+										"nodeId": {
+											"type": "string",
+											"description": "REQUIRED plan-tree node id this question is about — must EXACTLY match one of this session's plan_init node slugs (validated at call time; a mismatched id is rejected back to you). The lesson's position on the map derives from these tags (the node the latest tagged question is about is where the map stands; earlier ones count as visited). A node takes as many questions as it deserves: stay on one node for as many turns as the understanding needs — one reasoning step at a time, never rush forward. For off-map checks use ask_user_question."
+										},
+										"question": {
+											"type": "string",
+											"description": "The single quiz question to ask. ONE question per turn: ask, then end your turn — the answer determines the next question."
+										},
+										"options": {
+											"type": "array",
+											"items": {
+												"type": "object",
+												"required": [
+													"label"
+												],
+												"properties": {
+													"label": {
+														"type": "string",
+														"description": "Display label for the answer option — a bare claim, no reasoning"
+													},
+													"value": {
+														"type": "string",
+														"description": "Optional machine-readable value returned for the option. Defaults to the label."
+													}
+												}
+											},
+											"minItems": 2,
+											"description": "REQUIRED. The answer options (2 or more) as a JSON ARRAY of option objects — never a JSON-encoded string. Options only — there is no free-text mode. Give each option a stable `value`; you reference the correct one by that value in correctAnswer. Never add your own 'I don't know' option — that choice is added for you."
+										},
+										"multiSelect": {
+											"type": "boolean",
+											"description": "Set to true when more than one option is correct and the learner must select all of them."
+										},
+										"explanation": {
+											"type": "string",
+											"description": "REQUIRED. Explanation revealed AFTER the learner answers (shown whether they got it right or wrong). Use it to reinforce why the correct answer is correct. It is written BEFORE correctAnswer by design: reason it out first, then commit the answer the reasoning supports."
+										},
+										"correctAnswer": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "array",
+													"items": {
+														"type": "string"
+													}
+												}
+											],
+											"description": "REQUIRED. The correct answer as the option value(s) — the `value` field of the option you intend. Single-select: a single string (e.g. \"mercury\"). Multi-select: an array of strings (e.g. [\"belize\", \"niue\"]); the learner is only correct if their selection matches this set exactly. Always pass the value, not a position number — this is self-checking and prevents miscounting. A value that matches no option fails validation and the call is returned to you to fix."
+										},
+										"details": {
+											"type": "string",
+											"description": "Optional extra context or instructions shown under the question."
+										}
+									},
+									"description": "Its first prediction."
+								}
+							},
+							"description": "The next topic's start, shown when he goes on, before you reply."
 						}
 					}
 				},
@@ -9106,7 +9302,8 @@
 					"update_space_deadline",
 					"remove_space_deadline",
 					"problem",
-					"conclude"
+					"conclude",
+					"topic_done"
 				],
 				"messages": 1
 			},

@@ -10,6 +10,27 @@ use gs_json::{Json, stringify_pretty};
 
 /// The arguments as the tool receives them, or pi's "Validation failed …" text.
 pub fn validate_tool_arguments(tool_name: &str, schema: &Json, arguments: &Json) -> Result<Json, String> {
+	let failures = match checked(schema, arguments) {
+		Ok(args) => return Ok(args),
+		Err(failures) => failures,
+	};
+	let lines: Vec<String> = failures.iter().map(|f| format!("  - {f}")).collect();
+	let listed = if lines.is_empty() { "Unknown validation error".to_owned() } else { lines.join("\n") };
+	Err(format!("Validation failed for tool \"{tool_name}\":\n{listed}\n\nReceived arguments:\n{}", stringify_pretty(arguments, "  ")))
+}
+
+/// What validation finds wrong with the arguments, one `<path>: <message>` line each and without
+/// the arguments: for a tool that refuses a call in its own words before validation runs.
+pub fn argument_problems(schema: &Json, arguments: &Json) -> Vec<String> {
+	match checked(schema, arguments) {
+		Ok(_) => Vec::new(),
+		Err(failures) if failures.is_empty() => vec!["Unknown validation error".to_owned()],
+		Err(failures) => failures,
+	}
+}
+
+/// pi's order: drop optional nulls, convert loosely, check.
+fn checked(schema: &Json, arguments: &Json) -> Result<Json, Vec<String>> {
 	let mut args = arguments.clone();
 	convert::normalize_optional_nulls(&mut args, schema);
 	convert::convert_in_place(schema, &mut args);
@@ -17,9 +38,7 @@ pub fn validate_tool_arguments(tool_name: &str, schema: &Json, arguments: &Json)
 	if check::walk(schema, &args, "", &mut errors) {
 		return Ok(args);
 	}
-	let lines: Vec<String> = errors.list.iter().map(|f| format!("  - {}: {}", f.path, f.message)).collect();
-	let listed = if lines.is_empty() { "Unknown validation error".to_owned() } else { lines.join("\n") };
-	Err(format!("Validation failed for tool \"{tool_name}\":\n{listed}\n\nReceived arguments:\n{}", stringify_pretty(arguments, "  ")))
+	Err(errors.list.iter().map(|f| format!("{}: {}", f.path, f.message)).collect())
 }
 
 #[cfg(test)]

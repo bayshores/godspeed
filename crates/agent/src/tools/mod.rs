@@ -16,4 +16,7 @@ pub mod questions;
 pub mod rules;
 pub mod side;
 pub mod talk;
+#[cfg(test)]
+mod test_record;
+pub mod topic_done;
 pub mod work_plan;

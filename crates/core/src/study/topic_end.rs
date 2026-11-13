@@ -11,10 +11,12 @@ use gs_json::js_text::js_string;
 use gs_json::{Json, Obj, json};
 
 use super::items;
+use super::progress::answer_outcome;
 use crate::contracts::chat::TOPIC_DONE_TOOL;
 use crate::messages::native_messages::{ActiveProblem, PRACTICE_CONCLUDE_TOOL, PRACTICE_PROBLEM_TOOL};
 use crate::session::plan::derive_plan_statuses_lh;
 use crate::session::plan_step_bar::ordered_plan_ids;
+use crate::session::question_core::normalize_quiz_type;
 
 const MINUTE_MS: f64 = 60_000.0;
 /// A longer gap between lesson events counts as this long.
@@ -48,6 +50,26 @@ pub fn resumed_after_stop(stop_at: f64, keep_going_at: f64, timestamps: &[f64]) 
 	between.sort_by(f64::total_cmp);
 	let points: Vec<f64> = std::iter::once(stop_at).chain(between).chain(std::iter::once(keep_going_at)).collect();
 	points.windows(2).any(|pair| pair[1] - pair[0] >= SITTING_GAP_MS)
+}
+
+/// The stop a finished topic makes at `now_ms`: `{kind: "topic", nodeId, activeMinutes, at}`.
+pub fn topic_stop(messages: &[Json], node_id: &str, now_ms: i64) -> Json {
+	json!({ "kind": "topic", "nodeId": node_id, "activeMinutes": minutes_since_stop(messages, now_ms), "at": time::iso(now_ms) })
+}
+
+/// The stop a concluded problem makes when it ended no topic: `{kind: "problem", activeMinutes,
+/// at}` once it took LONG_PROBLEM_MINUTES or more, else none.
+pub fn long_problem_stop(messages: &[Json], now_ms: i64) -> Option<Json> {
+	let minutes = minutes_since_stop(messages, now_ms);
+	(minutes >= LONG_PROBLEM_MINUTES).then(|| json!({ "kind": "problem", "activeMinutes": minutes, "at": time::iso(now_ms) }))
+}
+
+/// Active minutes up to `now_ms` over the lesson's times since its newest stop.
+fn minutes_since_stop(messages: &[Json], now_ms: i64) -> i64 {
+	let since = record_stops(messages).last().map(|s| ms_of(&s.stop["at"]));
+	let mut times: Vec<f64> = since.into_iter().collect();
+	times.extend(messages.iter().filter_map(|m| m["timestamp"].as_f64()).filter(|t| since.is_none_or(|s| *t > s)));
+	active_minutes(&times, now_ms as f64)
 }
 
 /// The topic a study conclude finishes, or none: outcome solved, or solvedWithHints at rung R0, R1
@@ -114,6 +136,40 @@ fn next_topic(tree: &Json, node_id: &str, ended: &HashSet<&str>) -> Option<Json>
 	// A duplicated id resolves to its last node, as the learning order does.
 	let title = &items(&tree["nodes"]).iter().rev().find(|n| n["id"].as_str() == Some(id))?["title"];
 	(!title.is_null()).then(|| title.clone())
+}
+
+/// The topic the record's newest graded event finished, and whether a quiz finished it: a clean
+/// conclude carrying a topic stop, or a right answer to a quiz (a prediction never counts). A newer
+/// problem, conclude or quiz answer that finishes nothing means no topic is finished.
+pub fn finished_topic(messages: &[Json]) -> Option<(String, bool)> {
+	let calls = call_args(messages);
+	let mut finished = None;
+	for m in messages.iter().filter(|m| m["role"].as_str() == Some("toolResult") && !m["isError"].truthy()) {
+		let args = calls.get(m["toolCallId"].as_str().unwrap_or_default()).copied().unwrap_or(&Json::Null);
+		match m["toolName"].as_str() {
+			Some(PRACTICE_PROBLEM_TOOL) => finished = None,
+			Some(PRACTICE_CONCLUDE_TOOL) => finished = stop_in(m).filter(|s| s["kind"].as_str() == Some("topic")).and_then(|s| s["nodeId"].as_str()).map(|n| (n.to_owned(), false)),
+			Some("quiz") => {
+				let predict = normalize_quiz_type(if m["details"]["questionType"].is_null() { &args["type"] } else { &m["details"]["questionType"] }) == Some("predict");
+				match answer_outcome(&m["details"]) {
+					Some(_) if predict => {}
+					Some("right") => finished = args["nodeId"].as_str().map(|n| (n.to_owned(), true)),
+					Some(_) => finished = None,
+					None => {}
+				}
+			}
+			_ => {}
+		}
+	}
+	finished
+}
+
+/// Whether a clean topic_done for `node_id` is in the record.
+pub fn topic_done_stored(messages: &[Json], node_id: &str) -> bool {
+	let calls = call_args(messages);
+	messages.iter().any(|m| {
+		m["role"].as_str() == Some("toolResult") && m["toolName"].as_str() == Some(TOPIC_DONE_TOOL) && !m["isError"].truthy() && calls.get(m["toolCallId"].as_str().unwrap_or_default()).is_some_and(|args| args["nodeId"].as_str() == Some(node_id))
+	})
 }
 
 /// Whether the agent should get the [Resumed] line with the learner's next input: the newest stop
@@ -355,6 +411,46 @@ mod tests {
 		assert!(!resume_due(&[regularization_ends(), vec![keep_going(50.0)]].concat()), "same sitting");
 		assert!(!resume_due(&regularization_ends()), "not kept going");
 		assert!(!resume_due(&[]));
+	}
+
+	#[test]
+	fn a_new_stop_counts_from_the_newest_stop() {
+		let topic = topic_stop(&regularization_ends(), "cv", at(60.0) as i64);
+		assert_eq!(topic, json!({ "kind": "topic", "nodeId": "cv", "activeMinutes": 6, "at": iso(60.0) }), "1 minute to 49, then 5 of the 11");
+		let problem = || json!({ "role": "user", "content": "x", "timestamp": at(0.0) });
+		let worked: Vec<Json> = (0..6).map(|i| json!({ "role": "user", "content": "x", "timestamp": at(f64::from(i) * 5.0) })).collect();
+		assert_eq!(long_problem_stop(&worked, at(25.0) as i64), Some(json!({ "kind": "problem", "activeMinutes": 25, "at": iso(25.0) })));
+		assert_eq!(long_problem_stop(&worked, at(24.0) as i64), None);
+		assert_eq!(long_problem_stop(&[problem()], at(40.0) as i64), None, "a gap of 30 minutes starts a new sitting");
+		assert_eq!(long_problem_stop(&regularization_ends(), at(60.0) as i64), None, "counted from the stop at 48");
+	}
+
+	fn quiz(id: &str, node: &str, kind: &str, correct: bool, minutes: f64) -> Vec<Json> {
+		vec![
+			json!({ "role": "assistant", "content": [{ "type": "toolCall", "id": id, "name": "quiz", "arguments": { "type": kind, "nodeId": node } }], "timestamp": at(minutes) }),
+			json!({ "role": "toolResult", "toolCallId": id, "toolName": "quiz", "details": { "kind": "quiz", "correct": correct }, "isError": false, "timestamp": at(minutes) }),
+		]
+	}
+
+	#[test]
+	fn the_finished_topic_is_the_newest_graded_events() {
+		assert_eq!(finished_topic(&regularization_ends()), Some(("reg".to_owned(), false)), "the topic-ending conclude");
+		assert_eq!(finished_topic(&quiz("q1", "cv", "check", true, 50.0)), Some(("cv".to_owned(), true)));
+		assert_eq!(finished_topic(&[regularization_ends(), quiz("q1", "cv", "check", true, 50.0)].concat()), Some(("cv".to_owned(), true)));
+		assert_eq!(finished_topic(&[regularization_ends(), quiz("q1", "cv", "predict", true, 50.0)].concat()), Some(("reg".to_owned(), false)), "a prediction counts for nothing");
+		assert_eq!(finished_topic(&[quiz("q1", "cv", "check", true, 50.0), quiz("q2", "cv", "check", false, 51.0)].concat()), None, "a newer miss");
+		let posed = regularization_ends()[..2].to_vec();
+		assert_eq!(finished_topic(&[quiz("q1", "cv", "check", true, 20.0), posed].concat()), None, "a newer problem");
+		assert_eq!(finished_topic(&[]), None);
+	}
+
+	#[test]
+	fn a_stored_topic_done_is_found_by_its_node() {
+		assert!(topic_done_stored(&regularization_ends(), "reg"));
+		assert!(!topic_done_stored(&regularization_ends(), "cv"));
+		let mut refused = regularization_ends();
+		refused[5].as_obj_mut().unwrap().insert("isError", true);
+		assert!(!topic_done_stored(&refused, "reg"));
 	}
 
 	#[test]

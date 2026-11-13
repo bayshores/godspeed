@@ -7,6 +7,7 @@ use std::collections::HashSet;
 use std::sync::Arc;
 
 use gs_base::text::trim;
+use gs_core::contracts::chat::TOPIC_DONE_TOOL;
 use gs_core::messages::native_messages::{PRACTICE_CONCLUDE_TOOL, PRACTICE_PROBLEM_TOOL, to_llm_messages};
 use gs_core::messages::pending::is_question_tool;
 use gs_core::session::tool_switches::{TOGGLEABLE_TOOLS, switched_off_tools_note};
@@ -77,16 +78,18 @@ impl<'a> AgentBuildOptions<'a> {
 /// The turn's question-stop rule: a question call that resolved cleanly ends the run, and the
 /// learner's answer arrives as the next request. A call that failed its authoring checks must not
 /// stop the run, so the model can retry within the turn. Results of a lone question already stop
-/// the run; this covers a question mixed with other calls. Practice-like agents wait on a pose too.
+/// the run; this covers a question mixed with other calls. Practice-like agents wait on a pose too,
+/// and Study on a stored topic_done.
 fn question_stopper(kind: AgentKind) -> FinishFn {
 	let poses_problems = matches!(kind, AgentKind::Practice | AgentKind::Study | AgentKind::Homework);
+	let ends_topics = kind == AgentKind::Study;
 	Box::new(move |turn| {
-		let asking = |name: &str| is_question_tool(name) || (poses_problems && name == PRACTICE_PROBLEM_TOOL);
+		let stops = |name: &str| is_question_tool(name) || (poses_problems && name == PRACTICE_PROBLEM_TOOL) || (ends_topics && name == TOPIC_DONE_TOOL);
 		let called: HashSet<&str> = turn.message["content"]
 			.as_arr()
 			.into_iter()
 			.flatten()
-			.filter(|c| c["type"].as_str() == Some("toolCall") && c["name"].as_str().is_some_and(asking))
+			.filter(|c| c["type"].as_str() == Some("toolCall") && c["name"].as_str().is_some_and(stops))
 			.filter_map(|c| c["id"].as_str())
 			.collect();
 		!called.is_empty() && !turn.tool_results.iter().any(|r| r["toolCallId"].as_str().is_some_and(|id| called.contains(id)) && r["isError"].truthy())

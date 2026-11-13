@@ -16,10 +16,11 @@ use super::graph::GraphToolContext;
 use super::heal::heal_tool_record;
 use super::jobs::{JobToolContext, job_tools};
 use super::plan::{PlanContext, plan_init_tool};
-use super::practice::{GraphNodes, NodeCheck, study_problem_tools};
+use super::practice::{GraphNodes, LessonRecord, NodeCheck, TurnGate, problem_is_active, study_problem_tools};
 use super::probe::{ProbeDoneContext, ProbeGate, probe_done_tool};
 use super::questions::{ask_user_question_tool, node_id_problem, probe_explain_tool, probe_quiz_tool, teach_explain_tool, teach_quiz_tool, write_code_tool};
 use super::side::{LessonSide, file_tools, filter_enabled, graph_and_side};
+use super::topic_done::{CheckMarks, topic_done_tool};
 use super::work_plan::work_plan_tool;
 
 /// What the prober's registry closes over: probe_done's needs and the job dispatch, since
@@ -41,11 +42,12 @@ pub struct TeacherToolContext {
 }
 
 /// A study session's tools close over the teacher's context plus the graph its problem targets
-/// are checked against.
+/// are checked against, and the source mark check of topic_done's lead.
 #[derive(Clone)]
 pub struct StudyToolContext {
 	pub teacher: TeacherToolContext,
 	pub graph_nodes: Option<GraphNodes>,
+	pub check_marks: CheckMarks,
 }
 
 /// `explain: true` in the resolved settings arms free-recall checks (explain or recall, quiz or
@@ -120,11 +122,14 @@ pub fn teacher_tools(ctx: &TeacherToolContext, enabled: Option<&Json>) -> Vec<Fn
 }
 
 /// A study session's tools: the teacher's plus practice's problem and conclude, the problem
-/// naming its plan node like a quiz.
+/// naming its plan node like a quiz, and topic_done after a finished topic.
 pub fn study_tools(ctx: &StudyToolContext, enabled: Option<&Json>) -> Vec<FnTool> {
 	let plan = ctx.teacher.plan.clone();
 	let node_check: NodeCheck = Arc::new(move |node_id| node_id_problem(&plan, node_id));
+	let record = LessonRecord { chat_id: ctx.teacher.plan.chat_id.clone(), chat_store: ctx.teacher.plan.chat_store.clone() };
+	let gate = TurnGate::new(problem_is_active(&record.chat_store, &record.chat_id));
 	let mut tools = teacher_tools(&ctx.teacher, enabled);
-	tools.extend(study_problem_tools(&ctx.teacher.plan.chat_id, &ctx.teacher.plan.chat_store, ctx.graph_nodes.clone(), node_check));
+	tools.extend(study_problem_tools(&gate, record.clone(), ctx.graph_nodes.clone(), node_check));
+	tools.push(topic_done_tool(record, &gate, ctx.check_marks.clone(), !free_recall(enabled)));
 	heal_tool_record(tools)
 }
