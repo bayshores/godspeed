@@ -8,6 +8,8 @@ use std::sync::Arc;
 use futures_util::future::BoxFuture;
 use gs_base::{clock, text};
 use gs_core::contracts::chat::{TOPIC_DONE_STORED_TEXT, TOPIC_DONE_TOOL};
+use gs_core::messages::citations::CheckedMarks;
+use gs_core::messages::quote_find::QuoteMiss;
 use gs_core::session::argument_heal::heal_encoded_arguments;
 use gs_core::session::question_core::{quiz_input_object, quiz_input_problems};
 use gs_core::session::schema::{described, object, string};
@@ -20,9 +22,9 @@ use gs_json::{Json, Obj, json, stringify_pretty};
 use super::fn_tool::FnTool;
 use super::practice::{LessonRecord, NodeCheck, TurnGate, record_messages};
 
-/// Checks the source marks in a text: the text with its marks in stored form, and each mark that
-/// points at no passage (taken out of the text).
-pub type CheckMarks = Arc<dyn Fn(&str) -> (String, Vec<String>) + Send + Sync>;
+/// Checks the source marks in a text: the text with its marks in stored form, each mark that
+/// points at no passage (taken out of the text) and each quote that does not hold.
+pub type CheckMarks = Arc<dyn Fn(&str) -> CheckedMarks + Send + Sync>;
 
 const LEAD_MAX: usize = 700;
 
@@ -196,9 +198,13 @@ impl TopicDone {
 			Some(_) => {}
 		}
 		let lead = args["opener"]["lead"].as_str().map(|lead| {
-			let (checked, removed) = (self.check_marks)(lead);
-			problems.extend(removed.iter().map(|mark| format!("opener.lead: removed source mark {mark}; it does not point at a passage.")));
-			checked
+			let checked = (self.check_marks)(lead);
+			problems.extend(checked.removed.iter().map(|mark| format!("opener.lead: removed source mark {mark}; it does not point at a passage.")));
+			problems.extend(checked.dropped.iter().map(|d| match d.miss {
+				QuoteMiss::Absent => format!("opener.lead: quote \"{}\" is not in {}. Copy the words exactly.", d.quote, d.mark),
+				miss => format!("opener.lead: quote \"{}\" from {}: {}", d.quote, d.mark, miss.reason()),
+			}));
+			checked.text
 		});
 		let Some((done, by_quiz)) = finished.filter(|_| problems.is_empty()) else { return Err(problems.join("\n")) };
 		self.gate.set_topic_ended(&done, true);
@@ -255,14 +261,32 @@ mod tests {
 	use gs_engine::turn::agent::{Agent, AgentOptions};
 	use gs_engine::turn::faux::{Engine, Scripted, faux_model};
 	use gs_engine::turn::messages::faux_assistant_message;
+	use gs_base::re::Re;
+	use gs_core::messages::citations::DroppedQuote;
 	use gs_json::stringify;
 
 	use super::*;
 	use crate::tools::test_record::record;
 
-	/// Keeps every mark but `[[f_bad:9]]`, which points at nothing.
+	/// Keeps every mark but `[[f_bad:9]]`, which points at nothing. On f_1:3, "degree 12" is found
+	/// once, "p + 1" twice and nothing else at all.
 	fn check_marks() -> CheckMarks {
-		Arc::new(|text: &str| if text.contains("[[f_bad:9]]") { (text.replace("[[f_bad:9]]", ""), vec!["f_bad:9".to_owned()]) } else { (text.replace("[[f_1:3]]", "[[f_1/p. 3/Notes.pdf]]"), Vec::new()) })
+		Arc::new(|text: &str| {
+			if text.contains("[[f_bad:9]]") {
+				return CheckedMarks { text: text.replace("[[f_bad:9]]", ""), removed: vec!["f_bad:9".to_owned()], dropped: Vec::new() };
+			}
+			let mut dropped = Vec::new();
+			let text = Re::new(r#"\[\[f_1:3(?: "([^"]+)")?\]\]"#, "g").replace_with(text, |caps| match caps.get(1) {
+				Some(quote) if quote == "degree 12" => "[[f_1/p. 3/Notes.pdf|degree 12]]".to_owned(),
+				Some(quote) => {
+					let miss = if quote == "p + 1" { QuoteMiss::Twice } else { QuoteMiss::Absent };
+					dropped.push(DroppedQuote { mark: "f_1:3".to_owned(), quote, miss });
+					"[[f_1/p. 3/Notes.pdf]]".to_owned()
+				}
+				None => "[[f_1/p. 3/Notes.pdf]]".to_owned(),
+			});
+			CheckedMarks { text, removed: Vec::new(), dropped }
+		})
 	}
 
 	/// The plan holds n3, n4 and n5 (the example's n3 and n4 too).
@@ -365,6 +389,19 @@ mod tests {
 				"opener.quiz.nodeId \"cross-val\" matches no node in this session's plan map. Copy one of the plan's node ids exactly (n3, n4, n5).",
 			]
 		);
+	}
+
+	#[tokio::test]
+	async fn a_quote_in_the_lead_that_does_not_hold_refuses_the_call() {
+		let (tool, gate) = tool_on(Vec::new(), true);
+		concluded_now(&gate);
+		let lead = |text: &str| with(sent(), &["opener", "lead"], Json::from(text));
+		assert_eq!(
+			call(&tool, lead(r#"Here [[f_1:3 "a different 12"]] and [[f_1:3 "p + 1"]]."#)).await.unwrap_err().lines().collect::<Vec<_>>(),
+			["opener.lead: quote \"a different 12\" is not in f_1:3. Copy the words exactly.", "opener.lead: quote \"p + 1\" from f_1:3: found twice in that passage; quote a few more words."]
+		);
+		let done = call(&tool, lead(r#"Here [[f_1:3 "degree 12"]]."#)).await.unwrap();
+		assert_eq!(done["details"]["lead"], json!("Here [[f_1/p. 3/Notes.pdf|degree 12]]."));
 	}
 
 	#[tokio::test]

@@ -27,6 +27,7 @@ use gs_agent::tools::talk::{SpaceActions, talk_tools};
 use gs_agent::tools::topic_done::CheckMarks;
 use gs_base::config::Paths;
 use gs_base::fsx;
+use gs_core::messages::citations::CheckedMarks;
 use gs_core::spaces::space_tools::{SpaceChange, ToolOutcome};
 use gs_core::contracts::space::SPACE_ICONS;
 use gs_core::graph::ports::{ChatListing, GraphStore, LedgerRewrite};
@@ -350,7 +351,7 @@ impl World {
 
 /// topic_done's mark check, keeping every mark as written.
 fn marks_kept() -> CheckMarks {
-	Arc::new(|text: &str| (text.to_owned(), Vec::new()))
+	Arc::new(|text: &str| CheckedMarks { text: text.to_owned(), ..CheckedMarks::default() })
 }
 
 fn nodes_of(nodes: Vec<Json>) -> GraphNodes {

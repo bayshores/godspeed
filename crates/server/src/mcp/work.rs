@@ -9,6 +9,7 @@ use std::task::Poll;
 
 use gs_base::clock;
 use gs_base::text::len16;
+use gs_core::messages::citations::CheckedMarks;
 use gs_core::spaces::space_tools::lesson_started_last_turn;
 use gs_core::session::work_pages::{WORK_PAGE_BYTES, page_blocks};
 use gs_engine::bridge::{AgentReply, ReplyCall, UNNAMED_HELPER, WaitOptions, WorkView};
@@ -197,11 +198,9 @@ pub async fn respond(call: &ToolCall<'_>, args: &Json) -> Json {
 	let follow_up_ms = (args["wait_seconds"].as_f64().unwrap_or(RESPOND_DEFAULT_WAIT_S) * 1000.0) as i64;
 	let tool_calls = args["tool_calls"].as_arr().into_iter().flatten().map(|c| ReplyCall { name: c["name"].as_str().unwrap_or_default().to_owned(), arguments: c["arguments"].clone() });
 	// Checked before it is stored, so the stored text and the seen-mark fingerprint agree.
-	let (text, removed) = args["text"].as_str().map(|text| check_cites(app, text)).unzip();
-	let removed_marks = match removed.filter(|r| !r.is_empty()) {
-		Some(removed) => format!("Removed source marks that don't point at a passage of a space file: {}. Use ids from search_space_files.", removed.join(", ")),
-		None => String::new(),
-	};
+	let checked = args["text"].as_str().map(|text| check_cites(app, text));
+	let removed_marks = checked.as_ref().map(mark_notes).unwrap_or_default();
+	let text = checked.map(|c| c.text);
 	let with_removed = |note: String| if removed_marks.is_empty() { note } else { format!("{removed_marks} {note}") };
 	let reply = AgentReply { text, tool_calls: tool_calls.collect() };
 	let answered = match app.bridge.respond_to_work(args["work_id"].as_str().unwrap_or_default(), reply, follow_up_ms) {
@@ -229,6 +228,13 @@ pub async fn respond(call: &ToolCall<'_>, args: &Json) -> Json {
 	}
 	let note = turn_complete_note(app, call.caller, &answered.conversation, answered.agent.as_deref(), helper);
 	result(&json!({ "status": "turn_complete", "note": with_removed(note) }))
+}
+
+/// What the agent is told about the marks its reply lost: removed marks, then dropped quotes.
+fn mark_notes(checked: &CheckedMarks) -> String {
+	let removed = (!checked.removed.is_empty()).then(|| format!("Removed source marks that don't point at a passage of a space file: {}. Use ids from search_space_files.", checked.removed.join(", ")));
+	let dropped = checked.dropped.iter().map(|d| format!("Dropped quote \"{}\" from {}: {}", d.quote, d.mark, d.miss.reason()));
+	removed.into_iter().chain(dropped).collect::<Vec<_>>().join(" ")
 }
 
 fn note_replying(app: &Arc<App>, caller: Option<&str>, lesson: &Json) {
@@ -291,7 +297,32 @@ pub fn read_work(call: &ToolCall<'_>, args: &Json) -> Json {
 
 #[cfg(test)]
 mod tests {
+	use gs_core::messages::citations::DroppedQuote;
+	use gs_core::messages::quote_find::QuoteMiss;
+
 	use super::*;
+
+	#[test]
+	fn the_reply_note_names_removed_marks_then_each_dropped_quote() {
+		let drop = |quote: &str, miss| DroppedQuote { mark: "f_1a2b3c4d5e6f:7".to_owned(), quote: quote.to_owned(), miss };
+		let checked = CheckedMarks {
+			text: String::new(),
+			removed: vec!["f_000000000000:9".to_owned()],
+			dropped: vec![drop("degree 12", QuoteMiss::Absent), drop("p + 1", QuoteMiss::Twice), drop("a[i]", QuoteMiss::Unsafe), drop("degree", QuoteMiss::Shape)],
+		};
+		assert_eq!(
+			mark_notes(&checked),
+			[
+				"Removed source marks that don't point at a passage of a space file: f_000000000000:9. Use ids from search_space_files.",
+				"Dropped quote \"degree 12\" from f_1a2b3c4d5e6f:7: not in that passage. Copy the words exactly.",
+				"Dropped quote \"p + 1\" from f_1a2b3c4d5e6f:7: found twice in that passage; quote a few more words.",
+				"Dropped quote \"a[i]\" from f_1a2b3c4d5e6f:7: no [ ] backtick or $ in a quote; quote nearby plain words.",
+				"Dropped quote \"degree\" from f_1a2b3c4d5e6f:7: a quote is 2 or more words, or one code expression, at most 80 characters.",
+			]
+			.join(" ")
+		);
+		assert_eq!(mark_notes(&CheckedMarks::default()), "");
+	}
 
 	#[test]
 	fn waits_are_clamped_like_the_ts() {

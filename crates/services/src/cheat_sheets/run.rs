@@ -168,7 +168,11 @@ fn start_run(app: &Arc<App>, ctx: &Context, message_id: &str) -> Outcome<()> {
 		lookups: search_tools(space_search(app, &ctx.space_id)),
 		check_text: Box::new({
 			let app = app.clone();
-			move |text| check_cites(&app, text)
+			// Cheat sheets are not asked to quote: a quote that does not hold is dropped quietly.
+			move |text| {
+				let checked = check_cites(&app, text);
+				(checked.text, checked.removed)
+			}
 		}),
 		take_pdf: Box::new(move |path| {
 			let (app, folder) = (task_app.clone(), folder_path.clone());

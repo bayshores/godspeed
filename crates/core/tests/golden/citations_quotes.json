@@ -1,0 +1,408 @@
+[
+	{
+		"name": "marks read: a written quote",
+		"output": {
+			"args": {
+				"text": "Fit. [[f_1a2b3c4d5e6f:7 \"degree 12\"]] Next."
+			},
+			"result": {
+				"marks": [
+					{
+						"kind": "passage",
+						"passageId": "f_1a2b3c4d5e6f:7",
+						"quote": "degree 12"
+					}
+				],
+				"swapped": "Fit. <1> Next.",
+				"words": "Fit.  Next."
+			}
+		}
+	},
+	{
+		"name": "marks read: a written quote on code",
+		"output": {
+			"args": {
+				"text": "[[f_1a2b3c4d5e6f:3 \"(void *)(p + 1)\"]]"
+			},
+			"result": {
+				"marks": [
+					{
+						"kind": "passage",
+						"passageId": "f_1a2b3c4d5e6f:3",
+						"quote": "(void *)(p + 1)"
+					}
+				],
+				"swapped": "<1>",
+				"words": ""
+			}
+		}
+	},
+	{
+		"name": "marks read: a quote holding quotes",
+		"output": {
+			"args": {
+				"text": "[[f_1a2b3c4d5e6f:3 \"printf(\"%d\", x)\"]]"
+			},
+			"result": {
+				"marks": [
+					{
+						"kind": "passage",
+						"passageId": "f_1a2b3c4d5e6f:3",
+						"quote": "printf(\"%d\", x)"
+					}
+				],
+				"swapped": "<1>",
+				"words": ""
+			}
+		}
+	},
+	{
+		"name": "marks read: a stored quote",
+		"output": {
+			"args": {
+				"text": "Fit.[[f_1a2b3c4d5e6f/p. 14/Lecture 6.pdf|degree 12]] Done."
+			},
+			"result": {
+				"marks": [
+					{
+						"kind": "file",
+						"fileId": "f_1a2b3c4d5e6f",
+						"range": "p. 14",
+						"name": "Lecture 6.pdf",
+						"quote": "degree 12"
+					}
+				],
+				"swapped": "Fit.<1> Done.",
+				"words": "Fit. (Lecture 6.pdf, p. 14) Done."
+			}
+		}
+	},
+	{
+		"name": "marks read: a stored quote holding a bar",
+		"output": {
+			"args": {
+				"text": "[[f_1a2b3c4d5e6f/lines 10–21/arrays.c|a || b]]"
+			},
+			"result": {
+				"marks": [
+					{
+						"kind": "file",
+						"fileId": "f_1a2b3c4d5e6f",
+						"range": "lines 10–21",
+						"name": "arrays.c",
+						"quote": "a || b"
+					}
+				],
+				"swapped": "<1>",
+				"words": " (arrays.c, lines 10–21)"
+			}
+		}
+	},
+	{
+		"name": "marks read: a stored mark with an empty quote",
+		"output": {
+			"args": {
+				"text": "[[f_1a2b3c4d5e6f/p. 2/notes.pdf|]]"
+			},
+			"result": {
+				"marks": [
+					{
+						"kind": "file",
+						"fileId": "f_1a2b3c4d5e6f",
+						"range": "p. 2",
+						"name": "notes.pdf"
+					}
+				],
+				"swapped": "<1>",
+				"words": " (notes.pdf, p. 2)"
+			}
+		}
+	},
+	{
+		"name": "marks read: an old stored name holding a bar",
+		"output": {
+			"args": {
+				"text": "[[f_1a2b3c4d5e6f/p. 2/Q1|Q2 notes.pdf]]"
+			},
+			"result": {
+				"marks": [
+					{
+						"kind": "file",
+						"fileId": "f_1a2b3c4d5e6f",
+						"range": "p. 2",
+						"name": "Q1",
+						"quote": "Q2 notes.pdf"
+					}
+				],
+				"swapped": "<1>",
+				"words": " (Q1, p. 2)"
+			}
+		}
+	},
+	{
+		"name": "marks read: an old stored mark",
+		"output": {
+			"args": {
+				"text": "[[f_1a2b3c4d5e6f/p. 12/Week 6 slides.pdf]]"
+			},
+			"result": {
+				"marks": [
+					{
+						"kind": "file",
+						"fileId": "f_1a2b3c4d5e6f",
+						"range": "p. 12",
+						"name": "Week 6 slides.pdf"
+					}
+				],
+				"swapped": "<1>",
+				"words": " (Week 6 slides.pdf, p. 12)"
+			}
+		}
+	},
+	{
+		"name": "marks read: an empty written quote",
+		"output": {
+			"args": {
+				"text": "[[f_1a2b3c4d5e6f:7 \"\"]]"
+			},
+			"result": {
+				"marks": [],
+				"swapped": "[[f_1a2b3c4d5e6f:7 \"\"]]",
+				"words": "[[f_1a2b3c4d5e6f:7 \"\"]]"
+			}
+		}
+	},
+	{
+		"name": "marks read: words without quote marks",
+		"output": {
+			"args": {
+				"text": "[[f_1a2b3c4d5e6f:7 degree 12]]"
+			},
+			"result": {
+				"marks": [],
+				"swapped": "[[f_1a2b3c4d5e6f:7 degree 12]]",
+				"words": "[[f_1a2b3c4d5e6f:7 degree 12]]"
+			}
+		}
+	},
+	{
+		"name": "marks read: two spaces before the quote",
+		"output": {
+			"args": {
+				"text": "[[f_1a2b3c4d5e6f:7  \"degree 12\"]]"
+			},
+			"result": {
+				"marks": [],
+				"swapped": "[[f_1a2b3c4d5e6f:7  \"degree 12\"]]",
+				"words": "[[f_1a2b3c4d5e6f:7  \"degree 12\"]]"
+			}
+		}
+	},
+	{
+		"name": "marks read: a quote with a bracket",
+		"output": {
+			"args": {
+				"text": "[[f_1a2b3c4d5e6f:7 \"a[i] = 0\"]]"
+			},
+			"result": {
+				"marks": [],
+				"swapped": "[[f_1a2b3c4d5e6f:7 \"a[i] = 0\"]]",
+				"words": "[[f_1a2b3c4d5e6f:7 \"a[i] = 0\"]]"
+			}
+		}
+	},
+	{
+		"name": "marks read: a quote opening math",
+		"output": {
+			"args": {
+				"text": "[[f_1a2b3c4d5e6f:7 \"costs $5 and $6\"]] after"
+			},
+			"result": {
+				"marks": [],
+				"swapped": "[[f_1a2b3c4d5e6f:7 \"costs $5 and $6\"]] after",
+				"words": "[[f_1a2b3c4d5e6f:7 \"costs $5 and $6\"]] after"
+			}
+		}
+	},
+	{
+		"name": "marks read: a quote with one dollar",
+		"output": {
+			"args": {
+				"text": "[[f_1a2b3c4d5e6f:7 \"costs $5 each\"]]"
+			},
+			"result": {
+				"marks": [
+					{
+						"kind": "passage",
+						"passageId": "f_1a2b3c4d5e6f:7",
+						"quote": "costs $5 each"
+					}
+				],
+				"swapped": "<1>",
+				"words": ""
+			}
+		}
+	},
+	{
+		"name": "marks read: quoted marks in code and math",
+		"output": {
+			"args": {
+				"text": "`[[f_1a2b3c4d5e6f:7 \"a b\"]]` and $[[f_1a2b3c4d5e6f:7 \"a b\"]]$"
+			},
+			"result": {
+				"marks": [],
+				"swapped": "`[[f_1a2b3c4d5e6f:7 \"a b\"]]` and $[[f_1a2b3c4d5e6f:7 \"a b\"]]$",
+				"words": "`[[f_1a2b3c4d5e6f:7 \"a b\"]]` and $[[f_1a2b3c4d5e6f:7 \"a b\"]]$"
+			}
+		}
+	},
+	{
+		"name": "marks read: a web mark with words",
+		"output": {
+			"args": {
+				"text": "[[https://example.com/page \"a b\"]]"
+			},
+			"result": {
+				"marks": [],
+				"swapped": "[[https://example.com/page \"a b\"]]",
+				"words": "[[https://example.com/page \"a b\"]]"
+			}
+		}
+	},
+	{
+		"name": "marks read: several quoted marks",
+		"output": {
+			"args": {
+				"text": "One [[f_1a2b3c4d5e6f:7 \"a b\"]], two [[f_1a2b3c4d5e6f/p. 3/x.pdf|c d]] and [[f_1a2b3c4d5e6f:7]]."
+			},
+			"result": {
+				"marks": [
+					{
+						"kind": "passage",
+						"passageId": "f_1a2b3c4d5e6f:7",
+						"quote": "a b"
+					},
+					{
+						"kind": "file",
+						"fileId": "f_1a2b3c4d5e6f",
+						"range": "p. 3",
+						"name": "x.pdf",
+						"quote": "c d"
+					},
+					{
+						"kind": "passage",
+						"passageId": "f_1a2b3c4d5e6f:7"
+					}
+				],
+				"swapped": "One <1>, two <2> and <3>.",
+				"words": "One , two  (x.pdf, p. 3) and ."
+			}
+		}
+	},
+	{
+		"name": "stored marks: no quote",
+		"output": {
+			"args": {
+				"name": "Week 6 slides.pdf"
+			},
+			"result": {
+				"mark": "[[f_1a2b3c4d5e6f/p. 3/Week 6 slides.pdf]]",
+				"marks": [
+					{
+						"kind": "file",
+						"fileId": "f_1a2b3c4d5e6f",
+						"range": "p. 3",
+						"name": "Week 6 slides.pdf"
+					}
+				],
+				"words": "It frees memory.  (Week 6 slides.pdf, p. 3) Then $x+1$ and `free`."
+			}
+		}
+	},
+	{
+		"name": "stored marks: a quote",
+		"output": {
+			"args": {
+				"name": "Lecture 6.pdf",
+				"quote": "degree 12"
+			},
+			"result": {
+				"mark": "[[f_1a2b3c4d5e6f/p. 3/Lecture 6.pdf|degree 12]]",
+				"marks": [
+					{
+						"kind": "file",
+						"fileId": "f_1a2b3c4d5e6f",
+						"range": "p. 3",
+						"name": "Lecture 6.pdf",
+						"quote": "degree 12"
+					}
+				],
+				"words": "It frees memory.  (Lecture 6.pdf, p. 3) Then $x+1$ and `free`."
+			}
+		}
+	},
+	{
+		"name": "stored marks: a bar in the name",
+		"output": {
+			"args": {
+				"name": "Q1|Q2 notes.pdf"
+			},
+			"result": {
+				"mark": "[[f_1a2b3c4d5e6f/p. 3/Q1 Q2 notes.pdf]]",
+				"marks": [
+					{
+						"kind": "file",
+						"fileId": "f_1a2b3c4d5e6f",
+						"range": "p. 3",
+						"name": "Q1 Q2 notes.pdf"
+					}
+				],
+				"words": "It frees memory.  (Q1 Q2 notes.pdf, p. 3) Then $x+1$ and `free`."
+			}
+		}
+	},
+	{
+		"name": "stored marks: a bar in the name and the quote",
+		"output": {
+			"args": {
+				"name": "a|b.c",
+				"quote": "x || y"
+			},
+			"result": {
+				"mark": "[[f_1a2b3c4d5e6f/p. 3/a b.c|x || y]]",
+				"marks": [
+					{
+						"kind": "file",
+						"fileId": "f_1a2b3c4d5e6f",
+						"range": "p. 3",
+						"name": "a b.c",
+						"quote": "x || y"
+					}
+				],
+				"words": "It frees memory.  (a b.c, p. 3) Then $x+1$ and `free`."
+			}
+		}
+	},
+	{
+		"name": "stored marks: an unsafe name with a quote",
+		"output": {
+			"args": {
+				"name": "HW$2 [v]`3`.pdf",
+				"quote": "the heap"
+			},
+			"result": {
+				"mark": "[[f_1a2b3c4d5e6f/p. 3/HW 2  v  3 .pdf|the heap]]",
+				"marks": [
+					{
+						"kind": "file",
+						"fileId": "f_1a2b3c4d5e6f",
+						"range": "p. 3",
+						"name": "HW 2  v  3 .pdf",
+						"quote": "the heap"
+					}
+				],
+				"words": "It frees memory.  (HW 2  v  3 .pdf, p. 3) Then $x+1$ and `free`."
+			}
+		}
+	}
+]
