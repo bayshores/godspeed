@@ -12,7 +12,7 @@ use gs_base::num;
 use gs_json::Json;
 
 use super::abort::Abort;
-use super::agent::Agent;
+use super::agent::{Agent, BeforeToolCall};
 use super::events::AgentEvent;
 use super::messages::{error_tool_result, tool_result_message};
 use super::tool::{ExecutionMode, Tool, ToolContext};
@@ -22,6 +22,13 @@ use super::validate::validate_tool_arguments;
 pub(super) struct Batch {
 	pub messages: Vec<Json>,
 	pub terminate: bool,
+}
+
+/// The assistant message whose calls run, and the transcript before it.
+#[derive(Clone, Copy)]
+pub(super) struct Reply<'a> {
+	pub before: &'a [Json],
+	pub message: &'a Json,
 }
 
 struct Finalized {
@@ -66,8 +73,9 @@ fn result_message(agent: &Agent, f: &Finalized) -> Json {
 	message
 }
 
-/// `prepareToolCall`: find the tool, prepare and validate its arguments.
-fn prepare(agent: &Agent, call: &Json, abort: &Abort) -> Prepared {
+/// `prepareToolCall`: find the tool, prepare and validate its arguments, then ask the
+/// `before_tool_call` hook.
+fn prepare(agent: &Agent, reply: Reply, call: &Json, abort: &Abort) -> Prepared {
 	let name = text(&call["name"]);
 	let Some(tool) = agent.tools.iter().find(|t| t.name() == name) else {
 		return Prepared::Immediate(refused(call, &format!("Tool {name} not found")));
@@ -76,10 +84,15 @@ fn prepare(agent: &Agent, call: &Json, abort: &Abort) -> Prepared {
 		Ok(args) => args,
 		Err(message) => return Prepared::Immediate(refused(call, &message)),
 	};
-	match validate_tool_arguments(&name, tool.parameters(), &args) {
-		Err(message) => Prepared::Immediate(refused(call, &message)),
-		Ok(_) if abort.is_aborted() => Prepared::Immediate(refused(call, "Operation aborted")),
-		Ok(validated) => Prepared::Ready(tool.clone(), validated),
+	let validated = match validate_tool_arguments(&name, tool.parameters(), &args) {
+		Ok(validated) => validated,
+		Err(message) => return Prepared::Immediate(refused(call, &message)),
+	};
+	let blocked = agent.before_tool_call.as_ref().and_then(|hook| hook(&BeforeToolCall { messages: reply.before, message: reply.message, call, args: &validated }));
+	match blocked {
+		Some(reason) => Prepared::Immediate(refused(call, &reason)),
+		None if abort.is_aborted() => Prepared::Immediate(refused(call, "Operation aborted")),
+		None => Prepared::Ready(tool.clone(), validated),
 	}
 }
 
@@ -107,17 +120,17 @@ fn terminates(calls: &[Finalized]) -> bool {
 	!calls.is_empty() && calls.iter().all(|f| f.result["terminate"] == Json::Bool(true))
 }
 
-pub(super) async fn execute_tool_calls(agent: &Agent, calls: &[Json], abort: &Abort) -> Batch {
+pub(super) async fn execute_tool_calls(agent: &Agent, reply: Reply<'_>, calls: &[Json], abort: &Abort) -> Batch {
 	let sequential = calls.iter().any(|c| agent.tools.iter().any(|t| Some(t.name()) == c["name"].as_str() && t.execution_mode() == ExecutionMode::Sequential));
-	if sequential { run_sequential(agent, calls, abort).await } else { run_parallel(agent, calls, abort).await }
+	if sequential { run_sequential(agent, reply, calls, abort).await } else { run_parallel(agent, reply, calls, abort).await }
 }
 
-async fn run_sequential(agent: &Agent, calls: &[Json], abort: &Abort) -> Batch {
+async fn run_sequential(agent: &Agent, reply: Reply<'_>, calls: &[Json], abort: &Abort) -> Batch {
 	let mut finalized = Vec::new();
 	let mut messages = Vec::new();
 	for call in calls {
 		start(agent, call);
-		let f = match prepare(agent, call, abort) {
+		let f = match prepare(agent, reply, call, abort) {
 			Prepared::Immediate(f) => f,
 			Prepared::Ready(tool, args) => run(tool.as_ref(), call, args, abort).await,
 		};
@@ -131,11 +144,11 @@ async fn run_sequential(agent: &Agent, calls: &[Json], abort: &Abort) -> Batch {
 	Batch { messages, terminate: terminates(&finalized) }
 }
 
-async fn run_parallel(agent: &Agent, calls: &[Json], abort: &Abort) -> Batch {
+async fn run_parallel(agent: &Agent, reply: Reply<'_>, calls: &[Json], abort: &Abort) -> Batch {
 	let mut entries = Vec::new();
 	for call in calls {
 		start(agent, call);
-		match prepare(agent, call, abort) {
+		match prepare(agent, reply, call, abort) {
 			Prepared::Immediate(f) => {
 				end(agent, &f);
 				entries.push(Ok(f));
@@ -217,9 +230,47 @@ mod tests {
 		options.tools = vec![Arc::new(Refusing(json!({ "type": "object", "properties": { "nodeId": { "type": "string" } }, "required": ["nodeId"] })))];
 		let agent = Agent::new(options);
 		let call = json!({ "type": "toolCall", "id": "call_1", "name": "refusing", "arguments": { "secret": "never shown" } });
-		let batch = execute_tool_calls(&agent, &[call], &Abort::new()).await;
+		let message = json!({ "role": "assistant", "content": [call.clone()] });
+		let batch = execute_tool_calls(&agent, Reply { before: &[], message: &message }, &[call], &Abort::new()).await;
 		assert_eq!(batch.messages[0]["content"], json!([{ "type": "text", "text": "nodeId: missing.\nopener.lead: too long." }]));
 		assert_eq!(batch.messages[0]["isError"], Json::Bool(true));
 		assert!(!batch.terminate);
+	}
+
+	struct Echo(Json);
+
+	impl Tool for Echo {
+		fn name(&self) -> &str {
+			"echo"
+		}
+		fn description(&self) -> &str {
+			"Says its argument back."
+		}
+		fn parameters(&self) -> &Json {
+			&self.0
+		}
+		fn execute(&self, args: Json, _ctx: ToolContext) -> BoxFuture<'_, Result<Json, String>> {
+			Box::pin(async move { Ok(json!({ "content": [{ "type": "text", "text": gs_json::stringify(&args["n"]) }] })) })
+		}
+	}
+
+	/// The hook sees the whole reply, so a call can be refused for one listed after it, and its
+	/// reason is the whole result.
+	#[tokio::test]
+	async fn the_hook_sees_the_whole_reply_and_its_reason_is_the_result() {
+		let mut options = AgentOptions::new(Engine { model: faux_model("m", "p", "faux", "Faux", 1000.0, 100.0), respond: Scripted::new() });
+		options.tools = vec![Arc::new(Echo(json!({ "type": "object", "properties": { "n": { "type": "number" } }, "required": ["n"] })))];
+		options.before_tool_call = Some(Box::new(|ctx| {
+			let later = ctx.message["content"].as_arr().unwrap().iter().skip_while(|c| c["id"] != ctx.call["id"]).skip(1).count();
+			(later > 0 && ctx.messages.len() == 1 && ctx.args["n"] == json!(1.0)).then(|| format!("call {} waits for the {later} after it.", ctx.call["id"].as_str().unwrap()))
+		}));
+		let agent = Agent::new(options);
+		let calls = [json!({ "type": "toolCall", "id": "c1", "name": "echo", "arguments": { "n": "1" } }), json!({ "type": "toolCall", "id": "c2", "name": "echo", "arguments": { "n": 1 } })];
+		let message = json!({ "role": "assistant", "content": calls.to_vec() });
+		let before = [json!({ "role": "user", "content": "go" })];
+		let batch = execute_tool_calls(&agent, Reply { before: &before, message: &message }, &calls, &Abort::new()).await;
+		assert_eq!(batch.messages[0]["content"], json!([{ "type": "text", "text": "call c1 waits for the 1 after it." }]), "the hook gets the validated arguments");
+		assert_eq!(batch.messages[0]["isError"], Json::Bool(true));
+		assert_eq!(batch.messages[1]["content"], json!([{ "type": "text", "text": "1" }]));
 	}
 }

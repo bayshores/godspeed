@@ -128,6 +128,7 @@ fn build_agent(kind: AgentKind, opts: AgentBuildOptions, tools: Vec<FnTool>) -> 
 		steering_mode: QueueMode::All,
 		convert_to_llm: Some(Box::new(to_llm_messages)),
 		finish_turn: Some(question_stopper(kind)),
+		before_tool_call: None,
 	});
 	if let Some(on_usage) = opts.on_usage {
 		agent.subscribe(Arc::new(move |event| {
