@@ -31,6 +31,8 @@ Why start here? **Not** because bottom-up is the logically "correct" order — b
 
 Don't force either where there isn't a clean one.
 
+When the space files have a worked example, a figure or a line of code for the first unconditional truth, give that case first, then state the truth it shows.
+
 ## Principle ii — "How could I have discovered this?"
 
 Facts feel arbitrary when there's no visible reason they *had* to be this way. "Why does it need to be like this? Feels arbitrary." The brain won't commit to arbitrary-feeling info. The fix: make it feel discovered, not decreed.
