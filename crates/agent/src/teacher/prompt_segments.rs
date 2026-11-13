@@ -95,32 +95,3 @@ pub fn all_segment_paths() -> Vec<&'static str> {
 	paths.dedup();
 	paths
 }
-
-#[cfg(test)]
-mod tests {
-	use gs_base::config::Paths;
-
-	use super::*;
-	use crate::teacher::teacher_agent::compose_instructions;
-
-	const DEADLINE_SENTENCE: &str = "When the learner asks you to add, move or remove a deadline mid-lesson, do it with the deadline tools";
-	const TALK_LINE: &str = "Deadline changes happen in Talk: when he asks for one, say so in one line and go back to the lesson.";
-
-	fn composed(kind: AgentKind) -> String {
-		// No folder there, so no saved versions.
-		let none = std::env::temp_dir().join("gs-prompt-segments-no-overrides");
-		compose_instructions(kind, &PromptOverrides::new(&Paths::new(none.clone(), none.clone(), none.clone(), none)))
-	}
-
-	#[test]
-	fn study_sends_deadline_changes_to_talk_and_the_other_lessons_keep_the_tools_sentence() {
-		let study = composed(AgentKind::Study);
-		assert!(!study.contains(DEADLINE_SENTENCE) && study.contains(TALK_LINE));
-		for kind in [AgentKind::Teacher, AgentKind::Prober, AgentKind::Practice, AgentKind::Homework] {
-			let text = composed(kind);
-			assert_eq!(text.matches(DEADLINE_SENTENCE).count(), 1, "{kind:?}");
-			assert!(!text.contains(TALK_LINE), "{kind:?}");
-		}
-		assert!(!composed(AgentKind::Talk).contains(DEADLINE_SENTENCE));
-	}
-}

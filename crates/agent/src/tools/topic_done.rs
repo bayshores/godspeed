@@ -66,46 +66,35 @@ fn example() -> Json {
 	})
 }
 
-fn quiz_schema(description: &str) -> Json {
-	described(quiz_input_object(), description)
+/// A nested quiz as the agent sees it: an object whose fields the description names ("the same
+/// fields as quiz"), so the quiz schema is not sent twice more.
+fn shown_quiz(description: &str) -> Json {
+	json!({ "type": "object", "additionalProperties": true, "description": description })
 }
 
-fn lead_schema() -> Json {
-	json!({ "type": "string", "maxLength": LEAD_MAX, "description": "Its first words; source marks go here." })
+/// A nested quiz as prepare checks it: the quiz's own schema with either type, since the tool's
+/// own lines say which type each place takes.
+fn checked_quiz(description: &str) -> Json {
+	let mut quiz = quiz_input_object();
+	if let Some(fields) = quiz.as_obj_mut().and_then(|q| q.get_mut("properties")).and_then(Json::as_obj_mut) {
+		fields.insert("type", json!({ "type": "string" }));
+	}
+	described(quiz, description)
 }
 
-/// The schema the agent sees. Free recall has no quiz, so only the topic.
-fn parameters(multiple_choice: bool) -> Json {
+/// The schema the agent sees, or with `checked` the one prepare checks against (the full nested
+/// quizzes, and a lead with no cap, since the cap has its own line). Free recall has no quiz, so
+/// only the topic.
+fn parameters(multiple_choice: bool, checked: bool) -> Json {
 	let mut fields = vec![("nodeId", string("the topic just finished (concluded, or ended by a right quiz)"))];
 	if multiple_choice {
-		fields.push(("review", quiz_schema("One standalone check on this topic, stored and asked weeks later, never shown now.")));
-		let opener = object(&["lead", "quiz"], vec![("lead", lead_schema()), ("quiz", quiz_schema("Its first prediction."))]);
+		let quiz = if checked { checked_quiz } else { shown_quiz };
+		let lead = if checked { json!({ "type": "string" }) } else { json!({ "type": "string", "maxLength": LEAD_MAX, "description": "Its first words; source marks go here." }) };
+		fields.push(("review", quiz("One standalone check on this topic, stored and asked weeks later, never shown now.")));
+		let opener = object(&["lead", "quiz"], vec![("lead", lead), ("quiz", quiz("Its first prediction."))]);
 		fields.push(("opener", described(opener, "The next topic's start, shown when he goes on, before you reply.")));
 	}
 	object(&["nodeId"], fields)
-}
-
-/// The shown schema without what the tool's own lines say better: both quiz types and the lead's
-/// cap.
-fn check_schema(parameters: &Json) -> Json {
-	let mut schema = parameters.clone();
-	let plain_type = |quiz: &mut Json| {
-		if let Some(fields) = quiz.as_obj_mut().and_then(|q| q.get_mut("properties")).and_then(Json::as_obj_mut) {
-			fields.insert("type", json!({ "type": "string" }));
-		}
-	};
-	if let Some(fields) = schema.as_obj_mut().and_then(|s| s.get_mut("properties")).and_then(Json::as_obj_mut) {
-		if let Some(review) = fields.get_mut("review") {
-			plain_type(review);
-		}
-		if let Some(opener) = fields.get_mut("opener").and_then(|o| o.as_obj_mut()).and_then(|o| o.get_mut("properties")).and_then(Json::as_obj_mut) {
-			if let Some(quiz) = opener.get_mut("quiz") {
-				plain_type(quiz);
-			}
-			opener.insert("lead", json!({ "type": "string" }));
-		}
-	}
-	schema
 }
 
 /// The shipped quiz lines under a path: `review.correctAnswer ...`, or `review: Two options ...`
@@ -250,8 +239,7 @@ impl Tool for TopicDone {
 
 /// The tool for one Study turn, under the gate the study problem and conclude share.
 pub fn topic_done_tool(record: LessonRecord, gate: &Arc<TurnGate>, check_marks: CheckMarks, node_check: NodeCheck, multiple_choice: bool) -> FnTool {
-	let parameters = parameters(multiple_choice);
-	let check_schema = check_schema(&parameters);
+	let (parameters, check_schema) = (parameters(multiple_choice, false), parameters(multiple_choice, true));
 	FnTool::from_tool(Arc::new(TopicDone { description: description(multiple_choice), parameters, check_schema, multiple_choice, record, gate: gate.clone(), check_marks, node_check }))
 }
 
@@ -440,6 +428,15 @@ mod tests {
 		let stop = &done["details"]["stop"];
 		assert_eq!((stop["kind"].as_str(), stop["nodeId"].as_str(), stop["activeMinutes"].as_f64()), (Some("topic"), Some("n3"), Some(0.0)));
 		assert_eq!(done["terminate"], Json::Bool(true));
+	}
+
+	#[test]
+	fn the_nested_quizzes_are_shown_by_name_and_not_spelled_out() {
+		let (tool, _) = tool_on(Vec::new(), true);
+		let shown = tool.parameters()["properties"].clone();
+		assert_eq!(shown["review"], json!({ "type": "object", "additionalProperties": true, "description": "One standalone check on this topic, stored and asked weeks later, never shown now." }));
+		assert_eq!(shown["opener"]["properties"]["quiz"], json!({ "type": "object", "additionalProperties": true, "description": "Its first prediction." }));
+		assert_eq!(shown["opener"]["properties"]["lead"], json!({ "type": "string", "maxLength": 700, "description": "Its first words; source marks go here." }));
 	}
 
 	#[tokio::test]
