@@ -8,7 +8,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { danglingQuestionOf, needsContinuation, type LhMessage } from "../../src/shared/core/native-messages.ts";
 import { findPendingToolCall } from "../../src/shared/core/pending.ts";
-import { projectView, withOpenReview, type FromEarlierData } from "../../src/shared/core/view.ts";
+import { projectView, reuseUnchangedMessages, withOpenReview, type FromEarlierData } from "../../src/shared/core/view.ts";
 import type { ReviewQuestion } from "../../src/shared/core/contracts/chat.ts";
 import { call, marker, result, review, reviewDetails, text, userText } from "../stop-fixtures.ts";
 
@@ -43,6 +43,16 @@ describe("projectView: From earlier", () => {
 	it("a new sitting, or teacher words between, starts a new card", () => {
 		assert.deepEqual(cards([review("r1", reviewDetails("Bayes' rule", "right", 0), 1), review("r2", reviewDetails("Eigenvalues", "right", 60), 61)]), [["Bayes' rule"], ["Eigenvalues"]]);
 		assert.deepEqual(cards([review("r1", reviewDetails("Bayes' rule", "right", 0), 1), text("t1", "Next.", 2), review("r2", reviewDetails("Eigenvalues", "right", 0), 3)]), [["Bayes' rule"], ["Eigenvalues"]]);
+	});
+
+	it("the card keeps its identity while its rows did not change, so streaming never redraws it", () => {
+		const record = [userText("u1", "Start", 0), review("r1", reviewDetails("Bayes' rule", "wrong", 0), 1), text("t1", "Here", 2)];
+		const before = projectView(record);
+		const after = reuseUnchangedMessages(before, projectView([...record.slice(0, 2), text("t1", "Here is the page.", 2)]));
+		assert.equal(after[1], before[1], "the card");
+		assert.notEqual(after[2], before[2], "the reply it streams under");
+		const grown = reuseUnchangedMessages(before, projectView([...record.slice(0, 2), review("r2", reviewDetails("Eigenvalues", "right", 0), 1.5), record[2]!]));
+		assert.notEqual(grown[1], before[1], "a new row redraws it");
 	});
 
 	it("a marker with no answer draws nothing", () => {

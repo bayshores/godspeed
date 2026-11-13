@@ -400,7 +400,9 @@ function sameViewMessage(a: LhViewMessage, b: LhViewMessage): boolean {
 	if (a.id !== b.id || a.role !== b.role || a.parts.length !== b.parts.length) return false;
 	if (!sameValue(a.metadata, b.metadata, 1)) return false;
 	for (let i = 0; i < a.parts.length; i++) {
-		if (!sameValue(a.parts[i], b.parts[i], 2)) return false;
+		// A From earlier card's rows are a fresh list of record objects.
+		const depth = a.parts[i]!.type === "data-from-earlier" ? 3 : 2;
+		if (!sameValue(a.parts[i], b.parts[i], depth)) return false;
 	}
 	return true;
 }
