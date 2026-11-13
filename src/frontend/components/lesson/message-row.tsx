@@ -11,6 +11,7 @@ import { LiveToolCard } from "@/frontend/components/artifacts/live-tool-card";
 import { SubagentSteerCard } from "@/frontend/components/artifacts/steer-card";
 import { artifactRenderers } from "@/frontend/components/artifacts";
 import { AnsweredCard } from "@/frontend/components/answered-card";
+import { isPrediction } from "@/frontend/components/answered-card-model";
 import { PhaseDivider } from "@/frontend/components/phase-divider";
 import { ThinkingCard, type PracticeThinkingData } from "@/frontend/components/practice-cards";
 import { SpaceContextCard, GraphContextCard, type SpaceContextData, type GraphContextData } from "@/frontend/components/graph-context-card";
@@ -279,7 +280,7 @@ function AssistantPart({
 			if (part.state !== "output-available") return null;
 			return (
 				<div data-answer-call={part.toolCallId} className={cn("flex scroll-mt-4 flex-col gap-2", arrive(slot), arrive(slot) && answerFlash(part.output as QuestionAnswerData))}>
-					<AnsweredCard answer={part.output as QuestionAnswerData} input={part.input} />
+					<AnsweredCard answer={part.output as QuestionAnswerData} input={part.input} plotValue={part.plotValue as number | undefined} />
 					{part.files && <MessageAttachments parts={part.files} />}
 				</div>
 			);
@@ -288,7 +289,8 @@ function AssistantPart({
 			// A tool call being written: the live card (spinner + activity
 			// label). Live and settled cards share one wrapper slot, so the
 			// swap never replays the rise.
-			if (part.state === "input-streaming") {
+			// A plot being checked draws its own box ("Drawing the plot").
+			if (part.state === "input-streaming" && part.type !== "tool-plot") {
 				return (
 					<div className={cn("flex flex-col", arrive(slot))}>
 						<LiveToolCard part={part as ArtifactPartProps["part"]} />
@@ -307,8 +309,9 @@ function AssistantPart({
 	}
 }
 
-/** A just-checked graded answer flashes green or red (globals.css). */
+/** A just-checked graded answer flashes green or red (globals.css); a
+ *  prediction is never marked. */
 function answerFlash(answer: QuestionAnswerData): string | undefined {
-	if (answer.dontKnow || answer.correct === undefined) return undefined;
+	if (answer.dontKnow || answer.correct === undefined || isPrediction(answer)) return undefined;
 	return answer.correct ? "lh-flash-right" : "lh-flash-wrong";
 }

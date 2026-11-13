@@ -10,6 +10,7 @@ import { cn } from "@/frontend/lib/utils";
 import { MessageResponse, ToolContentResponse } from "@/frontend/components/ai-elements/message";
 import type { QuestionAnswerData } from "@/shared/core";
 import { answerForPresentation, confidenceLevel, fencedCode, parseAskInput, parseQuizInput, questionKindLabel } from "@/shared/core";
+import { guessResultLine, isPrediction } from "./answered-card-model";
 
 /** Lesson prose at a given size/leading/color (the markdown renderer reads
  *  these variables). */
@@ -23,7 +24,8 @@ const kindWords = (label: string) => (label === "Prediction" ? "Your prediction"
 /** Old answers carry no tool name: their kind stands in for it. */
 const KIND_TOOL = { quiz: "quiz", explain: "explain", code: "write_code", ask: "ask" } as const;
 
-/** The verdict tag: Right / Wrong / Didn't know (quiz answers only). */
+/** The verdict tag: Right / Wrong / Didn't know (quiz answers only; a
+ *  prediction is never marked). */
 function ResultChip({ answer }: { answer: QuestionAnswerData }) {
 	const [tone, word] = answer.dontKnow ? (["plain", "Didn't know"] as const) : answer.correct ? (["right", "Right"] as const) : (["wrong", "Wrong"] as const);
 	return (
@@ -81,8 +83,10 @@ export function QuizWhy({ answer }: { answer: QuestionAnswerData }) {
 
 /**
  * An answered question in the lesson: one
- * compact card: the verdict, "Your prediction, step 10, sure 4 of 5" and
- * a Why button over the question. The rest opens under the toggle: the graded options and the
+ * compact card: the verdict, "Quiz, step 10, sure 4 of 5" and
+ * a Why button over the question. A prediction has no verdict; under its
+ * question it names the right answer when he missed, and on a plot what
+ * the line gives. The rest opens under the toggle: the graded options and the
  * explanation (quiz), the committed answer (explain), the learner's
  * thinking.
  *
@@ -95,11 +99,14 @@ export function AnsweredCard({
 	answer: savedAnswer,
 	input,
 	defaultOpen = false,
+	plotValue,
 }: {
 	answer: QuestionAnswerData;
 	input?: unknown;
 	/** Start with the details open (the toggle still closes them). */
 	defaultOpen?: boolean;
+	/** A plot guess: the drawn value it asked about (plot-view.ts). */
+	plotValue?: number;
 }) {
 	const answer = answerForPresentation(savedAnswer, input);
 	const [open, setOpen] = useState(defaultOpen);
@@ -134,6 +141,7 @@ export function AnsweredCard({
 				: !!parsedDetails || descByIndex.size > 0 || !!thinking;
 	// What an ask or explain learner said stays in view (it is the record).
 	const said = isAsk ? (answer.options ?? []).filter((o) => selectedIdx.has(o.index)) : [];
+	const resultLine = guessResultLine(answer, input, plotValue);
 
 	return (
 		<>
@@ -144,7 +152,7 @@ export function AnsweredCard({
 			)}
 			<div data-testid="answered-card" className={cn(CARD, "flex flex-col gap-2.5 text-card-foreground")}>
 				<div className="flex flex-wrap items-center gap-2.5">
-					{isQuiz && <ResultChip answer={answer} />}
+					{isQuiz && !isPrediction(answer) && <ResultChip answer={answer} />}
 					<span className="font-count text-[15px] text-ink-2">
 						<span data-testid="answer-kind">
 							{kindWords(questionKindLabel(answer.tool ?? KIND_TOOL[answer.kind], answer.questionType))}
@@ -170,8 +178,15 @@ export function AnsweredCard({
 						</button>
 					)}
 				</div>
-				<div className="text-ink-2" style={proseVars(16, 24, "var(--muted-foreground)")}>
-					<ToolContentResponse>{answer.questionText}</ToolContentResponse>
+				<div>
+					<div className="text-ink-2" style={proseVars(16, 24, "var(--muted-foreground)")}>
+						<ToolContentResponse>{answer.questionText}</ToolContentResponse>
+					</div>
+					{resultLine && (
+						<div data-testid="guess-result" className="text-ink" style={proseVars(16, 24, "var(--foreground)")}>
+							<ToolContentResponse>{resultLine}</ToolContentResponse>
+						</div>
+					)}
 				</div>
 				{(said.length > 0 || answer.other) && (
 					<div data-testid="answered-said" className="flex flex-col gap-1 text-[15px] text-ink">

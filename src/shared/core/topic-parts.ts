@@ -12,7 +12,7 @@ import { replaceCiteMarks } from "./citations.ts";
 import type { LhMessage } from "./native-messages.ts";
 import { shownOpeners } from "./topic-end.ts";
 
-const PLOT_TOOL = "plot";
+export const PLOT_TOOL = "plot";
 
 /** A topic's page: the quoted mark, and where it sits: in a reply (its
  *  message id) or in the lead of the opener a topic_done stored (its call

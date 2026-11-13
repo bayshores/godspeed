@@ -7,6 +7,7 @@ import { ProbeDoneCard } from "@/frontend/components/artifacts/probe-done-card";
 import { RuleSavedLine } from "@/frontend/components/artifacts/rule-saved-line";
 import { ToolCallCard } from "@/frontend/components/artifacts/tool-call-card";
 import { ProblemCard, ConcludeCard } from "@/frontend/components/practice-cards";
+import { PlotPart } from "@/frontend/components/lesson/plot-part";
 
 /**
  * Artifact renderer registry — the extension point for tool-part UI.
@@ -46,4 +47,6 @@ export const artifactRenderers: Record<string, ComponentType<ArtifactPartProps>>
 	conclude: ConcludeCard,
 	// A rule the teacher saved: one line with Undo and Edit.
 	save_rule: RuleSavedLine,
+	// A plot with one slider, locked until its guess is answered.
+	plot: PlotPart,
 };

@@ -826,6 +826,17 @@ body:has(.lh-own-bar) .lh-app-bar {
 	animation: lh-rise-in var(--lh-dur) var(--lh-ease-out) both;
 }
 
+/* A plot's held-back lines and slider, once his guess is answered: drawn in
+   left to right in four steps. */
+@keyframes lh-draw-in {
+	from {
+		clip-path: inset(0 100% 0 0);
+	}
+}
+.lh-draw-in {
+	animation: lh-draw-in 400ms steps(4, end) both;
+}
+
 .lh-press {
 	transition-property: color, background-color, border-color, box-shadow, opacity, transform;
 	transition-duration: var(--lh-dur);
@@ -853,7 +864,8 @@ body:has(.lh-own-bar) .lh-app-bar {
 	.lh-pop,
 	.lh-dialog,
 	.lh-fade,
-	.lh-rise {
+	.lh-rise,
+	.lh-draw-in {
 		animation: none !important;
 	}
 	.lh-press,

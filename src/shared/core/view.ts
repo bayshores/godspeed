@@ -42,6 +42,7 @@ import { shownOpeners, type ShownOpener } from "./topic-end.ts";
 import type { SubagentArtifactData, SubagentResultMeta } from "./contracts/jobs.ts";
 import type { PlanBlockData, ReviewDetails, ReviewQuestion } from "./contracts/chat.ts";
 import { pdfNoteOf, type AttachmentPart } from "./attachments.ts";
+import { joinPlots } from "./plot-view.ts";
 
 /** A view part — the loose part vocabulary the renderers consume
  *  (UIMessage-style shape names, which the renderer switch and the
@@ -331,6 +332,7 @@ export function projectView(messages: readonly LhMessage[], live?: LiveTurnState
 		}
 	}
 
+	joinPlots(out);
 	return out;
 }
 

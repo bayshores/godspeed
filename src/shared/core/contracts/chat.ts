@@ -304,5 +304,7 @@ export interface ArtifactPartProps {
 		 *  the modelSolution committed at POSE time, folded onto the part by
 		 *  projectView — the reveal is never re-authored. */
 		reveal?: unknown;
+		/** A plot's guess is answered (plot-view.ts): it draws open. */
+		guessOpen?: boolean;
 	};
 }
