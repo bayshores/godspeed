@@ -11,8 +11,7 @@
  * tool, new role, new appearance field) therefore needs no migration: old
  * records simply lack the new keys. `version` is a PRIVATE schema counter
  * for changes stored records must be upgraded for (CURRENT_SETTINGS_VERSION),
- * unrelated to the app release version. Migrations live in the adapter
- * (src/backend/store/settings.ts), not here.
+ * unrelated to the app release version. Migrations live in the server, not here.
  *
  * Sanitizer contract: whatever
  * arrives from disk or the network passes through sanitizeUserSettings
@@ -50,10 +49,10 @@ export interface GeneralSettings {
 	activeSpace?: string;
 	/** First-launch onboarding: true = done or skipped
 	 *  (existing users); false = in progress (shown until finished);
-	 *  absent = not decided yet (src/backend/server/onboarding.ts decides). */
+	 *  absent = not decided yet (the server decides). */
 	onboarded?: boolean;
 	/** The newest version whose "What's new" the learner has been shown
-	 *  ("0.4.1"). Absent = not recorded yet (src/backend/server/whats-new.ts). */
+	 *  ("0.4.1"). Absent = not recorded yet. */
 	lastSeenVersion?: string;
 	/** The on-screen teacher's name. Only shown in
 	 *  the window; the agent's prompts never use it. Default "Halley". */
@@ -65,10 +64,10 @@ export interface GeneralSettings {
 /** The teacher's name when none is set. */
 export const DEFAULT_TEACHER_NAME = "Teacher";
 /** The longest teacher name kept. */
-const TEACHER_NAME_MAX = 40;
+export const TEACHER_NAME_MAX = 40;
 
 /** A teacher name made safe to show. "" = use the default. */
-function sanitizeTeacherName(raw: string): string {
+export function sanitizeTeacherName(raw: string): string {
 	return oneLine(raw, TEACHER_NAME_MAX);
 }
 

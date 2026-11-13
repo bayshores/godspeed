@@ -2,7 +2,7 @@
  * "WHAT'S NEW": after an update, the first launch
  * opens this dialog with the changelog entries the learner skipped over
  * (src/shared/changelog.json, newest first). src/frontend/routes/root.tsx
- * passes `since` (from /api/boot, read by src/backend/server/whats-new.ts);
+ * passes `since` (from /api/boot);
  * Settings → General → Release notes reopens it with the current version's
  * notes (openWhatsNew). Styled as the app's other dialogs
  * (space-dialog.tsx): square panel, tone outline, one white button.

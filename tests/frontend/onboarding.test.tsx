@@ -1,0 +1,135 @@
+/**
+ * First-launch onboarding: the settings field, the screens' pure helpers, the
+ * constellation's markup, and the space picker following the server's
+ * active space after onboarding finishes (a fresh /api/boot read).
+ */
+import React, { act } from "react";
+(globalThis as Record<string, unknown>).React = React;
+
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
+import { renderToStaticMarkup } from "react-dom/server";
+import { parseHTML } from "linkedom";
+
+const dom = parseHTML("<!doctype html><html><body></body></html>");
+(dom.document as unknown as { oninput: null }).oninput = null;
+Object.assign(globalThis, {
+	window: dom.window,
+	document: dom.document,
+	Element: dom.window.Element,
+	HTMLElement: dom.window.HTMLElement,
+	Node: dom.window.Node,
+	CustomEvent: dom.window.CustomEvent,
+	IS_REACT_ACT_ENVIRONMENT: true,
+});
+
+const { sanitizeUserSettings } = await import("../../src/shared/core/settings.ts");
+const { pickedLabel } = await import("../../src/frontend/components/onboarding/space-step-model.ts");
+const { DoneStep } = await import("../../src/frontend/components/onboarding/done-step.tsx");
+const { StepSheet } = await import("../../src/frontend/components/onboarding/step-sheet.tsx");
+const { Wordmark } = await import("../../src/frontend/components/onboarding/wordmark.tsx");
+const { Constellation, DOTS, LINKS, dotDelay } = await import("../../src/frontend/components/onboarding/constellation.tsx");
+const { createRoot } = await import("react-dom/client");
+const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
+const { SpaceProvider, useSpaces } = await import("../../src/frontend/components/space-context.tsx");
+
+describe("the onboarded setting", () => {
+	it("the sanitizer keeps a boolean and drops anything else", () => {
+		assert.equal(sanitizeUserSettings({ general: { onboarded: true } })?.general?.onboarded, true);
+		assert.equal(sanitizeUserSettings({ general: { onboarded: false } })?.general?.onboarded, false);
+		assert.equal(sanitizeUserSettings({ general: { onboarded: "yes" } })?.general?.onboarded, undefined);
+	});
+});
+
+describe("onboarding screen helpers", () => {
+	it("pickedLabel: a folder path or up to three file names", () => {
+		assert.equal(pickedLabel(null), null);
+		assert.equal(pickedLabel({ kind: "folder", path: "/u/notes" }), "Folder: /u/notes");
+		const files = ["a.pdf", "b.md", "c.txt", "d.pdf"].map((name) => ({ name }) as File);
+		assert.equal(pickedLabel({ kind: "files", files: files.slice(0, 1) }), "1 file: a.pdf");
+		assert.equal(pickedLabel({ kind: "files", files }), "4 files: a.pdf, b.md, c.txt, …");
+	});
+	it("the done step without an agent: teaching waits for one, and a button goes back to step 1", () => {
+		const done = (over: Partial<React.ComponentProps<typeof DoneStep>> = {}) =>
+			renderToStaticMarkup(<DoneStep agent={null} onStart={() => {}} onConnect={() => {}} disabled={false} failed={false} {...over} />);
+		const none = done();
+		assert.ok(none.includes("Teaching starts once an agent is connected."));
+		assert.ok(none.includes('data-testid="onboarding-connect"'));
+		assert.ok(none.includes("Start your agent"));
+		assert.ok(!none.includes("You’re all set."));
+		const set = done({ agent: { name: "Codex" } });
+		assert.ok(set.includes("You’re all set."));
+		assert.ok(set.includes("Ask Codex to teach you anything"));
+		assert.ok(!set.includes("onboarding-connect"));
+	});
+	it("the done step after a failed save: an error and Try again", () => {
+		const html = renderToStaticMarkup(<DoneStep agent={{}} onStart={() => {}} onConnect={() => {}} disabled={false} failed />);
+		assert.ok(html.includes('data-testid="onboarding-save-error"'));
+		assert.match(html, /data-testid="onboarding-finish"[^>]*>Try again</);
+	});
+	it("a setup step: the step bar with the current step filled, over a sheet with the title and sentence", () => {
+		const html = renderToStaticMarkup(
+			<StepSheet at={2} title="Add your first space" sub="Each space gets its own lessons.">
+				<p>inside</p>
+			</StepSheet>,
+		);
+		assert.match(html, /data-testid="onboarding-steps"/);
+		assert.match(html, /bg-ink text-background[^>]*>2<\/span><span[^>]*>Space</);
+		assert.match(html, /<h1[^>]*>Add your first space<\/h1>/);
+		assert.ok(html.includes("inside"));
+	});
+	it("the wordmark: the pixel g on its tile beside the app's name", () => {
+		const html = renderToStaticMarkup(<Wordmark />);
+		assert.match(html, /<svg[^>]*viewBox="0 0 132 132"/);
+		assert.match(html, /<h1[^>]*>godspeed<\/h1>/);
+	});
+	it("dotDelay: dots appear left to right", () => {
+		const near = (a: number, b: number) => assert.ok(Math.abs(a - b) < 1e-9, `${a} ≈ ${b}`);
+		near(dotDelay(130), 0.6);
+		near(dotDelay(740), 1.3);
+		near(dotDelay(1300), 1.7);
+		assert.ok(dotDelay(400) < dotDelay(600));
+	});
+	it("the constellation draws every dot and link, tagged with its mode", () => {
+		const html = renderToStaticMarkup(<Constellation mode="intro" />);
+		assert.ok(html.includes('data-mode="intro"'));
+		assert.equal(html.match(/class="ob-dot /g)?.length, DOTS.length);
+		assert.equal(html.match(/class="ob-link"/g)?.length, LINKS.length);
+		assert.ok(html.includes('aria-hidden="true"'));
+	});
+});
+
+describe("the space picker after onboarding", () => {
+	it("follows the server's active space when the page refreshes", async () => {
+		const originalFetch = globalThis.fetch;
+		globalThis.fetch = (async () =>
+			new Response(JSON.stringify({ spaces: [{ id: "cls_new", name: "CSE 29" }] }), { status: 200 })) as typeof fetch;
+		const host = document.createElement("div");
+		document.body.append(host);
+		const root = createRoot(host);
+		const connect = () => ({ onEvent() {}, onOpen() {}, close() {} });
+		function Probe() {
+			const { active } = useSpaces();
+			return <span data-testid="active">{active ?? "none"}</span>;
+		}
+		const tree = (initialActive: string | null) => (
+			<ServerEventsProvider connect={connect as never}>
+				<SpaceProvider initialActive={initialActive}>
+					<Probe />
+				</SpaceProvider>
+			</ServerEventsProvider>
+		);
+		try {
+			await act(async () => root.render(tree(null)));
+			assert.equal(host.textContent, "none");
+			await act(async () => root.render(tree("cls_new")));
+			await act(async () => {
+				await new Promise((r) => setTimeout(r, 20));
+			});
+			assert.equal(host.textContent, "cls_new");
+		} finally {
+			await act(async () => root.unmount());
+			globalThis.fetch = originalFetch;
+		}
+	});
+});

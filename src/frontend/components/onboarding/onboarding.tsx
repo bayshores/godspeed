@@ -1,6 +1,6 @@
 /**
  * FIRST-LAUNCH ONBOARDING. Rendered by src/frontend/routes/root.tsx INSTEAD of
- * the app frame while src/backend/server/onboarding.ts says it is needed:
+ * the app frame while the server says it is needed:
  *
  *   intro → 1 Start your agent → 2 Add your first space → You're all set
  *
