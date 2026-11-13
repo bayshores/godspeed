@@ -54,6 +54,9 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: cargo install cargo-machete --locked --version 0.9.2
       - run: npm ci
+      # The search tests run the model, and on Linux load ONNX Runtime from .stage/.
+      - run: node scripts/fetch-model.mjs
+      - run: node scripts/fetch-onnxruntime.mjs
       - run: npm run check
       - name: Skill tests (Python)
         run: python3 -B -m unittest discover -s tests/skills
