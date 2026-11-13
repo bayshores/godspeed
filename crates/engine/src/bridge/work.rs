@@ -23,15 +23,15 @@ const WAIT_SLICE_MS: i64 = 15_000;
 /// Who asks for work.
 #[derive(Clone, Default)]
 pub struct WaitOptions {
-	/// Stay on this conversation: its items (and Talk's, for a lesson) only.
+	/// Stay on this conversation: its items (and Talk's, for a lesson) first.
 	pub conversation: Option<String>,
 	/// The asking agent's session id, when its client sends one.
 	pub agent: Option<String>,
 	/// Present the item in full even if the agent saw it before.
 	pub full: bool,
-	/// With a conversation, also take background jobs, so an agent staying on one lesson
-	/// still does the file reading and graph work nobody else would.
-	pub and_background: bool,
+	/// With a conversation, also take what nobody else would: another lesson's turns while no
+	/// other waiter waits for them, and background jobs while no helper is here.
+	pub and_others: bool,
 	/// The helper's waiter.
 	pub helper: bool,
 }
@@ -95,9 +95,15 @@ fn oldest(state: &State, now: i64, opts: &WaitOptions, keep: impl Fn(&WorkItem) 
 	})
 }
 
+/// No other wait is under way for this lesson: none stays on it, and none takes any work.
+fn unwaited(state: &State, lesson: &str) -> bool {
+	!state.waiting.iter().any(|(_, on)| on.as_deref().is_none_or(|on| on == lesson))
+}
+
 /// The next item. A teacher: any, or its conversation's (a lesson also takes Talk's, oldest first,
-/// so Talk never waits on a lesson), then background jobs when asked; it leaves background jobs to
-/// a helper that is here. A helper: background jobs, and what it began.
+/// so Talk never waits on a lesson, and when asked another lesson's no one else waits for, so one
+/// agent takes turns), then background jobs when asked; it leaves background jobs to a helper that
+/// is here. A helper: background jobs, and what it began.
 fn pick(state: &State, now: i64, opts: &WaitOptions) -> Option<usize> {
 	if opts.helper {
 		// A compacting teacher's lesson and Talk turns come first, so they wait one job step at most.
@@ -110,8 +116,31 @@ fn pick(state: &State, now: i64, opts: &WaitOptions) -> Option<usize> {
 	let alone = !helper::here(state, now);
 	let Some(conversation) = opts.conversation.as_deref() else { return oldest(state, now, opts, |i| alone || !is_background(&i.conversation)) };
 	let with_talk = conversation.starts_with(CHAT_ID_PREFIX);
-	oldest(state, now, opts, |i| i.conversation == conversation || (with_talk && i.conversation == TALK_CHAT_ID))
-		.or_else(|| if opts.and_background && alone { oldest(state, now, opts, |i| is_background(&i.conversation)) } else { None })
+	let others = with_talk && opts.and_others;
+	oldest(state, now, opts, |i| i.conversation == conversation || (with_talk && i.conversation == TALK_CHAT_ID) || (others && !is_background(&i.conversation) && unwaited(state, &i.conversation)))
+		.or_else(|| if opts.and_others && alone { oldest(state, now, opts, |i| is_background(&i.conversation)) } else { None })
+}
+
+/// A teacher's wait under way, in `State::waiting` until it ends however it ends.
+struct Waiting<'a> {
+	bridge: &'a Bridge,
+	id: u64,
+}
+
+impl<'a> Waiting<'a> {
+	fn start(bridge: &'a Bridge, on: Option<String>) -> Waiting<'a> {
+		let mut s = bridge.0.state.lock();
+		s.waits += 1;
+		let id = s.waits;
+		s.waiting.push((id, on));
+		Waiting { bridge, id }
+	}
+}
+
+impl Drop for Waiting<'_> {
+	fn drop(&mut self) {
+		self.bridge.0.state.lock().waiting.retain(|(id, _)| *id != self.id);
+	}
 }
 
 enum Claim {
@@ -147,6 +176,8 @@ impl Bridge {
 		// An empty lesson_id is no conversation in the TS (a falsy string).
 		let opts = WaitOptions { conversation: opts.conversation.filter(|c| !c.is_empty()), ..opts };
 		let deadline = clock::now_ms() + timeout_ms;
+		// A helper's wait does not count: it takes lessons only while it covers for a teacher.
+		let _waiting = (!opts.helper).then(|| Waiting::start(self, opts.conversation.clone()));
 		// Held from a wake until this waiter's claim is done, so woken waiters claim in line.
 		let mut ticket = None;
 		loop {

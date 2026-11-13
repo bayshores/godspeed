@@ -26,7 +26,7 @@ fn helper() -> WaitOptions {
 }
 
 fn teacher() -> WaitOptions {
-	WaitOptions { agent: Some("main-1".to_owned()), and_background: true, ..WaitOptions::default() }
+	WaitOptions { agent: Some("main-1".to_owned()), and_others: true, ..WaitOptions::default() }
 }
 
 fn reply(text: &str) -> AgentReply {
@@ -188,4 +188,76 @@ async fn a_helper_without_a_session_id_saves_no_lesson_marks() {
 	bridge.respond_to_work(&turn.work_id, reply("Hi."), 0).unwrap();
 	lesson.await.unwrap();
 	assert!(marks.0.lock().is_empty());
+}
+
+fn staying_on(agent: &str, lesson: &str) -> WaitOptions {
+	WaitOptions { conversation: Some(lesson.to_owned()), agent: Some(agent.to_owned()), and_others: true, ..WaitOptions::default() }
+}
+
+fn waiting(bridge: &Bridge, opts: WaitOptions) -> tokio::task::JoinHandle<Option<gs_engine::bridge::WorkView>> {
+	let bridge = bridge.clone();
+	tokio::spawn(async move { bridge.wait_for_work(60_000, opts).await })
+}
+
+#[tokio::test]
+async fn an_agent_staying_on_a_lesson_takes_a_new_lessons_first_turn_at_once() {
+	let bridge = Bridge::new(&Events::new(), Arc::new(Marks::default()));
+	let waiter = waiting(&bridge, staying_on("main-1", "chat_l1"));
+	clock::sleep(50).await;
+	let asked = Instant::now();
+	let call = park(&bridge, vec![user("teach me ridge")], "chat_l2", &Abort::new());
+	let view = waiter.await.unwrap().unwrap();
+	assert!(asked.elapsed().as_millis() < 1_000);
+	assert_eq!(view.conversation, "chat_l2");
+	bridge.respond_to_work(&view.work_id, reply("Hi."), 0).unwrap();
+	call.await.unwrap();
+}
+
+#[tokio::test]
+async fn two_agents_staying_on_their_own_lessons_each_take_their_own() {
+	let bridge = Bridge::new(&Events::new(), Arc::new(Marks::default()));
+	// The first in line looks first, and the older item is the other agent's.
+	let first = waiting(&bridge, staying_on("main-1", "chat_l1"));
+	clock::sleep(50).await;
+	let second = waiting(&bridge, staying_on("main-2", "chat_l2"));
+	clock::sleep(50).await;
+	let l2 = park(&bridge, vec![user("for two")], "chat_l2", &Abort::new());
+	clock::sleep(50).await;
+	let l1 = park(&bridge, vec![user("for one")], "chat_l1", &Abort::new());
+	let (one, two) = (first.await.unwrap().unwrap(), second.await.unwrap().unwrap());
+	assert_eq!((one.conversation.as_str(), two.conversation.as_str()), ("chat_l1", "chat_l2"));
+	bridge.respond_to_work(&one.work_id, reply("One."), 0).unwrap();
+	bridge.respond_to_work(&two.work_id, reply("Two."), 0).unwrap();
+	l1.await.unwrap();
+	l2.await.unwrap();
+}
+
+#[tokio::test]
+async fn another_lessons_turn_goes_to_a_waiter_that_takes_any_work() {
+	let bridge = Bridge::new(&Events::new(), Arc::new(Marks::default()));
+	let staying = waiting(&bridge, staying_on("main-1", "chat_l1"));
+	clock::sleep(50).await;
+	let any = waiting(&bridge, WaitOptions { agent: Some("main-2".to_owned()), ..teacher() });
+	clock::sleep(50).await;
+	let call = park(&bridge, vec![user("hi")], "chat_l2", &Abort::new());
+	let view = any.await.unwrap().unwrap();
+	assert_eq!(view.conversation, "chat_l2");
+	bridge.respond_to_work(&view.work_id, reply("Hi."), 0).unwrap();
+	call.await.unwrap();
+	assert!(!staying.is_finished(), "the agent staying on chat_l1 still waits");
+	staying.abort();
+}
+
+#[tokio::test]
+async fn an_agent_staying_on_a_lesson_still_takes_talk() {
+	let bridge = Bridge::new(&Events::new(), Arc::new(Marks::default()));
+	let waiter = waiting(&bridge, staying_on("main-1", "chat_l1"));
+	let other = waiting(&bridge, staying_on("main-2", "chat_l2"));
+	clock::sleep(50).await;
+	let call = park(&bridge, vec![user("a quick question")], "chat_talk", &Abort::new());
+	let view = waiter.await.unwrap().unwrap();
+	assert_eq!(view.conversation, "chat_talk");
+	bridge.respond_to_work(&view.work_id, reply("Sure."), 0).unwrap();
+	call.await.unwrap();
+	other.abort();
 }

@@ -170,7 +170,7 @@ pub async fn wait_for_work(call: &ToolCall<'_>, args: &Json) -> Json {
 		};
 	}
 	app.bridge.stay_on(agent.as_deref(), lesson_id);
-	let opts = WaitOptions { conversation: lesson_id.map(str::to_owned), agent, full, and_background: true, helper: false };
+	let opts = WaitOptions { conversation: lesson_id.map(str::to_owned), agent, full, and_others: true, helper: false };
 	// Waiting counts the agent as working at once, so what godspeed queues for it now (catch-up)
 	// reaches this same wait.
 	let wait = app.bridge.wait_for_work(wait_ms(args["timeout_seconds"].as_f64()), opts);

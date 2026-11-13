@@ -14,7 +14,7 @@
 					"maximum": 600
 				},
 				"lesson_id": {
-					"description": "Stay on this lesson: take its turns and Talk messages, plus background jobs (file reading, graph building, research) while no helper is open, so they never get stuck. Other lessons wait.",
+					"description": "Stay on this lesson: take its turns and Talk messages, plus other lessons' turns no one else waits for and background jobs (file reading, graph building, research) while no helper is open, so they never get stuck.",
 					"type": "string"
 				},
 				"full_context": {

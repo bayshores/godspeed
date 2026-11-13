@@ -101,6 +101,10 @@ struct State {
 	held: HashMap<String, i64>,
 	/// Background conversations whose run has not ended.
 	background_runs: HashSet<String>,
+	/// The teachers' waits under way (helpers' are left out): id, and the lesson each stays on.
+	waiting: Vec<(u64, Option<String>)>,
+	/// Counts waits, so each has its own id.
+	waits: u64,
 	/// agent ("" = no id) → the lesson its waiter stays on.
 	staying_on: HashMap<String, String>,
 	/// agent → when it started compacting its context.
