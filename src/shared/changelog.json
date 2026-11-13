@@ -1,5 +1,24 @@
 [
 	{
+		"version": "0.5.51",
+		"date": "2026-11-12",
+		"changes": [
+			"godspeed has a new look. A top bar replaces the sidebar, with Today, a tab for each space, Follow, the teacher and Menu, and Settings, Appearance has a Paper and a Night background.",
+			"Classes are now called spaces, since you can study anything in one, like a course, a certification or a language. Your classes move over by themselves.",
+			"Today is one list of what's due next across every space, each with one button to start and a Done stamp you can undo. Deadlines further out sit under Later.",
+			"Each space has tabs for Progress, Lessons, Files, Graph, Cheat sheets and Deadlines. On Deadlines you add, change, mark done and delete them.",
+			"A lesson is the reading on the left and the teacher on the right, with one writing box for every message, answer and piece of work.",
+			"Prepare for something, in the menu, makes a prep for one interview or test. The teacher looks it up and writes a prep sheet with the topics to study, and you take timed mocks like the real thing. Code questions run their examples on your computer, and Go over it studies what you got wrong.",
+			"When the teacher uses your space's files or a web page, a small number marks it. Click it to see that page. The sources are listed under the message.",
+			"In study, each topic starts the way that fits it, whether it's a term, a method, an idea or a proof. A problem you gave up on comes back in a new form, and the session ends by asking where you'd use one of today's topics.",
+			"A wrong guess on a prediction question no longer counts as a mistake.",
+			"A space shows when the teacher is reading its files and what it made, on the space, on Today and in Talk.",
+			"If you start your agent through a launcher, Change command under the Open Claude Code button sets the command godspeed runs.",
+			"The new logo is a pixel g on a paper tile. The teacher has no mascot anymore, only its name and what it's doing.",
+			"The next godspeed is a new app. A Mac on macOS 14 or newer moves to it like any update, and an older Mac keeps this version. On Windows and Linux, godspeed tells you when the new app is ready to download, and your spaces and lessons stay."
+		]
+	},
+	{
 		"version": "0.5.50",
 		"date": "2026-11-11",
 		"changes": [
