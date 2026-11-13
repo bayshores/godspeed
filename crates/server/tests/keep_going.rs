@@ -1,6 +1,8 @@
-//! POST /api/chats/{id}/keep-going: Keep going at a stop. 404 for an unknown lesson, 400 for a
-//! malformed input or (no turn running) a call that carries no stop, and 200 saying whether the
-//! next topic's stored opener now shows and whether a turn was running.
+//! The lesson event routes. POST /api/chats/{id}/keep-going: Keep going at a stop. 404 for an
+//! unknown lesson, 400 for a malformed input or (no turn running) a call that carries no stop, and
+//! 200 saying whether the next topic's stored opener now shows and whether a turn was running.
+//! POST /api/chats/{id}/kept: drop a kept sentence's analogy or phrase, or bring it back, even
+//! during a turn.
 
 use std::sync::Arc;
 
@@ -63,4 +65,30 @@ async fn keep_going_answers_each_case() {
 	assert!(begin_turn(&app, &chat_id));
 	assert_eq!(post(port, &path, r#"{"input":{"stopOf":"c9"}}"#).await, (200, json!({ "ok": true, "opener": false, "running": true })), "during a turn: stored unchecked");
 	end_turn(&app, &chat_id);
+}
+
+#[tokio::test]
+async fn kept_drops_and_brings_back_a_part_of_a_kept_sentence() {
+	let (app, port) = serve().await;
+	let chat_id = app.stores.chats.create_chat("Study for Midterm", Some("study"), None, None).unwrap()["id"].as_str().unwrap().to_owned();
+	let keep = json!({ "text": "Lambda prices large weights.", "fits": "The leash fits one part.", "stops": "It stops at new data." });
+	app.stores.chats.save_messages(&chat_id, &[
+		json!({ "role": "assistant", "content": [{ "type": "toolCall", "id": "q5", "name": "quiz", "arguments": { "nodeId": "reg", "keep": keep } }], "timestamp": 1 }),
+		json!({ "role": "custom", "customType": "keep-check", "content": "", "details": { "quizCallId": "q5", "keep": "shown", "fits": true, "phrase": false }, "timestamp": 1 }),
+		json!({ "role": "toolResult", "toolCallId": "q5", "toolName": "quiz", "details": { "kind": "quiz", "correct": true }, "isError": false, "timestamp": 2 }),
+	]).unwrap();
+	let path = format!("/api/chats/{chat_id}/kept");
+	let malformed = json!({ "error": "input must be { of: string, part: \"analogy\" | \"phrase\", back?: true }" });
+
+	assert_eq!(post(port, "/api/chats/chat_gone/kept", r#"{"input":{"of":"q5","part":"analogy"}}"#).await, (404, json!({ "error": "Unknown chat" })));
+	assert_eq!(post(port, &path, r#"{"input":{"of":"q5"}}"#).await, (400, malformed.clone()));
+	assert_eq!(post(port, &path, r#"{"input":{"of":"q5","part":"analogy","back":false}}"#).await, (400, malformed));
+	assert_eq!(post(port, &path, r#"{"input":{"of":"q5","part":"phrase"}}"#).await, (400, json!({ "error": "No kept sentence with that part on that call" })), "it has no phrase");
+	assert!(begin_turn(&app, &chat_id));
+	assert_eq!(post(port, &path, r#"{"input":{"of":"q5","part":"analogy"}}"#).await, (200, json!({ "ok": true })), "during a turn");
+	end_turn(&app, &chat_id);
+	assert_eq!(post(port, &path, r#"{"input":{"of":"q5","part":"analogy","back":true}}"#).await, (200, json!({ "ok": true })));
+	let record = app.stores.chats.get_chat(&chat_id).unwrap();
+	let drops: Vec<&Json> = record["messages"].as_arr().unwrap().iter().filter(|m| m["customType"].as_str() == Some("analogy-drop")).map(|m| &m["details"]).collect();
+	assert_eq!((drops.len(), drops[0].get("back"), &drops[1]["back"]), (2, None, &json!(true)));
 }
