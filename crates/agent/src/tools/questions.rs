@@ -3,12 +3,14 @@
 
 use std::sync::Arc;
 
+use gs_core::session::argument_heal::heal_encoded_arguments;
 use gs_core::session::code_question::{write_code_input_problems, write_code_input_schema};
 use gs_core::session::question_core::{
 	ask_input_schema, ask_option_problems, explain_input_base, explain_input_object, explain_input_problems, parse_options_if_string, probe_quiz_input_schema, quiz_input_object, quiz_input_problems,
 	study_quiz_input_object,
 };
 use gs_engine::turn::tool_execute::{invalid_input_result, question_result};
+use gs_engine::turn::validate::validate_tool_arguments;
 use gs_json::{Json, json, stringify_pretty};
 
 use super::fn_tool::FnTool;
@@ -167,20 +169,40 @@ pub fn teach_quiz_tool(ctx: &PlanContext) -> FnTool {
 }
 
 /// The Study quiz: the teach quiz whose schema adds `standalone`, which marks a quiz godspeed may
-/// ask again weeks later.
+/// ask again weeks later, and `onPlot`.
 pub fn study_quiz_tool(ctx: &PlanContext) -> FnTool {
-	node_quiz_tool(ctx, study_quiz_input_object())
+	node_quiz_tool(ctx, study_quiz_input_object()).prepared(prepare_study_quiz)
+}
+
+/// The Study quiz's preparation: `options` sent as a string, then any field sent JSON-encoded.
+fn prepare_study_quiz(args: Json) -> Result<Json, String> {
+	Ok(heal_encoded_arguments(&prepare_question_arguments(args)?, &study_quiz_input_object()))
+}
+
+/// A Study quiz call as its tool takes it: the arguments after its preparation (and validation,
+/// when they pass it), and whether they pass every check. The lesson-parts hook reads a plot's
+/// guess this way.
+pub fn study_quiz_call(ctx: &PlanContext, sent: &Json) -> (Json, bool) {
+	let Ok(prepared) = prepare_study_quiz(sent.clone()) else { return (sent.clone(), false) };
+	match validate_tool_arguments("quiz", &study_quiz_input_object(), &prepared) {
+		Ok(args) => {
+			let passes = node_quiz_problems(ctx, &args).is_empty();
+			(args, passes)
+		}
+		Err(_) => (prepared, false),
+	}
+}
+
+/// The quiz's authoring rules and its plan-node check.
+fn node_quiz_problems(ctx: &PlanContext, args: &Json) -> Vec<String> {
+	let mut problems = quiz_input_problems(args);
+	problems.extend(node_id_problem(ctx, args["nodeId"].as_str().unwrap_or_default()));
+	problems
 }
 
 fn node_quiz_tool(ctx: &PlanContext, schema: Json) -> FnTool {
 	let ctx = ctx.clone();
-	FnTool::immediate("quiz", quiz_description("quiz", true), schema, move |args| {
-		let mut problems = quiz_input_problems(&args);
-		problems.extend(node_id_problem(&ctx, args["nodeId"].as_str().unwrap_or_default()));
-		verdict("quiz", &problems)
-	})
-	.sequential()
-	.prepared(prepare_question_arguments)
+	FnTool::immediate("quiz", quiz_description("quiz", true), schema, move |args| verdict("quiz", &node_quiz_problems(&ctx, &args))).sequential().prepared(prepare_question_arguments)
 }
 
 /// The teach free-recall tool, with the same plan-node check.

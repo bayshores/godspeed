@@ -132,15 +132,24 @@ pub struct PartsVerdict {
 /// The check on a reply's plot and its guess (`quiz.onPlot`), which pass or are refused as a pair,
 /// whatever order the reply lists them in: one plot and one guess, the guess a prediction whose
 /// right option names the drawn value, one plot a topic, and neither this reply nor the topic's
-/// reply before it carrying a page or a plot. `quiz_passes` says whether the guess passes the
-/// quiz's own checks; a guess that fails them is left to them. A plot that fails its own checks is
-/// refused by its preparation; this only refuses its guess with it.
-pub fn reply_parts_problems(lesson_messages: &[Json], reply: &Json, quiz_passes: &dyn Fn(&Json) -> bool) -> PartsVerdict {
+/// reply before it carrying a page or a plot. `quiz_call` gives a quiz call's arguments as the quiz
+/// tool takes them, after its own preparation, and whether they pass its checks; a guess that
+/// fails them is left to them. A plot that fails its own checks is refused by its preparation;
+/// this only refuses its guess with it.
+pub fn reply_parts_problems(lesson_messages: &[Json], reply: &Json, quiz_call: &dyn Fn(&Json) -> (Json, bool)) -> PartsVerdict {
 	let id = |c: &Json| c["id"].as_str().unwrap_or_default().to_owned();
 	let plots: Vec<&Json> = calls(reply).filter(|c| c["name"].as_str() == Some(PLOT_TOOL)).collect();
-	let guesses: Vec<&Json> = calls(reply).filter(|c| c["name"].as_str() == Some("quiz") && c["arguments"]["onPlot"].as_obj().is_some()).collect();
+	// Each guess's call id, its prepared arguments, and whether they pass the quiz's checks.
+	let guesses: Vec<(String, Json, bool)> = calls(reply)
+		.filter(|c| c["name"].as_str() == Some("quiz"))
+		.map(|c| {
+			let (args, passes) = quiz_call(&c["arguments"]);
+			(id(c), args, passes)
+		})
+		.filter(|(_, args, _)| args["onPlot"].as_obj().is_some())
+		.collect();
 	// A guess that fails the quiz's own checks is refused by them, in their words.
-	let refuse_guesses = |verdict: &mut PartsVerdict, line: &str| verdict.refused.extend(guesses.iter().filter(|g| quiz_passes(&g["arguments"])).map(|g| (id(g), line.to_owned())));
+	let refuse_guesses = |verdict: &mut PartsVerdict, line: &str| verdict.refused.extend(guesses.iter().filter(|g| g.2).map(|g| (g.0.clone(), line.to_owned())));
 	let mut verdict = PartsVerdict::default();
 	let [plot_call] = plots.as_slice() else {
 		verdict.refused.extend(plots.iter().map(|p| (id(p), "plot: send one plot a reply.".to_owned())));
@@ -154,17 +163,17 @@ pub fn reply_parts_problems(lesson_messages: &[Json], reply: &Json, quiz_passes:
 		_ => vec!["plot: one guess per plot; give onPlot to one quiz.".to_owned()],
 	};
 	let mut value = None;
-	if let (Ok(plot), [guess]) = (&checked, guesses.as_slice()) {
-		if !quiz_passes(&guess["arguments"]) {
+	if let (Ok(plot), [(_, args, passes)]) = (&checked, guesses.as_slice()) {
+		if !passes {
 			problems.push("plot: refused with its quiz. Fix the quiz and re-send both.".to_owned());
 		}
-		value = guess_value(plot, &guess["arguments"], &mut problems);
+		value = guess_value(plot, args, &mut problems);
 	}
 	problems.extend(spacing_problems(lesson_messages, reply));
 	if problems.is_empty()
-		&& let (Ok(_), Some(value), [guess]) = (&checked, value, guesses.as_slice())
+		&& let (Ok(_), Some(value), [(guess_id, _, _)]) = (&checked, value, guesses.as_slice())
 	{
-		verdict.on_plot = Some((id(plot_call), json!({ "toolCallId": id(guess), "value": four_figures(value) })));
+		verdict.on_plot = Some((id(plot_call), json!({ "toolCallId": guess_id, "value": four_figures(value) })));
 		return verdict;
 	}
 	if checked.is_ok() {
@@ -303,8 +312,8 @@ mod tests {
 		]
 	}
 
-	fn passes(_: &Json) -> bool {
-		true
+	fn passes(quiz: &Json) -> (Json, bool) {
+		(quiz.clone(), true)
 	}
 
 	fn penalty_at_8() -> Json {
@@ -333,7 +342,7 @@ mod tests {
 		);
 		let mut wrong = guess("B", json!({ "line": "penalty curve", "x": 12, "slider": 6 }));
 		wrong.as_obj_mut().unwrap().insert("type", "check");
-		let verdict = reply_parts_problems(&lesson(), &reply("r3", "", vec![call("p3", "plot", plot_args()), call("q3", "quiz", wrong)]), &|_| false);
+		let verdict = reply_parts_problems(&lesson(), &reply("r3", "", vec![call("p3", "plot", plot_args()), call("q3", "quiz", wrong)]), &|quiz| (quiz.clone(), false));
 		assert_eq!(
 			verdict.refused[0].1.lines().collect::<Vec<_>>(),
 			[

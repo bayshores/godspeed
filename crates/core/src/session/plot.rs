@@ -410,15 +410,8 @@ pub fn option_names_value(label: &str, value: f64) -> bool {
 }
 
 /// The plot result's `details`: kind and version, the plot's id, its guess and where y runs.
-pub fn plot_details(id: &str, on_plot: Option<Json>, y: (f64, f64)) -> Json {
-	let mut details = json!({ "part": PLOT_TOOL, "v": 1, "id": id });
-	if let (Some(on_plot), Some(obj)) = (on_plot, details.as_obj_mut()) {
-		obj.insert("onPlot", on_plot);
-	}
-	if let Some(obj) = details.as_obj_mut() {
-		obj.insert("y", json!({ "min": y.0, "max": y.1 }));
-	}
-	details
+pub fn plot_details(id: &str, on_plot: Json, y: (f64, f64)) -> Json {
+	json!({ "part": PLOT_TOOL, "v": 1, "id": id, "onPlot": on_plot, "y": { "min": y.0, "max": y.1 } })
 }
 
 #[cfg(test)]
@@ -570,6 +563,6 @@ mod tests {
 		assert_eq!(shown, ["0", "2.5", "-74.3", "398", "0.0503", "1235", "2.35e17", "1e-5", "-0.0001", "none"]);
 		assert_eq!(count(3912), "3,912");
 		assert_eq!(count(400), "400");
-		assert_eq!(stringify(&plot_details("p1", Some(json!({ "toolCallId": "q1", "value": 4 })), (0.0, 5.0))), r#"{"part":"plot","v":1,"id":"p1","onPlot":{"toolCallId":"q1","value":4},"y":{"min":0,"max":5}}"#);
+		assert_eq!(stringify(&plot_details("p1", json!({ "toolCallId": "q1", "value": 4 }), (0.0, 5.0))), r#"{"part":"plot","v":1,"id":"p1","onPlot":{"toolCallId":"q1","value":4},"y":{"min":0,"max":5}}"#);
 	}
 }
