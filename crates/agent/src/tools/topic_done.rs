@@ -18,7 +18,7 @@ use gs_engine::turn::validate::argument_problems;
 use gs_json::{Json, Obj, json, stringify_pretty};
 
 use super::fn_tool::FnTool;
-use super::practice::{LessonRecord, TurnGate, record_messages};
+use super::practice::{LessonRecord, NodeCheck, TurnGate, record_messages};
 
 /// Checks the source marks in a text: the text with its marks in stored form, and each mark that
 /// points at no passage (taken out of the text).
@@ -130,6 +130,8 @@ struct TopicDone {
 	record: LessonRecord,
 	gate: Arc<TurnGate>,
 	check_marks: CheckMarks,
+	/// The quiz's plan-node check, for the nested quizzes' nodeId.
+	node_check: NodeCheck,
 }
 
 impl TopicDone {
@@ -150,6 +152,7 @@ impl TopicDone {
 				problems.push("review: must be type \"check\".".to_owned());
 			}
 			problems.extend(at_path("review", quiz_input_problems(review)));
+			problems.extend(at_path("review", self.node_problem(review)));
 		}
 		let opener = &args["opener"];
 		if let Some(lead) = opener["lead"].as_str() {
@@ -167,8 +170,15 @@ impl TopicDone {
 				problems.push(format!("opener.quiz.nodeId: \"{node_id}\" is the topic you just finished; use the next topic's node."));
 			}
 			problems.extend(at_path("opener.quiz", quiz_input_problems(quiz)));
+			problems.extend(at_path("opener.quiz", self.node_problem(quiz)));
 		}
 		if problems.is_empty() { Ok(args) } else { Err(problems.join("\n")) }
+	}
+
+	/// The quiz's refusal when a nested quiz's nodeId is in no plan node (a missing one the schema
+	/// check reports).
+	fn node_problem(&self, quiz: &Json) -> Vec<String> {
+		quiz["nodeId"].as_str().and_then(|id| (self.node_check)(id)).into_iter().collect()
 	}
 
 	/// The turn gate and the lead's marks, then the stored result that ends the turn.
@@ -233,10 +243,10 @@ impl Tool for TopicDone {
 }
 
 /// The tool for one Study turn, under the gate the study problem and conclude share.
-pub fn topic_done_tool(record: LessonRecord, gate: &Arc<TurnGate>, check_marks: CheckMarks, multiple_choice: bool) -> FnTool {
+pub fn topic_done_tool(record: LessonRecord, gate: &Arc<TurnGate>, check_marks: CheckMarks, node_check: NodeCheck, multiple_choice: bool) -> FnTool {
 	let parameters = parameters(multiple_choice);
 	let check_schema = check_schema(&parameters);
-	FnTool::from_tool(Arc::new(TopicDone { description: description(multiple_choice), parameters, check_schema, multiple_choice, record, gate: gate.clone(), check_marks }))
+	FnTool::from_tool(Arc::new(TopicDone { description: description(multiple_choice), parameters, check_schema, multiple_choice, record, gate: gate.clone(), check_marks, node_check }))
 }
 
 #[cfg(test)]
@@ -255,9 +265,14 @@ mod tests {
 		Arc::new(|text: &str| if text.contains("[[f_bad:9]]") { (text.replace("[[f_bad:9]]", ""), vec!["f_bad:9".to_owned()]) } else { (text.replace("[[f_1:3]]", "[[f_1/p. 3/Notes.pdf]]"), Vec::new()) })
 	}
 
+	/// The plan holds n3, n4 and n5 (the example's n3 and n4 too).
+	fn node_check() -> NodeCheck {
+		Arc::new(|id: &str| (!["n3", "n4", "n5"].contains(&id)).then(|| format!("nodeId \"{id}\" matches no node in this session's plan map. Copy one of the plan's node ids exactly (n3, n4, n5).")))
+	}
+
 	fn tool_on(messages: Vec<Json>, multiple_choice: bool) -> (FnTool, Arc<TurnGate>) {
 		let gate = TurnGate::new(false);
-		(topic_done_tool(record(messages), &gate, check_marks(), multiple_choice), gate)
+		(topic_done_tool(record(messages), &gate, check_marks(), node_check(), multiple_choice), gate)
 	}
 
 	async fn call(tool: &FnTool, args: Json) -> Result<Json, String> {
@@ -336,6 +351,20 @@ mod tests {
 		);
 		let encoded = with(sent(), &["opener", "quiz", "options"], Json::from(stringify(&quiz("predict", "n4")["options"])));
 		assert!(call(&tool, encoded).await.is_ok(), "a nested JSON-encoded list is healed");
+	}
+
+	#[tokio::test]
+	async fn a_nested_quiz_names_a_plan_node_as_quiz_does() {
+		let (tool, gate) = tool_on(Vec::new(), true);
+		concluded_now(&gate);
+		let args = with(with(sent(), &["review", "nodeId"], json!("n9")), &["opener", "quiz", "nodeId"], json!("cross-val"));
+		assert_eq!(
+			call(&tool, args).await.unwrap_err().lines().collect::<Vec<_>>(),
+			[
+				"review.nodeId \"n9\" matches no node in this session's plan map. Copy one of the plan's node ids exactly (n3, n4, n5).",
+				"opener.quiz.nodeId \"cross-val\" matches no node in this session's plan map. Copy one of the plan's node ids exactly (n3, n4, n5).",
+			]
+		);
 	}
 
 	#[tokio::test]

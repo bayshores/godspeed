@@ -129,7 +129,7 @@ pub fn study_tools(ctx: &StudyToolContext, enabled: Option<&Json>) -> Vec<FnTool
 	let record = LessonRecord { chat_id: ctx.teacher.plan.chat_id.clone(), chat_store: ctx.teacher.plan.chat_store.clone() };
 	let gate = TurnGate::new(problem_is_active(&record.chat_store, &record.chat_id));
 	let mut tools = teacher_tools(&ctx.teacher, enabled);
-	tools.extend(study_problem_tools(&gate, record.clone(), ctx.graph_nodes.clone(), node_check));
-	tools.push(topic_done_tool(record, &gate, ctx.check_marks.clone(), !free_recall(enabled)));
+	tools.extend(study_problem_tools(&gate, record.clone(), ctx.graph_nodes.clone(), node_check.clone()));
+	tools.push(topic_done_tool(record, &gate, ctx.check_marks.clone(), node_check, !free_recall(enabled)));
 	heal_tool_record(tools)
 }
