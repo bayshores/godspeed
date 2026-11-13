@@ -20,7 +20,6 @@ use gs_core::messages::input_events::{About, ChatInput, ChatInputError, TurnInpu
 use gs_core::messages::native_messages::{dangling_question_of, has_probe_done, is_side_turn, retry_context};
 use gs_core::session::compaction::effective_threshold_tokens;
 use gs_core::session::jobs::steer_delivered;
-use gs_core::study::review::item_key;
 use gs_engine::turn::agent::Agent;
 use gs_engine::turn::call_ids::collect_tool_call_ids;
 use gs_engine::turn::events::AgentEvent;
@@ -34,7 +33,7 @@ use super::compaction::{CompactionDeps, ensure_compacted, kick_compaction, or_ze
 use super::dismissal_park::apply_parked_dismissal;
 use super::job_host::run_job;
 use super::lesson_agent::{TurnAgent, build_lesson_agent};
-use super::review::open_question;
+use super::review::askable;
 use super::turn_liveness::{begin_turn, end_turn, turn_started};
 use super::turn_runs::{register_turn, remember_turn_failure, unregister_turn};
 use super::turn_service::{PERSISTENCE_ERROR, persist_turn, trigger_extraction};
@@ -202,11 +201,11 @@ fn write_ahead(app: &Arc<App>, chat_id: &str, input: &TurnInput, attachments: &[
 	let Some(record) = app.stores.chats.get_chat(chat_id) else { return Err(ChatReply::error(404, "Unknown chat")) };
 	let messages = record["messages"].as_arr().cloned().unwrap_or_default();
 
-	// Ask Teacher on a question from earlier: it must be the open one, and its note carries it whole.
+	// Ask Teacher on a question from earlier: it must still be askable, and its note carries it whole.
 	let asked = match input {
-		TurnInput::Chat(ChatInput::Text { about: Some(About::Review { of, .. }), .. }) => match open_question(app, chat_id, &record) {
-			Ok(Some(open)) if item_key(&open["of"]) == item_key(of) => Some(open),
-			Ok(_) => return Err(ChatReply::error(400, REVIEW_NOT_OPEN)),
+		TurnInput::Chat(ChatInput::Text { about: Some(About::Review { of, .. }), .. }) => match askable(app, chat_id, &record, of) {
+			Ok(Some(open)) => Some(open),
+			Ok(None) => return Err(ChatReply::error(400, REVIEW_NOT_OPEN)),
 			Err(err) => return Err(ChatReply::thrown(err)),
 		},
 		_ => None,

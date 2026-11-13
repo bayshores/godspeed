@@ -93,6 +93,7 @@ function turnProps(over: Partial<TurnProps> = {}): TurnProps {
 		onSaveQuestionDraft: () => {},
 		onSubmitAnswer: () => {},
 		onSkipQuestion: () => {},
+		reviewRefused: false,
 		problem: null,
 		onDiscardProblem: () => {},
 		stop: null,
@@ -163,6 +164,11 @@ describe("Your turn in each state", () => {
 		assert.match(out, /data-testid="question-kind"[^>]*>Prediction</);
 		assert.match(out, /data-testid="skip-question"[^>]*>Skip question</);
 		assert.doesNotMatch(out, /stop-turn/);
+	});
+
+	it("a refused answer from earlier says so in one quiet line", () => {
+		assert.match(html({ reviewRefused: true }), /data-testid="review-refused"[^>]*>That question is no longer due, so nothing was saved\.</);
+		assert.doesNotMatch(html(), /review-refused/);
 	});
 
 	it("the box names the teacher", () => {

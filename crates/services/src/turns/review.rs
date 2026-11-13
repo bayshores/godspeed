@@ -34,7 +34,7 @@ pub enum ReviewReply {
 	/// The answer was written, or the skip noted.
 	Done,
 	UnknownLesson,
-	/// The question named is not the open one.
+	/// The question named is not one this sitting may ask any more.
 	NotOpen,
 	/// The answer is not a graded quiz answer with a pick, or I don't know.
 	NotAnAnswer,
@@ -58,8 +58,20 @@ fn skipped(app: &App, chat_id: &str, record: &Json, now: i64) -> HashSet<String>
 /// The open question from earlier in a Study lesson of a space: the next pick for this sitting,
 /// whether or not the window may show one now.
 pub fn open_question(app: &App, chat_id: &str, record: &Json) -> Result<Option<Json>, String> {
-	let Some(space_id) = record["spaceId"].as_str().filter(|_| record["kind"].as_str() == Some("study")) else { return Ok(None) };
-	let Some(progress) = progress_for(app, space_id, None)? else { return Ok(None) };
+	Ok(sitting_picks(app, chat_id, record)?.into_iter().next())
+}
+
+/// The question from earlier `of` names while it is still one this sitting may ask. The one on
+/// screen may have moved down the picks since it was served (a skip forgotten, a topic stopped,
+/// midnight), and is still his to answer, skip or ask about.
+pub fn askable(app: &App, chat_id: &str, record: &Json, of: &Json) -> Result<Option<Json>, String> {
+	Ok(sitting_picks(app, chat_id, record)?.into_iter().find(|q| item_key(&q["of"]) == item_key(of)))
+}
+
+/// The questions from earlier this sitting may ask, the next one first.
+fn sitting_picks(app: &App, chat_id: &str, record: &Json) -> Result<Vec<Json>, String> {
+	let Some(space_id) = record["spaceId"].as_str().filter(|_| record["kind"].as_str() == Some("study")) else { return Ok(Vec::new()) };
+	let Some(progress) = progress_for(app, space_id, None)? else { return Ok(Vec::new()) };
 	let order = space_order_for(app, space_id, &progress);
 	let rank = |t: &Json| t["members"].as_arr().into_iter().flatten().filter_map(|m| m.as_str().and_then(|id| order.get(id))).min().copied().unwrap_or(usize::MAX);
 	let mut topics: Vec<Json> = progress["topics"].as_arr().cloned().unwrap_or_default();
@@ -75,7 +87,7 @@ pub fn open_question(app: &App, chat_id: &str, record: &Json) -> Result<Option<J
 		outcomes: &reviews.outcomes,
 		items: &reviews.items,
 	};
-	Ok(pick_reviews(&space, &ReviewSitting { teaching: &teaching, deadline_id: record["deadlineId"].as_str(), skipped: &skipped }).into_iter().next())
+	Ok(pick_reviews(&space, &ReviewSitting { teaching: &teaching, deadline_id: record["deadlineId"].as_str(), skipped: &skipped }))
 }
 
 /// The question from earlier to show now: one only in the sitting's first wait while the teacher
@@ -90,7 +102,7 @@ pub fn next_review(app: &App, chat_id: &str) -> Result<ReviewReply, String> {
 	Ok(ReviewReply::Next(open_question(app, chat_id, &record)?))
 }
 
-/// His answer to the open question, as the window graded it: written as a `review` marker with
+/// His answer to a question from earlier still askable, as the window graded it: written as a `review` marker with
 /// the server's clock and the start of his sitting. Err: the lesson could not be saved.
 pub fn answer_review(app: &App, chat_id: &str, of: &Json, answer: &Json) -> Result<ReviewReply, String> {
 	let graded = answer["dontKnow"].truthy() || answer["correct"].as_bool().is_some();
@@ -98,7 +110,7 @@ pub fn answer_review(app: &App, chat_id: &str, of: &Json, answer: &Json) -> Resu
 	{
 		let _guard = app.locks.lock(LockKey::Chat(chat_id));
 		let Some(record) = app.stores.chats.get_chat(chat_id) else { return Ok(ReviewReply::UnknownLesson) };
-		let Some(question) = open_question(app, chat_id, &record)?.filter(|q| item_key(&q["of"]) == item_key(of)) else { return Ok(ReviewReply::NotOpen) };
+		let Some(question) = askable(app, chat_id, &record, of)? else { return Ok(ReviewReply::NotOpen) };
 		let mut details = question;
 		if let Some(d) = details.as_obj_mut() {
 			d.insert("answer", stamped);
@@ -112,11 +124,11 @@ pub fn answer_review(app: &App, chat_id: &str, of: &Json, answer: &Json) -> Resu
 	Ok(ReviewReply::Done)
 }
 
-/// Skip question on the open question: nothing is stored, and the next pick passes it by until
-/// the sitting ends.
+/// Skip question on a question from earlier still askable: nothing is stored, and the next pick
+/// passes it by until the sitting ends.
 pub fn skip_review(app: &App, chat_id: &str, of: &Json) -> Result<ReviewReply, String> {
 	let Some(record) = app.stores.chats.get_chat(chat_id) else { return Ok(ReviewReply::UnknownLesson) };
-	if open_question(app, chat_id, &record)?.is_none_or(|q| item_key(&q["of"]) != item_key(of)) {
+	if askable(app, chat_id, &record, of)?.is_none() {
 		return Ok(ReviewReply::NotOpen);
 	}
 	let now = clock::now_ms();

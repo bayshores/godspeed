@@ -168,7 +168,7 @@ export function Chat({
 
 	// Questions from earlier fill a Study lesson's wait for its teacher or
 	// its agent. The open one shows before the teacher's own question.
-	const { question: reviewQuestion, answer: answerReview, skip: skipReview } = useFromEarlier({
+	const { question: reviewQuestion, answer: answerReview, skip: skipReview, refused: reviewRefused } = useFromEarlier({
 		chatId,
 		waiting: kind === "study" && (busy || noAgent),
 		open: teacherPending !== null || activeProblem !== null,
@@ -595,6 +595,7 @@ export function Chat({
 											}}
 											onSubmitAnswer={onSubmitAnswer}
 											onSkipQuestion={() => setAbortAsk("question")}
+											reviewRefused={reviewRefused}
 											problem={problem}
 											onDiscardProblem={() => setAbortAsk("problem")}
 											stop={lessonStop.card}

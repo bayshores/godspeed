@@ -20,6 +20,8 @@ export interface YourTurnProps {
 	onSubmitAnswer: (output: QuestionAnswerData) => void;
 	/** Opens the skip confirm for the waiting question. */
 	onSkipQuestion: () => void;
+	/** His answer to a question from earlier was refused: it was no longer due. */
+	reviewRefused: boolean;
 	/** The open problem, with its line ("HW6, problem 3 of 7") and, for
 	 *  homework, where it is in the file and the part the learner is on. */
 	problem: { toolCallId: string; statement: string; line: string | null; source: string | null; part: string | null } | null;
@@ -79,6 +81,7 @@ export function YourTurn({
 	onSaveQuestionDraft,
 	onSubmitAnswer,
 	onSkipQuestion,
+	reviewRefused,
 	problem,
 	onDiscardProblem,
 	stop,
@@ -157,6 +160,12 @@ export function YourTurn({
 					</button>
 				)}
 			</div>
+
+			{reviewRefused && (
+				<p data-testid="review-refused" className="shrink-0 text-base text-ink-2">
+					That question is no longer due, so nothing was saved.
+				</p>
+			)}
 
 			<div key={mode} className={`flex min-h-0 flex-initial flex-col${mode === initialModeRef.current ? "" : " lh-rise"}`}>
 				<div className="lh-scroll-fade flex min-h-0 flex-col gap-3.5 overflow-y-auto">

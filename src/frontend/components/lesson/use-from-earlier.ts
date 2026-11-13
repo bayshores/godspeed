@@ -31,7 +31,14 @@ export function useFromEarlier({ chatId, waiting, open, onAnswered }: {
 	// An answer or a skip on its way: the next ask waits for it, or the
 	// server would serve the same question again.
 	const [sending, setSending] = useState(false);
+	// His last answer was refused: the question was no longer due. Says so
+	// until the next question shows or the wait ends.
+	const [refused, setRefused] = useState(false);
 	const ask = waiting && !open && question === null && !sending;
+
+	useEffect(() => {
+		if (!waiting) setRefused(false);
+	}, [waiting]);
 
 	useEffect(() => {
 		if (!ask) return;
@@ -39,7 +46,9 @@ export function useFromEarlier({ chatId, waiting, open, onAnswered }: {
 		void postReview(chatId, { type: "next" })
 			.then(async (res) => (res.ok ? ((await res.json()) as { question?: ReviewQuestion | null }) : null))
 			.then((body) => {
-				if (live && body?.question) setQuestion(body.question);
+				if (!live || !body?.question) return;
+				setQuestion(body.question);
+				setRefused(false);
 			})
 			.catch(() => {
 				/* none shows; the next wait asks again */
@@ -50,19 +59,20 @@ export function useFromEarlier({ chatId, waiting, open, onAnswered }: {
 	}, [ask, chatId]);
 
 	const settle = useCallback(
-		async (input: Record<string, unknown>): Promise<boolean> => {
-			if (!question) return false;
+		async (input: Record<string, unknown>): Promise<"done" | "refused" | "unsent"> => {
+			if (!question) return "unsent";
 			const of = { chatId: question.of.chatId, toolCallId: question.of.toolCallId };
 			setQuestion(null);
+			setRefused(false);
 			setSending(true);
 			try {
 				const res = await postReview(chatId, { ...input, of });
-				// Refused: it is no longer the open one, and the next ask says what is.
-				return res.ok;
+				// Refused: it is no longer due, and the next ask says what shows.
+				return res.ok ? "done" : res.status === 400 ? "refused" : "unsent";
 			} catch {
 				// Not sent: it stays.
 				setQuestion(question);
-				return false;
+				return "unsent";
 			} finally {
 				setSending(false);
 			}
@@ -72,13 +82,14 @@ export function useFromEarlier({ chatId, waiting, open, onAnswered }: {
 
 	const answer = useCallback(
 		async (output: QuestionAnswerData): Promise<boolean> => {
-			const saved = await settle({ type: "answer", answer: output });
-			if (saved) onAnswered();
-			return saved;
+			const got = await settle({ type: "answer", answer: output });
+			if (got === "done") onAnswered();
+			if (got === "refused") setRefused(true);
+			return got === "done";
 		},
 		[settle, onAnswered],
 	);
 	const skip = useCallback(() => void settle({ type: "skip" }), [settle]);
 
-	return { question, answer, skip };
+	return { question, answer, skip, refused };
 }

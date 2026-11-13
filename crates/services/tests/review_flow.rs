@@ -1,10 +1,11 @@
 //! Questions from earlier, end to end: which lessons and moments may show one, three a local day
 //! per space across lessons, the same question after a reload, a skip that stores nothing, an
 //! answer written during a turn that lands before the reply and reaches the agent once as a
-//! [From earlier] line, Ask Teacher on one, and the refusals. The app clock is not moved.
+//! [From earlier] line, Ask Teacher on one, and the refusals. The app clock is moved, so this
+//! file's tests run one at a time.
 
 use std::path::PathBuf;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex, MutexGuard};
 
 use gs_base::config::Paths;
 use gs_base::{clock, ids, time};
@@ -23,23 +24,27 @@ const DAY_MS: i64 = 86_400_000;
 /// The earlier topics, each answered right 10 days ago with a stored question from earlier.
 const EARLIER: [(&str, &str); 4] = [("bayes", "Bayes' rule"), ("eig", "Eigenvalues"), ("gd", "Gradient descent"), ("pca", "PCA")];
 
+static ONE_AT_A_TIME: Mutex<()> = Mutex::new(());
+
 /// An app over a fresh folder with one space whose earlier lesson holds four questions from
 /// earlier, removed when dropped.
 struct Fixture {
 	app: Arc<App>,
 	dir: PathBuf,
 	space_id: String,
+	_one: MutexGuard<'static, ()>,
 }
 
 impl Fixture {
 	fn new() -> Fixture {
+		let one = ONE_AT_A_TIME.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
 		let dir = std::env::temp_dir().join(format!("gs-review-flow-{}", ids::uuid()));
 		for name in ["data", "home", "tmp", "res"] {
 			std::fs::create_dir_all(dir.join(name)).unwrap();
 		}
 		let app = App::new(Paths::new(dir.join("data"), dir.join("home"), dir.join("tmp"), dir.join("res")), None);
 		let space_id = app.stores.spaces.create_space(&json!({ "name": "Machine Learning Foundations" })).unwrap()["id"].as_str().unwrap().to_owned();
-		let fx = Fixture { app, dir, space_id };
+		let fx = Fixture { app, dir, space_id, _one: one };
 		let earlier = fx.lesson(&[]);
 		let then = clock::now_ms() - 10 * DAY_MS;
 		let mut messages = Vec::new();
@@ -196,11 +201,27 @@ fn a_skip_stores_nothing_and_passes_the_question_by() {
 }
 
 #[test]
+fn the_question_on_screen_stays_answerable_after_the_picks_moved() {
+	let fx = Fixture::new();
+	let id = fx.lesson(&[user("Study", clock::now_ms())]);
+	let first = fx.next(&id).unwrap();
+	assert_eq!(skip_review(&fx.app, &id, &first["of"]).unwrap(), ReviewReply::Done);
+	let second = fx.next(&id).unwrap();
+	assert_eq!(second["nodeId"], json!("eig"));
+	// No agent writes anything while he leaves it on screen, so the sitting's skips are forgotten
+	// and the first pick is Bayes' rule again.
+	clock::advance(31 * 60_000);
+	assert_eq!(topic(&fx.next(&id)), Some("bayes"));
+	assert_eq!(answer_review(&fx.app, &id, &second["of"], &graded()).unwrap(), ReviewReply::Done, "the question he answered is still due");
+	assert_eq!(fx.messages(&id).iter().filter(|m| m["customType"].as_str() == Some("review")).count(), 1);
+}
+
+#[test]
 fn the_refusals() {
 	let fx = Fixture::new();
 	let id = fx.lesson(&[user("Study", clock::now_ms())]);
 	let open = fx.next(&id).unwrap();
-	let other = json!({ "chatId": open["of"]["chatId"], "toolCallId": "t-eig" });
+	let other = json!({ "chatId": open["of"]["chatId"], "toolCallId": "t-none" });
 	assert_eq!(answer_review(&fx.app, &id, &other, &graded()).unwrap(), ReviewReply::NotOpen);
 	for answer in [json!({ "kind": "quiz", "answers": [] }), json!({ "kind": "quiz", "answers": [{ "label": "A" }] }), json!({ "kind": "ask", "dontKnow": true }), json!({ "kind": "quiz", "dismissed": true, "dontKnow": true })] {
 		assert_eq!(answer_review(&fx.app, &id, &open["of"], &answer).unwrap(), ReviewReply::NotAnAnswer, "{answer:?}");
@@ -245,7 +266,7 @@ async fn ask_teacher_sends_the_open_question_whole_and_refuses_another() {
 	let fx = Fixture::new();
 	let id = fx.lesson(&[user("Study", clock::now_ms())]);
 	let open = fx.next(&id).unwrap();
-	let not_open = About::Review { of: json!({ "chatId": open["of"]["chatId"], "toolCallId": "t-eig" }), picked: vec![] };
+	let not_open = About::Review { of: json!({ "chatId": open["of"]["chatId"], "toolCallId": "t-none" }), picked: vec![] };
 	assert_eq!(send(&fx.app, &id, text("Is it A?", Some(not_open))).await, (400, stringify(&json!({ "error": REVIEW_NOT_OPEN }))));
 	let ask = About::Review { of: json!({ "chatId": open["of"]["chatId"], "toolCallId": open["of"]["toolCallId"] }), picked: vec!["B".into()] };
 	assert_eq!(send(&fx.app, &id, text("Is it A?", Some(ask))).await.0, 200);
