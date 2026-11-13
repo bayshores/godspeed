@@ -9,6 +9,7 @@ use gs_core::messages::citations::{CheckedMarks, CiteMark, DroppedQuote, MARK_MA
 use gs_base::text;
 use gs_core::contracts::space::{extension_of, plain_text_extensions};
 use gs_core::messages::quote_find::{QuoteMiss, check_quote, find_once};
+use gs_json::lone::{from_utf16, to_utf16};
 use gs_json::{Json, json};
 use gs_search::chunks::{range_point, unix_lines};
 use gs_search::index::PassageRef;
@@ -145,9 +146,33 @@ async fn page_marks(app: &App, on_disk: &Path, page: u32, quote: &str) -> Option
 /// Lines shown around a quote in a text or code file.
 const SHOWN_LINES: usize = 12;
 
+/// The longest line shown, in UTF-16 units; a longer one (a note's paragraph, minified code) is cut
+/// around its marks.
+const LINE_MAX: usize = 400;
+
+/// `line` cut to `LINE_MAX` units around `lo..hi` (its marks; its start when it has none), with
+/// "…" at each cut end: the shown text, the kept range of `line`, and how many units the "…" in
+/// front takes.
+fn cut_line(line: &str, lo: usize, hi: usize) -> (String, std::ops::Range<usize>, usize) {
+	let units = to_utf16(line);
+	let len = units.len();
+	if len <= LINE_MAX {
+		return (line.to_owned(), 0..len, 0);
+	}
+	let low_surrogate = |at: usize| units.get(at).is_some_and(|u| (0xdc00..=0xdfff).contains(u));
+	let mut from = lo.saturating_sub((LINE_MAX - (hi - lo).min(LINE_MAX)) / 2).min(len - LINE_MAX);
+	let mut to = from + LINE_MAX;
+	from += usize::from(low_surrogate(from));
+	to -= usize::from(low_surrogate(to));
+	let front = if from > 0 { "…" } else { "" };
+	let back = if to < len { "…" } else { "" };
+	(format!("{front}{}{back}", from_utf16(&units[from..to])), from..to, text::len16(front))
+}
+
 /// `{ kind: "lines", first, lines, spans }`: the 12 lines of the file centred on the quote's first
-/// line, read from the file itself (a passage's stored text is trimmed), and the quote's place on
-/// each of its lines in UTF-16 units. The quote is looked for in the passage's lines only.
+/// line, read from the file itself (a passage's stored text is trimmed), each cut to `LINE_MAX`
+/// around its marks, and the quote's place on each of its lines in UTF-16 units. The quote is
+/// looked for in the passage's lines only.
 async fn line_marks(on_disk: &Path, passages: &[Json], quote: &str) -> Option<Json> {
 	tokio::fs::metadata(on_disk).await.ok().filter(|m| m.is_file() && m.len() <= TEXT_MAX_BYTES)?;
 	let raw = tokio::fs::read(on_disk).await.ok()?;
@@ -178,9 +203,23 @@ async fn line_marks(on_disk: &Path, passages: &[Json], quote: &str) -> Option<Js
 	let last_line = lines.len() - usize::from(lines.last() == Some(&""));
 	let shown_end = (marked.saturating_sub(SHOWN_LINES / 2 - 1).max(1) + SHOWN_LINES - 1).min(last_line);
 	let shown_start = shown_end.saturating_sub(SHOWN_LINES - 1).max(1);
-	let shown: Json = lines[shown_start - 1..shown_end].iter().map(|l| Json::from(*l)).collect();
-	let spans: Json = spans.into_iter().filter(|(line, ..)| (shown_start..=shown_end).contains(line)).map(|(line, start, end)| json!({ "line": line, "start": start, "end": end })).collect();
-	Some(json!({ "kind": "lines", "first": shown_start, "lines": shown, "spans": spans }))
+	let mut shown_spans = Vec::new();
+	let shown: Json = (shown_start..=shown_end)
+		.map(|n| {
+			let on_line: Vec<(usize, usize)> = spans.iter().filter(|(line, ..)| *line == n).map(|&(_, start, end)| (start, end)).collect();
+			let lo = on_line.iter().map(|s| s.0).min().unwrap_or(0);
+			let hi = on_line.iter().map(|s| s.1).max().unwrap_or(0);
+			let (line, kept, front) = cut_line(lines[n - 1], lo, hi);
+			for (start, end) in on_line {
+				let at = |u: usize| u.clamp(kept.start, kept.end) - kept.start + front;
+				if at(end) > at(start) {
+					shown_spans.push(json!({ "line": n, "start": at(start), "end": at(end) }));
+				}
+			}
+			Json::from(line)
+		})
+		.collect();
+	Some(json!({ "kind": "lines", "first": shown_start, "lines": shown, "spans": Json::from(shown_spans) }))
 }
 
 /// One page of a cited space PDF as a PNG; `page` is the address's text, read like `Number`.
@@ -355,6 +394,26 @@ mod tests {
 		assert_eq!(marks("int *p = scores; printf").await["spans"], json!([{ "line": 14, "start": 1, "end": 17 }, { "line": 15, "start": 1, "end": 7 }]));
 		assert_eq!(marks("p + 1").await, Json::Null, "found twice");
 		assert_eq!(marks("p + 2").await, Json::Null);
+	}
+
+	#[tokio::test]
+	async fn a_long_line_is_cut_around_its_marks() {
+		let root = scratch_dir("cites-long-line");
+		let app = test_app(&root);
+		make_space(&app);
+		let id = app.stores.spaces.list_space_records()[0]["id"].as_str().unwrap().to_owned();
+		let marked = format!("x = {}degree twelve{};", "a+".repeat(600), "+b".repeat(600));
+		let plain = "word ".repeat(300);
+		crate::app::disk::write_file_atomic(&app.stores.spaces.files_dir(&id).unwrap().join("arrays.c"), &format!("short\n{marked}\n{plain}\nend\n")).unwrap();
+		let got = cited_passage(&app, CODE, "lines 1–22", Some("degree twelve")).await.unwrap()["marks"].clone();
+		let line = got["lines"][1].as_str().unwrap();
+		assert!(line.starts_with('…') && line.ends_with('…') && text::len16(line) == 402, "{line}");
+		let span = &got["spans"][0];
+		let at = |k: &str| span[k].as_f64().unwrap() as i64;
+		assert_eq!((span["line"].clone(), text::slice16(line, at("start"), Some(at("end")))), (json!(2), "degree twelve".to_owned()));
+		let unmarked = got["lines"][2].as_str().unwrap();
+		assert!(unmarked.starts_with("word") && unmarked.ends_with('…') && text::len16(unmarked) == 401);
+		assert_eq!((got["lines"][0].clone(), got["lines"][3].clone()), (json!("short"), json!("end")));
 	}
 
 	#[tokio::test]

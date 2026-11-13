@@ -87,6 +87,8 @@ describe("a topic's page", () => {
 			assert.equal(marked.length, 1);
 			assert.equal(marked[0]!.textContent, "(void *)(p + 1)");
 			assert.ok(lines[5]!.contains(marked[0]!));
+			// A long line wraps beside its number instead of running off the side.
+			assert.ok(lines.every((line) => line.querySelector(".whitespace-pre-wrap.wrap-anywhere")));
 		});
 	});
 

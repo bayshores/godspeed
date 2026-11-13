@@ -110,26 +110,29 @@ function useCodeTokens(code: string, language: string): HighlightResult["tokens"
 }
 
 /** Code lines read from his file, numbered as in the file, coloured like a
- *  code block, the quoted expression on the highlighter. */
+ *  code block, the quoted expression on the highlighter. A long line wraps
+ *  beside its number, so the mark is always in view. */
 export function CodeLines({ name, marks }: { name: string; marks: CodeMarks }) {
 	const rows = useMemo(() => codeRows(marks), [marks]);
 	const tokens = useCodeTokens(rows.map((r) => r.text).join("\n"), codeLanguage(name));
 	return (
 		<span data-streamdown="code-block" className="block">
-			<span data-streamdown="code-block-body" className="block overflow-x-auto font-mono text-sm">
+			<span data-streamdown="code-block-body" className="block font-mono text-sm">
 				{rows.map((row, i) => (
-					<span key={row.n} data-testid="code-line" className="block whitespace-pre">
-						<span className="mr-4 inline-block w-6 text-right text-ink-3 select-none">{row.n}</span>
-						{markRuns(lineRuns(tokens?.[i], row.text), row.marks).map((stretch, k) => {
-							const pieces = stretch.pieces.map((piece, j) => <Token key={j} run={piece.run} text={piece.text} />);
-							return stretch.marked ? (
-								<mark key={k} className={MARK}>
-									{pieces}
-								</mark>
-							) : (
-								<span key={k}>{pieces}</span>
-							);
-						})}
+					<span key={row.n} data-testid="code-line" className="flex">
+						<span className="mr-4 w-6 shrink-0 text-right text-ink-3 select-none">{row.n}</span>
+						<span className="min-w-0 whitespace-pre-wrap wrap-anywhere">
+							{markRuns(lineRuns(tokens?.[i], row.text), row.marks).map((stretch, k) => {
+								const pieces = stretch.pieces.map((piece, j) => <Token key={j} run={piece.run} text={piece.text} />);
+								return stretch.marked ? (
+									<mark key={k} className={MARK}>
+										{pieces}
+									</mark>
+								) : (
+									<span key={k}>{pieces}</span>
+								);
+							})}
+						</span>
 					</span>
 				))}
 			</span>
