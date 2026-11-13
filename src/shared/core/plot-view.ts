@@ -5,10 +5,9 @@
  * under the plot. A refused plot shows nothing: the teacher re-sends it, or
  * the guess alone. Pure and browser-safe.
  */
-import { PLOT_TOOL } from "./topic-parts.ts";
 import type { LhViewMessage, LhViewPart } from "./view.ts";
 
-const PLOT_PART = `tool-${PLOT_TOOL}`;
+const PLOT_PART = "tool-plot";
 
 /** The guess a stored plot result names: its quiz call and the value asked about. */
 function guessOf(output: unknown): { toolCallId: string; value: number } | null {

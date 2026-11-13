@@ -55,6 +55,17 @@ describe("PlotPart", () => {
 		assert.match(html, /This plot could not be drawn\./);
 	});
 
+	it("its picture is named by the title's words, math without dollar signs", () => {
+		const html = renderToStaticMarkup(<PlotPart part={{ type: "tool-plot", toolCallId: "call_p", input: { ...LEASH_CALL, title: "Where $w$ ends up" }, state: "output-available", output: LEASH_RESULT } as never} />);
+		assert.match(html, /<svg role="img" aria-label="Where w ends up"/);
+	});
+
+	it("keeps whatever its math draws inside its box", () => {
+		for (const html of [render({ state: "output-available", output: LEASH_RESULT, guessOpen: true }), render({ state: "input-streaming" })]) {
+			assert.match(html, /<figure [^>]*class="[^"]*\boverflow-hidden\b/);
+		}
+	});
+
 	it("a call that never got a result draws nothing", () => {
 		assert.equal(render({ state: "input-available" }), "");
 	});

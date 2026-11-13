@@ -109,9 +109,11 @@ impl Plot {
 		self.lines.iter().position(|l| l.label == label)
 	}
 
-	/// The line's value at `x` with the slider at `slider` (not finite where it has none).
+	/// The line's value at `x` with the slider at `slider` (not finite where it has none). A value
+	/// under a billionth of the y range is float noise and reads 0.
 	pub fn line_value(&self, line: usize, x: f64, slider: f64) -> f64 {
-		self.lines[line].expr.eval(&[x, slider])
+		let value = self.lines[line].expr.eval(&[x, slider]);
+		if value.abs() < 1e-9 * (self.y.1 - self.y.0) { 0.0 } else { value }
 	}
 
 	/// The values the agent is told at slider start: x at min, middle and max, every line.
@@ -184,8 +186,17 @@ impl Problems {
 			self.add(format!("{path}: {} to {} is too wide. Narrow it.", short(min), short(max)));
 			return None;
 		}
+		if narrow(min, max) {
+			self.add(format!("{path}: {} to {} is too narrow for numbers this large. Shift it to start near 0 and the formulas with it, like 0 to {}.", short(min), short(max), short(max - min)));
+			return None;
+		}
 		Some((min, max))
 	}
+}
+
+/// Whether `min..max` is too narrow beside its numbers for the window to tell its ticks apart.
+fn narrow(min: f64, max: f64) -> bool {
+	max - min < 1e-9 * min.abs().max(max.abs())
 }
 
 /// The value at a dotted path; `lines[0]` style steps index arrays.
@@ -351,6 +362,9 @@ fn y_range(values: &[f64]) -> Result<(f64, f64), String> {
 	if !(hi - lo).is_finite() || !(all_hi - all_lo).is_finite() || all_hi - all_lo > SPREAD_MAX * (hi - lo) {
 		return Err(format!("y: values run from {} to {} but most lie in {} to {}. Give y.min and y.max.", short(all_lo), short(all_hi), short(lo), short(hi)));
 	}
+	if narrow(lo, hi) {
+		return Err(format!("y: the lines run from {} to {}, too narrow for numbers this large. Shift the formulas nearer 0.", short(all_lo), short(all_hi)));
+	}
 	Ok((lo, hi))
 }
 
@@ -398,15 +412,8 @@ pub fn option_names_value(label: &str, value: f64) -> bool {
 }
 
 /// The plot result's `details`: kind and version, the plot's id, its guess and where y runs.
-pub fn plot_details(id: &str, on_plot: Option<Json>, y: (f64, f64)) -> Json {
-	let mut details = json!({ "part": PLOT_TOOL, "v": 1, "id": id });
-	if let (Some(on_plot), Some(obj)) = (on_plot, details.as_obj_mut()) {
-		obj.insert("onPlot", on_plot);
-	}
-	if let Some(obj) = details.as_obj_mut() {
-		obj.insert("y", json!({ "min": y.0, "max": y.1 }));
-	}
-	details
+pub fn plot_details(id: &str, on_plot: Json, y: (f64, f64)) -> Json {
+	json!({ "part": PLOT_TOOL, "v": 1, "id": id, "onPlot": on_plot, "y": { "min": y.0, "max": y.1 } })
 }
 
 #[cfg(test)]
@@ -496,6 +503,19 @@ mod tests {
 		assert_eq!(problems(wide), ["x: -1.7e308 to 1.7e308 is too wide. Narrow it."]);
 	}
 
+	/// The window could not tell such a range's ticks apart.
+	#[test]
+	fn a_range_too_narrow_for_its_numbers_is_refused() {
+		let far = |range: Json| json!({ "name": "s", "label": "s", "min": range[0].clone(), "max": range[1].clone(), "start": range[0].clone() });
+		let args = json!({ "title": "t", "x": { "name": "a", "label": "a", "min": 1e18, "max": 1e18 + 256.0 }, "y": { "label": "y", "min": 1e18, "max": 1.000_000_000_000_000_3e18 }, "slider": far(json!([-1e17, -1e17 + 96.0])), "lines": [{ "label": "f", "expr": "a - 1000000000000000000" }] });
+		let fix = "is too narrow for numbers this large. Shift it to start near 0 and the formulas with it, like 0 to";
+		assert_eq!(problems(args), [format!("x: 1e18 to 1e18 {fix} 256."), format!("y: 1e18 to 1e18 {fix} 256."), format!("slider: -1e17 to -1e17 {fix} 96.")]);
+		let lone = json!({ "title": "t", "x": { "name": "a", "label": "a", "min": 0, "max": 10 }, "y": { "label": "y" }, "slider": far(json!([0, 1])), "lines": [{ "label": "f", "expr": "a*100 + 1000000000000000000" }] });
+		assert_eq!(problems(lone), ["y: the lines run from 1e18 to 1e18, too narrow for numbers this large. Shift the formulas nearer 0."]);
+		let fine = with(leash(), &["x"], json!({ "name": "a", "label": "a", "min": 1e6, "max": 1e6 + 1.0 }));
+		assert!(check_plot(&fine).is_ok(), "a million and one is fine");
+	}
+
 	#[test]
 	fn a_line_with_no_value_at_most_points_is_refused_and_one_gap_is_fine() {
 		let gap = with(with(leash(), &["lines", "0", "expr"], json!("1/a")), &["y"], json!({ "label": "w" }));
@@ -526,6 +546,16 @@ mod tests {
 		assert_eq!(problems(huge), ["y: values run from -1.23e308 to 1.23e308 but most lie in -1e308 to 1e308. Give y.min and y.max."], "never a range that is not a number");
 	}
 
+	/// `0.1*3 - 0.3` is 5.55e-17 in floats, which no option's words could name.
+	#[test]
+	fn a_value_that_is_zero_up_to_rounding_is_zero() {
+		let plot = check_plot(&with(with(leash(), &["lines", "0", "expr"], json!("a*0.1 - 0.3")), &["lines", "1", "expr"], json!("sin(a)"))).unwrap();
+		assert_eq!(plot.line_value(0, 3.0, 1.0), 0.0);
+		assert_eq!(plot.line_value(1, std::f64::consts::PI, 1.0), 0.0);
+		assert!(option_names_value("It crosses 0.", plot.line_value(0, 3.0, 1.0)));
+		assert!(plot.line_value(0, 3.001, 1.0) > 0.0, "a small value the plot can show stays");
+	}
+
 	#[test]
 	fn an_option_names_the_value_to_two_figures() {
 		assert!(option_names_value("At 2, the leash's length.", 2.0));
@@ -545,6 +575,6 @@ mod tests {
 		assert_eq!(shown, ["0", "2.5", "-74.3", "398", "0.0503", "1235", "2.35e17", "1e-5", "-0.0001", "none"]);
 		assert_eq!(count(3912), "3,912");
 		assert_eq!(count(400), "400");
-		assert_eq!(stringify(&plot_details("p1", Some(json!({ "toolCallId": "q1", "value": 4 })), (0.0, 5.0))), r#"{"part":"plot","v":1,"id":"p1","onPlot":{"toolCallId":"q1","value":4},"y":{"min":0,"max":5}}"#);
+		assert_eq!(stringify(&plot_details("p1", json!({ "toolCallId": "q1", "value": 4 }), (0.0, 5.0))), r#"{"part":"plot","v":1,"id":"p1","onPlot":{"toolCallId":"q1","value":4},"y":{"min":0,"max":5}}"#);
 	}
 }

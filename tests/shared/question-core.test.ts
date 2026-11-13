@@ -466,10 +466,13 @@ describe("buildAnswer", () => {
 		assert.deepEqual(ad.answers, []);
 	});
 
-	it("answerSound: quiz answers sound right or wrong; I don't know and ask answers stay silent", () => {
+	it("answerSound: quiz answers sound right or wrong; I don't know, ask answers and predictions stay silent", () => {
 		assert.equal(answerSound(buildAnswer(quizData(), { values: ["mercury"] })), "right");
 		assert.equal(answerSound(buildAnswer(quizData(), { values: ["venus"] })), "wrong");
 		assert.equal(answerSound(buildAnswer(quizData(), { dontKnow: true })), null);
+		// A guess is never marked, so it makes no sound, right or wrong.
+		assert.equal(answerSound(buildAnswer(quizData({ questionType: "predict" }), { values: ["mercury"] })), null);
+		assert.equal(answerSound(buildAnswer(quizData({ questionType: "predict" }), { values: ["venus"] })), null);
 		const askQD: QuestionData = { ...quizData(), kind: "ask", correctIndices: undefined, explanation: undefined };
 		assert.equal(answerSound(buildAnswer(askQD, { values: ["mercury"] })), null);
 	});

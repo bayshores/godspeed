@@ -51,6 +51,23 @@ describe("a topic's page", () => {
 		});
 	});
 
+	it("a PDF page keeps its 220px frame while it loads, so nothing below it moves", async () => {
+		const realFetch = globalThis.fetch;
+		globalThis.fetch = (() => new Promise(() => {})) as typeof fetch;
+		const host = document.createElement("div");
+		const root = createRoot(host);
+		try {
+			await act(async () => root.render(excerpt()));
+			const frame = host.querySelector('[data-testid="page-excerpt-waiting"]');
+			assert.match(frame?.getAttribute("style") ?? "", /height:\s*220px/);
+			await act(async () => root.render(excerpt({ ...page14, name: "Heaps.docx", range: "lines 1–2" })));
+			assert.equal(host.innerHTML, "", "only a PDF has a page to wait for");
+		} finally {
+			globalThis.fetch = realFetch;
+			await act(async () => root.unmount());
+		}
+	});
+
 	it("a PDF page is the page image 220 tall with the words on the highlighter", async () => {
 		await rendered(excerpt(), pdf({ kind: "page", boxes: [BOX] }), (host) => {
 			const frame = host.querySelector<HTMLElement>('[data-testid="page-excerpt"]')!;
@@ -87,6 +104,8 @@ describe("a topic's page", () => {
 			assert.equal(marked.length, 1);
 			assert.equal(marked[0]!.textContent, "(void *)(p + 1)");
 			assert.ok(lines[5]!.contains(marked[0]!));
+			// A long line wraps beside its number instead of running off the side.
+			assert.ok(lines.every((line) => line.querySelector(".whitespace-pre-wrap.wrap-anywhere")));
 		});
 	});
 

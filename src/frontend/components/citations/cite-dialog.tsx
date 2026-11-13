@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import { DialogSheet, useLastWhileClosing } from "@/frontend/components/ui/dialog-sheet";
-import { CodeLines, PageMarks } from "./page-excerpt";
+import { CodeLines, MarkedText, PageMarks } from "./page-excerpt";
 import type { FileCite } from "./page-excerpt-model";
 import { useCited } from "./use-cited";
 
@@ -47,7 +47,7 @@ function CiteSheet({ cite, state, onClose }: { cite: FileCite; state: "open" | "
 						<CodeLines name={cite.name} marks={marks} />
 					) : (
 						<div data-testid="cite-text" className="border border-line p-3.5 text-[15px] whitespace-pre-wrap text-ink">
-							{marks?.kind === "passage" ? <MarkedText text={found.text} start={marks.start} end={marks.end} /> : found.text}
+							{marks?.kind === "passage" ? <MarkedText before={found.text.slice(0, marks.start)} marked={found.text.slice(marks.start, marks.end)} after={found.text.slice(marks.end)} /> : found.text}
 						</div>
 					)}
 				</>
@@ -56,13 +56,3 @@ function CiteSheet({ cite, state, onClose }: { cite: FileCite; state: "open" | "
 	);
 }
 
-/** The passage with the quoted words on the highlighter. */
-function MarkedText({ text, start, end }: { text: string; start: number; end: number }) {
-	return (
-		<>
-			{text.slice(0, start)}
-			<mark className="bg-highlight text-inherit">{text.slice(start, end)}</mark>
-			{text.slice(end)}
-		</>
-	);
-}

@@ -63,6 +63,9 @@ import { SheetDock, useSheetDock } from "@/frontend/components/cheat-sheet/sheet
 // The plan popup (and dagre, its layout engine) loads on first open.
 const PlanPopup = lazyComponent(() => import("@/frontend/components/plan-block").then((m) => m.PlanPopup));
 
+/** A lesson with no topic pages. */
+const NO_PAGES: ReadonlyMap<string, string> = new Map();
+
 /**
  * THE LESSON: its own bar, the reading sheet on the left and the teacher
  * column with the one writing box on the right (below the text in a narrow
@@ -70,8 +73,6 @@ const PlanPopup = lazyComponent(() => import("@/frontend/components/plan-block")
  * lesson's state and wiring; the pieces live in
  * src/frontend/components/lesson/.
  */
-/** A lesson with no topic pages. */
-const NO_PAGES: ReadonlyMap<string, string> = new Map();
 
 export function Chat({
 	chatId,

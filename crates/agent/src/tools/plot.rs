@@ -9,7 +9,6 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use futures_util::future::BoxFuture;
-use gs_core::session::argument_heal::heal_encoded_arguments;
 use gs_core::session::plot::{PLOT_TOOL, check_plot, plot_details};
 use gs_core::session::schema::{described, object};
 use gs_engine::turn::messages::text_block;
@@ -63,12 +62,13 @@ struct Plot {
 impl Plot {
 	fn run(&self, args: &Json, call_id: &str) -> Result<Json, String> {
 		let plot = check_plot(args).map_err(|problems| problems.join("\n"))?;
+		let guess = self.parts.guess_of(call_id).ok_or("plot: needs a quiz with onPlot in the same reply.")?;
 		let stored = record_messages(&self.record.chat_store, &self.record.chat_id)
 			.iter()
 			.filter(|m| m["role"].as_str() == Some("toolResult") && m["toolName"].as_str() == Some(PLOT_TOOL) && !m["isError"].truthy())
 			.count();
 		let id = format!("p{}", stored + self.drawn.fetch_add(1, Ordering::SeqCst) + 1);
-		let details = plot_details(&id, self.parts.guess_of(call_id), plot.y);
+		let details = plot_details(&id, guess, plot.y);
 		Ok(json!({ "content": [text_block(&plot.result_line(&id))], "details": details, "terminate": true }))
 	}
 }
@@ -90,9 +90,9 @@ impl Tool for Plot {
 		ExecutionMode::Sequential
 	}
 
-	/// Every rule of the call, all problems in one refusal.
+	/// Every rule of the call as sent, all problems in one refusal. Nothing is healed: the window
+	/// draws the stored call.
 	fn prepare_arguments(&self, args: Json) -> Result<Json, String> {
-		let args = heal_encoded_arguments(&args, &self.parameters);
 		check_plot(&args).map(|_| args).map_err(|problems| problems.join("\n"))
 	}
 
@@ -115,6 +115,7 @@ mod tests {
 	use gs_json::stringify;
 
 	use super::*;
+	use crate::tools::heal::heal_tool_record;
 	use crate::tools::plan::PlanContext;
 	use crate::tools::test_record::record;
 
@@ -142,16 +143,21 @@ mod tests {
 		record(stored)
 	}
 
-	/// The quiz and plot of the Study registry under the hook, running one scripted reply.
+	/// The quiz and plot of the Study registry under the hook, healed as the registry heals them,
+	/// running one scripted reply.
 	async fn run_reply(calls: Vec<Json>) -> Vec<Json> {
+		run_with(calls, true).await
+	}
+
+	async fn run_with(calls: Vec<Json>, hooked: bool) -> Vec<Json> {
 		let record = lesson();
 		let plan = PlanContext { chat_id: record.chat_id.clone(), chat_store: Arc::new(Planned(record.chat_store.clone())) };
 		let parts = LessonParts::new(&plan);
 		let scripted = Scripted::new();
 		scripted.reply(faux_assistant_message(calls, "toolUse"));
 		let mut options = AgentOptions::new(Engine { model: faux_model("m", "p", "faux", "Faux", 1000.0, 100.0), respond: scripted });
-		options.tools = vec![crate::tools::questions::study_quiz_tool(&plan).into_arc(), plot_tool(record, &parts).into_arc()];
-		options.before_tool_call = Some(parts.hook());
+		options.tools = heal_tool_record(vec![crate::tools::questions::study_quiz_tool(&plan), plot_tool(record, &parts)]).into_iter().map(FnTool::into_arc).collect();
+		options.before_tool_call = hooked.then(|| parts.hook());
 		let agent = Agent::new(options);
 		agent.prompt(vec![json!({ "role": "user", "content": "go", "timestamp": 1 })], Abort::new()).await.unwrap();
 		agent.messages().into_iter().filter(|m| m["role"].as_str() == Some("toolResult")).collect()
@@ -233,6 +239,47 @@ mod tests {
 		let texts: Vec<&str> = results.iter().take(2).map(|r| r["content"][0]["text"].as_str().unwrap()).collect();
 		assert_eq!(texts[0], "plot: refused with its quiz. Fix the quiz and re-send both.");
 		assert_eq!(texts[1], "Invalid tool input for tool \"quiz\":\n- nodeId \"cv\" matches no node in this session's plan map. Copy one of the plan's node ids exactly (reg).");
+	}
+
+	/// The window draws the stored call as sent, so the plot is checked as sent: a field sent
+	/// JSON-encoded is refused, and its guess with it.
+	#[tokio::test]
+	async fn a_plot_is_never_healed_so_a_plot_sent_encoded_is_refused_with_its_guess() {
+		let mut encoded = leash();
+		let lines = stringify(&encoded["lines"]);
+		encoded.as_obj_mut().unwrap().insert("lines", Json::from(lines));
+		for calls in [vec![call("q1", "quiz", guess("B")), call("p9", "plot", encoded.clone())], vec![call("p9", "plot", encoded.clone()), call("q1", "quiz", guess("B"))]] {
+			let results = run_reply(calls).await;
+			let text = |id: &str| results.iter().find(|r| r["toolCallId"] == json!(id)).unwrap()["content"][0]["text"].as_str().unwrap().to_owned();
+			assert_eq!(text("p9"), "lines: must be a list of 1 or 2 lines.");
+			assert_eq!(text("q1"), "quiz: refused with the plot above. Re-send both, or the guess alone without onPlot.");
+		}
+	}
+
+	/// The guess is read as the quiz tool takes it, after its own preparation: a field it heals
+	/// passes with the plot instead of refusing the plot while the quiz goes through, and one it
+	/// cannot take refuses both.
+	#[tokio::test]
+	async fn a_guess_is_read_as_the_quiz_takes_it_so_the_pair_lands_whole_or_not_at_all() {
+		let mut typed = guess("B");
+		typed.as_obj_mut().unwrap().insert("type", Json::from("\"predict\""));
+		let results = run_reply(vec![call("q1", "quiz", typed), call("p9", "plot", leash())]).await;
+		assert!(results.iter().all(|r| r["isError"] == json!(false)), "{results:?}");
+		let plot = results.iter().find(|r| r["toolCallId"] == json!("p9")).unwrap();
+		assert_eq!(plot["details"]["onPlot"], json!({ "toolCallId": "q1", "value": 4 }));
+
+		let mut on_plot = guess("B");
+		on_plot.as_obj_mut().unwrap().insert("onPlot", Json::from(r#"{"line":"penalty","x":8}"#));
+		let results = run_reply(vec![call("q1", "quiz", on_plot), call("p9", "plot", leash())]).await;
+		assert!(results.iter().all(|r| r["isError"] == json!(true)), "{results:?}");
+	}
+
+	#[tokio::test]
+	async fn a_plot_with_no_passed_guess_is_never_drawn() {
+		let results = run_with(vec![call("q1", "quiz", guess("B")), call("p9", "plot", leash())], false).await;
+		let plot = results.iter().find(|r| r["toolCallId"] == json!("p9")).unwrap();
+		assert_eq!(plot["isError"], json!(true));
+		assert_eq!(plot["content"][0]["text"], json!("plot: needs a quiz with onPlot in the same reply."));
 	}
 
 	#[test]

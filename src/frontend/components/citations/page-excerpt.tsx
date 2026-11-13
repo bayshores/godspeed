@@ -7,18 +7,23 @@ import { useCited } from "./use-cited";
 type Marks = NonNullable<CitedPassage["marks"]>;
 type CodeMarks = Extract<Marks, { kind: "lines" }>;
 
-// The frame is 220 tall with a 1px outline; the page fills its inside.
+// The frame is 220 tall with a 1px outline; the page fills its inside, at a
+// slide's width until the page's own shape is known.
 const FRAME_H = 220;
 const INSIDE_H = FRAME_H - 2;
+const SLIDE_W = INSIDE_H * (16 / 9) + 2;
 const MARK = "bg-highlight text-inherit";
 
 /** A topic's page under the paragraph that quotes it: his PDF page with the
  *  words on the highlighter, his code lines with the expression marked, or
- *  the passage as a quote block. Clicking it opens the page dialog. Nothing
- *  shows while it loads, when the place is gone, or when the picture fails. */
+ *  the passage as a quote block. Clicking it opens the page dialog. A PDF's
+ *  empty frame holds its place while it loads, so nothing below it moves;
+ *  nothing shows when the place is gone or the picture fails. */
 export function PageExcerpt({ cite, onOpen }: { cite: FileCite; onOpen: () => void }) {
 	const found = useCited(cite);
-	if (found === null || found === "gone") return null;
+	if (found === null)
+		return /\.pdf$/i.test(cite.name) ? <span aria-hidden data-testid="page-excerpt-waiting" className="block max-w-full border border-border" style={{ height: FRAME_H, width: SLIDE_W }} /> : null;
+	if (found === "gone") return null;
 	const marks = found.marks ?? null;
 	if (found.page !== null) return <PdfExcerpt cite={cite} page={found.page} boxes={marks?.kind === "page" ? marks.boxes : []} onOpen={onOpen} />;
 	if (marks?.kind === "lines")
@@ -36,13 +41,22 @@ export function PageExcerpt({ cite, onOpen }: { cite: FileCite; onOpen: () => vo
 				onClick={onOpen}
 				className="block w-full border-l-2 border-tone-2 pl-4 text-left font-prose text-[length:var(--lh-prose-size)] leading-[var(--lh-prose-leading)] whitespace-pre-wrap text-ink-2"
 			>
-				{quote.before}
-				<mark className={MARK}>{quote.marked}</mark>
-				{quote.after}
+				<MarkedText {...quote} />
 			</button>
 		);
 	}
 	return null;
+}
+
+/** Text with its quoted words on the highlighter. */
+export function MarkedText({ before, marked, after }: { before: string; marked: string; after: string }) {
+	return (
+		<>
+			{before}
+			<mark className={MARK}>{marked}</mark>
+			{after}
+		</>
+	);
 }
 
 function PdfExcerpt({ cite, page, boxes, onOpen }: { cite: FileCite; page: number; boxes: readonly PageMarkBox[]; onOpen: () => void }) {
@@ -110,26 +124,29 @@ function useCodeTokens(code: string, language: string): HighlightResult["tokens"
 }
 
 /** Code lines read from his file, numbered as in the file, coloured like a
- *  code block, the quoted expression on the highlighter. */
+ *  code block, the quoted expression on the highlighter. A long line wraps
+ *  beside its number, so the mark is always in view. */
 export function CodeLines({ name, marks }: { name: string; marks: CodeMarks }) {
 	const rows = useMemo(() => codeRows(marks), [marks]);
 	const tokens = useCodeTokens(rows.map((r) => r.text).join("\n"), codeLanguage(name));
 	return (
 		<span data-streamdown="code-block" className="block">
-			<span data-streamdown="code-block-body" className="block overflow-x-auto font-mono text-sm">
+			<span data-streamdown="code-block-body" className="block font-mono text-sm">
 				{rows.map((row, i) => (
-					<span key={row.n} data-testid="code-line" className="block whitespace-pre">
-						<span className="mr-4 inline-block w-6 text-right text-ink-3 select-none">{row.n}</span>
-						{markRuns(lineRuns(tokens?.[i], row.text), row.marks).map((stretch, k) => {
-							const pieces = stretch.pieces.map((piece, j) => <Token key={j} run={piece.run} text={piece.text} />);
-							return stretch.marked ? (
-								<mark key={k} className={MARK}>
-									{pieces}
-								</mark>
-							) : (
-								<span key={k}>{pieces}</span>
-							);
-						})}
+					<span key={row.n} data-testid="code-line" className="flex">
+						<span className="mr-4 w-6 shrink-0 text-right text-ink-3 select-none">{row.n}</span>
+						<span className="min-w-0 whitespace-pre-wrap wrap-anywhere">
+							{markRuns(lineRuns(tokens?.[i], row.text), row.marks).map((stretch, k) => {
+								const pieces = stretch.pieces.map((piece, j) => <Token key={j} run={piece.run} text={piece.text} />);
+								return stretch.marked ? (
+									<mark key={k} className={MARK}>
+										{pieces}
+									</mark>
+								) : (
+									<span key={k}>{pieces}</span>
+								);
+							})}
+						</span>
 					</span>
 				))}
 			</span>

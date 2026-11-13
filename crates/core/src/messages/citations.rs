@@ -19,7 +19,10 @@ pub enum CiteMark {
 	Web { url: String },
 }
 
-static MARK: LazyLock<Re> = LazyLock::new(|| Re::new(r"\[\[([^[\]\n]{1,400})\]\]", "g"));
+/// The longest mark body read as a mark, in UTF-16 units (inside the `[[` and `]]`).
+pub const MARK_MAX: usize = 400;
+
+static MARK: LazyLock<Re> = LazyLock::new(|| Re::new(&format!(r"\[\[([^[\]\n]{{1,{MARK_MAX}}})\]\]"), "g"));
 
 fn read_mark(body: &str) -> Option<CiteMark> {
 	static PASSAGE: LazyLock<Re> = LazyLock::new(|| Re::new(r#"^(f_[0-9a-f]{12}:\d+)(?: "(.+)")?$"#, ""));
@@ -85,9 +88,10 @@ pub struct CheckedMarks {
 }
 
 /// The text with the quote cut off each passage mark whose quote holds a bracket, backtick or `$`:
-/// those keep the mark from being read at all, so the plain mark is checked instead.
+/// those keep the mark from being read at all, so the plain mark is checked instead. A quote ends
+/// at the first `]]`, so one missing its closing `"` never reaches into the next mark.
 pub fn cut_unreadable_quotes(text: &str) -> (String, Vec<DroppedQuote>) {
-	static QUOTED: LazyLock<Re> = LazyLock::new(|| Re::new(r#"\[\[(f_[0-9a-f]{12}:\d+) "((?:(?!"\]\])[^\n])*)"\]\]"#, "g"));
+	static QUOTED: LazyLock<Re> = LazyLock::new(|| Re::new(r#"\[\[(f_[0-9a-f]{12}:\d+) "((?:(?!"?\]\])[^\n]){0,400})"\]\]"#, "g"));
 	let mut dropped = Vec::new();
 	if !text.contains("[[") {
 		return (text.to_owned(), dropped);
@@ -197,6 +201,11 @@ mod tests {
 		// A quote never runs past the end of its own mark.
 		let two = r#"[[f_1a2b3c4d5e6f:7 "a b"]] costs $5 [[f_1a2b3c4d5e6f:7 "c d"]]"#;
 		assert_eq!(cut_unreadable_quotes(two), (two.to_owned(), vec![]));
+		// A quote missing its closing `"` ends at its own `]]`, so the words after it stay.
+		let open = r#"First [[f_1a2b3c4d5e6f:7 "a b]] then the real point. [[f_1a2b3c4d5e6f:8 "c [d]"]] end."#;
+		let (cut, dropped) = cut_unreadable_quotes(open);
+		assert_eq!(cut, r#"First [[f_1a2b3c4d5e6f:7 "a b]] then the real point. [[f_1a2b3c4d5e6f:8]] end."#);
+		assert_eq!(dropped, [DroppedQuote { mark: "f_1a2b3c4d5e6f:8".into(), quote: "c [d]".into(), miss: QuoteMiss::Unsafe }]);
 	}
 
 	#[test]

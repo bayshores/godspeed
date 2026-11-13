@@ -1,11 +1,10 @@
 //! The parts a Study topic opens with, read from the record (src/shared/core/topic-parts.ts; both
 //! replay tests/golden/topic_parts.json). A reply is one assistant message; its topic is the
-//! nodeId its calls name (refused calls aside), else the topic of the latest earlier reply. A
+//! nodeId its calls name (refused calls aside), else the latest earlier reply's or shown opener's. A
 //! topic's page is the first quoted source mark in the shown opener's lead, else in the reply that
-//! opens the topic; later replies never give one. Its plot is the first reply holding a plot call
-//! that was not refused. `reply_parts_problems` (Rust only) is the check Study's lesson-parts hook
-//! runs on a reply before its plot and guess are stored; `visits` (Rust only) is what the spacing
-//! between a topic's new parts reads, kept sentences included.
+//! opens the topic; later replies never give one. `reply_parts_problems` (Rust only) is the check
+//! Study's lesson-parts hook runs on a reply before its plot and guess are stored; `visits` (Rust
+//! only) is what the spacing between a topic's new parts reads, kept sentences included.
 
 use std::collections::HashSet;
 
@@ -20,12 +19,11 @@ use crate::messages::pending::is_question_tool;
 use crate::session::plot::{PLOT_TOOL, Plot, check_plot, option_names_value, short};
 use crate::session::question_core::{coerce_correct_answer, normalize_quiz_type, parse_options_if_string};
 
-/// Every topic the lesson reached, in the order it reached them: `{ nodeId, page, plot }`, where
-/// `page` is null or `{ messageId, leadOf, fileId, range, name, quote }` (the reply's message id,
-/// or the call id of the topic_done whose opener lead holds the mark) and `plot` is null or the
-/// message id of the reply holding the topic's plot.
+/// Every topic the lesson reached, in the order it reached them: `{ nodeId, page }`, where `page`
+/// is null or `{ messageId, leadOf, fileId, range, name, quote }` (the reply's message id, or the
+/// call id of the topic_done whose opener lead holds the mark).
 pub fn topic_parts(messages: &[Json]) -> Vec<Json> {
-	walk(messages).0
+	walk(messages, None).0
 }
 
 /// One reply the learner sees (or a shown opener's lead), in record order: where it sits in the
@@ -41,7 +39,7 @@ pub(crate) struct Visit {
 
 /// The visits of a lesson, in record order.
 pub(crate) fn visits(messages: &[Json]) -> Vec<Visit> {
-	walk(messages).1
+	walk(messages, None).1
 }
 
 /// The quiz calls whose kept sentence he saw: its keep-check stored it and he answered it right.
@@ -59,7 +57,8 @@ pub(crate) fn kept_calls(messages: &[Json]) -> HashSet<&str> {
 		.collect()
 }
 
-fn walk(messages: &[Json]) -> (Vec<Json>, Vec<Visit>) {
+/// The record, then `reply` when given (a reply not yet stored, which holds no opener or result).
+fn walk(messages: &[Json], reply: Option<&Json>) -> (Vec<Json>, Vec<Visit>) {
 	let openers = shown_openers(messages);
 	let kept = kept_calls(messages);
 	let refused: HashSet<&str> = messages.iter().filter(|m| m["role"].as_str() == Some("toolResult") && m["isError"] == Json::Bool(true)).filter_map(|m| m["toolCallId"].as_str()).collect();
@@ -68,7 +67,7 @@ fn walk(messages: &[Json]) -> (Vec<Json>, Vec<Visit>) {
 	let reached = |out: &[Json], node_id: &str| out.iter().position(|t| t["nodeId"].as_str() == Some(node_id));
 	let mut opened: HashSet<String> = HashSet::new();
 	let mut current: Option<String> = None;
-	for (index, m) in messages.iter().enumerate() {
+	for (index, m) in messages.iter().chain(reply).enumerate() {
 		let opener = (m["role"].as_str() == Some("toolResult")).then(|| m["toolCallId"].as_str().and_then(|id| openers.get(id))).flatten();
 		if let Some(opener) = opener
 			&& let Some(node_id) = opener["quiz"]["nodeId"].as_str()
@@ -77,7 +76,8 @@ fn walk(messages: &[Json]) -> (Vec<Json>, Vec<Visit>) {
 			let lead_of = opener["topicDoneCallId"].clone();
 			let page = first_quoted(opener["lead"].as_str().unwrap_or_default(), Json::Null, lead_of);
 			visits.push(Visit { at: index, node_id: node_id.to_owned(), page: !page.is_null(), plot: false, keep: false });
-			out.push(json!({ "nodeId": node_id, "page": page, "plot": null }));
+			out.push(json!({ "nodeId": node_id, "page": page }));
+			current = Some(node_id.to_owned());
 			continue;
 		}
 		if m["role"].as_str() != Some("assistant") {
@@ -86,7 +86,7 @@ fn walk(messages: &[Json]) -> (Vec<Json>, Vec<Visit>) {
 		current = call_topic(m, &refused).or(current);
 		let Some(node_id) = current.clone() else { continue };
 		let at = reached(&out, &node_id).unwrap_or_else(|| {
-			out.push(json!({ "nodeId": node_id, "page": null, "plot": null }));
+			out.push(json!({ "nodeId": node_id, "page": null }));
 			out.len() - 1
 		});
 		let mut gave_page = false;
@@ -104,13 +104,7 @@ fn walk(messages: &[Json]) -> (Vec<Json>, Vec<Visit>) {
 			}
 		}
 		let plot = calls(m).any(|c| c["name"].as_str() == Some(PLOT_TOOL) && !c["id"].as_str().is_some_and(|id| refused.contains(id)));
-		if plot
-			&& out[at]["plot"].is_null()
-			&& let Some(parts) = out[at].as_obj_mut()
-		{
-			parts.insert("plot", m["id"].clone());
-		}
-		if is_seen(m) {
+		if is_seen(m, &refused) {
 			let keep = calls(m).any(|c| c["id"].as_str().is_some_and(|id| kept.contains(id)));
 			visits.push(Visit { at: index, node_id, page: gave_page, plot, keep });
 		}
@@ -122,10 +116,10 @@ fn calls(m: &Json) -> impl Iterator<Item = &Json> {
 	items(&m["content"]).iter().filter(|b| b["type"].as_str() == Some("toolCall"))
 }
 
-/// A reply the learner sees: words, a question or a plot.
-fn is_seen(m: &Json) -> bool {
+/// A reply the learner sees: words, or a question or a plot that was not refused.
+fn is_seen(m: &Json, refused: &HashSet<&str>) -> bool {
 	items(&m["content"]).iter().any(|b| b["type"].as_str() == Some("text") && b["text"].as_str().is_some_and(|t| !t.trim().is_empty()))
-		|| calls(m).any(|c| c["name"].as_str().is_some_and(|name| name == PLOT_TOOL || is_question_tool(name)))
+		|| calls(m).any(|c| c["name"].as_str().is_some_and(|name| name == PLOT_TOOL || is_question_tool(name)) && !c["id"].as_str().is_some_and(|id| refused.contains(id)))
 }
 
 /// The topic a reply's calls name: the first call with a nodeId that was not refused.
@@ -160,15 +154,24 @@ pub struct PartsVerdict {
 /// The check on a reply's plot and its guess (`quiz.onPlot`), which pass or are refused as a pair,
 /// whatever order the reply lists them in: one plot and one guess, the guess a prediction whose
 /// right option names the drawn value, one plot a topic, and neither this reply nor the topic's
-/// reply before it carrying a page or a plot. `quiz_passes` says whether the guess passes the
-/// quiz's own checks; a guess that fails them is left to them. A plot that fails its own checks is
-/// refused by its preparation; this only refuses its guess with it.
-pub fn reply_parts_problems(lesson_messages: &[Json], reply: &Json, quiz_passes: &dyn Fn(&Json) -> bool) -> PartsVerdict {
+/// reply before it carrying a page or a plot. `quiz_call` gives a quiz call's arguments as the quiz
+/// tool takes them, after its own preparation, and whether they pass its checks; a guess that
+/// fails them is left to them. A plot that fails its own checks is refused by its preparation;
+/// this only refuses its guess with it.
+pub fn reply_parts_problems(lesson_messages: &[Json], reply: &Json, quiz_call: &dyn Fn(&Json) -> (Json, bool)) -> PartsVerdict {
 	let id = |c: &Json| c["id"].as_str().unwrap_or_default().to_owned();
 	let plots: Vec<&Json> = calls(reply).filter(|c| c["name"].as_str() == Some(PLOT_TOOL)).collect();
-	let guesses: Vec<&Json> = calls(reply).filter(|c| c["name"].as_str() == Some("quiz") && c["arguments"]["onPlot"].as_obj().is_some()).collect();
+	// Each guess's call id, its prepared arguments, and whether they pass the quiz's checks.
+	let guesses: Vec<(String, Json, bool)> = calls(reply)
+		.filter(|c| c["name"].as_str() == Some("quiz"))
+		.map(|c| {
+			let (args, passes) = quiz_call(&c["arguments"]);
+			(id(c), args, passes)
+		})
+		.filter(|(_, args, _)| args["onPlot"].as_obj().is_some())
+		.collect();
 	// A guess that fails the quiz's own checks is refused by them, in their words.
-	let refuse_guesses = |verdict: &mut PartsVerdict, line: &str| verdict.refused.extend(guesses.iter().filter(|g| quiz_passes(&g["arguments"])).map(|g| (id(g), line.to_owned())));
+	let refuse_guesses = |verdict: &mut PartsVerdict, line: &str| verdict.refused.extend(guesses.iter().filter(|g| g.2).map(|g| (g.0.clone(), line.to_owned())));
 	let mut verdict = PartsVerdict::default();
 	let [plot_call] = plots.as_slice() else {
 		verdict.refused.extend(plots.iter().map(|p| (id(p), "plot: send one plot a reply.".to_owned())));
@@ -182,17 +185,17 @@ pub fn reply_parts_problems(lesson_messages: &[Json], reply: &Json, quiz_passes:
 		_ => vec!["plot: one guess per plot; give onPlot to one quiz.".to_owned()],
 	};
 	let mut value = None;
-	if let (Ok(plot), [guess]) = (&checked, guesses.as_slice()) {
-		if !quiz_passes(&guess["arguments"]) {
+	if let (Ok(plot), [(_, args, passes)]) = (&checked, guesses.as_slice()) {
+		if !passes {
 			problems.push("plot: refused with its quiz. Fix the quiz and re-send both.".to_owned());
 		}
-		value = guess_value(plot, &guess["arguments"], &mut problems);
+		value = guess_value(plot, args, &mut problems);
 	}
 	problems.extend(spacing_problems(lesson_messages, reply));
 	if problems.is_empty()
-		&& let (Ok(_), Some(value), [guess]) = (&checked, value, guesses.as_slice())
+		&& let (Ok(_), Some(value), [(guess_id, _, _)]) = (&checked, value, guesses.as_slice())
 	{
-		verdict.on_plot = Some((id(plot_call), json!({ "toolCallId": id(guess), "value": four_figures(value) })));
+		verdict.on_plot = Some((id(plot_call), json!({ "toolCallId": guess_id, "value": four_figures(value) })));
 		return verdict;
 	}
 	if checked.is_ok() {
@@ -266,9 +269,7 @@ fn guess_value(plot: &Plot, quiz: &Json, problems: &mut Vec<String>) -> Option<f
 /// One plot a topic, and a plot only after a topic reply with no page, plot or kept sentence, its
 /// own reply carrying no page either. A keep in its own reply yields to the plot: it is not stored.
 fn spacing_problems(lesson_messages: &[Json], reply: &Json) -> Vec<String> {
-	let mut messages = lesson_messages.to_vec();
-	messages.push(reply.clone());
-	let (_, visits) = walk(&messages);
+	let (_, visits) = walk(lesson_messages, Some(reply));
 	let Some((own, earlier)) = visits.split_last() else { return Vec::new() };
 	let topic: Vec<&Visit> = earlier.iter().filter(|v| v.node_id == own.node_id).collect();
 	let mut problems = Vec::new();
@@ -331,8 +332,8 @@ mod tests {
 		]
 	}
 
-	fn passes(_: &Json) -> bool {
-		true
+	fn passes(quiz: &Json) -> (Json, bool) {
+		(quiz.clone(), true)
 	}
 
 	fn penalty_at_8() -> Json {
@@ -361,7 +362,7 @@ mod tests {
 		);
 		let mut wrong = guess("B", json!({ "line": "penalty curve", "x": 12, "slider": 6 }));
 		wrong.as_obj_mut().unwrap().insert("type", "check");
-		let verdict = reply_parts_problems(&lesson(), &reply("r3", "", vec![call("p3", "plot", plot_args()), call("q3", "quiz", wrong)]), &|_| false);
+		let verdict = reply_parts_problems(&lesson(), &reply("r3", "", vec![call("p3", "plot", plot_args()), call("q3", "quiz", wrong)]), &|quiz| (quiz.clone(), false));
 		assert_eq!(
 			verdict.refused[0].1.lines().collect::<Vec<_>>(),
 			[
@@ -410,6 +411,18 @@ mod tests {
 		assert!(reply_parts_problems(&refused_before, &again, &passes).refused.is_empty(), "a refused plot is no plot");
 	}
 
+	/// Re-sending a refused pair with no words between is not the plain reply the rule asks for.
+	#[test]
+	fn a_reply_of_refused_calls_alone_is_not_seen() {
+		let after_page = lesson()[..2].to_vec();
+		let bare_pair = |n: &str| reply(&format!("r{n}"), "", vec![call(&format!("q{n}"), "quiz", guess("B", penalty_at_8())), call(&format!("p{n}"), "plot", plot_args())]);
+		assert_eq!(reply_parts_problems(&after_page, &bare_pair("2"), &passes).refused[0].1, "plot: send it after one reply with no page, plot or keep.");
+		let refused = [after_page, vec![bare_pair("2"), result("q2", "quiz", true), result("p2", "plot", true)]].concat();
+		let again = reply_parts_problems(&refused, &bare_pair("3"), &passes);
+		assert_eq!(again.on_plot, None);
+		assert_eq!(again.refused[0].1, "plot: send it after one reply with no page, plot or keep.");
+	}
+
 	#[test]
 	fn a_plot_waits_one_plain_reply_after_a_kept_sentence_he_saw() {
 		let mut keep_quiz = guess("B", Json::Null);
@@ -418,13 +431,5 @@ mod tests {
 		let kept = |right: bool| [lesson(), vec![reply("rk", "", vec![call("qk", "quiz", keep_quiz.clone())]), verdict.clone(), json!({ "role": "toolResult", "toolCallId": "qk", "toolName": "quiz", "isError": false, "details": { "kind": "quiz", "correct": right } })]].concat();
 		assert_eq!(reply_parts_problems(&kept(true), &pair(true, penalty_at_8(), "B"), &passes).refused[0].1, "plot: send it after one reply with no page, plot or keep.");
 		assert!(reply_parts_problems(&kept(false), &pair(true, penalty_at_8(), "B"), &passes).refused.is_empty(), "a missed keep was never seen");
-	}
-
-	#[test]
-	fn the_topic_names_its_plot_reply() {
-		let with_plot = [lesson(), vec![pair(true, penalty_at_8(), "B"), result("q3", "quiz", false), result("p3", "plot", false)]].concat();
-		assert_eq!(topic_parts(&with_plot)[0]["plot"], json!("r3"));
-		let refused = [lesson(), vec![pair(true, penalty_at_8(), "C"), result("q3", "quiz", true), result("p3", "plot", true)]].concat();
-		assert_eq!(topic_parts(&refused)[0]["plot"], Json::Null);
 	}
 }

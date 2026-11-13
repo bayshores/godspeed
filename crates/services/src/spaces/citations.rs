@@ -5,10 +5,11 @@
 use std::path::Path;
 use std::sync::Arc;
 
-use gs_core::messages::citations::{CheckedMarks, CiteMark, DroppedQuote, cut_unreadable_quotes, file_cite_mark, replace_cite_marks};
+use gs_core::messages::citations::{CheckedMarks, CiteMark, DroppedQuote, MARK_MAX, cut_unreadable_quotes, file_cite_mark, replace_cite_marks};
 use gs_base::text;
 use gs_core::contracts::space::{extension_of, plain_text_extensions};
-use gs_core::messages::quote_find::{check_quote, find_once};
+use gs_core::messages::quote_find::{QuoteMiss, check_quote, find_once};
+use gs_json::lone::{from_utf16, to_utf16};
 use gs_json::{Json, json};
 use gs_search::chunks::{range_point, unix_lines};
 use gs_search::index::PassageRef;
@@ -37,8 +38,8 @@ fn passage_text(passages: &[Json]) -> String {
 /// The text with every space file mark checked. A passage id becomes the stored mark (file, place,
 /// file name, and its quote with single spaces when the quoted words are found once in that
 /// passage); a mark that
-/// points at nothing is taken out and listed once, and a quote that does not hold is dropped and
-/// listed once. Web marks stay as written.
+/// points at nothing is taken out and listed once, and a quote that does not hold (or would make the
+/// stored mark too long to read) is dropped and listed once. Web marks stay as written.
 pub fn check_cites(app: &App, text: &str) -> CheckedMarks {
 	let (text, mut dropped) = cut_unreadable_quotes(text);
 	let mut removed: Vec<String> = Vec::new();
@@ -59,18 +60,23 @@ pub fn check_cites(app: &App, text: &str) -> CheckedMarks {
 					PassageRef::Passage(_) => passage["range"].as_str().unwrap_or_default().to_owned(),
 					PassageRef::Place { range, .. } => range.clone(),
 				};
-				let quote = quote.filter(|quote| match check_quote(&passage_text(&passages), quote) {
-					Ok(_) => true,
-					Err(miss) => {
-						let drop = DroppedQuote { mark: written.clone(), quote: quote.clone(), miss };
-						if !dropped.contains(&drop) {
-							dropped.push(drop);
-						}
-						false
+				let mut note_drop = |quote: &str, miss| {
+					let drop = DroppedQuote { mark: written.clone(), quote: quote.to_owned(), miss };
+					if !dropped.contains(&drop) {
+						dropped.push(drop);
 					}
-				});
+				};
+				let quote = quote.filter(|quote| check_quote(&passage_text(&passages), quote).map_err(|miss| note_drop(quote, miss)).is_ok());
 				let quote = quote.map(|q| q.split_whitespace().collect::<Vec<_>>().join(" "));
-				return file_cite_mark(&file_id, &range, name_of(&file), quote.as_deref());
+				let stored = file_cite_mark(&file_id, &range, name_of(&file), quote.as_deref());
+				// A long name plus the quote would no longer read as a mark; the plain one may.
+				if let Some(quote) = &quote
+					&& text::len16(&stored) > MARK_MAX + 4
+				{
+					note_drop(quote, QuoteMiss::Shape);
+					return file_cite_mark(&file_id, &range, name_of(&file), None);
+				}
+				return stored;
 			}
 		}
 		if !removed.contains(&written) {
@@ -113,7 +119,8 @@ fn reads_as_lines(name: &str) -> bool {
 	ext.is_empty() || plain_text_extensions().any(|e| e == ext)
 }
 
-/// `{ kind: "page", boxes }` on PDF page `page`, cached by file version.
+/// `{ kind: "page", boxes }` on PDF page `page`, cached by file version. A failed read is not
+/// cached, so the next ask tries again.
 async fn page_marks(app: &App, on_disk: &Path, page: u32, quote: &str) -> Option<Json> {
 	let meta = tokio::fs::metadata(on_disk).await.ok()?;
 	let key = format!("{}:{}:{page}:{quote}", on_disk.display(), mtime_ms(&meta));
@@ -121,7 +128,7 @@ async fn page_marks(app: &App, on_disk: &Path, page: u32, quote: &str) -> Option
 		return Some(marks.clone()).filter(|m| !m.is_null());
 	}
 	let owned = quote.to_owned();
-	let boxes = app.pdf.quote_boxes(on_disk, page, move |text| find_once(text, &owned).ok()).await.unwrap_or_default();
+	let boxes = app.pdf.quote_boxes(on_disk, page, move |text| find_once(text, &owned).ok()).await.ok()?;
 	let fraction = |v: f64| Json::from((v * 1e5).round() / 1e5);
 	let marks = if boxes.is_empty() {
 		Json::Null
@@ -139,9 +146,33 @@ async fn page_marks(app: &App, on_disk: &Path, page: u32, quote: &str) -> Option
 /// Lines shown around a quote in a text or code file.
 const SHOWN_LINES: usize = 12;
 
+/// The longest line shown, in UTF-16 units; a longer one (a note's paragraph, minified code) is cut
+/// around its marks.
+const LINE_MAX: usize = 400;
+
+/// `line` cut to `LINE_MAX` units around `lo..hi` (its marks; its start when it has none), with
+/// "…" at each cut end: the shown text, the kept range of `line`, and how many units the "…" in
+/// front takes.
+fn cut_line(line: &str, lo: usize, hi: usize) -> (String, std::ops::Range<usize>, usize) {
+	let units = to_utf16(line);
+	let len = units.len();
+	if len <= LINE_MAX {
+		return (line.to_owned(), 0..len, 0);
+	}
+	let low_surrogate = |at: usize| units.get(at).is_some_and(|u| (0xdc00..=0xdfff).contains(u));
+	let mut from = lo.saturating_sub((LINE_MAX - (hi - lo).min(LINE_MAX)) / 2).min(len - LINE_MAX);
+	let mut to = from + LINE_MAX;
+	from += usize::from(low_surrogate(from));
+	to -= usize::from(low_surrogate(to));
+	let front = if from > 0 { "…" } else { "" };
+	let back = if to < len { "…" } else { "" };
+	(format!("{front}{}{back}", from_utf16(&units[from..to])), from..to, text::len16(front))
+}
+
 /// `{ kind: "lines", first, lines, spans }`: the 12 lines of the file centred on the quote's first
-/// line, read from the file itself (a passage's stored text is trimmed), and the quote's place on
-/// each of its lines in UTF-16 units. The quote is looked for in the passage's lines only.
+/// line, read from the file itself (a passage's stored text is trimmed), each cut to `LINE_MAX`
+/// around its marks, and the quote's place on each of its lines in UTF-16 units. The quote is
+/// looked for in the passage's lines only.
 async fn line_marks(on_disk: &Path, passages: &[Json], quote: &str) -> Option<Json> {
 	tokio::fs::metadata(on_disk).await.ok().filter(|m| m.is_file() && m.len() <= TEXT_MAX_BYTES)?;
 	let raw = tokio::fs::read(on_disk).await.ok()?;
@@ -172,9 +203,23 @@ async fn line_marks(on_disk: &Path, passages: &[Json], quote: &str) -> Option<Js
 	let last_line = lines.len() - usize::from(lines.last() == Some(&""));
 	let shown_end = (marked.saturating_sub(SHOWN_LINES / 2 - 1).max(1) + SHOWN_LINES - 1).min(last_line);
 	let shown_start = shown_end.saturating_sub(SHOWN_LINES - 1).max(1);
-	let shown: Json = lines[shown_start - 1..shown_end].iter().map(|l| Json::from(*l)).collect();
-	let spans: Json = spans.into_iter().filter(|(line, ..)| (shown_start..=shown_end).contains(line)).map(|(line, start, end)| json!({ "line": line, "start": start, "end": end })).collect();
-	Some(json!({ "kind": "lines", "first": shown_start, "lines": shown, "spans": spans }))
+	let mut shown_spans = Vec::new();
+	let shown: Json = (shown_start..=shown_end)
+		.map(|n| {
+			let on_line: Vec<(usize, usize)> = spans.iter().filter(|(line, ..)| *line == n).map(|&(_, start, end)| (start, end)).collect();
+			let lo = on_line.iter().map(|s| s.0).min().unwrap_or(0);
+			let hi = on_line.iter().map(|s| s.1).max().unwrap_or(0);
+			let (line, kept, front) = cut_line(lines[n - 1], lo, hi);
+			for (start, end) in on_line {
+				let at = |u: usize| u.clamp(kept.start, kept.end) - kept.start + front;
+				if at(end) > at(start) {
+					shown_spans.push(json!({ "line": n, "start": at(start), "end": at(end) }));
+				}
+			}
+			Json::from(line)
+		})
+		.collect();
+	Some(json!({ "kind": "lines", "first": shown_start, "lines": shown, "spans": Json::from(shown_spans) }))
 }
 
 /// One page of a cited space PDF as a PNG; `page` is the address's text, read like `Number`.
@@ -188,7 +233,6 @@ pub async fn cited_page(app: &App, file_id: &str, page: &str) -> Result<Arc<Vec<
 
 #[cfg(test)]
 mod tests {
-	use gs_core::messages::quote_find::QuoteMiss;
 	use gs_json::stringify;
 
 	use super::*;
@@ -278,6 +322,36 @@ mod tests {
 		);
 	}
 
+	#[test]
+	fn a_quote_that_would_make_the_stored_mark_too_long_is_dropped() {
+		let root = scratch_dir("cites-long-name");
+		let app = test_app(&root);
+		make_space(&app);
+		let record = app.stores.spaces.list_space_records().remove(0);
+		// A linked folder's path as the name: its plain mark fits, with the quote it would not.
+		let long = format!("{}heaps.docx", "deep folder name/".repeat(21));
+		let mut files = record["files"].as_arr().unwrap().to_vec();
+		for file in &mut files {
+			if file["id"].as_str() == Some(DOC)
+				&& let Some(file) = file.as_obj_mut()
+			{
+				file.insert("name", long.as_str());
+			}
+		}
+		app.stores.spaces.save_files(record["id"].as_str().unwrap(), files, &[]).unwrap();
+		let plain = file_cite_mark(DOC, "lines 1–2", &long, None);
+		assert_eq!(
+			check_cites(&app, &format!("Heaps. [[{DOC}:1 \"smallest key\"]]")),
+			CheckedMarks { text: format!("Heaps. {plain}"), removed: vec![], dropped: vec![DroppedQuote { mark: format!("{DOC}:1"), quote: "smallest key".into(), miss: QuoteMiss::Shape }] }
+		);
+		let mut read = 0;
+		replace_cite_marks(&plain, |_| {
+			read += 1;
+			String::new()
+		});
+		assert_eq!(read, 1);
+	}
+
 	#[tokio::test]
 	async fn a_click_shows_the_passage_and_the_pdf_page() {
 		let root = scratch_dir("cites-passage");
@@ -323,6 +397,26 @@ mod tests {
 	}
 
 	#[tokio::test]
+	async fn a_long_line_is_cut_around_its_marks() {
+		let root = scratch_dir("cites-long-line");
+		let app = test_app(&root);
+		make_space(&app);
+		let id = app.stores.spaces.list_space_records()[0]["id"].as_str().unwrap().to_owned();
+		let marked = format!("x = {}degree twelve{};", "a+".repeat(600), "+b".repeat(600));
+		let plain = "word ".repeat(300);
+		crate::app::disk::write_file_atomic(&app.stores.spaces.files_dir(&id).unwrap().join("arrays.c"), &format!("short\n{marked}\n{plain}\nend\n")).unwrap();
+		let got = cited_passage(&app, CODE, "lines 1–22", Some("degree twelve")).await.unwrap()["marks"].clone();
+		let line = got["lines"][1].as_str().unwrap();
+		assert!(line.starts_with('…') && line.ends_with('…') && text::len16(line) == 402, "{line}");
+		let span = &got["spans"][0];
+		let at = |k: &str| span[k].as_f64().unwrap() as i64;
+		assert_eq!((span["line"].clone(), text::slice16(line, at("start"), Some(at("end")))), (json!(2), "degree twelve".to_owned()));
+		let unmarked = got["lines"][2].as_str().unwrap();
+		assert!(unmarked.starts_with("word") && unmarked.ends_with('…') && text::len16(unmarked) == 401);
+		assert_eq!((got["lines"][0].clone(), got["lines"][3].clone()), (json!("short"), json!("end")));
+	}
+
+	#[tokio::test]
 	async fn a_quote_in_a_word_file_marks_its_place_in_the_passage_text() {
 		let root = scratch_dir("cites-docx");
 		let app = test_app(&root);
@@ -353,6 +447,18 @@ mod tests {
 		assert_eq!(app.misc.quote_boxes.lock().len(), 1);
 		assert_eq!(cited_passage(&app, SLIDES, "p. 2", Some("gravity")).await.unwrap()["marks"], Json::Null);
 		assert_eq!(cited_passage(&app, SLIDES, "p. 3", Some("H2O is water")).await.unwrap()["marks"]["kind"], json!("page"), "boxes come from the page itself, indexed or not");
+	}
+
+	#[tokio::test]
+	async fn a_failed_page_read_is_not_remembered_as_nothing_found() {
+		let root = scratch_dir("cites-boxes-fail");
+		let app = test_app(&root);
+		make_space(&app);
+		// A file that is not a PDF yet (still syncing, say) fails to read; the next ask tries again.
+		let id = app.stores.spaces.list_space_records()[0]["id"].as_str().unwrap().to_owned();
+		crate::app::disk::write_file_atomic(&app.stores.spaces.files_dir(&id).unwrap().join("slides.pdf"), "not a pdf yet").unwrap();
+		assert_eq!(cited_passage(&app, SLIDES, "p. 2", Some("force equals mass")).await.unwrap()["marks"], Json::Null);
+		assert_eq!(app.misc.quote_boxes.lock().len(), 0);
 	}
 
 	#[tokio::test]

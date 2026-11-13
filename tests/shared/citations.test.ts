@@ -100,12 +100,13 @@ describe("citeView", () => {
 		assert.equal(view.cites.length, 2);
 	});
 
-	it("marks of one place are one source, which keeps the first mark's quote", () => {
+	it("marks of one place are one source, which keeps the first quote any of them has", () => {
 		const at = (tail: string) => `[[f_1a2b3c4d5e6f/p. 14/Lecture 6.pdf${tail}]]`;
 		const view = citeView(`A ${at("|degree 12")} B ${at("|15 training points")} C ${at("")}`);
 		assert.deepEqual(view.cites, [{ kind: "file", fileId: "f_1a2b3c4d5e6f", range: "p. 14", name: "Lecture 6.pdf", quote: "degree 12" }]);
 		assert.deepEqual([...view.text.matchAll(/n="(\d)"/g)].map((m) => m[1]), ["1", "1", "1"]);
 		assert.equal(citeLabel(view.cites[0]!), "Lecture 6.pdf, p. 14");
+		assert.deepEqual(citeView(`A ${at("")} B ${at("|degree 12")}`).cites, view.cites);
 	});
 
 	it("a passage id that was never checked shows nothing", () => {

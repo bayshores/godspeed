@@ -38,6 +38,10 @@ fn is_letter(unit: u16) -> bool {
 	char::from_u32(u32::from(unit)).is_some_and(char::is_alphabetic)
 }
 
+fn is_word(unit: u16) -> bool {
+	unit == u16::from(b'_') || char::from_u32(u32::from(unit)).is_some_and(char::is_alphanumeric)
+}
+
 fn is_lower(unit: u16) -> bool {
 	char::from_u32(u32::from(unit)).is_some_and(char::is_lowercase)
 }
@@ -57,12 +61,18 @@ fn plain(unit: u16) -> Option<&'static str> {
 	})
 }
 
-/// The text as it is matched, and for each of its units the offset in `text` it came from. A run
-/// of spaces and line ends is one space, none at either end; a hyphen that splits a word at a
-/// line end is dropped with the line end.
-pub fn fold_for_match(text: &str) -> (Vec<u16>, Vec<usize>) {
+fn is_hyphen(unit: u16) -> bool {
+	matches!(unit, 0x2d | 0xad | 0x2010)
+}
+
+/// The text as it is matched, for each of its units the offset in `text` it came from, and
+/// whether a hyphen was dropped right before it. A run of spaces and line ends is one space, none
+/// at either end; a hyphen that splits a word at a line end is dropped with the line end.
+pub fn fold_for_match(text: &str) -> (Vec<u16>, Vec<usize>, Vec<bool>) {
 	let units = to_utf16(text);
 	let (mut folded, mut from) = (Vec::with_capacity(units.len()), Vec::with_capacity(units.len()));
+	let mut soft = Vec::with_capacity(units.len());
+	let mut dropped_hyphen = false;
 	let mut i = 0;
 	while i < units.len() {
 		let unit = units[i];
@@ -74,10 +84,11 @@ pub fn fold_for_match(text: &str) -> (Vec<u16>, Vec<usize>) {
 			if !folded.is_empty() && i < units.len() {
 				folded.push(u16::from(b' '));
 				from.push(start);
+				soft.push(false);
 			}
 			continue;
 		}
-		if matches!(unit, 0x2d | 0xad | 0x2010) && i > 0 && is_letter(units[i - 1]) {
+		if is_hyphen(unit) && i > 0 && is_letter(units[i - 1]) {
 			let mut j = i + 1;
 			while j < units.len() && is_space(units[j]) && units[j] != 0x0a {
 				j += 1;
@@ -89,6 +100,7 @@ pub fn fold_for_match(text: &str) -> (Vec<u16>, Vec<usize>) {
 				}
 				if units.get(j).is_some_and(|&u| is_lower(u)) {
 					i = j;
+					dropped_hyphen = true;
 					continue;
 				}
 			}
@@ -98,16 +110,37 @@ pub fn fold_for_match(text: &str) -> (Vec<u16>, Vec<usize>) {
 				for u in spelled.encode_utf16() {
 					folded.push(u);
 					from.push(i);
+					soft.push(std::mem::take(&mut dropped_hyphen));
 				}
 			}
 			None => {
 				folded.push(unit);
 				from.push(i);
+				soft.push(std::mem::take(&mut dropped_hyphen));
 			}
 		}
 		i += 1;
 	}
-	(folded, from)
+	(folded, from, soft)
+}
+
+/// Where `needle` ends in `hay` when it matches from `at`. Where the text dropped a line-end
+/// hyphen, the quote may keep it, with a space after it or not (`regu-larization`, `well-known`).
+fn match_end(hay: &[u16], soft: &[bool], needle: &[u16], at: usize) -> Option<usize> {
+	let (mut h, mut n) = (at, 0);
+	let mut skipped = false;
+	while n < needle.len() {
+		if !skipped && h > at && soft.get(h) == Some(&true) && is_hyphen(needle[n]) {
+			n += 1 + usize::from(needle.get(n + 1) == Some(&u16::from(b' ')));
+			skipped = true;
+			continue;
+		}
+		if hay.get(h) != Some(&needle[n]) {
+			return None;
+		}
+		(h, n, skipped) = (h + 1, n + 1, false);
+	}
+	Some(h)
 }
 
 fn unsafe_quote(quote: &str) -> bool {
@@ -115,20 +148,20 @@ fn unsafe_quote(quote: &str) -> bool {
 }
 
 /// Where `quote` sits in `text` as UTF-16 offsets `(start, end)`, when it is there exactly once.
+/// A quote that starts or ends with a letter or digit matches only where a word starts or ends.
 pub fn find_once(text: &str, quote: &str) -> Result<(usize, usize), QuoteMiss> {
 	if unsafe_quote(quote) {
 		return Err(QuoteMiss::Unsafe);
 	}
-	let (needle, _) = fold_for_match(quote);
-	if needle.is_empty() {
-		return Err(QuoteMiss::Absent);
-	}
-	let (hay, from) = fold_for_match(text);
-	let mut found = hay.windows(needle.len()).enumerate().filter(|(_, w)| *w == needle.as_slice()).map(|(at, _)| at);
+	let (needle, ..) = fold_for_match(quote);
+	let (Some(&first), Some(&last)) = (needle.first(), needle.last()) else { return Err(QuoteMiss::Absent) };
+	let (hay, from, soft) = fold_for_match(text);
+	let bounded = |at: usize, end: usize| (!is_word(first) || at == 0 || !is_word(hay[at - 1])) && (!is_word(last) || hay.get(end).is_none_or(|&u| !is_word(u)));
+	let mut found = (0..hay.len()).filter_map(|at| match_end(&hay, &soft, &needle, at).filter(|&end| end > at && bounded(at, end)).map(|end| (at, end)));
 	match (found.next(), found.next()) {
 		(None, _) => Err(QuoteMiss::Absent),
 		(Some(_), Some(_)) => Err(QuoteMiss::Twice),
-		(Some(at), None) => Ok((from[at], from[at + needle.len() - 1] + 1)),
+		(Some((at, end)), None) => Ok((from[at], from[end - 1] + 1)),
 	}
 }
 
@@ -181,9 +214,33 @@ mod tests {
 	#[test]
 	fn found_twice_or_not_at_all_gives_none() {
 		assert_eq!(find_once("p + 1 and p + 1", "p + 1"), Err(QuoteMiss::Twice));
-		assert_eq!(find_once("aaa", "aa"), Err(QuoteMiss::Twice));
+		assert_eq!(find_once("1 + 1 + 1", "1 + 1"), Err(QuoteMiss::Twice), "overlapping");
 		assert_eq!(find_once("degree 12", "degree 13"), Err(QuoteMiss::Absent));
 		assert_eq!(find_once("degree 12", "  \n "), Err(QuoteMiss::Absent));
+	}
+
+	#[test]
+	fn a_quote_may_keep_the_hyphen_of_a_word_split_at_a_line_end() {
+		let page = "the regu-\nlarization term, a well-\nknown result";
+		for quote in ["regularization term", "regu-larization term", "regu- larization term"] {
+			assert_eq!(find_once(page, quote), Ok((4, 25)), "{quote}");
+		}
+		assert_eq!(check_quote(page, "well-known result"), Ok((29, 47)));
+		// Only where the page split a word: elsewhere a hyphen is a hyphen.
+		assert_eq!(find_once(page, "regu--larization"), Err(QuoteMiss::Absent));
+		assert_eq!(find_once("x-y and xy z", "xy z"), Ok((8, 12)));
+		assert_eq!(find_once("x-y and xy z", "x-y and"), Ok((0, 7)));
+	}
+
+	#[test]
+	fn a_quote_matches_whole_words_only() {
+		assert_eq!(find_once("Use degree 12 here", "degree 1"), Err(QuoteMiss::Absent));
+		assert_eq!(find_once("the model and the models", "the model"), Ok((0, 9)));
+		assert_eq!(find_once("my_p + 1 and p + 1", "p + 1"), Ok((13, 18)));
+		assert_eq!(find_once("the e\u{fb01}t is \u{fb01}ne", "is fine"), Ok((8, 14)));
+		// A quote that starts or ends with a mark other than a letter or digit may sit against a word.
+		assert_eq!(find_once("q = p->next;", "->next"), Ok((5, 11)));
+		assert_eq!(find_once("call f(x) now", "f("), Ok((5, 7)));
 	}
 
 	#[test]

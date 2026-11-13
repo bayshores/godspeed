@@ -22,9 +22,9 @@ const text = (id: string, body: string): LhViewPart => ({ type: "text", id, text
 describe("which text draws a topic's page", () => {
 	it("a reply's page is keyed by its message, an opener lead's by its part", () => {
 		const marks = topicPageMarks([
-			{ nodeId: "reg", page: { messageId: "m_r1", leadOf: null, fileId: FILE, range: "p. 14", name: "Lecture 6.pdf", quote: "degree 12" }, plot: null },
-			{ nodeId: "cv", page: { messageId: null, leadOf: "t1", fileId: FILE, range: "p. 3", name: "Lecture 7.pdf", quote: "a different 12" }, plot: null },
-			{ nodeId: "ms", page: null, plot: null },
+			{ nodeId: "reg", page: { messageId: "m_r1", leadOf: null, fileId: FILE, range: "p. 14", name: "Lecture 6.pdf", quote: "degree 12" } },
+			{ nodeId: "cv", page: { messageId: null, leadOf: "t1", fileId: FILE, range: "p. 3", name: "Lecture 7.pdf", quote: "a different 12" } },
+			{ nodeId: "ms", page: null },
 		]);
 		assert.deepEqual([...marks], [
 			["m_r1", page14],
@@ -53,30 +53,42 @@ describe("which text draws a topic's page", () => {
 
 describe("where the text splits around the page", () => {
 	it("the page's source number keeps the quote", () => {
-		const view = citeView(`First.${fileCiteMark(FILE, "p. 2", "Lecture 6.pdf")} The curve.${page14}`);
-		assert.deepEqual(pageSource(view.cites, page14), { n: 2, cite: { kind: "file", fileId: FILE, range: "p. 14", name: "Lecture 6.pdf", quote: "degree 12" } });
-		assert.equal(pageSource([], page14), null);
+		const raw = `First.${fileCiteMark(FILE, "p. 2", "Lecture 6.pdf")} The curve.${page14}`;
+		assert.deepEqual(pageSource(raw, citeView(raw).cites, page14), { n: 2, nth: 0, cite: { kind: "file", fileId: FILE, range: "p. 14", name: "Lecture 6.pdf", quote: "degree 12" } });
+		assert.equal(pageSource(raw, [], page14), null);
+	});
+
+	it("an earlier plain mark of the same page leaves the page under the quoting paragraph", () => {
+		const raw = `Overfitting starts here.${fileCiteMark(FILE, "p. 14", "Lecture 6.pdf")}\n\nThe curve at degree 12.${page14}\n\nSo it swings.`;
+		const view = citeView(raw);
+		const source = pageSource(raw, view.cites, page14)!;
+		assert.deepEqual({ n: source.n, nth: source.nth }, { n: 1, nth: 1 });
+		assert.equal(view.cites[0]?.kind === "file" && view.cites[0].quote, "degree 12");
+		const [head, tail] = splitAfterSource(view.text, source.n, source.nth);
+		assert.ok(head.endsWith('The curve at degree 12.<lh-cite n="1"></lh-cite>'));
+		assert.equal(tail, "So it swings.");
 	});
 
 	it("splits after the paragraph holding the number", () => {
 		const view = citeView(`Here the curve swings.${page14}\n\nA curve swings like that.\n\n$$\nL(w)\n$$`);
-		const [head, tail] = splitAfterSource(view.text, 1);
+		const [head, tail] = splitAfterSource(view.text, 1, 0);
 		assert.equal(head, 'Here the curve swings.<lh-cite n="1"></lh-cite>');
 		assert.equal(tail, "A curve swings like that.\n\n$$\nL(w)\n$$");
 	});
 
 	it("a number inside a list splits after the whole list", () => {
 		const view = citeView(`- one${page14}\n- two\n\nAfter.`);
-		assert.deepEqual(splitAfterSource(view.text, 1), [`- one<lh-cite n="1"></lh-cite>\n- two`, "After."]);
+		assert.deepEqual(splitAfterSource(view.text, 1, 0), [`- one<lh-cite n="1"></lh-cite>\n- two`, "After."]);
 	});
 
 	it("a number in the last paragraph leaves nothing after", () => {
 		const view = citeView(`Only this.${page14}`);
-		assert.deepEqual(splitAfterSource(view.text, 1), [view.text, ""]);
+		assert.deepEqual(splitAfterSource(view.text, 1, 0), [view.text, ""]);
 	});
 
 	it("no such number keeps the text whole", () => {
-		assert.deepEqual(splitAfterSource("Plain.", 1), ["Plain.", ""]);
+		assert.deepEqual(splitAfterSource("Plain.", 1, 0), ["Plain.", ""]);
+		assert.deepEqual(splitAfterSource('One.<lh-cite n="1"></lh-cite>', 1, 1), ['One.<lh-cite n="1"></lh-cite>', ""]);
 	});
 });
 
@@ -159,5 +171,22 @@ describe("a .docx or .pptx quote", () => {
 		const passage = "A heap keeps the smallest key on top.\nSo a heap is a tree, and a heap is quick.";
 		assert.deepEqual(passageQuote(passage, 17, 29), { before: "A heap keeps the ", marked: "smallest key", after: " on top." });
 		assert.deepEqual(passageQuote(passage, 41, 47), { before: "So ", marked: "a heap", after: " is a tree, and a heap is quick." });
+	});
+
+	it("a long paragraph shows only the sentence holding the words", () => {
+		const passage = `First an idea. ${"Filler words go here. ".repeat(10)}A heap keeps the smallest key on top. Then more text follows here.`;
+		const start = passage.indexOf("smallest key");
+		assert.deepEqual(passageQuote(passage, start, start + 12), { before: "A heap keeps the ", marked: "smallest key", after: " on top." });
+	});
+
+	it("a transcript without sentence ends shows about 200 characters around the words, cut at word edges", () => {
+		const passage = `${"so we say ".repeat(30)}the heap property says ${"the parent is small ".repeat(30)}`;
+		const start = passage.indexOf("heap property");
+		const quote = passageQuote(passage, start, start + 13);
+		assert.equal(quote.marked, "heap property");
+		assert.match(quote.before, /^…(so|we|say) .* the $/);
+		assert.match(quote.after, /^ says the parent .* (the|parent|is|small)…$/);
+		const shown = quote.before.length + quote.marked.length + quote.after.length;
+		assert.ok(shown > 150 && shown <= 202, `${shown}`);
 	});
 });
