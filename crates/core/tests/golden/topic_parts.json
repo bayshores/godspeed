@@ -1,0 +1,1833 @@
+[
+	{
+		"name": "no record",
+		"output": {
+			"args": {
+				"messages": []
+			},
+			"result": []
+		}
+	},
+	{
+		"name": "the page is the first quoted mark of the opening reply",
+		"output": {
+			"args": {
+				"messages": [
+					{
+						"id": "m_r1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "text",
+								"text": "Plain first.[[f_1a2b3c4d5e6f/p. 2/Lecture 6.pdf]]"
+							},
+							{
+								"type": "text",
+								"text": "Here the curve misses.[[f_1a2b3c4d5e6f/p. 14/Lecture 6.pdf|degree 12]] And [[f_1a2b3c4d5e6f/p. 14/Lecture 6.pdf|15 training points]]."
+							},
+							{
+								"type": "toolCall",
+								"id": "q1",
+								"name": "quiz",
+								"arguments": {
+									"type": "predict",
+									"nodeId": "reg",
+									"question": "What does the curve do?",
+									"options": [
+										{
+											"label": "It swings"
+										},
+										{
+											"label": "It calms"
+										}
+									],
+									"correctAnswer": "It calms",
+									"explanation": "The penalty."
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795035660000
+					},
+					{
+						"id": "r_q1",
+						"role": "toolResult",
+						"toolCallId": "q1",
+						"toolName": "quiz",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": null,
+						"isError": false,
+						"timestamp": 1795035660000
+					}
+				]
+			},
+			"result": [
+				{
+					"nodeId": "reg",
+					"page": {
+						"messageId": "m_r1",
+						"leadOf": null,
+						"fileId": "f_1a2b3c4d5e6f",
+						"range": "p. 14",
+						"name": "Lecture 6.pdf",
+						"quote": "degree 12"
+					}
+				}
+			]
+		}
+	},
+	{
+		"name": "a later reply never gives the page",
+		"output": {
+			"args": {
+				"messages": [
+					{
+						"id": "m_r1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "text",
+								"text": "The curve misses."
+							},
+							{
+								"type": "toolCall",
+								"id": "q1",
+								"name": "quiz",
+								"arguments": {
+									"type": "predict",
+									"nodeId": "reg",
+									"question": "What does the curve do?",
+									"options": [
+										{
+											"label": "It swings"
+										},
+										{
+											"label": "It calms"
+										}
+									],
+									"correctAnswer": "It calms",
+									"explanation": "The penalty."
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795035660000
+					},
+					{
+						"id": "r_q1",
+						"role": "toolResult",
+						"toolCallId": "q1",
+						"toolName": "quiz",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": null,
+						"isError": false,
+						"timestamp": 1795035660000
+					},
+					{
+						"id": "m_r2",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "text",
+								"text": "See the page.[[f_1a2b3c4d5e6f/p. 14/Lecture 6.pdf|degree 12]]"
+							},
+							{
+								"type": "toolCall",
+								"id": "q2",
+								"name": "quiz",
+								"arguments": {
+									"type": "predict",
+									"nodeId": "reg",
+									"question": "What does the curve do?",
+									"options": [
+										{
+											"label": "It swings"
+										},
+										{
+											"label": "It calms"
+										}
+									],
+									"correctAnswer": "It calms",
+									"explanation": "The penalty."
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795035780000
+					},
+					{
+						"id": "r_q2",
+						"role": "toolResult",
+						"toolCallId": "q2",
+						"toolName": "quiz",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": null,
+						"isError": false,
+						"timestamp": 1795035780000
+					}
+				]
+			},
+			"result": [
+				{
+					"nodeId": "reg",
+					"page": null
+				}
+			]
+		}
+	},
+	{
+		"name": "a reply without a nodeId belongs to the latest topic",
+		"output": {
+			"args": {
+				"messages": [
+					{
+						"id": "m_r1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "text",
+								"text": "The curve misses."
+							},
+							{
+								"type": "toolCall",
+								"id": "q1",
+								"name": "quiz",
+								"arguments": {
+									"type": "predict",
+									"nodeId": "reg",
+									"question": "What does the curve do?",
+									"options": [
+										{
+											"label": "It swings"
+										},
+										{
+											"label": "It calms"
+										}
+									],
+									"correctAnswer": "It calms",
+									"explanation": "The penalty."
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795035660000
+					},
+					{
+						"id": "r_q1",
+						"role": "toolResult",
+						"toolCallId": "q1",
+						"toolName": "quiz",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": null,
+						"isError": false,
+						"timestamp": 1795035660000
+					},
+					{
+						"id": "m_r2",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "text",
+								"text": "More on it.[[f_1a2b3c4d5e6f/p. 14/Lecture 6.pdf|degree 12]]"
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "stop",
+						"timestamp": 1795035780000
+					},
+					{
+						"id": "m_r3",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "text",
+								"text": "Splits now.[[f_1a2b3c4d5e6f/p. 3/Lecture 7.pdf|a different 12]]"
+							},
+							{
+								"type": "toolCall",
+								"id": "e1",
+								"name": "explain",
+								"arguments": {
+									"nodeId": "cv",
+									"prompt": "Say why."
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795035900000
+					},
+					{
+						"id": "r_e1",
+						"role": "toolResult",
+						"toolCallId": "e1",
+						"toolName": "explain",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": null,
+						"isError": false,
+						"timestamp": 1795035900000
+					}
+				]
+			},
+			"result": [
+				{
+					"nodeId": "reg",
+					"page": null
+				},
+				{
+					"nodeId": "cv",
+					"page": {
+						"messageId": "m_r3",
+						"leadOf": null,
+						"fileId": "f_1a2b3c4d5e6f",
+						"range": "p. 3",
+						"name": "Lecture 7.pdf",
+						"quote": "a different 12"
+					}
+				}
+			]
+		}
+	},
+	{
+		"name": "a refused call names no topic",
+		"output": {
+			"args": {
+				"messages": [
+					{
+						"id": "m_r1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "text",
+								"text": "The curve misses."
+							},
+							{
+								"type": "toolCall",
+								"id": "q1",
+								"name": "quiz",
+								"arguments": {
+									"type": "predict",
+									"nodeId": "reg",
+									"question": "What does the curve do?",
+									"options": [
+										{
+											"label": "It swings"
+										},
+										{
+											"label": "It calms"
+										}
+									],
+									"correctAnswer": "It calms",
+									"explanation": "The penalty."
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795035660000
+					},
+					{
+						"id": "r_q1",
+						"role": "toolResult",
+						"toolCallId": "q1",
+						"toolName": "quiz",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": null,
+						"isError": false,
+						"timestamp": 1795035660000
+					},
+					{
+						"id": "m_r2",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "text",
+								"text": "Splits.[[f_1a2b3c4d5e6f/p. 3/Lecture 7.pdf|Split 1]]"
+							},
+							{
+								"type": "toolCall",
+								"id": "q2",
+								"name": "quiz",
+								"arguments": {
+									"type": "predict",
+									"nodeId": "cv",
+									"question": "What does the curve do?",
+									"options": [
+										{
+											"label": "It swings"
+										},
+										{
+											"label": "It calms"
+										}
+									],
+									"correctAnswer": "It calms",
+									"explanation": "The penalty."
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795035780000
+					},
+					{
+						"id": "r_q2",
+						"role": "toolResult",
+						"toolCallId": "q2",
+						"toolName": "quiz",
+						"content": [
+							{
+								"type": "text",
+								"text": "options: at least 2"
+							}
+						],
+						"details": null,
+						"isError": true,
+						"timestamp": 1795035780000
+					},
+					{
+						"id": "m_r3",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "text",
+								"text": "Splits again.[[f_1a2b3c4d5e6f/p. 3/Lecture 7.pdf|a different 12]]"
+							},
+							{
+								"type": "toolCall",
+								"id": "q3",
+								"name": "quiz",
+								"arguments": {
+									"type": "predict",
+									"nodeId": "cv",
+									"question": "What does the curve do?",
+									"options": [
+										{
+											"label": "It swings"
+										},
+										{
+											"label": "It calms"
+										}
+									],
+									"correctAnswer": "It calms",
+									"explanation": "The penalty."
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795035840000
+					},
+					{
+						"id": "r_q3",
+						"role": "toolResult",
+						"toolCallId": "q3",
+						"toolName": "quiz",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": null,
+						"isError": false,
+						"timestamp": 1795035840000
+					}
+				]
+			},
+			"result": [
+				{
+					"nodeId": "reg",
+					"page": null
+				},
+				{
+					"nodeId": "cv",
+					"page": {
+						"messageId": "m_r3",
+						"leadOf": null,
+						"fileId": "f_1a2b3c4d5e6f",
+						"range": "p. 3",
+						"name": "Lecture 7.pdf",
+						"quote": "a different 12"
+					}
+				}
+			]
+		}
+	},
+	{
+		"name": "the shown opener's lead gives the next topic's page",
+		"output": {
+			"args": {
+				"messages": [
+					{
+						"id": "m_r1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "text",
+								"text": "Here the curve misses.[[f_1a2b3c4d5e6f/p. 14/Lecture 6.pdf|degree 12]]"
+							},
+							{
+								"type": "toolCall",
+								"id": "q1",
+								"name": "quiz",
+								"arguments": {
+									"type": "predict",
+									"nodeId": "reg",
+									"question": "What does the curve do?",
+									"options": [
+										{
+											"label": "It swings"
+										},
+										{
+											"label": "It calms"
+										}
+									],
+									"correctAnswer": "It calms",
+									"explanation": "The penalty."
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795035660000
+					},
+					{
+						"id": "r_q1",
+						"role": "toolResult",
+						"toolCallId": "q1",
+						"toolName": "quiz",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": null,
+						"isError": false,
+						"timestamp": 1795035660000
+					},
+					{
+						"id": "m_p1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "p1",
+								"name": "problem",
+								"arguments": {
+									"statement": "Fit lambda.",
+									"nodeId": "reg"
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795037400000
+					},
+					{
+						"id": "r_p1",
+						"role": "toolResult",
+						"toolCallId": "p1",
+						"toolName": "problem",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": null,
+						"isError": false,
+						"timestamp": 1795037400000
+					},
+					{
+						"id": "m_c1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "c1",
+								"name": "conclude",
+								"arguments": {
+									"outcome": "solved",
+									"verdict": "Right.",
+									"rung": null,
+									"missClass": null,
+									"retest": false
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795038480000
+					},
+					{
+						"id": "r_c1",
+						"role": "toolResult",
+						"toolCallId": "c1",
+						"toolName": "conclude",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": {
+							"stop": {
+								"kind": "topic",
+								"nodeId": "reg",
+								"activeMinutes": 48,
+								"at": "2026-11-18T21:48:00.000Z"
+							}
+						},
+						"isError": false,
+						"timestamp": 1795038480000
+					},
+					{
+						"id": "m_t1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "t1",
+								"name": "topic_done",
+								"arguments": {
+									"nodeId": "reg",
+									"opener": {
+										"lead": "Here lambda is picked on one split.[[f_1a2b3c4d5e6f/p. 3/Lecture 7.pdf|a different 12]]",
+										"quiz": {
+											"question": "With 5 folds, how much does the score move between splits?",
+											"options": [
+												{
+													"label": "It can move a lot"
+												},
+												{
+													"label": "Barely"
+												}
+											],
+											"correctAnswer": "It can move a lot",
+											"explanation": "Small folds are noisy.",
+											"type": "predict",
+											"nodeId": "cv"
+										}
+									}
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795038540000
+					},
+					{
+						"id": "r_t1",
+						"role": "toolResult",
+						"toolCallId": "t1",
+						"toolName": "topic_done",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": {
+							"part": "topic_done",
+							"v": 1,
+							"lead": "Here lambda is picked on one split.[[f_1a2b3c4d5e6f/p. 3/Lecture 7.pdf|a different 12]]"
+						},
+						"isError": false,
+						"timestamp": 1795038540000
+					},
+					{
+						"id": "kg_c1_50",
+						"role": "custom",
+						"customType": "keep-going",
+						"content": "",
+						"display": true,
+						"details": {
+							"stopOf": "c1",
+							"at": "2026-11-18T21:50:00.000Z"
+						},
+						"timestamp": 1795038600000
+					},
+					{
+						"id": "m_r2",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "text",
+								"text": "On the page.[[f_1a2b3c4d5e6f/p. 3/Lecture 7.pdf|Split 2]]"
+							},
+							{
+								"type": "toolCall",
+								"id": "q2",
+								"name": "quiz",
+								"arguments": {
+									"type": "predict",
+									"nodeId": "cv",
+									"question": "What does the curve do?",
+									"options": [
+										{
+											"label": "It swings"
+										},
+										{
+											"label": "It calms"
+										}
+									],
+									"correctAnswer": "It calms",
+									"explanation": "The penalty."
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795038720000
+					},
+					{
+						"id": "r_q2",
+						"role": "toolResult",
+						"toolCallId": "q2",
+						"toolName": "quiz",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": null,
+						"isError": false,
+						"timestamp": 1795038720000
+					}
+				]
+			},
+			"result": [
+				{
+					"nodeId": "reg",
+					"page": {
+						"messageId": "m_r1",
+						"leadOf": null,
+						"fileId": "f_1a2b3c4d5e6f",
+						"range": "p. 14",
+						"name": "Lecture 6.pdf",
+						"quote": "degree 12"
+					}
+				},
+				{
+					"nodeId": "cv",
+					"page": {
+						"messageId": null,
+						"leadOf": "t1",
+						"fileId": "f_1a2b3c4d5e6f",
+						"range": "p. 3",
+						"name": "Lecture 7.pdf",
+						"quote": "a different 12"
+					}
+				}
+			]
+		}
+	},
+	{
+		"name": "a lead without a quote leaves the opening reply",
+		"output": {
+			"args": {
+				"messages": [
+					{
+						"id": "m_r1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "text",
+								"text": "Here the curve misses.[[f_1a2b3c4d5e6f/p. 14/Lecture 6.pdf|degree 12]]"
+							},
+							{
+								"type": "toolCall",
+								"id": "q1",
+								"name": "quiz",
+								"arguments": {
+									"type": "predict",
+									"nodeId": "reg",
+									"question": "What does the curve do?",
+									"options": [
+										{
+											"label": "It swings"
+										},
+										{
+											"label": "It calms"
+										}
+									],
+									"correctAnswer": "It calms",
+									"explanation": "The penalty."
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795035660000
+					},
+					{
+						"id": "r_q1",
+						"role": "toolResult",
+						"toolCallId": "q1",
+						"toolName": "quiz",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": null,
+						"isError": false,
+						"timestamp": 1795035660000
+					},
+					{
+						"id": "m_p1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "p1",
+								"name": "problem",
+								"arguments": {
+									"statement": "Fit lambda.",
+									"nodeId": "reg"
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795037400000
+					},
+					{
+						"id": "r_p1",
+						"role": "toolResult",
+						"toolCallId": "p1",
+						"toolName": "problem",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": null,
+						"isError": false,
+						"timestamp": 1795037400000
+					},
+					{
+						"id": "m_c1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "c1",
+								"name": "conclude",
+								"arguments": {
+									"outcome": "solved",
+									"verdict": "Right.",
+									"rung": null,
+									"missClass": null,
+									"retest": false
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795038480000
+					},
+					{
+						"id": "r_c1",
+						"role": "toolResult",
+						"toolCallId": "c1",
+						"toolName": "conclude",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": {
+							"stop": {
+								"kind": "topic",
+								"nodeId": "reg",
+								"activeMinutes": 48,
+								"at": "2026-11-18T21:48:00.000Z"
+							}
+						},
+						"isError": false,
+						"timestamp": 1795038480000
+					},
+					{
+						"id": "m_t1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "t1",
+								"name": "topic_done",
+								"arguments": {
+									"nodeId": "reg",
+									"opener": {
+										"lead": "Here lambda is picked on one split.[[f_1a2b3c4d5e6f/p. 3/Lecture 7.pdf]]",
+										"quiz": {
+											"question": "With 5 folds, how much does the score move between splits?",
+											"options": [
+												{
+													"label": "It can move a lot"
+												},
+												{
+													"label": "Barely"
+												}
+											],
+											"correctAnswer": "It can move a lot",
+											"explanation": "Small folds are noisy.",
+											"type": "predict",
+											"nodeId": "cv"
+										}
+									}
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795038540000
+					},
+					{
+						"id": "r_t1",
+						"role": "toolResult",
+						"toolCallId": "t1",
+						"toolName": "topic_done",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": {
+							"part": "topic_done",
+							"v": 1,
+							"lead": "Here lambda is picked on one split.[[f_1a2b3c4d5e6f/p. 3/Lecture 7.pdf]]"
+						},
+						"isError": false,
+						"timestamp": 1795038540000
+					},
+					{
+						"id": "kg_c1_50",
+						"role": "custom",
+						"customType": "keep-going",
+						"content": "",
+						"display": true,
+						"details": {
+							"stopOf": "c1",
+							"at": "2026-11-18T21:50:00.000Z"
+						},
+						"timestamp": 1795038600000
+					},
+					{
+						"id": "m_r2",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "text",
+								"text": "On the page.[[f_1a2b3c4d5e6f/p. 3/Lecture 7.pdf|Split 2]]"
+							},
+							{
+								"type": "toolCall",
+								"id": "q2",
+								"name": "quiz",
+								"arguments": {
+									"type": "predict",
+									"nodeId": "cv",
+									"question": "What does the curve do?",
+									"options": [
+										{
+											"label": "It swings"
+										},
+										{
+											"label": "It calms"
+										}
+									],
+									"correctAnswer": "It calms",
+									"explanation": "The penalty."
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795038720000
+					},
+					{
+						"id": "r_q2",
+						"role": "toolResult",
+						"toolCallId": "q2",
+						"toolName": "quiz",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": null,
+						"isError": false,
+						"timestamp": 1795038720000
+					}
+				]
+			},
+			"result": [
+				{
+					"nodeId": "reg",
+					"page": {
+						"messageId": "m_r1",
+						"leadOf": null,
+						"fileId": "f_1a2b3c4d5e6f",
+						"range": "p. 14",
+						"name": "Lecture 6.pdf",
+						"quote": "degree 12"
+					}
+				},
+				{
+					"nodeId": "cv",
+					"page": {
+						"messageId": "m_r2",
+						"leadOf": null,
+						"fileId": "f_1a2b3c4d5e6f",
+						"range": "p. 3",
+						"name": "Lecture 7.pdf",
+						"quote": "Split 2"
+					}
+				}
+			]
+		}
+	},
+	{
+		"name": "an opener never shown is not the page",
+		"output": {
+			"args": {
+				"messages": [
+					{
+						"id": "m_r1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "text",
+								"text": "Here the curve misses.[[f_1a2b3c4d5e6f/p. 14/Lecture 6.pdf|degree 12]]"
+							},
+							{
+								"type": "toolCall",
+								"id": "q1",
+								"name": "quiz",
+								"arguments": {
+									"type": "predict",
+									"nodeId": "reg",
+									"question": "What does the curve do?",
+									"options": [
+										{
+											"label": "It swings"
+										},
+										{
+											"label": "It calms"
+										}
+									],
+									"correctAnswer": "It calms",
+									"explanation": "The penalty."
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795035660000
+					},
+					{
+						"id": "r_q1",
+						"role": "toolResult",
+						"toolCallId": "q1",
+						"toolName": "quiz",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": null,
+						"isError": false,
+						"timestamp": 1795035660000
+					},
+					{
+						"id": "m_p1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "p1",
+								"name": "problem",
+								"arguments": {
+									"statement": "Fit lambda.",
+									"nodeId": "reg"
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795037400000
+					},
+					{
+						"id": "r_p1",
+						"role": "toolResult",
+						"toolCallId": "p1",
+						"toolName": "problem",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": null,
+						"isError": false,
+						"timestamp": 1795037400000
+					},
+					{
+						"id": "m_c1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "c1",
+								"name": "conclude",
+								"arguments": {
+									"outcome": "solved",
+									"verdict": "Right.",
+									"rung": null,
+									"missClass": null,
+									"retest": false
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795038480000
+					},
+					{
+						"id": "r_c1",
+						"role": "toolResult",
+						"toolCallId": "c1",
+						"toolName": "conclude",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": {
+							"stop": {
+								"kind": "topic",
+								"nodeId": "reg",
+								"activeMinutes": 48,
+								"at": "2026-11-18T21:48:00.000Z"
+							}
+						},
+						"isError": false,
+						"timestamp": 1795038480000
+					},
+					{
+						"id": "m_t1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "t1",
+								"name": "topic_done",
+								"arguments": {
+									"nodeId": "reg",
+									"opener": {
+										"lead": "Here lambda is picked on one split.[[f_1a2b3c4d5e6f/p. 3/Lecture 7.pdf|a different 12]]",
+										"quiz": {
+											"question": "With 5 folds, how much does the score move between splits?",
+											"options": [
+												{
+													"label": "It can move a lot"
+												},
+												{
+													"label": "Barely"
+												}
+											],
+											"correctAnswer": "It can move a lot",
+											"explanation": "Small folds are noisy.",
+											"type": "predict",
+											"nodeId": "cv"
+										}
+									}
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795038540000
+					},
+					{
+						"id": "r_t1",
+						"role": "toolResult",
+						"toolCallId": "t1",
+						"toolName": "topic_done",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": {
+							"part": "topic_done",
+							"v": 1,
+							"lead": "Here lambda is picked on one split.[[f_1a2b3c4d5e6f/p. 3/Lecture 7.pdf|a different 12]]"
+						},
+						"isError": false,
+						"timestamp": 1795038540000
+					},
+					{
+						"id": "m_r2",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "text",
+								"text": "On the page.[[f_1a2b3c4d5e6f/p. 3/Lecture 7.pdf|Split 2]]"
+							},
+							{
+								"type": "toolCall",
+								"id": "q2",
+								"name": "quiz",
+								"arguments": {
+									"type": "predict",
+									"nodeId": "cv",
+									"question": "What does the curve do?",
+									"options": [
+										{
+											"label": "It swings"
+										},
+										{
+											"label": "It calms"
+										}
+									],
+									"correctAnswer": "It calms",
+									"explanation": "The penalty."
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795038720000
+					},
+					{
+						"id": "r_q2",
+						"role": "toolResult",
+						"toolCallId": "q2",
+						"toolName": "quiz",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": null,
+						"isError": false,
+						"timestamp": 1795038720000
+					}
+				]
+			},
+			"result": [
+				{
+					"nodeId": "reg",
+					"page": {
+						"messageId": "m_r1",
+						"leadOf": null,
+						"fileId": "f_1a2b3c4d5e6f",
+						"range": "p. 14",
+						"name": "Lecture 6.pdf",
+						"quote": "degree 12"
+					}
+				},
+				{
+					"nodeId": "cv",
+					"page": {
+						"messageId": "m_r2",
+						"leadOf": null,
+						"fileId": "f_1a2b3c4d5e6f",
+						"range": "p. 3",
+						"name": "Lecture 7.pdf",
+						"quote": "Split 2"
+					}
+				}
+			]
+		}
+	},
+	{
+		"name": "unchecked and web marks are not pages",
+		"output": {
+			"args": {
+				"messages": [
+					{
+						"id": "m_r1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "text",
+								"text": "Here.[[f_1a2b3c4d5e6f:7 \"degree 12\"]] And [[https://example.com/page]]."
+							},
+							{
+								"type": "toolCall",
+								"id": "q1",
+								"name": "quiz",
+								"arguments": {
+									"type": "predict",
+									"nodeId": "reg",
+									"question": "What does the curve do?",
+									"options": [
+										{
+											"label": "It swings"
+										},
+										{
+											"label": "It calms"
+										}
+									],
+									"correctAnswer": "It calms",
+									"explanation": "The penalty."
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795035660000
+					},
+					{
+						"id": "r_q1",
+						"role": "toolResult",
+						"toolCallId": "q1",
+						"toolName": "quiz",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": null,
+						"isError": false,
+						"timestamp": 1795035660000
+					}
+				]
+			},
+			"result": [
+				{
+					"nodeId": "reg",
+					"page": null
+				}
+			]
+		}
+	},
+	{
+		"name": "a quoted mark in code or math is not a page",
+		"output": {
+			"args": {
+				"messages": [
+					{
+						"id": "m_r1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "text",
+								"text": "Write `[[f_1a2b3c4d5e6f/p. 14/Lecture 6.pdf|degree 12]]` or $[[f_1a2b3c4d5e6f/p. 14/Lecture 6.pdf|degree 12]]$."
+							},
+							{
+								"type": "toolCall",
+								"id": "q1",
+								"name": "quiz",
+								"arguments": {
+									"type": "predict",
+									"nodeId": "reg",
+									"question": "What does the curve do?",
+									"options": [
+										{
+											"label": "It swings"
+										},
+										{
+											"label": "It calms"
+										}
+									],
+									"correctAnswer": "It calms",
+									"explanation": "The penalty."
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795035660000
+					},
+					{
+						"id": "r_q1",
+						"role": "toolResult",
+						"toolCallId": "q1",
+						"toolName": "quiz",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": null,
+						"isError": false,
+						"timestamp": 1795035660000
+					}
+				]
+			},
+			"result": [
+				{
+					"nodeId": "reg",
+					"page": null
+				}
+			]
+		}
+	}
+]

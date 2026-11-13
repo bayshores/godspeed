@@ -8,6 +8,7 @@ pub mod deadline_plan;
 pub mod cheat_sheet;
 pub mod topic_end;
 pub mod review;
+pub mod topic_parts;
 
 mod answers;
 mod calibration;
