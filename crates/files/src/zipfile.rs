@@ -1,5 +1,6 @@
 //! A zip archive's files by name, read lazily from the central directory exactly as office-text.ts
-//! does: sizes and offsets are taken on trust and checksums are never looked at.
+//! does: sizes and offsets are taken on trust and checksums are never looked at. A broken archive
+//! fails with the message its caller passed, which names the kind of file it should have been.
 
 use std::collections::HashMap;
 
@@ -7,7 +8,6 @@ use gs_base::text::from_utf8_lossy;
 
 use crate::inflate::inflate_raw;
 
-pub(crate) const NOT_OFFICE: &str = "This file can't be opened as a Word or PowerPoint file. Save it again as .docx, .pptx or PDF.";
 pub(crate) const LOCKED: &str = "This file is password-protected. Save a copy without a password, or as PDF.";
 /// Most one part may unpack to: a real document's XML is far smaller, and a tiny file that
 /// unpacks to gigabytes would stall the server.
@@ -22,6 +22,7 @@ struct Entry {
 
 pub(crate) struct Zip {
 	buf: Vec<u8>,
+	broken: &'static str,
 	/// Names in the order they first appear; a repeated name keeps its place and takes the later entry.
 	names: Vec<String>,
 	entries: HashMap<String, Entry>,
@@ -36,19 +37,19 @@ fn le32(buf: &[u8], at: usize) -> usize {
 }
 
 impl Zip {
-	pub(crate) fn open(buf: Vec<u8>) -> Result<Zip, String> {
+	pub(crate) fn open(buf: Vec<u8>, broken: &'static str) -> Result<Zip, String> {
 		// Office files with a password are not zips but OLE compound files.
 		if buf.starts_with(&[0xd0, 0xcf, 0x11, 0xe0]) {
 			return Err(LOCKED.to_owned());
 		}
-		let last_start = buf.len().checked_sub(22).ok_or(NOT_OFFICE)?;
-		let eocd = (buf.len().saturating_sub(65_557)..=last_start).rev().find(|&i| buf[i..].starts_with(&[0x50, 0x4b, 0x05, 0x06])).ok_or(NOT_OFFICE)?;
+		let last_start = buf.len().checked_sub(22).ok_or(broken)?;
+		let eocd = (buf.len().saturating_sub(65_557)..=last_start).rev().find(|&i| buf[i..].starts_with(&[0x50, 0x4b, 0x05, 0x06])).ok_or(broken)?;
 		let count = le16(&buf, eocd + 10);
 		let mut at = le32(&buf, eocd + 16);
 		let (mut names, mut entries) = (Vec::new(), HashMap::new());
 		for _ in 0..count {
 			if at + 46 > buf.len() || !buf[at..].starts_with(&[0x50, 0x4b, 0x01, 0x02]) {
-				return Err(NOT_OFFICE.to_owned());
+				return Err(broken.to_owned());
 			}
 			let name_len = le16(&buf, at + 28);
 			let name = from_utf8_lossy(&buf[at + 46..(at + 46 + name_len).min(buf.len())]);
@@ -58,7 +59,7 @@ impl Zip {
 				names.push(name);
 			}
 		}
-		Ok(Zip { buf, names, entries })
+		Ok(Zip { buf, broken, names, entries })
 	}
 
 	pub(crate) fn has(&self, name: &str) -> bool {
@@ -77,14 +78,14 @@ impl Zip {
 		}
 		let buf = &self.buf;
 		if entry.local + 30 > buf.len() || !buf[entry.local..].starts_with(&[0x50, 0x4b, 0x03, 0x04]) {
-			return Err(NOT_OFFICE.to_owned());
+			return Err(self.broken.to_owned());
 		}
 		let start = (entry.local + 30 + le16(buf, entry.local + 26) + le16(buf, entry.local + 28)).min(buf.len());
 		let data = &buf[start..(start + entry.size).min(buf.len())];
 		match entry.method {
 			0 => Ok(Some(data.to_vec())),
-			8 => inflate_raw(data, MAX_PART_BYTES).map(Some).ok_or_else(|| NOT_OFFICE.to_owned()),
-			_ => Err(NOT_OFFICE.to_owned()),
+			8 => inflate_raw(data, MAX_PART_BYTES).map(Some).ok_or_else(|| self.broken.to_owned()),
+			_ => Err(self.broken.to_owned()),
 		}
 	}
 

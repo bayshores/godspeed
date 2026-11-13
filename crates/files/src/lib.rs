@@ -1,5 +1,6 @@
 //! Space files to text: office documents, EPUB books, captions, text sniffing, linked folder walks and fingerprints.
 
+mod entities;
 mod epub;
 pub mod fingerprint;
 mod inflate;

@@ -8,12 +8,13 @@ use std::sync::LazyLock;
 use gs_base::posix;
 use gs_base::re::Re;
 use gs_base::text::trim;
-use gs_json::lone;
 
+use crate::entities::decode_entities;
 use crate::ioerr::read_file;
-use crate::zipfile::{NOT_OFFICE, Zip};
+use crate::zipfile::Zip;
 
-static ENTITY: LazyLock<Re> = LazyLock::new(|| Re::new(r"&(#x[0-9a-f]+|#\d+|\w+);", "gi"));
+const NOT_OFFICE: &str = "This file can't be opened as a Word or PowerPoint file. Save it again as .docx, .pptx or PDF.";
+
 static WORD_RUN: LazyLock<Re> = LazyLock::new(|| Re::new(r"<w:t(?:\s[^>]*)?>([^<]*)<\/w:t>|<w:tab\/>|<w:(?:br|cr)\b[^>]*>|<\/w:p>", "g"));
 static SLIDE_RUN: LazyLock<Re> = LazyLock::new(|| Re::new(r"<a:t(?:\s[^>]*)?>([^<]*)<\/a:t>|<a:br\b[^>]*>|<\/a:p>", "g"));
 static BLANK_BEFORE_BREAK: LazyLock<Re> = LazyLock::new(|| Re::new(r"[ \t]+\n", "g"));
@@ -51,36 +52,12 @@ fn entity_text(name: &str) -> Option<&'static str> {
 	})
 }
 
-/// The code point a numeric reference names, or None past U+10FFFF.
-pub(crate) fn code_point(code: &str) -> Option<u32> {
-	let (digits, radix) = match code.as_bytes()[1] {
-		b'x' | b'X' => (&code[2..], 16),
-		_ => (&code[1..], 10),
-	};
-	u32::from_str_radix(digits, radix).ok().filter(|&n| n <= 0x10ffff)
-}
-
-/// A character reference, or the text as it was when it is not one we know.
-fn decode_xml(text: &str) -> String {
-	ENTITY.replace_with(text, |m| {
-		let whole = m.get(0).unwrap_or_default();
-		let code = m.get(1).unwrap_or_default();
-		if code.starts_with('#') {
-			return match code_point(&code) {
-				Some(n) => char::from_u32(n).map_or_else(|| lone::from_utf16(&[n as u16]), String::from),
-				None => whole,
-			};
-		}
-		entity_text(&code).map_or(whole, str::to_owned)
-	})
-}
-
 /// Text runs in reading order: breaks and tabs keep their spacing, paragraphs end a line.
 fn xml_text(xml: &str, run: &Re) -> String {
 	let mut out = String::new();
 	for m in run.captures_iter(xml) {
 		if let Some(text) = m.get(1) {
-			out.push_str(&decode_xml(&text));
+			out.push_str(&decode_entities(&text, entity_text));
 		} else if m.as_string().contains("tab") {
 			out.push('\t');
 		} else {
@@ -163,7 +140,7 @@ fn pptx_text(zip: &Zip) -> Result<String, String> {
 /// A .docx or .pptx file's text. The error is a plain message for files that aren't really
 /// Word/PowerPoint files or are password-protected.
 pub fn office_text(file: &Path) -> Result<String, String> {
-	let zip = Zip::open(read_file(file)?)?;
+	let zip = Zip::open(read_file(file)?, NOT_OFFICE)?;
 	let name = file.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
 	if posix::extname(&name).to_lowercase() == ".pptx" { pptx_text(&zip) } else { docx_text(&zip) }
 }

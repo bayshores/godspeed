@@ -10,9 +10,9 @@ use gs_base::posix;
 use gs_base::re::Re;
 use gs_base::text::{from_utf8_lossy, trim, trim_end};
 
+use crate::entities::decode_entities;
 use crate::ioerr::read_file;
-use crate::office::code_point;
-use crate::zipfile::{NOT_OFFICE, Zip};
+use crate::zipfile::Zip;
 
 const NOT_EPUB: &str = "This file can't be opened as an EPUB book. Save it again as .epub or PDF.";
 const COPY_PROTECTED: &str = "This book is copy-protected (DRM), so its text can't be read. Add a copy without DRM, or a PDF.";
@@ -32,7 +32,6 @@ static ROOTFILE: LazyLock<Re> = LazyLock::new(|| Re::new(r"<(?:\w+:)?rootfile\b[
 static ITEM: LazyLock<Re> = LazyLock::new(|| Re::new(r"<(?:\w+:)?item\b[^>]*>", "g"));
 static ITEMREF: LazyLock<Re> = LazyLock::new(|| Re::new(r"<(?:\w+:)?itemref\b[^>]*>", "g"));
 static ENCRYPTION_METHOD: LazyLock<Re> = LazyLock::new(|| Re::new(r"<(?:\w+:)?EncryptionMethod\b[^>]*>", "g"));
-static ENTITY: LazyLock<Re> = LazyLock::new(|| Re::new(r"&(#[xX][0-9a-fA-F]+|#\d+|[A-Za-z][A-Za-z0-9]*);", "g"));
 
 /// HTML's named characters that books use most. XML itself knows only the first five.
 fn named_entity(name: &str) -> Option<&'static str> {
@@ -71,19 +70,14 @@ fn named_entity(name: &str) -> Option<&'static str> {
 	})
 }
 
-/// Character references decoded; one we don't know stays as it was.
-fn decode_entities(text: &str) -> String {
-	ENTITY.replace_with(text, |m| {
-		let (whole, code) = (m.get(0).unwrap_or_default(), m.get(1).unwrap_or_default());
-		let decoded = if code.starts_with('#') { code_point(&code).and_then(char::from_u32).map(String::from) } else { named_entity(&code).map(str::to_owned) };
-		decoded.unwrap_or(whole)
-	})
+fn decode_html(text: &str) -> String {
+	decode_entities(text, named_entity)
 }
 
 /// An attribute's value in a tag, entities decoded.
 fn attr(tag: &str, name: &str) -> Option<String> {
 	let m = Re::new(&format!(r#"\s{name}\s*=\s*(?:"([^"]*)"|'([^']*)')"#), "").captures(tag)?;
-	m.get(1).or_else(|| m.get(2)).map(|value| decode_entities(&value))
+	m.get(1).or_else(|| m.get(2)).map(|value| decode_html(&value))
 }
 
 /// `%XX` escapes decoded (hrefs in the package are URLs).
@@ -224,7 +218,7 @@ fn chapter_text(xhtml: &str) -> String {
 	let mut rest = doc.as_str();
 	while let Some(lt) = rest.find('<') {
 		if skip.is_none() {
-			out.push(&decode_entities(&rest[..lt]));
+			out.push(&decode_html(&rest[..lt]));
 		}
 		rest = &rest[lt..];
 		if let Some(body) = rest.strip_prefix("<!--") {
@@ -273,7 +267,7 @@ fn chapter_text(xhtml: &str) -> String {
 		}
 	}
 	if skip.is_none() {
-		out.push(&decode_entities(rest));
+		out.push(&decode_html(rest));
 	}
 	out.end_line();
 	if let Some(at) = out.title {
@@ -283,8 +277,8 @@ fn chapter_text(xhtml: &str) -> String {
 	out.lines.join("\n")
 }
 
-fn read_book(buf: Vec<u8>) -> Result<String, String> {
-	let zip = Zip::open(buf)?;
+fn book_text(buf: Vec<u8>) -> Result<String, String> {
+	let zip = Zip::open(buf, NOT_EPUB)?;
 	if is_copy_protected(&zip)? {
 		return Err(COPY_PROTECTED.to_owned());
 	}
@@ -303,11 +297,6 @@ fn read_book(buf: Vec<u8>) -> Result<String, String> {
 		}
 	}
 	Ok(chapters.join("\n\n"))
-}
-
-/// `read_book` with the zip reader's "not a Word or PowerPoint file" said about a book.
-fn book_text(buf: Vec<u8>) -> Result<String, String> {
-	read_book(buf).map_err(|err| if err == NOT_OFFICE { NOT_EPUB.to_owned() } else { err })
 }
 
 /// An .epub file's text. The error is a plain message for files that aren't really EPUB books
