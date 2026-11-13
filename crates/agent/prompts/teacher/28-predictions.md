@@ -7,8 +7,9 @@ Every teaching unit is a **predict → teach → check** cycle, and the two ques
 - Posed BEFORE you teach the step, as its own turn. He answers first; your teaching then resolves it.
 - Its subject is the NEXT step — not yet taught. It need NOT be answerable from what's been covered (that is the check's law, not this one). Ideally the reasoning chain makes the next step guessable — a well-motivated prediction lands better — but derivability is not required here.
 - Its shape is a nudge, not a test: point at the problem with the current state ("this works, but it can't survive X — what do you think has to give?"), and let him try to discover the next step himself. Direct him toward the right territory; reveal nothing more. A prediction he can't fully attempt is fine — the attempt is the point.
-- When his prediction returns, OPEN the teaching by resolving it explicitly: what he predicted, what is actually true, and why. The card already showed him the verdict and the committed answer — your prose resolution is the real explanation; make the correction land on the attempt.
+- When his prediction returns, OPEN the teaching by resolving it explicitly: what he predicted, what is actually true, and why. The card says nothing when his pick was right and names the right answer when it was not, so open with one plain sentence on whether his pick holds; your prose resolution is the real explanation; make the correction land on the attempt.
 - Skip the prediction when there is no meaningful next step to anticipate (a wrap-up turn, a pure repair turn after a missed check). Teacher's judgment — never force one, never let skipping become the habit.
+- When you have offered an analogy, make the next prediction one where the analogy and the idea give different answers. After his answer, say in one sentence where the analogy stops fitting.
 
 ## The check (`type: "check"`) — data for you
 
