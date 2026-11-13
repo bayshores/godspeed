@@ -15,7 +15,7 @@ import { MoveLessonDialog } from "./move-lesson-dialog";
 import { useLessonList } from "./use-lesson-list";
 
 /**
- * THE LESSONS TAB: "Study something new", the search field, then the
+ * THE LESSONS TAB: the search field beside "Study something new", then the
  * space's lessons and the lesson menu (rename, export, move, delete; a
  * row's More button or a right-click opens it). In the search field ↑/↓
  * walk the matches, Enter opens the walked row (or the first match) and
@@ -134,26 +134,28 @@ export function LessonsList() {
 
 	return (
 		<div data-testid="lessons-list" className="mx-auto flex w-full max-w-[908px] flex-col gap-5 px-6 py-6">
-			{/* New lessons start on the start page ("/new"). */}
-			<Link to="/new" data-testid="new-session" className="lh-btn lh-btn-main h-auto w-full justify-center py-3 text-base">
-				<PixelIcon name="play" />
-				Study something new
-			</Link>
-			<input
-				data-testid="session-search"
-				value={query}
-				onChange={(e) => {
-					setQuery(e.target.value);
-					setKbdIndex(null); // the list reorders under the query
-				}}
-				onKeyDown={onSearchKey}
-				placeholder="Search lessons"
-				aria-label="Search lessons"
-				spellCheck={false}
-				className="h-11 w-full rounded-[2px] border-2 border-ink bg-transparent px-3 text-base text-ink outline-none placeholder:text-ink-3"
-			/>
+			<div className="flex flex-wrap gap-3">
+				<input
+					data-testid="session-search"
+					value={query}
+					onChange={(e) => {
+						setQuery(e.target.value);
+						setKbdIndex(null); // the list reorders under the query
+					}}
+					onKeyDown={onSearchKey}
+					placeholder="Search lessons"
+					aria-label="Search lessons"
+					spellCheck={false}
+					className="h-11 min-w-[200px] flex-1 rounded-[2px] border-[1.5px] border-transparent bg-tone px-3 text-base text-ink outline-none placeholder:text-ink-3 focus:border-ink"
+				/>
+				{/* New lessons start on the start page ("/new"). */}
+				<Link to="/new" data-testid="new-session" className="lh-btn lh-btn-main h-11 justify-center text-base">
+					<PixelIcon name="play" />
+					Study something new
+				</Link>
+			</div>
 
-			<div ref={listRef} className="flex w-full flex-col border-y-2 border-ink">
+			<div ref={listRef} className="flex w-full flex-col">
 				{shown === null ? (
 					failed ? (
 						<LoadFailed message="Couldn't load your lessons." onRetry={() => void refresh()} className="px-2 py-4" />
