@@ -122,7 +122,7 @@ export function PrepLaterRow({ prep, nowMs, onOpen }: { prep: PrepDay; nowMs: nu
 	return (
 		<li data-testid={`later-prep-${prep.spaceId}`}>
 			<Pane className="overflow-hidden">
-				<Link to="/space" onClick={() => onOpen(prep)} className="flex min-h-[104px] transition-colors hover:bg-tone">
+				<Link to="/space" onClick={() => onOpen(prep)} className="flex min-h-[100px] transition-colors hover:bg-tone">
 					<CountBlock pale color={spaceColorVar(prep.color)} {...prepBlock(prep, nowMs)} />
 					<span className="flex min-w-0 flex-1 items-center gap-4 px-6 py-4">
 						<Words title={prep.name} line={`It is on ${longDay(prep.date)}`} />
@@ -158,7 +158,7 @@ export function LaterRow({ deadline: d, progress, color, nowMs }: { deadline: Op
 	return (
 		<li data-testid={`later-row-${d.id}`} data-halley-target={`deadline:${d.id}`}>
 			<Pane className="overflow-hidden">
-				<Link to={deadlineHref(d.id)} className="flex min-h-[104px] transition-colors hover:bg-tone">
+				<Link to={deadlineHref(d.id)} className="flex min-h-[100px] transition-colors hover:bg-tone">
 					<CountBlock pale color={blockColor(color)} {...countLeft(dueAtMs(d), nowMs)} />
 					<span className="flex min-w-0 flex-1 items-center gap-4 px-6 py-4">
 						<Words title={d.name} line={laterLine(d, progress)} />
