@@ -178,7 +178,7 @@ describe("lessonBox, a question from earlier", () => {
 
 	it("shows first, then the teacher's question once it is answered or skipped", () => {
 		const first = findPendingToolCall(withOpenReview(view, fromEarlier))!;
-		assert.equal(first.toolCallId, "rv1");
+		assert.equal(first.toolCallId, "review_c_old_rv1");
 		assert.deepEqual(questionTurn(first.tool, first.input, false, first.appPosed?.kind), { kind: "choice", picked: false, appPosed: "review" });
 		const then = findPendingToolCall(withOpenReview(view, null))!;
 		assert.equal(then.toolCallId, "q1");

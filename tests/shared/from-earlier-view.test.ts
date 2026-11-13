@@ -61,13 +61,21 @@ describe("projectView: From earlier", () => {
 });
 
 describe("withOpenReview", () => {
-	it("is the pending question, posed by the app, keyed by its source quiz", () => {
+	it("is the pending question, posed by the app, keyed by its source lesson and quiz", () => {
 		assert.deepEqual(findPendingToolCall(withOpenReview(projectView([userText("u1", "Start", 0)]), QUESTION)), {
-			toolCallId: "rv_bayes",
+			toolCallId: "review_chat_old_rv_bayes",
 			tool: "quiz",
 			input: QUESTION.quiz,
 			appPosed: { kind: "review", ref: { chatId: "chat_old", toolCallId: "rv_bayes" } },
 		});
+	});
+
+	it("never takes the id of a question this lesson already settled, even when it came from this lesson", () => {
+		const settled = [call("rv_bayes", "quiz", QUESTION.quiz, 1), result("rv_bayes", "quiz", { kind: "quiz", correct: true }, 1)];
+		const here = { ...QUESTION, of: { ...QUESTION.of, chatId: "chat_here" } };
+		const pending = findPendingToolCall(withOpenReview(projectView(settled), here))!;
+		assert.notEqual(pending.toolCallId, "rv_bayes");
+		assert.deepEqual(pending.appPosed?.ref, { chatId: "chat_here", toolCallId: "rv_bayes" }, "the server still hears of the source quiz");
 	});
 
 	it("comes before the teacher's question, which follows once it is answered or skipped", () => {

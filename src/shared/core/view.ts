@@ -363,14 +363,15 @@ export interface FromEarlierData {
 /** The view with the open question from earlier as a pending quiz the app
  *  posed, after everything else: the pending scan reads newest first, so it
  *  stays in view when the teacher's own question lands and is finished
- *  first. Its call id is the source quiz's, which also seeds the option
- *  shuffle, so a reload shows the same order. */
+ *  first. Its call id is made from its source lesson and quiz, so it seeds
+ *  the same option shuffle after a reload and never equals a question this
+ *  lesson already settled (its draft would be dropped). */
 export function withOpenReview(view: LhViewMessage[], question: ReviewQuestion | null): LhViewMessage[] {
 	if (!question) return view;
 	const { chatId, toolCallId } = question.of;
 	const part: LhViewPart = {
 		type: "tool-quiz",
-		toolCallId,
+		toolCallId: `review_${chatId}_${toolCallId}`,
 		input: question.quiz,
 		state: "input-available",
 		appPosed: { kind: "review", ref: { chatId, toolCallId } } satisfies AppPosed,
