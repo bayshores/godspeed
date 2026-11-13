@@ -172,4 +172,21 @@ describe("a .docx or .pptx quote", () => {
 		assert.deepEqual(passageQuote(passage, 17, 29), { before: "A heap keeps the ", marked: "smallest key", after: " on top." });
 		assert.deepEqual(passageQuote(passage, 41, 47), { before: "So ", marked: "a heap", after: " is a tree, and a heap is quick." });
 	});
+
+	it("a long paragraph shows only the sentence holding the words", () => {
+		const passage = `First an idea. ${"Filler words go here. ".repeat(10)}A heap keeps the smallest key on top. Then more text follows here.`;
+		const start = passage.indexOf("smallest key");
+		assert.deepEqual(passageQuote(passage, start, start + 12), { before: "A heap keeps the ", marked: "smallest key", after: " on top." });
+	});
+
+	it("a transcript without sentence ends shows about 200 characters around the words, cut at word edges", () => {
+		const passage = `${"so we say ".repeat(30)}the heap property says ${"the parent is small ".repeat(30)}`;
+		const start = passage.indexOf("heap property");
+		const quote = passageQuote(passage, start, start + 13);
+		assert.equal(quote.marked, "heap property");
+		assert.match(quote.before, /^…(so|we|say) .* the $/);
+		assert.match(quote.after, /^ says the parent .* (the|parent|is|small)…$/);
+		const shown = quote.before.length + quote.marked.length + quote.after.length;
+		assert.ok(shown > 150 && shown <= 202, `${shown}`);
+	});
 });

@@ -176,10 +176,34 @@ export function markRuns<T extends { content: string }>(runs: readonly T[], mark
 	return out;
 }
 
-/** A .docx or .pptx quote: the lines holding the marked words, cut in three. */
+/** About how many characters a quote block shows with the marked words. */
+const QUOTE_ROOM = 200;
+
+/** A .docx, .pptx or transcript quote, cut in three: the sentence or
+ *  sentences holding the marked words. When that is still over about 200
+ *  characters (a transcript has no sentence ends), it is cut nearer the
+ *  words at word edges, with "…" at each cut end. */
 export function passageQuote(text: string, start: number, end: number): { before: string; marked: string; after: string } {
 	const from = text.slice(0, start).lastIndexOf("\n") + 1;
 	const stop = text.indexOf("\n", end);
-	const to = stop < 0 ? text.length : stop;
-	return { before: text.slice(from, start), marked: text.slice(start, end), after: text.slice(end, to) };
+	let before = text.slice(from, start);
+	let after = text.slice(end, stop < 0 ? text.length : stop);
+	const lastEnd = [...before.matchAll(/[.!?]["')\]]*\s+/g)].at(-1);
+	if (lastEnd) before = before.slice(lastEnd.index + lastEnd[0].length);
+	const nextEnd = /[.!?]["')\]]*(?=\s|$)/.exec(after);
+	if (nextEnd) after = after.slice(0, nextEnd.index + nextEnd[0].length);
+	const room = Math.max(0, QUOTE_ROOM - (end - start));
+	if (before.length + after.length > room) {
+		const keepBefore = Math.min(before.length, Math.max(Math.floor(room / 2), room - after.length));
+		const keepAfter = Math.min(after.length, room - keepBefore);
+		if (keepBefore < before.length) {
+			const kept = before.slice(before.length - keepBefore);
+			before = `…${/\s/.test(before[before.length - keepBefore - 1]!) ? kept : kept.replace(/^\S*\s+/, "")}`;
+		}
+		if (keepAfter < after.length) {
+			const kept = after.slice(0, keepAfter);
+			after = `${/\s/.test(after[keepAfter]!) ? kept : kept.replace(/\s+\S*$/, "")}…`;
+		}
+	}
+	return { before, marked: text.slice(start, end), after };
 }
