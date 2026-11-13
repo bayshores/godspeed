@@ -4,9 +4,9 @@
  * Builds the UI (dist-ui/) and the release server, copies the server to
  * crates/shell/binaries/godspeed-server-<target triple> (where the bundle's externalBin looks),
  * copies the pdf.js files the server serves to .stage/pdfjs-dist/, and checks that the search model
- * (scripts/fetch-model.mjs), pdfium's library (scripts/fetch-pdfium.mjs) and, on Linux, ONNX
- * Runtime's library (scripts/fetch-onnxruntime.mjs) are there and that nothing private rides along
- * in the UI. macOS and Windows link ONNX Runtime into the server.
+ * (scripts/fetch-model.mjs), pdfium's library (scripts/fetch-pdfium.mjs) and, on Linux and Intel
+ * Macs, ONNX Runtime's library (scripts/fetch-onnxruntime.mjs) are there and that nothing private
+ * rides along in the UI. Apple silicon Macs and Windows link ONNX Runtime into the server.
  */
 import { execFileSync } from "node:child_process";
 import * as fs from "node:fs";
@@ -17,6 +17,7 @@ const STAGE = path.join(ROOT, ".stage");
 const UI = path.join(ROOT, "dist-ui");
 const WINDOWS = process.platform === "win32";
 const PDFIUM = { darwin: "libpdfium.dylib", win32: "pdfium.dll" }[process.platform] ?? "libpdfium.so";
+const ONNXRUNTIME = { "linux-x64": "libonnxruntime.so", "darwin-x64": "libonnxruntime.dylib" }[`${process.platform}-${process.arch}`];
 const MODEL_WEIGHTS = path.join("models", "Snowflake", "snowflake-arctic-embed-xs", "onnx", "model_quantized.onnx");
 
 /** The pdf.js files crates/server/src/http/ui.rs serves (not its scripting engine), with their licenses. */
@@ -39,7 +40,7 @@ const run = (command, args) => execFileSync(command, args, { cwd: ROOT, stdio: "
 // Missing inputs fail before the slow builds start.
 if (!fs.existsSync(path.join(ROOT, MODEL_WEIGHTS))) fail("the search model is missing, run `node scripts/fetch-model.mjs` first.");
 if (!fs.existsSync(path.join(STAGE, PDFIUM))) fail(`.stage/${PDFIUM} is missing, run \`node scripts/fetch-pdfium.mjs\` first.`);
-if (process.platform === "linux" && !fs.existsSync(path.join(STAGE, "libonnxruntime.so"))) fail(".stage/libonnxruntime.so is missing, run `node scripts/fetch-onnxruntime.mjs` first.");
+if (ONNXRUNTIME && !fs.existsSync(path.join(STAGE, ONNXRUNTIME))) fail(`.stage/${ONNXRUNTIME} is missing, run \`node scripts/fetch-onnxruntime.mjs\` first.`);
 
 run(process.execPath, [path.join(ROOT, "node_modules", "vite", "bin", "vite.js"), "build"]);
 if (!fs.existsSync(path.join(UI, "index.html"))) fail("dist-ui/index.html is missing after `vite build`.");

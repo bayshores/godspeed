@@ -61,7 +61,7 @@ jobs:
       - name: Skill tests (Python)
         run: python3 -B -m unittest discover -s tests/skills
 
-  # Speed: the draft and the three package jobs start right away, in parallel with the gates.
+  # Speed: the draft and the four package jobs start right away, in parallel with the gates.
   # A failed gate still blocks the release: verify needs quality, and only the owner publishes.
   draft:
     name: Prepare one draft
@@ -101,6 +101,7 @@ jobs:
               "| Your computer | Download |",
               "|---|---|",
               `| Mac with an Apple chip (M1 or newer) | ${link("godspeed-mac-apple-silicon.dmg")} |`,
+              `| Mac with an Intel chip | ${link("godspeed-mac-intel.dmg")} |`,
               `| Windows | ${link("godspeed-windows-x64-setup.exe")} |`,
               `| Linux | ${link("godspeed-linux-x64.AppImage")} (or ${link("godspeed-linux-x64.deb")} for Ubuntu and Debian) |`,
               "",
@@ -147,6 +148,12 @@ jobs:
             triple: aarch64-apple-darwin
             bundles: app,dmg
             config: --config crates/shell/tauri.bundle.macos.conf.json
+          # An Intel Mac builds the Intel app: nothing is cross-built.
+          - os: macos-26-intel
+            platform: mac-intel
+            triple: x86_64-apple-darwin
+            bundles: app,dmg
+            config: --config crates/shell/tauri.bundle.macos.conf.json --config crates/shell/tauri.bundle.macos-intel.conf.json
           - os: windows-2025
             platform: windows
             triple: x86_64-pc-windows-msvc
@@ -208,10 +215,13 @@ jobs:
       - run: npm ci
       - run: node scripts/fetch-model.mjs
       - run: node scripts/fetch-pdfium.mjs
-      - if: runner.os == 'Linux'
+      - if: runner.os == 'Linux' || matrix.platform == 'mac-intel'
         run: node scripts/fetch-onnxruntime.mjs
       - if: runner.os == 'macOS'
         run: node scripts/compile-icon.mjs
+      # No other job runs the search model on the ONNX Runtime that Intel Macs load.
+      - if: matrix.platform == 'mac-intel'
+        run: cargo test -p gs-search
       # Stage once here so the smoke runs before the slow bundler (tauri build stages again, cached).
       - run: node scripts/stage-app.mjs
       - run: node scripts/smoke-server.mjs
@@ -282,15 +292,20 @@ jobs:
 
       # Squirrel.Mac checks the new app against the running Electron app's designated requirement,
       # so the Tauri app must satisfy that exact text, in the bundle and in the zip Electron gets.
+      # Only the Apple chip job has that zip.
       - name: Check the Mac signature, notarization and hand-over requirement
         if: github.event_name == 'push' && runner.os == 'macOS'
         run: |
           set -euo pipefail
           requirement="=$(cat crates/shell/release/electron-requirement.txt)"
-          version=$(node -p 'require("./package.json").version')
-          unzipped=$(mktemp -d)
-          ditto -x -k "dist/godspeed-$version-arm64-mac.zip" "$unzipped"
-          for app in "target/${{ matrix.triple }}/release/bundle/macos/godspeed.app" "$unzipped/godspeed.app"; do
+          apps="target/${{ matrix.triple }}/release/bundle/macos/godspeed.app"
+          if [[ "${{ matrix.platform }}" == mac ]]; then
+            version=$(node -p 'require("./package.json").version')
+            unzipped=$(mktemp -d)
+            ditto -x -k "dist/godspeed-$version-arm64-mac.zip" "$unzipped"
+            apps="$apps $unzipped/godspeed.app"
+          fi
+          for app in $apps; do
             echo "checking $app"
             codesign --verify --deep --strict --all-architectures -R "$requirement" "$app"
             spctl --assess --type execute --verbose=2 "$app"
@@ -355,7 +370,7 @@ jobs:
           node-version: "26"
           cache: npm
       - run: npm ci
-      - name: Gather the three systems' downloads
+      - name: Gather every package job's downloads
         uses: actions/download-artifact@v8
         with:
           pattern: godspeed-*
@@ -378,7 +393,7 @@ jobs:
         run: gh release upload "$GITHUB_REF_NAME" dist/latest.json dist/latest-mac.yml dist/latest.yml dist/latest-linux.yml --clobber -R "$GITHUB_REPOSITORY"
 
   # The last gate before a human publishes: fail the run unless the tag's single draft holds
-  # exactly the ten assets and the four feeds point at them at the package.json version.
+  # exactly the twelve assets and the four feeds point at them at the package.json version.
   # Read-only: it never creates, edits, publishes or deletes anything. Rehearsals upload nothing,
   # so there is no draft to verify and the job stays skipped.
   verify:

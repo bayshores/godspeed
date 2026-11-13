@@ -15,10 +15,18 @@ parking_lot.workspace = true
 tokenizers.workspace = true
 tokio.workspace = true
 
+# ort links ONNX Runtime in, except on Intel Macs: it has no build for them.
+[target.'cfg(not(all(target_os = "macos", target_arch = "x86_64")))'.dependencies]
+ort = { workspace = true, features = ["download-binaries", "tls-native", "copy-dylibs", "api-27"] }
+
 # Linux loads ONNX Runtime from the resources folder at run time: the static build ort links in
 # elsewhere needs a newer glibc than the Linux app supports.
 [target.'cfg(target_os = "linux")'.dependencies]
 ort = { workspace = true, features = ["load-dynamic"] }
+
+# Intel Macs load it at run time too. Microsoft's last release for them is 1.23.
+[target.'cfg(all(target_os = "macos", target_arch = "x86_64"))'.dependencies]
+ort = { workspace = true, features = ["load-dynamic", "api-23"] }
 
 [lints]
 workspace = true
