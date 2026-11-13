@@ -112,7 +112,7 @@ fn walk(messages: &[Json], reply: Option<&Json>) -> (Vec<Json>, Vec<Visit>) {
 	(out, visits)
 }
 
-fn calls(m: &Json) -> impl Iterator<Item = &Json> {
+pub(super) fn calls(m: &Json) -> impl Iterator<Item = &Json> {
 	items(&m["content"]).iter().filter(|b| b["type"].as_str() == Some("toolCall"))
 }
 

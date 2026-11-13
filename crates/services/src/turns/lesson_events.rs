@@ -5,8 +5,8 @@
 
 use gs_base::events::EventKind;
 use gs_base::locks::LockKey;
-use gs_core::messages::lesson_markers::{ANALOGY_DROP, PHRASE_DROP, new_keep_going_marker, new_kept_drop_marker};
-use gs_core::study::kept::has_kept_part;
+use gs_core::messages::lesson_markers::{new_keep_going_marker, new_kept_drop_marker};
+use gs_core::study::kept::{KeptPart, has_kept_part};
 use gs_core::study::topic_end::{has_opener, has_stop};
 use gs_json::json;
 
@@ -44,15 +44,6 @@ pub fn keep_going(app: &App, chat_id: &str, stop_of: &str) -> Result<KeepGoing, 
 	Ok(kept)
 }
 
-/// The part of a kept sentence a drop takes away.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum KeptPart {
-	/// Its fits and stops lines.
-	Analogy,
-	/// Its memory phrase.
-	Phrase,
-}
-
 /// How a drop landed.
 #[derive(Debug, PartialEq, Eq)]
 pub enum KeptDrop {
@@ -70,14 +61,10 @@ pub fn drop_kept_part(app: &App, chat_id: &str, of: &str, part: KeptPart, back: 
 		let _guard = app.locks.lock(LockKey::Chat(chat_id));
 		let Some(record) = app.stores.chats.get_chat(chat_id) else { return Ok(KeptDrop::UnknownLesson) };
 		let mut messages = record["messages"].as_arr().cloned().unwrap_or_default();
-		let (custom_type, name) = match part {
-			KeptPart::Analogy => (ANALOGY_DROP, "analogy"),
-			KeptPart::Phrase => (PHRASE_DROP, "phrase"),
-		};
-		if !has_kept_part(&messages, of, name) {
+		if !has_kept_part(&messages, of, part) {
 			return Ok(KeptDrop::NoSuchPart);
 		}
-		messages.push(new_kept_drop_marker(custom_type, of, back));
+		messages.push(new_kept_drop_marker(part.drop_marker(), of, back));
 		app.stores.chats.save_messages(chat_id, &messages)?;
 	}
 	app.events.emit(EventKind::RecordChanged, json!({ "chatId": chat_id }));

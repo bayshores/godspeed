@@ -12,10 +12,11 @@ use gs_base::clock;
 use gs_base::config::Paths;
 use gs_base::ids;
 use gs_core::messages::input_events::{ChatInput, TurnInput};
+use gs_core::study::kept::KeptPart;
 use gs_engine::bridge::{AgentReply, ReplyCall, WaitOptions};
 use gs_json::{Json, json, stringify};
 use gs_services::App;
-use gs_services::turns::lesson_events::{KeptDrop, KeptPart, drop_kept_part};
+use gs_services::turns::lesson_events::{KeptDrop, drop_kept_part};
 use gs_services::turns::turn_service::persist_turn;
 use gs_services::turns::{handle_chat_input, is_turn_running};
 

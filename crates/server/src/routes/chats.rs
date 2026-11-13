@@ -22,6 +22,7 @@ use gs_core::session::download_slug::slugify;
 use gs_core::session::jobs::set_steer_ui_inverted;
 use gs_core::session::prices::session_cost;
 use gs_core::session::session_markdown::session_markdown;
+use gs_core::study::kept::KeptPart;
 use gs_engine::turn::ui_stream::SSE_HEADERS;
 use gs_json::{Json, Obj, json};
 use gs_services::App;
@@ -31,7 +32,7 @@ use gs_services::turns::chat_handler::{ChatReply, REVIEW_NOT_OPEN, ReplyBody, ha
 use gs_services::turns::chats::{delete_chat_session, session_coverage};
 use gs_services::turns::dismissal_park::park_dismissal;
 use gs_services::turns::homework::create_homework;
-use gs_services::turns::lesson_events::{KeepGoing, KeptDrop, KeptPart, drop_kept_part, keep_going};
+use gs_services::turns::lesson_events::{KeepGoing, KeptDrop, drop_kept_part, keep_going};
 use gs_services::turns::lessons::{CreateLessonInput, LessonStart, create_lesson};
 use gs_services::turns::review::{ReviewReply, answer_review, next_review, skip_review};
 use gs_services::turns::talk::{clear_talk, open_talk};

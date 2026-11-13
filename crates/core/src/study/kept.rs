@@ -11,11 +11,10 @@ use std::collections::{HashMap, HashSet};
 use gs_base::{text, time};
 use gs_json::{Json, Obj, json};
 
-use super::items;
 use super::review::item_key;
-use super::topic_parts::{kept_calls, visits};
+use super::topic_parts::{calls, kept_calls, visits};
 use crate::messages::citations::MARK_MAX;
-use crate::messages::lesson_markers::{KEEP_CHECK, PHRASE_DROP};
+use crate::messages::lesson_markers::{ANALOGY_DROP, KEEP_CHECK, PHRASE_DROP};
 use crate::session::question_core::{keep_fields_note, keep_of, keep_phrase_note, normalize_quiz_type};
 
 /// At most this many kept sentences a topic.
@@ -28,10 +27,6 @@ const NOT_A_CHECK: &str = "keep not stored: a keep goes on a check quiz, not a p
 const TWO_A_TOPIC: &str = "keep not stored: this topic already has 2 kept sentences.";
 const ONE_ANALOGY: &str = "keep.fits not shown: this topic already has an analogy.";
 const NO_PASSAGE: &str = "keep.source dropped: it does not point at a passage.";
-
-fn calls(m: &Json) -> impl Iterator<Item = &Json> {
-	items(&m["content"]).iter().filter(|b| b["type"].as_str() == Some("toolCall"))
-}
 
 fn words<'a>(keep: &'a Json, field: &str) -> Option<&'a str> {
 	keep[field].as_str().filter(|s| !s.trim().is_empty())
@@ -128,20 +123,42 @@ pub fn keep_notes<'a>(messages: &'a [Json], quiz_call_ids: &[&str]) -> Vec<&'a s
 	quiz_call_ids.iter().filter_map(|id| verdicts.get(id)?["note"].as_str()).collect()
 }
 
-/// Whether his last drop marker of `custom_type` (ANALOGY_DROP or PHRASE_DROP) for the quiz call
-/// `of` took the part away; one with `back` brings it back.
-pub fn dropped(messages: &[Json], custom_type: &str, of: &str) -> bool {
-	messages.iter().rfind(|m| m["customType"].as_str() == Some(custom_type) && m["details"]["of"].as_str() == Some(of)).is_some_and(|m| !m["details"]["back"].truthy())
+/// The part of a kept sentence a drop takes away.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum KeptPart {
+	/// Its fits and stops lines.
+	Analogy,
+	/// Its memory phrase.
+	Phrase,
 }
 
-/// Whether the quiz call `of` earned a kept sentence he saw with the part a drop takes away:
-/// "analogy" its fits and stops lines, "phrase" its memory phrase.
-pub fn has_kept_part(messages: &[Json], of: &str, part: &str) -> bool {
-	kept_calls(messages).contains(of) && verdicts(messages).get(of).is_some_and(|v| v[part_flag(part)] == Json::Bool(true))
+impl KeptPart {
+	/// The marker type that drops it.
+	pub fn drop_marker(self) -> &'static str {
+		match self {
+			KeptPart::Analogy => ANALOGY_DROP,
+			KeptPart::Phrase => PHRASE_DROP,
+		}
+	}
+
+	/// The keep-check verdict's flag that says it showed.
+	fn verdict_flag(self) -> &'static str {
+		match self {
+			KeptPart::Analogy => "fits",
+			KeptPart::Phrase => "phrase",
+		}
+	}
 }
 
-fn part_flag(part: &str) -> &'static str {
-	if part == "phrase" { "phrase" } else { "fits" }
+/// Whether his last drop marker of `part` for the quiz call `of` took it away; one with `back`
+/// brings it back.
+pub fn dropped(messages: &[Json], part: KeptPart, of: &str) -> bool {
+	messages.iter().rfind(|m| m["customType"].as_str() == Some(part.drop_marker()) && m["details"]["of"].as_str() == Some(of)).is_some_and(|m| !m["details"]["back"].truthy())
+}
+
+/// Whether the quiz call `of` earned a kept sentence he saw with the part a drop takes away.
+pub fn has_kept_part(messages: &[Json], of: &str, part: KeptPart) -> bool {
+	kept_calls(messages).contains(of) && verdicts(messages).get(of).is_some_and(|v| v[part.verdict_flag()] == Json::Bool(true))
 }
 
 /// A sentence he kept, as a question from earlier carries it: its quiz, its topic, the sentence
@@ -168,7 +185,7 @@ pub fn kept_sentences(chat_id: &str, messages: &[Json]) -> Vec<KeptSentence> {
 			if verdict["source"].as_str() == Some("ok") {
 				sentence.insert("source", verdict["sourceMark"].clone());
 			}
-			if verdict["phrase"] == Json::Bool(true) && !dropped(messages, PHRASE_DROP, id) {
+			if verdict["phrase"] == Json::Bool(true) && !dropped(messages, KeptPart::Phrase, id) {
 				sentence.insert("phrase", keep["phrase"].clone());
 			}
 			let node_id = call["arguments"]["nodeId"].as_str().unwrap_or_default().to_owned();
@@ -207,7 +224,6 @@ pub fn kept_for<'a>(node_id: &str, kept: &'a [KeptSentence], comebacks: &[(Strin
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::messages::lesson_markers::ANALOGY_DROP;
 
 	const MARK: &str = "[[f_1a2b3c4d5e6f/p. 14/Lecture 6.pdf]]";
 
@@ -361,14 +377,14 @@ mod tests {
 	fn the_note_drops_and_kept_parts_read_from_the_record() {
 		let mut messages = with_keep(lesson(), "q3", json!({ "text": "t", "fits": "f", "stops": "s", "phrase": "SOH CAH TOA" }), true);
 		assert!(keep_notes(&messages, &["q3"]).is_empty());
-		assert!(has_kept_part(&messages, "q3", "analogy") && has_kept_part(&messages, "q3", "phrase"));
-		assert!(!has_kept_part(&messages, "q1", "analogy"));
+		assert!(has_kept_part(&messages, "q3", KeptPart::Analogy) && has_kept_part(&messages, "q3", KeptPart::Phrase));
+		assert!(!has_kept_part(&messages, "q1", KeptPart::Analogy));
 		messages.push(json!({ "role": "custom", "customType": ANALOGY_DROP, "details": { "of": "q3" } }));
-		assert!(dropped(&messages, ANALOGY_DROP, "q3") && !dropped(&messages, PHRASE_DROP, "q3"));
+		assert!(dropped(&messages, KeptPart::Analogy, "q3") && !dropped(&messages, KeptPart::Phrase, "q3"));
 		messages.push(json!({ "role": "custom", "customType": ANALOGY_DROP, "details": { "of": "q3", "back": true } }));
-		assert!(!dropped(&messages, ANALOGY_DROP, "q3"), "the last one wins");
+		assert!(!dropped(&messages, KeptPart::Analogy, "q3"), "the last one wins");
 		let missed = with_keep(lesson(), "q3", json!({ "text": "t", "fits": "f", "stops": "s" }), false);
-		assert!(!has_kept_part(&missed, "q3", "analogy"), "never shown");
+		assert!(!has_kept_part(&missed, "q3", KeptPart::Analogy), "never shown");
 	}
 
 	#[test]

@@ -10,7 +10,7 @@ use gs_json::js_text::js_string;
 use super::input_events::{About, ChatInput, messages_of};
 use super::lesson_markers::{ANALOGY_DROP, new_app_note_marker};
 use crate::session::question_core::{confidence_level, keep_of};
-use crate::study::kept::{KEEP_NOTE, dropped, keep_notes};
+use crate::study::kept::{KEEP_NOTE, KeptPart, dropped, keep_notes};
 use crate::study::topic_end::{resume_due, shown_openers};
 
 const RESUMED_LINE: &str = "[Resumed] He came back to this session after a stop.";
@@ -93,7 +93,7 @@ fn analogy_dropped_lines(record: &Json) -> Vec<String> {
 	}
 	changed
 		.into_iter()
-		.filter(|of| dropped(messages, ANALOGY_DROP, of))
+		.filter(|of| dropped(messages, KeptPart::Analogy, of))
 		.filter_map(|of| {
 			let args = messages.iter().flat_map(|m| m["content"].as_arr().into_iter().flatten()).find(|b| b["type"].as_str() == Some("toolCall") && b["id"].as_str() == Some(of))?.get("arguments")?;
 			let fits = keep_of(args)?["fits"].as_str().map(first_words)?;
