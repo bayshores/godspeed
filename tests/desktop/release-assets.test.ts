@@ -3,23 +3,24 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { describe, it } from "node:test";
-import { assetPlan, findBundled } from "../../scripts/release-assets.mjs";
+import { assetPlan, findBundled, handOverZip } from "../../scripts/release-assets.mjs";
 
 describe("assetPlan", () => {
-	it("names the Mac downloads and signs only the updater archive", () => {
+	it("names the Mac downloads and gives only the updater archive a latest.json key", () => {
 		assert.deepEqual(assetPlan("mac", "0.6.0"), [
-			{ from: "dmg/godspeed_0.6.0_aarch64.dmg", to: "godspeed-mac-apple-silicon.dmg", signed: false },
-			{ from: "macos/godspeed.app.tar.gz", to: "godspeed-mac-apple-silicon.app.tar.gz", signed: true },
+			{ from: "dmg/godspeed_0.6.0_aarch64.dmg", to: "godspeed-mac-apple-silicon.dmg", updater: null },
+			{ from: "macos/godspeed.app.tar.gz", to: "godspeed-mac-apple-silicon.app.tar.gz", updater: "darwin-aarch64-app" },
 		]);
+		assert.equal(handOverZip("0.6.0"), "godspeed-0.6.0-arm64-mac.zip");
 	});
 
-	it("names the Windows and Linux downloads, each signed for latest.json", () => {
+	it("names the Windows and Linux downloads, each under its latest.json key", () => {
 		assert.deepEqual(assetPlan("windows", "0.6.0"), [
-			{ from: "nsis/godspeed_0.6.0_x64-setup.exe", to: "godspeed-windows-x64-setup.exe", signed: true },
+			{ from: "nsis/godspeed_0.6.0_x64-setup.exe", to: "godspeed-windows-x64-setup.exe", updater: "windows-x86_64-nsis" },
 		]);
 		assert.deepEqual(assetPlan("linux", "0.6.0"), [
-			{ from: "appimage/godspeed_0.6.0_amd64.AppImage", to: "godspeed-linux-x64.AppImage", signed: true },
-			{ from: "deb/godspeed_0.6.0_amd64.deb", to: "godspeed-linux-x64.deb", signed: true },
+			{ from: "appimage/godspeed_0.6.0_amd64.AppImage", to: "godspeed-linux-x64.AppImage", updater: "linux-x86_64-appimage" },
+			{ from: "deb/godspeed_0.6.0_amd64.deb", to: "godspeed-linux-x64.deb", updater: "linux-x86_64-deb" },
 		]);
 	});
 
