@@ -9,7 +9,7 @@
  */
 import type { ToolResultMessage } from "@earendil-works/pi-ai";
 import { TOPIC_DONE_TOOL, type KeepGoingDetails, type OpenerAnswerDetails, type StopDetails, type TopicDoneDetails } from "./contracts/chat.ts";
-import { derivePlanStatusesLh, orderedPlanNodes, type PlanTree } from "./contracts/plan.ts";
+import { derivePlanStatusesLh, orderedPlanNodes, TAGGING_TOOLS, type PlanTree } from "./contracts/plan.ts";
 import { PRACTICE_CONCLUDE_TOOL, PRACTICE_PROBLEM_TOOL, type LhMessage } from "./native-messages.ts";
 import type { QuestionAnswerData } from "./question-core.ts";
 
@@ -66,8 +66,26 @@ export function lessonStop(messages: readonly LhMessage[], tree: PlanTree | null
 		stopOf: last.stopOf,
 		next,
 		activeMinutes: last.stop.activeMinutes,
-		keptGoing: keepGoingMarkers(messages).some((k) => k.stopOf === last.stopOf),
+		keptGoing: keepGoingMarkers(messages).some((k) => k.stopOf === last.stopOf) || movedPast(messages, last),
 	};
+}
+
+/** Whether the teacher went on past a stop with no Keep going (he typed
+ *  instead): a later tagging call, not refused, names another topic. A
+ *  stop with no topic (practice, homework) is passed only by Keep going. */
+function movedPast(messages: readonly LhMessage[], stop: RecordStop): boolean {
+	if (stop.nodeId === null) return false;
+	const after = messages.slice(stop.index + 1);
+	const refused = new Set(after.flatMap((m) => (m.role === "toolResult" && m.isError ? [m.toolCallId] : [])));
+	return after.some(
+		(m) =>
+			m.role === "assistant" &&
+			m.content.some((b) => {
+				if (b.type !== "toolCall" || !TAGGING_TOOLS.has(b.name) || refused.has(b.id)) return false;
+				const nodeId = (b.arguments as { nodeId?: unknown } | undefined)?.nodeId;
+				return typeof nodeId === "string" && nodeId !== stop.nodeId;
+			}),
+	);
 }
 
 /** The first topic after `nodeId` in learning order that has not ended,
@@ -111,9 +129,9 @@ export function shownOpeners(messages: readonly LhMessage[]): Map<string, ShownO
 	});
 	for (const m of messages) {
 		if (m.role !== "custom" || m.customType !== "opener-answer") continue;
-		const details = m.details as OpenerAnswerDetails;
-		const opener = out.get(details.topicDoneCallId);
-		if (opener && !opener.answer) opener.answer = { answer: details.answer, timestamp: m.timestamp };
+		const details = m.details as OpenerAnswerDetails | null | undefined;
+		const opener = details ? out.get(details.topicDoneCallId) : undefined;
+		if (details && opener && !opener.answer) opener.answer = { answer: details.answer, timestamp: m.timestamp };
 	}
 	return out;
 }
@@ -169,7 +187,10 @@ function callArgs(messages: readonly LhMessage[]): Map<string, Record<string, un
 /** The keep-going markers' details, wherever they sit (one written during
  *  a turn sits before that turn's messages). */
 function keepGoingMarkers(messages: readonly LhMessage[]): KeepGoingDetails[] {
-	return messages.flatMap((m) => (m.role === "custom" && m.customType === "keep-going" ? [m.details as KeepGoingDetails] : []));
+	return messages.flatMap((m) => {
+		const details = m.role === "custom" && m.customType === "keep-going" ? (m.details as KeepGoingDetails | null | undefined) : null;
+		return details ? [details] : [];
+	});
 }
 
 function isTopicDoneDetails(details: unknown): details is TopicDoneDetails {

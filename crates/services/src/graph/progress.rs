@@ -337,6 +337,16 @@ mod tests {
 		assert_eq!(d["continueStudy"].get("stop"), None, "he kept going");
 		assert_eq!(d["continueStudy"]["inTopic"], json!("Cross-validation"), "the opener moved him to the next topic");
 
+		let typed = |words: &str| json!({ "role": "user", "content": words, "timestamp": clock::now_ms() });
+		let question = [stopped.clone(), vec![typed("Why does lambda shrink the weights?"), json!({ "role": "assistant", "content": [{ "type": "text", "text": "The penalty grows with them." }], "timestamp": clock::now_ms() })]].concat();
+		app.stores.chats.save_messages(&chat_id, &question).unwrap();
+		assert_eq!(midterm(&app, &space_id, &deadline_id)["continueStudy"]["stop"]["next"], json!("Cross-validation"), "a question about the finished topic leaves the stop");
+		let typed_on = [stopped.clone(), vec![typed("ok, go on"), asked("cv")]].concat();
+		app.stores.chats.save_messages(&chat_id, &typed_on).unwrap();
+		let d = midterm(&app, &space_id, &deadline_id);
+		assert_eq!(d["continueStudy"].get("stop"), None, "the teacher went on with no Keep going");
+		assert_eq!(d["continueStudy"]["inTopic"], json!("Cross-validation"));
+
 		let end = [going, ended("c2", "cv"), ended("c3", "gd")].concat();
 		app.stores.chats.save_messages(&chat_id, &end).unwrap();
 		let d = midterm(&app, &space_id, &deadline_id);

@@ -8,7 +8,7 @@ use std::collections::{HashMap, HashSet};
 use gs_json::Json;
 
 /// The tools whose calls tag position.
-const TAGGING_TOOLS: [&str; 3] = ["quiz", "explain", "problem"];
+pub(crate) const TAGGING_TOOLS: [&str; 3] = ["quiz", "explain", "problem"];
 
 /// The derived view the plan panel renders.
 pub struct PlanStatuses {

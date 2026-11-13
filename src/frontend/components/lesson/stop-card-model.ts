@@ -43,8 +43,11 @@ export function keepGoingOwesNext(messages: readonly LhMessage[]): boolean {
 	const stopAt = resultAt(stop.stopOf);
 	if ([...shownOpeners(messages).keys()].some((id) => resultAt(id) >= stopAt)) return false;
 	// A Keep going written mid-turn sits before that turn's messages, so
-	// "since" is read from the clock, not the position.
-	const keptAt = Math.min(...messages.flatMap((m) => (m.role === "custom" && m.customType === "keep-going" && (m.details as { stopOf?: unknown }).stopOf === stop.stopOf ? [m.timestamp] : [])));
+	// "since" is read from the clock, not the position. With no marker the
+	// teacher went on past the stop and nothing is owed.
+	const keptTimes = messages.flatMap((m) => (m.role === "custom" && m.customType === "keep-going" && (m.details as { stopOf?: unknown } | null | undefined)?.stopOf === stop.stopOf ? [m.timestamp] : []));
+	if (keptTimes.length === 0) return false;
+	const keptAt = Math.min(...keptTimes);
 	return !messages.some((m) => m.timestamp >= keptAt && (m.role === "user" || (m.role === "custom" && m.customType === "practice-next")));
 }
 

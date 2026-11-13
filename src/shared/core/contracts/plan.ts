@@ -117,7 +117,7 @@ function statusesFromTags(tree: PlanTree, tags: Iterable<unknown>): DerivedPlanS
 
 /** The tools whose calls tag position: either quizzing tool, and a study
  *  session's problems (practice problems carry no nodeId). */
-const TAGGING_TOOLS = new Set(["quiz", "explain", "problem"]);
+export const TAGGING_TOOLS: ReadonlySet<string> = new Set(["quiz", "explain", "problem"]);
 
 function* partTags(messages: readonly PartsCarrier[]): Generator<unknown> {
 	for (const m of messages) {

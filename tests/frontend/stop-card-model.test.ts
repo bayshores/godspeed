@@ -2,8 +2,8 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { keepGoingOwesNext, stopCard, stopLightSelector } from "../../src/frontend/components/lesson/stop-card-model.ts";
-import type { LessonStop } from "../../src/shared/core/index.ts";
-import { call, CONCLUDE_SOLVED, keepGoing, marker, problemStop, regularizationEnds, result, topicStop, userText } from "../stop-fixtures.ts";
+import { lessonStop, type LessonStop } from "../../src/shared/core/index.ts";
+import { call, CONCLUDE_SOLVED, keepGoing, marker, problemStop, regularizationEnds, result, text, topicStop, TREE, userText } from "../stop-fixtures.ts";
 
 const stop: LessonStop = { kind: "topic", at: "2026-11-18T21:48:00.000Z", nodeId: "reg", stopOf: "c1", next: "Cross-validation", activeMinutes: 48, keptGoing: false };
 const buttons = (s: LessonStop) => stopCard(s).buttons.map((b) => `${b.label}${b.dark ? " (dark)" : ""}`);
@@ -50,6 +50,14 @@ describe("keepGoingOwesNext", () => {
 
 	it("a Keep going written mid-turn still counts when the turn ends without topic_done", () => {
 		assert.equal(keepGoingOwesNext([p!, pr!, keepGoing("c1", 48.5), c!, cr!]), true);
+	});
+
+	it("owes nothing when the teacher went on past the stop with no Keep going", () => {
+		const typedOn = [...concluded, userText("u", "ok, go on", 50), call("q2", "quiz", { question: "?", type: "check", nodeId: "cv" }, 51)];
+		assert.equal(lessonStop(typedOn, TREE)?.keptGoing, true, "the stop card does not come back");
+		assert.equal(keepGoingOwesNext(typedOn), false);
+		const asked = [...concluded, userText("u", "why does lambda shrink the weights?", 50), text("a", "The penalty grows with them.", 51)];
+		assert.equal(lessonStop(asked, TREE)?.keptGoing, false, "a question about the finished topic keeps the stop");
 	});
 
 	it("a practice problem's stop", () => {

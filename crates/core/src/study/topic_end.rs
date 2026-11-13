@@ -14,7 +14,7 @@ use super::items;
 use super::progress::answer_outcome;
 use crate::contracts::chat::TOPIC_DONE_TOOL;
 use crate::messages::native_messages::{ActiveProblem, PRACTICE_CONCLUDE_TOOL, PRACTICE_PROBLEM_TOOL};
-use crate::session::plan::derive_plan_statuses_lh;
+use crate::session::plan::{TAGGING_TOOLS, derive_plan_statuses_lh};
 use crate::session::plan_step_bar::ordered_plan_ids;
 use crate::session::question_core::normalize_quiz_type;
 
@@ -25,7 +25,7 @@ const GAP_CAP_MS: f64 = 5.0 * MINUTE_MS;
 const SITTING_GAP_MS: f64 = 30.0 * MINUTE_MS;
 
 /// A problem that took this many active minutes ends on a stop.
-pub const LONG_PROBLEM_MINUTES: i64 = 25;
+const LONG_PROBLEM_MINUTES: i64 = 25;
 
 /// Active minutes over lesson event times (ms) up to `now_ms`: each gap counts at most 5 minutes,
 /// and a gap of 30 minutes or more starts a new sitting, which counts from zero. The caller passes
@@ -45,7 +45,7 @@ pub fn active_minutes(timestamps: &[f64], now_ms: f64) -> i64 {
 
 /// Whether Keep going came in a later sitting than its stop: a gap of 30 minutes or more somewhere
 /// between the two (all times in ms).
-pub fn resumed_after_stop(stop_at: f64, keep_going_at: f64, timestamps: &[f64]) -> bool {
+fn resumed_after_stop(stop_at: f64, keep_going_at: f64, timestamps: &[f64]) -> bool {
 	let mut between: Vec<f64> = timestamps.iter().copied().filter(|t| *t > stop_at && *t < keep_going_at).collect();
 	between.sort_by(f64::total_cmp);
 	let points: Vec<f64> = std::iter::once(stop_at).chain(between).chain(std::iter::once(keep_going_at)).collect();
@@ -111,7 +111,7 @@ pub fn lesson_stop(messages: &[Json], tree: Option<&Json>, homework: Option<&[Js
 			next = items(&tree["nodes"]).iter().find(|n| n["id"].as_str().is_some_and(|id| current.as_deref() == Some(id))).map_or(Json::Null, |n| n["title"].clone());
 		}
 	}
-	let kept_going = keep_going_markers(messages).any(|(_, k)| k["stopOf"].as_str() == Some(last.stop_of));
+	let kept_going = keep_going_markers(messages).any(|(_, k)| k["stopOf"].as_str() == Some(last.stop_of)) || moved_past(messages, last);
 	Some(json!({
 		"kind": kind,
 		"at": last.stop["at"].clone(),
@@ -121,6 +121,21 @@ pub fn lesson_stop(messages: &[Json], tree: Option<&Json>, homework: Option<&[Js
 		"activeMinutes": last.stop["activeMinutes"].clone(),
 		"keptGoing": kept_going,
 	}))
+}
+
+/// Whether the teacher went on past a stop with no Keep going (he typed instead): a later tagging
+/// call, not refused, names another topic. A stop with no topic (practice, homework) is passed
+/// only by Keep going.
+fn moved_past(messages: &[Json], stop: &RecordStop) -> bool {
+	let Some(node_id) = stop.node_id.as_deref() else { return false };
+	let after = &messages[stop.index + 1..];
+	let refused: HashSet<&str> = after.iter().filter(|m| m["role"].as_str() == Some("toolResult") && m["isError"].truthy()).filter_map(|m| m["toolCallId"].as_str()).collect();
+	after.iter().filter(|m| m["role"].as_str() == Some("assistant")).flat_map(|m| m["content"].as_arr().into_iter().flatten()).any(|b| {
+		b["type"].as_str() == Some("toolCall")
+			&& b["name"].as_str().is_some_and(|name| TAGGING_TOOLS.contains(&name))
+			&& !b["id"].as_str().is_some_and(|id| refused.contains(id))
+			&& b["arguments"]["nodeId"].as_str().is_some_and(|n| n != node_id)
+	})
 }
 
 /// The first topic after `node_id` in learning order that has not ended, then the first one before
