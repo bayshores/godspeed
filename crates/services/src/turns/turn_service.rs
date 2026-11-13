@@ -11,6 +11,7 @@ use gs_core::messages::message_id::new_message_id;
 use gs_core::messages::pending::is_question_tool;
 use gs_core::session::plan_blocks::plan_blocks_for;
 use gs_core::study::kept::keep_verdicts;
+use gs_core::study::topic_parts::first_topic;
 use gs_json::Json;
 use gs_store::graph::Ledger;
 
@@ -60,7 +61,7 @@ fn save_turn(app: &App, chat_id: &str, base_count: usize, turn_messages: &[Json]
 	let blocks = plan_blocks_for(messages, &stamped, tree, &transcript);
 	// Only a Study quiz takes a keep; one sent to another lesson's quiz is ignored.
 	let study = record["kind"].as_str() == Some("study");
-	let verdicts: Vec<Json> = if study { keep_verdicts(&transcript, &|source| passage_mark(app, source)) } else { Vec::new() };
+	let verdicts: Vec<Json> = if study { keep_verdicts(&transcript, first_topic(tree), &|source| passage_mark(app, source)) } else { Vec::new() };
 	let verdicts = verdicts.into_iter().map(new_keep_check_marker);
 	let all: Vec<Json> = transcript.into_iter().chain(blocks).chain(verdicts).collect();
 	app.stores.chats.save_messages(chat_id, &all)?;

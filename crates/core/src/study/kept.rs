@@ -38,15 +38,16 @@ fn verdicts(messages: &[Json]) -> HashMap<&str, &Json> {
 }
 
 /// The keep-check verdicts the record still lacks, in record order: one per quiz call that carries
-/// a keep, was not refused and has none yet. `check_source` gives a keep's `source` as the stored
-/// passage mark, or none when it does not point at a passage. Each is `{quizCallId, keep: "shown"
+/// a keep, was not refused and has none yet. `first_topic` is the plan's first topic.
+/// `check_source` gives a keep's `source` as the stored passage mark, or none when it does not
+/// point at a passage. Each is `{quizCallId, keep: "shown"
 /// | "dropped", fits, phrase, source?: "ok" | "dropped", sourceMark?, note?}`; `source` only when
 /// the keep has one, `note` the line the teacher reads after his answer.
-pub fn keep_verdicts(messages: &[Json], check_source: &dyn Fn(&str) -> Option<String>) -> Vec<Json> {
+pub fn keep_verdicts(messages: &[Json], first_topic: Option<&str>, check_source: &dyn Fn(&str) -> Option<String>) -> Vec<Json> {
 	let checked = verdicts(messages);
 	let refused: HashSet<&str> = messages.iter().filter(|m| m["role"].as_str() == Some("toolResult") && m["isError"] == Json::Bool(true)).filter_map(|m| m["toolCallId"].as_str()).collect();
 	let kept = kept_calls(messages);
-	let visits = visits(messages);
+	let visits = visits(messages, first_topic);
 	// The sentences he saw: where each sits, its topic and whether its analogy lines showed.
 	let mut seen: Vec<(usize, &str, bool)> = Vec::new();
 	let mut out = Vec::new();
@@ -228,6 +229,8 @@ mod tests {
 	use super::*;
 
 	const MARK: &str = "[[f_1a2b3c4d5e6f/p. 14/Lecture 6.pdf]]";
+	/// The plan's first topic.
+	const PLAN: Option<&str> = Some("reg");
 
 	fn reply(id: &str, text: &str, calls: Vec<Json>) -> Json {
 		let mut content = if text.is_empty() { Vec::new() } else { vec![json!({ "type": "text", "text": text })] };
@@ -269,7 +272,7 @@ mod tests {
 	/// The lesson, then reply `id` carrying `keep`, its verdict added once decided.
 	fn with_keep(mut messages: Vec<Json>, id: &str, keep: Json, right: bool) -> Vec<Json> {
 		messages.push(reply(&format!("r_{id}"), "", vec![quiz(id, keep)]));
-		let verdict = keep_verdicts(&messages, &no_source);
+		let verdict = keep_verdicts(&messages, PLAN, &no_source);
 		messages.extend(verdict.into_iter().map(check));
 		messages.push(answer(id, right));
 		messages
@@ -279,25 +282,25 @@ mod tests {
 	fn a_keep_after_a_plain_reply_is_shown_with_its_analogy() {
 		let mut messages = lesson();
 		messages.push(reply("r3", "", vec![quiz("q3", sentence("Lambda prices large weights; it does not cap them."))]));
-		assert_eq!(keep_verdicts(&messages, &no_source), [json!({ "quizCallId": "q3", "keep": "shown", "fits": true, "phrase": false })]);
+		assert_eq!(keep_verdicts(&messages, PLAN, &no_source), [json!({ "quizCallId": "q3", "keep": "shown", "fits": true, "phrase": false })]);
 	}
 
 	#[test]
 	fn a_keep_waits_one_plain_reply_after_a_page_or_another_keep() {
 		let mut after_page = vec![reply("r1", "Here.[[f_1a2b3c4d5e6f/p. 14/Lecture 6.pdf|degree 12]]", vec![quiz("q1", Json::Null)]), answer("q1", true)];
 		after_page.push(reply("r2", "", vec![quiz("q2", json!({ "text": "t" }))]));
-		assert_eq!(keep_verdicts(&after_page, &no_source)[0]["note"], json!(SPACING));
+		assert_eq!(keep_verdicts(&after_page, PLAN, &no_source)[0]["note"], json!(SPACING));
 		let on_page = vec![reply("r1", "Here.[[f_1a2b3c4d5e6f/p. 14/Lecture 6.pdf|degree 12]]", vec![quiz("q1", json!({ "text": "t" }))])];
-		assert_eq!(keep_verdicts(&on_page, &no_source)[0]["note"], json!(SPACING), "its own reply shows the page");
+		assert_eq!(keep_verdicts(&on_page, PLAN, &no_source)[0]["note"], json!(SPACING), "its own reply shows the page");
 
 		let kept = with_keep(lesson(), "q3", json!({ "text": "One." }), true);
 		let mut next = kept;
 		next.push(reply("r4", "", vec![quiz("q4", json!({ "text": "Two." }))]));
-		assert_eq!(keep_verdicts(&next, &no_source)[0]["note"], json!(SPACING), "right after a kept sentence");
+		assert_eq!(keep_verdicts(&next, PLAN, &no_source)[0]["note"], json!(SPACING), "right after a kept sentence");
 		let missed = with_keep(lesson(), "q3", json!({ "text": "One." }), false);
 		let mut after_miss = missed;
 		after_miss.push(reply("r4", "", vec![quiz("q4", json!({ "text": "Two." }))]));
-		assert_eq!(keep_verdicts(&after_miss, &no_source)[0]["keep"], json!("shown"), "a missed keep was never seen");
+		assert_eq!(keep_verdicts(&after_miss, PLAN, &no_source)[0]["keep"], json!("shown"), "a missed keep was never seen");
 	}
 
 	#[test]
@@ -307,11 +310,11 @@ mod tests {
 		messages = with_keep(messages, "q6", json!({ "text": "Two.", "fits": "f", "stops": "s" }), false);
 		messages.extend([reply("r7", "Plain.", vec![quiz("q7", Json::Null)]), answer("q7", true)]);
 		messages.push(reply("r8", "", vec![quiz("q8", sentence("Three."))]));
-		let verdict = &keep_verdicts(&messages, &no_source)[0];
+		let verdict = &keep_verdicts(&messages, PLAN, &no_source)[0];
 		assert_eq!(verdict, &json!({ "quizCallId": "q8", "keep": "shown", "fits": false, "phrase": false, "note": ONE_ANALOGY }), "the missed one does not count");
 		messages.extend([check(verdict.clone()), answer("q8", true), reply("r9", "Plain.", vec![quiz("q9", Json::Null)]), answer("q9", true)]);
 		messages.push(reply("r10", "", vec![quiz("q10", json!({ "text": "Four." }))]));
-		assert_eq!(keep_verdicts(&messages, &no_source)[0]["note"], json!(TWO_A_TOPIC));
+		assert_eq!(keep_verdicts(&messages, PLAN, &no_source)[0]["note"], json!(TWO_A_TOPIC));
 	}
 
 	#[test]
@@ -320,7 +323,7 @@ mod tests {
 		let mut guess = quiz("q3", json!({ "text": "Lambda prices large weights." }));
 		guess.get_mut("arguments").and_then(Json::as_obj_mut).unwrap().insert("type", "predict");
 		messages.push(reply("r3", "", vec![guess]));
-		assert_eq!(keep_verdicts(&messages, &no_source), [json!({ "quizCallId": "q3", "keep": "dropped", "fits": false, "phrase": false, "note": NOT_A_CHECK })]);
+		assert_eq!(keep_verdicts(&messages, PLAN, &no_source), [json!({ "quizCallId": "q3", "keep": "dropped", "fits": false, "phrase": false, "note": NOT_A_CHECK })]);
 	}
 
 	#[test]
@@ -328,25 +331,25 @@ mod tests {
 		let mut messages = with_keep(lesson(), "q3", json!({ "text": "One." }), true);
 		messages.extend([reply("r4", "Plain.", vec![quiz("q4", Json::Null)]), answer("q4", true)]);
 		messages.push(reply("r5", "", vec![quiz("q5", sentence("Two.")), quiz("q6", sentence("Three."))]));
-		let verdicts = keep_verdicts(&messages, &no_source);
+		let verdicts = keep_verdicts(&messages, PLAN, &no_source);
 		assert_eq!(verdicts[0], json!({ "quizCallId": "q5", "keep": "shown", "fits": true, "phrase": false }));
 		assert_eq!(verdicts[1], json!({ "quizCallId": "q6", "keep": "dropped", "fits": false, "phrase": false, "note": SPACING }));
 		messages.extend(verdicts.into_iter().map(check));
 		messages.extend([answer("q5", true), answer("q6", true)]);
 		assert_eq!(kept_sentences("c", &messages).len(), 2, "the topic keeps 2");
 		let broken_first = vec![reply("r1", "", vec![quiz("q1", json!({ "text": "x".repeat(212) })), quiz("q2", json!({ "text": "t" }))])];
-		assert_eq!(keep_verdicts(&broken_first, &no_source)[1]["keep"], json!("shown"), "a keep the reply does not store crowds nothing");
+		assert_eq!(keep_verdicts(&broken_first, PLAN, &no_source)[1]["keep"], json!("shown"), "a keep the reply does not store crowds nothing");
 	}
 
 	#[test]
 	fn a_broken_keep_is_dropped_with_its_own_note_and_a_refused_quiz_gets_none() {
 		let mut messages = lesson();
 		messages.push(reply("r3", "", vec![quiz("q3", json!({ "text": "x".repeat(212) }))]));
-		assert_eq!(keep_verdicts(&messages, &no_source), [json!({ "quizCallId": "q3", "keep": "dropped", "fits": false, "phrase": false, "note": "keep not stored: text 212 characters, at most 160. Add it to a later quiz." })]);
+		assert_eq!(keep_verdicts(&messages, PLAN, &no_source), [json!({ "quizCallId": "q3", "keep": "dropped", "fits": false, "phrase": false, "note": "keep not stored: text 212 characters, at most 160. Add it to a later quiz." })]);
 		messages.push(json!({ "role": "toolResult", "toolCallId": "q3", "toolName": "quiz", "isError": true }));
-		assert!(keep_verdicts(&messages, &no_source).is_empty());
+		assert!(keep_verdicts(&messages, PLAN, &no_source).is_empty());
 		let decided = with_keep(lesson(), "q3", json!({ "text": "t" }), true);
-		assert!(keep_verdicts(&decided, &no_source).is_empty(), "decided once");
+		assert!(keep_verdicts(&decided, PLAN, &no_source).is_empty(), "decided once");
 	}
 
 	#[test]
@@ -354,14 +357,14 @@ mod tests {
 		let mut messages = lesson();
 		messages.push(reply("r3", "", vec![quiz("q3", json!({ "text": "t", "source": "[[f_1a2b3c4d5e6f:7]]", "phrase": "SOH CAH TOA" }))]));
 		let found = |source: &str| (source == "[[f_1a2b3c4d5e6f:7]]").then(|| MARK.to_owned());
-		assert_eq!(keep_verdicts(&messages, &found), [json!({ "quizCallId": "q3", "keep": "shown", "fits": false, "phrase": true, "source": "ok", "sourceMark": MARK })]);
+		assert_eq!(keep_verdicts(&messages, PLAN, &found), [json!({ "quizCallId": "q3", "keep": "shown", "fits": false, "phrase": true, "source": "ok", "sourceMark": MARK })]);
 		messages.pop();
 		messages.push(reply("r3", "", vec![quiz("q3", json!({ "text": "t", "source": " f_1a2b3c4d5e6f:7 " }))]));
-		assert_eq!(keep_verdicts(&messages, &found)[0]["sourceMark"], json!(MARK), "a bare passage id is the same mark");
+		assert_eq!(keep_verdicts(&messages, PLAN, &found)[0]["sourceMark"], json!(MARK), "a bare passage id is the same mark");
 		messages.pop();
 		messages.push(reply("r3", "", vec![quiz("q3", json!({ "text": "t", "source": "nowhere", "phrase": "p".repeat(74) }))]));
 		assert_eq!(
-			keep_verdicts(&messages, &no_source),
+			keep_verdicts(&messages, PLAN, &no_source),
 			[json!({ "quizCallId": "q3", "keep": "shown", "fits": false, "phrase": false, "source": "dropped", "note": "keep.phrase not shown: 74 characters, at most 60. keep.source dropped: it does not point at a passage." })]
 		);
 	}
@@ -371,11 +374,11 @@ mod tests {
 		let mut messages = lesson();
 		messages.push(reply("r3", "", vec![quiz("q3", json!({ "text": "t", "source": "x".repeat(2_000_000) }))]));
 		let never = |_: &str| -> Option<String> { panic!("checked a source longer than a mark") };
-		assert_eq!(keep_verdicts(&messages, &never), [json!({ "quizCallId": "q3", "keep": "shown", "fits": false, "phrase": false, "source": "dropped", "note": NO_PASSAGE })]);
+		assert_eq!(keep_verdicts(&messages, PLAN, &never), [json!({ "quizCallId": "q3", "keep": "shown", "fits": false, "phrase": false, "source": "dropped", "note": NO_PASSAGE })]);
 		messages.pop();
 		let longest = format!("[[{}]]", "x".repeat(MARK_MAX));
 		messages.push(reply("r3", "", vec![quiz("q3", json!({ "text": "t", "source": longest }))]));
-		assert_eq!(keep_verdicts(&messages, &|_| Some(MARK.to_owned()))[0]["source"], json!("ok"), "the longest mark is checked");
+		assert_eq!(keep_verdicts(&messages, PLAN, &|_| Some(MARK.to_owned()))[0]["source"], json!("ok"), "the longest mark is checked");
 	}
 
 	#[test]

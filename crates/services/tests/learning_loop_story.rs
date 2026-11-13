@@ -19,7 +19,7 @@ use gs_core::messages::input_events::{ChatInput, TurnInput};
 use gs_core::spaces::today_note::local_day;
 use gs_core::study::kept::KeptPart;
 use gs_core::study::topic_end::{lesson_stop, shown_openers};
-use gs_core::study::topic_parts::topic_parts;
+use gs_core::study::topic_parts::{first_topic, topic_parts};
 use gs_engine::bridge::{AgentReply, ReplyCall, WaitOptions};
 use gs_json::{Json, json, stringify};
 use gs_services::App;
@@ -298,7 +298,7 @@ async fn two_days_of_study_for_the_midterm() {
 	let gd_wed = from_earlier(app, chat, "Gradient descent", picked(1, "Right", "Right", true, 80));
 	assert_eq!(next_review(app, chat).unwrap(), ReviewReply::Next(None), "three a day");
 	writes();
-	// The opening reply has words alone; the first topic takes its quoted page.
+	// The opening reply has words alone; the plan's first topic takes its quoted page at once.
 	let page = format!("Picture fitting a curve of degree 12 to ten points [[{LECTURE_6}:1 \"degree 12\"]]. It hits every point.");
 	says(app, chat, &page).await;
 	settled(app, chat).await;
@@ -306,6 +306,8 @@ async fn two_days_of_study_for_the_midterm() {
 	let stored_page = format!("[[{LECTURE_6}/p. 14/Lecture 6.pdf|degree 12]]");
 	let opening = record.iter().find(|m| m["role"].as_str() == Some("assistant") && stringify(&m["content"]).contains(&stored_page)).expect("the quoted mark is stored checked");
 	let opening_id = opening["id"].clone();
+	let opened = topic_parts(&record, first_topic(Some(&plan)));
+	assert_eq!(opened.iter().map(|t| (t["nodeId"].as_str().unwrap(), &t["page"]["messageId"])).collect::<Vec<_>>(), [("reg", &opening_id)], "the page draws under the opening reply as soon as it is there");
 	assert_eq!(record.iter().filter(|m| m["customType"].as_str() == Some("review")).count(), 3, "his answers are written at once, during the turn");
 	assert_eq!(next_review(app, chat).unwrap(), ReviewReply::Next(None), "the reply landed");
 
@@ -408,9 +410,9 @@ async fn two_days_of_study_for_the_midterm() {
 	let record = messages(app, chat);
 	let done_reg_id = id_of(&done_reg);
 	assert!(shown_openers(&record).contains_key(&done_reg_id));
-	let pages = topic_parts(&record);
+	let pages = topic_parts(&record, first_topic(Some(&plan)));
 	assert_eq!(pages.iter().map(|t| (t["nodeId"].as_str().unwrap(), t["page"]["quote"].as_str())).collect::<Vec<_>>(), [("reg", Some("degree 12")), ("cv", Some("a different 12"))]);
-	assert_eq!(pages[0]["page"]["messageId"], opening_id, "Regularization's page is in the opening reply, which named no topic");
+	assert_eq!(pages[0]["page"]["messageId"], opening_id, "Regularization's page stays in the opening reply, which named no topic");
 	assert_eq!(pages[1]["page"]["leadOf"], json!(done_reg_id), "the next topic's page is its opener's lead");
 	assert_eq!(midterm(app, &space_id, &deadline_id)["continueStudy"]["inTopic"], json!("Cross-validation"));
 

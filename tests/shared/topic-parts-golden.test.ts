@@ -11,13 +11,13 @@ import { topicParts } from "../../src/shared/core/topic-parts.ts";
 
 interface Case {
 	name: string;
-	output: { args: { messages: LhMessage[] }; result: unknown };
+	output: { args: { messages: LhMessage[]; firstTopic: string | null }; result: unknown };
 }
 
 const cases = JSON.parse(readFileSync(new URL("../../crates/core/tests/golden/topic_parts.json", import.meta.url), "utf-8")) as Case[];
 
 describe("topic_parts shared cases", () => {
 	for (const { name, output } of cases) {
-		it(name, () => assert.deepEqual(topicParts(output.args.messages), output.result));
+		it(name, () => assert.deepEqual(topicParts(output.args.messages, output.args.firstTopic), output.result));
 	}
 });

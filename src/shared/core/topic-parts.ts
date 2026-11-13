@@ -1,16 +1,17 @@
 /**
  * The parts a Study topic opens with, read from the record. A reply is one
  * assistant message; its topic is the nodeId its calls name (refused calls
- * aside), else the latest earlier reply's or shown opener's. A topic's page is the
- * first quoted source mark in the shown opener's lead, else in the reply
- * that opens the topic; later replies never give one. The replies before
- * the first topic name none and are the first topic's: it takes a page
- * quoted there when its own opening reply has none. The server keeps a
- * Rust copy (crates/core/src/study/topic_parts.rs); both replay
+ * aside), else the latest earlier reply's or shown opener's, else the
+ * plan's first topic, where the lesson starts. A topic opens at its first
+ * reply that is not reads alone. Its page is the first quoted source mark
+ * in the shown opener's lead, else in the reply that opens it; later
+ * replies never give one. The server keeps a Rust copy
+ * (crates/core/src/study/topic_parts.rs); both replay
  * crates/core/tests/golden/topic_parts.json. Pure and browser-safe.
  */
 import { replaceCiteMarks } from "./citations.ts";
 import type { LhMessage } from "./native-messages.ts";
+import { isQuestionTool } from "./pending.ts";
 import { shownOpeners } from "./topic-end.ts";
 
 /** A topic's page: the quoted mark, and where it sits: in a reply (its
@@ -31,15 +32,15 @@ export interface TopicParts {
 	page: TopicPage | null;
 }
 
-/** Every topic the lesson reached, in the order it reached them. */
-export function topicParts(messages: readonly LhMessage[]): TopicParts[] {
+/** Every topic the lesson reached, in the order it reached them.
+ *  `firstTopic` is the plan's first topic; with none, a reply has no topic
+ *  until a call names one. */
+export function topicParts(messages: readonly LhMessage[], firstTopic: string | null): TopicParts[] {
 	const openers = shownOpeners(messages);
 	const refused = new Set(messages.flatMap((m) => (m.role === "toolResult" && m.isError ? [m.toolCallId] : [])));
 	const out: TopicParts[] = [];
 	const opened = new Set<string>();
-	let current: string | null = null;
-	// The first page quoted before any topic is reached.
-	let held: TopicPage | null = null;
+	let current = firstTopic;
 	for (const m of messages) {
 		const opener = m.role === "toolResult" ? openers.get(m.toolCallId) : undefined;
 		const openerNode = opener?.quiz.nodeId;
@@ -49,20 +50,23 @@ export function topicParts(messages: readonly LhMessage[]): TopicParts[] {
 			continue;
 		}
 		if (m.role !== "assistant") continue;
-		const nodeId: string | null = callTopic(m, refused) ?? current;
-		current = nodeId;
-		if (nodeId === null) {
-			held ??= replyPage(m);
-			continue;
-		}
-		if (opened.has(nodeId)) continue;
-		opened.add(nodeId);
-		let parts = out.find((t) => t.nodeId === nodeId);
-		if (!parts) out.push((parts = { nodeId, page: null }));
-		parts.page ??= replyPage(m) ?? held;
-		held = null;
+		const named = callTopic(m, refused);
+		current = named ?? current;
+		// A reply of reads alone opens no topic, so the reply after it still gives the page.
+		if (current === null || (named === null && !isSeen(m, refused)) || opened.has(current)) continue;
+		opened.add(current);
+		let parts = out.find((t) => t.nodeId === current);
+		if (!parts) out.push((parts = { nodeId: current, page: null }));
+		for (const block of m.content) if (block.type === "text" && !parts.page) parts.page = firstQuoted(block.text, { messageId: m.id, leadOf: null });
 	}
 	return out;
+}
+
+/** A reply he sees: words, or a question or a plot that was not refused. */
+function isSeen(m: Extract<LhMessage, { role: "assistant" }>, refused: ReadonlySet<string>): boolean {
+	return m.content.some((block) =>
+		block.type === "text" ? block.text.trim() !== "" : block.type === "toolCall" && (block.name === "plot" || isQuestionTool(block.name)) && !refused.has(block.id),
+	);
 }
 
 /** The topic a reply's calls name: the first call with a nodeId that was
@@ -72,15 +76,6 @@ function callTopic(m: Extract<LhMessage, { role: "assistant" }>, refused: Readon
 		if (block.type !== "toolCall" || refused.has(block.id)) continue;
 		const nodeId = (block.arguments as { nodeId?: unknown } | undefined)?.nodeId;
 		if (typeof nodeId === "string") return nodeId;
-	}
-	return null;
-}
-
-/** The first quoted page in a reply's words. */
-function replyPage(m: Extract<LhMessage, { role: "assistant" }>): TopicPage | null {
-	for (const block of m.content) {
-		const page = block.type === "text" ? firstQuoted(block.text, { messageId: m.id, leadOf: null }) : null;
-		if (page) return page;
 	}
 	return null;
 }

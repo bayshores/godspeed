@@ -3,7 +3,8 @@
 		"name": "no record",
 		"output": {
 			"args": {
-				"messages": []
+				"messages": [],
+				"firstTopic": "reg"
 			},
 			"result": []
 		}
@@ -81,7 +82,8 @@
 						"isError": false,
 						"timestamp": 1795035660000
 					}
-				]
+				],
+				"firstTopic": "reg"
 			},
 			"result": [
 				{
@@ -231,7 +233,8 @@
 						"isError": false,
 						"timestamp": 1795035780000
 					}
-				]
+				],
+				"firstTopic": "reg"
 			},
 			"result": [
 				{
@@ -392,7 +395,8 @@
 						"isError": false,
 						"timestamp": 1795035900000
 					}
-				]
+				],
+				"firstTopic": "reg"
 			},
 			"result": [
 				{
@@ -610,7 +614,8 @@
 						"isError": false,
 						"timestamp": 1795035840000
 					}
-				]
+				],
+				"firstTopic": "reg"
 			},
 			"result": [
 				{
@@ -954,7 +959,8 @@
 						"isError": false,
 						"timestamp": 1795038720000
 					}
-				]
+				],
+				"firstTopic": "reg"
 			},
 			"result": [
 				{
@@ -1305,7 +1311,8 @@
 						"isError": false,
 						"timestamp": 1795038720000
 					}
-				]
+				],
+				"firstTopic": "reg"
 			},
 			"result": [
 				{
@@ -1685,7 +1692,8 @@
 						"isError": false,
 						"timestamp": 1795038720000
 					}
-				]
+				],
+				"firstTopic": "reg"
 			},
 			"result": [
 				{
@@ -2024,7 +2032,8 @@
 						"isError": false,
 						"timestamp": 1795038720000
 					}
-				]
+				],
+				"firstTopic": "reg"
 			},
 			"result": [
 				{
@@ -2121,7 +2130,8 @@
 						"isError": false,
 						"timestamp": 1795035660000
 					}
-				]
+				],
+				"firstTopic": "reg"
 			},
 			"result": [
 				{
@@ -2200,7 +2210,8 @@
 						"isError": false,
 						"timestamp": 1795035660000
 					}
-				]
+				],
+				"firstTopic": "reg"
 			},
 			"result": [
 				{
@@ -2211,17 +2222,21 @@
 		}
 	},
 	{
-		"name": "a page quoted before any topic is reached is the first topic's",
+		"name": "the plan's first topic opens at the first reply he sees, before any call names it",
 		"output": {
 			"args": {
 				"messages": [
 					{
-						"id": "m_r0",
+						"id": "m_s0",
 						"role": "assistant",
 						"content": [
 							{
-								"type": "text",
-								"text": "Start with the picture."
+								"type": "toolCall",
+								"id": "s0",
+								"name": "search_space_files",
+								"arguments": {
+									"query": "curve"
+								}
 							}
 						],
 						"api": "faux",
@@ -2241,11 +2256,26 @@
 								"total": 0
 							}
 						},
-						"stopReason": "stop",
+						"stopReason": "toolUse",
 						"timestamp": 1795035660000
 					},
 					{
-						"id": "m_r0b",
+						"id": "r_s0",
+						"role": "toolResult",
+						"toolCallId": "s0",
+						"toolName": "search_space_files",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": null,
+						"isError": false,
+						"timestamp": 1795035660000
+					},
+					{
+						"id": "m_r1",
 						"role": "assistant",
 						"content": [
 							{
@@ -2272,35 +2302,6 @@
 						},
 						"stopReason": "stop",
 						"timestamp": 1795035720000
-					},
-					{
-						"id": "m_r0c",
-						"role": "assistant",
-						"content": [
-							{
-								"type": "text",
-								"text": "And later.[[f_1a2b3c4d5e6f/p. 3/Lecture 7.pdf|five folds]]"
-							}
-						],
-						"api": "faux",
-						"provider": "faux",
-						"model": "faux",
-						"usage": {
-							"input": 0,
-							"output": 0,
-							"cacheRead": 0,
-							"cacheWrite": 0,
-							"totalTokens": 0,
-							"cost": {
-								"input": 0,
-								"output": 0,
-								"cacheRead": 0,
-								"cacheWrite": 0,
-								"total": 0
-							}
-						},
-						"stopReason": "stop",
-						"timestamp": 1795035780000
 					},
 					{
 						"id": "m_q1",
@@ -2345,7 +2346,7 @@
 							}
 						},
 						"stopReason": "toolUse",
-						"timestamp": 1795035840000
+						"timestamp": 1795035780000
 					},
 					{
 						"id": "r_q1",
@@ -2360,15 +2361,16 @@
 						],
 						"details": null,
 						"isError": false,
-						"timestamp": 1795035840000
+						"timestamp": 1795035780000
 					}
-				]
+				],
+				"firstTopic": "reg"
 			},
 			"result": [
 				{
 					"nodeId": "reg",
 					"page": {
-						"messageId": "m_r0b",
+						"messageId": "m_r1",
 						"leadOf": null,
 						"fileId": "f_1a2b3c4d5e6f",
 						"range": "p. 14",
@@ -2380,7 +2382,276 @@
 		}
 	},
 	{
-		"name": "the first topic's own opening reply wins over a page quoted before it, and a later topic never takes it",
+		"name": "with no plan, a reply has no topic until a call names one",
+		"output": {
+			"args": {
+				"messages": [
+					{
+						"id": "m_s0",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "s0",
+								"name": "search_space_files",
+								"arguments": {
+									"query": "curve"
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795035660000
+					},
+					{
+						"id": "r_s0",
+						"role": "toolResult",
+						"toolCallId": "s0",
+						"toolName": "search_space_files",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": null,
+						"isError": false,
+						"timestamp": 1795035660000
+					},
+					{
+						"id": "m_r1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "text",
+								"text": "Here the curve misses.[[f_1a2b3c4d5e6f/p. 14/Lecture 6.pdf|degree 12]]"
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "stop",
+						"timestamp": 1795035720000
+					},
+					{
+						"id": "m_q1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "q1",
+								"name": "quiz",
+								"arguments": {
+									"type": "check",
+									"nodeId": "reg",
+									"question": "Which fits?",
+									"options": [
+										{
+											"label": "A"
+										},
+										{
+											"label": "B"
+										}
+									],
+									"correctAnswer": "A",
+									"explanation": "Made up."
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795035780000
+					},
+					{
+						"id": "r_q1",
+						"role": "toolResult",
+						"toolCallId": "q1",
+						"toolName": "quiz",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": null,
+						"isError": false,
+						"timestamp": 1795035780000
+					}
+				],
+				"firstTopic": null
+			},
+			"result": [
+				{
+					"nodeId": "reg",
+					"page": null
+				}
+			]
+		}
+	},
+	{
+		"name": "words before any call are the plan's first topic's, even when the next call names another",
+		"output": {
+			"args": {
+				"messages": [
+					{
+						"id": "m_r1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "text",
+								"text": "Here the curve misses.[[f_1a2b3c4d5e6f/p. 14/Lecture 6.pdf|degree 12]]"
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "stop",
+						"timestamp": 1795035720000
+					},
+					{
+						"id": "m_q1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "q1",
+								"name": "quiz",
+								"arguments": {
+									"type": "check",
+									"nodeId": "cv",
+									"question": "Which fits?",
+									"options": [
+										{
+											"label": "A"
+										},
+										{
+											"label": "B"
+										}
+									],
+									"correctAnswer": "A",
+									"explanation": "Made up."
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795035780000
+					},
+					{
+						"id": "r_q1",
+						"role": "toolResult",
+						"toolCallId": "q1",
+						"toolName": "quiz",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": null,
+						"isError": false,
+						"timestamp": 1795035780000
+					}
+				],
+				"firstTopic": "reg"
+			},
+			"result": [
+				{
+					"nodeId": "reg",
+					"page": {
+						"messageId": "m_r1",
+						"leadOf": null,
+						"fileId": "f_1a2b3c4d5e6f",
+						"range": "p. 14",
+						"name": "Lecture 6.pdf",
+						"quote": "degree 12"
+					}
+				},
+				{
+					"nodeId": "cv",
+					"page": null
+				}
+			]
+		}
+	},
+	{
+		"name": "a later reply naming the first topic never replaces the page of the reply that opened it, and a later topic never takes it",
 		"output": {
 			"args": {
 				"messages": [
@@ -2537,18 +2808,19 @@
 						"isError": false,
 						"timestamp": 1795035780000
 					}
-				]
+				],
+				"firstTopic": "reg"
 			},
 			"result": [
 				{
 					"nodeId": "reg",
 					"page": {
-						"messageId": "m_q1",
+						"messageId": "m_r0",
 						"leadOf": null,
 						"fileId": "f_1a2b3c4d5e6f",
-						"range": "p. 3",
-						"name": "Lecture 7.pdf",
-						"quote": "five folds"
+						"range": "p. 14",
+						"name": "Lecture 6.pdf",
+						"quote": "degree 12"
 					}
 				},
 				{
@@ -2559,7 +2831,7 @@
 		}
 	},
 	{
-		"name": "a page quoted in a plain reply after a topic is reached is never held for the next topic",
+		"name": "a page quoted in a plain reply after a topic opened is never the next topic's",
 		"output": {
 			"args": {
 				"messages": [
@@ -2741,7 +3013,8 @@
 						"isError": false,
 						"timestamp": 1795035840000
 					}
-				]
+				],
+				"firstTopic": "reg"
 			},
 			"result": [
 				{

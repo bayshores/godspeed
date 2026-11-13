@@ -150,6 +150,7 @@ const story = (...steps: LhMessage[][]): LhMessage[] => steps.flat();
 const wednesday = story(start, firstReplyWait, opening, plain, plotPair, guessed, keptRight, analogyDropped, phraseDroppedAndBack, problem, concluded, topicDoneReg);
 const saturday = story(wednesday, continued, openerAnswered, teacherWritesSat, crossValidationEnds, keptGoingOn, lastTopicEnds);
 
+const FIRST_TOPIC = TREE.nodes[0]!.id;
 const parts = (view: LhViewMessage[]): LhViewPart[] => view.flatMap((m) => m.parts);
 const part = (view: LhViewMessage[], toolCallId: string): LhViewPart => parts(view).find((p) => p.toolCallId === toolCallId)!;
 const cards = (view: LhViewMessage[]): FromEarlierData[] => parts(view).flatMap((p) => (p.type === "data-from-earlier" ? [p.data as FromEarlierData] : []));
@@ -168,16 +169,14 @@ describe("the two-day story, as the window draws it", () => {
 		assert.deepEqual(card!.rows.map((r) => [fromEarlierRow(r).topic, fromEarlierRow(r).word]), [["Bayes' rule", "Wrong"], ["Eigenvalues", "Right"], ["Gradient descent", "Right"]]);
 	});
 
-	it("the opening reply, words alone, draws its page with the quoted words under it once a call names the topic", () => {
-		const record = story(start, firstReplyWait, opening, plain);
-		assert.deepEqual(topicParts(record), [], "no call has named a topic yet, so no page draws");
-		const reached = story(record, plotPair);
-		const [reg] = topicParts(reached);
-		assert.deepEqual(reg, { nodeId: "reg", page: { messageId: "m_open", leadOf: null, fileId: "f_1a2b3c4d5e6f", range: "p. 14", name: "Lecture 6.pdf", quote: "degree 12" } });
-		const view = projectView(reached);
-		const row = view.find((m) => m.parts.some((p) => p.id === "m_open-t0"))!;
-		const drawn = excerptParts(row.parts, topicPageMarks(topicParts(reached)));
+	it("the opening reply, words alone, draws its page with the quoted words under it as soon as it is there", () => {
+		const record = story(start, firstReplyWait, opening);
+		const topics = topicParts(record, FIRST_TOPIC);
+		assert.deepEqual(topics, [{ nodeId: "reg", page: { messageId: "m_open", leadOf: null, fileId: "f_1a2b3c4d5e6f", range: "p. 14", name: "Lecture 6.pdf", quote: "degree 12" } }], "the lesson starts on the plan's first topic");
+		const row = projectView(record).find((m) => m.parts.some((p) => p.id === "m_open-t0"))!;
+		const drawn = excerptParts(row.parts, topicPageMarks(topics));
 		assert.deepEqual([...drawn].map(([i, mark]) => [row.parts[i]!.id, mark]), [["m_open-t0", SOURCE_MARK]], "under the opening reply, once");
+		assert.deepEqual(topicParts(story(record, plain, plotPair), FIRST_TOPIC), topics, "the replies after it keep that page");
 	});
 
 	it("the plot keeps its hidden line back until his guess, then opens", () => {
@@ -249,7 +248,7 @@ describe("the two-day story, as the window draws it", () => {
 		const lead = parts(view).find((p) => p.id === openerLeadId("t1"))!;
 		assert.equal(lead.text, CV_LEAD);
 		const leadRow = view.find((m) => m.parts.includes(lead))!;
-		assert.deepEqual([...excerptParts(leadRow.parts, topicPageMarks(topicParts(record)))].map(([i]) => leadRow.parts[i]!.id), [openerLeadId("t1")], "Cross-validation's page is in the lead");
+		assert.deepEqual([...excerptParts(leadRow.parts, topicPageMarks(topicParts(record, FIRST_TOPIC)))].map(([i]) => leadRow.parts[i]!.id), [openerLeadId("t1")], "Cross-validation's page is in the lead");
 
 		const answered = projectView(story(record, openerAnswered));
 		assert.equal(part(answered, "opener_t1").state, "output-available");

@@ -465,7 +465,8 @@ export function Chat({
 	const practiceKey = practice ? JSON.stringify(practice) : "";
 	const stablePractice = useMemo(() => practice, [practiceKey]);
 	// Each Study topic's page mark; stable while none changed.
-	const freshPageMarks = useMemo(() => (kind === "study" ? topicPageMarks(topicParts(nativeMessages)) : NO_PAGES), [kind, nativeMessages]);
+	const firstTopic = planTree?.nodes[0]?.id ?? null;
+	const freshPageMarks = useMemo(() => (kind === "study" ? topicPageMarks(topicParts(nativeMessages, firstTopic)) : NO_PAGES), [kind, nativeMessages, firstTopic]);
 	const pageMarksKey = JSON.stringify([...freshPageMarks]);
 	const pageMarks = useMemo(() => freshPageMarks, [pageMarksKey]);
 	const lessonStop = useLessonStop({

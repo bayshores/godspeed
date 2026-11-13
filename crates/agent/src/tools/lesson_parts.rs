@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use gs_core::session::plot::PLOT_TOOL;
-use gs_core::study::topic_parts::reply_parts_problems;
+use gs_core::study::topic_parts::{first_topic, reply_parts_problems};
 use gs_engine::turn::agent::BeforeToolCallFn;
 use gs_json::Json;
 use parking_lot::Mutex;
@@ -39,7 +39,8 @@ impl LessonParts {
 			if name != PLOT_TOOL && !(name == "quiz" && ctx.args["onPlot"].as_obj().is_some()) {
 				return None;
 			}
-			let verdict = reply_parts_problems(ctx.messages, ctx.message, &|quiz| study_quiz_call(&parts.plan, quiz));
+			let record = parts.plan.chat_store.get_chat(&parts.plan.chat_id);
+			let verdict = reply_parts_problems(ctx.messages, first_topic(record.as_ref().map(|r| &r["tree"])), ctx.message, &|quiz| study_quiz_call(&parts.plan, quiz));
 			if let Some((plot_call_id, guess)) = verdict.on_plot {
 				parts.passed.lock().insert(plot_call_id, guess);
 			}

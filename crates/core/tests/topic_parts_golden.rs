@@ -9,7 +9,8 @@ use gs_json::{Json, parse, stringify};
 fn topic_pages_match_the_window() {
 	let cases = parse(&std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/golden/topic_parts.json")).unwrap()).unwrap();
 	for case in cases.as_arr().unwrap() {
-		let got = Json::from(topic_parts(case["output"]["args"]["messages"].as_arr().unwrap()));
+		let args = &case["output"]["args"];
+		let got = Json::from(topic_parts(args["messages"].as_arr().unwrap(), args["firstTopic"].as_str()));
 		assert_eq!(stringify(&got), stringify(&case["output"]["result"]), "{}", case["name"].as_str().unwrap());
 	}
 }
