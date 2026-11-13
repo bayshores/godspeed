@@ -58,6 +58,8 @@ export * from "./linked-folder.ts";
 export * from "./deadline-plan.ts";
 export * from "./study.ts";
 export * from "./continue-study.ts";
+// Stops and openers: the state Today and the lesson window read.
+export * from "./topic-end.ts";
 export * from "./homework.ts";
 export * from "./cheat-sheet.ts";
 export * from "./prep.ts";

@@ -1,0 +1,4207 @@
+[
+	{
+		"name": "lesson_stop: an old lesson has no stop",
+		"output": {
+			"args": {
+				"messages": [
+					{
+						"id": "m_p1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "p1",
+								"name": "problem",
+								"arguments": {
+									"statement": "x",
+									"nodeId": "reg"
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795035600000
+					},
+					{
+						"id": "r_p1",
+						"role": "toolResult",
+						"toolCallId": "p1",
+						"toolName": "problem",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": null,
+						"isError": false,
+						"timestamp": 1795035600000
+					},
+					{
+						"id": "m_c1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "c1",
+								"name": "conclude",
+								"arguments": {
+									"outcome": "solved",
+									"verdict": "Right.",
+									"rung": null,
+									"missClass": null,
+									"retest": false
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795035900000
+					},
+					{
+						"id": "r_c1",
+						"role": "toolResult",
+						"toolCallId": "c1",
+						"toolName": "conclude",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": null,
+						"isError": false,
+						"timestamp": 1795035900000
+					}
+				],
+				"tree": {
+					"nodes": [
+						{
+							"id": "reg",
+							"title": "Regularization"
+						},
+						{
+							"id": "cv",
+							"title": "Cross-validation"
+						},
+						{
+							"id": "ms",
+							"title": "Model selection"
+						}
+					],
+					"edges": [
+						{
+							"from": "reg",
+							"to": "cv"
+						},
+						{
+							"from": "cv",
+							"to": "ms"
+						}
+					]
+				}
+			},
+			"result": null
+		}
+	},
+	{
+		"name": "lesson_stop: in the middle of its first topic there is no stop",
+		"output": {
+			"args": {
+				"messages": [
+					{
+						"id": "m_p1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "p1",
+								"name": "problem",
+								"arguments": {
+									"statement": "x",
+									"nodeId": "reg"
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795035600000
+					},
+					{
+						"id": "r_p1",
+						"role": "toolResult",
+						"toolCallId": "p1",
+						"toolName": "problem",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": null,
+						"isError": false,
+						"timestamp": 1795035600000
+					}
+				],
+				"tree": {
+					"nodes": [
+						{
+							"id": "reg",
+							"title": "Regularization"
+						},
+						{
+							"id": "cv",
+							"title": "Cross-validation"
+						},
+						{
+							"id": "ms",
+							"title": "Model selection"
+						}
+					],
+					"edges": [
+						{
+							"from": "reg",
+							"to": "cv"
+						},
+						{
+							"from": "cv",
+							"to": "ms"
+						}
+					]
+				}
+			},
+			"result": null
+		}
+	},
+	{
+		"name": "lesson_stop: stopped: the next topic, the stop's minutes, not kept going",
+		"output": {
+			"args": {
+				"messages": [
+					{
+						"id": "m_p1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "p1",
+								"name": "problem",
+								"arguments": {
+									"statement": "Fit lambda.",
+									"nodeId": "reg"
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795037400000
+					},
+					{
+						"id": "r_p1",
+						"role": "toolResult",
+						"toolCallId": "p1",
+						"toolName": "problem",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": null,
+						"isError": false,
+						"timestamp": 1795037400000
+					},
+					{
+						"id": "m_c1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "c1",
+								"name": "conclude",
+								"arguments": {
+									"outcome": "solved",
+									"verdict": "Right.",
+									"rung": null,
+									"missClass": null,
+									"retest": false
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795038480000
+					},
+					{
+						"id": "r_c1",
+						"role": "toolResult",
+						"toolCallId": "c1",
+						"toolName": "conclude",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": {
+							"stop": {
+								"kind": "topic",
+								"nodeId": "reg",
+								"activeMinutes": 48,
+								"at": "2026-11-18T21:48:00.000Z"
+							}
+						},
+						"isError": false,
+						"timestamp": 1795038480000
+					},
+					{
+						"id": "m_t1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "t1",
+								"name": "topic_done",
+								"arguments": {
+									"nodeId": "reg",
+									"opener": {
+										"lead": "Now split the data.",
+										"quiz": {
+											"question": "With 5 folds, how much does the score move between splits?",
+											"options": [
+												{
+													"label": "It can move a lot"
+												},
+												{
+													"label": "Barely"
+												}
+											],
+											"correctAnswer": "It can move a lot",
+											"explanation": "Small folds are noisy.",
+											"type": "predict",
+											"nodeId": "cv"
+										}
+									}
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795038540000
+					},
+					{
+						"id": "r_t1",
+						"role": "toolResult",
+						"toolCallId": "t1",
+						"toolName": "topic_done",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": {
+							"part": "topic_done",
+							"v": 1,
+							"lead": "Now split the data."
+						},
+						"isError": false,
+						"timestamp": 1795038540000
+					}
+				],
+				"tree": {
+					"nodes": [
+						{
+							"id": "reg",
+							"title": "Regularization"
+						},
+						{
+							"id": "cv",
+							"title": "Cross-validation"
+						},
+						{
+							"id": "ms",
+							"title": "Model selection"
+						}
+					],
+					"edges": [
+						{
+							"from": "reg",
+							"to": "cv"
+						},
+						{
+							"from": "cv",
+							"to": "ms"
+						}
+					]
+				}
+			},
+			"result": {
+				"kind": "topic",
+				"at": "2026-11-18T21:48:00.000Z",
+				"nodeId": "reg",
+				"stopOf": "c1",
+				"next": "Cross-validation",
+				"activeMinutes": 48,
+				"keptGoing": false
+			}
+		}
+	},
+	{
+		"name": "lesson_stop: kept going in the same sitting",
+		"output": {
+			"args": {
+				"messages": [
+					{
+						"id": "m_p1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "p1",
+								"name": "problem",
+								"arguments": {
+									"statement": "Fit lambda.",
+									"nodeId": "reg"
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795037400000
+					},
+					{
+						"id": "r_p1",
+						"role": "toolResult",
+						"toolCallId": "p1",
+						"toolName": "problem",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": null,
+						"isError": false,
+						"timestamp": 1795037400000
+					},
+					{
+						"id": "m_c1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "c1",
+								"name": "conclude",
+								"arguments": {
+									"outcome": "solved",
+									"verdict": "Right.",
+									"rung": null,
+									"missClass": null,
+									"retest": false
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795038480000
+					},
+					{
+						"id": "r_c1",
+						"role": "toolResult",
+						"toolCallId": "c1",
+						"toolName": "conclude",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": {
+							"stop": {
+								"kind": "topic",
+								"nodeId": "reg",
+								"activeMinutes": 48,
+								"at": "2026-11-18T21:48:00.000Z"
+							}
+						},
+						"isError": false,
+						"timestamp": 1795038480000
+					},
+					{
+						"id": "m_t1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "t1",
+								"name": "topic_done",
+								"arguments": {
+									"nodeId": "reg",
+									"opener": {
+										"lead": "Now split the data.",
+										"quiz": {
+											"question": "With 5 folds, how much does the score move between splits?",
+											"options": [
+												{
+													"label": "It can move a lot"
+												},
+												{
+													"label": "Barely"
+												}
+											],
+											"correctAnswer": "It can move a lot",
+											"explanation": "Small folds are noisy.",
+											"type": "predict",
+											"nodeId": "cv"
+										}
+									}
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795038540000
+					},
+					{
+						"id": "r_t1",
+						"role": "toolResult",
+						"toolCallId": "t1",
+						"toolName": "topic_done",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": {
+							"part": "topic_done",
+							"v": 1,
+							"lead": "Now split the data."
+						},
+						"isError": false,
+						"timestamp": 1795038540000
+					},
+					{
+						"id": "kg_c1_50",
+						"role": "custom",
+						"customType": "keep-going",
+						"content": "",
+						"display": true,
+						"details": {
+							"stopOf": "c1",
+							"at": "2026-11-18T21:50:00.000Z"
+						},
+						"timestamp": 1795038600000
+					}
+				],
+				"tree": {
+					"nodes": [
+						{
+							"id": "reg",
+							"title": "Regularization"
+						},
+						{
+							"id": "cv",
+							"title": "Cross-validation"
+						},
+						{
+							"id": "ms",
+							"title": "Model selection"
+						}
+					],
+					"edges": [
+						{
+							"from": "reg",
+							"to": "cv"
+						},
+						{
+							"from": "cv",
+							"to": "ms"
+						}
+					]
+				}
+			},
+			"result": {
+				"kind": "topic",
+				"at": "2026-11-18T21:48:00.000Z",
+				"nodeId": "reg",
+				"stopOf": "c1",
+				"next": "Cross-validation",
+				"activeMinutes": 48,
+				"keptGoing": true
+			}
+		}
+	},
+	{
+		"name": "lesson_stop: in the middle of the next topic after Keep going",
+		"output": {
+			"args": {
+				"messages": [
+					{
+						"id": "m_p1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "p1",
+								"name": "problem",
+								"arguments": {
+									"statement": "Fit lambda.",
+									"nodeId": "reg"
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795037400000
+					},
+					{
+						"id": "r_p1",
+						"role": "toolResult",
+						"toolCallId": "p1",
+						"toolName": "problem",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": null,
+						"isError": false,
+						"timestamp": 1795037400000
+					},
+					{
+						"id": "m_c1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "c1",
+								"name": "conclude",
+								"arguments": {
+									"outcome": "solved",
+									"verdict": "Right.",
+									"rung": null,
+									"missClass": null,
+									"retest": false
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795038480000
+					},
+					{
+						"id": "r_c1",
+						"role": "toolResult",
+						"toolCallId": "c1",
+						"toolName": "conclude",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": {
+							"stop": {
+								"kind": "topic",
+								"nodeId": "reg",
+								"activeMinutes": 48,
+								"at": "2026-11-18T21:48:00.000Z"
+							}
+						},
+						"isError": false,
+						"timestamp": 1795038480000
+					},
+					{
+						"id": "m_t1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "t1",
+								"name": "topic_done",
+								"arguments": {
+									"nodeId": "reg",
+									"opener": {
+										"lead": "Now split the data.",
+										"quiz": {
+											"question": "With 5 folds, how much does the score move between splits?",
+											"options": [
+												{
+													"label": "It can move a lot"
+												},
+												{
+													"label": "Barely"
+												}
+											],
+											"correctAnswer": "It can move a lot",
+											"explanation": "Small folds are noisy.",
+											"type": "predict",
+											"nodeId": "cv"
+										}
+									}
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795038540000
+					},
+					{
+						"id": "r_t1",
+						"role": "toolResult",
+						"toolCallId": "t1",
+						"toolName": "topic_done",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": {
+							"part": "topic_done",
+							"v": 1,
+							"lead": "Now split the data."
+						},
+						"isError": false,
+						"timestamp": 1795038540000
+					},
+					{
+						"id": "kg_c1_50",
+						"role": "custom",
+						"customType": "keep-going",
+						"content": "",
+						"display": true,
+						"details": {
+							"stopOf": "c1",
+							"at": "2026-11-18T21:50:00.000Z"
+						},
+						"timestamp": 1795038600000
+					},
+					{
+						"id": "m_q2",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "q2",
+								"name": "quiz",
+								"arguments": {
+									"question": "With 5 folds, how much does the score move between splits?",
+									"options": [
+										{
+											"label": "It can move a lot"
+										},
+										{
+											"label": "Barely"
+										}
+									],
+									"correctAnswer": "It can move a lot",
+									"explanation": "Small folds are noisy.",
+									"type": "check",
+									"nodeId": "cv"
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795038720000
+					}
+				],
+				"tree": {
+					"nodes": [
+						{
+							"id": "reg",
+							"title": "Regularization"
+						},
+						{
+							"id": "cv",
+							"title": "Cross-validation"
+						},
+						{
+							"id": "ms",
+							"title": "Model selection"
+						}
+					],
+					"edges": [
+						{
+							"from": "reg",
+							"to": "cv"
+						},
+						{
+							"from": "cv",
+							"to": "ms"
+						}
+					]
+				}
+			},
+			"result": {
+				"kind": "topic",
+				"at": "2026-11-18T21:48:00.000Z",
+				"nodeId": "reg",
+				"stopOf": "c1",
+				"next": "Cross-validation",
+				"activeMinutes": 48,
+				"keptGoing": true
+			}
+		}
+	},
+	{
+		"name": "lesson_stop: kept going the next day",
+		"output": {
+			"args": {
+				"messages": [
+					{
+						"id": "m_p1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "p1",
+								"name": "problem",
+								"arguments": {
+									"statement": "Fit lambda.",
+									"nodeId": "reg"
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795037400000
+					},
+					{
+						"id": "r_p1",
+						"role": "toolResult",
+						"toolCallId": "p1",
+						"toolName": "problem",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": null,
+						"isError": false,
+						"timestamp": 1795037400000
+					},
+					{
+						"id": "m_c1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "c1",
+								"name": "conclude",
+								"arguments": {
+									"outcome": "solved",
+									"verdict": "Right.",
+									"rung": null,
+									"missClass": null,
+									"retest": false
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795038480000
+					},
+					{
+						"id": "r_c1",
+						"role": "toolResult",
+						"toolCallId": "c1",
+						"toolName": "conclude",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": {
+							"stop": {
+								"kind": "topic",
+								"nodeId": "reg",
+								"activeMinutes": 48,
+								"at": "2026-11-18T21:48:00.000Z"
+							}
+						},
+						"isError": false,
+						"timestamp": 1795038480000
+					},
+					{
+						"id": "m_t1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "t1",
+								"name": "topic_done",
+								"arguments": {
+									"nodeId": "reg",
+									"opener": {
+										"lead": "Now split the data.",
+										"quiz": {
+											"question": "With 5 folds, how much does the score move between splits?",
+											"options": [
+												{
+													"label": "It can move a lot"
+												},
+												{
+													"label": "Barely"
+												}
+											],
+											"correctAnswer": "It can move a lot",
+											"explanation": "Small folds are noisy.",
+											"type": "predict",
+											"nodeId": "cv"
+										}
+									}
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795038540000
+					},
+					{
+						"id": "r_t1",
+						"role": "toolResult",
+						"toolCallId": "t1",
+						"toolName": "topic_done",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": {
+							"part": "topic_done",
+							"v": 1,
+							"lead": "Now split the data."
+						},
+						"isError": false,
+						"timestamp": 1795038540000
+					},
+					{
+						"id": "kg_c1_1440",
+						"role": "custom",
+						"customType": "keep-going",
+						"content": "",
+						"display": true,
+						"details": {
+							"stopOf": "c1",
+							"at": "2026-11-19T21:00:00.000Z"
+						},
+						"timestamp": 1795122000000
+					}
+				],
+				"tree": {
+					"nodes": [
+						{
+							"id": "reg",
+							"title": "Regularization"
+						},
+						{
+							"id": "cv",
+							"title": "Cross-validation"
+						},
+						{
+							"id": "ms",
+							"title": "Model selection"
+						}
+					],
+					"edges": [
+						{
+							"from": "reg",
+							"to": "cv"
+						},
+						{
+							"from": "cv",
+							"to": "ms"
+						}
+					]
+				}
+			},
+			"result": {
+				"kind": "topic",
+				"at": "2026-11-18T21:48:00.000Z",
+				"nodeId": "reg",
+				"stopOf": "c1",
+				"next": "Cross-validation",
+				"activeMinutes": 48,
+				"keptGoing": true
+			}
+		}
+	},
+	{
+		"name": "lesson_stop: a Keep going written before its stop in the record still counts",
+		"output": {
+			"args": {
+				"messages": [
+					{
+						"id": "m_p1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "p1",
+								"name": "problem",
+								"arguments": {
+									"statement": "Fit lambda.",
+									"nodeId": "reg"
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795037400000
+					},
+					{
+						"id": "r_p1",
+						"role": "toolResult",
+						"toolCallId": "p1",
+						"toolName": "problem",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": null,
+						"isError": false,
+						"timestamp": 1795037400000
+					},
+					{
+						"id": "kg_c1_48.5",
+						"role": "custom",
+						"customType": "keep-going",
+						"content": "",
+						"display": true,
+						"details": {
+							"stopOf": "c1",
+							"at": "2026-11-18T21:48:30.000Z"
+						},
+						"timestamp": 1795038510000
+					},
+					{
+						"id": "m_c1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "c1",
+								"name": "conclude",
+								"arguments": {
+									"outcome": "solved",
+									"verdict": "Right.",
+									"rung": null,
+									"missClass": null,
+									"retest": false
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795038480000
+					},
+					{
+						"id": "r_c1",
+						"role": "toolResult",
+						"toolCallId": "c1",
+						"toolName": "conclude",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": {
+							"stop": {
+								"kind": "topic",
+								"nodeId": "reg",
+								"activeMinutes": 48,
+								"at": "2026-11-18T21:48:00.000Z"
+							}
+						},
+						"isError": false,
+						"timestamp": 1795038480000
+					},
+					{
+						"id": "m_t1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "t1",
+								"name": "topic_done",
+								"arguments": {
+									"nodeId": "reg",
+									"opener": {
+										"lead": "Now split the data.",
+										"quiz": {
+											"question": "With 5 folds, how much does the score move between splits?",
+											"options": [
+												{
+													"label": "It can move a lot"
+												},
+												{
+													"label": "Barely"
+												}
+											],
+											"correctAnswer": "It can move a lot",
+											"explanation": "Small folds are noisy.",
+											"type": "predict",
+											"nodeId": "cv"
+										}
+									}
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795038540000
+					},
+					{
+						"id": "r_t1",
+						"role": "toolResult",
+						"toolCallId": "t1",
+						"toolName": "topic_done",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": {
+							"part": "topic_done",
+							"v": 1,
+							"lead": "Now split the data."
+						},
+						"isError": false,
+						"timestamp": 1795038540000
+					}
+				],
+				"tree": {
+					"nodes": [
+						{
+							"id": "reg",
+							"title": "Regularization"
+						},
+						{
+							"id": "cv",
+							"title": "Cross-validation"
+						},
+						{
+							"id": "ms",
+							"title": "Model selection"
+						}
+					],
+					"edges": [
+						{
+							"from": "reg",
+							"to": "cv"
+						},
+						{
+							"from": "cv",
+							"to": "ms"
+						}
+					]
+				}
+			},
+			"result": {
+				"kind": "topic",
+				"at": "2026-11-18T21:48:00.000Z",
+				"nodeId": "reg",
+				"stopOf": "c1",
+				"next": "Cross-validation",
+				"activeMinutes": 48,
+				"keptGoing": true
+			}
+		}
+	},
+	{
+		"name": "lesson_stop: a Keep going whose stop never landed is ignored",
+		"output": {
+			"args": {
+				"messages": [
+					{
+						"id": "m_p1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "p1",
+								"name": "problem",
+								"arguments": {
+									"statement": "Fit lambda.",
+									"nodeId": "reg"
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795037400000
+					},
+					{
+						"id": "r_p1",
+						"role": "toolResult",
+						"toolCallId": "p1",
+						"toolName": "problem",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": null,
+						"isError": false,
+						"timestamp": 1795037400000
+					},
+					{
+						"id": "m_c1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "c1",
+								"name": "conclude",
+								"arguments": {
+									"outcome": "solved",
+									"verdict": "Right.",
+									"rung": null,
+									"missClass": null,
+									"retest": false
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795038480000
+					},
+					{
+						"id": "r_c1",
+						"role": "toolResult",
+						"toolCallId": "c1",
+						"toolName": "conclude",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": {
+							"stop": {
+								"kind": "topic",
+								"nodeId": "reg",
+								"activeMinutes": 48,
+								"at": "2026-11-18T21:48:00.000Z"
+							}
+						},
+						"isError": false,
+						"timestamp": 1795038480000
+					},
+					{
+						"id": "m_t1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "t1",
+								"name": "topic_done",
+								"arguments": {
+									"nodeId": "reg",
+									"opener": {
+										"lead": "Now split the data.",
+										"quiz": {
+											"question": "With 5 folds, how much does the score move between splits?",
+											"options": [
+												{
+													"label": "It can move a lot"
+												},
+												{
+													"label": "Barely"
+												}
+											],
+											"correctAnswer": "It can move a lot",
+											"explanation": "Small folds are noisy.",
+											"type": "predict",
+											"nodeId": "cv"
+										}
+									}
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795038540000
+					},
+					{
+						"id": "r_t1",
+						"role": "toolResult",
+						"toolCallId": "t1",
+						"toolName": "topic_done",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": {
+							"part": "topic_done",
+							"v": 1,
+							"lead": "Now split the data."
+						},
+						"isError": false,
+						"timestamp": 1795038540000
+					},
+					{
+						"id": "kg_c_never_50",
+						"role": "custom",
+						"customType": "keep-going",
+						"content": "",
+						"display": true,
+						"details": {
+							"stopOf": "c_never",
+							"at": "2026-11-18T21:50:00.000Z"
+						},
+						"timestamp": 1795038600000
+					}
+				],
+				"tree": {
+					"nodes": [
+						{
+							"id": "reg",
+							"title": "Regularization"
+						},
+						{
+							"id": "cv",
+							"title": "Cross-validation"
+						},
+						{
+							"id": "ms",
+							"title": "Model selection"
+						}
+					],
+					"edges": [
+						{
+							"from": "reg",
+							"to": "cv"
+						},
+						{
+							"from": "cv",
+							"to": "ms"
+						}
+					]
+				}
+			},
+			"result": {
+				"kind": "topic",
+				"at": "2026-11-18T21:48:00.000Z",
+				"nodeId": "reg",
+				"stopOf": "c1",
+				"next": "Cross-validation",
+				"activeMinutes": 48,
+				"keptGoing": false
+			}
+		}
+	},
+	{
+		"name": "lesson_stop: a Keep going alone is no stop",
+		"output": {
+			"args": {
+				"messages": [
+					{
+						"id": "kg_c_never_50",
+						"role": "custom",
+						"customType": "keep-going",
+						"content": "",
+						"display": true,
+						"details": {
+							"stopOf": "c_never",
+							"at": "2026-11-18T21:50:00.000Z"
+						},
+						"timestamp": 1795038600000
+					}
+				],
+				"tree": {
+					"nodes": [
+						{
+							"id": "reg",
+							"title": "Regularization"
+						},
+						{
+							"id": "cv",
+							"title": "Cross-validation"
+						},
+						{
+							"id": "ms",
+							"title": "Model selection"
+						}
+					],
+					"edges": [
+						{
+							"from": "reg",
+							"to": "cv"
+						},
+						{
+							"from": "cv",
+							"to": "ms"
+						}
+					]
+				}
+			},
+			"result": null
+		}
+	},
+	{
+		"name": "lesson_stop: a refused conclude carries no stop",
+		"output": {
+			"args": {
+				"messages": [
+					{
+						"id": "m_c1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "c1",
+								"name": "conclude",
+								"arguments": {
+									"outcome": "solved",
+									"verdict": "Right.",
+									"rung": null,
+									"missClass": null,
+									"retest": false
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795035900000
+					},
+					{
+						"id": "r_c1",
+						"role": "toolResult",
+						"toolCallId": "c1",
+						"toolName": "conclude",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": {
+							"stop": {
+								"kind": "topic",
+								"nodeId": "reg",
+								"activeMinutes": 30,
+								"at": "2026-11-18T21:05:00.000Z"
+							}
+						},
+						"isError": true,
+						"timestamp": 1795035900000
+					}
+				],
+				"tree": {
+					"nodes": [
+						{
+							"id": "reg",
+							"title": "Regularization"
+						},
+						{
+							"id": "cv",
+							"title": "Cross-validation"
+						},
+						{
+							"id": "ms",
+							"title": "Model selection"
+						}
+					],
+					"edges": [
+						{
+							"from": "reg",
+							"to": "cv"
+						},
+						{
+							"from": "cv",
+							"to": "ms"
+						}
+					]
+				}
+			},
+			"result": null
+		}
+	},
+	{
+		"name": "lesson_stop: ended: after the last topic, a right quiz ended it",
+		"output": {
+			"args": {
+				"messages": [
+					{
+						"id": "m_p1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "p1",
+								"name": "problem",
+								"arguments": {
+									"statement": "Fit lambda.",
+									"nodeId": "reg"
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795037400000
+					},
+					{
+						"id": "r_p1",
+						"role": "toolResult",
+						"toolCallId": "p1",
+						"toolName": "problem",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": null,
+						"isError": false,
+						"timestamp": 1795037400000
+					},
+					{
+						"id": "m_c1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "c1",
+								"name": "conclude",
+								"arguments": {
+									"outcome": "solved",
+									"verdict": "Right.",
+									"rung": null,
+									"missClass": null,
+									"retest": false
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795038480000
+					},
+					{
+						"id": "r_c1",
+						"role": "toolResult",
+						"toolCallId": "c1",
+						"toolName": "conclude",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": {
+							"stop": {
+								"kind": "topic",
+								"nodeId": "reg",
+								"activeMinutes": 48,
+								"at": "2026-11-18T21:48:00.000Z"
+							}
+						},
+						"isError": false,
+						"timestamp": 1795038480000
+					},
+					{
+						"id": "m_t1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "t1",
+								"name": "topic_done",
+								"arguments": {
+									"nodeId": "reg",
+									"opener": {
+										"lead": "Now split the data.",
+										"quiz": {
+											"question": "With 5 folds, how much does the score move between splits?",
+											"options": [
+												{
+													"label": "It can move a lot"
+												},
+												{
+													"label": "Barely"
+												}
+											],
+											"correctAnswer": "It can move a lot",
+											"explanation": "Small folds are noisy.",
+											"type": "predict",
+											"nodeId": "cv"
+										}
+									}
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795038540000
+					},
+					{
+						"id": "r_t1",
+						"role": "toolResult",
+						"toolCallId": "t1",
+						"toolName": "topic_done",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": {
+							"part": "topic_done",
+							"v": 1,
+							"lead": "Now split the data."
+						},
+						"isError": false,
+						"timestamp": 1795038540000
+					},
+					{
+						"id": "m_c2",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "c2",
+								"name": "conclude",
+								"arguments": {
+									"outcome": "solved",
+									"verdict": "Right.",
+									"rung": null,
+									"missClass": null,
+									"retest": false
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795040400000
+					},
+					{
+						"id": "r_c2",
+						"role": "toolResult",
+						"toolCallId": "c2",
+						"toolName": "conclude",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": {
+							"stop": {
+								"kind": "topic",
+								"nodeId": "cv",
+								"activeMinutes": 30,
+								"at": "2026-11-18T22:20:00.000Z"
+							}
+						},
+						"isError": false,
+						"timestamp": 1795040400000
+					},
+					{
+						"id": "m_t3",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "t3",
+								"name": "topic_done",
+								"arguments": {
+									"nodeId": "ms"
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795041600000
+					},
+					{
+						"id": "r_t3",
+						"role": "toolResult",
+						"toolCallId": "t3",
+						"toolName": "topic_done",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": {
+							"part": "topic_done",
+							"v": 1,
+							"stop": {
+								"kind": "topic",
+								"nodeId": "ms",
+								"activeMinutes": 30,
+								"at": "2026-11-18T22:40:00.000Z"
+							}
+						},
+						"isError": false,
+						"timestamp": 1795041600000
+					}
+				],
+				"tree": {
+					"nodes": [
+						{
+							"id": "reg",
+							"title": "Regularization"
+						},
+						{
+							"id": "cv",
+							"title": "Cross-validation"
+						},
+						{
+							"id": "ms",
+							"title": "Model selection"
+						}
+					],
+					"edges": [
+						{
+							"from": "reg",
+							"to": "cv"
+						},
+						{
+							"from": "cv",
+							"to": "ms"
+						}
+					]
+				}
+			},
+			"result": {
+				"kind": "end",
+				"at": "2026-11-18T22:40:00.000Z",
+				"nodeId": "ms",
+				"stopOf": "t3",
+				"next": null,
+				"activeMinutes": 30,
+				"keptGoing": false
+			}
+		}
+	},
+	{
+		"name": "lesson_stop: a topic left for later comes next before the end",
+		"output": {
+			"args": {
+				"messages": [
+					{
+						"id": "m_c1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "c1",
+								"name": "conclude",
+								"arguments": {
+									"outcome": "solved",
+									"verdict": "Right.",
+									"rung": null,
+									"missClass": null,
+									"retest": false
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795036200000
+					},
+					{
+						"id": "r_c1",
+						"role": "toolResult",
+						"toolCallId": "c1",
+						"toolName": "conclude",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": {
+							"stop": {
+								"kind": "topic",
+								"nodeId": "reg",
+								"activeMinutes": 30,
+								"at": "2026-11-18T21:10:00.000Z"
+							}
+						},
+						"isError": false,
+						"timestamp": 1795036200000
+					},
+					{
+						"id": "m_c3",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "c3",
+								"name": "conclude",
+								"arguments": {
+									"outcome": "solved",
+									"verdict": "Right.",
+									"rung": null,
+									"missClass": null,
+									"retest": false
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795038000000
+					},
+					{
+						"id": "r_c3",
+						"role": "toolResult",
+						"toolCallId": "c3",
+						"toolName": "conclude",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": {
+							"stop": {
+								"kind": "topic",
+								"nodeId": "ms",
+								"activeMinutes": 30,
+								"at": "2026-11-18T21:40:00.000Z"
+							}
+						},
+						"isError": false,
+						"timestamp": 1795038000000
+					}
+				],
+				"tree": {
+					"nodes": [
+						{
+							"id": "reg",
+							"title": "Regularization"
+						},
+						{
+							"id": "cv",
+							"title": "Cross-validation"
+						},
+						{
+							"id": "ms",
+							"title": "Model selection"
+						}
+					],
+					"edges": [
+						{
+							"from": "reg",
+							"to": "cv"
+						},
+						{
+							"from": "cv",
+							"to": "ms"
+						}
+					]
+				}
+			},
+			"result": {
+				"kind": "topic",
+				"at": "2026-11-18T21:40:00.000Z",
+				"nodeId": "ms",
+				"stopOf": "c3",
+				"next": "Cross-validation",
+				"activeMinutes": 30,
+				"keptGoing": false
+			}
+		}
+	},
+	{
+		"name": "lesson_stop: a Study problem stop names the plan row's current step",
+		"output": {
+			"args": {
+				"messages": [
+					{
+						"id": "m_p1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "p1",
+								"name": "problem",
+								"arguments": {
+									"statement": "x",
+									"nodeId": "reg"
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795035600000
+					},
+					{
+						"id": "r_p1",
+						"role": "toolResult",
+						"toolCallId": "p1",
+						"toolName": "problem",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": null,
+						"isError": false,
+						"timestamp": 1795035600000
+					},
+					{
+						"id": "m_c1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "c1",
+								"name": "conclude",
+								"arguments": {
+									"outcome": "movedOn",
+									"verdict": "Right.",
+									"rung": null,
+									"missClass": null,
+									"retest": false
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795037400000
+					},
+					{
+						"id": "r_c1",
+						"role": "toolResult",
+						"toolCallId": "c1",
+						"toolName": "conclude",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": {
+							"stop": {
+								"kind": "problem",
+								"activeMinutes": 26,
+								"at": "2026-11-18T21:30:00.000Z"
+							}
+						},
+						"isError": false,
+						"timestamp": 1795037400000
+					}
+				],
+				"tree": {
+					"nodes": [
+						{
+							"id": "reg",
+							"title": "Regularization"
+						},
+						{
+							"id": "cv",
+							"title": "Cross-validation"
+						},
+						{
+							"id": "ms",
+							"title": "Model selection"
+						}
+					],
+					"edges": [
+						{
+							"from": "reg",
+							"to": "cv"
+						},
+						{
+							"from": "cv",
+							"to": "ms"
+						}
+					]
+				}
+			},
+			"result": {
+				"kind": "problem",
+				"at": "2026-11-18T21:30:00.000Z",
+				"nodeId": "reg",
+				"stopOf": "c1",
+				"next": "Regularization",
+				"activeMinutes": 26,
+				"keptGoing": false
+			}
+		}
+	},
+	{
+		"name": "lesson_stop: a practice problem stop has no second line",
+		"output": {
+			"args": {
+				"messages": [
+					{
+						"id": "m_p1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "p1",
+								"name": "problem",
+								"arguments": {
+									"statement": "x"
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795035600000
+					},
+					{
+						"id": "r_p1",
+						"role": "toolResult",
+						"toolCallId": "p1",
+						"toolName": "problem",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": null,
+						"isError": false,
+						"timestamp": 1795035600000
+					},
+					{
+						"id": "m_c1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "c1",
+								"name": "conclude",
+								"arguments": {
+									"outcome": "solved",
+									"verdict": "Right.",
+									"rung": null,
+									"missClass": null,
+									"retest": false
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795037400000
+					},
+					{
+						"id": "r_c1",
+						"role": "toolResult",
+						"toolCallId": "c1",
+						"toolName": "conclude",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": {
+							"stop": {
+								"kind": "problem",
+								"activeMinutes": 26,
+								"at": "2026-11-18T21:30:00.000Z"
+							}
+						},
+						"isError": false,
+						"timestamp": 1795037400000
+					}
+				],
+				"tree": null
+			},
+			"result": {
+				"kind": "problem",
+				"at": "2026-11-18T21:30:00.000Z",
+				"nodeId": null,
+				"stopOf": "c1",
+				"next": null,
+				"activeMinutes": 26,
+				"keptGoing": false
+			}
+		}
+	},
+	{
+		"name": "lesson_stop: a homework problem stop names the first problem not done",
+		"output": {
+			"args": {
+				"messages": [
+					{
+						"id": "m_p1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "p1",
+								"name": "problem",
+								"arguments": {
+									"number": "2"
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795035600000
+					},
+					{
+						"id": "r_p1",
+						"role": "toolResult",
+						"toolCallId": "p1",
+						"toolName": "problem",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": null,
+						"isError": false,
+						"timestamp": 1795035600000
+					},
+					{
+						"id": "m_c1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "c1",
+								"name": "conclude",
+								"arguments": {
+									"outcome": "solved",
+									"verdict": "Right.",
+									"rung": null,
+									"missClass": null,
+									"retest": false
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795037400000
+					},
+					{
+						"id": "r_c1",
+						"role": "toolResult",
+						"toolCallId": "c1",
+						"toolName": "conclude",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": {
+							"stop": {
+								"kind": "problem",
+								"activeMinutes": 26,
+								"at": "2026-11-18T21:30:00.000Z"
+							}
+						},
+						"isError": false,
+						"timestamp": 1795037400000
+					}
+				],
+				"tree": null,
+				"homework": [
+					{
+						"number": "1",
+						"done": true
+					},
+					{
+						"number": "2",
+						"done": true
+					},
+					{
+						"number": "3",
+						"done": false
+					}
+				]
+			},
+			"result": {
+				"kind": "problem",
+				"at": "2026-11-18T21:30:00.000Z",
+				"nodeId": null,
+				"stopOf": "c1",
+				"next": "problem 3",
+				"activeMinutes": 26,
+				"keptGoing": false
+			}
+		}
+	},
+	{
+		"name": "lesson_stop: a homework problem stop with no problem left is no stop",
+		"output": {
+			"args": {
+				"messages": [
+					{
+						"id": "m_p1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "p1",
+								"name": "problem",
+								"arguments": {
+									"number": "2"
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795035600000
+					},
+					{
+						"id": "r_p1",
+						"role": "toolResult",
+						"toolCallId": "p1",
+						"toolName": "problem",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": null,
+						"isError": false,
+						"timestamp": 1795035600000
+					},
+					{
+						"id": "m_c1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "c1",
+								"name": "conclude",
+								"arguments": {
+									"outcome": "solved",
+									"verdict": "Right.",
+									"rung": null,
+									"missClass": null,
+									"retest": false
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795037400000
+					},
+					{
+						"id": "r_c1",
+						"role": "toolResult",
+						"toolCallId": "c1",
+						"toolName": "conclude",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": {
+							"stop": {
+								"kind": "problem",
+								"activeMinutes": 26,
+								"at": "2026-11-18T21:30:00.000Z"
+							}
+						},
+						"isError": false,
+						"timestamp": 1795037400000
+					}
+				],
+				"tree": null,
+				"homework": [
+					{
+						"number": "1",
+						"done": true
+					},
+					{
+						"number": "2",
+						"done": true
+					},
+					{
+						"number": "3",
+						"done": true
+					}
+				]
+			},
+			"result": null
+		}
+	},
+	{
+		"name": "shown_openers: not before Keep going",
+		"output": {
+			"args": {
+				"messages": [
+					{
+						"id": "m_p1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "p1",
+								"name": "problem",
+								"arguments": {
+									"statement": "Fit lambda.",
+									"nodeId": "reg"
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795037400000
+					},
+					{
+						"id": "r_p1",
+						"role": "toolResult",
+						"toolCallId": "p1",
+						"toolName": "problem",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": null,
+						"isError": false,
+						"timestamp": 1795037400000
+					},
+					{
+						"id": "m_c1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "c1",
+								"name": "conclude",
+								"arguments": {
+									"outcome": "solved",
+									"verdict": "Right.",
+									"rung": null,
+									"missClass": null,
+									"retest": false
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795038480000
+					},
+					{
+						"id": "r_c1",
+						"role": "toolResult",
+						"toolCallId": "c1",
+						"toolName": "conclude",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": {
+							"stop": {
+								"kind": "topic",
+								"nodeId": "reg",
+								"activeMinutes": 48,
+								"at": "2026-11-18T21:48:00.000Z"
+							}
+						},
+						"isError": false,
+						"timestamp": 1795038480000
+					},
+					{
+						"id": "m_t1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "t1",
+								"name": "topic_done",
+								"arguments": {
+									"nodeId": "reg",
+									"opener": {
+										"lead": "Now split the data.",
+										"quiz": {
+											"question": "With 5 folds, how much does the score move between splits?",
+											"options": [
+												{
+													"label": "It can move a lot"
+												},
+												{
+													"label": "Barely"
+												}
+											],
+											"correctAnswer": "It can move a lot",
+											"explanation": "Small folds are noisy.",
+											"type": "predict",
+											"nodeId": "cv"
+										}
+									}
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795038540000
+					},
+					{
+						"id": "r_t1",
+						"role": "toolResult",
+						"toolCallId": "t1",
+						"toolName": "topic_done",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": {
+							"part": "topic_done",
+							"v": 1,
+							"lead": "Now split the data."
+						},
+						"isError": false,
+						"timestamp": 1795038540000
+					}
+				]
+			},
+			"result": {}
+		}
+	},
+	{
+		"name": "shown_openers: shown once its stop was kept going, with the checked lead",
+		"output": {
+			"args": {
+				"messages": [
+					{
+						"id": "m_p1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "p1",
+								"name": "problem",
+								"arguments": {
+									"statement": "Fit lambda.",
+									"nodeId": "reg"
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795037400000
+					},
+					{
+						"id": "r_p1",
+						"role": "toolResult",
+						"toolCallId": "p1",
+						"toolName": "problem",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": null,
+						"isError": false,
+						"timestamp": 1795037400000
+					},
+					{
+						"id": "m_c1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "c1",
+								"name": "conclude",
+								"arguments": {
+									"outcome": "solved",
+									"verdict": "Right.",
+									"rung": null,
+									"missClass": null,
+									"retest": false
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795038480000
+					},
+					{
+						"id": "r_c1",
+						"role": "toolResult",
+						"toolCallId": "c1",
+						"toolName": "conclude",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": {
+							"stop": {
+								"kind": "topic",
+								"nodeId": "reg",
+								"activeMinutes": 48,
+								"at": "2026-11-18T21:48:00.000Z"
+							}
+						},
+						"isError": false,
+						"timestamp": 1795038480000
+					},
+					{
+						"id": "m_t1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "t1",
+								"name": "topic_done",
+								"arguments": {
+									"nodeId": "reg",
+									"opener": {
+										"lead": "Now split the data.",
+										"quiz": {
+											"question": "With 5 folds, how much does the score move between splits?",
+											"options": [
+												{
+													"label": "It can move a lot"
+												},
+												{
+													"label": "Barely"
+												}
+											],
+											"correctAnswer": "It can move a lot",
+											"explanation": "Small folds are noisy.",
+											"type": "predict",
+											"nodeId": "cv"
+										}
+									}
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795038540000
+					},
+					{
+						"id": "r_t1",
+						"role": "toolResult",
+						"toolCallId": "t1",
+						"toolName": "topic_done",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": {
+							"part": "topic_done",
+							"v": 1,
+							"lead": "Now split the data."
+						},
+						"isError": false,
+						"timestamp": 1795038540000
+					},
+					{
+						"id": "kg_c1_50",
+						"role": "custom",
+						"customType": "keep-going",
+						"content": "",
+						"display": true,
+						"details": {
+							"stopOf": "c1",
+							"at": "2026-11-18T21:50:00.000Z"
+						},
+						"timestamp": 1795038600000
+					}
+				]
+			},
+			"result": {
+				"t1": {
+					"topicDoneCallId": "t1",
+					"lead": "Now split the data.",
+					"quiz": {
+						"question": "With 5 folds, how much does the score move between splits?",
+						"options": [
+							{
+								"label": "It can move a lot"
+							},
+							{
+								"label": "Barely"
+							}
+						],
+						"correctAnswer": "It can move a lot",
+						"explanation": "Small folds are noisy.",
+						"type": "predict",
+						"nodeId": "cv"
+					}
+				}
+			}
+		}
+	},
+	{
+		"name": "shown_openers: a topic a right quiz ended shows its opener when its own stop is kept going",
+		"output": {
+			"args": {
+				"messages": [
+					{
+						"id": "m_t2",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "t2",
+								"name": "topic_done",
+								"arguments": {
+									"nodeId": "reg",
+									"opener": {
+										"lead": "Next.",
+										"quiz": {
+											"question": "With 5 folds, how much does the score move between splits?",
+											"options": [
+												{
+													"label": "It can move a lot"
+												},
+												{
+													"label": "Barely"
+												}
+											],
+											"correctAnswer": "It can move a lot",
+											"explanation": "Small folds are noisy.",
+											"type": "predict",
+											"nodeId": "cv"
+										}
+									}
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795036200000
+					},
+					{
+						"id": "r_t2",
+						"role": "toolResult",
+						"toolCallId": "t2",
+						"toolName": "topic_done",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": {
+							"part": "topic_done",
+							"v": 1,
+							"lead": "Next.",
+							"stop": {
+								"kind": "topic",
+								"nodeId": "reg",
+								"activeMinutes": 30,
+								"at": "2026-11-18T21:10:00.000Z"
+							}
+						},
+						"isError": false,
+						"timestamp": 1795036200000
+					},
+					{
+						"id": "kg_t2_11",
+						"role": "custom",
+						"customType": "keep-going",
+						"content": "",
+						"display": true,
+						"details": {
+							"stopOf": "t2",
+							"at": "2026-11-18T21:11:00.000Z"
+						},
+						"timestamp": 1795036260000
+					}
+				]
+			},
+			"result": {
+				"t2": {
+					"topicDoneCallId": "t2",
+					"lead": "Next.",
+					"quiz": {
+						"question": "With 5 folds, how much does the score move between splits?",
+						"options": [
+							{
+								"label": "It can move a lot"
+							},
+							{
+								"label": "Barely"
+							}
+						],
+						"correctAnswer": "It can move a lot",
+						"explanation": "Small folds are noisy.",
+						"type": "predict",
+						"nodeId": "cv"
+					}
+				}
+			}
+		}
+	},
+	{
+		"name": "shown_openers: a refused topic_done shows nothing",
+		"output": {
+			"args": {
+				"messages": [
+					{
+						"id": "m_p1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "p1",
+								"name": "problem",
+								"arguments": {
+									"statement": "Fit lambda.",
+									"nodeId": "reg"
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795037400000
+					},
+					{
+						"id": "r_p1",
+						"role": "toolResult",
+						"toolCallId": "p1",
+						"toolName": "problem",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": null,
+						"isError": false,
+						"timestamp": 1795037400000
+					},
+					{
+						"id": "m_c1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "c1",
+								"name": "conclude",
+								"arguments": {
+									"outcome": "solved",
+									"verdict": "Right.",
+									"rung": null,
+									"missClass": null,
+									"retest": false
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795038480000
+					},
+					{
+						"id": "r_c1",
+						"role": "toolResult",
+						"toolCallId": "c1",
+						"toolName": "conclude",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": {
+							"stop": {
+								"kind": "topic",
+								"nodeId": "reg",
+								"activeMinutes": 48,
+								"at": "2026-11-18T21:48:00.000Z"
+							}
+						},
+						"isError": false,
+						"timestamp": 1795038480000
+					},
+					{
+						"id": "m_t1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "t1",
+								"name": "topic_done",
+								"arguments": {
+									"nodeId": "reg",
+									"opener": {
+										"lead": "Now split the data.",
+										"quiz": {
+											"question": "With 5 folds, how much does the score move between splits?",
+											"options": [
+												{
+													"label": "It can move a lot"
+												},
+												{
+													"label": "Barely"
+												}
+											],
+											"correctAnswer": "It can move a lot",
+											"explanation": "Small folds are noisy.",
+											"type": "predict",
+											"nodeId": "cv"
+										}
+									}
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795038540000
+					},
+					{
+						"id": "r_t1",
+						"role": "toolResult",
+						"toolCallId": "t1",
+						"toolName": "topic_done",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": {
+							"part": "topic_done",
+							"v": 1
+						},
+						"isError": true,
+						"timestamp": 1795038540000
+					},
+					{
+						"id": "kg_c1_50",
+						"role": "custom",
+						"customType": "keep-going",
+						"content": "",
+						"display": true,
+						"details": {
+							"stopOf": "c1",
+							"at": "2026-11-18T21:50:00.000Z"
+						},
+						"timestamp": 1795038600000
+					}
+				]
+			},
+			"result": {}
+		}
+	},
+	{
+		"name": "shown_openers: a topic_done with no opener shows nothing",
+		"output": {
+			"args": {
+				"messages": [
+					{
+						"id": "m_t2",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "t2",
+								"name": "topic_done",
+								"arguments": {
+									"nodeId": "reg"
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795036200000
+					},
+					{
+						"id": "r_t2",
+						"role": "toolResult",
+						"toolCallId": "t2",
+						"toolName": "topic_done",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": {
+							"part": "topic_done",
+							"v": 1,
+							"stop": {
+								"kind": "topic",
+								"nodeId": "reg",
+								"activeMinutes": 30,
+								"at": "2026-11-18T21:10:00.000Z"
+							}
+						},
+						"isError": false,
+						"timestamp": 1795036200000
+					},
+					{
+						"id": "kg_t2_11",
+						"role": "custom",
+						"customType": "keep-going",
+						"content": "",
+						"display": true,
+						"details": {
+							"stopOf": "t2",
+							"at": "2026-11-18T21:11:00.000Z"
+						},
+						"timestamp": 1795036260000
+					}
+				]
+			},
+			"result": {}
+		}
+	},
+	{
+		"name": "shown_openers: its answer is the first opener-answer for it",
+		"output": {
+			"args": {
+				"messages": [
+					{
+						"id": "m_p1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "p1",
+								"name": "problem",
+								"arguments": {
+									"statement": "Fit lambda.",
+									"nodeId": "reg"
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795037400000
+					},
+					{
+						"id": "r_p1",
+						"role": "toolResult",
+						"toolCallId": "p1",
+						"toolName": "problem",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": null,
+						"isError": false,
+						"timestamp": 1795037400000
+					},
+					{
+						"id": "m_c1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "c1",
+								"name": "conclude",
+								"arguments": {
+									"outcome": "solved",
+									"verdict": "Right.",
+									"rung": null,
+									"missClass": null,
+									"retest": false
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795038480000
+					},
+					{
+						"id": "r_c1",
+						"role": "toolResult",
+						"toolCallId": "c1",
+						"toolName": "conclude",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": {
+							"stop": {
+								"kind": "topic",
+								"nodeId": "reg",
+								"activeMinutes": 48,
+								"at": "2026-11-18T21:48:00.000Z"
+							}
+						},
+						"isError": false,
+						"timestamp": 1795038480000
+					},
+					{
+						"id": "m_t1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "t1",
+								"name": "topic_done",
+								"arguments": {
+									"nodeId": "reg",
+									"opener": {
+										"lead": "Now split the data.",
+										"quiz": {
+											"question": "With 5 folds, how much does the score move between splits?",
+											"options": [
+												{
+													"label": "It can move a lot"
+												},
+												{
+													"label": "Barely"
+												}
+											],
+											"correctAnswer": "It can move a lot",
+											"explanation": "Small folds are noisy.",
+											"type": "predict",
+											"nodeId": "cv"
+										}
+									}
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795038540000
+					},
+					{
+						"id": "r_t1",
+						"role": "toolResult",
+						"toolCallId": "t1",
+						"toolName": "topic_done",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": {
+							"part": "topic_done",
+							"v": 1,
+							"lead": "Now split the data."
+						},
+						"isError": false,
+						"timestamp": 1795038540000
+					},
+					{
+						"id": "kg_c1_50",
+						"role": "custom",
+						"customType": "keep-going",
+						"content": "",
+						"display": true,
+						"details": {
+							"stopOf": "c1",
+							"at": "2026-11-18T21:50:00.000Z"
+						},
+						"timestamp": 1795038600000
+					},
+					{
+						"id": "oa",
+						"role": "custom",
+						"customType": "opener-answer",
+						"content": "",
+						"display": true,
+						"details": {
+							"topicDoneCallId": "t1",
+							"answer": {
+								"kind": "quiz",
+								"questionText": "q",
+								"dontKnow": false,
+								"answers": [
+									{
+										"index": 1,
+										"label": "It can move a lot",
+										"value": "It can move a lot"
+									}
+								],
+								"answeredAt": "x"
+							}
+						},
+						"timestamp": 1795038660000
+					},
+					{
+						"id": "oa2",
+						"role": "custom",
+						"customType": "opener-answer",
+						"content": "",
+						"display": true,
+						"details": {
+							"topicDoneCallId": "t1",
+							"answer": null
+						},
+						"timestamp": 1795038720000
+					},
+					{
+						"id": "u",
+						"role": "user",
+						"content": "why?",
+						"timestamp": 1795038780000
+					}
+				]
+			},
+			"result": {
+				"t1": {
+					"topicDoneCallId": "t1",
+					"lead": "Now split the data.",
+					"quiz": {
+						"question": "With 5 folds, how much does the score move between splits?",
+						"options": [
+							{
+								"label": "It can move a lot"
+							},
+							{
+								"label": "Barely"
+							}
+						],
+						"correctAnswer": "It can move a lot",
+						"explanation": "Small folds are noisy.",
+						"type": "predict",
+						"nodeId": "cv"
+					},
+					"answer": {
+						"answer": {
+							"kind": "quiz",
+							"questionText": "q",
+							"dontKnow": false,
+							"answers": [
+								{
+									"index": 1,
+									"label": "It can move a lot",
+									"value": "It can move a lot"
+								}
+							],
+							"answeredAt": "x"
+						},
+						"timestamp": 1795038660000
+					}
+				}
+			}
+		}
+	},
+	{
+		"name": "shown_openers: a skip is a null answer",
+		"output": {
+			"args": {
+				"messages": [
+					{
+						"id": "m_p1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "p1",
+								"name": "problem",
+								"arguments": {
+									"statement": "Fit lambda.",
+									"nodeId": "reg"
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795037400000
+					},
+					{
+						"id": "r_p1",
+						"role": "toolResult",
+						"toolCallId": "p1",
+						"toolName": "problem",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": null,
+						"isError": false,
+						"timestamp": 1795037400000
+					},
+					{
+						"id": "m_c1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "c1",
+								"name": "conclude",
+								"arguments": {
+									"outcome": "solved",
+									"verdict": "Right.",
+									"rung": null,
+									"missClass": null,
+									"retest": false
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795038480000
+					},
+					{
+						"id": "r_c1",
+						"role": "toolResult",
+						"toolCallId": "c1",
+						"toolName": "conclude",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": {
+							"stop": {
+								"kind": "topic",
+								"nodeId": "reg",
+								"activeMinutes": 48,
+								"at": "2026-11-18T21:48:00.000Z"
+							}
+						},
+						"isError": false,
+						"timestamp": 1795038480000
+					},
+					{
+						"id": "m_t1",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "toolCall",
+								"id": "t1",
+								"name": "topic_done",
+								"arguments": {
+									"nodeId": "reg",
+									"opener": {
+										"lead": "Now split the data.",
+										"quiz": {
+											"question": "With 5 folds, how much does the score move between splits?",
+											"options": [
+												{
+													"label": "It can move a lot"
+												},
+												{
+													"label": "Barely"
+												}
+											],
+											"correctAnswer": "It can move a lot",
+											"explanation": "Small folds are noisy.",
+											"type": "predict",
+											"nodeId": "cv"
+										}
+									}
+								}
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "toolUse",
+						"timestamp": 1795038540000
+					},
+					{
+						"id": "r_t1",
+						"role": "toolResult",
+						"toolCallId": "t1",
+						"toolName": "topic_done",
+						"content": [
+							{
+								"type": "text",
+								"text": "ok"
+							}
+						],
+						"details": {
+							"part": "topic_done",
+							"v": 1,
+							"lead": "Now split the data."
+						},
+						"isError": false,
+						"timestamp": 1795038540000
+					},
+					{
+						"id": "kg_c1_50",
+						"role": "custom",
+						"customType": "keep-going",
+						"content": "",
+						"display": true,
+						"details": {
+							"stopOf": "c1",
+							"at": "2026-11-18T21:50:00.000Z"
+						},
+						"timestamp": 1795038600000
+					},
+					{
+						"id": "oa",
+						"role": "custom",
+						"customType": "opener-answer",
+						"content": "",
+						"display": true,
+						"details": {
+							"topicDoneCallId": "t1",
+							"answer": null
+						},
+						"timestamp": 1795038660000
+					}
+				]
+			},
+			"result": {
+				"t1": {
+					"topicDoneCallId": "t1",
+					"lead": "Now split the data.",
+					"quiz": {
+						"question": "With 5 folds, how much does the score move between splits?",
+						"options": [
+							{
+								"label": "It can move a lot"
+							},
+							{
+								"label": "Barely"
+							}
+						],
+						"correctAnswer": "It can move a lot",
+						"explanation": "Small folds are noisy.",
+						"type": "predict",
+						"nodeId": "cv"
+					},
+					"answer": {
+						"answer": null,
+						"timestamp": 1795038660000
+					}
+				}
+			}
+		}
+	},
+	{
+		"name": "shown_openers: no stop, no opener",
+		"output": {
+			"args": {
+				"messages": [
+					{
+						"id": "m_a",
+						"role": "assistant",
+						"content": [
+							{
+								"type": "text",
+								"text": "Hello."
+							}
+						],
+						"api": "faux",
+						"provider": "faux",
+						"model": "faux",
+						"usage": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"totalTokens": 0,
+							"cost": {
+								"input": 0,
+								"output": 0,
+								"cacheRead": 0,
+								"cacheWrite": 0,
+								"total": 0
+							}
+						},
+						"stopReason": "stop",
+						"timestamp": 1795035600000
+					}
+				]
+			},
+			"result": {}
+		}
+	}
+]

@@ -96,7 +96,10 @@ export interface LhMarkerMessage {
 		| "practice-next"
 		| "problem-dismissed"
 		| "compaction"
-		| "app-request";
+		| "app-request"
+		| "keep-going"
+		| "opener-answer"
+		| "app-note";
 	/** The model-facing text ("" for plan blocks — UI-only). */
 	content: string;
 	/** Model-facing files after the text: the pictures and PDF notes of an
@@ -188,10 +191,11 @@ export function interruptedQuestions(messages: readonly LhMessage[]): Set<string
 	return out;
 }
 
-/** A plan block or compaction marker: bookkeeping that lands between a
- *  question and the next learner message without being part of either. */
+/** A compaction marker or a UI-only marker (a plan block, a problem
+ *  dismissal, Keep going): bookkeeping that lands between a question and
+ *  the next learner message without being part of either. */
 function isBookkeeping(m: LhMessage): boolean {
-	return m.role === "custom" && (m.customType === "plan-block" || m.customType === "compaction");
+	return m.role === "custom" && ["compaction", "plan-block", "problem-dismissed", "keep-going"].includes(m.customType);
 }
 
 /** The index of the side question right after the assistant message at `i`

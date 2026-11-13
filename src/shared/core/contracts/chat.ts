@@ -6,6 +6,7 @@ import type { LhMessage } from "../native-messages.ts";
 import type { Phase3 } from "../phases.ts";
 import type { PlanNodeStatus, PlanTree } from "./plan.ts";
 import type { EmissionStats } from "./graph.ts";
+import type { QuestionAnswerData } from "../question-core.ts";
 
 // ─── Chat records (the session store's on-disk format) ───────────────────────
 
@@ -58,7 +59,10 @@ export interface ChatRecord {
 	/** SCHEMA STAMP: lazy —
 	 *  existing records stay unstamped (absence reads as v1); every write
 	 *  stamps the current version. v2: `classId`, the "class-context" card
-	 *  and a deadline request's `className` are named for spaces. A record stamped NEWER than this build
+	 *  and a deadline request's `className` are named for spaces. v3: no
+	 *  field changes, but new markers (keep-going, opener-answer, app-note)
+	 *  and stops in result details, which an older build would send to the
+	 *  agent as empty messages. A record stamped NEWER than this build
 	 *  (the downgrade scenario) is REFUSED on read: a read-modify-write
 	 *  store must never rewrite what it doesn't understand. */
 	version?: number;
@@ -149,6 +153,38 @@ export interface TurnUsage {
  *  different problem or part is. */
 export const CONCLUDE_ACK_TEXT =
 	"Problem concluded. Say your closing words about the learner's work if useful, then END YOUR TURN — no further tool calls. The next problem waits for the learner's explicit go-ahead (a *Next problem* message, or their own words asking for the next one). The one exception: when the learner asked for a different problem or part, that ask is the go-ahead, so pose it now. Between problems, answer their questions about the concluded one.";
+
+/** The Study tool that stores a finished topic's review question and the
+ *  next topic's opener. Its result ends the agent's turn. */
+export const TOPIC_DONE_TOOL = "topic_done";
+
+/** A place to stop, carried in the result details of the call that made
+ *  it: a study conclude or topic_done (a topic end), or a conclude after a
+ *  long problem. `at` is ISO; `activeMinutes` counts since the last stop. */
+export type StopDetails =
+	| { kind: "topic"; nodeId: string; activeMinutes: number; at: string }
+	| { kind: "problem"; activeMinutes: number; at: string };
+
+/** topic_done's result details. `lead` is the opener's lead with its
+ *  source marks checked; `stop` is set only for a topic a right quiz ended. */
+export interface TopicDoneDetails {
+	part: "topic_done";
+	v: 1;
+	lead?: string;
+	stop?: StopDetails;
+}
+
+/** The keep-going marker's details: the call carrying the stop it answers. */
+export interface KeepGoingDetails {
+	stopOf: string;
+	at: string;
+}
+
+/** The opener-answer marker's details. A null answer is a skip. */
+export interface OpenerAnswerDetails {
+	topicDoneCallId: string;
+	answer: QuestionAnswerData | null;
+}
 
 /** The learner's explicit move-on signal: the model-facing text of the
  *  practice-next marker. */
