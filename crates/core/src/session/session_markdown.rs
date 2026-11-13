@@ -2,18 +2,21 @@
 //! (speaker headers, quiz and check-in blocks, tool notes) for the markdown export and the MCP
 //! read_lesson tool. Every message that produces view lines produces a block, in the same order.
 //! A failed tool call renders nothing (retry context, not learning evidence), and custom markers
-//! are invisible, same as the view.
+//! are invisible, same as the view, except what the agent was told: a shown opener's lead and
+//! question follow its topic_done, and his answer to it is a learner line.
 //!
 //! Message-id anchors are not ported: every caller asked for the document without them.
 
 use std::collections::{HashMap, HashSet};
 
 use gs_base::re::Re;
-use gs_json::Json;
+use gs_json::{Json, Obj};
 
 use super::code_question::fenced_code;
 use gs_json::js_text::{field_text, js_string, or_empty};
+use crate::contracts::chat::TOPIC_DONE_TOOL;
 use crate::messages::native_messages::{PRACTICE_CONCLUDE_TOOL, PRACTICE_PROBLEM_TOOL, SEND_TO_USER_TOOL, failed_output_call_ids, problem_input_for_conclude, user_facing_text_of};
+use crate::study::topic_end::shown_openers;
 
 /// What the practice blocks join: practice tool results are acks, and the statement, outcome and
 /// verdict all live in the assistant's call arguments. Calls are keyed by their id.
@@ -21,6 +24,8 @@ struct MarkdownContext<'a> {
 	messages: &'a [Json],
 	calls: HashMap<&'a str, &'a Json>,
 	failed_output_calls: HashSet<String>,
+	/// The shown openers, by topic_done call id.
+	openers: Obj,
 }
 
 fn markdown_context(messages: &[Json]) -> MarkdownContext<'_> {
@@ -32,7 +37,7 @@ fn markdown_context(messages: &[Json]) -> MarkdownContext<'_> {
 			}
 		}
 	}
-	MarkdownContext { messages, calls, failed_output_calls: failed_output_call_ids(messages) }
+	MarkdownContext { messages, calls, failed_output_calls: failed_output_call_ids(messages), openers: shown_openers(messages) }
 }
 
 /// solvedWithHints becomes "Solved with hints": the outcome enum read as prose.
@@ -67,6 +72,39 @@ fn text_thinking_line(details: &Json) -> Option<String> {
 	thinking_of(details).as_str().filter(|t| !t.is_empty()).map(|t| format!("*(his thinking: {t})*"))
 }
 
+/// How he answered a quiz: skipped, did not know, right or wrong, or in his own words, then his
+/// thinking.
+fn quiz_answer_lines(details: &Json) -> Vec<String> {
+	let mut lines = Vec::new();
+	if details["dismissed"] == Json::Bool(true) {
+		lines.push("The learner skipped this check.".to_owned());
+	} else if details["dontKnow"] == Json::Bool(true) {
+		lines.push("The learner did not know.".to_owned());
+	} else if details["correct"] == Json::Bool(true) {
+		lines.push("The learner answered correctly.".to_owned());
+	} else if details["correct"] == Json::Bool(false) {
+		lines.push("The learner answered incorrectly.".to_owned());
+	} else if let Some(text) = trimmed(&details["text"]) {
+		lines.push(format!("The learner answered in his own words: {text}"));
+	}
+	lines.extend(text_thinking_line(details));
+	lines
+}
+
+/// A shown opener's blocks after its topic_done: the lead as the teacher's words, then its question.
+fn opener_blocks(opener: &Json) -> Vec<String> {
+	let mut blocks: Vec<String> = trimmed(&opener["lead"]).map(|lead| format!("### Teacher\n\n{lead}")).into_iter().collect();
+	blocks.push(format!("### Quiz\n\n{}", question_line(&opener["quiz"]["question"])));
+	blocks
+}
+
+/// His answer to an opener (a null answer is a skip), in the quiz's words.
+fn opener_answer_block(details: &Json) -> Option<String> {
+	let answer = &details["answer"];
+	let lines = if answer.is_null() { vec!["The learner skipped this check.".to_owned()] } else { quiz_answer_lines(answer) };
+	(!lines.is_empty()).then(|| format!("### Learner\n\n{}", lines.join("\n\n")))
+}
+
 /// One tool result's learner-visible outcome as a heading and body lines.
 fn tool_result_body(result: &Json, ctx: &MarkdownContext) -> (&'static str, Vec<String>) {
 	let details = &result["details"];
@@ -83,18 +121,7 @@ fn tool_result_body(result: &Json, ctx: &MarkdownContext) -> (&'static str, Vec<
 		};
 		let question = if details["questionText"].as_str().is_some_and(|q| !q.is_empty()) { &details["questionText"] } else { &Json::Null };
 		let mut body = vec![question_line(question)];
-		if details["dismissed"] == Json::Bool(true) {
-			body.push("The learner skipped this check.".to_owned());
-		} else if details["dontKnow"] == Json::Bool(true) {
-			body.push("The learner did not know.".to_owned());
-		} else if details["correct"] == Json::Bool(true) {
-			body.push("The learner answered correctly.".to_owned());
-		} else if details["correct"] == Json::Bool(false) {
-			body.push("The learner answered incorrectly.".to_owned());
-		} else if let Some(text) = trimmed(&details["text"]) {
-			body.push(format!("The learner answered in his own words: {text}"));
-		}
-		body.extend(text_thinking_line(details));
+		body.extend(quiz_answer_lines(details));
 		return (heading, body);
 	}
 
@@ -177,6 +204,15 @@ fn message_markdown(message: &Json, ctx: &MarkdownContext) -> Option<String> {
 			}
 			let (heading, body) = tool_result_body(message, ctx);
 			parts.push(format!("### {heading}\n\n{}", body.join("\n\n")));
+			if message["toolName"].as_str() == Some(TOPIC_DONE_TOOL)
+				&& let Some(opener) = message["toolCallId"].as_str().and_then(|id| ctx.openers.get(id))
+			{
+				parts.extend(opener_blocks(opener));
+			}
+		}
+		// Only answers to a shown opener; any other is refused when sent.
+		Some("custom") if message["customType"].as_str() == Some("opener-answer") && message["details"]["topicDoneCallId"].as_str().is_some_and(|id| ctx.openers.contains_key(id)) => {
+			parts.extend(opener_answer_block(&message["details"]));
 		}
 		_ => {}
 	}
@@ -248,6 +284,37 @@ mod tests {
 		let text = session_markdown(&messages, None);
 		assert!(text.starts_with("### Problem\n\nSolve it\n\n### Concluded\n\n**Solved with hints.** Nice.\n\n> **Model solution**\n>\n> a\n> b"));
 		assert!(text.ends_with("### Concluded\n\nThe learner skipped this problem."));
+	}
+
+	/// Regularization's conclude carries the stop; topic_done stores Cross-validation's opener.
+	fn opener_stored() -> Vec<Json> {
+		vec![
+			assistant(json!([{ "type": "toolCall", "id": "c1", "name": "conclude", "arguments": { "outcome": "solved", "verdict": "Right." } }])),
+			result("conclude", "c1", json!({ "stop": { "kind": "topic", "nodeId": "reg", "activeMinutes": 30, "at": "2026-11-18T21:48:00.000Z" } })),
+			assistant(json!([{ "type": "toolCall", "id": "t1", "name": "topic_done", "arguments": { "nodeId": "reg", "opener": { "lead": "Now split.", "quiz": { "question": "How much can the score move?", "type": "predict", "nodeId": "cv" } } } }])),
+			result("topic_done", "t1", json!({ "part": "topic_done", "v": 1, "lead": "Now split the data." })),
+		]
+	}
+
+	fn custom(custom_type: &str, content: &str, details: Json) -> Json {
+		json!({ "role": "custom", "customType": custom_type, "content": content, "details": details })
+	}
+
+	#[test]
+	fn a_shown_opener_and_his_answer_read_like_a_quiz() {
+		let kept = custom("keep-going", "", json!({ "stopOf": "c1", "at": "2026-11-18T21:50:00.000Z" }));
+		let answer = json!({ "kind": "quiz", "dontKnow": false, "answers": [{ "index": 1, "label": "A lot" }], "correct": true, "thinking": "small folds" });
+		let answered = custom("opener-answer", "[Opener] Cross-validation: he picked A, A lot.", json!({ "topicDoneCallId": "t1", "answer": answer }));
+		let note = custom("app-note", "[Resumed] He came back to this session after a stop.", json!({}));
+		let text = session_markdown(&[opener_stored(), vec![kept.clone(), note, answered.clone()]].concat(), None);
+		assert!(
+			text.ends_with("### Tool\n\n*topic_done result delivered*\n\n### Teacher\n\nNow split the data.\n\n### Quiz\n\n**Q:** How much can the score move?\n\n### Learner\n\nThe learner answered correctly.\n\n*(his thinking: small folds)*"),
+			"{text}"
+		);
+		let skipped = custom("opener-answer", "[Opener] Cross-validation: he skipped it.", json!({ "topicDoneCallId": "t1", "answer": null }));
+		assert!(session_markdown(&[opener_stored(), vec![kept, skipped]].concat(), None).ends_with("### Quiz\n\n**Q:** How much can the score move?\n\n### Learner\n\nThe learner skipped this check."));
+		let not_shown = session_markdown(&[opener_stored(), vec![answered]].concat(), None);
+		assert!(not_shown.ends_with("### Tool\n\n*topic_done result delivered*"), "no Keep going, no opener: {not_shown}");
 	}
 
 	#[test]
