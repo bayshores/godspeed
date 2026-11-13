@@ -1,4 +1,4 @@
-import { useId, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import katex from "katex";
 import { cn } from "@/frontend/lib/utils";
 import type { ArtifactPartProps } from "@/shared/core";
@@ -19,6 +19,8 @@ const OPEN_HEIGHT = 363;
 const KEY_LIFT = 8;
 const KEY_GAP = 40;
 const DASH = "6 4";
+/** The live line waits this long after the slider's last move. */
+const LIVE_WAIT_MS = 300;
 
 /** Math in a label or a formula, typeset by KaTeX with its sizes capped. */
 function Tex({ tex, className }: { tex: string; className?: string }) {
@@ -97,6 +99,12 @@ function useWidth(initial: number): [number, React.RefObject<HTMLDivElement | nu
 
 function PlotFigure({ plot, open }: { plot: Plot; open: boolean }) {
 	const [slider, setSlider] = useState(plot.slider.start);
+	// A drag would queue a sentence a step; the line speaks where it stops.
+	const [heard, setHeard] = useState(plot.slider.start);
+	useEffect(() => {
+		const wait = setTimeout(() => setHeard(slider), LIVE_WAIT_MS);
+		return () => clearTimeout(wait);
+	}, [slider]);
 	const [width, ref] = useWidth(GUTTER + 510);
 	// Opened before it was on screen: drawn at once. Opened while watched:
 	// the held-back parts draw in (globals.css .lh-draw-in).
@@ -117,7 +125,7 @@ function PlotFigure({ plot, open }: { plot: Plot; open: boolean }) {
 		KEY_LIFT,
 	);
 	const tops = new Map(keyed.map((i, k) => [i, placed[k]!]));
-	const live = liveText(plot, slider, open);
+	const live = liveText(plot, heard, open);
 
 	const lines = (hidden: boolean) =>
 		plot.lines.map((l, i) =>
@@ -133,7 +141,7 @@ function PlotFigure({ plot, open }: { plot: Plot; open: boolean }) {
 					<div className="absolute top-[11px] text-[13px] leading-none whitespace-nowrap text-ink-2" style={{ left: GUTTER, right: 0 }}>
 						<Label text={plot.y.label} />
 					</div>
-					<svg role="img" aria-label={plot.title} width={width} height={AXIS_HEIGHT} className="absolute top-0 left-0 overflow-visible">
+					<svg role="img" aria-label={labelPieces(plot.title).map((p) => p.text).join("")} width={width} height={AXIS_HEIGHT} className="absolute top-0 left-0 overflow-visible">
 						<defs>
 							<clipPath id={clip}>
 								<rect x={frame.left} y={frame.top - 2} width={frame.right - frame.left + 2} height={frame.bottom - frame.top + 4} />
