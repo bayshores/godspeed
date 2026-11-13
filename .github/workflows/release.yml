@@ -195,6 +195,24 @@ jobs:
         uses: maxim-lobanov/setup-xcode@v1
         with:
           xcode-version: latest-stable
+      - name: TEMP icon compiler probe
+        if: runner.os == 'macOS'
+        continue-on-error: true
+        run: |
+          try() {
+            label=$1; dir=$2; shift 2
+            rm -rf "$dir"; mkdir -p "$dir/out"; cp -R crates/shell/icons/icon.icon "$dir/Icon.icon"
+            if env "$@" actool "$dir/Icon.icon" --compile "$dir/out" --output-format human-readable-text --notices --warnings --output-partial-info-plist "$dir/out/assetcatalog_generated_info.plist" --app-icon Icon --include-all-app-icons --accent-color AccentColor --enable-on-demand-resources NO --development-region en --target-device mac --minimum-deployment-target 26.0 --platform macosx > "$dir/log.txt" 2>&1; then echo "PROBE $label: ok"; else echo "PROBE $label: FAILED"; head -3 "$dir/log.txt"; fi
+          }
+          actool --version | grep -A1 short-bundle
+          sw_vers
+          try plain "$RUNNER_TEMP/probe1" A=1
+          try plain-again "$RUNNER_TEMP/probe2" A=1
+          try hidden-dir "$TMPDIR/.tmpProbe1" A=1
+          try tmpdir-visible "$TMPDIR/probe3" A=1
+          try deployment-env "$RUNNER_TEMP/probe4" MACOSX_DEPLOYMENT_TARGET=14.0
+          try hidden-and-env "$TMPDIR/.tmpProbe2" MACOSX_DEPLOYMENT_TARGET=14.0
+          ls -la crates/shell/icons/icon.icon crates/shell/icons/icon.icon/Assets
       - name: Rust toolchain (the version pinned in rust-toolchain.toml)
         run: |
           rustup toolchain install
@@ -205,6 +223,8 @@ jobs:
       - run: npm ci
       - run: node scripts/fetch-model.mjs
       - run: node scripts/fetch-pdfium.mjs
+      - if: runner.os == 'Linux'
+        run: node scripts/fetch-onnxruntime.mjs
       # Stage once here so the smoke runs before the slow bundler (tauri build stages again, cached).
       - run: node scripts/stage-app.mjs
       - run: node scripts/smoke-server.mjs
@@ -275,18 +295,22 @@ jobs:
             xcrun stapler validate "$app"
           done
 
-      # Linux builds must run on Ubuntu 22.04 and Debian 12 (glibc 2.35 and 2.36).
-      - name: Check the glibc the Linux binaries need
+      # Linux builds must run on Ubuntu 22.04 and Debian 12 (glibc 2.35 and 2.36, and the
+      # libstdc++ of 22.04, GLIBCXX 3.4.30). The two libraries ship as downloaded.
+      - name: Check the glibc and libstdc++ the Linux binaries need
         if: runner.os == 'Linux'
         run: |
           set -euo pipefail
-          for bin in "target/${{ matrix.triple }}/release/godspeed" "target/${{ matrix.triple }}/release/godspeed-server"; do
-            newest=$(objdump -T "$bin" | grep -o 'GLIBC_[0-9.]*' | sed 's/GLIBC_//' | sort -V | tail -n 1)
-            echo "$bin needs glibc $newest"
-            if [[ "$(printf '%s\n2.35\n' "$newest" | sort -V | tail -n 1)" != "2.35" ]]; then
-              echo "::error::$bin needs glibc $newest, above 2.35"
-              exit 1
-            fi
+          for bin in "target/${{ matrix.triple }}/release/godspeed" "target/${{ matrix.triple }}/release/godspeed-server" .stage/libpdfium.so .stage/libonnxruntime.so; do
+            for need in GLIBC:2.35 GLIBCXX:3.4.30; do
+              name=${need%%:*} limit=${need#*:}
+              newest=$(objdump -T "$bin" | { grep -o "${name}_[0-9.]*" || true; } | sed "s/${name}_//" | sort -V | tail -n 1)
+              echo "$bin needs $name ${newest:-none}"
+              if [[ -n "$newest" && "$(printf '%s\n%s\n' "$newest" "$limit" | sort -V | tail -n 1)" != "$limit" ]]; then
+                echo "::error::$bin needs $name $newest, above $limit"
+                exit 1
+              fi
+            done
           done
 
       - name: Demo runner self-test in the real app
