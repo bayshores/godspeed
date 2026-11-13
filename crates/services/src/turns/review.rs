@@ -18,6 +18,7 @@ use gs_json::{Json, json};
 
 use super::turn_liveness::is_turn_running;
 use crate::App;
+use crate::app::agent_actions::record_answer;
 use crate::graph::progress::{progress_for, space_order_for, space_reviews};
 
 /// The questions from earlier skipped in a lesson's sitting, and when the last one was.
@@ -117,12 +118,13 @@ fn asked_this_sitting(record: &Json, now: i64) -> Option<&Json> {
 	sitting.filter(|m| m["customType"].as_str() == Some("app-note")).map(|m| &m["details"]["reviewOf"]).find(|of| of.as_obj().is_some())
 }
 
-/// His answer to a question from earlier still askable, as the window graded it: written as a `review` marker with
-/// the server's clock and the start of his sitting. Err: the lesson could not be saved.
+/// His answer to a question from earlier still askable, as the window graded it: written as a
+/// `review` marker with the server's clock and the start of his sitting, and counted in the
+/// activity feed like any quiz answer of the lesson. Err: the lesson could not be saved.
 pub fn answer_review(app: &App, chat_id: &str, of: &Json, answer: &Json) -> Result<ReviewReply, String> {
 	let graded = answer["dontKnow"].truthy() || answer["correct"].as_bool().is_some();
 	let Some(stamped) = stamped_quiz_answer(answer).filter(|_| graded && !answer["dismissed"].truthy()) else { return Ok(ReviewReply::NotAnAnswer) };
-	{
+	let record = {
 		let _guard = app.locks.lock(LockKey::Chat(chat_id));
 		let Some(record) = app.stores.chats.get_chat(chat_id) else { return Ok(ReviewReply::UnknownLesson) };
 		let Some(question) = askable(app, chat_id, &record, of)? else { return Ok(ReviewReply::NotOpen) };
@@ -134,7 +136,9 @@ pub fn answer_review(app: &App, chat_id: &str, of: &Json, answer: &Json) -> Resu
 		let mut messages = record["messages"].as_arr().cloned().unwrap_or_default();
 		messages.push(new_review_marker(details));
 		app.stores.chats.save_messages(chat_id, &messages)?;
-	}
+		record
+	};
+	record_answer(app, &record, answer);
 	app.events.emit(EventKind::RecordChanged, json!({ "chatId": chat_id }));
 	Ok(ReviewReply::Done)
 }

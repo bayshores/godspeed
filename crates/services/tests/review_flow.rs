@@ -14,6 +14,7 @@ use gs_core::messages::native_messages::dangling_question_of;
 use gs_engine::bridge::{AgentReply, WaitOptions};
 use gs_json::{Json, json, stringify};
 use gs_services::App;
+use gs_services::app::agent_actions::recent_agent_actions;
 use gs_services::turns::chat_handler::REVIEW_NOT_OPEN;
 use gs_services::turns::handle_chat_input;
 use gs_services::turns::is_turn_running;
@@ -230,6 +231,8 @@ fn the_refusals() {
 	assert_eq!(skip_review(&fx.app, "chat_gone", &open["of"]).unwrap(), ReviewReply::UnknownLesson);
 	let dont_know = json!({ "kind": "quiz", "dontKnow": true, "answers": [] });
 	assert_eq!(answer_review(&fx.app, &id, &open["of"], &dont_know).unwrap(), ReviewReply::Done, "I don't know is an answer");
+	let feed = recent_agent_actions(&fx.app);
+	assert_eq!((feed[0]["label"].as_str(), feed[0]["target"]["id"].as_str()), (Some("Didn't know"), Some(id.as_str())), "the activity feed counts it like any quiz answer");
 }
 
 #[tokio::test(flavor = "multi_thread")]
