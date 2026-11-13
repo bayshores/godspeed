@@ -202,11 +202,38 @@ export interface ReviewQuestion {
 }
 
 /** The review marker's details: the question, his graded answer and the
- *  start of the sitting it was answered in. */
+ *  start of the sitting it was answered in. `kept` is a copy of his kept
+ *  sentence on that topic (the one shown longest ago), with its checked
+ *  source mark; never the analogy lines, and no phrase he had dropped. */
 export interface ReviewDetails extends ReviewQuestion {
 	answer: QuestionAnswerData;
 	sitting: string;
+	kept?: { of: ReviewOf & { messageId?: string }; text: string; source?: string; phrase?: string };
 }
+
+/** The keep-check marker's details: the server's verdict on one quiz's
+ *  `keep`. `source` is there only when the keep has one; `sourceMark` is
+ *  the stored mark when it is "ok". The note is for the teacher only. */
+export interface KeepCheckDetails {
+	quizCallId: string;
+	keep: "shown" | "dropped";
+	fits: boolean;
+	phrase: boolean;
+	source?: "ok" | "dropped";
+	sourceMark?: string;
+	note?: string;
+}
+
+/** An analogy-drop or phrase-drop marker's details. For each quiz the last
+ *  marker of each type wins; `back` brings the part back. */
+export interface KeptDropDetails {
+	of: string;
+	back?: true;
+	at: string;
+}
+
+/** Which part of a kept card POST /api/chats/{id}/kept drops or brings back. */
+export type KeptPart = "analogy" | "phrase";
 
 /** The learner's explicit move-on signal: the model-facing text of the
  *  practice-next marker. */

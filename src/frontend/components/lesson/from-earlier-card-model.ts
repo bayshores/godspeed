@@ -1,10 +1,13 @@
 /**
  * One row of the From earlier card: the verdict, the topic and how sure he
- * was, and for a miss the question and the right answer. Pure.
+ * was, for a miss the question and the right answer, and his kept sentence
+ * on that topic with its phrase and source. Pure.
  */
 import type { ResultTone } from "@/frontend/components/result-tag";
 import { answerWasLine } from "@/frontend/components/answered-card-model";
+import type { FileCite } from "@/frontend/components/citations/page-excerpt-model";
 import { confidenceLevel, type ReviewDetails } from "@/shared/core";
+import { keptSource, phraseLine } from "./kept-card-model";
 
 interface FromEarlierRow {
 	tone: ResultTone;
@@ -18,6 +21,9 @@ interface FromEarlierRow {
 	question: string;
 	/** "The answer was C, About 9%.", from the order he saw. */
 	answerLine: string | null;
+	/** His kept sentence on the topic, never the analogy lines. A row with
+	 *  one shows more than one line, so it has its own Why button. */
+	kept: { text: string; phrase: string | null; source: FileCite | null } | null;
 }
 
 export function fromEarlierRow(details: ReviewDetails): FromEarlierRow {
@@ -31,5 +37,8 @@ export function fromEarlierRow(details: ReviewDetails): FromEarlierRow {
 		missed: !right,
 		question: answer.questionText || details.quiz.question,
 		answerLine: answerWasLine(answer),
+		kept: details.kept?.text
+			? { text: details.kept.text, phrase: details.kept.phrase ? phraseLine(details.kept.phrase) : null, source: keptSource(details.kept.source) }
+			: null,
 	};
 }

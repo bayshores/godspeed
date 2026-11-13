@@ -8,6 +8,7 @@ import { useFold } from "@/frontend/components/use-fold";
 import { cn } from "@/frontend/lib/utils";
 import type { FromEarlierData, ReviewDetails } from "@/shared/core";
 import { fromEarlierRow } from "./from-earlier-card-model";
+import { KeptPhrase, KeptSentence, KeptSource } from "./kept-card";
 
 /** The questions from earlier answered in one sitting: one card, a row
  *  each, under the meta row "From earlier". */
@@ -25,9 +26,12 @@ export function FromEarlierCard({ data }: { data: FromEarlierData }) {
 }
 
 /** A right row is one line whose topic words open its Why; a missed row
- *  adds the question and the right answer, and has a Why button. */
+ *  adds the question and the right answer, and a row about a topic with a
+ *  kept sentence adds that sentence and its source. A row of more than one
+ *  line has a Why button. */
 function Row({ details }: { details: ReviewDetails }) {
 	const row = fromEarlierRow(details);
+	const whyButton = row.missed || row.kept !== null;
 	const [open, setOpen] = useState(false);
 	const fold = useFold(open);
 	const toggle = (e: React.MouseEvent) => {
@@ -41,7 +45,7 @@ function Row({ details }: { details: ReviewDetails }) {
 					{row.word}
 				</ResultTag>
 				<span className="font-count text-[15px] text-ink-2">
-					{row.missed ? (
+					{whyButton ? (
 						row.topic
 					) : (
 						<button type="button" data-testid="from-earlier-topic" aria-expanded={open} onClick={toggle} className="underline underline-offset-2 hover:text-ink">
@@ -50,7 +54,7 @@ function Row({ details }: { details: ReviewDetails }) {
 					)}
 					{row.sure !== null && `, sure ${row.sure} of 5`}
 				</span>
-				{row.missed && (
+				{whyButton && (
 					<>
 						<span className="flex-1" aria-hidden />
 						<button type="button" data-testid="from-earlier-why" aria-expanded={open} onClick={toggle} className={cn(SMALL_BTN, open && "[--lh-key:var(--color-tone-2)]")}>
@@ -60,16 +64,25 @@ function Row({ details }: { details: ReviewDetails }) {
 				)}
 			</div>
 			{row.missed && (
-				<>
-					<div className="line-clamp-1 text-ink-2" style={proseVars(15, 22, "var(--muted-foreground)")}>
-						<ToolContentResponse>{row.question}</ToolContentResponse>
-					</div>
-					{row.answerLine && (
-						<div data-testid="from-earlier-answer" style={proseVars(15, 22, "var(--foreground)")}>
-							<ToolContentResponse>{row.answerLine}</ToolContentResponse>
+				<div className="line-clamp-1 text-ink-2" style={proseVars(15, 22, "var(--muted-foreground)")}>
+					<ToolContentResponse>{row.question}</ToolContentResponse>
+				</div>
+			)}
+			{row.kept && (
+				<div data-testid="from-earlier-kept" className="flex flex-col gap-2.5">
+					<KeptSentence text={row.kept.text} />
+					{row.kept.phrase && <KeptPhrase line={row.kept.phrase} />}
+					{row.kept.source && (
+						<div className="flex">
+							<KeptSource cite={row.kept.source} />
 						</div>
 					)}
-				</>
+				</div>
+			)}
+			{row.missed && row.answerLine && (
+				<div data-testid="from-earlier-answer" style={proseVars(15, 22, "var(--foreground)")}>
+					<ToolContentResponse>{row.answerLine}</ToolContentResponse>
+				</div>
 			)}
 			{fold.mounted && (
 				<div className="lh-collapse" data-state={fold.state} data-testid="from-earlier-details">

@@ -27,6 +27,7 @@ import {
 	textPartMessageId,
 	type ArtifactPartProps,
 	type FromEarlierData,
+	type KeptCardData,
 	type LhViewMessage,
 	type LhViewPart,
 	type PlanBlockData,
@@ -38,6 +39,7 @@ import { isSubagentSteer } from "./chat-helpers";
 import { MessageAttachments } from "./message-attachments";
 import { drawnSeparators } from "./message-row-model";
 import { FromEarlierCard } from "./from-earlier-card";
+import { KeptCard } from "./kept-card";
 import { LABEL_TEXT } from "@/frontend/components/ui/label-text";
 
 // A plan diagram (and dagre, its layout engine) is its own chunk; the
@@ -280,7 +282,11 @@ function AssistantPart({
 			if (part.state !== "output-available") return null;
 			return (
 				<div data-answer-call={part.toolCallId} className={cn("flex scroll-mt-4 flex-col gap-2", arrive(slot), arrive(slot) && answerFlash(part.output as QuestionAnswerData))}>
-					<AnsweredCard answer={part.output as QuestionAnswerData} input={part.input} plotValue={part.plotValue as number | undefined} />
+					{part.kept ? (
+						<KeptCard kept={part.kept as KeptCardData} answer={part.output as QuestionAnswerData} input={part.input} toolCallId={part.toolCallId!} />
+					) : (
+						<AnsweredCard answer={part.output as QuestionAnswerData} input={part.input} plotValue={part.plotValue as number | undefined} />
+					)}
 					{part.files && <MessageAttachments parts={part.files} />}
 				</div>
 			);

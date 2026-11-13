@@ -43,6 +43,7 @@ import type { SubagentArtifactData, SubagentResultMeta } from "./contracts/jobs.
 import type { PlanBlockData, ReviewDetails, ReviewQuestion } from "./contracts/chat.ts";
 import { pdfNoteOf, type AttachmentPart } from "./attachments.ts";
 import { joinPlots } from "./plot-view.ts";
+import { joinKept } from "./kept-view.ts";
 
 /** A view part — the loose part vocabulary the renderers consume
  *  (UIMessage-style shape names, which the renderer switch and the
@@ -333,6 +334,7 @@ export function projectView(messages: readonly LhMessage[], live?: LiveTurnState
 	}
 
 	joinPlots(out);
+	joinKept(out, messages);
 	return out;
 }
 
@@ -641,6 +643,11 @@ function projectMarker(marker: LhMarkerMessage, out: LhViewMessage[]): void {
 			return;
 		case "app-note":
 			// Hidden lines for the agent only.
+			return;
+		case "keep-check":
+		case "analogy-drop":
+		case "phrase-drop":
+			// Read by the kept card instead (joinKept).
 			return;
 		case "review": {
 			// Answers to questions from earlier in a row in one sitting share

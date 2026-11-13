@@ -63,6 +63,8 @@ export * from "./topic-end.ts";
 export * from "./topic-parts.ts";
 // Plot formulas: the grammar the server checks them with, and their typeset form.
 export * from "./plot-expr.ts";
+// The kept card a right answer to a quiz with a kept sentence shows.
+export type { KeptCardData } from "./kept-view.ts";
 export * from "./homework.ts";
 export * from "./cheat-sheet.ts";
 export * from "./prep.ts";

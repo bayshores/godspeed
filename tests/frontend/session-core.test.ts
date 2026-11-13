@@ -32,6 +32,7 @@ import { buildAnswer, type QuestionAnswerData, type QuestionData } from "../../s
 import { findPendingToolCall } from "../../src/shared/core/pending.ts";
 import { lessonStop } from "../../src/shared/core/topic-end.ts";
 import { keepGoing, regularizationEnds, text, TREE } from "../stop-fixtures.ts";
+import { keptLesson } from "../kept-fixtures.ts";
 
 const realFetch = globalThis.fetch;
 afterEach(() => {
@@ -1877,5 +1878,44 @@ describe("Keep going and the opener", () => {
 		assert.equal(findPendingToolCall(m.getState().messages), null, "answered before the server replies");
 		await sending;
 		assert.deepEqual(posts(calls, "/api/chat"), [{ type: "opener-answer", topicDoneCallId: "t1", answer }]);
+	});
+});
+
+describe("Drop this analogy and the phrase", () => {
+	function scripted(kept: () => Response) {
+		const bodies: unknown[] = [];
+		const fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+			const url = String(input);
+			if (url === "/api/chats/chat_x/kept") {
+				bodies.push(JSON.parse(String(init?.body)).input);
+				return kept();
+			}
+			throw new Error(`unexpected fetch: ${url}`);
+		}) as typeof globalThis.fetch;
+		return { bodies, fetch };
+	}
+	const card = (m: ReturnType<typeof model>) => m.getState().messages.flatMap((v) => v.parts).find((p) => p.type === "tool-quiz")?.kept as { analogyDropped?: boolean; phraseDropped?: boolean } | undefined;
+
+	it("changes the card at once and posts the drop, then the bring back, without starting a turn", async () => {
+		const { bodies, fetch } = scripted(() => Response.json({ ok: true }));
+		const m = model({ initialMessages: keptLesson(), fetch });
+		await m.dropKept("call_k", "analogy", false);
+		assert.equal(card(m)?.analogyDropped, true);
+		await m.dropKept("call_k", "phrase", false);
+		await m.dropKept("call_k", "analogy", true);
+		assert.deepEqual([card(m)?.analogyDropped, card(m)?.phraseDropped], [false, true]);
+		assert.deepEqual(bodies, [
+			{ of: "call_k", part: "analogy" },
+			{ of: "call_k", part: "phrase" },
+			{ of: "call_k", part: "analogy", back: true },
+		]);
+	});
+
+	it("a failed store takes the drop back with the plain send failure", async () => {
+		const { fetch } = scripted(() => Response.json({ error: "No kept sentence with that part on that call" }, { status: 400 }));
+		const m = model({ initialMessages: keptLesson(), fetch });
+		await m.dropKept("call_k", "analogy", false);
+		assert.equal(card(m)?.analogyDropped, false);
+		assert.equal(m.getState().error?.message, "The send failed (400).");
 	});
 });

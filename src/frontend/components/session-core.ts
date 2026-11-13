@@ -28,6 +28,7 @@ import {
 	pdfNoteOf,
 	projectView,
 	type ChatInput,
+	type KeptPart,
 	type LhMarkerMessage,
 	type LhMessage,
 	type LhViewMessage,
@@ -60,7 +61,7 @@ function localId(): string {
 }
 
 /** An optimistic UI marker; the server writes its own copy. */
-function localMarker(customType: "keep-going" | "opener-answer", details: unknown): LhMessage {
+function localMarker(customType: "keep-going" | "opener-answer" | "analogy-drop" | "phrase-drop", details: unknown): LhMessage {
 	return { id: localId(), role: "custom", customType, content: "", display: true, details, timestamp: Date.now() };
 }
 
@@ -873,6 +874,31 @@ export class SessionModel {
 			if (!res.ok) throw new Error(`The send failed (${res.status}).`);
 			const { opener, running } = (await res.json()) as { opener?: boolean; running?: boolean };
 			if (!opener && !running) await this.continueIfOwed([...this.base, ...this.tail]);
+		} catch (err) {
+			this.mutate(() => {
+				this.tail = this.tail.filter((m) => m !== marker);
+			});
+			this.setError((err as Error).message);
+		}
+	}
+
+	/** Drop a kept card's analogy lines or phrase, or bring them back: the
+	 *  UI-only marker lands optimistically (the card changes at once), then
+	 *  the route stores it, even during a turn; it never starts one. Each
+	 *  click's local marker sits after the record, so his last click wins
+	 *  until the next full sync. A failed store takes the marker back. */
+	async dropKept(of: string, part: KeptPart, back: boolean): Promise<void> {
+		const marker = localMarker(part === "analogy" ? "analogy-drop" : "phrase-drop", { of, ...(back ? { back: true } : {}), at: new Date().toISOString() });
+		this.mutate(() => {
+			this.tail = [...this.tail, marker];
+		});
+		try {
+			const res = await this.fetch(`/api/chats/${this.chatId}/kept`, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ input: { of, part, ...(back ? { back: true } : {}) } }),
+			});
+			if (!res.ok) throw new Error(`The send failed (${res.status}).`);
 		} catch (err) {
 			this.mutate(() => {
 				this.tail = this.tail.filter((m) => m !== marker);

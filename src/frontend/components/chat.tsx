@@ -110,7 +110,7 @@ export function Chat({
 	// THE SESSION HOOK: the record is native history; the view is derived
 	// client-side (core/view.ts projectView).
 	const session = useChatSession({ chatId, initialMessages, initialError, initiallyInFlight });
-	const { messages, nativeMessages, contextTokens, send, continueIfOwed, steer, steerQueue, submitAnswer, dismissQuestion, dismissProblem, keepGoing, status, error, stop, clearError, resumeStream } = session;
+	const { messages, nativeMessages, contextTokens, send, continueIfOwed, steer, steerQueue, submitAnswer, dismissQuestion, dismissProblem, keepGoing, dropKept, status, error, stop, clearError, resumeStream } = session;
 	const summarizeAt = useSummarizePoint();
 	const { turnInFlight, localStreamRef, jobs, turns, pricing, adoptAppendOnly } = useLessonServer({
 		chatId,
@@ -499,8 +499,9 @@ export function Chat({
 				if (busyRef.current) void steer(t);
 				else void send({ type: "text", text: t });
 			},
+			dropKept,
 		}),
-		[chatId, send, steer, sendBlocked],
+		[chatId, send, steer, sendBlocked, dropKept],
 	);
 
 	// The error notice's Try again: send again what didn't go through, run a
