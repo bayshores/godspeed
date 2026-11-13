@@ -268,7 +268,7 @@ fn keep_schema() -> Json {
 		&["text"],
 		vec![
 			("text", capped(KEEP_TEXT_MAX, "The sentence he keeps.")),
-			("source", string("A passage mark.")),
+			("source", string("A passage id.")),
 			("fits", capped(KEEP_LINE_MAX, "With an analogy only: what it gets right.")),
 			("stops", capped(KEEP_LINE_MAX, "Required with fits: the first place it breaks.")),
 			("phrase", capped(KEEP_PHRASE_MAX, "Optional. A short phrase that makes the sentence easier to remember, like SOH CAH TOA. Words only.")),

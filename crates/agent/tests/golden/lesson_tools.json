@@ -3247,7 +3247,7 @@
 								},
 								"source": {
 									"type": "string",
-									"description": "A passage mark."
+									"description": "A passage id."
 								},
 								"fits": {
 									"type": "string",

@@ -100,7 +100,9 @@ fn shown(id: &str, keep: &Json, analogy_shown: bool, check_source: &dyn Fn(&str)
 	if let Some(source) = words(keep, "source") {
 		// Longer than one mark can be, it points at no single passage and is never checked.
 		let one_mark = text::len16(source) <= MARK_MAX + "[[]]".len();
-		match one_mark.then(|| check_source(source)).flatten() {
+		// A bare passage id reads as the same mark.
+		let source = if source.trim_start().starts_with("[[") { source.to_owned() } else { format!("[[{}]]", source.trim()) };
+		match one_mark.then(|| check_source(&source)).flatten() {
 			Some(mark) => {
 				out.insert("source", "ok");
 				out.insert("sourceMark", mark);
@@ -351,8 +353,11 @@ mod tests {
 	fn the_source_and_the_phrase_are_checked_on_their_own() {
 		let mut messages = lesson();
 		messages.push(reply("r3", "", vec![quiz("q3", json!({ "text": "t", "source": "[[f_1a2b3c4d5e6f:7]]", "phrase": "SOH CAH TOA" }))]));
-		let found = |_: &str| Some(MARK.to_owned());
+		let found = |source: &str| (source == "[[f_1a2b3c4d5e6f:7]]").then(|| MARK.to_owned());
 		assert_eq!(keep_verdicts(&messages, &found), [json!({ "quizCallId": "q3", "keep": "shown", "fits": false, "phrase": true, "source": "ok", "sourceMark": MARK })]);
+		messages.pop();
+		messages.push(reply("r3", "", vec![quiz("q3", json!({ "text": "t", "source": " f_1a2b3c4d5e6f:7 " }))]));
+		assert_eq!(keep_verdicts(&messages, &found)[0]["sourceMark"], json!(MARK), "a bare passage id is the same mark");
 		messages.pop();
 		messages.push(reply("r3", "", vec![quiz("q3", json!({ "text": "t", "source": "nowhere", "phrase": "p".repeat(74) }))]));
 		assert_eq!(
