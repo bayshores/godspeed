@@ -7,18 +7,23 @@ import { useCited } from "./use-cited";
 type Marks = NonNullable<CitedPassage["marks"]>;
 type CodeMarks = Extract<Marks, { kind: "lines" }>;
 
-// The frame is 220 tall with a 1px outline; the page fills its inside.
+// The frame is 220 tall with a 1px outline; the page fills its inside, at a
+// slide's width until the page's own shape is known.
 const FRAME_H = 220;
 const INSIDE_H = FRAME_H - 2;
+const SLIDE_W = INSIDE_H * (16 / 9) + 2;
 const MARK = "bg-highlight text-inherit";
 
 /** A topic's page under the paragraph that quotes it: his PDF page with the
  *  words on the highlighter, his code lines with the expression marked, or
- *  the passage as a quote block. Clicking it opens the page dialog. Nothing
- *  shows while it loads, when the place is gone, or when the picture fails. */
+ *  the passage as a quote block. Clicking it opens the page dialog. A PDF's
+ *  empty frame holds its place while it loads, so nothing below it moves;
+ *  nothing shows when the place is gone or the picture fails. */
 export function PageExcerpt({ cite, onOpen }: { cite: FileCite; onOpen: () => void }) {
 	const found = useCited(cite);
-	if (found === null || found === "gone") return null;
+	if (found === null)
+		return /\.pdf$/i.test(cite.name) ? <span aria-hidden data-testid="page-excerpt-waiting" className="block max-w-full border border-border" style={{ height: FRAME_H, width: SLIDE_W }} /> : null;
+	if (found === "gone") return null;
 	const marks = found.marks ?? null;
 	if (found.page !== null) return <PdfExcerpt cite={cite} page={found.page} boxes={marks?.kind === "page" ? marks.boxes : []} onOpen={onOpen} />;
 	if (marks?.kind === "lines")
