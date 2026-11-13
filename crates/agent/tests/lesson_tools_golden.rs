@@ -1,5 +1,4 @@
-//! Parity with the TypeScript lesson prompts and tools (tests/golden/lesson_tools.json, made by
-//! scripts/golden.ts from lesson_tools.golden.ts): every case is replayed in order on the same stub
+//! Parity with the TypeScript lesson prompts and tools (tests/golden/lesson_tools.json, recorded from the Node server): every case is replayed in order on the same stub
 //! worlds, and what the Rust side gives must match the recorded value exactly. The compose cases
 //! write saved prompt versions into a temp data folder, and the agent case reads the last ones.
 

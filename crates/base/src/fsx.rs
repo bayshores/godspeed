@@ -1,5 +1,5 @@
 //! File helpers with Node's behavior: text read as `readFileSync(f, "utf8")`, writes by temp
-//! file + rename (src/backend/store/write-file-atomic.ts), broken JSON set aside
+//! file + rename, broken JSON set aside
 //! (set-aside.ts), and fs error texts worded like Node's.
 
 use std::io::{self, Write};

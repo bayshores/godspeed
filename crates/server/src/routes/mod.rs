@@ -1,4 +1,4 @@
-//! Every /api route (the route files under src/app/api), one module per area. Each
+//! Every /api route, one module per area. Each
 //! route is an `ApiRoute` (crate::http::route), so OPTIONS and wrong methods answer like Next.
 
 mod app;

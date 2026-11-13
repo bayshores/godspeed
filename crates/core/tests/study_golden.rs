@@ -1,5 +1,4 @@
-//! Parity with Node for the study rules (tests/golden/study.json, made by scripts/golden.ts from
-//! study.golden.ts in America/Los_Angeles and en-US). Every case is `{ args, result }`; the args
+//! Parity with Node for the study rules (tests/golden/study.json, recorded from the Node server). Every case is `{ args, result }`; the args
 //! feed the Rust function and its output must print the same JSON as the TypeScript result.
 
 use std::collections::{HashMap, HashSet};

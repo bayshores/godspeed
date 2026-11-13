@@ -1,5 +1,5 @@
-//! Replays tests/golden/engine.json (the real pi Agent on pi-ai's faux core, from
-//! engine.golden.ts) on the Rust loop: same scenario, same events, same transcript.
+//! Replays tests/golden/engine.json (the real pi Agent on pi-ai's faux core, recorded
+//! from the Node server) on the Rust loop: same scenario, same events, same transcript.
 
 use std::sync::{Arc, OnceLock, Weak};
 

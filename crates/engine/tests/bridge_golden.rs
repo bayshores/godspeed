@@ -1,4 +1,4 @@
-//! Replays tests/golden/bridge.json (the real agent-bridge.ts, from bridge.golden.ts): the same
+//! Replays tests/golden/bridge.json (the real agent-bridge.ts, recorded from the Node server): the same
 //! script of operations on the Rust Bridge gives the same views, errors, replies, events, saved
 //! marks and backup teacher status.
 

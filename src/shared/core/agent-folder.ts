@@ -4,7 +4,7 @@
  * the connection to the app (.mcp.json for Claude Code, command-line flags
  * for Codex) and, in .godspeed/, the scripts and the start scripts the
  * app's "Open Claude Code" button runs. Pure: the generated file contents
- * and commands. src/backend/server/agent-folder.ts writes them.
+ * and commands. The server writes them.
  */
 
 export type FolderAgent = "claude" | "codex";

@@ -1,4 +1,4 @@
-//! probe_done (src/backend/agent/tools/probe.ts): the probe-to-planning seam. The prober ends the
+//! probe_done: the probe-to-planning seam. The prober ends the
 //! probe by authoring the assessment (the call's own arguments); this tool checks nothing is open
 //! and queues the teacher's first turn.
 

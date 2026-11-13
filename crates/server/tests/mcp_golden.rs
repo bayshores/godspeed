@@ -1,4 +1,4 @@
-//! Parity with the TypeScript /api/mcp handler (tests/golden/mcp.json, made by mcp.golden.ts from
+//! Parity with the TypeScript /api/mcp handler (tests/golden/mcp.json, recorded from the Node server
 //! synthetic requests): refusals, both eras' entry ladders, the older transport's checks,
 //! tools/call request errors and zod's argument texts, byte for byte.
 

@@ -1,5 +1,4 @@
-//! Parity with Node for the lesson store (tests/golden/chats.json, made by scripts/golden.ts from
-//! chats.golden.ts): the same files in, the same lists, records and bytes out.
+//! Parity with Node for the lesson store (tests/golden/chats.json, recorded from the Node server): the same files in, the same lists, records and bytes out.
 //!
 //! The seed case needs a copy of real app data kept outside the repo (`GODSPEED_SEED_CHATS`) and its
 //! expected output in tests/golden/chats-seed.lab.json (git ignores it); it copies the lessons to a
@@ -126,7 +125,7 @@ fn synthetic_store_matches_node() {
 	}
 }
 
-/// `maskCreated` in chats.golden.ts.
+/// `maskCreated` in the Node recorder.
 fn mask_created(text: &str) -> String {
 	let ids = Re::new(r"chat_[0-9a-z]+_[0-9a-f]{8}", "g").replace(text, "<id>");
 	Re::new(r"\d{4}-\d\d-\d\dT[\d:.]+Z", "g").replace(&ids, "<time>")
@@ -163,7 +162,7 @@ fn seed_chats_match_node() {
 	let seed = std::env::var_os("GODSPEED_SEED_CHATS").map_or_else(|| PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../../rewrite-lab/seed-data/chats"), PathBuf::from);
 	let lab_file = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/golden/chats-seed.lab.json");
 	if !seed.is_dir() || !lab_file.is_file() {
-		eprintln!("skipped: no seed copy of the lessons at {} or no {} (run npx tsx scripts/golden.ts chats-seed)", seed.display(), lab_file.display());
+		eprintln!("skipped: no seed copy of the lessons at {} or no {}", seed.display(), lab_file.display());
 		return;
 	}
 	let want = golden_in("chats-seed.lab.json", "seed chats");

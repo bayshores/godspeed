@@ -1,4 +1,4 @@
-//! save_rule (src/backend/agent/tools/rules.ts): the teacher saves a lasting teaching rule when the
+//! save_rule: the teacher saves a lasting teaching rule when the
 //! learner states a preference. The learner sees it in the chat and can undo or edit it.
 
 use std::sync::Arc;

@@ -1,6 +1,4 @@
-//! Lessons, turns, Talk and catch-up (src/backend/server: chat-handler, turn-liveness, turn-runs,
-//! turn-service, dismissal-park, compaction, attachments, lessons, homework, talk, chats,
-//! agent-catch-up). One module per TS file; the live registries the TS kept on `globalThis` are
+//! Lessons, turns, Talk and catch-up. One module per TS file; the live registries the TS kept on `globalThis` are
 //! the fields of `TurnsState`.
 
 pub mod agent_catch_up;

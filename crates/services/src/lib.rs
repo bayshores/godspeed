@@ -1,4 +1,4 @@
-//! The server's services (src/backend/server): what the routes and the MCP endpoint call.
+//! The server's services: what the routes and the MCP endpoint call.
 
 pub mod turns;
 pub mod jobs;

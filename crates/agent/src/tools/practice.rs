@@ -1,4 +1,4 @@
-//! The practice tools (src/backend/agent/tools/practice.ts): the session runs on `problem` (pose:
+//! The practice tools: the session runs on `problem` (pose:
 //! ends the turn, the commitment rides the call's arguments) and `conclude` (ends the problem, so
 //! closing words may follow; the next pose waits for the learner's go-ahead, which asking for
 //! another problem or part is). An agent cannot pose while a problem is active and cannot conclude

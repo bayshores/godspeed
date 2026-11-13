@@ -1,4 +1,4 @@
-//! The map readers (src/backend/agent/tools/graph.ts): the prober and practice read the learner's
+//! The map readers: the prober and practice read the learner's
 //! knowledge graph on demand. Names, kinds, counts and dates only, never statement text.
 
 use std::sync::Arc;

@@ -1,4 +1,4 @@
-//! POST /api/preps and /api/spaces/{id}/prep (src/app/api/preps, src/app/api/spaces/[id]/prep):
+//! POST /api/preps and /api/spaces/{id}/prep:
 //! making a prep, its view, and the learner's changes to its sheet.
 
 use std::sync::Arc;

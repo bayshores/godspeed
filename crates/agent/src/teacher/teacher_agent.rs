@@ -1,4 +1,4 @@
-//! The agents (src/backend/agent/teacher-agent.ts): study (every new session), the prober and the
+//! The agents: study (every new session), the prober and the
 //! teacher (older teach lessons), practice (older practice sessions), homework and talk (the
 //! teacher's panel, outside lessons). A prober and a teacher share one transcript with different
 //! prompts and tools. Each turn builds its agent fresh from the record and drops it at turn end.

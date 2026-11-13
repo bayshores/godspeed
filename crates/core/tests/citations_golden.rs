@@ -1,5 +1,4 @@
-//! Parity with Node for source marks and content spans (tests/golden/citations.json, made by
-//! scripts/golden.ts from citations.golden.ts).
+//! Parity with Node for source marks and content spans (tests/golden/citations.json, recorded from the Node server).
 
 use gs_core::messages::citations::{CiteMark, cites_in_words, file_cite_mark, replace_cite_marks};
 use gs_core::messages::content_reader::{SpanKind, read_content_spans};

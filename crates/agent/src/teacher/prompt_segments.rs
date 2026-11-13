@@ -1,5 +1,4 @@
 //! Which parts of the shipped prompt each agent composes, and the learner's saved version of each
-//! (src/backend/agent/prompt-segments.ts).
 //!
 //! The shared base comes first, then the agent's own numbered fragments in file order, then the
 //! shared fragments as a trailing appendix. Practice, homework and talk skip the base (their own

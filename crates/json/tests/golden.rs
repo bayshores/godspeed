@@ -1,5 +1,5 @@
 //! Parity with Node: tests/golden/json.json holds what JSON.parse + JSON.stringify gave for each
-//! text (scripts/golden.ts regenerates it from json.golden.ts).
+//! text (recorded from the Node server).
 
 use gs_json::{Json, parse, stringify, stringify_pretty};
 

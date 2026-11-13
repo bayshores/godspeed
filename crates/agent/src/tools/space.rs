@@ -1,4 +1,4 @@
-//! The space tools of a lesson in a space (src/backend/agent/tools/space.ts): the live space card,
+//! The space tools of a lesson in a space: the live space card,
 //! the note on the space cover, and search over the space's files.
 
 use std::sync::Arc;

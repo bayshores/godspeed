@@ -1,4 +1,4 @@
-//! What every server-side tool shares (src/backend/agent/tool-execute.ts): the per-call timeout
+//! What every server-side tool shares: the per-call timeout
 //! and abort guard, the result mapping and the fixed results of the question, problem and
 //! conclude tools.
 

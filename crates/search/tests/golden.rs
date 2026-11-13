@@ -1,5 +1,4 @@
-//! Parity with src/shared/core/search.ts (tests/golden/search.json, made by scripts/golden.ts from
-//! search.golden.ts): passages, places, snippets, MiniSearch hits with their exact scores, fusion
+//! Parity with src/shared/core/search.ts (tests/golden/search.json, recorded from the Node server): passages, places, snippets, MiniSearch hits with their exact scores, fusion
 //! and vector ranking.
 
 use gs_json::{Json, parse};

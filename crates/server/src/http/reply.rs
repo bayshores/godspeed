@@ -9,8 +9,7 @@ use bytes::{Bytes, BytesMut};
 use gs_json::Json;
 use http_body_util::BodyExt;
 
-/// Next buffers a request body for src/proxy.ts and cuts it here (`proxyClientMaxBodySize`), so a
-/// route then reads only this much.
+/// The largest request body a route reads (210 MiB); a bigger one is cut here.
 const BODY_LIMIT: usize = 210 * 1024 * 1024;
 
 fn with_type(status: u16, body: impl Into<Body>, content_type: &'static str) -> Response {

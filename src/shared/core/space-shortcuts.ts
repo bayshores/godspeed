@@ -2,8 +2,7 @@
  * The godspeed folder's spaces/: where each space file's shortcut goes.
  * Grouped like the Files page (core/file-groups.ts): spaces/<space>/
  * <group>/<file>, archived spaces under spaces/Archived/. Names are made
- * safe on every OS, and two of one name get " (2)". The server writes them
- * (src/backend/server/space-shortcuts.ts).
+ * safe on every OS, and two of one name get " (2)". The server writes them.
  */
 
 const RESERVED = /^(con|prn|aux|nul|com\d|lpt\d)$/i;

@@ -1,5 +1,4 @@
-//! Parity with Node for the program lookup (tests/golden/transcribe.json, made by
-//! scripts/golden.ts from transcribe.golden.ts). The transcriptions and downloads are replayed
+//! Parity with Node for the program lookup (tests/golden/transcribe.json, recorded from the Node server). The transcriptions and downloads are replayed
 //! inside the crate, where the program search and the download address can be set.
 
 #![cfg(unix)]

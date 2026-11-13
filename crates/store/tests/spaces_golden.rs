@@ -1,5 +1,4 @@
-//! Parity with Node for the space store (crates/core/tests/golden/spaces_store.json, made by
-//! scripts/golden.ts from spaces_store.golden.ts): the same steps in, the same answers, events
+//! Parity with Node for the space store (crates/core/tests/golden/spaces_store.json, recorded from the Node server): the same steps in, the same answers, events
 //! and space.json files out. Times and minted ids are masked as the TypeScript masks them: a
 //! time to the step that made it, an id to the order it appeared in.
 

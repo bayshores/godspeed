@@ -1,13 +1,3 @@
-<!-- BEGIN:nextjs-agent-rules -->
-
-## This is NOT the Next.js you know
-
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
-
-This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
-
-<!-- END:nextjs-agent-rules -->
-
 # Two repositories: the app and the landing page
 
 godspeed lives in two separate git repos. Don't forget the second one.
@@ -49,11 +39,11 @@ Keep godspeed small, tidy and easy to read. Every change follows these rules, an
 - No leftover feature flags, shims, or "old way" fallbacks once the new way works.
 
 **Where code goes**
-- `src/frontend`: what the browser runs, built by Vite (`index.html`, `main.tsx`, `routes/` for the router and its screens, `components/`, `lib/`, `globals.css`, `fonts/`). `src/backend`: what the server runs (`server/`, `agent/`, `store/`, `config.ts`). `src/shared/core`: pure logic both sides use. `src/app` (API routes only) and `src/proxy.ts` stay where Next.js looks for them, and only translate HTTP.
-- Tests sit in the matching folder: `tests/frontend`, `tests/backend` (also tests that cross into the server, like route tests), `tests/shared`, and `tests/desktop` for `electron/`, `scripts/` and `next.config.ts`. Shared helpers and `fixtures/` stay in `tests/` itself.
+- `src/frontend`: what the browser runs, built by Vite (`index.html`, `main.tsx`, `routes/` for the router and its screens, `components/`, `lib/`, `globals.css`, `fonts/`). `src/shared/core`: pure TypeScript logic, only what the frontend uses. `crates/`: all Rust. `crates/shell` is the desktop app (Tauri), and the server crates are laid out as in `docs/rust-server.md`.
+- Tests sit in the matching place: `tests/frontend`, `tests/shared`, and `tests/desktop` for the shim and `scripts/`. Rust tests sit beside their crate. Shared helpers and `fixtures/` stay in `tests/` itself.
 
 **One job per file**
-- Pure logic lives in `src/shared/core` (or a `*-model.ts` next to its component) and has unit tests. Components render, hooks fetch. API routes (`src/app`) translate HTTP; `src/frontend/routes` holds the router, its loaders and screens.
+- Pure logic lives in `src/shared/core` (or a `*-model.ts` next to its component) and has unit tests. Components render, hooks fetch. `src/frontend/routes` holds the router, its loaders and screens. The server crates own everything behind `/api`.
 - No import cycles. Keep the import law (`eslint.config.mjs`).
 - Split a file that does two jobs when you touch it. Don't grow it further.
 
@@ -62,5 +52,5 @@ Keep godspeed small, tidy and easy to read. Every change follows these rules, an
 - Comments are short and say why, not what. No dates, history, plan phases or "owner ruling" notes in code; git and `docs/` keep history. Trim old ones in code you change.
 
 **Done means clean**
-- `npm run check` passes: typecheck (with unused variables and parameters as errors), tests, lint, and `npm run deadcode` (knip). CI runs the same checks.
+- `npm run check` passes: typecheck (with unused variables and parameters as errors), tests, lint, `npm run deadcode` (knip) and `npm run rust:check` (cargo test, clippy and cargo machete). CI runs the same checks.
 - Before calling a change finished, read the diff once more for anything unused, duplicated or over-built, and cut it.

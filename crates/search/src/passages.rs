@@ -1,5 +1,5 @@
 //! A space's passage table: indexing and dropping files, search_space_files and read_passage
-//! (the space-file half of src/backend/server/search-index.ts).
+//! (the space-file half of the search index).
 
 use std::collections::HashMap;
 use std::sync::Arc;

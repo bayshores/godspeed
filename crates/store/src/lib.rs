@@ -1,4 +1,4 @@
-//! The data files, read and written exactly as the Node server does (src/backend/store).
+//! The data files, read and written exactly as the Node server does.
 
 pub mod settings;
 pub mod prompt_overrides;

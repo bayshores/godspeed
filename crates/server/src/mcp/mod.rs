@@ -1,4 +1,4 @@
-//! The MCP server (src/backend/server/mcp.ts): how outside agents (Claude Code, Codex, any MCP
+//! The MCP server: how outside agents (Claude Code, Codex, any MCP
 //! client) reach godspeed. Served at /api/mcp, stateless, guarded by the bearer token in
 //! data/mcp-token. It speaks both MCP versions: 2026-07-28 (every request says who sent it;
 //! server/discover hands over the instructions) and the older one that starts with initialize.

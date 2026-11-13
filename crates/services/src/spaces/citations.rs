@@ -1,4 +1,4 @@
-//! Source marks, server side (src/backend/server/citations.ts): checks the marks in a teacher
+//! Source marks, server side: checks the marks in a teacher
 //! reply before it is stored, and serves what a click on a space file source shows (the passage
 //! text and the PDF page). The marks themselves are core `messages::citations`.
 

@@ -1,4 +1,4 @@
-//! work_plan (src/backend/agent/tools/work-plan.ts): the plan for the reply being worked on,
+//! work_plan: the plan for the reply being worked on,
 //! shown to the learner. Nothing is stored; the call's own input is the plan.
 
 use gs_json::json;

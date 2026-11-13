@@ -1,5 +1,4 @@
-//! Parity with Node for the space rules (tests/golden/spaces.json, made by scripts/golden.ts
-//! from spaces.golden.ts in America/Los_Angeles and en-US). Every case lists the inputs beside
+//! Parity with Node for the space rules (tests/golden/spaces.json, recorded from the Node server). Every case lists the inputs beside
 //! the output, so each test feeds the Rust function the same inputs and prints its answer as JSON.
 
 use std::collections::{HashMap, HashSet};

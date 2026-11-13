@@ -9,7 +9,7 @@
  */
 
 /** Topic dots: center x, y, side of the square. */
-const DOTS: readonly (readonly [number, number, number])[] = [
+export const DOTS: readonly (readonly [number, number, number])[] = [
 	[150, 820, 8],
 	[260, 700, 5.5],
 	[200, 600, 5.5],
@@ -33,7 +33,7 @@ const DOTS: readonly (readonly [number, number, number])[] = [
 ];
 
 /** Links between dots (indexes into DOTS). */
-const LINKS: readonly (readonly [number, number])[] = [
+export const LINKS: readonly (readonly [number, number])[] = [
 	[0, 1], [2, 1], [1, 3], [2, 4], [4, 3], [3, 5], [4, 7], [5, 6], [7, 6],
 	[6, 8], [7, 9], [8, 10], [9, 10], [9, 11], [10, 12], [11, 12], [8, 13],
 	[13, 14], [12, 14], [14, 15], [14, 16], [15, 17], [15, 18], [17, 19],
@@ -46,7 +46,7 @@ const STOP: readonly [number, number] = [740, 400];
 
 /** When a dot pops up (seconds into the intro): left to right up to the
  *  middle, then faster outward. */
-function dotDelay(x: number): number {
+export function dotDelay(x: number): number {
 	if (x <= STOP[0]) return 0.6 + 0.7 * Math.max(0, (x - START[0]) / (STOP[0] - START[0]));
 	return 1.3 + 0.4 * Math.min(1, (x - STOP[0]) / (1300 - STOP[0]));
 }

@@ -1,4 +1,4 @@
-//! The homework tools (src/backend/agent/tools/homework.ts): post_problems saves the assignment's
+//! The homework tools: post_problems saves the assignment's
 //! problems on its deadline, problem opens one in the learner's Your turn panel (it ends the turn,
 //! but carries no solution: homework is hints only), part marks the part the learner is on there,
 //! conclude closes it and marks it done when the learner's own work was right. The side tools are

@@ -1,5 +1,4 @@
-//! Parity with Node for the lesson-record rules (tests/golden/messages.json, made by
-//! scripts/golden.ts from messages.golden.ts). Ids and clock stamps the constructors make are
+//! Parity with Node for the lesson-record rules (tests/golden/messages.json, recorded from the Node server). Ids and clock stamps the constructors make are
 //! masked the same way on both sides.
 
 use std::collections::HashSet;
@@ -22,7 +21,7 @@ fn golden(case: &str) -> Json {
 	found["output"].clone()
 }
 
-/// Same masking as `norm` in messages.golden.ts.
+/// Same masking as `norm` in the Node recorder.
 fn norm(value: &Json) -> Json {
 	match value {
 		Json::Arr(items) => items.iter().map(norm).collect(),

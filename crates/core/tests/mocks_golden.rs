@@ -1,5 +1,4 @@
-//! Parity with Node for mocks (tests/golden/mocks.json, made by scripts/golden.ts from
-//! mocks.golden.ts): questions taken or refused, answers and grades, saved mocks read back, the
+//! Parity with Node for mocks (tests/golden/mocks.json, recorded from the Node server): questions taken or refused, answers and grades, saved mocks read back, the
 //! clock, the program that runs the examples, how its output is read, and the teacher's texts.
 
 use std::collections::HashSet;

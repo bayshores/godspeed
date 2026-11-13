@@ -39,7 +39,7 @@ export function TeacherActivity() {
 }
 
 /** The list itself, from its data (exported for tests). */
-function ActivityList({
+export function ActivityList({
 	name,
 	doing,
 	follow,

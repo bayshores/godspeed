@@ -1,5 +1,4 @@
-//! Parity with Node for the record rules (tests/golden/records.json, made by scripts/golden.ts
-//! from records.golden.ts in America/Los_Angeles and en-US). Outputs are compared as JSON text,
+//! Parity with Node for the record rules (tests/golden/records.json, recorded from the Node server). Outputs are compared as JSON text,
 //! so key order and number text have to match too.
 
 use gs_core::records::agent_notes::{clean_note_text, parse_agent_notes};

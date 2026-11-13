@@ -39,7 +39,7 @@ export interface ProbeDoneInput {
 }
 
 // The TypeBox schema of that input — SINGLE SOURCE OF TRUTH, lived by the
-// tool (src/backend/agent/tools/probe.ts) and by the UI parse seam (src/shared/core/tool-parts.ts):
+// tool and by the UI parse seam (src/shared/core/tool-parts.ts):
 // the boundary validation and the consumer parse run literally the same
 // schema, so "schema-valid at the boundary" ⇔ "parseable by a consumer" is
 // structural, not a convention (a model once sent `assessment` as a

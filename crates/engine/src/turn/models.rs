@@ -1,4 +1,4 @@
-//! The engine every lesson, job and pipeline stage runs on (src/backend/agent/models.ts): the
+//! The engine every lesson, job and pipeline stage runs on: the
 //! outside agent. The agent picks its own model and effort in its own harness.
 
 use super::faux::Engine;

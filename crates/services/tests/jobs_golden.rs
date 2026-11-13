@@ -1,5 +1,5 @@
-//! Parity with the TypeScript for jobs (tests/golden/jobs.json, made by
-//! jobs.golden.ts from synthetic lessons and job records): the recovery sweep's writes, the
+//! Parity with the TypeScript for jobs (tests/golden/jobs.json, recorded
+//! from the Node server using synthetic lessons and job records): the recovery sweep's writes, the
 //! activity feed, and what aborting and acknowledging leave in job records.
 
 use std::path::{Path, PathBuf};

@@ -1,5 +1,5 @@
-//! Parity with the TypeScript for turns (tests/golden/turns.json, made by
-//! turns.golden.ts from synthetic lessons): the settled stream terminal, the compaction trigger's
+//! Parity with the TypeScript for turns (tests/golden/turns.json, recorded
+//! from the Node server using synthetic lessons): the settled stream terminal, the compaction trigger's
 //! context estimate, the canonical turn save and PDF attachments.
 
 use std::collections::HashSet;

@@ -4,14 +4,13 @@ import { useActivity } from "@/frontend/components/activity-dock";
 /**
  * The coverage block in the lesson menu: whether the
  * lesson's facts are all in the graph yet, plus a manual "Add to graph".
- * Coverage comes from GET /api/chats/[id] (`coverage`).
+ * Coverage comes from GET /api/chats/{id} (`coverage`).
  *
  * Extract posts to /api/graph/coverage/extract {chatId}. A 409 means a run
  * is already in flight, which is fine: the activity dock refreshes either way.
  */
 
-/** Client-safe mirror of the server's SessionCoverage (src/backend/server/chats.ts
- *  — the GET /api/chats/[id] `coverage` block). */
+/** Client-safe mirror of the server's SessionCoverage (the GET /api/chats/{id} `coverage` block). */
 export interface SessionCoverage {
 	totalMessages: number;
 	coveredCount: number;

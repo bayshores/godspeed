@@ -1,6 +1,5 @@
 //! The agent loop: messages, tool calls, steering, aborts, stream events and usage estimates
-//! (@earendil-works/pi-agent-core, pi-ai's faux provider, src/backend/agent/models.ts,
-//! tool-execute.ts, src/backend/server/pi/*).
+//! (@earendil-works/pi-agent-core, pi-ai's faux provider).
 
 pub mod abort;
 pub mod agent;

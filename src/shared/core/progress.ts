@@ -12,8 +12,7 @@
  *  - how each lesson went, calibration per confidence level
  *  - per deadline: days left, ready %, its topics, where you're at, "Work on next"
  *
- * Pure and browser-safe: no node builtins. The server assembles the inputs
- * (src/backend/server/progress.ts → GET /api/progress).
+ * Pure and browser-safe: no node builtins. The server assembles the inputs for GET /api/progress.
  */
 import type { DeadlineKind, LessonKind, TopicMaterial } from "./contracts.ts";
 import { type ContinueStudy } from "./continue-study.ts";

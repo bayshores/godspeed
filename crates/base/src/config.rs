@@ -1,4 +1,4 @@
-//! Where things live, read from the environment once at start-up (src/backend/config.ts):
+//! Where things live, read from the environment once at start-up:
 //!
 //! - `LH_DATA_DIR`: every mutable record; unset, `data/` in the working directory.
 //! - `HOME` (Windows: `USERPROFILE`): `os.homedir()`; `TMPDIR` (Windows: `TEMP`, then `TMP`):

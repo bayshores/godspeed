@@ -1,4 +1,4 @@
-//! Tool-call ids made unique at the turn's wire (src/backend/server/pi/call-ids.ts). Some
+//! Tool-call ids made unique at the turn's wire. Some
 //! providers restart their ids every response (`call_0` each turn), and everything in the app
 //! keys on the id, so a reused id gets a fresh `<id>~2`, `~3`, … once, for the wire, the saved
 //! record and the next turn alike. History already in the record is never rewritten.

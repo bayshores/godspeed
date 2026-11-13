@@ -1,5 +1,5 @@
-//! Parity with the TypeScript for the app services (tests/golden/app-misc.json, made by
-//! app-misc.golden.ts over a synthetic space): the settings parsers, the prompt segment list, the
+//! Parity with the TypeScript for the app services (tests/golden/app-misc.json, recorded
+//! from the Node server over a synthetic space): the settings parsers, the prompt segment list, the
 //! activity log, the saved-rules code and the reading view.
 
 use std::path::{Path, PathBuf};

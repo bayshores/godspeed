@@ -28,7 +28,7 @@ mod tests {
 
 	use super::validate_tool_arguments;
 
-	/// Replays tests/golden/validate.json (pi's own results, from validate.golden.ts).
+	/// Replays tests/golden/validate.json (pi's own results, recorded from the Node server).
 	#[test]
 	fn matches_pi() {
 		let golden = parse(&std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/golden/validate.json")).unwrap()).unwrap();

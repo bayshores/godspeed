@@ -1,4 +1,4 @@
-//! The outside-agent bridge (src/backend/agent/agent-bridge.ts). An external agent (Claude Code,
+//! The outside-agent bridge. An external agent (Claude Code,
 //! Codex, any MCP client) plays the model: each model request of a turn, a background job or the
 //! extraction pipeline is parked here as a work item, the MCP layer hands it to the connected
 //! agent (`wait_for_work`), and the agent's answer (`respond_to_work`) becomes an ordinary

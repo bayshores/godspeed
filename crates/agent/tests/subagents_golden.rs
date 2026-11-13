@@ -1,5 +1,4 @@
-//! Parity with the TypeScript visual maker and demo builder (tests/golden/subagents.json, made by
-//! scripts/golden.ts from subagents.golden.ts): each case's `config` (a model script and the
+//! Parity with the TypeScript visual maker and demo builder (tests/golden/subagents.json, recorded from the Node server): each case's `config` (a model script and the
 //! stand-in headless engine's answers) is replayed on the Rust loops, which must give the same
 //! result, show the model the same tool answers and messages, and write the same activity lines.
 

@@ -373,5 +373,8 @@ mod tests {
 		assert_eq!(route(&url("file:///tmp/a"), origin), Route::Nowhere);
 		assert_eq!(route(&url("smb://host/share"), origin), Route::Nowhere);
 		assert_eq!(route(&url("javascript:alert(1)"), origin), Route::Nowhere);
+		assert_eq!(route(&url("vscode://file/etc/passwd"), origin), Route::Nowhere);
+		assert_eq!(route(&url("search-ms:query=x&crumb=location:\\\\host\\share"), origin), Route::Nowhere);
+		assert_eq!(route(&url("x-apple.systempreferences:com.apple.preference.security"), origin), Route::Nowhere);
 	}
 }

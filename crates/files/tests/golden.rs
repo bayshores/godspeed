@@ -1,5 +1,4 @@
-//! Parity with the TypeScript space-file code (tests/golden/files.json, made by scripts/golden.ts
-//! from files.golden.ts): office text, captions, text sniffing, reading rules, folder walks,
+//! Parity with the TypeScript space-file code (tests/golden/files.json, recorded from the Node server): office text, captions, text sniffing, reading rules, folder walks,
 //! fingerprints.
 
 mod support;

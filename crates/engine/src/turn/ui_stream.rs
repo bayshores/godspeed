@@ -1,5 +1,5 @@
 //! One lesson turn as a background object whose views are SSE streams
-//! (src/backend/server/pi/ui-stream.ts). The wire is the agent's own events:
+//!. The wire is the agent's own events:
 //!
 //! ```text
 //! data: {"type":"agent_start"}\n\n … data: {"type":"agent_end","messages":[…]}\n\n data: [DONE]\n\n

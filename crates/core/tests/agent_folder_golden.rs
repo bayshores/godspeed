@@ -1,5 +1,5 @@
 //! Parity with Node for the agent folder's files and commands (tests/golden/agent_folder.json,
-//! made by scripts/golden.ts from agent_folder.golden.ts). Each case lists its inputs beside the
+//! recorded from the Node server). Each case lists its inputs beside the
 //! output, so each test feeds the Rust function the same inputs.
 
 use gs_core::spaces::agent_folder::{FolderAgent, Platform, StartTarget, claude_settings, copy_command, mcp_json, saved_start_commands, short_folder, start_script, start_script_path, usable_folder, usable_start_command};

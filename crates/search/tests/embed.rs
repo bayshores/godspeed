@@ -1,5 +1,5 @@
 //! The embedder against vectors the Node worker made for the same batches (tests/golden/embed.json,
-//! from embed.golden.ts). Needs models/ at the repo root (node scripts/fetch-model.mjs).
+//! recorded from the Node server). Needs models/ at the repo root (node scripts/fetch-model.mjs).
 
 use std::path::PathBuf;
 

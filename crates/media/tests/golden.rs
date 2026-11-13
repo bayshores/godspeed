@@ -1,5 +1,5 @@
 //! Parity with Node: the cases in tests/golden/*.json come from the real TypeScript
-//! (scripts/golden.ts runs the *.golden.ts beside them). Sharp's pixels are not reproduced
+//! (recorded from the Node server). Sharp's pixels are not reproduced
 //! byte for byte, so the picture cases compare type, size and sampled pixels.
 
 use gs_json::{Json, parse};

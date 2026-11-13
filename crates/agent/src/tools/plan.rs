@@ -1,4 +1,4 @@
-//! plan_init (src/backend/agent/tools/plan.ts): the teacher writes the whole dependency map as a
+//! plan_init: the teacher writes the whole dependency map as a
 //! mermaid block, once and again whenever it is wrong. Statuses are derived from the quiz nodeId
 //! tags, never declared.
 

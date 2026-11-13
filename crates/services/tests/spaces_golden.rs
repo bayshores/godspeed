@@ -1,5 +1,5 @@
-//! Parity with the TypeScript for spaces (tests/golden/spaces.json, made by
-//! spaces.golden.ts from three synthetic spaces): source ids, folder names, the space card, the
+//! Parity with the TypeScript for spaces (tests/golden/spaces.json, recorded
+//! from the Node server using three synthetic spaces): source ids, folder names, the space card, the
 //! list_spaces and read_space tools, and the shortcuts a sync makes, keeps and clears. The recording
 //! is a POSIX one (symlinks, mode bits), so it runs only there.
 

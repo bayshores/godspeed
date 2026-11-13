@@ -1,4 +1,4 @@
-//! Parity with the pdf.js code (tests/golden/pdf.json, made by scripts/golden.ts from pdf.golden.ts).
+//! Parity with the pdf.js code (tests/golden/pdf.json, recorded from the Node server).
 //!
 //! Every case must equal pdf.js, page text included, on these simple fixtures. On real textbook
 //! pages pdfium orders some lines and math symbols differently; that is not checked here.

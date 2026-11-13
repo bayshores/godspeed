@@ -1,4 +1,4 @@
-//! The graph services (src/backend/server/extraction.ts, graph.ts, topics.ts, progress.ts): the
+//! The graph services: the
 //! one extraction pipeline and its run registry, the graph reads and node deletion, topic-grouping
 //! scheduling, and the progress payload.
 

@@ -1,4 +1,4 @@
-//! The universal argument heal (src/backend/agent/tools/heal.ts): every tool of a registry heals
+//! The universal argument heal: every tool of a registry heals
 //! what is mechanically recognizable (a JSON-encoded stand-in for the schema's shape) after its
 //! own preparation, so no tool can ship unwrapped and validation rejects the rest.
 

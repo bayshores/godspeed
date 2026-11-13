@@ -1,5 +1,4 @@
-//! Parity with Node for gs-base's JavaScript helpers (tests/golden/js.json, made by
-//! scripts/golden.ts from js.golden.ts in America/Los_Angeles and en-US).
+//! Parity with Node for gs-base's JavaScript helpers (tests/golden/js.json, recorded from the Node server).
 
 use gs_base::{locale, num, re::Re, text, time};
 use gs_json::{Json, parse};

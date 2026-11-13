@@ -1,4 +1,4 @@
-//! The prober's, teacher's and study session's registries (src/backend/agent/tools.ts). The prober
+//! The prober's, teacher's and study session's registries. The prober
 //! and the teacher are different agents with different tools. Their question tools share a name
 //! family but are different tools: the prober's quiz has no nodeId at all, the teacher's carries
 //! the validated one.

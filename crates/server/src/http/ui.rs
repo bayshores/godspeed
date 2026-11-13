@@ -1,4 +1,4 @@
-//! Files outside /api (src/backend/server/ui-files.ts, pdfjs-assets.ts): the window's screens
+//! Files outside /api: the window's screens
 //! from `ui/`, and pdf.js's worker and data from `pdfjs-dist/`, both beside the server.
 
 use std::path::Path;

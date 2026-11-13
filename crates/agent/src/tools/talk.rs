@@ -1,4 +1,4 @@
-//! The space tools of the Talk chat (src/backend/agent/tools/talk.ts): the learner's spaces, files
+//! The space tools of the Talk chat: the learner's spaces, files
 //! and deadlines, running the same actions the outside agent's MCP tools run. Nothing here deletes
 //! a space or a file. Each result's details carry the changes it made, shown as rows in Talk.
 

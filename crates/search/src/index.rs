@@ -1,4 +1,4 @@
-//! The stored search index (src/backend/server/search-index.ts). Each graph scope keeps its tables
+//! The stored search index. Each graph scope keeps its tables
 //! next to its graph, in `search/`: `passages` (every space file cut into passages) and `facts`
 //! (the graph's facts), see table.rs. A row's hash is of its text, so a changed file or fact
 //! re-embeds only what changed. Search fuses the embedding ranking with BM25 keyword ranking;

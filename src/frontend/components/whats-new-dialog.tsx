@@ -8,7 +8,7 @@ import type { ChangelogEntry } from "@/shared/core";
 import { DialogSheet } from "@/frontend/components/ui/dialog-sheet";
 
 /** "2026-10-27" → "Oct 27, 2026" (fixed locale and zone: no hydration drift). */
-function formatChangelogDate(date: string): string {
+export function formatChangelogDate(date: string): string {
 	const d = new Date(`${date}T00:00:00Z`);
 	if (Number.isNaN(d.getTime())) return date;
 	return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });

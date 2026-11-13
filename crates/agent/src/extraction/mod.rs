@@ -1,5 +1,4 @@
-//! Graph extraction (src/backend/agent/subagents/extraction.ts, extraction-runs.ts,
-//! submit-agent.ts, topic-grouper.ts): the extractor and its pipeline, the run registry, the
+//! Graph extraction: the extractor and its pipeline, the run registry, the
 //! single-submit agent seam, the topic grouper, and the graph ports over the stores.
 
 mod context;

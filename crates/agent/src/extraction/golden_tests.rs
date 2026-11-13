@@ -1,5 +1,4 @@
-//! Parity with Node for the pipeline and the topic grouper (tests/golden/extraction.json, made by
-//! scripts/golden.ts from extraction.golden.ts): the same synthetic lesson and notes, the same
+//! Parity with Node for the pipeline and the topic grouper (tests/golden/extraction.json, recorded from the Node server): the same synthetic lesson and notes, the same
 //! scripted replies, and every prompt, refusal, answer and graph file must match once random ids
 //! and clock times are normalized the same way.
 

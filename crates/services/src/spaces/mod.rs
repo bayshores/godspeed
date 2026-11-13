@@ -1,4 +1,4 @@
-//! The space services (src/backend/server/spaces.ts and its neighbours): the cross-store work
+//! The space services: the cross-store work
 //! behind every space route, MCP space tool and the linked-folder scanner.
 //!
 //! spaces.ts is split by job: `lifecycle` (create, edit, delete, move a lesson), `deadlines`,

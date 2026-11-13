@@ -1,4 +1,4 @@
-//! The question tools (src/backend/agent/tools.ts): client-answered, so each call only checks the
+//! The question tools: client-answered, so each call only checks the
 //! authoring rules and returns the "question posed" placeholder that ends the turn.
 
 use std::sync::Arc;

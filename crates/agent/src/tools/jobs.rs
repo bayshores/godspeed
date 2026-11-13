@@ -1,4 +1,4 @@
-//! The background job tools (src/backend/agent/tools/jobs.ts): research, demo, visual and pdf.
+//! The background job tools: research, demo, visual and pdf.
 //! Each call creates the job record, starts the runner and answers at once; the result arrives
 //! later as a steer message that wakes the teacher.
 

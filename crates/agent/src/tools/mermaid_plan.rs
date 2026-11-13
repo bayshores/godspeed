@@ -1,4 +1,4 @@
-//! The mermaid subset a plan is written in (src/backend/agent/tools/mermaid-plan.ts): a hand
+//! The mermaid subset a plan is written in: a hand
 //! parser with line-numbered problems the teacher can act on. Node ids are permanent lowercase
 //! slugs, titles are free text, and `-->` (also `==>`, `-.->`) means "from is a prerequisite".
 

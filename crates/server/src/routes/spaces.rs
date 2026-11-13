@@ -1,5 +1,5 @@
 //! /api/spaces, /api/spaces/{id}, its files, folder and deadlines (not cheat sheets),
-//! /api/deadlines and /api/deadlines/{id} (src/app/api/spaces, src/app/api/deadlines).
+//! /api/deadlines and /api/deadlines/{id}.
 
 use std::sync::Arc;
 

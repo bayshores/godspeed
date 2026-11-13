@@ -1,4 +1,4 @@
-//! Replays tests/golden/ui_stream.json (the real runPiTurn, from ui_stream.golden.ts): the frames a
+//! Replays tests/golden/ui_stream.json (the real runPiTurn, recorded from the Node server): the frames a
 //! view gets, what `on_finish` receives, and the settle-failure report.
 
 use std::sync::Arc;

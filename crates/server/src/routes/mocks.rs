@@ -1,4 +1,4 @@
-//! /api/spaces/{id}/mocks and /api/spaces/{id}/mocks/{mock_id} (src/app/api/spaces/[id]/mocks):
+//! /api/spaces/{id}/mocks and /api/spaces/{id}/mocks/{mock_id}:
 //! making a prep's next mock, its view, what the learner does on its page, and removing it.
 
 use std::sync::Arc;

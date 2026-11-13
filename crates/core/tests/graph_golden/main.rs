@@ -1,5 +1,4 @@
-//! Parity with Node for the knowledge-graph logic: tests/golden/graph.json (made by
-//! scripts/golden.ts from graph.golden.ts in America/Los_Angeles and en-US) holds `{ op, input,
+//! Parity with Node for the knowledge-graph logic: tests/golden/graph.json (recorded from the Node server) holds `{ op, input,
 //! expected }` per case. Each op replays on the input and must give `expected`, key order
 //! included. Seed-data outputs are digests (`$sha`, `$len`) of the JSON text.
 

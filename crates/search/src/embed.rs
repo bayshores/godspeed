@@ -1,4 +1,4 @@
-//! Text to normalized vectors with snowflake-arctic-embed-xs (src/backend/server/workers/embed-worker.mjs).
+//! Text to normalized vectors with snowflake-arctic-embed-xs.
 //!
 //! The tokenizer and the quantized ONNX model live on a thread of their own and embed one batch at a
 //! time, so a batch never holds up the async threads. Each batch is padded to its longest text and

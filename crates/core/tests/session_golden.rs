@@ -1,5 +1,4 @@
-//! Parity with Node for the session logic (tests/golden/session.json, made by scripts/golden.ts
-//! from session.golden.ts in America/Los_Angeles and en-US). Every case lists its inputs beside
+//! Parity with Node for the session logic (tests/golden/session.json, recorded from the Node server). Every case lists its inputs beside
 //! the answer; the real-chat case recomputes everything from tests/fixtures/session_chats.json.
 //! Ids and clock stamps the constructors make are masked the same way on both sides.
 
@@ -81,7 +80,7 @@ fn is_generated_id(id: &str) -> bool {
 	matches!(prefix, "msg" | "pb") && !stamp.is_empty() && stamp.bytes().all(|b| b.is_ascii_digit() || b.is_ascii_lowercase()) && rand.len() == 8 && rand.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
 }
 
-/// Same masking as `maskMarker` in session.golden.ts.
+/// Same masking as `maskMarker` in the Node recorder.
 fn mask_marker(message: &Json) -> Json {
 	let Some(object) = message.as_obj() else { return message.clone() };
 	Json::Obj(
@@ -99,7 +98,7 @@ fn mask_marker(message: &Json) -> Json {
 	)
 }
 
-/// Same masking as `maskBlock` in session.golden.ts.
+/// Same masking as `maskBlock` in the Node recorder.
 fn mask_block(message: &Json) -> Json {
 	let mut out = mask_marker(message);
 	if let Some(at) = out.get_mut("details").and_then(|d| d.get_mut("block")).and_then(|b| b.get_mut("at"))
