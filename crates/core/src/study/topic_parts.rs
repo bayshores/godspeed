@@ -20,7 +20,7 @@ use crate::session::question_core::{coerce_correct_answer, normalize_quiz_type, 
 /// is null or `{ messageId, leadOf, fileId, range, name, quote }` (the reply's message id, or the
 /// call id of the topic_done whose opener lead holds the mark).
 pub fn topic_parts(messages: &[Json]) -> Vec<Json> {
-	walk(messages).0
+	walk(messages, None).0
 }
 
 /// One reply the learner sees (or a shown opener's lead), in record order: its topic and whether
@@ -31,7 +31,8 @@ struct Visit {
 	plot: bool,
 }
 
-fn walk(messages: &[Json]) -> (Vec<Json>, Vec<Visit>) {
+/// The record, then `reply` when given (a reply not yet stored, which holds no opener or result).
+fn walk(messages: &[Json], reply: Option<&Json>) -> (Vec<Json>, Vec<Visit>) {
 	let openers = shown_openers(messages);
 	let refused: HashSet<&str> = messages.iter().filter(|m| m["role"].as_str() == Some("toolResult") && m["isError"] == Json::Bool(true)).filter_map(|m| m["toolCallId"].as_str()).collect();
 	let mut out: Vec<Json> = Vec::new();
@@ -39,7 +40,7 @@ fn walk(messages: &[Json]) -> (Vec<Json>, Vec<Visit>) {
 	let reached = |out: &[Json], node_id: &str| out.iter().position(|t| t["nodeId"].as_str() == Some(node_id));
 	let mut opened: HashSet<String> = HashSet::new();
 	let mut current: Option<String> = None;
-	for m in messages {
+	for m in messages.iter().chain(reply) {
 		let opener = (m["role"].as_str() == Some("toolResult")).then(|| m["toolCallId"].as_str().and_then(|id| openers.get(id))).flatten();
 		if let Some(opener) = opener
 			&& let Some(node_id) = opener["quiz"]["nodeId"].as_str()
@@ -239,9 +240,7 @@ fn guess_value(plot: &Plot, quiz: &Json, problems: &mut Vec<String>) -> Option<f
 /// One plot a topic, and a plot only after a topic reply with no page, plot or keep, its own
 /// reply carrying no page either.
 fn spacing_problems(lesson_messages: &[Json], reply: &Json) -> Vec<String> {
-	let mut messages = lesson_messages.to_vec();
-	messages.push(reply.clone());
-	let (_, visits) = walk(&messages);
+	let (_, visits) = walk(lesson_messages, Some(reply));
 	let Some((own, earlier)) = visits.split_last() else { return Vec::new() };
 	let topic: Vec<&Visit> = earlier.iter().filter(|v| v.node_id == own.node_id).collect();
 	let mut problems = Vec::new();
