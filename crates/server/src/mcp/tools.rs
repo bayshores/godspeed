@@ -1,6 +1,5 @@
-//! The tool list and the call router. tools.json is tools/list exactly as the Node SDK emitted
-//! it from the zod schemas (order, titles, descriptions, annotations, JSON Schemas); calls are
-//! checked against those schemas before a handler runs.
+//! The tool list and the call router. tools.json is tools/list (order, titles, descriptions,
+//! annotations, JSON Schemas); calls are checked against those schemas before a handler runs.
 
 use std::sync::{Arc, LazyLock};
 
@@ -83,6 +82,16 @@ mod tests {
 		assert_eq!(names.len(), 25);
 		assert_eq!(names[..3], ["wait_for_work", "respond", "read_work"]);
 		assert_eq!(names[24], "unlink_space_folder");
+	}
+
+	/// Clients and listings read a missing hint as the risky default, so every tool states all four.
+	#[test]
+	fn every_tool_states_all_four_hints() {
+		for tool in tool_list().as_arr().unwrap() {
+			for hint in ["readOnlyHint", "destructiveHint", "idempotentHint", "openWorldHint"] {
+				assert!(tool["annotations"][hint].as_bool().is_some(), "{} {hint}", tool["name"].as_str().unwrap());
+			}
+		}
 	}
 
 	/// The listed texts are the shared space-tool texts, so the two never drift apart.
