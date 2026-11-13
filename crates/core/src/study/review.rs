@@ -153,7 +153,8 @@ pub fn review_items(chat_id: &str, messages: &[Json]) -> Vec<Json> {
 				let Some(&(message_id, args)) = calls.get(call_id) else { continue };
 				let (node, quiz) = match m["toolName"].as_str() {
 					Some(TOPIC_DONE_TOOL) if args["review"].as_obj().is_some() => (args["review"]["nodeId"].as_str().or(args["nodeId"].as_str()), &args["review"]),
-					Some("quiz") if args["standalone"] == Json::Bool(true) && normalize_quiz_type(&args["type"]) == Some("check") && answer_outcome(&m["details"]) == Some("right") => (args["nodeId"].as_str(), args),
+					// A quiz that carries a keep earned his sentence, so it never comes back itself.
+					Some("quiz") if args["standalone"] == Json::Bool(true) && normalize_quiz_type(&args["type"]) == Some("check") && args["keep"].is_null() && answer_outcome(&m["details"]) == Some("right") => (args["nodeId"].as_str(), args),
 					_ => continue,
 				};
 				let Some(node) = node.filter(|n| !n.is_empty()) else { continue };
@@ -577,9 +578,11 @@ mod tests {
 			result("t1", "topic_done", json!({ "part": "topic_done", "v": 1 }), false),
 			assistant("m6", "t2", "topic_done", json!({ "nodeId": "cv", "review": review })),
 			result("t2", "topic_done", json!({}), true),
+			assistant("m7", "q7", "quiz", json!({ "type": "check", "nodeId": "reg", "question": "K?", "standalone": true, "keep": { "text": "Lambda prices large weights." } })),
+			result("q7", "quiz", json!({ "kind": "quiz", "correct": true }), false),
 		];
 		let got = review_items("c", &messages);
-		assert_eq!(got.len(), 2, "only a right standalone check and a stored review");
+		assert_eq!(got.len(), 2, "only a right standalone check with no keep and a stored review");
 		assert_eq!(got[0], json!({ "of": { "chatId": "c", "messageId": "m1", "toolCallId": "q1" }, "nodeId": "reg", "quiz": { "question": "Q?", "options": [{ "label": "A" }], "correctAnswer": "A", "explanation": "E" } }));
 		assert_eq!(got[1]["of"], json!({ "chatId": "c", "messageId": "m5", "toolCallId": "t1" }));
 		assert_eq!(got[1]["quiz"]["multiSelect"], json!(false));
