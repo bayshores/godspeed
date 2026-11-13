@@ -24,10 +24,11 @@ export function answerWasLine(answer: QuestionAnswerData): string | null {
 }
 
 /** An option as part of a sentence: a capitalized first word in lower
- *  case (not "I"), and no closing full stop. */
+ *  case ("A" too, but not another lone capital, which names a quantity),
+ *  and no closing full stop. */
 function inSentence(label: string): string {
 	const text = label.trim().replace(/\.$/, "");
-	return /^[A-Z][a-z]*\b/.test(text) && !/^I\b/.test(text) ? text[0]!.toLowerCase() + text.slice(1) : text;
+	return /^(A|[A-Z][a-z]+)\b/.test(text) ? text[0]!.toLowerCase() + text.slice(1) : text;
 }
 
 /** A plot guess's line: "You picked: at 2, the leash's length. The penalty

@@ -572,6 +572,17 @@ describe("predict vs check rendering", () => {
 		assert.ok(!unsure.includes("You picked"));
 	});
 
+	it("a plot guess keeps a single capital letter, which names a quantity", () => {
+		const labels = [{ label: "N stays at 4." }, { label: "X = 2" }, { label: "A line at 4." }];
+		const options = normalizeOptions(labels);
+		const qd: QuestionData = { kind: "quiz", question: "What happens?", mode: "single-select", options, correctIndices: [1], questionType: "predict" };
+		const input = { type: "predict", question: qd.question, options: labels, correctAnswer: "N stays at 4.", onPlot: { line: "penalty", x: 8 } };
+		const said = (i: number) => renderToStaticMarkup(<AnsweredCard answer={buildAnswer(qd, { values: [options[i]!.value] })} input={input} plotValue={4} />);
+		assert.match(said(0), /You picked: N stays at 4\./);
+		assert.match(said(1), /You picked: X = 2\./);
+		assert.match(said(2), /You picked: a line at 4\./);
+	});
+
 	it("a quiz keeps its Right and Wrong tag", () => {
 		const html = renderToStaticMarkup(<AnsweredCard answer={buildAnswer(quizQD(), { values: ["Mercury"] })} />);
 		assert.match(html, /data-testid="answer-result"[^>]*>Right/);
