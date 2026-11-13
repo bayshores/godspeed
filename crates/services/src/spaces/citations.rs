@@ -118,7 +118,8 @@ fn reads_as_lines(name: &str) -> bool {
 	ext.is_empty() || plain_text_extensions().any(|e| e == ext)
 }
 
-/// `{ kind: "page", boxes }` on PDF page `page`, cached by file version.
+/// `{ kind: "page", boxes }` on PDF page `page`, cached by file version. A failed read is not
+/// cached, so the next ask tries again.
 async fn page_marks(app: &App, on_disk: &Path, page: u32, quote: &str) -> Option<Json> {
 	let meta = tokio::fs::metadata(on_disk).await.ok()?;
 	let key = format!("{}:{}:{page}:{quote}", on_disk.display(), mtime_ms(&meta));
@@ -126,7 +127,7 @@ async fn page_marks(app: &App, on_disk: &Path, page: u32, quote: &str) -> Option
 		return Some(marks.clone()).filter(|m| !m.is_null());
 	}
 	let owned = quote.to_owned();
-	let boxes = app.pdf.quote_boxes(on_disk, page, move |text| find_once(text, &owned).ok()).await.unwrap_or_default();
+	let boxes = app.pdf.quote_boxes(on_disk, page, move |text| find_once(text, &owned).ok()).await.ok()?;
 	let fraction = |v: f64| Json::from((v * 1e5).round() / 1e5);
 	let marks = if boxes.is_empty() {
 		Json::Null
@@ -387,6 +388,18 @@ mod tests {
 		assert_eq!(app.misc.quote_boxes.lock().len(), 1);
 		assert_eq!(cited_passage(&app, SLIDES, "p. 2", Some("gravity")).await.unwrap()["marks"], Json::Null);
 		assert_eq!(cited_passage(&app, SLIDES, "p. 3", Some("H2O is water")).await.unwrap()["marks"]["kind"], json!("page"), "boxes come from the page itself, indexed or not");
+	}
+
+	#[tokio::test]
+	async fn a_failed_page_read_is_not_remembered_as_nothing_found() {
+		let root = scratch_dir("cites-boxes-fail");
+		let app = test_app(&root);
+		make_space(&app);
+		// A file that is not a PDF yet (still syncing, say) fails to read; the next ask tries again.
+		let id = app.stores.spaces.list_space_records()[0]["id"].as_str().unwrap().to_owned();
+		crate::app::disk::write_file_atomic(&app.stores.spaces.files_dir(&id).unwrap().join("slides.pdf"), "not a pdf yet").unwrap();
+		assert_eq!(cited_passage(&app, SLIDES, "p. 2", Some("force equals mass")).await.unwrap()["marks"], Json::Null);
+		assert_eq!(app.misc.quote_boxes.lock().len(), 0);
 	}
 
 	#[tokio::test]
