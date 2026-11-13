@@ -208,8 +208,8 @@ struct Pick<'a> {
 
 /// The questions from earlier to ask now, the next one first: due topics of the space that this
 /// session will not teach (only ones its deadline covers when that is 2 days away or less), each
-/// with a usable question, the most urgent first; ties go to topics that link into this sitting's
-/// topics, then space order. At most 3 a local day per space, so the ones answered today count.
+/// with a usable question, the most urgent first; among ties, topics that link into this sitting's
+/// topics go last, then space order. At most 3 a local day per space, so the ones answered today count.
 /// Each is `{of, nodeId, topic, quiz}`.
 pub fn pick_reviews(space: &ReviewSpace, sitting: &ReviewSitting) -> Vec<Json> {
 	let today = space.today;
@@ -263,7 +263,7 @@ pub fn pick_reviews(space: &ReviewSpace, sitting: &ReviewSitting) -> Vec<Json> {
 		let links_in = space.links.iter().any(|l| l["from"].as_str() == Some(id) && l["to"].as_str().is_some_and(|to| sitting.teaching.contains(to)));
 		picks.push(Pick { urgency: urgency(rest, gap), links_in, order, topic, item });
 	}
-	picks.sort_by(|a, b| b.urgency.total_cmp(&a.urgency).then(b.links_in.cmp(&a.links_in)).then(a.order.cmp(&b.order)));
+	picks.sort_by(|a, b| b.urgency.total_cmp(&a.urgency).then(a.links_in.cmp(&b.links_in)).then(a.order.cmp(&b.order)));
 	picks
 		.into_iter()
 		.take(left)
@@ -459,9 +459,9 @@ mod tests {
 		answers.push(quiz_answer("reg", "2026-11-11", "right"));
 		let outcomes = [json!({ "nodeId": "reg", "outcome": "solvedWithHints", "rung": "R1", "at": noon("2026-11-11") })];
 		let picks = pick("2026-11-14", &answers, &outcomes, &items, &["cv", "ms"]);
-		assert_eq!(picked_topics(&picks), ["reg", "bayes", "gd"], "ties go to the topic that links into tonight's, then space order");
-		assert_eq!(picks[1]["of"]["toolCallId"], json!("b2"), "never the question missed last time");
-		assert_eq!(picks[2]["of"]["toolCallId"], json!("g2"), "never one shown in the last 7 days");
+		assert_eq!(picked_topics(&picks), ["bayes", "gd", "reg"], "among ties the topic that links into tonight's goes last, then space order");
+		assert_eq!(picks[0]["of"]["toolCallId"], json!("b2"), "never the question missed last time");
+		assert_eq!(picks[1]["of"]["toolCallId"], json!("g2"), "never one shown in the last 7 days");
 		assert_eq!(pick("2026-11-14", &answers, &outcomes, &items[..5], &["cv", "ms"]).len(), 2, "a flagless topic_done review is Regularization's only question");
 	}
 
