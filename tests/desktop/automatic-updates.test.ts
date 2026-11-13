@@ -2,7 +2,8 @@
  * profile, network, timer or updater download/install operation is run. */
 import assert from "node:assert/strict";
 import { EventEmitter } from "node:events";
-import { readFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -13,7 +14,7 @@ const mainFile = fileURLToPath(new URL("../../electron/main.cjs", import.meta.ur
 const mainSource = readFileSync(mainFile, "utf8");
 const mainRequire = createRequire(mainFile);
 
-function fixture({ packaged = true, updaterMissing = false } = {}) {
+function fixture({ packaged = true, updaterMissing = false, osRelease = "24.6.0", userDataDir = "/fixture/custom-user-data", noticeResponse = 0 } = {}) {
 	let settings: string | Error = JSON.stringify({ version: 1, general: { autoUpdate: true } });
 	const settingsReads: string[] = [];
 	const order: string[] = [];
@@ -23,7 +24,7 @@ function fixture({ packaged = true, updaterMissing = false } = {}) {
 	const links: Record<string, string> = {};
 	const windows: FakeWindow[] = [];
 	let enumerationFails = false;
-	let userData = "/fixture/custom-user-data";
+	let userData = userDataDir;
 	let menu: { submenu?: { label?: string; click?: () => void }[] }[] = [];
 	class FakeUpdater extends EventEmitter {
 		checks = 0;
@@ -89,7 +90,10 @@ function fixture({ packaged = true, updaterMissing = false } = {}) {
 			on: (channel: string, fn: (event: unknown) => unknown) => handles.set(channel, fn),
 			handle: (channel: string, fn: (event: unknown) => unknown) => handles.set(channel, fn),
 		},
-		dialog: { showOpenDialog: async () => { osCalls.push("pick-folder"); return { canceled: true, filePaths: [] }; } },
+		dialog: {
+			showOpenDialog: async () => { osCalls.push("pick-folder"); return { canceled: true, filePaths: [] }; },
+			showMessageBox: async (options: { message: string }) => { osCalls.push(`notice ${options.message}`); return { response: noticeResponse }; },
+		},
 		shell: {
 			openExternal: (target: string) => { osCalls.push(`external ${target}`); },
 			openPath: async (target: string) => { osCalls.push(`open ${target}`); return ""; },
@@ -100,6 +104,7 @@ function fixture({ packaged = true, updaterMissing = false } = {}) {
 	const context = createContext({
 		require: (id: string) => {
 			if (id === "electron") return electron;
+			if (id === "node:os") return { release: () => osRelease };
 			if (id === "electron-updater") {
 				if (updaterMissing) throw new Error("missing updater");
 				return { autoUpdater: updater };
@@ -362,5 +367,49 @@ describe("desktop shell guards", () => {
 	it("dev mode writes no MCP endpoint file the dev server never reads", async () => {
 		const f = fixture(); await f.run("main()");
 		assert.ok(!f.osCalls.some((call) => call.startsWith("write")));
+	});
+});
+
+describe("the hand-over to the next godspeed", () => {
+	const settle = () => new Promise((resolve) => setImmediate(resolve));
+	const NEW_APP = "notice A new godspeed is ready.";
+	const RELEASES = "external https://github.com/bayshores/godspeed/releases/latest";
+
+	it("a feed naming the new app shows the download notice once per launch, and Download opens the releases page", async () => {
+		const f = fixture(); f.run("setupAutoUpdater()");
+		f.updater.emit("update-not-available", { version: "0.5.51", newApp: "0.6.0" });
+		f.updater.emit("update-not-available", { version: "0.5.51", newApp: "0.6.0" });
+		await settle();
+		assert.deepEqual(f.osCalls, [NEW_APP, RELEASES]);
+		assert.equal(f.state().status, "up-to-date");
+	});
+
+	it("Later opens nothing, and a feed without the new app shows no notice", async () => {
+		const later = fixture({ noticeResponse: 1 }); later.run("setupAutoUpdater()");
+		later.updater.emit("update-not-available", { version: "0.5.51", newApp: "0.6.0" });
+		await settle();
+		assert.deepEqual(later.osCalls, [NEW_APP]);
+		const plain = fixture(); plain.run("setupAutoUpdater()"); await plain.check();
+		await settle();
+		assert.deepEqual(plain.osCalls, []);
+	});
+
+	it("a Mac older than macOS 14 hears once, after the startup check, that it gets no new versions", async () => {
+		const old = fixture({ osRelease: "22.6.0" }); await old.run("main()"); await settle();
+		assert.equal(old.updater.checks, 1);
+		assert.deepEqual(old.osCalls, ["notice This Mac will not get new versions of godspeed."]);
+		const current = fixture(); await current.run("main()"); await settle();
+		assert.deepEqual(current.osCalls, []);
+	});
+
+	it("a running newer godspeed in shell.pid stops this one before it starts anything", async (t) => {
+		const base = mkdtempSync(path.join(tmpdir(), "godspeed-shell-pid-"));
+		t.after(() => { rmSync(base, { recursive: true, force: true }); rmSync(`${base}-dev`, { recursive: true, force: true }); });
+		mkdirSync(`${base}-dev`);
+		// The dev shell reads the -dev folder; the test runner's own parent still runs.
+		writeFileSync(path.join(`${base}-dev`, "shell.pid"), `${process.ppid}\n`);
+		const f = fixture({ userDataDir: base }); await f.run("main()"); await settle();
+		assert.deepEqual(f.osCalls, ["notice A newer godspeed is already open. Quit it first."]);
+		assert.equal(f.windows.length, 0); assert.equal(f.handles.size, 0); assert.equal(f.updater.checks, 0);
 	});
 });

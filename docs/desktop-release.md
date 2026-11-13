@@ -96,3 +96,11 @@ The workflow maps the certificate secrets to electron-builder's `CSC_LINK` / `CS
 4. The owner publishes the complete draft, then checks the real update path from a prior installed version.
 
 Content-only updates rely on the deterministic suite plus the per-OS build/boot-smoke matrix.
+
+## The last Electron release (0.5.51)
+
+0.5.51 is the last Electron godspeed. The next version is a new app (Tauri and Rust) on the same data folder, and 0.5.51 is what teaches Electron installs to hand over. Publish it first and the new app some days later, so more Macs on macOS 12 and 13 get the notice below before the new feed stops them. The decisions live in `electron/hand-over.cjs` (tests in `tests/desktop/hand-over.test.ts` and `tests/desktop/automatic-updates.test.ts`).
+
+- **macOS 12 and 13.** The new app's `latest-mac.yml` says `minimumSystemVersion: 23.0.0` (Darwin for macOS 14), so electron-updater reports no update on those Macs. 0.5.51 tells them once per launch, after the startup update check, with an OK button: "This Mac will not get new versions of godspeed. The next version needs macOS 14 or newer. This version keeps working."
+- **Windows and Linux.** The new app cannot install over an Electron install. Its releases publish `latest.yml` and `latest-linux.yml` that still describe 0.5.51 (each file `url` written as `../v0.5.51/<name>`, which electron-updater's GitHub provider resolves into the 0.5.51 release) plus `newApp: <new version>`. Older Electron installs update to 0.5.51 as usual. 0.5.51 then sees its own version, reads `newApp` from the feed, and shows once per launch "A new godspeed is ready." with Download (opens the latest release page in the browser) and Later.
+- **The new app already open.** The new app writes its pid to `<userData>/shell.pid` while it runs. Before starting its server, 0.5.51 checks that pid, and if it still runs it says "A newer godspeed is already open. Quit it first." and quits without touching any data. A missing or unreadable file or a pid that no longer runs means it starts as usual.

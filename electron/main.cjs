@@ -26,11 +26,13 @@ const { isWebLink, isAppBundle } = require("./open-guards.cjs");
 const { bugReportURL } = require("./bug-report.cjs");
 const { openAgentTerminal } = require("./open-terminal.cjs");
 const { recordRestart } = require("./server-restarts.cjs");
+const { DOWNLOAD_URL, OLD_MAC_NOTICE, NEW_APP_NOTICE, NEWER_APP_OPEN_NOTICE, macTooOld, hasNewApp, newerAppOpen } = require("./hand-over.cjs");
 const { randomBytes } = require("node:crypto");
 const { spawn } = require("node:child_process");
 const fs = require("node:fs");
 const http = require("node:http");
 const net = require("node:net");
+const os = require("node:os");
 const path = require("node:path");
 
 const PRODUCT_NAME = "godspeed";
@@ -449,11 +451,11 @@ function createWindow(url, serverUp = null) {
 	win.webContents.on("will-navigate", (event, target) => {
 		if (new URL(target).origin !== allowedOrigin()) {
 			event.preventDefault();
-			if (isWebLink(target)) void shell.openExternal(target);
+			openWebLink(target);
 		}
 	});
 	win.webContents.setWindowOpenHandler(({ url: target }) => {
-		if (isWebLink(target)) void shell.openExternal(target);
+		openWebLink(target);
 		return { action: "deny" };
 	});
 
@@ -487,6 +489,10 @@ function createWindow(url, serverUp = null) {
 
 	win.once("ready-to-show", () => win.show());
 	return win;
+}
+
+function openWebLink(target) {
+	if (isWebLink(target)) void shell.openExternal(target);
 }
 
 /* ── Zoom: ⌘±/⌘0 as an OWNED ladder ──────────────────────────────────────
@@ -591,7 +597,7 @@ function checkForUpdates({ manual = false } = {}) {
 	}
 	// Do not gate on display state: a stale spinner/error must never disable
 	// future background checks. electron-updater owns its in-flight work.
-	autoUpdater
+	return autoUpdater
 		.checkForUpdates()
 		.then((result) => {
 			// A declined check (e.g. an unsupported package) establishes no
@@ -644,7 +650,13 @@ function setupAutoUpdater() {
 		if (updateState.status !== "downloading" || updateState.percent === percent) return;
 		reportUpdateStatus("downloading", updateState.version, percent);
 	});
-	autoUpdater.on("update-not-available", () => reportUpdateStatus("up-to-date"));
+	autoUpdater.on("update-not-available", (info) => {
+		reportUpdateStatus("up-to-date");
+		if (hasNewApp(info) && !newAppNoticeShown) {
+			newAppNoticeShown = true;
+			showNewAppNotice().catch((err) => log(`new app notice failed: ${err?.message ?? err}`));
+		}
+	});
 	autoUpdater.on("update-downloaded", (info) => {
 		log(`update downloaded: ${info?.version} — banner shown`);
 		reportUpdateStatus("downloaded", info?.version);
@@ -656,6 +668,14 @@ function setupAutoUpdater() {
 	// Fires only when the install really goes ahead: a Restart click before
 	// Squirrel has the update must not leave the app without its server.
 	require("electron").autoUpdater.on("before-quit-for-update", killServer);
+}
+
+/** Windows and Linux: the new app cannot install over this one, so the
+ *  learner downloads it. Once per launch, though checks repeat. */
+let newAppNoticeShown = false;
+async function showNewAppNotice() {
+	const { response } = await dialog.showMessageBox(NEW_APP_NOTICE);
+	if (response === 0) openWebLink(DOWNLOAD_URL);
 }
 
 /** One result surface for manual checks. Preload buffers the navigation
@@ -760,6 +780,13 @@ async function main() {
 	process.on("exit", killServer);
 
 	await app.whenReady();
+
+	// The newer godspeed uses the same data folder, so this one never runs beside it.
+	if (newerAppOpen(path.join(app.getPath("userData"), "shell.pid"))) {
+		await dialog.showMessageBox(NEWER_APP_OPEN_NOTICE);
+		app.quit();
+		return;
+	}
 
 	// Dev mode: point at a running `next dev` server (LH_DEV_URL) — no
 	// spawn, no packaging, full HMR. The rest of this shell still applies
@@ -875,8 +902,13 @@ async function main() {
 	log(`window open: ${url}`);
 	// Startup + 24h checks stay main-owned and read the current preference.
 	// No renderer subscription is required; late loads retrieve the snapshot.
+	let startupCheck;
 	if (autoUpdater) {
-		checkForUpdates();
+		startupCheck = checkForUpdates();
 		setInterval(() => checkForUpdates(), UPDATE_CHECK_INTERVAL_MS);
 	}
+	// The next godspeed needs macOS 14, so older Macs hear it once per launch.
+	void Promise.resolve(startupCheck).then(() => {
+		if (macTooOld(process.platform, os.release())) void dialog.showMessageBox(OLD_MAC_NOTICE);
+	});
 }
