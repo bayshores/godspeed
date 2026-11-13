@@ -61,12 +61,18 @@ fn plain(unit: u16) -> Option<&'static str> {
 	})
 }
 
-/// The text as it is matched, and for each of its units the offset in `text` it came from. A run
-/// of spaces and line ends is one space, none at either end; a hyphen that splits a word at a
-/// line end is dropped with the line end.
-pub fn fold_for_match(text: &str) -> (Vec<u16>, Vec<usize>) {
+fn is_hyphen(unit: u16) -> bool {
+	matches!(unit, 0x2d | 0xad | 0x2010)
+}
+
+/// The text as it is matched, for each of its units the offset in `text` it came from, and
+/// whether a hyphen was dropped right before it. A run of spaces and line ends is one space, none
+/// at either end; a hyphen that splits a word at a line end is dropped with the line end.
+pub fn fold_for_match(text: &str) -> (Vec<u16>, Vec<usize>, Vec<bool>) {
 	let units = to_utf16(text);
 	let (mut folded, mut from) = (Vec::with_capacity(units.len()), Vec::with_capacity(units.len()));
+	let mut soft = Vec::with_capacity(units.len());
+	let mut dropped_hyphen = false;
 	let mut i = 0;
 	while i < units.len() {
 		let unit = units[i];
@@ -78,10 +84,11 @@ pub fn fold_for_match(text: &str) -> (Vec<u16>, Vec<usize>) {
 			if !folded.is_empty() && i < units.len() {
 				folded.push(u16::from(b' '));
 				from.push(start);
+				soft.push(false);
 			}
 			continue;
 		}
-		if matches!(unit, 0x2d | 0xad | 0x2010) && i > 0 && is_letter(units[i - 1]) {
+		if is_hyphen(unit) && i > 0 && is_letter(units[i - 1]) {
 			let mut j = i + 1;
 			while j < units.len() && is_space(units[j]) && units[j] != 0x0a {
 				j += 1;
@@ -93,6 +100,7 @@ pub fn fold_for_match(text: &str) -> (Vec<u16>, Vec<usize>) {
 				}
 				if units.get(j).is_some_and(|&u| is_lower(u)) {
 					i = j;
+					dropped_hyphen = true;
 					continue;
 				}
 			}
@@ -102,16 +110,37 @@ pub fn fold_for_match(text: &str) -> (Vec<u16>, Vec<usize>) {
 				for u in spelled.encode_utf16() {
 					folded.push(u);
 					from.push(i);
+					soft.push(std::mem::take(&mut dropped_hyphen));
 				}
 			}
 			None => {
 				folded.push(unit);
 				from.push(i);
+				soft.push(std::mem::take(&mut dropped_hyphen));
 			}
 		}
 		i += 1;
 	}
-	(folded, from)
+	(folded, from, soft)
+}
+
+/// Where `needle` ends in `hay` when it matches from `at`. Where the text dropped a line-end
+/// hyphen, the quote may keep it, with a space after it or not (`regu-larization`, `well-known`).
+fn match_end(hay: &[u16], soft: &[bool], needle: &[u16], at: usize) -> Option<usize> {
+	let (mut h, mut n) = (at, 0);
+	let mut skipped = false;
+	while n < needle.len() {
+		if !skipped && h > at && soft.get(h) == Some(&true) && is_hyphen(needle[n]) {
+			n += 1 + usize::from(needle.get(n + 1) == Some(&u16::from(b' ')));
+			skipped = true;
+			continue;
+		}
+		if hay.get(h) != Some(&needle[n]) {
+			return None;
+		}
+		(h, n, skipped) = (h + 1, n + 1, false);
+	}
+	Some(h)
 }
 
 fn unsafe_quote(quote: &str) -> bool {
@@ -124,17 +153,15 @@ pub fn find_once(text: &str, quote: &str) -> Result<(usize, usize), QuoteMiss> {
 	if unsafe_quote(quote) {
 		return Err(QuoteMiss::Unsafe);
 	}
-	let (needle, _) = fold_for_match(quote);
+	let (needle, ..) = fold_for_match(quote);
 	let (Some(&first), Some(&last)) = (needle.first(), needle.last()) else { return Err(QuoteMiss::Absent) };
-	let (hay, from) = fold_for_match(text);
-	let bounded = |at: usize| {
-		(!is_word(first) || at == 0 || !is_word(hay[at - 1])) && (!is_word(last) || hay.get(at + needle.len()).is_none_or(|&u| !is_word(u)))
-	};
-	let mut found = hay.windows(needle.len()).enumerate().filter(|(at, w)| *w == needle.as_slice() && bounded(*at)).map(|(at, _)| at);
+	let (hay, from, soft) = fold_for_match(text);
+	let bounded = |at: usize, end: usize| (!is_word(first) || at == 0 || !is_word(hay[at - 1])) && (!is_word(last) || hay.get(end).is_none_or(|&u| !is_word(u)));
+	let mut found = (0..hay.len()).filter_map(|at| match_end(&hay, &soft, &needle, at).filter(|&end| end > at && bounded(at, end)).map(|end| (at, end)));
 	match (found.next(), found.next()) {
 		(None, _) => Err(QuoteMiss::Absent),
 		(Some(_), Some(_)) => Err(QuoteMiss::Twice),
-		(Some(at), None) => Ok((from[at], from[at + needle.len() - 1] + 1)),
+		(Some((at, end)), None) => Ok((from[at], from[end - 1] + 1)),
 	}
 }
 
@@ -190,6 +217,19 @@ mod tests {
 		assert_eq!(find_once("1 + 1 + 1", "1 + 1"), Err(QuoteMiss::Twice), "overlapping");
 		assert_eq!(find_once("degree 12", "degree 13"), Err(QuoteMiss::Absent));
 		assert_eq!(find_once("degree 12", "  \n "), Err(QuoteMiss::Absent));
+	}
+
+	#[test]
+	fn a_quote_may_keep_the_hyphen_of_a_word_split_at_a_line_end() {
+		let page = "the regu-\nlarization term, a well-\nknown result";
+		for quote in ["regularization term", "regu-larization term", "regu- larization term"] {
+			assert_eq!(find_once(page, quote), Ok((4, 25)), "{quote}");
+		}
+		assert_eq!(check_quote(page, "well-known result"), Ok((29, 47)));
+		// Only where the page split a word: elsewhere a hyphen is a hyphen.
+		assert_eq!(find_once(page, "regu--larization"), Err(QuoteMiss::Absent));
+		assert_eq!(find_once("x-y and xy z", "xy z"), Ok((8, 12)));
+		assert_eq!(find_once("x-y and xy z", "x-y and"), Ok((0, 7)));
 	}
 
 	#[test]
