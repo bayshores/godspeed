@@ -274,8 +274,9 @@ async fn ask_teacher_sends_the_open_question_whole_and_refuses_another() {
 	settled(&fx.app, &id).await;
 	let note = seen.iter().filter_map(|m| m["text"].as_str()).find(|t| t.starts_with("[From earlier] He asked")).expect("the note");
 	assert_eq!(note, "[From earlier] He asked about this question from earlier before answering; it stays open and godspeed grades his answer. Bayes' rule: A question on bayes? Options: A; B. He picked B so far. Explanation: Because A. Answer his question without giving the answer away, and end your turn.");
-	assert_eq!(fx.next(&id), None, "the reply landed");
+	assert_eq!(fx.next(&id), Some(open.clone()), "the reply landed, and a reload still shows the question it asked about");
 	assert_eq!(answer_review(&fx.app, &id, &open["of"], &graded()).unwrap(), ReviewReply::Done, "it stays open to answer");
+	assert_eq!(fx.next(&id), None, "answered, so the window rule decides again");
 }
 
 #[tokio::test(flavor = "multi_thread")]

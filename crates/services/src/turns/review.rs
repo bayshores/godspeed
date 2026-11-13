@@ -90,16 +90,31 @@ fn sitting_picks(app: &App, chat_id: &str, record: &Json) -> Result<Vec<Json>, S
 	Ok(pick_reviews(&space, &ReviewSitting { teaching: &teaching, deadline_id: record["deadlineId"].as_str(), skipped: &skipped }))
 }
 
-/// The question from earlier to show now: one only in the sitting's first wait while the teacher
-/// reads or writes or no agent is teaching, with nothing else open.
+/// The question from earlier to show now: the one he asked the teacher about in this sitting
+/// while it is still askable, since the agent was told it stays open; otherwise one only in the
+/// sitting's first wait while the teacher reads or writes or no agent is teaching, with nothing
+/// else open.
 pub fn next_review(app: &App, chat_id: &str) -> Result<ReviewReply, String> {
 	let Some(record) = app.stores.chats.get_chat(chat_id) else { return Ok(ReviewReply::UnknownLesson) };
 	let now = clock::now_ms();
+	if let Some(of) = asked_this_sitting(&record, now)
+		&& let Some(question) = askable(app, chat_id, &record, of)?
+	{
+		return Ok(ReviewReply::Next(Some(question)));
+	}
 	let busy = is_turn_running(app, chat_id) || !app.bridge.agent_teaching(now);
 	if !review_window_open(&record, now, busy) {
 		return Ok(ReviewReply::Next(None));
 	}
 	Ok(ReviewReply::Next(open_question(app, chat_id, &record)?))
+}
+
+/// The question from earlier he last asked the teacher about in this sitting. Once answered or
+/// skipped it is no longer askable.
+fn asked_this_sitting(record: &Json, now: i64) -> Option<&Json> {
+	let start = sitting_start(&times(record), now as f64);
+	let sitting = record["messages"].as_arr().into_iter().flatten().rev().take_while(|m| m["timestamp"].as_f64().is_some_and(|t| t >= start));
+	sitting.filter(|m| m["customType"].as_str() == Some("app-note")).map(|m| &m["details"]["reviewOf"]).find(|of| of.as_obj().is_some())
 }
 
 /// His answer to a question from earlier still askable, as the window graded it: written as a `review` marker with

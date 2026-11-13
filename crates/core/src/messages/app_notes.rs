@@ -3,7 +3,7 @@
 //! questions from earlier he answered or asks about ([From earlier]). An opener answer carries its
 //! lines in its own marker; any other input gets one app-note marker.
 
-use gs_json::Json;
+use gs_json::{Json, json};
 use gs_json::js_text::js_string;
 
 use super::input_events::{About, ChatInput, messages_of};
@@ -37,14 +37,21 @@ pub fn app_note_for(record: &Json, input: &ChatInput, asked: Option<&Json>) -> O
 		lines.push(RESUMED_LINE.to_owned());
 	}
 	lines.extend(from_earlier_line(messages));
+	let mut details = json!({});
 	match input {
 		ChatInput::Text { about: Some(About::Opener(opener)), .. } => {
 			lines.push(format!("[Opener] {}: he asked about it before answering; it stays open. Answer his question and end your turn.", opener_topic(record, opener)));
 		}
-		ChatInput::Text { about: Some(About::Review { picked, .. }), .. } => lines.extend(asked.map(|item| review_ask_line(item, picked))),
+		ChatInput::Text { about: Some(About::Review { picked, .. }), .. } => {
+			if let Some(item) = asked {
+				lines.push(review_ask_line(item, picked));
+				// What a reload reads to show the question again, as the note promised.
+				details = json!({ "reviewOf": item["of"] });
+			}
+		}
 		_ => {}
 	}
-	(!lines.is_empty()).then(|| new_app_note_marker(&lines))
+	(!lines.is_empty()).then(|| new_app_note_marker(&lines, details))
 }
 
 /// "[From earlier] Eigenvalues right, sure 4. Bayes' rule wrong, sure 3, picked About 9%.": the
@@ -251,6 +258,7 @@ mod tests {
 			note["content"],
 			json!("[From earlier] He asked about this question from earlier before answering; it stays open and godspeed grades his answer. Bayes' rule: A student got an A. How likely is the tutor? Options: About 60%; About 25%; About 10%; About 9%. He picked About 60% so far. Explanation: 0.06 of 0.24 is a quarter. Answer his question without giving the answer away, and end your turn.")
 		);
+		assert_eq!(note["details"], json!({ "reviewOf": { "chatId": "c0", "toolCallId": "t0" } }), "a reload finds the question it asked about");
 		let unpicked = app_note_for(&json!({ "messages": [] }), &ask(vec![]), Some(&item)).unwrap();
 		assert!(unpicked["content"].as_str().unwrap().contains(" He has not picked yet. "));
 	}

@@ -12,10 +12,11 @@ function postReview(chatId: string, input: unknown): Promise<Response> {
 }
 
 /**
- * Questions from earlier in a Study lesson. While the teacher reads or
- * writes, or no agent is teaching, and nothing else is open, the route is
- * asked for a question when that wait begins and when a turn starts or
- * ends; after an answer or a skip it is asked again, until the wait ends. The server decides whether one may show, so no
+ * Questions from earlier in a Study lesson. The route is asked once when
+ * the lesson opens; then, while the teacher reads or writes, or no agent is
+ * teaching, and nothing else is open, when that wait begins and when a turn
+ * starts or ends; after an answer or a skip it is asked again, until the
+ * wait ends (fromEarlierAsk). The server decides whether one may show, so no
  * question is a normal answer. The question on screen stays open after the
  * wait ends, to be answered or skipped.
  */
@@ -37,7 +38,8 @@ export function useFromEarlier({ chatId, waiting, open, busy, onAnswered }: {
 	// His last answer was refused: the question was no longer due. Says so
 	// until the next question shows or the wait ends.
 	const [refused, setRefused] = useState(false);
-	const ask = fromEarlierAsk({ waiting, open, shown: question !== null, sending, busy });
+	const [asked, setAsked] = useState(false);
+	const ask = fromEarlierAsk({ first: !asked, waiting, open, shown: question !== null, sending, busy });
 
 	useEffect(() => {
 		if (!waiting) setRefused(false);
@@ -55,7 +57,8 @@ export function useFromEarlier({ chatId, waiting, open, busy, onAnswered }: {
 			})
 			.catch(() => {
 				/* none shows; the next wait asks again */
-			});
+			})
+			.finally(() => setAsked(true));
 		return () => {
 			live = false;
 		};
