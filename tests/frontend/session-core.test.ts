@@ -1913,6 +1913,28 @@ describe("Drop this analogy and the phrase", () => {
 		]);
 	});
 
+	it("each store waits for the one before it, so a fast drop then bring back lands in order", async () => {
+		const order: string[] = [];
+		let release!: () => void;
+		const first = new Promise<void>((resolve) => (release = resolve));
+		const fetch = (async (_input: RequestInfo | URL, init?: RequestInit) => {
+			const input = JSON.parse(String(init?.body)).input as { back?: true };
+			order.push(input.back ? "back sent" : "drop sent");
+			if (!input.back) await first;
+			order.push(input.back ? "back stored" : "drop stored");
+			return Response.json({ ok: true });
+		}) as typeof globalThis.fetch;
+		const m = model({ initialMessages: keptLesson(), fetch });
+		const dropping = m.dropKept("call_k", "analogy", false);
+		const bringing = m.dropKept("call_k", "analogy", true);
+		assert.equal(card(m)?.analogyDropped, false, "his last click shows at once");
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		assert.deepEqual(order, ["drop sent"], "the bring back waits");
+		release();
+		await Promise.all([dropping, bringing]);
+		assert.deepEqual(order, ["drop sent", "drop stored", "back sent", "back stored"]);
+	});
+
 	it("a failed store takes the drop back and says the change didn't save", async () => {
 		for (const [kept, message] of [
 			[() => Response.json({ error: "No kept sentence with that part on that call" }, { status: 400 }), "The kept change failed: status 400"],

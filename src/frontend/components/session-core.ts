@@ -286,6 +286,8 @@ export class SessionModel {
 	// The single live consume (POST response or reattach stream): a newer
 	// consume cancels the older — one reader at a time.
 	private consumeAbort: AbortController | null = null;
+	/** The last kept drop's store, which the next one waits for; never rejects. */
+	private keptStores: Promise<void> = Promise.resolve();
 	/** Synchronous ready check for the gate (send/read mount logic). */
 	readyRef = true;
 
@@ -886,12 +888,20 @@ export class SessionModel {
 	 *  UI-only marker lands optimistically (the card changes at once), then
 	 *  the route stores it, even during a turn; it never starts one. Each
 	 *  click's local marker sits after the record, so his last click wins
-	 *  until the next full sync. A failed store takes the marker back. */
+	 *  until the next full sync. Each store waits for the one before it, so
+	 *  the server keeps his clicks in order. A failed store takes the
+	 *  marker back. */
 	async dropKept(of: string, part: KeptPart, back: boolean): Promise<void> {
 		const marker = localMarker(part === "analogy" ? "analogy-drop" : "phrase-drop", { of, ...(back ? { back: true } : {}), at: new Date().toISOString() });
 		this.mutate(() => {
 			this.tail = [...this.tail, marker];
 		});
+		const stored = this.keptStores.then(() => this.storeKept(of, part, back, marker));
+		this.keptStores = stored;
+		await stored;
+	}
+
+	private async storeKept(of: string, part: KeptPart, back: boolean, marker: LhMessage): Promise<void> {
 		try {
 			const res = await this.fetch(`/api/chats/${this.chatId}/kept`, {
 				method: "POST",
