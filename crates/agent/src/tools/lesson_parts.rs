@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use gs_core::session::plot::PLOT_TOOL;
-use gs_core::session::question_core::{parse_options_if_string, quiz_input_problems, study_quiz_input_object};
+use gs_core::session::question_core::{parse_options_if_string, quiz_input_problems, study_quiz_input_object, without_broken_keep};
 use gs_core::study::topic_parts::reply_parts_problems;
 use gs_engine::turn::agent::BeforeToolCallFn;
 use gs_engine::turn::validate::argument_problems;
@@ -35,7 +35,7 @@ impl LessonParts {
 
 	/// Whether a quiz call, as sent, passes the Study quiz's own checks.
 	fn quiz_passes(&self, quiz: &Json) -> bool {
-		let mut args = quiz.clone();
+		let mut args = without_broken_keep(quiz.clone());
 		if let (Some(options), Some(obj)) = (parse_options_if_string(Some(&quiz["options"])), args.as_obj_mut()) {
 			obj.insert("options", options);
 		}

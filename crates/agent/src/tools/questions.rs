@@ -6,7 +6,7 @@ use std::sync::Arc;
 use gs_core::session::code_question::{write_code_input_problems, write_code_input_schema};
 use gs_core::session::question_core::{
 	ask_input_schema, ask_option_problems, explain_input_base, explain_input_object, explain_input_problems, parse_options_if_string, probe_quiz_input_schema, quiz_input_object, quiz_input_problems,
-	study_quiz_input_object,
+	study_quiz_input_object, without_broken_keep,
 };
 use gs_engine::turn::tool_execute::{invalid_input_result, question_result};
 use gs_json::{Json, json, stringify_pretty};
@@ -166,10 +166,10 @@ pub fn teach_quiz_tool(ctx: &PlanContext) -> FnTool {
 	node_quiz_tool(ctx, quiz_input_object())
 }
 
-/// The Study quiz: the teach quiz whose schema adds `standalone`, which marks a quiz godspeed may
-/// ask again weeks later.
+/// The Study quiz: the teach quiz whose schema adds `standalone`, `onPlot` and `keep`. A keep that
+/// breaks its own rules leaves the prepared copy, so the quiz is never refused for it.
 pub fn study_quiz_tool(ctx: &PlanContext) -> FnTool {
-	node_quiz_tool(ctx, study_quiz_input_object())
+	node_quiz_tool(ctx, study_quiz_input_object()).prepared(|args| prepare_question_arguments(without_broken_keep(args)))
 }
 
 fn node_quiz_tool(ctx: &PlanContext, schema: Json) -> FnTool {

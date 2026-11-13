@@ -192,6 +192,14 @@ mod tests {
 	}
 
 	#[tokio::test]
+	async fn a_keep_that_breaks_its_rules_never_refuses_its_quiz() {
+		let mut with_keep = guess("B");
+		with_keep.as_obj_mut().unwrap().insert("keep", json!({ "text": "x".repeat(212), "fits": "f" }));
+		let results = run_reply(vec![call("q1", "quiz", with_keep), call("p9", "plot", leash())]).await;
+		assert!(results.iter().all(|r| r["isError"] == json!(false)), "{results:?}");
+	}
+
+	#[tokio::test]
 	async fn a_refused_pair_lists_every_problem_once_without_the_call() {
 		let broken = json!({
 			"title": "One feature, where the weight ends up",

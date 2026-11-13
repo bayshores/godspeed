@@ -243,8 +243,8 @@ pub fn quiz_input_object() -> Json {
 }
 
 /// The Study quiz input: the teach quiz plus `standalone`, which marks a quiz godspeed may ask
-/// again weeks later as a question from earlier, and `onPlot`, which makes it the guess on the
-/// plot sent in the same reply.
+/// again weeks later as a question from earlier, `onPlot`, which makes it the guess on the plot
+/// sent in the same reply, and `keep`, the sentence he keeps when he answers it right.
 pub fn study_quiz_input_object() -> Json {
 	let mut schema = quiz_input_object();
 	if let Some(properties) = schema.get_mut("properties").and_then(Json::as_obj_mut) {
@@ -252,8 +252,105 @@ pub fn study_quiz_input_object() -> Json {
 		let number = |description: &str| json!({ "type": "number", "description": description });
 		let on_plot = object(&["line", "x"], vec![("line", string("A line's label.")), ("x", number("The x the guess asks about.")), ("slider", number("The slider value; start if left out."))]);
 		properties.insert("onPlot", described(on_plot, "For the plot in this reply: the right option must name this line's value there."));
+		properties.insert("keep", keep_schema());
 	}
 	schema
+}
+
+/// The longest kept sentence, analogy line and memory phrase, in UTF-16 units.
+const KEEP_TEXT_MAX: usize = 160;
+const KEEP_LINE_MAX: usize = 120;
+const KEEP_PHRASE_MAX: usize = 60;
+
+fn keep_schema() -> Json {
+	let capped = |max: usize, description: &str| json!({ "type": "string", "maxLength": max, "description": description });
+	let keep = object(
+		&["text"],
+		vec![
+			("text", capped(KEEP_TEXT_MAX, "The sentence he keeps.")),
+			("source", string("A passage mark.")),
+			("fits", capped(KEEP_LINE_MAX, "With an analogy only: what it gets right.")),
+			("stops", capped(KEEP_LINE_MAX, "Required with fits: the first place it breaks.")),
+			("phrase", capped(KEEP_PHRASE_MAX, "Optional. A short phrase that makes the sentence easier to remember, like SOH CAH TOA. Words only.")),
+		],
+	);
+	described(keep, "One sentence he earns, shown only after a right answer. At most 2 per topic.")
+}
+
+/// A quiz's `keep` as an object: as sent, or decoded when a model sent it as a JSON string.
+pub fn keep_of(quiz: &Json) -> Option<Json> {
+	match &quiz["keep"] {
+		keep @ Json::Obj(_) => Some(keep.clone()),
+		Json::Str(raw) => parse(raw).ok().filter(|k| k.as_obj().is_some()),
+		_ => None,
+	}
+}
+
+/// A keep field's words: absent, empty or blank is none; a non-string is Err.
+fn keep_words<'a>(keep: &'a Json, field: &str) -> Result<Option<&'a str>, ()> {
+	match keep.get(field) {
+		None | Some(Json::Null) => Ok(None),
+		Some(Json::Str(s)) => Ok(Some(s.as_str()).filter(|s| !text::trim(s).is_empty())),
+		Some(_) => Err(()),
+	}
+}
+
+/// Why a keep is not stored at all, from its own fields: its quiz never fails for it, so the
+/// teacher reads this after his answer. None when its fields hold.
+pub fn keep_fields_note(keep: &Json) -> Option<String> {
+	let not_stored = |why: String| Some(format!("keep not stored: {why}. Add it to a later quiz."));
+	if keep.as_obj().is_none() {
+		return not_stored("it is not an object with a text".to_owned());
+	}
+	let mut fits = None;
+	for (field, max) in [("text", KEEP_TEXT_MAX), ("source", usize::MAX), ("fits", KEEP_LINE_MAX), ("stops", KEEP_LINE_MAX)] {
+		let Ok(words) = keep_words(keep, field) else { return not_stored(format!("{field} is not text")) };
+		match words {
+			None if field == "text" => return not_stored("it has no text".to_owned()),
+			Some(words) if text::len16(words) > max => return not_stored(format!("{field} {} characters, at most {max}", text::len16(words))),
+			Some(_) if field == "fits" => fits = words,
+			_ => {}
+		}
+	}
+	if fits.is_some() && keep_words(keep, "stops") == Ok(None) {
+		return not_stored("fits needs stops".to_owned());
+	}
+	None
+}
+
+/// Why a keep's memory phrase is not shown; the sentence stays.
+pub fn keep_phrase_note(keep: &Json) -> Option<String> {
+	match keep_words(keep, "phrase") {
+		Ok(None) => None,
+		Ok(Some(phrase)) if text::len16(phrase) <= KEEP_PHRASE_MAX => None,
+		Ok(Some(phrase)) => Some(format!("keep.phrase not shown: {} characters, at most {KEEP_PHRASE_MAX}.", text::len16(phrase))),
+		Err(()) => Some("keep.phrase not shown: it is not text.".to_owned()),
+	}
+}
+
+/// A Study quiz's arguments as its checks read them: a keep that breaks its own rules is taken out
+/// (a broken phrase alone loses just the phrase), so the quiz is never refused for it. The stored
+/// call keeps what was sent; the teacher learns why after his answer.
+pub fn without_broken_keep(mut args: Json) -> Json {
+	let Some(keep) = keep_of(&args) else {
+		if let Some(obj) = args.as_obj_mut() {
+			obj.remove("keep");
+		}
+		return args;
+	};
+	let Some(obj) = args.as_obj_mut() else { return args };
+	if keep_fields_note(&keep).is_some() {
+		obj.remove("keep");
+	} else {
+		let mut keep = keep;
+		if keep_phrase_note(&keep).is_some()
+			&& let Some(k) = keep.as_obj_mut()
+		{
+			k.remove("phrase");
+		}
+		obj.insert("keep", keep);
+	}
+	args
 }
 
 /// The probe-side quiz input: the shared fields with no map yet, so no `nodeId` and no `type`.
@@ -368,11 +465,52 @@ mod tests {
 		assert_eq!(stringify(&explain_input_object()["required"]), r#"["type","nodeId","question","correctAnswer"]"#);
 		let study = study_quiz_input_object();
 		assert_eq!(study["required"], quiz["required"], "standalone is optional");
-		assert_eq!(study["properties"].as_obj().unwrap().keys().rev().take(2).map(String::as_str).collect::<Vec<_>>(), ["onPlot", "standalone"]);
+		assert_eq!(study["properties"].as_obj().unwrap().keys().rev().take(3).map(String::as_str).collect::<Vec<_>>(), ["keep", "onPlot", "standalone"]);
 		assert_eq!(
 			stringify(&study["properties"]["onPlot"]),
 			r#"{"type":"object","required":["line","x"],"properties":{"line":{"type":"string","description":"A line's label."},"x":{"type":"number","description":"The x the guess asks about."},"slider":{"type":"number","description":"The slider value; start if left out."}},"description":"For the plot in this reply: the right option must name this line's value there."}"#
 		);
 		assert_eq!(stringify(&study["properties"]["standalone"]), r#"{"type":"boolean","description":"True when it makes sense weeks later with no lesson around it."}"#);
+		assert_eq!(study["properties"]["keep"]["required"], json!(["text"]));
+		assert_eq!(study["properties"]["keep"]["properties"].as_obj().unwrap().keys().map(String::as_str).collect::<Vec<_>>(), ["text", "source", "fits", "stops", "phrase"]);
+	}
+
+	fn keep(fields: Json) -> Json {
+		json!({ "question": "Q?", "keep": fields })
+	}
+
+	#[test]
+	fn a_keep_that_breaks_its_rules_is_taken_out_of_the_prepared_copy() {
+		let ok = keep(json!({ "text": "Lambda prices large weights.", "fits": "The leash fits one part.", "stops": "It stops at new data." }));
+		assert_eq!(without_broken_keep(ok.clone()), ok);
+		let long = keep(json!({ "text": "x".repeat(212) }));
+		assert_eq!(keep_fields_note(&long["keep"]).as_deref(), Some("keep not stored: text 212 characters, at most 160. Add it to a later quiz."));
+		assert_eq!(without_broken_keep(long), json!({ "question": "Q?" }));
+		let alone = keep(json!({ "text": "t", "fits": "f" }));
+		assert_eq!(keep_fields_note(&alone["keep"]).as_deref(), Some("keep not stored: fits needs stops. Add it to a later quiz."));
+		assert_eq!(keep_fields_note(&json!({ "text": "t", "fits": "f", "stops": "s".repeat(121) })).as_deref(), Some("keep not stored: stops 121 characters, at most 120. Add it to a later quiz."));
+		assert_eq!(keep_fields_note(&json!({ "text": " " })).as_deref(), Some("keep not stored: it has no text. Add it to a later quiz."));
+		assert_eq!(keep_fields_note(&json!({ "text": "t", "source": 7 })).as_deref(), Some("keep not stored: source is not text. Add it to a later quiz."));
+		assert_eq!(keep_fields_note(&json!("t")).as_deref(), Some("keep not stored: it is not an object with a text. Add it to a later quiz."));
+		assert_eq!(keep_fields_note(&json!({ "text": "\u{1F600}".repeat(80) })), None, "160 UTF-16 units");
+		assert_eq!(without_broken_keep(keep(Json::Null)), json!({ "question": "Q?" }));
+		assert_eq!(without_broken_keep(json!({ "question": "Q?" })), json!({ "question": "Q?" }));
+	}
+
+	#[test]
+	fn a_long_phrase_alone_loses_the_phrase() {
+		let args = keep(json!({ "text": "SOH CAH TOA names the ratios.", "phrase": "p".repeat(74) }));
+		assert_eq!(keep_phrase_note(&args["keep"]).as_deref(), Some("keep.phrase not shown: 74 characters, at most 60."));
+		assert_eq!(keep_fields_note(&args["keep"]), None);
+		assert_eq!(without_broken_keep(args), keep(json!({ "text": "SOH CAH TOA names the ratios." })));
+		assert_eq!(keep_phrase_note(&json!({ "text": "t", "phrase": "SOH CAH TOA" })), None);
+	}
+
+	#[test]
+	fn a_keep_sent_as_a_string_is_read_as_its_object() {
+		let encoded = json!({ "question": "Q?", "keep": "{\"text\":\"t\"}" });
+		assert_eq!(keep_of(&encoded), Some(json!({ "text": "t" })));
+		assert_eq!(without_broken_keep(encoded), keep(json!({ "text": "t" })));
+		assert_eq!(keep_of(&json!({ "keep": "not json" })), None);
 	}
 }
