@@ -1,6 +1,6 @@
 [
 	{
-		"version": "0.6.3",
+		"version": "0.6.4",
 		"date": "2026-11-13",
 		"changes": [
 			"You can add EPUB books to a space. godspeed reads them section by section, so your teacher can search and quote them like a PDF. Copy-protected books can't be read."
