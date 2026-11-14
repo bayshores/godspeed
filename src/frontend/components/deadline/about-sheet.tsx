@@ -3,6 +3,9 @@ import { Pane } from "@/frontend/components/ui/pane";
 import type { About } from "./use-deadline-about";
 import { RULE, SHEET, SHEET_TITLE } from "./styles";
 
+/** The teacher's Markdown; its headings stay under the sheet's title. */
+const ABOUT_TEXT = "font-prose text-[17px] leading-relaxed text-ink [--lh-heading-weight:500] [&_:is(h1,h2,h3)]:text-lg [&_:is(h1,h2,h3)]:leading-snug";
+
 /**
  * WHAT IT'S LIKE: what the teacher wrote about the deadline (its file
  * "What it's like.md"), as Markdown, and a quiet way to ask for it again.
@@ -13,7 +16,7 @@ export function AboutSheet({ about, teacherName, onAsk, onRetry }: { about: Abou
 			<h2 className={SHEET_TITLE}>What it&apos;s like</h2>
 			<span className={RULE} />
 			{about.state === "ready" ? (
-				<div data-testid="deadline-about-text" className="font-prose text-[17px] leading-relaxed text-ink">
+				<div data-testid="deadline-about-text" className={ABOUT_TEXT}>
 					<MessageResponse>{about.text}</MessageResponse>
 				</div>
 			) : about.state === "failed" ? (
