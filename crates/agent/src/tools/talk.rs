@@ -111,7 +111,7 @@ fn schema_of(name: &str) -> Json {
 				("left_out_ids", strings(t.left_out_files)),
 				("source", string_or_null(t.source)),
 				("assignment_file_id", string_or_null(t.assignment_file)),
-				("about_file_id", string_or_null(t.about_file)),
+				("about_file_id", string_or_null(t.about_file_change)),
 				("done", json!({ "type": "boolean" })),
 			],
 		),

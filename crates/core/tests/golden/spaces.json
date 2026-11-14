@@ -21661,6 +21661,7 @@
 				"source": "Where you found what it covers, e.g. the practice exam's file name. The learner sees it.",
 				"assignmentFile": "For homework and projects: the id of the space file with its problems (the assignment sheet). The learner works on its problems in godspeed.",
 				"aboutFile": "Exams, quizzes and interviews: the id of a space info file on what it is like (\"What it's like.md\", written with add_space_file). Search the space files and the web first; under 200 words; name only sources you read.",
+				"aboutFileChange": "The id of the space info file on what it is like (see add_space_deadline), or null to remove it.",
 				"newTime": "24-hour \"HH:MM\", or null to remove the time.",
 				"topic": "What the learner wants to study, in their words.",
 				"lessonSpace": "The space id from list_spaces, or \"none\" for lessons without a space (the default)."

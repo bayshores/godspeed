@@ -947,7 +947,7 @@
 									"type": "null"
 								}
 							],
-							"description": "Exams, quizzes and interviews: the id of a space info file on what it is like (\"What it's like.md\", written with add_space_file). Search the space files and the web first; under 200 words; name only sources you read."
+							"description": "The id of the space info file on what it is like (see add_space_deadline), or null to remove it."
 						},
 						"done": {
 							"type": "boolean"
@@ -1544,7 +1544,7 @@
 									"type": "null"
 								}
 							],
-							"description": "Exams, quizzes and interviews: the id of a space info file on what it is like (\"What it's like.md\", written with add_space_file). Search the space files and the web first; under 200 words; name only sources you read."
+							"description": "The id of the space info file on what it is like (see add_space_deadline), or null to remove it."
 						},
 						"done": {
 							"type": "boolean"
@@ -2582,7 +2582,7 @@
 									"type": "null"
 								}
 							],
-							"description": "Exams, quizzes and interviews: the id of a space info file on what it is like (\"What it's like.md\", written with add_space_file). Search the space files and the web first; under 200 words; name only sources you read."
+							"description": "The id of the space info file on what it is like (see add_space_deadline), or null to remove it."
 						},
 						"done": {
 							"type": "boolean"
@@ -3184,7 +3184,7 @@
 									"type": "null"
 								}
 							],
-							"description": "Exams, quizzes and interviews: the id of a space info file on what it is like (\"What it's like.md\", written with add_space_file). Search the space files and the web first; under 200 words; name only sources you read."
+							"description": "The id of the space info file on what it is like (see add_space_deadline), or null to remove it."
 						},
 						"done": {
 							"type": "boolean"
@@ -3925,7 +3925,7 @@
 									"type": "null"
 								}
 							],
-							"description": "Exams, quizzes and interviews: the id of a space info file on what it is like (\"What it's like.md\", written with add_space_file). Search the space files and the web first; under 200 words; name only sources you read."
+							"description": "The id of the space info file on what it is like (see add_space_deadline), or null to remove it."
 						},
 						"done": {
 							"type": "boolean"
@@ -5026,7 +5026,7 @@
 									"type": "null"
 								}
 							],
-							"description": "Exams, quizzes and interviews: the id of a space info file on what it is like (\"What it's like.md\", written with add_space_file). Search the space files and the web first; under 200 words; name only sources you read."
+							"description": "The id of the space info file on what it is like (see add_space_deadline), or null to remove it."
 						},
 						"done": {
 							"type": "boolean"
@@ -5610,7 +5610,7 @@
 									"type": "null"
 								}
 							],
-							"description": "Exams, quizzes and interviews: the id of a space info file on what it is like (\"What it's like.md\", written with add_space_file). Search the space files and the web first; under 200 words; name only sources you read."
+							"description": "The id of the space info file on what it is like (see add_space_deadline), or null to remove it."
 						},
 						"done": {
 							"type": "boolean"
@@ -6259,7 +6259,7 @@
 									"type": "null"
 								}
 							],
-							"description": "Exams, quizzes and interviews: the id of a space info file on what it is like (\"What it's like.md\", written with add_space_file). Search the space files and the web first; under 200 words; name only sources you read."
+							"description": "The id of the space info file on what it is like (see add_space_deadline), or null to remove it."
 						},
 						"done": {
 							"type": "boolean"

@@ -195,6 +195,7 @@ fn space_tool_text_matches_node() {
 		("source", a.source),
 		("assignmentFile", a.assignment_file),
 		("aboutFile", a.about_file),
+		("aboutFileChange", a.about_file_change),
 		("newTime", a.new_time),
 		("topic", a.topic),
 		("lessonSpace", a.lesson_space),
