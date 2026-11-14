@@ -13,6 +13,7 @@ import assert from "node:assert/strict";
 
 const { AgentLauncher } = await import("../../src/frontend/components/agent-folder/agent-launcher.tsx");
 const { TerminalsProvider, useTerminals } = await import("../../src/frontend/components/terminal/use-terminals.ts");
+const { useAgentStatus } = await import("../../src/frontend/components/agent-status.tsx");
 type Access = Parameters<typeof TerminalsProvider>[0]["status"];
 type Api = NonNullable<ReturnType<typeof useTerminals>>;
 
@@ -187,8 +188,11 @@ describe("Start lesson and a Talk send", () => {
 	it("start the agent last started here, hidden, only when no agent is here", async () => {
 		const shell = fakeShell();
 		let api: Api | null = null;
+		let seen: Access = null;
+		const status = () => seen;
 		function Probe() {
 			api = useTerminals();
+			seen = useAgentStatus();
 			return null;
 		}
 		const page = (status: Access) => (
@@ -214,6 +218,9 @@ describe("Start lesson and a Talk send", () => {
 					await settle();
 					assert.ok(shell.calls.includes("start teacher codex"), shell.calls.join(", "));
 					assert.ok(api!.overlay === null, "it starts hidden");
+					assert.ok(status()?.connected === false && status()?.teaching === false, "every surface reads no agent until the new one checks in");
+					await act(async () => root!.render(page(access({ connected: true, teaching: true, terminals: [{ id: "teacher-new", here: true }] }))));
+					assert.ok(status()?.teaching === true, "checked in: the server's word again");
 				},
 			);
 		} finally {

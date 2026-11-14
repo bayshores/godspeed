@@ -8,6 +8,7 @@ import {
 	helperShouldStart,
 	needsYou,
 	restartAsks,
+	statusFromTerminals,
 	teacherStartRefused,
 	teacherStatusLine,
 	terminalFooter,
@@ -196,6 +197,16 @@ describe("starting the teacher hidden, and restarting", () => {
 		assert.equal(wakeAgent({ ...base, outsideHere: true }), null);
 		assert.equal(wakeAgent({ ...base, teacher: term() }), null, "one already runs or starts");
 		assert.equal(wakeAgent({ ...base, teacher: term({ ended: { stopped: true, code: null } }) }), "codex");
+	});
+
+	it("the status says no agent once godspeed's teacher ended or before it checked in, though the server still says connected", () => {
+		const server = { connected: true, teaching: true, name: "Claude Code", pendingWork: 1 };
+		const gone = statusFromTerminals(server, term({ ended: { stopped: true, code: null } }), false);
+		assert.deepEqual(gone, { connected: false, teaching: false, pendingWork: 1 });
+		assert.deepEqual(statusFromTerminals(server, term(), false), { connected: false, teaching: false, pendingWork: 1 }, "starting, not checked in");
+		assert.ok(statusFromTerminals(server, term(), true) === server, "checked in: the server's word");
+		assert.ok(statusFromTerminals(server, null, false) === server, "never started here: the server's word");
+		assert.equal(statusFromTerminals(null, term(), false), null);
 	});
 
 	it("Restart now asks first only while the teacher's terminal runs and a turn waits", () => {

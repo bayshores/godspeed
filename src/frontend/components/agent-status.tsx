@@ -85,7 +85,8 @@ export function sameAgentStatus(a: AgentStatus | null, b: AgentStatus): boolean 
 		&& a.outsideHere === b.outsideHere && JSON.stringify(a.terminals) === JSON.stringify(b.terminals);
 }
 
-const AgentStatusContext = createContext<AgentStatus | null>(null);
+/** The desktop app's terminals provide it again, corrected (use-terminals.ts). */
+export const AgentStatusContext = createContext<AgentStatus | null>(null);
 
 export function AgentStatusProvider({ children }: { children: React.ReactNode }) {
 	const [status, setStatus] = useState<AgentStatus | null>(null);

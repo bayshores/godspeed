@@ -32,7 +32,8 @@ export function AppBar() {
 	const selected = selectedTab(pathname, active, spaces);
 	return (
 		<header data-testid="app-bar" className="lh-app-bar lh-drag lh-lights-gutter lh-wco-gutter flex h-12 shrink-0 select-none items-stretch bg-bar text-bar-ink">
-			<span className="flex shrink-0 items-center pr-4 pl-5 text-[17px] font-medium">godspeed</span>
+			{/* Below 760px the wordmark and the clock give their room to Today and the chips. */}
+			<span className="flex shrink-0 items-center pr-4 pl-5 text-[17px] font-medium max-[760px]:hidden">godspeed</span>
 			<SpaceTabs selected={selected} />
 			<FollowButton />
 			<WorkChip />
@@ -131,7 +132,7 @@ function Announce({ text }: { text: string }) {
 function Clock() {
 	const minute = useMinute();
 	return (
-		<span data-testid="bar-clock" className="font-count flex shrink-0 items-center pr-5 pl-3 text-[15px] tabular-nums">
+		<span data-testid="bar-clock" className="font-count flex shrink-0 items-center pr-5 pl-3 text-[15px] tabular-nums max-[760px]:hidden">
 			{minute === null ? "" : clockText(new Date(minute))}
 		</span>
 	);

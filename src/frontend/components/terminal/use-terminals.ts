@@ -12,13 +12,14 @@ import { createContext, createElement, useCallback, useContext, useEffect, useMe
 import type { FolderAgent } from "@/shared/core";
 import { postAgentFolder, savedAgent } from "@/frontend/components/agent-folder/agent-folder-api";
 import type { FolderView } from "@/frontend/components/agent-folder/agent-folder-model";
-import type { AgentStatus } from "@/frontend/components/agent-status";
+import { AgentStatusContext, type AgentStatus } from "@/frontend/components/agent-status";
 import {
 	CHECK_IN_WAIT_MS,
 	OUTSIDE_REFUSAL,
 	TEACH_WAIT_MS,
 	helperShouldStart,
 	needsYou,
+	statusFromTerminals,
 	teacherStartRefused,
 	wakeAgent,
 	type TerminalFacts,
@@ -305,8 +306,11 @@ export function agentHereNow(status: AgentStatus | null, terminals: TerminalsApi
 
 const TerminalsContext = createContext<TerminalsApi | null>(null);
 
+/** Every surface below reads the agent's status as the terminals correct it. */
 export function TerminalsProvider({ status, children }: { status: AgentStatus | null; children: ReactNode }) {
-	return createElement(TerminalsContext.Provider, { value: useTerminalsState(status) }, children);
+	const api = useTerminalsState(status);
+	const shown = useMemo(() => statusFromTerminals(status, api.teacher, api.agentHere), [status, api.teacher, api.agentHere]);
+	return createElement(TerminalsContext.Provider, { value: api }, createElement(AgentStatusContext.Provider, { value: shown }, children));
 }
 
 /** The terminals; null outside the provider. */
