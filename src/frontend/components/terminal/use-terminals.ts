@@ -4,7 +4,7 @@
  * and the overlay that shows their screens. The overlay opens by itself
  * when the learner is needed (terminal-model.ts), never over a dialog,
  * and once per reason. The helper starts by itself once the teacher has
- * checked in and background jobs wait, and stops with the teacher.
+ * checked in and background jobs wait; the shell stops it with the teacher.
  * Outside the desktop app `available` is false and nothing here runs.
  */
 import { createContext, createElement, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from "react";
@@ -175,7 +175,7 @@ function useTerminalsState(status: AgentStatus | null): TerminalsApi {
 			}
 			setFolder(view.short);
 			try {
-				const { id } = await lh.start(role, agent, view.folder);
+				const { id } = await lh.start(role, agent);
 				setRecords((r) => (r[role]?.id === id ? r : { ...r, [role]: { id, role, agent, startedAt: Date.now(), ended: null, prompt: null, url: false } }));
 				return null;
 			} catch (err) {
@@ -214,12 +214,6 @@ function useTerminalsState(status: AgentStatus | null): TerminalsApi {
 		helperTried.current = teacher.id;
 		void start("helper", teacher.agent);
 	}, [helperWanted, teacher, start]);
-
-	// The helper stops with the teacher.
-	const helperLive = !!helper && !helper.ended;
-	useEffect(() => {
-		if (teacher?.ended && helperLive && helper) lh?.stop(helper.id).catch(() => {/* it has ended already */});
-	}, [teacher?.ended, helperLive, helper, lh]);
 
 	const idOf = useCallback((role: TerminalRole) => records[role]?.id, [records]);
 	const stop = useCallback(

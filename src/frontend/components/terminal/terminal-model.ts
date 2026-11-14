@@ -12,7 +12,8 @@ export type TerminalRole = "teacher" | "helper";
 export type TerminalPrompt = "trust" | "enter" | "menu";
 
 /** Stopped by the learner (or by quitting), or exited by itself with its code. */
-export type TerminalEnded = { stopped: true; code: null } | { stopped: false; code: number };
+/** `code: null` without `stopped`: godspeed could not read the screen and ended it. */
+export type TerminalEnded = { stopped: true; code: null } | { stopped: false; code: number | null };
 
 /** One terminal the shell runs, kept after it ends until the next start for its role. */
 export interface TerminalRecord {
@@ -118,9 +119,9 @@ export function terminalFooter(f: TerminalFacts, names: TerminalNames): Terminal
 	const { term } = f;
 	const agent = AGENT_LABEL[term.agent];
 	const teacher = term.role === "teacher";
-	const who = teacher ? names.name : "the helper";
 	const ended = term.ended;
-	if (ended?.stopped) return footer(`You stopped ${who}.`, { startAgain: true });
+	// The shell also stops the helper when the teacher ends.
+	if (ended?.stopped) return footer(teacher ? `You stopped ${names.name}.` : "The helper stopped.", { startAgain: true });
 	if (ended) {
 		if (ended.code === EXIT_NOT_INSTALLED) return footer(`${agent} isn't installed on this computer.`, { get: GET_AGENT[term.agent], startAgain: true });
 		if (ended.code === EXIT_NO_NODE) return footer(`godspeed needs Node.js to connect ${agent}.`, { get: GET_NODE, startAgain: true });

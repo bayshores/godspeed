@@ -18,7 +18,7 @@ declare global {
 			/** The agents' terminals the shell runs (terminal/use-terminals.ts). */
 			terminals?: {
 				/** Resolves to the new terminal's id; rejects with a sentence saying why it couldn't start. */
-				start: (role: TerminalRole, agent: FolderAgent, folder: string) => Promise<{ id: string }>;
+				start: (role: TerminalRole, agent: FolderAgent) => Promise<{ id: string }>;
 				/** Pushes the screen as it is, then its live output, until detach. */
 				attach: (id: string) => Promise<void>;
 				detach: (id: string) => Promise<void>;

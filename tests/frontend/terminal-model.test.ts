@@ -26,6 +26,7 @@ describe("when the screen opens by itself", () => {
 	it("a question on the screen, a crash and a missing agent open it", () => {
 		assert.equal(needsYou(facts({}, { prompt: "menu" })), "prompt");
 		assert.equal(needsYou(facts({}, { ended: { stopped: false, code: 1 } })), "crashed");
+		assert.equal(needsYou(facts({}, { ended: { stopped: false, code: null } })), "crashed", "a screen godspeed could not read");
 		assert.equal(needsYou(facts({}, { ended: { stopped: false, code: 3 } })), "missing");
 		assert.equal(needsYou(facts({}, { ended: { stopped: false, code: 4 } })), "missing");
 	});
@@ -97,7 +98,7 @@ describe("the footer's words", () => {
 	it("the helper", () => {
 		assert.equal(words(facts({ helperBusy: true }, { role: "helper" })).text, "The helper is reading your files.");
 		assert.equal(words(facts({}, { role: "helper" })).text, "The helper is waiting for files to read.");
-		assert.equal(words(facts({}, { role: "helper", ended: { stopped: true, code: null } })).text, "You stopped the helper.");
+		assert.equal(words(facts({}, { role: "helper", ended: { stopped: true, code: null } })).text, "The helper stopped.");
 	});
 
 	it("no sentence has an em-dash or a dot divider", () => {
