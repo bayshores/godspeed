@@ -33,7 +33,7 @@ Object.assign(globalThis, {
 // The Talk thread scrolls to its end.
 (dom.window.Element.prototype as unknown as { scrollIntoView: () => void }).scrollIntoView = () => {};
 
-const { TeacherPanel, agentLine } = await import("../../src/frontend/components/teacher/teacher-panel.tsx");
+const { TeacherPanel } = await import("../../src/frontend/components/teacher/teacher-panel.tsx");
 const { dockPush, dockWidth } = await import("../../src/frontend/components/teacher/dock-model.ts");
 const { draftWithAsk, startsTurn } = await import("../../src/frontend/components/teacher/talk-model.ts");
 const { askTeacher, useAskTeacher } = await import("../../src/frontend/components/teacher/ask-teacher.ts");
@@ -104,10 +104,10 @@ describe("the panel", () => {
 		// Outside the app shell there is no teacher state: the list says what will show there.
 		assert.ok(el.querySelector("[data-testid='activity-list'] [data-testid='activity-empty']"));
 	});
-	it("head: the name, the teacher's status and a Close button (Follow is the top bar's chip)", () => {
+	it("head: the name and a Close button only (the status and Follow are the top bar's chip)", () => {
 		const html = renderToStaticMarkup(panel());
 		assert.match(html, /data-testid="teacher-panel-name"[^>]*>Ada</);
-		assert.match(html, /data-testid="teacher-panel-agent"[^>]*>Teaching, idle</);
+		assert.doesNotMatch(html, /Teaching, idle|teacher-panel-agent/);
 		assert.match(html, /data-testid="teacher-panel-close"[^>]*>[\s\S]*Close</);
 		assert.doesNotMatch(html, /role="switch"/);
 		const closes: number[] = [];
@@ -158,7 +158,6 @@ describe("the panel", () => {
 		const idle = { connected: false, teaching: false, helperHere: false, helperCovering: false, pendingWork: 0, pendingTurns: 0, claimedLessons: [] };
 		const el = mount(panel({ agent: idle }));
 		await settle();
-		assert.match(el.querySelector("[data-testid='teacher-panel-agent']")?.textContent ?? "", /^Not connected$/);
 		assert.match(el.querySelector("[data-testid='no-agent']")?.textContent ?? "", /I'm not connected yet\. Open Claude Code and I'll start\./);
 		assert.equal(el.querySelector("[data-testid='no-agent-open']")?.textContent, "Open Claude Code");
 		assert.ok(el.querySelector("[data-testid='talk-empty']"), "the prompt stays below it");
@@ -316,23 +315,19 @@ describe("the panel", () => {
 			talkChat = null;
 		}
 	});
-	it("the status line says Not connected with no agent, and shows the waiting notice while work waits", () => {
-		const idle = { connected: false, teaching: false, helperHere: false, helperCovering: false, pendingWork: 0, pendingTurns: 0, claimedLessons: [] };
-		assert.equal(agentLine(idle), "Not connected");
-		assert.equal(agentLine(null), null, "nothing until the first read");
-		assert.equal(agentLine({ ...idle, connected: true, teaching: true }), "Teaching, idle");
-		assert.equal(agentLine({ ...idle, connected: true, teaching: true }, { text: "Reading a PDF", working: true }), "Reading a PDF");
-		assert.equal(agentLine({ ...idle, connected: true, name: "Codex" }), "Codex connected, not teaching");
-		assert.equal(agentLine({ ...idle, connected: true, name: "Codex", pendingWork: 1 }), waitingNotice("Codex"));
-		assert.equal(agentLine({ ...idle, connected: true, teaching: true, helperCovering: true }), "Tidying my memory. My helper is answering for a minute.");
-		assert.ok(renderToStaticMarkup(panel({ agent: { ...idle, pendingWork: 2 } })).includes(waitingNotice()));
-	});
-	it("a Talk message no agent has taken says it waits once, in the head", async () => {
+	it("a Talk message no agent has taken says it waits once, where the reply goes", async () => {
 		talkChat = { id: "chat_talk", turnInFlight: true, messages: [{ id: "u1", role: "user", content: "add my midterm", timestamp: 1 }] };
-		const el = mount(panel({ agent: { connected: false, teaching: false, helperHere: false, helperCovering: false, pendingWork: 1, pendingTurns: 0, claimedLessons: [] } }));
+		const waiting = { connected: true, teaching: false, name: "Codex", helperHere: false, helperCovering: false, pendingWork: 1, pendingTurns: 0, claimedLessons: [] };
+		const el = mount(panel({ agent: waiting }));
 		await settle();
 		assert.ok(el.querySelector("[data-testid='talk-you']"), "the thread is open");
+		assert.equal(el.querySelector("[data-testid='talk-busy']")?.textContent, waitingNotice("Codex"));
 		assert.equal(el.textContent!.split("Waiting for your agent").length - 1, 1);
+		act(() => root?.unmount());
+		const none = mount(panel({ agent: { ...waiting, connected: false, name: undefined } }));
+		await settle();
+		assert.ok(none.querySelector("[data-testid='no-agent']"), "with none connected the note says so");
+		assert.ok(none.querySelector("[data-testid='talk-busy']") === null, "and the reply's place stays empty");
 		talkChat = null;
 	});
 	it("is 400 wide, and the whole window when narrow", () => {
@@ -363,8 +358,6 @@ describe("the teacher's Activity", () => {
 	const list = (over: Partial<React.ComponentProps<typeof ActivityList>> = {}) => (
 		<ActivityList
 			name="Ada"
-			doing={{ text: "Reading syllabus.pdf", count: "2 of 5", working: true }}
-			follow={{ on: false, set: () => {} }}
 			recent={ACTIONS}
 			onPick={() => {}}
 			spaceNameOf={names}
@@ -380,35 +373,17 @@ describe("the teacher's Activity", () => {
 	it("scrolls inside its parent, with no padding of its own", () => {
 		assert.match(renderToStaticMarkup(list()), /data-testid="activity-list" class="flex min-h-0 flex-1 flex-col gap-3\.5 overflow-y-auto"/);
 	});
-	it("the now box: what it is doing, its count and Follow; hidden while idle", () => {
-		const el = mount(list());
-		const now = el.querySelector("[data-testid='activity-now']")!;
-		assert.equal(now.textContent, "Reading syllabus.pdf2 of 5Follow");
-		assert.equal(now.className.includes("bg-highlight"), true);
-		act(() => root?.unmount());
-		assert.ok(mount(list({ doing: { text: "Idle", working: false } })).querySelector("[data-testid='activity-now']") === null);
-	});
-	it("Follow turns following on and off, and reads Following while on", () => {
-		const set: boolean[] = [];
-		const el = mount(list({ follow: { on: false, set: (on) => set.push(on) } }));
-		const button = el.querySelector("[data-testid='activity-follow']") as HTMLElement;
-		assert.equal(button.getAttribute("aria-pressed"), "false");
-		act(() => button.click());
-		assert.deepEqual(set, [true]);
-		act(() => root?.unmount());
-		const on = mount(list({ follow: { on: true, set: () => {} } })).querySelector("[data-testid='activity-follow']");
-		assert.equal(on?.textContent, "Following");
-		assert.equal(on?.getAttribute("aria-pressed"), "true");
-		act(() => root?.unmount());
-		assert.ok(mount(list({ follow: null })).querySelector("[data-testid='activity-follow']") === null);
+	it("holds no now box and no Follow: those sit beside the teacher's name", () => {
+		const html = renderToStaticMarkup(list());
+		assert.doesNotMatch(html, /activity-now|activity-follow|Follow/);
 	});
 	it("with nothing in it, says what will show there", () => {
-		const el = mount(list({ doing: { text: "Idle", working: false }, recent: [] }));
+		const el = mount(list({ recent: [] }));
 		assert.equal(el.querySelector("[data-testid='activity-empty']")?.textContent, "Nothing yet. What Ada reads and builds shows here.");
 		act(() => root?.unmount());
 		assert.ok(mount(list()).querySelector("[data-testid='activity-empty']") === null);
 		act(() => root?.unmount());
-		assert.ok(mount(list({ doing: null, recent: [], waiting: waitingNotice() })).querySelector("[data-testid='activity-empty']") === null, "the waiting line is something");
+		assert.ok(mount(list({ recent: [], waiting: waitingNotice() })).querySelector("[data-testid='activity-empty']") === null, "the waiting line is something");
 	});
 	it("Recent hides when there is nothing yet", () => {
 		assert.ok(mount(list({ recent: [] })).querySelector("[data-testid='activity-recent']") === null);

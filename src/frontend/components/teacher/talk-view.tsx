@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { AgentAction, LhMessage } from "@/shared/core";
 import { CitedResponse } from "@/frontend/components/citations/cited-response";
-import { agentWaiting, type AgentStatus } from "@/frontend/components/agent-status";
+import { agentWaiting, waitingNotice, type AgentStatus } from "@/frontend/components/agent-status";
 import { AttachButton, AttachmentTray, attachmentInputProps, useAttachmentDraft, type AttachmentDraft } from "@/frontend/components/lesson/attachment-tray";
 import { restoreUnsent } from "@/frontend/components/lesson/chat-helpers";
 import { lastLearnerText, lessonError, retryAction } from "@/frontend/components/lesson/lesson-error-model";
@@ -334,12 +334,13 @@ function TalkThread({
 						</div>
 					);
 				})}
-				{/* While no agent has taken the message, the panel's head says so. */}
-				{busy && !agentWaiting(agent) && (
+				{/* While no agent has taken the message, the reply's place says so
+				    (with none connected, the note under it already does). */}
+				{busy && !(noAgent && agentWaiting(agent)) && (
 					<div className={cn("flex flex-col gap-1", rows.length > 0 && (lastSpeaker === "teacher" ? "mt-2" : "mt-[18px]"))}>
 						{lastSpeaker !== "teacher" && <span className={cn("truncate", LABEL_TEXT)}>{name}</span>}
 						<p data-testid="talk-busy" className="text-[15px] text-ink-2">
-							Writing…
+							{agentWaiting(agent) ? waitingNotice(agent?.name) : "Writing…"}
 						</p>
 					</div>
 				)}

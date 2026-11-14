@@ -3,20 +3,18 @@ import { DEFAULT_TEACHER_NAME } from "@/shared/core";
 import { useActivity, type ActivityFeed } from "@/frontend/components/activity-dock";
 import { agentWaiting, useAgentStatus, waitingNotice } from "@/frontend/components/agent-status";
 import { useNow } from "@/frontend/components/use-now";
-import { followButtons } from "@/frontend/components/top-bar/top-bar-model";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
-import { cn } from "@/frontend/lib/utils";
 import { useTeacher } from "./teacher-context";
 import { BackgroundJobs } from "./background-jobs";
 import { safePage } from "./follow";
-import type { AgentDoing } from "./follow-status";
 import { pastLabel } from "./tour";
 import { agoLabel } from "./activity-model";
 
 /**
- * The teacher's Activity: what the agent is doing now (with Follow), the
- * jobs running in the background, and its recent changes (click one to go
- * there). Shared by the lesson's teacher column and the teacher panel.
+ * The teacher's Activity: the jobs running in the background and its
+ * recent changes (click one to go there). What it is doing now, and
+ * Follow, sit beside its name instead. Shared by the lesson's teacher
+ * column and the teacher panel.
  * It scrolls inside its parent, which pads it.
  */
 
@@ -27,8 +25,6 @@ export function TeacherActivity() {
 	return (
 		<ActivityList
 			name={teacher?.name ?? DEFAULT_TEACHER_NAME}
-			doing={teacher?.doing ?? null}
-			follow={teacher ? { on: teacher.follow, set: teacher.setFollow } : null}
 			recent={teacher?.recent ?? []}
 			onPick={(a) => teacher?.go(a)}
 			spaceNameOf={teacher?.spaceNameOf ?? (() => null)}
@@ -41,8 +37,6 @@ export function TeacherActivity() {
 /** The list itself, from its data (exported for tests). */
 export function ActivityList({
 	name,
-	doing,
-	follow,
 	recent,
 	onPick,
 	spaceNameOf,
@@ -50,8 +44,6 @@ export function ActivityList({
 	waiting,
 }: {
 	name: string;
-	doing: AgentDoing | null;
-	follow: { on: boolean; set: (on: boolean) => void } | null;
 	recent: readonly AgentAction[];
 	onPick: (action: AgentAction) => void;
 	spaceNameOf: (id: string | null) => string | null;
@@ -59,35 +51,11 @@ export function ActivityList({
 	waiting: string | null;
 }) {
 	const now = useNow(recent.length > 0); // "2 min" stays true
-	const working = !!doing?.working;
 	const jobs = feed.jobs.length > 0 || feed.extractions.length > 0 || (feed.failed?.length ?? 0) > 0 || !!waiting;
-	const followWord = follow ? followButtons({ following: follow.on, working, offer: null }).follow : null;
 
 	return (
 		<div data-testid="activity-list" className="flex min-h-0 flex-1 flex-col gap-3.5 overflow-y-auto">
-			{doing && working && (
-				<div data-testid="activity-now" className="flex shrink-0 flex-col gap-2 bg-highlight px-3.5 py-3">
-					<p className="break-words text-lg text-ink">{doing.text}</p>
-					{(doing.count || followWord) && (
-						<div className="flex items-center gap-2">
-							{doing.count && <span className="font-count text-[15px] text-ink-2">{doing.count}</span>}
-							{follow && followWord && (
-								<button
-									type="button"
-									data-testid="activity-follow"
-									aria-pressed={follow.on}
-									onClick={() => follow.set(!follow.on)}
-									className={cn("lh-btn ml-auto text-[15px]", follow.on && "lh-btn-main")}
-								>
-									{followWord}
-								</button>
-							)}
-						</div>
-					)}
-				</div>
-			)}
-
-			{!working && recent.length === 0 && !jobs && (
+			{recent.length === 0 && !jobs && (
 				<p data-testid="activity-empty" className="text-[15px] text-ink-2">
 					Nothing yet. What {name} reads and builds shows here.
 				</p>
