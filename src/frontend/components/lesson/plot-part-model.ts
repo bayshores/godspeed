@@ -1,8 +1,8 @@
 /**
  * A teacher's plot, read from its stored call and result: the lines as
- * formulas in the plot grammar (never run as code), the axes' ticks, the
- * paths at a slider value, where each line's key sits, and the words a
- * screen reader hears. Pure; plot-part.tsx draws it.
+ * formulas in the plot grammar (never run as code) or measured points, the
+ * axes' ticks, the paths at a slider value, where each line's key sits, and
+ * the words a screen reader hears. Pure; plot-part.tsx draws it.
  */
 import { line } from "d3-shape";
 import { evalExpr, exprToLatex, parseExpr } from "@/shared/core";
@@ -16,21 +16,33 @@ interface Axis {
 
 export interface PlotLine {
 	label: string;
-	/** The formula typeset under the label. */
+	/** The formula typeset under the label; empty for measured points. */
 	latex: string;
 	/** Held back until his guess is answered. */
 	hidden: boolean;
 	/** The second line is dashed. */
 	dashed: boolean;
-	/** The line's value at x and the slider value; not finite where the math is not. */
+	/** Measured [x, y] by increasing x, or null for a formula. */
+	points: [number, number][] | null;
+	/** The line's value at x and the slider value; not finite where the math
+	 *  is not, and for points anywhere but their own x values. */
 	at: (x: number, slider: number) => number;
+}
+
+export interface Slider {
+	name: string;
+	latex: string;
+	min: number;
+	max: number;
+	start: number;
 }
 
 export interface Plot {
 	title: string;
 	x: Axis;
 	y: { label: string; min: number; max: number };
-	slider: { name: string; latex: string; min: number; max: number; start: number };
+	/** Only when a line is a formula. */
+	slider: Slider | null;
 	lines: PlotLine[];
 }
 
@@ -43,39 +55,56 @@ function num(v: unknown): number {
 
 const str = (v: unknown): string => (typeof v === "string" ? v : "");
 const range = (min: number, max: number): boolean => Number.isFinite(min) && Number.isFinite(max) && min < max;
+const present = (v: unknown): boolean => v !== undefined && v !== null;
+
+/** A points line's pairs, or null when they cannot be drawn. */
+function readPoints(raw: unknown): [number, number][] | null {
+	if (!Array.isArray(raw) || raw.length < 2) return null;
+	const points = raw.map((pair): [number, number] => (Array.isArray(pair) && pair.length === 2 ? [num(pair[0]), num(pair[1])] : [Number.NaN, Number.NaN]));
+	const drawable = points.every(([x, y], i) => Number.isFinite(x) && Number.isFinite(y) && (i === 0 || x > points[i - 1]![0]));
+	return drawable ? points : null;
+}
 
 /** The plot a stored call and its result draw, or only its title when it
  *  cannot be drawn (an unknown version, no guess, a formula that no longer
- *  parses). */
+ *  parses, points out of order or not numbers). */
 export function readPlot(input: unknown, output: unknown): { plot: Plot } | { title: string } {
 	const call = (input ?? {}) as Record<string, Record<string, unknown> | undefined>;
 	const title = str(call.title);
 	const details = (output ?? {}) as { v?: unknown; onPlot?: { toolCallId?: unknown }; y?: { min?: unknown; max?: unknown } };
 	const x = { name: str(call.x?.name), label: str(call.x?.label), min: num(call.x?.min), max: num(call.x?.max) };
 	const y = { label: str(call.y?.label), min: num(details.y?.min), max: num(details.y?.max) };
-	const s = call.slider;
-	const slider = { name: str(s?.name), latex: "", min: num(s?.min), max: num(s?.max), start: num(s?.start) };
 	const rawLines = Array.isArray(call.lines) ? (call.lines as Record<string, unknown>[]) : [];
 	if (details.v !== 1 || typeof details.onPlot?.toolCallId !== "string") return { title };
-	if (!x.name || !slider.name || !range(x.min, x.max) || !range(y.min, y.max) || !range(slider.min, slider.max) || !Number.isFinite(slider.start)) return { title };
-	if (rawLines.length < 1 || rawLines.length > 2) return { title };
-	const names = [x.name, slider.name];
+	if (!range(x.min, x.max) || !range(y.min, y.max) || rawLines.length < 1 || rawLines.length > 2) return { title };
+	// The slider and x's name serve the formulas; a plot of points alone has neither.
+	const formulas = rawLines.some((raw) => present(raw?.expr));
+	const s = call.slider;
+	const slider = formulas ? { name: str(s?.name), latex: "", min: num(s?.min), max: num(s?.max), start: num(s?.start) } : null;
+	if (slider && (!x.name || !slider.name || !range(slider.min, slider.max) || !Number.isFinite(slider.start))) return { title };
+	const names = slider ? [x.name, slider.name] : [];
 	const lines: PlotLine[] = [];
 	for (const [i, raw] of rawLines.entries()) {
-		const parsed = parseExpr(str(raw?.expr), names);
-		if ("error" in parsed || typeof raw?.label !== "string") return { title };
+		if (typeof raw?.label !== "string") return { title };
+		const common = { label: raw.label, hidden: raw.hidden === true, dashed: i === 1 };
+		if (!present(raw.expr)) {
+			const points = readPoints(raw.points);
+			if (!points) return { title };
+			lines.push({ ...common, latex: "", points, at: (xv) => points.find((p) => p[0] === xv)?.[1] ?? Number.NaN });
+			continue;
+		}
+		const parsed = parseExpr(str(raw.expr), names);
+		if ("error" in parsed || !slider) return { title };
 		const { expr } = parsed;
-		lines.push({
-			label: raw.label,
-			latex: exprToLatex(expr),
-			hidden: raw.hidden === true,
-			dashed: i === 1,
-			at: (xv, sv) => evalExpr(expr, new Map([[x.name, xv], [slider.name, sv]])),
-		});
+		lines.push({ ...common, latex: exprToLatex(expr), points: null, at: (xv, sv) => evalExpr(expr, new Map([[x.name, xv], [slider.name, sv]])) });
 	}
-	const sliderName = parseExpr(slider.name, [slider.name]);
-	slider.latex = "expr" in sliderName ? exprToLatex(sliderName.expr) : slider.name;
-	slider.start = Math.min(slider.max, Math.max(slider.min, slider.start));
+	if (slider) {
+		const sliderName = parseExpr(slider.name, [slider.name]);
+		slider.latex = "expr" in sliderName ? exprToLatex(sliderName.expr) : slider.name;
+		slider.start = Math.min(slider.max, Math.max(slider.min, slider.start));
+	}
+	// A points plot with no x name is read out by its axis title.
+	x.name ||= x.label.trim() || "x";
 	return { plot: { title, x, y, slider, lines } };
 }
 
@@ -123,11 +152,13 @@ function sampleXs(plot: Plot): number[] {
 }
 
 /** The SVG path of a line at a slider value, inside the pixel box `frame`.
- *  A value that is not a number, or far outside the y range (a pole), is a
- *  gap; the rest is clipped to the box where it is drawn. */
+ *  A formula's value that is not a number, or far outside the y range (a
+ *  pole), is a gap; measured points are joined by straight segments. The
+ *  rest is clipped to the box where it is drawn. */
 export function linePath(plot: Plot, plotLine: PlotLine, slider: number, frame: { left: number; right: number; top: number; bottom: number }): string {
 	const px = scale(plot.x.min, plot.x.max, frame.left, frame.right);
 	const py = scale(plot.y.min, plot.y.max, frame.bottom, frame.top);
+	if (plotLine.points) return line()(plotLine.points.map(([x, y]): [number, number] => [px(x), py(y)])) ?? "";
 	const span = plot.y.max - plot.y.min;
 	const points = sampleXs(plot).map((x): [number, number | null] => {
 		const y = plotLine.at(x, slider);
@@ -142,6 +173,8 @@ export function linePath(plot: Plot, plotLine: PlotLine, slider: number, frame: 
 
 /** The line's last drawn value (its key sits level with it), or null. */
 export function lineEnd(plot: Plot, plotLine: PlotLine, slider: number): number | null {
+	const last = plotLine.points?.at(-1);
+	if (last) return Math.min(plot.y.max, Math.max(plot.y.min, last[1]));
 	const xs = sampleXs(plot);
 	for (let i = xs.length - 1; i >= 0; i--) {
 		const y = plotLine.at(xs[i]!, slider);
@@ -169,18 +202,28 @@ export function keyTops(wanted: readonly number[], top: number, bottom: number, 
 	return out;
 }
 
-/** What a screen reader hears after each move: every shown line at the
- *  x range's ends and middle. */
+/** What a screen reader hears after each move: every shown formula line at
+ *  the x range's ends and middle, every point of a shown points line. */
 export function liveText(plot: Plot, slider: number, open: boolean): string {
 	const xs = [plot.x.min, (plot.x.min + plot.x.max) / 2, plot.x.max];
-	const lines = plot.lines.filter((l) => open || !l.hidden);
-	const values = lines.map((l) => `${l.label} ${xs.map((x) => formatNumber(l.at(x, slider))).join(", ")}.`);
-	return `At ${sliderText(plot, slider)}, ${plot.x.name} = ${xs.map(formatNumber).join(", ")}: ${values.join(" ")}`;
+	const listed = (values: number[]) => values.map(formatNumber).join(", ");
+	const said: string[] = [];
+	let formulasSaid = false;
+	for (const shown of plot.lines.filter((l) => open || !l.hidden)) {
+		if (shown.points) {
+			said.push(`${plot.x.name} = ${listed(shown.points.map((p) => p[0]))}: ${shown.label} ${listed(shown.points.map((p) => p[1]))}.`);
+			continue;
+		}
+		if (!formulasSaid && plot.slider) said.push(`At ${sliderText(plot.slider, slider)}, ${plot.x.name} = ${listed(xs)}:`);
+		formulasSaid = true;
+		said.push(`${shown.label} ${listed(xs.map((x) => shown.at(x, slider)))}.`);
+	}
+	return said.join(" ");
 }
 
 /** The slider's value for a screen reader: "lambda 1.5". */
-export function sliderText(plot: Plot, slider: number): string {
-	return `${plot.slider.name} ${formatNumber(Number(slider.toPrecision(3)))}`;
+export function sliderText(slider: Slider, value: number): string {
+	return `${slider.name} ${formatNumber(Number(value.toPrecision(3)))}`;
 }
 
 /** A label cut into plain words and $math$. An unmatched $ stays a plain

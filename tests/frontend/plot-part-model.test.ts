@@ -13,13 +13,21 @@ import {
 	ticks,
 	type Plot,
 } from "../../src/frontend/components/lesson/plot-part-model.ts";
-import { LEASH_CALL, LEASH_RESULT } from "../plot-fixtures.ts";
+import { CV_CALL, CV_RESULT, LEASH_CALL, LEASH_RESULT } from "../plot-fixtures.ts";
 
 function leash(): Plot {
 	const read = readPlot(LEASH_CALL, LEASH_RESULT);
 	assert.ok("plot" in read);
 	return read.plot;
 }
+
+function cv(call: unknown = CV_CALL): Plot {
+	const read = readPlot(call, CV_RESULT);
+	assert.ok("plot" in read);
+	return read.plot;
+}
+
+const MIXED_CALL = { ...LEASH_CALL, lines: [{ label: "model", expr: "a/(1+lambda)" }, { label: "data", points: [[2, 1.2], [6, 2.7], [10, 5.4]], hidden: true }] };
 
 describe("readPlot", () => {
 	it("reads the call and the stored y range, the formulas typeset", () => {
@@ -33,7 +41,7 @@ describe("readPlot", () => {
 				["leash", "\\min(a, 4/(1+\\lambda))", false, true],
 			],
 		);
-		assert.equal(plot.slider.latex, "\\lambda");
+		assert.equal(plot.slider?.latex, "\\lambda");
 		assert.equal(plot.lines[0]!.at(8, 1), 4);
 		assert.equal(plot.lines[1]!.at(8, 1), 2);
 	});
@@ -42,7 +50,60 @@ describe("readPlot", () => {
 		const read = readPlot({ ...LEASH_CALL, x: { ...LEASH_CALL.x, min: "0", max: "10" }, slider: { ...LEASH_CALL.slider, start: "1" } }, LEASH_RESULT);
 		assert.ok("plot" in read);
 		assert.equal(read.plot.x.max, 10);
-		assert.equal(read.plot.slider.start, 1);
+		assert.equal(read.plot.slider?.start, 1);
+	});
+
+	it("a formula plot stored before points reads exactly as before", () => {
+		const plot = leash();
+		assert.deepEqual(plot.slider, { name: "lambda", latex: "\\lambda", min: 0.5, max: 4, start: 1 });
+		assert.deepEqual(plot.x, { name: "a", label: "where the data alone put it, $a$", min: 0, max: 10 });
+		assert.deepEqual(
+			plot.lines.map((l) => l.points),
+			[null, null],
+		);
+		assert.equal(liveText(plot, 1, true), "At lambda 1, a = 0, 5, 10: penalty 0, 2.5, 5. leash 0, 2, 2.");
+	});
+
+	it("measured points read as pairs, with no slider and no formula", () => {
+		const plot = cv();
+		assert.equal(plot.slider, null);
+		assert.deepEqual(
+			plot.lines.map((l) => [l.label, l.latex, l.points]),
+			[
+				[
+					"cv_error",
+					"",
+					[
+						[1, 0.8],
+						[3, 0.4],
+						[5, 0.3],
+						[9, 0.9],
+					],
+				],
+			],
+		);
+		assert.equal(plot.lines[0]!.at(5, Number.NaN), 0.3);
+		assert.ok(Number.isNaN(plot.lines[0]!.at(4, Number.NaN)), "no value between points");
+		const strings = cv({ ...CV_CALL, lines: [{ label: "cv_error", points: [["1", "0.8"], ["3", "0.4"]] }] });
+		assert.deepEqual(strings.lines[0]!.points, [
+			[1, 0.8],
+			[3, 0.4],
+		]);
+		assert.equal(cv({ ...CV_CALL, x: { label: "polynomial degree", min: 0, max: 10 } }).x.name, "polynomial degree", "no x name: the axis title");
+	});
+
+	it("a formula and points share a plot", () => {
+		const read = readPlot(MIXED_CALL, { ...LEASH_RESULT, y: { min: 0, max: 6 } });
+		assert.ok("plot" in read);
+		assert.deepEqual(
+			read.plot.lines.map((l) => [l.label, l.points === null, l.dashed, l.hidden]),
+			[
+				["model", true, false, false],
+				["data", false, true, true],
+			],
+		);
+		assert.equal(read.plot.slider?.name, "lambda");
+		assert.equal(liveText(read.plot, 1, true), "At lambda 1, a = 0, 5, 10: model 0, 2.5, 5. a = 2, 6, 10: data 1.2, 2.7, 5.4.");
 	});
 
 	it("keeps only the title when it cannot be drawn", () => {
@@ -53,6 +114,12 @@ describe("readPlot", () => {
 		assert.deepEqual(readPlot({ ...LEASH_CALL, lines: [{ label: "x", expr: "toString(a)" }] }, LEASH_RESULT), title, "a hostile name is just unknown");
 		assert.deepEqual(readPlot(LEASH_CALL, { ...LEASH_RESULT, y: { min: 5, max: 0 } }), title, "an empty y range");
 		assert.deepEqual(readPlot(null, null), { title: "" });
+		const cvTitle = { title: CV_CALL.title };
+		const points = (raw: unknown) => readPlot({ ...CV_CALL, lines: [{ label: "cv_error", points: raw }] }, CV_RESULT);
+		assert.deepEqual(points([[1, 2]]), cvTitle, "one point");
+		assert.deepEqual(points([[3, 2], [1, 2]]), cvTitle, "x falling");
+		assert.deepEqual(points([[1, 2], [3, "high"]]), cvTitle, "a y that is not a number");
+		assert.deepEqual(points("[[1, 2], [3, 4]]"), cvTitle, "points sent as text");
 	});
 });
 
@@ -96,6 +163,13 @@ describe("lines", () => {
 		assert.equal(lineEnd(plot, plot.lines[0]!, 3), 2.5);
 	});
 
+	it("measured points are joined by straight segments, the key level with the last", () => {
+		const plot = cv();
+		const path = linePath(plot, plot.lines[0]!, Number.NaN, frame);
+		assert.equal(path, "M95,91L197,211L299,241L503,61");
+		assert.equal(lineEnd(plot, plot.lines[0]!, Number.NaN), 0.9);
+	});
+
 	it("a value that is not a number, or a pole far outside, is a gap", () => {
 		const read = readPlot({ ...LEASH_CALL, lines: [{ label: "pole", expr: "1/(a-5)" }, { label: "root", expr: "sqrt(a-5)" }] }, LEASH_RESULT);
 		assert.ok("plot" in read);
@@ -117,7 +191,12 @@ describe("words", () => {
 		const plot = leash();
 		assert.equal(liveText(plot, 1, false), "At lambda 1, a = 0, 5, 10: leash 0, 2, 2.");
 		assert.equal(liveText(plot, 1, true), "At lambda 1, a = 0, 5, 10: penalty 0, 2.5, 5. leash 0, 2, 2.");
-		assert.equal(sliderText(plot, 1.23456), "lambda 1.23");
+		assert.ok(plot.slider);
+		assert.equal(sliderText(plot.slider, 1.23456), "lambda 1.23");
+	});
+
+	it("the live line names every point of a points line", () => {
+		assert.equal(liveText(cv(), Number.NaN, false), "degree = 1, 3, 5, 9: cv_error 0.8, 0.4, 0.3, 0.9.");
 	});
 
 	it("a label's $math$ is cut out; an unmatched dollar stays", () => {

@@ -22,3 +22,13 @@ export const LEASH_GUESS = {
 	explanation: "Made up for the test.",
 	onPlot: { line: "penalty", x: 8 },
 };
+
+/** A plot of measured points alone and its stored result (made up). */
+export const CV_CALL = {
+	title: "Cross-validation error by degree",
+	x: { name: "degree", label: "polynomial degree", min: 0, max: 10 },
+	y: { label: "CV error" },
+	lines: [{ label: "cv_error", points: [[1, 0.8], [3, 0.4], [5, 0.3], [9, 0.9]] }],
+};
+
+export const CV_RESULT = { part: "plot", v: 1, id: "p1", onPlot: { toolCallId: "call_q", value: 0.3 }, y: { min: 0.2, max: 1 } };

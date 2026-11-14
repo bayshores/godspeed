@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { PlotPart } from "../../src/frontend/components/lesson/plot-part.tsx";
-import { LEASH_CALL, LEASH_RESULT } from "../plot-fixtures.ts";
+import { CV_CALL, CV_RESULT, LEASH_CALL, LEASH_RESULT } from "../plot-fixtures.ts";
 
 function render(part: Record<string, unknown>): string {
 	return renderToStaticMarkup(<PlotPart part={{ type: "tool-plot", toolCallId: "call_p", input: LEASH_CALL, ...part } as never} />);
@@ -40,6 +40,30 @@ describe("PlotPart", () => {
 		for (const tick of ["0.5", "1", "2", "3", "4"]) assert.match(html, new RegExp(`>${tick.replace(".", "\\.")}</text>`));
 		assert.ok(!html.includes("lh-draw-in"), "opened before it was shown: drawn at once");
 		assert.match(html, /penalty 0, 2\.5, 5\. leash 0, 2, 2\./);
+	});
+
+	it("measured points: one path with a square on each point, no formula and no slider row once open", () => {
+		const html = render({ input: CV_CALL, state: "output-available", output: CV_RESULT, guessOpen: true });
+		assert.match(html, /data-state="open"/);
+		assert.equal(paths(html), 1);
+		assert.equal((html.match(/data-testid="plot-point"/g) ?? []).length, 4);
+		assert.match(html, />cv_error</);
+		assert.ok(!html.includes("plot-formula"), "no formula under the key");
+		assert.ok(!html.includes("plot-slider"), "no slider row");
+		assert.match(html, /style="height:311px"/, "the card keeps the locked height");
+		assert.match(html, /aria-live="polite"[^>]*>degree = 1, 3, 5, 9: cv_error 0\.8, 0\.4, 0\.3, 0\.9\.</);
+	});
+
+	it("a formula against held-back data: the data and its squares draw in on the answer", () => {
+		const mixed = { ...LEASH_CALL, lines: [{ label: "model", expr: "a/(1+lambda)" }, { label: "data", points: [[2, 1.2], [6, 2.7], [10, 5.4]], hidden: true }] };
+		const locked = render({ input: mixed, state: "output-available", output: LEASH_RESULT, guessOpen: false });
+		assert.equal(paths(locked), 1);
+		assert.ok(!locked.includes("plot-point"), "the held-back points are not drawn");
+		const open = render({ input: mixed, state: "output-available", output: LEASH_RESULT, guessOpen: true });
+		assert.equal(paths(open), 2);
+		assert.equal((open.match(/data-testid="plot-point"/g) ?? []).length, 3);
+		assert.match(open, /data-testid="plot-slider"/);
+		assert.equal((open.match(/data-testid="plot-formula"/g) ?? []).length, 1, "a formula only under the model's key");
 	});
 
 	it("while the call is checked: the title and Drawing the plot", () => {

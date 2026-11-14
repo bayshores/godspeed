@@ -2,7 +2,7 @@ import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "re
 import katex from "katex";
 import { cn } from "@/frontend/lib/utils";
 import type { ArtifactPartProps } from "@/shared/core";
-import { keyTops, labelPieces, lineEnd, linePath, liveText, readPlot, scale, sliderText, sliderTicks, ticks, formatNumber, type Plot } from "./plot-part-model";
+import { keyTops, labelPieces, lineEnd, linePath, liveText, readPlot, scale, sliderText, sliderTicks, ticks, formatNumber, type Plot, type Slider } from "./plot-part-model";
 
 // The figure under the title, in px: the y axis's labels take the gutter,
 // the plot area is 240 tall, and the slider row sits under the x title.
@@ -19,6 +19,8 @@ const OPEN_HEIGHT = 363;
 const KEY_LIFT = 8;
 const KEY_GAP = 40;
 const DASH = "6 4";
+/** A measured point's square, px. */
+const MARK = 6;
 /** The live line waits this long after the slider's last move. */
 const LIVE_WAIT_MS = 300;
 
@@ -52,10 +54,11 @@ function PlotBox({ title, state, children }: { title: string; state: string; chi
 }
 
 /**
- * A teacher's plot with one slider. It arrives locked with its guess: only
- * the shown lines, no slider. Once the guess is answered the held-back lines
- * and the slider draw in. While the call is checked the box says so; a
- * refused plot never reaches here (the view drops it).
+ * A teacher's plot: formulas with one slider, or measured points. It arrives
+ * locked with its guess: only the shown lines, no slider. Once the guess is
+ * answered the held-back lines and the slider, when it has one, draw in.
+ * While the call is checked the box says so; a refused plot never reaches
+ * here (the view drops it).
  */
 export function PlotPart({ part }: ArtifactPartProps) {
 	const title = typeof (part.input as { title?: unknown } | undefined)?.title === "string" ? (part.input as { title: string }).title : "";
@@ -98,9 +101,10 @@ function useWidth(initial: number): [number, React.RefObject<HTMLDivElement | nu
 }
 
 function PlotFigure({ plot, open }: { plot: Plot; open: boolean }) {
-	const [slider, setSlider] = useState(plot.slider.start);
+	// A plot of points alone has no slider; its lines never read it.
+	const [slider, setSlider] = useState(plot.slider?.start ?? Number.NaN);
 	// A drag would queue a sentence a step; the line speaks where it stops.
-	const [heard, setHeard] = useState(plot.slider.start);
+	const [heard, setHeard] = useState(slider);
 	useEffect(() => {
 		const wait = setTimeout(() => setHeard(slider), LIVE_WAIT_MS);
 		return () => clearTimeout(wait);
@@ -130,14 +134,19 @@ function PlotFigure({ plot, open }: { plot: Plot; open: boolean }) {
 	const lines = (hidden: boolean) =>
 		plot.lines.map((l, i) =>
 			l.hidden === hidden && shown[i] ? (
-				<path key={i} d={linePath(plot, l, slider, frame)} fill="none" stroke="currentColor" strokeWidth={2} strokeDasharray={l.dashed ? DASH : undefined} />
+				<g key={i}>
+					<path d={linePath(plot, l, slider, frame)} fill="none" stroke="currentColor" strokeWidth={2} strokeDasharray={l.dashed ? DASH : undefined} />
+					{l.points?.map(([x, y]) => (
+						<rect key={x} data-testid="plot-point" x={px(x) - MARK / 2} y={py(y) - MARK / 2} width={MARK} height={MARK} fill="currentColor" />
+					))}
+				</g>
 			) : null,
 		);
 
 	return (
 		<PlotBox title={plot.title} state={open ? "open" : "locked"}>
 			<div className="grid gap-x-[25px]" style={{ gridTemplateColumns: `minmax(0,1fr) ${KEY_WIDTH}px` }}>
-				<div ref={ref} className="relative" style={{ height: open ? OPEN_HEIGHT : LOCKED_HEIGHT }}>
+				<div ref={ref} className="relative" style={{ height: open && plot.slider ? OPEN_HEIGHT : LOCKED_HEIGHT }}>
 					<div className="absolute top-[11px] text-[13px] leading-none whitespace-nowrap text-ink-2" style={{ left: GUTTER, right: 0 }}>
 						<Label text={plot.y.label} />
 					</div>
@@ -181,7 +190,7 @@ function PlotFigure({ plot, open }: { plot: Plot; open: boolean }) {
 					<div className="absolute text-center font-ui text-[13px] leading-[17px] text-ink-2" style={{ top: X_TITLE_TOP, left: GUTTER, right: 0 }}>
 						<Label text={plot.x.label} />
 					</div>
-					{open && <SliderRow plot={plot} value={slider} onChange={setSlider} width={width} className={drawIn} />}
+					{open && plot.slider && <SliderRow slider={plot.slider} value={slider} onChange={setSlider} width={width} className={drawIn} />}
 					<p className="sr-only" aria-live="polite">
 						{live}
 					</p>
@@ -191,16 +200,19 @@ function PlotFigure({ plot, open }: { plot: Plot; open: boolean }) {
 						shown[i] ? (
 							<div key={i} data-testid="plot-key" className={cn("absolute right-0 left-0", l.hidden && drawIn)} style={{ top: tops.get(i) }}>
 								<div className="flex items-center gap-1.5 font-ui text-[13px] leading-[16px] text-ink-2">
-									<svg aria-hidden width={16} height={2} className="shrink-0 text-ink">
-										<line x1={0} y1={1} x2={16} y2={1} stroke="currentColor" strokeWidth={2} strokeDasharray={l.dashed ? "4 2" : undefined} />
+									<svg aria-hidden width={16} height={l.points ? MARK : 2} className="shrink-0 text-ink">
+										<line x1={0} y1={l.points ? MARK / 2 : 1} x2={16} y2={l.points ? MARK / 2 : 1} stroke="currentColor" strokeWidth={2} strokeDasharray={l.dashed ? "4 2" : undefined} />
+										{l.points && <rect x={8 - MARK / 2} y={0} width={MARK} height={MARK} fill="currentColor" />}
 									</svg>
 									<span className="min-w-0 truncate">
 										<Label text={l.label} />
 									</span>
 								</div>
-								<div data-testid="plot-formula" className="-mr-5 -mb-1 overflow-x-auto overflow-y-hidden pt-0.5 pb-1 pl-[22px] text-[13px] whitespace-nowrap text-ink-2">
-									<Tex tex={l.latex} />
-								</div>
+								{l.latex && (
+									<div data-testid="plot-formula" className="-mr-5 -mb-1 overflow-x-auto overflow-y-hidden pt-0.5 pb-1 pl-[22px] text-[13px] whitespace-nowrap text-ink-2">
+										<Tex tex={l.latex} />
+									</div>
+								)}
 							</div>
 						) : null,
 					)}
@@ -213,15 +225,15 @@ function PlotFigure({ plot, open }: { plot: Plot; open: boolean }) {
 /** The slider under the plot: its name, a 2px track as wide as the plot
  *  area, round ticks with the two ends, a square thumb. No readout: the
  *  lines are the readout. */
-function SliderRow({ plot, value, onChange, width, className }: { plot: Plot; value: number; onChange: (v: number) => void; width: number; className?: string }) {
-	const { min, max } = plot.slider;
+function SliderRow({ slider, value, onChange, width, className }: { slider: Slider; value: number; onChange: (v: number) => void; width: number; className?: string }) {
+	const { min, max } = slider;
 	const trackWidth = Math.max(1, width - GUTTER);
 	const at = scale(min, max, GUTTER, GUTTER + trackWidth);
 	const thumb = 14;
 	return (
 		<div className={cn("pointer-events-none absolute top-0 left-0", className)} style={{ width, height: OPEN_HEIGHT }}>
 			<div aria-hidden className="absolute text-right text-[17px] leading-none whitespace-nowrap text-ink" style={{ top: TRACK_Y - 8, left: 0, width: GUTTER - 8 }}>
-				<Tex tex={plot.slider.latex} />
+				<Tex tex={slider.latex} />
 			</div>
 			<div aria-hidden className="absolute h-0.5 bg-ink" style={{ top: TRACK_Y - 1, left: GUTTER, width: trackWidth }} />
 			<svg aria-hidden width={width} height={OPEN_HEIGHT} className="pointer-events-none absolute top-0 left-0 overflow-visible text-ink-2" fontSize={13}>
@@ -243,8 +255,8 @@ function SliderRow({ plot, value, onChange, width, className }: { plot: Plot; va
 				max={max}
 				step="any"
 				value={value}
-				aria-label={plot.slider.name}
-				aria-valuetext={sliderText(plot, value)}
+				aria-label={slider.name}
+				aria-valuetext={sliderText(slider, value)}
 				onChange={(e) => onChange(Number(e.target.value))}
 				className="pointer-events-auto absolute h-6 cursor-pointer appearance-none bg-transparent [&::-webkit-slider-runnable-track]:h-6 [&::-webkit-slider-runnable-track]:bg-transparent [&::-webkit-slider-thumb]:mt-[5px] [&::-webkit-slider-thumb]:size-3.5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:bg-ink"
 				style={{ top: TRACK_Y - 12, left: GUTTER - thumb / 2, width: trackWidth + thumb }}
