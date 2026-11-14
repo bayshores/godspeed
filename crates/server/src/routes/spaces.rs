@@ -231,7 +231,7 @@ async fn change_file(State(app): State<Arc<App>>, Path((id, file_id)): Path<(Str
 	let body = fields(body).await?;
 	if field(&body, "retry") == Some(&Json::Bool(true)) {
 		return match retry_file(&app, &id, &file_id) {
-			Ok(removed) => Ok(reply::json(200, &json!({ "ok": true, "mocksRemoved": removed }))),
+			Ok(()) => Ok(reply::json(200, &json!({ "ok": true }))),
 			Err(failure) => refused(failure),
 		};
 	}
@@ -250,7 +250,7 @@ async fn remove_one_file(State(app): State<Arc<App>>, Path((id, file_id)): Path<
 		return Ok(no_such_space());
 	}
 	match remove_file(&app, &id, &file_id) {
-		Ok(removed) => Ok(reply::json(200, &json!({ "ok": true, "mocksRemoved": removed }))),
+		Ok(()) => Ok(reply::json(200, &json!({ "ok": true }))),
 		Err(failure) => refused(failure),
 	}
 }
