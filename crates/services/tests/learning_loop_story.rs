@@ -19,7 +19,7 @@ use gs_core::messages::input_events::{ChatInput, TurnInput};
 use gs_core::spaces::today_note::local_day;
 use gs_core::study::kept::KeptPart;
 use gs_core::study::topic_end::{lesson_stop, shown_openers};
-use gs_core::study::topic_parts::{first_topic, topic_parts};
+use gs_core::study::topic_parts::{NO_PLOT_YET, first_topic, topic_parts};
 use gs_engine::bridge::{AgentReply, ReplyCall, WaitOptions};
 use gs_json::{Json, json, stringify};
 use gs_services::App;
@@ -432,7 +432,7 @@ async fn two_days_of_study_for_the_midterm() {
 	writes();
 	let seen = calls(app, chat, vec![("problem", problem("cv", "Why can one train and test split give a misleading score?"))]).await;
 	settled(app, chat).await;
-	assert_eq!(last_input(&seen), "[Resumed] He came back to this session after a stop.\n[Opener] Cross-validation: he picked A, It can move a lot, sure 3.");
+	assert_eq!(last_input(&seen), format!("[Resumed] He came back to this session after a stop.\n[Opener] Cross-validation: he picked A, It can move a lot, sure 3.\n{NO_PLOT_YET}"));
 
 	// Cross-validation ends on a conclude; Keep going in the same sitting.
 	thinks();
@@ -462,7 +462,7 @@ async fn two_days_of_study_for_the_midterm() {
 	writes();
 	let seen = calls(app, chat, vec![("quiz", quiz("check", "ms", "Two models score 0.81 and 0.80 averaged over five splits. What decides between them?", &["The spread over the splits", "The first split", "The training score"]))]).await;
 	settled(app, chat).await;
-	assert_eq!(last_input(&seen), "[Opener] Model selection: he picked A, The one that wins on average, sure 4.", "no [Resumed] in the same sitting");
+	assert_eq!(last_input(&seen), format!("[Opener] Model selection: he picked A, The one that wins on average, sure 4.\n{NO_PLOT_YET}"), "no [Resumed] in the same sitting");
 
 	// Model selection ends on a right quiz: the stop comes with topic_done, after the teacher's turn.
 	let ms_quiz = id_of(&last_call(&messages(app, chat), "quiz"));

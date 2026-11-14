@@ -49,6 +49,15 @@ pub fn reply_topic(messages: &[Json], first_topic: Option<&str>, reply: &Json) -
 	walk(messages, first_topic, Some(reply)).1.pop().filter(|v| v.at == messages.len()).map(|v| v.node_id)
 }
 
+/// What a topic's start tells the teacher while the topic has no plot: the [Opener] note, and the
+/// study plan for the first topic.
+pub const NO_PLOT_YET: &str = "No plot yet in this topic. If its idea is a curve with one knob, open with `plot`.";
+
+/// Whether the lesson showed a plot on this topic.
+pub fn has_plot(messages: &[Json], first_topic: Option<&str>, node_id: &str) -> bool {
+	visits(messages, first_topic).iter().any(|v| v.plot && v.node_id == node_id)
+}
+
 /// The visits of a lesson, in record order.
 pub(crate) fn visits(messages: &[Json], first_topic: Option<&str>) -> Vec<Visit> {
 	walk(messages, first_topic, None).1

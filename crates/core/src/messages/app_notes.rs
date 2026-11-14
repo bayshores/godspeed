@@ -12,6 +12,7 @@ use super::lesson_markers::{ANALOGY_DROP, new_app_note_marker};
 use crate::session::question_core::{confidence_level, keep_of};
 use crate::study::kept::{KEEP_NOTE, KeptPart, dropped, keep_notes};
 use crate::study::topic_end::{resume_due, shown_openers};
+use crate::study::topic_parts::{NO_PLOT_YET, first_topic, has_plot};
 
 const RESUMED_LINE: &str = "[Resumed] He came back to this session after a stop.";
 const FROM_EARLIER: &str = "[From earlier]";
@@ -20,14 +21,16 @@ const ANALOGY_DROPPED: &str = "[Analogy dropped]";
 const ANALOGY_WORDS: usize = 8;
 
 /// The opener-answer marker's content: [Resumed] first when due, then what he picked, or that he
-/// skipped it (a null `answer`), then the questions from earlier he answered since the agent last
-/// heard of them.
+/// skipped it (a null `answer`), the plot reminder while the topic has none, then the questions
+/// from earlier he answered since the agent last heard of them.
 pub fn opener_answer_text(record: &Json, topic_done_call_id: &str, answer: &Json) -> String {
-	let topic = opener_topic(record, topic_done_call_id);
+	let node_id = opener_node(record, topic_done_call_id);
+	let topic = node_title(record, &node_id);
 	let line = if answer.is_null() { format!("[Opener] {topic}: he skipped it.") } else { format!("[Opener] {topic}: {}", picked_words(answer)) };
 	let messages = messages_of(record);
 	let resumed = resume_due(messages).then_some(RESUMED_LINE.to_owned());
-	resumed.into_iter().chain(std::iter::once(line)).chain(from_earlier_line(messages)).chain(analogy_dropped_lines(record)).collect::<Vec<_>>().join("\n")
+	let no_plot = (!has_plot(messages, first_topic(record.get("tree")), &node_id)).then_some(NO_PLOT_YET.to_owned());
+	resumed.into_iter().chain(std::iter::once(line)).chain(no_plot).chain(from_earlier_line(messages)).chain(analogy_dropped_lines(record)).collect::<Vec<_>>().join("\n")
 }
 
 /// The app-note marker an input carries, or none. An opener answer carries its lines itself, and a
@@ -169,8 +172,11 @@ fn review_ask_line(item: &Json, picked: &[String]) -> String {
 
 /// The opener question's topic: its plan step's title, else its node id.
 fn opener_topic(record: &Json, topic_done_call_id: &str) -> String {
-	let openers = shown_openers(messages_of(record));
-	node_title(record, openers.get(topic_done_call_id).and_then(|o| o["quiz"]["nodeId"].as_str()).unwrap_or_default())
+	node_title(record, &opener_node(record, topic_done_call_id))
+}
+
+fn opener_node(record: &Json, topic_done_call_id: &str) -> String {
+	shown_openers(messages_of(record)).get(topic_done_call_id).and_then(|o| o["quiz"]["nodeId"].as_str()).unwrap_or_default().to_owned()
 }
 
 /// A plan node's title, else its id.
@@ -241,25 +247,33 @@ mod tests {
 	fn the_opener_lines_word_for_word() {
 		let record = kept_at(50);
 		let answer = json!({ "kind": "quiz", "dontKnow": false, "answers": [pick(1, "It can move a lot")], "confidence": 60 });
-		assert_eq!(opener_answer_text(&record, "t1", &answer), "[Opener] Cross-validation: he picked A, It can move a lot, sure 3.");
-		assert_eq!(opener_answer_text(&record, "t1", &Json::Null), "[Opener] Cross-validation: he skipped it.");
+		assert_eq!(opener_answer_text(&record, "t1", &answer), format!("[Opener] Cross-validation: he picked A, It can move a lot, sure 3.\n{NO_PLOT_YET}"));
+		assert_eq!(opener_answer_text(&record, "t1", &Json::Null), format!("[Opener] Cross-validation: he skipped it.\n{NO_PLOT_YET}"));
 		let two = json!({ "kind": "quiz", "dontKnow": false, "answers": [pick(1, "One"), pick(3, "Three")], "thinking": "Folds are small." });
-		assert_eq!(opener_answer_text(&record, "t1", &two), "[Opener] Cross-validation: he picked A, One and C, Three. His thinking: Folds are small.");
+		assert_eq!(opener_answer_text(&record, "t1", &two), format!("[Opener] Cross-validation: he picked A, One and C, Three. His thinking: Folds are small.\n{NO_PLOT_YET}"));
 		let unsure = json!({ "kind": "quiz", "dontKnow": true, "answers": [], "thinking": "No idea." });
-		assert_eq!(opener_answer_text(&record, "t1", &unsure), "[Opener] Cross-validation: he did not know. His thinking: No idea.");
+		assert_eq!(opener_answer_text(&record, "t1", &unsure), format!("[Opener] Cross-validation: he did not know. His thinking: No idea.\n{NO_PLOT_YET}"));
 	}
 
 	#[test]
 	fn the_topic_falls_back_to_the_node_id() {
 		let mut record = kept_at(50);
 		record.as_obj_mut().unwrap().remove("tree");
-		assert_eq!(opener_answer_text(&record, "t1", &Json::Null), "[Opener] cv: he skipped it.");
+		assert_eq!(opener_answer_text(&record, "t1", &Json::Null), format!("[Opener] cv: he skipped it.\n{NO_PLOT_YET}"));
+	}
+
+	#[test]
+	fn the_plot_reminder_follows_the_opener_line_until_the_topic_has_a_plot() {
+		let mut record = kept_at(50);
+		let plotted = json!({ "role": "assistant", "content": [{ "type": "toolCall", "id": "p1", "name": "plot", "arguments": { "nodeId": "cv" } }], "timestamp": at(10) });
+		record.get_mut("messages").and_then(Json::as_arr_mut).unwrap().insert(0, plotted);
+		assert_eq!(opener_answer_text(&record, "t1", &Json::Null), "[Opener] Cross-validation: he skipped it.");
 	}
 
 	#[test]
 	fn resumed_comes_first_in_a_later_sitting() {
 		let record = kept_at(24 * 60);
-		assert_eq!(opener_answer_text(&record, "t1", &Json::Null), "[Resumed] He came back to this session after a stop.\n[Opener] Cross-validation: he skipped it.");
+		assert_eq!(opener_answer_text(&record, "t1", &Json::Null), format!("[Resumed] He came back to this session after a stop.\n[Opener] Cross-validation: he skipped it.\n{NO_PLOT_YET}"));
 		let text = ChatInput::Text { text: "why?".into(), attachments: None, about: None };
 		let note = app_note_for(&record, &text, None).unwrap();
 		assert_eq!(note["content"], json!("[Resumed] He came back to this session after a stop."));
@@ -318,7 +332,7 @@ mod tests {
 	fn an_opener_answer_carries_the_questions_from_earlier_after_its_line() {
 		let mut record = kept_at(50);
 		record.get_mut("messages").and_then(Json::as_arr_mut).unwrap().push(reviewed("Bayes' rule", graded(true, "About 9%", 60)));
-		assert_eq!(opener_answer_text(&record, "t1", &Json::Null), "[Opener] Cross-validation: he skipped it.\n[From earlier] Bayes' rule right, sure 3.");
+		assert_eq!(opener_answer_text(&record, "t1", &Json::Null), format!("[Opener] Cross-validation: he skipped it.\n{NO_PLOT_YET}\n[From earlier] Bayes' rule right, sure 3."));
 	}
 
 	/// Reply 5's quiz carries a keep with an analogy and its verdict; he answered it right.
@@ -389,7 +403,7 @@ mod tests {
 		stopped.extend(kept(None));
 		stopped.extend([json!({ "role": "custom", "customType": "keep-going", "content": "", "details": { "stopOf": "c1" }, "timestamp": at(50) }), drop(false)]);
 		let opener = opener_answer_text(&json!({ "messages": stopped, "tree": tree() }), "t1", &Json::Null);
-		assert_eq!(opener, format!("[Opener] Cross-validation: he skipped it.\n{line}"));
+		assert_eq!(opener, format!("[Opener] Cross-validation: he skipped it.\n{NO_PLOT_YET}\n{line}"));
 	}
 
 	#[test]

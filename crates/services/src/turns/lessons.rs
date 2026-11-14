@@ -18,6 +18,7 @@ use gs_core::messages::native_messages::{new_space_context_message, new_graph_co
 use gs_core::mocks::mock::question_result;
 use gs_core::mocks::mock_requests::go_over_text;
 use gs_core::study::study::{FREE_TOPIC_ID, MAX_STUDY_FACTS, study_context_text, study_plan_tree, study_title};
+use gs_core::study::topic_parts::NO_PLOT_YET;
 use gs_json::{Json, Obj};
 
 use crate::App;
@@ -110,7 +111,8 @@ pub fn create_lesson(app: &Arc<App>, input: CreateLessonInput) -> Result<Result<
 			.collect();
 		messages.push(new_graph_context_message(&start.picks, &lines));
 	}
-	let plan = study_context_text(&start.topics);
+	// The first topic starts here, with no plot yet.
+	let plan = format!("{}\n\n{NO_PLOT_YET}", study_context_text(&start.topics));
 	let context = match &start.note {
 		Some(note) => format!("{plan}\n\n{note}"),
 		None => plan,
@@ -237,7 +239,7 @@ mod tests {
 		let (lesson, title) = start(&app, &space_id, go_over("q1")).unwrap();
 		assert_eq!(title, "Go over: Count the vowels");
 		let plan = study_plan(&lesson);
-		assert!(plan.contains("\n\n[Mock question] The learner wants to go over this question from Mock 1."), "{plan}");
+		assert!(plan.contains(&format!("\n\n{NO_PLOT_YET}\n\n[Mock question] The learner wants to go over this question from Mock 1.")), "the plot reminder, then the note: {plan}");
 		assert!(plan.contains("Your grade then: right. Your feedback then:\nCorrect."));
 		assert_eq!(start(&app, &space_id, go_over("q9")).unwrap_err(), NotFound { code: "topics_not_found", error: "No such question" });
 		let (free, _) = start(&app, &space_id, go_over("q3")).unwrap();

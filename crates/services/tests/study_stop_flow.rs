@@ -1,7 +1,7 @@
 //! Places to stop, end to end against a stand-in agent on the bridge: a Study topic ends on a
 //! conclude, the agent reads and stores the next topic's opener in the same turn, Keep going
 //! lands before or after that, the learner's answer, skip or question about the opener reaches the
-//! agent as one [Opener] line ([Resumed] first on a later day), and a practice or homework problem
+//! agent as one [Opener] line ([Resumed] first on a later day, the plot reminder after it), and a practice or homework problem
 //! of 25 active minutes ends on a problem stop. The app clock is moved, so this file's tests run
 //! one at a time and no other file shares their process.
 
@@ -13,6 +13,7 @@ use gs_base::{clock, ids};
 use gs_core::contracts::chat::{CONCLUDE_ACK_TEXT, STUDY_TOPIC_END_ACK_TEXT, TOPIC_DONE_STORED_TEXT};
 use gs_core::messages::input_events::{About, ChatInput, TurnInput};
 use gs_core::study::topic_end::{lesson_stop, shown_openers};
+use gs_core::study::topic_parts::NO_PLOT_YET;
 use gs_engine::bridge::{AgentReply, ReplyCall, WaitOptions};
 use gs_json::{Json, json};
 use gs_services::App;
@@ -195,7 +196,7 @@ async fn keep_going_after_the_opener_landed_shows_it_and_his_pick_reaches_the_ag
 	let answer_data = json!({ "kind": "quiz", "dontKnow": false, "answers": [{ "index": 1, "label": "It can move a lot", "value": "It can move a lot" }], "confidence": 60 });
 	send(&fx.app, &chat_id, ChatInput::OpenerAnswer { topic_done_call_id: done_id, answer: Some(answer_data) }).await;
 	let seen = answer(&fx.app, &chat_id, says("Yes: each split sees different points.")).await;
-	assert_eq!(last_user_text(&seen), "[Opener] Cross-validation: he picked A, It can move a lot, sure 3.");
+	assert_eq!(last_user_text(&seen), format!("[Opener] Cross-validation: he picked A, It can move a lot, sure 3.\n{NO_PLOT_YET}"));
 	settled(&fx.app, &chat_id).await;
 }
 
@@ -216,7 +217,7 @@ async fn asking_about_the_opener_keeps_it_open_and_skipping_it_says_so() {
 
 	send(&fx.app, &chat_id, ChatInput::OpenerAnswer { topic_done_call_id: done_id, answer: None }).await;
 	let seen = answer(&fx.app, &chat_id, says("Fine, let's look at it together.")).await;
-	assert_eq!(last_user_text(&seen), "[Opener] Cross-validation: he skipped it.");
+	assert_eq!(last_user_text(&seen), format!("[Opener] Cross-validation: he skipped it.\n{NO_PLOT_YET}"));
 	settled(&fx.app, &chat_id).await;
 }
 
@@ -231,7 +232,7 @@ async fn coming_back_the_next_day_tells_the_agent_he_resumed() {
 	let (_, done_id) = call_of(&messages(&fx.app, &chat_id), "topic_done");
 	send(&fx.app, &chat_id, ChatInput::OpenerAnswer { topic_done_call_id: done_id, answer: None }).await;
 	let seen = answer(&fx.app, &chat_id, says("Let's start with the split.")).await;
-	assert_eq!(last_user_text(&seen), "[Resumed] He came back to this session after a stop.\n[Opener] Cross-validation: he skipped it.");
+	assert_eq!(last_user_text(&seen), format!("[Resumed] He came back to this session after a stop.\n[Opener] Cross-validation: he skipped it.\n{NO_PLOT_YET}"));
 	settled(&fx.app, &chat_id).await;
 }
 

@@ -709,6 +709,8 @@ A plot comes with a prediction `quiz` in the same reply, whose `onPlot: {line, x
 - a topic has one plot
 - the topic's previous reply may not carry a kept sentence the learner saw; a page never holds a plot back
 
+While a topic has no plot, its start carries the line "No plot yet in this topic. If its idea is a curve with one knob, open with `plot`.": the first topic's under the `[Study plan]`, every later one's after its `[Opener]` line (`core::study::topic_parts::NO_PLOT_YET`). Plots from earlier lessons are not looked up.
+
 A drawn plot is named `p1`, `p2` in lesson order. Its result tells the agent its values at the slider's start and ends the turn. Its `details` are `{part: "plot", v: 1, id, onPlot: {toolCallId, value}, y: {min, max}}`. The window recomputes the lines from the stored call, and the slider position is never stored or sent.
 
 ### Kept sentences
