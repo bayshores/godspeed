@@ -19,10 +19,6 @@ pub const OUTSIDE_AGENT_MODEL_ID: &str = "outside-agent";
 pub const OUTSIDE_AGENT_CONTEXT_WINDOW: i64 = 200_000;
 /// The longest teacher name kept.
 pub const TEACHER_NAME_MAX: usize = 40;
-/// The chunk budget's validated floor; the sanitizer clamps up to it.
-pub const EXTRACTION_CHUNK_TOKENS_FLOOR: f64 = 500.0;
-/// The compaction trigger's floor.
-pub const COMPACTION_THRESHOLD_FLOOR: f64 = 32_000.0;
 
 const PROSE_FONT_MIN: f64 = 12.0;
 const PROSE_FONT_MAX: f64 = 24.0;
@@ -182,26 +178,14 @@ fn sanitize_appearance(raw: &Json) -> Json {
 	Json::Obj(out)
 }
 
-/// A positive finite number floored to an integer no lower than `floor`.
-fn floored(raw: &Json, floor: f64) -> Option<f64> {
-	finite(raw).filter(|n| *n > 0.0).map(|n| n.floor().max(floor))
-}
-
 fn sanitize_graph(raw: &Json) -> Json {
 	let mut out = Obj::new();
 	if let Some(enabled) = raw["enabled"].as_bool() {
 		out.insert("enabled", enabled);
 	}
-	if let Some(tokens) = floored(&raw["extractionChunkTokens"], EXTRACTION_CHUNK_TOKENS_FLOOR) {
-		out.insert("extractionChunkTokens", tokens);
-	}
-	Json::Obj(out)
-}
-
-fn sanitize_compaction(raw: &Json) -> Json {
-	let mut out = Obj::new();
-	if let Some(tokens) = floored(&raw["thresholdTokens"], COMPACTION_THRESHOLD_FLOOR) {
-		out.insert("thresholdTokens", tokens);
+	// A retired knob: an old file's value stays as stored and is never read.
+	if let Some(tokens) = raw.get("extractionChunkTokens") {
+		out.insert("extractionChunkTokens", tokens.clone());
 	}
 	Json::Obj(out)
 }
@@ -216,7 +200,8 @@ pub fn sanitize_user_settings(raw: &Json) -> Option<Json> {
 	let mut out = Obj::new();
 	let version = raw["version"].as_f64().filter(|v| v.is_finite() && v.fract() == 0.0 && *v >= 1.0);
 	out.insert("version", version.unwrap_or(CURRENT_SETTINGS_VERSION as f64));
-	let sections: [(&str, Section); 5] = [("general", sanitize_general), ("agent", sanitize_agent), ("appearance", sanitize_appearance), ("graph", sanitize_graph), ("compaction", sanitize_compaction)];
+	// `compaction` held only a retired knob: an old file's section rides along as stored.
+	let sections: [(&str, Section); 4] = [("general", sanitize_general), ("agent", sanitize_agent), ("appearance", sanitize_appearance), ("graph", sanitize_graph)];
 	for (key, sanitize) in sections {
 		if raw[key].as_obj().is_some() {
 			out.insert(key, sanitize(&raw[key]));
@@ -246,7 +231,7 @@ mod tests {
 		let messy = r##"{"version":7,"general":{"teacherName":5,"sounds":"x","activeSpace":"zzz","autoUpdate":true,"keep":1},"chat":{},"future":{"a":[1]},"appearance":{"background":"#FFFFFF","proseFontSize":99.6,"fontFamily":"  ","mdRendering":{"headingWeight":5000.4,"boldColor":"zzz","italicColor":null}},"graph":{"extractionChunkTokens":10,"enabled":"y"},"compaction":{"thresholdTokens":-5},"agent":{"tools":{"a":true,"b":"x"},"graphTools":{"enabled":"x"},"rules":{"voice":[" a ","a",3],"nope":["x"]}}}"##;
 		assert_eq!(
 			clean(messy),
-			r#"{"version":7,"general":{"autoUpdate":true},"agent":{"tools":{"a":true},"rules":{"voice":["a"]}},"appearance":{"background":null,"fontFamily":null,"proseFontSize":24,"mdRendering":{"headingWeight":900,"boldColor":null,"italicColor":null}},"graph":{"extractionChunkTokens":500},"compaction":{},"future":{"a":[1]}}"#
+			r#"{"version":7,"general":{"autoUpdate":true},"agent":{"tools":{"a":true},"rules":{"voice":["a"]}},"appearance":{"background":null,"fontFamily":null,"proseFontSize":24,"mdRendering":{"headingWeight":900,"boldColor":null,"italicColor":null}},"graph":{"extractionChunkTokens":10},"future":{"a":[1]},"compaction":{"thresholdTokens":-5}}"#
 		);
 	}
 

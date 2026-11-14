@@ -255,7 +255,7 @@
 				"output": {
 					"version": 3,
 					"graph": {
-						"extractionChunkTokens": 500
+						"extractionChunkTokens": 10
 					}
 				}
 			},
@@ -270,7 +270,7 @@
 					"version": 3,
 					"graph": {
 						"enabled": true,
-						"extractionChunkTokens": 4096
+						"extractionChunkTokens": 4096.9
 					}
 				}
 			},
@@ -282,7 +282,9 @@
 				},
 				"output": {
 					"version": 3,
-					"graph": {}
+					"graph": {
+						"extractionChunkTokens": -1
+					}
 				}
 			},
 			{
@@ -293,7 +295,9 @@
 				},
 				"output": {
 					"version": 3,
-					"compaction": {}
+					"compaction": {
+						"thresholdTokens": -5
+					}
 				}
 			},
 			{
@@ -318,7 +322,7 @@
 				"output": {
 					"version": 3,
 					"compaction": {
-						"thresholdTokens": 32000
+						"thresholdTokens": 31999.5
 					}
 				}
 			},
@@ -697,10 +701,10 @@
 					},
 					"graph": {
 						"enabled": false,
-						"extractionChunkTokens": 800
+						"extractionChunkTokens": 4096
 					},
 					"compaction": {
-						"thresholdTokens": 64000
+						"thresholdTokens": 40000
 					}
 				},
 				"graphTools": false
@@ -1494,7 +1498,7 @@
 					},
 					"graph": {
 						"enabled": true,
-						"extractionChunkTokens": 500
+						"extractionChunkTokens": 4096
 					},
 					"compaction": {
 						"thresholdTokens": 40000
@@ -1654,7 +1658,7 @@
 						"extractionChunkTokens": 4096
 					},
 					"compaction": {
-						"thresholdTokens": 150000
+						"thresholdTokens": 40000
 					}
 				},
 				"graphTools": true
@@ -1693,7 +1697,7 @@
 						"extractionChunkTokens": 4096
 					},
 					"compaction": {
-						"thresholdTokens": 32000
+						"thresholdTokens": 40000
 					}
 				},
 				"graphTools": true

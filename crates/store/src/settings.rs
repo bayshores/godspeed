@@ -1,8 +1,8 @@
 //! data/settings.json, the one user settings record.
 //!
-//! Every read sanitizes what is on disk and runs the lazy upgrades (the v1 to v2 threshold move,
-//! the v2 to v3 rename of general.activeClass to activeSpace, and the retired prompt switches). Every write sanitizes again, so the file can never hold a
-//! value that shifts a knob.
+//! Every read sanitizes what is on disk and runs the lazy upgrades (the rename of
+//! general.activeClass to activeSpace in version 3, and the retired prompt switches). Every write
+//! sanitizes again, so the file can never hold a value that shifts a knob.
 
 use gs_base::config::Paths;
 use gs_base::fsx;
@@ -15,8 +15,6 @@ use gs_json::{Json, stringify_pretty};
 use crate::prompt_overrides::PromptOverrides;
 
 const FILE_LOCK: &str = "settings.json";
-/// The summarize threshold's old default, replaced by the new one on upgrade.
-const OLD_THRESHOLD: f64 = 150_000.0;
 
 pub struct SettingsStore {
 	paths: Paths,
@@ -40,9 +38,8 @@ impl SettingsStore {
 			fsx::set_aside_corrupt(file);
 			return Ok(None);
 		};
-		let upgraded = upgrade_to_v2(&mut record);
 		let renamed = upgrade_to_v3(&mut record, &parsed);
-		if self.drop_prompt_switches(&parsed) || upgraded || renamed {
+		if self.drop_prompt_switches(&parsed) || renamed {
 			self.write_settings(&record)?;
 		}
 		Ok(Some(record))
@@ -79,22 +76,6 @@ impl SettingsStore {
 	}
 }
 
-/// v1 to v2: the summarize threshold's default dropped from 150k to 40k tokens, so a record still
-/// holding the old default takes the new one. True when the file needs saving; a bare version
-/// bump waits for the next write, so plain reads stay reads.
-fn upgrade_to_v2(record: &mut Json) -> bool {
-	if record["version"].as_f64().is_some_and(|v| v >= 2.0) {
-		return false;
-	}
-	if let Some(obj) = record.as_obj_mut() {
-		obj.insert("version", 2);
-	}
-	if record["compaction"]["thresholdTokens"].as_f64() != Some(OLD_THRESHOLD) {
-		return false;
-	}
-	record.get_mut("compaction").and_then(Json::as_obj_mut).is_some_and(|c| c.remove("thresholdTokens").is_some())
-}
-
 /// v2 to v3: the open space was saved as general.activeClass, a key the sanitizer drops, so it is
 /// read from the raw file. True when the file needs saving.
 fn upgrade_to_v3(record: &mut Json, parsed: &Json) -> bool {
@@ -115,18 +96,6 @@ mod tests {
 	use gs_json::parse;
 
 	use super::*;
-
-	#[test]
-	fn old_threshold_is_dropped_and_version_bumped() {
-		let mut record = parse(r#"{"version":1,"compaction":{"thresholdTokens":150000}}"#).unwrap();
-		assert!(upgrade_to_v2(&mut record));
-		assert_eq!(gs_json::stringify(&record), r#"{"version":2,"compaction":{}}"#);
-		let mut custom = parse(r#"{"version":1,"compaction":{"thresholdTokens":90000}}"#).unwrap();
-		assert!(!upgrade_to_v2(&mut custom));
-		assert_eq!(gs_json::stringify(&custom), r#"{"version":2,"compaction":{"thresholdTokens":90000}}"#);
-		let mut current = parse(r#"{"version":3}"#).unwrap();
-		assert!(!upgrade_to_v2(&mut current));
-	}
 
 	#[test]
 	fn the_open_class_becomes_the_open_space() {

@@ -277,7 +277,7 @@ A space lesson starts with a `space-context` marker holding the space card (`ser
 
 ### Compaction
 
-A lesson past `compaction.thresholdTokens` (default 40,000) is shortened between turns, so a turn never waits for a summary (`services::turns::compaction`).
+A lesson past 40,000 tokens (`compaction.thresholdTokens` in `factory_settings`, not a setting) is shortened between turns, so a turn never waits for a summary (`services::turns::compaction`).
 
 1. The server cuts the old part at once and writes its own short version of it (`local_summary` in `core::session::compaction`), without a model.
 2. After 5 quiet minutes, the outside agent writes the real summary, which replaces the local one.
@@ -337,7 +337,7 @@ A graph folder holds `nodes.jsonl`, `chains.jsonl`, `sessions.jsonl` (run checkp
 
 ### One extraction run
 
-1. After a turn, `trigger_extraction` (`services::turns::turn_service`) compares the lesson with its coverage ledger (`coverage_of`). It starts a run when uncovered tokens reach `graph.extractionChunkTokens` (a setting, default 4096, floor 500, read fresh each turn). Only one run per source is in flight.
+1. After a turn, `trigger_extraction` (`services::turns::turn_service`) compares the lesson with its coverage ledger (`coverage_of`). It starts a run when uncovered tokens reach 4096 (`graph.extractionChunkTokens` in `factory_settings`, not a setting). Only one run per source is in flight.
 2. `batch_runs` (`core::graph::coverage`) fills token-budgeted batches with the oldest uncovered teacher-prose messages.
 3. For each batch, the extractor (the outside agent, through a work item) submits new propositions, reasoning chains and `reteaches`.
 4. The merger (`merge_findings` in `core::graph::merge`, deterministic) appends the results and runs chain simplification.

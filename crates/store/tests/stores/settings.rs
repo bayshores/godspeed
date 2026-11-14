@@ -8,23 +8,28 @@ fn store(lab: &Lab) -> SettingsStore {
 }
 
 #[test]
-fn an_old_default_threshold_is_dropped_and_the_file_saved_as_version_3() {
-	let lab = Lab::new("settings-v1-old");
-	lab.put("settings.json", &tabbed(r#"{"version":1,"compaction":{"thresholdTokens":150000},"general":{"teacherName":"Zed"}}"#));
-	assert_eq!(lab.hash("settings.json"), "b6ffadc25d90edef");
+fn an_old_file_holding_the_batch_size_and_threshold_loads_and_is_left_alone() {
+	let lab = Lab::new("settings-retired-knobs");
+	let before = tabbed(r#"{"version":1,"general":{"teacherName":"Zed"},"graph":{"enabled":false,"extractionChunkTokens":10},"compaction":{"thresholdTokens":150000}}"#);
+	lab.put("settings.json", &before);
 	let read = store(&lab).read_settings().unwrap().unwrap();
-	assert_eq!(stringify(&read), r#"{"version":3,"general":{"teacherName":"Zed"},"compaction":{}}"#);
-	assert_eq!(lab.hash("settings.json"), "ccf4399246a37f41");
-	store(&lab).read_settings().unwrap().unwrap();
-	assert_eq!(lab.hash("settings.json"), "ccf4399246a37f41");
+	assert_eq!(stringify(&read), r#"{"version":3,"general":{"teacherName":"Zed"},"graph":{"enabled":false,"extractionChunkTokens":10},"compaction":{"thresholdTokens":150000}}"#);
+	let effective = store(&lab).effective_settings().unwrap();
+	assert_eq!(stringify(&effective["graph"]), r#"{"enabled":false,"extractionChunkTokens":4096}"#);
+	assert_eq!(stringify(&effective["compaction"]), r#"{"thresholdTokens":40000}"#);
+	assert_eq!(lab.get("settings.json"), before, "not rewritten");
+	// A save of the whole record keeps the stored values as they were.
+	let saved = store(&lab).write_settings(&read).unwrap();
+	assert_eq!(stringify(&saved["compaction"]), r#"{"thresholdTokens":150000}"#);
+	assert_eq!(stringify(&saved["graph"]), r#"{"enabled":false,"extractionChunkTokens":10}"#);
 }
 
 #[cfg(unix)]
 #[test]
 fn an_upgrade_that_cannot_be_saved_fails_the_read() {
 	use std::os::unix::fs::PermissionsExt;
-	let lab = Lab::new("settings-v1-readonly");
-	let before = tabbed(r#"{"version":1,"compaction":{"thresholdTokens":150000}}"#);
+	let lab = Lab::new("settings-v2-readonly");
+	let before = tabbed(r#"{"version":2,"general":{"activeClass":"none"}}"#);
 	lab.put("settings.json", &before);
 	let set_mode = |mode| std::fs::set_permissions(&lab.paths.data, std::fs::Permissions::from_mode(mode)).unwrap();
 	set_mode(0o555);
@@ -32,16 +37,6 @@ fn an_upgrade_that_cannot_be_saved_fails_the_read() {
 	set_mode(0o755);
 	assert!(read.as_ref().is_err_and(|err| err.starts_with("EACCES: permission denied")), "{read:?}");
 	assert_eq!(lab.get("settings.json"), before);
-}
-
-#[test]
-fn a_custom_threshold_reads_as_version_3_but_the_file_is_left_alone() {
-	let lab = Lab::new("settings-v1-custom");
-	lab.put("settings.json", &tabbed(r#"{"version":1,"compaction":{"thresholdTokens":100000}}"#));
-	assert_eq!(lab.hash("settings.json"), "a4f85206acc24a0a");
-	let read = store(&lab).read_settings().unwrap().unwrap();
-	assert_eq!(stringify(&read), r#"{"version":3,"compaction":{"thresholdTokens":100000}}"#);
-	assert_eq!(lab.hash("settings.json"), "a4f85206acc24a0a");
 }
 
 #[test]

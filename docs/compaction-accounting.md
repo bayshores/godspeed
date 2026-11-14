@@ -23,7 +23,7 @@ Tests:
 
 | Setting or constant | Value |
 |---|---|
-| `compaction.thresholdTokens` (Settings → General, shown in pages) | default 40,000, floor 32,000 |
+| Summarize threshold (`compaction.thresholdTokens` in `factory_settings`, not a setting; a value in an old `settings.json` is ignored) | 40,000 |
 | Context window godspeed assumes for the outside agent (`OUTSIDE_AGENT_CONTEXT_WINDOW`) | 200,000 |
 | Reserve subtracted from that window | 16,384 |
 | Recent tail kept word for word (`KEEP_RECENT_TOKENS`) | about 20,000 |
