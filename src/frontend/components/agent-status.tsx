@@ -26,6 +26,10 @@ export interface AgentStatus {
 	pendingTurns: number;
 	/** Lessons whose current request an agent took and hasn't answered, with the ISO claim time. */
 	claimedLessons: { lessonId: string; claimedAt: string }[];
+	/** The live terminals godspeed runs, and whether each checked in within 3 minutes. Absent: none. */
+	terminals?: { id: string; here: boolean }[];
+	/** An agent outside godspeed's terminals checked in within 3 minutes. Absent: not known. */
+	outsideHere?: boolean;
 }
 
 /** How to get the agent teaching: open one, or ask the connected one to start. */
@@ -52,7 +56,7 @@ export function lessonAgentWaiting(status: AgentStatus | null): boolean {
 /** Parse the /api/mcp-access body (pure — exported for tests). */
 export function parseAgentStatus(body: unknown): AgentStatus | null {
 	if (!body || typeof body !== "object") return null;
-	const b = body as { agentConnected?: unknown; agentTeaching?: unknown; agentName?: unknown; helperHere?: unknown; helperCovering?: unknown; pendingWork?: unknown; pendingTurns?: unknown; claimedLessons?: unknown };
+	const b = body as { agentConnected?: unknown; agentTeaching?: unknown; agentName?: unknown; helperHere?: unknown; helperCovering?: unknown; pendingWork?: unknown; pendingTurns?: unknown; claimedLessons?: unknown; terminals?: unknown; outsideHere?: unknown };
 	return {
 		connected: b.agentConnected === true,
 		teaching: b.agentTeaching === true,
@@ -65,6 +69,10 @@ export function parseAgentStatus(body: unknown): AgentStatus | null {
 			? b.claimedLessons.filter((c): c is { lessonId: string; claimedAt: string } =>
 				!!c && typeof c.lessonId === "string" && typeof c.claimedAt === "string")
 			: [],
+		...(Array.isArray(b.terminals)
+			? { terminals: b.terminals.filter((t): t is { id: string; here: boolean } => !!t && typeof t.id === "string" && typeof t.here === "boolean").map((t) => ({ id: t.id, here: t.here })) }
+			: {}),
+		...(typeof b.outsideHere === "boolean" ? { outsideHere: b.outsideHere } : {}),
 	};
 }
 
@@ -73,7 +81,8 @@ export function parseAgentStatus(body: unknown): AgentStatus | null {
 export function sameAgentStatus(a: AgentStatus | null, b: AgentStatus): boolean {
 	return !!a && a.connected === b.connected && a.teaching === b.teaching && a.name === b.name && a.pendingWork === b.pendingWork && a.pendingTurns === b.pendingTurns
 		&& a.helperHere === b.helperHere && a.helperCovering === b.helperCovering
-		&& JSON.stringify(a.claimedLessons) === JSON.stringify(b.claimedLessons);
+		&& JSON.stringify(a.claimedLessons) === JSON.stringify(b.claimedLessons)
+		&& a.outsideHere === b.outsideHere && JSON.stringify(a.terminals) === JSON.stringify(b.terminals);
 }
 
 const AgentStatusContext = createContext<AgentStatus | null>(null);

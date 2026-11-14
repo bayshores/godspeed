@@ -11,6 +11,7 @@ import { createContext, createElement, useCallback, useContext, useEffect, useMe
 import type { FolderAgent } from "@/shared/core";
 import { postAgentFolder } from "@/frontend/components/agent-folder/use-agent-folder";
 import type { FolderView } from "@/frontend/components/agent-folder/agent-folder-model";
+import type { AgentStatus } from "@/frontend/components/agent-status";
 import {
 	CHECK_IN_WAIT_MS,
 	TEACH_WAIT_MS,
@@ -21,18 +22,6 @@ import {
 	type TerminalRecord,
 	type TerminalRole,
 } from "./terminal-model";
-
-/** What /api/mcp-access says that the terminals need. */
-export interface TerminalAccess {
-	teaching: boolean;
-	helperHere: boolean;
-	pendingWork: number;
-	pendingTurns: number;
-	/** The live terminals, and whether each checked in within 3 minutes. */
-	terminals: { id: string; here: boolean }[];
-	/** An agent with no terminal id checked in within 3 minutes. */
-	outsideHere: boolean;
-}
 
 type Records = Record<TerminalRole, TerminalRecord | null>;
 
@@ -70,7 +59,7 @@ const refusal = (p: Promise<void> | undefined): Promise<string | null> => (p ?? 
 /** Another modal dialog is open: the overlay waits for it to close. */
 const dialogOpen = () => !!document.querySelector('[aria-modal="true"]:not([data-terminal-overlay])');
 
-function useTerminalsState(status: TerminalAccess | null): TerminalsApi {
+function useTerminalsState(status: AgentStatus | null): TerminalsApi {
 	const lh = typeof window === "undefined" ? undefined : window.lh?.terminals;
 	const [records, setRecords] = useState<Records>({ teacher: null, helper: null });
 	const [folder, setFolder] = useState("~/godspeed");
@@ -116,7 +105,7 @@ function useTerminalsState(status: TerminalAccess | null): TerminalsApi {
 		};
 	}, [lh, put]);
 
-	const here = useCallback((id: string | undefined) => !!id && !!status?.terminals.some((t) => t.id === id && t.here), [status]);
+	const here = useCallback((id: string | undefined) => !!id && !!status?.terminals?.some((t) => t.id === id && t.here), [status]);
 	const teacher = records.teacher;
 	const helper = records.helper;
 	const teacherLive = !!teacher && !teacher.ended;
@@ -262,7 +251,7 @@ function useTerminalsState(status: TerminalAccess | null): TerminalsApi {
 
 const TerminalsContext = createContext<TerminalsApi | null>(null);
 
-export function TerminalsProvider({ status, children }: { status: TerminalAccess | null; children: ReactNode }) {
+export function TerminalsProvider({ status, children }: { status: AgentStatus | null; children: ReactNode }) {
 	return createElement(TerminalsContext.Provider, { value: useTerminalsState(status) }, children);
 }
 

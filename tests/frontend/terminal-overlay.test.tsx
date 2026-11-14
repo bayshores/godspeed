@@ -17,7 +17,7 @@ const { TeacherStatus } = await import("../../src/frontend/components/terminal/t
 const { RestartDialog } = await import("../../src/frontend/components/terminal/restart-dialog.tsx");
 type Access = Parameters<typeof TerminalsProvider>[0]["status"];
 
-const access = (over: Partial<NonNullable<Access>> = {}): Access => ({ teaching: false, helperHere: false, pendingWork: 0, pendingTurns: 0, terminals: [], outsideHere: false, ...over });
+const access = (over: Partial<NonNullable<Access>> = {}): Access => ({ connected: false, teaching: false, helperHere: false, helperCovering: false, pendingWork: 0, pendingTurns: 0, claimedLessons: [], terminals: [], outsideHere: false, ...over });
 const teacher = (over: Partial<TerminalRecord> = {}): TerminalRecord => ({ id: "t1", role: "teacher", agent: "claude", startedAt: Date.now(), ended: null, prompt: null, url: false, ...over });
 
 function Page({ status }: { status: Access }) {

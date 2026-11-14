@@ -29,6 +29,13 @@ describe("the waiting-for-your-agent notice", () => {
 		assert.deepEqual(parseAgentStatus({ agentConnected: false, agentName: null }), status());
 		assert.equal(parseAgentStatus(null), null);
 	});
+	it("reads godspeed's terminals, and a server without them reads as none", () => {
+		const s = parseAgentStatus({ terminals: [{ id: "t1", here: true }, { id: 2 }, { id: "h1", here: false }], outsideHere: false });
+		assert.deepEqual(s?.terminals, [{ id: "t1", here: true }, { id: "h1", here: false }]);
+		assert.equal(s?.outsideHere, false);
+		const old = parseAgentStatus({ agentConnected: true });
+		assert.ok(old !== null && old.terminals === undefined && old.outsideHere === undefined);
+	});
 	it("a poll with the same status keeps the old one", () => {
 		const s = status({ connected: true, teaching: true, name: "Claude Code", pendingWork: 2 });
 		assert.equal(sameAgentStatus(s, { ...s }), true);
@@ -40,6 +47,8 @@ describe("the waiting-for-your-agent notice", () => {
 		assert.equal(sameAgentStatus(s, { ...s, helperHere: true }), false);
 		assert.equal(sameAgentStatus(s, { ...s, helperCovering: true }), false);
 		assert.equal(sameAgentStatus(s, { ...s, claimedLessons: [{ lessonId: "c1", claimedAt: "2026-10-30T12:00:00Z" }] }), false);
+		assert.equal(sameAgentStatus(s, { ...s, terminals: [{ id: "t1", here: true }] }), false);
+		assert.equal(sameAgentStatus(s, { ...s, outsideHere: true }), false);
 	});
 	it("the background jobs show the notice text", () => {
 		const html = renderToStaticMarkup(<BackgroundJobs feed={{ jobs: [], extractions: [] }} waiting={waitingNotice()} />);
