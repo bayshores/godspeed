@@ -57,7 +57,7 @@ export function TodayBody(p: TodayBodyProps) {
 						</p>
 					)}
 				</div>
-				{p.ready && p.nowMs !== null && p.spaces.length > 0 && <WeekStrip payloads={[...p.spacesProgress.values()]} nowMs={p.nowMs} />}
+				{p.ready && p.nowMs !== null && p.spaces.length > 0 && <WeekStrip progress={p.spacesProgress} nowMs={p.nowMs} />}
 			</div>
 			{!p.ready || p.nowMs === null ? (
 				<div data-testid="home-loading" aria-hidden className="h-[320px] w-full bg-panel" />
