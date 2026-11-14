@@ -104,6 +104,21 @@ async fn an_empty_lesson_id_takes_any_work() {
 }
 
 #[tokio::test]
+async fn a_teacher_thinking_on_a_turn_stays_connected_until_its_claim_runs_out() {
+	let bridge = Bridge::new(&Events::new(), Arc::new(Marks::default()));
+	let lesson = park(&bridge, vec![user("hi")], "chat_l1", &Abort::new());
+	clock::sleep(5).await;
+	let turn = bridge.wait_for_work(0, teacher()).await.unwrap();
+	let minutes = |n: i64| clock::now_ms() + n * 60_000;
+	assert!(bridge.agent_teaching(minutes(4)) && bridge.agent_connected(minutes(4)), "no check-in for 4 minutes, but the turn is still its");
+	assert!(!bridge.agent_teaching(minutes(11)) && !bridge.agent_connected(minutes(11)), "the claim ran out");
+
+	bridge.respond_to_work(&turn.work_id, reply("Hi."), 0).unwrap();
+	lesson.await.unwrap();
+	assert!(!bridge.agent_teaching(minutes(4)), "nothing held after the reply");
+}
+
+#[tokio::test]
 async fn the_helper_does_the_background_jobs_and_the_teacher_the_lessons() {
 	let bridge = Bridge::new(&Events::new(), Arc::new(Marks::default()));
 	let job = park(&bridge, vec![user("read this file")], "job_read", &Abort::new());
