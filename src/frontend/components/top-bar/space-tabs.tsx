@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import { useSpaces } from "@/frontend/components/space-context";
 import { spaceColorVar } from "@/frontend/components/space-color";
@@ -8,6 +8,7 @@ import { cn } from "@/frontend/lib/utils";
 import { BAR_TAB, barTabState } from "./bar-look";
 import { ClosedSpacesMenu } from "./closed-spaces-menu";
 import { SpaceMenu, useSpaceMenu } from "./space-menu";
+import { spaceMenuDescription } from "./top-bar-model";
 
 // The dialog compares its mode by identity: one object for every open.
 const CREATE = { kind: "create" } as const;
@@ -22,11 +23,24 @@ export function SpaceTabs({ selected }: { selected: string }) {
 	const { spaces, setActive } = useSpaces();
 	const tabMenu = useSpaceMenu();
 	const [dialog, setDialog] = useState<SpaceDialogMode | null>(null);
-	const onDelete = (spaceId: string) => setDialog({ kind: "delete", spaceId });
+	// After the menu's Close its tab is gone: focus goes to the lit tab.
+	const [refocus, setRefocus] = useState(false);
+	const onDelete = (spaceId: string) => {
+		setDialog({ kind: "delete", spaceId });
+		setRefocus(false); // the dialog takes focus
+	};
 	const openSpaces = spaces.filter((s) => !s.closed);
 	const menuSpace = openSpaces.find((s) => s.id === tabMenu.shownId);
+	const navRef = useRef<HTMLElement>(null);
+	useEffect(() => {
+		if (!refocus) return;
+		setRefocus(false);
+		const nav = navRef.current;
+		const lit = nav?.querySelector<HTMLElement>(selected === "plus" ? '[aria-haspopup="menu"]' : '[aria-current="page"]');
+		(lit ?? nav?.querySelector<HTMLElement>("a"))?.focus();
+	}, [refocus, selected]);
 	return (
-		<nav aria-label="Spaces" data-testid="space-tabs" className="flex min-w-0 flex-1 items-stretch overflow-hidden">
+		<nav ref={navRef} aria-label="Spaces" data-testid="space-tabs" className="flex min-w-0 flex-1 items-stretch overflow-hidden">
 			<Link to="/" data-testid="nav-today" aria-current={selected === "today" ? "page" : undefined} className={cn(BAR_TAB, "shrink-0", barTabState(selected === "today"))}>
 				Today
 			</Link>
@@ -40,8 +54,13 @@ export function SpaceTabs({ selected }: { selected: string }) {
 						data-testid={`space-option-${c.id}`}
 						data-teacher-target={`space:${c.id}`}
 						aria-current={lit ? "page" : undefined}
-						onClick={() => setActive(c.id)}
+						aria-description={spaceMenuDescription(false)}
+						onClick={() => {
+							tabMenu.close();
+							setActive(c.id);
+						}}
 						onContextMenu={(e) => tabMenu.onContextMenu(e, c.id)}
+						onKeyDown={(e) => tabMenu.onKeyDown(e, c.id)}
 						className={cn(BAR_TAB, barTabState(lit), !lit && tabMenu.openId === c.id && "bg-bar-ink/10")}
 					>
 						<span aria-hidden className="size-2.5 shrink-0" style={{ background: spaceColorVar(c.color) }} />
@@ -66,7 +85,10 @@ export function SpaceTabs({ selected }: { selected: string }) {
 					open={tabMenu.openId === menuSpace.id}
 					anchorRef={tabMenu.anchorRef}
 					onScreen={selected === menuSpace.id}
-					onClose={tabMenu.close}
+					onClose={() => {
+						tabMenu.close();
+						setRefocus(true);
+					}}
 					onDelete={onDelete}
 				/>
 			)}

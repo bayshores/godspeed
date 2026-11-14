@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState, type MouseEvent, type RefObject } from "react";
+import { useCallback, useRef, useState, type KeyboardEvent, type MouseEvent, type RefObject } from "react";
 import type { SpaceSummary } from "@/shared/core";
 import { MenuShell } from "@/frontend/components/menu-shell";
 import { useMenuDismiss } from "@/frontend/components/use-menu-dismiss";
@@ -7,9 +7,10 @@ import { MENU_ITEM } from "./bar-look";
 import { useCloseSpace } from "./use-close-space";
 
 /**
- * A SPACE'S MENU, on a right-click of its tab or of its row under Closed:
- * Close (Reopen for a closed space) and Delete space. MenuShell owns
- * placement, focus and arrow keys; useSpaceMenu owns dismissal.
+ * A SPACE'S MENU, on a right-click of its tab or of its row under Closed
+ * (or the context-menu key or Shift+F10 while it has focus): Close (Reopen
+ * for a closed space) and Delete space. MenuShell owns placement, focus
+ * and arrow keys; useSpaceMenu owns dismissal.
  */
 
 /** Which space's menu is open and what it hangs from. The last space stays
@@ -20,14 +21,30 @@ export function useSpaceMenu() {
 	const anchorRef = useRef<HTMLElement | null>(null);
 	const close = useCallback(() => setOpenId(null), []);
 	useMenuDismiss(openId !== null, close, anchorRef);
-	/** The right-click (or the context-menu key on a focused tab). */
-	const onContextMenu = useCallback((e: MouseEvent<HTMLElement>, id: string) => {
-		e.preventDefault(); // this menu instead of the browser's
-		anchorRef.current = e.currentTarget;
+	const open = useCallback((anchor: HTMLElement, id: string) => {
+		anchorRef.current = anchor;
 		setOpenId(id);
 		setShownId(id);
 	}, []);
-	return { openId, shownId, anchorRef, close, onContextMenu };
+	/** The right-click (or the context-menu key where it fires one). */
+	const onContextMenu = useCallback(
+		(e: MouseEvent<HTMLElement>, id: string) => {
+			e.preventDefault(); // this menu instead of the browser's
+			open(e.currentTarget, id);
+		},
+		[open],
+	);
+	/** The keys, since a Mac has no context-menu key and WebKit turns no
+	 *  Shift+F10 into a right-click. */
+	const onKeyDown = useCallback(
+		(e: KeyboardEvent<HTMLElement>, id: string) => {
+			if (e.key !== "ContextMenu" && !(e.shiftKey && e.key === "F10")) return;
+			e.preventDefault();
+			open(e.currentTarget, id);
+		},
+		[open],
+	);
+	return { openId, shownId, anchorRef, close, onContextMenu, onKeyDown };
 }
 
 export function SpaceMenu({

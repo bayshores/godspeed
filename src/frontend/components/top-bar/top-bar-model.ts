@@ -13,14 +13,15 @@ export function clockText(d: Date): string {
 
 /**
  * The lit tab: "today", an open space's id, "plus" (the +) while the
- * window shows what the + reaches (lessons with no space, a closed space
- * or an old lesson of it), or "menu" for Settings and for a space not in
- * the list yet.
+ * window shows what the + reaches (the lessons with no space or one of
+ * them, a closed space or an old lesson of it), "menu" for Settings and
+ * for a space not in the list yet, or "none" for another page with no
+ * space.
  */
 export function selectedTab(pathname: string, active: string | null, spaces: readonly Pick<SpaceSummary, "id" | "closed">[]): string {
 	if (pathname === "/") return "today";
 	if (pathname === "/settings") return "menu";
-	if (active === null) return "plus";
+	if (active === null) return pathname === "/space/lessons" || pathname.startsWith("/chat/") ? "plus" : "none";
 	const space = spaces.find((s) => s.id === active);
 	if (!space) return "menu";
 	return space.closed ? "plus" : space.id;
@@ -32,12 +33,15 @@ export function hasLessonsWithNoSpace(chats: readonly Pick<ChatListItem, "spaceI
 	return chats?.some((c) => !c.spaceId) ?? false;
 }
 
-/** The +'s name for a screen reader and its hover title: what its list offers. */
-export function plusName(closed: boolean, loose: boolean): string {
-	if (closed && loose) return "Add a space, reopen a closed one, or open the lessons with no space";
-	if (closed) return "Add a space or reopen a closed one";
-	if (loose) return "Add a space or open the lessons with no space";
-	return "Add a space";
+/** The +'s name for a screen reader and its hover title. The lessons with
+ *  no space are read only while its list is open, so it never names them. */
+export function plusName(closed: boolean): string {
+	return closed ? "Add a space or reopen a closed one" : "Add a space";
+}
+
+/** Tells a screen reader that a tab or a closed row has a menu. */
+export function spaceMenuDescription(closed: boolean): string {
+	return `Has a menu with ${closed ? "Reopen" : "Close"} and Delete space`;
 }
 
 const lowerFirst = (text: string) => text.slice(0, 1).toLowerCase() + text.slice(1);

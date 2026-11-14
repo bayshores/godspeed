@@ -9,7 +9,7 @@ import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { cn } from "@/frontend/lib/utils";
 import { BAR_TAB, barTabState, MENU_ITEM } from "./bar-look";
 import { SpaceMenu, useSpaceMenu } from "./space-menu";
-import { hasLessonsWithNoSpace, plusName } from "./top-bar-model";
+import { hasLessonsWithNoSpace, plusName, spaceMenuDescription } from "./top-bar-model";
 import { useCloseSpace } from "./use-close-space";
 
 /**
@@ -20,10 +20,8 @@ import { useCloseSpace } from "./use-close-space";
  * space or the lessons with no space.
  */
 export function ClosedSpacesMenu({ lit, onAdd, onDelete }: { lit: boolean; onAdd: () => void; onDelete: (spaceId: string) => void }) {
-	const { spaces, setActive } = useSpaces();
-	const navigate = useNavigate();
+	const { spaces } = useSpaces();
 	const closed = spaces.filter((s) => s.closed);
-	const loose = hasLessonsWithNoSpace(useLessonList().chats);
 	const [open, setOpen] = useState(false);
 	const anchorRef = useRef<HTMLButtonElement>(null);
 	const rowMenu = useSpaceMenu();
@@ -35,7 +33,7 @@ export function ClosedSpacesMenu({ lit, onAdd, onDelete }: { lit: boolean; onAdd
 	useMenuDismiss(open, close, anchorRef);
 	const { busy, error, reopen } = useCloseSpace();
 	const menuSpace = closed.find((s) => s.id === rowMenu.shownId);
-	const name = plusName(closed.length > 0, loose);
+	const name = plusName(closed.length > 0);
 	return (
 		<>
 			<button
@@ -79,7 +77,9 @@ export function ClosedSpacesMenu({ lit, onAdd, onDelete }: { lit: boolean; onAdd
 									type="button"
 									data-testid={`closed-space-${s.id}`}
 									disabled={busy}
+									aria-description={spaceMenuDescription(true)}
 									onContextMenu={(e) => rowMenu.onContextMenu(e, s.id)}
+									onKeyDown={(e) => rowMenu.onKeyDown(e, s.id)}
 									onClick={async () => {
 										if (await reopen(s)) close();
 									}}
@@ -93,24 +93,7 @@ export function ClosedSpacesMenu({ lit, onAdd, onDelete }: { lit: boolean; onAdd
 							))}
 						</div>
 					)}
-					{loose && (
-						<>
-							<div aria-hidden className="mx-3 my-1.5 border-t border-dotted border-edge" />
-							<button
-								role="menuitem"
-								type="button"
-								data-testid="space-option-none"
-								onClick={() => {
-									close();
-									setActive(null);
-									navigate("/space/lessons");
-								}}
-								className={MENU_ITEM}
-							>
-								Lessons with no space
-							</button>
-						</>
-					)}
+					<LessonsWithNoSpace onPick={close} />
 					{error && (
 						<p role="alert" data-testid="spaces-plus-error" className="px-3 py-2 text-[15px] whitespace-pre-wrap text-ans-wrong">
 							{error}
@@ -130,6 +113,32 @@ export function ClosedSpacesMenu({ lit, onAdd, onDelete }: { lit: boolean; onAdd
 					onDelete={onDelete}
 				/>
 			)}
+		</>
+	);
+}
+
+/** "Lessons with no space", while there are any. Mounted only while the
+ *  list is open, so the lessons are read only then. */
+function LessonsWithNoSpace({ onPick }: { onPick: () => void }) {
+	const { setActive } = useSpaces();
+	const navigate = useNavigate();
+	if (!hasLessonsWithNoSpace(useLessonList().chats)) return null;
+	return (
+		<>
+			<div aria-hidden className="mx-3 my-1.5 border-t border-dotted border-edge" />
+			<button
+				role="menuitem"
+				type="button"
+				data-testid="space-option-none"
+				onClick={() => {
+					onPick();
+					setActive(null);
+					navigate("/space/lessons");
+				}}
+				className={MENU_ITEM}
+			>
+				Lessons with no space
+			</button>
 		</>
 	);
 }

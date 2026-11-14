@@ -4,7 +4,7 @@
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { chipText, clockText, followButtons, hasLessonsWithNoSpace, plusName, selectedTab } from "../../src/frontend/components/top-bar/top-bar-model.ts";
+import { chipText, clockText, followButtons, hasLessonsWithNoSpace, plusName, selectedTab, spaceMenuDescription } from "../../src/frontend/components/top-bar/top-bar-model.ts";
 import type { AgentAction } from "../../src/shared/core/events.ts";
 
 describe("the clock", () => {
@@ -40,6 +40,10 @@ describe("the lit tab", () => {
 		assert.equal(selectedTab("/settings", null, spaces), "menu");
 		assert.equal(selectedTab("/space", "gone", spaces), "menu");
 	});
+	it("nothing on another page with no space, where the + offers nothing", () => {
+		assert.equal(selectedTab("/space", null, spaces), "none");
+		assert.equal(selectedTab("/space/files", null, spaces), "none");
+	});
 });
 
 describe("the + list", () => {
@@ -50,10 +54,12 @@ describe("the + list", () => {
 		assert.equal(hasLessonsWithNoSpace([{ spaceId: "c21" }, {}]), true);
 	});
 	it("its name says what the list offers", () => {
-		assert.equal(plusName(false, false), "Add a space");
-		assert.equal(plusName(true, false), "Add a space or reopen a closed one");
-		assert.equal(plusName(false, true), "Add a space or open the lessons with no space");
-		assert.equal(plusName(true, true), "Add a space, reopen a closed one, or open the lessons with no space");
+		assert.equal(plusName(false), "Add a space");
+		assert.equal(plusName(true), "Add a space or reopen a closed one");
+	});
+	it("a tab and a closed row tell a screen reader they have a menu", () => {
+		assert.equal(spaceMenuDescription(false), "Has a menu with Close and Delete space");
+		assert.equal(spaceMenuDescription(true), "Has a menu with Reopen and Delete space");
 	});
 });
 
