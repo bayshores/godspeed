@@ -78,17 +78,10 @@ pub fn import_notes(call: &ToolCall<'_>, args: &Json) -> Json {
 	// Compare as stored, so "week1/notes.md" finds "notes.md".
 	let clean = safe_name(name);
 	let file_name = if Re::new(r"\.(md|markdown|txt)$", "i").test(&clean) { clean } else { format!("{clean}.md") };
-	let bytes = gs_base::text::utf8_bytes(text);
-	let existing = app.stores.spaces.get_space(&space_id).and_then(|record| {
-		record["files"].as_arr()?.iter().find(|f| f["origin"].as_str() == Some("copied") && f["name"].as_str() == Some(&file_name)).and_then(|f| f["id"].as_str().map(str::to_owned))
-	});
-	let saved = match &existing {
-		Some(file_id) => gs_services::spaces::replace_copied_file(app, &space_id, file_id, &bytes, "study"),
-		None => gs_services::spaces::add_copied_file(app, &space_id, &file_name, &bytes, "study"),
-	};
-	let file = match saved {
-		Ok(file) => file,
-		Err(refused) => return failure(&refused.error),
+	// Only a note it imported or wrote before is replaced; the learner's own file never is.
+	let file = match gs_services::spaces::write_agent_file(app, &space_id, &file_name, &gs_base::text::utf8_bytes(text), "study") {
+		Ok((file, _)) => file,
+		Err(refused) => return failure(&refused),
 	};
 	let file_id = file["id"].clone();
 	note_agent_action(app, call.caller, &json!({ "label": format!("Reading {file_name}"), "spaceId": space_id, "target": { "kind": "file", "id": file_id }, "page": "/space/files" }));
@@ -105,4 +98,41 @@ fn import_in_background(app: &Arc<App>, name: &str, text: &str) {
 			eprintln!("[mcp] import of {name} failed: {err}");
 		}
 	});
+}
+
+#[cfg(test)]
+mod tests {
+	use gs_services::spaces::add_copied_file;
+	use gs_services::spaces::space_card::space_file_path;
+
+	use super::*;
+
+	#[tokio::test]
+	async fn an_import_never_writes_over_the_learner_s_own_file() {
+		let root = std::env::temp_dir().join(format!("gs-import-notes-{}", gs_base::ids::uuid()));
+		for name in ["data", "home", "tmp", "res"] {
+			std::fs::create_dir_all(root.join(name)).unwrap();
+		}
+		let app = App::new(gs_base::config::Paths::new(root.join("data"), root.join("home"), root.join("tmp"), root.join("res")), None);
+		let space_id = app.stores.spaces.create_space(&json!({ "name": "Botany" })).unwrap()["id"].as_str().unwrap().to_owned();
+		let own = add_copied_file(&app, &space_id, "notes.md", b"My own notes.", "study").unwrap();
+		let call = ToolCall { app: &app, caller: None, meta: &Json::Null };
+		let import = |name: &str, text: &str| import_notes(&call, &json!({ "space_id": space_id, "name": name, "text": text }));
+
+		let refused = import("notes", "The agent's notes.");
+		assert_eq!(refused["isError"], json!(true));
+		assert_eq!(refused["content"][0]["text"], json!("This space already has a file named notes.md that you didn't write. Pick another name."));
+		let record = app.stores.spaces.get_space(&space_id).unwrap();
+		assert_eq!(std::fs::read_to_string(space_file_path(&app, &record, &own).unwrap()).unwrap(), "My own notes.");
+
+		// Its own import by that name is replaced and keeps its id.
+		let first = import("Leaves", "Veins.");
+		let again = import("Leaves.md", "Veins and stomata.");
+		let id = |reply: &Json| gs_json::parse(reply["content"][0]["text"].as_str().unwrap()).unwrap()["fileId"].clone();
+		assert!(first.get("isError").is_none() && again.get("isError").is_none(), "{again:?}");
+		assert_eq!(id(&first), id(&again));
+		let record = app.stores.spaces.get_space(&space_id).unwrap();
+		assert_eq!(record["files"].as_arr().unwrap().len(), 2);
+		std::fs::remove_dir_all(&root).ok();
+	}
 }

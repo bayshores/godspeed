@@ -24,7 +24,7 @@ mod state;
 mod text_cache;
 
 pub use deadlines::{add_space_deadline, deadline_about, deadline_with_space, list_deadlines_done_on, list_open_deadlines, list_space_deadlines, remove_space_deadline, update_space_deadline};
-pub use files::{AGENT_FILE_READING_REFUSAL, add_copied_file, add_file_from_path, copied_file_problem, remove_file, replace_copied_file, retry_file, set_file_kind, source_id_for};
+pub use files::{AGENT_FILE_READING_REFUSAL, add_copied_file, add_file_from_path, copied_file_problem, remove_file, retry_file, set_file_kind, source_id_for, write_agent_file};
 pub use folder::{folder_status_of, link_folder, scan_linked_folder, unlink_folder};
 pub use kept_pages::{keep_page, kept_pages_at};
 pub use lifecycle::{close_space_work, delete_space, move_chat_to_space, request_space_scope, update_space};
