@@ -12,8 +12,8 @@ const CHOICES: { id: LaunchChoice; label: string }[] = [
 	{ id: "other", label: "Other app" },
 ];
 
-/** "Start Claude Code", and beside it "Use another agent". `quiet` once
- *  the agent's screen shows: its own key is the bright one then. */
+/** "Start Claude Code", the bright key, and beside it "Use another agent".
+ *  `quiet` once the agent's screen has ended: its Start again leads then. */
 export function StartAgentButton({
 	choice,
 	onChoose,

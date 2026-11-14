@@ -73,6 +73,11 @@ describe("the teacher chip", () => {
 	it("just the name while it teaches and nothing runs", () => {
 		assert.equal(chipText({ name: "marco", doing: { text: "Idle", working: false }, agent: teaching }), "marco");
 	});
+	it("godspeed's own terminal: starting, or needing the learner, in the status line's words", () => {
+		assert.equal(chipText({ name: "Ada", doing: null, agent: off, terminal: "starting" }), "Ada, starting");
+		assert.equal(chipText({ name: "Ada", doing: null, agent: null, terminal: "starting" }), "Ada, starting");
+		assert.equal(chipText({ name: "Ada", doing: reading, agent: teaching, terminal: "needsYou" }), "Ada needs you.");
+	});
 	it("the agent's state when none is teaching", () => {
 		assert.equal(chipText({ name: "marco", doing: null, agent: off }), "No agent connected");
 		assert.equal(chipText({ name: "marco", doing: null, agent: { ...off, connected: true, name: "Codex" } }), "Codex connected, not teaching");

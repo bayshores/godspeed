@@ -32,14 +32,14 @@ export interface AgentStatus {
 	outsideHere?: boolean;
 }
 
-/** How to get the agent teaching: open one, or ask the connected one to start. */
+/** How to get the agent teaching: start one, or ask the connected one to start. */
 export function teachStep(name?: string): string {
-	return name ? `Tell ${name} to start teaching.` : "Open your agent to start.";
+	return name ? `Tell ${name} to start teaching.` : "Start your agent to begin.";
 }
 
 /** The notice shown while work waits and no agent is teaching. */
 export function waitingNotice(name?: string): string {
-	return `Waiting for your agent. ${teachStep(name)}`;
+	return name ? `Waiting for your agent. ${teachStep(name)}` : teachStep();
 }
 
 /** True when work is waiting and no agent is running the work loop to take it. */

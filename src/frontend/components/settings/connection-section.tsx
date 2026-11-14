@@ -1,8 +1,8 @@
 /**
  * Settings → Connection: outside agents (Claude Code, Codex, any MCP client)
  * connect to godspeed and act as its AI, always on and the only model.
- * "Your agent": the teacher and helper windows, what each is doing and the
- * buttons that open them; then the access token as one quiet line. Who
+ * "Your agent": the teacher and the helper, what each is doing and the
+ * buttons that start them; then the access token as one quiet line. Who
  * searches the web is set in Teaching, Facts and research.
  */
 
@@ -101,4 +101,4 @@ export function ConnectionSection() {
 
 /** The section's head tooltip: what outside agents do, and how to use one. */
 export const CONNECTION_SECTION_HINT =
-	"Claude Code, Codex, or another MCP app is your teacher. It teaches your lessons, and a second window of it, the helper, reads your files and builds the graph. Start both under Your agent.";
+	"Claude Code, Codex, or another MCP app is your teacher and teaches your lessons. The helper is the same agent running a second time to read your files and build the graph, and godspeed starts it when there is reading to do.";

@@ -127,7 +127,7 @@ describe("settings restyle", () => {
 		assert.deepEqual(puts, [], "the dropped edit is not saved");
 	});
 
-	it("Connection: the two windows, the folder and the token masked (web search is in Teaching)", async () => {
+	it("Connection: the teacher and the helper, the folder and the token masked (web search is in Teaching)", async () => {
 		globalThis.fetch = connectionFetch({ token: "tok_secret_a91f", url: "http://127.0.0.1:47613/api/mcp", agentConnected: true, agentTeaching: true, pendingWork: 1 });
 		const el = await mount(<Connection />);
 		const text = el.textContent!;
@@ -137,20 +137,20 @@ describe("settings restyle", () => {
 		assert.ok(q("web-search") === null);
 		assert.equal(q("agent-token")!.textContent, "••••••••••••a91f");
 		assert.ok(!text.includes("tok_secret_a91f"), "the token is never shown whole");
-		assert.equal(q("agent-status")!.textContent, "The teacher window is open");
+		assert.equal(q("agent-status")!.textContent, "Teacher is running");
 		assert.equal(q("agent-window-teacher-chip")!.textContent, "Teaching");
 		assert.ok(q("agent-window-teacher-open") === null);
-		assert.equal(q("agent-window-helper-chip")!.textContent, "Closed");
+		assert.equal(q("agent-window-helper-chip")!.textContent, "Not running");
 		assert.equal(q("agent-window-helper-open")!.textContent, "Start helper");
 		assert.equal(q("agent-folder-path")!.textContent, "~/godspeed");
 		assert.ok(!text.includes("/plugin"), "no plugin to install");
 		assert.ok(q("old-setup-warning") === null, "nothing old left: no warning");
 	});
 
-	it("both windows open: the helper covers while the teacher tidies its memory", async () => {
+	it("both running: the helper covers while the teacher tidies its memory", async () => {
 		globalThis.fetch = connectionFetch({ token: "tok_h", agentConnected: true, agentTeaching: true, helperHere: true, helperCovering: true, pendingWork: 1 });
 		await mount(<Connection />);
-		assert.equal(q("agent-status")!.textContent, "Both windows are open");
+		assert.equal(q("agent-status")!.textContent, "Teacher is running");
 		assert.equal(q("agent-window-helper")!.getAttribute("data-tone"), "busy");
 		assert.equal(q("agent-window-helper-chip")!.textContent, "Covering");
 		assert.equal(q("agent-window-helper-line")!.textContent, "Answering for Teacher for a minute");
@@ -182,12 +182,12 @@ describe("settings restyle", () => {
 		assert.ok(document.body.textContent!.includes("Removed. Restart any open Claude Code chats to finish."));
 	});
 
-	it("access is always on: no on/off switch, and closed windows carry their own buttons", async () => {
+	it("access is always on: no on/off switch, and outside the desktop app both tiles carry their own buttons", async () => {
 		globalThis.fetch = connectionFetch({ token: "tok_secret_b22c", url: "http://127.0.0.1:1/api/mcp", agentConnected: false, pendingWork: 0 });
 		const el = await mount(<Connection />);
 		assert.ok(!el.textContent!.includes("Let outside agents connect"));
 		assert.ok(el.querySelector('[role="switch"]') === null);
-		assert.equal(q("agent-status")!.textContent, "No window is open");
+		assert.equal(q("agent-status")!.textContent, "No agent is running");
 		assert.equal(q("agent-window-teacher-open")!.textContent, "Start teacher");
 		assert.equal(q("agent-window-helper-open")!.textContent, "Start helper");
 	});
@@ -195,7 +195,7 @@ describe("settings restyle", () => {
 	it("a connected agent that isn't teaching says how to start it", async () => {
 		globalThis.fetch = connectionFetch({ token: "tok_d", url: "http://127.0.0.1:1/api/mcp", agentConnected: true, agentTeaching: false, agentName: "Codex", pendingWork: 0 });
 		const el = await mount(<Connection />);
-		assert.equal(q("agent-window-teacher-chip")!.textContent, "Open");
+		assert.equal(q("agent-window-teacher-chip")!.textContent, "Running");
 		assert.equal(q("agent-window-teacher-line")!.textContent, "Tell Codex to start teaching.");
 		assert.ok(el.textContent!.includes("Your agent is Codex"));
 	});

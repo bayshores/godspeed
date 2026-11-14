@@ -17,17 +17,19 @@ import { TeacherStatus } from "@/frontend/components/terminal/teacher-status";
 import { useTerminals } from "@/frontend/components/terminal/use-terminals";
 import { HELPER_NAME, filesProgress } from "@/frontend/components/work/work-model";
 import { cn } from "@/frontend/lib/utils";
-import { filesLine, helperTile, teacherTile, windowsHeadline, type WindowTile } from "./agent-windows-model";
+import { agentHeadline, filesLine, helperTile, teacherTile, type AgentTile, type TermState } from "./agent-windows-model";
 
 /**
- * "Your agent": which of the two windows are open and what each is doing.
- * A closed window's tile carries the button that starts it; the teacher's
+ * "Your agent": whether the teacher and the helper run and what each is
+ * doing. The teacher's tile carries the button that starts it; the
+ * helper's only when godspeed can't start it by itself. The teacher's
  * line shows its screen while godspeed runs it. Under the tiles, the
  * folder they run in. "Other app" shows the setup for any MCP app.
  */
 export function AgentWindows({ agent }: { agent: AgentStatus }) {
 	const { view, lines, busy, error: startError, open, openHelper, change, setStartCommand } = useAgentFolder();
-	const outside = !!useTerminals()?.outsideHere;
+	const terminals = useTerminals();
+	const outside = !!terminals?.outsideHere;
 	const panel = useTeacher();
 	const { spaces } = useSpaces();
 	const { feed } = useActivity();
@@ -38,15 +40,29 @@ export function AgentWindows({ agent }: { agent: AgentStatus }) {
 	const folderAgent = choice === "other" ? null : choice;
 	const teacherName = panel?.name ?? DEFAULT_TEACHER_NAME;
 	const { left: filesLeft } = filesProgress(spaces);
-	const teacher = teacherTile(agent, panel?.doing ?? null, outside);
-	const helper = helperTile({ agent, background: backgroundLine(feed.extractions, feed.jobs), files: filesLine(spaces), filesLeft, teacher: teacherName });
+	const ownTeacher = terminals?.teacher ?? null;
+	const ownHelper = terminals?.helper ?? null;
+	const teacherLive = !!ownTeacher && !ownTeacher.ended;
+	const teacherTerm: TermState = !ownTeacher ? null : ownTeacher.ended ? "ended" : terminals?.facts.teacher?.here ? null : "starting";
+	// A helper that ended with its teacher starts again by itself with the next one.
+	const helperTerm: TermState = !ownHelper ? null : !ownHelper.ended ? (agent.helperHere ? null : "starting") : teacherLive ? "ended" : null;
+	const teacher = teacherTile(agent, panel?.doing ?? null, { outside, term: teacherTerm });
+	const helper = helperTile({
+		agent,
+		background: backgroundLine(feed.extractions, feed.jobs),
+		files: filesLine(spaces),
+		filesLeft,
+		teacher: teacherName,
+		term: helperTerm,
+		autoStart: !!terminals?.available && !outside,
+	});
 
 	return (
 		<section data-testid="agent-windows" className="flex flex-col gap-5 rounded border-2 border-line bg-panel p-6">
 			<div className="flex flex-wrap items-start gap-x-4 gap-y-2">
 				<div className="min-w-0 flex-1">
 					<h2 data-testid="agent-status" className="text-[28px] leading-tight text-ink">
-						{windowsHeadline(agent)}
+						{agentHeadline(agent, teacherName, teacherTerm === "starting")}
 					</h2>
 					<p className="text-[15px] text-ink-2">Your agent is {agent.name ?? (folderAgent ? AGENT_LABEL[folderAgent] : "another app")}</p>
 				</div>
@@ -61,7 +77,7 @@ export function AgentWindows({ agent }: { agent: AgentStatus }) {
 			</div>
 			<div className="grid gap-4 min-[860px]:grid-cols-2">
 				<Tile id="teacher" name="Teacher" icon="window" tile={teacher} onOpen={folderAgent && (() => void open(folderAgent))} busy={busy} status={teacherName} />
-				<Tile id="helper" name={HELPER_NAME} icon="pages" tile={helper} onOpen={folderAgent && (() => void openHelper(folderAgent))} busy={busy} />
+				<Tile id="helper" name={HELPER_NAME} icon="pages" tile={helper} onOpen={folderAgent && (() => void openHelper(folderAgent))} busy={busy} quiet />
 			</div>
 			<OldSetupWarning />
 			{choice === "other" ? <OtherAppSetup /> : lines.length > 0 && <Log lines={lines} />}
@@ -82,12 +98,14 @@ export function AgentWindows({ agent }: { agent: AgentStatus }) {
 
 const CHIP: Record<string, string> = {
 	Teaching: "bg-ans-right text-background",
-	Open: "bg-ans-right text-background",
-	Closed: "bg-tone text-ink",
+	Running: "bg-ans-right text-background",
+	"Not running": "bg-tone text-ink",
+	Stopped: "bg-tone text-ink",
 };
 
-/** One window: its icon, name and status chip, then what it is doing.
- *  `status`: the teacher's name, for its status line (TeacherStatus). */
+/** One agent: its icon, name and status chip, then what it is doing.
+ *  `status`: the teacher's name, for its status line (TeacherStatus).
+ *  `quiet`: its button is a plain word (the helper is never the main thing). */
 function Tile({
 	id,
 	name,
@@ -96,14 +114,16 @@ function Tile({
 	onOpen,
 	busy,
 	status,
+	quiet = false,
 }: {
 	id: string;
 	name: string;
 	icon: "window" | "pages";
-	tile: WindowTile;
+	tile: AgentTile;
 	onOpen: (() => void) | null;
 	busy: boolean;
 	status?: string;
+	quiet?: boolean;
 }) {
 	const off = tile.tone === "off";
 	return (
@@ -123,14 +143,16 @@ function Tile({
 					{status ? (
 						<TeacherStatus name={status} line={tile.line} testid={`agent-window-${id}-line`} className={cn("max-w-full truncate text-base", off ? "text-ink-2" : "text-ink")} />
 					) : (
-						<p data-testid={`agent-window-${id}-line`} title={tile.line} className={cn("max-w-full truncate text-base", off ? "text-ink-2" : "text-ink")}>
-							{tile.line}
-						</p>
+						tile.line && (
+							<p data-testid={`agent-window-${id}-line`} title={tile.line} className={cn("max-w-full truncate text-base", off ? "text-ink-2" : "text-ink")}>
+								{tile.line}
+							</p>
+						)
 					)}
 					<p className="text-[15px] text-ink-2">{tile.note}</p>
-					{tile.open && onOpen && (
-						<button type="button" data-testid={`agent-window-${id}-open`} disabled={busy} onClick={onOpen} className="lh-btn lh-btn-main mt-2">
-							{tile.open}
+					{tile.start && onOpen && (
+						<button type="button" data-testid={`agent-window-${id}-open`} disabled={busy} onClick={onOpen} className={cn("lh-btn mt-2", quiet ? "lh-btn-quiet -ml-1.5" : "lh-btn-main")}>
+							{tile.start}
 						</button>
 					)}
 				</div>

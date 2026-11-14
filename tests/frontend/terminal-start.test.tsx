@@ -91,15 +91,23 @@ describe("Start Claude Code", () => {
 					await act(async () => r.render(page(access())));
 				},
 				async () => {
+					assert.ok(q("open-agent")!.classList.contains("lh-btn-main"), "Start Claude Code leads before any start");
+					assert.ok(!q("open-agent-menu")!.classList.contains("lh-btn-main"));
 					await act(async () => q("open-agent")!.click());
 					await settle();
 					assert.ok(shell.calls.includes("start teacher claude"), shell.calls.join(", "));
+					assert.ok(q("open-agent") === null && q("open-agent-menu") === null, "no start buttons while the agent runs");
 					assert.ok(q("agent-launch-log") === null, "no copy-command log");
 					assert.ok(q("first-run-screen") !== null, "the screen shows in the step");
 					assert.equal(q("terminal-footer")!.textContent, "Claude Code is starting in ~/godspeed. If it asks you something, answer it here.");
 					await act(async () => root!.render(page(access({ connected: true, terminals: [{ id: "teacher-new", here: true }] }))));
 					await settle();
 					assert.equal(q("terminal-footer")!.textContent, "Claude Code is connected.");
+					await act(async () => shell.push({ id: "teacher-new", ended: { stopped: true, code: null }, prompt: null, url: false }));
+					await act(async () => root!.render(page(access())));
+					await settle();
+					assert.ok(q("open-agent") !== null, "the start buttons return once it ended");
+					assert.ok(!q("open-agent")!.classList.contains("lh-btn-main"), "Start again in the footer leads then");
 				},
 			);
 		} finally {

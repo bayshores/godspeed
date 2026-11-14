@@ -38,8 +38,8 @@ describe("the work frame of a space", () => {
 	it("no agent: the files wait", () => {
 		const state = workState({ ...base, working: false, files: [file("a", "pending"), file("b", "pending")], work: undefined });
 		assert.deepEqual(state, { kind: "waiting", left: 2 });
-		assert.deepEqual(spaceFrame(state!, "Teacher"), { state: "waiting", text: "2 files are waiting. Open your agent to read them.", count: null });
-		assert.equal(spaceFrame({ kind: "waiting", left: 1 }, "Teacher").text, "1 file is waiting. Open your agent to read it.");
+		assert.deepEqual(spaceFrame(state!, "Teacher"), { state: "waiting", text: "2 files are waiting. Start your agent to read them.", count: null });
+		assert.equal(spaceFrame({ kind: "waiting", left: 1 }, "Teacher").text, "1 file is waiting. Start your agent to read it.");
 	});
 
 	it("reading: how many of the round's files are finished", () => {
@@ -82,7 +82,7 @@ describe("the work frame of a space", () => {
 describe("the work frame of a page one job works on", () => {
 	it("says who and what, or that it waits", () => {
 		assert.deepEqual(jobFrame("Helper", "making your sheet"), { state: "working", text: "Helper is working on this page", count: "making your sheet" });
-		assert.deepEqual(jobFrame(null, "making your sheet"), { state: "waiting", text: "This page is waiting. Open your agent to carry on.", count: null });
+		assert.deepEqual(jobFrame(null, "making your sheet"), { state: "waiting", text: "This page is waiting. Start your agent to carry on.", count: null });
 	});
 });
 

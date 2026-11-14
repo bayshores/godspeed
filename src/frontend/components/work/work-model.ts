@@ -68,7 +68,7 @@ const working = (worker: string, count: string): FrameWords => ({ state: "workin
 export function spaceFrame(state: WorkState, worker: string): FrameWords {
 	switch (state.kind) {
 		case "waiting":
-			return { state: "waiting", text: `${files(state.left)} ${state.left === 1 ? "is" : "are"} waiting. Open your agent to read ${state.left === 1 ? "it" : "them"}.`, count: null };
+			return { state: "waiting", text: `${files(state.left)} ${state.left === 1 ? "is" : "are"} waiting. Start your agent to read ${state.left === 1 ? "it" : "them"}.`, count: null };
 		case "reading":
 			return working(worker, `${state.read} of ${files(state.total)}`);
 		case "grouping":
@@ -82,7 +82,7 @@ export function spaceFrame(state: WorkState, worker: string): FrameWords {
 /** The frame of a page one job works on (a lesson, a cheat sheet): who
  *  and what, or that it waits for an agent. */
 export function jobFrame(worker: string | null, doing: string): FrameWords {
-	return worker ? working(worker, doing) : { state: "waiting", text: "This page is waiting. Open your agent to carry on.", count: null };
+	return worker ? working(worker, doing) : { state: "waiting", text: "This page is waiting. Start your agent to carry on.", count: null };
 }
 
 type LiveSpace = Pick<SpaceSummary, "filesLeft" | "building">;

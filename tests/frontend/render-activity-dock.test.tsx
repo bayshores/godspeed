@@ -17,7 +17,7 @@ describe("the waiting-for-your-agent notice", () => {
 		assert.equal(agentWaiting(null), false);
 	});
 	it("says to open an agent, or to tell the connected one to start", () => {
-		assert.equal(waitingNotice(), "Waiting for your agent. Open your agent to start.");
+		assert.equal(waitingNotice(), "Start your agent to begin.");
 		assert.equal(waitingNotice("Claude Code"), "Waiting for your agent. Tell Claude Code to start teaching.");
 		assert.equal(teachStep("Codex"), "Tell Codex to start teaching.");
 	});

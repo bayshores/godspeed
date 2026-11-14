@@ -20,6 +20,8 @@ import { BAR_TAB, barTabState } from "@/frontend/components/top-bar/bar-look";
 import { SpaceTabs } from "@/frontend/components/top-bar/space-tabs";
 import { FollowButton } from "@/frontend/components/top-bar/follow-button";
 import { chipText, clockText, selectedTab } from "@/frontend/components/top-bar/top-bar-model";
+import { teacherTerminalState } from "@/frontend/components/terminal/terminal-model";
+import { useTerminals } from "@/frontend/components/terminal/use-terminals";
 import { useWorker } from "@/frontend/components/work/use-worker";
 import { workChip } from "@/frontend/components/work/work-model";
 import { cn } from "@/frontend/lib/utils";
@@ -85,8 +87,9 @@ function WorkChip() {
 function TeacherChip() {
 	const teacher = useTeacher();
 	const agent = useAgentStatus();
+	const terminal = teacherTerminalState(useTerminals()?.facts.teacher ?? null);
 	if (!teacher) return null;
-	const text = chipText({ name: teacher.name, doing: teacher.doing, agent });
+	const text = chipText({ name: teacher.name, doing: teacher.doing, agent, terminal });
 	return (
 		<>
 			<button

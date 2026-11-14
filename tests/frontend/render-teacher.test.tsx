@@ -332,7 +332,7 @@ describe("the panel", () => {
 		const el = mount(panel({ agent: { connected: false, teaching: false, helperHere: false, helperCovering: false, pendingWork: 1, pendingTurns: 0, claimedLessons: [] } }));
 		await settle();
 		assert.ok(el.querySelector("[data-testid='talk-you']"), "the thread is open");
-		assert.equal(el.textContent!.split("Waiting for your agent").length - 1, 1);
+		assert.equal(el.textContent!.split(waitingNotice()).length - 1, 1);
 		talkChat = null;
 	});
 	it("is 400 wide, and the whole window when narrow", () => {

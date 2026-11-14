@@ -145,13 +145,29 @@ function startingLine(agent: FolderAgent, folder: string): string {
 	return `${AGENT_LABEL[agent]} is starting in ${folder}. If it asks you something, answer it here.`;
 }
 
+/** What the teacher's terminal adds to its status (the status lines and
+ *  the top bar chip): it starts, or it needs the learner. */
+export type TeacherTerminalState = "starting" | "needsYou";
+
+export function teacherTerminalState(f: TerminalFacts | null): TeacherTerminalState | null {
+	if (!f || f.term.ended?.stopped) return null;
+	if (needsYou(f)) return "needsYou";
+	if (!f.term.ended && !f.here) return "starting";
+	return null;
+}
+
+/** That state in words: the status line under the teacher's name, or
+ *  the top bar chip's short form. */
+export function teacherStateWords(state: TeacherTerminalState | null, name: string, form: "line" | "chip"): string | null {
+	if (state === "needsYou") return `${name} needs you.`;
+	if (state === "starting") return form === "chip" ? `${name}, starting` : `${name} is starting.`;
+	return null;
+}
+
 /** The teacher's status line while its terminal starts or needs the
  *  learner; null leaves the usual line. */
 export function teacherStatusLine(f: TerminalFacts | null, name: string): string | null {
-	if (!f || f.term.ended?.stopped) return null;
-	if (needsYou(f)) return `${name} needs you.`;
-	if (!f.term.ended && !f.here) return `${name} is starting.`;
-	return null;
+	return teacherStateWords(teacherTerminalState(f), name, "line");
 }
 
 const live = (term: TerminalRecord | null): boolean => !!term && !term.ended;

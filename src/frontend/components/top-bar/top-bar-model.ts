@@ -5,6 +5,7 @@ import type { AgentAction, ChatListItem, SpaceSummary } from "@/shared/core";
 import { agentStatusLabel, type AgentStatus } from "@/frontend/components/agent-status";
 import { pageName } from "@/frontend/components/teacher/follow";
 import type { AgentDoing } from "@/frontend/components/teacher/follow-status";
+import { teacherStateWords, type TeacherTerminalState } from "@/frontend/components/terminal/terminal-model";
 
 /** The clock: 24-hour "17:51". */
 export function clockText(d: Date): string {
@@ -51,7 +52,10 @@ const lowerFirst = (text: string) => text.slice(0, 1).toLowerCase() + text.slice
  * ("marco, reading Lecture 14 notes"), or the agent's state when none is
  * teaching ("No agent connected").
  */
-export function chipText(i: { name: string; doing: AgentDoing | null; agent: AgentStatus | null }): string {
+export function chipText(i: { name: string; doing: AgentDoing | null; agent: AgentStatus | null; terminal?: TeacherTerminalState | null }): string {
+	// godspeed's own terminal knows first that the teacher starts or needs the learner.
+	const own = teacherStateWords(i.terminal ?? null, i.name, "chip");
+	if (own) return own;
 	// Before the first read of the agent's state: just the name.
 	if (!i.agent) return i.name;
 	if (i.agent.helperCovering) return `${i.name}, tidying its memory`;

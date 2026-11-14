@@ -14,7 +14,7 @@ import { useAgentFolder } from "./use-agent-folder";
 
 /**
  * Start your agent in the godspeed folder: "Start Claude Code" and "Use
- * another agent", then the agent's live screen (outside the desktop app, a
+ * another agent" (hidden while the agent runs), then the agent's live screen (outside the desktop app, a
  * log of each step while the learner runs the command), and under a dotted
  * rule the folder with quiet buttons to change it, copy the command or
  * change the command that starts the agent. "Other app" shows the address
@@ -27,20 +27,24 @@ export function AgentLauncher() {
 	useEffect(() => setChoice(rememberedAgent(savedAgent())), []);
 
 	const agent = choice === "other" ? null : choice;
-	const started = !!useTerminals()?.teacher;
+	// While the agent's screen runs, its footer leads (Stop is the way
+	// back); once it ended, its Start again does.
+	const teacher = useTerminals()?.teacher;
 
 	return (
 		<div className="flex w-full flex-col items-start gap-4">
-			<StartAgentButton
-				choice={choice}
-				onChoose={(c) => {
-					setChoice(c);
-					setError(null);
-				}}
-				onStart={() => agent && void open(agent)}
-				busy={busy}
-				quiet={started}
-			/>
+			{!(teacher && !teacher.ended) && (
+				<StartAgentButton
+					choice={choice}
+					onChoose={(c) => {
+						setChoice(c);
+						setError(null);
+					}}
+					onStart={() => agent && void open(agent)}
+					busy={busy}
+					quiet={!!teacher}
+				/>
+			)}
 			{choice === "other" ? <OtherAppSetup /> : lines.length > 0 ? <Log lines={lines} /> : <FirstRunScreen />}
 			{(error ?? (lines.length === 0 && startError)) && (
 				<p role="alert" className="text-[15px] text-ans-wrong">
