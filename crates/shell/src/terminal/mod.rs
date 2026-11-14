@@ -56,9 +56,14 @@ struct Terminal {
 	state: Mutex<State>,
 }
 
+/// The terminal's input, queued in order, and its page end, kept open until the script ends.
+struct Io {
+	input: Sender<Vec<u8>>,
+	_master: Box<dyn MasterPty + Send>,
+}
+
 struct State {
-	/// The terminal's input, in order, and its page end, until the script ends.
-	io: Option<(Sender<Vec<u8>>, Box<dyn MasterPty + Send>)>,
+	io: Option<Io>,
 	screen: Screen,
 	settle: Settle,
 	/// What the page was last told.
@@ -97,8 +102,8 @@ impl Terminal {
 	fn output(&self, bytes: &[u8], outlet: &dyn Outlet) {
 		let mut state = self.state();
 		let replies = state.screen.process(bytes);
-		if let Some((input, _)) = state.io.as_ref().filter(|_| !replies.is_empty()) {
-			let _ = input.send(replies);
+		if let Some(io) = state.io.as_ref().filter(|_| !replies.is_empty()) {
+			let _ = io.input.send(replies);
 		}
 		if state.attached {
 			outlet.push("terminal-output", json!({ "id": self.id, "data": gs_base::base64::encode(bytes) }));
@@ -129,8 +134,8 @@ impl Terminal {
 	/// Queues input for the terminal's writer, which never blocks the caller.
 	fn write(&self, bytes: &[u8]) -> Result<(), String> {
 		let state = self.state();
-		let (input, _) = state.io.as_ref().filter(|_| !state_ended(&state)).ok_or(NOT_THERE)?;
-		input.send(bytes.to_vec()).map_err(|_| NOT_THERE.to_owned())
+		let io = state.io.as_ref().filter(|_| !state_ended(&state)).ok_or(NOT_THERE)?;
+		io.input.send(bytes.to_vec()).map_err(|_| NOT_THERE.to_owned())
 	}
 }
 
@@ -200,7 +205,7 @@ impl Terminals {
 			pid: spawned.child.process_id(),
 			#[cfg(windows)]
 			job: spawned.job,
-			state: Mutex::new(State { io: Some((input, spawned.master)), screen: Screen::default(), settle: Settle::default(), shown: (None, false), attached: false, stopping: false, ended: None }),
+			state: Mutex::new(State { io: Some(Io { input, _master: spawned.master }), screen: Screen::default(), settle: Settle::default(), shown: (None, false), attached: false, stopping: false, ended: None }),
 		});
 		// An ended record stays until the next start for its role.
 		list.retain(|t| t.role != role);
