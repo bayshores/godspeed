@@ -55,7 +55,7 @@ export function topicStatus(rate: number | null): TopicStatus {
 export type AnswerOutcome = "right" | "hinted" | "wrong" | "dontKnow";
 
 /** How much a problem solved with hints counts toward a rate: one alone reads shaky, not strong. */
-export const HINTED_WEIGHT = 0.6;
+const HINTED_WEIGHT = 0.6;
 
 /** One graded answer from a lesson: a quiz or probe answer, or a practice problem's outcome. */
 interface AnsweredQuestion {
