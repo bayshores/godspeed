@@ -770,7 +770,7 @@ A homework session (`kind: "homework"`, `deadlineId` required) works on one home
 - It opens with the space card and a `homework-context` marker: the deadline, its assignment file (`assignmentFileId`) and the problems posted before.
 - The homework agent (`agent::tools::homework`, prompt `prompts/homework/` plus the practice hint rules) posts the assignment's problems onto the deadline with `post_problems`.
 - It opens one problem at a time with `problem`, which has no solution field: homework is hints only. `conclude` marks a problem done when the learner's own work is right.
-- The plan row and its problems dialog list the problems (`homeworkProblems` in `src/shared/core/homework.ts`), and the Today row says "2 of 7 problems done".
+- The plan row names every problem over its bar, a done one going back to its card (`homeworkProblems` in `src/shared/core/homework.ts`), and the Today row says "2 of 7 problems done". Above 12 problems or plan steps the row shows numbers only, with the names on hover.
 
 Homework is never extracted into the graph.
 
