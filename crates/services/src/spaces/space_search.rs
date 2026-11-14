@@ -19,7 +19,7 @@ fn space_files(app: &App, space_id: &str) -> Vec<Json> {
 	app.stores.spaces.get_space(space_id).and_then(|record| record["files"].as_arr().cloned()).unwrap_or_default()
 }
 
-/// With `formula_notes` (a lesson's, which has the `pdf` tool) a result that shows a PDF page whose
+/// With `formula_notes` (a lesson's with the `pdf` tool on) a result that shows a PDF page whose
 /// formulas may read broken says so.
 pub fn space_search(app: &Arc<App>, space_id: &str, formula_notes: bool) -> SpaceSearch {
 	let (search_app, search_space) = (app.clone(), space_id.to_owned());

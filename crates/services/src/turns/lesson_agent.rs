@@ -23,6 +23,7 @@ use gs_core::spaces::space_tools::ToolOutcome;
 use gs_core::graph::ports::GraphStore;
 use gs_core::records::settings_resolution::graph_tools_enabled;
 use gs_core::records::teaching_areas::learner_rules_section;
+use gs_core::session::tool_switches::switched_off;
 use gs_engine::turn::agent::Agent;
 use gs_engine::turn::faux::Engine;
 use gs_json::{Json, json};
@@ -83,15 +84,16 @@ fn graph_nodes(app: &Arc<App>, scope: Option<&str>) -> GraphNodes {
 	Arc::new(move || graph.read_nodes().unwrap_or_default())
 }
 
-/// read_space, set_space_note and the space-file search: lessons in a space only.
-fn space_tools(app: &Arc<App>, space_id: &str) -> SpaceToolContext {
+/// read_space, set_space_note and the space-file search: lessons in a space only. The search's
+/// broken-formula line names the pdf tool, so it comes only while that tool is on.
+fn space_tools(app: &Arc<App>, space_id: &str, pdf_on: bool) -> SpaceToolContext {
 	let (card_app, card_id) = (app.clone(), space_id.to_owned());
 	let (today_app, today_id) = (app.clone(), space_id.to_owned());
 	let (note_app, note_id) = (app.clone(), space_id.to_owned());
 	SpaceToolContext {
 		space_card: Arc::new(move || card_app.stores.spaces.get_space(&card_id).map(|cls| space_card_for(&card_app, &cls)).transpose()),
 		today_note: Some(Arc::new(move || current_today_note(&today_app, Some(&today_id)))),
-		search: Some(Arc::new(space_search(app, space_id, true))),
+		search: Some(Arc::new(space_search(app, space_id, pdf_on))),
 		set_note: Some(Arc::new(move |note: &str| {
 			if note_app.stores.spaces.get_space(&note_id).is_none() {
 				return "This lesson's space no longer exists.".to_owned();
@@ -137,6 +139,7 @@ pub(super) fn build_lesson_agent(app: &Arc<App>, record: &Json, effective: &Json
 	let lesson_scope = record["spaceId"].as_str();
 	let space_rules = lesson_space_rules(app, lesson_scope);
 	let toggles = Some(&effective["agent"]["tools"]).filter(|t| !t.is_null()).cloned();
+	let pdf_on = !switched_off(toggles.as_ref(), "pdf");
 	let opts = AgentBuildOptions {
 		messages,
 		on_usage: None,
@@ -155,7 +158,7 @@ pub(super) fn build_lesson_agent(app: &Arc<App>, record: &Json, effective: &Json
 	};
 	let jobs = JobToolContext { chat_id: chat_id.clone(), job_store: app.stores.jobs.clone(), spawn };
 	let space_actions = agent_space_actions(app);
-	let side = LessonSide { space: lesson_scope.map(|id| space_tools(app, id)), save_rule: Some(save_rule(app, lesson_scope)), space_actions: Some(space_actions.clone()) };
+	let side = LessonSide { space: lesson_scope.map(|id| space_tools(app, id, pdf_on)), save_rule: Some(save_rule(app, lesson_scope)), space_actions: Some(space_actions.clone()) };
 	let teacher = || TeacherToolContext { plan: PlanContext { chat_id: chat_id.clone(), chat_store: chats.clone() }, jobs: jobs.clone(), side: side.clone() };
 
 	let kind = record["kind"].as_str();

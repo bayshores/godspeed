@@ -487,7 +487,7 @@ mod tests {
 		let record = app.stores.spaces.get_space(&space_id).unwrap();
 		let abs = space_file_path(&app, &record, file_in(&record, &file_id).unwrap()).unwrap();
 		// A lesson reading a page whose formula lost a glyph has it looked at first; the cheat sheet
-		// writer has no pdf tool.
+		// writer, and a lesson whose pdf tool the learner switched off, get no line.
 		let read = |range: &str, lesson: bool| (space_search(&app, &space_id, lesson).read_passage)(PassageRef::Place { file_id: file_id.clone(), range: range.into() });
 		let note = format!("\n\nFormulas on p. 2 of Lecture 1.pdf may read broken here. Before you teach from them, have the page looked at with `pdf` (path: {abs}).");
 		assert!(read("p. 2", true).ends_with(&note));

@@ -12,7 +12,7 @@ pub const TOGGLEABLE_TOOLS: [&str; 4] = ["research", "demo", "visual", "pdf"];
 pub const WRITABLE_TOOL_KEYS: [&str; 5] = ["research", "demo", "visual", "pdf", "explain"];
 
 /// An explicit `false` for this tool in the resolved settings; a missing key means enabled.
-fn switched_off(enabled: Option<&Json>, name: &str) -> bool {
+pub fn switched_off(enabled: Option<&Json>, name: &str) -> bool {
 	enabled.is_some_and(|e| e[name] == Json::Bool(false))
 }
 
@@ -57,6 +57,7 @@ mod tests {
 		let kept = filter_enabled_tools(vec![("demo".to_owned(), 1), ("pdf".to_owned(), 2), ("research".to_owned(), 3)], Some(&enabled));
 		assert_eq!(kept, [("pdf".to_owned(), 2), ("research".to_owned(), 3)]);
 		assert_eq!(filter_enabled_tools(vec![("demo".to_owned(), 1)], None).len(), 1);
+		assert!(switched_off(Some(&json!({ "pdf": false })), "pdf") && !switched_off(Some(&enabled), "pdf") && !switched_off(None, "pdf"));
 	}
 
 	#[test]
