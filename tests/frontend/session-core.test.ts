@@ -336,8 +336,17 @@ describe("send (one input event, verbatim consumption)", () => {
 		assert.equal(m.status, "error");
 	});
 
-	it("every input taken, and only those, tells the adapter (which starts the teacher when none is here)", async () => {
-		globalThis.fetch = dietFetch({ stream: () => sseResponse("[DONE]") });
+	it("every input taken, and only those, tells the adapter at once, before its turn ends (which starts the teacher when none is here)", async () => {
+		// The turn never ends (no agent takes it) until the Stop below ends the view's stream.
+		globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+			const url = String(input);
+			if (url === "/api/chat") return Response.json({ ok: true });
+			if (url === "/api/chats/chat_x") return Response.json({ messages: [] });
+			const body = new ReadableStream({
+				start: (c) => init?.signal?.addEventListener("abort", () => c.error(new DOMException("stopped", "AbortError"))),
+			});
+			return new Response(body);
+		}) as typeof globalThis.fetch;
 		const quiz = {
 			id: "call-1",
 			role: "assistant",
@@ -357,7 +366,11 @@ describe("send (one input event, verbatim consumption)", () => {
 			let told = 0;
 			const m = model({ initialMessages: [newUserMessage("hi"), quiz] });
 			m.onSent = () => told++;
-			assert.equal(await sendIt(m), true);
+			const sent = sendIt(m);
+			for (let i = 0; i < 50 && told === 0; i++) await new Promise((r) => setTimeout(r, 10));
+			assert.equal(told, 1, "told while the turn still waits");
+			m.stop();
+			await sent;
 			assert.equal(told, 1);
 		}
 		globalThis.fetch = (async () => new Response("scan.pdf is not a PDF.", { status: 400 })) as typeof globalThis.fetch;

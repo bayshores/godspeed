@@ -239,13 +239,20 @@ describe("Start lesson and a Talk send", () => {
 
 	it("a message in a lesson starts it the same way, once, and never after a crash", async () => {
 		const ended = (code: number | null) => ({ id: "t0", role: "teacher" as const, agent: "claude" as const, startedAt: Date.now() - 60_000, ended: { stopped: false as const, code }, prompt: null, url: false });
+		// The session tells the page a turn runs with the page's own event type.
+		const realEvent = globalThis.CustomEvent;
+		globalThis.CustomEvent = (dom.window as unknown as { CustomEvent: typeof CustomEvent }).CustomEvent;
 		for (const [code, starts] of [[0, 1], [1, 0]] as const) {
 			const shell = fakeShell([ended(code)]);
 			globalThis.fetch = (async (input: RequestInfo | URL) => {
 				const url = String(input);
 				if (url === "/api/chat") return Response.json({ ok: true });
 				if (url === "/api/chats/c1") return Response.json({ messages: [] });
-				if (url === "/api/chats/c1/stream") return new Response("data: [DONE]\n\n");
+				// No agent takes the turn yet: its stream ends only later.
+				if (url === "/api/chats/c1/stream") {
+					const body = new ReadableStream({ start: (c) => void setTimeout(() => (c.enqueue(new TextEncoder().encode("data: [DONE]\n\n")), c.close()), 300) });
+					return new Response(body);
+				}
 				return Response.json(FOLDER);
 			}) as unknown as typeof fetch;
 			stored.set("lh-folder-agent", "claude");
@@ -266,17 +273,21 @@ describe("Start lesson and a Talk send", () => {
 						),
 					async () => {
 						await act(async () => {
-							await Promise.all([session!.send({ type: "text", text: "why is the slope negative?" }), session!.send({ type: "side", text: "and the intercept?" })]);
+							void session!.send({ type: "text", text: "why is the slope negative?" });
+							void session!.send({ type: "side", text: "and the intercept?" });
 						});
 						await settle();
+						await settle();
 						const started = shell.calls.filter((c) => c === "start teacher claude").length;
-						assert.equal(started, starts, `exit ${code}: ${shell.calls.join(", ")}`);
+						assert.equal(started, starts, `exit ${code}, before the turn ends: ${shell.calls.join(", ")}`);
+						await act(() => new Promise((r) => setTimeout(r, 400)));
 					},
 				);
 			} finally {
 				shell.remove();
 			}
 		}
+		globalThis.CustomEvent = realEvent;
 	});
 
 	it("leave it to the no-agent line when no agent was ever started here", async () => {

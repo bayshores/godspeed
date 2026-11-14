@@ -669,12 +669,6 @@ export class SessionModel {
 	 * learner their text back.
 	 */
 	async send(input: ChatInput): Promise<boolean> {
-		const taken = await this.post(input);
-		if (taken) this.onSent?.();
-		return taken;
-	}
-
-	private async post(input: ChatInput): Promise<boolean> {
 		const recovering = this.statusValue === "error";
 		if (!this.canSend()) return false;
 		this.consumeAbort?.abort();
@@ -758,6 +752,8 @@ export class SessionModel {
 			// replay lands on top). One live view connection per page, always —
 			// the browser's 6-per-origin pool is the scarce resource.
 			await res.text().catch(() => {}); // drain the tiny ack; release the socket
+			// Taken: tell the adapter now, not when the turn ends (with no agent it never would).
+			this.onSent?.();
 			// A stop() or a newer send/consume won while the ack was in
 			// flight: the turn is live server-side either way — do not attach
 			// a stream from a view that is gone or superseded.
