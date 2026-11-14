@@ -22,7 +22,7 @@ const PER_TOPIC: usize = 2;
 
 /// Every keep note starts with this word.
 pub(crate) const KEEP_NOTE: &str = "keep";
-const SPACING: &str = "keep not stored: this reply or the last one has a page, plot or keep. Add it to a later quiz.";
+const SPACING: &str = "keep not stored: this reply or the last one has a page, plot or keep. Leave the next quiz without a keep.";
 const NOT_A_CHECK: &str = "keep not stored: a keep goes on a check quiz, not a prediction. Add it to a later quiz.";
 const TWO_A_TOPIC: &str = "keep not stored: this topic already has 2 kept sentences.";
 const ONE_ANALOGY: &str = "keep.fits not shown: this topic already has an analogy.";
