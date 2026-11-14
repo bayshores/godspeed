@@ -298,17 +298,7 @@ impl Terminals {
 	}
 
 	pub fn stop(&self, id: &str) -> Result<(), String> {
-		let terminal = self.find(id)?;
-		if !stopping(&terminal) {
-			return Ok(());
-		}
-		self.outlet.live(self.live());
-		terminal.hang_up();
-		#[cfg(unix)]
-		std::thread::spawn(move || {
-			std::thread::sleep(STOP_GRACE);
-			terminal.kill();
-		});
+		stop(self.find(id)?, &*self.outlet, &self.list);
 		Ok(())
 	}
 
@@ -366,6 +356,27 @@ fn ended(terminal: &Terminal, code: u32, outlet: &dyn Outlet, list: &List) {
 		terminal.hang_up();
 		outlet.live(live(list));
 	}
+	// The helper stops with the teacher here, not in the page, which may be gone by then.
+	if terminal.role == Role::Teacher {
+		let helper = lock(list).iter().find(|t| t.role == Role::Helper).cloned();
+		if let Some(helper) = helper {
+			stop(helper, outlet, list);
+		}
+	}
+}
+
+/// Hangs up a running terminal, tells the server at once, and kills what is left after the grace.
+fn stop(terminal: Arc<Terminal>, outlet: &dyn Outlet, list: &List) {
+	if !stopping(&terminal) {
+		return;
+	}
+	outlet.live(live(list));
+	terminal.hang_up();
+	#[cfg(unix)]
+	std::thread::spawn(move || {
+		std::thread::sleep(STOP_GRACE);
+		terminal.kill();
+	});
 }
 
 fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
@@ -407,19 +418,24 @@ mod tests {
 		let dir = std::env::temp_dir().join(format!("gs-shell-terminal-{name}-{}", std::process::id()));
 		let _ = std::fs::remove_dir_all(&dir);
 		std::fs::create_dir_all(dir.join(".godspeed")).unwrap();
-		let os = std::env::consts::OS;
-		let file = dir.join(".godspeed").join(match os {
-			"macos" => "start-claude.command",
-			"windows" => "start-claude.cmd",
-			_ => "start-claude.sh",
-		});
+		write_script(&dir, Role::Teacher, script);
+		dir
+	}
+
+	fn write_script(dir: &Path, role: Role, script: &str) {
+		let helper = if role == Role::Helper { "-helper" } else { "" };
+		let extension = match std::env::consts::OS {
+			"macos" => "command",
+			"windows" => "cmd",
+			_ => "sh",
+		};
+		let file = dir.join(".godspeed").join(format!("start-claude{helper}.{extension}"));
 		gs_base::fsx::write_text_atomic(&file, script).unwrap();
 		#[cfg(unix)]
 		{
 			use std::os::unix::fs::PermissionsExt;
 			std::fs::set_permissions(&file, std::fs::Permissions::from_mode(0o755)).unwrap();
 		}
-		dir
 	}
 
 	/// A plain environment: the learner's dotfiles stay out of the test.
@@ -522,6 +538,37 @@ mod tests {
 		assert_eq!(lock(&terminals.list).len(), 1, "the ended record made way");
 		terminals.stop(&again).unwrap();
 		until("the stop", || ended_of(&terminals, &again).is_some());
+		std::fs::remove_dir_all(dir).unwrap();
+	}
+
+	#[cfg(unix)]
+	const WAITS: &str = "#!/bin/sh\nprintf 'ready\\n'\nsleep 300\n";
+	#[cfg(windows)]
+	const WAITS: &str = "@echo off\r\necho ready\r\nping -n 300 127.0.0.1 >nul\r\n";
+
+	#[test]
+	fn the_helper_stops_when_the_teacher_ends_or_is_stopped() {
+		let dir = folder("helper", ECHO);
+		write_script(&dir, Role::Helper, WAITS);
+		let heard = Arc::new(Heard::default());
+		let terminals = Terminals::new(heard.clone());
+		let start_helper = || terminals.start(Role::Helper, Agent::Claude, dir.to_str().unwrap(), env(&dir), Path::new("/data")).unwrap();
+
+		let teacher = start(&terminals, &dir);
+		let helper = start_helper();
+		until("ready", || text(&terminals, &teacher).contains("ready") && text(&terminals, &helper).contains("ready"));
+		terminals.attach(&teacher).unwrap();
+		terminals.write(&teacher, "bye\r", true).unwrap();
+		until("the teacher's own end", || ended_of(&terminals, &teacher) == Some(Ended::Exited(0)));
+		until("the helper's stop", || ended_of(&terminals, &helper) == Some(Ended::Stopped));
+		assert_eq!(lock(&heard.live).last(), Some(&Vec::new()), "the server hears both ended");
+
+		let teacher = start(&terminals, &dir);
+		let helper = start_helper();
+		until("ready", || text(&terminals, &helper).contains("ready"));
+		terminals.stop(&teacher).unwrap();
+		until("the helper's stop", || ended_of(&terminals, &helper) == Some(Ended::Stopped));
+		assert_eq!(lock(&heard.live).last(), Some(&Vec::new()));
 		std::fs::remove_dir_all(dir).unwrap();
 	}
 
