@@ -206,9 +206,7 @@ pub async fn respond(call: &ToolCall<'_>, args: &Json) -> Json {
 	let reply = AgentReply { text, tool_calls: tool_calls.collect() };
 	let work_id = args["work_id"].as_str().unwrap_or_default();
 	// A Study reply's words are checked before it is stored; one sent back is never stored.
-	if let Some(text) = &reply.text
-		&& let Some(refusal) = app.bridge.work_conversation(work_id).and_then(|chat| reply_refusal(app, &chat, text, &reply.tool_calls))
-	{
+	if let Some(refusal) = app.bridge.work_conversation(work_id).and_then(|chat| reply_refusal(app, &chat, reply.text.as_deref(), &reply.tool_calls)) {
 		return failure(&with_removed(refusal));
 	}
 	let answered = match app.bridge.respond_to_work(work_id, reply, follow_up_ms) {
