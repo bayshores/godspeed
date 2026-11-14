@@ -151,6 +151,9 @@ impl SpaceActions {
 		view.insert("archived", record["archived"].clone());
 		view.insert("linkedFolder", or_null("linkedFolder"));
 		view.insert("fileCounts", counts);
+		if let Some(name) = record["waitingDeadline"]["name"].as_str() {
+			view.insert("waitingDeadline", format!("{name}: an interview with no date yet. The next interview you add becomes it."));
+		}
 		if with_files {
 			let listed: Vec<Json> = files
 				.iter()
@@ -464,6 +467,12 @@ impl SpaceActions {
 			if given(d, "about_file_id") {
 				init.insert("aboutFileId", d["about_file_id"].clone());
 			}
+			// An interview takes an old prep's waiting deadline, as the window's Add the date does.
+			if d["kind"].as_str() == Some("interview")
+				&& let Some(waiting) = self.app.stores.spaces.get_space(space_id).and_then(|r| r["waitingDeadline"]["id"].as_str().map(str::to_owned))
+			{
+				init.insert("id", waiting);
+			}
 			match add_space_deadline(&self.app, space_id, &Json::Obj(init)) {
 				Ok(deadline) => added.push(deadline),
 				Err(failure) => {
@@ -677,6 +686,34 @@ mod tests {
 		assert_eq!(read["deadlines"][0]["about"], json!({ "id": about["file"]["id"], "name": "What it's like.md" }));
 		let (cleared, _) = value(actions.update_space_deadline(&json!({ "space_id": space_id, "deadline_id": deadline_id, "about_file_id": null })));
 		assert!(cleared["deadline"].get("aboutFileId").is_none());
+	}
+
+	#[tokio::test]
+	async fn an_interview_the_agent_adds_takes_an_old_preps_waiting_deadline() {
+		let root = scratch_dir("space-actions-waiting");
+		let app = test_app(&root);
+		let actions = actions(&app);
+		let (made, _) = value(actions.create_space(&json!({ "name": "Larkspur loop" })));
+		let space_id = made["space"]["id"].as_str().unwrap().to_owned();
+		let write = |name: &str, kind: &str| value(actions.add_space_file(&json!({ "space_id": space_id, "name": name, "text": "Two rounds.", "kind": kind }))).0["file"]["id"].clone();
+		let (about, guide) = (write("What it's like", "info"), write("Study guide", "study"));
+		app.stores.spaces.rewrite_space(&space_id, |r| {
+			let mut next = r.clone();
+			next.as_obj_mut().unwrap().insert("waitingDeadline", json!({ "id": "ddl_0a1b2c3d4e5f", "name": "Larkspur loop", "aboutFileId": about, "fileIds": [guide] }));
+			next
+		}).unwrap();
+		let (read, _) = value(actions.read_space(&json!({ "space_id": space_id })));
+		assert_eq!(read["waitingDeadline"], json!("Larkspur loop: an interview with no date yet. The next interview you add becomes it."));
+
+		let deadlines = json!([{ "kind": "exam", "name": "Quiz", "date": "2026-11-20" }, { "kind": "interview", "name": "Onsite", "date": "2026-11-24" }, { "kind": "interview", "name": "Final round", "date": "2026-11-28" }]);
+		let (added, _) = value(actions.add_space_deadline(&json!({ "space_id": space_id, "deadlines": deadlines })));
+		let ids: Vec<&str> = added["deadlines"].as_arr().unwrap().iter().map(|d| d["id"].str_or_empty()).collect();
+		assert_ne!(ids[0], "ddl_0a1b2c3d4e5f", "an exam is not it");
+		assert_eq!(ids[1], "ddl_0a1b2c3d4e5f");
+		assert_ne!(ids[2], "ddl_0a1b2c3d4e5f", "only the first interview takes it");
+		assert_eq!((added["deadlines"][1]["aboutFileId"].clone(), added["deadlines"][1]["fileIds"].clone()), (about, json!([guide])));
+		assert!(app.stores.spaces.get_space(&space_id).unwrap().get("waitingDeadline").is_none());
+		assert!(value(actions.read_space(&json!({ "space_id": space_id }))).0.get("waitingDeadline").is_none());
 	}
 
 	#[test]
