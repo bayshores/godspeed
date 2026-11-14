@@ -23,9 +23,10 @@ use crate::graph::topics::resolve_topics;
 /// The progress payload for GET /api/progress.
 ///
 /// `input` is `{ spaceId, today, facts, chains, topics, files, deadlines, lessons[,
-/// deadlineSessions, homeworkSessions, mockAnswers, grouping] }`; each lesson carries its
-/// collected `answers`, and `mockAnswers` are graded mock questions, which count for their facts
-/// but belong to no lesson.
+/// deadlineSessions, homeworkSessions, mockAnswers, finishedToday, grouping] }`; each lesson carries
+/// its collected `answers`, `mockAnswers` are graded mock questions, which count for their facts
+/// but belong to no lesson, and `finishedToday` are the topic ids with a topic stop in a Study
+/// session today (a deadline topic among them carries `finishedToday: true`, so its plan moves on).
 pub fn derive_progress(input: &Json) -> Json {
 	let facts = items(&input["facts"]);
 	let fact_ids: Vec<String> = facts.iter().map(|f| f["id"].as_str().unwrap_or("").to_owned()).collect();
@@ -58,8 +59,11 @@ pub fn derive_progress(input: &Json) -> Json {
 	let mut all_answers: Vec<&Json> = by_lesson.iter().flat_map(|a| a.iter()).chain(items(&input["mockAnswers"])).collect();
 	all_answers.sort_by(|a, b| locale::compare(a["answeredAt"].as_str().unwrap_or(""), b["answeredAt"].as_str().unwrap_or("")));
 
-	// Answer to facts to topics.
+	// Answer to facts to topics. An answer whose facts are in no topic yet (a study answer before
+	// its lesson's facts are extracted, or while they wait in Ungrouped) counts for its plan node
+	// when that is a topic, once.
 	let index = facts_by_message(facts);
+	let topic_ids_known: HashSet<&str> = resolved.iter().filter(|t| !t["ungrouped"].truthy()).filter_map(|t| t["id"].as_str()).collect();
 	let mut fact_answers: HashMap<String, Vec<&Json>> = HashMap::new();
 	let mut topic_answers: HashMap<&str, Vec<&Json>> = HashMap::new();
 	for answer in &all_answers {
@@ -71,6 +75,11 @@ pub fn derive_progress(input: &Json) -> Json {
 				topics_hit.push(topic);
 			}
 			fact_answers.entry(id).or_default().push(answer);
+		}
+		if !topics_hit.iter().any(|t| topic_ids_known.contains(t))
+			&& let Some(node) = answer["nodeId"].as_str().filter(|id| topic_ids_known.contains(id))
+		{
+			topics_hit = vec![node];
 		}
 		for topic in topics_hit {
 			topic_answers.entry(topic).or_default().push(answer);
@@ -138,6 +147,9 @@ pub fn derive_progress(input: &Json) -> Json {
 			o.insert("updatedAt", l["updatedAt"].clone());
 			o.insert("answers", answers.iter().map(answer_ref).collect::<Json>());
 			o.insert("right", tally.right);
+			if tally.hinted > 0 {
+				o.insert("hinted", tally.hinted);
+			}
 			o.insert("answered", tally.answered);
 			o.insert("score", tally.rate);
 			Json::Obj(o)
@@ -155,6 +167,7 @@ pub fn derive_progress(input: &Json) -> Json {
 	let today = input["today"].as_str().unwrap_or("");
 	let deadline_sessions = items(&input["deadlineSessions"]);
 	let homework_sessions = items(&input["homeworkSessions"]);
+	let finished_today: HashSet<&str> = items(&input["finishedToday"]).iter().filter_map(Json::as_str).collect();
 
 	let mut sorted_deadlines: Vec<&Json> = items(&input["deadlines"]).iter().collect();
 	sorted_deadlines.sort_by(|a, b| compare_deadlines(a, b));
@@ -200,7 +213,21 @@ pub fn derive_progress(input: &Json) -> Json {
 			o.insert("counts", status_counts(views.iter().map(|v| &v.status)));
 			o.insert("workOnNext", work_on_next(&views, &links));
 			o.insert("ready", (!views.is_empty()).then(|| rates / views.len() as f64));
-			o.insert("topics", weakest.iter().map(|t| gs_json::json!({ "id": t.id, "name": t.name, "rate": t.rate })).collect::<Json>());
+			o.insert(
+				"topics",
+				weakest
+					.iter()
+					.map(|t| {
+						let mut topic = gs_json::json!({ "id": t.id, "name": t.name, "rate": t.rate });
+						if finished_today.contains(t.id.as_str())
+							&& let Some(o) = topic.as_obj_mut()
+						{
+							o.insert("finishedToday", true);
+						}
+						topic
+					})
+					.collect::<Json>(),
+			);
 			if let Some(next) = continue_study_for(deadline_id, deadline_sessions) {
 				o.insert("continueStudy", next);
 			}
@@ -261,5 +288,35 @@ mod tests {
 		assert_eq!((progress["topics"][0]["answered"].clone(), progress["topics"][0]["right"].clone()), (json!(1), json!(1)));
 		assert_eq!(progress["facts"][0]["answers"].as_arr().unwrap().len(), 1);
 		assert_eq!(progress["lessons"], json!([]));
+	}
+
+	#[test]
+	fn a_study_answer_counts_for_its_topic_before_its_lesson_has_facts() {
+		let input = json!({
+			"spaceId": "spc_a", "today": "2026-11-13",
+			"facts": [{ "id": "f_a", "name": "Ridge", "statement": "Ridge adds a squared penalty.", "provenance": [] }],
+			"chains": [], "topics": { "topics": [{ "id": "tpc_reg", "name": "Regularization", "members": ["f_a"] }] },
+			"files": [], "deadlines": [],
+			"lessons": [{ "id": "chat_1", "title": "Study: Regularization", "kind": "study", "answers": [
+				{ "chatId": "chat_1", "messageId": "m1", "contextMessageIds": [], "toolCallId": "q1", "tool": "quiz", "nodeId": "tpc_reg", "outcome": "wrong", "answeredAt": "2026-11-13T10:00:00.000Z" },
+				{ "chatId": "chat_1", "messageId": "m2", "contextMessageIds": [], "toolCallId": "q2", "tool": "quiz", "nodeId": "a plan node", "outcome": "right", "answeredAt": "2026-11-13T10:05:00.000Z" },
+			] }],
+		});
+		let topic = &derive_progress(&input)["topics"][0];
+		assert_eq!((topic["answered"].clone(), topic["status"].clone()), (json!(1), json!("weak")), "its plan node is the topic; another node is no topic");
+
+		// Its lesson's facts extracted: one merged into the topic's fact, one new and still in
+		// Ungrouped. The answer still counts once, for the topic.
+		let mut extracted = input.clone();
+		extracted.as_obj_mut().unwrap().insert("facts", json!([
+			{ "id": "f_a", "name": "Ridge", "statement": "Ridge adds a squared penalty.", "provenance": [{ "chatId": "src_1", "messageId": "" }, { "chatId": "chat_1", "messageId": "m1" }] },
+			{ "id": "f_new", "name": "Lambda", "statement": "Lambda sets the penalty.", "provenance": [{ "chatId": "chat_1", "messageId": "m1" }] },
+		]));
+		let progress = derive_progress(&extracted);
+		assert_eq!((progress["topics"][0]["id"].clone(), progress["topics"][0]["answered"].clone()), (json!("tpc_reg"), json!(1)), "counted once, through its facts");
+		let mut only_new = extracted.clone();
+		only_new.as_obj_mut().unwrap().insert("facts", json!([input["facts"][0].clone(), extracted["facts"][1].clone()]));
+		let progress = derive_progress(&only_new);
+		assert_eq!((progress["topics"][0]["answered"].clone(), progress["topics"][1]["answered"].clone()), (json!(1), json!(0)), "its new fact waits in Ungrouped: it counts for its plan node");
 	}
 }

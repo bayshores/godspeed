@@ -139,6 +139,13 @@ describe("the deadline page", () => {
 		assert.match(html, /data-testid="deadline-start"[^>]*lh-btn-main.*>Study</);
 		assert.ok(!html.includes('title="Permutations"'), "strong topics stay off the path");
 	});
+	it("every topic left finished today: today says nothing more is planned, they wait for tomorrow, Study stays", () => {
+		const html = render(deadline({ topics: TOPICS.map((t) => ({ ...t, finishedToday: true as const })) }));
+		assert.equal(count(html, 'data-testid="deadline-day"'), 3);
+		assert.match(html, />Today<[^]*?data-testid="deadline-day-empty"[^>]*>Nothing more is planned today\.<[^]*?data-testid="deadline-day"[^]*?Inclusion–exclusion/);
+		assert.match(html, /data-testid="deadline-start".*>Study</);
+		assert.ok(!render().includes('data-testid="deadline-day-empty"'), "a today with topics says nothing");
+	});
 	it("a homework's Study is not the main button: Work on is", () => {
 		assert.doesNotMatch(render(deadline({ kind: "homework" })), /data-testid="deadline-start"[^>]*lh-btn-main/);
 	});

@@ -87,6 +87,7 @@ describe("what a deadline covers", () => {
 	it("labels, dates and the message Ask sends", () => {
 		assert.equal(rightLabel({ right: 2, answered: 5 }), "2 of 5 right");
 		assert.equal(rightLabel({ right: 0, answered: 0 }), "not tested");
+		assert.equal(rightLabel({ right: 0, hinted: 1, answered: 1 }), "0 of 1 right, 1 solved with hints");
 		assert.equal(rightLabel(undefined), "not tested");
 		assert.equal(whenLine({ kind: "exam", date: "2026-12-08", time: "23:59" }), "Exam, Tuesday Dec 8, 11:59 PM");
 		assert.equal(whenLine({ kind: "homework", date: "2026-11-13" }), "Homework, Friday Nov 13");

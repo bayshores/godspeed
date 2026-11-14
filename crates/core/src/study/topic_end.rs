@@ -295,6 +295,15 @@ pub fn ended_topics(messages: &[Json]) -> HashSet<String> {
 	record_stops(messages).into_iter().filter(|s| s.stop["kind"].as_str() == Some("topic")).filter_map(|s| s.node_id).collect()
 }
 
+/// Each topic stop's node and time (`at`), in order.
+pub fn topic_stop_times(messages: &[Json]) -> Vec<(String, String)> {
+	record_stops(messages)
+		.into_iter()
+		.filter(|s| s.stop["kind"].as_str() == Some("topic"))
+		.filter_map(|s| Some((s.node_id?, s.stop["at"].as_str()?.to_owned())))
+		.collect()
+}
+
 /// Whether the record holds a stop carried by the call `call_id`.
 pub fn has_stop(messages: &[Json], call_id: &str) -> bool {
 	record_stops(messages).iter().any(|s| s.stop_of == call_id)

@@ -14,12 +14,16 @@ import {
 	type TopicLink,
 	type TopicProgress,
 	type WorkOnNextItem,
+	hintedWords,
+	rightWords,
+	tally,
 } from "@/shared/core";
 import { STATUS_LEGEND } from "@/frontend/components/overview/overview-model";
 
 /** Answer blocks in the topic panel use the topic ramp's ends. */
 export const PANEL_ANSWER_COLOR: Record<AnswerOutcome, string> = {
 	right: RAMP_COLORS[4],
+	hinted: RAMP_COLORS[2],
 	wrong: RAMP_COLORS[0],
 	dontKnow: "var(--color-ans-dontknow)",
 };
@@ -29,11 +33,11 @@ function scoreText(t: Pick<TopicProgress, "right" | "answered">): string {
 	return `${t.right}/${t.answered}`;
 }
 
-/** The Work-on-next status line: "4/7 right, overconfident" or
- *  "Not tested". */
-export function statusLine(t: Pick<TopicProgress, "right" | "answered" | "overconfident" | "status">): string {
+/** The Work-on-next status line: "4/7 right, overconfident", "3/7 right,
+ *  1 solved with hints" or "Not tested". */
+export function statusLine(t: Pick<TopicProgress, "right" | "hinted" | "answered" | "overconfident" | "status">): string {
 	if (t.status === "untested") return "Not tested";
-	return `${scoreText(t)} right${t.overconfident ? ", overconfident" : ""}`;
+	return `${scoreText(t)} right${hintedWords(t)}${t.overconfident ? ", overconfident" : ""}`;
 }
 
 /** The reason under a Work-on-next row. progress.ts says "overconfident"
@@ -57,18 +61,18 @@ export function sureMissNote(t: Pick<TopicProgress, "answers">): string {
 	return sure === 0 ? "" : `On ${sure} of the misses you picked 4 or 5, so you felt sure.`;
 }
 
-/** "3 of 4 right", or "not tested". */
-function rightOf(t: Pick<TopicProgress, "right" | "answered">): string {
-	return t.answered === 0 ? "not tested" : `${t.right} of ${t.answered} right`;
+/** "3 of 4 right", "3 of 4 right, 1 with hints", or "not tested". */
+function rightOf(t: Pick<TopicProgress, "right" | "hinted" | "answered">): string {
+	return t.answered === 0 ? "not tested" : rightWords(t);
 }
 
 /** The topic pane's count line: "7 facts, 3 of 4 right". */
-export function topicCountLine(factCount: number, t: Pick<TopicProgress, "right" | "answered">): string {
+export function topicCountLine(factCount: number, t: Pick<TopicProgress, "right" | "hinted" | "answered">): string {
 	return `${factCount} ${factCount === 1 ? "fact" : "facts"}, ${rightOf(t)}`;
 }
 
 /** A Work-on-next row's line: "shaky, 1 of 2 right", or "not tested". */
-export function workRowLine(t: Pick<TopicProgress, "status" | "right" | "answered">): string {
+export function workRowLine(t: Pick<TopicProgress, "status" | "right" | "hinted" | "answered">): string {
 	if (t.status === "untested") return "not tested";
 	return `${t.status}, ${rightOf(t)}`;
 }
@@ -77,7 +81,7 @@ export function workRowLine(t: Pick<TopicProgress, "status" | "right" | "answere
  *  lesson, not answered" or "Not studied". */
 export function factCellLabel(f: Pick<FactProgress, "answers" | "inLessons">): string {
 	if (f.answers.length === 0) return f.inLessons ? "In a lesson, not answered" : "Not studied";
-	return `${f.answers.filter((a) => a.outcome === "right").length} of ${f.answers.length} right`;
+	return rightWords(tally(f.answers));
 }
 
 /** "2 strong, 3 shaky, 1 weak, 8 not tested". */

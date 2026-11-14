@@ -10,11 +10,15 @@ use crate::messages::pending::{is_graded_tool, is_question_tool};
 use crate::session::practice_outcomes::practice_outcomes;
 use crate::session::question_core::{confidence_level, normalize_quiz_type};
 
-/// A practice outcome as an answer: solved is right, giving up or moving on is wrong; solved
-/// with hints counts neither way.
+/// How much a problem solved with hints counts toward a rate: one alone reads shaky, not strong.
+pub const HINTED_WEIGHT: f64 = 0.6;
+
+/// A practice outcome as an answer: solved is right, solved with hints is "hinted" (counted at
+/// HINTED_WEIGHT), giving up or moving on is wrong.
 fn practice_answer_outcome(outcome: &str) -> Option<&'static str> {
 	match outcome {
 		"solved" => Some("right"),
+		"solvedWithHints" => Some("hinted"),
 		"movedOn" | "surrendered" => Some("wrong"),
 		_ => None,
 	}
@@ -200,10 +204,12 @@ pub fn answer_ref(a: &Json) -> Json {
 	Json::Obj(r)
 }
 
-/// The counts over graded answers and their right rate ("I don't know" counts as not right).
+/// The counts over graded answers and their right rate ("I don't know" counts as not right, a
+/// problem solved with hints as HINTED_WEIGHT of a right one).
 pub struct Tally {
 	pub answered: usize,
 	pub right: usize,
+	pub hinted: usize,
 	pub wrong: usize,
 	pub dont_know: usize,
 	pub rate: Option<f64>,
@@ -211,22 +217,27 @@ pub struct Tally {
 
 impl Tally {
 	pub fn of<'a>(answers: impl IntoIterator<Item = &'a Json>) -> Tally {
-		let (mut right, mut wrong, mut dont_know) = (0, 0, 0);
+		let (mut right, mut hinted, mut wrong, mut dont_know) = (0, 0, 0, 0);
 		for a in answers {
 			match a["outcome"].as_str() {
 				Some("right") => right += 1,
+				Some("hinted") => hinted += 1,
 				Some("wrong") => wrong += 1,
 				_ => dont_know += 1,
 			}
 		}
-		let answered = right + wrong + dont_know;
-		Tally { answered, right, wrong, dont_know, rate: (answered > 0).then(|| right as f64 / answered as f64) }
+		let answered = right + hinted + wrong + dont_know;
+		let rate = (answered > 0).then(|| (right as f64 + HINTED_WEIGHT * hinted as f64) / answered as f64);
+		Tally { answered, right, hinted, wrong, dont_know, rate }
 	}
 
-	/// The five tally keys, in the order the payload shows them.
+	/// The tally keys, in the order the payload shows them; `hinted` only when there are some.
 	pub fn insert_into(&self, o: &mut Obj) {
 		o.insert("answered", self.answered);
 		o.insert("right", self.right);
+		if self.hinted > 0 {
+			o.insert("hinted", self.hinted);
+		}
 		o.insert("wrong", self.wrong);
 		o.insert("dontKnow", self.dont_know);
 		o.insert("rate", self.rate);
@@ -273,6 +284,19 @@ mod tests {
 		let answers = [json!({ "outcome": "right" }), json!({ "outcome": "wrong" }), json!({ "outcome": "dontKnow" }), json!({ "outcome": "right" })];
 		assert_eq!(stringify(&Tally::of(&answers).to_json()), r#"{"answered":4,"right":2,"wrong":1,"dontKnow":1,"rate":0.5}"#);
 		assert_eq!(stringify(&Tally::of(&Vec::new()).to_json()), r#"{"answered":0,"right":0,"wrong":0,"dontKnow":0,"rate":null}"#);
+	}
+
+	#[test]
+	fn a_problem_solved_with_hints_counts_as_part_of_a_right_one() {
+		use super::super::progress::topic_status;
+		let a = |o: &str| json!({ "outcome": o });
+		let status = |answers: &[Json]| topic_status(Tally::of(answers).rate).as_str();
+		assert_eq!(stringify(&Tally::of(&[a("hinted")]).to_json()), r#"{"answered":1,"right":0,"hinted":1,"wrong":0,"dontKnow":0,"rate":0.6}"#);
+		assert_eq!(status(&[a("hinted")]), "shaky", "alone");
+		assert_eq!(status(&[a("hinted"), a("hinted")]), "shaky");
+		assert_eq!(status(&[a("hinted"), a("right")]), "shaky", "with a clean right one: not worse than shaky");
+		assert_eq!(status(&[a("hinted"), a("right"), a("right")]), "strong");
+		assert_eq!(status(&[a("hinted"), a("wrong")]), "weak");
 	}
 
 	fn quiz_turn(id: &str, args: Json, details: Json) -> [Json; 2] {
@@ -332,6 +356,8 @@ mod tests {
 		];
 		let got = collect_answers("c", &messages);
 		assert_eq!(stringify(&got[0]), r#"{"chatId":"c","messageId":"m1","contextMessageIds":[],"toolCallId":"p1","tool":"problem","factIds":["f1"],"nodeId":"tpc_1","question":"S","outcome":"right","answeredAt":"1970-01-01T00:00:00.000Z"}"#);
+		let hinted = [messages[0].clone(), messages[1].clone(), json!({ "role": "assistant", "id": "m2", "content": [{ "type": "toolCall", "id": "c2", "name": "conclude", "arguments": { "outcome": "solvedWithHints" } }] }), json!({ "role": "toolResult", "toolCallId": "c2", "timestamp": 0 })];
+		assert_eq!(collect_answers("c", &hinted)[0]["outcome"], json!("hinted"));
 	}
 
 	#[test]

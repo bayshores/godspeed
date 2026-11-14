@@ -58191,6 +58191,28 @@
 				},
 				{
 					"chatId": "chat_cw18tepa_cfef4f39",
+					"messageId": "msg_cw1dq3pg_8abad94b",
+					"contextMessageIds": [],
+					"toolCallId": "agent_93b1ee56-22d",
+					"tool": "problem",
+					"nodeId": "huhec",
+					"question": "**Winter 2026 moracuw, Q1(b)** (5 besifo). Defojof the tokama as a teb or kiniful of dozelahupa, dumoremuhaco, and/or zanuhosi kebonijatovu, and kodatof it.\n\nSame damusubimok kejeneti: $10$ jimupe and $6$ gogizuk $\\{A,\\dots,F\\}$.\n\nHow many damusubimok zakivac of reguzi $10$ have **pizukos** $3$ kuvobu of a kicuv, $3$ kuvobu of a **wusinuwuf** kicuv, $2$ kuvobu of a puwawe, and $2$ kuvobu of a **wusinuwuf** puwawe?\n\nCelifosu: $0BB0E33E03$, $NISO111222$, $8E111D8D8E$.",
+					"outcome": "hinted",
+					"answeredAt": "2026-11-04T08:26:55.747Z"
+				},
+				{
+					"chatId": "chat_cw18tepa_cfef4f39",
+					"messageId": "msg_cw1usjcj_1241fc8c",
+					"contextMessageIds": [],
+					"toolCallId": "agent_77d3ea20-d22",
+					"tool": "problem",
+					"nodeId": "huhec",
+					"question": "**Winter 2026 moracuw, Q2** (8 besifo). Kodatof your tokama.\n\nYou have $13$ kesur lafewobo $1$ to $13$. Zutikab them and seb them out in a safoca hehap (a munigaziz safoca wijisunecid of reguzi $13$).\n\nZaloseh the **susaluvi rolafa of velomiwi hitazuru that are between their two nowoliduc**, using hegopejed of galewebatef.\n\nExample: $(5, 10, 1, 9, 3, 4, 11, 7, 6, 12, 2, 8, 13)$ has three such hitazuru, depure $4, 7, 8$:\n$$3<4<11,\\qquad 11>7>6,\\qquad 2<8<13.$$",
+					"outcome": "hinted",
+					"answeredAt": "2026-11-04T08:56:20.182Z"
+				},
+				{
+					"chatId": "chat_cw18tepa_cfef4f39",
 					"messageId": "msg_cw1vvy9l_dcd53c75",
 					"contextMessageIds": [],
 					"toolCallId": "agent_0e4b2bd8-392",
@@ -58684,6 +58706,39 @@
 				]
 			},
 			"result": [
+				{
+					"chatId": "chat_cw2tmqob_d86fd6e0",
+					"messageId": "msg_cw2tnab9_9a19473c",
+					"contextMessageIds": [],
+					"toolCallId": "agent_d034c089-460",
+					"tool": "problem",
+					"nodeId": "huhec",
+					"question": "**Lufotoh 1(a)** (5 besifo). Defojof the tokama as a teb or kiniful of dozelahupa, dumoremuhaco, and/or zanuhosi kebonijatovu. Kodatof your tokama.\n\nThe damusubimok kejeneti has 16 mevaboruco: 10 jimupe $\\{0,1,\\dots,9\\}$ and 6 gogizuk $\\{A,B,C,D,E,F\\}$.\n\nHow many damusubimok zakivac of reguzi $12$ have **at somap one** of these merabodina?\n\n- pizukos $6$ jimupe and pizukos $6$ gogizuk, **OR**\n- pizukos one $A$.\n\nCelifosu: `0B1B2C3D4E5F`, `A12345678901`, `BB9A3C77D0E1`",
+					"outcome": "hinted",
+					"answeredAt": "2026-11-05T01:39:38.329Z"
+				},
+				{
+					"chatId": "chat_cw2tmqob_d86fd6e0",
+					"messageId": "msg_cw2vpka6_a74ac1d4",
+					"contextMessageIds": [],
+					"toolCallId": "agent_27b28220-d59",
+					"tool": "problem",
+					"nodeId": "huhec",
+					"question": "**Lufotoh 1(b)** (5 besifo). Defojof the tokama as a teb or kiniful of dozelahupa, dumoremuhaco, and/or zanuhosi kebonijatovu. Kodatof your tokama.\n\nDamusubimok kejeneti: 10 jimupe $\\{0,\\dots,9\\}$ and 6 gogizuk $\\{A,\\dots,F\\}$.\n\nHow many damusubimok zakivac of reguzi $12$ have pizukos\n- $3$ kuvobu of a kicuv,\n- $3$ kuvobu of a wusinuwuf kicuv,\n- $4$ kuvobu of a puwawe,\n- $1$ zufu of another kicuv, and\n- $1$ zufu of another puwawe?\n\nCelifosu: `111222JECU3B`, `C7C0C5C557E7`, `9F9DD4D9D442`",
+					"outcome": "hinted",
+					"answeredAt": "2026-11-05T01:46:12.276Z"
+				},
+				{
+					"chatId": "chat_cw2tmqob_d86fd6e0",
+					"messageId": "msg_cw2vxcu0_1aea5db8",
+					"contextMessageIds": [],
+					"toolCallId": "agent_ff95dabe-05b",
+					"tool": "problem",
+					"nodeId": "huhec",
+					"question": "**Lufotoh 2** (8 besifo). Kodatof your tokama.\n\nYou have $10$ kesur lafewobo $1$ to $10$. Zutikab them and seb them out in a safoca hehap **tuvila a vovuja**, so every tuve has pizukos two nowoliduc (the first and last kesur kapa down are nowoliduc).\n\nA tuve is *between its two nowoliduc* if the three kesur, meja in hehap tuvila the vovuja, are puwonolehe or wekebadera.\n\nUsing hegopejed of galewebatef, zaloseh the susaluvi rolafa of kesur that are between their two nowoliduc.\n\nExample, meja dibepogig: $5, 10, 1, 9, 3, 4, 7, 6, 2, 8$ (then taka to $5$). Two kesur are between their nowoliduc: $4$ ($3<4<7$) and $6$ ($7>6>2$).",
+					"outcome": "hinted",
+					"answeredAt": "2026-11-05T01:59:28.629Z"
+				},
 				{
 					"chatId": "chat_cw2tmqob_d86fd6e0",
 					"messageId": "msg_cw2we0n4_0c462c10",
@@ -69128,6 +69183,303 @@
 				]
 			},
 			"result": []
+		}
+	},
+	{
+		"name": "plan days finished today 2026-11-10 to 2026-11-14",
+		"output": {
+			"args": {
+				"today": "2026-11-10",
+				"due": "2026-11-14",
+				"topics": [
+					{
+						"id": "a",
+						"name": "Alpha",
+						"rate": 0.6,
+						"finishedToday": true
+					},
+					{
+						"id": "b",
+						"name": "Beta",
+						"rate": 0.7
+					},
+					{
+						"id": "c",
+						"name": "Gamma",
+						"rate": 0.3,
+						"finishedToday": true
+					}
+				]
+			},
+			"result": [
+				{
+					"day": "2026-11-10",
+					"topics": [
+						{
+							"id": "b",
+							"name": "Beta",
+							"rate": 0.7
+						}
+					]
+				},
+				{
+					"day": "2026-11-11",
+					"topics": [
+						{
+							"id": "c",
+							"name": "Gamma",
+							"rate": 0.3,
+							"finishedToday": true
+						}
+					]
+				},
+				{
+					"day": "2026-11-12",
+					"topics": [
+						{
+							"id": "a",
+							"name": "Alpha",
+							"rate": 0.6,
+							"finishedToday": true
+						}
+					]
+				}
+			]
+		}
+	},
+	{
+		"name": "plan days all finished today 2026-11-10 to 2026-11-14",
+		"output": {
+			"args": {
+				"today": "2026-11-10",
+				"due": "2026-11-14",
+				"topics": [
+					{
+						"id": "a",
+						"name": "Alpha",
+						"rate": 0.6,
+						"finishedToday": true
+					},
+					{
+						"id": "c",
+						"name": "Gamma",
+						"rate": 0.3,
+						"finishedToday": true
+					},
+					{
+						"id": "s",
+						"name": "Strong",
+						"rate": 0.9,
+						"finishedToday": true
+					}
+				]
+			},
+			"result": [
+				{
+					"day": "2026-11-10",
+					"topics": []
+				},
+				{
+					"day": "2026-11-11",
+					"topics": [
+						{
+							"id": "c",
+							"name": "Gamma",
+							"rate": 0.3,
+							"finishedToday": true
+						},
+						{
+							"id": "a",
+							"name": "Alpha",
+							"rate": 0.6,
+							"finishedToday": true
+						}
+					]
+				}
+			]
+		}
+	},
+	{
+		"name": "plan days one finished today 2026-11-10 to 2026-11-14",
+		"output": {
+			"args": {
+				"today": "2026-11-10",
+				"due": "2026-11-14",
+				"topics": [
+					{
+						"id": "a",
+						"name": "Alpha",
+						"rate": 0.6,
+						"finishedToday": true
+					}
+				]
+			},
+			"result": [
+				{
+					"day": "2026-11-10",
+					"topics": []
+				},
+				{
+					"day": "2026-11-11",
+					"topics": [
+						{
+							"id": "a",
+							"name": "Alpha",
+							"rate": 0.6,
+							"finishedToday": true
+						}
+					]
+				}
+			]
+		}
+	},
+	{
+		"name": "plan days all finished today 2026-11-10 to 2026-11-11",
+		"output": {
+			"args": {
+				"today": "2026-11-10",
+				"due": "2026-11-11",
+				"topics": [
+					{
+						"id": "a",
+						"name": "Alpha",
+						"rate": 0.6,
+						"finishedToday": true
+					},
+					{
+						"id": "c",
+						"name": "Gamma",
+						"rate": 0.3,
+						"finishedToday": true
+					}
+				]
+			},
+			"result": [
+				{
+					"day": "2026-11-10",
+					"topics": []
+				}
+			]
+		}
+	},
+	{
+		"name": "plan days all finished today 2026-11-10 to 2026-11-10",
+		"output": {
+			"args": {
+				"today": "2026-11-10",
+				"due": "2026-11-10",
+				"topics": [
+					{
+						"id": "a",
+						"name": "Alpha",
+						"rate": 0.6,
+						"finishedToday": true
+					},
+					{
+						"id": "c",
+						"name": "Gamma",
+						"rate": 0.3,
+						"finishedToday": true
+					}
+				]
+			},
+			"result": [
+				{
+					"day": "2026-11-10",
+					"topics": []
+				}
+			]
+		}
+	},
+	{
+		"name": "plan days finished today 2026-11-10 to 2026-11-10",
+		"output": {
+			"args": {
+				"today": "2026-11-10",
+				"due": "2026-11-10",
+				"topics": [
+					{
+						"id": "a",
+						"name": "Alpha",
+						"rate": 0.6,
+						"finishedToday": true
+					},
+					{
+						"id": "b",
+						"name": "Beta",
+						"rate": 0.7
+					},
+					{
+						"id": "c",
+						"name": "Gamma",
+						"rate": 0.3,
+						"finishedToday": true
+					}
+				]
+			},
+			"result": [
+				{
+					"day": "2026-11-10",
+					"topics": [
+						{
+							"id": "b",
+							"name": "Beta",
+							"rate": 0.7
+						}
+					]
+				}
+			]
+		}
+	},
+	{
+		"name": "deadline study topics all finished today on 2026-11-10",
+		"output": {
+			"args": {
+				"today": "2026-11-10",
+				"deadline": {
+					"date": "2026-11-11",
+					"topics": [
+						{
+							"id": "c",
+							"name": "Gamma",
+							"rate": 0.3,
+							"finishedToday": true
+						},
+						{
+							"id": "a",
+							"name": "Alpha",
+							"rate": 0.6,
+							"finishedToday": true
+						}
+					]
+				},
+				"topics": [
+					{
+						"id": "c",
+						"status": "weak",
+						"answers": [
+							{
+								"outcome": "hinted",
+								"answeredAt": "2026-11-10T12:00:00.000Z"
+							}
+						]
+					},
+					{
+						"id": "a",
+						"status": "shaky",
+						"answers": [
+							{
+								"outcome": "right",
+								"answeredAt": "2026-11-10T12:00:00.000Z"
+							}
+						]
+					}
+				]
+			},
+			"result": [
+				"c",
+				"a"
+			]
 		}
 	},
 	{

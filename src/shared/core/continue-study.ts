@@ -36,6 +36,13 @@ export function continueStudyFor(deadlineId: string, sessions: readonly Deadline
 	return { chatId: latest.chatId, done: latest.done, total: latest.total, ...(latest.stop ? { stop: latest.stop } : {}), ...(latest.inTopic ? { inTopic: latest.inTopic } : {}) };
 }
 
+/** What Today's row and the deadline's path say when today's plan is empty
+ *  after its session ended: with the space name on Today, alone as a
+ *  sentence on the path. */
+export function nothingMorePlannedLine(spaceName?: string): string {
+	return spaceName ? `${spaceName}, nothing more is planned today.` : "Nothing more is planned today.";
+}
+
 /** A deadline's Study button label. The deadline's own page passes no name
  *  (the page already names it). */
 export function deadlineStudyLabel(next: ContinueStudy | undefined, name?: string): string {

@@ -38,23 +38,38 @@ fn add_days(day: &str, n: i64) -> String {
 /// The study days with their topics, `[{ day, topics }]`, today first. Empty when the deadline is
 /// past or nothing needs work. More topics than days puts several on a day (the earlier days take
 /// the extra); fewer leaves the later days free.
+///
+/// A topic finished in a Study session today (`finishedToday`) goes after the others and never on
+/// today: it moves to tomorrow, or out of the plan when tomorrow is the due day. Today then stays,
+/// empty when nothing else is left.
 pub fn plan_days(today: &str, due: &str, topics: &[Json]) -> Vec<Json> {
 	let days = days_between(today, due);
-	let work = topics_to_work_on(topics);
+	let finished = |t: &Json| t["finishedToday"].truthy();
+	let (fresh, done): (Vec<Json>, Vec<Json>) = topics_to_work_on(topics).into_iter().partition(|t| !finished(t));
+	let work: Vec<Json> = fresh.into_iter().chain(done).collect();
 	if days < 0 || work.is_empty() {
 		return vec![];
 	}
 	let count = days.min(work.len() as i64).max(1) as usize;
 	let (base, extra) = (work.len() / count, work.len() % count);
 	let mut next = 0;
-	(0..count)
+	let mut plan: Vec<(String, Vec<Json>)> = (0..count)
 		.map(|i| {
 			let size = base + usize::from(i < extra);
-			let day = json!({ "day": add_days(today, i as i64), "topics": &work[next..next + size] });
+			let day = (add_days(today, i as i64), work[next..next + size].to_vec());
 			next += size;
 			day
 		})
-		.collect()
+		.collect();
+	let (stay, moved): (Vec<Json>, Vec<Json>) = std::mem::take(&mut plan[0].1).into_iter().partition(|t| !finished(t));
+	plan[0].1 = stay;
+	if !moved.is_empty() && days >= 2 {
+		if plan.len() < 2 {
+			plan.push((add_days(today, 1), Vec::new()));
+		}
+		plan[1].1.splice(0..0, moved);
+	}
+	plan.into_iter().map(|(day, topics)| json!({ "day": day, "topics": topics })).collect()
 }
 
 #[cfg(test)]
@@ -83,5 +98,26 @@ mod tests {
 		assert_eq!(plan[1]["topics"].as_arr().unwrap().len(), 1);
 		assert!(plan_days("2026-12-30", "2026-12-29", &topics).is_empty());
 		assert_eq!(plan_days("2026-12-30", "2026-12-30", &topics).len(), 1);
+	}
+
+	fn finished(id: &str, rate: Option<f64>) -> Json {
+		json!({ "id": id, "name": id, "rate": rate, "finishedToday": true })
+	}
+
+	fn day_ids(plan: &[Json]) -> Vec<Vec<String>> {
+		plan.iter().map(|d| d["topics"].as_arr().unwrap().iter().map(|t| t["id"].as_str().unwrap().to_owned()).collect()).collect()
+	}
+
+	#[test]
+	fn a_topic_finished_today_is_never_planned_today() {
+		let topics = [finished("a", Some(0.6)), topic("b", Some(0.7)), finished("c", Some(0.3))];
+		assert_eq!(day_ids(&plan_days("2026-11-10", "2026-11-14", &topics)), [vec!["b"], vec!["c"], vec!["a"]]);
+		// Only finished topics left: today stays, empty, and they wait for later days.
+		let done = [finished("a", Some(0.6)), finished("c", Some(0.3))];
+		assert_eq!(day_ids(&plan_days("2026-11-10", "2026-11-14", &done)), [vec![], vec!["c", "a"]]);
+		assert_eq!(day_ids(&plan_days("2026-11-10", "2026-11-14", &done[..1])), [vec![], vec!["a"]]);
+		// Due today or tomorrow there is no later day: they are left out of the plan.
+		assert_eq!(day_ids(&plan_days("2026-11-10", "2026-11-11", &done)), [Vec::<String>::new()]);
+		assert_eq!(day_ids(&plan_days("2026-11-10", "2026-11-10", &topics)), [vec!["b"]]);
 	}
 }

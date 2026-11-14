@@ -1,5 +1,5 @@
 /** Pure helpers for Today (home-page.tsx): per-space progress, which list a deadline goes in, the card's and each row's words. */
-import { hasProblems, localDay, planDays, type ContinueStudy, type DeadlineKind, type DeadlineProgress, type ProgressPayload } from "@/shared/core";
+import { hasProblems, localDay, nothingMorePlannedLine, planDays, type ContinueStudy, type DeadlineKind, type DeadlineProgress, type ProgressPayload } from "@/shared/core";
 import { clockLabel, deadlineDateLabel } from "@/frontend/components/space-deadlines-model";
 import { DAY, HOUR, MINUTE, calendarDays, dueAtMs } from "@/frontend/components/countdown-model";
 import type { OpenDeadline } from "@/frontend/components/deadlines-model";
@@ -141,7 +141,7 @@ export function todayRow(d: OpenDeadline, progress: DeadlineProgress | undefined
 		const where = continueWords(next);
 		return { title: `Continue studying for ${d.name}`, line: where ? `${d.spaceName}, ${where}.` : when, button: "Continue" };
 	}
-	if (nothingMoreToday(progress, nowMs)) return { title: `Study for ${d.name}`, line: `${d.spaceName}, nothing more is planned today.`, button: "Study more" };
+	if (nothingMoreToday(progress, nowMs)) return { title: `Study for ${d.name}`, line: nothingMorePlannedLine(d.spaceName), button: "Study more" };
 	return { title: `Study for ${d.name}`, line: when, button: "Start" };
 }
 

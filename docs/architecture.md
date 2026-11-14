@@ -626,6 +626,7 @@ A mock is one run of questions like the real thing on an exam, quiz or interview
 
 - Mocks are numbered per deadline, a deadline has at most one unfinished mock, and it takes one only when it is not done and has a topic with facts or an about file the about route can read (the window turns Take a mock on by the same test). A mock is 1 to 10 questions with no time limit or 5 to 240 minutes. Removing a deadline removes its mocks.
 - The agent writes all its questions before it starts and grades all its answers after it ends (`agent::subagents::mock_writer`), and the clock runs with no agent. The writer gets the deadline, what it is like and its topics weakest first with up to 5 facts each, and tags each question with the `fact_ids` it tests; with no facts it writes from what it is like alone (`fromAbout`). The grader gets each question with its facts and, for a timed mock, how often and how long it was paused.
+- Each request waits on the bridge until an agent takes it. A request does not outlive the server, so at startup, after the upgrade from preps, every mock still waiting for its grades asks for them again, and one whose time ran out while the server was off ends then and asks (`ask_waiting_grades` in `services::mocks::mock_end`). A mock with its request out shows as being graded; one whose request failed shows why, with Try again.
 - A timed mock can be paused: it keeps the seconds left, refuses answers and runs, and on resume runs for that long. Each pause is recorded. A running timed mock whose time ran out is ended at its end time the next time it is read (`services::mocks::mock_end`); a paused one never is.
 - A graded question with `factIds` counts as an answer for those facts (`mock_answers`, passed to `derive_progress` by `progress_for`).
 - "Run examples" runs the learner's JavaScript or Python with the computer's own Node or Python, for at most 5 seconds and 1 MB of output (`core::mocks::mock_run`, `services::mocks::mock_runner`).
@@ -656,7 +657,7 @@ Older `teach` and `practice` lessons on disk keep working with their own agents.
 3. These go into a `study-context` marker. The move for each material and standing pair is a table in `crates/agent/prompts/study/10-study.md`, so a prompt override can change it.
 4. The app saves the matching plan tree, so the plan row lists the topics from the start.
 
-A session started from a deadline records it as `deadlineId`. While the latest such session is unfinished, the deadline's Study button reopens it as "Continue studying, 1 of 4 topics" (`core::study::continue_study`). The progress payload carries it as `continueStudy`.
+A session started from a deadline records it as `deadlineId`. While the latest such session is unfinished, the deadline's Study button reopens it as "Continue studying, 1 of 4 topics" (`core::study::continue_study`). The progress payload carries it as `continueStudy`. A deadline topic with a topic stop in a Study session on the learner's day carries `finishedToday: true` in the progress payload. The plan (`core::study::deadline_plan`, `deadline-plan.ts`) never puts such a topic on today: it moves to tomorrow, or out of the plan when tomorrow is the due day. When that empties today, Today has nothing planned and the deadline's Study button takes all its topics.
 
 ### The study agent
 
@@ -667,7 +668,7 @@ The study agent has the teacher's prompt and tools, without the deadline changes
 - `plot`, in multiple-choice lessons
 - the practice hint rules (`prompts/practice/20-hints.md`) and `prompts/study/`
 
-A posed problem ends the turn. `practice-next` and `problem-dismissed` mark moving on or skipping. A study session is extracted into the graph.
+A posed problem ends the turn. `practice-next` and `problem-dismissed` mark moving on or skipping. A study session is extracted into the graph. A problem solved with hints counts as an answer worth 0.6 of a right one (`HINTED_WEIGHT`), so alone it reads shaky, and counts print it apart: "1 of 2 right, 1 solved with hints". An answer whose facts are in no topic (none extracted yet, or new ones still in Ungrouped) counts once for its question's `nodeId` when that is one of the space's topics (`core::study::derive_progress`), so a topic studied today is not untested while its facts are being saved.
 
 ### Questions from earlier
 

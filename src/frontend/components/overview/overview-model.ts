@@ -4,7 +4,7 @@
  * this file only shapes it for the page and is unit-tested on its own.
  */
 import type { CalibrationLevel, DeadlineProgress, LessonProgress, StatusCounts } from "@/shared/core";
-import { hasProblems, messageAnchorId } from "@/shared/core";
+import { hasProblems, messageAnchorId, rightWords } from "@/shared/core";
 import { byDue, isOverdue } from "@/frontend/components/deadlines-model";
 
 /** A file's name without its extension ("Lecture 3 — Expectation.pdf" →
@@ -35,14 +35,15 @@ export function answeredLessons(lessons: readonly LessonProgress[]): LessonProgr
 const quoted = (title: string) => `“${title.trim().replace(/[.!?,;:\s]+$/, "")}”`;
 
 /** "“<title>” has the most misses." — the lesson with the most answers
- *  that weren't right (wrong + "I don't know"). A tie names both lessons,
+ *  that weren't right (wrong + "I don't know"; one solved with hints is no miss). A tie names both lessons,
  *  or says how many tie. Only when there are at least two lessons to
  *  compare and one has a miss. */
 export function mostMissesTakeaway(lessons: readonly LessonProgress[]): string | null {
 	if (lessons.length < 2) return null;
-	const most = Math.max(...lessons.map((l) => l.answered - l.right));
+	const misses = (l: LessonProgress) => l.answered - l.right - (l.hinted ?? 0);
+	const most = Math.max(...lessons.map(misses));
 	if (most <= 0) return null;
-	const top = lessons.filter((l) => l.answered - l.right === most);
+	const top = lessons.filter((l) => misses(l) === most);
 	const each = `${most} ${most === 1 ? "miss" : "misses"}`;
 	if (top.length === 1) return `${quoted(top[0]!.title)} has the most misses.`;
 	if (top.length === lessons.length) return lessons.length === 2 ? `Both lessons have ${each}.` : `All ${lessons.length} lessons have ${each}.`;
@@ -174,7 +175,8 @@ export function recentLessons(lessons: readonly LessonProgress[]): LessonProgres
 	return [...lessons].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, RECENT_LESSONS);
 }
 
-/** Under a lesson's title: "4 of 6 right"; "No answers yet" before the first. */
-export function scoreLine(l: Pick<LessonProgress, "right" | "answered">): string {
-	return l.answered > 0 ? `${l.right} of ${l.answered} right` : "No answers yet";
+/** Under a lesson's title: "4 of 6 right", "4 of 6 right, 1 with hints";
+ *  "No answers yet" before the first. */
+export function scoreLine(l: Pick<LessonProgress, "right" | "hinted" | "answered">): string {
+	return l.answered > 0 ? rightWords(l) : "No answers yet";
 }
