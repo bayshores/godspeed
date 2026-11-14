@@ -122,8 +122,18 @@ pub fn copied_file_problem(name: &str, bytes: &[u8]) -> Option<String> {
 	Some(format!("{clean}: unsupported file type. Supported: {}, and plain text with no extension. Google Docs need saving as PDF or Word first.", supported.join(" ")))
 }
 
-/// Copies a file into the space (the "Add files…" button, MCP add_space_file).
+/// Copies a file into the space (the "Add files…" button, MCP add_space_file with a path).
 pub fn add_copied_file(app: &Arc<App>, space_id: &str, name: &str, bytes: &[u8], kind: &str) -> SpaceOutcome<Json> {
+	add_file(app, space_id, name, bytes, kind, false)
+}
+
+/// A file the agent wrote from text (add_space_file with name and text), marked `written` so a
+/// later write by that name replaces only it, never the learner's own.
+pub(super) fn add_written_file(app: &Arc<App>, space_id: &str, name: &str, bytes: &[u8], kind: &str) -> SpaceOutcome<Json> {
+	add_file(app, space_id, name, bytes, kind, true)
+}
+
+fn add_file(app: &Arc<App>, space_id: &str, name: &str, bytes: &[u8], kind: &str, written: bool) -> SpaceOutcome<Json> {
 	// Held from the check to the list entry: a space deleted in between would leave the copy in a
 	// folder nothing lists.
 	let _held = app.locks.lock(LockKey::Space(space_id));
@@ -150,6 +160,9 @@ pub fn add_copied_file(app: &Arc<App>, space_id: &str, name: &str, bytes: &[u8],
 	file.insert("contentFp", "");
 	file.insert("status", "pending");
 	file.insert("addedAt", time::iso_now());
+	if written {
+		file.insert("written", true);
+	}
 	let file = Json::Obj(file);
 	let added = file.clone();
 	mutate_files(app, space_id, move |mut files| {

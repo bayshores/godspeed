@@ -5980,7 +5980,7 @@
 			},
 			{
 				"name": "add_space_file",
-				"description": "Copy a file from this computer into a space, or write one with name and text instead of path (one already there by that name is replaced and keeps its id). Supported: .md .txt, code files (.c .py .java .js and the like), plain text with no extension, .pdf .docx .pptx .epub, .vtt .srt (transcripts) and .mp3 .m4a .wav .mp4 .mov (recordings, transcribed locally with whisper.cpp). Google Docs links (.gdoc) need saving as PDF or Word first. Study files are turned into facts by you, through wait_for_work.",
+				"description": "Copy a file from this computer into a space, or write one with name and text instead of path (one you wrote before by that name is replaced and keeps its id). Supported: .md .txt, code files (.c .py .java .js and the like), plain text with no extension, .pdf .docx .pptx .epub, .vtt .srt (transcripts) and .mp3 .m4a .wav .mp4 .mov (recordings, transcribed locally with whisper.cpp). Google Docs links (.gdoc) need saving as PDF or Word first. Study files are turned into facts by you, through wait_for_work.",
 				"parameters": {
 					"type": "object",
 					"required": [
@@ -6001,7 +6001,7 @@
 						},
 						"text": {
 							"type": "string",
-							"description": "With name: its text, in Markdown."
+							"description": "With name: its text, in Markdown, up to 20,000 characters."
 						},
 						"kind": {
 							"anyOf": [

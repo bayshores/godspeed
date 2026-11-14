@@ -16,8 +16,8 @@ use gs_json::{Json, Obj, json};
 use gs_search::index::PassageRef;
 
 use super::space_card::{space_file_path, space_topics};
-use super::files::{file_in, files_of, str_of};
-use super::{SpaceOutcome, add_copied_file, add_file_from_path, add_space_deadline, link_folder, remove_space_deadline, replace_copied_file, set_file_kind, update_space, update_space_deadline};
+use super::files::{add_written_file, file_in, files_of, str_of};
+use super::{add_file_from_path, add_space_deadline, link_folder, remove_space_deadline, replace_copied_file, set_file_kind, update_space, update_space_deadline};
 use crate::App;
 use crate::app::agent_actions::note_agent_action;
 use crate::app::agent_folder::shortcut_path_problem;
@@ -88,10 +88,18 @@ fn deadline_page(deadline_id: &str) -> String {
 }
 
 /// A written file's name as stored: Markdown unless it says it is plain text.
-fn written_file_name(name: &str) -> String {
+/// The longest text add_space_file writes.
+const WRITTEN_TEXT_MAX: usize = 20_000;
+
+/// A written file's name: a plain name ending in .md, or None when it has folders or control
+/// characters (a right-to-left override among them, which can make a name look like another).
+fn written_file_name(name: &str) -> Option<String> {
+	let bidi = |c: char| matches!(c, '\u{202a}'..='\u{202e}' | '\u{2066}'..='\u{2069}');
+	if name.contains(['/', '\\']) || name.chars().any(|c| c.is_control() || bidi(c)) {
+		return None;
+	}
 	let clean = safe_name(name);
-	let lower = clean.to_lowercase();
-	if [".md", ".markdown", ".txt"].iter().any(|ext| lower.ends_with(ext)) { clean } else { format!("{clean}.md") }
+	Some(if clean.to_lowercase().ends_with(".md") { clean } else { format!("{clean}.md") })
 }
 
 /// The signature argument cleaned: Ok(None) when not given, Err when given but not valid.
@@ -375,7 +383,7 @@ impl SpaceActions {
 		let (file, verb) = if args["name"].truthy() && args.get("text").is_some_and(|t| t.as_str().is_some()) {
 			match self.write_space_file(&record, str_of(args, "name"), str_of(args, "text"), kind) {
 				Ok(written) => written,
-				Err(failure) => return ToolOutcome::Err(failure.error),
+				Err(error) => return ToolOutcome::Err(error),
 			}
 		} else if !path.is_empty() {
 			if let Some(problem) = shortcut_path_problem(&self.app, path) {
@@ -394,15 +402,25 @@ impl SpaceActions {
 		self.done(json!({ "file": file, "note": note }), vec![change])
 	}
 
-	/// Writes a file from text: a copied file of the same name is replaced and keeps its id.
-	fn write_space_file(&self, record: &Json, name: &str, text: &str, kind: &str) -> SpaceOutcome<(Json, &'static str)> {
-		let (space_id, file_name) = (str_of(record, "id"), written_file_name(name));
-		let bytes = gs_base::text::utf8_bytes(text);
-		let same = record["files"].as_arr().into_iter().flatten().find(|f| str_of(f, "origin") == "copied" && str_of(f, "name") == file_name);
-		match same {
-			Some(file) => Ok((replace_copied_file(&self.app, space_id, str_of(file, "id"), &bytes, kind)?, "Changing")),
-			None => Ok((add_copied_file(&self.app, space_id, &file_name, &bytes, kind)?, "Adding")),
+	/// Writes a file from text: one it wrote before by that name is replaced and keeps its id; the
+	/// learner's own file by that name is never written over.
+	fn write_space_file(&self, record: &Json, name: &str, text: &str, kind: &str) -> Result<(Json, &'static str), String> {
+		let Some(file_name) = written_file_name(name) else { return Err("Give a plain file name like \"Study guide.md\", with no folders or control characters.".to_owned()) };
+		if text.trim().is_empty() {
+			return Err("The text is empty.".to_owned());
 		}
+		if text.chars().count() > WRITTEN_TEXT_MAX {
+			return Err("The text is longer than 20,000 characters. Shorten it or split it into two files.".to_owned());
+		}
+		let space_id = str_of(record, "id");
+		let bytes = gs_base::text::utf8_bytes(text);
+		let same = record["files"].as_arr().into_iter().flatten().find(|f| str_of(f, "name") == file_name);
+		let written = match same {
+			Some(file) if file["written"] == Json::Bool(true) => replace_copied_file(&self.app, space_id, str_of(file, "id"), &bytes, kind).map(|f| (f, "Changing")),
+			Some(_) => return Err(format!("This space already has a file named {file_name} that you didn't write. Pick another name.")),
+			None => add_written_file(&self.app, space_id, &file_name, &bytes, kind).map(|f| (f, "Adding")),
+		};
+		written.map_err(|failure| failure.error)
 	}
 
 	pub fn set_space_file_kind(&self, args: &Json) -> ToolOutcome {
@@ -686,6 +704,39 @@ mod tests {
 		assert_eq!(read["deadlines"][0]["about"], json!({ "id": about["file"]["id"], "name": "What it's like.md" }));
 		let (cleared, _) = value(actions.update_space_deadline(&json!({ "space_id": space_id, "deadline_id": deadline_id, "about_file_id": null })));
 		assert!(cleared["deadline"].get("aboutFileId").is_none());
+	}
+
+	#[tokio::test]
+	async fn the_agent_writes_over_only_files_it_wrote_and_only_plain_names_and_short_texts() {
+		let root = scratch_dir("space-actions-written");
+		let app = test_app(&root);
+		let actions = actions(&app);
+		let (made, _) = value(actions.create_space(&json!({ "name": "Algebra" })));
+		let space_id = made["space"]["id"].as_str().unwrap().to_owned();
+		let own = crate::spaces::add_copied_file(&app, &space_id, "notes.md", b"My own notes.", "study").unwrap();
+		app.stores.spaces.rewrite_space(&space_id, |r| {
+			let mut next = r.clone();
+			let linked = json!({ "id": "f_linked", "origin": "linked", "name": "Syllabus.md", "path": "/tmp/Syllabus.md", "kind": "info", "contentFp": "", "status": "ready", "addedAt": "t" });
+			next.as_obj_mut().unwrap().get_mut("files").unwrap().as_arr_mut().unwrap().push(linked);
+			next
+		}).unwrap();
+		let write = |name: &str, text: &str| match actions.add_space_file(&json!({ "space_id": space_id, "name": name, "text": text, "kind": "study" })) {
+			ToolOutcome::Ok { value, .. } => Ok(value["file"]["name"].as_str().unwrap().to_owned()),
+			ToolOutcome::Err(error) => Err(error),
+		};
+		assert_eq!(write("notes", "Overwritten."), Err("This space already has a file named notes.md that you didn't write. Pick another name.".to_owned()));
+		assert_eq!(write("Syllabus.md", "Overwritten."), Err("This space already has a file named Syllabus.md that you didn't write. Pick another name.".to_owned()));
+		let path = space_file_path(&app, &app.stores.spaces.get_space(&space_id).unwrap(), &own).unwrap();
+		assert_eq!(std::fs::read_to_string(path).unwrap(), "My own notes.");
+		let plain = Err("Give a plain file name like \"Study guide.md\", with no folders or control characters.".to_owned());
+		for name in ["week1/plan.md", "..\\plan.md", "plan\u{7f}.md", "plan\u{202e}dm.exe"] {
+			assert_eq!(write(name, "Plan."), plain, "{name:?}");
+		}
+		assert_eq!(write("Plan", " \n"), Err("The text is empty.".to_owned()));
+		assert_eq!(write("Plan", &"x".repeat(20_001)), Err("The text is longer than 20,000 characters. Shorten it or split it into two files.".to_owned()));
+		assert_eq!(write("Plan.txt", &"x".repeat(20_000)), Ok("Plan.txt.md".to_owned()));
+		assert_eq!(write("Plan.txt.md", "Shorter."), Ok("Plan.txt.md".to_owned()), "its own file is changed");
+		assert_eq!(app.stores.spaces.get_space(&space_id).unwrap()["files"].as_arr().unwrap().len(), 3);
 	}
 
 	#[tokio::test]
