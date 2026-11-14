@@ -16,8 +16,10 @@ use std::sync::Arc;
 
 use gs_agent::subagents::aborts::{fire_job_abort, is_job_live};
 use gs_base::clock;
+use gs_base::events::EventKind;
+use gs_base::locks::LockKey;
 use gs_core::messages::input_events::messages_of;
-use gs_core::messages::native_messages::{dangling_question_of, ends_in_dismissal};
+use gs_core::messages::native_messages::{dangling_question_of, ends_in_dismissal, open_question_held};
 use gs_core::session::jobs::{build_abort_steer, build_subagent_steer, is_subagent_failure, steer_delivered};
 use gs_engine::turn::agent::Agent;
 use gs_json::{Json, json};
@@ -558,33 +560,79 @@ fn restore_pending_deliveries(app: &App, chat_id: &str) -> Result<(), String> {
 }
 
 /// Waits until the chat can take a wake turn: no turn running and no open question (its answer
-/// arrives as the call's result, and no turn may run in between). The record is parsed again
-/// only when its file changed.
+/// arrives as the call's result, and no turn may run in between). Meanwhile a figure finished
+/// while a side question holds the open question is shown at once (`show_held_figures`). The
+/// record is parsed again only when its file changed.
 async fn wait_for_idle(app: &Arc<App>, chat_id: &str) {
-	let mut seen: Option<(String, bool)> = None;
-	// Whether a question waits; None when the chat is gone.
-	let mut question_waits = || -> Option<bool> {
+	// The record's version, whether a question waits, and whether a side question holds it.
+	let mut seen: Option<(String, bool, bool)> = None;
+	// None when the chat is gone.
+	let mut question_waits = || -> Option<(bool, bool)> {
 		let version = app.stores.chats.chat_version(chat_id)?;
-		if seen.as_ref().is_none_or(|(v, _)| *v != version) {
+		if seen.as_ref().is_none_or(|(v, _, _)| *v != version) {
 			let record = app.stores.chats.get_chat(chat_id)?;
-			seen = Some((version, dangling_question_of(messages_of(&record)).is_some()));
+			let messages = messages_of(&record);
+			seen = Some((version, dangling_question_of(messages).is_some(), open_question_held(messages)));
 		}
-		seen.as_ref().map(|(_, dangling)| *dangling)
+		seen.as_ref().map(|(_, dangling, held)| (*dangling, *held))
 	};
 	loop {
-		let question = question_waits();
+		let Some((question, held)) = question_waits() else { return };
 		let fireable = app.jobs.wake.lock().queue(chat_id).iter().any(|e| !e.waking && !e.deferred && e.handed_to.is_none());
-		if question.is_none() || !fireable {
+		if !fireable {
 			return;
 		}
-		if !is_turn_running(app, chat_id) && question == Some(false) {
+		if held && !is_turn_running(app, chat_id) && show_held_figures(app, chat_id) {
+			continue;
+		}
+		if !is_turn_running(app, chat_id) && !question {
 			clock::sleep(GRACE_MS).await;
-			if !is_turn_running(app, chat_id) && question_waits() == Some(false) {
+			if !is_turn_running(app, chat_id) && question_waits().is_some_and(|(question, _)| !question) {
 				return;
 			}
 		}
 		clock::sleep(POLL_MS).await;
 	}
+}
+
+/// A finished figure's result marker (not its abort notice).
+fn is_figure(steer: &Json) -> bool {
+	steer["customType"].as_str() == Some("subagent-steer") && steer["details"]["kind"].as_str() == Some("visual")
+}
+
+/// Writes the waiting figures into the lesson with no turn while a side question holds the open
+/// question: the learner sees each at once, the question stays as it is, and the teacher reads
+/// them with the answer. Under the chat lock the turn start takes, so no turn begins in between.
+/// True when it wrote any.
+fn show_held_figures(app: &App, chat_id: &str) -> bool {
+	let waiting = |wake: &Wake| -> Vec<Json> { wake.queue(chat_id).iter().filter(|e| !e.waking && !e.deferred && e.handed_to.is_none() && is_figure(&e.steer)).map(|e| e.steer.clone()).collect() };
+	// Other markers can wait here for long: the record is read only when a figure waits.
+	if waiting(&app.jobs.wake.lock()).is_empty() {
+		return false;
+	}
+	{
+		let _guard = app.locks.lock(LockKey::Chat(chat_id));
+		if is_turn_running(app, chat_id) {
+			return false;
+		}
+		let Some(record) = app.stores.chats.get_chat(chat_id) else { return false };
+		let mut messages = messages_of(&record).to_vec();
+		if !open_question_held(&messages) {
+			return false;
+		}
+		let figures: Vec<Json> = waiting(&app.jobs.wake.lock()).into_iter().filter(|s| !steer_delivered(&messages, steer_id(s))).collect();
+		if figures.is_empty() {
+			return false;
+		}
+		messages.extend(figures);
+		if let Err(err) = app.stores.chats.save_messages(chat_id, &messages) {
+			eprintln!("[chat {chat_id}] figure could not be saved: {err}");
+			return false;
+		}
+		note_steers_durable(app, chat_id, &messages);
+	}
+	app.events.emit(EventKind::RecordChanged, json!({ "chatId": chat_id }));
+	true
 }
 
 /// Lazy crash recovery, at most once every 30 s, off the job and activity reads. A running job

@@ -325,3 +325,99 @@ async fn recovery_reruns_orphans_at_most_every_30_seconds() {
 	list_jobs(&app, CHAT);
 	assert_eq!(*respawned.lock(), ["job_orphan", "job_orphan"]);
 }
+
+/// A finished figure whose marker still owes its delivery.
+fn finished_figure(app: &App, id: &str) {
+	write_job(app, id, json!({ "kind": "visual", "status": "done", "activity": "finished", "result": { "svg": "<svg/>", "notes": "n" }, "delivery": { "kind": "result", "status": "pending" } }));
+}
+
+/// The teacher's quiz, the learner's side question around it, and the side reply that sent a
+/// visual job.
+fn side_question_record() -> Vec<Json> {
+	vec![
+		json!({ "id": "msg_q", "role": "assistant", "content": [{ "type": "toolCall", "id": "q1", "name": "quiz", "arguments": { "question": "Which?" } }] }),
+		json!({ "id": "msg_s", "role": "user", "content": "Can you draw it?", "side": true }),
+		json!({ "id": "msg_r", "role": "assistant", "content": [{ "type": "toolCall", "id": "call_job_v", "name": "visual", "arguments": { "brief": "b" } }] }),
+		json!({ "id": "msg_a", "role": "toolResult", "toolCallId": "call_job_v", "toolName": "visual", "isError": false }),
+	]
+}
+
+fn ids_on_disk(app: &App) -> Vec<String> {
+	messages_of(&app.stores.chats.get_chat(CHAT).unwrap()).iter().map(|m| m["id"].as_str().unwrap_or_default().to_owned()).collect()
+}
+
+#[tokio::test]
+async fn a_figure_made_while_a_side_question_holds_the_question_shows_at_once_with_no_turn() {
+	let root = scratch_dir("jobs");
+	let app = test_app(&root);
+	write_chat(&app, CHAT, side_question_record());
+	finished_figure(&app, "job_v");
+	let calls = saving_runner(&app, 200);
+	let mut events = app.events.subscribe();
+	deliver_job_result(&app, steer_for(&app, "job_v"));
+	clock::sleep(POLL_MS).await;
+	assert_eq!(ids_on_disk(&app), ["msg_q", "msg_s", "msg_r", "msg_a", "steer_job_v"], "stored at once");
+	let kinds: Vec<EventKind> = std::iter::from_fn(|| events.try_recv().ok()).map(|e| e.kind).collect();
+	assert!(kinds.contains(&EventKind::RecordChanged), "the window reads it again");
+	assert!(calls.lock().is_empty() && !is_turn_running(&app, CHAT), "no teacher turn");
+	assert_eq!(delivery_status(&app, "job_v"), "delivered");
+	assert!(queued(&app, None).is_empty() && !app.jobs.wake.lock().pumping.contains(CHAT));
+	// After a reload the figure is there and the same question is still open.
+	let reloaded = test_app(&root);
+	let record = reloaded.stores.chats.get_chat(CHAT).unwrap();
+	assert_eq!(messages_of(&record)[4]["details"]["result"]["svg"], json!("<svg/>"));
+	assert_eq!(dangling_question_of(messages_of(&record)).unwrap().tool_call_id, "q1");
+	assert!(open_question_held(messages_of(&record)), "another side question still finds it held");
+}
+
+#[tokio::test]
+async fn a_figure_waits_for_a_running_side_turn_and_then_shows_with_no_turn() {
+	let root = scratch_dir("jobs");
+	let app = test_app(&root);
+	write_chat(&app, CHAT, side_question_record());
+	finished_figure(&app, "job_v");
+	let calls = saving_runner(&app, 200);
+	assert!(begin_turn(&app, CHAT));
+	deliver_job_result(&app, steer_for(&app, "job_v"));
+	clock::sleep(POLL_MS + 100).await;
+	assert_eq!(ids_on_disk(&app).len(), 4, "nothing is written beside a running turn");
+	end_turn(&app, CHAT);
+	clock::sleep(POLL_MS + 100).await;
+	assert_eq!(ids_on_disk(&app).last().map(String::as_str), Some("steer_job_v"));
+	assert!(calls.lock().is_empty());
+}
+
+#[tokio::test]
+async fn a_question_open_with_no_side_question_still_holds_a_figure_for_the_answer() {
+	let root = scratch_dir("jobs");
+	let app = test_app(&root);
+	let both = json!({ "id": "msg_q", "role": "assistant", "content": [
+		{ "type": "toolCall", "id": "q1", "name": "quiz", "arguments": { "question": "Which?" } },
+		{ "type": "toolCall", "id": "call_job_v", "name": "visual", "arguments": { "brief": "b" } },
+	] });
+	write_chat(&app, CHAT, vec![both, side_question_record().remove(3)]);
+	finished_figure(&app, "job_v");
+	let calls = saving_runner(&app, 200);
+	deliver_job_result(&app, steer_for(&app, "job_v"));
+	clock::sleep(GRACE_MS + 300).await;
+	assert_eq!(ids_on_disk(&app).len(), 2, "the answer must follow its call");
+	assert!(calls.lock().is_empty());
+	assert_eq!(queued(&app, None), [("steer_job_v".into(), false, false, false)]);
+}
+
+#[tokio::test]
+async fn a_figure_made_with_no_question_open_rides_one_wake_turn_as_before() {
+	let root = scratch_dir("jobs");
+	let app = test_app(&root);
+	let mut record = side_question_record();
+	record.push(json!({ "id": "msg_ans", "role": "toolResult", "toolCallId": "q1", "toolName": "quiz", "isError": false }));
+	write_chat(&app, CHAT, record);
+	finished_figure(&app, "job_v");
+	let calls = saving_runner(&app, 200);
+	deliver_job_result(&app, steer_for(&app, "job_v"));
+	clock::sleep(GRACE_MS + 300).await;
+	let calls = calls.lock().clone();
+	assert_eq!(calls.len(), 1);
+	assert_eq!(calls[0]["steers"].as_arr().unwrap().iter().map(steer_id).collect::<Vec<_>>(), ["steer_job_v"]);
+	assert_eq!(delivery_status(&app, "job_v"), "delivered");
+}

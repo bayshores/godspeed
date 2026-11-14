@@ -5,7 +5,7 @@ use std::collections::HashMap;
 
 use gs_json::{Json, quote};
 
-use super::scans::{dangling_question_of, is_bookkeeping, is_side_question, rides_ahead, tool_calls};
+use super::scans::{dangling_question_of, is_bookkeeping, is_side_question, retry_context, rides_ahead, tool_calls};
 use crate::messages::pending::is_question_tool;
 
 /// The model's result for a question the learner asked a side question around: providers need a
@@ -59,6 +59,15 @@ pub fn side_held_questions(messages: &[Json]) -> HashMap<String, HeldQuestion> {
 pub fn is_side_turn(messages: &[Json]) -> bool {
 	let input = messages.iter().rev().find(|m| m["role"].as_str() == Some("user") || (m["role"].as_str() == Some("custom") && !is_bookkeeping(m)));
 	input.is_some_and(is_side_question) && dangling_question_of(messages).is_some()
+}
+
+/// Can a marker go at the end of the record while the learner's question stays open? Only when a
+/// side question holds that question (its answer reaches the model as a message, not a result
+/// that must follow its call) and the record does not end in a failed or stopped reply that a
+/// retry runs again from.
+pub fn open_question_held(messages: &[Json]) -> bool {
+	let Some(open) = dangling_question_of(messages) else { return false };
+	side_held_questions(messages).contains_key(&open.tool_call_id) && retry_context(messages).len() == messages.len()
 }
 
 /// SIDE_ANSWER_LEAD, naming the question when its message asked several: out of place, the answer
@@ -117,6 +126,25 @@ mod tests {
 		let pose = json!({ "role": "assistant", "content": [{ "type": "toolCall", "id": "p", "name": "problem", "arguments": {} }] });
 		let messages = vec![pose, json!({ "role": "toolResult", "toolCallId": "p", "isError": false }), side()];
 		assert!(!is_side_turn(&messages));
+	}
+
+	#[test]
+	fn only_a_question_a_side_question_holds_takes_a_marker_after_it() {
+		let ask = json!({ "role": "assistant", "content": [quiz("a")] });
+		let reply = json!({ "role": "assistant", "content": [{ "type": "toolCall", "id": "v", "name": "visual", "arguments": {} }] });
+		let ack = json!({ "role": "toolResult", "toolCallId": "v", "toolName": "visual" });
+		let held = vec![ask.clone(), side(), reply.clone(), ack.clone()];
+		assert!(open_question_held(&held));
+		// With a figure after it, a new side question is still a side turn, and the answer is not.
+		let figure = json!({ "role": "custom", "customType": "subagent-steer", "content": "The figure is drawn." });
+		let shown = [held.clone(), vec![figure]].concat();
+		assert!(open_question_held(&shown));
+		assert!(is_side_turn(&[shown.clone(), vec![side()]].concat()));
+		assert!(!is_side_turn(&[shown, vec![json!({ "role": "toolResult", "toolCallId": "a" })]].concat()));
+		assert!(!open_question_held(std::slice::from_ref(&ask)), "no side question: the answer must follow its call");
+		assert!(!open_question_held(&[ask.clone(), side(), reply, ack, json!({ "role": "toolResult", "toolCallId": "a" })]), "answered");
+		let failed = json!({ "role": "assistant", "content": [], "stopReason": "error" });
+		assert!(!open_question_held(&[ask, side(), failed]), "a retry runs again from before a failed reply");
 	}
 
 	#[test]

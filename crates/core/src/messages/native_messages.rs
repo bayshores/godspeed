@@ -21,7 +21,7 @@ mod to_llm;
 
 pub use context_cards::{space_card_text, space_files_text, new_space_context_message, new_graph_context_message, new_study_context_message};
 pub use scans::{ActiveProblem, DanglingQuestion, active_problem_of, dangling_question_of, ends_in_dismissal, has_probe_done, pending_problem_dismissal_of, problem_input_for_conclude, retry_context};
-pub use side_questions::{HeldQuestion, SIDE_ANSWER_LEAD, SIDE_PENDING_TEXT, is_side_turn, side_held_questions};
+pub use side_questions::{HeldQuestion, SIDE_ANSWER_LEAD, SIDE_PENDING_TEXT, is_side_turn, open_question_held, side_held_questions};
 pub use summary_guard::summary_folds_throw;
 pub use to_llm::to_llm_messages;
 

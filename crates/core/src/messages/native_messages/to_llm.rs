@@ -223,6 +223,23 @@ mod tests {
 	}
 
 	#[test]
+	fn a_figure_shown_during_a_side_question_reaches_the_agent_before_the_answer() {
+		let messages = vec![
+			quiz_call("q1"),
+			json!({ "id": "s", "role": "user", "content": "draw it?", "side": true, "timestamp": 6 }),
+			json!({ "id": "r", "role": "assistant", "content": [{ "type": "toolCall", "id": "v1", "name": "visual", "arguments": {} }], "timestamp": 7 }),
+			json!({ "id": "a", "role": "toolResult", "toolCallId": "v1", "toolName": "visual", "content": [], "timestamp": 8 }),
+			json!({ "id": "f", "role": "custom", "customType": "subagent-steer", "content": "The figure is drawn.", "timestamp": 9 }),
+			json!({ "role": "toolResult", "toolCallId": "q1", "content": [{ "type": "text", "text": "B" }], "timestamp": 10 }),
+		];
+		let out = to_llm_messages(&messages);
+		let roles: Vec<&str> = out.iter().map(|m| m["role"].as_str().unwrap()).collect();
+		// Every result follows its own call; the figure and the answer are messages.
+		assert_eq!(roles, ["assistant", "toolResult", "user", "assistant", "toolResult", "user", "user"]);
+		assert_eq!(out[6]["content"][0]["text"], json!("The learner answered your open question: B"));
+	}
+
+	#[test]
 	fn the_compaction_head_replaces_everything_before_the_cut() {
 		let messages = vec![
 			json!({ "id": "sys", "role": "system", "content": "prompt" }),
