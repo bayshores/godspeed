@@ -248,6 +248,12 @@ impl Bridge {
 		Ok(Answered { conversation: item.conversation, agent: item.agent.filter(|a| !a.is_empty()) })
 	}
 
+	/// The conversation of an open work item.
+	pub fn work_conversation(&self, work_id: &str) -> Option<String> {
+		let s = self.0.state.lock();
+		open_item(&s, work_id).map(|i| s.items[i].conversation.clone())
+	}
+
 	/// Keeps a presented item's pages; page 1 went out with it.
 	pub fn set_work_pages(&self, work_id: &str, pages: Vec<Vec<String>>) {
 		let mut s = self.0.state.lock();

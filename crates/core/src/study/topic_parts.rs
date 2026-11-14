@@ -43,6 +43,12 @@ pub(crate) struct Visit {
 	pub(crate) keep: bool,
 }
 
+/// The topic a reply not yet stored is on, when it is seen: the topic its calls name, else the
+/// record's.
+pub fn reply_topic(messages: &[Json], first_topic: Option<&str>, reply: &Json) -> Option<String> {
+	walk(messages, first_topic, Some(reply)).1.pop().filter(|v| v.at == messages.len()).map(|v| v.node_id)
+}
+
 /// The visits of a lesson, in record order.
 pub(crate) fn visits(messages: &[Json], first_topic: Option<&str>) -> Vec<Visit> {
 	walk(messages, first_topic, None).1
@@ -412,6 +418,14 @@ mod tests {
 		assert_eq!(reply_parts_problems(&with_plot, PLAN, &again, &passes).refused[0].1, "plot: this topic already has a plot.");
 		let refused_before = [lesson(), vec![pair(true, penalty_at_8(), "C"), result("q3", "quiz", true), result("p3", "plot", true)]].concat();
 		assert!(reply_parts_problems(&refused_before, PLAN, &again, &passes).refused.is_empty(), "a refused plot is no plot");
+	}
+
+	#[test]
+	fn a_reply_is_on_the_topic_its_calls_name_else_the_records() {
+		assert_eq!(reply_topic(&lesson(), PLAN, &reply("r3", "So.", Vec::new())).as_deref(), Some("reg"));
+		let next = reply("r3", "Next.", vec![call("q3", "quiz", json!({ "nodeId": "cv" }))]);
+		assert_eq!(reply_topic(&lesson(), PLAN, &next).as_deref(), Some("cv"));
+		assert_eq!(reply_topic(&[], None, &reply("r1", "Hi.", Vec::new())), None, "no plan, no call");
 	}
 
 	/// The lesson starts on its plan's first topic, so a page quoted in a words-only opening reply is

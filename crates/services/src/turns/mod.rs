@@ -12,6 +12,7 @@ mod job_host;
 mod lesson_agent;
 pub mod lesson_events;
 pub mod lessons;
+pub mod reply_nudges;
 pub mod review;
 pub mod talk;
 pub mod turn_liveness;
@@ -22,6 +23,7 @@ use std::collections::{HashMap, HashSet};
 use std::sync::atomic::AtomicBool;
 
 use gs_core::messages::input_events::DismissInput;
+use gs_core::study::reply_nudges::Nudge;
 use gs_engine::turn::ui_stream::TurnHandle;
 use parking_lot::Mutex;
 use tokio::sync::Notify;
@@ -61,4 +63,6 @@ pub struct TurnsState {
 	asking_deadlines: AtomicBool,
 	/// The questions from earlier skipped in each lesson's sitting (review).
 	review_skips: Mutex<HashMap<String, review::Skips>>,
+	/// The reply nudges each Study lesson was sent, by chat and topic (reply-nudges).
+	nudged: Mutex<HashSet<(String, String, Nudge)>>,
 }

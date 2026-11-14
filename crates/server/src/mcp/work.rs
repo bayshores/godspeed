@@ -16,6 +16,7 @@ use gs_engine::bridge::{AgentReply, ReplyCall, UNNAMED_HELPER, WaitOptions, Work
 use gs_json::{Json, Obj, json, stringify};
 use gs_services::App;
 use gs_services::spaces::citations::check_cites;
+use gs_services::turns::reply_nudges::reply_refusal;
 
 use super::caller::{agent_id_of, in_claude_code};
 use super::reply::{failure, result, text_block};
@@ -203,7 +204,14 @@ pub async fn respond(call: &ToolCall<'_>, args: &Json) -> Json {
 	let text = checked.map(|c| c.text);
 	let with_removed = |note: String| if removed_marks.is_empty() { note } else { format!("{removed_marks} {note}") };
 	let reply = AgentReply { text, tool_calls: tool_calls.collect() };
-	let answered = match app.bridge.respond_to_work(args["work_id"].as_str().unwrap_or_default(), reply, follow_up_ms) {
+	let work_id = args["work_id"].as_str().unwrap_or_default();
+	// A Study reply's words are checked before it is stored; one sent back is never stored.
+	if let Some(text) = &reply.text
+		&& let Some(refusal) = app.bridge.work_conversation(work_id).and_then(|chat| reply_refusal(app, &chat, text, &reply.tool_calls))
+	{
+		return failure(&with_removed(refusal));
+	}
+	let answered = match app.bridge.respond_to_work(work_id, reply, follow_up_ms) {
 		Ok(answered) => answered,
 		Err(error) => return failure(&with_removed(error)),
 	};
