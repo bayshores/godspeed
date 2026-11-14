@@ -85,7 +85,9 @@ One JSON object per line, UTF-8, ending in `\n`. The field `t` names the message
 | shell to server | `{"t":"demo_done","id":n,"result":{"consoleErrors":[],"pageErrors":[],"failedRequests":[],"probeResult":…,"ok":true}}` or `{"t":"demo_done","id":n,"error":"…"}` | `probeResult` is absent when no probe ran. |
 | shell to server | `{"t":"svg_done","id":n,"png":"<base64>"}` or `{"t":"svg_done","id":n,"error":"…"}` | A PNG of exactly w × h px. |
 | shell to server | `{"t":"notify_done","id":n,"shown":true\|false}` | False while the main window has the focus, or when the plugin refused it. |
-| shell to server | `{"t":"terminals","live":["<32 hex>",…]}` | The ids of the agents' terminals that run now. Sent after every start, Stop and end. |
+| shell to server | `{"t":"terminals","live":["<32 hex>",…]}` | The ids of the agents' terminals that run now. Sent after every start, Stop and end, in order, and again once a restarted server is ready. |
+| shell to server | `{"t":"agent_folder","id":n}` | Where is the godspeed folder? Asked at every terminal start. |
+| server to shell | `{"t":"agent_folder","id":n,"folder":"…"\|null}` | The folder in use, or `null` while it isn't set up. The shell waits 2 s. |
 
 - Unknown lines are logged to stderr and skipped on both sides.
 - stdin EOF stops the server. This works on every OS.
@@ -168,7 +170,7 @@ The shell bakes `APP_ORIGIN` and `PLATFORM` into the script text before the wind
 | `onOpenSettings(cb)` | push `open-settings` | The Settings section a menu item asked for. |
 | `printPdf(path)` | `print_pdf` | Mac only; absent on Windows and Linux. See [Printing](#printing). |
 | `openLink(url)` | `open_link` | A web or mail link, as a link click sends it. |
-| `terminals.start(role, agent, folder)` | `terminal_start` | `role` is `"teacher"` or `"helper"`, `agent` is `"claude"` or `"codex"`. Answers `{ id }`. See [Terminals](#terminals). |
+| `terminals.start(role, agent)` | `terminal_start` | `role` is `"teacher"` or `"helper"`, `agent` is `"claude"` or `"codex"`. Answers `{ id }`. See [Terminals](#terminals). |
 | `terminals.attach(id)`, `terminals.detach(id)` | `terminal_attach`, `terminal_detach` | Attach pushes a snapshot of the screen, then the live output, on `terminal-output`. |
 | `terminals.write(id, data)` | `terminal_write` | Keys typed in the shown terminal. |
 | `terminals.answer(id, kind)` | `terminal_answer` | `kind` is `"trust"` or `"enter"`: the shell sends Enter only while it still sees that question. |
@@ -192,9 +194,9 @@ The learner's agents (Claude Code or Codex) run in terminals the shell owns, sho
 
 ### Starting one
 
-1. The page names a role, an agent and the godspeed folder. The shell builds everything else, so the page can never name a program or an argument.
-2. The script must be `<folder>/.godspeed/start-<agent>[-helper].<command|cmd|sh>`, the start scripts the server writes. Anything else answers "The godspeed folder isn't set up yet."
-3. The command runs it through the learner's login shell, as Terminal does with a `.command` file, so PATH from `.zprofile` and `.zshrc` both count: `<shell> -l -i -c 'exec "$0"' <script>`. `<shell>` is `$SHELL` when it is zsh, bash, sh, dash or ksh, else `/bin/zsh` (Mac) or `/bin/bash` (Linux). Windows runs `%ComSpec% /d /c <script>`.
+1. The page names a role and an agent. The shell asks the server where the godspeed folder is (`agent_folder`) and builds everything else, so the page can never name a program, an argument or a folder.
+2. The script must be `<folder>/.godspeed/start-<agent>[-helper].<command|cmd|sh>`, the start scripts the server writes: a plain file in a plain `.godspeed` folder, whose real path stays in the folder. A link, a missing script or a folder that isn't set up answers "The godspeed folder isn't set up yet."
+3. The command runs it through the learner's login shell, as Terminal does with a `.command` file, so PATH from `.zprofile` and `.zshrc` both count: `<shell> -l -i -c 'exec "$0"' <script>`. `<shell>` is `$SHELL` when it is zsh, bash, sh, dash or ksh, else `/bin/zsh` (Mac) or `/bin/bash` (Linux). Windows runs `%ComSpec% /d /c .godspeed\<script name>` in the folder: portable-pty quotes only spaces, and cmd would split a full path at `&`, `(`, `)` or `^`.
 4. `portable-pty` opens a pseudo-terminal of a fixed 100 × 30 (ConPTY on Windows). There is no resize command.
 
 | Environment | Value |
@@ -203,13 +205,13 @@ The learner's agents (Claude Code or Codex) run in terminals the shell owns, sho
 | `TERM`, `COLORTERM`, `LANG` | `xterm-256color`, `truecolor` and `en_US.UTF-8`, each only when unset. |
 | `GODSPEED_TERMINAL` | The terminal's id. The folder's connector and waiter send it as the header `x-godspeed-terminal` (only a 32 lowercase hex value); Codex forwards it to the connector through `env_vars`. |
 | `GODSPEED_DATA_DIR` | This app's data folder, so the agent finds this app's `mcp-endpoint.json` and token. |
-| `Path` (Windows) | The system's and the account's from the registry, so an agent installed after godspeed opened is found. |
+| `Path` (Windows) | The system's and the account's from the registry, so an agent installed after godspeed opened is found. Only both together replace the app's own. |
 
 ### While it runs
 
 Each terminal has four threads: output, input, its exit, and a 250 ms clock.
 
-- **Output** goes through a `vt100` screen (1000 lines of scrollback) and to the page as `terminal-output` only while attached. The shell answers the questions a program asks its terminal (cursor position, device attributes, status), because a hidden terminal has no page and ConPTY waits for the cursor position before the program starts. The page's own answers to those are dropped.
+- **Output** goes through a `vt100` screen (1000 lines of scrollback) and to the page as `terminal-output` only while attached, at most once per 16 ms frame. More than 64 KB in one frame goes as a snapshot of the screen instead, so a program that prints without pause cannot hold up the window. If drawing the output panics, the shell stops the terminal, keeps reading and dropping its output, and the screen says "godspeed couldn't read this terminal's screen, so it stopped it." with `ended` `{stopped: false, code: null}`. The shell answers the questions a program asks its terminal (cursor position, device attributes, status), because a hidden terminal has no page and ConPTY waits for the cursor position before the program starts. The page's own answers to those are dropped.
 - **Input** is queued and written in order on its own thread, so a terminal that reads nothing never holds the window up. `terminal_write`, `terminal_answer` and `terminal_paste` run without `async`, so keys keep their order.
 - **Typing** (`write`, `paste`) is refused unless that terminal is attached and the main window has the focus. Paste drops escape characters and is bracketed when the program asked for bracketed paste.
 - **The clock** pushes `terminal-state` when the recognised question or the web address on the screen changes.
@@ -220,7 +222,7 @@ By shape, since the agents reword their screens. Screen text is only matched, ne
 
 | `prompt` | Shape |
 |---|---|
-| `"trust"` | A menu (below) whose highlighted row starts with "Yes", with "trust" on the screen. Claude Code's two wordings and Codex's match. |
+| `"trust"` | A menu (below) whose highlighted row starts with "Yes", where the last line with a `?` in the 8 rows above item 1 holds one of the agents' own trust questions: "Do you trust the files in this folder?", "Is this a project you created or one you trust?" or "Do you trust the contents of this directory?". A permission menu ("Do you want to proceed?") never matches, whatever its command or diff says. |
 | `"menu"` | Numbered rows from 1 up, at least two, exactly one highlighted (a pointer such as `❯` or `›` before it, or inverse video). |
 | `"enter"` | One of the last three lines opens with "Press Enter", or a sentence in it does. |
 
@@ -230,10 +232,10 @@ A question counts once it has stayed the same for 2 s. `url` is true while the s
 
 | Event | What happens |
 |---|---|
-| Stop | The record is marked stopping and the server hears the new live set at once. Mac and Linux send SIGHUP to the script's process group (`portable-pty` makes it a session leader), then SIGKILL 2 s later; Windows ends the Job Object. |
-| The script exits | `ended` is `{stopped: false, code}`; whatever it left running is hung up the same way. Exit 3 means the agent was not found and 4 that Node.js is missing. |
+| Stop | The record is marked stopping and the server hears the new live set at once. Mac and Linux send SIGHUP to the script's process group (`portable-pty` makes it a session leader, `rustix` sends the signal), then SIGKILL 2 s later; Windows ends the Job Object. |
+| The script exits | `ended` is `{stopped: false, code}`; whatever it left running is hung up and killed the same way. Exit 3 means the agent was not found and 4 that Node.js is missing. |
 | The teacher ends | However it ended (Stop, exit or crash), the shell stops the helper as above. The page may be gone by then, so it does not do this itself. |
-| Quit | `quit.rs` stops every terminal before the server: all hang up at once, and what runs after 2 s is killed. |
+| Quit | `quit.rs` stops every terminal before the server: all hang up at once, one already stopping too, and after 2 s every group is killed, also what an ended script left. |
 | Server crash | The terminals live on. The restarted server gets `LH_TERMINALS`, and the reloaded page calls `terminal_list`. |
 | A child that left the group | It still sends the ended id, so the server refuses it. On Windows the job holds it unless it breaks away. |
 
@@ -424,7 +426,7 @@ No signals are needed, so the path is the same on Windows, where the installer c
 - Every server stderr line is logged as `server: <line>`.
 - Lifecycle lines: `starting server: <server path>`, `data dir: <data path>`, `server up: <url>`, `server exited (code=<n|null> signal=<SIGNAME|null>)`, `restarting server (<n> in the last minute)`, `server up again: <url>`, `window open: <app origin>/`.
 - The window line never holds the login URL, because that has the token.
-- Terminal lines: `terminal started: <role> <agent> pid <n>`, `terminal ended: <role> <agent> pid <n> code <n>` (or `stopped`), and `terminal could not start: <role> <agent>: <error>`. Nothing from a terminal's screen, its environment or the clipboard is ever logged.
+- Terminal lines: `terminal started: <role> <agent> pid <n>`, `terminal ended: <role> <agent> pid <n> code <n>` (or `stopped`, or `screen broke`), and `terminal could not start: <role> <agent>: <error>`. Nothing from a terminal's screen, its environment or the clipboard is ever logged.
 - The first thing in `main` is a panic hook that logs `uncaught: <panic info>` with a backtrace, then runs the default hook.
 
 ### Timeouts
