@@ -78,51 +78,54 @@ function OverlayBody({ api, role, name, state }: { api: TerminalsApi; role: Term
 					</button>
 				</div>
 				<TerminalView key={term.id} id={term.id} ended={!live} focusKey={focusKey} />
-				<div className="flex shrink-0 items-center gap-2.5 border-t border-border py-3.5 pr-3.5 pl-6">
-					<p data-testid="terminal-footer" role="status" className="min-w-0 flex-1 text-lg text-ink">
+				{/* In a narrow window the buttons move under the sentence. */}
+				<div className="flex shrink-0 flex-wrap items-center gap-x-2.5 gap-y-2 border-t border-border py-3.5 pr-3.5 pl-6">
+					<p data-testid="terminal-footer" role="status" className="min-w-64 flex-1 text-lg text-ink">
 						{error ?? foot.text}
 					</p>
-					{live && (
-						<>
+					<div className="ml-auto flex shrink-0 items-center gap-2.5">
+						{live && (
+							<>
+								<button
+									type="button"
+									data-testid="terminal-paste"
+									onClick={() => {
+										void api.paste(role).then(setError);
+										refocus();
+									}}
+									className="lh-btn lh-btn-quiet shrink-0 text-[15px]"
+								>
+									Paste
+								</button>
+								<button type="button" data-testid="terminal-stop" onClick={() => api.stop(role)} className="lh-btn lh-btn-quiet shrink-0 text-[15px]">
+									Stop
+								</button>
+							</>
+						)}
+						{foot.get && (
+							<button type="button" data-testid="terminal-get" onClick={() => void window.lh?.openLink?.(foot.get!.url)} className="lh-btn shrink-0 text-[15px]">
+								{foot.get.label}
+							</button>
+						)}
+						{foot.assist && (
 							<button
 								type="button"
-								data-testid="terminal-paste"
+								data-testid="terminal-assist"
 								onClick={() => {
-									api.paste(role);
+									void api.answer(role, foot.assist!.kind).then(setError);
 									refocus();
 								}}
-								className="lh-btn lh-btn-quiet shrink-0 text-[15px]"
+								className="lh-btn lh-btn-main shrink-0 text-[15px]"
 							>
-								Paste
+								{foot.assist.label}
 							</button>
-							<button type="button" data-testid="terminal-stop" onClick={() => api.stop(role)} className="lh-btn lh-btn-quiet shrink-0 text-[15px]">
-								Stop
+						)}
+						{foot.startAgain && (
+							<button type="button" data-testid="terminal-start-again" onClick={() => void startAgain()} className="lh-btn lh-btn-main shrink-0 text-[15px]">
+								Start again
 							</button>
-						</>
-					)}
-					{foot.get && (
-						<button type="button" data-testid="terminal-get" onClick={() => void window.lh?.openLink?.(foot.get!.url)} className="lh-btn shrink-0 text-[15px]">
-							{foot.get.label}
-						</button>
-					)}
-					{foot.assist && (
-						<button
-							type="button"
-							data-testid="terminal-assist"
-							onClick={() => {
-								void api.answer(role, foot.assist!.kind).then(setError);
-								refocus();
-							}}
-							className="lh-btn lh-btn-main shrink-0 text-[15px]"
-						>
-							{foot.assist.label}
-						</button>
-					)}
-					{foot.startAgain && (
-						<button type="button" data-testid="terminal-start-again" onClick={() => void startAgain()} className="lh-btn lh-btn-main shrink-0 text-[15px]">
-							Start again
-						</button>
-					)}
+						)}
+					</div>
 				</div>
 			</div>
 		</div>
