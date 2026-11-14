@@ -29,7 +29,7 @@ Tests:
 | Recent tail kept word for word (`KEEP_RECENT_TOKENS`) | about 20,000 |
 | Quiet time before the agent writes the summary | 5 minutes |
 
-The summarize point is the smaller of the setting and the window minus the reserve (`effective_threshold_tokens`).
+The summarize point is a fixed 40,000. `effective_threshold_tokens` still caps it at the window minus the reserve, but with the assumed 200,000 window that cap is 183,616, so it never applies.
 
 1. Past the summarize point, the server cuts the record at once and writes its own short version of the dropped part (`local_summary`). This runs at the turn-start gate and when a turn settles, never during a live run.
 2. The compaction marker is written right away with that short version. A turn that starts now goes ahead on it.
