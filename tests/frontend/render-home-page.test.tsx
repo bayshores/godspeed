@@ -314,7 +314,7 @@ const space = (id: string, name: string, over: Partial<SpaceSummary> = {}): Spac
 	description: "",
 	createdAt: "",
 	updatedAt: "",
-	archived: false,
+	closed: false,
 	fileCount: 3,
 	color: 1,
 	filesLeft: 0,
