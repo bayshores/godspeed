@@ -21,6 +21,7 @@ export default function UpdateBanner() {
 	return (
 		<NoticeCard
 			data-testid="update-banner"
+			data-notice="first"
 			role="status"
 			title={ready ? `${name} is ready` : `${name} is downloading`}
 			actions={

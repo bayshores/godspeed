@@ -80,6 +80,7 @@ export function QuietNoticeView({
 				<NoticeCard
 					key={entry.spaceId}
 					data-testid="quiet-notice"
+					data-notice="quiet"
 					role="status"
 					title={quietTitle(entry, now)}
 					close={{ onClick: () => onDismiss(entry), testId: "quiet-notice-close" }}
