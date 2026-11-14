@@ -1,5 +1,6 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
+import { lessonAgentWaiting, useAgentStatus } from "@/frontend/components/agent-status";
 import { useSpaces } from "@/frontend/components/space-context";
 import { useTeacher } from "@/frontend/components/teacher/teacher-provider";
 import { LoadFailed } from "@/frontend/components/load-failed";
@@ -24,6 +25,7 @@ export function LessonsList() {
 	const navigate = useNavigate();
 	const { active: activeSpaceId } = useSpaces();
 	const teacher = useTeacher()?.name ?? DEFAULT_TEACHER_NAME;
+	const noAgent = lessonAgentWaiting(useAgentStatus());
 	const { chats, setChats, freshIds, failed, refresh } = useLessonList();
 	const [query, setQuery] = useState("");
 	const listRef = useRef<HTMLDivElement>(null);
@@ -168,7 +170,7 @@ export function LessonsList() {
 							<RenameRow key={c.id} chat={c} onCommit={(next) => void commitRename(c.id, next)} onCancel={() => setRenamingId(null)} />
 						) : (
 							<Fragment key={c.id}>
-								<LessonRow chat={c} teacher={teacher} kbdSelected={i === kbdIndex} fresh={freshIds.has(c.id)} onOpen={onOpen} onMenu={onMenu} menuOpen={ctxChatId === c.id} />
+								<LessonRow chat={c} teacher={teacher} noAgent={noAgent} kbdSelected={i === kbdIndex} fresh={freshIds.has(c.id)} onOpen={onOpen} onMenu={onMenu} menuOpen={ctxChatId === c.id} />
 								{renameFailedId === c.id && (
 									<p role="alert" data-testid="session-rename-failed" className="px-2 pb-2 text-sm text-ans-wrong">
 										Couldn&apos;t rename the lesson.

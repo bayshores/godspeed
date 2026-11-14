@@ -109,6 +109,21 @@ describe("the overlay", () => {
 		}
 	});
 
+	it("opens by itself when the teacher has not checked in 20 s after its start, while the page is open", async () => {
+		const shell = fakeShell([teacher({ startedAt: Date.now() - 19_700, url: true })]);
+		try {
+			await mounted(access(), async () => {
+				assert.ok(overlay() === null, "still starting");
+				await act(() => new Promise((r) => setTimeout(r, 500)));
+				await settle();
+				assert.ok(overlay() !== null, "it opened");
+				assert.equal(text("status"), "Ada needs you.");
+			});
+		} finally {
+			shell.remove();
+		}
+	});
+
 	it("a crash opens it with Start again as the bright key", async () => {
 		const shell = fakeShell([teacher()]);
 		try {

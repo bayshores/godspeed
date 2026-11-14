@@ -52,6 +52,12 @@ describe("LessonRow", () => {
 		assert.ok(!html.includes("data-waiting"));
 	});
 
+	it("with no agent teaching, a lesson waiting on a reply says it waits for the agent", () => {
+		const html = render(item({ busy: true }), { noAgent: true });
+		assert.ok(html.includes("Waiting for your agent"));
+		assert.ok(!html.includes("is writing"));
+	});
+
 	it("the row is the teacher's highlight target, and the search walk marks its row", () => {
 		assert.match(render(item({})), /data-testid="session-row"[^>]*data-teacher-target="lesson:c1"/);
 		assert.ok(render(item({}), { kbdSelected: true }).includes('data-testid="session-row-kbd"'));

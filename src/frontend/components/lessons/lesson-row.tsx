@@ -5,8 +5,9 @@ import type { ChatListItem } from "@/shared/core";
 import { lessonAge, lessonWaiting } from "./lessons-model";
 
 /**
- * ONE LESSON ROW: the title, under it "marco is writing" or "Waiting for
- * your answer" when either is true, and its age at the right. The whole
+ * ONE LESSON ROW: the title, under it "marco is writing" (or "Waiting for
+ * your agent" while none teaches) or "Waiting for your answer" when either
+ * is true, and its age at the right. The whole
  * row opens the lesson. Hovering shows "More", which opens the lesson
  * menu, the same menu a right-click opens.
  */
@@ -14,8 +15,8 @@ import { lessonAge, lessonWaiting } from "./lessons-model";
 const ROW = "group relative flex items-center gap-4 border-b border-dotted border-edge px-2 py-4 last:border-b-0";
 
 /** Under the title: what the lesson is waiting on, if anything. */
-function StatusLine({ chat, teacher }: { chat: ChatListItem; teacher: string }) {
-	if (chat.busy) return <span className="text-sm text-ink-2">{teacher} is writing</span>;
+function StatusLine({ chat, teacher, noAgent }: { chat: ChatListItem; teacher: string; noAgent: boolean }) {
+	if (chat.busy) return <span className="text-sm text-ink-2">{noAgent ? "Waiting for your agent" : `${teacher} is writing`}</span>;
 	if (!lessonWaiting(chat)) return null;
 	return (
 		<span data-waiting="" className="flex items-center gap-2 text-sm text-ink">
@@ -33,6 +34,8 @@ interface LessonRowProps {
 	chat: ChatListItem;
 	/** The teacher's name, for "marco is writing". */
 	teacher: string;
+	/** No agent is teaching (agent-status.tsx lessonAgentWaiting): a lesson waiting on a reply says so. */
+	noAgent?: boolean;
 	/** Opens the lesson (the row passes its own id). */
 	onOpen: (id: string) => void;
 	/** The search walk's highlight (↑/↓ in the search field). */
@@ -47,7 +50,7 @@ interface LessonRowProps {
 
 /** One lesson row. Memoized: the list's callbacks are stable, so a row
  *  redraws only when its own lesson changes. */
-export const LessonRow = memo(function LessonRow({ chat, teacher, onOpen, kbdSelected = false, onMenu, menuOpen = false, fresh = false }: LessonRowProps) {
+export const LessonRow = memo(function LessonRow({ chat, teacher, noAgent = false, onOpen, kbdSelected = false, onMenu, menuOpen = false, fresh = false }: LessonRowProps) {
 	return (
 		<div
 			onContextMenu={
@@ -69,7 +72,7 @@ export const LessonRow = memo(function LessonRow({ chat, teacher, onOpen, kbdSel
 				className="flex min-w-0 flex-1 flex-col items-start gap-1 text-left after:absolute after:inset-0"
 			>
 				<span className="w-full truncate text-[17px] text-ink">{chat.title}</span>
-				<StatusLine chat={chat} teacher={teacher} />
+				<StatusLine chat={chat} teacher={teacher} noAgent={noAgent} />
 			</button>
 			{onMenu && (
 				<button
