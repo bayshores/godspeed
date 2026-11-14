@@ -80,6 +80,18 @@ mod tests {
 	}
 
 	#[test]
+	fn an_old_heading_weight_stays_until_the_appearance_section_is_saved() {
+		let root = scratch_dir("put-retired-rendering");
+		let app = test_app(&root);
+		let old = r##"{"version":3,"appearance":{"proseFontSize":18,"mdRendering":{"headingWeight":800,"boldColor":"#f00"}}}"##;
+		gs_base::fsx::write_text_atomic(&app.paths.settings_file, old).unwrap();
+		let (_, answer) = put_settings_section(&app, "general", &json!({ "teacherName": "Zed" })).unwrap();
+		assert_eq!(stringify(&answer["settings"]["appearance"]), r##"{"proseFontSize":18,"mdRendering":{"headingWeight":800,"boldColor":"#f00"}}"##);
+		let (_, answer) = put_settings_section(&app, "appearance", &json!({ "proseFontSize": 18 })).unwrap();
+		assert_eq!(stringify(&answer["settings"]["appearance"]), r#"{"proseFontSize":18}"#);
+	}
+
+	#[test]
 	fn two_sections_saved_at_once_both_stay() {
 		let root = scratch_dir("put-together");
 		let app = test_app(&root);

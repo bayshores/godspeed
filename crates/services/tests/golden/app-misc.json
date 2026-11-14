@@ -370,24 +370,14 @@
 				"body": {
 					"background": "#112233",
 					"fontFamily": "Inter",
-					"proseFontSize": 16,
-					"mdRendering": {
-						"headingWeight": 600,
-						"boldColor": "#abc",
-						"italicColor": null
-					}
+					"proseFontSize": 16
 				},
 				"result": {
 					"ok": true,
 					"settings": {
 						"background": "#112233",
 						"fontFamily": "Inter",
-						"proseFontSize": 16,
-						"mdRendering": {
-							"headingWeight": 600,
-							"boldColor": "#abc",
-							"italicColor": null
-						}
+						"proseFontSize": 16
 					}
 				}
 			},
@@ -483,74 +473,6 @@
 				"result": {
 					"ok": false,
 					"error": "proseFontSize must be an integer between 12 and 24"
-				}
-			},
-			{
-				"section": "appearance",
-				"body": {
-					"mdRendering": {}
-				},
-				"result": {
-					"ok": true,
-					"settings": {}
-				}
-			},
-			{
-				"section": "appearance",
-				"body": {
-					"mdRendering": []
-				},
-				"result": {
-					"ok": false,
-					"error": "mdRendering must be an object"
-				}
-			},
-			{
-				"section": "appearance",
-				"body": {
-					"mdRendering": {
-						"headingWeight": 99
-					}
-				},
-				"result": {
-					"ok": false,
-					"error": "mdRendering.headingWeight must be an integer between 100 and 900"
-				}
-			},
-			{
-				"section": "appearance",
-				"body": {
-					"mdRendering": {
-						"headingWeight": 901
-					}
-				},
-				"result": {
-					"ok": false,
-					"error": "mdRendering.headingWeight must be an integer between 100 and 900"
-				}
-			},
-			{
-				"section": "appearance",
-				"body": {
-					"mdRendering": {
-						"boldColor": "blue"
-					}
-				},
-				"result": {
-					"ok": false,
-					"error": "mdRendering.boldColor must be a #hex color or null"
-				}
-			},
-			{
-				"section": "appearance",
-				"body": {
-					"mdRendering": {
-						"italicColor": 3
-					}
-				},
-				"result": {
-					"ok": false,
-					"error": "mdRendering.italicColor must be a #hex color or null"
 				}
 			},
 			{
