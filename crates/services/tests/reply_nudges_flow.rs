@@ -84,6 +84,18 @@ fn a_quiz_question_or_a_problem_statement_is_read_for_a_curve_on_the_replys_topi
 }
 
 #[test]
+fn a_reply_that_sends_a_plot_gets_no_curve_nudge() {
+	let fx = Fixture::new();
+	let chat_id = fx.lesson(Some("study"));
+	let plot = ReplyCall { name: "plot".to_owned(), arguments: json!({ "title": "t" }) };
+	let quiz = ReplyCall { name: "quiz".to_owned(), arguments: json!({ "nodeId": "reg", "question": CURVE }) };
+	assert_eq!(reply_refusal(&fx.app, &chat_id, Some(CURVE), &[quiz, plot.clone()]), None);
+	let both = format!("{CURVE}\n\n{QUESTIONS}");
+	assert_eq!(reply_refusal(&fx.app, &chat_id, Some(&both), &[plot]).as_deref(), Some(Nudge::QuestionList.refusal()), "the question nudge still stands");
+	assert_eq!(reply_refusal(&fx.app, &chat_id, Some(CURVE), &[]).as_deref(), Some(Nudge::CurveTable.refusal()), "the topic's curve nudge is still due");
+}
+
+#[test]
 fn only_a_study_lesson_is_nudged() {
 	let fx = Fixture::new();
 	for kind in [None, Some("practice")] {

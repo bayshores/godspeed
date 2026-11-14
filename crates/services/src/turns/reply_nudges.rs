@@ -1,8 +1,10 @@
 //! Study's reply nudges (`core::study::reply_nudges`): a reply whose words call for one is not
 //! stored, and the teacher reads why. A quiz's question and a problem's statement are read for a
-//! curve too, on the reply's topic, and topic_done's opener lead on the topic it opens. Each is sent once a topic, so the same reply sent again goes through. What was
-//! sent lives in memory; after a restart a topic may get one more.
+//! curve too, on the reply's topic, and topic_done's opener lead on the topic it opens. A reply
+//! that sends a plot gets no curve nudge. Each is sent once a topic, so the same reply sent again
+//! goes through. What was sent lives in memory; after a restart a topic may get one more.
 
+use gs_core::session::plot::PLOT_TOOL;
 use gs_core::study::reply_nudges::{Nudge, reply_nudges};
 use gs_core::study::topic_parts::{first_topic, reply_topic};
 use gs_engine::bridge::ReplyCall;
@@ -12,7 +14,10 @@ use crate::App;
 
 /// Why a Study lesson's reply is sent back, or none when it is stored.
 pub fn reply_refusal(app: &App, chat_id: &str, text: Option<&str>, calls: &[ReplyCall]) -> Option<String> {
+	// A reply that sends a plot already does what the curve nudge asks.
+	let plotted = calls.iter().any(|c| c.name == PLOT_TOOL);
 	let mut words = text.map(reply_nudges).unwrap_or_default();
+	words.retain(|n| !(plotted && *n == Nudge::CurveTable));
 	// A quiz's question and a problem's statement are words he reads too.
 	let curve_posed = calls
 		.iter()
@@ -22,12 +27,12 @@ pub fn reply_refusal(app: &App, chat_id: &str, text: Option<&str>, calls: &[Repl
 			_ => None,
 		})
 		.any(|asked| reply_nudges(asked).contains(&Nudge::CurveTable));
-	if curve_posed && !words.contains(&Nudge::CurveTable) {
+	if curve_posed && !plotted && !words.contains(&Nudge::CurveTable) {
 		words.insert(0, Nudge::CurveTable);
 	}
 	let openers: Vec<&str> = calls
 		.iter()
-		.filter(|c| c.name == "topic_done" && c.arguments["opener"]["lead"].as_str().is_some_and(|lead| reply_nudges(lead).contains(&Nudge::CurveTable)))
+		.filter(|c| !plotted && c.name == "topic_done" && c.arguments["opener"]["lead"].as_str().is_some_and(|lead| reply_nudges(lead).contains(&Nudge::CurveTable)))
 		.filter_map(|c| c.arguments["opener"]["quiz"]["nodeId"].as_str())
 		.collect();
 	if words.is_empty() && openers.is_empty() {
