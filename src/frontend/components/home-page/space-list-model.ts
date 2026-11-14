@@ -11,16 +11,22 @@ interface Segment {
 interface SpaceRowWords {
 	/** The topic bar, strongest first; empty with no topics. */
 	segments: Segment[];
-	/** "9 strong, 3 shaky, 6 not tested" (the Graph page's words, zeros left out), or why there are no topics yet. */
+	/** "18 topics, 9 strong, 3 shaky, 6 not tested" (the Graph page's words, zeros left out), why there are no topics yet, or empty while loading. */
 	line: string;
 }
 
-/** A space's row: its topic bar and the counts, or why it has no topics yet. */
-export function spaceRow(progress: Pick<ProgressPayload, "overall" | "files" | "facts"> | undefined): SpaceRowWords {
-	if (!progress) return { segments: [], line: "Couldn't load its progress." };
+/** A space's row: its topic bar and the counts, or why it has no topics
+ *  yet. With no progress it is still loading, unless its read `failed`. */
+export function spaceRow(progress: Pick<ProgressPayload, "overall" | "files" | "facts"> | undefined, failed: boolean): SpaceRowWords {
+	if (!progress) return { segments: [], line: failed ? "Couldn't load its progress." : "" };
 	const counts = progress.overall.counts;
-	const segments = STATUS_LEGEND.filter((s) => counts[s.key] > 0).map((s) => ({ key: s.key, count: counts[s.key], color: rampColor(s.rate) }));
-	if (segments.length > 0) return { segments, line: segments.map((s) => `${s.count} ${STATUS_LEGEND.find((l) => l.key === s.key)!.label}`).join(", ") };
+	const shown = STATUS_LEGEND.filter((s) => counts[s.key] > 0);
+	const segments = shown.map((s) => ({ key: s.key, count: counts[s.key], color: rampColor(s.rate) }));
+	if (segments.length > 0) {
+		const total = segments.reduce((sum, s) => sum + s.count, 0);
+		const parts = shown.map((s) => `${counts[s.key]} ${s.label}`);
+		return { segments, line: [`${total} ${total === 1 ? "topic" : "topics"}`, ...parts].join(", ") };
+	}
 	if (progress.files.length === 0) return { segments, line: "No study files yet." };
 	if (progress.facts.length === 0) return { segments, line: "No facts yet. They show up once your agent reads the files." };
 	return { segments, line: "Its facts are not grouped into topics yet." };

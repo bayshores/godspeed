@@ -13,21 +13,23 @@ const payload = (c = counts(0, 0, 0, 0), files = 1, facts = 1): RowInput => ({
 
 describe("spaceRow", () => {
 	it("the counts in the Graph page's words, zeros left out, strongest first", () => {
-		const row = spaceRow(payload(counts(9, 3, 0, 6)));
-		assert.equal(row.line, "9 strong, 3 shaky, 6 not tested");
+		const row = spaceRow(payload(counts(9, 3, 0, 6)), false);
+		assert.equal(row.line, "18 topics, 9 strong, 3 shaky, 6 not tested");
 		assert.deepEqual(row.segments.map((s) => [s.key, s.count]), [["strong", 9], ["shaky", 3], ["untested", 6]]);
-		assert.equal(spaceRow(payload(counts(0, 0, 2, 0))).line, "2 weak");
+		assert.equal(spaceRow(payload(counts(0, 0, 2, 0)), false).line, "2 topics, 2 weak");
+		assert.equal(spaceRow(payload(counts(0, 0, 0, 1)), false).line, "1 topic, 1 not tested");
 	});
 
 	it("no topics yet: why, in the app's words", () => {
-		assert.equal(spaceRow(payload(undefined, 0, 0)).line, "No study files yet.");
-		assert.equal(spaceRow(payload(undefined, 3, 0)).line, "No facts yet. They show up once your agent reads the files.");
-		assert.equal(spaceRow(payload(undefined, 3, 40)).line, "Its facts are not grouped into topics yet.");
-		assert.deepEqual(spaceRow(payload(undefined, 3, 0)).segments, []);
+		assert.equal(spaceRow(payload(undefined, 0, 0), false).line, "No study files yet.");
+		assert.equal(spaceRow(payload(undefined, 3, 0), false).line, "No facts yet. They show up once your agent reads the files.");
+		assert.equal(spaceRow(payload(undefined, 3, 40), false).line, "Its facts are not grouped into topics yet.");
+		assert.deepEqual(spaceRow(payload(undefined, 3, 0), false).segments, []);
 	});
 
-	it("a space whose progress failed to load says so", () => {
-		assert.equal(spaceRow(undefined).line, "Couldn't load its progress.");
+	it("a space whose progress failed to load says so; one still loading says nothing", () => {
+		assert.equal(spaceRow(undefined, true).line, "Couldn't load its progress.");
+		assert.deepEqual(spaceRow(undefined, false), { segments: [], line: "" });
 	});
 });
 

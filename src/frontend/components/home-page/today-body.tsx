@@ -20,6 +20,8 @@ interface TodayBodyProps {
 	lists: TodayLists | null;
 	deadlineProgress: ReadonlyMap<string, DeadlineProgress>;
 	spacesProgress: ReadonlyMap<string, ProgressPayload>;
+	/** Why a space's progress failed to load. */
+	progressErrors: ReadonlyMap<string, string>;
 	/** Who reads files (useWorker). */
 	worker: string | null;
 	newFiles: ReadonlyMap<string, string>;
@@ -118,7 +120,7 @@ function Sections(p: TodayBodyProps & { nowMs: number }) {
 					</ul>
 				</section>
 			)}
-			<SpaceList spaces={p.spaces} progress={p.spacesProgress} worker={p.worker} newFiles={p.newFiles} onOpen={p.onOpenSpace} />
+			<SpaceList spaces={p.spaces} progress={p.spacesProgress} errors={p.progressErrors} worker={p.worker} newFiles={p.newFiles} onOpen={p.onOpenSpace} />
 			{lists && (
 				<section className="flex flex-col gap-2">
 					<div className="flex min-h-9 items-center justify-between gap-4">

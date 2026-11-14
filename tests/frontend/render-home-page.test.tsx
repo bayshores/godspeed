@@ -346,6 +346,7 @@ function page(props: Partial<React.ComponentProps<typeof TodayBody>> = {}): stri
 				lists={todayLists([], [], NOW)}
 				deadlineProgress={new Map()}
 				spacesProgress={new Map([["spc_la", spaceProgress({ counts: [9, 3, 0, 6] })], ["spc_os", spaceProgress({ counts: [4, 1, 0, 12] })]])}
+				progressErrors={new Map()}
 				worker="Teacher"
 				newFiles={new Map()}
 				busy={false}
@@ -439,8 +440,8 @@ describe("Your spaces", () => {
 		const row = section(html, "today-space-spc_la", "</li>");
 		assert.match(tag(row, "today-space-open"), /^<a[^>]*href="\/space"/);
 		assert.ok(row.includes(">Linear Algebra<"));
-		assert.ok(row.includes('role="img" aria-label="Topics, 9 strong, 3 shaky, 6 not tested"'));
-		assert.ok(row.includes(">9 strong, 3 shaky, 6 not tested<"));
+		assert.ok(row.includes('role="img" aria-label="18 topics, 9 strong, 3 shaky, 6 not tested"'));
+		assert.ok(row.includes(">18 topics, 9 strong, 3 shaky, 6 not tested<"));
 		assert.ok(!row.includes("border-line"), "a plain row, not a box");
 		assert.equal(count(row, "flex-grow:"), 3);
 	});
@@ -456,6 +457,7 @@ describe("Your spaces", () => {
 					lists={todayLists([], [], NOW)}
 					deadlineProgress={new Map()}
 					spacesProgress={new Map([["spc_la", spaceProgress()]])}
+					progressErrors={new Map()}
 					worker="Teacher"
 					newFiles={new Map([["spc_la", "2 new files since Monday"]])}
 					busy={false}
@@ -494,6 +496,15 @@ describe("Your spaces", () => {
 		assert.match(os, />No facts yet\. They show up once your agent reads the files\.</);
 		const counted = page({ spaces: [LA, { ...OS, filesLeft: 2 }] });
 		assert.match(section(counted, "today-space-spc_os", "</li>"), /data-testid="today-space-work"[^>]*>Teacher is reading new files, 2 left</);
+	});
+
+	it("a space still loading is quiet; only a failed read says so", () => {
+		const progress = new Map([["spc_la", spaceProgress({ counts: [9, 3, 0, 6] })]]);
+		const loading = section(page({ spacesProgress: progress }), "today-space-spc_os", "</li>");
+		assert.ok(!loading.includes("Couldn&#x27;t load"), "a new space waits for its first read");
+		assert.ok(!loading.includes('role="img"'), "the dotted bar, no counts");
+		const failed = section(page({ spacesProgress: progress, progressErrors: new Map([["spc_os", "HTTP 500"]]) }), "today-space-spc_os", "</li>");
+		assert.match(failed, />Couldn&#x27;t load its progress\.</);
 	});
 
 	it("one space, or six, each gets its row", () => {

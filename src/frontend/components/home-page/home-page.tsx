@@ -104,6 +104,7 @@ export function HomePage() {
 				lists={lists}
 				deadlineProgress={deadlineProgress}
 				spacesProgress={spacesProgress.progress}
+				progressErrors={spacesProgress.errors}
 				worker={worker}
 				newFiles={newFiles.lines}
 				busy={lesson.busy}

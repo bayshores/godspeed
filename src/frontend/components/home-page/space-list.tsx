@@ -15,12 +15,15 @@ import { CHIP, ROW_LIST, SECTION_TITLE } from "./styles";
 export function SpaceList({
 	spaces,
 	progress,
+	errors,
 	worker,
 	newFiles,
 	onOpen,
 }: {
 	spaces: readonly SpaceSummary[];
 	progress: ReadonlyMap<string, ProgressPayload>;
+	/** Why a space's progress failed to load. */
+	errors: ReadonlyMap<string, string>;
 	/** Who reads files (useWorker); null when no agent takes work. */
 	worker: string | null;
 	/** Each space's "2 new files since Monday". */
@@ -32,7 +35,7 @@ export function SpaceList({
 			<h2 className={SECTION_TITLE}>Your spaces</h2>
 			<ul className={`${ROW_LIST} @container`}>
 				{spaces.map((s) => (
-					<SpaceRow key={s.id} space={s} progress={progress.get(s.id)} work={todayWorkLine(s, worker)} newFiles={newFiles.get(s.id) ?? null} onOpen={onOpen} />
+					<SpaceRow key={s.id} space={s} progress={progress.get(s.id)} failed={errors.has(s.id)} work={todayWorkLine(s, worker)} newFiles={newFiles.get(s.id) ?? null} onOpen={onOpen} />
 				))}
 			</ul>
 		</section>
@@ -42,17 +45,19 @@ export function SpaceList({
 function SpaceRow({
 	space: s,
 	progress,
+	failed,
 	work,
 	newFiles,
 	onOpen,
 }: {
 	space: SpaceSummary;
 	progress: ProgressPayload | undefined;
+	failed: boolean;
 	work: string | null;
 	newFiles: string | null;
 	onOpen: (spaceId: string) => void;
 }) {
-	const words = spaceRow(progress);
+	const words = spaceRow(progress, failed);
 	const total = words.segments.reduce((sum, seg) => sum + seg.count, 0);
 	return (
 		// The name's link covers the whole row; the new-files chip sits above it.
@@ -82,7 +87,7 @@ function SpaceRow({
 			</span>
 			<span className="flex w-full items-center gap-3 @min-[620px]:w-[376px]">
 				{total > 0 ? (
-					<span role="img" aria-label={`Topics, ${words.line}`} className="flex h-2 w-20 shrink-0 gap-[2px]">
+					<span role="img" aria-label={words.line} className="flex h-2 w-20 shrink-0 gap-[2px]">
 						{words.segments.map((seg) => (
 							<span key={seg.key} className="h-full min-w-1" style={{ flexGrow: seg.count, background: seg.color }} />
 						))}
