@@ -501,7 +501,7 @@ It also refuses empty text, control characters (what JSON makes of an unescaped 
 While study files wait to be read, the space shows it where the learner is:
 
 - a frame around every tab's page (`src/frontend/components/work/`)
-- a strip on Today
+- a line on the space's row under "Your spaces" on Today
 - a tag on the space's tab in the top bar ("15 left")
 - a second line under Talk's "Created <space>" row
 

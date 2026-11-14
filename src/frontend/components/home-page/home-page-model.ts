@@ -1,5 +1,5 @@
-/** Pure helpers for Today (home-page.tsx): per-space progress, which list a deadline goes in, and each row's words. */
-import { hasProblems, localDay, planDays, type DeadlineKind, type DeadlineProgress, type ProgressPayload } from "@/shared/core";
+/** Pure helpers for Today (home-page.tsx): per-space progress, which list a deadline goes in, the card's and each row's words. */
+import { hasProblems, localDay, planDays, type ContinueStudy, type DeadlineKind, type DeadlineProgress, type ProgressPayload } from "@/shared/core";
 import { clockLabel, deadlineDateLabel } from "@/frontend/components/space-deadlines-model";
 import { DAY, HOUR, MINUTE, calendarDays, dueAtMs } from "@/frontend/components/countdown-model";
 import type { OpenDeadline } from "@/frontend/components/deadlines-model";
@@ -41,7 +41,7 @@ export function dueThisWeek(d: { date: string; time?: string }, nowMs: number): 
 	return calendarDays(nowMs, dueAtMs(d)) <= TODAY_DAYS;
 }
 
-interface TodayLists {
+export interface TodayLists {
 	/** Open, due within the week or overdue. */
 	today: OpenDeadline[];
 	/** Ticked done today. */
@@ -117,6 +117,13 @@ interface TodayRowWords {
 	button: "Start" | "Continue" | "Study more" | "Work on it";
 }
 
+/** Where an unfinished Study session is: "Recursion is next", "in the
+ *  middle of Recursion"; null when it says neither. */
+function continueWords(next: ContinueStudy): string | null {
+	if (next.stop?.next) return `${next.stop.next} is next`;
+	return next.inTopic ? `in the middle of ${next.inTopic}` : null;
+}
+
 /** Its Study session reached its end today and today's plan has no
  *  topic left, as a moved deadline can give today a topic again. */
 function nothingMoreToday(progress: DeadlineProgress | undefined, nowMs: number): boolean {
@@ -131,17 +138,62 @@ export function todayRow(d: OpenDeadline, progress: DeadlineProgress | undefined
 	if (hasProblems(d.kind)) return { title: d.name, line: `${when}${progressNote(progress)}`, button: "Work on it" };
 	const next = progress?.continueStudy;
 	if (next) {
-		const line = next.stop?.next ? `${d.spaceName}, ${next.stop.next} is next.` : next.inTopic ? `${d.spaceName}, in the middle of ${next.inTopic}.` : when;
-		return { title: `Continue studying for ${d.name}`, line, button: "Continue" };
+		const where = continueWords(next);
+		return { title: `Continue studying for ${d.name}`, line: where ? `${d.spaceName}, ${where}.` : when, button: "Continue" };
 	}
 	if (nothingMoreToday(progress, nowMs)) return { title: `Study for ${d.name}`, line: `${d.spaceName}, nothing more is planned today.`, button: "Study more" };
 	return { title: `Study for ${d.name}`, line: when, button: "Start" };
 }
 
-/** The id of the one row of Today whose button is dark: a session stopped
- *  before today, else the soonest row. A session that stopped today, or
+/** Today's card: what to do as its title, when it is and how far, and
+ *  what is left of it today. */
+interface CardWords {
+	title: string;
+	when: string;
+	/** "3 topics left today.", "Recursion is next."; null with nothing to say. */
+	left: string | null;
+	button: TodayRowWords["button"];
+}
+
+const sentence = (words: string) => `${words[0]!.toUpperCase()}${words.slice(1)}.`;
+
+/** The card's words, for the row mainRowId picks. */
+export function nextCard(d: OpenDeadline, progress: DeadlineProgress | undefined, nowMs: number): CardWords {
+	const row = todayRow(d, progress, nowMs);
+	const when = sentence(`${dueWords(d, nowMs)}${progressNote(progress)}`);
+	if (hasProblems(d.kind)) return { title: `Work on ${d.name}`, when, left: null, button: row.button };
+	const next = progress?.continueStudy;
+	const where = next && continueWords(next);
+	if (where) return { title: row.title, when, left: sentence(where), button: row.button };
+	const topics = progress ? (planDays(localDay(nowMs), progress.date, progress.topics)[0]?.topics.length ?? 0) : 0;
+	return { title: row.title, when, left: topics > 0 ? `${topics} ${topics === 1 ? "topic" : "topics"} left today.` : null, button: row.button };
+}
+
+interface TodaySections {
+	/** The row mainRowId picks, shown as the card; null with no card. */
+	card: OpenDeadline | null;
+	/** The rest of "Due this week". */
+	due: OpenDeadline[];
+	/** What Today says in place of the card when nothing is due this week. */
+	empty: string | null;
+}
+
+/** Splits Today's list into the card and the rows under "Due this week". */
+export function todaySections(lists: TodayLists, progress: ReadonlyMap<string, DeadlineProgress>, nowMs: number): TodaySections {
+	const mainId = mainRowId(lists.today, progress, nowMs);
+	const empty =
+		lists.today.length + lists.done.length > 0
+			? null
+			: lists.later.length === 0
+				? "No deadlines yet. Your agent can add them from your files."
+				: "Nothing is due in the next 7 days.";
+	return { card: lists.today.find((d) => d.id === mainId) ?? null, due: lists.today.filter((d) => d.id !== mainId), empty };
+}
+
+/** The row Today's card holds, with the page's one main button: a session
+ *  stopped before today, else the soonest row. A session that stopped today, or
  *  ended today with nothing more planned, is passed over, so with no other
- *  row no button is dark. `deadlines` are soonest first. */
+ *  row there is no card. `deadlines` are soonest first. */
 export function mainRowId(deadlines: readonly OpenDeadline[], progress: ReadonlyMap<string, DeadlineProgress>, nowMs: number): string | null {
 	const today = localDay(nowMs);
 	const stopDay = (d: OpenDeadline) => {

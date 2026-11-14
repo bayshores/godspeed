@@ -1,8 +1,8 @@
 /**
- * Today's rows: ticking a deadline done and undoing it (the shared read),
- * a row under Today (count block, words, Mark done, the one main button),
- * a row stamped Done, a row under Later, and a space's fact grid on
- * Progress.
+ * Today: ticking a deadline done and undoing it (the shared read), the
+ * card, a row under "Due this week" (count block, words, Mark done, its
+ * button), a row stamped Done, a row under Later, the whole page in each
+ * of its states, and a space's fact grid on Progress.
  */
 import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;
@@ -12,7 +12,7 @@ import { afterEach, describe, it } from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createRoot, type Root } from "react-dom/client";
 import { parseHTML } from "linkedom";
-import type { DeadlineProgress, FactProgress } from "../../src/shared/core/index.ts";
+import type { DeadlineProgress, FactProgress, ProgressPayload, SpaceSummary } from "../../src/shared/core/index.ts";
 import type { OpenDeadline } from "../../src/frontend/components/deadlines-model.ts";
 
 const dom = parseHTML("<html><body></body></html>");
@@ -28,6 +28,9 @@ Object.assign(globalThis, {
 
 const { MemoryRouter } = await import("react-router");
 const { TodayRow, DoneRow, LaterRow } = await import("../../src/frontend/components/home-page/today-row.tsx");
+const { NextCard } = await import("../../src/frontend/components/home-page/next-card.tsx");
+const { TodayBody } = await import("../../src/frontend/components/home-page/today-body.tsx");
+const { todayLists } = await import("../../src/frontend/components/home-page/home-page-model.ts");
 const { SpaceFacts } = await import("../../src/frontend/components/overview/space-facts.tsx");
 const { OpenDeadlinesProvider, useOpenDeadlines } = await import("../../src/frontend/components/use-open-deadlines.tsx");
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
@@ -182,12 +185,12 @@ function progressFor(id: string, extra: Partial<DeadlineProgress>): DeadlineProg
 function todayRow(props: Partial<React.ComponentProps<typeof TodayRow>> = {}) {
 	return renderToStaticMarkup(
 		<MemoryRouter initialEntries={["/"]}>
-			<TodayRow deadline={OPEN[2]!} progress={undefined} color={3} nowMs={NOW} main={false} busy={false} onStart={() => {}} onDone={() => {}} {...props} />
+			<TodayRow deadline={OPEN[2]!} progress={undefined} color={3} nowMs={NOW} busy={false} onStart={() => {}} onDone={() => {}} {...props} />
 		</MemoryRouter>,
 	);
 }
 
-describe("A row under Today", () => {
+describe("A row under Due this week", () => {
 	it("the count block in the space's color, days left", () => {
 		const html = todayRow();
 		assert.match(html, /background:var\(--lh-space-3\)/);
@@ -207,30 +210,26 @@ describe("A row under Today", () => {
 		assert.match(section(html, "today-open", "</a>"), />HW 5$/);
 		assert.ok(html.includes("CSE 29, due Friday. 2 of 7 problems done"));
 		assert.match(section(html, "today-start", "</button>"), />Work on it$/);
-		assert.ok(!tag(html, "today-start").includes("lh-btn-main"), "soft unless it is the main row");
-		assert.ok(tag(todayRow({ main: true }), "today-start").includes("lh-btn-main"));
+		assert.ok(!tag(html, "today-start").includes("lh-btn-main"), "the card holds the main button");
 	});
 
-	it("a test: Study for it and Start, the bright key only on the main row; an unfinished session continues", () => {
+	it("a test: Study for it and Start; an unfinished session continues", () => {
 		const topics = [1, 2, 3].map((n) => ({ id: `t${n}`, name: `t${n}`, rate: null }));
-		const html = todayRow({ deadline: OPEN[3]!, progress: progressFor("mid", { topics }), main: true });
+		const html = todayRow({ deadline: OPEN[3]!, progress: progressFor("mid", { topics }) });
 		assert.match(section(html, "today-open", "</a>"), />Study for Midterm 2$/);
 		assert.ok(html.includes("CSE 21, the test is on Thursday at 7:00 PM"));
 		assert.match(section(html, "today-start", "</button>"), /Start$/);
-		assert.ok(tag(html, "today-start").includes("lh-btn-main"));
-		const soft = todayRow({ deadline: OPEN[3]!, progress: progressFor("mid", { topics }) });
-		assert.ok(!tag(soft, "today-start").includes("lh-btn-main"));
 		const cont = todayRow({ deadline: OPEN[3]!, progress: progressFor("mid", { topics, continueStudy: { chatId: "c", done: 1, total: 3 } }) });
 		assert.match(section(cont, "today-open", "</a>"), />Continue studying for Midterm 2$/);
 		assert.match(section(cont, "today-start", "</button>"), /Continue$/);
 	});
 
-	it("a click passes the deadline; the main button waits while a lesson starts", async () => {
+	it("a click passes the deadline; the button waits while a lesson starts", async () => {
 		const started: string[] = [];
 		const done: string[] = [];
 		const el = await mount(
 			<MemoryRouter initialEntries={["/"]}>
-				<ul><TodayRow deadline={OPEN[1]!} progress={undefined} color={1} nowMs={NOW} main busy={false} onStart={(x) => started.push(x.id)} onDone={(x) => done.push(x.id)} /></ul>
+				<ul><TodayRow deadline={OPEN[1]!} progress={undefined} color={1} nowMs={NOW} busy={false} onStart={(x) => started.push(x.id)} onDone={(x) => done.push(x.id)} /></ul>
 			</MemoryRouter>,
 		);
 		await act(async () => {
@@ -274,6 +273,223 @@ describe("A row under Later", () => {
 		assert.match(html, /color-mix\(in srgb, var\(--lh-space-2\) 57%/);
 		assert.match(html, />34<\/span>.*>days</);
 		assert.ok(html.includes("CSE 21, Tuesday Dec 1. 19% ready"));
+	});
+});
+
+// ─── The card ───────────────────────────────────────────────────────────────
+
+describe("The card", () => {
+	const html = renderToStaticMarkup(
+		<MemoryRouter initialEntries={["/"]}>
+			<NextCard deadline={OPEN[3]!} progress={progressFor("mid", { ready: 0.4, date: "2026-11-05" })} color={2} nowMs={NOW} busy={false} onStart={() => {}} onDone={() => {}} />
+		</MemoryRouter>,
+	);
+
+	it("its space, the action as the title opening the deadline's page, when and how ready", () => {
+		assert.match(tag(html, "today-card-open"), /href="\/space\/deadline\/mid"/);
+		assert.match(section(html, "today-card-open", "</a>"), />Study for Midterm 2$/);
+		assert.ok(html.includes(">CSE 21<"));
+		assert.ok(html.includes("The test is on Thursday at 7:00 PM. 40% ready."));
+		assert.ok(html.includes("background:var(--lh-space-2)"));
+		assert.ok(html.includes('data-teacher-target="deadline:mid"'));
+	});
+
+	it("holds the page's one main button, beside Mark done", () => {
+		assert.ok(tag(html, "today-start").includes("lh-btn-main"));
+		assert.match(section(html, "today-start", "</button>"), />Start$/);
+		assert.ok(html.includes('data-testid="today-done"'));
+	});
+});
+
+// ─── The whole page ─────────────────────────────────────────────────────────
+
+const space = (id: string, name: string, over: Partial<SpaceSummary> = {}): SpaceSummary => ({
+	id,
+	name,
+	description: "",
+	createdAt: "",
+	updatedAt: "",
+	archived: false,
+	fileCount: 3,
+	color: 1,
+	filesLeft: 0,
+	...over,
+});
+
+function spaceProgress(over: { counts?: [number, number, number, number]; files?: number; facts?: number; answeredAt?: Date[]; deadlines?: DeadlineProgress[] } = {}): ProgressPayload {
+	const [strong, shaky, weak, untested] = over.counts ?? [0, 0, 0, 0];
+	const answers = (over.answeredAt ?? []).map((t, i) => ({ chatId: "l", toolCallId: `q${i}`, outcome: "right" as const, answeredAt: t.toISOString() }));
+	return {
+		overall: { topicIds: [], counts: { strong, shaky, weak, untested }, workOnNext: [] },
+		files: Array.from({ length: over.files ?? 1 }, () => ({})),
+		facts: Array.from({ length: over.facts ?? 1 }, () => ({})),
+		lessons: answers.length ? [{ chatId: "l", title: "l", kind: "study", updatedAt: "", answers, right: answers.length, answered: answers.length, score: 1 }] : [],
+		deadlines: over.deadlines ?? [],
+	} as unknown as ProgressPayload;
+}
+
+const LA = space("spc_la", "Linear Algebra", { color: 2 });
+const OS = space("spc_os", "Operating Systems", { color: 5 });
+
+function page(props: Partial<React.ComponentProps<typeof TodayBody>> = {}): string {
+	return renderToStaticMarkup(
+		<MemoryRouter initialEntries={["/"]}>
+			<TodayBody
+				nowMs={NOW}
+				ready
+				spaces={[LA, OS]}
+				lists={todayLists([], [], NOW)}
+				deadlineProgress={new Map()}
+				spacesProgress={new Map([["spc_la", spaceProgress({ counts: [9, 3, 0, 6] })], ["spc_os", spaceProgress({ counts: [4, 1, 0, 12] })]])}
+				worker="Teacher"
+				newFiles={new Map()}
+				busy={false}
+				lessonError={null}
+				onStart={() => {}}
+				onDone={() => {}}
+				onUndo={() => {}}
+				onRetry={() => {}}
+				onAddSpace={() => {}}
+				onAddDeadline={() => {}}
+				onOpenSpace={() => {}}
+				{...props}
+			/>
+		</MemoryRouter>,
+	);
+}
+
+/** How many times `needle` is in `html`. */
+const count = (html: string, needle: string) => html.split(needle).length - 1;
+const LA_OPEN = [d("q2", "Quiz 2", "2026-10-30", undefined, { kind: "quiz", spaceId: "spc_la", spaceName: "Linear Algebra" }), d("hw4", "Homework 4", "2026-11-01", undefined, { spaceId: "spc_os", spaceName: "Operating Systems" }), d("fin", "Final", "2026-12-08", undefined, { kind: "exam", spaceId: "spc_la", spaceName: "Linear Algebra" })];
+
+describe("Today, as a whole page", () => {
+	it("waits in one block until everything is in", () => {
+		const html = page({ ready: false });
+		assert.ok(html.includes('data-testid="home-loading"'));
+		assert.ok(!html.includes('data-testid="today-week"'));
+	});
+
+	it("with deadlines: the card first, this week, the rest due this week, the spaces, then Later, with one main button", () => {
+		const html = page({ lists: todayLists(LA_OPEN, [{ ...OPEN[2]!, done: true, doneAt: new Date(NOW).toISOString() }], NOW) });
+		const order = ["today-card", "today-week", "today-list", "today-spaces", "later-list"].map((id) => html.indexOf(`data-testid="${id}"`));
+		assert.ok(order.every((at, i) => at > 0 && (i === 0 || at > order[i - 1]!)), `sections in order: ${order.join(", ")}`);
+		assert.equal(count(html, "lh-btn-main"), 1);
+		assert.match(section(html, "today-card", "</h2>"), /Study for Quiz 2/);
+		assert.ok(html.includes('data-testid="today-row-hw4"'));
+		assert.ok(html.includes('data-testid="today-done-row-hw5"'));
+		assert.ok(html.includes('data-testid="later-row-fin"'));
+		for (const title of ["This week", "Due this week", "Your spaces", "Later"]) assert.ok(html.includes(`>${title}</h2>`), title);
+	});
+
+	it("no spaces: the sentence and Add a space, nothing else", () => {
+		const html = page({ spaces: [], spacesProgress: new Map() });
+		assert.match(section(html, "today-empty", "</p>"), /No spaces yet\. Add one, then add its deadlines\./);
+		assert.ok(tag(html, "today-add-space").includes("lh-btn-main"));
+		for (const id of ["today-week", "today-spaces", "home-add-deadline"]) assert.ok(!html.includes(`data-testid="${id}"`), id);
+	});
+
+	it("spaces but no deadlines: no card, the sentence, this week, the spaces and Add a deadline", () => {
+		const html = page();
+		assert.ok(!html.includes('data-testid="today-card"'));
+		assert.match(section(html, "today-empty", "</p>"), /No deadlines yet\. Your agent can add them from your files\./);
+		assert.ok(!html.includes(">Due this week<"));
+		assert.ok(!html.includes(">Later<"));
+		assert.ok(html.includes('data-testid="home-add-deadline"'));
+		assert.equal(count(html, "lh-btn-main"), 0);
+	});
+
+	it("nothing due this week: the sentence, and Later holds the rest", () => {
+		const html = page({ lists: todayLists([LA_OPEN[2]!], [], NOW) });
+		assert.match(section(html, "today-empty", "</p>"), /Nothing is due in the next 7 days\./);
+		assert.ok(html.includes('data-testid="later-row-fin"'));
+	});
+
+	it("deadlines that failed to load keep Try again, this week and the spaces", () => {
+		const html = page({ lists: null });
+		assert.ok(html.includes("Couldn&#x27;t load your deadlines."));
+		assert.ok(html.includes('data-testid="today-week"'));
+		assert.ok(html.includes('data-testid="today-spaces"'));
+		assert.ok(!html.includes('data-testid="home-add-deadline"'));
+	});
+
+	it("a week with no answers, and one with answers in two spaces", () => {
+		assert.match(section(page(), "today-week-line", "</p>"), /No studying yet this week\.$/);
+		const progress = new Map([
+			["spc_la", spaceProgress({ answeredAt: [new Date(2026, 9, 26, 10), new Date(2026, 9, 28, 9)] })],
+			["spc_os", spaceProgress({ answeredAt: [new Date(2026, 9, 28, 20)] })],
+		]);
+		const html = page({ spacesProgress: progress });
+		assert.match(section(html, "today-week-line", "</p>"), /You studied 2 days this week and answered 3 questions\.$/);
+		assert.match(html, /role="img" aria-label="You studied on Monday and Wednesday\."/);
+		assert.equal(count(html, "data-studied"), 2);
+	});
+});
+
+describe("Your spaces", () => {
+	it("one row per space: its name, the topic bar with words for a screen reader, the counts, and the row opens the space", () => {
+		const html = page();
+		const row = section(html, "today-space-spc_la", "</li>");
+		assert.match(tag(row, "today-space-open"), /^<a[^>]*href="\/space"/);
+		assert.ok(row.includes(">Linear Algebra<"));
+		assert.ok(row.includes('role="img" aria-label="Topics, 9 strong, 3 shaky and 6 not tested."'));
+		assert.ok(row.includes(">9 strong, 3 shaky and 6 not tested.<"));
+		assert.equal(count(row, "flex-grow:"), 3);
+	});
+
+	it("opening a row picks its space", async () => {
+		const opened: string[] = [];
+		const el = await mount(
+			<MemoryRouter initialEntries={["/"]}>
+				<TodayBody
+					nowMs={NOW}
+					ready
+					spaces={[LA]}
+					lists={todayLists([], [], NOW)}
+					deadlineProgress={new Map()}
+					spacesProgress={new Map([["spc_la", spaceProgress()]])}
+					worker="Teacher"
+					newFiles={new Map([["spc_la", "2 new files since Monday"]])}
+					busy={false}
+					lessonError={null}
+					onStart={() => {}}
+					onDone={() => {}}
+					onUndo={() => {}}
+					onRetry={() => {}}
+					onAddSpace={() => {}}
+					onAddDeadline={() => {}}
+					onOpenSpace={(id) => opened.push(id)}
+				/>
+			</MemoryRouter>,
+		);
+		await act(async () => el.querySelector<HTMLElement>('[data-testid="today-space-files"]')!.click());
+		await act(async () => el.querySelector<HTMLElement>('[data-testid="today-space-open"]')!.click());
+		assert.deepEqual(opened, ["spc_la", "spc_la"]);
+	});
+
+	it("the new-files line opens the space's Files page", () => {
+		const html = page({ newFiles: new Map([["spc_os", "2 new files since Monday"]]) });
+		assert.ok(!section(html, "today-space-spc_la", "</li>").includes("today-space-files"));
+		const row = section(html, "today-space-spc_os", "</li>");
+		assert.match(tag(row, "today-space-files"), /^<a[^>]*href="\/space\/files"/);
+		assert.ok(row.includes("2 new files since Monday"));
+	});
+
+	it("a space with no topics says so; one whose files are read shows the teacher's line instead", () => {
+		const progress = new Map([["spc_la", spaceProgress({ files: 0, facts: 0 })], ["spc_os", spaceProgress({ files: 4, facts: 0 })]]);
+		const building = { ...OS, filesLeft: 4, building: true as const };
+		const html = page({ spaces: [LA, building], spacesProgress: progress });
+		assert.match(section(html, "today-space-spc_la", "</li>"), />No study files yet\.</);
+		assert.match(section(html, "today-space-spc_os", "</li>"), />Teacher is building this space\. 4 left\.</);
+		const counted = page({ spaces: [LA, { ...OS, filesLeft: 2 }] });
+		assert.match(section(counted, "today-space-spc_os", "</li>"), /data-testid="today-space-work"[^>]*>Teacher is reading new files\. 2 left\.</);
+	});
+
+	it("one space, or six, each gets its row", () => {
+		const one = page({ spaces: [LA] });
+		assert.equal(count(one, 'data-testid="today-space-open"'), 1);
+		const six = ["a", "b", "c", "d", "e", "f"].map((id, i) => space(`spc_${id}`, `Space ${id}`, { color: (i % 8) + 1 }));
+		const many = page({ spaces: six, spacesProgress: new Map(six.map((s) => [s.id, spaceProgress({ counts: [1, 0, 0, 1] })])) });
+		assert.equal(count(many, 'data-testid="today-space-open"'), 6);
 	});
 });
 

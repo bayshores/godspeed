@@ -1,7 +1,7 @@
 import { memo, type ReactNode } from "react";
 import { rampColor, type DeadlineProgress, type PlanDay } from "@/shared/core";
 import { isOverdue } from "@/frontend/components/deadlines-model";
-import { progressShare, progressWords } from "@/frontend/components/overview/overview-model";
+import { STATUS_LEGEND, progressShare, progressWords } from "@/frontend/components/overview/overview-model";
 import { ProgressBar } from "@/frontend/components/ui/progress-bar";
 import { Tip } from "@/frontend/components/ui/tooltip";
 import { CoversSheet } from "./covers-sheet";
@@ -52,13 +52,6 @@ interface DeadlineBodyProps {
 	/** A test's or interview's mocks (path-mocks.tsx). */
 	mocks?: ReactNode;
 }
-
-const LEGEND: { key: keyof DeadlineProgress["counts"]; label: string; rate: number | null }[] = [
-	{ key: "strong", label: "strong", rate: 0.9 },
-	{ key: "shaky", label: "shaky", rate: 0.7 },
-	{ key: "weak", label: "weak", rate: 0.3 },
-	{ key: "untested", label: "not tested", rate: null },
-];
 
 export const DeadlineBody = memo(function DeadlineBody(props: DeadlineBodyProps) {
 	const { deadline: d, nowMs } = props;
@@ -151,7 +144,7 @@ function TopicStrip({ deadline: d, tallies }: { deadline: DeadlineProgress; tall
 				))}
 			</div>
 			<div className="flex flex-wrap items-center gap-x-[18px] gap-y-1 text-base text-ink-2">
-				{LEGEND.filter((l) => d.counts[l.key] > 0).map((l) => (
+				{STATUS_LEGEND.filter((l) => d.counts[l.key] > 0).map((l) => (
 					<span key={l.key} data-testid={`deadline-count-${l.key}`} className="flex items-center gap-1.5">
 						<span className="size-2.5 shrink-0" style={{ background: rampColor(l.rate) }} aria-hidden />
 						{d.counts[l.key]} {l.label}

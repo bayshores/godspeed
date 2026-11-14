@@ -13,7 +13,7 @@ import { cn } from "@/frontend/lib/utils";
 import { countLeft, laterLine, todayRow } from "./home-page-model";
 
 /** The space's color; grey for a space that has gone. */
-const blockColor = (color: SpaceColor | undefined) => (color ? spaceColorVar(color) : "var(--border)");
+export const blockColor = (color: SpaceColor | undefined) => (color ? spaceColorVar(color) : "var(--border)");
 
 /** A row's two lines of words. */
 function Words({ title, line, dim }: { title: ReactNode; line: string; dim?: boolean }) {
@@ -27,32 +27,16 @@ function Words({ title, line, dim }: { title: ReactNode; line: string; dim?: boo
 	);
 }
 
-/** A Today row's button: the bright key on the one main row
- *  (home-page-model.ts mainRowKey), a plain key on the rest. */
-function RowButton({ main, testId, busy, onClick, children }: { main: boolean; testId: string; busy: boolean; onClick: () => void; children: ReactNode }) {
-	return (
-		<button
-			type="button"
-			data-testid={testId}
-			disabled={busy}
-			onClick={onClick}
-			className={cn("lh-btn shrink-0", main ? "lh-btn-main h-[53px] px-[22px] text-[17px]" : "h-[38px] text-[15px]")}
-		>
-			{children}
-		</button>
-	);
-}
-
 /**
- * A deadline under Today: its count block, what to do for it, "Mark done"
- * and its button. The title opens the deadline's page.
+ * A deadline under "Due this week": its count block, what to do for it,
+ * "Mark done" and its button (a plain key: the card holds the main one).
+ * The title opens the deadline's page.
  */
 export function TodayRow({
 	deadline: d,
 	progress,
 	color,
 	nowMs,
-	main,
 	busy,
 	onStart,
 	onDone,
@@ -61,8 +45,6 @@ export function TodayRow({
 	progress: DeadlineProgress | undefined;
 	color: SpaceColor | undefined;
 	nowMs: number;
-	/** Its button is Today's one dark button. */
-	main: boolean;
 	/** A lesson is starting. */
 	busy: boolean;
 	onStart: (d: OpenDeadline) => void;
@@ -86,9 +68,9 @@ export function TodayRow({
 						<button type="button" data-testid="today-done" onClick={() => onDone(d)} className="lh-btn lh-btn-quiet h-[38px] text-[15px]">
 							Mark done
 						</button>
-						<RowButton main={main} testId="today-start" busy={busy} onClick={() => onStart(d)}>
+						<button type="button" data-testid="today-start" disabled={busy} onClick={() => onStart(d)} className="lh-btn h-[38px] shrink-0 text-[15px]">
 							{words.button}
-						</RowButton>
+						</button>
 					</span>
 				</div>
 			</Pane>
