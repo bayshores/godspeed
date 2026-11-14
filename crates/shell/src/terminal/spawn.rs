@@ -101,7 +101,10 @@ pub fn shell(env: &[(OsString, OsString)], os: &str) -> String {
 /// `ComSpec` on Windows.
 pub fn argv(script: &Path, shell: &str, os: &str) -> Vec<OsString> {
 	if os == "windows" {
-		return vec![shell.into(), "/d".into(), "/c".into(), script.into()];
+		// Relative to the folder, the working directory: portable-pty quotes only a space, a tab
+		// or `"`, and cmd splits a full path at `&`, `(`, `)` or `^`.
+		let name = script.file_name().unwrap_or_default().to_string_lossy();
+		return vec![shell.into(), "/d".into(), "/c".into(), format!(r".godspeed\{name}").into()];
 	}
 	vec![login_shell(shell, os).into(), "-l".into(), "-i".into(), "-c".into(), "exec \"$0\"".into(), script.into()]
 }
@@ -224,7 +227,8 @@ mod tests {
 		assert_eq!(line("/usr/bin/nu", "linux")[0], "/bin/bash");
 		assert_eq!(line("/bin/dash", "linux")[0], "/bin/dash");
 		assert_eq!(line("", "linux")[0], "/bin/bash");
-		assert_eq!(argv(Path::new(r"C:\a b\.godspeed\start-codex.cmd"), r"C:\Windows\system32\cmd.exe", "windows"), [r"C:\Windows\system32\cmd.exe", "/d", "/c", r"C:\a b\.godspeed\start-codex.cmd"].map(OsString::from));
+		let windows = Path::new(r"C:\Users\R&D (x)\godspeed").join(".godspeed").join("start-codex.cmd");
+		assert_eq!(argv(&windows, r"C:\Windows\system32\cmd.exe", "windows"), [r"C:\Windows\system32\cmd.exe", "/d", "/c", r".godspeed\start-codex.cmd"].map(OsString::from), "the folder, with its & and ( ), is the working directory");
 	}
 
 	#[test]
