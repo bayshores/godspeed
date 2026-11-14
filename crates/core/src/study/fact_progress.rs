@@ -13,13 +13,15 @@ fn fact_mark(fact: &Json) -> Option<&str> {
 	super::items(&fact["answers"]).last().and_then(|a| a["outcome"].as_str())
 }
 
-/// Latest answer wrong first, then "I don't know", then right, then untested.
+/// Latest answer wrong first, then "I don't know", then solved with hints, then right, then
+/// untested.
 fn mark_order(mark: Option<&str>) -> u8 {
 	match mark {
 		Some("wrong") => 0,
 		Some("dontKnow") => 1,
-		Some("right") => 2,
-		_ => 3,
+		Some("hinted") => 2,
+		Some("right") => 3,
+		_ => 4,
 	}
 }
 

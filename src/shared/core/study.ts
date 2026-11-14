@@ -31,8 +31,8 @@ interface StudyTopic {
 /** The plan node of a typed topic that matches no fact. */
 export const FREE_TOPIC_ID = "topic";
 
-/** A weak topic whose newest answer was not right: taught first again. */
-const isLatestWrong = (status: TopicStatus, latest: AnswerOutcome | undefined) => status === "weak" && latest !== "right";
+/** A weak topic whose newest answer was not right or solved with hints: taught first again. */
+const isLatestWrong = (status: TopicStatus, latest: AnswerOutcome | undefined) => status === "weak" && latest !== "right" && latest !== "hinted";
 
 type StudiedTopic = Pick<TopicProgress, "id" | "name" | "members" | "material" | "status" | "answers">;
 

@@ -146,6 +146,9 @@ pub fn derive_progress(input: &Json) -> Json {
 			o.insert("updatedAt", l["updatedAt"].clone());
 			o.insert("answers", answers.iter().map(answer_ref).collect::<Json>());
 			o.insert("right", tally.right);
+			if tally.hinted > 0 {
+				o.insert("hinted", tally.hinted);
+			}
 			o.insert("answered", tally.answered);
 			o.insert("score", tally.rate);
 			Json::Obj(o)

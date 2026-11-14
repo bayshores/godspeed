@@ -426,4 +426,50 @@ mod tests {
 		assert_eq!(d.get("continueStudy"), None, "a session that reached its end is not continued");
 		assert_eq!(d["studyEndedToday"], json!(true));
 	}
+	/// A problem on `node` the learner solved with hints, ending the topic.
+	fn hinted(n: &str, node: &str, fact: &str) -> Vec<Json> {
+		let stop = json!({ "kind": "topic", "nodeId": node, "activeMinutes": 2, "at": time::iso(clock::now_ms()) });
+		vec![
+			json!({ "role": "assistant", "id": format!("m-{n}"), "content": [{ "type": "toolCall", "id": format!("p-{n}"), "name": "problem", "arguments": { "nodeId": node, "mode": "composition", "target": [fact], "statement": "Work it out." } }], "timestamp": clock::now_ms() }),
+			json!({ "role": "toolResult", "toolCallId": format!("p-{n}"), "toolName": "problem", "isError": false, "timestamp": clock::now_ms() }),
+			json!({ "role": "assistant", "content": [{ "type": "toolCall", "id": format!("c-{n}"), "name": "conclude", "arguments": { "outcome": "solvedWithHints", "verdict": "Solid now." } }], "timestamp": clock::now_ms() }),
+			json!({ "role": "toolResult", "toolCallId": format!("c-{n}"), "toolName": "conclude", "details": { "stop": stop }, "isError": false, "timestamp": clock::now_ms() }),
+		]
+	}
+
+	#[test]
+	fn topics_finished_in_todays_study_session_are_not_planned_again_today_or_untested() {
+		use gs_store::graph::Ledger;
+		let root = scratch_dir("progress-finished-today");
+		let app = test_app(&root);
+		let space_id = app.stores.spaces.create_space(&json!({ "name": "Machine Learning Foundations" })).unwrap()["id"].str_or_empty().to_owned();
+		let file = json!({ "id": "f_lec", "origin": "copied", "name": "Lectures.pdf", "path": "f_lec/Lectures.pdf", "kind": "study", "contentFp": "", "status": "ready", "addedAt": "t" });
+		app.stores.spaces.rewrite_space(&space_id, |r| {
+			let mut next = r.clone();
+			next.as_obj_mut().unwrap().insert("files", json!([file]));
+			next
+		}).unwrap();
+		let source = crate::spaces::source_id_for(&space_id, "f_lec");
+		let names = [("cv", "Cross-validation"), ("gd", "Gradient descent"), ("ms", "Model selection"), ("of", "Overfitting"), ("rg", "Regularization")];
+		let scope = Some(space_id.as_str());
+		for (id, name) in names {
+			let fact = json!({ "id": format!("n_{id}"), "name": name, "statement": format!("{name} matters."), "aliases": [], "createdAt": "t", "provenance": [{ "chatId": source, "messageId": "" }] });
+			app.stores.graphs.append(scope, Ledger::Nodes, &fact).unwrap();
+		}
+		let topics: Vec<Json> = names.iter().map(|(id, name)| json!({ "id": format!("tpc_{id}"), "name": name, "members": [format!("n_{id}")] })).collect();
+		app.stores.graphs.append(scope, Ledger::Topics, &json!({ "at": "t", "topics": topics })).unwrap();
+		let due = local_day(clock::now_ms() + 3 * 86_400_000);
+		let deadline_id = app.stores.spaces.add_deadline(&space_id, &json!({ "name": "Midterm", "kind": "exam", "date": due, "fileIds": ["f_lec"] })).unwrap()["id"].str_or_empty().to_owned();
+		let planned = |app: &App| -> Vec<String> { deadline_study_for(app, &space_id, &deadline_id).unwrap().unwrap().topics.iter().map(|t| t["id"].str_or_empty().to_owned()).collect() };
+		assert_eq!(planned(&app), ["tpc_cv", "tpc_gd"], "today's two topics");
+
+		let chat_id = app.stores.chats.create_chat("Study: Cross-validation, Gradient descent", Some("study"), Some(&space_id), Some(&deadline_id)).unwrap()["id"].str_or_empty().to_owned();
+		app.stores.chats.save_tree(&chat_id, &json!({ "nodes": [{ "id": "tpc_cv", "title": "Cross-validation" }, { "id": "tpc_gd", "title": "Gradient descent" }], "edges": [] })).unwrap();
+		app.stores.chats.save_messages(&chat_id, &[hinted("1", "tpc_cv", "n_cv"), hinted("2", "tpc_gd", "n_gd")].concat()).unwrap();
+
+		let progress = progress_for(&app, space_id.as_str(), None).unwrap().unwrap();
+		let status = |id: &str| items(&progress["topics"]).iter().find(|t| t["id"].as_str() == Some(id)).unwrap()["status"].clone();
+		assert_eq!((status("tpc_cv"), status("tpc_gd")), (json!("shaky"), json!("shaky")), "solved with hints: shaky, not untested");
+		assert_eq!(planned(&app), ["tpc_ms", "tpc_of"], "Study again moves on to the next untested topics");
+	}
 }

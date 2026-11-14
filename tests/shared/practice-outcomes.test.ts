@@ -1,13 +1,13 @@
 /**
  * Practice problems paired with how they ended, and how those outcomes
- * count toward readiness: solved is right, giving up or moving on is
- * wrong, solved with hints counts neither way.
+ * count toward readiness: solved is right, solved with hints counts in
+ * part, giving up or moving on is wrong.
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { LhMessage } from "../../src/shared/core/native-messages.ts";
 import { practiceOutcomes } from "../../src/shared/core/practice-outcomes.ts";
-import { collectAnswers, factsForAnswer } from "../../src/shared/core/progress.ts";
+import { collectAnswers, factsForAnswer, rightWords, tally, topicStatus, type AnswerOutcome } from "../../src/shared/core/progress.ts";
 
 const T0 = Date.parse("2026-11-02T20:00:00Z");
 let clock = 0;
@@ -46,12 +46,13 @@ describe("practice outcomes", () => {
 		assert.equal(outcomes[0]!.at, new Date(T0 + 3000).toISOString(), "when its conclude went through");
 	});
 
-	it("count toward readiness: solved right, given up or moved on wrong, hints and dismissals not at all", () => {
+	it("count toward readiness: solved right, with hints in part, given up or moved on wrong, dismissals not at all", () => {
 		const answers = collectAnswers("chat_p", session());
 		assert.deepEqual(
 			answers.map((a) => [a.toolCallId, a.tool, a.outcome, a.factIds]),
 			[
 				["p1", "problem", "right", ["n_a"]],
+				["p2", "problem", "hinted", ["n_b"]],
 				["p3", "problem", "wrong", undefined],
 				["p4", "problem", "wrong", ["n_a", "n_c"]],
 			],
@@ -83,5 +84,19 @@ describe("practice outcomes", () => {
 		assert.equal(practiceOutcomes(messages)[0]!.nodeId, "pt_a");
 		assert.equal(collectAnswers("chat_p", messages)[0]!.nodeId, "pt_a");
 		assert.equal("nodeId" in practiceOutcomes(session())[0]!, false, "absent when the problem names none");
+	});
+
+	it("a problem solved with hints counts as part of a right one, as the server counts it", () => {
+		const of = (...o: AnswerOutcome[]) => o.map((outcome) => ({ outcome }));
+		assert.deepEqual(tally(of("hinted")), { answered: 1, right: 0, hinted: 1, wrong: 0, dontKnow: 0, rate: 0.6 });
+		assert.deepEqual(tally(of("right")), { answered: 1, right: 1, wrong: 0, dontKnow: 0, rate: 1 }, "no hinted key without one");
+		const status = (...o: AnswerOutcome[]) => topicStatus(tally(of(...o)).rate);
+		assert.deepEqual(
+			[status("hinted"), status("hinted", "hinted"), status("hinted", "right"), status("hinted", "right", "right"), status("hinted", "wrong")],
+			["shaky", "shaky", "shaky", "strong", "weak"],
+		);
+		assert.equal(rightWords(tally(of("hinted"))), "0 of 1 right, 1 solved with hints");
+		assert.equal(rightWords(tally(of("right", "hinted", "wrong"))), "1 of 3 right, 1 solved with hints");
+		assert.equal(rightWords(tally(of("right", "wrong"))), "1 of 2 right");
 	});
 });

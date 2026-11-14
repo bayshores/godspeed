@@ -27,10 +27,10 @@ pub const FREE_TOPIC_ID: &str = "topic";
 /// A session holds at most this many facts.
 pub const MAX_STUDY_FACTS: usize = 64;
 
-/// A weak topic whose newest answer was not right: taught first again (the status is a lifetime
-/// rate, so a topic can stay weak after the learner has caught up).
+/// A weak topic whose newest answer was not right or solved with hints: taught first again (the
+/// status is a lifetime rate, so a topic can stay weak after the learner has caught up).
 pub fn is_latest_wrong(status: &str, latest: Option<&str>) -> bool {
-	status == "weak" && latest != Some("right")
+	status == "weak" && !matches!(latest, Some("right" | "hinted"))
 }
 
 /// A progress topic (`{ id, name[, material], status, answers }`) as a study topic over `fact_ids`.

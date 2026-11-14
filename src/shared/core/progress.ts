@@ -51,7 +51,11 @@ export function topicStatus(rate: number | null): TopicStatus {
 
 // ─── answers ────────────────────────────────────────────────────────────────
 
-export type AnswerOutcome = "right" | "wrong" | "dontKnow";
+/** "hinted": a practice problem solved with hints, counted at HINTED_WEIGHT of a right answer. */
+export type AnswerOutcome = "right" | "hinted" | "wrong" | "dontKnow";
+
+/** How much a problem solved with hints counts toward a rate: one alone reads shaky, not strong. */
+export const HINTED_WEIGHT = 0.6;
 
 /** One graded answer from a lesson: a quiz or probe answer, or a practice problem's outcome. */
 interface AnsweredQuestion {
@@ -100,9 +104,9 @@ export function isAnswerData(v: unknown): v is QuestionAnswerData {
 	return typeof v === "object" && v !== null && typeof (v as { kind?: unknown }).kind === "string";
 }
 
-/** A practice outcome as an answer: solved is right, giving up or moving
- *  on is wrong; solved with hints counts neither way. */
-const PRACTICE_OUTCOME: Partial<Record<ConcludeOutcome, AnswerOutcome>> = { solved: "right", movedOn: "wrong", surrendered: "wrong" };
+/** A practice outcome as an answer: solved is right, solved with hints is
+ *  "hinted", giving up or moving on is wrong. */
+const PRACTICE_OUTCOME: Partial<Record<ConcludeOutcome, AnswerOutcome>> = { solved: "right", solvedWithHints: "hinted", movedOn: "wrong", surrendered: "wrong" };
 
 /** Every graded quiz/probe answer in one lesson (predictions aside), in transcript order, then its practice problems' outcomes. */
 export function collectAnswers(chatId: string, messages: readonly LhMessage[]): AnsweredQuestion[] {
@@ -199,23 +203,39 @@ export function factsForAnswer(answer: Pick<AnsweredQuestion, "chatId" | "messag
 interface Tally {
 	answered: number;
 	right: number;
+	/** Problems solved with hints, only when there are some. */
+	hinted?: number;
 	wrong: number;
 	dontKnow: number;
-	/** right / answered ("I don't know" counts as not right); null = none. */
+	/** (right + HINTED_WEIGHT × hinted) / answered ("I don't know" counts as not right); null = none. */
 	rate: number | null;
 }
 
 export function tally(answers: ReadonlyArray<{ outcome: AnswerOutcome }>): Tally {
 	let right = 0;
+	let hinted = 0;
 	let wrong = 0;
 	let dontKnow = 0;
 	for (const a of answers) {
 		if (a.outcome === "right") right++;
+		else if (a.outcome === "hinted") hinted++;
 		else if (a.outcome === "wrong") wrong++;
 		else dontKnow++;
 	}
-	const answered = right + wrong + dontKnow;
-	return { answered, right, wrong, dontKnow, rate: answered === 0 ? null : right / answered };
+	const answered = right + hinted + wrong + dontKnow;
+	const rate = answered === 0 ? null : (right + HINTED_WEIGHT * hinted) / answered;
+	return { answered, right, ...(hinted > 0 ? { hinted } : {}), wrong, dontKnow, rate };
+}
+
+/** "3 of 4 right", and the problems solved with hints apart from those:
+ *  "2 of 4 right, 1 solved with hints". */
+export function rightWords(t: { right: number; hinted?: number; answered: number }): string {
+	return `${t.right} of ${t.answered} right${hintedWords(t)}`;
+}
+
+/** ", 1 solved with hints", or "" with none. */
+export function hintedWords(t: { hinted?: number }): string {
+	return t.hinted ? `, ${t.hinted} solved with hints` : "";
 }
 
 // ─── topics: stats, links, columns ──────────────────────────────────────────
@@ -267,10 +287,11 @@ export function factMark(f: Pick<FactProgress, "answers">): AnswerOutcome | null
 	return f.answers.length === 0 ? null : f.answers[f.answers.length - 1]!.outcome;
 }
 
-const MARK_ORDER: Record<string, number> = { wrong: 0, dontKnow: 1, right: 2, none: 3 };
+const MARK_ORDER: Record<string, number> = { wrong: 0, dontKnow: 1, hinted: 2, right: 3, none: 4 };
 
 /** A topic's facts, the ones to fix first: latest answer wrong, then
- *  "I don't know", then right, then untested; ties by name. */
+ *  "I don't know", then solved with hints, then right, then untested;
+ *  ties by name. */
 export function topicFacts(facts: readonly FactProgress[], topic: Pick<TopicProgress, "members">): FactProgress[] {
 	const members = new Set(topic.members);
 	return facts
@@ -301,8 +322,10 @@ export interface LessonProgress {
 	/** Every graded answer, in order. */
 	answers: AnswerRef[];
 	right: number;
+	/** Problems solved with hints, only when there are some. */
+	hinted?: number;
 	answered: number;
-	/** right / answered; null before the first answer. */
+	/** The rate as a topic's (tally); null before the first answer. */
 	score: number | null;
 }
 
