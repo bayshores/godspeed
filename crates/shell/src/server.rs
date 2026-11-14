@@ -23,7 +23,8 @@ use crate::{bug_report, log, restarts, rpc};
 #[cfg(not(debug_assertions))]
 const PREFERRED_PORT: u16 = 47613;
 const READY_LIMIT: Duration = Duration::from_secs(30);
-const LOGIN_LIMIT: Duration = Duration::from_secs(2);
+/// How long the shell waits for the server's answer to a login or a question.
+const ASK_LIMIT: Duration = Duration::from_secs(2);
 const STOP_GRACE: Duration = Duration::from_secs(3);
 /// `desktop:dev`: how long the window waits for Vite.
 #[cfg(debug_assertions)]
@@ -47,8 +48,9 @@ pub struct Server {
 	up: AtomicBool,
 	stopping: AtomicBool,
 	restart_times: Mutex<Vec<i64>>,
-	logins: Mutex<HashMap<u64, mpsc::Sender<()>>>,
-	last_login: AtomicU64,
+	/// The shell's open questions to the server, by id.
+	asks: Mutex<HashMap<u64, mpsc::Sender<Option<String>>>>,
+	last_ask: AtomicU64,
 }
 
 /// The current child. A restarted server is a new generation, and an answer meant for an
@@ -71,8 +73,8 @@ impl Server {
 			up: AtomicBool::new(false),
 			stopping: AtomicBool::new(false),
 			restart_times: Mutex::default(),
-			logins: Mutex::default(),
-			last_login: AtomicU64::new(0),
+			asks: Mutex::default(),
+			last_ask: AtomicU64::new(0),
 		})
 	}
 
@@ -133,18 +135,29 @@ impl Server {
 	/// A one-time token the server takes over stdin; the window opens the login URL with it.
 	fn log_in(&self) -> Result<String, String> {
 		let token = random_hex::<32>();
-		let id = self.last_login.fetch_add(1, Ordering::SeqCst) + 1;
-		let (tx, rx) = mpsc::channel();
-		lock(&self.logins).insert(id, tx);
-		self.send(None, &ToServer::Login { id, token: token.clone() });
-		let answered = rx.recv_timeout(LOGIN_LIMIT);
-		lock(&self.logins).remove(&id);
-		answered.map(|()| token).map_err(|_| "the server did not take the window's login".to_owned())
+		self.ask(|id| ToServer::Login { id, token: token.clone() }).map(|_| token).ok_or_else(|| "the server did not take the window's login".to_owned())
 	}
 
-	pub fn login_ok(&self, id: u64) {
-		if let Some(tx) = lock(&self.logins).get(&id) {
-			let _ = tx.send(());
+	/// The godspeed folder as the server has it: `None` inside when it isn't set up, `None` when
+	/// the server gave no answer.
+	pub fn agent_folder(&self) -> Option<Option<String>> {
+		self.ask(|id| ToServer::AgentFolder { id })
+	}
+
+	/// Sends what `make` builds with a fresh id and waits for the server's answer.
+	fn ask(&self, make: impl FnOnce(u64) -> ToServer) -> Option<Option<String>> {
+		let id = self.last_ask.fetch_add(1, Ordering::SeqCst) + 1;
+		let (tx, rx) = mpsc::channel();
+		lock(&self.asks).insert(id, tx);
+		self.send(None, &make(id));
+		let answer = rx.recv_timeout(ASK_LIMIT).ok();
+		lock(&self.asks).remove(&id);
+		answer
+	}
+
+	pub fn answered(&self, id: u64, answer: Option<String>) {
+		if let Some(tx) = lock(&self.asks).get(&id) {
+			let _ = tx.send(answer);
 		}
 	}
 

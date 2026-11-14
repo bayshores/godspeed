@@ -79,7 +79,11 @@ pub fn read(app: &AppHandle, generation: u64, stdout: impl Read, ready: mpsc::Se
 				continue;
 			}
 			Ok(ToShell::LoginOk { id }) => {
-				app.state::<Server>().login_ok(id);
+				app.state::<Server>().answered(id, None);
+				continue;
+			}
+			Ok(ToShell::AgentFolder { id, folder }) => {
+				app.state::<Server>().answered(id, folder);
 				continue;
 			}
 			Ok(ToShell::Notify { id, title, body }) => {

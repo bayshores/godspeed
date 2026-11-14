@@ -4,6 +4,7 @@
 //! stderr either way.
 
 use std::process::ExitCode;
+use std::sync::Arc;
 
 use axum::ServiceExt;
 use axum::extract::Request;
@@ -53,6 +54,9 @@ async fn main() -> ExitCode {
 	let app = App::new(paths, shell.clone());
 	if let Some(shell) = &shell {
 		listen_for_terminals(&app, shell);
+		// Weak: the app holds the link, so the link must not hold the app.
+		let app = Arc::downgrade(&app);
+		shell.on_agent_folder(move || app.upgrade().and_then(|app| gs_services::app::agent_folder::set_up_folder(&app)));
 	}
 	gs_services::spaces::upgrade_old_preps(&app);
 	gs_services::mocks::mocks::ask_waiting_mocks(&app);

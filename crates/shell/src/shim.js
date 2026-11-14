@@ -168,9 +168,9 @@
 		pickFolder: () => invoke("pick_folder"),
 		showInFolder: (path) => invoke("show_in_folder", { path }),
 		openPath: (path) => invoke("open_path", { path }),
-		// The agents' terminals: the page names a role and an agent, never a program.
+		// The agents' terminals: the page names a role and an agent, never a program or a folder.
 		terminals: {
-			start: (role, agent, folder) => invoke("terminal_start", { role, agent, folder }),
+			start: (role, agent) => invoke("terminal_start", { role, agent }),
 			attach: (id) => invoke("terminal_attach", { id }),
 			detach: (id) => invoke("terminal_detach", { id }),
 			write: (id, data) => invoke("terminal_write", { id, data }),

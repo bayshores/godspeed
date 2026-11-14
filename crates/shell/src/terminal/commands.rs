@@ -1,6 +1,6 @@
 //! The terminal commands (`window.lh.terminals` in shim.js). Each checks `trusted()` first. The
-//! page names a role, an agent and a terminal id; it never names a program or an argument, and
-//! it can type only into a terminal it shows while the window has the focus.
+//! page names a role, an agent and a terminal id; it never names a program, an argument or a
+//! folder, and it can type only into a terminal it shows while the window has the focus.
 
 use serde_json::{Value, json};
 use tauri::{AppHandle, Manager, State, Webview};
@@ -34,11 +34,13 @@ fn focused(webview: &Webview) -> bool {
 	window::main_window(webview).is_ok_and(|main| main.is_focused().unwrap_or(false))
 }
 
-/// Starts the folder's start script for a role and an agent: `{ id }`, or why it could not.
+/// Starts the godspeed folder's start script for a role and an agent: `{ id }`, or why it could
+/// not. The server says where the folder is.
 #[tauri::command(async)]
-pub fn terminal_start(webview: Webview, origin: State<AppOrigin>, terminals: State<Terminals>, paths: State<Paths>, role: String, agent: String, folder: String) -> Result<Value, String> {
+pub fn terminal_start(webview: Webview, origin: State<AppOrigin>, terminals: State<Terminals>, paths: State<Paths>, server: State<Server>, role: String, agent: String) -> Result<Value, String> {
 	trusted(&webview, &origin)?;
 	let (Some(role), Some(agent)) = (Role::parse(&role), Agent::parse(&agent)) else { return Err(NOT_SET_UP.to_owned()) };
+	let folder = server.agent_folder().ok_or(super::NO_START)?.ok_or(NOT_SET_UP)?;
 	let id = terminals.start(role, agent, &folder, std::env::vars_os().collect(), &paths.data)?;
 	Ok(json!({ "id": id }))
 }

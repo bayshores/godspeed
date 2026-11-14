@@ -87,7 +87,7 @@ test("every window.lh member calls its shell command with its arguments", async 
 test("the terminal members name a role, an agent and an id, and hear their pushes", async () => {
 	const { lh, invoked, window } = page({ reply: (cmd) => (cmd === "terminal_start" ? { id: "a1" } : undefined) });
 	const terminals = lh!.terminals as unknown as Record<string, (...args: unknown[]) => unknown>;
-	assert.deepEqual(await terminals.start!("teacher", "claude", "/g"), { id: "a1" });
+	assert.deepEqual(await terminals.start!("teacher", "claude"), { id: "a1" });
 	await terminals.attach!("a1");
 	await terminals.write!("a1", "y");
 	await terminals.answer!("a1", "trust");
@@ -97,7 +97,7 @@ test("the terminal members name a role, an agent and an id, and hear their pushe
 	await terminals.list!();
 	await lh!.openLink!("https://nodejs.org");
 	assert.deepEqual(invoked, [
-		["terminal_start", { role: "teacher", agent: "claude", folder: "/g" }],
+		["terminal_start", { role: "teacher", agent: "claude" }],
 		["terminal_attach", { id: "a1" }],
 		["terminal_write", { id: "a1", data: "y" }],
 		["terminal_answer", { id: "a1", kind: "trust" }],

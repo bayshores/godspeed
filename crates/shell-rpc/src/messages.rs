@@ -17,6 +17,8 @@ pub enum ToShell {
 	Svg { id: u64, svg: String, width: u32, height: u32 },
 	/// Show a system notification (a deadline reminder) unless the window has the focus.
 	Notify { id: u64, title: String, body: String },
+	/// The answer to `ToServer::AgentFolder`: the godspeed folder, when it is set up.
+	AgentFolder { id: u64, folder: Option<String> },
 }
 
 /// Shell to server.
@@ -40,6 +42,8 @@ pub enum ToServer {
 	/// The ids of the agents' terminals that run now (after every start and end). An agent that
 	/// sends another id was stopped in the app.
 	Terminals { live: Vec<String> },
+	/// Where the godspeed folder is: a terminal runs only that folder's start scripts.
+	AgentFolder { id: u64 },
 }
 
 /// `"result": {…}` or `"error": "…"`.
@@ -95,6 +99,8 @@ mod tests {
 		round_trip(ToShell::Demo { id: 3, html: String::new(), probe: None }, r#"{"t":"demo","id":3,"html":"","probe":null}"#);
 		round_trip(ToShell::Svg { id: 4, svg: "<svg/>".into(), width: 900, height: 700 }, r#"{"t":"svg","id":4,"svg":"<svg/>","width":900,"height":700}"#);
 		round_trip(ToShell::Notify { id: 5, title: "Quiz 2 is tomorrow".into(), body: "Algebra.".into() }, r#"{"t":"notify","id":5,"title":"Quiz 2 is tomorrow","body":"Algebra."}"#);
+		round_trip(ToShell::AgentFolder { id: 6, folder: Some("/Users/sam/godspeed".into()) }, r#"{"t":"agent_folder","id":6,"folder":"/Users/sam/godspeed"}"#);
+		round_trip(ToShell::AgentFolder { id: 7, folder: None }, r#"{"t":"agent_folder","id":7,"folder":null}"#);
 	}
 
 	#[test]
@@ -118,6 +124,7 @@ mod tests {
 		round_trip(ToServer::SvgDone { id: 7, outcome: SvgOutcome::Error("too big".into()) }, r#"{"t":"svg_done","id":7,"error":"too big"}"#);
 		round_trip(ToServer::NotifyDone { id: 8, shown: false }, r#"{"t":"notify_done","id":8,"shown":false}"#);
 		round_trip(ToServer::Terminals { live: vec!["ab".repeat(16)] }, &format!(r#"{{"t":"terminals","live":["{}"]}}"#, "ab".repeat(16)));
+		round_trip(ToServer::AgentFolder { id: 9 }, r#"{"t":"agent_folder","id":9}"#);
 	}
 
 	#[test]

@@ -32,6 +32,7 @@ const FRAME_BYTES: usize = 64 * 1024;
 const BROKEN: &str = "godspeed couldn't read this terminal's screen, so it stopped it. Start it again to go on.";
 
 pub const NOT_SET_UP: &str = "The godspeed folder isn't set up yet.";
+const NO_START: &str = "godspeed couldn't start the terminal.";
 const NOT_THERE: &str = "That terminal isn't running.";
 const NOT_SHOWN: &str = "Show the terminal and click in it first.";
 
@@ -248,7 +249,7 @@ impl Terminals {
 		crate::win::path::refresh(&mut env);
 		let spawned = spawn::spawn(spawn::argv(&script, &shell, os), env, Path::new(folder)).map_err(|err| {
 			self.outlet.log(&format!("terminal could not start: {} {}: {err}", role.name(), agent.name()));
-			"godspeed couldn't start the terminal.".to_owned()
+			NO_START.to_owned()
 		})?;
 		let (input, queued) = mpsc::channel::<Vec<u8>>();
 		let mut writer = spawned.writer;

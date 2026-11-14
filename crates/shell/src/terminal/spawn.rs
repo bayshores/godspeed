@@ -58,7 +58,8 @@ impl Agent {
 	}
 }
 
-/// The start script for this role and agent in an absolute folder, when it is there.
+/// The start script for this role and agent in an absolute folder, when it is there: a plain
+/// file in a plain `.godspeed` folder, never a link that leads out of the folder.
 pub fn script(folder: &str, role: Role, agent: Agent, os: &str) -> Option<PathBuf> {
 	let folder = Path::new(folder);
 	if !folder.is_absolute() {
@@ -70,8 +71,11 @@ pub fn script(folder: &str, role: Role, agent: Agent, os: &str) -> Option<PathBu
 		_ => "sh",
 	};
 	let helper = if role == Role::Helper { "-helper" } else { "" };
-	let script = folder.join(".godspeed").join(format!("start-{}{helper}.{extension}", agent.name()));
-	script.metadata().is_ok_and(|meta| meta.is_file()).then_some(script)
+	let dir = folder.join(".godspeed");
+	let script = dir.join(format!("start-{}{helper}.{extension}", agent.name()));
+	let plain = |path: &Path| path.symlink_metadata().is_ok_and(|meta| !meta.file_type().is_symlink());
+	let inside = || script.canonicalize().ok().zip(folder.canonicalize().ok()).is_some_and(|(script, folder)| script.starts_with(folder));
+	(plain(&dir) && dir.is_dir() && plain(&script) && script.is_file() && inside()).then_some(script)
 }
 
 /// The shells that read the learner's profile the way `-l -i -c` expects; any other `$SHELL`
@@ -216,6 +220,21 @@ mod tests {
 		std::fs::create_dir_all(dir.join(".godspeed/start-codex.sh")).unwrap();
 		assert_eq!(script(folder, Role::Teacher, Agent::Codex, "linux"), None, "a folder is not a script");
 		std::fs::remove_dir_all(dir).unwrap();
+	}
+
+	#[cfg(unix)]
+	#[test]
+	fn a_start_script_or_godspeed_folder_that_is_a_link_never_runs() {
+		let (outside, dir) = (temp("outside"), temp("linked"));
+		gs_base::fsx::write_text_atomic(&outside.join(".godspeed/start-claude.sh"), "#!/bin/sh\n").unwrap();
+		std::os::unix::fs::symlink(outside.join(".godspeed/start-claude.sh"), dir.join(".godspeed/start-claude.sh")).unwrap();
+		assert_eq!(script(dir.to_str().unwrap(), Role::Teacher, Agent::Claude, "linux"), None, "a linked script");
+		std::fs::remove_dir_all(dir.join(".godspeed")).unwrap();
+		std::os::unix::fs::symlink(outside.join(".godspeed"), dir.join(".godspeed")).unwrap();
+		assert_eq!(script(dir.to_str().unwrap(), Role::Teacher, Agent::Claude, "linux"), None, "a linked .godspeed");
+		assert!(script(outside.to_str().unwrap(), Role::Teacher, Agent::Claude, "linux").is_some(), "the real one, from its own folder");
+		std::fs::remove_dir_all(dir).unwrap();
+		std::fs::remove_dir_all(outside).unwrap();
 	}
 
 	#[test]

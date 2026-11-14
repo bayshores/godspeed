@@ -87,6 +87,12 @@ fn is_set_up(folder: &str) -> bool {
 	Path::new(folder).join(".godspeed").join("connect.mjs").exists()
 }
 
+/// The folder in use, when it is set up: the shell runs agents' terminals only there.
+pub fn set_up_folder(app: &App) -> Option<String> {
+	let folder = agent_folder(app);
+	is_set_up(&folder).then_some(folder)
+}
+
 fn home_text(app: &App) -> String {
 	app.paths.home.to_string_lossy().into_owned()
 }

@@ -98,6 +98,16 @@ async fn logins_are_answered_and_bad_lines_skipped() {
 	assert!(!link.take_login(&token), "a token works once");
 }
 
+#[tokio::test]
+async fn the_shell_asks_where_the_godspeed_folder_is() {
+	let (link, mut rx) = link();
+	link.receive(ToServer::AgentFolder { id: 1 });
+	link.on_agent_folder(|| Some("/Users/sam/godspeed".to_owned()));
+	link.receive(ToServer::AgentFolder { id: 2 });
+	assert_eq!(sent(&mut rx).await, ToShell::AgentFolder { id: 1, folder: None }, "no folder before the server knows it");
+	assert_eq!(sent(&mut rx).await, ToShell::AgentFolder { id: 2, folder: Some("/Users/sam/godspeed".to_owned()) });
+}
+
 #[test]
 fn the_live_terminal_ids_reach_their_listener() {
 	let (link, _rx) = link();
