@@ -27,7 +27,8 @@ Object.assign(globalThis, {
 	getComputedStyle: () => ({ getPropertyValue: () => "" }),
 });
 Object.assign(dom.window, { innerWidth: 1280, innerHeight: 800 });
-// linkedom has no focus: remember what was last focused.
+// linkedom has no focus: remember what was last focused. Nodes are only
+// compared with ===, since a failed assert.equal on one prints the whole tree.
 let focused: Element | null = null;
 (dom.window.HTMLElement.prototype as unknown as { focus: () => void }).focus = function (this: Element) {
 	focused = this;
@@ -37,7 +38,7 @@ const { createRoot } = await import("react-dom/client");
 const { MemoryRouter } = await import("react-router");
 const { PathMocks } = await import("../../src/frontend/components/deadline/path-mocks.tsx");
 
-const GRADED: MockSummary = { id: "mock_1", n: 1, state: "graded", format: { questions: 5 }, createdAt: "2026-10-30T09:00:00.000Z", endedAt: "2026-10-30T10:00:00.000Z", solved: 3, working: false };
+const GRADED: MockSummary = { id: "mock_1", deadlineId: "ddl_1", n: 1, state: "graded", format: { questions: 5 }, createdAt: "2026-10-30T09:00:00.000Z", endedAt: "2026-10-30T10:00:00.000Z", solved: 3, working: false };
 
 let root: ReturnType<typeof createRoot> | undefined;
 let written: Array<[number, number | null]> = [];
@@ -99,14 +100,14 @@ afterEach(async () => {
 describe("the mock box", () => {
 	it("opens with 5 questions and no time limit, and writes that", async () => {
 		await mount();
-		assert.equal(q("mock-box"), null);
+		assert.ok(!q("mock-box"), "closed until asked for");
 		await click(q("deadline-mock-take"));
 		await settle();
 		assert.equal(q("deadline-mock-take")!.getAttribute("aria-expanded"), "true");
 		assert.equal(q("mock-box")!.getAttribute("role"), "dialog");
 		assert.equal(value("mock-box-questions"), "5");
 		assert.equal(q("mock-box-time-none")!.getAttribute("aria-checked"), "true");
-		assert.equal(q("mock-box-minutes"), null, "minutes only with a time limit");
+		assert.ok(!q("mock-box-minutes"), "minutes only with a time limit");
 		await click(q("mock-box-write"));
 		await settle();
 		assert.deepEqual(written, [[5, null]]);
@@ -150,9 +151,9 @@ describe("removing a mock", () => {
 		await click(q("deadline-mock-remove"));
 		const row = q("deadline-mock-mock_1")!;
 		assert.match(row.textContent!, /Mock 1Remove it\?RemoveKeep/);
-		assert.equal(focused, q("deadline-mock-remove-confirm-keep"), "the question takes the focus");
+		assert.ok(focused === q("deadline-mock-remove-confirm-keep"), "the question takes the focus");
 		await click(q("deadline-mock-remove-confirm-keep"));
-		assert.equal(focused, q("deadline-mock-remove"));
+		assert.ok(focused === q("deadline-mock-remove"), "Keep gives the focus back to the cross");
 		await click(q("deadline-mock-remove"));
 		await click(q("deadline-mock-remove-confirm-go"));
 		await settle();

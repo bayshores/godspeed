@@ -23,7 +23,7 @@ import {
 } from "../../src/frontend/components/mock/mock-model.ts";
 
 const FORMAT = { questions: 4, minutes: 70 };
-const summary = (over: Partial<MockSummary>): MockSummary => ({ id: "mock_1", n: 1, state: "graded", format: FORMAT, createdAt: "2026-11-11T09:00:00.000Z", working: false, ...over });
+const summary = (over: Partial<MockSummary>): MockSummary => ({ id: "mock_1", deadlineId: "ddl_1", n: 1, state: "graded", format: FORMAT, createdAt: "2026-11-11T09:00:00.000Z", working: false, ...over });
 
 const CODE: MockQuestion = { id: "q1", title: "Two sum", statement: "s", kind: "code", factIds: ["fct_a"], fn: { name: "twoSum", params: ["nums", "target"] }, examples: [{ args: "[[2,7],9]", expected: "[0,1]" }] };
 const TEXT: MockQuestion = { id: "q2", title: "Event loop", statement: "s", kind: "text" };

@@ -155,13 +155,15 @@ export function solvedCount(mock: Pick<Mock, "questions" | "grades">): number {
 	return mock.questions.filter((q) => questionResult(mock, q.id) === "right").length;
 }
 
-/** A mock as a row on its deadline's page (GET /api/spaces/:id/mocks?deadline=), newest first. */
+/** A mock as a row on its deadline's page (GET /api/spaces/:id/mocks?deadline= gives `{ mocks }`, newest first). */
 export interface MockSummary {
 	id: string;
+	deadlineId: string;
 	n: number;
 	state: MockState;
 	format: MockFormat;
 	createdAt: string;
+	fromAbout?: true;
 	startedAt?: string;
 	endsAt?: string;
 	paused?: { at: string; left: number };

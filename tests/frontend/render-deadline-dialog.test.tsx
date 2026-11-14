@@ -50,7 +50,7 @@ function fakeFetch() {
 		const mocks = /\/mocks\?deadline=(.+)$/.exec(String(input));
 		if (mocks) {
 			mocksAsked.push(mocks[1]!);
-			return Response.json(mockList);
+			return Response.json({ mocks: mockList });
 		}
 		const body = typeof init?.body === "string" ? JSON.parse(init.body) : undefined;
 		calls.push({ method: init?.method ?? "GET", url: String(input), body });

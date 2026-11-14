@@ -26,7 +26,7 @@ export function useDeadlineMocks(spaceId: string, deadlineId: string | null) {
 		const { error, body } = await send(`${base}?deadline=${encodeURIComponent(deadlineId)}`, { method: "GET" });
 		if (id !== request.current) return;
 		setFailed(error !== null);
-		if (!error) setMocks(body as MockSummary[]);
+		if (!error) setMocks((body as { mocks: MockSummary[] }).mocks);
 	}, [base, deadlineId]);
 
 	useEffect(() => {
@@ -68,7 +68,7 @@ export function useMockCount(spaceId: string, deadlineId: string | null): number
 		if (!deadlineId) return;
 		let live = true;
 		void send(`/api/spaces/${encodeURIComponent(spaceId)}/mocks?deadline=${encodeURIComponent(deadlineId)}`, { method: "GET" }).then(({ error, body }) => {
-			if (live && !error && Array.isArray(body)) setCount(body.length);
+			if (live && !error) setCount((body as { mocks: MockSummary[] }).mocks.length);
 		});
 		return () => {
 			live = false;
