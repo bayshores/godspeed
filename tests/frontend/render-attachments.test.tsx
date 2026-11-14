@@ -218,10 +218,10 @@ describe("the learner's message with files", () => {
 			const esc = new dom.window.Event("keydown", { bubbles: true, cancelable: true });
 			Object.defineProperty(esc, "key", { value: "Escape" });
 			await act(async () => void document.dispatchEvent(esc));
-			assert.equal(overlay(), null, "Esc closes");
+			assert.ok(overlay() === null, "Esc closes");
 			await act(async () => thumb().click());
 			await act(async () => (overlay() as HTMLElement).click());
-			assert.equal(overlay(), null, "a click closes");
+			assert.ok(overlay() === null, "a click closes");
 			await act(async () => host.querySelector<HTMLButtonElement>('[data-testid="message-pdf"]')!.click());
 			assert.deepEqual(opened, ["/data/chats/chat_1/abc-Week 3 notes.pdf"]);
 		} finally {

@@ -107,7 +107,7 @@ it("Teaching: instructions that fail to load say so, and Try again reads them ag
 		assert.equal(document.querySelector('[data-testid="area-voice-instructions"]')!.hasAttribute("disabled"), true);
 		promptsOk = true;
 		await act(async () => document.querySelector<HTMLButtonElement>('[data-testid="load-failed-retry"]')!.click());
-		assert.equal(document.querySelector('[data-testid="load-failed"]'), null, "the retry's answer clears it");
+		assert.ok(document.querySelector('[data-testid="load-failed"]') === null, "the retry's answer clears it");
 		assert.equal(document.querySelector('[data-testid="area-voice-instructions"]')!.hasAttribute("disabled"), false);
 	});
 });
@@ -123,10 +123,10 @@ it("Teaching: Edit full instructions fills the page, and Teaching brings the are
 		assert.ok(panel, "the instructions open");
 		assert.match(panel.textContent!, /Voice, full instructions/);
 		assert.match(panel.textContent!, /What Ada reads before every lesson/);
-		assert.equal(document.querySelector('[data-testid="area-voice"]'), null, "the areas list is gone");
+		assert.ok(document.querySelector('[data-testid="area-voice"]') === null, "the areas list is gone");
 		assert.equal(fullPage.at(-1), true, "the page is told to hide its heading");
 		await act(async () => panel.querySelector<HTMLButtonElement>("button")!.click());
-		assert.equal(document.querySelector('[data-testid="instructions-panel"]'), null);
+		assert.ok(document.querySelector('[data-testid="instructions-panel"]') === null);
 		assert.ok(document.querySelector('[data-testid="area-voice"]'), "back on the areas");
 		assert.equal(fullPage.at(-1), false);
 	}, (open) => fullPage.push(open));

@@ -151,7 +151,7 @@ describe("the top bar's tabs", () => {
 		await mount(<SpaceTabs selected="c29" />);
 		assert.deepEqual(texts("[data-testid='space-tabs'] a"), ["Today", "CSE 29", "CSE 212 left"]);
 		assert.equal(q("nav-today")!.getAttribute("href"), "/");
-		assert.equal(q("space-option-old"), null, "a closed space has no tab");
+		assert.ok(q("space-option-old") === null, "a closed space has no tab");
 		assert.ok(q("space-option-c21")!.nextElementSibling === q("spaces-plus"), "the + comes right after the last tab");
 		assert.match(q("spaces-plus")!.className, /shrink-0/, "the + never squeezes; the tabs do");
 		assert.doesNotMatch(q("space-option-c21")!.className, /shrink-0/);
@@ -159,7 +159,7 @@ describe("the top bar's tabs", () => {
 	it("a space's tab says how many files the teacher still has to read", async () => {
 		await mount(<SpaceTabs selected="c29" />);
 		assert.equal(q("space-work-c21")!.textContent, "2 left");
-		assert.equal(q("space-work-c29"), null);
+		assert.ok(q("space-work-c29") === null);
 	});
 
 	it("marks the lit tab as the current page, and a space tab is the teacher's highlight target", async () => {
@@ -197,7 +197,7 @@ describe("Search lessons", () => {
 				<SearchLessons />
 			</>,
 		);
-		assert.equal(q("search-lessons"), null, "closed until asked for");
+		assert.ok(q("search-lessons") === null, "closed until asked for");
 		await click(q("app-menu")!);
 		await click(q("menu-search-lessons")!);
 		await act(async () => {});
@@ -230,12 +230,12 @@ describe("Search lessons", () => {
 		await type("point");
 		await click(q("search-lessons-row")!);
 		assert.deepEqual(pushed, ["/chat/l1"]);
-		assert.equal(q("search-lessons"), null);
+		assert.ok(q("search-lessons") === null);
 	});
 	it("Close closes it", async () => {
 		await open();
 		await click(q("search-lessons-close")!);
-		assert.equal(q("search-lessons"), null);
+		assert.ok(q("search-lessons") === null);
 	});
 });
 
@@ -246,7 +246,7 @@ describe("a space page's head", () => {
 		assert.doesNotMatch(q("space-head")!.textContent!, /Systems programming/, "the description is the teacher's, not the head's");
 		assert.match(q("space-signature-ink")!.getAttribute("style")!, /--ink:\s*25%/, "inked as far as studied, on every tab");
 		assert.equal(q("space-edit")!.textContent, "Edit space");
-		assert.equal(document.querySelector("[data-testid='space-head'] nav")!.nextElementSibling, q("space-edit"), "Edit space ends the tab row");
+		assert.ok(document.querySelector("[data-testid='space-head'] nav")!.nextElementSibling === q("space-edit"), "Edit space ends the tab row");
 		assert.deepEqual(texts("[data-testid='space-head'] nav a"), ["Progress25%", "Lessons1", "Files33", "Graph", "Cheat sheets2", "Deadlines"]);
 		assert.equal(q("nav-files-count")!.textContent, "33");
 		assert.equal(q("nav-cheat-sheets-count")!.textContent, "2", "sheets made or being made");
@@ -256,8 +256,8 @@ describe("a space page's head", () => {
 	it("with no space it names the lessons that belong to none: no Edit space, files, cheat sheets or deadlines", async () => {
 		await mount(<SpaceHead />, { pathname: "/space/lessons", active: null });
 		assert.equal(q("space-head-name")!.textContent, "Lessons with no space");
-		assert.equal(q("space-edit"), null);
-		assert.equal(q("space-signature"), null);
+		assert.ok(q("space-edit") === null);
+		assert.ok(q("space-signature") === null);
 		assert.deepEqual(texts("[data-testid='space-head'] nav a"), ["Progress", "Lessons1", "Graph"]);
 		assert.equal(q("nav-lessons")!.getAttribute("aria-current"), "page");
 	});
@@ -290,7 +290,7 @@ describe("a tab's right-click menu", () => {
 	};
 	it("has Close and Delete space, and marks its tab while open", async () => {
 		await mount(<SpaceTabs selected="c29" />);
-		assert.equal(q("space-menu"), null);
+		assert.ok(q("space-menu") === null);
 		await openMenu("c21");
 		assert.equal(q("space-menu")!.getAttribute("role"), "menu");
 		assert.deepEqual(texts("[data-testid='space-menu'] [role='menuitem']"), ["Close", "Delete space"]);
@@ -349,7 +349,7 @@ describe("a tab's right-click menu", () => {
 	it("Today has no menu", async () => {
 		await mount(<SpaceTabs selected="c29" />);
 		assert.equal(await rightClick(q("nav-today")!), false);
-		assert.equal(q("space-menu"), null);
+		assert.ok(q("space-menu") === null);
 	});
 });
 

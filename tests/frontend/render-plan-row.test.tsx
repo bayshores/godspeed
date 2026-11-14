@@ -140,7 +140,7 @@ describe("the plan row of a homework lesson", () => {
 
 	it("See the problems opens the assignment's dialog with every problem, and Close shuts it", async () => {
 		const el = await mount(<PlanRow {...homework} />);
-		assert.equal(document.querySelector('[data-testid="problems-dialog"]'), null);
+		assert.ok(document.querySelector('[data-testid="problems-dialog"]') === null);
 		await act(async () => el.querySelector<HTMLButtonElement>('[data-testid="problems-open"]')!.click());
 		const dialog = document.querySelector('[data-testid="problems-dialog"]')!;
 		assert.match(dialog.querySelector("h2")!.textContent ?? "", /^HW 4$/);

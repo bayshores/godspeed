@@ -81,7 +81,7 @@ describe("The work frame around a space's pages", () => {
 
 	it("no frame when nothing is going on, and the page is there", async () => {
 		const host = await mount(page, record({ files: [file("a", "ready")] }));
-		assert.equal(host.querySelector('[data-testid="work-frame"]'), null);
+		assert.ok(host.querySelector('[data-testid="work-frame"]') === null);
 		assert.equal(text(host, "page"), "The page");
 	});
 
@@ -91,7 +91,7 @@ describe("The work frame around a space's pages", () => {
 		assert.equal(host.querySelector('[data-testid="work-frame"]')?.getAttribute("data-state"), "working");
 		assert.equal(text(host, "work-frame-tag"), "Teacher is working on this page1 of 3 files");
 		assert.equal(text(host, "page"), "The page");
-		assert.equal(host.querySelector('[data-testid="work-frame-close"]'), null);
+		assert.ok(host.querySelector('[data-testid="work-frame-close"]') === null);
 	});
 
 	it("done: what the round read, and Close takes the frame off", async () => {
@@ -100,7 +100,7 @@ describe("The work frame around a space's pages", () => {
 		assert.equal(host.querySelector('[data-testid="work-frame"]')?.getAttribute("data-state"), "done");
 		assert.match(text(host, "work-frame-tag")!, /^Your agent read 1 file\./);
 		await click(host, "work-frame-close");
-		assert.equal(host.querySelector('[data-testid="work-frame"]'), null);
+		assert.ok(host.querySelector('[data-testid="work-frame"]') === null);
 		assert.equal(text(host, "page"), "The page");
 		assert.ok(requests.includes("DELETE /api/spaces/spc_ml/work"));
 	});

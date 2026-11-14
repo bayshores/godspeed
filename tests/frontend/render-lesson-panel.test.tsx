@@ -582,10 +582,10 @@ describe("writing folds the answer list", () => {
 			assert.match(row.textContent ?? "", /Mercury/);
 			assert.equal(row.querySelector('[data-testid="confidence-square-4"]')!.getAttribute("aria-checked"), "true", "Sure 4 rides the row");
 			assert.equal(options(host).length, 0, "the list is folded");
-			assert.equal(host.querySelector('[data-testid="confidence-level-4"]'), null, "the Sure meter is folded");
+			assert.ok(host.querySelector('[data-testid="confidence-level-4"]') === null, "the Sure meter is folded");
 			assert.equal(submitDisabled(host), false, "the answer still stands");
 			await act(async () => row.querySelector<HTMLButtonElement>('[data-testid="picked-change"]')!.click());
-			assert.equal(host.querySelector('[data-testid="picked-row"]'), null);
+			assert.ok(host.querySelector('[data-testid="picked-row"]') === null);
 			assert.equal(options(host).length, 3);
 			assert.equal(host.querySelector('[data-testid="confidence-level-4"]')!.getAttribute("aria-checked"), "true", "the meter comes back as set");
 		});
@@ -611,14 +611,14 @@ describe("writing folds the answer list", () => {
 			await click(host, "dont-know-option");
 			await focusBox(host);
 			assert.match(host.querySelector('[data-testid="picked-row"]')!.textContent ?? "", /I don't know/);
-			assert.equal(host.querySelector('[data-testid="confidence-squares"]'), null);
+			assert.ok(host.querySelector('[data-testid="confidence-squares"]') === null);
 		});
 	});
 
 	it("with nothing picked the list stays open", async () => {
 		await mounted(turn({ pending: quiz }), async (host) => {
 			await focusBox(host);
-			assert.equal(host.querySelector('[data-testid="picked-row"]'), null);
+			assert.ok(host.querySelector('[data-testid="picked-row"]') === null);
 			assert.equal(options(host).length, 3);
 		});
 	});
@@ -673,15 +673,15 @@ describe("the teacher column", () => {
 	it("Activity swaps the column for the activity list until Back to your turn", async () => {
 		await mounted(named(column()), async (host) => {
 			assert.ok(host.querySelector('[data-testid="your-turn"]'));
-			assert.equal(host.querySelector('[data-testid="teacher-activity"]'), null);
+			assert.ok(host.querySelector('[data-testid="teacher-activity"]') === null);
 			await click(host, "teacher-activity-open");
 			assert.ok(host.querySelector('[data-testid="teacher-activity"]'));
-			assert.equal(host.querySelector('[data-testid="your-turn"]'), null);
+			assert.ok(host.querySelector('[data-testid="your-turn"]') === null);
 			assert.match(host.querySelector('[data-testid="teacher-activity-back"]')!.textContent ?? "", /Back to your turn/);
-			assert.equal(host.querySelector('[data-testid="teacher-activity-open"]'), null);
+			assert.ok(host.querySelector('[data-testid="teacher-activity-open"]') === null);
 			await click(host, "teacher-activity-back");
 			assert.ok(host.querySelector('[data-testid="your-turn"]'));
-			assert.equal(host.querySelector('[data-testid="teacher-activity"]'), null);
+			assert.ok(host.querySelector('[data-testid="teacher-activity"]') === null);
 		});
 	});
 
@@ -689,12 +689,12 @@ describe("the teacher column", () => {
 		let revealed = 0;
 		await mounted(named(column({ pending: check, requiresReveal: true, onReveal: () => revealed++ })), async (host) => {
 			assert.equal(host.querySelector('[data-testid="your-turn"]')!.getAttribute("data-mode"), "reveal");
-			assert.equal(host.querySelector('[data-testid="question-dock"]'), null);
+			assert.ok(host.querySelector('[data-testid="question-dock"]') === null);
 			await click(host, "teach-check-reveal");
 			assert.equal(revealed, 1);
 			assert.equal(host.querySelector('[data-testid="your-turn"]')!.getAttribute("data-mode"), "question");
 			assert.ok(host.querySelector('[data-testid="question-dock"]'));
-			assert.equal(host.querySelector('[data-testid="teach-check-reveal"]'), null);
+			assert.ok(host.querySelector('[data-testid="teach-check-reveal"]') === null);
 		});
 	});
 

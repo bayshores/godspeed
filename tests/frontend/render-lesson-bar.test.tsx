@@ -82,7 +82,7 @@ describe("the lesson's own bar", () => {
 	it("a lesson with no space goes back to Lessons and has no Cheat sheet", async () => {
 		await mount({ spaceId: undefined });
 		assert.equal(q("page-back")!.textContent, "Lessons");
-		assert.equal(q("lesson-cheat-sheet"), null);
+		assert.ok(q("lesson-cheat-sheet") === null);
 		assert.ok(q("lesson-find"));
 	});
 
@@ -103,7 +103,7 @@ describe("the lesson's own bar", () => {
 
 	it("renaming swaps the name for a field", async () => {
 		await mount({ rename: rename({ renaming: true, draft: "New name" }) });
-		assert.equal(q("lesson-title"), null);
+		assert.ok(q("lesson-title") === null);
 		assert.equal(document.querySelector<HTMLInputElement>("input[aria-label='Lesson name']")!.value, "New name");
 	});
 });
@@ -114,12 +114,12 @@ describe("Find in the bar", () => {
 		assert.deepEqual(buttons().filter((b) => b === "Cheat sheet" || b === "Find"), ["Cheat sheet", "Find"]);
 		await click(q("lesson-find")!);
 		assert.ok(q("session-find"));
-		assert.equal(q("lesson-find"), null);
-		assert.equal(q("lesson-cheat-sheet"), null);
+		assert.ok(q("lesson-find") === null);
+		assert.ok(q("lesson-cheat-sheet") === null);
 		assert.deepEqual(buttons().filter((b) => b?.includes("match") || b === "Close Find"), ["Previous match", "Next match", "Close Find"]);
 		assert.ok(document.querySelector("input[placeholder='Find in lesson']"));
 		await click([...document.querySelectorAll("button")].find((b) => b.textContent?.trim() === "Close Find")!);
-		assert.equal(q("session-find"), null);
+		assert.ok(q("session-find") === null);
 		assert.ok(q("lesson-find"));
 		assert.ok(q("lesson-cheat-sheet"));
 	});

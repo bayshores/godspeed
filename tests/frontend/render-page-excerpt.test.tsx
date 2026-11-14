@@ -140,7 +140,7 @@ describe("the page in the teacher's text", () => {
 
 	it("text without the page mark draws no page and asks for nothing", async () => {
 		await rendered(<CitedResponse text={text} />, pdf(null), (host, urls) => {
-			assert.equal(host.querySelector('[data-testid="page-excerpt"]'), null);
+			assert.ok(host.querySelector('[data-testid="page-excerpt"]') === null);
 			assert.deepEqual(urls, []);
 		});
 	});

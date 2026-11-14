@@ -147,13 +147,13 @@ describe("FilesPage", () => {
 	it("shows the linked folder, the summary, groups from the names with counts, and each row's kind and state", async () => {
 		fakeFetch();
 		await mount();
-		assert.equal(q("space-pick-folder"), null, "a linked space shows its folder, not Link a folder");
+		assert.ok(q("space-pick-folder") === null, "a linked space shows its folder, not Link a folder");
 		assert.ok(q("space-add-files"));
 		assert.equal(q("space-folder-status")!.textContent, "Watching CSE 21");
 		const today = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][new Date().getDay()];
 		assert.equal(q("files-summary")!.textContent, `7 files, 6 study material, 1 space info, 1 new since ${today}`);
 		assert.ok(q("space-file-new-f2"), "a file a scan just found is marked New");
-		assert.equal(q("space-file-new-f1"), null);
+		assert.ok(q("space-file-new-f1") === null);
 		assert.deepEqual(
 			[...document.querySelectorAll('[data-testid^="files-group-toggle-"]')].map((b) => b.textContent),
 			["Lecture3 files", "Rosen, Probability2 files", "Other2 files"],
@@ -173,9 +173,9 @@ describe("FilesPage", () => {
 		assert.equal(q("space-file-status-f3")!.textContent, "Building facts");
 		assert.equal(q("space-file-status-f4")!.textContent, "Failed");
 		assert.ok(q("space-file-retry-f4"));
-		assert.equal(q("space-file-status-f5"), null, "space info shows no state");
+		assert.ok(q("space-file-status-f5") === null, "space info shows no state");
 		assert.ok(q("space-file-linked-f2"), "a file from the linked folder is marked");
-		assert.equal(q("space-file-linked-f1"), null, "a copied file is not");
+		assert.ok(q("space-file-linked-f1") === null, "a copied file is not");
 		assert.equal(q("space-folder")!.getAttribute("data-problem"), null);
 	});
 
@@ -183,7 +183,7 @@ describe("FilesPage", () => {
 		fakeFetch();
 		const page = await mount(null);
 		assert.match(page.textContent!, /Pick a space to see its files\./);
-		assert.equal(q("files-summary"), null);
+		assert.ok(q("files-summary") === null);
 		assert.ok(q("pick-space-cls_a"), "the spaces are right on the page");
 		assert.ok(q("pick-space-new"));
 		await act(async () => q("pick-space-cls_a")!.click());
@@ -200,7 +200,7 @@ describe("FilesPage", () => {
 		fakeFetch();
 		const page = await mount();
 		assert.match(page.textContent!, /Couldn't load this space's files\./);
-		assert.equal(q("files-summary"), null);
+		assert.ok(q("files-summary") === null);
 		const reads = recordReads;
 		recordFails = false;
 		await act(async () => q("load-failed-retry")!.click());
@@ -209,7 +209,7 @@ describe("FilesPage", () => {
 		});
 		assert.equal(recordReads, reads + 1);
 		assert.ok(q("files-summary"), "the files show once the read works");
-		assert.equal(q("load-failed"), null);
+		assert.ok(q("load-failed") === null);
 	});
 
 	it("says Loading… until the space record arrives", async () => {
@@ -245,7 +245,7 @@ describe("FilesPage", () => {
 		await act(async () => q("space-file-install-copy-f6")!.click());
 		assert.deepEqual(copied, ["brew install whisper-cpp ffmpeg"]);
 		assert.equal(q("space-file-install-copy-f6")!.textContent, "Copied");
-		assert.equal(q("space-file-install-f1"), null, "other rows have no install line");
+		assert.ok(q("space-file-install-f1") === null, "other rows have no install line");
 	});
 
 	it("a missing linked folder says so and offers Pick folder again", async () => {
@@ -256,7 +256,7 @@ describe("FilesPage", () => {
 		await act(async () => q("space-folder")!.click());
 		assert.match(q("space-folder-problem")!.textContent!, /Its files and facts are kept/);
 		assert.ok(q("space-folder-pick-again"));
-		assert.equal(q("space-folder-open"), null, "no Open in Finder for a folder that isn't there");
+		assert.ok(q("space-folder-open") === null, "no Open in Finder for a folder that isn't there");
 	});
 
 	it("a folder over the file limit says only the first 500 were added", async () => {
@@ -275,7 +275,7 @@ describe("FilesPage", () => {
 		await act(async () => q("space-file-menu-f5")!.click());
 		assert.equal(q("space-file-move-f5")!.textContent, "Move to Study material");
 		await act(async () => q("space-file-move-f5")!.click());
-		assert.equal(q("files-confirm"), null, "moving into study material loses nothing");
+		assert.ok(q("files-confirm") === null, "moving into study material loses nothing");
 		await act(async () => q("space-file-retry-f4")!.click());
 		await act(async () => q("space-file-menu-f1")!.click());
 		assert.equal(q("space-file-move-f1")!.textContent, "Move to Space info");
@@ -331,7 +331,7 @@ describe("FilesPage", () => {
 			});
 		};
 		const pdf = new File(["x"], "Syllabus v2.pdf");
-		assert.equal(q("files-drop-targets"), null, "nothing to drop on until files are dragged in");
+		assert.ok(q("files-drop-targets") === null, "nothing to drop on until files are dragged in");
 		await fire(q("files-page")!, "dragover", transfer(["Files"], [pdf]));
 		assert.equal(q("files-drop-study-title")!.textContent, "Add 1 file as study material");
 		assert.equal(q("files-drop-info-title")!.textContent, "Add 1 file as space info");
@@ -341,11 +341,11 @@ describe("FilesPage", () => {
 		await fire(q("files-drop-info")!, "drop", transfer(["Files"], [pdf]));
 		assert.equal(calls.at(-1)!.method, "POST");
 		assert.equal(calls.at(-1)!.url, "/api/spaces/cls_a/files");
-		assert.equal(q("files-drop-targets"), null, "the targets leave after the drop");
+		assert.ok(q("files-drop-targets") === null, "the targets leave after the drop");
 
 		// Text dragged over the page is not a file: no targets.
 		await fire(q("files-page")!, "dragover", transfer(["text/plain"]));
-		assert.equal(q("files-drop-targets"), null);
+		assert.ok(q("files-drop-targets") === null);
 	});
 
 	it("Add files asks study material or space info before picking files", async () => {
@@ -368,25 +368,25 @@ describe("FilesPage", () => {
 		await mount();
 		await typeInto(q("files-search") as HTMLInputElement, "rosen 7");
 		assert.ok(q("space-file-f3"));
-		assert.equal(q("space-file-f2"), null);
-		assert.equal(q("files-group-lecture"), null, "groups with no match leave");
+		assert.ok(q("space-file-f2") === null);
+		assert.ok(q("files-group-lecture") === null, "groups with no match leave");
 		await typeInto(q("files-search") as HTMLInputElement, "zzz");
 		assert.match(q("files-no-match")!.textContent!, /No file names have .zzz./);
 		await act(async () => q("files-search-clear")!.click());
 		assert.ok(q("files-group-lecture"));
-		assert.equal(q("files-no-match"), null);
+		assert.ok(q("files-no-match") === null);
 	});
 
 	it("a group folds and stays folded for this space", async () => {
 		fakeFetch();
 		await mount();
 		await act(async () => q("files-group-toggle-lecture")!.click());
-		assert.equal(q("space-file-f1"), null);
+		assert.ok(q("space-file-f1") === null);
 		assert.equal(q("files-group-toggle-lecture")!.getAttribute("aria-expanded"), "false");
 		await act(async () => root?.unmount());
 		host?.remove();
 		await mount();
-		assert.equal(q("space-file-f1"), null, "still folded after the page opens again");
+		assert.ok(q("space-file-f1") === null, "still folded after the page opens again");
 		await typeInto(q("files-search") as HTMLInputElement, "lecture 1");
 		assert.ok(q("space-file-f1"), "a search shows matches in folded groups too");
 	});
@@ -398,9 +398,9 @@ describe("FilesPage", () => {
 		await mount();
 		RECORD.files = files;
 		assert.match(q("files-empty")!.textContent!, /Add notes, readings, recordings or a syllabus/);
-		assert.equal(q("files-summary"), null, "no summary without files");
+		assert.ok(q("files-summary") === null, "no summary without files");
 		assert.ok(q("space-folder"), "the linked folder still shows");
-		assert.equal(q("files-search"), null, "nothing to search");
+		assert.ok(q("files-search") === null, "nothing to search");
 	});
 
 	it("Link a folder without the desktop picker opens a path field that links the folder", async () => {

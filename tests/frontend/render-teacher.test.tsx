@@ -98,7 +98,7 @@ describe("the panel", () => {
 		const el = mount(panel());
 		assert.equal(el.querySelector("[data-testid='teacher-tab-talk']")?.getAttribute("aria-selected"), "true");
 		assert.deepEqual(talkCalls, ["POST /api/talk"]);
-		assert.equal(el.querySelector("[data-testid='activity-list']"), null);
+		assert.ok(el.querySelector("[data-testid='activity-list']") === null);
 		act(() => (el.querySelector("[data-testid='teacher-tab-activity']") as HTMLElement).click());
 		assert.equal(el.querySelector("[data-testid='teacher-tab-activity']")?.getAttribute("aria-selected"), "true");
 		// Outside the app shell there is no teacher state: the list says what will show there.
@@ -141,7 +141,7 @@ describe("the panel", () => {
 		talkChat = { id: "chat_talk", turnInFlight: false, messages: [] };
 		const empty = mount(panel());
 		await settle();
-		assert.equal(empty.querySelector("[data-testid='talk-clear']"), null);
+		assert.ok(empty.querySelector("[data-testid='talk-clear']") === null);
 		act(() => root?.unmount());
 		talkChat = { id: "chat_talk", turnInFlight: false, messages: [{ id: "u1", role: "user", content: "add my midterm", timestamp: 1 }] };
 		const el = mount(panel());
@@ -150,7 +150,7 @@ describe("the panel", () => {
 		assert.equal(clear.textContent, "Clear chat");
 		assert.ok(clear.closest("[role='tablist']") === null && clear.parentElement?.previousElementSibling?.getAttribute("role") === "tablist", "beside the tabs, not inside the thread");
 		act(() => (el.querySelector("[data-testid='teacher-tab-activity']") as HTMLElement).click());
-		assert.equal(el.querySelector("[data-testid='talk-clear']"), null, "Talk only");
+		assert.ok(el.querySelector("[data-testid='talk-clear']") === null, "Talk only");
 		talkChat = null;
 	});
 	it("with no agent connected the thread says so in the teacher's words, with the button that opens one", async () => {
@@ -163,7 +163,7 @@ describe("the panel", () => {
 		assert.equal(el.querySelector("[data-testid='no-agent-open']")?.textContent, "Open Claude Code");
 		assert.ok(el.querySelector("[data-testid='talk-empty']"), "the prompt stays below it");
 		act(() => root?.unmount());
-		assert.equal(mount(panel()).querySelector("[data-testid='no-agent']"), null, "gone while an agent teaches");
+		assert.ok(mount(panel()).querySelector("[data-testid='no-agent']") === null, "gone while an agent teaches");
 		talkChat = null;
 	});
 	it("Talk takes pictures and PDFs like the lesson box, and shows them under your message", async () => {
@@ -192,7 +192,7 @@ describe("the panel", () => {
 		assert.ok(rows[0]!.querySelector("[data-testid='message-image']"));
 		assert.equal(rows[0]!.querySelector("[data-testid='message-pdf']")?.textContent, "syllabus.pdf");
 		assert.ok(!el.textContent!.includes("[Attached PDF]"), "the note never shows as text");
-		assert.equal(rows[1]!.querySelector("[data-testid='talk-you']"), null, "a message with only files has no empty line");
+		assert.ok(rows[1]!.querySelector("[data-testid='talk-you']") === null, "a message with only files has no empty line");
 		assert.ok(rows[1]!.querySelector("[data-testid='message-image']"));
 		const box = el.querySelector("[data-testid='talk-box']")!;
 		const button = box.querySelector("[data-testid='attach-button']");
@@ -386,7 +386,7 @@ describe("the teacher's Activity", () => {
 		assert.equal(now.textContent, "Reading syllabus.pdf2 of 5Follow");
 		assert.equal(now.className.includes("bg-highlight"), true);
 		act(() => root?.unmount());
-		assert.equal(mount(list({ doing: { text: "Idle", working: false } })).querySelector("[data-testid='activity-now']"), null);
+		assert.ok(mount(list({ doing: { text: "Idle", working: false } })).querySelector("[data-testid='activity-now']") === null);
 	});
 	it("Follow turns following on and off, and reads Following while on", () => {
 		const set: boolean[] = [];
@@ -400,18 +400,18 @@ describe("the teacher's Activity", () => {
 		assert.equal(on?.textContent, "Following");
 		assert.equal(on?.getAttribute("aria-pressed"), "true");
 		act(() => root?.unmount());
-		assert.equal(mount(list({ follow: null })).querySelector("[data-testid='activity-follow']"), null);
+		assert.ok(mount(list({ follow: null })).querySelector("[data-testid='activity-follow']") === null);
 	});
 	it("with nothing in it, says what will show there", () => {
 		const el = mount(list({ doing: { text: "Idle", working: false }, recent: [] }));
 		assert.equal(el.querySelector("[data-testid='activity-empty']")?.textContent, "Nothing yet. What Ada reads and builds shows here.");
 		act(() => root?.unmount());
-		assert.equal(mount(list()).querySelector("[data-testid='activity-empty']"), null);
+		assert.ok(mount(list()).querySelector("[data-testid='activity-empty']") === null);
 		act(() => root?.unmount());
-		assert.equal(mount(list({ doing: null, recent: [], waiting: waitingNotice() })).querySelector("[data-testid='activity-empty']"), null, "the waiting line is something");
+		assert.ok(mount(list({ doing: null, recent: [], waiting: waitingNotice() })).querySelector("[data-testid='activity-empty']") === null, "the waiting line is something");
 	});
 	it("Recent hides when there is nothing yet", () => {
-		assert.equal(mount(list({ recent: [] })).querySelector("[data-testid='activity-recent']"), null);
+		assert.ok(mount(list({ recent: [] })).querySelector("[data-testid='activity-recent']") === null);
 	});
 	it("Recent: label, space, how long ago, and an arrow only where it can go", () => {
 		const el = mount(list());
@@ -421,7 +421,7 @@ describe("the teacher's Activity", () => {
 		assert.match(rows[0]!.textContent ?? "", /Added Lab 4CSE 29/);
 		assert.match(rows[0]!.querySelector("[data-testid='activity-recent-time']")?.textContent ?? "", /^(Oct 2[89]|\d+ (min|hours?|days)|yesterday)$/);
 		assert.ok(rows[0]!.querySelector("svg"), "arrow");
-		assert.equal(rows[1]!.querySelector("svg"), null);
+		assert.ok(rows[1]!.querySelector("svg") === null);
 		assert.equal(rows[1]!.hasAttribute("disabled"), true, "a page that isn't the app's is never followed");
 	});
 	it("Recent lists every row the server sent, scrolling inside the tab", () => {
@@ -449,7 +449,7 @@ describe("the teacher's Activity", () => {
 		const job = { id: "j1", kind: "demo" as const, chatId: "c1", toolCallId: "t1", status: "running" as const, activity: "building sandbox…", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), title: "Chain-rule demo", contextLimit: null };
 		// The detail links to the lesson.
 		const el = mount(<MemoryRouter>{list({ feed: { jobs: [job], extractions: [] } })}</MemoryRouter>);
-		assert.equal(el.querySelector("[data-testid='activity-blob-detail']"), null);
+		assert.ok(el.querySelector("[data-testid='activity-blob-detail']") === null);
 		act(() => (el.querySelector("[data-testid='activity-blob-job'] button[aria-expanded]") as HTMLElement).click());
 		const detail = el.querySelector("[data-testid='activity-blob-detail']")!;
 		assert.match(detail.textContent ?? "", /building sandbox…/);

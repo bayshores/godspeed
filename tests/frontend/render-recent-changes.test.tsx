@@ -46,6 +46,6 @@ describe("recent changes section", () => {
 		assert.equal(more.textContent, "Show 4 more");
 		await act(async () => more.click());
 		assert.equal(rows(), 12);
-		assert.equal(document.querySelector('[data-testid="files-recent-changes-more"]'), null);
+		assert.ok(document.querySelector('[data-testid="files-recent-changes-more"]') === null);
 	});
 });

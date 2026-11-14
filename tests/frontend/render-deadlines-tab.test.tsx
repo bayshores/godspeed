@@ -137,12 +137,12 @@ describe("The Deadlines tab", () => {
 
 	it("a space with no interview waiting shows no such row", async () => {
 		await mount([]);
-		assert.equal(q("waiting-deadline"), null);
+		assert.ok(q("waiting-deadline") === null);
 	});
 
 	it("with no space picked it offers the spaces", async () => {
 		await mount([], null);
 		assert.match(q("pick-space")!.textContent!, /Pick a space to see its deadlines\./);
-		assert.equal(q("deadlines-tab"), null);
+		assert.ok(q("deadlines-tab") === null);
 	});
 });

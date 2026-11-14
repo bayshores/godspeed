@@ -114,7 +114,7 @@ describe("opening a space file source", () => {
 			const page = dialog.querySelector('[data-testid="cite-page"]');
 			assert.equal(page?.getAttribute("src"), `/api/cited/${FILE}/page/12`);
 			assert.equal(page?.getAttribute("alt"), "Page 12 of Week 6 slides.pdf");
-			assert.equal(dialog.querySelector('[data-testid="cite-text"]'), null);
+			assert.ok(dialog.querySelector('[data-testid="cite-text"]') === null);
 		});
 	});
 

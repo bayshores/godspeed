@@ -97,6 +97,6 @@ describe("quiet notice", () => {
 
 	it("has no Show folder outside the desktop app", async () => {
 		await mount({});
-		assert.equal(document.querySelector('[data-testid="quiet-notice-folder"]'), null);
+		assert.ok(document.querySelector('[data-testid="quiet-notice-folder"]') === null);
 	});
 });

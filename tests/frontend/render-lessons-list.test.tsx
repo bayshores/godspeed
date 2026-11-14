@@ -94,7 +94,7 @@ it("a lesson list that can't be read says so, and Try again reads it again", asy
 	assert.doesNotMatch(document.body.textContent!, /No lessons yet/);
 	ok = true;
 	await act(async () => q("load-failed-retry")!.click());
-	assert.equal(q("load-failed"), null);
+	assert.ok(q("load-failed") === null);
 	assert.match(q("session-row")!.textContent!, /Induction/);
 });
 
@@ -118,7 +118,7 @@ it("a rename that fails keeps the old title and says so under the row", async ()
 	// Renaming again clears it.
 	await act(async () => q("session-row-menu")!.click());
 	await act(async () => q("ctx-rename")!.click());
-	assert.equal(q("session-rename-failed"), null);
+	assert.ok(q("session-rename-failed") === null);
 });
 
 it("lists only the window's space's lessons, under Study something new", async () => {

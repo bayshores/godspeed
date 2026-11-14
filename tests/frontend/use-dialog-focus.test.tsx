@@ -79,13 +79,13 @@ describe("useDialogFocus", () => {
 		document.documentElement.setAttribute("data-tab-focus", "");
 		render(true);
 		render(false);
-		assert.equal(document.activeElement, trigger);
+		assert.ok(document.activeElement === trigger);
 	});
 	it("a mouse user's trigger stays unfocused, so Enter keeps submitting", () => {
 		const trigger = setup();
 		render(true);
 		render(false);
-		assert.notEqual(document.activeElement, trigger);
+		assert.ok(document.activeElement !== trigger);
 	});
 	it("doesn't pull focus back if closing moved it elsewhere", () => {
 		const trigger = setup();
@@ -95,7 +95,7 @@ describe("useDialogFocus", () => {
 		document.body.appendChild(elsewhere);
 		elsewhere.focus();
 		render(false);
-		assert.equal(document.activeElement, elsewhere);
-		assert.notEqual(document.activeElement, trigger);
+		assert.ok(document.activeElement === elsewhere);
+		assert.ok(document.activeElement !== trigger);
 	});
 });

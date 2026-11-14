@@ -98,14 +98,14 @@ describe("the chat line", () => {
 
 	it("renders nothing for a refusal", async () => {
 		await mount(<RuleSavedLine part={{ ...PART, output: "That list is full." }} />);
-		assert.equal(q("rule-saved"), null);
+		assert.ok(q("rule-saved") === null);
 	});
 });
 
 describe("the terminal notice", () => {
 	it("shows when an outside agent saves a rule, with Undo and Edit", async () => {
 		await mount(<RuleNotice />);
-		assert.equal(q("rule-notice"), null);
+		assert.ok(q("rule-notice") === null);
 		const saved = { text: "Shorter answers.", where: { area: "voice" }, label: "Every lesson, under Voice", agent: "Claude Code" };
 		await act(async () => events.get("rules-changed")!(JSON.stringify({ saved })));
 		assert.match(q("rule-notice")!.textContent!, /Claude Code saved a ruleShorter answers\.Every lesson, under VoiceUndoEdit/);
@@ -125,7 +125,7 @@ describe("the terminal notice", () => {
 			assert.ok(q("rule-notice"), "a keyboard user's focus keeps it open");
 			await act(async () => q("rule-notice-undo")!.dispatchEvent(new window.Event("focusout", { bubbles: true })));
 			await act(async () => mock.timers.tick(20_000));
-			assert.equal(q("rule-notice"), null);
+			assert.ok(q("rule-notice") === null);
 		} finally {
 			mock.timers.reset();
 		}
@@ -134,7 +134,7 @@ describe("the terminal notice", () => {
 	it("stays hidden for changes made in the window", async () => {
 		await mount(<RuleNotice />);
 		await act(async () => events.get("rules-changed")!(JSON.stringify({})));
-		assert.equal(q("rule-notice"), null);
+		assert.ok(q("rule-notice") === null);
 	});
 });
 

@@ -108,7 +108,7 @@ describe("settings restyle", () => {
 		for (const id of ["graph-row-enabled", "graph-row-chunk-tokens"]) {
 			assert.ok(graph.querySelector(`[data-testid="${id}"]`), id);
 		}
-		assert.equal(graph.querySelector('[data-testid="graph-row-rendering"]'), null, "the dead rendering switch is gone");
+		assert.ok(graph.querySelector('[data-testid="graph-row-rendering"]') === null, "the dead rendering switch is gone");
 	});
 
 	it("Escape in the teacher name field drops the edit without saving it", async () => {
@@ -141,12 +141,12 @@ describe("settings restyle", () => {
 		assert.ok(!text.includes("tok_secret_a91f"), "the token is never shown whole");
 		assert.equal(q("agent-status")!.textContent, "The teacher window is open");
 		assert.equal(q("agent-window-teacher-chip")!.textContent, "Teaching");
-		assert.equal(q("agent-window-teacher-open"), null);
+		assert.ok(q("agent-window-teacher-open") === null);
 		assert.equal(q("agent-window-helper-chip")!.textContent, "Closed");
 		assert.equal(q("agent-window-helper-open")!.textContent, "Open helper");
 		assert.equal(q("agent-folder-path")!.textContent, "~/godspeed");
 		assert.ok(!text.includes("/plugin"), "no plugin to install");
-		assert.equal(q("old-setup-warning"), null, "nothing old left: no warning");
+		assert.ok(q("old-setup-warning") === null, "nothing old left: no warning");
 	});
 
 	it("both windows open: the helper covers while the teacher tidies its memory", async () => {
@@ -157,7 +157,7 @@ describe("settings restyle", () => {
 		assert.equal(q("agent-window-helper-chip")!.textContent, "Covering");
 		assert.equal(q("agent-window-helper-line")!.textContent, "Answering for Teacher for a minute");
 		assert.equal(q("agent-window-teacher-line")!.textContent, "Tidying its memory");
-		assert.equal(q("agent-window-helper-open"), null);
+		assert.ok(q("agent-window-helper-open") === null);
 	});
 
 	it("warns about the old plugin left on the computer, and Remove says to restart open chats", async () => {
@@ -180,7 +180,7 @@ describe("settings restyle", () => {
 		assert.match(warning.textContent!, /Old godspeed plugin found\./);
 		await act(async () => warning.querySelector("button")!.click());
 		assert.deepEqual(posted, [{ action: "remove-old-setup" }]);
-		assert.equal(q("old-setup-warning"), null);
+		assert.ok(q("old-setup-warning") === null);
 		assert.ok(document.body.textContent!.includes("Removed. Restart any open Claude Code chats to finish."));
 	});
 
@@ -188,7 +188,7 @@ describe("settings restyle", () => {
 		globalThis.fetch = connectionFetch({ token: "tok_secret_b22c", url: "http://127.0.0.1:1/api/mcp", agentConnected: false, pendingWork: 0 });
 		const el = await mount(<Connection />);
 		assert.ok(!el.textContent!.includes("Let outside agents connect"));
-		assert.equal(el.querySelector('[role="switch"]'), null);
+		assert.ok(el.querySelector('[role="switch"]') === null);
 		assert.equal(q("agent-status")!.textContent, "No window is open");
 		assert.equal(q("agent-window-teacher-open")!.textContent, "Open teacher");
 		assert.equal(q("agent-window-helper-open")!.textContent, "Open helper");
@@ -221,7 +221,7 @@ describe("settings restyle", () => {
 		await pick("open-agent-codex");
 		assert.ok(el.textContent!.includes("Your agent is Codex"));
 		await pick("open-agent-other");
-		assert.equal(q("agent-window-teacher-open"), null, "godspeed can't open another app");
+		assert.ok(q("agent-window-teacher-open") === null, "godspeed can't open another app");
 		assert.ok(el.textContent!.includes("Add a Streamable HTTP MCP server"));
 		assert.ok(el.textContent!.includes('tell it "Start as the helper"'));
 		assert.ok(el.textContent!.includes("http://127.0.0.1:1/api/mcp"));
@@ -304,7 +304,7 @@ describe("settings restyle", () => {
 			return Response.json({ ...FOLDER, startCommands: { claude: body.command } });
 		}) as unknown as typeof fetch;
 		const el = await mount(<Connection />);
-		assert.equal(q("agent-start-command"), null, "closed until asked for");
+		assert.ok(q("agent-start-command") === null, "closed until asked for");
 		await act(async () => q("agent-start-command-change")!.click());
 		assert.ok(el.textContent!.includes("Command that starts Claude Code"));
 		assert.ok(el.textContent!.includes("Leave empty to use claude"));
@@ -319,7 +319,7 @@ describe("settings restyle", () => {
 			await new Promise((r) => setTimeout(r, 10));
 		});
 		assert.deepEqual(posted, [{ action: "set-start-command", agent: "claude", command: "standardcompute launch claude --" }]);
-		assert.equal(q("agent-start-command"), null, "saved: the box closes");
+		assert.ok(q("agent-start-command") === null, "saved: the box closes");
 		await act(async () => q("agent-start-command-change")!.click());
 		assert.equal(el.querySelector<HTMLInputElement>("#agent-start-command-input")!.value, "standardcompute launch claude --", "the saved command is there to edit");
 	});
@@ -341,7 +341,7 @@ describe("settings restyle", () => {
 			await new Promise((r) => setTimeout(r, 10));
 		});
 		assert.ok(calls.includes("POST"));
-		assert.equal(q("agent-new-token-confirm"), null);
+		assert.ok(q("agent-new-token-confirm") === null);
 		assert.ok(q("agent-new-token-note")!.textContent!.includes("Claude Code and Codex pick it up by themselves"));
 		assert.equal(q("agent-token")!.textContent, "••••••••••••2222");
 	});

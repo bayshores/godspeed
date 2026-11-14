@@ -145,7 +145,7 @@ describe("Ticking a deadline done", () => {
 			{ url: "/api/spaces/c21/deadlines/late", body: { done: false } },
 		]);
 		assert.equal(reads, 3);
-		assert.equal(notice(), null);
+		assert.ok(notice() === null);
 	});
 
 	it("a save that fails says so", async () => {

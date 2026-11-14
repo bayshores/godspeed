@@ -302,7 +302,7 @@ describe("the cheat sheet beside a session", () => {
 		assert.deepEqual([...pick.querySelectorAll("option")].map((o) => o.textContent), ["Cheat sheet for Quiz 3", "Cheat sheet for Midterm"]);
 		assert.equal(pick.className, SELECT, "drawn like every dropdown");
 		assert.ok(el.querySelector("[data-testid='cheat-sheet-canvas']"));
-		assert.equal(el.querySelector("[data-testid='sheet-chat']"), null);
+		assert.ok(el.querySelector("[data-testid='sheet-chat']") === null);
 		assert.match(el.querySelector("[data-testid='sheet-dock-studio']")!.textContent!, /Open full size/);
 		assert.match(el.querySelector("[data-testid='sheet-dock-studio']")!.getAttribute("href")!, /\/space\/deadline\/ddl_mid\/cheat-sheet$/);
 		assert.match(el.querySelector("[data-testid='sheet-dock-point']")!.getAttribute("href")!, /\/space\/deadline\/ddl_mid\/cheat-sheet$/);
@@ -318,7 +318,7 @@ describe("the cheat sheet beside a session", () => {
 		await settle();
 		assert.match(el.querySelector("[data-testid='sheet-dock-none']")!.textContent!, /No cheat sheet yet\.Make one/);
 		assert.match(el.querySelector("[data-testid='sheet-dock-make']")!.getAttribute("href")!, /\/space\/deadline\/ddl_mid\/cheat-sheet$/);
-		assert.equal(el.querySelector("[data-testid='cheat-sheet-canvas']"), null);
+		assert.ok(el.querySelector("[data-testid='cheat-sheet-canvas']") === null);
 		assert.ok(asked.every((u) => !u.endsWith("/deadlines/ddl_mid/cheat-sheet")), "nothing to load until the studio");
 	});
 

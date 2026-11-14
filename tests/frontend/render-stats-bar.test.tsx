@@ -62,7 +62,7 @@ describe("stats popup", () => {
 		try {
 			await act(async () => root.render(<StatsBar turns={turns} contextTokens={83_000} summarizeAt={100_000} pricing={{ unpriced: 0, subscription: 2 }} />));
 			assert.match(host.querySelector("[data-testid='stats-summary']")!.textContent!, /83k \/ 100k lesson/);
-			assert.equal(host.querySelector("[data-testid='stats-detail']"), null);
+			assert.ok(host.querySelector("[data-testid='stats-detail']") === null);
 			await act(async () => host.querySelector<HTMLButtonElement>("[data-testid='stats-summary']")!.click());
 			const detail = host.querySelector("[data-testid='stats-detail']")!.textContent!;
 			assert.match(detail, /Session statsSummarizes here to keep the lesson small\. Change it in Settings\. Your agent's own context is separate\./);

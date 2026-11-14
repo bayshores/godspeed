@@ -133,8 +133,8 @@ describe("Edit deadline", () => {
 		assert.equal((q("deadline-file-f1") as HTMLInputElement).checked, true);
 		assert.equal((q("deadline-file-f3") as HTMLInputElement).checked, false);
 		assert.match(q("deadline-file-f1")!.closest("label")!.textContent!, /Oct 27/, "a dated file shows its day");
-		assert.equal(q("deadline-file-f4"), null, "space info is not offered");
-		assert.equal(q("deadline-file-filter"), null, "a short list has no filter");
+		assert.ok(q("deadline-file-f4") === null, "space info is not offered");
+		assert.ok(q("deadline-file-filter") === null, "a short list has no filter");
 		assert.equal((q("deadline-done") as HTMLInputElement).checked, false);
 		assert.equal(q("deadline-save")!.textContent, "Save");
 		assert.match(q("deadline-remove")!.textContent!, /Remove deadline/);
@@ -145,7 +145,7 @@ describe("Edit deadline", () => {
 		await click(q("deadline-kind-quiz"));
 		await check(q("deadline-file-f3"));
 		await click(q("deadline-time-clear"));
-		assert.equal(q("deadline-time-clear"), null, "no time, nothing to clear");
+		assert.ok(q("deadline-time-clear") === null, "no time, nothing to clear");
 		await check(q("deadline-done"));
 		await click(q("deadline-save"));
 		await settle();
@@ -175,9 +175,9 @@ describe("Edit deadline", () => {
 		await click(q("deadline-dialog-close"));
 		assert.equal(closed, 0);
 		assert.match(q("deadline-discard")!.textContent!, /Discard your changes\?/);
-		assert.equal(q("deadline-save"), null, "the question takes the foot's place");
+		assert.ok(q("deadline-save") === null, "the question takes the foot's place");
 		await pressEscape();
-		assert.equal(q("deadline-discard"), null, "Esc on the question keeps editing");
+		assert.ok(q("deadline-discard") === null, "Esc on the question keeps editing");
 		assert.equal((q("deadline-name") as HTMLInputElement).value, "Midterm A");
 		await pressEscape();
 		await click(q("deadline-discard-keep"));
@@ -246,7 +246,7 @@ describe("Edit deadline", () => {
 		assert.equal((q("deadline-file-info") as HTMLInputElement).checked, true);
 		await typeInto(q("deadline-file-filter"), "lecture 3");
 		assert.ok(q("deadline-file-g3"));
-		assert.equal(q("deadline-file-g4"), null);
+		assert.ok(q("deadline-file-g4") === null);
 		await typeInto(q("deadline-file-filter"), "zzz");
 		assert.match(q("deadline-dialog")!.textContent!, /No file matches\./);
 	});
@@ -258,8 +258,8 @@ describe("Add a deadline", () => {
 		assert.match(q("deadline-dialog")!.textContent!, /Add a deadline/);
 		assert.equal(q("deadline-kind-homework")!.getAttribute("aria-checked"), "true");
 		assert.equal((q("deadline-name") as HTMLInputElement).value, "");
-		assert.equal(q("deadline-done"), null);
-		assert.equal(q("deadline-remove"), null);
+		assert.ok(q("deadline-done") === null);
+		assert.ok(q("deadline-remove") === null);
 		assert.equal(q("deadline-save")!.textContent, "Add deadline");
 		await pressEscape();
 		assert.equal(closed, 1, "nothing typed: closes at once");
