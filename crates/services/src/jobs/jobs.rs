@@ -560,8 +560,8 @@ fn restore_pending_deliveries(app: &App, chat_id: &str) -> Result<(), String> {
 }
 
 /// Waits until the chat can take a wake turn: no turn running and no open question (its answer
-/// arrives as the call's result, and no turn may run in between). Meanwhile a figure finished
-/// while a side question holds the open question is shown at once (`show_held_figures`). The
+/// arrives as the call's result, and no turn may run in between). Meanwhile a figure or demo
+/// finished while a side question holds the open question is shown at once (`show_held_artifacts`). The
 /// record is parsed again only when its file changed.
 async fn wait_for_idle(app: &Arc<App>, chat_id: &str) {
 	// The record's version, whether a question waits, and whether a side question holds it.
@@ -582,7 +582,7 @@ async fn wait_for_idle(app: &Arc<App>, chat_id: &str) {
 		if !fireable {
 			return;
 		}
-		if held && !is_turn_running(app, chat_id) && show_held_figures(app, chat_id) {
+		if held && !is_turn_running(app, chat_id) && show_held_artifacts(app, chat_id) {
 			continue;
 		}
 		if !is_turn_running(app, chat_id) && !question {
@@ -595,18 +595,18 @@ async fn wait_for_idle(app: &Arc<App>, chat_id: &str) {
 	}
 }
 
-/// A finished figure's result marker (not its abort notice).
-fn is_figure(steer: &Json) -> bool {
-	steer["customType"].as_str() == Some("subagent-steer") && steer["details"]["kind"].as_str() == Some("visual")
+/// A finished figure's or demo's result marker (not its abort notice): what the window draws.
+fn is_artifact(steer: &Json) -> bool {
+	steer["customType"].as_str() == Some("subagent-steer") && matches!(steer["details"]["kind"].as_str(), Some("visual" | "demo"))
 }
 
-/// Writes the waiting figures into the lesson with no turn while a side question holds the open
-/// question: the learner sees each at once, the question stays as it is, and the teacher reads
-/// them with the answer. Under the chat lock the turn start takes, so no turn begins in between.
-/// True when it wrote any.
-fn show_held_figures(app: &App, chat_id: &str) -> bool {
-	let waiting = |wake: &Wake| -> Vec<Json> { wake.queue(chat_id).iter().filter(|e| !e.waking && !e.deferred && e.handed_to.is_none() && is_figure(&e.steer)).map(|e| e.steer.clone()).collect() };
-	// Other markers can wait here for long: the record is read only when a figure waits.
+/// Writes the waiting figures and demos into the lesson with no turn while a side question holds
+/// the open question: the learner sees each at once, the question stays as it is, and the teacher
+/// reads them with the answer. Under the chat lock the turn start takes, so no turn begins in
+/// between. True when it wrote any.
+fn show_held_artifacts(app: &App, chat_id: &str) -> bool {
+	let waiting = |wake: &Wake| -> Vec<Json> { wake.queue(chat_id).iter().filter(|e| !e.waking && !e.deferred && e.handed_to.is_none() && is_artifact(&e.steer)).map(|e| e.steer.clone()).collect() };
+	// Other markers can wait here for long: the record is read only when a figure or demo waits.
 	if waiting(&app.jobs.wake.lock()).is_empty() {
 		return false;
 	}
@@ -620,13 +620,13 @@ fn show_held_figures(app: &App, chat_id: &str) -> bool {
 		if !open_question_held(&messages) {
 			return false;
 		}
-		let figures: Vec<Json> = waiting(&app.jobs.wake.lock()).into_iter().filter(|s| !steer_delivered(&messages, steer_id(s))).collect();
-		if figures.is_empty() {
+		let artifacts: Vec<Json> = waiting(&app.jobs.wake.lock()).into_iter().filter(|s| !steer_delivered(&messages, steer_id(s))).collect();
+		if artifacts.is_empty() {
 			return false;
 		}
-		messages.extend(figures);
+		messages.extend(artifacts);
 		if let Err(err) = app.stores.chats.save_messages(chat_id, &messages) {
-			eprintln!("[chat {chat_id}] figure could not be saved: {err}");
+			eprintln!("[chat {chat_id}] figure or demo could not be saved: {err}");
 			return false;
 		}
 		note_steers_durable(app, chat_id, &messages);

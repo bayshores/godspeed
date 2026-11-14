@@ -421,3 +421,21 @@ async fn a_figure_made_with_no_question_open_rides_one_wake_turn_as_before() {
 	assert_eq!(calls[0]["steers"].as_arr().unwrap().iter().map(steer_id).collect::<Vec<_>>(), ["steer_job_v"]);
 	assert_eq!(delivery_status(&app, "job_v"), "delivered");
 }
+
+#[tokio::test]
+async fn a_demo_shows_at_once_too_but_a_research_brief_waits_for_the_answer() {
+	let root = scratch_dir("jobs");
+	let app = test_app(&root);
+	write_chat(&app, CHAT, side_question_record());
+	write_job(&app, "job_d", json!({ "kind": "demo", "status": "done", "activity": "finished", "result": { "title": "Slider", "html": "<p>x</p>", "notes": "n" }, "delivery": { "kind": "result", "status": "pending" } }));
+	finished_job(&app, "job_r");
+	let calls = saving_runner(&app, 200);
+	deliver_job_result(&app, steer_for(&app, "job_r"));
+	deliver_job_result(&app, steer_for(&app, "job_d"));
+	clock::sleep(POLL_MS + 100).await;
+	assert_eq!(ids_on_disk(&app).last().map(String::as_str), Some("steer_job_d"));
+	assert!(calls.lock().is_empty() && !is_turn_running(&app, CHAT), "no teacher turn");
+	assert_eq!((delivery_status(&app, "job_d"), delivery_status(&app, "job_r")), ("delivered".into(), "pending".into()));
+	assert_eq!(queued(&app, None), [("steer_job_r".into(), false, false, false)], "the brief rides the answer turn");
+	assert_eq!(dangling_question_of(messages_of(&app.stores.chats.get_chat(CHAT).unwrap())).unwrap().tool_call_id, "q1");
+}

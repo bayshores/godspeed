@@ -234,7 +234,7 @@ The lesson has one writing box, at the foot of the teacher column (`LessonBox` i
 - `is_side_turn` marks the reply turn. A job result arriving after the side question ends it.
 - A side turn keeps the same tool list, so the outside agent gets a small delta. The question tools, `problem` and `conclude` refuse (`side_turn_tools` in `agent::teacher::teacher_agent`). `plot` still draws, with no guess (see Plots).
 - A side turn gets no `today-context` note and no job results (`services::turns::chat_handler`).
-- A figure that finishes while a side question holds the open question is written into the lesson at once, with no turn (`show_held_figures` in `services::jobs`). The question stays open, and the teacher reads the figure with the answer.
+- A figure or demo that finishes while a side question holds the open question is written into the lesson at once, with no turn (`show_held_artifacts` in `services::jobs`). The question stays open, and the teacher reads it with the answer.
 - In the model's view, the question call gets a placeholder result at once. The side question follows as a plain user message, and the learner's later answer (or skip) arrives where it happened. Earlier model views stay a prefix of later ones.
 
 ### Open problems
@@ -306,7 +306,7 @@ Delivery then works like this:
 
 1. The per-lesson queue holds one entry per steer id.
 2. If a turn is streaming, the markers are steered into the live agent at its next turn boundary.
-3. Otherwise the pipeline waits until no turn runs and no question waits, then fires one wake turn carrying every pending marker through the normal turn path. While it waits, a figure is saved into the lesson with no turn when a side question holds the open question (`open_question_held`): the answer then reaches the model as a message, so nothing comes between a call and its result. A question open with no side question still holds its figure for the answer.
+3. Otherwise the pipeline waits until no turn runs and no question waits, then fires one wake turn carrying every pending marker through the normal turn path. While it waits, a figure or demo is saved into the lesson with no turn when a side question holds the open question (`open_question_held`): the answer then reaches the model as a message, so nothing comes between a call and its result. A question open with no side question still holds it for the answer.
 4. A wake turn that gets 409 retries with a backoff of 500, 1000, 2000 and 5000 ms.
 5. A wake turn that fails to start some other way leaves the markers pending, with no error and no timer. They go out with the learner's next turn or after a restart.
 6. Delivery is complete only when the marker is in the saved conversation. Seeing it stream is not enough.
