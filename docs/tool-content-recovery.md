@@ -1,61 +1,83 @@
 # Tool-content presentation recovery
 
-## Contract
+How the screens repair broken LaTeX and escaping in text the outside agent wrote into a tool call, without changing what is saved. Read this before you touch math display in question cards, problems or answer reveals.
 
-Model-authored tool content is parsed against its schema before presentation. Math or document recovery must not change persisted tool arguments, option identities, learner answers, shuffling, grading, or future answer snapshots. Those use the source-derived, schema-parsed content.
+## Where the code lives
 
-`ToolContentResponse` projects text through `repairMathForDisplay`, then uses the ordinary Markdown renderer. Teaching/probing questions, asks, recalls/explanations, and practice statements/solutions share this path. Ordinary assistant prose does not receive tool-content recovery.
+| File | What it does |
+|---|---|
+| `src/shared/core/content-reader.ts` | Splits tool-authored Markdown into prose, code and math spans with the CommonMark parser and its math extension. Holds the TeX checks and `recoverDocumentLayout`. |
+| `src/shared/core/math-delims.ts` | `repairMathForDisplay`, the one entry point for display recovery. |
+| `src/shared/core/answer-presentation.ts` | `answerForPresentation`, for saved answers. |
+| `src/frontend/components/ai-elements/message.tsx` | `ToolContentResponse`, the renderer that applies the repair. |
+| `src/shared/core/argument-heal.ts`, `crates/agent/src/tools/heal.rs` | Argument shape healing, a separate step (see below). |
 
-There are three separate responsibilities:
+## The rule
 
-1. **Argument/shape parsing:** decode encoded argument shapes, then schema conversion, validation and cleaning. No LaTeX recovery here.
-2. **Content projection:** distinguish literal code, prose/document structure and math; recover only supported escaping defects.
-3. **Presentation:** Markdown/KaTeX rendering, including paragraph layout. In labeled Why/answer reveals, only the first direct paragraph is inline with its label; subsequent paragraphs retain their normal layout.
+Recovery changes only what the learner sees. The saved tool arguments, option identities, learner answers, shuffling, grading and later answer snapshots all use the content as parsed from the schema, never the repaired text.
+
+`ToolContentResponse` passes text through `repairMathForDisplay`, then through the ordinary Markdown renderer. Questions, asks, recalls, explanations, and practice statements and solutions all use this path. Ordinary assistant prose does not get tool-content recovery.
+
+There are three separate steps:
+
+1. Argument and shape parsing decodes encoded argument shapes, then converts, validates and cleans them against the schema. No LaTeX recovery happens here.
+2. Content projection tells literal code, prose and document structure, and math apart, and recovers only the escaping defects listed below.
+3. Presentation renders Markdown and KaTeX, including paragraph layout. In a committed-answer reveal, only the first paragraph sits inline with its label, and later paragraphs keep their normal layout.
 
 ## Recovery rules
 
 ### Literal code
 
-Code and inline-code source ranges come from the rendering stack's CommonMark parser with its math extensions. This covers fences, indentation, quotes and lists without maintaining separate container heuristics. The projection copies those source ranges verbatim; it does not serialize an AST back into Markdown.
+Code and inline-code ranges come from the CommonMark parser with its math extension. This covers fences, indentation, quotes and lists without separate container rules. The projection copies those ranges as they are and never turns a syntax tree back into Markdown.
 
 ### Document escapes
 
-A literal two-character `\n` is different from a physical newline. Document-layout recovery requires evidence such as repeated document-escape candidates or a candidate alongside over-escaped known TeX commands. Complete known n-prefixed TeX words, including `\nu`, `\nabla`, `\neq` and declared n-prefixed macros, take precedence over interpreting their prefix as document layout. Code, genuine TeX comments and recognized path tokens are protected.
+A literal two-character `\n` is different from a real newline.
 
-Recovered double-dollar display framing puts the formula and closing fence on their own lines. Decoding the opening line alone can otherwise turn closing dollars into erroneous TeX content.
+- Document layout is recovered only with evidence, such as repeated document escapes, or one alongside over-escaped known TeX commands.
+- Complete known TeX words that start with n, like `\nu`, `\nabla`, `\neq` and declared macros, win over reading their `\n` as a line break.
+- Code, real TeX comments and recognized path tokens are protected.
+- Recovered `$$` display framing puts the formula and the closing fence on their own lines. Decoding only the opening line could turn the closing dollars into wrong TeX.
 
-### JSON-swallowed command prefixes
+### Command prefixes swallowed by JSON
 
-Inside math, a control character can be the result of JSON consuming the start of a command: TAB + `ext` instead of `\text`, for example. Recovery reconstructs a command only if the control character plus the **complete following alphabetic word** names a known KaTeX command. All supported occurrences recover in one projection.
+Inside math, a control character can be what is left after JSON consumed the start of a command, for example TAB followed by `ext` instead of `\text`. Recovery rebuilds a command only if the control character plus the whole following word names a known KaTeX command. Every supported case recovers in one pass.
 
-The policy for typical model-authored LaTeX:
+| Case | What happens |
+|---|---|
+| Inline math | Recognized prefixes recover, including a real line feed plus `u` to `\nu`, and TAB plus `o` to `\to`. There is no word-length limit. |
+| Display math | Real line feeds and CRLF stay as source formatting. Other recognized prefixes recover. |
+| Commands already written correctly | Stay commands in both modes. `\nu` is never decoded into a line feed plus `u`. |
+| Unrecognized whitespace | Stays as it is. `x<TAB>+<TAB>y` does not become invented `\t` or `\ty` commands. |
 
-- **Inline math:** recover recognized prefixes, including physical LF + `u` to `\nu`, and TAB + `o` to `\to`. There is no word-length cutoff.
-- **Display math:** keep physical LF and CRLF as source formatting; recover recognized non-newline prefixes.
-- **Correctly written commands:** remain commands in both modes. `\nu` is never decoded into LF + `u`.
-- **Unrecognized whitespace:** remains unchanged. `x<TAB>+<TAB>y` does not become invented `\t`/`\ty` commands.
+This case is ambiguous by nature: whitespace followed by a variable can happen to spell a command. The policy targets the LaTeX the outside agent typically writes, not every arrangement a person could type. A successful TeX parse cannot tell the two meanings apart.
 
-The control-character case is inherently ambiguous: whitespace followed by a variable may happen to spell a command. This policy targets typical model-authored LaTeX, not every syntactically possible human whitespace arrangement. TeX parse success alone cannot distinguish the two meanings.
+### Extra backslashes, percentages and rows
 
-### Extra command escaping, percentages and rows
+Recovery looks at the original TeX context before it changes a run of backslashes.
 
-Recovery examines the original TeX context before changing backslash runs:
+- Complete environment pairs and `\substack` arguments that are written correctly keep their row separators.
+- Environment pairs that are consistently over-escaped set an escaping factor for commands and rows. An encoded four-backslash row becomes two backslashes, not one.
+- Outside protected row and comment contexts, extra backslashes before known commands can recover. Unknown command words are never invented.
+- Doubled percent escapes in ordinary numbers can recover to `\%`, including a percentage at the end of a display formula. Real comment text or equation rows after it stay literal.
+- As an extra guard, partial recovery never turns source that parses into source that fails to parse. Parse success is not the main test, because a broken matrix and a lost percentage can both parse.
 
-- Complete native environment pairs and native `\substack` arguments preserve genuine row separators.
-- Consistently extra-escaped environment pairs establish an escaping factor for commands **and rows**. For example, an encoded four-backslash row becomes two backslashes, not one.
-- Outside protected native row/comment contexts, extra prefixes on known commands can recover. Unknown command words are not invented.
-- Doubled percent escapes in ordinary numeric expressions can recover to `\%`, including numeric percentages at the end of a display formula. Genuine following comment text or equation rows remain literal. This is not a blanket `%` addition to an even-backslash rule.
-- As an additional guard, partial command recovery does not turn parseable source into a TeX parse failure. Parse success is not the primary correctness test: both a corrupted matrix and a lost percentage can parse successfully.
+Unbalanced, unsupported or ambiguous content is not rewritten into new math. This is escaping recovery, not a general TeX repair tool, and there are no language-specific decoders.
 
-Unbalanced, unsupported or ambiguous content is not generally corrected into new mathematics. This is an escaping recovery projection, not a general TeX authoring repair system. There are no language-specific decoders.
+## Saved answers
 
-## Historical answers
+`answerForPresentation` joins the display text the outside agent wrote to the original tool call, without changing the recorded answer.
 
-`answerForPresentation` joins model-authored display fields to the original tool call without changing recorded answer facts. Option labels bind only through unambiguous selected values, exact/source-recovered labels, or one uniquely remaining pair in a complete bijection. Ambiguous rows keep their saved snapshots. Saved order, indices, selected values, verdicts, confidence and learner text are retained. Dismissed answers are unchanged. No migration or record rewrite is performed.
+- Option labels match only through an unambiguous selected value, an exact or recovered label, or the one pair left in a complete one-to-one match.
+- Ambiguous rows keep their saved snapshots.
+- Saved order, indices, selected values, verdicts, confidence and learner text stay as recorded.
+- Dismissed answers are returned unchanged.
+- Nothing is migrated and no record is rewritten.
 
-## Verification
+## Tests
 
-- `tests/shared/content-recovery.test.ts`: recovery/preservation rules and adversarial row/comment/code examples.
-- `tests/frontend/tool-content-presentation.test.tsx`: provenance-labeled synthetic corpus regressions, historical joins and ambiguity.
-- `tests/frontend/tool-content-interaction.test.tsx`: select/submit/persist/reveal flow and paragraph structure.
-- Existing Markdown, card, practice, tool-shape and grading suites remain applicable.
+- `tests/shared/content-recovery.test.ts`: recovery and preservation rules, with hard row, comment and code examples.
+- `tests/frontend/tool-content-presentation.test.tsx`: a labeled synthetic corpus, saved-answer joins and ambiguity.
+- `tests/frontend/tool-content-interaction.test.tsx`: the select, submit, save and reveal flow, and paragraph structure.
+- `tests/frontend/repair-math-display.test.tsx`: `repairMathForDisplay` in the renderer.
+- The existing Markdown, card, practice, tool-shape and grading suites still apply.

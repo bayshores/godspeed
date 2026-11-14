@@ -1,643 +1,1066 @@
-# godspeed — Architecture
+# Architecture
 
-Status: **the canonical architecture spec** for the app as built. When this file and the code disagree, the code is right and this file gets fixed. The file-by-file layout lives in [development.md](development.md).
+godspeed is a desktop learning app: a Tauri shell, a Rust server and a React window, with an outside agent (Claude Code, Codex or another MCP app) doing every model call. This doc explains how the app is built and why: the layers, who writes which data, how a lesson turn runs, how the knowledge graph grows, and the boundaries to the shell and the outside agent. When this doc and the code disagree, the code is right and this doc gets fixed.
 
-**What this is.** A learning app (a Tauri desktop app with a Rust server): the learner's knowledge accumulates into a persistent, cross-session knowledge graph per space, built from tutoring sessions in which a teacher agent authors a formal, visible dependency tree (the plan tree) and verifies understanding with structured questions. Today (`HomePage`, routed in `src/frontend/routes/router.tsx`) shows what is coming up across spaces; each space's graph is drawn as a Graph page at `/graph`; the session is the classroom.
-
-**Design principles, in priority order:**
-
-1. **Maximum control.** Every dependency edge is explicit and machine-checked. Nothing reaches sideways for convenience.
-2. **Easy editability.** A worker can trace any behavior to one file. Layers are named by responsibility, not by framework accident.
-3. **Zero technical debt.** The shape you see is the shape that runs. Deprecated paths are deleted, not parked.
-4. **Crystal-clear architecture.** One public door into the shared TypeScript core, two composition roots, one writer per store, named seams. When a rule can be a lint or Cargo rule, it is.
-
-**The one-sentence model:** a pure domain core at the center; every external effect (fs, LLMs, browser, OS) behind an adapter at the edge; two composition roots as the only places the edges are plugged together; and every persistent store written by exactly one system.
+For commands, file layout and testing, see [development.md](development.md). For the crates and the server process, see [rust-server.md](rust-server.md). For the shell, see [tauri-shell.md](tauri-shell.md).
 
 ---
 
-## 1. Two axes, one law
+## 1. The model and who writes what
 
-Hold the architecture along two orthogonal axes:
+Pure domain logic sits in the middle: `crates/core` on the server and `src/shared/core` in the window. Every outside effect (files, the outside agent, the browser, the OS) sits behind an adapter at the edge. Two composition roots plug the adapters in (§3).
 
-**Static structure — the hexagon.** One pure core (`crates/core` on the server, `src/shared/core` for the browser); everything else is an *adapter* (implements a core port or drives the core) or a *composition root* (the only code that wires adapters to core). Dependency arrows point **inward only** — toward purity, toward stability. The browser reaches its core through one barrel, `@/shared/core`; the server crates reach theirs through Cargo.
+Two rules hold everywhere:
 
-**Runtime ownership — six systems.** Each persistent store has exactly one owning writer-system; systems talk only through named, idempotent protocols:
+- Imports point toward the pure core.
+- Each data store has one system that writes it. Views such as plan statuses, phases, graph arrows, progress and coverage are recomputed when read, not stored.
 
-| System | Owns (sole writer) | Role |
+| System | Writes (and nothing else writes it) | What it does |
 |---|---|---|
-| **Classroom** — session engine | `data/chats/*.json` | the turn pipeline, prober→teacher, plan tree, questions, phases |
-| **Workbench** — background labor | `data/jobs/*.json` | job runner, researcher/demo-builder/visual-maker, steer delivery |
-| **Library**: world model | `data/graph/*` and `data/spaces/<id>/graph/*` ledgers | extraction pipeline (sole fact and chain writer), topic grouping, derivation |
-| **Spaces**: what the learner studies | `data/spaces/<id>/space.json` + `files/` + `cheat-sheets/` + `mocks/` | space records, space files, linked folders, deadlines (`services::spaces`, through the spaces store), cheat sheets (`services::cheat_sheets`) (§6.1), interviews and mocks (`services::mocks`) (§6.2) |
-| **Stage**: presentation shell | nothing server-side | src/frontend/components/, Today, the space pages, the lesson screen, docks; a pure consumer via `/api/*` |
-| **Machine room**: host | process + config, `data/mcp-token`, `data/search-key`, `data/agent-notes.json`, `data/agent-seen.json`, `data/agent-rules.json`, `data/agent-actions.json`, `data/reminders.json` | Tauri shell, `godspeed-server`, `gs_base::config` (`Paths`), data-dir seam, the outside-agent boundary (§8.1) |
-
-**The unifying law** (generates everything else): **imports point inward, writes point to append-only evidence, and everything else is derived.** Dependency flows toward purity; data flows toward evidence; no state is stored where it can be recomputed.
+| Classroom | `data/chats/*.json`, attached PDFs in `data/chats/<id>/` | the turn pipeline, lesson agents, plan tree, questions, phases (§5) |
+| Workbench | `data/jobs/*.json` | the job runner, its sub-agents and the wake pipeline (§5.1) |
+| Library | `data/graph/*` and `data/spaces/<id>/graph/*` | extraction (the only writer of facts and chains), topic grouping, derivation (§6) |
+| Spaces | `data/spaces/<id>/space.json`, `files/`, `cheat-sheets/`, `mocks/` | space records and files, linked folders, deadlines, cheat sheets, interviews and mocks (§6.1, §6.2) |
+| Search index | `data/search/` and `data/spaces/<id>/search/` | `crates/search` (`app.search`): the facts and passages index for local search |
+| Stage | nothing on the server | the window: Today, space pages, the lesson screen, the Graph page, the teacher panel. It reads and writes only through `/api` |
+| Machine room | `settings.json`, `prompts/`, `mcp-token`, `search-key`, `agent-notes.json`, `agent-seen.json`, `agent-rules.json`, `agent-actions.json`, `reminders.json`, `agent-folder.json` | the server process, `gs_base::config` (`Paths`), the outside-agent boundary (§8.1). The shell writes `mcp-endpoint.json` |
 
 ---
 
-## 2. The layers and the import law
+## 2. Layers and the import law
 
-Dependency arrows point **down only**. Each layer may use the core; nothing skips a boundary for convenience.
+Code lives in three places:
 
-Where the layers live: `src/frontend` holds what the browser runs (a Vite + React Router app: `index.html`, `main.tsx`, `routes/`, `components/`, `lib/`), `src/shared/core` the pure TypeScript logic the frontend uses, and `crates/` all Rust: the server `godspeed-server` (the crates `server`, `services`, `agent`, `engine` and the crates below them) and the Tauri desktop shell (`crates/shell`). The crate layout is the Layout table in [rust-server.md](rust-server.md).
+- `src/frontend` is what the window runs: a Vite and React Router app (`index.html`, `main.tsx`, `routes/`, `components/`, `lib/`).
+- `src/shared/core` is the pure TypeScript logic the frontend uses.
+- `crates/` is all Rust. The server binary `godspeed-server` is built from `crates/server` on top of `services`, `agent`, `engine` and the crates below them. The shell is `crates/shell`.
 
-```
-┌────────────────────────────────────────────────────────────────────┐
-│ SHELL    crates/shell/             Tauri window, menu, updater;   │
-│                                    spawns godspeed-server         │
-│          src/frontend/             Vite + React Router: routes/ and│
-│                                    components/ (render only)      │
-├────────────────────────────────────────────────────────────────────┤
-│ SERVER   crates/server/            HTTP layer, /api routes, MCP   │
-│                                    endpoint. Translates HTTP, zero│
-│                                    business logic                 │
-│          crates/services/          App (all server state) and the │
-│                                    services: turns, jobs, spaces, │
-│                                    graph, mocks, cheat sheets, app│
-├────────────────────────────────────────────────────────────────────┤
-│ AGENT    crates/agent/             prompts, prober + teacher, tool│
-│                                    surfaces, sub-agents, extraction│
-│          crates/engine/            the turn loop and the work     │
-│                                    bridge to the outside agent    │
-├────────────────────────────────────────────────────────────────────┤
-│ CORE     crates/core/              pure domain: contracts, records,│
-│          src/shared/core/          messages, session, graph, spaces,│
-│                                    study, mocks. No IO. (The TS half│
-│                                    is what the browser runs)      │
-├────────────────────────────────────────────────────────────────────┤
-│ EDGES    crates/store/             the data files, read and written│
-│                                    by the stores                  │
-│          files, pdf, search,       space files, PDFs, search,     │
-│          media, web, transcribe    pictures, web pages, recordings│
-│          crates/base, json         JS-compatible text, app clock, │
-│                                    paths, events, locks; JSON     │
-└────────────────────────────────────────────────────────────────────┘
-```
+The import law has a TypeScript half and a Rust half.
 
-**The import law** (`eslint.config.mjs` holds the TypeScript half, its sole job: one `import/no-restricted-paths` zone set to `"error"`, verified to fire, plus `import/no-cycle` over `src/`; `lint` is a gate on every change. Cargo holds the Rust half):
-
-| Zone | May import | Rationale |
+| Code | May import | Enforced by |
 |---|---|---|
-| `src/frontend/**` | `src/shared/core` only through the barrel `index.ts` (`@/shared/core`) | The UI renders domain data; it reaches shared logic through one public door and never touches IO |
-| `crates/*` | only crates below it in the Layout table of [rust-server.md](rust-server.md) | Lower crates never import higher ones: each crate's `Cargo.toml` lists what it may use, and Cargo refuses a cycle. The shell depends on `gs-base` and `gs-shell-rpc` only, never on the server crates |
+| `src/frontend/**` | `src/shared/core` only through its barrel `index.ts` (`@/shared/core`) | one `import/no-restricted-paths` zone in `eslint.config.mjs` |
+| `src/**` | anything allowed above, with no import cycles | `import/no-cycle` in `eslint.config.mjs` |
+| `crates/*` | only the crates listed in its own `Cargo.toml` | Cargo, which refuses a dependency cycle |
+
+The shell depends on `gs-base` and `gs-shell-rpc` only, never on the server crates. `tests/` and `scripts/` are outside the law: ESLint ignores `scripts/` and `crates/`, and tests import freely.
+
+This picture shows the main direct dependencies. Each arrow means "depends on". The exact lists are in each crate's `Cargo.toml`, and the crate table is in [rust-server.md](rust-server.md).
 
 ```mermaid
 flowchart TB
-    subgraph SHELL["SHELL: window, render, transport, no domain logic"]
-        TAURI["crates/shell: Tauri window, menu, updater, spawns godspeed-server"]
-        COMP["src/frontend/: routes + components: session + home UI, graph columns"]
-    end
-
-    subgraph SERVER["SERVER: crates/server + crates/services: transport + composition"]
-        HTTP["server::http + server::routes: /api handlers, access gate, SSE events"]
-        MCPE["server::mcp: the outside-agent endpoint"]
-        APP["services::App: all server state (paths, events, locks, stores, pdf, search, bridge, one state struct per service)"]
-        SERVICES["services: turns, jobs, spaces, graph, mocks, cheat_sheets, app"]
-    end
-
-    subgraph AGENT["AGENT: crates/agent + crates/engine: model loops, the outside agent does the thinking"]
-        TEACH["agent::teacher + agent::tools: prober + teacher agents, lesson tools, prompts"]
-        SUBS["agent::subagents: researcher, demo-builder, visual-maker, pdf-reader, writers"]
-        PIPE["agent::extraction: extraction pipeline, topic grouper"]
-        ENG["engine::turn (turn loop, ui_stream) + engine::bridge (work items)"]
-    end
-
-    subgraph CORE["CORE: pure domain, zero IO"]
-        RCORE["crates/core: contracts, records, messages, session, graph, spaces, study, mocks, plus the ports GraphStore, ChatListing, SeenStore"]
-        CBAR["src/shared/core/index.ts: the browser's barrel, browser-safe exports ONLY"]
-    end
-
-    subgraph STORE["STORE + EDGES: the only data/ writers and the outside world"]
-        ADP["crates/store: Stores (settings, chats, spaces, graph ledgers, jobs, cheat sheets, mocks, agent notes, rules, seen, actions, token)"]
-        OUTC["files, pdf, search, media, web, transcribe"]
-    end
-
-    CFG["crates/base: Paths (LH_DATA_DIR), app clock, events, locks, atomic file writes"]
-
-    COMP -->|"lint zone: @/shared/core only"| CBAR
-    COMP -->|"fetch /api/*, EventSource"| HTTP
-    TAURI -->|"spawns, gs-shell-rpc lines"| APP
-    HTTP --> APP
-    MCPE --> APP
-    APP -->|"state for each service"| SERVICES
-    SERVICES -->|"read and write through stores"| ADP
-    SERVICES -->|"build agents, run jobs"| TEACH
-    SERVICES --> SUBS
-    SERVICES --> PIPE
-    SERVICES --> OUTC
-    TEACH --> ENG
-    SUBS --> ENG
-    PIPE --> ENG
-    TEACH --> RCORE
-    PIPE --> RCORE
-    ADP -->|"implements ports"| RCORE
-    STORE --> CFG
-    SERVER --> CFG
-
-    CORE -.->|"✗ FORBIDDEN (Cargo)"| SERVER
-    AGENT -.->|"✗ FORBIDDEN (Cargo)"| SERVER
-    COMP -.->|"✗ FORBIDDEN (lint): anything in src/shared/core but index.ts"| RCORE
+    FE["src/frontend (the window)"] -->|"imports only @/shared/core"| TSCORE["src/shared/core"]
+    FE -.->|"talks over /api and SSE"| SERVER
+    SHELL["shell (gs-shell)"] --> RPC["shell-rpc"]
+    SHELL -.->|"spawns, line protocol"| SERVER
+    SERVER["server"] --> SERVICES["services"]
+    SERVICES --> AGENT["agent"]
+    AGENT --> ENGINE["engine"]
+    SERVICES --> EDGE["edge crates: store, files, pdf, search, media, web, transcribe"]
+    AGENT -->|"store, pdf, search, media, web"| EDGE
+    SERVER --> RPC
+    SERVICES --> RPC
+    AGENT --> RPC
+    ENGINE --> CORE["core"]
+    EDGE -->|"all but pdf and web"| CORE
+    CORE --> BASE["base, json"]
+    EDGE --> BASE
+    RPC --> BASE
 ```
 
-**One rule is documentation only.** The browser-safety of the core barrel is a doc-comment convention (see §2.1), not a lint rule. `tests/` and `scripts/` are deliberately outside the law (lint-excluded); tests import freely.
+The edge crates also depend on each other: `files` uses `pdf`, and `pdf` uses `media`. The server also uses `agent`, `engine`, `store` and `core` directly.
 
-### 2.1 The core barrel and browser-safety
+### 2.1 The core barrel
 
-`src/shared/core/index.ts` exports browser-safe modules: pure logic and types, no fs, no network, no node builtins, and it is the only module `src/frontend` may import from the core. The server's logic (merger, derivation, coverage, study and progress rules) lives in `crates/core`; the TypeScript core holds what the browser runs (grading, plan statuses, usage folding, the event vocabulary, settings shapes, source marks and the like). A few rules exist on both sides, for example source marks (`src/shared/core/citations.ts` and `core::messages::citations`).
+`src/shared/core/index.ts` is the only module `src/frontend` may import from the core. Everything it exports is browser-safe: pure logic and types, no node builtins, no file system, no network. That rule is a doc comment in the barrel, not a lint rule.
 
-### 2.2 Contracts: one file per domain
+The server's logic (merging, derivation, coverage, study and progress rules) lives in `crates/core`. The TypeScript core holds what the window runs: grading, plan statuses, usage folding, the event vocabulary, settings shapes, source marks and the like. A few rules exist on both sides, for example source marks (`src/shared/core/citations.ts` and `core::messages::citations`). Where both sides must agree, both replay the same golden file in `crates/core/tests/golden/`.
 
-`src/shared/core/contracts.ts` is a barrel over the domain files in `src/shared/core/contracts/`, the types the frontend codes against:
+### 2.2 Contracts
 
-- `contracts/plan.ts`: plan tree types + derived statuses (`derivePlanStatuses`)
-- `contracts/graph.ts`: graph domain (ledgers, findings shapes, snapshot, topics)
-- `contracts/chat.ts`: session records, the usage channel, handoff text
-- `contracts/jobs.ts`: the ack-and-steer protocol: job records, steer message builders, deterministic steer ids, usage accumulation
-- `contracts/probe.ts`: probe assessment + the shared schema
-- `contracts/space.ts`: space records, space files, deadlines, signatures and icons
-- `contracts/prep.ts`: prep records and sheets
-- `contracts/boot.ts`: the `GET /api/boot` payload
+`src/shared/core/contracts.ts` is a barrel over one file per domain in `src/shared/core/contracts/`:
 
-On the server, records are `Json` (see [rust-server.md](rust-server.md)); the constants and guards they share live in `core::contracts` (`chat`, `space`, `graph`), and the rest of the contract functions sit with the logic that uses them (`core::session`).
+| File | Holds |
+|---|---|
+| `plan.ts` | plan tree types and derived statuses (`derivePlanStatuses`) |
+| `graph.ts` | ledgers, findings shapes, the snapshot, topics |
+| `chat.ts` | lesson records, the usage log, handoff text |
+| `jobs.ts` | job records, steer message builders, deterministic steer ids, usage accumulation |
+| `probe.ts` | the probe assessment and its schema |
+| `space.ts` | space records, space files, deadlines, signatures and icons |
+| `prep.ts` | prep records and sheets |
+| `boot.ts` | the `GET /api/boot` payload |
+
+On the server, records are `Json`, not structs (see [rust-server.md](rust-server.md)). Shared constants and guards live in `core::contracts` (`chat`, `space`, `graph`). The other contract functions sit with the logic that uses them, mostly in `core::session`.
 
 ---
 
-## 3. Stores, ports, and the composition root
+## 3. Stores, ports and the composition roots
 
-Storage is **per-entity**, never one generic interface. `Stores` (`crates/store`, built once in `App::new`) holds one store per kind of data file: settings, prompt overrides, agent notes, agent rules, agent-seen marks, the activity log, the access token, jobs, graph ledgers (`GraphStores`, one `GraphStore` per graph folder), chats, spaces, cheat sheets and mocks. They contain persistence and nothing else. Three narrow traits in `crates/core` let pure code work against storage: `GraphStore` and `ChatListing` (`core::graph::ports`, with an in-memory version in `core::graph::memory` for tests) and `SeenStore` (`core::records::agent_seen`, implemented by the agent-seen store). Every other store is a concrete type.
+Storage is one store per kind of data file, never one generic interface. `Stores` (`crates/store`) is built once in `App::new` and holds these stores:
 
-**Idioms.** Graph evidence lives in **append-only JSONL ledgers** (corrupt-line-tolerant reads; strict shape guards drop invalid lines, never guess). Chats, spaces, jobs, sources, agent notes, agent rules, agent-seen marks, the activity log and the settings blob are whole-file read-modify-write JSON. Every write goes through the atomic writers in `gs_base::fsx` (temp file, then rename), and every read-modify-write takes a lock from `app.locks` first (keys: space, chat, graph scope, app file), so requests running in parallel never interleave. The job store keeps parsed records in memory while their file's modified time and size are unchanged, and `chat_version` (on the chat store) gives a lesson record's version the same way, so a cache of something derived from a lesson can key on it (the graded answers in `services::graph::progress`, the waiting-question check in `services::jobs::jobs`). Merge/dedup/derivation semantics are **reader-side, in core**: the store never decides.
+- settings, prompt overrides, agent notes, agent rules, agent-seen marks
+- the activity log (agent actions), the MCP token, the Tavily key (`search_key`), deadline reminders
+- jobs, graph ledgers (`GraphStores`, one `GraphStore` per graph folder), chats, spaces, cheat sheets, mocks
 
-- **`App` (`crates/services/src/lib.rs`) is THE composition root for storage and state**: `App::new` builds the stores and holds `paths`, `events`, `locks`, `stores`, `pdf`, `search`, `bridge`, one state struct per service area and the shell link when the desktop shell started the server. Routes and MCP tools get an `Arc<App>`. `graph_store_for(app, scope)` (`services::graph::graph`) hands out one `GraphStore` per graph folder (§6.1). `Stores::new` is the single place a storage decision (JSON vs SQLite, local vs remote) gets re-made.
-- **`services::turns::chat_handler` is THE composition root for a turn**: it wires the stores, the job runner, the extraction pipeline and the engine into the turn (`set_turn_runner` / `set_job_respawn` register its seams for the wake pipeline). All logic lives behind the seams it calls.
-- The agent layer takes its dependencies as arguments: `create_job_runner(host)` takes a `JobHost` (`agent::subagents::runner`), and `create_prober_agent` / `create_teacher_agent` take `AgentBuildOptions` (the engine, the prompts, the record's messages, optionally a tool registry). Tests inject the same hosts production wires, or swap an in-memory graph store.
+Stores persist and shape-guard. They never merge, dedupe or derive: that happens on the reader's side, in core.
 
-The engine side is adapted too: `agent_engine` (`engine::turn::models`) is the ONE production engine, the outside agent (MCP). Its stream parks each model request as a work item in `engine::bridge`, and the connected agent takes it with `wait_for_work` and answers with `respond` (`server::mcp`). There are no model settings and no API keys: the agent picks its own model in its own harness. Chat records store pi's own message shapes (`core::messages::native_messages`), so a turn replays the record directly; `to_llm_messages` there turns app markers into model text and gives dangling tool calls an interrupted result. `engine::turn::ui_stream` streams the agent events to the browser as SSE, and `engine::turn::call_ids` makes tool-call ids unique at that boundary.
+Three traits in `crates/core` let pure code work against storage:
 
-```mermaid
-flowchart LR
-    subgraph DRIVING["DRIVING ADAPTERS: inbound"]
-        BROWSER["Browser UI in src/frontend/components/: question dock, graph columns, docks"]
-        HTTP["HTTP transport in server::routes: /api handlers"]
-        MCPIN["Outside agent at /api/mcp (server::mcp: wait_for_work, respond, space and lesson tools)"]
-        NOTES["Notes front door: POST /api/graph/import"]
-        TAURI["Tauri shell: thin launcher, spawns godspeed-server, LH_DATA_DIR"]
-    end
+- `GraphStore` and `ChatListing` in `core::graph::ports`. `core::graph::memory` has an in-memory version for tests.
+- `SeenStore` in `core::records::agent_seen`, implemented by the agent-seen store.
 
-    subgraph HEXCORE["THE CORE: crates/core (pure domain)"]
-        direction TB
-        SESS["session brain: phases, plan-tree, question-core, pending, steer builders"]
-        GBRAIN["graph brain: merger + derivation, coverage, clusters, topics, progress"]
-        PORTSBOX["PORTS (traits): GraphStore, ChatListing, SeenStore"]
-    end
+Every other store is a concrete type.
 
-    subgraph DRIVEN["DRIVEN ADAPTERS: outbound"]
-        FS["fs stores: crates/store (data/)"]
-        LLM["LLM engine: the outside agent over MCP (agent_engine, engine::bridge work items)"]
-        HEAD["verification: the shell's hidden web view for demos, resvg for SVGs, pdfium for PDFs"]
-        WEB["web tools: web_fetch via Readability/Jina, public addresses only; web_search via Tavily with the learner's key (researcher)"]
-    end
+### How data is written
 
-    BROWSER --> HTTP
-    NOTES --> HTTP
-    TAURI --> HTTP
-    MCPIN --> HTTP
-    HTTP --> SESS
-    HTTP --> GBRAIN
-    SESS --> PORTSBOX
-    GBRAIN --> PORTSBOX
-    PORTSBOX --> FS
-    SESS --> LLM
-    GBRAIN --> LLM
-    SESS --> HEAD
-    SESS --> WEB
-```
+- Graph evidence is append-only JSONL ledgers. Reads skip corrupt lines, and strict shape guards drop invalid lines instead of guessing.
+- Chats, spaces, jobs, sources, agent notes, agent rules, agent-seen marks, the activity log and settings are whole-file JSON, read, changed and written back.
+- Every write goes through the atomic writers in `gs_base::fsx` (a temp file, then a rename).
+- Every read-modify-write first takes a lock from `app.locks` (keys `Space`, `Chat`, `Graph`, `AppFile`). The lock order and rules are in [rust-server.md](rust-server.md).
+- The job store keeps parsed records in memory while a file's modified time and size are unchanged. `chat_version` on the chat store gives a lesson's version the same way, so caches can key on it (the graded answers in `services::graph::progress`, the waiting-question check in `services::jobs::jobs`).
+
+### The two composition roots
+
+`App` (`crates/services/src/lib.rs`) is the composition root for storage and state. `App::new` builds the stores and holds `paths`, `events`, `locks`, `stores`, `pdf`, `search`, `bridge`, one state struct per service area, and the shell link when the shell started the server. Routes and MCP tools get an `Arc<App>`. `graph_store_for(app, scope)` in `services::graph::graph` hands out one `GraphStore` per graph folder (§6.1).
+
+`services::turns::chat_handler` is the composition root for a turn. It wires the stores, the job runner, the extraction pipeline and the engine into the turn. It also registers the wake pipeline's seams with `set_turn_runner` and `set_job_respawn`.
+
+The agent layer takes its dependencies as arguments, so tests inject the same hosts production wires:
+
+- `create_job_runner(host)` takes a `JobHost` (`agent::subagents::runner`).
+- `create_prober_agent`, `create_teacher_agent` and the other builders take `AgentBuildOptions`: the engine, the prompts, the record's messages, and optionally a tool registry.
+
+### The engine
+
+`agent_engine` (`engine::turn::models`) is the only production engine, and it is the outside agent. Its stream parks each model request as a work item in `engine::bridge`. The outside agent takes it with `wait_for_work` and answers with `respond` (`server::mcp`). There are no model settings and no API keys: the outside agent picks its own model in its own harness.
+
+Lesson records store the engine's own message shapes (`core::messages::native_messages`), so a turn replays the record directly. `to_llm_messages` turns app markers into model text and gives dangling tool calls an "interrupted" result. `engine::turn::ui_stream` streams the agent's events to the window as SSE, and `engine::turn::call_ids` makes tool-call ids unique at that boundary.
 
 ---
 
-## 4. The six systems (runtime ownership and protocols)
+## 4. How the systems talk
 
-The systems view: each box owns its store; edges are the protocols, each with the adapter/seam that implements it. (Spaces are left out of the diagram; see §6.1.)
+Each system writes only its own store. They talk through three protocols:
+
+- The turn request: the window posts one input event to the Classroom (§5).
+- Ack-and-steer: a job tool answers at once, the Workbench runs the job, and the result comes back into the lesson (§5.1).
+- The extraction trigger: the Classroom tells the Library to read new teacher prose (§6).
+
+Study, practice and homework are lesson kinds inside the Classroom, not separate systems (§7). The teacher reads the graph through two read-only tools, `list_sessions` and `list_propositions` (§6). Nothing pushes graph context into a lesson.
 
 ```mermaid
 flowchart TB
     LEARNER["the learner"]
 
-    subgraph STAGE["STAGE — presentation shell (owns nothing server-side)"]
-        UI["Today · space pages · lesson screen · question dock · plan row · graph columns · activity dock · top bar"]
+    subgraph STAGE["Stage: the window (writes nothing on the server)"]
+        UI["Today, space pages, lesson screen, Graph page, teacher panel"]
     end
 
-    subgraph CLASSROOM["CLASSROOM — session engine (owns data/chats)"]
-        TURN["turn pipeline — handle_chat_input"]
-        AGENTS["prober → teacher (stateless per-turn, from the record)"]
-        CHATDATA["chat records — data/chats/*.json"]
+    subgraph CLASSROOM["Classroom: writes data/chats"]
+        TURN["turn pipeline: handle_chat_input"]
+        AGENTS["lesson agent, rebuilt from the record each turn"]
+        CHATS[("data/chats/*.json")]
     end
 
-    subgraph WORKBENCH["WORKBENCH — background labor (owns data/jobs)"]
-        JOBRUN["job runner"]
-        SUBAGENTS["researcher · demo-builder · visual-maker"]
-        WAKE["wake pipeline — per-chat serialized queues in memory"]
+    subgraph WORKBENCH["Workbench: writes data/jobs"]
+        RUNNER["job runner: researcher, demo-builder, visual-maker, pdf-reader"]
+        WAKE["wake pipeline: one queue per lesson, in memory"]
     end
 
-    subgraph LIBRARY["LIBRARY: world model (owns the graph ledgers)"]
-        EXTRACT["extraction pipeline: extractor → merger (SOLE fact and chain writer, one at a time)"]
-        TOPICS["topic grouper: writes topics.jsonl after extraction"]
-        DERIVE["derivation: graph_snapshot · progress (reads, never writes)"]
-        GRAPHDATA["append-only ledgers: data/graph/*.jsonl, data/spaces/&lt;id&gt;/graph/*.jsonl"]
+    subgraph LIBRARY["Library: writes the graph ledgers"]
+        EXTRACT["extraction: extractor, then merger"]
+        TOPICS["topic grouper"]
+        DERIVE["derivation: snapshot and progress, read only"]
+        LEDGERS[("graph ledgers")]
     end
 
-    subgraph ROOM["MACHINE ROOM — host"]
-        HOST["Tauri shell → godspeed-server · gs_base::config (Paths) · LH_DATA_DIR · MCP endpoint file"]
-    end
+    OUTSIDE["outside agent over MCP"]
 
-    LEARNER -->|"text · answers [transport adapter]"| UI
-    UI -->|"POST /api/chat [one input event: text · answer · continue · side]"| TURN
-    TURN -->|"quiz / ask_user_question stream to browser [client-question tools, no execute]"| UI
-    TURN -->|"save_messages · persist_turn [chats store]"| CHATDATA
-    TURN -->|"spawn(job) — fire-and-forget ack [job tools + jobs store]"| JOBRUN
-    JOBRUN --> SUBAGENTS
-    SUBAGENTS -->|"result → steer message [steer builders in core::session::jobs]"| WAKE
-    WAKE -->|"exactly-once wake turn [turn runner seam → same handle_chat_input]"| TURN
-    TURN -->|"trigger_extraction when uncovered tokens ≥ chunk tokens [trigger seam, single-flight]"| EXTRACT
-    EXTRACT -->|"reads transcript as evidence [chats store]"| CHATDATA
-    EXTRACT -->|"append-only ledger writes [GraphStore port — sole writer]"| GRAPHDATA
-    EXTRACT -->|"run ended → schedule grouping"| TOPICS
-    TOPICS --> GRAPHDATA
-    DERIVE -->|"pure read: snapshot + progress for the Graph page"| GRAPHDATA
-    UI -->|"GET /api/graph · GET /api/progress (reads) · POST import"| DERIVE
-    HOST -.->|"hosts every server-side system"| TURN
+    LEARNER -->|"messages, answers"| UI
+    UI -->|"POST /api/chat, one input event"| TURN
+    TURN --> AGENTS
+    TURN -->|"question calls stream as SSE"| UI
+    TURN -->|"save_messages, persist_turn"| CHATS
+    TURN -->|"job tool: ack now, run in background"| RUNNER
+    RUNNER -->|"result as a steer message"| WAKE
+    WAKE -->|"steer the live turn, or fire a wake turn"| TURN
+    TURN -->|"trigger_extraction"| EXTRACT
+    EXTRACT -->|"reads teacher prose"| CHATS
+    EXTRACT -->|"appends facts and chains"| LEDGERS
+    EXTRACT -->|"run ended"| TOPICS
+    TOPICS -->|"appends topics.jsonl"| LEDGERS
+    DERIVE -->|"reads"| LEDGERS
+    UI -->|"GET /api/graph, GET /api/progress"| DERIVE
+    AGENTS -.->|"work items"| OUTSIDE
+    RUNNER -.->|"work items"| OUTSIDE
+    EXTRACT -.->|"work items"| OUTSIDE
 ```
-
-The server-side systems are each the sole writer of their own store, connected by named protocols: the **turn request** (Stage→Classroom), the **ack-and-steer** loop (Classroom→Workbench→Classroom), and the **extraction trigger + transcript read** (Classroom→Library). Study and practice are not separate systems: they are lesson kinds that run in the Classroom (§7). The Stage touches systems only through the thin HTTP transport; the teacher reaches the Library directly through the gated prober tools (`list_sessions` / `list_propositions`) rather than any injected context.
 
 ---
 
-## 5. The session (one chat turn)
+## 5. One chat turn
 
-`handle_chat_input` (`services::turns::chat_handler`) is plain Rust over `App`, with `AgentBuildOptions` as its test seam so tests drive it with scripted engines. The turn, in exact order:
+`handle_chat_input` (`services::turns::chat_handler`) is plain Rust over `App`. `AgentBuildOptions` is its test seam, so tests drive it with scripted engines.
 
-```mermaid
-sequenceDiagram
-    participant B as Browser (lesson screen)
-    participant R as POST /api/chat
-    participant H as handle_chat_input
-    participant L as turn_liveness (in memory)
-    participant CS as chats store
-    participant A as prober/teacher/practice agent (pi engine)
-    participant F as end-of-turn seams
+A turn runs in this order:
 
-    B->>R: {chatId, input}: ONE input event (text · answer · continue · side; practice adds thinking · next)
-    R->>H: handle_chat_input(req)
-    H->>H: turn the input (or queued steers) into native record appends
-    H->>L: begin_turn(chatId)
-    Note over H,L: already running → 409; the client waits for that turn to end,<br/>then POSTs the same input again (gives up after 30 s)
-    H->>CS: save_messages (write-ahead: persist even before the stream)
-    H->>A: build agent from record (successful probe_done in the record ⇒ teacher)
-    Note over H,A: the record IS the pi message list; to_llm_messages flattens<br/>markers and gives dangling tool calls an interrupted result
-    A-->>B: SSE stream of pi agent events (ui_stream)
-    Note over B: question tools only check input on the server and end the turn:<br/>rendered in the dock; graded client-side via question-core
-    B->>B: QuestionDock: parse → shuffle (seeded) → buildAnswer (grade)
-    B->>R: next POST with input {answer}
-    A-->>F: turn ends
-    F->>CS: persist_turn (canonical, idempotent) + append_turn_usage
-    F->>F: trigger_extraction — if uncovered tokens ≥ chunk tokens, fire async
-    F->>L: end_turn (ALWAYS last — the registry never locks)
-```
+1. The window posts `{chatId, input}` to `POST /api/chat`. The input is one event: `text`, `answer`, `continue`, `side`, `next` (practice) or `opener-answer` (`core::messages::input_events`). `dismiss` and `dismiss-problem` are dismissals.
+2. The handler turns the input, or queued steers, into record appends.
+3. `begin_turn(chatId)` registers the turn in `turn_liveness` (in memory). If a turn already runs, the answer is 409. The window then waits for that turn to end and posts the same input again, giving up after 30 s.
+4. `save_messages` writes the input before anything streams (write-ahead).
+5. The handler builds the lesson agent from the record.
+6. The agent's events stream to the window as SSE (`ui_stream`).
+7. When the turn ends, `persist_turn` saves the reply and `append_turn_usage` logs usage.
+8. `trigger_extraction` checks coverage and starts extraction in the background if enough teacher prose is uncovered (§6).
+9. `end_turn` runs last, on every path, so the registry never stays locked.
 
-- **Client-side question tools** (`probe`, `quiz`, `ask_user_question`, `explain`, `recall`, `write_code`) only check their input on the server and then end the turn (the "question posed" placeholder lives in memory and is never saved). The call streams to the browser, the learner answers in the dock, the client grades via `question-core` (or `code-question.ts` for code, which the teacher grades by reading) and POSTs the answer as an input event. The server saves it as the call's native tool result and the next turn runs. A pending question saved in the record is exactly what makes **resume mid-question free**. Deterministic seeded shuffling (keyed by toolCallId) keeps server and client renders identical.
-- **Side questions**: while a question waits, a message from the lesson's one writing box, at the foot of the teacher column (`LessonBox` in `src/frontend/components/lesson/lesson-box.tsx`), is a side question, with pictures and PDFs like any message. The `side` input event (`core::messages::input_events`) is refused unless a question waits, and is saved as a user message with `side: true` (`new_side_question`, `core::messages::native_messages`); its files are stored like any learner message's. The question stays open: `dangling_question_of` looks past side questions and their replies, so the dock keeps the question. `is_side_turn` marks the reply turn (the newest input is a side question and the question still waits; a job result after it ends that): it keeps the same tool list so the outside agent still gets a small delta, but the question tools, `problem` and `conclude` refuse (`side_turn_tools` in `agent::teacher::teacher_agent`), and it takes no `today-context` note and no job results (`services::turns::chat_handler`), so nothing but the reply follows the waiting question. In the model's view (`to_llm_messages`), a question call gets a placeholder result right away, the side question follows as a plain user message (its pictures and PDF notes included, so the outside agent's work item lists its images like any other), and the learner's later answer (or skip) arrives where it happened as a user message. Earlier model views stay a prefix of later ones.
-- **Open problems**: in every lesson kind (study, practice, homework) the open problem fills the teacher column's Your turn area (`OpenProblemPane` in `src/frontend/components/lesson/open-problem-pane.tsx`), with no writing box of its own. The learner works in the lesson's one box, and each message is a plain `text` input: their work on the problem or a question about it. It never ends the problem (`active_problem_of`); only the teacher's `conclude` or the learner's discard does, and the teacher may conclude and pose the problem the learner asked for in one turn. Lessons saved before this hold the learner's work as `practice-thinking` markers, which still read back (`projectView` in `src/shared/core/view.ts`, `to_llm_messages`).
-- **The prober→teacher handoff** (older teach lessons; a study session has no prober and starts in teach, §7): the first turn(s) run the prober (floor/ceiling via quiz, goal via ask); `probe_done` (server-executed) files the assessment and queues a handoff steer; from the first `tool-probe_done` part in the transcript, the handler builds the teacher agent for every later turn. Phases (`core::messages::phases`) fold strictly: probe → plan → teach.
-- **The formal plan tree is author-once**: the teacher authors the session's dependency map with a single schema-validated `plan_init` tool (a mermaid-subset graph, parsed deterministically with line-numbered errors, validated as a DAG). Progress is never mutated — statuses (`current`/`visited`/upcoming) are **derived** from tagged quiz, explain and problem calls in the transcript (a study session's tree is written by the app at birth, §7); the lesson's plan row (`src/frontend/components/lesson/plan-row.tsx`, its steps from `src/shared/core/plan-step-bar.ts`) and the plan blocks (layout in `src/frontend/components/plan-block-model.ts`) render that derivation.
-- **Job tools are server-executed, ack-and-steer**: `research`/`demo`/`visual`/`pdf` resolve immediately mid-turn with a fire-and-forget ack (the teacher keeps teaching); `spawn(job, input)` fires the background runner.
-- **Attachments**: a learner message (the lesson's writing box, side questions included, or Talk) and an answer in the learner's own words (explain, recall and ask questions, `answer_takes_files` in `core::messages::pending`; it is typed in the same writing box, so it uses the same button, tray, paste and drop) can carry up to 5 pictures and PDFs (`core::messages::attachments`, `services::turns::attachments`; the box's button, tray, paste and drop in `src/frontend/components/lesson/attachment-tray.tsx`). A picture is resized (long side at most 1568 px) and stored inline in the message. A PDF is saved in `data/chats/<id>/`, and the message gets a short note with the file's path. An answer's files follow its record in the question call's tool result (`new_answer_result`), so the model and the outside agent's work item (`imageFiles`) get them like a message's, and the answered card shows them. Limits: 20 MB per picture, 30 MB per PDF. Files waiting in a lesson's message box stay in memory (by lesson) until sent, so leaving the lesson and coming back keeps them; a reload drops them, and they never go in localStorage.
-- **Space and date context**: a space lesson starts with a `space-context` marker (the space card, `services::spaces::space_card`). A hidden `today-context` marker tells the model today's date, time and time zone and the space's open deadlines. A new one is added before the learner's message when the day or the deadlines changed, or a compaction cut the last one out of view (`core::spaces::today_note`, `services::app::today_note`).
-- Turn services are named seams taking explicit dependencies. Extraction contains its errors, but **canonical persistence must not fail silently**: a failed input write refuses acceptance without starting an agent; `persist_turn` fails on a failed reply write. The runner reports settlement failure before `[DONE]` and releases liveness even when normal settlement fails. Steer reconciliation uses the durable record, so a later bookkeeping failure cannot replay already-saved learner input.
-- **Late attachment must still see settlement failure.** A small, memory-only notice per session precedes the settled stream terminal when the failing turn has already left the live registry. The next accepted turn, successful session deletion, or server exit clears it. Reopening seeds the existing banner from that notice and waits for ordinary learner input; dismissing the banner is not permission to automatically retry the model. No synthetic failure entry is added to the saved transcript.
-- **Recovery never blindly resends an answer.** Submitted question drafts survive optimistic unmount in memory; the existing Submit action reconciles uncertain acceptance against the canonical record and running-turn state before sending again. EOF or a rejected stream read without a terminal triggers one read-only reattachment; another transport failure shows the existing error banner rather than claiming completion. Explicit completion, cancellation, and the literal-final-entry saved-error rule remain unchanged.
+### Question tools
 
-### 5.1 The wake pipeline (Workbench → Classroom)
+The question tools are `probe`, `quiz`, `ask_user_question`, `explain`, `recall` and `write_code`. The server only checks their input, and the call ends the turn. The "question posed" placeholder lives in memory and is never saved.
 
-**Worker completion and session delivery are separate lifecycles.** Dispatch persists the tool input on the job before spawning. On completion, the runner saves its result, terminal worker status (`done`/`error`), and `delivery: {kind: "result", status: "pending"}` in one job-record update. It then queues the native custom **steer message** without awaiting delivery. Its content is model-facing text; details carry the UI artifact. Worker resources are released and the Background agents row disappears even if an unanswered question holds the result indefinitely. Dispatch cards say “finished,” not “delivered.” Only computing workers can be aborted; abort saves an independent pending abort notice.
+1. The call streams to the window, and the question shows in the dock.
+2. The learner answers. The window grades multiple choice with `question-core` and builds the answer. A `write_code` answer (`code-question.ts`) is never run or graded by the app: the teacher reads it.
+3. The window posts the answer as an `answer` input event.
+4. The server saves it as the call's tool result, and the next turn runs.
 
-```mermaid
-flowchart TB
-    R["save worker outcome + pending delivery; release worker"] --> ENQ["one registry entry per steer ID, including wake cargo"]
-    ENQ --> LIVE{"live agent and background consent?"}
-    LIVE -->|yes| STEER["pi steering at native boundaries; answer run takes parked results"]
-    LIVE -->|no| GATE["wait for turn-free, question-free, unpaused, consented session"]
-    GATE --> RUN["idle wake through the normal turn composition"]
-    RUN -->|"409"| BACKOFF["existing backoff 500→1000→2000→5000ms"]
-    BACKOFF --> GATE
-    RUN -->|"403"| HOLD["retain ownership until consent permits delivery"]
-    RUN -->|"other failed start"| QUIET["quiet pending; next learner run or restart recovery"]
-    RUN --> SAVE["canonical marker persistence, not merely HTTP 200"]
-    STEER --> SAVE
-    SAVE --> FIN["acknowledge delivery; worker outcome unchanged"]
-    CRASH["lazy recovery + live-agent registration restore known pending jobs"] --> ENQ
-```
+A question waiting in the saved record is what lets a lesson resume mid-question. Options are shuffled with a seed (the tool call id), so the server and the window show the same order.
 
-The per-chat registry retains ownership across live handoff, idle-wake flight, and 409/403 return; repeated submissions share one entry/promise. A deterministic marker ID in the **saved conversation** completes delivery. Streaming visibility alone does not. A failed bookkeeping acknowledgement cannot replay a saved marker, and later teaching/model failure does not reopen delivery or retry the accepted turn. Failed starts leave results durably pending without a new error UI or retry timer; the in-memory entry stays parked until a learner run or process restart. Normal question/dismissal waits and consent deferrals are not failures.
+### Side questions
 
-Recovery reads saved job input before legacy transcript lookup. Missing research questions fail honestly without invoking the researcher. Legacy running jobs with saved results become finished workers with pending delivery; legacy terminal jobs without delivery metadata remain untouched, rather than guessing that old outcomes should be replayed. Pending result and abort notices are restored before a newly registered agent's first steering poll, even without a preceding jobs-feed read. Deleting a session discards its pending delivery obligations; only live turns and computing workers block deletion. These guarantees use the existing JSON storage and single-process delivery registry, not a transactional queue or a promise of exactly-once model execution.
+The lesson has one writing box, at the foot of the teacher column (`LessonBox` in `src/frontend/components/lesson/lesson-box.tsx`; `lessonBox` in `lesson-box-model.ts` decides its buttons). While a question waits, a message from that box is a side question.
 
-Sub-agents **verify, never one-shot**: the demo-builder runs its HTML in the desktop shell's hidden web view before delivery; the visual-maker renders each SVG and looks at it (the connected agent must accept images).
+- It posts a `side` input event, refused unless a question waits. The server saves it as a user message with `side: true` (`new_side_question`, `core::messages::native_messages`). Its pictures and PDFs are stored like any message's.
+- The question stays open: `dangling_question_of` looks past side questions and their replies.
+- `is_side_turn` marks the reply turn. A job result arriving after the side question ends it.
+- A side turn keeps the same tool list, so the outside agent gets a small delta. The question tools, `problem`, `conclude` and `plot` refuse (`side_turn_tools` in `agent::teacher::teacher_agent`).
+- A side turn gets no `today-context` note and no job results (`services::turns::chat_handler`).
+- In the model's view, the question call gets a placeholder result at once. The side question follows as a plain user message, and the learner's later answer (or skip) arrives where it happened. Earlier model views stay a prefix of later ones.
+
+### Open problems
+
+In study, practice and homework lessons, the open problem fills the teacher column's Your turn area (`OpenProblemPane` in `src/frontend/components/lesson/open-problem-pane.tsx`). It has no writing box of its own.
+
+- The learner works in the lesson's one box. Each message is a plain `text` input, either work on the problem or a question about it.
+- A message never ends the problem (`active_problem_of`). Only the teacher's `conclude` or the learner's discard does.
+- The teacher may conclude one problem and pose the one the learner asked for in the same turn.
+
+Lessons saved earlier hold the learner's work as `practice-thinking` markers, which still read back (`projectView` in `src/shared/core/view.ts`, `to_llm_messages`).
+
+### The plan tree
+
+The plan tree is written once. In a teach lesson the teacher writes it with one `plan_init` call: a mermaid-subset graph, parsed with line-numbered errors (`agent::tools::mermaid_plan`) and checked to be a DAG. In a study session the app writes it when the lesson starts (§7).
+
+Progress is never written into the tree. Statuses (`current`, `visited`, upcoming) are derived from tagged `quiz`, `explain` and `problem` calls in the transcript. The plan row (`src/frontend/components/lesson/plan-row.tsx`, steps from `src/shared/core/plan-step-bar.ts`) and the plan blocks (`src/frontend/components/plan-block-model.ts`) draw that derivation.
+
+Older teach lessons start with a prober: `probe_done` files the assessment and queues a handoff steer, and every later turn builds the teacher. Phases (`core::messages::phases`) go probe, then plan, then teach.
+
+### Job tools
+
+`research`, `demo`, `visual` and `pdf` run on the server. Each answers at once with an ack, so the teacher keeps teaching, and the job runs in the background (`agent::tools::jobs`, `agent::subagents`). The result comes back through the wake pipeline (§5.1).
+
+### Attachments
+
+A learner message can carry up to 5 pictures and PDFs: a message from the lesson box (side questions included), a Talk message, or an `explain`, `recall` or `ask_user_question` answer (`answer_takes_files` in `core::messages::pending`).
+
+| Rule | Value |
+|---|---|
+| Pictures | resized to a long side of at most 1568 px and stored inline in the message; 20 MB each |
+| PDFs | saved in `data/chats/<id>/`, with a short note in the message giving the path; 30 MB each |
+| Code | `core::messages::attachments`, `services::turns::attachments`, and `src/frontend/components/lesson/attachment-tray.tsx` for the button, tray, paste and drop |
+
+An answer's files go into the question call's tool result (`new_answer_result`), so the model and the work item get them like a message's. Files waiting in a lesson's box stay in memory, per lesson, until sent. Leaving the lesson keeps them, a reload drops them, and they never go into localStorage.
+
+### Space and date context
+
+A space lesson starts with a `space-context` marker holding the space card (`services::spaces::space_card`). A hidden `today-context` marker tells the model today's date, time, time zone and the space's open deadlines. A new one is added before the learner's message when the day or the deadlines changed, or when compaction cut the last one out of view (`core::spaces::today_note`, `services::app::today_note`).
+
+### Compaction
+
+A lesson past `compaction.thresholdTokens` (default 40,000) is shortened between turns, so a turn never waits for a summary (`services::turns::compaction`).
+
+1. The server cuts the old part at once and writes its own short version of it (`local_summary` in `core::session::compaction`), without a model.
+2. After 5 quiet minutes, the outside agent writes the real summary, which replaces the local one.
+
+The accounting is in [compaction-accounting.md](compaction-accounting.md). Every call runs on the learner's own agent plan, so nothing has a dollar price: the app counts tokens only.
+
+### When something fails
+
+- Extraction failures stay inside extraction. Saving the turn must not fail quietly: a failed input write refuses the turn before any agent starts, and `persist_turn` fails on a failed reply write.
+- The runner reports a settlement failure before `[DONE]` and releases liveness even then.
+- If the window attaches after a failed turn has left the registry, the server keeps a small in-memory notice for it (`services::turns::turn_runs`). The next accepted turn, deleting the lesson, or a server exit clears it. Nothing is written into the saved transcript.
+- Steer reconciliation reads the saved record, so a later bookkeeping failure cannot replay learner input that was already saved.
+- The window never resends an answer blindly. Before sending again, Submit checks the saved record and whether a turn runs. A stream that ends without a final event gets one read-only reattach, and a second failure shows the error banner.
+
+### 5.1 The wake pipeline
+
+A job's worker finishing and its result reaching the lesson are two separate steps (`services::jobs`).
+
+When a job finishes:
+
+1. The runner saves the result, the worker status (`done` or `error`) and `delivery: {kind: "result", status: "pending"}` in one job-record update. The tool input was already saved on the job when it was dispatched.
+2. It queues a `subagent-steer` custom message with the deterministic id `steer_<jobId>`. Its `content` is the text for the model, and its `details` carry the full result for the window.
+3. The worker is released at once, and its row leaves Background agents even if a waiting question holds the result back. Dispatch cards say "finished", not "delivered".
+
+Delivery then works like this:
+
+1. The per-lesson queue holds one entry per steer id.
+2. If a turn is streaming, the markers are steered into the live agent at its next turn boundary.
+3. Otherwise the pipeline waits until no turn runs and no question waits, then fires one wake turn carrying every pending marker through the normal turn path.
+4. A wake turn that gets 409 retries with a backoff of 500, 1000, 2000 and 5000 ms.
+5. A wake turn that fails to start some other way leaves the markers pending, with no error and no timer. They go out with the learner's next turn or after a restart.
+6. Delivery is complete only when the marker is in the saved conversation. Seeing it stream is not enough.
+
+Rules that hold around it:
+
+- A marker already in the transcript is never delivered twice. A failed bookkeeping step cannot replay a saved marker.
+- A record ending in a dismissal waits for the learner's next message, which carries the markers.
+- `register_live_agent` restores pending deliveries from the job records before a new agent's first steering poll, so a restart loses nothing.
+- Only a computing worker can be aborted. An abort saves its own pending abort notice (`delivery: {kind: "abort"}`).
+- Deleting a lesson drops its pending deliveries (`discard_chat_deliveries`). Only a live turn or a computing worker blocks deletion.
+- Jobs saved by older versions are normalized on read (`normalize_legacy_result`). This all runs on the JSON stores and one in-process registry, not a transactional queue.
+
+In the window, a wake turn is adopted like a turn in progress (`turnInFlight`), and steers render as artifact cards, never chat bubbles.
+
+Sub-agents check their own work before delivering. The demo-builder runs its HTML in the shell's hidden web view. The visual-maker renders each SVG (resvg, or the shell's web view for SVGs resvg cannot draw) and looks at it, so the outside agent must accept images.
 
 ---
 
-## 6. The knowledge graph — two channels, one writer
+## 6. The knowledge graph
 
-**The extraction pipeline is the sole writer of facts and chains.** Nothing else appends to a graph's `nodes.jsonl` or `chains.jsonl`: not the teacher, not the server, not a migration script. Two other writes exist, both named: deletion (`core::graph::graph_deletion`) rewrites the ledgers when the learner deletes a fact, deletes or moves a lesson, or removes or rebuilds a space file; and the topic grouper appends to `topics.jsonl`.
+The extraction pipeline is the only writer of facts and chains. Nothing else appends to a graph's `nodes.jsonl` or `chains.jsonl`. Two other writes exist:
 
-```mermaid
-flowchart TB
-    TRIG["trigger seam (turn_service): coverage_of(record, coverage ledger)<br/>— uncovered tokens ≥ graph.extractionChunkTokens (settings)?"] -->|"yes, single-flight per source"| RUN["extraction run for the chat"]
-    IMPORT["POST /api/graph/import (notes front door)<br/>deterministic src id = sha256(path)"] -->|"import_notes: shared pipeline, per-door preambles"| RUN
-    RUN --> BATCH["batch_runs — greedy token-budgeted batches of oldest uncovered TEACHER-PROSE messages"]
-    EXT["EXTRACTOR (LLM) — sees the teacher-prose view or a notes stretch,<br/>plus THE GRAPH SO FAR (this source) and RELATED IDEAS (~25 picked by the app's local search)<br/>one submit: new propositions + REASONING CHAINS + reteaches (ids of existing ideas it teaches again)"]
-    EXT --> MERGE
-    MERGE["MERGER (deterministic, core::graph::merge) — the ONLY ledger writer:<br/>a node per new proposition · reteach credit on existing nodes · chain dedupe (premises+conclusion → one arg_ id) · coverage checkpoint"]
-    MERGE --> GROUP["run ended → schedule_topic_grouping (per graph, debounced 20 s)"]
-    MERGE -->|"failure at ANY stage"| NOTHING["checkpoints nothing — the next trigger re-runs"]
-```
+- Deletion (`core::graph::graph_deletion`) rewrites the ledgers when the learner deletes a fact, deletes or moves a lesson, or removes or rebuilds a space file.
+- The topic grouper appends to `topics.jsonl`.
 
-**The extractor reads only teacher prose.** It sees the session's teacher prose: plain paragraphs under the session title, no learner messages, no thinking, no tool calls or results, no quiz blocks. Coverage fingerprints, slot tokens and batch budgets all derive from that same selection (`message_view_lines` in `core::graph::coverage`), so "covered" is exactly "what the extractor saw": a quiz answer or learner edit can never open a run, and only a teacher-prose edit re-opens its message. Batching is a plain greedy fill. `core::session::session_markdown` renders the full session for the lesson menu's markdown export (`GET /api/chats/{id}/markdown`) and the MCP `read_lesson` tool; extraction doesn't use it.
+A graph folder holds `nodes.jsonl`, `chains.jsonl`, `sessions.jsonl` (run checkpoints), `coverage.jsonl`, `topics.jsonl`, `sources.json` and `format.json`.
 
-**Propositions and reasoning chains.** The extractor's deliverable is propositions + reasoning chains. A chain is premises that JOINTLY entail a conclusion: independent arguments for the same conclusion are separate chains, conclusions are reusable by id as premises, and a bare proposition rides the propositions list alone. The wire schema carries propositions (id/name/statement/optional aliases) + chains (premises minItems 1/conclusion), and the store carries exactly that shape: chains append as-is to `chains.jsonl` (there is no translation seam). No typed edge is stored anywhere; every arrow is derived from a chain. The chain laws are enforced by an error-back hook at the submit seam: every premise/conclusion id must resolve to a submitted proposition or an existing idea, premises are non-empty, no self-reference. A violation returns an error string and the model re-submits within its turns. The prompt is goal-first: one shared `EXTRACTION_CORE` (the goal, the truth law, the submission mechanics) plus a short session or notes preamble (`SESSION_PREAMBLE`, `NOTES_PREAMBLE`), assembled in `agent::extraction::findings`, so both front doors share the core. The submit agent heals stringified payloads before validation (`heal_encoded_arguments` in `core::session::argument_heal`, called by `agent::extraction::submit_agent`). Every node is an objective, world-facing fact. No quiz outcomes or understanding assessments are stored. How well the learner knows a fact is derived at read time from lesson answers (`GET /api/progress`); nothing ever writes learner states back to the graph.
+### One extraction run
 
-**Digest-aware serialized extraction: the extractor is the assembler.** When a source already yielded material, each stretch's extractor prompt carries **THE GRAPH SO FAR** (that source's merged propositions and chains, ids verbatim), and the extractor builds on it: it references existing ids instead of restating them and leans on established conclusions as premises. Chains may therefore span stretches: endpoints are a mixed namespace of fresh local ids OR existing `n_` ids (validated at the submit seam, error-back; the merger's job-local map passes existing ids through verbatim). The prompt frames the goal as uncovering the source's **core ideas** and showing how everything **derives from the foundations**: direction upward, prefer lean derivations, never re-derive what the graph already holds. Because each stretch must read every earlier merge, a source's batches/chunks run **STRICTLY IN ORDER** (serialized per source). The first stretch of a source runs bare (no digest).
+1. After a turn, `trigger_extraction` (`services::turns::turn_service`) compares the lesson with its coverage ledger (`coverage_of`). It starts a run when uncovered tokens reach `graph.extractionChunkTokens` (a setting, default 4096, floor 500, read fresh each turn). Only one run per source is in flight.
+2. `batch_runs` (`core::graph::coverage`) fills token-budgeted batches with the oldest uncovered teacher-prose messages.
+3. For each batch, the extractor (the outside agent, through a work item) submits new propositions, reasoning chains and `reteaches`.
+4. The merger (`merge_findings` in `core::graph::merge`, deterministic) appends the results and runs chain simplification.
+5. Coverage is checkpointed for what merged.
+6. When the run ends, topic grouping is scheduled for that graph (`schedule_topic_grouping`, debounced 20 s).
 
-**Chain simplification: the merger's maintenance pass.** The same conclusion often arrives from many angles — `[A,B]⟹X`, `[X,C]⟹Y`, and then `[A,B,C]⟹Y`, which adds nothing. At every merge, `simplify_chains` (`core::graph::simplify`) walks the WHOLE chain ledger and drops provably redundant chains: a chain is redundant when its premises already derive its conclusion through the other kept chains (forward closure: start from its premises, add the conclusion of every kept chain whose premises are all known, and see whether its conclusion turns up). Chains with the most premises, then the newest, are checked first, so the leanest, earliest derivation stands, and a chain already dropped never helps derive another, so two chains that derive each other never both go. `[A,B]⟹X` + `[X,C]⟹Y` make `[A,B,C]⟹Y` redundant, while `[A]⟹Y` next to `[A,B]⟹X` + `[X]⟹Y` stays (A alone never reaches X). Same-(premises, conclusion) lines are one logical chain — a key drops with every provenance line. The rewrite rides the merge's audit-locked critical section (atomic `rewrite_ledgers`); run stats count the drop separately (`droppedChains`) so appends and maintenance never blur. Simplification runs at merge time because a NEW chain can make an OLD one redundant — nothing is retroactively re-derived, only provable redundancy is removed.
+A failure at any step checkpoints nothing, and the next trigger runs it again.
 
-**Per-part jobs, one at a time** — every part (a notes stretch) and every batch (chat coverage) is its own JOB: registry row, usage record, failure domain. Extract + merge for every job runs inside one process-wide graph lock (`with_graph_lock` in `agent::extraction::extraction`): the extractor reads the live graph (its own source's findings and the related ideas), so two at once would each miss what the other is adding and mint duplicates. A job waiting for the lock shows the `waiting` phase. A source's parts run in order. Failure isolation: one job failing (bad part, degraded model output) is absorbed; its messages stay uncovered and re-runnable while its siblings still merge, and the run returns what actually merged. Abort is source-wide: the serial loop stops at the first AbortError (also while waiting for the lock), and merged jobs keep their checkpoints. The status feed shows one row per job (`file.md (2/5)` suffixes for parts), and each job persists its own usage record (failed jobs bill their partial spend too).
+### What the extractor sees
 
-**Identity without a second model call.** The extractor is the only LLM stage and the only one that sees the source. Before each part, the app's local search (`related_facts`, the hybrid embedding + BM25 search in `crates/search`) picks the ~25 existing ideas that best match the part's text, and the prompt lists them as RELATED IDEAS (`id | name | statement`) next to THE GRAPH SO FAR. An idea either list already holds is never submitted again: the extractor references it by its `n_` id in chains and lists it in `reteaches` when the part teaches it. The merger (`merge_findings`, deterministic) then appends: every new proposition becomes a node; each valid `reteaches` id gets a credit line (this source's provenance, the node's own name and statement) so the source counts toward that idea; chains resolve through the job-local id map (existing `n_` ids pass through verbatim) and dedupe by (sorted premises, conclusion), so a known argument re-asserted elsewhere appends under the SAME `arg_` id with provenance unioned; then the chain-simplification pass runs and coverage checkpoints. The submit seam rejects `reteaches` ids that are not existing ideas, and chains whose ids resolve to nothing; the model re-submits within its turns. Duplicates the search misses stay as separate nodes.
+The extractor reads teacher prose only: plain paragraphs under the session title, with no learner messages, thinking, tool calls, tool results or quiz blocks. Coverage fingerprints, slot tokens and batch budgets come from the same selection (`message_view_lines` in `core::graph::coverage`). So "covered" means "what the extractor saw". A quiz answer or a learner edit never opens a run, and only an edit to teacher prose reopens its message.
 
-**Coverage, not quiz-counting.** Each message's *view* (the compact line format `core::graph::coverage` has always hashed) is hashed into a per-chat fingerprint ledger (`coverage.jsonl`); "covered" means exactly "a run committed on this content." The prompt view is the richer markdown document, kept apart on purpose: re-formatting presentation never re-opens covered history. Uncovered = fingerprint diff, never dual-tracked; runs are greedy token-budgeted batches (`graph.extractionChunkTokens` — a settings knob, default 4096, floor 500, read fresh each turn) of the oldest uncovered messages — quiz-less sessions extract too. A coarse `sessions.jsonl` checkpoint still marks each merged run. The trigger seam (`trigger_extraction` in `services::turns::turn_service`) is trigger-agnostic from the pipeline's side: when a better mechanism lands (session end, idle, explicit flush), only the seam changes. Single-flight per source; the run registry (`agent::extraction::extraction_runs`) powers the activity feed, the coverage UI and true abort.
+The prompt is one shared `EXTRACTION_CORE` plus a short `SESSION_PREAMBLE` or `NOTES_PREAMBLE`, assembled in `agent::extraction::findings`. Next to the text, it lists two things:
 
-**Two front doors, one pipeline**: chat transcripts (coverage-triggered) and notes and space files (`POST /api/graph/import`, the `import_notes` MCP tool, or a space's file pipeline; each file becomes a `NotesSource` playing the `chatId` role, deterministic id from the path hash). Every explicit "No space" re-import processes the whole file again and adds to that source (`contentFp` in old source records is ignored). Space files are different: each has a space-unique source id (`src_` + hash of space + file id), and a changed or removed file has its old facts removed first (`delete_source_traces`, the delete-nodes law applied to a source) before re-extraction. Notes chunk like chats: large files split at line boundaries under the same token budget, and each chunk runs as its own job exactly like a chat batch — in order per source, one job at a time under the graph lock. No single model call carries a whole file. Both submit tools require their top-level fields (`propositions`, `chains` and `reteaches` present even when empty): a payload missing them fails validation rather than silently merging structure-less nodes.
+- `THE GRAPH SO FAR`: this source's merged propositions and chains, ids as they are. The first stretch of a source has none.
+- `RELATED IDEAS`: about 25 existing ideas from other sources, picked by local search (`related_facts`, the embedding and BM25 search in `crates/search`).
 
-**The read channel is pure derivation.** `GET /api/graph` and `GET /api/progress` read the ledgers and never write. The stored truth is propositions (`nodes.jsonl`) + reasoning chains (`chains.jsonl`). `graph_snapshot` merges the ledgers, then `derive_view` (`core::graph::graph`) rebuilds a view on every read: each stored chain becomes an implication node (id = the chain's `arg_` id, name `⟹`) with arrows premise→implication→conclusion; a chain whose member was deleted drops. Two independent arguments for one conclusion (`A∧B⇒E`, `C∧D⇒E`) stay two implication nodes, never one merged `A∧B∧C∧D⇒E`. Clusters are the birth-session partition over propositions (`birth_session_partition`, `core::graph::session_clusters`); the chain table groups chains by them.
+The extractor references those ids instead of restating them and lists the ideas it teaches again under `reteaches`. Because each stretch builds on every earlier merge, a source's batches run strictly in order.
 
-**Deletion is full death, cascade-aware.** Deleting a proposition kills EVERY stored chain that references it, premise or conclusion. Deleting an implication node (any `arg_`-prefixed id) deletes exactly that ONE stored argument and nothing else. The same confirm dialog (`src/frontend/components/delete-node-dialog.tsx`) opens from a fact's right-click menu in the topic panel and from the chain table's Delete.
+`core::session::session_markdown` renders a whole lesson for the markdown export (`GET /api/chats/{id}/markdown`) and the MCP `read_lesson` tool. Extraction does not use it.
 
-**The teacher probes, nothing is injected.** The teacher reaches the graph on its own terms through two read-only prober tools — `list_sessions` (birth sessions, the learner's files) and `list_propositions` (the names of what a session covered) — gated by the `agent.graphTools` setting (composing with `graph.enabled`). No topic embedding, no top-K selection, no session-start steer; the agent decides what to look at, and the graph never writes into a lesson unbidden.
+### Propositions and chains
 
-**Rendering**: `/graph` shows the topics as level columns (`src/frontend/components/graph/level-columns.tsx`): one pane per level (a topic's `column`, its prerequisite depth), each topic a row with one square per fact in its right rate's color, no lines and no zoom. A picked topic marks what it needs (←) and leads to (→). The right side keeps the next deadline on top (`side-panes.tsx`); under it what to work on next, the picked topic (`topic-pane.tsx`), or the picked fact (`fact-pane.tsx`: its answers, the file or lesson it came from, and the facts it builds on and leads to, from the graph snapshot's chains). The topic grouper (`agent::extraction::topic_grouper`, scheduled by `services::graph::topics`) groups a graph's facts into topics, labels each topic's material (term, procedure, concept or proof; optional, so older snapshots have none) and appends a full snapshot to `topics.jsonl`. A topic that keeps an existing id across a regroup keeps its stored material (`repair_topics`, `core::graph::topics`). Nothing about the layout is stored.
+- A proposition is an objective fact about the world (id, name, statement, optional aliases). Nothing about the learner's understanding is stored.
+- A chain is a set of premises that jointly entail a conclusion. Independent arguments for one conclusion are separate chains, and a conclusion can be a premise elsewhere.
+- Chains are stored as submitted in `chains.jsonl`. No typed edge is stored anywhere; every arrow on screen is derived from a chain.
+- Chain endpoints may be fresh local ids or existing `n_` ids. The merger's per-job id map passes existing ids through.
+
+The submit step checks the chain rules and returns an error the model fixes within its turns:
+
+- every premise and conclusion id resolves to a submitted proposition or an existing idea
+- premises are not empty, and a chain does not reference itself
+- every `reteaches` id is an existing idea
+- `propositions`, `chains` and `reteaches` are present, even when empty
+
+The submit agent repairs payloads that arrive as strings before checking them (`heal_encoded_arguments` in `core::session::argument_heal`, called from `agent::extraction::submit_agent`).
+
+### What the merger writes
+
+- Each new proposition becomes a node.
+- Each valid `reteaches` id gets a credit line with this source's provenance, so the source counts toward that idea.
+- Chains dedupe by sorted premises plus conclusion. A known argument found again appends under the same `arg_` id, with provenance combined.
+- Search misses stay as separate nodes. There is no second model call to match duplicates.
+
+### Chain simplification
+
+At every merge, `simplify_chains` (`core::graph::simplify`) walks the whole chain ledger and drops chains that are provably redundant. A chain is redundant when its premises already derive its conclusion through the other kept chains.
+
+- Chains with the most premises, then the newest, are checked first, so the leanest and earliest derivation stays.
+- A dropped chain never helps derive another, so two chains that derive each other never both go.
+- Example: `[A,B]⟹X` plus `[X,C]⟹Y` make `[A,B,C]⟹Y` redundant. `[A]⟹Y` next to `[A,B]⟹X` and `[X]⟹Y` stays, because A alone never reaches X.
+
+The rewrite happens inside the merge's lock (`rewrite_ledgers`). Run stats count dropped chains separately (`droppedChains`).
+
+### Jobs and the graph lock
+
+Every batch of a lesson and every part of a notes file is its own job, with its own row, usage record and failure.
+
+- Extract and merge run inside one process-wide graph lock (`with_graph_lock` in `agent::extraction::extraction`). The extractor reads the live graph, so two at once would miss each other's additions. A job waiting for the lock shows the `waiting` phase.
+- One failing job leaves its messages uncovered and re-runnable while the others still merge.
+- Abort stops the whole source at the first abort, also while waiting for the lock. Jobs that merged keep their checkpoints.
+- The activity feed shows one row per job, with a `(2/5)` suffix for parts. Each job saves its own usage record, failed jobs included.
+- The run registry (`agent::extraction::extraction_runs`) feeds the activity feed, the coverage menu and abort.
+
+### Coverage
+
+Each message's view is hashed into the lesson's `coverage.jsonl`. Covered means a run merged on exactly that content, and uncovered is the difference. The prompt shows a richer markdown version, kept apart on purpose, so a change in presentation never reopens covered history. `sessions.jsonl` also gets a checkpoint for each merged run.
+
+### Notes and space files
+
+The same pipeline reads notes and space files:
+
+- Notes come in through `POST /api/graph/import` or the MCP `import_notes` tool. A notes file's source id is `src_` plus the first 12 hex of the sha256 of its path. A "No space" re-import reads the whole file again and adds to that source.
+- A space file's source id is unique per space. A changed or removed file has its old facts removed first (`delete_source_traces`), then it is read again.
+- Notes split at line boundaries under the same token budget, and each chunk runs as its own job, in order, under the graph lock. No model call carries a whole file.
+
+### The read side
+
+`GET /api/graph` and `GET /api/progress` read the ledgers and never write.
+
+- `graph_snapshot` merges the ledgers, and `derive_view` (`core::graph::graph`) rebuilds the view on every read.
+- Each stored chain becomes an implication node (id is its `arg_` id, name `⟹`) with arrows from premises to the implication to the conclusion. A chain with a deleted member drops out.
+- Two arguments for one conclusion stay two implication nodes, never one merged node.
+- Clusters are birth sessions: a fact joins the cluster of the lesson or notes file that created it (`birth_session_partition`, `core::graph::session_clusters`). The chain table groups chains by them.
+- How well the learner knows a fact is derived from lesson answers at read time (`services::graph::progress`, `src/shared/core/progress.ts`). Nothing writes learner state into the graph.
+
+### Deletion
+
+- Deleting a proposition removes every stored chain that references it, as premise or conclusion.
+- Deleting an implication node (any `arg_` id) removes exactly that one stored chain.
+- The same confirm dialog (`src/frontend/components/delete-node-dialog.tsx`) opens from a fact's right-click menu and from the chain table's Delete.
+
+### The teacher's graph tools
+
+The teacher reads the graph only through `list_sessions` (birth sessions, the learner's files) and `list_propositions` (the facts a session covered), in `agent::tools::graph`. The `agent.graphTools` setting turns them off. There is no topic embedding, no top-K pick and no start-of-lesson injection.
+
+### The Graph page
+
+`/graph` shows topics in level columns (`src/frontend/components/graph/level-columns.tsx`). Each column is one prerequisite depth (a topic's `column`). Each topic is a row with one square per fact, colored by its right rate, with no lines and no zoom. A picked topic marks what it needs and what it leads to.
+
+The right side (`side-panes.tsx`) shows the next deadline on top. Under it is what to work on next, the picked topic (`topic-pane.tsx`) or the picked fact (`fact-pane.tsx`: its answers, where it came from, and the facts it builds on and leads to).
+
+The topic grouper (`agent::extraction::topic_grouper`, scheduled by `services::graph::topics`) groups a graph's facts into topics. It labels each topic's material as term, procedure, concept or proof, and appends a full snapshot to `topics.jsonl`. Older snapshots may have no material. A topic that keeps its id across a regroup keeps its stored material (`repair_topics`, `core::graph::topics`). Nothing about the layout is stored.
 
 ---
 
-### 6.1 Spaces — one graph per space
+### 6.1 Spaces
 
-`GraphStore` is built per graph folder (`GraphStores` in `crates/store`); the composition root hands out `graph_store_for(app, scope)` (`services::graph::graph`) (null = "No space" = `data/graph/`, a space id = `data/spaces/<id>/graph/`). The extraction pipeline resolves its target per source (from the source's space), so the one writer still writes, now into the lesson's or file's own space graph. Reads may cross spaces (the prober's map tools take `graphs`), writes never do (`merge_findings` writes only the own graph). Space orchestration lives in `services::spaces` (the file pipeline and the linked-folder scan every 60 s in `pipeline`, lifecycle and cascade delete in `lifecycle`); the space card is `services::spaces::space_card`; lesson birth is `services::turns::lessons`.
+Each space has its own graph. `graph_store_for(app, scope)` (`services::graph::graph`) gives `data/graph/` for "No space" and `data/spaces/<id>/graph/` for a space. Extraction picks the graph from the source's space, so lessons and files write into their own space's graph. Reads may cross spaces (the prober's tools can read several graphs), but `merge_findings` writes only the source's own graph.
 
-**Space files.** A file is `study` (turned into facts) or `info` (the teacher can read it with `read_space` / `search_space_files` / `read_passage`, but it never becomes facts). A linked folder adds every supported file in it, up to `MAX_LINKED_FILES` (500). Supported: plain text and code files read as they are, text files with no extension (checked by their bytes), PDFs (`crates/pdf`), Word and PowerPoint files (`crates/files`, `office`, a small zip reader, slides headed like PDF pages), EPUB books (`epub` on the same zip reader, each XHTML file of the spine a section headed like PDF pages; copy-protected books and books with no text are refused), captions and recordings. A new linked file takes its name series' kind, else study; while reading a study file the agent also says when it is logistics (`import_notes` with `may_be_space_info`, decided on the first stretch at no extra call), and godspeed switches it to info (`sortedAsInfo`). A kind picked by hand (`kindChosen`, and every file added by hand) is never sorted. Recordings are transcribed locally with whisper.cpp (`crates/transcribe`), except one whose lecture transcript is already in the space (same date, or same lecture number, in the names: `core::spaces::lecture_transcript`): it is never read, has no facts of its own and records the transcript as `transcriptId`, and it is transcribed after all if that transcript goes. A linked folder that times out (Google Drive paused or offline) shows "not responding" and keeps its files, like a missing one. Files a linked folder holds that can't be read (Google Docs links among them) are counted in the folder status and named on the Files page. The work of reading a study file is a background work item for the outside agent: nothing is extracted until an agent is taking work.
+Where the space code lives:
 
-**Kept pages.** The PDF reader (`agent::subagents::pdf_reader`, a job run by the learner's own agent) reads a page with formulas by rendering it as a picture. When the PDF is a ready space file whose content still matches its `contentFp` (`services::spaces::kept_pages`, reached through the job host's `kept_pages` and `keep_page`), the reader also gets `save_page {page, markdown}`: a whole page whose picture it was shown in this job (not one rendered in the same reply), written out once as Markdown with LaTeX, at most 3 a job and 6,000 characters each. Refused: empty text, control characters (what JSON makes of an unescaped `\frac` or `\theta`), the same break for `\neq`, `\nu` and the other common `\n…` commands (a newline inside `$…$`, or a display line starting with the rest of such a command), lines like `--- Page 3 ---`, and text under 40% of the page's own text when that is over 400 characters. godspeed stores the text and runs none of it, as `texts/<file id>.<fp>.p<N>.md` beside the file's saved text (`services::spaces::text_cache`); saving a new version's text removes the old version's kept pages. From then on the kept text stands in for that page (`core::spaces::kept_pages`): in `pdf_extract`, marked `kept` in `pdf_info`, and in search. The search index records the file's fingerprint plus a hash of its kept pages, so a save brings one re-index (started in the background, one at a time) and later scans none. A passage keeps its id while its place and its piece number there stay the same, and a new piece takes a number the file never used (`idsUsed` in the index's file entry), so a passage id the teacher holds still names the same page after a kept page splits into more passages. A quote on a kept page is checked against the Markdown; the page picture shows its box only when pdfium's own text has the words too, and shows without one otherwise.
+- `services::spaces::pipeline`: the file pipeline and the linked-folder scan every 60 s
+- `services::spaces::lifecycle`: space lifecycle and cascade delete
+- `services::spaces::space_card`: the space card
+- `services::turns::lessons`: lesson creation
 
-**The teacher's work on a space.** While study files wait to be read, the space says so where the learner already is: a frame around the page of every tab (`src/frontend/components/work/`), a strip on Today, a tag on the space's tab in the top bar ("15 left") and a second line under Talk's "Created <space>" row. A space the teacher makes from Talk opens by itself (the action's `open`, as for a lesson started from Talk). The record remembers the newest round of work as `lastWork` (`core::spaces::space_work`, applied by the spaces store on every file write): a round opens when a study file starts waiting, collects each file that finishes or fails and each deadline added meanwhile, and ends when none waits. The frame then shows what the round made until the learner closes it (`DELETE /api/spaces/{id}/work`), new work starts, or a day passes. The list of spaces carries `filesLeft` and `building` for Today and the top bar.
+#### Space files
 
-**Source marks.** The teacher marks what it read from a space file with a source mark right after the sentence: `[[f_1a2b3c4d5e6f:7]]` (a passage id from `search_space_files` or `read_passage`), or `[[https://example.com/page]]` for a web page. The server checks every mark in the `respond` tool before the reply is stored (`services::spaces::citations`). A passage mark whose passage exists is stored as `[[<file id>/<range>/<file name>]]`, for example `[[f_1a2b3c4d5e6f/p. 12/Week 6 slides.pdf]]`, which still points at the right place after the file's passages are renumbered. A mark whose passage doesn't exist is removed, and `respond` tells the agent which ones. Cheat sheet replies are checked the same way, and a reply with a bad mark is sent back to the agent (a quote that does not hold is dropped there without a word). Web marks are stored as written. A mark may quote a few words of its passage, `[[f_1a2b3c4d5e6f:7 "degree 12"]]`: the quote is stored with the mark (`[[f_1a2b3c4d5e6f/p. 14/Lecture 6.pdf|degree 12]]`) only when it is 2 or more words or one code expression, at most 80 characters, free of `[ ]`, backticks and `$`, and found exactly once in that passage (`core::messages::quote_find`; spacing, a word split at a line end, ligatures and curly quotes don't matter). Otherwise the quote is dropped, the plain mark stays, and `respond` tells the agent why; in `topic_done`'s `opener.lead` such a quote refuses the call. The browser turns stored marks into numbered buttons after the sentence and a Sources list under the message (`src/frontend/components/citations/`); a space file source opens a popup with the PDF page as an image or the passage text, a web source opens the page. Two routes feed the popup: `GET /api/cited/<file id>?range=<range>&quote=<words>` returns `{name, range, page, text, marks}` (`page` is the PDF page number when the file is a PDF still on disk and the range names a page, else `null`; 404 when no space has the file, or when it isn't a PDF page and no passage is at that range). `marks` says where the optional quote sits, or is `null` without a quote or when it is not found exactly once: on a PDF page `{kind: "page", boxes: [{x, y, w, h}]}`, one box a line as fractions of the page image from its top left, found on the page's own text (cached beside the page images); in a text or code file `{kind: "lines", first, lines, spans: [{line, start, end}]}`, the 12 lines of the file centred on the quote's first line, read from the file itself, with the quote's place on each line in UTF-16 units; anywhere else (.docx, .pptx, transcripts) `{kind: "passage", start, end}`, UTF-16 offsets in `text`, and `GET /api/cited/<file id>/page/<n>` returns that page as `image/png`. File ids are unique across spaces, so the routes need no space id. Readers of plain text (the Markdown export, fact extraction) get the mark in words, like ` (Week 6 slides.pdf, p. 12)`. The pure parts (reading, rewriting, numbering, labels) are in `core::messages::citations` (the browser has its twin in `src/shared/core/citations.ts`); marks inside code and math are left alone. A Study reply's topic is the one its calls name, else the one before it, else the plan's first topic, where the lesson starts (for the spacing of plots and kept sentences too). A topic's page, the quoted mark its excerpt is drawn from, is the first quoted mark in the shown opener's lead, else in the topic's first reply that is not reads alone, so the opening reply's page draws as soon as that reply is there (`core::study::topic_parts`, twin of `src/shared/core/topic-parts.ts`; both replay `crates/core/tests/golden/topic_parts.json`).
+A file is `study` (turned into facts) or `info` (the teacher can read it with `read_space`, `search_space_files` and `read_passage`, but it never becomes facts).
 
-**Deadlines.** A space can have deadlines (`SpaceDeadline` in `core::contracts::space`): kind `exam`, `homework`, `quiz` or `project`, a name, a due day, an optional time on the learner's own clock, the study files it covers, and a done flag. The learner edits them on the space's Deadlines tab; an outside agent edits them with `add_space_deadline` (a list at once) / `update_space_deadline` / `remove_space_deadline`. `GET /api/deadlines` lists every open deadline for Today. `GET /api/progress` turns a deadline's files into days left, a ready percentage and a "Work on next" list for the Graph page. The teacher sees them through the `today-context` marker (§5).
+Supported files:
 
-**Deadline reminders** (`services::app::deadline_reminder`). While godspeed runs, the server checks 10 seconds after it starts and then every 10 minutes, and from 9:00 local time on (or at that first check) the soonest open deadline that is not yet due and 3 days away or less gets one system notification, "Quiz 2 is in 2 days" with "Algebra. You are 40% ready." (the deadline's ready percentage from `progress_for`; "Algebra. 2 of 7 problems done." for a deadline with problems, as the app counts them; only the space name when neither is known). Short waits that each read the wall clock mean a computer that slept through 9:00 still sends within 10 minutes of waking. The server asks the shell with `notify`; the shell skips it while the main window has the focus and answers whether it handed it to the system, and only then is the day marked, so a skipped one is tried again at a later check. A server without a shell runs no check. `data/reminders.json` (`store::reminders`, `{version: 1, lastDay}`) keeps the day of the last one, so there is at most one a day however often godspeed starts. Settings → General → Deadline reminders (`general.deadlineReminders`, on by default; shown only in the desktop app, where `window.lh` exists) turns them off; the setting is read at each check.
+- plain text and code, read as they are, and text files with no extension (checked by their bytes)
+- PDFs (`crates/pdf`)
+- Word and PowerPoint (`crates/files`, `office`, on a small zip reader; slides are headed like PDF pages)
+- EPUB books (`epub` on the same zip reader; each spine file is a section headed like a PDF page; copy-protected books and books with no text are refused)
+- captions and recordings. Recordings are transcribed locally with whisper.cpp (`crates/transcribe`).
 
-**Cheat sheets.** A deadline's header has a Cheat sheet button that opens its studio (`/space/deadline/<id>/cheat-sheet`). The agent makes the sheet as a real PDF with its own tools (LaTeX suggested) and godspeed shows that file as it is. The record is `spaces/<id>/cheat-sheets/<deadlineId>.json` (`store::cheat_sheets`, format 4, removed with its deadline): the last 5 versions (each a PDF in `<deadlineId>-versions/v<n>.pdf` with its page sizes and the message that made it, or marked as taken from the working folder), the sheet's chat (the last 100 messages), the sheet's rules, and the name of its working folder. Pictures and PDFs sent in the chat sit in `<deadlineId>-files/`, named by their content. Format 3's prompts read as the chat's first messages; an HTML (format 2) or block (format 1) sheet can't become a PDF without the agent: it keeps its asks and the studio offers Make it again (`core::study::cheat_sheet`).
+Linked folders:
 
-Each chat message is one background work item (`sheet_reply`, `agent::subagents::cheat_sheet_writer`) like the topic grouper, not a chat kind, so lessons, Talk, search and extraction never see it: the request carries the deadline's topics with readiness and a few facts, the mistakes from practice, the sheet's rules, the working folder (`<godspeed folder>/cheat-sheets/<space> <deadline>/`, where the agent keeps its source so a change edits it), the last 8 messages, and the message itself: the learner's words and files, and the part of a page they pointed at (its picture first). The agent answers in markdown, and when it changed the sheet sends the new PDF's path and any rules the learner set (`new_rules`); its instructions ask it to render and look at every page, check the page count and size and check each formula against the space's material before sending. godspeed takes a PDF only from inside that folder (links resolved), checks it (a PDF by its bytes, 20 MB, 1 to 4 pages of 2 to 17 inches) and copies it into its data (`services::cheat_sheets::cheat_sheet_pdf`). Opening a sheet also takes the newest PDF in its working folder when it was written after the current version (an edit outside godspeed), after the same checks, as a version "From the working folder", once per file. The studio is a canvas (`src/frontend/components/cheat-sheet/`): every kept version's pages as artboards, newest first, drawn by pdf.js in the browser (worker and data served at `/pdfjs/`, outside `/api`, `server::http::ui`), each page drawn whole once and the part on screen again at the screen's resolution once the view settles, so it is sharp at any zoom. Point at the sheet draws a box on a page; that part is drawn from the PDF as a picture and goes with the next message. The chat floats on the right (`sheet-chat.tsx`): the sheet's rules with a remove ✕, the messages, "Made version N" rows that show that version on the canvas, Stop and Try again, and a box with math, pictures and PDFs and a kept draft. In a lesson, study or practice session of a space, the top bar's Cheat sheet button docks the sheet beside the session (`sheet-dock.tsx`, resizable, open state and pick kept per session): the session's deadline's sheet, else the space's next one with a sheet, with a picker when there are several, the current version fit to width. The docked sheet has no chat: questions about it go to the teacher in the lesson's writing box. Print draws the PDF's pages at 300 dpi into print-only pictures at the PDF's page size; On the desktop, Show in Finder reveals the PDF in its working folder (the agent's own file while it is still that version, else godspeed's copy written there as `cheat sheet v<n>.pdf`, through `window.lh.showInFolder`); a browser gets a download link. A space's Cheat sheets tab is its page (`/space/cheat-sheets`, `GET /api/spaces/<id>/cheat-sheets`): every deadline as a card, coming up first, then past, saying whether its sheet is made (a preview of page 1 drawn by pdf.js once the card is in view, its paper and when it was made), being made, older (Make it again) or not there (Make one).
+- A linked folder adds every supported file, up to `MAX_LINKED_FILES` (500).
+- A new linked file takes its name series' kind, else `study`. While reading a study file, the agent can say it is logistics (`import_notes` with `may_be_space_info`, decided on the first stretch). godspeed then switches it to info (`sortedAsInfo`). A kind picked by hand (`kindChosen`, and every file added by hand) is never re-sorted.
+- A recording whose lecture transcript is already in the space (same date or lecture number in the names, `core::spaces::lecture_transcript`) is never read and records the transcript as `transcriptId`. If that transcript goes, the recording is transcribed after all.
+- A folder that times out (for example Google Drive paused or offline) shows "not responding" and keeps its files, like a missing folder.
+- Files that can't be read, Google Docs links among them, are counted in the folder status and named on the Files page.
+
+Reading a study file is a background work item for the outside agent. Nothing is extracted until an agent is taking work.
+
+#### Kept pages
+
+The PDF reader (`agent::subagents::pdf_reader`, a job run by the learner's own agent) reads a page with formulas by rendering it as a picture. When the PDF is a ready space file whose content still matches its `contentFp`, the reader also gets `save_page {page, markdown}` (`services::spaces::kept_pages`, reached through the job host's `kept_pages` and `keep_page`).
+
+`save_page` writes a whole page as Markdown with LaTeX. It takes only a page whose picture was shown earlier in this job, not one rendered in the same reply.
+
+| Limit | Value |
+|---|---|
+| Pages per job | 3 |
+| Characters per page | 6,000 |
+| Too short | under 40% of the page's own text, when that text is over 400 characters |
+
+It also refuses empty text, control characters (what JSON makes of an unescaped `\frac` or `\theta`), a newline that broke a `\neq`, `\nu` or similar command, and lines like `--- Page 3 ---`.
+
+- The text is stored, never run, as `texts/<file id>.<fp>.p<N>.md` beside the file's saved text (`services::spaces::text_cache`). A new version's text removes the old version's kept pages.
+- From then on the kept text stands in for that page (`core::spaces::kept_pages`): in `pdf_extract`, marked `kept` in `pdf_info`, and in search.
+- The search index records the file's fingerprint plus a hash of its kept pages. A save causes one re-index in the background, one at a time.
+- A passage keeps its id while its place and piece number stay the same. A new piece takes a number the file never used (`idsUsed`), so a passage id the teacher holds still names the same page.
+- A quote on a kept page is checked against the Markdown. The page picture shows its box only when pdfium's own text has the words too.
+
+#### The teacher's work on a space
+
+While study files wait to be read, the space shows it where the learner is:
+
+- a frame around every tab's page (`src/frontend/components/work/`)
+- a strip on Today
+- a tag on the space's tab in the top bar ("15 left")
+- a second line under Talk's "Created <space>" row
+
+The record keeps the newest round of work as `lastWork` (`core::spaces::space_work`, applied by the spaces store on every file write). A round opens when a study file starts waiting, collects each file that finishes or fails and each deadline added meanwhile, and ends when nothing waits. The frame then shows what the round made until the learner closes it (`DELETE /api/spaces/{id}/work`), new work starts, or a day passes. The space list carries `filesLeft` and `building` for Today and the top bar, and `filesRead` while a round is open. A space the teacher makes from Talk opens by itself.
+
+#### Source marks
+
+The teacher marks what it read with a source mark right after the sentence:
+
+- `[[f_1a2b3c4d5e6f:7]]`: a passage id from `search_space_files` or `read_passage`
+- `[[https://example.com/page]]`: a web page
+
+The prompt part is `crates/agent/prompts/shared/13-source-marks.md`, and Talk has one sentence about it in `talk/00-base.md`.
+
+`respond` checks every mark before the reply is stored (`services::spaces::citations`):
+
+- A mark whose passage exists is stored as `[[<file id>/<range>/<file name>]]`, for example `[[f_1a2b3c4d5e6f/p. 12/Week 6 slides.pdf]]`. That still points at the right place after the passages are renumbered.
+- A mark whose passage doesn't exist is removed, and `respond` tells the agent which ones.
+- Web marks are stored as written.
+- Cheat sheet replies are checked the same way. A reply with a bad mark goes back to the agent, and a quote that does not hold is dropped there without a word.
+
+A mark may quote a few words: `[[f_1a2b3c4d5e6f:7 "degree 12"]]` is stored as `[[f_1a2b3c4d5e6f/p. 14/Lecture 6.pdf|degree 12]]`. The quote is kept only when all of these hold (`core::messages::quote_find`):
+
+- 2 or more words, or one code expression
+- at most 80 characters, with no `[`, `]`, backticks or `$`
+- found exactly once in the passage, ignoring spacing, line-end word splits, ligatures and curly quotes
+
+Otherwise the quote is dropped, the plain mark stays, and `respond` says why. In `topic_done`'s `opener.lead`, a bad quote refuses the call.
+
+The window turns stored marks into numbered buttons and a Sources list (`src/frontend/components/citations/`). A file source opens a popup with the PDF page or the passage text, and a web source opens the page. The popup reads two routes:
+
+| Route | Returns |
+|---|---|
+| `GET /api/cited/<file id>?range=<range>&quote=<words>` | `{name, range, page, text, marks}`. `page` is the PDF page number when the file is a PDF on disk and the range names a page, else `null`. 404 when no space has the file, or no passage is at that range |
+| `GET /api/cited/<file id>/page/<n>` | the page as `image/png` |
+
+`marks` places the quote, or is `null` without a quote or when it is not found exactly once:
+
+- PDF page: `{kind: "page", boxes: [{x, y, w, h}]}`, one box per line, as fractions of the page image from its top left, cached beside the page images
+- text or code file: `{kind: "lines", first, lines, spans: [{line, start, end}]}`, the 12 lines centred on the quote's first line, positions in UTF-16 units
+- anything else (.docx, .pptx, transcripts): `{kind: "passage", start, end}`, UTF-16 offsets in `text`
+
+File ids are unique across spaces, so the routes need no space id. Plain-text readers (the Markdown export, extraction) get the mark in words, like ` (Week 6 slides.pdf, p. 12)` (`cites_in_words`). The pure parts are in `core::messages::citations`, with a twin in `src/shared/core/citations.ts`; both replay `crates/core/tests/golden/citations_quotes.json`. Marks inside code and math are left alone.
+
+A Study reply's topic is the one its calls name, else the one before it, else the plan's first topic. A topic's page excerpt comes from the first quoted mark in the shown opener's lead, else in the topic's first reply that is not only reads (`core::study::topic_parts`, twin of `src/shared/core/topic-parts.ts`; both replay `crates/core/tests/golden/topic_parts.json`).
+
+#### Deadlines
+
+A space can have deadlines (`SpaceDeadline` in `core::contracts::space`): a kind (`exam`, `homework`, `quiz` or `project`), a name, a due day, an optional time on the learner's clock, the study files it covers, and a done flag.
+
+- The learner edits them on the space's Deadlines tab.
+- An outside agent uses `add_space_deadline` (a list at once), `update_space_deadline` and `remove_space_deadline`.
+- `GET /api/deadlines` lists every open deadline for Today.
+- `GET /api/progress` turns a deadline's files into days left, a ready percentage and a "Work on next" list.
+- The teacher sees them in the `today-context` marker (§5).
+
+#### Deadline reminders
+
+`services::app::deadline_reminder` sends at most one system notification a day for the soonest open deadline that is 3 days away or less.
+
+1. The server checks 10 s after it starts, then every 10 minutes. Each wait reads the wall clock, so a computer that slept through 9:00 still sends within 10 minutes of waking.
+2. From 9:00 local time on, it picks the deadline and writes the text, for example "Quiz 2 is in 2 days" with "Algebra. You are 40% ready." The ready percentage comes from `progress_for`. A deadline with problems says "Algebra. 2 of 7 problems done." Without either, only the space name shows.
+3. The server asks the shell with `notify`. The shell skips it while the main window has focus and answers whether it showed it.
+4. Only a shown reminder marks the day in `data/reminders.json` (`store::reminders`, `{version: 1, lastDay}`). A skipped one is tried again at a later check.
+
+A server without a shell runs no check. Settings, General, Deadline reminders (`general.deadlineReminders`, on by default, shown only in the desktop app) turns them off, and is read at each check.
+
+#### Cheat sheets
+
+A deadline's header has a Cheat sheet button that opens its studio (`/space/deadline/<id>/cheat-sheet`). The outside agent makes the sheet as a real PDF with its own tools (LaTeX suggested), and godspeed shows that file as it is.
+
+The record is `spaces/<id>/cheat-sheets/<deadlineId>.json` (`store::cheat_sheets`, format 4, removed with its deadline). It holds:
+
+- the last 5 versions, each a PDF in `<deadlineId>-versions/v<n>.pdf` with its page sizes and the message that made it, or marked as taken from the working folder
+- the sheet's chat (the last 100 messages) and the sheet's rules
+- the name of its working folder
+
+Pictures and PDFs sent in the chat sit in `<deadlineId>-files/`, named by their content. Older formats are read by `core::study::cheat_sheet`: format 3's prompts become the chat's first messages, and an HTML or block sheet (formats 2 and 1) keeps its asks and offers Make it again.
+
+Each chat message is one background work item (`sheet_reply`, `agent::subagents::cheat_sheet_writer`), not a chat kind, so lessons, Talk, search and extraction never see it. The request carries:
+
+- the deadline's topics with readiness and a few facts, and the mistakes from practice
+- the sheet's rules and the last 8 messages
+- the working folder `<godspeed folder>/cheat-sheets/<space> <deadline>/`, where the agent keeps its source
+- the message: the learner's words and files, and the part of a page they pointed at, picture first
+
+The agent answers in markdown. When it changed the sheet, it sends the new PDF's path and any rules the learner set (`new_rules`). Its instructions ask it to render and look at every page and check each formula against the space's material.
+
+godspeed takes a PDF only from inside the working folder, links resolved (`services::cheat_sheets::cheat_sheet_pdf`). It checks the PDF by its bytes, at most 20 MB, 1 to 4 pages, each 2 to 17 inches, then copies it into its data. Opening a sheet also takes the newest PDF in the working folder when it is newer than the current version (an edit outside godspeed), after the same checks, once per file.
+
+The studio is a canvas (`src/frontend/components/cheat-sheet/`):
+
+- Every kept version's pages are artboards, newest first, drawn by pdf.js in the window. pdf.js is served at `/pdfjs/`, outside `/api` (`server::http::ui`).
+- Each page is drawn whole once, then the visible part again at screen resolution once the view settles, so it stays sharp at any zoom.
+- Point at the sheet draws a box on a page. That part goes with the next message as a picture.
+- The chat floats on the right (`sheet-chat.tsx`): the rules with a remove button, the messages, "Made version N" rows, Stop and Try again, and a box with math, pictures, PDFs and a kept draft.
+- Print draws the pages at 300 dpi into print-only pictures. On the desktop, Show in Finder reveals the PDF in the working folder (`window.lh.showInFolder`). A browser gets a download link.
+
+In a lesson of a space, the top bar's Cheat sheet button docks a sheet beside the lesson (`sheet-dock.tsx`, resizable, open state kept per lesson). It shows the lesson's deadline's sheet, else the space's next one with a sheet, with a picker when there are several. The docked sheet has no chat: questions go to the teacher in the lesson box.
+
+A space's Cheat sheets tab (`/space/cheat-sheets`, `GET /api/spaces/<id>/cheat-sheets`) shows every deadline as a card, coming up first. Each card says whether its sheet is made (with a page 1 preview), being made, older (Make it again) or missing (Make one).
 
 ### 6.2 Interviews and mocks
 
-**Interviews.** Getting ready for an interview, an online assessment or a test is a normal space that the learner's own agent sets up from Talk; there is no separate kind of space. A deadline may have the kind `interview` (no "due", like an exam) and an `aboutFileId`: a space info file on what it is like, usually `What it's like.md` (space format 11, `core::spaces::space_deadlines`; the reader drops the id once the file is gone). The tool texts tell the teacher how: the posting as space info, the interview with its date and time, `What it's like.md` as `about_file_id` (searched for first, under 200 words, only sources it read) and a `Study guide.md` it writes as a study file in `file_ids`, so Path fills once extraction has run. `add_space_file` writes such a file from `name` and `text` (one already there by that name is replaced and keeps its id). `GET /api/spaces/{id}/deadlines/{deadlineId}/about` gives that file's text.
+Getting ready for an interview, an online assessment or a test is a normal space that the learner's own agent sets up from Talk; there is no separate kind of space.
 
-**The upgrade from preps.** A space saved by 0.6.5 or before as a prep (a `prep` on its record) is upgraded once when the server starts, before it serves (`core::spaces::prep_upgrade`, run by `services::spaces::upgrade_old_preps`): what it was like becomes `What it's like.md`, its topics `Study guide.md`, its day an interview deadline (or, with no day, the record's `waitingDeadline` until the learner adds the date; adding a deadline with that `id` takes its place), its goal the description when that is empty, and its mocks belong to the deadline. The ids come from the space id, so an upgrade stopped halfway writes the same things again next time; the reader keeps `prep` as saved until the last write drops it.
+- **Interview deadlines.** A deadline may have the kind `interview` (no "due", like an exam) and an `aboutFileId`: a space info file on what it is like, usually `What it's like.md` (space format 11, `core::spaces::space_deadlines`; the reader drops the id once the file is gone). `GET /api/spaces/{id}/deadlines/{deadlineId}/about` gives its text.
+- **Setting one up.** The tool texts tell the teacher to add the posting as space info, the interview with its date and time, `What it's like.md` as `about_file_id` (searched for first, under 200 words, only sources it read) and a `Study guide.md` it writes as a study file in `file_ids`, so the deadline's topics fill once extraction has run. `add_space_file` writes such a file from `name` and `text`; one already there by that name is replaced and keeps its id.
+- **The upgrade from preps.** A space saved as a prep by 0.6.5 or before (a `prep` on its record) is upgraded once when the server starts, before it serves (`core::spaces::prep_upgrade`, run by `services::spaces::upgrade_old_preps`). What it was like becomes `What it's like.md`, its topics `Study guide.md`, its day an interview deadline, its goal the description when that is empty, and its mocks belong to the deadline. A prep with no day gets the record's `waitingDeadline` instead; adding a deadline with that `id` takes its place. The ids come from the space id, so an upgrade stopped halfway writes the same things again next time, and the reader keeps `prep` as saved until the last write drops it.
 
-**Mocks.** A mock is one run of questions like the real thing on an exam, quiz or interview deadline (`core::mocks::mock`), saved as `spaces/<id>/mocks/<mockId>.json` (`store::mocks`, format 2, removed with its deadline or its space; a format 1 mock reads as format 2). `services::mocks::mocks` is its one writer: mocks are numbered per deadline, a deadline has at most one unfinished mock, and it takes one only when it has study facts or an about file. A mock is 1 to 10 questions with no time limit or 5 to 240 minutes. It asks the teacher twice, each a background work item (`agent::subagents::mock_writer`): `write_mock_questions` when it is made (every question at once, each with the `fact_ids` it tests, from the deadline's topics weakest first with up to 5 facts each, plus what it is like; with no facts it is written from that alone and marked `fromAbout`) and `grade_mock` when it ends (every answered question with the facts it tests, and for a timed mock how often and how long it was paused). In between the clock runs with no agent: the page (`/space/mock/<spaceId>/<mockId>`) saves answers as the learner types (a code answer keeps what is written in each language, and its `text`, the one graded, is the code in the language picked, or in the one written in when nothing is written in the picked one; `with_answer`). A timed mock can be paused: it keeps the seconds left, refuses answers and runs, and on resume runs for that long; each pause is recorded. A timed mock whose time ran out while nobody was looking is ended at its end time the next time it or its deadline's mocks are read, or an answer or run reaches it (refused with "Time is up." past a 10 second grace for the page's last save; `services::mocks::mock_end`); a paused one never is. The state (writing, ready, running, paused, grading, graded) is derived from the record. A mock with nothing answered is graded without asking. A graded question with `factIds` counts as an answer for those facts (`mock_answers`, passed to `derive_progress` by `progress_for`).
+A mock is one run of questions like the real thing on an exam, quiz or interview deadline (`core::mocks::mock`), saved as `spaces/<id>/mocks/<mockId>.json` (format 2; a format 1 mock reads as format 2) with `services::mocks::mocks` as its only writer.
 
-A code question names one function and gives 2 to 6 examples as JSON, so "Run examples" can check it in JavaScript or Python. `core::mocks::mock_run` builds the program (the learner's code plus a few lines that call the function on each example and print one marked line) and reads what it printed; `services::mocks::mock_runner` saves it to a folder of its own in the system temp folder and runs it on this computer, with the computer's Node or Python (the py launcher first on Windows, Homebrew's first on a Mac, and never a stand-in that only opens an installer), with nothing to read on its input, for at most 5 seconds and 1 MB of output and without godspeed's own `LH_` settings (the desktop key among them), then ends every process in the run however it ended (it leads its own process group, ended whole; on Windows its process tree, with `taskkill /T /F`, only while the program runs; a run whose request goes away is stopped too; a process that starts its own session or group leaves it and is not ended, which only a sandbox could stop) and removes the folder. The program calls only a function the learner's code defines, never a built-in of the same name (`eval`, `exec`, `open`), so the teacher's examples can't run as code the learner never wrote, and a function name may not start with `__` or be `require`, `module` or `exports` (`take_questions`, and a saved mock is read the same way). The route runs code only while that mock's clock is running. The grading request carries how each code answer did on its examples. Graded questions count for their facts (right is right, blank is "I don't know", anything else is wrong), and "Go over it" on the results page starts a study session on that question (`create_lesson` with `mockQuestion`: the question, the learner's answer and the grade go in under the study plan). Follow never takes the window off a mock page unless the learner asked to go (`src/frontend/components/teacher/follow.ts`).
+- Mocks are numbered per deadline, a deadline has at most one unfinished mock, and it takes one only when it has a topic with facts or an about file. A mock is 1 to 10 questions with no time limit or 5 to 240 minutes. Removing a deadline removes its mocks.
+- The agent writes all its questions before it starts and grades all its answers after it ends (`agent::subagents::mock_writer`), and the clock runs with no agent. The writer gets the deadline, what it is like and its topics weakest first with up to 5 facts each, and tags each question with the `fact_ids` it tests; with no facts it writes from what it is like alone (`fromAbout`). The grader gets each question with its facts and, for a timed mock, how often and how long it was paused.
+- A timed mock can be paused: it keeps the seconds left, refuses answers and runs, and on resume runs for that long. Each pause is recorded. A running timed mock whose time ran out is ended at its end time the next time it is read (`services::mocks::mock_end`); a paused one never is.
+- A graded question with `factIds` counts as an answer for those facts (`mock_answers`, passed to `derive_progress` by `progress_for`).
+- "Run examples" runs the learner's JavaScript or Python with the computer's own Node or Python, for at most 5 seconds and 1 MB of output (`core::mocks::mock_run`, `services::mocks::mock_runner`).
+
+---
 
 ## 7. Study sessions
 
-Every new lesson is a study session (`kind: "study"` on the chat record). The learner starts one from "Study something new" on a space's Lessons tab (the study page, `/new`: "Study for <deadline>", the topic box or its suggestions), Start on a Today row or Study on a deadline page (today's planned topics, then the strong ones not answered for a week), "study these N" / "study <topic>" / "practice this fact" on the Graph tab, Study on the Progress tab, "Go over it" on a mock's results, or with "Start from facts" (the chain table in select mode, `src/frontend/components/home/facts-picker.tsx`). The MCP `start_lesson` tool starts one too. Older `teach` and `practice` lessons keep working with their own agents.
+Every new lesson is a study session (`kind: "study"` on the chat record). There is no prober, and the tool list is the same every turn.
 
-`create_lesson` (`services::turns::lessons`) writes the opening markers. The picked facts become a `graph-context` marker through `chains_for_selection` (`core::graph::chains`): a stored chain is included when its conclusion and every premise are picked, and a picked fact in no included chain stands alone. The picks are grouped into topics in space order (`core::study::study`), each with its material when it has one and the learner's standing on it: its status (untested, weak, shaky or strong), with "(latest wrong)" on a weak topic whose latest answer was not right, as in "procedure, weak (latest wrong)". A typed topic with no picks is one untested topic with no material. The move for each pair is a table in `crates/agent/prompts/study/10-study.md`, so a prompt override can change it. They go into a `study-context` marker, and the app saves the matching plan tree, so the plan row and its popup list the topics from the start.
+The learner starts one from:
 
-A session started from a deadline records it on the chat (`deadlineId`). While the latest such session is unfinished (it has not reached its end, and its plan has not reached its last topic unless it waits at a stop), that deadline's Study button reopens it as "Continue studying, 1 of 4 topics" instead of starting a new one (`core::study::continue_study`; the progress payload carries it as `continueStudy` on the deadline, read from the cached lesson readout in `services::graph::progress`).
+- "Study something new" on a space's Lessons tab (the study page, `/new`)
+- Start on a Today row, or Study on a deadline page
+- "study these N", "study <topic>" or "practice this fact" on the Graph tab, or Study on the Progress tab
+- Study or a topic row on a prep sheet, or "Go over it" on a mock's results
+- "Start from facts" (the chain table in select mode, `src/frontend/components/home/facts-picker.tsx`)
+- the MCP `start_lesson` tool
 
-The study agent has the teacher's prompt and tools, without the deadline changes (Study sends those to Talk), plus `problem`, `conclude` (`agent::tools::practice`; `problem` carries the topic's `nodeId`), `topic_done` and, in multiple-choice lessons, `plot`, the practice hint rules (`prompts/practice/20-hints.md`) and `prompts/study/`. There is no prober, and the tool list is the same every turn; a posed problem ends the turn. The learner's work on a problem is saved as plain user messages (`practice-thinking` markers in lessons saved before that), and `practice-next` / `problem-dismissed` mark moving on or skipping. A study session is extracted into the graph like a teach lesson; older practice sessions never are.
+Older `teach` and `practice` lessons on disk keep working with their own agents. Practice lessons are never extracted into the graph.
 
-**Questions from earlier.** godspeed asks some earlier topics again by itself and the window grades them, so no agent is woken. The schedule is `core::study::review`: a topic he got right comes back after 2, 4, 8, 16, 32, then 64 days of rest, a miss brings it back within 4 days, and an open deadline that covers the topic shortens its rest to a third of the days left (never under 2). A question is a stored `topic_done.review` or a Study `quiz` with `standalone: true` and no `keep` that he answered right; one shown in the last 7 days, the one missed the last time, and one skipped in this sitting are never asked. At most 3 a local day per space. They show only in a Study lesson of a space, in a sitting's first wait (its start, or after his first input on a return, until the teacher's reply lands) while a turn runs or no agent is teaching, with no question, problem, opener or stop open. An answer is a UI-only `review` marker (`{of: {chatId, messageId, toolCallId}, nodeId, topic, quiz, answer, sitting, kept?}`, the quiz copied, and `kept` the sentence he kept on that topic that was shown longest ago, below); his next input carries one hidden `[From earlier]` line for the answers since the last one, and progress counts each answer for the quiz it came from, and the activity feed like any quiz answer of the lesson. Ask Teacher on one sends `text` with `about: {reviewOf: {chatId, toolCallId}, picked?: [label]}`; a note before his message carries the question, its options, his pick and the explanation, and the question stays open (400 `That question from earlier is not open` when it is not). While the teacher's own question waits behind it, his message is written as a side question, so that one stays open and is posed again.
+### How a session starts
 
-**The plot.** In a multiple-choice Study lesson the teacher can send `plot` (`agent::tools::plot`): one or two lines over x with one slider, written in plain math (`min(a, 4/(1+lambda))`), never code. The grammar is `core::session::plot_expr`, twin of `src/shared/core/plot-expr.ts` (both replay `crates/core/tests/golden/plot_expr.json`): numbers, the x and slider names, `pi`, `e`, `+ - * / ^`, brackets, `sin cos tan exp ln log10 sqrt abs`, `min max`, no implicit multiplication, names matched against fixed lists, at most 200 characters and 32 levels deep. The call's rules (`core::session::plot`) all run before validation on the call as sent (the plot is never healed, since the window draws the stored call) and come back at once, one line each, with no echo: bounds and names, a range too narrow for the size of its numbers, each formula, a line with no value at more than a tenth of its 200 x by 20 slider points, and a y range, when the call gives none, from the 2nd to 98th percentile of every value, refused when the values run 20 times wider. A plot comes with a prediction `quiz` whose `onPlot: {line, x, slider?}` names the point it asks about, in the same reply; the engine's before-tool-call hook (`agent::tools::lesson_parts`, the check in `core::study::topic_parts::reply_parts_problems`) passes or refuses the two together, whatever their order, reading the guess as the quiz tool takes it after its own preparation: the right option must name the drawn value to 2 significant figures, a topic has one plot, and neither this reply nor the topic's reply before it may carry a page or a plot, nor the reply before it a kept sentence he saw. A drawn plot is named `p1`, `p2` in lesson order, its result tells the agent its values at the slider's start (`p1 drawn. At lambda 1, a = 0, 5, 10: penalty 0, 2.5, 5. leash 0, 2, 2.`) and ends the turn, and its `details` are `{part: "plot", v: 1, id, onPlot: {toolCallId, value}, y: {min, max}}`: the guess's call id, the value it asks about, and where the window draws y. The window recomputes the lines from the stored call; the slider position is never stored or sent.
+`create_lesson` (`services::turns::lessons`) writes the opening markers:
 
-**Kept sentences.** A multiple-choice Study `quiz` may carry `keep: {text (160), source?, fits? (120), stops? (120, required with fits), phrase? (60)}`: one sentence he keeps when he answers it right, optionally the analogy's lines and a memory phrase. A keep never refuses its quiz: the quiz's preparation takes a keep whose own fields break the rules (or a phrase that does) out of the copy the checks read, and the stored call keeps it as sent. When a Study lesson's turn is saved (`save_turn`), each new keep gets one UI-only `keep-check` marker from `core::study::kept::keep_verdicts`: `{quizCallId, keep: "shown" | "dropped", fits, phrase, source?: "ok" | "dropped", sourceMark?, note?}`. It is not stored when its quiz is a prediction, when its fields break the rules, when its reply carries a page, a plot or another keep it stores, when the topic's reply before it carries a page, a plot or a kept sentence he saw, or when the topic already kept 2 he answered right; its analogy lines show on one a topic; its `source` must be one mark that points at a passage, a bare passage id read as its mark (checked like a reply's marks, `sourceMark` the stored mark). `note` reaches the teacher in the hidden note right after his answer to that quiz, or after the last answer of its batch. The window turns a right-answered quiz whose verdict says `shown` into the kept card (`src/shared/core/kept-view.ts`, twin of the server's reading in `core::study::kept`; both replay `crates/core/tests/golden/kept.json`). Dropping the analogy or the phrase writes a UI-only `analogy-drop` or `phrase-drop` marker (`{of, back?, at}`, the last one for a quiz wins); his next input of any kind carries one `[Analogy dropped] Regularization: "The leash fits one part"` line per analogy he dropped since the last such line and did not bring back. Dropping a phrase tells the teacher nothing. An answered question from earlier carries in `kept` the sentence he kept on its topic that was shown longest ago (on its card or on an earlier question from earlier): `{of: {chatId, messageId, toolCallId}, text, source?, phrase?}`, never the analogy lines, the phrase unless he dropped it. Coverage counts `keep.text` as a teaching line when the keep's fields hold.
+1. The picked facts become a `graph-context` marker through `chains_for_selection` (`core::graph::chains`). A chain is included when its conclusion and every premise are picked, and a picked fact in no included chain stands alone.
+2. The picks are grouped into topics in space order (`core::study::study`). Each topic has its material when it has one, and the learner's standing: untested, weak, shaky or strong, with "(latest wrong)" on a weak topic whose latest answer was wrong. A typed topic with no picks is one untested topic with no material.
+3. These go into a `study-context` marker. The move for each material and standing pair is a table in `crates/agent/prompts/study/10-study.md`, so a prompt override can change it.
+4. The app saves the matching plan tree, so the plan row lists the topics from the start.
 
-The lesson routes that write without a turn, allowed while one runs and never 409:
-- `POST /api/chats/{id}/keep-going` `{input: {stopOf}}` → `{ok: true, opener, running}`; 404 unknown lesson, 400 when no turn runs and that call carries no stop.
-- `POST /api/chats/{id}/kept` `{input: {of, part: "analogy" | "phrase", back?: true}}` → `{ok: true}` (`services::turns::lesson_events::drop_kept_part`); 404 unknown lesson, 400 for a malformed input or a quiz call with no kept sentence he saw with that part.
-- `POST /api/chats/{id}/review` (`services::turns::review`), 404 for an unknown lesson and 400 for a malformed input:
-  - `{input: {type: "next"}}` → `{question: {of: {chatId, messageId, toolCallId}, nodeId, topic, quiz: {question, options, correctAnswer, explanation, multiSelect?}}}`, or `{question: null}` when none may show now. The open question is the next pick, so asking again gives the same one. The question he asked the teacher about in this sitting (its note's `details.reviewOf`) comes first, window open or not, until he answers or skips it, so a reload shows it again; the window asks once when a lesson opens, then when a wait begins and when a turn starts or ends.
-  - `{input: {type: "answer", of: {chatId, toolCallId}, answer}}` → `{ok: true}`. `answer` is the window's graded quiz answer (`{kind: "quiz", correct, answers, confidence?, thinking?}` or `{kind: "quiz", dontKnow: true, answers: []}`), stamped `answeredAt` with the server clock. 400 `That question from earlier is not open` when `of` is none of the sitting's current picks (window shown or not): the one on screen may have moved down them since it was served, and stays answerable. The window then gives his words back and says in Your turn that the question is no longer due. 400 `An answer is a graded quiz answer with a pick, or I don't know`.
-  - `{input: {type: "skip", of}}` → `{ok: true}`, storing nothing; the next pick passes it by until the sitting ends. 400 when `of` is none of the sitting's current picks.
+A session started from a deadline records it as `deadlineId`. While the latest such session is unfinished, the deadline's Study button reopens it as "Continue studying, 1 of 4 topics" (`core::study::continue_study`). The progress payload carries it as `continueStudy`.
 
-**The chain table** (`src/frontend/components/chain-table.tsx`) lists every reasoning chain of the graph, grouped by birth cluster, with a search. Its checkboxes pick clusters, chains or single facts. On the Graph page, the floating bar deletes the selection through the same confirm dialog (deletes run one at a time and stop at the first failure, then announce `lh:graph-revision` so the page refetches). Opened from "Start from facts" on the study page (`/new`), the bar has Done instead of Delete, and the picks become the new study session's opening context.
+### The study agent
+
+The study agent has the teacher's prompt and tools, without the deadline changes (Study sends those to Talk). It adds:
+
+- `problem` and `conclude` (`agent::tools::practice`; `problem` carries the topic's `nodeId`)
+- `topic_done`
+- `plot`, in multiple-choice lessons
+- the practice hint rules (`prompts/practice/20-hints.md`) and `prompts/study/`
+
+A posed problem ends the turn. `practice-next` and `problem-dismissed` mark moving on or skipping. A study session is extracted into the graph.
+
+### Questions from earlier
+
+godspeed asks some earlier topics again by itself, and the window grades them, so no agent is woken. The schedule is `core::study::review`:
+
+| Rule | Value |
+|---|---|
+| Rest after a right answer | 2, 4, 8, 16, 32, then 64 days |
+| After a miss | back within 4 days |
+| Deadline covering the topic | rest shortened to a third of the days left, never under 2 |
+| Per space | at most 3 a local day |
+| Never asked | one shown in the last 7 days, the one missed last time, one skipped this sitting |
+
+A question is a stored `topic_done.review`, or a Study `quiz` with `standalone: true` and no `keep` that the learner answered right.
+
+They show only in a Study lesson of a space, during a sitting's first wait, with no question, problem, opener or stop open. That wait is the lesson's start, or after the learner's first input on a return, until the teacher's reply lands.
+
+An answer is a UI-only `review` marker: `{of: {chatId, messageId, toolCallId}, nodeId, topic, quiz, answer, sitting, kept?}`. The learner's next input carries one hidden `[From earlier]` line for the answers since the last one. Progress counts each answer for the quiz it came from.
+
+Ask Teacher on one sends `text` with `about: {reviewOf: {chatId, toolCallId}, picked?: [label]}`. A note before the message carries the question, its options, the pick and the explanation, and the question stays open. While the teacher's own question waits behind it, the message is written as a side question.
+
+### Plots
+
+In a multiple-choice Study lesson, the teacher can send `plot` (`agent::tools::plot`): one or two lines over x with one slider, written in plain math such as `min(a, 4/(1+lambda))`, never code.
+
+The grammar is `core::session::plot_expr`, twin of `src/shared/core/plot-expr.ts`; both replay `crates/core/tests/golden/plot_expr.json`. It allows numbers, the x and slider names, `pi`, `e`, `+ - * / ^`, brackets, `sin cos tan exp ln log10 sqrt abs` and `min max`. There is no implicit multiplication, and an expression is at most 200 characters and 32 levels deep.
+
+The call's checks (`core::session::plot`) run on the call as sent, since the window draws the stored call, and return one line each:
+
+- bounds and names, and a range too narrow for the size of its numbers
+- each formula
+- a line with no value at more than a tenth of its 200 x by 20 slider points
+- when no y range is given, one from the 2nd to 98th percentile of every value, refused when the values run 20 times wider
+
+A plot comes with a prediction `quiz` in the same reply, whose `onPlot: {line, x, slider?}` names the point it asks about. The before-tool-call hook (`agent::tools::lesson_parts`, the check in `core::study::topic_parts::reply_parts_problems`) passes or refuses the two together:
+
+- the right option must name the drawn value to 2 significant figures
+- a topic has one plot
+- neither this reply nor the topic's previous reply may carry a page or a plot, and the previous reply may not carry a kept sentence the learner saw
+
+A drawn plot is named `p1`, `p2` in lesson order. Its result tells the agent its values at the slider's start and ends the turn. Its `details` are `{part: "plot", v: 1, id, onPlot: {toolCallId, value}, y: {min, max}}`. The window recomputes the lines from the stored call, and the slider position is never stored or sent.
+
+### Kept sentences
+
+A multiple-choice Study `quiz` may carry `keep: {text (160), source?, fits? (120), stops? (120, required with fits), phrase? (60)}`. It is one sentence the learner keeps when they answer right, with optional analogy lines and a memory phrase. A keep never refuses its quiz: a keep that breaks the rules is left out of what the checks read, and the stored call keeps it as sent.
+
+When a Study turn is saved (`save_turn`), each new keep gets a UI-only `keep-check` marker from `core::study::kept::keep_verdicts`: `{quizCallId, keep: "shown" | "dropped", fits, phrase, source?: "ok" | "dropped", sourceMark?, note?}`. A keep is not shown when:
+
+- its quiz is a prediction, or its fields break the rules
+- its reply carries a page, a plot or another keep it stores
+- the topic's previous reply carries a page, a plot or a kept sentence the learner saw
+- the topic already kept 2 the learner answered right
+
+Analogy lines show on one keep per topic. A keep's `source` must be one mark pointing at a passage, checked like a reply's marks. `note` reaches the teacher in the hidden note after the learner's answer to that quiz.
+
+The window turns a right-answered quiz with a `shown` verdict into the kept card (`src/shared/core/kept-view.ts`, twin of `core::study::kept`; both replay `crates/core/tests/golden/kept.json`).
+
+- Dropping the analogy or the phrase writes a UI-only `analogy-drop` or `phrase-drop` marker (`{of, back?, at}`).
+- The learner's next input carries one `[Analogy dropped] Regularization: "The leash fits one part"` line per analogy dropped since the last such line. Dropping a phrase tells the teacher nothing.
+- An answered question from earlier carries in `kept` the topic's kept sentence that was shown longest ago: `{of, text, source?, phrase?}`, never the analogy lines.
+- Coverage counts `keep.text` as teaching when the keep's fields hold.
+
+### Lesson routes that write without a turn
+
+These are allowed while a turn runs and never answer 409.
+
+| Route | Body | Answer |
+|---|---|---|
+| `POST /api/chats/{id}/keep-going` | `{input: {stopOf}}` | `{ok: true, opener, running}`. 404 unknown lesson, 400 when no turn runs and that call has no stop |
+| `POST /api/chats/{id}/kept` | `{input: {of, part: "analogy" \| "phrase", back?: true}}` | `{ok: true}` (`services::turns::lesson_events::drop_kept_part`). 400 for a bad input or a quiz with no kept sentence the learner saw with that part |
+| `POST /api/chats/{id}/review` | `{input: {type: "next"}}` | `{question: {of, nodeId, topic, quiz}}` or `{question: null}` |
+| | `{input: {type: "answer", of: {chatId, toolCallId}, answer}}` | `{ok: true}` |
+| | `{input: {type: "skip", of}}` | `{ok: true}`, storing nothing |
+
+How `review` behaves (`services::turns::review`, 404 unknown lesson, 400 bad input):
+
+- `next` returns the open question, so asking again gives the same one. A question the learner asked the teacher about this sitting comes first until answered or skipped. The window asks once when a lesson opens, then when a wait begins and when a turn starts or ends.
+- `answer` takes the window's graded quiz answer (`{kind: "quiz", correct, answers, confidence?, thinking?}` or `{kind: "quiz", dontKnow: true, answers: []}`), stamped `answeredAt` with the server clock.
+- An `answer` or `skip` whose `of` is none of the sitting's current picks gets 400 `That question from earlier is not open`. The window then gives the learner's words back and says the question is no longer due.
+- Any other bad answer gets 400 `An answer is a graded quiz answer with a pick, or I don't know`.
+- A skipped question is passed by until the sitting ends.
+
+### The chain table
+
+The chain table (`src/frontend/components/chain-table.tsx`) lists every chain of the graph, grouped by birth cluster, with a search. Its checkboxes pick clusters, chains or single facts.
+
+- On the Graph page, the floating bar deletes the selection through the confirm dialog. Deletes run one at a time, stop at the first failure, then announce `lh:graph-revision` so the page refetches.
+- Opened from "Start from facts" on `/new`, the bar has Done instead of Delete, and the picks become the new session's opening context.
+
+### Homework sessions
+
+A homework session (`kind: "homework"`, `deadlineId` required) works on one homework or project deadline's problems.
+
+- "Work on <name>" on the deadline page or "Work on it" on its Today row starts one or reopens the latest (`POST /api/chats` with `homework: true`, `create_homework` in `services::turns::homework`).
+- It opens with the space card and a `homework-context` marker: the deadline, its assignment file (`assignmentFileId`) and the problems posted before.
+- The homework agent (`agent::tools::homework`, prompt `prompts/homework/` plus the practice hint rules) posts the assignment's problems onto the deadline with `post_problems`.
+- It opens one problem at a time with `problem`, which has no solution field: homework is hints only. `conclude` marks a problem done when the learner's own work is right.
+- The plan row and its problems dialog list the problems (`homeworkProblems` in `src/shared/core/homework.ts`), and the Today row says "2 of 7 problems done".
+
+Homework is never extracted into the graph.
 
 ---
 
-**Homework sessions** (`kind: "homework"`, `deadlineId` required) work on one homework or project deadline's problems. "Work on <name>" on the deadline page or "Work on it" on its Today row starts one (`POST /api/chats` with `homework: true`, `create_homework` in `services::turns::homework`) or reopens the latest. It opens with the space card and a `homework-context` marker: the deadline, its assignment file (`assignmentFileId` on the deadline) and the problems posted before. The homework agent (`agent::tools::homework`, prompt `prompts/homework/` plus the practice hint rules) posts the assignment's problems onto the deadline with `post_problems`, opens one at a time with `problem` (no solution field: homework is hints only, never the final answer) and closes it with `conclude`, which marks it done when the learner's own work is right. The lesson's plan row shows which problem is open and how many are done, and its problems dialog lists them all (`homeworkProblems` in `src/shared/core/homework.ts` folds the deadline's list with this lesson's calls), and the deadline's Today row says "2 of 7 problems done". Homework is never extracted into the graph.
+## 8. Process boundaries
 
-## 8. Process boundaries (the machine room)
+The shell is a launcher and security guard. All app logic runs in `godspeed-server`, a child process the shell starts. The full design is in [tauri-shell.md](tauri-shell.md), and the server process, its environment variables and the access gate are in [rust-server.md](rust-server.md).
 
-```mermaid
-flowchart LR
-    subgraph DESKTOP["Tauri app (production)"]
-        SHELLP["Tauri shell (crates/shell)<br/>launcher + security owner<br/>trust-checked commands"] -->|"spawn: loopback port,<br/>LH_DATA_DIR=userData/data, LH_SHELL=1"| SRV["godspeed-server (child)<br/>ALL app logic: turns, extraction, jobs, graph<br/>also serves the built UI (ui/)"]
-        SHELLP <-->|"line protocol on stdin/stdout (gs-shell-rpc):<br/>login, ready, demo and svg requests,<br/>notifications"| SRV
-        SHELLP -->|"main window: the system web view"| REND["Browser renderer (src/frontend/)<br/>fetch and EventSource to own origin only"]
-    end
-    subgraph OUTSIDE["outside the process"]
-        OR["Outside agent (Claude Code, Codex, any MCP app): connects to /api/mcp with the access token"]
-        GCSE["Jina / web pages / Tavily (researcher web_fetch, web_search)"]
-        DISK["data/ ledgers (via LH_DATA_DIR seam)"]
-    end
-    OR -->|"wait_for_work / respond"| SRV
-    SRV --> GCSE
-    SRV --> DISK
-    REND -->|"fetch /api/*"| SRV
-```
+| Part | What it does |
+|---|---|
+| Shell (`crates/shell`) | single-instance lock, a trust check on every command (only the main window on the app's own origin), navigation pinned to the app's origin, web links opened in the browser |
+| Starting the server | the shell picks port 47613 when it is free, else any free port, and starts the server with `PORT`, `LH_DATA_DIR`, `LH_SHELL=1`, `LH_DESKTOP_SERVER=1` and `LH_DESKTOP_API_SECRET`. The server binds 127.0.0.1 only |
+| `mcp-endpoint.json` | the shell writes the server's real address there once the server is ready |
+| Line protocol (`crates/shell-rpc`) | one JSON object per line on the server's stdin and stdout. The server sends `ready`, and `demo`, `svg` and `notify` requests. The shell sends one-time `login` tokens and the answers. A request gets 60 s |
+| Access gate (`server::http::access`) | every `/api` path needs the `gs_desktop` cookie and `Sec-Fetch-Site: same-origin`, except `/api/mcp`, `/api/mcp/forget`, `/api/mcp/compacting` and `/api/desktop/login` |
+| Data lock | an advisory lock on the data folder (`server::data_lock`) keeps a second server off the same data |
+| Shutdown | closing the server's stdin stops it, so a dying shell never leaves a server behind |
+| Crashes | the shell restarts the server at most 3 times a minute with `LH_SERVER_RESTARTED=1` and reloads the window. After that, a "godspeed stopped working" dialog offers Relaunch, Report a bug and Quit |
 
-The shell is a launcher and security guard, never a host for teaching or inference logic: single-instance lock, a trust check at the top of every command (only the main window on the app's own origin may call them), and navigation pinned to the app's origin (web links open in the browser). All app logic runs in `godspeed-server` (`crates/server`), a child process the shell starts with `std::process::Command` from the install folder, with its working directory beside `ui/`, `models/` and `pdfjs-dist/`. `LH_DATA_DIR` relocates its data (it is also the test seam). The server binds only 127.0.0.1: port 47613 when it is free, so outside agents keep their saved setup, otherwise any free port; the real address is always in `<data>/mcp-endpoint.json`, which the shell writes. An advisory lock on the data folder (`server::data_lock`) keeps a second server off the same data. The shell talks to the server by one JSON object per line on the server's stdin and stdout (`crates/shell-rpc`): the server says `ready` once it listens, the shell sends one-time `login` tokens, and the server asks the shell to run demo checks and to draw SVGs that resvg cannot (the shell does it in a hidden web view and answers within 60 seconds, else the check fails; a server started without a shell answers a no-browser error), and to show a system notification (`notify`, a deadline reminder; the shell answers whether it showed it). Closing the server's stdin stops it (open requests get 2 seconds), so a dying shell never leaves a server behind.
+The window stays hidden until the app has drawn its first screen. It reports that through `window.lh.showWindow` once `/api/boot` has answered and React has rendered, or it is shown 5 seconds after its first paint. That first screen is the welcome screen (`src/frontend/components/welcome/welcome.tsx`, chosen by `first_load_screen` in `services::app::welcome`), which plays the startup sound. After a crash restart it is a "godspeed restarted after a problem" notice instead.
 
-**The access gate** (`server::http::access`). The shell makes a per-launch secret and starts the server with `LH_DESKTOP_SERVER=1` and `LH_DESKTOP_API_SECRET`. The window logs in once through `GET /api/desktop/login?token=<one-time token>`, and the server answers with the cookie `gs_desktop` (HttpOnly, SameSite=Strict). From then on every `/api` path except `/api/mcp`, `/api/mcp/forget`, `/api/mcp/compacting` and the login needs that cookie and `Sec-Fetch-Site: same-origin`; anything else gets a 403. Outside agents reach the three MCP routes with their own bearer token (§8.1). Without the two desktop variables (browser mode) everything is allowed.
+The page reaches the shell through `window.lh`. It is typed in `src/frontend/components/desktop-env.tsx` and defined by `crates/shell/src/shim.js`, which calls the shell's Tauri commands. The two are kept in step by hand.
 
-There is one startup screen: the window stays hidden until the app has drawn its first screen, which it reports through the shell shim (`window.lh.showWindow`, sent once `/api/boot` has answered and React has rendered; a page that never reports is shown 5 seconds after its first paint), and that screen is the welcome screen (`src/frontend/components/welcome/welcome.tsx`, chosen by `/api/boot` through `first_load_screen` in `services::app::welcome`), which plays the startup sound. The page reaches the shell through `window.lh` (typed in `src/frontend/components/desktop-env.tsx`, defined by `crates/shell/src/shim.js`, which calls the shell's Tauri commands). When the server crashes, the shell starts it again (at most 3 times a minute) with `LH_SERVER_RESTARTED=1` and reloads the window; that server's first page shows a "godspeed restarted after a problem" notice instead of the welcome screen (`first_load_screen` in `services::app::welcome`). After too many crashes a "godspeed stopped working" dialog offers Relaunch, Report a bug and Quit.
+### 8.1 The outside-agent boundary
+
+The outside agent is the only model. No credentials for model providers exist anywhere in the app.
+
+#### Access
+
+- The server makes the access token `data/mcp-token` (mode 0600) on the first `/api/boot` and again whenever it is missing (`ensure_mcp_token`).
+- `/api/mcp` accepts only local, non-browser requests that carry the token (`refuse` in `server::mcp`).
+- The godspeed folder's connector finds the address in `mcp-endpoint.json` and reads the token file itself.
+- Settings, Connection shows the connection status, shows and rotates the token, and has the button that opens the agent or the setup for another MCP app.
+
+The server speaks two MCP versions on one endpoint. The 2026-07-28 version carries the client's version and name on every request, and `server/discover` replaces the handshake (Claude Code and the folder's scripts). The older version starts with `initialize` (Codex). Each request names the agent from its client info. Both answer in plain JSON (`server::mcp::transport`), never SSE, because the folder's scripts can't read SSE.
+
+#### Connected and teaching
+
+`engine::bridge::checkin` decides both, with a 3-minute window.
+
+- **Connected**: any authorized MCP request in the last 3 minutes, or teaching.
+- **Teaching**: a work-loop call (`wait_for_work`, `respond`, `read_work`) by an agent that is not the helper in the last 3 minutes, or a teacher still holding a work item whose 10-minute claim has not run out.
+- An agent that is connected but not teaching leaves lessons waiting. The teacher pane and the Teacher tile then say to start teaching.
+- The window hears `agent-changed` when either changes or the agent's name changes. A timer fires it again a second after the next lapse.
+
+`GET /api/mcp-access` reports `agentConnected`, `agentTeaching`, `agentName`, `helperHere`, `helperCovering`, `pendingWork`, `pendingTurns` and `claimedLessons` (the lessons whose request an agent took and hasn't answered).
+
+#### The godspeed folder
+
+Agents are opened in one folder, `~/godspeed` by default. `data/agent-folder.json` remembers another one, whether the one-time notice was seen, and `startCommands`. A debug build uses `<data>/godspeed-folder` instead.
+
+`services::app::agent_folder` writes it from `crates/services/folder-files/` and `core::spaces::agent_folder`, once per app start so an update reaches it:
+
+- `CLAUDE.md` (Claude Code's work loop with the waiter) and `AGENTS.md` (Codex's). Each says godspeed rewrites it, so the learner's own notes belong in `CLAUDE.local.md` or `~/.codex/AGENTS.md`.
+- the `setup-spaces` skill
+- `.mcp.json`, which runs `.godspeed/connect.mjs`, a stdio bridge to `/api/mcp`
+- in `.godspeed/`: the scripts, `claude-settings.json` and a start script per agent
+
+`claude-settings.json` is loaded with `--settings`, so it applies before the folder is trusted. It turns on the folder's server, allows godspeed's tools, the waiter and web search, and adds the forget and compacting hooks. Fetching a page still asks, because text hidden in a space file could send the learner's data out. Codex gets the same connector through `-c` flags with its tools pre-approved, and no project config.
+
+Opening an agent:
+
+1. "Open Claude Code" (`src/frontend/components/agent-folder/`) writes the folder.
+2. The shell (`window.lh.openAgent`, `crates/shell/src/open.rs`) opens Terminal, a Windows console or a Linux terminal running the start script. Only those scripts can be run.
+3. A start script stops with an install hint when the agent's command or Node.js is missing (`start_script` in `core::spaces::agent_folder`), since the connector and hooks run with plain `node`.
+
+A learner who starts an agent through a launcher sets its command with Change command under the Open button: one line of at most 300 characters (`usable_start_command`). An empty one goes back to `claude` or `codex`.
+
+`services::app::old_setup` finds and removes what is left of the retired Claude Code plugin and the old Codex config block. A corner notice and a line in Settings, Connection offer Remove.
+
+#### The spaces folder
+
+The godspeed folder also gets `spaces/`, with a shortcut to every space file grouped like the Files page (`spaces/<space>/<group>/<file>`, archived spaces under `spaces/Archived/`) and a `READ ME.txt`.
+
+- `core::spaces::space_shortcuts` picks the names (safe on every OS, " (2)" for a repeat) from `core::spaces::file_groups`.
+- `services::spaces::space_shortcuts` writes them when the folder is set up and about 2 s after `spaces-changed`.
+- Shortcuts are symlinks, or hard links on Windows when symlinks aren't allowed. `.godspeed/shortcuts.json` lists what the sync made, and it removes only those.
+- Copies in the data folder are read-only on macOS and Linux. Moving the godspeed folder clears the old `spaces/`.
+- Linking or adding a path inside `spaces/` is refused (`shortcut_path_problem`).
+
+#### The work loop
+
+Every model request (a lesson turn, a background job, an extraction run, topic grouping) waits in `engine::bridge` as a work item. If no agent is teaching, the work waits.
+
+- The agent takes an item with `wait_for_work` and answers with `respond`.
+- Claude Code waits in a background script, `.godspeed/wait-for-work.mjs`, so it spends no tokens while the learner thinks. `CLAUDE.md` and the idle, `turn_complete` and `start_lesson` notes point it there.
+- A waiter given a lesson id stays on that lesson: it takes its turns and Talk's, plus other lessons' turns no one else waits for, oldest first. So one agent takes turns between lessons, and two agents each keep their own.
+- Codex has no waiter, and its wait is capped by its MCP tool timeout (60 s by default). Its start command sets `tool_timeout_sec=620` with `-c` flags (`core::spaces::agent_folder`).
+- `wait_for_work` takes `timeout_seconds` from 1 to 600, default 45.
+
+#### The helper
+
+"Open Claude Code" and "Open Codex" each open two windows in the godspeed folder: the teacher, and a second session told "Start as the helper". The helper's waiter runs with `--helper` (`wait_for_work` with `helper: true`). `engine::bridge::helper` keeps the two apart.
+
+- A work item is background when its conversation id does not start with `chat_`: file reading, graph work, sheets, research, topic grouping.
+- The helper takes background items. It takes lesson and Talk turns only while a teacher compacts, including the turn the teacher held.
+- A teacher's PreCompact hook reports compacting through `/api/mcp/compacting`. A mark that never ends lapses after 10 minutes.
+- The teacher takes lesson and Talk turns, and background items only while no helper is here.
+- A helper is here when it checked in within 3 minutes or holds an item whose claim has not run out. It never counts as teaching.
+
+The window shows who works (`src/frontend/components/work/`): a striped frame around a page being worked on, a yellow chip in the top bar on every page, and Teacher and Helper tiles under Settings, Connection, each with an Open button when its window is closed.
+
+#### The work item
+
+A work item is a compact JSON block (conversation, tools, messages). Then come its instructions and every message text of 1,000 characters or more as plain-text blocks. A long text reads `[text N]` in the JSON, so line breaks, quotes and LaTeX need no escaping.
+
+- A long item is split into pages of at most 24,000 UTF-8 bytes (`page_blocks` in `core::session::work_pages`), because agents cut long tool results.
+- The agent reads pages 2 and up with `read_work`, and `respond` is refused until every page is read.
+- Images: the waiter saves an item's images as files and lists them as `imageFiles`.
+
+What each agent has seen:
+
+- A later item in the same lesson carries only the new messages.
+- What each agent, by its session id, has seen of each lesson is saved in `data/agent-seen.json` (`core::records::agent_seen`, `store::agent_seen`). A restart or a second agent gets the right part.
+- In a new conversation, instructions and tool schemas the agent already got come by reference: `instructionsAsIn` names the earlier work item, `toolsAsBefore` lists the tools.
+- `full_context: true` on `wait_for_work`, or `read_work` with `full: true`, sends everything again.
+
+The forget hook: when Claude Code compacts or the learner runs `/clear`, `.godspeed/forget.mjs` calls `POST /api/mcp/forget` with the session id (`handle_agent_forget` in `server::mcp`). That agent's next item then comes in full. If the app is closed, the hook removes the session from `agent-seen.json` itself.
+
+#### The other tools
+
+Besides the loop, agents get lesson, graph and space tools (`crates/server/src/mcp/tools.json`):
+
+- `list_lessons` takes `space_id` (a space or `"none"`) and `limit` (default 20, at most 200) and returns `{lessons, total}`.
+- `read_lesson` pages a long lesson like a work item.
+- `read_space` gives file counts by status and only the failed files; `files: true` lists them all. Its deadlines carry their about file.
+- `add_space_file` takes a `path`, or a `name` and `text` to write a Markdown file into the space.
+- `add_space_deadline` takes a `deadlines` list and `set_space_file_kind` a `file_ids` list. Valid items are applied and failed ones come back under `refused`.
+- `update_space` and `unlink_space_folder` return only what changed.
+
+Every tool states all four MCP hints (read-only, destructive, idempotent, open world). The server instructions tell the agent to use only a work item's own tools inside it, through `respond`, even when the server has a tool with the same name.
+
+#### Agent notes and the briefing
+
+`remember` and `forget` keep short notes about the learner in `data/agent-notes.json` (`store::agent_notes`, at most 200 characters each). The learner sees and deletes them in Settings, Connection.
+
+Every `initialize` or `server/discover` hands over instructions in this order:
+
+1. the intro and the work loop
+2. the waiter paragraph (Claude Code only)
+3. a "Where you left off" briefing (`services::app::agent_memory`, `core::spaces::agent_briefing`): the setup each space still lacks, the spaces, the last lessons, the next deadlines and the saved notes
+4. the Memory and Spaces paragraphs
+
+The setup check (`core::spaces::space_setup`) lists a missing icon, signature or description, so older spaces catch up when an agent next connects. Claude Code cuts server instructions at 4096 characters, so the briefing has a length budget. It drops lessons first, then deadlines, then the oldest notes, then spaces, then setup, and says what it left out.
+
+#### Talk
+
+The teacher panel opens on a Talk tab: one ongoing chat outside lessons, kind `"talk"` with the fixed id `chat_talk` (`TALK_CHAT_ID`), opened and cleared through `/api/talk` (`services::turns::talk`).
+
+- Its messages take pictures and PDFs like a lesson's.
+- The store leaves it out of every lesson list, so Today, Progress, search, `list_lessons` and extraction never see it, and the lesson page 404s for it.
+- Its agent (`create_talk_agent`) has a short prompt (`crates/agent/prompts/talk/` plus the shared voice) and the space tools in `agent::tools::talk`. None of them deletes a space or a file.
+- Those tools run the same space actions as the MCP server (`services::spaces::space_actions`), so each change goes into the activity log and shows in the chat as a row that opens it.
+- The chat is summarized like a lesson (`talk_compaction_prompt`).
+
+While a lesson is open, the panel shows only Activity. Lessons get `list_spaces` and the three deadline tools (`lesson_space_change_tools`), so "add HW 4, due Friday" works mid-lesson.
+
+#### Rules the agent saves
+
+When the learner states a lasting preference, the teacher calls `save_rule` (`agent::tools::rules`), or an outside agent calls the MCP tool of the same name.
+
+- The rule joins the learner's own list (Settings, Teaching for every lesson; Edit space for one space), within the usual 20 rules of 200 characters.
+- `data/agent-rules.json` (`services::app::agent_rules`) marks it as the agent's, so the lists say "Saved by" and the teacher's name.
+- A lesson shows the save as one line with Undo and Edit (`rule-saved-line.tsx`). A save from the terminal sends `rules-changed` with the rule, and the window shows a corner notice (`rule-notice.tsx`). Both go through `/api/rules`.
+- Editing a rule makes it the learner's. Marks of rules the learner removed are dropped when the list is read.
+
+#### Web search
+
+By default the outside agent looks things up with its own web search. A learner may save their own Tavily key under Settings, Connection (`services::app::web_search`, `GET /api/web-search`, `PUT` and `DELETE /api/web-search/key`).
+
+- `store::search_key` keeps it in `data/search-key` (mode 0600). The window only ever gets its last 4 characters.
+- It is sent to `api.tavily.com` alone (`web::tavily`). Saving checks the key with Tavily first, and the page shows the searches used this month.
+- With a key, the research job gets a `web_search` tool (5 results a search).
+- `web_fetch` turns a page into markdown with Readability, with r.jina.ai as the fallback (`crates/web`). `web::guard` refuses an address on this computer or a private network, as written, after every redirect and for every resolved address.
 
 ---
 
-### 8.1 Outside-agent boundary
+## 9. Invariants
 
-The outside agent is the only model. The server makes the access token `data/mcp-token` (mode 0600) on the first `/api/boot` (`services::app::boot`) and again whenever it is missing, so access is always on. `/api/mcp` accepts only local, non-browser requests that carry the token (`refuse` in `server::mcp`). The shell writes `data/mcp-endpoint.json` so the godspeed folder's connector can find the address; the connector reads the token file itself. Settings → Connection shows the connection status, shows and rotates the token, and has the button that opens the agent (or the setup for another MCP app). No credentials for model providers exist anywhere in the app. The server speaks both MCP versions on one endpoint: the 2026-07-28 one, where every request carries the client's version and name and `server/discover` replaces the handshake (Claude Code and the folder's scripts), and the older one that starts with `initialize` (Codex). Each request names the agent from its client info. Both versions answer in plain JSON (`server::mcp::transport`), never SSE, because the folder's scripts can't read it.
+### Enforced by the build
 
-**The godspeed folder.** Agents are opened in one folder, `~/godspeed` by default (`data/agent-folder.json` remembers another one and whether the one-time notice was seen). `services::app::agent_folder` writes it from `crates/services/folder-files/` and `core::spaces::agent_folder`: `CLAUDE.md` (Claude Code's work loop with the waiter) and `AGENTS.md` (Codex's; each opens with a note that godspeed rewrites it, so the learner's own notes belong in `CLAUDE.local.md` or `~/.codex/AGENTS.md`), the `setup-spaces` skill, `.mcp.json` (Claude Code runs `.godspeed/connect.mjs`, a stdio bridge to `/api/mcp`), and in `.godspeed/` the scripts, `claude-settings.json` (loaded with `--settings`, so it applies before the folder is trusted: it turns on the folder's server, allows godspeed's tools, the waiter and web search (what an interview is like is looked up online; fetching a page still asks, as text hidden in a space file could send the learner's data out), and adds the forget hook) and a start script per agent. A learner who starts an agent through a launcher sets its command with Change command under the Open button (`startCommands` in `agent-folder.json`, one line of at most 300 characters, `usable_start_command`); the start scripts and Copy the command then run it in place of `claude` or `codex`, and an empty one goes back to the usual command. A start script stops with an install hint when the agent's command or Node.js is missing (`start_script` in `core::spaces::agent_folder`), since the connector and hooks run with plain `node`. Codex gets the same connector through `-c` flags, its tools pre-approved, with no project config (that would need the folder trusted). The app rewrites the files once per start, so an update reaches them. "Open Claude Code" (`src/frontend/components/agent-folder/`) writes the folder, then the shell (`window.lh.openAgent`, `crates/shell/src/open.rs`) opens Terminal, a Windows console or a Linux terminal running the start script; only those scripts can be run. The setup log follows the agent status from there. People who set up the old way (the retired Claude Code plugin, or the Codex config they pasted) see a one-time notice. Both load godspeed in every folder, so `services::app::old_setup` finds and removes what is left of them: the plugin's install and marketplace entries in Claude Code's plugin lists, its files in `plugins/cache/godspeed` and `plugins/marketplaces/godspeed` (a project that switched the plugin on still loads those after `claude plugin uninstall`), and the Codex block in `~/.codex/config.toml`. Setting up the folder removes them; once the folder exists, anything left shows as a corner notice on app start and a line in Settings → Connection, both with Remove.
-
-**The spaces folder.** The godspeed folder also gets `spaces/`: a shortcut to every space file, grouped like the Files page (`spaces/<space>/<group>/<file>`, archived spaces under `spaces/Archived/`), with a `READ ME.txt`. `core::spaces::space_shortcuts` decides the names (safe on every OS, " (2)" for a repeat) from `core::spaces::file_groups`, the Files page's own grouping; `services::spaces::space_shortcuts` writes them when the folder is set up or refreshed and about 2 s after `spaces-changed`. Shortcuts are symlinks (a hard link on Windows when symlinks aren't allowed). `.godspeed/shortcuts.json` lists every link and folder it made, and a sync removes only those, so anything else in `spaces/` stays. Copies in the data folder are made read-only on macOS and Linux, where removing or replacing one still works (that depends on the folder). Moving the godspeed folder clears the old `spaces/`. Linking or adding a path inside `spaces/` is refused (`shortcut_path_problem`).
-
-**The work loop.** Every model request (a lesson turn, a background job, an extraction run, topic grouping) waits in `engine::bridge` as a work item. The agent takes one with `wait_for_work` and answers with `respond`. If no agent is teaching, the work waits. Claude Code waits in a background script (`.godspeed/wait-for-work.mjs` in the godspeed folder), so the agent spends no tokens while the learner thinks; `CLAUDE.md` and the idle, `turn_complete` and `start_lesson` notes point a Claude Code client at it. A waiter given a lesson id stays on that lesson: it takes its turns and Talk's, and another lesson's turns while no other wait is under way for that lesson or for any work, oldest first, so one agent takes turns between lessons and two agents each keep their own. Codex has no waiter: its wait is capped by its MCP tool timeout (60 s by default), so its start command sets `tool_timeout_sec = 620`, and `wait_for_work` accepts `timeout_seconds` up to 600 (default 45). Any request counts as "connected"; only `wait_for_work`, `respond` and `read_work` count as "teaching" (`agent_teaching`), and `GET /api/mcp-access` reports both plus `claimedLessons`, the lessons whose request an agent took and hasn't answered.
-
-**The helper.** "Open Claude Code" and "Open Codex" each open two windows in the godspeed folder: the teacher, and a second session of the same agent told "Start as the helper", whose waiter runs with `--helper` (`wait_for_work` with `helper: true`). `engine::bridge::helper` keeps the two apart. A work item is background when its conversation id does not start with `chat_` (file reading, graph work, sheets, research, topic grouping). The helper takes the background items, and the lesson and Talk turns only while a teacher compacts its context (its PreCompact hook reports it; a mark that never ends lapses after 10 minutes), including the turn the teacher held. The teacher takes lesson and Talk turns, and background items only while no helper is here. A helper is here when it checked in recently or still holds an item whose claim has not run out, and it never counts as teaching. `GET /api/mcp-access` adds `helperHere`, `helperCovering` and `pendingTurns` (the waiting lesson and Talk turns, so the teacher's status leaves out the helper's work), and a space summary carries `filesRead` beside `filesLeft` while a round of reading is open. The window says who works from those (`src/frontend/components/work/`): a striped frame around a page being worked on (a space while its files are read or grouped, a lesson while its facts go into the graph, a cheat sheet being written), a yellow chip in the top bar on every page, and a Teacher and a Helper tile under Settings → Connection, each with its own Open button when its window is closed.
-
-**Web search.** By default the agent looks things up with its own web search. A learner may save their own Tavily key under Settings → Connection (`services::app::web_search`, `GET /api/web-search`, `PUT` and `DELETE /api/web-search/key`): `store::search_key` keeps it in `data/search-key` (mode 0600), the window only ever gets its last 4 characters, and it is sent to `api.tavily.com` alone (`web::tavily`). Saving checks the key against Tavily first, and the page shows the searches used this month. With a key the research job gets a `web_search` tool (5 results a search). `web::guard` keeps `web_fetch` to public pages: it refuses an address on this computer or a private network as written, after every redirect and for every resolved address.
-
-**The item's shape.** A work item is a compact JSON block (conversation, tools, messages), then its instructions and every message text of 1,000 characters or more as plain-text blocks (a message's `text` reads `[text N]`), so line breaks, quotes and LaTeX need no escaping.
-
-**Paging.** A long work item is split into pages of at most 24,000 UTF-8 bytes of text blocks (`page_blocks` in `core::session::work_pages`), because agents cut long tool results. The agent reads pages 2 and up with `read_work`, and `respond` is refused until every page is read.
-
-**What each agent has seen.** A later item in the same lesson carries only the new messages. What each agent (by its session id) has already seen of each lesson is saved in `data/agent-seen.json` (`core::records::agent_seen`, `store::agent_seen`), so an app restart or a second agent gets the right part. In a new conversation, instructions and tool schemas the agent already got (kept in memory per agent) come by reference: `instructionsAsIn` names the earlier work item, `toolsAsBefore` lists the tools. `full_context: true` on `wait_for_work`, or `read_work` with `full: true` for the item in hand, sends everything again.
-
-**The forget hook.** When Claude Code compacts or the learner runs `/clear`, the godspeed folder's hook (`.godspeed/claude-settings.json` → `.godspeed/forget.mjs`) calls `POST /api/mcp/forget` with the session id (`handle_agent_forget` in `server::mcp`), so that agent's next item comes in full. If the app is closed, the hook removes the session from `agent-seen.json` itself.
-
-**The other tools.** Besides the loop, agents get lesson, graph and space tools. `list_lessons` takes `space_id` (a space or `"none"`) and `limit` (default 20, max 200) and returns `{lessons, total}`. `read_lesson` pages a long lesson like a work item (`page`, a "Page N of M" note). `read_space` gives file counts by status and only the failed files; `files: true` lists them all. Its deadlines carry their about file. `add_space_file` takes a `path`, or a `name` and `text` to write a Markdown file into the space. `add_space_deadline` takes a `deadlines` list and `set_space_file_kind` a `file_ids` list: valid items are applied and failed ones come back under `refused`. `update_space` and `unlink_space_folder` return only what changed. Every tool states all four MCP hints (read-only, destructive, idempotent, open world). The server instructions tell the agent to use only a work item's own tools inside it, through `respond`, even when the server has a tool with the same name, so the lesson keeps what it looked up. `respond` also checks the source marks in a reply before it is stored (section 6.1): a mark whose passage doesn't exist is removed and `respond` says so.
-
-**Agent notes and the briefing.** The MCP tools `remember` and `forget` keep short notes about the learner in `data/agent-notes.json` (`store::agent_notes`, at most 200 characters each). The learner sees and deletes them in Settings → Connection. Every `initialize` or `server/discover` hands over instructions in this order: the intro and work loop, the waiter paragraph (Claude Code only), a "Where you left off" briefing (`services::app::agent_memory`, `core::spaces::agent_briefing`: the setup each space still lacks, the spaces, the last lessons, the next deadlines and the saved notes), then the Memory and Spaces paragraphs. The setup check (`core::spaces::space_setup`) lists a missing icon, signature or description, so spaces made before an update catch up the next time an agent connects; a new space feature the agent sets adds its check there. Claude Code cuts server instructions at 4096 characters, so the briefing gets a length budget that ends it before the cut, dropping lessons, then deadlines (list_lessons and read_space bring both back), then the oldest notes (they live only here), then spaces, then setup, and saying what it left out.
-
-**Talk.** The teacher's panel (the teacher in the top bar) opens on a Talk tab: one ongoing chat outside lessons, kind `"talk"` with the fixed id `chat_talk` (`TALK_CHAT_ID`), opened and cleared through `/api/talk` (`services::turns::talk`). Its messages take pictures and PDFs like a lesson's (see Attachments). The store leaves it out of every lesson list, so Today, Progress, search, `list_lessons` and graph extraction never see it, and the lesson page 404s for it. Its agent (`create_talk_agent`) has a short prompt (`crates/agent/prompts/talk/`, plus the shared voice) and the space tools in `agent::tools::talk`: list and read spaces, create and update them, link a folder, add a file, set a file's kind, add, change and remove deadlines, search files and read passages. None deletes a space or a file. Those tools run the same space actions as the MCP server (`services::spaces::space_actions`, names and text in `core::spaces::space_tools`), so each change is recorded in the activity log and also shows in the chat as a row that opens it. The chat is summarized like a lesson (`talk_compaction_prompt`). While a lesson is open the panel shows only Activity: the lesson's own box talks to the teacher, and lessons take `list_spaces` and the three deadline tools (`lesson_space_change_tools`) so "add HW 4, due Friday" works mid-lesson.
-
-**Rules the agent saves.** When the learner states a lasting preference, the teacher calls `save_rule` (a lesson tool, `agent::tools::rules`) or an outside agent calls the MCP tool of the same name. The rule joins the learner's own list (Settings → Teaching for every lesson, Edit space for one space), up to the usual 20 rules of 200 characters, and `data/agent-rules.json` (`services::app::agent_rules`) marks it as the agent's, so the lists say "Saved by" and the teacher's name (Teacher unless renamed in Settings). A lesson shows the save as one line with Undo and Edit (`rule-saved-line.tsx`); a save from the terminal sends `rules-changed` with the rule, and the window shows a corner notice with the same buttons (`rule-notice.tsx`). Both go through `/api/rules`. Editing a rule makes it the learner's, and marks of rules the learner removed are dropped when the list is read.
-
-## 9. The foundational invariants — what ALWAYS holds
-
-### Tier A: machine-enforced (lint, Cargo and clippy fail the build)
-
-| Law | Gate |
+| Rule | Gate |
 |---|---|
-| **The frontend reaches the core through its barrel only.** `src/frontend/**` imports `src/shared/core` only via `index.ts` | the ESLint zone in `eslint.config.mjs` |
-| **No import cycles in `src/`** | `import/no-cycle` |
-| **Lower crates never import higher ones** | Cargo: each crate lists what it may use, and a cycle does not build |
-| **Time, files and `unsafe` go through named doors**: the app clock (no `SystemTime::now`, no tokio timers), the atomic writers (no bare `fs::write`), and `unsafe` only in the shell's platform modules | clippy (`clippy.toml`, workspace lints) |
-
-### Tier B: gate-enforced elsewhere
-
-| Law | Gate |
-|---|---|
-| Strict types, no silent indexing (`strict`, `noUncheckedIndexedAccess`, `verbatimModuleSyntax`) | `tsc --noEmit` |
+| `src/frontend/**` imports `src/shared/core` only through `index.ts` | the ESLint zone in `eslint.config.mjs` |
+| No import cycles in `src/` | `import/no-cycle` |
+| A crate uses only what its `Cargo.toml` lists, with no cycles | Cargo |
+| Time goes through the app clock (no `SystemTime::now`, no tokio timers), writes through the atomic writers (no bare `fs::write`), and nothing writes to stdout | `clippy.toml` |
+| No `unsafe` outside the shell's platform modules | `unsafe_code = "deny"` in the workspace lints |
+| Strict types and no silent indexing (`strict`, `noUncheckedIndexedAccess`, `verbatimModuleSyntax`) | `tsc --noEmit` |
 | Rust warnings are errors, and no crate declares a dependency it does not use | `cargo clippy -D warnings`, `cargo machete` (`npm run rust:check`) |
 | No unused files, exports or packages | knip (`npm run deadcode`) |
-| Prompt assets are compiled into the server | `include_str!` in `agent::teacher::prompts` (a missing file does not build) |
-| The core barrel stays browser-safe | barrel doc-comment (convention) |
+| Prompt files are compiled into the server | `include_str!` in `agent::teacher::prompts` |
 
-### Tier C — conventional, verified to hold in the code today
+### Kept by convention
 
-| Law |
+| Rule |
 |---|
-| **One composition root per concern** — `App::new` with `Stores::new` (storage), `chat_handler` (a turn) |
-| **One writer per ledger** — the merger is the sole writer of facts and chains (deletion and the topic grouper are the two named exceptions, §6); job records only by the runner; space records only through the spaces store |
-| **The store never decides** — adapters persist and shape-guard; merge/dedup/derivation semantics are reader-side, in core |
-| **Derived, never dual-tracked** — append-only evidence; every state recomputed at read (snapshot, plan statuses, phases, costs, coverage) |
-| **Idempotency via deterministic keys** — steer ids, ledger refs, coverage fingerprints, source content fingerprints, cluster content hashes; re-running anything converges |
-| **LLMs judge; code mechanizes** — grading, merging, fingerprints, layout are deterministic; a failed LLM stage checkpoints nothing |
-| **The persisted record is the only source of truth** — agents are stateless per-turn rebuilds; no unanswered tool call reaches a provider |
-| **Failure containment** — side channels (context, extraction, usage, naming) are fire-and-forget behind seams that swallow their errors; a side-channel failure never touches the response or the persist; the turn registry clears on every path |
-| **Absence is not zero** — unreported tokens, absent prices, absent levels render as absent, never fabricated |
-| **Schema-valid ⇔ parseable** — a model's tool input is checked against the tool's JSON schema before the tool runs (`engine::turn::validate`) |
-
-### Known deviations from the ideal (documented, deliberate or accepted)
-
-- The browser-safety of the core barrel is a doc-comment convention, not a lint rule (§2).
-- `scripts/` is lint-exempt; `tests/` imports freely across layers.
-- Small conventional-only sync points: the `window.lh` members are declared twice, in `src/frontend/components/desktop-env.tsx` and `crates/shell/src/shim.js`, and kept in step by hand.
+| One composition root per concern: `App::new` with `Stores::new` for storage, `chat_handler` for a turn |
+| One writer per store: the merger for facts and chains (deletion and the topic grouper are the named exceptions, §6), the job runner and wake pipeline for job records, the spaces store for space records |
+| Stores never decide: they persist and shape-guard, and merging, deduping and derivation happen on the reader's side, in core |
+| Derived, never stored twice: snapshot, plan statuses, phases, costs and coverage are recomputed when read |
+| Deterministic keys make reruns converge: steer ids, `arg_` chain ids, coverage fingerprints, source ids |
+| Models judge and code does the mechanics: grading, merging, fingerprints and layout are deterministic, and a failed model step checkpoints nothing |
+| The saved record is the only truth: agents are rebuilt from it each turn, and no unanswered tool call reaches the model |
+| Side channels (extraction, usage, naming) swallow their own errors and never touch the reply or the save. The turn registry clears on every path |
+| Absent is not zero: unreported tokens and missing levels show as absent, never made up |
+| A model's tool input is checked against the tool's JSON schema before the tool runs (`engine::turn::validate`) |
+| The core barrel stays browser-safe (a doc comment, §2.1) |
+| The `window.lh` members are declared in `desktop-env.tsx` and `shim.js` and kept in step by hand |
 
 ---
 
-## 10. Observability and change delivery (the push model)
+## 10. Events and observability
 
-Structured-logging frameworks are still deferred; the baseline is one correlation-tagged log line per event at the seams (`[chat <id>]` on turn services, `[extraction <id>]` on the pipeline, `[job <id>]` on runners, `[graph]` on reads). What has grown past log lines is the **activity feed** (`services::jobs::observability` → `GET /api/activity` → the background jobs on the teacher panel's Activity tab): running jobs, extraction runs, jobs that failed lately, per-run usage (tokens; nothing has a dollar price), and true abort (`POST /api/activity/abort` — kind `job`/`extraction`/`turn`). When structured logging lands, it goes behind these seams — no call sites change.
+Logging is one tagged line per event on stderr, for example `[chat <id>]` on turn services, `[extraction <id>]` on the pipeline and `[job <id>]` on runners.
 
-### 10.1 The events channel — how the client learns truth moved
+The activity feed is where running work shows: `services::jobs::observability` feeds `GET /api/activity`, which the teacher panel's Activity tab shows. It lists running jobs, extraction runs, recently failed jobs and per-run usage in tokens. `POST /api/activity/abort` takes `{kind: "job" | "extraction" | "turn", id}`.
 
-The client learns about server-side change by **push**, not polling: exactly one app-scoped SSE channel, `GET /api/events` (the `Events` bus in `gs_base::events` → `server::http::events`), held open by **one EventSource per open window** (`src/frontend/components/server-events.tsx`, mounted outermost in `src/frontend/routes/root.tsx` — the only file where `EventSource` exists). The client owns the connection's lifetime; the server frames `: ping` heartbeats every 25s and ends the stream only when the window goes away or the server stops. **Notify→fetch**: payloads never carry data — an event says only *that* truth moved (plus a key like `chatId`); every consumer then fetches fresh from the normal endpoints. Reconnects (EventSource auto-retry) fire a **resync** hook per consumer for one immediate refetch, healing any events the gap ate.
+### 10.1 The events channel
 
-### 10.2 Event vocabulary
+The window learns about server changes by push, not polling. There is one app-wide SSE channel, `GET /api/events`.
 
-| Event | Payload | Emitted at |
+- The server side is the `Events` bus (`crates/base/src/events.rs`) and `server::http::events`.
+- The window holds one EventSource per open window, in `src/frontend/components/server-events.tsx`, mounted around everything in `src/frontend/routes/root.tsx`. It is the only file that creates an EventSource.
+- The server sends a `: ping` every 25 s and ends the stream only when the window goes away or the server stops.
+- An event says only that something changed, plus a key like `chatId`. Every consumer then fetches fresh data from the normal endpoints.
+- On reconnect, each consumer refetches once, which covers any events the gap missed.
+- The bus gives every subscriber its own unbounded queue, so a slow reader never blocks an emitter. A subscriber that went away is dropped on the next emit.
+
+### 10.2 Event kinds
+
+The list is `EventKind` in `crates/base/src/events.rs`, mirrored in `src/shared/core/events.ts`.
+
+| Event | Payload | Emitted when |
 |---|---|---|
-| `turn-started` | `{chatId}` | `begin_turn` success (after the registry write; the double-begin 409 path is silent) — every turn, client-initiated included |
-| `turn-settled` | `{chatId}` | `end_turn` on a live entry — fires after `persist_turn`, so fetches read durable truth |
-| `jobs-changed` | `{chatId?}` | every job-store write (create/update/delete-that-removed); `chatId` when known |
-| `activity-changed` | `{}` | an extraction run changed phase, or a background work item (not a lesson turn) was queued, taken or dropped (`engine::bridge`, `agent::extraction::extraction_runs`) |
-| `chats-changed` | `{}` | list-shape writes only: chat create/rename/delete-that-removed |
+| `turn-started` | `{chatId}` | `begin_turn` succeeds, for every turn. The 409 path is silent |
+| `turn-settled` | `{chatId}` | `end_turn` on a live entry, after `persist_turn`, so fetches read saved data |
+| `jobs-changed` | `{chatId?}` | every job-store write that changed something |
+| `activity-changed` | `{}` | an extraction run changed phase, or a background work item was queued, taken or dropped (`engine::bridge`, `agent::extraction::extraction_runs`) |
+| `chats-changed` | `{}` | a lesson was created, renamed or deleted |
 | `spaces-changed` | `{}` | a space was created, edited, archived or deleted, or its files changed |
-| `agent-changed` | `{}` | the outside agent checked in or went quiet, or a request started or stopped waiting for it |
-| `record-changed` | `{chatId}` | a chat record changed without a turn: a dismissal, a Keep going at a stop (also written during a turn: `POST /api/chats/{id}/keep-going` then answers `running: true` and the window leaves the next step to that turn's end), an answer to a question from earlier (`POST /api/chats/{id}/review`, also during a turn), a kept sentence's analogy or phrase dropped or brought back (`POST /api/chats/{id}/kept`, also during a turn), an answer that leaves a sibling question open, or a finished compaction |
-| `agent-action` | the action | a new line in the activity log: an outside agent, the app or the learner changed something (`services::app::agent_actions`, saved in `data/agent-actions.json`) |
-| `rules-changed` | `{saved?}` | a teaching rule was saved, undone or edited (`services::app::agent_rules`); `saved` carries the rule when an outside agent saved it from the terminal |
-| `mocks-changed` | `{spaceId}` | one of a space's mocks changed, or a request for one started or ended (`services::mocks`: `mocks`, `mock_runs`, `mock_end`); a saved mock answer is silent |
-| `files-added` | `{spaceId, files}` | a linked folder scan added new files (`services::spaces::folder`); the window shows a notice |
-| `files-removed` | `{spaceId, files}` | files a linked folder no longer holds were dropped with their facts (`services::spaces::folder`); the window shows a notice |
+| `agent-changed` | `{}` | the outside agent connected, started or stopped teaching, was renamed or lapsed, a helper arrived, or compacting started or lapsed |
+| `record-changed` | `{chatId}` | a lesson record changed without a turn: a dismissal, Keep going at a stop, an answer to a question from earlier, a kept sentence's part dropped or brought back, an answer that leaves a sibling question open, or a finished compaction. The `keep-going`, `review` and `kept` routes also emit it during a turn |
+| `agent-action` | the action | a new line in the activity log (`services::app::agent_actions`, saved in `data/agent-actions.json`) |
+| `rules-changed` | `{saved?}` | a teaching rule was saved, undone or edited (`services::app::agent_rules`). `saved` carries the rule when an outside agent saved it from the terminal |
+| `mocks-changed` | `{spaceId}` | one of a space's mocks changed, or a request for one started or ended (`services::mocks`). A saved mock answer is silent |
+| `files-added` | `{spaceId, files}` | a linked folder scan added files (`services::spaces::folder`). The window shows a notice |
+| `files-removed` | `{spaceId, files}` | files a linked folder no longer holds were dropped with their facts (`services::spaces::folder`). The window shows a notice |
 | `cheat-sheet-changed` | `{deadlineId}` | a cheat sheet's versions, chat or request changed (`services::cheat_sheets`) |
 
-### 10.3 Emitter laws
+### 10.3 Rules for emitters
 
-- **Notify-after-write** — the emit always follows the successful write, so a fetch triggered by the event reads committed truth.
-- **Present-entry gating** — mutations that changed nothing (missing-id update, delete of an absent row) emit nothing.
-- **THE SILENCE LAW** — content writers (`save_messages`, `append_turn_usage`, `append_extraction_usage`, `save_tree`) are deliberately silent: `save_messages` would spam per turn-persist, and list-visible effects already arrive via `turn-started`/`turn-settled` (pinned in tests).
-- **Reads never emit** — pure reads are side-effect-free (pinned).
+- Emit after the write succeeds, so a fetch triggered by the event reads saved data.
+- A change that changed nothing (an update of a missing id, a delete of an absent row) emits nothing.
+- Content writers stay silent: `save_messages`, `append_turn_usage`, `append_extraction_usage` and `save_tree`. `save_messages` would fire on every turn save, and the list-visible effects already arrive through `turn-started` and `turn-settled`. Tests pin this.
+- Reads never emit.
 
-The bus (`Events` in `crates/base/src/events.rs`) gives every subscriber its own unbounded queue, so a slow reader never blocks an emitter, and a subscriber that has gone away is dropped on the next emit.
+### 10.4 Rules for consumers
 
-### 10.4 Consumer laws
+- Handlers read refs (`localStreamRef`, `turnInFlightRef`, `statusRef`), never stale render state.
+- On `turn-started`, a lesson ignores the event when `localStreamRef.current` is held (its own turn just began) or it is already attached. Otherwise it attaches to the running turn (`GET /api/chats/{id}/stream`).
+- While attached, the stream's final event settles the turn. A `turn-settled` refetch (`syncFromServer`) would swap in a stale snapshot, so it is skipped. An error status detaches and refetches.
+- Bursty events coalesce into one fetch per window with a 250 ms trailing debounce (for example `use-lesson-list.ts`).
+- Every consumer refetches once when the channel opens or reopens.
 
-- **Refs, not closures** — handlers read `localStreamRef`/`turnInFlightRef`/`statusRef`, never stale render state.
-- **The 409-race guard** — on `turn-started`, ignore when `localStreamRef.current` is held (the client's own turn just began; it owns that stream) or already attached; otherwise attach to the running turn (`GET /stream` live response).
-- **No mid-attached-stream sync** — while attached, the terminal frame owns settle; a `turn-settled`-triggered `syncFromServer` would swap a stale snapshot and break in-place continuation (the one exception: error status heals by detaching).
-- **~250ms trailing debounce** — bursty emitters coalesce into one fetch per window (lesson list/dock/jobs/graph all share the shape).
-- **Resync on reconnect** — every consumer refetches once when the channel (re)opens.
+### 10.5 What still polls
 
-### 10.5 What remains bounded or local, and why
-
-- **Extraction-coverage ×2** (session menu block + ring) — bounded, run-scoped 2s reads: the ring drains **per fold**, and the events channel is per **phase**; that granularity gap is accepted by design.
-- **The 409-retry poll** (`session-core.ts`, 500ms→5s ramp) — a racing client's bounded backoff while a turn it tried to start is already running; not standing.
-- **Dock clock ticker** (1s `setNow`) — local rendering, no network.
-- **Mount fast-paths kept** — `initiallyInFlight` (attach on render-time snapshot), the mount-time `needsContinuation` check, and the `lh:chat-renamed`/`lh:turn-state` **local window broadcasts** (instant same-tab patching; the channel is for cross-window and server-initiated truth).
+- The coverage block in the lesson menu (`CoverageMenuBlock`, `src/frontend/components/extraction-coverage.tsx`) reads every 2 s while open, because the events channel only reports extraction phases.
+- The 409 retry (`session-core.ts`) polls every 500 ms while another turn runs and gives up after 30 s.
+- The dock clock ticks every second (`use-now.ts`), with no network.
+- The mount fast paths stay: `initiallyInFlight`, the mount-time `needsContinuation` check, and the `lh:chat-renamed` and `lh:turn-state` window events for instant same-tab updates.
 
 ---
 
 ## 11. Testing
 
-All deterministic, no network: the model is injected (`engine::turn::faux` scripts its replies), the app clock (`gs_base::clock`) can be moved, and pure logic gets in-memory ports (`core::graph::memory`). Suites either mirror production wiring with the real stores over a scratch data folder or swap in-memory ports deliberately. Rust tests sit beside their crate (unit tests in the modules, `tests/` folders for the rest), and several crates replay committed golden files (`crates/<crate>/tests/golden/*.json`) so formatting, ranking and merging texts stay stable. Route and MCP behaviour is also checked against recorded contract scenarios, run as [rust-server.md](rust-server.md) describes. Four strata:
+Tests are deterministic and use no network.
 
-1. **Pure core units**: merger, derivation, coverage, question grading, plan tree, phases, clusters, topics, progress, prices, search ranking, work pages, the agent briefing (in `crates/core` and `crates/search`, and `tests/shared` for the TypeScript half).
-2. **Service flows**: `handle_chat_input` driven end-to-end with scripted engines: persistence, liveness, steer claiming, the wake pipeline (409 retry, quiz deferral, idempotency), crash recovery, the data-dir seam (`crates/services`).
-3. **Sub-agent loops and extraction**: researcher, demo-builder and visual-maker with a fake headless API; the extraction pipeline end-to-end (reteach credit, failure-checkpoints-nothing, single-flight, abort) (`crates/agent`).
-4. **Frontend and shell tests**: transcript, cards, docks, the writing box, the top bar, coverage, stats, the chain table and practice cards via React server-side rendering (`renderToStaticMarkup`), no DOM library (`tests/frontend`); the `window.lh` shim and the release scripts (`tests/desktop`).
+- The model is injected: `engine::turn::faux` scripts its replies.
+- The app clock (`gs_base::clock`) can be moved.
+- Pure logic gets in-memory ports (`core::graph::memory`), and service tests run the real stores over a scratch data folder.
+- Where Rust and TypeScript share a rule, both replay one golden file in `crates/core/tests/golden/`.
 
-Gate on every change: `npm run check` passes (`tsc --noEmit`, all tests, `eslint`, `knip` for unused files, exports and packages, and `npm run rust:check`: cargo test, clippy and cargo machete). CI runs the same checks.
+The test layout, the golden files and the contract scenarios are described in [development.md](development.md) and [rust-server.md](rust-server.md). `npm run check` must pass before a change is done.
 
 ---
 
 ## 12. The seam directory
 
-Every place the architecture is designed to be cut — the "one file" a future change should touch:
+Each seam is the one place a future change should touch.
 
 | Seam | Where | What it swaps |
 |---|---|---|
-| Storage decision (JSON→SQLite, remote) | `Stores::new` in `crates/store` (called by `App::new`) | the stores, once |
-| LLM engine | `engine::turn::models` (`agent_engine`) → `engine::bridge` | the outside agent, one place |
+| Storage | `Stores::new` in `crates/store` (called by `App::new`) | the stores, once |
+| Model engine | `engine::turn::models` (`agent_engine`) and `engine::bridge` | how model requests reach the outside agent |
 | Turn composition | `services::turns::chat_handler` | what a turn consists of |
 | Extraction trigger | `services::turns::turn_service` (`trigger_extraction`) | when the Library runs |
-| Outside-agent boundary | `server::mcp` (tools, access check) + `engine::bridge` (work items) | what agents can do and how work reaches them |
-| Graph access for teacher | `agent::tools::graph` (`list_sessions` / `list_propositions`) | what the teacher can probe, one gate |
-| Steer delivery (wake) | `services::jobs` (`deliver_job_result`, `set_turn_runner`, `set_job_respawn`) | how background results re-enter lessons |
-| Push events | `Events` in `crates/base` + `server::http::events` (SSE) + `src/frontend/components/server-events.tsx` (the window's EventSource); vocabulary in `src/shared/core/events.ts` | change notification, end to end |
-| Agent construction (tests) | `AgentBuildOptions` in `agent::teacher::teacher_agent` | scripted engines and tool registries, no refactor |
-| Sub-agent verification | `agent::subagents::headless` (`get_headless`) | demo/SVG verification, through the shell's web view or none |
+| Outside-agent boundary | `server::mcp` (tools, access check) and `engine::bridge` (work items) | what agents can do and how work reaches them |
+| Teacher's graph access | `agent::tools::graph` (`list_sessions`, `list_propositions`) | what the teacher can read of the graph |
+| Steer delivery | `services::jobs` (`deliver_job_result`, `set_turn_runner`, `set_job_respawn`) | how background results re-enter lessons |
+| Push events | `Events` in `crates/base`, `server::http::events`, `src/frontend/components/server-events.tsx`; vocabulary in `src/shared/core/events.ts` | change notification, end to end |
+| Agent construction | `AgentBuildOptions` in `agent::teacher::teacher_agent` | scripted engines and tool registries in tests |
+| Sub-agent checks | `agent::subagents::headless` (`get_headless`) | demo and SVG checks through the shell's web view, or none |
 | Access gate | `server::http::access` | who may call `/api` |
-| Data location | `LH_DATA_DIR` env (`gs_base::config` `Paths`) | where data/ lives, nothing else |
-| Desktop host | `crates/shell`, talking to the server through `crates/shell-rpc` | launcher/security shell only |
-
----
-
-## 13. Deliberately deferred
-
-Structured logging (§10); SQLite/remote storage (drop-in behind the stores, §3); multi-scale cluster hierarchy (Louvain's dendrogram idea, parked); the anchored calibration rubric; alternative extraction triggers beyond the coverage seam (session end, idle); retroactive bootstrap of the POC sessions (vision §1 consolidation). When any of these land, this doc changes with the commit that lands them — it describes the system, not an intention.
+| Data location | `LH_DATA_DIR` (`gs_base::config`, `Paths`) | where `data/` lives |
+| Desktop host | `crates/shell`, talking to the server through `crates/shell-rpc` | the launcher and security shell |
