@@ -2,10 +2,10 @@
 //! verdict is decided once, when the turn that posed it is saved (a keep-check marker), and never
 //! refuses the quiz: a keep that breaks a rule is not stored and the teacher reads why after his
 //! answer. A topic keeps at most 2 sentences and shows the analogy lines on at most 1, a keep
-//! needs a reply with no page or plot of its own and no plot or keep in the topic's reply before
-//! it, and a reply stores one. A sentence he kept comes back
-//! on the row of a question from earlier about its topic. Which quiz shows a kept card, and with
-//! which parts, is twin to src/shared/core/kept-view.ts; both replay tests/golden/kept.json.
+//! needs a reply with no plot of its own and no plot or keep in the topic's reply before it, and a
+//! reply stores one. A sentence he kept comes back on the row of a question from earlier about its
+//! topic. Which quiz shows a kept card, and with which parts, is twin to
+//! src/shared/core/kept-view.ts; both replay tests/golden/kept.json.
 
 use std::collections::{HashMap, HashSet};
 
@@ -23,7 +23,7 @@ const PER_TOPIC: usize = 2;
 
 /// Every keep note starts with this word.
 pub(crate) const KEEP_NOTE: &str = "keep";
-const SPACING: &str = "keep not stored: this reply has a page or plot, or the last one has a plot or keep. Leave the next quiz without a keep.";
+const SPACING: &str = "keep not stored: this reply has a plot, or the last one has a plot or keep. Leave the next quiz without a keep.";
 const NOT_A_CHECK: &str = "keep not stored: a keep goes on a check quiz, not a prediction. Add it to a later quiz.";
 const TWO_A_TOPIC: &str = "keep not stored: this topic already has 2 kept sentences.";
 const ONE_ANALOGY: &str = "keep.fits not shown: this topic already has an analogy.";
@@ -71,7 +71,7 @@ pub fn keep_verdicts(messages: &[Json], first_topic: Option<&str>, check_source:
 			}
 			let own = visits.iter().position(|v| v.at == at);
 			let before = own.and_then(|i| visits[..i].iter().rev().find(|v| v.node_id == visits[i].node_id));
-			let crowded = stores_one || own.is_some_and(|i| visits[i].page || visits[i].plot) || before.is_some_and(|v| v.plot || v.keep);
+			let crowded = stores_one || own.is_some_and(|i| visits[i].plot) || before.is_some_and(|v| v.plot || v.keep);
 			let topic: Vec<bool> = seen.iter().filter(|(a, n, _)| *a < at && *n == node).map(|(_, _, fits)| *fits).collect();
 			let keep = keep_of(&call["arguments"]).unwrap_or_else(|| call["arguments"]["keep"].clone());
 			let check = normalize_quiz_type(&call["arguments"]["type"]) == Some("check");
@@ -287,12 +287,14 @@ mod tests {
 	}
 
 	#[test]
-	fn a_keep_waits_one_plain_reply_after_a_plot_or_another_keep_but_not_after_a_page() {
+	fn a_keep_waits_one_plain_reply_after_a_plot_or_another_keep_but_never_for_a_page() {
 		let mut after_page = vec![reply("r1", "Here.[[f_1a2b3c4d5e6f/p. 14/Lecture 6.pdf|degree 12]]", vec![quiz("q1", Json::Null)]), answer("q1", true)];
 		after_page.push(reply("r2", "", vec![quiz("q2", json!({ "text": "t" }))]));
 		assert_eq!(keep_verdicts(&after_page, PLAN, &no_source)[0]["keep"], json!("shown"), "a page in the reply before does not crowd it");
 		let on_page = vec![reply("r1", "Here.[[f_1a2b3c4d5e6f/p. 14/Lecture 6.pdf|degree 12]]", vec![quiz("q1", json!({ "text": "t" }))])];
-		assert_eq!(keep_verdicts(&on_page, PLAN, &no_source)[0]["note"], json!(SPACING), "its own reply shows the page");
+		assert_eq!(keep_verdicts(&on_page, PLAN, &no_source)[0]["keep"], json!("shown"), "nor does a page in its own reply");
+		let on_plot = vec![reply("r1", "", vec![quiz("q1", json!({ "text": "t" })), json!({ "type": "toolCall", "id": "p1", "name": "plot", "arguments": { "nodeId": "reg" } })])];
+		assert_eq!(keep_verdicts(&on_plot, PLAN, &no_source)[0]["note"], json!(SPACING), "its own reply shows a plot");
 		let mut after_plot = lesson();
 		after_plot.push(reply("r3", "", vec![json!({ "type": "toolCall", "id": "p1", "name": "plot", "arguments": { "nodeId": "reg" } })]));
 		after_plot.push(reply("r4", "", vec![quiz("q4", json!({ "text": "t" }))]));

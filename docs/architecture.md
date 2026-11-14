@@ -696,7 +696,7 @@ A plot comes with a prediction `quiz` in the same reply, whose `onPlot: {line, x
 
 - the right option must name the drawn value to 2 significant figures
 - a topic has one plot
-- neither this reply nor the topic's previous reply may carry a page or a plot, and the previous reply may not carry a kept sentence the learner saw
+- the topic's previous reply may not carry a kept sentence the learner saw; a page never holds a plot back
 
 A drawn plot is named `p1`, `p2` in lesson order. Its result tells the agent its values at the slider's start and ends the turn. Its `details` are `{part: "plot", v: 1, id, onPlot: {toolCallId, value}, y: {min, max}}`. The window recomputes the lines from the stored call, and the slider position is never stored or sent.
 
@@ -707,7 +707,7 @@ A multiple-choice Study `quiz` may carry `keep: {text (160), source?, fits? (120
 When a Study turn is saved (`save_turn`), each new keep gets a UI-only `keep-check` marker from `core::study::kept::keep_verdicts`: `{quizCallId, keep: "shown" | "dropped", fits, phrase, source?: "ok" | "dropped", sourceMark?, note?}`. A keep is not shown when:
 
 - its quiz is a prediction, or its fields break the rules
-- its reply carries a page, a plot or another keep it stores
+- its reply carries a plot or another keep it stores
 - the topic's previous reply carries a plot or a kept sentence the learner saw
 - the topic already kept 2 the learner answered right
 

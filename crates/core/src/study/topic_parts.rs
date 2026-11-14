@@ -34,12 +34,11 @@ pub fn first_topic(tree: Option<&Json>) -> Option<&str> {
 }
 
 /// One reply the learner sees (or a shown opener's lead), in record order: where it sits in the
-/// record, its topic and whether it carries the topic's page, a plot or a kept sentence he saw.
-/// Replies of reads alone are not seen.
+/// record, its topic and whether it carries a plot or a kept sentence he saw. Replies of reads
+/// alone are not seen.
 pub(crate) struct Visit {
 	pub(crate) at: usize,
 	pub(crate) node_id: String,
-	pub(crate) page: bool,
 	pub(crate) plot: bool,
 	pub(crate) keep: bool,
 }
@@ -82,7 +81,7 @@ fn walk(messages: &[Json], first_topic: Option<&str>, reply: Option<&Json>) -> (
 		{
 			let lead_of = opener["topicDoneCallId"].clone();
 			let page = first_quoted(opener["lead"].as_str().unwrap_or_default(), Json::Null, lead_of);
-			visits.push(Visit { at: index, node_id: node_id.to_owned(), page: !page.is_null(), plot: false, keep: false });
+			visits.push(Visit { at: index, node_id: node_id.to_owned(), plot: false, keep: false });
 			out.push(json!({ "nodeId": node_id, "page": page }));
 			current = Some(node_id.to_owned());
 			continue;
@@ -99,7 +98,6 @@ fn walk(messages: &[Json], first_topic: Option<&str>, reply: Option<&Json>) -> (
 			out.push(json!({ "nodeId": node_id, "page": null }));
 			out.len() - 1
 		});
-		let mut gave_page = false;
 		if opened.insert(node_id.clone()) {
 			let page = items(&m["content"])
 				.iter()
@@ -110,13 +108,12 @@ fn walk(messages: &[Json], first_topic: Option<&str>, reply: Option<&Json>) -> (
 				&& let Some(parts) = out[at].as_obj_mut()
 			{
 				parts.insert("page", page);
-				gave_page = true;
 			}
 		}
 		if seen {
 			let plot = calls(m).any(|c| c["name"].as_str() == Some(PLOT_TOOL) && !c["id"].as_str().is_some_and(|id| refused.contains(id)));
 			let keep = calls(m).any(|c| c["id"].as_str().is_some_and(|id| kept.contains(id)));
-			visits.push(Visit { at: index, node_id, page: gave_page, plot, keep });
+			visits.push(Visit { at: index, node_id, plot, keep });
 		}
 	}
 	(out, visits)
@@ -150,6 +147,7 @@ fn first_quoted(text: &str, message_id: Json, lead_of: Json) -> Json {
 
 const NO_PLOT: &str = "onPlot: no plot in this reply. Send the plot with it, or the guess alone without onPlot.";
 const WITH_THE_PLOT: &str = "quiz: refused with the plot above. Re-send both, or the guess alone without onPlot.";
+const AFTER_A_KEEP: &str = "plot: send it after one reply with no keep.";
 
 /// What the lesson-parts hook decides for one reply.
 #[derive(Default, Debug, PartialEq)]
@@ -163,8 +161,8 @@ pub struct PartsVerdict {
 
 /// The check on a reply's plot and its guess (`quiz.onPlot`), which pass or are refused as a pair,
 /// whatever order the reply lists them in: one plot and one guess, the guess a prediction whose
-/// right option names the drawn value, one plot a topic, and neither this reply nor the topic's
-/// reply before it carrying a page or a plot. `quiz_call` gives a quiz call's arguments as the quiz
+/// right option names the drawn value, one plot a topic, and no kept sentence he saw in the topic's
+/// reply before it. `quiz_call` gives a quiz call's arguments as the quiz
 /// tool takes them, after its own preparation, and whether they pass its checks; a guess that
 /// fails them is left to them. A plot that fails its own checks is refused by its preparation;
 /// this only refuses its guess with it.
@@ -276,8 +274,8 @@ fn guess_value(plot: &Plot, quiz: &Json, problems: &mut Vec<String>) -> Option<f
 	Some(value)
 }
 
-/// One plot a topic, and a plot only after a topic reply with no page, plot or kept sentence, its
-/// own reply carrying no page either. A keep in its own reply yields to the plot: it is not stored.
+/// One plot a topic, and a plot only after a topic reply with no kept sentence. A page never holds
+/// it back. A keep in its own reply yields to the plot: it is not stored.
 fn spacing_problems(lesson_messages: &[Json], first_topic: Option<&str>, reply: &Json) -> Vec<String> {
 	let (_, visits) = walk(lesson_messages, first_topic, Some(reply));
 	let Some((own, earlier)) = visits.split_last() else { return Vec::new() };
@@ -286,8 +284,8 @@ fn spacing_problems(lesson_messages: &[Json], first_topic: Option<&str>, reply: 
 	if topic.iter().any(|v| v.plot) {
 		problems.push("plot: this topic already has a plot.".to_owned());
 	}
-	if own.page || topic.last().is_some_and(|v| v.page || v.plot || v.keep) {
-		problems.push("plot: send it after one reply with no page, plot or keep.".to_owned());
+	if topic.last().is_some_and(|v| v.keep) {
+		problems.push(AFTER_A_KEEP.to_owned());
 	}
 	problems
 }
@@ -403,49 +401,27 @@ mod tests {
 	}
 
 	#[test]
-	fn a_plot_waits_one_plain_reply_after_a_page_and_comes_once_a_topic() {
-		let after_page = [lesson()[..2].to_vec()].concat();
-		let verdict = reply_parts_problems(&after_page, PLAN, &pair(true, penalty_at_8(), "B"), &passes);
-		assert_eq!(verdict.refused[0].1, "plot: send it after one reply with no page, plot or keep.");
+	fn a_page_never_holds_back_a_plot_and_it_comes_once_a_topic() {
+		let after_page = lesson()[..2].to_vec();
+		assert!(reply_parts_problems(&after_page, PLAN, &pair(true, penalty_at_8(), "B"), &passes).refused.is_empty(), "right after the page");
 		let own_page = reply("r1", &format!("Here.{MARK}"), vec![call("q3", "quiz", guess("B", penalty_at_8())), call("p3", "plot", plot_args())]);
-		assert_eq!(reply_parts_problems(&[], PLAN, &own_page, &passes).refused[0].1, "plot: send it after one reply with no page, plot or keep.");
-		let first_reply = reply_parts_problems(&[], PLAN, &pair(true, penalty_at_8(), "B"), &passes);
-		assert!(first_reply.refused.is_empty(), "a topic's opening reply with no page may carry the plot");
-
-		let reads = reply("r2b", "", vec![call("l1", "ls", json!({ "path": "." }))]);
-		let after_reads = [lesson()[..2].to_vec(), vec![reads, result("l1", "ls", false)]].concat();
-		assert_eq!(reply_parts_problems(&after_reads, PLAN, &pair(true, penalty_at_8(), "B"), &passes).refused[0].1, "plot: send it after one reply with no page, plot or keep.", "a reply of reads alone is not seen");
+		assert!(reply_parts_problems(&[], PLAN, &own_page, &passes).refused.is_empty(), "in the reply that shows the page");
 
 		let with_plot = [lesson(), vec![pair(true, penalty_at_8(), "B"), result("q3", "quiz", false), result("p3", "plot", false)]].concat();
 		let again = reply("r4", "And again.", vec![call("q4", "quiz", guess("B", penalty_at_8())), call("p4", "plot", plot_args())]);
-		assert_eq!(reply_parts_problems(&with_plot, PLAN, &again, &passes).refused[0].1.lines().collect::<Vec<_>>(), ["plot: this topic already has a plot.", "plot: send it after one reply with no page, plot or keep."]);
+		assert_eq!(reply_parts_problems(&with_plot, PLAN, &again, &passes).refused[0].1, "plot: this topic already has a plot.");
 		let refused_before = [lesson(), vec![pair(true, penalty_at_8(), "C"), result("q3", "quiz", true), result("p3", "plot", true)]].concat();
 		assert!(reply_parts_problems(&refused_before, PLAN, &again, &passes).refused.is_empty(), "a refused plot is no plot");
 	}
 
 	/// The lesson starts on its plan's first topic, so a page quoted in a words-only opening reply is
-	/// that topic's page at once, after a reply of reads alone; the plot waits one plain reply.
+	/// that topic's page at once, after a reply of reads alone.
 	#[test]
 	fn a_page_quoted_before_any_call_names_a_topic_is_the_plans_first_topics() {
 		let reads = reply("r0", "", vec![call("s0", "search_space_files", json!({ "query": "curve" }))]);
 		let opening = vec![reads, result("s0", "search_space_files", false), reply("r1", &format!("Here the curve misses.{MARK}"), Vec::new())];
 		assert_eq!(topic_parts(&opening, PLAN)[0]["page"]["messageId"], json!("r1"));
 		assert_eq!(topic_parts(&opening, None), Vec::<Json>::new(), "with no plan, no topic until a call names one");
-		assert_eq!(reply_parts_problems(&opening, PLAN, &pair(true, penalty_at_8(), "B"), &passes).refused[0].1, "plot: send it after one reply with no page, plot or keep.");
-		let words_only = [opening, vec![reply("r2", "So the curve calms.", Vec::new())]].concat();
-		assert!(reply_parts_problems(&words_only, PLAN, &pair(true, penalty_at_8(), "B"), &passes).refused.is_empty());
-	}
-
-	/// Re-sending a refused pair with no words between is not the plain reply the rule asks for.
-	#[test]
-	fn a_reply_of_refused_calls_alone_is_not_seen() {
-		let after_page = lesson()[..2].to_vec();
-		let bare_pair = |n: &str| reply(&format!("r{n}"), "", vec![call(&format!("q{n}"), "quiz", guess("B", penalty_at_8())), call(&format!("p{n}"), "plot", plot_args())]);
-		assert_eq!(reply_parts_problems(&after_page, PLAN, &bare_pair("2"), &passes).refused[0].1, "plot: send it after one reply with no page, plot or keep.");
-		let refused = [after_page, vec![bare_pair("2"), result("q2", "quiz", true), result("p2", "plot", true)]].concat();
-		let again = reply_parts_problems(&refused, PLAN, &bare_pair("3"), &passes);
-		assert_eq!(again.on_plot, None);
-		assert_eq!(again.refused[0].1, "plot: send it after one reply with no page, plot or keep.");
 	}
 
 	#[test]
@@ -454,7 +430,16 @@ mod tests {
 		keep_quiz.as_obj_mut().unwrap().insert("keep", json!({ "text": "Lambda prices large weights." }));
 		let verdict = json!({ "role": "custom", "customType": "keep-check", "content": "", "details": { "quizCallId": "qk", "keep": "shown", "fits": false, "phrase": false } });
 		let kept = |right: bool| [lesson(), vec![reply("rk", "", vec![call("qk", "quiz", keep_quiz.clone())]), verdict.clone(), json!({ "role": "toolResult", "toolCallId": "qk", "toolName": "quiz", "isError": false, "details": { "kind": "quiz", "correct": right } })]].concat();
-		assert_eq!(reply_parts_problems(&kept(true), PLAN, &pair(true, penalty_at_8(), "B"), &passes).refused[0].1, "plot: send it after one reply with no page, plot or keep.");
+		assert_eq!(reply_parts_problems(&kept(true), PLAN, &pair(true, penalty_at_8(), "B"), &passes).refused[0].1, AFTER_A_KEEP);
 		assert!(reply_parts_problems(&kept(false), PLAN, &pair(true, penalty_at_8(), "B"), &passes).refused.is_empty(), "a missed keep was never seen");
+
+		let reads = reply("r5", "", vec![call("l1", "ls", json!({ "path": "." }))]);
+		let after_reads = [kept(true), vec![reads, result("l1", "ls", false)]].concat();
+		assert_eq!(reply_parts_problems(&after_reads, PLAN, &pair(true, penalty_at_8(), "B"), &passes).refused[0].1, AFTER_A_KEEP, "a reply of reads alone is not seen");
+		// Re-sending a refused pair with no words between is not the plain reply the rule asks for.
+		let bare_pair = |n: &str| reply(&format!("r{n}"), "", vec![call(&format!("q{n}"), "quiz", guess("B", penalty_at_8())), call(&format!("p{n}"), "plot", plot_args())]);
+		let refused = [kept(true), vec![bare_pair("6"), result("q6", "quiz", true), result("p6", "plot", true)]].concat();
+		let again = reply_parts_problems(&refused, PLAN, &bare_pair("7"), &passes);
+		assert_eq!((again.on_plot, again.refused[0].1.as_str()), (None, AFTER_A_KEEP));
 	}
 }

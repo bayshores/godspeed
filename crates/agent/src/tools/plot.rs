@@ -19,7 +19,7 @@ use super::fn_tool::FnTool;
 use super::lesson_parts::LessonParts;
 use super::practice::{LessonRecord, record_messages};
 
-const DESCRIPTION: &str = "Draws one or two lines over x with one slider, instead of demo, when the idea is a curve and one knob. Send it with a prediction on it (quiz.onPlot) in the same reply; it stays locked until he answers. Leave one plain reply after his marked page or a keep.";
+const DESCRIPTION: &str = "Draws one or two lines over x with one slider, instead of demo, when the idea is a curve and one knob. Send it with a prediction on it (quiz.onPlot) in the same reply; it stays locked until he answers. Leave one plain reply after a keep.";
 
 fn parameters() -> Json {
 	let name = |description: &str| json!({ "type": "string", "pattern": "^[a-z][a-z0-9_]{0,11}$", "description": description });
