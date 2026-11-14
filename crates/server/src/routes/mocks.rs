@@ -164,6 +164,7 @@ mod tests {
 			next.as_obj_mut().unwrap().insert("files", json!([file]));
 			next
 		}).unwrap();
+		gs_base::fsx::write_text_atomic(&app.stores.spaces.files_dir(&id).unwrap().join("f_about/What it's like.md"), "Two coding rounds.").unwrap();
 		let onsite = app.stores.spaces.add_deadline(&id, &json!({ "kind": "interview", "name": "Onsite", "date": "2026-11-24", "aboutFileId": "f_about" })).unwrap()["id"].str_or_empty().to_owned();
 		let post = |space: &str, mock: &str, body: &str| act(State(app.clone()), ids(space, mock), Body::from(body.to_owned()));
 		let make = |space: &str, body: &str| create(State(app.clone()), Path(space.to_owned()), Body::from(body.to_owned()));
