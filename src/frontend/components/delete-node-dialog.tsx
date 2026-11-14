@@ -6,7 +6,7 @@ import { DialogSheet, useLastWhileClosing } from "@/frontend/components/ui/dialo
 type Node = { id: string; name: string };
 
 /**
- * "Delete node?": deletes facts for good, with every link and event that
+ * "Delete fact?": deletes facts for good, with every link and event that
  * names them. One fact (a fact's right-click menu) or many (the picked
  * facts in All facts). A failure shows the server's line with "Try again".
  */
@@ -100,7 +100,7 @@ export function DeleteNodeBody({
 	const one = nodes.length === 1;
 	return (
 		<DialogSheet
-			title={one ? "Delete node?" : `Delete ${nodes.length} nodes?`}
+			title={one ? "Delete fact?" : `Delete ${nodes.length} facts?`}
 			state={state}
 			testid="delete-node-dialog"
 			busy={busy}
@@ -123,7 +123,7 @@ export function DeleteNodeBody({
 				{one ? nodes[0]?.name : nodes.slice(0, 8).map((n) => n.name).join(", ") + (nodes.length > 8 ? `, and ${nodes.length - 8} more` : "")}
 			</p>
 			<p data-testid="node-permanence-line" className="text-lg text-ink">
-				{one ? "This permanently deletes the node. This cannot be undone." : `This permanently deletes all ${nodes.length} nodes. This cannot be undone.`}
+				{one ? "This permanently deletes the fact. This cannot be undone." : `This permanently deletes all ${nodes.length} facts. This cannot be undone.`}
 			</p>
 			{failure && (
 				<div role="alert" data-testid="node-delete-failure" className="flex flex-wrap items-center gap-2.5">

@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { Link } from "react-router";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useSearchParams } from "react-router";
 import type { SpaceDeadline, DeadlineProgress } from "@/shared/core";
 import { spaceColorVar } from "@/frontend/components/space-color";
 import { useSpaces } from "@/frontend/components/space-context";
@@ -31,6 +31,20 @@ export function DeadlinesTab() {
 	const { markDone, undo } = useOpenDeadlines();
 	const nowMs = useMinute();
 	const [adding, setAdding] = useState(false);
+	// "Add a deadline" on another page lands here with ?add=1: the dialog opens once.
+	const [params, setParams] = useSearchParams();
+	const addAsked = params.has("add");
+	useEffect(() => {
+		if (!addAsked) return;
+		setAdding(true);
+		setParams(
+			(p) => {
+				p.delete("add");
+				return p;
+			},
+			{ replace: true },
+		);
+	}, [addAsked, setParams]);
 	// The dialog compares its mode by identity: one object per open.
 	const addMode = useMemo(() => (adding && record ? { spaceId: record.id, deadline: null, files: record.files } : null), [adding, record]);
 	const progressOf = useMemo(() => new Map((progress?.spaceId === active ? progress.deadlines : []).map((d) => [d.id, d])), [progress, active]);

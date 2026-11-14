@@ -9,6 +9,7 @@ import { useLessonStart } from "@/frontend/components/home/use-lesson-start";
 import { useProgress } from "@/frontend/components/use-progress";
 import { PickSpace } from "@/frontend/components/pick-space";
 import { useSpaceRecord } from "@/frontend/components/files/space-files-api";
+import { ADD_DEADLINE_HREF } from "@/frontend/components/space-page/deadlines-tab-model";
 import { WaitingDeadline } from "@/frontend/components/space-page/waiting-deadline";
 import { OverviewBody } from "./overview-body";
 
@@ -49,7 +50,7 @@ export function SpaceOverview() {
 				startError={lesson.error}
 				onStudy={study}
 				onStartDeadline={startDeadline}
-				onAddDeadline={() => navigate("/space/deadlines")}
+				onAddDeadline={() => navigate(ADD_DEADLINE_HREF)}
 				waiting={<WaitingDeadline record={record} />}
 				pickSpace={active ? undefined : <PickSpace line="Pick a space to see how it's going." />}
 			/>

@@ -4,6 +4,7 @@ import { spaceColorVar } from "@/frontend/components/space-color";
 import { dueAtMs } from "@/frontend/components/countdown-model";
 import type { OpenDeadline } from "@/frontend/components/deadlines-model";
 import { deadlineHref } from "@/frontend/components/overview/overview-model";
+import { openedFrom } from "@/frontend/components/deadline/deadline-back";
 import { CountBlock } from "@/frontend/components/ui/count-block";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { countLeft, laterRow, todayRow } from "./home-page-model";
@@ -44,7 +45,7 @@ export function TodayRow({
 			<div className="flex min-h-16 flex-wrap items-center gap-x-4 gap-y-2 py-1">
 				<CountBlock size="today" color={blockColor(color)} {...countLeft(dueAtMs(d), nowMs)} />
 				<span className="flex min-w-0 flex-1 basis-[220px] flex-col gap-0.5">
-					<Link to={deadlineHref(d.id)} data-testid="today-open" title={words.title} className="truncate text-[17px] leading-snug text-ink hover:underline">
+					<Link to={deadlineHref(d.id)} state={openedFrom("today")} data-testid="today-open" title={words.title} className="truncate text-[17px] leading-snug text-ink hover:underline">
 						{words.title}
 					</Link>
 					<span title={words.line} className="truncate text-sm text-ink-2">
@@ -92,7 +93,7 @@ export function LaterRow({ deadline: d, progress, nowMs }: { deadline: OpenDeadl
 	const words = laterRow(d, progress, nowMs);
 	return (
 		<li data-testid={`later-row-${d.id}`} data-teacher-target={`deadline:${d.id}`}>
-			<Link to={deadlineHref(d.id)} className="flex min-h-11 flex-wrap items-center gap-x-3 gap-y-1 px-1 py-2 text-[15px] transition-colors hover:bg-tone">
+			<Link to={deadlineHref(d.id)} state={openedFrom("today")} className="flex min-h-11 flex-wrap items-center gap-x-3 gap-y-1 px-1 py-2 text-[15px] transition-colors hover:bg-tone">
 				<span title={d.name} className="min-w-0 truncate font-medium text-ink">
 					{d.name}
 				</span>

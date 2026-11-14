@@ -65,7 +65,7 @@ describe("stats popup", () => {
 			assert.ok(host.querySelector("[data-testid='stats-detail']") === null);
 			await act(async () => host.querySelector<HTMLButtonElement>("[data-testid='stats-summary']")!.click());
 			const detail = host.querySelector("[data-testid='stats-detail']")!.textContent!;
-			assert.match(detail, /Session statsSummarizes here to keep the lesson small\. Change it in Settings\. Your agent's own context is separate\./);
+			assert.match(detail, /Lesson statsSummarizes here to keep the lesson small\. Change it in Settings\. Your agent's own context is separate\./);
 			assert.match(detail, /Lesson size83k \/ 100kUsage.*Turns2/);
 			assert.ok(!detail.includes("Unpriced turns"), "only when above 0");
 			assert.ok(detail.indexOf("#2, 1 step10.1k") < detail.indexOf("#1, 2 steps12.4k"), "newest first");

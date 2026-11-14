@@ -12,6 +12,9 @@ interface Listed {
 	done: boolean;
 }
 
+/** The Deadlines tab with its "Add a deadline" dialog open. */
+export const ADD_DEADLINE_HREF = "/space/deadlines?add=1";
+
 /** "Coming up": not done and not yet due, soonest first. "Done or past":
  *  the rest, latest first. */
 export function deadlineLists<T extends Listed>(deadlines: readonly T[], nowMs: number): { coming: T[]; past: T[] } {

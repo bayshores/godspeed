@@ -236,7 +236,7 @@ describe("the plan dialog", () => {
 
 	it("says so when the session has no plan yet", async () => {
 		await mount(<PlanPopup tree={null} messages={[{ parts: [] }]} onClose={() => {}} onJump={() => {}} />);
-		assert.match(document.querySelector('[data-testid="plan-popup"]')!.textContent ?? "", /No plan in this session yet\./);
+		assert.match(document.querySelector('[data-testid="plan-popup"]')!.textContent ?? "", /No plan in this lesson yet\./);
 	});
 
 	it("Close and Esc both close it", async () => {

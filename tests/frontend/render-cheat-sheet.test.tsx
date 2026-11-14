@@ -47,7 +47,8 @@ const { TeacherHead } = await import("../../src/frontend/components/teacher/teac
 const { OlderSheet, emptyChatLine, sheetPaper, teacherDoing, versionLabel } = await import("../../src/frontend/components/cheat-sheet/studio-states.tsx");
 const { SheetChat, pointedLabel } = await import("../../src/frontend/components/cheat-sheet/sheet-chat.tsx");
 const { SheetCanvas } = await import("../../src/frontend/components/cheat-sheet/sheet-canvas.tsx");
-const { SheetCardView } = await import("../../src/frontend/components/cheat-sheet/space-sheets.tsx");
+const { SheetCardView, SpaceSheetsPage } = await import("../../src/frontend/components/cheat-sheet/space-sheets.tsx");
+const { SpaceProvider } = await import("../../src/frontend/components/space-context.tsx");
 const { SheetDock } = await import("../../src/frontend/components/cheat-sheet/sheet-dock.tsx");
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
 const noEvents = () => ({ onEvent() {}, onOpen() {}, close() {} });
@@ -273,6 +274,28 @@ describe("a space's cheat sheet cards", () => {
 		assert.doesNotMatch(older, /cheat-sheet-thumb/);
 		assert.match(render(card()), /No cheat sheet yet.*data-testid="cheat-sheet-make"[^>]*>Make one/);
 		assert.match(render(card({ status: "newer" })), /Update godspeed to see it/);
+	});
+});
+
+describe("a space's Cheat sheets tab with no deadlines", () => {
+	it("says so with Add a deadline, which opens the Deadlines tab's dialog", async () => {
+		const originalFetch = globalThis.fetch;
+		(globalThis as Record<string, unknown>).fetch = async (url: string) =>
+			url.endsWith("/cheat-sheets") ? Response.json({ spaceName: "CSE 21", cards: [] } satisfies SpaceSheetsView) : new Response("{}", { status: 404 });
+		try {
+			const el = mount(
+				<SpaceProvider initialActive="cls_1" initialSpaces={[]}>
+					<SpaceSheetsPage />
+				</SpaceProvider>,
+			);
+			await settle();
+			assert.match(el.querySelector("[data-testid='cheat-sheets-summary']")!.textContent!, /No deadlines yet\. Add one to make a cheat sheet for it\./);
+			const add = el.querySelector("[data-testid='cheat-sheets-add-deadline']")!;
+			assert.equal(add.textContent, "Add a deadline");
+			assert.equal(add.getAttribute("href"), "/space/deadlines?add=1");
+		} finally {
+			globalThis.fetch = originalFetch;
+		}
 	});
 });
 

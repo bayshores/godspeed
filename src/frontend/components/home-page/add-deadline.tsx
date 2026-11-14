@@ -5,7 +5,7 @@ import { MenuShell } from "@/frontend/components/menu-shell";
 import { useMenuDismiss } from "@/frontend/components/use-menu-dismiss";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 
-/** "Add a deadline": one space opens its Deadlines tab at once; several open
+/** "Add a deadline": one space opens its dialog at once; several open
  *  a menu of spaces first. */
 export function AddDeadline({ spaces, onPick }: { spaces: readonly SpaceSummary[]; onPick: (spaceId: string) => void }) {
 	const [open, setOpen] = useState(false);

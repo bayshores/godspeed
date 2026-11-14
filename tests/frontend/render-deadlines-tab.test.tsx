@@ -44,7 +44,7 @@ let served = record([]);
 
 let root: Root | undefined;
 let host: HTMLElement | undefined;
-async function mount(deadlines: SpaceDeadline[], active: string | null = "cls_a", over: Partial<SpaceRecord> = {}) {
+async function mount(deadlines: SpaceDeadline[], active: string | null = "cls_a", over: Partial<SpaceRecord> = {}, at = "/space/deadlines") {
 	served = { ...record(deadlines), ...over };
 	globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
 		const url = String(input);
@@ -61,7 +61,7 @@ async function mount(deadlines: SpaceDeadline[], active: string | null = "cls_a"
 	const connect = () => ({ onEvent() {}, onOpen() {}, close() {} });
 	await act(async () => {
 		root!.render(
-			<MemoryRouter initialEntries={["/space/deadlines"]}>
+			<MemoryRouter initialEntries={[at]}>
 				<ServerEventsProvider connect={connect as never}>
 					<SpaceProvider initialActive={active}>
 						<OpenDeadlinesProvider>
@@ -125,6 +125,11 @@ describe("The Deadlines tab", () => {
 		await act(async () => q("deadline-add")!.click());
 		assert.match(q("deadline-dialog")!.textContent!, /Add a deadline/);
 		assert.equal(q("deadline-save")!.textContent, "Add deadline");
+	});
+
+	it("arriving from another page's Add a deadline opens the dialog at once", async () => {
+		await mount([], "cls_a", {}, "/space/deadlines?add=1");
+		assert.match(q("deadline-dialog")!.textContent!, /Add a deadline/);
 	});
 
 	it("an interview with no date yet: its row, and Add the date opens the dialog filled in", async () => {

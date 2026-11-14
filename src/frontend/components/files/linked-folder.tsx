@@ -34,7 +34,7 @@ export function LinkedFolderButton({
 	path: string;
 	status: FolderStatus;
 	disabled?: boolean;
-	/** "Open in Finder" (desktop app only): its label and action. */
+	/** "Show in Finder" (desktop app only): its label and action. */
 	open?: { label: string; run: () => void };
 	onPickAgain: () => void;
 	onUnlink: () => void;

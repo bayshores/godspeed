@@ -256,7 +256,7 @@ describe("FilesPage", () => {
 		await act(async () => q("space-folder")!.click());
 		assert.match(q("space-folder-problem")!.textContent!, /Its files and facts are kept/);
 		assert.ok(q("space-folder-pick-again"));
-		assert.ok(q("space-folder-open") === null, "no Open in Finder for a folder that isn't there");
+		assert.ok(q("space-folder-open") === null, "no Show in Finder for a folder that isn't there");
 	});
 
 	it("a folder over the file limit says only the first 500 were added", async () => {
