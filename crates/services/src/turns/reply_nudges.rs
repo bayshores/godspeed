@@ -1,6 +1,6 @@
 //! Study's reply nudges (`core::study::reply_nudges`): a reply whose words call for one is not
-//! stored, and the teacher reads why. topic_done's opener lead is read for a curve too, on the
-//! topic it opens. Each is sent once a topic, so the same reply sent again goes through. What was
+//! stored, and the teacher reads why. A quiz's question and a problem's statement are read for a
+//! curve too, on the reply's topic, and topic_done's opener lead on the topic it opens. Each is sent once a topic, so the same reply sent again goes through. What was
 //! sent lives in memory; after a restart a topic may get one more.
 
 use gs_core::study::reply_nudges::{Nudge, reply_nudges};
@@ -12,7 +12,19 @@ use crate::App;
 
 /// Why a Study lesson's reply is sent back, or none when it is stored.
 pub fn reply_refusal(app: &App, chat_id: &str, text: Option<&str>, calls: &[ReplyCall]) -> Option<String> {
-	let words = text.map(reply_nudges).unwrap_or_default();
+	let mut words = text.map(reply_nudges).unwrap_or_default();
+	// A quiz's question and a problem's statement are words he reads too.
+	let curve_posed = calls
+		.iter()
+		.filter_map(|c| match c.name.as_str() {
+			"quiz" => c.arguments["question"].as_str(),
+			"problem" => c.arguments["statement"].as_str(),
+			_ => None,
+		})
+		.any(|asked| reply_nudges(asked).contains(&Nudge::CurveTable));
+	if curve_posed && !words.contains(&Nudge::CurveTable) {
+		words.insert(0, Nudge::CurveTable);
+	}
 	let openers: Vec<&str> = calls
 		.iter()
 		.filter(|c| c.name == "topic_done" && c.arguments["opener"]["lead"].as_str().is_some_and(|lead| reply_nudges(lead).contains(&Nudge::CurveTable)))

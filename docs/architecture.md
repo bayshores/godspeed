@@ -532,14 +532,14 @@ A mark may quote a few words: `[[f_1a2b3c4d5e6f:7 "degree 12"]]` is stored as `[
 
 Otherwise the quote is dropped, the plain mark stays, and `respond` says why. In `topic_done`'s `opener.lead`, a bad quote refuses the call.
 
-In a Study lesson, `respond` then reads the reply's own words, not its tool calls, plus a `topic_done` opener's lead for a curve (`core::study::reply_nudges`, `services::turns::reply_nudges`). A reply is sent back unstored, with the line below, when its words hold:
+In a Study lesson, `respond` then reads the reply's own words, not its other tool calls, plus a `quiz` question, a `problem` statement and a `topic_done` opener's lead for a curve (`core::study::reply_nudges`, `services::turns::reply_nudges`). A reply is sent back unstored, with the line below, when its words hold:
 
 | Nudge | When | The agent reads |
 |---|---|---|
 | Curve | a Markdown table of 3 or more data rows and 2 or more columns, every cell a number, not all of them 0 or 1, and no header cell starting with step, iteration, t, k, n or i (a worked trace); or two lines (or list items) in a row, each a label and a run of 4 or more numbers | "not sent: these rows read as points of one curve. Send `plot` with the rows as `points` and a prediction instead. If the table is not a curve, send the reply again as it is." |
 | Question list | 2 or more list items that end with a question mark, outside code | "not sent: a reply holds one question. Ask the first one now, through `quiz` or `problem` when it checks understanding. If these are not questions for the learner, send the reply again as it is." |
 
-Each nudge is sent once a topic (the topic the reply's calls name, else the record's; for an opener, the topic it opens), so the same reply sent again is stored. Which were sent is kept in memory only: after a restart a topic may get each one again.
+Each nudge is sent once a topic (the topic the reply's calls name, else the record's, for a question or statement too; for an opener, the topic it opens), so the same reply sent again is stored. Which were sent is kept in memory only: after a restart a topic may get each one again.
 
 The window turns stored marks into numbered buttons and a Sources list (`src/frontend/components/citations/`). A file source opens a popup with the PDF page or the passage text, and a web source opens the page. The popup reads two routes:
 

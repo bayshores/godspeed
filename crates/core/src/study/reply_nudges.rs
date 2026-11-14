@@ -1,6 +1,7 @@
 //! The two checks on a Study reply's own words before it is stored, each sent back once a topic: a
 //! curve written out as a table or as lines of numbers (a plot's job) and a list of questions (a
-//! reply asks one). Code is never read, and tool calls such as a problem statement are not words.
+//! reply asks one). Code is never read. Of the tool calls, only a quiz's question, a problem's
+//! statement and an opener's lead are read, for a curve (`services::turns::reply_nudges`).
 
 use markdown::mdast::Node;
 use markdown::{Constructs, ParseOptions};

@@ -1,5 +1,6 @@
 //! Study's reply nudges against a stored lesson: each is sent once a topic, so the same reply sent
-//! again goes through; a new topic gets its own, an opener's curve too; only a Study lesson gets any.
+//! again goes through; a new topic gets its own, an opener's curve too, and a curve in a quiz's
+//! question or a problem's statement; only a Study lesson gets any.
 
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -69,6 +70,17 @@ fn an_opener_lead_is_checked_for_a_curve_on_the_topic_it_opens() {
 	assert_eq!(reply_refusal(&fx.app, &chat_id, None, &[done(lines)]), None, "the same opener sent again goes through");
 	assert_eq!(reply_refusal(&fx.app, &chat_id, Some(CURVE), &[ReplyCall { name: "quiz".to_owned(), arguments: json!({ "nodeId": "cv" }) }]), None, "the opened topic had its curve nudge");
 	assert_eq!(reply_refusal(&fx.app, &chat_id, Some(CURVE), &[done("Next: folds.")]).as_deref(), Some(Nudge::CurveTable.refusal()), "the reply's own topic has its own");
+}
+
+#[test]
+fn a_quiz_question_or_a_problem_statement_is_read_for_a_curve_on_the_replys_topic() {
+	let fx = Fixture::new();
+	let chat_id = fx.lesson(Some("study"));
+	let quiz = ReplyCall { name: "quiz".to_owned(), arguments: json!({ "nodeId": "reg", "question": format!("Which lambda wins?\n\n{CURVE}") }) };
+	assert_eq!(reply_refusal(&fx.app, &chat_id, Some("Look."), std::slice::from_ref(&quiz)).as_deref(), Some(Nudge::CurveTable.refusal()));
+	assert_eq!(reply_refusal(&fx.app, &chat_id, Some("Look."), &[quiz]), None, "the same reply sent again goes through");
+	let problem = ReplyCall { name: "problem".to_owned(), arguments: json!({ "nodeId": "cv", "statement": CURVE }) };
+	assert_eq!(reply_refusal(&fx.app, &chat_id, None, &[problem]).as_deref(), Some(Nudge::CurveTable.refusal()), "the next topic gets its own");
 }
 
 #[test]
