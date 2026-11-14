@@ -12,14 +12,14 @@ use std::sync::Arc;
 use gs_agent::subagents::mock_writer::{MockRequest, write_mock_questions};
 use gs_base::locks::LockKey;
 use gs_base::{ids, time};
-use gs_core::preps::mock::{MockLanguage, MockState, MockView, mock_state, new_mock, start_mock, with_answer};
-use gs_core::preps::mock_requests::mock_request_text;
+use gs_core::mocks::mock::{MockLanguage, MockState, MockView, mock_state, new_mock, start_mock, with_answer};
+use gs_core::mocks::mock_requests::mock_request_text;
 use gs_engine::turn::models::agent_engine;
 use gs_json::{Json, js_number, json};
 
 use super::mock_end::{ask_grades, changed, current_mocks, end_if_over, finish, is_over, mock_label};
 use super::mock_runner::run_examples;
-use super::prep_runs::{cancel_run, is_running, mock_run_key, run_error, start_run};
+use super::mock_runs::{cancel_run, is_running, mock_run_key, run_error, start_run};
 use super::preps::{Outcome, Stop, done, fail, prep_of, prep_view};
 use crate::App;
 

@@ -7,7 +7,7 @@ use gs_base::config::Paths;
 use gs_base::fsx;
 use gs_base::locks::{LockKey, Locks};
 use gs_core::contracts::space::is_space_id;
-use gs_core::preps::mock::{MOCK_FORMAT_VERSION, ParsedMock, is_mock_id, parse_mock};
+use gs_core::mocks::mock::{MOCK_FORMAT_VERSION, ParsedMock, is_mock_id, parse_mock};
 use gs_json::{Json, Obj, stringify_pretty};
 
 /// Built once by `Stores::new`.
@@ -85,7 +85,7 @@ impl MockStore {
 
 #[cfg(test)]
 mod tests {
-	use gs_core::preps::mock::new_mock;
+	use gs_core::mocks::mock::new_mock;
 	use gs_json::json;
 
 	use super::*;

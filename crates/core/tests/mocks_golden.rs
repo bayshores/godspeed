@@ -4,11 +4,11 @@
 use std::collections::HashSet;
 
 use gs_base::time;
-use gs_core::preps::mock::{
+use gs_core::mocks::mock::{
 	MockLanguage, ParsedMock, end_mock, minutes_used, mock_answers, mock_state, mock_summary, parse_mock, question_result, seconds_left, solved_count, start_mock, starter_code, take_questions, with_answer, with_grades,
 };
-use gs_core::preps::mock_requests::{go_over_text, grade_request_text, mock_request_text};
-use gs_core::preps::mock_run::{read_run, runner_source};
+use gs_core::mocks::mock_requests::{go_over_text, grade_request_text, mock_request_text};
+use gs_core::mocks::mock_run::{read_run, runner_source};
 use gs_json::{Json, json, parse, stringify};
 
 fn golden(case: &str) -> Json {

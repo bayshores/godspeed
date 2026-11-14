@@ -17,7 +17,7 @@ use gs_core::contracts::space::parse_space_scope;
 use gs_core::graph::graph_deletion::ChatDeleteMode;
 use gs_core::messages::input_events::{TurnInput, dismiss_appends, parse_chat_input, parse_dismiss_input, parse_user_steer_input};
 use gs_core::messages::native_messages::new_user_steer;
-use gs_core::preps::mock::is_mock_id;
+use gs_core::mocks::mock::is_mock_id;
 use gs_core::session::download_slug::slugify;
 use gs_core::session::jobs::set_steer_ui_inverted;
 use gs_core::session::prices::session_cost;

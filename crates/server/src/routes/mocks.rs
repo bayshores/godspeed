@@ -9,11 +9,11 @@ use axum::extract::{Path, State};
 use axum::response::Response;
 use gs_base::text::len16;
 use gs_core::contracts::space::is_space_id;
-use gs_core::preps::mock::{ANSWER_MAX, MockLanguage, is_mock_id, parse_mock_code};
+use gs_core::mocks::mock::{ANSWER_MAX, MockLanguage, is_mock_id, parse_mock_code};
 use gs_json::{Json, Obj, json};
 use gs_services::App;
-use gs_services::preps::mocks::{MockAction, change_mock, create_mock, delete_mock, mock_view, run_mock_examples};
-use gs_services::preps::preps::{Outcome, Stop};
+use gs_services::mocks::mocks::{MockAction, change_mock, create_mock, delete_mock, mock_view, run_mock_examples};
+use gs_services::mocks::preps::{Outcome, Stop};
 
 use crate::http::reply::{self, Unhandled, error, fields};
 use crate::http::route::ApiRoute;

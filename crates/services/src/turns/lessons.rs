@@ -15,9 +15,9 @@ use gs_core::contracts::graph::title_from_prompt;
 use gs_core::graph::chains::{chains_for_selection, format_chain_line};
 use gs_core::graph::graph::get_graph;
 use gs_core::messages::native_messages::{new_space_context_message, new_graph_context_message, new_study_context_message};
-use gs_core::preps::mock::question_result;
-use gs_core::preps::mock_requests::go_over_text;
-use gs_core::preps::prep::prep_study_topics;
+use gs_core::mocks::mock::question_result;
+use gs_core::mocks::mock_requests::go_over_text;
+use gs_core::mocks::prep::prep_study_topics;
 use gs_core::study::study::{FREE_TOPIC_ID, MAX_STUDY_FACTS, study_context_text, study_plan_tree, study_title};
 use gs_json::{Json, Obj};
 
@@ -25,7 +25,7 @@ use crate::App;
 use crate::spaces::space_card::space_card_for;
 use crate::graph::graph::graph_store_for;
 use crate::graph::progress::{deadline_study_for, study_topics_for, topic_study_for};
-use crate::preps::preps::prep_view;
+use crate::mocks::preps::prep_view;
 
 fn items(v: &Json) -> &[Json] {
 	v.as_arr().map_or(&[], Vec::as_slice)

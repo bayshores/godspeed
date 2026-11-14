@@ -10,7 +10,7 @@ use super::space_deadlines::{id_list, squash, with_files};
 use super::space_work::{is_first_round, is_waiting_file};
 use crate::contracts::space::{CURRENT_SPACE_VERSION, clean_signature, compare_deadlines, is_deadline_kind, is_space_color, is_space_icon};
 use gs_base::text::cmp16;
-use crate::preps::prep::parse_prep;
+use crate::mocks::prep::parse_prep;
 use crate::records::teaching_areas::sanitize_rules;
 
 fn is_str(v: &Json) -> bool {

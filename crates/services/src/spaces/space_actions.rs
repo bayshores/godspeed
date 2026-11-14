@@ -22,7 +22,7 @@ use super::{add_space_deadline, add_file_from_path, link_folder, remove_space_de
 use crate::App;
 use crate::app::agent_actions::note_agent_action;
 use crate::app::agent_folder::shortcut_path_problem;
-use crate::preps::preps::{Stop, change_prep, prep_view};
+use crate::mocks::preps::{Stop, change_prep, prep_view};
 use crate::turns::lessons::{CreateLessonInput, LessonStart, create_lesson};
 
 /// Study files are read by the agent itself, as background work items.
@@ -675,7 +675,7 @@ mod tests {
 
 	#[tokio::test]
 	async fn reads_a_preps_sheet_changes_it_and_starts_a_lesson_on_one_of_its_topics() {
-		use gs_core::preps::prep::{new_prep, with_sheet};
+		use gs_core::mocks::prep::{new_prep, with_sheet};
 		let root = scratch_dir("space-actions-prep");
 		let app = test_app(&root);
 		let sheet = json!({ "name": "Acme junior web test", "about": "Four questions in 70 minutes.", "sources": [], "topics": [{ "name": "Arrays" }, { "name": "Hash maps" }], "mock": { "questions": 4, "minutes": 70 } });

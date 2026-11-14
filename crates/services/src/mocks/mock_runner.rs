@@ -11,8 +11,8 @@ use std::path::{Path, PathBuf};
 use std::process::Stdio;
 
 use gs_base::{clock, fsx, ids, text};
-use gs_core::preps::mock::MockLanguage;
-use gs_core::preps::mock_run::{RUN_SECONDS, read_run, run_file, runner_source};
+use gs_core::mocks::mock::MockLanguage;
+use gs_core::mocks::mock_run::{RUN_SECONDS, read_run, run_file, runner_source};
 use gs_engine::turn::abort::Abort;
 use gs_json::{Json, json};
 use gs_transcribe::programs::{HOMEBREW_BIN_DIRS, find_in};

@@ -8,13 +8,13 @@ use gs_agent::subagents::mock_writer::{MockRequest, grade_mock};
 use gs_base::events::EventKind;
 use gs_base::locks::LockKey;
 use gs_base::{clock, time};
-use gs_core::preps::mock::{MockLanguage, MockState, end_mock, is_answered, mock_state, seconds_left};
-use gs_core::preps::mock_requests::grade_request_text;
+use gs_core::mocks::mock::{MockLanguage, MockState, end_mock, is_answered, mock_state, seconds_left};
+use gs_core::mocks::mock_requests::grade_request_text;
 use gs_engine::turn::models::agent_engine;
 use gs_json::{Json, Obj, js_number, json};
 
 use super::mock_runner::run_examples;
-use super::prep_runs::{mock_run_key, start_run};
+use super::mock_runs::{mock_run_key, start_run};
 use crate::App;
 
 /// How long past its time a running mock still takes the page's last save.

@@ -11,7 +11,7 @@ use axum::response::Response;
 use gs_core::contracts::space::{is_calendar_date, is_space_id};
 use gs_json::json;
 use gs_services::App;
-use gs_services::preps::preps::{NewFile, Outcome, Stop, change_prep, create_prep, prep_view, start_write};
+use gs_services::mocks::preps::{NewFile, Outcome, Stop, change_prep, create_prep, prep_view, start_write};
 
 use crate::http::form;
 use crate::http::reply::{self, Unhandled, error, fields, read_body};

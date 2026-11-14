@@ -4,7 +4,7 @@
 //! and a deleted mock stops its grading's code runs.
 
 use gs_base::clock;
-use gs_core::preps::mock::parse_mock_code;
+use gs_core::mocks::mock::parse_mock_code;
 use gs_engine::bridge::{AgentReply, ReplyCall, WaitOptions};
 
 use super::*;

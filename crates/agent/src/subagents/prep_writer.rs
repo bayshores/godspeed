@@ -6,7 +6,7 @@
 //! Only the model talks here; what the app sends and keeps is the preps service.
 
 use futures_util::FutureExt;
-use gs_core::preps::prep::{MAX_PREP_TOPICS, MOCK_MINUTES, MOCK_QUESTIONS, TOPIC_NAME_MAX, sheet_problem};
+use gs_core::mocks::prep::{MAX_PREP_TOPICS, MOCK_MINUTES, MOCK_QUESTIONS, TOPIC_NAME_MAX, sheet_problem};
 use gs_engine::bridge::Bridge;
 use gs_engine::turn::abort::Abort;
 use gs_engine::turn::faux::Engine;

@@ -8,7 +8,7 @@ use std::collections::HashSet;
 use std::sync::Arc;
 
 use futures_util::FutureExt;
-use gs_core::preps::mock::{take_questions, with_grades};
+use gs_core::mocks::mock::{take_questions, with_grades};
 use gs_engine::bridge::Bridge;
 use gs_engine::turn::abort::Abort;
 use gs_engine::turn::faux::Engine;
@@ -176,7 +176,7 @@ pub async fn grade_mock(bridge: &Bridge, input: MockRequest, mock: &Json) -> Res
 
 #[cfg(test)]
 mod tests {
-	use gs_core::preps::mock::{end_mock, new_mock, start_mock, with_answer};
+	use gs_core::mocks::mock::{end_mock, new_mock, start_mock, with_answer};
 	use gs_engine::turn::faux::Scripted;
 
 	use super::*;

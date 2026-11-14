@@ -14,14 +14,14 @@ use gs_agent::subagents::prep_writer::{SheetRequest, write_prep_sheet};
 use gs_base::events::EventKind;
 use gs_base::locks::LockKey;
 use gs_base::{clock, ids, time};
-use gs_core::preps::mock::{mock_answers, mock_summary};
-use gs_core::preps::prep::{RequestFile, goal_name, new_prep, prep_request_text, prep_topic_progress, with_edits, with_sheet};
+use gs_core::mocks::mock::{mock_answers, mock_summary};
+use gs_core::mocks::prep::{RequestFile, goal_name, new_prep, prep_request_text, prep_topic_progress, with_edits, with_sheet};
 use gs_core::spaces::today_note::local_day;
 use gs_engine::turn::models::agent_engine;
 use gs_json::{Json, Obj, json};
 
 use super::mock_end::current_mocks;
-use super::prep_runs::{is_running, mock_run_key, run_error, start_run};
+use super::mock_runs::{is_running, mock_run_key, run_error, start_run};
 use crate::App;
 use crate::graph::progress::space_answers;
 use crate::spaces::space_card::space_file_path;

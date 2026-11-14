@@ -25,7 +25,7 @@ struct Runs {
 
 /// The live state inside `App`.
 #[derive(Default)]
-pub struct PrepRunsState(Mutex<Runs>);
+pub struct MockRunsState(Mutex<Runs>);
 
 /// The key of a mock's request (a prep's sheet is keyed by its space id).
 pub fn mock_run_key(space_id: &str, mock_id: &str) -> String {
@@ -33,11 +33,11 @@ pub fn mock_run_key(space_id: &str, mock_id: &str) -> String {
 }
 
 pub fn is_running(app: &App, key: &str) -> bool {
-	app.preps.runs.0.lock().running.contains_key(key)
+	app.mocks.runs.0.lock().running.contains_key(key)
 }
 
 pub fn run_error(app: &App, key: &str) -> Option<String> {
-	app.preps.runs.0.lock().failed.get(key).cloned()
+	app.mocks.runs.0.lock().failed.get(key).cloned()
 }
 
 fn changed(app: &App, space_id: &str) {
@@ -57,7 +57,7 @@ impl Drop for RunEnd {
 		// The space lock: a space delete that stopped this run finishes before the run ends.
 		let _guard = self.app.locks.lock(LockKey::Space(&self.space_id));
 		{
-			let mut runs = self.app.preps.runs.0.lock();
+			let mut runs = self.app.mocks.runs.0.lock();
 			if runs.running.get(&self.key).is_some_and(|(n, _)| *n == self.n) {
 				runs.running.remove(&self.key);
 			}
@@ -73,7 +73,7 @@ where
 {
 	let abort = Abort::new();
 	let n = {
-		let mut runs = app.preps.runs.0.lock();
+		let mut runs = app.mocks.runs.0.lock();
 		if runs.running.contains_key(key) {
 			return false;
 		}
@@ -92,7 +92,7 @@ where
 			&& !abort.is_aborted()
 		{
 			eprintln!("[prep {}] the request failed: {error}", end.key);
-			end.app.preps.runs.0.lock().failed.insert(end.key.clone(), error);
+			end.app.mocks.runs.0.lock().failed.insert(end.key.clone(), error);
 		}
 		drop(end);
 	});
@@ -102,7 +102,7 @@ where
 /// Stops one key's request and forgets its failure.
 pub fn cancel_run(app: &App, key: &str) {
 	let stopped = {
-		let mut runs = app.preps.runs.0.lock();
+		let mut runs = app.mocks.runs.0.lock();
 		runs.failed.remove(key);
 		runs.running.remove(key)
 	};
@@ -113,9 +113,9 @@ pub fn cancel_run(app: &App, key: &str) {
 }
 
 /// Stops everything a deleted prep had out.
-pub fn cancel_prep_runs(app: &App, space_id: &str) {
+pub fn cancel_mock_runs(app: &App, space_id: &str) {
 	let keys: Vec<String> = {
-		let runs = app.preps.runs.0.lock();
+		let runs = app.mocks.runs.0.lock();
 		let mine = |key: &&String| *key == space_id || key.strip_prefix(space_id).is_some_and(|rest| rest.starts_with('/'));
 		runs.running.keys().chain(runs.failed.keys()).filter(mine).cloned().collect()
 	};
@@ -163,7 +163,7 @@ mod tests {
 				}
 			});
 		}
-		cancel_prep_runs(&app, "spc_a");
+		cancel_mock_runs(&app, "spc_a");
 		let fired: Vec<bool> = aborts.lock().iter().map(Abort::is_aborted).collect();
 		assert_eq!(fired, [true, true, false]);
 		assert!(!is_running(&app, "spc_a") && !is_running(&app, "spc_a/mock_1") && is_running(&app, "spc_ab"));
