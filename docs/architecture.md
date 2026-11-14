@@ -888,7 +888,7 @@ Every model request (a lesson turn, a background job, an extraction run, topic g
 - The teacher takes lesson and Talk turns, and background items only while no helper is here.
 - A helper is here when it checked in within 3 minutes or holds an item whose claim has not run out. It never counts as teaching.
 
-The window shows who works (`src/frontend/components/work/`): a striped frame around a page being worked on, a yellow chip in the top bar on every page, and Teacher and Helper tiles under Settings, Connection, each with a Start button when its window is closed.
+The window shows who works (`src/frontend/components/work/`): a striped frame around a page being worked on, a yellow chip in the top bar on every page, and Teacher and Helper tiles under Settings, Connection. The teacher's tile has a Start button while it isn't running; the helper's has one only when godspeed can't start it by itself (the browser, or a teacher started outside godspeed) or after it stopped while the teacher runs.
 
 #### The work item
 
