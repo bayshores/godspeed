@@ -51,6 +51,7 @@ objc2-web-kit = { version = "=0.3.2", default-features = false, features = ["std
 ort = { version = "=2.0.0-rc.13", default-features = false, features = ["std", "ndarray", "tracing"] }
 os_info = { version = "3.15.0", default-features = false }
 parking_lot = "0.12.5"
+portable-pty = "=0.9.0"
 pdfium-render = { version = "0.9.5", default-features = false, features = ["image_latest", "thread_safe", "pdfium_latest"] }
 regress = { version = "0.12", features = ["utf16"] }
 rfd = { version = "0.17.2", default-features = false, features = ["gtk3"] }
@@ -70,6 +71,7 @@ tauri-plugin-updater = "=2.14.1"
 tokenizers = { version = "0.22.2", default-features = false, features = ["fancy-regex"] }
 tower = { version = "0.5.3", default-features = false }
 url = "2.5.8"
+vt100 = "=0.18.1"
 tokio = { version = "1.54", features = ["rt-multi-thread", "macros", "time", "sync", "signal", "io-util", "io-std", "net", "process", "fs"] }
 webkit2gtk = { version = "=2.0.2", features = ["v2_38"] }
 webview2-com = "=0.39.1"

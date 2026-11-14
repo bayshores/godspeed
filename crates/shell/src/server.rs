@@ -15,6 +15,7 @@ use tauri::{AppHandle, Manager, Url};
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind, MessageDialogResult};
 
 use crate::paths::{self, Paths};
+use crate::terminal::Terminals;
 use crate::{bug_report, log, restarts, rpc};
 
 /// Outside agents keep their saved setup when the port stays the same. Taken, any free port
@@ -131,7 +132,7 @@ impl Server {
 
 	/// A one-time token the server takes over stdin; the window opens the login URL with it.
 	fn log_in(&self) -> Result<String, String> {
-		let token = random_hex();
+		let token = random_hex::<32>();
 		let id = self.last_login.fetch_add(1, Ordering::SeqCst) + 1;
 		let (tx, rx) = mpsc::channel();
 		lock(&self.logins).insert(id, tx);
@@ -174,6 +175,7 @@ impl Server {
 			.env("LH_DATA_DIR", &paths.data)
 			.env("LH_SHELL", "1")
 			.env("LH_PDFIUM_PATH", &paths.pdfium)
+			.env("LH_TERMINALS", serde_json::Value::from(app.try_state::<Terminals>().map(|t| t.live()).unwrap_or_default()).to_string())
 			.env_remove("LH_DEV_URL");
 		match &self.mode {
 			Mode::Desktop { secret } => command.env("LH_DESKTOP_SERVER", "1").env("LH_DESKTOP_API_SECRET", secret),
@@ -321,13 +323,13 @@ fn choose_port() -> Result<(u16, Mode), String> {
 	#[cfg(not(debug_assertions))]
 	{
 		let port = if is_free(PREFERRED_PORT) { PREFERRED_PORT } else { free_port()? };
-		Ok((port, Mode::Desktop { secret: random_hex() }))
+		Ok((port, Mode::Desktop { secret: random_hex::<32>() }))
 	}
 	#[cfg(debug_assertions)]
 	{
 		// LH_PORT (the lab): a desktop-mode server with the login, like a release build.
 		if let Some(port) = std::env::var("LH_PORT").ok().and_then(|p| p.parse().ok()) {
-			return Ok((port, Mode::Desktop { secret: random_hex() }));
+			return Ok((port, Mode::Desktop { secret: random_hex::<32>() }));
 		}
 		// desktop:dev: the window opens Vite, which passes /api to PORT + 1000 (vite.config.ts).
 		let vite: u16 = std::env::var("PORT").ok().and_then(|p| p.parse().ok()).unwrap_or(3000);
@@ -361,9 +363,9 @@ fn wait_for_vite(port: u16) -> Result<(), String> {
 	Err(format!("Vite is not answering on port {port}"))
 }
 
-/// 32 random bytes as hex.
-fn random_hex() -> String {
-	let mut bytes = [0u8; 32];
+/// `N` random bytes as hex.
+pub fn random_hex<const N: usize>() -> String {
+	let mut bytes = [0u8; N];
 	getrandom::fill(&mut bytes).expect("the OS random source");
 	bytes.iter().map(|b| format!("{b:02x}")).collect()
 }
@@ -428,7 +430,7 @@ mod tests {
 
 	#[test]
 	fn tokens_are_64_hex_and_never_repeat() {
-		let (a, b) = (random_hex(), random_hex());
+		let (a, b) = (random_hex::<32>(), random_hex::<32>());
 		assert_eq!(a.len(), 64);
 		assert!(a.bytes().all(|c| c.is_ascii_hexdigit() && !c.is_ascii_uppercase()));
 		assert_ne!(a, b);

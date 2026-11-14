@@ -86,6 +86,41 @@ test("every window.lh member calls its shell command with its arguments", async 
 	]);
 });
 
+test("the terminal members name a role, an agent and an id, and hear their pushes", async () => {
+	const { lh, invoked, window } = page({ reply: (cmd) => (cmd === "terminal_start" ? { id: "a1" } : undefined) });
+	const terminals = lh!.terminals as unknown as Record<string, (...args: unknown[]) => unknown>;
+	assert.deepEqual(await terminals.start!("teacher", "claude", "/g"), { id: "a1" });
+	await terminals.attach!("a1");
+	await terminals.write!("a1", "y");
+	await terminals.answer!("a1", "trust");
+	await terminals.paste!("a1");
+	await terminals.detach!("a1");
+	await terminals.stop!("a1");
+	await terminals.list!();
+	await lh!.openLink!("https://nodejs.org");
+	assert.deepEqual(invoked, [
+		["terminal_start", { role: "teacher", agent: "claude", folder: "/g" }],
+		["terminal_attach", { id: "a1" }],
+		["terminal_write", { id: "a1", data: "y" }],
+		["terminal_answer", { id: "a1", kind: "trust" }],
+		["terminal_paste", { id: "a1" }],
+		["terminal_detach", { id: "a1" }],
+		["terminal_stop", { id: "a1" }],
+		["terminal_list"],
+		["open_link", { url: "https://nodejs.org" }],
+	]);
+	const push = window.__lhPush as (channel: string, payload: unknown) => void;
+	const heard: unknown[] = [];
+	terminals.onOutput!((p: unknown) => heard.push(p));
+	terminals.onState!((p: unknown) => heard.push(p));
+	push("terminal-output", { id: "a1", data: "eA==" });
+	push("terminal-state", { id: "a1", ended: null, prompt: "menu", url: false });
+	assert.deepEqual(heard, [
+		{ id: "a1", data: "eA==" },
+		{ id: "a1", ended: null, prompt: "menu", url: false },
+	]);
+});
+
 test("only the Mac prints through the system sheet", () => {
 	assert.equal(typeof page({ platform: "darwin" }).lh!.printPdf, "function");
 	assert.equal(page({ platform: "win32" }).lh!.printPdf, undefined);

@@ -1,6 +1,7 @@
 //! The one way out. Every exit (the Quit item, the Dock, logout, the last window, the stopped
 //! dialog, a restart) reaches `RunEvent::Exit`, which runs this and waits for it: stop the
-//! server, clean up, then install a held update while nothing runs from the bundle.
+//! agents' terminals, then the server, clean up, then install a held update while nothing runs
+//! from the bundle.
 
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -8,6 +9,7 @@ use tauri::{AppHandle, Manager};
 
 use crate::paths::Paths;
 use crate::server::Server;
+use crate::terminal::Terminals;
 use crate::{old_app, update};
 
 static DONE: AtomicBool = AtomicBool::new(false);
@@ -21,6 +23,10 @@ pub fn restarting() {
 pub fn run(app: &AppHandle) {
 	if !first(&DONE) {
 		return;
+	}
+	// First, so no agent's waiter outlives the app and takes a turn the next launch shows.
+	if let Some(terminals) = app.try_state::<Terminals>() {
+		terminals.stop_all();
 	}
 	if let Some(server) = app.try_state::<Server>() {
 		server.stop();

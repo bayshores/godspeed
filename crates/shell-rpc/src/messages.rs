@@ -37,6 +37,9 @@ pub enum ToServer {
 	},
 	/// Whether the notification went to the system.
 	NotifyDone { id: u64, shown: bool },
+	/// The ids of the agents' terminals that run now (after every start and end). An agent that
+	/// sends another id was stopped in the app.
+	Terminals { live: Vec<String> },
 }
 
 /// `"result": {…}` or `"error": "…"`.
@@ -114,6 +117,7 @@ mod tests {
 		round_trip(ToServer::SvgDone { id: 6, outcome: SvgOutcome::Png("iVBO".into()) }, r#"{"t":"svg_done","id":6,"png":"iVBO"}"#);
 		round_trip(ToServer::SvgDone { id: 7, outcome: SvgOutcome::Error("too big".into()) }, r#"{"t":"svg_done","id":7,"error":"too big"}"#);
 		round_trip(ToServer::NotifyDone { id: 8, shown: false }, r#"{"t":"notify_done","id":8,"shown":false}"#);
+		round_trip(ToServer::Terminals { live: vec!["ab".repeat(16)] }, &format!(r#"{{"t":"terminals","live":["{}"]}}"#, "ab".repeat(16)));
 	}
 
 	#[test]

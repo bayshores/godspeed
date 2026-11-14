@@ -27,6 +27,7 @@ mod screens;
 #[cfg(feature = "self-test")]
 mod self_test;
 mod server;
+mod terminal;
 mod update;
 #[cfg(windows)]
 mod win;
@@ -76,6 +77,14 @@ fn main() {
 			commands::show_in_folder,
 			commands::open_path,
 			commands::open_agent,
+			terminal::commands::terminal_start,
+			terminal::commands::terminal_attach,
+			terminal::commands::terminal_detach,
+			terminal::commands::terminal_write,
+			terminal::commands::terminal_answer,
+			terminal::commands::terminal_paste,
+			terminal::commands::terminal_stop,
+			terminal::commands::terminal_list,
 			commands::report_bug,
 			commands::list_fonts,
 			#[cfg(target_os = "macos")]
@@ -140,6 +149,8 @@ fn setup(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
 	// Last of what the window needs: a managed server tells `window::reopen` it can build one.
 	app.manage(server);
 	app.manage(zoom::Zoom::default());
+	// Before the server starts: it is told which terminals are live.
+	app.manage(terminal::Terminals::new(terminal::commands::AppOutlet(handle.clone())));
 	app.manage(rpc::Demos::start(&handle));
 	update::start(&handle);
 	app.set_menu(menu::build(&handle)?)?;

@@ -97,3 +97,16 @@ async fn logins_are_answered_and_bad_lines_skipped() {
 	assert!(link.take_login(&token));
 	assert!(!link.take_login(&token), "a token works once");
 }
+
+#[test]
+fn the_live_terminal_ids_reach_their_listener() {
+	let (link, _rx) = link();
+	link.receive(ToServer::Terminals { live: vec!["a".into()] });
+	let heard = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+	link.on_terminals({
+		let heard = heard.clone();
+		move |live| heard.lock().unwrap().push(live)
+	});
+	link.listen(&b"{\"t\":\"terminals\",\"live\":[\"b\",\"c\"]}\n{\"t\":\"terminals\",\"live\":[]}\n"[..]);
+	assert_eq!(*heard.lock().unwrap(), vec![vec!["b".to_owned(), "c".to_owned()], vec![]]);
+}

@@ -24,6 +24,7 @@ gs-shell-rpc.workspace = true
 getrandom.workspace = true
 image = { workspace = true, optional = true }
 os_info.workspace = true
+portable-pty.workspace = true
 rfd.workspace = true
 serde_json.workspace = true
 tauri.workspace = true
@@ -32,13 +33,14 @@ tauri-plugin-notification.workspace = true
 tauri-plugin-opener.workspace = true
 tauri-plugin-single-instance.workspace = true
 tauri-plugin-updater.workspace = true
+vt100.workspace = true
 
 [target.'cfg(not(target_os = "macos"))'.dependencies]
 fontdb.workspace = true
 
 [target.'cfg(windows)'.dependencies]
 webview2-com.workspace = true
-windows.workspace = true
+windows = { workspace = true, features = ["Win32_Foundation", "Win32_Security", "Win32_System_DataExchange", "Win32_System_JobObjects", "Win32_System_Memory", "Win32_System_Registry"] }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 cairo-rs = { workspace = true, features = ["png"] }

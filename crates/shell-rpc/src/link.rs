@@ -38,17 +38,20 @@ impl Waiter {
 #[derive(Clone)]
 pub struct ShellLink(Arc<Inner>);
 
+type OnTerminals = Box<dyn Fn(Vec<String>) + Send + Sync>;
+
 struct Inner {
 	out: Mutex<Box<dyn Write + Send>>,
 	last_id: AtomicU64,
 	pending: Mutex<HashMap<u64, Waiter>>,
 	login_tokens: LoginTokens,
+	on_terminals: Mutex<Option<OnTerminals>>,
 }
 
 impl ShellLink {
 	/// `out` is the server's stdout in the app; nothing else may write there.
 	pub fn new(out: impl Write + Send + 'static) -> ShellLink {
-		ShellLink(Arc::new(Inner { out: Mutex::new(Box::new(out)), last_id: AtomicU64::new(0), pending: Mutex::default(), login_tokens: LoginTokens::default() }))
+		ShellLink(Arc::new(Inner { out: Mutex::new(Box::new(out)), last_id: AtomicU64::new(0), pending: Mutex::default(), login_tokens: LoginTokens::default(), on_terminals: Mutex::default() }))
 	}
 
 	pub fn send(&self, msg: &ToShell) {
@@ -86,6 +89,11 @@ impl ShellLink {
 			answer = rx => answer.unwrap_or_else(|_| Err(TIMED_OUT.to_owned())),
 			() = clock::sleep(REQUEST_LIMIT_MS) => Err(TIMED_OUT.to_owned()),
 		}
+	}
+
+	/// Who hears the shell's live terminal ids.
+	pub fn on_terminals(&self, hear: impl Fn(Vec<String>) + Send + Sync + 'static) {
+		*lock(&self.0.on_terminals) = Some(Box::new(hear));
 	}
 
 	/// Handles every message on `input` (the server's stdin) until it ends; bad lines are logged
@@ -127,6 +135,11 @@ impl ShellLink {
 			ToServer::NotifyDone { id, shown } => {
 				if let Some(Waiter::Notify(tx)) = self.waiter(id, "notify") {
 					let _ = tx.send(Ok(shown));
+				}
+			}
+			ToServer::Terminals { live } => {
+				if let Some(hear) = &*lock(&self.0.on_terminals) {
+					hear(live);
 				}
 			}
 		}
