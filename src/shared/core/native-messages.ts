@@ -781,6 +781,10 @@ export function needsContinuation(record: readonly LhMessage[]): boolean {
 	const messages = record.filter((m) => !isBookkeeping(m));
 	const last = messages[messages.length - 1];
 	if (!last || (last as { role?: string }).role !== "toolResult") return false;
+	// A plot sent with no guess ended its turn on purpose (terminate:true), like a
+	// problem pose: it stays up while his open question waits.
+	const tail = last as ToolResultMessage;
+	if (tail.toolName === "plot" && !tail.isError && (tail.details as { onPlot?: unknown } | undefined)?.onPlot === undefined) return false;
 	// The trailing results batch (contiguous by construction — the agent
 	// appends its batch; the question gate keeps a quiz call and its
 	// learner answer adjacent).

@@ -708,7 +708,7 @@ A plot comes with a prediction `quiz` in the same reply, whose `onPlot: {line, x
 
 - the right option must name the drawn value to 2 significant figures; on a points line, `x` is one of its measured x values and the value is that point's y
 - a topic has one plot
-- while a question or problem waits for the learner in the stored record (`core::study::topic_parts::question_open`), the plot comes alone, with no guess and no `hidden` line, and opens at once; its `details` have no `onPlot`. With nothing open, a plot with no guess is refused as before
+- while a question or problem waits for the learner in the stored record (`core::study::topic_parts::question_open`), the plot comes alone, with no guess and no `hidden` line, and opens at once; its `details` have no `onPlot`. Its result ends the turn, and the window's `needsContinuation` owes nothing after it, so the agent's next work is the learner's next input. With nothing open, a plot with no guess is refused as before
 - the topic's previous reply may not carry a kept sentence the learner saw; a page never holds a plot back
 
 While a topic has no plot, its start carries the line "No plot yet in this topic. If its idea is a curve, open with `plot`.": the first topic's under the `[Study plan]`, every later one's after its `[Opener]` line (`core::study::topic_parts::NO_PLOT_YET`). Plots from earlier lessons are not looked up.

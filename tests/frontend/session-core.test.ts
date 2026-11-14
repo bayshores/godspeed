@@ -24,7 +24,7 @@ import { afterEach, describe, it } from "node:test";
 import { absorbed, errorBodyMessage, pendingCallTool, SessionModel } from "../../src/frontend/components/session-core.ts";
 import type { ChatInput } from "../../src/shared/core/input-events.ts";
 import type { LhMessage } from "../../src/shared/core/native-messages.ts";
-import { newUserMessage, newAnswerResult, newNextMessage, newProblemDismissedMarker, needsContinuation, endsInDismissal } from "../../src/shared/core/native-messages.ts";
+import { newUserMessage, newAnswerResult, newSideQuestion, newNextMessage, newProblemDismissedMarker, needsContinuation, endsInDismissal } from "../../src/shared/core/native-messages.ts";
 import { newCompactionMarker, newPlanBlockMessage, projectView } from "../../src/shared/core/index.ts";
 import { dismissedAnswer } from "../../src/shared/core/question-core.ts";
 import { oldThinkingMessage } from "../old-records.ts";
@@ -1501,6 +1501,14 @@ describe("needsContinuation (the native lastAssistantMessageIsCompleteWithToolCa
 		assert.equal(needsContinuation(messages), false);
 		const both = [...messages, resultMsg("call-b", "quiz")];
 		assert.equal(needsContinuation(both), true, "once the dock answers B, the agent owes the reaction");
+	});
+
+	it("a plot sent with no guess while a quiz waits owes nothing until he answers the quiz", () => {
+		const quiz = assistantWithCall("a1", "call-q1", "quiz");
+		const plot = { ...resultMsg("call-p1", "plot"), details: { part: "plot", v: 1, id: "p1", y: { min: 0, max: 5 } } } as unknown as LhMessage;
+		const asked = [userText("u1", "topic"), quiz, newSideQuestion("Can I see it on a plot?"), assistantWithCall("a2", "call-p1", "plot"), plot];
+		assert.equal(needsContinuation(asked), false);
+		assert.equal(needsContinuation([...asked, resultMsg("call-q1", "quiz")]), true, "his answer is owed its reaction");
 	});
 
 	it("an orphan result (no asking assistant) never continues", () => {

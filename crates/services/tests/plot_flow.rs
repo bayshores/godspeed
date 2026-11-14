@@ -1,7 +1,8 @@
 //! The plot, end to end against a stand-in agent on the bridge: a reply with a plot and its guess
 //! ends the turn with no extra agent step and stores both calls as sent, the plot's result naming
 //! it, its guess and the drawn value; a refused pair comes back to the agent as short lines, with
-//! no echo of the calls, and the agent fixes it in the same turn.
+//! no echo of the calls, and the agent fixes it in the same turn. A plot with no guess in a side
+//! turn ends that turn too: the next work is his answer to the open question.
 
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -146,4 +147,35 @@ async fn a_refused_pair_is_fixed_in_the_same_turn() {
 	assert_eq!(plots.iter().map(|r| r["isError"].as_bool()).collect::<Vec<_>>(), [Some(true), Some(false)]);
 	assert_eq!(plots[1]["details"]["id"], json!("p1"), "a refused plot takes no id");
 	assert_eq!(record.iter().filter(|m| m["role"].as_str() == Some("user")).count(), 1, "one turn");
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn a_plot_with_no_guess_ends_its_side_turn_and_the_next_work_is_his_answer() {
+	let fx = Fixture::new();
+	let chat_id = study_lesson(&fx.app).await;
+	let mut quiz = guess("B");
+	if let Some(q) = quiz.as_obj_mut() {
+		q.remove("onPlot");
+	}
+	answer(&fx.app, &chat_id, AgentReply { text: Some("A leash on the weights.".to_owned()), tool_calls: vec![ReplyCall { name: "quiz".to_owned(), arguments: quiz }] }).await;
+	settled(&fx.app, &chat_id).await;
+
+	let side = ChatInput::Side { text: "Can I see it on a plot?".to_owned(), attachments: None };
+	assert_eq!(handle_chat_input(&fx.app, &chat_id, TurnInput::Chat(side)).await.status, 200);
+	let mut open = plot();
+	if let Some(lines) = open.as_obj_mut().and_then(|p| p.get_mut("lines")).and_then(Json::as_arr_mut) {
+		lines[0] = json!({ "label": "penalty", "expr": "a/(1+lambda)" });
+	}
+	answer(&fx.app, &chat_id, AgentReply { text: Some("Here it is.".to_owned()), tool_calls: vec![ReplyCall { name: "plot".to_owned(), arguments: open }] }).await;
+	settled(&fx.app, &chat_id).await;
+	assert_eq!(fx.app.bridge.pending_turn_count(), 0, "no work waits for the agent");
+	assert!(results(&messages(&fx.app, &chat_id), "plot")[0]["details"].get("onPlot").is_none());
+
+	let quiz_id = call_of(&messages(&fx.app, &chat_id), "quiz")["id"].as_str().unwrap().to_owned();
+	let picked = json!({ "kind": "quiz", "dontKnow": false, "correct": true, "answers": [{ "index": 2, "label": "At 4.", "value": "B" }], "confidence": 80 });
+	let answered = ChatInput::Answer { tool_call_id: quiz_id.clone(), answer: picked, attachments: None };
+	assert_eq!(handle_chat_input(&fx.app, &chat_id, TurnInput::Chat(answered)).await.status, 200);
+	let seen = answer(&fx.app, &chat_id, AgentReply { text: Some("Right.".to_owned()), tool_calls: Vec::new() }).await;
+	let last = seen.last().unwrap();
+	assert!(last["text"].as_str().is_some_and(|t| t.starts_with("The learner answered your open question:")), "the next work is his answer: {last:?}");
 }
