@@ -120,8 +120,9 @@ pub fn upgraded_record(record: &Json, upgrade: &PrepUpgrade, now: &str) -> Json 
 	let guide: Vec<&str> = upgrade.files.iter().filter(|f| f.name == GUIDE_FILE_NAME).map(|f| f.id.as_str()).collect();
 	let name = record["name"].str_or_empty();
 	let mut deadlines = items(&record["deadlines"]).to_vec();
-	if is_calendar_date(&prep["date"]) {
-		if !deadlines.iter().any(|d| d["id"].as_str() == Some(upgrade.deadline_id.as_str())) {
+	let made = deadlines.iter().any(|d| d["id"].as_str() == Some(upgrade.deadline_id.as_str()));
+	if !made {
+		let deadline = is_calendar_date(&prep["date"]).then(|| {
 			let mut init = Obj::new();
 			init.insert("kind", "interview");
 			init.insert("name", name);
@@ -131,19 +132,22 @@ pub fn upgraded_record(record: &Json, upgrade: &PrepUpgrade, now: &str) -> Json 
 				init.insert("aboutFileId", about);
 			}
 			let known: HashSet<String> = upgrade.files.iter().map(|f| f.id.clone()).collect();
-			if let Ok(deadline) = new_deadline(&known, &Json::Obj(init), upgrade.deadline_id.clone()) {
-				deadlines.push(deadline);
+			new_deadline(&known, &Json::Obj(init), upgrade.deadline_id.clone()).ok()
+		});
+		match deadline.flatten() {
+			Some(deadline) => deadlines.push(deadline),
+			// No day, or one that can't make a deadline: the interview waits for a day, so it isn't lost.
+			None => {
+				let mut waiting = Obj::new();
+				waiting.insert("id", upgrade.deadline_id.as_str());
+				waiting.insert("name", name);
+				if let Some(about) = about {
+					waiting.insert("aboutFileId", about);
+				}
+				waiting.insert("fileIds", guide);
+				out.insert("waitingDeadline", Json::Obj(waiting));
 			}
 		}
-	} else {
-		let mut waiting = Obj::new();
-		waiting.insert("id", upgrade.deadline_id.as_str());
-		waiting.insert("name", name);
-		if let Some(about) = about {
-			waiting.insert("aboutFileId", about);
-		}
-		waiting.insert("fileIds", guide);
-		out.insert("waitingDeadline", Json::Obj(waiting));
 	}
 	deadlines.sort_by(compare_deadlines);
 	out.insert("deadlines", Json::Arr(deadlines));
@@ -233,6 +237,11 @@ mod tests {
 		assert_eq!(new["deadlines"], json!([]));
 		assert_eq!(new["waitingDeadline"], json!({ "id": upgrade.deadline_id, "name": "Larkspur onsite", "aboutFileId": upgrade.files[0].id, "fileIds": [upgrade.files[1].id] }));
 		assert_eq!(new["description"], json!("Mine"));
+
+		let mut unnamed = record(prep(Some("2026-11-24")));
+		unnamed.as_obj_mut().unwrap().insert("name", " ");
+		let new = upgraded_record(&unnamed, &prep_upgrade(&unnamed).unwrap(), "t");
+		assert_eq!((new["deadlines"].clone(), new["waitingDeadline"]["id"].clone()), (json!([]), json!(upgrade.deadline_id)), "a day that can't make a deadline waits too");
 	}
 
 	#[test]
