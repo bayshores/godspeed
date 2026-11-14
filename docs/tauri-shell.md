@@ -33,7 +33,7 @@ The shell is one window and a guard. All app logic runs in `godspeed-server`, a 
 | `log.rs` | The `main.log` writer, rotation and the panic hook. |
 | `old_app.rs` | Whether the Electron app runs on this userData; writes and removes `shell.pid`. |
 | `first_run.rs` | The one-time data backup and the cleanup of Electron leftovers. |
-| `quit.rs` | The one exit routine: stop the server, clean up, then install a downloaded update. |
+| `quit.rs` | The one exit routine: stop the agents' terminals, then the server, clean up, then install a downloaded update. |
 | `server.rs` | Port choice, the secret, spawn, the ready wait, login tokens, restarts, stop and `mcp-endpoint.json`. |
 | `rpc.rs` | Reads the server's stdout lines, queues demo work, writes replies to the server's stdin. |
 | `notify.rs` | Shows the system notifications the server asks for. |
@@ -42,7 +42,8 @@ The shell is one window and a guard. All app logic runs in `godspeed-server`, a 
 | `zoom.rs` | The zoom ladder, the `zoom` push and the zoom commands. |
 | `commands.rs` | The trust check `trusted()` and the OS commands. Mac-only commands sit in its `appkit` module. |
 | `fonts.rs` | The installed font families for `list_fonts`. |
-| `open.rs` | Web link checks, app bundle checks, open path, show in folder, the terminal launcher. |
+| `open.rs` | App bundle checks, open path, show in folder. |
+| `terminal/` | The agents' terminals: the records and their threads (`mod.rs`), the commands (`commands.rs`), the start script in a pseudo-terminal for each OS (`spawn.rs`), the screen and what the shell recognises on it (`screen.rs`). See [Terminals](#terminals). |
 | `bug_report.rs` | The issue URL. |
 | `update.rs` | Updater state, checks, download, the update commands, and the install step `quit.rs` calls. |
 | `restarts.rs` | The restart limit. |
@@ -57,9 +58,9 @@ The shell is one window and a guard. All app logic runs in `godspeed-server`, a 
 
 | Folder | What it holds |
 |---|---|
-| `mac/` | `demo.rs` (the hidden WKWebView demo runner and SVG snapshot), `print.rs` (PDFKit printing), `window.rs` (drag pasteboard paths, the title bar double-click setting, WebKit text defaults, the title fix for the traffic lights), `fonts.rs` (`NSFontManager` font families), `screens.rs` (snapshots for the lab). |
-| `win/` | `drop.rs` (dropped file paths through WebView2 `WebMessageReceived`), `demo.rs` (the demo window's browser arguments and SVG snapshot). |
-| `linux/` | `demo.rs`: the WebKitGTK content filter for the demo window, through `webkit2gtk-sys`. |
+| `mac/` | `clipboard.rs` (the clipboard's text for Paste), `demo.rs` (the hidden WKWebView demo runner and SVG snapshot), `print.rs` (PDFKit printing), `window.rs` (drag pasteboard paths, the title bar double-click setting, WebKit text defaults, the title fix for the traffic lights), `fonts.rs` (`NSFontManager` font families), `screens.rs` (snapshots for the lab). |
+| `win/` | `drop.rs` (dropped file paths through WebView2 `WebMessageReceived`), `demo.rs` (the demo window's browser arguments and SVG snapshot), `clipboard.rs` (the clipboard's text for Paste), `job.rs` (the Job Object that holds a terminal's processes), `path.rs` (a fresh `Path` from the registry for a terminal). |
+| `linux/` | `demo.rs` (the WebKitGTK content filter for the demo window, through `webkit2gtk-sys`), `clipboard.rs` (GTK's clipboard text for Paste). |
 
 ### Rules
 
@@ -84,6 +85,7 @@ One JSON object per line, UTF-8, ending in `\n`. The field `t` names the message
 | shell to server | `{"t":"demo_done","id":n,"result":{"consoleErrors":[],"pageErrors":[],"failedRequests":[],"probeResult":…,"ok":true}}` or `{"t":"demo_done","id":n,"error":"…"}` | `probeResult` is absent when no probe ran. |
 | shell to server | `{"t":"svg_done","id":n,"png":"<base64>"}` or `{"t":"svg_done","id":n,"error":"…"}` | A PNG of exactly w × h px. |
 | shell to server | `{"t":"notify_done","id":n,"shown":true\|false}` | False while the main window has the focus, or when the plugin refused it. |
+| shell to server | `{"t":"terminals","live":["<32 hex>",…]}` | The ids of the agents' terminals that run now. Sent after every start, Stop and end. |
 
 - Unknown lines are logged to stderr and skipped on both sides.
 - stdin EOF stops the server. This works on every OS.
@@ -153,7 +155,6 @@ The shell bakes `APP_ORIGIN` and `PLATFORM` into the script text before the wind
 | `pickFolder()` | `pick_folder` | The dialog plugin's folder picker on the main window; the absolute path or `null`. |
 | `showInFolder(path)` | `show_in_folder` | Absolute path only; `tauri_plugin_opener::reveal_item_in_dir`. |
 | `openPath(path)` | `open_path` | Absolute paths only, canonicalized. A bundle folder (`.app` and the other bundle extensions in `open.rs`) is revealed. A folder or a `.pdf` file opens in its default app. Anything else does nothing. |
-| `openAgent(folder, agent)` | `open_agent` | Opens a terminal running the godspeed folder's start script. Answers `null` or why it could not. |
 | `pathForFile(file)` | `drag_paths` (Mac), WebView2 message (Windows) | Returns `Promise<string>`. See [File drops](#file-drops). Linux resolves `""`. |
 | `showWindow()` | `show_window` | Shows and focuses the main window if it is hidden. |
 | `onZoom(cb)` | push `zoom` | The factor, pushed after every change and every page load. |
@@ -166,14 +167,78 @@ The shell bakes `APP_ORIGIN` and `PLATFORM` into the script text before the wind
 | `listFonts()` | `list_fonts` | Mac: `NSFontManager` families. Windows and Linux: `fontdb` system fonts, each face's first family name. Drops `iconfont`, sorts with `gs_base::locale::compare`, removes repeats. |
 | `onOpenSettings(cb)` | push `open-settings` | The Settings section a menu item asked for. |
 | `printPdf(path)` | `print_pdf` | Mac only; absent on Windows and Linux. See [Printing](#printing). |
+| `openLink(url)` | `open_link` | A web or mail link, as a link click sends it. |
+| `terminals.start(role, agent, folder)` | `terminal_start` | `role` is `"teacher"` or `"helper"`, `agent` is `"claude"` or `"codex"`. Answers `{ id }`. See [Terminals](#terminals). |
+| `terminals.attach(id)`, `terminals.detach(id)` | `terminal_attach`, `terminal_detach` | Attach pushes a snapshot of the screen, then the live output, on `terminal-output`. |
+| `terminals.write(id, data)` | `terminal_write` | Keys typed in the shown terminal. |
+| `terminals.answer(id, kind)` | `terminal_answer` | `kind` is `"trust"` or `"enter"`: the shell sends Enter only while it still sees that question. |
+| `terminals.paste(id)` | `terminal_paste` | The shell reads the clipboard and types it. |
+| `terminals.stop(id)` | `terminal_stop` | Stops the terminal and everything it started. |
+| `terminals.list()` | `terminal_list` | Every terminal, for a page that reloaded. |
+| `terminals.onOutput(cb)` | push `terminal-output` | `{id, snapshot}` (base64 escape codes that redraw the screen) or `{id, data}` (base64 raw output). |
+| `terminals.onState(cb)` | push `terminal-state` | `{id, ended, prompt, url}`, when one of them changes. |
 
-The shim also calls commands that are not on `window.lh`: `open_link`, `set_zoom` (restores the zoom at load), `zoom_step` and `zoom_reset` (key fallback), `start_drag` and `title_bar_double_click` (Mac), and `toggle_menu` (Windows and Linux).
+The shim also calls commands that are not on `window.lh`: `open_link` (link clicks), `set_zoom` (restores the zoom at load), `zoom_step` and `zoom_reset` (key fallback), `start_drag` and `title_bar_double_click` (Mac), and `toggle_menu` (Windows and Linux).
 
 Pushes arrive as `webview.eval("window.__lhPush(channel, payload)")`, so the page needs no Tauri event permissions. A channel with no listener keeps its last message for the first listener that subscribes, because a menu's `open-settings` can arrive before React does.
 
 ### Trust check
 
 Every command calls `commands::trusted` first. It refuses with `"Untrusted desktop request."` unless the webview's label is `main` and its URL's origin equals the app origin. The app origin is `http://127.0.0.1:<port>`, or Vite's origin in `desktop:dev`.
+
+## Terminals
+
+The learner's agents (Claude Code or Codex) run in terminals the shell owns, shown in the window. `crates/shell/src/terminal/` keeps them in memory only: at most one live record per role (teacher, helper), each with a 32-hex id. An ended record keeps its screen until the next start for its role.
+
+### Starting one
+
+1. The page names a role, an agent and the godspeed folder. The shell builds everything else, so the page can never name a program or an argument.
+2. The script must be `<folder>/.godspeed/start-<agent>[-helper].<command|cmd|sh>`, the start scripts the server writes. Anything else answers "The godspeed folder isn't set up yet."
+3. The command runs it through the learner's login shell, as Terminal does with a `.command` file, so PATH from `.zprofile` and `.zshrc` both count: `<shell> -l -i -c 'exec "$0"' <script>`. `<shell>` is `$SHELL` when it is zsh, bash, sh, dash or ksh, else `/bin/zsh` (Mac) or `/bin/bash` (Linux). Windows runs `%ComSpec% /d /c <script>`.
+4. `portable-pty` opens a pseudo-terminal of a fixed 100 × 30 (ConPTY on Windows). There is no resize command.
+
+| Environment | Value |
+|---|---|
+| Base | The app's own, without `LH_*`, `TAURI_*` and, on Linux, the AppImage variables (`APPDIR`, `APPIMAGE`, `ARGV0`, `OWD`, `LD_LIBRARY_PATH`, `LD_PRELOAD`, `GDK_PIXBUF_MODULE_FILE`, `GIO_EXTRA_MODULES`, `GSETTINGS_SCHEMA_DIR`, `GTK_PATH`, `GTK_EXE_PREFIX`, `GTK_DATA_PREFIX`). |
+| `TERM`, `COLORTERM`, `LANG` | `xterm-256color`, `truecolor` and `en_US.UTF-8`, each only when unset. |
+| `GODSPEED_TERMINAL` | The terminal's id. The folder's connector and waiter send it as the header `x-godspeed-terminal` (only a 32 lowercase hex value); Codex forwards it to the connector through `env_vars`. |
+| `GODSPEED_DATA_DIR` | This app's data folder, so the agent finds this app's `mcp-endpoint.json` and token. |
+| `Path` (Windows) | The system's and the account's from the registry, so an agent installed after godspeed opened is found. |
+
+### While it runs
+
+Each terminal has four threads: output, input, its exit, and a 250 ms clock.
+
+- **Output** goes through a `vt100` screen (1000 lines of scrollback) and to the page as `terminal-output` only while attached. The shell answers the questions a program asks its terminal (cursor position, device attributes, status), because a hidden terminal has no page and ConPTY waits for the cursor position before the program starts. The page's own answers to those are dropped.
+- **Input** is queued and written in order on its own thread, so a terminal that reads nothing never holds the window up. `terminal_write`, `terminal_answer` and `terminal_paste` run without `async`, so keys keep their order.
+- **Typing** (`write`, `paste`) is refused unless that terminal is attached and the main window has the focus. Paste drops escape characters and is bracketed when the program asked for bracketed paste.
+- **The clock** pushes `terminal-state` when the recognised question or the web address on the screen changes.
+
+### What the shell recognises
+
+By shape, since the agents reword their screens. Screen text is only matched, never run, logged or stored past the next start.
+
+| `prompt` | Shape |
+|---|---|
+| `"trust"` | A menu (below) whose highlighted row starts with "Yes", with "trust" on the screen. Claude Code's two wordings and Codex's match. |
+| `"menu"` | Numbered rows from 1 up, at least two, exactly one highlighted (a pointer such as `❯` or `›` before it, or inverse video). |
+| `"enter"` | One of the last three lines opens with "Press Enter", or a sentence in it does. |
+
+A question counts once it has stayed the same for 2 s. `url` is true while the screen shows an `http` or `https` address. The trust and Enter buttons send Enter only if the shell sees that question on its screen at that moment.
+
+### Stop, quit and the server
+
+| Event | What happens |
+|---|---|
+| Stop | The record is marked stopping and the server hears the new live set at once. Mac and Linux send SIGHUP to the script's process group (`portable-pty` makes it a session leader), then SIGKILL 2 s later; Windows ends the Job Object. |
+| The script exits | `ended` is `{stopped: false, code}`; whatever it left running is hung up the same way. Exit 3 means the agent was not found and 4 that Node.js is missing. |
+| Quit | `quit.rs` stops every terminal before the server: all hang up at once, and what runs after 2 s is killed. |
+| Server crash | The terminals live on. The restarted server gets `LH_TERMINALS`, and the reloaded page calls `terminal_list`. |
+| A child that left the group | It still sends the ended id, so the server refuses it. On Windows the job holds it unless it breaks away. |
+
+The Job Object has kill-on-close and takes the script right after it starts, so closing the app kills the tree too.
+
+The server side: `refuse()` in `crates/server/src/mcp/mod.rs` answers 403 `{"error": "This terminal was closed in godspeed."}` to a request whose terminal id is not live (no header means an agent outside the app). `Bridge::set_live_terminals` wakes every waiter, a wait of an ended terminal ends with the same error, and the items that terminal claimed go back at once instead of after the 10 minute hold.
 
 ## The main window
 
@@ -300,6 +365,7 @@ Mac: `print_pdf(path)` canonicalizes the path and refuses anything that is not a
 | `LH_PDFIUM_PATH` | The pdfium library path above. |
 | `LH_DESKTOP_SERVER`, `LH_DESKTOP_API_SECRET` | `1` and the secret, in desktop mode. Removed in `desktop:dev` browser mode. |
 | `LH_SERVER_RESTARTED` | `1` on a restart after a crash, removed otherwise. |
+| `LH_TERMINALS` | The live terminal ids as a JSON list, so a restarted server refuses a stopped terminal's agent at once. |
 | `LH_DEV_URL` | Removed. |
 | Other env | Inherited. |
 
@@ -340,16 +406,13 @@ The shell never calls `app.restart()`: on the main thread it restarts at once wi
 
 `quit.rs` runs once (an `AtomicBool` swap) from `RunEvent::Exit`, and `RunEvent::Exit` waits for it.
 
-1. Close the server's stdin. The server stops on EOF: open requests get 2 s, then it exits with 143.
-2. Wait up to 3 s, then kill the child and wait.
-3. Remove `shell.pid` and delete the demo folder.
-4. Install a held update, last because the Windows install exits the process.
+1. Stop every terminal: each hangs up at once, and what still runs after 2 s is killed (see [Terminals](#terminals)). First, so no agent outlives the app.
+2. Close the server's stdin. The server stops on EOF: open requests get 2 s, then it exits with 143.
+3. Wait up to 3 s, then kill the child and wait.
+4. Remove `shell.pid` and delete the demo folder.
+5. Install a held update, last because the Windows install exits the process.
 
 No signals are needed, so the path is the same on Windows, where the installer could not overwrite a running `godspeed-server.exe`. When the shell dies, the OS closes the pipe and stdin EOF stops the server.
-
-### `open_agent` on Windows
-
-Rust's default quoting would turn `""` into `\"\"`, so the command is `Command::new("cmd.exe").raw_arg(format!("/c start \"\" cmd.exe /k \"{script}\""))` with `creation_flags(0x0000_0008 | 0x0000_0200)` (`DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP`) and null stdio.
 
 ### Logs
 
@@ -360,6 +423,7 @@ Rust's default quoting would turn `""` into `\"\"`, so the command is `Command::
 - Every server stderr line is logged as `server: <line>`.
 - Lifecycle lines: `starting server: <server path>`, `data dir: <data path>`, `server up: <url>`, `server exited (code=<n|null> signal=<SIGNAME|null>)`, `restarting server (<n> in the last minute)`, `server up again: <url>`, `window open: <app origin>/`.
 - The window line never holds the login URL, because that has the token.
+- Terminal lines: `terminal started: <role> <agent> pid <n>`, `terminal ended: <role> <agent> pid <n> code <n>` (or `stopped`), and `terminal could not start: <role> <agent>: <error>`. Nothing from a terminal's screen, its environment or the clipboard is ever logged.
 - The first thing in `main` is a panic hook that logs `uncaught: <panic info>` with a backtrace, then runs the default hook.
 
 ### Timeouts
@@ -411,7 +475,14 @@ The access rule and the login route are in [rust-server.md](rust-server.md#the-s
     "allow-pick-folder",
     "allow-show-in-folder",
     "allow-open-path",
-    "allow-open-agent",
+    "allow-terminal-start",
+    "allow-terminal-attach",
+    "allow-terminal-detach",
+    "allow-terminal-write",
+    "allow-terminal-answer",
+    "allow-terminal-paste",
+    "allow-terminal-stop",
+    "allow-terminal-list",
     "allow-report-bug",
     "allow-list-fonts",
     "allow-print-pdf",

@@ -785,7 +785,7 @@ The shell is a launcher and security guard. All app logic runs in `godspeed-serv
 | Shell (`crates/shell`) | single-instance lock, a trust check on every command (only the main window on the app's own origin), navigation pinned to the app's origin, web links opened in the browser |
 | Starting the server | the shell picks port 47613 when it is free, else any free port, and starts the server with `PORT`, `LH_DATA_DIR`, `LH_SHELL=1`, `LH_DESKTOP_SERVER=1` and `LH_DESKTOP_API_SECRET`. The server binds 127.0.0.1 only |
 | `mcp-endpoint.json` | the shell writes the server's real address there once the server is ready |
-| Line protocol (`crates/shell-rpc`) | one JSON object per line on the server's stdin and stdout. The server sends `ready`, and `demo`, `svg` and `notify` requests. The shell sends one-time `login` tokens and the answers. A request gets 60 s |
+| Line protocol (`crates/shell-rpc`) | one JSON object per line on the server's stdin and stdout. The server sends `ready`, and `demo`, `svg` and `notify` requests. The shell sends one-time `login` tokens, the answers and the live terminal ids. A request gets 60 s |
 | Access gate (`server::http::access`) | every `/api` path needs the `gs_desktop` cookie and `Sec-Fetch-Site: same-origin`, except `/api/mcp`, `/api/mcp/forget`, `/api/mcp/compacting` and `/api/desktop/login` |
 | Data lock | an advisory lock on the data folder (`server::data_lock`) keeps a second server off the same data |
 | Shutdown | closing the server's stdin stops it, so a dying shell never leaves a server behind |
@@ -817,7 +817,9 @@ The server speaks two MCP versions on one endpoint. The 2026-07-28 version carri
 - An agent that is connected but not teaching leaves lessons waiting. The teacher pane and the Teacher tile then say to start teaching.
 - The window hears `agent-changed` when either changes or the agent's name changes. A timer fires it again a second after the next lapse.
 
-`GET /api/mcp-access` reports `agentConnected`, `agentTeaching`, `agentName`, `helperHere`, `helperCovering`, `pendingWork`, `pendingTurns` and `claimedLessons` (the lessons whose request an agent took and hasn't answered).
+`GET /api/mcp-access` reports `agentConnected`, `agentTeaching`, `agentName`, `helperHere`, `helperCovering`, `pendingWork`, `pendingTurns`, `claimedLessons` (the lessons whose request an agent took and hasn't answered), `terminals` (each live app terminal as `{id, here}`, `here` meaning a request from it in the last 3 minutes) and `outsideHere` (a request with no terminal id in the last 3 minutes).
+
+An agent started in one of the desktop app's terminals sends the terminal's id with every request. Once that terminal ends, the server refuses it and puts back what it had claimed at once ([tauri-shell.md](tauri-shell.md#terminals)).
 
 #### The godspeed folder
 
@@ -835,8 +837,8 @@ Agents are opened in one folder, `~/godspeed` by default. `data/agent-folder.jso
 Opening an agent:
 
 1. "Open Claude Code" (`src/frontend/components/agent-folder/`) writes the folder.
-2. The shell (`window.lh.openAgent`, `crates/shell/src/open.rs`) opens Terminal, a Windows console or a Linux terminal running the start script. Only those scripts can be run.
-3. A start script stops with an install hint when the agent's command or Node.js is missing (`start_script` in `core::spaces::agent_folder`), since the connector and hooks run with plain `node`.
+2. The shell (`window.lh.terminals.start`, `crates/shell/src/terminal/`) runs the start script in a terminal of its own, shown in the window ([tauri-shell.md](tauri-shell.md#terminals)). Only those scripts can be run.
+3. A start script stops with an install hint when the agent's command or Node.js is missing (`start_script` in `core::spaces::agent_folder`), since the connector and hooks run with plain `node`. It exits 3 for a missing agent and 4 for missing Node.js, so the window can say which.
 
 A learner who starts an agent through a launcher sets its command with Change command under the Open button: one line of at most 300 characters (`usable_start_command`). An empty one goes back to `claude` or `codex`.
 
