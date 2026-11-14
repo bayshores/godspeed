@@ -115,6 +115,14 @@ export function nextOpen(submitted: readonly boolean[], from: number): number | 
 	return null;
 }
 
+/** End mock's question opens with this: "Both answers are submitted.",
+ *  "1 of 3 is not submitted.". */
+export function submittedLine(total: number, notSubmitted: number): string {
+	if (notSubmitted > 0) return `${notSubmitted} of ${total} ${notSubmitted === 1 ? "is" : "are"} not submitted.`;
+	if (total === 1) return "Your answer is submitted.";
+	return total === 2 ? "Both answers are submitted." : `All ${total} answers are submitted.`;
+}
+
 /** localStorage key: the language picked last, for the next code question. */
 export const MOCK_LANGUAGE_KEY = "lh:mock-language";
 

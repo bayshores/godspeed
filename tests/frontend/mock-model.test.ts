@@ -18,6 +18,7 @@ import {
 	parseMockLanguage,
 	pauseLine,
 	spentText,
+	submittedLine,
 	usedLine,
 	workOf,
 } from "../../src/frontend/components/mock/mock-model.ts";
@@ -84,6 +85,16 @@ describe("a mock's words", () => {
 		assert.equal(mockAnnouncement(base, "ready"), "Mock 3 is ready.");
 		assert.equal(mockAnnouncement(base, "graded"), "Mock 3 is graded.");
 		assert.equal(mockAnnouncement(base, "running"), "");
+	});
+});
+
+describe("before End mock", () => {
+	it("says every answer is submitted in words that fit the count", () => {
+		assert.equal(submittedLine(1, 0), "Your answer is submitted.");
+		assert.equal(submittedLine(2, 0), "Both answers are submitted.");
+		assert.equal(submittedLine(3, 0), "All 3 answers are submitted.");
+		assert.equal(submittedLine(5, 1), "1 of 5 is not submitted.");
+		assert.equal(submittedLine(5, 2), "2 of 5 are not submitted.");
 	});
 });
 

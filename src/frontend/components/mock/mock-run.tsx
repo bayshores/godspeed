@@ -9,7 +9,7 @@ import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { cn } from "@/frontend/lib/utils";
 import { CodeAnswer } from "./mock-answer";
 import { MockBar } from "./mock-bar";
-import { MOCK_LANGUAGE_KEY, answerOf, clockText, exampleCall, nextOpen, parseMockLanguage, workOf, type Work } from "./mock-model";
+import { MOCK_LANGUAGE_KEY, answerOf, clockText, exampleCall, nextOpen, parseMockLanguage, submittedLine, workOf, type Work } from "./mock-model";
 import { postMock } from "./use-mock";
 
 /** How often what is typed is saved. */
@@ -233,8 +233,7 @@ export function MockRun({ view }: { view: MockView }) {
 					{confirmEnd && (
 						<div role="alertdialog" aria-label="End the mock" data-testid="mock-end-confirm" className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2 border-b-2 border-line bg-highlight px-6 py-2.5 text-[15px] text-ink">
 							<p className="min-w-0 flex-1">
-								{notSubmitted === 0 ? `All ${questions.length} are submitted.` : `${notSubmitted} of ${questions.length} ${notSubmitted === 1 ? "is" : "are"} not submitted.`} End Mock {mock.n} now? {teacher} grades
-								what you have written.
+								{submittedLine(questions.length, notSubmitted)} End Mock {mock.n} now? {teacher} grades what you have written.
 							</p>
 							<button type="button" data-testid="mock-end-keep" onClick={() => setConfirmEnd(false)} className="lh-btn text-[15px]">
 								Keep going
