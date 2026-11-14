@@ -1,5 +1,5 @@
 /** Pure helpers for Today (home-page.tsx): per-space progress, which list a deadline goes in, and each row's words. */
-import { hasProblems, localDay, planDays, type DeadlineProgress, type ProgressPayload, type SpaceColor, type SpaceSummary } from "@/shared/core";
+import { hasProblems, localDay, planDays, type DeadlineKind, type DeadlineProgress, type ProgressPayload } from "@/shared/core";
 import { clockLabel, deadlineDateLabel } from "@/frontend/components/space-deadlines-model";
 import { DAY, HOUR, MINUTE, calendarDays, dueAtMs } from "@/frontend/components/countdown-model";
 import type { OpenDeadline } from "@/frontend/components/deadlines-model";
@@ -62,32 +62,6 @@ export function todayLists(open: readonly OpenDeadline[], doneToday: readonly Op
 	};
 }
 
-/** A prep with a day, as a row of Today or Later. */
-export interface PrepDay {
-	spaceId: string;
-	name: string;
-	date: string;
-	color: SpaceColor;
-}
-
-/** The preps whose day hasn't passed, soonest first: within the week
- *  under Today, the rest under Later. */
-export function prepDays(spaces: readonly SpaceSummary[], nowMs: number): { today: PrepDay[]; later: PrepDay[] } {
-	const coming = spaces
-		.flatMap((c): PrepDay[] => (c.prep?.date && !c.archived ? [{ spaceId: c.id, name: c.name, date: c.prep.date, color: c.color }] : []))
-		.filter((p) => calendarDays(nowMs, dueAtMs(p)) >= 0)
-		.sort((a, b) => a.date.localeCompare(b.date));
-	return { today: coming.filter((p) => dueThisWeek(p, nowMs)), later: coming.filter((p) => !dueThisWeek(p, nowMs)) };
-}
-
-/** Deadlines and preps as one list, soonest first; on the same moment the
- *  deadline goes first. */
-export function byDue(deadlines: readonly OpenDeadline[], preps: readonly PrepDay[]): Array<{ deadline: OpenDeadline } | { prep: PrepDay }> {
-	return [...deadlines.map((deadline) => ({ deadline, at: dueAtMs(deadline) })), ...preps.map((prep) => ({ prep, at: dueAtMs(prep) }))]
-		.sort((a, b) => a.at - b.at)
-		.map(({ at: _at, ...item }) => item);
-}
-
 /** The count block: whole days left, hours on the last day, minutes in
  *  the last hour, "late" once it is due. */
 export function countLeft(dueMs: number, nowMs: number): { count: string; unit: string } {
@@ -118,6 +92,9 @@ export function progressNote(p: DeadlineProgress | undefined): string {
 	return words ? `. ${words}` : "";
 }
 
+/** What a deadline that isn't handed in is called in "the test is on". */
+const EVENT_WORD: Partial<Record<DeadlineKind, string>> = { quiz: "quiz", interview: "interview" };
+
 /** When an open deadline is due, after its space: "due Friday", "the test
  *  is on Tuesday at 7:00 PM", "was due Tue Oct 27". */
 function dueWords(d: OpenDeadline, nowMs: number): string {
@@ -127,7 +104,7 @@ function dueWords(d: OpenDeadline, nowMs: number): string {
 	const day = days === 0 ? "today" : days === 1 ? "tomorrow" : new Date(dueMs).toLocaleDateString("en-US", { weekday: "long" });
 	const at = d.time ? ` at ${clockLabel(d.time)}` : "";
 	if (hasProblems(d.kind)) return `due ${day}${at}`;
-	return `the ${d.kind === "quiz" ? "quiz" : "test"} is ${days > 1 ? "on " : ""}${day}${at}`;
+	return `the ${EVENT_WORD[d.kind] ?? "test"} is ${days > 1 ? "on " : ""}${day}${at}`;
 }
 
 interface TodayRowWords {
@@ -161,29 +138,22 @@ export function todayRow(d: OpenDeadline, progress: DeadlineProgress | undefined
 	return { title: `Study for ${d.name}`, line: when, button: "Start" };
 }
 
-/** The key of a Today row: its deadline's id, or "prep:" and its space. */
-export function todayRowKey(item: { deadline: OpenDeadline } | { prep: PrepDay }): string {
-	return "prep" in item ? `prep:${item.prep.spaceId}` : item.deadline.id;
-}
-
-/** The one row of Today whose button is dark: a session stopped before
- *  today, else the soonest row. A session that stopped today, or ended
- *  today with nothing more planned, is passed over, so with no other row
- *  no button is dark. `items` are
- *  soonest first. */
-export function mainRowKey(items: ReadonlyArray<{ deadline: OpenDeadline } | { prep: PrepDay }>, progress: ReadonlyMap<string, DeadlineProgress>, nowMs: number): string | null {
+/** The id of the one row of Today whose button is dark: a session stopped
+ *  before today, else the soonest row. A session that stopped today, or
+ *  ended today with nothing more planned, is passed over, so with no other
+ *  row no button is dark. `deadlines` are soonest first. */
+export function mainRowId(deadlines: readonly OpenDeadline[], progress: ReadonlyMap<string, DeadlineProgress>, nowMs: number): string | null {
 	const today = localDay(nowMs);
-	const stopDay = (item: (typeof items)[number]) => {
-		const at = "deadline" in item ? progress.get(item.deadline.id)?.continueStudy?.stop?.at : undefined;
+	const stopDay = (d: OpenDeadline) => {
+		const at = progress.get(d.id)?.continueStudy?.stop?.at;
 		return at === undefined ? null : localDay(Date.parse(at));
 	};
-	const stoppedBefore = items.find((item) => {
-		const day = stopDay(item);
+	const stoppedBefore = deadlines.find((d) => {
+		const day = stopDay(d);
 		return day !== null && day < today;
 	});
-	if (stoppedBefore) return todayRowKey(stoppedBefore);
-	const soonest = items.find((item) => stopDay(item) !== today && !("deadline" in item && nothingMoreToday(progress.get(item.deadline.id), nowMs)));
-	return soonest ? todayRowKey(soonest) : null;
+	if (stoppedBefore) return stoppedBefore.id;
+	return deadlines.find((d) => stopDay(d) !== today && !nothingMoreToday(progress.get(d.id), nowMs))?.id ?? null;
 }
 
 /** Under a Later row's name: "CSE 21, Tuesday Dec 8. 19% ready". */

@@ -1,7 +1,8 @@
 /**
  * "Add a deadline" and "Edit deadline", mounted over linkedom with a fake
  * fetch: the fields, what Save sends, the questions asked before changes or
- * the deadline are lost, and a deadline an agent removed meanwhile.
+ * the deadline are lost (with its mocks named), a deadline an agent removed
+ * meanwhile, and an interview that was waiting for its date.
  */
 import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;
@@ -10,7 +11,7 @@ import assert from "node:assert/strict";
 import { afterEach, describe, it } from "node:test";
 import type { Root } from "react-dom/client";
 import { parseHTML } from "linkedom";
-import type { SpaceDeadline, SpaceFile } from "../../src/shared/core/index.ts";
+import type { SpaceDeadline, SpaceFile, WaitingDeadline } from "../../src/shared/core/index.ts";
 
 const dom = parseHTML("<!doctype html><html><body></body></html>");
 // linkedom's document has no "oninput"; without it React would watch text
@@ -41,8 +42,16 @@ const calls: { method: string; url: string; body?: unknown }[] = [];
 const originalFetch = globalThis.fetch;
 /** The PUT and DELETE of the deadline answer "no such deadline". */
 let gone = false;
+/** What GET …/mocks?deadline= answers; the deadlines it was asked for. */
+let mockList: unknown[] = [];
+const mocksAsked: string[] = [];
 function fakeFetch() {
 	globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+		const mocks = /\/mocks\?deadline=(.+)$/.exec(String(input));
+		if (mocks) {
+			mocksAsked.push(mocks[1]!);
+			return Response.json(mockList);
+		}
 		const body = typeof init?.body === "string" ? JSON.parse(init.body) : undefined;
 		calls.push({ method: init?.method ?? "GET", url: String(input), body });
 		if (gone) return Response.json({ code: "deadline_not_found", error: "No such deadline" }, { status: 404 });
@@ -54,12 +63,12 @@ let root: Root | undefined;
 let host: HTMLElement | undefined;
 let closed = 0;
 let removed = 0;
-async function mount(deadline: SpaceDeadline | null, files: readonly SpaceFile[] = FILES) {
+async function mount(deadline: SpaceDeadline | null, files: readonly SpaceFile[] = FILES, waiting?: WaitingDeadline) {
 	fakeFetch();
 	host = document.createElement("div");
 	document.body.append(host);
 	root = createRoot(host);
-	const mode = { spaceId: "cls_a", deadline, files };
+	const mode = { spaceId: "cls_a", deadline, files, ...(waiting ? { waiting } : {}) };
 	await act(async () => {
 		root!.render(<DeadlineDialog mode={mode} onClose={() => closed++} onRemoved={() => removed++} />);
 	});
@@ -106,6 +115,8 @@ afterEach(async () => {
 	closed = 0;
 	removed = 0;
 	gone = false;
+	mockList = [];
+	mocksAsked.length = 0;
 	calls.length = 0;
 	globalThis.fetch = originalFetch;
 });
@@ -198,6 +209,23 @@ describe("Edit deadline", () => {
 		assert.equal(closed, 0);
 	});
 
+	it("Remove deadline says its mocks go too; a homework has none to ask about", async () => {
+		mockList = [{ id: "mock_1" }, { id: "mock_2" }, { id: "mock_3" }];
+		await mount(MIDTERM);
+		assert.deepEqual(mocksAsked, [], "asked only once the question is up");
+		await click(q("deadline-remove"));
+		await settle();
+		assert.deepEqual(mocksAsked, ["exm_1"]);
+		assert.match(q("deadline-remove-confirm")!.textContent!, /Remove Midterm 1\? This can't be undone\.Its 3 mocks are removed too\./);
+		await act(async () => root?.unmount());
+		mocksAsked.length = 0;
+		await mount({ ...MIDTERM, id: "ddl_hw", kind: "homework" });
+		await click(q("deadline-remove"));
+		await settle();
+		assert.deepEqual(mocksAsked, []);
+		assert.doesNotMatch(q("deadline-remove-confirm")!.textContent!, /mocks/);
+	});
+
 	it("a deadline an agent removed meanwhile: Save says so, Remove counts as done", async () => {
 		gone = true;
 		await mount(MIDTERM);
@@ -235,6 +263,33 @@ describe("Add a deadline", () => {
 		assert.equal(q("deadline-save")!.textContent, "Add deadline");
 		await pressEscape();
 		assert.equal(closed, 1, "nothing typed: closes at once");
+	});
+
+	it("an interview waiting for its date opens filled in, and is added under its id", async () => {
+		const waiting = { id: "ddl_0a1b2c3d4e5f", name: "Onsite interview", aboutFileId: "f4", fileIds: ["f3"] };
+		await mount(null, FILES, waiting);
+		assert.equal(q("deadline-kind-interview")!.getAttribute("aria-checked"), "true");
+		assert.equal((q("deadline-name") as HTMLInputElement).value, "Onsite interview");
+		assert.equal((q("deadline-file-f3") as HTMLInputElement).checked, true);
+		await pressEscape();
+		assert.equal(closed, 1, "filled in is not a change");
+		await typeInto(q("deadline-date"), "2026-11-24");
+		await typeInto(q("deadline-time"), "14:00");
+		await click(q("deadline-save"));
+		await settle();
+		assert.deepEqual(calls, [
+			{
+				method: "POST",
+				url: "/api/spaces/cls_a/deadlines",
+				body: { id: "ddl_0a1b2c3d4e5f", kind: "interview", name: "Onsite interview", date: "2026-11-24", time: "14:00", fileIds: ["f3"], aboutFileId: "f4" },
+			},
+		]);
+	});
+
+	it("an interview's name shows an interview as the example", async () => {
+		await mount(null);
+		await click(q("deadline-kind-interview"));
+		assert.equal((q("deadline-name") as HTMLInputElement).getAttribute("placeholder"), "Onsite interview");
 	});
 
 	it("needs a date; then Add deadline posts it and closes", async () => {

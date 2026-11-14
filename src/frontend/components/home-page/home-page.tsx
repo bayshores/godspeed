@@ -14,13 +14,13 @@ import { TodayWork } from "@/frontend/components/work/today-work";
 import type { OpenDeadline } from "@/frontend/components/deadlines-model";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { highlight, waitForTarget } from "@/frontend/components/teacher/dom";
-import { byDue, mainRowKey, spacesSettled, longDay, prepDays, todayLists, todayRowKey, type PrepDay } from "./home-page-model";
-import { DoneRow, LaterRow, PrepLaterRow, PrepTodayRow, TodayRow } from "./today-row";
+import { mainRowId, spacesSettled, longDay, todayLists } from "./home-page-model";
+import { DoneRow, LaterRow, TodayRow } from "./today-row";
 import { useSpacesProgress } from "./use-spaces-progress";
 
 /**
  * TODAY ("/"): the spaces the teacher is reading files of, then the
- * deadlines of every space as one list, with each prep that has a day.
+ * deadlines of every space as one list.
  * Under "Today", the ones due within a week or overdue, each with its one
  * main button, then the ones ticked done today; under "Later", the rest.
  * "Add a deadline" opens a space's Deadlines tab (a menu picks the space when
@@ -58,15 +58,7 @@ export function HomePage() {
 	}, [spacesProgress]);
 	const colors = useMemo(() => new Map(shown.map((c) => [c.id, c.color])), [shown]);
 
-	const { studyDeadline, workOnHomework, studyPrep, continueStopped } = lesson;
-	const openPrep = useCallback((p: PrepDay) => setActive(p.spaceId), [setActive]);
-	const onStudyPrep = useCallback(
-		(p: PrepDay) => {
-			setActive(p.spaceId);
-			void studyPrep([], p.spaceId);
-		},
-		[setActive, studyPrep],
-	);
+	const { studyDeadline, workOnHomework, continueStopped } = lesson;
 	const onStart = useCallback(
 		(d: OpenDeadline) => {
 			setActive(d.spaceId);
@@ -82,12 +74,8 @@ export function HomePage() {
 
 	const ready = nowMs !== null && loaded && (deadlines !== null || deadlinesError !== null) && (shown.length === 0 || progressReady);
 	const lists = useMemo(() => (deadlines && nowMs !== null ? todayLists(deadlines, doneToday, nowMs) : null), [deadlines, doneToday, nowMs]);
-	const preps = useMemo(() => (nowMs !== null ? prepDays(shown, nowMs) : { today: [], later: [] }), [shown, nowMs]);
-	// A prep has no Deadlines tab.
-	const withDeadlines = useMemo(() => shown.filter((c) => !c.prep), [shown]);
-	const laterCount = (lists?.later.length ?? 0) + preps.later.length;
-	const todayItems = useMemo(() => (lists ? byDue(lists.today, preps.today) : []), [lists, preps]);
-	const mainKey = nowMs === null ? null : mainRowKey(todayItems, deadlineProgress, nowMs);
+	const laterCount = lists?.later.length ?? 0;
+	const mainId = nowMs === null || !lists ? null : mainRowId(lists.today, deadlineProgress, nowMs);
 
 	// Back from a lesson's Stop here (?lit=deadline:<id>): its row lights once.
 	const [params, setParams] = useSearchParams();
@@ -147,29 +135,25 @@ export function HomePage() {
 									Add a space
 								</button>
 							</div>
-						) : lists.today.length + lists.done.length + preps.today.length === 0 ? (
+						) : lists.today.length + lists.done.length === 0 ? (
 							<p data-testid="today-empty" className="text-[17px] text-ink-2">
 								{laterCount === 0 ? "No deadlines yet. Your agent can add them from your files." : "Nothing is due in the next 7 days."}
 							</p>
 						) : (
 							<ul data-testid="today-list" className="flex flex-col gap-3">
-								{todayItems.map((item) =>
-									"prep" in item ? (
-										<PrepTodayRow key={item.prep.spaceId} prep={item.prep} nowMs={nowMs} main={mainKey === todayRowKey(item)} busy={lesson.busy} onOpen={openPrep} onStudy={onStudyPrep} />
-									) : (
-										<TodayRow
-											key={item.deadline.id}
-											deadline={item.deadline}
-											progress={deadlineProgress.get(item.deadline.id)}
-											color={colors.get(item.deadline.spaceId)}
-											nowMs={nowMs}
-											main={mainKey === todayRowKey(item)}
-											busy={lesson.busy}
-											onStart={onStart}
-											onDone={markDone}
-										/>
-									),
-								)}
+								{lists.today.map((d) => (
+									<TodayRow
+										key={d.id}
+										deadline={d}
+										progress={deadlineProgress.get(d.id)}
+										color={colors.get(d.spaceId)}
+										nowMs={nowMs}
+										main={mainId === d.id}
+										busy={lesson.busy}
+										onStart={onStart}
+										onDone={markDone}
+									/>
+								))}
 								{lists.done.map((d) => (
 									<DoneRow key={d.id} deadline={d} onUndo={undo} />
 								))}
@@ -179,17 +163,13 @@ export function HomePage() {
 							<section className="flex flex-col gap-4 pt-4">
 								<div className="flex min-h-9 items-center justify-between gap-4">
 									<h2 className="text-[24px] leading-snug text-ink">{laterCount > 0 && "Later"}</h2>
-									{withDeadlines.length > 0 && <AddDeadline spaces={withDeadlines} onPick={addDeadline} />}
+									<AddDeadline spaces={shown} onPick={addDeadline} />
 								</div>
 								{laterCount > 0 && (
 									<ul data-testid="later-list" className="flex flex-col gap-3">
-										{byDue(lists.later, preps.later).map((item) =>
-											"prep" in item ? (
-												<PrepLaterRow key={item.prep.spaceId} prep={item.prep} nowMs={nowMs} onOpen={openPrep} />
-											) : (
-												<LaterRow key={item.deadline.id} deadline={item.deadline} progress={deadlineProgress.get(item.deadline.id)} color={colors.get(item.deadline.spaceId)} nowMs={nowMs} />
-											),
-										)}
+										{lists.later.map((d) => (
+											<LaterRow key={d.id} deadline={d} progress={deadlineProgress.get(d.id)} color={colors.get(d.spaceId)} nowMs={nowMs} />
+										))}
 									</ul>
 								)}
 							</section>

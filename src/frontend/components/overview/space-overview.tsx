@@ -8,13 +8,16 @@ import { useMinute } from "@/frontend/components/countdown";
 import { useLessonStart } from "@/frontend/components/home/use-lesson-start";
 import { useProgress } from "@/frontend/components/use-progress";
 import { PickSpace } from "@/frontend/components/pick-space";
+import { useSpaceRecord } from "@/frontend/components/files/space-files-api";
+import { WaitingDeadline } from "@/frontend/components/space-page/waiting-deadline";
 import { OverviewBody } from "./overview-body";
 
 /**
  * THE SPACE'S PROGRESS TAB: the body reads the active space's progress
  * (useProgress).
  *
- * The next deadline's button works on it or studies for it; "Most needed"
+ * An interview with no date yet offers "Add the date". The next
+ * deadline's button works on it or studies for it; "Most needed"
  * → Study starts a study session on that topic (useLessonStart, in the
  * active space).
  */
@@ -24,6 +27,7 @@ export function SpaceOverview() {
 	const navigate = useNavigate();
 	const lesson = useLessonStart();
 	const nowMs = useMinute();
+	const { record } = useSpaceRecord(active);
 
 	// Progress for a space the window just left is never shown.
 	const current = data && data.spaceId === active ? data : null;
@@ -46,6 +50,7 @@ export function SpaceOverview() {
 				onStudy={study}
 				onStartDeadline={startDeadline}
 				onAddDeadline={() => navigate("/space/deadlines")}
+				waiting={<WaitingDeadline record={record} />}
 				pickSpace={active ? undefined : <PickSpace line="Pick a space to see how it's going." />}
 			/>
 			{!current && error && <LoadFailed message="Couldn't load this space's progress." onRetry={refresh} className="mx-auto w-full max-w-[908px] px-6" />}

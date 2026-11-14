@@ -1,15 +1,13 @@
 import type { RouteObject } from "react-router";
 import { HomePage } from "@/frontend/components/home-page/home-page";
 import { NewLesson } from "@/frontend/components/home";
-import { PrepStart } from "@/frontend/components/prep/prep-start";
 import { ArchivedSpaces } from "@/frontend/components/archived-spaces";
 import { GraphScreen } from "@/frontend/components/graph/graph-screen";
-import { SpaceHome } from "@/frontend/components/space-page/space-home";
+import { SpaceOverview } from "@/frontend/components/overview/space-overview";
 import { LessonsList } from "@/frontend/components/lessons/lessons-list";
 import { FilesPage } from "@/frontend/components/files/files-page";
 import { SpaceSheetsPage } from "@/frontend/components/cheat-sheet/space-sheets";
 import { DeadlinesTab } from "@/frontend/components/space-page/deadlines-tab";
-import { PrepMocksTab } from "@/frontend/components/prep/prep-mocks";
 import { Root } from "./root";
 import { NotFound, PageError } from "./not-found";
 import { PageTitle } from "./page-title";
@@ -33,16 +31,13 @@ export const routes: RouteObject[] = [
 					{ index: true, element: <><PageTitle /><HomePage /></> },
 					// The start page: every new lesson is a study session.
 					{ path: "new", element: <><PageTitle page="Study" /><NewLesson /></> },
-					// "Prepare for something": where a prep starts.
-					{ path: "prep", element: <><PageTitle page="Prepare" /><PrepStart /></> },
 					{ path: "settings", element: <SettingsRoute /> },
 					{ path: "archived", element: <><PageTitle page="Archived spaces" /><ArchivedSpaces /></> },
 					{
 						element: <SpaceLayout />,
 						children: [
 							{ path: "graph", element: <><PageTitle page="Graph" /><GraphScreen /></> },
-							// Progress, or a prep's sheet.
-							{ path: "space", element: <><PageTitle page="Progress" /><SpaceHome /></> },
+							{ path: "space", element: <><PageTitle page="Progress" /><SpaceOverview /></> },
 							// With no space picked, the lessons that belong to none.
 							{
 								path: "space/lessons",
@@ -63,16 +58,6 @@ export const routes: RouteObject[] = [
 										<PageTitle page="Deadlines" />
 										<h1 className="sr-only">Deadlines</h1>
 										<DeadlinesTab />
-									</div>
-								),
-							},
-							{
-								path: "space/mocks",
-								element: (
-									<div className="h-full overflow-y-auto">
-										<PageTitle page="Mocks" />
-										<h1 className="sr-only">Mocks</h1>
-										<PrepMocksTab />
 									</div>
 								),
 							},

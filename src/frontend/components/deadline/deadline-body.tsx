@@ -1,4 +1,4 @@
-import { memo } from "react";
+import { memo, type ReactNode } from "react";
 import { rampColor, type DeadlineProgress, type PlanDay } from "@/shared/core";
 import { isOverdue } from "@/frontend/components/deadlines-model";
 import { progressShare, progressWords } from "@/frontend/components/overview/overview-model";
@@ -12,7 +12,9 @@ import { PathSheet } from "./path-sheet";
 /**
  * ONE DEADLINE'S PAGE (pure view, the render-test seam): the time left,
  * when, the name and how far it is; its topics as a strip colored by how
- * you do; a homework's problems; What's on it and the path to it.
+ * you do; what it's like; a homework's problems; What's on it and the path
+ * to it with its mocks. An interview has no cheat sheet, and no What's on
+ * it until files are linked.
  */
 
 interface DeadlineBodyProps {
@@ -37,12 +39,18 @@ interface DeadlineBodyProps {
 	/** An Add or Leave out is being saved. */
 	saving: boolean;
 	onAsk: () => void;
+	/** Asks the teacher for a study guide (an interview with nothing to plan from). */
+	onAskGuide: () => void;
 	onAdd: (fileIds: string[]) => void;
 	onLeaveOut: (fileIds: string[]) => void;
 	/** Opens the cheat sheet studio. */
 	onCheatSheet: () => void;
+	/** What it's like (about-sheet.tsx), when the teacher wrote it. */
+	about?: ReactNode;
 	/** A homework or project's problems (homework-card.tsx). */
-	homework?: React.ReactNode;
+	homework?: ReactNode;
+	/** A test's or interview's mocks (path-mocks.tsx). */
+	mocks?: ReactNode;
 }
 
 const LEGEND: { key: keyof DeadlineProgress["counts"]; label: string; rate: number | null }[] = [
@@ -57,6 +65,7 @@ export const DeadlineBody = memo(function DeadlineBody(props: DeadlineBodyProps)
 	const past = !d.done && isOverdue(d, nowMs);
 	const tallies = new Map(props.topics.map((t) => [t.id, t]));
 	const share = progressShare(d);
+	const interview = d.kind === "interview";
 	return (
 		<div data-testid="deadline-page" className="@container flex w-full flex-col gap-[22px]">
 			<header className="flex flex-wrap items-center gap-x-6 gap-y-3">
@@ -73,9 +82,11 @@ export const DeadlineBody = memo(function DeadlineBody(props: DeadlineBodyProps)
 						<span className="text-[15px] text-ink-2">{progressWords(d) ?? "Not measured yet"}</span>
 					</div>
 				</div>
-				<button type="button" data-testid="deadline-cheat-sheet" onClick={props.onCheatSheet} className="lh-btn shrink-0 text-[15px]">
-					Cheat sheet
-				</button>
+				{!interview && (
+					<button type="button" data-testid="deadline-cheat-sheet" onClick={props.onCheatSheet} className="lh-btn shrink-0 text-[15px]">
+						Cheat sheet
+					</button>
+				)}
 				<button type="button" data-testid="deadline-edit" onClick={props.onEdit} className="lh-btn shrink-0 text-[15px]">
 					Edit deadline
 				</button>
@@ -85,21 +96,36 @@ export const DeadlineBody = memo(function DeadlineBody(props: DeadlineBodyProps)
 
 			<div className="flex flex-col items-start gap-5 @4xl:flex-row">
 				<div className="flex w-full min-w-0 flex-1 flex-col gap-5">
+					{props.about}
 					{props.homework}
-					<CoversSheet
-						deadline={d}
-						material={props.material}
-						source={props.source}
-						teacherName={props.teacherName}
-						saving={props.saving}
-						onEdit={props.onEdit}
-						onAsk={props.onAsk}
-						onAdd={props.onAdd}
-						onLeaveOut={props.onLeaveOut}
-					/>
+					{!(interview && d.files.length === 0) && (
+						<CoversSheet
+							deadline={d}
+							material={props.material}
+							source={props.source}
+							teacherName={props.teacherName}
+							saving={props.saving}
+							onEdit={props.onEdit}
+							onAsk={props.onAsk}
+							onAdd={props.onAdd}
+							onLeaveOut={props.onLeaveOut}
+						/>
+					)}
 				</div>
 				<div className="w-full @4xl:w-[400px] @4xl:shrink-0">
-					<PathSheet deadline={d} plan={props.plan} material={props.material} tallies={tallies} past={past} busy={props.busy} startError={props.startError} onStart={props.onStart} />
+					<PathSheet
+						deadline={d}
+						plan={props.plan}
+						material={props.material}
+						tallies={tallies}
+						past={past}
+						busy={props.busy}
+						startError={props.startError}
+						teacherName={props.teacherName}
+						onStart={props.onStart}
+						onAskGuide={props.onAskGuide}
+						mocks={props.mocks}
+					/>
 				</div>
 			</div>
 		</div>

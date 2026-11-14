@@ -16,14 +16,6 @@ describe("a space's tabs", () => {
 	it("lessons with no space have no files, cheat sheets or deadlines", () => {
 		assert.deepEqual(spaceTabs("none").map((t) => t.label), ["Progress", "Lessons", "Graph"]);
 	});
-	it("a prep has its sheet first, then its mocks, lessons and files", () => {
-		assert.deepEqual(spaceTabs("prep").map((t) => [t.label, t.href, t.count]), [
-			["Prep sheet", "/space", undefined],
-			["Mocks", "/space/mocks", undefined],
-			["Lessons", "/space/lessons", "lessons"],
-			["Files", "/space/files", "files"],
-		]);
-	});
 	it("Progress, Lessons, Files, Cheat sheets and Deadlines show a count", () => {
 		assert.deepEqual(spaceTabs("space").map((t) => t.count), ["studied", "lessons", "files", undefined, "sheets", "deadlines"]);
 	});

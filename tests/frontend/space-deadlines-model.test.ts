@@ -13,11 +13,14 @@ import {
 	deadlineDateLabel,
 	draftChanged,
 	draftFrom,
+	draftFromWaiting,
 	draftProblem,
 	dueLabel,
 	fileDayLabel,
 	filterFiles,
+	KIND_OPTIONS,
 	kindLabel,
+	namePlaceholder,
 	NEW_DEADLINE,
 	toggleFile,
 	updateBody,
@@ -38,14 +41,14 @@ describe("space-deadlines-model", () => {
 
 	it("an unchanged draft sends nothing and is not a change", () => {
 		assert.deepEqual(updateBody(MIDTERM, draftFrom(MIDTERM)), {});
-		assert.equal(draftChanged(MIDTERM, draftFrom(MIDTERM)), false);
-		assert.equal(draftChanged(null, NEW_DEADLINE), false);
+		assert.equal(draftChanged(MIDTERM, draftFrom(MIDTERM), draftFrom(MIDTERM)), false);
+		assert.equal(draftChanged(null, NEW_DEADLINE, NEW_DEADLINE), false);
 	});
 
 	it("an edited deadline sends only the changed fields, with the name trimmed", () => {
 		const d = { ...draftFrom(MIDTERM), name: " Midterm A ", kind: "quiz" as const, fileIds: ["f2", "f1", "f3"] };
 		assert.deepEqual(updateBody(MIDTERM, d), { kind: "quiz", name: "Midterm A", fileIds: ["f2", "f1", "f3"] });
-		assert.equal(draftChanged(MIDTERM, d), true);
+		assert.equal(draftChanged(MIDTERM, d, draftFrom(MIDTERM)), true);
 	});
 
 	it("a cleared time sends null; done and undone send done", () => {
@@ -60,7 +63,25 @@ describe("space-deadlines-model", () => {
 	it("a new deadline sends its fields; no time sends none", () => {
 		assert.deepEqual(addBody(draft({ name: " Quiz 2 ", fileIds: ["f3"], time: "09:30" })), { kind: "quiz", name: "Quiz 2", date: "2026-11-02", time: "09:30", fileIds: ["f3"] });
 		assert.deepEqual(addBody(draft({})), { kind: "quiz", name: "Quiz", date: "2026-11-02", fileIds: [] });
-		assert.equal(draftChanged(null, { ...NEW_DEADLINE, name: "HW" }), true);
+		assert.equal(draftChanged(null, { ...NEW_DEADLINE, name: "HW" }, NEW_DEADLINE), true);
+	});
+
+	it("an interview waiting for its date opens filled in, and is added under its own id with what it's like", () => {
+		const waiting = { id: "ddl_0a1b2c3d4e5f", name: "Onsite interview", aboutFileId: "f_about", fileIds: ["f_guide"] };
+		const seed = draftFromWaiting(waiting);
+		assert.deepEqual(seed, { kind: "interview", name: "Onsite interview", date: "", time: "", fileIds: ["f_guide"], done: false });
+		assert.equal(draftChanged(null, seed, seed), false, "opening it is not a change");
+		const dated = { ...seed, date: "2026-11-24", time: "14:00" };
+		assert.equal(draftChanged(null, dated, seed), true);
+		assert.deepEqual(addBody(dated, waiting), { id: "ddl_0a1b2c3d4e5f", kind: "interview", name: "Onsite interview", date: "2026-11-24", time: "14:00", fileIds: ["f_guide"], aboutFileId: "f_about" });
+		assert.deepEqual(addBody(dated, { ...waiting, aboutFileId: undefined }), { id: "ddl_0a1b2c3d4e5f", kind: "interview", name: "Onsite interview", date: "2026-11-24", time: "14:00", fileIds: ["f_guide"] });
+	});
+
+	it("Interview is the fifth kind, with its own example name", () => {
+		assert.deepEqual(KIND_OPTIONS.map((o) => o.label), ["Exam", "Homework", "Quiz", "Project", "Interview"]);
+		assert.equal(kindLabel("interview"), "Interview");
+		assert.equal(namePlaceholder("interview"), "Onsite interview");
+		assert.equal(namePlaceholder("homework"), "Homework 5");
 	});
 
 	it("changedFields: only fields that differ by value", () => {

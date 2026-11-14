@@ -12,12 +12,12 @@ export function clockText(d: Date): string {
 }
 
 /** Pages that belong to no space: Menu lights up for them. */
-const MENU_PAGES = new Set(["/settings", "/archived", "/prep"]);
+const MENU_PAGES = new Set(["/settings", "/archived"]);
 
 /**
  * The lit tab: "today", a space's id, or "menu" for the pages only the
- * Menu reaches (Settings, Archived spaces, Prepare for something, lessons
- * with no space, an archived space). Every other page shows the window's space.
+ * Menu reaches (Settings, Archived spaces, lessons with no space, an
+ * archived space). Every other page shows the window's space.
  */
 export function selectedTab(pathname: string, active: string | null, tabIds: readonly string[]): string {
 	if (pathname === "/") return "today";

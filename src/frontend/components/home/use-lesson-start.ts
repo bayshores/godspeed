@@ -7,14 +7,13 @@ import { holdStartFiles } from "@/frontend/components/lesson/start-files";
 const LESSON_START_FAILED = "Couldn't start the lesson. Try again.";
 
 /** What a start sends POST /api/chats: a typed topic (its title and any
- *  facts picked for it), some space topics, topics of a prep's sheet, one
- *  question of a mock, or a deadline. On picked
+ *  facts picked for it), some space topics, one question of a mock, or a
+ *  deadline. On picked
  *  facts with no title, topics or a deadline the server picks the
  *  session's topics and writes its title. */
 type StartBody =
 	| { title: string; graphContext?: { propositions: readonly GraphContextPick[] } }
 	| { topicIds: readonly string[] }
-	| { prepTopicIds: readonly string[] }
 	| { mockQuestion: { mockId: string; questionId: string } }
 	| { deadlineId: string; homework?: true };
 
@@ -75,9 +74,6 @@ export function useLessonStart() {
 		[post],
 	);
 
-	/** Study topics of a prep's sheet; none = the ones that most need work. */
-	const studyPrep = useCallback((prepTopicIds: readonly string[], spaceId?: string) => post({ prepTopicIds }, [], spaceId), [post]);
-
 	/** Go over one question of a graded mock. */
 	const goOverMock = useCallback((mockId: string, questionId: string, spaceId: string) => post({ mockQuestion: { mockId, questionId } }, [], spaceId), [post]);
 
@@ -133,7 +129,6 @@ export function useLessonStart() {
 	return {
 		start,
 		studyTopics,
-		studyPrep,
 		goOverMock,
 		studyDeadline,
 		continueStopped,

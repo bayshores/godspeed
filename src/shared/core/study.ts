@@ -15,7 +15,7 @@ import { dateInName } from "./file-series.ts";
 import { createTree } from "./plan-tree.ts";
 import { localDay } from "./today-note.ts";
 
-export interface StudyTopic {
+interface StudyTopic {
 	/** The plan node id: the space topic's id, or FREE_TOPIC_ID. */
 	id: string;
 	name: string;
@@ -32,7 +32,7 @@ export interface StudyTopic {
 export const FREE_TOPIC_ID = "topic";
 
 /** A weak topic whose newest answer was not right: taught first again. */
-export const isLatestWrong = (status: TopicStatus, latest: AnswerOutcome | undefined) => status === "weak" && latest !== "right";
+const isLatestWrong = (status: TopicStatus, latest: AnswerOutcome | undefined) => status === "weak" && latest !== "right";
 
 type StudiedTopic = Pick<TopicProgress, "id" | "name" | "members" | "material" | "status" | "answers">;
 

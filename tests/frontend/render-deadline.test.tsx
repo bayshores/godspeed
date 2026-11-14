@@ -3,8 +3,8 @@
  * the topic strip and its counts, What's on it (days by week, the
  * days before it that it doesn't cover with Add and Leave out, the source,
  * Add files and Ask) and the path with Study, plus the done, past,
- * due-today, nothing-linked and nothing-to-plan states; and a homework's
- * Problems sheet.
+ * due-today, nothing-linked and nothing-to-plan states; a homework's
+ * Problems sheet; an interview, What it's like, and a deadline's mocks.
  */
 import React from "react";
 (globalThis as Record<string, unknown>).React = React;
@@ -79,6 +79,7 @@ function render(d: DeadlineProgress = deadline(), over: Partial<React.ComponentP
 				teacherName="marco"
 				saving={false}
 				onAsk={() => {}}
+				onAskGuide={() => {}}
 				onAdd={() => {}}
 				onLeaveOut={() => {}}
 				onCheatSheet={() => {}}
@@ -241,5 +242,102 @@ describe("a homework's Problems sheet", () => {
 
 	it("shows in the page's homework slot", () => {
 		assert.match(render(deadline(), { homework: <p>slot</p> }), /<p>slot<\/p>/);
+	});
+});
+
+// ─── Interviews, What it's like, mocks ──────────────────────────────────────
+
+const { AboutSheet } = await import("../../src/frontend/components/deadline/about-sheet.tsx");
+const { PathMocks } = await import("../../src/frontend/components/deadline/path-mocks.tsx");
+type Summary = React.ComponentProps<typeof PathMocks>["mocks"];
+
+const about = (state: React.ComponentProps<typeof AboutSheet>["about"]) => <AboutSheet about={state} teacherName="marco" onAsk={() => {}} onRetry={() => {}} />;
+
+const MOCKS: NonNullable<Summary> = [
+	{ id: "mock_2", n: 2, state: "graded", format: { questions: 5 }, createdAt: "2026-11-01T09:00:00.000Z", endedAt: "2026-11-01T10:00:00.000Z", solved: 4, working: false },
+	{ id: "mock_1", n: 1, state: "graded", format: { questions: 5, minutes: 45 }, createdAt: "2026-10-30T09:00:00.000Z", endedAt: "2026-10-30T09:40:00.000Z", solved: 2, working: false },
+];
+
+function mocks(over: Partial<React.ComponentProps<typeof PathMocks>> = {}) {
+	return (
+		<PathMocks spaceId="spc_1" mocks={MOCKS} failed={false} done={false} offReason={null} nowMs={NOW} onRetry={() => {}} onWrite={async () => null} onRemove={async () => null} {...over} />
+	);
+}
+
+const interview = (over: Partial<DeadlineProgress> = {}) =>
+	deadline({ id: "onsite", kind: "interview", name: "Onsite interview", files: [], topics: [], topicIds: [], ready: null, counts: { strong: 0, shaky: 0, weak: 0, untested: 0 }, ...over });
+
+describe("an interview's page", () => {
+	it("has no cheat sheet, puts What it's like first, and has no What's on it until files are linked", () => {
+		const html = render(interview(), { about: about({ state: "ready", text: "Two rounds of **45 minutes**." }) });
+		assert.match(html, /data-testid="deadline-when"[^>]*>Interview, Friday Nov 6, 7:00 PM</);
+		assert.ok(!html.includes('data-testid="deadline-cheat-sheet"'));
+		assert.ok(!html.includes('data-testid="deadline-material"'));
+		assert.match(html, /data-testid="deadline-about".*>What it&#x27;s like<.*Two rounds of .*45 minutes.*data-testid="deadline-about-ask"[^>]*lh-btn-quiet[^>]*>Ask marco to rewrite</);
+		assert.ok(html.indexOf("deadline-about") < html.indexOf("deadline-path"), "left column first");
+	});
+	it("with nothing to plan from, says so and offers to ask for a study guide", () => {
+		const html = render(interview());
+		assert.match(html, /data-testid="deadline-path-note"[^>]*>Nothing is planned yet\. A plan needs study files, and the posting only tells marco about the interview\.</);
+		assert.match(html, /data-testid="deadline-ask-guide"[^>]*>.*Ask marco for a study guide</);
+		assert.doesNotMatch(html, /data-testid="deadline-ask-guide"[^>]*lh-btn-main/);
+	});
+	it("with files linked, What's on it shows but checks no class days before it", () => {
+		const html = render(interview({ files: [{ id: "d1", name: "2026-10-26 Day1.pdf" }] }));
+		assert.match(html, /data-testid="deadline-material"/);
+		assert.ok(!html.includes("deadline-all-accounted"));
+		assert.ok(!html.includes("deadline-not-included"));
+	});
+	it("once a study guide has facts, Path plans it like an exam", () => {
+		const html = render(interview({ files: [{ id: "d1", name: "Study guide.md" }], topics: TOPICS, topicIds: TOPICS.map((t) => t.id) }));
+		assert.ok(!html.includes("deadline-ask-guide"));
+		assert.match(html, /data-testid="deadline-start"[^>]*lh-btn-main/);
+	});
+});
+
+describe("What it's like", () => {
+	it("holds its place while it loads, and offers Try again when it couldn't be read", () => {
+		assert.match(renderToStaticMarkup(about({ state: "loading" })), /<div class="h-24 w-full bg-tone" aria-hidden="true">/);
+		const failed = renderToStaticMarkup(about({ state: "failed" }));
+		assert.match(failed, /role="alert".*Couldn&#x27;t load what it&#x27;s like\..*data-testid="deadline-about-retry"/);
+		assert.match(failed, /Ask marco to rewrite/);
+	});
+	it("shows only on a deadline that has one", () => {
+		assert.ok(!render(deadline()).includes("deadline-about"));
+	});
+});
+
+describe("a deadline's mocks", () => {
+	it("Take a mock sits under Study, quiet, then every mock newest first with how it went", () => {
+		const html = render(deadline(), { mocks: mocks() });
+		assert.match(html, /data-testid="deadline-start"[^>]*lh-btn-main[^]*data-testid="deadline-mocks"/);
+		assert.match(html, /data-testid="deadline-mock-take"[^>]*>Take a mock</);
+		assert.doesNotMatch(html, /data-testid="deadline-mock-take"[^>]*lh-btn-main/);
+		assert.deepEqual([...html.matchAll(/data-testid="deadline-mock-(mock_\d)"/g)].map((m) => m[1]), ["mock_2", "mock_1"]);
+		assert.match(html, /href="\/space\/mock\/spc_1\/mock_2".*>Mock 2<.*>Nov 1<.*data-testid="deadline-mock-line"[^>]*>4 of 5 right<.*<svg/);
+		assert.match(html, /aria-label="Remove Mock 2"/);
+	});
+	it("is off with its reason when there is nothing to write one from", () => {
+		const html = renderToStaticMarkup(mocks({ mocks: [], offReason: "A mock is written from this deadline's study files or from what it's like, and it has neither yet." }));
+		assert.match(html, /data-testid="deadline-mock-take"[^>]*disabled=""/);
+		assert.match(html, /data-testid="deadline-mock-off"[^>]*>A mock is written from this deadline&#x27;s study files/);
+		assert.ok(!html.includes("deadline-mock-list"), "no list before the first mock");
+	});
+	it("an open mock is continued, paused ones say their time left", () => {
+		const paused = { id: "mock_3", n: 3, state: "paused" as const, format: { questions: 5, minutes: 45 }, createdAt: "2026-11-02T09:00:00.000Z", paused: { at: "2026-11-02T09:20:00.000Z", left: 31 * 60 + 9 }, working: false };
+		const html = renderToStaticMarkup(<MemoryRouter>{mocks({ mocks: [paused, ...MOCKS], offReason: "unused" })}</MemoryRouter>);
+		assert.match(html, /data-testid="deadline-mock-continue"[^>]*href="\/space\/mock\/spc_1\/mock_3"[^>]*>Continue Mock 3</);
+		assert.ok(!html.includes("deadline-mock-take") && !html.includes("deadline-mock-off"));
+		assert.match(html, />Paused, 31:09 left</);
+	});
+	it("a done deadline takes no new mock but keeps its list; one still loading waits; one that failed offers Try again", () => {
+		const done = renderToStaticMarkup(<MemoryRouter>{mocks({ done: true })}</MemoryRouter>);
+		assert.ok(!done.includes("deadline-mock-take"));
+		assert.match(done, /data-testid="deadline-mock-list"/);
+		assert.match(renderToStaticMarkup(mocks({ mocks: null })), /data-testid="deadline-mock-take"[^>]*disabled=""/);
+		assert.match(renderToStaticMarkup(mocks({ mocks: null, failed: true })), /role="alert".*Couldn&#x27;t load the mocks\..*data-testid="deadline-mocks-retry"/);
+	});
+	it("homework has no mocks slot filled, so none show", () => {
+		assert.ok(!render(deadline({ kind: "homework" })).includes("deadline-mocks"));
 	});
 });

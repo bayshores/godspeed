@@ -11,16 +11,14 @@ import { useLessonList } from "@/frontend/components/lessons/use-lesson-list";
 import { useOpenDeadlines } from "@/frontend/components/use-open-deadlines";
 import { useProgress } from "@/frontend/components/use-progress";
 import { cn } from "@/frontend/lib/utils";
-import { longDay } from "@/frontend/components/home-page/home-page-model";
 import { HeadSignature } from "./head-signature";
 import { spaceTabs, sheetCount, studiedShare, tabCount, type TabCounts } from "./space-head-model";
 
 /**
  * The head of every space page: the space's color bar and name, its
  * signature inked as far as its facts are studied, then the tabs with
- * their counts and "Edit space" at the end of their row. A prep shows its
- * day beside its name and has its own tabs. With no space picked it names
- * the lessons that belong to none.
+ * their counts and "Edit space" at the end of their row. With no space
+ * picked it names the lessons that belong to none.
  */
 export function SpaceHead() {
 	const { pathname } = useLocation();
@@ -40,16 +38,11 @@ export function SpaceHead() {
 				<p data-testid="space-head-name" title={activeSpace?.name} className="min-w-0 flex-1 truncate text-[38px] leading-[1.2] text-ink">
 					{activeSpace?.name ?? "Lessons with no space"}
 				</p>
-				{activeSpace?.prep?.date && (
-					<p data-testid="prep-head-date" className="shrink-0 bg-highlight px-2.5 py-1 font-count text-[17px] text-ink">
-						{longDay(activeSpace.prep.date)}
-					</p>
-				)}
 				{activeSpace?.signature && <HeadSignature signature={activeSpace.signature} share={share} />}
 			</div>
 			<div className="mt-[22px] flex items-center shadow-[inset_0_-2px_0_var(--border)]">
 				<nav aria-label={activeSpace?.name ?? "Lessons with no space"} className="flex min-w-0 flex-1 gap-1.5 overflow-x-auto">
-					{spaceTabs(activeSpace?.prep ? "prep" : activeSpace ? "space" : "none").map((t) => {
+					{spaceTabs(activeSpace ? "space" : "none").map((t) => {
 						const selected = t.href === pathname;
 						const count = tabCount(t, counts);
 						return (
@@ -80,7 +73,7 @@ export function SpaceHead() {
 				</nav>
 				{activeSpace && (
 					<button type="button" data-testid="space-edit" onClick={() => setEditing(activeSpace.id)} className="lh-btn lh-btn-quiet shrink-0 text-[15px]">
-						{activeSpace.prep ? "Edit prep" : "Edit space"}
+						Edit space
 					</button>
 				)}
 			</div>

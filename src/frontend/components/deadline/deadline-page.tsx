@@ -14,16 +14,21 @@ import { useLessonStart } from "@/frontend/components/home/use-lesson-start";
 import { LoadFailed } from "@/frontend/components/load-failed";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { useProgress } from "@/frontend/components/use-progress";
+import { AboutSheet } from "./about-sheet";
 import { DeadlineBody } from "./deadline-body";
 import { HomeworkCard } from "./homework-card";
-import { coverageMessage, deadlineMaterial } from "./deadline-model";
+import { aboutMessage, coverageMessage, deadlineMaterial, guideMessage } from "./deadline-model";
+import { mockOffReason, takesMocks } from "./mocks-model";
+import { PathMocks } from "./path-mocks";
+import { useDeadlineAbout } from "./use-deadline-about";
+import { useDeadlineMocks } from "./use-deadline-mocks";
 
 /**
  * A deadline's page, opened from its row on Today, the space's Deadlines
  * tab or its Progress tab. The page makes the deadline's space the active
  * one (Today lists every space); switching space afterwards goes to that
  * space. Study works on today's topics (all its topics once every one is
- * strong).
+ * strong). A test or interview also has its mocks.
  */
 export function DeadlinePage({ spaceId, deadlineId }: { spaceId: string; deadlineId: string }) {
 	const navigate = useNavigate();
@@ -101,9 +106,18 @@ export function DeadlinePage({ spaceId, deadlineId }: { spaceId: string; deadlin
 	const onStart = useCallback(() => {
 		if (deadline) void studyDeadline(deadline);
 	}, [deadline, studyDeadline]);
+	const spaceName = activeSpace?.name ?? "space";
 	const onAsk = useCallback(() => {
-		if (deadline) askTeacher(coverageMessage(activeSpace?.name ?? "space", { name: deadline.name, when: dueLabel(deadline.date, deadline.time) }));
-	}, [deadline, activeSpace?.name]);
+		if (deadline) askTeacher(coverageMessage(spaceName, { name: deadline.name, when: dueLabel(deadline.date, deadline.time) }));
+	}, [deadline, spaceName]);
+	const onAskGuide = useCallback(() => {
+		if (deadline) askTeacher(guideMessage(spaceName, deadline.name));
+	}, [deadline, spaceName]);
+
+	const aboutFile = record?.files.find((f) => f.id === saved?.aboutFileId);
+	const { about, reload: reloadAbout } = useDeadlineAbout(spaceId, deadlineId, aboutFile ? `${aboutFile.id}:${aboutFile.contentFp}` : null);
+	const withMocks = !!deadline && takesMocks(deadline.kind);
+	const mocks = useDeadlineMocks(spaceId, withMocks ? deadlineId : null);
 
 	// The dialog compares its mode by identity: one object per open.
 	const files = record?.files;
@@ -136,9 +150,26 @@ export function DeadlinePage({ spaceId, deadlineId }: { spaceId: string; deadlin
 						teacherName={teacherName}
 						saving={saving}
 						onAsk={onAsk}
+						onAskGuide={onAskGuide}
 						onAdd={(ids) => saveFiles(ids, true)}
 						onLeaveOut={(ids) => saveFiles(ids, false)}
 						onCheatSheet={() => navigate(studioPath(deadlineId))}
+						about={about && <AboutSheet about={about} teacherName={teacherName} onAsk={() => askTeacher(aboutMessage(spaceName, deadline.name))} onRetry={reloadAbout} />}
+						mocks={
+							withMocks && (
+								<PathMocks
+									spaceId={spaceId}
+									mocks={mocks.mocks}
+									failed={mocks.failed}
+									done={deadline.done}
+									offReason={mockOffReason(deadline.topics.length > 0, !!saved?.aboutFileId)}
+									nowMs={nowMs}
+									onRetry={() => void mocks.reload()}
+									onWrite={mocks.write}
+									onRemove={mocks.remove}
+								/>
+							)
+						}
 						homework={
 							hasProblems(deadline.kind) && (
 								<HomeworkCard

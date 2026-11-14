@@ -9,7 +9,7 @@ import {
 	laterLine,
 	longDay,
 	todayLists,
-	mainRowKey,
+	mainRowId,
 	todayRow,
 	type SpacesProgress,
 } from "../../src/frontend/components/home-page/home-page-model.ts";
@@ -142,6 +142,11 @@ describe("todayRow", () => {
 		assert.deepEqual(todayRow(quiz, undefined, NOW), { title: "Study for Quiz 3", line: "CSE 21, the quiz is today at 5:00 PM", button: "Start" });
 	});
 
+	it("an interview: Study for it, and when the interview is", () => {
+		const onsite = d("Onsite interview", "interview", "2026-11-17", { time: "14:00", spaceName: "Larkspur" });
+		assert.deepEqual(todayRow(onsite, undefined, NOW), { title: "Study for Onsite interview", line: "Larkspur, the interview is on Tuesday at 2:00 PM", button: "Start" });
+	});
+
 	it("a session at a stop says what is next; one in the middle of a topic names it", () => {
 		const mid = d("Midterm", "exam", "2026-11-17", { spaceName: "Machine Learning Foundations" });
 		const stopped = todayRow(mid, progress({ continueStudy: { chatId: "c", done: 1, total: 3, stop: { at: "2026-11-11T21:48:00.000Z", next: "Cross-validation" } } }), NOW);
@@ -187,39 +192,37 @@ describe("laterLine", () => {
 	});
 });
 
-describe("mainRowKey: one dark button on Today", () => {
+describe("mainRowId: one dark button on Today", () => {
 	const at = (day: string) => new Date(`${day}T12:00:00`).toISOString();
 	const today = localDay(NOW);
 	const quiz = d("Quiz 3", "quiz", "2026-11-12", { id: "quiz" });
 	const hw = d("PS4", "homework", "2026-11-13", { id: "hw" });
 	const mid = d("Midterm", "exam", "2026-11-17", { id: "mid" });
-	const items = [{ deadline: quiz }, { deadline: hw }, { deadline: mid }];
-	const prep = { spaceId: "spc", name: "Phone screen", date: "2026-11-12", color: 2 as const };
+	const items = [quiz, hw, mid];
 	const stopped = (day: string) => new Map([["mid", progress({ continueStudy: { chatId: "c", done: 1, total: 3, stop: { at: at(day), next: "Cross-validation" } } })]]);
 
-	it("the soonest row, a prep included", () => {
-		assert.equal(mainRowKey(items, new Map(), NOW), "quiz");
-		assert.equal(mainRowKey([{ prep }, ...items], new Map(), NOW), "prep:spc");
-		assert.equal(mainRowKey([], new Map(), NOW), null);
+	it("the soonest row", () => {
+		assert.equal(mainRowId(items, new Map(), NOW), "quiz");
+		assert.equal(mainRowId([], new Map(), NOW), null);
 	});
 
 	it("a session stopped before today takes it; one stopped today never does", () => {
-		assert.equal(mainRowKey(items, stopped("2026-11-01"), NOW), "mid");
-		assert.equal(mainRowKey(items, stopped(today), NOW), "quiz");
-		assert.equal(mainRowKey([{ deadline: mid }, { deadline: hw }], stopped(today), NOW), "hw", "the stopped row stays soft that day");
+		assert.equal(mainRowId(items, stopped("2026-11-01"), NOW), "mid");
+		assert.equal(mainRowId(items, stopped(today), NOW), "quiz");
+		assert.equal(mainRowId([mid, hw], stopped(today), NOW), "hw", "the stopped row stays soft that day");
 	});
 
 	it("a session that ended today stays soft", () => {
-		assert.equal(mainRowKey([{ deadline: mid }, { deadline: hw }], new Map([["mid", progress({ studyEndedToday: true })]]), NOW), "hw");
+		assert.equal(mainRowId([mid, hw], new Map([["mid", progress({ studyEndedToday: true })]]), NOW), "hw");
 	});
 
 	it("a session that ended today takes it again once today's plan has a topic", () => {
 		const topics = [{ id: "a", name: "a", rate: 0.2 }];
-		assert.equal(mainRowKey([{ deadline: mid }, { deadline: hw }], new Map([["mid", progress({ studyEndedToday: true, topics })]]), NOW), "mid");
+		assert.equal(mainRowId([mid, hw], new Map([["mid", progress({ studyEndedToday: true, topics })]]), NOW), "mid");
 	});
 
 	it("a lone row that stopped or ended today stays soft", () => {
-		assert.equal(mainRowKey([{ deadline: mid }], stopped(today), NOW), null);
-		assert.equal(mainRowKey([{ deadline: mid }], new Map([["mid", progress({ studyEndedToday: true })]]), NOW), null);
+		assert.equal(mainRowId([mid], stopped(today), NOW), null);
+		assert.equal(mainRowId([mid], new Map([["mid", progress({ studyEndedToday: true })]]), NOW), null);
 	});
 });

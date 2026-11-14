@@ -111,7 +111,8 @@ export function CoversSheet({
 						</div>
 					)}
 					<span className={RULE} />
-					{m.notIncluded.length === 0 && (
+					{/* An interview's files aren't class days, so nothing is checked. */}
+					{m.notIncluded.length === 0 && d.kind !== "interview" && (
 						<p data-testid="deadline-all-accounted" className="flex items-center gap-2.5 text-[15px] text-ink-2">
 							<DayMark state="ready" open={false} />
 							Every day {before} is on it or left out.

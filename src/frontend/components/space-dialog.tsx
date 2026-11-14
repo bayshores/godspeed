@@ -160,8 +160,6 @@ function SpaceDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 		</p>
 	);
 
-	// A prep is a space under its own name.
-	const noun = record?.prep ? "prep" : "space";
 	if (asking === "delete" && record) {
 		return (
 			<DialogSheet
@@ -178,13 +176,13 @@ function SpaceDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 							Cancel
 						</button>
 						<button type="button" data-testid="space-delete-confirm-button" disabled={busy} onClick={() => void remove(record)} className="lh-btn lh-btn-danger text-[15px]">
-							Delete {noun}
+							Delete space
 						</button>
 					</>
 				}
 			>
 				<p data-testid="space-delete-confirm" className="text-lg text-ink">
-					This permanently removes the {noun}, all its lessons, {record.prep ? "its mocks, " : ""}its copied files, and its knowledge graph. A linked folder on your computer is not touched. This cannot be undone.
+					This permanently removes the space, all its lessons, its copied files, and its knowledge graph. A linked folder on your computer is not touched. This cannot be undone.
 				</p>
 				{errorLine}
 			</DialogSheet>
@@ -194,7 +192,7 @@ function SpaceDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 	const editing = mode.kind === "edit" && record;
 	return (
 		<DialogSheet
-			title={mode.kind === "create" ? "Add a space" : `Edit ${noun}`}
+			title={mode.kind === "create" ? "Add a space" : "Edit space"}
 			state={state}
 			testid="space-dialog"
 			busy={busy}
@@ -221,7 +219,7 @@ function SpaceDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 									{editing.archived ? "Unarchive" : "Archive"}
 								</button>
 								<button type="button" data-testid="space-delete" disabled={busy} onClick={() => setAsking("delete")} className="lh-btn lh-btn-quiet text-[15px] text-ans-wrong hover:text-ans-wrong-hover">
-									Delete {noun}
+									Delete space
 								</button>
 							</>
 						)}
@@ -234,7 +232,7 @@ function SpaceDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 			}
 		>
 			{loadFailed ? (
-				<LoadFailed message={`Couldn't load this ${noun}.`} onRetry={() => void reload()} />
+				<LoadFailed message="Couldn't load this space." onRetry={() => void reload()} />
 			) : loading ? (
 				// As tall as the fields, so the dialog doesn't jump when the space arrives.
 				<p data-testid="space-dialog-loading" className="flex min-h-[420px] items-center justify-center text-[15px] text-ink-2">
@@ -270,11 +268,11 @@ function SpaceDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 			)}
 			{editing && (
 				<>
-					<SpaceIconField icon={icon} agentPicks={!editing.prep} disabled={busy} onChange={setIcon} />
+					<SpaceIconField icon={icon} disabled={busy} onChange={setIcon} />
 					<SpaceColorField color={color} disabled={busy} onChange={setColor} />
-					{!editing.prep && <SpaceSignatureField kind={signature.kind} value={signature.value} disabled={busy} onChange={(kind, value) => setSignature({ kind, value })} />}
+					<SpaceSignatureField kind={signature.kind} value={signature.value} disabled={busy} onChange={(kind, value) => setSignature({ kind, value })} />
 					<div className="flex flex-col gap-1.5">
-						<span className={LABEL_TEXT}>Rules for this {noun}</span>
+						<span className={LABEL_TEXT}>Rules for this space</span>
 						<span className="text-base text-ink-2">Added to your rules in every {editing.name} lesson</span>
 						<RuleChips rules={rules} onChange={setRules} testid="space-rules" saved={savedTimes(savedRules, { spaceId: editing.id })} teacherName={teacherName} />
 					</div>

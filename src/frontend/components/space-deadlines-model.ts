@@ -4,7 +4,7 @@
  * differs from the deadline it opened with, so an agent's change made
  * meanwhile is never undone. Pure and unit-tested.
  */
-import { clockLabel as coreClockLabel, dateInName, dayLabel, isCalendarDate, isClockTime, type SpaceDeadline, type DeadlineKind } from "@/shared/core";
+import { clockLabel as coreClockLabel, dateInName, dayLabel, isCalendarDate, isClockTime, type SpaceDeadline, type DeadlineKind, type WaitingDeadline } from "@/shared/core";
 
 export interface DeadlineDraft {
 	kind: DeadlineKind;
@@ -23,7 +23,13 @@ export const KIND_OPTIONS: readonly { kind: DeadlineKind; label: string }[] = [
 	{ kind: "homework", label: "Homework" },
 	{ kind: "quiz", label: "Quiz" },
 	{ kind: "project", label: "Project" },
+	{ kind: "interview", label: "Interview" },
 ];
+
+/** The Name field's example for each kind. */
+export function namePlaceholder(kind: DeadlineKind): string {
+	return kind === "interview" ? "Onsite interview" : "Homework 5";
+}
 
 /** "homework" → "Homework". */
 export function kindLabel(kind: DeadlineKind): string {
@@ -37,6 +43,11 @@ export function draftFrom(d: SpaceDeadline): DeadlineDraft {
 	return { kind: d.kind, name: d.name, date: d.date, time: d.time ?? "", fileIds: [...d.fileIds], done: d.done };
 }
 
+/** What "Add the date" opens with: the interview waiting for its date. */
+export function draftFromWaiting(w: WaitingDeadline): DeadlineDraft {
+	return { ...NEW_DEADLINE, kind: "interview", name: w.name, fileIds: [...w.fileIds] };
+}
+
 /** Why the draft can't be saved, as a message; null when it can. */
 export function draftProblem(d: DeadlineDraft): string | null {
 	if (d.name.trim() === "") return "A deadline needs a name.";
@@ -46,11 +57,14 @@ export function draftProblem(d: DeadlineDraft): string | null {
 }
 
 interface DeadlineAddBody {
+	/** A waiting deadline's id, so what was tied to it stays tied. */
+	id?: string;
 	kind: DeadlineKind;
 	name: string;
 	date: string;
 	time?: string;
 	fileIds: string[];
+	aboutFileId?: string;
 }
 
 interface DeadlineUpdateBody {
@@ -78,9 +92,18 @@ export function changedFields<T extends object>(seeded: T, now: T): Partial<T> {
 	return changed;
 }
 
-/** What POST sends for a new deadline. */
-export function addBody(d: DeadlineDraft): DeadlineAddBody {
-	return { kind: d.kind, name: d.name.trim(), date: d.date, ...(d.time !== "" ? { time: d.time } : {}), fileIds: [...d.fileIds] };
+/** What POST sends for a new deadline; one that was waiting for its date
+ *  keeps its id and what it's like. */
+export function addBody(d: DeadlineDraft, waiting?: WaitingDeadline): DeadlineAddBody {
+	return {
+		...(waiting ? { id: waiting.id } : {}),
+		kind: d.kind,
+		name: d.name.trim(),
+		date: d.date,
+		...(d.time !== "" ? { time: d.time } : {}),
+		fileIds: [...d.fileIds],
+		...(waiting?.aboutFileId ? { aboutFileId: waiting.aboutFileId } : {}),
+	};
 }
 
 /** What PUT sends: only the fields that differ from the saved deadline
@@ -98,9 +121,9 @@ export function updateBody(saved: SpaceDeadline, d: DeadlineDraft): DeadlineUpda
 }
 
 /** The learner changed something since the dialog opened (`saved`: the
- *  deadline being edited, null for a new one). */
-export function draftChanged(saved: SpaceDeadline | null, d: DeadlineDraft): boolean {
-	return saved ? Object.keys(updateBody(saved, d)).length > 0 : Object.keys(changedFields(NEW_DEADLINE, d)).length > 0;
+ *  deadline being edited, null for a new one opened with `seed`). */
+export function draftChanged(saved: SpaceDeadline | null, d: DeadlineDraft, seed: DeadlineDraft): boolean {
+	return saved ? Object.keys(updateBody(saved, d)).length > 0 : Object.keys(changedFields(seed, d)).length > 0;
 }
 
 /** "2026-10-29" → "Thu Oct 29" (a calendar date: no time zone shifts);

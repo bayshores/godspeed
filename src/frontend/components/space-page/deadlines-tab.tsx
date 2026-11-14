@@ -16,11 +16,12 @@ import { useOpenDeadlines } from "@/frontend/components/use-open-deadlines";
 import { useProgress } from "@/frontend/components/use-progress";
 import { cn } from "@/frontend/lib/utils";
 import { DeadlineDialog } from "./deadline-dialog";
+import { WaitingDeadline } from "./waiting-deadline";
 import { deadlineLine, deadlineLists } from "./deadlines-tab-model";
 
 /**
- * The space's deadlines: "Coming up" with "Add a deadline", then "Done or
- * past". A row opens the deadline's page; "Mark done" and "Undo" work in
+ * The space's deadlines: "Coming up" with "Add a deadline" (and an
+ * interview still waiting for its date), then "Done or past". A row opens the deadline's page; "Mark done" and "Undo" work in
  * place.
  */
 export function DeadlinesTab() {
@@ -63,6 +64,7 @@ export function DeadlinesTab() {
 						Add a deadline
 					</button>
 				</div>
+				<WaitingDeadline record={record} />
 				{!record && failed ? (
 					<LoadFailed message="Couldn't load this space's deadlines." onRetry={() => void reload()} />
 				) : lists && lists.coming.length === 0 ? (

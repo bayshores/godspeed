@@ -1,5 +1,5 @@
 /** A mock's words and counts on its pages. Pure. */
-import { isMockLanguage, secondsLeft, starterCode, type CodeQuestion, type ExampleRun, type Mock, type MockAnswer, type MockLanguage, type MockQuestion, type MockSummary, type MockVerdict } from "@/shared/core";
+import { isMockLanguage, secondsLeft, starterCode, type CodeQuestion, type ExampleRun, type Mock, type MockAnswer, type MockFormat, type MockLanguage, type MockQuestion, type MockState, type MockSummary, type MockVerdict } from "@/shared/core";
 
 export function mockHref(spaceId: string, mockId: string): string {
 	return `/space/mock/${encodeURIComponent(spaceId)}/${encodeURIComponent(mockId)}`;
@@ -13,45 +13,79 @@ export function clockText(seconds: number): string {
 	return hours > 0 ? `${hours}:${two(Math.floor((s % 3600) / 60))}:${two(s % 60)}` : `${two(Math.floor(s / 60))}:${two(s % 60)}`;
 }
 
+const minutes = (n: number) => `${n} ${n === 1 ? "minute" : "minutes"}`;
+
 /** Time spent on a question: "12 min", "under a minute". */
 export function spentText(seconds: number): string {
 	return seconds < 60 ? "under a minute" : `${Math.round(seconds / 60)} min`;
 }
 
 /** How a graded question went, in the results' words. */
-export const RESULT_WORD: Record<MockVerdict | "blank", string> = { right: "solved", partly: "partly right", wrong: "not solved", blank: "left blank" };
+export const RESULT_WORD: Record<MockVerdict | "blank", string> = { right: "right", partly: "partly right", wrong: "wrong", blank: "left blank" };
 
-/** The prep's unfinished mock, when it has one. */
+/** "5 questions, no time limit", "1 question in 45 minutes". */
+export function formatLine(format: MockFormat): string {
+	const questions = `${format.questions} ${format.questions === 1 ? "question" : "questions"}`;
+	return format.minutes === undefined ? `${questions}, no time limit` : `${questions} in ${minutes(format.minutes)}`;
+}
+
+/** The deadline's unfinished mock, when it has one. */
 export function openMock(mocks: readonly MockSummary[]): MockSummary | undefined {
 	return mocks.find((m) => m.state !== "graded");
 }
 
-/** Where a mock is, in a few words: "2 of 4 solved", "32 min left". */
+/** Where a mock is, in a few words: "4 of 5 right", "32 min left",
+ *  "Paused, 31:12 left". */
 export function mockLine(m: MockSummary, nowMs: number): string {
 	switch (m.state) {
 		case "writing":
 			return m.working ? "being written" : "not written";
 		case "ready":
 			return "ready to start";
-		case "running":
-			return `${Math.ceil(secondsLeft(m, nowMs) / 60)} min left`;
+		case "running": {
+			const left = secondsLeft(m, nowMs);
+			return left === null ? "started" : `${Math.ceil(left / 60)} min left`;
+		}
+		case "paused":
+			return `Paused, ${clockText(m.paused?.left ?? 0)} left`;
 		case "grading":
 			return m.working ? "being graded" : "not graded";
 		case "graded":
-			return `${m.solved ?? 0} of ${m.format.questions} solved`;
+			return `${m.solved ?? 0} of ${m.format.questions} right`;
 	}
 }
 
 /** The button that opens an unfinished mock. */
-export function openMockLabel(m: MockSummary): string {
-	return m.state === "ready" ? `Start Mock ${m.n}` : m.state === "running" ? `Continue Mock ${m.n}` : `Open Mock ${m.n}`;
+export function openMockLabel(m: Pick<MockSummary, "n" | "state">): string {
+	return m.state === "ready" ? `Start Mock ${m.n}` : `Continue Mock ${m.n}`;
 }
 
-/** Under the sheet's mock button: "None taken yet." or how the last one went. */
-export function lastMockLine(mocks: readonly MockSummary[]): string {
-	const graded = mocks.filter((m) => m.state === "graded");
-	const last = graded[graded.length - 1];
-	return last ? `Mock ${last.n}: ${last.solved ?? 0} of ${last.format.questions} solved.` : "None taken yet.";
+/** Under an ended mock's score: "in 32 of 45 minutes", "in 12 minutes". */
+export function usedLine(used: number, format: MockFormat): string {
+	return format.minutes === undefined ? `in ${minutes(used)}` : `in ${used} of ${minutes(format.minutes)}`;
+}
+
+/** The mock ended because its time was up (the server ends it at its end
+ *  time; the window asks at zero, a moment early by the server's clock). */
+export function endedByTime(mock: Pick<Mock, "endsAt" | "endedAt">): boolean {
+	return mock.endsAt !== undefined && mock.endedAt !== undefined && Date.parse(mock.endedAt) >= Date.parse(mock.endsAt) - 2000;
+}
+
+/** What a screen reader hears when a mock changes by itself (the teacher
+ *  wrote or graded it, its time ran out); "" otherwise. */
+export function mockAnnouncement(mock: Mock, state: MockState): string {
+	if (state === "ready") return `Mock ${mock.n} is ready.`;
+	if (state === "grading" && endedByTime(mock)) return `The time is up, so Mock ${mock.n} ended.`;
+	if (state === "graded") return `Mock ${mock.n} is graded.`;
+	return "";
+}
+
+/** "Paused 2 times, 14 minutes in total."; null when it never was. */
+export function pauseLine(total: { times: number; seconds: number }): string | null {
+	if (total.times === 0) return null;
+	const times = total.times === 1 ? "once" : `${total.times} times`;
+	const length = total.seconds < 60 ? "under a minute" : minutes(Math.round(total.seconds / 60));
+	return `Paused ${times}, ${length} in total.`;
 }
 
 /** An example as a call: twoSum([2,7,11,15], 9). */
@@ -69,18 +103,6 @@ export function exampleCall(fn: CodeQuestion["fn"], args: string): string {
 export function exampleLine(run: ExampleRun, expected: string): string {
 	if (run.error !== undefined) return run.error;
 	return run.passed ? `returned ${run.returned}` : `returned ${run.returned}, should be ${expected}`;
-}
-
-/** The topics of a graded mock's questions that weren't right, in question
- *  order, each once. */
-export function fixFirst(mock: Pick<Mock, "questions" | "grades">, topics: ReadonlyArray<{ id: string; name: string }>): Array<{ id: string; name: string }> {
-	const out: Array<{ id: string; name: string }> = [];
-	for (const q of mock.questions) {
-		if (mock.grades?.[q.id]?.verdict === "right") continue;
-		const topic = topics.find((t) => t.id === q.topicId);
-		if (topic && !out.some((o) => o.id === topic.id)) out.push(topic);
-	}
-	return out;
 }
 
 /** Where Submit and Skip go next: the next question after `from` that

@@ -1,6 +1,6 @@
 import { data, useLoaderData, type LoaderFunctionArgs } from "react-router";
 import type { MockView } from "@/shared/core";
-import { MockPage } from "@/frontend/components/prep/mock-page";
+import { MockPage } from "@/frontend/components/mock/mock-page";
 import { PageTitle } from "./page-title";
 
 /** A mock, read before the page shows (GET /api/spaces/[id]/mocks/[mockId]);

@@ -77,6 +77,7 @@ export function goOffer<A extends { page: string; at: string }>(newest: A | unde
 /** The page's name on the "Go to" button. */
 export function pageName(page: string): string {
 	if (page.startsWith("/chat/")) return "lesson";
+	if (page.startsWith("/space/deadline/")) return "deadline";
 	return ({ "/": "Today", "/space": "Progress", "/space/files": "Files", "/graph": "Graph" } as Record<string, string>)[page] ?? "page";
 }
 
@@ -88,5 +89,5 @@ export function parseFollow(raw: string | null): boolean {
 /** Only the app's own pages are ever navigated to (never a raw URL from
  *  the wire). */
 export function safePage(page: string): string | null {
-	return /^\/(?:space(?:\/files)?|graph|chat\/[A-Za-z0-9_-]+)?$/.test(page) ? page : null;
+	return /^\/(?:space(?:\/files|\/deadline\/[A-Za-z0-9_-]+)?|graph|chat\/[A-Za-z0-9_-]+)?$/.test(page) ? page : null;
 }

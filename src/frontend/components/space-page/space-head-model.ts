@@ -14,32 +14,21 @@ interface SpaceTab {
 	count?: keyof TabCounts;
 }
 
-/** What the head is over: a space, a prep, or the lessons with no space. */
-type HeadKind = "space" | "prep" | "none";
-
-const LESSONS: SpaceTab = { href: "/space/lessons", label: "Lessons", testid: "nav-lessons", count: "lessons" };
-const FILES: SpaceTab = { href: "/space/files", label: "Files", testid: "nav-files", count: "files" };
+/** What the head is over: a space, or the lessons with no space. */
+type HeadKind = "space" | "none";
 
 const TABS: readonly (SpaceTab & { spaceOnly?: boolean })[] = [
 	{ href: "/space", label: "Progress", testid: "nav-progress", count: "studied" },
-	LESSONS,
-	{ ...FILES, spaceOnly: true },
+	{ href: "/space/lessons", label: "Lessons", testid: "nav-lessons", count: "lessons" },
+	{ href: "/space/files", label: "Files", testid: "nav-files", count: "files", spaceOnly: true },
 	{ href: "/graph", label: "Graph", testid: "nav-graph" },
 	{ href: "/space/cheat-sheets", label: "Cheat sheets", testid: "nav-cheat-sheets", count: "sheets", spaceOnly: true },
 	{ href: "/space/deadlines", label: "Deadlines", testid: "nav-deadlines", count: "deadlines", spaceOnly: true },
 ];
 
-const PREP_TABS: readonly SpaceTab[] = [
-	{ href: "/space", label: "Prep sheet", testid: "nav-prep-sheet" },
-	{ href: "/space/mocks", label: "Mocks", testid: "nav-mocks" },
-	LESSONS,
-	FILES,
-];
-
 /** The head's tabs. Lessons with no space have no files, cheat sheets or
- *  deadlines; a prep has its sheet in place of Progress. */
+ *  deadlines. */
 export function spaceTabs(kind: HeadKind): readonly SpaceTab[] {
-	if (kind === "prep") return PREP_TABS;
 	return TABS.filter((t) => kind === "space" || !t.spaceOnly);
 }
 
