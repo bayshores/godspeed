@@ -87,11 +87,11 @@ export function jobFrame(worker: string | null, doing: string): FrameWords {
 
 type LiveSpace = Pick<SpaceSummary, "filesLeft" | "building">;
 
-/** The line on a space's row on Today while its files are read; null otherwise. */
+/** The chip on a space's row on Today while its files are read; null otherwise. */
 export function todayWorkLine(space: LiveSpace, worker: string | null): string | null {
 	if (space.filesLeft === 0) return null;
-	if (!worker) return `${files(space.filesLeft)} ${space.filesLeft === 1 ? "is" : "are"} waiting for your agent.`;
-	return `${worker} is ${space.building ? "building this space" : "reading new files"}. ${space.filesLeft} left.`;
+	if (!worker) return `${files(space.filesLeft)} ${space.filesLeft === 1 ? "is" : "are"} waiting for your agent`;
+	return `${worker} is ${space.building ? "building it" : "reading new files"}, ${space.filesLeft} left`;
 }
 
 /** The tag on the space's tab in the top bar. */

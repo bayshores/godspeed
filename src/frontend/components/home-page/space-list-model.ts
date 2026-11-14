@@ -1,6 +1,6 @@
 /** Today's "Your spaces": each open space's topics by status, in words, and the new files its linked folder brought. Pure. */
 import { isNewFolderFile, localDay, rampColor, type ProgressPayload, type SpaceFile, type StatusCounts } from "@/shared/core";
-import { STATUS_LEGEND, joinAnd } from "@/frontend/components/overview/overview-model";
+import { STATUS_LEGEND } from "@/frontend/components/overview/overview-model";
 
 interface Segment {
 	key: keyof StatusCounts;
@@ -11,23 +11,19 @@ interface Segment {
 interface SpaceRowWords {
 	/** The topic bar, strongest first; empty with no topics. */
 	segments: Segment[];
-	/** "9 strong, 3 shaky and 6 not tested.", or why there are no topics yet. */
+	/** "9 strong, 3 shaky, 6 not tested" (the Graph page's words, zeros left out), or why there are no topics yet. */
 	line: string;
-	/** What the teacher is doing with its files, when it is. */
-	work: string | null;
 }
 
-/** A space's row. `work` is its line from todayWorkLine; with no topics
- *  yet it says why on its own. */
-export function spaceRow(progress: Pick<ProgressPayload, "overall" | "files" | "facts"> | undefined, work: string | null): SpaceRowWords {
-	if (!progress) return { segments: [], line: "Couldn't load its progress.", work };
+/** A space's row: its topic bar and the counts, or why it has no topics yet. */
+export function spaceRow(progress: Pick<ProgressPayload, "overall" | "files" | "facts"> | undefined): SpaceRowWords {
+	if (!progress) return { segments: [], line: "Couldn't load its progress." };
 	const counts = progress.overall.counts;
 	const segments = STATUS_LEGEND.filter((s) => counts[s.key] > 0).map((s) => ({ key: s.key, count: counts[s.key], color: rampColor(s.rate) }));
-	if (segments.length > 0) return { segments, line: `${joinAnd(segments.map((s) => `${s.count} ${STATUS_LEGEND.find((l) => l.key === s.key)!.label}`))}.`, work };
-	if (work) return { segments, line: work, work: null };
-	if (progress.files.length === 0) return { segments, line: "No study files yet.", work };
-	if (progress.facts.length === 0) return { segments, line: "No facts yet. They show up once your agent reads the files.", work };
-	return { segments, line: "Its facts are not grouped into topics yet.", work };
+	if (segments.length > 0) return { segments, line: segments.map((s) => `${s.count} ${STATUS_LEGEND.find((l) => l.key === s.key)!.label}`).join(", ") };
+	if (progress.files.length === 0) return { segments, line: "No study files yet." };
+	if (progress.facts.length === 0) return { segments, line: "No facts yet. They show up once your agent reads the files." };
+	return { segments, line: "Its facts are not grouped into topics yet." };
 }
 
 /** "2 new files since Monday": files a scan of the linked folder found

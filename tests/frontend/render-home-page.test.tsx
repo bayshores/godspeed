@@ -258,7 +258,7 @@ describe("A row stamped Done", () => {
 describe("A row under Later", () => {
 	const html = renderToStaticMarkup(
 		<MemoryRouter initialEntries={["/"]}>
-			<LaterRow deadline={OPEN[4]!} progress={progressFor("far", { ready: 0.19 })} color={2} nowMs={NOW} />
+			<LaterRow deadline={OPEN[4]!} progress={progressFor("far", { ready: 0.19 })} nowMs={NOW} />
 		</MemoryRouter>,
 	);
 
@@ -269,10 +269,12 @@ describe("A row under Later", () => {
 		assert.ok(html.includes('data-teacher-target="deadline:far"'));
 	});
 
-	it("a pale count block, its name, the space, the day and how ready", () => {
-		assert.match(html, /color-mix\(in srgb, var\(--lh-space-2\) 57%/);
-		assert.match(html, />34<\/span>.*>days</);
-		assert.ok(html.includes("CSE 21, Tuesday Dec 1. 19% ready"));
+	it("a plain row: its name, the space and the day, the days left as a chip, how ready; no block", () => {
+		assert.ok(!html.includes("--lh-space-"));
+		assert.ok(html.includes(">Project<"));
+		assert.ok(html.includes(">CSE 21, Tuesday Dec 1<"));
+		assert.match(html, /bg-highlight[^"]*font-count">34 days</);
+		assert.ok(html.includes(">19% ready<"));
 	});
 });
 
@@ -289,15 +291,18 @@ describe("The card", () => {
 		assert.match(tag(html, "today-card-open"), /href="\/space\/deadline\/mid"/);
 		assert.match(section(html, "today-card-open", "</a>"), />Study for Midterm 2$/);
 		assert.ok(html.includes(">CSE 21<"));
-		assert.ok(html.includes("The test is on Thursday at 7:00 PM. 40% ready."));
-		assert.ok(html.includes("background:var(--lh-space-2)"));
+		assert.ok(html.includes("The test is on Thursday at 7:00 PM."));
+		assert.match(tag(html, "today-card-ready"), /bg-highlight/);
+		assert.match(section(html, "today-card-ready", "</span>"), />40% ready$/);
+		assert.ok(html.includes("background:var(--lh-space-2)"), "the big block in the space's color");
+		assert.match(html, /text-\[92px\][^>]*>8<\/span>/, "the days left, large");
 		assert.ok(html.includes('data-teacher-target="deadline:mid"'));
 	});
 
-	it("holds the page's one main button, beside Mark done", () => {
+	it("holds the page's one main button, beside a quiet Mark done", () => {
 		assert.ok(tag(html, "today-start").includes("lh-btn-main"));
 		assert.match(section(html, "today-start", "</button>"), />Start$/);
-		assert.ok(html.includes('data-testid="today-done"'));
+		assert.ok(tag(html, "today-done").includes("lh-btn-quiet"));
 	});
 });
 
@@ -369,16 +374,18 @@ describe("Today, as a whole page", () => {
 		assert.ok(!html.includes('data-testid="today-week"'));
 	});
 
-	it("with deadlines: the card first, this week, the rest due this week, the spaces, then Later, with one main button", () => {
+	it("with deadlines: the week line, the card, the rest due this week, the spaces, then Later, with one main button", () => {
 		const html = page({ lists: todayLists(LA_OPEN, [{ ...OPEN[2]!, done: true, doneAt: new Date(NOW).toISOString() }], NOW) });
-		const order = ["today-card", "today-week", "today-list", "today-spaces", "later-list"].map((id) => html.indexOf(`data-testid="${id}"`));
+		const order = ["today-week", "today-card", "today-list", "today-spaces", "later-list"].map((id) => html.indexOf(`data-testid="${id}"`));
 		assert.ok(order.every((at, i) => at > 0 && (i === 0 || at > order[i - 1]!)), `sections in order: ${order.join(", ")}`);
 		assert.equal(count(html, "lh-btn-main"), 1);
 		assert.match(section(html, "today-card", "</h2>"), /Study for Quiz 2/);
 		assert.ok(html.includes('data-testid="today-row-hw4"'));
 		assert.ok(html.includes('data-testid="today-done-row-hw5"'));
 		assert.ok(html.includes('data-testid="later-row-fin"'));
-		for (const title of ["This week", "Due this week", "Your spaces", "Later"]) assert.ok(html.includes(`>${title}</h2>`), title);
+		for (const title of ["Due this week", "Your spaces", "Later"]) assert.ok(html.includes(`>${title}</h2>`), title);
+		assert.ok(!html.includes(">This week<"), "the week is a quiet line under the title, not a section");
+		assert.equal(count(html, "border-line"), 2, "the card and the Due this week frame, nothing else");
 	});
 
 	it("no spaces: the sentence and Add a space, nothing else", () => {
@@ -421,6 +428,7 @@ describe("Today, as a whole page", () => {
 		const html = page({ spacesProgress: progress });
 		assert.match(section(html, "today-week-line", "</p>"), /You studied 2 days this week and answered 3 questions\.$/);
 		assert.match(html, /role="img" aria-label="You studied on Monday and Wednesday\."/);
+		assert.ok(html.indexOf('data-testid="today-week"') < html.indexOf('data-testid="today-empty"'), "under Today's title");
 		assert.equal(count(html, "data-studied"), 2);
 	});
 });
@@ -431,8 +439,9 @@ describe("Your spaces", () => {
 		const row = section(html, "today-space-spc_la", "</li>");
 		assert.match(tag(row, "today-space-open"), /^<a[^>]*href="\/space"/);
 		assert.ok(row.includes(">Linear Algebra<"));
-		assert.ok(row.includes('role="img" aria-label="Topics, 9 strong, 3 shaky and 6 not tested."'));
-		assert.ok(row.includes(">9 strong, 3 shaky and 6 not tested.<"));
+		assert.ok(row.includes('role="img" aria-label="Topics, 9 strong, 3 shaky, 6 not tested"'));
+		assert.ok(row.includes(">9 strong, 3 shaky, 6 not tested<"));
+		assert.ok(!row.includes("border-line"), "a plain row, not a box");
 		assert.equal(count(row, "flex-grow:"), 3);
 	});
 
@@ -466,22 +475,25 @@ describe("Your spaces", () => {
 		assert.deepEqual(opened, ["spc_la", "spc_la"]);
 	});
 
-	it("the new-files line opens the space's Files page", () => {
+	it("the new-files chip opens the space's Files page", () => {
 		const html = page({ newFiles: new Map([["spc_os", "2 new files since Monday"]]) });
 		assert.ok(!section(html, "today-space-spc_la", "</li>").includes("today-space-files"));
 		const row = section(html, "today-space-spc_os", "</li>");
 		assert.match(tag(row, "today-space-files"), /^<a[^>]*href="\/space\/files"/);
 		assert.ok(row.includes("2 new files since Monday"));
+		assert.match(tag(row, "today-space-files"), /bg-highlight/);
 	});
 
-	it("a space with no topics says so; one whose files are read shows the teacher's line instead", () => {
+	it("a space with no topics says so; the teacher at work is a chip beside the name", () => {
 		const progress = new Map([["spc_la", spaceProgress({ files: 0, facts: 0 })], ["spc_os", spaceProgress({ files: 4, facts: 0 })]]);
 		const building = { ...OS, filesLeft: 4, building: true as const };
 		const html = page({ spaces: [LA, building], spacesProgress: progress });
 		assert.match(section(html, "today-space-spc_la", "</li>"), />No study files yet\.</);
-		assert.match(section(html, "today-space-spc_os", "</li>"), />Teacher is building this space\. 4 left\.</);
+		const os = section(html, "today-space-spc_os", "</li>");
+		assert.match(os, /data-testid="today-space-work" class="[^"]*bg-highlight[^"]*">Teacher is building it, 4 left</);
+		assert.match(os, />No facts yet\. They show up once your agent reads the files\.</);
 		const counted = page({ spaces: [LA, { ...OS, filesLeft: 2 }] });
-		assert.match(section(counted, "today-space-spc_os", "</li>"), /data-testid="today-space-work"[^>]*>Teacher is reading new files\. 2 left\.</);
+		assert.match(section(counted, "today-space-spc_os", "</li>"), /data-testid="today-space-work"[^>]*>Teacher is reading new files, 2 left</);
 	});
 
 	it("one space, or six, each gets its row", () => {

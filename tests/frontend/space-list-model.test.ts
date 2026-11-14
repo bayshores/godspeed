@@ -12,26 +12,22 @@ const payload = (c = counts(0, 0, 0, 0), files = 1, facts = 1): RowInput => ({
 });
 
 describe("spaceRow", () => {
-	it("the counts in the Progress page's words, zeros left out, strongest first", () => {
-		const row = spaceRow(payload(counts(9, 3, 0, 6)), null);
-		assert.equal(row.line, "9 strong, 3 shaky and 6 not tested.");
+	it("the counts in the Graph page's words, zeros left out, strongest first", () => {
+		const row = spaceRow(payload(counts(9, 3, 0, 6)));
+		assert.equal(row.line, "9 strong, 3 shaky, 6 not tested");
 		assert.deepEqual(row.segments.map((s) => [s.key, s.count]), [["strong", 9], ["shaky", 3], ["untested", 6]]);
-		assert.equal(spaceRow(payload(counts(0, 0, 2, 0)), null).line, "2 weak.");
+		assert.equal(spaceRow(payload(counts(0, 0, 2, 0))).line, "2 weak");
 	});
 
-	it("keeps the teacher's work line beside the counts", () => {
-		assert.deepEqual(spaceRow(payload(counts(1, 0, 0, 0)), "Teacher is reading new files. 2 left.").work, "Teacher is reading new files. 2 left.");
-	});
-
-	it("no topics yet: why, in the app's words, or the work line in its place", () => {
-		assert.equal(spaceRow(payload(undefined, 0, 0), null).line, "No study files yet.");
-		assert.equal(spaceRow(payload(undefined, 3, 0), null).line, "No facts yet. They show up once your agent reads the files.");
-		assert.equal(spaceRow(payload(undefined, 3, 40), null).line, "Its facts are not grouped into topics yet.");
-		assert.deepEqual(spaceRow(payload(undefined, 3, 0), "Teacher is building this space. 3 left."), { segments: [], line: "Teacher is building this space. 3 left.", work: null });
+	it("no topics yet: why, in the app's words", () => {
+		assert.equal(spaceRow(payload(undefined, 0, 0)).line, "No study files yet.");
+		assert.equal(spaceRow(payload(undefined, 3, 0)).line, "No facts yet. They show up once your agent reads the files.");
+		assert.equal(spaceRow(payload(undefined, 3, 40)).line, "Its facts are not grouped into topics yet.");
+		assert.deepEqual(spaceRow(payload(undefined, 3, 0)).segments, []);
 	});
 
 	it("a space whose progress failed to load says so", () => {
-		assert.equal(spaceRow(undefined, null).line, "Couldn't load its progress.");
+		assert.equal(spaceRow(undefined).line, "Couldn't load its progress.");
 	});
 });
 

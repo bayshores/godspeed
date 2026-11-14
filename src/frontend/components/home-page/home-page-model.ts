@@ -145,11 +145,13 @@ export function todayRow(d: OpenDeadline, progress: DeadlineProgress | undefined
 	return { title: `Study for ${d.name}`, line: when, button: "Start" };
 }
 
-/** Today's card: what to do as its title, when it is and how far, and
- *  what is left of it today. */
+/** Today's card: what to do as its title, when it is, how far (its chip),
+ *  and what is left of it today. */
 interface CardWords {
 	title: string;
 	when: string;
+	/** "40% ready", "2 of 7 problems done"; null with nothing to count. */
+	ready: string | null;
 	/** "3 topics left today.", "Recursion is next."; null with nothing to say. */
 	left: string | null;
 	button: TodayRowWords["button"];
@@ -160,13 +162,13 @@ const sentence = (words: string) => `${words[0]!.toUpperCase()}${words.slice(1)}
 /** The card's words, for the row mainRowId picks. */
 export function nextCard(d: OpenDeadline, progress: DeadlineProgress | undefined, nowMs: number): CardWords {
 	const row = todayRow(d, progress, nowMs);
-	const when = sentence(`${dueWords(d, nowMs)}${progressNote(progress)}`);
-	if (hasProblems(d.kind)) return { title: `Work on ${d.name}`, when, left: null, button: row.button };
+	const base = { when: sentence(dueWords(d, nowMs)), ready: (progress && progressWords(progress)) ?? null, button: row.button };
+	if (hasProblems(d.kind)) return { ...base, title: `Work on ${d.name}`, left: null };
 	const next = progress?.continueStudy;
 	const where = next && continueWords(next);
-	if (where) return { title: row.title, when, left: sentence(where), button: row.button };
+	if (where) return { ...base, title: row.title, left: sentence(where) };
 	const topics = progress ? (planDays(localDay(nowMs), progress.date, progress.topics)[0]?.topics.length ?? 0) : 0;
-	return { title: row.title, when, left: topics > 0 ? `${topics} ${topics === 1 ? "topic" : "topics"} left today.` : null, button: row.button };
+	return { ...base, title: row.title, left: topics > 0 ? `${topics} ${topics === 1 ? "topic" : "topics"} left today.` : null };
 }
 
 interface TodaySections {
@@ -208,7 +210,9 @@ export function mainRowId(deadlines: readonly OpenDeadline[], progress: Readonly
 	return deadlines.find((d) => stopDay(d) !== today && !nothingMoreToday(progress.get(d.id), nowMs))?.id ?? null;
 }
 
-/** Under a Later row's name: "CSE 21, Tuesday Dec 8. 19% ready". */
-export function laterLine(d: OpenDeadline, progress: DeadlineProgress | undefined): string {
-	return `${d.spaceName}, ${longDay(d.date)}${progressNote(progress)}`;
+/** A Later row's words beside its name: the space and the day, the days
+ *  left (its chip), and how far it is. */
+export function laterRow(d: OpenDeadline, progress: DeadlineProgress | undefined, nowMs: number): { when: string; left: string; ready: string | null } {
+	const { count, unit } = countLeft(dueAtMs(d), nowMs);
+	return { when: `${d.spaceName}, ${longDay(d.date)}`, left: `${count} ${unit}`.trim(), ready: (progress && progressWords(progress)) ?? null };
 }
