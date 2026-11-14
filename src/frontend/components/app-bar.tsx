@@ -32,7 +32,7 @@ export function AppBar() {
 	const selected = selectedTab(pathname, active, spaces);
 	return (
 		<header data-testid="app-bar" className="lh-app-bar lh-drag lh-lights-gutter lh-wco-gutter flex h-12 shrink-0 select-none items-stretch bg-bar text-bar-ink">
-			{/* Below 760px the wordmark and the clock give their room to Today and the chips. */}
+			{/* Below 760px the wordmark, the clock and the work chip give their room to Today and the teacher's chip. */}
 			<span className="flex shrink-0 items-center pr-4 pl-5 text-[17px] font-medium max-[760px]:hidden">godspeed</span>
 			<SpaceTabs selected={selected} />
 			<FollowButton />
@@ -78,7 +78,7 @@ function WorkChip() {
 	const text = workChip({ worker, spaces, jobs: feed.jobs.length + feed.extractions.length });
 	if (!teacher || !text) return null;
 	return (
-		<button type="button" data-testid="bar-work" title={text} onClick={() => teacher.showActivity()} className={cn("lh-press my-2 ml-1 flex items-center bg-highlight px-3 text-[15px] whitespace-nowrap text-ink", CHIP_FIT)}>
+		<button type="button" data-testid="bar-work" title={text} onClick={() => teacher.showActivity()} className={cn("lh-press my-2 ml-1 flex items-center bg-highlight px-3 text-[15px] whitespace-nowrap text-ink max-[760px]:hidden", CHIP_FIT)}>
 			<ChipText text={text} widest="max-w-[256px]" />
 		</button>
 	);
