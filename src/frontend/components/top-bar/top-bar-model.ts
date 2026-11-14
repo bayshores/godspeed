@@ -1,7 +1,7 @@
 /**
  * The top bar's words and which of its tabs is lit. Pure.
  */
-import type { AgentAction } from "@/shared/core";
+import type { AgentAction, SpaceSummary } from "@/shared/core";
 import { agentStatusLabel, type AgentStatus } from "@/frontend/components/agent-status";
 import { pageName } from "@/frontend/components/teacher/follow";
 import type { AgentDoing } from "@/frontend/components/teacher/follow-status";
@@ -11,18 +11,17 @@ export function clockText(d: Date): string {
 	return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 }
 
-/** Pages that belong to no space: Menu lights up for them. */
-const MENU_PAGES = new Set(["/settings", "/archived"]);
-
 /**
- * The lit tab: "today", a space's id, or "menu" for the pages only the
- * Menu reaches (Settings, Archived spaces, lessons with no space, an
- * archived space). Every other page shows the window's space.
+ * The lit tab: "today", an open space's id, "closed" (the +) while the
+ * window shows a closed space (an old lesson of it), or "menu" for the
+ * pages only Menu reaches (Settings, lessons with no space).
  */
-export function selectedTab(pathname: string, active: string | null, tabIds: readonly string[]): string {
+export function selectedTab(pathname: string, active: string | null, spaces: readonly Pick<SpaceSummary, "id" | "archived">[]): string {
 	if (pathname === "/") return "today";
-	if (MENU_PAGES.has(pathname)) return "menu";
-	return active !== null && tabIds.includes(active) ? active : "menu";
+	if (pathname === "/settings") return "menu";
+	const space = spaces.find((s) => s.id === active);
+	if (!space) return "menu";
+	return space.archived ? "closed" : space.id;
 }
 
 const lowerFirst = (text: string) => text.slice(0, 1).toLowerCase() + text.slice(1);

@@ -15,20 +15,29 @@ describe("the clock", () => {
 });
 
 describe("the lit tab", () => {
-	const tabs = ["c21", "c29"];
+	const spaces = [
+		{ id: "c21", archived: false },
+		{ id: "c29", archived: false },
+		{ id: "old", archived: true },
+	];
 	it("Today on the first page", () => {
-		assert.equal(selectedTab("/", "c21", tabs), "today");
+		assert.equal(selectedTab("/", "c21", spaces), "today");
+		assert.equal(selectedTab("/", "old", spaces), "today", "even with a closed space in the window");
 	});
 	it("the window's space on every space page and in a lesson", () => {
-		assert.equal(selectedTab("/space", "c21", tabs), "c21");
-		assert.equal(selectedTab("/graph", "c29", tabs), "c29");
-		assert.equal(selectedTab("/chat/abc", "c29", tabs), "c29");
+		assert.equal(selectedTab("/space", "c21", spaces), "c21");
+		assert.equal(selectedTab("/graph", "c29", spaces), "c29");
+		assert.equal(selectedTab("/chat/abc", "c29", spaces), "c29");
+	});
+	it("the + while the window shows a closed space", () => {
+		assert.equal(selectedTab("/space", "old", spaces), "closed");
+		assert.equal(selectedTab("/chat/abc", "old", spaces), "closed", "an old lesson of it");
 	});
 	it("Menu for the pages only Menu reaches", () => {
-		assert.equal(selectedTab("/settings", "c21", tabs), "menu");
-		assert.equal(selectedTab("/archived", "c21", tabs), "menu");
-		assert.equal(selectedTab("/space/lessons", null, tabs), "menu", "lessons with no space");
-		assert.equal(selectedTab("/space", "old", tabs), "menu", "an archived space has no tab");
+		assert.equal(selectedTab("/settings", "c21", spaces), "menu");
+		assert.equal(selectedTab("/settings", "old", spaces), "menu");
+		assert.equal(selectedTab("/space/lessons", null, spaces), "menu", "lessons with no space");
+		assert.equal(selectedTab("/space", "gone", spaces), "menu", "a space not in the list yet");
 	});
 });
 

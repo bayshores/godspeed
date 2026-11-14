@@ -48,6 +48,8 @@ describe("visits", () => {
 		assert.equal(pastLabel("Adding Lab 4"), "Added Lab 4");
 		assert.equal(pastLabel("Marking HW 5 done"), "Marked HW 5 done");
 		assert.equal(pastLabel("Something else"), "Something else");
+		assert.equal(pastLabel("Archiving CSE 21"), "Closed CSE 21", "the server's word for closing a space");
+		assert.equal(pastLabel("Unarchiving CSE 21"), "Reopened CSE 21");
 		assert.equal(targetKey({ kind: "file", id: "f_1" }), "file:f_1");
 	});
 });

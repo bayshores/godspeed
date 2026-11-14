@@ -97,7 +97,7 @@ function fakeFetch() {
 let root: Root | undefined;
 let host: HTMLElement | undefined;
 let closed = 0;
-async function mount(mode: { kind: "create" } | { kind: "edit"; spaceId: string }) {
+async function mount(mode: { kind: "create" } | { kind: "edit" | "delete"; spaceId: string }) {
 	host = document.createElement("div");
 	document.body.append(host);
 	root = createRoot(host);
@@ -173,7 +173,8 @@ describe("Edit space dialog", () => {
 		assert.equal((q("space-name") as HTMLInputElement).value, "CSE 21");
 		assert.equal(q("space-deadlines"), null, "deadlines moved to the Deadlines tab");
 		assert.equal(q("space-files"), null, "the file list moved to the Files page");
-		assert.ok(q("space-archive") && q("space-delete") && q("space-save"));
+		assert.ok(q("space-delete") && q("space-save"));
+		assert.equal(q("space-archive"), null, "a space is closed from its tab");
 	});
 
 	it("the signature: pick a kind, type one line, see it in the cover's type, save it", async () => {
@@ -285,6 +286,66 @@ describe("Delete space", () => {
 		} finally {
 			delete (globalThis as { localStorage?: unknown }).localStorage;
 		}
+	});
+});
+
+describe("Delete space from a tab's menu", () => {
+	it("opens straight on the delete question", async () => {
+		fakeFetch();
+		await mount({ kind: "delete", spaceId: "cls_a" });
+		assert.equal(q("space-dialog")!.getAttribute("aria-label"), "Delete CSE 21?");
+		assert.match(q("space-delete-confirm")!.textContent!, /This cannot be undone\./);
+		assert.equal(q("space-name"), null, "no fields to edit");
+		await click(q("space-delete-confirm-button"));
+		await act(async () => {
+			await new Promise((r) => setTimeout(r, 10));
+		});
+		assert.ok(calls.some((c) => `${c.method} ${c.url}` === "DELETE /api/spaces/cls_a"));
+		assert.deepEqual(pushed, ["/"], "to Today");
+		assert.equal(closed, 1);
+	});
+
+	it("Cancel, Close and Esc close the dialog instead of going to Edit space", async () => {
+		fakeFetch();
+		await mount({ kind: "delete", spaceId: "cls_a" });
+		await click(q("space-delete-cancel"));
+		assert.equal(closed, 1);
+		assert.equal(await pressEscape(), true);
+		assert.equal(closed, 2);
+		await click(q("space-dialog-close"));
+		assert.equal(closed, 3);
+		assert.equal(q("space-name"), null, "never the edit fields");
+		assert.deepEqual(calls, [], "nothing deleted");
+	});
+
+	it("a refused delete stays on the question with its error", async () => {
+		fakeFetch();
+		const fallback = globalThis.fetch;
+		globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+			if (String(input) === "/api/spaces/cls_a" && init?.method === "DELETE") return Response.json({ error: "Counting: a turn is running" }, { status: 409 });
+			return fallback(input, init);
+		}) as typeof fetch;
+		await mount({ kind: "delete", spaceId: "cls_a" });
+		await click(q("space-delete-confirm-button"));
+		await act(async () => {
+			await new Promise((r) => setTimeout(r, 20));
+		});
+		assert.match(q("space-dialog-error")!.textContent!, /a turn is running/);
+		assert.ok(q("space-delete-confirm"), "still the question");
+		assert.equal(closed, 0);
+	});
+
+	it("a space that can't be read says so, and Delete space stays off", async () => {
+		fakeFetch();
+		const fallback = globalThis.fetch;
+		globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+			if (String(input) === "/api/spaces/cls_a" && (init?.method ?? "GET") === "GET") return Response.json({ error: "boom" }, { status: 500 });
+			return fallback(input, init);
+		}) as typeof fetch;
+		await mount({ kind: "delete", spaceId: "cls_a" });
+		assert.equal(q("space-dialog")!.getAttribute("aria-label"), "Delete CSE 21?", "named from the space list");
+		assert.match(q("load-failed")!.textContent!, /Couldn't load this space\./);
+		assert.equal((q("space-delete-confirm-button") as HTMLButtonElement).disabled, true);
 	});
 });
 
@@ -429,7 +490,7 @@ describe("Esc on the space dialogs", () => {
 		assert.equal(await pressEscape(), true);
 		assert.equal(closed, 0);
 		assert.equal((q("space-dialog-close") as HTMLButtonElement).disabled, true);
-		assert.equal((q("space-delete") as HTMLButtonElement).disabled, true, "Delete space waits like Archive");
+		assert.equal((q("space-delete") as HTMLButtonElement).disabled, true, "Delete space waits too");
 		assert.equal((q("space-name") as HTMLInputElement).disabled, true, "nothing typed mid-save is lost");
 		assert.equal((q("space-description") as HTMLTextAreaElement).disabled, true);
 		await act(async () => {

@@ -15,7 +15,7 @@ import { useServerEvent } from "@/frontend/components/server-events";
 import { notifySettingsSaved } from "@/frontend/components/settings-signal";
 
 interface SpacesState {
-	/** Every space, archived included (most recently updated first). */
+	/** Every space, closed ones included (most recently updated first). */
 	spaces: SpaceSummary[];
 	/** False until the first read of the space list finishes. */
 	loaded: boolean;

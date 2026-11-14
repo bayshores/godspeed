@@ -1,6 +1,6 @@
 /**
  * THE TOP BAR, one for the whole window: the wordmark, Today, a tab per
- * space, then Follow, the teacher (a click opens its panel), Menu and the
+ * open space and the + (add a space, reopen a closed one), then Follow, the teacher (a click opens its panel), Menu and the
  * clock. A page that draws a bar of its own (.lh-own-bar) hides this one
  * (globals.css). In the desktop app the bar is the window's drag band, with the
  * traffic lights in its left gutter; clickable elements carve out of the
@@ -16,7 +16,8 @@ import { useMinute } from "@/frontend/components/countdown";
 import { announceDelay } from "@/frontend/components/teacher/follow-status";
 import { useTeacher } from "@/frontend/components/teacher/teacher-provider";
 import { AppMenu } from "@/frontend/components/top-bar/app-menu";
-import { BAR_TAB, barTabState, SpaceTabs } from "@/frontend/components/top-bar/space-tabs";
+import { BAR_TAB, barTabState } from "@/frontend/components/top-bar/bar-look";
+import { SpaceTabs } from "@/frontend/components/top-bar/space-tabs";
 import { FollowButton } from "@/frontend/components/top-bar/follow-button";
 import { chipText, clockText, selectedTab } from "@/frontend/components/top-bar/top-bar-model";
 import { useWorker } from "@/frontend/components/work/use-worker";
@@ -26,8 +27,7 @@ import { cn } from "@/frontend/lib/utils";
 export function AppBar() {
 	const { pathname } = useLocation();
 	const { spaces, active } = useSpaces();
-	const tabIds = spaces.filter((c) => !c.archived).map((c) => c.id);
-	const selected = selectedTab(pathname, active, tabIds);
+	const selected = selectedTab(pathname, active, spaces);
 	return (
 		<header data-testid="app-bar" className="lh-app-bar lh-drag lh-lights-gutter lh-wco-gutter flex h-12 shrink-0 select-none items-stretch bg-bar text-bar-ink">
 			<span className="flex shrink-0 items-center pr-4 pl-5 text-[17px] font-medium">godspeed</span>

@@ -1,7 +1,6 @@
 import type { RouteObject } from "react-router";
 import { HomePage } from "@/frontend/components/home-page/home-page";
 import { NewLesson } from "@/frontend/components/home";
-import { ArchivedSpaces } from "@/frontend/components/archived-spaces";
 import { GraphScreen } from "@/frontend/components/graph/graph-screen";
 import { SpaceOverview } from "@/frontend/components/overview/space-overview";
 import { LessonsList } from "@/frontend/components/lessons/lessons-list";
@@ -32,7 +31,6 @@ export const routes: RouteObject[] = [
 					// The start page: every new lesson is a study session.
 					{ path: "new", element: <><PageTitle page="Study" /><NewLesson /></> },
 					{ path: "settings", element: <SettingsRoute /> },
-					{ path: "archived", element: <><PageTitle page="Archived spaces" /><ArchivedSpaces /></> },
 					{
 						element: <SpaceLayout />,
 						children: [
