@@ -116,6 +116,17 @@ describe("the plan row of a plan lesson", () => {
 	it("a plan that is one chain shows no map", () => {
 		assert.doesNotMatch(renderToStaticMarkup(<PlanRow {...base} />), /plan-map-open/);
 		assert.doesNotMatch(renderToStaticMarkup(<PlanRow {...base} edges={[]} />), /plan-map-open/);
+		assert.doesNotMatch(renderToStaticMarkup(<PlanRow {...base} />), /plan-map-box/, "and keeps no room for one");
+	});
+
+	it("a branching plan keeps the map's box while the map loads, so the steps never narrow", () => {
+		const branched = [
+			{ from: "a", to: "b" },
+			{ from: "a", to: "c" },
+		];
+		const html = renderToStaticMarkup(<PlanRow {...base} edges={branched} />);
+		assert.doesNotMatch(html, /plan-map-open/, "the map has not loaded");
+		assert.match(html, /data-testid="plan-map-box" class="[^"]*\bh-9 w-\[140px\]/);
 	});
 
 	it("a branching plan shows its map, which opens the plan", async () => {

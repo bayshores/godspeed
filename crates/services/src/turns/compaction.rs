@@ -44,7 +44,7 @@ pub struct CompactionDeps {
 	pub model_id: String,
 	/// "teach", "practice", "probe" or "talk" (the summary's wording).
 	pub kind: &'static str,
-	/// min(settings threshold, context window - reserve).
+	/// min(the fixed threshold, context window - reserve).
 	pub threshold_tokens: f64,
 	/// The composed system prompt's estimate (chars / 4).
 	pub system_prompt_tokens: f64,

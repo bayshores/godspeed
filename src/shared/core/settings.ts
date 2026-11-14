@@ -273,11 +273,9 @@ export function sanitizeUserSettings(raw: unknown): UserSettings | null {
 	if (r.graph !== null && typeof r.graph === "object" && !Array.isArray(r.graph)) {
 		out.graph = sanitizeGraph(r.graph as Record<string, unknown>);
 	}
-	// Unknown top-level keys ride along untouched (forward-compat). Known-
-	// DEAD keys are stripped instead of riding: `chat` (a removed default-
-	// settings section), `models` (a removed section) and `compaction`
-	// (the summarize point, now fixed) — a fossil copy on disk must never
-	// resurrect through reads.
+	// Unknown top-level keys ride along untouched (forward-compat). Removed
+	// sections (`chat`, `models`, `compaction`) are hidden from the window,
+	// so no page can read a value nothing uses any more.
 	for (const [key, value] of Object.entries(r)) {
 		if (key === "chat" || key === "models" || key === "compaction") continue;
 		if (!(key in out)) out[key] = value;

@@ -624,6 +624,13 @@ describe("dock selection (toggleOption)", () => {
 		sel = toggleOption("single-select", sel, 1);
 		assert.deepEqual([...sel.selected], [1]);
 	});
+
+	it("single-select: clicking the picked option again clears it", () => {
+		let sel = toggleOption("single-select", emptyDockSelection(), 1);
+		sel = toggleOption("single-select", sel, 1);
+		assert.equal(sel.selected.size, 0);
+		assert.equal(sel.dontKnow, false);
+	});
 });
 
 // ─── the explain tool: free-recall quizzing ─────────────

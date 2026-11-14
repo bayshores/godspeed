@@ -482,8 +482,9 @@ export interface QuestionDraft {
 }
 
 /**
- * Toggling a listed option. Single-select: the option becomes THE answer.
- * Multi-select: the option toggles alongside its siblings.
+ * Toggling a listed option. Single-select: the option becomes THE answer,
+ * and clicking the picked one again clears it. Multi-select: the option
+ * toggles alongside its siblings.
  */
 export function toggleOption(mode: SelectMode, sel: DockSelection, idx: number): DockSelection {
 	if (mode === "multi-select") {
@@ -492,7 +493,7 @@ export function toggleOption(mode: SelectMode, sel: DockSelection, idx: number):
 		else selected.add(idx);
 		return { selected, dontKnow: false };
 	}
-	return { selected: new Set([idx]), dontKnow: false };
+	return { selected: sel.selected.has(idx) ? new Set() : new Set([idx]), dontKnow: false };
 }
 
 // ─── options ────────────────────────────────────────────────────────────────

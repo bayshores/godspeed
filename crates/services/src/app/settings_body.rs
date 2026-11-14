@@ -169,22 +169,6 @@ fn parse_appearance(body: &Json) -> Parsed {
 		let Some(size) = integer_between(v, 12.0, 24.0) else { return Err("proseFontSize must be an integer between 12 and 24".to_owned()) };
 		out.insert("proseFontSize", size);
 	}
-	if let Some(v) = raw.get("mdRendering") {
-		let Some(md) = v.as_obj() else { return Err(type_error("mdRendering", "an object")) };
-		let mut rendering = Obj::new();
-		if let Some(w) = md.get("headingWeight") {
-			let Some(weight) = integer_between(w, 100.0, 900.0) else { return Err("mdRendering.headingWeight must be an integer between 100 and 900".to_owned()) };
-			rendering.insert("headingWeight", weight);
-		}
-		for key in ["boldColor", "italicColor"] {
-			if let Some(c) = md.get(key) {
-				rendering.insert(key, parse_hex_or_null(c, &format!("mdRendering.{key}"))?);
-			}
-		}
-		if !rendering.is_empty() {
-			out.insert("mdRendering", Json::Obj(rendering));
-		}
-	}
 	Ok(Json::Obj(out))
 }
 
@@ -233,14 +217,18 @@ mod tests {
 	}
 
 	#[test]
-	fn appearance_is_strict_and_drops_empty_rendering() {
-		let ok = run("appearance", r##"{"proseFontSize":15,"background":"#FFF","mdRendering":{"boldColor":null,"headingWeight":700}}"##).unwrap();
-		assert_eq!(ok, r##"{"background":"#FFF","proseFontSize":15,"mdRendering":{"headingWeight":700,"boldColor":null}}"##);
-		assert_eq!(run("appearance", r#"{"mdRendering":{}}"#).unwrap(), "{}");
+	fn appearance_is_strict() {
+		let ok = run("appearance", r##"{"proseFontSize":15,"background":"#FFF"}"##).unwrap();
+		assert_eq!(ok, r##"{"background":"#FFF","proseFontSize":15}"##);
 		assert_eq!(run("appearance", r#"{"proseFontSize":11.5}"#).unwrap_err(), "proseFontSize must be an integer between 12 and 24");
 		assert_eq!(run("appearance", r#"{"fontFamily":" "}"#).unwrap_err(), "fontFamily must be a non-empty string or null");
 		assert_eq!(run("appearance", r#"{"background":"red"}"#).unwrap_err(), "background must be a #hex color or null");
-		assert_eq!(run("appearance", r#"{"mdRendering":{"italicColor":"x"}}"#).unwrap_err(), "mdRendering.italicColor must be a #hex color or null");
+	}
+
+	#[test]
+	fn the_heading_weight_and_bold_and_italic_colors_can_no_longer_be_set() {
+		assert_eq!(run("appearance", r##"{"proseFontSize":15,"mdRendering":{"headingWeight":700,"boldColor":"#fff"}}"##).unwrap(), r#"{"proseFontSize":15}"#);
+		assert_eq!(run("appearance", r#"{"mdRendering":"x"}"#).unwrap(), "{}");
 	}
 
 	#[test]

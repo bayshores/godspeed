@@ -48,7 +48,6 @@ pub fn factory_settings() -> Json {
 			"background": null,
 			"fontFamily": null,
 			"proseFontSize": 17,
-			"mdRendering": { "headingWeight": 600, "boldColor": null, "italicColor": null },
 		},
 		"graph": { "enabled": true, "extractionChunkTokens": 4096 },
 		"compaction": { "thresholdTokens": 40000 },
@@ -141,22 +140,6 @@ fn sanitize_agent(raw: &Json) -> Json {
 	Json::Obj(out)
 }
 
-fn sanitize_md_rendering(raw: &Json) -> Json {
-	let mut out = Obj::new();
-	if raw.as_obj().is_none() {
-		return Json::Obj(out);
-	}
-	if let Some(weight) = finite(&raw["headingWeight"]) {
-		out.insert("headingWeight", clamp(num::math_round(weight), 100.0, 900.0));
-	}
-	for key in ["boldColor", "italicColor"] {
-		if let Some(color) = raw.get(key) {
-			out.insert(key, hex_or_null(color));
-		}
-	}
-	Json::Obj(out)
-}
-
 fn sanitize_appearance(raw: &Json) -> Json {
 	let mut out = Obj::new();
 	if let Some(background) = raw.get("background") {
@@ -172,8 +155,9 @@ fn sanitize_appearance(raw: &Json) -> Json {
 	if let Some(size) = finite(&raw["proseFontSize"]) {
 		out.insert("proseFontSize", clamp(num::math_round(size), PROSE_FONT_MIN, PROSE_FONT_MAX));
 	}
+	// Retired: an old file's heading weight and bold and italic colors stay as stored and are never read.
 	if let Some(md) = raw.get("mdRendering") {
-		out.insert("mdRendering", sanitize_md_rendering(md));
+		out.insert("mdRendering", md.clone());
 	}
 	Json::Obj(out)
 }
@@ -231,7 +215,7 @@ mod tests {
 		let messy = r##"{"version":7,"general":{"teacherName":5,"sounds":"x","activeSpace":"zzz","autoUpdate":true,"keep":1},"chat":{},"future":{"a":[1]},"appearance":{"background":"#FFFFFF","proseFontSize":99.6,"fontFamily":"  ","mdRendering":{"headingWeight":5000.4,"boldColor":"zzz","italicColor":null}},"graph":{"extractionChunkTokens":10,"enabled":"y"},"compaction":{"thresholdTokens":-5},"agent":{"tools":{"a":true,"b":"x"},"graphTools":{"enabled":"x"},"rules":{"voice":[" a ","a",3],"nope":["x"]}}}"##;
 		assert_eq!(
 			clean(messy),
-			r#"{"version":7,"general":{"autoUpdate":true},"agent":{"tools":{"a":true},"rules":{"voice":["a"]}},"appearance":{"background":null,"fontFamily":null,"proseFontSize":24,"mdRendering":{"headingWeight":900,"boldColor":null,"italicColor":null}},"graph":{"extractionChunkTokens":10},"future":{"a":[1]},"compaction":{"thresholdTokens":-5}}"#
+			r#"{"version":7,"general":{"autoUpdate":true},"agent":{"tools":{"a":true},"rules":{"voice":["a"]}},"appearance":{"background":null,"fontFamily":null,"proseFontSize":24,"mdRendering":{"headingWeight":5000.4,"boldColor":"zzz","italicColor":null}},"graph":{"extractionChunkTokens":10},"future":{"a":[1]},"compaction":{"thresholdTokens":-5}}"#
 		);
 	}
 

@@ -300,6 +300,24 @@ describe("Your turn in each state", () => {
 		});
 	});
 
+	it("an ask with choices: a pick turns the box to reasoning, and clicking it again gives the own answer back", async () => {
+		const answers: QuestionAnswerData[] = [];
+		const props = (value: string) => turn({ pending: choice, value, onSubmitAnswer: (a) => answers.push(a) });
+		await mounted(props(""), async (host, show) => {
+			const placeholder = () => host.innerHTML.match(/Pick one above, or type your own answer|Your reasoning, or a question for \w+/)?.[0];
+			assert.equal(placeholder(), "Pick one above, or type your own answer");
+			await act(async () => optionNamed(host, "From an example").click());
+			assert.match(placeholder() ?? "", /^Your reasoning/, "with a pick the text is reasoning");
+			await act(async () => optionNamed(host, "From an example").click());
+			assert.equal(placeholder(), "Pick one above, or type your own answer", "a second click clears the pick");
+			await show(props("Start from a picture"));
+			await click(host, "question-submit");
+			assert.equal(answers[0]!.other, "Start from a picture");
+			assert.deepEqual(answers[0]!.answers, []);
+			assert.equal(answers[0]!.thinking, undefined);
+		});
+	});
+
 	it("Ask marco sends the box text as a message and leaves the question open", async () => {
 		let sent = 0;
 		const answers: QuestionAnswerData[] = [];

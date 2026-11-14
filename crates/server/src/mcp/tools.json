@@ -222,7 +222,7 @@
 			"properties": {
 				"name": {
 					"type": "string",
-					"description": "A file-like name for the notes, e.g. \"biology-ch3.md\". In a space, re-importing the same name replaces the notes you imported before and rebuilds their facts (a file the learner added by that name is never replaced: pick another name); in No space it is processed again and adds to that import."
+					"description": "A file-like name for the notes, e.g. \"biology-ch3.md\". In a space, re-importing the same name replaces the notes you imported before and rebuilds their facts; in No space it is processed again and adds to that import. A file this tool can't replace (the learner's own, or notes from an older version) is refused: pick another name or ask the learner to remove it."
 				},
 				"text": {
 					"type": "string",

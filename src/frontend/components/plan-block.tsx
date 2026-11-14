@@ -189,7 +189,8 @@ export function PlanBlock({ data, onOpen }: { data: PlanBlockData; onOpen: () =>
 }
 
 /** The mini map's largest size and its boxes' size, in px, and its
- *  padding in layout units. */
+ *  padding in layout units. The plan row keeps a box of the largest size
+ *  for it (plan-row.tsx MAP_BOX). */
 const MAP_H = 36;
 const MAP_W = 140;
 const MAP_BOX_W = 22;

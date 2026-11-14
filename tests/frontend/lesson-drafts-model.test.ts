@@ -39,7 +39,14 @@ describe("lesson drafts", () => {
 		assert.deepEqual(parseLessonDraft('{"questions":{"q1":{"form":{"selection":"bad"}}}}'), EMPTY_LESSON_DRAFT);
 		assert.deepEqual(parseLessonDraft('{"composer":"hi","questions":{},"problems":{"p1":"old work"}}'), { composer: "hi", questions: {} }, "an older save's problem drafts are ignored");
 		const older = '{"composer":"","questions":{"q1":{"form":{"selection":{"selected":[0],"otherSelected":false,"dontKnow":false},"thinking":"old reasoning","other":"","text":"old answer"}}}}';
-		assert.deepEqual(parseLessonDraft(older).questions.q1!.form, { selection: { selected: new Set([0]), dontKnow: false } }, "an older save's typed reasoning and own-answer row are not carried over");
+		assert.deepEqual(parseLessonDraft(older).questions.q1!.form, { selection: { selected: new Set([0]), dontKnow: false } }, "an older save's typed reasoning and empty own-answer row are not carried over");
+	});
+
+	it("an older save's own answer moves into the box, after any box text", () => {
+		const own = (composer: string) =>
+			`{"composer":${JSON.stringify(composer)},"questions":{"q1":{"form":{"selection":{"selected":[],"otherSelected":true,"dontKnow":false},"other":"Start from a picture"}}}}`;
+		assert.deepEqual(parseLessonDraft(own("")), { composer: "Start from a picture", questions: {} }, "an empty box takes it");
+		assert.equal(parseLessonDraft(own("I like visuals")).composer, "I like visuals\n\nStart from a picture", "box text first, then a blank line");
 	});
 
 	it("drops a question only once the server saved its answer", () => {

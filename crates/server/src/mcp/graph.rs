@@ -121,7 +121,7 @@ mod tests {
 
 		let refused = import("notes", "The agent's notes.");
 		assert_eq!(refused["isError"], json!(true));
-		assert_eq!(refused["content"][0]["text"], json!("This space already has a file named notes.md that you didn't write. Pick another name."));
+		assert_eq!(refused["content"][0]["text"], json!("This space already has a file named notes.md that this tool can't replace. Pick another name, or ask the learner to remove the old one."));
 		let record = app.stores.spaces.get_space(&space_id).unwrap();
 		assert_eq!(std::fs::read_to_string(space_file_path(&app, &record, &own).unwrap()).unwrap(), "My own notes.");
 

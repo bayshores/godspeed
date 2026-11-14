@@ -24,6 +24,21 @@ fn an_old_file_holding_the_batch_size_and_threshold_loads_and_is_left_alone() {
 	assert_eq!(stringify(&saved["graph"]), r#"{"enabled":false,"extractionChunkTokens":10}"#);
 }
 
+#[test]
+fn an_old_file_holding_the_heading_weight_and_bold_and_italic_colors_loads_and_is_left_alone() {
+	let lab = Lab::new("settings-retired-rendering");
+	let before = tabbed(r##"{"version":3,"appearance":{"proseFontSize":18,"mdRendering":{"headingWeight":800,"boldColor":"#ff8080","italicColor":"zzz"}}}"##);
+	lab.put("settings.json", &before);
+	let read = store(&lab).read_settings().unwrap().unwrap();
+	assert_eq!(stringify(&read["appearance"]), r##"{"proseFontSize":18,"mdRendering":{"headingWeight":800,"boldColor":"#ff8080","italicColor":"zzz"}}"##);
+	let effective = store(&lab).effective_settings().unwrap();
+	assert_eq!(stringify(&effective["appearance"]), r#"{"background":null,"fontFamily":null,"proseFontSize":18}"#);
+	assert_eq!(lab.get("settings.json"), before, "not rewritten");
+	// A save of the whole record keeps the stored values as they were.
+	let saved = store(&lab).write_settings(&read).unwrap();
+	assert_eq!(stringify(&saved["appearance"]["mdRendering"]), r##"{"headingWeight":800,"boldColor":"#ff8080","italicColor":"zzz"}"##);
+}
+
 #[cfg(unix)]
 #[test]
 fn an_upgrade_that_cannot_be_saved_fails_the_read() {

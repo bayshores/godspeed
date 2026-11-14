@@ -717,8 +717,8 @@ mod tests {
 			ToolOutcome::Ok { value, .. } => Ok(value["file"]["name"].as_str().unwrap().to_owned()),
 			ToolOutcome::Err(error) => Err(error),
 		};
-		assert_eq!(write("notes", "Overwritten."), Err("This space already has a file named notes.md that you didn't write. Pick another name.".to_owned()));
-		assert_eq!(write("Syllabus.md", "Overwritten."), Err("This space already has a file named Syllabus.md that you didn't write. Pick another name.".to_owned()));
+		assert_eq!(write("notes", "Overwritten."), Err("This space already has a file named notes.md that this tool can't replace. Pick another name, or ask the learner to remove the old one.".to_owned()));
+		assert_eq!(write("Syllabus.md", "Overwritten."), Err("This space already has a file named Syllabus.md that this tool can't replace. Pick another name, or ask the learner to remove the old one.".to_owned()));
 		let path = space_file_path(&app, &app.stores.spaces.get_space(&space_id).unwrap(), &own).unwrap();
 		assert_eq!(std::fs::read_to_string(path).unwrap(), "My own notes.");
 		let plain = Err("Give a plain file name like \"Study guide.md\", with no folders or control characters.".to_owned());

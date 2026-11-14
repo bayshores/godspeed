@@ -136,7 +136,7 @@ pub fn write_agent_file(app: &Arc<App>, space_id: &str, name: &str, bytes: &[u8]
 	let same = record.as_ref().and_then(|r| r["files"].as_arr()?.iter().find(|f| str_of(f, "name") == name).cloned());
 	let written = match same {
 		Some(file) if file["written"] == Json::Bool(true) => replace_copied_file(app, space_id, str_of(&file, "id"), bytes, kind).map(|f| (f, true)),
-		Some(_) => return Err(format!("This space already has a file named {name} that you didn't write. Pick another name.")),
+		Some(_) => return Err(format!("This space already has a file named {name} that this tool can't replace. Pick another name, or ask the learner to remove the old one.")),
 		None => add_file(app, space_id, name, bytes, kind, true).map(|f| (f, false)),
 	};
 	written.map_err(|failure| failure.error)
