@@ -602,7 +602,7 @@ The studio is a canvas (`src/frontend/components/cheat-sheet/`):
 
 In a lesson of a space, the top bar's Cheat sheet button docks a sheet beside the lesson (`sheet-dock.tsx`, resizable, open state kept per lesson). It shows the lesson's deadline's sheet, else the space's next one with a sheet, with a picker when there are several. The docked sheet has no chat: questions go to the teacher in the lesson box.
 
-A space's Cheat sheets tab (`/space/cheat-sheets`, `GET /api/spaces/<id>/cheat-sheets`) shows every deadline as a card, coming up first. Each card says whether its sheet is made (with a page 1 preview), being made, older (Make it again) or missing (Make one).
+A space's Cheat sheets tab (`/space/cheat-sheets`, `GET /api/spaces/<id>/cheat-sheets`) shows every deadline but interviews as a card, coming up first. Each card says whether its sheet is made (with a page 1 preview), being made, older (Make it again) or missing (Make one).
 
 ### 6.2 Interviews and mocks
 

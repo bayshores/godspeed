@@ -6,12 +6,13 @@ use gs_json::{Json, Obj};
 
 use super::cheat_sheet::{ParsedSheet, current_version};
 
-/// Every deadline of the space with its sheet: upcoming soonest first, then past ones, latest
-/// first. A card is `{ deadlineId, name, kind, date[, time], past, status, version }`, with status
+/// Every deadline of the space with its sheet, except interviews (they take mocks, not a sheet):
+/// upcoming soonest first, then past ones, latest first. A card is `{ deadlineId, name, kind, date[, time], past, status, version }`, with status
 /// "made", "making", "older", "newer" or "none".
 pub fn sheet_cards(deadlines: &[Json], sheet_of: impl Fn(&str) -> Option<ParsedSheet>, running: impl Fn(&str) -> bool, today: &str) -> Vec<Json> {
 	let cards: Vec<(Json, bool)> = deadlines
 		.iter()
+		.filter(|d| d["kind"].as_str() != Some("interview"))
 		.map(|d| {
 			let id = d["id"].as_str().unwrap_or("");
 			let sheet = sheet_of(id);
@@ -69,7 +70,8 @@ mod tests {
 			}
 			o
 		};
-		let deadlines = [d("late", "2026-12-01", None, false), d("early", "2026-11-12", Some("09:00"), false), d("old", "2026-11-01", None, false), d("older", "2026-10-01", None, false), d("done", "2027-01-01", None, true)];
+		let interview = json!({ "id": "onsite", "name": "Onsite", "kind": "interview", "date": "2026-11-20", "done": false });
+		let deadlines = [d("late", "2026-12-01", None, false), d("early", "2026-11-12", Some("09:00"), false), d("old", "2026-11-01", None, false), d("older", "2026-10-01", None, false), d("done", "2027-01-01", None, true), interview];
 		let made = json!({ "deadlineId": "early", "versions": [{ "n": 1 }], "messages": [], "rules": [], "updatedAt": "t" });
 		let sheet_of = |id: &str| match id {
 			"early" => Some(ParsedSheet::Sheet(made.clone())),
