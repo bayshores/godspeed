@@ -193,6 +193,8 @@ impl Bridge {
 				return None;
 			}
 			let now = clock::now_ms();
+			// A wait can outlast the contact window: the agent is still here while it waits.
+			self.keep_terminal_contact(opts.terminal.as_deref(), now);
 			// A helper is not teaching: lessons still need the teacher.
 			if opts.helper {
 				self.note_helper(opts.agent.as_deref(), now);

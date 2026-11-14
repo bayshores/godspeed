@@ -1,6 +1,7 @@
 //! Limits that only end on the app clock: a stuck tool's 30 s timeout and grace, a claim nobody
 //! answered for 10 minutes, a compaction that never reported its end, and a helper busy on one
-//! long job. One test, because the clock is shared by the whole binary.
+//! long job, and agents that stay here through a wait longer than the contact window. One test,
+//! because the clock is shared by the whole binary.
 
 use std::sync::Arc;
 
@@ -108,4 +109,30 @@ async fn the_app_clock_ends_stuck_tools_and_stale_claims() {
 	clock::advance(6 * 60_000 + 1);
 	assert!(!bridge.helper_here(clock::now_ms()));
 	assert_eq!(bridge.wait_for_work(0, agent("main-1")).await.unwrap().conversation, "job_sheet");
+
+	// A wait longer than the 3 minute contact window keeps both an outside agent and a
+	// terminal's agent here.
+	let bridge = Bridge::new(&Events::new(), Arc::new(Marks::default()));
+	let terminal = "0123456789abcdef0123456789abcdef";
+	bridge.set_live_terminals(vec![terminal.to_owned()]);
+	bridge.record_terminal_contact(None, clock::now_ms());
+	bridge.record_terminal_contact(Some(terminal), clock::now_ms());
+	let outside = tokio::spawn({
+		let bridge = bridge.clone();
+		async move { bridge.wait_for_work(600_000, agent("outside-1")).await }
+	});
+	let inside = tokio::spawn({
+		let bridge = bridge.clone();
+		async move { bridge.wait_for_work(600_000, WaitOptions { terminal: Some(terminal.to_owned()), ..agent("main-1") }).await }
+	});
+	for _ in 0..16 {
+		settle().await;
+		clock::advance(15_000);
+	}
+	settle().await;
+	assert!(bridge.outside_here(clock::now_ms()), "outside agent still waiting after 4 minutes");
+	assert_eq!(bridge.terminals_here(clock::now_ms()), vec![(terminal.to_owned(), true)]);
+	bridge.set_live_terminals(Vec::new());
+	assert!(inside.await.unwrap().is_none());
+	outside.abort();
 }
