@@ -1,5 +1,15 @@
 [
 	{
+		"version": "0.6.5",
+		"date": "2026-11-13",
+		"changes": [
+			"Formulas in PDFs are kept. The first time your agent has to look at a page with math, it writes the page out with the formulas and godspeed saves it, so search and later lessons get them.",
+			"While godspeed is running you get one notification a day when a deadline is 3 days away or less. You can turn it off in Settings, General.",
+			"Today says nothing more is planned today only when today's plan is empty.",
+			"The teacher quotes your lecture's own words when it opens each topic, and leaves at most 2 sentences to keep per topic."
+		]
+	},
+	{
 		"version": "0.6.4",
 		"date": "2026-11-13",
 		"changes": [
