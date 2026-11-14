@@ -14,6 +14,9 @@ import { spaceMenuDescription } from "./top-bar-model";
  *  last room goes to the ellipsis); past that the tabs scroll. */
 const TAB_NAME_LETTERS = 8;
 
+/** How wide (px) the strip fades out where it cuts tabs off (as in its classes). */
+const FADE = 24;
+
 // The dialog compares its mode by identity: one object for every open.
 const CREATE = { kind: "create" } as const;
 
@@ -33,7 +36,10 @@ function useTabStrip(selected: string, tabs: number) {
 		const el = ref.current;
 		if (!el) return;
 		const reveal = () => {
-			el.querySelector('[aria-current="page"]')?.scrollIntoView?.({ block: "nearest", inline: "nearest" });
+			const lit = el.querySelector<HTMLElement>('[aria-current="page"]');
+			// Too narrow to keep the lit tab clear of both fades: centered, they fall on its padding.
+			const center = !!lit && lit.offsetWidth + 2 * FADE > el.clientWidth;
+			lit?.scrollIntoView?.({ block: "nearest", inline: center ? "center" : "nearest" });
 			measure();
 		};
 		reveal();
@@ -73,7 +79,9 @@ export function SpaceTabs({ selected }: { selected: string }) {
 		(lit ?? nav?.querySelector<HTMLElement>("a"))?.focus();
 	}, [refocus, selected]);
 	return (
-		<nav ref={navRef} aria-label="Spaces" data-testid="space-tabs" className="mr-auto flex min-w-0 items-stretch">
+		// Starts squeezed (every unlit name at its few letters) and grows to full
+		// names with the room the bar's chips leave; below squeezed, the tabs scroll.
+		<nav ref={navRef} aria-label="Spaces" data-testid="space-tabs" className="mr-auto flex max-w-max min-w-0 grow basis-[min-content] items-stretch">
 			<Link to="/" data-testid="nav-today" aria-current={selected === "today" ? "page" : undefined} className={cn(BAR_TAB, "shrink-0", barTabState(selected === "today"))}>
 				Today
 			</Link>
@@ -87,10 +95,10 @@ export function SpaceTabs({ selected }: { selected: string }) {
 					if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) e.currentTarget.scrollLeft += e.deltaY;
 				}}
 				className={cn(
-					"flex min-w-0 scroll-px-8 items-stretch overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
-					strip.cut.end && !strip.cut.start && "[mask-image:linear-gradient(to_right,black_calc(100%-32px),transparent)]",
-					strip.cut.start && !strip.cut.end && "[mask-image:linear-gradient(to_left,black_calc(100%-32px),transparent)]",
-					strip.cut.start && strip.cut.end && "[mask-image:linear-gradient(to_right,transparent,black_32px,black_calc(100%-32px),transparent)]",
+					"flex min-w-0 scroll-px-6 items-stretch overflow-x-auto [scrollbar-width:none]! [&::-webkit-scrollbar]:hidden",
+					strip.cut.end && !strip.cut.start && "[mask-image:linear-gradient(to_right,black_calc(100%-24px),transparent)]",
+					strip.cut.start && !strip.cut.end && "[mask-image:linear-gradient(to_left,black_calc(100%-24px),transparent)]",
+					strip.cut.start && strip.cut.end && "[mask-image:linear-gradient(to_right,transparent,black_24px,black_calc(100%-24px),transparent)]",
 				)}
 			>
 				{openSpaces.map((c) => {
@@ -112,9 +120,10 @@ export function SpaceTabs({ selected }: { selected: string }) {
 							onKeyDown={(e) => tabMenu.onKeyDown(e, c.id)}
 							className={cn(
 								BAR_TAB,
-								// The name gives way first, down to a few letters; the dot and the tag keep their room.
+								// An unlit tab's name gives way first, down to a few letters; the dot and the tag keep their
+								// room. The lit tab keeps its whole name, so the learner can always read where they are.
 								"min-w-auto grid",
-								tag ? "grid-cols-[auto_minmax(auto,max-content)_auto]" : "grid-cols-[auto_minmax(auto,max-content)]",
+								lit ? "shrink-0 grid-cols-[auto_fit-content(240px)_auto]" : "grid-cols-[auto_minmax(auto,max-content)_auto]",
 								barTabState(lit),
 								!lit && tabMenu.openId === c.id && "bg-bar-ink/10",
 							)}
@@ -122,7 +131,7 @@ export function SpaceTabs({ selected }: { selected: string }) {
 							<span aria-hidden className="size-2.5 shrink-0" style={{ background: spaceColorVar(c.color) }} />
 							{/* Capped: a tab shrinks by its full width, so one long name
 							    would squeeze the others to a letter. */}
-							<span title={c.name} style={{ minWidth: c.name.length > TAB_NAME_LETTERS ? `${TAB_NAME_LETTERS}ch` : "max-content" }} className="max-w-[240px] truncate">
+							<span title={c.name} style={lit ? undefined : { minWidth: c.name.length > TAB_NAME_LETTERS ? `${TAB_NAME_LETTERS}ch` : "max-content" }} className="max-w-[240px] truncate">
 								{c.name}
 							</span>
 							{tag && (

@@ -41,9 +41,12 @@ export function AppBar() {
 	);
 }
 
-/** A chip gets the room the tabs leave (never more than its text), so it
- *  gives way before any tab name does. */
-const CHIP_FIT = "min-w-auto max-w-max shrink-0 grow basis-0";
+/**
+ * A chip starts at its first word and takes free room long before the tabs
+ * (which start squeezed) do, up to its whole text. So as the window narrows
+ * the unlit tab names give way first, then the chip, then the tabs scroll.
+ */
+const CHIP_FIT = "min-w-auto max-w-max shrink-0 grow-[1000] basis-[min-content]";
 
 /** A chip's text on one line, cut short with an ellipsis but never below its first word. */
 function ChipText({ text, widest }: { text: string; widest: string }) {
