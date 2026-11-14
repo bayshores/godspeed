@@ -1,63 +1,85 @@
 # Compaction and usage accounting
 
-## Retention
+How a long lesson gets shortened, how the lesson's size meter is measured, and how token usage is counted. Read this before you change the cutoff rule, the meter or the usage numbers.
 
-`src/shared/core/compaction.ts` locally ports the cutoff-selection behavior and relevant
-message-size heuristic from **@earendil-works/pi-coding-agent 1.4.0**. There is no
-coding-agent dependency. Upgrade this port deliberately; the native golden
-fixtures are in `tests/shared/compaction-native-parity.test.ts`.
+## Where the code lives
 
-Walk backward to the approximately 20,000-token retained-tail budget, then select
-the nearest valid user/assistant boundary at or after the crossing. Never start
-at a tool result. If trailing results alone exceed the budget, keep the preceding
-assistant call. Preserve adjacent context-invisible metadata. godspeed adapts
-its visible custom markers to user-like entries, excludes UI-only markers, and
-uses the active compaction's retained history rather than discarded messages.
+| File | What it holds |
+|---|---|
+| `crates/core/src/session/compaction.rs` | The cutoff rule, the token estimate, `local_summary` and the compaction marker. This is the copy the server runs. |
+| `crates/services/src/turns/compaction.rs` | When shortening and the summary run. |
+| `src/shared/core/compaction.ts` | The TypeScript port of the same rule. The screens use `activeCompactionOf`, `keptIndexFor` and `effectiveThresholdTokens` from it. |
+| `src/shared/core/context-usage.ts` | `measuredContextTokens`, the meter's number. |
+| `src/frontend/components/stats-bar.tsx` | The meter (`contextMeter`). |
+| `src/shared/core/prices.ts`, `src/shared/core/cost-summary.ts` | Usage totals and plan labels. |
 
-Text, visible thinking, tool-call names/arguments use characters divided by four;
-images receive the native fixed 1,200-token allowance. Encrypted signatures are
-not measured or stripped. Whole-message boundaries can overshoot. This does
-**not** guarantee a measured 20k tail or a fixed post-compaction request size.
+Tests:
 
-Only cutoff selection is ported. godspeed retains its educational summary
-prompt, plan continuity, persistence, threshold, scheduling, and authorization
-lifecycle. It does not adopt Pi's coding summary or separate split-turn summary
-calls. A cut that drops no active history adds no marker. The marker is written at once
-with godspeed's own short version; the summarizer runs after 5 quiet minutes and
-replaces that marker's text in place.
+- `tests/shared/compaction-native-parity.test.ts` holds golden outputs from the original package.
+- `tests/shared/compaction.test.ts` covers the TypeScript port.
+- `crates/core/tests/session_golden.rs` checks the Rust copy against recorded outputs of the TypeScript one.
 
-## Conversation meter
+## When a lesson gets shortened
 
-The numerator is the latest qualifying completed conversation response's native
-Pi `input + output + cacheRead + cacheWrite`. Reasoning is already inside output;
-`totalTokens` is not an override. Partial stream updates, errors, aborts, invalid
-counts, and all-zero usage do not replace the last measurement. A successful
-compaction marker invalidates earlier measurements: show `? / maximum` until a
-new qualifying response completes. Summarizer usage never supplies this meter.
+| Setting or constant | Value |
+|---|---|
+| `compaction.thresholdTokens` (Settings → General, shown in pages) | default 40,000, floor 32,000 |
+| Context window godspeed assumes for the outside agent (`OUTSIDE_AGENT_CONTEXT_WINDOW`) | 200,000 |
+| Reserve subtracted from that window | 16,384 |
+| Recent tail kept word for word (`KEEP_RECENT_TOKENS`) | about 20,000 |
+| Quiet time before the agent writes the summary | 5 minutes |
 
-The denominator is the context window godspeed assumes for the outside agent:
-a fixed 200,000 tokens (`OUTSIDE_AGENT_CONTEXT_WINDOW` in `src/shared/core/settings.ts`),
-independent of the last numeric measurement. The meter shows `tokens / maximum`,
-never a percentage.
+The summarize point is the smaller of the setting and the window minus the reserve (`effective_threshold_tokens`).
+
+1. Past the summarize point, the server cuts the record at once and writes its own short version of the dropped part (`local_summary`). This runs at the turn-start gate and when a turn settles, never during a live run.
+2. The compaction marker is written right away with that short version. A turn that starts now goes ahead on it.
+3. Once the lesson has been quiet for 5 minutes, the outside agent writes the real summary, and it replaces the marker's text in place.
+
+A cut that drops no active history adds no marker. The full history always stays in the record. The model sees the summary followed by every message from the cut onward.
+
+## The cutoff rule
+
+The cutoff selection is ported from **@earendil-works/pi-coding-agent 1.4.0** (`findCutPoint`). There is no dependency on that package. Upgrade the port on purpose, and update the golden cases with it.
+
+1. Walk backward from the newest message until the tail reaches about 20,000 tokens.
+2. Take the nearest valid cut at or after that message. A valid cut is a user, assistant or custom message, never a tool result.
+3. If the trailing tool results alone pass the budget, keep the assistant call before them.
+4. Keep context-invisible metadata next to the cut with it. The walk never crosses an earlier compaction.
+
+godspeed treats its visible custom markers as user-like entries, leaves out UI-only markers, and starts from the active compaction's kept history rather than messages already dropped.
+
+Token estimates follow the same package:
+
+- Text, visible thinking, and tool-call names and arguments count as characters divided by four.
+- Each image gets a fixed allowance of 1,200 tokens (4,800 characters).
+- Encrypted signatures are not measured or stripped.
+- Whole-message cuts can overshoot, so the tail is not a measured 20,000 tokens and the request size after compaction is not fixed.
+
+Only the cutoff selection is ported. godspeed keeps its own summary prompt (built for teaching), plan continuity, storage, threshold, scheduling and lifecycle. It does not use the package's coding summary or its separate split-turn summary calls.
+
+## The lesson's size meter
+
+The meter shows `tokens / summarize point`, for example "33k / 40k". It is never a percentage.
+
+- The number is the latest completed response's `input + output + cacheRead + cacheWrite`. Reasoning is already inside output, and `totalTokens` is not used.
+- A response counts only if it ended with `stop`, `length` or `toolUse` and its usage is finite, not negative and not all zero. Partial stream updates, errors and aborts don't count.
+- A compaction marker clears every earlier reading. Summary runs never feed the meter.
+- The maximum is the summarize point from Settings, capped by the window minus the reserve (`useSummarizePoint`).
+- The meter is hidden until the lesson reaches 80% of the summarize point, and while either number is unknown.
 
 ## Usage, not dollars
 
-Every model call runs on the outside agent, which bills the learner's own plan.
-So nothing has a dollar price. `src/shared/core/prices.ts` and `src/shared/core/cost-summary.ts`
-only fold token counts and name the plan ("Outside agent"). Records from before
-the built-in sign-ins were removed keep their old plan labels (ChatGPT, GitHub
-Copilot, Grok). A call with no plan shows as unpriced, never as zero.
+Every model call runs on the outside agent, which bills the learner's own plan. Nothing has a dollar price, so the app only counts tokens.
 
-Saved input is Pi-normalized **fresh input**, disjoint from cache buckets. Never
-subtract cached reads from it again or migrate old logs as raw inclusive prompt
-tokens. Missing usage stays missing.
+- `prices.ts` and `cost-summary.ts` add up token counts and name the plan "Your agent".
+- Records from before the built-in sign-ins were removed keep their old plan labels: ChatGPT, GitHub Copilot and Grok.
+- A call with no plan shows as unpriced, never as zero.
+- Saved input is the package's normalized fresh input, separate from the cache buckets. Never subtract cached reads from it again, and never migrate old logs as raw prompt tokens that include the cache.
+- Missing usage stays missing.
 
 ## Upstream attribution
 
-The cutoff/estimator port adapts MIT-licensed code from
-`@earendil-works/pi-coding-agent` 1.4.0, author Mario Zechner (published package
-metadata). The inspected `dist/core/compaction/compaction.js` SHA-256 is
-`f51e78ef1da66b5803fc91e185f07b968f8f989ab9326b7744958416aad3f6f6`.
+The cutoff and estimator port adapts MIT-licensed code from `@earendil-works/pi-coding-agent` 1.4.0, author Mario Zechner (published package metadata). The inspected `dist/core/compaction/compaction.js` SHA-256 is `f51e78ef1da66b5803fc91e185f07b968f8f989ab9326b7744958416aad3f6f6`.
 
 MIT License
 
