@@ -287,3 +287,17 @@ async fn a_copy_read_before_its_mock_was_removed_or_ended_is_never_written_back(
 	assert_eq!(app.stores.mocks.read_mock(&space_id, &graded).unwrap().unwrap()["grades"], grades, "its grades are kept");
 	assert_eq!(app.bridge.pending_work_count(), 0, "no second grading");
 }
+
+#[test]
+fn a_what_its_like_that_is_empty_or_not_text_is_nothing_to_write_from() {
+	let root = scratch_dir("mocks-about");
+	let app = test_app(&root);
+	let (space_id, onsite, _) = interview_space(&app);
+	let file = app.stores.spaces.files_dir(&space_id).unwrap().join("f_about/What it's like.md");
+	let nothing = (409, "This deadline has no study facts and no \"What it's like\" yet.".to_owned());
+	for bytes in [&b" \n"[..], &b"%PDF-1.7\n\xff\xfe\x00"[..]] {
+		std::fs::write(&file, bytes).unwrap();
+		assert_eq!(crate::spaces::deadline_about(&app, &space_id, &onsite), None, "the window shows no What it's like");
+		assert_eq!(refusal(create_mock(&app, &space_id, &onsite, &json!(2), None)), nothing);
+	}
+}

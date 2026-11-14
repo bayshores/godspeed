@@ -113,7 +113,7 @@ pub fn create_mock(app: &Arc<App>, space_id: &str, deadline_id: &str, questions:
 	if let Some(open) = mocks.iter().find(|m| mock_state(m) != MockState::Graded) {
 		return fail(409, format!("Finish Mock {} first.", js_number(open["n"].as_f64().unwrap_or(f64::NAN))));
 	}
-	if !deadline["aboutFileId"].truthy() && deadline_topics(app, space_id, deadline_id)?.is_empty() {
+	if deadline_about(app, space_id, deadline_id).is_none() && deadline_topics(app, space_id, deadline_id)?.is_empty() {
 		return fail(409, "This deadline has no study facts and no \"What it's like\" yet.");
 	}
 	let n = mocks.iter().filter_map(|m| m["n"].as_f64()).fold(0.0, f64::max) + 1.0;

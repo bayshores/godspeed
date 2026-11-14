@@ -58,12 +58,13 @@ pub fn remove_space_deadline(app: &App, space_id: &str, deadline_id: &str) -> Sp
 }
 
 /// What a deadline's "What it's like" file says: `{fileId, name, text}`, or None when it has no
-/// such file or the file can't be read.
+/// such file or the file can't be read as text or is empty. A mock can be written from it only
+/// then, and only then does the window show it.
 pub fn deadline_about(app: &App, space_id: &str, deadline_id: &str) -> Option<Json> {
 	let record = app.stores.spaces.get_space(space_id)?;
 	let deadline = record["deadlines"].as_arr()?.iter().find(|d| d["id"].as_str() == Some(deadline_id))?;
 	let file = file_in(&record, deadline["aboutFileId"].as_str()?)?;
-	let text = std::fs::read_to_string(space_file_path(app, &record, file)?).ok()?;
+	let text = std::fs::read_to_string(space_file_path(app, &record, file)?).ok().filter(|t| !t.trim().is_empty())?;
 	Some(json!({ "fileId": file["id"], "name": file["name"], "text": text }))
 }
 

@@ -162,7 +162,7 @@ export function DeadlinePage({ spaceId, deadlineId }: { spaceId: string; deadlin
 									mocks={mocks.mocks}
 									failed={mocks.failed}
 									done={deadline.done}
-									offReason={mockOffReason(deadline.topics.length > 0, !!saved?.aboutFileId)}
+									offReason={mockOffReason(deadline.topics.length > 0, about?.state === "ready")}
 									nowMs={nowMs}
 									onRetry={() => void mocks.reload()}
 									onWrite={mocks.write}
