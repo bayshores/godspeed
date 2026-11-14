@@ -42,6 +42,8 @@ export interface TerminalsApi {
 	/** An agent is here to teach: one outside godspeed, or godspeed's own
 	 *  teacher, running and checked in. */
 	agentHere: boolean;
+	/** The shell's first list of terminals has answered. */
+	loaded: boolean;
 	/** The overlay's tab, or null while it is hidden. */
 	overlay: TerminalRole | null;
 	/** The learner opened it: the screen takes the keyboard. Opened by
@@ -79,6 +81,8 @@ const dialogOpen = () => !!document.querySelector('[aria-modal="true"]:not([data
 function useTerminalsState(status: AgentStatus | null): TerminalsApi {
 	const lh = typeof window === "undefined" ? undefined : window.lh?.terminals;
 	const [records, setRecords] = useState<Records>({ teacher: null, helper: null });
+	// The first list has answered: before it, no record says whether an agent runs.
+	const [loaded, setLoaded] = useState(false);
 	const [folder, setFolder] = useState("~/godspeed");
 	const [shown, setShown] = useState<{ role: TerminalRole; focus: boolean; inline: boolean } | null>(null);
 	const overlay = shown?.role ?? null;
@@ -88,12 +92,14 @@ function useTerminalsState(status: AgentStatus | null): TerminalsApi {
 	// Re-renders when a timer crosses its threshold, or to look for a closed dialog again.
 	const [tick, bump] = useReducer((n: number) => n + 1, 0);
 
-	// A late list answer never replaces a newer record, nor the pushed state of the same one.
+	// A late list answer never replaces a newer record, nor the pushed state
+	// of the same one; but an end always wins, in whichever order it comes.
 	const put = useCallback(
 		(term: TerminalRecord) =>
 			setRecords((r) => {
 				const cur = r[term.role];
-				return cur && (cur.id === term.id || cur.startedAt > term.startedAt) ? r : { ...r, [term.role]: term };
+				if (cur?.id === term.id) return term.ended && !cur.ended ? { ...r, [term.role]: { ...cur, ended: term.ended, prompt: term.prompt, url: term.url } } : r;
+				return cur && cur.startedAt > term.startedAt ? r : { ...r, [term.role]: term };
 			}),
 		[],
 	);
@@ -112,7 +118,7 @@ function useTerminalsState(status: AgentStatus | null): TerminalsApi {
 					const latest = list.filter((t) => t.role === role).sort((a, b) => b.startedAt - a.startedAt)[0];
 					if (latest) put(latest);
 				}
-			}).catch(() => {/* the next push tries again */});
+			}).catch(() => {/* the next push tries again */}).finally(() => on && setLoaded(true));
 		void load();
 		// A push names only the terminal; one this page has not seen yet comes from the list.
 		const off = lh.onState((s) => {
@@ -154,7 +160,6 @@ function useTerminalsState(status: AgentStatus | null): TerminalsApi {
 		const of = (term: TerminalRecord | null): TerminalFacts | null =>
 			term && {
 				term,
-				here: here(term.id),
 				checkedIn: checkedIn(term.id),
 				outsideHere,
 				teaching: !!status?.teaching,
@@ -164,7 +169,7 @@ function useTerminalsState(status: AgentStatus | null): TerminalsApi {
 			};
 		return { teacher: of(teacher), helper: of(helper) };
 		// tick: a timer crossed its threshold, so `now` must move.
-	}, [teacher, helper, here, checkedIn, outsideHere, status, quietSince, tick]);
+	}, [teacher, helper, checkedIn, outsideHere, status, quietSince, tick]);
 
 	// The system holds a background window's timers back, so the window
 	// coming back looks again: a reason that came due meanwhile shows at once.
@@ -300,27 +305,28 @@ function useTerminalsState(status: AgentStatus | null): TerminalsApi {
 	// Two sends close together start one teacher: the second comes before the first start's record.
 	const waking = useRef(false);
 	const wake = useCallback(() => {
-		const agent = lh && !waking.current && wakeAgent({ teacher, agentHere, outsideHere, saved: savedAgent() });
+		const agent = lh && loaded && !waking.current && wakeAgent({ teacher, agentHere, outsideHere, saved: savedAgent() });
 		if (!agent) return;
 		waking.current = true;
 		void start("teacher", agent).finally(() => {
 			waking.current = false;
 		});
-	}, [lh, teacher, agentHere, outsideHere, start]);
+	}, [lh, loaded, teacher, agentHere, outsideHere, start]);
 
 	const focusOnOpen = !!shown?.focus;
 	const inline = !!shown?.inline;
 	return useMemo(
-		() => ({ available: !!lh, teacher, helper, facts, folder, outsideHere, agentHere, overlay, focusOnOpen, inline, show, showInline, hide, start: startRole, stop, answer, paste, wake }),
-		[lh, teacher, helper, facts, folder, outsideHere, agentHere, overlay, focusOnOpen, inline, show, showInline, hide, startRole, stop, answer, paste, wake],
+		() => ({ available: !!lh, teacher, helper, facts, folder, outsideHere, agentHere, loaded, overlay, focusOnOpen, inline, show, showInline, hide, start: startRole, stop, answer, paste, wake }),
+		[lh, teacher, helper, facts, folder, outsideHere, agentHere, loaded, overlay, focusOnOpen, inline, show, showInline, hide, startRole, stop, answer, paste, wake],
 	);
 }
 
 /** Whether an agent is here to teach: in the desktop app from its
- *  terminals, else from the server. Null before the first read. */
+ *  terminals, else from the server. Null before the first read of either. */
 export function agentHereNow(status: AgentStatus | null, terminals: TerminalsApi | null): boolean | null {
 	if (!status) return null;
-	return terminals?.available ? terminals.agentHere : status.connected || status.teaching;
+	if (!terminals?.available) return status.connected || status.teaching;
+	return terminals.loaded ? terminals.agentHere : null;
 }
 
 const TerminalsContext = createContext<TerminalsApi | null>(null);

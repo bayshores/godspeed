@@ -12,7 +12,7 @@ import { afterEach, beforeEach, describe, it } from "node:test";
 import assert from "node:assert/strict";
 
 const { AgentLauncher } = await import("../../src/frontend/components/agent-folder/agent-launcher.tsx");
-const { TerminalsProvider, useTerminals } = await import("../../src/frontend/components/terminal/use-terminals.ts");
+const { TerminalsProvider, agentHereNow, useTerminals } = await import("../../src/frontend/components/terminal/use-terminals.ts");
 const { lessonAgentWaiting, useAgentStatus } = await import("../../src/frontend/components/agent-status.tsx");
 const { agentDoing } = await import("../../src/frontend/components/teacher/follow-status.ts");
 const { agentLine } = await import("../../src/frontend/components/teacher/teacher-panel.tsx");
@@ -392,6 +392,98 @@ describe("the helper", () => {
 					await act(async () => root!.render(page(true)));
 					await settle();
 					assert.ok(shell.calls.includes("start helper claude"), shell.calls.join(", "));
+				},
+			);
+		} finally {
+			shell.remove();
+		}
+	});
+});
+
+describe("the records", () => {
+	/** A shell whose list and start answer when the test says. */
+	function slowShell() {
+		const shell = fakeShell();
+		const lists: Array<(l: unknown[]) => void> = [];
+		let started: ((v: { id: string }) => void) | null = null;
+		const t = (dom.window as unknown as { lh: { terminals: Record<string, unknown> } }).lh.terminals;
+		t.list = () => new Promise((r) => lists.push(r));
+		t.start = (role: string, agent: string) => (shell.calls.push(`start ${role} ${agent}`), new Promise((r) => (started = r)));
+		return { shell, lists, start: (id: string) => started!({ id }) };
+	}
+	const gone = { id: "teacher-new", role: "teacher" as const, agent: "claude" as const, startedAt: Date.now(), ended: { stopped: false as const, code: 3 }, prompt: null, url: false };
+
+	for (const order of ["the start answers first", "the list answers first"] as const) {
+		it(`an end always wins over a live record of the same terminal: ${order}`, async () => {
+			const { shell, lists, start } = slowShell();
+			let api: Api | null = null;
+			function Probe() {
+				api = useTerminals();
+				return null;
+			}
+			try {
+				await mounted(
+					(r) =>
+						act(async () =>
+							r.render(
+								<TerminalsProvider status={access()}>
+									<Probe />
+								</TerminalsProvider>,
+							),
+						),
+					async () => {
+						await act(async () => lists.shift()!([]));
+						let why: Promise<string | null> | null = null;
+						await act(async () => void (why = api!.start("teacher", "claude")));
+						await settle();
+						// It ends at once (not installed): the push comes before the start's answer.
+						await act(async () => shell.push({ id: "teacher-new", ended: gone.ended, prompt: null, url: false }));
+						if (order === "the start answers first") {
+							await act(async () => start("teacher-new"));
+							await act(async () => lists.shift()!([gone]));
+						} else {
+							await act(async () => lists.shift()!([gone]));
+							await act(async () => start("teacher-new"));
+						}
+						await act(async () => void (await why));
+						await settle();
+						assert.ok(api!.teacher?.id === "teacher-new" && api!.teacher.ended?.code === 3, JSON.stringify(api!.teacher));
+					},
+				);
+			} finally {
+				shell.remove();
+			}
+		});
+	}
+
+	it("until the first list answers, nothing says no agent and nothing starts", async () => {
+		const { shell, lists } = slowShell();
+		let api: Api | null = null;
+		function Probe() {
+			api = useTerminals();
+			return null;
+		}
+		const status = access();
+		try {
+			await mounted(
+				(r) =>
+					act(async () =>
+						r.render(
+							<TerminalsProvider status={status}>
+								<Probe />
+							</TerminalsProvider>,
+						),
+					),
+				async () => {
+					stored.set("lh-folder-agent", "claude");
+					assert.equal(agentHereNow(status, api), null, "no flash of the no-agent line");
+					await act(async () => api!.wake());
+					assert.ok(!shell.calls.some((c) => c.startsWith("start")), shell.calls.join(", "));
+					await act(async () => lists.shift()!([]));
+					await settle();
+					assert.equal(agentHereNow(status, api), false);
+					await act(async () => api!.wake());
+					assert.ok(shell.calls.includes("start teacher claude"), shell.calls.join(", "));
 				},
 			);
 		} finally {

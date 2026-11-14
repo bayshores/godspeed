@@ -373,6 +373,13 @@ describe("send (one input event, verbatim consumption)", () => {
 			await sent;
 			assert.equal(told, 1);
 		}
+		// A steer into a turn godspeed started by itself tells it too.
+		globalThis.fetch = (async () => Response.json({ ok: true })) as typeof globalThis.fetch;
+		let steered = 0;
+		const steering = model();
+		steering.onSent = () => steered++;
+		assert.equal(await steering.steer("wait, why?"), true);
+		assert.equal(steered, 1);
 		globalThis.fetch = (async () => new Response("scan.pdf is not a PDF.", { status: 400 })) as typeof globalThis.fetch;
 		let told = 0;
 		const refused = model();

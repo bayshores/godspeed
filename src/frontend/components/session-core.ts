@@ -263,7 +263,7 @@ export class SessionModel {
 	/** The hook's re-render trigger (set by the adapter). */
 	onChange?: () => void;
 	/** Every input that starts or joins a turn and was taken: a learner
-	 *  message, a side question, an answer, Next, a continue. The adapter
+	 *  message, a side question, an answer, Next, a continue, a steer. The adapter
 	 *  starts godspeed's teacher here when no agent is (TerminalsApi.wake). */
 	onSent?: () => void;
 
@@ -811,7 +811,11 @@ export class SessionModel {
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({ input: { type: "steer", id, text: t } }),
 			});
-			if (res.ok) return true; // parked or delivered — the stream lands the card
+			if (res.ok) {
+				// A turn godspeed started by itself may still wait for a teacher.
+				this.onSent?.();
+				return true; // parked or delivered — the stream lands the card
+			}
 			if (res.status === 409) {
 				dropSteer();
 				return this.send({ type: "text", text: t }); // the settle race: plain send

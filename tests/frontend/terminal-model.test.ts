@@ -19,7 +19,7 @@ import {
 
 const T0 = 1_000_000;
 const term = (over: Partial<TerminalRecord> = {}): TerminalRecord => ({ id: "t1", role: "teacher", agent: "claude", startedAt: T0, ended: null, prompt: null, url: false, ...over });
-const facts = (over: Partial<TerminalFacts> = {}, t: Partial<TerminalRecord> = {}): TerminalFacts => ({ term: term(t), here: true, checkedIn: true, outsideHere: false, teaching: true, now: T0 + 1000, quietSince: null, helperBusy: false, ...over });
+const facts = (over: Partial<TerminalFacts> = {}, t: Partial<TerminalRecord> = {}): TerminalFacts => ({ term: term(t), checkedIn: true, outsideHere: false, teaching: true, now: T0 + 1000, quietSince: null, helperBusy: false, ...over });
 const names = { name: "Ada", folder: "~/godspeed" };
 const words = (f: TerminalFacts) => terminalFooter(f, names);
 
@@ -38,8 +38,8 @@ describe("when the screen opens by itself", () => {
 	});
 
 	it("no check-in 20 s after the start opens it, not before", () => {
-		assert.equal(needsYou(facts({ here: false, checkedIn: false, now: T0 + CHECK_IN_WAIT_MS - 1 })), null);
-		assert.equal(needsYou(facts({ here: false, checkedIn: false, now: T0 + CHECK_IN_WAIT_MS })), "no-check-in");
+		assert.equal(needsYou(facts({ checkedIn: false, now: T0 + CHECK_IN_WAIT_MS - 1 })), null);
+		assert.equal(needsYou(facts({ checkedIn: false, now: T0 + CHECK_IN_WAIT_MS })), "no-check-in");
 	});
 
 	it("checked in but not teaching for 30 s while a turn waits opens it", () => {
@@ -50,7 +50,7 @@ describe("when the screen opens by itself", () => {
 	});
 
 	it("after the first check-in, a long wait or turn with no request is no reason to open it", () => {
-		const later = { here: false, checkedIn: true, now: T0 + 10 * 60_000 };
+		const later = { checkedIn: true, now: T0 + 10 * 60_000 };
 		assert.equal(needsYou(facts(later)), null, "10 minutes into one wait_for_work");
 		assert.equal(needsYou(facts({ ...later, teaching: false })), null, "idle, no turn waits");
 		assert.equal(words(facts(later)).text, "Ada is running in ~/godspeed.");
@@ -58,19 +58,19 @@ describe("when the screen opens by itself", () => {
 	});
 
 	it("the timers count only for the teacher", () => {
-		assert.equal(needsYou(facts({ here: false, checkedIn: false, now: T0 + 10 * CHECK_IN_WAIT_MS }, { role: "helper" })), null);
+		assert.equal(needsYou(facts({ checkedIn: false, now: T0 + 10 * CHECK_IN_WAIT_MS }, { role: "helper" })), null);
 		assert.equal(needsYou(facts({}, { role: "helper", prompt: "trust" })), "prompt");
 	});
 });
 
 describe("the footer's words", () => {
 	it("starting, then running", () => {
-		assert.equal(words(facts({ here: false, checkedIn: false })).text, "Claude Code is starting in ~/godspeed. If it asks you something, answer it here.");
+		assert.equal(words(facts({ checkedIn: false })).text, "Claude Code is starting in ~/godspeed. If it asks you something, answer it here.");
 		assert.equal(words(facts()).text, "Ada is running in ~/godspeed.");
 	});
 
 	it("the trust question gets the one assist key", () => {
-		const f = words(facts({ here: false, checkedIn: false }, { prompt: "trust" }));
+		const f = words(facts({ checkedIn: false }, { prompt: "trust" }));
 		assert.equal(f.text, "Claude Code asks whether it may work in ~/godspeed. godspeed made this folder for it.");
 		assert.deepEqual(f.assist, { kind: "trust", label: "Yes, trust this folder" });
 		assert.equal(f.startAgain, false);
@@ -78,14 +78,14 @@ describe("the footer's words", () => {
 
 	it("a sign-in: a link or a menu before the first check-in", () => {
 		const signIn = "Finish signing in to Codex in your browser. If it gives you a code, copy it and click Paste.";
-		assert.equal(words(facts({ here: false, checkedIn: false }, { agent: "codex", url: true })).text, signIn);
-		assert.equal(words(facts({ here: false, checkedIn: false }, { agent: "codex", prompt: "menu" })).text, signIn);
+		assert.equal(words(facts({ checkedIn: false }, { agent: "codex", url: true })).text, signIn);
+		assert.equal(words(facts({ checkedIn: false }, { agent: "codex", prompt: "menu" })).text, signIn);
 		assert.equal(words(facts({}, { prompt: "menu" })).text, "Claude Code is asking you something. Answer it on the screen.");
 	});
 
 	it("the timers", () => {
 		const late = "Ada hasn't started teaching yet. It may be waiting for you on the screen.";
-		assert.equal(words(facts({ here: false, checkedIn: false, now: T0 + CHECK_IN_WAIT_MS })).text, late);
+		assert.equal(words(facts({ checkedIn: false, now: T0 + CHECK_IN_WAIT_MS })).text, late);
 		assert.equal(words(facts({ teaching: false, quietSince: T0, now: T0 + TEACH_WAIT_MS })).text, late);
 	});
 
@@ -112,12 +112,12 @@ describe("the footer's words", () => {
 
 	it("no sentence has an em-dash or a dot divider", () => {
 		const all = [
-			facts({ here: false, checkedIn: false }),
+			facts({ checkedIn: false }),
 			facts(),
 			facts({}, { prompt: "trust" }),
 			facts({}, { prompt: "enter" }),
 			facts({}, { prompt: "menu" }),
-			facts({ here: false, checkedIn: false }, { url: true }),
+			facts({ checkedIn: false }, { url: true }),
 			facts({}, { ended: { stopped: true, code: null } }),
 			facts({}, { ended: { stopped: false, code: 1 } }),
 			facts({}, { ended: { stopped: false, code: 0 } }),
@@ -131,9 +131,9 @@ describe("the footer's words", () => {
 describe("the teacher's status line", () => {
 	it("starting, needs you, else the usual line", () => {
 		assert.equal(teacherStatusLine(null, "Ada"), null);
-		assert.equal(teacherStatusLine(facts({ here: false, checkedIn: false }), "Ada"), "Ada is starting.");
+		assert.equal(teacherStatusLine(facts({ checkedIn: false }), "Ada"), "Ada is starting.");
 		assert.equal(teacherStatusLine(facts({}, { prompt: "trust" }), "Ada"), "Ada needs you.");
-		assert.equal(teacherStatusLine(facts({ here: false, checkedIn: false, now: T0 + CHECK_IN_WAIT_MS }), "Ada"), "Ada needs you.");
+		assert.equal(teacherStatusLine(facts({ checkedIn: false, now: T0 + CHECK_IN_WAIT_MS }), "Ada"), "Ada needs you.");
 		assert.equal(teacherStatusLine(facts({}, { ended: { stopped: false, code: 1 } }), "Ada"), "Ada needs you.");
 		assert.equal(teacherStatusLine(facts(), "Ada"), null);
 		assert.equal(teacherStatusLine(facts({}, { ended: { stopped: true, code: null } }), "Ada"), null);
@@ -177,12 +177,12 @@ describe("the screen's font", () => {
 describe("onboarding's first start", () => {
 	it("says the agent is starting, then connected; a question or an end uses the overlay's words", () => {
 		const first = (over: Partial<TerminalFacts>, t: Partial<TerminalRecord> = {}) => firstRunFooter(facts(over, t), "~/godspeed");
-		assert.equal(first({ here: false, checkedIn: false }).text, "Claude Code is starting in ~/godspeed. If it asks you something, answer it here.");
-		assert.equal(first({ here: false, checkedIn: false, now: T0 + CHECK_IN_WAIT_MS + 1 }).text, "Claude Code is starting in ~/godspeed. If it asks you something, answer it here.", "no timer words here");
-		assert.equal(first({ here: true }).text, "Claude Code is connected.");
-		const trust = first({ here: false, checkedIn: false }, { prompt: "trust" });
+		assert.equal(first({ checkedIn: false }).text, "Claude Code is starting in ~/godspeed. If it asks you something, answer it here.");
+		assert.equal(first({ checkedIn: false, now: T0 + CHECK_IN_WAIT_MS + 1 }).text, "Claude Code is starting in ~/godspeed. If it asks you something, answer it here.", "no timer words here");
+		assert.equal(first({ checkedIn: true }).text, "Claude Code is connected.");
+		const trust = first({ checkedIn: false }, { prompt: "trust" });
 		assert.equal(trust.assist?.label, "Yes, trust this folder");
-		assert.match(first({ here: false, checkedIn: false }, { url: true }).text, /^Finish signing in to Claude Code/);
+		assert.match(first({ checkedIn: false }, { url: true }).text, /^Finish signing in to Claude Code/);
 		assert.equal(first({}, { ended: { stopped: true, code: null } }).text, "You stopped Claude Code.");
 	});
 });

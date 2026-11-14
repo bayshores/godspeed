@@ -56,10 +56,8 @@ export function fitFontSize(width: number, height: number): number {
 /** What the page knows about one terminal at a moment. */
 export interface TerminalFacts {
 	term: TerminalRecord;
-	/** A request from this terminal reached godspeed in the last 3 minutes. */
-	here: boolean;
-	/** It has been here at least once: a long wait or turn after that is no
-	 *  reason to think it is still starting. */
+	/** A request from it has reached godspeed at least once: a long wait or
+	 *  turn after that is no reason to think it is still starting. */
 	checkedIn: boolean;
 	/** An agent outside godspeed's terminals is here. */
 	outsideHere: boolean;
