@@ -835,13 +835,26 @@ Agents are opened in one folder, `~/godspeed` by default. `data/agent-folder.jso
 
 `claude-settings.json` is loaded with `--settings`, so it applies before the folder is trusted. It turns on the folder's server, allows godspeed's tools, the waiter and web search, and adds the forget and compacting hooks. Fetching a page still asks, because text hidden in a space file could send the learner's data out. Codex gets the same connector through `-c` flags with its tools pre-approved, and no project config.
 
-Opening an agent:
+Starting an agent:
 
-1. "Open Claude Code" (`src/frontend/components/agent-folder/`) writes the folder.
+1. "Start Claude Code" (`src/frontend/components/agent-folder/`) writes the folder.
 2. The shell (`window.lh.terminals.start`, `crates/shell/src/terminal/`) runs the start script in a terminal of its own, shown in the window ([tauri-shell.md](tauri-shell.md#terminals)). Only those scripts can be run.
 3. A start script stops with an install hint when the agent's command or Node.js is missing (`start_script` in `core::spaces::agent_folder`), since the connector and hooks run with plain `node`. It exits 3 for a missing agent and 4 for missing Node.js, so the window can say which.
 
-A learner who starts an agent through a launcher sets its command with Change command under the Open button: one line of at most 300 characters (`usable_start_command`). An empty one goes back to `claude` or `codex`.
+The window side (`src/frontend/components/terminal/`):
+
+| Piece | What it does |
+|---|---|
+| `use-terminals.ts` | The teacher's and helper's latest terminal, starting and stopping them, and the overlay's state. |
+| The overlay | The live screen (xterm, loaded only when a screen first shows) over the dimmed page, the helper on a second tab. Under it one sentence and at most one bright key: "Yes, trust this folder", "Continue" or "Start again". Every key in the screen goes to the agent, Escape and Tab too; only Hide or a click on the dim closes it. |
+| Opening | The teacher's status line (Teacher panel, lesson head, Settings tile) opens it. It opens by itself once per reason, never over another dialog: a question on the screen, no check-in 20 s after the start, not teaching 30 s while a turn waits, a crash, or a missing agent or Node.js (`terminal-model.ts`). |
+| Onboarding | Step 1 shows the screen in the step itself. |
+| Hidden starts | Start lesson and a Talk send start the agent last started here when no agent is here, none runs and none is connected from outside. |
+| Restart now | Asks first while the teacher's terminal runs and a turn waits. |
+
+In a browser there is no `window.lh.terminals`: Start makes the folder and the learner copies the command into a terminal of their own.
+
+A learner who starts an agent through a launcher sets its command with Change command under the Start button: one line of at most 300 characters (`usable_start_command`). An empty one goes back to `claude` or `codex`.
 
 `services::app::old_setup` finds and removes what is left of the retired Claude Code plugin and the old Codex config block. A corner notice and a line in Settings, Connection offer Remove.
 
@@ -867,7 +880,7 @@ Every model request (a lesson turn, a background job, an extraction run, topic g
 
 #### The helper
 
-"Open Claude Code" and "Open Codex" each open two windows in the godspeed folder: the teacher, and a second session told "Start as the helper". The helper's waiter runs with `--helper` (`wait_for_work` with `helper: true`). `engine::bridge::helper` keeps the two apart.
+"Start Claude Code" and "Start Codex" start the teacher in the godspeed folder. The helper is a second session told "Start as the helper": the window starts it by itself once the teacher has checked in and background jobs wait, and Settings, Connection has Start helper. The helper's waiter runs with `--helper` (`wait_for_work` with `helper: true`). `engine::bridge::helper` keeps the two apart.
 
 - A work item is background when its conversation id does not start with `chat_`: file reading, graph work, sheets, research, topic grouping.
 - The helper takes background items. It takes lesson and Talk turns only while a teacher compacts, including the turn the teacher held.
@@ -875,7 +888,7 @@ Every model request (a lesson turn, a background job, an extraction run, topic g
 - The teacher takes lesson and Talk turns, and background items only while no helper is here.
 - A helper is here when it checked in within 3 minutes or holds an item whose claim has not run out. It never counts as teaching.
 
-The window shows who works (`src/frontend/components/work/`): a striped frame around a page being worked on, a yellow chip in the top bar on every page, and Teacher and Helper tiles under Settings, Connection, each with an Open button when its window is closed.
+The window shows who works (`src/frontend/components/work/`): a striped frame around a page being worked on, a yellow chip in the top bar on every page, and Teacher and Helper tiles under Settings, Connection, each with a Start button when its window is closed.
 
 #### The work item
 
