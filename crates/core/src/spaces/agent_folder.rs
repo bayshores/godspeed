@@ -139,9 +139,12 @@ pub fn short_folder(folder: &str, home: &str) -> String {
 	}
 }
 
-/// .mcp.json: Claude Code runs the folder's connector, which forwards to the app.
+/// .mcp.json: Claude Code runs the folder's connector, which forwards to the app. `env` hands it
+/// the terminal's id and the app's data folder; `:-` makes both empty for an agent started
+/// outside godspeed, where Claude Code would otherwise pass the `${…}` text itself.
 pub fn mcp_json(folder: &str, platform: Platform) -> String {
-	let server = json!({ "command": "node", "args": [join(folder, platform, &[".godspeed", "connect.mjs"])] });
+	let env = json!({ "GODSPEED_TERMINAL": "${GODSPEED_TERMINAL:-}", "GODSPEED_DATA_DIR": "${GODSPEED_DATA_DIR:-}" });
+	let server = json!({ "command": "node", "args": [join(folder, platform, &[".godspeed", "connect.mjs"])], "env": env });
 	format!("{}\n", stringify_pretty(&json!({ "mcpServers": { "godspeed": server } }), "\t"))
 }
 
@@ -328,8 +331,17 @@ mod tests {
 	}
 
 	#[test]
+	fn an_agent_started_outside_godspeed_reads_both_variables_as_empty() {
+		// What Claude Code does with `${NAME:-default}` when NAME is not set.
+		let outside = mcp_json("/h/godspeed", Platform::Darwin).replace("${GODSPEED_TERMINAL:-}", "").replace("${GODSPEED_DATA_DIR:-}", "");
+		let parsed = gs_json::parse(&outside).unwrap();
+		let env = &parsed["mcpServers"]["godspeed"]["env"];
+		assert_eq!((env["GODSPEED_TERMINAL"].as_str(), env["GODSPEED_DATA_DIR"].as_str()), (Some(""), Some("")), "empty sends no terminal header and keeps the usual data folder");
+	}
+
+	#[test]
 	fn files_and_commands() {
-		assert_eq!(mcp_json("/h/godspeed/", Platform::Darwin), "{\n\t\"mcpServers\": {\n\t\t\"godspeed\": {\n\t\t\t\"command\": \"node\",\n\t\t\t\"args\": [\n\t\t\t\t\"/h/godspeed/.godspeed/connect.mjs\"\n\t\t\t]\n\t\t}\n\t}\n}\n");
+		assert_eq!(mcp_json("/h/godspeed/", Platform::Darwin), "{\n\t\"mcpServers\": {\n\t\t\"godspeed\": {\n\t\t\t\"command\": \"node\",\n\t\t\t\"args\": [\n\t\t\t\t\"/h/godspeed/.godspeed/connect.mjs\"\n\t\t\t],\n\t\t\t\"env\": {\n\t\t\t\t\"GODSPEED_TERMINAL\": \"${GODSPEED_TERMINAL:-}\",\n\t\t\t\t\"GODSPEED_DATA_DIR\": \"${GODSPEED_DATA_DIR:-}\"\n\t\t\t}\n\t\t}\n\t}\n}\n");
 		assert_eq!(copy_command(FolderAgent::Claude, "/h/godspeed", "/h", Platform::Darwin, &none()), "cd ~/godspeed && claude --settings .godspeed/claude-settings.json \"Start teaching\"");
 		assert!(start_script(StartTarget::Codex, "/h/my godspeed", Platform::Linux, &none()).contains("cd \"/h/my godspeed\" || exit 1\n"));
 		assert_eq!(start_script_path("C:\\g", StartTarget::Codex, Platform::Win32), "C:\\g\\.godspeed\\start-codex.cmd");
