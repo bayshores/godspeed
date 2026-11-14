@@ -232,6 +232,7 @@ A question counts once it has stayed the same for 2 s. `url` is true while the s
 |---|---|
 | Stop | The record is marked stopping and the server hears the new live set at once. Mac and Linux send SIGHUP to the script's process group (`portable-pty` makes it a session leader), then SIGKILL 2 s later; Windows ends the Job Object. |
 | The script exits | `ended` is `{stopped: false, code}`; whatever it left running is hung up the same way. Exit 3 means the agent was not found and 4 that Node.js is missing. |
+| The teacher ends | However it ended (Stop, exit or crash), the shell stops the helper as above. The page may be gone by then, so it does not do this itself. |
 | Quit | `quit.rs` stops every terminal before the server: all hang up at once, and what runs after 2 s is killed. |
 | Server crash | The terminals live on. The restarted server gets `LH_TERMINALS`, and the reloaded page calls `terminal_list`. |
 | A child that left the group | It still sends the ended id, so the server refuses it. On Windows the job holds it unless it breaks away. |
