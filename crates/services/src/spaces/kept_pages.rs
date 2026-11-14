@@ -25,7 +25,8 @@ pub async fn kept_pages_at(app: &App, path: &Path) -> Option<KeptPages> {
 				continue;
 			}
 			let Some(abs) = space_file_path(app, &record, file) else { continue };
-			if tokio::fs::canonicalize(&abs).await.ok().as_ref() != Some(&wanted) {
+			// Names first: only a same-named file is looked up on disk, which can hang on a paused Drive.
+			if Path::new(&abs).file_name() != wanted.file_name() || tokio::fs::canonicalize(&abs).await.ok().as_ref() != Some(&wanted) {
 				continue;
 			}
 			if fingerprint_file(&wanted).await.ok().as_deref() != Some(fp) {

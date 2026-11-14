@@ -59,13 +59,20 @@ claim cited as (p. N). End with a line "Pages consulted: N, N, …" listing ever
 extracted or rendered."#;
 
 /// Added to the prompt when the PDF is a space file whose pages can be kept.
-const KEEP_INSTRUCTIONS: &str = "\n\nWhen you had to render a page for its formulas and later lessons will need it, save it once with save_page: its sentences as written on the page, formulas in $...$ or $$...$$, no bold, nothing reordered (quoted words are matched against the page). A page marked kept in pdf_info is saved already: extract it instead of rendering it.";
+const KEEP_INSTRUCTIONS: &str = "\n\nWhen you had to render a page for its formulas and later lessons will need it, save the whole page once with save_page: its sentences as written, formulas in $...$ or $$...$$, no bold, nothing reordered (quoted words are matched against the page). A page marked kept in pdf_info is saved already: extract it instead of rendering it.";
 
 /// Pages one job may keep, and the longest kept page in UTF-16 units.
 const SAVE_CAP: usize = 3;
 const KEPT_PAGE_MAX: usize = 6000;
-/// JSON turns an unescaped \frac, \beta, \theta or \right into a control character and the rest.
-const CONTROL_REFUSAL: &str = r"markdown holds a control character (a tab, form feed, backspace or carriage return). JSON reads \t, \f, \b and \r that way, so \theta, \frac, \beta and \right arrive broken. Write each backslash twice in the JSON string (\\frac) and save again.";
+/// A save shorter than this share of a page's own text, on a page with more than
+/// `WHOLE_PAGE_FLOOR` characters of it, is part of the page; a scan has next to no text.
+const WHOLE_PAGE_SHARE: f64 = 0.4;
+const WHOLE_PAGE_FLOOR: usize = 400;
+/// JSON turns an unescaped \neq, \theta, \frac, \beta or \right into a control character and the rest.
+const CONTROL_REFUSAL: &str = r"markdown looks broken by JSON: it reads \n, \t, \f, \b and \r as a newline, tab, form feed, backspace and carriage return, so \neq, \theta, \frac, \beta and \right arrive broken. Write each backslash twice in the JSON string (\\frac) and save again.";
+/// What follows the `\n` of the common `\n…` commands. The one-letter ones (\ne, \nu, \ni) count
+/// only after a space or an opening mark, because a display line may well start with e, u or i.
+const N_COMMAND_TAILS: [&str; 18] = ["eq", "e", "abla", "u", "ot", "eg", "i", "otin", "mid", "leq", "geq", "subseteq", "exists", "less", "gtr", "parallel", "earrow", "warrow"];
 
 const MAX_ITERATIONS: usize = 14;
 /// Pages per pdf_render call: one over-eager call must not flood the vision context.
@@ -120,7 +127,7 @@ fn pdf_tools(keeping: bool) -> Vec<Json> {
 	if keeping {
 		tools.push(json!({
 			"name": "save_page",
-			"description": "Keep a page you rendered in this job as Markdown with LaTeX, so later readings and search get its formulas. At most 3 pages a job, 6000 characters each.",
+			"description": "Keep a whole page you rendered in this job as Markdown with LaTeX. At most 3 pages a job, 6000 characters each.",
 			"parameters": { "type": "object", "required": ["page", "markdown"], "properties": { "page": { "type": "integer", "minimum": 1 }, "markdown": { "type": "string" } } },
 		}));
 	}
@@ -174,7 +181,7 @@ struct Reader<'a> {
 	consulted: BTreeSet<i64>,
 	/// Pages whose extract or render reached the loop; a search hit consults but does not read.
 	read: BTreeSet<i64>,
-	/// Pages rendered in this job: only these may be saved.
+	/// Pages rendered and shown in this job: only these may be saved.
 	rendered: BTreeSet<i64>,
 	keeper: Option<Keeper<'a>>,
 	/// Pages saved in this job.
@@ -217,6 +224,8 @@ impl Reader<'_> {
 				results.push(tool_text(&call["id"], &call["name"], &text, is_error));
 			}
 			self.messages.extend(results);
+			// A page counts as seen, and may be saved, only once its picture is shown.
+			self.rendered.extend(rendered.iter().map(|(page, _)| *page));
 			if !rendered.is_empty() {
 				let pages: Vec<String> = rendered.iter().map(|(page, _)| format!("p{page}")).collect();
 				let pngs: Vec<&[u8]> = rendered.iter().map(|(_, png)| png.as_slice()).collect();
@@ -272,7 +281,6 @@ impl Reader<'_> {
 				for p in &pages {
 					self.consulted.insert(i64::from(p.page));
 					self.read.insert(i64::from(p.page));
-					self.rendered.insert(i64::from(p.page));
 				}
 				if pages.is_empty() {
 					return Ok("ERROR: no pages rendered (spec matched nothing?)".to_owned());
@@ -281,7 +289,7 @@ impl Reader<'_> {
 				rendered.extend(pages.into_iter().map(|p| (i64::from(p.page), p.png)));
 				Ok(format!("Rendered {count} page(s) at {} DPI — the images follow below. Read them carefully (equations, diagrams, layout).", js_number(dpi)))
 			}
-			"save_page" if self.keeper.is_some() => self.save_page(args, opts).await,
+			"save_page" if self.keeper.is_some() => self.save_page(args, rendered, opts).await,
 			_ => Ok(format!("ERROR: unknown tool \"{name}\"")),
 		}
 	}
@@ -291,10 +299,14 @@ impl Reader<'_> {
 	}
 
 	/// save_page: the page's Markdown kept for this version of the file, or why not.
-	async fn save_page(&mut self, args: &Json, opts: &JobAgentOptions) -> Result<String, String> {
+	/// `shown_next` holds the pages this reply rendered, whose pictures the model has not seen yet.
+	async fn save_page(&mut self, args: &Json, shown_next: &[(i64, Vec<u8>)], opts: &JobAgentOptions) -> Result<String, String> {
 		let count = self.pdf.pdf_shape(self.path).await?.page_count;
 		let page = args["page"].as_f64().or_else(|| args["page"].as_str()?.trim().parse().ok()).filter(|n| n.fract() == 0.0 && (1.0..=f64::from(count)).contains(n));
 		let Some(page) = page.map(|n| n as u32) else { return Ok(format!("ERROR: page must be a whole number from 1 to {count}.")) };
+		if shown_next.iter().any(|(p, _)| *p == i64::from(page)) {
+			return Ok(format!("ERROR: page {page} was rendered in this same reply, so you have not seen it yet. Look at its picture first, then save it in a later reply."));
+		}
 		if !self.rendered.contains(&i64::from(page)) {
 			return Ok(format!("ERROR: page {page} was not rendered in this job. Render it with pdf_render and read it first."));
 		}
@@ -305,10 +317,15 @@ impl Reader<'_> {
 		if let Some(refusal) = page_text_refusal(markdown) {
 			return Ok(format!("ERROR: {refusal}"));
 		}
-		if let Some(keeper) = &mut self.keeper {
-			(keeper.keep)(page, markdown)?;
-			keeper.pages.insert(page, markdown.to_owned());
+		let own = self.pdf.pdf_extract(self.path, &page.to_string()).await?;
+		let own_length = len16(own.split_once('\n').map_or("", |(_, text)| text));
+		let length = len16(markdown);
+		if own_length > WHOLE_PAGE_FLOOR && (length as f64) < own_length as f64 * WHOLE_PAGE_SHARE {
+			return Ok(format!("ERROR: markdown is {length} characters, but the page's own text is {own_length}. Save the whole page, every sentence and formula on it."));
 		}
+		let Some(keeper) = &mut self.keeper else { unreachable!("save_page is offered only with a keeper") };
+		(keeper.keep)(page, markdown)?;
+		keeper.pages.insert(page, markdown.to_owned());
 		self.saved += 1;
 		opts.activity(&format!("save_page: {page}"));
 		Ok(format!("Saved page {page}. Later readings and search get this text for it."))
@@ -326,13 +343,61 @@ fn page_text_refusal(markdown: &str) -> Option<String> {
 	if length > KEPT_PAGE_MAX {
 		return Some(format!("markdown is {length} characters long; the most is {KEPT_PAGE_MAX}."));
 	}
-	if markdown.chars().any(|c| c.is_control() && c != '\n') {
+	if markdown.chars().any(|c| c.is_control() && c != '\n') || math_spans(markdown).into_iter().any(|(math, inline)| has_broken_n_command(math, inline)) {
 		return Some(CONTROL_REFUSAL.to_owned());
 	}
 	if HEAD.test(markdown) {
 		return Some("markdown may not hold a line like \"--- Page 3 ---\".".to_owned());
 	}
 	None
+}
+
+/// Whether a math span shows an unescaped `\n…` command that JSON split into a newline and the
+/// rest: inline math is one line, and in display math a line starts with what follows the `\n`.
+fn has_broken_n_command(math: &str, inline: bool) -> bool {
+	if inline {
+		return math.contains('\n');
+	}
+	math.match_indices('\n').any(|(at, _)| {
+		let (before, after) = (&math[..at], &math[at + 1..]);
+		N_COMMAND_TAILS.iter().any(|tail| {
+			let ends = after.strip_prefix(tail).is_some_and(|rest| !rest.starts_with(|c: char| c.is_ascii_alphabetic()));
+			ends && (tail.len() > 1 || before.ends_with([' ', '{', '(', '[', '^', '_', ',']))
+		})
+	})
+}
+
+/// The math in Markdown, each span's inside and whether it is inline: `$$…$$`, and `$…$` that
+/// opens on a non-space and closes after one, not before a digit (so "$5 and $10" is no math).
+/// `\$` is a dollar sign.
+fn math_spans(text: &str) -> Vec<(&str, bool)> {
+	let bytes = text.as_bytes();
+	let mut spans = Vec::new();
+	let mut at = 0;
+	while at < bytes.len() {
+		match bytes[at] {
+			b'\\' => at += 2,
+			b'$' if bytes.get(at + 1) == Some(&b'$') => {
+				let Some(len) = text[at + 2..].find("$$") else { break };
+				spans.push((&text[at + 2..at + 2 + len], false));
+				at += len + 4;
+			}
+			b'$' => {
+				let opens = bytes.get(at + 1).is_some_and(|b| !matches!(b, b' ' | b'\t'));
+				let close = text[at + 1..].find('$').map(|len| at + 1 + len);
+				let closes = close.is_some_and(|c| !bytes[c - 1].is_ascii_whitespace() && !bytes.get(c + 1).is_some_and(|b| b.is_ascii_digit() || *b == b'$'));
+				match close {
+					Some(c) if opens && closes => {
+						spans.push((&text[at + 1..c], true));
+						at = c + 1;
+					}
+					_ => at += 1,
+				}
+			}
+			_ => at += 1,
+		}
+	}
+	spans
 }
 
 /// pdf_info's text: the triage readout, with "kept" on each kept page.

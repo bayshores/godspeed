@@ -320,13 +320,16 @@ fn indexed_fp(fp: &str, kept: &BTreeMap<u32, String>) -> String {
 	format!("{fp}+{}", &sha256_text(&pages)[..16])
 }
 
-/// Puts a file's newly kept page into search, in the background.
+/// Puts a file's newly kept page into search, in the background. These re-indexes run one at a
+/// time, each reading the kept pages when its turn comes, so the last one to run has every page.
 pub(super) fn reindex_kept_pages(app: &Arc<App>, space_id: &str, file_id: &str) {
+	static ONE_AT_A_TIME: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
 	let Some(record) = app.stores.spaces.get_space(space_id) else { return };
 	let Some(file) = file_in(&record, file_id).cloned() else { return };
 	let Some(abs) = space_file_path(app, &record, &file) else { return };
 	let (app, space_id) = (app.clone(), space_id.to_owned());
 	tokio::spawn(async move {
+		let _turn = ONE_AT_A_TIME.lock().await;
 		index_for_search(&app, &space_id, &file, Path::new(&abs), str_of(&file, "contentFp"), None).await;
 	});
 }
@@ -485,6 +488,11 @@ mod tests {
 
 		let kept = kept_pages_at(&app, Path::new(&abs)).await.unwrap();
 		assert!(kept.pages.is_empty());
+		// A same-named copy somewhere else is another file.
+		let copy = root.join("elsewhere").join(Path::new(&abs).file_name().unwrap());
+		std::fs::create_dir_all(copy.parent().unwrap()).unwrap();
+		std::fs::copy(&abs, &copy).unwrap();
+		assert!(kept_pages_at(&app, &copy).await.is_none());
 		keep_page(&app, &kept, 2, "Force is $F = ma$.").unwrap();
 		let kept_fp = indexed_fp(&fp, &read_kept_pages(&app, &space_id, &file_id, &fp));
 		wait_indexed(&app, &space_id, &file_id, &kept_fp).await;

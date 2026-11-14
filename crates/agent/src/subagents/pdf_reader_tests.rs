@@ -229,6 +229,7 @@ async fn save_page_refuses_what_it_cannot_keep() {
 			save(json!(1), "$\u{c}rac{a}{b}$"),
 			save(json!(1), "$\theta$"),
 			save(json!(1), "Line\r\nnext"),
+			save(json!(1), "$a \neq b$"),
 			save(json!(1), "Text.\n--- Page 4 ---\nMore."),
 			save(json!(1), "--- Slide 2 ---"),
 			save(json!(5), "Text."),
@@ -249,13 +250,13 @@ async fn save_page_refuses_what_it_cannot_keep() {
 	assert_eq!(texts[..3], [range.clone(), range.clone(), range]);
 	assert_eq!(texts[3], "ERROR: markdown is empty.");
 	assert_eq!(texts[4], "ERROR: markdown is 6001 characters long; the most is 6000.");
-	for text in &texts[5..8] {
+	for text in &texts[5..9] {
 		assert_eq!(text, &format!("ERROR: {CONTROL_REFUSAL}"));
 	}
 	assert!(CONTROL_REFUSAL.contains(r"(\\frac)"));
-	assert_eq!(texts[8..10], ["ERROR: markdown may not hold a line like \"--- Page 3 ---\".", "ERROR: markdown may not hold a line like \"--- Page 3 ---\"."]);
-	assert_eq!(texts[10], "ERROR: page 5 was not rendered in this job. Render it with pdf_render and read it first.");
-	assert!(texts[11..].iter().all(|t| t.starts_with("Saved page ")), "{texts:?}");
+	assert_eq!(texts[9..11], ["ERROR: markdown may not hold a line like \"--- Page 3 ---\".", "ERROR: markdown may not hold a line like \"--- Page 3 ---\"."]);
+	assert_eq!(texts[11], "ERROR: page 5 was not rendered in this job. Render it with pdf_render and read it first.");
+	assert!(texts[12..].iter().all(|t| t.starts_with("Saved page ")), "{texts:?}");
 	assert_eq!(shown[2].2.last().unwrap(), "ERROR: this job already saved 3 pages, the most one job may save.");
 	assert_eq!(saved.lock().iter().map(|(page, _)| *page).collect::<Vec<_>>(), [1, 2, 3]);
 }
@@ -265,14 +266,15 @@ async fn save_page_is_offered_only_with_a_keeper() {
 	let Some(pdf) = shared_pdf() else { return };
 	let script = Scripted::new();
 	let shown: Shown = Arc::default();
-	reply_showing(&script, calls(&[("pdf_render", json!({ "pages": "1" })), ("save_page", json!({ "page": 1, "markdown": "One." }))]), &shown);
+	reply_showing(&script, calls(&[("pdf_render", json!({ "pages": "1" }))]), &shown);
+	reply_showing(&script, calls(&[("save_page", json!({ "page": 1, "markdown": "One." }))]), &shown);
 	reply_showing(&script, says("One (p. 1)."), &shown);
 	let (opts, _) = job_agent_options(&script, FakeHeadless::new(no_demo()));
 	run_pdf_reader_agent(&lines_pdf(), "", &pdf, None, &opts).await;
 	let shown = shown.lock();
 	assert_eq!(shown[0].0, INSTRUCTIONS);
 	assert!(!shown[0].1.contains(&"save_page".to_owned()));
-	assert_eq!(shown[1].2[1], "ERROR: unknown tool \"save_page\"");
+	assert_eq!(shown[2].2[1], "ERROR: unknown tool \"save_page\"");
 }
 
 #[tokio::test]
@@ -280,12 +282,115 @@ async fn a_failed_keep_is_an_error_and_nothing_counts() {
 	let Some(pdf) = shared_pdf() else { return };
 	let script = Scripted::new();
 	let shown: Shown = Arc::default();
-	reply_showing(&script, calls(&[("pdf_render", json!({ "pages": "2" })), ("save_page", json!({ "page": 2, "markdown": "Two." })), ("pdf_extract", json!({ "pages": "2" }))]), &shown);
+	reply_showing(&script, calls(&[("pdf_render", json!({ "pages": "2" }))]), &shown);
+	reply_showing(&script, calls(&[("save_page", json!({ "page": 2, "markdown": "Two." })), ("pdf_extract", json!({ "pages": "2" }))]), &shown);
 	reply_showing(&script, says("Two (p. 2)."), &shown);
 	let failing = Keeper { pages: BTreeMap::new(), keep: Box::new(|_, _| Err("the file changed".to_owned())) };
 	let (opts, _) = job_agent_options(&script, FakeHeadless::new(no_demo()));
 	run_pdf_reader_agent(&lines_pdf(), "", &pdf, Some(failing), &opts).await;
-	let texts = &shown.lock()[1].2;
+	let texts = &shown.lock()[2].2;
 	assert_eq!(texts[1], "ERROR: the file changed");
 	assert!(!texts[2].contains("Two."), "{}", texts[2]);
+}
+
+#[test]
+fn a_backslash_json_broke_is_refused() {
+	let broken = [
+		("\\theta as a tab", "$\theta$"),
+		("\\frac as a form feed", "$\u{c}rac{a}{b}$"),
+		("\\beta as a backspace", "$\u{8}eta$"),
+		("\\vec as a vertical tab", "$\u{b}ec{v}$"),
+		("\\rho as a carriage return", "$\rho$"),
+		("\\neq in inline math", "So $a \neq b$ here."),
+		("\\nu alone in inline math", "Take $\nu$."),
+		("\\notin in inline math", "$x \notin A$"),
+		("\\nabla opening display math", "$$\nabla f = 0$$"),
+		("\\neq on a later display line", "$$\n\\sum_i x_i \neq 0\n$$"),
+		("\\nu in a subscript", "$$\nx_{\nu} = 1\n$$"),
+		("\\ne after a space", "$$\na \ne b\n$$"),
+		("\\nexists", "$$\nexists x$$"),
+	];
+	for (what, markdown) in broken {
+		assert_eq!(page_text_refusal(markdown).as_deref(), Some(CONTROL_REFUSAL), "{what}");
+	}
+}
+
+#[test]
+fn clean_math_on_many_lines_is_kept() {
+	let clean = [
+		"$$\nu = e^x \\\\\ne^{i\\pi} + 1 = 0\n$$",
+		"$$\n\\begin{aligned}\nx &= 1 \\\\\nexp(x) &= e\n\\end{aligned}\n$$",
+		"It costs $5 and\n$10, and $a \\neq b$ holds.",
+		"Euler wrote\n$e^{i\\pi} = -1$, e.g.\neq-signs are rare.",
+		"$$\n\\nabla f = 0\n$$",
+	];
+	for markdown in clean {
+		assert_eq!(page_text_refusal(markdown), None, "{markdown}");
+	}
+}
+
+#[tokio::test]
+async fn a_page_is_saved_only_after_its_picture_is_shown() {
+	let Some(pdf) = shared_pdf() else { return };
+	let script = Scripted::new();
+	let shown: Shown = Arc::default();
+	reply_showing(&script, calls(&[("pdf_render", json!({ "pages": "2" })), ("save_page", json!({ "page": 2, "markdown": "Two." }))]), &shown);
+	reply_showing(&script, calls(&[("save_page", json!({ "page": 2, "markdown": "Two." }))]), &shown);
+	reply_showing(&script, says("Two (p. 2)."), &shown);
+	let saved = Arc::default();
+	let (opts, _) = job_agent_options(&script, FakeHeadless::new(no_demo()));
+	run_pdf_reader_agent(&lines_pdf(), "", &pdf, Some(keeper(&saved)), &opts).await;
+	let shown = shown.lock();
+	assert_eq!(shown[1].2[1], "ERROR: page 2 was rendered in this same reply, so you have not seen it yet. Look at its picture first, then save it in a later reply.");
+	assert_eq!(shown[2].2.last().unwrap(), "Saved page 2. Later readings and search get this text for it.");
+	assert_eq!(*saved.lock(), [(2, "Two.".to_owned())]);
+}
+
+/// A one-page PDF holding `lines` in Helvetica.
+fn text_pdf(lines: &[String]) -> Vec<u8> {
+	let shown: String = lines.iter().map(|line| format!("({line}) Tj 0 -14 Td ")).collect();
+	let stream = format!("BT /F1 11 Tf 72 740 Td {shown}ET");
+	let objects = [
+		"<< /Type /Catalog /Pages 2 0 R >>".to_owned(),
+		"<< /Type /Pages /Kids [3 0 R] /Count 1 >>".to_owned(),
+		"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>".to_owned(),
+		format!("<< /Length {} >>\nstream\n{stream}\nendstream", stream.len()),
+		"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>".to_owned(),
+	];
+	let mut pdf = String::from("%PDF-1.4\n");
+	let mut offsets = Vec::new();
+	for (i, body) in objects.iter().enumerate() {
+		offsets.push(pdf.len());
+		pdf += &format!("{} 0 obj\n{body}\nendobj\n", i + 1);
+	}
+	let xref = pdf.len();
+	pdf += &format!("xref\n0 {}\n0000000000 65535 f \n", objects.len() + 1);
+	for offset in offsets {
+		pdf += &format!("{offset:010} 00000 n \n");
+	}
+	pdf += &format!("trailer\n<< /Size {} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n", objects.len() + 1);
+	pdf.into_bytes()
+}
+
+#[tokio::test]
+async fn a_save_much_shorter_than_its_page_is_refused() {
+	let Some(pdf) = shared_pdf() else { return };
+	let scratch = Scratch::new("whole");
+	let path = scratch.path("long.pdf");
+	let lines: Vec<String> = (1..=12).map(|n| format!("Line {n} of this page says something plain about sets.")).collect();
+	gs_base::fsx::write_atomic(Path::new(&path), &text_pdf(&lines), None).unwrap();
+	let script = Scripted::new();
+	let shown: Shown = Arc::default();
+	let half = lines[..6].join("\n");
+	reply_showing(&script, calls(&[("pdf_render", json!({ "pages": "1" }))]), &shown);
+	reply_showing(&script, calls(&[("save_page", json!({ "page": 1, "markdown": "Only the formula: $A \\cup B$." })), ("save_page", json!({ "page": 1, "markdown": half }))]), &shown);
+	reply_showing(&script, says("Sets (p. 1)."), &shown);
+	let saved = Arc::default();
+	let (opts, _) = job_agent_options(&script, FakeHeadless::new(no_demo()));
+	run_pdf_reader_agent(&path, "", &pdf, Some(keeper(&saved)), &opts).await;
+	let shown = shown.lock();
+	let texts = &shown[2].2[1..];
+	assert_eq!(texts[0], "ERROR: markdown is 29 characters, but the page's own text is 638. Save the whole page, every sentence and formula on it.");
+	assert_eq!(texts[1], "Saved page 1. Later readings and search get this text for it.");
+	assert_eq!(saved.lock().len(), 1);
 }
