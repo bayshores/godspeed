@@ -829,11 +829,11 @@ A learner who starts an agent through a launcher sets its command with Change co
 
 #### The spaces folder
 
-The godspeed folder also gets `spaces/`, with a shortcut to every space file grouped like the Files page (`spaces/<space>/<group>/<file>`, archived spaces under `spaces/Archived/`) and a `READ ME.txt`.
+The godspeed folder also gets `spaces/`, with a shortcut to every space file grouped like the Files page (`spaces/<space>/<group>/<file>`, closed spaces under `spaces/Closed/`) and a `READ ME.txt`.
 
 - `core::spaces::space_shortcuts` picks the names (safe on every OS, " (2)" for a repeat) from `core::spaces::file_groups`.
 - `services::spaces::space_shortcuts` writes them when the folder is set up and about 2 s after `spaces-changed`.
-- Shortcuts are symlinks, or hard links on Windows when symlinks aren't allowed. `.godspeed/shortcuts.json` lists what the sync made, and it removes only those.
+- Shortcuts are symlinks, or hard links on Windows when symlinks aren't allowed. `.godspeed/shortcuts.json` lists what the sync made, and it removes only those, then each folder it made that is left empty. So the `spaces/Archived/` of older builds goes once its shortcuts move to `spaces/Closed/`, and stays only while it holds something of the learner's.
 - Copies in the data folder are read-only on macOS and Linux. Moving the godspeed folder clears the old `spaces/`.
 - Linking or adding a path inside `spaces/` is refused (`shortcut_path_problem`).
 
@@ -997,7 +997,7 @@ The list is `EventKind` in `crates/base/src/events.rs`, mirrored in `src/shared/
 | `jobs-changed` | `{chatId?}` | every job-store write that changed something |
 | `activity-changed` | `{}` | an extraction run changed phase, or a background work item was queued, taken or dropped (`engine::bridge`, `agent::extraction::extraction_runs`) |
 | `chats-changed` | `{}` | a lesson was created, renamed or deleted |
-| `spaces-changed` | `{}` | a space was created, edited, archived or deleted, or its files changed |
+| `spaces-changed` | `{}` | a space was created, edited, closed or deleted, or its files changed |
 | `agent-changed` | `{}` | the outside agent connected, started or stopped teaching, was renamed or lapsed, a helper arrived, or compacting started or lapsed |
 | `record-changed` | `{chatId}` | a lesson record changed without a turn: a dismissal, Keep going at a stop, an answer to a question from earlier, a kept sentence's part dropped or brought back, an answer that leaves a sibling question open, or a finished compaction. The `keep-going`, `review` and `kept` routes also emit it during a turn |
 | `agent-action` | the action | a new line in the activity log (`services::app::agent_actions`, saved in `data/agent-actions.json`) |

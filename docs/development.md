@@ -213,11 +213,11 @@ Everything under `data/` is plain JSON or JSONL and is never tracked by git. You
 | Record | Current version | Where |
 |---|---|---|
 | Chat | 3 | `CURRENT_CHAT_VERSION`, `crates/core/src/contracts/chat.rs` |
-| Space | 10 | `CURRENT_SPACE_VERSION`, `crates/core/src/contracts/space.rs` |
+| Space | 11 | `CURRENT_SPACE_VERSION`, `crates/core/src/contracts/space.rs` |
 | Settings | 3 | `CURRENT_SETTINGS_VERSION`, `crates/core/src/records/settings.rs` |
 | Graph family (`graph/format.json`) | 1 | `CURRENT_GRAPH_FORMAT_VERSION`, `crates/core/src/contracts/graph.rs` |
 
 - Every write stamps the current version. A chat with no version reads as version 1.
-- Older records are upgraded when read. For example, a record from before the rename to "space" may still say `classId`, or live in `class.json` or a `classes/` folder.
+- Older records are upgraded when read. For example, a record from before the rename to "space" may still say `classId`, or live in `class.json` or a `classes/` folder, and a space closed before the rename to "close" says `archived: true`.
 - A chat, space or graph stamped with a newer version than the running build is refused on read, because a store never rewrites what it does not understand.
 - The graph family's `format.json` is written with its first write.
