@@ -2,8 +2,9 @@ import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import type { HomeworkProblem } from "@/shared/core";
 import { DialogSheet, useLastWhileClosing } from "@/frontend/components/ui/dialog-sheet";
+import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { ProgressBar } from "@/frontend/components/ui/progress-bar";
-import { PlanList, PlanListRow } from "./plan-list";
+import { cn } from "@/frontend/lib/utils";
 import { problemTone } from "./plan-row-model";
 
 interface ProblemsView {
@@ -39,13 +40,29 @@ function ProblemsSheet({ homework, state, onClose }: { homework: ProblemsView; s
 				</span>
 			</div>
 			<div ref={listRef}>
-				<PlanList label="Problems">
-					{problems.map((p) => {
-						const tone = problemTone(p, open);
-						return <PlanListRow key={p.number} testid="problem-row" status={tone === "later" ? "upcoming" : tone} tone={tone} number={p.number} name={p.title} />;
-					})}
-				</PlanList>
+				<ol aria-label="Problems" className="flex flex-col border-y-[1.5px] border-ink">
+					{problems.map((p) => (
+						<ProblemRow key={p.number} problem={p} open={open} />
+					))}
+				</ol>
 			</div>
 		</DialogSheet>
+	);
+}
+
+/** One problem: a check for a done one, an arrow for the open one, then its number and name. */
+function ProblemRow({ problem, open }: { problem: HomeworkProblem; open: string | null }) {
+	const tone = problemTone(problem, open);
+	return (
+		<li data-testid="problem-row" data-status={tone === "later" ? "upcoming" : tone} className={cn("flex items-center gap-3 border-b border-dotted border-edge py-2.5 last:border-b-0", tone === "done" ? "text-ink-2" : "text-ink")}>
+			<span aria-hidden className="flex w-[18px] shrink-0 items-center">
+				{tone === "done" && <PixelIcon name="check" />}
+				{tone === "current" && <PixelIcon name="chevron" />}
+			</span>
+			<span className="shrink-0 font-count text-lg">{problem.number}</span>
+			<span title={problem.title} className="min-w-0 flex-1 truncate text-lg">
+				{problem.title}
+			</span>
+		</li>
 	);
 }

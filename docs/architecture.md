@@ -250,7 +250,7 @@ Lessons saved earlier hold the learner's work as `practice-thinking` markers, wh
 
 The plan tree is written once. In a teach lesson the teacher writes it with one `plan_init` call: a mermaid-subset graph, parsed with line-numbered errors (`agent::tools::mermaid_plan`) and checked to be a DAG. In a study session the app writes it when the lesson starts (§7).
 
-Progress is never written into the tree. Statuses (`current`, `visited`, upcoming) are derived from tagged `quiz`, `explain` and `problem` calls in the transcript. The plan row (`src/frontend/components/lesson/plan-row.tsx`, steps from `src/shared/core/plan-step-bar.ts`) and the plan blocks (`src/frontend/components/plan-block-model.ts`) draw that derivation.
+Progress is never written into the tree. Statuses (`current`, `visited`, upcoming) are derived from tagged `quiz`, `explain` and `problem` calls in the transcript. The plan row (`src/frontend/components/lesson/plan-row.tsx`, steps from `src/shared/core/plan-step-bar.ts`) and the plan blocks (`src/frontend/components/plan-block-model.ts`) draw that derivation. The row names every step; a plan that branches also gets a small map there that opens the plan dialog.
 
 Older teach lessons start with a prober: `probe_done` files the assessment and queues a handoff steer, and every later turn builds the teacher. Phases (`core::messages::phases`) go probe, then plan, then teach.
 

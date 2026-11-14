@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { homeworkProblemLine, homeworkRow, jumpTarget, practiceRow, rightCountLabel, stepsRow } from "../../src/frontend/components/lesson/plan-row-model.ts";
+import { homeworkProblemLine, homeworkRow, jumpTarget, planBranches, practiceRow, rightCountLabel, stepsRow } from "../../src/frontend/components/lesson/plan-row-model.ts";
 import type { HomeworkProblem, LessonStop, PlanStepBar } from "../../src/shared/core/index.ts";
 
 const bar: PlanStepBar = {
@@ -25,13 +25,22 @@ describe("the plan row's logic", () => {
 		assert.equal(jumpTarget({ ...bar.steps[0]!, answers: [] }), null);
 	});
 
-	it("a plan lesson's row: the step, a block per step, the current step's name", () => {
+	it("a plan lesson's row: every step with its tone, and how a done step's answers went on hover", () => {
 		const row = stepsRow(bar)!;
-		assert.equal(row.count, "Step 2 of 3");
-		assert.deepEqual(row.blocks.map((b) => [b.tone, b.jump]), [["done", "c1"], ["current", null], ["later", null]]);
-		assert.equal(row.here, "Gradient as an expectation");
+		assert.deepEqual(row.map((s) => [s.name, s.tone, s.jump]), [["The update rule", "done", "c1"], ["Gradient as an expectation", "current", null], ["Variance", "later", null]]);
+		assert.deepEqual(row.map((s) => s.hint), ["The update rule, 1 of 2 right", "Gradient as an expectation", "Variance"]);
 		assert.equal(stepsRow({ steps: [], currentIndex: -1 }), null);
-		assert.equal(stepsRow({ ...bar, currentIndex: -1, steps: bar.steps.map((s) => ({ ...s, status: "upcoming" as const })) })!.count, "Step 0 of 3", "before the first question");
+		assert.deepEqual(stepsRow({ ...bar, currentIndex: -1, steps: bar.steps.map((s) => ({ ...s, status: "upcoming" as const })) })!.map((s) => s.tone), ["later", "later", "later"], "before the first question");
+	});
+
+	it("a plan branches when a step has two or more steps right before or after it", () => {
+		const ids = ["a", "b", "c", "d"];
+		assert.equal(planBranches(ids, []), false, "a study plan has no links");
+		assert.equal(planBranches(ids, [{ from: "a", to: "b" }, { from: "b", to: "c" }, { from: "c", to: "d" }]), false, "one chain");
+		assert.equal(planBranches(ids, [{ from: "a", to: "b" }, { from: "a", to: "c" }]), true, "two after a");
+		assert.equal(planBranches(ids, [{ from: "a", to: "c" }, { from: "b", to: "c" }]), true, "two before c");
+		assert.equal(planBranches(ids, [{ from: "a", to: "b" }, { from: "a", to: "b" }]), false, "a repeated link counts once");
+		assert.equal(planBranches(ids, [{ from: "a", to: "b" }, { from: "a", to: "x" }]), false, "a link to a step not in the plan is left out");
 	});
 
 	it("a homework row: done count, tones by problem, the open problem's name", () => {
@@ -67,19 +76,16 @@ describe("the plan row's logic", () => {
 describe("the plan row at a stop", () => {
 	const stop: LessonStop = { kind: "topic", at: "2026-11-18T21:48:00.000Z", nodeId: "b", stopOf: "c1", next: "Variance", activeMinutes: 48, keptGoing: false };
 
-	it("stays on the topic that just ended, its block in ink", () => {
-		const row = stepsRow(bar, stop)!;
-		assert.equal(row.count, "Step 2 of 3");
-		assert.equal(row.here, "Gradient as an expectation");
-		assert.deepEqual(row.blocks.map((b) => b.tone), ["done", "done", "later"]);
+	it("shows the topic that just ended as finished, in ink", () => {
+		assert.deepEqual(stepsRow(bar, stop)!.map((s) => s.tone), ["done", "done", "later"]);
 	});
 
 	it("the last topic's end reads the same", () => {
-		assert.deepEqual(stepsRow(bar, { ...stop, kind: "end", next: null })!.blocks.map((b) => b.tone), ["done", "done", "later"]);
+		assert.deepEqual(stepsRow(bar, { ...stop, kind: "end", next: null })!.map((s) => s.tone), ["done", "done", "later"]);
 	});
 
-	it("after Keep going, and at a problem's stop, the block is current again", () => {
-		assert.deepEqual(stepsRow(bar, { ...stop, keptGoing: true })!.blocks.map((b) => b.tone), ["done", "current", "later"]);
-		assert.deepEqual(stepsRow(bar, { ...stop, kind: "problem" })!.blocks.map((b) => b.tone), ["done", "current", "later"]);
+	it("after Keep going, and at a problem's stop, the step is current again", () => {
+		assert.deepEqual(stepsRow(bar, { ...stop, keptGoing: true })!.map((s) => s.tone), ["done", "current", "later"]);
+		assert.deepEqual(stepsRow(bar, { ...stop, kind: "problem" })!.map((s) => s.tone), ["done", "current", "later"]);
 	});
 });

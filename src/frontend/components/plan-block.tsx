@@ -3,23 +3,23 @@ import { createPortal } from "react-dom";
 import { cn } from "@/frontend/lib/utils";
 import { usePanZoomViewport, ZoomControls } from "@/frontend/components/pan-zoom-viewport";
 import type { PlanBlockData, PlanNodeStatus, PlanTree } from "@/shared/core";
-import { derivedNodeStatus, derivePlanStatuses, planStepBar } from "@/shared/core";
+import { derivedNodeStatus, derivePlanStatuses } from "@/shared/core";
 import { Hint } from "@/frontend/components/ui/hint";
 import { DialogSheet } from "@/frontend/components/ui/dialog-sheet";
-import { PlanList, PlanListRow } from "@/frontend/components/lesson/plan-list";
-import { jumpTarget, rightCountLabel } from "@/frontend/components/lesson/plan-row-model";
+import type { Tone } from "@/frontend/components/lesson/plan-row-model";
 import type { PopupMessage } from "@/frontend/components/plan-latest";
 import { ARROW_HEAD, blockLayout, edgePathD, HEAD_H, HEAD_W, LINE_H, NODE_H, NODE_W_MIN, STROKE_W, wrapTitle, type LayoutNode } from "@/frontend/components/plan-block-model";
 
 /**
  * PLAN BLOCKS: persisted `data-plan-block` parts render as DAG cards in
- * the transcript flow, and the plan dialog shows the live plan.
+ * the transcript flow, the plan dialog shows the live plan, and the plan
+ * row of a branching plan carries it drawn tiny.
  *
  * - The card shows the whole DAG. The SVG scales to the column width
  *   (viewBox = layout extent + GRAPH_PAD, so strokes never clip), capped
  *   at the reading text size (TEXT_CAP_SCALE).
- * - Clicking it opens the LIVE plan in "The plan" dialog: the steps list
- *   and the diagram, statuses derived at click time. Cards are frozen
+ * - Clicking it opens the LIVE plan in "The plan" dialog: the diagram,
+ *   statuses derived at click time. Cards are frozen
  *   snapshots rendered as carried; the dialog is the live view.
  *
  * Placement and edge geometry live in plan-block-model.ts; the SVG skin
@@ -188,32 +188,87 @@ export function PlanBlock({ data, onOpen }: { data: PlanBlockData; onOpen: () =>
 	);
 }
 
+/** The mini map's largest size and its boxes' size, in px, and its
+ *  padding in layout units. */
+const MAP_H = 36;
+const MAP_W = 140;
+const MAP_BOX_W = 22;
+const MAP_BOX_H = 6;
+const MAP_PAD = 4;
+const MAP_FILL: Record<Tone, string> = { done: "fill-ink", current: "", later: "fill-tone-2" };
+
 /**
- * "The plan" dialog, live: the lesson's steps and its plan diagram with
- * statuses derived at click time. A done step goes back to its first
- * answer; drag pans the diagram, wheel zooms to the cursor, and the zoom
+ * The plan diagram drawn tiny for the plan row: one box per step in its
+ * tone (the current one in the space's color), thin links, no text. A
+ * click opens the plan dialog.
+ */
+export function PlanMiniMap({
+	steps,
+	edges,
+	color,
+	onOpen,
+}: {
+	steps: ReadonlyArray<{ key: string; tone: Tone }>;
+	edges: ReadonlyArray<{ from: string; to: string }>;
+	/** The current step's fill. */
+	color: string;
+	onOpen: () => void;
+}) {
+	// Blank titles: every box the same size, so the map reads by its shape.
+	const layout = useMemo(() => blockLayout(steps.map((s) => ({ id: s.key, title: "" })), edges), [steps, edges]);
+	const vbW = layout.width + 2 * MAP_PAD;
+	const vbH = layout.height + 2 * MAP_PAD;
+	// Each axis scales on its own: a top-to-bottom plan would draw tall and
+	// thin, so the boxes stretch into short bars like the row's.
+	const width = Math.min(MAP_W, (vbW * MAP_BOX_W) / NODE_W_MIN);
+	const height = Math.min(MAP_H, (vbH * MAP_BOX_H) / NODE_H);
+	return (
+		<Hint label="Open the plan map" side="bottom">
+			<button type="button" data-testid="plan-map-open" aria-label="Open the plan map" onClick={onOpen} className="block">
+				<svg viewBox={`${(layout.originX ?? 0) - MAP_PAD} ${(layout.originY ?? 0) - MAP_PAD} ${vbW} ${vbH}`} width={width} height={height} preserveAspectRatio="none" aria-hidden className="block">
+					{edges.map((e) => {
+						const pts = layout.edgePts.get(`${e.from}->${e.to}`);
+						return pts && <path key={`${e.from}->${e.to}`} d={`M${pts.map((pt) => `${pt.x},${pt.y}`).join("L")}`} className="fill-none stroke-ink-2" strokeWidth={1} vectorEffect="non-scaling-stroke" />;
+					})}
+					{steps.map((s) => (
+						<rect
+							key={s.key}
+							data-tone={s.tone}
+							x={layout.x.get(s.key) ?? 0}
+							y={layout.y.get(s.key) ?? 0}
+							width={layout.nodeW.get(s.key) ?? NODE_W_MIN}
+							height={layout.nodeH.get(s.key) ?? NODE_H}
+							className={MAP_FILL[s.tone]}
+							style={s.tone === "current" ? { fill: color } : undefined}
+						/>
+					))}
+				</svg>
+			</button>
+		</Hint>
+	);
+}
+
+/**
+ * "The plan" dialog, live: the lesson's plan diagram with statuses derived
+ * at click time. Drag pans it, wheel zooms to the cursor, and the zoom
  * floor is the fit (panning locks at it, nothing to move).
  */
 export function PlanPopup({
 	tree,
 	messages,
 	onClose,
-	onJump,
 	state = "open",
 }: {
-	/** The lesson's plan (the same one its step row shows). */
+	/** The lesson's plan (the same one its plan row shows). */
 	tree: PlanTree | null;
 	messages: readonly PopupMessage[];
 	onClose: () => void;
-	/** A done step's click: scroll the lesson to its first answer. */
-	onJump: (toolCallId: string) => void;
 	/** Fade state: the caller keeps the dialog mounted through its exit
 	 *  with usePresence. */
 	state?: "open" | "closed";
 }) {
 	const statuses = useMemo(() => (tree ? derivePlanStatuses(tree, messages as Parameters<typeof derivePlanStatuses>[1]) : null), [tree, messages]);
 	const statusOf = (id: string): PlanNodeStatus => (statuses ? derivedNodeStatus(statuses, id) : "upcoming");
-	const bar = useMemo(() => planStepBar(tree, messages as Parameters<typeof planStepBar>[1]), [tree, messages]);
 
 	const layout = useMemo(() => (tree ? blockLayout(tree.nodes, tree.edges) : null), [tree]);
 	// The fit box is the PADDED ink box: the diagram renders with GRAPH_PAD.
@@ -226,55 +281,29 @@ export function PlanPopup({
 		<DialogSheet title="The plan" state={state} testid="plan-popup" onClose={onClose} className="w-[640px]">
 			<p className="text-[14px] text-ink-2">Updates as you answer</p>
 			{tree ? (
-				<>
-					<PlanList label="Plan steps">
-						{bar.steps.map((step, i) => {
-							const target = jumpTarget(step);
-							return (
-								<PlanListRow
-									key={step.id}
-									testid="plan-step"
-									status={step.status}
-									tone={step.status === "visited" ? "done" : step.status === "current" ? "current" : "later"}
-									number={String(i + 1)}
-									name={step.title}
-									note={rightCountLabel(step.answers)}
-									onClick={
-										target
-											? () => {
-													onClose();
-													onJump(target);
-												}
-											: undefined
-									}
-								/>
-							);
-						})}
-					</PlanList>
+				<div
+					ref={viewportRef}
+					className={cn("relative h-[420px] shrink-0 touch-none overflow-hidden border border-edge bg-background select-none", atFloor ? "cursor-default" : "cursor-grab")}
+					onPointerDown={startDrag}
+					onPointerMove={moveDrag}
+					onPointerUp={endDrag}
+					onPointerCancel={endDrag}
+				>
 					<div
-						ref={viewportRef}
-						className={cn("relative h-[280px] shrink-0 touch-none overflow-hidden border border-edge bg-background select-none", atFloor ? "cursor-default" : "cursor-grab")}
-						onPointerDown={startDrag}
-						onPointerMove={moveDrag}
-						onPointerUp={endDrag}
-						onPointerCancel={endDrag}
+						className="absolute top-0 left-0 origin-top-left"
+						style={{
+							transform: `translate(${view.x}px, ${view.y}px) scale(${view.zoom})`,
+							// Hidden until the first fit has APPLIED: the fit runs in an
+							// effect (after paint), so the diagram can never flash at the
+							// initial top-left zoom:1 state.
+							opacity: settled ? 1 : 0,
+							transition: panning || !settled ? "none" : "transform 180ms ease-out, opacity 160ms ease-out",
+						}}
 					>
-						<div
-							className="absolute top-0 left-0 origin-top-left"
-							style={{
-								transform: `translate(${view.x}px, ${view.y}px) scale(${view.zoom})`,
-								// Hidden until the first fit has APPLIED: the fit runs in an
-								// effect (after paint), so the diagram can never flash at the
-								// initial top-left zoom:1 state.
-								opacity: settled ? 1 : 0,
-								transition: panning || !settled ? "none" : "transform 180ms ease-out, opacity 160ms ease-out",
-							}}
-						>
-							<PlanDiagram nodes={tree.nodes} edges={tree.edges} statusOf={statusOf} markerId={markerId} pad={GRAPH_PAD} naturalSize />
-						</div>
-						<ZoomControls fitLabel="Fit plan to screen" fitTestId="plan-popup-fit" onStep={stepZoom} onFit={fitView} />
+						<PlanDiagram nodes={tree.nodes} edges={tree.edges} statusOf={statusOf} markerId={markerId} pad={GRAPH_PAD} naturalSize />
 					</div>
-				</>
+					<ZoomControls fitLabel="Fit plan to screen" fitTestId="plan-popup-fit" onStep={stepZoom} onFit={fitView} />
+				</div>
 			) : (
 				<p className="text-[15px] text-ink-2">No plan in this lesson yet.</p>
 			)}

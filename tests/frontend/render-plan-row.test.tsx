@@ -1,7 +1,7 @@
 /**
  * The plan row on top of the reading sheet and its two dialogs, mounted
- * over linkedom: a plan lesson's steps, homework's problems and practice's
- * blocks, and what a click does.
+ * over linkedom: a plan lesson's steps and map, homework's problems and
+ * practice's blocks, and what a click does.
  */
 import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;
@@ -57,7 +57,11 @@ const problems: HomeworkProblem[] = [
 ];
 
 type RowProps = Parameters<typeof PlanRow>[0];
-const base: RowProps = { kind: "teach", spaceId: undefined, stepBar: bar, stop: null, homework: null, practice: null, onJump: () => {}, onOpenPlan: () => {} };
+const chainEdges = [
+	{ from: "a", to: "b" },
+	{ from: "b", to: "c" },
+];
+const base: RowProps = { kind: "teach", spaceId: undefined, stepBar: bar, edges: chainEdges, stop: null, homework: null, practice: null, onJump: () => {}, onOpenPlan: () => {} };
 
 let host: HTMLElement | null = null;
 let root: Root | null = null;
@@ -76,43 +80,57 @@ async function mount(node: React.ReactNode) {
 }
 
 describe("the plan row of a plan lesson", () => {
-	it("says the step, shows one block per step and the current step's name", () => {
+	it("names every step in order in a list, the current one marked, with no count and no plan button", () => {
 		const html = renderToStaticMarkup(<PlanRow {...base} />);
-		assert.match(html, /data-testid="plan-step-count"[^>]*>Step 2 of 3</);
-		assert.deepEqual([...html.matchAll(/data-block="(\w+)"/g)].map((m) => m[1]), ["visited", "current", "upcoming"]);
-		assert.match(html, />Gradient as an expectation</);
-		assert.match(html, /data-testid="plan-step-open"[^>]*>See the plan</);
+		assert.match(html, /<ol aria-label="Plan steps"/);
+		assert.deepEqual([...html.matchAll(/data-testid="plan-step" data-status="(\w+)"/g)].map((m) => m[1]), ["visited", "current", "upcoming"]);
+		assert.deepEqual([...html.matchAll(/aria-current="step"/g)].length, 1);
+		assert.match(html, /aria-current="step" title="Gradient as an expectation"/);
+		assert.match(html, />2<\/span><span[^>]*>Gradient as an expectation</);
+		assert.match(html, />Variance</);
+		assert.doesNotMatch(html, /Step 2 of 3|See the plan/);
 	});
 
-	it("paints the current block in the space's color, or ink with no space", async () => {
-		const withSpace = await mount(
+	it("paints the current step's bar in the space's color, or ink with no space", async () => {
+		const el = await mount(
 			<ServerEventsProvider connect={quietEvents as never}>
 				<SpaceProvider initialActive={null} initialSpaces={[SPACE]}>
 					<PlanRow {...base} spaceId="cse21" />
 				</SpaceProvider>
 			</ServerEventsProvider>,
 		);
-		assert.match(withSpace.querySelectorAll('[data-testid="plan-block"] span')[1]!.getAttribute("style") ?? "", /var\(--lh-space-3\)/);
-		await act(async () => root!.unmount());
-		withSpace.remove();
-		const plain = await mount(<PlanRow {...base} />);
-		assert.match(plain.querySelectorAll('[data-testid="plan-block"] span')[1]!.getAttribute("style") ?? "", /var\(--color-ink\)/);
+		assert.match(el.querySelector('[data-status="current"] span[style]')!.getAttribute("style") ?? "", /var\(--lh-space-3\)/);
+		assert.match(renderToStaticMarkup(<PlanRow {...base} />), /aria-current="step"[^]*?style="background:var\(--color-ink\)"/);
 	});
 
-	it("only a done step's block is a button, and it jumps to that step's first answer", async () => {
+	it("only a done step is a button: its hover says how it went, and it jumps to the step's first answer", async () => {
 		const jumps: string[] = [];
 		const el = await mount(<PlanRow {...base} onJump={(id) => jumps.push(id)} />);
-		const buttons = el.querySelectorAll<HTMLButtonElement>('button[data-testid="plan-block"]');
+		const buttons = el.querySelectorAll<HTMLButtonElement>('[data-testid="plan-step"] button');
 		assert.equal(buttons.length, 1);
-		assert.equal(buttons[0]!.getAttribute("aria-label"), "The update rule");
+		assert.equal(buttons[0]!.closest("li")!.getAttribute("title"), "The update rule, 1 of 2 right");
 		await act(async () => buttons[0]!.click());
 		assert.deepEqual(jumps, ["c1"]);
 	});
 
-	it("See the plan opens the plan", async () => {
+	it("a plan that is one chain shows no map", () => {
+		assert.doesNotMatch(renderToStaticMarkup(<PlanRow {...base} />), /plan-map-open/);
+		assert.doesNotMatch(renderToStaticMarkup(<PlanRow {...base} edges={[]} />), /plan-map-open/);
+	});
+
+	it("a branching plan shows its map, which opens the plan", async () => {
 		let opened = 0;
-		const el = await mount(<PlanRow {...base} onOpenPlan={() => opened++} />);
-		await act(async () => el.querySelector<HTMLButtonElement>('[data-testid="plan-step-open"]')!.click());
+		const branched = [
+			{ from: "a", to: "b" },
+			{ from: "a", to: "c" },
+		];
+		const el = await mount(<PlanRow {...base} edges={branched} onOpenPlan={() => opened++} />);
+		await act(async () => new Promise((r) => setTimeout(r, 0)));
+		const map = el.querySelector<HTMLButtonElement>('[data-testid="plan-map-open"]')!;
+		assert.equal(map.getAttribute("aria-label"), "Open the plan map");
+		assert.deepEqual([...map.querySelectorAll("rect")].map((r) => r.getAttribute("data-tone")), ["done", "current", "later"]);
+		assert.equal(map.querySelectorAll("path").length, 2);
+		await act(async () => map.click());
 		assert.equal(opened, 1);
 	});
 
@@ -190,24 +208,14 @@ describe("the plan dialog", () => {
 		{ parts: [{ type: "tool-quiz", state: "input-available", toolCallId: "c3", input: { nodeId: "b" } }] },
 	];
 
-	it("lists every step with how the done one went, over the live diagram", async () => {
-		await mount(<PlanPopup tree={tree} messages={messages} onClose={() => {}} onJump={() => {}} />);
+	it("draws the live diagram alone, with no list of steps", async () => {
+		await mount(<PlanPopup tree={tree} messages={messages} onClose={() => {}} />);
 		const dialog = document.querySelector('[data-testid="plan-popup"]')!;
 		assert.match(dialog.querySelector("h2")!.textContent ?? "", /^The plan$/);
 		assert.match(dialog.textContent ?? "", /Updates as you answer/);
-		assert.deepEqual([...dialog.querySelectorAll('[data-testid="plan-step"]')].map((r) => r.getAttribute("data-status")), ["visited", "current", "upcoming"]);
-		assert.match(dialog.textContent ?? "", /1 of 1 right/);
+		assert.ok(dialog.querySelector("ol") === null);
 		assert.equal(dialog.querySelector('[data-testid="plan-node-b"]')!.getAttribute("data-status"), "current");
 		assert.match(dialog.querySelector('[data-testid="plan-node-b"] rect')!.getAttribute("class") ?? "", /fill-highlight/);
-	});
-
-	it("a done step closes the dialog, then goes back to its first answer", async () => {
-		const calls: string[] = [];
-		await mount(<PlanPopup tree={tree} messages={messages} onClose={() => calls.push("close")} onJump={(id) => calls.push(`jump ${id}`)} />);
-		const buttons = document.querySelectorAll<HTMLButtonElement>('[data-testid="plan-step"] button');
-		assert.equal(buttons.length, 1, "only the done step is a button");
-		await act(async () => buttons[0]!.click());
-		assert.deepEqual(calls, ["close", "jump c1"]);
 	});
 
 	it("light links point at or leave a step not reached yet; a link between two reached steps is dark", async () => {
@@ -227,7 +235,7 @@ describe("the plan dialog", () => {
 			{ parts: [{ type: "tool-quiz", state: "output-available", input: { nodeId: "y" }, output: { kind: "quiz", correct: true } }] },
 			{ parts: [{ type: "tool-quiz", state: "output-available", input: { nodeId: "z" }, output: { kind: "quiz", correct: true } }] },
 		];
-		await mount(<PlanPopup tree={chain} messages={msgs} onClose={() => {}} onJump={() => {}} />);
+		await mount(<PlanPopup tree={chain} messages={msgs} onClose={() => {}} />);
 		const dialog = document.querySelector('[data-testid="plan-popup"]')!;
 		assert.deepEqual(["x", "y", "z"].map((id) => dialog.querySelector(`[data-testid="plan-node-${id}"]`)!.getAttribute("data-status")), ["upcoming", "visited", "current"]);
 		const heads = [...dialog.querySelectorAll("path[marker-end]")].map((p) => (p.getAttribute("marker-end") ?? "").endsWith("-dim)"));
@@ -235,13 +243,13 @@ describe("the plan dialog", () => {
 	});
 
 	it("says so when the session has no plan yet", async () => {
-		await mount(<PlanPopup tree={null} messages={[{ parts: [] }]} onClose={() => {}} onJump={() => {}} />);
+		await mount(<PlanPopup tree={null} messages={[{ parts: [] }]} onClose={() => {}} />);
 		assert.match(document.querySelector('[data-testid="plan-popup"]')!.textContent ?? "", /No plan in this lesson yet\./);
 	});
 
 	it("Close and Esc both close it", async () => {
 		let closed = 0;
-		await mount(<PlanPopup tree={tree} messages={messages} onClose={() => closed++} onJump={() => {}} />);
+		await mount(<PlanPopup tree={tree} messages={messages} onClose={() => closed++} />);
 		await act(async () => document.querySelector<HTMLButtonElement>('[data-testid="plan-popup-close"]')!.click());
 		const esc = new dom.window.Event("keydown", { bubbles: true, cancelable: true });
 		Object.defineProperty(esc, "key", { value: "Escape" });

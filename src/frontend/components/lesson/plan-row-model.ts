@@ -1,10 +1,10 @@
-import { stepPosition, type HomeworkProblem, type LessonStop, type PlanStep, type PlanStepBar, type StepAnswer } from "@/shared/core";
+import type { HomeworkProblem, LessonStop, PlanStep, PlanStepBar, StepAnswer } from "@/shared/core";
 import type { PracticeProgress } from "./practice-progress";
 
 /** How a block or a list row reads: done in ink, the one in progress, the rest light. */
 export type Tone = "done" | "current" | "later";
 
-/** One block of the plan row. */
+/** One block of a homework or practice row, or one step of a plan lesson's row. */
 export interface RowBlock {
 	key: string;
 	tone: Tone;
@@ -12,16 +12,22 @@ export interface RowBlock {
 	name: string;
 	/** The raw status the block carries as data-block. */
 	state: string;
-	/** A done step's first answered question: the block scrolls back to it. */
-	jump: string | null;
 }
 
-/** What the row shows: its count, its blocks and where the learner is now. */
+/** What a homework or practice row shows: its count, its blocks and where the learner is now. */
 export interface RowSummary {
 	count: string | null;
 	blocks: RowBlock[];
-	/** The current step's or problem's name; null when none is current. */
+	/** The open problem's name; null when none is open. */
 	here: string | null;
+}
+
+/** One step of a plan lesson's row. */
+export interface RowStep extends RowBlock {
+	/** A done step's first answered question: the step scrolls back to it. */
+	jump: string | null;
+	/** The hover text: the name, and on a done step that goes back, how its answers went. */
+	hint: string;
 }
 
 /** "2 of 2 right" over the graded answers (explain answers are not graded). */
@@ -53,23 +59,41 @@ export function problemTone(problem: HomeworkProblem, open: string | null): Tone
 	return problem.done ? "done" : problem.number === open ? "current" : "later";
 }
 
-/** A plan lesson's row: "Step 2 of 4", one block per step. Null with no
- *  steps. At a topic's stop he has not kept going from, the row stays on
- *  that topic with its block in ink, as finished. */
-export function stepsRow(bar: PlanStepBar, stop: LessonStop | null = null): RowSummary | null {
+/** A plan lesson's row: every step in order. Null with no steps. At a
+ *  topic's stop he has not kept going from, that topic reads as finished. */
+export function stepsRow(bar: PlanStepBar, stop: LessonStop | null = null): RowStep[] | null {
 	if (bar.steps.length === 0) return null;
 	const finished = stop && stop.kind !== "problem" && !stop.keptGoing ? stop.nodeId : null;
-	return {
-		count: `Step ${stepPosition(bar.steps)} of ${bar.steps.length}`,
-		blocks: bar.steps.map((step) => ({
+	return bar.steps.map((step) => {
+		const jump = jumpTarget(step);
+		const right = jump ? rightCountLabel(step.answers) : null;
+		return {
 			key: step.id,
 			tone: step.status === "visited" || (step.status === "current" && step.id === finished) ? "done" : step.status === "current" ? "current" : "later",
 			name: step.title,
 			state: step.status,
-			jump: jumpTarget(step),
-		})),
-		here: bar.steps[bar.currentIndex]?.title ?? null,
-	};
+			jump,
+			hint: right ? `${step.title}, ${right}` : step.title,
+		};
+	});
+}
+
+/** Whether the plan branches: some step has two or more steps right before
+ *  or after it. A plan that is one chain needs no map. */
+export function planBranches(stepIds: readonly string[], edges: ReadonlyArray<{ from: string; to: string }>): boolean {
+	const ids = new Set(stepIds);
+	const links = new Set<string>();
+	const into = new Set<string>();
+	const out = new Set<string>();
+	for (const e of edges) {
+		const link = `${e.from}->${e.to}`;
+		if (!ids.has(e.from) || !ids.has(e.to) || links.has(link)) continue;
+		if (out.has(e.from) || into.has(e.to)) return true;
+		links.add(link);
+		out.add(e.from);
+		into.add(e.to);
+	}
+	return false;
 }
 
 /** A homework lesson's row: "2 of 7 done", one block per problem. Null with no problems. */
@@ -80,7 +104,7 @@ export function homeworkRow(problems: readonly HomeworkProblem[], open: string |
 		count: `${done} of ${problems.length} done`,
 		blocks: problems.map((p) => {
 			const tone = problemTone(p, open);
-			return { key: p.number, tone, name: p.title, state: tone === "later" ? "upcoming" : tone, jump: null };
+			return { key: p.number, tone, name: p.title, state: tone === "later" ? "upcoming" : tone };
 		}),
 		here: open === null ? null : problemName(open),
 	};
@@ -96,7 +120,6 @@ export function practiceRow(progress: PracticeProgress): RowSummary | null {
 			tone: b === "solved" ? "done" : b === "current" ? "current" : "later",
 			name: `Problem ${i + 1}`,
 			state: b,
-			jump: null,
 		})),
 		here: null,
 	};

@@ -458,6 +458,8 @@ export function Chat({
 	// Stable while nothing in it changed, so streaming never redraws the bar.
 	const barKey = freshBar ? JSON.stringify(freshBar) : "";
 	const stepBar = useMemo(() => freshBar, [barKey]);
+	const edgesKey = planTree ? JSON.stringify(planTree.edges) : "";
+	const planEdges = useMemo(() => planTree?.edges ?? null, [edgesKey]);
 	const stepIdsKey = stepBar ? stepBar.steps.map((s) => s.id).join("\n") : "";
 	const stepNumbers = useMemo(() => new Map(stepBar?.steps.map((s, i) => [s.id, i + 1]) ?? []), [stepIdsKey]);
 	// Problem numbers (and practice's plan row blocks).
@@ -565,7 +567,7 @@ export function Chat({
 									>
 										<Pane className="@container/reading flex min-h-0 min-w-0 flex-col [grid-area:reading]">
 											<div className="shrink-0 px-14 pt-[26px] pb-3 empty:hidden @max-[640px]/reading:px-7">
-												<PlanRow kind={kind} spaceId={spaceId} stepBar={stepBar} stop={lessonStop.stop} homework={planHomework} practice={stablePractice} onJump={jumpToAnswer} onOpenPlan={openPlan} />
+												<PlanRow kind={kind} spaceId={spaceId} stepBar={stepBar} edges={planEdges} stop={lessonStop.stop} homework={planHomework} practice={stablePractice} onJump={jumpToAnswer} onOpenPlan={openPlan} />
 											</div>
 											<ReadingPane
 												spaceId={spaceId}
@@ -640,7 +642,7 @@ export function Chat({
 												<MermaidOverlay svg={lastFigureRef.current.svg} inverted={lastFigureRef.current.inverted} onClose={() => setFigureFocus(null)} />
 											</div>
 										)}
-										{planPresence.mounted && <PlanPopup tree={planTree} messages={messages} onClose={() => setPlanOpen(false)} onJump={jumpToAnswer} state={planPresence.state} />}
+										{planPresence.mounted && <PlanPopup tree={planTree} messages={messages} onClose={() => setPlanOpen(false)} state={planPresence.state} />}
 										<AbortTurnDialog mode={abortAsk} onClose={() => setAbortAsk(null)} onConfirm={confirmAbort} busy={busy && pending?.appPosed?.kind !== "review"} />
 									</div>
 								</LessonWorkFrame>
