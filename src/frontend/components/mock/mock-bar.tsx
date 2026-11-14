@@ -10,9 +10,9 @@ import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 export function MockBar({ view, children }: { view: MockView; children?: ReactNode }) {
 	return (
 		<div data-testid="mock-bar" className="lh-own-bar lh-drag lh-lights-gutter lh-wco-gutter flex h-12 shrink-0 select-none items-center gap-4 bg-bar px-6 text-bar-ink">
-			<Link to={deadlineHref(view.deadlineId)} data-testid="page-back" className="lh-btn lh-btn-bar max-w-[28ch] px-3">
+			<Link to={deadlineHref(view.deadlineId)} data-testid="page-back" aria-label={view.deadlineName === null ? "Back" : undefined} className="lh-btn lh-btn-bar max-w-[28ch] px-3">
 				<PixelIcon name="chevron" className="-scale-x-100" />
-				<span className="truncate">{view.deadlineName}</span>
+				{view.deadlineName !== null && <span className="truncate">{view.deadlineName}</span>}
 			</Link>
 			<h1 className="shrink-0 text-lg font-medium">Mock {view.mock.n}</h1>
 			{children ?? <div className="flex-1" aria-hidden />}

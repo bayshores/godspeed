@@ -85,6 +85,9 @@ describe("before and after the answering", () => {
 		const html = page(<MockResults view={graded} />);
 		assert.match(html, /data-testid="page-back"[^>]*href="\/space\/deadline\/ddl_onsite"|href="\/space\/deadline\/ddl_onsite"[^>]*data-testid="page-back"/);
 		assert.match(html, /data-testid="mock-solved"[^>]*>1 of 2 right</);
+		const gone = page(<MockResults view={{ ...graded, deadlineName: null }} />);
+		assert.match(gone, /data-testid="page-back"/);
+		assert.ok(!gone.includes("null") && !gone.includes("Onsite interview"), "a removed deadline leaves no name line");
 		assert.match(html, />in 36 of 45 minutes</);
 		assert.match(html, /data-testid="mock-pauses"[^>]*>Paused 2 times, 14 minutes in total\.</);
 		assert.deepEqual([...html.matchAll(/data-testid="mock-result-word"[^>]*>([^<]+)</g)].map((m) => m[1]), ["right", "left blank"]);

@@ -180,8 +180,8 @@ export interface MockSummary {
 export interface MockView {
 	spaceId: string;
 	deadlineId: string;
-	/** Its deadline's name, for the way back. */
-	deadlineName: string;
+	/** Its deadline's name, for the way back; null once the deadline is gone. */
+	deadlineName: string | null;
 	mock: Mock;
 	/** The teacher is writing or grading it now. */
 	working: boolean;
