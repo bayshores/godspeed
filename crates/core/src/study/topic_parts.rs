@@ -17,7 +17,7 @@ use super::topic_end::shown_openers;
 use crate::messages::citations::{CiteMark, replace_cite_marks};
 use crate::messages::lesson_markers::KEEP_CHECK;
 use crate::messages::pending::is_question_tool;
-use crate::session::plot::{PLOT_TOOL, Plot, check_plot, option_names_value, short};
+use crate::session::plot::{PLOT_TOOL, Plot, Shape, check_plot, option_names_value, short};
 use crate::session::question_core::{coerce_correct_answer, normalize_quiz_type, parse_options_if_string};
 
 /// Every topic the lesson reached, in the order it reached them: `{ nodeId, page }`, where `page`
@@ -51,7 +51,7 @@ pub fn reply_topic(messages: &[Json], first_topic: Option<&str>, reply: &Json) -
 
 /// What a topic's start tells the teacher while the topic has no plot: the [Opener] note, and the
 /// study plan for the first topic.
-pub const NO_PLOT_YET: &str = "No plot yet in this topic. If its idea is a curve with one knob, open with `plot`.";
+pub const NO_PLOT_YET: &str = "No plot yet in this topic. If its idea is a curve, open with `plot`.";
 
 /// Whether the lesson showed a plot on this topic.
 pub fn has_plot(messages: &[Json], first_topic: Option<&str>, node_id: &str) -> bool {
@@ -237,7 +237,8 @@ fn number(v: &Json) -> Option<f64> {
 	v.as_f64().or_else(|| v.as_str().and_then(|s| s.trim().parse().ok())).filter(|n: &f64| n.is_finite())
 }
 
-/// The guess's own problems; the drawn value it asks about when it names a point on a line.
+/// The guess's own problems; the drawn value it asks about when it names a point on a line. On a
+/// points line, x is one of its measured x values.
 fn guess_value(plot: &Plot, quiz: &Json, problems: &mut Vec<String>) -> Option<f64> {
 	if normalize_quiz_type(&quiz["type"]) != Some("predict") {
 		problems.push("onPlot: the guess on a plot is type \"predict\".".to_owned());
@@ -249,24 +250,46 @@ fn guess_value(plot: &Plot, quiz: &Json, problems: &mut Vec<String>) -> Option<f
 		let lines = plot.lines.iter().map(|l| format!("\"{}\"", l.label)).collect::<Vec<_>>().join(", ");
 		problems.push(format!("onPlot.line: no line \"{label}\"; lines are {lines}."));
 	}
+	let points = line.and_then(|i| match &plot.lines[i].shape {
+		Shape::Points(points) => Some(points),
+		Shape::Formula(_) => None,
+	});
 	let x = number(&on["x"]);
 	match x {
 		None => problems.push("onPlot.x: must be a number.".to_owned()),
 		Some(x) if !plot.x.holds(x) => problems.push(format!("onPlot.x: {} is outside min {} to max {}.", short(x), short(plot.x.min), short(plot.x.max))),
+		Some(x) if points.is_some_and(|points| !points.iter().any(|p| p.0 == x)) => {
+			let xs = points.into_iter().flatten().map(|p| short(p.0)).collect::<Vec<_>>().join(", ");
+			problems.push(format!("onPlot.x: {label} has no point at {} = {}. Ask at one of its x values: {xs}.", plot.x.name, short(x)));
+		}
 		_ => {}
 	}
-	let slider = if on["slider"].is_null() { Some(plot.start) } else { number(&on["slider"]) };
-	match slider {
-		None => problems.push("onPlot.slider: must be a number.".to_owned()),
-		Some(s) if !plot.slider.holds(s) => problems.push(format!("onPlot.slider: {} is outside min {} to max {}.", short(s), short(plot.slider.min), short(plot.slider.max))),
-		_ => {}
-	}
+	// The slider value the guess reads, NaN on a plot with none.
+	let slider = match &plot.slider {
+		None if on["slider"].is_null() => Some(f64::NAN),
+		None => {
+			problems.push("onPlot.slider: the plot has no slider. Leave it out.".to_owned());
+			None
+		}
+		Some(slider) => {
+			let s = if on["slider"].is_null() { Some(slider.start) } else { number(&on["slider"]) };
+			match s {
+				None => problems.push("onPlot.slider: must be a number.".to_owned()),
+				Some(s) if !slider.range.holds(s) => problems.push(format!("onPlot.slider: {} is outside min {} to max {}.", short(s), short(slider.range.min), short(slider.range.max))),
+				_ => {}
+			}
+			s.filter(|s| slider.range.holds(*s))
+		}
+	};
 	let (Some(line), Some(x), Some(s)) = (line, x, slider) else { return None };
-	if !plot.x.holds(x) || !plot.slider.holds(s) {
+	if !plot.x.holds(x) || points.is_some_and(|points| !points.iter().any(|p| p.0 == x)) {
 		return None;
 	}
 	let value = plot.line_value(line, x, s);
-	let at = format!("{} = {}, {} = {}", plot.x.name, short(x), plot.slider.name, short(s));
+	let at = match (&plot.slider, points) {
+		(Some(slider), None) => format!("{} = {}, {} = {}", plot.x.name, short(x), slider.range.name, short(s)),
+		_ => format!("{} = {}", plot.x.name, short(x)),
+	};
 	if !value.is_finite() {
 		problems.push(format!("onPlot: {label} has no value at {at}. Ask about another x."));
 		return None;
@@ -400,6 +423,28 @@ mod tests {
 		);
 		assert_eq!(verdict.refused.len(), 1, "the guess is refused by its own checks, in their words");
 		assert!(!verdict.refused[0].1.contains("Received arguments"));
+	}
+
+	/// On a points line the guess asks at one of its measured x values, and the right option names
+	/// that point's y; a plot with no slider takes no onPlot.slider.
+	#[test]
+	fn a_guess_on_measured_points_asks_at_one_of_them() {
+		let cv = json!({
+			"title": "Cross-validation error by degree",
+			"x": { "name": "degree", "label": "polynomial degree", "min": 0, "max": 10 },
+			"y": { "label": "CV error" },
+			"lines": [{ "label": "cv_error", "points": [[1, 0.8], [3, 0.4], [5, 0.3], [9, 0.9]] }],
+		});
+		let options = json!([{ "label": "About 0.3.", "value": "A" }, { "label": "About 0.9.", "value": "B" }, { "label": "About 0.1.", "value": "C" }]);
+		let ask = |right: &str, on_plot: Json| {
+			let quiz = json!({ "type": "predict", "nodeId": "reg", "question": "Where is the error at degree 5?", "options": options.clone(), "explanation": "e", "correctAnswer": right, "onPlot": on_plot });
+			reply_parts_problems(&lesson(), PLAN, &reply("r3", "", vec![call("q3", "quiz", quiz), call("p3", "plot", cv.clone())]), &passes)
+		};
+		let passed = ask("A", json!({ "line": "cv_error", "x": 5 }));
+		assert_eq!(passed, PartsVerdict { refused: Vec::new(), on_plot: Some(("p3".to_owned(), json!({ "toolCallId": "q3", "value": 0.3 }))) });
+		assert_eq!(ask("B", json!({ "line": "cv_error", "x": 5 })).refused[0].1, "correctAnswer: option B reads \"About 0.9.\" but cv_error at degree = 5 is 0.3. Fix the option or onPlot.");
+		assert_eq!(ask("A", json!({ "line": "cv_error", "x": 4 })).refused[0].1, "onPlot.x: cv_error has no point at degree = 4. Ask at one of its x values: 1, 3, 5, 9.");
+		assert_eq!(ask("A", json!({ "line": "cv_error", "x": 5, "slider": 1 })).refused[0].1, "onPlot.slider: the plot has no slider. Leave it out.");
 	}
 
 	#[test]

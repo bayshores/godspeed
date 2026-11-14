@@ -1,5 +1,5 @@
-//! plot, Study's slider plot: one or two lines over x with one slider, sent with a guess on it in
-//! the same reply. Every rule is checked before validation, so a refused call lists all its
+//! plot, Study's plot: one or two lines over x, each a formula with one slider or measured points,
+//! sent with a guess on it in the same reply. Every rule is checked before validation, so a refused call lists all its
 //! problems at once with no echo; its guess is checked with it by the lesson-parts hook. A drawn
 //! plot is named p1, p2 in lesson order, tells the agent its values at the slider's start, and ends
 //! the turn. The window recomputes the lines from the stored call; the result's details hold only
@@ -19,31 +19,36 @@ use super::fn_tool::FnTool;
 use super::lesson_parts::LessonParts;
 use super::practice::{LessonRecord, record_messages};
 
-const DESCRIPTION: &str = "Draws one or two lines over x with one slider, instead of demo, when the idea is a curve and one knob. Send it with a prediction on it (quiz.onPlot) in the same reply; it stays locked until he answers. Leave one plain reply after a keep.";
+const DESCRIPTION: &str = "Draws one or two lines over x, instead of demo, when the idea is a curve: a formula with one slider, or measured points. Send it with a prediction on it (quiz.onPlot) in the same reply; it stays locked until he answers. Leave one plain reply after a keep.";
 
 fn parameters() -> Json {
 	let name = |description: &str| json!({ "type": "string", "pattern": "^[a-z][a-z0-9_]{0,11}$", "description": description });
 	let label = |description: &str| json!({ "type": "string", "maxLength": 40, "description": description });
 	let number = || json!({ "type": "number" });
+	let pair = json!({ "type": "array", "items": number(), "minItems": 2, "maxItems": 2 });
 	let line = object(
-		&["label", "expr"],
+		&["label"],
 		vec![
 			("label", label("One word, shown beside the line.")),
 			("expr", json!({ "type": "string", "maxLength": 200, "description": "Plain math, not LaTeX, in the x and slider names: + - * / ^, brackets, sin cos tan exp ln log10 sqrt abs, min max, pi, e. Example: min(a, 4/(1+lambda))" })),
+			("points", json!({ "type": "array", "items": pair, "minItems": 2, "maxItems": 12, "description": "Instead of expr: measured [x, y] by increasing x. A guess on it asks at one of these x." })),
 			("hidden", json!({ "type": "boolean", "description": "Held back until he answers; use it for the true line when the plot tests an analogy." })),
 		],
 	);
 	object(
-		&["title", "x", "y", "slider", "lines"],
+		&["title", "x", "y", "lines"],
 		vec![
 			("title", json!({ "type": "string", "maxLength": 60, "description": "What the plot shows." })),
-			("x", object(&["name", "label", "min", "max"], vec![("name", name("Its name in expr, like a.")), ("label", label("The axis title.")), ("min", number()), ("max", number())])),
+			("x", object(&["label", "min", "max"], vec![("name", name("Its name in expr, like a.")), ("label", label("The axis title.")), ("min", number()), ("max", number())])),
 			("y", described(object(&["label"], vec![("label", label("The axis title.")), ("min", number()), ("max", number())]), "Give min and max both, or leave both out and godspeed picks them.")),
 			(
 				"slider",
-				object(
-					&["name", "min", "max", "start"],
-					vec![("name", name("Its name in expr; a Greek letter's name shows as its symbol.")), ("min", number()), ("max", number()), ("start", json!({ "type": "number", "description": "where the thumb starts; inside min to max" }))],
+				described(
+					object(
+						&["name", "min", "max", "start"],
+						vec![("name", name("Its name in expr; a Greek letter's name shows as its symbol.")), ("min", number()), ("max", number()), ("start", json!({ "type": "number", "description": "where the thumb starts; inside min to max" }))],
+					),
+					"Only when a line has expr.",
 				),
 			),
 			("lines", json!({ "type": "array", "items": line, "minItems": 1, "maxItems": 2, "description": "First solid, second dashed." })),
@@ -198,6 +203,22 @@ mod tests {
 	}
 
 	#[tokio::test]
+	async fn measured_points_draw_with_a_guess_at_one_of_them_and_no_slider() {
+		let cv = json!({
+			"title": "Cross-validation error by degree",
+			"x": { "name": "degree", "label": "polynomial degree", "min": 0, "max": 10 },
+			"y": { "label": "CV error" },
+			"lines": [{ "label": "cv_error", "points": [[1, 0.8], [3, 0.4], [5, 0.3], [9, 0.9]] }],
+		});
+		let options = json!([{ "label": "About 0.3.", "value": "A" }, { "label": "About 0.9.", "value": "B" }]);
+		let quiz = json!({ "type": "predict", "nodeId": "reg", "question": "Where is the error at degree 5?", "options": options, "explanation": "e", "correctAnswer": "A", "onPlot": { "line": "cv_error", "x": 5 } });
+		let results = run_reply(vec![call("q1", "quiz", quiz), call("p9", "plot", cv)]).await;
+		let plot = results.iter().find(|r| r["toolCallId"] == json!("p9")).unwrap();
+		assert_eq!(plot["content"][0]["text"], json!("p2 drawn. degree = 1, 3, 5, 9: cv_error 0.8, 0.4, 0.3, 0.9."));
+		assert_eq!(stringify(&plot["details"]), r#"{"part":"plot","v":1,"id":"p2","onPlot":{"toolCallId":"q1","value":0.3},"y":{"min":0.2,"max":1}}"#);
+	}
+
+	#[tokio::test]
 	async fn a_keep_that_breaks_its_rules_never_refuses_its_quiz() {
 		let mut with_keep = guess("B");
 		with_keep.as_obj_mut().unwrap().insert("keep", json!({ "text": "x".repeat(212), "fits": "f" }));
@@ -285,7 +306,9 @@ mod tests {
 	#[test]
 	fn the_schema_is_the_plan_shape() {
 		let schema = parameters();
-		assert_eq!(stringify(&schema["required"]), r#"["title","x","y","slider","lines"]"#);
+		assert_eq!(stringify(&schema["required"]), r#"["title","x","y","lines"]"#);
+		assert_eq!(stringify(&schema["properties"]["lines"]["items"]["required"]), r#"["label"]"#);
+		assert_eq!(schema["properties"]["lines"]["items"]["properties"]["points"]["maxItems"], json!(12));
 		assert_eq!(schema["properties"]["lines"]["maxItems"], json!(2));
 		assert_eq!(schema["properties"]["title"]["maxLength"], json!(60));
 	}

@@ -536,7 +536,7 @@ In a Study lesson, `respond` then reads the reply's own words, not its tool call
 
 | Nudge | When | The agent reads |
 |---|---|---|
-| Curve | a Markdown table of 3 or more data rows and 2 or more columns, every cell a number, not all of them 0 or 1, and no header cell starting with step, iteration, t, k, n or i (a worked trace); or two lines (or list items) in a row, each a label and a run of 4 or more numbers | "not sent: these rows read as points of one curve. Send `plot` with a prediction instead. If the table is not a curve, send the reply again as it is." |
+| Curve | a Markdown table of 3 or more data rows and 2 or more columns, every cell a number, not all of them 0 or 1, and no header cell starting with step, iteration, t, k, n or i (a worked trace); or two lines (or list items) in a row, each a label and a run of 4 or more numbers | "not sent: these rows read as points of one curve. Send `plot` with the rows as `points` and a prediction instead. If the table is not a curve, send the reply again as it is." |
 | Question list | 2 or more list items that end with a question mark, outside code | "not sent: a reply holds one question. Ask the first one now, through `quiz` or `problem` when it checks understanding. If these are not questions for the learner, send the reply again as it is." |
 
 Each nudge is sent once a topic (the topic the reply's calls name, else the record's; for an opener, the topic it opens), so the same reply sent again is stored. Which were sent is kept in memory only: after a restart a topic may get each one again.
@@ -692,7 +692,7 @@ Ask Teacher on one sends `text` with `about: {reviewOf: {chatId, toolCallId}, pi
 
 ### Plots
 
-In a multiple-choice Study lesson, the teacher can send `plot` (`agent::tools::plot`): one or two lines over x with one slider, written in plain math such as `min(a, 4/(1+lambda))`, never code.
+In a multiple-choice Study lesson, the teacher can send `plot` (`agent::tools::plot`): one or two lines over x, each a formula with one slider, written in plain math such as `min(a, 4/(1+lambda))` and never code, or 2 to 12 measured `points` `[x, y]`. A plot with a formula line may also hold one points line, a model against data. The slider and `x.name` are needed only when a line is a formula, and a slider sent with no formula line is refused.
 
 The grammar is `core::session::plot_expr`, twin of `src/shared/core/plot-expr.ts`; both replay `crates/core/tests/golden/plot_expr.json`. It allows numbers, the x and slider names, `pi`, `e`, `+ - * / ^`, brackets, `sin cos tan exp ln log10 sqrt abs` and `min max`. There is no implicit multiplication, and an expression is at most 200 characters and 32 levels deep.
 
@@ -700,18 +700,19 @@ The call's checks (`core::session::plot`) run on the call as sent, since the win
 
 - bounds and names, and a range too narrow for the size of its numbers
 - each formula
-- a line with no value at more than a tenth of its 200 x by 20 slider points
-- when no y range is given, one from the 2nd to 98th percentile of every value, refused when the values run 20 times wider
+- each points line: 2 to 12 pairs of numbers, x rising, every x inside the x range
+- a formula with no value at more than a tenth of its 200 x by 20 slider points
+- when no y range is given, one from the 2nd to 98th percentile of every formula value and point, refused when the values run 20 times wider
 
 A plot comes with a prediction `quiz` in the same reply, whose `onPlot: {line, x, slider?}` names the point it asks about. The before-tool-call hook (`agent::tools::lesson_parts`, the check in `core::study::topic_parts::reply_parts_problems`) passes or refuses the two together:
 
-- the right option must name the drawn value to 2 significant figures
+- the right option must name the drawn value to 2 significant figures; on a points line, `x` is one of its measured x values and the value is that point's y
 - a topic has one plot
 - the topic's previous reply may not carry a kept sentence the learner saw; a page never holds a plot back
 
-While a topic has no plot, its start carries the line "No plot yet in this topic. If its idea is a curve with one knob, open with `plot`.": the first topic's under the `[Study plan]`, every later one's after its `[Opener]` line (`core::study::topic_parts::NO_PLOT_YET`). Plots from earlier lessons are not looked up.
+While a topic has no plot, its start carries the line "No plot yet in this topic. If its idea is a curve, open with `plot`.": the first topic's under the `[Study plan]`, every later one's after its `[Opener]` line (`core::study::topic_parts::NO_PLOT_YET`). Plots from earlier lessons are not looked up.
 
-A drawn plot is named `p1`, `p2` in lesson order. Its result tells the agent its values at the slider's start and ends the turn. Its `details` are `{part: "plot", v: 1, id, onPlot: {toolCallId, value}, y: {min, max}}`. The window recomputes the lines from the stored call, and the slider position is never stored or sent.
+A drawn plot is named `p1`, `p2` in lesson order. Its result tells the agent its formula lines' values at the slider's start, every point of a points line, and ends the turn. Its `details` are `{part: "plot", v: 1, id, onPlot: {toolCallId, value}, y: {min, max}}`. The window recomputes the lines from the stored call, draws a points line as straight segments with a square on each point, shows no slider row when the plot has no slider, and never stores or sends the slider position.
 
 ### Kept sentences
 

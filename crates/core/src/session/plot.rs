@@ -1,7 +1,7 @@
 //! The plot tool's rules and numbers (Rust only; the window reads the y range from the result's
-//! details): every bound a call must keep, its lines sampled at 200 x values times 20 slider
-//! values, the y range when the agent leaves it out, the one line the agent is told, and the check
-//! that a guess's right option names the drawn value.
+//! details): every bound a call must keep, its formula lines sampled at 200 x values times 20
+//! slider values, its points lines as measured, the y range when the agent leaves it out, the one
+//! line the agent is told, and the check that a guess's right option names the drawn value.
 
 use std::sync::LazyLock;
 
@@ -21,6 +21,8 @@ const SLIDER_POINTS: usize = 20;
 const MOST_POINTS: usize = X_POINTS * SLIDER_POINTS / 10;
 /// The chosen y range is refused when the values run this many times wider.
 const SPREAD_MAX: f64 = 20.0;
+const POINTS_MIN: usize = 2;
+const POINTS_MAX: usize = 12;
 static NAME: LazyLock<Re> = LazyLock::new(|| Re::new("^[a-z][a-z0-9_]{0,11}$", ""));
 static NUMBER: LazyLock<Re> = LazyLock::new(|| Re::new(r"[-\u2212]?(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?|[-\u2212]?\.\d+", "g"));
 const RESERVED: [&str; 12] = ["sin", "cos", "tan", "exp", "ln", "log10", "sqrt", "abs", "min", "max", "pi", "e"];
@@ -89,16 +91,28 @@ impl Range {
 	}
 }
 
-pub struct PlotLine {
-	pub label: String,
-	pub expr: Expr,
+/// A line: a formula in x and the slider, or measured `[x, y]` points by increasing x.
+pub enum Shape {
+	Formula(Expr),
+	Points(Vec<(f64, f64)>),
 }
 
-/// A plot call that keeps every rule, with the y range it draws in.
+pub struct PlotLine {
+	pub label: String,
+	pub shape: Shape,
+}
+
+/// The slider the formulas read, and where its thumb starts.
+pub struct Slider {
+	pub range: Range,
+	pub start: f64,
+}
+
+/// A plot call that keeps every rule, with the y range it draws in. It has a slider when a line
+/// is a formula, and only then.
 pub struct Plot {
 	pub x: Range,
-	pub slider: Range,
-	pub start: f64,
+	pub slider: Option<Slider>,
 	pub lines: Vec<PlotLine>,
 	pub y: (f64, f64),
 }
@@ -109,21 +123,40 @@ impl Plot {
 		self.lines.iter().position(|l| l.label == label)
 	}
 
-	/// The line's value at `x` with the slider at `slider` (not finite where it has none). A value
-	/// under a billionth of the y range is float noise and reads 0.
+	/// The line's value at `x` with the slider at `slider` (not finite where it has none; a points
+	/// line has one only at its own x values). A value under a billionth of the y range is float
+	/// noise and reads 0.
 	pub fn line_value(&self, line: usize, x: f64, slider: f64) -> f64 {
-		let value = self.lines[line].expr.eval(&[x, slider]);
+		let value = match &self.lines[line].shape {
+			Shape::Formula(expr) => expr.eval(&[x, slider]),
+			Shape::Points(points) => points.iter().find(|p| p.0 == x).map_or(f64::NAN, |p| p.1),
+		};
 		if value.abs() < 1e-9 * (self.y.1 - self.y.0) { 0.0 } else { value }
 	}
 
-	/// The values the agent is told at slider start: x at min, middle and max, every line.
+	/// The values the agent is told: the formula lines at slider start and x at min, middle and
+	/// max; every point of a points line.
 	/// `p1 drawn. At lambda 1, a = 0, 5, 10: penalty 0, 2.5, 5. leash 0, 2, 2.`
+	/// `p1 drawn. degree = 1, 3, 5, 9: cv_error 0.8, 0.4, 0.3, 0.9.`
 	pub fn result_line(&self, id: &str) -> String {
 		let xs = [self.x.min, (self.x.min + self.x.max) / 2.0, self.x.max];
 		let listed = |values: &mut dyn Iterator<Item = f64>| values.map(short).collect::<Vec<_>>().join(", ");
-		let mut out = format!("{id} drawn. At {} {}, {} = {}:", self.slider.name, short(self.start), self.x.name, listed(&mut xs.iter().copied()));
+		let mut out = format!("{id} drawn.");
+		let mut formulas_said = false;
 		for (i, line) in self.lines.iter().enumerate() {
-			out.push_str(&format!(" {} {}.", line.label, listed(&mut xs.iter().map(|&x| self.line_value(i, x, self.start)))));
+			match (&line.shape, &self.slider) {
+				(Shape::Formula(_), Some(slider)) => {
+					if !formulas_said {
+						out.push_str(&format!(" At {} {}, {} = {}:", slider.range.name, short(slider.start), self.x.name, listed(&mut xs.iter().copied())));
+						formulas_said = true;
+					}
+					out.push_str(&format!(" {} {}.", line.label, listed(&mut xs.iter().map(|&x| self.line_value(i, x, slider.start)))));
+				}
+				(Shape::Formula(_), None) => {}
+				(Shape::Points(points), _) => {
+					out.push_str(&format!(" {} = {}: {} {}.", self.x.name, listed(&mut points.iter().map(|p| p.0)), line.label, listed(&mut points.iter().map(|p| p.1))));
+				}
+			}
 		}
 		out
 	}
@@ -207,25 +240,37 @@ fn at<'a>(args: &'a Json, path: &str) -> &'a Json {
 	})
 }
 
-/// Checks a plot call against every rule at once: the bounds, the names, each formula, that each
-/// line has a value at nine tenths of its points or more, and the y range. All problems in one
-/// list, in field order.
+/// Whether `v` holds `key` with a value.
+fn present(v: &Json, key: &str) -> bool {
+	v.get(key).is_some_and(|v| !v.is_null())
+}
+
+/// Checks a plot call against every rule at once: the bounds, the names, each formula, each
+/// points line, that each formula has a value at nine tenths of its points or more, and the y
+/// range. The slider and x.name serve the formulas: needed when a line is one, and a slider is
+/// refused when none is. All problems in one list, in field order.
 pub fn check_plot(args: &Json) -> Result<Plot, Vec<String>> {
 	let mut p = Problems::default();
 	p.text(args, "title", TITLE_MAX, true);
+	let formulas = args["lines"].as_arr().is_none_or(|lines| lines.iter().any(|l| present(l, "expr")));
 	for (key, label) in [("x", "x.label"), ("y", "y.label"), ("slider", "slider.name")] {
-		if args[key].as_obj().is_none() {
+		if key == "slider" && !formulas {
+			if present(args, key) {
+				p.add("slider: no line uses it. Leave it out.".to_owned());
+			}
+		} else if args[key].as_obj().is_none() {
 			p.add(format!("{key}: must be an object."));
 		} else if key != "slider" {
 			p.text(args, label, LABEL_MAX, false);
 		}
 	}
-	let x_name = args["x"].as_obj().and_then(|_| p.name(args, "x.name"));
+	let x_name = args["x"].as_obj().filter(|_| formulas || present(&args["x"], "name")).and_then(|_| p.name(args, "x.name"));
 	let x_range = args["x"].as_obj().and_then(|_| p.range(args, "x"));
 	let y_given = given_y(args, &mut p);
-	let slider_name = args["slider"].as_obj().and_then(|_| p.name(args, "slider.name"));
-	let slider_range = args["slider"].as_obj().and_then(|_| p.range(args, "slider"));
-	let start = args["slider"].as_obj().and_then(|_| p.number(args, "slider.start"));
+	let slider = args["slider"].as_obj().filter(|_| formulas);
+	let slider_name = slider.and_then(|_| p.name(args, "slider.name"));
+	let slider_range = slider.and_then(|_| p.range(args, "slider"));
+	let start = slider.and_then(|_| p.number(args, "slider.start"));
 	if let (Some(start), Some((min, max))) = (start, slider_range)
 		&& !(min..=max).contains(&start)
 	{
@@ -239,16 +284,30 @@ pub fn check_plot(args: &Json) -> Result<Plot, Vec<String>> {
 		_ => true,
 	};
 	let names: Vec<&str> = [x_name.as_deref(), slider_name.as_deref()].into_iter().flatten().collect();
-	let lines = read_lines(args, &names, names_differ && names.len() == 2, &mut p);
-	let (Some(x_name), Some((x_min, x_max)), Some(slider_name), Some((s_min, s_max)), Some(start), Some(lines), true) = (x_name, x_range, slider_name, slider_range, start, lines, p.0.is_empty()) else {
+	let lines = read_lines(args, &names, names_differ && names.len() == 2, x_range, &mut p);
+	let slider = match (slider_name, slider_range, start) {
+		(Some(name), Some((min, max)), Some(start)) => Some(Slider { range: Range { name, min, max }, start }),
+		_ => None,
+	};
+	let (Some((x_min, x_max)), Some(lines), true) = (x_range, lines, p.0.is_empty()) else {
 		return Err(p.0);
 	};
-	let mut plot = Plot { x: Range { name: x_name, min: x_min, max: x_max }, slider: Range { name: slider_name, min: s_min, max: s_max }, start, lines, y: (0.0, 0.0) };
-	let samples: Vec<Vec<f64>> = plot.lines.iter().map(|line| sample(&plot, &line.expr)).collect();
-	for (i, values) in samples.iter().enumerate() {
-		let missing = values.iter().filter(|v| !v.is_finite()).count();
-		if missing > MOST_POINTS {
-			p.add(not_a_number(&plot, i, values, missing));
+	// A points plot with no x.name is told about x by its axis title.
+	let x_name = x_name.or_else(|| args["x"]["label"].as_str().map(str::trim).filter(|l| !l.is_empty()).map(str::to_owned)).unwrap_or_else(|| "x".to_owned());
+	let mut plot = Plot { x: Range { name: x_name, min: x_min, max: x_max }, slider, lines, y: (0.0, 0.0) };
+	let mut values = Vec::new();
+	for (i, line) in plot.lines.iter().enumerate() {
+		match (&line.shape, &plot.slider) {
+			(Shape::Formula(expr), Some(slider)) => {
+				let samples = sample(&plot.x, &slider.range, expr);
+				let missing = samples.iter().filter(|v| !v.is_finite()).count();
+				if missing > MOST_POINTS {
+					p.add(not_a_number(&plot.x, &slider.range, i, expr, &samples, missing));
+				}
+				values.extend(samples);
+			}
+			(Shape::Formula(_), None) => {}
+			(Shape::Points(points), _) => values.extend(points.iter().map(|p| p.1)),
 		}
 	}
 	if !p.0.is_empty() {
@@ -256,7 +315,7 @@ pub fn check_plot(args: &Json) -> Result<Plot, Vec<String>> {
 	}
 	plot.y = match y_given {
 		Some(y) => y,
-		None => y_range(&samples.concat()).map_err(|refusal| vec![refusal])?,
+		None => y_range(&values).map_err(|refusal| vec![refusal])?,
 	};
 	Ok(plot)
 }
@@ -274,8 +333,9 @@ fn given_y(args: &Json, p: &mut Problems) -> Option<(f64, f64)> {
 	}
 }
 
-/// The lines, each formula parsed when the names are good (`parse`).
-fn read_lines(args: &Json, names: &[&str], parse: bool, p: &mut Problems) -> Option<Vec<PlotLine>> {
+/// The lines, each formula parsed when the names are good (`parse`), each points line checked
+/// against the x range when it is good.
+fn read_lines(args: &Json, names: &[&str], parse: bool, x: Option<(f64, f64)>, p: &mut Problems) -> Option<Vec<PlotLine>> {
 	let Some(list) = args["lines"].as_arr() else {
 		p.add("lines: must be a list of 1 or 2 lines.".to_owned());
 		return None;
@@ -302,13 +362,24 @@ fn read_lines(args: &Json, names: &[&str], parse: bool, p: &mut Problems) -> Opt
 		if !matches!(line.get("hidden"), None | Some(Json::Null | Json::Bool(_))) {
 			p.add(format!("{path}.hidden: must be true or false."));
 		}
-		let Some(src) = p.text(args, &format!("{path}.expr"), usize::MAX, false) else { continue };
-		if !parse {
-			continue;
-		}
-		match parse_expr(&src, names) {
-			Ok(expr) => lines.push(PlotLine { label: label.unwrap_or_default(), expr }),
-			Err(error) => p.add(format!("{path}.expr: {error}")),
+		let label = label.unwrap_or_default();
+		match (present(line, "expr"), present(line, "points")) {
+			(true, true) => p.add(format!("{path}: has both expr and points. Keep one.")),
+			(false, true) => {
+				if let Some(points) = read_points(line, &path, x, p) {
+					lines.push(PlotLine { label, shape: Shape::Points(points) });
+				}
+			}
+			_ => {
+				let Some(src) = p.text(args, &format!("{path}.expr"), usize::MAX, false) else { continue };
+				if !parse {
+					continue;
+				}
+				match parse_expr(&src, names) {
+					Ok(expr) => lines.push(PlotLine { label, shape: Shape::Formula(expr) }),
+					Err(error) => p.add(format!("{path}.expr: {error}")),
+				}
+			}
 		}
 	}
 	if !list.is_empty() && list.iter().all(|l| l["hidden"] == Json::Bool(true)) {
@@ -317,23 +388,57 @@ fn read_lines(args: &Json, names: &[&str], parse: bool, p: &mut Problems) -> Opt
 	(lines.len() == list.len()).then_some(lines)
 }
 
-/// A line's values at the 20 slider values (outer) times the 200 x values (inner).
-fn sample(plot: &Plot, expr: &Expr) -> Vec<f64> {
-	plot.slider.steps(SLIDER_POINTS).flat_map(|s| plot.x.steps(X_POINTS).map(move |x| expr.eval(&[x, s])).collect::<Vec<_>>()).collect()
+/// A points line's 2 to 12 `[x, y]` pairs, by increasing x, each x inside the x range.
+fn read_points(line: &Json, path: &str, x: Option<(f64, f64)>, p: &mut Problems) -> Option<Vec<(f64, f64)>> {
+	let path = format!("{path}.points");
+	let Some(list) = line["points"].as_arr() else {
+		p.add(format!("{path}: must be a list of [x, y] pairs."));
+		return None;
+	};
+	if !(POINTS_MIN..=POINTS_MAX).contains(&list.len()) {
+		p.add(format!("{path}: give {POINTS_MIN} to {POINTS_MAX} points, got {}.", list.len()));
+		return None;
+	}
+	let before = p.0.len();
+	let mut points: Vec<(f64, f64)> = Vec::new();
+	for (j, pair) in list.iter().enumerate() {
+		let at = format!("{path}[{j}]");
+		let Some((px, py)) = pair.as_arr().filter(|pair| pair.len() == 2).and_then(|pair| Some((number(&pair[0])?, number(&pair[1])?))) else {
+			p.add(format!("{at}: must be [x, y], two numbers."));
+			continue;
+		};
+		if let Some(&(last, _)) = points.last()
+			&& px <= last
+		{
+			p.add(format!("{at}: x {} comes after x {}. List the points by increasing x, each x once.", short(px), short(last)));
+		}
+		if let Some((min, max)) = x
+			&& !(min..=max).contains(&px)
+		{
+			p.add(format!("{at}: x {} is outside min {} to max {}. Widen x or leave the point out.", short(px), short(min), short(max)));
+		}
+		points.push((px, py));
+	}
+	(p.0.len() == before).then_some(points)
 }
 
-fn not_a_number(plot: &Plot, line: usize, values: &[f64], missing: usize) -> String {
+/// A formula's values at the 20 slider values (outer) times the 200 x values (inner).
+fn sample(x: &Range, slider: &Range, expr: &Expr) -> Vec<f64> {
+	slider.steps(SLIDER_POINTS).flat_map(|s| x.steps(X_POINTS).map(move |x| expr.eval(&[x, s])).collect::<Vec<_>>()).collect()
+}
+
+fn not_a_number(x_range: &Range, slider: &Range, line: usize, expr: &Expr, values: &[f64], missing: usize) -> String {
 	let first = values.iter().position(|v| !v.is_finite()).unwrap_or(0);
-	let x = plot.x.steps(X_POINTS).nth(first % X_POINTS).unwrap_or(plot.x.min);
-	let s = plot.slider.steps(SLIDER_POINTS).nth(first / X_POINTS).unwrap_or(plot.slider.min);
-	let fault = plot.lines[line].expr.fault(&[x, s]).unwrap_or(super::plot_expr::Fault::Other);
+	let x = x_range.steps(X_POINTS).nth(first % X_POINTS).unwrap_or(x_range.min);
+	let s = slider.steps(SLIDER_POINTS).nth(first / X_POINTS).unwrap_or(slider.min);
+	let fault = expr.fault(&[x, s]).unwrap_or(super::plot_expr::Fault::Other);
 	format!(
 		"lines[{line}].expr: not a number at {} of {} points (first at {} = {}, {} = {}: {}). {}",
 		count(missing),
 		count(values.len()),
-		plot.x.name,
+		x_range.name,
 		short(x),
-		plot.slider.name,
+		slider.name,
 		short(s),
 		fault.what(),
 		fault.fix()
@@ -346,7 +451,7 @@ fn quantile(sorted: &[f64], q: f64) -> f64 {
 }
 
 /// The y range when the agent gave none: the 2nd to 98th percentile of every finite value over
-/// all lines and slider values, rounded out to round ticks. Refused, with the line the agent gets,
+/// all formula samples and measured points, rounded out to round ticks. Refused, with the line the agent gets,
 /// when all values run more than 20 times wider, since a pole or fast growth would then squash
 /// the curve flat.
 fn y_range(values: &[f64]) -> Result<(f64, f64), String> {
@@ -544,6 +649,75 @@ mod tests {
 		assert_eq!(round_out(5e-324, 5e-324), (-1.0, 1.0), "the smallest numbers never overflow the step");
 		let huge = json!({ "title": "t", "x": { "name": "a", "label": "a", "min": 700, "max": 709 }, "y": { "label": "y" }, "slider": { "name": "s", "min": 0, "max": 1, "start": 0 }, "lines": [{ "label": "up", "expr": "1.5*exp(a)" }, { "label": "down", "expr": "-1.5*exp(a)" }] });
 		assert_eq!(problems(huge), ["y: values run from -1.23e308 to 1.23e308 but most lie in -1e308 to 1e308. Give y.min and y.max."], "never a range that is not a number");
+	}
+
+	fn cv_points() -> Json {
+		json!({
+			"title": "Cross-validation error by degree",
+			"x": { "name": "degree", "label": "polynomial degree", "min": 0, "max": 10 },
+			"y": { "label": "CV error" },
+			"lines": [{ "label": "cv_error", "points": [[1, 0.8], [3, 0.4], ["5", "0.3"], [9, 0.9]] }],
+		})
+	}
+
+	/// A call stored before points existed checks, says and stores exactly as it did.
+	#[test]
+	fn a_formula_plot_from_before_points_checks_says_and_stores_as_before() {
+		let plot = check_plot(&leash()).unwrap();
+		assert_eq!(plot.result_line("p1"), "p1 drawn. At lambda 1, a = 0, 5, 10: penalty 0, 2.5, 5. leash 0, 2, 2.");
+		assert_eq!(plot.y, (0.0, 5.0));
+		let slider = plot.slider.as_ref().unwrap();
+		assert_eq!((slider.range.name.as_str(), slider.range.min, slider.range.max, slider.start), ("lambda", 0.5, 4.0, 1.0));
+		let picked = check_plot(&with(leash(), &["y"], json!({ "label": "w" }))).unwrap();
+		assert_eq!(picked.y, (0.0, 6.0), "the y range it picks");
+		assert_eq!(problems(with(leash(), &["slider"], json!(null))), ["slider: must be an object."]);
+	}
+
+	#[test]
+	fn a_points_line_passes_and_says_every_point() {
+		let plot = check_plot(&cv_points()).unwrap();
+		assert_eq!(plot.result_line("p1"), "p1 drawn. degree = 1, 3, 5, 9: cv_error 0.8, 0.4, 0.3, 0.9.");
+		assert!(plot.slider.is_none());
+		assert_eq!(plot.y, (0.2, 1.0), "picked from the points");
+		assert_eq!(plot.line_value(0, 5.0, f64::NAN), 0.3);
+		assert!(plot.line_value(0, 4.0, f64::NAN).is_nan(), "no value between points");
+		let unnamed = with(cv_points(), &["x"], json!({ "label": "degree", "min": 0, "max": 10 }));
+		assert_eq!(check_plot(&unnamed).unwrap().result_line("p2"), "p2 drawn. degree = 1, 3, 5, 9: cv_error 0.8, 0.4, 0.3, 0.9.", "no x.name: the axis title");
+	}
+
+	#[test]
+	fn a_formula_and_points_share_a_plot() {
+		let mixed = with(leash(), &["lines"], json!([{ "label": "model", "expr": "a/(1+lambda)" }, { "label": "data", "points": [[2, 1.2], [6, 2.7], [10, 5.4]], "hidden": true }]));
+		let plot = check_plot(&with(mixed, &["y"], json!({ "label": "w" }))).unwrap();
+		assert_eq!(plot.result_line("p1"), "p1 drawn. At lambda 1, a = 0, 5, 10: model 0, 2.5, 5. a = 2, 6, 10: data 1.2, 2.7, 5.4.");
+		assert_eq!(plot.y, (0.0, 6.0), "from the formula's values and the points together");
+	}
+
+	#[test]
+	fn every_points_rule_comes_back_at_once() {
+		let broken = with(
+			with(cv_points(), &["slider"], json!({ "name": "lambda", "min": 0, "max": 1, "start": 0 })),
+			&["lines"],
+			json!([{ "label": "one", "points": [[1, 2], [1, 3], [12, 1], [4], [5, "high"]] }, { "label": "two", "points": [[1, 2]] }]),
+		);
+		assert_eq!(
+			problems(broken),
+			[
+				"slider: no line uses it. Leave it out.",
+				"lines[0].points[1]: x 1 comes after x 1. List the points by increasing x, each x once.",
+				"lines[0].points[2]: x 12 is outside min 0 to max 10. Widen x or leave the point out.",
+				"lines[0].points[3]: must be [x, y], two numbers.",
+				"lines[0].points[4]: must be [x, y], two numbers.",
+				"lines[1].points: give 2 to 12 points, got 1.",
+			]
+		);
+		let both = with(cv_points(), &["lines"], json!([{ "label": "one", "expr": "degree", "points": [[1, 2], [3, 4]] }, { "label": "two" }]));
+		assert_eq!(problems(both), ["slider: must be an object.", "lines[0]: has both expr and points. Keep one.", "lines[1].expr: must be a string."], "a formula needs the slider");
+		let too_many = with(cv_points(), &["lines", "0", "points"], json!((0..13).map(|i| json!([i as f64 * 0.5, 1])).collect::<Vec<_>>()));
+		assert_eq!(problems(too_many), ["lines[0].points: give 2 to 12 points, got 13."]);
+		assert_eq!(problems(with(cv_points(), &["lines", "0", "points"], json!("[[1, 2], [3, 4]]"))), ["lines[0].points: must be a list of [x, y] pairs."]);
+		assert_eq!(problems(with(cv_points(), &["lines", "0", "hidden"], json!(true))), ["lines: every line is hidden. Leave one shown."]);
+		assert_eq!(problems(with(cv_points(), &["x", "name"], json!("Degree"))), ["x.name: \"Degree\" must be a lowercase word of at most 12 letters, digits or _, like a or lambda."], "a name sent is still checked");
 	}
 
 	/// `0.1*3 - 0.3` is 5.55e-17 in floats, which no option's words could name.

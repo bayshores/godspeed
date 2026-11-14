@@ -16,7 +16,7 @@ impl Nudge {
 	/// What the teacher reads when the reply is sent back.
 	pub fn refusal(self) -> &'static str {
 		match self {
-			Nudge::CurveTable => "not sent: these rows read as points of one curve. Send `plot` with a prediction instead. If the table is not a curve, send the reply again as it is.",
+			Nudge::CurveTable => "not sent: these rows read as points of one curve. Send `plot` with the rows as `points` and a prediction instead. If the table is not a curve, send the reply again as it is.",
 			Nudge::QuestionList => "not sent: a reply holds one question. Ask the first one now, through `quiz` or `problem` when it checks understanding. If these are not questions for the learner, send the reply again as it is.",
 		}
 	}

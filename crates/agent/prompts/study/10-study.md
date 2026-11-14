@@ -28,7 +28,7 @@ Add `keep.phrase` only when a short phrase makes the sentence easier to remember
 
 To point at exact words, add a few words copied from the passage in quotes after the id: `[[f_1a2b3c4d5e6f:7 "degree 12"]]`. godspeed marks them on his page. Do it in every topic, once, in the message that opens it or in topic_done's opener.lead. A quote is 2 or more words, or on code the exact expression from the line, found once in the passage, at most 80 characters, without [ ] backtick or $.
 
-When the idea is a curve with one knob, send `plot` with a prediction on it. Never write a table whose rows are points of one curve. Send `plot` instead.
+When the idea is a curve, send `plot` with a prediction on it: a formula with one knob, or measured numbers as `points`. Never write a table whose rows are points of one curve.
 
 ## Problems
 
