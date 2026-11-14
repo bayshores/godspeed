@@ -195,7 +195,7 @@ The learner's agents (Claude Code or Codex) run in terminals the shell owns, sho
 ### Starting one
 
 1. The page names a role and an agent. The shell asks the server where the godspeed folder is (`agent_folder`) and builds everything else, so the page can never name a program, an argument or a folder.
-2. The script must be `<folder>/.godspeed/start-<agent>[-helper].<command|cmd|sh>`, the start scripts the server writes: a plain file in a plain `.godspeed` folder, whose real path stays in the folder. A link, a missing script or a folder that isn't set up answers "The godspeed folder isn't set up yet."
+2. The script must be `<folder>/.godspeed/start-<agent>[-helper].<command|cmd|sh>`, the start scripts the server writes: a plain file in a plain `.godspeed` folder, neither of them a link. A link, a missing script or a folder that isn't set up answers "The godspeed folder isn't set up yet."
 3. The command runs it through the learner's login shell, as Terminal does with a `.command` file, so PATH from `.zprofile` and `.zshrc` both count: `<shell> -l -i -c 'exec "$0"' <script>`. `<shell>` is `$SHELL` when it is zsh, bash, sh, dash or ksh, else `/bin/zsh` (Mac) or `/bin/bash` (Linux). Windows runs `%ComSpec% /d /c .godspeed\<script name>` in the folder: portable-pty quotes only spaces, and cmd would split a full path at `&`, `(`, `)` or `^`.
 4. `portable-pty` opens a pseudo-terminal of a fixed 100 × 30 (ConPTY on Windows). There is no resize command.
 
@@ -209,12 +209,12 @@ The learner's agents (Claude Code or Codex) run in terminals the shell owns, sho
 
 ### While it runs
 
-Each terminal has four threads: output, input, its exit, and a 250 ms clock.
+Each terminal has four threads: output, input, its exit, and a clock that sleeps until it has work, so an idle or hidden terminal never wakes the app.
 
-- **Output** goes through a `vt100` screen (1000 lines of scrollback) and to the page as `terminal-output` only while attached, at most once per 16 ms frame. More than 64 KB in one frame goes as a snapshot of the screen instead, so a program that prints without pause cannot hold up the window. If drawing the output panics, the shell stops the terminal, keeps reading and dropping its output, and the screen says "godspeed couldn't read this terminal's screen, so it stopped it." with `ended` `{stopped: false, code: null}`. The shell answers the questions a program asks its terminal (cursor position, device attributes, status), because a hidden terminal has no page and ConPTY waits for the cursor position before the program starts. The page's own answers to those are dropped.
+- **Output** goes through a `vt100` screen (1000 lines of scrollback) and to the page as `terminal-output` only while attached, 16 ms after the first byte that waits. More than 64 KB in one frame goes as a snapshot of the screen instead, so a program that prints without pause cannot hold up the window. If drawing the output panics, the shell stops the terminal, keeps reading and dropping its output, and the screen says "godspeed couldn't read this terminal's screen, so it stopped it." with `ended` `{stopped: false, code: null}`. The shell answers the questions a program asks its terminal (cursor position, device attributes, status), because a hidden terminal has no page and ConPTY waits for the cursor position before the program starts. The page's own answers to those are dropped.
 - **Input** is queued and written in order on its own thread, so a terminal that reads nothing never holds the window up. `terminal_write`, `terminal_answer` and `terminal_paste` run without `async`, so keys keep their order.
 - **Typing** (`write`, `paste`) is refused unless that terminal is attached and the main window has the focus. Paste drops escape characters and is bracketed when the program asked for bracketed paste.
-- **The clock** pushes `terminal-state` when the recognised question or the web address on the screen changes.
+- **The clock** sends waiting output and pushes `terminal-state` when the recognised question or the web address on the screen changes. It wakes only for output to send or for a question to reach its 2 s, and otherwise sleeps until output comes or the terminal ends.
 
 ### What the shell recognises
 
