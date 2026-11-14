@@ -1,4 +1,5 @@
 import { useAgentStatus } from "@/frontend/components/agent-status";
+import { agentHereNow, useTerminals } from "@/frontend/components/terminal/use-terminals";
 import { cn } from "@/frontend/lib/utils";
 import { useStartAgent } from "./use-agent-folder";
 
@@ -8,8 +9,7 @@ import { useStartAgent } from "./use-agent-folder";
  * none is. Nothing otherwise.
  */
 export function NoAgentLine({ className }: { className?: string }) {
-	const agent = useAgentStatus();
-	if (!agent || agent.connected || agent.teaching) return null;
+	if (agentHereNow(useAgentStatus(), useTerminals()) !== false) return null;
 	return <Line className={className} />;
 }
 

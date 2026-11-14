@@ -16,14 +16,15 @@ export function TerminalPane({ api, role, foot }: { api: TerminalsApi; role: Ter
 	const term = api[role]!;
 	const [focusKey, setFocusKey] = useState(0);
 	const [error, setError] = useState<string | null>(null);
-	useEffect(() => setError(null), [term.id]);
+	// A refusal shows until what the footer says changes.
+	useEffect(() => setError(null), [term.id, foot.text]);
 	const live = !term.ended;
 	const refocus = () => setFocusKey((n) => n + 1);
 	const startAgain = async () => setError(await api.start(role, term.agent));
 
 	return (
 		<>
-			<TerminalView key={term.id} id={term.id} ended={!live} focusKey={focusKey} />
+			<TerminalView key={term.id} id={term.id} ended={!live} focusOnOpen={api.focusOnOpen} focusKey={focusKey} />
 			{/* In a narrow window the buttons move under the sentence. */}
 			<div className="flex shrink-0 flex-wrap items-center gap-x-2.5 gap-y-2 border-t border-border py-3.5 pr-3.5 pl-6">
 				<p data-testid="terminal-footer" role="status" className="min-w-64 flex-1 text-lg text-ink">

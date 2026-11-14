@@ -39,7 +39,7 @@ describe("keys in the terminal's screen", () => {
 						<KeyboardShortcuts />
 						<div role="dialog" aria-modal="true">
 							<button type="button">Hide</button>
-							<TerminalView id={ID} ended={false} focusKey={0} />
+							<TerminalView id={ID} ended={false} focusOnOpen focusKey={0} />
 							<button type="button">Stop</button>
 						</div>
 					</MemoryRouter>,

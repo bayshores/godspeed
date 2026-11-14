@@ -18,6 +18,7 @@ import { WhatsNew } from "@/frontend/components/whats-new";
 import { FolderNotice } from "@/frontend/components/agent-folder/folder-notice";
 import { OldSetupNotice } from "@/frontend/components/agent-folder/old-setup";
 import { TerminalsProvider } from "@/frontend/components/terminal/use-terminals";
+import { TerminalOverlay } from "@/frontend/components/terminal/terminal-overlay";
 import { PageTitle } from "./page-title";
 
 /** The agents' terminals follow the agent's live status. */
@@ -51,6 +52,8 @@ export function Root() {
 												<>
 													<PageTitle />
 													<Onboarding />
+													{/* Past the agent step a question still shows; the step shows its own screen. */}
+													<TerminalOverlay name={boot.teacherName ?? DEFAULT_TEACHER_NAME} />
 												</>
 											) : (
 												<AppShell teacherName={boot.teacherName} welcome={welcome} whatsNewSince={welcome ? boot.whatsNewSince : null}>

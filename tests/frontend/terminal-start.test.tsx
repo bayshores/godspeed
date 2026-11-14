@@ -116,6 +116,73 @@ describe("Start Claude Code", () => {
 	});
 });
 
+describe("Start with an agent outside godspeed connected", () => {
+	it("still sets up the folder, starts nothing and says why", async () => {
+		const shell = fakeShell();
+		const posts: string[] = [];
+		globalThis.fetch = (async (_url: string, init?: RequestInit) => {
+			if (init?.method === "POST") posts.push(String(init.body));
+			return Response.json(FOLDER);
+		}) as unknown as typeof fetch;
+		try {
+			await mounted(
+				(r) =>
+					act(async () =>
+						r.render(
+							<TerminalsProvider status={access({ connected: true, teaching: true, outsideHere: true })}>
+								<AgentLauncher />
+							</TerminalsProvider>,
+						),
+					),
+				async () => {
+					await act(async () => q("open-agent")!.click());
+					await settle();
+					assert.ok(posts.some((b) => b.includes('"setup"')), "the folder was set up");
+					assert.ok(!shell.calls.some((c) => c.startsWith("start")), "no second teacher");
+					assert.match(document.body.textContent!, /An agent started outside godspeed is already connected\. Close it there, then start one here\./);
+				},
+			);
+		} finally {
+			shell.remove();
+		}
+	});
+});
+
+describe("the shell's list", () => {
+	it("an answer that comes late never replaces a newer teacher", async () => {
+		const old = { id: "t0", role: "teacher" as const, agent: "claude" as const, startedAt: Date.now() - 60_000, ended: { stopped: false as const, code: 1 }, prompt: null, url: false };
+		const shell = fakeShell([old]);
+		let api: Api | null = null;
+		function Probe() {
+			api = useTerminals();
+			return null;
+		}
+		try {
+			await mounted(
+				(r) =>
+					act(async () =>
+						r.render(
+							<TerminalsProvider status={access()}>
+								<Probe />
+							</TerminalsProvider>,
+						),
+					),
+				async () => {
+					assert.equal(api!.teacher?.id, "t0");
+					await act(async () => void (await api!.start("teacher", "claude")));
+					assert.equal(api!.teacher?.id, "teacher-new");
+					// A push for a terminal the page doesn't know asks for the list again; it still holds t0.
+					await act(async () => shell.push({ id: "helper-x", ended: null, prompt: null, url: false }));
+					await settle();
+					assert.equal(api!.teacher?.id, "teacher-new", "the old crashed teacher did not come back");
+				},
+			);
+		} finally {
+			shell.remove();
+		}
+	});
+});
+
 describe("Start lesson and a Talk send", () => {
 	it("start the agent last started here, hidden, only when no agent is here", async () => {
 		const shell = fakeShell();
@@ -134,13 +201,15 @@ describe("Start lesson and a Talk send", () => {
 			await mounted(
 				async (r) => {
 					root = r;
-					await act(async () => r.render(page(access({ connected: true }))));
+					await act(async () => r.render(page(access({ connected: true, teaching: true, outsideHere: true }))));
 				},
 				async () => {
 					stored.set("lh-folder-agent", "codex");
 					await act(async () => api!.wake());
-					assert.ok(!shell.calls.some((c) => c.startsWith("start")), "an agent is here");
-					await act(async () => root!.render(page(access())));
+					assert.ok(!shell.calls.some((c) => c.startsWith("start")), "an agent outside godspeed is here");
+					// The server still says connected for a while after the learner stopped godspeed's teacher.
+					await act(async () => root!.render(page(access({ connected: true, teaching: true }))));
+					assert.ok(api!.agentHere === false, "the terminals know it ended");
 					await act(async () => api!.wake());
 					await settle();
 					assert.ok(shell.calls.includes("start teacher codex"), shell.calls.join(", "));

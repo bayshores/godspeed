@@ -58,6 +58,11 @@ export interface TerminalFacts {
 	term: TerminalRecord;
 	/** A request from this terminal reached godspeed in the last 3 minutes. */
 	here: boolean;
+	/** It has been here at least once: a long wait or turn after that is no
+	 *  reason to think it is still starting. */
+	checkedIn: boolean;
+	/** An agent outside godspeed's terminals is here. */
+	outsideHere: boolean;
 	/** The teacher runs its work loop. */
 	teaching: boolean;
 	now: number;
@@ -80,9 +85,9 @@ export function needsYou(f: TerminalFacts): NeedsYou | null {
 	if (term.ended) return missing(term.ended) ? "missing" : crashed(term.ended) ? "crashed" : null;
 	if (term.prompt) return "prompt";
 	if (term.role !== "teacher") return null;
-	if (!f.here) return f.now - term.startedAt >= CHECK_IN_WAIT_MS ? "no-check-in" : null;
-	if (!f.teaching && f.quietSince !== null && f.now - f.quietSince >= TEACH_WAIT_MS) return "not-teaching";
-	return null;
+	if (!f.checkedIn) return f.now - term.startedAt >= CHECK_IN_WAIT_MS ? "no-check-in" : null;
+	if (f.teaching) return null;
+	return f.quietSince !== null && f.now - f.quietSince >= TEACH_WAIT_MS ? "not-teaching" : null;
 }
 
 /** The names in the words: the teacher's stored name and the short folder. */
@@ -131,11 +136,11 @@ export function terminalFooter(f: TerminalFacts, names: TerminalNames): Terminal
 	if (term.prompt === "trust")
 		return footer(`${agent} asks whether it may work in ${names.folder}. godspeed made this folder for it.`, { assist: { kind: "trust", label: "Yes, trust this folder" } });
 	if (term.prompt === "enter") return footer(`${agent} is asking you to continue.`, { assist: { kind: "enter", label: "Continue" } });
-	if (!f.here && (term.url || term.prompt === "menu")) return footer(`Finish signing in to ${agent} in your browser. If it gives you a code, copy it and click Paste.`);
+	if (!f.checkedIn && (term.url || term.prompt === "menu")) return footer(`Finish signing in to ${agent} in your browser. If it gives you a code, copy it and click Paste.`);
 	if (term.prompt === "menu") return footer(`${agent} is asking you something. Answer it on the screen.`);
 	const why = needsYou(f);
 	if (why === "no-check-in" || why === "not-teaching") return footer(`${names.name} hasn't started teaching yet. It may be waiting for you on the screen.`);
-	if (!f.here) return footer(startingLine(term.agent, names.folder));
+	if (!f.checkedIn) return footer(startingLine(term.agent, names.folder));
 	if (teacher) return footer(`${names.name} is running in ${names.folder}.`);
 	return footer(f.helperBusy ? "The helper is reading your files." : "The helper is waiting for files to read.");
 }
@@ -150,9 +155,10 @@ function startingLine(agent: FolderAgent, folder: string): string {
 export type TeacherTerminalState = "starting" | "needsYou";
 
 export function teacherTerminalState(f: TerminalFacts | null): TeacherTerminalState | null {
-	if (!f || f.term.ended?.stopped) return null;
+	// An agent outside godspeed teaches: an old record says nothing.
+	if (!f || f.term.ended?.stopped || f.outsideHere) return null;
 	if (needsYou(f)) return "needsYou";
-	if (!f.term.ended && !f.here) return "starting";
+	if (!f.term.ended && !f.checkedIn) return "starting";
 	return null;
 }
 
@@ -172,6 +178,9 @@ export function teacherStatusLine(f: TerminalFacts | null, name: string): string
 
 const live = (term: TerminalRecord | null): boolean => !!term && !term.ended;
 
+/** Why the teacher doesn't start while an agent outside godspeed is here. */
+export const OUTSIDE_REFUSAL = "An agent started outside godspeed is already connected. Close it there, then start one here.";
+
 /** Why a teacher start is refused: its terminal runs, or an agent outside
  *  godspeed is here. Null when it may start. */
 export function teacherStartRefused(teacher: TerminalRecord | null, outsideHere: boolean): "running" | "outside" | null {
@@ -184,13 +193,13 @@ export function teacherStartRefused(teacher: TerminalRecord | null, outsideHere:
  *  and none was started since this teacher started. */
 export function helperShouldStart(i: {
 	teacher: TerminalRecord | null;
-	teacherHere: boolean;
+	teacherCheckedIn: boolean;
 	helper: TerminalRecord | null;
 	helperHere: boolean;
 	backgroundWaiting: number;
 }): boolean {
 	const { teacher, helper } = i;
-	if (!teacher || teacher.ended || !i.teacherHere || i.backgroundWaiting <= 0 || i.helperHere) return false;
+	if (!teacher || teacher.ended || !i.teacherCheckedIn || i.backgroundWaiting <= 0 || i.helperHere) return false;
 	return !helper || (!!helper.ended && helper.startedAt < teacher.startedAt);
 }
 
@@ -198,8 +207,8 @@ export function helperShouldStart(i: {
  *  agent asks something or has ended, else whether it has connected. */
 export function firstRunFooter(f: TerminalFacts, folder: string): TerminalFooter {
 	const { term } = f;
-	if (term.ended || term.prompt || (!f.here && term.url)) return terminalFooter(f, { name: AGENT_LABEL[term.agent], folder });
-	return footer(f.here ? `${AGENT_LABEL[term.agent]} is connected.` : startingLine(term.agent, folder));
+	if (term.ended || term.prompt || (!f.checkedIn && term.url)) return terminalFooter(f, { name: AGENT_LABEL[term.agent], folder });
+	return footer(f.checkedIn ? `${AGENT_LABEL[term.agent]} is connected.` : startingLine(term.agent, folder));
 }
 
 /** Start lesson and a Talk send start the teacher hidden, with the agent

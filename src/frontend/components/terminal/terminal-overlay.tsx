@@ -15,7 +15,7 @@ import { useTerminals, type TerminalsApi } from "./use-terminals";
 
 export function TerminalOverlay({ name }: { name: string }) {
 	const api = useTerminals();
-	const { mounted, state, shown } = useLastWhileClosing(api?.overlay ?? null);
+	const { mounted, state, shown } = useLastWhileClosing(api?.inline ? null : (api?.overlay ?? null));
 	if (!api || !mounted || !shown || typeof document === "undefined") return null;
 	const role = shown === "helper" && api.helper ? "helper" : "teacher";
 	if (!api[role]) return null;

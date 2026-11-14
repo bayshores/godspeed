@@ -54,11 +54,14 @@ function keepKey(e: KeyboardEvent) {
 	e.stopPropagation();
 }
 
-export function TerminalView({ id, ended, focusKey }: {
+export function TerminalView({ id, ended, focusOnOpen, focusKey }: {
 	id: string;
 	/** The agent has ended: the screen stays, greyed, and takes no keys. */
 	ended: boolean;
-	/** Focus moves back to the screen whenever this changes. */
+	/** The learner opened it: it takes the keyboard at once. Otherwise a
+	 *  click in the screen does. */
+	focusOnOpen: boolean;
+	/** Focus moves back to the screen whenever this goes up. */
 	focusKey: number;
 }) {
 	const box = useRef<HTMLDivElement>(null);
@@ -119,8 +122,8 @@ export function TerminalView({ id, ended, focusKey }: {
 	}, [ended]);
 
 	useEffect(() => {
-		if (!ended) term.current?.focus();
-	}, [focusKey, ended, id]);
+		if (!ended && (focusOnOpen || focusKey > 0)) term.current?.focus();
+	}, [focusKey, focusOnOpen, ended, id]);
 
 	return (
 		<div ref={box} data-testid="terminal-screen" className="min-h-0 min-w-0 flex-1 overflow-auto bg-bar p-3">

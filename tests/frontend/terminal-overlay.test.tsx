@@ -15,6 +15,7 @@ const { TerminalsProvider } = await import("../../src/frontend/components/termin
 const { TerminalOverlay } = await import("../../src/frontend/components/terminal/terminal-overlay.tsx");
 const { TeacherStatus } = await import("../../src/frontend/components/terminal/teacher-status.tsx");
 const { RestartDialog } = await import("../../src/frontend/components/terminal/restart-dialog.tsx");
+const { FirstRunScreen } = await import("../../src/frontend/components/terminal/first-run-screen.tsx");
 type Access = Parameters<typeof TerminalsProvider>[0]["status"];
 
 const access = (over: Partial<NonNullable<Access>> = {}): Access => ({ connected: false, teaching: false, helperHere: false, helperCovering: false, pendingWork: 0, pendingTurns: 0, claimedLessons: [], terminals: [], outsideHere: false, ...over });
@@ -140,6 +141,103 @@ describe("the overlay", () => {
 				assert.equal(text("terminal-footer"), "The helper is waiting for files to read.");
 				await click("terminal-stop");
 				assert.ok(shell.calls.includes("stop h1"));
+			});
+		} finally {
+			shell.remove();
+		}
+	});
+});
+
+describe("the keyboard and the overlay", () => {
+	it("opening by itself takes no keys: the box the learner types in keeps them until a click in the screen", async () => {
+		const shell = fakeShell([teacher()]);
+		const box = document.createElement("textarea");
+		document.body.append(box);
+		const screen = () => document.querySelector<HTMLElement>("[data-terminal-screen] textarea");
+		const wrote = () => shell.calls.some((c) => c.startsWith("write "));
+		// This DOM keeps no focus: follow it through focus().
+		const proto = dom.window.HTMLElement.prototype as { focus: () => void };
+		const realFocus = proto.focus;
+		let focused: unknown = null;
+		proto.focus = function (this: unknown) {
+			focused = this;
+		};
+		try {
+			await mounted(access({ teaching: true, terminals: [{ id: "t1", here: true }] }), async () => {
+				box.focus();
+				assert.ok(focused === box, "the learner types in the box");
+				await act(async () => shell.push({ id: "t1", ended: null, prompt: "menu", url: false }));
+				for (let i = 0; i < 10 && !screen(); i++) await settle();
+				assert.ok(overlay() !== null, "a permission menu opened it");
+				assert.ok(screen() !== null, "the screen drew");
+				assert.ok(focused === box, "the box kept the keyboard");
+				press(box, "1", 49);
+				press(box, "Enter", 13);
+				assert.ok(!wrote(), "no key reached the agent");
+				await click("terminal-hide");
+				await click("status");
+				for (let i = 0; i < 10 && !screen(); i++) await settle();
+				assert.ok(focused === screen(), "opened by the learner, the screen takes the keyboard");
+			});
+		} finally {
+			proto.focus = realFocus;
+			box.remove();
+			shell.remove();
+		}
+	});
+});
+
+describe("onboarding", () => {
+	it("the step's own screen takes no keys and stands in for the overlay; past the step, a question opens the overlay", async () => {
+		const shell = fakeShell([teacher({ prompt: "menu" }), teacher({ id: "h1", role: "helper" })]);
+		const proto = dom.window.HTMLElement.prototype as { focus: () => void };
+		const realFocus = proto.focus;
+		let focused = 0;
+		proto.focus = () => void focused++;
+		const host = document.createElement("div");
+		document.body.append(host);
+		const root = createRoot(host);
+		const page = (step: boolean) => (
+			<TerminalsProvider status={access({ terminals: [{ id: "t1", here: true }, { id: "h1", here: true }] })}>
+				{step && <FirstRunScreen />}
+				<TerminalOverlay name="Ada" />
+			</TerminalsProvider>
+		);
+		try {
+			await act(async () => root.render(page(true)));
+			for (let i = 0; i < 10 && !document.querySelector("[data-terminal-screen] textarea"); i++) await settle();
+			assert.ok(document.querySelector('[data-testid="first-run-screen"]') !== null);
+			assert.ok(overlay() === null, "no second view of the same screen");
+			assert.ok(focused === 0, "no focus until a click");
+			await act(async () => root.render(page(false)));
+			await settle();
+			assert.ok(overlay() === null, "the question was seen in the step");
+			await act(async () => shell.push({ id: "h1", ended: null, prompt: "menu", url: false }));
+			await settle();
+			assert.ok(overlay() !== null, "the helper's question shows over the next step");
+		} finally {
+			proto.focus = realFocus;
+			await act(async () => root.unmount());
+			await settle();
+			host.remove();
+			shell.remove();
+		}
+	});
+});
+
+describe("the footer", () => {
+	it("a refused Paste shows until the footer has something new to say", async () => {
+		const shell = fakeShell([teacher()]);
+		const terminals = (dom.window as unknown as { lh: { terminals: { paste: () => Promise<void> } } }).lh.terminals;
+		terminals.paste = () => Promise.reject("Show the terminal and click in it first.");
+		try {
+			await mounted(access({ teaching: true, terminals: [{ id: "t1", here: true }] }), async () => {
+				await click("status");
+				await click("terminal-paste");
+				assert.equal(text("terminal-footer"), "Show the terminal and click in it first.");
+				await act(async () => shell.push({ id: "t1", ended: null, prompt: "trust", url: false }));
+				await settle();
+				assert.equal(text("terminal-footer"), "Claude Code asks whether it may work in ~/godspeed. godspeed made this folder for it.");
 			});
 		} finally {
 			shell.remove();

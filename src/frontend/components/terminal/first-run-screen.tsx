@@ -8,14 +8,14 @@ import { useTerminals } from "./use-terminals";
 export function FirstRunScreen() {
 	const api = useTerminals();
 	const id = api?.teacher?.id;
-	const show = api?.show;
-	const hide = api?.hide;
+	const showInline = api?.showInline;
 	// This screen stands in for the overlay: what shows here counts as seen.
+	// It takes the keyboard only once the learner clicks in it.
 	useEffect(() => {
-		if (!id || !show || !hide) return;
-		show("teacher");
-		return hide;
-	}, [id, show, hide]);
+		if (!id || !showInline) return;
+		showInline(true);
+		return () => showInline(false);
+	}, [id, showInline]);
 	const facts = api?.facts.teacher;
 	if (!api || !facts) return null;
 	return (
