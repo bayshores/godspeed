@@ -33,7 +33,7 @@ Object.assign(globalThis, {
 
 const { createRoot } = await import("react-dom/client");
 const { SettingsPage, sectionFor } = await import("../../src/frontend/components/settings/settings-page.tsx");
-const { ConnectionSection } = await import("../../src/frontend/components/settings/connection-section.tsx");
+const { ConnectionSection, connectionHint } = await import("../../src/frontend/components/settings/connection-section.tsx");
 const { WebSearch } = await import("../../src/frontend/components/settings/web-search.tsx");
 const { RememberedNotes } = await import("../../src/frontend/components/settings/remembered-notes.tsx");
 const { maskToken } = await import("../../src/frontend/components/mcp-access.ts");
@@ -138,13 +138,18 @@ describe("settings restyle", () => {
 		assert.equal(q("agent-token")!.textContent, "••••••••••••a91f");
 		assert.ok(!text.includes("tok_secret_a91f"), "the token is never shown whole");
 		assert.equal(q("agent-status")!.textContent, "Teacher is running");
-		assert.equal(q("agent-window-teacher-chip")!.textContent, "Teaching");
+		assert.equal(q("agent-window-teacher-chip")!.textContent, "Running", "teaching with nothing to do");
 		assert.ok(q("agent-window-teacher-open") === null);
 		assert.equal(q("agent-window-helper-chip")!.textContent, "Not running");
 		assert.equal(q("agent-window-helper-open")!.textContent, "Start helper");
 		assert.equal(q("agent-folder-path")!.textContent, "~/godspeed");
 		assert.ok(!text.includes("/plugin"), "no plugin to install");
 		assert.ok(q("old-setup-warning") === null, "nothing old left: no warning");
+	});
+
+	it("the section's line says godspeed starts the helper only in the desktop app", () => {
+		assert.ok(connectionHint(true).endsWith("build the graph, and godspeed starts it when there is reading to do."));
+		assert.ok(connectionHint(false).endsWith("build the graph."));
 	});
 
 	it("both running: the helper covers while the teacher tidies its memory", async () => {

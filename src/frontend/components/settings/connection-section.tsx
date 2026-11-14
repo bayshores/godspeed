@@ -99,6 +99,9 @@ export function ConnectionSection() {
 	);
 }
 
-/** The section's head tooltip: what outside agents do, and how to use one. */
-export const CONNECTION_SECTION_HINT =
-	"Claude Code, Codex, or another MCP app is your teacher and teaches your lessons. The helper is the same agent running a second time to read your files and build the graph, and godspeed starts it when there is reading to do.";
+/** The section's quiet line: who the teacher and the helper are. Only
+ *  the desktop app starts the helper by itself. */
+export function connectionHint(desktop: boolean): string {
+	const helper = "The helper is the same agent running a second time to read your files and build the graph";
+	return `Claude Code, Codex, or another MCP app is your teacher and teaches your lessons. ${helper}${desktop ? ", and godspeed starts it when there is reading to do" : ""}.`;
+}

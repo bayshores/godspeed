@@ -38,7 +38,9 @@ describe("the teacher and the helper", () => {
 			note: "Teaches and answers you",
 			start: null,
 		});
-		assert.equal(teacherTile(teaching, { text: "Idle", working: false }, own).line, "Nothing to do right now");
+		const idle = teacherTile(teaching, { text: "Idle", working: false }, own);
+		assert.equal(idle.line, "Nothing to do right now");
+		assert.equal(idle.chip, "Running", "Teaching only while it works on something");
 		const running = teacherTile(agent({ connected: true, name: "Codex" }), null, own);
 		assert.equal(running.chip, "Running");
 		assert.equal(running.line, "Tell Codex to start teaching.");

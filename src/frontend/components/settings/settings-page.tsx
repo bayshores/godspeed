@@ -17,11 +17,12 @@ import { notifySettingsSaved } from "@/frontend/components/settings-signal";
 import { useServerEvent } from "@/frontend/components/server-events";
 import { cn } from "@/frontend/lib/utils";
 import { AppearanceSection } from "./appearance-section.tsx";
-import { CONNECTION_SECTION_HINT, ConnectionSection } from "./connection-section.tsx";
+import { ConnectionSection, connectionHint } from "./connection-section.tsx";
+import { useTerminals } from "@/frontend/components/terminal/use-terminals";
 
 /** The tabs. A section's hint is the quiet line under it. */
 const SECTIONS = [
-	{ id: "connection", label: "Connection", hint: CONNECTION_SECTION_HINT },
+	{ id: "connection", label: "Connection", hint: connectionHint },
 	{ id: "teaching", label: "Teaching" },
 	{ id: "appearance", label: "Appearance" },
 	{ id: "general", label: "General" },
@@ -76,6 +77,7 @@ export function SettingsPage({ section }: { section?: string }) {
 	// Teaching's full instructions fill the page, heading and tabs included.
 	const [fullPage, setFullPage] = useState(false);
 	const current = SECTIONS.find((s) => s.id === active) ?? SECTIONS[0];
+	const desktop = !!useTerminals()?.available;
 	// A link to another section while the page is open changes
 	// initialSection under our feet — follow it.
 	useEffect(() => {
@@ -231,7 +233,7 @@ export function SettingsPage({ section }: { section?: string }) {
 					)}
 					{"hint" in current && (
 						<p data-testid="settings-hint" className="pt-6 text-sm text-ink-2">
-							{current.hint}
+							{current.hint(desktop)}
 						</p>
 					)}
 				</div>
