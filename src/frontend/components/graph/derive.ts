@@ -15,6 +15,7 @@ import {
 	type TopicProgress,
 	type WorkOnNextItem,
 } from "@/shared/core";
+import { STATUS_LEGEND } from "@/frontend/components/overview/overview-model";
 
 /** Answer blocks in the topic panel use the topic ramp's ends. */
 export const PANEL_ANSWER_COLOR: Record<AnswerOutcome, string> = {
@@ -81,7 +82,7 @@ export function factCellLabel(f: Pick<FactProgress, "answers" | "inLessons">): s
 
 /** "2 strong, 3 shaky, 1 weak, 8 not tested". */
 export function countsLine(c: StatusCounts): string {
-	return `${c.strong} strong, ${c.shaky} shaky, ${c.weak} weak, ${c.untested} not tested`;
+	return STATUS_LEGEND.map((s) => `${c[s.key]} ${s.label}`).join(", ");
 }
 
 /** "Needs first" (arrows in) and "Leads to" (arrows out) for a topic,
