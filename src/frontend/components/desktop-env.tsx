@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import type { UpdateState } from "@/frontend/components/settings/update-settings.tsx";
-import type { StartTarget } from "@/shared/core";
+import type { FolderAgent, StartTarget } from "@/shared/core";
+import type { TerminalRecord, TerminalRole } from "@/frontend/components/terminal/terminal-model";
 
 declare global {
 	interface Window {
@@ -16,6 +17,27 @@ declare global {
 			openPath?: (path: string) => Promise<void>;
 			/** Opens a terminal running the godspeed folder's start script: null, or why it couldn't. */
 			openAgent?: (folder: string, agent: StartTarget) => Promise<string | null>;
+			/** The agents' terminals the shell runs (terminal/use-terminals.ts). */
+			terminals?: {
+				/** Resolves to the new terminal's id; rejects with a sentence saying why it couldn't start. */
+				start: (role: TerminalRole, agent: FolderAgent, folder: string) => Promise<{ id: string }>;
+				/** Pushes the screen as it is, then its live output, until detach. */
+				attach: (id: string) => Promise<void>;
+				detach: (id: string) => Promise<void>;
+				write: (id: string, data: string) => Promise<void>;
+				/** Sends Enter only if the shell still sees that prompt on the screen. */
+				answer: (id: string, kind: "trust" | "enter") => Promise<void>;
+				/** The shell reads the clipboard itself and types it in. */
+				paste: (id: string) => Promise<void>;
+				stop: (id: string) => Promise<void>;
+				list: () => Promise<TerminalRecord[]>;
+				/** Base64 screen bytes: `snapshot` replaces the screen, `data` adds to it. */
+				onOutput: (cb: (out: { id: string; data?: string; snapshot?: string }) => void) => () => void;
+				/** Sent when a terminal's question, link or end changes. */
+				onState: (cb: (state: Pick<TerminalRecord, "id" | "ended" | "prompt" | "url">) => void) => () => void;
+			};
+			/** Opens an http, https or mailto link in the browser. */
+			openLink?: (url: string) => Promise<void>;
 			/** A dropped file's or folder's absolute path, or "" where the OS gives none (onboarding drop zone). */
 			pathForFile?: (file: File) => Promise<string>;
 			/** The first screen is drawn: show the window (hidden until then). */
