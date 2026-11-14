@@ -173,7 +173,7 @@ The shell bakes `APP_ORIGIN` and `PLATFORM` into the script text before the wind
 | `terminals.start(role, agent)` | `terminal_start` | `role` is `"teacher"` or `"helper"`, `agent` is `"claude"` or `"codex"`. Answers `{ id }`. See [Terminals](#terminals). |
 | `terminals.attach(id)`, `terminals.detach(id)` | `terminal_attach`, `terminal_detach` | Attach pushes a snapshot of the screen, then the live output, on `terminal-output`. |
 | `terminals.write(id, data)` | `terminal_write` | Keys typed in the shown terminal. |
-| `terminals.answer(id, kind)` | `terminal_answer` | `kind` is `"trust"` or `"enter"`: the shell sends Enter only while it still sees that question. |
+| `terminals.answer(id, kind)` | `terminal_answer` | `kind` is `"trust"` or `"enter"`: the shell answers only while it still sees that question (see [What the shell recognises](#what-the-shell-recognises)). |
 | `terminals.paste(id)` | `terminal_paste` | The shell reads the clipboard and types it. |
 | `terminals.stop(id)` | `terminal_stop` | Stops the terminal and everything it started. |
 | `terminals.list()` | `terminal_list` | Every terminal, for a page that reloaded. |
@@ -222,11 +222,11 @@ By shape, since the agents reword their screens. Screen text is only matched, ne
 
 | `prompt` | Shape |
 |---|---|
-| `"trust"` | A menu (below) whose highlighted row starts with "Yes", where the last line with a `?` in the 8 rows above item 1 holds one of the agents' own trust questions: "Do you trust the files in this folder?", "Is this a project you created or one you trust?" or "Do you trust the contents of this directory?". A permission menu ("Do you want to proceed?") never matches, whatever its command or diff says. |
+| `"trust"` | Claude Code's trust question, matched whole: an unnumbered "No, exit" row with a blank row above it, "Yes, I trust this folder" right under it, exactly one of them behind a pointer, and below them only "Enter to confirm · Esc to cancel"; the last line with a `?` in the 8 rows above starts with "Is this a project you created or one you trust?" (after any bullet and "Quick safety check:"). Anything else gets no button, Codex's trust screen and every permission menu too, whatever its command, reason or diff says. |
 | `"menu"` | Numbered rows from 1 up, at least two, exactly one highlighted (a pointer such as `❯` or `›` before it, or inverse video). |
 | `"enter"` | One of the last three lines opens with "Press Enter", or a sentence in it does. |
 
-A question counts once it has stayed the same for 2 s. `url` is true while the screen shows an `http` or `https` address. The trust and Enter buttons send Enter only if the shell sees that question on its screen at that moment.
+A question counts once it has stayed the same for 2 s. `url` is true while the screen shows an `http` or `https` address. The trust and Enter buttons send keys only if the shell sees that question on its screen at that moment. Trust on "No" sends Down, then Enter once the shell sees the pointer on "Yes" (within 1 s); if the screen changed, it sends nothing more.
 
 ### Stop, quit and the server
 
@@ -235,7 +235,7 @@ A question counts once it has stayed the same for 2 s. `url` is true while the s
 | Stop | The record is marked stopping and the server hears the new live set at once. Mac and Linux send SIGHUP to the script's process group (`portable-pty` makes it a session leader, `rustix` sends the signal), then SIGKILL 2 s later; Windows ends the Job Object. |
 | The script exits | `ended` is `{stopped: false, code}`; whatever it left running is hung up and killed the same way. Exit 3 means the agent was not found and 4 that Node.js is missing. |
 | The teacher ends | However it ended (Stop, exit or crash), the shell stops the helper as above. The page may be gone by then, so it does not do this itself. |
-| Quit | `quit.rs` stops every terminal before the server: all hang up at once, one already stopping too, and after 2 s every group is killed, also what an ended script left. |
+| Quit | `quit.rs` stops every terminal before the server: all hang up at once, one already stopping too, and after 2 s every group is killed, also what a script that ended in the last 2 s left. A group is signalled no more once it was killed, since its pid may then belong to another program. |
 | Server crash | The terminals live on. The restarted server gets `LH_TERMINALS`, and the reloaded page calls `terminal_list`. |
 | A child that left the group | It still sends the ended id, so the server refuses it. On Windows the job holds it unless it breaks away. |
 
