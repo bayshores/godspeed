@@ -46,10 +46,18 @@ export function studiedShare(facts: readonly Pick<FactProgress, "inLessons" | "a
 	return facts.filter((f) => f.inLessons || f.answers.length > 0).length / facts.length;
 }
 
-/** How much to shrink a signature so it fits its room (1 = as is). */
-export function fitScale(natural: { width: number; height: number }, room: { width: number; height: number }): number {
+/** The most room a signature gets in the space head. */
+const SIGNATURE_ROOM = { width: 320, height: 64 };
+/** Drawn shorter than this (px), a signature is too small to read. */
+const SMALLEST_SIGNATURE = 24;
+
+/** How much the head's signature shrinks (1 = as is) to fit its room and
+ *  the `free` width beside the space's name; null when it would be too
+ *  small, so it is left out and the name keeps its room. */
+export function headSignatureScale(natural: { width: number; height: number }, free: number): number | null {
 	if (natural.width <= 0 || natural.height <= 0) return 1;
-	return Math.min(1, room.width / natural.width, room.height / natural.height);
+	const scale = Math.min(1, Math.min(SIGNATURE_ROOM.width, free) / natural.width, SIGNATURE_ROOM.height / natural.height);
+	return natural.height * scale < SMALLEST_SIGNATURE ? null : scale;
 }
 
 /** The cheat sheets that exist or are being made. */
