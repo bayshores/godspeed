@@ -233,6 +233,12 @@ impl Settle {
 		self.seen = seen;
 	}
 
+	/// When the question on the screen will have stayed long enough to show, if that is still
+	/// to come.
+	pub fn due(&self, now: Instant) -> Option<Instant> {
+		self.since.filter(|_| self.seen.prompt.is_some()).map(|since| since + SETTLE).filter(|due| *due > now)
+	}
+
 	/// The question to show now, and whether the screen has a web address.
 	pub fn shown(&self, now: Instant) -> (Option<Prompt>, bool) {
 		let settled = self.since.is_some_and(|since| now.duration_since(since) >= SETTLE);

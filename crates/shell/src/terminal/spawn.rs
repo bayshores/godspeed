@@ -74,8 +74,7 @@ pub fn script(folder: &str, role: Role, agent: Agent, os: &str) -> Option<PathBu
 	let dir = folder.join(".godspeed");
 	let script = dir.join(format!("start-{}{helper}.{extension}", agent.name()));
 	let plain = |path: &Path| path.symlink_metadata().is_ok_and(|meta| !meta.file_type().is_symlink());
-	let inside = || script.canonicalize().ok().zip(folder.canonicalize().ok()).is_some_and(|(script, folder)| script.starts_with(folder));
-	(plain(&dir) && dir.is_dir() && plain(&script) && script.is_file() && inside()).then_some(script)
+	(plain(&dir) && dir.is_dir() && plain(&script) && script.is_file()).then_some(script)
 }
 
 /// The shells that read the learner's profile the way `-l -i -c` expects; any other `$SHELL`

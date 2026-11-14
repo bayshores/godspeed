@@ -11,7 +11,7 @@ use std::ffi::OsString;
 use std::io::{Read, Write};
 use std::path::Path;
 use std::sync::mpsc::{self, Sender};
-use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
+use std::sync::{Arc, Condvar, Mutex, MutexGuard, PoisonError};
 use std::time::{Duration, Instant};
 
 use portable_pty::{Child, MasterPty};
@@ -25,8 +25,8 @@ pub use spawn::{Agent, Role};
 const STOP_GRACE: Duration = Duration::from_secs(2);
 /// How long the trust button waits for the pointer to reach "Yes" after its Down key.
 const TRUST_MOVE: Duration = Duration::from_secs(1);
-/// How often a terminal sends the page its output and looks whether a question has stayed on
-/// its screen: a program that prints without pause costs the window one push a frame.
+/// How long a shown terminal's output waits to go out with what follows it: a program that
+/// prints without pause costs the window one push a frame.
 const FRAME: Duration = Duration::from_millis(16);
 /// More output than this in one frame is sent as the screen it drew instead.
 const FRAME_BYTES: usize = 64 * 1024;
@@ -64,6 +64,8 @@ struct Terminal {
 	#[cfg(windows)]
 	job: crate::win::job::Job,
 	state: Mutex<State>,
+	/// Wakes the terminal's clock: output came, or the terminal ended.
+	wake: Condvar,
 }
 
 /// The terminal's input, queued in order, and its page end, kept open until the script ends.
@@ -82,6 +84,8 @@ struct State {
 	/// Output for the page, sent once a frame; `overflow` sends the screen instead.
 	pending: Vec<u8>,
 	overflow: bool,
+	/// When the pending output goes to the page.
+	flush_at: Option<Instant>,
 	stopping: bool,
 	broken: bool,
 	ended: Option<Ended>,
@@ -144,6 +148,7 @@ impl Terminal {
 			} else {
 				state.pending.extend_from_slice(bytes);
 			}
+			state.flush_at.get_or_insert_with(|| Instant::now() + FRAME);
 			// The clock has stopped: what the script printed last goes out now.
 			if state.ended.is_some() {
 				self.flush(&mut state, outlet);
@@ -153,11 +158,13 @@ impl Terminal {
 		let now = Instant::now();
 		state.settle.update(seen, now);
 		self.push_state(&mut state, outlet, now);
+		self.wake.notify_one();
 		true
 	}
 
 	/// Sends the page the frame's output, or the screen when there was too much of it.
 	fn flush(&self, state: &mut State, outlet: &dyn Outlet) {
+		state.flush_at = None;
 		if !state.attached {
 			return;
 		}
@@ -194,6 +201,12 @@ impl Terminal {
 		let io = state.io.as_ref().filter(|_| !state_ended(&state)).ok_or(NOT_THERE)?;
 		io.input.send(bytes.to_vec()).map_err(|_| NOT_THERE.to_owned())
 	}
+}
+
+/// When the clock has work next: pending output to send, or a question about to have stayed
+/// on the screen long enough. None sleeps until output comes, so an idle terminal never ticks.
+fn next_tick(state: &State, now: Instant) -> Option<Instant> {
+	state.flush_at.into_iter().chain(state.settle.due(now)).min()
 }
 
 fn state_ended(state: &State) -> bool {
@@ -282,12 +295,14 @@ impl Terminals {
 				attached: false,
 				pending: Vec::new(),
 				overflow: false,
+				flush_at: None,
 				stopping: false,
 				broken: false,
 				ended: None,
 				#[cfg(unix)]
 				group: spawned.child.process_id(),
 			}),
+			wake: Condvar::new(),
 		});
 		// An ended record stays until the next start for its role.
 		list.retain(|t| t.role != role);
@@ -317,14 +332,17 @@ impl Terminals {
 		});
 		let outlet = self.outlet.clone();
 		std::thread::spawn(move || {
-			loop {
-				std::thread::sleep(FRAME);
-				let mut state = ticking.state();
-				if state.ended.is_some() {
-					return;
+			let mut state = ticking.state();
+			while state.ended.is_none() {
+				let now = Instant::now();
+				if state.flush_at.is_some_and(|at| at <= now) {
+					ticking.flush(&mut state, &*outlet);
 				}
-				ticking.flush(&mut state, &*outlet);
-				ticking.push_state(&mut state, &*outlet, Instant::now());
+				ticking.push_state(&mut state, &*outlet, now);
+				state = match next_tick(&state, now) {
+					Some(at) => ticking.wake.wait_timeout(state, at - now).unwrap_or_else(PoisonError::into_inner).0,
+					None => ticking.wake.wait(state).unwrap_or_else(PoisonError::into_inner),
+				};
 			}
 		});
 	}
@@ -336,6 +354,7 @@ impl Terminals {
 		state.attached = true;
 		state.pending.clear();
 		state.overflow = false;
+		state.flush_at = None;
 		let snapshot = gs_base::base64::encode(state.screen.snapshot().as_bytes());
 		self.outlet.push("terminal-output", json!({ "id": id, "snapshot": snapshot }));
 		Ok(())
@@ -347,6 +366,7 @@ impl Terminals {
 		state.attached = false;
 		state.pending.clear();
 		state.overflow = false;
+		state.flush_at = None;
 		Ok(())
 	}
 
@@ -460,6 +480,7 @@ fn ended(terminal: Arc<Terminal>, code: u32, outlet: &dyn Outlet, list: &List) {
 		};
 		state.ended = Some(ended);
 		state.io = None;
+		terminal.wake.notify_one();
 		terminal.flush(&mut state, outlet);
 		outlet.push("terminal-state", terminal.state_json(&state));
 		(ended, stopped)
@@ -842,6 +863,23 @@ mod tests {
 		assert!(terminals.find(&id).unwrap().state().group.is_some(), "quit still signals it within the grace");
 		until("the kill", || !running(&child));
 		assert_eq!(terminals.find(&id).unwrap().state().group, None, "its pid may be reused, so quit signals it no more");
+		std::fs::remove_dir_all(dir).unwrap();
+	}
+
+	#[cfg(unix)]
+	#[test]
+	fn an_idle_terminal_schedules_nothing() {
+		let dir = folder("idle", "#!/bin/sh\nprintf ' > 1. Yes\\n   2. No\\n'\nread line\n");
+		let terminals = Terminals::new(Arc::new(Heard::default()));
+		let id = start(&terminals, &dir);
+		terminals.attach(&id).unwrap();
+		until("the menu", || text(&terminals, &id).contains("2. No"));
+		let terminal = terminals.find(&id).unwrap();
+		assert!(next_tick(&terminal.state(), Instant::now()).is_some(), "the question has yet to stay");
+		until("the question shows", || terminals.list()[0]["prompt"] == "menu");
+		assert_eq!(next_tick(&terminal.state(), Instant::now()), None, "nothing to send and nothing to wait for");
+		terminals.stop(&id).unwrap();
+		until("the stop", || ended_of(&terminals, &id).is_some());
 		std::fs::remove_dir_all(dir).unwrap();
 	}
 
