@@ -171,7 +171,8 @@ function TalkThread({
 
 	const { send: sendMessage } = session;
 	const { restore } = attachments;
-	const wake = useTerminals()?.wake;
+	const terminals = useTerminals();
+	const wake = terminals?.wake;
 	const sendText = useCallback(
 		(message: string, drafts: AttachmentDraft["files"] = []) => {
 			const files = drafts.map((f) => f.attachment);
@@ -239,7 +240,8 @@ function TalkThread({
 			.catch(() => setClearError("Couldn't clear the chat."));
 	};
 
-	const noAgent = !!agent && !agent.connected && !agent.teaching;
+	// While godspeed's own teacher starts, its status line says so.
+	const noAgent = !!agent && !agent.connected && !agent.teaching && !(terminals?.teacher && !terminals.teacher.ended);
 	const turnGap = (first: boolean, i: number) => (i === 0 ? "" : first ? "mt-[18px]" : "mt-2");
 	const lastSpeaker = rows.length > 0 ? speakerOf(rows[rows.length - 1]!) : null;
 

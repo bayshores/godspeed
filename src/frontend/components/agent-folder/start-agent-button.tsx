@@ -12,22 +12,25 @@ const CHOICES: { id: LaunchChoice; label: string }[] = [
 	{ id: "other", label: "Other app" },
 ];
 
-/** "Start Claude Code", and beside it "Use another agent". */
+/** "Start Claude Code", and beside it "Use another agent". `quiet` once
+ *  the agent's screen shows: its own key is the bright one then. */
 export function StartAgentButton({
 	choice,
 	onChoose,
 	onStart,
 	busy = false,
+	quiet = false,
 }: {
 	choice: LaunchChoice;
 	onChoose: (choice: LaunchChoice) => void;
 	onStart: () => void;
 	busy?: boolean;
+	quiet?: boolean;
 }) {
 	const label = choice === "other" ? "Show the setup" : `Start ${AGENT_LABEL[choice]}`;
 	return (
 		<div className="flex flex-wrap items-center gap-2.5">
-			<button type="button" data-testid="open-agent" disabled={busy} onClick={onStart} className={cn("lh-btn lh-btn-main", BIG_BUTTON)}>
+			<button type="button" data-testid="open-agent" disabled={busy} onClick={onStart} className={cn("lh-btn", !quiet && "lh-btn-main", BIG_BUTTON)}>
 				{label}
 			</button>
 			<AgentMenu choice={choice} onChoose={onChoose} className={BIG_BUTTON} />

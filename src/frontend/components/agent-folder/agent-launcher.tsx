@@ -5,6 +5,7 @@ import { QUIET_KEY } from "@/frontend/components/settings/controls";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { cn } from "@/frontend/lib/utils";
 import { FirstRunScreen } from "@/frontend/components/terminal/first-run-screen";
+import { useTerminals } from "@/frontend/components/terminal/use-terminals";
 import { rememberedAgent, type LaunchChoice, type LogLine } from "./agent-folder-model";
 import { savedAgent } from "./agent-folder-api";
 import { FolderLine } from "./folder-line";
@@ -26,6 +27,7 @@ export function AgentLauncher() {
 	useEffect(() => setChoice(rememberedAgent(savedAgent())), []);
 
 	const agent = choice === "other" ? null : choice;
+	const started = !!useTerminals()?.teacher;
 
 	return (
 		<div className="flex w-full flex-col items-start gap-4">
@@ -37,6 +39,7 @@ export function AgentLauncher() {
 				}}
 				onStart={() => agent && void open(agent)}
 				busy={busy}
+				quiet={started}
 			/>
 			{choice === "other" ? <OtherAppSetup /> : lines.length > 0 ? <Log lines={lines} /> : <FirstRunScreen />}
 			{(error ?? (lines.length === 0 && startError)) && (

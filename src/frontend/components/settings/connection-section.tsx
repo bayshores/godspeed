@@ -101,4 +101,4 @@ export function ConnectionSection() {
 
 /** The section's head tooltip: what outside agents do, and how to use one. */
 export const CONNECTION_SECTION_HINT =
-	"Claude Code, Codex, or another MCP app is your teacher. It teaches your lessons, and a second window of it, the helper, reads your files and builds the graph. Open both under Your agent.";
+	"Claude Code, Codex, or another MCP app is your teacher. It teaches your lessons, and a second window of it, the helper, reads your files and builds the graph. Start both under Your agent.";

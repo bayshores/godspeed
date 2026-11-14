@@ -15,6 +15,7 @@ export function NoAgentLine({ className }: { className?: string }) {
 
 function Line({ className }: { className?: string }) {
 	const agent = useStartAgent();
+	if (agent.starting) return null;
 	return (
 		<div data-testid="no-agent" className={cn("lh-rise flex flex-col gap-1 text-[15px]", className)}>
 			<p className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-ink">

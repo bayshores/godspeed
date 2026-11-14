@@ -94,10 +94,13 @@ export function useAgentFolder() {
 }
 
 /** "Start Claude Code" for the agent last started here (Claude Code when
- *  none): the button on the "No agent connected" lines. */
+ *  none): the button on the "No agent connected" lines. `starting` while
+ *  godspeed's own teacher runs but has not connected: the teacher's status
+ *  line says so, and the lines show nothing. */
 export function useStartAgent() {
 	const { busy, error, manual, open } = useAgentFolder();
 	const [agent, setAgent] = useState<FolderAgent>("claude");
 	useEffect(() => setAgent(rememberedAgent(savedAgent())), []);
-	return { label: `Start ${AGENT_LABEL[agent]}`, start: () => void open(agent), busy, error, manual };
+	const teacher = useTerminals()?.teacher;
+	return { label: `Start ${AGENT_LABEL[agent]}`, start: () => void open(agent), busy, error, manual, starting: !!teacher && !teacher.ended };
 }

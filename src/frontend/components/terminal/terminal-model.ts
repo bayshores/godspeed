@@ -67,7 +67,7 @@ export interface TerminalFacts {
 }
 
 /** Why the screen opens by itself. */
-export type NeedsYou = "prompt" | "no-check-in" | "not-teaching" | "crashed" | "missing";
+type NeedsYou = "prompt" | "no-check-in" | "not-teaching" | "crashed" | "missing";
 
 const crashed = (ended: TerminalEnded | null) => ended?.stopped === false && ended.code !== 0;
 const missing = (ended: TerminalEnded | null) => ended?.stopped === false && (ended.code === EXIT_NOT_INSTALLED || ended.code === EXIT_NO_NODE);
@@ -85,7 +85,7 @@ export function needsYou(f: TerminalFacts): NeedsYou | null {
 }
 
 /** The names in the words: the teacher's stored name and the short folder. */
-export interface TerminalNames {
+interface TerminalNames {
 	name: string;
 	folder: string;
 }
@@ -140,7 +140,7 @@ export function terminalFooter(f: TerminalFacts, names: TerminalNames): Terminal
 }
 
 /** While an agent starts and has not checked in (the overlay and onboarding). */
-export function startingLine(agent: FolderAgent, folder: string): string {
+function startingLine(agent: FolderAgent, folder: string): string {
 	return `${AGENT_LABEL[agent]} is starting in ${folder}. If it asks you something, answer it here.`;
 }
 

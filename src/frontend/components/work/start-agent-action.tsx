@@ -4,6 +4,7 @@ import { useStartAgent } from "@/frontend/components/agent-folder/use-agent-fold
  *  last started here. */
 export function StartAgentAction() {
 	const agent = useStartAgent();
+	if (agent.starting) return null;
 	return (
 		<>
 			<button type="button" data-testid="work-frame-open" aria-label={agent.label} title={agent.label} disabled={agent.busy} onClick={agent.start} className="lh-btn lh-btn-main h-7 shrink-0 px-2.5">

@@ -41,7 +41,7 @@ Object.assign(globalThis, {
 type Lh = NonNullable<NonNullable<Window["lh"]>["terminals"]>;
 
 /** What the page asked the shell for, in order ("write <data>", "answer trust", ...). */
-export interface FakeShell {
+interface FakeShell {
 	calls: string[];
 	/** A state push, as the shell sends one on every change. */
 	push: (state: Pick<TerminalRecord, "id" | "ended" | "prompt" | "url">) => void;
