@@ -13,6 +13,13 @@ import { COLS, ROWS, fitFontSize } from "./terminal-model";
 
 const MONO = 'ui-monospace, "SF Mono", Menlo, Consolas, monospace';
 
+/** The box's width and height inside its padding, where the screen goes. */
+function inside(box: HTMLElement): [number, number] {
+	const s = getComputedStyle(box);
+	const pad = (a: string, b: string) => (parseFloat(s.getPropertyValue(a)) || 0) + (parseFloat(s.getPropertyValue(b)) || 0);
+	return [box.clientWidth - pad("padding-left", "padding-right"), box.clientHeight - pad("padding-top", "padding-bottom")];
+}
+
 function bytes(base64: string): Uint8Array {
 	const raw = atob(base64);
 	const out = new Uint8Array(raw.length);
@@ -79,7 +86,7 @@ export function TerminalView({ id, ended, focusOnOpen, focusKey }: {
 			rows: ROWS,
 			scrollback: 1000,
 			fontFamily: style.getPropertyValue("--font-mono").trim() || MONO,
-			fontSize: fitFontSize(frame.clientWidth, frame.clientHeight),
+			fontSize: fitFontSize(...inside(frame)),
 			theme: screenTheme(style),
 			minimumContrastRatio: 4.5,
 			linkHandler: { activate: (_e, url) => void window.lh?.openLink?.(url) },
@@ -99,9 +106,9 @@ export function TerminalView({ id, ended, focusOnOpen, focusKey }: {
 		});
 		lh.attach(id).catch(() => {/* it ended: the screen stays empty */});
 		el.addEventListener("keydown", keepKey);
-		// Too short a box at the smallest font keeps the bottom in view: the agent's input and status lines.
+		// Too small a box even at the smallest font keeps the bottom in view: the agent's input and status lines.
 		const fit = new ResizeObserver(() => {
-			t.options.fontSize = fitFontSize(frame.clientWidth, frame.clientHeight);
+			t.options.fontSize = fitFontSize(...inside(frame));
 			frame.scrollTop = frame.scrollHeight;
 		});
 		fit.observe(frame);
@@ -128,7 +135,7 @@ export function TerminalView({ id, ended, focusOnOpen, focusKey }: {
 	}, [focusKey, focusOnOpen, ended, id]);
 
 	return (
-		<div ref={box} data-testid="terminal-screen" className="min-h-0 min-w-0 flex-1 overflow-auto bg-bar p-3">
+		<div ref={box} data-testid="terminal-screen" className="min-h-0 min-w-0 flex-1 overflow-auto bg-bar p-3 max-[600px]:p-2">
 			<div ref={host} data-terminal-screen="" className={ended ? "w-max opacity-60" : "w-max"} />
 		</div>
 	);

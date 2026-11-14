@@ -31,9 +31,9 @@ function StepBar({ at }: { at: 1 | 2 }) {
  *  sentence. `wide` makes room for the agent's live screen. */
 export function StepSheet({ at, title, sub, wide = false, children }: { at: 1 | 2; title: string; sub: string; wide?: boolean; children: React.ReactNode }) {
 	return (
-		<div className="ob-step m-auto flex flex-col items-center gap-[30px] px-4 py-8">
+		<div className="ob-step m-auto flex min-w-0 flex-col items-center gap-[30px] px-4 py-8">
 			<StepBar at={at} />
-			<section className={cn("flex max-w-full flex-col", wide ? "w-[880px]" : "w-[600px]", "gap-4 rounded border-2 border-ink bg-panel px-[34px] pt-[30px] pb-[26px]")}>
+			<section className={cn("flex max-w-full flex-col", wide ? "w-[880px]" : "w-[600px]", "gap-4 rounded border-2 border-ink bg-panel px-[34px] pt-[30px] max-[600px]:px-5 pb-[26px]")}>
 				<h1 className="text-[30px] leading-tight text-ink">{title}</h1>
 				<p className="text-lg text-ink-2">{sub}</p>
 				{children}

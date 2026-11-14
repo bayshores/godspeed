@@ -165,12 +165,16 @@ describe("which start is allowed", () => {
 });
 
 describe("the screen's font", () => {
-	it("fits 100 by 30 between 11 and 14 px", () => {
+	it("fits the whole 100 by 30 screen between 8 and 14 px, in width and height", () => {
 		assert.equal(fitFontSize(2000, 1000), 14);
 		assert.equal(fitFontSize(920, 480), 13);
-		assert.equal(fitFontSize(400, 200), 11, "too small: 11 px and it scrolls sideways");
-		const size = fitFontSize(780, 500);
-		assert.ok(size * 0.6 * 100 <= 780, "the width fits");
+		assert.equal(fitFontSize(2000, 300), 8, "the height decides too");
+		assert.equal(fitFontSize(300, 200), 8, "too small even at 8 px: it scrolls inside");
+		// The overlay's screen box (inside its padding), measured at a 640x600 and a 520x500 window,
+		// where the screen measured 542x300 and 482x270: whole in both.
+		assert.equal(fitFontSize(580, 378), 9);
+		assert.ok(9 * 0.62 * 100 <= 580 && 9 * 1.2 * 30 <= 378, "at 640x600 the whole screen fits");
+		assert.equal(fitFontSize(484, 286), 8);
 	});
 });
 

@@ -28,7 +28,7 @@ function OverlayBody({ api, role, name, state }: { api: TerminalsApi; role: Term
 	const tabs: { role: TerminalRole; label: string }[] = api.helper ? [{ role: "teacher", label: name }, { role: "helper", label: "Helper" }] : [];
 
 	return (
-		<div data-state={state} inert={state === "closed"} className="lh-fade fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 pt-16 pb-4" {...backdrop}>
+		<div data-state={state} inert={state === "closed"} className="lh-fade fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 pt-16 pb-4 max-[600px]:px-2" {...backdrop}>
 			<div
 				role="dialog"
 				aria-modal="true"

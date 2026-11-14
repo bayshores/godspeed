@@ -40,14 +40,14 @@ export const TEACH_WAIT_MS = 30_000;
 /** The screen's fixed size; the font scales to fit it. */
 export const COLS = 100;
 export const ROWS = 30;
-const MIN_FONT = 11;
+const MIN_FONT = 8;
 const MAX_FONT = 14;
-/** A monospace cell, in ems. */
-const CELL_WIDTH = 0.6;
+/** A monospace cell, in ems, rounded up so the last column and row fit. */
+const CELL_WIDTH = 0.62;
 const CELL_HEIGHT = 1.2;
 
-/** The largest font from 11 to 14 px whose 100 by 30 screen fits the box.
- *  Below 11 px it stays at 11 and the screen scrolls sideways. */
+/** The largest font from 8 to 14 px whose whole 100 by 30 screen fits the
+ *  box. A box too small even at 8 px scrolls inside, never cuts. */
 export function fitFontSize(width: number, height: number): number {
 	const fit = Math.floor(Math.min(width / (COLS * CELL_WIDTH), height / (ROWS * CELL_HEIGHT)));
 	return Math.max(MIN_FONT, Math.min(MAX_FONT, fit));
