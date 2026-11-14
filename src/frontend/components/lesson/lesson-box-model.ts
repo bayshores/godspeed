@@ -123,7 +123,7 @@ export function lessonBox(s: {
 	const canSubmit = ready && (!s.busy || (turn.kind === "choice" && turn.appPosed === "review"));
 	return {
 		placeholder:
-			turn.kind === "written" ? `Type your answer, or a question for ${s.name}` : turn.ownAnswer ? "Pick one above, or type your own answer" : `Your reasoning, or a question for ${s.name}`,
+			turn.kind === "written" ? `Type your answer, or a question for ${s.name}` : turn.ownAnswer && !turn.picked ? "Pick one above, or type your own answer" : `Your reasoning, or a question for ${s.name}`,
 		left: ask,
 		right: { action: "submit", label: "Submit answer", filled: true, disabled: !canSubmit },
 		enter: canSubmit ? "submit" : idleEnter,

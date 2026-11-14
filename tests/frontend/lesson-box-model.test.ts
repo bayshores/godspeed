@@ -112,10 +112,10 @@ describe("lessonBox, a question", () => {
 		assert.equal(box({ kind: "choice", picked: false }, { hasText: true, busy: true }).left?.disabled, true, "shown but waiting while the teacher writes");
 	});
 
-	it("an ask with choices: the box text is its own answer", () => {
-		const view = box({ kind: "choice", picked: true, ownAnswer: true }, { hasText: true });
-		assert.equal(view.placeholder, "Pick one above, or type your own answer");
-		assert.equal(view.right.disabled, false);
+	it("an ask with choices: the box text is its own answer until a pick, then reasoning", () => {
+		assert.equal(box({ kind: "choice", picked: false, ownAnswer: true }).placeholder, "Pick one above, or type your own answer");
+		assert.equal(box({ kind: "choice", picked: true, ownAnswer: true }, { hasText: true }).right.disabled, false);
+		assert.equal(box({ kind: "choice", picked: true, ownAnswer: true }).placeholder, "Your reasoning, or a question for marco", "with a pick the text is reasoning");
 	});
 
 	it("choices: Submit waits for a pick; the box text is reasoning or a question", () => {
