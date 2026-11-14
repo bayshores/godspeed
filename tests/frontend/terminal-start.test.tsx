@@ -19,6 +19,7 @@ const { agentLine } = await import("../../src/frontend/components/teacher/teache
 const { chipText } = await import("../../src/frontend/components/top-bar/top-bar-model.ts");
 const { agentHeadline, teacherTile } = await import("../../src/frontend/components/settings/agent-windows-model.ts");
 const { teacherTerminalState } = await import("../../src/frontend/components/terminal/terminal-model.ts");
+const { useChatSession } = await import("../../src/frontend/components/session.ts");
 type Access = Parameters<typeof TerminalsProvider>[0]["status"];
 type Api = NonNullable<ReturnType<typeof useTerminals>>;
 
@@ -219,9 +220,12 @@ describe("Start lesson and a Talk send", () => {
 					// The server still says connected for a while after the learner stopped godspeed's teacher.
 					await act(async () => root!.render(page(access({ connected: true, teaching: true }))));
 					assert.ok(api!.agentHere === false, "the terminals know it ended");
-					await act(async () => api!.wake());
+					await act(async () => {
+						api!.wake();
+						api!.wake();
+					});
 					await settle();
-					assert.ok(shell.calls.includes("start teacher codex"), shell.calls.join(", "));
+					assert.equal(shell.calls.filter((c) => c === "start teacher codex").length, 1, "two sends close together start one teacher");
 					assert.ok(api!.overlay === null, "it starts hidden");
 					assert.ok(status()?.connected === false && status()?.teaching === false, "every surface reads no agent until the new one checks in");
 					await act(async () => root!.render(page(access({ connected: true, teaching: true, terminals: [{ id: "teacher-new", here: true }] }))));
@@ -230,6 +234,48 @@ describe("Start lesson and a Talk send", () => {
 			);
 		} finally {
 			shell.remove();
+		}
+	});
+
+	it("a message in a lesson starts it the same way, once, and never after a crash", async () => {
+		const ended = (code: number | null) => ({ id: "t0", role: "teacher" as const, agent: "claude" as const, startedAt: Date.now() - 60_000, ended: { stopped: false as const, code }, prompt: null, url: false });
+		for (const [code, starts] of [[0, 1], [1, 0]] as const) {
+			const shell = fakeShell([ended(code)]);
+			globalThis.fetch = (async (input: RequestInfo | URL) => {
+				const url = String(input);
+				if (url === "/api/chat") return Response.json({ ok: true });
+				if (url === "/api/chats/c1") return Response.json({ messages: [] });
+				if (url === "/api/chats/c1/stream") return new Response("data: [DONE]\n\n");
+				return Response.json(FOLDER);
+			}) as unknown as typeof fetch;
+			stored.set("lh-folder-agent", "claude");
+			let session: ReturnType<typeof useChatSession> | null = null;
+			function Lesson() {
+				session = useChatSession({ chatId: "c1", initialMessages: [] });
+				return null;
+			}
+			try {
+				await mounted(
+					(r) =>
+						act(async () =>
+							r.render(
+								<TerminalsProvider status={access({ connected: true, teaching: true })}>
+									<Lesson />
+								</TerminalsProvider>,
+							),
+						),
+					async () => {
+						await act(async () => {
+							await Promise.all([session!.send({ type: "text", text: "why is the slope negative?" }), session!.send({ type: "side", text: "and the intercept?" })]);
+						});
+						await settle();
+						const started = shell.calls.filter((c) => c === "start teacher claude").length;
+						assert.equal(started, starts, `exit ${code}: ${shell.calls.join(", ")}`);
+					},
+				);
+			} finally {
+				shell.remove();
+			}
 		}
 	});
 

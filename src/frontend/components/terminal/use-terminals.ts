@@ -166,6 +166,19 @@ function useTerminalsState(status: AgentStatus | null): TerminalsApi {
 		// tick: a timer crossed its threshold, so `now` must move.
 	}, [teacher, helper, here, checkedIn, outsideHere, status, quietSince, tick]);
 
+	// The system holds a background window's timers back, so the window
+	// coming back looks again: a reason that came due meanwhile shows at once.
+	useEffect(() => {
+		if (!lh) return;
+		const look = () => document.visibilityState !== "hidden" && bump();
+		document.addEventListener("visibilitychange", look);
+		window.addEventListener("focus", look);
+		return () => {
+			document.removeEventListener("visibilitychange", look);
+			window.removeEventListener("focus", look);
+		};
+	}, [lh]);
+
 	// Wake at the next threshold a timer crosses.
 	useEffect(() => {
 		const at = [teacherLive && !teacherCheckedIn && teacher ? teacher.startedAt + CHECK_IN_WAIT_MS : null, quietSince === null ? null : quietSince + TEACH_WAIT_MS]
@@ -284,9 +297,15 @@ function useTerminalsState(status: AgentStatus | null): TerminalsApi {
 	const hide = useCallback(() => setShown(null), []);
 	// The server's `connected` lasts up to 3 minutes after a terminal ended; the terminals know at once.
 	const agentHere = outsideHere || (teacherLive && teacherCheckedIn);
+	// Two sends close together start one teacher: the second comes before the first start's record.
+	const waking = useRef(false);
 	const wake = useCallback(() => {
-		const agent = lh && wakeAgent({ teacher, agentHere, outsideHere, saved: savedAgent() });
-		if (agent) void start("teacher", agent);
+		const agent = lh && !waking.current && wakeAgent({ teacher, agentHere, outsideHere, saved: savedAgent() });
+		if (!agent) return;
+		waking.current = true;
+		void start("teacher", agent).finally(() => {
+			waking.current = false;
+		});
 	}, [lh, teacher, agentHere, outsideHere, start]);
 
 	const focusOnOpen = !!shown?.focus;

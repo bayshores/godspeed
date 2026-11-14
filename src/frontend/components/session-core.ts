@@ -262,6 +262,10 @@ export class SessionModel {
 	private onReattachSettled?: () => void;
 	/** The hook's re-render trigger (set by the adapter). */
 	onChange?: () => void;
+	/** Every input that starts or joins a turn and was taken: a learner
+	 *  message, a side question, an answer, Next, a continue. The adapter
+	 *  starts godspeed's teacher here when no agent is (TerminalsApi.wake). */
+	onSent?: () => void;
 
 	// THE STATE: the record (server canon) + the live tail (this client's
 	// optimistic appends and the streaming turn's messages). The tail dies
@@ -665,6 +669,12 @@ export class SessionModel {
 	 * learner their text back.
 	 */
 	async send(input: ChatInput): Promise<boolean> {
+		const taken = await this.post(input);
+		if (taken) this.onSent?.();
+		return taken;
+	}
+
+	private async post(input: ChatInput): Promise<boolean> {
 		const recovering = this.statusValue === "error";
 		if (!this.canSend()) return false;
 		this.consumeAbort?.abort();

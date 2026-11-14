@@ -59,7 +59,6 @@ import { usePaneWidth } from "@/frontend/components/ui/resize-handle";
 import { useAttachmentDraft } from "@/frontend/components/lesson/attachment-tray";
 import { takeStartFiles } from "@/frontend/components/lesson/start-files";
 import { useTeacherLesson } from "@/frontend/components/teacher/teacher-provider";
-import { useTerminals } from "@/frontend/components/terminal/use-terminals";
 
 /** The lesson size where it gets summarized (the size meter's end). */
 const SUMMARIZE_AT = effectiveThresholdTokens(OUTSIDE_AGENT_CONTEXT_WINDOW);
@@ -374,14 +373,10 @@ export function Chat({
 		[nativeMessages],
 	);
 	const nextReady = posedAny && !pending && !activeProblem && !busy;
-	// A send that starts a turn also starts godspeed's teacher, hidden, when none is here (TerminalsApi.wake).
-	const wake = useTerminals()?.wake;
 	const sendNext = useCallback(() => {
 		if (!nextReady) return;
-		void send({ type: "next" }).then((sent) => {
-			if (sent) wake?.();
-		});
-	}, [nextReady, send, wake]);
+		void send({ type: "next" });
+	}, [nextReady, send]);
 
 	/* STEER VS SEND: a send while a turn runs (ours or
 	 * a wake) steers it; idle takes the plain send (a raced settle 409s and
@@ -410,7 +405,7 @@ export function Chat({
 			posed?.kind === "opener" ? { opener: posed.ref } : posed?.kind === "review" ? { reviewOf: posed.ref, ...(picked.length > 0 ? { picked } : {}) } : null;
 		const input = about ? ({ type: "text", text: t, about } as const) : ({ type: sideOpen ? "side" : "text", text: t } as const);
 		void send({ ...input, ...(files.length > 0 ? { attachments: files } : {}) }).then((sent) => {
-			if (sent) return wake?.();
+			if (sent) return;
 			editText(restoreUnsent(t, textRef.current));
 			attachments.restore(drafts);
 		});
@@ -436,7 +431,7 @@ export function Chat({
 					? send({ type: "opener-answer", topicDoneCallId: posed.ref, answer })
 					: submitAnswer(pending.toolCallId, answer, files.map((f) => f.attachment));
 		void sending.then((sent) => {
-			if (sent) return wake?.();
+			if (sent) return;
 			if (typed.trim()) editText(restoreUnsent(typed, textRef.current));
 			if (files.length > 0) attachments.restore(files);
 		});

@@ -197,6 +197,11 @@ describe("starting the teacher hidden, and restarting", () => {
 		assert.equal(wakeAgent({ ...base, outsideHere: true }), null);
 		assert.equal(wakeAgent({ ...base, teacher: term() }), null, "one already runs or starts");
 		assert.equal(wakeAgent({ ...base, teacher: term({ ended: { stopped: true, code: null } }) }), "codex");
+		assert.equal(wakeAgent({ ...base, teacher: term({ ended: { stopped: false, code: 0 } }) }), "codex", "it closed itself");
+		assert.equal(wakeAgent({ ...base, teacher: term({ ended: { stopped: false, code: 1 } }) }), null, "a crash waits for Start again");
+		assert.equal(wakeAgent({ ...base, teacher: term({ ended: { stopped: false, code: null } }) }), null, "a screen godspeed could not read");
+		assert.equal(wakeAgent({ ...base, teacher: term({ ended: { stopped: false, code: 3 } }) }), null, "not installed");
+		assert.equal(wakeAgent({ ...base, teacher: term({ ended: { stopped: false, code: 4 } }) }), null, "no Node.js");
 	});
 
 	it("the status says no agent once godspeed's teacher ended or before it checked in, though the server still says connected", () => {

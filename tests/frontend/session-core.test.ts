@@ -336,6 +336,38 @@ describe("send (one input event, verbatim consumption)", () => {
 		assert.equal(m.status, "error");
 	});
 
+	it("every input taken, and only those, tells the adapter (which starts the teacher when none is here)", async () => {
+		globalThis.fetch = dietFetch({ stream: () => sseResponse("[DONE]") });
+		const quiz = {
+			id: "call-1",
+			role: "assistant",
+			content: [{ type: "toolCall", id: "call-1", name: "quiz", arguments: { question: "Q?", choices: ["a", "b"] } }],
+			stopReason: "toolUse",
+			usage: { input: 0, output: 0, total: 0, cacheReads: 0, cacheWrites: 0 },
+			provider: "openrouter",
+			model: "test",
+			timestamp: 0,
+		} as unknown as LhMessage;
+		const sends: Array<(m: SessionModel) => Promise<boolean>> = [
+			(m) => m.send({ type: "text", text: "a lesson message" }),
+			(m) => m.send({ type: "side", text: "a side question" }),
+			(m) => m.submitAnswer("call-1", { correct: true } as never),
+		];
+		for (const sendIt of sends) {
+			let told = 0;
+			const m = model({ initialMessages: [newUserMessage("hi"), quiz] });
+			m.onSent = () => told++;
+			assert.equal(await sendIt(m), true);
+			assert.equal(told, 1);
+		}
+		globalThis.fetch = (async () => new Response("scan.pdf is not a PDF.", { status: 400 })) as typeof globalThis.fetch;
+		let told = 0;
+		const refused = model();
+		refused.onSent = () => told++;
+		assert.equal(await refused.send({ type: "text", text: "q" }), false);
+		assert.equal(told, 0, "a refused send starts nothing");
+	});
+
 	it("a side question shows at once as the learner's row, marked side", async () => {
 		const posts: string[] = [];
 		globalThis.fetch = (async (_url: unknown, init?: { body?: string }) => {

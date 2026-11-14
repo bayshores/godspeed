@@ -124,6 +124,24 @@ describe("the overlay", () => {
 		}
 	});
 
+	it("when the window comes back after the system held its timers, a 20 s that passed meanwhile opens it at once", async () => {
+		const shell = fakeShell([teacher({ startedAt: Date.now() - 10_000, url: true })]);
+		const realNow = Date.now;
+		try {
+			await mounted(access(), async () => {
+				assert.ok(overlay() === null, "still starting");
+				// 15 s pass with no timer firing, as in a background window.
+				Date.now = () => realNow() + 15_000;
+				await act(async () => void dom.window.dispatchEvent(new dom.window.Event("focus")));
+				await settle();
+				assert.ok(overlay() !== null, "it opened");
+			});
+		} finally {
+			Date.now = realNow;
+			shell.remove();
+		}
+	});
+
 	it("a crash opens it with Start again as the bright key", async () => {
 		const shell = fakeShell([teacher()]);
 		try {

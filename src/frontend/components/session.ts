@@ -11,6 +11,7 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
 import { reuseUnchangedMessages, type ChatAttachment, type ChatInput, type KeptPart, type LhMessage, type QuestionAnswerData } from "@/shared/core";
 import { SessionModel, type SessionState } from "@/frontend/components/session-core";
+import { useTerminals } from "@/frontend/components/terminal/use-terminals";
 
 /** The streaming redraw's safety net when animation frames pause (a
  *  hidden window): the update still lands within this many ms. */
@@ -122,6 +123,12 @@ export function useChatSession({ chatId, initialMessages, initialError, initiall
 		},
 		[model],
 	);
+
+	// Anything taken that waits for the teacher starts godspeed's own when no agent is here.
+	const wake = useTerminals()?.wake;
+	useEffect(() => {
+		model.onSent = wake;
+	}, [model, wake]);
 
 	const send = useCallback((input: ChatInput) => model.send(input), [model]);
 	const continueIfOwed = useCallback((record: readonly LhMessage[]) => void model.continueIfOwed(record), [model]);
