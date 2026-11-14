@@ -4,7 +4,7 @@ import { spaceColorVar } from "@/frontend/components/space-color";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { todayWorkLine } from "@/frontend/components/work/work-model";
 import { spaceRow } from "./space-list-model";
-import { CHIP, ROW_LIST, SECTION_TITLE } from "./styles";
+import { CHIP, SECTION_TITLE } from "./styles";
 
 /**
  * "Your spaces": a plain row per open space with its topics by status, and
@@ -33,7 +33,8 @@ export function SpaceList({
 	return (
 		<section data-testid="today-spaces" className="flex flex-col gap-2">
 			<h2 className={SECTION_TITLE}>Your spaces</h2>
-			<ul className={`${ROW_LIST} @container`}>
+			{/* Wide, the rows share two columns: the counts as wide as the longest, the names in the rest. */}
+			<ul className="@container grid grid-cols-[minmax(0,1fr)_auto] divide-y-2 divide-dotted divide-edge">
 				{spaces.map((s) => (
 					<SpaceRow key={s.id} space={s} progress={progress.get(s.id)} failed={errors.has(s.id)} work={todayWorkLine(s, worker)} newFiles={newFiles.get(s.id) ?? null} onOpen={onOpen} />
 				))}
@@ -61,8 +62,11 @@ function SpaceRow({
 	const total = words.segments.reduce((sum, seg) => sum + seg.count, 0);
 	return (
 		// The name's link covers the whole row; the new-files chip sits above it.
-		<li data-testid={`today-space-${s.id}`} className="relative flex min-h-11 flex-wrap items-center gap-x-3 gap-y-1 py-2 pr-1 pl-1 text-[15px] transition-colors hover:bg-tone">
-			<span className="flex min-w-0 flex-1 basis-[200px] flex-wrap items-center gap-x-2 gap-y-1">
+		<li
+			data-testid={`today-space-${s.id}`}
+			className="relative col-span-full flex min-h-11 flex-wrap items-center gap-x-3 gap-y-1 py-2 pr-1 pl-1 text-[15px] transition-colors hover:bg-tone @min-[620px]:grid @min-[620px]:grid-cols-subgrid"
+		>
+			<span className="flex min-w-0 flex-1 basis-[200px] flex-wrap items-center gap-x-2 gap-y-1 @min-[620px]:flex-nowrap">
 				<span aria-hidden className="size-2.5 shrink-0" style={{ background: spaceColorVar(s.color) }} />
 				<Link
 					to="/space"
@@ -85,7 +89,7 @@ function SpaceRow({
 					</Link>
 				)}
 			</span>
-			<span className="flex w-full items-center gap-3 @min-[620px]:w-[480px]">
+			<span className="flex w-full items-center gap-3 @min-[620px]:w-auto">
 				{total > 0 ? (
 					<span role="img" aria-label={words.line} className="flex h-2 w-20 shrink-0 gap-[2px]">
 						{words.segments.map((seg) => (
@@ -95,7 +99,7 @@ function SpaceRow({
 				) : (
 					<span aria-hidden className="h-2 w-20 shrink-0 bg-[radial-gradient(var(--color-ink-2)_1px,transparent_1px)] bg-[length:4px_4px]" />
 				)}
-				<span data-testid="today-space-line" aria-hidden={total > 0 || undefined} className="min-w-0 flex-1 leading-snug text-ink-2">
+				<span data-testid="today-space-line" aria-hidden={total > 0 || undefined} className="min-w-0 flex-1 leading-snug text-ink-2 @min-[620px]:whitespace-nowrap">
 					{words.line}
 				</span>
 				<PixelIcon name="chevron" className="h-[11px] text-ink" />
