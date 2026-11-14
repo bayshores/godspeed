@@ -9,7 +9,6 @@ use gs_engine::bridge::{AgentReply, ReplyCall, WaitOptions};
 
 use super::*;
 use crate::app::test_support::{scratch_dir, test_app};
-use crate::mocks::mock_end::ask_waiting_grades;
 
 const CODE: &str = "function countVowels(s) {\n\treturn [...s].filter((c) => 'aeiou'.includes(c)).length;\n}\n";
 
@@ -326,8 +325,8 @@ async fn a_mock_left_waiting_for_grades_by_a_restart_asks_for_them_once_at_the_n
 
 	let app = test_app(&root);
 	assert!(!view(&app, &ended_space, &ended)["working"].truthy(), "no request after the restart");
-	ask_waiting_grades(&app);
-	ask_waiting_grades(&app);
+	ask_waiting_mocks(&app);
+	ask_waiting_mocks(&app);
 	for (space_id, mock_id) in [(&ended_space, &ended), (&late_space, &late)] {
 		let waiting = view(&app, space_id, mock_id);
 		assert_eq!((mock_state(&waiting["mock"]).as_str(), waiting["working"].clone()), ("grading", json!(true)), "{mock_id} waits for a grader");
@@ -340,6 +339,27 @@ async fn a_mock_left_waiting_for_grades_by_a_restart_asks_for_them_once_at_the_n
 		settled(&app, space_id, mock_id).await;
 		assert_eq!(state(&app, space_id, mock_id), "graded");
 	}
-	ask_waiting_grades(&app);
+	ask_waiting_mocks(&app);
 	assert_eq!(app.bridge.pending_work_count(), 0, "a graded mock is never asked again");
+}
+
+#[tokio::test]
+async fn a_mock_left_waiting_for_its_questions_by_a_restart_asks_for_them_once_at_the_next_start() {
+	let root = scratch_dir("mocks-restart-writing");
+	let before = test_app(&root);
+	let (space_id, onsite, _) = interview_space(&before);
+	let mock_id = create_mock(&before, &space_id, &onsite, &json!(2), None).unwrap();
+
+	let app = test_app(&root);
+	let stopped = view(&app, &space_id, &mock_id);
+	assert_eq!((state(&app, &space_id, &mock_id).as_str(), stopped["working"].clone()), ("writing", json!(false)), "the request went with the old server");
+	ask_waiting_mocks(&app);
+	ask_waiting_mocks(&app);
+	assert_eq!(view(&app, &space_id, &mock_id)["working"], json!(true), "asked again");
+	until("one request waits on the bridge", || app.bridge.pending_work_count() == 1).await;
+	agent(&app, Some(("write_mock_questions", questions()))).await;
+	settled(&app, &space_id, &mock_id).await;
+	assert_eq!(state(&app, &space_id, &mock_id), "ready");
+	ask_waiting_mocks(&app);
+	assert_eq!(app.bridge.pending_work_count(), 0, "a written mock is never asked again");
 }
