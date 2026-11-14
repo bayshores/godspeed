@@ -23,9 +23,10 @@ use crate::graph::topics::resolve_topics;
 /// The progress payload for GET /api/progress.
 ///
 /// `input` is `{ spaceId, today, facts, chains, topics, files, deadlines, lessons[,
-/// deadlineSessions, homeworkSessions, mockAnswers, grouping] }`; each lesson carries its
-/// collected `answers`, and `mockAnswers` are graded mock questions, which count for their facts
-/// but belong to no lesson.
+/// deadlineSessions, homeworkSessions, mockAnswers, finishedToday, grouping] }`; each lesson carries
+/// its collected `answers`, `mockAnswers` are graded mock questions, which count for their facts
+/// but belong to no lesson, and `finishedToday` are the topic ids with a topic stop in a Study
+/// session today (a deadline topic among them carries `finishedToday: true`, so its plan moves on).
 pub fn derive_progress(input: &Json) -> Json {
 	let facts = items(&input["facts"]);
 	let fact_ids: Vec<String> = facts.iter().map(|f| f["id"].as_str().unwrap_or("").to_owned()).collect();
@@ -166,6 +167,7 @@ pub fn derive_progress(input: &Json) -> Json {
 	let today = input["today"].as_str().unwrap_or("");
 	let deadline_sessions = items(&input["deadlineSessions"]);
 	let homework_sessions = items(&input["homeworkSessions"]);
+	let finished_today: HashSet<&str> = items(&input["finishedToday"]).iter().filter_map(Json::as_str).collect();
 
 	let mut sorted_deadlines: Vec<&Json> = items(&input["deadlines"]).iter().collect();
 	sorted_deadlines.sort_by(|a, b| compare_deadlines(a, b));
@@ -211,7 +213,21 @@ pub fn derive_progress(input: &Json) -> Json {
 			o.insert("counts", status_counts(views.iter().map(|v| &v.status)));
 			o.insert("workOnNext", work_on_next(&views, &links));
 			o.insert("ready", (!views.is_empty()).then(|| rates / views.len() as f64));
-			o.insert("topics", weakest.iter().map(|t| gs_json::json!({ "id": t.id, "name": t.name, "rate": t.rate })).collect::<Json>());
+			o.insert(
+				"topics",
+				weakest
+					.iter()
+					.map(|t| {
+						let mut topic = gs_json::json!({ "id": t.id, "name": t.name, "rate": t.rate });
+						if finished_today.contains(t.id.as_str())
+							&& let Some(o) = topic.as_obj_mut()
+						{
+							o.insert("finishedToday", true);
+						}
+						topic
+					})
+					.collect::<Json>(),
+			);
 			if let Some(next) = continue_study_for(deadline_id, deadline_sessions) {
 				o.insert("continueStudy", next);
 			}

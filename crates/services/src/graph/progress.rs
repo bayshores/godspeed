@@ -14,7 +14,7 @@ use gs_core::study::kept::{KeptSentence, kept_comebacks, kept_sentences};
 use gs_core::study::progress::{collect_answers, derive_progress, facts_by_message, facts_for_answer};
 use gs_core::study::review::{review_items, reviewable_topics};
 use gs_core::study::study::{deadline_study_topic_ids, fact_space_order, study_topics, topic_study};
-use gs_core::study::topic_end::lesson_stop;
+use gs_core::study::topic_end::{lesson_stop, topic_stop_times};
 use gs_json::{Json, Obj, json};
 use parking_lot::Mutex;
 
@@ -36,6 +36,8 @@ struct Readout {
 	kept: Vec<KeptSentence>,
 	comebacks: Vec<(String, i64)>,
 	session: Option<Obj>,
+	/// Each topic stop's node and time.
+	topic_stops: Vec<(String, String)>,
 }
 
 #[derive(Default)]
@@ -57,6 +59,7 @@ fn lesson_readout(app: &App, chat_id: &str) -> Option<Arc<Readout>> {
 		kept: kept_sentences(chat_id, messages),
 		comebacks: kept_comebacks(messages),
 		session,
+		topic_stops: topic_stop_times(messages),
 	});
 	app.graph.readouts.0.lock().insert(chat_id.to_owned(), readout.clone());
 	Some(readout)
@@ -192,7 +195,9 @@ pub fn progress_for<'a>(app: &App, scope: impl Into<Option<&'a str>>, today: Opt
 	let chats = app.stores.chats.list_chats();
 	let known: HashSet<&str> = chats.iter().map(|c| c["id"].str_or_empty()).collect();
 	app.graph.readouts.0.lock().retain(|id, _| known.contains(id.as_str()));
+	let today = today.map_or_else(|| local_day(clock::now_ms()), str::to_owned);
 	let (mut lessons, mut deadline_sessions, mut homework_sessions) = (Vec::new(), Vec::new(), Vec::new());
+	let mut finished_today: Vec<String> = Vec::new();
 	for c in &chats {
 		if c["spaceId"].as_str() != scope {
 			continue;
@@ -204,6 +209,10 @@ pub fn progress_for<'a>(app: &App, scope: impl Into<Option<&'a str>>, today: Opt
 		let mut lesson = picked(c, &["id", "title", "kind", "updatedAt"]);
 		lesson.insert("answers", readout.answers.clone());
 		lessons.push(Json::Obj(lesson));
+		if c["kind"].as_str() == Some("study") {
+			let today_stops = readout.topic_stops.iter().filter(|(_, at)| time::parse_date(at).map(local_day).as_deref() == Some(today.as_str()));
+			finished_today.extend(today_stops.map(|(node, _)| node.clone()));
+		}
 		if let (true, Some(stands)) = (c["deadlineId"].truthy(), &readout.session) {
 			let mut session = Obj::new();
 			session.insert("chatId", c["id"].clone());
@@ -215,7 +224,6 @@ pub fn progress_for<'a>(app: &App, scope: impl Into<Option<&'a str>>, today: Opt
 			deadline_sessions.push(Json::Obj(session));
 		}
 	}
-	let today = today.map_or_else(|| local_day(clock::now_ms()), str::to_owned);
 	let topics = app.stores.graphs.read_topics(scope)?.unwrap_or(Json::Null);
 	let input = json!({
 		"spaceId": scope,
@@ -228,6 +236,7 @@ pub fn progress_for<'a>(app: &App, scope: impl Into<Option<&'a str>>, today: Opt
 		"lessons": lessons,
 		"deadlineSessions": deadline_sessions,
 		"homeworkSessions": homework_sessions,
+		"finishedToday": finished_today,
 		"mockAnswers": scope.map_or_else(Vec::new, |id| space_mock_answers(app, id)),
 		"grouping": scope.is_some_and(|id| topic_grouping_running(app, id)),
 	});
@@ -426,9 +435,13 @@ mod tests {
 		assert_eq!(d.get("continueStudy"), None, "a session that reached its end is not continued");
 		assert_eq!(d["studyEndedToday"], json!(true));
 	}
-	/// A problem on `node` the learner solved with hints, ending the topic.
+	/// A problem on `node` the learner solved with hints, ending the topic now.
 	fn hinted(n: &str, node: &str, fact: &str) -> Vec<Json> {
-		let stop = json!({ "kind": "topic", "nodeId": node, "activeMinutes": 2, "at": time::iso(clock::now_ms()) });
+		hinted_at(n, node, fact, clock::now_ms())
+	}
+
+	fn hinted_at(n: &str, node: &str, fact: &str, at_ms: i64) -> Vec<Json> {
+		let stop = json!({ "kind": "topic", "nodeId": node, "activeMinutes": 2, "at": time::iso(at_ms) });
 		vec![
 			json!({ "role": "assistant", "id": format!("m-{n}"), "content": [{ "type": "toolCall", "id": format!("p-{n}"), "name": "problem", "arguments": { "nodeId": node, "mode": "composition", "target": [fact], "statement": "Work it out." } }], "timestamp": clock::now_ms() }),
 			json!({ "role": "toolResult", "toolCallId": format!("p-{n}"), "toolName": "problem", "isError": false, "timestamp": clock::now_ms() }),
@@ -437,11 +450,10 @@ mod tests {
 		]
 	}
 
-	#[test]
-	fn topics_finished_in_todays_study_session_are_not_planned_again_today_or_untested() {
+	/// A made-up space with five topics, one fact each, and an exam due in `days`; its id and the
+	/// deadline's.
+	fn ml_space(app: &App, days: i64) -> (String, String) {
 		use gs_store::graph::Ledger;
-		let root = scratch_dir("progress-finished-today");
-		let app = test_app(&root);
 		let space_id = app.stores.spaces.create_space(&json!({ "name": "Machine Learning Foundations" })).unwrap()["id"].str_or_empty().to_owned();
 		let file = json!({ "id": "f_lec", "origin": "copied", "name": "Lectures.pdf", "path": "f_lec/Lectures.pdf", "kind": "study", "contentFp": "", "status": "ready", "addedAt": "t" });
 		app.stores.spaces.rewrite_space(&space_id, |r| {
@@ -458,18 +470,69 @@ mod tests {
 		}
 		let topics: Vec<Json> = names.iter().map(|(id, name)| json!({ "id": format!("tpc_{id}"), "name": name, "members": [format!("n_{id}")] })).collect();
 		app.stores.graphs.append(scope, Ledger::Topics, &json!({ "at": "t", "topics": topics })).unwrap();
-		let due = local_day(clock::now_ms() + 3 * 86_400_000);
+		let due = local_day(clock::now_ms() + days * 86_400_000);
 		let deadline_id = app.stores.spaces.add_deadline(&space_id, &json!({ "name": "Midterm", "kind": "exam", "date": due, "fileIds": ["f_lec"] })).unwrap()["id"].str_or_empty().to_owned();
-		let planned = |app: &App| -> Vec<String> { deadline_study_for(app, &space_id, &deadline_id).unwrap().unwrap().topics.iter().map(|t| t["id"].str_or_empty().to_owned()).collect() };
-		assert_eq!(planned(&app), ["tpc_cv", "tpc_gd"], "today's two topics");
+		(space_id, deadline_id)
+	}
 
-		let chat_id = app.stores.chats.create_chat("Study: Cross-validation, Gradient descent", Some("study"), Some(&space_id), Some(&deadline_id)).unwrap()["id"].str_or_empty().to_owned();
-		app.stores.chats.save_tree(&chat_id, &json!({ "nodes": [{ "id": "tpc_cv", "title": "Cross-validation" }, { "id": "tpc_gd", "title": "Gradient descent" }], "edges": [] })).unwrap();
-		app.stores.chats.save_messages(&chat_id, &[hinted("1", "tpc_cv", "n_cv"), hinted("2", "tpc_gd", "n_gd")].concat()).unwrap();
+	/// A Study session on the deadline whose messages are `messages`.
+	fn study_session(app: &App, space_id: &str, deadline_id: &str, nodes: &[&str], messages: &[Json]) {
+		let chat_id = app.stores.chats.create_chat("Study", Some("study"), Some(space_id), Some(deadline_id)).unwrap()["id"].str_or_empty().to_owned();
+		let tree_nodes: Vec<Json> = nodes.iter().map(|id| json!({ "id": id, "title": id })).collect();
+		app.stores.chats.save_tree(&chat_id, &json!({ "nodes": tree_nodes, "edges": [] })).unwrap();
+		app.stores.chats.save_messages(&chat_id, messages).unwrap();
+	}
+
+	fn planned(app: &App, space_id: &str, deadline_id: &str) -> Vec<String> {
+		deadline_study_for(app, space_id, deadline_id).unwrap().unwrap().topics.iter().map(|t| t["id"].str_or_empty().to_owned()).collect()
+	}
+
+	#[test]
+	fn topics_finished_in_todays_study_session_are_not_planned_again_today_or_untested() {
+		let root = scratch_dir("progress-finished-today");
+		let app = test_app(&root);
+		let (space_id, deadline_id) = ml_space(&app, 3);
+		assert_eq!(planned(&app, &space_id, &deadline_id), ["tpc_cv", "tpc_gd"], "today's two topics");
+
+		study_session(&app, &space_id, &deadline_id, &["tpc_cv", "tpc_gd"], &[hinted("1", "tpc_cv", "n_cv"), hinted("2", "tpc_gd", "n_gd")].concat());
 
 		let progress = progress_for(&app, space_id.as_str(), None).unwrap().unwrap();
 		let status = |id: &str| items(&progress["topics"]).iter().find(|t| t["id"].as_str() == Some(id)).unwrap()["status"].clone();
 		assert_eq!((status("tpc_cv"), status("tpc_gd")), (json!("shaky"), json!("shaky")), "solved with hints: shaky, not untested");
-		assert_eq!(planned(&app), ["tpc_ms", "tpc_of"], "Study again moves on to the next untested topics");
+		assert_eq!(planned(&app, &space_id, &deadline_id), ["tpc_ms", "tpc_of"], "Study again moves on to the next untested topics");
+	}
+
+	#[test]
+	fn with_every_topic_left_finished_today_today_plans_nothing_and_study_still_starts() {
+		let root = scratch_dir("progress-all-finished-today");
+		let app = test_app(&root);
+		let (space_id, deadline_id) = ml_space(&app, 1);
+		let all = ["tpc_cv", "tpc_gd", "tpc_ms", "tpc_of", "tpc_rg"];
+		let finish = |ids: &[&str]| -> Vec<Json> { ids.iter().flat_map(|id| hinted(id, id, &id.replace("tpc_", "n_"))).collect() };
+		study_session(&app, &space_id, &deadline_id, &all[..4], &finish(&all[..4]));
+		// A stop from yesterday finishes nothing today.
+		study_session(&app, &space_id, &deadline_id, &all[4..], &hinted_at("y", "tpc_rg", "n_rg", clock::now_ms() - 86_400_000));
+		let today_plan = |app: &App| {
+			let progress = progress_for(app, space_id.as_str(), None).unwrap().unwrap();
+			let deadline = items(&progress["deadlines"])[0].clone();
+			let plan = gs_core::study::deadline_plan::plan_days(progress["today"].str_or_empty(), deadline["date"].str_or_empty(), items(&deadline["topics"]));
+			let flagged: Vec<String> = items(&deadline["topics"]).iter().filter(|t| t.get("finishedToday").is_some()).map(|t| t["id"].str_or_empty().to_owned()).collect();
+			(plan, flagged, deadline)
+		};
+		let (plan, flagged, _) = today_plan(&app);
+		assert_eq!(flagged.len(), 4, "absent on the topic finished yesterday: {flagged:?}");
+		assert_eq!(plan.len(), 1, "due tomorrow: today is the only day");
+		assert_eq!(items(&plan[0]["topics"]).iter().map(|t| t["id"].str_or_empty()).collect::<Vec<_>>(), ["tpc_rg"]);
+
+		study_session(&app, &space_id, &deadline_id, &all[4..], &finish(&all[4..]));
+		let (plan, flagged, deadline) = today_plan(&app);
+		assert_eq!(flagged.len(), 5);
+		assert_eq!(deadline["counts"]["shaky"], json!(5), "the topics still count");
+		assert!(deadline["ready"].as_f64().is_some_and(|r| (r - 0.6).abs() < 1e-9), "readiness keeps them: {:?}", deadline["ready"]);
+		assert_eq!(plan.len(), 1);
+		assert!(items(&plan[0]["topics"]).is_empty(), "nothing left for today");
+		let mut again = planned(&app, &space_id, &deadline_id);
+		again.sort();
+		assert_eq!(again, all, "Study from the deadline page still takes its topics");
 	}
 }

@@ -10,6 +10,8 @@ export interface PlanTopic {
 	name: string;
 	/** Right rate; null = not tried yet. */
 	rate: number | null;
+	/** Finished in a Study session today. */
+	finishedToday?: true;
 }
 
 export interface PlanDay<T extends PlanTopic = PlanTopic> {
@@ -38,10 +40,15 @@ function addDays(day: string, n: number): string {
 
 /** The study days with their topics, today first. Empty when the deadline
  *  is past or nothing needs work. More topics than days puts several on a
- *  day (the earlier days take the extra); fewer leaves the later days free. */
+ *  day (the earlier days take the extra); fewer leaves the later days free.
+ *
+ *  A topic finished in a Study session today goes after the others and
+ *  never on today: it moves to tomorrow, or out of the plan when tomorrow is
+ *  the due day. Today then stays, empty when nothing else is left. */
 export function planDays<T extends PlanTopic>(today: string, due: string, topics: readonly T[]): PlanDay<T>[] {
 	const days = daysBetween(today, due);
-	const work = topicsToWorkOn(topics);
+	const ranked = topicsToWorkOn(topics);
+	const work = [...ranked.filter((t) => !t.finishedToday), ...ranked.filter((t) => t.finishedToday)];
 	if (days < 0 || work.length === 0) return [];
 	const count = Math.max(1, Math.min(days, work.length));
 	const base = Math.floor(work.length / count);
@@ -52,6 +59,14 @@ export function planDays<T extends PlanTopic>(today: string, due: string, topics
 		const size = base + (i < extra ? 1 : 0);
 		plan.push({ day: addDays(today, i), topics: work.slice(next, next + size) });
 		next += size;
+	}
+	const first = plan[0]!;
+	const moved = first.topics.filter((t) => t.finishedToday);
+	first.topics = first.topics.filter((t) => !t.finishedToday);
+	if (moved.length > 0 && days >= 2) {
+		const tomorrow = plan[1] ?? { day: addDays(today, 1), topics: [] };
+		tomorrow.topics = [...moved, ...tomorrow.topics];
+		plan[1] = tomorrow;
 	}
 	return plan;
 }

@@ -391,8 +391,9 @@ export interface DeadlineProgress {
 	/** The average right rate over its topics, untested ones counted as 0.
 	 *  null when it has no topics. */
 	ready: number | null;
-	/** Its topics, weakest first (untested counted as 0, then by name). */
-	topics: { id: string; name: string; rate: number | null }[];
+	/** Its topics, weakest first (untested counted as 0, then by name);
+	 *  `finishedToday` when it was finished in a Study session today. */
+	topics: { id: string; name: string; rate: number | null; finishedToday?: true }[];
 	/** The unfinished Study session its Study button reopens (continue-study.ts). */
 	continueStudy?: ContinueStudy;
 	/** Its latest Study session reached its end today. */

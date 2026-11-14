@@ -647,7 +647,7 @@ Older `teach` and `practice` lessons on disk keep working with their own agents.
 3. These go into a `study-context` marker. The move for each material and standing pair is a table in `crates/agent/prompts/study/10-study.md`, so a prompt override can change it.
 4. The app saves the matching plan tree, so the plan row lists the topics from the start.
 
-A session started from a deadline records it as `deadlineId`. While the latest such session is unfinished, the deadline's Study button reopens it as "Continue studying, 1 of 4 topics" (`core::study::continue_study`). The progress payload carries it as `continueStudy`.
+A session started from a deadline records it as `deadlineId`. While the latest such session is unfinished, the deadline's Study button reopens it as "Continue studying, 1 of 4 topics" (`core::study::continue_study`). The progress payload carries it as `continueStudy`. A deadline topic with a topic stop in a Study session on the learner's day carries `finishedToday: true` in the progress payload. The plan (`core::study::deadline_plan`, `deadline-plan.ts`) never puts such a topic on today: it moves to tomorrow, or out of the plan when tomorrow is the due day. When that empties today, Today has nothing planned and the deadline's Study button takes all its topics.
 
 ### The study agent
 

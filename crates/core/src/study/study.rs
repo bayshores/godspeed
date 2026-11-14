@@ -220,8 +220,8 @@ pub fn study_plan_tree(topics: &[Json]) -> Result<Json, String> {
 const RECHECK_DAYS: i64 = 7;
 
 /// The topic ids a deadline's Study button studies: today's planned topics and the strong ones
-/// not answered for `RECHECK_DAYS` days, or all its topics once every one is strong (or the plan
-/// is over). A topic in `reviewed` (it has a question from earlier it may still be asked) comes
+/// not answered for `RECHECK_DAYS` days, or all its topics once every one is strong, the plan is
+/// over, or today has nothing left. A topic in `reviewed` (it has a question from earlier it may still be asked) comes
 /// back through review instead, so it is never rechecked here. `deadline` is a progress deadline (`date`, `topics` of
 /// `{ id, name, rate }`); `topics` are the progress topics (`id`, `status`, `answers` oldest
 /// first).
@@ -229,7 +229,8 @@ pub fn deadline_study_topic_ids(today: &str, deadline: &Json, topics: &[Json], r
 	let deadline_topics = items(&deadline["topics"]);
 	let id_of = |t: &Json| t["id"].as_str().unwrap_or("").to_owned();
 	let plan = plan_days(today, deadline["date"].as_str().unwrap_or(""), deadline_topics);
-	let Some(day) = plan.first() else { return deadline_topics.iter().map(id_of).collect() };
+	// Today is empty once every topic left was finished today: Study takes them all again.
+	let Some(day) = plan.first().filter(|d| !items(&d["topics"]).is_empty()) else { return deadline_topics.iter().map(id_of).collect() };
 	let in_deadline: HashSet<&str> = deadline_topics.iter().filter_map(|t| t["id"].as_str()).collect();
 	let due_again = |t: &&Json| {
 		let newest = items(&t["answers"]).last().and_then(|a| a["answeredAt"].as_str()).filter(|at| !at.is_empty());

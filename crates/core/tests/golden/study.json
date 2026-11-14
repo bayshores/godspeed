@@ -69186,6 +69186,303 @@
 		}
 	},
 	{
+		"name": "plan days finished today 2026-11-10 to 2026-11-14",
+		"output": {
+			"args": {
+				"today": "2026-11-10",
+				"due": "2026-11-14",
+				"topics": [
+					{
+						"id": "a",
+						"name": "Alpha",
+						"rate": 0.6,
+						"finishedToday": true
+					},
+					{
+						"id": "b",
+						"name": "Beta",
+						"rate": 0.7
+					},
+					{
+						"id": "c",
+						"name": "Gamma",
+						"rate": 0.3,
+						"finishedToday": true
+					}
+				]
+			},
+			"result": [
+				{
+					"day": "2026-11-10",
+					"topics": [
+						{
+							"id": "b",
+							"name": "Beta",
+							"rate": 0.7
+						}
+					]
+				},
+				{
+					"day": "2026-11-11",
+					"topics": [
+						{
+							"id": "c",
+							"name": "Gamma",
+							"rate": 0.3,
+							"finishedToday": true
+						}
+					]
+				},
+				{
+					"day": "2026-11-12",
+					"topics": [
+						{
+							"id": "a",
+							"name": "Alpha",
+							"rate": 0.6,
+							"finishedToday": true
+						}
+					]
+				}
+			]
+		}
+	},
+	{
+		"name": "plan days all finished today 2026-11-10 to 2026-11-14",
+		"output": {
+			"args": {
+				"today": "2026-11-10",
+				"due": "2026-11-14",
+				"topics": [
+					{
+						"id": "a",
+						"name": "Alpha",
+						"rate": 0.6,
+						"finishedToday": true
+					},
+					{
+						"id": "c",
+						"name": "Gamma",
+						"rate": 0.3,
+						"finishedToday": true
+					},
+					{
+						"id": "s",
+						"name": "Strong",
+						"rate": 0.9,
+						"finishedToday": true
+					}
+				]
+			},
+			"result": [
+				{
+					"day": "2026-11-10",
+					"topics": []
+				},
+				{
+					"day": "2026-11-11",
+					"topics": [
+						{
+							"id": "c",
+							"name": "Gamma",
+							"rate": 0.3,
+							"finishedToday": true
+						},
+						{
+							"id": "a",
+							"name": "Alpha",
+							"rate": 0.6,
+							"finishedToday": true
+						}
+					]
+				}
+			]
+		}
+	},
+	{
+		"name": "plan days one finished today 2026-11-10 to 2026-11-14",
+		"output": {
+			"args": {
+				"today": "2026-11-10",
+				"due": "2026-11-14",
+				"topics": [
+					{
+						"id": "a",
+						"name": "Alpha",
+						"rate": 0.6,
+						"finishedToday": true
+					}
+				]
+			},
+			"result": [
+				{
+					"day": "2026-11-10",
+					"topics": []
+				},
+				{
+					"day": "2026-11-11",
+					"topics": [
+						{
+							"id": "a",
+							"name": "Alpha",
+							"rate": 0.6,
+							"finishedToday": true
+						}
+					]
+				}
+			]
+		}
+	},
+	{
+		"name": "plan days all finished today 2026-11-10 to 2026-11-11",
+		"output": {
+			"args": {
+				"today": "2026-11-10",
+				"due": "2026-11-11",
+				"topics": [
+					{
+						"id": "a",
+						"name": "Alpha",
+						"rate": 0.6,
+						"finishedToday": true
+					},
+					{
+						"id": "c",
+						"name": "Gamma",
+						"rate": 0.3,
+						"finishedToday": true
+					}
+				]
+			},
+			"result": [
+				{
+					"day": "2026-11-10",
+					"topics": []
+				}
+			]
+		}
+	},
+	{
+		"name": "plan days all finished today 2026-11-10 to 2026-11-10",
+		"output": {
+			"args": {
+				"today": "2026-11-10",
+				"due": "2026-11-10",
+				"topics": [
+					{
+						"id": "a",
+						"name": "Alpha",
+						"rate": 0.6,
+						"finishedToday": true
+					},
+					{
+						"id": "c",
+						"name": "Gamma",
+						"rate": 0.3,
+						"finishedToday": true
+					}
+				]
+			},
+			"result": [
+				{
+					"day": "2026-11-10",
+					"topics": []
+				}
+			]
+		}
+	},
+	{
+		"name": "plan days finished today 2026-11-10 to 2026-11-10",
+		"output": {
+			"args": {
+				"today": "2026-11-10",
+				"due": "2026-11-10",
+				"topics": [
+					{
+						"id": "a",
+						"name": "Alpha",
+						"rate": 0.6,
+						"finishedToday": true
+					},
+					{
+						"id": "b",
+						"name": "Beta",
+						"rate": 0.7
+					},
+					{
+						"id": "c",
+						"name": "Gamma",
+						"rate": 0.3,
+						"finishedToday": true
+					}
+				]
+			},
+			"result": [
+				{
+					"day": "2026-11-10",
+					"topics": [
+						{
+							"id": "b",
+							"name": "Beta",
+							"rate": 0.7
+						}
+					]
+				}
+			]
+		}
+	},
+	{
+		"name": "deadline study topics all finished today on 2026-11-10",
+		"output": {
+			"args": {
+				"today": "2026-11-10",
+				"deadline": {
+					"date": "2026-11-11",
+					"topics": [
+						{
+							"id": "c",
+							"name": "Gamma",
+							"rate": 0.3,
+							"finishedToday": true
+						},
+						{
+							"id": "a",
+							"name": "Alpha",
+							"rate": 0.6,
+							"finishedToday": true
+						}
+					]
+				},
+				"topics": [
+					{
+						"id": "c",
+						"status": "weak",
+						"answers": [
+							{
+								"outcome": "hinted",
+								"answeredAt": "2026-11-10T12:00:00.000Z"
+							}
+						]
+					},
+					{
+						"id": "a",
+						"status": "shaky",
+						"answers": [
+							{
+								"outcome": "right",
+								"answeredAt": "2026-11-10T12:00:00.000Z"
+							}
+						]
+					}
+				]
+			},
+			"result": [
+				"c",
+				"a"
+			]
+		}
+	},
+	{
 		"name": "continue study d1",
 		"output": {
 			"args": {
