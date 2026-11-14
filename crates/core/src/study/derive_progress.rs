@@ -58,8 +58,10 @@ pub fn derive_progress(input: &Json) -> Json {
 	let mut all_answers: Vec<&Json> = by_lesson.iter().flat_map(|a| a.iter()).chain(items(&input["mockAnswers"])).collect();
 	all_answers.sort_by(|a, b| locale::compare(a["answeredAt"].as_str().unwrap_or(""), b["answeredAt"].as_str().unwrap_or("")));
 
-	// Answer to facts to topics.
+	// Answer to facts to topics. An answer whose facts are in no topic yet (a study answer before
+	// its lesson's facts are extracted) counts for its plan node when that is a topic.
 	let index = facts_by_message(facts);
+	let topic_ids_known: HashSet<&str> = resolved.iter().filter_map(|t| t["id"].as_str()).collect();
 	let mut fact_answers: HashMap<String, Vec<&Json>> = HashMap::new();
 	let mut topic_answers: HashMap<&str, Vec<&Json>> = HashMap::new();
 	for answer in &all_answers {
@@ -71,6 +73,11 @@ pub fn derive_progress(input: &Json) -> Json {
 				topics_hit.push(topic);
 			}
 			fact_answers.entry(id).or_default().push(answer);
+		}
+		if topics_hit.is_empty()
+			&& let Some(node) = answer["nodeId"].as_str().filter(|id| topic_ids_known.contains(id))
+		{
+			topics_hit.push(node);
 		}
 		for topic in topics_hit {
 			topic_answers.entry(topic).or_default().push(answer);
@@ -261,5 +268,21 @@ mod tests {
 		assert_eq!((progress["topics"][0]["answered"].clone(), progress["topics"][0]["right"].clone()), (json!(1), json!(1)));
 		assert_eq!(progress["facts"][0]["answers"].as_arr().unwrap().len(), 1);
 		assert_eq!(progress["lessons"], json!([]));
+	}
+
+	#[test]
+	fn a_study_answer_counts_for_its_topic_before_its_lesson_has_facts() {
+		let input = json!({
+			"spaceId": "spc_a", "today": "2026-11-13",
+			"facts": [{ "id": "f_a", "name": "Ridge", "statement": "Ridge adds a squared penalty.", "provenance": [] }],
+			"chains": [], "topics": { "topics": [{ "id": "tpc_reg", "name": "Regularization", "members": ["f_a"] }] },
+			"files": [], "deadlines": [],
+			"lessons": [{ "id": "chat_1", "title": "Study: Regularization", "kind": "study", "answers": [
+				{ "chatId": "chat_1", "messageId": "m1", "contextMessageIds": [], "toolCallId": "q1", "tool": "quiz", "nodeId": "tpc_reg", "outcome": "wrong", "answeredAt": "2026-11-13T10:00:00.000Z" },
+				{ "chatId": "chat_1", "messageId": "m2", "contextMessageIds": [], "toolCallId": "q2", "tool": "quiz", "nodeId": "a plan node", "outcome": "right", "answeredAt": "2026-11-13T10:05:00.000Z" },
+			] }],
+		});
+		let topic = &derive_progress(&input)["topics"][0];
+		assert_eq!((topic["answered"].clone(), topic["status"].clone()), (json!(1), json!("weak")), "its plan node is the topic; another node is no topic");
 	}
 }
