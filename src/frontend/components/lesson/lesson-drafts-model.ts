@@ -110,11 +110,14 @@ export function parseLessonDraft(raw: string | null): LessonDraft {
 	}
 	if (!isRecord(v)) return EMPTY_LESSON_DRAFT;
 	const questions: Record<string, QuestionDraft> = {};
+	// Older drafts kept an ask's own answer in a field of its own; it now goes in the box.
+	const box = [str(v.composer)];
 	for (const [id, q] of Object.entries(isRecord(v.questions) ? v.questions : {})) {
 		if (!isRecord(q)) continue;
 		const form = parseForm(q.form);
+		if (isRecord(q.form)) box.push(str(q.form.other));
 		const draft: QuestionDraft = { ...(form ? { form } : {}), ...(typeof q.readingThinking === "string" ? { readingThinking: q.readingThinking } : {}) };
 		if (!questionEmpty(draft)) questions[id] = draft;
 	}
-	return { composer: str(v.composer), questions };
+	return { composer: box.filter((t) => t.trim()).join("\n\n"), questions };
 }
