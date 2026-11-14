@@ -219,14 +219,19 @@ export function wakeAgent(i: { teacher: TerminalRecord | null; agentHere: boolea
 	return i.saved === "claude" || i.saved === "codex" ? i.saved : null;
 }
 
-/** The server counts an agent connected and teaching for 3 minutes after
+/** The server counts an agent (and the helper) here for 3 minutes after
  *  its last request, so after godspeed's teacher ended, or before a new one
  *  checked in, it still says so. The terminals know: once godspeed has
- *  started a teacher, no agent here means none connected or teaching. */
-export function statusFromTerminals<S extends { connected: boolean; teaching: boolean; name?: string }>(status: S | null, teacher: TerminalRecord | null, agentHere: boolean): S | null {
-	if (!status || !teacher || agentHere || !(status.connected || status.teaching)) return status;
+ *  started a teacher, no agent here means none connected, teaching or
+ *  helping (the shell stops the helper with the teacher). */
+export function statusFromTerminals<S extends { connected: boolean; teaching: boolean; helperHere: boolean; helperCovering: boolean; name?: string }>(
+	status: S | null,
+	teacher: TerminalRecord | null,
+	agentHere: boolean,
+): S | null {
+	if (!status || !teacher || agentHere || !(status.connected || status.teaching || status.helperHere || status.helperCovering)) return status;
 	const { name: _gone, ...rest } = status;
-	return { ...rest, connected: false, teaching: false } as S;
+	return { ...rest, connected: false, teaching: false, helperHere: false, helperCovering: false } as S;
 }
 
 /** Restart now asks first while the teacher's terminal runs and a lesson

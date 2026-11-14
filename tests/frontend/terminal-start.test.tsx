@@ -13,7 +13,12 @@ import assert from "node:assert/strict";
 
 const { AgentLauncher } = await import("../../src/frontend/components/agent-folder/agent-launcher.tsx");
 const { TerminalsProvider, useTerminals } = await import("../../src/frontend/components/terminal/use-terminals.ts");
-const { useAgentStatus } = await import("../../src/frontend/components/agent-status.tsx");
+const { lessonAgentWaiting, useAgentStatus } = await import("../../src/frontend/components/agent-status.tsx");
+const { agentDoing } = await import("../../src/frontend/components/teacher/follow-status.ts");
+const { agentLine } = await import("../../src/frontend/components/teacher/teacher-panel.tsx");
+const { chipText } = await import("../../src/frontend/components/top-bar/top-bar-model.ts");
+const { agentHeadline, teacherTile } = await import("../../src/frontend/components/settings/agent-windows-model.ts");
+const { teacherTerminalState } = await import("../../src/frontend/components/terminal/terminal-model.ts");
 type Access = Parameters<typeof TerminalsProvider>[0]["status"];
 type Api = NonNullable<ReturnType<typeof useTerminals>>;
 
@@ -249,6 +254,87 @@ describe("Start lesson and a Talk send", () => {
 					await act(async () => api!.wake());
 					await settle();
 					assert.ok(!shell.calls.some((c) => c.startsWith("start")), shell.calls.join(", "));
+				},
+			);
+		} finally {
+			shell.remove();
+		}
+	});
+});
+
+describe("after godspeed's teacher ended, though the server still says connected for 3 minutes", () => {
+	const teacherRec = { id: "t1", role: "teacher" as const, agent: "claude" as const, startedAt: Date.now() - 60_000, ended: null, prompt: null, url: false };
+
+	it("the top bar chip, the panel's line, Settings and the lesson head all say no agent at once", async () => {
+		const shell = fakeShell([teacherRec]);
+		let api: Api | null = null;
+		let seen: Access = null;
+		const status = () => seen;
+		function Probe() {
+			api = useTerminals();
+			seen = useAgentStatus();
+			return null;
+		}
+		const page = (s: Access) => (
+			<TerminalsProvider status={s}>
+				<Probe />
+			</TerminalsProvider>
+		);
+		// What each surface shows, from the status every surface reads.
+		const words = () => {
+			const agent = status()!;
+			const doing = agentDoing({ agent, fresh: null, lesson: { streaming: true, working: true }, extractions: [], jobs: [] });
+			const facts = api!.facts.teacher;
+			return {
+				chip: chipText({ name: "Teacher", doing, agent, terminal: teacherTerminalState(facts) }),
+				panel: agentLine(agent, doing),
+				headline: agentHeadline(agent, "Teacher", false),
+				tile: teacherTile(agent, doing, { outside: false, term: facts?.term.ended ? "ended" : null }).chip,
+				lessonWaits: lessonAgentWaiting(agent),
+			};
+		};
+		const busy = { connected: true, teaching: true, name: "Claude Code", pendingWork: 1, pendingTurns: 1 };
+		let root: ReturnType<typeof createRoot> | null = null;
+		try {
+			await mounted(
+				async (r) => {
+					root = r;
+					await act(async () => r.render(page(access({ ...busy, terminals: [{ id: "t1", here: true }] }))));
+				},
+				async () => {
+					assert.deepEqual(words(), { chip: "Teacher, writing the lesson", panel: "Writing the lesson", headline: "Teacher is running", tile: "Teaching", lessonWaits: false });
+					await act(async () => shell.push({ id: "t1", ended: { stopped: true, code: null }, prompt: null, url: false }));
+					await act(async () => root!.render(page(access(busy))));
+					assert.deepEqual(words(), { chip: "Waiting for your agent", panel: "Start your agent to begin.", headline: "No agent is running", tile: "Stopped", lessonWaits: true });
+				},
+			);
+		} finally {
+			shell.remove();
+		}
+	});
+});
+
+describe("the helper", () => {
+	it("waits for the teacher's first check-in, though background jobs wait", async () => {
+		const shell = fakeShell([{ id: "t1", role: "teacher", agent: "claude", startedAt: Date.now() - 1000, ended: null, prompt: null, url: false }]);
+		const page = (here: boolean) => (
+			<TerminalsProvider status={access({ pendingWork: 2, terminals: [{ id: "t1", here }] })}>
+				<span />
+			</TerminalsProvider>
+		);
+		let root: ReturnType<typeof createRoot> | null = null;
+		try {
+			await mounted(
+				async (r) => {
+					root = r;
+					await act(async () => r.render(page(false)));
+				},
+				async () => {
+					await settle();
+					assert.ok(!shell.calls.some((c) => c.startsWith("start helper")), shell.calls.join(", "));
+					await act(async () => root!.render(page(true)));
+					await settle();
+					assert.ok(shell.calls.includes("start helper claude"), shell.calls.join(", "));
 				},
 			);
 		} finally {
