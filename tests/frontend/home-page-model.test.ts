@@ -161,6 +161,11 @@ describe("todayRow", () => {
 		});
 	});
 
+	it("a session that ended today, but a moved deadline put a topic on today: the usual row and Start", () => {
+		const mid = d("Midterm", "exam", "2026-11-17");
+		assert.deepEqual(todayRow(mid, progress({ studyEndedToday: true, topics }), NOW), { title: "Study for Midterm", line: "CSE 21, the test is on Tuesday", button: "Start" });
+	});
+
 	it("homework and projects say how far they are, and are worked on", () => {
 		const hw = d("HW6", "homework", "2026-11-13");
 		assert.deepEqual(todayRow(hw, progress({ problems: { done: 2, total: 7 } }), NOW), { title: "HW6", line: "CSE 21, due Friday. 2 of 7 problems done", button: "Work on it" });
@@ -206,6 +211,11 @@ describe("mainRowKey: one dark button on Today", () => {
 
 	it("a session that ended today stays soft", () => {
 		assert.equal(mainRowKey([{ deadline: mid }, { deadline: hw }], new Map([["mid", progress({ studyEndedToday: true })]]), NOW), "hw");
+	});
+
+	it("a session that ended today takes it again once today's plan has a topic", () => {
+		const topics = [{ id: "a", name: "a", rate: 0.2 }];
+		assert.equal(mainRowKey([{ deadline: mid }, { deadline: hw }], new Map([["mid", progress({ studyEndedToday: true, topics })]]), NOW), "mid");
 	});
 
 	it("a lone row that stopped or ended today stays soft", () => {
