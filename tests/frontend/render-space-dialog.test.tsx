@@ -97,7 +97,7 @@ function fakeFetch() {
 let root: Root | undefined;
 let host: HTMLElement | undefined;
 let closed = 0;
-async function mount(mode: { kind: "create" } | { kind: "edit" | "delete"; spaceId: string }) {
+async function mount(mode: { kind: "create" } | { kind: "edit" | "delete"; spaceId: string }, active = "cls_a") {
 	host = document.createElement("div");
 	document.body.append(host);
 	root = createRoot(host);
@@ -106,7 +106,7 @@ async function mount(mode: { kind: "create" } | { kind: "edit" | "delete"; space
 		root!.render(
 			<ServerEventsProvider connect={connect as never}>
 				<MemoryRouter initialEntries={["/space"]}>
-					<SpaceProvider initialActive="cls_a">
+					<SpaceProvider initialActive={active}>
 						<SpacePage />
 						<SpaceDialog mode={mode} onClose={() => closed++} />
 					</SpaceProvider>
@@ -171,8 +171,8 @@ describe("Edit space dialog", () => {
 		await mount({ kind: "edit", spaceId: "cls_a" });
 		assert.equal(q("space-dialog")!.getAttribute("aria-label"), "Edit space");
 		assert.equal((q("space-name") as HTMLInputElement).value, "CSE 21");
-		assert.equal(q("space-deadlines"), null, "deadlines moved to the Deadlines tab");
-		assert.equal(q("space-files"), null, "the file list moved to the Files page");
+		assert.ok(q("space-deadlines") === null, "deadlines moved to the Deadlines tab");
+		assert.ok(q("space-files") === null, "the file list moved to the Files page");
 		assert.ok(q("space-delete") && q("space-save"));
 	});
 
@@ -180,7 +180,7 @@ describe("Edit space dialog", () => {
 		fakeFetch();
 		await mount({ kind: "edit", spaceId: "cls_a" });
 		assert.equal((q("space-signature") as HTMLInputElement).value, "");
-		assert.equal(q("space-signature-preview"), null, "nothing typed, no preview");
+		assert.ok(q("space-signature-preview") === null, "nothing typed, no preview");
 		await click(q("space-signature-kind-code"));
 		await typeInto(q("space-signature"), "int *p = &x;");
 		assert.match(q("space-signature-preview")!.innerHTML, /font-mono/);
@@ -256,10 +256,10 @@ describe("Edit space dialog", () => {
 		fakeFetch();
 		await mount({ kind: "create" });
 		assert.equal(q("space-dialog")!.getAttribute("aria-label"), "Add a space");
-		assert.equal(q("space-deadlines"), null);
-		assert.equal(q("space-signature"), null);
-		assert.equal(q("space-icon"), null);
-		assert.equal(q("space-color"), null);
+		assert.ok(q("space-deadlines") === null);
+		assert.ok(q("space-signature") === null);
+		assert.ok(q("space-icon") === null);
+		assert.ok(q("space-color") === null);
 		assert.equal(q("space-save")!.textContent, "Add space");
 	});
 });
@@ -294,7 +294,7 @@ describe("Delete space from a tab's menu", () => {
 		await mount({ kind: "delete", spaceId: "cls_a" });
 		assert.equal(q("space-dialog")!.getAttribute("aria-label"), "Delete CSE 21?");
 		assert.match(q("space-delete-confirm")!.textContent!, /This cannot be undone\./);
-		assert.equal(q("space-name"), null, "no fields to edit");
+		assert.ok(q("space-name") === null, "no fields to edit");
 		await click(q("space-delete-confirm-button"));
 		await act(async () => {
 			await new Promise((r) => setTimeout(r, 10));
@@ -302,6 +302,24 @@ describe("Delete space from a tab's menu", () => {
 		assert.ok(calls.some((c) => `${c.method} ${c.url}` === "DELETE /api/spaces/cls_a"));
 		assert.deepEqual(pushed, ["/"], "to Today");
 		assert.equal(closed, 1);
+	});
+
+	it("deleting a space the window is not on keeps the page", async () => {
+		fakeFetch();
+		const fallback = globalThis.fetch;
+		globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+			if (String(input) === "/api/spaces") return Response.json({ spaces: [{ id: "cls_a", name: "CSE 21" }, { id: "cls_b", name: "MATH 18" }] });
+			return fallback(input, init);
+		}) as typeof fetch;
+		await mount({ kind: "delete", spaceId: "cls_a" }, "cls_b");
+		await click(q("space-delete-confirm-button"));
+		await act(async () => {
+			await new Promise((r) => setTimeout(r, 10));
+		});
+		assert.ok(calls.some((c) => `${c.method} ${c.url}` === "DELETE /api/spaces/cls_a"));
+		assert.deepEqual(pushed, [], "stays on the page");
+		assert.equal(closed, 1);
+		assert.ok(!calls.some((c) => c.url === "/api/settings/general"), "the window stays on its own space");
 	});
 
 	it("Cancel, Close and Esc close the dialog instead of going to Edit space", async () => {
@@ -313,7 +331,7 @@ describe("Delete space from a tab's menu", () => {
 		assert.equal(closed, 2);
 		await click(q("space-dialog-close"));
 		assert.equal(closed, 3);
-		assert.equal(q("space-name"), null, "never the edit fields");
+		assert.ok(q("space-name") === null, "never the edit fields");
 		assert.deepEqual(calls, [], "nothing deleted");
 	});
 
@@ -417,13 +435,13 @@ describe("Esc on the space dialogs", () => {
 		assert.equal(await pressEscape(), true);
 		assert.equal(closed, 0);
 		assert.match(q("space-discard")!.textContent!, /Discard your changes\?What you changed here hasn't been saved\./);
-		assert.equal(q("space-save"), null, "the question takes the footer's place");
+		assert.ok(q("space-save") === null, "the question takes the footer's place");
 		assert.equal(await pressEscape(), true, "Esc on the question keeps editing");
-		assert.equal(q("space-discard"), null);
+		assert.ok(q("space-discard") === null);
 		assert.equal(closed, 0);
 		await click(q("space-dialog-close"));
 		await click(q("space-discard-keep"));
-		assert.equal(q("space-discard"), null);
+		assert.ok(q("space-discard") === null);
 		assert.equal((q("space-name") as HTMLInputElement).value, "CSE 21A", "Keep editing keeps the edit");
 		await click(q("space-dialog-close"));
 		await click(q("space-discard-go"));
@@ -440,7 +458,7 @@ describe("Esc on the space dialogs", () => {
 		}) as typeof fetch;
 		await mount({ kind: "edit", spaceId: "cls_a" });
 		assert.ok(q("space-dialog-loading"));
-		assert.equal(q("space-name"), null);
+		assert.ok(q("space-name") === null);
 		assert.equal((q("space-save") as HTMLButtonElement).disabled, true);
 	});
 
@@ -454,14 +472,14 @@ describe("Esc on the space dialogs", () => {
 		}) as typeof fetch;
 		await mount({ kind: "edit", spaceId: "cls_a" });
 		assert.match(q("load-failed")!.textContent!, /Couldn't load this space\./);
-		assert.equal(q("space-name"), null);
+		assert.ok(q("space-name") === null);
 		assert.equal((q("space-save") as HTMLButtonElement).disabled, true);
 		down = false;
 		await click(q("load-failed-retry"));
 		await act(async () => {
 			await new Promise((r) => setTimeout(r, 20));
 		});
-		assert.equal(q("load-failed"), null);
+		assert.ok(q("load-failed") === null);
 		assert.equal((q("space-name") as HTMLInputElement).value, "CSE 21");
 		assert.equal((q("space-save") as HTMLButtonElement).disabled, false);
 	});

@@ -133,8 +133,9 @@ function SpaceDialogInner({ mode, onClose, state }: { mode: SpaceDialogMode; onC
 		if (Object.keys(body).length > 0 && !(await call(`/api/spaces/${encodeURIComponent(record.id)}`, jsonInit("PUT", body)))) return;
 		onClose();
 	};
-	/** Leaves the space before deleting it, so no page asks for it once it
-	 *  is gone, then goes to Today. A refused delete comes back to it. */
+	/** Leaves the space on screen before deleting it, so no page asks for it
+	 *  once it is gone, then goes to Today. Deleting another space keeps the
+	 *  page. A refused delete comes back to it. */
 	const remove = async (space: SpaceRecord) => {
 		const wasActive = space.id === active;
 		setLeaving(space);
@@ -147,7 +148,7 @@ function SpaceDialogInner({ mode, onClose, state }: { mode: SpaceDialogMode; onC
 			return;
 		}
 		for (const id of body.lessonIds) forgetLessonDraft(id);
-		navigate("/");
+		if (wasActive) navigate("/");
 		onClose();
 	};
 
