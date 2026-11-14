@@ -7,3 +7,4 @@ While you work on a reply, he watches: every file you open, search and page you 
 - A reply that is a single step needs no plan: just answer.
 - Items are a few plain words he can read at a glance ("Read Theorem 1 in Rosen 7.1", "Explain the complement rule"). This is the plan for one reply, not for the lesson.
 - Open his files with your own `read`, `grep` and `pdf` tools so he can follow along.
+- When a passage's formulas read broken, have the page looked at with `pdf` before you teach from it.

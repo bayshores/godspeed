@@ -1,8 +1,8 @@
 //! Where each teaching line of the guess, keep, stop and come-back work lands in the composed
 //! instructions: a line naming a Study-only tool, field, stop or note only in Study; the case-first,
 //! analogy and prediction lines in Study and ordinary lessons; the marks line in every lesson
-//! agent; the voice line in every agent, Talk too; the deadline tools sentence in every lesson
-//! agent but Study. Each line is said once, and the sentences it replaced are gone. No size is
+//! agent; the broken formulas line beside the work plan; the voice line in every agent, Talk too;
+//! the deadline tools sentence in every lesson agent but Study. Each line is said once, and the sentences it replaced are gone. No size is
 //! pinned, so later prompt edits do not trip it.
 
 use gs_agent::teacher::prompt_segments::AgentKind;
@@ -29,11 +29,13 @@ const TALK_DEADLINES: &str = "Deadline changes happen in Talk: when he asks for 
 const F3: &str = "A [From earlier] line lists earlier questions godspeed just asked him again. Do not reteach a miss now unless it is on the topic you are teaching; godspeed brings it back.";
 const G: &str = "Set `standalone: true` on a quiz that makes sense with no lesson around it: name the setting, never \"above\", \"the plot\" or \"the slide\". godspeed may ask it again weeks later.";
 const I: &str = "To point at exact words, add a few words copied from the passage in quotes after the id: `[[f_1a2b3c4d5e6f:7 \"degree 12\"]]`. godspeed marks them on his page. Do it in every topic, once, in the message that opens it or in topic_done's opener.lead. A quote is 2 or more words, or on code the exact expression from the line, found once in the passage, at most 80 characters, without [ ] backtick or $.";
-const K: &str = "When a quiz proves an idea the topic stands on, add `keep`: one sentence he can hold without the lesson, in the space's own words. At most 2 keeps a topic, and none on the quiz right after a page, a plot or another keep. The card is the only place he reads a kept sentence, its fits or its stops. Do not write the same sentence in the reply that carries the keep or the one before it. After you tested an analogy, the next keep carries `fits` and `stops`; `stops` names the first concrete place a careful student would carry it too far. After an [Analogy dropped] line, never mention that analogy again and give no other for that idea.";
+const K: &str = "When a quiz proves an idea the topic stands on, add `keep`: one sentence he can hold without the lesson, in the space's own words. At most 2 keeps a topic. None on a quiz whose own reply shows a page or a plot, and none right after a plot or another keep. The card is the only place he reads a kept sentence, its fits or its stops. Do not write the same sentence in the reply that carries the keep or the one before it. After you tested an analogy, the next keep carries `fits` and `stops`; `stops` names the first concrete place a careful student would carry it too far. After an [Analogy dropped] line, never mention that analogy again and give no other for that idea.";
 /// When a plot beats a table.
-const PLOT: &str = "When the idea is a curve with one knob, send `plot` with a prediction on it. Do not draw that curve as a table.";
+const PLOT: &str = "When the idea is a curve with one knob, send `plot` with a prediction on it. Never write a table whose rows are points of one curve. Send `plot` instead.";
 /// No question lists in chat.
-const PROBLEMS: &str = "Problems go through `problem` and `conclude`, never as chat prose. Never ask a numbered list of questions in chat.";
+const PROBLEMS: &str = "Problems go through `problem` and `conclude`, never as chat prose. Ask one question at a time. A reply never holds a list of questions.";
+/// A broken formula is looked at before it is taught.
+const FORMULAS: &str = "When a passage's formulas read broken, have the page looked at with `pdf` before you teach from it.";
 /// E3, the memory phrase.
 const PHRASE: &str = "Add `keep.phrase` only when a short phrase makes the sentence easier to remember: a well-known one (SOH CAH TOA) or one made from the space's own words. Never look one up and never draw one. Leave it out otherwise.";
 const B: &str = "When the space files have a worked example, a figure or a line of code for the first unconditional truth, give that case first, then state the truth it shows.";
@@ -45,7 +47,7 @@ const E: &str = "No moralizing. His choices about pace, effort, and what to work
 const DEADLINE_TOOLS: &str = "When the learner asks you to add, move or remove a deadline mid-lesson, do it with the deadline tools (list_spaces gives the space id), say what changed in one line, and go back to where the lesson was.";
 
 /// Sentences the lines above replaced or removed: no agent reads them any more.
-const GONE: [&str; 8] = [
+const GONE: [&str; 11] = [
 	"After `conclude`, say your closing words and end your turn.",
 	"After the last topic, wrap up in a few sentences",
 	"goes in your closing words as plain chat",
@@ -54,6 +56,9 @@ const GONE: [&str; 8] = [
 	"or any other tool call.",
 	"Do it once per topic",
 	"Never restate a kept sentence",
+	"none on the quiz right after a page",
+	"Do not draw that curve as a table.",
+	"Never ask a numbered list of questions in chat.",
 ];
 
 fn composed(kind: AgentKind) -> String {
@@ -88,6 +93,11 @@ fn the_case_analogy_and_prediction_lines_reach_study_and_ordinary_lessons() {
 fn the_marks_line_reaches_every_lesson_agent_and_the_voice_line_every_agent() {
 	lands_in(M, &[Prober, Teacher, Practice, Study, Homework]);
 	lands_in(E, &EVERY);
+}
+
+#[test]
+fn the_broken_formulas_line_reaches_the_agents_that_plan_their_reads() {
+	lands_in(FORMULAS, &[Prober, Teacher, Study]);
 }
 
 #[test]
