@@ -85,7 +85,7 @@ function SpaceRow({
 					</Link>
 				)}
 			</span>
-			<span className="flex w-full items-center gap-3 @min-[620px]:w-[376px]">
+			<span className="flex w-full items-center gap-3 @min-[620px]:w-[480px]">
 				{total > 0 ? (
 					<span role="img" aria-label={words.line} className="flex h-2 w-20 shrink-0 gap-[2px]">
 						{words.segments.map((seg) => (
