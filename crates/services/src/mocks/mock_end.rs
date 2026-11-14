@@ -81,21 +81,27 @@ pub fn ask_grades(app: &Arc<App>, space_id: &str, mock: &Json) -> Result<(), Str
 	Ok(())
 }
 
-/// Ends a running or paused mock and asks for its grades: the mock as it is now.
-pub fn finish(app: &Arc<App>, space_id: &str, mock: &Json) -> Result<Json, String> {
+/// Ends a running or paused mock and asks for its grades: the mock as it is now, None once it is
+/// removed. Read again under the lock, so a copy read before it is never written back: a mock
+/// removed meanwhile stays removed, and one ended meanwhile keeps its grades.
+pub fn finish(app: &Arc<App>, space_id: &str, seen: &Json) -> Result<Option<Json>, String> {
 	let _guard = app.locks.lock(LockKey::Space(space_id));
+	let Some(mock) = app.stores.mocks.read_mock(space_id, seen["id"].str_or_empty())? else { return Ok(None) };
+	if !matches!(mock_state(&mock), MockState::Running | MockState::Paused) {
+		return Ok(Some(mock));
+	}
 	let now = clock::now_ms();
 	// A running timed mock never ends later than its time ran out.
-	let end = match (mock_state(mock), mock["endsAt"].as_str().and_then(time::parse_date)) {
+	let end = match (mock_state(&mock), mock["endsAt"].as_str().and_then(time::parse_date)) {
 		(MockState::Running, Some(ends)) => now.min(ends),
 		_ => now,
 	};
-	let ended = end_mock(mock, end);
+	let ended = end_mock(&mock, end);
 	app.stores.mocks.write_mock(space_id, &ended)?;
 	changed(app, space_id);
 	ask_grades(app, space_id, &ended)?;
 	// With nothing answered it is graded already.
-	Ok(app.stores.mocks.read_mock(space_id, mock["id"].str_or_empty())?.unwrap_or(ended))
+	Ok(Some(app.stores.mocks.read_mock(space_id, mock["id"].str_or_empty())?.unwrap_or(ended)))
 }
 
 /// A running timed mock whose time ran out, past the last save's grace. A paused one never is.
@@ -103,9 +109,9 @@ pub fn is_over(mock: &Json) -> bool {
 	mock_state(mock) == MockState::Running && seconds_left(mock, (clock::now_ms() - LATE_SAVE_MS) as f64) == Some(0.0)
 }
 
-/// The mock, ended first when its time ran out.
-pub fn end_if_over(app: &Arc<App>, space_id: &str, mock: Json) -> Result<Json, String> {
-	if is_over(&mock) { finish(app, space_id, &mock) } else { Ok(mock) }
+/// The mock, ended first when its time ran out; None once it is removed.
+pub fn end_if_over(app: &Arc<App>, space_id: &str, mock: Json) -> Result<Option<Json>, String> {
+	if is_over(&mock) { finish(app, space_id, &mock) } else { Ok(Some(mock)) }
 }
 
 /// The space's mocks by number, each ended first when its time ran out.
@@ -113,11 +119,11 @@ pub fn current_mocks(app: &Arc<App>, space_id: &str) -> Vec<Json> {
 	let mocks = app.stores.mocks.list_mocks(space_id).unwrap_or_default();
 	mocks
 		.into_iter()
-		.map(|mock| match end_if_over(app, space_id, mock.clone()) {
+		.filter_map(|mock| match end_if_over(app, space_id, mock.clone()) {
 			Ok(now) => now,
 			Err(error) => {
 				eprintln!("[mocks] couldn't end {}: {error}", mock["id"].str_or_empty());
-				mock
+				Some(mock)
 			}
 		})
 		.collect()

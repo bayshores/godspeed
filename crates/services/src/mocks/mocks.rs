@@ -157,7 +157,7 @@ fn ask_questions(app: &Arc<App>, space_id: &str, mock: &Json) -> Result<(), Stri
 pub fn mock_view(app: &Arc<App>, space_id: &str, mock_id: &str) -> Outcome<Json> {
 	let _guard = app.locks.lock(LockKey::Space(space_id));
 	let saved = mock_of(app, space_id, mock_id)?;
-	let mock = end_if_over(app, space_id, saved)?;
+	let Some(mock) = end_if_over(app, space_id, saved)? else { return fail(404, "No such mock") };
 	let key = mock_run_key(space_id, mock_id);
 	let deadline_name = deadline_of(app, space_id, &mock).map_or(Json::Null, |d| d["name"].clone());
 	let view = MockView { space_id: space_id.to_owned(), deadline_name, mock, working: is_running(app, &key), error: run_error(app, &key) };

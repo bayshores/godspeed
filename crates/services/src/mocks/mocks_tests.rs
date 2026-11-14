@@ -262,3 +262,28 @@ async fn a_deadline_with_nothing_to_write_from_takes_no_mock_and_a_removed_one_t
 	assert!(!is_running(&app, &key), "its request stops");
 	assert!(app.stores.mocks.list_mocks(&space_id).unwrap().is_empty());
 }
+
+#[tokio::test]
+async fn a_copy_read_before_its_mock_was_removed_or_ended_is_never_written_back() {
+	let root = scratch_dir("mocks-stale");
+	let app = test_app(&root);
+	let (space_id, onsite, _) = interview_space(&app);
+	let removed = ready_mock(&app, &space_id, &onsite, Some(30)).await;
+	change_mock(&app, &space_id, &removed, MockAction::Start).unwrap();
+	edited(&app, &space_id, &removed, json!({ "endsAt": ago(60_000) }));
+	let stale = app.stores.mocks.read_mock(&space_id, &removed).unwrap().unwrap();
+	delete_mock(&app, &space_id, &removed).unwrap();
+	assert_eq!(finish(&app, &space_id, &stale).unwrap(), None);
+	assert_eq!(app.stores.mocks.read_mock(&space_id, &removed).unwrap(), None, "a removed mock stays removed");
+
+	let graded = ready_mock(&app, &space_id, &onsite, Some(30)).await;
+	change_mock(&app, &space_id, &graded, MockAction::Start).unwrap();
+	edited(&app, &space_id, &graded, json!({ "endsAt": ago(60_000) }));
+	let stale = app.stores.mocks.read_mock(&space_id, &graded).unwrap().unwrap();
+	change_mock(&app, &space_id, &graded, MockAction::End).unwrap();
+	let grades = json!({ "q1": { "verdict": "right", "feedback": "Yes." } });
+	edited(&app, &space_id, &graded, json!({ "grades": grades }));
+	assert_eq!(finish(&app, &space_id, &stale).unwrap().unwrap()["grades"], grades);
+	assert_eq!(app.stores.mocks.read_mock(&space_id, &graded).unwrap().unwrap()["grades"], grades, "its grades are kept");
+	assert_eq!(app.bridge.pending_work_count(), 0, "no second grading");
+}
