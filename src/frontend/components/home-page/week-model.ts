@@ -1,4 +1,5 @@
-/** Today's "This week": the local days from Monday to Sunday with an answer in any open space. Pure. */
+/** Today's "This week": the local days from Monday to Sunday with an answer
+ *  in any open space or in a lesson with no space. Pure. */
 import { localDay, type ProgressPayload } from "@/shared/core";
 import { joinAnd } from "@/frontend/components/overview/overview-model";
 
@@ -23,8 +24,8 @@ interface Week {
 
 const plural = (n: number, one: string) => `${n} ${one}${n === 1 ? "" : "s"}`;
 
-/** The week holding `nowMs`, from every space's answers. A lesson listed
- *  twice counts once. */
+/** The week holding `nowMs`, from the answers in every payload. A lesson
+ *  listed twice counts once. */
 export function weekStrip(payloads: readonly Pick<ProgressPayload, "lessons">[], nowMs: number): Week {
 	const now = new Date(nowMs);
 	const monday = now.getDate() - ((now.getDay() + 6) % 7);

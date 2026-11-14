@@ -3,17 +3,20 @@ import { localDay, type ProgressPayload } from "@/shared/core";
 import { cn } from "@/frontend/lib/utils";
 import { weekStrip } from "./week-model";
 
+type Lessons = Pick<ProgressPayload, "lessons">;
+
 /**
  * This week, one quiet line under Today's title: a small square for each
- * day from Monday to Sunday, filled on a day with an answer in any space,
- * today's outlined in ink, and a sentence with the days and the answers.
+ * day from Monday to Sunday, filled on a day with an answer in any open
+ * space or in a lesson with no space, today's outlined in ink, and a
+ * sentence with the days and the answers.
  */
-export function WeekStrip({ progress, nowMs }: { progress: ReadonlyMap<string, Pick<ProgressPayload, "lessons">>; nowMs: number }) {
+export function WeekStrip({ progress, noSpace, nowMs }: { progress: ReadonlyMap<string, Lessons>; noSpace: Lessons | null; nowMs: number }) {
 	// Today renders every minute and on every event; the answers are
 	// counted again only when the progress or the day changes (the minute
 	// within a day changes nothing).
 	const day = localDay(nowMs);
-	const week = useMemo(() => weekStrip([...progress.values()], nowMs), [progress, day]);
+	const week = useMemo(() => weekStrip(noSpace ? [...progress.values(), noSpace] : [...progress.values()], nowMs), [progress, noSpace, day]);
 	return (
 		<div data-testid="today-week" className="flex flex-wrap items-center gap-x-3 gap-y-1">
 			<span role="img" aria-label={week.label} className="flex shrink-0 gap-[3px]">

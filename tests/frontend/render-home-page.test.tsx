@@ -348,6 +348,7 @@ function page(props: Partial<React.ComponentProps<typeof TodayBody>> = {}): stri
 				lists={todayLists([], [], NOW)}
 				deadlineProgress={new Map()}
 				spacesProgress={new Map([["spc_la", spaceProgress({ counts: [9, 3, 0, 6] })], ["spc_os", spaceProgress({ counts: [4, 1, 0, 12] })]])}
+				noSpaceProgress={null}
 				progressErrors={new Map()}
 				worker="Teacher"
 				newFiles={new Map()}
@@ -434,6 +435,13 @@ describe("Today, as a whole page", () => {
 		assert.ok(html.indexOf('data-testid="today-week"') < html.indexOf('data-testid="today-empty"'), "under Today's title");
 		assert.equal(count(html, "data-studied"), 2);
 	});
+
+	it("answers only in a lesson with no space fill their day and count", () => {
+		const html = page({ noSpaceProgress: spaceProgress({ answeredAt: [new Date(2026, 9, 27, 10), new Date(2026, 9, 27, 11)] }) });
+		assert.match(section(html, "today-week-line", "</p>"), /You studied 1 day this week and answered 2 questions\.$/);
+		assert.match(html, /role="img" aria-label="You studied on Tuesday\."/);
+		assert.equal(count(html, "data-studied"), 1);
+	});
 });
 
 describe("Your spaces", () => {
@@ -459,6 +467,7 @@ describe("Your spaces", () => {
 					lists={todayLists([], [], NOW)}
 					deadlineProgress={new Map()}
 					spacesProgress={new Map([["spc_la", spaceProgress()]])}
+					noSpaceProgress={null}
 					progressErrors={new Map()}
 					worker="Teacher"
 					newFiles={new Map([["spc_la", "2 new files since Monday"]])}
