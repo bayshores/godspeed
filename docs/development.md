@@ -94,7 +94,6 @@ Routes:
 | `/` | Today |
 | `/new` | Study: start a study session |
 | `/settings` | Settings |
-| `/archived` | Archived spaces |
 | `/graph` | Graph |
 | `/space` | Progress |
 | `/space/lessons`, `/space/files`, `/space/cheat-sheets`, `/space/deadlines` | The space's tabs |

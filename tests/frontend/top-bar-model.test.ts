@@ -4,7 +4,7 @@
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { chipText, clockText, followButtons, selectedTab } from "../../src/frontend/components/top-bar/top-bar-model.ts";
+import { chipText, clockText, followButtons, hasLessonsWithNoSpace, plusName, selectedTab } from "../../src/frontend/components/top-bar/top-bar-model.ts";
 import type { AgentAction } from "../../src/shared/core/events.ts";
 
 describe("the clock", () => {
@@ -15,20 +15,45 @@ describe("the clock", () => {
 });
 
 describe("the lit tab", () => {
-	const tabs = ["c21", "c29"];
+	const spaces = [
+		{ id: "c21", archived: false },
+		{ id: "c29", archived: false },
+		{ id: "old", archived: true },
+	];
 	it("Today on the first page", () => {
-		assert.equal(selectedTab("/", "c21", tabs), "today");
+		assert.equal(selectedTab("/", "c21", spaces), "today");
+		assert.equal(selectedTab("/", "old", spaces), "today", "even with a closed space in the window");
 	});
 	it("the window's space on every space page and in a lesson", () => {
-		assert.equal(selectedTab("/space", "c21", tabs), "c21");
-		assert.equal(selectedTab("/graph", "c29", tabs), "c29");
-		assert.equal(selectedTab("/chat/abc", "c29", tabs), "c29");
+		assert.equal(selectedTab("/space", "c21", spaces), "c21");
+		assert.equal(selectedTab("/graph", "c29", spaces), "c29");
+		assert.equal(selectedTab("/chat/abc", "c29", spaces), "c29");
 	});
-	it("Menu for the pages only Menu reaches", () => {
-		assert.equal(selectedTab("/settings", "c21", tabs), "menu");
-		assert.equal(selectedTab("/archived", "c21", tabs), "menu");
-		assert.equal(selectedTab("/space/lessons", null, tabs), "menu", "lessons with no space");
-		assert.equal(selectedTab("/space", "old", tabs), "menu", "an archived space has no tab");
+	it("the + while the window shows a closed space or the lessons with no space", () => {
+		assert.equal(selectedTab("/space", "old", spaces), "plus");
+		assert.equal(selectedTab("/chat/abc", "old", spaces), "plus", "an old lesson of it");
+		assert.equal(selectedTab("/space/lessons", null, spaces), "plus", "lessons with no space");
+		assert.equal(selectedTab("/chat/abc", null, spaces), "plus", "a lesson with no space");
+	});
+	it("Menu for Settings and a space not in the list yet", () => {
+		assert.equal(selectedTab("/settings", "c21", spaces), "menu");
+		assert.equal(selectedTab("/settings", null, spaces), "menu");
+		assert.equal(selectedTab("/space", "gone", spaces), "menu");
+	});
+});
+
+describe("the + list", () => {
+	it("offers Lessons with no space only while one exists", () => {
+		assert.equal(hasLessonsWithNoSpace(null), false, "not read yet");
+		assert.equal(hasLessonsWithNoSpace([]), false);
+		assert.equal(hasLessonsWithNoSpace([{ spaceId: "c21" }, { spaceId: "c29" }]), false);
+		assert.equal(hasLessonsWithNoSpace([{ spaceId: "c21" }, {}]), true);
+	});
+	it("its name says what the list offers", () => {
+		assert.equal(plusName(false, false), "Add a space");
+		assert.equal(plusName(true, false), "Add a space or reopen a closed one");
+		assert.equal(plusName(false, true), "Add a space or open the lessons with no space");
+		assert.equal(plusName(true, true), "Add a space, reopen a closed one, or open the lessons with no space");
 	});
 });
 

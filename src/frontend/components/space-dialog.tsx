@@ -1,8 +1,9 @@
 /**
  * "Add a space" (name and description) and "Edit space": name,
  * description, icon, color, signature and its rules for the teacher, with
- * Archive and Delete space in the foot. Its files live on the Files tab and
- * its deadlines on the Deadlines tab.
+ * Delete space in the foot. Its files live on the Files tab and its
+ * deadlines on the Deadlines tab. A tab's "Delete space" opens it straight
+ * on the delete question.
  *
  * Every write goes to /api/spaces/*; the server announces spaces-changed
  * and the space list refetches. Closing with unsaved changes asks "Discard
@@ -29,9 +30,9 @@ import { FIELD } from "@/frontend/components/ui/field";
 import { FootQuestion } from "@/frontend/components/ui/foot-question";
 import { LABEL_TEXT } from "@/frontend/components/ui/label-text";
 
-type Mode = { kind: "create" } | { kind: "edit"; spaceId: string };
+export type SpaceDialogMode = { kind: "create" } | { kind: "edit"; spaceId: string } | { kind: "delete"; spaceId: string };
 
-export function SpaceDialog({ mode, onClose }: { mode: Mode | null; onClose: () => void }) {
+export function SpaceDialog({ mode, onClose }: { mode: SpaceDialogMode | null; onClose: () => void }) {
 	const { mounted, state, shown } = useLastWhileClosing(mode);
 	if (!mounted || !shown) return null;
 	return createPortal(<SpaceDialogInner mode={shown} onClose={onClose} state={state} />, document.body);
@@ -44,10 +45,12 @@ function scrollIntoSight(el: HTMLElement | null) {
 	el?.scrollIntoView({ block: "nearest" });
 }
 
-function SpaceDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () => void; state: "open" | "closed" }) {
-	const { active, setActive } = useSpaces();
+function SpaceDialogInner({ mode, onClose, state }: { mode: SpaceDialogMode; onClose: () => void; state: "open" | "closed" }) {
+	const { spaces, active, setActive } = useSpaces();
 	const navigate = useNavigate();
-	const spaceId = mode.kind === "edit" ? mode.spaceId : null;
+	const spaceId = mode.kind === "create" ? null : mode.spaceId;
+	/** Opened on the delete question: cancelling it closes the dialog. */
+	const deleteOnly = mode.kind === "delete";
 	/** The space while it is being deleted: nothing reads it again meanwhile. */
 	const [leaving, setLeaving] = useState<SpaceRecord | null>(null);
 	const { record: read, failed: recordFailed, reload } = useSpaceRecord(leaving ? null : spaceId);
@@ -66,7 +69,7 @@ function SpaceDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 	const teacherName = useTeacher()?.name ?? DEFAULT_TEACHER_NAME;
 	const [error, setError] = useState<string | null>(null);
 	const [busy, setBusy] = useState(false);
-	const [asking, setAsking] = useState<"discard" | "delete" | null>(null);
+	const [asking, setAsking] = useState<"discard" | "delete" | null>(deleteOnly ? "delete" : null);
 
 	// First load fills the fields; later refreshes keep your edits. Save
 	// writes only what changed since this first load (the seeded copy).
@@ -93,10 +96,11 @@ function SpaceDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 	 *  open so its error can show. */
 	const requestClose = useCallback(() => {
 		if (busy) return;
-		if (asking) setAsking(null);
+		if (deleteOnly) onClose();
+		else if (asking) setAsking(null);
 		else if (unsaved) setAsking("discard");
 		else onClose();
-	}, [busy, asking, unsaved, onClose]);
+	}, [busy, deleteOnly, asking, unsaved, onClose]);
 
 	const call = async (url: string, init: RequestInit): Promise<unknown | null> => {
 		setBusy(true);
@@ -139,18 +143,12 @@ function SpaceDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 		if (!body) {
 			setLeaving(null);
 			if (wasActive) setActive(space.id);
-			return setAsking(null);
+			if (!deleteOnly) setAsking(null);
+			return;
 		}
 		for (const id of body.lessonIds) forgetLessonDraft(id);
 		navigate("/");
 		onClose();
-	};
-	const archive = async (space: SpaceRecord) => {
-		const ok = await call(`/api/spaces/${space.id}`, jsonInit("PUT", { archived: !space.archived }));
-		if (ok && !space.archived) {
-			if (space.id === active) setActive(null);
-			onClose();
-		}
 	};
 
 	const errorLine = error && (
@@ -160,10 +158,13 @@ function SpaceDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 		</p>
 	);
 
-	if (asking === "delete" && record) {
+	// Opened on the question, it asks with the space list's name while the
+	// space itself is read.
+	if (asking === "delete" && (record || deleteOnly)) {
+		const doomed = (record ?? spaces.find((s) => s.id === spaceId))?.name ?? "this space";
 		return (
 			<DialogSheet
-				title={`Delete ${record.name}?`}
+				title={`Delete ${doomed}?`}
 				state={state}
 				testid="space-dialog"
 				busy={busy}
@@ -172,18 +173,22 @@ function SpaceDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 				foot={
 					<>
 						<span className="flex-1" />
-						<button type="button" data-testid="space-delete-cancel" disabled={busy} onClick={() => setAsking(null)} className="lh-btn text-[15px]">
+						<button type="button" data-testid="space-delete-cancel" disabled={busy} onClick={deleteOnly ? onClose : () => setAsking(null)} className="lh-btn text-[15px]">
 							Cancel
 						</button>
-						<button type="button" data-testid="space-delete-confirm-button" disabled={busy} onClick={() => void remove(record)} className="lh-btn lh-btn-danger text-[15px]">
+						<button type="button" data-testid="space-delete-confirm-button" disabled={busy || !record} onClick={() => record && void remove(record)} className="lh-btn lh-btn-danger text-[15px]">
 							Delete space
 						</button>
 					</>
 				}
 			>
-				<p data-testid="space-delete-confirm" className="text-lg text-ink">
-					This permanently removes the space, all its lessons, its copied files, and its knowledge graph. A linked folder on your computer is not touched. This cannot be undone.
-				</p>
+				{!record && recordFailed ? (
+					<LoadFailed message="Couldn't load this space." onRetry={() => void reload()} />
+				) : (
+					<p data-testid="space-delete-confirm" className="text-lg text-ink">
+						This permanently removes the space, all its lessons, its copied files, and its knowledge graph. A linked folder on your computer is not touched. This cannot be undone.
+					</p>
+				)}
 				{errorLine}
 			</DialogSheet>
 		);
@@ -214,14 +219,9 @@ function SpaceDialogInner({ mode, onClose, state }: { mode: Mode; onClose: () =>
 				) : (
 					<>
 						{editing && (
-							<>
-								<button type="button" data-testid="space-archive" disabled={busy} onClick={() => void archive(editing)} className="lh-btn text-[15px]">
-									{editing.archived ? "Unarchive" : "Archive"}
-								</button>
-								<button type="button" data-testid="space-delete" disabled={busy} onClick={() => setAsking("delete")} className="lh-btn lh-btn-quiet text-[15px] text-ans-wrong hover:text-ans-wrong-hover">
-									Delete space
-								</button>
-							</>
+							<button type="button" data-testid="space-delete" disabled={busy} onClick={() => setAsking("delete")} className="lh-btn lh-btn-quiet text-[15px] text-ans-wrong hover:text-ans-wrong-hover">
+								Delete space
+							</button>
 						)}
 						<span className="flex-1" />
 						<button type="button" data-testid="space-save" disabled={busy || loadFailed || loading} onClick={() => void save()} className="lh-btn lh-btn-main text-[15px]">

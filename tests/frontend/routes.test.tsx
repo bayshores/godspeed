@@ -53,14 +53,14 @@ describe("the route table", () => {
 	it("every address the UI links to has its own page", () => {
 		const tabs = (["space", "none"] as const).flatMap((kind) => spaceTabs(kind).map((t) => t.href));
 		const follow = ["/", "/space", "/space/files", "/space/deadline/ddl_1", "/graph", "/chat/chat_abc"].filter((p) => safePage(p) === p);
-		const links = ["/", "/new", "/settings", "/archived", "/space/lessons", "/space/deadlines", "/chat/chat_1", "/space/deadline/ddl_1", "/space/deadline/ddl_1/cheat-sheet", "/space/mock/spc_1/mock_1"];
+		const links = ["/", "/new", "/settings", "/space/lessons", "/space/deadlines", "/chat/chat_1", "/space/deadline/ddl_1", "/space/deadline/ddl_1/cheat-sheet", "/space/mock/spc_1/mock_1"];
 		assert.equal(follow.length, 6);
 		for (const path of [...tabs, ...follow, ...links]) {
 			const page = matchRoutes(routes, path)?.at(-1)?.route;
 			assert.ok(page && page.path !== "*", `${path} has a page`);
 		}
 		assert.equal(matchRoutes(routes, "/class/files")?.at(-1)?.route.path, "*", "an old address is not found");
-		for (const gone of ["/prep", "/space/mocks"]) assert.equal(matchRoutes(routes, gone)?.at(-1)?.route.path, "*", `${gone} is gone`);
+		for (const gone of ["/prep", "/space/mocks", "/archived"]) assert.equal(matchRoutes(routes, gone)?.at(-1)?.route.path, "*", `${gone} is gone`);
 	});
 
 	it("a lesson is read first, and a homework lesson reads its deadline's problems too", async () => {

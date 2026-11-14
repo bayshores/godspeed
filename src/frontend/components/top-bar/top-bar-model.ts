@@ -1,7 +1,7 @@
 /**
  * The top bar's words and which of its tabs is lit. Pure.
  */
-import type { AgentAction } from "@/shared/core";
+import type { AgentAction, ChatListItem, SpaceSummary } from "@/shared/core";
 import { agentStatusLabel, type AgentStatus } from "@/frontend/components/agent-status";
 import { pageName } from "@/frontend/components/teacher/follow";
 import type { AgentDoing } from "@/frontend/components/teacher/follow-status";
@@ -11,18 +11,33 @@ export function clockText(d: Date): string {
 	return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 }
 
-/** Pages that belong to no space: Menu lights up for them. */
-const MENU_PAGES = new Set(["/settings", "/archived"]);
-
 /**
- * The lit tab: "today", a space's id, or "menu" for the pages only the
- * Menu reaches (Settings, Archived spaces, lessons with no space, an
- * archived space). Every other page shows the window's space.
+ * The lit tab: "today", an open space's id, "plus" (the +) while the
+ * window shows what the + reaches (lessons with no space, a closed space
+ * or an old lesson of it), or "menu" for Settings and for a space not in
+ * the list yet.
  */
-export function selectedTab(pathname: string, active: string | null, tabIds: readonly string[]): string {
+export function selectedTab(pathname: string, active: string | null, spaces: readonly Pick<SpaceSummary, "id" | "archived">[]): string {
 	if (pathname === "/") return "today";
-	if (MENU_PAGES.has(pathname)) return "menu";
-	return active !== null && tabIds.includes(active) ? active : "menu";
+	if (pathname === "/settings") return "menu";
+	if (active === null) return "plus";
+	const space = spaces.find((s) => s.id === active);
+	if (!space) return "menu";
+	return space.archived ? "plus" : space.id;
+}
+
+/** The + offers "Lessons with no space" only while there is one. Before
+ *  the lessons are read, there is none. */
+export function hasLessonsWithNoSpace(chats: readonly Pick<ChatListItem, "spaceId">[] | null): boolean {
+	return chats?.some((c) => !c.spaceId) ?? false;
+}
+
+/** The +'s name for a screen reader and its hover title: what its list offers. */
+export function plusName(closed: boolean, loose: boolean): string {
+	if (closed && loose) return "Add a space, reopen a closed one, or open the lessons with no space";
+	if (closed) return "Add a space or reopen a closed one";
+	if (loose) return "Add a space or open the lessons with no space";
+	return "Add a space";
 }
 
 const lowerFirst = (text: string) => text.slice(0, 1).toLowerCase() + text.slice(1);

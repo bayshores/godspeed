@@ -24,7 +24,8 @@ export function nextStep(queue: readonly AgentAction[]): TourStep {
 
 const PAST: Record<string, string> = {
 	Adding: "Added",
-	Archiving: "Archived",
+	// The server words a space closing as archiving.
+	Archiving: "Closed",
 	Changing: "Changed",
 	Creating: "Created",
 	Linking: "Linked",
@@ -34,7 +35,7 @@ const PAST: Record<string, string> = {
 	Removing: "Removed",
 	Replying: "Replied",
 	Starting: "Started",
-	Unarchiving: "Unarchived",
+	Unarchiving: "Reopened",
 	Unlinking: "Unlinked",
 	Updating: "Updated",
 };
