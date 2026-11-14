@@ -10,6 +10,7 @@ import { dueAtMs } from "@/frontend/components/countdown-model";
 import { fileBrowserName } from "@/frontend/components/files/files-model";
 import { LoadFailed } from "@/frontend/components/load-failed";
 import { PickSpace } from "@/frontend/components/pick-space";
+import { ADD_DEADLINE_HREF } from "@/frontend/components/space-page/deadlines-tab-model";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { PdfThumb } from "./pdf-thumb";
 import { remakeSheet, sheetPdfPath, showSheetPdf, studioPath, useSpaceSheets } from "./use-cheat-sheet";
@@ -73,9 +74,15 @@ export function SpaceSheetsPage() {
 				{!active && <PickSpace line="Pick a space to see its cheat sheets." />}
 				{active && !view && failed && <LoadFailed message="Couldn't load this space's cheat sheets." onRetry={() => void reload()} />}
 				{view?.cards.length === 0 && (
-					<p data-testid="cheat-sheets-summary" className="text-[15px] text-ink-2">
-						No deadlines yet. Add one to make a cheat sheet for it.
-					</p>
+					<div className="flex flex-wrap items-center gap-4">
+						<p data-testid="cheat-sheets-summary" className="min-w-0 flex-1 text-[15px] text-ink-2">
+							No deadlines yet. Add one to make a cheat sheet for it.
+						</p>
+						<Link to={ADD_DEADLINE_HREF} data-testid="cheat-sheets-add-deadline" className="lh-btn h-[38px] shrink-0 text-[15px]">
+							<PixelIcon name="plus" />
+							Add a deadline
+						</Link>
+					</div>
 				)}
 				{error && (
 					<p role="alert" className="text-[15px] text-ans-wrong">

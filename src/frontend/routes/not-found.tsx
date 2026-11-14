@@ -11,8 +11,7 @@ export function NotFound({ page }: { page?: string }) {
 		<div className="h-full overflow-y-auto">
 			<PageTitle page={page} />
 			<div data-testid="not-found" className="mx-auto flex w-[520px] max-w-full flex-col gap-6 px-6 pt-[220px] pb-10">
-				<h1 className="text-[30px] leading-tight text-ink">This page isn&apos;t here anymore.</h1>
-				<p className="text-[17px] text-ink-2">It may have been removed.</p>
+				<h1 className="text-[30px] leading-tight text-ink">This page doesn&apos;t exist.</h1>
 				<div>
 					<Link to="/" className={cn("lh-btn lh-btn-main", BIG_BUTTON)}>
 						Go to Today

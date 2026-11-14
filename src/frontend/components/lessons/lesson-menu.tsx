@@ -17,7 +17,7 @@ const ITEM = "lh-press flex items-center px-3 py-2 text-left hover:bg-accent";
 async function exportMarkdown(chatId: string): Promise<void> {
 	try {
 		const res = await fetch(`/api/chats/${chatId}/markdown`);
-		if (res.ok) saveBlob(dispositionFileName(res.headers.get("content-disposition")) ?? "session.md", await res.blob());
+		if (res.ok) saveBlob(dispositionFileName(res.headers.get("content-disposition")) ?? "lesson.md", await res.blob());
 	} catch {
 		// nothing to save
 	}

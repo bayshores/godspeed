@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createElement } from "react";
 
-/** "Delete node?" for one fact or many: its words and buttons. */
+/** "Delete fact?" for one fact or many: its words and buttons. */
 
 import { DeleteNodeBody, DeleteNodeDialog } from "../../src/frontend/components/delete-node-dialog.tsx";
 
@@ -32,13 +32,13 @@ describe("DeleteNodeDialog (thin SSR)", () => {
 });
 
 describe("DeleteNodeBody — the minimal screen", () => {
-	it("single: 'Delete node?' title with Close, the name, the one permanence line, Cancel and a red Delete", () => {
+	it("single: 'Delete fact?' title with Close, the name, the one permanence line, Cancel and a red Delete", () => {
 		const html = bodyAt([{ id: "kepler", name: "Kepler's three laws" }]);
 		assert.match(html, /data-testid="delete-node-dialog"/);
-		assert.match(html, /<h2[^>]*>Delete node\?</);
+		assert.match(html, /<h2[^>]*>Delete fact\?</);
 		assert.match(html, /data-testid="delete-node-dialog-close"[\s\S]*?Close</);
 		assert.match(html, /data-testid="node-name-code"[^>]*font-count[^>]*>Kepler&#x27;s three laws</);
-		assert.match(html, /data-testid="node-permanence-line"[^>]*>This permanently deletes the node\. This cannot be undone\./);
+		assert.match(html, /data-testid="node-permanence-line"[^>]*>This permanently deletes the fact\. This cannot be undone\./);
 		assert.match(html, /data-testid="node-delete-cancel"[^>]*class="lh-btn text-\[15px\]"/);
 		assert.match(html, /data-testid="node-delete-confirm"[^>]*lh-btn-danger/);
 	});
@@ -52,22 +52,22 @@ describe("DeleteNodeBody — the minimal screen", () => {
 		assert.ok(!html.includes("links to other topics"), "no edge count — it is obvious");
 	});
 
-	it("multi: 'Delete N nodes?' (the UI word is node), names capped at 8 + and-K-more", () => {
+	it("multi: 'Delete N facts?', names capped at 8 + and-K-more", () => {
 		const three = bodyAt([
 			{ id: "kepler", name: "Kepler's three laws" },
 			{ id: "newton", name: "Newton's second law" },
 			{ id: "hook", name: "Hooke's law" },
 		]);
-		assert.match(three, /Delete 3 nodes\?/); // plural title, NODES
+		assert.match(three, /Delete 3 facts\?/);
 		assert.match(three, /data-testid="node-names-code"/);
 		assert.match(three, /Kepler&#x27;s three laws, Newton&#x27;s second law, Hooke&#x27;s law/);
 		assert.ok(!three.includes('data-testid="node-name-code"'), "the single-name testid is gone in multi");
-		assert.match(three, /This permanently deletes all 3 nodes\. This cannot be undone\./);
+		assert.match(three, /This permanently deletes all 3 facts\. This cannot be undone\./);
 		assert.ok(!three.includes("proposition"), "the old word is gone from the dialog");
 
 		// the cap: 10 names render 8 + ", and 2 more"
 		const ten = bodyAt(Array.from({ length: 10 }, (_, i) => ({ id: `n${i}`, name: `Prop ${i}` })));
-		assert.match(ten, /Delete 10 nodes\?/);
+		assert.match(ten, /Delete 10 facts\?/);
 		assert.match(ten, /Prop 7/); // the 8th name still listed
 		assert.doesNotMatch(ten, /Prop 8</); // the 9th is not
 		assert.match(ten, /, and 2 more/);

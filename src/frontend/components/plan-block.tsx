@@ -276,7 +276,7 @@ export function PlanPopup({
 					</div>
 				</>
 			) : (
-				<p className="text-[15px] text-ink-2">No plan in this session yet.</p>
+				<p className="text-[15px] text-ink-2">No plan in this lesson yet.</p>
 			)}
 		</DialogSheet>,
 		document.body,

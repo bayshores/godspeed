@@ -37,14 +37,19 @@ export function LessonTopBar({
 	scopeRef: RefObject<HTMLDivElement | null>;
 	scrollContextRef: RefObject<SessionScrollContext | null>;
 }) {
-	const { spaces } = useSpaces();
+	const { spaces, active, setActive } = useSpaces();
 	const backLabel = spaces.find((c) => c.id === spaceId)?.name ?? "Lessons";
+	// A lesson opened from another space's page goes back to its own space.
+	const lessonSpace = spaceId ?? null;
+	const toOwnSpace = () => {
+		if (lessonSpace !== active) setActive(lessonSpace);
+	};
 	const desktop = typeof window !== "undefined" ? window.lh : undefined;
 	const pdf = !!file && /\.pdf$/i.test(file.name);
 	const openFile = file?.path && desktop ? (pdf ? desktop.openPath : desktop.showInFolder) : undefined;
 	return (
 		<div data-testid="lesson-bar" className="lh-own-bar lh-drag lh-lights-gutter lh-wco-gutter flex h-12 shrink-0 select-none items-center gap-4 bg-bar px-6 text-bar-ink">
-			<Link to="/space/lessons" data-testid="page-back" className={`${BAR_BUTTON} max-w-[28ch] px-3`}>
+			<Link to="/space/lessons" data-testid="page-back" onClick={toOwnSpace} className={`${BAR_BUTTON} max-w-[28ch] px-3`}>
 				<PixelIcon name="chevron" className="-scale-x-100" />
 				<span className="truncate">{backLabel}</span>
 			</Link>

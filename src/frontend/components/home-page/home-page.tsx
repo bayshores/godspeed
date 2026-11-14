@@ -5,6 +5,7 @@ import { useSpaces } from "@/frontend/components/space-context";
 import { SpaceDialog } from "@/frontend/components/space-dialog";
 import { useMinute } from "@/frontend/components/countdown";
 import { useLessonStart } from "@/frontend/components/home/use-lesson-start";
+import { ADD_DEADLINE_HREF } from "@/frontend/components/space-page/deadlines-tab-model";
 import { useOpenDeadlines } from "@/frontend/components/use-open-deadlines";
 import { useWorker } from "@/frontend/components/work/use-worker";
 import type { OpenDeadline } from "@/frontend/components/deadlines-model";
@@ -17,7 +18,8 @@ import { useSpacesProgress } from "./use-spaces-progress";
 /**
  * TODAY ("/"): reads the open spaces, their deadlines, progress and new
  * files, and hands them to TodayBody. Its Start begins or continues the
- * deadline's lesson; "Add a deadline" opens a space's Deadlines tab.
+ * deadline's lesson; "Add a deadline" opens the dialog on a space's
+ * Deadlines tab.
  */
 export function HomePage() {
 	const { spaces, loaded, setActive } = useSpaces();
@@ -39,7 +41,7 @@ export function HomePage() {
 	const addDeadline = useCallback(
 		(spaceId: string) => {
 			setActive(spaceId);
-			navigate("/space/deadlines");
+			navigate(ADD_DEADLINE_HREF);
 		},
 		[setActive, navigate],
 	);

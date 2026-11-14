@@ -236,7 +236,7 @@ function FilesPageBody() {
 									path={record.linkedFolder}
 									status={folderStatus}
 									disabled={disabled}
-									open={openPath && { label: `Open in ${fileBrowserName(window.lh?.platform)}`, run: () => void openPath(record.linkedFolder!) }}
+									open={openPath && { label: `Show in ${fileBrowserName(window.lh?.platform)}`, run: () => void openPath(record.linkedFolder!) }}
 									onPickAgain={onLinkFolder}
 									onUnlink={() => setConfirm({ kind: "unlink" })}
 								/>

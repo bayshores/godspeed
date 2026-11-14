@@ -3,6 +3,7 @@ import type { DeadlineProgress, SpaceColor } from "@/shared/core";
 import { dueAtMs } from "@/frontend/components/countdown-model";
 import type { OpenDeadline } from "@/frontend/components/deadlines-model";
 import { deadlineHref } from "@/frontend/components/overview/overview-model";
+import { openedFrom } from "@/frontend/components/deadline/deadline-back";
 import { CountBlock } from "@/frontend/components/ui/count-block";
 import { Pane } from "@/frontend/components/ui/pane";
 import { countLeft, nextCard } from "./home-page-model";
@@ -45,7 +46,7 @@ export function NextCard({
 							{d.spaceName}
 						</p>
 						<h2 className="text-[34px] leading-tight break-words text-ink">
-							<Link to={deadlineHref(d.id)} data-testid="today-card-open" className="hover:underline">
+							<Link to={deadlineHref(d.id)} state={openedFrom("today")} data-testid="today-card-open" className="hover:underline">
 								{words.title}
 							</Link>
 						</h2>

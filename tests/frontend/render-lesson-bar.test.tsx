@@ -31,11 +31,17 @@ Object.assign(globalThis, {
 
 const { createRoot } = await import("react-dom/client");
 const { LessonTopBar } = await import("../../src/frontend/components/lesson/lesson-top-bar.tsx");
-const { SpaceProvider } = await import("../../src/frontend/components/space-context.tsx");
+const { SpaceProvider, useSpaces } = await import("../../src/frontend/components/space-context.tsx");
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
 const { MemoryRouter } = await import("react-router");
 
-const SPACES: SpaceSummary[] = [{ id: "c21", name: "CSE 21", description: "", createdAt: "", updatedAt: "", closed: false, fileCount: 3, color: 2, filesLeft: 0 }];
+const space = (id: string, name: string): SpaceSummary => ({ id, name, description: "", createdAt: "", updatedAt: "", closed: false, fileCount: 3, color: 2, filesLeft: 0 });
+const SPACES: SpaceSummary[] = [space("c21", "CSE 21"), space("c29", "CSE 29")];
+
+/** The active space, as a page under the bar would read it. */
+function ActiveSpace() {
+	return <span data-testid="active-space">{useSpaces().active ?? "none"}</span>;
+}
 
 let root: Root | null = null;
 afterEach(() => {
@@ -47,7 +53,7 @@ afterEach(() => {
 const rename = (over: Record<string, unknown> = {}) =>
 	({ title: "Study: counting", renaming: false, draft: "", setDraft() {}, inputRef: { current: null }, start() {}, commit: async () => {}, cancel() {}, ...over }) as never;
 
-async function mount(props: Partial<React.ComponentProps<typeof LessonTopBar>> = {}) {
+async function mount(props: Partial<React.ComponentProps<typeof LessonTopBar>> = {}, active: string | null = "c21") {
 	const quietEvents = () => ({ onEvent() {}, onOpen() {}, close() {} });
 	const host = document.createElement("div");
 	document.body.appendChild(host);
@@ -56,8 +62,9 @@ async function mount(props: Partial<React.ComponentProps<typeof LessonTopBar>> =
 		root!.render(
 			<MemoryRouter initialEntries={["/chat/ses_1"]}>
 				<ServerEventsProvider connect={quietEvents as never}>
-					<SpaceProvider initialActive="c21" initialSpaces={SPACES}>
+					<SpaceProvider initialActive={active} initialSpaces={SPACES}>
 						<LessonTopBar rename={rename()} spaceId="c21" scopeRef={{ current: null }} scrollContextRef={{ current: null }} {...props} />
+						<ActiveSpace />
 					</SpaceProvider>
 				</ServerEventsProvider>
 			</MemoryRouter>,
@@ -77,6 +84,25 @@ describe("the lesson's own bar", () => {
 		assert.equal(back.getAttribute("href"), "/space/lessons");
 		assert.equal(q("lesson-title")!.textContent, "Study: counting");
 		assert.ok(q("lesson-bar")!.className.includes("lh-own-bar"));
+	});
+
+	it("Back makes the lesson's own space the active one, and no space for a lesson without one", async () => {
+		const originalFetch = globalThis.fetch;
+		globalThis.fetch = (async () => Response.json({ spaces: SPACES })) as typeof fetch;
+		try {
+			await mount({}, "c29");
+			assert.equal(q("active-space")!.textContent, "c29");
+			await click(q("page-back")!);
+			assert.equal(q("active-space")!.textContent, "c21");
+
+			act(() => root?.unmount());
+			document.body.innerHTML = "";
+			await mount({ spaceId: undefined }, "c29");
+			await click(q("page-back")!);
+			assert.equal(q("active-space")!.textContent, "none");
+		} finally {
+			globalThis.fetch = originalFetch;
+		}
 	});
 
 	it("a lesson with no space goes back to Lessons and has no Cheat sheet", async () => {
