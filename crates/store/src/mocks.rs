@@ -1,4 +1,4 @@
-//! `data/spaces/<id>/mocks/<mock id>.json` is one mock of a prep (core `preps::mock`), stamped
+//! `data/spaces/<id>/mocks/<mock id>.json` is one mock of a deadline (core `mocks::mock`), stamped
 //! with its format. Written only by the mocks service; a space's delete takes the folder with it.
 
 use std::path::PathBuf;
@@ -46,7 +46,7 @@ impl MockStore {
 		})
 	}
 
-	/// Every mock of a prep, oldest first.
+	/// Every mock of a space, by number.
 	pub fn list_mocks(&self, space_id: &str) -> Result<Vec<Json>, String> {
 		let dir = self.mocks_dir(space_id)?;
 		let _guard = self.locks.lock(LockKey::Space(space_id));
@@ -101,14 +101,14 @@ mod tests {
 	#[test]
 	fn saves_reads_lists_oldest_first_and_removes() {
 		let (store, spaces) = store("list");
-		let format = json!({ "questions": 4, "minutes": 70 });
+		let format = json!({ "questions": 4 });
 		assert_eq!(store.list_mocks(SPACE).unwrap(), Vec::<Json>::new());
-		let second = new_mock("mock_00000002", 2.0, &format, "2026-11-12T09:00:00.000Z");
-		let first = new_mock("mock_00000001", 1.0, &format, "2026-11-11T09:00:00.000Z");
+		let second = new_mock("mock_00000002", "ddl_a", 2.0, &format, "2026-11-12T09:00:00.000Z");
+		let first = new_mock("mock_00000001", "ddl_a", 1.0, &format, "2026-11-11T09:00:00.000Z");
 		store.write_mock(SPACE, &second).unwrap();
 		store.write_mock(SPACE, &first).unwrap();
 		let text = std::fs::read_to_string(spaces.join(SPACE).join("mocks/mock_00000001.json")).unwrap();
-		assert_eq!(text, "{\n\t\"version\": 1,\n\t\"id\": \"mock_00000001\",\n\t\"n\": 1,\n\t\"format\": {\n\t\t\"questions\": 4,\n\t\t\"minutes\": 70\n\t},\n\t\"createdAt\": \"2026-11-11T09:00:00.000Z\",\n\t\"questions\": [],\n\t\"answers\": {}\n}");
+		assert_eq!(text, "{\n\t\"version\": 2,\n\t\"id\": \"mock_00000001\",\n\t\"deadlineId\": \"ddl_a\",\n\t\"n\": 1,\n\t\"format\": {\n\t\t\"questions\": 4\n\t},\n\t\"createdAt\": \"2026-11-11T09:00:00.000Z\",\n\t\"questions\": [],\n\t\"answers\": {},\n\t\"pauses\": []\n}");
 		assert_eq!(store.read_mock(SPACE, "mock_00000001").unwrap(), Some(first));
 		let ns = |s: &MockStore| s.list_mocks(SPACE).unwrap().iter().map(|m| m["n"].clone()).collect::<Vec<_>>();
 		assert_eq!(ns(&store), [json!(1), json!(2)]);
@@ -116,7 +116,7 @@ mod tests {
 		store.remove_mock(SPACE, "mock_00000001").unwrap();
 		assert_eq!(store.read_mock(SPACE, "mock_00000001").unwrap(), None);
 		assert_eq!(ns(&store), [json!(2)]);
-		let newer = json!({ "version": 2, "id": "mock_00000003" });
+		let newer = json!({ "version": 3, "id": "mock_00000003" });
 		fsx::write_text_atomic(&spaces.join(SPACE).join("mocks/mock_00000003.json"), &gs_json::stringify(&newer)).unwrap();
 		assert_eq!(store.read_mock(SPACE, "mock_00000003").unwrap(), None, "a newer build's mock");
 		std::fs::remove_dir_all(spaces.parent().unwrap()).unwrap();

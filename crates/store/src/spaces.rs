@@ -240,9 +240,8 @@ impl SpaceStore {
 		self.get_space(id).ok_or_else(|| format!("Space not found: {id}"))
 	}
 
-	/// A new space from `init`: `name`, and optionally `description`, `signature`, `icon` and
-	/// `prep` (a prep is a space made to get ready for one thing). It takes the color the fewest
-	/// other spaces wear.
+	/// A new space from `init`: `name`, and optionally `description`, `signature` and `icon`. It
+	/// takes the color the fewest other spaces wear.
 	pub fn create_space(&self, init: &Json) -> Result<Json, String> {
 		let now = time::iso_now();
 		let id = ids::timed("spc");
@@ -261,9 +260,6 @@ impl SpaceStore {
 		}
 		let coloring = self.coloring.lock();
 		record.insert("color", next_space_color(&self.colors_beside(&id)));
-		if init["prep"].truthy() {
-			record.insert("prep", init["prep"].clone());
-		}
 		let mut record = Json::Obj(record);
 		self.write_space(&record)?;
 		drop(coloring);
@@ -290,7 +286,7 @@ impl SpaceStore {
 	}
 
 	/// Merges a patch (`name`, `description`, `archived`, `rules`, `linkedFolder`, `signature`,
-	/// `icon`, `color`, `note`, `prep`; `null` unlinks the folder and clears the signature) and bumps
+	/// `icon`, `color`, `note`; `null` unlinks the folder and clears the signature) and bumps
 	/// `updatedAt`.
 	pub fn update_space(&self, id: &str, patch: &Json) -> Result<Json, String> {
 		let _guard = self.locks.lock(LockKey::Space(id));
@@ -324,8 +320,7 @@ impl SpaceStore {
 				None => {}
 			}
 		}
-		// A prep's sheet is replaced whole; a space never becomes or stops being a prep.
-		for key in ["icon", "color", "note", "prep"] {
+		for key in ["icon", "color", "note"] {
 			if let Some(value) = patch.get(key) {
 				obj.insert(key, value.clone());
 			}
@@ -337,6 +332,14 @@ impl SpaceStore {
 		}
 		self.write_space(&record)?;
 		self.changed();
+		Ok(record)
+	}
+
+	/// Writes `change(record)` over the record, quietly: the one-time upgrade of an old prep.
+	pub fn rewrite_space(&self, id: &str, change: impl FnOnce(&Json) -> Json) -> Result<Json, String> {
+		let _guard = self.locks.lock(LockKey::Space(id));
+		let record = change(&self.require_space(id)?);
+		self.write_space(&record)?;
 		Ok(record)
 	}
 
@@ -388,14 +391,34 @@ impl SpaceStore {
 	}
 
 	/// Adds a deadline (not done yet). `init` has `kind`, `name`, `date`, and optionally `time`,
-	/// `fileIds`, `leftOutIds`, `source` and `assignmentFileId`.
+	/// `fileIds`, `leftOutIds`, `source`, `assignmentFileId` and `aboutFileId`. With `id` the
+	/// space's waiting deadline (an old prep with no day) becomes it: it keeps that id, so the
+	/// prep's mocks belong to it, and the waiting deadline's files unless `init` names others.
 	pub fn add_deadline(&self, id: &str, init: &Json) -> Result<Json, SpaceError> {
 		let _guard = self.locks.lock(LockKey::Space(id));
 		let mut record = self.require_space(id)?;
-		let deadline = new_deadline(&file_ids_of(&record), init, ids::uuid_hex("ddl", 12))?;
+		let waiting = record.get("waitingDeadline").filter(|w| init["id"].as_str().is_some_and(|i| w["id"].as_str() == Some(i))).cloned();
+		let (init, deadline_id) = match &waiting {
+			Some(waiting) => {
+				let mut filled = init.as_obj().cloned().unwrap_or_default();
+				for key in ["fileIds", "aboutFileId"] {
+					if filled.get(key).is_none()
+						&& let Some(value) = waiting.get(key)
+					{
+						filled.insert(key, value.clone());
+					}
+				}
+				(Json::Obj(filled), waiting["id"].str_or_empty().to_owned())
+			}
+			None => (init.clone(), ids::uuid_hex("ddl", 12)),
+		};
+		let deadline = new_deadline(&file_ids_of(&record), &init, deadline_id)?;
 		let work = work_after_deadline(record.get("lastWork"), deadline["id"].as_str().unwrap_or(""));
 		if let Some(obj) = record.as_obj_mut() {
 			set_work(obj, work);
+			if waiting.is_some() {
+				obj.remove("waitingDeadline");
+			}
 		}
 		let mut deadlines = record["deadlines"].as_arr().cloned().unwrap_or_default();
 		deadlines.push(deadline.clone());
@@ -403,7 +426,8 @@ impl SpaceStore {
 		Ok(deadline)
 	}
 
-	/// Changes one deadline; `time`, `source` and `assignmentFileId` set to `null` are cleared,
+	/// Changes one deadline; `time`, `source`, `assignmentFileId` and `aboutFileId` set to `null`
+	/// are cleared,
 	/// `done: true` stamps `doneAt` and `done: false` removes it.
 	pub fn update_deadline(&self, id: &str, deadline_id: &str, patch: &Json) -> Result<Json, SpaceError> {
 		let _guard = self.locks.lock(LockKey::Space(id));
@@ -464,10 +488,10 @@ mod tests {
 		let made = store.create_space(&json!({ "name": "  Math   101 ", "description": " Discrete " })).unwrap();
 		let id = made["id"].as_str().unwrap().to_owned();
 		assert_eq!(made["name"], Json::from("Math 101"));
-		assert_eq!(made["version"], Json::from(10));
+		assert_eq!(made["version"], Json::from(11));
 		assert!(rx.try_recv().is_ok());
 		let on_disk = std::fs::read_to_string(root.join(&id).join("space.json")).unwrap();
-		assert!(on_disk.starts_with("{\n\t\"id\": \"spc_") && on_disk.ends_with("\n}") && on_disk.contains("\"version\": 10"));
+		assert!(on_disk.starts_with("{\n\t\"id\": \"spc_") && on_disk.ends_with("\n}") && on_disk.contains("\"version\": 11"));
 
 		let updated = store.update_space(&id, &json!({ "rules": ["Be brief"], "icon": "cpu", "linkedFolder": "/x" })).unwrap();
 		assert_eq!(stringify(&updated["rules"]), r#"["Be brief"]"#);
@@ -534,7 +558,7 @@ mod tests {
 		let id = store.create_space(&json!({ "name": "A" })).unwrap()["id"].as_str().unwrap().to_owned();
 		let file = root.join(&id).join("space.json");
 		let text = std::fs::read_to_string(&file).unwrap();
-		fsx::write_text_atomic(&file, &text.replace("\"version\": 10", "\"version\": 11")).unwrap();
+		fsx::write_text_atomic(&file, &text.replace("\"version\": 11", "\"version\": 12")).unwrap();
 		assert!(store.get_space(&id).is_none());
 		fsx::write_text_atomic(&file, "{ nope").unwrap();
 		assert!(store.get_space(&id).is_none() && store.list_spaces().is_empty());
@@ -552,18 +576,42 @@ mod tests {
 	}
 
 	#[test]
-	fn a_prep_keeps_its_sheet_and_shows_its_day_in_the_list() {
+	fn an_old_prep_survives_every_write_until_the_upgrade_drops_it() {
 		let (store, _, root) = store();
-		let prep = json!({ "goal": "Mock interview", "date": "2026-11-20", "about": "", "sources": [], "topics": [] });
-		let id = store.create_space(&json!({ "name": "Mock interview", "prep": prep })).unwrap()["id"].as_str().unwrap().to_owned();
-		let saved = std::fs::read_to_string(root.join(&id).join("space.json")).unwrap();
-		assert!(saved.contains("\t\"color\": 1,\n\t\"prep\": {\n\t\t\"goal\": \"Mock interview\""));
-		assert_eq!(stringify(&store.list_spaces()[0]["prep"]), r#"{"date":"2026-11-20"}"#);
-		let undated = json!({ "goal": "Mock interview", "about": "Two rounds.", "sources": [], "topics": [{ "id": "pt_1", "name": "Graphs" }] });
-		let record = store.update_space(&id, &json!({ "prep": undated })).unwrap();
-		assert_eq!(record["prep"]["about"], Json::from("Two rounds."));
-		assert_eq!(stringify(&store.list_spaces()[0]["prep"]), "{}");
-		assert!(store.create_space(&json!({ "name": "Plain" })).unwrap().get("prep").is_none());
+		let id = store.create_space(&json!({ "name": "Larkspur onsite" })).unwrap()["id"].as_str().unwrap().to_owned();
+		let file = root.join(&id).join("space.json");
+		let saved = std::fs::read_to_string(&file).unwrap().replace("\t\"color\": 1,", "\t\"color\": 1,\n\t\"prep\": { \"goal\": \"Larkspur onsite\", \"date\": \"2026-11-24\" },");
+		fsx::write_text_atomic(&file, &saved).unwrap();
+		store.update_space(&id, &json!({ "name": "Larkspur" })).unwrap();
+		store.add_deadline(&id, &json!({ "kind": "exam", "name": "Quiz", "date": "2026-11-20" })).unwrap();
+		assert_eq!(store.get_space(&id).unwrap()["prep"], json!({ "goal": "Larkspur onsite", "date": "2026-11-24" }));
+		assert!(store.list_spaces()[0].get("prep").is_none(), "the list never shows it");
+		let done = store.rewrite_space(&id, |r| {
+			let mut next = r.clone();
+			next.as_obj_mut().unwrap().remove("prep");
+			next
+		}).unwrap();
+		assert!(done.get("prep").is_none() && store.get_space(&id).unwrap().get("prep").is_none());
+	}
+
+	#[test]
+	fn the_waiting_deadline_of_an_old_prep_becomes_the_deadline_added_with_its_id() {
+		let (store, _, root) = store();
+		let id = store.create_space(&json!({ "name": "Larkspur onsite" })).unwrap()["id"].as_str().unwrap().to_owned();
+		let f = json!({ "id": "f_guide", "origin": "copied", "name": "Study guide.md", "path": "f_guide/Study guide.md", "kind": "study", "contentFp": "", "status": "pending", "addedAt": "t" });
+		store.rewrite_space(&id, |r| {
+			let mut next = r.clone();
+			next.as_obj_mut().unwrap().insert("files", json!([f]));
+			next.as_obj_mut().unwrap().insert("waitingDeadline", json!({ "id": "ddl_waiting", "name": "Larkspur onsite", "fileIds": ["f_guide"] }));
+			next
+		}).unwrap();
+		assert!(std::fs::read_to_string(root.join(&id).join("space.json")).unwrap().contains("\"waitingDeadline\": {"));
+		let other = store.add_deadline(&id, &json!({ "id": "ddl_other", "kind": "quiz", "name": "Quiz", "date": "2026-11-20" })).unwrap();
+		assert_ne!(other["id"], json!("ddl_other"), "only the waiting deadline's id is taken");
+		assert!(store.get_space(&id).unwrap()["waitingDeadline"].truthy());
+		let added = store.add_deadline(&id, &json!({ "id": "ddl_waiting", "kind": "interview", "name": "Larkspur onsite", "date": "2026-11-24", "time": "14:00" })).unwrap();
+		assert_eq!(stringify(&added), r#"{"id":"ddl_waiting","kind":"interview","name":"Larkspur onsite","date":"2026-11-24","time":"14:00","fileIds":["f_guide"],"done":false}"#);
+		assert!(store.get_space(&id).unwrap().get("waitingDeadline").is_none(), "cleared in the same write");
 	}
 
 	#[test]
@@ -574,9 +622,9 @@ mod tests {
 		fsx::write_text_atomic(&root.join("cls_e1").join("space.json"), &colored).unwrap();
 		fsx::write_text_atomic(&root.join("cls_e2").join("class.json"), &old_record("cls_e2").replace("\t\"color\": 1,\n", "")).unwrap();
 		let record = store.get_space("cls_e2").unwrap();
-		assert_eq!((record["color"].clone(), record["version"].clone()), (Json::from(2), Json::from(10)));
+		assert_eq!((record["color"].clone(), record["version"].clone()), (Json::from(2), Json::from(11)));
 		let saved = std::fs::read_to_string(root.join("cls_e2").join("space.json")).unwrap();
-		assert!(saved.contains("\"archived\": false,\n\t\"files\": [],\n\t\"color\": 2,\n\t\"version\": 10\n}"));
+		assert!(saved.contains("\"archived\": false,\n\t\"files\": [],\n\t\"color\": 2,\n\t\"version\": 11\n}"));
 		assert!(!root.join("cls_e2").join("class.json").exists());
 		assert!(rx.try_recv().is_err(), "a read is quiet");
 		// The colored one is only read.
@@ -692,7 +740,7 @@ mod tests {
 		store.update_space("cls_b1", &json!({ "name": "New" })).unwrap();
 		assert_eq!(names(&dir), ["space.json"]);
 		let saved = std::fs::read_to_string(dir.join("space.json")).unwrap();
-		assert!(saved.contains("\"name\": \"New\"") && saved.ends_with("\"version\": 10\n}"));
+		assert!(saved.contains("\"name\": \"New\"") && saved.ends_with("\"version\": 11\n}"));
 		// space.json wins over a class.json left beside it.
 		fsx::write_text_atomic(&dir.join("class.json"), &old_record("cls_b1")).unwrap();
 		assert_eq!(store.get_space("cls_b1").unwrap()["name"], Json::from("New"));

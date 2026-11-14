@@ -79,9 +79,9 @@ mod tests {
 	#[test]
 	fn lists_every_tool_in_order() {
 		let names: Vec<&str> = tool_list().as_arr().unwrap().iter().filter_map(|t| t["name"].as_str()).collect();
-		assert_eq!(names.len(), 25);
+		assert_eq!(names.len(), 24);
 		assert_eq!(names[..3], ["wait_for_work", "respond", "read_work"]);
-		assert_eq!(names[24], "unlink_space_folder");
+		assert_eq!(names[23], "unlink_space_folder");
 	}
 
 	/// Clients and listings read a missing hint as the risky default, so every tool states all four.

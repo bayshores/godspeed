@@ -8,21 +8,19 @@ use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
 
-use gs_base::text::trim;
 use gs_base::{clock, time};
 use gs_core::spaces::space_tools::{SpaceChange, ToolOutcome};
 use gs_core::spaces::today_note::local_day;
-use gs_core::contracts::space::{SIGNATURE_MAX, clean_signature, parse_space_scope};
+use gs_core::contracts::space::{SIGNATURE_MAX, clean_signature, parse_space_scope, safe_name};
 use gs_json::{Json, Obj, json};
 use gs_search::index::PassageRef;
 
 use super::space_card::{space_file_path, space_topics};
 use super::files::{file_in, files_of, str_of};
-use super::{add_space_deadline, add_file_from_path, link_folder, remove_space_deadline, set_file_kind, update_space, update_space_deadline};
+use super::{SpaceOutcome, add_copied_file, add_file_from_path, add_space_deadline, link_folder, remove_space_deadline, replace_copied_file, set_file_kind, update_space, update_space_deadline};
 use crate::App;
 use crate::app::agent_actions::note_agent_action;
 use crate::app::agent_folder::shortcut_path_problem;
-use crate::mocks::preps::{Stop, change_prep, prep_view};
 use crate::turns::lessons::{CreateLessonInput, LessonStart, create_lesson};
 
 /// Study files are read by the agent itself, as background work items.
@@ -84,51 +82,16 @@ fn change(label: String, space_id: &Json, kind: &str, id: &str, page: &str) -> J
 	json!({ "label": label, "spaceId": space_id, "target": { "kind": kind, "id": id }, "page": page })
 }
 
-/// A prep's sheet as agents see it (null when the space is no prep).
-fn sheet_view(app: &Arc<App>, space_id: &str) -> Json {
-	let Ok(view) = prep_view(app, space_id) else { return Json::Null };
-	let prep = &view["prep"];
-	let or_null = |v: &Json| if v.is_null() { Json::Null } else { v.clone() };
-	let topics: Vec<Json> = view["topics"]
-		.as_arr()
-		.into_iter()
-		.flatten()
-		.map(|t| {
-			let mut entry = Obj::new();
-			entry.insert("id", t["id"].clone());
-			entry.insert("name", t["name"].clone());
-			if t["why"].truthy() {
-				entry.insert("why", t["why"].clone());
-			}
-			entry.insert("status", t["status"].clone());
-			Json::Obj(entry)
-		})
-		.collect();
-	let mocks: Vec<Json> = view["mocks"]
-		.as_arr()
-		.into_iter()
-		.flatten()
-		.map(|m| {
-			let mut entry = Obj::new();
-			entry.insert("n", m["n"].clone());
-			entry.insert("state", m["state"].clone());
-			if let Some(solved) = m.get("solved") {
-				entry.insert("solved", solved.clone());
-			}
-			Json::Obj(entry)
-		})
-		.collect();
-	let mut out = Obj::new();
-	out.insert("goal", prep["goal"].clone());
-	out.insert("date", or_null(&prep["date"]));
-	out.insert("about", prep["about"].clone());
-	out.insert("mock", or_null(&prep["mock"]));
-	out.insert("topics", topics);
-	out.insert("mocks", mocks);
-	if view["writing"].truthy() {
-		out.insert("beingWritten", true);
-	}
-	Json::Obj(out)
+/// A deadline's page in the window.
+fn deadline_page(deadline_id: &str) -> String {
+	format!("/space/deadline/{deadline_id}")
+}
+
+/// A written file's name as stored: Markdown unless it says it is plain text.
+fn written_file_name(name: &str) -> String {
+	let clean = safe_name(name);
+	let lower = clean.to_lowercase();
+	if [".md", ".markdown", ".txt"].iter().any(|ext| lower.ends_with(ext)) { clean } else { format!("{clean}.md") }
 }
 
 /// The signature argument cleaned: Ok(None) when not given, Err when given but not valid.
@@ -164,8 +127,8 @@ impl SpaceActions {
 	}
 
 	/// A space as agents see it: summary, file counts by status (and the files that could not be
-	/// read, or every file with `with_files`), the graph's topics, deadlines, lessons, and a prep's
-	/// sheet. A linked folder can hold 500 files, so the full list comes only on request. Err when the space's
+	/// read, or every file with `with_files`), the graph's topics, deadlines and lessons. A linked
+	/// folder can hold 500 files, so the full list comes only on request. Err when the space's
 	/// graph cannot be read.
 	fn space_view(&self, space_id: &str, with_files: bool) -> Result<Option<Json>, String> {
 		let app = &self.app;
@@ -187,9 +150,6 @@ impl SpaceActions {
 		view.insert("icon", or_null("icon"));
 		view.insert("archived", record["archived"].clone());
 		view.insert("linkedFolder", or_null("linkedFolder"));
-		if record["prep"].truthy() {
-			view.insert("prep", sheet_view(app, space_id));
-		}
 		view.insert("fileCounts", counts);
 		if with_files {
 			let listed: Vec<Json> = files
@@ -258,6 +218,9 @@ impl SpaceActions {
 				}
 				if d["source"].truthy() {
 					entry.insert("source", d["source"].clone());
+				}
+				if d["aboutFileId"].truthy() {
+					entry.insert("about", named(&json!([d["aboutFileId"]]))[0].clone());
 				}
 				Json::Obj(entry)
 			})
@@ -405,20 +368,38 @@ impl SpaceActions {
 
 	pub fn add_space_file(&self, args: &Json) -> ToolOutcome {
 		let (space_id, path, kind) = (str_of(args, "space_id"), str_of(args, "path"), str_of(args, "kind"));
-		if !self.space_exists(space_id) {
-			return no_space(space_id);
-		}
-		if let Some(problem) = shortcut_path_problem(&self.app, path) {
-			return ToolOutcome::Err(problem);
-		}
-		let file = match add_file_from_path(&self.app, space_id, path, kind) {
-			Ok(file) => file,
-			Err(failure) => return ToolOutcome::Err(failure.error),
+		let Some(record) = self.app.stores.spaces.get_space(space_id) else { return no_space(space_id) };
+		let (file, verb) = if args["name"].truthy() && args.get("text").is_some_and(|t| t.as_str().is_some()) {
+			match self.write_space_file(&record, str_of(args, "name"), str_of(args, "text"), kind) {
+				Ok(written) => written,
+				Err(failure) => return ToolOutcome::Err(failure.error),
+			}
+		} else if !path.is_empty() {
+			if let Some(problem) = shortcut_path_problem(&self.app, path) {
+				return ToolOutcome::Err(problem);
+			}
+			match add_file_from_path(&self.app, space_id, path, kind) {
+				Ok(file) => (file, "Adding"),
+				Err(failure) => return ToolOutcome::Err(failure.error),
+			}
+		} else {
+			return ToolOutcome::Err("Give path, or name and text.".to_owned());
 		};
 		let note = if kind == "study" { format!("Added. {READING_NOTE}") } else { "Added.".to_owned() };
-		let label = format!("Adding {}", str_of(&file, "name"));
+		let label = format!("{verb} {}", str_of(&file, "name"));
 		let change = change(label, &Json::from(space_id), "file", str_of(&file, "id"), "/space/files");
 		self.done(json!({ "file": file, "note": note }), vec![change])
+	}
+
+	/// Writes a file from text: a copied file of the same name is replaced and keeps its id.
+	fn write_space_file(&self, record: &Json, name: &str, text: &str, kind: &str) -> SpaceOutcome<(Json, &'static str)> {
+		let (space_id, file_name) = (str_of(record, "id"), written_file_name(name));
+		let bytes = gs_base::text::utf8_bytes(text);
+		let same = record["files"].as_arr().into_iter().flatten().find(|f| str_of(f, "origin") == "copied" && str_of(f, "name") == file_name);
+		match same {
+			Some(file) => Ok((replace_copied_file(&self.app, space_id, str_of(file, "id"), &bytes, kind)?, "Changing")),
+			None => Ok((add_copied_file(&self.app, space_id, &file_name, &bytes, kind)?, "Adding")),
+		}
 	}
 
 	pub fn set_space_file_kind(&self, args: &Json) -> ToolOutcome {
@@ -480,6 +461,9 @@ impl SpaceActions {
 			if given(d, "assignment_file_id") {
 				init.insert("assignmentFileId", d["assignment_file_id"].clone());
 			}
+			if given(d, "about_file_id") {
+				init.insert("aboutFileId", d["about_file_id"].clone());
+			}
 			match add_space_deadline(&self.app, space_id, &Json::Obj(init)) {
 				Ok(deadline) => added.push(deadline),
 				Err(failure) => {
@@ -495,7 +479,7 @@ impl SpaceActions {
 		if added.is_empty() {
 			return ToolOutcome::Err(refused.iter().map(|r| format!("{}: {}", template_text(r.get("name")), str_of(r, "error"))).collect::<Vec<_>>().join("\n"));
 		}
-		let changes = added.iter().map(|d| change(format!("Adding {}", str_of(d, "name")), &Json::from(space_id), "deadline", str_of(d, "id"), "/")).collect();
+		let changes = added.iter().map(|d| change(format!("Adding {}", str_of(d, "name")), &Json::from(space_id), "deadline", str_of(d, "id"), &deadline_page(str_of(d, "id")))).collect();
 		let mut value = json!({ "deadlines": added });
 		if !refused.is_empty()
 			&& let Some(obj) = value.as_obj_mut()
@@ -520,6 +504,7 @@ impl SpaceActions {
 			("left_out_ids", "leftOutIds"),
 			("source", "source"),
 			("assignment_file_id", "assignmentFileId"),
+			("about_file_id", "aboutFileId"),
 			("done", "done"),
 		] {
 			if given(args, arg) {
@@ -530,7 +515,7 @@ impl SpaceActions {
 			Ok(deadline) => deadline,
 			Err(failure) => return ToolOutcome::Err(failure.error),
 		};
-		let others = ["kind", "name", "file_ids", "left_out_ids", "source", "assignment_file_id", "done"];
+		let others = ["kind", "name", "file_ids", "left_out_ids", "source", "assignment_file_id", "about_file_id", "done"];
 		let moved = (given(args, "date") || given(args, "time")) && !others.iter().any(|k| given(args, k));
 		let name = str_of(&deadline, "name");
 		let label = match args["done"].as_bool() {
@@ -538,21 +523,28 @@ impl SpaceActions {
 			Some(false) => format!("Marking {name} not done"),
 			_ => format!("{} {name}", if moved { "Moving" } else { "Changing" }),
 		};
-		self.done(json!({ "deadline": deadline }), vec![change(label, &Json::from(space_id), "deadline", deadline_id, "/")])
+		self.done(json!({ "deadline": deadline }), vec![change(label, &Json::from(space_id), "deadline", deadline_id, &deadline_page(deadline_id))])
 	}
 
 	pub fn remove_space_deadline(&self, args: &Json) -> ToolOutcome {
 		let (space_id, deadline_id) = (str_of(args, "space_id"), str_of(args, "deadline_id"));
 		let Some(record) = self.app.stores.spaces.get_space(space_id) else { return no_space(space_id) };
 		let removed_name = record["deadlines"].as_arr().into_iter().flatten().find(|d| d["id"].as_str() == Some(deadline_id)).and_then(|d| d["name"].as_str()).unwrap_or("a deadline").to_owned();
-		if let Err(failure) = remove_space_deadline(&self.app, space_id, deadline_id) {
-			return ToolOutcome::Err(failure.error);
-		}
+		let mocks = match remove_space_deadline(&self.app, space_id, deadline_id) {
+			Ok(mocks) => mocks,
+			Err(failure) => return ToolOutcome::Err(failure.error),
+		};
 		let mut removed = change(format!("Removing {removed_name}"), &Json::from(space_id), "deadline", deadline_id, "/");
 		if let Some(obj) = removed.as_obj_mut() {
 			obj.insert("removed", true);
 		}
-		self.done(json!({ "removed": deadline_id }), vec![removed])
+		let mut value = json!({ "removed": deadline_id });
+		if mocks > 0
+			&& let Some(obj) = value.as_obj_mut()
+		{
+			obj.insert("note", format!("Its {mocks} {} removed too.", if mocks == 1 { "mock is" } else { "mocks are" }));
+		}
+		self.done(value, vec![removed])
 	}
 
 	pub fn link_space_folder(&self, args: &Json) -> ToolOutcome {
@@ -574,26 +566,6 @@ impl SpaceActions {
 		self.done(json!({ "space": view, "note": format!("Linked. {READING_NOTE}") }), vec![change(label, &Json::from(space_id), "space", space_id, "/space/files")])
 	}
 
-	pub fn update_prep(&self, args: &Json) -> ToolOutcome {
-		let space_id = str_of(args, "space_id");
-		let Some(record) = self.app.stores.spaces.get_space(space_id) else { return no_space(space_id) };
-		if !record["prep"].truthy() {
-			return ToolOutcome::Err(format!("{} is not a prep, so it has no prep sheet.", str_of(&record, "name")));
-		}
-		let mut edits = Obj::new();
-		for (arg, edit) in [("date", "date"), ("about", "about"), ("mock", "mock"), ("add_topics", "addTopics"), ("remove_topic_ids", "removeTopicIds")] {
-			if let Some(value) = args.get(arg) {
-				edits.insert(edit, value.clone());
-			}
-		}
-		match change_prep(&self.app, space_id, &Json::Obj(edits)) {
-			Ok(()) => {}
-			Err(Stop::Refuse(_, error) | Stop::Throw(error)) => return ToolOutcome::Err(error),
-		}
-		let label = format!("Changing the prep sheet of {}", str_of(&record, "name"));
-		self.done(json!({ "prep": sheet_view(&self.app, space_id) }), vec![change(label, &Json::from(space_id), "space", space_id, "/space")])
-	}
-
 	pub async fn start_lesson(&self, args: &Json) -> ToolOutcome {
 		let topic = str_of(args, "topic");
 		let raw = args["space_id"].as_str();
@@ -610,14 +582,7 @@ impl SpaceActions {
 		if space.as_ref().is_some_and(|s| s["archived"].truthy()) {
 			return ToolOutcome::Err("This space is archived. Ask the learner to unarchive it in Edit space first.".to_owned());
 		}
-		// A topic of a prep's sheet is studied as that topic, so its answers count for it.
-		let wanted = trim(topic).to_lowercase();
-		let on_sheet = space.as_ref().and_then(|s| s["prep"]["topics"].as_arr()?.iter().find(|t| str_of(t, "name").to_lowercase() == wanted).cloned());
-		let start = match on_sheet {
-			Some(t) => LessonStart::PrepTopics(vec![str_of(&t, "id").to_owned()]),
-			None => LessonStart::Typed { title: topic.to_owned(), picks: Vec::new() },
-		};
-		let input = CreateLessonInput { space_id: scope.clone(), start };
+		let input = CreateLessonInput { space_id: scope.clone(), start: LessonStart::Typed { title: topic.to_owned(), picks: Vec::new() } };
 		let chat = match create_lesson(&self.app, input) {
 			Ok(Ok(created)) => created.chat,
 			Ok(Err(not_found)) => return ToolOutcome::Err(not_found.error.to_owned()),
@@ -647,7 +612,6 @@ impl SpaceActions {
 			"update_space_deadline" => self.update_space_deadline(args),
 			"remove_space_deadline" => self.remove_space_deadline(args),
 			"link_space_folder" => self.link_space_folder(args),
-			"update_prep" => self.update_prep(args),
 			"start_lesson" => self.start_lesson(args).await,
 			_ => return None,
 		})
@@ -673,52 +637,65 @@ mod tests {
 		}
 	}
 
-	#[tokio::test]
-	async fn reads_a_preps_sheet_changes_it_and_starts_a_lesson_on_one_of_its_topics() {
-		use gs_core::mocks::prep::{new_prep, with_sheet};
-		let root = scratch_dir("space-actions-prep");
-		let app = test_app(&root);
-		let sheet = json!({ "name": "Acme junior web test", "about": "Four questions in 70 minutes.", "sources": [], "topics": [{ "name": "Arrays" }, { "name": "Hash maps" }], "mock": { "questions": 4, "minutes": 70 } });
-		let mut n = 0;
-		let (written, name) = with_sheet(&new_prep("Acme online test", None).unwrap(), &sheet, "2026-11-11T10:00:00.000Z", &mut || { n += 1; format!("pt_0000000{n}") }, &Default::default());
-		let prep_id = app.stores.spaces.create_space(&json!({ "name": name, "prep": written })).unwrap()["id"].as_str().unwrap().to_owned();
+	fn actions(app: &Arc<App>) -> SpaceActions {
 		let send: SendFirstMessage = Arc::new(|_, _| Box::pin(async { Ok(()) }));
-		let actions = space_actions(&app, Some("Claude Code"), send, true);
-		let sheet_of = |outcome: ToolOutcome| match outcome {
-			ToolOutcome::Ok { value, .. } => value["prep"].clone(),
+		space_actions(app, Some("Teacher"), send, true)
+	}
+
+	fn value(outcome: ToolOutcome) -> (Json, Vec<SpaceChange>) {
+		match outcome {
+			ToolOutcome::Ok { value, changes } => (value, changes),
 			ToolOutcome::Err(error) => panic!("{error}"),
-		};
+		}
+	}
 
-		let before = sheet_of(actions.read_space(&json!({ "space_id": prep_id })));
-		assert_eq!(
-			gs_json::stringify(&before),
-			r#"{"goal":"Acme online test","date":null,"about":"Four questions in 70 minutes.","mock":{"questions":4,"minutes":70},"topics":[{"id":"pt_00000001","name":"Arrays","status":"untested"},{"id":"pt_00000002","name":"Hash maps","status":"untested"}],"mocks":[]}"#
-		);
+	#[tokio::test]
+	async fn the_teacher_sets_up_an_interview_space_from_talk() {
+		let root = scratch_dir("space-actions-interview");
+		let app = test_app(&root);
+		let actions = actions(&app);
+		let (made, _) = value(actions.create_space(&json!({ "name": "Larkspur onsite", "icon": "code" })));
+		let space_id = made["space"]["id"].as_str().unwrap().to_owned();
+		let write = |name: &str, text: &str, kind: &str| value(actions.add_space_file(&json!({ "space_id": space_id, "name": name, "text": text, "kind": kind })));
+		let (about, rows) = write("What it's like", "Two coding rounds.", "info");
+		assert_eq!((about["file"]["name"].clone(), rows[0].label.as_str()), (json!("What it's like.md"), "Adding What it's like.md"));
+		let (guide, _) = write("Study guide.md", "## Rate limiting", "study");
+		let (again, rows) = write("What it's like.md", "Two coding rounds and lunch.", "info");
+		assert_eq!((again["file"]["id"].clone(), rows[0].label.as_str()), (about["file"]["id"].clone(), "Changing What it's like.md"), "the same name keeps its id");
+		let saved = app.stores.spaces.get_space(&space_id).unwrap();
+		assert_eq!(saved["files"].as_arr().unwrap().len(), 2);
+		let path = space_file_path(&app, &saved, &saved["files"][0]).unwrap();
+		assert_eq!(std::fs::read_to_string(path).unwrap(), "Two coding rounds and lunch.");
+		assert!(matches!(actions.add_space_file(&json!({ "space_id": space_id, "kind": "info" })), ToolOutcome::Err(e) if e == "Give path, or name and text."));
 
-		let edits = json!({ "space_id": prep_id, "date": "2026-11-20", "mock": { "questions": 3, "minutes": 60 }, "add_topics": [{ "name": "React hooks", "why": "The role is React" }], "remove_topic_ids": ["pt_00000001"] });
-		let ToolOutcome::Ok { changes, .. } = actions.update_prep(&edits) else { panic!("refused") };
-		assert_eq!((changes[0].label.as_str(), changes[0].page.as_str()), ("Changing the prep sheet of Acme junior web test", "/space"));
-		let after = sheet_of(actions.read_space(&json!({ "space_id": prep_id })));
-		let topics: Vec<String> = after["topics"].as_arr().unwrap().iter().map(|t| format!("{} {}", t["name"].as_str().unwrap(), t["why"].as_str().unwrap_or("-"))).collect();
-		assert_eq!(topics, ["Hash maps -", "React hooks The role is React"]);
-		assert_eq!((after["date"].clone(), after["about"].clone()), (Json::from("2026-11-20"), Json::from("Four questions in 70 minutes.")));
-		assert_eq!(gs_json::stringify(&after["mock"]), r#"{"questions":3,"minutes":60}"#);
+		let interview = json!({ "kind": "interview", "name": "Onsite", "date": "2026-11-24", "time": "14:00", "file_ids": [guide["file"]["id"]], "about_file_id": about["file"]["id"] });
+		let (added, rows) = value(actions.add_space_deadline(&json!({ "space_id": space_id, "deadlines": [interview] })));
+		let deadline_id = added["deadlines"][0]["id"].as_str().unwrap().to_owned();
+		assert_eq!(added["deadlines"][0]["aboutFileId"], about["file"]["id"]);
+		assert_eq!(rows[0].page, format!("/space/deadline/{deadline_id}"), "the row opens the deadline's page");
+		let (read, _) = value(actions.read_space(&json!({ "space_id": space_id })));
+		assert_eq!(read["deadlines"][0]["about"], json!({ "id": about["file"]["id"], "name": "What it's like.md" }));
+		let (cleared, _) = value(actions.update_space_deadline(&json!({ "space_id": space_id, "deadline_id": deadline_id, "about_file_id": null })));
+		assert!(cleared["deadline"].get("aboutFileId").is_none());
+	}
 
-		let twice = actions.update_prep(&json!({ "space_id": prep_id, "add_topics": [{ "name": "hash maps" }] }));
-		assert!(matches!(twice, ToolOutcome::Err(e) if e == "\"hash maps\" is already on the sheet."));
-		let plain = app.stores.spaces.create_space(&json!({ "name": "Plain space" })).unwrap()["id"].as_str().unwrap().to_owned();
-		assert!(matches!(actions.update_prep(&json!({ "space_id": plain, "date": null })), ToolOutcome::Err(e) if e == "Plain space is not a prep, so it has no prep sheet."));
-		assert!(matches!(actions.update_prep(&json!({ "space_id": "cls_missing", "date": null })), ToolOutcome::Err(e) if e == "No space \"cls_missing\". Use list_spaces."));
-		let ToolOutcome::Ok { value, .. } = actions.read_space(&json!({ "space_id": plain })) else { panic!("no space") };
-		assert!(value.get("prep").is_none());
-
-		let lesson_tree = |outcome: ToolOutcome| {
-			let ToolOutcome::Ok { value, .. } = outcome else { panic!("not started") };
-			let chat = app.stores.chats.get_chat(value["lessonId"].as_str().unwrap()).unwrap();
-			chat["tree"]["nodes"].as_arr().unwrap().iter().map(|n| n["id"].as_str().unwrap().to_owned()).collect::<Vec<_>>()
-		};
-		assert_eq!(lesson_tree(actions.start_lesson(&json!({ "topic": " hash maps ", "space_id": prep_id })).await), ["pt_00000002"], "its answers count for the sheet's topic");
-		assert_ne!(lesson_tree(actions.start_lesson(&json!({ "topic": "Big O", "space_id": prep_id })).await), ["pt_00000002"]);
+	#[test]
+	fn removing_a_deadline_removes_its_mocks_and_says_how_many() {
+		let root = scratch_dir("space-actions-remove-mocks");
+		let app = test_app(&root);
+		let space_id = app.stores.spaces.create_space(&json!({ "name": "Larkspur onsite" })).unwrap()["id"].as_str().unwrap().to_owned();
+		let add = |name: &str| app.stores.spaces.add_deadline(&space_id, &json!({ "kind": "interview", "name": name, "date": "2026-11-24" })).unwrap()["id"].as_str().unwrap().to_owned();
+		let (onsite, screen) = (add("Onsite"), add("Phone screen"));
+		let format = json!({ "questions": 1 });
+		for (id, deadline) in [("mock_00000001", &onsite), ("mock_00000002", &onsite), ("mock_00000003", &screen)] {
+			app.stores.mocks.write_mock(&space_id, &gs_core::mocks::mock::new_mock(id, deadline, 1.0, &format, "t")).unwrap();
+		}
+		let (removed, _) = value(actions(&app).remove_space_deadline(&json!({ "space_id": space_id, "deadline_id": onsite })));
+		assert_eq!(removed["note"], json!("Its 2 mocks are removed too."));
+		let left: Vec<Json> = app.stores.mocks.list_mocks(&space_id).unwrap().iter().map(|m| m["id"].clone()).collect();
+		assert_eq!(left, [json!("mock_00000003")]);
+		let (quiet, _) = value(actions(&app).remove_space_deadline(&json!({ "space_id": space_id, "deadline_id": screen })));
+		assert_eq!(quiet["note"], json!("Its 1 mock is removed too."));
 	}
 
 	#[test]

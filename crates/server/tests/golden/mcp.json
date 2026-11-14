@@ -1283,7 +1283,7 @@
 			"status": 200,
 			"type": "application/json",
 			"allow": null,
-			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool add_space_deadline: deadlines.0.name: Invalid input: expected string, received undefined, deadlines.0.date: Invalid input: expected string, received undefined, deadlines.1.kind: Invalid option: expected one of \\\"exam\\\"|\\\"homework\\\"|\\\"quiz\\\"|\\\"project\\\", deadlines.1.name: Too small: expected string to have >=1 characters, deadlines.1.date: Invalid input: expected string, received number, deadlines.1.file_ids.0: Invalid input: expected string, received number\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.50\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool add_space_deadline: deadlines.0.name: Invalid input: expected string, received undefined, deadlines.0.date: Invalid input: expected string, received undefined, deadlines.1.kind: Invalid option: expected one of \\\"exam\\\"|\\\"homework\\\"|\\\"quiz\\\"|\\\"project\\\"|\\\"interview\\\", deadlines.1.name: Too small: expected string to have >=1 characters, deadlines.1.date: Invalid input: expected string, received number, deadlines.1.file_ids.0: Invalid input: expected string, received number\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.50\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
 		}
 	},
 	{

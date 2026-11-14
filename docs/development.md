@@ -144,7 +144,7 @@ crates/                         the Rust workspace (details: rust-server.md)
   json base                     JSON with JS key order and number text; JS-compatible
                                 text, dates, regex, ids, the app clock, locks, atomic writes
   core                          the pure logic: contracts, records, messages, session,
-                                graph, spaces, study, preps
+                                graph, spaces, study, mocks
   store                         every data file, one store each
   files pdf search media web    space files to text, pdfium, the embedding model and
   transcribe                    BM25 search, images and SVG, web pages, recordings
@@ -152,7 +152,7 @@ crates/                         the Rust workspace (details: rust-server.md)
   agent                         prompts (prompts/), lesson tools, file tools, background jobs
                                 and the extraction pipeline
   services                      App (all server state) and the services: turns, jobs,
-                                spaces, graph, cheat sheets, preps and mocks, app
+                                spaces, graph, cheat sheets, mocks, app
                                 (folder files in folder-files/ are embedded in the binary)
   server                        gs-server, the HTTP layer, the /api routes, the MCP endpoint
   shell-rpc shell               the line protocol with the desktop shell, and the Tauri
@@ -219,7 +219,7 @@ See [compaction and accounting](compaction-accounting.md) for the local cutoff p
 
 **Study sessions.** Every new lesson is `kind: "study"`. The learner starts one from "Study something new" on a space's Lessons tab (the study page, `/new`, with its suggestions), a Today row, a deadline page, the Graph tab or the Progress tab; `start_lesson` over MCP does too. `create_lesson` (`crates/services/src/turns/lessons.rs`) writes the picked facts into a `graph-context` marker (`chains_for_selection`, `crates/core/src/graph/chains.rs`), then a `study-context` marker with the session's topics in space order and each topic's material and standing (from `crates/core/src/study/`; the move table in `prompts/study/10-study.md` picks the move from that pair), and saves the matching plan tree. The study agent is the teacher plus `problem` / `conclude` (`crates/agent/src/tools/practice.rs`), with no prober; instructions in `crates/agent/prompts/study/`. Study sessions are extracted into the graph. Older `teach` and `practice` lessons keep working; practice sessions are never extracted.
 
-**Preps and mocks.** "Prepare for something" in the app menu (`/prep`) makes a prep: a space with a `prep` on its record (`crates/core/src/preps/prep.rs`), for getting ready for one interview, assessment or test. The teacher writes its prep sheet as one background work item (`write_prep_sheet`, `crates/agent/src/subagents/prep_writer.rs`; server side `crates/services/src/preps/preps.rs`): what it is like, the pages it read, the topics to study and what a mock is. A topic's status comes from the answers tagged with its id, in study sessions and mocks. A mock (`crates/core/src/preps/mock.rs`, `crates/services/src/preps/mocks.rs`, one file per mock under `spaces/<id>/mocks/`) asks the teacher twice, for all its questions before it starts and for all its grades after it ends (`crates/agent/src/subagents/mock_writer.rs`); the clock runs with no agent. "Run examples" runs the learner's JavaScript or Python on this computer with a 5-second limit (`crates/core/src/preps/mock_run.rs`, `crates/services/src/preps/mock_runner.rs`), using the computer's own `node` or Python. The request texts are pure (`crates/core/src/preps/mock_requests.rs`). Details: `docs/architecture.md` section 6.2.
+**Interviews and mocks.** Getting ready for an interview or a test is a normal space the teacher sets up from Talk: an `interview` deadline (or an exam or quiz) with an `aboutFileId`, the space info file on what it is like (`crates/core/src/spaces/space_deadlines.rs`). A space saved as a prep by 0.6.5 or before is upgraded once at startup (`crates/core/src/spaces/prep_upgrade.rs`, `crates/services/src/spaces/prep_upgrade.rs`). A mock belongs to one such deadline (`crates/core/src/mocks/mock.rs`, `crates/services/src/mocks/mocks.rs`, one file per mock under `spaces/<id>/mocks/`), may have a time limit and be paused, and asks the teacher twice, for all its questions before it starts and for all its grades after it ends (`crates/agent/src/subagents/mock_writer.rs`); the clock runs with no agent. "Run examples" runs the learner's JavaScript or Python on this computer with a 5-second limit (`crates/core/src/mocks/mock_run.rs`, `crates/services/src/mocks/mock_runner.rs`), using the computer's own `node` or Python. The request texts are pure (`crates/core/src/mocks/mock_requests.rs`). Details: `docs/architecture.md` section 6.2.
 
 ## Testing
 

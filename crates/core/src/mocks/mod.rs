@@ -1,7 +1,6 @@
-//! Preps: a space made to get ready for one thing (an interview round, an online assessment, a
-//! test), its prep sheet and its timed mocks.
+//! Mocks: practice runs of an exam, quiz or interview deadline, written and graded by the
+//! teacher, taken by the learner with or without a time limit.
 
-pub mod prep;
 pub mod mock;
 pub mod mock_run;
 pub mod mock_requests;

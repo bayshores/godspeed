@@ -360,7 +360,7 @@
 	{
 		"name": "read_space",
 		"title": "Read a space",
-		"description": "Read one space: its description, how many files are in each status (pending, extracting, ready, failed, needs-whisper) and the files that could not be read, the topics of its knowledge graph with their fact counts, its deadlines (kind, date, time, done, and the files each covers), its lessons, and today's local date and time. A prep (a space made to get ready for one interview, assessment or test) also has its prep sheet: what the learner is preparing for, its day, what it is like, the topics with their ids and how each is going, what a mock is and the mocks taken. With files: true it lists every file instead (id, kind, status, size, path on disk). To find something inside the files, use search_space_files.",
+		"description": "Read one space: its description, how many files are in each status (pending, extracting, ready, failed, needs-whisper) and the files that could not be read, the topics of its knowledge graph with their fact counts, its deadlines (kind, date, time, done, and the files each covers), its lessons, and today's local date and time. With files: true it lists every file instead (id, kind, status, size, path on disk). To find something inside the files, use search_space_files.",
 		"inputSchema": {
 			"type": "object",
 			"$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -610,7 +610,7 @@
 	{
 		"name": "add_space_file",
 		"title": "Add a file to a space",
-		"description": "Copy a file from this computer into a space. Supported: .md .txt, code files (.c .py .java .js and the like), plain text with no extension, .pdf .docx .pptx .epub, .vtt .srt (transcripts) and .mp3 .m4a .wav .mp4 .mov (recordings, transcribed locally with whisper.cpp). Google Docs links (.gdoc) need saving as PDF or Word first. Study files are turned into facts by you, through wait_for_work.",
+		"description": "Copy a file from this computer into a space, or write one with name and text instead of path (one already there by that name is replaced and keeps its id). Supported: .md .txt, code files (.c .py .java .js and the like), plain text with no extension, .pdf .docx .pptx .epub, .vtt .srt (transcripts) and .mp3 .m4a .wav .mp4 .mov (recordings, transcribed locally with whisper.cpp). Google Docs links (.gdoc) need saving as PDF or Word first. Study files are turned into facts by you, through wait_for_work.",
 		"inputSchema": {
 			"type": "object",
 			"$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -621,6 +621,14 @@
 				"path": {
 					"type": "string",
 					"description": "The file's absolute path."
+				},
+				"name": {
+					"type": "string",
+					"description": "Instead of path: the new file's name, e.g. \"Study guide.md\"."
+				},
+				"text": {
+					"type": "string",
+					"description": "With name: its text, in Markdown."
 				},
 				"kind": {
 					"type": "string",
@@ -633,7 +641,6 @@
 			},
 			"required": [
 				"space_id",
-				"path",
 				"kind"
 			]
 		},
@@ -688,7 +695,7 @@
 	{
 		"name": "add_space_deadline",
 		"title": "Add deadlines to a space",
-		"description": "Add one or more deadlines to a space (send all of a space's deadlines in one call): exams, homework, quizzes and projects, each with its date, its time if it has one, and which of the space's files (notes, readings) it covers. godspeed uses this to show the learner what is due and what to work on first. Take the deadlines, their dates and times from the space info files (a syllabus, a schedule), and never make up a date or time. Work out what a deadline covers from the space's own files first: a practice exam or review sheet, the schedule, announcements (search_space_files). Link the files they point to (file_ids), list files from before it that it doesn't cover in left_out_ids, and say in source which file it came from. Ask only when the files don't settle it. File ids come from read_space with files: true. A deadline that is refused is listed under refused with the reason; the others are still added, so send only the refused ones again.",
+		"description": "Add one or more deadlines to a space (send all of a space's deadlines in one call): exams, homework, quizzes, projects and interviews, each with its date, its time if it has one, and which of the space's files (notes, readings) it covers. godspeed uses this to show the learner what is due and what to work on first. Take the deadlines, their dates and times from the space info files (a syllabus, a schedule), and never make up a date or time. Work out what a deadline covers from the space's own files first: a practice exam or review sheet, the schedule, announcements (search_space_files). Link the files they point to (file_ids), list files from before it that it doesn't cover in left_out_ids, and say in source which file it came from. Ask only when the files don't settle it. File ids come from read_space with files: true. A deadline that is refused is listed under refused with the reason; the others are still added, so send only the refused ones again. For an interview: add the posting as space info, the interview with its date and time, What it's like.md as about_file_id, and a Study guide.md you write (study) in file_ids.",
 		"inputSchema": {
 			"type": "object",
 			"$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -708,7 +715,8 @@
 									"exam",
 									"homework",
 									"quiz",
-									"project"
+									"project",
+									"interview"
 								],
 								"description": "What the deadline is."
 							},
@@ -746,6 +754,10 @@
 							"assignment_file_id": {
 								"description": "For homework and projects: the id of the space file with its problems (the assignment sheet). The learner works on its problems in godspeed.",
 								"type": "string"
+							},
+							"about_file_id": {
+								"description": "Exams, quizzes and interviews: the id of a space info file on what it is like (\"What it's like.md\", written with add_space_file). Search the space files and the web first; under 200 words; name only sources you read.",
+								"type": "string"
 							}
 						},
 						"required": [
@@ -771,7 +783,7 @@
 	{
 		"name": "update_space_deadline",
 		"title": "Update a space deadline",
-		"description": "Change a deadline's kind, name, date, time, covered files, left-out files, source or assignment file, or tick it done (done: true) or not done (done: false). file_ids and left_out_ids each replace the whole list (a file is never in both); time: null, source: null and assignment_file_id: null remove them. Work out coverage from the space's own files as add_space_deadline says; ask the learner when the files don't settle it.",
+		"description": "Change a deadline's kind, name, date, time, covered files, left-out files, source, assignment file or about file, or tick it done (done: true) or not done (done: false). file_ids and left_out_ids each replace the whole list (a file is never in both); time: null, source: null, assignment_file_id: null and about_file_id: null remove them. Work out coverage from the space's own files as add_space_deadline says; ask the learner when the files don't settle it.",
 		"inputSchema": {
 			"type": "object",
 			"$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -788,7 +800,8 @@
 						"exam",
 						"homework",
 						"quiz",
-						"project"
+						"project",
+						"interview"
 					],
 					"description": "What the deadline is."
 				},
@@ -830,6 +843,13 @@
 				},
 				"assignment_file_id": {
 					"description": "For homework and projects: the id of the space file with its problems (the assignment sheet). The learner works on its problems in godspeed.",
+					"type": [
+						"string",
+						"null"
+					]
+				},
+				"about_file_id": {
+					"description": "Exams, quizzes and interviews: the id of a space info file on what it is like (\"What it's like.md\", written with add_space_file). Search the space files and the web first; under 200 words; name only sources you read.",
 					"type": [
 						"string",
 						"null"
@@ -907,90 +927,9 @@
 		}
 	},
 	{
-		"name": "update_prep",
-		"title": "Change a prep sheet",
-		"description": "Change a prep's sheet when the learner asks (read_space shows it): move or clear its day, replace what it is like, change what a mock is, add topics, or remove topics by id. Only what you send changes. Refused while the sheet is being written.",
-		"inputSchema": {
-			"type": "object",
-			"$schema": "https://json-schema.org/draft/2020-12/schema",
-			"properties": {
-				"space_id": {
-					"type": "string"
-				},
-				"date": {
-					"description": "The day it happens as YYYY-MM-DD, or null for no day.",
-					"type": [
-						"string",
-						"null"
-					]
-				},
-				"about": {
-					"description": "What it is like, in markdown. Replaces the whole text.",
-					"type": "string",
-					"minLength": 1
-				},
-				"mock": {
-					"description": "What one mock is: how many questions in how many minutes.",
-					"type": "object",
-					"properties": {
-						"questions": {
-							"type": "integer",
-							"minimum": -9007199254740991,
-							"maximum": 9007199254740991
-						},
-						"minutes": {
-							"type": "integer",
-							"minimum": -9007199254740991,
-							"maximum": 9007199254740991
-						}
-					},
-					"required": [
-						"questions",
-						"minutes"
-					]
-				},
-				"add_topics": {
-					"description": "Topics to add at the end of the sheet, each with one line on why it is there.",
-					"type": "array",
-					"items": {
-						"type": "object",
-						"properties": {
-							"name": {
-								"type": "string",
-								"minLength": 1
-							},
-							"why": {
-								"type": "string"
-							}
-						},
-						"required": [
-							"name"
-						]
-					}
-				},
-				"remove_topic_ids": {
-					"description": "Ids of the sheet's topics to remove.",
-					"type": "array",
-					"items": {
-						"type": "string"
-					}
-				}
-			},
-			"required": [
-				"space_id"
-			]
-		},
-		"annotations": {
-			"readOnlyHint": false,
-			"destructiveHint": false,
-			"idempotentHint": true,
-			"openWorldHint": false
-		}
-	},
-	{
 		"name": "start_lesson",
 		"title": "Start a lesson",
-		"description": "Start a new study session in godspeed taught by you: you teach what is new and give problems on what needs practice. The topic becomes the learner's first message. With space_id the lesson belongs to that space: it opens with the space's card and its facts go into that space's graph. In a prep, a topic named exactly like one on its sheet counts for that topic. You teach it through wait_for_work; the learner follows along in the godspeed window.",
+		"description": "Start a new study session in godspeed taught by you: you teach what is new and give problems on what needs practice. The topic becomes the learner's first message. With space_id the lesson belongs to that space: it opens with the space's card and its facts go into that space's graph. You teach it through wait_for_work; the learner follows along in the godspeed window.",
 		"inputSchema": {
 			"type": "object",
 			"$schema": "https://json-schema.org/draft/2020-12/schema",

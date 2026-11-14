@@ -146,6 +146,11 @@ pub fn relative_day(days: i64) -> String {
 	}
 }
 
+/// An exam or interview happens at its time; the rest is due by it.
+fn is_sitting(deadline: &Json) -> bool {
+	matches!(deadline["kind"].as_str(), Some("exam" | "interview"))
+}
+
 fn covers_line(deadline: &Json, names: &HashMap<&str, &str>) -> Option<String> {
 	let files: Vec<&str> = deadline["fileIds"].as_arr()?.iter().filter_map(|id| names.get(id.as_str()?).copied()).collect();
 	if files.is_empty() {
@@ -192,12 +197,12 @@ pub fn today_note_text(now_ms: i64, space: Option<&Json>) -> String {
 	};
 	let field = |d: &Json, key: &str| d[key].as_str().unwrap_or("").to_owned();
 	for d in overdue {
-		let due = if d["kind"].as_str() == Some("exam") { "" } else { "due " };
+		let due = if is_sitting(d) { "" } else { "due " };
 		push(format!("- Overdue: {} ({}), was {due}{}", field(d, "name"), field(d, "kind"), when_label(d)), d);
 	}
 	for d in upcoming {
 		let rel = relative_day(days_between(&clock.day, d["date"].as_str().unwrap_or("")));
-		let due = if d["kind"].as_str() == Some("exam") { "" } else { "due " };
+		let due = if is_sitting(d) { "" } else { "due " };
 		push(format!("- {} ({}), {due}{}, {rel}.", field(d, "name"), field(d, "kind"), when_label(d)), d);
 	}
 	if let Some(fresh) = fresh {
@@ -308,6 +313,7 @@ mod tests {
 				{ "id": "d1", "name": "Midterm", "kind": "exam", "date": "2026-11-02", "fileIds": ["f1", "f2"] },
 				{ "id": "d2", "name": "HW 1", "kind": "homework", "date": "2026-10-29", "time": "10:00", "fileIds": [] },
 				{ "id": "d3", "name": "Done", "kind": "quiz", "date": "2026-10-31", "done": true, "fileIds": [] },
+				{ "id": "d4", "name": "Larkspur onsite", "kind": "interview", "date": "2026-11-03", "time": "14:00", "fileIds": [] },
 			],
 			"files": [
 				{ "id": "f1", "name": "L1.pdf", "addedAt": time::iso(now - 86_400_000), "kind": "study" },
@@ -318,7 +324,7 @@ mod tests {
 		let note = today_note_text(now, Some(&space));
 		assert_eq!(
 			note,
-			"[Today] Fri Oct 30 2026, 12:00 PM (Pacific Time)\n\nComing up in this space (not marked done):\n- Overdue: HW 1 (homework), was due Thu Oct 29 10:00 AM\n- Midterm (exam), Mon Nov 2, in 3 days.\n  Covers: L1.pdf, L2.pdf\n\nNew files (last 3 days): L1.pdf\nNew space info (last 3 days): Syllabus.pdf. Read it when it might matter, like an exam change or an announcement."
+			"[Today] Fri Oct 30 2026, 12:00 PM (Pacific Time)\n\nComing up in this space (not marked done):\n- Overdue: HW 1 (homework), was due Thu Oct 29 10:00 AM\n- Midterm (exam), Mon Nov 2, in 3 days.\n  Covers: L1.pdf, L2.pdf\n- Larkspur onsite (interview), Tue Nov 3 2:00 PM, in 4 days.\n\nNew files (last 3 days): L1.pdf\nNew space info (last 3 days): Syllabus.pdf. Read it when it might matter, like an exam change or an announcement."
 		);
 		assert_eq!(today_note_text(now, None), "[Today] Fri Oct 30 2026, 12:00 PM (Pacific Time)");
 	}

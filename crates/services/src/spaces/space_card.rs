@@ -1,8 +1,7 @@
 //! THE SPACE CARD (space-card.ts): the short [Space context] message a lesson in a space opens
 //! with: space name, the learner's description, the space files (size, state, and the path the
-//! teacher can open), the topics of the space's graph with their fact counts, and what a prep is
-//! getting the learner ready for. It is a snapshot from when the lesson started; the read_space
-//! tool gives the current version.
+//! teacher can open) and the topics of the space's graph with their fact counts. It is a snapshot
+//! from when the lesson started; the read_space tool gives the current version.
 
 use std::path::{Path, PathBuf};
 
@@ -70,15 +69,6 @@ pub fn space_card_for(app: &App, record: &Json) -> Result<Json, String> {
 	card.insert("files", listed);
 	if !topics.is_empty() {
 		card.insert("topics", topics);
-	}
-	if let Some(prep) = record.get("prep") {
-		let mut about = Obj::new();
-		about.insert("goal", prep["goal"].clone());
-		if prep["date"].truthy() {
-			about.insert("date", prep["date"].clone());
-		}
-		about.insert("about", prep["about"].clone());
-		card.insert("prep", about);
 	}
 	Ok(Json::Obj(card))
 }

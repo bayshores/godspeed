@@ -60,7 +60,7 @@ mod tests {
 
 	#[test]
 	fn tool_texts_cover_every_tool() {
-		assert_eq!(SPACE_TOOL_TEXT.len(), 14);
+		assert_eq!(SPACE_TOOL_TEXT.len(), 13);
 		assert!(SPACE_ARG_TEXT.icon.starts_with("The space's subject icon in the space switcher: \"cpu\" Computer science, "));
 		assert!(SPACE_ARG_TEXT.signature.contains("At most 60 characters."));
 	}

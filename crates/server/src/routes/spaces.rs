@@ -1,4 +1,4 @@
-//! /api/spaces, /api/spaces/{id}, its files, folder and deadlines (not cheat sheets),
+//! /api/spaces, /api/spaces/{id}, its files, folder and deadlines (not cheat sheets or mocks),
 //! /api/deadlines and /api/deadlines/{id}.
 
 use std::sync::Arc;
@@ -17,7 +17,7 @@ use gs_services::app::agent_actions::record_deadline_change;
 use gs_services::app::agent_folder::{space_shortcut_dir, shortcut_path_problem};
 use gs_services::spaces::{
 	SpaceFailure, add_copied_file, add_space_deadline, close_space_work, deadline_with_space, delete_space, folder_status_of, link_folder, list_deadlines_done_on,
-	list_open_deadlines, list_space_deadlines, remove_file, remove_space_deadline, retry_file, scan_linked_folder, set_file_kind, start_space_scanner, unlink_folder,
+	deadline_about, list_open_deadlines, list_space_deadlines, remove_file, remove_space_deadline, retry_file, scan_linked_folder, set_file_kind, start_space_scanner, unlink_folder,
 	update_space, update_space_deadline,
 };
 use gs_services::spaces::space_card::space_file_path;
@@ -40,6 +40,7 @@ pub fn routes() -> Router<Arc<App>> {
 		.route("/api/spaces/{id}/deadlines", ApiRoute::new().get(deadlines).post(add_deadline).into_route())
 		.route("/api/spaces/{id}/deadlines/{deadline_id}", ApiRoute::new().put(change_deadline).delete(remove_deadline).into_route())
 		.route("/api/spaces/{id}/deadlines/{deadline_id}/homework", ApiRoute::new().get(homework).into_route())
+		.route("/api/spaces/{id}/deadlines/{deadline_id}/about", ApiRoute::new().get(about).into_route())
 		.route("/api/deadlines", ApiRoute::new().get(open_deadlines).into_route())
 		.route("/api/deadlines/{id}", ApiRoute::new().get(deadline).into_route())
 }
@@ -230,7 +231,7 @@ async fn change_file(State(app): State<Arc<App>>, Path((id, file_id)): Path<(Str
 	let body = fields(body).await?;
 	if field(&body, "retry") == Some(&Json::Bool(true)) {
 		return match retry_file(&app, &id, &file_id) {
-			Ok(()) => Ok(reply::json(200, &json!({ "ok": true }))),
+			Ok(removed) => Ok(reply::json(200, &json!({ "ok": true, "mocksRemoved": removed }))),
 			Err(failure) => refused(failure),
 		};
 	}
@@ -249,7 +250,7 @@ async fn remove_one_file(State(app): State<Arc<App>>, Path((id, file_id)): Path<
 		return Ok(no_such_space());
 	}
 	match remove_file(&app, &id, &file_id) {
-		Ok(()) => Ok(reply::json(200, &json!({ "ok": true }))),
+		Ok(removed) => Ok(reply::json(200, &json!({ "ok": true, "mocksRemoved": removed }))),
 		Err(failure) => refused(failure),
 	}
 }
@@ -295,14 +296,15 @@ async fn deadlines(State(app): State<Arc<App>>, Path(id): Path<String>) -> Resul
 	}
 }
 
-/// POST /api/spaces/{id}/deadlines { kind, name, date, time?, fileIds? }.
+/// POST /api/spaces/{id}/deadlines { kind, name, date, time?, fileIds?, aboutFileId?, id? } (`id`
+/// only as the space's waiting deadline's, which it then replaces).
 async fn add_deadline(State(app): State<Arc<App>>, Path(id): Path<String>, body: Body) -> Result<Response, Unhandled> {
 	if !is_space_id(&id) {
 		return Ok(no_such_space());
 	}
 	let body = fields(body).await?;
 	let mut init = Obj::new();
-	for key in ["kind", "name", "date"] {
+	for key in ["id", "kind", "name", "date"] {
 		if let Some(value) = field(&body, key) {
 			init.insert(key, value.clone());
 		}
@@ -310,8 +312,10 @@ async fn add_deadline(State(app): State<Arc<App>>, Path(id): Path<String>, body:
 	if let Some(time) = field(&body, "time").filter(|t| !t.is_null()) {
 		init.insert("time", time.clone());
 	}
-	if let Some(file_ids) = field(&body, "fileIds") {
-		init.insert("fileIds", file_ids.clone());
+	for key in ["fileIds", "aboutFileId"] {
+		if let Some(value) = field(&body, key) {
+			init.insert(key, value.clone());
+		}
 	}
 	let deadline = match add_space_deadline(&app, &id, &Json::Obj(init)) {
 		Ok(deadline) => deadline,
@@ -326,7 +330,8 @@ async fn add_deadline(State(app): State<Arc<App>>, Path(id): Path<String>, body:
 }
 
 /// PUT /api/spaces/{id}/deadlines/{deadline_id}: a patch of kind, name, date, time (null clears),
-/// fileIds, leftOutIds, source (null clears), assignmentFileId (null clears) and done.
+/// fileIds, leftOutIds, source (null clears), assignmentFileId and aboutFileId (null clears) and
+/// done.
 async fn change_deadline(State(app): State<Arc<App>>, Path((id, deadline_id)): Path<(String, String)>, body: Body) -> Result<Response, Unhandled> {
 	if !is_space_id(&id) {
 		return Ok(no_such_space());
@@ -336,7 +341,7 @@ async fn change_deadline(State(app): State<Arc<App>>, Path((id, deadline_id)): P
 		return Ok(error(400, "done must be true or false"));
 	}
 	let mut patch = Obj::new();
-	for key in ["kind", "name", "date", "time", "fileIds", "leftOutIds", "source", "assignmentFileId", "done"] {
+	for key in ["kind", "name", "date", "time", "fileIds", "leftOutIds", "source", "assignmentFileId", "aboutFileId", "done"] {
 		if let Some(value) = field(&body, key) {
 			patch.insert(key, value.clone());
 		}
@@ -351,13 +356,13 @@ async fn change_deadline(State(app): State<Arc<App>>, Path((id, deadline_id)): P
 	}
 }
 
-/// DELETE /api/spaces/{id}/deadlines/{deadline_id}.
+/// DELETE /api/spaces/{id}/deadlines/{deadline_id}: `{ ok, mocksRemoved }`, its mocks go with it.
 async fn remove_deadline(State(app): State<Arc<App>>, Path((id, deadline_id)): Path<(String, String)>) -> Result<Response, Unhandled> {
 	if !is_space_id(&id) {
 		return Ok(no_such_space());
 	}
 	match remove_space_deadline(&app, &id, &deadline_id) {
-		Ok(()) => Ok(reply::json(200, &json!({ "ok": true }))),
+		Ok(removed) => Ok(reply::json(200, &json!({ "ok": true, "mocksRemoved": removed }))),
 		Err(failure) => refused(failure),
 	}
 }
@@ -369,6 +374,15 @@ async fn homework(State(app): State<Arc<App>>, Path((id, deadline_id)): Path<(St
 	match view {
 		Some(homework) => reply::json(200, &json!({ "homework": homework })),
 		None => error(404, "No such deadline"),
+	}
+}
+
+/// GET /api/spaces/{id}/deadlines/{deadline_id}/about: `{ fileId, name, text }` of the file on what
+/// the deadline is like. 404 when it has none.
+async fn about(State(app): State<Arc<App>>, Path((id, deadline_id)): Path<(String, String)>) -> Response {
+	match if is_space_id(&id) { deadline_about(&app, &id, &deadline_id) } else { None } {
+		Some(about) => reply::json(200, &about),
+		None => error(404, "No such file"),
 	}
 }
 

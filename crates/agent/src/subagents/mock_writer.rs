@@ -18,10 +18,10 @@ use parking_lot::Mutex;
 use super::pi_run::RunError;
 use crate::extraction::submit_agent::{SubmitAgentOptions, run_submit_agent};
 
-const MOCK_QUESTIONS_INSTRUCTIONS: &str = r#"You write one practice run (a mock) for someone getting ready for the thing the request names. Reply with one write_mock_questions call.
+const MOCK_QUESTIONS_INSTRUCTIONS: &str = r#"You write one practice run (a mock) for someone getting ready for the exam, quiz or interview the request names. Reply with one write_mock_questions call.
 
 - Write exactly the number of questions asked for, like the real thing in kind and difficulty, and doable in the time given. If the real thing gets harder as it goes, so does this.
-- Cover what the real thing covers, leaning on the topics that most need work. Give each question the topic_id of the topic it tests most.
+- Cover what the real thing covers, leaning on the topics that most need work. Give each question the fact_ids of the facts it tests, from the request.
 - Never repeat a question from an earlier mock.
 - kind "code": the answer is one function, checked by calling it. Give function_name (one plain name used in both JavaScript and Python), params, and 2 to 4 examples. It takes and returns only JSON values (numbers, strings, true/false, null, arrays, objects) and behaves the same in both languages. An example's args is a JSON array with one item per parameter, expected is the JSON value it returns. Work each example out by hand: a wrong one costs the learner the question.
 - kind "text": anything answered in words (explain, design, a behavioral question, a choice with its reason).
@@ -42,7 +42,7 @@ fn questions_schema() -> Json {
 						"title": { "type": "string", "minLength": 1, "description": "A few words." },
 						"statement": { "type": "string", "minLength": 1, "description": "The whole question, in markdown." },
 						"kind": { "anyOf": [{ "type": "string", "const": "code" }, { "type": "string", "const": "text" }] },
-						"topic_id": { "type": "string", "description": "The id of the sheet topic it tests most." },
+						"fact_ids": { "type": "array", "items": { "type": "string" }, "description": "The ids of the facts it tests." },
 						"function_name": { "type": "string", "description": "Code questions: the one function to write." },
 						"params": { "type": "array", "items": { "type": "string" }, "description": "Code questions: its parameter names, in order." },
 						"examples": {
@@ -65,7 +65,7 @@ fn questions_schema() -> Json {
 	})
 }
 
-const GRADE_MOCK_INSTRUCTIONS: &str = r#"You grade one finished practice run (a mock). The request has every question, what the learner wrote, and how long each took. Reply with one grade_mock call.
+const GRADE_MOCK_INSTRUCTIONS: &str = r#"You grade one finished practice run (a mock). The request has every question with the facts it tests, what the learner wrote, and how long each took. Reply with one grade_mock call.
 
 - Grade every answered question. Skip the ones marked blank.
 - A code answer: decide whether it is correct for every input the question allows, not only its examples. If you can run code, run it on the edge cases (empty input, one item, repeats, the largest sizes). right: correct, and fast enough for the limits. partly: the idea is right but some inputs fail or it is too slow. wrong: anything else.
@@ -108,9 +108,9 @@ fn items(list: &Json) -> &[Json] {
 	list.as_arr().map_or(&[], Vec::as_slice)
 }
 
-/// Writes a mock's questions for its `format`, keeping only `topic_ids` the prep has. Fails when
-/// the agent never sends usable ones.
-pub async fn write_mock_questions(bridge: &Bridge, input: MockRequest, format: &Json, topic_ids: HashSet<String>) -> Result<Vec<Json>, RunError> {
+/// Writes a mock's questions for its `format`, keeping only `fact_ids` the request gave. Fails
+/// when the agent never sends usable ones.
+pub async fn write_mock_questions(bridge: &Bridge, input: MockRequest, format: &Json, fact_ids: HashSet<String>) -> Result<Vec<Json>, RunError> {
 	let taken: Arc<Mutex<Vec<Json>>> = Arc::default();
 	let mut opts = SubmitAgentOptions::new(
 		"write_mock_questions",
@@ -124,7 +124,7 @@ pub async fn write_mock_questions(bridge: &Bridge, input: MockRequest, format: &
 	opts.validate = Some(Box::new({
 		let (taken, format) = (taken.clone(), format.clone());
 		move |written: &Json| {
-			let problem = match take_questions(items(written), &format, &topic_ids) {
+			let problem = match take_questions(items(written), &format, &fact_ids) {
 				Ok(questions) => {
 					*taken.lock() = questions;
 					None
@@ -183,7 +183,7 @@ mod tests {
 	use crate::subagents::test_support::{bridge, calls, faux_engine, reply_seeing, result_texts, says};
 
 	fn request(script: &Arc<Scripted>) -> MockRequest {
-		MockRequest { label: "Mock 1".to_owned(), prompt: "They are preparing for: Phone screen".to_owned(), engine: faux_engine(script), signal: Abort::new() }
+		MockRequest { label: "Mock 1".to_owned(), prompt: "They are preparing for: Larkspur phone screen (interview).".to_owned(), engine: faux_engine(script), signal: Abort::new() }
 	}
 
 	fn format() -> Json {
@@ -191,7 +191,7 @@ mod tests {
 	}
 
 	fn question() -> Json {
-		json!({ "title": "Count", "statement": "Count them.", "kind": "code", "topic_id": "pt_a", "function_name": "count", "params": ["s"], "examples": [{ "args": "[\"ab\"]", "expected": "2" }, { "args": "[\"\"]", "expected": "0" }] })
+		json!({ "title": "Count", "statement": "Count them.", "kind": "code", "fact_ids": ["f_a"], "function_name": "count", "params": ["s"], "examples": [{ "args": "[\"ab\"]", "expected": "2" }, { "args": "[\"\"]", "expected": "0" }] })
 	}
 
 	#[tokio::test]
@@ -203,7 +203,7 @@ mod tests {
 		let questions = write_mock_questions(&bridge(), request(&script), &format(), HashSet::new()).await.unwrap();
 		assert_eq!(questions.len(), 1);
 		assert_eq!(questions[0]["id"], Json::from("q1"));
-		assert!(questions[0].get("topicId").is_none(), "a topic the prep doesn't have is dropped");
+		assert!(questions[0].get("factIds").is_none(), "a fact the request didn't give is dropped");
 		assert!(result_texts(&seen.lock()[0])[0].contains("Write exactly 1 questions (got 2)."));
 	}
 
@@ -218,10 +218,10 @@ mod tests {
 
 	#[tokio::test]
 	async fn grades_must_cover_every_answered_question() {
-		let mut mock = new_mock("mock_0a1b2c3d", 1.0, &format(), "2026-11-11T09:00:00.000Z");
+		let mut mock = new_mock("mock_0a1b2c3d", "ddl_a", 1.0, &format(), "2026-11-11T09:00:00.000Z");
 		mock.as_obj_mut().unwrap().insert("questions", take_questions(&[question()], &format(), &HashSet::new()).unwrap());
-		let live = start_mock(&mock, "2026-11-11T10:00:00.000Z");
-		let ended = end_mock(&with_answer(&live, "q1", &json!({ "text": "", "language": "javascript", "code": { "javascript": "x" }, "seconds": 5, "submitted": true })), "2026-11-11T10:10:00.000Z");
+		let live = start_mock(&mock, 1_000);
+		let ended = end_mock(&with_answer(&live, "q1", &json!({ "text": "", "language": "javascript", "code": { "javascript": "x" }, "seconds": 5, "submitted": true })), 2_000);
 		let script = Scripted::new();
 		let seen = Arc::new(Mutex::new(Vec::new()));
 		script.reply(calls(&[("grade_mock", json!({ "grades": [] }))]));
@@ -235,7 +235,7 @@ mod tests {
 	fn the_schemas_are_typebox_shaped() {
 		assert_eq!(
 			gs_json::stringify(&questions_schema()),
-			r#"{"type":"object","required":["questions"],"properties":{"questions":{"type":"array","items":{"type":"object","required":["title","statement","kind"],"properties":{"title":{"type":"string","minLength":1,"description":"A few words."},"statement":{"type":"string","minLength":1,"description":"The whole question, in markdown."},"kind":{"anyOf":[{"type":"string","const":"code"},{"type":"string","const":"text"}]},"topic_id":{"type":"string","description":"The id of the sheet topic it tests most."},"function_name":{"type":"string","description":"Code questions: the one function to write."},"params":{"type":"array","items":{"type":"string"},"description":"Code questions: its parameter names, in order."},"examples":{"type":"array","items":{"type":"object","required":["args","expected"],"properties":{"args":{"type":"string","description":"A JSON array with one item per parameter: \"[[2,7,11,15], 9]\"."},"expected":{"type":"string","description":"The JSON value it returns: \"[0,1]\"."}}},"description":"Code questions: 2 to 4 calls and what each returns."}}},"minItems":1}}}"#
+			r#"{"type":"object","required":["questions"],"properties":{"questions":{"type":"array","items":{"type":"object","required":["title","statement","kind"],"properties":{"title":{"type":"string","minLength":1,"description":"A few words."},"statement":{"type":"string","minLength":1,"description":"The whole question, in markdown."},"kind":{"anyOf":[{"type":"string","const":"code"},{"type":"string","const":"text"}]},"fact_ids":{"type":"array","items":{"type":"string"},"description":"The ids of the facts it tests."},"function_name":{"type":"string","description":"Code questions: the one function to write."},"params":{"type":"array","items":{"type":"string"},"description":"Code questions: its parameter names, in order."},"examples":{"type":"array","items":{"type":"object","required":["args","expected"],"properties":{"args":{"type":"string","description":"A JSON array with one item per parameter: \"[[2,7,11,15], 9]\"."},"expected":{"type":"string","description":"The JSON value it returns: \"[0,1]\"."}}},"description":"Code questions: 2 to 4 calls and what each returns."}}},"minItems":1}}}"#
 		);
 		assert_eq!(
 			gs_json::stringify(&grades_schema()),

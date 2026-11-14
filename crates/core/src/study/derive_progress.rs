@@ -23,7 +23,9 @@ use crate::graph::topics::resolve_topics;
 /// The progress payload for GET /api/progress.
 ///
 /// `input` is `{ spaceId, today, facts, chains, topics, files, deadlines, lessons[,
-/// deadlineSessions, homeworkSessions, grouping] }`; each lesson carries its collected `answers`.
+/// deadlineSessions, homeworkSessions, mockAnswers, grouping] }`; each lesson carries its
+/// collected `answers`, and `mockAnswers` are graded mock questions, which count for their facts
+/// but belong to no lesson.
 pub fn derive_progress(input: &Json) -> Json {
 	let facts = items(&input["facts"]);
 	let fact_ids: Vec<String> = facts.iter().map(|f| f["id"].as_str().unwrap_or("").to_owned()).collect();
@@ -53,7 +55,7 @@ pub fn derive_progress(input: &Json) -> Json {
 			}
 		}
 	}
-	let mut all_answers: Vec<&Json> = by_lesson.iter().flat_map(|a| a.iter()).collect();
+	let mut all_answers: Vec<&Json> = by_lesson.iter().flat_map(|a| a.iter()).chain(items(&input["mockAnswers"])).collect();
 	all_answers.sort_by(|a, b| locale::compare(a["answeredAt"].as_str().unwrap_or(""), b["answeredAt"].as_str().unwrap_or("")));
 
 	// Answer to facts to topics.
@@ -238,4 +240,26 @@ pub fn derive_progress(input: &Json) -> Json {
 	out.insert("overall", Json::Obj(overall));
 	out.insert("totals", Tally::of(all_answers.iter().copied()).to_json());
 	Json::Obj(out)
+}
+
+#[cfg(test)]
+mod tests {
+	use gs_json::json;
+
+	use super::*;
+
+	#[test]
+	fn a_graded_mock_question_counts_for_its_facts_topic_but_is_no_lesson() {
+		let input = json!({
+			"spaceId": "spc_a", "today": "2026-11-13",
+			"facts": [{ "id": "f_a", "name": "Token bucket", "statement": "A token bucket refills at a fixed rate.", "provenance": [] }],
+			"chains": [], "topics": { "topics": [{ "id": "t_limits", "name": "Rate limiting", "members": ["f_a"] }] },
+			"files": [], "deadlines": [], "lessons": [],
+			"mockAnswers": [{ "chatId": "mock_0a1b2c3d", "toolCallId": "q1", "tool": "mock", "factIds": ["f_a"], "outcome": "right", "answeredAt": "2026-11-12T10:00:00.000Z" }],
+		});
+		let progress = derive_progress(&input);
+		assert_eq!((progress["topics"][0]["answered"].clone(), progress["topics"][0]["right"].clone()), (json!(1), json!(1)));
+		assert_eq!(progress["facts"][0]["answers"].as_arr().unwrap().len(), 1);
+		assert_eq!(progress["lessons"], json!([]));
+	}
 }

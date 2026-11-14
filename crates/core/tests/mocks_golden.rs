@@ -1,7 +1,10 @@
-//! Parity with Node for mocks (tests/golden/mocks.json, recorded from the Node server): questions taken or refused, answers and grades, saved mocks read back, the
-//! clock, the program that runs the examples, how its output is read, and the teacher's texts.
+//! Mocks against tests/golden/mocks.json (first recorded from the Node server, re-recorded for
+//! format 2): questions taken or refused, answers and grades, saved mocks read back, the clock,
+//! the program that runs the examples, how its output is read, and the teacher's texts. The
+//! clock's mocks are format 1 as 0.6.5 saved them, and still give the states, time left and
+//! minutes used recorded then.
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use gs_base::time;
 use gs_core::mocks::mock::{
@@ -26,8 +29,20 @@ fn same(got: &Json, want: &Json, what: &str) {
 	assert_eq!(stringify(got), stringify(want), "{what}");
 }
 
-fn topics() -> HashSet<String> {
+fn facts() -> HashSet<String> {
 	["pt_lists", "pt_maps"].into_iter().map(str::to_owned).collect()
+}
+
+fn ms(text: &str) -> i64 {
+	time::parse_date(text).unwrap()
+}
+
+/// A format 1 mock as the format 2 reader reads it.
+fn read(raw: &Json) -> Json {
+	match parse_mock(raw) {
+		Some(ParsedMock::Mock(mock)) => mock,
+		other => panic!("not a mock: {other:?}"),
+	}
 }
 
 /// A JS number or null (`number | null`).
@@ -38,7 +53,7 @@ fn number(n: Option<f64>) -> Json {
 #[test]
 fn take_questions_matches() {
 	for case in items(&golden("take questions")) {
-		let got = match take_questions(items(&case["written"]), &case["format"], &topics()) {
+		let got = match take_questions(items(&case["written"]), &case["format"], &facts()) {
 			Ok(questions) => Json::from(questions),
 			Err(problem) => Json::from(problem),
 		};
@@ -55,18 +70,19 @@ fn starter_code_matches() {
 #[test]
 fn states_and_clock_match() {
 	let want = golden("states and clock");
-	let mocks = items(&want["mocks"]);
+	let mocks: Vec<Json> = items(&want["mocks"]).iter().map(read).collect();
 	let states: Vec<&str> = mocks.iter().map(|m| mock_state(m).as_str()).collect();
 	same(&json!(states), &want["states"], "states");
 	let (live, over, ready) = (&mocks[2], &mocks[3], &mocks[1]);
-	same(&start_mock(live, "later"), &want["started"], "start twice");
-	same(&end_mock(over, "later"), &want["ended"], "end twice");
-	let t0 = time::parse_date("2026-11-12T09:00:00.000Z").unwrap() as f64;
-	let left: Vec<Json> = items(&want["offsets"]).iter().map(|ms| Json::Num(seconds_left(live, t0 + ms.as_f64().unwrap()))).collect();
+	let later = ms("2026-11-12T12:00:00.000Z");
+	same(&start_mock(live, later), &want["started"], "start twice");
+	same(&end_mock(over, later), &want["ended"], "end twice");
+	let t0 = ms("2026-11-12T09:00:00.000Z") as f64;
+	let left: Vec<Json> = items(&want["offsets"]).iter().map(|offset| number(seconds_left(live, t0 + offset.as_f64().unwrap()))).collect();
 	same(&Json::from(left), &want["left"], "seconds left");
-	same(&Json::Num(seconds_left(ready, t0)), &want["notStarted"], "not started");
+	same(&number(seconds_left(ready, t0)), &want["notStarted"], "not started");
 	let mut used = vec![number(minutes_used(live))];
-	used.extend(items(&want["ends"]).iter().map(|end| number(minutes_used(&end_mock(live, end.as_str().unwrap())))));
+	used.extend(items(&want["ends"]).iter().map(|end| number(minutes_used(&end_mock(live, ms(end.as_str().unwrap()))))));
 	same(&Json::from(used), &want["used"], "minutes used");
 }
 
@@ -137,15 +153,18 @@ fn requests_match() {
 	let want = golden("requests");
 	let topics = items(&want["topics"]);
 	let asked = ["Pair sums".to_owned(), "Hash maps".to_owned()];
+	let deadline = json!({ "name": "Larkspur backend intern test", "kind": "exam" });
+	let other = json!({ "name": "g", "kind": "quiz" });
 	let questions = [
-		mock_request_text("Backend intern online test", "Two coding questions.\nNo libraries.", &json!({ "questions": 1, "minutes": 45 }), topics, &asked),
-		mock_request_text("g", "", &json!({ "questions": 10, "minutes": 240 }), &[], &[]),
+		mock_request_text(&deadline, Some("Two coding questions.\nNo libraries."), &json!({ "questions": 1, "minutes": 45 }), topics, &asked),
+		mock_request_text(&other, None, &json!({ "questions": 10 }), &[], &[]),
 	];
 	same(&json!(questions), &want["questions"], "questions");
+	let statements: HashMap<String, String> = [("pt_lists", "Two indexes can walk a sorted list."), ("pt_maps", "A hash map looks a key up in constant time on average.")].map(|(k, v)| (k.to_owned(), v.to_owned())).into();
 	let grades = [
-		grade_request_text("Backend intern online test", &want["mock"], &want["runs"]),
-		grade_request_text("g", &want["short"], &json!({})),
-		grade_request_text("g", &want["running"], &want["timedOut"]),
+		grade_request_text(&deadline, &want["mock"], &want["runs"], &statements),
+		grade_request_text(&other, &want["short"], &json!({}), &HashMap::new()),
+		grade_request_text(&other, &want["running"], &want["timedOut"], &HashMap::new()),
 	];
 	same(&json!(grades), &want["grades"], "grades");
 	let go_over = [go_over_text(&want["mock"], "q1"), go_over_text(&want["mock"], "q2"), go_over_text(&want["blankGraded"], "q2"), go_over_text(&want["mock"], "q3")];

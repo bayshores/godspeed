@@ -21,8 +21,7 @@ pub fn current_agent_briefing(app: &App, max_chars: usize) -> String {
 			name: record["name"].as_str().unwrap_or_default().to_owned(),
 			archived: record["archived"].truthy(),
 			deadlines: record["deadlines"].as_arr().cloned().unwrap_or_default(),
-			// A prep has no signature or description to fill in.
-			missing_setup: if record["prep"].truthy() { Vec::new() } else { missing_setup(record).into_iter().map(str::to_owned).collect() },
+			missing_setup: missing_setup(record).into_iter().map(str::to_owned).collect(),
 		})
 		.collect();
 	let lessons = app

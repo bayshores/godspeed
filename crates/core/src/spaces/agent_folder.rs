@@ -147,7 +147,7 @@ pub fn mcp_json(folder: &str, platform: Platform) -> String {
 }
 
 /// .godspeed/claude-settings.json: turns on the folder's server, lets the agent use godspeed's
-/// tools, the waiter and web search (a prep sheet is looked up online) without asking, and tells
+/// tools, the waiter and web search (what an interview is like is looked up online) without asking, and tells
 /// the app when the session starts compacting and when it lost its context. Fetching a page still
 /// asks: text hidden in a space file could send the learner's data out.
 pub fn claude_settings(folder: &str, platform: Platform) -> String {

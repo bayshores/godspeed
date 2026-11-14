@@ -10,7 +10,7 @@ use gs_core::contracts::space::{SPACE_ICONS, SIGNATURE_MAX};
 use gs_json::{Json, json, stringify};
 
 use super::fn_tool::FnTool;
-use gs_core::session::schema::{boolean, described, no_arguments, object, one_of_literals, string, string_min, string_or_null, strings};
+use gs_core::session::schema::{boolean, no_arguments, object, one_of_literals, string, string_min, string_or_null, strings};
 
 /// Runs one space tool by name over its validated arguments (server/space-actions.ts).
 pub type SpaceActions = Arc<dyn Fn(&str, Json) -> BoxFuture<'static, ToolOutcome> + Send + Sync>;
@@ -76,7 +76,7 @@ fn schema_of(name: &str) -> Json {
 				("archived", json!({ "type": "boolean" })),
 			],
 		),
-		"add_space_file" => object(&["space_id", "path", "kind"], vec![id(), ("path", string(t.file_path)), ("kind", file_kind(t))]),
+		"add_space_file" => object(&["space_id", "kind"], vec![id(), ("path", string(t.file_path)), ("name", string(t.file_name)), ("text", string(t.file_text)), ("kind", file_kind(t))]),
 		"set_space_file_kind" => object(
 			&["space_id", "file_ids", "kind"],
 			vec![id(), ("file_ids", json!({ "type": "array", "items": { "type": "string" }, "minItems": 1, "description": t.file_ids })), ("kind", file_kind(t))],
@@ -93,6 +93,7 @@ fn schema_of(name: &str) -> Json {
 					("left_out_ids", strings(t.left_out_files)),
 					("source", string(t.source)),
 					("assignment_file_id", string(t.assignment_file)),
+					("about_file_id", string(t.about_file)),
 				],
 			);
 			object(&["space_id", "deadlines"], vec![id(), ("deadlines", json!({ "type": "array", "items": deadline, "minItems": 1 }))])
@@ -110,22 +111,12 @@ fn schema_of(name: &str) -> Json {
 				("left_out_ids", strings(t.left_out_files)),
 				("source", string_or_null(t.source)),
 				("assignment_file_id", string_or_null(t.assignment_file)),
+				("about_file_id", string_or_null(t.about_file)),
 				("done", json!({ "type": "boolean" })),
 			],
 		),
 		"remove_space_deadline" => object(&["space_id", "deadline_id"], vec![id(), ("deadline_id", space_id())]),
 		"link_space_folder" => object(&["space_id", "path"], vec![id(), ("path", string(t.folder_path))]),
-		"update_prep" => object(
-			&["space_id"],
-			vec![
-				id(),
-				("date", string_or_null(t.prep_date)),
-				("about", string_min(1, t.prep_about)),
-				("mock", described(object(&["questions", "minutes"], vec![("questions", json!({ "type": "integer" })), ("minutes", json!({ "type": "integer" }))]), t.prep_mock)),
-				("add_topics", json!({ "type": "array", "items": object(&["name"], vec![("name", json!({ "type": "string", "minLength": 1 })), ("why", json!({ "type": "string" }))]), "description": t.add_topics })),
-				("remove_topic_ids", strings(t.remove_topics)),
-			],
-		),
 		"start_lesson" => object(&["topic"], vec![("topic", string_min(1, t.topic)), ("space_id", string(t.lesson_space))]),
 		_ => unreachable!("every space tool name has a schema"),
 	}

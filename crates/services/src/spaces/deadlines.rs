@@ -9,8 +9,11 @@ use gs_core::spaces::today_note::local_day;
 use gs_json::{Json, json};
 use gs_store::spaces::SpaceError;
 
+use super::files::file_in;
+use super::space_card::space_file_path;
 use super::{SpaceFailure, SpaceOutcome, fail, no_space};
 use crate::App;
+use crate::mocks::mocks::remove_deadline_mocks;
 
 fn deadline_failure(err: SpaceError) -> SpaceFailure {
 	match err {
@@ -40,7 +43,8 @@ pub fn update_space_deadline(app: &Arc<App>, space_id: &str, deadline_id: &str, 
 	app.stores.spaces.update_deadline(space_id, deadline_id, patch).map_err(deadline_failure)
 }
 
-pub fn remove_space_deadline(app: &App, space_id: &str, deadline_id: &str) -> SpaceOutcome<()> {
+/// Removes a deadline with its cheat sheet and its mocks; how many mocks went with it.
+pub fn remove_space_deadline(app: &App, space_id: &str, deadline_id: &str) -> SpaceOutcome<usize> {
 	if app.stores.spaces.get_space(space_id).is_none() {
 		return no_space();
 	}
@@ -49,7 +53,18 @@ pub fn remove_space_deadline(app: &App, space_id: &str, deadline_id: &str) -> Sp
 		Ok(false) => return fail(404, "deadline_not_found", format!("No deadline \"{deadline_id}\" in this space")),
 		Err(err) => return Err(SpaceFailure::thrown(err)),
 	}
-	app.stores.cheat_sheets.remove_cheat_sheet(space_id, deadline_id).map_err(SpaceFailure::thrown)
+	app.stores.cheat_sheets.remove_cheat_sheet(space_id, deadline_id).map_err(SpaceFailure::thrown)?;
+	remove_deadline_mocks(app, space_id, deadline_id).map_err(SpaceFailure::thrown)
+}
+
+/// What a deadline's "What it's like" file says: `{fileId, name, text}`, or None when it has no
+/// such file or the file can't be read.
+pub fn deadline_about(app: &App, space_id: &str, deadline_id: &str) -> Option<Json> {
+	let record = app.stores.spaces.get_space(space_id)?;
+	let deadline = record["deadlines"].as_arr()?.iter().find(|d| d["id"].as_str() == Some(deadline_id))?;
+	let file = file_in(&record, deadline["aboutFileId"].as_str()?)?;
+	let text = std::fs::read_to_string(space_file_path(app, &record, file)?).ok()?;
+	Some(json!({ "fileId": file["id"], "name": file["name"], "text": text }))
 }
 
 /// The deadlines `keep` picks from every space that is not archived, soonest due first, each with

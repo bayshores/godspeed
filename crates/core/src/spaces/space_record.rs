@@ -3,14 +3,13 @@
 
 use std::collections::HashSet;
 
-use gs_json::{Json, Obj, json};
+use gs_json::{Json, Obj};
 
 use super::new_files::is_recent_change;
 use super::space_deadlines::{id_list, squash, with_files};
 use super::space_work::{is_first_round, is_waiting_file};
 use crate::contracts::space::{CURRENT_SPACE_VERSION, clean_signature, compare_deadlines, is_deadline_kind, is_space_color, is_space_icon};
 use gs_base::text::cmp16;
-use crate::mocks::prep::parse_prep;
 use crate::records::teaching_areas::sanitize_rules;
 
 fn is_str(v: &Json) -> bool {
@@ -70,8 +69,10 @@ fn read_deadline(d: &Json) -> Json {
 	if d["source"].as_str().is_some_and(|s| !s.is_empty()) {
 		out.insert("source", d["source"].clone());
 	}
-	if is_str(&d["assignmentFileId"]) {
-		out.insert("assignmentFileId", d["assignmentFileId"].clone());
+	for key in ["assignmentFileId", "aboutFileId"] {
+		if is_str(&d[key]) {
+			out.insert(key, d[key].clone());
+		}
 	}
 	if let Some(problems) = d["problems"].as_arr().filter(|p| p.iter().any(is_homework_problem)) {
 		out.insert("problems", Json::Arr(problems.iter().filter(|p| is_homework_problem(p)).map(clean_problem).collect()));
@@ -124,14 +125,31 @@ fn recent_removed(list: &Json, now: i64) -> Vec<Json> {
 	list.as_arr().into_iter().flatten().filter(valid).filter(recent).map(rebuilt).collect()
 }
 
-/// A record's deadline without its assignment file once that file is gone.
-fn known_assignment(mut d: Json, file_ids: &HashSet<&str>) -> Json {
-	if d["assignmentFileId"].as_str().is_some_and(|f| !file_ids.contains(f))
-		&& let Some(obj) = d.as_obj_mut()
-	{
-		obj.remove("assignmentFileId");
+/// A record's deadline (or waiting deadline) without its assignment or about file once that file
+/// is gone.
+fn known_files(mut d: Json, file_ids: &HashSet<&str>) -> Json {
+	for key in ["assignmentFileId", "aboutFileId"] {
+		if d[key].as_str().is_some_and(|f| !file_ids.contains(f))
+			&& let Some(obj) = d.as_obj_mut()
+		{
+			obj.remove(key);
+		}
 	}
 	d
+}
+
+/// An upgraded prep with no date: the interview it becomes once the learner gives its date
+/// (`{id, name, aboutFileId?, fileIds}`), or None when it is not one.
+fn read_waiting_deadline(v: &Json, file_ids: &HashSet<&str>) -> Option<Json> {
+	let (id, name, files) = (v["id"].as_str()?, v["name"].as_str()?, id_list(&v["fileIds"])?);
+	let mut out = Obj::new();
+	out.insert("id", id);
+	out.insert("name", name);
+	if is_str(&v["aboutFileId"]) {
+		out.insert("aboutFileId", v["aboutFileId"].clone());
+	}
+	out.insert("fileIds", files.into_iter().filter(|f| file_ids.contains(f.as_str())).collect::<Vec<_>>());
+	Some(known_files(Json::Obj(out), file_ids))
 }
 
 /// A saved round of the teacher's work, field by field, or None when it is not one.
@@ -166,12 +184,13 @@ pub fn read_space_record(parsed: &Json, now: i64, fresh_color: impl FnOnce() -> 
 			.map(|d| {
 				let file_ids = keep_known(id_list(&d["fileIds"]).unwrap_or_default());
 				let left_out = id_list(&d["leftOutIds"]).map(keep_known);
-				with_files(known_assignment(d, &known), file_ids, left_out, false)
+				with_files(known_files(d, &known), file_ids, left_out, false)
 			})
 			.collect();
 		cleaned.sort_by(compare_deadlines);
 		cleaned
 	});
+	let waiting = read_waiting_deadline(&parsed["waitingDeadline"], &known);
 	let rules = sanitize_rules(&parsed["rules"]);
 
 	let mut out = Obj::new();
@@ -190,6 +209,9 @@ pub fn read_space_record(parsed: &Json, now: i64, fresh_color: impl FnOnce() -> 
 	}
 	if let Some(deadlines) = deadlines {
 		out.insert("deadlines", Json::Arr(deadlines));
+	}
+	if let Some(waiting) = waiting {
+		out.insert("waitingDeadline", waiting);
 	}
 	if let Some(signature) = clean_signature(&parsed["signature"]) {
 		out.insert("signature", signature);
@@ -211,8 +233,10 @@ pub fn read_space_record(parsed: &Json, now: i64, fresh_color: impl FnOnce() -> 
 	if let Some(work) = read_work(&parsed["lastWork"]) {
 		out.insert("lastWork", work);
 	}
-	if let Some(prep) = parse_prep(&parsed["prep"]) {
-		out.insert("prep", prep);
+	// An old prep stays as saved until the one-time upgrade (`prep_upgrade`) drops it, so no
+	// write before then loses it.
+	if parsed["prep"].as_obj().is_some() {
+		out.insert("prep", parsed["prep"].clone());
 	}
 	if matches!(parsed["version"], Json::Num(_)) {
 		out.insert("version", parsed["version"].clone());
@@ -278,9 +302,6 @@ pub fn summarize(record: &Json) -> Json {
 	if files_left > 0 && files_read > 0 {
 		out.insert("filesRead", files_read);
 	}
-	if let Some(prep) = record.get("prep") {
-		out.insert("prep", if prep["date"].truthy() { json!({ "date": prep["date"].clone() }) } else { json!({}) });
-	}
 	Json::Obj(out)
 }
 
@@ -318,6 +339,22 @@ mod tests {
 	}
 
 	#[test]
+	fn a_gone_about_file_drops_out_and_a_waiting_deadline_and_an_old_prep_are_kept() {
+		let parsed = json!({
+			"id": "spc_a", "name": "Larkspur onsite", "createdAt": "c", "updatedAt": "u", "files": [file("f1", "copied", "t")],
+			"deadlines": [{ "id": "d1", "kind": "interview", "name": "Onsite", "date": "2026-11-24", "fileIds": [], "aboutFileId": "gone", "done": false }],
+			"waitingDeadline": { "id": "ddl_w", "name": "Phone screen", "aboutFileId": "f1", "fileIds": ["f1", "gone"], "extra": 1 },
+			"prep": { "goal": "Larkspur onsite", "topics": [{ "id": "pt_1" }] },
+		});
+		let record = read_space_record(&parsed, 0, || 1).unwrap();
+		assert!(record["deadlines"][0].get("aboutFileId").is_none());
+		assert_eq!(stringify(&record["waitingDeadline"]), r#"{"id":"ddl_w","name":"Phone screen","aboutFileId":"f1","fileIds":["f1"]}"#);
+		assert_eq!(record["prep"], parsed["prep"], "kept as saved until the upgrade");
+		assert!(summarize(&record).get("prep").is_none());
+		assert!(read_space_record(&json!({ "id": "spc_a", "name": "n", "createdAt": "c", "updatedAt": "u", "waitingDeadline": { "id": "x" }, "prep": "no" }), 0, || 1).unwrap().get("waitingDeadline").is_none());
+	}
+
+	#[test]
 	fn names_are_one_short_line() {
 		assert_eq!(clean_name("  CSE \n 21  "), "CSE 21");
 		assert_eq!(clean_name(" \t "), "Untitled space");
@@ -335,8 +372,8 @@ mod tests {
 	fn a_record_without_its_basics_does_not_read() {
 		assert!(read_space_record(&json!({ "id": "cls_a", "name": "n", "createdAt": "c" }), 0, || 1).is_none());
 		assert!(read_space_record(&json!([]), 0, || 1).is_none());
-		assert_eq!(newer_version(&json!({ "version": 11 })), Some(11.0));
-		assert_eq!(newer_version(&json!({ "version": 10 })), None);
+		assert_eq!(newer_version(&json!({ "version": 12 })), Some(12.0));
+		assert_eq!(newer_version(&json!({ "version": 11 })), None);
 	}
 
 	#[test]

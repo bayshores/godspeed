@@ -21,6 +21,7 @@ use parking_lot::Mutex;
 use super::graph::graph_store_for;
 use super::topics::topic_grouping_running;
 use crate::App;
+use crate::mocks::mocks::space_mock_answers;
 use crate::spaces::source_id_for;
 
 /// A lesson's graded answers, practice outcomes, questions from earlier, kept sentences and when
@@ -227,6 +228,7 @@ pub fn progress_for<'a>(app: &App, scope: impl Into<Option<&'a str>>, today: Opt
 		"lessons": lessons,
 		"deadlineSessions": deadline_sessions,
 		"homeworkSessions": homework_sessions,
+		"mockAnswers": scope.map_or_else(Vec::new, |id| space_mock_answers(app, id)),
 		"grouping": scope.is_some_and(|id| topic_grouping_running(app, id)),
 	});
 	Ok(Some(derive_progress(&input)))

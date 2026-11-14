@@ -8,7 +8,6 @@
 						"title": "  Pair   sums\n",
 						"statement": "  Return the indexes of two numbers that add up to `target`.  ",
 						"kind": "code",
-						"topic_id": "pt_lists",
 						"function_name": "pairSum",
 						"params": [
 							"nums",
@@ -23,13 +22,18 @@
 								"args": "[[1,1], 2]",
 								"expected": "[0,1]"
 							}
+						],
+						"fact_ids": [
+							"pt_lists"
 						]
 					},
 					{
 						"title": "Hash maps",
 						"statement": "When is a hash map slow?",
 						"kind": "text",
-						"topic_id": "pt_maps"
+						"fact_ids": [
+							"pt_maps"
+						]
 					}
 				],
 				"format": {
@@ -39,7 +43,9 @@
 				"output": [
 					{
 						"id": "q1",
-						"topicId": "pt_lists",
+						"factIds": [
+							"pt_lists"
+						],
 						"title": "Pair sums",
 						"statement": "Return the indexes of two numbers that add up to `target`.",
 						"kind": "code",
@@ -63,7 +69,9 @@
 					},
 					{
 						"id": "q2",
-						"topicId": "pt_maps",
+						"factIds": [
+							"pt_maps"
+						],
 						"title": "Hash maps",
 						"statement": "When is a hash map slow?",
 						"kind": "text"
@@ -76,7 +84,6 @@
 						"title": "  Pair   sums\n",
 						"statement": "  Return the indexes of two numbers that add up to `target`.  ",
 						"kind": "code",
-						"topic_id": "pt_other",
 						"function_name": "pairSum",
 						"params": [
 							"nums",
@@ -91,13 +98,18 @@
 								"args": "[[1,1], 2]",
 								"expected": "[0,1]"
 							}
+						],
+						"fact_ids": [
+							"pt_other"
 						]
 					},
 					{
 						"title": "Hash maps",
 						"statement": "When is a hash map slow?",
 						"kind": "text",
-						"topic_id": ""
+						"fact_ids": [
+							""
+						]
 					}
 				],
 				"format": {
@@ -142,7 +154,6 @@
 						"title": "  Pair   sums\n",
 						"statement": "  Return the indexes of two numbers that add up to `target`.  ",
 						"kind": "code",
-						"topic_id": "pt_lists",
 						"function_name": "pairSum",
 						"params": [
 							"nums",
@@ -157,6 +168,9 @@
 								"args": "[[1,1], 2]",
 								"expected": "[0,1]"
 							}
+						],
+						"fact_ids": [
+							"pt_lists"
 						]
 					}
 				],
@@ -172,7 +186,6 @@
 						"title": "  Pair   sums\n",
 						"statement": "  Return the indexes of two numbers that add up to `target`.  ",
 						"kind": "code",
-						"topic_id": "pt_lists",
 						"function_name": "pairSum",
 						"params": [
 							"nums",
@@ -187,19 +200,26 @@
 								"args": "[[1,1], 2]",
 								"expected": "[0,1]"
 							}
+						],
+						"fact_ids": [
+							"pt_lists"
 						]
 					},
 					{
 						"title": "Hash maps",
 						"statement": "When is a hash map slow?",
 						"kind": "text",
-						"topic_id": "pt_maps"
+						"fact_ids": [
+							"pt_maps"
+						]
 					},
 					{
 						"title": "Hash maps",
 						"statement": "When is a hash map slow?",
 						"kind": "text",
-						"topic_id": "pt_maps"
+						"fact_ids": [
+							"pt_maps"
+						]
 					}
 				],
 				"format": {
@@ -209,7 +229,9 @@
 				"output": [
 					{
 						"id": "q1",
-						"topicId": "pt_lists",
+						"factIds": [
+							"pt_lists"
+						],
 						"title": "Pair sums",
 						"statement": "Return the indexes of two numbers that add up to `target`.",
 						"kind": "code",
@@ -233,14 +255,18 @@
 					},
 					{
 						"id": "q2",
-						"topicId": "pt_maps",
+						"factIds": [
+							"pt_maps"
+						],
 						"title": "Hash maps",
 						"statement": "When is a hash map slow?",
 						"kind": "text"
 					},
 					{
 						"id": "q3",
-						"topicId": "pt_maps",
+						"factIds": [
+							"pt_maps"
+						],
 						"title": "Hash maps",
 						"statement": "When is a hash map slow?",
 						"kind": "text"
@@ -253,7 +279,6 @@
 						"title": "\u0007 ",
 						"statement": "  Return the indexes of two numbers that add up to `target`.  ",
 						"kind": "code",
-						"topic_id": "pt_lists",
 						"function_name": "pairSum",
 						"params": [
 							"nums",
@@ -268,13 +293,18 @@
 								"args": "[[1,1], 2]",
 								"expected": "[0,1]"
 							}
+						],
+						"fact_ids": [
+							"pt_lists"
 						]
 					},
 					{
 						"title": "Hash maps",
 						"statement": "When is a hash map slow?",
 						"kind": "text",
-						"topic_id": "pt_maps"
+						"fact_ids": [
+							"pt_maps"
+						]
 					}
 				],
 				"format": {
@@ -289,7 +319,6 @@
 						"title": "  Pair   sums\n",
 						"statement": " \n ",
 						"kind": "code",
-						"topic_id": "pt_lists",
 						"function_name": "pairSum",
 						"params": [
 							"nums",
@@ -304,13 +333,18 @@
 								"args": "[[1,1], 2]",
 								"expected": "[0,1]"
 							}
+						],
+						"fact_ids": [
+							"pt_lists"
 						]
 					},
 					{
 						"title": "Hash maps",
 						"statement": "When is a hash map slow?",
 						"kind": "text",
-						"topic_id": "pt_maps"
+						"fact_ids": [
+							"pt_maps"
+						]
 					}
 				],
 				"format": {
@@ -325,7 +359,6 @@
 						"title": "  Pair   sums\n",
 						"statement": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
 						"kind": "code",
-						"topic_id": "pt_lists",
 						"function_name": "pairSum",
 						"params": [
 							"nums",
@@ -340,13 +373,18 @@
 								"args": "[[1,1], 2]",
 								"expected": "[0,1]"
 							}
+						],
+						"fact_ids": [
+							"pt_lists"
 						]
 					},
 					{
 						"title": "Hash maps",
 						"statement": "When is a hash map slow?",
 						"kind": "text",
-						"topic_id": "pt_maps"
+						"fact_ids": [
+							"pt_maps"
+						]
 					}
 				],
 				"format": {
@@ -356,7 +394,9 @@
 				"output": [
 					{
 						"id": "q1",
-						"topicId": "pt_lists",
+						"factIds": [
+							"pt_lists"
+						],
 						"title": "Pair sums",
 						"statement": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
 						"kind": "code",
@@ -380,7 +420,9 @@
 					},
 					{
 						"id": "q2",
-						"topicId": "pt_maps",
+						"factIds": [
+							"pt_maps"
+						],
 						"title": "Hash maps",
 						"statement": "When is a hash map slow?",
 						"kind": "text"
@@ -393,7 +435,6 @@
 						"title": "A very long title A very long title A very long title A very long title A very long title A very long title A very long title A very long title ",
 						"statement": "  Return the indexes of two numbers that add up to `target`.  ",
 						"kind": "code",
-						"topic_id": "pt_lists",
 						"function_name": "pairSum",
 						"params": [
 							"nums",
@@ -408,13 +449,18 @@
 								"args": "[[1,1], 2]",
 								"expected": "[0,1]"
 							}
+						],
+						"fact_ids": [
+							"pt_lists"
 						]
 					},
 					{
 						"title": "Hash maps",
 						"statement": "When is a hash map slow?",
 						"kind": "text",
-						"topic_id": "pt_maps"
+						"fact_ids": [
+							"pt_maps"
+						]
 					}
 				],
 				"format": {
@@ -424,7 +470,9 @@
 				"output": [
 					{
 						"id": "q1",
-						"topicId": "pt_lists",
+						"factIds": [
+							"pt_lists"
+						],
 						"title": "A very long title A very long title A very long title A very long title A very l",
 						"statement": "Return the indexes of two numbers that add up to `target`.",
 						"kind": "code",
@@ -448,7 +496,9 @@
 					},
 					{
 						"id": "q2",
-						"topicId": "pt_maps",
+						"factIds": [
+							"pt_maps"
+						],
 						"title": "Hash maps",
 						"statement": "When is a hash map slow?",
 						"kind": "text"
@@ -461,7 +511,6 @@
 						"title": "  Pair   sums\n",
 						"statement": "  Return the indexes of two numbers that add up to `target`.  ",
 						"kind": "code",
-						"topic_id": "pt_lists",
 						"params": [
 							"nums",
 							"target"
@@ -475,13 +524,18 @@
 								"args": "[[1,1], 2]",
 								"expected": "[0,1]"
 							}
+						],
+						"fact_ids": [
+							"pt_lists"
 						]
 					},
 					{
 						"title": "Hash maps",
 						"statement": "When is a hash map slow?",
 						"kind": "text",
-						"topic_id": "pt_maps"
+						"fact_ids": [
+							"pt_maps"
+						]
 					}
 				],
 				"format": {
@@ -496,7 +550,6 @@
 						"title": "  Pair   sums\n",
 						"statement": "  Return the indexes of two numbers that add up to `target`.  ",
 						"kind": "code",
-						"topic_id": "pt_lists",
 						"function_name": "pair_sum2",
 						"params": [
 							"nums",
@@ -511,13 +564,18 @@
 								"args": "[[1,1], 2]",
 								"expected": "[0,1]"
 							}
+						],
+						"fact_ids": [
+							"pt_lists"
 						]
 					},
 					{
 						"title": "Hash maps",
 						"statement": "When is a hash map slow?",
 						"kind": "text",
-						"topic_id": "pt_maps"
+						"fact_ids": [
+							"pt_maps"
+						]
 					}
 				],
 				"format": {
@@ -527,7 +585,9 @@
 				"output": [
 					{
 						"id": "q1",
-						"topicId": "pt_lists",
+						"factIds": [
+							"pt_lists"
+						],
 						"title": "Pair sums",
 						"statement": "Return the indexes of two numbers that add up to `target`.",
 						"kind": "code",
@@ -551,7 +611,9 @@
 					},
 					{
 						"id": "q2",
-						"topicId": "pt_maps",
+						"factIds": [
+							"pt_maps"
+						],
 						"title": "Hash maps",
 						"statement": "When is a hash map slow?",
 						"kind": "text"
@@ -564,7 +626,6 @@
 						"title": "  Pair   sums\n",
 						"statement": "  Return the indexes of two numbers that add up to `target`.  ",
 						"kind": "code",
-						"topic_id": "pt_lists",
 						"function_name": "2pair",
 						"params": [
 							"nums",
@@ -579,13 +640,18 @@
 								"args": "[[1,1], 2]",
 								"expected": "[0,1]"
 							}
+						],
+						"fact_ids": [
+							"pt_lists"
 						]
 					},
 					{
 						"title": "Hash maps",
 						"statement": "When is a hash map slow?",
 						"kind": "text",
-						"topic_id": "pt_maps"
+						"fact_ids": [
+							"pt_maps"
+						]
 					}
 				],
 				"format": {
@@ -600,7 +666,6 @@
 						"title": "  Pair   sums\n",
 						"statement": "  Return the indexes of two numbers that add up to `target`.  ",
 						"kind": "code",
-						"topic_id": "pt_lists",
 						"function_name": "__init__",
 						"params": [
 							"nums",
@@ -615,13 +680,18 @@
 								"args": "[[1,1], 2]",
 								"expected": "[0,1]"
 							}
+						],
+						"fact_ids": [
+							"pt_lists"
 						]
 					},
 					{
 						"title": "Hash maps",
 						"statement": "When is a hash map slow?",
 						"kind": "text",
-						"topic_id": "pt_maps"
+						"fact_ids": [
+							"pt_maps"
+						]
 					}
 				],
 				"format": {
@@ -636,7 +706,6 @@
 						"title": "  Pair   sums\n",
 						"statement": "  Return the indexes of two numbers that add up to `target`.  ",
 						"kind": "code",
-						"topic_id": "pt_lists",
 						"function_name": "exports",
 						"params": [
 							"nums",
@@ -651,13 +720,18 @@
 								"args": "[[1,1], 2]",
 								"expected": "[0,1]"
 							}
+						],
+						"fact_ids": [
+							"pt_lists"
 						]
 					},
 					{
 						"title": "Hash maps",
 						"statement": "When is a hash map slow?",
 						"kind": "text",
-						"topic_id": "pt_maps"
+						"fact_ids": [
+							"pt_maps"
+						]
 					}
 				],
 				"format": {
@@ -672,7 +746,6 @@
 						"title": "  Pair   sums\n",
 						"statement": "  Return the indexes of two numbers that add up to `target`.  ",
 						"kind": "code",
-						"topic_id": "pt_lists",
 						"function_name": "yield",
 						"params": [
 							"nums",
@@ -687,13 +760,18 @@
 								"args": "[[1,1], 2]",
 								"expected": "[0,1]"
 							}
+						],
+						"fact_ids": [
+							"pt_lists"
 						]
 					},
 					{
 						"title": "Hash maps",
 						"statement": "When is a hash map slow?",
 						"kind": "text",
-						"topic_id": "pt_maps"
+						"fact_ids": [
+							"pt_maps"
+						]
 					}
 				],
 				"format": {
@@ -708,7 +786,6 @@
 						"title": "  Pair   sums\n",
 						"statement": "  Return the indexes of two numbers that add up to `target`.  ",
 						"kind": "code",
-						"topic_id": "pt_lists",
 						"function_name": "nonlocal",
 						"params": [
 							"nums",
@@ -723,13 +800,18 @@
 								"args": "[[1,1], 2]",
 								"expected": "[0,1]"
 							}
+						],
+						"fact_ids": [
+							"pt_lists"
 						]
 					},
 					{
 						"title": "Hash maps",
 						"statement": "When is a hash map slow?",
 						"kind": "text",
-						"topic_id": "pt_maps"
+						"fact_ids": [
+							"pt_maps"
+						]
 					}
 				],
 				"format": {
@@ -744,7 +826,6 @@
 						"title": "  Pair   sums\n",
 						"statement": "  Return the indexes of two numbers that add up to `target`.  ",
 						"kind": "code",
-						"topic_id": "pt_lists",
 						"function_name": "print",
 						"params": [
 							"nums",
@@ -759,13 +840,18 @@
 								"args": "[[1,1], 2]",
 								"expected": "[0,1]"
 							}
+						],
+						"fact_ids": [
+							"pt_lists"
 						]
 					},
 					{
 						"title": "Hash maps",
 						"statement": "When is a hash map slow?",
 						"kind": "text",
-						"topic_id": "pt_maps"
+						"fact_ids": [
+							"pt_maps"
+						]
 					}
 				],
 				"format": {
@@ -775,7 +861,9 @@
 				"output": [
 					{
 						"id": "q1",
-						"topicId": "pt_lists",
+						"factIds": [
+							"pt_lists"
+						],
 						"title": "Pair sums",
 						"statement": "Return the indexes of two numbers that add up to `target`.",
 						"kind": "code",
@@ -799,7 +887,9 @@
 					},
 					{
 						"id": "q2",
-						"topicId": "pt_maps",
+						"factIds": [
+							"pt_maps"
+						],
 						"title": "Hash maps",
 						"statement": "When is a hash map slow?",
 						"kind": "text"
@@ -812,7 +902,6 @@
 						"title": "  Pair   sums\n",
 						"statement": "  Return the indexes of two numbers that add up to `target`.  ",
 						"kind": "code",
-						"topic_id": "pt_lists",
 						"function_name": "pairSum",
 						"examples": [
 							{
@@ -823,13 +912,18 @@
 								"args": "[]",
 								"expected": "2"
 							}
+						],
+						"fact_ids": [
+							"pt_lists"
 						]
 					},
 					{
 						"title": "Hash maps",
 						"statement": "When is a hash map slow?",
 						"kind": "text",
-						"topic_id": "pt_maps"
+						"fact_ids": [
+							"pt_maps"
+						]
 					}
 				],
 				"format": {
@@ -839,7 +933,9 @@
 				"output": [
 					{
 						"id": "q1",
-						"topicId": "pt_lists",
+						"factIds": [
+							"pt_lists"
+						],
 						"title": "Pair sums",
 						"statement": "Return the indexes of two numbers that add up to `target`.",
 						"kind": "code",
@@ -860,7 +956,9 @@
 					},
 					{
 						"id": "q2",
-						"topicId": "pt_maps",
+						"factIds": [
+							"pt_maps"
+						],
 						"title": "Hash maps",
 						"statement": "When is a hash map slow?",
 						"kind": "text"
@@ -873,7 +971,6 @@
 						"title": "  Pair   sums\n",
 						"statement": "  Return the indexes of two numbers that add up to `target`.  ",
 						"kind": "code",
-						"topic_id": "pt_lists",
 						"function_name": "pairSum",
 						"params": [
 							"a",
@@ -893,13 +990,18 @@
 								"args": "[[1,1], 2]",
 								"expected": "[0,1]"
 							}
+						],
+						"fact_ids": [
+							"pt_lists"
 						]
 					},
 					{
 						"title": "Hash maps",
 						"statement": "When is a hash map slow?",
 						"kind": "text",
-						"topic_id": "pt_maps"
+						"fact_ids": [
+							"pt_maps"
+						]
 					}
 				],
 				"format": {
@@ -914,7 +1016,6 @@
 						"title": "  Pair   sums\n",
 						"statement": "  Return the indexes of two numbers that add up to `target`.  ",
 						"kind": "code",
-						"topic_id": "pt_lists",
 						"function_name": "pairSum",
 						"params": [
 							"nums",
@@ -929,13 +1030,18 @@
 								"args": "[[1,1], 2]",
 								"expected": "[0,1]"
 							}
+						],
+						"fact_ids": [
+							"pt_lists"
 						]
 					},
 					{
 						"title": "Hash maps",
 						"statement": "When is a hash map slow?",
 						"kind": "text",
-						"topic_id": "pt_maps"
+						"fact_ids": [
+							"pt_maps"
+						]
 					}
 				],
 				"format": {
@@ -950,7 +1056,6 @@
 						"title": "  Pair   sums\n",
 						"statement": "  Return the indexes of two numbers that add up to `target`.  ",
 						"kind": "code",
-						"topic_id": "pt_lists",
 						"function_name": "pairSum",
 						"params": [
 							"nums",
@@ -965,13 +1070,18 @@
 								"args": "[[1,1], 2]",
 								"expected": "[0,1]"
 							}
+						],
+						"fact_ids": [
+							"pt_lists"
 						]
 					},
 					{
 						"title": "Hash maps",
 						"statement": "When is a hash map slow?",
 						"kind": "text",
-						"topic_id": "pt_maps"
+						"fact_ids": [
+							"pt_maps"
+						]
 					}
 				],
 				"format": {
@@ -986,18 +1096,22 @@
 						"title": "  Pair   sums\n",
 						"statement": "  Return the indexes of two numbers that add up to `target`.  ",
 						"kind": "code",
-						"topic_id": "pt_lists",
 						"function_name": "pairSum",
 						"params": [
 							"nums",
 							"target"
+						],
+						"fact_ids": [
+							"pt_lists"
 						]
 					},
 					{
 						"title": "Hash maps",
 						"statement": "When is a hash map slow?",
 						"kind": "text",
-						"topic_id": "pt_maps"
+						"fact_ids": [
+							"pt_maps"
+						]
 					}
 				],
 				"format": {
@@ -1012,7 +1126,6 @@
 						"title": "  Pair   sums\n",
 						"statement": "  Return the indexes of two numbers that add up to `target`.  ",
 						"kind": "code",
-						"topic_id": "pt_lists",
 						"function_name": "pairSum",
 						"params": [
 							"nums",
@@ -1047,13 +1160,18 @@
 								"args": "[[1], 1]",
 								"expected": "0"
 							}
+						],
+						"fact_ids": [
+							"pt_lists"
 						]
 					},
 					{
 						"title": "Hash maps",
 						"statement": "When is a hash map slow?",
 						"kind": "text",
-						"topic_id": "pt_maps"
+						"fact_ids": [
+							"pt_maps"
+						]
 					}
 				],
 				"format": {
@@ -1068,7 +1186,6 @@
 						"title": "  Pair   sums\n",
 						"statement": "  Return the indexes of two numbers that add up to `target`.  ",
 						"kind": "code",
-						"topic_id": "pt_lists",
 						"function_name": "pairSum",
 						"params": [
 							"nums",
@@ -1083,13 +1200,18 @@
 								"args": "[[1], 1]",
 								"expected": "0"
 							}
+						],
+						"fact_ids": [
+							"pt_lists"
 						]
 					},
 					{
 						"title": "Hash maps",
 						"statement": "When is a hash map slow?",
 						"kind": "text",
-						"topic_id": "pt_maps"
+						"fact_ids": [
+							"pt_maps"
+						]
 					}
 				],
 				"format": {
@@ -1104,7 +1226,6 @@
 						"title": "  Pair   sums\n",
 						"statement": "  Return the indexes of two numbers that add up to `target`.  ",
 						"kind": "code",
-						"topic_id": "pt_lists",
 						"function_name": "pairSum",
 						"params": [
 							"nums",
@@ -1119,13 +1240,18 @@
 								"args": "[[1], 1]",
 								"expected": "0"
 							}
+						],
+						"fact_ids": [
+							"pt_lists"
 						]
 					},
 					{
 						"title": "Hash maps",
 						"statement": "When is a hash map slow?",
 						"kind": "text",
-						"topic_id": "pt_maps"
+						"fact_ids": [
+							"pt_maps"
+						]
 					}
 				],
 				"format": {
@@ -1140,7 +1266,6 @@
 						"title": "  Pair   sums\n",
 						"statement": "  Return the indexes of two numbers that add up to `target`.  ",
 						"kind": "code",
-						"topic_id": "pt_lists",
 						"function_name": "pairSum",
 						"params": [
 							"nums",
@@ -1155,13 +1280,18 @@
 								"args": "[[1], 1]",
 								"expected": "0"
 							}
+						],
+						"fact_ids": [
+							"pt_lists"
 						]
 					},
 					{
 						"title": "Hash maps",
 						"statement": "When is a hash map slow?",
 						"kind": "text",
-						"topic_id": "pt_maps"
+						"fact_ids": [
+							"pt_maps"
+						]
 					}
 				],
 				"format": {
@@ -1176,7 +1306,6 @@
 						"title": "  Pair   sums\n",
 						"statement": "  Return the indexes of two numbers that add up to `target`.  ",
 						"kind": "code",
-						"topic_id": "pt_lists",
 						"function_name": "pairSum",
 						"params": [
 							"nums",
@@ -1191,13 +1320,18 @@
 								"args": "[[1], 1]",
 								"expected": "0"
 							}
+						],
+						"fact_ids": [
+							"pt_lists"
 						]
 					},
 					{
 						"title": "Hash maps",
 						"statement": "When is a hash map slow?",
 						"kind": "text",
-						"topic_id": "pt_maps"
+						"fact_ids": [
+							"pt_maps"
+						]
 					}
 				],
 				"format": {
@@ -1212,7 +1346,6 @@
 						"title": "  Pair   sums\n",
 						"statement": "  Return the indexes of two numbers that add up to `target`.  ",
 						"kind": "code",
-						"topic_id": "pt_lists",
 						"function_name": "pairSum",
 						"params": [
 							"nums",
@@ -1227,13 +1360,18 @@
 								"args": "[[1], 1]",
 								"expected": "0"
 							}
+						],
+						"fact_ids": [
+							"pt_lists"
 						]
 					},
 					{
 						"title": "Hash maps",
 						"statement": "When is a hash map slow?",
 						"kind": "text",
-						"topic_id": "pt_maps"
+						"fact_ids": [
+							"pt_maps"
+						]
 					}
 				],
 				"format": {
@@ -1248,7 +1386,6 @@
 						"title": "  Pair   sums\n",
 						"statement": "  Return the indexes of two numbers that add up to `target`.  ",
 						"kind": "text",
-						"topic_id": "pt_lists",
 						"function_name": "pairSum",
 						"params": [
 							"nums",
@@ -1263,13 +1400,15 @@
 								"args": "[[1,1], 2]",
 								"expected": "[0,1]"
 							}
+						],
+						"fact_ids": [
+							"pt_lists"
 						]
 					},
 					{
 						"title": "  Pair   sums\n",
 						"statement": "  Return the indexes of two numbers that add up to `target`.  ",
 						"kind": "code",
-						"topic_id": "pt_lists",
 						"function_name": "count",
 						"params": [
 							"s"
@@ -1283,6 +1422,9 @@
 								"args": "[\"\"]",
 								"expected": "0"
 							}
+						],
+						"fact_ids": [
+							"pt_lists"
 						]
 					}
 				],
@@ -1293,14 +1435,18 @@
 				"output": [
 					{
 						"id": "q1",
-						"topicId": "pt_lists",
+						"factIds": [
+							"pt_lists"
+						],
 						"title": "Pair sums",
 						"statement": "Return the indexes of two numbers that add up to `target`.",
 						"kind": "text"
 					},
 					{
 						"id": "q2",
-						"topicId": "pt_lists",
+						"factIds": [
+							"pt_lists"
+						],
 						"title": "Pair sums",
 						"statement": "Return the indexes of two numbers that add up to `target`.",
 						"kind": "code",
@@ -1550,7 +1696,6 @@
 				"questions": [
 					{
 						"id": "q1",
-						"topicId": "pt_lists",
 						"title": "Pair sums",
 						"statement": "Return the indexes of two numbers that add up to `target`.",
 						"kind": "code",
@@ -1574,14 +1719,15 @@
 					},
 					{
 						"id": "q2",
-						"topicId": "pt_maps",
 						"title": "Hash maps",
 						"statement": "When is a hash map slow?",
 						"kind": "text"
 					}
 				],
 				"answers": {},
-				"startedAt": "2026-11-12T09:00:00.000Z"
+				"startedAt": "2026-11-12T09:00:00.000Z",
+				"endsAt": "2026-11-12T09:45:00.000Z",
+				"pauses": []
 			},
 			"ended": {
 				"id": "mock_a1b2c3d4",
@@ -1594,7 +1740,6 @@
 				"questions": [
 					{
 						"id": "q1",
-						"topicId": "pt_lists",
 						"title": "Pair sums",
 						"statement": "Return the indexes of two numbers that add up to `target`.",
 						"kind": "code",
@@ -1618,7 +1763,6 @@
 					},
 					{
 						"id": "q2",
-						"topicId": "pt_maps",
 						"title": "Hash maps",
 						"statement": "When is a hash map slow?",
 						"kind": "text"
@@ -1626,6 +1770,7 @@
 				],
 				"answers": {},
 				"startedAt": "2026-11-12T09:00:00.000Z",
+				"pauses": [],
 				"endedAt": "2026-11-12T09:20:00.000Z"
 			},
 			"offsets": [
@@ -2611,7 +2756,6 @@
 						"questions": [
 							{
 								"id": "q1",
-								"topicId": "pt_lists",
 								"title": "Pair sums",
 								"statement": "Return the indexes of two numbers that add up to `target`.",
 								"kind": "code",
@@ -2631,14 +2775,19 @@
 										"args": "[[1,1], 2]",
 										"expected": "[0,1]"
 									}
+								],
+								"factIds": [
+									"pt_lists"
 								]
 							},
 							{
 								"id": "q2",
-								"topicId": "pt_maps",
 								"title": "Hash maps",
 								"statement": "When is a hash map slow?",
-								"kind": "text"
+								"kind": "text",
+								"factIds": [
+									"pt_maps"
+								]
 							}
 						],
 						"answers": {
@@ -2688,7 +2837,6 @@
 						"questions": [
 							{
 								"id": "q1",
-								"topicId": "pt_lists",
 								"title": "Pair sums",
 								"statement": "Return the indexes of two numbers that add up to `target`.",
 								"kind": "code",
@@ -2708,14 +2856,19 @@
 										"args": "[[1,1], 2]",
 										"expected": "[0,1]"
 									}
+								],
+								"factIds": [
+									"pt_lists"
 								]
 							},
 							{
 								"id": "q2",
-								"topicId": "pt_maps",
 								"title": "Hash maps",
 								"statement": "When is a hash map slow?",
-								"kind": "text"
+								"kind": "text",
+								"factIds": [
+									"pt_maps"
+								]
 							}
 						],
 						"answers": {
@@ -2760,7 +2913,6 @@
 						"questions": [
 							{
 								"id": "q1",
-								"topicId": "pt_lists",
 								"title": "Pair sums",
 								"statement": "Return the indexes of two numbers that add up to `target`.",
 								"kind": "code",
@@ -2780,14 +2932,19 @@
 										"args": "[[1,1], 2]",
 										"expected": "[0,1]"
 									}
+								],
+								"factIds": [
+									"pt_lists"
 								]
 							},
 							{
 								"id": "q2",
-								"topicId": "pt_maps",
 								"title": "Hash maps",
 								"statement": "When is a hash map slow?",
-								"kind": "text"
+								"kind": "text",
+								"factIds": [
+									"pt_maps"
+								]
 							}
 						],
 						"answers": {
@@ -2824,7 +2981,6 @@
 						"questions": [
 							{
 								"id": "q1",
-								"topicId": "pt_lists",
 								"title": "Pair sums",
 								"statement": "Return the indexes of two numbers that add up to `target`.",
 								"kind": "code",
@@ -2844,14 +3000,19 @@
 										"args": "[[1,1], 2]",
 										"expected": "[0,1]"
 									}
+								],
+								"factIds": [
+									"pt_lists"
 								]
 							},
 							{
 								"id": "q2",
-								"topicId": "pt_maps",
 								"title": "Hash maps",
 								"statement": "When is a hash map slow?",
-								"kind": "text"
+								"kind": "text",
+								"factIds": [
+									"pt_maps"
+								]
 							}
 						],
 						"answers": {
@@ -2894,7 +3055,6 @@
 						"questions": [
 							{
 								"id": "q1",
-								"topicId": "pt_lists",
 								"title": "Pair sums",
 								"statement": "Return the indexes of two numbers that add up to `target`.",
 								"kind": "code",
@@ -2914,14 +3074,19 @@
 										"args": "[[1,1], 2]",
 										"expected": "[0,1]"
 									}
+								],
+								"factIds": [
+									"pt_lists"
 								]
 							},
 							{
 								"id": "q2",
-								"topicId": "pt_maps",
 								"title": "Hash maps",
 								"statement": "When is a hash map slow?",
-								"kind": "text"
+								"kind": "text",
+								"factIds": [
+									"pt_maps"
+								]
 							}
 						],
 						"answers": {
@@ -2969,7 +3134,6 @@
 						"questions": [
 							{
 								"id": "q1",
-								"topicId": "pt_lists",
 								"title": "Pair sums",
 								"statement": "Return the indexes of two numbers that add up to `target`.",
 								"kind": "code",
@@ -2989,14 +3153,19 @@
 										"args": "[[1,1], 2]",
 										"expected": "[0,1]"
 									}
+								],
+								"factIds": [
+									"pt_lists"
 								]
 							},
 							{
 								"id": "q2",
-								"topicId": "pt_maps",
 								"title": "Hash maps",
 								"statement": "When is a hash map slow?",
-								"kind": "text"
+								"kind": "text",
+								"factIds": [
+									"pt_maps"
+								]
 							}
 						],
 						"answers": {},
@@ -3021,7 +3190,6 @@
 						"questions": [
 							{
 								"id": "q1",
-								"topicId": "pt_lists",
 								"title": "Pair sums",
 								"statement": "Return the indexes of two numbers that add up to `target`.",
 								"kind": "code",
@@ -3041,14 +3209,19 @@
 										"args": "[[1,1], 2]",
 										"expected": "[0,1]"
 									}
+								],
+								"factIds": [
+									"pt_lists"
 								]
 							},
 							{
 								"id": "q2",
-								"topicId": "pt_maps",
 								"title": "Hash maps",
 								"statement": "When is a hash map slow?",
-								"kind": "text"
+								"kind": "text",
+								"factIds": [
+									"pt_maps"
+								]
 							}
 						],
 						"answers": {},
@@ -3069,7 +3242,6 @@
 				"questions": [
 					{
 						"id": "q1",
-						"topicId": "pt_lists",
 						"title": "Pair sums",
 						"statement": "Return the indexes of two numbers that add up to `target`.",
 						"kind": "code",
@@ -3089,14 +3261,19 @@
 								"args": "[[1,1], 2]",
 								"expected": "[0,1]"
 							}
+						],
+						"factIds": [
+							"pt_lists"
 						]
 					},
 					{
 						"id": "q2",
-						"topicId": "pt_maps",
 						"title": "Hash maps",
 						"statement": "When is a hash map slow?",
-						"kind": "text"
+						"kind": "text",
+						"factIds": [
+							"pt_maps"
+						]
 					}
 				],
 				"answers": {
@@ -3139,7 +3316,6 @@
 				"questions": [
 					{
 						"id": "q1",
-						"topicId": "pt_lists",
 						"title": "Pair sums",
 						"statement": "Return the indexes of two numbers that add up to `target`.",
 						"kind": "code",
@@ -3159,14 +3335,19 @@
 								"args": "[[1,1], 2]",
 								"expected": "[0,1]"
 							}
+						],
+						"factIds": [
+							"pt_lists"
 						]
 					},
 					{
 						"id": "q2",
-						"topicId": "pt_maps",
 						"title": "Hash maps",
 						"statement": "When is a hash map slow?",
-						"kind": "text"
+						"kind": "text",
+						"factIds": [
+							"pt_maps"
+						]
 					}
 				],
 				"answers": {
@@ -3196,12 +3377,22 @@
 			"ungraded": null,
 			"answers": [
 				{
-					"nodeId": "pt_lists",
+					"chatId": "mock_a1b2c3d4",
+					"toolCallId": "q1",
+					"tool": "mock",
+					"factIds": [
+						"pt_lists"
+					],
 					"outcome": "wrong",
 					"answeredAt": "2026-11-12T09:31:20.000Z"
 				},
 				{
-					"nodeId": "pt_maps",
+					"chatId": "mock_a1b2c3d4",
+					"toolCallId": "q2",
+					"tool": "mock",
+					"factIds": [
+						"pt_maps"
+					],
 					"outcome": "wrong",
 					"answeredAt": "2026-11-12T09:31:20.000Z"
 				}
@@ -3210,6 +3401,7 @@
 			"summaries": [
 				{
 					"id": "mock_a1b2c3d4",
+					"deadlineId": null,
 					"n": 3,
 					"state": "graded",
 					"format": {
@@ -3224,6 +3416,7 @@
 				},
 				{
 					"id": "mock_a1b2c3d4",
+					"deadlineId": null,
 					"n": 3,
 					"state": "running",
 					"format": {
@@ -3237,6 +3430,7 @@
 				},
 				{
 					"id": "mock_a1b2c3d4",
+					"deadlineId": null,
 					"n": 3,
 					"state": "ready",
 					"format": {
@@ -3258,7 +3452,6 @@
 				"questions": [
 					{
 						"id": "q1",
-						"topicId": "pt_lists",
 						"title": "Pair sums",
 						"statement": "Return the indexes of two numbers that add up to `target`.",
 						"kind": "code",
@@ -3278,14 +3471,19 @@
 								"args": "[[1,1], 2]",
 								"expected": "[0,1]"
 							}
+						],
+						"factIds": [
+							"pt_lists"
 						]
 					},
 					{
 						"id": "q2",
-						"topicId": "pt_maps",
 						"title": "Hash maps",
 						"statement": "When is a hash map slow?",
-						"kind": "text"
+						"kind": "text",
+						"factIds": [
+							"pt_maps"
+						]
 					}
 				],
 				"answers": {},
@@ -3302,7 +3500,6 @@
 				"questions": [
 					{
 						"id": "q1",
-						"topicId": "pt_lists",
 						"title": "Pair sums",
 						"statement": "Return the indexes of two numbers that add up to `target`.",
 						"kind": "code",
@@ -3322,14 +3519,19 @@
 								"args": "[[1,1], 2]",
 								"expected": "[0,1]"
 							}
+						],
+						"factIds": [
+							"pt_lists"
 						]
 					},
 					{
 						"id": "q2",
-						"topicId": "pt_maps",
 						"title": "Hash maps",
 						"statement": "When is a hash map slow?",
-						"kind": "text"
+						"kind": "text",
+						"factIds": [
+							"pt_maps"
+						]
 					}
 				],
 				"answers": {}
@@ -3422,7 +3624,6 @@
 					"questions": [
 						{
 							"id": "q1",
-							"topicId": "pt_lists",
 							"title": "Pair sums",
 							"statement": "Return the indexes of two numbers that add up to `target`.",
 							"kind": "code",
@@ -3446,7 +3647,6 @@
 						},
 						{
 							"id": "q2",
-							"topicId": "pt_maps",
 							"title": "Hash maps",
 							"statement": "When is a hash map slow?",
 							"kind": "text"
@@ -3469,6 +3669,7 @@
 						}
 					},
 					"startedAt": "2026-11-12T09:00:00.000Z",
+					"pauses": [],
 					"endedAt": "2026-11-12T09:31:20.000Z",
 					"grades": {
 						"q1": {
@@ -3484,7 +3685,7 @@
 			},
 			{
 				"raw": {
-					"version": 2,
+					"version": 3,
 					"id": "mock_a1b2c3d4",
 					"n": 3,
 					"format": {
@@ -3639,7 +3840,6 @@
 					"questions": [
 						{
 							"id": "q1",
-							"topicId": "pt_lists",
 							"title": "Pair sums",
 							"statement": "Return the indexes of two numbers that add up to `target`.",
 							"kind": "code",
@@ -3663,7 +3863,6 @@
 						},
 						{
 							"id": "q2",
-							"topicId": "pt_maps",
 							"title": "Hash maps",
 							"statement": "When is a hash map slow?",
 							"kind": "text"
@@ -3686,6 +3885,7 @@
 						}
 					},
 					"startedAt": "2026-11-12T09:00:00.000Z",
+					"pauses": [],
 					"endedAt": "2026-11-12T09:31:20.000Z",
 					"grades": {
 						"q1": {
@@ -3783,7 +3983,6 @@
 					"questions": [
 						{
 							"id": "q1",
-							"topicId": "pt_lists",
 							"title": "Pair sums",
 							"statement": "Return the indexes of two numbers that add up to `target`.",
 							"kind": "code",
@@ -3807,7 +4006,6 @@
 						},
 						{
 							"id": "q2",
-							"topicId": "pt_maps",
 							"title": "Hash maps",
 							"statement": "When is a hash map slow?",
 							"kind": "text"
@@ -3830,6 +4028,7 @@
 						}
 					},
 					"startedAt": "2026-11-12T09:00:00.000Z",
+					"pauses": [],
 					"endedAt": "2026-11-12T09:31:20.000Z",
 					"grades": {
 						"q1": {
@@ -4278,6 +4477,7 @@
 						}
 					},
 					"startedAt": "2026-11-12T09:00:00.000Z",
+					"pauses": [],
 					"endedAt": "2026-11-12T09:31:20.000Z",
 					"grades": {
 						"q1": {
@@ -4383,7 +4583,6 @@
 					"questions": [
 						{
 							"id": "q2",
-							"topicId": "",
 							"title": "t",
 							"statement": "s",
 							"kind": "text"
@@ -4425,6 +4624,7 @@
 						}
 					},
 					"startedAt": "2026-11-12T09:00:00.000Z",
+					"pauses": [],
 					"endedAt": "2026-11-12T09:31:20.000Z",
 					"grades": {
 						"q1": {
@@ -4553,6 +4753,7 @@
 						}
 					},
 					"startedAt": "2026-11-12T09:00:00.000Z",
+					"pauses": [],
 					"endedAt": "2026-11-12T09:31:20.000Z",
 					"grades": {
 						"q1": {
@@ -4656,7 +4857,6 @@
 					"questions": [
 						{
 							"id": "q1",
-							"topicId": "pt_lists",
 							"title": "Pair sums",
 							"statement": "Return the indexes of two numbers that add up to `target`.",
 							"kind": "code",
@@ -4680,7 +4880,6 @@
 						},
 						{
 							"id": "q2",
-							"topicId": "pt_maps",
 							"title": "Hash maps",
 							"statement": "When is a hash map slow?",
 							"kind": "text"
@@ -4702,6 +4901,7 @@
 						}
 					},
 					"startedAt": "2026-11-12T09:00:00.000Z",
+					"pauses": [],
 					"endedAt": "2026-11-12T09:31:20.000Z",
 					"grades": {
 						"q1": {
@@ -4783,7 +4983,6 @@
 					"questions": [
 						{
 							"id": "q1",
-							"topicId": "pt_lists",
 							"title": "Pair sums",
 							"statement": "Return the indexes of two numbers that add up to `target`.",
 							"kind": "code",
@@ -4807,7 +5006,6 @@
 						},
 						{
 							"id": "q2",
-							"topicId": "pt_maps",
 							"title": "Hash maps",
 							"statement": "When is a hash map slow?",
 							"kind": "text"
@@ -4815,6 +5013,7 @@
 					],
 					"answers": {},
 					"startedAt": "2026-11-12T09:00:00.000Z",
+					"pauses": [],
 					"endedAt": "2026-11-12T09:31:20.000Z",
 					"grades": {
 						"q1": {
@@ -4911,7 +5110,6 @@
 					"questions": [
 						{
 							"id": "q1",
-							"topicId": "pt_lists",
 							"title": "Pair sums",
 							"statement": "Return the indexes of two numbers that add up to `target`.",
 							"kind": "code",
@@ -4935,7 +5133,6 @@
 						},
 						{
 							"id": "q2",
-							"topicId": "pt_maps",
 							"title": "Hash maps",
 							"statement": "When is a hash map slow?",
 							"kind": "text"
@@ -4958,6 +5155,7 @@
 						}
 					},
 					"startedAt": "",
+					"pauses": [],
 					"grades": {
 						"q1": {
 							"verdict": "wrong",
@@ -5056,7 +5254,6 @@
 					"questions": [
 						{
 							"id": "q1",
-							"topicId": "pt_lists",
 							"title": "Pair sums",
 							"statement": "Return the indexes of two numbers that add up to `target`.",
 							"kind": "code",
@@ -5080,7 +5277,6 @@
 						},
 						{
 							"id": "q2",
-							"topicId": "pt_maps",
 							"title": "Hash maps",
 							"statement": "When is a hash map slow?",
 							"kind": "text"
@@ -5103,6 +5299,7 @@
 						}
 					},
 					"startedAt": "2026-11-12T09:00:00.000Z",
+					"pauses": [],
 					"endedAt": "2026-11-12T09:31:20.000Z",
 					"grades": {
 						"q3": {
@@ -5186,7 +5383,6 @@
 					"questions": [
 						{
 							"id": "q1",
-							"topicId": "pt_lists",
 							"title": "Pair sums",
 							"statement": "Return the indexes of two numbers that add up to `target`.",
 							"kind": "code",
@@ -5210,7 +5406,6 @@
 						},
 						{
 							"id": "q2",
-							"topicId": "pt_maps",
 							"title": "Hash maps",
 							"statement": "When is a hash map slow?",
 							"kind": "text"
@@ -5233,6 +5428,7 @@
 						}
 					},
 					"startedAt": "2026-11-12T09:00:00.000Z",
+					"pauses": [],
 					"endedAt": "2026-11-12T09:31:20.000Z"
 				}
 			},
@@ -5429,49 +5625,44 @@
 		"output": {
 			"topics": [
 				{
-					"id": "pt_a",
-					"name": "A",
-					"status": "strong",
-					"answered": 0,
-					"right": 0,
-					"rate": null
-				},
-				{
-					"id": "pt_b",
-					"name": "B",
-					"status": "untested",
-					"answered": 0,
-					"right": 0,
-					"rate": null
-				},
-				{
-					"id": "pt_c",
-					"name": "C",
-					"status": "shaky",
-					"answered": 0,
-					"right": 0,
-					"rate": null
-				},
-				{
 					"id": "pt_d",
 					"name": "D",
 					"status": "weak",
-					"answered": 0,
-					"right": 0,
-					"rate": null
+					"facts": [
+						{
+							"id": "pt_lists",
+							"statement": "Two indexes can walk a sorted list."
+						},
+						{
+							"id": "pt_maps",
+							"statement": "A hash map looks a key up in constant time on average."
+						}
+					]
 				},
 				{
 					"id": "pt_e",
 					"name": "E",
-					"status": "weak",
-					"answered": 0,
-					"right": 0,
-					"rate": null
+					"status": "weak"
+				},
+				{
+					"id": "pt_c",
+					"name": "C",
+					"status": "shaky"
+				},
+				{
+					"id": "pt_b",
+					"name": "B",
+					"status": "untested"
+				},
+				{
+					"id": "pt_a",
+					"name": "A",
+					"status": "strong"
 				}
 			],
 			"questions": [
-				"They are preparing for: Backend intern online test\n\nWhat it is like:\nTwo coding questions.\nNo libraries.\n\nWrite a mock of exactly 1 question for 45 minutes.\n\nThe sheet's topics, the ones that most need work first (topic_id: name, how it is going):\n- pt_d: D (weak)\n- pt_e: E (weak)\n- pt_c: C (shaky)\n- pt_b: B (not tested yet)\n- pt_a: A (strong)\n\nEarlier mocks asked these. Don't ask them again:\n- Pair sums\n- Hash maps",
-				"They are preparing for: g\n\nWhat it is like:\n\n\nWrite a mock of exactly 10 questions for 240 minutes."
+				"They are preparing for: Larkspur backend intern test (exam).\n\nWhat it is like:\nTwo coding questions.\nNo libraries.\n\nWrite a mock of exactly 1 question for 45 minutes.\n\nIts topics, the ones that most need work first, with their facts (fact_id: statement). Give each question the fact_ids it tests:\n## D (weak)\n- pt_lists: Two indexes can walk a sorted list.\n- pt_maps: A hash map looks a key up in constant time on average.\n## E (weak)\n## C (shaky)\n## B (not tested yet)\n## A (strong)\n\nEarlier mocks asked these. Don't ask them again:\n- Pair sums\n- Hash maps",
+				"They are preparing for: g (quiz).\n\nWrite a mock of exactly 10 questions, with no time limit.\n\nIt has no study facts yet: write from what it is like, and leave fact_ids out."
 			],
 			"mock": {
 				"id": "mock_a1b2c3d4",
@@ -5484,7 +5675,6 @@
 				"questions": [
 					{
 						"id": "q1",
-						"topicId": "pt_lists",
 						"title": "Pair sums",
 						"statement": "Return the indexes of two numbers that add up to `target`.",
 						"kind": "code",
@@ -5504,14 +5694,19 @@
 								"args": "[[1,1], 2]",
 								"expected": "[0,1]"
 							}
+						],
+						"factIds": [
+							"pt_lists"
 						]
 					},
 					{
 						"id": "q2",
-						"topicId": "pt_maps",
 						"title": "Hash maps",
 						"statement": "When is a hash map slow?",
-						"kind": "text"
+						"kind": "text",
+						"factIds": [
+							"pt_maps"
+						]
 					}
 				],
 				"answers": {
@@ -5571,7 +5766,6 @@
 				"questions": [
 					{
 						"id": "q1",
-						"topicId": "pt_lists",
 						"title": "Pair sums",
 						"statement": "Return the indexes of two numbers that add up to `target`.",
 						"kind": "code",
@@ -5591,14 +5785,19 @@
 								"args": "[[1,1], 2]",
 								"expected": "[0,1]"
 							}
+						],
+						"factIds": [
+							"pt_lists"
 						]
 					},
 					{
 						"id": "q2",
-						"topicId": "pt_maps",
 						"title": "Hash maps",
 						"statement": "When is a hash map slow?",
-						"kind": "text"
+						"kind": "text",
+						"factIds": [
+							"pt_maps"
+						]
 					}
 				],
 				"answers": {},
@@ -5616,7 +5815,6 @@
 				"questions": [
 					{
 						"id": "q1",
-						"topicId": "pt_lists",
 						"title": "Pair sums",
 						"statement": "Return the indexes of two numbers that add up to `target`.",
 						"kind": "code",
@@ -5636,14 +5834,19 @@
 								"args": "[[1,1], 2]",
 								"expected": "[0,1]"
 							}
+						],
+						"factIds": [
+							"pt_lists"
 						]
 					},
 					{
 						"id": "q2",
-						"topicId": "pt_maps",
 						"title": "Hash maps",
 						"statement": "When is a hash map slow?",
-						"kind": "text"
+						"kind": "text",
+						"factIds": [
+							"pt_maps"
+						]
 					}
 				],
 				"answers": {},
@@ -5656,9 +5859,9 @@
 				}
 			},
 			"grades": [
-				"They are preparing for: Backend intern online test\nMock 3: 2 questions in 45 minutes. They used 32 of them.\n\n## q1: Pair sums (code)\nReturn the indexes of two numbers that add up to `target`.\nFunction: pairSum(nums, target). Examples (arguments, then what it returns):\n- [[2,7,11], 9] returns [0,1]\n- [[1,1], 2] returns [0,1]\nTheir answer (JavaScript, 10 min):\n```javascript\nfunction pairSum() { return [0, 1]; }\n```\nRun on the examples here: example 1 passed, example 2 threw TypeError: x is not iterable, example 3 returned undefined.\n\n## q2: Hash maps (written)\nWhen is a hash map slow?\nTheir answer (2 min, never submitted):\n```\nWhen keys collide.\n```",
-				"They are preparing for: g\nMock 3: 2 questions in 45 minutes. They used 1 of them.\n\n## q1: Pair sums (code)\nReturn the indexes of two numbers that add up to `target`.\nFunction: pairSum(nums, target). Examples (arguments, then what it returns):\n- [[2,7,11], 9] returns [0,1]\n- [[1,1], 2] returns [0,1]\nThey left this blank. Don't grade it.\n\n## q2: Hash maps (written)\nWhen is a hash map slow?\nThey left this blank. Don't grade it.",
-				"They are preparing for: g\nMock 3: 2 questions in 45 minutes.\n\n## q1: Pair sums (code)\nReturn the indexes of two numbers that add up to `target`.\nFunction: pairSum(nums, target). Examples (arguments, then what it returns):\n- [[2,7,11], 9] returns [0,1]\n- [[1,1], 2] returns [0,1]\nThey left this blank. Don't grade it.\n\n## q2: Hash maps (written)\nWhen is a hash map slow?\nThey left this blank. Don't grade it."
+				"They are preparing for: Larkspur backend intern test (exam).\nMock 3: 2 questions for 45 minutes. They used 32 of them.\n\n## q1: Pair sums (code)\nReturn the indexes of two numbers that add up to `target`.\nIt tests:\n- Two indexes can walk a sorted list.\nFunction: pairSum(nums, target). Examples (arguments, then what it returns):\n- [[2,7,11], 9] returns [0,1]\n- [[1,1], 2] returns [0,1]\nTheir answer (JavaScript, 10 min):\n```javascript\nfunction pairSum() { return [0, 1]; }\n```\nRun on the examples here: example 1 passed, example 2 threw TypeError: x is not iterable, example 3 returned undefined.\n\n## q2: Hash maps (written)\nWhen is a hash map slow?\nIt tests:\n- A hash map looks a key up in constant time on average.\nTheir answer (2 min, never submitted):\n```\nWhen keys collide.\n```",
+				"They are preparing for: g (quiz).\nMock 3: 2 questions for 45 minutes. They used 1 of them.\n\n## q1: Pair sums (code)\nReturn the indexes of two numbers that add up to `target`.\nFunction: pairSum(nums, target). Examples (arguments, then what it returns):\n- [[2,7,11], 9] returns [0,1]\n- [[1,1], 2] returns [0,1]\nThey left this blank. Don't grade it.\n\n## q2: Hash maps (written)\nWhen is a hash map slow?\nThey left this blank. Don't grade it.",
+				"They are preparing for: g (quiz).\nMock 3: 2 questions for 45 minutes.\n\n## q1: Pair sums (code)\nReturn the indexes of two numbers that add up to `target`.\nFunction: pairSum(nums, target). Examples (arguments, then what it returns):\n- [[2,7,11], 9] returns [0,1]\n- [[1,1], 2] returns [0,1]\nThey left this blank. Don't grade it.\n\n## q2: Hash maps (written)\nWhen is a hash map slow?\nThey left this blank. Don't grade it."
 			],
 			"blankGraded": {
 				"id": "mock_a1b2c3d4",
@@ -5671,7 +5874,6 @@
 				"questions": [
 					{
 						"id": "q1",
-						"topicId": "pt_lists",
 						"title": "Pair sums",
 						"statement": "Return the indexes of two numbers that add up to `target`.",
 						"kind": "code",
@@ -5691,14 +5893,19 @@
 								"args": "[[1,1], 2]",
 								"expected": "[0,1]"
 							}
+						],
+						"factIds": [
+							"pt_lists"
 						]
 					},
 					{
 						"id": "q2",
-						"topicId": "pt_maps",
 						"title": "Hash maps",
 						"statement": "When is a hash map slow?",
-						"kind": "text"
+						"kind": "text",
+						"factIds": [
+							"pt_maps"
+						]
 					}
 				],
 				"answers": {},

@@ -1,5 +1,5 @@
-//! The agent requests a prep has out: its sheet and, per mock, the questions or the grades. One
-//! at a time per key; each start and end goes out as "prep-changed", and the last failure is kept
+//! The agent requests a space's mocks have out: per mock, the questions or the grades. One at a
+//! time per mock; each start and end goes out as "mocks-changed", and the last failure is kept
 //! for Try again.
 
 use std::collections::HashMap;
@@ -27,7 +27,7 @@ struct Runs {
 #[derive(Default)]
 pub struct MockRunsState(Mutex<Runs>);
 
-/// The key of a mock's request (a prep's sheet is keyed by its space id).
+/// The key of a mock's request.
 pub fn mock_run_key(space_id: &str, mock_id: &str) -> String {
 	format!("{space_id}/{mock_id}")
 }
@@ -40,8 +40,9 @@ pub fn run_error(app: &App, key: &str) -> Option<String> {
 	app.mocks.runs.0.lock().failed.get(key).cloned()
 }
 
-fn changed(app: &App, space_id: &str) {
-	app.events.emit(EventKind::PrepChanged, json!({ "spaceId": space_id }));
+/// Tells the window a space's mocks changed.
+pub(crate) fn changed(app: &App, space_id: &str) {
+	app.events.emit(EventKind::MocksChanged, json!({ "spaceId": space_id }));
 }
 
 /// Ends a run however its task ends: forgotten (unless a later run took its key) and announced.
@@ -91,7 +92,7 @@ where
 		if let Err(error) = result
 			&& !abort.is_aborted()
 		{
-			eprintln!("[prep {}] the request failed: {error}", end.key);
+			eprintln!("[mock {}] the request failed: {error}", end.key);
 			end.app.mocks.runs.0.lock().failed.insert(end.key.clone(), error);
 		}
 		drop(end);
@@ -112,11 +113,11 @@ pub fn cancel_run(app: &App, key: &str) {
 	}
 }
 
-/// Stops everything a deleted prep had out.
+/// Stops everything a deleted space's mocks had out.
 pub fn cancel_mock_runs(app: &App, space_id: &str) {
 	let keys: Vec<String> = {
 		let runs = app.mocks.runs.0.lock();
-		let mine = |key: &&String| *key == space_id || key.strip_prefix(space_id).is_some_and(|rest| rest.starts_with('/'));
+		let mine = |key: &&String| key.strip_prefix(space_id).is_some_and(|rest| rest.starts_with('/'));
 		runs.running.keys().chain(runs.failed.keys()).filter(mine).cloned().collect()
 	};
 	for key in keys {
@@ -131,29 +132,30 @@ mod tests {
 
 	#[tokio::test]
 	async fn one_request_per_key_its_failure_kept_until_the_next_start() {
-		let root = scratch_dir("prep-runs");
+		let root = scratch_dir("mock-runs");
 		let app = test_app(&root);
 		let mut events = app.events.subscribe();
+		let key = mock_run_key("spc_a", "mock_1");
 		let (tx, rx) = tokio::sync::oneshot::channel::<Result<(), String>>();
-		assert!(start_run(&app, "spc_a", "spc_a", move |_| async move { rx.await.unwrap() }));
-		assert!(!start_run(&app, "spc_a", "spc_a", |_| async { Ok(()) }), "the key's request is still out");
-		assert!(is_running(&app, "spc_a"));
-		tx.send(Err("the agent never sent the sheet".to_owned())).unwrap();
+		assert!(start_run(&app, "spc_a", &key, move |_| async move { rx.await.unwrap() }));
+		assert!(!start_run(&app, "spc_a", &key, |_| async { Ok(()) }), "the key's request is still out");
+		assert!(is_running(&app, &key));
+		tx.send(Err("the agent never sent the questions".to_owned())).unwrap();
 		for _ in 0..2 {
-			assert_eq!(events.recv().await.unwrap().sse_frame(), "event: prep-changed\ndata: {\"spaceId\":\"spc_a\"}\n\n");
+			assert_eq!(events.recv().await.unwrap().sse_frame(), "event: mocks-changed\ndata: {\"spaceId\":\"spc_a\"}\n\n");
 		}
-		assert!(!is_running(&app, "spc_a"));
-		assert_eq!(run_error(&app, "spc_a").as_deref(), Some("the agent never sent the sheet"));
-		assert!(start_run(&app, "spc_a", "spc_a", |_| std::future::pending()));
-		assert_eq!(run_error(&app, "spc_a"), None, "a new start forgets the failure");
+		assert!(!is_running(&app, &key));
+		assert_eq!(run_error(&app, &key).as_deref(), Some("the agent never sent the questions"));
+		assert!(start_run(&app, "spc_a", &key, |_| std::future::pending()));
+		assert_eq!(run_error(&app, &key), None, "a new start forgets the failure");
 	}
 
 	#[tokio::test]
-	async fn a_deleted_prep_stops_its_sheet_and_its_mocks_but_no_other_prep() {
-		let root = scratch_dir("prep-runs-cancel");
+	async fn a_deleted_space_stops_its_mocks_requests_but_no_other_spaces() {
+		let root = scratch_dir("mock-runs-cancel");
 		let app = test_app(&root);
 		let aborts = Arc::new(Mutex::new(Vec::new()));
-		for (space, key) in [("spc_a", "spc_a".to_owned()), ("spc_a", mock_run_key("spc_a", "mock_1")), ("spc_ab", "spc_ab".to_owned())] {
+		for (space, key) in [("spc_a", mock_run_key("spc_a", "mock_1")), ("spc_a", mock_run_key("spc_a", "mock_2")), ("spc_ab", mock_run_key("spc_ab", "mock_1"))] {
 			let aborts = aborts.clone();
 			start_run(&app, space, &key, move |abort| {
 				aborts.lock().push(abort.clone());
@@ -166,8 +168,8 @@ mod tests {
 		cancel_mock_runs(&app, "spc_a");
 		let fired: Vec<bool> = aborts.lock().iter().map(Abort::is_aborted).collect();
 		assert_eq!(fired, [true, true, false]);
-		assert!(!is_running(&app, "spc_a") && !is_running(&app, "spc_a/mock_1") && is_running(&app, "spc_ab"));
+		assert!(!is_running(&app, "spc_a/mock_1") && is_running(&app, "spc_ab/mock_1"));
 		tokio::task::yield_now().await;
-		assert_eq!(run_error(&app, "spc_a"), None, "an aborted request is no failure");
+		assert_eq!(run_error(&app, "spc_a/mock_1"), None, "an aborted request is no failure");
 	}
 }

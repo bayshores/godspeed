@@ -12,7 +12,7 @@ All Rust lives in `crates/` (a Cargo workspace; `Cargo.toml` at the repo root, t
 |---|---|
 | `json` (gs-json) | `Json`: JSON with JS key order, JS number text, lone surrogates |
 | `base` (gs-base) | JS-compatible text, numbers, dates, regex, sorting, ids, hashes, the app clock, paths, events, locks, atomic writes, shutdown |
-| `core` (gs-core) | pure logic: `contracts`, `records`, `messages`, `session`, `graph`, `spaces`, `study`, `preps` |
+| `core` (gs-core) | pure logic: `contracts`, `records`, `messages`, `session`, `graph`, `spaces`, `study`, `mocks` |
 | `store` (gs-store) | every data file, read and written byte for byte the way earlier versions did |
 | `files` | space files to text, linked folder walks, fingerprints |
 | `pdf` | pdfium on one thread: text, shape, search, page images |

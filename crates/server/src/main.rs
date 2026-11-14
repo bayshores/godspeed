@@ -51,6 +51,7 @@ async fn main() -> ExitCode {
 	}
 	let access = http::access::Access::from_env();
 	let app = App::new(paths, shell.clone());
+	gs_services::spaces::upgrade_old_preps(&app);
 	start_deadline_reminders(&app);
 	let router = http::server(app, &access);
 	let service = axum::middleware::from_fn_with_state(access, http::front).layer(router);

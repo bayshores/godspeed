@@ -115,7 +115,7 @@ async fn list(State(app): State<Arc<App>>, uri: Uri) -> Result<Response, Unhandl
 	Ok(reply::json(200, &json!({ "chats": chats })))
 }
 
-/// POST /api/chats: a study session (typed, picked facts, topics, a prep's topics, a mock's
+/// POST /api/chats: a study session (typed, picked facts, topics, a mock's
 /// question or a deadline), or with `homework: true` a homework session on the deadline.
 async fn create(State(app): State<Arc<App>>, body: Body) -> Result<Response, Unhandled> {
 	let body = fields(body).await?;
@@ -135,8 +135,6 @@ async fn create(State(app): State<Arc<App>>, body: Body) -> Result<Response, Unh
 		LessonStart::MockQuestion { mock_id, question_id }
 	} else if let Some(ids) = body["topicIds"].as_arr() {
 		LessonStart::Topics(strings(ids))
-	} else if let Some(ids) = body["prepTopicIds"].as_arr() {
-		LessonStart::PrepTopics(strings(ids))
 	} else {
 		LessonStart::Typed { title: title.to_owned(), picks: picks_of(&body["graphContext"]) }
 	};

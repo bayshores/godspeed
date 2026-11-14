@@ -1,7 +1,7 @@
 //! Lesson creation (lessons.ts): the one place a new lesson record is born (POST /api/chats and
 //! MCP start_lesson), so a lesson in a space always opens with its space card. Every new lesson
-//! is a study session: on a typed topic, picked facts, some of the space's topics, topics of a
-//! prep's sheet, one question of a graded mock, or a deadline.
+//! is a study session: on a typed topic, picked facts, some of the space's topics, one question
+//! of a graded mock, or a deadline.
 //!
 //! Message order at birth: space card, graph-context picks, study plan; the caller then sends the
 //! learner's first message. A start from a deadline is recorded on the chat so that deadline's
@@ -17,7 +17,6 @@ use gs_core::graph::graph::get_graph;
 use gs_core::messages::native_messages::{new_space_context_message, new_graph_context_message, new_study_context_message};
 use gs_core::mocks::mock::question_result;
 use gs_core::mocks::mock_requests::go_over_text;
-use gs_core::mocks::prep::prep_study_topics;
 use gs_core::study::study::{FREE_TOPIC_ID, MAX_STUDY_FACTS, study_context_text, study_plan_tree, study_title};
 use gs_json::{Json, Obj};
 
@@ -25,7 +24,6 @@ use crate::App;
 use crate::spaces::space_card::space_card_for;
 use crate::graph::graph::graph_store_for;
 use crate::graph::progress::{deadline_study_for, study_topics_for, topic_study_for};
-use crate::mocks::preps::prep_view;
 
 fn items(v: &Json) -> &[Json] {
 	v.as_arr().map_or(&[], Vec::as_slice)
@@ -37,8 +35,6 @@ pub enum LessonStart {
 	Typed { title: String, picks: Vec<Json> },
 	/// Some of the space's topics.
 	Topics(Vec<String>),
-	/// Topics of a prep's sheet; none = the ones that most need work.
-	PrepTopics(Vec<String>),
 	/// One question of a graded mock, to go over.
 	MockQuestion { mock_id: String, question_id: String },
 	/// A deadline: its topics for today.
@@ -136,16 +132,6 @@ fn start_of(app: &Arc<App>, scope: Option<&str>, start: &LessonStart) -> Result<
 			}
 			Ok(Start { title: study_title(&study.topics), picks: study.picks, topics: study.topics, note: None })
 		}
-		LessonStart::PrepTopics(topic_ids) => {
-			let topics = match scope.map(|space_id| prep_view(app, space_id)) {
-				Some(Ok(view)) => prep_study_topics(items(&view["topics"]), topic_ids),
-				_ => Vec::new(),
-			};
-			if topics.is_empty() {
-				return Ok(Err(NotFound { code: "topics_not_found", error: "No such topics" }));
-			}
-			Ok(Start { title: study_title(&topics), picks: Vec::new(), topics, note: None })
-		}
 		LessonStart::MockQuestion { mock_id, question_id } => {
 			let mock = match scope {
 				Some(space_id) => app.stores.mocks.read_mock(space_id, mock_id)?,
@@ -156,15 +142,12 @@ fn start_of(app: &Arc<App>, scope: Option<&str>, start: &LessonStart) -> Result<
 			let (Some(mock), Some(question), Some(note)) = (&mock, question, note) else {
 				return Ok(Err(NotFound { code: "topics_not_found", error: "No such question" }));
 			};
-			let topic_id = question["topicId"].as_str().filter(|t| !t.is_empty());
-			let on_sheet = match (scope.map(|space_id| prep_view(app, space_id)), topic_id) {
-				(Some(Ok(view)), Some(topic_id)) => prep_study_topics(items(&view["topics"]), &[topic_id.to_owned()]),
-				_ => Vec::new(),
-			};
-			// Its topic is the plan's one step; a question with none is its own, weak, since it is
-			// being gone over, and latest wrong unless it was right.
+			// The topics of the facts it tested are the plan; a question with none is its own topic,
+			// weak, since it is being gone over, and latest wrong unless it was right.
 			let title = question["title"].as_str().unwrap_or("");
-			let topics = if on_sheet.is_empty() {
+			let fact_ids: Vec<String> = items(&question["factIds"]).iter().filter_map(|f| f.as_str().map(str::to_owned)).collect();
+			let tested = if fact_ids.is_empty() { Vec::new() } else { study_topics_for(app, scope, &fact_ids, title)? };
+			let topics = if tested.is_empty() {
 				let mut own = Obj::new();
 				own.insert("id", FREE_TOPIC_ID);
 				own.insert("name", title);
@@ -175,7 +158,7 @@ fn start_of(app: &Arc<App>, scope: Option<&str>, start: &LessonStart) -> Result<
 				own.insert("factIds", Json::Arr(Vec::new()));
 				vec![Json::Obj(own)]
 			} else {
-				on_sheet
+				tested
 			};
 			Ok(Start { title: format!("Go over: {title}"), picks: Vec::new(), topics, note: Some(note) })
 		}
@@ -217,24 +200,20 @@ mod tests {
 	use super::*;
 	use crate::app::test_support::{scratch_dir, test_app};
 
-	/// A prep with three sheet topics and one graded mock: q1 right on the first topic, q2 left
-	/// blank on the second, q3 wrong with no topic.
-	fn graded_prep(app: &Arc<App>) -> String {
-		let prep = gs_json::json!({
-			"goal": "Online test for a junior web role", "about": "Two questions in 30 minutes.", "sources": [],
-			"topics": [{ "id": "pt_strings", "name": "Strings" }, { "id": "pt_closures", "name": "Closures" }, { "id": "pt_dom", "name": "The DOM" }],
-			"mock": { "questions": 3, "minutes": 30 },
-		});
-		let space_id = app.stores.spaces.create_space(&gs_json::json!({ "name": "Junior web test", "prep": prep })).unwrap()["id"].as_str().unwrap().to_owned();
+	/// A space with an interview and one graded mock: q1 right on a fact, q2 left blank on a fact,
+	/// q3 wrong with no facts.
+	fn graded_mock(app: &Arc<App>) -> String {
+		let space_id = app.stores.spaces.create_space(&gs_json::json!({ "name": "Larkspur onsite" })).unwrap()["id"].as_str().unwrap().to_owned();
+		let deadline = app.stores.spaces.add_deadline(&space_id, &gs_json::json!({ "kind": "interview", "name": "Onsite", "date": "2099-01-15" })).unwrap();
 		let mock = gs_json::json!({
-			"id": "mock_0000abcd", "n": 1, "format": { "questions": 3, "minutes": 30 }, "createdAt": "2026-11-11T10:00:00.000Z",
+			"id": "mock_0000abcd", "deadlineId": deadline["id"], "n": 1, "format": { "questions": 3, "minutes": 30 }, "createdAt": "2026-11-11T10:00:00.000Z",
 			"questions": [
-				{ "id": "q1", "topicId": "pt_strings", "title": "Count the vowels", "statement": "Count them.", "kind": "text" },
-				{ "id": "q2", "topicId": "pt_closures", "title": "Explain closures", "statement": "What is one?", "kind": "text" },
+				{ "id": "q1", "factIds": ["f_strings"], "title": "Count the vowels", "statement": "Count them.", "kind": "text" },
+				{ "id": "q2", "factIds": ["f_closures"], "title": "Explain closures", "statement": "What is one?", "kind": "text" },
 				{ "id": "q3", "title": "Big O of a loop", "statement": "How fast?", "kind": "text" },
 			],
 			"answers": { "q1": { "text": "Five", "seconds": 60, "submitted": true }, "q3": { "text": "n squared", "seconds": 60, "submitted": true } },
-			"startedAt": "2026-11-11T10:00:00.000Z", "endedAt": "2026-11-11T10:20:00.000Z",
+			"startedAt": "2026-11-11T10:00:00.000Z", "endedAt": "2026-11-11T10:20:00.000Z", "pauses": [],
 			"grades": { "q1": { "verdict": "right", "feedback": "Correct." }, "q3": { "verdict": "wrong", "feedback": "It is linear." } },
 		});
 		app.stores.mocks.write_mock(&space_id, &mock).unwrap();
@@ -245,43 +224,22 @@ mod tests {
 		create_lesson(app, CreateLessonInput { space_id: Some(space_id.to_owned()), start }).unwrap().map(|created| (app.stores.chats.get_chat(created.chat["id"].as_str().unwrap()).unwrap(), created.title))
 	}
 
-	fn plan_ids(chat: &Json) -> Vec<&str> {
-		chat["tree"]["nodes"].as_arr().unwrap().iter().map(|n| n["id"].as_str().unwrap()).collect()
-	}
-
 	fn study_plan(chat: &Json) -> &str {
 		chat["messages"].as_arr().unwrap().iter().find(|m| m["customType"].as_str() == Some("study-context")).unwrap()["content"].as_str().unwrap()
 	}
 
 	#[tokio::test]
-	async fn a_prep_study_session_takes_the_topics_that_most_need_work_or_the_ones_named() {
-		let root = scratch_dir("lesson-prep-topics");
-		let app = test_app(&root);
-		let space_id = graded_prep(&app);
-		let (weakest, _) = start(&app, &space_id, LessonStart::PrepTopics(Vec::new())).unwrap();
-		assert_eq!(plan_ids(&weakest), ["pt_closures", "pt_dom", "pt_strings"], "going badly, then not started, then solid");
-		let (one, title) = start(&app, &space_id, LessonStart::PrepTopics(vec!["pt_closures".to_owned()])).unwrap();
-		assert_eq!((plan_ids(&one), title.as_str()), (vec!["pt_closures"], "Study: Closures"));
-		assert_eq!(start(&app, &space_id, LessonStart::PrepTopics(vec!["pt_00000000".to_owned()])).unwrap_err(), NotFound { code: "topics_not_found", error: "No such topics" });
-	}
-
-	#[tokio::test]
-	async fn a_graded_mock_question_is_gone_over_on_its_topic_with_the_grade_under_the_plan() {
+	async fn a_graded_mock_question_is_gone_over_with_the_grade_under_the_plan() {
 		let root = scratch_dir("lesson-go-over");
 		let app = test_app(&root);
-		let space_id = graded_prep(&app);
+		let space_id = graded_mock(&app);
 		let go_over = |question: &str| LessonStart::MockQuestion { mock_id: "mock_0000abcd".to_owned(), question_id: question.to_owned() };
 		let (lesson, title) = start(&app, &space_id, go_over("q1")).unwrap();
-		assert_eq!((title.as_str(), plan_ids(&lesson)), ("Go over: Count the vowels", vec!["pt_strings"]), "its topic is the plan's one step");
-		let card = lesson["messages"][0]["content"].as_str().unwrap();
-		assert!(card.contains("This space is a prep. The learner is getting ready for: Online test for a junior web role\n\nWhat it is like (from the prep sheet):\nTwo questions in 30 minutes."));
+		assert_eq!(title, "Go over: Count the vowels");
 		let plan = study_plan(&lesson);
-		assert!(plan.contains("1. Strings — node pt_strings, strong, no facts"), "{plan}");
-		assert!(plan.contains("\n\n[Mock question] The learner wants to go over this question from Mock 1."));
+		assert!(plan.contains("\n\n[Mock question] The learner wants to go over this question from Mock 1."), "{plan}");
 		assert!(plan.contains("Your grade then: right. Your feedback then:\nCorrect."));
 		assert_eq!(start(&app, &space_id, go_over("q9")).unwrap_err(), NotFound { code: "topics_not_found", error: "No such question" });
-		let (blank, _) = start(&app, &space_id, go_over("q2")).unwrap();
-		assert!(study_plan(&blank).contains("1. Closures — node pt_closures, weak (latest wrong)"), "left blank: taught first");
 		let (free, _) = start(&app, &space_id, go_over("q3")).unwrap();
 		assert!(study_plan(&free).contains("1. Big O of a loop — node topic, weak (latest wrong)"), "a question with no topic is its own, gone over because it went wrong");
 	}

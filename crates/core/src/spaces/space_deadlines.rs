@@ -41,7 +41,7 @@ fn deadline_name(name: Option<&Json>) -> Result<String, SpaceDeadlineError> {
 fn deadline_kind(kind: Option<&Json>) -> Result<String, SpaceDeadlineError> {
 	match kind {
 		Some(k) if is_deadline_kind(k) => Ok(k.as_str().unwrap_or_default().to_owned()),
-		_ => Err(refuse("bad_kind", format!("The kind must be exam, homework, quiz or project (got {})", shown(kind)))),
+		_ => Err(refuse("bad_kind", format!("The kind must be exam, homework, quiz, project or interview (got {})", shown(kind)))),
 	}
 }
 
@@ -76,7 +76,8 @@ fn deadline_source(source: Option<&Json>) -> Result<Option<String>, SpaceDeadlin
 	Ok(Some(squash(source, 300)).filter(|s| !s.is_empty()))
 }
 
-fn deadline_assignment(known: &HashSet<String>, file_id: Option<&Json>) -> Result<String, SpaceDeadlineError> {
+/// An assignment or about file: one of the space's files.
+fn deadline_file(known: &HashSet<String>, file_id: Option<&Json>) -> Result<String, SpaceDeadlineError> {
 	match file_id.and_then(Json::as_str) {
 		Some(id) if known.contains(id) => Ok(id.to_owned()),
 		_ => Err(refuse("unknown_file", format!("Not a file of this space: {}", shown(file_id)))),
@@ -140,7 +141,8 @@ pub fn file_ids_of(record: &Json) -> HashSet<String> {
 pub fn new_deadline(known: &HashSet<String>, init: &Json, id: String) -> Result<Json, SpaceDeadlineError> {
 	let time = init.get("time").map(|t| deadline_time(Some(t))).transpose()?;
 	let source = init.get("source").map(|s| deadline_source(Some(s))).transpose()?.flatten();
-	let assignment = init.get("assignmentFileId").map(|f| deadline_assignment(known, Some(f))).transpose()?;
+	let assignment = init.get("assignmentFileId").map(|f| deadline_file(known, Some(f))).transpose()?;
+	let about = init.get("aboutFileId").map(|f| deadline_file(known, Some(f))).transpose()?;
 	let mut base = Obj::new();
 	base.insert("id", id);
 	base.insert("kind", deadline_kind(init.get("kind"))?);
@@ -155,6 +157,9 @@ pub fn new_deadline(known: &HashSet<String>, init: &Json, id: String) -> Result<
 	}
 	if let Some(assignment) = assignment {
 		base.insert("assignmentFileId", assignment);
+	}
+	if let Some(about) = about {
+		base.insert("aboutFileId", about);
 	}
 	base.insert("done", false);
 	let file_ids = match init.get("fileIds") {
@@ -178,11 +183,15 @@ pub fn changed_deadline(known: &HashSet<String>, prev: &Json, patch: &Json, now:
 		Some(Json::Null) => None,
 		Some(s) => deadline_source(Some(s))?.map(Json::from),
 	};
-	let assignment = match patch.get("assignmentFileId") {
-		None => prev.get("assignmentFileId").cloned(),
-		Some(Json::Null) => None,
-		Some(f) => Some(Json::from(deadline_assignment(known, Some(f))?)),
+	let file_field = |key: &str| -> Result<Option<Json>, SpaceDeadlineError> {
+		Ok(match patch.get(key) {
+			None => prev.get(key).cloned(),
+			Some(Json::Null) => None,
+			Some(f) => Some(Json::from(deadline_file(known, Some(f))?)),
+		})
 	};
+	let assignment = file_field("assignmentFileId")?;
+	let about = file_field("aboutFileId")?;
 	let problems = match patch.get("problems") {
 		Some(p) => Some(deadline_problems(Some(p))?),
 		None => prev["problems"].as_arr().cloned(),
@@ -212,6 +221,9 @@ pub fn changed_deadline(known: &HashSet<String>, prev: &Json, patch: &Json, now:
 	}
 	if let Some(assignment) = assignment {
 		base.insert("assignmentFileId", assignment);
+	}
+	if let Some(about) = about {
+		base.insert("aboutFileId", about);
 	}
 	if let Some(problems) = problems.filter(|p| !p.is_empty()) {
 		base.insert("problems", Json::Arr(problems));
@@ -256,13 +268,24 @@ mod tests {
 			r#"{"id":"ddl_x","kind":"quiz","name":"Quiz 1","date":"2026-11-03","time":"09:30","fileIds":["f1","f2"],"source":"syllabus","assignmentFileId":"f3","done":false,"leftOutIds":["f3"]}"#
 		);
 		assert_eq!(code(new_deadline(&known(), &json!({ "kind": "x", "name": "", "date": "no", "time": "25:00" }), "i".into())), ("bad_time", "The time must be a 24-hour time written HH:MM (got \"25:00\")".to_owned()));
-		assert_eq!(code(new_deadline(&known(), &json!({ "name": "n", "date": "2026-11-03" }), "i".into())).1, "The kind must be exam, homework, quiz or project (got undefined)");
+		assert_eq!(code(new_deadline(&known(), &json!({ "name": "n", "date": "2026-11-03" }), "i".into())).1, "The kind must be exam, homework, quiz, project or interview (got undefined)");
 		assert_eq!(code(new_deadline(&known(), &json!({ "kind": "exam", "name": " ", "date": "2026-11-03" }), "i".into())), ("bad_name", "A deadline needs a name".to_owned()));
 		assert_eq!(code(new_deadline(&known(), &json!({ "kind": "exam", "name": "n", "date": "2026-02-30" }), "i".into())).0, "bad_date");
 		assert_eq!(code(new_deadline(&known(), &json!({ "kind": "exam", "name": "n", "date": "2026-11-03", "fileIds": ["zz", "yy"] }), "i".into())).1, "Not files of this space: zz, yy");
 		assert_eq!(code(new_deadline(&known(), &json!({ "kind": "exam", "name": "n", "date": "2026-11-03", "fileIds": "f1" }), "i".into())).1, "file ids must be a list of space file ids");
 		assert_eq!(code(new_deadline(&known(), &json!({ "kind": "exam", "name": "n", "date": "2026-11-03", "source": 3 }), "i".into())), ("bad_source", "The source must be text".to_owned()));
 		assert_eq!(code(new_deadline(&known(), &json!({ "kind": "exam", "name": "n", "date": "2026-11-03", "assignmentFileId": "zz" }), "i".into())).1, "Not a file of this space: \"zz\"");
+		assert_eq!(code(new_deadline(&known(), &json!({ "kind": "interview", "name": "n", "date": "2026-11-03", "aboutFileId": "zz" }), "i".into())).1, "Not a file of this space: \"zz\"");
+	}
+
+	#[test]
+	fn an_interview_points_at_the_file_on_what_it_is_like_until_that_is_cleared() {
+		let d = new_deadline(&known(), &json!({ "kind": "interview", "name": "Larkspur onsite", "date": "2026-11-24", "time": "14:00", "fileIds": ["f2"], "aboutFileId": "f1" }), "ddl_x".into()).unwrap();
+		assert_eq!(stringify(&d), r#"{"id":"ddl_x","kind":"interview","name":"Larkspur onsite","date":"2026-11-24","time":"14:00","fileIds":["f2"],"aboutFileId":"f1","done":false}"#);
+		assert_eq!(changed_deadline(&known(), &d, &json!({ "name": "Onsite" }), "T").unwrap()["aboutFileId"], json!("f1"), "kept when not named");
+		assert_eq!(changed_deadline(&known(), &d, &json!({ "aboutFileId": "f3" }), "T").unwrap()["aboutFileId"], json!("f3"));
+		assert!(changed_deadline(&known(), &d, &json!({ "aboutFileId": null }), "T").unwrap().get("aboutFileId").is_none());
+		assert_eq!(code(changed_deadline(&known(), &d, &json!({ "aboutFileId": "zz" }), "T")).0, "unknown_file");
 	}
 
 	#[test]

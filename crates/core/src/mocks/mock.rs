@@ -1,13 +1,19 @@
-//! The mock (mock.ts): one timed run of questions like the real thing a prep is for. The teacher
-//! writes every question before it starts, the clock then runs with no agent, and the teacher
-//! grades everything once it ends. A code question names one function and gives examples, so the
-//! learner can run them while the clock runs.
+//! The mock (mock.ts): one run of questions like the real thing a deadline is, a practice exam,
+//! quiz or interview. The teacher writes every question before it starts, the learner answers
+//! with no agent (with a time limit or without one, and a timed one can be paused), and the
+//! teacher grades everything once it ends. A code question names one function and gives
+//! examples, so the learner can run them.
 //!
-//! A mock is `{ id, n, format, createdAt, questions, answers, startedAt?, endedAt?, grades? }`;
-//! a question `{ id, topicId?, title, statement, kind, fn?, examples? }`; an answer
-//! `{ text, language?, code?, seconds, submitted }`; a grade `{ verdict, feedback }`.
+//! A mock (format 2) is `{ id, deadlineId, n, format: { questions, minutes? }, createdAt,
+//! fromAbout?, questions, answers, startedAt?, endsAt?, paused?: { at, left }, pauses: [{ from,
+//! to }], endedAt?, grades? }`: `n` counts per deadline, `minutes` absent is no time limit,
+//! `endsAt` is set while a timed one runs and `paused.left` (seconds) while it is paused. A
+//! question is `{ id, factIds?, title, statement, kind, fn?, examples? }`; an answer `{ text,
+//! language?, code?, seconds, submitted }`; a grade `{ verdict, feedback }`. Format 1 (a prep's
+//! mock, always timed, with `topicId`s) reads as format 2.
 
 use std::collections::HashSet;
+use std::ops::RangeInclusive;
 use std::sync::LazyLock;
 
 use gs_base::re::Re;
@@ -53,7 +59,33 @@ impl MockLanguage {
 }
 
 /// The record format this build writes, stamped as "version".
-pub const MOCK_FORMAT_VERSION: u32 = 1;
+pub const MOCK_FORMAT_VERSION: u32 = 2;
+
+pub const MOCK_QUESTIONS: RangeInclusive<i64> = 1..=10;
+pub const MOCK_MINUTES: RangeInclusive<i64> = 5..=240;
+
+/// The deadline kinds a mock can be taken for: the ones with a sitting to practice.
+pub fn takes_mocks(kind: &Json) -> bool {
+	matches!(kind.as_str(), Some("exam" | "quiz" | "interview"))
+}
+
+/// A whole number, as `Number.isInteger` sees it.
+fn integer(v: &Json) -> Option<i64> {
+	v.as_f64().filter(|n| n.is_finite() && n.fract() == 0.0).map(|n| n as i64)
+}
+
+/// A new mock's format from what the learner picked (`minutes` None is no time limit), or why it
+/// can't be one.
+pub fn mock_format(questions: &Json, minutes: Option<&Json>) -> Result<Json, String> {
+	let range = || format!("A mock is {} to {} questions, with no time limit or {} to {} minutes.", MOCK_QUESTIONS.start(), MOCK_QUESTIONS.end(), MOCK_MINUTES.start(), MOCK_MINUTES.end());
+	let questions = integer(questions).filter(|q| MOCK_QUESTIONS.contains(q)).ok_or_else(range)?;
+	let mut format = Obj::new();
+	format.insert("questions", questions);
+	if let Some(minutes) = minutes {
+		format.insert("minutes", integer(minutes).filter(|m| MOCK_MINUTES.contains(m)).ok_or_else(range)?);
+	}
+	Ok(Json::Obj(format))
+}
 
 const TITLE_MAX: usize = 80;
 const STATEMENT_MAX: i64 = 6000;
@@ -96,8 +128,8 @@ pub fn is_mock_id(id: &str) -> bool {
 	ID.test(id)
 }
 
-pub fn new_mock(id: &str, n: f64, format: &Json, now: &str) -> Json {
-	json!({ "id": id, "n": n, "format": format, "createdAt": now, "questions": [], "answers": {} })
+pub fn new_mock(id: &str, deadline_id: &str, n: f64, format: &Json, now: &str) -> Json {
+	json!({ "id": id, "deadlineId": deadline_id, "n": n, "format": format, "createdAt": now, "questions": [], "answers": {}, "pauses": [] })
 }
 
 /// The mock with one field set (a field it has keeps its place, like `{ ...mock, key }`).
@@ -107,19 +139,29 @@ fn with(mock: &Json, key: &str, value: Json) -> Json {
 	Json::Obj(out)
 }
 
+fn without(mock: Json, keys: &[&str]) -> Json {
+	let mut out = mock.as_obj().cloned().unwrap_or_default();
+	for key in keys {
+		out.remove(key);
+	}
+	Json::Obj(out)
+}
+
 fn items(list: &Json) -> &[Json] {
 	list.as_arr().map_or(&[], Vec::as_slice)
 }
 
 // ─── where a mock is ─────────────────────────────────────────────────────────
 
-/// Writing: the teacher is writing the questions. Ready: written, not started. Running: the clock
-/// runs. Grading: ended, the teacher is grading. Graded: results are in.
+/// Writing: the teacher is writing the questions. Ready: written, not started. Running: being
+/// taken. Paused: a timed one stopped by the learner, its time left kept. Grading: ended, the
+/// teacher is grading. Graded: results are in.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum MockState {
 	Writing,
 	Ready,
 	Running,
+	Paused,
 	Grading,
 	Graded,
 }
@@ -130,6 +172,7 @@ impl MockState {
 			MockState::Writing => "writing",
 			MockState::Ready => "ready",
 			MockState::Running => "running",
+			MockState::Paused => "paused",
 			MockState::Grading => "grading",
 			MockState::Graded => "graded",
 		}
@@ -142,7 +185,7 @@ pub fn mock_state(mock: &Json) -> MockState {
 	} else if !mock["startedAt"].truthy() {
 		MockState::Ready
 	} else if !mock["endedAt"].truthy() {
-		MockState::Running
+		if mock["paused"].truthy() { MockState::Paused } else { MockState::Running }
 	} else if mock["grades"].truthy() {
 		MockState::Graded
 	} else {
@@ -160,15 +203,21 @@ fn at_least(low: f64, x: f64) -> f64 {
 	if x.is_nan() { x } else { x.max(low) }
 }
 
-/// Whole seconds left on a running mock's clock (0 once it is over; NaN when its start can't be
-/// read, as in Node).
-pub fn seconds_left(mock: &Json, now_ms: f64) -> f64 {
-	let minutes = mock["format"]["minutes"].as_f64().unwrap_or(f64::NAN);
-	if !mock["startedAt"].truthy() {
-		return minutes * 60.0;
-	}
-	let end = date_ms(&mock["startedAt"]) + minutes * 60_000.0;
-	at_least(0.0, ((end - now_ms) / 1000.0).ceil())
+/// The mock has a time limit.
+pub fn is_timed(mock: &Json) -> bool {
+	mock["format"]["minutes"].as_f64().is_some()
+}
+
+/// Whole seconds left of a timed mock's time (0 once it is over): all of it before the start,
+/// what was left when it was paused, and while it runs until `endsAt`. None with no time limit.
+pub fn seconds_left(mock: &Json, now_ms: f64) -> Option<f64> {
+	let minutes = mock["format"]["minutes"].as_f64()?;
+	Some(match mock_state(mock) {
+		MockState::Writing | MockState::Ready => minutes * 60.0,
+		MockState::Paused => mock["paused"]["left"].as_f64().unwrap_or(0.0),
+		_ if mock["endsAt"].truthy() => at_least(0.0, ((date_ms(&mock["endsAt"]) - now_ms) / 1000.0).ceil()),
+		_ => 0.0,
+	})
 }
 
 // ─── the teacher's questions ─────────────────────────────────────────────────
@@ -196,11 +245,11 @@ fn strings(list: &Json) -> Vec<&str> {
 	items(list).iter().map(Json::str_or_empty).collect()
 }
 
-/// The teacher's questions (each `{ title, statement, kind, topic_id?, function_name?, params?,
+/// The teacher's questions (each `{ title, statement, kind, fact_ids?, function_name?, params?,
 /// examples? }`) as the mock keeps them, or why they can't be kept (said back to the teacher).
-/// There must be exactly as many as the mock's format asks for. A topic id the prep doesn't have
+/// There must be exactly as many as the mock's format asks for. A fact id the request didn't give
 /// is dropped.
-pub fn take_questions(written: &[Json], format: &Json, topic_ids: &HashSet<String>) -> Result<Vec<Json>, String> {
+pub fn take_questions(written: &[Json], format: &Json, fact_ids: &HashSet<String>) -> Result<Vec<Json>, String> {
 	let wanted = &format["questions"];
 	if wanted.as_f64() != Some(written.len() as f64) {
 		return Err(format!("Write exactly {} questions (got {}).", js_number(wanted.as_f64().unwrap_or(f64::NAN)), written.len()));
@@ -218,8 +267,14 @@ pub fn take_questions(written: &[Json], format: &Json, topic_ids: &HashSet<Strin
 		}
 		let mut q = Obj::new();
 		q.insert("id", format!("q{}", i + 1));
-		if let Some(topic) = w["topic_id"].as_str().filter(|t| !t.is_empty() && topic_ids.contains(*t)) {
-			q.insert("topicId", topic);
+		let mut facts: Vec<&str> = Vec::new();
+		for id in strings(&w["fact_ids"]).into_iter().filter(|f| fact_ids.contains(*f)) {
+			if !facts.contains(&id) {
+				facts.push(id);
+			}
+		}
+		if !facts.is_empty() {
+			q.insert("factIds", facts);
 		}
 		q.insert("title", title);
 		q.insert("statement", statement);
@@ -265,8 +320,44 @@ pub fn starter_code(function: &Json, language: MockLanguage) -> String {
 
 // ─── taking it ───────────────────────────────────────────────────────────────
 
-pub fn start_mock(mock: &Json, now: &str) -> Json {
-	if mock_state(mock) == MockState::Ready { with(mock, "startedAt", Json::from(now)) } else { mock.clone() }
+/// Starts a ready mock: a timed one runs until `endsAt`.
+pub fn start_mock(mock: &Json, now_ms: i64) -> Json {
+	if mock_state(mock) != MockState::Ready {
+		return mock.clone();
+	}
+	let mut out = with(mock, "startedAt", Json::from(time::iso(now_ms)));
+	if let Some(minutes) = mock["format"]["minutes"].as_f64() {
+		out = with(&out, "endsAt", Json::from(time::iso(now_ms + (minutes * 60_000.0) as i64)));
+	}
+	if out.get("pauses").is_none() {
+		out = with(&out, "pauses", Json::Arr(Vec::new()));
+	}
+	out
+}
+
+/// Pauses a running timed mock: its time left is kept and its clock stops.
+pub fn pause_mock(mock: &Json, now_ms: i64) -> Json {
+	if mock_state(mock) != MockState::Running {
+		return mock.clone();
+	}
+	let Some(left) = seconds_left(mock, now_ms as f64) else { return mock.clone() };
+	without(with(mock, "paused", json!({ "at": time::iso(now_ms), "left": left })), &["endsAt"])
+}
+
+/// The open pause as ended at `now_ms`, added to the mock's pauses.
+fn closed_pause(mock: &Json, now_ms: i64) -> Json {
+	let mut pauses = items(&mock["pauses"]).to_vec();
+	pauses.push(json!({ "from": mock["paused"]["at"], "to": time::iso(now_ms) }));
+	without(with(mock, "pauses", Json::Arr(pauses)), &["paused"])
+}
+
+/// Resumes a paused mock: it runs for the time it had left.
+pub fn resume_mock(mock: &Json, now_ms: i64) -> Json {
+	if mock_state(mock) != MockState::Paused {
+		return mock.clone();
+	}
+	let left = mock["paused"]["left"].as_f64().unwrap_or(0.0);
+	with(&closed_pause(mock, now_ms), "endsAt", Json::from(time::iso(now_ms + (left * 1000.0) as i64)))
 }
 
 /// A code answer's code by language, from anything: strings in known languages only, each cut to
@@ -312,8 +403,14 @@ pub fn with_answer(mock: &Json, question_id: &str, answer: &Json) -> Json {
 	with(mock, "answers", Json::Obj(answers))
 }
 
-pub fn end_mock(mock: &Json, now: &str) -> Json {
-	if mock_state(mock) == MockState::Running { with(mock, "endedAt", Json::from(now)) } else { mock.clone() }
+/// Ends a running or paused mock (an open pause ends with it).
+pub fn end_mock(mock: &Json, now_ms: i64) -> Json {
+	let open = match mock_state(mock) {
+		MockState::Running => mock.clone(),
+		MockState::Paused => closed_pause(mock, now_ms),
+		_ => return mock.clone(),
+	};
+	with(&without(open, &["endsAt"]), "endedAt", Json::from(time::iso(now_ms)))
 }
 
 /// Something was written for the question (`answer` is Null when there is none).
@@ -351,11 +448,13 @@ pub fn question_result<'a>(mock: &'a Json, question_id: &str) -> Option<&'a str>
 	Some(mock["grades"][question_id]["verdict"].as_str().unwrap_or("blank"))
 }
 
-/// A graded mock's questions as answers for the prep's topics (`{ nodeId?, outcome, answeredAt }`),
-/// given when it ended: right is right, a blank one is "I don't know", anything else is wrong.
+/// A graded mock's questions written from facts, as answers for those facts (`{ chatId: mock
+/// id, toolCallId: question id, tool: "mock", factIds, outcome, answeredAt }`), given when it
+/// ended: right is right, a blank one is "I don't know", anything else is wrong.
 pub fn mock_answers(mock: &Json) -> Vec<Json> {
 	items(&mock["questions"])
 		.iter()
+		.filter(|q| !items(&q["factIds"]).is_empty())
 		.filter_map(|q| {
 			let result = question_result(mock, q["id"].str_or_empty())?;
 			let ended = mock["endedAt"].as_str().filter(|e| !e.is_empty())?;
@@ -364,25 +463,35 @@ pub fn mock_answers(mock: &Json) -> Vec<Json> {
 				"blank" => "dontKnow",
 				_ => "wrong",
 			};
-			let mut answer = Obj::new();
-			if q["topicId"].truthy() {
-				answer.insert("nodeId", q["topicId"].clone());
-			}
-			answer.insert("outcome", outcome);
-			answer.insert("answeredAt", ended);
-			Some(Json::Obj(answer))
+			Some(json!({ "chatId": mock["id"], "toolCallId": q["id"], "tool": "mock", "factIds": q["factIds"], "outcome": outcome, "answeredAt": ended }))
 		})
 		.collect()
 }
 
-/// Whole minutes an ended mock took, at most its format's; None before it ends.
+/// How many times the mock was paused and for how long in all (ms), an open pause up to
+/// `now_ms`.
+pub fn pause_total(mock: &Json, now_ms: i64) -> (usize, f64) {
+	let mut spans: Vec<(f64, f64)> = items(&mock["pauses"]).iter().map(|p| (date_ms(&p["from"]), date_ms(&p["to"]))).collect();
+	if mock["paused"].truthy() {
+		spans.push((date_ms(&mock["paused"]["at"]), now_ms as f64));
+	}
+	let ms = spans.iter().map(|(from, to)| to - from).filter(|ms| ms.is_finite() && *ms > 0.0).sum();
+	(spans.len(), ms)
+}
+
+/// Whole minutes an ended mock took, pauses left out, at most its time limit; None before it
+/// ends.
 pub fn minutes_used(mock: &Json) -> Option<f64> {
 	if !mock["startedAt"].truthy() || !mock["endedAt"].truthy() {
 		return None;
 	}
-	let minutes = at_least(1.0, ((date_ms(&mock["endedAt"]) - date_ms(&mock["startedAt"])) / 60_000.0).ceil());
-	let most = mock["format"]["minutes"].as_f64().unwrap_or(f64::NAN);
-	Some(if minutes.is_nan() || most.is_nan() { f64::NAN } else { most.min(minutes) })
+	let ended = date_ms(&mock["endedAt"]);
+	let (_, paused) = pause_total(mock, ended as i64);
+	let minutes = at_least(1.0, ((ended - date_ms(&mock["startedAt"]) - paused) / 60_000.0).ceil());
+	Some(match mock["format"]["minutes"].as_f64() {
+		Some(most) if !minutes.is_nan() => most.min(minutes),
+		_ => minutes,
+	})
 }
 
 /// How many questions a graded mock got right.
@@ -392,17 +501,18 @@ pub fn solved_count(mock: &Json) -> usize {
 
 // ─── what the pages show ─────────────────────────────────────────────────────
 
-/// A mock as a row on its prep's pages: `working` while the teacher writes or grades it, `error`
-/// the last failure.
+/// A mock as a row on its deadline's page: `working` while the teacher writes or grades it,
+/// `error` the last failure.
 pub fn mock_summary(mock: &Json, working: bool, error: Option<&str>) -> Json {
 	let state = mock_state(mock);
 	let mut out = Obj::new();
-	out.insert("id", mock["id"].clone());
-	out.insert("n", mock["n"].clone());
+	for key in ["id", "deadlineId", "n"] {
+		out.insert(key, mock[key].clone());
+	}
 	out.insert("state", state.as_str());
 	out.insert("format", mock["format"].clone());
 	out.insert("createdAt", mock["createdAt"].clone());
-	for key in ["startedAt", "endedAt"] {
+	for key in ["fromAbout", "startedAt", "endsAt", "paused", "endedAt"] {
 		if mock[key].truthy() {
 			out.insert(key, mock[key].clone());
 		}
@@ -420,11 +530,8 @@ pub fn mock_summary(mock: &Json, working: bool, error: Option<&str>) -> Json {
 /// A mock as its own page shows it.
 pub struct MockView {
 	pub space_id: String,
-	/// Its prep's name.
-	pub prep_name: Json,
+	pub deadline_name: Json,
 	pub mock: Json,
-	/// The prep's topics (`{ id, name }`), for naming what to fix.
-	pub topics: Vec<Json>,
 	/// The teacher is writing or grading it now.
 	pub working: bool,
 	/// Why the last write or grading failed.
@@ -435,9 +542,9 @@ impl MockView {
 	pub fn to_json(&self) -> Json {
 		let mut out = Obj::new();
 		out.insert("spaceId", self.space_id.as_str());
-		out.insert("prepName", self.prep_name.clone());
+		out.insert("deadlineId", self.mock["deadlineId"].clone());
+		out.insert("deadlineName", self.deadline_name.clone());
 		out.insert("mock", self.mock.clone());
-		out.insert("topics", self.topics.clone());
 		out.insert("working", self.working);
 		if let Some(error) = self.error.as_deref().filter(|e| !e.is_empty()) {
 			out.insert("error", error);
@@ -453,8 +560,9 @@ fn parse_question(raw: &Json) -> Option<Json> {
 	let (id, title, statement) = (raw["id"].as_str()?, raw["title"].as_str()?, raw["statement"].as_str()?);
 	let mut q = Obj::new();
 	q.insert("id", id);
-	if let Some(topic) = raw["topicId"].as_str() {
-		q.insert("topicId", topic);
+	let facts = strings(&raw["factIds"]);
+	if !facts.is_empty() {
+		q.insert("factIds", facts);
 	}
 	q.insert("title", title);
 	q.insert("statement", statement);
@@ -523,28 +631,60 @@ pub enum ParsedMock {
 	Newer,
 }
 
-/// A saved mock; None when it isn't one.
+fn parse_pause(raw: &Json) -> Option<Json> {
+	let (from, to) = (raw["from"].as_str()?, raw["to"].as_str()?);
+	Some(json!({ "from": from, "to": to }))
+}
+
+/// A saved mock; None when it isn't one. A format 1 mock (always timed) reads as format 2: a
+/// running one ends at its start plus its minutes, and its questions' prep topics are dropped.
 pub fn parse_mock(raw: &Json) -> Option<ParsedMock> {
 	raw.as_obj()?;
-	if raw["version"].as_f64().is_some_and(|v| v > f64::from(MOCK_FORMAT_VERSION)) {
+	let version = raw["version"].as_f64().unwrap_or(1.0);
+	if version > f64::from(MOCK_FORMAT_VERSION) {
 		return Some(ParsedMock::Newer);
 	}
 	let format = &raw["format"];
 	let id = raw["id"].as_str().filter(|id| is_mock_id(id))?;
 	let (n, created) = (raw["n"].as_f64()?, raw["createdAt"].as_str()?);
 	format.as_obj()?;
-	let (questions, minutes) = (format["questions"].as_f64()?, format["minutes"].as_f64()?);
+	let questions = format["questions"].as_f64()?;
+	let minutes = format["minutes"].as_f64();
+	if version < 2.0 && minutes.is_none() {
+		return None;
+	}
 	let mut mock = Obj::new();
 	mock.insert("id", id);
+	if let Some(deadline) = raw["deadlineId"].as_str() {
+		mock.insert("deadlineId", deadline);
+	}
 	mock.insert("n", n);
-	mock.insert("format", json!({ "questions": questions, "minutes": minutes }));
+	mock.insert("format", minutes.map_or_else(|| json!({ "questions": questions }), |minutes| json!({ "questions": questions, "minutes": minutes })));
 	mock.insert("createdAt", created);
+	if raw["fromAbout"] == Json::Bool(true) {
+		mock.insert("fromAbout", true);
+	}
 	mock.insert("questions", items(&raw["questions"]).iter().filter_map(parse_question).collect::<Vec<_>>());
 	mock.insert("answers", parse_answers(&raw["answers"]));
-	for key in ["startedAt", "endedAt"] {
-		if let Some(at) = raw[key].as_str() {
-			mock.insert(key, at);
+	let (started, ended) = (raw["startedAt"].as_str(), raw["endedAt"].as_str());
+	if let Some(at) = started {
+		mock.insert("startedAt", at);
+	}
+	if version < 2.0 {
+		if let (Some(at), None, Some(minutes)) = (started.and_then(time::parse_date), ended, minutes) {
+			mock.insert("endsAt", time::iso(at + (minutes * 60_000.0) as i64));
 		}
+	} else {
+		if let Some(at) = raw["endsAt"].as_str() {
+			mock.insert("endsAt", at);
+		}
+		if let (Some(at), Some(left)) = (raw["paused"]["at"].as_str(), raw["paused"]["left"].as_f64()) {
+			mock.insert("paused", json!({ "at": at, "left": left.max(0.0) }));
+		}
+	}
+	mock.insert("pauses", items(&raw["pauses"]).iter().filter_map(parse_pause).collect::<Vec<_>>());
+	if let Some(at) = ended {
+		mock.insert("endedAt", at);
 	}
 	if let Some(grades) = parse_grades(&raw["grades"]) {
 		mock.insert("grades", grades);
