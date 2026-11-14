@@ -19,7 +19,7 @@ use super::fn_tool::FnTool;
 use super::lesson_parts::LessonParts;
 use super::practice::{LessonRecord, record_messages};
 
-const DESCRIPTION: &str = "Draws one or two lines over x, instead of demo, when the idea is a curve: a formula with one slider, or measured points. Send it with a prediction on it (quiz.onPlot) in the same reply; it stays locked until he answers. Leave one plain reply after a keep.";
+const DESCRIPTION: &str = "Draws one or two lines over x, instead of demo, when the idea is a curve: a formula with one slider, or measured points. Send it with a prediction on it (quiz.onPlot) in the same reply; it stays locked until he answers. While a question is open, send it with no prediction. Leave one plain reply after a keep.";
 
 fn parameters() -> Json {
 	let name = |description: &str| json!({ "type": "string", "pattern": "^[a-z][a-z0-9_]{0,11}$", "description": description });
@@ -139,13 +139,13 @@ mod tests {
 		json!({ "type": "predict", "nodeId": "reg", "question": "Where does the penalty put it?", "options": options, "explanation": "a/(1+lambda).", "correctAnswer": right, "onPlot": { "line": "penalty", "x": 8 } })
 	}
 
-	/// A lesson whose plan holds `reg`, already holding one stored plot.
-	fn lesson() -> LessonRecord {
+	/// A lesson whose plan holds `reg`, already holding one stored plot, then `after`.
+	fn lesson(after: Vec<Json>) -> LessonRecord {
 		let stored = vec![
 			json!({ "role": "toolResult", "toolCallId": "p0", "toolName": "plot", "isError": false, "details": { "part": "plot", "v": 1, "id": "p1" } }),
 			json!({ "role": "toolResult", "toolCallId": "px", "toolName": "plot", "isError": true, "details": null }),
 		];
-		record(stored)
+		record([stored, after].concat())
 	}
 
 	/// The quiz and plot of the Study registry under the hook, healed as the registry heals them,
@@ -155,7 +155,10 @@ mod tests {
 	}
 
 	async fn run_with(calls: Vec<Json>, hooked: bool) -> Vec<Json> {
-		let record = lesson();
+		run_in(lesson(Vec::new()), calls, hooked).await
+	}
+
+	async fn run_in(record: LessonRecord, calls: Vec<Json>, hooked: bool) -> Vec<Json> {
 		let plan = PlanContext { chat_id: record.chat_id.clone(), chat_store: Arc::new(Planned(record.chat_store.clone())) };
 		let parts = LessonParts::new(&plan);
 		let scripted = Scripted::new();
@@ -216,6 +219,34 @@ mod tests {
 		let plot = results.iter().find(|r| r["toolCallId"] == json!("p9")).unwrap();
 		assert_eq!(plot["content"][0]["text"], json!("p2 drawn. degree = 1, 3, 5, 9: cv_error 0.8, 0.4, 0.3, 0.9."));
 		assert_eq!(stringify(&plot["details"]), r#"{"part":"plot","v":1,"id":"p2","onPlot":{"toolCallId":"q1","value":0.3},"y":{"min":0.2,"max":1}}"#);
+	}
+
+	fn cv_points() -> Json {
+		json!({
+			"title": "Cross-validation error by degree",
+			"x": { "name": "degree", "label": "polynomial degree", "min": 0, "max": 10 },
+			"y": { "label": "CV error" },
+			"lines": [{ "label": "cv_error", "points": [[1, 0.8], [3, 0.4], [5, 0.3], [9, 0.9]] }],
+		})
+	}
+
+	/// While a check quiz or a problem waits for him, a plot sent alone draws at once with no
+	/// guess; with nothing open it is refused as before, and a hidden line needs a guess.
+	#[tokio::test]
+	async fn a_plot_sent_while_a_question_is_open_draws_with_no_guess() {
+		let quiz = vec![json!({ "role": "assistant", "content": [call("q0", "quiz", guess("B"))] }), json!({ "role": "user", "content": "Plot it?", "side": true })];
+		let problem = vec![json!({ "role": "assistant", "content": [call("pr0", "problem", json!({ "statement": "s" }))] }), json!({ "role": "toolResult", "toolCallId": "pr0", "toolName": "problem", "isError": false, "details": null })];
+		for open in [quiz, problem] {
+			let results = run_in(lesson(open), vec![call("p9", "plot", cv_points())], true).await;
+			assert_eq!(results[0]["isError"], json!(false), "{results:?}");
+			assert_eq!(results[0]["content"][0]["text"], json!("p2 drawn. degree = 1, 3, 5, 9: cv_error 0.8, 0.4, 0.3, 0.9."));
+			assert_eq!(stringify(&results[0]["details"]), r#"{"part":"plot","v":1,"id":"p2","y":{"min":0.2,"max":1}}"#);
+		}
+		let closed = run_reply(vec![call("p9", "plot", cv_points())]).await;
+		assert_eq!(closed[0]["content"][0]["text"], json!("plot: needs a quiz with onPlot in the same reply."), "nothing open");
+		let open = vec![json!({ "role": "assistant", "content": [call("q0", "quiz", guess("B"))] })];
+		let hidden = run_in(lesson(open), vec![call("p9", "plot", leash())], true).await;
+		assert_eq!(hidden[0]["content"][0]["text"], json!("lines[0].hidden: needs a guess on the plot. Leave hidden out."));
 	}
 
 	#[tokio::test]

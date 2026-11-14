@@ -1,13 +1,14 @@
 //! Study's lesson-parts hook (the engine's before-tool-call): a reply's plot and its guess
 //! (`quiz.onPlot`) pass or are refused as a pair before either runs, whatever order the reply
-//! lists them in, since it sees the whole reply. The plot it passes learns its guess's call id and
-//! the drawn value the guess asks about, for the plot's result details.
+//! lists them in, since it sees the whole reply. While a question waits for the learner, a plot
+//! passes alone, with no guess. The plot it passes learns its guess's call id and the drawn value
+//! the guess asks about (null for none), for the plot's result details.
 
 use std::collections::HashMap;
 use std::sync::Arc;
 
 use gs_core::session::plot::PLOT_TOOL;
-use gs_core::study::topic_parts::{first_topic, reply_parts_problems};
+use gs_core::study::topic_parts::{first_topic, question_open, reply_parts_problems};
 use gs_engine::turn::agent::BeforeToolCallFn;
 use gs_json::Json;
 use parking_lot::Mutex;
@@ -40,7 +41,10 @@ impl LessonParts {
 				return None;
 			}
 			let record = parts.plan.chat_store.get_chat(&parts.plan.chat_id);
-			let verdict = reply_parts_problems(ctx.messages, first_topic(record.as_ref().map(|r| &r["tree"])), ctx.message, &|quiz| study_quiz_call(&parts.plan, quiz));
+			// The model's view answers a question at once around a side question; the record knows it is open.
+			let stored = record.as_ref().and_then(|r| r["messages"].as_arr()).map_or(&[][..], Vec::as_slice);
+			let open = question_open(stored, ctx.message);
+			let verdict = reply_parts_problems(ctx.messages, first_topic(record.as_ref().map(|r| &r["tree"])), ctx.message, open, &|quiz| study_quiz_call(&parts.plan, quiz));
 			if let Some((plot_call_id, guess)) = verdict.on_plot {
 				parts.passed.lock().insert(plot_call_id, guess);
 			}

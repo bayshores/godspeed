@@ -232,7 +232,7 @@ The lesson has one writing box, at the foot of the teacher column (`LessonBox` i
 - It posts a `side` input event, refused unless a question waits. The server saves it as a user message with `side: true` (`new_side_question`, `core::messages::native_messages`). Its pictures and PDFs are stored like any message's.
 - The question stays open: `dangling_question_of` looks past side questions and their replies.
 - `is_side_turn` marks the reply turn. A job result arriving after the side question ends it.
-- A side turn keeps the same tool list, so the outside agent gets a small delta. The question tools, `problem`, `conclude` and `plot` refuse (`side_turn_tools` in `agent::teacher::teacher_agent`).
+- A side turn keeps the same tool list, so the outside agent gets a small delta. The question tools, `problem` and `conclude` refuse (`side_turn_tools` in `agent::teacher::teacher_agent`). `plot` still draws, with no guess (see Plots).
 - A side turn gets no `today-context` note and no job results (`services::turns::chat_handler`).
 - In the model's view, the question call gets a placeholder result at once. The side question follows as a plain user message, and the learner's later answer (or skip) arrives where it happened. Earlier model views stay a prefix of later ones.
 
@@ -708,6 +708,7 @@ A plot comes with a prediction `quiz` in the same reply, whose `onPlot: {line, x
 
 - the right option must name the drawn value to 2 significant figures; on a points line, `x` is one of its measured x values and the value is that point's y
 - a topic has one plot
+- while a question or problem waits for the learner in the stored record (`core::study::topic_parts::question_open`), the plot comes alone, with no guess and no `hidden` line, and opens at once; its `details` have no `onPlot`. With nothing open, a plot with no guess is refused as before
 - the topic's previous reply may not carry a kept sentence the learner saw; a page never holds a plot back
 
 While a topic has no plot, its start carries the line "No plot yet in this topic. If its idea is a curve, open with `plot`.": the first topic's under the `[Study plan]`, every later one's after its `[Opener]` line (`core::study::topic_parts::NO_PLOT_YET`). Plots from earlier lessons are not looked up.

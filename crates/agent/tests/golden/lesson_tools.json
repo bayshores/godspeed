@@ -4119,7 +4119,7 @@
 			},
 			{
 				"name": "plot",
-				"description": "Draws one or two lines over x, instead of demo, when the idea is a curve: a formula with one slider, or measured points. Send it with a prediction on it (quiz.onPlot) in the same reply; it stays locked until he answers. Leave one plain reply after a keep.",
+				"description": "Draws one or two lines over x, instead of demo, when the idea is a curve: a formula with one slider, or measured points. Send it with a prediction on it (quiz.onPlot) in the same reply; it stays locked until he answers. While a question is open, send it with no prediction. Leave one plain reply after a keep.",
 				"parameters": {
 					"type": "object",
 					"required": [

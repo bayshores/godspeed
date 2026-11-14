@@ -525,9 +525,11 @@ pub fn option_names_value(label: &str, value: f64) -> bool {
 	value.is_finite() && named_numbers(label).into_iter().any(|n| (two_figures(n) - want).abs() <= 1e-9 * want.abs().max(1e-300))
 }
 
-/// The plot result's `details`: kind and version, the plot's id, its guess and where y runs.
+/// The plot result's `details`: kind and version, the plot's id, its guess (left out for a plot
+/// sent with none while a question is open) and where y runs.
 pub fn plot_details(id: &str, on_plot: Json, y: (f64, f64)) -> Json {
-	json!({ "part": PLOT_TOOL, "v": 1, "id": id, "onPlot": on_plot, "y": { "min": y.0, "max": y.1 } })
+	let y = json!({ "min": y.0, "max": y.1 });
+	if on_plot.is_null() { json!({ "part": PLOT_TOOL, "v": 1, "id": id, "y": y }) } else { json!({ "part": PLOT_TOOL, "v": 1, "id": id, "onPlot": on_plot, "y": y }) }
 }
 
 #[cfg(test)]
@@ -779,5 +781,6 @@ mod tests {
 		assert_eq!(count(3912), "3,912");
 		assert_eq!(count(400), "400");
 		assert_eq!(stringify(&plot_details("p1", json!({ "toolCallId": "q1", "value": 4 }), (0.0, 5.0))), r#"{"part":"plot","v":1,"id":"p1","onPlot":{"toolCallId":"q1","value":4},"y":{"min":0,"max":5}}"#);
+		assert_eq!(stringify(&plot_details("p2", Json::Null, (0.0, 5.0))), r#"{"part":"plot","v":1,"id":"p2","y":{"min":0,"max":5}}"#, "no guess, no onPlot");
 	}
 }

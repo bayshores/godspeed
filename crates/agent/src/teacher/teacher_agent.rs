@@ -11,7 +11,6 @@ use gs_core::contracts::chat::TOPIC_DONE_TOOL;
 use gs_core::messages::native_messages::{PRACTICE_CONCLUDE_TOOL, PRACTICE_PROBLEM_TOOL, to_llm_messages};
 use gs_core::messages::pending::is_question_tool;
 use gs_core::session::tool_switches::{TOGGLEABLE_TOOLS, switched_off_tools_note};
-use gs_core::session::plot::PLOT_TOOL;
 use gs_engine::turn::agent::{Agent, AgentOptions, BeforeToolCallFn, FinishFn, QueueMode};
 use gs_engine::turn::events::AgentEvent;
 use gs_engine::turn::faux::Engine;
@@ -98,13 +97,14 @@ fn question_stopper(kind: AgentKind) -> FinishFn {
 	})
 }
 
-/// A side turn keeps the question tools, problem, conclude and plot but refuses them: an unchanged
-/// tool list keeps the outside agent's conversation a cheap delta instead of a full resend.
+/// A side turn keeps the question tools, problem and conclude but refuses them: an unchanged tool
+/// list keeps the outside agent's conversation a cheap delta instead of a full resend. A plot
+/// still draws, with no guess (the lesson-parts hook).
 fn side_turn_tools(tools: Vec<FnTool>) -> Vec<FnTool> {
 	tools
 		.into_iter()
 		.map(|tool| {
-			if is_question_tool(tool.name()) || [PRACTICE_PROBLEM_TOOL, PRACTICE_CONCLUDE_TOOL, PLOT_TOOL].contains(&tool.name()) {
+			if is_question_tool(tool.name()) || [PRACTICE_PROBLEM_TOOL, PRACTICE_CONCLUDE_TOOL].contains(&tool.name()) {
 				tool.with_run(|_| Arc::new(|_, _| Box::pin(async { Ok(json!({ "content": [{ "type": "text", "text": SIDE_TURN_REFUSAL }], "isError": true })) })))
 			} else {
 				tool
