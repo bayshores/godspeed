@@ -114,7 +114,8 @@ describe("answering", () => {
 		const html = page(<MockRun view={view({ startedAt: iso(-14), paused: { at: iso(-1), left: 31 * 60 + 9 } })} />);
 		assert.ok(!html.includes("mock-questions") && !html.includes("Idempotency") && !html.includes("math-box"), "nothing of the questions shows");
 		assert.match(html, /data-testid="mock-clock"[^>]*>31:09 left</);
-		assert.match(html, /data-testid="mock-pause"[^>]*>Resume</);
+		assert.match(html, /data-testid="mock-paused-word"[^>]*>Paused</);
+		assert.ok(!html.includes('data-testid="mock-pause"'), "one Resume, on the paused screen");
 		assert.ok(!html.includes('data-testid="mock-end"'));
 		assert.match(html, />Mock 2 is paused<.*31:09 left\. The questions are hidden and nothing is saved until you resume\..*data-testid="mock-resume"[^>]*lh-btn-main[^>]*>Resume</);
 	});

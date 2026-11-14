@@ -27,9 +27,10 @@ function readLanguage(): MockLanguage {
  * THE MOCK WHILE IT IS ANSWERED: the question on the left, the answer on
  * the right (an editor with Run examples, or the writing box). The bar
  * holds the questions, and on a timed mock the time left and Pause. Paused,
- * the questions are hidden until Resume. What is typed is saved every few
- * seconds, on every move and before a pause; the teacher is not asked
- * anything until the mock ends, by End mock or when its time is up.
+ * the questions are hidden until Resume and the bar says Paused. What is
+ * typed is saved every few seconds, on every move and before a pause; the
+ * teacher is not asked anything until the mock ends, by End mock or when
+ * its time is up.
  */
 export function MockRun({ view }: { view: MockView }) {
 	const { spaceId, mock } = view;
@@ -56,12 +57,15 @@ export function MockRun({ view }: { view: MockView }) {
 	// The server refuses answers while paused, and paused time isn't time on a question.
 	const pausedRef = useRef(paused);
 	const pauseButton = useRef<HTMLButtonElement>(null);
+	const resumeButton = useRef<HTMLButtonElement>(null);
 	useEffect(() => {
+		// The button that was pressed is gone, so focus goes to the one that undoes it.
+		const lost = document.activeElement === document.body;
 		if (pausedRef.current && !paused) {
 			openedAt.current = Date.now();
-			// Resume was the paused screen's button, which is gone now.
-			if (document.activeElement === document.body) pauseButton.current?.focus();
+			if (lost) pauseButton.current?.focus();
 		}
+		if (!pausedRef.current && paused && lost) resumeButton.current?.focus();
 		pausedRef.current = paused;
 	}, [paused]);
 
@@ -196,10 +200,16 @@ export function MockRun({ view }: { view: MockView }) {
 					</>
 				)}
 				{timed && <Clock mock={mock} onTimeUp={end} />}
-				{timed && (
-					<button ref={pauseButton} type="button" data-testid="mock-pause" disabled={switching || ending} onClick={() => void pauseOrResume()} className="lh-btn lh-btn-bar">
-						{paused ? "Resume" : "Pause"}
-					</button>
+				{paused ? (
+					<span data-testid="mock-paused-word" className="text-[15px] text-bar-ink">
+						Paused
+					</span>
+				) : (
+					timed && (
+						<button ref={pauseButton} type="button" data-testid="mock-pause" disabled={switching || ending} onClick={() => void pauseOrResume()} className="lh-btn lh-btn-bar">
+							Pause
+						</button>
+					)
 				)}
 				{!paused && (
 					<button type="button" data-testid="mock-end" disabled={ending || switching} onClick={() => setConfirmEnd(true)} className="lh-btn lh-btn-bar">
@@ -213,7 +223,7 @@ export function MockRun({ view }: { view: MockView }) {
 					<p className="max-w-[520px] text-lg leading-snug text-ink-2">
 						{clockText(mock.paused!.left)} left. The questions are hidden and nothing is saved until you resume.
 					</p>
-					<button type="button" data-testid="mock-resume" disabled={switching} onClick={() => void pauseOrResume()} className={cn("lh-btn lh-btn-main", BIG_BUTTON)}>
+					<button ref={resumeButton} type="button" data-testid="mock-resume" disabled={switching} onClick={() => void pauseOrResume()} className={cn("lh-btn lh-btn-main", BIG_BUTTON)}>
 						Resume
 					</button>
 					{errorLine}
