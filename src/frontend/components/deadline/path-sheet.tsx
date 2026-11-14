@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { deadlineStudyLabel, hasProblems, rampColor, topicStatus, type DeadlineProgress, type PlanDay } from "@/shared/core";
+import { deadlineStudyLabel, hasProblems, nothingMorePlannedLine, rampColor, topicStatus, type DeadlineProgress, type PlanDay } from "@/shared/core";
 import { clockLabel, deadlineDateLabel } from "@/frontend/components/space-deadlines-model";
 import { Pane } from "@/frontend/components/ui/pane";
 import { cn } from "@/frontend/lib/utils";
@@ -65,6 +65,11 @@ export function PathSheet({
 						{plan.map((day, i) => (
 							<li key={day.day} data-testid="deadline-day" className="flex flex-col gap-1 py-1">
 								<span className={cn("text-[15px] text-ink", i > 0 && "font-count")}>{i === 0 ? "Today" : deadlineDateLabel(day.day)}</span>
+								{day.topics.length === 0 && (
+									<p data-testid="deadline-day-empty" className="text-base text-ink-2">
+										{nothingMorePlannedLine()}
+									</p>
+								)}
 								<ul className="flex flex-col gap-1">
 									{day.topics.map((t) => (
 										<li key={t.id} className="flex min-w-0 items-center gap-2">
