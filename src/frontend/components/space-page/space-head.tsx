@@ -40,8 +40,9 @@ export function SpaceHead() {
 				</p>
 				{activeSpace?.signature && <HeadSignature signature={activeSpace.signature} share={share} />}
 			</div>
-			<div className="mt-[22px] flex items-center shadow-[inset_0_-2px_0_var(--border)]">
-				<nav aria-label={activeSpace?.name ?? "Lessons with no space"} className="flex min-w-0 flex-1 gap-1.5 overflow-x-auto">
+			{/* When the tabs and Edit space don't fit one line, Edit space goes above the tabs. */}
+			<div className="mt-[22px] flex flex-wrap-reverse items-center shadow-[inset_0_-2px_0_var(--border)]">
+				<nav aria-label={activeSpace?.name ?? "Lessons with no space"} className="flex min-w-0 flex-[1_1_auto] gap-1.5 overflow-x-auto">
 					{spaceTabs(activeSpace ? "space" : "none").map((t) => {
 						const selected = t.href === pathname;
 						const count = tabCount(t, counts);
@@ -72,7 +73,7 @@ export function SpaceHead() {
 					})}
 				</nav>
 				{activeSpace && (
-					<button type="button" data-testid="space-edit" onClick={() => setEditing(activeSpace.id)} className="lh-btn lh-btn-quiet shrink-0 text-[15px]">
+					<button type="button" data-testid="space-edit" onClick={() => setEditing(activeSpace.id)} className="lh-btn lh-btn-quiet ml-auto shrink-0 text-[15px]">
 						Edit space
 					</button>
 				)}
