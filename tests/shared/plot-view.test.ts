@@ -29,6 +29,15 @@ describe("joinPlots", () => {
 		assert.deepEqual(locked?.guessAt, { line: "penalty", x: 8 }, "the plot learns the point its guess asks at");
 	});
 
+	it("a plot with no guess, sent while a question was open, is open from the start and on every reload", () => {
+		const { onPlot: _, ...noGuess } = LEASH_RESULT;
+		const plot = { ...(call("unused", "x", {}, 2) as LhMessage), id: "m_r4", content: [{ type: "toolCall", id: "call_p", name: "plot", arguments: LEASH_CALL }] } as LhMessage;
+		const record = [userText("u", "Go.", 0), plot, result("call_p", "plot", noGuess, 2)];
+		for (const load of [1, 2]) assert.equal(parts(record).find((p) => p.type === "tool-plot")?.guessOpen, true, `load ${load}`);
+		const stored = parts([userText("u", "Go.", 0), reply(false), result("call_p", "plot", LEASH_RESULT, 2)]);
+		assert.equal(stored.find((p) => p.type === "tool-plot")?.guessOpen, false, "a stored plot with a guess still waits for it");
+	});
+
 	it("a skipped guess opens it too", () => {
 		const skipped = parts([userText("u", "Go.", 0), reply(false), result("call_p", "plot", LEASH_RESULT, 2), result("call_q", "quiz", { ...answer, dismissed: true }, 3)]);
 		assert.equal(skipped.find((p) => p.type === "tool-plot")?.guessOpen, true);

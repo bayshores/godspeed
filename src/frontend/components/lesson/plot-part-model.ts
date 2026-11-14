@@ -75,7 +75,7 @@ function readPoints(raw: unknown): [number, number][] | null {
 }
 
 /** The plot a stored call and its result draw, or only its title when it
- *  cannot be drawn (an unknown version, no guess, a formula that no longer
+ *  cannot be drawn (an unknown version, a broken guess, a formula that no longer
  *  parses, points out of order or not numbers). */
 export function readPlot(input: unknown, output: unknown): { plot: Plot } | { title: string } {
 	const call = (input ?? {}) as Record<string, Record<string, unknown> | undefined>;
@@ -84,7 +84,8 @@ export function readPlot(input: unknown, output: unknown): { plot: Plot } | { ti
 	const x = { name: str(call.x?.name), label: str(call.x?.label), min: num(call.x?.min), max: num(call.x?.max) };
 	const y = { label: str(call.y?.label), min: num(details.y?.min), max: num(details.y?.max) };
 	const rawLines = Array.isArray(call.lines) ? (call.lines as Record<string, unknown>[]) : [];
-	if (details.v !== 1 || typeof details.onPlot?.toolCallId !== "string") return { title };
+	// A plot sent while a question was open has no guess at all.
+	if (details.v !== 1 || (details.onPlot !== undefined && typeof details.onPlot?.toolCallId !== "string")) return { title };
 	if (!range(x.min, x.max) || !range(y.min, y.max) || rawLines.length < 1 || rawLines.length > 2) return { title };
 	// The slider and x's name serve the formulas; a plot of points alone has neither.
 	const formulas = rawLines.some((raw) => present(raw?.expr));

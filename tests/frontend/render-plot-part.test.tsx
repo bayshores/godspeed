@@ -77,6 +77,13 @@ describe("PlotPart", () => {
 		assert.equal((open.match(/data-testid="plot-formula"/g) ?? []).length, 1, "a formula only under the model's key");
 	});
 
+	it("a stored plot with no guess draws open, its slider usable", () => {
+		const { onPlot: _, ...noGuess } = CV_RESULT;
+		const html = render({ input: { ...LEASH_CALL, lines: [{ label: "leash", expr: "min(a, 4/(1+lambda))" }] }, state: "output-available", output: { ...noGuess, y: { min: 0, max: 5 } }, guessOpen: true });
+		assert.match(html, /data-state="open"/);
+		assert.match(html, /data-testid="plot-slider"/);
+	});
+
 	it("while the call is checked: the title and Drawing the plot", () => {
 		const html = render({ state: "input-streaming" });
 		assert.match(html, /data-state="drawing"/);

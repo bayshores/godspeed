@@ -4,7 +4,8 @@
  * until then on a points line), the guess learns the drawn value it
  * asked about (its card's result line), and the guess's card sits right
  * under the plot. A refused plot shows nothing: the teacher re-sends it, or
- * the guess alone. Pure and browser-safe.
+ * the guess alone. A plot with no guess is open from the start. Pure and
+ * browser-safe.
  */
 import type { LhViewMessage, LhViewPart } from "./view.ts";
 
@@ -30,6 +31,8 @@ export function joinPlots(view: LhViewMessage[]): void {
 		for (const plot of [...m.parts]) {
 			if (plot.type !== PLOT_PART || plot.state !== "output-available") continue;
 			const of = guessOf(plot.output);
+			// A plot sent while a question was open has no guess: open from the start.
+			if (!of && (plot.output as { onPlot?: unknown } | null)?.onPlot === undefined) plot.guessOpen = true;
 			const guess = of && byCall.get(of.toolCallId);
 			if (!of || !guess) continue;
 			// Answered or skipped, or closed by a later message: nothing else opens it.

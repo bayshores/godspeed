@@ -56,7 +56,8 @@ function PlotBox({ title, state, children }: { title: string; state: string; chi
 /**
  * A teacher's plot: formulas with one slider, or measured points. It arrives
  * locked with its guess: only the shown lines, no slider. Once the guess is
- * answered the held-back lines and the slider, when it has one, draw in.
+ * answered the held-back lines and the slider, when it has one, draw in. A
+ * plot sent with no guess, while a question was open, arrives open.
  * While the call is checked the box says so; a refused plot never reaches
  * here (the view drops it).
  */

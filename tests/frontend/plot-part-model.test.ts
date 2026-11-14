@@ -55,6 +55,13 @@ describe("readPlot", () => {
 		assert.equal(at(plot.lines[1])(8, 1), 2);
 	});
 
+	it("a plot sent with no guess, while a question was open, draws", () => {
+		const { onPlot: _, ...noGuess } = LEASH_RESULT;
+		const read = readPlot(LEASH_CALL, noGuess);
+		assert.ok("plot" in read);
+		assert.equal(read.plot.lines.length, 2);
+	});
+
 	it("takes numbers sent as numeric strings", () => {
 		const read = readPlot({ ...LEASH_CALL, x: { ...LEASH_CALL.x, min: "0", max: "10" }, slider: { ...LEASH_CALL.slider, start: "1" } }, LEASH_RESULT);
 		assert.ok("plot" in read);
@@ -116,7 +123,7 @@ describe("readPlot", () => {
 	it("keeps only the title when it cannot be drawn", () => {
 		const title = { title: LEASH_CALL.title };
 		assert.deepEqual(readPlot(LEASH_CALL, { ...LEASH_RESULT, v: 2 }), title, "an unknown version");
-		assert.deepEqual(readPlot(LEASH_CALL, { ...LEASH_RESULT, onPlot: undefined }), title, "no guess");
+		assert.deepEqual(readPlot(LEASH_CALL, { ...LEASH_RESULT, onPlot: { value: 4 } }), title, "a broken guess");
 		assert.deepEqual(readPlot({ ...LEASH_CALL, lines: [{ label: "penalty", expr: "a/(1+lamda)" }] }, LEASH_RESULT), title, "a formula that no longer parses");
 		assert.deepEqual(readPlot({ ...LEASH_CALL, lines: [{ label: "x", expr: "toString(a)" }] }, LEASH_RESULT), title, "a hostile name is just unknown");
 		assert.deepEqual(readPlot(LEASH_CALL, { ...LEASH_RESULT, y: { min: 5, max: 0 } }), title, "an empty y range");
