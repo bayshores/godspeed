@@ -16,7 +16,7 @@ describe("questionTurn", () => {
 	it("choices are picked above the box", () => {
 		assert.deepEqual(questionTurn("quiz", quiz, false), { kind: "choice", picked: false });
 		assert.deepEqual(questionTurn("quiz", quiz, true), { kind: "choice", picked: true });
-		assert.deepEqual(questionTurn("ask_user_question", { question: "q", options: [{ label: "a" }, { label: "b" }] }, true), { kind: "choice", picked: true });
+		assert.deepEqual(questionTurn("ask_user_question", { question: "q", options: [{ label: "a" }, { label: "b" }] }, true), { kind: "choice", picked: true, ownAnswer: true }, "an ask takes its own answer in the box");
 	});
 
 	it("an explain question and an open ask are written in the box", () => {
@@ -99,10 +99,23 @@ describe("lessonBox, a question", () => {
 	it("read first: the box holds thoughts, Enter opens the check", () => {
 		const view = box({ kind: "read-first" });
 		assert.equal(view.placeholder, "Whatever comes to mind as you read.");
-		assert.deepEqual(view.left, { action: "send", label: "Ask marco", filled: false, disabled: true });
+		assert.deepEqual(view.left, { action: "send", label: "Ask marco", filled: false, disabled: true, hidden: true });
 		assert.deepEqual(view.right, { action: "reveal", label: "Check your understanding", filled: true, disabled: false });
 		assert.equal(view.enter, "reveal");
 		assert.equal(view.exit, "skip");
+	});
+
+	it("Ask hides, keeping its place, until the box has something to send", () => {
+		assert.equal(box({ kind: "choice", picked: false }).left?.hidden, true);
+		assert.equal(box({ kind: "choice", picked: false }, { hasText: true }).left?.hidden, false);
+		assert.equal(box({ kind: "choice", picked: false }, { hasFiles: true }).left?.hidden, false);
+		assert.equal(box({ kind: "choice", picked: false }, { hasText: true, busy: true }).left?.disabled, true, "shown but waiting while the teacher writes");
+	});
+
+	it("an ask with choices: the box text is its own answer", () => {
+		const view = box({ kind: "choice", picked: true, ownAnswer: true }, { hasText: true });
+		assert.equal(view.placeholder, "Pick one above, or type your own answer");
+		assert.equal(view.right.disabled, false);
 	});
 
 	it("choices: Submit waits for a pick; the box text is reasoning or a question", () => {

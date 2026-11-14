@@ -1,6 +1,6 @@
 import { ToolContentResponse } from "@/frontend/components/ai-elements/message";
 import { ResultTag, type ResultTone } from "@/frontend/components/result-tag";
-import { CARD, SMALL_BTN } from "@/frontend/components/ui/card-parts";
+import { CARD } from "@/frontend/components/ui/card-parts";
 import { LABEL_TEXT } from "@/frontend/components/ui/label-text";
 import type { ArtifactPartProps } from "@/shared/core";
 
@@ -20,44 +20,7 @@ import type { ArtifactPartProps } from "@/shared/core";
  *   collapsible.
  */
 
-import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
-
 import { ThinkingBlock } from "@/frontend/components/thinking-block";
-import { usePopoverDismiss } from "@/frontend/components/popover-dismiss";
-import { usePresence } from "@/frontend/components/presence";
-import { spaceQuery, useSpaces } from "@/frontend/components/space-context";
-
-/* TARGET NAMES: targets are normalized to opaque node ids at the record
- * seam (the mastery trace groups on them), so the drawer resolves names
- * at render time. One lazy cached fetch of the graph view per space
- * graph (the space the window shows); failures degrade to raw ids, so
- * observability never breaks the card, and are not cached, so the next
- * open tries again. */
-const nodeNameMapPromises = new Map<string, Promise<Record<string, string> | null>>();
-function nodeNameMap(spaceId: string | null): Promise<Record<string, string> | null> {
-	const key = spaceId ?? "none";
-	const cached = nodeNameMapPromises.get(key);
-	if (cached) return cached;
-	const nodeNameMapPromise = fetch(`/api/graph${spaceQuery(spaceId)}`)
-		.then((r) => {
-			if (!r.ok) throw new Error(String(r.status));
-			return r.json();
-		})
-		.then((g: { nodes?: Array<{ id?: unknown; name?: unknown }> }) =>
-			Object.fromEntries(
-				(g.nodes ?? [])
-					.filter((n) => typeof n.id === "string")
-					.map((n) => [n.id as string, typeof n.name === "string" ? (n.name as string) : (n.id as string)]),
-			),
-		)
-		.catch(() => {
-			nodeNameMapPromises.delete(key);
-			return null;
-		});
-	nodeNameMapPromises.set(key, nodeNameMapPromise);
-	return nodeNameMapPromise;
-}
 
 /** The practice-thinking marker's details (native-messages.ts). */
 export interface PracticeThinkingData {
@@ -153,138 +116,6 @@ export function ConcludeCard({ part }: ArtifactPartProps) {
 					</div>
 				</>
 			)}
-			<MetadataPopover
-				concludeInput={input}
-				problemInput={(part.problemInput ?? {}) as { mode?: unknown; target?: unknown }}
-			/>
-		</div>
-	);
-}
-
-/* THE METADATA POPOVER: a Metadata button at the bottom of the
- * conclude card opens the graph-view node-card info box, always BELOW the
- * trigger; any scroll or click outside closes it (plus Esc). Shows every
- * field the agent filled in both the problem call (mode, targets, names
- * resolved lazily) and the conclude call (outcome, rung, miss space,
- * retest). Statement and modelSolution stay out: they are the visible
- * card. Small register: label and value rows. */
-function MetadataPopover({
-	concludeInput,
-	problemInput,
-}: {
-	concludeInput: { outcome?: string; rung?: unknown; missClass?: unknown; retest?: unknown };
-	problemInput: { mode?: unknown; target?: unknown };
-}) {
-	const [open, setOpen] = useState(false);
-	const triggerRef = useRef<HTMLButtonElement | null>(null);
-	const rootRef = useRef<HTMLDivElement | null>(null);
-	// The portal's anchor: the box is placed from
-	// the trigger's viewport rect AT OPEN TIME — any scroll closes the
-	// box, so there is nothing to track.
-	const [anchor, setAnchor] = useState<{ top: number; left: number } | null>(null);
-	const [names, setNames] = useState<Record<string, string> | null>(null);
-	const { active: activeSpaceId } = useSpaces();
-	const targets = Array.isArray(problemInput.target)
-		? problemInput.target.filter((t): t is string => typeof t === "string")
-		: [];
-	// Resolve names only when there is something to resolve.
-	useEffect(() => {
-		if (!open || targets.length === 0 || names) return;
-		let alive = true;
-		void nodeNameMap(activeSpaceId).then((m) => {
-			if (alive && m) setNames(m);
-		});
-		return () => {
-			alive = false;
-		};
-	}, [open, targets.length, names, activeSpaceId]);
-
-	usePopoverDismiss(rootRef, open, () => setOpen(false));
-	// The box fades out before unmounting.
-	const box = usePresence(open);
-	// ANY scroll closes it: capture-phase, so every scroller
-	// in the tree counts — the transcript's own scroll included.
-	useEffect(() => {
-		if (!open) return;
-		const close = () => setOpen(false);
-		window.addEventListener("scroll", close, { capture: true, passive: true });
-		return () => window.removeEventListener("scroll", close, { capture: true });
-	}, [open]);
-
-	const mode = typeof problemInput.mode === "string" ? problemInput.mode : "";
-	const rung = typeof concludeInput.rung === "string" ? concludeInput.rung : "";
-	const miss = typeof concludeInput.missClass === "string" ? concludeInput.missClass : "";
-	const retest = typeof concludeInput.retest === "boolean" ? concludeInput.retest : undefined;
-	const outcome = typeof concludeInput.outcome === "string" ? concludeInput.outcome : "";
-	if (!mode && targets.length === 0 && !rung && !miss && retest === undefined) return null;
-
-	return (
-		<div ref={rootRef} className="relative">
-			<button
-				type="button"
-				data-testid="metadata-toggle"
-				ref={triggerRef}
-				onClick={() => {
-					setOpen((v) => {
-						if (v) return false;
-						const r = triggerRef.current?.getBoundingClientRect();
-						if (r) {
-							// Below the trigger, always; clamped so the 320px box
-							// never leaves the viewport's right edge.
-							const left = Math.max(8, Math.min(r.left, window.innerWidth - 328));
-							setAnchor({ top: r.bottom + 8, left });
-						}
-						return true;
-					});
-				}}
-				aria-expanded={open}
-				className={SMALL_BTN}
-			>
-				Metadata
-			</button>
-			{box.mounted &&
-				anchor &&
-				createPortal(
-					<div
-						data-testid="metadata-box"
-						data-state={box.state}
-						// PORTALED TO BODY: the transcript's MessageContent boxes
-						// carry overflow-hidden, so an absolutely positioned child
-						// would clip at its message block's edge. A fixed-position
-						// portal sits on top of everything, like the dialogs.
-						style={{ position: "fixed", top: anchor.top, left: anchor.left }}
-						className="lh-pop z-50 lh-popup w-80 max-w-[calc(100vw-1rem)] p-4 text-left"
-					>
-				<dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-[15px]">
-						<dt className="text-ink-2">Mode</dt>
-						<dd className="font-count">{mode || "–"}</dd>
-						<dt className="text-ink-2">Targets</dt>
-						<dd className="font-count">
-							{targets.length === 0 ? (
-								"untagged"
-							) : (
-								<span>
-									{targets.map((t, i) => (
-										<span key={t}>
-											{i > 0 && ", "}
-											{names?.[t] ?? t}
-										</span>
-									))}
-								</span>
-							)}
-						</dd>
-						<dt className="text-ink-2">Outcome</dt>
-						<dd className="font-count">{outcome || "–"}</dd>
-						<dt className="text-ink-2">Hint rung</dt>
-						<dd className="font-count">{rung || "none"}</dd>
-						<dt className="text-ink-2">Miss space</dt>
-						<dd className="font-count">{miss || "none"}</dd>
-						<dt className="text-ink-2">Retest</dt>
-						<dd className="font-count">{retest === undefined ? "–" : retest ? "yes" : "no"}</dd>
-					</dl>
-					</div>,
-					document.body,
-				)}
 		</div>
 	);
 }

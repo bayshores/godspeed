@@ -57,8 +57,8 @@ While a question is open, `src/frontend/components/question-dock.tsx` owns these
 |---|---|
 | 1 to 9 | Picks that option. |
 | 0 | Picks "I don't know" on a quiz. |
-| ↑/↓ | Walk the rows: the options, then "I don't know" or "Other…". The walk stops at the ends. |
-| ←/→ | Change the confidence level on a quiz, but not after "I don't know". |
+| ↑/↓ | Walk the rows: the options, then "I don't know" on a quiz. The walk stops at the ends. |
+| ←/→ | Change the "How sure are you?" level on a quiz, once an answer is picked (not "I don't know"). |
 | Space | Acts on the walked row like a click. |
 | Enter | Submits, once a row is walked and there is an answer. |
 | Tab | From the rows, moves focus to the lesson's writing box. With nothing focused, moves focus into the rows. |

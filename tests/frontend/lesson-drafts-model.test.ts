@@ -13,7 +13,7 @@ import {
 import { forgetLessonDraft } from "../../src/frontend/components/lesson/use-lesson-drafts.ts";
 import { newAnswerResult, type LhMessage, type QuestionAnswerData, type QuestionFormDraft } from "../../src/shared/core/index.ts";
 
-const form: QuestionFormDraft = { selection: { selected: new Set([1]), otherSelected: true, dontKnow: false }, other: "custom answer", confidenceIndex: 4, code: "x = 1" };
+const form: QuestionFormDraft = { selection: { selected: new Set([1]), dontKnow: false }, confidenceIndex: 4, code: "x = 1" };
 const answer = { dontKnow: true } as unknown as QuestionAnswerData;
 
 describe("lesson drafts", () => {
@@ -23,7 +23,7 @@ describe("lesson drafts", () => {
 		d = withQuestion(d, "q1", { readingThinking: "noted while reading" });
 		assert.deepEqual(d.questions.q1, { form, readingThinking: "noted while reading" });
 		assert.equal(d.questions.q2, undefined, "a different question never inherits the draft");
-		const empty = { selection: { selected: new Set<number>(), otherSelected: false, dontKnow: false }, other: " ", code: "" };
+		const empty = { selection: { selected: new Set<number>(), dontKnow: false }, code: "" };
 		d = withQuestion(d, "q1", { form: empty, readingThinking: "" });
 		assert.deepEqual(d.questions, {});
 	});
@@ -39,7 +39,7 @@ describe("lesson drafts", () => {
 		assert.deepEqual(parseLessonDraft('{"questions":{"q1":{"form":{"selection":"bad"}}}}'), EMPTY_LESSON_DRAFT);
 		assert.deepEqual(parseLessonDraft('{"composer":"hi","questions":{},"problems":{"p1":"old work"}}'), { composer: "hi", questions: {} }, "an older save's problem drafts are ignored");
 		const older = '{"composer":"","questions":{"q1":{"form":{"selection":{"selected":[0],"otherSelected":false,"dontKnow":false},"thinking":"old reasoning","other":"","text":"old answer"}}}}';
-		assert.deepEqual(parseLessonDraft(older).questions.q1!.form, { selection: { selected: new Set([0]), otherSelected: false, dontKnow: false }, other: "" }, "an older save's typed reasoning is not carried over");
+		assert.deepEqual(parseLessonDraft(older).questions.q1!.form, { selection: { selected: new Set([0]), dontKnow: false } }, "an older save's typed reasoning and own-answer row are not carried over");
 	});
 
 	it("drops a question only once the server saved its answer", () => {

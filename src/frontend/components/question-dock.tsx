@@ -1,7 +1,7 @@
 import { useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { ToolContentResponse } from "@/frontend/components/ai-elements/message";
 import { ANSWER_ROW, DontKnowRow, PICKED, proseVars, QuestionText } from "@/frontend/components/lesson/question-parts";
-import { ConfidenceMeter, ConfidenceSquares } from "@/frontend/components/confidence-meter";
+import { ConfidenceLine } from "@/frontend/components/confidence-line";
 import { InlineMath } from "@/frontend/components/overview/inline-math";
 import { PickedRow } from "@/frontend/components/lesson/picked-row";
 import { prefersReducedMotion } from "@/frontend/components/presence";
@@ -24,7 +24,6 @@ import {
 	parseWriteCodeInput,
 	stepConfidence,
 	toggleOption,
-	toggleOther,
 	type AnswerRequest,
 	type AskToolInput,
 	type ConfidenceLevel,
@@ -42,13 +41,14 @@ import { CodeQuestion } from "@/frontend/components/lesson/code-question";
 
 /**
  * THE WAITING QUESTION, above the lesson's writing box: the question, its
- * lettered choices (keys 1–n, 0 = I don't know) and the five "how sure"
- * squares (quiz only; ←/→ or click). It holds no text box and no buttons
- * of its own: the writing box under it carries the reasoning (or the
- * whole answer, for a question answered in words) and "Submit answer".
+ * lettered choices (keys 1–n, 0 = I don't know) and, once a quiz answer is
+ * picked, the "How sure are you?" line (←/→ or click). It holds no text box
+ * and no buttons of its own: the writing box under it carries the
+ * reasoning (or the whole answer, for a question answered in words) and
+ * "Submit answer". An ask with choices takes the box's text as the
+ * learner's own answer when no choice is picked.
  *
- * The ask "Other…" choice is an editable row. A write_code question has
- * its own form (CodeQuestion).
+ * A write_code question has its own form (CodeQuestion).
  */
 
 /** What the writing box asks of the question above it. */
@@ -73,7 +73,7 @@ export interface QuestionDockProps {
 	/** Whether an answer is picked, so the box's "Submit answer" follows it. */
 	onReady: (ready: boolean) => void;
 	/** What the writing box holds: the reasoning, or the answer itself for
-	 *  a question answered in words. */
+	 *  a question answered in words (and an ask with nothing picked). */
 	boxText: string;
 	/** Tab from the choices goes to the writing box. */
 	onLeaveRows: () => void;
@@ -183,25 +183,29 @@ function QuestionDockForm({
 
 	// The selection machine lives in question-core (pure, tested).
 	const [sel, setSel] = useState<DockSelection>(() => initialDraft?.selection ?? emptyDockSelection());
-	const [other, setOther] = useState(initialDraft?.other ?? "");
 	// Confidence: an index into CONFIDENCE_STOPS (level − 1), unset until
 	// the learner picks one.
 	const [confIdx, setConfIdx] = useState<number | undefined>(initialDraft?.confidenceIndex);
 	const selectMode: SelectMode = qd.mode === "multi-select" ? "multi-select" : "single-select";
+	// How sure is asked once a quiz answer is picked, never on "I don't know".
+	const rated = kind === "quiz" && !sel.dontKnow && sel.selected.size > 0;
 
 	// Every change is saved, so leaving the lesson keeps the picks.
 	const saveDraftRef = useRef(onSaveDraft);
 	saveDraftRef.current = onSaveDraft;
 	useEffect(() => {
-		saveDraftRef.current?.({ selection: sel, other, confidenceIndex: confIdx });
-	}, [sel, other, confIdx]);
+		saveDraftRef.current?.({ selection: sel, confidenceIndex: confIdx });
+	}, [sel, confIdx]);
 
 	const toggle = (idx: number) => setSel(toggleOption(selectMode, sel, idx));
 	const toggleDontKnow = () =>
-		setSel((prev) => ({ ...prev, selected: new Set(), otherSelected: false, dontKnow: !prev.dontKnow }));
+		setSel((prev) => ({ selected: new Set(), dontKnow: !prev.dontKnow }));
 
+	const picked = sel.dontKnow || sel.selected.size > 0;
+	// An ask with nothing picked takes the box's text as its own answer.
+	const ownAnswer = kind === "ask" && qd.mode !== "text" && !picked;
 	// Answered in words, the box decides when there is an answer.
-	const canSubmit = qd.mode === "text" || sel.dontKnow || (sel.otherSelected && other.trim().length > 0) || sel.selected.size > 0;
+	const canSubmit = qd.mode === "text" || picked || (ownAnswer && boxText.trim().length > 0);
 	const readyRef = useRef(onReady);
 	readyRef.current = onReady;
 	useEffect(() => {
@@ -211,16 +215,16 @@ function QuestionDockForm({
 
 	// Writing with an answer picked folds the list into one row (Change opens it).
 	const [folded, setFolded] = useState(false);
-	const showFolded = folded && canSubmit && qd.mode !== "text";
+	const showFolded = folded && picked && qd.mode !== "text";
 
 	const submit = () => {
 		if (!canSubmit || busy) return;
 		const req: AnswerRequest = {
 			dontKnow: sel.dontKnow,
 			values: [...sel.selected].map((i) => qd.options[i]!.value),
-			other: sel.otherSelected ? other : undefined,
+			other: ownAnswer ? boxText : undefined,
 			text: qd.mode === "text" ? boxText : undefined,
-			thinking: qd.mode !== "text" ? boxText.trim() || undefined : undefined,
+			thinking: qd.mode !== "text" && !ownAnswer ? boxText.trim() || undefined : undefined,
 			// Sent only once picked; buildAnswer drops it on "I don't know".
 			confidence: kind === "quiz" && confIdx !== undefined ? CONFIDENCE_STOPS[confIdx] : undefined,
 		};
@@ -232,12 +236,10 @@ function QuestionDockForm({
 	useImperativeHandle(ref, () => ({
 		submit,
 		fold() {
-			if (canSubmit) setFolded(true);
+			if (picked) setFolded(true);
 		},
 		picked: () => [...sel.selected].sort((a, b) => a - b).map((i) => qd.options[i]!.label),
 	}));
-
-	const selectOther = () => setSel(toggleOther(selectMode, sel));
 
 	/* ── The keyboard machine ──
 	   1–9 pick an option, 0 = "I don't know" (quiz). ↑/↓ walk every row,
@@ -247,21 +249,13 @@ function QuestionDockForm({
 	   their meaning, and modifier combos are never ours. */
 	const [kbdIdx, setKbdIdx] = useState<number | null>(null);
 	const rootRef = useRef<HTMLDivElement>(null);
-	const otherInputRef = useRef<HTMLInputElement>(null);
-	// One row past the options: quiz → don't-know, ask → Other.
+	// A quiz has one row past the options: "I don't know".
 	const optionCount = qd.mode === "text" ? 0 : qd.options.length;
-	const rowCount = qd.mode === "text" ? 0 : optionCount + 1;
+	const rowCount = qd.mode === "text" ? 0 : optionCount + (kind === "quiz" ? 1 : 0);
 
 	const kbdAct = (idx: number) => {
 		if (idx < optionCount) toggle(idx);
-		else if (kind === "quiz") toggleDontKnow();
-		else if (sel.otherSelected) {
-			// Deselecting Other keeps the typed text and leaves focus where it is.
-			setSel((prev) => ({ ...prev, otherSelected: false, dontKnow: false }));
-		} else {
-			otherInputRef.current?.focus();
-			selectOther();
-		}
+		else toggleDontKnow();
 	};
 
 	const focusRow = (idx: number) => {
@@ -319,8 +313,8 @@ function QuestionDockForm({
 				setKbdIdx(next);
 				if (t?.closest?.("[data-kbdrow]")) focusRow(next);
 			} else if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
-				// Confidence; dead on "I don't know" (nothing is sent).
-				if (kind !== "quiz" || sel.dontKnow) return;
+				// Confidence, once an answer is picked (its line shows then).
+				if (!rated) return;
 				e.preventDefault();
 				setConfIdx((i) => stepConfidence(i, e.key === "ArrowRight" ? 1 : -1));
 			} else if (e.key === " ") {
@@ -345,25 +339,21 @@ function QuestionDockForm({
 		rootRef.current?.querySelector(`[data-kbdrow="${kbdIdx}"]`)?.scrollIntoView({ block: "nearest" });
 	}, [kbdIdx]);
 
-	// A picked answer is rated next, and the meter can sit below the fold.
-	const meterRef = useRef<HTMLDivElement>(null);
-	const ratesNext = kind === "quiz" && selectMode === "single-select" && sel.selected.size > 0;
+	// A picked quiz answer is rated next; its line can sit below the fold.
+	const sureRef = useRef<HTMLDivElement>(null);
 	useEffect(() => {
-		if (ratesNext) meterRef.current?.scrollIntoView({ block: "nearest", behavior: prefersReducedMotion() ? "auto" : "smooth" });
-	}, [ratesNext]);
+		if (rated) sureRef.current?.scrollIntoView({ block: "nearest", behavior: prefersReducedMotion() ? "auto" : "smooth" });
+	}, [rated]);
 
 	const walked = (i: number, picked: boolean) => i === kbdIdx && !picked && "ring-2 ring-inset ring-ink-3";
 	const level = confIdx === undefined ? null : ((confIdx + 1) as ConfidenceLevel);
-	const pickedMarks = sel.dontKnow ? null : (
-		<>
-			{[...sel.selected].map((i) => (
+	const pickedMarks = sel.dontKnow
+		? null
+		: [...sel.selected].map((i) => (
 				<OptionMark key={i} picked>
 					{letter(i)}
 				</OptionMark>
-			))}
-			{sel.otherSelected && <OptionMark picked />}
-		</>
-	);
+			));
 
 	return (
 		<div ref={rootRef} data-testid="question-dock" className="flex shrink-0 flex-col gap-3.5">
@@ -382,18 +372,14 @@ function QuestionDockForm({
 						sel.dontKnow ? (
 							"I don't know"
 						) : (
-							<>
-								{[...sel.selected].map((i, n) => (
-									<span key={i}>
-										{n > 0 && ", "}
-										<InlineMath text={qd.options[i]!.label} />
-									</span>
-								))}
-								{sel.otherSelected && `${sel.selected.size > 0 ? ", " : ""}“${other}”`}
-							</>
+							[...sel.selected].map((i, n) => (
+								<span key={i}>
+									{n > 0 && ", "}
+									<InlineMath text={qd.options[i]!.label} />
+								</span>
+							))
 						)
 					}
-					sure={kind === "quiz" && !sel.dontKnow && <ConfidenceSquares level={level} onChange={(next) => setConfIdx(next - 1)} />}
 					onOpen={() => setFolded(false)}
 				/>
 			)}
@@ -429,59 +415,10 @@ function QuestionDockForm({
 					})}
 
 					{kind === "quiz" && <DontKnowRow data-kbdrow={optionCount} picked={sel.dontKnow} onClick={toggleDontKnow} className={walked(optionCount, sel.dontKnow)} />}
-
-					{kind === "ask" && (
-						// The row is only a click target; its radio is the box, so the
-						// field isn't nested inside another control.
-						<div
-							data-kbdrow={optionCount}
-							onClick={selectOther}
-							className={cn(OPTION_ROW, ROW_RULE, "cursor-text items-center", sel.otherSelected ? PICKED : "hover:bg-tone", walked(optionCount, sel.otherSelected))}
-						>
-							<button
-								type="button"
-								role={qd.mode === "multi-select" ? "checkbox" : "radio"}
-								aria-checked={sel.otherSelected}
-								data-testid="other-option"
-								aria-label="Use your own answer"
-								className="shrink-0"
-							>
-								<OptionMark picked={sel.otherSelected} />
-							</button>
-							<input
-								ref={otherInputRef}
-								value={other}
-								onChange={(e) => {
-									setOther(e.target.value);
-									// Typing selects the row.
-									setSel((prev) => (prev.otherSelected ? prev : toggleOther(selectMode, prev)));
-								}}
-								onKeyDown={(e) => {
-									// Esc leaves the typing (the row stays selected) and is
-									// claimed so the window chain doesn't read it as abort.
-									if (e.key === "Escape") {
-										e.preventDefault();
-										e.stopPropagation();
-										e.currentTarget.blur();
-										setKbdIdx(optionCount);
-									}
-									// One-line field: Enter submits directly.
-									if (e.key === "Enter") {
-										e.preventDefault();
-										submit();
-									}
-								}}
-								placeholder="Type your own answer"
-								aria-label="Your own answer"
-								className="lh-input min-w-0 flex-1 bg-transparent font-prose text-[17px]! outline-none placeholder:text-ink-3"
-								onClick={(e) => e.stopPropagation()}
-							/>
-						</div>
-					)}
 				</div>
 			)}
 
-			{kind === "quiz" && !showFolded && <ConfidenceMeter ref={meterRef} level={level} onChange={(next) => setConfIdx(next - 1)} disabled={sel.dontKnow} />}
+			{rated && <ConfidenceLine ref={sureRef} level={level} onChange={(next) => setConfIdx(next - 1)} />}
 		</div>
 	);
 }

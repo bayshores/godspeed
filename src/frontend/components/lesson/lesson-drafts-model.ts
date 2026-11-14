@@ -21,7 +21,7 @@ export function lessonDraftKey(chatId: string): string {
 function formEmpty(f: QuestionFormDraft | undefined): boolean {
 	if (!f) return true;
 	const s = f.selection;
-	return s.selected.size === 0 && !s.otherSelected && !s.dontKnow && !f.other.trim() && !f.code?.trim() && f.confidenceIndex === undefined;
+	return s.selected.size === 0 && !s.dontKnow && !f.code?.trim() && f.confidenceIndex === undefined;
 }
 
 function questionEmpty(q: QuestionDraft): boolean {
@@ -93,8 +93,7 @@ function parseForm(v: unknown): QuestionFormDraft | undefined {
 	const sel = v.selection;
 	const selected = Array.isArray(sel.selected) ? sel.selected.filter((i): i is number => Number.isInteger(i)) : [];
 	return {
-		selection: { selected: new Set(selected), otherSelected: sel.otherSelected === true, dontKnow: sel.dontKnow === true },
-		other: str(v.other),
+		selection: { selected: new Set(selected), dontKnow: sel.dontKnow === true },
 		...(Number.isInteger(v.confidenceIndex) ? { confidenceIndex: v.confidenceIndex as number } : {}),
 		...(typeof v.code === "string" ? { code: v.code } : {}),
 	};

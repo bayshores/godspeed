@@ -16,10 +16,11 @@ export type BoxTurn =
 	/** A check waits behind "Check your understanding". */
 	| { kind: "read-first" }
 	/** The answer is picked above the box (choices, or the code editor).
-	 *  `appPosed`: the app asked it (the next topic's opener, or a question
+	 *  `ownAnswer`: an ask whose box text is the answer when nothing is
+	 *  picked (then `picked` says there is text). `appPosed`: the app asked it (the next topic's opener, or a question
 	 *  from earlier), so no turn of its own runs and its way out stays
 	 *  "Skip question". */
-	| { kind: "choice"; picked: boolean; appPosed?: AppPosed["kind"] }
+	| { kind: "choice"; picked: boolean; appPosed?: AppPosed["kind"]; ownAnswer?: true }
 	/** The box text is the answer. */
 	| { kind: "written"; takesFiles: boolean };
 
@@ -30,6 +31,8 @@ export interface BoxButton {
 	label: string;
 	filled: boolean;
 	disabled: boolean;
+	/** Kept in its place but not shown, so nothing beside it moves. */
+	hidden?: boolean;
 }
 
 export interface BoxView {
@@ -52,7 +55,7 @@ export function questionTurn(tool: string, input: unknown, picked: boolean, appP
 	const ask = kind === "ask" ? parseAskInput(input) : undefined;
 	const written = kind === "explain" ? parseExplainInput(input) !== undefined : ask !== undefined && !ask.options?.length;
 	if (written) return { kind: "written", takesFiles: answerTakesFiles(tool) };
-	return { kind: "choice", picked, ...(appPosed ? { appPosed } : {}) };
+	return { kind: "choice", picked, ...(appPosed ? { appPosed } : {}), ...(ask ? { ownAnswer: true as const } : {}) };
 }
 
 export function lessonBox(s: {
@@ -99,8 +102,9 @@ export function lessonBox(s: {
 		return { placeholder, left: null, right: send, enter: canSend ? "send" : null, exit, note: null };
 	}
 
-	// A question waits: the box can always ask about it instead, once the teacher is free.
-	const ask: BoxButton = { action: "send", label: `Ask ${s.name}`, filled: false, disabled: s.busy || !canSend };
+	// A question waits: the box can always ask about it instead, once the
+	// teacher is free. The button shows once there is something to send.
+	const ask: BoxButton = { action: "send", label: `Ask ${s.name}`, filled: false, disabled: s.busy || !canSend, hidden: !canSend };
 	const stoppable = s.busy && !(turn.kind === "choice" && turn.appPosed);
 	const exit = stoppable ? "stop" : "skip";
 	const idleEnter = stoppable && empty ? "stop" : null;
@@ -118,7 +122,8 @@ export function lessonBox(s: {
 	// An answer to a question from earlier wakes nobody, so it goes in while the teacher writes.
 	const canSubmit = ready && (!s.busy || (turn.kind === "choice" && turn.appPosed === "review"));
 	return {
-		placeholder: turn.kind === "choice" ? `Your reasoning, or a question for ${s.name}` : `Type your answer, or a question for ${s.name}`,
+		placeholder:
+			turn.kind === "written" ? `Type your answer, or a question for ${s.name}` : turn.ownAnswer ? "Pick one above, or type your own answer" : `Your reasoning, or a question for ${s.name}`,
 		left: ask,
 		right: { action: "submit", label: "Submit answer", filled: true, disabled: !canSubmit },
 		enter: canSubmit ? "submit" : idleEnter,
