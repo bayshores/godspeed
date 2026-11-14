@@ -130,11 +130,19 @@ fn menu_row(screen: &vt100::Screen, row: u16, text: &str) -> Option<(u32, bool, 
 	Some((rest[..digits].parse().ok()?, pointed || inverse, label.to_owned()))
 }
 
-/// A numbered menu, 1 up, at least two rows, exactly one highlighted: its rows and the
-/// highlighted row's text.
-fn menu(screen: &vt100::Screen, rows: &[String]) -> Option<(String, String)> {
-	let found: Vec<(u32, bool, String)> = rows.iter().enumerate().filter_map(|(row, text)| menu_row(screen, row as u16, text)).collect();
-	let start = found.iter().rposition(|(number, ..)| *number == 1)?;
+/// A numbered menu, 1 up, at least two rows, exactly one highlighted.
+struct Menu {
+	shown: String,
+	highlighted: String,
+	/// The screen row of item 1.
+	first_row: usize,
+}
+
+fn menu(screen: &vt100::Screen, rows: &[String]) -> Option<Menu> {
+	let found: Vec<(usize, (u32, bool, String))> = rows.iter().enumerate().filter_map(|(row, text)| Some((row, menu_row(screen, row as u16, text)?))).collect();
+	let start = found.iter().rposition(|(_, (number, ..))| *number == 1)?;
+	let first_row = found[start].0;
+	let found: Vec<(u32, bool, String)> = found.into_iter().map(|(_, item)| item).collect();
 	let items = &found[start..];
 	let in_order = items.iter().enumerate().all(|(i, (number, ..))| *number as usize == i + 1);
 	let highlighted: Vec<&String> = items.iter().filter(|(_, lit, _)| *lit).map(|(.., label)| label).collect();
@@ -142,7 +150,21 @@ fn menu(screen: &vt100::Screen, rows: &[String]) -> Option<(String, String)> {
 		return None;
 	}
 	let shown = items.iter().map(|(number, lit, label)| format!("{}{number}. {label}", if *lit { "> " } else { "" })).collect::<Vec<_>>().join("\n");
-	Some((shown, highlighted[0].clone()))
+	Some(Menu { shown, highlighted: highlighted[0].clone(), first_row })
+}
+
+/// The agents' own folder trust questions (Claude Code's two, Codex's), lowercased. Matched
+/// exactly, since a "Yes" here sends Enter for the learner.
+const TRUST_QUESTIONS: [&str; 3] = ["do you trust the files in this folder?", "is this a project you created or one you trust?", "do you trust the contents of this directory?"];
+/// How far above item 1 the question may sit (the folder's path and a note come between).
+const QUESTION_ROWS: usize = 8;
+
+/// The trust question: the last question above the menu is one of the agents' own, so a
+/// permission menu ("Do you want to proceed?") never is, whatever its command or diff says.
+fn asks_for_trust(rows: &[String], menu: &Menu) -> bool {
+	let above = &rows[menu.first_row.saturating_sub(QUESTION_ROWS)..menu.first_row];
+	let question = above.iter().rev().find(|row| row.contains('?'));
+	menu.highlighted.starts_with("Yes") && question.is_some_and(|row| TRUST_QUESTIONS.iter().any(|asked| row.to_lowercase().contains(asked)))
 }
 
 /// "Press Enter" opening one of the last lines, or a sentence in it ("Login successful. Press
@@ -158,9 +180,9 @@ fn asks_for_enter(rows: &[String]) -> Option<String> {
 fn seen(screen: &vt100::Screen) -> Seen {
 	let rows: Vec<String> = screen.rows(0, COLS).collect();
 	let url = rows.iter().any(|row| row.contains("https://") || row.contains("http://"));
-	if let Some((shown, highlighted)) = menu(screen, &rows) {
-		let trust = highlighted.starts_with("Yes") && rows.iter().any(|row| row.to_lowercase().contains("trust"));
-		return Seen { prompt: Some(if trust { Prompt::Trust } else { Prompt::Menu }), menu: shown, url };
+	if let Some(menu) = menu(screen, &rows) {
+		let prompt = if asks_for_trust(&rows, &menu) { Prompt::Trust } else { Prompt::Menu };
+		return Seen { prompt: Some(prompt), menu: menu.shown, url };
 	}
 	match asks_for_enter(&rows) {
 		Some(line) => Seen { prompt: Some(Prompt::Enter), menu: line, url },
@@ -221,8 +243,21 @@ mod tests {
 	fn a_menu_on_no_or_without_trust_is_only_a_menu() {
 		assert_eq!(prompt(&[" Do you trust the files in this folder?", "   1. Yes, proceed", " ❯ 2. No, exit"]), Some(Prompt::Menu));
 		let model = [" Select a model", "", " ❯ 1. Default (recommended)", "   2. Opus", "   3. Haiku"];
+		let far = [" Do you trust the files in this folder?", "", "", "", "", "", "", "", "", " ❯ 1. Yes, proceed", "   2. No, exit"];
+		assert_eq!(prompt(&far), Some(Prompt::Menu), "the question is too far above the menu");
 		assert_eq!(prompt(&model), Some(Prompt::Menu));
 		assert_eq!(screen(&model).seen().menu, "> 1. Default (recommended)\n2. Opus\n3. Haiku");
+	}
+
+	#[test]
+	fn a_permission_menu_is_never_the_trust_question_whatever_it_shows() {
+		let grep = [" Bash command", "", "   grep -rn trust src/ && cat antitrust.md", "   Search the notes for trust", "", " Do you want to proceed?", " ❯ 1. Yes", "   2. Yes, and don't ask again for grep commands in /Users/sam/godspeed", "   3. No, and tell Claude what to do differently (esc)"];
+		let echoed = [" Bash command", "", "   echo 'Do you trust the files in this folder?'", "", " Do you want to proceed?", " ❯ 1. Yes", "   2. No"];
+		let diff = [" Edit file notes/trust.md", "  12 + Is this a project you created or one you trust?", "  13 + Do you trust the contents of this directory?", "", " Do you want to make this edit to trust.md?", " ❯ 1. Yes", "   2. Yes, allow all edits during this session", "   3. No"];
+		let staged = ["● Do you trust the files in this folder?", "", " Bash command", "   rm -rf notes", "", " Do you want to proceed?", " ❯ 1. Yes", "   2. No"];
+		for lines in [&grep[..], &echoed[..], &diff[..], &staged[..]] {
+			assert_eq!(prompt(lines), Some(Prompt::Menu), "{lines:?}");
+		}
 	}
 
 	#[test]
