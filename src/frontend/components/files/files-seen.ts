@@ -2,12 +2,23 @@ import { useEffect, useState } from "react";
 import { isRecent } from "@/shared/core";
 
 /**
- * The Files tab's "new" mark: a folder scan found files in the active space
- * since the learner last opened its Files page (and they are still new).
+ * The Files tab's "new" mark and Today's new-files line: a folder scan found
+ * files in a space since the learner last opened its Files page (and they
+ * are still new).
  * What was seen is remembered per space in this browser only.
  */
 
 const seenKey = (spaceId: string) => `lh:files-seen:${spaceId}`;
+
+/** The newest found file the learner saw on the space's Files page; null
+ *  when none, or when storage can't be read. */
+export function filesSeenAt(spaceId: string): string | null {
+	try {
+		return window.localStorage.getItem(seenKey(spaceId));
+	} catch {
+		return null;
+	}
+}
 
 /** `lastFoundAt` is the space's newest found file; `seenAt` the newest one
  *  the learner has seen. */
@@ -29,13 +40,7 @@ export function useUnseenFiles(spaceId: string | null, lastFoundAt: string | und
 			}
 			return setUnseen(false);
 		}
-		let seenAt: string | null = null;
-		try {
-			seenAt = window.localStorage.getItem(seenKey(spaceId));
-		} catch {
-			// Unreadable storage counts as nothing seen.
-		}
-		setUnseen(hasUnseenFiles(lastFoundAt, seenAt, Date.now()));
+		setUnseen(hasUnseenFiles(lastFoundAt, filesSeenAt(spaceId), Date.now()));
 	}, [spaceId, lastFoundAt, onFilesPage]);
 	return unseen;
 }

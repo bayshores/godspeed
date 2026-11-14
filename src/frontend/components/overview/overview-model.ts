@@ -3,7 +3,7 @@
  * Pure: every number comes from the ProgressPayload (src/shared/core/progress.ts);
  * this file only shapes it for the page and is unit-tested on its own.
  */
-import type { CalibrationLevel, DeadlineProgress, LessonProgress } from "@/shared/core";
+import type { CalibrationLevel, DeadlineProgress, LessonProgress, StatusCounts } from "@/shared/core";
 import { hasProblems, messageAnchorId } from "@/shared/core";
 import { byDue, isOverdue } from "@/frontend/components/deadlines-model";
 
@@ -108,6 +108,15 @@ export function progressWords(d: Pick<DeadlineProgress, "problems" | "ready">): 
 	if (d.problems) return `${d.problems.done} of ${d.problems.total} problems done`;
 	return d.ready !== null ? `${percent(d.ready)}% ready` : null;
 }
+
+/** The topic statuses in the words the learner sees, strongest first, with
+ *  a right rate that draws each one's ramp color. */
+export const STATUS_LEGEND: readonly { key: keyof StatusCounts; label: string; rate: number | null }[] = [
+	{ key: "strong", label: "strong", rate: 0.9 },
+	{ key: "shaky", label: "shaky", rate: 0.7 },
+	{ key: "weak", label: "weak", rate: 0.3 },
+	{ key: "untested", label: "not tested", rate: null },
+];
 
 /** The same as a share, 0 to 1; null with nothing to count. */
 export function progressShare(d: Pick<DeadlineProgress, "problems" | "ready">): number | null {

@@ -1,8 +1,8 @@
 /**
  * Background work on a space, on screen: the work frame around a space's
- * pages (reading, done, Close) and Today's strip per space.
+ * pages (reading, done, Close). Today's line is in render-home-page.test.tsx.
  */
-import React, { act, useEffect } from "react";
+import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;
 
 import assert from "node:assert/strict";
@@ -24,10 +24,9 @@ Object.assign(globalThis, {
 
 const { createRoot } = await import("react-dom/client");
 const { SpaceWorkFrame } = await import("../../src/frontend/components/work/space-work-frame.tsx");
-const { TodayWork } = await import("../../src/frontend/components/work/today-work.tsx");
 const { SpaceProvider } = await import("../../src/frontend/components/space-context.tsx");
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
-const { MemoryRouter, useLocation } = await import("react-router");
+const { MemoryRouter } = await import("react-router");
 
 const summary = (id: string, name: string, over: Partial<SpaceSummary> = {}): SpaceSummary => ({ id, name, description: "", createdAt: "", updatedAt: "", closed: false, fileCount: 3, color: 1, filesLeft: 0, ...over });
 const SPACES = [summary("spc_ml", "Machine Learning", { filesLeft: 2, building: true }), summary("spc_bio", "Biology")];
@@ -36,28 +35,17 @@ const file = (id: string, status: SpaceFileStatus): SpaceFile => ({ id, origin: 
 const record = (over: Partial<SpaceRecord>): SpaceRecord => ({ id: "spc_ml", name: "Machine Learning", description: "", createdAt: "", updatedAt: "", closed: false, files: [], color: 1, ...over });
 
 let root: Root | null = null;
-const pushed: string[] = [];
 const requests: string[] = [];
 const originalFetch = globalThis.fetch;
 afterEach(() => {
 	act(() => root?.unmount());
 	root = null;
 	document.body.innerHTML = "";
-	pushed.length = 0;
 	requests.length = 0;
 	globalThis.fetch = originalFetch;
 });
 
 const settle = () => act(async () => void (await new Promise((r) => setTimeout(r, 10))));
-
-/** Records every address the page goes to. */
-function Spy() {
-	const { pathname, search } = useLocation();
-	useEffect(() => {
-		pushed.push(pathname + search);
-	}, [pathname, search]);
-	return null;
-}
 
 async function mount(node: React.ReactNode, space: SpaceRecord | null = null) {
 	globalThis.fetch = (async (url: string, init?: RequestInit) => {
@@ -78,12 +66,10 @@ async function mount(node: React.ReactNode, space: SpaceRecord | null = null) {
 						{node}
 					</SpaceProvider>
 				</ServerEventsProvider>
-				<Spy />
 			</MemoryRouter>,
 		);
 	});
 	await settle();
-	pushed.length = 0;
 	return host;
 }
 
@@ -117,20 +103,5 @@ describe("The work frame around a space's pages", () => {
 		assert.equal(host.querySelector('[data-testid="work-frame"]'), null);
 		assert.equal(text(host, "page"), "The page");
 		assert.ok(requests.includes("DELETE /api/spaces/spc_ml/work"));
-	});
-});
-
-describe("Today's strip", () => {
-	it("one per space the teacher still reads files of; the button opens the space", async () => {
-		const host = await mount(<TodayWork spaces={SPACES} />);
-		assert.equal(host.querySelectorAll('[data-testid^="today-work-open-"]').length, 1);
-		assert.match(text(host, "today-work-spc_ml")!, /^Teacher is building Machine Learning\. 2 left\./);
-		await click(host, "today-work-open-spc_ml");
-		assert.deepEqual(pushed, ["/space"]);
-	});
-
-	it("is not there when no space has files left", async () => {
-		const host = await mount(<TodayWork spaces={[SPACES[1]!]} />);
-		assert.equal(host.querySelector('[data-testid="today-work"]'), null);
 	});
 });

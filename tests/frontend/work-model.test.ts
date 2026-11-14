@@ -90,9 +90,10 @@ describe("elsewhere", () => {
 	const space = (over: Partial<SpaceSummary>): SpaceSummary => ({ id: "spc_ml", name: "Machine Learning", description: "", createdAt: "", updatedAt: "", closed: false, fileCount: 18, color: 1, filesLeft: 0, ...over });
 
 	it("Today names the space and how many files are left", () => {
-		assert.equal(todayWorkLine(space({ filesLeft: 15, building: true }), "Helper"), "Helper is building Machine Learning. 15 left.");
-		assert.equal(todayWorkLine(space({ filesLeft: 2 }), "Teacher"), "Teacher is reading new files in Machine Learning. 2 left.");
-		assert.equal(todayWorkLine(space({ filesLeft: 18, building: true }), null), "18 files in Machine Learning are waiting for your agent");
+		assert.equal(todayWorkLine(space({ filesLeft: 15, building: true }), "Helper"), "Helper is building it, 15 left");
+		assert.equal(todayWorkLine(space({ filesLeft: 2 }), "Teacher"), "Teacher is reading new files, 2 left");
+		assert.equal(todayWorkLine(space({ filesLeft: 18, building: true }), null), "18 files are waiting for your agent");
+		assert.equal(todayWorkLine(space({ filesLeft: 1 }), null), "1 file is waiting for your agent");
 		assert.equal(todayWorkLine(space({}), "Teacher"), null);
 	});
 

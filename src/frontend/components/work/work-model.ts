@@ -85,13 +85,13 @@ export function jobFrame(worker: string | null, doing: string): FrameWords {
 	return worker ? working(worker, doing) : { state: "waiting", text: "This page is waiting. Open your agent to carry on.", count: null };
 }
 
-type LiveSpace = Pick<SpaceSummary, "name" | "filesLeft" | "building">;
+type LiveSpace = Pick<SpaceSummary, "filesLeft" | "building">;
 
-/** Today's line for a space whose files are being read; null otherwise. */
+/** The chip on a space's row on Today while its files are read; null otherwise. */
 export function todayWorkLine(space: LiveSpace, worker: string | null): string | null {
 	if (space.filesLeft === 0) return null;
-	if (!worker) return `${files(space.filesLeft)} in ${space.name} ${space.filesLeft === 1 ? "is" : "are"} waiting for your agent`;
-	return `${worker} is ${space.building ? "building" : "reading new files in"} ${space.name}. ${space.filesLeft} left.`;
+	if (!worker) return `${files(space.filesLeft)} ${space.filesLeft === 1 ? "is" : "are"} waiting for your agent`;
+	return `${worker} is ${space.building ? "building it" : "reading new files"}, ${space.filesLeft} left`;
 }
 
 /** The tag on the space's tab in the top bar. */
