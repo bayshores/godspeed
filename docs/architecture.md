@@ -410,7 +410,7 @@ Each message's view is hashed into the lesson's `coverage.jsonl`. Covered means 
 
 The same pipeline reads notes and space files:
 
-- Notes come in through `POST /api/graph/import` or the MCP `import_notes` tool. A notes file's source id is `src_` plus the first 12 hex of the sha256 of its path. A "No space" re-import reads the whole file again and adds to that source. In a space, `import_notes` writes through `write_agent_file` (`services::spaces`), like `add_space_file` with text: it replaces only a file the agent wrote, and refuses the name of the learner's own file.
+- Notes come in through `POST /api/graph/import` or the MCP `import_notes` tool. A notes file's source id is `src_` plus the first 12 hex of the sha256 of its path. A "No space" re-import reads the whole file again and adds to that source. In a space, `import_notes` writes through `write_agent_file` (`services::spaces`), like `add_space_file` with text: it replaces only a file marked `written`, and refuses any other file of that name: the learner's own, or notes an older version imported (nothing stored tells those two apart).
 - A space file's source id is unique per space. A changed or removed file has its old facts removed first (`delete_source_traces`), then it is read again.
 - Notes split at line boundaries under the same token budget, and each chunk runs as its own job, in order, under the graph lock. No model call carries a whole file.
 
