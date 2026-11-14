@@ -123,7 +123,9 @@ export function SpaceTabs({ selected }: { selected: string }) {
 								// An unlit tab's name gives way first, down to a few letters; the dot and the tag keep their
 								// room. The lit tab keeps its whole name, so the learner can always read where they are.
 								"min-w-auto grid",
-								lit ? "shrink-0 grid-cols-[auto_fit-content(240px)_auto]" : "grid-cols-[auto_minmax(auto,max-content)_auto]",
+								// It is never wider than the strip less the fades' overhang past its padding (2 × (24 − 16) px),
+								// so centered its dot and name are clear of both fades and a long name ends in "…".
+								lit ? "max-w-[calc(100%-16px)] shrink-0 grid-cols-[auto_fit-content(240px)_auto]" : "grid-cols-[auto_minmax(auto,max-content)_auto]",
 								barTabState(lit),
 								!lit && tabMenu.openId === c.id && "bg-bar-ink/10",
 							)}

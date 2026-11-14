@@ -172,6 +172,7 @@ describe("the top bar's tabs", () => {
 		assert.match(q("space-option-c21")!.className, /grid-cols-\[auto_minmax\(auto,max-content\)_auto\]/, "a tab with a tag lets its name give way first");
 		assert.equal(q("space-option-c21")!.querySelector<HTMLElement>("[title='CSE 21']")!.style.minWidth, "max-content", "a short name never squeezes");
 		assert.match(q("space-option-c29")!.className, /shrink-0 .*grid-cols-\[auto_fit-content\(240px\)_auto\]/, "the lit tab keeps its whole name");
+		assert.match(q("space-option-c29")!.className, /max-w-\[calc\(100%-16px\)\]/, "but is never wider than the strip, so a long name ends in an ellipsis clear of the fades");
 	});
 	it("a space's tab says how many files the teacher still has to read", async () => {
 		await mount(<SpaceTabs selected="c29" />);
