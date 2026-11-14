@@ -1,6 +1,6 @@
 /**
- * Settings → General: the teacher's name, sounds, when long lessons get
- * summarized, how the graph grows, and updates.
+ * Settings → General: the teacher's name, sounds, deadline reminders, when
+ * long lessons get summarized, how the graph grows, and updates.
  */
 
 import {
@@ -50,6 +50,18 @@ export function GeneralSection({
 					<Toggle checked={effective.general.sounds} label="Sounds" onChange={(on) => onGeneralChange({ ...record.general, sounds: on })} />
 				</SettingsRow>
 			</SettingsGroup>
+			{/* Only the desktop shell shows notifications. */}
+			{typeof window !== "undefined" && window.lh && (
+				<SettingsGroup label="Reminders" testid="group-reminders">
+					<SettingsRow label="Deadline reminders" hint="One notification a day when a deadline is 3 days away or less" testid="deadline-reminders-row">
+						<Toggle
+							checked={effective.general.deadlineReminders}
+							label="Deadline reminders"
+							onChange={(on) => onGeneralChange({ ...record.general, deadlineReminders: on })}
+						/>
+					</SettingsRow>
+				</SettingsGroup>
+			)}
 			<SettingsGroup label="Lessons and graph" testid="group-lessons">
 				<SettingsRow label="Summarize long lessons after" hint="Older parts of a long lesson get summarized so it keeps fitting" testid="row-compaction">
 					<span className="w-[354px] shrink-0">

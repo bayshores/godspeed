@@ -39,6 +39,7 @@
 				"body": {
 					"teacherName": "  Zed   the  Wise  ",
 					"sounds": false,
+					"deadlineReminders": false,
 					"autoUpdate": true,
 					"onboarded": true,
 					"extra": 1
@@ -49,7 +50,8 @@
 						"autoUpdate": true,
 						"onboarded": true,
 						"teacherName": "Zed the Wise",
-						"sounds": false
+						"sounds": false,
+						"deadlineReminders": false
 					}
 				}
 			},
@@ -161,6 +163,16 @@
 				"result": {
 					"ok": false,
 					"error": "sounds must be a boolean"
+				}
+			},
+			{
+				"section": "general",
+				"body": {
+					"deadlineReminders": "off"
+				},
+				"result": {
+					"ok": false,
+					"error": "deadlineReminders must be a boolean"
 				}
 			},
 			{

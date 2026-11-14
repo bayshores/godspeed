@@ -14,6 +14,7 @@ pub mod chats;
 pub mod spaces;
 pub mod cheat_sheets;
 pub mod mocks;
+pub mod reminders;
 
 use std::sync::Arc;
 
@@ -39,6 +40,7 @@ pub struct Stores {
 	pub spaces: spaces::SpaceStore,
 	pub cheat_sheets: cheat_sheets::CheatSheetStore,
 	pub mocks: mocks::MockStore,
+	pub reminders: reminders::RemindersStore,
 }
 
 impl Stores {
@@ -58,6 +60,7 @@ impl Stores {
 			spaces: spaces::SpaceStore::new(paths, events, locks),
 			cheat_sheets: cheat_sheets::CheatSheetStore::new(paths, locks),
 			mocks: mocks::MockStore::new(paths, locks),
+			reminders: reminders::RemindersStore::new(paths),
 		}
 	}
 

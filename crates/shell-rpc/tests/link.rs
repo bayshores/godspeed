@@ -58,6 +58,19 @@ async fn requests_get_their_own_answers() {
 }
 
 #[tokio::test]
+async fn a_notification_answers_whether_it_went_to_the_system() {
+	let (link, mut rx) = link();
+	let shown = tokio::spawn({
+		let link = link.clone();
+		async move { link.notify("Quiz 2 is tomorrow", "Algebra.").await }
+	});
+	let ToShell::Notify { id, title, body } = sent(&mut rx).await else { panic!("a notify request") };
+	assert_eq!((title.as_str(), body.as_str()), ("Quiz 2 is tomorrow", "Algebra."));
+	link.receive(ToServer::NotifyDone { id, shown: false });
+	assert_eq!(shown.await.unwrap(), Ok(false));
+}
+
+#[tokio::test]
 async fn an_answer_of_the_wrong_kind_is_skipped() {
 	let (link, mut rx) = link();
 	let demo = tokio::spawn({

@@ -12,7 +12,7 @@ import type { UserSettings } from "../../src/shared/core/settings.ts";
 describe("resolveSettings", () => {
 	it("null record (first boot): every knob lands on its factory default", () => {
 		const eff = resolveSettings(null);
-		assert.deepEqual(eff.general, { autoUpdate: true, activeSpace: "none", teacherName: "Teacher", sounds: true });
+		assert.deepEqual(eff.general, { autoUpdate: true, activeSpace: "none", teacherName: "Teacher", sounds: true, deadlineReminders: true });
 		assert.deepEqual(eff.agent.tools, {});
 		assert.deepEqual(eff.agent.rules, {});
 		assert.equal(eff.appearance.background, null);
@@ -27,7 +27,7 @@ describe("resolveSettings", () => {
 	it("explicit record values win over every factory default", () => {
 		const record: UserSettings = {
 			version: 1,
-			general: { autoUpdate: false, sounds: false },
+			general: { autoUpdate: false, sounds: false, deadlineReminders: false },
 			agent: {
 				tools: { research: false },
 				rules: { voice: ["No jokes"] },
@@ -38,6 +38,7 @@ describe("resolveSettings", () => {
 		const eff = resolveSettings(record);
 		assert.equal(eff.general.autoUpdate, false);
 		assert.equal(eff.general.sounds, false);
+		assert.equal(eff.general.deadlineReminders, false);
 		assert.deepEqual(eff.agent.tools, { research: false });
 		assert.deepEqual(eff.agent.rules, { voice: ["No jokes"] });
 		assert.equal(eff.appearance.proseFontSize, 20);

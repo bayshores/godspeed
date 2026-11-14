@@ -14,6 +14,7 @@ mod log;
 #[cfg(target_os = "macos")]
 mod mac;
 mod menu;
+mod notify;
 mod old_app;
 mod open;
 mod paths;
@@ -57,6 +58,7 @@ fn main() {
 	let builder = builder.register_uri_scheme_protocol("demo", demo_webview::serve);
 	let app = builder
 		.plugin(tauri_plugin_dialog::init())
+		.plugin(notify::Notifications::new())
 		.plugin(tauri_plugin_updater::Builder::new().build())
 		.invoke_handler(tauri::generate_handler![
 			window::show_window,

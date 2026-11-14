@@ -78,6 +78,9 @@ fn parse_general(body: &Json) -> Parsed {
 	if let Some(v) = boolean(raw, "sounds")? {
 		out.insert("sounds", v);
 	}
+	if let Some(v) = boolean(raw, "deadlineReminders")? {
+		out.insert("deadlineReminders", v);
+	}
 	Ok(Json::Obj(out))
 }
 
@@ -237,6 +240,8 @@ mod tests {
 		assert_eq!(run("general", "[]").unwrap_err(), "Invalid JSON body");
 		assert_eq!(run("general", "null").unwrap_err(), "Invalid JSON body");
 		assert_eq!(run("general", r#"{"onboarded":null}"#).unwrap_err(), "onboarded must be a boolean");
+		assert_eq!(run("general", r#"{"deadlineReminders":false,"sounds":true}"#).unwrap(), r#"{"sounds":true,"deadlineReminders":false}"#);
+		assert_eq!(run("general", r#"{"deadlineReminders":"off"}"#).unwrap_err(), "deadlineReminders must be a boolean");
 	}
 
 	#[test]

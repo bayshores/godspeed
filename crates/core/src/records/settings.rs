@@ -47,7 +47,7 @@ const OBJECT_PROTOTYPE_KEYS: [&str; 12] = [
 pub fn factory_settings() -> Json {
 	json!({
 		"version": CURRENT_SETTINGS_VERSION,
-		"general": { "autoUpdate": true, "activeSpace": "none", "teacherName": DEFAULT_TEACHER_NAME, "sounds": true },
+		"general": { "autoUpdate": true, "activeSpace": "none", "teacherName": DEFAULT_TEACHER_NAME, "sounds": true, "deadlineReminders": true },
 		"appearance": {
 			"background": null,
 			"fontFamily": null,
@@ -107,6 +107,9 @@ fn sanitize_general(raw: &Json) -> Json {
 	}
 	if let Some(sounds) = raw["sounds"].as_bool() {
 		out.insert("sounds", sounds);
+	}
+	if let Some(reminders) = raw["deadlineReminders"].as_bool() {
+		out.insert("deadlineReminders", reminders);
 	}
 	Json::Obj(out)
 }
@@ -257,6 +260,12 @@ mod tests {
 		assert!(sanitize_user_settings(&Json::Null).is_none());
 		assert_eq!(clean(r#"{"agent":{"graphTools":{}}}"#), r#"{"version":3,"agent":{"graphTools":{}}}"#);
 		assert_eq!(clean(r#"{"agent":{"graphTools":{"enabled":false}}}"#), r#"{"version":3,"agent":{"graphTools":{"enabled":false}}}"#);
+	}
+
+	#[test]
+	fn deadline_reminders_keep_only_a_boolean() {
+		assert_eq!(clean(r#"{"general":{"deadlineReminders":false}}"#), r#"{"version":3,"general":{"deadlineReminders":false}}"#);
+		assert_eq!(clean(r#"{"general":{"deadlineReminders":"no"}}"#), r#"{"version":3,"general":{}}"#);
 	}
 
 	#[test]

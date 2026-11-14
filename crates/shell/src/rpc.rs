@@ -9,6 +9,7 @@ use tauri::{AppHandle, Manager};
 
 use crate::demo::{self, DemoJob, SvgJob};
 use crate::log;
+use crate::notify;
 use crate::server::Server;
 
 /// A request from server `generation`; one from a server that has since died is dropped.
@@ -79,6 +80,11 @@ pub fn read(app: &AppHandle, generation: u64, stdout: impl Read, ready: mpsc::Se
 			}
 			Ok(ToShell::LoginOk { id }) => {
 				app.state::<Server>().login_ok(id);
+				continue;
+			}
+			Ok(ToShell::Notify { id, title, body }) => {
+				let shown = notify::show(app, &title, &body);
+				app.state::<Server>().send(Some(generation), &ToServer::NotifyDone { id, shown });
 				continue;
 			}
 			Ok(ToShell::Demo { id, html, probe }) => (id, Work::Demo(DemoJob { html, probe })),

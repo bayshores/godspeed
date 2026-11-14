@@ -46,6 +46,7 @@
 					"general": {
 						"teacherName": 5,
 						"sounds": "x",
+						"deadlineReminders": "x",
 						"activeSpace": "zzz",
 						"autoUpdate": true,
 						"keep": 1
@@ -65,7 +66,8 @@
 						"onboarded": true,
 						"lastSeenVersion": "0.5.44",
 						"teacherName": "  Zed\n the  great ",
-						"sounds": false
+						"sounds": false,
+						"deadlineReminders": false
 					}
 				},
 				"output": {
@@ -75,7 +77,8 @@
 						"onboarded": true,
 						"lastSeenVersion": "0.5.44",
 						"teacherName": "Zed the great",
-						"sounds": false
+						"sounds": false,
+						"deadlineReminders": false
 					}
 				}
 			},
@@ -467,7 +470,8 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
-						"sounds": true
+						"sounds": true,
+						"deadlineReminders": true
 					},
 					"agent": {
 						"tools": {},
@@ -501,7 +505,8 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
-						"sounds": true
+						"sounds": true,
+						"deadlineReminders": true
 					},
 					"agent": {
 						"tools": {},
@@ -535,6 +540,7 @@
 						"teacherName": "Zed",
 						"autoUpdate": false,
 						"sounds": false,
+						"deadlineReminders": false,
 						"activeSpace": "cls_a"
 					}
 				},
@@ -543,7 +549,8 @@
 						"autoUpdate": false,
 						"activeSpace": "cls_a",
 						"teacherName": "Zed",
-						"sounds": false
+						"sounds": false,
+						"deadlineReminders": false
 					},
 					"agent": {
 						"tools": {},
@@ -581,7 +588,8 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
-						"sounds": true
+						"sounds": true,
+						"deadlineReminders": true
 					},
 					"agent": {
 						"tools": {},
@@ -626,7 +634,8 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
-						"sounds": true
+						"sounds": true,
+						"deadlineReminders": true
 					},
 					"agent": {
 						"tools": {},
@@ -668,7 +677,8 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
-						"sounds": true
+						"sounds": true,
+						"deadlineReminders": true
 					},
 					"agent": {
 						"tools": {},
@@ -716,7 +726,8 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
-						"sounds": true
+						"sounds": true,
+						"deadlineReminders": true
 					},
 					"agent": {
 						"tools": {
@@ -762,7 +773,8 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
-						"sounds": true
+						"sounds": true,
+						"deadlineReminders": true
 					},
 					"agent": {
 						"tools": {},
@@ -800,7 +812,8 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
-						"sounds": true
+						"sounds": true,
+						"deadlineReminders": true
 					},
 					"agent": {
 						"tools": {},
@@ -839,7 +852,8 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
-						"sounds": true
+						"sounds": true,
+						"deadlineReminders": true
 					},
 					"agent": {
 						"tools": {},
@@ -875,7 +889,8 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
-						"sounds": true
+						"sounds": true,
+						"deadlineReminders": true
 					},
 					"agent": {
 						"tools": {},
@@ -911,7 +926,8 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
-						"sounds": true
+						"sounds": true,
+						"deadlineReminders": true
 					},
 					"agent": {
 						"tools": {},
@@ -947,7 +963,8 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
-						"sounds": true
+						"sounds": true,
+						"deadlineReminders": true
 					},
 					"agent": {
 						"tools": {},
@@ -983,7 +1000,8 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
-						"sounds": true
+						"sounds": true,
+						"deadlineReminders": true
 					},
 					"agent": {
 						"tools": {},
@@ -1026,7 +1044,8 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
-						"sounds": true
+						"sounds": true,
+						"deadlineReminders": true
 					},
 					"agent": {
 						"tools": {},
@@ -1068,7 +1087,8 @@
 						"autoUpdate": true,
 						"activeSpace": "cls_abc-1_2",
 						"teacherName": "Zed the great",
-						"sounds": false
+						"sounds": false,
+						"deadlineReminders": true
 					},
 					"agent": {
 						"tools": {},
@@ -1108,7 +1128,8 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
-						"sounds": true
+						"sounds": true,
+						"deadlineReminders": true
 					},
 					"agent": {
 						"tools": {},
@@ -1147,7 +1168,8 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
-						"sounds": true
+						"sounds": true,
+						"deadlineReminders": true
 					},
 					"agent": {
 						"tools": {},
@@ -1198,7 +1220,8 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
-						"sounds": true
+						"sounds": true,
+						"deadlineReminders": true
 					},
 					"agent": {
 						"tools": {},
@@ -1243,7 +1266,8 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
-						"sounds": true
+						"sounds": true,
+						"deadlineReminders": true
 					},
 					"agent": {
 						"tools": {},
@@ -1281,7 +1305,8 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
-						"sounds": true
+						"sounds": true,
+						"deadlineReminders": true
 					},
 					"agent": {
 						"tools": {},
@@ -1326,7 +1351,8 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
-						"sounds": true
+						"sounds": true,
+						"deadlineReminders": true
 					},
 					"agent": {
 						"tools": {},
@@ -1367,7 +1393,8 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
-						"sounds": true
+						"sounds": true,
+						"deadlineReminders": true
 					},
 					"agent": {
 						"tools": {},
@@ -1407,7 +1434,8 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
-						"sounds": true
+						"sounds": true,
+						"deadlineReminders": true
 					},
 					"agent": {
 						"tools": {},
@@ -1446,7 +1474,8 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
-						"sounds": true
+						"sounds": true,
+						"deadlineReminders": true
 					},
 					"agent": {
 						"tools": {},
@@ -1485,7 +1514,8 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
-						"sounds": true
+						"sounds": true,
+						"deadlineReminders": true
 					},
 					"agent": {
 						"tools": {},
@@ -1523,7 +1553,8 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
-						"sounds": true
+						"sounds": true,
+						"deadlineReminders": true
 					},
 					"agent": {
 						"tools": {},
@@ -1561,7 +1592,8 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
-						"sounds": true
+						"sounds": true,
+						"deadlineReminders": true
 					},
 					"agent": {
 						"tools": {},
@@ -1599,7 +1631,8 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
-						"sounds": true
+						"sounds": true,
+						"deadlineReminders": true
 					},
 					"agent": {
 						"tools": {},
@@ -1637,7 +1670,8 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
-						"sounds": true
+						"sounds": true,
+						"deadlineReminders": true
 					},
 					"agent": {
 						"tools": {},
@@ -1692,7 +1726,8 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
-						"sounds": true
+						"sounds": true,
+						"deadlineReminders": true
 					},
 					"agent": {
 						"tools": {
@@ -1743,7 +1778,8 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
-						"sounds": true
+						"sounds": true,
+						"deadlineReminders": true
 					},
 					"agent": {
 						"tools": {},
@@ -1783,7 +1819,8 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
-						"sounds": true
+						"sounds": true,
+						"deadlineReminders": true
 					},
 					"agent": {
 						"tools": {},
@@ -1823,7 +1860,8 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
-						"sounds": true
+						"sounds": true,
+						"deadlineReminders": true
 					},
 					"agent": {
 						"tools": {},
@@ -1864,7 +1902,8 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
-						"sounds": true
+						"sounds": true,
+						"deadlineReminders": true
 					},
 					"agent": {
 						"tools": {},
@@ -1905,7 +1944,8 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
-						"sounds": true
+						"sounds": true,
+						"deadlineReminders": true
 					},
 					"agent": {
 						"tools": {},
@@ -1950,7 +1990,8 @@
 						"autoUpdate": true,
 						"activeSpace": "none",
 						"teacherName": "Teacher",
-						"sounds": true
+						"sounds": true,
+						"deadlineReminders": true
 					},
 					"agent": {
 						"tools": {

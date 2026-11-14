@@ -19,7 +19,7 @@ describe("FACTORY_SETTINGS (the compiled factory layer)", () => {
 	it("pins the factory defaults", () => {
 		assert.equal(CURRENT_SETTINGS_VERSION, 3);
 		assert.deepEqual(FACTORY_SETTINGS.compaction, { thresholdTokens: 40_000 });
-		assert.deepEqual(FACTORY_SETTINGS.general, { autoUpdate: true, activeSpace: "none", teacherName: "Teacher", sounds: true });
+		assert.deepEqual(FACTORY_SETTINGS.general, { autoUpdate: true, activeSpace: "none", teacherName: "Teacher", sounds: true, deadlineReminders: true });
 		// the master switch ONLY + the chunk budget (4096)
 		assert.deepEqual(FACTORY_SETTINGS.graph, { enabled: true, extractionChunkTokens: 4096 });
 		const a = FACTORY_SETTINGS.appearance;
@@ -88,7 +88,7 @@ describe("sanitizeUserSettings", () => {
 
 	it("wrong-typed fields DROP (resolve to factory), never crash", () => {
 		const out = sanitizeUserSettings({
-			general: { autoUpdate: "yes", sounds: "off" },
+			general: { autoUpdate: "yes", sounds: "off", deadlineReminders: "on" },
 			agent: { tools: { research: "no" }, rules: { voice: [1], mood: ["x"] }, models: { researcher: "fast" } },
 			appearance: { proseFontSize: "16" },
 			graph: { enabled: 0 },
