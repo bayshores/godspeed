@@ -254,8 +254,8 @@ type Summary = React.ComponentProps<typeof PathMocks>["mocks"];
 const about = (state: React.ComponentProps<typeof AboutSheet>["about"]) => <AboutSheet about={state} teacherName="marco" onAsk={() => {}} onRetry={() => {}} />;
 
 const MOCKS: NonNullable<Summary> = [
-	{ id: "mock_2", n: 2, state: "graded", format: { questions: 5 }, createdAt: "2026-11-01T09:00:00.000Z", endedAt: "2026-11-01T10:00:00.000Z", solved: 4, working: false },
-	{ id: "mock_1", n: 1, state: "graded", format: { questions: 5, minutes: 45 }, createdAt: "2026-10-30T09:00:00.000Z", endedAt: "2026-10-30T09:40:00.000Z", solved: 2, working: false },
+	{ id: "mock_2", deadlineId: "mid", n: 2, state: "graded", format: { questions: 5 }, createdAt: "2026-11-01T09:00:00.000Z", endedAt: "2026-11-01T10:00:00.000Z", solved: 4, working: false },
+	{ id: "mock_1", deadlineId: "mid", n: 1, state: "graded", format: { questions: 5, minutes: 45 }, createdAt: "2026-10-30T09:00:00.000Z", endedAt: "2026-10-30T09:40:00.000Z", solved: 2, working: false },
 ];
 
 function mocks(over: Partial<React.ComponentProps<typeof PathMocks>> = {}) {
@@ -324,7 +324,7 @@ describe("a deadline's mocks", () => {
 		assert.ok(!html.includes("deadline-mock-list"), "no list before the first mock");
 	});
 	it("an open mock is continued, paused ones say their time left", () => {
-		const paused = { id: "mock_3", n: 3, state: "paused" as const, format: { questions: 5, minutes: 45 }, createdAt: "2026-11-02T09:00:00.000Z", paused: { at: "2026-11-02T09:20:00.000Z", left: 31 * 60 + 9 }, working: false };
+		const paused = { id: "mock_3", deadlineId: "mid", n: 3, state: "paused" as const, format: { questions: 5, minutes: 45 }, createdAt: "2026-11-02T09:00:00.000Z", paused: { at: "2026-11-02T09:20:00.000Z", left: 31 * 60 + 9 }, working: false };
 		const html = renderToStaticMarkup(<MemoryRouter>{mocks({ mocks: [paused, ...MOCKS], offReason: "unused" })}</MemoryRouter>);
 		assert.match(html, /data-testid="deadline-mock-continue"[^>]*href="\/space\/mock\/spc_1\/mock_3"[^>]*>Continue Mock 3</);
 		assert.ok(!html.includes("deadline-mock-take") && !html.includes("deadline-mock-off"));
