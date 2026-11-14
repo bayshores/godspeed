@@ -10,8 +10,7 @@ import { Pane } from "@/frontend/components/ui/pane";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { Stamp } from "@/frontend/components/ui/stamp";
 import { cn } from "@/frontend/lib/utils";
-import { prepCount } from "@/frontend/components/prep/prep-model";
-import { countLeft, laterLine, longDay, todayRow, type PrepDay } from "./home-page-model";
+import { countLeft, laterLine, todayRow } from "./home-page-model";
 
 /** The space's color; grey for a space that has gone. */
 const blockColor = (color: SpaceColor | undefined) => (color ? spaceColorVar(color) : "var(--border)");
@@ -92,67 +91,6 @@ export function TodayRow({
 						</RowButton>
 					</span>
 				</div>
-			</Pane>
-		</li>
-	);
-}
-
-/** A prep's count block: "6" over "days", "today" on the day. */
-const prepBlock = (prep: PrepDay, nowMs: number) => prepCount(prep.date, nowMs) ?? { count: "today", unit: "" };
-
-/**
- * A prep under Today: the days left, its name (which opens its sheet), its
- * day, and Study, which starts on the topics that most need work.
- */
-export function PrepTodayRow({
-	prep,
-	nowMs,
-	main,
-	busy,
-	onOpen,
-	onStudy,
-}: {
-	prep: PrepDay;
-	nowMs: number;
-	main: boolean;
-	busy: boolean;
-	onOpen: (prep: PrepDay) => void;
-	onStudy: (prep: PrepDay) => void;
-}) {
-	return (
-		<li data-testid={`today-prep-${prep.spaceId}`}>
-			<Pane className="flex min-h-[104px] overflow-hidden">
-				<CountBlock color={spaceColorVar(prep.color)} {...prepBlock(prep, nowMs)} />
-				<div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-3 px-6 py-4">
-					<Words
-						title={
-							<Link to="/space" data-testid="today-prep-open" title={prep.name} onClick={() => onOpen(prep)} className="hover:underline">
-								{prep.name}
-							</Link>
-						}
-						line={`It is on ${longDay(prep.date)}`}
-					/>
-					<RowButton main={main} testId="today-prep-study" busy={busy} onClick={() => onStudy(prep)}>
-						Study
-					</RowButton>
-				</div>
-			</Pane>
-		</li>
-	);
-}
-
-/** A prep under Later: the whole row opens its sheet. */
-export function PrepLaterRow({ prep, nowMs, onOpen }: { prep: PrepDay; nowMs: number; onOpen: (prep: PrepDay) => void }) {
-	return (
-		<li data-testid={`later-prep-${prep.spaceId}`}>
-			<Pane className="overflow-hidden">
-				<Link to="/space" onClick={() => onOpen(prep)} className="flex min-h-[100px] transition-colors hover:bg-tone">
-					<CountBlock pale color={spaceColorVar(prep.color)} {...prepBlock(prep, nowMs)} />
-					<span className="flex min-w-0 flex-1 items-center gap-4 px-6 py-4">
-						<Words title={prep.name} line={`It is on ${longDay(prep.date)}`} />
-						<PixelIcon name="chevron" className="h-[15px] text-ink" />
-					</span>
-				</Link>
 			</Pane>
 		</li>
 	);

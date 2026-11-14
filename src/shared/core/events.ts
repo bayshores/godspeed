@@ -92,8 +92,8 @@ export interface ServerEvents {
 	"files-removed": { spaceId: string; files: { id: string; name: string }[] };
 	/** A deadline's cheat sheet or its agent request changed. */
 	"cheat-sheet-changed": { deadlineId: string };
-	/** A prep's sheet, its mocks or one of their agent requests changed. */
-	"prep-changed": { spaceId: string };
+	/** A space's mocks or one of their agent requests changed. */
+	"mocks-changed": { spaceId: string };
 }
 
 export type ServerEventType = keyof ServerEvents;
@@ -113,7 +113,7 @@ export const SERVER_EVENT_TYPES = [
 	"agent-action",
 	"rules-changed",
 	"cheat-sheet-changed",
-	"prep-changed",
+	"mocks-changed",
 	"files-added",
 	"files-removed",
 ] as const satisfies readonly ServerEventType[];

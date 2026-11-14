@@ -135,8 +135,10 @@ const dayNumber = (date: string) => Math.floor(Date.parse(`${date}T00:00:00Z`) /
 type DeadlineLike = Pick<SpaceDeadline, "id" | "kind" | "date" | "fileIds" | "leftOutIds">;
 
 /** Where the "not on it" check starts: after the space's last earlier exam
- *  for an exam, else at its first covered day; null = no check. */
+ *  for an exam, else at its first covered day; null = no check (an
+ *  interview's files aren't class days). */
 function checkFrom(d: DeadlineLike, others: readonly DeadlineLike[], coveredDates: string[]): string | null {
+	if (d.kind === "interview") return null;
 	if (d.kind === "exam") {
 		const before = others.filter((o) => o.id !== d.id && o.kind === "exam" && o.date < d.date).map((o) => o.date);
 		return before.length > 0 ? before.sort().at(-1)! : "";
@@ -207,6 +209,16 @@ export function shortDate(date: string): string {
 /** The message Ask sends the teacher. */
 export function coverageMessage(spaceName: string, deadline: { name: string; when: string }): string {
 	return `Work out what ${deadline.name} (${deadline.when}) in ${spaceName} covers from my files, like a practice exam, a review sheet or the syllabus. Link those files to it, leave out the earlier ones it doesn't cover, and tell me which file you went by.`;
+}
+
+/** The message "Ask {teacher} to rewrite" sends, under What it's like. */
+export function aboutMessage(spaceName: string, deadlineName: string): string {
+	return `Rewrite what ${deadlineName} in ${spaceName} is like.`;
+}
+
+/** The message "Ask {teacher} for a study guide" sends. */
+export function guideMessage(spaceName: string, deadlineName: string): string {
+	return `Write a study guide for ${deadlineName} in ${spaceName} and link it to the deadline.`;
 }
 
 /** A topic's answers so far. */

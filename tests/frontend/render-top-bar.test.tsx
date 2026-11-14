@@ -158,8 +158,7 @@ describe("Menu", () => {
 		assert.equal(q("app-menu")!.textContent, "Menu");
 		assert.equal(q("app-menu")!.getAttribute("aria-expanded"), "false");
 		await click(q("app-menu")!);
-		assert.deepEqual(texts("[data-testid='app-menu-list'] [role='menuitem']"), ["Search lessons", "Add a space", "Prepare for something", "Lessons with no space", "Archived spaces", "Settings"]);
-		assert.equal(q("menu-prep")!.getAttribute("href"), "/prep");
+		assert.deepEqual(texts("[data-testid='app-menu-list'] [role='menuitem']"), ["Search lessons", "Add a space", "Lessons with no space", "Archived spaces", "Settings"]);
 		assert.equal(q("menu-archived")!.getAttribute("href"), "/archived");
 		assert.equal(q("settings-entry")!.getAttribute("href"), "/settings");
 	});

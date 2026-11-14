@@ -79,8 +79,8 @@ export function spaceFrame(state: WorkState, worker: string): FrameWords {
 	}
 }
 
-/** The frame of a page one job works on (a lesson, a cheat sheet, a prep
- *  sheet): who and what, or that it waits for an agent. */
+/** The frame of a page one job works on (a lesson, a cheat sheet): who
+ *  and what, or that it waits for an agent. */
 export function jobFrame(worker: string | null, doing: string): FrameWords {
 	return worker ? working(worker, doing) : { state: "waiting", text: "This page is waiting. Open your agent to carry on.", count: null };
 }

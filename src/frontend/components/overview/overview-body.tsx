@@ -27,6 +27,7 @@ export const OverviewBody = memo(function OverviewBody({
 	onStudy,
 	onStartDeadline,
 	onAddDeadline,
+	waiting,
 	pickSpace,
 }: {
 	hasSpace: boolean;
@@ -46,6 +47,8 @@ export const OverviewBody = memo(function OverviewBody({
 	onStartDeadline: (d: DeadlineProgress) => void;
 	/** "Add a deadline" (opens the Deadlines tab). */
 	onAddDeadline: () => void;
+	/** An interview waiting for its date (waiting-deadline.tsx). */
+	waiting?: ReactNode;
 	/** With no space: the spaces to switch to. */
 	pickSpace?: ReactNode;
 }) {
@@ -57,6 +60,7 @@ export const OverviewBody = memo(function OverviewBody({
 		<div data-testid="space-overview" className="mx-auto flex w-full max-w-[908px] flex-col gap-[22px] px-6 pt-[22px] pb-9">
 			{pickSpace}
 			{note && <TeacherNote note={note} nowMs={nowMs} />}
+			{waiting}
 			{hasSpace && data && nowMs !== null && (
 				<NextDeadline
 					deadline={upcoming[0] ?? null}

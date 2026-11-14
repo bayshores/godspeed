@@ -1,20 +1,24 @@
 import { useCallback, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import type { SpaceDeadline, SpaceFile } from "@/shared/core";
+import type { SpaceDeadline, SpaceFile, WaitingDeadline } from "@/shared/core";
 import {
 	addBody,
 	draftChanged,
 	draftFrom,
+	draftFromWaiting,
 	draftProblem,
 	FILE_FILTER_FROM,
 	fileDayLabel,
 	filterFiles,
 	KIND_OPTIONS,
+	namePlaceholder,
 	NEW_DEADLINE,
 	toggleFile,
 	updateBody,
 	type DeadlineDraft,
 } from "@/frontend/components/space-deadlines-model";
+import { mocksRemovedLine, takesMocks } from "@/frontend/components/deadline/mocks-model";
+import { useMockCount } from "@/frontend/components/deadline/use-deadline-mocks";
 import { jsonInit, send } from "@/frontend/components/files/space-files-api";
 import { CheckRow } from "@/frontend/components/ui/check-row";
 import { DialogSheet, useLastWhileClosing } from "@/frontend/components/ui/dialog-sheet";
@@ -28,14 +32,17 @@ interface DeadlineDialogMode {
 	spaceId: string;
 	/** The deadline to edit; null adds one. */
 	deadline: SpaceDeadline | null;
+	/** Adds the deadline that was waiting for its date, under its id. */
+	waiting?: WaitingDeadline;
 	/** Every space file, in space order. */
 	files: readonly SpaceFile[];
 }
 
 /**
  * "Add a deadline" and "Edit deadline": its kind, name, date, time and the
- * files it covers; an existing one also has Done and "Remove deadline".
- * Nothing is saved until Save. Closing with changes asks first.
+ * files it covers; an existing one also has Done and "Remove deadline",
+ * which says when its mocks go too. Nothing is saved until Save. Closing
+ * with changes asks first.
  */
 export function DeadlineDialog({ mode, onClose, onRemoved }: { mode: DeadlineDialogMode | null; onClose: () => void; onRemoved?: () => void }) {
 	const { mounted, state, shown } = useLastWhileClosing(mode);
@@ -50,7 +57,8 @@ const isGone = (body: unknown) => (body as { code?: string } | null)?.code === "
 function DeadlineDialogInner({ mode, state, onClose, onRemoved }: { mode: DeadlineDialogMode; state: "open" | "closed"; onClose: () => void; onRemoved: () => void }) {
 	// The deadline as it was when the dialog opened: Save sends what differs from it.
 	const [saved] = useState(mode.deadline);
-	const [draft, setDraft] = useState<DeadlineDraft>(() => (saved ? draftFrom(saved) : NEW_DEADLINE));
+	const [seed] = useState<DeadlineDraft>(() => (saved ? draftFrom(saved) : mode.waiting ? draftFromWaiting(mode.waiting) : NEW_DEADLINE));
+	const [draft, setDraft] = useState(seed);
 	const [filter, setFilter] = useState("");
 	const [error, setError] = useState<string | null>(null);
 	const [busy, setBusy] = useState(false);
@@ -62,7 +70,8 @@ function DeadlineDialogInner({ mode, state, onClose, onRemoved }: { mode: Deadli
 	const shown = mode.files.filter((f) => f.kind === "study" || draft.fileIds.includes(f.id));
 	const listed = filterFiles(shown, filter);
 
-	const unsaved = draftChanged(saved, draft);
+	const unsaved = draftChanged(saved, draft, seed);
+	const mockCount = useMockCount(mode.spaceId, asking === "remove" && saved && takesMocks(saved.kind) ? saved.id : null);
 	/** "Close", Esc and a click outside: ask first when something would be
 	 *  lost. Esc on a question goes back to editing. */
 	const requestClose = useCallback(() => {
@@ -81,7 +90,7 @@ function DeadlineDialogInner({ mode, state, onClose, onRemoved }: { mode: Deadli
 		setError(null);
 		const { error: failed, body } = saved
 			? await send(`${base}/${encodeURIComponent(saved.id)}`, jsonInit("PUT", updateBody(saved, draft)))
-			: await send(base, jsonInit("POST", addBody(draft)));
+			: await send(base, jsonInit("POST", addBody(draft, mode.waiting)));
 		setBusy(false);
 		if (failed) return setError(saved && isGone(body) ? `${saved.name} was removed while you were editing it, so your changes weren't saved.` : failed);
 		onClose();
@@ -104,7 +113,16 @@ function DeadlineDialogInner({ mode, state, onClose, onRemoved }: { mode: Deadli
 		asking === "discard" ? (
 			<FootQuestion testid="deadline-discard" line="Discard your changes?" keep="Keep editing" go="Discard" quiet busy={busy} onKeep={() => setAsking(null)} onGo={onClose} />
 		) : asking === "remove" && saved ? (
-			<FootQuestion testid="deadline-remove-confirm" line={`Remove ${saved.name}? This can't be undone.`} keep="Cancel" go="Remove deadline" busy={busy} onKeep={() => setAsking(null)} onGo={() => void remove()} />
+			<FootQuestion
+				testid="deadline-remove-confirm"
+				line={`Remove ${saved.name}? This can't be undone.`}
+				note={mocksRemovedLine(mockCount) ?? undefined}
+				keep="Cancel"
+				go="Remove deadline"
+				busy={busy}
+				onKeep={() => setAsking(null)}
+				onGo={() => void remove()}
+			/>
 		) : (
 			<>
 				{saved && (
@@ -132,7 +150,7 @@ function DeadlineDialogInner({ mode, state, onClose, onRemoved }: { mode: Deadli
 					data-testid="deadline-name"
 					value={draft.name}
 					disabled={busy}
-					placeholder="Homework 5"
+					placeholder={namePlaceholder(draft.kind)}
 					onChange={(e) => change({ name: e.target.value })}
 					className={FIELD}
 					data-autofocus={saved ? undefined : true}

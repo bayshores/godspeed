@@ -67,7 +67,6 @@ export * from "./plot-expr.ts";
 export type { KeptCardData } from "./kept-view.ts";
 export * from "./homework.ts";
 export * from "./cheat-sheet.ts";
-export * from "./prep.ts";
 export * from "./mock.ts";
 export { RUN_FILE, type ExampleRun, type RunOutcome } from "./mock-run.ts";
 export type { SpaceChange } from "./space-tools.ts";

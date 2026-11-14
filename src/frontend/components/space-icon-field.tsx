@@ -5,18 +5,16 @@ import { cn } from "@/frontend/lib/utils";
 import { LABEL_TEXT } from "@/frontend/components/ui/label-text";
 
 /** Edit space's Icon field: the subject icons in rows, the picked one
- *  marked. `agentPicks`: the agent sets one up for this space (not a prep). */
+ *  marked. */
 
 const NAMES = Object.keys(SPACE_ICONS) as SpaceIconName[];
 
 export const SpaceIconField = memo(function SpaceIconField({
 	icon,
-	agentPicks,
 	disabled,
 	onChange,
 }: {
 	icon: SpaceIconName | undefined;
-	agentPicks: boolean;
 	disabled: boolean;
 	onChange: (icon: SpaceIconName) => void;
 }) {
@@ -46,7 +44,7 @@ export const SpaceIconField = memo(function SpaceIconField({
 					);
 				})}
 			</div>
-			{agentPicks && <span className="text-base text-ink-2">Your agent picks one when it sets up the space. Pick another here any time.</span>}
+			<span className="text-base text-ink-2">Your agent picks one when it sets up the space. Pick another here any time.</span>
 		</div>
 	);
 });

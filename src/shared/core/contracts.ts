@@ -16,5 +16,4 @@ export * from "./contracts/chat.ts";
 export * from "./contracts/jobs.ts";
 export * from "./contracts/probe.ts";
 export * from "./contracts/space.ts";
-export * from "./contracts/prep.ts";
 export * from "./contracts/boot.ts";

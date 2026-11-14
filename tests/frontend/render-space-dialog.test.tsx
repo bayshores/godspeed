@@ -246,19 +246,6 @@ describe("Edit space dialog", () => {
 		assert.deepEqual((calls[0] as { body: unknown }).body, { color: 5 });
 	});
 
-	it("Edit prep: no signature and no word of the agent picking an icon, since it never does for a prep", async () => {
-		served = { ...RECORD, name: "Backend phone screen", prep: { goal: "Backend phone screen at a made-up startup", about: "", sources: [], topics: [] } };
-		fakeFetch();
-		await mount({ kind: "edit", spaceId: "cls_a" });
-		assert.equal(q("space-dialog")!.getAttribute("aria-label"), "Edit prep");
-		assert.equal(q("space-signature"), null);
-		assert.ok(q("space-icon"), "the icon can still be picked");
-		assert.doesNotMatch(q("space-dialog")!.textContent!, /Your agent picks one/);
-		assert.ok(q("space-description"), "the teacher reads the description in a prep's lessons too");
-		await click(q("space-delete"));
-		assert.match(q("space-delete-confirm")!.textContent!, /removes the prep, all its lessons, its mocks, its copied files/);
-	});
-
 	it("Edit space says the agent picks the icon", async () => {
 		fakeFetch();
 		await mount({ kind: "edit", spaceId: "cls_a" });

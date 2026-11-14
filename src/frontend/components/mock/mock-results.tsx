@@ -1,34 +1,29 @@
-import { DEFAULT_TEACHER_NAME, MOCK_LANGUAGES, minutesUsed, questionResult, solvedCount, type MockQuestion, type MockView } from "@/shared/core";
+import { DEFAULT_TEACHER_NAME, MOCK_LANGUAGES, localDay, minutesUsed, pauseTotal, questionResult, solvedCount, type MockQuestion, type MockView } from "@/shared/core";
 import { MessageResponse } from "@/frontend/components/ai-elements/message";
 import { useTeacher } from "@/frontend/components/teacher/teacher-provider";
 import { longDay } from "@/frontend/components/home-page/home-page-model";
 import { useLessonStart } from "@/frontend/components/home/use-lesson-start";
 import { TITLE } from "@/frontend/components/overview/styles";
-import { BIG_BUTTON } from "@/frontend/components/ui/big-button";
 import { Pane } from "@/frontend/components/ui/pane";
-import { localDay } from "@/shared/core";
 import { cn } from "@/frontend/lib/utils";
 import { MockBar } from "./mock-bar";
-import { RESULT_WORD, fixFirst, spentText } from "./mock-model";
-import { useTakeMock } from "./use-mock";
+import { RESULT_WORD, pauseLine, spentText, usedLine } from "./mock-model";
 
 /**
  * A GRADED MOCK: each question with how it went, the teacher's feedback
  * and what was written, and "Go over it", which opens a study session on
- * that question. Beside them: how many were solved, the topics to fix
- * first with the button that studies them, and Take another mock.
+ * that question. Beside them: how many were right, in how long, and how
+ * often it was paused.
  */
 export function MockResults({ view }: { view: MockView }) {
 	const { spaceId, mock } = view;
 	const teacher = useTeacher()?.name ?? DEFAULT_TEACHER_NAME;
 	const lesson = useLessonStart();
-	const another = useTakeMock(spaceId);
-	const fix = fixFirst(mock, view.topics);
 	const used = minutesUsed(mock);
-	const failed = lesson.error ?? another.error;
+	const paused = pauseLine(pauseTotal(mock));
 	return (
 		<div data-testid="mock-results" className="flex h-full flex-col">
-			<MockBar prepName={view.prepName} n={mock.n} />
+			<MockBar view={view} />
 			<div className="min-h-0 flex-1 overflow-y-auto">
 				<div className="mx-auto flex w-full max-w-[908px] flex-wrap items-start gap-x-10 gap-y-8 px-6 pt-7 pb-16">
 					<section className="flex min-w-0 flex-1 basis-[460px] flex-col gap-2">
@@ -43,40 +38,19 @@ export function MockResults({ view }: { view: MockView }) {
 						</ol>
 					</section>
 
-					<Pane className="flex w-full shrink-0 flex-col gap-5 px-5 py-5 sm:sticky sm:top-6 sm:w-[292px]">
-						<div className="flex flex-col gap-1">
-							<p data-testid="mock-solved" className="font-count text-[34px] leading-tight text-ink">
-								{solvedCount(mock)} of {mock.questions.length} solved
+					<Pane className="flex w-full shrink-0 flex-col gap-1 px-5 py-5 sm:sticky sm:top-6 sm:w-[292px]">
+						<p data-testid="mock-solved" className="font-count text-[34px] leading-tight text-ink">
+							{solvedCount(mock)} of {mock.questions.length} right
+						</p>
+						{used !== null && <p className="text-[15px] text-ink-2">{usedLine(used, mock.format)}</p>}
+						{paused && (
+							<p data-testid="mock-pauses" className="text-[15px] text-ink-2">
+								{paused}
 							</p>
-							{used !== null && (
-								<p className="text-[15px] text-ink-2">
-									in {used} of {mock.format.minutes} minutes
-								</p>
-							)}
-						</div>
-						{fix.length > 0 ? (
-							<div className="flex flex-col gap-2.5">
-								<div className="flex flex-col gap-1">
-									<p className="text-[17px] text-ink">Fix these first</p>
-									<ul data-testid="mock-fix-first" className="flex flex-col text-[15px] leading-snug text-ink-2">
-										{fix.map((t) => (
-											<li key={t.id}>{t.name}</li>
-										))}
-									</ul>
-								</div>
-								<button type="button" data-testid="mock-study" disabled={lesson.busy} onClick={() => void lesson.studyPrep(fix.map((t) => t.id), spaceId)} className={cn("lh-btn lh-btn-main justify-center", BIG_BUTTON)}>
-									Study these
-								</button>
-							</div>
-						) : (
-							<p className="text-[15px] leading-snug text-ink-2">Nothing on the sheet to fix from this one.</p>
 						)}
-						<button type="button" data-testid="mock-another" disabled={another.busy} onClick={() => void another.take()} className="lh-btn justify-center text-[15px]">
-							Take another mock
-						</button>
-						{failed && (
-							<p role="alert" className="text-[15px] text-ans-wrong">
-								{failed}
+						{lesson.error && (
+							<p role="alert" className="pt-3 text-[15px] text-ans-wrong">
+								{lesson.error}
 							</p>
 						)}
 					</Pane>

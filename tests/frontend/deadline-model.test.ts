@@ -5,7 +5,7 @@
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { coverageMessage, deadlineMaterial, materialSummary, rightLabel, shortDate, whenLine } from "../../src/frontend/components/deadline/deadline-model.ts";
+import { aboutMessage, coverageMessage, deadlineMaterial, guideMessage, materialSummary, rightLabel, shortDate, whenLine } from "../../src/frontend/components/deadline/deadline-model.ts";
 
 type Kind = "study" | "info";
 type Status = "pending" | "extracting" | "ready" | "failed" | "needs-whisper";
@@ -26,7 +26,7 @@ const FILES = [
 	f("syl", "syllabus.txt", "info"),
 ];
 
-const deadline = (over: Partial<{ fileIds: string[]; leftOutIds: string[]; kind: "exam" | "homework"; date: string }> = {}) => ({
+const deadline = (over: Partial<{ fileIds: string[]; leftOutIds: string[]; kind: "exam" | "homework" | "interview"; date: string }> = {}) => ({
 	id: "mid",
 	kind: "exam" as const,
 	date: "2026-11-04",
@@ -79,6 +79,11 @@ describe("what a deadline covers", () => {
 		assert.equal(materialSummary(m), "0 files");
 	});
 
+	it("an interview's files aren't class days, so nothing before it is flagged", () => {
+		const onsite = deadline({ kind: "interview", fileIds: ["s2"] });
+		assert.deepEqual(deadlineMaterial(FILES, onsite, [onsite], []).notIncluded, []);
+	});
+
 	it("labels, dates and the message Ask sends", () => {
 		assert.equal(rightLabel({ right: 2, answered: 5 }), "2 of 5 right");
 		assert.equal(rightLabel({ right: 0, answered: 0 }), "not tested");
@@ -89,5 +94,8 @@ describe("what a deadline covers", () => {
 		const msg = coverageMessage("CSE 21", { name: "Midterm", when: "Wed Nov 4, 6:30 PM" });
 		assert.match(msg, /^Work out what Midterm \(Wed Nov 4, 6:30 PM\) in CSE 21 covers from my files/);
 		assert.match(msg, /tell me which file you went by/);
+		assert.equal(whenLine({ kind: "interview", date: "2026-11-24", time: "14:00" }), "Interview, Tuesday Nov 24, 2:00 PM");
+		assert.equal(aboutMessage("Larkspur", "Onsite interview"), "Rewrite what Onsite interview in Larkspur is like.");
+		assert.equal(guideMessage("Larkspur", "Onsite interview"), "Write a study guide for Onsite interview in Larkspur and link it to the deadline.");
 	});
 });

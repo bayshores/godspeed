@@ -14,8 +14,6 @@
  *
  * Pure types + tiny pure helpers.
  */
-import type { SpacePrep } from "./prep.ts";
-
 /** "study" files are turned into graph facts by the extraction pipeline;
  *  "info" files (syllabus, assignments) are never extracted — the teacher
  *  can only read them. */
@@ -117,7 +115,7 @@ export interface RemovedFile {
 	at: string;
 }
 
-export type DeadlineKind = "exam" | "homework" | "quiz" | "project";
+export type DeadlineKind = "exam" | "homework" | "quiz" | "project" | "interview";
 
 /** One deadline of a space: added by the learner (Edit space) or by an
  *  outside agent from the syllabus (MCP add_space_deadline). Its topics are
@@ -143,6 +141,9 @@ export interface SpaceDeadline {
 	assignmentFileId?: string;
 	/** The assignment's problems, as the agent read them from its file. */
 	problems?: HomeworkProblem[];
+	/** What it is like ("What it's like.md", written by the teacher): the
+	 *  space info file it is in. */
+	aboutFileId?: string;
 	done: boolean;
 	/** ISO time it was ticked done. */
 	doneAt?: string;
@@ -219,6 +220,15 @@ export interface SpaceWork {
 	deadlineIds: string[];
 }
 
+/** A deadline with everything but its date. */
+export interface WaitingDeadline {
+	/** The id the deadline gets once it has a date. */
+	id: string;
+	name: string;
+	aboutFileId?: string;
+	fileIds: string[];
+}
+
 export interface SpaceRecord {
 	/** "spc_" + base36 time + "_" + 8 hex ("cls_" on a space made before the rename). */
 	id: string;
@@ -247,8 +257,9 @@ export interface SpaceRecord {
 	rules?: string[];
 	/** The teacher's newest round of work here (absent = none to show). */
 	lastWork?: SpaceWork;
-	/** Present on a prep: a space made to get ready for one thing. */
-	prep?: SpacePrep;
+	/** A deadline still waiting for its date (an upgraded prep that had
+	 *  none). Adding the deadline with this id clears it. */
+	waitingDeadline?: WaitingDeadline;
 	/** Schema stamp — same lazy-v1 / honest-refusal contract as chats. */
 	version?: number;
 }
@@ -295,8 +306,6 @@ export interface SpaceSummary {
 	building?: true;
 	/** Files of the round under way that are finished; absent when none. */
 	filesRead?: number;
-	/** A prep, with its day when it has one. */
-	prep?: { date?: string };
 }
 
 const SPACE_ID = /^(spc|cls)_[A-Za-z0-9_-]+$/;

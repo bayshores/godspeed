@@ -4,6 +4,7 @@ import { mockState } from "@/shared/core";
 import { useSpaces } from "@/frontend/components/space-context";
 import { LoadFailed } from "@/frontend/components/load-failed";
 import { MockBar } from "./mock-bar";
+import { mockAnnouncement } from "./mock-model";
 import { MockResults } from "./mock-results";
 import { MockRun } from "./mock-run";
 import { MockWaiting } from "./mock-waiting";
@@ -11,8 +12,8 @@ import { useMock } from "./use-mock";
 
 /**
  * ONE MOCK, a page of its own under a dark bar. What it shows follows
- * where the mock is: the teacher writing it, ready to start, the timed
- * run, the teacher grading it, then the results.
+ * where the mock is: the teacher writing it, ready to start, being
+ * answered (or paused), the teacher grading it, then the results.
  */
 export function MockPage({ spaceId, mockId }: { spaceId: string; mockId: string }) {
 	const navigate = useNavigate();
@@ -34,12 +35,22 @@ export function MockPage({ spaceId, mockId }: { spaceId: string; mockId: string 
 		);
 	}
 	const state = mockState(view.mock);
-	if (state === "running") return <MockRun key={view.mock.id} view={view} />;
-	if (state === "graded") return <MockResults view={view} />;
 	return (
-		<div className="flex h-full flex-col">
-			<MockBar prepName={view.prepName} n={view.mock.n} />
-			<MockWaiting view={view} state={state} />
-		</div>
+		<>
+			{/* Stays in place across the screens, so a change is read out. */}
+			<p role="status" className="sr-only">
+				{mockAnnouncement(view.mock, state)}
+			</p>
+			{state === "running" || state === "paused" ? (
+				<MockRun key={view.mock.id} view={view} />
+			) : state === "graded" ? (
+				<MockResults view={view} />
+			) : (
+				<div className="flex h-full flex-col">
+					<MockBar view={view} />
+					<MockWaiting view={view} state={state} />
+				</div>
+			)}
+		</>
 	);
 }

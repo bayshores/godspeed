@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { deadlineStudyLabel, hasProblems, rampColor, topicStatus, type DeadlineProgress, type PlanDay } from "@/shared/core";
 import { clockLabel, deadlineDateLabel } from "@/frontend/components/space-deadlines-model";
 import { Pane } from "@/frontend/components/ui/pane";
@@ -7,7 +8,8 @@ import { RULE, SHEET, SHEET_TITLE } from "./styles";
 
 /**
  * THE PATH TO A DEADLINE: the topics that need work, weakest first, one
- * day at a time, the deadline's own day last, and Study.
+ * day at a time, the deadline's own day last, Study, then its mocks. An
+ * interview with nothing to plan from offers to ask for a study guide.
  */
 export function PathSheet({
 	deadline: d,
@@ -17,7 +19,10 @@ export function PathSheet({
 	past,
 	busy,
 	startError,
+	teacherName,
 	onStart,
+	onAskGuide,
+	mocks,
 }: {
 	deadline: DeadlineProgress;
 	plan: readonly PlanDay[];
@@ -28,17 +33,30 @@ export function PathSheet({
 	busy: boolean;
 	/** Why the last Study start failed. */
 	startError: string | null;
+	teacherName: string;
 	onStart: () => void;
+	/** Asks the teacher for a study guide (an interview with nothing to plan from). */
+	onAskGuide: () => void;
+	/** A test's or interview's mocks (path-mocks.tsx). */
+	mocks?: ReactNode;
 }) {
 	const ahead = !d.done && !past;
 	const allStrong = plan.length === 0 && d.topics.length > 0 && d.topics.every((t) => topicStatus(t.rate) === "strong");
+	const needsGuide = ahead && d.kind === "interview" && d.topics.length === 0 && !(material && material.reading > 0);
 	return (
 		<Pane data-testid="deadline-path" className={cn(SHEET, "pb-6")}>
 			<h2 className={SHEET_TITLE}>{ahead ? `Path to ${deadlineDateLabel(d.date)}` : "Path"}</h2>
 			{ahead && (
 				<p data-testid="deadline-path-note" className="text-base text-ink-2">
-					{pathNote(d, plan.length > 0, allStrong, material)}
+					{needsGuide
+						? `Nothing is planned yet. A plan needs study files, and the posting only tells ${teacherName} about the interview.`
+						: pathNote(d, plan.length > 0, allStrong, material)}
 				</p>
+			)}
+			{needsGuide && (
+				<button type="button" data-testid="deadline-ask-guide" onClick={onAskGuide} className="lh-btn mt-1 h-11 w-full justify-center text-[15px]">
+					<span className="min-w-0 truncate">Ask {teacherName} for a study guide</span>
+				</button>
 			)}
 			{ahead && plan.length > 0 && (
 				<>
@@ -78,6 +96,7 @@ export function PathSheet({
 					<span className="min-w-0 truncate">{deadlineStudyLabel(d.continueStudy)}</span>
 				</button>
 			)}
+			{mocks}
 		</Pane>
 	);
 }

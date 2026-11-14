@@ -93,12 +93,11 @@ Routes:
 |---|---|
 | `/` | Today |
 | `/new` | Study: start a study session |
-| `/prep` | Prepare for something |
 | `/settings` | Settings |
 | `/archived` | Archived spaces |
 | `/graph` | Graph |
-| `/space` | Progress, or a prep's sheet |
-| `/space/lessons`, `/space/files`, `/space/cheat-sheets`, `/space/deadlines`, `/space/mocks` | The space's tabs |
+| `/space` | Progress |
+| `/space/lessons`, `/space/files`, `/space/cheat-sheets`, `/space/deadlines` | The space's tabs |
 | `/space/deadline/:id` | A deadline |
 | `/space/deadline/:id/cheat-sheet` | A deadline's cheat sheet |
 | `/space/mock/:spaceId/:mockId` | A mock |
@@ -109,7 +108,7 @@ Component folders:
 | Folder | What it holds |
 |---|---|
 | `top-bar/`, `home-page/`, `home/` | The top bar, Today and the study page. |
-| `space-page/`, `overview/`, `lessons/`, `files/`, `graph/`, `deadline/`, `cheat-sheet/`, `prep/` | The space pages, deadlines, cheat sheets, preps and mocks. |
+| `space-page/`, `overview/`, `lessons/`, `files/`, `graph/`, `deadline/`, `cheat-sheet/`, `mock/` | The space pages, deadlines, cheat sheets and mocks. |
 | `lesson/`, `work/`, `teacher/` | The lesson screen, the work frame and the teacher panel. |
 | `settings/`, `agent-folder/`, `onboarding/`, `welcome/` | Settings, the agent launcher, onboarding and the welcome screen. |
 | `citations/`, `artifacts/` | Source marks, and the renderers for job results (registry in `artifacts/`). |
@@ -122,8 +121,8 @@ Single files in `components/` include `boot.tsx` (the boot info for the whole ap
 | Path | What it holds |
 |---|---|
 | `changelog.json` | Release notes shown in What's new. |
-| `core/contracts/` | The contracts the screens read, one file per domain: `boot`, `chat`, `space`, `graph`, `jobs`, `plan`, `prep`, `probe`. |
-| `core/` | The pure logic, all exported through `index.ts`. For example `native-messages.ts` (the record), `input-events.ts` (what `POST /api/chat` accepts), `question-core.ts`, `code-question.ts`, `plan-tree.ts`, `plan-step-bar.ts`, `progress.ts`, `study.ts`, `citations.ts`, `attachments.ts`, `tool-parts.ts`, `prep.ts`, `mock.ts` and `mock-run.ts`. |
+| `core/contracts/` | The contracts the screens read, one file per domain: `boot`, `chat`, `space`, `graph`, `jobs`, `plan`, `probe`. |
+| `core/` | The pure logic, all exported through `index.ts`. For example `native-messages.ts` (the record), `input-events.ts` (what `POST /api/chat` accepts), `question-core.ts`, `code-question.ts`, `plan-tree.ts`, `plan-step-bar.ts`, `progress.ts`, `study.ts`, `citations.ts`, `attachments.ts`, `tool-parts.ts`, `mock.ts` and `mock-run.ts`. |
 
 ### tests
 

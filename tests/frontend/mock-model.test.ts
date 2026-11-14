@@ -1,29 +1,32 @@
 /** A mock's words and counts on its pages. */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import type { MockQuestion, MockSummary } from "../../src/shared/core/mock.ts";
+import type { Mock, MockQuestion, MockSummary } from "../../src/shared/core/mock.ts";
 import {
 	answerOf,
 	clockText,
+	endedByTime,
 	exampleCall,
 	exampleLine,
-	fixFirst,
-	lastMockLine,
+	formatLine,
+	mockAnnouncement,
 	mockHref,
 	mockLine,
 	nextOpen,
 	openMock,
 	openMockLabel,
 	parseMockLanguage,
+	pauseLine,
 	spentText,
+	usedLine,
 	workOf,
-} from "../../src/frontend/components/prep/mock-model.ts";
+} from "../../src/frontend/components/mock/mock-model.ts";
 
 const FORMAT = { questions: 4, minutes: 70 };
-const summary = (over: Partial<MockSummary>): MockSummary => ({ id: "mock_1", n: 1, state: "graded", format: FORMAT, createdAt: "2026-11-11T09:00:00.000Z", working: false, ...over });
+const summary = (over: Partial<MockSummary>): MockSummary => ({ id: "mock_1", deadlineId: "ddl_1", n: 1, state: "graded", format: FORMAT, createdAt: "2026-11-11T09:00:00.000Z", working: false, ...over });
 
-const CODE: MockQuestion = { id: "q1", title: "Two sum", statement: "s", kind: "code", topicId: "pt_a", fn: { name: "twoSum", params: ["nums", "target"] }, examples: [{ args: "[[2,7],9]", expected: "[0,1]" }] };
-const TEXT: MockQuestion = { id: "q2", title: "Event loop", statement: "s", kind: "text", topicId: "pt_b" };
+const CODE: MockQuestion = { id: "q1", title: "Two sum", statement: "s", kind: "code", factIds: ["fct_a"], fn: { name: "twoSum", params: ["nums", "target"] }, examples: [{ args: "[[2,7],9]", expected: "[0,1]" }] };
+const TEXT: MockQuestion = { id: "q2", title: "Event loop", statement: "s", kind: "text" };
 
 describe("a mock's words", () => {
 	it("links to its page", () => {
@@ -31,34 +34,56 @@ describe("a mock's words", () => {
 	});
 	it("shows the clock with hours only when there are some", () => {
 		assert.equal(clockText(48 * 60 + 12), "48:12");
-		assert.equal(clockText(3600 + 8 * 60 + 2), "1:08:02");
-		assert.equal(clockText(-4), "00:00");
+		assert.equal(clockText(3600 + 8 * 60 + 12), "1:08:12");
+		assert.equal(clockText(-5), "00:00");
 	});
 	it("says how long a question took", () => {
-		assert.equal(spentText(59), "under a minute");
-		assert.equal(spentText(12 * 60 + 10), "12 min");
+		assert.equal(spentText(30), "under a minute");
+		assert.equal(spentText(12 * 60 + 20), "12 min");
 	});
-	it("says where a mock is", () => {
+	it("says how many questions, and the time limit or that there is none", () => {
+		assert.equal(formatLine({ questions: 5 }), "5 questions, no time limit");
+		assert.equal(formatLine({ questions: 1, minutes: 45 }), "1 question in 45 minutes");
+	});
+	it("says where a mock is, a paused one with its time left", () => {
 		const start = Date.parse("2026-11-11T10:00:00.000Z");
 		assert.equal(mockLine(summary({ state: "writing", working: true }), 0), "being written");
 		assert.equal(mockLine(summary({ state: "writing" }), 0), "not written");
 		assert.equal(mockLine(summary({ state: "ready" }), 0), "ready to start");
-		assert.equal(mockLine(summary({ state: "running", startedAt: new Date(start).toISOString() }), start + 38 * 60_000 + 1000), "32 min left");
+		assert.equal(mockLine(summary({ state: "running", startedAt: new Date(start).toISOString(), endsAt: new Date(start + 70 * 60_000).toISOString() }), start + 38 * 60_000 + 1000), "32 min left");
+		assert.equal(mockLine(summary({ state: "running", format: { questions: 4 }, startedAt: new Date(start).toISOString() }), start + 60_000), "started");
+		assert.equal(mockLine(summary({ state: "paused", paused: { at: new Date(start).toISOString(), left: 31 * 60 + 9 } }), start + 86_400_000), "Paused, 31:09 left");
 		assert.equal(mockLine(summary({ state: "grading", working: true }), 0), "being graded");
 		assert.equal(mockLine(summary({ state: "grading" }), 0), "not graded");
-		assert.equal(mockLine(summary({ solved: 2 }), 0), "2 of 4 solved");
+		assert.equal(mockLine(summary({ solved: 2 }), 0), "2 of 4 right");
 	});
 	it("finds the unfinished mock and names its button", () => {
-		const mocks = [summary({}), summary({ id: "mock_2", n: 2, state: "running" })];
-		assert.equal(openMock(mocks)?.id, "mock_2");
+		const mocks = [summary({ id: "mock_3", n: 3, state: "paused" }), summary({ id: "mock_2", n: 2 })];
+		assert.equal(openMock(mocks)?.id, "mock_3");
 		assert.equal(openMock([summary({})]), undefined);
-		assert.equal(openMockLabel(summary({ n: 2, state: "ready" })), "Start Mock 2");
-		assert.equal(openMockLabel(summary({ n: 2, state: "running" })), "Continue Mock 2");
-		assert.equal(openMockLabel(summary({ n: 2, state: "grading" })), "Open Mock 2");
+		assert.equal(openMockLabel({ n: 2, state: "ready" }), "Start Mock 2");
+		assert.equal(openMockLabel({ n: 3, state: "paused" }), "Continue Mock 3");
+		assert.equal(openMockLabel({ n: 3, state: "writing" }), "Continue Mock 3");
 	});
-	it("says how the last graded mock went", () => {
-		assert.equal(lastMockLine([]), "None taken yet.");
-		assert.equal(lastMockLine([summary({ solved: 1 }), summary({ n: 2, solved: 3 }), summary({ n: 3, state: "ready" })]), "Mock 2: 3 of 4 solved.");
+	it("says how long it took and how often it was paused", () => {
+		assert.equal(usedLine(32, { questions: 5, minutes: 45 }), "in 32 of 45 minutes");
+		assert.equal(usedLine(1, { questions: 5 }), "in 1 minute");
+		assert.equal(pauseLine({ times: 0, seconds: 0 }), null);
+		assert.equal(pauseLine({ times: 2, seconds: 14 * 60 + 10 }), "Paused 2 times, 14 minutes in total.");
+		assert.equal(pauseLine({ times: 1, seconds: 40 }), "Paused once, under a minute in total.");
+	});
+	it("knows when its time ran out, and says so out loud with the other changes nobody clicked for", () => {
+		const base = { id: "mock_1", deadlineId: "ddl_1", n: 3, format: FORMAT, createdAt: "2026-11-11T09:00:00.000Z", questions: [TEXT], answers: {}, pauses: [], startedAt: "2026-11-11T10:00:00.000Z" } satisfies Mock;
+		const byTime = { ...base, endsAt: "2026-11-11T11:10:00.000Z", endedAt: "2026-11-11T11:09:59.500Z" };
+		const byHand = { ...base, endsAt: "2026-11-11T11:10:00.000Z", endedAt: "2026-11-11T10:40:00.000Z" };
+		assert.equal(endedByTime(byTime), true);
+		assert.equal(endedByTime(byHand), false);
+		assert.equal(endedByTime({ ...base, endedAt: "2026-11-11T11:00:00.000Z" }), false, "no time limit");
+		assert.equal(mockAnnouncement(byTime, "grading"), "The time is up, so Mock 3 ended.");
+		assert.equal(mockAnnouncement(byHand, "grading"), "");
+		assert.equal(mockAnnouncement(base, "ready"), "Mock 3 is ready.");
+		assert.equal(mockAnnouncement(base, "graded"), "Mock 3 is graded.");
+		assert.equal(mockAnnouncement(base, "running"), "");
 	});
 });
 
@@ -72,21 +97,6 @@ describe("a code question's examples", () => {
 		assert.equal(exampleLine({ returned: "3", passed: true }, "3"), "returned 3");
 		assert.equal(exampleLine({ returned: "2", passed: false }, "1"), "returned 2, should be 1");
 		assert.equal(exampleLine({ error: "TypeError: x", passed: false }, "1"), "TypeError: x");
-	});
-});
-
-describe("a graded mock", () => {
-	it("names the topics of what wasn't right, each once, in question order", () => {
-		const topics = [
-			{ id: "pt_a", name: "Arrays" },
-			{ id: "pt_b", name: "Async" },
-		];
-		const questions = [TEXT, CODE, { ...CODE, id: "q3" }, { ...TEXT, id: "q4", topicId: "pt_gone" }];
-		assert.deepEqual(fixFirst({ questions, grades: { q1: { verdict: "right", feedback: "f" }, q2: { verdict: "partly", feedback: "f" } } }, topics), [
-			{ id: "pt_b", name: "Async" },
-			{ id: "pt_a", name: "Arrays" },
-		]);
-		assert.deepEqual(fixFirst({ questions: [CODE], grades: { q1: { verdict: "right", feedback: "f" } } }, topics), []);
 	});
 });
 

@@ -1,7 +1,7 @@
 /**
  * The space's Deadlines tab over linkedom with a fake fetch: "Coming up"
  * and "Done or past", each row's block and button, "Mark done" and "Undo",
- * and "Add a deadline".
+ * "Add a deadline", and an interview waiting for its date.
  */
 import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;
@@ -44,8 +44,8 @@ let served = record([]);
 
 let root: Root | undefined;
 let host: HTMLElement | undefined;
-async function mount(deadlines: SpaceDeadline[], active: string | null = "cls_a") {
-	served = record(deadlines);
+async function mount(deadlines: SpaceDeadline[], active: string | null = "cls_a", over: Partial<SpaceRecord> = {}) {
+	served = { ...record(deadlines), ...over };
 	globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
 		const url = String(input);
 		const method = init?.method ?? "GET";
@@ -125,6 +125,19 @@ describe("The Deadlines tab", () => {
 		await act(async () => q("deadline-add")!.click());
 		assert.match(q("deadline-dialog")!.textContent!, /Add a deadline/);
 		assert.equal(q("deadline-save")!.textContent, "Add deadline");
+	});
+
+	it("an interview with no date yet: its row, and Add the date opens the dialog filled in", async () => {
+		await mount([], "cls_a", { waitingDeadline: { id: "ddl_0a1b2c3d4e5f", name: "Onsite interview", fileIds: [] } });
+		assert.match(q("waiting-deadline")!.textContent!, /Onsite interviewThe interview has no date yet\.Add the date/);
+		await act(async () => q("waiting-deadline-add")!.click());
+		assert.equal(q("deadline-kind-interview")!.getAttribute("aria-checked"), "true");
+		assert.equal((q("deadline-name") as HTMLInputElement).value, "Onsite interview");
+	});
+
+	it("a space with no interview waiting shows no such row", async () => {
+		await mount([]);
+		assert.equal(q("waiting-deadline"), null);
 	});
 
 	it("with no space picked it offers the spaces", async () => {
