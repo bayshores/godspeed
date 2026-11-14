@@ -49,7 +49,7 @@ export interface Material {
 	facts: number;
 }
 
-function fileState(f: FileLike): DayState {
+export function fileState(f: FileLike): DayState {
 	if (f.status === "failed" || f.status === "needs-whisper") return "failed";
 	if (f.status === "pending" || f.status === "extracting") return "reading";
 	return f.kind === "info" ? "info" : "ready";

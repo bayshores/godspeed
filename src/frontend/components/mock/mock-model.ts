@@ -1,5 +1,6 @@
 /** A mock's words and counts on its pages. Pure. */
-import { isMockLanguage, secondsLeft, starterCode, type CodeQuestion, type ExampleRun, type Mock, type MockAnswer, type MockFormat, type MockLanguage, type MockQuestion, type MockState, type MockSummary, type MockVerdict } from "@/shared/core";
+import { isMockLanguage, secondsLeft, starterCode, type CodeQuestion, type ExampleRun, type Mock, type MockAnswer, type MockFormat, type MockLanguage, type MockQuestion, type MockState, type MockSummary, type MockVerdict, type SpaceDeadline, type SpaceFile } from "@/shared/core";
+import { fileState } from "@/frontend/components/deadline/deadline-model";
 
 export function mockHref(spaceId: string, mockId: string): string {
 	return `/space/mock/${encodeURIComponent(spaceId)}/${encodeURIComponent(mockId)}`;
@@ -121,6 +122,19 @@ export function submittedLine(total: number, notSubmitted: number): string {
 	if (notSubmitted > 0) return `${notSubmitted} of ${total} ${notSubmitted === 1 ? "is" : "are"} not submitted.`;
 	if (total === 1) return "Your answer is submitted.";
 	return total === 2 ? "Both answers are submitted." : `All ${total} answers are submitted.`;
+}
+
+/** Why a mock was written from what the deadline is like: it has no study
+ *  files, or the ones it has weren't read when the mock was written. */
+export function fromAboutLine(files: readonly Pick<SpaceFile, "id" | "name" | "kind" | "status">[], deadline: Pick<SpaceDeadline, "fileIds">): string {
+	const lead = "It was written from what it's like, since";
+	const study = files.filter((f) => f.kind !== "info" && deadline.fileIds.includes(f.id));
+	const unread = study.filter((f) => fileState(f) === "failed" || fileState(f) === "reading");
+	if (study.length === 0) return `${lead} this deadline has no study files yet.`;
+	if (unread.length === 0) return `${lead} its study files hadn't been read yet.`;
+	if (unread.length > 1) return `${lead} ${unread.length} of its study files haven't been read yet.`;
+	const file = unread[0]!;
+	return `${lead} ${file.name} ${fileState(file) === "failed" ? "couldn't be read" : "hasn't been read yet"}.`;
 }
 
 /** localStorage key: the language picked last, for the next code question. */

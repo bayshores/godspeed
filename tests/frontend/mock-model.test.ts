@@ -2,6 +2,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { Mock, MockQuestion, MockSummary } from "../../src/shared/core/mock.ts";
+import type { SpaceFile } from "../../src/shared/core/index.ts";
 import {
 	answerOf,
 	clockText,
@@ -9,6 +10,7 @@ import {
 	exampleCall,
 	exampleLine,
 	formatLine,
+	fromAboutLine,
 	mockAnnouncement,
 	mockHref,
 	mockLine,
@@ -88,13 +90,27 @@ describe("a mock's words", () => {
 	});
 });
 
-describe("before End mock", () => {
+describe("before End mock and Start the mock", () => {
 	it("says every answer is submitted in words that fit the count", () => {
 		assert.equal(submittedLine(1, 0), "Your answer is submitted.");
 		assert.equal(submittedLine(2, 0), "Both answers are submitted.");
 		assert.equal(submittedLine(3, 0), "All 3 answers are submitted.");
 		assert.equal(submittedLine(5, 1), "1 of 5 is not submitted.");
 		assert.equal(submittedLine(5, 2), "2 of 5 are not submitted.");
+	});
+	it("says why a mock was written from what the deadline is like", () => {
+		const lead = "It was written from what it's like, since";
+		const file = (id: string, name: string, status: SpaceFile["status"], kind: SpaceFile["kind"] = "study") => ({ id, name, status, kind });
+		const guide = file("f_1", "Study guide.md", "failed");
+		const about = file("f_0", "What it's like.md", "ready", "info");
+		const on = (...fileIds: string[]) => ({ fileIds });
+		assert.equal(fromAboutLine([about, guide], on()), `${lead} this deadline has no study files yet.`);
+		assert.equal(fromAboutLine([about, guide], on("f_0")), `${lead} this deadline has no study files yet.`, "what it's like is no study file");
+		assert.equal(fromAboutLine([about, guide], on("f_1")), `${lead} Study guide.md couldn't be read.`);
+		assert.equal(fromAboutLine([file("f_1", "Study guide.md", "extracting")], on("f_1")), `${lead} Study guide.md hasn't been read yet.`);
+		const week = [file("f_1", "Week 1.pdf", "failed"), file("f_2", "Week 2.pdf", "pending"), file("f_3", "Week 3.pdf", "ready")];
+		assert.equal(fromAboutLine(week, on("f_1", "f_2", "f_3")), `${lead} 2 of its study files haven't been read yet.`);
+		assert.equal(fromAboutLine(week, on("f_3")), `${lead} its study files hadn't been read yet.`, "read since it was written");
 	});
 });
 
