@@ -1,8 +1,7 @@
 //! The godspeed folder (default ~/godspeed): the one folder an outside agent is opened in. It
 //! holds the agent's instructions (CLAUDE.md, AGENTS.md), the connection to the app (.mcp.json
 //! for Claude Code, command-line flags for Codex) and, in .godspeed/, the scripts and the start
-//! scripts the app's "Open Claude Code" button runs. Pure: the generated file contents and
-//! commands.
+//! scripts the app runs in its terminal. Pure: the generated file contents and commands.
 
 use std::sync::LazyLock;
 
@@ -26,7 +25,7 @@ impl FolderAgent {
 }
 
 /// What a start script starts: an agent as the teacher, or as the helper, which does the
-/// background jobs in a second window.
+/// background jobs beside it.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum StartTarget {
 	Claude,
@@ -166,8 +165,9 @@ pub fn claude_settings(folder: &str, platform: Platform) -> String {
 }
 
 /// Codex's arguments: godspeed's server through the folder's connector, its tools pre-approved,
-/// and a timeout longer than wait_for_work's 600 s. TOML literal strings ('...'), so no value
-/// needs escaping.
+/// a timeout longer than wait_for_work's 600 s, and the app terminal's id and data folder passed
+/// on to the connector (Codex gives a server only the variables it names). TOML literal strings
+/// ('...'), so no value needs escaping.
 fn codex_args(folder: &str, platform: Platform, prompt: &str) -> Vec<String> {
 	let server = "mcp_servers.godspeed";
 	let connector = join(folder, platform, &[".godspeed", "connect.mjs"]);
@@ -180,6 +180,8 @@ fn codex_args(folder: &str, platform: Platform, prompt: &str) -> Vec<String> {
 		format!("{server}.tool_timeout_sec=620"),
 		"-c".to_owned(),
 		format!("{server}.default_tools_approval_mode='approve'"),
+		"-c".to_owned(),
+		format!("{server}.env_vars=['GODSPEED_TERMINAL','GODSPEED_DATA_DIR']"),
 		prompt.to_owned(),
 	]
 }
@@ -246,18 +248,17 @@ pub fn copy_command(agent: FolderAgent, folder: &str, home: &str, platform: Plat
 
 fn not_installed(agent: FolderAgent) -> &'static str {
 	match agent {
-		FolderAgent::Claude => "Claude Code isn't installed. Get it at https://claude.com/claude-code, then click Open Claude Code in godspeed again.",
-		FolderAgent::Codex => "Codex isn't installed. Get it at https://developers.openai.com/codex, then click Open Codex in godspeed again.",
+		FolderAgent::Claude => "Claude Code isn't installed. Get it at https://claude.com/claude-code, then click Start again in godspeed.",
+		FolderAgent::Codex => "Codex isn't installed. Get it at https://developers.openai.com/codex, then click Start again in godspeed.",
 	}
 }
 
 // The folder's connector and hooks run with plain `node`.
-fn needs_node(agent: FolderAgent) -> &'static str {
-	match agent {
-		FolderAgent::Claude => "godspeed needs Node.js. Install it from https://nodejs.org, then click Open Claude Code in godspeed again.",
-		FolderAgent::Codex => "godspeed needs Node.js. Install it from https://nodejs.org, then click Open Codex in godspeed again.",
-	}
-}
+const NEEDS_NODE: &str = "godspeed needs Node.js. Install it from https://nodejs.org, then click Start again in godspeed.";
+
+/// How a start script ends when what it starts isn't there; the app's terminal reads these.
+const EXIT_NOT_INSTALLED: u8 = 3;
+const EXIT_NO_NODE: u8 = 4;
 
 /// What a start script checks is installed (the program, and what it says when it isn't). The
 /// learner's own command is checked by its first word when that is a plain program name; anything
@@ -274,7 +275,7 @@ fn install_check(agent: FolderAgent, own: Option<&str>) -> Option<(String, Strin
 	Some((program, missing))
 }
 
-/// The start script the button runs in a new terminal window.
+/// The start script the app runs in its terminal.
 pub fn start_script(target: StartTarget, folder: &str, platform: Platform, commands: &StartCommands) -> String {
 	let agent = target.agent();
 	let own = commands.get(agent);
@@ -284,16 +285,16 @@ pub fn start_script(target: StartTarget, folder: &str, platform: Platform, comma
 	if platform == Platform::Win32 {
 		let args: Vec<String> = args.iter().map(|a| cmd_quote(a)).collect();
 		let mut lines = vec!["@echo off".to_owned(), format!("cd /d \"{folder}\"")];
-		lines.extend(check.map(|(program, missing)| format!("where {program} >nul 2>nul || (echo {missing} & exit /b 1)")));
-		lines.push(format!("where node >nul 2>nul || (echo {} & exit /b 1)", needs_node(agent)));
+		lines.extend(check.map(|(program, missing)| format!("where {program} >nul 2>nul || (echo {missing} & exit /b {EXIT_NOT_INSTALLED})")));
+		lines.push(format!("where node >nul 2>nul || (echo {NEEDS_NODE} & exit /b {EXIT_NO_NODE})"));
 		lines.push(format!("{} {}", own.unwrap_or(name), args.join(" ")));
 		lines.push(String::new());
 		return lines.join("\r\n");
 	}
 	let args: Vec<String> = args.iter().map(|a| posix_quote(a)).collect();
 	let mut lines = vec!["#!/bin/sh".to_owned(), format!("cd {} || exit 1", posix_quote(folder))];
-	lines.extend(check.map(|(program, missing)| format!("command -v {program} >/dev/null 2>&1 || {{ echo {}; exit 1; }}", posix_quote(&missing))));
-	lines.push(format!("command -v node >/dev/null 2>&1 || {{ echo {}; exit 1; }}", posix_quote(needs_node(agent))));
+	lines.extend(check.map(|(program, missing)| format!("command -v {program} >/dev/null 2>&1 || {{ echo {}; exit {EXIT_NOT_INSTALLED}; }}", posix_quote(&missing))));
+	lines.push(format!("command -v node >/dev/null 2>&1 || {{ echo {}; exit {EXIT_NO_NODE}; }}", posix_quote(NEEDS_NODE)));
 	// The learner's own command may start with a variable (A=b claude), which exec can't run.
 	let start = own.map_or_else(|| format!("exec {name}"), str::to_owned);
 	lines.push(format!("{start} {}", args.join(" ")));
@@ -336,6 +337,16 @@ mod tests {
 	}
 
 	#[test]
+	fn a_missing_agent_ends_the_script_with_3_and_missing_node_with_4() {
+		let mac = start_script(StartTarget::Claude, "/Users/me/godspeed", Platform::Darwin, &none());
+		assert!(mac.contains("\ncommand -v claude >/dev/null 2>&1 || { echo \"Claude Code isn't installed. Get it at https://claude.com/claude-code, then click Start again in godspeed.\"; exit 3; }\n"), "{mac}");
+		assert!(mac.contains("\ncommand -v node >/dev/null 2>&1 || { echo \"godspeed needs Node.js. Install it from https://nodejs.org, then click Start again in godspeed.\"; exit 4; }\n"), "{mac}");
+		let win = start_script(StartTarget::Codex, "C:\\gs", Platform::Win32, &none());
+		assert!(win.contains("\r\nwhere codex >nul 2>nul || (echo Codex isn't installed. Get it at https://developers.openai.com/codex, then click Start again in godspeed. & exit /b 3)\r\n"), "{win}");
+		assert!(win.contains(" & exit /b 4)\r\n"), "{win}");
+	}
+
+	#[test]
 	fn settings_allow_web_search_and_hook_every_compaction() {
 		let settings = gs_json::parse(&claude_settings("/Users/me/godspeed", Platform::Darwin)).unwrap();
 		assert_eq!(gs_json::stringify(&settings["permissions"]["allow"]), r#"["mcp__godspeed__*","Bash(node .godspeed/wait-for-work.mjs)","Bash(node .godspeed/wait-for-work.mjs *)","WebSearch"]"#);
@@ -346,7 +357,7 @@ mod tests {
 	#[test]
 	fn the_helper_starts_each_agent_with_its_own_prompt() {
 		assert!(start_script(StartTarget::ClaudeHelper, "/Users/me/godspeed", Platform::Linux, &none()).ends_with("\nexec claude --settings .godspeed/claude-settings.json \"Start as the helper\"\n"));
-		assert!(start_script(StartTarget::CodexHelper, "/Users/me/godspeed", Platform::Linux, &none()).ends_with("'approve'\" \"Start as the helper\"\n"));
+		assert!(start_script(StartTarget::CodexHelper, "/Users/me/godspeed", Platform::Linux, &none()).ends_with(" -c \"mcp_servers.godspeed.env_vars=['GODSPEED_TERMINAL','GODSPEED_DATA_DIR']\" \"Start as the helper\"\n"));
 	}
 
 	#[test]
@@ -357,7 +368,7 @@ mod tests {
 		assert_eq!(copy_command(FolderAgent::Claude, "C:\\gs", "C:\\Users\\me", Platform::Win32, &own), "cd /d \"C:\\gs\" && standardcompute launch claude -- --settings .godspeed/claude-settings.json \"Start teaching\"");
 
 		let script = start_script(StartTarget::Claude, "/Users/me/godspeed", Platform::Darwin, &own);
-		assert!(script.contains("\ncommand -v standardcompute >/dev/null 2>&1 || { echo \"godspeed couldn't find standardcompute. Check the command under Change command in godspeed.\"; exit 1; }\n"), "{script}");
+		assert!(script.contains("\ncommand -v standardcompute >/dev/null 2>&1 || { echo \"godspeed couldn't find standardcompute. Check the command under Change command in godspeed.\"; exit 3; }\n"), "{script}");
 		assert!(script.ends_with("\nstandardcompute launch claude -- --settings .godspeed/claude-settings.json \"Start teaching\"\n"));
 		assert!(!script.contains("command -v claude") && !script.contains("exec "));
 		assert!(start_script(StartTarget::ClaudeHelper, "/Users/me/godspeed", Platform::Linux, &own).ends_with("\nstandardcompute launch claude -- --settings .godspeed/claude-settings.json \"Start as the helper\"\n"));
@@ -365,7 +376,7 @@ mod tests {
 
 		let codex = StartCommands { claude: None, codex: Some("standardcompute launch codex --".to_owned()) };
 		let win = start_script(StartTarget::Codex, "C:\\gs", Platform::Win32, &codex);
-		assert!(win.contains("\r\nwhere standardcompute >nul 2>nul || (echo godspeed couldn't find standardcompute. Check the command under Change command in godspeed. & exit /b 1)\r\n"), "{win}");
+		assert!(win.contains("\r\nwhere standardcompute >nul 2>nul || (echo godspeed couldn't find standardcompute. Check the command under Change command in godspeed. & exit /b 3)\r\n"), "{win}");
 		assert!(win.contains("\r\nstandardcompute launch codex -- -c \"mcp_servers.godspeed.command='node'\""));
 
 		let variable = StartCommands { claude: Some("ANTHROPIC_BASE_URL=https://example.test claude".to_owned()), codex: None };
