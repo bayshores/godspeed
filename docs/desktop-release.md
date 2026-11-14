@@ -58,7 +58,7 @@ On a tag push each Mac job also checks its app three ways, and the Apple Silicon
 - `spctl --assess --type execute`: Gatekeeper accepts it.
 - `xcrun stapler validate`: the notarization ticket is stapled.
 
-`MAC_STAGING_PERCENTAGE` near the top of `release.yml` is the share of Electron Macs that a tag push's `latest-mac.yml` offers the new app to. It is `10` for the first Tauri release. Change it to `100` (no field, everyone) once the move below is done.
+`MAC_STAGING_PERCENTAGE` near the top of `release.yml` is the share of Electron Macs that a tag push's `latest-mac.yml` offers the new app to. It is `100`, which writes no field, so every Electron Mac is offered the new app.
 
 ### The verify job
 
@@ -114,9 +114,9 @@ The public half of the update key is `plugins.updater.pubkey` in `crates/shell/t
 4. The owner reads the draft, adds anything the notes still need, and publishes it.
 5. Check the real update path from an installed older version.
 
-### The first Tauri release: moving Electron Macs in steps
+### Moving Electron Macs in steps
 
-The first Tauri release goes out with `stagingPercentage: 10`, so one in ten Electron Macs gets the new app. electron-updater picks the Macs by a random id each install keeps. After two days with no new start failures in bug reports, raise it to 50, and later to 100:
+The first Tauri releases (0.6.1 to 0.6.4) went out with `stagingPercentage: 10`, so one in ten Electron Macs got the new app. electron-updater picks the Macs by a random id each install keeps. The share is 100 since 0.6.4, after a copy of the 0.5.51 app was watched downloading 0.6.4 and replacing itself with it. To hold a release back to a share of Electron Macs again, change its feed:
 
 ```sh
 gh release download v<version> -R bayshores/godspeed -p latest-mac.yml -D feed
@@ -124,12 +124,12 @@ node scripts/release-feeds.mjs feed --mac-staging 50 --mac-only
 gh release upload v<version> feed/latest-mac.yml --clobber -R bayshores/godspeed
 ```
 
-`--mac-only` rewrites only the share in `latest-mac.yml` and keeps everything else. `--mac-staging 100` drops the field, which means every Mac. After that, set `MAC_STAGING_PERCENTAGE` in `release.yml` to `100` so later releases write no field. `latest.json` has no share: Tauri installs only update Tauri installs.
+`--mac-only` rewrites only the share in `latest-mac.yml` and keeps everything else. `--mac-staging 100` drops the field, which means every Mac. `latest.json` has no share: Tauri installs only update Tauri installs.
 
 ### Rollback
 
 - Squirrel.Mac refuses a new app whose signature does not meet the old app's requirement and keeps the Electron app. Fix it and release again.
-- During the staged move, run the commands above with `--mac-staging 0`. electron-updater then offers the new app to no Electron Mac. Fix forward.
+- To stop Electron Macs from moving, run the commands above with `--mac-staging 0`. electron-updater then offers the new app to no Electron Mac. Fix forward.
 - If the Tauri release itself is bad, turn its GitHub release back into a draft (or mark it pre-release). `releases/latest` then points at the release before it, so no more Electron installs move. Installs that already moved get a fixed version through the Tauri updater. If the Tauri app cannot start at all, people reinstall 0.5.51 from its release page. The Rust server writes the same files, and `<userData>/data-backup-<v>` holds the copy from before the switch.
 - The owner writes the rollback line into the first Tauri release's notes before publishing: where to download `godspeed-mac-apple-silicon.dmg` from the `v0.5.51` release if the new version won't open.
 

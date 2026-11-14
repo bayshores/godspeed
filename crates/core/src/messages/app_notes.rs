@@ -352,7 +352,7 @@ mod tests {
 		let check = |id: &str, note: &str| json!({ "role": "custom", "customType": "keep-check", "content": "", "display": false, "details": { "quizCallId": id, "keep": "dropped", "fits": false, "phrase": false, "note": note } });
 		let result = |id: &str, details: Json| json!({ "role": "toolResult", "toolCallId": id, "toolName": "quiz", "isError": false, "details": details });
 		let long = "keep not stored: text 212 characters, at most 160. Add it to a later quiz.";
-		let spacing = "keep not stored: this reply or the last one has a page, plot or keep. Add it to a later quiz.";
+		let spacing = "keep not stored: this reply or the last one has a page, plot or keep. Leave the next quiz without a keep.";
 		let mut messages = vec![
 			json!({ "role": "assistant", "content": [{ "type": "toolCall", "id": "q3", "name": "quiz", "arguments": {} }, { "type": "toolCall", "id": "q4", "name": "quiz", "arguments": {} }] }),
 			check("q3", long),

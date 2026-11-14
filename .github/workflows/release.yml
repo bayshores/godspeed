@@ -22,9 +22,9 @@ concurrency:
 env:
   CARGO_TERM_COLOR: always
   TAURI_APP_PATH: crates/shell
-  # The share of Electron Macs that latest-mac.yml offers this version to. 10 is for the first
-  # Tauri release; set it to 100 (no staging) once that move is done (docs/desktop-release.md).
-  MAC_STAGING_PERCENTAGE: ${{ inputs.staging_percentage || '10' }}
+  # The share of Electron Macs that latest-mac.yml offers this version to. 100 writes no share,
+  # so every Electron Mac is offered it (docs/desktop-release.md).
+  MAC_STAGING_PERCENTAGE: ${{ inputs.staging_percentage || '100' }}
 
 jobs:
   quality:

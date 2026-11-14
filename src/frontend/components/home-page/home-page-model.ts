@@ -1,5 +1,5 @@
 /** Pure helpers for Today (home-page.tsx): per-space progress, which list a deadline goes in, and each row's words. */
-import { hasProblems, localDay, type DeadlineProgress, type ProgressPayload, type SpaceColor, type SpaceSummary } from "@/shared/core";
+import { hasProblems, localDay, planDays, type DeadlineProgress, type ProgressPayload, type SpaceColor, type SpaceSummary } from "@/shared/core";
 import { clockLabel, deadlineDateLabel } from "@/frontend/components/space-deadlines-model";
 import { DAY, HOUR, MINUTE, calendarDays, dueAtMs } from "@/frontend/components/countdown-model";
 import type { OpenDeadline } from "@/frontend/components/deadlines-model";
@@ -140,6 +140,12 @@ interface TodayRowWords {
 	button: "Start" | "Continue" | "Study more" | "Work on it";
 }
 
+/** Its Study session reached its end today and today's plan has no
+ *  topic left, as a moved deadline can give today a topic again. */
+function nothingMoreToday(progress: DeadlineProgress | undefined, nowMs: number): boolean {
+	return progress?.studyEndedToday === true && !planDays(localDay(nowMs), progress.date, progress.topics)[0]?.topics.length;
+}
+
 /** A Today row's words. Homework and projects say how far they are; a
  *  test or quiz says where its Study session stopped, the topic it is in
  *  the middle of, or that nothing more is planned today. */
@@ -151,7 +157,7 @@ export function todayRow(d: OpenDeadline, progress: DeadlineProgress | undefined
 		const line = next.stop?.next ? `${d.spaceName}, ${next.stop.next} is next.` : next.inTopic ? `${d.spaceName}, in the middle of ${next.inTopic}.` : when;
 		return { title: `Continue studying for ${d.name}`, line, button: "Continue" };
 	}
-	if (progress?.studyEndedToday) return { title: `Study for ${d.name}`, line: `${d.spaceName}, nothing more is planned today.`, button: "Study more" };
+	if (nothingMoreToday(progress, nowMs)) return { title: `Study for ${d.name}`, line: `${d.spaceName}, nothing more is planned today.`, button: "Study more" };
 	return { title: `Study for ${d.name}`, line: when, button: "Start" };
 }
 
@@ -161,8 +167,9 @@ export function todayRowKey(item: { deadline: OpenDeadline } | { prep: PrepDay }
 }
 
 /** The one row of Today whose button is dark: a session stopped before
- *  today, else the soonest row. A session that stopped or ended today is
- *  passed over, so with no other row no button is dark. `items` are
+ *  today, else the soonest row. A session that stopped today, or ended
+ *  today with nothing more planned, is passed over, so with no other row
+ *  no button is dark. `items` are
  *  soonest first. */
 export function mainRowKey(items: ReadonlyArray<{ deadline: OpenDeadline } | { prep: PrepDay }>, progress: ReadonlyMap<string, DeadlineProgress>, nowMs: number): string | null {
 	const today = localDay(nowMs);
@@ -175,7 +182,7 @@ export function mainRowKey(items: ReadonlyArray<{ deadline: OpenDeadline } | { p
 		return day !== null && day < today;
 	});
 	if (stoppedBefore) return todayRowKey(stoppedBefore);
-	const soonest = items.find((item) => stopDay(item) !== today && !("deadline" in item && progress.get(item.deadline.id)?.studyEndedToday));
+	const soonest = items.find((item) => stopDay(item) !== today && !("deadline" in item && nothingMoreToday(progress.get(item.deadline.id), nowMs)));
 	return soonest ? todayRowKey(soonest) : null;
 }
 
