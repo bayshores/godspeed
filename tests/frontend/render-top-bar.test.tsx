@@ -164,9 +164,11 @@ describe("the top bar's tabs", () => {
 		assert.deepEqual(texts("[data-testid='space-tabs'] a"), ["Today", "CSE 29", "CSE 212 left"]);
 		assert.equal(q("nav-today")!.getAttribute("href"), "/");
 		assert.ok(q("space-option-old") === null, "a closed space has no tab");
-		assert.ok(q("space-option-c21")!.nextElementSibling === q("spaces-plus"), "the + comes right after the last tab");
+		const strip = q("space-tabs-strip")!;
+		assert.ok(strip.lastElementChild === q("space-option-c21") && strip.nextElementSibling === q("spaces-plus"), "the + comes right after the last tab, outside the tabs' scroller");
 		assert.match(q("spaces-plus")!.className, /shrink-0/, "the + never squeezes; the tabs do");
 		assert.doesNotMatch(q("space-option-c21")!.className, /shrink-0/);
+		assert.match(q("space-option-c21")!.className, /grid-cols-\[auto_minmax\(0,max-content\)_auto\]/, "a tab with a tag lets its name give way first");
 	});
 	it("a space's tab says how many files the teacher still has to read", async () => {
 		await mount(<SpaceTabs selected="c29" />);
