@@ -55,14 +55,15 @@ pub fn terminal_detach(webview: Webview, origin: State<AppOrigin>, terminals: St
 	terminals.detach(&id)
 }
 
-#[tauri::command(async)]
+/// Without `async`, so keys reach the terminal in the order they were typed.
+#[tauri::command]
 pub fn terminal_write(webview: Webview, origin: State<AppOrigin>, terminals: State<Terminals>, id: String, data: String) -> Result<(), String> {
 	trusted(&webview, &origin)?;
 	terminals.write(&id, &data, focused(&webview))
 }
 
 /// The trust and Enter buttons.
-#[tauri::command(async)]
+#[tauri::command]
 pub fn terminal_answer(webview: Webview, origin: State<AppOrigin>, terminals: State<Terminals>, id: String, kind: String) -> Result<(), String> {
 	trusted(&webview, &origin)?;
 	let kind = match kind.as_str() {
@@ -74,7 +75,7 @@ pub fn terminal_answer(webview: Webview, origin: State<AppOrigin>, terminals: St
 }
 
 /// The shell reads the clipboard itself. The clipboard needs the main thread on the Mac and
-/// Linux, where a command without `async` runs.
+/// Linux, where a command without `async` runs, in order with the keys.
 #[tauri::command]
 pub fn terminal_paste(webview: Webview, origin: State<AppOrigin>, terminals: State<Terminals>, id: String) -> Result<(), String> {
 	trusted(&webview, &origin)?;

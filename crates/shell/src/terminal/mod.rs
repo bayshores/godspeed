@@ -10,6 +10,7 @@ mod spawn;
 use std::ffi::OsString;
 use std::io::{Read, Write};
 use std::path::Path;
+use std::sync::mpsc::{self, Sender};
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 use std::time::{Duration, Instant};
 
@@ -56,8 +57,8 @@ struct Terminal {
 }
 
 struct State {
-	/// The page's end of the terminal, until the script ends.
-	io: Option<(Box<dyn Write + Send>, Box<dyn MasterPty + Send>)>,
+	/// The terminal's input, in order, and its page end, until the script ends.
+	io: Option<(Sender<Vec<u8>>, Box<dyn MasterPty + Send>)>,
 	screen: Screen,
 	settle: Settle,
 	/// What the page was last told.
@@ -96,8 +97,8 @@ impl Terminal {
 	fn output(&self, bytes: &[u8], outlet: &dyn Outlet) {
 		let mut state = self.state();
 		let replies = state.screen.process(bytes);
-		if let Some((writer, _)) = state.io.as_mut().filter(|_| !replies.is_empty()) {
-			let _ = writer.write_all(&replies);
+		if let Some((input, _)) = state.io.as_ref().filter(|_| !replies.is_empty()) {
+			let _ = input.send(replies);
 		}
 		if state.attached {
 			outlet.push("terminal-output", json!({ "id": self.id, "data": gs_base::base64::encode(bytes) }));
@@ -125,13 +126,11 @@ impl Terminal {
 		}
 	}
 
+	/// Queues input for the terminal's writer, which never blocks the caller.
 	fn write(&self, bytes: &[u8]) -> Result<(), String> {
-		let mut state = self.state();
-		if state_ended(&state) {
-			return Err(NOT_THERE.to_owned());
-		}
-		let (writer, _) = state.io.as_mut().ok_or(NOT_THERE)?;
-		writer.write_all(bytes).and_then(|()| writer.flush()).map_err(|_| NOT_THERE.to_owned())
+		let state = self.state();
+		let (input, _) = state.io.as_ref().filter(|_| !state_ended(&state)).ok_or(NOT_THERE)?;
+		input.send(bytes.to_vec()).map_err(|_| NOT_THERE.to_owned())
 	}
 }
 
@@ -184,6 +183,15 @@ impl Terminals {
 			self.outlet.log(&format!("terminal could not start: {} {}: {err}", role.name(), agent.name()));
 			"godspeed couldn't start the terminal.".to_owned()
 		})?;
+		let (input, queued) = mpsc::channel::<Vec<u8>>();
+		let mut writer = spawned.writer;
+		std::thread::spawn(move || {
+			for bytes in queued {
+				if writer.write_all(&bytes).and_then(|()| writer.flush()).is_err() {
+					return;
+				}
+			}
+		});
 		let terminal = Arc::new(Terminal {
 			id: id.clone(),
 			role,
@@ -192,7 +200,7 @@ impl Terminals {
 			pid: spawned.child.process_id(),
 			#[cfg(windows)]
 			job: spawned.job,
-			state: Mutex::new(State { io: Some((spawned.writer, spawned.master)), screen: Screen::default(), settle: Settle::default(), shown: (None, false), attached: false, stopping: false, ended: None }),
+			state: Mutex::new(State { io: Some((input, spawned.master)), screen: Screen::default(), settle: Settle::default(), shown: (None, false), attached: false, stopping: false, ended: None }),
 		});
 		// An ended record stays until the next start for its role.
 		list.retain(|t| t.role != role);
@@ -204,7 +212,7 @@ impl Terminals {
 		Ok(id)
 	}
 
-	/// The terminal's three threads: its output, its exit and its clock.
+	/// The terminal's other three threads: its output, its exit and its clock.
 	fn run(&self, terminal: Arc<Terminal>, mut reader: Box<dyn Read + Send>, mut child: Box<dyn Child + Send + Sync>) {
 		let (outlet, reading) = (self.outlet.clone(), terminal.clone());
 		std::thread::spawn(move || {
