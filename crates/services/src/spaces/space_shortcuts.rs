@@ -133,7 +133,7 @@ fn current_spaces(app: &App) -> (Vec<Json>, HashMap<String, Target>) {
 			})
 			.cloned()
 			.collect();
-		spaces.push(json!({ "id": record["id"], "name": record["name"], "archived": record["archived"], "files": files }));
+		spaces.push(json!({ "id": record["id"], "name": record["name"], "closed": record["closed"], "files": files }));
 	}
 	(spaces, targets)
 }
@@ -427,6 +427,101 @@ mod tests {
 		assert!(read_manifest(&folder).1.is_empty());
 	}
 
+	/// A godspeed folder as a build from before the rename left it: a closed space's shortcut
+	/// under spaces/Archived/, which that build made and listed in its manifest.
+	#[cfg(unix)]
+	fn synced_under_archived(root: &Path) -> (Arc<App>, PathBuf) {
+		let linked = root.join("linked");
+		put(&linked.join("notes.md"), "x");
+		let file = json!({ "id": "f_a00000000001", "origin": "linked", "name": "notes.md", "path": "notes.md", "kind": "study", "contentFp": "", "status": "done", "addedAt": "2026-01-05T10:00:00.000Z" });
+		let space = json!({
+			"id": "cls_a", "name": "Linear Algebra", "description": "", "createdAt": "2026-01-05T10:00:00.000Z", "updatedAt": "2026-01-05T10:00:00.000Z",
+			"closed": true, "linkedFolder": linked.to_string_lossy(), "deadlines": [], "color": 1, "version": 11, "files": [file],
+		});
+		put(&root.join("data").join("spaces").join("cls_a").join("space.json"), &stringify_pretty(&space, "\t"));
+		let app = test_app(root);
+		let folder = root.join("godspeed");
+		sync_shortcuts_safely(&app, &folder, false);
+		let spaces = folder.join("spaces");
+		std::fs::rename(spaces.join("Closed"), spaces.join("Archived")).unwrap();
+		let manifest = fsx::read_text(&manifest_path(&folder)).unwrap().replace(&*spaces.join("Closed").to_string_lossy(), &spaces.join("Archived").to_string_lossy());
+		put(&manifest_path(&folder), &manifest);
+		assert!(manifest.contains("Archived") && !manifest.contains("Closed"));
+		(app, folder)
+	}
+
+	/// Every path under `dir` (links not followed), with each link's target.
+	#[cfg(unix)]
+	fn tree(dir: &Path) -> Vec<String> {
+		let mut out = Vec::new();
+		for entry in std::fs::read_dir(dir).unwrap() {
+			let path = entry.unwrap().path();
+			let st = std::fs::symlink_metadata(&path).unwrap();
+			let target = if st.file_type().is_symlink() { format!(" -> {}", std::fs::read_link(&path).unwrap().to_string_lossy()) } else { String::new() };
+			out.push(format!("{}{target}", path.to_string_lossy()));
+			if st.is_dir() {
+				out.extend(tree(&path));
+			}
+		}
+		out.sort();
+		out
+	}
+
+	#[test]
+	#[cfg(unix)]
+	fn the_archived_folder_godspeed_made_moves_to_closed() {
+		let root = scratch_dir("shortcuts-archived");
+		let (app, folder) = synced_under_archived(&root);
+		sync_shortcuts_safely(&app, &folder, false);
+		let spaces = folder.join("spaces");
+		assert!(!spaces.join("Archived").exists());
+		let (links, dirs) = read_manifest(&folder);
+		assert_eq!(links.len(), 1);
+		assert!(path_of(&links[0]).starts_with(&spaces.join("Closed").join("Linear Algebra").to_string_lossy().into_owned()));
+		assert_eq!(std::fs::read_to_string(path_of(&links[0])).unwrap(), "x");
+		assert!(dirs.iter().all(|d| !d.contains("Archived")));
+	}
+
+	#[test]
+	#[cfg(unix)]
+	fn a_learner_file_keeps_the_archived_folder_and_only_it() {
+		let root = scratch_dir("shortcuts-archived-mine");
+		let (app, folder) = synced_under_archived(&root);
+		let archived = folder.join("spaces").join("Archived");
+		put(&archived.join("Linear Algebra").join("mine.txt"), "the learner's own file");
+		sync_shortcuts_safely(&app, &folder, false);
+		assert_eq!(tree(&archived), [archived.join("Linear Algebra").to_string_lossy().into_owned(), archived.join("Linear Algebra").join("mine.txt").to_string_lossy().into_owned()]);
+		assert_eq!(std::fs::read_to_string(archived.join("Linear Algebra").join("mine.txt")).unwrap(), "the learner's own file");
+		assert!(folder.join("spaces").join("Closed").join("Linear Algebra").exists());
+	}
+
+	#[test]
+	#[cfg(unix)]
+	fn a_link_the_learner_put_in_archived_is_not_followed_or_removed() {
+		let root = scratch_dir("shortcuts-archived-link");
+		let (app, folder) = synced_under_archived(&root);
+		let elsewhere = root.join("elsewhere");
+		put(&elsewhere.join(".DS_Store"), "finder");
+		let link_at = folder.join("spaces").join("Archived").join("mine");
+		std::os::unix::fs::symlink(&elsewhere, &link_at).unwrap();
+		sync_shortcuts_safely(&app, &folder, false);
+		assert!(std::fs::symlink_metadata(&link_at).unwrap().file_type().is_symlink());
+		assert_eq!(std::fs::read_to_string(elsewhere.join(".DS_Store")).unwrap(), "finder");
+	}
+
+	#[test]
+	#[cfg(unix)]
+	fn a_second_sync_after_the_move_changes_nothing() {
+		let root = scratch_dir("shortcuts-archived-twice");
+		let (app, folder) = synced_under_archived(&root);
+		put(&folder.join("spaces").join("Archived").join("mine.txt"), "the learner's own file");
+		sync_shortcuts_safely(&app, &folder, false);
+		let (first, manifest) = (tree(&folder), fsx::read_text(&manifest_path(&folder)).unwrap());
+		sync_shortcuts_safely(&app, &folder, false);
+		assert_eq!(tree(&folder), first);
+		assert_eq!(fsx::read_text(&manifest_path(&folder)).unwrap(), manifest);
+	}
+
 	#[cfg(windows)]
 	fn made_link(at: &Path, target: &Path) -> Json {
 		link(&target.to_string_lossy(), &at.to_string_lossy()).unwrap().expect("a link can be made here")
@@ -442,7 +537,7 @@ mod tests {
 		let file = json!({ "id": "f_a00000000001", "origin": "linked", "name": "notes.md", "path": "notes.md", "kind": "study", "contentFp": "", "status": "done", "addedAt": "2026-01-05T10:00:00.000Z" });
 		let space = json!({
 			"id": "cls_a", "name": "Linear Algebra", "description": "", "createdAt": "2026-01-05T10:00:00.000Z", "updatedAt": "2026-01-05T10:00:00.000Z",
-			"archived": false, "linkedFolder": linked.to_string_lossy(), "deadlines": [], "version": 7, "files": [file],
+			"closed": false, "linkedFolder": linked.to_string_lossy(), "deadlines": [], "version": 7, "files": [file],
 		});
 		let at = root.join("data").join("spaces").join("cls_a").join("space.json");
 		std::fs::create_dir_all(at.parent().unwrap()).unwrap();

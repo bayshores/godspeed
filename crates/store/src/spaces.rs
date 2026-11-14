@@ -251,7 +251,7 @@ impl SpaceStore {
 		record.insert("description", gs_base::text::trim(init["description"].as_str().unwrap_or("")));
 		record.insert("createdAt", now.clone());
 		record.insert("updatedAt", now);
-		record.insert("archived", false);
+		record.insert("closed", false);
 		record.insert("files", Json::Arr(Vec::new()));
 		for key in ["signature", "icon"] {
 			if init[key].truthy() {
@@ -270,7 +270,7 @@ impl SpaceStore {
 		Ok(record)
 	}
 
-	/// Every space's full record (archived included), most recently updated first.
+	/// Every space's full record (closed ones included), most recently updated first.
 	pub fn list_space_records(&self) -> Vec<Json> {
 		let Ok(entries) = std::fs::read_dir(self.root()) else { return Vec::new() };
 		let mut names: Vec<String> = entries.filter_map(|e| e.ok()?.file_name().into_string().ok()).filter(|n| is_space_id(n)).collect();
@@ -280,12 +280,12 @@ impl SpaceStore {
 		records
 	}
 
-	/// Every space (archived included), most recently updated first.
+	/// Every space (closed ones included), most recently updated first.
 	pub fn list_spaces(&self) -> Vec<Json> {
 		self.list_space_records().iter().map(summarize).collect()
 	}
 
-	/// Merges a patch (`name`, `description`, `archived`, `rules`, `linkedFolder`, `signature`,
+	/// Merges a patch (`name`, `description`, `closed`, `rules`, `linkedFolder`, `signature`,
 	/// `icon`, `color`, `note`; `null` unlinks the folder and clears the signature) and bumps
 	/// `updatedAt`.
 	pub fn update_space(&self, id: &str, patch: &Json) -> Result<Json, String> {
@@ -298,8 +298,8 @@ impl SpaceStore {
 		if let Some(description) = patch["description"].as_str() {
 			obj.insert("description", gs_base::text::trim(description));
 		}
-		if let Some(archived) = patch["archived"].as_bool() {
-			obj.insert("archived", archived);
+		if let Some(closed) = patch["closed"].as_bool() {
+			obj.insert("closed", closed);
 		}
 		if let Some(raw) = patch.get("rules") {
 			let rules = sanitize_rules(raw);
@@ -624,7 +624,7 @@ mod tests {
 		let record = store.get_space("cls_e2").unwrap();
 		assert_eq!((record["color"].clone(), record["version"].clone()), (Json::from(2), Json::from(11)));
 		let saved = std::fs::read_to_string(root.join("cls_e2").join("space.json")).unwrap();
-		assert!(saved.contains("\"archived\": false,\n\t\"files\": [],\n\t\"color\": 2,\n\t\"version\": 11\n}"));
+		assert!(saved.contains("\"closed\": true,\n\t\"files\": [],\n\t\"color\": 2,\n\t\"version\": 11\n}"));
 		assert!(!root.join("cls_e2").join("class.json").exists());
 		assert!(rx.try_recv().is_err(), "a read is quiet");
 		// The colored one is only read.
@@ -699,9 +699,10 @@ mod tests {
 		assert!(!store.close_work(&id).unwrap() && !store.close_work("cls_nope").unwrap());
 	}
 
-	/// A record in the shape it had before the rename (with a color, so reading it writes nothing).
+	/// A record in the shape it had before the renames (class.json, `archived`), with a color so reading
+	/// it writes nothing.
 	fn old_record(id: &str) -> String {
-		format!("{{\n\t\"id\": \"{id}\",\n\t\"name\": \"Old\",\n\t\"description\": \"\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"archived\": false,\n\t\"files\": [],\n\t\"color\": 1,\n\t\"version\": 7\n}}")
+		format!("{{\n\t\"id\": \"{id}\",\n\t\"name\": \"Old\",\n\t\"description\": \"\",\n\t\"createdAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"updatedAt\": \"2026-01-01T00:00:00.000Z\",\n\t\"archived\": true,\n\t\"files\": [],\n\t\"color\": 1,\n\t\"version\": 7\n}}")
 	}
 
 	fn lab(name: &str) -> (PathBuf, SpaceStore) {

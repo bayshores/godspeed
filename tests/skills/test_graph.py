@@ -352,7 +352,7 @@ class GraphTests(unittest.TestCase):
         before = snapshot(self.root) if self.root.exists() else {}
         cls = "cls_math20c_ab12cd34"
         self.write_json(f"spaces/{cls}/space.json", {
-            "id": cls, "name": "MATH 20C", "description": "Calc III", "archived": False,
+            "id": cls, "name": "MATH 20C", "description": "Calc III", "archived": True,
             "createdAt": "2026-10-26T00:00:00Z", "updatedAt": "2026-10-26T00:00:00Z",
             "files": [{"id": "f_1", "kind": "study"}, {"id": "f_2", "kind": "info"}],
         })
@@ -364,7 +364,7 @@ class GraphTests(unittest.TestCase):
         self.assertEqual([n["id"] for n in self.result("propositions")], ["n_none"])
         self.assertEqual([n["id"] for n in self.result("--space", "none", "propositions")], ["n_none"])
         spaces = self.result("spaces")
-        self.assertEqual(spaces, [{"id": cls, "name": "MATH 20C", "description": "Calc III", "archived": False, "files": 2, "studyFiles": 1}])
+        self.assertEqual(spaces, [{"id": cls, "name": "MATH 20C", "description": "Calc III", "closed": True, "files": 2, "studyFiles": 1}])
         status, _, err = self.invoke("--space", "../evil", "propositions")
         self.assertEqual(status, 1)
         self.assertIn("Invalid space id", err)

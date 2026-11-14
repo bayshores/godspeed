@@ -22,7 +22,7 @@ import { useCloseSpace } from "./use-close-space";
 export function ClosedSpacesMenu({ lit, onAdd, onDelete }: { lit: boolean; onAdd: () => void; onDelete: (spaceId: string) => void }) {
 	const { spaces, setActive } = useSpaces();
 	const navigate = useNavigate();
-	const closed = spaces.filter((s) => s.archived);
+	const closed = spaces.filter((s) => s.closed);
 	const loose = hasLessonsWithNoSpace(useLessonList().chats);
 	const [open, setOpen] = useState(false);
 	const anchorRef = useRef<HTMLButtonElement>(null);

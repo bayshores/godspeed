@@ -10,7 +10,7 @@
 						"description": "Vectors and matrices",
 						"createdAt": "2026-01-05T10:00:00.000Z",
 						"updatedAt": "2026-01-05T10:00:00.000Z",
-						"archived": false,
+						"closed": false,
 						"linkedFolder": "<root>/linked/la",
 						"files": [
 							{
@@ -104,7 +104,7 @@
 						"description": "Last year's",
 						"createdAt": "2026-01-05T10:00:00.000Z",
 						"updatedAt": "2026-01-05T10:00:00.000Z",
-						"archived": true,
+						"closed": true,
 						"files": [
 							{
 								"id": "f_b00000000001",
@@ -136,7 +136,7 @@
 						"description": "",
 						"createdAt": "2026-01-05T10:00:00.000Z",
 						"updatedAt": "2026-01-05T10:00:00.000Z",
-						"archived": false,
+						"closed": false,
 						"files": [],
 						"deadlines": [],
 						"version": 7
@@ -329,7 +329,7 @@
 								"name": "Linear Algebra",
 								"description": "Vectors and matrices",
 								"icon": null,
-								"archived": false,
+								"closed": false,
 								"linkedFolder": "<root>/linked/la",
 								"files": 8,
 								"lessons": 0
@@ -339,7 +339,7 @@
 								"name": "Linear Algebra",
 								"description": "Last year's",
 								"icon": null,
-								"archived": true,
+								"closed": true,
 								"linkedFolder": null,
 								"files": 2,
 								"lessons": 0
@@ -349,7 +349,7 @@
 								"name": "Physics: Waves/Optics",
 								"description": "",
 								"icon": null,
-								"archived": false,
+								"closed": false,
 								"linkedFolder": null,
 								"files": 0,
 								"lessons": 0
@@ -367,7 +367,7 @@
 						"description": "Vectors and matrices",
 						"signature": null,
 						"icon": null,
-						"archived": false,
+						"closed": false,
 						"linkedFolder": "<root>/linked/la",
 						"fileCounts": {
 							"done": 6,
@@ -396,7 +396,7 @@
 						"description": "",
 						"signature": null,
 						"icon": null,
-						"archived": false,
+						"closed": false,
 						"linkedFolder": null,
 						"fileCounts": {},
 						"failedFiles": [],
@@ -423,26 +423,26 @@
 						{
 							"path": ".godspeed/shortcuts.json",
 							"type": "file",
-							"text": "{\n\t\"links\": [\n\t\t{\n\t\t\t\"path\": \"<root>/gs/spaces/Linear Algebra/Lecture/Lecture 3.mp4\",\n\t\t\t\"target\": \"<root>/linked/la/Lecture 3.mp4\"\n\t\t},\n\t\t{\n\t\t\t\"path\": \"<root>/gs/spaces/Linear Algebra/Lecture/Lecture 4.mp4\",\n\t\t\t\"target\": \"<root>/linked/la/Lecture 4.mp4\"\n\t\t},\n\t\t{\n\t\t\t\"path\": \"<root>/gs/spaces/Linear Algebra/Lecture/Lecture 4.vtt\",\n\t\t\t\"target\": \"<root>/linked/la/Lecture 4.vtt\"\n\t\t},\n\t\t{\n\t\t\t\"path\": \"<root>/gs/spaces/Linear Algebra/Lecture/Lecture 5.mp4\",\n\t\t\t\"target\": \"<root>/linked/la/Lecture 5.mp4\"\n\t\t},\n\t\t{\n\t\t\t\"path\": \"<root>/gs/spaces/Linear Algebra/Other/notes.md\",\n\t\t\t\"target\": \"<root>/linked/la/week1/notes.md\"\n\t\t},\n\t\t{\n\t\t\t\"path\": \"<root>/gs/spaces/Linear Algebra/Other/syllabus.pdf\",\n\t\t\t\"target\": \"<root>/data/spaces/cls_golden_a/files/f_a00000000005/syllabus.pdf\"\n\t\t},\n\t\t{\n\t\t\t\"path\": \"<root>/gs/spaces/Linear Algebra/Other/Week 2 notes.md\",\n\t\t\t\"target\": \"<root>/linked/la/week2/Week 2 notes.md\"\n\t\t},\n\t\t{\n\t\t\t\"path\": \"<root>/gs/spaces/Archived/Linear Algebra/Other/notes.md\",\n\t\t\t\"target\": \"<root>/data/spaces/cls_golden_b/files/f_b00000000001/notes.md\"\n\t\t}\n\t],\n\t\"dirs\": [\n\t\t\"<root>/gs\",\n\t\t\"<root>/gs/spaces\",\n\t\t\"<root>/gs/spaces/Linear Algebra\",\n\t\t\"<root>/gs/spaces/Linear Algebra/Lecture\",\n\t\t\"<root>/gs/spaces/Linear Algebra/Other\",\n\t\t\"<root>/gs/spaces/Archived\",\n\t\t\"<root>/gs/spaces/Archived/Linear Algebra\",\n\t\t\"<root>/gs/spaces/Archived/Linear Algebra/Other\"\n\t]\n}\n"
+							"text": "{\n\t\"links\": [\n\t\t{\n\t\t\t\"path\": \"<root>/gs/spaces/Linear Algebra/Lecture/Lecture 3.mp4\",\n\t\t\t\"target\": \"<root>/linked/la/Lecture 3.mp4\"\n\t\t},\n\t\t{\n\t\t\t\"path\": \"<root>/gs/spaces/Linear Algebra/Lecture/Lecture 4.mp4\",\n\t\t\t\"target\": \"<root>/linked/la/Lecture 4.mp4\"\n\t\t},\n\t\t{\n\t\t\t\"path\": \"<root>/gs/spaces/Linear Algebra/Lecture/Lecture 4.vtt\",\n\t\t\t\"target\": \"<root>/linked/la/Lecture 4.vtt\"\n\t\t},\n\t\t{\n\t\t\t\"path\": \"<root>/gs/spaces/Linear Algebra/Lecture/Lecture 5.mp4\",\n\t\t\t\"target\": \"<root>/linked/la/Lecture 5.mp4\"\n\t\t},\n\t\t{\n\t\t\t\"path\": \"<root>/gs/spaces/Linear Algebra/Other/notes.md\",\n\t\t\t\"target\": \"<root>/linked/la/week1/notes.md\"\n\t\t},\n\t\t{\n\t\t\t\"path\": \"<root>/gs/spaces/Linear Algebra/Other/syllabus.pdf\",\n\t\t\t\"target\": \"<root>/data/spaces/cls_golden_a/files/f_a00000000005/syllabus.pdf\"\n\t\t},\n\t\t{\n\t\t\t\"path\": \"<root>/gs/spaces/Linear Algebra/Other/Week 2 notes.md\",\n\t\t\t\"target\": \"<root>/linked/la/week2/Week 2 notes.md\"\n\t\t},\n\t\t{\n\t\t\t\"path\": \"<root>/gs/spaces/Closed/Linear Algebra/Other/notes.md\",\n\t\t\t\"target\": \"<root>/data/spaces/cls_golden_b/files/f_b00000000001/notes.md\"\n\t\t}\n\t],\n\t\"dirs\": [\n\t\t\"<root>/gs\",\n\t\t\"<root>/gs/spaces\",\n\t\t\"<root>/gs/spaces/Linear Algebra\",\n\t\t\"<root>/gs/spaces/Linear Algebra/Lecture\",\n\t\t\"<root>/gs/spaces/Linear Algebra/Other\",\n\t\t\"<root>/gs/spaces/Closed\",\n\t\t\"<root>/gs/spaces/Closed/Linear Algebra\",\n\t\t\"<root>/gs/spaces/Closed/Linear Algebra/Other\"\n\t]\n}\n"
 						},
 						{
 							"path": "spaces",
 							"type": "dir"
 						},
 						{
-							"path": "spaces/Archived",
+							"path": "spaces/Closed",
 							"type": "dir"
 						},
 						{
-							"path": "spaces/Archived/Linear Algebra",
+							"path": "spaces/Closed/Linear Algebra",
 							"type": "dir"
 						},
 						{
-							"path": "spaces/Archived/Linear Algebra/Other",
+							"path": "spaces/Closed/Linear Algebra/Other",
 							"type": "dir"
 						},
 						{
-							"path": "spaces/Archived/Linear Algebra/Other/notes.md",
+							"path": "spaces/Closed/Linear Algebra/Other/notes.md",
 							"type": "link",
 							"target": "<root>/data/spaces/cls_golden_b/files/f_b00000000001/notes.md"
 						},
@@ -520,26 +520,26 @@
 						{
 							"path": ".godspeed/shortcuts.json",
 							"type": "file",
-							"text": "{\n\t\"links\": [\n\t\t{\n\t\t\t\"path\": \"<root>/gs/spaces/Linear Algebra/Lecture/Lecture 3.mp4\",\n\t\t\t\"target\": \"<root>/linked/la/Lecture 3.mp4\"\n\t\t},\n\t\t{\n\t\t\t\"path\": \"<root>/gs/spaces/Linear Algebra/Lecture/Lecture 4.mp4\",\n\t\t\t\"target\": \"<root>/linked/la/Lecture 4.mp4\"\n\t\t},\n\t\t{\n\t\t\t\"path\": \"<root>/gs/spaces/Linear Algebra/Lecture/Lecture 4.vtt\",\n\t\t\t\"target\": \"<root>/linked/la/Lecture 4.vtt\"\n\t\t},\n\t\t{\n\t\t\t\"path\": \"<root>/gs/spaces/Linear Algebra/Lecture/Lecture 5.mp4\",\n\t\t\t\"target\": \"<root>/linked/la/Lecture 5.mp4\"\n\t\t},\n\t\t{\n\t\t\t\"path\": \"<root>/gs/spaces/Linear Algebra/Other/syllabus.pdf\",\n\t\t\t\"target\": \"<root>/data/spaces/cls_golden_a/files/f_a00000000005/syllabus.pdf\"\n\t\t},\n\t\t{\n\t\t\t\"path\": \"<root>/gs/spaces/Linear Algebra/Other/Week 2 notes.md\",\n\t\t\t\"target\": \"<root>/linked/la/week2/Week 2 notes.md\"\n\t\t},\n\t\t{\n\t\t\t\"path\": \"<root>/gs/spaces/Archived/Linear Algebra/Other/notes.md\",\n\t\t\t\"target\": \"<root>/data/spaces/cls_golden_b/files/f_b00000000001/notes.md\"\n\t\t}\n\t],\n\t\"dirs\": [\n\t\t\"<root>/gs\",\n\t\t\"<root>/gs/spaces\",\n\t\t\"<root>/gs/spaces/Linear Algebra\",\n\t\t\"<root>/gs/spaces/Linear Algebra/Lecture\",\n\t\t\"<root>/gs/spaces/Linear Algebra/Other\",\n\t\t\"<root>/gs/spaces/Archived\",\n\t\t\"<root>/gs/spaces/Archived/Linear Algebra\",\n\t\t\"<root>/gs/spaces/Archived/Linear Algebra/Other\"\n\t]\n}\n"
+							"text": "{\n\t\"links\": [\n\t\t{\n\t\t\t\"path\": \"<root>/gs/spaces/Linear Algebra/Lecture/Lecture 3.mp4\",\n\t\t\t\"target\": \"<root>/linked/la/Lecture 3.mp4\"\n\t\t},\n\t\t{\n\t\t\t\"path\": \"<root>/gs/spaces/Linear Algebra/Lecture/Lecture 4.mp4\",\n\t\t\t\"target\": \"<root>/linked/la/Lecture 4.mp4\"\n\t\t},\n\t\t{\n\t\t\t\"path\": \"<root>/gs/spaces/Linear Algebra/Lecture/Lecture 4.vtt\",\n\t\t\t\"target\": \"<root>/linked/la/Lecture 4.vtt\"\n\t\t},\n\t\t{\n\t\t\t\"path\": \"<root>/gs/spaces/Linear Algebra/Lecture/Lecture 5.mp4\",\n\t\t\t\"target\": \"<root>/linked/la/Lecture 5.mp4\"\n\t\t},\n\t\t{\n\t\t\t\"path\": \"<root>/gs/spaces/Linear Algebra/Other/syllabus.pdf\",\n\t\t\t\"target\": \"<root>/data/spaces/cls_golden_a/files/f_a00000000005/syllabus.pdf\"\n\t\t},\n\t\t{\n\t\t\t\"path\": \"<root>/gs/spaces/Linear Algebra/Other/Week 2 notes.md\",\n\t\t\t\"target\": \"<root>/linked/la/week2/Week 2 notes.md\"\n\t\t},\n\t\t{\n\t\t\t\"path\": \"<root>/gs/spaces/Closed/Linear Algebra/Other/notes.md\",\n\t\t\t\"target\": \"<root>/data/spaces/cls_golden_b/files/f_b00000000001/notes.md\"\n\t\t}\n\t],\n\t\"dirs\": [\n\t\t\"<root>/gs\",\n\t\t\"<root>/gs/spaces\",\n\t\t\"<root>/gs/spaces/Linear Algebra\",\n\t\t\"<root>/gs/spaces/Linear Algebra/Lecture\",\n\t\t\"<root>/gs/spaces/Linear Algebra/Other\",\n\t\t\"<root>/gs/spaces/Closed\",\n\t\t\"<root>/gs/spaces/Closed/Linear Algebra\",\n\t\t\"<root>/gs/spaces/Closed/Linear Algebra/Other\"\n\t]\n}\n"
 						},
 						{
 							"path": "spaces",
 							"type": "dir"
 						},
 						{
-							"path": "spaces/Archived",
+							"path": "spaces/Closed",
 							"type": "dir"
 						},
 						{
-							"path": "spaces/Archived/Linear Algebra",
+							"path": "spaces/Closed/Linear Algebra",
 							"type": "dir"
 						},
 						{
-							"path": "spaces/Archived/Linear Algebra/Other",
+							"path": "spaces/Closed/Linear Algebra/Other",
 							"type": "dir"
 						},
 						{
-							"path": "spaces/Archived/Linear Algebra/Other/notes.md",
+							"path": "spaces/Closed/Linear Algebra/Other/notes.md",
 							"type": "link",
 							"target": "<root>/data/spaces/cls_golden_b/files/f_b00000000001/notes.md"
 						},

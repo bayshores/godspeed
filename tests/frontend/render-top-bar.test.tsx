@@ -52,8 +52,8 @@ const { SpaceProvider } = await import("../../src/frontend/components/space-cont
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
 const { MemoryRouter, useLocation } = await import("react-router");
 
-const space = (id: string, name: string, over: Partial<SpaceSummary> = {}): SpaceSummary => ({ id, name, description: "", createdAt: "", updatedAt: "", archived: false, fileCount: 33, color: 1, filesLeft: 0, ...over });
-const SPACES = [space("c29", "CSE 29", { description: "Systems programming", signature: { kind: "code", value: "*p" } }), space("c21", "CSE 21", { color: 2, filesLeft: 2 }), space("old", "MATH 18", { archived: true, description: "Linear algebra.", fileCount: 1 })];
+const space = (id: string, name: string, over: Partial<SpaceSummary> = {}): SpaceSummary => ({ id, name, description: "", createdAt: "", updatedAt: "", closed: false, fileCount: 33, color: 1, filesLeft: 0, ...over });
+const SPACES = [space("c29", "CSE 29", { description: "Systems programming", signature: { kind: "code", value: "*p" } }), space("c21", "CSE 21", { color: 2, filesLeft: 2 }), space("old", "MATH 18", { closed: true, description: "Linear algebra.", fileCount: 1 })];
 
 const lesson = (id: string, title: string, spaceId?: string): ChatListItem => ({
 	id,
@@ -302,7 +302,7 @@ describe("a tab's right-click menu", () => {
 		await openMenu("c21");
 		await click(q("space-menu-close")!);
 		await settle();
-		assert.ok(requests.includes('PUT /api/spaces/c21 {"archived":true}'));
+		assert.ok(requests.includes('PUT /api/spaces/c21 {"closed":true}'));
 		assert.equal(q("space-menu")?.getAttribute("data-state") ?? "closed", "closed");
 		assert.deepEqual(pushed, [], "another space's page stays");
 		assert.ok(!requests.some((r) => r.startsWith("PUT /api/settings/general")), "the window stays on its space");
@@ -312,7 +312,7 @@ describe("a tab's right-click menu", () => {
 		await openMenu("c29");
 		await click(q("space-menu-close")!);
 		await settle();
-		assert.ok(requests.includes('PUT /api/spaces/c29 {"archived":true}'));
+		assert.ok(requests.includes('PUT /api/spaces/c29 {"closed":true}'));
 		assert.deepEqual(pushed, ["/"]);
 		assert.ok(requests.some((r) => r.startsWith("PUT /api/settings/general") && r.includes('"activeSpace":"none"')));
 	});
@@ -368,7 +368,7 @@ describe("the +", () => {
 		assert.equal(plus.getAttribute("aria-expanded"), "true");
 	});
 	it("with no closed space and no lesson without one it only offers Add a space", async () => {
-		await mount(<SpaceTabs selected="c29" />, { spaces: SPACES.filter((s) => !s.archived), lessons: LESSONS.filter((l) => l.spaceId) });
+		await mount(<SpaceTabs selected="c29" />, { spaces: SPACES.filter((s) => !s.closed), lessons: LESSONS.filter((l) => l.spaceId) });
 		assert.equal(q("spaces-plus")!.getAttribute("aria-label"), "Add a space");
 		await openList();
 		assert.deepEqual(texts("[data-testid='spaces-plus-list'] [role='menuitem']"), ["Add a space"]);
@@ -403,7 +403,7 @@ describe("the +", () => {
 		await openList();
 		await click(q("closed-space-old")!);
 		await settle();
-		assert.ok(requests.includes('PUT /api/spaces/old {"archived":false}'));
+		assert.ok(requests.includes('PUT /api/spaces/old {"closed":false}'));
 		assert.deepEqual(pushed, ["/space"]);
 		assert.ok(requests.some((r) => r.startsWith("PUT /api/settings/general") && r.includes('"activeSpace":"old"')));
 		assert.equal(q("spaces-plus-list")?.getAttribute("data-state") ?? "closed", "closed");
@@ -439,7 +439,7 @@ describe("the +", () => {
 		await act(async () => {});
 		await click(q("space-menu-close")!);
 		await settle();
-		assert.ok(requests.includes('PUT /api/spaces/old {"archived":false}'));
+		assert.ok(requests.includes('PUT /api/spaces/old {"closed":false}'));
 		assert.deepEqual(pushed, ["/space"]);
 	});
 	it("Delete space in a closed row's menu opens the delete question", async () => {

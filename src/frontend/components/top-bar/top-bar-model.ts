@@ -17,13 +17,13 @@ export function clockText(d: Date): string {
  * or an old lesson of it), or "menu" for Settings and for a space not in
  * the list yet.
  */
-export function selectedTab(pathname: string, active: string | null, spaces: readonly Pick<SpaceSummary, "id" | "archived">[]): string {
+export function selectedTab(pathname: string, active: string | null, spaces: readonly Pick<SpaceSummary, "id" | "closed">[]): string {
 	if (pathname === "/") return "today";
 	if (pathname === "/settings") return "menu";
 	if (active === null) return "plus";
 	const space = spaces.find((s) => s.id === active);
 	if (!space) return "menu";
-	return space.archived ? "plus" : space.id;
+	return space.closed ? "plus" : space.id;
 }
 
 /** The + offers "Lessons with no space" only while there is one. Before

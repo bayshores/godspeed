@@ -87,7 +87,7 @@ describe("the work frame of a page one job works on", () => {
 });
 
 describe("elsewhere", () => {
-	const space = (over: Partial<SpaceSummary>): SpaceSummary => ({ id: "spc_ml", name: "Machine Learning", description: "", createdAt: "", updatedAt: "", archived: false, fileCount: 18, color: 1, filesLeft: 0, ...over });
+	const space = (over: Partial<SpaceSummary>): SpaceSummary => ({ id: "spc_ml", name: "Machine Learning", description: "", createdAt: "", updatedAt: "", closed: false, fileCount: 18, color: 1, filesLeft: 0, ...over });
 
 	it("Today names the space and how many files are left", () => {
 		assert.equal(todayWorkLine(space({ filesLeft: 15, building: true }), "Helper"), "Helper is building Machine Learning. 15 left.");
@@ -101,10 +101,10 @@ describe("elsewhere", () => {
 		assert.equal(tabWorkTag(space({})), null);
 	});
 
-	it("files progress adds up the spaces being read and skips archived and finished ones", () => {
+	it("files progress adds up the spaces being read and skips closed and finished ones", () => {
 		const reading = space({ filesLeft: 11, filesRead: 6 });
 		const unread = space({ filesLeft: 2 });
-		const progress = filesProgress([reading, unread, space({ filesLeft: 4, archived: true }), space({})]);
+		const progress = filesProgress([reading, unread, space({ filesLeft: 4, closed: true }), space({})]);
 		assert.deepEqual(progress, { live: [reading, unread], read: 6, left: 13 });
 		assert.deepEqual(filesProgress([]), { live: [], read: 0, left: 0 });
 		assert.equal(files(1), "1 file");
@@ -112,7 +112,7 @@ describe("elsewhere", () => {
 	});
 
 	it("the top bar chip counts the files of every space being read, else the jobs", () => {
-		const spaces = [space({ filesLeft: 11, filesRead: 6 }), space({ filesLeft: 2 }), space({ filesLeft: 4, archived: true })];
+		const spaces = [space({ filesLeft: 11, filesRead: 6 }), space({ filesLeft: 2 }), space({ filesLeft: 4, closed: true })];
 		assert.equal(workChip({ worker: "Helper", spaces, jobs: 3 }), "Helper, 6 of 19 files");
 		assert.equal(workChip({ worker: "Marco", spaces: [space({})], jobs: 1 }), "Marco, 1 job");
 		assert.equal(workChip({ worker: "Marco", spaces: [space({})], jobs: 2 }), "Marco, 2 jobs");

@@ -63,7 +63,7 @@ const RECORD: SpaceRecord = {
 	color: 2,
 	createdAt: "",
 	updatedAt: "",
-	archived: false,
+	closed: false,
 	files: [file("f1", "Lecture 1 — Counting.pdf"), file("f2", "Lecture 2 — Permutations.pdf"), file("f3", "Rosen 6.2.pdf"), file("f4", "Syllabus.pdf", "info")],
 	deadlines: [
 		{ id: "exm_1", kind: "exam", name: "Midterm 1", date: "2026-10-29", time: "19:00", fileIds: ["f1", "f2"], done: false },
@@ -174,7 +174,6 @@ describe("Edit space dialog", () => {
 		assert.equal(q("space-deadlines"), null, "deadlines moved to the Deadlines tab");
 		assert.equal(q("space-files"), null, "the file list moved to the Files page");
 		assert.ok(q("space-delete") && q("space-save"));
-		assert.equal(q("space-archive"), null, "a space is closed from its tab");
 	});
 
 	it("the signature: pick a kind, type one line, see it in the cover's type, save it", async () => {

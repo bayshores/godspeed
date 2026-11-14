@@ -1,6 +1,6 @@
 /**
  * The "no new files" corner notice: which spaces count as quiet (linked,
- * not archived, 4 days without a folder file, not snoozed), its words,
+ * not closed, 4 days without a folder file, not snoozed), its words,
  * and its buttons. Mounted over linkedom.
  */
 import React, { act } from "react";
@@ -35,7 +35,7 @@ const space = (id: string, extra: Partial<SpaceSummary>): SpaceSummary => ({
 	description: "",
 	createdAt: ago(60),
 	updatedAt: ago(1),
-	archived: false,
+	closed: false,
 	fileCount: 3,
 	color: 1,
 	filesLeft: 0,
@@ -47,11 +47,11 @@ describe("quiet spaces", () => {
 		space("quiet", { linkedFolder: "/drive/CSE 29", lastFolderFileAt: ago(4.1) }),
 		space("fresh", { linkedFolder: "/drive/CSE 21", lastFolderFileAt: ago(3.9) }),
 		space("by-hand", { lastFolderFileAt: undefined }),
-		space("archived", { archived: true, linkedFolder: "/drive/old", lastFolderFileAt: ago(30) }),
+		space("closed", { closed: true, linkedFolder: "/drive/old", lastFolderFileAt: ago(30) }),
 		space("empty", { linkedFolder: "/drive/empty" }),
 	];
 
-	it("are linked, not archived, and 4 days without a new folder file", () => {
+	it("are linked, not closed, and 4 days without a new folder file", () => {
 		assert.deepEqual(quietSpaces(spaces, {}, NOW).map((q) => q.spaceId), ["quiet"]);
 	});
 

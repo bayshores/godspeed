@@ -73,7 +73,7 @@ fn schema_of(name: &str) -> Json {
 				("description", json!({ "type": "string" })),
 				("signature", signature(t)),
 				("icon", icon(t)),
-				("archived", json!({ "type": "boolean" })),
+				("closed", json!({ "type": "boolean" })),
 			],
 		),
 		"add_space_file" => object(&["space_id", "kind"], vec![id(), ("path", string(t.file_path)), ("name", string(t.file_name)), ("text", string(t.file_text)), ("kind", file_kind(t))]),

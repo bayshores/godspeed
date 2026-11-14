@@ -45,7 +45,7 @@ function MoveLessonInner({ lesson, onClose, onMoved, state }: { lesson: Lesson; 
 		}
 	};
 	const options: { id: string | null; name: string }[] = [
-		...spaces.filter((c) => !c.archived || c.id === from).map((c) => ({ id: c.id as string | null, name: c.name })),
+		...spaces.filter((c) => !c.closed || c.id === from).map((c) => ({ id: c.id as string | null, name: c.name })),
 		{ id: null, name: "No space" },
 	];
 	return (

@@ -28,7 +28,7 @@ import { useSpacesProgress } from "./use-spaces-progress";
  */
 export function HomePage() {
 	const { spaces, loaded, setActive } = useSpaces();
-	const shown = useMemo(() => spaces.filter((c) => !c.archived), [spaces]);
+	const shown = useMemo(() => spaces.filter((c) => !c.closed), [spaces]);
 	const { deadlines, doneToday, error: deadlinesError, markDone, undo, reload: reloadDeadlines } = useOpenDeadlines();
 	const shownIds = useMemo(() => shown.map((c) => c.id), [shown]);
 	const spacesProgress = useSpacesProgress(shownIds);

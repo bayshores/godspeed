@@ -344,7 +344,7 @@
 	{
 		"name": "list_spaces",
 		"title": "List spaces",
-		"description": "List the learner's spaces, archived ones included, with file and lesson counts.",
+		"description": "List the learner's spaces, closed ones included, with file and lesson counts.",
 		"inputSchema": {
 			"type": "object",
 			"$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -532,7 +532,7 @@
 	{
 		"name": "update_space",
 		"title": "Update a space",
-		"description": "Rename a space, change its description, signature or icon, or archive / unarchive it (archiving hides it from the space switcher but keeps everything; an archived space takes no new lessons).",
+		"description": "Rename a space, change its description, signature or icon, or close / reopen it (closing hides its tab but keeps everything; a closed space takes no new lessons).",
 		"inputSchema": {
 			"type": "object",
 			"$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -592,7 +592,7 @@
 					],
 					"description": "The space's subject icon in the space switcher: \"cpu\" Computer science, \"code\" Programming, \"sigma\" Math, \"chart-line\" Statistics, \"atom\" Physics, \"flask-conical\" Chemistry, \"dna\" Biology, \"brain\" Psychology, \"landmark\" History, \"scale\" Law and politics, \"trending-up\" Economics, \"globe\" Geography, \"languages\" Languages, \"book-open\" Literature, \"palette\" Art, \"music\" Music. Pick the closest subject."
 				},
-				"archived": {
+				"closed": {
 					"type": "boolean"
 				}
 			},

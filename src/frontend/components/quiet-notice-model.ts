@@ -22,7 +22,7 @@ export interface QuietSpace {
  *  aren't snoozed (`snoozedUntil`: space id → ms time). */
 export function quietSpaces(spaces: readonly SpaceSummary[], snoozedUntil: Readonly<Record<string, number>>, now: number): QuietSpace[] {
 	return spaces.flatMap((c) => {
-		if (c.archived || !c.linkedFolder || !c.lastFolderFileAt) return [];
+		if (c.closed || !c.linkedFolder || !c.lastFolderFileAt) return [];
 		if (now - Date.parse(c.lastFolderFileAt) < QUIET_DAYS * DAY_MS || (snoozedUntil[c.id] ?? 0) > now) return [];
 		return [{ spaceId: c.id, name: c.name, folder: c.linkedFolder, lastAt: c.lastFolderFileAt }];
 	});

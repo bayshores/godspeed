@@ -38,7 +38,7 @@ pub fn request_space_scope(app: &App, raw: Option<&str>) -> Option<Option<String
 	Some(scope)
 }
 
-/// `patch` may hold `name`, `description`, `archived`, `signature` (null clears it), `icon`,
+/// `patch` may hold `name`, `description`, `closed`, `signature` (null clears it), `icon`,
 /// `color` and `rules`.
 pub fn update_space(app: &App, id: &str, patch: &Json) -> SpaceOutcome<Json> {
 	if app.stores.spaces.get_space(id).is_none() {

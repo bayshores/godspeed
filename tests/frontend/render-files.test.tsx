@@ -56,7 +56,7 @@ const RECORD: SpaceRecord = {
 	color: 1,
 	createdAt: "",
 	updatedAt: "",
-	archived: false,
+	closed: false,
 	linkedFolder: "/Users/me/School/CSE 21",
 	files: [
 		file("f1", "Lecture 1 — Counting.pdf"),

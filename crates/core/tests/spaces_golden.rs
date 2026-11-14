@@ -310,7 +310,7 @@ fn briefings_match_node() {
 			.map(|k| BriefingSpace {
 				id: s(&k["id"]).to_owned(),
 				name: s(&k["name"]).to_owned(),
-				archived: k["archived"].as_bool().unwrap(),
+				closed: k["closed"].as_bool().unwrap(),
 				deadlines: list(&k["deadlines"]).to_vec(),
 				missing_setup: strings(&k["missingSetup"]),
 			})

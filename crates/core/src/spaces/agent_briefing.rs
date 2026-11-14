@@ -19,7 +19,7 @@ const NEXT_DEADLINES: usize = 5;
 pub struct BriefingSpace {
 	pub id: String,
 	pub name: String,
-	pub archived: bool,
+	pub closed: bool,
 	pub deadlines: Vec<Json>,
 	pub missing_setup: Vec<String>,
 }
@@ -78,7 +78,7 @@ pub fn agent_briefing(input: &BriefingInput) -> Result<String, String> {
 	let day = |iso: &str| wall_clock_of_iso(iso).map(|c| day_label(&c.day));
 	let moment = |iso: &str| wall_clock_of_iso(iso).map(|c| format!("{} {}", day_label(&c.day), clock_label(&c.time)));
 
-	let active: Vec<&BriefingSpace> = spaces.iter().filter(|c| !c.archived).collect();
+	let active: Vec<&BriefingSpace> = spaces.iter().filter(|c| !c.closed).collect();
 	let space_lines: Vec<String> = active.iter().map(|c| format!("- {} (space_id \"{}\")", c.name, c.id)).collect();
 	let setup_lines: Vec<String> =
 		active.iter().filter(|c| !c.missing_setup.is_empty()).map(|c| format!("- {} (space_id \"{}\"): no {}", c.name, c.id, c.missing_setup.join(", no "))).collect();
@@ -203,11 +203,11 @@ mod tests {
 				BriefingSpace {
 					id: "cls_a".into(),
 					name: "CSE 21".into(),
-					archived: false,
+					closed: false,
 					deadlines: vec![json!({ "id": "d", "name": "Midterm", "kind": "exam", "date": "2026-11-02", "fileIds": [] })],
 					missing_setup: vec!["icon".into(), "signature".into()],
 				},
-				BriefingSpace { id: "cls_b".into(), name: "Old".into(), archived: true, deadlines: vec![], missing_setup: vec![] },
+				BriefingSpace { id: "cls_b".into(), name: "Old".into(), closed: true, deadlines: vec![], missing_setup: vec![] },
 			],
 			lessons: vec![
 				BriefingLesson { id: "l1".into(), title: "Sets".into(), space_id: Some("cls_a".into()), updated_at: "2026-10-29T20:00:00.000Z".into(), waiting: true },

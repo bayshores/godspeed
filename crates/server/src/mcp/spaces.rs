@@ -1,4 +1,4 @@
-//! The space tools: agents set up the learner's spaces (create, edit, archive, add files, link
+//! The space tools: agents set up the learner's spaces (create, edit, close, add files, link
 //! folders, deadlines) and start lessons in them. Deleting a space is app-only on purpose.
 
 use gs_core::spaces::space_tools::ToolOutcome;

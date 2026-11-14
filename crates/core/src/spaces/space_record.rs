@@ -199,7 +199,8 @@ pub fn read_space_record(parsed: &Json, now: i64, fresh_color: impl FnOnce() -> 
 	out.insert("description", parsed["description"].as_str().unwrap_or(""));
 	out.insert("createdAt", created_at);
 	out.insert("updatedAt", updated_at);
-	out.insert("archived", parsed["archived"].as_bool() == Some(true));
+	// A space closed before the rename was saved as `archived`.
+	out.insert("closed", parsed["closed"].as_bool() == Some(true) || parsed["archived"].as_bool() == Some(true));
 	if is_str(&parsed["linkedFolder"]) {
 		out.insert("linkedFolder", parsed["linkedFolder"].clone());
 	}
@@ -270,7 +271,7 @@ pub fn summarize(record: &Json) -> Json {
 	let last_found = newest(files, |f| f["foundByScan"].as_bool() == Some(true)).filter(|s| !s.is_empty());
 	let last_folder_file = newest(files, |f| f["origin"].as_str() == Some("linked")).filter(|s| !s.is_empty());
 	let mut out = Obj::new();
-	for key in ["id", "name", "description", "createdAt", "updatedAt", "archived"] {
+	for key in ["id", "name", "description", "createdAt", "updatedAt", "closed"] {
 		out.insert(key, record[key].clone());
 	}
 	if record["linkedFolder"].truthy() {
@@ -328,7 +329,7 @@ mod tests {
 		});
 		let record = read_space_record(&parsed, 0, || 3).unwrap();
 		let keys: Vec<&String> = record.as_obj().unwrap().keys().collect();
-		assert_eq!(keys, ["id", "name", "description", "createdAt", "updatedAt", "archived", "files", "deadlines", "icon", "color", "rules", "version"]);
+		assert_eq!(keys, ["id", "name", "description", "createdAt", "updatedAt", "closed", "files", "deadlines", "icon", "color", "rules", "version"]);
 		assert_eq!(record["color"], Json::from(3));
 		assert_eq!(
 			stringify(&record["deadlines"]),
@@ -352,6 +353,16 @@ mod tests {
 		assert_eq!(record["prep"], parsed["prep"], "kept as saved until the upgrade");
 		assert!(summarize(&record).get("prep").is_none());
 		assert!(read_space_record(&json!({ "id": "spc_a", "name": "n", "createdAt": "c", "updatedAt": "u", "waitingDeadline": { "id": "x" }, "prep": "no" }), 0, || 1).unwrap().get("waitingDeadline").is_none());
+	}
+
+	#[test]
+	fn a_space_saved_as_archived_reads_as_closed() {
+		let read = |key: &str, value: bool| read_space_record(&json!({ "id": "cls_a", "name": "n", "createdAt": "c", "updatedAt": "u", key: value }), 0, || 1).unwrap();
+		let old = read("archived", true);
+		assert_eq!(old["closed"], Json::from(true));
+		assert!(old.get("archived").is_none(), "only `closed` is written back");
+		assert_eq!(read("closed", true)["closed"], Json::from(true));
+		assert_eq!(read("archived", false)["closed"], Json::from(false));
 	}
 
 	#[test]
@@ -392,13 +403,13 @@ mod tests {
 		let mut found = file("f2", "linked", "2026-10-05T00:00:00.000Z");
 		found.as_obj_mut().unwrap().insert("foundByScan", true);
 		let record = json!({
-			"id": "cls_a", "name": "n", "description": "", "createdAt": "c", "updatedAt": "u", "archived": false, "linkedFolder": "/x",
+			"id": "cls_a", "name": "n", "description": "", "createdAt": "c", "updatedAt": "u", "closed": false, "linkedFolder": "/x",
 			"files": [file("f1", "copied", "2026-10-09T00:00:00.000Z"), found, file("f3", "linked", "2026-10-02T00:00:00.000Z")],
 			"icon": "cpu", "color": 2,
 		});
 		assert_eq!(
 			stringify(&summarize(&record)),
-			r#"{"id":"cls_a","name":"n","description":"","createdAt":"c","updatedAt":"u","archived":false,"linkedFolder":"/x","fileCount":3,"lastFoundAt":"2026-10-05T00:00:00.000Z","lastFolderFileAt":"2026-10-05T00:00:00.000Z","icon":"cpu","color":2,"filesLeft":0}"#
+			r#"{"id":"cls_a","name":"n","description":"","createdAt":"c","updatedAt":"u","closed":false,"linkedFolder":"/x","fileCount":3,"lastFoundAt":"2026-10-05T00:00:00.000Z","lastFolderFileAt":"2026-10-05T00:00:00.000Z","icon":"cpu","color":2,"filesLeft":0}"#
 		);
 	}
 
@@ -421,7 +432,7 @@ mod tests {
 	fn a_space_being_built_counts_the_files_left() {
 		let mut waiting = file("f2", "copied", "t");
 		waiting.as_obj_mut().unwrap().insert("status", "pending");
-		let mut record = json!({ "id": "cls_a", "name": "n", "description": "", "createdAt": "c", "updatedAt": "u", "archived": false, "files": [waiting.clone()], "color": 1 });
+		let mut record = json!({ "id": "cls_a", "name": "n", "description": "", "createdAt": "c", "updatedAt": "u", "closed": false, "files": [waiting.clone()], "color": 1 });
 		let summary = summarize(&record);
 		assert_eq!((summary["filesLeft"].clone(), summary["building"].clone()), (Json::from(1), Json::from(true)));
 		// A file read before this round: the teacher is adding to the space, not building it.

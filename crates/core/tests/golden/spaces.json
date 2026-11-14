@@ -21621,12 +21621,12 @@
 		"name": "space tool text",
 		"output": {
 			"tools": {
-				"list_spaces": "List the learner's spaces, archived ones included, with file and lesson counts.",
+				"list_spaces": "List the learner's spaces, closed ones included, with file and lesson counts.",
 				"read_space": "Read one space: its description, how many files are in each status (pending, extracting, ready, failed, needs-whisper) and the files that could not be read, the topics of its knowledge graph with their fact counts, its deadlines (kind, date, time, done, and the files each covers), its lessons, and today's local date and time. With files: true it lists every file instead (id, kind, status, size, path on disk). To find something inside the files, use search_space_files.",
 				"search_space_files": "Search all of a space's files (readings, slides, transcripts, syllabus, assignments) by meaning and keywords. Returns the best passages, each with its id, file, place (page, slide, time or lines) and a short snippet. Open the ones you need with read_passage instead of reading whole files.",
 				"read_passage": "Read one passage of a space file by its id from search_space_files, or a file's passages at a place (file_id + range, e.g. a whole page). Returns the text with the ids of the passages before and after it, to keep reading.",
 				"create_space": "Create a space for one thing the learner is studying (a university course, a certification, a language). The description is shown to the teacher in every lesson of the space: level, the book or source they follow, its notation, what they are working toward (a course's exams, an interview). Add the space's deadlines with add_space_deadline.",
-				"update_space": "Rename a space, change its description, signature or icon, or archive / unarchive it (archiving hides it from the space switcher but keeps everything; an archived space takes no new lessons).",
+				"update_space": "Rename a space, change its description, signature or icon, or close / reopen it (closing hides its tab but keeps everything; a closed space takes no new lessons).",
 				"add_space_file": "Copy a file from this computer into a space, or write one with name and text instead of path (one you wrote before by that name is replaced and keeps its id). Supported: .md .txt, code files (.c .py .java .js and the like), plain text with no extension, .pdf .docx .pptx .epub, .vtt .srt (transcripts) and .mp3 .m4a .wav .mp4 .mov (recordings, transcribed locally with whisper.cpp). Google Docs links (.gdoc) need saving as PDF or Word first. Study files are turned into facts by you, through wait_for_work.",
 				"set_space_file_kind": "Switch one or more space files between study material and space info. Study → info removes their facts; info → study builds them. A file that can't be switched is listed under refused; the others still switch.",
 				"add_space_deadline": "Add one or more deadlines to a space (send all of a space's deadlines in one call): exams, homework, quizzes, projects and interviews, each with its date, its time if it has one, and which of the space's files (notes, readings) it covers. godspeed uses this to show the learner what is due and what to work on first. Take the deadlines, their dates and times from the space info files (a syllabus, a schedule), and never make up a date or time. Work out what a deadline covers from the space's own files first: a practice exam or review sheet, the schedule, announcements (search_space_files). Link the files they point to (file_ids), list files from before it that it doesn't cover in left_out_ids, and say in source which file it came from. Ask only when the files don't settle it. File ids come from read_space with files: true. A deadline that is refused is listed under refused with the reason; the others are still added, so send only the refused ones again. For an interview: add the posting as space info, the interview with its date and time, What it's like.md as about_file_id, and a Study guide.md you write (study) in file_ids.",
@@ -21989,8 +21989,8 @@
 				"output": "lead"
 			},
 			{
-				"name": "Archived",
-				"output": "Archived"
+				"name": "Closed",
+				"output": "Closed"
 			},
 			{
 				"name": "READ ME.txt",
@@ -22062,7 +22062,7 @@
 				{
 					"id": "cls_a",
 					"name": "CSE 21",
-					"archived": false,
+					"closed": false,
 					"files": [
 						{
 							"id": "f_03a2bd274d71",
@@ -24798,7 +24798,7 @@
 				{
 					"id": "cls_b",
 					"name": "cse 21",
-					"archived": false,
+					"closed": false,
 					"files": [
 						{
 							"id": "f_c6f28cc5755d",
@@ -25535,8 +25535,8 @@
 				},
 				{
 					"id": "cls_c",
-					"name": "Archived",
-					"archived": false,
+					"name": "Closed",
+					"closed": false,
 					"files": [
 						{
 							"id": "s89",
@@ -25583,7 +25583,7 @@
 				{
 					"id": "cls_d",
 					"name": "Old: space?",
-					"archived": true,
+					"closed": true,
 					"files": [
 						{
 							"id": "s1",
@@ -26080,7 +26080,7 @@
 				{
 					"id": "cls_e",
 					"name": "old: space?",
-					"archived": true,
+					"closed": true,
 					"files": [
 						{
 							"id": "s93",
@@ -26117,13 +26117,13 @@
 				{
 					"id": "cls_f",
 					"name": "READ ME.txt",
-					"archived": false,
+					"closed": false,
 					"files": []
 				},
 				{
 					"id": "cls_g",
 					"name": "🎓 Grad",
-					"archived": false,
+					"closed": false,
 					"files": [
 						{
 							"id": "s96",
@@ -26146,14 +26146,14 @@
 					"cse 21 (2)"
 				],
 				"cls_c": [
-					"Archived (2)"
+					"Closed (2)"
 				],
 				"cls_d": [
-					"Archived",
+					"Closed",
 					"Old- space-"
 				],
 				"cls_e": [
-					"Archived",
+					"Closed",
 					"old- space- (2)"
 				],
 				"cls_f": [
@@ -28406,7 +28406,7 @@
 				},
 				{
 					"at": [
-						"Archived (2)",
+						"Closed (2)",
 						"Lecture",
 						"Lecture 1.pdf"
 					],
@@ -28414,7 +28414,7 @@
 				},
 				{
 					"at": [
-						"Archived (2)",
+						"Closed (2)",
 						"Lecture",
 						"Lecture 1 transcript.vtt"
 					],
@@ -28422,7 +28422,7 @@
 				},
 				{
 					"at": [
-						"Archived (2)",
+						"Closed (2)",
 						"Lecture",
 						"Lecture 2.pdf"
 					],
@@ -28430,7 +28430,7 @@
 				},
 				{
 					"at": [
-						"Archived (2)",
+						"Closed (2)",
 						"Lecture",
 						"Lecture 2 transcript.vtt"
 					],
@@ -28438,7 +28438,7 @@
 				},
 				{
 					"at": [
-						"Archived",
+						"Closed",
 						"Old- space-",
 						"CSE21 HW",
 						"CSE21 HW1.pdf"
@@ -28447,7 +28447,7 @@
 				},
 				{
 					"at": [
-						"Archived",
+						"Closed",
 						"Old- space-",
 						"CSE21 HW",
 						"CSE21 HW2.pdf"
@@ -28456,7 +28456,7 @@
 				},
 				{
 					"at": [
-						"Archived",
+						"Closed",
 						"Old- space-",
 						"Day, notes",
 						"Day1 notes 📚.pdf"
@@ -28465,7 +28465,7 @@
 				},
 				{
 					"at": [
-						"Archived",
+						"Closed",
 						"Old- space-",
 						"Day, notes",
 						"Day2 notes 📚.pdf"
@@ -28474,7 +28474,7 @@
 				},
 				{
 					"at": [
-						"Archived",
+						"Closed",
 						"Old- space-",
 						"Day, notes",
 						"Day3 notes 📚.pdf"
@@ -28483,7 +28483,7 @@
 				},
 				{
 					"at": [
-						"Archived",
+						"Closed",
 						"Old- space-",
 						"Day, notes",
 						"Day10 notes 📚.pdf"
@@ -28492,7 +28492,7 @@
 				},
 				{
 					"at": [
-						"Archived",
+						"Closed",
 						"Old- space-",
 						"Lecture",
 						"Lecture 01 2026-09-24.pdf"
@@ -28501,7 +28501,7 @@
 				},
 				{
 					"at": [
-						"Archived",
+						"Closed",
 						"Old- space-",
 						"Lecture",
 						"Lecture 01 2026-09-24 transcript.vtt"
@@ -28510,7 +28510,7 @@
 				},
 				{
 					"at": [
-						"Archived",
+						"Closed",
 						"Old- space-",
 						"Lecture",
 						"Lecture 02 20260926.pdf"
@@ -28519,7 +28519,7 @@
 				},
 				{
 					"at": [
-						"Archived",
+						"Closed",
 						"Old- space-",
 						"Lecture",
 						"Lecture 02 20260926 transcript.vtt"
@@ -28528,7 +28528,7 @@
 				},
 				{
 					"at": [
-						"Archived",
+						"Closed",
 						"Old- space-",
 						"Lecture",
 						"Lecture 03 2026-10-01.pdf"
@@ -28537,7 +28537,7 @@
 				},
 				{
 					"at": [
-						"Archived",
+						"Closed",
 						"Old- space-",
 						"Lecture",
 						"Lecture 03 2026-10-01 transcript.vtt"
@@ -28546,7 +28546,7 @@
 				},
 				{
 					"at": [
-						"Archived",
+						"Closed",
 						"Old- space-",
 						"Lecture",
 						"Lecture 3 recording.mp4"
@@ -28555,7 +28555,7 @@
 				},
 				{
 					"at": [
-						"Archived",
+						"Closed",
 						"Old- space-",
 						"Lecture",
 						"Lecture 04 20261003.pdf"
@@ -28564,7 +28564,7 @@
 				},
 				{
 					"at": [
-						"Archived",
+						"Closed",
 						"Old- space-",
 						"Lecture",
 						"Lecture 04 20261003 transcript.vtt"
@@ -28573,7 +28573,7 @@
 				},
 				{
 					"at": [
-						"Archived",
+						"Closed",
 						"Old- space-",
 						"Lecture",
 						"Lecture 5 2026-10-08.mp4"
@@ -28582,7 +28582,7 @@
 				},
 				{
 					"at": [
-						"Archived",
+						"Closed",
 						"Old- space-",
 						"Lecture",
 						"lecture_6.srt"
@@ -28591,7 +28591,7 @@
 				},
 				{
 					"at": [
-						"Archived",
+						"Closed",
 						"Old- space-",
 						"Numbered",
 						"01_Intro.pdf"
@@ -28600,7 +28600,7 @@
 				},
 				{
 					"at": [
-						"Archived",
+						"Closed",
 						"Old- space-",
 						"Numbered",
 						"06_Sets.pdf"
@@ -28609,7 +28609,7 @@
 				},
 				{
 					"at": [
-						"Archived",
+						"Closed",
 						"Old- space-",
 						"Numbered",
 						"07_Probability.pdf"
@@ -28618,7 +28618,7 @@
 				},
 				{
 					"at": [
-						"Archived",
+						"Closed",
 						"Old- space-",
 						"Numbered",
 						"08_Logic.pdf"
@@ -28627,7 +28627,7 @@
 				},
 				{
 					"at": [
-						"Archived",
+						"Closed",
 						"Old- space-",
 						"Numbered",
 						"29-fa26-l3.pdf"
@@ -28636,7 +28636,7 @@
 				},
 				{
 					"at": [
-						"Archived",
+						"Closed",
 						"Old- space-",
 						"Numbered",
 						"29-fa26-l4.pdf"
@@ -28645,7 +28645,7 @@
 				},
 				{
 					"at": [
-						"Archived",
+						"Closed",
 						"Old- space-",
 						"Numbered",
 						"29-fa26-l5.pdf"
@@ -28654,7 +28654,7 @@
 				},
 				{
 					"at": [
-						"Archived",
+						"Closed",
 						"Old- space-",
 						"Numbered",
 						"120260924.pdf"
@@ -28663,7 +28663,7 @@
 				},
 				{
 					"at": [
-						"Archived",
+						"Closed",
 						"Old- space-",
 						"Numbered",
 						"2026092412.pdf"
@@ -28672,7 +28672,7 @@
 				},
 				{
 					"at": [
-						"Archived",
+						"Closed",
 						"Old- space-",
 						"PS, F26",
 						"PS3_F26.pdf"
@@ -28681,7 +28681,7 @@
 				},
 				{
 					"at": [
-						"Archived",
+						"Closed",
 						"Old- space-",
 						"PS, F26",
 						"PS4_F26.pdf"
@@ -28690,7 +28690,7 @@
 				},
 				{
 					"at": [
-						"Archived",
+						"Closed",
 						"Old- space-",
 						"PS, F26",
 						"PS5_F26.pdf"
@@ -28699,7 +28699,7 @@
 				},
 				{
 					"at": [
-						"Archived",
+						"Closed",
 						"Old- space-",
 						"Quiz",
 						"Quiz 1.pdf"
@@ -28708,7 +28708,7 @@
 				},
 				{
 					"at": [
-						"Archived",
+						"Closed",
 						"Old- space-",
 						"Quiz",
 						"Quiz 2.pdf"
@@ -28717,7 +28717,7 @@
 				},
 				{
 					"at": [
-						"Archived",
+						"Closed",
 						"Old- space-",
 						"ünïcödé",
 						"ünïcödé 3.md"
@@ -28726,7 +28726,7 @@
 				},
 				{
 					"at": [
-						"Archived",
+						"Closed",
 						"Old- space-",
 						"ünïcödé",
 						"ünïcödé 4.md"
@@ -28735,7 +28735,7 @@
 				},
 				{
 					"at": [
-						"Archived",
+						"Closed",
 						"Old- space-",
 						"Week, Discussion",
 						"Week 1 Discussion.pdf"
@@ -28744,7 +28744,7 @@
 				},
 				{
 					"at": [
-						"Archived",
+						"Closed",
 						"Old- space-",
 						"Week, Discussion",
 						"Week 1 Late Discussion.pdf"
@@ -28753,7 +28753,7 @@
 				},
 				{
 					"at": [
-						"Archived",
+						"Closed",
 						"Old- space-",
 						"Week, Discussion",
 						"Week 2 Discussion.pdf"
@@ -28762,7 +28762,7 @@
 				},
 				{
 					"at": [
-						"Archived",
+						"Closed",
 						"Old- space-",
 						"Week, Discussion",
 						"Week 2 Late Discussion.pdf"
@@ -28771,7 +28771,7 @@
 				},
 				{
 					"at": [
-						"Archived",
+						"Closed",
 						"Old- space-",
 						"Week, Discussion",
 						"Week 3 Discussion.pdf"
@@ -28780,7 +28780,7 @@
 				},
 				{
 					"at": [
-						"Archived",
+						"Closed",
 						"Old- space-",
 						"Other",
 						".hidden"
@@ -28789,7 +28789,7 @@
 				},
 				{
 					"at": [
-						"Archived",
+						"Closed",
 						"Old- space-",
 						"Other",
 						"🎓 syllabus 😀.pdf"
@@ -28798,7 +28798,7 @@
 				},
 				{
 					"at": [
-						"Archived",
+						"Closed",
 						"Old- space-",
 						"Other",
 						"20260924.pdf"
@@ -28807,7 +28807,7 @@
 				},
 				{
 					"at": [
-						"Archived",
+						"Closed",
 						"Old- space-",
 						"Other",
 						"a.b.c.docx"
@@ -28816,7 +28816,7 @@
 				},
 				{
 					"at": [
-						"Archived",
+						"Closed",
 						"Old- space-",
 						"Other",
 						"Makefile"
@@ -28825,7 +28825,7 @@
 				},
 				{
 					"at": [
-						"Archived",
+						"Closed",
 						"Old- space-",
 						"Other",
 						"midterm practice (2026-11-04).pdf"
@@ -28834,7 +28834,7 @@
 				},
 				{
 					"at": [
-						"Archived",
+						"Closed",
 						"Old- space-",
 						"Other",
 						"notes (copy).txt"
@@ -28843,7 +28843,7 @@
 				},
 				{
 					"at": [
-						"Archived",
+						"Closed",
 						"Old- space-",
 						"Other",
 						"README"
@@ -28852,7 +28852,7 @@
 				},
 				{
 					"at": [
-						"Archived",
+						"Closed",
 						"Old- space-",
 						"Other",
 						"Review week 4.pdf"
@@ -28861,7 +28861,7 @@
 				},
 				{
 					"at": [
-						"Archived",
+						"Closed",
 						"Old- space-",
 						"Other",
 						"slides 20261301.pdf"
@@ -28870,7 +28870,7 @@
 				},
 				{
 					"at": [
-						"Archived",
+						"Closed",
 						"Old- space-",
 						"Other",
 						"x 2026-09-24 y 20261224.pdf"
@@ -28879,7 +28879,7 @@
 				},
 				{
 					"at": [
-						"Archived",
+						"Closed",
 						"old- space- (2)",
 						"Other",
 						"a.pdf"
@@ -28888,7 +28888,7 @@
 				},
 				{
 					"at": [
-						"Archived",
+						"Closed",
 						"old- space- (2)",
 						"Other",
 						"a (2).pdf"
@@ -28897,7 +28897,7 @@
 				},
 				{
 					"at": [
-						"Archived",
+						"Closed",
 						"old- space- (2)",
 						"Other",
 						"A (3).PDF"
@@ -34086,7 +34086,7 @@
 					{
 						"id": "cls_cvq4t7in_101dfecb",
 						"name": "CSE 21",
-						"archived": false,
+						"closed": false,
 						"deadlines": [
 							{
 								"id": "ddl_49d23b6ea4ca",
@@ -34317,7 +34317,7 @@
 					{
 						"id": "cls_cvq4t7n0_31e7df8c",
 						"name": "CSE 29",
-						"archived": false,
+						"closed": false,
 						"deadlines": [
 							{
 								"id": "ddl_7375d4b64331",
@@ -34415,7 +34415,7 @@
 					{
 						"id": "cls_old",
 						"name": "Old space",
-						"archived": true,
+						"closed": true,
 						"deadlines": [
 							{
 								"id": "x",
@@ -34434,7 +34434,7 @@
 					{
 						"id": "cls_new",
 						"name": "Brand new 🆕",
-						"archived": false,
+						"closed": false,
 						"deadlines": [
 							{
 								"id": "n1",
@@ -34538,7 +34538,7 @@
 					{
 						"id": "cls_cvq4t7in_101dfecb",
 						"name": "CSE 21",
-						"archived": false,
+						"closed": false,
 						"deadlines": [
 							{
 								"id": "ddl_49d23b6ea4ca",
@@ -34769,7 +34769,7 @@
 					{
 						"id": "cls_cvq4t7n0_31e7df8c",
 						"name": "CSE 29",
-						"archived": false,
+						"closed": false,
 						"deadlines": [
 							{
 								"id": "ddl_7375d4b64331",
@@ -34867,7 +34867,7 @@
 					{
 						"id": "cls_old",
 						"name": "Old space",
-						"archived": true,
+						"closed": true,
 						"deadlines": [
 							{
 								"id": "x",
@@ -34886,7 +34886,7 @@
 					{
 						"id": "cls_new",
 						"name": "Brand new 🆕",
-						"archived": false,
+						"closed": false,
 						"deadlines": [
 							{
 								"id": "n1",
@@ -34990,7 +34990,7 @@
 					{
 						"id": "cls_cvq4t7in_101dfecb",
 						"name": "CSE 21",
-						"archived": false,
+						"closed": false,
 						"deadlines": [
 							{
 								"id": "ddl_49d23b6ea4ca",
@@ -35221,7 +35221,7 @@
 					{
 						"id": "cls_cvq4t7n0_31e7df8c",
 						"name": "CSE 29",
-						"archived": false,
+						"closed": false,
 						"deadlines": [
 							{
 								"id": "ddl_7375d4b64331",
@@ -35319,7 +35319,7 @@
 					{
 						"id": "cls_old",
 						"name": "Old space",
-						"archived": true,
+						"closed": true,
 						"deadlines": [
 							{
 								"id": "x",
@@ -35338,7 +35338,7 @@
 					{
 						"id": "cls_new",
 						"name": "Brand new 🆕",
-						"archived": false,
+						"closed": false,
 						"deadlines": [
 							{
 								"id": "n1",
@@ -35442,7 +35442,7 @@
 					{
 						"id": "cls_cvq4t7in_101dfecb",
 						"name": "CSE 21",
-						"archived": false,
+						"closed": false,
 						"deadlines": [
 							{
 								"id": "ddl_49d23b6ea4ca",
@@ -35673,7 +35673,7 @@
 					{
 						"id": "cls_cvq4t7n0_31e7df8c",
 						"name": "CSE 29",
-						"archived": false,
+						"closed": false,
 						"deadlines": [
 							{
 								"id": "ddl_7375d4b64331",
@@ -35771,7 +35771,7 @@
 					{
 						"id": "cls_old",
 						"name": "Old space",
-						"archived": true,
+						"closed": true,
 						"deadlines": [
 							{
 								"id": "x",
@@ -35790,7 +35790,7 @@
 					{
 						"id": "cls_new",
 						"name": "Brand new 🆕",
-						"archived": false,
+						"closed": false,
 						"deadlines": [
 							{
 								"id": "n1",
@@ -35894,7 +35894,7 @@
 					{
 						"id": "cls_cvq4t7in_101dfecb",
 						"name": "CSE 21",
-						"archived": false,
+						"closed": false,
 						"deadlines": [
 							{
 								"id": "ddl_49d23b6ea4ca",
@@ -36125,7 +36125,7 @@
 					{
 						"id": "cls_cvq4t7n0_31e7df8c",
 						"name": "CSE 29",
-						"archived": false,
+						"closed": false,
 						"deadlines": [
 							{
 								"id": "ddl_7375d4b64331",
@@ -36223,7 +36223,7 @@
 					{
 						"id": "cls_old",
 						"name": "Old space",
-						"archived": true,
+						"closed": true,
 						"deadlines": [
 							{
 								"id": "x",
@@ -36242,7 +36242,7 @@
 					{
 						"id": "cls_new",
 						"name": "Brand new 🆕",
-						"archived": false,
+						"closed": false,
 						"deadlines": [
 							{
 								"id": "n1",
@@ -36346,7 +36346,7 @@
 					{
 						"id": "cls_cvq4t7in_101dfecb",
 						"name": "CSE 21",
-						"archived": false,
+						"closed": false,
 						"deadlines": [
 							{
 								"id": "ddl_49d23b6ea4ca",
@@ -36577,7 +36577,7 @@
 					{
 						"id": "cls_cvq4t7n0_31e7df8c",
 						"name": "CSE 29",
-						"archived": false,
+						"closed": false,
 						"deadlines": [
 							{
 								"id": "ddl_7375d4b64331",
@@ -36675,7 +36675,7 @@
 					{
 						"id": "cls_old",
 						"name": "Old space",
-						"archived": true,
+						"closed": true,
 						"deadlines": [
 							{
 								"id": "x",
@@ -36694,7 +36694,7 @@
 					{
 						"id": "cls_new",
 						"name": "Brand new 🆕",
-						"archived": false,
+						"closed": false,
 						"deadlines": [
 							{
 								"id": "n1",
@@ -36798,7 +36798,7 @@
 					{
 						"id": "cls_cvq4t7in_101dfecb",
 						"name": "CSE 21",
-						"archived": false,
+						"closed": false,
 						"deadlines": [
 							{
 								"id": "ddl_49d23b6ea4ca",
@@ -37029,7 +37029,7 @@
 					{
 						"id": "cls_cvq4t7n0_31e7df8c",
 						"name": "CSE 29",
-						"archived": false,
+						"closed": false,
 						"deadlines": [
 							{
 								"id": "ddl_7375d4b64331",
@@ -37127,7 +37127,7 @@
 					{
 						"id": "cls_old",
 						"name": "Old space",
-						"archived": true,
+						"closed": true,
 						"deadlines": [
 							{
 								"id": "x",
@@ -37146,7 +37146,7 @@
 					{
 						"id": "cls_new",
 						"name": "Brand new 🆕",
-						"archived": false,
+						"closed": false,
 						"deadlines": [
 							{
 								"id": "n1",
@@ -37250,7 +37250,7 @@
 					{
 						"id": "cls_cvq4t7in_101dfecb",
 						"name": "CSE 21",
-						"archived": false,
+						"closed": false,
 						"deadlines": [
 							{
 								"id": "ddl_49d23b6ea4ca",
@@ -37481,7 +37481,7 @@
 					{
 						"id": "cls_cvq4t7n0_31e7df8c",
 						"name": "CSE 29",
-						"archived": false,
+						"closed": false,
 						"deadlines": [
 							{
 								"id": "ddl_7375d4b64331",
@@ -37579,7 +37579,7 @@
 					{
 						"id": "cls_old",
 						"name": "Old space",
-						"archived": true,
+						"closed": true,
 						"deadlines": [
 							{
 								"id": "x",
@@ -37598,7 +37598,7 @@
 					{
 						"id": "cls_new",
 						"name": "Brand new 🆕",
-						"archived": false,
+						"closed": false,
 						"deadlines": [
 							{
 								"id": "n1",
@@ -37702,7 +37702,7 @@
 					{
 						"id": "cls_cvq4t7in_101dfecb",
 						"name": "CSE 21",
-						"archived": false,
+						"closed": false,
 						"deadlines": [
 							{
 								"id": "ddl_49d23b6ea4ca",
@@ -37933,7 +37933,7 @@
 					{
 						"id": "cls_cvq4t7n0_31e7df8c",
 						"name": "CSE 29",
-						"archived": false,
+						"closed": false,
 						"deadlines": [
 							{
 								"id": "ddl_7375d4b64331",
@@ -38031,7 +38031,7 @@
 					{
 						"id": "cls_old",
 						"name": "Old space",
-						"archived": true,
+						"closed": true,
 						"deadlines": [
 							{
 								"id": "x",
@@ -38050,7 +38050,7 @@
 					{
 						"id": "cls_new",
 						"name": "Brand new 🆕",
-						"archived": false,
+						"closed": false,
 						"deadlines": [
 							{
 								"id": "n1",
@@ -38154,7 +38154,7 @@
 					{
 						"id": "cls_cvq4t7in_101dfecb",
 						"name": "CSE 21",
-						"archived": false,
+						"closed": false,
 						"deadlines": [
 							{
 								"id": "ddl_49d23b6ea4ca",
@@ -38385,7 +38385,7 @@
 					{
 						"id": "cls_cvq4t7n0_31e7df8c",
 						"name": "CSE 29",
-						"archived": false,
+						"closed": false,
 						"deadlines": [
 							{
 								"id": "ddl_7375d4b64331",
@@ -38483,7 +38483,7 @@
 					{
 						"id": "cls_old",
 						"name": "Old space",
-						"archived": true,
+						"closed": true,
 						"deadlines": [
 							{
 								"id": "x",
@@ -38502,7 +38502,7 @@
 					{
 						"id": "cls_new",
 						"name": "Brand new 🆕",
-						"archived": false,
+						"closed": false,
 						"deadlines": [
 							{
 								"id": "n1",
@@ -38606,7 +38606,7 @@
 					{
 						"id": "cls_cvq4t7in_101dfecb",
 						"name": "CSE 21",
-						"archived": false,
+						"closed": false,
 						"deadlines": [
 							{
 								"id": "ddl_49d23b6ea4ca",
@@ -38837,7 +38837,7 @@
 					{
 						"id": "cls_cvq4t7n0_31e7df8c",
 						"name": "CSE 29",
-						"archived": false,
+						"closed": false,
 						"deadlines": [
 							{
 								"id": "ddl_7375d4b64331",
@@ -38935,7 +38935,7 @@
 					{
 						"id": "cls_old",
 						"name": "Old space",
-						"archived": true,
+						"closed": true,
 						"deadlines": [
 							{
 								"id": "x",
@@ -38954,7 +38954,7 @@
 					{
 						"id": "cls_new",
 						"name": "Brand new 🆕",
-						"archived": false,
+						"closed": false,
 						"deadlines": [
 							{
 								"id": "n1",
@@ -39058,7 +39058,7 @@
 					{
 						"id": "cls_cvq4t7in_101dfecb",
 						"name": "CSE 21",
-						"archived": false,
+						"closed": false,
 						"deadlines": [
 							{
 								"id": "ddl_49d23b6ea4ca",
@@ -39289,7 +39289,7 @@
 					{
 						"id": "cls_cvq4t7n0_31e7df8c",
 						"name": "CSE 29",
-						"archived": false,
+						"closed": false,
 						"deadlines": [
 							{
 								"id": "ddl_7375d4b64331",
@@ -39387,7 +39387,7 @@
 					{
 						"id": "cls_old",
 						"name": "Old space",
-						"archived": true,
+						"closed": true,
 						"deadlines": [
 							{
 								"id": "x",
@@ -39406,7 +39406,7 @@
 					{
 						"id": "cls_new",
 						"name": "Brand new 🆕",
-						"archived": false,
+						"closed": false,
 						"deadlines": [
 							{
 								"id": "n1",
@@ -39510,7 +39510,7 @@
 					{
 						"id": "cls_cvq4t7in_101dfecb",
 						"name": "CSE 21",
-						"archived": false,
+						"closed": false,
 						"deadlines": [
 							{
 								"id": "ddl_49d23b6ea4ca",
@@ -39741,7 +39741,7 @@
 					{
 						"id": "cls_cvq4t7n0_31e7df8c",
 						"name": "CSE 29",
-						"archived": false,
+						"closed": false,
 						"deadlines": [
 							{
 								"id": "ddl_7375d4b64331",
@@ -39839,7 +39839,7 @@
 					{
 						"id": "cls_old",
 						"name": "Old space",
-						"archived": true,
+						"closed": true,
 						"deadlines": [
 							{
 								"id": "x",
@@ -39858,7 +39858,7 @@
 					{
 						"id": "cls_new",
 						"name": "Brand new 🆕",
-						"archived": false,
+						"closed": false,
 						"deadlines": [
 							{
 								"id": "n1",
@@ -39962,7 +39962,7 @@
 					{
 						"id": "cls_cvq4t7in_101dfecb",
 						"name": "CSE 21",
-						"archived": false,
+						"closed": false,
 						"deadlines": [
 							{
 								"id": "ddl_49d23b6ea4ca",
@@ -40193,7 +40193,7 @@
 					{
 						"id": "cls_cvq4t7n0_31e7df8c",
 						"name": "CSE 29",
-						"archived": false,
+						"closed": false,
 						"deadlines": [
 							{
 								"id": "ddl_7375d4b64331",
@@ -40291,7 +40291,7 @@
 					{
 						"id": "cls_old",
 						"name": "Old space",
-						"archived": true,
+						"closed": true,
 						"deadlines": [
 							{
 								"id": "x",
@@ -40310,7 +40310,7 @@
 					{
 						"id": "cls_new",
 						"name": "Brand new 🆕",
-						"archived": false,
+						"closed": false,
 						"deadlines": [
 							{
 								"id": "n1",
@@ -40414,7 +40414,7 @@
 					{
 						"id": "cls_cvq4t7in_101dfecb",
 						"name": "CSE 21",
-						"archived": false,
+						"closed": false,
 						"deadlines": [
 							{
 								"id": "ddl_49d23b6ea4ca",
@@ -40645,7 +40645,7 @@
 					{
 						"id": "cls_cvq4t7n0_31e7df8c",
 						"name": "CSE 29",
-						"archived": false,
+						"closed": false,
 						"deadlines": [
 							{
 								"id": "ddl_7375d4b64331",
@@ -40743,7 +40743,7 @@
 					{
 						"id": "cls_old",
 						"name": "Old space",
-						"archived": true,
+						"closed": true,
 						"deadlines": [
 							{
 								"id": "x",
@@ -40762,7 +40762,7 @@
 					{
 						"id": "cls_new",
 						"name": "Brand new 🆕",
-						"archived": false,
+						"closed": false,
 						"deadlines": [
 							{
 								"id": "n1",
@@ -40874,7 +40874,7 @@
 					{
 						"id": "cls_old",
 						"name": "Old space",
-						"archived": true,
+						"closed": true,
 						"deadlines": [
 							{
 								"id": "x",
@@ -40902,7 +40902,7 @@
 					{
 						"id": "cls_cvq4t7in_101dfecb",
 						"name": "CSE 21",
-						"archived": false,
+						"closed": false,
 						"deadlines": [
 							{
 								"id": "ddl_49d23b6ea4ca",
@@ -41133,7 +41133,7 @@
 					{
 						"id": "cls_cvq4t7n0_31e7df8c",
 						"name": "CSE 29",
-						"archived": false,
+						"closed": false,
 						"deadlines": [
 							{
 								"id": "ddl_7375d4b64331",
@@ -41231,7 +41231,7 @@
 					{
 						"id": "cls_old",
 						"name": "Old space",
-						"archived": true,
+						"closed": true,
 						"deadlines": [
 							{
 								"id": "x",
@@ -41250,7 +41250,7 @@
 					{
 						"id": "cls_new",
 						"name": "Brand new 🆕",
-						"archived": false,
+						"closed": false,
 						"deadlines": [
 							{
 								"id": "n1",
@@ -41313,7 +41313,7 @@
 					{
 						"id": "cls_cvq4t7in_101dfecb",
 						"name": "CSE 21",
-						"archived": false,
+						"closed": false,
 						"deadlines": [
 							{
 								"id": "ddl_49d23b6ea4ca",
@@ -41544,7 +41544,7 @@
 					{
 						"id": "cls_cvq4t7n0_31e7df8c",
 						"name": "CSE 29",
-						"archived": false,
+						"closed": false,
 						"deadlines": [
 							{
 								"id": "ddl_7375d4b64331",
@@ -41642,7 +41642,7 @@
 					{
 						"id": "cls_old",
 						"name": "Old space",
-						"archived": true,
+						"closed": true,
 						"deadlines": [
 							{
 								"id": "x",
@@ -41661,7 +41661,7 @@
 					{
 						"id": "cls_new",
 						"name": "Brand new 🆕",
-						"archived": false,
+						"closed": false,
 						"deadlines": [
 							{
 								"id": "n1",
@@ -41755,7 +41755,7 @@
 				{
 					"id": "cls_a",
 					"name": "CSE 21",
-					"archived": false,
+					"closed": false,
 					"files": [
 						{
 							"id": "f1",
@@ -41819,8 +41819,8 @@
 				},
 				{
 					"id": "cls_b",
-					"name": "Archived",
-					"archived": true,
+					"name": "Closed",
+					"closed": true,
 					"files": [
 						{
 							"id": "f1",
@@ -41842,7 +41842,7 @@
 				{
 					"id": "cls_c",
 					"name": "No study file",
-					"archived": false,
+					"closed": false,
 					"files": [
 						{
 							"id": "f",
@@ -41869,7 +41869,7 @@
 				{
 					"id": "cls_d",
 					"name": "Empty time 🕐",
-					"archived": false,
+					"closed": false,
 					"files": [
 						{
 							"id": "f1",
@@ -41900,7 +41900,7 @@
 				{
 					"id": "cls_e",
 					"name": "No deadlines",
-					"archived": false,
+					"closed": false,
 					"files": [
 						{
 							"id": "f1",

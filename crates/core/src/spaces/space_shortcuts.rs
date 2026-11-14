@@ -1,5 +1,5 @@
 //! The godspeed folder's spaces/: where each space file's shortcut goes, grouped like the Files
-//! page (spaces/<space>/<group>/<file>, archived spaces under spaces/Archived/). Names are
+//! page (spaces/<space>/<group>/<file>, closed spaces under spaces/Closed/). Names are
 //! made safe on every OS, and two of one name get " (2)".
 
 use std::collections::{HashMap, HashSet};
@@ -10,7 +10,7 @@ use gs_json::Json;
 
 use super::file_groups::file_groups;
 
-const ARCHIVED_DIR: &str = "Archived";
+const CLOSED_DIR: &str = "Closed";
 pub const README_NAME: &str = "READ ME.txt";
 
 /// A file or folder name every OS accepts: reserved characters become "-", trailing dots and
@@ -59,22 +59,22 @@ pub struct Shortcut {
 }
 
 /// Each space's folder under spaces/ (path segments), by space id. Spaces are records with
-/// `id`, `name` and `archived`.
+/// `id`, `name` and `closed`.
 pub fn space_dirs(spaces: &[Json]) -> HashMap<String, Vec<String>> {
 	let mut out = HashMap::new();
-	let mut top: HashSet<String> = [ARCHIVED_DIR, README_NAME].iter().map(|n| n.to_lowercase()).collect();
-	let mut archived = HashSet::new();
+	let mut top: HashSet<String> = [CLOSED_DIR, README_NAME].iter().map(|n| n.to_lowercase()).collect();
+	let mut closed = HashSet::new();
 	for space in spaces {
-		let is_archived = space["archived"].truthy();
-		let dir = unique_name(&safe_entry_name(space["name"].as_str().unwrap_or("")), if is_archived { &mut archived } else { &mut top });
-		let path = if is_archived { vec![ARCHIVED_DIR.to_owned(), dir] } else { vec![dir] };
+		let is_closed = space["closed"].truthy();
+		let dir = unique_name(&safe_entry_name(space["name"].as_str().unwrap_or("")), if is_closed { &mut closed } else { &mut top });
+		let path = if is_closed { vec![CLOSED_DIR.to_owned(), dir] } else { vec![dir] };
 		out.insert(space["id"].as_str().unwrap_or("").to_owned(), path);
 	}
 	out
 }
 
 /// Every shortcut spaces/ should hold, in Files page order. Spaces are records with `id`,
-/// `name`, `archived` and `files`.
+/// `name`, `closed` and `files`.
 pub fn shortcut_layout(spaces: &[Json]) -> Vec<Shortcut> {
 	let mut out = Vec::new();
 	let dirs = space_dirs(spaces);
@@ -135,11 +135,11 @@ mod tests {
 	}
 
 	#[test]
-	fn archived_spaces_go_under_archived() {
-		let spaces = [json!({ "id": "x", "name": "Archived", "archived": false }), json!({ "id": "y", "name": "Old", "archived": true })];
+	fn closed_spaces_go_under_closed() {
+		let spaces = [json!({ "id": "x", "name": "Closed", "closed": false }), json!({ "id": "y", "name": "Old", "closed": true })];
 		let dirs = space_dirs(&spaces);
-		assert_eq!(dirs["x"], ["Archived (2)"]);
-		assert_eq!(dirs["y"], ["Archived", "Old"]);
+		assert_eq!(dirs["x"], ["Closed (2)"]);
+		assert_eq!(dirs["y"], ["Closed", "Old"]);
 	}
 
 	#[test]

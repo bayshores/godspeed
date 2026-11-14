@@ -1256,12 +1256,12 @@
 					"mcp-method": "tools/call",
 					"mcp-name": "update_space"
 				},
-				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"update_space\",\"arguments\":{\"space_id\":1,\"name\":\"\",\"archived\":\"yes\",\"icon\":3},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
+				"body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"update_space\",\"arguments\":{\"space_id\":1,\"name\":\"\",\"closed\":\"yes\",\"icon\":3},\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientCapabilities\":{}}}}"
 			},
 			"status": 200,
 			"type": "application/json",
 			"allow": null,
-			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool update_space: space_id: Invalid input: expected string, received number, name: Too small: expected string to have >=1 characters, icon: Invalid option: expected one of \\\"cpu\\\"|\\\"code\\\"|\\\"sigma\\\"|\\\"chart-line\\\"|\\\"atom\\\"|\\\"flask-conical\\\"|\\\"dna\\\"|\\\"brain\\\"|\\\"landmark\\\"|\\\"scale\\\"|\\\"trending-up\\\"|\\\"globe\\\"|\\\"languages\\\"|\\\"book-open\\\"|\\\"palette\\\"|\\\"music\\\", archived: Invalid input: expected boolean, received string\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.50\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
+			"body": "{\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool update_space: space_id: Invalid input: expected string, received number, name: Too small: expected string to have >=1 characters, icon: Invalid option: expected one of \\\"cpu\\\"|\\\"code\\\"|\\\"sigma\\\"|\\\"chart-line\\\"|\\\"atom\\\"|\\\"flask-conical\\\"|\\\"dna\\\"|\\\"brain\\\"|\\\"landmark\\\"|\\\"scale\\\"|\\\"trending-up\\\"|\\\"globe\\\"|\\\"languages\\\"|\\\"book-open\\\"|\\\"palette\\\"|\\\"music\\\", closed: Invalid input: expected boolean, received string\"}],\"isError\":true,\"resultType\":\"complete\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"godspeed\",\"version\":\"0.5.50\"}}},\"jsonrpc\":\"2.0\",\"id\":1}"
 		}
 	},
 	{

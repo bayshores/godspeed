@@ -97,7 +97,7 @@ def graph_dir(root, space_id=None):
 
 
 def load_spaces(root):
-    """Space records (spaces/<id>/space.json, class.json before the rename): id, name, description, archived, file count."""
+    """Space records (spaces/<id>/space.json, class.json before the rename): id, name, description, closed, file count."""
     base = spaces_dir(root)
     folder = safe_path(root, base)
     spaces = []
@@ -115,7 +115,8 @@ def load_spaces(root):
         files = record.get("files") if isinstance(record.get("files"), list) else []
         spaces.append({
             "id": path.name, "name": record["name"], "description": record.get("description") or "",
-            "archived": record.get("archived") is True, "files": len(files),
+            # A space closed before the rename was saved as "archived".
+            "closed": record.get("closed") is True or record.get("archived") is True, "files": len(files),
             "studyFiles": sum(1 for f in files if isinstance(f, dict) and f.get("kind") == "study"),
         })
     return spaces
@@ -317,8 +318,8 @@ def main(argv=None):
                 if not spaces:
                     print("No spaces. Every lesson is in \"No space\" (the default graph).")
                 for item in spaces:
-                    archived = " (archived)" if item["archived"] else ""
-                    print(f"## {item['name']}{archived} (`{item['id']}`)\n")
+                    closed = " (closed)" if item["closed"] else ""
+                    print(f"## {item['name']}{closed} (`{item['id']}`)\n")
                     print(f"- Files: {item['files']} ({item['studyFiles']} study material)")
                     if item["description"]:
                         print(f"- About: {item['description']}")

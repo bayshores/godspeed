@@ -338,7 +338,7 @@ pub(super) fn reindex_kept_pages(app: &Arc<App>, space_id: &str, file_id: &str) 
 /// index), one file at a time in the background.
 async fn index_unindexed_files(app: &Arc<App>) {
 	for summary in app.stores.spaces.list_spaces() {
-		if summary["archived"].truthy() {
+		if summary["closed"].truthy() {
 			continue;
 		}
 		let Some(record) = app.stores.spaces.get_space(str_of(&summary, "id")) else { continue };
@@ -357,7 +357,7 @@ async fn index_unindexed_files(app: &Arc<App>) {
 /// Queues every file left waiting or unfinished (app start, the graph turned back on).
 pub fn queue_waiting_files(app: &Arc<App>) {
 	for record in app.stores.spaces.list_space_records() {
-		if record["archived"].truthy() {
+		if record["closed"].truthy() {
 			continue;
 		}
 		for file in files_of(&record) {
@@ -382,7 +382,7 @@ pub fn start_space_scanner(app: &Arc<App>) {
 			clock::sleep_until(due).await;
 			due = clock::now_ms() + SCAN_PERIOD_MS;
 			for summary in timer.stores.spaces.list_spaces() {
-				if !summary["archived"].truthy() && summary["linkedFolder"].truthy() {
+				if !summary["closed"].truthy() && summary["linkedFolder"].truthy() {
 					scan_linked_folder(&timer, str_of(&summary, "id"), false);
 				}
 			}
@@ -393,7 +393,7 @@ pub fn start_space_scanner(app: &Arc<App>) {
 		clock::sleep(STARTUP_SCAN_DELAY_MS).await;
 		queue_waiting_files(&startup);
 		for record in startup.stores.spaces.list_space_records() {
-			if !record["archived"].truthy() {
+			if !record["closed"].truthy() {
 				scan_linked_folder(&startup, str_of(&record, "id"), false);
 			}
 		}

@@ -31,7 +31,7 @@ fn synthetic_app() -> (Arc<App>, PathBuf) {
 	let dir = std::env::temp_dir().join(format!("gs-app-misc-golden-{}", ids::uuid()));
 	let (data, home) = (dir.join("data"), dir.join("home"));
 	std::fs::create_dir_all(&home).unwrap();
-	let space = json!({ "id": SPACE, "name": "Golden Space", "description": "", "createdAt": AT, "updatedAt": AT, "archived": false, "files": [], "removedFiles": [], "deadlines": [], "version": 1 });
+	let space = json!({ "id": SPACE, "name": "Golden Space", "description": "", "createdAt": AT, "updatedAt": AT, "closed": false, "files": [], "removedFiles": [], "deadlines": [], "version": 1 });
 	fsx::write_text_atomic(&data.join("spaces").join(SPACE).join("space.json"), &format!("{}\n", gs_json::stringify_pretty(&space, "\t"))).unwrap();
 	(App::new(Paths::new(data, home, dir.join("tmp"), dir.clone()), None), dir)
 }

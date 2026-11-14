@@ -68,12 +68,12 @@ pub fn deadline_about(app: &App, space_id: &str, deadline_id: &str) -> Option<Js
 	Some(json!({ "fileId": file["id"], "name": file["name"], "text": text }))
 }
 
-/// The deadlines `keep` picks from every space that is not archived, soonest due first, each with
+/// The deadlines `keep` picks from every space that is not closed, soonest due first, each with
 /// its space id and name.
 fn deadlines_where(app: &App, keep: impl Fn(&Json) -> bool) -> Vec<Json> {
 	let mut out = Vec::new();
 	for record in app.stores.spaces.list_space_records() {
-		if record["archived"].truthy() {
+		if record["closed"].truthy() {
 			continue;
 		}
 		for d in record["deadlines"].as_arr().into_iter().flatten() {
@@ -135,7 +135,7 @@ mod tests {
 		assert_eq!(names(done_today.clone()), ["Quiz 2"]);
 		assert_eq!(done_today[0]["spaceName"].as_str(), Some("Algebra"));
 		assert!(list_deadlines_done_on(&app, "2000-01-01").is_empty());
-		app.stores.spaces.update_space(id, &json!({ "archived": true })).unwrap();
+		app.stores.spaces.update_space(id, &json!({ "closed": true })).unwrap();
 		assert!(list_deadlines_done_on(&app, &today).is_empty() && list_open_deadlines(&app).is_empty());
 	}
 }

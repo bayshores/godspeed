@@ -55,11 +55,11 @@ export function SpaceMenu({
 				data-testid="space-menu-close"
 				disabled={busy}
 				onClick={async () => {
-					if (await (space.archived ? reopen(space) : close(space, onScreen))) onClose();
+					if (await (space.closed ? reopen(space) : close(space, onScreen))) onClose();
 				}}
 				className={MENU_ITEM}
 			>
-				{space.archived ? "Reopen" : "Close"}
+				{space.closed ? "Reopen" : "Close"}
 			</button>
 			<button
 				role="menuitem"

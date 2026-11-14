@@ -78,7 +78,7 @@ describe("the agent's two windows", () => {
 	});
 
 	it("filesLine adds up every space being read", () => {
-		const space = (name: string, filesLeft: number, filesRead?: number, archived = false) => ({ name, filesLeft, filesRead, archived });
+		const space = (name: string, filesLeft: number, filesRead?: number, closed = false) => ({ name, filesLeft, filesRead, closed });
 		assert.equal(filesLine([space("CSE 21", 0)]), null);
 		assert.equal(filesLine([space("CSE 21", 11, 6), space("Old", 4, 1, true)]), "6 of 17 files in CSE 21");
 		assert.equal(filesLine([space("CSE 21", 1), space("CSE 29", 2, 1)]), "1 of 4 files in 2 spaces");

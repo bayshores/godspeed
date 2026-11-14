@@ -62,7 +62,7 @@ fn field<'a>(body: &'a Json, key: &str) -> Option<&'a Json> {
 	body.as_obj().and_then(|o| o.get(key))
 }
 
-/// GET /api/spaces: every space, archived included (the switcher filters). Starts the folder
+/// GET /api/spaces: every space, closed ones included (the switcher filters). Starts the folder
 /// scanner.
 async fn list(State(app): State<Arc<App>>) -> Response {
 	start_space_scanner(&app);
@@ -98,7 +98,7 @@ async fn read(State(app): State<Arc<App>>, Path(id): Path<String>, uri: Uri) -> 
 	reply::json(200, &json!({ "space": record, "folder": folder_status_of(&app, &id), "shortcuts": shortcuts }))
 }
 
-/// PUT /api/spaces/{id} { name?, description?, archived?, signature?, icon?, color?, rules? } (a
+/// PUT /api/spaces/{id} { name?, description?, closed?, signature?, icon?, color?, rules? } (a
 /// null signature clears it).
 async fn edit(State(app): State<Arc<App>>, Path(id): Path<String>, body: Body) -> Result<Response, Unhandled> {
 	if !is_space_id(&id) {
@@ -136,8 +136,8 @@ async fn edit(State(app): State<Arc<App>>, Path(id): Path<String>, body: Body) -
 	if let Some(description) = field(&body, "description").filter(|d| d.as_str().is_some()) {
 		patch.insert("description", description.clone());
 	}
-	if let Some(archived) = field(&body, "archived").filter(|a| a.as_bool().is_some()) {
-		patch.insert("archived", archived.clone());
+	if let Some(closed) = field(&body, "closed").filter(|c| c.as_bool().is_some()) {
+		patch.insert("closed", closed.clone());
 	}
 	if let Some(signature) = signature {
 		patch.insert("signature", signature);
@@ -386,7 +386,7 @@ async fn about(State(app): State<Arc<App>>, Path((id, deadline_id)): Path<(Strin
 	}
 }
 
-/// GET /api/deadlines: from every space that is not archived, soonest due first, `deadlines` not
+/// GET /api/deadlines: from every space that is not closed, soonest due first, `deadlines` not
 /// yet done and `doneToday` ticked done today (Today).
 async fn open_deadlines(State(app): State<Arc<App>>) -> Response {
 	let today = local_day(clock::now_ms());

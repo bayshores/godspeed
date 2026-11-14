@@ -238,8 +238,8 @@ export interface SpaceRecord {
 	description: string;
 	createdAt: string;
 	updatedAt: string;
-	/** Hidden from the switcher, kept on disk. */
-	archived: boolean;
+	/** No tab, kept on disk. */
+	closed: boolean;
 	/** Absolute path of a folder on the learner's computer (optional). */
 	linkedFolder?: string;
 	files: SpaceFile[];
@@ -289,7 +289,7 @@ export interface SpaceSummary {
 	description: string;
 	createdAt: string;
 	updatedAt: string;
-	archived: boolean;
+	closed: boolean;
 	linkedFolder?: string;
 	fileCount: number;
 	/** When the newest file a folder scan found arrived. */

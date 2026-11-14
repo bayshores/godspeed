@@ -16,9 +16,9 @@ describe("the clock", () => {
 
 describe("the lit tab", () => {
 	const spaces = [
-		{ id: "c21", archived: false },
-		{ id: "c29", archived: false },
-		{ id: "old", archived: true },
+		{ id: "c21", closed: false },
+		{ id: "c29", closed: false },
+		{ id: "old", closed: true },
 	];
 	it("Today on the first page", () => {
 		assert.equal(selectedTab("/", "c21", spaces), "today");

@@ -38,7 +38,7 @@ export function teacherTile(agent: Agent, doing: AgentDoing | null): WindowTile 
 }
 
 /** "6 of 17 files in Machine Learning", over every space being read; null when none is. */
-export function filesLine(spaces: readonly Pick<SpaceSummary, "name" | "filesLeft" | "filesRead" | "archived">[]): string | null {
+export function filesLine(spaces: readonly Pick<SpaceSummary, "name" | "filesLeft" | "filesRead" | "closed">[]): string | null {
 	const { live, read, left } = filesProgress(spaces);
 	if (live.length === 0) return null;
 	return `${read} of ${files(read + left)} in ${live.length === 1 ? live[0]!.name : `${live.length} spaces`}`;

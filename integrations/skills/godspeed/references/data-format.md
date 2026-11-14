@@ -23,7 +23,7 @@ graph/sessions.jsonl       Extraction checkpoints, NOT the session index
 graph/coverage.jsonl       Extraction fingerprints, NOT learner assessment
 graph/topics.jsonl        Topic groupings of propositions; each line a full snapshot, the last line wins
 jobs/<job-id>.json        Background work records; delivered artifacts also appear in sessions
-spaces/<space-id>/space.json   A space: name, description, archived, linkedFolder, files, removedFiles, deadlines, signature, icon, note, rules
+spaces/<space-id>/space.json   A space: name, description, closed, linkedFolder, files, removedFiles, deadlines, signature, icon, note, rules
 spaces/<space-id>/files/       The space's copied files (and recording transcripts)
 spaces/<space-id>/graph/       That space's OWN graph: the same files as graph/ above
 ```

@@ -29,12 +29,12 @@ type WorkState =
 
 export const files = (n: number) => `${n} file${n === 1 ? "" : "s"}`;
 
-type ProgressSpace = Pick<SpaceSummary, "filesLeft" | "filesRead" | "archived">;
+type ProgressSpace = Pick<SpaceSummary, "filesLeft" | "filesRead" | "closed">;
 
 /** The spaces whose files are being read, with the files read so far and
  *  the ones left, over all of them. */
 export function filesProgress<S extends ProgressSpace>(spaces: readonly S[]): { live: S[]; read: number; left: number } {
-	const live = spaces.filter((s) => !s.archived && s.filesLeft > 0);
+	const live = spaces.filter((s) => !s.closed && s.filesLeft > 0);
 	return { live, read: live.reduce((sum, s) => sum + (s.filesRead ?? 0), 0), left: live.reduce((sum, s) => sum + s.filesLeft, 0) };
 }
 

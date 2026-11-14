@@ -1,6 +1,6 @@
 /**
  * Deadlines across spaces: their order. Pure and unit-tested. The
- * lists come from GET /api/deadlines (non-archived spaces, soonest
+ * lists come from GET /api/deadlines (spaces not closed, soonest
  * first).
  */
 import type { SpaceDeadline } from "@/shared/core";

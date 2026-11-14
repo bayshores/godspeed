@@ -26,12 +26,12 @@ fn catch_up_lessons(app: &Arc<App>, now: i64) -> Result<(), String> {
 		return Ok(());
 	}
 	app.turns.lessons_caught_up.store(true, Ordering::SeqCst);
-	let archived: HashSet<String> = app.stores.spaces.list_spaces().iter().filter(|c| c["archived"].truthy()).filter_map(|c| c["id"].as_str().map(str::to_owned)).collect();
+	let closed: HashSet<String> = app.stores.spaces.list_spaces().iter().filter(|c| c["closed"].truthy()).filter_map(|c| c["id"].as_str().map(str::to_owned)).collect();
 	for summary in app.stores.chats.list_chats() {
 		let Some(id) = summary["id"].as_str() else { continue };
 		let Some(record) = app.stores.chats.get_chat(id) else { continue };
 		let space_id = record["spaceId"].as_str().filter(|c| !c.is_empty());
-		if !extracts_facts(record["kind"].as_str()) || space_id.is_some_and(|c| archived.contains(c)) || is_turn_running(app, id) {
+		if !extracts_facts(record["kind"].as_str()) || space_id.is_some_and(|c| closed.contains(c)) || is_turn_running(app, id) {
 			continue;
 		}
 		let scope = record["spaceId"].as_str();

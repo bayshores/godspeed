@@ -23,7 +23,7 @@ export function SpaceTabs({ selected }: { selected: string }) {
 	const tabMenu = useSpaceMenu();
 	const [dialog, setDialog] = useState<SpaceDialogMode | null>(null);
 	const onDelete = (spaceId: string) => setDialog({ kind: "delete", spaceId });
-	const openSpaces = spaces.filter((s) => !s.archived);
+	const openSpaces = spaces.filter((s) => !s.closed);
 	const menuSpace = openSpaces.find((s) => s.id === tabMenu.shownId);
 	return (
 		<nav aria-label="Spaces" data-testid="space-tabs" className="flex min-w-0 flex-1 items-stretch overflow-hidden">

@@ -11,7 +11,7 @@ const CHOICE = "lh-btn max-w-full text-[15px]";
 export function PickSpace({ line }: { line: string }) {
 	const { spaces, setActive } = useSpaces();
 	const [creating, setCreating] = useState(false);
-	const current = spaces.filter((c) => !c.archived);
+	const current = spaces.filter((c) => !c.closed);
 	return (
 		<div data-testid="pick-space" className="flex flex-col gap-3">
 			<p className="text-lg text-ink-2">{line}</p>

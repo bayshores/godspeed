@@ -22,11 +22,11 @@ fn hinted_problems(app: &App, space_id: &str) -> Vec<Json> {
 		.collect()
 }
 
-/// The space part of the note. Archived spaces show none.
+/// The space part of the note. Closed spaces show none.
 fn note_space(app: &App, space_id: Option<&str>) -> Option<Json> {
 	let id = space_id.filter(|id| !id.is_empty())?;
 	let space = app.stores.spaces.get_space(id)?;
-	if space["archived"].truthy() {
+	if space["closed"].truthy() {
 		return None;
 	}
 	let hinted = hinted_problems(app, id);

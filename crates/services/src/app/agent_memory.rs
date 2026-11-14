@@ -19,7 +19,7 @@ pub fn current_agent_briefing(app: &App, max_chars: usize) -> String {
 		.map(|record| BriefingSpace {
 			id: record["id"].as_str().unwrap_or_default().to_owned(),
 			name: record["name"].as_str().unwrap_or_default().to_owned(),
-			archived: record["archived"].truthy(),
+			closed: record["closed"].truthy(),
 			deadlines: record["deadlines"].as_arr().cloned().unwrap_or_default(),
 			missing_setup: missing_setup(record).into_iter().map(str::to_owned).collect(),
 		})

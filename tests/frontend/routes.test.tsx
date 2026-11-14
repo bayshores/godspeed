@@ -60,7 +60,7 @@ describe("the route table", () => {
 			assert.ok(page && page.path !== "*", `${path} has a page`);
 		}
 		assert.equal(matchRoutes(routes, "/class/files")?.at(-1)?.route.path, "*", "an old address is not found");
-		for (const gone of ["/prep", "/space/mocks", "/archived"]) assert.equal(matchRoutes(routes, gone)?.at(-1)?.route.path, "*", `${gone} is gone`);
+		for (const gone of ["/prep", "/space/mocks"]) assert.equal(matchRoutes(routes, gone)?.at(-1)?.route.path, "*", `${gone} is gone`);
 	});
 
 	it("a lesson is read first, and a homework lesson reads its deadline's problems too", async () => {

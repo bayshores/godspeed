@@ -36,7 +36,7 @@ const day = (offset: number) => localDay(Date.now() + offset * DAY);
 function d(id: string, kind: SpaceDeadline["kind"], offset: number, done = false): SpaceDeadline {
 	return { id, kind, name: id, date: day(offset), fileIds: [], done };
 }
-const record = (deadlines: SpaceDeadline[]): SpaceRecord => ({ id: "cls_a", name: "CSE 21", description: "", color: 2, createdAt: "", updatedAt: "", archived: false, files: [], deadlines });
+const record = (deadlines: SpaceDeadline[]): SpaceRecord => ({ id: "cls_a", name: "CSE 21", description: "", color: 2, createdAt: "", updatedAt: "", closed: false, files: [], deadlines });
 
 const calls: { method: string; url: string; body?: unknown }[] = [];
 const originalFetch = globalThis.fetch;

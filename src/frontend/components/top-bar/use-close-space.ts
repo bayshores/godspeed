@@ -6,9 +6,9 @@ import { jsonInit, send } from "@/frontend/components/files/space-files-api";
 type Space = { id: string };
 
 /**
- * Closes and reopens spaces (stored as `archived`). Closing the space on
- * screen goes to Today; reopening one switches the window to it. A refused
- * request keeps its error and changes nothing.
+ * Closes and reopens spaces. Closing the space on screen goes to Today;
+ * reopening one switches the window to it. A refused request keeps its
+ * error and changes nothing.
  */
 export function useCloseSpace() {
 	const { active, setActive, refresh } = useSpaces();
@@ -19,7 +19,7 @@ export function useCloseSpace() {
 	const write = async (space: Space, closed: boolean): Promise<boolean> => {
 		setBusy(true);
 		setError(null);
-		const { error: failed } = await send(`/api/spaces/${encodeURIComponent(space.id)}`, jsonInit("PUT", { archived: closed }));
+		const { error: failed } = await send(`/api/spaces/${encodeURIComponent(space.id)}`, jsonInit("PUT", { closed }));
 		// The bar changes with the click, not when the server's event arrives.
 		if (!failed) await refresh();
 		setBusy(false);

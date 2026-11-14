@@ -24,13 +24,13 @@ fn text_of(value: &Json) -> String {
 	value.as_str().unwrap_or("").to_owned()
 }
 
-/// Open deadlines (not done, not past) with no files linked, in spaces that aren't archived and
+/// Open deadlines (not done, not past) with no files linked, in spaces that aren't closed and
 /// have a study file ready, minus the ones already asked. Spaces are space records.
 pub fn unlinked_deadlines(spaces: &[Json], today: &str, asked: &HashSet<String>) -> Vec<UnlinkedDeadline> {
 	let mut out = Vec::new();
 	for c in spaces {
 		let has_ready_study = c["files"].as_arr().is_some_and(|files| files.iter().any(|f| f["kind"].as_str() == Some("study") && f["status"].as_str() == Some("ready")));
-		if c["archived"].truthy() || !has_ready_study {
+		if c["closed"].truthy() || !has_ready_study {
 			continue;
 		}
 		for d in c["deadlines"].as_arr().map_or(&[][..], Vec::as_slice) {
@@ -95,7 +95,7 @@ mod tests {
 
 	fn space() -> Json {
 		json!({
-			"id": "cls_a", "name": "CSE 21", "archived": false,
+			"id": "cls_a", "name": "CSE 21", "closed": false,
 			"files": [{ "kind": "study", "status": "ready" }],
 			"deadlines": [
 				{ "id": "d1", "name": "Midterm", "date": "2026-11-02", "time": "10:00", "fileIds": [] },
@@ -113,9 +113,9 @@ mod tests {
 		let found = unlinked_deadlines(&[space()], "2026-10-30", &asked);
 		assert_eq!(found.iter().map(|d| d.id.as_str()).collect::<Vec<_>>(), ["d1"]);
 		assert_eq!(found[0].time.as_deref(), Some("10:00"));
-		let mut archived = space();
-		archived.as_obj_mut().unwrap().insert("archived", true);
-		assert!(unlinked_deadlines(&[archived], "2026-10-30", &asked).is_empty());
+		let mut closed = space();
+		closed.as_obj_mut().unwrap().insert("closed", true);
+		assert!(unlinked_deadlines(&[closed], "2026-10-30", &asked).is_empty());
 	}
 
 	#[test]

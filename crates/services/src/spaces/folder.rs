@@ -48,9 +48,9 @@ pub(super) fn stat_sig(file: &Path) -> io::Result<String> {
 
 pub fn link_folder(app: &Arc<App>, space_id: &str, folder: &str) -> SpaceOutcome<Json> {
 	let Some(record) = app.stores.spaces.get_space(space_id) else { return no_space() };
-	// The scan skips archived spaces, so a link here would add nothing.
-	if record["archived"].truthy() {
-		return fail(409, "archived", "This space is archived. Unarchive it first, then link the folder.");
+	// The scan skips closed spaces, so a link here would add nothing.
+	if record["closed"].truthy() {
+		return fail(409, "closed", "This space is closed. Reopen it first, then link the folder.");
 	}
 	if !is_absolute(folder) {
 		return fail(400, "bad_path", "Give the folder's full (absolute) path");
@@ -132,9 +132,9 @@ fn wait_for_triage(app: &Arc<App>, space_id: &str, linking: bool) -> bool {
 	true
 }
 
-/// The linked folder of a space that is scanned (not archived).
+/// The linked folder of a space that is scanned (not closed).
 fn scanned_folder(record: &Json) -> Option<&str> {
-	record["linkedFolder"].as_str().filter(|f| !f.is_empty() && !record["archived"].truthy())
+	record["linkedFolder"].as_str().filter(|f| !f.is_empty() && !record["closed"].truthy())
 }
 
 /// One scan of a space's linked folder. `linking` (the folder was just picked) takes the folder as

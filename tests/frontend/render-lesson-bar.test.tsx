@@ -35,7 +35,7 @@ const { SpaceProvider } = await import("../../src/frontend/components/space-cont
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
 const { MemoryRouter } = await import("react-router");
 
-const SPACES: SpaceSummary[] = [{ id: "c21", name: "CSE 21", description: "", createdAt: "", updatedAt: "", archived: false, fileCount: 3, color: 2, filesLeft: 0 }];
+const SPACES: SpaceSummary[] = [{ id: "c21", name: "CSE 21", description: "", createdAt: "", updatedAt: "", closed: false, fileCount: 3, color: 2, filesLeft: 0 }];
 
 let root: Root | null = null;
 afterEach(() => {

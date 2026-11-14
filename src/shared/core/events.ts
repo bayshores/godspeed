@@ -71,7 +71,7 @@ export interface ServerEvents {
 	"activity-changed": Record<string, never>;
 	/** The session list changed (create, delete, title). */
 	"chats-changed": Record<string, never>;
-	/** The space list or a space record changed (create, edit, archive,
+	/** The space list or a space record changed (create, edit, close,
 	 *  delete, files). */
 	"spaces-changed": Record<string, never>;
 	/** The outside agent's status changed: it checked in, went quiet, or

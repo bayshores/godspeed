@@ -156,7 +156,7 @@ impl SpaceActions {
 		view.insert("description", record["description"].clone());
 		view.insert("signature", or_null("signature"));
 		view.insert("icon", or_null("icon"));
-		view.insert("archived", record["archived"].clone());
+		view.insert("closed", record["closed"].clone());
 		view.insert("linkedFolder", or_null("linkedFolder"));
 		view.insert("fileCounts", counts);
 		if let Some(name) = record["waitingDeadline"]["name"].as_str() {
@@ -272,7 +272,7 @@ impl SpaceActions {
 					"name": c["name"],
 					"description": c["description"],
 					"icon": c["icon"],
-					"archived": c["archived"],
+					"closed": c["closed"],
 					"linkedFolder": c["linkedFolder"],
 					"files": c["fileCount"],
 					"lessons": in_space,
@@ -346,7 +346,7 @@ impl SpaceActions {
 		}
 		let Ok(sig) = signature_arg(args) else { return bad_signature() };
 		let mut patch = Obj::new();
-		for key in ["name", "description", "archived"] {
+		for key in ["name", "description", "closed"] {
 			if given(args, key) {
 				patch.insert(key, args[key].clone());
 			}
@@ -361,13 +361,13 @@ impl SpaceActions {
 			Ok(space) => space,
 			Err(failure) => return ToolOutcome::Err(failure.error),
 		};
-		let verb = match args["archived"].as_bool() {
-			Some(true) => "Archiving",
-			Some(false) => "Unarchiving",
+		let verb = match args["closed"].as_bool() {
+			Some(true) => "Closing",
+			Some(false) => "Reopening",
 			None => "Updating",
 		};
 		let mut changed = Obj::new();
-		for key in ["name", "description", "signature", "icon", "archived"] {
+		for key in ["name", "description", "signature", "icon", "closed"] {
 			let was_given = if key == "signature" { sig.is_some() } else { given(args, key) };
 			if was_given && let Some(value) = space.get(key) {
 				changed.insert(key, value.clone());
@@ -606,8 +606,8 @@ impl SpaceActions {
 			},
 			None => None,
 		};
-		if space.as_ref().is_some_and(|s| s["archived"].truthy()) {
-			return ToolOutcome::Err("This space is archived. Ask the learner to unarchive it in Edit space first.".to_owned());
+		if space.as_ref().is_some_and(|s| s["closed"].truthy()) {
+			return ToolOutcome::Err("This space is closed. Ask the learner to reopen it first.".to_owned());
 		}
 		let input = CreateLessonInput { space_id: scope.clone(), start: LessonStart::Typed { title: topic.to_owned(), picks: Vec::new() } };
 		let chat = match create_lesson(&self.app, input) {
