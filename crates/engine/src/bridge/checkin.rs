@@ -8,7 +8,8 @@ use gs_base::re::Re;
 use gs_base::text::{slice16, trim};
 use gs_json::Json;
 
-use super::{Bridge, Inner};
+use super::helper::claim_ends;
+use super::{Bridge, Inner, State};
 
 /// An agent counts as connected (or teaching) if it checked in within this window.
 const CONNECTED_WINDOW_MS: i64 = 3 * 60_000;
@@ -32,16 +33,21 @@ pub fn display_agent_name(client_info: &Json) -> Option<String> {
 	(!shown.is_empty()).then_some(shown)
 }
 
+/// A teacher called the work loop recently, or still works on an item.
+fn teaching(state: &State, now: i64) -> bool {
+	recent(state.last_work, now) || claim_ends(state, false).any(|end| end >= now)
+}
+
 impl Bridge {
 	pub fn agent_connected(&self, now: i64) -> bool {
 		let s = self.0.state.lock();
-		recent(s.last_contact, now) || recent(s.last_work, now)
+		recent(s.last_contact, now) || teaching(&s, now)
 	}
 
 	/// An agent runs the work loop; a connected agent that only calls other tools leaves
 	/// lessons waiting.
 	pub fn agent_teaching(&self, now: i64) -> bool {
-		recent(self.0.state.lock().last_work, now)
+		teaching(&self.0.state.lock(), now)
 	}
 
 	/// The agent's name, while it is connected.
@@ -80,7 +86,8 @@ fn schedule_lapse(inner: &Arc<Inner>, now: i64) {
 	}
 	s.lapse_number += 1;
 	let number = s.lapse_number;
-	let Some(next) = [s.last_contact, s.last_work].into_iter().map(|at| at + CONNECTED_WINDOW_MS).filter(|at| *at > now).min() else { return };
+	let check_ins = [s.last_contact, s.last_work].map(|at| at + CONNECTED_WINDOW_MS);
+	let Some(next) = check_ins.into_iter().chain(claim_ends(&s, false)).filter(|at| *at > now).min() else { return };
 	let weak = Arc::downgrade(inner);
 	s.lapse = Some(tokio::spawn(async move {
 		clock::sleep(next - now + 1000).await;

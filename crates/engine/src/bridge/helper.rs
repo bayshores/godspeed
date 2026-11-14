@@ -30,14 +30,15 @@ fn is_helper(state: &State, agent: Option<&str>) -> bool {
 	state.helpers.contains_key(agent.unwrap_or_default())
 }
 
-/// A helper holds an item whose claim has not run out.
-fn busy(state: &State, now: i64) -> bool {
-	state.items.iter().any(|i| i.claimed_at.is_some_and(|at| now - at <= CLAIM_TIMEOUT_MS) && is_helper(state, i.agent.as_deref()))
+/// When the claims that helpers (or, with `helper` false, teachers) hold run out. An agent
+/// working on an item has no check-ins, so its claim says it is still here.
+pub(super) fn claim_ends(state: &State, helper: bool) -> impl Iterator<Item = i64> + '_ {
+	state.items.iter().filter(move |i| is_helper(state, i.agent.as_deref()) == helper).filter_map(|i| i.claimed_at.map(|at| at + CLAIM_TIMEOUT_MS))
 }
 
-/// A helper checked in recently, or still works on an item (a long job has no check-ins).
+/// A helper checked in recently, or still works on an item.
 pub(super) fn here(state: &State, now: i64) -> bool {
-	state.helpers.values().any(|at| recent(*at, now)) || busy(state, now)
+	state.helpers.values().any(|at| recent(*at, now)) || claim_ends(state, true).any(|end| end >= now)
 }
 
 impl Bridge {

@@ -1,75 +1,66 @@
 # Keyboard shortcuts
 
-How shortcuts work in the code. Most learners use the mouse, so a shortcut
-is always an extra, never the only way to do something. In the app, `?`
-opens the full list, and **Settings → Keyboard** lets the learner change
-the keys.
+How shortcuts work in the code. Read this before you add, change or debug a shortcut.
+
+Most learners use the mouse, so a shortcut is always an extra, never the only way to do something. In the app, `?` opens the full list, and Settings → Keyboard lets the learner change the keys.
 
 ## Where the code lives
 
-- **Registry**: `src/shared/core/keyboard.ts`. `KEYBOARD_ACTIONS` lists every
-  action as `{ id, label, scope, binding }`. The cheat sheet and the
-  Settings list are drawn from it, so they never show a shortcut that
-  does nothing.
-- **Provider**: `src/frontend/components/keyboard-shortcuts.tsx`. One window-level
-  keydown listener. It turns a key press into a string like `mod+b`,
-  looks it up (with the learner's changes applied), and either runs the
-  action itself or sends a `lh:kbd-<action-id>` window event. The page
-  that owns the action listens for that event. If that page isn't open,
-  nothing happens.
-- **Changed keys**: saved in the browser's localStorage under `lh:keymap`
-  as `{actionId: binding}`, on top of the defaults.
-  `src/frontend/components/settings/keyboard-section.tsx` edits them. There is no
-  conflict check: if two actions share a key, the one later in the
-  registry wins (`effectiveKeymap` overwrites as it goes).
-- **displayOnly entries**: keys that one surface owns (the question rows
-  below) are listed for the cheat sheet only. The provider never sends
-  them, so arrow keys stay free on every other page.
+| Part | File | What it does |
+|---|---|---|
+| Registry | `src/shared/core/keyboard.ts` | `KEYBOARD_ACTIONS` lists every action as `{ id, label, scope, binding }`. The cheat sheet and the Settings list are drawn from it. |
+| Provider | `src/frontend/components/keyboard-shortcuts.tsx` | One window-level keydown listener. It runs an action itself or sends a `lh:kbd-<action-id>` window event. |
+| Changed keys | `src/frontend/components/settings/keyboard-section.tsx` | Edits the learner's changes, saved in localStorage under `lh:keymap` as `{actionId: binding}`. |
+| Focus helpers | `src/frontend/components/focus-hygiene.ts` | `trapTabInDialog` and `showFocusRingAfterTab`. |
 
-`mod` means ⌘ on a Mac and Ctrl elsewhere (both work on a Mac).
+How a key press becomes an action:
+
+1. The provider turns the key press into a string like `mod+b` (`eventBinding`).
+2. It looks the string up in the defaults with the learner's changes applied (`actionForBinding`).
+3. It runs the action itself, or sends the window event.
+4. The page that owns the action listens for that event. If that page isn't open, nothing happens.
+
+`mod` means ⌘ on a Mac and Ctrl elsewhere. Both work on a Mac.
+
+There is no conflict check. If two actions share a key, the one later in the registry wins, because `effectiveKeymap` overwrites as it goes.
+
+Entries marked `displayOnly` are keys that one surface owns, like the question rows below. They are listed for the cheat sheet only. The provider never sends them, so arrow keys stay free on every other page.
 
 ## Rules
 
-- **Tab moves focus as usual**, through buttons and links too. An open
-  question claims Tab from its rows (see below). An
-  open modal dialog keeps Tab inside itself (`trapTabInDialog` in
-  `src/frontend/components/focus-hygiene.ts`).
-- **Inside a text field only shortcuts with a modifier fire** (like ⌘B).
-  Bare keys, `?` included, type normally.
-- **One Esc does one thing.** The top open layer handles it first: the
-  cheat sheet, a popover, menu or dialog, or the focused field's own
-  action. When nothing is open, Esc stops the running turn. A turn the
-  server started has no browser request to stop, so the lesson decides
-  what Esc can stop.
-- **The focus ring shows after Tab and hides on the next mouse press**
-  (`showFocusRingAfterTab` in `src/frontend/components/focus-hygiene.ts`, drawn in
-  `src/frontend/globals.css`). A hidden color picker rings its tile instead.
+- Tab moves focus as usual, through buttons and links too. An open question claims Tab from its rows (see below). An open modal dialog keeps Tab inside itself (`trapTabInDialog`).
+- Inside a text field only shortcuts with a modifier fire, like ⌘B. Bare keys, `?` included, type normally.
+- One Esc does one thing. The top open layer handles it first: the cheat sheet, a popover, menu or dialog, or the focused field's own action.
+- When nothing is open, Esc stops the running turn. A turn the server started has no browser request to stop, so the lesson decides what Esc can stop.
+- The focus ring shows after Tab, or after an arrow key that moves focus, and hides on the next mouse press (`showFocusRingAfterTab`, drawn in `src/frontend/globals.css`). A hidden color picker rings its tile instead.
 
 ## Key map
 
 | Action | Default | Who handles it |
 |---|---|---|
-| Open settings | ⌘, | `keyboard-shortcuts.tsx` |
-| Search lessons | ⌘⇧F | `src/frontend/components/search-lessons.tsx` (the Search lessons popup, over every space). In the search field ↑/↓ walk the results and Enter opens one (the first match if none is picked) |
+| Open Settings | ⌘, | `keyboard-shortcuts.tsx`, goes to `/settings` |
+| Search lessons | ⌘⇧F | `src/frontend/components/search-lessons.tsx` |
 | Go to Graph | ⌘G | `keyboard-shortcuts.tsx`, goes to `/graph` |
 | Study | ⌘N | `keyboard-shortcuts.tsx`, goes to `/new` |
 | Rename lesson | F2 | `src/frontend/components/lesson/use-title-rename.ts` |
-| Toggle all your thinking | ⌘T | `src/frontend/components/chat.tsx` |
-| Find | ⌘F | the open page: topic search on `/graph` (`src/frontend/components/graph/graph-top-bar.tsx`), text Find in a lesson (`src/frontend/components/session-find.tsx`) |
-| Shortcut cheat sheet | ? | `keyboard-shortcuts.tsx` |
+| Show or hide all your thinking | ⌘T | `src/frontend/components/chat.tsx` |
+| Find | ⌘F | the open page: topic search on `/graph` (`src/frontend/components/graph/graph-top-bar.tsx`) or text Find in a lesson (`src/frontend/components/session-find.tsx`) |
+| Show keyboard shortcuts | ? | `keyboard-shortcuts.tsx` |
+
+Search lessons opens a popup over every space. In its search field ↑/↓ walk the results, and Enter opens one (the first match if none is picked).
 
 ## Question rows
 
-While a question is open, `src/frontend/components/question-dock.tsx` owns these
-keys. They only work when focus is not in a text field, and never with a
-modifier held:
+While a question is open, `src/frontend/components/question-dock.tsx` owns these keys. They work only when focus is not in a text field, and never with a modifier held.
 
-- **1 to 9** pick that option. **0** picks "I don't know" on a quiz.
-- **↑/↓** walk the rows: the options, then "I don't know" or "Other…".
-  The walk stops at the ends.
-- **←/→** change the confidence level on a quiz (not after "I don't
-  know").
-- **Space** acts on the walked row like a click.
-- **Enter** submits once there is an answer.
-- **Tab** from the rows moves focus to the thinking field. From the
-  thinking field Tab moves on as usual, so it reaches Submit.
+| Key | What it does |
+|---|---|
+| 1 to 9 | Picks that option. |
+| 0 | Picks "I don't know" on a quiz. |
+| ↑/↓ | Walk the rows: the options, then "I don't know" or "Other…". The walk stops at the ends. |
+| ←/→ | Change the confidence level on a quiz, but not after "I don't know". |
+| Space | Acts on the walked row like a click. |
+| Enter | Submits, once a row is walked and there is an answer. |
+| Tab | From the rows, moves focus to the lesson's writing box. With nothing focused, moves focus into the rows. |
+
+From the writing box, Tab moves on as usual, so it reaches Submit.

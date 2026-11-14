@@ -93,10 +93,10 @@ Each link downloads the newest version. The app checks for updates once a day an
 
 Then connect your agent. The first launch walks you through it, and the same steps are under **Settings → Connection** later.
 
-1. Click **Open Claude Code** (the arrow next to it switches to **Codex**). godspeed makes a folder for your agent, `~/godspeed`, and opens a terminal there running it.
+1. Click **Open Claude Code**. If you use Codex, pick it under **Use another agent** first. godspeed makes a folder for your agent, `~/godspeed`, and opens a terminal there running it.
 2. Start a lesson. You answer in the godspeed window and the agent teaches.
 
-Any other MCP app works too. Pick **Other app** for the address and token (Streamable HTTP, `Authorization: Bearer <token>`).
+Any other MCP app works too. Pick **Other app** under **Use another agent** and it shows the address and token (Streamable HTTP, `Authorization: Bearer <token>`).
 
 <details>
 <summary>More about how the agent connects</summary>
