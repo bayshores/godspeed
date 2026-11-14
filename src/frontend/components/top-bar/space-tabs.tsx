@@ -14,7 +14,7 @@ const CREATE = { kind: "create" } as const;
 
 /**
  * Today, then one tab per open space, then the + (add a space, reopen a
- * closed one). A space's tab switches the window to it and opens its
+ * closed one, the lessons with no space). A space's tab switches the window to it and opens its
  * Progress page; a right-click opens its menu. It carries a tag while the
  * teacher still has files of it to read.
  */
@@ -58,7 +58,7 @@ export function SpaceTabs({ selected }: { selected: string }) {
 					</Link>
 				);
 			})}
-			<ClosedSpacesMenu lit={selected === "closed"} onAdd={() => setDialog(CREATE)} onDelete={onDelete} />
+			<ClosedSpacesMenu lit={selected === "plus"} onAdd={() => setDialog(CREATE)} onDelete={onDelete} />
 			{menuSpace && (
 				<SpaceMenu
 					key={menuSpace.id}

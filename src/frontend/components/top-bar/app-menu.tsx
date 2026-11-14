@@ -1,19 +1,16 @@
 import { useCallback, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link } from "react-router";
 import { kbdEventForAction } from "@/shared/core";
-import { useSpaces } from "@/frontend/components/space-context";
 import { MenuShell } from "@/frontend/components/menu-shell";
 import { useMenuDismiss } from "@/frontend/components/use-menu-dismiss";
 import { cn } from "@/frontend/lib/utils";
 import { BAR_TAB, barTabState, MENU_ITEM } from "./bar-look";
 
 /**
- * Menu, at the top bar's right: the places and actions that belong to no
- * one space. `lit` while the page on screen is one of them.
+ * Menu, at the top bar's right: Search lessons and Settings. `lit` while
+ * Settings is on screen.
  */
 export function AppMenu({ lit }: { lit: boolean }) {
-	const navigate = useNavigate();
-	const { setActive } = useSpaces();
 	const [open, setOpen] = useState(false);
 	const anchorRef = useRef<HTMLButtonElement>(null);
 	const close = useCallback(() => setOpen(false), []);
@@ -44,20 +41,6 @@ export function AppMenu({ lit }: { lit: boolean }) {
 				>
 					Search lessons
 				</button>
-				<button
-					role="menuitem"
-					type="button"
-					data-testid="space-option-none"
-					onClick={() => {
-						close();
-						setActive(null);
-						navigate("/space/lessons");
-					}}
-					className={MENU_ITEM}
-				>
-					Lessons with no space
-				</button>
-				<div aria-hidden className="mx-3 my-1.5 border-t border-dotted border-edge" />
 				<Link role="menuitem" to="/settings" data-testid="settings-entry" onClick={close} className={MENU_ITEM}>
 					Settings
 				</Link>

@@ -1,6 +1,7 @@
 /**
  * The frame: the top bar's Today and space tabs with their right-click
- * menu, the + with Add a space and the closed spaces, Menu, the "Search
+ * menu, the + with Add a space, the closed spaces and the lessons with no
+ * space, Menu, the "Search
  * lessons" popup it opens, and a space page's head with its signature and
  * tabs.
  */
@@ -95,13 +96,13 @@ function Spy() {
 /** A write the server refuses, as "PUT /api/spaces/c21". */
 let refused: string | null = null;
 
-async function mount(node: React.ReactNode, { pathname = "/", active = "c29" as string | null, spaces = SPACES } = {}) {
+async function mount(node: React.ReactNode, { pathname = "/", active = "c29" as string | null, spaces = SPACES, lessons = LESSONS } = {}) {
 	globalThis.fetch = (async (url: string, init?: RequestInit) => {
 		const method = init?.method ?? "GET";
 		requests.push(`${method} ${url}${typeof init?.body === "string" ? ` ${init.body}` : ""}`);
 		if (`${method} ${url}` === refused) return Response.json({ error: "The space is busy. Try again." }, { status: 409 });
 		if (url === "/api/spaces") return Response.json({ spaces });
-		if (url === "/api/chats") return Response.json({ chats: LESSONS });
+		if (url === "/api/chats") return Response.json({ chats: lessons });
 		if (url === "/api/spaces/c29/cheat-sheets") return Response.json({ cards: [{ status: "made" }, { status: "making" }, { status: "none" }] });
 		if (url.startsWith("/api/progress")) return Response.json({ spaceId: "c29", facts: [true, false, false, false].map((inLessons) => ({ inLessons, answers: [] })) });
 		return Response.json({});
@@ -183,16 +184,8 @@ describe("Menu", () => {
 		assert.equal(q("app-menu")!.textContent, "Menu");
 		assert.equal(q("app-menu")!.getAttribute("aria-expanded"), "false");
 		await click(q("app-menu")!);
-		assert.deepEqual(texts("[data-testid='app-menu-list'] [role='menuitem']"), ["Search lessons", "Lessons with no space", "Settings"]);
+		assert.deepEqual(texts("[data-testid='app-menu-list'] [role='menuitem']"), ["Search lessons", "Settings"]);
 		assert.equal(q("settings-entry")!.getAttribute("href"), "/settings");
-	});
-	it("Lessons with no space leaves the space and opens its lessons", async () => {
-		await mount(<AppMenu lit={false} />);
-		await click(q("app-menu")!);
-		await click(q("space-option-none")!);
-		await act(async () => {});
-		assert.deepEqual(pushed, ["/space/lessons"]);
-		assert.ok(requests.some((r) => r.startsWith("PUT /api/settings/general") && r.includes('"activeSpace":"none"')));
 	});
 });
 
@@ -365,8 +358,8 @@ describe("the +", () => {
 		await click(q("spaces-plus")!);
 		await act(async () => {});
 	};
-	it("is a menu button, lit while the window shows a closed space", async () => {
-		await mount(<SpaceTabs selected="closed" />);
+	it("is a menu button, lit while the window shows a closed space or the lessons with no space", async () => {
+		await mount(<SpaceTabs selected="plus" />);
 		const plus = q("spaces-plus")!;
 		assert.equal(plus.getAttribute("aria-haspopup"), "menu");
 		assert.equal(plus.getAttribute("aria-expanded"), "false");
@@ -374,19 +367,28 @@ describe("the +", () => {
 		await openList();
 		assert.equal(plus.getAttribute("aria-expanded"), "true");
 	});
-	it("with no closed space it only offers Add a space", async () => {
-		await mount(<SpaceTabs selected="c29" />, { spaces: SPACES.filter((s) => !s.archived) });
+	it("with no closed space and no lesson without one it only offers Add a space", async () => {
+		await mount(<SpaceTabs selected="c29" />, { spaces: SPACES.filter((s) => !s.archived), lessons: LESSONS.filter((l) => l.spaceId) });
 		assert.equal(q("spaces-plus")!.getAttribute("aria-label"), "Add a space");
 		await openList();
 		assert.deepEqual(texts("[data-testid='spaces-plus-list'] [role='menuitem']"), ["Add a space"]);
 		assert.doesNotMatch(q("spaces-plus-list")!.textContent!, /Closed/);
 	});
-	it("Add a space, then the closed spaces", async () => {
+	it("Add a space, then the closed spaces, then the lessons with no space", async () => {
 		await mount(<SpaceTabs selected="c29" />);
-		assert.equal(q("spaces-plus")!.getAttribute("aria-label"), "Add a space or reopen a closed one");
+		assert.equal(q("spaces-plus")!.getAttribute("aria-label"), "Add a space, reopen a closed one, or open the lessons with no space");
 		await openList();
-		assert.deepEqual(texts("[data-testid='spaces-plus-list'] [role='menuitem']"), ["Add a space", "MATH 18"]);
+		assert.deepEqual(texts("[data-testid='spaces-plus-list'] [role='menuitem']"), ["Add a space", "MATH 18", "Lessons with no space"]);
 		assert.equal(document.querySelector("[data-testid='spaces-plus-list'] [role='group']")!.textContent, "ClosedMATH 18");
+	});
+	it("Lessons with no space leaves the space and opens its lessons", async () => {
+		await mount(<SpaceTabs selected="c29" />);
+		await openList();
+		await click(q("space-option-none")!);
+		await act(async () => {});
+		assert.deepEqual(pushed, ["/space/lessons"]);
+		assert.ok(requests.some((r) => r.startsWith("PUT /api/settings/general") && r.includes('"activeSpace":"none"')));
+		assert.equal(q("spaces-plus-list")?.getAttribute("data-state") ?? "closed", "closed");
 	});
 	it("Add a space opens the dialog for it", async () => {
 		await mount(<SpaceTabs selected="c29" />);
