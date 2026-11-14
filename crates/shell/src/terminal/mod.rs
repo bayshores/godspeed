@@ -23,8 +23,13 @@ pub use spawn::{Agent, Role};
 
 /// How long a stopped agent gets to close before it is killed.
 const STOP_GRACE: Duration = Duration::from_secs(2);
-/// How often a terminal looks whether a question has stayed on its screen.
-const TICK: Duration = Duration::from_millis(250);
+/// How often a terminal sends the page its output and looks whether a question has stayed on
+/// its screen: a program that prints without pause costs the window one push a frame.
+const FRAME: Duration = Duration::from_millis(16);
+/// More output than this in one frame is sent as the screen it drew instead.
+const FRAME_BYTES: usize = 64 * 1024;
+/// On the screen when the shell could not draw a terminal's output.
+const BROKEN: &str = "godspeed couldn't read this terminal's screen, so it stopped it. Start it again to go on.";
 
 pub const NOT_SET_UP: &str = "The godspeed folder isn't set up yet.";
 const NOT_THERE: &str = "That terminal isn't running.";
@@ -40,9 +45,11 @@ pub trait Outlet: Send + Sync + 'static {
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum Ended {
-	/// The learner clicked Stop, or godspeed quit.
+	/// The learner clicked Stop, godspeed quit, or (the helper) the teacher ended.
 	Stopped,
 	Exited(u32),
+	/// The shell could not draw its output, and stopped it.
+	Broken,
 }
 
 struct Terminal {
@@ -69,7 +76,11 @@ struct State {
 	/// What the page was last told.
 	shown: (Option<Prompt>, bool),
 	attached: bool,
+	/// Output for the page, sent once a frame; `overflow` sends the screen instead.
+	pending: Vec<u8>,
+	overflow: bool,
 	stopping: bool,
+	broken: bool,
 	ended: Option<Ended>,
 }
 
@@ -83,6 +94,7 @@ impl Terminal {
 			None => Value::Null,
 			Some(Ended::Stopped) => json!({ "stopped": true, "code": null }),
 			Some(Ended::Exited(code)) => json!({ "stopped": false, "code": code }),
+			Some(Ended::Broken) => json!({ "stopped": false, "code": null }),
 		}
 	}
 
@@ -99,26 +111,64 @@ impl Terminal {
 		}
 	}
 
-	fn output(&self, bytes: &[u8], outlet: &dyn Outlet) {
+	/// Draws output and queues it for the page; false once the screen broke on it (the terminal
+	/// is to be stopped then, while its output is still read and dropped).
+	fn output(&self, bytes: &[u8], outlet: &dyn Outlet) -> bool {
 		let mut state = self.state();
-		let replies = state.screen.process(bytes);
+		if state.broken {
+			return true;
+		}
+		let drawn = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| state.screen.process(bytes)));
+		let Ok(replies) = drawn else {
+			state.broken = true;
+			state.screen = Screen::default();
+			state.screen.process(BROKEN.as_bytes());
+			state.overflow = true;
+			self.flush(&mut state, outlet);
+			return false;
+		};
 		if let Some(io) = state.io.as_ref().filter(|_| !replies.is_empty()) {
 			let _ = io.input.send(replies);
 		}
 		if state.attached {
-			outlet.push("terminal-output", json!({ "id": self.id, "data": gs_base::base64::encode(bytes) }));
+			if state.overflow || state.pending.len() + bytes.len() > FRAME_BYTES {
+				state.pending.clear();
+				state.overflow = true;
+			} else {
+				state.pending.extend_from_slice(bytes);
+			}
+			// The clock has stopped: what the script printed last goes out now.
+			if state.ended.is_some() {
+				self.flush(&mut state, outlet);
+			}
 		}
 		let seen = state.screen.seen();
 		let now = Instant::now();
 		state.settle.update(seen, now);
 		self.push_state(&mut state, outlet, now);
+		true
+	}
+
+	/// Sends the page the frame's output, or the screen when there was too much of it.
+	fn flush(&self, state: &mut State, outlet: &dyn Outlet) {
+		if !state.attached {
+			return;
+		}
+		if std::mem::take(&mut state.overflow) {
+			state.pending.clear();
+			let snapshot = gs_base::base64::encode(state.screen.snapshot().as_bytes());
+			outlet.push("terminal-output", json!({ "id": self.id, "snapshot": snapshot }));
+		} else if !state.pending.is_empty() {
+			let data = gs_base::base64::encode(&std::mem::take(&mut state.pending));
+			outlet.push("terminal-output", json!({ "id": self.id, "data": data }));
+		}
 	}
 
 	/// Stops everything the script started: the process group, or the job on Windows.
 	fn hang_up(&self) {
 		#[cfg(unix)]
 		if let Some(pid) = self.pid {
-			spawn::signal_group(pid, "HUP");
+			spawn::signal_group(pid, rustix::process::Signal::HUP);
 		}
 		#[cfg(windows)]
 		self.job.kill();
@@ -127,7 +177,7 @@ impl Terminal {
 	#[cfg(unix)]
 	fn kill(&self) {
 		if let Some(pid) = self.pid {
-			spawn::signal_group(pid, "KILL");
+			spawn::signal_group(pid, rustix::process::Signal::KILL);
 		}
 	}
 
@@ -146,8 +196,15 @@ fn state_ended(state: &State) -> bool {
 type List = Mutex<Vec<Arc<Terminal>>>;
 
 /// The ids of the terminals that run and were not stopped.
-fn live(list: &List) -> Vec<String> {
-	lock(list).iter().filter(|t| !state_ended(&t.state())).map(|t| t.id.clone()).collect()
+fn live_ids(list: &[Arc<Terminal>]) -> Vec<String> {
+	list.iter().filter(|t| !state_ended(&t.state())).map(|t| t.id.clone()).collect()
+}
+
+/// Tells the server the live ids. Sent under the list's lock, so two changes at once reach it
+/// in the order they happened.
+fn tell_live(list: &List, outlet: &dyn Outlet) {
+	let list = lock(list);
+	outlet.live(live_ids(&list));
 }
 
 /// The terminals (managed state).
@@ -166,7 +223,12 @@ impl Terminals {
 	}
 
 	pub fn live(&self) -> Vec<String> {
-		live(&self.list)
+		live_ids(&lock(&self.list))
+	}
+
+	/// Tells a server that just started which terminals are live.
+	pub fn tell_live(&self) {
+		tell_live(&self.list, &*self.outlet);
 	}
 
 	/// Runs the folder's start script for `role` and `agent`: the new terminal's id. `env` is the
@@ -205,40 +267,54 @@ impl Terminals {
 			pid: spawned.child.process_id(),
 			#[cfg(windows)]
 			job: spawned.job,
-			state: Mutex::new(State { io: Some(Io { input, _master: spawned.master }), screen: Screen::default(), settle: Settle::default(), shown: (None, false), attached: false, stopping: false, ended: None }),
+			state: Mutex::new(State {
+				io: Some(Io { input, _master: spawned.master }),
+				screen: Screen::default(),
+				settle: Settle::default(),
+				shown: (None, false),
+				attached: false,
+				pending: Vec::new(),
+				overflow: false,
+				stopping: false,
+				broken: false,
+				ended: None,
+			}),
 		});
 		// An ended record stays until the next start for its role.
 		list.retain(|t| t.role != role);
 		list.push(terminal.clone());
+		self.outlet.live(live_ids(&list));
 		drop(list);
 		self.outlet.log(&format!("terminal started: {} {} pid {}", role.name(), agent.name(), terminal.pid.unwrap_or_default()));
-		self.outlet.live(self.live());
 		self.run(terminal, spawned.reader, spawned.child);
 		Ok(id)
 	}
 
 	/// The terminal's other three threads: its output, its exit and its clock.
 	fn run(&self, terminal: Arc<Terminal>, mut reader: Box<dyn Read + Send>, mut child: Box<dyn Child + Send + Sync>) {
-		let (outlet, reading) = (self.outlet.clone(), terminal.clone());
+		let (outlet, list, reading) = (self.outlet.clone(), self.list.clone(), terminal.clone());
 		std::thread::spawn(move || {
 			let mut buffer = [0u8; 8192];
 			while let Ok(read @ 1..) = reader.read(&mut buffer) {
-				reading.output(&buffer[..read], &*outlet);
+				if !reading.output(&buffer[..read], &*outlet) {
+					stop(reading.clone(), &*outlet, &list);
+				}
 			}
 		});
 		let (outlet, list, ticking) = (self.outlet.clone(), self.list.clone(), terminal.clone());
 		std::thread::spawn(move || {
 			let code = child.wait().map_or(1, |status| status.exit_code());
-			ended(&terminal, code, &*outlet, &list);
+			ended(terminal, code, &*outlet, &list);
 		});
 		let outlet = self.outlet.clone();
 		std::thread::spawn(move || {
 			loop {
-				std::thread::sleep(TICK);
+				std::thread::sleep(FRAME);
 				let mut state = ticking.state();
 				if state.ended.is_some() {
 					return;
 				}
+				ticking.flush(&mut state, &*outlet);
 				ticking.push_state(&mut state, &*outlet, Instant::now());
 			}
 		});
@@ -249,13 +325,19 @@ impl Terminals {
 		let terminal = self.find(id)?;
 		let mut state = terminal.state();
 		state.attached = true;
+		state.pending.clear();
+		state.overflow = false;
 		let snapshot = gs_base::base64::encode(state.screen.snapshot().as_bytes());
 		self.outlet.push("terminal-output", json!({ "id": id, "snapshot": snapshot }));
 		Ok(())
 	}
 
 	pub fn detach(&self, id: &str) -> Result<(), String> {
-		self.find(id)?.state().attached = false;
+		let terminal = self.find(id)?;
+		let mut state = terminal.state();
+		state.attached = false;
+		state.pending.clear();
+		state.overflow = false;
 		Ok(())
 	}
 
@@ -302,10 +384,13 @@ impl Terminals {
 		Ok(())
 	}
 
-	/// At quit: every terminal hangs up at once, and what still runs after the grace is killed.
+	/// At quit: every terminal hangs up at once, one already stopping too, and after the grace
+	/// every group is killed, also what an ended script left behind: their own kill threads end
+	/// with the app.
 	pub fn stop_all(&self) {
-		let all: Vec<Arc<Terminal>> = lock(&self.list).iter().filter(|t| stopping(t)).cloned().collect();
+		let all: Vec<Arc<Terminal>> = lock(&self.list).clone();
 		for terminal in &all {
+			stopping(terminal);
 			terminal.hang_up();
 		}
 		let deadline = Instant::now() + STOP_GRACE;
@@ -324,8 +409,11 @@ impl Terminals {
 		Value::Array(
 			list.iter()
 				.map(|t| {
-					let state = t.state();
-					json!({ "id": t.id, "role": t.role.name(), "agent": t.agent.name(), "startedAt": t.started_at, "ended": Terminal::ended_json(state.ended), "prompt": state.shown.0.map(Prompt::name), "url": state.shown.1 })
+					let mut item = t.state_json(&t.state());
+					item["role"] = t.role.name().into();
+					item["agent"] = t.agent.name().into();
+					item["startedAt"] = t.started_at.into();
+					item
 				})
 				.collect(),
 		)
@@ -341,20 +429,30 @@ fn stopping(terminal: &Terminal) -> bool {
 }
 
 /// The script exited: the record keeps its screen, and whatever it left running is stopped.
-fn ended(terminal: &Terminal, code: u32, outlet: &dyn Outlet, list: &List) {
-	let stopped = {
+fn ended(terminal: Arc<Terminal>, code: u32, outlet: &dyn Outlet, list: &List) {
+	let (ended, stopped) = {
 		let mut state = terminal.state();
 		let stopped = state.stopping;
-		state.ended = Some(if stopped { Ended::Stopped } else { Ended::Exited(code) });
+		let ended = match (state.broken, stopped) {
+			(true, _) => Ended::Broken,
+			(false, true) => Ended::Stopped,
+			(false, false) => Ended::Exited(code),
+		};
+		state.ended = Some(ended);
 		state.io = None;
+		terminal.flush(&mut state, outlet);
 		outlet.push("terminal-state", terminal.state_json(&state));
-		stopped
+		(ended, stopped)
 	};
-	let how = if stopped { "stopped".to_owned() } else { format!("code {code}") };
+	let how = match ended {
+		Ended::Exited(code) => format!("code {code}"),
+		Ended::Stopped => "stopped".to_owned(),
+		Ended::Broken => "screen broke".to_owned(),
+	};
 	outlet.log(&format!("terminal ended: {} {} pid {} {how}", terminal.role.name(), terminal.agent.name(), terminal.pid.unwrap_or_default()));
 	if !stopped {
-		terminal.hang_up();
-		outlet.live(live(list));
+		tell_live(list, outlet);
+		hang_up_then_kill(terminal.clone());
 	}
 	// The helper stops with the teacher here, not in the page, which may be gone by then.
 	if terminal.role == Role::Teacher {
@@ -370,7 +468,11 @@ fn stop(terminal: Arc<Terminal>, outlet: &dyn Outlet, list: &List) {
 	if !stopping(&terminal) {
 		return;
 	}
-	outlet.live(live(list));
+	tell_live(list, outlet);
+	hang_up_then_kill(terminal);
+}
+
+fn hang_up_then_kill(terminal: Arc<Terminal>) {
 	terminal.hang_up();
 	#[cfg(unix)]
 	std::thread::spawn(move || {
@@ -386,6 +488,7 @@ fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
 #[cfg(test)]
 mod tests {
 	use std::path::PathBuf;
+	use std::sync::atomic::{AtomicBool, Ordering};
 
 	use super::*;
 
@@ -395,6 +498,9 @@ mod tests {
 		pushes: Mutex<Vec<(String, Value)>>,
 		live: Mutex<Vec<Vec<String>>>,
 		log: Mutex<Vec<String>>,
+		/// The next live message takes a while to send, and `sending` says when it began.
+		slow: AtomicBool,
+		sending: AtomicBool,
 	}
 
 	impl Outlet for Arc<Heard> {
@@ -403,6 +509,10 @@ mod tests {
 		}
 
 		fn live(&self, ids: Vec<String>) {
+			if self.slow.swap(false, Ordering::SeqCst) {
+				self.sending.store(true, Ordering::SeqCst);
+				std::thread::sleep(Duration::from_millis(300));
+			}
 			lock(&self.live).push(ids);
 		}
 
@@ -572,6 +682,90 @@ mod tests {
 		std::fs::remove_dir_all(dir).unwrap();
 	}
 
+	#[test]
+	fn the_server_hears_the_live_terminals_in_the_order_they_changed() {
+		let dir = folder("order", WAITS);
+		write_script(&dir, Role::Helper, WAITS);
+		let heard = Arc::new(Heard::default());
+		let terminals = Arc::new(Terminals::new(heard.clone()));
+		let helper = terminals.start(Role::Helper, Agent::Claude, dir.to_str().unwrap(), env(&dir), Path::new("/data")).unwrap();
+		heard.slow.store(true, Ordering::SeqCst);
+		let stopping = std::thread::spawn({
+			let (terminals, helper) = (terminals.clone(), helper.clone());
+			move || terminals.stop(&helper).unwrap()
+		});
+		until("the slow send", || heard.sending.load(Ordering::SeqCst));
+		let teacher = start(&terminals, &dir);
+		stopping.join().unwrap();
+		assert_eq!(lock(&heard.live).last(), Some(&vec![teacher.clone()]), "the stop's message came first");
+		terminals.stop(&teacher).unwrap();
+		until("the stops", || ended_of(&terminals, &teacher).is_some() && ended_of(&terminals, &helper).is_some());
+		std::fs::remove_dir_all(dir).unwrap();
+	}
+
+	#[cfg(unix)]
+	const FLOOD: &str = "#!/bin/sh\nprintf 'ready\\n'\nread line\ni=0\nwhile [ $i -lt 4000 ]; do printf '%0100d\\n' $i; i=$((i+1)); done\nprintf 'done\\n'\nread line\n";
+	#[cfg(windows)]
+	const FLOOD: &str = "@echo off\r\necho ready\r\nset /p line=\r\nfor /l %%i in (1,1,4000) do echo 000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000%%i\r\necho done\r\nset /p line=\r\n";
+
+	#[test]
+	fn a_flood_of_output_reaches_the_page_in_a_few_pushes() {
+		let dir = folder("flood", FLOOD);
+		let heard = Arc::new(Heard::default());
+		let terminals = Terminals::new(heard.clone());
+		let id = start(&terminals, &dir);
+		until("ready", || text(&terminals, &id).contains("ready"));
+		terminals.attach(&id).unwrap();
+		let began = Instant::now();
+		terminals.write(&id, "go\r", true).unwrap();
+		until("the end of the flood", || text(&terminals, &id).contains("done"));
+		std::thread::sleep(FRAME * 4);
+		let frames = began.elapsed().as_millis() / FRAME.as_millis() + 2;
+		let pushes = lock(&heard.pushes);
+		let output: Vec<&Value> = pushes.iter().filter(|(channel, _)| channel == "terminal-output").map(|(_, p)| p).collect();
+		assert!(output.len() as u128 <= frames, "{} pushes in {frames} frames", output.len());
+		assert!(output.iter().all(|p| p["data"].as_str().is_none_or(|data| data.len() <= FRAME_BYTES.div_ceil(3) * 4)), "no push holds more than a frame");
+		let mut page = Screen::default();
+		for push in &output {
+			if let Some(snapshot) = push["snapshot"].as_str() {
+				page = Screen::default();
+				page.process(&gs_base::base64::decode(snapshot));
+			} else {
+				page.process(&gs_base::base64::decode(push["data"].as_str().unwrap()));
+			}
+		}
+		assert_eq!(page.text(), text(&terminals, &id), "the page ends up with the shell's screen");
+		drop(pushes);
+		terminals.stop(&id).unwrap();
+		until("the stop", || ended_of(&terminals, &id).is_some());
+		std::fs::remove_dir_all(dir).unwrap();
+	}
+
+	#[cfg(unix)]
+	const BREAKS_THE_SCREEN: &str = "#!/bin/sh\nprintf 'ready\\n'\nread line\nprintf 'gs-test-breaks-the-screen\\n'\nwhile :; do printf 'more\\n'; sleep 0.05; done\n";
+	#[cfg(windows)]
+	const BREAKS_THE_SCREEN: &str = "@echo off\r\necho ready\r\nset /p line=\r\necho gs-test-breaks-the-screen\r\n:more\r\necho more\r\nping -n 1 127.0.0.1 >nul\r\ngoto more\r\n";
+
+	#[test]
+	fn a_screen_that_breaks_stops_its_terminal_and_says_so() {
+		let dir = folder("broken", BREAKS_THE_SCREEN);
+		let heard = Arc::new(Heard::default());
+		let terminals = Terminals::new(heard.clone());
+		let id = start(&terminals, &dir);
+		until("ready", || text(&terminals, &id).contains("ready"));
+		terminals.attach(&id).unwrap();
+		terminals.write(&id, "go\r", true).unwrap();
+		until("the end", || ended_of(&terminals, &id) == Some(Ended::Broken));
+		assert!(text(&terminals, &id).contains(BROKEN));
+		assert_eq!(terminals.list()[0]["ended"], json!({ "stopped": false, "code": null }));
+		assert_eq!(lock(&heard.live).last(), Some(&Vec::new()), "the server hears it ended");
+		let pushes = lock(&heard.pushes);
+		let snapshot = pushes.iter().rev().find_map(|(_, p)| p["snapshot"].as_str()).unwrap();
+		assert!(String::from_utf8(gs_base::base64::decode(snapshot)).unwrap().contains("couldn't read"));
+		drop(pushes);
+		std::fs::remove_dir_all(dir).unwrap();
+	}
+
 	#[cfg(unix)]
 	fn running(pid: &str) -> bool {
 		std::process::Command::new("/bin/kill").args(["-0", pid]).stderr(std::process::Stdio::null()).status().is_ok_and(|status| status.success())
@@ -593,6 +787,36 @@ mod tests {
 		until("the stop", || ended_of(&terminals, &id) == Some(Ended::Stopped));
 		until("the child's end", || !running(&child));
 		assert_eq!(terminals.list()[0]["ended"], json!({ "stopped": true, "code": null }));
+		std::fs::remove_dir_all(dir).unwrap();
+	}
+
+	#[cfg(unix)]
+	#[test]
+	fn what_an_ended_script_left_running_is_killed_after_the_grace() {
+		// The child ignores the hang-up, as an agent may.
+		let dir = folder("leftover", "#!/bin/sh\n(trap '' HUP; exec sleep 300) &\necho $! > \"$0.pid\"\nprintf 'ready\\n'\n");
+		let terminals = Terminals::new(Arc::new(Heard::default()));
+		let id = start(&terminals, &dir);
+		until("the end", || ended_of(&terminals, &id) == Some(Ended::Exited(0)));
+		let pid_file = dir.join(".godspeed/start-claude").with_extension(if cfg!(target_os = "macos") { "command.pid" } else { "sh.pid" });
+		let child = std::fs::read_to_string(pid_file).unwrap().trim().to_owned();
+		std::thread::sleep(STOP_GRACE / 2);
+		assert!(running(&child), "the hang-up alone left it");
+		until("the kill", || !running(&child));
+		std::fs::remove_dir_all(dir).unwrap();
+	}
+
+	#[cfg(unix)]
+	#[test]
+	fn quit_kills_a_terminal_that_was_already_stopping() {
+		let dir = folder("quit", "#!/bin/sh\ntrap '' HUP\nprintf 'ready\\n'\nwhile :; do sleep 1; done\n");
+		let terminals = Terminals::new(Arc::new(Heard::default()));
+		let id = start(&terminals, &dir);
+		until("ready", || text(&terminals, &id).contains("ready"));
+		terminals.stop(&id).unwrap();
+		terminals.stop_all();
+		std::thread::sleep(Duration::from_millis(300));
+		assert!(ended_of(&terminals, &id).is_some(), "killed before quit returned, not by a thread the app takes along");
 		std::fs::remove_dir_all(dir).unwrap();
 	}
 

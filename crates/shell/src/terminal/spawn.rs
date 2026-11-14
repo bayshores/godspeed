@@ -167,15 +167,13 @@ pub fn spawn(argv: Vec<OsString>, env: Vec<(OsString, OsString)>, cwd: &Path) ->
 }
 
 /// Sends `signal` to the process group the script leads (`portable-pty` made it a session
-/// leader), so its children get it too.
+/// leader), so its children get it too. A group that already ended is no error.
 #[cfg(unix)]
-pub fn signal_group(pid: u32, signal: &str) {
-	let _ = std::process::Command::new("/bin/kill")
-		.args([format!("-{signal}"), "--".to_owned(), format!("-{pid}")])
-		.stdin(std::process::Stdio::null())
-		.stdout(std::process::Stdio::null())
-		.stderr(std::process::Stdio::null())
-		.status();
+pub fn signal_group(pid: u32, signal: rustix::process::Signal) {
+	// Never 1: kill(-1) reaches every process of the account.
+	if let Some(pid) = i32::try_from(pid).ok().filter(|pid| *pid > 1).and_then(rustix::process::Pid::from_raw) {
+		let _ = rustix::process::kill_process_group(pid, signal);
+	}
 }
 
 #[cfg(test)]

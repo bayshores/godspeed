@@ -157,6 +157,10 @@ impl Server {
 			Err(RecvTimeoutError::Timeout) => return Err(format!("server was not ready after {} s", READY_LIMIT.as_secs())),
 		}
 		self.write_endpoint(&app.state::<Paths>());
+		// An end or a start while it started may have gone to the old server.
+		if let Some(terminals) = app.try_state::<Terminals>() {
+			terminals.tell_live();
+		}
 		Ok(())
 	}
 

@@ -2077,6 +2077,7 @@ dependencies = [
  "os_info",
  "portable-pty",
  "rfd",
+ "rustix",
  "serde_json",
  "tauri",
  "tauri-build",

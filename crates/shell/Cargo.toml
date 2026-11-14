@@ -38,6 +38,9 @@ vt100.workspace = true
 [target.'cfg(not(target_os = "macos"))'.dependencies]
 fontdb.workspace = true
 
+[target.'cfg(unix)'.dependencies]
+rustix = { workspace = true, features = ["process", "std"] }
+
 [target.'cfg(windows)'.dependencies]
 webview2-com.workspace = true
 windows = { workspace = true, features = ["Win32_Foundation", "Win32_Security", "Win32_System_DataExchange", "Win32_System_JobObjects", "Win32_System_Memory", "Win32_System_Registry"] }

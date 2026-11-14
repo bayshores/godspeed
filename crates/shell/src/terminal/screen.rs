@@ -8,6 +8,9 @@ use std::time::{Duration, Instant};
 use super::spawn::{COLS, ROWS};
 
 const SCROLLBACK: usize = 1000;
+/// Output a test prints to make drawing it panic, as a bug in the parser would.
+#[cfg(test)]
+pub const BREAKS: &[u8] = b"gs-test-breaks-the-screen";
 
 /// A menu counts once it has stayed the same this long (an agent redraws while it starts).
 pub const SETTLE: Duration = Duration::from_secs(2);
@@ -78,6 +81,8 @@ impl Default for Screen {
 impl Screen {
 	/// Draws the program's output; the answers it asked for, to write back to it.
 	pub fn process(&mut self, bytes: &[u8]) -> Vec<u8> {
+		#[cfg(test)]
+		assert!(!bytes.windows(BREAKS.len()).any(|part| part == BREAKS), "a test breaks the screen");
 		self.parser.process(bytes);
 		std::mem::take(&mut self.parser.callbacks_mut().0)
 	}
