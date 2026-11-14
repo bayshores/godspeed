@@ -8,7 +8,6 @@ import { lazyComponent } from "@/frontend/lib/lazy-component";
 import { JobsContext } from "@/frontend/components/jobs-context";
 import { ChatActionsContext } from "@/frontend/components/chat-actions-context";
 import { StatsBar } from "@/frontend/components/stats-bar";
-import { useSummarizePoint } from "@/frontend/components/use-summarize-point";
 import { agentWaiting, lessonAgentWaiting, useAgentStatus } from "@/frontend/components/agent-status";
 import { latestTree } from "@/frontend/components/plan-latest";
 import { MermaidOverlay, SessionMermaidContext } from "@/frontend/components/session-overlay";
@@ -18,10 +17,12 @@ import {
 	activeProblemOf,
 	answerTakesFiles,
 	dismissedAnswer,
+	effectiveThresholdTokens,
 	findPendingToolCall,
 	firstPhase,
 	homeworkProblems,
 	kbdEventForAction,
+	OUTSIDE_AGENT_CONTEXT_WINDOW,
 	phaseTimeline,
 	planStepBar,
 	problemSource,
@@ -58,6 +59,9 @@ import { usePaneWidth } from "@/frontend/components/ui/resize-handle";
 import { useAttachmentDraft } from "@/frontend/components/lesson/attachment-tray";
 import { takeStartFiles } from "@/frontend/components/lesson/start-files";
 import { useTeacherLesson } from "@/frontend/components/teacher/teacher-provider";
+
+/** The lesson size where it gets summarized (the size meter's end). */
+const SUMMARIZE_AT = effectiveThresholdTokens(OUTSIDE_AGENT_CONTEXT_WINDOW);
 import { SheetDock, useSheetDock } from "@/frontend/components/cheat-sheet/sheet-dock";
 
 // The plan popup (and dagre, its layout engine) loads on first open.
@@ -112,7 +116,6 @@ export function Chat({
 	// client-side (core/view.ts projectView).
 	const session = useChatSession({ chatId, initialMessages, initialError, initiallyInFlight });
 	const { messages, nativeMessages, contextTokens, send, continueIfOwed, steer, steerQueue, submitAnswer, dismissQuestion, dismissProblem, keepGoing, dropKept, status, error, stop, clearError, resumeStream } = session;
-	const summarizeAt = useSummarizePoint();
 	const { turnInFlight, localStreamRef, jobs, turns, pricing, adoptAppendOnly } = useLessonServer({
 		chatId,
 		session,
@@ -629,7 +632,7 @@ export function Chat({
 											attachments={attachments}
 											stuck={stuck && stuckMinutes !== null ? { minutes: stuckMinutes, label: stuck.type === "text" ? "Stop and send again?" : "Stop and try again?", onStop: stopAndRetry } : null}
 											error={error && { text: lessonError(error.message).text, detail: error.message, onRetry: retry }}
-											stats={<StatsBar turns={turns} contextTokens={contextTokens} summarizeAt={summarizeAt} pricing={pricing} />}
+											stats={<StatsBar turns={turns} contextTokens={contextTokens} summarizeAt={SUMMARIZE_AT} pricing={pricing} />}
 										/>
 
 										{/* The session-scoped focuses: absolute over the lesson area, below

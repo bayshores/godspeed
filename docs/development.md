@@ -54,8 +54,8 @@ To import notes while testing, use the app: a space's linked folder or Files pag
 ## Environment
 
 - There are no model settings, model keys or sign-ins. The outside agent picks its own model and effort in its own harness. Settings → Connection connects it.
-- The one optional key is the learner's own Tavily key, entered in Settings → Connection and kept in `data/search-key` (mode 0600, never in `settings.json`). With it the research job gets a `web_search` tool. Without it the agent may use its own web search.
-- The extraction batch size is an app setting, `graph.extractionChunkTokens` (default 4096, floor 500).
+- The one optional key is the learner's own Tavily key, entered in Settings → Teaching → Facts and research and kept in `data/search-key` (mode 0600, never in `settings.json`). With it the research job gets a `web_search` tool. Without it the agent may use its own web search.
+- The extraction batch size is `graph.extractionChunkTokens` (default 4096, floor 500). Settings no longer shows or writes it.
 - The server makes the access token `data/mcp-token` on the first page load, and again whenever the file is missing.
 - The server's environment variables are listed in [rust-server.md](rust-server.md).
 

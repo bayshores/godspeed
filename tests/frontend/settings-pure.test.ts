@@ -1,13 +1,14 @@
 /**
  * The settings pure layers: the appearance → CSS-variable mapping, the
  * background-derived palette, the Teaching section's
- * compose helpers (the replace-whole PUT), and the keyboard overrides map.
+ * compose helpers (the replace-whole PUT).
  */
 
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { describe, it } from "node:test";
 import {
+	appearanceToWrite,
 	appearanceVars,
 	BACKGROUND_PRESETS,
 	derivedPalette,
@@ -25,7 +26,6 @@ import {
 	composeRules,
 	composeTool,
 } from "../../src/frontend/components/settings/teaching-model.ts";
-import { nextOverrides } from "../../src/frontend/components/settings/keyboard-section.tsx";
 import { TEACHING_AREAS, type AgentSettings, type PromptSegmentInfo } from "../../src/shared/core";
 
 describe("resolveAppearance — delta over factory", () => {
@@ -34,7 +34,7 @@ describe("resolveAppearance — delta over factory", () => {
 		assert.equal(a.background, null);
 		assert.equal(a.fontFamily, null);
 		assert.equal(a.proseFontSize, 17);
-		assert.deepEqual(a.mdRendering, { headingWeight: 600, boldColor: null, italicColor: null });
+		assert.equal("mdRendering" in a, false);
 	});
 
 	it("explicit deltas win field-by-field", () => {
@@ -153,8 +153,8 @@ describe("readableBackground — a picked color is made dark enough for the app"
 describe("appearanceVars — the mapping the provider applies", () => {
 	it("factory appearance: only the always-applied tokens move", () => {
 		const vars = appearanceVars(resolveAppearance(undefined));
+		assert.deepEqual(Object.keys(vars), ["--lh-prose-size"]);
 		assert.equal(vars["--lh-prose-size"], "17px");
-		assert.equal(vars["--lh-heading-weight"], "600");
 		assert.equal(vars["--font-prose"], undefined, "no font override at factory");
 		assert.equal(vars["--background"], undefined, "factory palette untouched");
 		assert.equal(vars["--lh-ink-strong"], undefined, "default ink");
@@ -166,22 +166,20 @@ describe("appearanceVars — the mapping the provider applies", () => {
 				background: "#101820",
 				fontFamily: "Georgia",
 				proseFontSize: 18,
-				mdRendering: { headingWeight: 700, boldColor: "#ff8080", italicColor: "#00ff00" },
 			}),
 		);
 		assert.equal(vars["--background"], "#101820");
 		assert.equal(vars["--card"], "#182028", "raised +8 per channel: 10→18, 18→20, 20→28");
 		assert.equal(vars["--font-prose"], `"Georgia", var(--font-literata), Georgia, serif`);
 		assert.equal(vars["--lh-prose-size"], "18px");
-		assert.equal(vars["--lh-heading-weight"], "700");
-		assert.equal(vars["--lh-ink-strong"], "#ff8080");
-		assert.equal(vars["--lh-ink-italic"], "#00ff00");
 	});
 
-	it("a bold color that would be hard to read is made readable", () => {
-		const vars = appearanceVars(resolveAppearance({ mdRendering: { boldColor: "#2f5fb3" } }));
-		assert.notEqual(vars["--lh-ink-strong"], "#2f5fb3", "mid blue on Paper is darkened");
-		assert.ok(contrast(vars["--lh-ink-strong"]!, PAPER) >= 4.5);
+	it("an older record's heading weight and bold and italic colors no longer apply, and a write drops them", () => {
+		const old = { proseFontSize: 18, mdRendering: { headingWeight: 800, boldColor: "#ff8080", italicColor: "#00ff00" } } as never;
+		const vars = appearanceVars(resolveAppearance(old));
+		for (const name of ["--lh-heading-weight", "--lh-ink-strong", "--lh-ink-italic"]) assert.equal(vars[name], undefined, name);
+		assert.deepEqual(appearanceToWrite(old), { proseFontSize: 18 });
+		assert.deepEqual(appearanceToWrite(undefined), {});
 	});
 });
 
@@ -191,7 +189,6 @@ describe("staleVarNames — the removal half of application (resets revert)", ()
 			resolveAppearance({
 				background: "#101820",
 				fontFamily: "Georgia",
-				mdRendering: { headingWeight: 700, boldColor: "#ff8080", italicColor: "#00ff00" },
 			}),
 		);
 		const applied = Object.keys(fullDelta);
@@ -199,10 +196,7 @@ describe("staleVarNames — the removal half of application (resets revert)", ()
 		const stale = staleVarNames(applied, factory);
 		assert.ok(stale.includes("--background"));
 		assert.ok(stale.includes("--font-prose"));
-		assert.ok(stale.includes("--lh-ink-strong"));
-		assert.ok(stale.includes("--lh-ink-italic"));
 		assert.ok(!stale.includes("--lh-prose-size"), "always-applied tokens never go stale");
-		assert.ok(!stale.includes("--lh-heading-weight"), "always-applied tokens never go stale");
 	});
 
 	it("an empty background commit (null = factory) frees the palette vars", () => {
@@ -264,17 +258,5 @@ describe("Teaching compose helpers — the replace-whole PUT body", () => {
 		const seg = (path: string, overrideText: string | null): PromptSegmentInfo => ({ path, sourceText: "", overrideText, shared: true });
 		assert.equal(areaEdited(area, [seg("shared/15-accuracy.md", null), seg("shared/10-voice.md", "mine")]), false);
 		assert.equal(areaEdited(area, [seg("shared/15-accuracy.md", "mine")]), true);
-	});
-});
-
-describe("nextOverrides — the rebind persistence map", () => {
-	it("a rebind sets the action's override, keeping the others", () => {
-		const next = nextOverrides({ "jump-graph": "mod+g" }, "open-settings", "mod+shift+s");
-		assert.deepEqual(next, { "jump-graph": "mod+g", "open-settings": "mod+shift+s" });
-	});
-
-	it("null = reset that action to its default (key removed)", () => {
-		const next = nextOverrides({ "jump-graph": "mod+g", find: "mod+f" }, "jump-graph", null);
-		assert.deepEqual(next, { find: "mod+f" });
 	});
 });

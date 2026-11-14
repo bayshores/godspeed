@@ -8,6 +8,13 @@
 
 import { darkBackground, inkFor, readableAccent, resolveSettings, shiftHex, tintFor, type AppearanceSettings, type EffectiveAppearance } from "@/shared/core";
 
+/** What an appearance write sends: the section without the retired
+ *  heading weight and bold and italic colors an older version saved. */
+export function appearanceToWrite(a: AppearanceSettings | undefined): AppearanceSettings {
+	const { mdRendering: _retired, ...rest } = (a ?? {}) as AppearanceSettings & { mdRendering?: unknown };
+	return rest;
+}
+
 /** The resolved appearance (delta over factory), through the core resolver. */
 export function resolveAppearance(delta: AppearanceSettings | undefined): EffectiveAppearance {
 	return resolveSettings(delta === undefined ? null : { version: 1, appearance: delta }).appearance;
@@ -25,9 +32,6 @@ export const BACKGROUND_PRESETS: ReadonlyArray<{ name: string; color: string | n
 	{ name: "Midnight", color: "#0d1320" },
 	{ name: "Forest", color: "#0e1712" },
 ];
-
-/** Bold/italic color presets; each is kept readable on the background. */
-export const INK_PRESETS: readonly string[] = ["#f2c14e", "#7fb7ff", "#8bd3a0", "#f08a8a"];
 
 /** The app's status colors (right, wrong, delete, the confidence and topic
  *  ramps) before a palette adjusts them. Every palette keeps each one
@@ -151,17 +155,12 @@ export function readableBackground(color: string): string {
 export function appearanceVars(a: EffectiveAppearance): Record<string, string> {
 	const vars: Record<string, string> = {};
 	// The palette follows a background text can read on (the saved choice stays as picked).
-	const background = a.background === null ? PAPER : readableBackground(a.background);
-	if (a.background !== null) Object.assign(vars, derivedPalette(background));
+	if (a.background !== null) Object.assign(vars, derivedPalette(readableBackground(a.background)));
 	if (a.fontFamily !== null) {
 		vars["--font-prose"] = `"${a.fontFamily}", var(--font-literata), Georgia, serif`;
 	}
 	// One reading-size variable: prose, inputs and lesson titles all read it.
 	vars["--lh-prose-size"] = `${a.proseFontSize}px`;
-	vars["--lh-heading-weight"] = String(a.mdRendering.headingWeight);
-	// A bold or italic color is kept readable on the background (the saved choice stays as picked).
-	if (a.mdRendering.boldColor !== null) vars["--lh-ink-strong"] = readableAccent(a.mdRendering.boldColor, background);
-	if (a.mdRendering.italicColor !== null) vars["--lh-ink-italic"] = readableAccent(a.mdRendering.italicColor, background);
 	return vars;
 }
 
@@ -170,13 +169,3 @@ export function appearanceVars(a: EffectiveAppearance): Record<string, string> {
 export function staleVarNames(prevNames: readonly string[], nextVars: Record<string, string>): string[] {
 	return prevNames.filter((n) => !(n in nextVars));
 }
-
-/** Heading weights the slider steps through, with their names. */
-export const HEADING_WEIGHTS: ReadonlyArray<{ weight: number; name: string }> = [
-	{ weight: 400, name: "Regular" },
-	{ weight: 500, name: "Medium" },
-	{ weight: 600, name: "Semibold" },
-	{ weight: 700, name: "Bold" },
-	{ weight: 800, name: "Extra bold" },
-	{ weight: 900, name: "Black" },
-];

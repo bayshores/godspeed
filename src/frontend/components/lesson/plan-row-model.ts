@@ -15,7 +15,7 @@ export interface RowBlock {
 }
 
 /** What a practice row shows: its count and its blocks. */
-export interface RowSummary {
+interface RowSummary {
 	count: string | null;
 	blocks: RowBlock[];
 }

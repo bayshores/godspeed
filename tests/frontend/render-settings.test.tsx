@@ -15,12 +15,11 @@ import { AreaDetail } from "../../src/frontend/components/settings/area-detail.t
 import { TeachingSection } from "../../src/frontend/components/settings/teaching-section.tsx";
 import { AppearanceSection } from "../../src/frontend/components/settings/appearance-section.tsx";
 import { GeneralSection } from "../../src/frontend/components/settings/general-section.tsx";
-import { KeyboardSection } from "../../src/frontend/components/settings/keyboard-section.tsx";
 import { sectionFor, SettingsPage } from "../../src/frontend/components/settings/settings-page.tsx";
 import { ServerEventsProvider } from "../../src/frontend/components/server-events.tsx";
 
 const quietEvents = () => ({ onEvent() {}, onOpen() {}, close() {} });
-import { KEYBOARD_ACTIONS, TEACHING_AREAS, type UserSettings } from "../../src/shared/core/index.ts";
+import { TEACHING_AREAS, type UserSettings } from "../../src/shared/core/index.ts";
 
 /** The full opening tag of the element carrying a testid — attribute
  *  order in React output is not contractual, so assertions run on the
@@ -45,15 +44,16 @@ describe("the Settings page (SSR)", () => {
 		assert.ok(!html.includes('role="dialog"'));
 		assert.ok(!html.includes("settings-close"), "nothing to close");
 		const ids = [...html.matchAll(/data-testid="settings-nav-(\w+)"/g)].map((m) => m[1]);
-		assert.deepEqual(ids, ["connection", "teaching", "appearance", "keyboard", "general"]);
+		assert.deepEqual(ids, ["connection", "teaching", "appearance", "general"], "no Keyboard tab");
 		assert.ok(tagOf(html, "settings-nav-connection").includes('aria-current="true"'));
-		assert.ok(tagOf(html, "settings-nav-keyboard").includes('aria-current="false"'));
+		assert.ok(tagOf(html, "settings-nav-general").includes('aria-current="false"'));
 		// Fetches don't run under SSR: the loading state is the SSR state.
 		assert.ok(html.includes("Loading settings…"));
 	});
 
-	it("opens on the section the address asks for; an unknown one lands on Connection", () => {
-		assert.ok(tagOf(page("keyboard"), "settings-nav-keyboard").includes('aria-current="true"'));
+	it("opens on the section the address asks for; an unknown one, the old Keyboard included, lands on Connection", () => {
+		assert.ok(tagOf(page("general"), "settings-nav-general").includes('aria-current="true"'));
+		assert.equal(sectionFor("keyboard"), "connection");
 		assert.equal(sectionFor("teaching"), "teaching");
 		assert.equal(sectionFor("nope"), "connection");
 		assert.equal(sectionFor(undefined), "connection");
@@ -64,7 +64,7 @@ describe("TeachingSection (SSR)", () => {
 	const render = (props: Partial<React.ComponentProps<typeof TeachingSection>> = {}) =>
 		renderToStaticMarkup(
 			<ServerEventsProvider connect={quietEvents as never}>
-				<TeachingSection agent={undefined} graph={undefined} teacherName="Ada" onSectionChange={() => {}} onFullPage={() => {}} {...props} />
+				<TeachingSection agent={undefined} graph={undefined} onGraphChange={() => {}} teacherName="Ada" onSectionChange={() => {}} onFullPage={() => {}} {...props} />
 			</ServerEventsProvider>,
 		);
 
@@ -97,6 +97,7 @@ describe("AreaDetail (SSR)", () => {
 					area={area(id)}
 					agent={undefined}
 					graphOn
+					onGraphChange={() => {}}
 					teacherName="Ada"
 					savedAt={{}}
 					edited={false}
@@ -109,7 +110,7 @@ describe("AreaDetail (SSR)", () => {
 		);
 
 	it("switches default on (absent key = on) and carry the stored delta", () => {
-		const on = { facts: ["web-research", "your-graph"], demos: ["demos", "figures"], files: ["pdf-reading"] } as const;
+		const on = { facts: ["web-search", "build-the-graph-from-lessons", "your-graph"], demos: ["demos", "figures"], files: ["pdf-reading"] } as const;
 		for (const [id, toggles] of Object.entries(on)) {
 			const html = render(id);
 			for (const t of toggles) assert.ok(tagOf(html, `toggle-${t}`).includes('aria-checked="true"'), t);
@@ -127,10 +128,21 @@ describe("AreaDetail (SSR)", () => {
 		assert.ok(tagOf(free, "quiz-style-choice").includes('aria-checked="false"'));
 	});
 
-	it("the graph switch is disabled, with the reason, while building the graph is off", () => {
-		const html = render("facts", { graphOn: false });
-		assert.ok(tagOf(html, "toggle-your-graph").includes("disabled"));
-		assert.ok(html.includes("Off while building the graph is off in General"));
+	it("Facts and research holds the graph's own switch; Your graph shows only while it is on", () => {
+		const off = render("facts", { graphOn: false });
+		assert.ok(tagOf(off, "toggle-build-the-graph-from-lessons").includes('aria-checked="false"'));
+		assert.ok(!off.includes("toggle-your-graph"), "no dimmed row that does nothing");
+		assert.ok(tagOf(render("facts", { graphOn: true }), "toggle-build-the-graph-from-lessons").includes('aria-checked="true"'));
+		assert.ok(render("facts", { graphOn: true }).includes('data-testid="toggle-your-graph"'));
+	});
+
+	it("one Web search: the switch, and while it is on, who searches under it", () => {
+		const on = render("facts");
+		assert.ok(on.includes('data-testid="toggle-web-search"'));
+		assert.ok(!on.includes("Web research"));
+		assert.ok(on.indexOf('data-testid="toggle-web-search"') < on.indexOf('data-testid="web-search"'), "who searches sits under the switch");
+		const off = render("facts", { agent: { tools: { research: false } } });
+		assert.ok(!off.includes('data-testid="web-search"'), "nothing to pick while nobody searches");
 	});
 
 	it("an area with its own instructions changed says so", () => {
@@ -142,25 +154,21 @@ describe("AreaDetail (SSR)", () => {
 describe("GeneralSection (SSR)", () => {
 	const render = (record: UserSettings) =>
 		renderToStaticMarkup(
-			<GeneralSection record={record} onGeneralChange={() => {}} onCompactionChange={() => {}} onGraphChange={() => {}} />,
+			<GeneralSection record={record} onGeneralChange={() => {}} />,
 		);
 
-	it("teacher name, the two sliders at their factory values, and the graph switch", () => {
+	it("teacher name and sounds, with no sliders and no graph switch", () => {
 		const html = render({ version: 1 });
 		assert.ok(tagOf(html, "teacher-name").includes('placeholder="Teacher"'));
-		assert.ok(tagOf(html, "slider-compaction").includes('value="40000"'));
-		assert.ok(html.includes("about 80 pages"), "lesson length in pages, not tokens");
-		assert.ok(!html.includes("k tokens"));
-		assert.ok(tagOf(html, "slider-chunk-tokens").includes('value="4096"'));
-		assert.ok(tagOf(html, "toggle-build-the-graph").includes('aria-checked="true"'));
+		assert.doesNotMatch(html, /slider-|Summarize long lessons|Add to the graph|toggle-build-the-graph/);
 		assert.match(html, /<span class="block text-base text-ink-2">Shown in the window only</, "hints use the readable quiet color");
 	});
 
 	it("a switch says On or Off beside its track", () => {
 		const on = render({ version: 1 });
-		assert.match(on.split('data-testid="toggle-build-the-graph"')[1]!.slice(0, 400), />On</);
-		const off = render({ version: 1, graph: { enabled: false } });
-		assert.match(off.split('data-testid="toggle-build-the-graph"')[1]!.slice(0, 400), />Off</);
+		assert.match(on.split('data-testid="toggle-sounds"')[1]!.slice(0, 400), />On</);
+		const off = render({ version: 1, general: { sounds: false } });
+		assert.match(off.split('data-testid="toggle-sounds"')[1]!.slice(0, 400), />Off</);
 	});
 
 	it("deadline reminders: on by default, off when the record says so, only in the desktop app", () => {
@@ -177,14 +185,6 @@ describe("GeneralSection (SSR)", () => {
 			delete global.window;
 		}
 	});
-
-	it("graph off: the switch shows off and the chunk slider is disabled", () => {
-		const html = render({ version: 1, graph: { enabled: false, extractionChunkTokens: 6000 } });
-		assert.ok(tagOf(html, "toggle-build-the-graph").includes('aria-checked="false"'));
-		const slider = tagOf(html, "slider-chunk-tokens");
-		assert.ok(slider.includes('value="6000"') && slider.includes("disabled"));
-		assert.ok(html.includes("about 12 pages"));
-	});
 });
 
 describe("AppearanceSection (SSR)", () => {
@@ -197,6 +197,7 @@ describe("AppearanceSection (SSR)", () => {
 		assert.ok(html.includes('data-testid="font-trigger"'));
 		assert.ok(tagOf(html, "slider-text-size").includes('value="17"'));
 		assert.ok(html.includes('data-testid="appearance-preview"'));
+		assert.doesNotMatch(html, /Heading weight|Bold and italic|slider-heading-weight/);
 	});
 
 	it("Tab onto a hidden color picker rings its visible tile", () => {
@@ -204,42 +205,10 @@ describe("AppearanceSection (SSR)", () => {
 		assert.ok(css.includes(':root[data-tab-focus] :has(> input[type="color"]:focus-visible)'), "the ring rule for a picker's tile");
 		const html = renderToStaticMarkup(<AppearanceSection appearance={undefined} onSectionChange={() => {}} />);
 		const pickers = [...parseHTML(`<div>${html}</div>`).document.querySelectorAll('input[type="color"]')];
-		assert.equal(pickers.length, 2);
+		assert.equal(pickers.length, 1, "the custom background's");
 		for (const input of pickers) {
 			assert.match(input.className, /opacity-0/, "the picker itself is invisible");
 			assert.match(input.parentElement!.className, /\bborder\b/, `${input.getAttribute("aria-label")} sits right in its tile`);
 		}
-	});
-});
-
-describe("KeyboardSection (thin SSR)", () => {
-	it("renders every registry action in its scope group", () => {
-		const html = renderToStaticMarkup(<KeyboardSection />);
-		for (const def of KEYBOARD_ACTIONS) {
-			assert.ok(html.includes(`data-testid="kbd-row-${def.id}"`), def.id);
-		}
-		assert.ok(html.includes("kbd-scope-global"));
-		assert.ok(html.includes("kbd-scope-chat"));
-	});
-
-	it("open-settings is in the registry with the settings chord", () => {
-		const def = KEYBOARD_ACTIONS.find((a) => a.id === "open-settings");
-		assert.ok(def, "the action exists");
-		assert.equal(def?.scope, "global");
-		assert.equal(def?.binding, "mod+,");
-	});
-
-	it("displayOnly actions list but never offer Rebind", () => {
-		const html = renderToStaticMarkup(<KeyboardSection />);
-		assert.ok(html.includes("These can&#x27;t be changed."), "one note for the group");
-		assert.ok(html.includes("Stored on this device"), "where the keys live");
-		assert.ok(!html.includes("Fixed, part of this screen"), "no per-row note");
-		assert.ok(!html.includes("lh:keymap"), "no storage key on screen");
-		assert.ok(!html.includes(`data-testid="kbd-rebind-question-next-row"`), "surface keys stay put");
-		// The model-menu entries are GONE entirely:
-		// obvious in-field navigation, not settings material.
-		assert.ok(!html.includes("Model menu"), "model-menu rows removed");
-		assert.ok(!KEYBOARD_ACTIONS.some((a) => a.id as string === "model-menu-walk"));
-		assert.ok(!KEYBOARD_ACTIONS.some((a) => a.id as string === "model-menu-pick"));
 	});
 });

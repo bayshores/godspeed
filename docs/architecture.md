@@ -940,7 +940,7 @@ When the learner states a lasting preference, the teacher calls `save_rule` (`ag
 
 #### Web search
 
-By default the outside agent looks things up with its own web search. A learner may save their own Tavily key under Settings, Connection (`services::app::web_search`, `GET /api/web-search`, `PUT` and `DELETE /api/web-search/key`).
+By default the outside agent looks things up with its own web search. A learner may save their own Tavily key under Settings, Teaching, Facts and research, below the Web search switch (`services::app::web_search`, `GET /api/web-search`, `PUT` and `DELETE /api/web-search/key`).
 
 - `store::search_key` keeps it in `data/search-key` (mode 0600). The window only ever gets its last 4 characters.
 - It is sent to `api.tavily.com` alone (`web::tavily`). Saving checks the key with Tavily first, and the page shows the searches used this month.

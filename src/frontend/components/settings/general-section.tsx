@@ -1,36 +1,21 @@
 /**
- * Settings → General: the teacher's name, sounds, deadline reminders, when
- * long lessons get summarized, how the graph grows, and updates.
+ * Settings → General: the teacher's name, sounds, deadline reminders and
+ * updates.
  */
 
-import {
-	COMPACTION_THRESHOLD_FLOOR,
-	DEFAULT_TEACHER_NAME,
-	EXTRACTION_CHUNK_TOKENS_FLOOR,
-	resolveSettings,
-	type CompactionSettings,
-	type GeneralSettings,
-	type GraphSettings,
-	type UserSettings,
-} from "@/shared/core";
-import { pagesLabel } from "@/frontend/components/usage-format";
-import { CommitInput, SettingsGroup, SettingsRow, Slider, Toggle } from "./controls.tsx";
+import { DEFAULT_TEACHER_NAME, resolveSettings, type GeneralSettings, type UserSettings } from "@/shared/core";
+import { CommitInput, SettingsGroup, SettingsRow, Toggle } from "./controls.tsx";
 import { UpdateSettings } from "./update-settings.tsx";
 
 export function GeneralSection({
 	record,
 	onGeneralChange,
-	onCompactionChange,
-	onGraphChange,
 }: {
 	record: UserSettings;
 	onGeneralChange: (next: GeneralSettings) => void;
-	onCompactionChange: (next: CompactionSettings) => void;
-	onGraphChange: (next: GraphSettings) => void;
 }) {
-	// The same resolver the server uses, so the sliders show the numbers in effect.
+	// The same resolver the server uses, so the switches show what is in effect.
 	const effective = resolveSettings(record);
-	const graph = record.graph;
 	return (
 		<>
 			<SettingsGroup label="Teacher and sounds" testid="group-you">
@@ -62,45 +47,6 @@ export function GeneralSection({
 					</SettingsRow>
 				</SettingsGroup>
 			)}
-			<SettingsGroup label="Lessons and graph" testid="group-lessons">
-				<SettingsRow label="Summarize long lessons after" hint="Older parts of a long lesson get summarized so it keeps fitting" testid="row-compaction">
-					<span className="w-[354px] shrink-0">
-						<Slider
-							value={effective.compaction.thresholdTokens}
-							min={COMPACTION_THRESHOLD_FLOOR}
-							max={200_000}
-							step={2_000}
-							ariaLabel="Summarize long lessons after"
-							testid="slider-compaction"
-							label={pagesLabel}
-							onCommit={(v) => onCompactionChange({ ...record.compaction, thresholdTokens: v })}
-						/>
-					</span>
-				</SettingsRow>
-				<SettingsRow label="Build the graph from lessons" hint="Off: the graph stops growing" testid="graph-row-enabled">
-					<Toggle checked={effective.graph.enabled} label="build the graph" onChange={(on) => onGraphChange({ ...graph, enabled: on })} />
-				</SettingsRow>
-				<SettingsRow
-					label="Add to the graph every"
-					hint="Smaller means more often, and more agent work"
-					testid="graph-row-chunk-tokens"
-					dimmed={!effective.graph.enabled}
-				>
-					<span className="w-[354px] shrink-0">
-						<Slider
-							value={effective.graph.extractionChunkTokens}
-							min={EXTRACTION_CHUNK_TOKENS_FLOOR}
-							max={16_000}
-							step={500}
-							disabled={!effective.graph.enabled}
-							ariaLabel="Add to the graph every"
-							testid="slider-chunk-tokens"
-							label={pagesLabel}
-							onCommit={(v) => onGraphChange({ ...graph, extractionChunkTokens: v })}
-						/>
-					</span>
-				</SettingsRow>
-			</SettingsGroup>
 			<SettingsGroup label="Updates" testid="group-updates">
 				<UpdateSettings
 					autoUpdate={effective.general.autoUpdate}
