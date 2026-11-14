@@ -569,7 +569,7 @@ impl SpaceActions {
 		if mocks > 0
 			&& let Some(obj) = value.as_obj_mut()
 		{
-			obj.insert("note", format!("Its {mocks} {} removed too.", if mocks == 1 { "mock is" } else { "mocks are" }));
+			obj.insert("note", if mocks == 1 { "Its mock is removed too.".to_owned() } else { format!("Its {mocks} mocks are removed too.") });
 		}
 		self.done(value, vec![removed])
 	}
@@ -783,7 +783,7 @@ mod tests {
 		let left: Vec<Json> = app.stores.mocks.list_mocks(&space_id).unwrap().iter().map(|m| m["id"].clone()).collect();
 		assert_eq!(left, [json!("mock_00000003")]);
 		let (quiet, _) = value(actions(&app).remove_space_deadline(&json!({ "space_id": space_id, "deadline_id": screen })));
-		assert_eq!(quiet["note"], json!("Its 1 mock is removed too."));
+		assert_eq!(quiet["note"], json!("Its mock is removed too."), "as the window says it");
 	}
 
 	#[test]

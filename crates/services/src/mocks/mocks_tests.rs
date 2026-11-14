@@ -125,6 +125,9 @@ async fn a_mock_is_written_from_its_deadline_taken_with_no_agent_and_graded() {
 	assert_eq!(refusal(create_mock(&app, &space_id, &homework, &questions, None)), (400, "Mocks are for exams, quizzes and interviews.".to_owned()));
 	assert_eq!(refusal(create_mock(&app, &space_id, &onsite, &json!(11), None)).0, 400);
 	assert_eq!(refusal(create_mock(&app, &space_id, "ddl_gone", &questions, None)), (404, "No such deadline".to_owned()));
+	app.stores.spaces.update_deadline(&space_id, &onsite, &json!({ "done": true })).unwrap();
+	assert_eq!(refusal(create_mock(&app, &space_id, &onsite, &questions, None)), (409, "This deadline is done.".to_owned()));
+	app.stores.spaces.update_deadline(&space_id, &onsite, &json!({ "done": false })).unwrap();
 	let mock_id = create_mock(&app, &space_id, &onsite, &questions, minutes.as_ref()).unwrap();
 	assert_eq!(refusal(create_mock(&app, &space_id, &onsite, &questions, None)), (409, "Finish Mock 1 first.".to_owned()));
 	let asked = agent(&app, Some(("write_mock_questions", self::questions()))).await;

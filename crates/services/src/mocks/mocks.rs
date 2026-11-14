@@ -105,6 +105,10 @@ pub fn create_mock(app: &Arc<App>, space_id: &str, deadline_id: &str, questions:
 	if !takes_mocks(&deadline["kind"]) {
 		return fail(400, "Mocks are for exams, quizzes and interviews.");
 	}
+	// The window offers none on a deadline marked done.
+	if deadline["done"].truthy() {
+		return fail(409, "This deadline is done.");
+	}
 	let format = match mock_format(questions, minutes) {
 		Ok(format) => format,
 		Err(problem) => return fail(400, problem),
