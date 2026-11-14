@@ -55,6 +55,7 @@ impl Bridge {
 				context: Arc::new(context),
 				claimed_at: None,
 				agent: None,
+				terminal: None,
 				claims: 0,
 				agent_forgot: false,
 				pages: Vec::new(),

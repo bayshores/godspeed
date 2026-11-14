@@ -51,6 +51,9 @@ async fn main() -> ExitCode {
 	}
 	let access = http::access::Access::from_env();
 	let app = App::new(paths, shell.clone());
+	if let Some(shell) = &shell {
+		listen_for_terminals(&app, shell);
+	}
 	gs_services::spaces::upgrade_old_preps(&app);
 	gs_services::mocks::mock_end::ask_waiting_grades(&app);
 	start_deadline_reminders(&app);
@@ -65,6 +68,16 @@ async fn main() -> ExitCode {
 	}
 	// Serving ends only on a stop, which Node answered with 143 too.
 	ExitCode::from(143)
+}
+
+/// The shell's live terminal ids: those at the start (a restarted server knows them at once),
+/// then each change.
+fn listen_for_terminals(app: &App, shell: &ShellLink) {
+	let at_start = std::env::var("LH_TERMINALS").ok().and_then(|text| gs_json::parse(&text).ok());
+	let ids = at_start.iter().flat_map(|list| list.as_arr().into_iter().flatten()).filter_map(|id| id.as_str().map(str::to_owned)).collect();
+	app.bridge.set_live_terminals(ids);
+	let bridge = app.bridge.clone();
+	shell.on_terminals(move |live| bridge.set_live_terminals(live));
 }
 
 /// SIGTERM or SIGINT (Ctrl-C on Windows) stops the server, and so does the end of stdin: the

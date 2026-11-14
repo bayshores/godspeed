@@ -7,6 +7,10 @@
  *   URL:   $GODSPEED_MCP_URL → <data>/mcp-endpoint.json → http://127.0.0.1:47613/api/mcp
  *   Token: $GODSPEED_MCP_TOKEN → <data>/mcp-token
  *   <data>: $GODSPEED_DATA_DIR → the desktop app's data folder for this OS
+ *
+ * An agent started in one of the app's terminals has its id in
+ * $GODSPEED_TERMINAL and sends it with every request, so the app can tell
+ * it apart and refuse it once that terminal was stopped.
  */
 import fs from "node:fs";
 import os from "node:os";
@@ -42,6 +46,12 @@ export function target() {
 		}
 	}
 	return { url: url || DEFAULT_URL, token: process.env.GODSPEED_MCP_TOKEN || readText(path.join(dir, "mcp-token")) };
+}
+
+/** The terminal header, only for an id the app made (32 lowercase hex). */
+export function terminalHeader() {
+	const id = process.env.GODSPEED_TERMINAL;
+	return id && /^[0-9a-f]{32}$/.test(id) ? { "x-godspeed-terminal": id } : {};
 }
 
 export const NO_TOKEN = "godspeed's access token was not found. Open the godspeed app once (it makes the token when it starts), then try again.";

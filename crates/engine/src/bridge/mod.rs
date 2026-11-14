@@ -13,6 +13,7 @@ mod checkin;
 mod helper;
 mod render;
 mod stream;
+mod terminals;
 mod view;
 mod waiters;
 mod work;
@@ -60,6 +61,8 @@ struct WorkItem {
 	claimed_at: Option<i64>,
 	/// The session id of the agent that took it, when its client sends one.
 	agent: Option<String>,
+	/// The app terminal the agent that took it runs in.
+	terminal: Option<String>,
 	/// How often it was taken. The workId ends in this count, so a late reply to an earlier
 	/// claim cannot answer for the latest.
 	claims: u64,
@@ -111,6 +114,12 @@ struct State {
 	compacting: HashMap<String, i64>,
 	/// helper session (`UNNAMED_HELPER` when its client sends no id) → its last check-in.
 	helpers: HashMap<String, i64>,
+	/// The app's terminals that run now, as the shell says.
+	live_terminals: HashSet<String>,
+	/// terminal id → its last request.
+	terminal_contact: HashMap<String, i64>,
+	/// The last request from an agent outside the app's terminals.
+	outside_contact: i64,
 }
 
 /// Lessons use their chat id as the conversation; everything else is a background job.

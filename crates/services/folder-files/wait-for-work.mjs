@@ -38,7 +38,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { NO_TOKEN, target } from "./target.mjs";
+import { NO_TOKEN, target, terminalHeader } from "./target.mjs";
 
 const args = process.argv.slice(2);
 const flag = (name) => {
@@ -102,6 +102,7 @@ async function waitOnce() {
 			"content-type": "application/json",
 			accept: "application/json, text/event-stream",
 			authorization: `Bearer ${token}`,
+			...terminalHeader(),
 			...(modern ? { "mcp-protocol-version": MCP_VERSION, "mcp-method": "tools/call", "mcp-name": "wait_for_work" } : {}),
 		},
 		body: JSON.stringify({

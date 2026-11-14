@@ -276,3 +276,65 @@ async fn an_agent_staying_on_a_lesson_still_takes_talk() {
 	call.await.unwrap();
 	other.abort();
 }
+
+const TERMINAL: &str = "0123456789abcdef0123456789abcdef";
+
+fn in_terminal() -> WaitOptions {
+	WaitOptions { terminal: Some(TERMINAL.to_owned()), ..teacher() }
+}
+
+#[tokio::test]
+async fn a_wait_from_a_stopped_terminal_ends_and_claims_nothing() {
+	let bridge = Bridge::new(&Events::new(), Arc::new(Marks::default()));
+	bridge.set_live_terminals(vec![TERMINAL.to_owned()]);
+	let wait = waiting(&bridge, in_terminal());
+	clock::sleep(5).await;
+	let stopped = Instant::now();
+	bridge.set_live_terminals(Vec::new());
+	assert!(wait.await.unwrap().is_none());
+	assert!(stopped.elapsed().as_millis() < 1_000, "ended at the stop, not at the next slice");
+
+	let lesson = park(&bridge, vec![user("hi")], "chat_l1", &Abort::new());
+	clock::sleep(5).await;
+	assert!(bridge.wait_for_work(60_000, in_terminal()).await.is_none());
+	assert!(bridge.claimed_lessons().is_empty(), "the turn waits for a live agent");
+	let view = bridge.wait_for_work(0, agent_a()).await.unwrap();
+	bridge.respond_to_work(&view.work_id, reply("Hi."), 0).unwrap();
+	lesson.await.unwrap();
+}
+
+#[tokio::test]
+async fn what_a_stopped_terminal_claimed_goes_back_at_once() {
+	let bridge = Bridge::new(&Events::new(), Arc::new(Marks::default()));
+	bridge.set_live_terminals(vec![TERMINAL.to_owned()]);
+	let lesson = park(&bridge, vec![user("hi")], "chat_l1", &Abort::new());
+	clock::sleep(5).await;
+	let taken = bridge.wait_for_work(0, in_terminal()).await.unwrap();
+	assert_eq!(bridge.claimed_lessons().len(), 1);
+	assert!(bridge.wait_for_work(0, agent_a()).await.is_none(), "held while the terminal runs");
+	bridge.set_live_terminals(Vec::new());
+	assert!(bridge.claimed_lessons().is_empty());
+	let view = bridge.wait_for_work(0, agent_a()).await.expect("free well before the 10 minute hold");
+	assert_eq!(view.messages, taken.messages);
+	bridge.respond_to_work(&view.work_id, reply("Hi."), 0).unwrap();
+	lesson.await.unwrap();
+}
+
+#[test]
+fn each_live_terminal_says_whether_its_agent_checked_in() {
+	let bridge = Bridge::new(&Events::new(), Arc::new(Marks::default()));
+	let other = "f".repeat(32);
+	bridge.set_live_terminals(vec![other.clone(), TERMINAL.to_owned()]);
+	let now = 10_000_000;
+	assert!(!bridge.outside_here(now));
+	bridge.record_terminal_contact(Some(TERMINAL), now);
+	assert_eq!(bridge.terminals_here(now + 1000), vec![(TERMINAL.to_owned(), true), (other.clone(), false)]);
+	assert!(!bridge.outside_here(now + 1000), "a terminal's agent is not an outside one");
+	bridge.record_terminal_contact(None, now);
+	assert!(bridge.outside_here(now + 1000));
+	assert_eq!(bridge.terminals_here(now + 3 * 60_000)[0], (TERMINAL.to_owned(), false), "three minutes later it is not here");
+	assert!(!bridge.outside_here(now + 3 * 60_000));
+	bridge.set_live_terminals(vec![other.clone()]);
+	assert!(!bridge.terminal_live(TERMINAL) && bridge.terminal_live(&other));
+	assert_eq!(bridge.terminals_here(now), vec![(other, false)]);
+}

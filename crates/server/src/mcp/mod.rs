@@ -76,7 +76,20 @@ fn refuse(app: &App, headers: &HeaderMap) -> Option<Response> {
 	if supplied.is_empty() || !token_matches(supplied, expected.as_bytes()) {
 		return refusal(401, "Missing or wrong access token (Settings → Connection).");
 	}
+	// An agent started in an app terminal says which; once that terminal ended it is refused.
+	if headers.get(TERMINAL_HEADER).is_some() && !terminal_of(headers).is_some_and(|id| app.bridge.terminal_live(&id)) {
+		return refusal(403, TERMINAL_CLOSED);
+	}
 	None
+}
+
+const TERMINAL_HEADER: &str = "x-godspeed-terminal";
+pub(crate) const TERMINAL_CLOSED: &str = "This terminal was closed in godspeed.";
+
+/// The app terminal a request came from: its id, 32 lowercase hex.
+fn terminal_of(headers: &HeaderMap) -> Option<String> {
+	let id = headers.get(TERMINAL_HEADER)?.to_str().ok()?;
+	(id.len() == 32 && id.bytes().all(|b| matches!(b, b'0'..=b'9' | b'a'..=b'f'))).then(|| id.to_owned())
 }
 
 /// The /api/mcp transport: one stateless exchange per request, in either era.
@@ -89,15 +102,17 @@ pub async fn handle_mcp_request(app: &Arc<App>, method: &Method, headers: &Heade
 	// Every authorized request means an agent is connected (only the work loop means it is
 	// teaching), and names it when it says who it is.
 	let caller = post.then(|| caller_of(body.as_ref()));
+	let terminal = terminal_of(headers);
 	let now = clock::now_ms();
 	if let Some(caller) = &caller {
 		app.bridge.record_check_in(caller.name.as_deref(), false, now);
+		app.bridge.record_terminal_contact(terminal.as_deref(), now);
 	}
 	// Only a client's own name changes the shared one; a guess names just this request.
 	let agent = caller.as_ref().and_then(|c| c.name.clone().or_else(|| c.guessed.clone())).or_else(|| app.bridge.agent_name(now));
 	// Only initialize and server/discover hand instructions to the agent, so only they build the briefing.
 	let instructions = if caller.as_ref().is_some_and(|c| c.wants_instructions) { instructions::connect_instructions(app) } else { instructions::INSTRUCTIONS.to_owned() };
-	let exchange = Exchange { app, caller: agent.as_deref(), instructions: &instructions };
+	let exchange = Exchange { app, caller: agent.as_deref(), terminal: terminal.as_deref(), instructions: &instructions };
 	let too_large = post && raw.len() > MAX_BODY_BYTES;
 	let route = match &body {
 		_ if !post => Route::Legacy,
@@ -154,6 +169,8 @@ pub fn mcp_access_status(app: &App) -> Result<Json, String> {
 		"pendingWork": app.bridge.pending_work_count(),
 		"pendingTurns": app.bridge.pending_turn_count(),
 		"claimedLessons": app.bridge.claimed_lessons(),
+		"terminals": app.bridge.terminals_here(now).into_iter().map(|(id, here)| json!({ "id": id, "here": here })).collect::<Vec<_>>(),
+		"outsideHere": app.bridge.outside_here(now),
 	}))
 }
 

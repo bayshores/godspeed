@@ -8,6 +8,7 @@ use gs_core::records::agent_seen::seen_mark;
 use gs_json::Json;
 
 use super::helper::{self, compacting_now, someone_compacting};
+use super::terminals::closed;
 use super::render::{instructions_and_tools, prints_of};
 use super::view::{WorkView, remember_seen};
 use super::{Bridge, State, WorkItem, is_background};
@@ -34,6 +35,8 @@ pub struct WaitOptions {
 	pub and_others: bool,
 	/// The helper's waiter.
 	pub helper: bool,
+	/// The app terminal the asking agent runs in; once it ends, the wait ends with nothing.
+	pub terminal: Option<String>,
 }
 
 /// One tool call in an agent's reply.
@@ -145,8 +148,9 @@ impl Drop for Waiting<'_> {
 
 enum Claim {
 	Taken(Box<WorkView>),
-	/// The background run this waiter stays on ended: it sends nothing more.
-	RunEnded,
+	/// The background run this waiter stays on ended, or the waiter's terminal did: it sends
+	/// nothing more.
+	Ended,
 	Nothing,
 }
 
@@ -154,14 +158,18 @@ impl Bridge {
 	/// Takes the next item for `opts`, if any.
 	fn claim(&self, now: i64, opts: &WaitOptions) -> Claim {
 		let mut s = self.0.state.lock();
+		if closed(&s, opts.terminal.as_deref()) {
+			return Claim::Ended;
+		}
 		let Some(i) = pick(&s, now, opts) else {
 			let ended = opts.conversation.as_deref().is_some_and(|c| is_background(c) && !s.background_runs.contains(c));
-			return if ended { Claim::RunEnded } else { Claim::Nothing };
+			return if ended { Claim::Ended } else { Claim::Nothing };
 		};
 		let item = &mut s.items[i];
 		item.claimed_at = Some(now);
 		item.claims += 1;
 		item.agent = opts.agent.clone();
+		item.terminal = opts.terminal.clone();
 		item.agent_forgot = false;
 		let background = is_background(&item.conversation);
 		let view = self.view(&mut s, i, opts.full);
@@ -171,7 +179,7 @@ impl Bridge {
 	}
 
 	/// Waits up to `timeout_ms` for a request, claims it and presents it. None when nothing
-	/// came, its background run ended, or the server is stopping.
+	/// came, its background run or its terminal ended, or the server is stopping.
 	pub async fn wait_for_work(&self, timeout_ms: i64, opts: WaitOptions) -> Option<WorkView> {
 		// An empty lesson_id is no conversation in the TS (a falsy string).
 		let opts = WaitOptions { conversation: opts.conversation.filter(|c| !c.is_empty()), ..opts };
@@ -181,7 +189,7 @@ impl Bridge {
 		// Held from a wake until this waiter's claim is done, so woken waiters claim in line.
 		let mut ticket = None;
 		loop {
-			if shutdown::is_stopping() {
+			if shutdown::is_stopping() || closed(&self.0.state.lock(), opts.terminal.as_deref()) {
 				return None;
 			}
 			let now = clock::now_ms();
@@ -196,7 +204,7 @@ impl Bridge {
 			drop(ticket.take());
 			match claimed {
 				Claim::Taken(view) => return Some(*view),
-				Claim::RunEnded => return None,
+				Claim::Ended => return None,
 				Claim::Nothing => {}
 			}
 			let remaining = deadline - now;

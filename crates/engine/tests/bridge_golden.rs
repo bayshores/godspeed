@@ -171,6 +171,7 @@ async fn the_bridge_matches_agent_bridge_ts() {
 					full: s["full"].truthy(),
 					and_others: s["andBackground"].truthy(),
 					helper: s["helper"].truthy(),
+					terminal: None,
 				};
 				if let Some(view) = bridge.wait_for_work(0, opts).await {
 					works.insert(text("as"), view.work_id.clone());

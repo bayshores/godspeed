@@ -13,11 +13,12 @@ use super::protocol::{
 use super::tools::{ToolCall, call_tool, has_tool, tool_list};
 use crate::http::reply;
 
-/// What one request needs besides its body: the app, the caller's name and the instructions
-/// this request hands over.
+/// What one request needs besides its body: the app, the caller's name, the app terminal it
+/// came from and the instructions this request hands over.
 pub struct Exchange<'a> {
 	pub app: &'a std::sync::Arc<gs_services::App>,
 	pub caller: Option<&'a str>,
+	pub terminal: Option<&'a str>,
 	pub instructions: &'a str,
 }
 
@@ -72,7 +73,7 @@ async fn dispatch(exchange: &Exchange<'_>, message: &Json, modern: bool) -> Resu
 			if !has_tool(name) {
 				return Err((INVALID_PARAMS, format!("Tool {name} not found")));
 			}
-			let call = ToolCall { app: exchange.app, caller: exchange.caller, meta: &params["_meta"] };
+			let call = ToolCall { app: exchange.app, caller: exchange.caller, terminal: exchange.terminal, meta: &params["_meta"] };
 			let result = call_tool(&call, name, &args).await;
 			Ok(if modern { modern_result(result, false) } else { result })
 		}

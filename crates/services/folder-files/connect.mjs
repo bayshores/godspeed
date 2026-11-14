@@ -8,7 +8,7 @@
  * the headers that version requires. No dependencies — Node 18+.
  */
 import readline from "node:readline";
-import { NO_TOKEN, target } from "./target.mjs";
+import { NO_TOKEN, target, terminalHeader } from "./target.mjs";
 
 const agent = process.env.CLAUDE_CODE_SESSION_ID;
 
@@ -64,6 +64,7 @@ async function forward(line) {
 				"content-type": "application/json",
 				accept: "application/json, text/event-stream",
 				authorization: `Bearer ${token}`,
+				...terminalHeader(),
 				...modernHeaders(message),
 			},
 			body: JSON.stringify(message),

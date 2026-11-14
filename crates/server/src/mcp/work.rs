@@ -18,6 +18,7 @@ use gs_services::App;
 use gs_services::spaces::citations::check_cites;
 use gs_services::turns::reply_nudges::reply_refusal;
 
+use super::TERMINAL_CLOSED;
 use super::caller::{agent_id_of, in_claude_code};
 use super::reply::{failure, result, text_block};
 use super::tools::ToolCall;
@@ -160,26 +161,35 @@ pub async fn wait_for_work(call: &ToolCall<'_>, args: &Json) -> Json {
 		return failure(&format!("No lesson \"{lesson}\". Use list_lessons."));
 	}
 	let agent = agent_id_of(call.meta);
+	let terminal = call.terminal.map(str::to_owned);
 	let full = args["full_context"].as_bool() == Some(true);
 	// A session that said it is the helper stays one, so losing its context cannot make it a teacher.
 	if args["helper"].as_bool() == Some(true) || agent.as_deref().is_some_and(|a| app.bridge.is_helper_agent(Some(a))) {
 		let agent = agent.or_else(|| Some(UNNAMED_HELPER.to_owned()));
-		let opts = WaitOptions { agent, full, helper: true, ..WaitOptions::default() };
+		let opts = WaitOptions { agent, full, helper: true, terminal, ..WaitOptions::default() };
 		return match app.bridge.wait_for_work(wait_ms(args["timeout_seconds"].as_f64()), opts).await {
 			Some(view) => work_result(app, &view),
-			None => result(&idle(call.caller, true)),
+			None => ended_or_idle(call, true),
 		};
 	}
 	app.bridge.stay_on(agent.as_deref(), lesson_id);
-	let opts = WaitOptions { conversation: lesson_id.map(str::to_owned), agent, full, and_others: true, helper: false };
+	let opts = WaitOptions { conversation: lesson_id.map(str::to_owned), agent, full, and_others: true, helper: false, terminal };
 	// Waiting counts the agent as working at once, so what godspeed queues for it now (catch-up)
 	// reaches this same wait.
 	let wait = app.bridge.wait_for_work(wait_ms(args["timeout_seconds"].as_f64()), opts);
 	let view = started_then(wait, || gs_services::turns::agent_catch_up::catch_up_for_agent(app, clock::now_ms())).await;
 	match view {
 		Some(view) => work_result(app, &view),
-		None => result(&idle(call.caller, false)),
+		None => ended_or_idle(call, false),
 	}
+}
+
+/// A wait that found nothing: its terminal was closed in the app, or nothing came.
+fn ended_or_idle(call: &ToolCall<'_>, helper: bool) -> Json {
+	if call.terminal.is_some_and(|id| !call.app.bridge.terminal_live(id)) {
+		return failure(TERMINAL_CLOSED);
+	}
+	result(&idle(call.caller, helper))
 }
 
 /// Ends the hold on a conversation when respond stops waiting, however it stops.
@@ -220,7 +230,7 @@ pub async fn respond(call: &ToolCall<'_>, args: &Json) -> Json {
 	let helper = app.bridge.is_helper_agent(answered.agent.as_deref());
 	let next = {
 		let _release = Release { app, conversation: answered.conversation.clone() };
-		let opts = WaitOptions { conversation: Some(answered.conversation.clone()), agent: answered.agent.clone(), helper, ..WaitOptions::default() };
+		let opts = WaitOptions { conversation: Some(answered.conversation.clone()), agent: answered.agent.clone(), helper, terminal: call.terminal.map(str::to_owned), ..WaitOptions::default() };
 		app.bridge.wait_for_work(follow_up_ms, opts).await
 	};
 	if let Some(next) = next {

@@ -26,10 +26,12 @@ pub fn has_tool(name: &str) -> bool {
 	input_schema(name).is_some()
 }
 
-/// One tool call: the app, the calling agent's name and the request's `_meta`.
+/// One tool call: the app, the calling agent's name, the app terminal it runs in and the
+/// request's `_meta`.
 pub struct ToolCall<'a> {
 	pub app: &'a Arc<App>,
 	pub caller: Option<&'a str>,
+	pub terminal: Option<&'a str>,
 	pub meta: &'a Json,
 }
 
