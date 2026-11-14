@@ -149,7 +149,7 @@ describe("removing a mock", () => {
 		await mount();
 		await click(q("deadline-mock-remove"));
 		const row = q("deadline-mock-mock_1")!;
-		assert.match(row.textContent!, /Mock 1Remove it\?KeepRemove/);
+		assert.match(row.textContent!, /Mock 1Remove it\?RemoveKeep/);
 		assert.equal(focused, q("deadline-mock-remove-confirm-keep"), "the question takes the focus");
 		await click(q("deadline-mock-remove-confirm-keep"));
 		assert.equal(focused, q("deadline-mock-remove"));

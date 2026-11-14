@@ -2,18 +2,19 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import { localDay, type MockSummary } from "@/shared/core";
 import { mockHref, mockLine, openMock, openMockLabel } from "@/frontend/components/mock/mock-model";
-import { FootQuestion } from "@/frontend/components/ui/foot-question";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
+import { cn } from "@/frontend/lib/utils";
 import { shortDate } from "./deadline-model";
 import { MockBox } from "./mock-box";
 
 const WIDE = "lh-btn h-11 w-full justify-center text-[15px]";
+const SMALL = "lh-btn h-[29px] px-2.5 text-[15px]";
 
 /**
  * A DEADLINE'S MOCKS, under Study in its Path sheet: "Take a mock" (off,
  * with the reason, when there is nothing to write one from), or "Continue
  * Mock 3" while one is open; then every mock, newest first, with where it
- * is or how it went. A row opens the mock; its cross asks before removing it.
+ * is or how it went. A row opens the mock; its cross asks "Remove it?" in place.
  */
 export function PathMocks({
 	spaceId,
@@ -121,23 +122,29 @@ function MockRow({ spaceId, mock: m, nowMs, onRemove }: { spaceId: string; mock:
 			{asking ? (
 				<>
 					<span className="w-[64px] shrink-0 text-[15px] text-ink">Mock {m.n}</span>
-					<FootQuestion
-						testid="deadline-mock-remove-confirm"
-						line="Remove it?"
-						keep="Keep"
-						go="Remove"
-						busy={busy}
-						onKeep={() => setAsking(false)}
-						onGo={() => {
-							setBusy(true);
-							void onRemove().then((removed) => {
-								if (!removed) {
-									setBusy(false);
-									setAsking(false);
-								}
-							});
-						}}
-					/>
+					<span role="group" aria-label={`Remove Mock ${m.n}?`} className="flex min-w-0 flex-1 items-center justify-end gap-2 py-1">
+						<span className="min-w-0 flex-1 text-[15px] text-ink">Remove it?</span>
+						<button
+							type="button"
+							data-testid="deadline-mock-remove-confirm-go"
+							disabled={busy}
+							onClick={() => {
+								setBusy(true);
+								void onRemove().then((removed) => {
+									if (!removed) {
+										setBusy(false);
+										setAsking(false);
+									}
+								});
+							}}
+							className={cn(SMALL, "lh-btn-danger")}
+						>
+							Remove
+						</button>
+						<button type="button" data-testid="deadline-mock-remove-confirm-keep" disabled={busy} onClick={() => setAsking(false)} className={SMALL}>
+							Keep
+						</button>
+					</span>
 				</>
 			) : (
 				<>
