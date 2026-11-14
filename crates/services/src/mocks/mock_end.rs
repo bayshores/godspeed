@@ -1,7 +1,8 @@
 //! A mock's end (mock-end.ts), by End mock or by its time limit, and the request for its grades.
 //! A timed mock whose time ran out while nobody was looking is ended the next time it or its
 //! deadline's mocks are read, so it never shows as running, takes answers or holds back the next
-//! mock past its time. A paused mock is never ended that way: its time is not running.
+//! mock past its time. A paused mock is never ended that way: its time is not running. A mock
+//! still waiting for its grades at startup asks for them again (`ask_waiting_grades`).
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -15,7 +16,7 @@ use gs_engine::turn::models::agent_engine;
 use gs_json::{Json, Obj, js_number};
 
 use super::mock_runner::run_examples;
-use super::mock_runs::{changed, mock_run_key, start_run};
+use super::mock_runs::{changed, is_running, mock_run_key, start_run};
 use crate::App;
 use crate::graph::progress::progress_for;
 
@@ -127,4 +128,24 @@ pub fn current_mocks(app: &Arc<App>, space_id: &str) -> Vec<Json> {
 			}
 		})
 		.collect()
+}
+
+/// At startup, every mock waiting for its grades asks for them, since a request goes with the
+/// server that sent it: one ended before the stop, and one whose time ran out while the server
+/// was off (ended now). Each waits on the bridge until an agent takes it.
+pub fn ask_waiting_grades(app: &Arc<App>) {
+	for record in app.stores.spaces.list_space_records() {
+		let space_id = record["id"].str_or_empty();
+		let _guard = app.locks.lock(LockKey::Space(space_id));
+		for mock in current_mocks(app, space_id) {
+			let mock_id = mock["id"].str_or_empty();
+			// One ended just now asked already.
+			if mock_state(&mock) != MockState::Grading || is_running(app, &mock_run_key(space_id, mock_id)) {
+				continue;
+			}
+			if let Err(error) = ask_grades(app, space_id, &mock) {
+				eprintln!("[mocks] couldn't ask for the grades of {mock_id}: {error}");
+			}
+		}
+	}
 }

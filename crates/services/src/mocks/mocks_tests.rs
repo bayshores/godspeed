@@ -9,6 +9,7 @@ use gs_engine::bridge::{AgentReply, ReplyCall, WaitOptions};
 
 use super::*;
 use crate::app::test_support::{scratch_dir, test_app};
+use crate::mocks::mock_end::ask_waiting_grades;
 
 const CODE: &str = "function countVowels(s) {\n\treturn [...s].filter((c) => 'aeiou'.includes(c)).length;\n}\n";
 
@@ -303,4 +304,42 @@ fn a_what_its_like_that_is_empty_or_not_text_is_nothing_to_write_from() {
 		assert_eq!(crate::spaces::deadline_about(&app, &space_id, &onsite), None, "the window shows no What it's like");
 		assert_eq!(refusal(create_mock(&app, &space_id, &onsite, &json!(2), None)), nothing);
 	}
+}
+
+#[tokio::test]
+async fn a_mock_left_waiting_for_grades_by_a_restart_asks_for_them_once_at_the_next_start() {
+	let root = scratch_dir("mocks-restart");
+	let before = test_app(&root);
+	let text = || MockAction::Answer { question_id: "q2".to_owned(), answer: json!({ "text": "A function with the scope it was made in.", "seconds": 30, "submitted": true }) };
+	let (ended_space, onsite, _) = interview_space(&before);
+	let ended = ready_mock(&before, &ended_space, &onsite, Some(30)).await;
+	let (late_space, onsite, _) = interview_space(&before);
+	let late = ready_mock(&before, &late_space, &onsite, Some(30)).await;
+	for (space_id, mock_id) in [(&ended_space, &ended), (&late_space, &late)] {
+		change_mock(&before, space_id, mock_id, MockAction::Start).unwrap();
+		change_mock(&before, space_id, mock_id, text()).unwrap();
+	}
+	// One ended by End mock, its request gone with the server; the other's time runs out while
+	// the server is off.
+	change_mock(&before, &ended_space, &ended, MockAction::End).unwrap();
+	edited(&before, &late_space, &late, json!({ "endsAt": ago(60_000) }));
+
+	let app = test_app(&root);
+	assert!(!view(&app, &ended_space, &ended)["working"].truthy(), "no request after the restart");
+	ask_waiting_grades(&app);
+	ask_waiting_grades(&app);
+	for (space_id, mock_id) in [(&ended_space, &ended), (&late_space, &late)] {
+		let waiting = view(&app, space_id, mock_id);
+		assert_eq!((mock_state(&waiting["mock"]).as_str(), waiting["working"].clone()), ("grading", json!(true)), "{mock_id} waits for a grader");
+	}
+	until("both requests wait on the bridge", || app.bridge.pending_work_count() == 2).await;
+	for _ in 0..2 {
+		agent(&app, Some(("grade_mock", json!({ "grades": [{ "question": "q2", "verdict": "right", "feedback": "Yes." }] })))).await;
+	}
+	for (space_id, mock_id) in [(&ended_space, &ended), (&late_space, &late)] {
+		settled(&app, space_id, mock_id).await;
+		assert_eq!(state(&app, space_id, mock_id), "graded");
+	}
+	ask_waiting_grades(&app);
+	assert_eq!(app.bridge.pending_work_count(), 0, "a graded mock is never asked again");
 }
