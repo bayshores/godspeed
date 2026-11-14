@@ -708,7 +708,7 @@ When a Study turn is saved (`save_turn`), each new keep gets a UI-only `keep-che
 
 - its quiz is a prediction, or its fields break the rules
 - its reply carries a page, a plot or another keep it stores
-- the topic's previous reply carries a page, a plot or a kept sentence the learner saw
+- the topic's previous reply carries a plot or a kept sentence the learner saw
 - the topic already kept 2 the learner answered right
 
 Analogy lines show on one keep per topic. A keep's `source` must be one mark pointing at a passage, checked like a reply's marks. `note` reaches the teacher in the hidden note after the learner's answer to that quiz.
