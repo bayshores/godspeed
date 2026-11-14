@@ -116,3 +116,31 @@ test("a pointer click on Why does not leave focus on it, like the thinking toggl
 		assert.equal(blurred, 1);
 	} finally { await act(async () => root.unmount()); host.remove(); }
 });
+
+test("a multi-select quiz: ticking two options and submitting sends and saves both", async () => {
+	const input = {
+		type: "check",
+		question: "Which of these pick a model by its validation error?",
+		multiSelect: true,
+		options: [{ label: "Keep the degree with the lowest validation error.", value: "a" }, { label: "Keep the lambda with the lowest validation error.", value: "b" }, { label: "Keep the degree with the lowest training error.", value: "c" }],
+		correctAnswer: ["a", "b"],
+		explanation: "Training error always falls with degree.",
+	};
+	let answer: QuestionAnswerData | undefined;
+	const ref = React.createRef<QuestionHandle>();
+	const host = document.createElement("div"); document.body.append(host);
+	const root = createRoot(host);
+	try {
+		await act(async () => root.render(<QuestionDock {...noop} ref={ref} toolName="quiz" toolCallId="multi_two" input={input} onSubmit={(a) => { answer = a; }} />));
+		const row = (words: string) => [...host.querySelectorAll<HTMLButtonElement>('[role="checkbox"]')].find((b) => b.textContent?.includes(words))!;
+		await act(async () => row("degree with the lowest validation").click());
+		await act(async () => row("lambda").click());
+		assert.equal([...host.querySelectorAll('[role="checkbox"]')].filter((b) => b.getAttribute("aria-checked") === "true").length, 2);
+		await act(async () => ref.current!.submit());
+		assert.ok(answer);
+		assert.deepEqual(answer.answers.map((a) => a.value).sort(), ["a", "b"]);
+		assert.equal(answer.correct, true);
+		const saved = JSON.parse(JSON.stringify(newAnswerResult("multi_two", "quiz", answer)));
+		assert.deepEqual(saved.details.answers.map((a: { value: string }) => a.value).sort(), ["a", "b"]);
+	} finally { await act(async () => root.unmount()); host.remove(); }
+});
