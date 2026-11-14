@@ -407,6 +407,7 @@ mod tests {
 
 	use super::*;
 	use crate::app::test_support::scratch_dir;
+	use crate::spaces::space_search::space_search;
 	use crate::spaces::{add_copied_file, keep_page, kept_pages_at, replace_copied_file};
 
 	/// The folder the search model loads from: the repo root, which holds `models/`.
@@ -479,12 +480,18 @@ mod tests {
 		let fp = gs_base::hash::sha256_hex(&pdf)[..16].to_owned();
 		let file_id = add_copied_file(&app, &space_id, "Lecture 1.pdf", &pdf, "info").unwrap()["id"].as_str().unwrap().to_owned();
 		// The PDF's text, saved before the queue first runs, so no PDF library is needed here.
-		write_cached_text(&app, &space_id, &file_id, &fp, "--- Page 1 ---\nOne.\n--- Page 2 ---\nForce is F ma.\n--- Page 3 ---\nThree.");
+		write_cached_text(&app, &space_id, &file_id, &fp, "--- Page 1 ---\nOne.\n--- Page 2 ---\nForce is F \u{25a0} ma.\n--- Page 3 ---\nThree.");
 		wait_indexed(&app, &space_id, &file_id, &fp).await;
 		let page_two = || app.search.passages_at(&space_id, &PassageRef::Place { file_id: file_id.clone(), range: "p. 2".into() }).remove(0);
 		let before = page_two();
 		let record = app.stores.spaces.get_space(&space_id).unwrap();
 		let abs = space_file_path(&app, &record, file_in(&record, &file_id).unwrap()).unwrap();
+		// A lesson reading a page whose formula lost a glyph has it looked at first; the cheat sheet
+		// writer has no pdf tool.
+		let read = |range: &str, lesson: bool| (space_search(&app, &space_id, lesson).read_passage)(PassageRef::Place { file_id: file_id.clone(), range: range.into() });
+		let note = format!("\n\nFormulas on p. 2 of Lecture 1.pdf may read broken here. Before you teach from them, have the page looked at with `pdf` (path: {abs}).");
+		assert!(read("p. 2", true).ends_with(&note));
+		assert!(!read("p. 2", false).contains("Formulas on") && !read("p. 1", true).contains("Formulas on"));
 
 		let kept = kept_pages_at(&app, Path::new(&abs)).await.unwrap();
 		assert!(kept.pages.is_empty());
@@ -498,6 +505,7 @@ mod tests {
 		wait_indexed(&app, &space_id, &file_id, &kept_fp).await;
 		let after = page_two();
 		assert_eq!((&after["id"], after["text"].as_str()), (&before["id"], Some("Force is $F = ma$.")));
+		assert!(!read("p. 2", true).contains("Formulas on"), "a kept page");
 		assert_eq!(kept_pages_at(&app, Path::new(&abs)).await.unwrap().pages.into_iter().collect::<Vec<_>>(), [(2, "Force is $F = ma$.".to_owned())]);
 		// The next scan finds that index and leaves the table alone.
 		let table = app.paths.data.join("spaces").join(&space_id).join("search/passages.json");

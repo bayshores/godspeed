@@ -165,7 +165,7 @@ fn start_run(app: &Arc<App>, ctx: &Context, message_id: &str) -> Outcome<()> {
 	let request = SheetRequest {
 		title,
 		prompt,
-		lookups: search_tools(space_search(app, &ctx.space_id)),
+		lookups: search_tools(space_search(app, &ctx.space_id, false)),
 		check_text: Box::new({
 			let app = app.clone();
 			// Cheat sheets are not asked to quote: a quote that does not hold is dropped quietly.

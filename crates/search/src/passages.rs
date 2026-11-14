@@ -165,12 +165,12 @@ impl Search {
 		self.write_table(&at, Table::new(rows, vectors, files)).map(drop)
 	}
 
-	/// The best passages for a query, as compact lines: id, file, place, snippet. `files` is the
-	/// space record's file list.
-	pub async fn search_space_files(&self, space_id: &str, files: &[Json], query: &str, limit: usize) -> Result<String, String> {
+	/// The best passages for a query, as compact lines (id, file, place, snippet), and their stored
+	/// rows. `files` is the space record's file list.
+	pub async fn search_space_files(&self, space_id: &str, files: &[Json], query: &str, limit: usize) -> Result<(String, Vec<Json>), String> {
 		let table = self.read_table(&self.passages_file(space_id));
 		if table.rows.is_empty() {
-			return Ok("No space files are indexed for search yet (files are indexed once their text is read).".to_owned());
+			return Ok(("No space files are indexed for search yet (files are indexed once their text is read).".to_owned(), Vec::new()));
 		}
 		let query_vector = self.embed(&[query.to_owned()], true).await?;
 		let keywords = keywords_of(&table, || table.rows.iter().map(|r| (field(r, "id").to_owned(), field(r, "text").to_owned())).collect())?;
@@ -190,7 +190,7 @@ impl Search {
 			lines.push(format!("  {}", snippet_of(field(p, "text"), query)));
 		}
 		lines.push("Open one with read_passage.".to_owned());
-		Ok(lines.join("\n"))
+		Ok((lines.join("\n"), hits.iter().map(|id| by_id[id.as_str()].clone()).collect()))
 	}
 
 	/// The stored passages a reference names: the one passage of an id, or every passage of a
@@ -389,7 +389,7 @@ mod tests {
 		s.drop_space_file(SPACE, "f_missing").await.unwrap();
 		s.drop_space_file(SPACE, "f_a").await.unwrap();
 		assert_eq!(std::fs::read_to_string(s.passages_file(SPACE).with_extension("json")).unwrap(), r#"{"format":1,"model":"Snowflake/snowflake-arctic-embed-xs","rows":[]}"#);
-		assert!(s.search_space_files(SPACE, &[], "x", 3).await.unwrap().starts_with("No space files are indexed"));
+		assert!(s.search_space_files(SPACE, &[], "x", 3).await.unwrap().0.starts_with("No space files are indexed"));
 		std::fs::remove_dir_all(dir).unwrap();
 	}
 

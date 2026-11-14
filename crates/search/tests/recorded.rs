@@ -87,7 +87,7 @@ async fn the_search_vectors_scenario_comes_out_as_recorded() {
 	assert_eq!(std::fs::read_to_string(passages.with_extension("json")).unwrap(), s(&want["passagesJson"]));
 	assert_vectors(&passages, &want["passages"]);
 	for q in want["searches"].as_arr().unwrap() {
-		let got = search.search_space_files("cls_test", &files, s(&q["query"]), q["limit"].as_f64().unwrap() as usize).await.unwrap();
+		let got = search.search_space_files("cls_test", &files, s(&q["query"]), q["limit"].as_f64().unwrap() as usize).await.unwrap().0;
 		let want = s(&q["text"]);
 		if EXACT {
 			assert_eq!(got, want);

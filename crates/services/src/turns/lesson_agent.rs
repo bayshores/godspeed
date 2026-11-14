@@ -91,7 +91,7 @@ fn space_tools(app: &Arc<App>, space_id: &str) -> SpaceToolContext {
 	SpaceToolContext {
 		space_card: Arc::new(move || card_app.stores.spaces.get_space(&card_id).map(|cls| space_card_for(&card_app, &cls)).transpose()),
 		today_note: Some(Arc::new(move || current_today_note(&today_app, Some(&today_id)))),
-		search: Some(Arc::new(space_search(app, space_id))),
+		search: Some(Arc::new(space_search(app, space_id, true))),
 		set_note: Some(Arc::new(move |note: &str| {
 			if note_app.stores.spaces.get_space(&note_id).is_none() {
 				return "This lesson's space no longer exists.".to_owned();

@@ -112,15 +112,15 @@ pub fn job_tools(ctx: &JobToolContext) -> JobTools {
 	let pdf = job_tool(
 		ctx,
 		"pdf",
-		"Dispatch a background sub-agent that READS a learner-provided PDF on your behalf (triage, targeted extraction, visual page \
-		reading for equations and diagrams) and returns a brief with page citations. Use it when the learner gives you a PDF path \
-		and you need its CONTENT for the lesson. The call is ASYNC and fire-and-forget \u{2014} it resolves immediately and your turn \
+		"Dispatch a background sub-agent that READS a PDF on your behalf (triage, targeted extraction, visual page reading for \
+		equations and diagrams) and returns a brief with page citations. Use it when you need a PDF's CONTENT for the lesson: a space \
+		file, a page whose formulas read broken, or a PDF the learner gives you. The call is ASYNC and fire-and-forget \u{2014} it resolves immediately and your turn \
 		continues; the brief arrives later as a new message. For quick looks at plain text or image files, use the read tool \
 		directly instead of dispatching.",
 		object(
 			&["path", "question"],
 			vec![
-				("path", string("Path to the learner's PDF (relative or absolute), exactly as they gave it.")),
+				("path", string("Path to the PDF (relative or absolute): a space file's path, or the learner's exactly as they gave it.")),
 				(
 					"question",
 					string(

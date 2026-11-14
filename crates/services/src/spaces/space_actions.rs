@@ -297,7 +297,7 @@ impl SpaceActions {
 		let Some(record) = self.app.stores.spaces.get_space(space_id) else { return no_space(space_id) };
 		let limit = args["limit"].as_f64().map_or(8, |l| l as usize);
 		match self.app.search.search_space_files(space_id, files_of(&record), str_of(args, "query"), limit).await {
-			Ok(found) => self.done(Json::from(found), Vec::new()),
+			Ok((found, _)) => self.done(Json::from(found), Vec::new()),
 			Err(err) => ToolOutcome::Err(err),
 		}
 	}
