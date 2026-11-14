@@ -63,7 +63,6 @@ test("every window.lh member calls its shell command with its arguments", async 
 	await lh!.pickFolder!();
 	await lh!.showInFolder!("/a/b.pdf");
 	await lh!.openPath!("/a");
-	await lh!.openAgent!("/a", "claude");
 	lh!.reportBug!();
 	await lh!.listFonts!();
 	await lh!.printPdf!("/a/b.pdf");
@@ -76,7 +75,6 @@ test("every window.lh member calls its shell command with its arguments", async 
 		["pick_folder"],
 		["show_in_folder", { path: "/a/b.pdf" }],
 		["open_path", { path: "/a" }],
-		["open_agent", { folder: "/a", agent: "claude" }],
 		["report_bug"],
 		["list_fonts"],
 		["print_pdf", { path: "/a/b.pdf" }],

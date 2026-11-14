@@ -76,7 +76,6 @@ fn main() {
 			commands::pick_folder,
 			commands::show_in_folder,
 			commands::open_path,
-			commands::open_agent,
 			terminal::commands::terminal_start,
 			terminal::commands::terminal_attach,
 			terminal::commands::terminal_detach,

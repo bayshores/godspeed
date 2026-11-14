@@ -168,7 +168,6 @@
 		pickFolder: () => invoke("pick_folder"),
 		showInFolder: (path) => invoke("show_in_folder", { path }),
 		openPath: (path) => invoke("open_path", { path }),
-		openAgent: (folder, agent) => invoke("open_agent", { folder, agent }),
 		// The agents' terminals: the page names a role and an agent, never a program.
 		terminals: {
 			start: (role, agent, folder) => invoke("terminal_start", { role, agent, folder }),

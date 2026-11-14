@@ -17,7 +17,6 @@ fn main() {
 		"pick_folder",
 		"show_in_folder",
 		"open_path",
-		"open_agent",
 		"terminal_start",
 		"terminal_attach",
 		"terminal_detach",

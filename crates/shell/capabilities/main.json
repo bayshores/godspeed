@@ -18,7 +18,6 @@
     "allow-pick-folder",
     "allow-show-in-folder",
     "allow-open-path",
-    "allow-open-agent",
     "allow-terminal-start",
     "allow-terminal-attach",
     "allow-terminal-detach",

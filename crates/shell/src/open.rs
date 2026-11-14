@@ -1,12 +1,7 @@
-//! Opening things for the learner: a file in the file manager, a folder or PDF in its default
-//! app, and a terminal running one of the godspeed folder's start scripts. Nothing here can
-//! launch a program the page names.
+//! Opening things for the learner: a file in the file manager, and a folder or PDF in its
+//! default app. Nothing here can launch a program the page names.
 
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
-
-const NOT_SET_UP: &str = "The godspeed folder isn't set up yet.";
-const NO_TERMINAL: &str = "Couldn't open a terminal. Copy the command and run it in yours.";
 
 /// macOS treats these folders as packages: opening one launches or installs it.
 const BUNDLE_EXTENSIONS: [&str; 14] = ["app", "appex", "bundle", "framework", "kext", "mdimporter", "mpkg", "pkg", "plugin", "prefpane", "qlgenerator", "saver", "workflow", "xpc"];
@@ -51,74 +46,6 @@ fn without_verbatim_prefix(path: &Path) -> PathBuf {
 	}
 }
 
-/// The start script for this agent in this folder, or None when the request isn't one.
-/// "claude-helper" and "codex-helper" start the helper.
-fn start_script(folder: &str, agent: &str, os: &str) -> Option<PathBuf> {
-	let folder = Path::new(folder);
-	if !folder.is_absolute() || !matches!(agent, "claude" | "claude-helper" | "codex" | "codex-helper") {
-		return None;
-	}
-	let extension = match os {
-		"macos" => "command",
-		"windows" => "cmd",
-		_ => "sh",
-	};
-	let script = folder.join(".godspeed").join(format!("start-{agent}.{extension}"));
-	script.metadata().is_ok_and(|meta| meta.is_file()).then_some(script)
-}
-
-/// The terminals to try, in order: Terminal on a Mac, a new console on Windows, the usual Linux
-/// ones, including GNOME's newer Ptyxis and Console. Each is a program and its arguments.
-fn terminal_candidates(script: &Path, os: &str) -> Vec<(&'static str, Vec<String>)> {
-	let script = script.to_string_lossy().into_owned();
-	let with = |before: &[&str], last: &str| before.iter().map(|arg| (*arg).to_owned()).chain([last.to_owned()]).collect::<Vec<_>>();
-	match os {
-		"macos" => vec![("open", with(&["-a", "Terminal"], &script))],
-		"windows" => vec![("cmd.exe", with(&["/c", "start", "\"\"", "cmd.exe", "/k"], &format!("\"{script}\"")))],
-		_ => vec![
-			("x-terminal-emulator", with(&["-e"], &script)),
-			("gnome-terminal", with(&["--"], &script)),
-			("konsole", with(&["-e"], &script)),
-			("ptyxis", with(&["--"], &script)),
-			("kgx", with(&["--"], &script)),
-			("xterm", with(&["-e"], &script)),
-		],
-	}
-}
-
-/// Starts the program apart from this app, with no input or output. True when it started.
-fn spawn_detached(program: &str, args: &[String]) -> bool {
-	let mut command = Command::new(program);
-	command.stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null());
-	#[cfg(windows)]
-	{
-		use std::os::windows::process::CommandExt;
-		const DETACHED_PROCESS: u32 = 0x8;
-		const CREATE_NEW_PROCESS_GROUP: u32 = 0x200;
-		// cmd.exe reads its own quoting, so the arguments go through as one string.
-		command.raw_arg(args.join(" ")).creation_flags(DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP);
-	}
-	#[cfg(not(windows))]
-	{
-		use std::os::unix::process::CommandExt;
-		command.args(args).process_group(0);
-	}
-	let Ok(mut child) = command.spawn() else { return false };
-	// A started terminal keeps running; this only collects the launcher's exit.
-	std::thread::spawn(move || {
-		let _ = child.wait();
-	});
-	true
-}
-
-/// Opens a terminal running the godspeed folder's start script for an agent or its helper: None
-/// once one opened, else a message saying why not.
-pub fn open_agent(folder: &str, agent: &str) -> Option<String> {
-	let os = std::env::consts::OS;
-	let Some(script) = start_script(folder, agent, os) else { return Some(NOT_SET_UP.to_owned()) };
-	if terminal_candidates(&script, os).iter().any(|(program, args)| spawn_detached(program, args)) { None } else { Some(NO_TERMINAL.to_owned()) }
-}
-
 #[cfg(test)]
 mod tests {
 	use super::*;
@@ -143,54 +70,8 @@ mod tests {
 	fn temp(name: &str) -> PathBuf {
 		let dir = std::env::temp_dir().join(format!("gs-shell-open-{name}-{}", std::process::id()));
 		let _ = std::fs::remove_dir_all(&dir);
-		std::fs::create_dir_all(dir.join(".godspeed")).unwrap();
+		std::fs::create_dir_all(&dir).unwrap();
 		dir
-	}
-
-	#[test]
-	fn only_the_folders_own_start_scripts_run() {
-		let dir = temp("scripts");
-		gs_base::fsx::write_text_atomic(&dir.join(".godspeed/start-claude.sh"), "#!/bin/sh\n").unwrap();
-		let folder = dir.to_str().unwrap();
-		assert_eq!(start_script(folder, "claude", "linux"), Some(dir.join(".godspeed/start-claude.sh")));
-		assert_eq!(start_script(folder, "rm -rf", "linux"), None);
-		assert_eq!(start_script(folder, "codex", "linux"), None);
-		assert_eq!(start_script(folder, "claude-helper", "linux"), None);
-		gs_base::fsx::write_text_atomic(&dir.join(".godspeed/start-claude-helper.sh"), "#!/bin/sh\n").unwrap();
-		assert_eq!(start_script(folder, "claude-helper", "linux"), Some(dir.join(".godspeed/start-claude-helper.sh")));
-		assert_eq!(start_script(folder, "claude-other", "linux"), None);
-		assert_eq!(start_script("relative", "claude", "linux"), None);
-		assert_eq!(start_script(dir.join("nowhere").to_str().unwrap(), "claude", "linux"), None);
-		std::fs::remove_dir_all(dir).unwrap();
-	}
-
-	#[test]
-	fn each_os_names_its_script_extension() {
-		let dir = temp("extensions");
-		for (os, file) in [("macos", "start-codex.command"), ("windows", "start-codex.cmd"), ("linux", "start-codex.sh")] {
-			gs_base::fsx::write_text_atomic(&dir.join(".godspeed").join(file), "").unwrap();
-			assert_eq!(start_script(dir.to_str().unwrap(), "codex", os), Some(dir.join(".godspeed").join(file)), "{os}");
-		}
-		std::fs::remove_dir_all(dir).unwrap();
-	}
-
-	#[test]
-	fn opens_terminal_on_a_mac_and_a_new_console_on_windows() {
-		assert_eq!(terminal_candidates(Path::new("/a/b.command"), "macos"), vec![("open", ["-a", "Terminal", "/a/b.command"].map(str::to_owned).to_vec())]);
-		assert_eq!(
-			terminal_candidates(Path::new("C:\\a b\\s.cmd"), "windows"),
-			vec![("cmd.exe", ["/c", "start", "\"\"", "cmd.exe", "/k", "\"C:\\a b\\s.cmd\""].map(str::to_owned).to_vec())]
-		);
-		let linux: Vec<_> = terminal_candidates(Path::new("/a/b.sh"), "linux").into_iter().map(|(program, _)| program).collect();
-		assert_eq!(linux, ["x-terminal-emulator", "gnome-terminal", "konsole", "ptyxis", "kgx", "xterm"]);
-	}
-
-	#[test]
-	fn an_agent_with_no_start_script_says_the_folder_is_not_set_up() {
-		let dir = temp("not-set-up");
-		assert_eq!(open_agent(dir.to_str().unwrap(), "claude"), Some(NOT_SET_UP.to_owned()));
-		assert_eq!(open_agent("relative", "claude"), Some(NOT_SET_UP.to_owned()));
-		std::fs::remove_dir_all(dir).unwrap();
 	}
 
 	#[test]

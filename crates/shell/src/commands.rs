@@ -40,13 +40,6 @@ pub fn open_path(webview: Webview, origin: State<AppOrigin>, path: String) -> Re
 	open::open_path(&path)
 }
 
-/// Opens a terminal running the godspeed folder's start script: null, or why it could not.
-#[tauri::command(async)]
-pub fn open_agent(webview: Webview, origin: State<AppOrigin>, folder: String, agent: String) -> Result<Option<String>, String> {
-	trusted(&webview, &origin)?;
-	Ok(open::open_agent(&folder, &agent))
-}
-
 #[tauri::command]
 pub fn report_bug(webview: Webview, origin: State<AppOrigin>) -> Result<(), String> {
 	trusted(&webview, &origin)?;
