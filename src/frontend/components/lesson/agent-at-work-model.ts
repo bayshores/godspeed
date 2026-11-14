@@ -56,6 +56,10 @@ export function pdfActivity(activity: string): { step: string; page: number | nu
 	const arg = rest.join(":").trim();
 	if (verb === "pdf_info") return { step: "skimmed every page", page: null };
 	if (verb === "pdf_search") return { step: `searched it for ${arg}`, page: null };
+	if (verb === "save_page") {
+		const page = int(Number(arg));
+		return page ? { step: `kept page ${page} for later`, page } : null;
+	}
 	if (verb === "pdf_extract" || verb === "pdf_render") {
 		const span = pageSpanOf(arg.split("@")[0] ?? "");
 		if (!span) return { step: verb === "pdf_extract" ? "read every page" : "looked closely at every page", page: null };

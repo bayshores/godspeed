@@ -48,6 +48,47 @@ fn picked(rows: &[Arc<Json>], at: &PassageRef) -> Vec<usize> {
 	}
 }
 
+/// A file's passage ids across versions. A passage keeps its id while its place and its piece
+/// number at that place stay the same, so an id the teacher holds still names the same page after a
+/// page grows or shrinks; a new piece takes a number never used for the file.
+struct PassageIds {
+	old: HashMap<(String, usize), String>,
+	pieces: HashMap<String, usize>,
+	/// The highest number used so far (a table from before `idsUsed` numbered its rows 1 to n).
+	used: usize,
+}
+
+impl PassageIds {
+	fn of(table: &Table, file_id: &str) -> PassageIds {
+		let mut ids = PassageIds { old: HashMap::new(), pieces: HashMap::new(), used: 0 };
+		for row in table.rows.iter().filter(|r| r["fileId"] == Json::from(file_id)) {
+			let key = ids.piece(field(row, "range"));
+			ids.old.insert(key, field(row, "id").to_owned());
+			ids.used += 1;
+		}
+		ids.pieces.clear();
+		if let Some(used) = table.files.get(file_id).and_then(|f| f["idsUsed"].as_f64()) {
+			ids.used = used as usize;
+		}
+		ids
+	}
+
+	/// The next piece at `range`: the range and its piece number there.
+	fn piece(&mut self, range: &str) -> (String, usize) {
+		let n = self.pieces.entry(range.to_owned()).or_default();
+		*n += 1;
+		(range.to_owned(), *n)
+	}
+
+	fn next(&mut self, file_id: &str, range: &str) -> String {
+		let key = self.piece(range);
+		self.old.remove(&key).unwrap_or_else(|| {
+			self.used += 1;
+			format!("{file_id}:{}", self.used)
+		})
+	}
+}
+
 impl Search {
 	/// Drop a deleted space's tables from memory: nothing reads them again. Its writer locks stay,
 	/// so an index run still in flight keeps its order.
@@ -85,11 +126,12 @@ impl Search {
 		let vectors = self.with_vectors(&old, &hashes, &texts).await?;
 		let Some(_listed) = still_listed() else { return Ok(()) };
 		let mut files = old.files.clone();
+		let mut ids = PassageIds::of(&old, file_id);
 		drop(old);
 		let (mut rows, mut all) = self.take_rows(&at, |r| r["fileId"] != Json::from(file_id));
-		for (n, (chunk, hash)) in chunked.chunks.into_iter().zip(hashes).enumerate() {
+		for (chunk, hash) in chunked.chunks.into_iter().zip(hashes) {
 			let mut row = Obj::new();
-			row.insert("id", format!("{file_id}:{}", n + 1));
+			row.insert("id", ids.next(file_id, &chunk.range));
 			row.insert("fileId", file_id);
 			row.insert("range", chunk.range);
 			row.insert("from", chunk.from);
@@ -102,6 +144,7 @@ impl Search {
 		let mut entry = Obj::new();
 		entry.insert("fp", fp);
 		entry.insert("extent", chunked.extent);
+		entry.insert("idsUsed", ids.used);
 		files.insert(file_id, entry);
 		self.write_table(&at, Table::new(rows, all, files)).map(drop)
 	}
@@ -246,9 +289,39 @@ mod tests {
 		s.index_space_file(SPACE, "f_a", "a.txt", "v1", "ignored: this version is indexed", || -> Option<()> { panic!("not re-indexed") }).await.unwrap();
 		s.index_space_file(SPACE, "f_a", "a.txt", "v2", &notes(), || Some(())).await.unwrap();
 		assert!(s.is_file_indexed(SPACE, "f_a", "v2"));
-		assert_eq!(stored(&s)["files"], json!({ "f_a": { "fp": "v2", "extent": "40 lines" } }));
+		assert_eq!(stored(&s)["files"], json!({ "f_a": { "fp": "v2", "extent": "40 lines", "idsUsed": 3 } }));
 		let f32 = std::fs::read(s.passages_file(SPACE).with_extension("f32")).unwrap();
 		assert_eq!(f32[DIMS * 4..DIMS * 4 + 4], 1f32.to_le_bytes());
+		std::fs::remove_dir_all(dir).unwrap();
+	}
+
+	fn pdf_text(page_two: &str) -> String {
+		format!("--- Page 1 ---\nOne.\n--- Page 2 ---\n{page_two}\n--- Page 3 ---\nThree.")
+	}
+
+	#[tokio::test]
+	async fn a_passage_keeps_its_id_when_its_page_grows_or_shrinks() {
+		let (s, dir) = search("ids");
+		let long = (1..=30).map(|i| format!("Line {i} of a long page {}", "y".repeat(60))).collect::<Vec<_>>().join("\n");
+		let (short, grown) = (pdf_text("Two."), pdf_text(&long));
+		// Every text the versions make already has a vector (another file's), so nothing is embedded.
+		let texts: Vec<String> = [&short, &grown].iter().flat_map(|t| chunk_file("a.pdf", t).chunks).map(|c| c.text).collect();
+		let rows: Vec<Arc<Json>> = texts.iter().enumerate().map(|(n, t)| Arc::new(json!({ "id": format!("f_z:{}", n + 1), "fileId": "f_z", "range": "p. 1", "from": 1, "to": 1, "text": t, "hash": hash_of(t) }))).collect();
+		let vectors = vec![0f32; rows.len() * DIMS];
+		table::save(&s.passages_file(SPACE), &Table::new(rows, vectors, Obj::new())).unwrap();
+		let ids = |s: &Search| s.read_table(&s.passages_file(SPACE)).rows.iter().filter(|r| r["fileId"] == json!("f_a")).map(|r| format!("{} {}", field(r, "id"), field(r, "range"))).collect::<Vec<_>>();
+		s.index_space_file(SPACE, "f_a", "a.pdf", "v1", &short, || Some(())).await.unwrap();
+		assert_eq!(ids(&s), ["f_a:1 p. 1", "f_a:2 p. 2", "f_a:3 p. 3"]);
+		s.index_space_file(SPACE, "f_a", "a.pdf", "v2", &grown, || Some(())).await.unwrap();
+		assert_eq!(ids(&s), ["f_a:1 p. 1", "f_a:2 p. 2", "f_a:4 p. 2", "f_a:3 p. 3"]);
+		s.index_space_file(SPACE, "f_a", "a.pdf", "v3", &short, || Some(())).await.unwrap();
+		assert_eq!(ids(&s), ["f_a:1 p. 1", "f_a:2 p. 2", "f_a:3 p. 3"]);
+		// A number once used is never given to another piece.
+		s.index_space_file(SPACE, "f_a", "a.pdf", "v4", &grown, || Some(())).await.unwrap();
+		assert_eq!(ids(&s), ["f_a:1 p. 1", "f_a:2 p. 2", "f_a:5 p. 2", "f_a:3 p. 3"]);
+		assert_eq!(stored(&s)["files"]["f_a"]["idsUsed"], json!(5));
+		// Neighbours go by place, not by number.
+		assert!(s.read_passage(SPACE, &[], &PassageRef::Passage("f_a:5".into())).contains("(previous: f_a:2 · next: f_a:3)"));
 		std::fs::remove_dir_all(dir).unwrap();
 	}
 

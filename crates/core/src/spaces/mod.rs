@@ -2,6 +2,7 @@
 
 pub mod file_groups;
 pub mod file_series;
+pub mod kept_pages;
 pub mod lecture_transcript;
 pub mod new_files;
 pub mod linked_folder;

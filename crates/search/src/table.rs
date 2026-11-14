@@ -20,7 +20,7 @@ pub struct Table {
 	/// A table written from another shares its rows, as the TS's filtered arrays share objects.
 	pub rows: Vec<Arc<Json>>,
 	pub vectors: Vec<f32>,
-	/// Passages only: file id to `{ fp, extent }`.
+	/// Passages only: file id to `{ fp, extent, idsUsed }`.
 	pub files: Obj,
 	/// Built on first search, dropped with the table.
 	pub keywords: OnceLock<Result<Arc<KeywordIndex>, String>>,

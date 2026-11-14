@@ -450,6 +450,26 @@ mod tests {
 	}
 
 	#[tokio::test]
+	async fn a_quote_from_a_kept_page_that_the_pdf_text_lacks_shows_the_page_without_a_box() {
+		let Some(pdfium) = gs_pdf::test_support::pdfium_dir() else { return };
+		let root = scratch_dir("cites-kept");
+		for name in ["data", "home", "tmp"] {
+			std::fs::create_dir_all(root.join(name)).unwrap();
+		}
+		let app = App::new(gs_base::config::Paths::new(root.join("data"), root.join("home"), root.join("tmp"), pdfium), None);
+		make_space(&app);
+		// Page 2 kept: its passage is the reader's Markdown, worded apart from the page's own text.
+		let id = app.stores.spaces.list_space_records()[0]["id"].as_str().unwrap().to_owned();
+		let table = app.paths.data.join("spaces").join(id).join("search/passages.json");
+		let kept = "Newton wrote it as $F = ma$: the net force on a body.";
+		crate::app::disk::write_file_atomic(&table, &std::fs::read_to_string(&table).unwrap().replace("Physics page: force equals mass times acceleration", kept)).unwrap();
+		let checked = check_cites(&app, &format!("F. [[{SLIDES}:1 \"net force on a body\"]]"));
+		assert_eq!(checked.text, format!("F. [[{SLIDES}/p. 2/slides.pdf|net force on a body]]"));
+		let shown = cited_passage(&app, SLIDES, "p. 2", Some("net force on a body")).await.unwrap();
+		assert_eq!((&shown["page"], &shown["text"], &shown["marks"]), (&json!(2), &json!(kept), &Json::Null));
+	}
+
+	#[tokio::test]
 	async fn a_failed_page_read_is_not_remembered_as_nothing_found() {
 		let root = scratch_dir("cites-boxes-fail");
 		let app = test_app(&root);

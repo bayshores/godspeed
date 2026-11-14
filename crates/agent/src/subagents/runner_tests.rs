@@ -57,6 +57,12 @@ impl JobHost for Host {
 		self.delivered.lock().push(steer);
 		Box::pin(async { Err("no lesson in this test".to_owned()) })
 	}
+	fn kept_pages(&self, _path: &Path) -> BoxFuture<'static, Option<KeptPages>> {
+		Box::pin(async { None })
+	}
+	fn keep_page(&self, _file: &KeptPages, _page: u32, _markdown: &str) -> Result<(), String> {
+		Err("no space in this test".to_owned())
+	}
 }
 
 impl Drop for Host {

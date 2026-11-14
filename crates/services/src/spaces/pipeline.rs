@@ -3,10 +3,13 @@
 //! space's search index. Work is serialized per space (one queue each): the file list is a
 //! read-modify-write record, and one space's imports shouldn't flood the shared extraction slots.
 
+use std::collections::BTreeMap;
 use std::path::Path;
 use std::sync::Arc;
 
+use gs_base::hash::sha256_text;
 use gs_base::{clock, fsx};
+use gs_core::spaces::kept_pages::with_kept_pages;
 use gs_core::spaces::lecture_transcript::transcript_for;
 use gs_core::contracts::space::{DOCUMENT_EXTENSIONS, FILE_NOT_FOUND, extension_of, is_recording_file, is_transcript_file};
 use gs_files::fingerprint::fingerprint_file;
@@ -18,7 +21,7 @@ use gs_transcribe::run::{TranscribeError, transcribe_recording};
 use super::space_card::{space_file_path, transcript_path_of};
 use super::files::{drop_from_search, drop_source_facts, file_in, files_of, patch_file, source_id_for, str_of};
 use super::folder::{scan_linked_folder, stat_sig};
-use super::text_cache::{drop_file_texts, read_cached_text, write_cached_text};
+use super::text_cache::{drop_file_texts, read_cached_text, read_kept_pages, write_cached_text};
 use crate::App;
 use crate::graph::extraction::extraction;
 use crate::graph::topics::schedule_topic_grouping;
@@ -275,7 +278,9 @@ async fn file_text(app: &Arc<App>, space_id: &str, file: &Json, abs: &Path, fp: 
 /// Best effort: a failure is logged and the file goes on.
 async fn index_for_search(app: &Arc<App>, space_id: &str, file: &Json, abs: &Path, fp: &str, text: Option<&str>) {
 	let (name, file_id) = (str_of(file, "name"), str_of(file, "id"));
-	if app.search.is_file_indexed(space_id, file_id, fp) {
+	let kept = if extension_of(name) == ".pdf" { read_kept_pages(app, space_id, file_id, fp) } else { BTreeMap::new() };
+	let indexed_fp = indexed_fp(fp, &kept);
+	if app.search.is_file_indexed(space_id, file_id, &indexed_fp) {
 		return;
 	}
 	let source = if is_transcript_file(name) {
@@ -296,13 +301,34 @@ async fn index_for_search(app: &Arc<App>, space_id: &str, file: &Json, abs: &Pat
 				let guard = app.locks.lock(gs_base::locks::LockKey::Space(space_id));
 				still_there(app, space_id, file_id).then_some(guard)
 			};
-			app.search.index_space_file(space_id, file_id, name, fp, &source, still_listed).await
+			app.search.index_space_file(space_id, file_id, name, &indexed_fp, &with_kept_pages(&source, &kept), still_listed).await
 		}
 		Err(err) => Err(err),
 	};
 	if let Err(err) = indexed {
 		eprintln!("[spaces] could not index {name} for search: {err}");
 	}
+}
+
+/// The version the index records: the file's fingerprint, and with kept pages also a hash of them,
+/// so a newly kept page brings one new index and an unchanged set none.
+fn indexed_fp(fp: &str, kept: &BTreeMap<u32, String>) -> String {
+	if kept.is_empty() {
+		return fp.to_owned();
+	}
+	let pages: String = kept.iter().map(|(page, markdown)| format!("{page}\n{}\n", sha256_text(markdown))).collect();
+	format!("{fp}+{}", &sha256_text(&pages)[..16])
+}
+
+/// Puts a file's newly kept page into search, in the background.
+pub(super) fn reindex_kept_pages(app: &Arc<App>, space_id: &str, file_id: &str) {
+	let Some(record) = app.stores.spaces.get_space(space_id) else { return };
+	let Some(file) = file_in(&record, file_id).cloned() else { return };
+	let Some(abs) = space_file_path(app, &record, &file) else { return };
+	let (app, space_id) = (app.clone(), space_id.to_owned());
+	tokio::spawn(async move {
+		index_for_search(&app, &space_id, &file, Path::new(&abs), str_of(&file, "contentFp"), None).await;
+	});
 }
 
 /// Indexes every processed file the search index lacks (spaces from before search, a failed
@@ -378,7 +404,7 @@ mod tests {
 
 	use super::*;
 	use crate::app::test_support::scratch_dir;
-	use crate::spaces::add_copied_file;
+	use crate::spaces::{add_copied_file, keep_page, kept_pages_at, replace_copied_file};
 
 	/// The folder the search model loads from: the repo root, which holds `models/`.
 	#[cfg(not(any(target_os = "linux", all(target_os = "macos", target_arch = "x86_64"))))]
@@ -428,5 +454,58 @@ mod tests {
 		);
 		let second = app.search.passages_at(&space_id, &PassageRef::Place { file_id: file_id.clone(), range: "section 2".into() });
 		assert_eq!((second.len(), second[0]["range"].as_str(), second[0]["text"].as_str().map(|t| t.starts_with("Logic\nA proposition"))), (1, Some("section 2"), Some(true)));
+	}
+
+	async fn wait_indexed(app: &App, space_id: &str, file_id: &str, fp: &str) {
+		for _ in 0..600 {
+			if app.search.is_file_indexed(space_id, file_id, fp) {
+				return;
+			}
+			clock::sleep(50).await;
+		}
+		panic!("{file_id} was not indexed as {fp}");
+	}
+
+	#[tokio::test]
+	async fn a_kept_page_is_searched_from_one_index_and_goes_when_the_file_changes() {
+		let root = scratch_dir("kept-pages");
+		let repo = Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/../.."));
+		let app = App::new(gs_base::config::Paths::new(root.join("data"), root.join("home"), root.join("tmp"), resources(&root, repo)), None);
+		let space_id = app.stores.spaces.create_space(&gs_json::json!({ "name": "Physics" })).unwrap()["id"].as_str().unwrap().to_owned();
+		let pdf = std::fs::read(repo.join("tests/fixtures/sample-3page.pdf")).unwrap();
+		let fp = gs_base::hash::sha256_hex(&pdf)[..16].to_owned();
+		let file_id = add_copied_file(&app, &space_id, "Lecture 1.pdf", &pdf, "info").unwrap()["id"].as_str().unwrap().to_owned();
+		// The PDF's text, saved before the queue first runs, so no PDF library is needed here.
+		write_cached_text(&app, &space_id, &file_id, &fp, "--- Page 1 ---\nOne.\n--- Page 2 ---\nForce is F ma.\n--- Page 3 ---\nThree.");
+		wait_indexed(&app, &space_id, &file_id, &fp).await;
+		let page_two = || app.search.passages_at(&space_id, &PassageRef::Place { file_id: file_id.clone(), range: "p. 2".into() }).remove(0);
+		let before = page_two();
+		let record = app.stores.spaces.get_space(&space_id).unwrap();
+		let abs = space_file_path(&app, &record, file_in(&record, &file_id).unwrap()).unwrap();
+
+		let kept = kept_pages_at(&app, Path::new(&abs)).await.unwrap();
+		assert!(kept.pages.is_empty());
+		keep_page(&app, &kept, 2, "Force is $F = ma$.").unwrap();
+		let kept_fp = indexed_fp(&fp, &read_kept_pages(&app, &space_id, &file_id, &fp));
+		wait_indexed(&app, &space_id, &file_id, &kept_fp).await;
+		let after = page_two();
+		assert_eq!((&after["id"], after["text"].as_str()), (&before["id"], Some("Force is $F = ma$.")));
+		assert_eq!(kept_pages_at(&app, Path::new(&abs)).await.unwrap().pages.into_iter().collect::<Vec<_>>(), [(2, "Force is $F = ma$.".to_owned())]);
+		// The next scan finds that index and leaves the table alone.
+		let table = app.paths.data.join("spaces").join(&space_id).join("search/passages.json");
+		let written = std::fs::metadata(&table).unwrap().modified().unwrap();
+		index_unindexed_files(&app).await;
+		assert_eq!(std::fs::metadata(&table).unwrap().modified().unwrap(), written);
+
+		// A new version has no kept pages, and a keep for the old one is refused.
+		let changed = [pdf.as_slice(), b"\n% changed\n"].concat();
+		let new_fp = gs_base::hash::sha256_hex(&changed)[..16].to_owned();
+		replace_copied_file(&app, &space_id, &file_id, &changed, "info").unwrap();
+		write_cached_text(&app, &space_id, &file_id, &new_fp, "--- Page 1 ---\nOne.\n--- Page 2 ---\nForce, changed.\n--- Page 3 ---\nThree.");
+		wait_indexed(&app, &space_id, &file_id, &new_fp).await;
+		assert_eq!(page_two()["text"].as_str(), Some("Force, changed."));
+		assert!(kept_pages_at(&app, Path::new(&abs)).await.unwrap().pages.is_empty());
+		assert!(read_kept_pages(&app, &space_id, &file_id, &fp).is_empty());
+		assert_eq!(keep_page(&app, &kept, 2, "Old."), Err("the file changed or was removed while it was read, so nothing was saved".to_owned()));
 	}
 }

@@ -10,7 +10,7 @@ use futures_util::future::BoxFuture;
 use futures_util::task::noop_waker_ref;
 use gs_agent::subagents::aborts::JobAborts;
 use gs_agent::subagents::headless::{HeadlessApi, get_headless};
-use gs_agent::subagents::runner::{JobHost, create_job_runner};
+use gs_agent::subagents::runner::{JobHost, KeptPages, create_job_runner};
 use gs_engine::bridge::Bridge;
 use gs_engine::turn::faux::Engine;
 use gs_engine::turn::models::agent_engine;
@@ -21,6 +21,7 @@ use gs_store::jobs::JobStore;
 
 use crate::App;
 use crate::jobs::{deliver_job_result, live_agent};
+use crate::spaces::{keep_page, kept_pages_at};
 
 struct AppJobs(Arc<App>);
 
@@ -64,6 +65,15 @@ impl JobHost for AppJobs {
 	fn deliver(&self, steer: Json) -> BoxFuture<'static, Result<(), String>> {
 		deliver_job_result(&self.0, steer);
 		Box::pin(async { Ok(()) })
+	}
+
+	fn kept_pages(&self, path: &Path) -> BoxFuture<'static, Option<KeptPages>> {
+		let (app, path) = (self.0.clone(), path.to_owned());
+		Box::pin(async move { kept_pages_at(&app, &path).await })
+	}
+
+	fn keep_page(&self, file: &KeptPages, page: u32, markdown: &str) -> Result<(), String> {
+		keep_page(&self.0, file, page, markdown)
 	}
 }
 

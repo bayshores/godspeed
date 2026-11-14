@@ -90,6 +90,8 @@ describe("pdfActivity", () => {
 		assert.deepEqual(pdfActivity('pdf_search: "complement"'), { step: 'searched it for "complement"', page: null });
 		assert.deepEqual(pdfActivity("pdf_render: 4 @150dpi"), { step: "looked closely at page 4", page: 4 });
 		assert.deepEqual(pdfActivity("pdf_extract: all"), { step: "read every page", page: null });
+		assert.deepEqual(pdfActivity("save_page: 7"), { step: "kept page 7 for later", page: 7 });
+		assert.equal(pdfActivity("save_page: x"), null);
 		assert.equal(pdfActivity("reading pdf"), null);
 	});
 

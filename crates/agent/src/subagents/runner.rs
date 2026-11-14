@@ -8,7 +8,7 @@
 //! A failure is the kind's failure shape (empty html or svg with "FAILED: …" notes, a failure
 //! brief), and it still steers: the teacher must learn the outcome.
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
@@ -29,10 +29,11 @@ use parking_lot::Mutex;
 use super::aborts::JobAborts;
 use super::demo_builder::run_demo_builder;
 use super::headless::HeadlessApi;
-use super::pdf_reader::run_pdf_reader_agent;
+use super::pdf_reader::{Keeper, run_pdf_reader_agent};
 use super::pi_run::{JobAgentOptions, OnActivity, OnToolStart, OnUsage, RunError};
 use super::researcher::{ResearcherRunOptions, run_researcher_agent};
 use super::visual_maker::run_visual_maker;
+use crate::fs_tools::fs_shared::resolve_source_path;
 
 /// What the runner needs from the server: the TS `JobRunnerDeps` (stores, `deliver`,
 /// `engineFor`) and the server state the TS reached through modules.
@@ -53,6 +54,19 @@ pub trait JobHost: Send + Sync {
 	/// Hands a finished job's steer to the lesson's delivery. The runner never waits for it; the
 	/// saved pending delivery survives a restart.
 	fn deliver(&self, steer: Json) -> BoxFuture<'static, Result<(), String>>;
+	/// The space PDF at `path` with its kept pages; None when the path is not a ready space PDF
+	/// still holding the content it was read as (the PDF reader then cannot keep pages).
+	fn kept_pages(&self, path: &Path) -> BoxFuture<'static, Option<KeptPages>>;
+	/// Keeps one page of that file as Markdown, which search then gets.
+	fn keep_page(&self, file: &KeptPages, page: u32, markdown: &str) -> Result<(), String>;
+}
+
+/// A space PDF the reader may keep pages of: which file and version, and its pages kept so far.
+pub struct KeptPages {
+	pub space_id: String,
+	pub file_id: String,
+	pub fp: String,
+	pub pages: BTreeMap<u32, String>,
 }
 
 pub struct JobRunner {
@@ -364,7 +378,11 @@ impl JobRunner {
 		let path = input["path"].as_str().map(trim).unwrap_or_default();
 		let question = input["question"].as_str().unwrap_or_default();
 		self.update(job_id, json!({ "activity": "reading pdf" }));
-		let result = run_pdf_reader_agent(path, question, self.host.pdf(), &self.job_agent_options(job_id, engine, ctx)).await;
+		let keeper = self.host.kept_pages(&resolve_source_path(Some(path))).await.map(|mut file| {
+			let host = self.host.clone();
+			Keeper { pages: std::mem::take(&mut file.pages), keep: Box::new(move |page, markdown| host.keep_page(&file, page, markdown)) }
+		});
+		let result = run_pdf_reader_agent(path, question, self.host.pdf(), keeper, &self.job_agent_options(job_id, engine, ctx)).await;
 		static FAILED: std::sync::LazyLock<Re> = std::sync::LazyLock::new(|| Re::new(r"^PDF failed:\s*", "i"));
 		let brief = result["brief"].as_str().unwrap_or_default();
 		if FAILED.test(brief) && self.still_running(job_id) {
