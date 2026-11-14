@@ -35,6 +35,7 @@ Object.assign(globalThis, {
 const { MockRun } = await import("../../src/frontend/components/mock/mock-run.tsx");
 const { MockWaiting } = await import("../../src/frontend/components/mock/mock-waiting.tsx");
 const { MockResults } = await import("../../src/frontend/components/mock/mock-results.tsx");
+const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
 
 const NOW = Date.now();
 const iso = (minutes: number) => new Date(NOW + minutes * 60_000).toISOString();
@@ -49,7 +50,13 @@ function view(over: Partial<Mock> = {}, rest: Partial<MockView> = {}): MockView 
 	return { spaceId: "spc_1", deadlineId: "ddl_onsite", deadlineName: "Onsite interview", mock, working: false, ...rest };
 }
 
-const page = (node: React.ReactNode) => renderToStaticMarkup(<MemoryRouter>{node}</MemoryRouter>);
+const quietEvents = () => ({ onEvent() {}, onOpen() {}, close() {} });
+const frame = (node: React.ReactNode) => (
+	<MemoryRouter>
+		<ServerEventsProvider connect={quietEvents as never}>{node}</ServerEventsProvider>
+	</MemoryRouter>
+);
+const page = (node: React.ReactNode) => renderToStaticMarkup(frame(node));
 
 describe("before and after the answering", () => {
 	it("ready with a time limit: its size, that it can pause, Start the mock, and the way back to its deadline", () => {
@@ -59,10 +66,30 @@ describe("before and after the answering", () => {
 		assert.match(html, /data-testid="mock-start"[^>]*lh-btn-main[^>]*>Start the mock</);
 		assert.ok(!html.includes("mock-from-about"));
 	});
-	it("ready with no time limit, written from what it's like", () => {
+	it("ready with no time limit, written from what it's like: why, once its deadline's files are read", async () => {
 		const html = page(<MockWaiting view={view({ format: { questions: 2 }, fromAbout: true })} state="ready" />);
 		assert.match(html, /2 questions, no time limit\. There is no time limit\./);
-		assert.match(html, /data-testid="mock-from-about"[^>]*>It was written from what it&#x27;s like, since this deadline has no study files yet\.</);
+		assert.ok(!html.includes("mock-from-about"), "no guess before the files are read");
+		const files = [{ id: "f_guide", name: "Study guide.md", kind: "study", status: "failed" }];
+		const originalFetch = globalThis.fetch;
+		const asked: string[] = [];
+		globalThis.fetch = (async (url: RequestInfo | URL) => {
+			asked.push(String(url));
+			return Response.json({ space: { id: "spc_1", files, deadlines: [{ id: "ddl_onsite", fileIds: ["f_guide"] }] }, folder: null });
+		}) as typeof fetch;
+		const host = document.createElement("div");
+		document.body.append(host);
+		const root = createRoot(host);
+		try {
+			await act(async () => root.render(frame(<MockWaiting view={view({ format: { questions: 2 }, fromAbout: true })} state="ready" />)));
+			await act(() => new Promise((r) => setTimeout(r, 10)));
+			assert.deepEqual(asked, ["/api/spaces/spc_1"]);
+			assert.ok(host.querySelector("[data-testid='mock-from-about']")?.textContent === "It was written from what it's like, since Study guide.md couldn't be read.");
+		} finally {
+			await act(async () => root.unmount());
+			host.remove();
+			globalThis.fetch = originalFetch;
+		}
 	});
 	it("being written, then failed with Try again and Remove this mock", () => {
 		assert.match(page(<MockWaiting view={view({ questions: [] }, { working: true })} state="writing" />), /Teacher is writing Mock 2.*2 questions in 45 minutes\. This takes a few minutes/);
@@ -114,7 +141,8 @@ describe("answering", () => {
 		const html = page(<MockRun view={view({ startedAt: iso(-14), paused: { at: iso(-1), left: 31 * 60 + 9 } })} />);
 		assert.ok(!html.includes("mock-questions") && !html.includes("Idempotency") && !html.includes("math-box"), "nothing of the questions shows");
 		assert.match(html, /data-testid="mock-clock"[^>]*>31:09 left</);
-		assert.match(html, /data-testid="mock-pause"[^>]*>Resume</);
+		assert.match(html, /data-testid="mock-paused-word"[^>]*>Paused</);
+		assert.ok(!html.includes('data-testid="mock-pause"'), "one Resume, on the paused screen");
 		assert.ok(!html.includes('data-testid="mock-end"'));
 		assert.match(html, />Mock 2 is paused<.*31:09 left\. The questions are hidden and nothing is saved until you resume\..*data-testid="mock-resume"[^>]*lh-btn-main[^>]*>Resume</);
 	});

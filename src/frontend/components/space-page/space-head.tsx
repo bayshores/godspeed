@@ -16,9 +16,9 @@ import { spaceTabs, sheetCount, studiedShare, tabCount, type TabCounts } from ".
 
 /**
  * The head of every space page: the space's color bar and name, its
- * signature inked as far as its facts are studied, then the tabs with
- * their counts and "Edit space" at the end of their row. With no space
- * picked it names the lessons that belong to none.
+ * signature inked as far as its facts are studied in the room the name
+ * leaves, then the tabs with their counts and "Edit space" at the end of
+ * their row. With no space picked it names the lessons that belong to none.
  */
 export function SpaceHead() {
 	const { pathname } = useLocation();
@@ -35,13 +35,14 @@ export function SpaceHead() {
 			{/* As tall as a signature, so the tabs sit at one height in every space. */}
 			<div className="flex min-h-16 items-center gap-4">
 				{activeSpace && <span aria-hidden className="h-12 w-3 shrink-0" style={{ background: spaceColorVar(activeSpace.color) }} />}
-				<p data-testid="space-head-name" title={activeSpace?.name} className="min-w-0 flex-1 truncate text-[38px] leading-[1.2] text-ink">
+				<p data-testid="space-head-name" title={activeSpace?.name} className={cn("min-w-0 truncate text-[38px] leading-[1.2] text-ink", !activeSpace?.signature && "flex-1")}>
 					{activeSpace?.name ?? "Lessons with no space"}
 				</p>
 				{activeSpace?.signature && <HeadSignature signature={activeSpace.signature} share={share} />}
 			</div>
-			<div className="mt-[22px] flex items-center shadow-[inset_0_-2px_0_var(--border)]">
-				<nav aria-label={activeSpace?.name ?? "Lessons with no space"} className="flex min-w-0 flex-1 gap-1.5 overflow-x-auto">
+			{/* When the tabs and Edit space don't fit one line, Edit space goes above the tabs. */}
+			<div className="mt-[22px] flex flex-wrap-reverse items-center shadow-[inset_0_-2px_0_var(--border)]">
+				<nav aria-label={activeSpace?.name ?? "Lessons with no space"} className="flex min-w-0 flex-[1_1_auto] gap-1.5 overflow-x-auto">
 					{spaceTabs(activeSpace ? "space" : "none").map((t) => {
 						const selected = t.href === pathname;
 						const count = tabCount(t, counts);
@@ -72,7 +73,7 @@ export function SpaceHead() {
 					})}
 				</nav>
 				{activeSpace && (
-					<button type="button" data-testid="space-edit" onClick={() => setEditing(activeSpace.id)} className="lh-btn lh-btn-quiet shrink-0 text-[15px]">
+					<button type="button" data-testid="space-edit" onClick={() => setEditing(activeSpace.id)} className="lh-btn lh-btn-quiet ml-auto shrink-0 text-[15px]">
 						Edit space
 					</button>
 				)}

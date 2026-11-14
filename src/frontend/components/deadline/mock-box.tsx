@@ -106,7 +106,7 @@ function Stepper({ label, range, value, disabled, testid, onChange }: { label: s
 						if (typed !== null) onChange(clampTo(range, Number.parseFloat(typed), value));
 						setTyped(null);
 					}}
-					className="h-10 w-[72px] rounded border-[1.5px] border-ink bg-background text-center font-count text-lg text-ink"
+					className="h-10 w-[72px] [appearance:textfield] rounded border-[1.5px] border-ink bg-background text-center font-count text-lg text-ink [&::-webkit-inner-spin-button]:m-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:m-0 [&::-webkit-outer-spin-button]:appearance-none"
 				/>
 				<button type="button" data-testid={`${testid}-more`} aria-label={`More ${label.toLowerCase()}`} disabled={disabled || value >= range.max} onClick={() => step(range.step)} className={STEP}>
 					<PixelIcon name="plus" />

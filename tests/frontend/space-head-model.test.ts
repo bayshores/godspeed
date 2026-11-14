@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { fitScale, sheetCount, spaceTabs, studiedShare, tabCount } from "../../src/frontend/components/space-page/space-head-model.ts";
+import { headSignatureScale, sheetCount, spaceTabs, studiedShare, tabCount } from "../../src/frontend/components/space-page/space-head-model.ts";
 
 describe("a space's tabs", () => {
 	it("Progress, Lessons, Files, Graph, Cheat sheets, Deadlines", () => {
@@ -32,12 +32,14 @@ describe("a space's tabs", () => {
 		assert.equal(studiedShare([fact(true), fact(false, true), fact(false), fact(false)]), 0.5);
 		assert.equal(studiedShare([]), null);
 	});
-	it("fitScale keeps a signature that fits, and shrinks a long or tall one to its room", () => {
-		const room = { width: 320, height: 64 };
-		assert.equal(fitScale({ width: 200, height: 30 }, room), 1);
-		assert.equal(fitScale({ width: 640, height: 30 }, room), 0.5);
-		assert.equal(fitScale({ width: 200, height: 128 }, room), 0.5);
-		assert.equal(fitScale({ width: 0, height: 0 }, room), 1, "not measured yet");
+	it("the signature keeps its size when it fits, shrinks a long or tall one, and is left out before the name is cut", () => {
+		assert.equal(headSignatureScale({ width: 200, height: 60 }, 600), 1);
+		assert.equal(headSignatureScale({ width: 640, height: 60 }, 600), 0.5, "320 wide at most");
+		assert.equal(headSignatureScale({ width: 200, height: 128 }, 600), 0.5, "64 tall at most");
+		assert.equal(headSignatureScale({ width: 400, height: 60 }, 300), 0.75, "the room the name leaves");
+		assert.equal(headSignatureScale({ width: 400, height: 60 }, 150), null, "too small to read");
+		assert.equal(headSignatureScale({ width: 400, height: 60 }, 0), null, "no room at all");
+		assert.equal(headSignatureScale({ width: 0, height: 0 }, 600), 1, "not measured yet");
 	});
 	it("the cheat sheet count leaves out deadlines with no sheet", () => {
 		assert.equal(sheetCount([{ status: "made" }, { status: "none" }, { status: "making" }, { status: "older" }, { status: "newer" }]), 4);

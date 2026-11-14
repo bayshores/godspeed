@@ -4,10 +4,11 @@ import { DEFAULT_TEACHER_NAME, type MockState, type MockView } from "@/shared/co
 import { NoAgentLine } from "@/frontend/components/agent-folder/no-agent-line";
 import { BrailleSpinner } from "@/frontend/components/braille-spinner";
 import { deadlineHref } from "@/frontend/components/overview/overview-model";
+import { useSpaceRecord } from "@/frontend/components/files/space-files-api";
 import { useTeacher } from "@/frontend/components/teacher/teacher-provider";
 import { BIG_BUTTON } from "@/frontend/components/ui/big-button";
 import { cn } from "@/frontend/lib/utils";
-import { endedByTime, formatLine } from "./mock-model";
+import { endedByTime, formatLine, fromAboutLine } from "./mock-model";
 import { postMock, removeMock } from "./use-mock";
 
 /**
@@ -22,6 +23,10 @@ export function MockWaiting({ view, state }: { view: MockView; state: Exclude<Mo
 	const { spaceId, mock } = view;
 	const act = async (action: string) => setError((await postMock(spaceId, mock.id, { action })).error);
 	const size = formatLine(mock.format);
+	// Its study files, to say why it was written from what it's like.
+	const { record } = useSpaceRecord(state === "ready" && mock.fromAbout ? spaceId : null);
+	const deadline = record?.deadlines?.find((d) => d.id === mock.deadlineId);
+	const fromAbout = record && deadline ? fromAboutLine(record.files, deadline) : null;
 
 	let body;
 	if (state === "ready") {
@@ -33,9 +38,9 @@ export function MockWaiting({ view, state }: { view: MockView; state: Exclude<Mo
 				<p className="max-w-[520px] text-lg leading-snug text-ink-2">
 					{size}. {time} {teacher} stays quiet until it ends, then grades everything.
 				</p>
-				{mock.fromAbout && (
+				{fromAbout && (
 					<p data-testid="mock-from-about" className="max-w-[520px] text-[17px] leading-snug text-ink-2">
-						It was written from what it&apos;s like, since this deadline has no study files yet.
+						{fromAbout}
 					</p>
 				)}
 				<button type="button" data-testid="mock-start" onClick={() => void act("start")} className={cn("lh-btn lh-btn-main", BIG_BUTTON)}>
