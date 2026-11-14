@@ -15,6 +15,8 @@ pub enum ToShell {
 	Demo { id: u64, html: String, probe: Option<String> },
 	/// Snapshot an SVG resvg could not draw, as a PNG of exactly `width` × `height` px.
 	Svg { id: u64, svg: String, width: u32, height: u32 },
+	/// Show a system notification (a deadline reminder); nothing comes back.
+	Notify { title: String, body: String },
 }
 
 /// Shell to server.
@@ -87,6 +89,7 @@ mod tests {
 		round_trip(ToShell::Demo { id: 2, html: "<p>\n</p>".into(), probe: Some("x".into()) }, r#"{"t":"demo","id":2,"html":"<p>\n</p>","probe":"x"}"#);
 		round_trip(ToShell::Demo { id: 3, html: String::new(), probe: None }, r#"{"t":"demo","id":3,"html":"","probe":null}"#);
 		round_trip(ToShell::Svg { id: 4, svg: "<svg/>".into(), width: 900, height: 700 }, r#"{"t":"svg","id":4,"svg":"<svg/>","width":900,"height":700}"#);
+		round_trip(ToShell::Notify { title: "Quiz 2 is tomorrow".into(), body: "Algebra.".into() }, r#"{"t":"notify","title":"Quiz 2 is tomorrow","body":"Algebra."}"#);
 	}
 
 	#[test]

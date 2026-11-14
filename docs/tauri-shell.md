@@ -2,7 +2,7 @@
 
 How godspeed moves from Electron to Tauri 2 (plan phases 3, 4 and 5, shipped as one release). For the engineers who build it. The Rust server (docs/rust-server.md) is done first and is not changed here except where this page says so.
 
-Versions checked on 2026-11-10 (docs, crates.io and source): tauri 2.12.5, tauri-build 2.7.4, @tauri-apps/cli 2.12.4, tauri-bundler 2.10.4, tauri-plugin-updater 2.14.1, tauri-plugin-single-instance 2.5.5, tauri-plugin-dialog 2.8.4, tauri-plugin-opener 2.7.2 (2.7.3 is one day old), objc2 0.6.5, block2 0.6, objc2-foundation / objc2-app-kit / objc2-web-kit / objc2-pdf-kit 0.3.2, electron-updater 6.8.11 (what every shipped godspeed uses). Pin these exactly (`=x.y.z`). Before relying on any API name below, check it in the docs.rs page of the pinned version: some names were read from the `dev` branch.
+Versions checked on 2026-11-10 (docs, crates.io and source): tauri 2.12.5, tauri-build 2.7.4, @tauri-apps/cli 2.12.4, tauri-bundler 2.10.4, tauri-plugin-updater 2.14.1, tauri-plugin-single-instance 2.5.5, tauri-plugin-dialog 2.8.4, tauri-plugin-opener 2.7.2 (2.7.3 is one day old), tauri-plugin-notification 2.8.1 (checked 2026-11-13; 3.x is for Tauri 3), objc2 0.6.5, block2 0.6, objc2-foundation / objc2-app-kit / objc2-web-kit / objc2-pdf-kit 0.3.2, electron-updater 6.8.11 (what every shipped godspeed uses). Pin these exactly (`=x.y.z`). Before relying on any API name below, check it in the docs.rs page of the pinned version: some names were read from the `dev` branch.
 
 ## 0. The shape in one picture
 
@@ -36,6 +36,7 @@ godspeed (Tauri shell, crates/shell)                         godspeed-server (cr
 | `quit.rs` | The one exit routine: stop the server, then install a downloaded update (section 5, Shutdown). |
 | `server.rs` | Spawn, ready wait, port choice, secret, login tokens, restart, stop, `mcp-endpoint.json`. |
 | `rpc.rs` | Reads server stdout lines, routes requests to the demo runner, writes replies to stdin. |
+| `notify.rs` | Shows the system notifications the server asks for, through tauri-plugin-notification registered without its page script (that script asks for the permission on every page load, which the demo window would report as a page error). The Mac asks the learner once, at the first notification; clicks are not handled. |
 | `window.rs` | Builds the main window, navigation guards and the `open_link` command, show fallback, title, downloads (save dialog), the pending `open-settings` push. |
 | `menu.rs` | The application menu. |
 | `zoom.rs` | The zoom ladder, push and commands (`get_zoom`, `set_zoom`, `zoom_step`, `zoom_reset`). |
@@ -64,7 +65,7 @@ Rules:
 - The workspace keeps `unsafe_code = "deny"`; `crates/shell/src/mac/mod.rs`, `crates/shell/src/win/mod.rs` and `crates/shell/src/linux/mod.rs` start with `#![allow(unsafe_code)]` and nothing else in the workspace may.
 - The shell uses `gs_base::clock` and `gs_base::fsx` like the server (clippy.toml applies to it). It depends on `gs-base` and `gs-shell-rpc`, never on the server crates.
 - Add `print_stdout = "deny"` to `[workspace.lints.clippy]`; the one writer in `gs-shell-rpc` carries `#[allow(clippy::print_stdout)]`. stdout is the protocol channel.
-- New workspace dependencies (reviewer approval): tauri, tauri-build, tauri-plugin-updater, tauri-plugin-single-instance, tauri-plugin-dialog, tauri-plugin-opener, rfd (`0.17`, the version tauri-plugin-dialog 2.8.4 uses, feature `gtk3`), objc2, block2, objc2-foundation, objc2-app-kit, objc2-web-kit, objc2-pdf-kit, webview2-com 0.39.1 and windows 0.62.2 (Windows only), webkit2gtk 2.0.2 (its `ffi` is webkit2gtk-sys, feature `v2_38`, which includes the `v2_24` filter calls), gtk 0.18.2 and cairo-rs 0.18.5 with `png` (Linux only); all are the versions wry 0.57.2 and tao use, so one copy is linked, fontdb (Windows/Linux only; already in the tree through resvg), os_info, base64.
+- New workspace dependencies (reviewer approval): tauri, tauri-build, tauri-plugin-updater, tauri-plugin-single-instance, tauri-plugin-dialog, tauri-plugin-opener, tauri-plugin-notification, rfd (`0.17`, the version tauri-plugin-dialog 2.8.4 uses, feature `gtk3`), objc2, block2, objc2-foundation, objc2-app-kit, objc2-web-kit, objc2-pdf-kit, webview2-com 0.39.1 and windows 0.62.2 (Windows only), webkit2gtk 2.0.2 (its `ffi` is webkit2gtk-sys, feature `v2_38`, which includes the `v2_24` filter calls), gtk 0.18.2 and cairo-rs 0.18.5 with `png` (Linux only); all are the versions wry 0.57.2 and tao use, so one copy is linked, fontdb (Windows/Linux only; already in the tree through resvg), os_info, base64.
 
 **Who owns the demo runner.** WKWebView needs the main thread of a process with an `NSApplication`, so the shell owns it. The server asks over the line protocol:
 
@@ -85,6 +86,7 @@ One JSON object per line, UTF-8, `\n`-terminated. `t` names the message. The ser
 | server → shell | `{"t":"login_ok","id":n}` | Stored. The shell navigates only after this. |
 | server → shell | `{"t":"demo","id":n,"html":"…","probe":"…"\|null}` | Run a demo. |
 | server → shell | `{"t":"svg","id":n,"svg":"…","width":w,"height":h}` | Snapshot an SVG resvg could not draw (`svgViewport` sizes). |
+| server → shell | `{"t":"notify","title":"…","body":"…"}` | Show a system notification (a deadline reminder). No answer. |
 | shell → server | `{"t":"demo_done","id":n,"result":{"consoleErrors":[],"pageErrors":[],"failedRequests":[],"probeResult":…,"ok":true}}` or `{"t":"demo_done","id":n,"error":"…"}` | `probeResult` absent when not probed. |
 | shell → server | `{"t":"svg_done","id":n,"png":"<base64>"}` or `{"t":"svg_done","id":n,"error":"…"}` | PNG exactly w×h px. |
 

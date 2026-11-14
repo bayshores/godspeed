@@ -1,6 +1,6 @@
 //! App-level services: boot, onboarding, welcome, what's new, settings bodies, the agent folder,
-//! old setups, agent memory, agent rules, agent actions, today's note, reading pages and the web
-//! search key.
+//! old setups, agent memory, agent rules, agent actions, today's note, reading pages, the web
+//! search key and deadline reminders.
 
 use std::collections::VecDeque;
 use std::sync::Arc;
@@ -14,6 +14,7 @@ pub mod agent_folder;
 pub mod agent_memory;
 pub mod agent_rules;
 pub mod boot;
+pub mod deadline_reminder;
 pub(crate) mod disk;
 mod folder_files;
 pub mod old_setup;

@@ -62,6 +62,7 @@ export function resolveSettings(record: UserSettings | null): EffectiveSettings 
 			activeSpace: record?.general?.activeSpace ?? FACTORY_SETTINGS.general.activeSpace,
 			teacherName: record?.general?.teacherName || FACTORY_SETTINGS.general.teacherName,
 			sounds: record?.general?.sounds ?? FACTORY_SETTINGS.general.sounds,
+			deadlineReminders: record?.general?.deadlineReminders ?? FACTORY_SETTINGS.general.deadlineReminders,
 		},
 		agent: {
 			tools: agent.tools ?? {},

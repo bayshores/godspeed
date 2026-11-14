@@ -137,7 +137,8 @@ pub fn when_label(deadline: &Json) -> String {
 	}
 }
 
-fn relative_day(days: i64) -> String {
+/// "today", "tomorrow" or "in 3 days".
+pub fn relative_day(days: i64) -> String {
 	match days {
 		0 => "today".to_owned(),
 		1 => "tomorrow".to_owned(),

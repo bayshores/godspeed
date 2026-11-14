@@ -12,6 +12,7 @@ use gs_base::config::Paths;
 use gs_base::{clock, shutdown};
 use gs_server::{data_lock, http};
 use gs_services::App;
+use gs_services::app::deadline_reminder::start_deadline_reminders;
 use gs_shell_rpc::{ShellLink, ToShell};
 use tower::Layer;
 
@@ -49,7 +50,9 @@ async fn main() -> ExitCode {
 		shell.send(&ToShell::Ready);
 	}
 	let access = http::access::Access::from_env();
-	let router = http::server(App::new(paths, shell.clone()), &access);
+	let app = App::new(paths, shell.clone());
+	start_deadline_reminders(&app);
+	let router = http::server(app, &access);
 	let service = axum::middleware::from_fn_with_state(access, http::front).layer(router);
 	watch_for_stop(shell);
 	eprintln!("godspeed-server {} on http://127.0.0.1:{port}", gs_base::config::VERSION);

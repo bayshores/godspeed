@@ -59,6 +59,8 @@ export interface GeneralSettings {
 	teacherName?: string;
 	/** Startup, onboarding and right/wrong answer sounds (default ON). */
 	sounds?: boolean;
+	/** One system notification a day for a deadline 3 days away or less (default ON). */
+	deadlineReminders?: boolean;
 }
 
 /** The teacher's name when none is set. */
@@ -192,7 +194,7 @@ export interface FactorySettings {
 
 export const FACTORY_SETTINGS: FactorySettings = {
 	version: CURRENT_SETTINGS_VERSION,
-	general: { autoUpdate: true, activeSpace: "none", teacherName: DEFAULT_TEACHER_NAME, sounds: true },
+	general: { autoUpdate: true, activeSpace: "none", teacherName: DEFAULT_TEACHER_NAME, sounds: true, deadlineReminders: true },
 	appearance: {
 		background: null, // Paper
 		fontFamily: null, // Literata
@@ -249,6 +251,8 @@ function sanitizeGeneral(raw: Record<string, unknown>): GeneralSettings {
 	}
 	const sounds = boolOrDrop(raw.sounds);
 	if (sounds !== undefined) out.sounds = sounds;
+	const deadlineReminders = boolOrDrop(raw.deadlineReminders);
+	if (deadlineReminders !== undefined) out.deadlineReminders = deadlineReminders;
 	return out;
 }
 

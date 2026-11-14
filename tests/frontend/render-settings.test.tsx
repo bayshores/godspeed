@@ -163,6 +163,14 @@ describe("GeneralSection (SSR)", () => {
 		assert.match(off.split('data-testid="toggle-build-the-graph"')[1]!.slice(0, 400), />Off</);
 	});
 
+	it("deadline reminders: on by default, off when the record says so", () => {
+		const on = render({ version: 1 });
+		assert.ok(on.includes("One notification a day when a deadline is 3 days away or less."));
+		assert.ok(tagOf(on, "toggle-deadline-reminders").includes('aria-checked="true"'));
+		const off = render({ version: 1, general: { deadlineReminders: false } });
+		assert.ok(tagOf(off, "toggle-deadline-reminders").includes('aria-checked="false"'));
+	});
+
 	it("graph off: the switch shows off and the chunk slider is disabled", () => {
 		const html = render({ version: 1, graph: { enabled: false, extractionChunkTokens: 6000 } });
 		assert.ok(tagOf(html, "toggle-build-the-graph").includes('aria-checked="false"'));
