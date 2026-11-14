@@ -4,7 +4,7 @@ import type { PracticeProgress } from "./practice-progress";
 /** How a block or a list row reads: done in ink, the one in progress, the rest light. */
 export type Tone = "done" | "current" | "later";
 
-/** One block of a homework or practice row, or one step of a plan lesson's row. */
+/** One block of a practice row, or one step of a plan or homework lesson's row. */
 export interface RowBlock {
 	key: string;
 	tone: Tone;
@@ -14,21 +14,26 @@ export interface RowBlock {
 	state: string;
 }
 
-/** What a homework or practice row shows: its count, its blocks and where the learner is now. */
-export interface RowSummary {
+/** What a practice row shows: its count and its blocks. */
+interface RowSummary {
 	count: string | null;
 	blocks: RowBlock[];
-	/** The open problem's name; null when none is open. */
-	here: string | null;
 }
 
-/** One step of a plan lesson's row. */
+/** One step of a plan lesson's row, or one problem of a homework lesson's. */
 export interface RowStep extends RowBlock {
-	/** A done step's first answered question: the step scrolls back to it. */
+	/** "3" for a plan step, the assignment's own number ("2b") for a problem. */
+	number: string;
+	/** Where a done step goes back to: its first answered question, or a
+	 *  problem's card. */
 	jump: string | null;
 	/** The hover text: the name, and on a done step that goes back, how its answers went. */
 	hint: string;
 }
+
+/** Above this many steps a row shows only numbers and bars (the names go
+ *  to the hover), so it stays within three lines. */
+export const COMPACT_ABOVE = 12;
 
 /** "2 of 2 right" over the graded answers (explain answers are not graded). */
 export function rightCountLabel(answers: readonly StepAnswer[]): string | null {
@@ -43,11 +48,6 @@ export function jumpTarget(step: PlanStep): string | null {
 	return step.answers.find((a) => a.toolCallId)?.toolCallId ?? null;
 }
 
-/** "Problem 3" for a bare number, else the number as the assignment writes it. */
-function problemName(number: string): string {
-	return /^\d/.test(number) ? `Problem ${number}` : number;
-}
-
 /** The line over an open homework problem: "HW6, problem 3 of 7, part b". */
 export function homeworkProblemLine(name: string, total: number, open: string, part: string | null): string {
 	const place = /^\d/.test(open) ? `problem ${open} of ${total}` : open;
@@ -55,7 +55,7 @@ export function homeworkProblemLine(name: string, total: number, open: string, p
 }
 
 /** A problem's place in the assignment. */
-export function problemTone(problem: HomeworkProblem, open: string | null): Tone {
+function problemTone(problem: HomeworkProblem, open: string | null): Tone {
 	return problem.done ? "done" : problem.number === open ? "current" : "later";
 }
 
@@ -64,7 +64,7 @@ export function problemTone(problem: HomeworkProblem, open: string | null): Tone
 export function stepsRow(bar: PlanStepBar, stop: LessonStop | null = null): RowStep[] | null {
 	if (bar.steps.length === 0) return null;
 	const finished = stop && stop.kind !== "problem" && !stop.keptGoing ? stop.nodeId : null;
-	return bar.steps.map((step) => {
+	return bar.steps.map((step, i) => {
 		const jump = jumpTarget(step);
 		const right = jump ? rightCountLabel(step.answers) : null;
 		return {
@@ -72,6 +72,7 @@ export function stepsRow(bar: PlanStepBar, stop: LessonStop | null = null): RowS
 			tone: step.status === "visited" || (step.status === "current" && step.id === finished) ? "done" : step.status === "current" ? "current" : "later",
 			name: step.title,
 			state: step.status,
+			number: String(i + 1),
 			jump,
 			hint: right ? `${step.title}, ${right}` : step.title,
 		};
@@ -96,18 +97,14 @@ export function planBranches(stepIds: readonly string[], edges: ReadonlyArray<{ 
 	return false;
 }
 
-/** A homework lesson's row: "2 of 7 done", one block per problem. Null with no problems. */
-export function homeworkRow(problems: readonly HomeworkProblem[], open: string | null): RowSummary | null {
+/** A homework lesson's row: every problem in order, a done one going back
+ *  to its card (`cards`: each problem's first card by number). Null with no problems. */
+export function homeworkRow(problems: readonly HomeworkProblem[], open: string | null, cards: Readonly<Record<string, string>>): RowStep[] | null {
 	if (problems.length === 0) return null;
-	const done = problems.filter((p) => p.done).length;
-	return {
-		count: `${done} of ${problems.length} done`,
-		blocks: problems.map((p) => {
-			const tone = problemTone(p, open);
-			return { key: p.number, tone, name: p.title, state: tone === "later" ? "upcoming" : tone };
-		}),
-		here: open === null ? null : problemName(open),
-	};
+	return problems.map((p) => {
+		const tone = problemTone(p, open);
+		return { key: p.number, tone, name: p.title, state: tone === "later" ? "upcoming" : tone, number: p.number, jump: tone === "done" ? (cards[p.number] ?? null) : null, hint: p.title };
+	});
 }
 
 /** A practice lesson's row: "3 of 4 solved" once a problem is finished, one block per problem. Null with no blocks. */
@@ -121,6 +118,5 @@ export function practiceRow(progress: PracticeProgress): RowSummary | null {
 			name: `Problem ${i + 1}`,
 			state: b,
 		})),
-		here: null,
 	};
 }

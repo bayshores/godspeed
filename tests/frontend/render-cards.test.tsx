@@ -73,22 +73,20 @@ function renderDock(props: {
 
 describe("question submission draft restoration", () => {
 	const draft = {
-		selection: { selected: new Set([0]), otherSelected: true, dontKnow: false },
-		other: "preserved custom answer",
+		selection: { selected: new Set([0]), dontKnow: false },
 		confidenceIndex: 4,
 	};
 
 	it("restores a quiz selection and confidence when its form remounts", () => {
 		const html = renderToStaticMarkup(<QuestionDock {...noop} toolName="quiz" toolCallId="q1" input={quizInput} initialDraft={draft} />);
 		assert.match(html, /role="radio" aria-checked="true" data-kbdrow="0"/);
-		assert.match(html, /aria-checked="true" aria-label="5, Certain"/, "the meter shows level 5");
+		assert.match(html, /aria-checked="true" aria-label="5, Certain"/, "the How sure line shows level 5");
 		assert.match(html, /data-testid="confidence-level-5"[^>]*tabindex="0"/, "Tab lands on the picked level");
 	});
 
-	it("restores an ask's custom answer", () => {
-		const custom = renderToStaticMarkup(<QuestionDock {...noop} toolName="ask_user_question" toolCallId="ask1" input={{ question: "Fixture?", options: [{ label: "Listed answer" }, { label: "Another answer" }], multiSelect: true }} initialDraft={draft} />);
-		assert.ok(custom.includes('value="preserved custom answer"'));
-		assert.match(custom, /aria-checked="true" data-testid="other-option"/);
+	it("restores an ask's picks", () => {
+		const html = renderToStaticMarkup(<QuestionDock {...noop} toolName="ask_user_question" toolCallId="ask1" input={{ question: "Fixture?", options: [{ label: "Listed answer" }, { label: "Another answer" }], multiSelect: true }} initialDraft={draft} />);
+		assert.match(html, /role="checkbox" aria-checked="true" data-kbdrow="0"/);
 	});
 });
 
@@ -142,9 +140,7 @@ describe("render smoke tests", () => {
 		assert.ok(!html.includes("Enter"), "mouse-first: no key label");
 		// Mouse-first: the rows carry no number-key badges.
 		assert.doesNotMatch(html, /data-testid="dont-know-option"[\s\S]*?>0</, "no key 0 badge on I don't know");
-		assert.ok(html.includes('data-testid="confidence-meter"'), "the five confidence buttons");
-		assert.match(html, /data-testid="confidence-level-1"[^>]*tabindex="0"/, "Tab reaches the unrated meter at level 1");
-		assert.match(html, /data-testid="confidence-level-2"[^>]*tabindex="-1"/, "the other levels wait for the arrows");
+		assert.ok(!html.includes('data-testid="confidence-line"'), "How sure waits for a pick");
 		// The v1 desync bug: options are buttons with ARIA roles, not native inputs.
 		assert.ok(!html.includes('type="radio"'), "no native radio inputs");
 		assert.ok(html.includes('role="radio"'), "button-based radio role present");
@@ -155,19 +151,16 @@ describe("render smoke tests", () => {
 		assert.ok(!html.includes("innermost"), "explanation must not render pre-answer");
 	});
 
-	it("ask dock renders the editable Other row, no grading affordance", () => {
+	it("ask dock renders its choices alone: no Other row, no I don't know, no grading affordance", () => {
 		const html = renderDock({
 			toolName: "ask_user_question",
 			toolCallId: "a1",
 			input: { question: "How confident are you?", options: [{ label: "Very" }, { label: "Somewhat" }] } as never,
 		});
 		assert.ok(!html.includes("I don&#x27;t know"), "ask has no 'I don't know'");
-		// Other is an editable OPTION ROW — a sibling of the options, with the
-		// radio circle + an inline input; picking it never displaces thinking.
-		assert.ok(html.includes('data-testid="other-option"'), "Other is an option row");
-		assert.match(html, /Type your own answer/, "type directly into the option");
-		assert.match(html, /placeholder="Type your own answer" aria-label="Your own answer"/, "the field has a name, like its siblings");
-		assert.ok(html.includes('role="radio"'), "Other row keeps the option role");
+		assert.ok(!html.includes('data-testid="other-option"'), "the own answer goes in the lesson's box");
+		assert.doesNotMatch(html, /<input/);
+		assert.equal((html.match(/role="radio"/g) ?? []).length, 2);
 		assert.match(html, /aria-checked="false"/, "circle starts unfilled");
 	});
 
@@ -183,8 +176,7 @@ describe("render smoke tests", () => {
 		});
 		assert.match(html, /Select all that apply/);
 		assert.ok(html.includes('role="group"'), "checkbox group");
-		assert.ok((html.match(/role="checkbox"/g) ?? []).length >= 3, "options AND the Other row are checkboxes");
-		assert.ok(html.includes('data-testid="other-option"'), "Other is still an option row in multi-select");
+		assert.equal((html.match(/role="checkbox"/g) ?? []).length, 2, "one checkbox per option");
 		// The bigger \u2713 glyph (text-base) only
 		// mounts on a CHECKED row — unreachable from the unselected static
 		// render, so it's live-verified (Playwright: 14px computed in the

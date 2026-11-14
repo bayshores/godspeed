@@ -43,19 +43,19 @@ describe("the plan row's logic", () => {
 		assert.equal(planBranches(ids, [{ from: "a", to: "b" }, { from: "a", to: "x" }]), false, "a link to a step not in the plan is left out");
 	});
 
-	it("a homework row: done count, tones by problem, the open problem's name", () => {
+	it("a homework row: every problem by its own number, tones by problem, a done one going back to its card", () => {
 		const problems: HomeworkProblem[] = [
 			{ number: "1", title: "Gradient", text: "", done: true },
 			{ number: "2b", title: "Step size", text: "", done: false },
-			{ number: "3", title: "Momentum", text: "", done: false },
+			{ number: "3", title: "Momentum", text: "", done: true },
 		];
-		const row = homeworkRow(problems, "2b")!;
-		assert.equal(row.count, "1 of 3 done");
-		assert.deepEqual(row.blocks.map((b) => b.tone), ["done", "current", "later"]);
-		assert.equal(row.here, "Problem 2b");
-		assert.equal(homeworkRow(problems, null)!.here, null);
-		assert.equal(homeworkRow([], null), null);
-		assert.equal(homeworkRow([{ number: "Ex. 4", title: "Sums", text: "", done: false }], "Ex. 4")!.here, "Ex. 4", "a name the assignment wrote stays");
+		const row = homeworkRow(problems, "2b", { "1": "p1", "2b": "p2" })!;
+		assert.deepEqual(row.map((s) => [s.number, s.name, s.tone, s.jump]), [["1", "Gradient", "done", "p1"], ["2b", "Step size", "current", null], ["3", "Momentum", "done", null]]);
+		assert.equal(homeworkRow([], null, {}), null);
+	});
+
+	it("a plan step's number is its place in the plan", () => {
+		assert.deepEqual(stepsRow(bar)!.map((s) => s.number), ["1", "2", "3"]);
 	});
 
 	it("a practice row: solved in ink, missed light, the count only once a problem is finished", () => {

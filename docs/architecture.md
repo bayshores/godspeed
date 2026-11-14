@@ -771,7 +771,7 @@ A homework session (`kind: "homework"`, `deadlineId` required) works on one home
 - It opens with the space card and a `homework-context` marker: the deadline, its assignment file (`assignmentFileId`) and the problems posted before.
 - The homework agent (`agent::tools::homework`, prompt `prompts/homework/` plus the practice hint rules) posts the assignment's problems onto the deadline with `post_problems`.
 - It opens one problem at a time with `problem`, which has no solution field: homework is hints only. `conclude` marks a problem done when the learner's own work is right.
-- The plan row and its problems dialog list the problems (`homeworkProblems` in `src/shared/core/homework.ts`), and the Today row says "2 of 7 problems done".
+- The plan row names every problem over its bar, a done one going back to its card (`homeworkProblems` in `src/shared/core/homework.ts`), and the Today row says "2 of 7 problems done". Above 12 problems or plan steps the row shows numbers only, with the names on hover.
 
 Homework is never extracted into the graph.
 
@@ -941,7 +941,7 @@ When the learner states a lasting preference, the teacher calls `save_rule` (`ag
 
 #### Web search
 
-By default the outside agent looks things up with its own web search. A learner may save their own Tavily key under Settings, Connection (`services::app::web_search`, `GET /api/web-search`, `PUT` and `DELETE /api/web-search/key`).
+By default the outside agent looks things up with its own web search. A learner may save their own Tavily key under Settings, Teaching, Facts and research, below the Web search switch (`services::app::web_search`, `GET /api/web-search`, `PUT` and `DELETE /api/web-search/key`).
 
 - `store::search_key` keeps it in `data/search-key` (mode 0600). The window only ever gets its last 4 characters.
 - It is sent to `api.tavily.com` alone (`web::tavily`). Saving checks the key with Tavily first, and the page shows the searches used this month.

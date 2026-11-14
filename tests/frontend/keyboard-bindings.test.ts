@@ -17,6 +17,23 @@ describe("a keypress reaches its action's event", () => {
 	});
 });
 
+describe("keys an older version let the learner change", () => {
+	it("the default keys work even with old changed keys saved in the browser", () => {
+		const saved = JSON.stringify({ "open-settings": "mod+shift+s", "jump-graph": "mod+j" });
+		const g = globalThis as { window?: unknown };
+		g.window = { localStorage: { getItem: (key: string) => (key === "lh:keymap" ? saved : null) } };
+		try {
+			assert.equal(actionForBinding("mod+,"), "open-settings");
+			assert.equal(actionForBinding("mod+g"), "jump-graph");
+			assert.equal(actionForBinding("mod+shift+s") ?? null, null, "the old change is not read");
+			assert.equal(actionForBinding("mod+j") ?? null, null);
+			assert.equal(bindingForAction("open-settings"), "mod+,", "the shortcut list shows the default");
+		} finally {
+			delete g.window;
+		}
+	});
+});
+
 describe("keys that bind to nothing", () => {
 	it("shift+tab, mod+k and mod+b (there is no sidebar to toggle)", () => {
 		assert.equal(actionForBinding("shift+tab") ?? null, null);

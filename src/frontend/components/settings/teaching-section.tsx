@@ -20,13 +20,15 @@ type AreaPick = AreaId | "remembered";
 export function TeachingSection({
 	agent,
 	graph,
+	onGraphChange,
 	teacherName,
 	onSectionChange,
 	onFullPage,
 }: {
 	agent: AgentSettings | undefined;
-	/** Read only: the graph switch in General gates "Your graph". */
+	/** The graph switch, shown with "Your graph" in Facts and research. */
 	graph: GraphSettings | undefined;
+	onGraphChange: (next: GraphSettings) => void;
 	teacherName: string;
 	/** Writes the composed whole agent section. */
 	onSectionChange: (next: AgentSettings) => void;
@@ -84,6 +86,7 @@ export function TeachingSection({
 							area={area}
 							agent={agent}
 							graphOn={graph?.enabled ?? true}
+							onGraphChange={(on) => onGraphChange({ enabled: on })}
 							teacherName={teacherName}
 							savedAt={savedTimes(savedRules, { area: area.id })}
 							edited={segments !== null && areaEdited(area, segments)}

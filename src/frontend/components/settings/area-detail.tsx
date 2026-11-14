@@ -1,6 +1,7 @@
 /**
  * One teaching area's sheet: what it is, its switches, the learner's rules
- * and the button that opens its full instructions.
+ * and the button that opens its full instructions. Facts and research also
+ * holds who searches the web and the graph's own switch.
  */
 
 import { TOOL_SWITCH_LABELS, type AgentSettings, type TeachingArea, type ToggleableTool } from "@/shared/core";
@@ -8,6 +9,7 @@ import { RuleChips } from "@/frontend/components/rule-chips";
 import { Segmented } from "@/frontend/components/ui/segmented";
 import { SMALL_KEY, SettingsGroup, SettingsRow, Toggle } from "./controls.tsx";
 import { composeGraphTools, composeQuizStyle, composeRules, composeTool } from "./teaching-model.ts";
+import { WebSearch } from "./web-search.tsx";
 
 const QUIZ_STYLES = [
 	{ value: "choice", label: "Multiple choice" },
@@ -18,6 +20,7 @@ export function AreaDetail({
 	area,
 	agent,
 	graphOn,
+	onGraphChange,
 	teacherName,
 	savedAt,
 	edited,
@@ -27,8 +30,9 @@ export function AreaDetail({
 }: {
 	area: TeachingArea;
 	agent: AgentSettings | undefined;
-	/** The graph switch in General: "Your graph" can't be on without it. */
+	/** The graph switch: "Your graph" can't be on without it. */
 	graphOn: boolean;
+	onGraphChange: (on: boolean) => void;
 	teacherName: string;
 	/** When the agent saved each of this area's rules, by rule text. */
 	savedAt: Record<string, string>;
@@ -41,9 +45,10 @@ export function AreaDetail({
 	onOpenInstructions: () => void;
 }) {
 	const tools = agent?.tools ?? {};
-	const switchRow = (id: ToggleableTool, about: string) => (
-		<SettingsRow label={TOOL_SWITCH_LABELS[id]} hint={about}>
-			<Toggle checked={tools[id] ?? true} label={TOOL_SWITCH_LABELS[id]} onChange={(on) => onSectionChange(composeTool(agent, id, on))} />
+	// The research tool is the "Web search" the learner sees, with who searches under it.
+	const switchRow = (id: ToggleableTool, about: string, label = TOOL_SWITCH_LABELS[id]) => (
+		<SettingsRow label={label} hint={about}>
+			<Toggle checked={tools[id] ?? true} label={label} onChange={(on) => onSectionChange(composeTool(agent, id, on))} />
 		</SettingsRow>
 	);
 	return (
@@ -62,19 +67,16 @@ export function AreaDetail({
 			)}
 			{area.id === "facts" && (
 				<>
-					{switchRow("research", "Looks things up while you read")}
-					<SettingsRow
-						label="Your graph"
-						hint={graphOn ? "Recalls what you learned in past lessons" : "Off while building the graph is off in General"}
-						dimmed={!graphOn}
-					>
-						<Toggle
-							checked={agent?.graphTools?.enabled ?? true}
-							disabled={!graphOn}
-							label="Your graph"
-							onChange={(on) => onSectionChange(composeGraphTools(agent, on))}
-						/>
+					{switchRow("research", "Looks things up online while you read", "Web search")}
+					{(tools.research ?? true) && <WebSearch />}
+					<SettingsRow label="Build the graph from lessons" hint="Off: the graph stops growing" testid="graph-row-enabled">
+						<Toggle checked={graphOn} label="Build the graph from lessons" onChange={onGraphChange} />
 					</SettingsRow>
+					{graphOn && (
+						<SettingsRow label="Your graph" hint="Recalls what you learned in past lessons">
+							<Toggle checked={agent?.graphTools?.enabled ?? true} label="Your graph" onChange={(on) => onSectionChange(composeGraphTools(agent, on))} />
+						</SettingsRow>
+					)}
 				</>
 			)}
 			{area.id === "demos" && (

@@ -57,6 +57,7 @@ const quizInput = {
 const quiz = { tool: "quiz", toolCallId: "q1", input: quizInput };
 const check = { tool: "quiz", toolCallId: "t1", input: { ...quizInput, type: "check" } };
 const written = { tool: "ask_user_question", toolCallId: "a1", input: { question: "Why does it converge?" } };
+const choice = { tool: "ask_user_question", toolCallId: "a2", input: { question: "How do you want to start?", options: [{ label: "From an example" }, { label: "From the definition" }] } };
 const problem = { toolCallId: "p1", statement: "Find E[N].", line: "Practice, problem 2", source: null, part: null };
 
 const marco: TeacherApi = {
@@ -216,7 +217,7 @@ describe("Your turn in each state", () => {
 		assert.match(out, /data-testid="question-kind"[^>]*>Quiz</);
 		assert.match(out, /data-testid="question-dock"[\s\S]*Which planet is closest[\s\S]*data-testid="composer"/);
 		assert.match(out, /data-testid="question-submit"[^>]*disabled[^>]*>Submit answer</, "Submit waits for a pick");
-		assert.match(out, /data-testid="composer-send"[^>]*disabled[\s\S]*?>Ask Teacher</);
+		assert.match(out, /data-testid="composer-send"[^>]*disabled[^>]*class="[^"]*invisible[\s\S]*?>Ask Teacher</, "Ask waits, unseen, until the box has text");
 		assert.match(out, /Your reasoning, or a question for Teacher/);
 		assert.equal(out.split('data-testid="math-box"').length - 1, 1, "one writing box");
 		assert.equal(out.split("Submit answer").length - 1, 1, "one submit button");
@@ -264,6 +265,41 @@ describe("Your turn in each state", () => {
 		});
 	});
 
+	it("Ask shows once the box has text, in the place it kept, so Submit never moves", async () => {
+		await mounted(turn({ pending: quiz }), async (host, show) => {
+			const ask = () => host.querySelector<HTMLButtonElement>('[data-testid="composer-send"]')!;
+			const submit = host.querySelector('[data-testid="question-submit"]')!;
+			assert.ok(ask().className.includes("invisible"));
+			await show(turn({ pending: quiz, value: "why Mercury?" }));
+			assert.ok(!ask().className.includes("invisible"));
+			assert.equal(ask().disabled, false);
+			assert.ok(host.querySelector('[data-testid="question-submit"]') === submit, "the same Submit, in the same row");
+			assert.ok(ask().nextElementSibling === submit, "Ask keeps its place before it");
+		});
+	});
+
+	it("an ask with choices has no field of its own: with nothing picked the box text is the own answer", async () => {
+		const answers: QuestionAnswerData[] = [];
+		const out = html({ pending: choice });
+		assert.doesNotMatch(out, /other-option|Type your own answer|Your own answer/);
+		assert.match(out, /Pick one above, or type your own answer/);
+		assert.match(out, /data-testid="question-submit"[^>]*disabled/, "an empty box and no pick is no answer");
+		await mounted(turn({ pending: choice, value: "Start from a picture", onSubmitAnswer: (a) => answers.push(a) }), async (host) => {
+			assert.equal(submitDisabled(host), false);
+			await click(host, "question-submit");
+			assert.equal(answers[0]!.other, "Start from a picture");
+			assert.deepEqual(answers[0]!.answers, []);
+			assert.equal(answers[0]!.thinking, undefined, "the text is the answer, not reasoning");
+		});
+		await mounted(turn({ pending: choice, value: "examples stick better", onSubmitAnswer: (a) => answers.push(a) }), async (host) => {
+			await act(async () => optionNamed(host, "From an example").click());
+			await click(host, "question-submit");
+			assert.equal(answers[1]!.answers[0]!.label, "From an example");
+			assert.equal(answers[1]!.thinking, "examples stick better", "with a pick the text is the reasoning");
+			assert.equal(answers[1]!.other, undefined);
+		});
+	});
+
 	it("Ask marco sends the box text as a message and leaves the question open", async () => {
 		let sent = 0;
 		const answers: QuestionAnswerData[] = [];
@@ -284,7 +320,7 @@ describe("Your turn in each state", () => {
 		assert.match(out, /data-mode="reveal"/);
 		assert.match(out, /data-testid="teach-check-reveal"[^>]*>Check your understanding</);
 		assert.match(out, /Whatever comes to mind as you read\./);
-		assert.match(out, /data-testid="composer-send"[^>]*disabled[\s\S]*?>Ask Teacher</);
+		assert.match(out, /data-testid="composer-send"[^>]*disabled[^>]*class="[^"]*invisible[\s\S]*?>Ask Teacher</);
 		assert.doesNotMatch(out, /Which planet is closest|question-dock|question-submit/);
 		let revealed = 0;
 		await mounted(turn({ pending: check, revealPending: true, onReveal: () => revealed++ }), async (host) => {
@@ -550,16 +586,25 @@ describe("the question's keys", () => {
 		});
 	});
 
-	it("picking an answer brings the confidence meter into view", async () => {
+	it("How sure shows only after a pick, as one line under I don't know, and comes into view", async () => {
 		await mounted(turn({ pending: quiz }), async (host) => {
+			assert.ok(host.querySelector('[data-testid="confidence-line"]') === null, "nothing before a pick");
 			scrolledTo.length = 0;
 			await act(async () => options(host)[1]!.click());
-			assert.ok(scrolledTo.includes(host.querySelector('[data-testid="confidence-meter"]')!));
+			const line = host.querySelector('[data-testid="confidence-line"]')!;
+			assert.ok(scrolledTo.includes(line));
+			assert.match(line.textContent ?? "", /^How sure are you\?/);
+			assert.ok(host.querySelector('[data-testid="dont-know-option"]')!.closest("[role]")!.nextElementSibling === line, "right under the answers");
+			assert.equal(line.querySelector('[data-testid="confidence-level-1"]')!.getAttribute("title"), "1, Guessing");
+			assert.equal(line.querySelector('[data-testid="confidence-level-5"]')!.getAttribute("title"), "5, Certain");
+			await click(host, "dont-know-option");
+			assert.ok(host.querySelector('[data-testid="confidence-line"]') === null, "never after I don't know");
 		});
 	});
 
-	it("clicking a confidence bar sets the level", async () => {
+	it("clicking a square sets the level", async () => {
 		await mounted(turn({ pending: quiz }), async (host) => {
+			await act(async () => options(host)[0]!.click());
 			await click(host, "confidence-level-5");
 			assert.equal(host.querySelector('[data-testid="confidence-level-5"]')!.getAttribute("aria-checked"), "true");
 		});
@@ -573,45 +618,46 @@ describe("writing folds the answer list", () => {
 		await act(async () => content.dispatchEvent(new dom.window.Event("focusin", { bubbles: true })));
 	};
 
-	it("clicking into the box with an answer picked folds the list and Sure meter into one row; Change opens them", async () => {
+	it("clicking into the box with an answer picked folds the list into one row, How sure stays under it; Change opens the list", async () => {
 		await mounted(turn({ pending: quiz }), async (host) => {
 			await act(async () => optionNamed(host, "Mercury").click());
 			await click(host, "confidence-level-4");
 			await focusBox(host);
 			const row = host.querySelector<HTMLElement>('[data-testid="picked-row"]')!;
 			assert.match(row.textContent ?? "", /Mercury/);
-			assert.equal(row.querySelector('[data-testid="confidence-square-4"]')!.getAttribute("aria-checked"), "true", "Sure 4 rides the row");
+			assert.ok(row.querySelector('[data-testid^="confidence-level-"]') === null, "not on the picked row");
+			assert.ok(row.nextElementSibling === host.querySelector('[data-testid="confidence-line"]'), "the line sits under it");
+			assert.equal(host.querySelector('[data-testid="confidence-level-4"]')!.getAttribute("aria-checked"), "true");
 			assert.equal(options(host).length, 0, "the list is folded");
-			assert.ok(host.querySelector('[data-testid="confidence-level-4"]') === null, "the Sure meter is folded");
 			assert.equal(submitDisabled(host), false, "the answer still stands");
 			await act(async () => row.querySelector<HTMLButtonElement>('[data-testid="picked-change"]')!.click());
 			assert.ok(host.querySelector('[data-testid="picked-row"]') === null);
 			assert.equal(options(host).length, 3);
-			assert.equal(host.querySelector('[data-testid="confidence-level-4"]')!.getAttribute("aria-checked"), "true", "the meter comes back as set");
+			assert.equal(host.querySelector('[data-testid="confidence-level-4"]')!.getAttribute("aria-checked"), "true", "still as set");
 		});
 	});
 
-	it("unrated when it folds, the row asks how sure; a square sets it and goes with the answer", async () => {
+	it("unrated when it folds, the line still asks how sure; a square sets it and goes with the answer", async () => {
 		const answers: QuestionAnswerData[] = [];
 		await mounted(turn({ pending: quiz, onSubmitAnswer: (a) => answers.push(a) }), async (host) => {
 			await act(async () => optionNamed(host, "Mercury").click());
 			await focusBox(host);
-			const squares = [...host.querySelectorAll<HTMLButtonElement>('[data-testid^="confidence-square-"]')];
+			const squares = [...host.querySelectorAll<HTMLButtonElement>('[data-testid^="confidence-level-"]')];
 			assert.equal(squares.length, 5);
 			assert.ok(squares.every((s) => s.getAttribute("aria-checked") === "false"), "nothing picked yet, all dark");
 			await act(async () => squares[2]!.click());
-			assert.equal(host.querySelector('[data-testid="confidence-square-3"]')!.getAttribute("aria-checked"), "true");
+			assert.equal(host.querySelector('[data-testid="confidence-level-3"]')!.getAttribute("aria-checked"), "true");
 			await click(host, "question-submit");
 			assert.equal(answers[0]!.confidence, CONFIDENCE_STOPS[2]);
 		});
 	});
 
-	it("I don't know folds without a Sure row", async () => {
+	it("I don't know folds with no How sure line", async () => {
 		await mounted(turn({ pending: quiz }), async (host) => {
 			await click(host, "dont-know-option");
 			await focusBox(host);
 			assert.match(host.querySelector('[data-testid="picked-row"]')!.textContent ?? "", /I don't know/);
-			assert.ok(host.querySelector('[data-testid="confidence-squares"]') === null);
+			assert.ok(host.querySelector('[data-testid="confidence-line"]') === null);
 		});
 	});
 
@@ -625,7 +671,7 @@ describe("writing folds the answer list", () => {
 });
 
 describe("saved drafts", () => {
-	const draft: QuestionFormDraft = { selection: { selected: new Set([0]), otherSelected: false, dontKnow: false }, other: "", confidenceIndex: 2 };
+	const draft: QuestionFormDraft = { selection: { selected: new Set([0]), dontKnow: false }, confidenceIndex: 2 };
 
 	it("a question starts from the saved picks and confidence", async () => {
 		await mounted(turn({ pending: quiz, initialQuestionDraft: draft }), async (host) => {
@@ -636,17 +682,16 @@ describe("saved drafts", () => {
 		});
 	});
 
-	it("every change is saved as the selection, the typed own answer and the confidence", async () => {
+	it("every change is saved as the selection and the confidence", async () => {
 		const saved: QuestionFormDraft[] = [];
 		await mounted(turn({ pending: quiz, initialQuestionDraft: draft, onSaveQuestionDraft: (d) => saved.push(d) }), async (host) => {
 			await click(host, "confidence-level-5");
 			assert.equal(saved.at(-1)!.confidenceIndex, 4);
 			await click(host, "dont-know-option");
 			const last = saved.at(-1)!;
-			assert.deepEqual(Object.keys(last).sort(), ["confidenceIndex", "other", "selection"]);
+			assert.deepEqual(Object.keys(last).sort(), ["confidenceIndex", "selection"]);
 			assert.equal(last.selection.dontKnow, true);
 			assert.equal(last.selection.selected.size, 0);
-			assert.equal(last.other, "");
 			assert.equal(last.confidenceIndex, 4);
 		});
 	});

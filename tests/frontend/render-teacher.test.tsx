@@ -363,8 +363,6 @@ describe("the teacher's Activity", () => {
 	const list = (over: Partial<React.ComponentProps<typeof ActivityList>> = {}) => (
 		<ActivityList
 			name="Ada"
-			doing={{ text: "Reading syllabus.pdf", count: "2 of 5", working: true }}
-			follow={{ on: false, set: () => {} }}
 			recent={ACTIONS}
 			onPick={() => {}}
 			spaceNameOf={names}
@@ -380,35 +378,17 @@ describe("the teacher's Activity", () => {
 	it("scrolls inside its parent, with no padding of its own", () => {
 		assert.match(renderToStaticMarkup(list()), /data-testid="activity-list" class="flex min-h-0 flex-1 flex-col gap-3\.5 overflow-y-auto"/);
 	});
-	it("the now box: what it is doing, its count and Follow; hidden while idle", () => {
-		const el = mount(list());
-		const now = el.querySelector("[data-testid='activity-now']")!;
-		assert.equal(now.textContent, "Reading syllabus.pdf2 of 5Follow");
-		assert.equal(now.className.includes("bg-highlight"), true);
-		act(() => root?.unmount());
-		assert.ok(mount(list({ doing: { text: "Idle", working: false } })).querySelector("[data-testid='activity-now']") === null);
-	});
-	it("Follow turns following on and off, and reads Following while on", () => {
-		const set: boolean[] = [];
-		const el = mount(list({ follow: { on: false, set: (on) => set.push(on) } }));
-		const button = el.querySelector("[data-testid='activity-follow']") as HTMLElement;
-		assert.equal(button.getAttribute("aria-pressed"), "false");
-		act(() => button.click());
-		assert.deepEqual(set, [true]);
-		act(() => root?.unmount());
-		const on = mount(list({ follow: { on: true, set: () => {} } })).querySelector("[data-testid='activity-follow']");
-		assert.equal(on?.textContent, "Following");
-		assert.equal(on?.getAttribute("aria-pressed"), "true");
-		act(() => root?.unmount());
-		assert.ok(mount(list({ follow: null })).querySelector("[data-testid='activity-follow']") === null);
+	it("holds no now box and no Follow: those sit beside the teacher's name", () => {
+		const html = renderToStaticMarkup(list());
+		assert.doesNotMatch(html, /activity-now|activity-follow|Follow/);
 	});
 	it("with nothing in it, says what will show there", () => {
-		const el = mount(list({ doing: { text: "Idle", working: false }, recent: [] }));
+		const el = mount(list({ recent: [] }));
 		assert.equal(el.querySelector("[data-testid='activity-empty']")?.textContent, "Nothing yet. What Ada reads and builds shows here.");
 		act(() => root?.unmount());
 		assert.ok(mount(list()).querySelector("[data-testid='activity-empty']") === null);
 		act(() => root?.unmount());
-		assert.ok(mount(list({ doing: null, recent: [], waiting: waitingNotice() })).querySelector("[data-testid='activity-empty']") === null, "the waiting line is something");
+		assert.ok(mount(list({ recent: [], waiting: waitingNotice() })).querySelector("[data-testid='activity-empty']") === null, "the waiting line is something");
 	});
 	it("Recent hides when there is nothing yet", () => {
 		assert.ok(mount(list({ recent: [] })).querySelector("[data-testid='activity-recent']") === null);

@@ -110,35 +110,18 @@ describe("the practice transcript cards", () => {
 		assert.match(html, /Pair them; each pair is even\./);
 	});
 
-	it("ConcludeCard: THE METADATA POPOVER — quiet trigger at the bottom, box hidden until clicked", () => {
+	it("ConcludeCard: no Metadata button; the agent's fields stay out of the learner's card", () => {
 		const html = renderToStaticMarkup(
 			<ConcludeCard
 				part={part({
 					type: "tool-conclude",
 					input: { outcome: "solvedWithHints", verdict: "v", rung: "R2", missClass: "cue", retest: true },
-					problemInput: { mode: "discrimination", target: ["n_abc"] },
 					reveal: "The solution.",
 				})}
 			/>,
 		);
-		assert.ok(html.includes('data-testid="metadata-toggle"'), "the trigger row");
-		assert.match(html, /Metadata/, "the label (CSS renders it mono-caps)");
-		assert.ok(!html.includes('data-testid="metadata-box"'), "the info box is CLOSED until clicked — no rows in the markup");
-		assert.ok(!html.includes("border-t \"/>"), "no separate divider — the trigger just sits at the bottom");
-		// The open face (info-box rows at the model solution's 15px) is a
-		// client useState fold — static render cannot click; the rows' data
-		// shape is pinned by the view-join test in practice-record.
-	});
-
-	it("ConcludeCard: no metadata trigger when the calls filled nothing beyond the visible card", () => {
-		const html = renderToStaticMarkup(
-			<ConcludeCard part={part({ type: "tool-conclude", input: { outcome: "dismissed" } })} />,
-		);
-		assert.ok(!html.includes("metadata-"), "the dismissal line carries no trigger");
-		const legacy = renderToStaticMarkup(
-			<ConcludeCard part={part({ type: "tool-conclude", input: { outcome: "solved" }, reveal: "s" })} />,
-		);
-		assert.ok(!legacy.includes("metadata-"), "empty problemInput + bare outcome: nothing to reveal");
+		assert.match(html, /The solution\./);
+		assert.doesNotMatch(html, /metadata-|Metadata|R2|cue/);
 	});
 
 	it("ConcludeCard: the dismissal synthesis is one muted line — no reveal card", () => {

@@ -21,6 +21,7 @@ Object.assign(globalThis, {
 	Element: dom.window.Element,
 	HTMLElement: dom.window.HTMLElement,
 	Node: dom.window.Node,
+	MutationObserver: dom.window.MutationObserver,
 	CustomEvent: dom.window.CustomEvent,
 	IS_REACT_ACT_ENVIRONMENT: true,
 });

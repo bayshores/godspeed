@@ -18,10 +18,9 @@ describe("resolveSettings", () => {
 		assert.equal(eff.appearance.background, null);
 		assert.equal(eff.appearance.fontFamily, null);
 		assert.equal(eff.appearance.proseFontSize, 17);
-		assert.equal(eff.appearance.mdRendering.headingWeight, 600);
-		// the master switch ONLY + the chunk budget — absent record
-		// resolves the factory 4096
-		assert.deepEqual(eff.graph, { enabled: true, extractionChunkTokens: 4096 });
+		// the master switch ONLY
+		assert.deepEqual(eff.graph, { enabled: true });
+		assert.equal("compaction" in eff, false);
 	});
 
 	it("explicit record values win over every factory default", () => {
@@ -32,7 +31,7 @@ describe("resolveSettings", () => {
 				tools: { research: false },
 				rules: { voice: ["No jokes"] },
 			},
-			appearance: { proseFontSize: 20, mdRendering: { headingWeight: 600 } },
+			appearance: { proseFontSize: 20 },
 			graph: { enabled: false },
 		};
 		const eff = resolveSettings(record);
@@ -42,19 +41,20 @@ describe("resolveSettings", () => {
 		assert.deepEqual(eff.agent.tools, { research: false });
 		assert.deepEqual(eff.agent.rules, { voice: ["No jokes"] });
 		assert.equal(eff.appearance.proseFontSize, 20);
-		assert.equal(eff.appearance.mdRendering.headingWeight, 600);
-		// the section IS the master switch (absent budget field =
-		// factory 4096 — an older record resolves cleanly).
-		assert.deepEqual(eff.graph, { enabled: false, extractionChunkTokens: 4096 });
-		
-		// The chunk budget rides the same resolution: stored value wins.
-		const budgeted = resolveSettings({ version: 1, graph: { extractionChunkTokens: 2000 } });
-		assert.deepEqual(budgeted.graph, { enabled: true, extractionChunkTokens: 2000 });
+		assert.deepEqual(eff.graph, { enabled: false });
+	});
+
+	it("an older record's retired values resolve to nothing: heading weight, bold and italic colors, the chunk budget, the summarize point", () => {
+		const old = { version: 3, appearance: { proseFontSize: 18, mdRendering: { headingWeight: 800, boldColor: "#f00" } }, graph: { extractionChunkTokens: 2000 }, compaction: { thresholdTokens: 64_000 } } as unknown as UserSettings;
+		const eff = resolveSettings(old);
+		assert.deepEqual(eff.appearance, { background: null, fontFamily: null, proseFontSize: 18 });
+		assert.deepEqual(eff.graph, { enabled: true });
+		assert.equal("compaction" in eff, false);
 	});
 
 	it("an old record's graph.rendering (removed) is not read", () => {
 		const eff = resolveSettings({ version: 1, graph: { rendering: false } as never });
-		assert.deepEqual(eff.graph, { enabled: true, extractionChunkTokens: 4096 });
+		assert.deepEqual(eff.graph, { enabled: true });
 	});
 });
 

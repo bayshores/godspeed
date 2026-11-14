@@ -42,7 +42,6 @@ import { COMPACTED_HISTORY_HEADER } from "./contracts/chat.ts";
 import type { LhMessage, LhMarkerMessage } from "./native-messages.ts";
 import { newMessageId } from "./message-id.ts";
 import { contentText } from "./attachments.ts";
-import { FACTORY_SETTINGS } from "./settings.ts";
 import type { AgentMessage } from "@earendil-works/pi-agent-core";
 import type { AssistantMessage, ToolResultMessage, SystemMessage, UserMessage } from "@earendil-works/pi-ai";
 
@@ -57,12 +56,16 @@ export const KEEP_RECENT_TOKENS = 20_000;
  * (not the user's threshold) is the binding constraint (pi's default). */
 const COMPACTION_RESERVE_TOKENS = 16_384;
 
-/** The point a lesson gets summarized: min(setting, window − reserve).
- *  Unknown window → the setting alone. */
-export function effectiveThresholdTokens(settingTokens: number | undefined, contextWindowTokens: number | undefined): number {
-	const setting = settingTokens ?? FACTORY_SETTINGS.compaction.thresholdTokens;
-	if (contextWindowTokens === undefined) return setting;
-	return Math.min(setting, Math.max(contextWindowTokens - COMPACTION_RESERVE_TOKENS, 1));
+/** The lesson size where a lesson gets summarized, before the window cap:
+ *  the outside agent compacts its own context, and after that the app
+ *  sends a lesson again in full, so a lesson must stay small. */
+const SUMMARIZE_TOKENS = 40_000;
+
+/** The point a lesson gets summarized: min(40k, window − reserve).
+ *  Unknown window → 40k. */
+export function effectiveThresholdTokens(contextWindowTokens: number | undefined): number {
+	if (contextWindowTokens === undefined) return SUMMARIZE_TOKENS;
+	return Math.min(SUMMARIZE_TOKENS, Math.max(contextWindowTokens - COMPACTION_RESERVE_TOKENS, 1));
 }
 
 /** Tool-result truncation when serializing the span for the summarizer

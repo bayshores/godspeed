@@ -44,6 +44,7 @@ async function withSection(
 					<TeachingSection
 						agent={{ tools: { research: true }, rules: { voice: ["No jokes"] } }}
 						graph={undefined}
+						onGraphChange={(next) => graphWrites.push(next)}
 						teacherName="Ada"
 						onSectionChange={onSectionChange}
 						onFullPage={onFullPage}
@@ -61,10 +62,13 @@ async function withSection(
 	}
 }
 
+/** What the graph switch wrote, in order. */
+const graphWrites: unknown[] = [];
+
 const RULES = { rules: [{ where: { area: "voice" }, text: "No jokes", at: "2026-10-30T12:00:00.000Z" }] };
 
 it("Teaching: the research switch and a new rule each write the whole agent section", async () => {
-	const bodies: Record<string, unknown> = { "/api/settings/prompts": { segments: [] }, "/api/rules": RULES };
+	const bodies: Record<string, unknown> = { "/api/settings/prompts": { segments: [] }, "/api/rules": RULES, "/api/web-search": { keyEnd: null, used: null, limit: null, error: null } };
 	const respond = (url: string) => {
 		assert.ok(url in bodies, `unexpected request: ${url}`);
 		return new Response(JSON.stringify(bodies[url]));
@@ -73,7 +77,7 @@ it("Teaching: the research switch and a new rule each write the whole agent sect
 	await withSection(respond, (next) => (written = next), async (win) => {
 		assert.match(document.querySelector('[data-testid="rules-voice"]')!.textContent!, /No jokesSaved by Ada/, "the agent's rule is labeled");
 		await act(async () => document.querySelector<HTMLButtonElement>('[data-testid="area-facts"]')!.click());
-		const toggle = document.querySelector<HTMLButtonElement>('[data-testid="toggle-web-research"]')!;
+		const toggle = document.querySelector<HTMLButtonElement>('[data-testid="toggle-web-search"]')!;
 		assert.equal(toggle.hasAttribute("disabled"), false);
 		assert.equal(toggle.getAttribute("aria-checked"), "true");
 		await act(async () => toggle.click());
@@ -90,6 +94,11 @@ it("Teaching: the research switch and a new rule each write the whole agent sect
 		await act(async () => input.dispatchEvent(enter));
 		assert.deepEqual(written?.rules, { voice: ["No jokes"], facts: ["Cite the textbook"] });
 		assert.equal(written?.tools?.research, true, "the rest of the section carries over");
+
+		// The graph switch writes the graph section alone, with nothing an older version kept there.
+		graphWrites.length = 0;
+		await act(async () => document.querySelector<HTMLButtonElement>('[data-testid="toggle-build-the-graph-from-lessons"]')!.click());
+		assert.deepEqual(graphWrites, [{ enabled: false }]);
 	});
 });
 

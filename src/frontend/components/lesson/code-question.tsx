@@ -46,7 +46,7 @@ export function CodeQuestion({
 	const saveDraftRef = useRef(onSaveDraft);
 	saveDraftRef.current = onSaveDraft;
 	useEffect(() => {
-		saveDraftRef.current?.({ selection: { selected: new Set(), otherSelected: false, dontKnow }, other: "", code: code === starter ? "" : code });
+		saveDraftRef.current?.({ selection: { selected: new Set(), dontKnow }, code: code === starter ? "" : code });
 	}, [code, dontKnow, starter]);
 
 	const readyRef = useRef(onReady);

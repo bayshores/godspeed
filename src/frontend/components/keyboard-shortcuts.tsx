@@ -9,8 +9,7 @@
  * - Global actions dispatch lh:kbd-<action> window events; surfaces that are
  *   mounted listen (the lh:chat-renamed pattern). A surface that isn't
  *   mounted simply doesn't listen — an F2 on the graph view is a no-op, not
- *   an error. Actions live in src/shared/core/keyboard.ts (registry + persisted
- *   overrides), the ONE table.
+ *   an error. Actions live in src/shared/core/keyboard.ts, the ONE table.
  *
  * Listeners attach at the WINDOW level (bubble's last stop) so every
  * component-level handler — popovers' own Esc, the composer's Esc — gets the

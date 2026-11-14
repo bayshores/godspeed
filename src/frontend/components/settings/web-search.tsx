@@ -27,9 +27,9 @@ function usageLine(limit: number | null): string {
 }
 
 /**
- * "Web search": who looks things up online for a lesson. The agent's own
- * search is used until a Tavily key is saved here; then godspeed searches
- * with that key and shows how many searches it has used.
+ * Who looks things up online for a lesson, under the Web search switch:
+ * the agent's own search is used until a Tavily key is saved here; then
+ * godspeed searches with that key and shows how many searches it has used.
  */
 export function WebSearch() {
 	const [view, setView] = useState<WebSearchView | null>(null);
@@ -54,16 +54,7 @@ export function WebSearch() {
 	const works = hasKey && !view.error;
 
 	return (
-		<section data-testid="web-search" className="flex flex-col gap-5 rounded border-2 border-line bg-panel p-6">
-			<div className="flex items-center gap-3.5">
-				<span aria-hidden className="flex size-9 shrink-0 items-center justify-center bg-ink text-background">
-					<PixelIcon name="search" className="h-[18px]" />
-				</span>
-				<div className="min-w-0">
-					<h2 className="text-xl leading-tight text-ink">Web search</h2>
-					<p className="text-[15px] text-ink-2">Who looks things up online when a lesson needs it</p>
-				</div>
-			</div>
+		<section data-testid="web-search" aria-label="Who searches" className="flex flex-col gap-4 pt-1 pb-4">
 			{!view ? (
 				<p className="text-[15px] text-ink-2">{error ?? "Loading…"}</p>
 			) : (

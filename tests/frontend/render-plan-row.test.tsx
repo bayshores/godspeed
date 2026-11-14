@@ -1,5 +1,5 @@
 /**
- * The plan row on top of the reading sheet and its two dialogs, mounted
+ * The plan row on top of the reading sheet and the plan dialog, mounted
  * over linkedom: a plan lesson's steps and map, homework's problems and
  * practice's blocks, and what a click does.
  */
@@ -141,32 +141,38 @@ describe("the plan row of a plan lesson", () => {
 });
 
 describe("the plan row of a homework lesson", () => {
-	const hw = { name: "HW 4", problems, open: "2" };
+	const hw = { problems, open: "2", cards: { "1": "p1", "2": "p2" } };
 	const homework: RowProps = { ...base, kind: "homework", stepBar: null, homework: hw };
 
-	it("counts the done problems, marks the open one and names it", () => {
+	it("names every problem by its own number over its bar, the open one marked, with no count and no button to a list", () => {
 		const html = renderToStaticMarkup(<PlanRow {...homework} />);
-		assert.match(html, /data-testid="problems-done"[^>]*>1 of 3 done</);
-		assert.deepEqual([...html.matchAll(/data-block="(\w+)"/g)].map((m) => m[1]), ["done", "current", "upcoming"]);
-		assert.match(html, />Problem 2</);
-		assert.match(html, /data-testid="problems-open"[^>]*>See the problems</);
+		assert.deepEqual([...html.matchAll(/data-testid="plan-step" data-status="(\w+)"/g)].map((m) => m[1]), ["done", "current", "upcoming"]);
+		assert.match(html, /aria-current="step" title="Step size"/);
+		assert.match(html, />2<\/span><span[^>]*>Step size</);
+		assert.doesNotMatch(html, /of 3 done|See the problems|problems-open/);
+	});
+
+	it("a done problem is a button back to its card", async () => {
+		const jumps: string[] = [];
+		const el = await mount(<PlanRow {...homework} onJump={(id) => jumps.push(id)} />);
+		const buttons = el.querySelectorAll<HTMLButtonElement>('[data-testid="plan-step"] button');
+		assert.equal(buttons.length, 1);
+		await act(async () => buttons[0]!.click());
+		assert.deepEqual(jumps, ["p1"]);
+	});
+
+	it("above twelve problems each cell is its number alone, with the title on hover", () => {
+		const many = Array.from({ length: 15 }, (_, i) => ({ number: String(i + 1), title: `Made-up problem ${i + 1}`, text: "…", done: i < 4 }));
+		const html = renderToStaticMarkup(<PlanRow {...homework} homework={{ problems: many, open: "5", cards: {} }} />);
+		assert.equal([...html.matchAll(/data-testid="plan-step"/g)].length, 15);
+		assert.match(html, /title="Made-up problem 15"/);
+		assert.doesNotMatch(html, />Made-up problem/, "no name inside a cell");
+		const twelve = renderToStaticMarkup(<PlanRow {...homework} homework={{ problems: many.slice(0, 12), open: "5", cards: {} }} />);
+		assert.match(twelve, />Made-up problem 12</, "twelve still show their names");
 	});
 
 	it("says the teacher is reading the assignment while no problems are posted", () => {
 		assert.match(renderToStaticMarkup(<PlanRow {...homework} homework={{ ...hw, problems: [], open: null }} />), /data-testid="problems-none"[^>]*>The teacher is reading the assignment\./);
-	});
-
-	it("See the problems opens the assignment's dialog with every problem, and Close shuts it", async () => {
-		const el = await mount(<PlanRow {...homework} />);
-		assert.ok(document.querySelector('[data-testid="problems-dialog"]') === null);
-		await act(async () => el.querySelector<HTMLButtonElement>('[data-testid="problems-open"]')!.click());
-		const dialog = document.querySelector('[data-testid="problems-dialog"]')!;
-		assert.match(dialog.querySelector("h2")!.textContent ?? "", /^HW 4$/);
-		assert.equal(dialog.querySelector('[data-testid="problems-dialog-done"]')!.textContent, "1 of 3 done");
-		assert.deepEqual([...dialog.querySelectorAll('[data-testid="problem-row"]')].map((r) => r.getAttribute("data-status")), ["done", "current", "upcoming"]);
-		assert.match(dialog.textContent ?? "", /Step size/);
-		await act(async () => document.querySelector<HTMLButtonElement>('[data-testid="problems-dialog-close"]')!.click());
-		assert.equal(document.querySelector('[data-testid="problems-dialog"]')?.getAttribute("data-state"), "closed");
 	});
 });
 

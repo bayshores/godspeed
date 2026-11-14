@@ -165,7 +165,7 @@ describe("the answered code card", () => {
 	});
 });
 
-describe("the unrated confidence meter", () => {
+describe("the unrated How sure line", () => {
 	const quizInput = {
 		question: "Which planet is closest to the sun?",
 		options: [{ label: "Venus" }, { label: "Mercury" }],
@@ -173,13 +173,17 @@ describe("the unrated confidence meter", () => {
 		explanation: "Mercury is the innermost planet.",
 	};
 
-	it("starts with no level picked", () => {
+	it("asks nothing before a pick, then starts with no level picked", async () => {
 		const html = renderToStaticMarkup(<QuestionDock {...noop} toolName="quiz" toolCallId="u1" input={quizInput} />);
-		assert.match(html, /id="confidence-question"[^>]*>How sure are you\?</);
-		assert.ok(!/role="radio" aria-checked="true" aria-label="\d/.test(html), "no bar is checked");
+		assert.doesNotMatch(html, /How sure are you/);
+		await mounted(<QuestionDock {...noop} toolName="quiz" toolCallId="u1" input={quizInput} />, async (host) => {
+			await act(async () => host.querySelector<HTMLButtonElement>('[data-testid="question-option"]')!.click());
+			assert.match(host.querySelector('[data-testid="confidence-line"]')!.textContent ?? "", /How sure are you\?/);
+			assert.ok(host.querySelector('[data-testid^="confidence-level-"][aria-checked="true"]') === null, "no square is checked");
+		});
 	});
 
-	it("an untouched meter sends no confidence; a picked level sends its percentage", async () => {
+	it("an untouched line sends no confidence; a picked level sends its percentage", async () => {
 		const answers: QuestionAnswerData[] = [];
 		const ref = React.createRef<QuestionHandle>();
 		await mounted(<QuestionDock {...noop} ref={ref} onSubmit={(a) => answers.push(a)} toolName="quiz" toolCallId="u2" input={quizInput} />, async (host) => {

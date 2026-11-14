@@ -2,8 +2,8 @@
  * Settings → Connection: outside agents (Claude Code, Codex, any MCP client)
  * connect to godspeed and act as its AI, always on and the only model.
  * "Your agent": the teacher and helper windows, what each is doing and the
- * buttons that open them; "Web search": the optional search key; then the
- * access token as one quiet line.
+ * buttons that open them; then the access token as one quiet line. Who
+ * searches the web is set in Teaching, Facts and research.
  */
 
 import { useCallback, useEffect, useState } from "react";
@@ -13,7 +13,6 @@ import { ACCESS_ERROR, maskToken } from "@/frontend/components/mcp-access";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { AgentWindows } from "./agent-windows.tsx";
 import { QUIET_KEY, SMALL_KEY } from "./controls.tsx";
-import { WebSearch } from "./web-search.tsx";
 
 interface AccessView {
 	token: string;
@@ -62,7 +61,6 @@ export function ConnectionSection() {
 	return (
 		<>
 			<AgentWindows agent={live} />
-			<WebSearch />
 			<div className="flex flex-col gap-2 px-1 text-[15px]">
 				<div className="flex flex-wrap items-center gap-x-3 gap-y-1">
 					<PixelIcon name="lock" className="h-3.5 text-ink-2" />

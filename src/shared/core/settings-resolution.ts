@@ -19,7 +19,6 @@ import {
 	FACTORY_SETTINGS,
 	type FactorySettings,
 	type GeneralSettings,
-	type CompactionSettings,
 	type GraphSettings,
 	type UserSettings,
 } from "./settings.ts";
@@ -42,9 +41,6 @@ interface EffectiveSettings {
 	};
 	appearance: EffectiveAppearance;
 	graph: Required<GraphSettings>;
-	/** Compaction: resolved concrete — absent record
-	 *  section resolves to the factory 40k. */
-	compaction: Required<CompactionSettings>;
 }
 
 /** Resolve the whole record. `record` may be null (first boot) — every
@@ -52,10 +48,8 @@ interface EffectiveSettings {
 export function resolveSettings(record: UserSettings | null): EffectiveSettings {
 	const agent = record?.agent ?? {};
 	const appearance = record?.appearance ?? {};
-	const md = appearance.mdRendering ?? {};
 	const graph = record?.graph ?? {};
 	const factoryAppearance = FACTORY_SETTINGS.appearance;
-	const factoryMd = factoryAppearance.mdRendering;
 	return {
 		general: {
 			autoUpdate: record?.general?.autoUpdate ?? FACTORY_SETTINGS.general.autoUpdate,
@@ -73,21 +67,9 @@ export function resolveSettings(record: UserSettings | null): EffectiveSettings 
 			background: appearance.background ?? factoryAppearance.background,
 			fontFamily: appearance.fontFamily ?? factoryAppearance.fontFamily,
 			proseFontSize: appearance.proseFontSize ?? factoryAppearance.proseFontSize,
-			mdRendering: {
-				headingWeight: md.headingWeight ?? factoryMd.headingWeight,
-				boldColor: md.boldColor ?? factoryMd.boldColor,
-				italicColor: md.italicColor ?? factoryMd.italicColor,
-			},
 		},
 		graph: {
 			enabled: graph.enabled ?? FACTORY_SETTINGS.graph.enabled,
-			// The chunk budget: absent (older record, fresh install) resolves
-			// to the factory 4096; the sanitizer has already clamped/floored
-			// any stored value.
-			extractionChunkTokens: graph.extractionChunkTokens ?? FACTORY_SETTINGS.graph.extractionChunkTokens,
-		},
-		compaction: {
-			thresholdTokens: record?.compaction?.thresholdTokens ?? FACTORY_SETTINGS.compaction.thresholdTokens,
 		},
 	};
 }

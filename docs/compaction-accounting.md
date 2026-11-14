@@ -64,7 +64,7 @@ The meter shows `tokens / summarize point`, for example "33k / 40k". It is never
 - The number is the latest completed response's `input + output + cacheRead + cacheWrite`. Reasoning is already inside output, and `totalTokens` is not used.
 - A response counts only if it ended with `stop`, `length` or `toolUse` and its usage is finite, not negative and not all zero. Partial stream updates, errors and aborts don't count.
 - A compaction marker clears every earlier reading. Summary runs never feed the meter.
-- The maximum is the summarize point from Settings, capped by the window minus the reserve (`useSummarizePoint`).
+- The maximum is the 40,000 summarize point, capped by the window minus the reserve (`effectiveThresholdTokens`).
 - The meter is hidden until the lesson reaches 80% of the summarize point, and while either number is unknown.
 
 ## Usage, not dollars

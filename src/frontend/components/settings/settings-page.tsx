@@ -17,7 +17,6 @@ import { notifySettingsSaved } from "@/frontend/components/settings-signal";
 import { useServerEvent } from "@/frontend/components/server-events";
 import { cn } from "@/frontend/lib/utils";
 import { AppearanceSection } from "./appearance-section.tsx";
-import { KeyboardSection } from "./keyboard-section.tsx";
 import { CONNECTION_SECTION_HINT, ConnectionSection } from "./connection-section.tsx";
 
 /** The tabs. A section's hint is the quiet line under it. */
@@ -25,7 +24,6 @@ const SECTIONS = [
 	{ id: "connection", label: "Connection", hint: CONNECTION_SECTION_HINT },
 	{ id: "teaching", label: "Teaching" },
 	{ id: "appearance", label: "Appearance" },
-	{ id: "keyboard", label: "Keyboard" },
 	{ id: "general", label: "General" },
 ] as const;
 type SectionId = (typeof SECTIONS)[number]["id"];
@@ -116,7 +114,7 @@ export function SettingsPage({ section }: { section?: string }) {
 	 *  schema mistake caught by the validation surface). */
 	const write = useCallback(
 		async (
-			section: "general" | "agent" | "appearance" | "graph" | "compaction",
+			section: "general" | "agent" | "appearance" | "graph",
 			body: object,
 		) => {
 			setError(null);
@@ -209,6 +207,7 @@ export function SettingsPage({ section }: { section?: string }) {
 									<TeachingSection
 										agent={record.agent}
 										graph={record.graph}
+										onGraphChange={(next) => void write("graph", next)}
 										teacherName={record.general?.teacherName || DEFAULT_TEACHER_NAME}
 										onSectionChange={(next) => void write("agent", next)}
 										onFullPage={setFullPage}
@@ -220,18 +219,11 @@ export function SettingsPage({ section }: { section?: string }) {
 									<AppearanceSection appearance={record.appearance} onSectionChange={(next) => void write("appearance", next)} />
 								</SettingsSection>
 							)}
-							{active === "keyboard" && (
-								<SettingsSection title="Keyboard" testid="section-keyboard">
-									<KeyboardSection />
-								</SettingsSection>
-							)}
 							{active === "general" && (
 								<SettingsSection title="General" testid="section-general">
 									<GeneralSection
 										record={record}
 										onGeneralChange={(next) => void write("general", next)}
-										onCompactionChange={(next) => void write("compaction", next)}
-										onGraphChange={(next) => void write("graph", next)}
 									/>
 								</SettingsSection>
 							)}

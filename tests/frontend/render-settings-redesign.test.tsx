@@ -34,6 +34,7 @@ Object.assign(globalThis, {
 const { createRoot } = await import("react-dom/client");
 const { SettingsPage, sectionFor } = await import("../../src/frontend/components/settings/settings-page.tsx");
 const { ConnectionSection } = await import("../../src/frontend/components/settings/connection-section.tsx");
+const { WebSearch } = await import("../../src/frontend/components/settings/web-search.tsx");
 const { RememberedNotes } = await import("../../src/frontend/components/settings/remembered-notes.tsx");
 const { maskToken } = await import("../../src/frontend/components/mcp-access.ts");
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
@@ -98,17 +99,13 @@ describe("settings restyle", () => {
 		assert.equal(sectionFor("nope"), "connection");
 	});
 
-	it("General holds the update rows and the Lessons and graph group (extraction, chunk budget)", async () => {
+	it("General holds the update rows, and no Lessons and graph group (the graph switch is in Teaching)", async () => {
 		globalThis.fetch = (async () => Response.json({ settings: { version: 1 } })) as typeof fetch;
 		await mount(<SettingsPage section="general" />);
 		assert.equal(q("settings-nav-general")!.getAttribute("aria-current"), "true");
 		assert.ok(q("row-version"));
-		const graph = q("group-lessons")!;
-		assert.ok(graph, "the Lessons and graph group");
-		for (const id of ["graph-row-enabled", "graph-row-chunk-tokens"]) {
-			assert.ok(graph.querySelector(`[data-testid="${id}"]`), id);
-		}
-		assert.ok(graph.querySelector('[data-testid="graph-row-rendering"]') === null, "the dead rendering switch is gone");
+		assert.ok(q("group-lessons") === null);
+		assert.ok(q("graph-row-enabled") === null);
 	});
 
 	it("Escape in the teacher name field drops the edit without saving it", async () => {
@@ -130,13 +127,14 @@ describe("settings restyle", () => {
 		assert.deepEqual(puts, [], "the dropped edit is not saved");
 	});
 
-	it("Connection: the two windows, the folder, web search and the token masked", async () => {
+	it("Connection: the two windows, the folder and the token masked (web search is in Teaching)", async () => {
 		globalThis.fetch = connectionFetch({ token: "tok_secret_a91f", url: "http://127.0.0.1:47613/api/mcp", agentConnected: true, agentTeaching: true, pendingWork: 1 });
 		const el = await mount(<Connection />);
 		const text = el.textContent!;
-		for (const label of ["Teacher", "Helper", "Web search", "Access token", "Copy the command"]) {
+		for (const label of ["Teacher", "Helper", "Access token", "Copy the command"]) {
 			assert.ok(text.includes(label), label);
 		}
+		assert.ok(q("web-search") === null);
 		assert.equal(q("agent-token")!.textContent, "••••••••••••a91f");
 		assert.ok(!text.includes("tok_secret_a91f"), "the token is never shown whole");
 		assert.equal(q("agent-status")!.textContent, "The teacher window is open");
@@ -239,7 +237,7 @@ describe("settings restyle", () => {
 			if (init?.method === "PUT") return Response.json({ keyEnd: "4f2a", used: 412, limit: 1000, error: null });
 			return Response.json(NO_KEY);
 		}) as unknown as typeof fetch;
-		const el = await mount(<Connection />);
+		const el = await mount(<WebSearch />);
 		assert.ok(q("web-search-agent")!.hasAttribute("data-picked"));
 		assert.equal(q("web-search-tavily")!.hasAttribute("data-picked"), false);
 		const input = q("web-search-key-input") as HTMLInputElement;
@@ -271,7 +269,7 @@ describe("settings restyle", () => {
 			if (!path.startsWith("/api/web-search")) return Response.json(path.startsWith("/api/agent-folder") ? FOLDER : { token: "tok_s" });
 			return init?.method === "PUT" ? Response.json({ error: "Tavily did not accept that key." }, { status: 400 }) : Response.json(NO_KEY);
 		}) as unknown as typeof fetch;
-		await mount(<Connection />);
+		await mount(<WebSearch />);
 		const input = q("web-search-key-input") as HTMLInputElement;
 		await act(async () => {
 			Object.defineProperty(input, "value", { configurable: true, writable: true, value: "nope" });
@@ -287,7 +285,7 @@ describe("settings restyle", () => {
 		host?.remove();
 
 		globalThis.fetch = connectionFetch({ token: "tok_s" }, { search: { keyEnd: "4f2a", used: null, limit: null, error: "This key is out of searches for now." } });
-		await mount(<Connection />);
+		await mount(<WebSearch />);
 		assert.equal(q("web-search-error")!.textContent, "This key is out of searches for now. Your agent's own search is used until it works again.");
 		assert.ok(q("web-search-agent")!.hasAttribute("data-picked"), "the agent's own search is the one in use");
 	});

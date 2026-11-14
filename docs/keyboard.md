@@ -2,27 +2,26 @@
 
 How shortcuts work in the code. Read this before you add, change or debug a shortcut.
 
-Most learners use the mouse, so a shortcut is always an extra, never the only way to do something. In the app, `?` opens the full list, and Settings → Keyboard lets the learner change the keys.
+Most learners use the mouse, so a shortcut is always an extra, never the only way to do something. In the app, `?` opens the full list. The keys are fixed: there is no way to change them, and keys an older version saved in localStorage under `lh:keymap` are no longer read.
 
 ## Where the code lives
 
 | Part | File | What it does |
 |---|---|---|
-| Registry | `src/shared/core/keyboard.ts` | `KEYBOARD_ACTIONS` lists every action as `{ id, label, scope, binding }`. The cheat sheet and the Settings list are drawn from it. |
+| Registry | `src/shared/core/keyboard.ts` | `KEYBOARD_ACTIONS` lists every action as `{ id, label, scope, binding }`. The cheat sheet is drawn from it. |
 | Provider | `src/frontend/components/keyboard-shortcuts.tsx` | One window-level keydown listener. It runs an action itself or sends a `lh:kbd-<action-id>` window event. |
-| Changed keys | `src/frontend/components/settings/keyboard-section.tsx` | Edits the learner's changes, saved in localStorage under `lh:keymap` as `{actionId: binding}`. |
 | Focus helpers | `src/frontend/components/focus-hygiene.ts` | `trapTabInDialog` and `showFocusRingAfterTab`. |
 
 How a key press becomes an action:
 
 1. The provider turns the key press into a string like `mod+b` (`eventBinding`).
-2. It looks the string up in the defaults with the learner's changes applied (`actionForBinding`).
+2. It looks the string up in the key map (`actionForBinding`).
 3. It runs the action itself, or sends the window event.
 4. The page that owns the action listens for that event. If that page isn't open, nothing happens.
 
 `mod` means ⌘ on a Mac and Ctrl elsewhere. Both work on a Mac.
 
-There is no conflict check. If two actions share a key, the one later in the registry wins, because `effectiveKeymap` overwrites as it goes.
+There is no conflict check. If two actions share a key, the one later in the registry wins, because the key map overwrites as it is built.
 
 Entries marked `displayOnly` are keys that one surface owns, like the question rows below. They are listed for the cheat sheet only. The provider never sends them, so arrow keys stay free on every other page.
 
@@ -36,7 +35,7 @@ Entries marked `displayOnly` are keys that one surface owns, like the question r
 
 ## Key map
 
-| Action | Default | Who handles it |
+| Action | Key | Who handles it |
 |---|---|---|
 | Open Settings | ⌘, | `keyboard-shortcuts.tsx`, goes to `/settings` |
 | Search lessons | ⌘⇧F | `src/frontend/components/search-lessons.tsx` |
@@ -57,8 +56,8 @@ While a question is open, `src/frontend/components/question-dock.tsx` owns these
 |---|---|
 | 1 to 9 | Picks that option. |
 | 0 | Picks "I don't know" on a quiz. |
-| ↑/↓ | Walk the rows: the options, then "I don't know" or "Other…". The walk stops at the ends. |
-| ←/→ | Change the confidence level on a quiz, but not after "I don't know". |
+| ↑/↓ | Walk the rows: the options, then "I don't know" on a quiz. The walk stops at the ends. |
+| ←/→ | Change the "How sure are you?" level on a quiz, once an answer is picked (not "I don't know"). |
 | Space | Acts on the walked row like a click. |
 | Enter | Submits, once a row is walked and there is an answer. |
 | Tab | From the rows, moves focus to the lesson's writing box. With nothing focused, moves focus into the rows. |

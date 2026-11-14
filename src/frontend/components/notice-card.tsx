@@ -1,4 +1,4 @@
-import type { HTMLAttributes, ReactNode } from "react";
+import type { HTMLAttributes, ReactNode, Ref } from "react";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { cn } from "@/frontend/lib/utils";
 
@@ -18,6 +18,7 @@ export function NoticeCard({
 	close?: { onClick: () => void; testId: string };
 	actions?: ReactNode;
 	children?: ReactNode;
+	ref?: Ref<HTMLDivElement>;
 } & Omit<HTMLAttributes<HTMLDivElement>, "title">) {
 	return (
 		<div {...rest} className={cn("lh-rise lh-popup flex w-[380px] max-w-full flex-col gap-2 py-3.5 pr-4 pl-[18px] font-ui", className)}>
