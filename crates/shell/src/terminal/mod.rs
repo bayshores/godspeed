@@ -18,11 +18,13 @@ use portable_pty::{Child, MasterPty};
 use serde_json::{Value, json};
 
 pub use screen::Prompt;
-use screen::{Screen, Settle};
+use screen::{Screen, Settle, Trust};
 pub use spawn::{Agent, Role};
 
 /// How long a stopped agent gets to close before it is killed.
 const STOP_GRACE: Duration = Duration::from_secs(2);
+/// How long the trust button waits for the pointer to reach "Yes" after its Down key.
+const TRUST_MOVE: Duration = Duration::from_secs(1);
 /// How often a terminal sends the page its output and looks whether a question has stayed on
 /// its screen: a program that prints without pause costs the window one push a frame.
 const FRAME: Duration = Duration::from_millis(16);
@@ -83,6 +85,10 @@ struct State {
 	stopping: bool,
 	broken: bool,
 	ended: Option<Ended>,
+	/// The process group the shell may still signal. Dropped once its leftovers were killed,
+	/// since its pid may belong to another program after that.
+	#[cfg(unix)]
+	group: Option<u32>,
 }
 
 impl Terminal {
@@ -168,7 +174,7 @@ impl Terminal {
 	/// Stops everything the script started: the process group, or the job on Windows.
 	fn hang_up(&self) {
 		#[cfg(unix)]
-		if let Some(pid) = self.pid {
+		if let Some(pid) = self.state().group {
 			spawn::signal_group(pid, rustix::process::Signal::HUP);
 		}
 		#[cfg(windows)]
@@ -177,7 +183,7 @@ impl Terminal {
 
 	#[cfg(unix)]
 	fn kill(&self) {
-		if let Some(pid) = self.pid {
+		if let Some(pid) = self.state().group.take() {
 			spawn::signal_group(pid, rustix::process::Signal::KILL);
 		}
 	}
@@ -279,6 +285,8 @@ impl Terminals {
 				stopping: false,
 				broken: false,
 				ended: None,
+				#[cfg(unix)]
+				group: spawned.child.process_id(),
 			}),
 		});
 		// An ended record stays until the next start for its role.
@@ -355,13 +363,24 @@ impl Terminals {
 		terminal.write(data.as_bytes())
 	}
 
-	/// The trust or Enter button: Enter, only while the shell itself still sees that question.
+	/// The trust or Enter button, only while the shell itself still sees that question. Trust
+	/// moves the pointer to "Yes" when it is on "No", and sends Enter once the shell sees it there.
 	pub fn answer(&self, id: &str, kind: Prompt) -> Result<(), String> {
 		let terminal = self.find(id)?;
-		if terminal.state().screen.seen().prompt != Some(kind) || kind == Prompt::Menu {
-			return Err("That question isn't on the screen anymore.".to_owned());
+		let (seen, trust) = {
+			let state = terminal.state();
+			(state.screen.seen().prompt, state.screen.trust())
+		};
+		match (kind, trust) {
+			(Prompt::Trust, Some(Trust::OnYes)) => terminal.write(b"\r"),
+			(Prompt::Trust, Some(Trust::OnNo)) => {
+				terminal.write(b"\x1b[B")?;
+				std::thread::spawn(move || enter_on_yes(&terminal));
+				Ok(())
+			}
+			(Prompt::Enter, _) if seen == Some(Prompt::Enter) => terminal.write(b"\r"),
+			_ => Err("That question isn't on the screen anymore.".to_owned()),
 		}
-		terminal.write(b"\r")
 	}
 
 	/// Paste: the clipboard's text, bracketed when the program asked for that, without escape
@@ -386,8 +405,8 @@ impl Terminals {
 	}
 
 	/// At quit: every terminal hangs up at once, one already stopping too, and after the grace
-	/// every group is killed, also what an ended script left behind: their own kill threads end
-	/// with the app.
+	/// every group is killed, also what a script that ended within the grace left behind: their
+	/// own kill threads end with the app. A group killed before is not signalled again.
 	pub fn stop_all(&self) {
 		let all: Vec<Arc<Terminal>> = lock(&self.list).clone();
 		for terminal in &all {
@@ -471,6 +490,23 @@ fn stop(terminal: Arc<Terminal>, outlet: &dyn Outlet, list: &List) {
 	}
 	tell_live(list, outlet);
 	hang_up_then_kill(terminal);
+}
+
+/// Enter on the trust question once its pointer reached "Yes"; nothing if the screen changed.
+fn enter_on_yes(terminal: &Terminal) {
+	let deadline = Instant::now() + TRUST_MOVE;
+	while Instant::now() < deadline {
+		std::thread::sleep(Duration::from_millis(20));
+		let trust = terminal.state().screen.trust();
+		match trust {
+			Some(Trust::OnYes) => {
+				let _ = terminal.write(b"\r");
+				return;
+			}
+			Some(Trust::OnNo) => {}
+			None => return,
+		}
+	}
 }
 
 fn hang_up_then_kill(terminal: Arc<Terminal>) {
@@ -793,7 +829,7 @@ mod tests {
 
 	#[cfg(unix)]
 	#[test]
-	fn what_an_ended_script_left_running_is_killed_after_the_grace() {
+	fn what_an_ended_script_left_running_is_killed_after_the_grace_and_then_never_signalled() {
 		// The child ignores the hang-up, as an agent may.
 		let dir = folder("leftover", "#!/bin/sh\n(trap '' HUP; exec sleep 300) &\necho $! > \"$0.pid\"\nprintf 'ready\\n'\n");
 		let terminals = Terminals::new(Arc::new(Heard::default()));
@@ -803,7 +839,9 @@ mod tests {
 		let child = std::fs::read_to_string(pid_file).unwrap().trim().to_owned();
 		std::thread::sleep(STOP_GRACE / 2);
 		assert!(running(&child), "the hang-up alone left it");
+		assert!(terminals.find(&id).unwrap().state().group.is_some(), "quit still signals it within the grace");
 		until("the kill", || !running(&child));
+		assert_eq!(terminals.find(&id).unwrap().state().group, None, "its pid may be reused, so quit signals it no more");
 		std::fs::remove_dir_all(dir).unwrap();
 	}
 
@@ -823,12 +861,18 @@ mod tests {
 
 	#[cfg(unix)]
 	#[test]
-	fn the_trust_button_sends_enter_only_while_the_shell_sees_the_question() {
-		let question = "#!/bin/sh\nprintf ' Do you trust the files in this folder?\\n > 1. Yes, proceed\\n   2. No, exit\\n'\nread line\nprintf '\\033[2J\\033[Htrusted\\n'\nread line\n";
-		let dir = folder("trust", question);
+	fn the_trust_button_moves_to_yes_and_sends_enter_only_while_the_shell_sees_the_question() {
+		// Draws the trust question on "No", moves to "Yes" on Down, and says what Enter chose.
+		let draw = |no: &str, yes: &str| format!("printf '\\033[2J\\033[H Is this a project you created or one you trust?\\r\\n\\r\\n{no} No, exit\\r\\n{yes} Yes, I trust this folder\\r\\n\\r\\n Enter to confirm \\302\\267 Esc to cancel\\r\\n'");
+		let question = format!(
+			"#!/bin/sh\nstty raw -echo\n{}\nkey=$(dd bs=3 count=1 2>/dev/null)\n[ \"$key\" = \"$(printf '\\033[B')\" ] && {}\nkey=$(dd bs=1 count=1 2>/dev/null)\n[ \"$key\" = \"$(printf '\\r')\" ] && printf '\\033[2J\\033[Htrusted\\r\\n'\nsleep 30\n",
+			draw(" \\342\\235\\257", "  "),
+			draw("  ", " \\342\\235\\257"),
+		);
+		let dir = folder("trust", &question);
 		let terminals = Terminals::new(Arc::new(Heard::default()));
 		let id = start(&terminals, &dir);
-		until("the question", || text(&terminals, &id).contains("2. No, exit"));
+		until("the question", || terminals.find(&id).unwrap().state().screen.trust() == Some(Trust::OnNo));
 		assert!(terminals.answer(&id, Prompt::Enter).is_err(), "no Press Enter line");
 		assert!(terminals.answer(&id, Prompt::Menu).is_err(), "a plain menu has no button");
 		terminals.answer(&id, Prompt::Trust).unwrap();
