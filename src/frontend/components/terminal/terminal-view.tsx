@@ -99,8 +99,10 @@ export function TerminalView({ id, ended, focusOnOpen, focusKey }: {
 		});
 		lh.attach(id).catch(() => {/* it ended: the screen stays empty */});
 		el.addEventListener("keydown", keepKey);
+		// Too short a box at the smallest font keeps the bottom in view: the agent's input and status lines.
 		const fit = new ResizeObserver(() => {
 			t.options.fontSize = fitFontSize(frame.clientWidth, frame.clientHeight);
+			frame.scrollTop = frame.scrollHeight;
 		});
 		fit.observe(frame);
 		return () => {
