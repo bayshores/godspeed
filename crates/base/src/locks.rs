@@ -4,7 +4,8 @@
 //! call a store that takes the same lock), and a guard is not `Send`, so holding one across an
 //! `.await` in a spawned task does not compile. Take at most one, or in this order: space, chat,
 //! graph, app file; several of one kind in id order, and settings.json before another app file
-//! (docs/rust-server.md, "Locks").
+//! (docs/rust-server.md, "Locks"). Code under a chat lock never waits for a space lock: a space is
+//! read with `try_lock` (`get_space`) and progress reads mocks with no lock.
 
 use std::collections::HashMap;
 use std::sync::Arc;

@@ -1,7 +1,7 @@
 //! `data/spaces/<id>/mocks/<mock id>.json` is one mock of a deadline (core `mocks::mock`), stamped
 //! with its format. Written only by the mocks service; a space's delete takes the folder with it.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use gs_base::config::Paths;
 use gs_base::fsx;
@@ -40,23 +40,32 @@ impl MockStore {
 	pub fn read_mock(&self, space_id: &str, mock_id: &str) -> Result<Option<Json>, String> {
 		let file = self.mock_file(space_id, mock_id)?;
 		let _guard = self.locks.lock(LockKey::Space(space_id));
-		Ok(match fsx::read_json_or_set_aside(&file).and_then(|raw| parse_mock(&raw)) {
-			Some(ParsedMock::Mock(mock)) => Some(mock),
-			_ => None,
-		})
+		Ok(mock_of(fsx::read_json_or_set_aside(&file)))
 	}
 
 	/// Every mock of a space, by number.
 	pub fn list_mocks(&self, space_id: &str) -> Result<Vec<Json>, String> {
-		let dir = self.mocks_dir(space_id)?;
 		let _guard = self.locks.lock(LockKey::Space(space_id));
+		self.mocks_in(space_id, fsx::read_json_or_set_aside)
+	}
+
+	/// `list_mocks` without the space's lock, for a caller that may hold a lesson's, which comes
+	/// after it. Every write is a temp file and a rename, so no half-written mock is read; a broken
+	/// file is left for a locked read to set aside.
+	pub fn list_mocks_unlocked(&self, space_id: &str) -> Result<Vec<Json>, String> {
+		self.mocks_in(space_id, |file| fsx::read_text(file).ok().and_then(|text| gs_json::parse(&text).ok()))
+	}
+
+	fn mocks_in(&self, space_id: &str, read: impl Fn(&Path) -> Option<Json>) -> Result<Vec<Json>, String> {
+		let dir = self.mocks_dir(space_id)?;
 		let Ok(entries) = std::fs::read_dir(&dir) else { return Ok(Vec::new()) };
 		let mut names: Vec<String> = entries.filter_map(|e| e.ok()).map(|e| e.file_name().to_string_lossy().into_owned()).collect();
 		names.sort();
 		let mut mocks = Vec::new();
 		for name in names {
-			let Some(id) = name.strip_suffix(".json").filter(|id| is_mock_id(id)) else { continue };
-			if let Some(mock) = self.read_mock(space_id, id)? {
+			if name.strip_suffix(".json").is_some_and(is_mock_id)
+				&& let Some(mock) = mock_of(read(&dir.join(&name)))
+			{
 				mocks.push(mock);
 			}
 		}
@@ -80,6 +89,14 @@ impl MockStore {
 		let file = self.mock_file(space_id, mock_id)?;
 		let _guard = self.locks.lock(LockKey::Space(space_id));
 		fsx::remove_if_present(&file, "rm")
+	}
+}
+
+/// None for no file or one a newer build saved.
+fn mock_of(raw: Option<Json>) -> Option<Json> {
+	match raw.and_then(|raw| parse_mock(&raw)) {
+		Some(ParsedMock::Mock(mock)) => Some(mock),
+		_ => None,
 	}
 }
 

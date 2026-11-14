@@ -270,9 +270,9 @@ pub fn remove_deadline_mocks(app: &App, space_id: &str, deadline_id: &str) -> Re
 }
 
 /// Every graded mock of a space as answers for the facts its questions test (core
-/// `mock_answers`).
+/// `mock_answers`). Read without the space's lock: progress is read under a lesson's.
 pub fn space_mock_answers(app: &App, space_id: &str) -> Vec<Json> {
-	app.stores.mocks.list_mocks(space_id).unwrap_or_default().iter().flat_map(gs_core::mocks::mock::mock_answers).collect()
+	app.stores.mocks.list_mocks_unlocked(space_id).unwrap_or_default().iter().flat_map(gs_core::mocks::mock::mock_answers).collect()
 }
 
 /// Runs a code question's examples on the learner's code, while the mock runs: a run outcome.

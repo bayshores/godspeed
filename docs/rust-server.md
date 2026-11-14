@@ -137,6 +137,7 @@ Requests run in parallel, so every read-modify-write of a file takes a lock from
 - Of two app files, `settings.json` comes first. Reading settings takes its lock, so code holding another app file must not read settings unless it took `settings.json` before.
 - Locks are re-entrant on one thread, so a store may take the lock its caller already holds.
 - A read that saves on the side while its caller may hold a later lock uses `try_lock`. When the lock is taken it leaves the save to a later read (a space's first color, `SpaceStore::get_space`).
+- Code under a chat lock never waits for a space lock. Progress (`progress_for`) runs under a lesson's lock, so it reads mocks with `MockStore::list_mocks_unlocked`; mock writes are a temp file and a rename, so no half-written mock is read.
 
 ### Holding a lock
 

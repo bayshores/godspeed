@@ -348,6 +348,38 @@ mod tests {
 	}
 
 	#[test]
+	fn progress_read_under_a_lessons_lock_does_not_wait_for_its_space() {
+		use gs_base::locks::LockKey;
+		use std::sync::mpsc::channel;
+		use std::time::Duration;
+		let root = scratch_dir("progress-locks");
+		let app = test_app(&root);
+		let space_id = app.stores.spaces.create_space(&json!({ "name": "Larkspur onsite" })).unwrap()["id"].str_or_empty().to_owned();
+		let deadline = app.stores.spaces.add_deadline(&space_id, &json!({ "name": "Onsite", "kind": "interview", "date": "2099-01-15" })).unwrap();
+		let mock = gs_core::mocks::mock::new_mock("mock_0000abcd", deadline["id"].str_or_empty(), 1.0, &json!({ "questions": 2 }), "2026-11-11T10:00:00.000Z");
+		app.stores.mocks.write_mock(&space_id, &mock).unwrap();
+		let chat_id = app.stores.chats.create_chat("Strings", Some("study"), Some(&space_id), None).unwrap()["id"].str_or_empty().to_owned();
+		// A review answer holds the lesson and reads progress while a space delete holds the space
+		// and waits for the lesson.
+		let (done_tx, done_rx) = channel();
+		let (lesson_held_tx, lesson_held_rx) = channel();
+		let (answering, space, chat) = (app.clone(), space_id.clone(), chat_id.clone());
+		std::thread::spawn(move || {
+			let _lesson = answering.locks.lock(LockKey::Chat(&chat));
+			lesson_held_tx.send(()).unwrap();
+			std::thread::sleep(Duration::from_millis(100));
+			let _ = done_tx.send(progress_for(&answering, space.as_str(), None).unwrap().is_some());
+		});
+		lesson_held_rx.recv().unwrap();
+		let (deleting, space, chat) = (app.clone(), space_id.clone(), chat_id.clone());
+		std::thread::spawn(move || {
+			let _space = deleting.locks.lock(LockKey::Space(&space));
+			let _lesson = deleting.locks.lock(LockKey::Chat(&chat));
+		});
+		assert_eq!(done_rx.recv_timeout(Duration::from_secs(10)), Ok(true), "the two would wait for each other for good");
+	}
+
+	#[test]
 	fn a_deadline_session_is_mid_topic_or_at_its_stop_until_he_keeps_going_and_closes_at_its_end() {
 		let root = scratch_dir("progress-stop");
 		let app = test_app(&root);
