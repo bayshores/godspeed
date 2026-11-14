@@ -166,9 +166,11 @@ describe("the top bar's tabs", () => {
 		assert.ok(q("space-option-old") === null, "a closed space has no tab");
 		const strip = q("space-tabs-strip")!;
 		assert.ok(strip.lastElementChild === q("space-option-c21") && strip.nextElementSibling === q("spaces-plus"), "the + comes right after the last tab, outside the tabs' scroller");
+		assert.ok(strip.previousElementSibling === q("nav-today"), "Today sits before the scroller, so it never scrolls away");
 		assert.match(q("spaces-plus")!.className, /shrink-0/, "the + never squeezes; the tabs do");
 		assert.doesNotMatch(q("space-option-c21")!.className, /shrink-0/);
-		assert.match(q("space-option-c21")!.className, /grid-cols-\[auto_minmax\(0,max-content\)_auto\]/, "a tab with a tag lets its name give way first");
+		assert.match(q("space-option-c21")!.className, /grid-cols-\[auto_minmax\(auto,max-content\)_auto\]/, "a tab with a tag lets its name give way first");
+		assert.equal(q("space-option-c21")!.querySelector<HTMLElement>("[title='CSE 21']")!.style.minWidth, "max-content", "a short name never squeezes");
 	});
 	it("a space's tab says how many files the teacher still has to read", async () => {
 		await mount(<SpaceTabs selected="c29" />);
