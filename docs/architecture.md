@@ -820,7 +820,7 @@ The server speaks two MCP versions on one endpoint. The 2026-07-28 version carri
 
 `GET /api/mcp-access` reports `agentConnected`, `agentTeaching`, `agentName`, `helperHere`, `helperCovering`, `pendingWork`, `pendingTurns`, `claimedLessons` (the lessons whose request an agent took and hasn't answered), `terminals` (each live app terminal as `{id, here}`, `here` meaning a request from it in the last 3 minutes) and `outsideHere` (a request with no terminal id in the last 3 minutes).
 
-An agent started in one of the desktop app's terminals sends the terminal's id with every request. Once that terminal ends, the server refuses it and puts back what it had claimed at once ([tauri-shell.md](tauri-shell.md#terminals)).
+An agent started in one of the desktop app's terminals sends the terminal's id with every request. Once that terminal ends, the server refuses it and puts back what it had claimed at once ([tauri-shell.md](tauri-shell.md#terminals)). The server's connected and teaching still last their 3 minutes, so in the desktop app the window reads its terminals instead: once godspeed has started a teacher, every surface shows no agent until that teacher is running and has checked in, or an agent outside godspeed is here (`statusFromTerminals`).
 
 #### The godspeed folder
 
