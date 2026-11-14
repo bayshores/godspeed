@@ -109,10 +109,10 @@ src/                            the screens and the logic they share
     index.html                    the page
     main.tsx                      entry: reads /api/boot and the first screen, then renders
     routes/                       router.tsx (every screen: / Today, /new, /chat/:id,
-                                  /space Progress, /space/lessons, /space/files, /graph,
-                                  /space/cheat-sheets, /space/deadlines,
-                                  /space/deadline/:id, /space/mock/:spaceId/:mockId,
-                                  /settings, /archived),
+                                  /space Progress (a prep: its prep sheet), /space/lessons,
+                                  /space/files, /graph, /space/cheat-sheets,
+                                  /space/deadlines, /prep, /space/mocks,
+                                  /space/mock/:spaceId/:mockId, /settings, /archived),
                                   root.tsx (app frame), space-layout.tsx (space head and
                                   tabs), lesson.tsx, deadline.tsx, mock.tsx, settings.tsx,
                                   not-found.tsx, page-title.tsx
@@ -123,8 +123,7 @@ src/                            the screens and the logic they share
                                   head and tabs (space-page/, overview/, lessons/, files/,
                                   graph/), the lesson screen (lesson/), question dock,
                                   plan row and plan blocks, Settings page (settings/),
-                                  source marks (citations/), a deadline's page with What
-                                  it's like and its mocks (deadline/), a mock (mock/), the
+                                  source marks (citations/), preps and mocks (prep/), the
                                   work frame (work/), onboarding, the welcome
                                   screen (welcome/), artifact renderers (registry:
                                   artifacts/), activity dock, keyboard
@@ -132,13 +131,13 @@ src/                            the screens and the logic they share
     lib/lazy-component.tsx        lazy-loads a component on first use
   shared/                       pure logic the screens import (no IO)
     changelog.json              release notes shown in What's new
-    core/contracts/{boot,chat,space,graph,jobs,plan,probe}.ts
+    core/contracts/{boot,chat,space,graph,jobs,plan,prep,probe}.ts
                                   the contracts the screens read — one file per domain
     core/                         native-messages (the record), input-events (what
                                   POST /api/chat accepts), question-core, code-question,
                                   plan-tree, plan-step-bar, phases, pending, tool-switches,
                                   chains, progress, study, citations (source marks),
-                                  attachments, tool-parts, mock, mock-run and more,
+                                  attachments, tool-parts, prep, mock, mock-run and more,
                                   all behind the barrel index.ts. Pure: storage never
                                   appears here
 crates/                         the Rust workspace (details: rust-server.md)
