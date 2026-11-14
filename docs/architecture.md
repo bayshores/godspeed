@@ -88,7 +88,6 @@ The server's logic (merging, derivation, coverage, study and progress rules) liv
 | `jobs.ts` | job records, steer message builders, deterministic steer ids, usage accumulation |
 | `probe.ts` | the probe assessment and its schema |
 | `space.ts` | space records, space files, deadlines, signatures and icons |
-| `prep.ts` | prep records and sheets |
 | `boot.ts` | the `GET /api/boot` payload |
 
 On the server, records are `Json`, not structs (see [rust-server.md](rust-server.md)). Shared constants and guards live in `core::contracts` (`chat`, `space`, `graph`). The other contract functions sit with the logic that uses them, mostly in `core::session`.
@@ -622,7 +621,7 @@ The learner starts one from:
 - "Study something new" on a space's Lessons tab (the study page, `/new`)
 - Start on a Today row, or Study on a deadline page
 - "study these N", "study <topic>" or "practice this fact" on the Graph tab, or Study on the Progress tab
-- Study or a topic row on a prep sheet, or "Go over it" on a mock's results
+- "Go over it with the teacher" on a mock's results
 - "Start from facts" (the chain table in select mode, `src/frontend/components/home/facts-picker.tsx`)
 - the MCP `start_lesson` tool
 
