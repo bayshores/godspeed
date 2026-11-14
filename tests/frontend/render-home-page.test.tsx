@@ -241,15 +241,17 @@ describe("A row under Due this week", () => {
 	});
 });
 
-describe("A row stamped Done", () => {
-	it("the stamp, its name and space, and Undo", async () => {
+describe("A row ticked done", () => {
+	it("its name struck through, its space, and Undo, with no grey Done word", async () => {
 		const undone: string[] = [];
 		const el = await mount(
 			<MemoryRouter initialEntries={["/"]}>
 				<ul><DoneRow deadline={OPEN[2]!} onUndo={(x) => undone.push(x.id)} /></ul>
 			</MemoryRouter>,
 		);
-		assert.equal(el.querySelector('[data-testid="today-done-row-hw5"]')!.textContent, "DoneHW 5CSE 29Undo");
+		const row = el.querySelector('[data-testid="today-done-row-hw5"]')!;
+		assert.equal(row.textContent, "Done, HW 5CSE 29Undo", "Done is said only to a screen reader");
+		assert.ok(row.querySelector(".line-through")!.textContent!.endsWith("HW 5"));
 		await act(async () => el.querySelector<HTMLButtonElement>('[data-testid="today-undo"]')!.click());
 		assert.deepEqual(undone, ["hw5"]);
 	});

@@ -64,14 +64,18 @@ export function TodayRow({
 	);
 }
 
-/** A deadline ticked done today, the quietest row: "Done", its name dimmed, and Undo. */
+/** A deadline ticked done today, the quietest row: its name struck through
+ *  under the other rows' names, and Undo. */
 export function DoneRow({ deadline: d, onUndo }: { deadline: OpenDeadline; onUndo: (d: OpenDeadline) => void }) {
 	return (
 		<li data-testid={`today-done-row-${d.id}`}>
 			<div className="flex min-h-12 items-center gap-4">
-				<span className="w-14 shrink-0 text-center text-sm text-ink-3">Done</span>
+				<span aria-hidden className="w-14 shrink-0" />
 				<span className="flex min-w-0 flex-1 items-baseline gap-3">
-					<span className="truncate text-[15px] text-ink-3 line-through">{d.name}</span>
+					<span className="truncate text-[15px] text-ink-3 line-through">
+						<span className="sr-only">Done, </span>
+						{d.name}
+					</span>
 					<span className="truncate text-sm text-ink-3">{d.spaceName}</span>
 				</span>
 				<button type="button" data-testid="today-undo" onClick={() => onUndo(d)} className="lh-btn lh-btn-quiet h-[30px] shrink-0 text-[13px]">
