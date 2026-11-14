@@ -658,7 +658,7 @@ The study agent has the teacher's prompt and tools, without the deadline changes
 - `plot`, in multiple-choice lessons
 - the practice hint rules (`prompts/practice/20-hints.md`) and `prompts/study/`
 
-A posed problem ends the turn. `practice-next` and `problem-dismissed` mark moving on or skipping. A study session is extracted into the graph. Until then, an answer whose facts are in no topic counts for its question's `nodeId`, the session's topic (`core::study::derive_progress`), so a topic studied today is not untested while its facts are being saved.
+A posed problem ends the turn. `practice-next` and `problem-dismissed` mark moving on or skipping. A study session is extracted into the graph. An answer whose facts are in no topic (none extracted yet, or new ones still in Ungrouped) counts once for its question's `nodeId` when that is one of the space's topics (`core::study::derive_progress`), so a topic studied today is not untested while its facts are being saved.
 
 ### Questions from earlier
 

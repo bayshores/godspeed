@@ -59,9 +59,10 @@ pub fn derive_progress(input: &Json) -> Json {
 	all_answers.sort_by(|a, b| locale::compare(a["answeredAt"].as_str().unwrap_or(""), b["answeredAt"].as_str().unwrap_or("")));
 
 	// Answer to facts to topics. An answer whose facts are in no topic yet (a study answer before
-	// its lesson's facts are extracted) counts for its plan node when that is a topic.
+	// its lesson's facts are extracted, or while they wait in Ungrouped) counts for its plan node
+	// when that is a topic, once.
 	let index = facts_by_message(facts);
-	let topic_ids_known: HashSet<&str> = resolved.iter().filter_map(|t| t["id"].as_str()).collect();
+	let topic_ids_known: HashSet<&str> = resolved.iter().filter(|t| !t["ungrouped"].truthy()).filter_map(|t| t["id"].as_str()).collect();
 	let mut fact_answers: HashMap<String, Vec<&Json>> = HashMap::new();
 	let mut topic_answers: HashMap<&str, Vec<&Json>> = HashMap::new();
 	for answer in &all_answers {
@@ -74,10 +75,10 @@ pub fn derive_progress(input: &Json) -> Json {
 			}
 			fact_answers.entry(id).or_default().push(answer);
 		}
-		if topics_hit.is_empty()
+		if !topics_hit.iter().any(|t| topic_ids_known.contains(t))
 			&& let Some(node) = answer["nodeId"].as_str().filter(|id| topic_ids_known.contains(id))
 		{
-			topics_hit.push(node);
+			topics_hit = vec![node];
 		}
 		for topic in topics_hit {
 			topic_answers.entry(topic).or_default().push(answer);
@@ -284,5 +285,19 @@ mod tests {
 		});
 		let topic = &derive_progress(&input)["topics"][0];
 		assert_eq!((topic["answered"].clone(), topic["status"].clone()), (json!(1), json!("weak")), "its plan node is the topic; another node is no topic");
+
+		// Its lesson's facts extracted: one merged into the topic's fact, one new and still in
+		// Ungrouped. The answer still counts once, for the topic.
+		let mut extracted = input.clone();
+		extracted.as_obj_mut().unwrap().insert("facts", json!([
+			{ "id": "f_a", "name": "Ridge", "statement": "Ridge adds a squared penalty.", "provenance": [{ "chatId": "src_1", "messageId": "" }, { "chatId": "chat_1", "messageId": "m1" }] },
+			{ "id": "f_new", "name": "Lambda", "statement": "Lambda sets the penalty.", "provenance": [{ "chatId": "chat_1", "messageId": "m1" }] },
+		]));
+		let progress = derive_progress(&extracted);
+		assert_eq!((progress["topics"][0]["id"].clone(), progress["topics"][0]["answered"].clone()), (json!("tpc_reg"), json!(1)), "counted once, through its facts");
+		let mut only_new = extracted.clone();
+		only_new.as_obj_mut().unwrap().insert("facts", json!([input["facts"][0].clone(), extracted["facts"][1].clone()]));
+		let progress = derive_progress(&only_new);
+		assert_eq!((progress["topics"][0]["answered"].clone(), progress["topics"][1]["answered"].clone()), (json!(1), json!(0)), "its new fact waits in Ungrouped: it counts for its plan node");
 	}
 }
