@@ -20,6 +20,8 @@ interface TodayBodyProps {
 	lists: TodayLists | null;
 	deadlineProgress: ReadonlyMap<string, DeadlineProgress>;
 	spacesProgress: ReadonlyMap<string, ProgressPayload>;
+	/** The lessons with no space; their answers count in the week line. */
+	noSpaceProgress: ProgressPayload | null;
 	/** Why a space's progress failed to load. */
 	progressErrors: ReadonlyMap<string, string>;
 	/** Who reads files (useWorker). */
@@ -57,7 +59,7 @@ export function TodayBody(p: TodayBodyProps) {
 						</p>
 					)}
 				</div>
-				{p.ready && p.nowMs !== null && p.spaces.length > 0 && <WeekStrip progress={p.spacesProgress} nowMs={p.nowMs} />}
+				{p.ready && p.nowMs !== null && p.spaces.length > 0 && <WeekStrip progress={p.spacesProgress} noSpace={p.noSpaceProgress} nowMs={p.nowMs} />}
 			</div>
 			{!p.ready || p.nowMs === null ? (
 				<div data-testid="home-loading" aria-hidden className="h-[320px] w-full bg-panel" />

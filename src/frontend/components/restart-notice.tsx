@@ -12,6 +12,7 @@ export function RestartNotice() {
 	return (
 		<NoticeCard
 			data-testid="restart-notice"
+			data-notice="first"
 			role="status"
 			title="godspeed restarted after a problem"
 			actions={

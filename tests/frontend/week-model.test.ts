@@ -47,6 +47,12 @@ describe("weekStrip", () => {
 		assert.equal(week.label, "You studied on Tuesday and Thursday.");
 	});
 
+	it("a day with an answer only in a lesson with no space is studied and its questions count", () => {
+		const week = weekStrip([space(), space(lesson("loose", at(12, 9), at(12, 10)))], at(13).getTime());
+		assert.deepEqual(week.days.filter((d) => d.studied).map((d) => d.name), ["Thursday"]);
+		assert.equal(week.sentence, "You studied 1 day this week and answered 2 questions.");
+	});
+
 	it("a lesson listed twice counts once", () => {
 		const twice = lesson("a", at(11));
 		assert.equal(weekStrip([space(twice, twice)], at(13).getTime()).sentence, "You studied 1 day this week and answered 1 question.");

@@ -10,12 +10,15 @@ export interface SpacesProgress {
 	progress: ReadonlyMap<string, ProgressPayload>;
 	/** Why a space's last read failed. */
 	errors: ReadonlyMap<string, string>;
+	/** The lessons with no space, for the week line; null before the first read. */
+	noSpace: ProgressPayload | null;
 }
 
-export type ProgressRead = { spaceId: string; payload: ProgressPayload } | { spaceId: string; error: string };
+/** `spaceId` null: the lessons with no space. */
+export type ProgressRead = { spaceId: string | null; payload: ProgressPayload } | { spaceId: string | null; error: string };
 
 /** One round of reads on top of the last state. A failed read keeps the
- *  space's earlier payload, so a blip never blanks a row that had data. */
+ *  earlier payload, so a blip never blanks a row that had data. */
 export function foldSpacesProgress(prev: SpacesProgress, spaceIds: readonly string[], reads: readonly ProgressRead[]): SpacesProgress {
 	const progress = new Map<string, ProgressPayload>();
 	const errors = new Map<string, string>();
@@ -25,7 +28,8 @@ export function foldSpacesProgress(prev: SpacesProgress, spaceIds: readonly stri
 		if (payload) progress.set(spaceId, payload);
 		if (read && "error" in read) errors.set(spaceId, read.error);
 	}
-	return { progress, errors };
+	const none = reads.find((r) => r.spaceId === null);
+	return { progress, errors, noSpace: none && "payload" in none ? none.payload : prev.noSpace };
 }
 
 /** Every space has either data or a failed read, so no row waits on another. */

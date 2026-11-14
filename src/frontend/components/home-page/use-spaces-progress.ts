@@ -1,7 +1,8 @@
 /**
  * Home's progress for every space it shows (GET /api/progress per space):
  * the facts studied, the latest lesson and each deadline's covers and
- * ready %. Re-reads like useProgress does: when a turn settles, background
+ * ready %. The lessons with no space are read in the same round, for the
+ * week line. Re-reads like useProgress does: when a turn settles, background
  * activity changes, spaces change, and after the events channel
  * reconnects (debounced, so a burst causes one round). A space whose read
  * fails gets an error instead, so it never holds up the others.
@@ -17,7 +18,7 @@ const REFRESH_DEBOUNCE_MS = 400;
 
 /** `reload`: read every space again now (Try again). */
 export function useSpacesProgress(spaceIds: readonly string[]): SpacesProgress & { reload: () => void } {
-	const [state, setState] = useState<SpacesProgress>({ progress: new Map(), errors: new Map() });
+	const [state, setState] = useState<SpacesProgress>({ progress: new Map(), errors: new Map(), noSpace: null });
 	const key = spaceIds.join(",");
 	const request = useRef(0);
 	const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -26,7 +27,7 @@ export function useSpacesProgress(spaceIds: readonly string[]): SpacesProgress &
 		const id = ++request.current;
 		const ids = key ? key.split(",") : [];
 		void Promise.all(
-			ids.map(async (spaceId): Promise<ProgressRead> => {
+			[...ids, null].map(async (spaceId): Promise<ProgressRead> => {
 				try {
 					const res = await fetch(`/api/progress${spaceQuery(spaceId)}&today=${localDay()}`);
 					const body = await res.json();

@@ -16,7 +16,7 @@ import {
 	type SpacesProgress,
 } from "../../src/frontend/components/home-page/home-page-model.ts";
 
-const EMPTY: SpacesProgress = { progress: new Map(), errors: new Map() };
+const EMPTY: SpacesProgress = { progress: new Map(), errors: new Map(), noSpace: null };
 const payload = (tag: string) => ({ tag }) as unknown as ProgressPayload;
 
 describe("foldSpacesProgress", () => {
@@ -46,6 +46,19 @@ describe("foldSpacesProgress", () => {
 		const next = foldSpacesProgress(first, ["a"], [{ spaceId: "a", payload: payload("a1") }]);
 		assert.deepEqual([...next.progress.keys()], ["a"]);
 		assert.equal(next.errors.size, 0);
+	});
+
+	it("keeps the lessons with no space apart from the spaces, and their earlier payload through a failed read", () => {
+		const none = payload("none1");
+		const first = foldSpacesProgress(EMPTY, ["a"], [
+			{ spaceId: "a", payload: payload("a1") },
+			{ spaceId: null, payload: none },
+		]);
+		assert.ok(first.noSpace === none);
+		assert.deepEqual([...first.progress.keys()], ["a"]);
+		const failed = foldSpacesProgress(first, ["a"], [{ spaceId: null, error: "offline" }]);
+		assert.ok(failed.noSpace === none);
+		assert.equal(failed.errors.size, 0, "a failed read of the lessons with no space marks no space");
 	});
 });
 
