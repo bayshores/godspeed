@@ -2,23 +2,37 @@
  * The teacher's panel: click the teacher in the top bar.
  * Docked to the window's right edge, under the top bar. It pushes the page
  * left to make room. Never open over a lesson (the lesson has its own
- * teacher column). The head (the name and Close; the status stays on the
- * top bar's chip right above), then two
+ * teacher column). The head (name, the teacher's status, Close), then two
  * tabs: Talk (a chat outside lessons, talk-view.tsx, with Clear chat on
  * the tab row) and Activity (teacher-activity.tsx).
  */
 import { useEffect, useId, useState } from "react";
 import { cn } from "@/frontend/lib/utils";
 import type { AgentAction } from "@/shared/core";
-import type { AgentStatus } from "@/frontend/components/agent-status";
+import { agentWaiting, agentStatusLabel, waitingNotice, type AgentStatus } from "@/frontend/components/agent-status";
 import { tabListKeys } from "@/frontend/components/ui/tab-list";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
+import { useTeacher } from "./teacher-context";
+import type { AgentDoing } from "./follow-status";
 import { TalkView, type TalkAsk } from "./talk-view";
 import { TeacherActivity } from "./teacher-activity";
 import { DOCK_WIDTH, dockPush, dockWidth } from "./dock-model";
 
 const TABS = ["talk", "activity"] as const;
 type Tab = (typeof TABS)[number];
+
+/** The status line under the name: the helper notice while the agent
+ *  compacts, the waiting notice while work waits, what the agent is doing
+ *  while it works, then whether it is teaching. Nothing until the first
+ *  read of the agent. */
+export function agentLine(agent: AgentStatus | null, doing: AgentDoing | null = null): string | null {
+	if (!agent) return null;
+	if (agent.helperCovering) return "Tidying my memory. My helper is answering for a minute.";
+	if (agentWaiting(agent)) return waitingNotice(agent.name);
+	if (doing?.working) return doing.text;
+	if (agent.teaching) return "Teaching, idle";
+	return agent.connected ? agentStatusLabel(agent) : "Not connected";
+}
 
 /** The page's push while the panel is open (main's padding reads it). */
 const PUSH_VAR = "--lh-dock-push";
@@ -47,6 +61,8 @@ export function TeacherPanel({
 	const [tab, setTab] = useState<Tab>(startTab);
 	useEffect(() => setTab(startTab), [startTab]);
 	const [clearSlot, setClearSlot] = useState<HTMLElement | null>(null);
+	const teacher = useTeacher();
+	const line = agentLine(agent, teacher?.doing ?? null);
 	const tabsId = useId();
 	const [width, setWidth] = useState(DOCK_WIDTH);
 	useEffect(() => {
@@ -76,8 +92,15 @@ export function TeacherPanel({
 			className="lh-slide-in fixed top-12 right-0 bottom-0 z-[41] flex max-w-full flex-col border-l-2 border-line bg-panel font-ui"
 		>
 			<div className="flex shrink-0 items-center gap-3 pt-4 pr-3.5 pb-3 pl-5">
-				<span data-testid="teacher-panel-name" className="min-w-0 flex-1 truncate text-xl leading-snug font-medium text-ink">
-					{name}
+				<span className="flex min-w-0 flex-1 flex-col gap-px">
+					<span data-testid="teacher-panel-name" className="truncate text-xl leading-snug font-medium text-ink">
+						{name}
+					</span>
+					{line && (
+						<span data-testid="teacher-panel-agent" className="text-base text-ink-2">
+							{line}
+						</span>
+					)}
 				</span>
 				<button type="button" data-testid="teacher-panel-close" onClick={onClose} className="lh-btn lh-btn-quiet shrink-0 text-[15px]">
 					<PixelIcon name="close" />
