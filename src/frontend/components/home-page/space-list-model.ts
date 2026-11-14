@@ -28,7 +28,8 @@ export function spaceRow(progress: Pick<ProgressPayload, "overall" | "files" | "
 		return { segments, line: [`${total} ${total === 1 ? "topic" : "topics"}`, ...parts].join(", ") };
 	}
 	if (progress.files.length === 0) return { segments, line: "No study files yet." };
-	if (progress.facts.length === 0) return { segments, line: "No facts yet. They show up once your agent reads the files." };
+	// Short, so the row keeps room for the name; the work chip says what happens next.
+	if (progress.facts.length === 0) return { segments, line: "No facts yet." };
 	return { segments, line: "Its facts are not grouped into topics yet." };
 }
 

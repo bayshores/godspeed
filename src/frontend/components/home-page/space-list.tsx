@@ -1,7 +1,9 @@
+import type { CSSProperties } from "react";
 import { Link } from "react-router";
 import type { ProgressPayload, SpaceSummary } from "@/shared/core";
 import { spaceColorVar } from "@/frontend/components/space-color";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
+import { cn } from "@/frontend/lib/utils";
 import { todayWorkLine } from "@/frontend/components/work/work-model";
 import { spaceRow } from "./space-list-model";
 import { CHIP, SECTION_TITLE } from "./styles";
@@ -33,8 +35,10 @@ export function SpaceList({
 	return (
 		<section data-testid="today-spaces" className="flex flex-col gap-2">
 			<h2 className={SECTION_TITLE}>Your spaces</h2>
-			{/* Wide, the rows share two columns: the counts as wide as the longest, the names in the rest. */}
-			<ul className="@container grid grid-cols-[minmax(0,1fr)_auto] divide-y-2 divide-dotted divide-edge">
+			{/* Wide, the rows share two columns: the counts as wide as the longest, the names in the
+			    rest. The name's column keeps room for about 20 letters and a squeezed chip; below that
+			    the counts give way. */}
+			<ul className="@container grid grid-cols-[minmax(15rem,1fr)_minmax(0,auto)] divide-y-2 divide-dotted divide-edge">
 				{spaces.map((s) => (
 					<SpaceRow key={s.id} space={s} progress={progress.get(s.id)} failed={errors.has(s.id)} work={todayWorkLine(s, worker)} newFiles={newFiles.get(s.id) ?? null} onOpen={onOpen} />
 				))}
@@ -42,6 +46,9 @@ export function SpaceList({
 		</section>
 	);
 }
+
+/** A chip in a row gives way before the space's name does, down to a few letters (3rem). */
+const SQUEEZED_CHIP = "min-w-12 shrink";
 
 function SpaceRow({
 	space: s,
@@ -73,23 +80,25 @@ function SpaceRow({
 					data-testid="today-space-open"
 					onClick={() => onOpen(s.id)}
 					title={s.name}
-					className="min-w-0 truncate font-medium text-ink after:absolute after:inset-0"
+					// Wide, the name only truncates past what the dot and its chips at their smallest leave.
+					style={{ "--chips": [work, newFiles].filter(Boolean).length } as CSSProperties}
+					className="min-w-0 truncate font-medium text-ink after:absolute after:inset-0 @min-[620px]:max-w-[calc(100%-1.125rem-var(--chips)*3.5rem)] @min-[620px]:shrink-0"
 				>
 					{s.name}
 				</Link>
 				{work && (
-					<span data-testid="today-space-work" className={CHIP}>
-						{work}
+					<span data-testid="today-space-work" title={work} className={cn(CHIP, SQUEEZED_CHIP)}>
+						<span className="truncate">{work}</span>
 					</span>
 				)}
 				{newFiles && (
-					<Link to="/space/files" data-testid="today-space-files" onClick={() => onOpen(s.id)} className={`${CHIP} relative z-10 hover:underline`}>
-						<PixelIcon name="folder" className="h-[10px]" />
-						{newFiles}
+					<Link to="/space/files" data-testid="today-space-files" onClick={() => onOpen(s.id)} title={newFiles} className={cn(CHIP, SQUEEZED_CHIP, "relative z-10 hover:underline")}>
+						<PixelIcon name="folder" className="h-[10px] shrink-0" />
+						<span className="truncate">{newFiles}</span>
 					</Link>
 				)}
 			</span>
-			<span className="flex w-full items-center gap-3 @min-[620px]:w-auto">
+			<span className="flex w-full min-w-0 items-center gap-3 @min-[620px]:w-auto">
 				{total > 0 ? (
 					<span role="img" aria-label={words.line} className="flex h-2 w-20 shrink-0 gap-[2px]">
 						{words.segments.map((seg) => (
@@ -99,7 +108,7 @@ function SpaceRow({
 				) : (
 					<span aria-hidden className="h-2 w-20 shrink-0 bg-[radial-gradient(var(--color-ink-2)_1px,transparent_1px)] bg-[length:4px_4px]" />
 				)}
-				<span data-testid="today-space-line" aria-hidden={total > 0 || undefined} className="min-w-0 flex-1 leading-snug text-ink-2 @min-[620px]:whitespace-nowrap">
+				<span data-testid="today-space-line" aria-hidden={total > 0 || undefined} className="min-w-0 flex-1 leading-snug text-ink-2 @min-[620px]:truncate">
 					{words.line}
 				</span>
 				<PixelIcon name="chevron" className="h-[11px] text-ink" />

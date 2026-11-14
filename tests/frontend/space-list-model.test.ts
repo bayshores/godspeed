@@ -22,7 +22,7 @@ describe("spaceRow", () => {
 
 	it("no topics yet: why, in the app's words", () => {
 		assert.equal(spaceRow(payload(undefined, 0, 0), false).line, "No study files yet.");
-		assert.equal(spaceRow(payload(undefined, 3, 0), false).line, "No facts yet. They show up once your agent reads the files.");
+		assert.equal(spaceRow(payload(undefined, 3, 0), false).line, "No facts yet.");
 		assert.equal(spaceRow(payload(undefined, 3, 40), false).line, "Its facts are not grouped into topics yet.");
 		assert.deepEqual(spaceRow(payload(undefined, 3, 0), false).segments, []);
 	});
