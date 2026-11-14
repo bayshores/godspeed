@@ -36,7 +36,7 @@ godspeed (Tauri shell, crates/shell)                         godspeed-server (cr
 | `quit.rs` | The one exit routine: stop the server, then install a downloaded update (section 5, Shutdown). |
 | `server.rs` | Spawn, ready wait, port choice, secret, login tokens, restart, stop, `mcp-endpoint.json`. |
 | `rpc.rs` | Reads server stdout lines, routes requests to the demo runner, writes replies to stdin. |
-| `notify.rs` | Shows the system notifications the server asks for, through tauri-plugin-notification registered without its page script (that script asks for the permission on every page load, which the demo window would report as a page error). The Mac asks the learner once, at the first notification; clicks are not handled. |
+| `notify.rs` | Shows the system notifications the server asks for, through tauri-plugin-notification registered without its page script (that script asks for the permission on every page load, which the demo window would report as a page error). It skips the notification while the main window has the focus (the learner sees the deadline on Today, and a Mac may show no banner for the app in front) and answers whether it was shown; clicks are not handled. A debug build posts as Terminal (the plugin uses `com.apple.Terminal` while `tauri::is_dev()`). |
 | `window.rs` | Builds the main window, navigation guards and the `open_link` command, show fallback, title, downloads (save dialog), the pending `open-settings` push. |
 | `menu.rs` | The application menu. |
 | `zoom.rs` | The zoom ladder, push and commands (`get_zoom`, `set_zoom`, `zoom_step`, `zoom_reset`). |
@@ -86,9 +86,10 @@ One JSON object per line, UTF-8, `\n`-terminated. `t` names the message. The ser
 | server → shell | `{"t":"login_ok","id":n}` | Stored. The shell navigates only after this. |
 | server → shell | `{"t":"demo","id":n,"html":"…","probe":"…"\|null}` | Run a demo. |
 | server → shell | `{"t":"svg","id":n,"svg":"…","width":w,"height":h}` | Snapshot an SVG resvg could not draw (`svgViewport` sizes). |
-| server → shell | `{"t":"notify","title":"…","body":"…"}` | Show a system notification (a deadline reminder). No answer. |
+| server → shell | `{"t":"notify","id":n,"title":"…","body":"…"}` | Show a system notification (a deadline reminder), unless the main window has the focus. |
 | shell → server | `{"t":"demo_done","id":n,"result":{"consoleErrors":[],"pageErrors":[],"failedRequests":[],"probeResult":…,"ok":true}}` or `{"t":"demo_done","id":n,"error":"…"}` | `probeResult` absent when not probed. |
 | shell → server | `{"t":"svg_done","id":n,"png":"<base64>"}` or `{"t":"svg_done","id":n,"error":"…"}` | PNG exactly w×h px. |
+| shell → server | `{"t":"notify_done","id":n,"shown":true\|false}` | Whether the notification was handed to the system: false while the main window has the focus or when the plugin refused it. |
 
 Server side of the protocol: stdin EOF triggers `shutdown::trigger()` (replaces the FIFO check when `LH_SHELL=1`, and works on Windows). The startup `println!` in `main.rs` becomes `eprintln!`. Unknown lines are logged to stderr and ignored on both sides.
 

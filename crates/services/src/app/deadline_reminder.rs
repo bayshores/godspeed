@@ -1,28 +1,30 @@
 //! Deadline reminders: at most one system notification a day, for the soonest open deadline 3
 //! days away or less. The server decides and the desktop shell shows it, so there is none without
-//! the shell. It runs 10 seconds after the start, then every day at 9:00 local time, and only
-//! while godspeed runs; data/reminders.json keeps the day of the last one.
+//! the shell. It checks 10 seconds after the start, then every 10 minutes, and sends from 9:00
+//! local time on, only while godspeed runs; data/reminders.json keeps the day of the last one.
 
 use std::sync::Arc;
 
 use gs_base::{clock, num, time};
 use gs_core::contracts::space::deadline_due_at;
 use gs_core::spaces::today_note::{local_day, relative_day};
+use gs_core::study::homework::problems_done;
 use gs_core::study::progress::days_between;
 use gs_json::Json;
-use gs_shell_rpc::ToShell;
+use gs_shell_rpc::ShellLink;
 
 use crate::App;
 use crate::graph::progress::progress_for;
 use crate::spaces::list_open_deadlines;
 
 const START_DELAY_MS: i64 = 10_000;
-const DAY_MS: i64 = 24 * 60 * 60 * 1000;
+/// Short waits that each look at the wall clock: the timer stops while the computer sleeps, so a
+/// computer that slept through 9:00 still sends within 10 minutes of waking.
+const WAKE_MS: i64 = 10 * 60 * 1000;
 const REMIND_AT: &str = "09:00";
 const MOST_DAYS_AWAY: i64 = 3;
 
 /// A notification's words.
-#[derive(Debug, PartialEq)]
 struct Reminder {
 	title: String,
 	body: String,
@@ -39,9 +41,13 @@ fn reminder_text(deadlines: &[Json], now_ms: i64, ready_of: impl FnOnce(&Json) -
 	})?;
 	let title = format!("{} is {}", deadline["name"].as_str().unwrap_or(""), relative_day(days));
 	let space = deadline["spaceName"].as_str().unwrap_or("");
-	let body = match ready_of(deadline) {
-		Some(ready) => format!("{space}. You are {}% ready.", num::math_round(ready * 100.0)),
-		None => format!("{space}."),
+	// As the app counts it: problems first, readiness for a deadline without problems.
+	let body = if let Some(problems) = problems_done(&deadline["problems"]) {
+		format!("{space}. {} of {} problems done.", problems["done"].as_i64().unwrap_or(0), problems["total"].as_i64().unwrap_or(0))
+	} else if let Some(ready) = ready_of(deadline) {
+		format!("{space}. You are {}% ready.", num::math_round(ready * 100.0))
+	} else {
+		format!("{space}.")
 	};
 	Some(Reminder { title, body })
 }
@@ -52,45 +58,48 @@ fn due_at(deadline: &Json) -> Option<i64> {
 	time::parse_date(&format!("{date}T{at}"))
 }
 
-/// Checks once 10 seconds after the start, then every day at 9:00.
+/// Whether the day's reminder is due at `now_ms`: none went out today (`last_day` is the day of
+/// the last one), and this is the check after the start or 9:00 has passed.
+fn is_due(now_ms: i64, last_day: Option<&str>, at_start: bool) -> bool {
+	let today = local_day(now_ms);
+	if last_day == Some(today.as_str()) {
+		return false;
+	}
+	at_start || time::parse_date(&format!("{today}T{REMIND_AT}")).is_none_or(|nine| now_ms >= nine)
+}
+
+/// Checks 10 seconds after the start, then every 10 minutes. Nothing runs without the shell.
 pub fn start_deadline_reminders(app: &Arc<App>) {
+	let Some(shell) = app.shell.clone() else { return };
 	let app = app.clone();
 	tokio::spawn(async move {
 		clock::sleep(START_DELAY_MS).await;
+		let mut at_start = true;
 		loop {
-			remind(&app, clock::now_ms());
-			clock::sleep_until(next_check_at(clock::now_ms())).await;
+			remind(&app, &shell, clock::now_ms(), at_start).await;
+			at_start = false;
+			clock::sleep(WAKE_MS).await;
 		}
 	});
 }
 
-/// The next 9:00 local time after `now_ms`.
-fn next_check_at(now_ms: i64) -> i64 {
-	let at = |day: &str| time::parse_date(&format!("{day}T{REMIND_AT}"));
-	let Some(today) = at(&local_day(now_ms)) else { return now_ms + DAY_MS };
-	if today > now_ms {
-		return today;
-	}
-	// A day later is the next date's 8:00 to 10:00, even on a clock change.
-	at(&local_day(today + DAY_MS)).unwrap_or(now_ms + DAY_MS)
-}
-
-/// Sends the day's reminder, unless there is no shell, the setting is off, one went out today
-/// already, or no deadline is close.
-fn remind(app: &App, now_ms: i64) {
-	let Some(shell) = &app.shell else { return };
-	if !reminders_on(app) {
-		return;
-	}
-	let today = local_day(now_ms);
-	if app.stores.reminders.last_reminder_day().as_deref() == Some(today.as_str()) {
+/// Sends the day's reminder, unless the setting is off, it is not due, or no deadline is close.
+/// The day counts as reminded only once the shell handed the notification to the system; while
+/// the window has the focus it does not, and a later check tries again.
+async fn remind(app: &App, shell: &ShellLink, now_ms: i64, at_start: bool) {
+	if !reminders_on(app) || !is_due(now_ms, app.stores.reminders.last_reminder_day().as_deref(), at_start) {
 		return;
 	}
 	let Some(reminder) = reminder_text(&list_open_deadlines(app), now_ms, |d| ready_of(app, d)) else { return };
-	if let Err(err) = app.stores.reminders.set_last_reminder_day(&today) {
-		eprintln!("[reminders] could not save the reminder day: {err}");
+	match shell.notify(&reminder.title, &reminder.body).await {
+		Ok(true) => {
+			if let Err(err) = app.stores.reminders.set_last_reminder_day(&local_day(now_ms)) {
+				eprintln!("[reminders] could not save the reminder day: {err}");
+			}
+		}
+		Ok(false) => {}
+		Err(err) => eprintln!("[reminders] the shell did not answer: {err}"),
 	}
-	shell.send(&ToShell::Notify { title: reminder.title, body: reminder.body });
 }
 
 /// Only an explicit `general.deadlineReminders: false` turns them off.
@@ -111,12 +120,14 @@ mod tests {
 
 	use gs_base::config::Paths;
 	use gs_json::json;
-	use gs_shell_rpc::{ShellLink, read_lines};
-	use parking_lot::Mutex;
+	use gs_shell_rpc::{ToServer, ToShell, read_lines};
+	use tokio::sync::mpsc;
 
 	use super::*;
-	use crate::app::test_support::{scratch_dir, test_app};
+	use crate::app::test_support::scratch_dir;
 	use crate::spaces::add_space_deadline;
+
+	const DAY_MS: i64 = 24 * 60 * 60 * 1000;
 
 	/// 9:00 local time on a fixed day.
 	fn nine() -> i64 {
@@ -148,6 +159,13 @@ mod tests {
 	}
 
 	#[test]
+	fn a_deadline_with_problems_counts_the_problems_done() {
+		let mut homework = deadline("Homework 3", 2, None);
+		homework.as_obj_mut().unwrap().insert("problems", json!([{ "id": "p1", "done": true }, { "id": "p2", "done": false }, { "id": "p3" }]));
+		assert_eq!(text(&[homework], Some(0.0)).unwrap().1, "Algebra. 1 of 3 problems done.");
+	}
+
+	#[test]
 	fn unknown_readiness_leaves_only_the_space() {
 		assert_eq!(text(&[deadline("Quiz 2", 2, None)], None).unwrap().1, "Algebra.");
 	}
@@ -168,18 +186,24 @@ mod tests {
 	}
 
 	#[test]
-	fn checks_come_at_nine() {
-		assert_eq!(next_check_at(nine() - 60_000), nine());
-		assert_eq!(next_check_at(nine()), time::parse_date(&format!("{}T09:00", day_after(1))).unwrap());
+	fn one_is_due_from_nine_on_once_a_day() {
+		let yesterday = day_after(-1);
+		let today = day_after(0);
+		assert!(!is_due(nine() - 60_000, Some(&yesterday), false), "before 9:00");
+		assert!(is_due(nine() - 60_000, Some(&yesterday), true), "before 9:00, just after the start");
+		assert!(is_due(nine(), Some(&yesterday), false), "at 9:00");
+		assert!(is_due(nine(), None, false), "the first one ever");
+		assert!(!is_due(nine() + 60_000, Some(&today), false), "already sent today");
+		assert!(!is_due(nine() + 60_000, Some(&today), true), "already sent today, just after the start");
+		assert!(is_due(nine() + 10 * 60 * 60 * 1000, Some(&yesterday), false), "woke at 19:00 after sleeping through 9:00");
 	}
 
-	/// The lines a shell would read.
-	#[derive(Clone, Default)]
-	struct Shell(Arc<Mutex<Vec<u8>>>);
+	/// Hands each line the server writes to the shell to the test.
+	struct Lines(mpsc::UnboundedSender<Vec<u8>>);
 
-	impl Write for Shell {
+	impl Write for Lines {
 		fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-			self.0.lock().extend_from_slice(buf);
+			let _ = self.0.send(buf.to_vec());
 			Ok(buf.len())
 		}
 		fn flush(&mut self) -> std::io::Result<()> {
@@ -187,19 +211,13 @@ mod tests {
 		}
 	}
 
-	impl Shell {
-		fn sent(&self) -> Vec<ToShell> {
-			read_lines::<ToShell>(&self.0.lock()[..]).map(Result::unwrap).collect()
-		}
-	}
-
-	fn app_with_shell(root: &std::path::Path) -> (Arc<App>, Shell) {
-		let shell = Shell::default();
+	fn app_with_shell(root: &std::path::Path) -> (Arc<App>, mpsc::UnboundedReceiver<Vec<u8>>) {
+		let (tx, rx) = mpsc::unbounded_channel();
 		for name in ["data", "home", "tmp", "res"] {
 			std::fs::create_dir_all(root.join(name)).unwrap();
 		}
-		let app = App::new(Paths::new(root.join("data"), root.join("home"), root.join("tmp"), root.join("res")), Some(ShellLink::new(shell.clone())));
-		(app, shell)
+		let app = App::new(Paths::new(root.join("data"), root.join("home"), root.join("tmp"), root.join("res")), Some(ShellLink::new(Lines(tx))));
+		(app, rx)
 	}
 
 	fn add_quiz(app: &App) {
@@ -207,30 +225,56 @@ mod tests {
 		add_space_deadline(app, space["id"].as_str().unwrap(), &json!({ "kind": "quiz", "name": "Quiz 2", "date": day_after(2) })).unwrap();
 	}
 
-	#[test]
-	fn one_reminder_a_day_however_often_godspeed_starts() {
-		let root = scratch_dir("reminder-once");
-		let (app, shell) = app_with_shell(&root);
-		add_quiz(&app);
-		remind(&app, nine());
-		remind(&app, nine() + 60_000);
-		assert_eq!(shell.sent(), [ToShell::Notify { title: "Quiz 2 is in 2 days".into(), body: "Algebra.".into() }]);
-		assert_eq!(app.stores.reminders.last_reminder_day(), Some(day_after(0)));
-		remind(&app, nine() + DAY_MS);
-		assert_eq!(shell.sent().len(), 2);
+	/// Runs one check at `now_ms` (not the one after the start). The shell answers `shown` to a
+	/// notification; the answer is what it was asked to show.
+	async fn check(app: &Arc<App>, lines: &mut mpsc::UnboundedReceiver<Vec<u8>>, now_ms: i64, shown: bool) -> Option<(String, String)> {
+		let mut task = tokio::spawn({
+			let app = app.clone();
+			async move { remind(&app, app.shell.as_ref().unwrap(), now_ms, false).await }
+		});
+		tokio::select! {
+			line = lines.recv() => {
+				let Some(Ok(ToShell::Notify { id, title, body })) = read_lines::<ToShell>(&line.unwrap()[..]).next() else { panic!("a notify request") };
+				app.shell.as_ref().unwrap().receive(ToServer::NotifyDone { id, shown });
+				task.await.unwrap();
+				Some((title, body))
+			}
+			done = &mut task => {
+				done.unwrap();
+				None
+			}
+		}
 	}
 
-	#[test]
-	fn the_switch_off_or_no_shell_sends_and_saves_nothing() {
+	#[tokio::test]
+	async fn one_reminder_a_day_however_often_it_checks() {
+		let root = scratch_dir("reminder-once");
+		let (app, mut lines) = app_with_shell(&root);
+		add_quiz(&app);
+		assert_eq!(check(&app, &mut lines, nine(), true).await, Some(("Quiz 2 is in 2 days".into(), "Algebra.".into())));
+		assert_eq!(app.stores.reminders.last_reminder_day(), Some(day_after(0)));
+		assert_eq!(check(&app, &mut lines, nine() + 60_000, true).await, None);
+		assert!(check(&app, &mut lines, nine() + DAY_MS, true).await.is_some());
+	}
+
+	#[tokio::test]
+	async fn a_notification_not_shown_is_tried_again_at_the_next_check() {
+		let root = scratch_dir("reminder-focused");
+		let (app, mut lines) = app_with_shell(&root);
+		add_quiz(&app);
+		assert!(check(&app, &mut lines, nine(), false).await.is_some());
+		assert_eq!(app.stores.reminders.last_reminder_day(), None);
+		assert!(check(&app, &mut lines, nine() + WAKE_MS, true).await.is_some());
+		assert_eq!(app.stores.reminders.last_reminder_day(), Some(day_after(0)));
+	}
+
+	#[tokio::test]
+	async fn the_switch_off_sends_and_saves_nothing() {
 		let root = scratch_dir("reminder-off");
-		let (app, shell) = app_with_shell(&root);
+		let (app, mut lines) = app_with_shell(&root);
 		add_quiz(&app);
 		gs_base::fsx::write_text_atomic(&app.paths.settings_file, r#"{"version":3,"general":{"deadlineReminders":false}}"#).unwrap();
-		remind(&app, nine());
-		assert!(shell.sent().is_empty());
-		let plain = test_app(&root);
-		std::fs::remove_file(&plain.paths.settings_file).unwrap();
-		remind(&plain, nine());
+		assert_eq!(check(&app, &mut lines, nine(), true).await, None);
 		assert!(!root.join("data/reminders.json").exists());
 	}
 }

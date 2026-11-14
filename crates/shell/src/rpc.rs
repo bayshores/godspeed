@@ -82,8 +82,9 @@ pub fn read(app: &AppHandle, generation: u64, stdout: impl Read, ready: mpsc::Se
 				app.state::<Server>().login_ok(id);
 				continue;
 			}
-			Ok(ToShell::Notify { title, body }) => {
-				notify::show(app, &title, &body);
+			Ok(ToShell::Notify { id, title, body }) => {
+				let shown = notify::show(app, &title, &body);
+				app.state::<Server>().send(Some(generation), &ToServer::NotifyDone { id, shown });
 				continue;
 			}
 			Ok(ToShell::Demo { id, html, probe }) => (id, Work::Demo(DemoJob { html, probe })),

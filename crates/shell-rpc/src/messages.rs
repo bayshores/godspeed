@@ -15,8 +15,8 @@ pub enum ToShell {
 	Demo { id: u64, html: String, probe: Option<String> },
 	/// Snapshot an SVG resvg could not draw, as a PNG of exactly `width` × `height` px.
 	Svg { id: u64, svg: String, width: u32, height: u32 },
-	/// Show a system notification (a deadline reminder); nothing comes back.
-	Notify { title: String, body: String },
+	/// Show a system notification (a deadline reminder) unless the window has the focus.
+	Notify { id: u64, title: String, body: String },
 }
 
 /// Shell to server.
@@ -35,6 +35,8 @@ pub enum ToServer {
 		#[serde(flatten)]
 		outcome: SvgOutcome,
 	},
+	/// Whether the notification went to the system.
+	NotifyDone { id: u64, shown: bool },
 }
 
 /// `"result": {…}` or `"error": "…"`.
@@ -89,7 +91,7 @@ mod tests {
 		round_trip(ToShell::Demo { id: 2, html: "<p>\n</p>".into(), probe: Some("x".into()) }, r#"{"t":"demo","id":2,"html":"<p>\n</p>","probe":"x"}"#);
 		round_trip(ToShell::Demo { id: 3, html: String::new(), probe: None }, r#"{"t":"demo","id":3,"html":"","probe":null}"#);
 		round_trip(ToShell::Svg { id: 4, svg: "<svg/>".into(), width: 900, height: 700 }, r#"{"t":"svg","id":4,"svg":"<svg/>","width":900,"height":700}"#);
-		round_trip(ToShell::Notify { title: "Quiz 2 is tomorrow".into(), body: "Algebra.".into() }, r#"{"t":"notify","title":"Quiz 2 is tomorrow","body":"Algebra."}"#);
+		round_trip(ToShell::Notify { id: 5, title: "Quiz 2 is tomorrow".into(), body: "Algebra.".into() }, r#"{"t":"notify","id":5,"title":"Quiz 2 is tomorrow","body":"Algebra."}"#);
 	}
 
 	#[test]
@@ -111,6 +113,7 @@ mod tests {
 		round_trip(ToServer::DemoDone { id: 5, outcome: DemoOutcome::Error("no view".into()) }, r#"{"t":"demo_done","id":5,"error":"no view"}"#);
 		round_trip(ToServer::SvgDone { id: 6, outcome: SvgOutcome::Png("iVBO".into()) }, r#"{"t":"svg_done","id":6,"png":"iVBO"}"#);
 		round_trip(ToServer::SvgDone { id: 7, outcome: SvgOutcome::Error("too big".into()) }, r#"{"t":"svg_done","id":7,"error":"too big"}"#);
+		round_trip(ToServer::NotifyDone { id: 8, shown: false }, r#"{"t":"notify_done","id":8,"shown":false}"#);
 	}
 
 	#[test]

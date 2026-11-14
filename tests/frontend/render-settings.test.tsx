@@ -163,12 +163,19 @@ describe("GeneralSection (SSR)", () => {
 		assert.match(off.split('data-testid="toggle-build-the-graph"')[1]!.slice(0, 400), />Off</);
 	});
 
-	it("deadline reminders: on by default, off when the record says so", () => {
-		const on = render({ version: 1 });
-		assert.ok(on.includes("One notification a day when a deadline is 3 days away or less."));
-		assert.ok(tagOf(on, "toggle-deadline-reminders").includes('aria-checked="true"'));
-		const off = render({ version: 1, general: { deadlineReminders: false } });
-		assert.ok(tagOf(off, "toggle-deadline-reminders").includes('aria-checked="false"'));
+	it("deadline reminders: on by default, off when the record says so, only in the desktop app", () => {
+		assert.ok(!render({ version: 1 }).includes("deadline-reminders-row"), "a browser can show no notification");
+		const global = globalThis as { window?: unknown };
+		global.window = { lh: {} };
+		try {
+			const on = render({ version: 1 });
+			assert.ok(on.includes("One notification a day when a deadline is 3 days away or less<"));
+			assert.ok(tagOf(on, "toggle-deadline-reminders").includes('aria-checked="true"'));
+			const off = render({ version: 1, general: { deadlineReminders: false } });
+			assert.ok(tagOf(off, "toggle-deadline-reminders").includes('aria-checked="false"'));
+		} finally {
+			delete global.window;
+		}
 	});
 
 	it("graph off: the switch shows off and the chunk slider is disabled", () => {

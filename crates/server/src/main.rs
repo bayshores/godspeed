@@ -1,7 +1,7 @@
 //! godspeed-server: the app's backend, started by the desktop shell with its working directory
-//! beside `ui/`, `models/` and `pdfjs-dist/`. It listens on 127.0.0.1:$PORT and writes nothing
-//! until a request asks it to. With `LH_SHELL=1` its stdin and stdout carry the line protocol to
-//! the shell (gs-shell-rpc); log lines go to stderr either way.
+//! beside `ui/`, `models/` and `pdfjs-dist/`. It listens on 127.0.0.1:$PORT. With `LH_SHELL=1`
+//! its stdin and stdout carry the line protocol to the shell (gs-shell-rpc); log lines go to
+//! stderr either way.
 
 use std::process::ExitCode;
 

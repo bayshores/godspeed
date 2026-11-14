@@ -21,6 +21,7 @@ const TIMED_OUT: &str = "demo check timed out";
 enum Waiter {
 	Demo(oneshot::Sender<Result<DemoResult, String>>),
 	Svg(oneshot::Sender<Result<String, String>>),
+	Notify(oneshot::Sender<Result<bool, String>>),
 }
 
 impl Waiter {
@@ -28,6 +29,7 @@ impl Waiter {
 		match self {
 			Waiter::Demo(_) => "demo",
 			Waiter::Svg(_) => "svg",
+			Waiter::Notify(_) => "notify",
 		}
 	}
 }
@@ -64,6 +66,12 @@ impl ShellLink {
 	/// The shell's browser snapshot of an SVG as a base64 PNG of exactly `width` × `height` px.
 	pub async fn svg(&self, svg: &str, width: u32, height: u32) -> Result<String, String> {
 		self.request(|id| ToShell::Svg { id, svg: svg.to_owned(), width, height }, Waiter::Svg).await
+	}
+
+	/// Shows a system notification, unless the window has the focus; the answer is whether it
+	/// went to the system.
+	pub async fn notify(&self, title: &str, body: &str) -> Result<bool, String> {
+		self.request(|id| ToShell::Notify { id, title: title.to_owned(), body: body.to_owned() }, Waiter::Notify).await
 	}
 
 	/// Sends the message `make` builds with a fresh id and waits for its answer.
@@ -114,6 +122,11 @@ impl ShellLink {
 						SvgOutcome::Png(png) => Ok(png),
 						SvgOutcome::Error(err) => Err(err),
 					});
+				}
+			}
+			ToServer::NotifyDone { id, shown } => {
+				if let Some(Waiter::Notify(tx)) = self.waiter(id, "notify") {
+					let _ = tx.send(Ok(shown));
 				}
 			}
 		}
