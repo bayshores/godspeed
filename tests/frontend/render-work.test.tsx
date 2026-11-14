@@ -104,4 +104,15 @@ describe("The work frame around a space's pages", () => {
 		assert.equal(text(host, "page"), "The page");
 		assert.ok(requests.includes("DELETE /api/spaces/spc_ml/work"));
 	});
+
+	const sides = (host: HTMLElement) => host.querySelector('[data-testid="work-frame-sides"]')!.className;
+
+	it("the frame is as wide as the page's column", async () => {
+		assert.match(sides(await mount(page, record({ files: [file("week2", "extracting")] }))), /max-w-\[908px\]/);
+	});
+
+	it("and wider around the Graph page", async () => {
+		const wide = <SpaceWorkFrame wide><p>The graph</p></SpaceWorkFrame>;
+		assert.match(sides(await mount(wide, record({ files: [file("week2", "extracting")] }))), /max-w-\[1240px\]/);
+	});
 });

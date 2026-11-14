@@ -16,10 +16,10 @@ export interface Frame {
  * its top edge saying who works on it and how far it is. The page inside
  * stays as it is and stays usable. With no frame the page is drawn the
  * same way, so it keeps its state when work starts or ends. `column`: the
- * frame hugs the page's 908px column.
+ * frame hugs the page's own column, which is wider on the Graph page.
  */
-export function WorkFrame({ frame, column = false, children }: { frame: Frame | null; column?: boolean; children: ReactNode }) {
-	const width = column ? "mx-auto w-full max-w-[908px]" : "w-full";
+export function WorkFrame({ frame, column, children }: { frame: Frame | null; column?: "page" | "wide"; children: ReactNode }) {
+	const width = cn("w-full", column === "page" && "mx-auto max-w-[908px]", column === "wide" && "mx-auto max-w-[1240px]");
 	return (
 		<div className="flex h-full min-h-0 flex-col">
 			{frame && (
@@ -40,7 +40,7 @@ export function WorkFrame({ frame, column = false, children }: { frame: Frame | 
 			)}
 			<div className="relative min-h-0 flex-1">
 				{children}
-				{frame && <div aria-hidden className={cn("pointer-events-none absolute inset-y-0 left-1/2 -translate-x-1/2 border-2 border-t-0 border-line", column ? "w-full max-w-[908px]" : "w-full")} />}
+				{frame && <div aria-hidden data-testid="work-frame-sides" className={cn("pointer-events-none absolute inset-y-0 left-1/2 -translate-x-1/2 border-2 border-t-0 border-line", width)} />}
 			</div>
 		</div>
 	);

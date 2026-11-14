@@ -11,9 +11,9 @@ import { spaceFrame, workState } from "./work-model";
 /**
  * The work frame around every tab of a space: while its files are read or
  * its facts are grouped into topics, then what the round read until it is
- * closed (or a day passed).
+ * closed (or a day passed). `wide`: the tab's page is the wide one.
  */
-export function SpaceWorkFrame({ children }: { children: ReactNode }) {
+export function SpaceWorkFrame({ wide = false, children }: { wide?: boolean; children: ReactNode }) {
 	const { active } = useSpaces();
 	const { record } = useSpaceRecord(active);
 	const nowMs = useMinute();
@@ -46,7 +46,7 @@ export function SpaceWorkFrame({ children }: { children: ReactNode }) {
 		}
 	}
 	return (
-		<WorkFrame frame={frame} column>
+		<WorkFrame frame={frame} column={wide ? "wide" : "page"}>
 			{children}
 		</WorkFrame>
 	);
