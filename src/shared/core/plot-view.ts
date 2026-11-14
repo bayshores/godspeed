@@ -1,6 +1,7 @@
 /**
  * A plot and its guess in the view. The plot learns whether its guess is
- * answered (it stays locked until then), the guess learns the drawn value it
+ * answered (it stays locked until then) and the point it asks at (held back
+ * until then on a points line), the guess learns the drawn value it
  * asked about (its card's result line), and the guess's card sits right
  * under the plot. A refused plot shows nothing: the teacher re-sends it, or
  * the guess alone. Pure and browser-safe.
@@ -17,8 +18,8 @@ function guessOf(output: unknown): { toolCallId: string; value: number } | null 
 }
 
 /** Joins each drawn plot to its guess, in place (the view's parts are made
- *  fresh by every projection). `guessOpen` on the plot part, `plotValue`
- *  on the guess part. */
+ *  fresh by every projection). `guessOpen` and `guessAt` on the plot part,
+ *  `plotValue` on the guess part. */
 export function joinPlots(view: LhViewMessage[]): void {
 	const byCall = new Map<string, LhViewPart>();
 	for (const m of view) {
@@ -33,6 +34,7 @@ export function joinPlots(view: LhViewMessage[]): void {
 			if (!of || !guess) continue;
 			// Answered or skipped, or closed by a later message: nothing else opens it.
 			plot.guessOpen = guess.state === "output-available" || guess.state === "interrupted";
+			plot.guessAt = (guess.input as { onPlot?: unknown } | undefined)?.onPlot;
 			guess.plotValue = of.value;
 			const at = m.parts.indexOf(guess);
 			if (at >= 0 && at < m.parts.indexOf(plot)) {

@@ -2,16 +2,19 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
 	formatNumber,
+	heldBack,
 	keyTops,
 	labelPieces,
 	lineEnd,
 	linePath,
 	liveText,
+	pointMarks,
 	readPlot,
 	sliderText,
 	sliderTicks,
 	ticks,
 	type Plot,
+	type PlotLine,
 } from "../../src/frontend/components/lesson/plot-part-model.ts";
 import { CV_CALL, CV_RESULT, LEASH_CALL, LEASH_RESULT } from "../plot-fixtures.ts";
 
@@ -27,6 +30,12 @@ function cv(call: unknown = CV_CALL): Plot {
 	return read.plot;
 }
 
+/** A formula line's value function; a points line has none. */
+function at(l: PlotLine | undefined): (x: number, slider: number) => number {
+	assert.ok(l && l.points === null);
+	return l.at;
+}
+
 const MIXED_CALL = { ...LEASH_CALL, lines: [{ label: "model", expr: "a/(1+lambda)" }, { label: "data", points: [[2, 1.2], [6, 2.7], [10, 5.4]], hidden: true }] };
 
 describe("readPlot", () => {
@@ -35,15 +44,15 @@ describe("readPlot", () => {
 		assert.equal(plot.title, "One feature, where the weight ends up");
 		assert.deepEqual([plot.y.min, plot.y.max], [0, 5]);
 		assert.deepEqual(
-			plot.lines.map((l) => [l.label, l.latex, l.hidden, l.dashed]),
+			plot.lines.map((l) => [l.label, l.points === null ? l.latex : "", l.hidden, l.dashed]),
 			[
 				["penalty", "a/(1+\\lambda)", true, false],
 				["leash", "\\min(a, 4/(1+\\lambda))", false, true],
 			],
 		);
 		assert.equal(plot.slider?.latex, "\\lambda");
-		assert.equal(plot.lines[0]!.at(8, 1), 4);
-		assert.equal(plot.lines[1]!.at(8, 1), 2);
+		assert.equal(at(plot.lines[0])(8, 1), 4);
+		assert.equal(at(plot.lines[1])(8, 1), 2);
 	});
 
 	it("takes numbers sent as numeric strings", () => {
@@ -68,11 +77,11 @@ describe("readPlot", () => {
 		const plot = cv();
 		assert.equal(plot.slider, null);
 		assert.deepEqual(
-			plot.lines.map((l) => [l.label, l.latex, l.points]),
+			plot.lines.map((l) => [l.label, "latex" in l, l.points]),
 			[
 				[
 					"cv_error",
-					"",
+					false,
 					[
 						[1, 0.8],
 						[3, 0.4],
@@ -82,8 +91,6 @@ describe("readPlot", () => {
 				],
 			],
 		);
-		assert.equal(plot.lines[0]!.at(5, Number.NaN), 0.3);
-		assert.ok(Number.isNaN(plot.lines[0]!.at(4, Number.NaN)), "no value between points");
 		const strings = cv({ ...CV_CALL, lines: [{ label: "cv_error", points: [["1", "0.8"], ["3", "0.4"]] }] });
 		assert.deepEqual(strings.lines[0]!.points, [
 			[1, 0.8],
@@ -168,6 +175,39 @@ describe("lines", () => {
 		const path = linePath(plot, plot.lines[0]!, Number.NaN, frame);
 		assert.equal(path, "M95,91L197,211L299,241L503,61");
 		assert.equal(lineEnd(plot, plot.lines[0]!, Number.NaN), 0.9);
+	});
+
+	it("a stored point far outside the y range stays near the box, never a huge path", () => {
+		for (const far of [1e300, 1.7e308]) {
+			const plot = cv({ ...CV_CALL, lines: [{ label: "cv_error", points: [[1, 0.5], [9, far]] }] });
+			assert.equal(linePath(plot, plot.lines[0]!, Number.NaN, frame), "M95,181L503,-209", "one plot height above the top");
+		}
+	});
+
+	it("the point his guess asks at is held back until he answers: no square, no segment to it, not read out", () => {
+		const locked = heldBack(cv(), { line: "cv_error", x: 5 });
+		const line = locked.lines[0]!;
+		assert.ok(line.points);
+		assert.equal(linePath(locked, line, Number.NaN, frame), "M95,91L197,211M503,61Z", "a gap where the point was");
+		assert.deepEqual(
+			pointMarks(locked, line, frame).map((m) => m[0]),
+			[95, 197, 503],
+		);
+		assert.equal(liveText(locked, Number.NaN, false), "degree = 1, 3, 9: cv_error 0.8, 0.4, 0.9.");
+		const open = cv();
+		const openLine = open.lines[0]!;
+		assert.ok(openLine.points);
+		assert.equal(pointMarks(open, openLine, frame).length, 4, "the open plot draws every point");
+		assert.equal(liveText(open, Number.NaN, true), "degree = 1, 3, 5, 9: cv_error 0.8, 0.4, 0.3, 0.9.");
+		assert.equal(lineEnd(heldBack(cv(), { line: "cv_error", x: "9" }), line, Number.NaN), 0.9, "the key follows the line as given");
+	});
+
+	it("only a shown points line holds a point back", () => {
+		const read = readPlot(MIXED_CALL, { ...LEASH_RESULT, y: { min: 0, max: 6 } });
+		assert.ok("plot" in read);
+		assert.ok(heldBack(read.plot, { line: "data", x: 6 }).lines.every((l, i) => l === read.plot.lines[i]), "the data line is hidden whole");
+		const plot = leash();
+		assert.ok(heldBack(plot, { line: "leash", x: 8 }).lines.every((l, i) => l === plot.lines[i]), "formulas are untouched");
 	});
 
 	it("a value that is not a number, or a pole far outside, is a gap", () => {

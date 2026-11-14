@@ -333,5 +333,7 @@ export interface ArtifactPartProps {
 		reveal?: unknown;
 		/** A plot's guess is answered (plot-view.ts): it draws open. */
 		guessOpen?: boolean;
+		/** The guess's onPlot, the point it asks at (plot-view.ts). */
+		guessAt?: unknown;
 	};
 }

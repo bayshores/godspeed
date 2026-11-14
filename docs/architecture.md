@@ -712,7 +712,7 @@ A plot comes with a prediction `quiz` in the same reply, whose `onPlot: {line, x
 
 While a topic has no plot, its start carries the line "No plot yet in this topic. If its idea is a curve, open with `plot`.": the first topic's under the `[Study plan]`, every later one's after its `[Opener]` line (`core::study::topic_parts::NO_PLOT_YET`). Plots from earlier lessons are not looked up.
 
-A drawn plot is named `p1`, `p2` in lesson order. Its result tells the agent its formula lines' values at the slider's start, every point of a points line, and ends the turn. Its `details` are `{part: "plot", v: 1, id, onPlot: {toolCallId, value}, y: {min, max}}`. The window recomputes the lines from the stored call, draws a points line as straight segments with a square on each point, shows no slider row when the plot has no slider, and never stores or sends the slider position.
+A drawn plot is named `p1`, `p2` in lesson order. Its result tells the agent its formula lines' values at the slider's start, every point of a points line, and ends the turn. Its `details` are `{part: "plot", v: 1, id, onPlot: {toolCallId, value}, y: {min, max}}`. The window recomputes the lines from the stored call, draws a points line as straight segments with a square on each point, shows no slider row when the plot has no slider, and never stores or sends the slider position. Until the guess is answered, the point it asks at on a shown points line is held back: no square, no segment to it and not in the screen-reader line (`heldBack` in `plot-part-model.ts`, from the guess's `onPlot` that `src/shared/core/plot-view.ts` joins onto the plot as `guessAt`).
 
 ### Kept sentences
 

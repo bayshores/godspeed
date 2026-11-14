@@ -2,7 +2,7 @@ import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "re
 import katex from "katex";
 import { cn } from "@/frontend/lib/utils";
 import type { ArtifactPartProps } from "@/shared/core";
-import { keyTops, labelPieces, lineEnd, linePath, liveText, readPlot, scale, sliderText, sliderTicks, ticks, formatNumber, type Plot, type Slider } from "./plot-part-model";
+import { heldBack, keyTops, labelPieces, lineEnd, linePath, liveText, pointMarks, readPlot, scale, sliderText, sliderTicks, ticks, formatNumber, type Plot, type Slider } from "./plot-part-model";
 
 // The figure under the title, in px: the y axis's labels take the gutter,
 // the plot area is 240 tall, and the slider row sits under the x title.
@@ -70,10 +70,12 @@ export function PlotPart({ part }: ArtifactPartProps) {
 		);
 	}
 	if (part.state !== "output-available") return null;
-	return <StoredPlot input={part.input} output={part.output} open={part.guessOpen === true} />;
+	return <StoredPlot input={part.input} output={part.output} open={part.guessOpen === true} guessAt={part.guessAt} />;
 }
 
-function StoredPlot({ input, output, open }: { input: unknown; output: unknown; open: boolean }) {
+/** Until his answer, the point the guess asks at on a shown points line is
+ *  held back. */
+function StoredPlot({ input, output, open, guessAt }: { input: unknown; output: unknown; open: boolean; guessAt: unknown }) {
 	const read = useMemo(() => readPlot(input, output), [input, output]);
 	if (!("plot" in read)) {
 		return (
@@ -82,7 +84,7 @@ function StoredPlot({ input, output, open }: { input: unknown; output: unknown; 
 			</PlotBox>
 		);
 	}
-	return <PlotFigure plot={read.plot} open={open} />;
+	return <PlotFigure plot={open ? read.plot : heldBack(read.plot, guessAt)} open={open} />;
 }
 
 /** The left column's width, followed as the pane resizes. */
@@ -136,9 +138,10 @@ function PlotFigure({ plot, open }: { plot: Plot; open: boolean }) {
 			l.hidden === hidden && shown[i] ? (
 				<g key={i}>
 					<path d={linePath(plot, l, slider, frame)} fill="none" stroke="currentColor" strokeWidth={2} strokeDasharray={l.dashed ? DASH : undefined} />
-					{l.points?.map(([x, y]) => (
-						<rect key={x} data-testid="plot-point" x={px(x) - MARK / 2} y={py(y) - MARK / 2} width={MARK} height={MARK} fill="currentColor" />
-					))}
+					{l.points &&
+						pointMarks(plot, l, frame).map(([x, y]) => (
+							<rect key={x} data-testid="plot-point" x={x - MARK / 2} y={y - MARK / 2} width={MARK} height={MARK} fill="currentColor" />
+						))}
 				</g>
 			) : null,
 		);
@@ -208,7 +211,7 @@ function PlotFigure({ plot, open }: { plot: Plot; open: boolean }) {
 										<Label text={l.label} />
 									</span>
 								</div>
-								{l.latex && (
+								{l.points === null && (
 									<div data-testid="plot-formula" className="-mr-5 -mb-1 overflow-x-auto overflow-y-hidden pt-0.5 pb-1 pl-[22px] text-[13px] whitespace-nowrap text-ink-2">
 										<Tex tex={l.latex} />
 									</div>

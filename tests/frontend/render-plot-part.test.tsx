@@ -54,6 +54,17 @@ describe("PlotPart", () => {
 		assert.match(html, /aria-live="polite"[^>]*>degree = 1, 3, 5, 9: cv_error 0\.8, 0\.4, 0\.3, 0\.9\.</);
 	});
 
+	it("locked, a shown points line holds back the point its guess asks at; open, it draws in", () => {
+		const locked = render({ input: CV_CALL, state: "output-available", output: CV_RESULT, guessOpen: false, guessAt: { line: "cv_error", x: 5 } });
+		assert.match(locked, /data-state="locked"/);
+		assert.equal((locked.match(/data-testid="plot-point"/g) ?? []).length, 3);
+		assert.match(locked, / d="M95,91L197,211M503,61Z"/, "no segment touches the held-back point");
+		assert.match(locked, /aria-live="polite"[^>]*>degree = 1, 3, 9: cv_error 0\.8, 0\.4, 0\.9\.</);
+		const open = render({ input: CV_CALL, state: "output-available", output: CV_RESULT, guessOpen: true, guessAt: { line: "cv_error", x: 5 } });
+		assert.equal((open.match(/data-testid="plot-point"/g) ?? []).length, 4);
+		assert.match(open, /degree = 1, 3, 5, 9: cv_error 0\.8, 0\.4, 0\.3, 0\.9\./);
+	});
+
 	it("a formula against held-back data: the data and its squares draw in on the answer", () => {
 		const mixed = { ...LEASH_CALL, lines: [{ label: "model", expr: "a/(1+lambda)" }, { label: "data", points: [[2, 1.2], [6, 2.7], [10, 5.4]], hidden: true }] };
 		const locked = render({ input: mixed, state: "output-available", output: LEASH_RESULT, guessOpen: false });

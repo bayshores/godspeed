@@ -26,6 +26,7 @@ describe("joinPlots", () => {
 		const opened = parts([...asked, result("call_q", "quiz", answer, 3)]);
 		assert.equal(opened.find((p) => p.type === "tool-plot")?.guessOpen, true);
 		assert.equal(opened.find((p) => p.type === "tool-quiz")?.plotValue, 4, "his card learns the drawn value");
+		assert.deepEqual(locked?.guessAt, { line: "penalty", x: 8 }, "the plot learns the point its guess asks at");
 	});
 
 	it("a skipped guess opens it too", () => {

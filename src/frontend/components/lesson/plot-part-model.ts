@@ -14,20 +14,29 @@ interface Axis {
 	max: number;
 }
 
-export interface PlotLine {
+interface LineBase {
 	label: string;
-	/** The formula typeset under the label; empty for measured points. */
-	latex: string;
 	/** Held back until his guess is answered. */
 	hidden: boolean;
 	/** The second line is dashed. */
 	dashed: boolean;
-	/** Measured [x, y] by increasing x, or null for a formula. */
-	points: [number, number][] | null;
-	/** The line's value at x and the slider value; not finite where the math
-	 *  is not, and for points anywhere but their own x values. */
+}
+
+interface FormulaLine extends LineBase {
+	/** The formula typeset under the label. */
+	latex: string;
+	points: null;
+	/** The line's value at x and the slider value; not finite where the math is not. */
 	at: (x: number, slider: number) => number;
 }
+
+interface PointsLine extends LineBase {
+	/** Measured [x, y] by increasing x. A point held back until his answer
+	 *  has a y that is not a number. */
+	points: [number, number][];
+}
+
+export type PlotLine = FormulaLine | PointsLine;
 
 export interface Slider {
 	name: string;
@@ -90,7 +99,7 @@ export function readPlot(input: unknown, output: unknown): { plot: Plot } | { ti
 		if (!present(raw.expr)) {
 			const points = readPoints(raw.points);
 			if (!points) return { title };
-			lines.push({ ...common, latex: "", points, at: (xv) => points.find((p) => p[0] === xv)?.[1] ?? Number.NaN });
+			lines.push({ ...common, points });
 			continue;
 		}
 		const parsed = parseExpr(str(raw.expr), names);
@@ -106,6 +115,15 @@ export function readPlot(input: unknown, output: unknown): { plot: Plot } | { ti
 	// A points plot with no x name is read out by its axis title.
 	x.name ||= x.label.trim() || "x";
 	return { plot: { title, x, y, slider, lines } };
+}
+
+/** The plot as it shows before his answer: on a shown points line, the
+ *  point his guess asks at (its `onPlot`) is held back. */
+export function heldBack(plot: Plot, guessAt: unknown): Plot {
+	const on = (guessAt ?? {}) as { line?: unknown; x?: unknown };
+	const x = num(on.x);
+	const lines = plot.lines.map((l): PlotLine => (l.points && !l.hidden && l.label === on.line ? { ...l, points: l.points.map(([px, py]): [number, number] => [px, px === x ? Number.NaN : py]) } : l));
+	return { ...plot, lines };
 }
 
 /** A tick or value as it reads: up to 4 significant figures, a real minus. */
@@ -151,14 +169,30 @@ function sampleXs(plot: Plot): number[] {
 	return Array.from({ length: SAMPLES }, (_, i) => min + ((max - min) * i) / (SAMPLES - 1));
 }
 
+type Frame = { left: number; right: number; top: number; bottom: number };
+
+/** A points line's points in px, each kept within one plot height and width
+ *  of the box so a stored call never yields a huge path; a held-back point
+ *  is left out, or with `gaps` kept with a y that is not a number. */
+export function pointMarks(plot: Plot, plotLine: PointsLine, frame: Frame, gaps = false): [number, number][] {
+	const px = scale(plot.x.min, plot.x.max, frame.left, frame.right);
+	const py = scale(plot.y.min, plot.y.max, frame.bottom, frame.top);
+	const near = (v: number, min: number, max: number) => Math.min(max + (max - min), Math.max(min - (max - min), v));
+	const marks = plotLine.points.map(([x, y]): [number, number] => [px(near(x, plot.x.min, plot.x.max)), py(near(y, plot.y.min, plot.y.max))]);
+	return gaps ? marks : marks.filter((m) => Number.isFinite(m[1]));
+}
+
 /** The SVG path of a line at a slider value, inside the pixel box `frame`.
  *  A formula's value that is not a number, or far outside the y range (a
  *  pole), is a gap; measured points are joined by straight segments. The
  *  rest is clipped to the box where it is drawn. */
-export function linePath(plot: Plot, plotLine: PlotLine, slider: number, frame: { left: number; right: number; top: number; bottom: number }): string {
+export function linePath(plot: Plot, plotLine: PlotLine, slider: number, frame: Frame): string {
+	if (plotLine.points) {
+		const path = line<[number, number]>().defined((p) => Number.isFinite(p[1]));
+		return path(pointMarks(plot, plotLine, frame, true)) ?? "";
+	}
 	const px = scale(plot.x.min, plot.x.max, frame.left, frame.right);
 	const py = scale(plot.y.min, plot.y.max, frame.bottom, frame.top);
-	if (plotLine.points) return line()(plotLine.points.map(([x, y]): [number, number] => [px(x), py(y)])) ?? "";
 	const span = plot.y.max - plot.y.min;
 	const points = sampleXs(plot).map((x): [number, number | null] => {
 		const y = plotLine.at(x, slider);
@@ -173,8 +207,10 @@ export function linePath(plot: Plot, plotLine: PlotLine, slider: number, frame: 
 
 /** The line's last drawn value (its key sits level with it), or null. */
 export function lineEnd(plot: Plot, plotLine: PlotLine, slider: number): number | null {
-	const last = plotLine.points?.at(-1);
-	if (last) return Math.min(plot.y.max, Math.max(plot.y.min, last[1]));
+	if (plotLine.points) {
+		const last = plotLine.points.findLast((p) => Number.isFinite(p[1]));
+		return last ? Math.min(plot.y.max, Math.max(plot.y.min, last[1])) : null;
+	}
 	const xs = sampleXs(plot);
 	for (let i = xs.length - 1; i >= 0; i--) {
 		const y = plotLine.at(xs[i]!, slider);
@@ -211,7 +247,8 @@ export function liveText(plot: Plot, slider: number, open: boolean): string {
 	let formulasSaid = false;
 	for (const shown of plot.lines.filter((l) => open || !l.hidden)) {
 		if (shown.points) {
-			said.push(`${plot.x.name} = ${listed(shown.points.map((p) => p[0]))}: ${shown.label} ${listed(shown.points.map((p) => p[1]))}.`);
+			const told = shown.points.filter((p) => Number.isFinite(p[1]));
+			said.push(`${plot.x.name} = ${listed(told.map((p) => p[0]))}: ${shown.label} ${listed(told.map((p) => p[1]))}.`);
 			continue;
 		}
 		if (!formulasSaid && plot.slider) said.push(`At ${sliderText(plot.slider, slider)}, ${plot.x.name} = ${listed(xs)}:`);
