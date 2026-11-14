@@ -388,6 +388,81 @@ describe("send (one input event, verbatim consumption)", () => {
 		assert.equal(told, 0, "a refused send starts nothing");
 	});
 
+	it("an answer that leaves a sibling question open makes no turn and starts nothing; the last one does", async () => {
+		globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+			const url = String(input);
+			if (url === "/api/chat") return Response.json({ ok: true });
+			if (url === "/api/chats/chat_x") return Response.json({ messages: [] });
+			const body = new ReadableStream({
+				start: (c) => init?.signal?.addEventListener("abort", () => c.error(new DOMException("stopped", "AbortError"))),
+			});
+			return new Response(body);
+		}) as typeof globalThis.fetch;
+		const call = (id: string) => ({ type: "toolCall", id, name: "quiz", arguments: { question: `${id}?`, choices: ["a", "b"] } });
+		const two = {
+			id: "two",
+			role: "assistant",
+			content: [call("call-1"), call("call-2")],
+			stopReason: "toolUse",
+			usage: { input: 0, output: 0, total: 0, cacheReads: 0, cacheWrites: 0 },
+			provider: "openrouter",
+			model: "test",
+			timestamp: 0,
+		} as unknown as LhMessage;
+		let told = 0;
+		const m = model({ initialMessages: [newUserMessage("hi"), two] });
+		m.onSent = () => told++;
+		const first = m.submitAnswer("call-1", { correct: true } as never);
+		await new Promise((r) => setTimeout(r, 50));
+		assert.equal(told, 0, "the second question still waits, so no teacher is needed yet");
+		m.stop();
+		await first;
+		const last = m.submitAnswer("call-2", { correct: false } as never);
+		for (let i = 0; i < 50 && told === 0; i++) await new Promise((r) => setTimeout(r, 10));
+		assert.equal(told, 1, "the last answer makes the turn");
+		m.stop();
+		await last;
+	});
+
+	it("an answer sent again after a lost ack tells the adapter when its turn is already running", async () => {
+		const quiz = {
+			id: "call-1",
+			role: "assistant",
+			content: [{ type: "toolCall", id: "call-1", name: "quiz", arguments: { question: "Q?", choices: ["a", "b"] } }],
+			stopReason: "toolUse",
+			usage: { input: 0, output: 0, total: 0, cacheReads: 0, cacheWrites: 0 },
+			provider: "openrouter",
+			model: "test",
+			timestamp: 0,
+		} as unknown as LhMessage;
+		const answered = { role: "toolResult", toolCallId: "call-1", toolName: "quiz", content: [{ type: "text", text: "a" }], isError: false, timestamp: 1 } as unknown as LhMessage;
+		let lost = true;
+		globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+			const url = String(input);
+			if (url === "/api/chat") {
+				if (lost) throw new TypeError("network connection was lost");
+				return Response.json({ ok: true });
+			}
+			if (url === "/api/chats/chat_x") return Response.json({ messages: [newUserMessage("hi"), quiz, answered], turnInFlight: true });
+			const body = new ReadableStream({
+				start: (c) => init?.signal?.addEventListener("abort", () => c.error(new DOMException("stopped", "AbortError"))),
+			});
+			return new Response(body);
+		}) as typeof globalThis.fetch;
+		let told = 0;
+		const m = model({ initialMessages: [newUserMessage("hi"), quiz] });
+		m.onSent = () => told++;
+		assert.equal(await m.submitAnswer("call-1", { correct: true } as never), true, "unknown, not refused");
+		assert.equal(m.status, "error");
+		assert.equal(told, 0);
+		lost = false;
+		const again = m.submitAnswer("call-1", { correct: true } as never);
+		for (let i = 0; i < 50 && told === 0; i++) await new Promise((r) => setTimeout(r, 10));
+		assert.equal(told, 1, "the running turn waits for the teacher");
+		m.stop();
+		await again;
+	});
+
 	it("a side question shows at once as the learner's row, marked side", async () => {
 		const posts: string[] = [];
 		globalThis.fetch = (async (_url: unknown, init?: { body?: string }) => {
