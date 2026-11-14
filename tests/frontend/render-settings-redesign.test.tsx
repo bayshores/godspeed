@@ -141,7 +141,7 @@ describe("settings restyle", () => {
 		assert.equal(q("agent-window-teacher-chip")!.textContent, "Teaching");
 		assert.ok(q("agent-window-teacher-open") === null);
 		assert.equal(q("agent-window-helper-chip")!.textContent, "Closed");
-		assert.equal(q("agent-window-helper-open")!.textContent, "Open helper");
+		assert.equal(q("agent-window-helper-open")!.textContent, "Start helper");
 		assert.equal(q("agent-folder-path")!.textContent, "~/godspeed");
 		assert.ok(!text.includes("/plugin"), "no plugin to install");
 		assert.ok(q("old-setup-warning") === null, "nothing old left: no warning");
@@ -188,8 +188,8 @@ describe("settings restyle", () => {
 		assert.ok(!el.textContent!.includes("Let outside agents connect"));
 		assert.ok(el.querySelector('[role="switch"]') === null);
 		assert.equal(q("agent-status")!.textContent, "No window is open");
-		assert.equal(q("agent-window-teacher-open")!.textContent, "Open teacher");
-		assert.equal(q("agent-window-helper-open")!.textContent, "Open helper");
+		assert.equal(q("agent-window-teacher-open")!.textContent, "Start teacher");
+		assert.equal(q("agent-window-helper-open")!.textContent, "Start helper");
 	});
 
 	it("a connected agent that isn't teaching says how to start it", async () => {
@@ -219,7 +219,7 @@ describe("settings restyle", () => {
 		await pick("open-agent-codex");
 		assert.ok(el.textContent!.includes("Your agent is Codex"));
 		await pick("open-agent-other");
-		assert.ok(q("agent-window-teacher-open") === null, "godspeed can't open another app");
+		assert.ok(q("agent-window-teacher-open") === null, "godspeed can't start another app");
 		assert.ok(el.textContent!.includes("Add a Streamable HTTP MCP server"));
 		assert.ok(el.textContent!.includes('tell it "Start as the helper"'));
 		assert.ok(el.textContent!.includes("http://127.0.0.1:1/api/mcp"));

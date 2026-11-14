@@ -7,6 +7,9 @@ import { QuietNotice } from "@/frontend/components/quiet-notice";
 import { replayRise } from "@/frontend/components/motion";
 import { OpenDeadlinesProvider } from "@/frontend/components/use-open-deadlines";
 import { TeacherProvider } from "@/frontend/components/teacher/teacher-provider";
+import { useTeacher } from "@/frontend/components/teacher/teacher-context";
+import { TerminalOverlay } from "@/frontend/components/terminal/terminal-overlay";
+import { DEFAULT_TEACHER_NAME } from "@/shared/core";
 import { Welcome } from "@/frontend/components/welcome/welcome";
 import { AppBar } from "@/frontend/components/app-bar";
 import { SearchLessons } from "@/frontend/components/search-lessons";
@@ -28,6 +31,11 @@ function ViewSwap({ children }: { children: React.ReactNode }) {
 			{children}
 		</div>
 	);
+}
+
+/** The agents' screens, under the teacher's live name. */
+function Terminals() {
+	return <TerminalOverlay name={useTeacher()?.name ?? DEFAULT_TEACHER_NAME} />;
 }
 
 /** The app frame: the top bar over the page, and the welcome screen over
@@ -56,6 +64,7 @@ export function AppShell({
 					<main id="lh-page" tabIndex={-1} className="lh-dots min-h-0 min-w-0 flex-1 pr-(--lh-dock-push,0px) motion-safe:transition-[padding] motion-safe:duration-(--lh-dur) motion-safe:ease-(--lh-ease-out)">
 						<ViewSwap>{children}</ViewSwap>
 					</main>
+					<Terminals />
 				</TeacherProvider>
 			</OpenDeadlinesProvider>
 			{/* The single document-level keydown listener: window-level, so its

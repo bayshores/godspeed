@@ -29,12 +29,13 @@ export function windowsHeadline(agent: Agent): string {
 	return agent.helperHere ? "Only the helper window is open" : "No window is open";
 }
 
-export function teacherTile(agent: Agent, doing: AgentDoing | null): WindowTile {
-	const note = "Teaches and answers you";
+/** `outside`: the agent here was started outside godspeed. */
+export function teacherTile(agent: Agent, doing: AgentDoing | null, outside = false): WindowTile {
+	const note = outside ? "Connected from outside godspeed." : "Teaches and answers you";
 	if (agent.helperCovering) return { tone: "on", chip: "Teaching", line: "Tidying its memory", note: "The helper answers for a minute", open: null };
 	if (agent.teaching) return { tone: "on", chip: "Teaching", line: doing?.working ? doing.text : "Nothing to do right now", note, open: null };
 	if (teacherOpen(agent)) return { tone: "on", chip: "Open", line: teachStep(agent.name), note, open: null };
-	return { tone: "off", chip: "Closed", line: agent.pendingTurns > 0 ? "Your lesson is waiting" : "Not open", note: "Open it and it starts teaching", open: "Open teacher" };
+	return { tone: "off", chip: "Closed", line: agent.pendingTurns > 0 ? "Your lesson is waiting" : "Not open", note: "Start it and it teaches you", open: "Start teacher" };
 }
 
 /** "6 of 17 files in Machine Learning", over every space being read; null when none is. */
@@ -60,8 +61,8 @@ export function helperTile(i: {
 			tone: "off",
 			chip: "Closed",
 			line: waiting ? `${files(i.filesLeft)} ${i.filesLeft === 1 ? "is" : "are"} waiting` : "Not open",
-			note: waiting && !agent.teaching ? "Open it and it starts reading" : agent.teaching ? `${i.teacher} does the reading between your messages` : "Reads your files so the teacher stays free",
-			open: "Open helper",
+			note: waiting && !agent.teaching ? "Start it and it reads them" : agent.teaching ? `${i.teacher} does the reading between your messages` : "Reads your files so the teacher stays free",
+			open: "Start helper",
 		};
 	}
 	if (agent.helperCovering) return { tone: "busy", chip: "Covering", line: `Answering for ${i.teacher} for a minute`, note: `${i.teacher} is tidying its memory`, open: null };

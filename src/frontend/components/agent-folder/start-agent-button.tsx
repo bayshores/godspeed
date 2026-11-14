@@ -12,22 +12,22 @@ const CHOICES: { id: LaunchChoice; label: string }[] = [
 	{ id: "other", label: "Other app" },
 ];
 
-/** "Open Claude Code", and beside it "Use another agent". */
-export function OpenAgentButton({
+/** "Start Claude Code", and beside it "Use another agent". */
+export function StartAgentButton({
 	choice,
 	onChoose,
-	onOpen,
+	onStart,
 	busy = false,
 }: {
 	choice: LaunchChoice;
 	onChoose: (choice: LaunchChoice) => void;
-	onOpen: () => void;
+	onStart: () => void;
 	busy?: boolean;
 }) {
-	const label = choice === "other" ? "Show the setup" : `Open ${AGENT_LABEL[choice]}`;
+	const label = choice === "other" ? "Show the setup" : `Start ${AGENT_LABEL[choice]}`;
 	return (
 		<div className="flex flex-wrap items-center gap-2.5">
-			<button type="button" data-testid="open-agent" disabled={busy} onClick={onOpen} className={cn("lh-btn lh-btn-main", BIG_BUTTON)}>
+			<button type="button" data-testid="open-agent" disabled={busy} onClick={onStart} className={cn("lh-btn lh-btn-main", BIG_BUTTON)}>
 				{label}
 			</button>
 			<AgentMenu choice={choice} onChoose={onChoose} className={BIG_BUTTON} />

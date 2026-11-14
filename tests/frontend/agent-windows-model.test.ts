@@ -1,12 +1,12 @@
 /**
  * Settings → Connection, "Your agent" (agent-windows-model.ts): the
  * headline and what the Teacher and Helper tiles say, plus the helper's
- * lines in the launch log and which terminals a click opens.
+ * lines in the launch log outside the desktop app.
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { filesLine, helperTile, teacherTile, windowsHeadline } from "../../src/frontend/components/settings/agent-windows-model.ts";
-import { logLines, startTargets, type Launch } from "../../src/frontend/components/agent-folder/agent-folder-model.ts";
+import { logLines, type Launch } from "../../src/frontend/components/agent-folder/agent-folder-model.ts";
 
 const agent = (over: Partial<Parameters<typeof windowsHeadline>[0]> = {}) => ({
 	connected: false,
@@ -38,8 +38,9 @@ describe("the agent's two windows", () => {
 		});
 		assert.equal(teacherTile(teaching, { text: "Idle", working: false }).line, "Nothing to do right now");
 		assert.equal(teacherTile(agent({ connected: true, name: "Codex" }), null).line, "Tell Codex to start teaching.");
-		assert.deepEqual(teacherTile(agent(), null), { tone: "off", chip: "Closed", line: "Not open", note: "Open it and it starts teaching", open: "Open teacher" });
+		assert.deepEqual(teacherTile(agent(), null), { tone: "off", chip: "Closed", line: "Not open", note: "Start it and it teaches you", open: "Start teacher" });
 		assert.equal(teacherTile(agent({ pendingTurns: 1 }), null).line, "Your lesson is waiting");
+		assert.equal(teacherTile(agent({ connected: true, teaching: true }), null, true).note, "Connected from outside godspeed.");
 	});
 
 	it("a helper alone does not count as the teacher's window", () => {
@@ -47,10 +48,10 @@ describe("the agent's two windows", () => {
 	});
 
 	it("the helper's tile when closed says what waits and who reads meanwhile", () => {
-		assert.deepEqual(helper(), { tone: "off", chip: "Closed", line: "Not open", note: "Reads your files so the teacher stays free", open: "Open helper" });
+		assert.deepEqual(helper(), { tone: "off", chip: "Closed", line: "Not open", note: "Reads your files so the teacher stays free", open: "Start helper" });
 		const waiting = helper({ filesLeft: 3 });
 		assert.equal(waiting.line, "3 files are waiting");
-		assert.equal(waiting.note, "Open it and it starts reading");
+		assert.equal(waiting.note, "Start it and it reads them");
 		assert.equal(helper({ filesLeft: 1 }).line, "1 file is waiting");
 		assert.equal(helper({ agent: agent({ connected: true, teaching: true }), filesLeft: 3 }).note, "Teacher does the reading between your messages");
 	});
@@ -85,26 +86,23 @@ describe("the agent's two windows", () => {
 	});
 });
 
-describe("opening the windows", () => {
-	it("a click opens the agent and its helper, the agent alone when a helper is here, or the helper alone", () => {
-		assert.deepEqual(startTargets("claude", false, false), ["claude", "claude-helper"]);
-		assert.deepEqual(startTargets("claude", true, false), ["claude"]);
-		assert.deepEqual(startTargets("codex", false, true), ["codex-helper"]);
-	});
-
-	it("the log follows the helper after the teacher, and alone for Open helper", () => {
-		const launch: Launch = { agent: "claude", made: "done", opened: "done" };
-		const texts = (l: Launch, status: { connected: boolean; teaching: boolean; helperHere: boolean }) => logLines(l, status, "~/godspeed", true).map((line) => line.text);
+describe("the launch log outside the desktop app", () => {
+	it("the learner runs the command; the helper's line shows when only the helper was asked for", () => {
+		const launch: Launch = { agent: "claude", made: "done" };
+		const texts = (l: Launch, status: { connected: boolean; teaching: boolean; helperHere: boolean }) => logLines(l, status, "~/godspeed").map((line) => line.text);
+		assert.deepEqual(texts(launch, { connected: false, teaching: false, helperHere: false }), [
+			"Made ~/godspeed",
+			"Copy the command and run it in your terminal",
+			"Waiting for Claude Code to start…",
+			"If Claude Code asks whether to trust the folder, choose Yes.",
+		]);
 		assert.deepEqual(texts(launch, { connected: true, teaching: true, helperHere: false }), [
 			"Made ~/godspeed",
-			"Opened Terminal in it",
+			"Copy the command and run it in your terminal",
 			"Started Claude Code",
 			"Claude Code is teaching",
-			"Waiting for the helper to start…",
 		]);
-		assert.equal(texts(launch, { connected: true, teaching: true, helperHere: true }).at(-1), "Started the helper");
-		assert.deepEqual(texts({ ...launch, helperOnly: true }, { connected: false, teaching: false, helperHere: true }), ["Made ~/godspeed", "Opened Terminal in it", "Started the helper"]);
-		// Run by hand outside the desktop app: one window, so no helper line.
-		assert.equal(texts({ ...launch, opened: "manual" }, { connected: true, teaching: true, helperHere: false }).at(-1), "Claude Code is teaching");
+		assert.deepEqual(texts({ ...launch, helperOnly: true }, { connected: false, teaching: false, helperHere: true }), ["Made ~/godspeed", "Copy the command and run it in your terminal", "Started the helper"]);
+		assert.deepEqual(texts({ agent: "codex", made: { error: "Couldn't reach godspeed. Try again." } }, { connected: false, teaching: false, helperHere: false }), ["Couldn't reach godspeed. Try again."]);
 	});
 });

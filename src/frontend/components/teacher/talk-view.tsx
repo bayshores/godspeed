@@ -18,6 +18,7 @@ import { useWorker } from "@/frontend/components/work/use-worker";
 import { talkWorkLine } from "@/frontend/components/work/work-model";
 import { actionFor, appRequestText, draftWithAsk, speakerOf, startsTurn, talkRows } from "./talk-model";
 import { TalkNoAgent } from "./talk-no-agent";
+import { useTerminals } from "@/frontend/components/terminal/use-terminals";
 import { pastLabel } from "./tour";
 import { LABEL_TEXT } from "@/frontend/components/ui/label-text";
 import { cn } from "@/frontend/lib/utils";
@@ -170,16 +171,17 @@ function TalkThread({
 
 	const { send: sendMessage } = session;
 	const { restore } = attachments;
+	const wake = useTerminals()?.wake;
 	const sendText = useCallback(
 		(message: string, drafts: AttachmentDraft["files"] = []) => {
 			const files = drafts.map((f) => f.attachment);
 			void sendMessage({ type: "text", text: message, ...(files.length > 0 ? { attachments: files } : {}) }).then((sent) => {
-				if (sent) return;
+				if (sent) return wake?.();
 				editText(restoreUnsent(message, textRef.current));
 				restore(drafts);
 			});
 		},
-		[sendMessage, restore, editText],
+		[sendMessage, restore, editText, wake],
 	);
 
 	// A message asked from elsewhere: sent now, or left in the box after the

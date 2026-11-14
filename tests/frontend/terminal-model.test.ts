@@ -3,12 +3,15 @@ import { describe, it } from "node:test";
 import {
 	CHECK_IN_WAIT_MS,
 	TEACH_WAIT_MS,
+	firstRunFooter,
 	fitFontSize,
 	helperShouldStart,
 	needsYou,
+	restartAsks,
 	teacherStartRefused,
 	teacherStatusLine,
 	terminalFooter,
+	wakeAgent,
 	type TerminalFacts,
 	type TerminalRecord,
 } from "../../src/frontend/components/terminal/terminal-model.ts";
@@ -157,5 +160,38 @@ describe("the screen's font", () => {
 		assert.equal(fitFontSize(400, 200), 11, "too small: 11 px and it scrolls sideways");
 		const size = fitFontSize(780, 500);
 		assert.ok(size * 0.6 * 100 <= 780, "the width fits");
+	});
+});
+
+describe("onboarding's first start", () => {
+	it("says the agent is starting, then connected; a question or an end uses the overlay's words", () => {
+		const first = (over: Partial<TerminalFacts>, t: Partial<TerminalRecord> = {}) => firstRunFooter(facts(over, t), "~/godspeed");
+		assert.equal(first({ here: false }).text, "Claude Code is starting in ~/godspeed. If it asks you something, answer it here.");
+		assert.equal(first({ here: false, now: T0 + CHECK_IN_WAIT_MS + 1 }).text, "Claude Code is starting in ~/godspeed. If it asks you something, answer it here.", "no timer words here");
+		assert.equal(first({ here: true }).text, "Claude Code is connected.");
+		const trust = first({ here: false }, { prompt: "trust" });
+		assert.equal(trust.assist?.label, "Yes, trust this folder");
+		assert.match(first({ here: false }, { url: true }).text, /^Finish signing in to Claude Code/);
+		assert.equal(first({}, { ended: { stopped: true, code: null } }).text, "You stopped Claude Code.");
+	});
+});
+
+describe("starting the teacher hidden, and restarting", () => {
+	it("Start lesson and Talk start the agent last started here, only when nothing is here, runs or starts", () => {
+		const base = { teacher: null, agentHere: false, outsideHere: false, saved: "codex" };
+		assert.equal(wakeAgent(base), "codex");
+		assert.equal(wakeAgent({ ...base, saved: null }), null, "never started in godspeed: the no-agent line offers Start");
+		assert.equal(wakeAgent({ ...base, saved: "other" }), null);
+		assert.equal(wakeAgent({ ...base, agentHere: true }), null);
+		assert.equal(wakeAgent({ ...base, outsideHere: true }), null);
+		assert.equal(wakeAgent({ ...base, teacher: term() }), null, "one already runs or starts");
+		assert.equal(wakeAgent({ ...base, teacher: term({ ended: { stopped: true, code: null } }) }), "codex");
+	});
+
+	it("Restart now asks first only while the teacher's terminal runs and a turn waits", () => {
+		assert.equal(restartAsks(term(), 1), true);
+		assert.equal(restartAsks(term(), 0), false);
+		assert.equal(restartAsks(null, 2), false);
+		assert.equal(restartAsks(term({ ended: { stopped: false, code: 1 } }), 2), false);
 	});
 });

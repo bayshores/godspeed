@@ -6,6 +6,7 @@
 
 import { useEffect, useId, useState } from "react";
 import { PART_NAMES, type PromptSegmentInfo, type TeachingArea } from "@/shared/core";
+import { inTerminal } from "@/frontend/components/focus-hygiene";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { tabListKeys } from "@/frontend/components/ui/tab-list";
 import { cn } from "@/frontend/lib/utils";
@@ -35,7 +36,7 @@ export function InstructionsPanel({
 	// Escape goes back to the teaching areas.
 	useEffect(() => {
 		const onKey = (e: KeyboardEvent) => {
-			if (e.key !== "Escape") return;
+			if (e.key !== "Escape" || inTerminal(e)) return;
 			e.stopPropagation();
 			onClose();
 		};

@@ -1,9 +1,10 @@
 /**
  * Every key in the terminal's screen goes to the agent: Escape and Ctrl+C
  * reach the terminal and never stop the teacher's turn, Tab stays in the
- * screen, and no key reaches the app's own shortcuts.
+ * screen (the overlay's dialog does not take it), and no key reaches the
+ * app's own shortcuts.
  */
-import { fakeShell, press } from "../terminal-dom.ts";
+import { dom, fakeShell, press } from "../terminal-dom.ts";
 import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;
 import { createRoot } from "react-dom/client";
@@ -12,9 +13,12 @@ import assert from "node:assert/strict";
 
 const { MemoryRouter } = await import("react-router");
 const { KeyboardShortcuts } = await import("../../src/frontend/components/keyboard-shortcuts.tsx");
+const { trapTabInDialog } = await import("../../src/frontend/components/focus-hygiene.ts");
 const { TerminalView } = await import("../../src/frontend/components/terminal/terminal-view.tsx");
 
 const ID = "0123456789abcdef0123456789abcdef";
+// The dialog's Tab trap only counts controls with a box.
+Object.assign(dom.window.HTMLElement.prototype, { getClientRects: () => [{}] });
 
 describe("keys in the terminal's screen", () => {
 	it("Escape, Ctrl+C and Tab reach the agent, Escape stops no turn, and no key reaches the app", async () => {
@@ -33,7 +37,11 @@ describe("keys in the terminal's screen", () => {
 				root.render(
 					<MemoryRouter>
 						<KeyboardShortcuts />
-						<TerminalView id={ID} ended={false} focusKey={0} />
+						<div role="dialog" aria-modal="true">
+							<button type="button">Hide</button>
+							<TerminalView id={ID} ended={false} focusKey={0} />
+							<button type="button">Stop</button>
+						</div>
 					</MemoryRouter>,
 				),
 			);
@@ -45,6 +53,16 @@ describe("keys in the terminal's screen", () => {
 			const writes = shell.calls.filter((c) => c.startsWith("write ")).join("|");
 			assert.ok(writes === "write \x1b|write \x03|write \t", `the agent got ${JSON.stringify(writes)}`);
 			assert.ok(aborts === 0, "Escape stopped no turn");
+			// The dialog's Tab trap leaves the screen's Tab alone (called
+			// directly: this DOM runs capture listeners after the target's).
+			const tab = (target: EventTarget) => {
+				const e = press(document.createElement("i"), "Tab", 9);
+				Object.defineProperty(e, "target", { value: target });
+				trapTabInDialog(e);
+				return e.defaultPrevented;
+			};
+			assert.ok(!tab(input), "Tab in the screen stays the agent's");
+			assert.ok(tab(host.querySelector("button")!), "Tab elsewhere in the dialog still wraps");
 			press(input, "a", 65);
 			press(input, "Alt", 18);
 			assert.ok(reachedApp === 0, `${reachedApp} keys reached the app`);

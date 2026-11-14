@@ -13,8 +13,8 @@ export * from "./code-question.ts";
 // through this barrel (shell law: pure core via @/shared/core only).
 export * from "./events.ts";
 export * from "./plan-tree.ts";
-// The godspeed folder's agents (the "Open Claude Code" button).
-export type { FolderAgent, OldSetup, StartCommands, StartTarget } from "./agent-folder.ts";
+// The godspeed folder's agents (the "Start Claude Code" button).
+export type { FolderAgent, OldSetup, StartCommands } from "./agent-folder.ts";
 export * from "./phases.ts";
 export * from "./pending.ts";
 export * from "./tool-switches.ts";

@@ -176,3 +176,25 @@ export function helperShouldStart(i: {
 	if (!teacher || teacher.ended || !i.teacherHere || i.backgroundWaiting <= 0 || i.helperHere) return false;
 	return !helper || (!!helper.ended && helper.startedAt < teacher.startedAt);
 }
+
+/** Onboarding's footer under the screen: the overlay's words while the
+ *  agent asks something or has ended, else whether it has connected. */
+export function firstRunFooter(f: TerminalFacts, folder: string): TerminalFooter {
+	const { term } = f;
+	if (term.ended || term.prompt || (!f.here && term.url)) return terminalFooter(f, { name: AGENT_LABEL[term.agent], folder });
+	return footer(f.here ? `${AGENT_LABEL[term.agent]} is connected.` : startingLine(term.agent, folder));
+}
+
+/** Start lesson and a Talk send start the teacher hidden, with the agent
+ *  last started in godspeed, when no agent is here and none runs or
+ *  starts. Null leaves it to the no-agent line. */
+export function wakeAgent(i: { teacher: TerminalRecord | null; agentHere: boolean; outsideHere: boolean; saved: string | null }): FolderAgent | null {
+	if (i.agentHere || teacherStartRefused(i.teacher, i.outsideHere)) return null;
+	return i.saved === "claude" || i.saved === "codex" ? i.saved : null;
+}
+
+/** Restart now asks first while the teacher's terminal runs and a lesson
+ *  or Talk turn waits for it. */
+export function restartAsks(teacher: TerminalRecord | null, pendingTurns: number): boolean {
+	return live(teacher) && pendingTurns > 0;
+}

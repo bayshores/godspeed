@@ -159,8 +159,8 @@ describe("the panel", () => {
 		const el = mount(panel({ agent: idle }));
 		await settle();
 		assert.match(el.querySelector("[data-testid='teacher-panel-agent']")?.textContent ?? "", /^Not connected$/);
-		assert.match(el.querySelector("[data-testid='no-agent']")?.textContent ?? "", /I'm not connected yet\. Open Claude Code and I'll start\./);
-		assert.equal(el.querySelector("[data-testid='no-agent-open']")?.textContent, "Open Claude Code");
+		assert.match(el.querySelector("[data-testid='no-agent']")?.textContent ?? "", /I'm not connected yet\. Start Claude Code and I'll begin\./);
+		assert.equal(el.querySelector("[data-testid='no-agent-open']")?.textContent, "Start Claude Code");
 		assert.ok(el.querySelector("[data-testid='talk-empty']"), "the prompt stays below it");
 		act(() => root?.unmount());
 		assert.ok(mount(panel()).querySelector("[data-testid='no-agent']") === null, "gone while an agent teaches");

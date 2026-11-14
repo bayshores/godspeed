@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 import { lessonStop, type ChatAttachment, type DeadlineProgress, type GraphContextPick, type LhMessage } from "@/shared/core";
 import { useSpaces } from "@/frontend/components/space-context";
 import { holdStartFiles } from "@/frontend/components/lesson/start-files";
+import { useTerminals } from "@/frontend/components/terminal/use-terminals";
 
 const LESSON_START_FAILED = "Couldn't start the lesson. Try again.";
 
@@ -21,7 +22,8 @@ type StartBody =
  * Every Study start (the start page, its suggestions, a deadline, the
  * Graph, the Overview) goes through here, in the active space. The lesson
  * runs on the outside agent; with no agent connected it waits in the agent
- * queue (the lesson shows "Waiting for your agent"). The session's title,
+ * queue (the lesson shows "Waiting for your agent") and, in the desktop
+ * app, starts the agent last started there (TerminalsApi.wake). The session's title,
  * as the server returns it, is its first message, with any pictures and
  * PDFs added to the topic. A start that fails sets `error` for the screen
  * to show.
@@ -31,6 +33,7 @@ export function useLessonStart() {
 	const { active } = useSpaces();
 	const [busy, setBusy] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const wake = useTerminals()?.wake;
 
 	const post = useCallback(
 		async (body: StartBody, files: readonly ChatAttachment[] = [], spaceId = active) => {
@@ -46,13 +49,14 @@ export function useLessonStart() {
 				if (!res.ok) throw new Error(`HTTP ${res.status}`);
 				const { id, title } = (await res.json()) as { id: string; title: string };
 				holdStartFiles(id, files);
+				wake?.();
 				navigate(`/chat/${id}?prompt=${encodeURIComponent(title)}`);
 			} catch {
 				setBusy(false);
 				setError(LESSON_START_FAILED);
 			}
 		},
-		[busy, active, navigate],
+		[busy, active, navigate, wake],
 	);
 
 	/** Study a typed topic, with any facts picked for it and any files added,

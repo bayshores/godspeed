@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { OldSetup } from "@/shared/core";
 import type { FolderView } from "./agent-folder-model";
-import { postAgentFolder } from "./use-agent-folder";
+import { postAgentFolder } from "./agent-folder-api";
 
 /** Tells the corner notice and Settings that one of them removed it. */
 const CHANGED_EVENT = "lh:old-setup-changed";

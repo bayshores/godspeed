@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { OpenAgentAction } from "./open-agent-action";
+import { StartAgentAction } from "./start-agent-action";
 import { useWorker } from "./use-worker";
 import { WorkFrame } from "./work-frame";
 import { jobFrame } from "./work-model";
@@ -10,7 +10,7 @@ export function JobFrame({ doing, children }: { doing: string | null; children: 
 	const { worker } = useWorker();
 	const words = doing === null ? null : jobFrame(worker, doing);
 	return (
-		<WorkFrame frame={words && { ...words, actions: words.state === "waiting" ? <OpenAgentAction /> : null }}>
+		<WorkFrame frame={words && { ...words, actions: words.state === "waiting" ? <StartAgentAction /> : null }}>
 			{children}
 		</WorkFrame>
 	);

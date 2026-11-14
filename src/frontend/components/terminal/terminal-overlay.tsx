@@ -5,17 +5,13 @@
  * one bright key (the assist key or Start again). Only Hide or a click on
  * the dim closes it: Escape belongs to the agent.
  */
-import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/frontend/lib/utils";
-import { lazyComponent } from "@/frontend/lib/lazy-component";
 import { useBackdropDismiss } from "@/frontend/components/backdrop-dismiss";
 import { useLastWhileClosing } from "@/frontend/components/ui/dialog-sheet";
 import { terminalFooter, type TerminalRole } from "./terminal-model";
+import { TerminalPane } from "./terminal-pane";
 import { useTerminals, type TerminalsApi } from "./use-terminals";
-
-/** xterm loads with the first screen shown. */
-const TerminalView = lazyComponent(() => import("./terminal-view").then((m) => m.TerminalView));
 
 export function TerminalOverlay({ name }: { name: string }) {
 	const api = useTerminals();
@@ -28,15 +24,7 @@ export function TerminalOverlay({ name }: { name: string }) {
 
 function OverlayBody({ api, role, name, state }: { api: TerminalsApi; role: TerminalRole; name: string; state: "open" | "closed" }) {
 	const facts = api.facts[role]!;
-	const term = facts.term;
 	const backdrop = useBackdropDismiss(api.hide);
-	const [focusKey, setFocusKey] = useState(0);
-	const [error, setError] = useState<string | null>(null);
-	useEffect(() => setError(null), [term.id]);
-	const foot = terminalFooter(facts, { name, folder: api.folder });
-	const live = !term.ended;
-	const refocus = () => setFocusKey((n) => n + 1);
-	const startAgain = async () => setError(await api.start(role, term.agent));
 	const tabs: { role: TerminalRole; label: string }[] = api.helper ? [{ role: "teacher", label: name }, { role: "helper", label: "Helper" }] : [];
 
 	return (
@@ -77,56 +65,7 @@ function OverlayBody({ api, role, name, state }: { api: TerminalsApi; role: Term
 						Hide
 					</button>
 				</div>
-				<TerminalView key={term.id} id={term.id} ended={!live} focusKey={focusKey} />
-				{/* In a narrow window the buttons move under the sentence. */}
-				<div className="flex shrink-0 flex-wrap items-center gap-x-2.5 gap-y-2 border-t border-border py-3.5 pr-3.5 pl-6">
-					<p data-testid="terminal-footer" role="status" className="min-w-64 flex-1 text-lg text-ink">
-						{error ?? foot.text}
-					</p>
-					<div className="ml-auto flex shrink-0 items-center gap-2.5">
-						{live && (
-							<>
-								<button
-									type="button"
-									data-testid="terminal-paste"
-									onClick={() => {
-										void api.paste(role).then(setError);
-										refocus();
-									}}
-									className="lh-btn lh-btn-quiet shrink-0 text-[15px]"
-								>
-									Paste
-								</button>
-								<button type="button" data-testid="terminal-stop" onClick={() => api.stop(role)} className="lh-btn lh-btn-quiet shrink-0 text-[15px]">
-									Stop
-								</button>
-							</>
-						)}
-						{foot.get && (
-							<button type="button" data-testid="terminal-get" onClick={() => void window.lh?.openLink?.(foot.get!.url)} className="lh-btn shrink-0 text-[15px]">
-								{foot.get.label}
-							</button>
-						)}
-						{foot.assist && (
-							<button
-								type="button"
-								data-testid="terminal-assist"
-								onClick={() => {
-									void api.answer(role, foot.assist!.kind).then(setError);
-									refocus();
-								}}
-								className="lh-btn lh-btn-main shrink-0 text-[15px]"
-							>
-								{foot.assist.label}
-							</button>
-						)}
-						{foot.startAgain && (
-							<button type="button" data-testid="terminal-start-again" onClick={() => void startAgain()} className="lh-btn lh-btn-main shrink-0 text-[15px]">
-								Start again
-							</button>
-						)}
-					</div>
-				</div>
+				<TerminalPane api={api} role={role} foot={terminalFooter(facts, { name, folder: api.folder })} />
 			</div>
 		</div>
 	);

@@ -9,7 +9,7 @@
  */
 import { createContext, createElement, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from "react";
 import type { FolderAgent } from "@/shared/core";
-import { postAgentFolder } from "@/frontend/components/agent-folder/use-agent-folder";
+import { postAgentFolder, savedAgent } from "@/frontend/components/agent-folder/agent-folder-api";
 import type { FolderView } from "@/frontend/components/agent-folder/agent-folder-model";
 import type { AgentStatus } from "@/frontend/components/agent-status";
 import {
@@ -18,6 +18,7 @@ import {
 	helperShouldStart,
 	needsYou,
 	teacherStartRefused,
+	wakeAgent,
 	type TerminalFacts,
 	type TerminalRecord,
 	type TerminalRole,
@@ -45,6 +46,8 @@ export interface TerminalsApi {
 	/** These resolve to why the shell refused, or null. */
 	answer: (role: TerminalRole, kind: "trust" | "enter") => Promise<string | null>;
 	paste: (role: TerminalRole) => Promise<string | null>;
+	/** Start lesson and a Talk send: start the teacher hidden when it may (wakeAgent). */
+	wake: () => void;
 }
 
 const UNSTARTED = "Couldn't start the agent. Try again.";
@@ -241,11 +244,16 @@ function useTerminalsState(status: AgentStatus | null): TerminalsApi {
 		[idOf, lh],
 	);
 	const hide = useCallback(() => setOverlay(null), []);
+	const agentHere = !!status && (status.connected || status.teaching);
+	const wake = useCallback(() => {
+		const agent = lh && wakeAgent({ teacher, agentHere, outsideHere: !!status?.outsideHere, saved: savedAgent() });
+		if (agent) void start("teacher", agent);
+	}, [lh, teacher, agentHere, status?.outsideHere, start]);
 
 	const outsideHere = !!status?.outsideHere;
 	return useMemo(
-		() => ({ available: !!lh, teacher, helper, facts, folder, outsideHere, overlay, show: setOverlay, hide, start: startRole, stop, answer, paste }),
-		[lh, teacher, helper, facts, folder, outsideHere, overlay, hide, startRole, stop, answer, paste],
+		() => ({ available: !!lh, teacher, helper, facts, folder, outsideHere, overlay, show: setOverlay, hide, start: startRole, stop, answer, paste, wake }),
+		[lh, teacher, helper, facts, folder, outsideHere, overlay, hide, startRole, stop, answer, paste, wake],
 	);
 }
 

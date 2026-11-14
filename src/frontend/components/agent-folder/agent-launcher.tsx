@@ -4,21 +4,23 @@ import { ACCESS_ERROR, maskToken } from "@/frontend/components/mcp-access";
 import { QUIET_KEY } from "@/frontend/components/settings/controls";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { cn } from "@/frontend/lib/utils";
+import { FirstRunScreen } from "@/frontend/components/terminal/first-run-screen";
 import { rememberedAgent, type LaunchChoice, type LogLine } from "./agent-folder-model";
+import { savedAgent } from "./agent-folder-api";
 import { FolderLine } from "./folder-line";
-import { OpenAgentButton } from "./open-agent-button";
-import { savedAgent, useAgentFolder } from "./use-agent-folder";
+import { StartAgentButton } from "./start-agent-button";
+import { useAgentFolder } from "./use-agent-folder";
 
 /**
- * Start your agent in the godspeed folder: "Open Claude Code" and "Use
- * another agent", a live log of each step (folder made, terminal opened,
- * agent started, teaching), and under a dotted rule the folder with quiet
- * buttons to change it, copy the command or change the command that
- * starts the agent. "Other app" shows the address and token for any MCP
- * app. Onboarding (step 1) uses it.
+ * Start your agent in the godspeed folder: "Start Claude Code" and "Use
+ * another agent", then the agent's live screen (outside the desktop app, a
+ * log of each step while the learner runs the command), and under a dotted
+ * rule the folder with quiet buttons to change it, copy the command or
+ * change the command that starts the agent. "Other app" shows the address
+ * and token for any MCP app. Onboarding (step 1) uses it.
  */
 export function AgentLauncher() {
-	const { view, lines, busy, open, change, setStartCommand } = useAgentFolder();
+	const { view, lines, busy, error: startError, open, change, setStartCommand } = useAgentFolder();
 	const [choice, setChoice] = useState<LaunchChoice>("claude");
 	const [error, setError] = useState<string | null>(null);
 	useEffect(() => setChoice(rememberedAgent(savedAgent())), []);
@@ -27,19 +29,19 @@ export function AgentLauncher() {
 
 	return (
 		<div className="flex w-full flex-col items-start gap-4">
-			<OpenAgentButton
+			<StartAgentButton
 				choice={choice}
 				onChoose={(c) => {
 					setChoice(c);
 					setError(null);
 				}}
-				onOpen={() => agent && void open(agent)}
+				onStart={() => agent && void open(agent)}
 				busy={busy}
 			/>
-			{choice === "other" ? <OtherAppSetup /> : lines.length > 0 && <Log lines={lines} />}
-			{error && (
+			{choice === "other" ? <OtherAppSetup /> : lines.length > 0 ? <Log lines={lines} /> : <FirstRunScreen />}
+			{(error ?? (lines.length === 0 && startError)) && (
 				<p role="alert" className="text-[15px] text-ans-wrong">
-					{error}
+					{error ?? startError}
 				</p>
 			)}
 			{agent && (

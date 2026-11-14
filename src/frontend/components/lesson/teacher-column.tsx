@@ -61,7 +61,7 @@ export function TeacherColumn({
 	}
 	prevFromEarlierRef.current = pending?.appPosed?.kind === "review";
 
-	// With no agent teaching, the head says so and opens Connection settings.
+	// With no agent teaching, the head says so.
 	const doing = noAgent ? "Waiting for your agent" : busy ? `${name} is writing…` : teacher?.doing?.working ? teacher.doing.text : null;
 	return (
 		<aside
@@ -75,7 +75,7 @@ export function TeacherColumn({
 				<ResizeHandle paneKey="your-turn" width={width} bounds={COLUMN_WIDTH} onWidth={onWidth} label="Resize the teacher column" />
 			</div>
 			<Pane className="flex min-h-0 flex-1 flex-col overflow-hidden">
-				<TeacherHead name={name} color={color} doing={doing} doingTo={noAgent ? "/settings?section=connection" : undefined}>
+				<TeacherHead name={name} color={color} doing={doing}>
 					<FollowButton tone="sheet" />
 					{activityOpen ? (
 						<button type="button" data-testid="teacher-activity-back" onClick={() => setActivityOpen(false)} className="lh-btn shrink-0">

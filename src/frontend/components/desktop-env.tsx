@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import type { UpdateState } from "@/frontend/components/settings/update-settings.tsx";
-import type { FolderAgent, StartTarget } from "@/shared/core";
+import type { FolderAgent } from "@/shared/core";
 import type { TerminalRecord, TerminalRole } from "@/frontend/components/terminal/terminal-model";
 
 declare global {
@@ -15,8 +15,6 @@ declare global {
 			showInFolder?: (path: string) => Promise<void>;
 			/** Opens this folder in Finder (File Explorer), or this PDF in its default app. */
 			openPath?: (path: string) => Promise<void>;
-			/** Opens a terminal running the godspeed folder's start script: null, or why it couldn't. */
-			openAgent?: (folder: string, agent: StartTarget) => Promise<string | null>;
 			/** The agents' terminals the shell runs (terminal/use-terminals.ts). */
 			terminals?: {
 				/** Resolves to the new terminal's id; rejects with a sentence saying why it couldn't start. */

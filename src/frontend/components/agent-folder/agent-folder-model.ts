@@ -1,21 +1,14 @@
 /**
- * "Open Claude Code" (the godspeed folder): which agent the button opens,
- * and the live log under it. Pure — exported for tests.
+ * "Start Claude Code" (the godspeed folder): which agent the button starts,
+ * and, outside the desktop app, the log under it. Pure: exported for tests.
  */
 
-import type { FolderAgent, OldSetup, StartCommands, StartTarget } from "@/shared/core";
+import type { FolderAgent, OldSetup, StartCommands } from "@/shared/core";
 
-/** The button's menu: an agent the app opens, or the setup for any other MCP app. */
+/** The button's menu: an agent the app starts, or the setup for any other MCP app. */
 export type LaunchChoice = FolderAgent | "other";
 
 export const AGENT_LABEL: Record<FolderAgent, string> = { claude: "Claude Code", codex: "Codex" };
-
-/** The terminals a click opens: the agent, and its helper in a second
- *  window unless one is already here; or the helper alone. */
-export function startTargets(agent: FolderAgent, helperHere: boolean, helperOnly: boolean): StartTarget[] {
-	if (helperOnly) return [`${agent}-helper`];
-	return helperHere ? [agent] : [agent, `${agent}-helper`];
-}
 
 /** What the server says about the folder (GET /api/agent-folder). */
 export interface FolderView {
@@ -27,17 +20,14 @@ export interface FolderView {
 	oldSetup: OldSetup;
 }
 
-/** One step of a launch: running, done, or failed with a message. */
-type StepState = "wait" | "done" | { error: string };
-
-/** A click on the button: the folder being made, then the terminal
- *  opening ("manual" outside the desktop app: the learner runs the command). */
+/** A click on the button outside the desktop app: the folder is made,
+ *  then the learner runs the command. */
 export interface Launch {
 	agent: FolderAgent;
-	/** Only the helper's window was asked for. */
+	/** Only the helper was asked for. */
 	helperOnly?: true;
-	made: StepState;
-	opened?: StepState | "manual";
+	/** Running, done, or failed with a message. */
+	made: "wait" | "done" | { error: string };
 }
 
 export interface LogLine {
@@ -46,20 +36,15 @@ export interface LogLine {
 }
 
 /** The log's lines for a launch and the live agent status. */
-export function logLines(launch: Launch, status: { connected: boolean; teaching: boolean; helperHere: boolean }, short: string, mac: boolean): LogLine[] {
+export function logLines(launch: Launch, status: { connected: boolean; teaching: boolean; helperHere: boolean }, short: string): LogLine[] {
 	const name = AGENT_LABEL[launch.agent];
-	const terminal = mac ? "Terminal" : "a terminal";
-	const lines: LogLine[] = [];
 	if (typeof launch.made === "object") return [{ text: launch.made.error, state: "error" }];
-	lines.push(launch.made === "done" ? { text: `Made ${short}`, state: "done" } : { text: `Making ${short}…`, state: "wait" });
-	const opened = launch.opened;
-	if (opened === undefined) return lines;
-	if (typeof opened === "object") return [...lines, { text: opened.error, state: "error" }];
-	if (opened === "manual") lines.push({ text: "Copy the command and run it in your terminal", state: status.connected ? "done" : "wait" });
-	else lines.push(opened === "done" ? { text: `Opened ${terminal} in it`, state: "done" } : { text: `Opening ${terminal}…`, state: "wait" });
-	if (opened === "wait") return lines;
-	const helper: LogLine = status.helperHere ? { text: "Started the helper", state: "done" } : { text: "Waiting for the helper to start…", state: "wait" };
-	if (launch.helperOnly) return [...lines, helper];
+	if (launch.made === "wait") return [{ text: `Making ${short}…`, state: "wait" }];
+	const lines: LogLine[] = [
+		{ text: `Made ${short}`, state: "done" },
+		{ text: "Copy the command and run it in your terminal", state: status.connected ? "done" : "wait" },
+	];
+	if (launch.helperOnly) return [...lines, status.helperHere ? { text: "Started the helper", state: "done" } : { text: "Waiting for the helper to start…", state: "wait" }];
 	if (!status.connected) {
 		lines.push({ text: `Waiting for ${name} to start…`, state: "wait" });
 		lines.push({ text: `If ${name} asks whether to trust the folder, choose Yes.`, state: "note" });
@@ -67,12 +52,10 @@ export function logLines(launch: Launch, status: { connected: boolean; teaching:
 	}
 	lines.push({ text: `Started ${name}`, state: "done" });
 	lines.push(status.teaching ? { text: `${name} is teaching`, state: "done" } : { text: `Waiting for ${name} to start teaching…`, state: "wait" });
-	// Outside the desktop app the learner starts one window by hand.
-	if (opened === "done") lines.push(helper);
 	return lines;
 }
 
-/** The agent "Open Claude Code" opens: the last one opened here, else Claude Code. */
+/** The agent "Start Claude Code" starts: the last one started here, else Claude Code. */
 export function rememberedAgent(saved: string | null): FolderAgent {
 	return saved === "codex" ? "codex" : "claude";
 }

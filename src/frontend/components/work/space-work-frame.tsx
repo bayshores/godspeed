@@ -3,7 +3,7 @@ import { useActivity } from "@/frontend/components/activity-dock";
 import { useMinute } from "@/frontend/components/countdown";
 import { useSpaceRecord } from "@/frontend/components/files/space-files-api";
 import { useSpaces } from "@/frontend/components/space-context";
-import { OpenAgentAction } from "./open-agent-action";
+import { StartAgentAction } from "./start-agent-action";
 import { useWorker } from "./use-worker";
 import { WorkFrame, type Frame } from "./work-frame";
 import { spaceFrame, workState } from "./work-model";
@@ -36,7 +36,7 @@ export function SpaceWorkFrame({ wide = false, children }: { wide?: boolean; chi
 				...spaceFrame(state, worker ?? teacher),
 				actions:
 					state.kind === "waiting" ? (
-						<OpenAgentAction />
+						<StartAgentAction />
 					) : state.kind === "done" ? (
 						<button type="button" data-testid="work-frame-close" onClick={close} className="lh-btn lh-btn-quiet h-7 shrink-0 text-ink">
 							Close

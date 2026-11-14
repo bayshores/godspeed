@@ -1,7 +1,7 @@
 /**
  * Once, for people who set up godspeed the old way (the Claude Code plugin
  * or the Codex config): godspeed has its own folder now. "Set up my
- * folder" makes it, removes the old setup and opens the agent there;
+ * folder" makes it, removes the old setup and starts the agent there;
  * "Later" hides the notice for good. It opens after
  * the welcome screen (openFolderNotice), or right away without one.
  */
@@ -23,24 +23,22 @@ export function openFolderNotice(): void {
 export function FolderNotice({ agent, afterWelcome }: { agent: FolderAgent; afterWelcome: boolean }) {
 	const [open, setOpen] = useState(false);
 	const presence = usePresence(open);
-	const { view, launch, open: openAgent } = useAgentFolder();
+	const { view, busy, error, open: startAgent } = useAgentFolder();
 	useEffect(() => {
 		if (!afterWelcome) setOpen(true);
 		const show = () => setOpen(true);
 		window.addEventListener(OPEN_EVENT, show);
 		return () => window.removeEventListener(OPEN_EVENT, show);
 	}, [afterWelcome]);
-	// Close once the terminal is open; the teacher chip follows the agent from there.
-	useEffect(() => {
-		if (launch?.opened === "done" || launch?.opened === "manual") setOpen(false);
-	}, [launch]);
 
 	const later = () => {
 		setOpen(false);
 		void fetch("/api/agent-folder", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "dismiss-notice" }) }).catch(() => {});
 	};
-	const error = typeof launch?.made === "object" ? launch.made.error : typeof launch?.opened === "object" ? launch.opened.error : null;
-	const busy = !!launch && !error && launch.opened !== "done";
+	// Close once the agent starts; the teacher's status line follows it from there.
+	const setUp = async () => {
+		if (await startAgent(agent)) setOpen(false);
+	};
 	const name = AGENT_LABEL[agent];
 
 	if (!presence.mounted || typeof document === "undefined") return null;
@@ -60,7 +58,7 @@ export function FolderNotice({ agent, afterWelcome }: { agent: FolderAgent; afte
 						type="button"
 						data-testid="folder-notice-setup"
 						disabled={busy}
-						onClick={() => void openAgent(agent)}
+						onClick={() => void setUp()}
 						className="lh-btn lh-btn-main text-[15px]"
 					>
 						Set up my folder
@@ -69,7 +67,7 @@ export function FolderNotice({ agent, afterWelcome }: { agent: FolderAgent; afte
 			}
 		>
 			<p className="text-lg text-ink">
-				Open {name} in {view?.short ?? "~/godspeed"} to study. Your other {name} chats stop loading godspeed, and your spaces and lessons stay as
+				Start {name} in {view?.short ?? "~/godspeed"} to study. Your other {name} chats stop loading godspeed, and your spaces and lessons stay as
 				they are.
 			</p>
 			{error && (

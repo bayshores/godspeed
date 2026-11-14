@@ -12,6 +12,7 @@ import type { AgentAction } from "@/shared/core";
 import { agentWaiting, agentStatusLabel, waitingNotice, type AgentStatus } from "@/frontend/components/agent-status";
 import { tabListKeys } from "@/frontend/components/ui/tab-list";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
+import { TeacherStatus } from "@/frontend/components/terminal/teacher-status";
 import { useTeacher } from "./teacher-context";
 import type { AgentDoing } from "./follow-status";
 import { TalkView, type TalkAsk } from "./talk-view";
@@ -96,11 +97,7 @@ export function TeacherPanel({
 					<span data-testid="teacher-panel-name" className="truncate text-xl leading-snug font-medium text-ink">
 						{name}
 					</span>
-					{line && (
-						<span data-testid="teacher-panel-agent" className="text-base text-ink-2">
-							{line}
-						</span>
-					)}
+					<TeacherStatus name={name} line={line} testid="teacher-panel-agent" className="text-base text-ink-2" />
 				</span>
 				<button type="button" data-testid="teacher-panel-close" onClick={onClose} className="lh-btn lh-btn-quiet shrink-0 text-[15px]">
 					<PixelIcon name="close" />

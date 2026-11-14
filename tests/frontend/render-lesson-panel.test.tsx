@@ -709,8 +709,7 @@ describe("the teacher column", () => {
 		assert.match(renderToStaticMarkup(named(column({ busy: true }))), /data-testid="teacher-head-doing"[^>]*>marco is writing…</);
 		for (const busy of [true, false]) {
 			const waiting = renderToStaticMarkup(<MemoryRouter initialEntries={["/chat/ses_1"]}>{named(column({ busy, noAgent: true }))}</MemoryRouter>);
-			const link = /<a[^>]*data-testid="teacher-head-doing"[^>]*>Waiting for your agent</.exec(waiting)?.[0] ?? "";
-			assert.match(link, /href="\/settings\?section=connection"/, "the status opens Connection settings, turn or no turn");
+			assert.match(waiting, /<span[^>]*data-testid="teacher-head-doing"[^>]*>Waiting for your agent</, "plain words, no link, turn or no turn");
 		}
 		assert.match(renderToStaticMarkup(column()), /Teacher/, "the default name");
 	});

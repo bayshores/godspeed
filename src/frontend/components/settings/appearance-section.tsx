@@ -8,6 +8,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { AppearanceSettings } from "@/shared/core";
 import { MenuShell } from "@/frontend/components/menu-shell";
+import { inTerminal } from "@/frontend/components/focus-hygiene";
 import { cn } from "@/frontend/lib/utils";
 import { useAppearance } from "./appearance.tsx";
 import { BACKGROUND_PRESETS, PAPER, appearanceToWrite, derivedPalette, readableBackground } from "./appearance-model.ts";
@@ -202,7 +203,7 @@ function FontPicker({ family, onPick }: { family: string | null; onPick: (family
 			setOpen(false);
 		};
 		const onKeyDown = (e: KeyboardEvent) => {
-			if (e.key !== "Escape") return;
+			if (e.key !== "Escape" || inTerminal(e)) return;
 			e.stopPropagation();
 			setOpen(false);
 			triggerRef.current?.focus();

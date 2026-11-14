@@ -158,7 +158,7 @@ describe("General update rows", () => {
 
 	it("late Settings and banner subscribers recover the staged update without an event", async () => {
 		const b = bridge(state({ status: "downloaded", version: "0.3.8", revision: 5 }));
-		const host = await mount(<><UpdateSettings {...props} /><UpdateBanner /></>);
+		const host = await mount(<><UpdateSettings {...props} /><UpdateBanner teacherName="Ada" /></>);
 		assert.ok(q(host, "update-restart")); assert.ok(q(host, "update-banner"));
 		assert.ok(q(host, "update-banner")!.textContent!.includes("0.3.8"));
 		await click(q(host, "update-restart-now")); assert.equal(b.calls.install, 1);
@@ -167,7 +167,7 @@ describe("General update rows", () => {
 
 	it("a delayed older snapshot cannot overwrite a newer push in Settings or the banner", async () => {
 		const snapshot = deferred<UpdateState>(); const b = bridge(state(), snapshot.promise);
-		const host = await mount(<><UpdateSettings {...props} /><UpdateBanner /></>);
+		const host = await mount(<><UpdateSettings {...props} /><UpdateBanner teacherName="Ada" /></>);
 		await b.push(state({ status: "downloaded", version: "0.3.8", revision: 4 }));
 		await act(async () => { snapshot.resolve(state({ status: "checking", revision: 3 })); });
 		assert.ok(q(host, "update-restart")); assert.ok(q(host, "update-banner"));

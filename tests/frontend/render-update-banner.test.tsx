@@ -31,7 +31,7 @@ describe("update banner (Wave C)", () => {
 	});
 
 	it("renders nothing with no bridge (browser / SSR)", () => {
-		const html = renderToStaticMarkup(<UpdateBanner />);
+		const html = renderToStaticMarkup(<UpdateBanner teacherName="Ada" />);
 		assert.equal(html, "");
 	});
 
@@ -44,7 +44,7 @@ describe("update banner (Wave C)", () => {
 			},
 			installUpdate: () => {},
 		};
-		const html = renderToStaticMarkup(<UpdateBanner />);
+		const html = renderToStaticMarkup(<UpdateBanner teacherName="Ada" />);
 		assert.equal(html, "");
 		void listeners;
 	});
@@ -64,7 +64,7 @@ describe("update banner (Wave C)", () => {
 		const host = document.createElement("div");
 		document.body.appendChild(host);
 		const root = ReactDOMClient.createRoot(host);
-		flushSync(() => root.render(<UpdateBanner />));
+		flushSync(() => root.render(<UpdateBanner teacherName="Ada" />));
 		assert.equal(host.innerHTML, "", "hidden before the push");
 
 		await new Promise((r) => setTimeout(r, 0));
@@ -92,7 +92,7 @@ describe("update banner (Wave C)", () => {
 		const host = document.createElement("div");
 		document.body.appendChild(host);
 		const root = ReactDOMClient.createRoot(host);
-		flushSync(() => root.render(<UpdateBanner />));
+		flushSync(() => root.render(<UpdateBanner teacherName="Ada" />));
 		await new Promise((r) => setTimeout(r, 0));
 		flushSync(() => pushed?.({ status: "downloading", version: "0.5.4", percent: 40, revision: 1 }));
 		assert.ok(host.innerHTML.includes("godspeed 0.5.4 is downloading"));
