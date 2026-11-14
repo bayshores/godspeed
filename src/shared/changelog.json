@@ -1,5 +1,22 @@
 [
 	{
+		"version": "0.6.6",
+		"date": "2026-11-14",
+		"changes": [
+			"Your agent now runs inside godspeed. Start Claude Code or Codex with one button and godspeed keeps it running in the background, with no separate terminal window. Click the teacher's status to see its screen. Sending a message or starting a lesson starts it for you.",
+			"Interview prep is now a normal space. Tell your teacher in Talk what you're preparing for and it sets up the space, an Interview deadline, a \"What it's like\" page and a study guide. Your old preps are moved over with their mocks.",
+			"You can take a mock on any exam, quiz or interview deadline. The time limit is optional, and a timed mock can be paused.",
+			"Spaces work like browser tabs. Right-click a tab to close or delete it. The + after the tabs adds a space or reopens a closed one. Closing replaces archiving.",
+			"Today shows the next thing to do as one card, the days you studied this week, and a row for each space with its topics and new files.",
+			"A lesson's plan sits in one row at the top, with a small map when the plan branches. A homework lesson shows every problem there by its own number.",
+			"Questions are shorter. You rate how sure you are on one line after you pick, and you type your own answer in the same box.",
+			"The teacher asks one question at a time, can show a plot of a curve or of measured points, and can leave you a sentence to keep.",
+			"A problem you solved with hints now counts as part of a right answer, so Study moves on instead of planning the same topics again.",
+			"Settings has four tabs. The Keyboard tab, the two sliders, heading weight and the bold and italic colors are gone.",
+			"An older godspeed can't open spaces that this version has saved."
+		]
+	},
+	{
 		"version": "0.6.5",
 		"date": "2026-11-13",
 		"changes": [

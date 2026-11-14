@@ -59,11 +59,11 @@ Two things the GIF doesn't get to. Questions from earlier lessons come back when
 
 | Part | What it does |
 | --- | --- |
-| **Spaces** | A space is one thing you study, like a course, a certification or a language. Each one has its own lessons, files, knowledge graph, deadlines and cheat sheets. Add PDFs, Word and PowerPoint files, EPUB books, notes, code, transcripts and lecture recordings (transcribed on your computer with whisper.cpp), or link a folder that's rescanned every minute. Google Drive folders work too. When a PDF page has formulas, your agent writes that page out once with the math in LaTeX and godspeed keeps it for search and later lessons. |
-| **Today and deadlines** | Add exams, homework, quizzes and projects with a date and the files they cover. Today lists what to do next across every space, each with the days left, how ready you are and one button to start. While godspeed is running it sends one notification a day when a deadline is 3 days away or less. |
+| **Spaces** | A space is one thing you study, like a course, a certification or a language. Each one has its own lessons, files, knowledge graph, deadlines and cheat sheets. Right-click a space's tab to close it when you're done, and use the + after the tabs to reopen it. Add PDFs, Word and PowerPoint files, EPUB books, notes, code, transcripts and lecture recordings (transcribed on your computer with whisper.cpp), or link a folder that's rescanned every minute. Google Drive folders work too. When a PDF page has formulas, your agent writes that page out once with the math in LaTeX and godspeed keeps it for search and later lessons. |
+| **Today and deadlines** | Add exams, homework, quizzes, projects and interviews with a date and the files they cover. Today shows the next thing to do as one card with one button to start, the days you studied this week, what else is due, and a row for each space with its topics and new files. While godspeed is running it sends one notification a day when a deadline is 3 days away or less. |
 | **Knowledge graph** | Your agent groups what you learn into topics, laid out in columns from what you learn first to what builds on it. Each topic shows one square per fact, colored by how often you get it right. |
 | **Homework** | Attach the assignment file and hit Work on it. The teacher opens its problems one at a time and checks your work with hints, but never gives you the answer. A problem counts as done once your own work is right. |
-| **Preps** | For one interview or test. You say what it is and add files like the job posting, and the teacher writes a prep sheet with the topics in order. Take timed mocks (code questions run their examples on your computer), then study what you got wrong. |
+| **Interviews and mocks** | Tell your teacher in Talk what you're preparing for and add files like the job posting. It sets up a space with an Interview deadline, a "What it's like" page and a study guide. Take a mock on any exam, quiz or interview deadline, timed or not (code questions run their examples on your computer), then study what you got wrong. |
 | **Progress** | How ready you are for each deadline, how each lesson went, and whether your confidence matches your results. |
 | **Cheat sheets** | Your agent makes a PDF cheat sheet for a deadline. Point at the part you mean, say what to change, and the rules you give it stick for that sheet. |
 | **Calculator** | In any box you write in, end a calculation with `=` and the answer shows in grey after it. It does numbers, algebra, `solve 2x + 3 = 11`, derivatives and integrals, all on your computer. |
@@ -93,7 +93,7 @@ Each link downloads the newest version. The app checks for updates once a day an
 
 Then connect your agent. The first launch walks you through it, and the same steps are under **Settings → Connection** later.
 
-1. Click **Open Claude Code**. If you use Codex, pick it under **Use another agent** first. godspeed makes a folder for your agent, `~/godspeed`, and opens a terminal there running it.
+1. Click **Start Claude Code**. If you use Codex, pick it under **Use another agent** first. godspeed makes a folder for your agent, `~/godspeed`, and runs it there inside the app. Its screen shows in the window the first time, so you can answer its questions.
 2. Start a lesson. You answer in the godspeed window and the agent teaches.
 
 Any other MCP app works too. Pick **Other app** under **Use another agent** and it shows the address and token (Streamable HTTP, `Authorization: Bearer <token>`).
@@ -109,7 +109,7 @@ The `~/godspeed` folder holds the agent's instructions (`CLAUDE.md`, `AGENTS.md`
 
 While you think, Claude Code waits in a background script, so the agent spends no tokens until you answer.
 
-Open Claude Code and Open Codex each open a second window of the same agent, the helper. It reads your files and builds the graph so the teacher stays free for you. When the teacher stops to tidy its memory, the helper answers your lesson and Talk messages so you don't wait. For another MCP app, start a second session and tell it "Start as the helper". **Settings → Connection** shows what each window is doing.
+godspeed also runs the same agent a second time as the helper, and starts it when there is reading to do. It reads your files and builds the graph so the teacher stays free for you. When the teacher stops to tidy its memory, the helper answers your lesson and Talk messages so you don't wait. For another MCP app, start a second session and tell it "Start as the helper". **Settings → Connection** shows what each one is doing, and a click on the teacher's status opens its screen.
 
 Agents can also list and read lessons, search your graph and your space files, import notes, and manage spaces and deadlines. They can save short notes about you (like "the midterm is over"), and every agent sees those notes and where you left off when it connects. You can see and delete the notes under **Settings → Connection**. Only programs on your computer that hold the token can connect.
 
