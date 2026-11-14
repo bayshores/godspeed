@@ -3,12 +3,13 @@ import { describe, it } from "node:test";
 import { UNTESTED_COLOR, rampColor } from "../../src/shared/core/index.ts";
 import { UNSTUDIED_CELL, factCells, factRate } from "../../src/frontend/components/fact-cells.ts";
 
-const answers = (...o: ("right" | "wrong" | "dontKnow")[]) => o.map((outcome) => ({ outcome })) as never;
+const answers = (...o: ("right" | "hinted" | "wrong" | "dontKnow")[]) => o.map((outcome) => ({ outcome })) as never;
 
 describe("factRate", () => {
 	it("is the share of right answers, null before the first", () => {
 		assert.equal(factRate({ answers: [] }), null);
 		assert.equal(factRate({ answers: answers("right", "wrong", "dontKnow", "right") }), 0.5);
+		assert.equal(factRate({ answers: answers("hinted") }), 0.6, "solved with hints counts in part");
 	});
 });
 

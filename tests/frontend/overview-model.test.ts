@@ -71,6 +71,7 @@ describe("overview-model", () => {
 		assert.equal(mostMissesTakeaway([{ ...lesson("a", 0, 3), title: "ok lets prep." }, lesson("b", 1, 2)]), "“ok lets prep” has the most misses.");
 		assert.equal(mostMissesTakeaway([lesson("a", 1, 3)]), null);
 		assert.equal(mostMissesTakeaway([lesson("a", 3, 3), lesson("b", 2, 2)]), null);
+		assert.equal(mostMissesTakeaway([{ ...lesson("a", 0, 2), hinted: 2 }, lesson("b", 1, 2)]), "“Lesson b” has the most misses.", "solved with hints is no miss");
 	});
 
 	it("overconfident levels: only 4–5, only when below the target", () => {
@@ -163,6 +164,7 @@ describe("pick up where you left off", () => {
 	it("a lesson's score, or that it has no answers", () => {
 		assert.equal(scoreLine({ right: 4, answered: 6 }), "4 of 6 right");
 		assert.equal(scoreLine({ right: 0, answered: 0 }), "No answers yet");
+		assert.equal(scoreLine({ right: 1, hinted: 1, answered: 2 }), "1 of 2 right, 1 solved with hints");
 	});
 });
 

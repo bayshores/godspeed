@@ -6,7 +6,7 @@
  */
 import { useMemo } from "react";
 import { Link } from "react-router";
-import { dayLabel, localDay, type FactProgress, type GraphChain } from "@/shared/core";
+import { dayLabel, localDay, rightWords, tally, type FactProgress, type GraphChain } from "@/shared/core";
 import { Pane } from "@/frontend/components/ui/pane";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { InlineMath } from "@/frontend/components/overview/inline-math";
@@ -50,7 +50,6 @@ export function FactPane({
 }) {
 	const byId = useMemo(() => new Map(facts.map((f) => [f.id, f])), [facts]);
 	const links = useMemo(() => (sources ? factLinks(fact.id, sources.chains) : null), [fact.id, sources]);
-	const right = fact.answers.filter((a) => a.outcome === "right").length;
 	const last = fact.answers.at(-1)?.answeredAt;
 	return (
 		<Pane active data-testid="fact-pane" aria-label="Fact" className="flex flex-col gap-3.5 p-5">
@@ -74,7 +73,8 @@ export function FactPane({
 							))}
 						</span>
 						<span>
-							{right} of {fact.answers.length} right{last ? `, last ${dayLabel(localDay(new Date(last)))}` : ""}
+							{rightWords(tally(fact.answers))}
+							{last ? `, last ${dayLabel(localDay(new Date(last)))}` : ""}
 						</span>
 					</>
 				) : (

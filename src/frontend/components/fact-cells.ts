@@ -1,13 +1,12 @@
 /** The fact grid's colors, one cell per fact (a space's Progress, the graph). Pure and unit-tested. */
-import { UNTESTED_COLOR, rampColor, type FactProgress } from "@/shared/core";
+import { UNTESTED_COLOR, rampColor, tally, type FactProgress } from "@/shared/core";
 
 /** An unstudied fact's cell: the pane's own border color. */
 export const UNSTUDIED_CELL = "var(--border)";
 
-/** A fact's share of right answers (0–1); null before its first answer. */
+/** A fact's right rate (0–1, as a topic's); null before its first answer. */
 export function factRate(f: Pick<FactProgress, "answers">): number | null {
-	if (f.answers.length === 0) return null;
-	return f.answers.filter((a) => a.outcome === "right").length / f.answers.length;
+	return tally(f.answers).rate;
 }
 
 /** The space's fact grid, one color per fact: answered facts in their

@@ -4,7 +4,7 @@
  * the days before it that it neither covers nor leaves out, and the
  * ones left out on purpose. Pure and unit-tested.
  */
-import { dateInName, extensionOf, type SpaceDeadline, type SpaceFile, type DeadlineKind, type FileCoverage, type TopicProgress } from "@/shared/core";
+import { dateInName, extensionOf, rightWords, type SpaceDeadline, type SpaceFile, type DeadlineKind, type FileCoverage, type TopicProgress } from "@/shared/core";
 import { clockLabel, kindLabel } from "@/frontend/components/space-deadlines-model";
 import { longDay } from "@/frontend/components/home-page/home-page-model";
 
@@ -222,11 +222,11 @@ export function guideMessage(spaceName: string, deadlineName: string): string {
 }
 
 /** A topic's answers so far. */
-export type TopicTally = Pick<TopicProgress, "id" | "right" | "answered">;
+export type TopicTally = Pick<TopicProgress, "id" | "right" | "hinted" | "answered">;
 
-/** "2 of 5 right", or "not tested". */
-export function rightLabel(t: { right: number; answered: number } | undefined): string {
-	return t && t.answered > 0 ? `${t.right} of ${t.answered} right` : "not tested";
+/** "2 of 5 right", "2 of 5 right, 1 with hints", or "not tested". */
+export function rightLabel(t: { right: number; hinted?: number; answered: number } | undefined): string {
+	return t && t.answered > 0 ? rightWords(t) : "not tested";
 }
 
 /** Over the deadline's name: "Exam, Tuesday Dec 8, 11:59 PM". */

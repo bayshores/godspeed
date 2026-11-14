@@ -70,6 +70,7 @@ describe("panel helpers", () => {
 		assert.equal(statusLine(mini), "3/7 right, overconfident");
 		assert.equal(statusLine(byId.get("t-var")!), "4/7 right");
 		assert.equal(statusLine(byId.get("t-mom")!), "Not tested");
+		assert.equal(statusLine({ right: 1, hinted: 2, answered: 3, overconfident: false, status: "shaky" }), "1/3 right, 2 solved with hints");
 	});
 
 	it("reasonText explains the overconfident group", () => {
