@@ -27,11 +27,12 @@ static NAME: LazyLock<Re> = LazyLock::new(|| Re::new("^[a-z][a-z0-9_]{0,11}$", "
 static NUMBER: LazyLock<Re> = LazyLock::new(|| Re::new(r"[-\u2212]?(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?|[-\u2212]?\.\d+", "g"));
 const RESERVED: [&str; 12] = ["sin", "cos", "tan", "exp", "ln", "log10", "sqrt", "abs", "min", "max", "pi", "e"];
 
-/// A number, or a string that reads as one (validation converts those).
-fn number(v: &Json) -> Option<f64> {
+/// A number, or a string that reads as one (validation converts those). Only ASCII spaces are
+/// trimmed, so the window's `Number` reads the same strings.
+pub(crate) fn number(v: &Json) -> Option<f64> {
 	match v {
 		Json::Num(n) if n.is_finite() => Some(*n),
-		Json::Str(s) if !s.trim().is_empty() => s.trim().parse::<f64>().ok().filter(|n| n.is_finite()),
+		Json::Str(s) if !s.trim_ascii().is_empty() => s.trim_ascii().parse::<f64>().ok().filter(|n| n.is_finite()),
 		_ => None,
 	}
 }
@@ -124,14 +125,16 @@ impl Plot {
 	}
 
 	/// The line's value at `x` with the slider at `slider` (not finite where it has none; a points
-	/// line has one only at its own x values). A value under a billionth of the y range is float
-	/// noise and reads 0.
+	/// line has one only at its own x values). A formula's value under a billionth of the y range
+	/// is float noise and reads 0; a measured point reads as sent.
 	pub fn line_value(&self, line: usize, x: f64, slider: f64) -> f64 {
-		let value = match &self.lines[line].shape {
-			Shape::Formula(expr) => expr.eval(&[x, slider]),
+		match &self.lines[line].shape {
+			Shape::Formula(expr) => {
+				let value = expr.eval(&[x, slider]);
+				if value.abs() < 1e-9 * (self.y.1 - self.y.0) { 0.0 } else { value }
+			}
 			Shape::Points(points) => points.iter().find(|p| p.0 == x).map_or(f64::NAN, |p| p.1),
-		};
-		if value.abs() < 1e-9 * (self.y.1 - self.y.0) { 0.0 } else { value }
+		}
 	}
 
 	/// The values the agent is told: the formula lines at slider start and x at min, middle and
@@ -284,7 +287,7 @@ pub fn check_plot(args: &Json) -> Result<Plot, Vec<String>> {
 		_ => true,
 	};
 	let names: Vec<&str> = [x_name.as_deref(), slider_name.as_deref()].into_iter().flatten().collect();
-	let lines = read_lines(args, &names, names_differ && names.len() == 2, x_range, &mut p);
+	let lines = read_lines(args, &names, names_differ && names.len() == 2, x_range, y_given, &mut p);
 	let slider = match (slider_name, slider_range, start) {
 		(Some(name), Some((min, max)), Some(start)) => Some(Slider { range: Range { name, min, max }, start }),
 		_ => None,
@@ -323,7 +326,7 @@ pub fn check_plot(args: &Json) -> Result<Plot, Vec<String>> {
 /// `y.min` and `y.max`: both or neither.
 fn given_y(args: &Json, p: &mut Problems) -> Option<(f64, f64)> {
 	let y = &args["y"];
-	match (y.get("min").is_some_and(|v| !v.is_null()), y.get("max").is_some_and(|v| !v.is_null())) {
+	match (present(y, "min"), present(y, "max")) {
 		(false, false) => None,
 		(true, true) => p.range(args, "y"),
 		_ => {
@@ -334,8 +337,8 @@ fn given_y(args: &Json, p: &mut Problems) -> Option<(f64, f64)> {
 }
 
 /// The lines, each formula parsed when the names are good (`parse`), each points line checked
-/// against the x range when it is good.
-fn read_lines(args: &Json, names: &[&str], parse: bool, x: Option<(f64, f64)>, p: &mut Problems) -> Option<Vec<PlotLine>> {
+/// against the x range and the given y range when they are good.
+fn read_lines(args: &Json, names: &[&str], parse: bool, x: Option<(f64, f64)>, y: Option<(f64, f64)>, p: &mut Problems) -> Option<Vec<PlotLine>> {
 	let Some(list) = args["lines"].as_arr() else {
 		p.add("lines: must be a list of 1 or 2 lines.".to_owned());
 		return None;
@@ -366,7 +369,7 @@ fn read_lines(args: &Json, names: &[&str], parse: bool, x: Option<(f64, f64)>, p
 		match (present(line, "expr"), present(line, "points")) {
 			(true, true) => p.add(format!("{path}: has both expr and points. Keep one.")),
 			(false, true) => {
-				if let Some(points) = read_points(line, &path, x, p) {
+				if let Some(points) = read_points(line, &path, x, y, p) {
 					lines.push(PlotLine { label, shape: Shape::Points(points) });
 				}
 			}
@@ -388,8 +391,9 @@ fn read_lines(args: &Json, names: &[&str], parse: bool, x: Option<(f64, f64)>, p
 	(lines.len() == list.len()).then_some(lines)
 }
 
-/// A points line's 2 to 12 `[x, y]` pairs, by increasing x, each x inside the x range.
-fn read_points(line: &Json, path: &str, x: Option<(f64, f64)>, p: &mut Problems) -> Option<Vec<(f64, f64)>> {
+/// A points line's 2 to 12 `[x, y]` pairs, by increasing x, each x inside the x range and each y
+/// inside the y range when the call gives one.
+fn read_points(line: &Json, path: &str, x: Option<(f64, f64)>, y: Option<(f64, f64)>, p: &mut Problems) -> Option<Vec<(f64, f64)>> {
 	let path = format!("{path}.points");
 	let Some(list) = line["points"].as_arr() else {
 		p.add(format!("{path}: must be a list of [x, y] pairs."));
@@ -416,6 +420,11 @@ fn read_points(line: &Json, path: &str, x: Option<(f64, f64)>, p: &mut Problems)
 			&& !(min..=max).contains(&px)
 		{
 			p.add(format!("{at}: x {} is outside min {} to max {}. Widen x or leave the point out.", short(px), short(min), short(max)));
+		}
+		if let Some((min, max)) = y
+			&& !(min..=max).contains(&py)
+		{
+			p.add(format!("{at}: y {} is outside y min {} to max {}. Widen y or leave the point out.", short(py), short(min), short(max)));
 		}
 		points.push((px, py));
 	}
@@ -718,6 +727,26 @@ mod tests {
 		assert_eq!(problems(with(cv_points(), &["lines", "0", "points"], json!("[[1, 2], [3, 4]]"))), ["lines[0].points: must be a list of [x, y] pairs."]);
 		assert_eq!(problems(with(cv_points(), &["lines", "0", "hidden"], json!(true))), ["lines: every line is hidden. Leave one shown."]);
 		assert_eq!(problems(with(cv_points(), &["x", "name"], json!("Degree"))), ["x.name: \"Degree\" must be a lowercase word of at most 12 letters, digits or _, like a or lambda."], "a name sent is still checked");
+	}
+
+	#[test]
+	fn a_point_outside_the_given_y_range_is_refused() {
+		let far = with(with(cv_points(), &["y"], json!({ "label": "CV error", "min": 0, "max": 1 })), &["lines", "0", "points"], json!([[1, 0.5], [9, 1e300]]));
+		assert_eq!(problems(far), ["lines[0].points[1]: y 1e300 is outside y min 0 to max 1. Widen y or leave the point out."]);
+	}
+
+	#[test]
+	fn a_measured_point_reads_as_sent_and_never_as_float_noise() {
+		let plot = check_plot(&with(cv_points(), &["lines", "0", "points"], json!([[1, 0], [3, 500], [5, 1e12]]))).unwrap();
+		assert_eq!([1.0, 3.0, 5.0].map(|x| plot.line_value(0, x, f64::NAN)), [0.0, 500.0, 1e12]);
+	}
+
+	/// The window reads numeric strings with `Number`, which trims no Unicode space such as U+0085.
+	#[test]
+	fn a_numeric_string_is_trimmed_of_ascii_spaces_only() {
+		assert_eq!(number(&json!(" 0.8\t")), Some(0.8));
+		assert_eq!(number(&json!("0.8\u{0085}")), None);
+		assert_eq!(problems(with(cv_points(), &["lines", "0", "points"], json!([[1, "0.8\u{0085}"], [3, 0.4]]))), ["lines[0].points[0]: must be [x, y], two numbers."]);
 	}
 
 	/// `0.1*3 - 0.3` is 5.55e-17 in floats, which no option's words could name.

@@ -700,7 +700,7 @@ The call's checks (`core::session::plot`) run on the call as sent, since the win
 
 - bounds and names, and a range too narrow for the size of its numbers
 - each formula
-- each points line: 2 to 12 pairs of numbers, x rising, every x inside the x range
+- each points line: 2 to 12 pairs of numbers, x rising, every x inside the x range and every y inside the y range when one is given
 - a formula with no value at more than a tenth of its 200 x by 20 slider points
 - when no y range is given, one from the 2nd to 98th percentile of every formula value and point, refused when the values run 20 times wider
 

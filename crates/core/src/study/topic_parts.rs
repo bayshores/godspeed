@@ -17,7 +17,7 @@ use super::topic_end::shown_openers;
 use crate::messages::citations::{CiteMark, replace_cite_marks};
 use crate::messages::lesson_markers::KEEP_CHECK;
 use crate::messages::pending::is_question_tool;
-use crate::session::plot::{PLOT_TOOL, Plot, Shape, check_plot, option_names_value, short};
+use crate::session::plot::{PLOT_TOOL, Plot, Shape, check_plot, number, option_names_value, short};
 use crate::session::question_core::{coerce_correct_answer, normalize_quiz_type, parse_options_if_string};
 
 /// Every topic the lesson reached, in the order it reached them: `{ nodeId, page }`, where `page`
@@ -232,11 +232,6 @@ fn four_figures(v: f64) -> f64 {
 	format!("{v:.3e}").parse().unwrap_or(v)
 }
 
-/// A number, or a string that reads as one.
-fn number(v: &Json) -> Option<f64> {
-	v.as_f64().or_else(|| v.as_str().and_then(|s| s.trim().parse().ok())).filter(|n: &f64| n.is_finite())
-}
-
 /// The guess's own problems; the drawn value it asks about when it names a point on a line. On a
 /// points line, x is one of its measured x values.
 fn guess_value(plot: &Plot, quiz: &Json, problems: &mut Vec<String>) -> Option<f64> {
@@ -254,16 +249,23 @@ fn guess_value(plot: &Plot, quiz: &Json, problems: &mut Vec<String>) -> Option<f
 		Shape::Points(points) => Some(points),
 		Shape::Formula(_) => None,
 	});
-	let x = number(&on["x"]);
-	match x {
-		None => problems.push("onPlot.x: must be a number.".to_owned()),
-		Some(x) if !plot.x.holds(x) => problems.push(format!("onPlot.x: {} is outside min {} to max {}.", short(x), short(plot.x.min), short(plot.x.max))),
+	// The x the guess reads: inside the x range, and on a points line one of its points.
+	let x = match number(&on["x"]) {
+		None => {
+			problems.push("onPlot.x: must be a number.".to_owned());
+			None
+		}
+		Some(x) if !plot.x.holds(x) => {
+			problems.push(format!("onPlot.x: {} is outside min {} to max {}.", short(x), short(plot.x.min), short(plot.x.max)));
+			None
+		}
 		Some(x) if points.is_some_and(|points| !points.iter().any(|p| p.0 == x)) => {
 			let xs = points.into_iter().flatten().map(|p| short(p.0)).collect::<Vec<_>>().join(", ");
 			problems.push(format!("onPlot.x: {label} has no point at {} = {}. Ask at one of its x values: {xs}.", plot.x.name, short(x)));
+			None
 		}
-		_ => {}
-	}
+		x => x,
+	};
 	// The slider value the guess reads, NaN on a plot with none.
 	let slider = match &plot.slider {
 		None if on["slider"].is_null() => Some(f64::NAN),
@@ -282,9 +284,6 @@ fn guess_value(plot: &Plot, quiz: &Json, problems: &mut Vec<String>) -> Option<f
 		}
 	};
 	let (Some(line), Some(x), Some(s)) = (line, x, slider) else { return None };
-	if !plot.x.holds(x) || points.is_some_and(|points| !points.iter().any(|p| p.0 == x)) {
-		return None;
-	}
 	let value = plot.line_value(line, x, s);
 	let at = match (&plot.slider, points) {
 		(Some(slider), None) => format!("{} = {}, {} = {}", plot.x.name, short(x), slider.range.name, short(s)),
@@ -445,6 +444,21 @@ mod tests {
 		assert_eq!(ask("B", json!({ "line": "cv_error", "x": 5 })).refused[0].1, "correctAnswer: option B reads \"About 0.9.\" but cv_error at degree = 5 is 0.3. Fix the option or onPlot.");
 		assert_eq!(ask("A", json!({ "line": "cv_error", "x": 4 })).refused[0].1, "onPlot.x: cv_error has no point at degree = 4. Ask at one of its x values: 1, 3, 5, 9.");
 		assert_eq!(ask("A", json!({ "line": "cv_error", "x": 5, "slider": 1 })).refused[0].1, "onPlot.slider: the plot has no slider. Leave it out.");
+	}
+
+	/// A measured point is never read as float noise, however small beside the y range.
+	#[test]
+	fn a_guess_at_a_small_measured_point_names_it_as_sent() {
+		let wide = json!({
+			"title": "Training set size against error",
+			"x": { "name": "n", "label": "examples", "min": 0, "max": 10 },
+			"y": { "label": "error", "min": 0, "max": 1e12 },
+			"lines": [{ "label": "err", "points": [[1, 0], [3, 500], [5, 1e12]] }],
+		});
+		let options = json!([{ "label": "About 500.", "value": "A" }, { "label": "About 0.", "value": "B" }]);
+		let quiz = json!({ "type": "predict", "nodeId": "reg", "question": "Where is it at 3?", "options": options, "explanation": "e", "correctAnswer": "A", "onPlot": { "line": "err", "x": 3 } });
+		let verdict = reply_parts_problems(&lesson(), PLAN, &reply("r3", "", vec![call("q3", "quiz", quiz), call("p3", "plot", wide)]), &passes);
+		assert_eq!(verdict, PartsVerdict { refused: Vec::new(), on_plot: Some(("p3".to_owned(), json!({ "toolCallId": "q3", "value": 500.0 }))) });
 	}
 
 	#[test]

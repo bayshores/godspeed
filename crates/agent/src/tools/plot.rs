@@ -1,7 +1,7 @@
 //! plot, Study's plot: one or two lines over x, each a formula with one slider or measured points,
-//! sent with a guess on it in the same reply. Every rule is checked before validation, so a refused call lists all its
-//! problems at once with no echo; its guess is checked with it by the lesson-parts hook. A drawn
-//! plot is named p1, p2 in lesson order, tells the agent its values at the slider's start, and ends
+//! sent with a guess on it in the same reply. Every rule is checked before validation, so a refused
+//! call lists all its problems at once with no echo; its guess is checked with it by the lesson-
+//! parts hook. A drawn plot is named p1, p2 in lesson order, tells the agent its values, and ends
 //! the turn. The window recomputes the lines from the stored call; the result's details hold only
 //! its id, its guess and the y range.
 
@@ -31,7 +31,7 @@ fn parameters() -> Json {
 		vec![
 			("label", label("One word, shown beside the line.")),
 			("expr", json!({ "type": "string", "maxLength": 200, "description": "Plain math, not LaTeX, in the x and slider names: + - * / ^, brackets, sin cos tan exp ln log10 sqrt abs, min max, pi, e. Example: min(a, 4/(1+lambda))" })),
-			("points", json!({ "type": "array", "items": pair, "minItems": 2, "maxItems": 12, "description": "Instead of expr: measured [x, y] by increasing x. A guess on it asks at one of these x." })),
+			("points", json!({ "type": "array", "items": pair, "minItems": 2, "maxItems": 12, "description": "Instead of expr: measured [x, y] by increasing x. A guess on it asks at one of these x. The point a guess asks at stays hidden until he answers." })),
 			("hidden", json!({ "type": "boolean", "description": "Held back until he answers; use it for the true line when the plot tests an analogy." })),
 		],
 	);

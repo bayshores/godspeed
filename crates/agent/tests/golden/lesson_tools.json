@@ -4237,7 +4237,7 @@
 										},
 										"minItems": 2,
 										"maxItems": 12,
-										"description": "Instead of expr: measured [x, y] by increasing x. A guess on it asks at one of these x."
+										"description": "Instead of expr: measured [x, y] by increasing x. A guess on it asks at one of these x. The point a guess asks at stays hidden until he answers."
 									},
 									"hidden": {
 										"type": "boolean",
