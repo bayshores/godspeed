@@ -37,7 +37,7 @@ export function LessonBox({
 	boxRef: React.Ref<{ focus(): void }>;
 }) {
 	const button = (b: BoxButton, className?: string) => (
-		<button type="button" data-testid={BUTTON_ID[b.action]} disabled={b.disabled} onClick={() => onAct(b.action)} className={cn("lh-btn shrink-0", b.filled && "lh-btn-main", className)}>
+		<button type="button" data-testid={BUTTON_ID[b.action]} disabled={b.disabled} onClick={() => onAct(b.action)} className={cn("lh-btn shrink-0", b.filled && "lh-btn-main", b.hidden && "invisible", className)}>
 			{b.label}
 		</button>
 	);

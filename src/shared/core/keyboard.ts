@@ -1,16 +1,16 @@
 /**
  * Keyboard shortcuts — the single source of truth for every app action that
  * has a binding. This module is PURE (no React, no window access at module
- * scope beyond the guarded helpers) so it can render a cheat sheet, match
- * events, and drive the user-editable key map without touching any component.
+ * scope beyond the guarded helpers) so it can render a cheat sheet and match
+ * events without touching any component.
  *
  * Design:
  * - Tab is not bound: it moves focus as usual (the lesson's text fields and
  *   modal dialogs handle it themselves, see keyboard-shortcuts.tsx).
  * - Esc is a layered dismiss: topmost popover (each popover stopPropagation's
  *   its own Esc) → abort in-flight turn.
- * - The key map persists overrides in localStorage (`lh:keymap`, overrides
- *   only) merged over the default bindings.
+ * - The keys are fixed. Changed keys an older version saved in
+ *   localStorage (`lh:keymap`) are no longer read.
  *
  * Binding strings are normalized, cross-platform:
  *   "mod+d"    — mod = ⌘ on macOS, Ctrl elsewhere (both are accepted live)
@@ -18,7 +18,7 @@
  * Order is fixed: mod, alt, shift, then the key.
  */
 
-export type KeyAction =
+type KeyAction =
 	| "sessions-search"
 	| "jump-graph"
 	| "new-session"
@@ -76,60 +76,17 @@ export const KEYBOARD_ACTIONS: readonly KeyActionDef[] = [
 	{ id: "question-submit", label: "Submit answer", scope: "chat", binding: "enter", displayOnly: true },
 ];
 
-const STORAGE_KEY = "lh:keymap";
+/** The key map: each dispatched binding to its action. */
+const KEYMAP: ReadonlyMap<string, KeyAction> = new Map(KEYBOARD_ACTIONS.filter((def) => !def.displayOnly).map((def) => [def.binding, def.id]));
 
-/** localStorage overrides ({actionId: binding}), written by the settings
- *  editor. Guarded: SSR and a
- *  corrupt/absent store both fall back to defaults. */
-export function loadOverrides(): Partial<Record<KeyAction, string>> {
-	if (typeof window === "undefined") return {};
-	try {
-		const raw = window.localStorage.getItem(STORAGE_KEY);
-		if (!raw) return {};
-		const parsed = JSON.parse(raw) as Partial<Record<KeyAction, string>>;
-		if (parsed && typeof parsed === "object") return parsed;
-	} catch {
-		/* corrupt store = defaults */
-	}
-	return {};
-}
-
-/** Write the full overrides map ({actionId: binding}) — the settings
- *  editor's rebind/reset persistence. Guarded: SSR no-ops. An empty
- *  map clears the store entirely (all-defaults). */
-export function saveOverrides(overrides: Partial<Record<KeyAction, string>>): void {
-	if (typeof window === "undefined") return;
-	try {
-		if (Object.keys(overrides).length) window.localStorage.setItem(STORAGE_KEY, JSON.stringify(overrides));
-		else window.localStorage.removeItem(STORAGE_KEY);
-	} catch {
-		/* storage unavailable = overrides don't persist, defaults keep working */
-	}
-}
-
-/** The live key map: defaults with user overrides applied. */
-function effectiveKeymap(): Map<string, KeyAction> {
-	const overrides = loadOverrides();
-	const map = new Map<string, KeyAction>();
-	for (const def of KEYBOARD_ACTIONS) {
-		if (def.displayOnly) continue; // surface-owned, never dispatched
-		const binding = overrides[def.id] ?? def.binding;
-		if (typeof binding === "string" && binding) map.set(binding, def.id);
-	}
-	return map;
-}
-
-/** Which action a normalized binding fires, if any (override-aware). */
+/** Which action a normalized binding fires, if any. */
 export function actionForBinding(binding: string): KeyAction | undefined {
-	return effectiveKeymap().get(binding);
+	return KEYMAP.get(binding);
 }
 
-/** The effective (override-aware) binding for one action — display use. */
+/** One action's binding, for display. */
 export function bindingForAction(id: KeyAction): string {
-	const overrides = loadOverrides();
-	const def = KEYBOARD_ACTIONS.find((a) => a.id === id);
-	if (!def) return "";
-	return overrides[id] ?? def.binding;
+	return KEYBOARD_ACTIONS.find((a) => a.id === id)?.binding ?? "";
 }
 
 /**

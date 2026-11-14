@@ -157,6 +157,32 @@ fn ask_questions(app: &Arc<App>, space_id: &str, mock: &Json) -> Result<(), Stri
 	Ok(())
 }
 
+/// At startup, every mock still waiting for its questions or its grades asks for them again, since
+/// a request goes with the server that sent it: one made or ended before the stop, and one whose
+/// time ran out while the server was off (ended now). Each waits on the bridge until an agent
+/// takes it.
+pub fn ask_waiting_mocks(app: &Arc<App>) {
+	for record in app.stores.spaces.list_space_records() {
+		let space_id = record["id"].str_or_empty();
+		let _guard = app.locks.lock(LockKey::Space(space_id));
+		for mock in current_mocks(app, space_id) {
+			let mock_id = mock["id"].str_or_empty();
+			// One ended just now asked already.
+			if is_running(app, &mock_run_key(space_id, mock_id)) {
+				continue;
+			}
+			let asked = match mock_state(&mock) {
+				MockState::Writing => ask_questions(app, space_id, &mock),
+				MockState::Grading => ask_grades(app, space_id, &mock),
+				_ => continue,
+			};
+			if let Err(error) = asked {
+				eprintln!("[mocks] couldn't ask again for {mock_id}: {error}");
+			}
+		}
+	}
+}
+
 /// A mock as its own page shows it (core `MockView`), ended first when its time ran out.
 pub fn mock_view(app: &Arc<App>, space_id: &str, mock_id: &str) -> Outcome<Json> {
 	let _guard = app.locks.lock(LockKey::Space(space_id));

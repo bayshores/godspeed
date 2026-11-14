@@ -408,7 +408,8 @@ mod tests {
 	use super::*;
 	use crate::app::test_support::scratch_dir;
 	use crate::spaces::space_search::space_search;
-	use crate::spaces::{add_copied_file, keep_page, kept_pages_at, replace_copied_file};
+	use crate::spaces::files::replace_copied_file;
+	use crate::spaces::{add_copied_file, keep_page, kept_pages_at};
 
 	/// The folder the search model loads from: the repo root, which holds `models/`.
 	#[cfg(not(any(target_os = "linux", all(target_os = "macos", target_arch = "x86_64"))))]

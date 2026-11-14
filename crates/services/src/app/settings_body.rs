@@ -5,13 +5,13 @@
 use gs_base::text;
 use gs_core::contracts::space::is_space_id;
 use gs_core::records::changelog::is_version;
-use gs_core::records::settings::{COMPACTION_THRESHOLD_FLOOR, EXTRACTION_CHUNK_TOKENS_FLOOR, is_hex_color, sanitize_teacher_name};
+use gs_core::records::settings::{is_hex_color, sanitize_teacher_name};
 use gs_core::records::teaching_areas::{TEACHING_AREAS, sanitize_area_rules};
 use gs_core::session::tool_switches::WRITABLE_TOOL_KEYS;
 use gs_json::{Json, Obj};
 
 /// PUT /api/settings/{section} takes these, in this order.
-pub const SETTINGS_SECTIONS: [&str; 5] = ["general", "agent", "appearance", "graph", "compaction"];
+pub const SETTINGS_SECTIONS: [&str; 4] = ["general", "agent", "appearance", "graph"];
 
 /// The parsed section, or the 400's message.
 pub type Parsed = Result<Json, String>;
@@ -23,7 +23,6 @@ pub fn parse_section(section: &str, body: &Json) -> Option<Parsed> {
 		"agent" => parse_agent(body),
 		"appearance" => parse_appearance(body),
 		"graph" => parse_graph(body),
-		"compaction" => parse_compaction(body),
 		_ => return None,
 	})
 }
@@ -189,35 +188,11 @@ fn parse_appearance(body: &Json) -> Parsed {
 	Ok(Json::Obj(out))
 }
 
-/// A finite number floored, at least `floor`; `too_small` is the message when it is not.
-fn floored_number(raw: &Obj, key: &str, floor: f64, too_small: &str) -> Result<Option<Json>, String> {
-	let Some(value) = raw.get(key) else { return Ok(None) };
-	let Some(n) = value.as_f64().filter(|n| n.is_finite()) else { return Err(type_error(key, "a number")) };
-	let floored = n.floor();
-	if floored < floor {
-		return Err(format!("{key} must be at least {floor} ({too_small})"));
-	}
-	Ok(Some(Json::Num(floored)))
-}
-
 fn parse_graph(body: &Json) -> Parsed {
 	let raw = as_record(body)?;
 	let mut out = Obj::new();
 	if let Some(v) = boolean(raw, "enabled")? {
 		out.insert("enabled", v);
-	}
-	if let Some(n) = floored_number(raw, "extractionChunkTokens", EXTRACTION_CHUNK_TOKENS_FLOOR, "smaller batches waste the per-run graph overhead")? {
-		out.insert("extractionChunkTokens", n);
-	}
-	Ok(Json::Obj(out))
-}
-
-fn parse_compaction(body: &Json) -> Parsed {
-	let raw = as_record(body)?;
-	let mut out = Obj::new();
-	let reason = "compaction keeps a ~20k-token recent tail, so smaller budgets would churn it";
-	if let Some(n) = floored_number(raw, "thresholdTokens", COMPACTION_THRESHOLD_FLOOR, reason)? {
-		out.insert("thresholdTokens", n);
 	}
 	Ok(Json::Obj(out))
 }
@@ -269,12 +244,9 @@ mod tests {
 	}
 
 	#[test]
-	fn numbers_are_floored_and_floored_again_at_the_minimum() {
-		assert_eq!(run("graph", r#"{"extractionChunkTokens":700.9}"#).unwrap(), r#"{"extractionChunkTokens":700}"#);
-		assert_eq!(run("graph", r#"{"extractionChunkTokens":10}"#).unwrap_err(), "extractionChunkTokens must be at least 500 (smaller batches waste the per-run graph overhead)");
-		assert_eq!(run("graph", r#"{"extractionChunkTokens":"x"}"#).unwrap_err(), "extractionChunkTokens must be a number");
-		assert_eq!(run("compaction", r#"{"thresholdTokens":40000.7}"#).unwrap(), r#"{"thresholdTokens":40000}"#);
-		assert!(run("compaction", r#"{"thresholdTokens":5}"#).unwrap_err().starts_with("thresholdTokens must be at least 32000 ("));
+	fn the_batch_size_and_the_threshold_can_no_longer_be_set() {
+		assert_eq!(run("graph", r#"{"enabled":false,"extractionChunkTokens":700}"#).unwrap(), r#"{"enabled":false}"#);
+		assert!(parse_section("compaction", &json!({ "thresholdTokens": 90000 })).is_none());
 		assert!(parse_section("other", &json!({})).is_none());
 	}
 }

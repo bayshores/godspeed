@@ -8,7 +8,6 @@ import { lazyComponent } from "@/frontend/lib/lazy-component";
 import { JobsContext } from "@/frontend/components/jobs-context";
 import { ChatActionsContext } from "@/frontend/components/chat-actions-context";
 import { StatsBar } from "@/frontend/components/stats-bar";
-import { useSummarizePoint } from "@/frontend/components/use-summarize-point";
 import { agentWaiting, lessonAgentWaiting, useAgentStatus } from "@/frontend/components/agent-status";
 import { latestTree } from "@/frontend/components/plan-latest";
 import { MermaidOverlay, SessionMermaidContext } from "@/frontend/components/session-overlay";
@@ -18,10 +17,12 @@ import {
 	activeProblemOf,
 	answerTakesFiles,
 	dismissedAnswer,
+	effectiveThresholdTokens,
 	findPendingToolCall,
 	firstPhase,
 	homeworkProblems,
 	kbdEventForAction,
+	OUTSIDE_AGENT_CONTEXT_WINDOW,
 	phaseTimeline,
 	planStepBar,
 	problemSource,
@@ -40,7 +41,7 @@ import { holdsDraft } from "@/frontend/components/lesson/lesson-drafts-model";
 import { lastLearnerText, lessonError, retryAction } from "@/frontend/components/lesson/lesson-error-model";
 import { useLessonDrafts } from "@/frontend/components/lesson/use-lesson-drafts";
 import { useArrivals } from "@/frontend/components/lesson/arrivals";
-import { LessonStepsContext, answerAnchorSelector } from "@/frontend/components/lesson/step-context";
+import { LessonStepsContext, answerAnchorSelector, toolCardSelector } from "@/frontend/components/lesson/step-context";
 import { practiceProgress } from "@/frontend/components/lesson/practice-progress";
 import { useLessonServer } from "@/frontend/components/lesson/use-lesson-server";
 import { useTitleRename } from "@/frontend/components/lesson/use-title-rename";
@@ -58,6 +59,9 @@ import { usePaneWidth } from "@/frontend/components/ui/resize-handle";
 import { useAttachmentDraft } from "@/frontend/components/lesson/attachment-tray";
 import { takeStartFiles } from "@/frontend/components/lesson/start-files";
 import { useTeacherLesson } from "@/frontend/components/teacher/teacher-provider";
+
+/** The lesson size where it gets summarized (the size meter's end). */
+const SUMMARIZE_AT = effectiveThresholdTokens(OUTSIDE_AGENT_CONTEXT_WINDOW);
 import { SheetDock, useSheetDock } from "@/frontend/components/cheat-sheet/sheet-dock";
 
 // The plan popup (and dagre, its layout engine) loads on first open.
@@ -112,7 +116,6 @@ export function Chat({
 	// client-side (core/view.ts projectView).
 	const session = useChatSession({ chatId, initialMessages, initialError, initiallyInFlight });
 	const { messages, nativeMessages, contextTokens, send, continueIfOwed, steer, steerQueue, submitAnswer, dismissQuestion, dismissProblem, keepGoing, dropKept, status, error, stop, clearError, resumeStream } = session;
-	const summarizeAt = useSummarizePoint();
 	const { turnInFlight, localStreamRef, jobs, turns, pricing, adoptAppendOnly } = useLessonServer({
 		chatId,
 		session,
@@ -454,7 +457,7 @@ export function Chat({
 	const problems = useMemo(() => freshProblems, [problemsKey]);
 	const openProblem = problems?.open ? problems.problems.find((p) => p.number === problems.open) : undefined;
 	const homeworkName = homework?.name ?? title;
-	const planHomework = useMemo(() => (problems ? { name: homeworkName, problems: problems.problems, open: problems.open } : null), [problems, homeworkName]);
+	const planHomework = useMemo(() => (problems ? { problems: problems.problems, open: problems.open, cards: problems.cards } : null), [problems]);
 	// Stable while nothing in it changed, so streaming never redraws the bar.
 	const barKey = freshBar ? JSON.stringify(freshBar) : "";
 	const stepBar = useMemo(() => freshBar, [barKey]);
@@ -491,6 +494,8 @@ export function Chat({
 	}, []);
 	// Click a done step: scroll back to its first answered question.
 	const jumpToAnswer = useCallback((toolCallId: string) => scrollToCard(answerAnchorSelector(toolCallId)), [scrollToCard]);
+	// A done problem goes back to its card.
+	const jumpToProblem = useCallback((toolCallId: string) => scrollToCard(toolCardSelector(toolCallId)), [scrollToCard]);
 
 	// The demo's error report follows the writing box's rules: never past a
 	// waiting question, and a running turn is steered.
@@ -567,7 +572,7 @@ export function Chat({
 									>
 										<Pane className="@container/reading flex min-h-0 min-w-0 flex-col [grid-area:reading]">
 											<div className="shrink-0 px-14 pt-[26px] pb-3 empty:hidden @max-[640px]/reading:px-7">
-												<PlanRow kind={kind} spaceId={spaceId} stepBar={stepBar} edges={planEdges} stop={lessonStop.stop} homework={planHomework} practice={stablePractice} onJump={jumpToAnswer} onOpenPlan={openPlan} />
+												<PlanRow kind={kind} spaceId={spaceId} stepBar={stepBar} edges={planEdges} stop={lessonStop.stop} homework={planHomework} practice={stablePractice} onJump={planHomework ? jumpToProblem : jumpToAnswer} onOpenPlan={openPlan} />
 											</div>
 											<ReadingPane
 												spaceId={spaceId}
@@ -627,7 +632,7 @@ export function Chat({
 											attachments={attachments}
 											stuck={stuck && stuckMinutes !== null ? { minutes: stuckMinutes, label: stuck.type === "text" ? "Stop and send again?" : "Stop and try again?", onStop: stopAndRetry } : null}
 											error={error && { text: lessonError(error.message).text, detail: error.message, onRetry: retry }}
-											stats={<StatsBar turns={turns} contextTokens={contextTokens} summarizeAt={summarizeAt} pricing={pricing} />}
+											stats={<StatsBar turns={turns} contextTokens={contextTokens} summarizeAt={SUMMARIZE_AT} pricing={pricing} />}
 										/>
 
 										{/* The session-scoped focuses: absolute over the lesson area, below

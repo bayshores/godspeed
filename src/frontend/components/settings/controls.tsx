@@ -60,18 +60,14 @@ export function SettingsRow({
 	hint,
 	children,
 	testid,
-	dimmed,
 }: {
 	label: string;
 	hint?: ReactNode;
 	children: React.ReactNode;
 	testid?: string;
-	/** Dependency graying: the whole row dims when the
-	 *  control is inert (parent off, no file yet, …). */
-	dimmed?: boolean;
 }) {
 	return (
-		<div data-testid={testid} className={cn("flex items-center justify-between gap-4 py-2", dimmed && "opacity-40")}>
+		<div data-testid={testid} className="flex items-center justify-between gap-4 py-2">
 			<span className="min-w-0">
 				<span className="block text-lg font-medium text-ink">{label}</span>
 				{hint && <span className="block text-base text-ink-2">{hint}</span>}
@@ -85,12 +81,10 @@ export function SettingsRow({
  *  beside a small track. */
 export function Toggle({
 	checked,
-	disabled,
 	onChange,
 	label,
 }: {
 	checked: boolean;
-	disabled?: boolean;
 	onChange: (next: boolean) => void;
 	/** Accessible name for the switch role. */
 	label: string;
@@ -101,10 +95,9 @@ export function Toggle({
 			role="switch"
 			aria-checked={checked}
 			aria-label={label}
-			disabled={disabled}
 			data-testid={`toggle-${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}
 			onClick={() => onChange(!checked)}
-			className={cn("lh-press group flex shrink-0 items-center gap-2", disabled && "cursor-not-allowed")}
+			className="lh-press group flex shrink-0 items-center gap-2"
 		>
 			<span className="text-base font-medium text-ink">{checked ? "On" : "Off"}</span>
 			<span
@@ -112,7 +105,7 @@ export function Toggle({
 					"relative h-[22px] w-10 rounded-[3px]",
 					// On is a filled track with the knob at the right; off is an
 					// empty track (a 3:1 edge) with the knob at the left.
-					checked ? "bg-ink" : "shadow-[inset_0_0_0_1.5px_var(--lh-edge)] group-enabled:group-hover:shadow-[inset_0_0_0_1.5px_var(--lh-ink-3)]",
+					checked ? "bg-ink" : "shadow-[inset_0_0_0_1.5px_var(--lh-edge)] group-hover:shadow-[inset_0_0_0_1.5px_var(--lh-ink-3)]",
 				)}
 			>
 				<span
@@ -132,22 +125,18 @@ export function Slider({
 	value,
 	min,
 	max,
-	step = 1,
 	onCommit,
 	label,
 	ariaLabel,
 	testid,
-	disabled,
 }: {
 	value: number;
 	min: number;
 	max: number;
-	step?: number;
 	onCommit: (next: number) => void;
 	label: (value: number) => string;
 	ariaLabel: string;
 	testid?: string;
-	disabled?: boolean;
 }) {
 	const [draft, setDraft] = useState<number | null>(null);
 	// The draft stays shown until the saved value comes back, so a second
@@ -169,9 +158,7 @@ export function Slider({
 				type="range"
 				min={min}
 				max={max}
-				step={step}
 				value={shown}
-				disabled={disabled}
 				aria-label={ariaLabel}
 				data-testid={testid}
 				onChange={(e) => setDraft(Number(e.target.value))}
@@ -179,7 +166,7 @@ export function Slider({
 				onKeyUp={commit}
 				onBlur={commit}
 				style={{ "--fill": `${((shown - min) / (max - min)) * 100}%` } as React.CSSProperties}
-				className="lh-press h-4 min-w-0 flex-1 cursor-pointer appearance-none bg-transparent disabled:cursor-not-allowed [&::-webkit-slider-runnable-track]:h-0.5 [&::-webkit-slider-runnable-track]:bg-[linear-gradient(to_right,var(--foreground)_var(--fill),var(--lh-edge)_var(--fill))] [&::-webkit-slider-thumb]:-mt-1.5 [&::-webkit-slider-thumb]:size-3.5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-xs [&::-webkit-slider-thumb]:bg-ink"
+				className="lh-press h-4 min-w-0 flex-1 cursor-pointer appearance-none bg-transparent [&::-webkit-slider-runnable-track]:h-0.5 [&::-webkit-slider-runnable-track]:bg-[linear-gradient(to_right,var(--foreground)_var(--fill),var(--lh-edge)_var(--fill))] [&::-webkit-slider-thumb]:-mt-1.5 [&::-webkit-slider-thumb]:size-3.5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-xs [&::-webkit-slider-thumb]:bg-ink"
 			/>
 			<span className="w-[120px] shrink-0 whitespace-nowrap text-[15px] tabular-nums text-ink">{label(shown)}</span>
 		</span>

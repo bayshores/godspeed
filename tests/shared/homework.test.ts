@@ -39,6 +39,12 @@ describe("homework problems", () => {
 		assert.equal(open, "2");
 	});
 
+	it("keeps each problem's first card, so its row cell can go back to it", () => {
+		const call = (number: string, toolCallId: string) => ({ parts: [{ type: "tool-problem", input: { number, statement: "…" }, state: "output-available", toolCallId }] });
+		const { cards } = homeworkProblems([], [call("1", "p1"), call("2", "p2"), call("2", "p2-again")]);
+		assert.deepEqual(cards, { "1": "p1", "2": "p2" });
+	});
+
 	it("keeps the part marked in the open problem until it closes", () => {
 		const part = (type: string, input: unknown, state = "output-available") => ({ parts: [{ type, input, state }] });
 		const opened = [part("tool-problem", { number: "1", statement: "…" }), part("tool-part", { part: "a" }), part("tool-part", { part: " b " })];

@@ -55,7 +55,7 @@ async fn main() -> ExitCode {
 		listen_for_terminals(&app, shell);
 	}
 	gs_services::spaces::upgrade_old_preps(&app);
-	gs_services::mocks::mock_end::ask_waiting_grades(&app);
+	gs_services::mocks::mocks::ask_waiting_mocks(&app);
 	start_deadline_reminders(&app);
 	let router = http::server(app, &access);
 	let service = axum::middleware::from_fn_with_state(access, http::front).layer(router);

@@ -32,7 +32,6 @@ import {
 	questionNeedsReveal,
 	resolveCorrect,
 	toggleOption,
-	toggleOther,
 	emptyDockSelection,
 	shuffleOptions,
 	type QuestionData,
@@ -604,49 +603,25 @@ describe("toolQuestionKind (tool→kind parity with the dock)", () => {
 	});
 });
 
-// ─── the dock selection state machine (multi-select Other coexistence) ──
-// The live bug: in a multi-select ask, picking the custom "Other…" row
-// cleared every already-picked option (single-select displacement logic
-// applied to both modes). The machine lives here, pure and pinned.
-describe("dock selection (toggleOption / toggleOther)", () => {
-	it("multi-select: options and Other coexist — neither clears the other", () => {
+// ─── the dock selection state machine ──
+describe("dock selection (toggleOption)", () => {
+	it("multi-select: options toggle alone, siblings stay", () => {
 		let sel = emptyDockSelection();
 		sel = toggleOption("multi-select", sel, 0);
 		sel = toggleOption("multi-select", sel, 1);
 		assert.deepEqual([...sel.selected], [0, 1]);
-		// Picking Other keeps the sibling selections.
-		sel = toggleOther("multi-select", sel);
-		assert.deepEqual([...sel.selected], [0, 1], "Other never clears picked options");
-		assert.equal(sel.otherSelected, true);
-		// Picking another option keeps Other selected.
-		sel = toggleOption("multi-select", sel, 2);
-		assert.equal(sel.otherSelected, true, "options never clear a typed custom answer");
-		assert.deepEqual([...sel.selected], [0, 1, 2]);
-		// Deselecting an option toggles it alone.
 		sel = toggleOption("multi-select", sel, 0);
-		assert.deepEqual([...sel.selected], [1, 2]);
-		// Other toggles off alone; the siblings survive.
-		sel = toggleOther("multi-select", sel);
-		assert.equal(sel.otherSelected, false);
-		assert.deepEqual([...sel.selected], [1, 2]);
+		assert.deepEqual([...sel.selected], [1]);
 	});
 
-	it("multi-select: any selection clears dont-know", () => {
-		let sel = { selected: new Set<number>(), otherSelected: false, dontKnow: true };
-		sel = toggleOption("multi-select", sel, 0);
-		assert.equal(sel.dontKnow, false);
-		sel = toggleOther("multi-select", sel);
+	it("any selection clears dont-know", () => {
+		const sel = toggleOption("multi-select", { selected: new Set<number>(), dontKnow: true }, 0);
 		assert.equal(sel.dontKnow, false);
 	});
 
-	it("single-select: displacement semantics are unchanged", () => {
-		let sel = emptyDockSelection();
-		sel = toggleOption("single-select", sel, 0);
-		sel = toggleOther("single-select", sel);
-		assert.deepEqual([...sel.selected], [], "Other displaces the picked option");
-		assert.equal(sel.otherSelected, true);
+	it("single-select: an option displaces the one picked before", () => {
+		let sel = toggleOption("single-select", emptyDockSelection(), 0);
 		sel = toggleOption("single-select", sel, 1);
-		assert.equal(sel.otherSelected, false, "an option displaces Other");
 		assert.deepEqual([...sel.selected], [1]);
 	});
 });

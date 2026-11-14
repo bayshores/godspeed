@@ -2,6 +2,8 @@
 //! concrete (an explicit value wins, an absent one takes the factory default).
 //!
 //! Tool toggles and rules are passed through as stored; consumers read an absent tool as enabled.
+//! The extraction batch size and the summarize threshold are no longer settings: they always
+//! take the factory value, whatever an old file holds.
 
 use gs_json::{Json, json};
 
@@ -17,7 +19,7 @@ pub fn resolve_settings(record: Option<&Json>) -> Json {
 	let none = Json::Null;
 	let record = record.unwrap_or(&none);
 	let factory = factory_settings();
-	let (general, appearance, graph, compaction) = (&record["general"], &record["appearance"], &record["graph"], &record["compaction"]);
+	let (general, appearance, graph) = (&record["general"], &record["appearance"], &record["graph"]);
 	let md = &appearance["mdRendering"];
 	let teacher = &general["teacherName"];
 	json!({
@@ -45,11 +47,9 @@ pub fn resolve_settings(record: Option<&Json>) -> Json {
 		},
 		"graph": {
 			"enabled": or(&graph["enabled"], &factory["graph"]["enabled"]),
-			"extractionChunkTokens": or(&graph["extractionChunkTokens"], &factory["graph"]["extractionChunkTokens"]),
+			"extractionChunkTokens": factory["graph"]["extractionChunkTokens"],
 		},
-		"compaction": {
-			"thresholdTokens": or(&compaction["thresholdTokens"], &factory["compaction"]["thresholdTokens"]),
-		},
+		"compaction": factory["compaction"],
 	})
 }
 
@@ -77,5 +77,13 @@ mod tests {
 		assert_eq!(stringify(&resolved["agent"]), r#"{"tools":{},"rules":{},"graphTools":{"enabled":false}}"#);
 		assert!(graph_tools_enabled(&first_boot));
 		assert!(!graph_tools_enabled(&resolved));
+	}
+
+	#[test]
+	fn an_old_file_s_batch_size_and_threshold_are_ignored() {
+		let old = json!({ "version": 3, "graph": { "enabled": false, "extractionChunkTokens": 900 }, "compaction": { "thresholdTokens": 90000 } });
+		let resolved = resolve_settings(Some(&old));
+		assert_eq!((resolved["graph"]["extractionChunkTokens"].as_i64(), resolved["compaction"]["thresholdTokens"].as_i64()), (Some(4096), Some(40000)));
+		assert_eq!(resolved["graph"]["enabled"], json!(false), "the rest of the section still counts");
 	}
 }

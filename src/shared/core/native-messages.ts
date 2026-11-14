@@ -448,12 +448,9 @@ function cleanToolCallIds(messages: readonly LhMessage[]): Set<string> {
 	return ids;
 }
 
-/** The full pose-side fold:
- * EVERYTHING the agent filled into the problem call — mode, target ids,
- * statement, the committed solution — joined onto the conclude part so
- * the card's collapsible "agent's data" drawer renders pure. Same walk
- * and refusal law as the reveal: a pose the record never acked (a
- * refused call) folds nothing. */
+/** The problem call a conclusion closes, for the conclude card's reveal
+ * (its committed solution). A pose the record never acked (a refused
+ * call) folds nothing. */
 export function problemInputForConclude(
 	messages: readonly LhMessage[],
 	concludeCallId: string,

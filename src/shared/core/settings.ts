@@ -90,18 +90,8 @@ export interface AgentSettings {
 	rules?: AreaRules;
 }
 
-/** Markdown-rendering knobs — the bare-bones set. */
-interface MdRenderingSettings {
-	/** Heading font weight (100–900, default 600). CSS resolves the nearest
-	 *  available weight of the chosen font — no font introspection needed. */
-	headingWeight?: number;
-	/** Color for **bold** spans (null = the text color). */
-	boldColor?: string | null;
-	/** Color for *italic* spans (null = the text color). */
-	italicColor?: string | null;
-}
-
-/** Appearance settings — colors, type, markdown emphasis. */
+/** Appearance settings: the background and the reading type. Heading
+ *  weight and bold and italic colors (`mdRendering`) are no longer read. */
 export interface AppearanceSettings {
 	/** The one user-chosen color; text, panels and borders derive from it
 	 *  in code. null = Paper, the light default. */
@@ -112,7 +102,6 @@ export interface AppearanceSettings {
 	/** Reading font size in px (12–24, default 17). Headings render as
 	 *  multiples of this, so one knob scales the document coherently. */
 	proseFontSize?: number;
-	mdRendering?: MdRenderingSettings;
 }
 
 /** Knowledge-graph settings. */
@@ -121,44 +110,9 @@ export interface GraphSettings {
 	 *  the free birth-session partition derived on read
 	 *  and labels are session names. The prober
 	 *  graph tools read the ledgers directly — so there is nothing else to
-	 *  configure. Data stays stored either way. */
+	 *  configure. Data stays stored either way. The chunk budget an older
+	 *  version kept here (`extractionChunkTokens`) is no longer read. */
 	enabled?: boolean;
-	/** The chunk budget: the transcript-token share of the extractor's context — a run fires
-	 *  when a chat's UNCOVERED tokens reach it, and the run batches the
-	 *  oldest uncovered messages into runs of ≤ this many tokens. It
-	 *  bounds both cost and chunk size (the extractor prompt also
-	 *  carries the whole graph + instructions, so a smaller budget means
-	 *  more, smaller runs — each paying that fixed overhead).
-	 *
-	 *  FACTORY DEFAULT 4096: the labeled passages + message anchors make
-	 *  smaller batches worth their overhead. Only the FACTORY moves: an
-	 *  explicit user value always wins.
-	 *
-	 *  FLOOR 500 (EXTRACTION_CHUNK_TOKENS_FLOOR): every run pays the graph-carrying
-	 *  prompt overhead — a budget below ~500 tokens would fire tiny
-	 *  batches where the overhead outweighs the content, so the sanitizer
-	 *  clamps and the PUT rejects below it. NO CEILING on purpose: a large
-	 *  budget just delays extraction, a tradeoff the user may choose. */
-	extractionChunkTokens?: number;
-}
-
-/**
- * COMPACTION: the context-fitting mechanic's
- * user-facing knob. One number — the trigger threshold in context tokens.
- * The effective trigger is min(this, model contextWindow − 16k reserve):
- * on big models the setting rules; on small ones the
- * window rules before the provider overflows.
- *
- * FACTORY DEFAULT 40_000: the outside agent compacts its own context, and after
- * that the app sends a lesson again in full, so a lesson must stay small.
- *
- * FLOOR 32_000: below
- * the kept tail (20k) + a summary the chat would re-compact every turn —
- * a burn, not a preference. NO CEILING: a huge threshold just means "fit
- * everything" until the window rule binds.
- */
-export interface CompactionSettings {
-	thresholdTokens?: number;
 }
 
 /** THE record. Every section optional (delta); unknown top-level keys are
@@ -169,7 +123,6 @@ export interface UserSettings {
 	agent?: AgentSettings;
 	appearance?: AppearanceSettings;
 	graph?: GraphSettings;
-	compaction?: CompactionSettings;
 	[key: string]: unknown;
 }
 
@@ -182,14 +135,8 @@ export interface FactorySettings {
 		background: string | null;
 		fontFamily: string | null;
 		proseFontSize: number;
-		mdRendering: {
-			headingWeight: number;
-			boldColor: string | null;
-			italicColor: string | null;
-		};
 	};
 	graph: Required<GraphSettings>;
-	compaction: Required<CompactionSettings>;
 }
 
 export const FACTORY_SETTINGS: FactorySettings = {
@@ -199,16 +146,9 @@ export const FACTORY_SETTINGS: FactorySettings = {
 		background: null, // Paper
 		fontFamily: null, // Literata
 		proseFontSize: 17,
-		mdRendering: { headingWeight: 600, boldColor: null, italicColor: null },
 	},
-	graph: { enabled: true, extractionChunkTokens: 4096 },
-	compaction: { thresholdTokens: 40_000 },
+	graph: { enabled: true },
 };
-
-/** The chunk budget's validated floor (GraphSettings.extractionChunkTokens
- *  — see its doc for the penny-batch rationale; the settings PUT names this
- *  in its rejection, the sanitizer clamps to it). */
-export const EXTRACTION_CHUNK_TOKENS_FLOOR = 500;
 
 // ─── Sanitizer ─────────────────────────────────────────────────────────────
 
@@ -282,18 +222,6 @@ function sanitizeAgent(raw: Record<string, unknown>): AgentSettings {
 	return out;
 }
 
-function sanitizeMdRendering(raw: unknown): MdRenderingSettings {
-	const out: MdRenderingSettings = {};
-	if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return out;
-	const r = raw as Record<string, unknown>;
-	if (typeof r.headingWeight === "number" && Number.isFinite(r.headingWeight)) {
-		out.headingWeight = clamp(Math.round(r.headingWeight), 100, 900);
-	}
-	if (r.boldColor !== undefined) out.boldColor = sanitizeHexOrNull(r.boldColor);
-	if (r.italicColor !== undefined) out.italicColor = sanitizeHexOrNull(r.italicColor);
-	return out;
-}
-
 function sanitizeAppearance(raw: Record<string, unknown>): AppearanceSettings {
 	const out: AppearanceSettings = {};
 	// The two light colors older versions offered read as Paper.
@@ -307,43 +235,17 @@ function sanitizeAppearance(raw: Record<string, unknown>): AppearanceSettings {
 	if (typeof raw.proseFontSize === "number" && Number.isFinite(raw.proseFontSize)) {
 		out.proseFontSize = clamp(Math.round(raw.proseFontSize), PROSE_FONT_MIN, PROSE_FONT_MAX);
 	}
-	if (raw.mdRendering !== undefined) out.mdRendering = sanitizeMdRendering(raw.mdRendering);
 	return out;
 }
 
 function sanitizeGraph(raw: Record<string, unknown>): GraphSettings {
 	// Dead keys in older records (embedding/clustering/labeling/
-	// embeddingModel) are UNREAD and DROPPED by this reconstruction: the
-	// next graph-section write (PUT is replace-whole) persists the clean
-	// shape, and no active code ever looks at the stale fields.
-	//
-	// extractionChunkTokens: the chunk budget — clamp-never-reject: a finite
-	// positive number floors to EXTRACTION_CHUNK_TOKENS_FLOOR (fractions
-	// floor to integers), anything else drops to the factory default at
-	// resolution. A disk record below the floor (older app, hand edit)
-	// clamps UP — the floor is a cost protection, not data to honor.
+	// embeddingModel, extractionChunkTokens) are UNREAD and DROPPED by this
+	// reconstruction: the next graph-section write (PUT is replace-whole)
+	// persists the clean shape.
 	const out: GraphSettings = {};
 	const enabled = boolOrDrop(raw.enabled);
 	if (enabled !== undefined) out.enabled = enabled;
-	const rawTokens = raw.extractionChunkTokens;
-	if (typeof rawTokens === "number" && Number.isFinite(rawTokens) && rawTokens > 0) {
-		out.extractionChunkTokens = Math.max(EXTRACTION_CHUNK_TOKENS_FLOOR, Math.floor(rawTokens));
-	}
-	return out;
-}
-
-/** clamp-never-reject (the sanitizer's discipline): a finite positive
- *  number floors to COMPACTION_THRESHOLD_FLOOR, anything else drops (the
- *  factory default resolves at read time). Exported for the PUT parser's
- *  reject-with-rationale. */
-export const COMPACTION_THRESHOLD_FLOOR = 32_000;
-
-function sanitizeCompaction(raw: Record<string, unknown>): CompactionSettings {
-	const out: CompactionSettings = {};
-	const rawTokens = raw.thresholdTokens;
-	if (typeof rawTokens === "number" && Number.isFinite(rawTokens) && rawTokens > 0) {
-		out.thresholdTokens = Math.max(COMPACTION_THRESHOLD_FLOOR, Math.floor(rawTokens));
-	}
 	return out;
 }
 
@@ -371,16 +273,13 @@ export function sanitizeUserSettings(raw: unknown): UserSettings | null {
 	if (r.graph !== null && typeof r.graph === "object" && !Array.isArray(r.graph)) {
 		out.graph = sanitizeGraph(r.graph as Record<string, unknown>);
 	}
-	if (r.compaction !== null && typeof r.compaction === "object" && !Array.isArray(r.compaction)) {
-		out.compaction = sanitizeCompaction(r.compaction as Record<string, unknown>);
-	}
 	// Unknown top-level keys ride along untouched (forward-compat). Known-
 	// DEAD keys are stripped instead of riding: `chat` (a removed default-
-	// settings section) and `models` (a removed section) — a fossil copy
-	// on disk must never resurrect through reads (and any later write
-	// flushes it for good).
+	// settings section), `models` (a removed section) and `compaction`
+	// (the summarize point, now fixed) — a fossil copy on disk must never
+	// resurrect through reads.
 	for (const [key, value] of Object.entries(r)) {
-		if (key === "chat" || key === "models") continue;
+		if (key === "chat" || key === "models" || key === "compaction") continue;
 		if (!(key in out)) out[key] = value;
 	}
 	return out;

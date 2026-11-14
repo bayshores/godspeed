@@ -16,8 +16,8 @@ use gs_json::{Json, Obj, json};
 use gs_search::index::PassageRef;
 
 use super::space_card::{space_file_path, space_topics};
-use super::files::{add_written_file, file_in, files_of, str_of};
-use super::{add_file_from_path, add_space_deadline, link_folder, remove_space_deadline, replace_copied_file, set_file_kind, update_space, update_space_deadline};
+use super::files::{file_in, files_of, str_of};
+use super::{add_file_from_path, add_space_deadline, link_folder, remove_space_deadline, set_file_kind, update_space, update_space_deadline, write_agent_file};
 use crate::App;
 use crate::app::agent_actions::note_agent_action;
 use crate::app::agent_folder::shortcut_path_problem;
@@ -412,15 +412,8 @@ impl SpaceActions {
 		if text.chars().count() > WRITTEN_TEXT_MAX {
 			return Err("The text is longer than 20,000 characters. Shorten it or split it into two files.".to_owned());
 		}
-		let space_id = str_of(record, "id");
-		let bytes = gs_base::text::utf8_bytes(text);
-		let same = record["files"].as_arr().into_iter().flatten().find(|f| str_of(f, "name") == file_name);
-		let written = match same {
-			Some(file) if file["written"] == Json::Bool(true) => replace_copied_file(&self.app, space_id, str_of(file, "id"), &bytes, kind).map(|f| (f, "Changing")),
-			Some(_) => return Err(format!("This space already has a file named {file_name} that you didn't write. Pick another name.")),
-			None => add_written_file(&self.app, space_id, &file_name, &bytes, kind).map(|f| (f, "Adding")),
-		};
-		written.map_err(|failure| failure.error)
+		let (file, replaced) = write_agent_file(&self.app, str_of(record, "id"), &file_name, &gs_base::text::utf8_bytes(text), kind)?;
+		Ok((file, if replaced { "Changing" } else { "Adding" }))
 	}
 
 	pub fn set_space_file_kind(&self, args: &Json) -> ToolOutcome {

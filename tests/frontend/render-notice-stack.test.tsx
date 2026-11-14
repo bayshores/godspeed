@@ -1,13 +1,14 @@
 /**
  * The corner notice stack: at most 3 notices show, update and restart
  * first, one quiet-space notice at a time; the rest wait, hidden, until
- * one closes. Mounted over linkedom.
+ * one closes, and a waiting notice's time starts once it shows. Mounted
+ * over linkedom.
  */
 import React, { act, useEffect, useState } from "react";
 (globalThis as Record<string, unknown>).React = React;
 
 import assert from "node:assert/strict";
-import { afterEach, describe, it } from "node:test";
+import { afterEach, describe, it, mock } from "node:test";
 import type { Root } from "react-dom/client";
 import { parseHTML } from "linkedom";
 
@@ -27,6 +28,7 @@ const { createPortal } = await import("react-dom");
 const { NoticeStack, NOTICE_STACK_ID } = await import("../../src/frontend/components/notice-stack.tsx");
 const { shownNotices } = await import("../../src/frontend/components/notice-stack-model.ts");
 const { QuietNoticeView } = await import("../../src/frontend/components/quiet-notice.tsx");
+const { DoneNotice } = await import("../../src/frontend/components/done-notice.tsx");
 
 describe("shownNotices", () => {
 	it("shows 3 in order, the rest wait", () => {
@@ -109,5 +111,43 @@ describe("The notice stack", () => {
 		const notices = cards('[data-testid="quiet-notice"]');
 		assert.equal(notices.length, 2);
 		assert.deepEqual(notices.map((n) => n.hasAttribute("hidden")), [false, true]);
+	});
+
+	it("a 4th notice that waits hidden starts its time only once it shows", async () => {
+		mock.timers.enable({ apis: ["setTimeout"] });
+		try {
+			let expired = 0;
+			const onExpire = () => expired++;
+			function ThreeAndDone() {
+				const [open, setOpen] = useState(["a", "b", "c"]);
+				const stack = useStack();
+				return (
+					<>
+						<NoticeStack>
+							{open.map((id) => (
+								<div key={id} data-testid={id} role="status" onClick={() => setOpen((list) => list.filter((x) => x !== id))}>
+									{id}
+								</div>
+							))}
+						</NoticeStack>
+						{stack && <DoneNotice text="Ticking that deadline done didn't save." onExpire={onExpire} />}
+					</>
+				);
+			}
+			await mount(<ThreeAndDone />);
+			const done = () => cards('[data-testid="done-notice"]')[0]!;
+			assert.ok(done().hasAttribute("hidden"), "the 4th waits hidden");
+			await act(async () => mock.timers.tick(30_000));
+			assert.equal(expired, 0, "its time does not run while it waits");
+
+			await act(async () => (cards('[data-testid="b"]')[0] as HTMLElement).click());
+			assert.ok(!done().hasAttribute("hidden"), "it shows once one closes");
+			await act(async () => mock.timers.tick(5_000));
+			assert.equal(expired, 0, "it stays its full time from when it showed");
+			await act(async () => mock.timers.tick(1_500));
+			assert.equal(expired, 1);
+		} finally {
+			mock.timers.reset();
+		}
 	});
 });

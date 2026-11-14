@@ -1,7 +1,7 @@
 /**
  * Settings → Appearance:
- * background presets on top, the type controls on the left and a live
- * lesson preview on the right. The preview uses the real lesson styles,
+ * background presets on top, the reading font and size on the left and a
+ * live lesson preview on the right. The preview uses the real lesson styles,
  * so every saved change shows in it (and in the app behind the page).
  */
 
@@ -10,7 +10,7 @@ import type { AppearanceSettings } from "@/shared/core";
 import { MenuShell } from "@/frontend/components/menu-shell";
 import { cn } from "@/frontend/lib/utils";
 import { useAppearance } from "./appearance.tsx";
-import { BACKGROUND_PRESETS, HEADING_WEIGHTS, INK_PRESETS, PAPER, derivedPalette, readableBackground } from "./appearance-model.ts";
+import { BACKGROUND_PRESETS, PAPER, appearanceToWrite, derivedPalette, readableBackground } from "./appearance-model.ts";
 import { DEFAULT_READING_FONT, FontMenuList } from "./font-menu";
 import { Slider } from "./controls.tsx";
 import { RULE } from "@/frontend/components/deadline/styles";
@@ -38,7 +38,7 @@ export function composeFontFamily(appearance: AppearanceSettings | undefined, fa
 }
 
 export function AppearanceSection({
-	appearance,
+	appearance: stored,
 	onSectionChange,
 }: {
 	/** The record's appearance delta (absent = factory). */
@@ -47,15 +47,11 @@ export function AppearanceSection({
 	onSectionChange: (next: AppearanceSettings) => void;
 }) {
 	const { appearance: resolved } = useAppearance();
-	const md = appearance?.mdRendering;
-	const background = appearance?.background ?? null;
+	// Every write sends the section without the retired type fields.
+	const appearance = appearanceToWrite(stored);
+	const background = appearance.background ?? null;
 	const shownBackground = background ?? PAPER;
 	const isPreset = BACKGROUND_PRESETS.some((p) => p.color === background);
-	const weightIndex = Math.max(0, HEADING_WEIGHTS.findIndex((w) => w.weight >= resolved.mdRendering.headingWeight));
-	const ink = md?.boldColor ?? null;
-	const customInk = ink !== null && !INK_PRESETS.includes(ink);
-	const setInk = (color: string | null) =>
-		onSectionChange({ ...appearance, mdRendering: { ...md, boldColor: color, italicColor: color } });
 
 	return (
 		<div className="flex flex-col gap-5">
@@ -92,7 +88,7 @@ export function AppearanceSection({
 			<div className="flex items-start gap-5">
 				<Pane className="flex w-[340px] shrink-0 flex-col gap-[18px] px-6 py-5">
 					<Control label="Reading font">
-						<FontPicker family={appearance?.fontFamily ?? null} onPick={(family) => onSectionChange(composeFontFamily(appearance, family))} />
+						<FontPicker family={appearance.fontFamily ?? null} onPick={(family) => onSectionChange(composeFontFamily(appearance, family))} />
 					</Control>
 					<Control label="Text size">
 						<Slider
@@ -104,42 +100,6 @@ export function AppearanceSection({
 							label={(v) => `${v} px`}
 							onCommit={(v) => onSectionChange({ ...appearance, proseFontSize: v })}
 						/>
-					</Control>
-					<Control label="Heading weight">
-						<Slider
-							value={weightIndex}
-							min={0}
-							max={HEADING_WEIGHTS.length - 1}
-							ariaLabel="Heading weight"
-							testid="slider-heading-weight"
-							label={(i) => HEADING_WEIGHTS[i]?.name ?? ""}
-							onCommit={(i) => onSectionChange({ ...appearance, mdRendering: { ...md, headingWeight: HEADING_WEIGHTS[i]?.weight } })}
-						/>
-					</Control>
-					<Control label="Bold and italic color">
-						<div className="flex flex-wrap items-center gap-2">
-							<button
-								type="button"
-								aria-pressed={ink === null}
-								onClick={() => setInk(null)}
-								className={cn("lh-press h-7 rounded-[3px] border-[1.5px] border-ink px-2.5 text-sm", ink === null ? "bg-tint text-background" : "text-ink hover:bg-tone")}
-							>
-								Same as text
-							</button>
-							{INK_PRESETS.map((c) => (
-								<InkSwatch key={c} color={c} on={ink === c} onPick={() => setInk(c)} />
-							))}
-							<label
-								className={cn(
-									"lh-press relative flex size-7 cursor-pointer items-center justify-center rounded-[3px] border bg-background text-ink",
-									customInk ? "border-2 border-ink" : "border-edge",
-								)}
-								style={customInk ? { background: ink } : undefined}
-							>
-								<PixelIcon name="plus" className="h-[10.5px]" />
-								<ColorInput label="Custom bold and italic color" value={ink ?? "#ffffff"} onCommit={setInk} />
-							</label>
-						</div>
 					</Control>
 				</Pane>
 				<Preview />
@@ -186,19 +146,6 @@ function ColorInput({ label, value, onCommit }: { label: string; value: string; 
 				if (el) el.onchange = () => onCommit(el.value);
 			}}
 			className="absolute inset-0 cursor-pointer opacity-0"
-		/>
-	);
-}
-
-function InkSwatch({ color, on, onPick }: { color: string; on: boolean; onPick: () => void }) {
-	return (
-		<button
-			type="button"
-			aria-label={color}
-			aria-pressed={on}
-			onClick={onPick}
-			className={cn("lh-press size-7 rounded-[3px] border border-edge", on && "outline-2 outline-offset-2 outline-ink")}
-			style={{ background: color, outlineStyle: on ? "solid" : undefined }}
 		/>
 	);
 }

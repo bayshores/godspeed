@@ -291,7 +291,6 @@ export function projectView(messages: readonly LhMessage[], live?: LiveTurnState
 					// enriched here so the card renders pure.
 					if (block.name === PRACTICE_CONCLUDE_TOOL) {
 						const input = problemInputForConclude(messages, block.id);
-						part.problemInput = input;
 						part.reveal = typeof input?.modelSolution === "string" ? input.modelSolution : undefined;
 					}
 					// A plain message after it closed it, as the model was told.

@@ -234,6 +234,7 @@ The lesson has one writing box, at the foot of the teacher column (`LessonBox` i
 - `is_side_turn` marks the reply turn. A job result arriving after the side question ends it.
 - A side turn keeps the same tool list, so the outside agent gets a small delta. The question tools, `problem` and `conclude` refuse (`side_turn_tools` in `agent::teacher::teacher_agent`). `plot` still draws, with no guess (see Plots).
 - A side turn gets no `today-context` note and no job results (`services::turns::chat_handler`).
+- A figure or demo that finishes while a side question holds the open question is written into the lesson at once, with no turn (`show_held_artifacts` in `services::jobs`). The question stays open, and the teacher reads it with the answer.
 - In the model's view, the question call gets a placeholder result at once. The side question follows as a plain user message, and the learner's later answer (or skip) arrives where it happened. Earlier model views stay a prefix of later ones.
 
 ### Open problems
@@ -276,7 +277,7 @@ A space lesson starts with a `space-context` marker holding the space card (`ser
 
 ### Compaction
 
-A lesson past `compaction.thresholdTokens` (default 40,000) is shortened between turns, so a turn never waits for a summary (`services::turns::compaction`).
+A lesson past 40,000 tokens (`compaction.thresholdTokens` in `factory_settings`, not a setting) is shortened between turns, so a turn never waits for a summary (`services::turns::compaction`).
 
 1. The server cuts the old part at once and writes its own short version of it (`local_summary` in `core::session::compaction`), without a model.
 2. After 5 quiet minutes, the outside agent writes the real summary, which replaces the local one.
@@ -305,7 +306,7 @@ Delivery then works like this:
 
 1. The per-lesson queue holds one entry per steer id.
 2. If a turn is streaming, the markers are steered into the live agent at its next turn boundary.
-3. Otherwise the pipeline waits until no turn runs and no question waits, then fires one wake turn carrying every pending marker through the normal turn path.
+3. Otherwise the pipeline waits until no turn runs and no question waits, then fires one wake turn carrying every pending marker through the normal turn path. While it waits, a figure or demo is saved into the lesson with no turn when a side question holds the open question (`open_question_held`): the answer then reaches the model as a message, so nothing comes between a call and its result. A question open with no side question still holds it for the answer.
 4. A wake turn that gets 409 retries with a backoff of 500, 1000, 2000 and 5000 ms.
 5. A wake turn that fails to start some other way leaves the markers pending, with no error and no timer. They go out with the learner's next turn or after a restart.
 6. Delivery is complete only when the marker is in the saved conversation. Seeing it stream is not enough.
@@ -336,7 +337,7 @@ A graph folder holds `nodes.jsonl`, `chains.jsonl`, `sessions.jsonl` (run checkp
 
 ### One extraction run
 
-1. After a turn, `trigger_extraction` (`services::turns::turn_service`) compares the lesson with its coverage ledger (`coverage_of`). It starts a run when uncovered tokens reach `graph.extractionChunkTokens` (a setting, default 4096, floor 500, read fresh each turn). Only one run per source is in flight.
+1. After a turn, `trigger_extraction` (`services::turns::turn_service`) compares the lesson with its coverage ledger (`coverage_of`). It starts a run when uncovered tokens reach 4096 (`graph.extractionChunkTokens` in `factory_settings`, not a setting). Only one run per source is in flight.
 2. `batch_runs` (`core::graph::coverage`) fills token-budgeted batches with the oldest uncovered teacher-prose messages.
 3. For each batch, the extractor (the outside agent, through a work item) submits new propositions, reasoning chains and `reteaches`.
 4. The merger (`merge_findings` in `core::graph::merge`, deterministic) appends the results and runs chain simplification.
@@ -409,7 +410,7 @@ Each message's view is hashed into the lesson's `coverage.jsonl`. Covered means 
 
 The same pipeline reads notes and space files:
 
-- Notes come in through `POST /api/graph/import` or the MCP `import_notes` tool. A notes file's source id is `src_` plus the first 12 hex of the sha256 of its path. A "No space" re-import reads the whole file again and adds to that source.
+- Notes come in through `POST /api/graph/import` or the MCP `import_notes` tool. A notes file's source id is `src_` plus the first 12 hex of the sha256 of its path. A "No space" re-import reads the whole file again and adds to that source. In a space, `import_notes` writes through `write_agent_file` (`services::spaces`), like `add_space_file` with text: it replaces only a file the agent wrote, and refuses the name of the learner's own file.
 - A space file's source id is unique per space. A changed or removed file has its old facts removed first (`delete_source_traces`), then it is read again.
 - Notes split at line boundaries under the same token budget, and each chunk runs as its own job, in order, under the graph lock. No model call carries a whole file.
 
@@ -626,7 +627,7 @@ A mock is one run of questions like the real thing on an exam, quiz or interview
 
 - Mocks are numbered per deadline, a deadline has at most one unfinished mock, and it takes one only when it is not done and has a topic with facts or an about file the about route can read (the window turns Take a mock on by the same test). A mock is 1 to 10 questions with no time limit or 5 to 240 minutes. Removing a deadline removes its mocks.
 - The agent writes all its questions before it starts and grades all its answers after it ends (`agent::subagents::mock_writer`), and the clock runs with no agent. The writer gets the deadline, what it is like and its topics weakest first with up to 5 facts each, and tags each question with the `fact_ids` it tests; with no facts it writes from what it is like alone (`fromAbout`). The grader gets each question with its facts and, for a timed mock, how often and how long it was paused.
-- Each request waits on the bridge until an agent takes it. A request does not outlive the server, so at startup, after the upgrade from preps, every mock still waiting for its grades asks for them again, and one whose time ran out while the server was off ends then and asks (`ask_waiting_grades` in `services::mocks::mock_end`). A mock with its request out shows as being graded; one whose request failed shows why, with Try again.
+- Each request waits on the bridge until an agent takes it. A request does not outlive the server, so at startup, after the upgrade from preps, every mock still waiting for its questions or its grades asks for them again, and one whose time ran out while the server was off ends then and asks (`ask_waiting_mocks` in `services::mocks::mocks`). A mock with its request out shows as being written or graded; one whose request failed shows why, with Try again (and Remove this mock while it has no questions).
 - A timed mock can be paused: it keeps the seconds left, refuses answers and runs, and on resume runs for that long. Each pause is recorded. A running timed mock whose time ran out is ended at its end time the next time it is read (`services::mocks::mock_end`); a paused one never is.
 - A graded question with `factIds` counts as an answer for those facts (`mock_answers`, passed to `derive_progress` by `progress_for`).
 - "Run examples" runs the learner's JavaScript or Python with the computer's own Node or Python, for at most 5 seconds and 1 MB of output (`core::mocks::mock_run`, `services::mocks::mock_runner`).
@@ -770,7 +771,7 @@ A homework session (`kind: "homework"`, `deadlineId` required) works on one home
 - It opens with the space card and a `homework-context` marker: the deadline, its assignment file (`assignmentFileId`) and the problems posted before.
 - The homework agent (`agent::tools::homework`, prompt `prompts/homework/` plus the practice hint rules) posts the assignment's problems onto the deadline with `post_problems`.
 - It opens one problem at a time with `problem`, which has no solution field: homework is hints only. `conclude` marks a problem done when the learner's own work is right.
-- The plan row and its problems dialog list the problems (`homeworkProblems` in `src/shared/core/homework.ts`), and the Today row says "2 of 7 problems done".
+- The plan row names every problem over its bar, a done one going back to its card (`homeworkProblems` in `src/shared/core/homework.ts`), and the Today row says "2 of 7 problems done". Above 12 problems or plan steps the row shows numbers only, with the names on hover.
 
 Homework is never extracted into the graph.
 
@@ -942,7 +943,7 @@ When the learner states a lasting preference, the teacher calls `save_rule` (`ag
 
 #### Web search
 
-By default the outside agent looks things up with its own web search. A learner may save their own Tavily key under Settings, Connection (`services::app::web_search`, `GET /api/web-search`, `PUT` and `DELETE /api/web-search/key`).
+By default the outside agent looks things up with its own web search. A learner may save their own Tavily key under Settings, Teaching, Facts and research, below the Web search switch (`services::app::web_search`, `GET /api/web-search`, `PUT` and `DELETE /api/web-search/key`).
 
 - `store::search_key` keeps it in `data/search-key` (mode 0600). The window only ever gets its last 4 characters.
 - It is sent to `api.tavily.com` alone (`web::tavily`). Saving checks the key with Tavily first, and the page shows the searches used this month.

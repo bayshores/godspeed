@@ -127,10 +127,19 @@ pub fn add_copied_file(app: &Arc<App>, space_id: &str, name: &str, bytes: &[u8],
 	add_file(app, space_id, name, bytes, kind, false)
 }
 
-/// A file the agent wrote from text (add_space_file with name and text), marked `written` so a
-/// later write by that name replaces only it, never the learner's own.
-pub(super) fn add_written_file(app: &Arc<App>, space_id: &str, name: &str, bytes: &[u8], kind: &str) -> SpaceOutcome<Json> {
-	add_file(app, space_id, name, bytes, kind, true)
+/// A file the agent writes from text (add_space_file with name and text, import_notes), marked
+/// `written`: a later write by that name replaces only such a file and keeps its id, and the
+/// learner's own file by that name is never written over. Ok holds the file and whether it was
+/// replaced; Err is the words for the agent.
+pub fn write_agent_file(app: &Arc<App>, space_id: &str, name: &str, bytes: &[u8], kind: &str) -> Result<(Json, bool), String> {
+	let record = app.stores.spaces.get_space(space_id);
+	let same = record.as_ref().and_then(|r| r["files"].as_arr()?.iter().find(|f| str_of(f, "name") == name).cloned());
+	let written = match same {
+		Some(file) if file["written"] == Json::Bool(true) => replace_copied_file(app, space_id, str_of(&file, "id"), bytes, kind).map(|f| (f, true)),
+		Some(_) => return Err(format!("This space already has a file named {name} that you didn't write. Pick another name.")),
+		None => add_file(app, space_id, name, bytes, kind, true).map(|f| (f, false)),
+	};
+	written.map_err(|failure| failure.error)
 }
 
 fn add_file(app: &Arc<App>, space_id: &str, name: &str, bytes: &[u8], kind: &str, written: bool) -> SpaceOutcome<Json> {

@@ -18,17 +18,15 @@ import {
 describe("FACTORY_SETTINGS (the compiled factory layer)", () => {
 	it("pins the factory defaults", () => {
 		assert.equal(CURRENT_SETTINGS_VERSION, 3);
-		assert.deepEqual(FACTORY_SETTINGS.compaction, { thresholdTokens: 40_000 });
+		assert.equal("compaction" in FACTORY_SETTINGS, false, "the summarize point is fixed, not a setting");
 		assert.deepEqual(FACTORY_SETTINGS.general, { autoUpdate: true, activeSpace: "none", teacherName: "Teacher", sounds: true, deadlineReminders: true });
-		// the master switch ONLY + the chunk budget (4096)
-		assert.deepEqual(FACTORY_SETTINGS.graph, { enabled: true, extractionChunkTokens: 4096 });
+		// the master switch ONLY
+		assert.deepEqual(FACTORY_SETTINGS.graph, { enabled: true });
 		const a = FACTORY_SETTINGS.appearance;
 		assert.equal(a.background, null); // Paper
 		assert.equal(a.fontFamily, null); // Literata
 		assert.equal(a.proseFontSize, 17);
-		assert.equal(a.mdRendering.headingWeight, 600);
-		assert.equal(a.mdRendering.boldColor, null); // the text color
-		assert.equal(a.mdRendering.italicColor, null);
+		assert.equal("mdRendering" in a, false);
 	});
 
 	it("has NO factory model pin — chat defaults and role overrides start absent", () => {
@@ -59,7 +57,6 @@ describe("sanitizeUserSettings", () => {
 				background: "#101820",
 				fontFamily: "Some Font",
 				proseFontSize: 18,
-				mdRendering: { headingWeight: 700, boldColor: "#ff8800", italicColor: null },
 			},
 			graph: { enabled: false },
 		};
@@ -98,44 +95,36 @@ describe("sanitizeUserSettings", () => {
 		assert.deepEqual(out.agent, {});
 		assert.deepEqual(out.appearance, {});
 		assert.deepEqual(out.graph, {});
-
-		// extractionChunkTokens:
-		// clamp-never-reject — a finite positive value survives (fractions
-		// floor), below-floor values clamp UP to the cost floor, junk drops
-		// (the factory default resolves at read time).
-		const budget = sanitizeUserSettings({ version: 1, graph: { enabled: true, extractionChunkTokens: 2048 } });
-		assert.deepEqual(budget?.graph, { enabled: true, extractionChunkTokens: 2048 });
-		const fraction = sanitizeUserSettings({ version: 1, graph: { extractionChunkTokens: 1024.9 } });
-		assert.equal(fraction?.graph?.extractionChunkTokens, 1024, "fractions floor to whole tokens");
-		const tiny = sanitizeUserSettings({ version: 1, graph: { extractionChunkTokens: 10 } });
-		assert.equal(tiny?.graph?.extractionChunkTokens, 500, "below the floor clamps UP — penny-batches are a cost bug, not a preference");
-		for (const junk of [0, -1000, NaN, Infinity, "4096", null, true]) {
-			const dropped = sanitizeUserSettings({ version: 1, graph: { extractionChunkTokens: junk } });
-			assert.equal(dropped?.graph?.extractionChunkTokens, undefined, `junk ${String(junk)} drops`);
-		}
 	});
 
-	it("out-of-range numbers CLAMP (proseFontSize, headingWeight)", () => {
-		const out = sanitizeUserSettings({
-			appearance: { proseFontSize: 99, mdRendering: { headingWeight: 999 } },
+	it("an older record's retired settings are no longer read", () => {
+		const old = sanitizeUserSettings({
+			version: 3,
+			appearance: { proseFontSize: 18, mdRendering: { headingWeight: 800, boldColor: "#f00", italicColor: "#0f0" } },
+			graph: { enabled: true, extractionChunkTokens: 2048 },
+			compaction: { thresholdTokens: 64_000 },
 		});
+		assert.deepEqual(old?.appearance, { proseFontSize: 18 });
+		assert.deepEqual(old?.graph, { enabled: true });
+		assert.equal("compaction" in (old ?? {}), false);
+	});
+
+	it("out-of-range numbers CLAMP (proseFontSize)", () => {
+		const out = sanitizeUserSettings({ appearance: { proseFontSize: 99 } });
 		assert.ok(out);
 		assert.equal(out.appearance?.proseFontSize, 24);
-		assert.equal(out.appearance?.mdRendering?.headingWeight, 900);
-		const low = sanitizeUserSettings({ appearance: { proseFontSize: 4, mdRendering: { headingWeight: 5 } } });
+		const low = sanitizeUserSettings({ appearance: { proseFontSize: 4 } });
 		assert.ok(low);
 		assert.equal(low.appearance?.proseFontSize, 12);
-		assert.equal(low.appearance?.mdRendering?.headingWeight, 100);
 	});
 
 	it("invalid colors become null (the factory default), valid ones pass", () => {
 		const out = sanitizeUserSettings({
-			appearance: { background: "blue", mdRendering: { boldColor: "#f00", italicColor: 42 } },
+			appearance: { background: "blue" },
 		});
 		assert.ok(out);
 		assert.equal(out.appearance?.background, null);
-		assert.equal(out.appearance?.mdRendering?.boldColor, "#f00");
-		assert.equal(out.appearance?.mdRendering?.italicColor, null);
+		assert.equal(sanitizeUserSettings({ appearance: { background: "#f00" } })?.appearance?.background, "#f00");
 	});
 
 	it("empty strings/whitespace fontFamily → null (the default); wrong-type → null too (the default)", () => {

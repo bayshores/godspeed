@@ -571,8 +571,7 @@
 				"result": {
 					"ok": true,
 					"settings": {
-						"enabled": true,
-						"extractionChunkTokens": 123456
+						"enabled": true
 					}
 				}
 			},
@@ -592,8 +591,8 @@
 					"extractionChunkTokens": "big"
 				},
 				"result": {
-					"ok": false,
-					"error": "extractionChunkTokens must be a number"
+					"ok": true,
+					"settings": {}
 				}
 			},
 			{
@@ -602,8 +601,8 @@
 					"extractionChunkTokens": 10
 				},
 				"result": {
-					"ok": false,
-					"error": "extractionChunkTokens must be at least 500 (smaller batches waste the per-run graph overhead)"
+					"ok": true,
+					"settings": {}
 				}
 			},
 			{
@@ -613,59 +612,7 @@
 				},
 				"result": {
 					"ok": true,
-					"settings": {
-						"extractionChunkTokens": 1e+300
-					}
-				}
-			},
-			{
-				"section": "compaction",
-				"body": {},
-				"result": {
-					"ok": true,
 					"settings": {}
-				}
-			},
-			{
-				"section": "compaction",
-				"body": {
-					"thresholdTokens": 50000.7
-				},
-				"result": {
-					"ok": true,
-					"settings": {
-						"thresholdTokens": 50000
-					}
-				}
-			},
-			{
-				"section": "compaction",
-				"body": {
-					"thresholdTokens": 5
-				},
-				"result": {
-					"ok": false,
-					"error": "thresholdTokens must be at least 32000 (compaction keeps a ~20k-token recent tail, so smaller budgets would churn it)"
-				}
-			},
-			{
-				"section": "compaction",
-				"body": {
-					"thresholdTokens": "5"
-				},
-				"result": {
-					"ok": false,
-					"error": "thresholdTokens must be a number"
-				}
-			},
-			{
-				"section": "compaction",
-				"body": {
-					"thresholdTokens": null
-				},
-				"result": {
-					"ok": false,
-					"error": "thresholdTokens must be a number"
 				}
 			}
 		]

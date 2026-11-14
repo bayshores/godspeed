@@ -72,9 +72,9 @@ mod tests {
 		let app = test_app(&root);
 		let (status, answer) = put_settings_section(&app, "general", &json!({ "teacherName": "Zed" })).unwrap();
 		assert_eq!((status, stringify(&answer).as_str()), (200, r#"{"settings":{"version":3,"general":{"teacherName":"Zed"}}}"#));
-		let (_, answer) = put_settings_section(&app, "compaction", &json!({})).unwrap();
+		let (_, answer) = put_settings_section(&app, "graph", &json!({})).unwrap();
 		assert_eq!(answer["settings"]["general"]["teacherName"].as_str(), Some("Zed"));
-		assert!(answer["settings"]["compaction"].as_obj().is_some());
+		assert!(answer["settings"]["graph"].as_obj().is_some());
 		let (_, answer) = put_settings_section(&app, "general", &json!({})).unwrap();
 		assert_eq!(stringify(&answer["settings"]["general"]), "{}");
 	}
@@ -93,10 +93,10 @@ mod tests {
 					put_settings_section(&app, section, &body).unwrap();
 				})
 			};
-			let threads = [put("general", json!({ "teacherName": "Zed" })), put("compaction", json!({}))];
+			let threads = [put("general", json!({ "teacherName": "Zed" })), put("graph", json!({}))];
 			threads.into_iter().for_each(|t| t.join().unwrap());
 			let saved = app.stores.settings.read_settings().unwrap().unwrap();
-			assert!(saved["general"].truthy() && saved["compaction"].truthy(), "round {round}: {}", stringify(&saved));
+			assert!(saved["general"].truthy() && saved["graph"].truthy(), "round {round}: {}", stringify(&saved));
 		}
 	}
 
@@ -106,7 +106,7 @@ mod tests {
 		let app = test_app(&root);
 		let (status, answer) = put_settings_section(&app, "nope", &json!({})).unwrap();
 		assert_eq!(status, 404);
-		assert_eq!(stringify(&answer), r#"{"error":"unknown settings section \"nope\"","supported":["general","agent","appearance","graph","compaction"]}"#);
+		assert_eq!(stringify(&answer), r#"{"error":"unknown settings section \"nope\"","supported":["general","agent","appearance","graph"]}"#);
 		let (status, answer) = put_settings_section(&app, "general", &Json::Null).unwrap();
 		assert_eq!(status, 400);
 		assert!(answer["error"].as_str().is_some());
