@@ -9,6 +9,9 @@ import { COMPACT_ABOVE, homeworkRow, planBranches, practiceRow, stepsRow, type R
 import type { PracticeProgress } from "./practice-progress";
 
 // The map draws with dagre, which loads with the plan blocks, not the lesson.
+// Its box (plan-block's MAP_W by MAP_H) is kept from the start, so the steps
+// do not narrow when it arrives.
+const MAP_BOX = "h-9 w-[140px]";
 const PlanMiniMap = lazyComponent(() => import("@/frontend/components/plan-block").then((m) => m.PlanMiniMap));
 
 /** A step cell's width range and the gap between cells, in px; a compact
@@ -109,7 +112,7 @@ function StepsRow({ steps, edges, color, onJump, onOpenPlan }: { steps: RowStep[
 				))}
 			</ol>
 			{mapEdges && (
-				<div className="ml-auto shrink-0">
+				<div data-testid="plan-map-box" className={cn("ml-auto flex shrink-0 items-start justify-end", MAP_BOX)}>
 					<PlanMiniMap steps={steps} edges={mapEdges} color={color} onOpen={onOpenPlan} />
 				</div>
 			)}
