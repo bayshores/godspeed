@@ -1,12 +1,15 @@
 /**
  * The teacher's panel, opened and closed from the pill only: it stays
- * beside the page while the learner works there. Docked to the window's
- * right edge, under the top bar (the app's, or a lesson's own), as wide
- * as the learner dragged its left edge. It pushes the page left to make
- * room, and covers it where there is none. One head row (panel-head.tsx), then the agent's screen
- * (panel-screen.tsx), or in a browser Activity (teacher-activity.tsx).
+ * while the learner works on the page. It hangs from the top bar (the
+ * app's, or a lesson's own) at the window's right edge as a window the
+ * shape of a terminal, lying over the page; the learner drags its left
+ * and bottom edges, or its corner. Dragged to the window's bottom it
+ * docks: as tall as the window, pushing the page left to make room, and
+ * covering it where there is none. One head row (panel-head.tsx), then
+ * the agent's screen (panel-screen.tsx), or in a browser Activity
+ * (teacher-activity.tsx).
  */
-import { useEffect, useLayoutEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState, type CSSProperties } from "react";
 import { cn } from "@/frontend/lib/utils";
 import { ResizeHandle, usePaneWidth } from "@/frontend/components/ui/resize-handle";
 import { agentWaiting, agentStatusLabel, waitingNotice, type AgentStatus } from "@/frontend/components/agent-status";
@@ -19,7 +22,8 @@ import { TeacherActivity } from "./teacher-activity";
 import { PanelHead } from "./panel-head";
 import { PanelScreen } from "./panel-screen";
 import { StartTeacher } from "./start-teacher";
-import { PANEL_WIDTH, dockLayout, shownScreen, type PanelView } from "./dock-model";
+import { PANEL_WIDTH, panelLayout, shownScreen, type PanelView } from "./dock-model";
+import { PanelSize, usePanelHeight } from "./panel-size";
 
 /** The status line under the name: the notice while the agent compacts,
  *  the waiting notice while work waits, what the agent is doing while it
@@ -37,8 +41,11 @@ export function agentLine(agent: AgentStatus | null, doing: AgentDoing | null = 
 /** The page's push while the panel is open (main's padding reads it). */
 const PUSH_VAR = "--lh-dock-push";
 
-/** The open panel lies over the page instead of pushing it aside. */
-export const panelCovers = (): boolean => !(parseFloat(document.documentElement.style.getPropertyValue(PUSH_VAR)) > 0);
+/** The top bar's height: the panel hangs under it. */
+const BAR = 48;
+
+/** The open panel takes the whole window, with no page left beside it. */
+export const panelFillsWindow = (): boolean => document.querySelector("[data-teacher-panel][data-whole]") !== null;
 
 export function TeacherPanel({
 	name,
@@ -50,6 +57,7 @@ export function TeacherPanel({
 	screen,
 	onScreen,
 	focus,
+	state,
 }: {
 	name: string;
 	agent: AgentStatus | null;
@@ -63,6 +71,8 @@ export function TeacherPanel({
 	onScreen: (role: TerminalRole) => void;
 	/** The learner opened the screen: it takes the keyboard. */
 	focus: boolean;
+	/** "closed" while it goes back up into the bar. */
+	state: "open" | "closed";
 }) {
 	const teacher = useTeacher();
 	const terminals = useTerminals();
@@ -76,31 +86,45 @@ export function TeacherPanel({
 	const line = listable ? agentLine(agent, doing) : null;
 	const teacherStatus = screenStatusLine(teacherFacts, name);
 	const [wanted, setWanted] = usePaneWidth("teacher", PANEL_WIDTH);
-	const [{ width, whole }, setDock] = useState({ width: wanted, whole: false });
-	// Before paint, so the screen is never sized to another width first.
+	const [tall, setTall] = usePanelHeight();
+	const [{ width, height, room, whole }, setLayout] = useState({ width: wanted, height: tall === "full" ? null : tall, room: 0, whole: false });
+	// Before paint, so the screen is never sized to another box first.
 	useLayoutEffect(() => {
-		const root = document.documentElement;
 		const measure = () => {
 			const page = document.querySelector("main")?.getBoundingClientRect().width ?? window.innerWidth;
-			const dock = dockLayout(window.innerWidth, page, wanted);
-			setDock({ width: dock.width, whole: dock.width >= window.innerWidth });
-			root.style.setProperty(PUSH_VAR, `${dock.push}px`);
+			const room = window.innerHeight - BAR;
+			const layout = panelLayout({ width: window.innerWidth, height: room }, page, { width: wanted, height: tall });
+			setLayout({ width: layout.width, height: layout.height, room, whole: layout.width >= window.innerWidth });
+			// On its way out it lets the page back at once.
+			document.documentElement.style.setProperty(PUSH_VAR, `${state === "open" ? layout.push : 0}px`);
 		};
 		measure();
 		window.addEventListener("resize", measure);
 		return () => window.removeEventListener("resize", measure);
-	}, [wanted]);
+	}, [wanted, tall, state]);
 	useEffect(
 		() => () => {
 			document.documentElement.style.removeProperty(PUSH_VAR);
 		},
 		[],
 	);
+	const docked = height === null;
 
 	return (
-		<section data-teacher-panel="" data-testid="teacher-panel" aria-label={name} style={{ width, borderRadius: 0 }} className="lh-slide-in fixed top-12 right-0 bottom-0 z-[41] flex max-w-full flex-col overflow-hidden lh-popup font-ui">
-			{/* Nothing to drag while it takes the whole window. */}
-			{!whole && <ResizeHandle paneKey="teacher" width={width} bounds={PANEL_WIDTH} onWidth={setWanted} label={`Resize ${name}'s panel`} />}
+		// Docked, it meets the bar square, as a column of the window.
+		<div data-state={state} style={docked ? { "--lh-hang-r": "0px" } as CSSProperties : undefined} className={cn("lh-hang fixed top-12 right-0 z-[41]", docked && "bottom-0")}>
+			<section
+				data-teacher-panel=""
+				data-whole={whole || undefined}
+				data-testid="teacher-panel"
+				data-state={state}
+				aria-label={name}
+				style={{ width, height: height ?? "100%", borderRadius: docked ? 0 : "0 0 0 var(--lh-hang-r)" }}
+				className="lh-popup lh-hang-body relative flex max-h-[calc(100dvh-3rem)] max-w-[100vw] flex-col overflow-hidden font-ui"
+			>
+				{/* Nothing to drag while it takes the whole window. */}
+				{!whole && <ResizeHandle paneKey="teacher" width={width} bounds={PANEL_WIDTH} onWidth={setWanted} label={`Resize ${name}'s panel`} />}
+				{!whole && <PanelSize width={width} shown={height ?? room} room={room} onWidth={setWanted} onHeight={setTall} label={`Resize ${name}'s panel in height`} />}
 				{background ? (
 					<PanelHead
 						title={HELPER_NAME}
@@ -144,6 +168,7 @@ export function TeacherPanel({
 						</>
 					)}
 				</div>
-		</section>
+			</section>
+		</div>
 	);
 }

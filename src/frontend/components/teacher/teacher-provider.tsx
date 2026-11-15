@@ -24,10 +24,10 @@ import { useServerEvent, useServerResync } from "@/frontend/components/server-ev
 import { useAgentStatus } from "@/frontend/components/agent-status";
 import { useActivity } from "@/frontend/components/activity-dock";
 import { useSpaces } from "@/frontend/components/space-context";
-import { prefersReducedMotion } from "@/frontend/components/presence";
+import { prefersReducedMotion, usePresence } from "@/frontend/components/presence";
 import { useSettingsSaved } from "@/frontend/components/settings-signal";
 import { noAgentHere, useTerminals } from "@/frontend/components/terminal/use-terminals";
-import { TeacherPanel, panelCovers } from "./teacher-panel";
+import { TeacherPanel, panelFillsWindow } from "./teacher-panel";
 import { TeacherContext, useTeacher, type TeacherApi, type LessonPresence } from "./teacher-context";
 import { useTeacherPanel } from "./use-teacher-panel";
 import { panelBody, panelStarts, shownScreen } from "./dock-model";
@@ -288,8 +288,8 @@ export function TeacherProvider({ initialName, children }: { initialName?: strin
 
 	const go = useCallback(
 		(action: AgentAction) => {
-			// The panel stays beside the page it pushed; over the page it gets out of the way.
-			if (panelCovers()) setPanelOpen(false);
+			// The panel stays while the page shows; across the whole window it gets out of the way.
+			if (panelFillsWindow()) setPanelOpen(false);
 			else setList(false);
 			// Not queued twice if it is still waiting.
 			queue.current = [...queue.current.filter((a) => a.id !== action.id), action];
@@ -306,6 +306,7 @@ export function TeacherProvider({ initialName, children }: { initialName?: strin
 	}, [inLesson, setPanelOpen]);
 	const terminals = useTerminals();
 	const view = panelBody(inLesson, !!terminals?.available);
+	const shown = usePresence(panelOpen && !!view);
 	const starts =
 		panelOpen &&
 		!!view &&
@@ -330,7 +331,7 @@ export function TeacherProvider({ initialName, children }: { initialName?: strin
 		<TeacherContext.Provider value={api}>
 			{children}
 			{/* On the page's top layer. Only the pill closes it. */}
-			{panelOpen &&
+			{shown.mounted &&
 				view &&
 				createPortal(
 					<TeacherPanel
@@ -343,6 +344,7 @@ export function TeacherProvider({ initialName, children }: { initialName?: strin
 						screen={panel.role}
 						onScreen={showTerminal}
 						focus={panel.focus}
+						state={shown.state}
 					/>,
 					document.body,
 				)}

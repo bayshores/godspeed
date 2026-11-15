@@ -80,6 +80,7 @@ function PanelHost({ children }: { children?: React.ReactNode }) {
 					screen={panel.role}
 					onScreen={panel.showTerminal}
 					focus={panel.focus}
+					state="open"
 				/>
 			)}
 		</TeacherContext.Provider>
@@ -401,11 +402,11 @@ describe("the screens", () => {
 				await click("open-terminal");
 				assert.equal(text("terminal-none"), "Ada's screen shows here.Start CodexUse another agent");
 				assert.ok(!/not connected/i.test(text("terminal-none") ?? ""), "the status line says that");
-				assert.equal(q("teacher-panel")?.style.width, "440px");
+				assert.equal(q("teacher-panel")?.style.width, "620px");
 				assert.equal(q("open-agent")?.textContent, "Start Codex", "the agent last started here");
 				await click("open-agent");
 				assert.ok(shell.calls.includes("start teacher codex"));
-				assert.equal(q("teacher-panel")?.style.width, "440px", "its screen shows in the same panel");
+				assert.equal(q("teacher-panel")?.style.width, "620px", "its screen shows in the same panel");
 				assert.equal(text("teacher-panel-agent"), "Ada is starting.");
 				assert.equal(text("status"), "Ready", "the open panel's head says it: the line beside it does not say it again");
 				assert.equal(text("terminal-footer"), "");
