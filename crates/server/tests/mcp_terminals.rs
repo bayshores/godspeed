@@ -24,6 +24,11 @@ fn app() -> Arc<App> {
 
 /// A wait_for_work call as the waiter sends it, from `terminal` when given.
 async fn wait(app: &Arc<App>, terminal: Option<&str>) -> (u16, String) {
+	call(app, terminal, None, "wait_for_work", r#"{"timeout_seconds":1}"#).await
+}
+
+/// A tools/call from `terminal` and the agent session `agent`, when given.
+async fn call(app: &Arc<App>, terminal: Option<&str>, agent: Option<&str>, tool: &str, arguments: &str) -> (u16, String) {
 	let mut headers = HeaderMap::new();
 	headers.insert("host", HeaderValue::from_static("127.0.0.1:48065"));
 	headers.insert("authorization", HeaderValue::from_str(&format!("Bearer {TOKEN}")).unwrap());
@@ -32,7 +37,8 @@ async fn wait(app: &Arc<App>, terminal: Option<&str>) -> (u16, String) {
 	if let Some(id) = terminal {
 		headers.insert("x-godspeed-terminal", HeaderValue::from_str(id).unwrap());
 	}
-	let body = r#"{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"wait_for_work","arguments":{"timeout_seconds":1}}}"#;
+	let meta = agent.map(|a| format!(r#","_meta":{{"godspeed/agent":"{a}"}}"#)).unwrap_or_default();
+	let body = format!(r#"{{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{{"name":"{tool}","arguments":{arguments}{meta}}}}}"#);
 	let res = handle_mcp_request(app, &Method::POST, &headers, body.as_bytes()).await;
 	let status = res.status().as_u16();
 	(status, String::from_utf8(res.into_body().collect().await.unwrap().to_bytes().to_vec()).unwrap())
@@ -63,4 +69,51 @@ async fn an_ended_terminals_agent_is_refused_at_the_door_and_in_its_wait() {
 	let (status, body) = open.await.unwrap();
 	assert_eq!(status, 200);
 	assert!(body.contains(r#""isError":true"#) && body.contains(CLOSED), "{body}");
+}
+
+#[tokio::test]
+async fn typing_in_the_terminal_ends_its_wait_with_a_note() {
+	let app = app();
+	app.bridge.set_live_terminals(vec![TERMINAL.to_owned()]);
+	let open = tokio::spawn({
+		let app = app.clone();
+		async move { wait(&app, Some(TERMINAL)).await }
+	});
+	gs_base::clock::sleep(50).await;
+	app.bridge.typed(TERMINAL, gs_base::clock::now_ms());
+	let (status, body) = open.await.unwrap();
+	assert_eq!(status, 200);
+	let note = r#"{\"status\":\"idle\",\"note\":\"The learner typed to you in your terminal. Answer them there, then call wait_for_work again.\"}"#;
+	assert!(body.contains(note) && !body.contains(r#""isError":true"#), "{body}");
+	let (_, body) = wait(&app, Some(TERMINAL)).await;
+	assert!(body.contains("Nothing to do right now."), "read once: {body}");
+}
+
+/// Whether the window opened the agent's last change, as Follow does.
+fn opened(app: &App, label: &str) -> bool {
+	let actions = gs_services::app::agent_actions::recent_agent_actions(app);
+	actions.iter().find(|a| a["label"].as_str() == Some(label)).unwrap()["open"] == gs_json::Json::Bool(true)
+}
+
+#[tokio::test]
+async fn what_the_teacher_terminal_starts_opens_and_its_running_waiter_needs_no_second() {
+	let app = app();
+	app.bridge.set_live_terminals(vec![TERMINAL.to_owned()]);
+	call(&app, None, None, "create_space", r#"{"name":"Algebra","icon":"sigma"}"#).await;
+	assert!(!opened(&app, "Creating Algebra"), "an agent outside the app changes things on its own");
+	call(&app, Some(TERMINAL), None, "create_space", r#"{"name":"Biology","icon":"dna"}"#).await;
+	assert!(opened(&app, "Creating Biology"), "the learner asked in the teacher's terminal");
+
+	let (_, body) = call(&app, Some(TERMINAL), Some("sess-1"), "start_lesson", r#"{"topic":"Cells"}"#).await;
+	assert!(body.contains("Open the lesson in the godspeed window. Wait with the waiter"), "{body}");
+	call(&app, None, Some("sess-2"), "wait_for_work", r#"{"timeout_seconds":1}"#).await;
+	let waiter = tokio::spawn({
+		let app = app.clone();
+		async move { call(&app, Some(TERMINAL), Some("sess-1"), "wait_for_work", r#"{"timeout_seconds":5}"#).await }
+	});
+	gs_base::clock::sleep(50).await;
+	let (_, body) = call(&app, Some(TERMINAL), Some("sess-1"), "start_lesson", r#"{"topic":"Mitosis"}"#).await;
+	assert!(body.contains("Open in the godspeed window. Your waiter already running brings its turns."), "{body}");
+	assert!(opened(&app, "Starting Mitosis"));
+	waiter.abort();
 }

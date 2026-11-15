@@ -23,7 +23,7 @@ Two rules hold everywhere:
 | Spaces | `data/spaces/<id>/space.json`, `files/`, `cheat-sheets/`, `mocks/` | space records and files, linked folders, deadlines, cheat sheets, interviews and mocks (§6.1, §6.2) |
 | Search index | `data/search/` and `data/spaces/<id>/search/` | `crates/search` (`app.search`): the facts and passages index for local search |
 | Stage | nothing on the server | the window: Today, space pages, the lesson screen, the Graph page, the teacher panel. It reads and writes only through `/api` |
-| Machine room | `settings.json`, `prompts/`, `mcp-token`, `search-key`, `agent-notes.json`, `agent-seen.json`, `agent-rules.json`, `agent-actions.json`, `reminders.json`, `agent-folder.json` | the server process, `gs_base::config` (`Paths`), the outside-agent boundary (§8.1). The shell writes `mcp-endpoint.json` |
+| Machine room | `settings.json`, `prompts/`, `mcp-token`, `search-key`, `agent-notes.json`, `agent-seen.json`, `agent-rules.json`, `agent-actions.json`, `reminders.json`, `agent-folder.json`, `deadline-requests.json` | the server process, `gs_base::config` (`Paths`), the outside-agent boundary (§8.1). The shell writes `mcp-endpoint.json` |
 
 ---
 
@@ -545,7 +545,7 @@ The window turns stored marks into numbered buttons and a Sources list (`src/fro
 
 | Route | Returns |
 |---|---|
-| `GET /api/cited/<file id>?range=<range>&quote=<words>` | `{name, range, page, text, marks}`. `page` is the PDF page number when the file is a PDF on disk and the range names a page, else `null`. 404 when no space has the file, or no passage is at that range |
+| `GET /api/cited/<file id>?range=<range>&quote=<words>` | `{name, range, page, text, marks}`. `page` is the PDF page number when the file is a PDF on disk and the range names a page, else `null`. In place of `range`, `passage=<n>` names the passage id `<file id>:<n>` an agent prints. 404 when no space has the file, or no passage is at that range or with that id |
 | `GET /api/cited/<file id>/page/<n>` | the page as `image/png` |
 
 `marks` places the quote, or is `null` without a quote or when it is not found exactly once:
@@ -567,6 +567,20 @@ A space can have deadlines (`SpaceDeadline` in `core::contracts::space`): a kind
 - `GET /api/deadlines` lists every open deadline for Today.
 - `GET /api/progress` turns a deadline's files into days left, a ready percentage and a "Work on next" list.
 - The teacher sees them in the `today-context` marker (§5).
+
+#### Deadline requests
+
+A deadline request is one background run of the learner's agent on one or more deadlines (`services::spaces::deadline_requests`, `agent::subagents::deadline_request`). It gets a short fixed prompt, the request (`core::spaces::deadline_requests`) and the space tools it needs: `read_space`, `search_space_files`, `read_passage` and `update_space_deadline`, plus `add_space_file` for a study guide or What it's like. The helper takes it when one is open. Its changes go into the activity log, so Follow opens the deadline page.
+
+| Kind | Started by | It |
+|---|---|---|
+| `coverage` | godspeed, when an agent starts waiting or a deadline is added while one teaches; "Ask {teacher}" and "Ask {teacher} to check" under What's on it | works out what the deadline covers from the space's files and links them |
+| `guide` | "Ask {teacher} for a study guide" (an interview with nothing to plan from) | writes `Study guide.md` and links it |
+| `about` | "Ask {teacher} to rewrite" under What it's like | rewrites `What it's like.md` |
+
+- godspeed asks about each open deadline with nothing linked once, in one request, in a space with a study file ready. The ids asked go to `data/deadline-requests.json` (`{version: 1, asked}`), read together with the ones the Talk chat of earlier versions asked (that record is only read).
+- One request runs per deadline at a time; another start answers 409. Each start and end emits `deadline-request-changed`.
+- `GET /api/spaces/<id>/deadlines/<deadline id>/request` answers `{running, failed}`. While one runs, the page sits in the work frame. A request from the page that changed nothing keeps the agent's last line (`said`) or why its run stopped (`error`) until the next one, in memory only, and the page shows it beside that Ask key.
 
 #### Deadline reminders
 
@@ -661,7 +675,7 @@ A session started from a deadline records it as `deadlineId`. While the latest s
 
 ### The study agent
 
-The study agent has the teacher's prompt and tools, without the deadline changes (Study sends those to Talk). It adds:
+The study agent has the teacher's prompt and tools, without the deadline changes (the learner makes those outside lessons). It adds:
 
 - `problem` and `conclude` (`agent::tools::practice`; `problem` carries the topic's `nodeId`)
 - `topic_done`
@@ -823,7 +837,7 @@ An agent started in one of the desktop app's terminals sends the terminal's id w
 
 #### The godspeed folder
 
-Agents are opened in one folder, `~/godspeed` by default. `data/agent-folder.json` remembers another one, whether the one-time notice was seen, and `startCommands`. A debug build uses `<data>/godspeed-folder` instead.
+Agents are opened in one folder, `~/godspeed` by default. `data/agent-folder.json` remembers another one, whether the one-time notice was seen, `startCommands`, and `talkExported` (see [Talk](#talk)). A debug build uses `<data>/godspeed-folder` instead.
 
 `services::app::agent_folder` writes it from `crates/services/folder-files/` and `core::spaces::agent_folder`, once per app start so an update reaches it:
 
@@ -880,6 +894,8 @@ Every model request (a lesson turn, a background job, an extraction run, topic g
 - A waiter given a lesson id stays on that lesson: it takes its turns and Talk's, plus other lessons' turns no one else waits for, oldest first. So one agent takes turns between lessons, and two agents each keep their own.
 - Codex has no waiter, and its wait is capped by its MCP tool timeout (60 s by default). Its start command sets `tool_timeout_sec=620` with `-c` flags (`core::spaces::agent_folder`).
 - `wait_for_work` takes `timeout_seconds` from 1 to 600, default 45.
+- Outside lessons the learner types to the agent in its terminal. When they send a message there ([tauri-shell.md](tauri-shell.md#while-it-runs)), the wait from that terminal, or `respond`'s wait for a follow-up, ends at once with a note to answer them there and wait again. It claims nothing, so a lesson turn that waits goes to the next wait. The mark lasts until a wait from that terminal reads it, at most 2 minutes. For Claude Code the waiter waits again by itself.
+- A space or lesson an agent starts from godspeed's teacher terminal (not the helper's, not an agent outside godspeed) opens in the window even with Follow off. `start_lesson` from an agent whose wait is under way says its running waiter brings the turns, so Claude Code starts no second waiter.
 
 #### The helper
 
@@ -945,6 +961,7 @@ Outside lessons the learner types to the agent in its own screen in the teacher 
 - Its agent (`create_talk_agent`) has a short prompt (`crates/agent/prompts/talk/` plus the shared voice) and the space tools in `agent::tools::talk`. None of them deletes a space or a file.
 - Those tools run the same space actions as the MCP server (`services::spaces::space_actions`), so each change goes into the activity log and shows in the chat as a row that opens it.
 - The chat is summarized like a lesson (`talk_compaction_prompt`).
+- The learner's old chat is kept: `DELETE /api/chats/{id}` refuses it. On a start with a Talk record and no `data/talk-backup-*` yet, the server first (right after taking the data lock, before anything else reads the record) copies `chat_talk.json` and `chat_talk/` to `data/talk-backup-<version>` (`services::app::old_talk`). Once, into the first godspeed folder set up after that, it writes `Talk.md` (who said what, each change as one line, math as written; `core::messages::talk_export`) with its pictures and PDFs in `Talk files/`. Each file is written under a `.partial` name and renamed when whole, `Talk.md` last, and `talkExported` is set only after that, so a start cut off halfway makes it again. A `Talk.md` already there is the learner's: nothing is written and `talkExported` is set.
 
 While a lesson is open, the panel shows only the screen: the lesson is the chat, and its teacher column has Activity and, in the desktop app, a Terminal key that opens it. Lessons get `list_spaces` and the three deadline tools (`lesson_space_change_tools`), so "add HW 4, due Friday" works mid-lesson.
 
@@ -1040,6 +1057,7 @@ The list is `EventKind` in `crates/base/src/events.rs`, mirrored in `src/shared/
 | `files-added` | `{spaceId, files}` | a linked folder scan added files (`services::spaces::folder`). The window shows a notice |
 | `files-removed` | `{spaceId, files}` | files a linked folder no longer holds were dropped with their facts (`services::spaces::folder`). The window shows a notice |
 | `cheat-sheet-changed` | `{deadlineId}` | a cheat sheet's versions, chat or request changed (`services::cheat_sheets`) |
+| `deadline-request-changed` | `{spaceId, deadlineId}` | a deadline request started or ended (`services::spaces::deadline_requests`) |
 
 ### 10.3 Rules for emitters
 

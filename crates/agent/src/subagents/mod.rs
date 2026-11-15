@@ -6,6 +6,7 @@
 pub mod aborts;
 pub mod bg_llm_semaphore;
 pub mod cheat_sheet_writer;
+pub mod deadline_request;
 pub mod demo_builder;
 pub mod headless;
 pub mod mock_writer;

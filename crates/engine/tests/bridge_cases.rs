@@ -338,3 +338,74 @@ fn each_live_terminal_says_whether_its_agent_checked_in() {
 	assert!(!bridge.terminal_live(TERMINAL) && bridge.terminal_live(&other));
 	assert_eq!(bridge.terminals_here(now), vec![(other, false)]);
 }
+
+#[tokio::test]
+async fn typing_in_the_terminal_ends_its_wait_and_leaves_the_turn_queued() {
+	let bridge = Bridge::new(&Events::new(), Arc::new(Marks::default()));
+	bridge.set_live_terminals(vec![TERMINAL.to_owned()]);
+	let wait = waiting(&bridge, in_terminal());
+	clock::sleep(5).await;
+	let typed = Instant::now();
+	bridge.typed(TERMINAL, clock::now_ms());
+	assert!(wait.await.unwrap().is_none());
+	assert!(typed.elapsed().as_millis() < 1_000, "ended at the Enter, not at the next slice");
+
+	// The flag stays until a wait from that terminal reads it: one that starts later ends too,
+	// and the lesson turn that waits meanwhile is not taken.
+	let lesson = park(&bridge, vec![user("hi")], "chat_l1", &Abort::new());
+	clock::sleep(5).await;
+	assert!(bridge.wait_for_work(60_000, in_terminal()).await.is_none());
+	assert!(bridge.claimed_lessons().is_empty(), "the turn stays queued");
+	assert!(bridge.take_typed(Some(TERMINAL), clock::now_ms()));
+	assert!(!bridge.take_typed(Some(TERMINAL), clock::now_ms()), "read once");
+	let view = bridge.wait_for_work(0, in_terminal()).await.expect("the next wait takes the turn");
+	bridge.respond_to_work(&view.work_id, reply("Hi."), 0).unwrap();
+	lesson.await.unwrap();
+}
+
+#[tokio::test]
+async fn typing_ends_only_that_terminals_wait_and_goes_stale() {
+	let bridge = Bridge::new(&Events::new(), Arc::new(Marks::default()));
+	let other = "f".repeat(32);
+	bridge.set_live_terminals(vec![TERMINAL.to_owned(), other.clone()]);
+	bridge.typed(&other, clock::now_ms());
+	let lesson = park(&bridge, vec![user("hi")], "chat_l1", &Abort::new());
+	clock::sleep(5).await;
+	let view = bridge.wait_for_work(0, in_terminal()).await.expect("another terminal's typing does not count");
+	bridge.respond_to_work(&view.work_id, reply("Hi."), 0).unwrap();
+	lesson.await.unwrap();
+	assert!(bridge.take_typed(Some(&other), clock::now_ms()));
+
+	bridge.typed(TERMINAL, clock::now_ms() - 120_000);
+	let lesson = park(&bridge, vec![user("more")], "chat_l1", &Abort::new());
+	clock::sleep(5).await;
+	let view = bridge.wait_for_work(0, in_terminal()).await.expect("two minutes on, the typing is old");
+	bridge.respond_to_work(&view.work_id, reply("Sure."), 0).unwrap();
+	lesson.await.unwrap();
+	assert!(!bridge.take_typed(Some(TERMINAL), clock::now_ms()));
+	assert!(!bridge.take_typed(None, clock::now_ms()), "an agent outside the app never typed here");
+}
+
+#[tokio::test]
+async fn typing_ends_respond_s_wait_for_a_follow_up() {
+	let bridge = Bridge::new(&Events::new(), Arc::new(Marks::default()));
+	bridge.set_live_terminals(vec![TERMINAL.to_owned()]);
+	let follow_up = WaitOptions { conversation: Some("chat_l1".to_owned()), terminal: Some(TERMINAL.to_owned()), ..WaitOptions::default() };
+	let wait = waiting(&bridge, follow_up);
+	clock::sleep(5).await;
+	bridge.typed(TERMINAL, clock::now_ms());
+	assert!(wait.await.unwrap().is_none());
+}
+
+#[tokio::test]
+async fn a_typed_message_counts_as_the_teacher_being_here_for_three_minutes() {
+	let bridge = Bridge::new(&Events::new(), Arc::new(Marks::default()));
+	bridge.set_live_terminals(vec![TERMINAL.to_owned()]);
+	let now = 10_000_000;
+	assert!(!bridge.agent_teaching(now));
+	bridge.typed(TERMINAL, now);
+	assert!(bridge.agent_teaching(now + 3 * 60_000 - 1));
+	assert_eq!(bridge.terminals_here(now + 3 * 60_000 - 1), vec![(TERMINAL.to_owned(), true)]);
+	assert!(!bridge.agent_teaching(now + 3 * 60_000));
+	assert_eq!(bridge.terminals_here(now + 3 * 60_000), vec![(TERMINAL.to_owned(), false)]);
+}

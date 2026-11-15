@@ -8,7 +8,7 @@ use gs_core::spaces::agent_briefing::{BriefingSpace, BriefingInput, BriefingLess
 use gs_core::spaces::space_setup::{SETUP_HOW, missing_setup};
 use gs_core::spaces::space_shortcuts::{space_dirs, readme_text, safe_entry_name, shortcut_layout, unique_name};
 use gs_core::spaces::space_tools::{SPACE_ARG_TEXT, SPACE_TOOL_TEXT, DEADLINE_KINDS, FILE_KINDS, lesson_started_last_turn};
-use gs_core::spaces::deadline_requests::{UnlinkedDeadline, asked_deadline_ids, coverage_request, talk_quiet, unlinked_deadlines};
+use gs_core::spaces::deadline_requests::{RequestedDeadline, asked_deadline_ids, unlinked_deadlines};
 use gs_core::spaces::file_groups::{file_groups, pair_series};
 use gs_core::spaces::file_series::{date_in_name, group_file_series};
 use gs_core::spaces::lecture_transcript::{recordings_to_recheck, transcript_for};
@@ -331,18 +331,7 @@ fn briefings_match_node() {
 	}
 }
 
-fn unlinked(d: &Json) -> UnlinkedDeadline {
-	UnlinkedDeadline {
-		id: s(&d["id"]).to_owned(),
-		name: s(&d["name"]).to_owned(),
-		space_name: s(&d["spaceName"]).to_owned(),
-		space_id: s(&d["spaceId"]).to_owned(),
-		date: s(&d["date"]).to_owned(),
-		time: d["time"].as_str().map(str::to_owned),
-	}
-}
-
-fn unlinked_json(d: &UnlinkedDeadline) -> Json {
+fn unlinked_json(d: &RequestedDeadline) -> Json {
 	let mut out = json!({ "id": d.id, "name": d.name, "spaceName": d.space_name, "spaceId": d.space_id, "date": d.date });
 	if let Some(time) = &d.time {
 		out.as_obj_mut().unwrap().insert("time", time.as_str());
@@ -357,18 +346,6 @@ fn deadline_requests_match_node() {
 		let asked: HashSet<String> = strings(&f["asked"]).into_iter().collect();
 		let got: Vec<Json> = unlinked_deadlines(list(&c["spaces"]), s(&f["today"]), &asked).iter().map(unlinked_json).collect();
 		same(&Json::Arr(got), &f["found"], &format!("asked {:?}", f["asked"]));
-	}
-	for t in list(&c["talks"]) {
-		let talk = (!t["talk"].is_null()).then(|| &t["talk"]);
-		assert_eq!(talk_quiet(talk, t["now"].as_i64().unwrap()), t["quiet"].as_bool().unwrap(), "{:?}", t["talk"]);
-	}
-	for r in list(&c["requests"]) {
-		let deadlines: Vec<UnlinkedDeadline> = list(&r["deadlines"]).iter().map(unlinked).collect();
-		let mut got = coverage_request(&deadlines);
-		let obj = got.as_obj_mut().unwrap();
-		obj.remove("id");
-		obj.remove("timestamp");
-		same(&got, &r["output"], &format!("{} deadlines", deadlines.len()));
 	}
 	for a in list(&c["asked"]) {
 		let mut got: Vec<String> = asked_deadline_ids(list(&a["messages"])).into_iter().collect();

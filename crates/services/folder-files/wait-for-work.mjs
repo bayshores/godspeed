@@ -8,11 +8,11 @@
  *
  *   node wait-for-work.mjs [--lesson <lesson id>] [--helper] [--max-minutes <n>]
  *
- * With --lesson it takes that lesson's turns, Talk messages, background jobs
- * and other lessons' turns no other waiter waits for. If the lesson is
+ * With --lesson it takes that lesson's turns, background jobs and other
+ * lessons' turns no other waiter waits for. If the lesson is
  * deleted, it waits for any work instead. With
  * --helper it is the helper's: it takes the background jobs, and lesson
- * and Talk turns only while the teacher session compacts its context.
+ * turns only while the teacher session compacts its context.
  *
  * Exit codes: 0 = work item printed; 2 = nothing arrived within
  * --max-minutes (default 120; run it again to keep waiting); 1 = godspeed
