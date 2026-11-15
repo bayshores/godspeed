@@ -42,6 +42,8 @@ pub enum ToServer {
 	/// The ids of the agents' terminals that run now (after every start and end). An agent that
 	/// sends another id was stopped in the app.
 	Terminals { live: Vec<String> },
+	/// The learner pressed Enter in this terminal while it showed no question.
+	Typed { terminal: String },
 	/// Where the godspeed folder is: a terminal runs only that folder's start scripts.
 	AgentFolder { id: u64 },
 }
@@ -125,6 +127,7 @@ mod tests {
 		round_trip(ToServer::NotifyDone { id: 8, shown: false }, r#"{"t":"notify_done","id":8,"shown":false}"#);
 		round_trip(ToServer::Terminals { live: vec!["ab".repeat(16)] }, &format!(r#"{{"t":"terminals","live":["{}"]}}"#, "ab".repeat(16)));
 		round_trip(ToServer::AgentFolder { id: 9 }, r#"{"t":"agent_folder","id":9}"#);
+		round_trip(ToServer::Typed { terminal: "ab".repeat(16) }, &format!(r#"{{"t":"typed","terminal":"{}"}}"#, "ab".repeat(16)));
 	}
 
 	#[test]

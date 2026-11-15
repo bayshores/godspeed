@@ -11,7 +11,8 @@ use crate::paths::Paths;
 use crate::server::Server;
 use crate::{log, push, window};
 
-/// The app's outlet: pushes to the page, the live ids to the server, lines to the log.
+/// The app's outlet: pushes to the page, the live ids and typed messages to the server, lines to
+/// the log.
 pub struct AppOutlet(pub AppHandle);
 
 impl Outlet for AppOutlet {
@@ -22,6 +23,12 @@ impl Outlet for AppOutlet {
 	fn live(&self, ids: Vec<String>) {
 		if let Some(server) = self.0.try_state::<Server>() {
 			server.send(None, &gs_shell_rpc::ToServer::Terminals { live: ids });
+		}
+	}
+
+	fn typed(&self, id: &str) {
+		if let Some(server) = self.0.try_state::<Server>() {
+			server.send(None, &gs_shell_rpc::ToServer::Typed { terminal: id.to_owned() });
 		}
 	}
 

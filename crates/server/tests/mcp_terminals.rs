@@ -64,3 +64,21 @@ async fn an_ended_terminals_agent_is_refused_at_the_door_and_in_its_wait() {
 	assert_eq!(status, 200);
 	assert!(body.contains(r#""isError":true"#) && body.contains(CLOSED), "{body}");
 }
+
+#[tokio::test]
+async fn typing_in_the_terminal_ends_its_wait_with_a_note() {
+	let app = app();
+	app.bridge.set_live_terminals(vec![TERMINAL.to_owned()]);
+	let open = tokio::spawn({
+		let app = app.clone();
+		async move { wait(&app, Some(TERMINAL)).await }
+	});
+	gs_base::clock::sleep(50).await;
+	app.bridge.typed(TERMINAL, gs_base::clock::now_ms());
+	let (status, body) = open.await.unwrap();
+	assert_eq!(status, 200);
+	let note = r#"{\"status\":\"idle\",\"note\":\"The learner typed to you in your terminal. Answer them there, then call wait_for_work again.\"}"#;
+	assert!(body.contains(note) && !body.contains(r#""isError":true"#), "{body}");
+	let (_, body) = wait(&app, Some(TERMINAL)).await;
+	assert!(body.contains("Nothing to do right now."), "read once: {body}");
+}

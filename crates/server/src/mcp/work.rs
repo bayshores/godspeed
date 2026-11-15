@@ -55,6 +55,13 @@ fn call_again(helper: bool) -> &'static str {
 	if helper { "Call wait_for_work with helper: true" } else { "Call wait_for_work" }
 }
 
+/// What the agent is told when the learner's typing in its terminal ended its wait.
+const TYPED: &str = "The learner typed to you in your terminal. Answer them there";
+
+fn typed_note(helper: bool) -> String {
+	format!("{TYPED}, then {} again.", if helper { "call wait_for_work with helper: true" } else { "call wait_for_work" })
+}
+
 fn idle(caller: Option<&str>, helper: bool) -> Json {
 	let note = if in_claude_code(caller) {
 		format!("Nothing to do right now. {}", waiter_hint(None, helper))
@@ -184,10 +191,14 @@ pub async fn wait_for_work(call: &ToolCall<'_>, args: &Json) -> Json {
 	}
 }
 
-/// A wait that found nothing: its terminal was closed in the app, or nothing came.
+/// A wait that found nothing: its terminal was closed in the app, the learner typed in it, or
+/// nothing came.
 fn ended_or_idle(call: &ToolCall<'_>, helper: bool) -> Json {
 	if call.terminal.is_some_and(|id| !call.app.bridge.terminal_live(id)) {
 		return failure(TERMINAL_CLOSED);
+	}
+	if call.app.bridge.take_typed(call.terminal, clock::now_ms()) {
+		return result(&json!({ "status": "idle", "note": typed_note(helper) }));
 	}
 	result(&idle(call.caller, helper))
 }
@@ -242,8 +253,23 @@ pub async fn respond(call: &ToolCall<'_>, args: &Json) -> Json {
 		}
 		return work;
 	}
-	let note = turn_complete_note(app, call.caller, &answered.conversation, answered.agent.as_deref(), helper);
+	let note = if app.bridge.take_typed(call.terminal, clock::now_ms()) {
+		typed_turn_note(app, call.caller, &answered.conversation, helper)
+	} else {
+		turn_complete_note(app, call.caller, &answered.conversation, answered.agent.as_deref(), helper)
+	};
 	result(&json!({ "status": "turn_complete", "note": with_removed(note) }))
+}
+
+/// The note when the learner's typing ended respond's wait for a follow-up.
+fn typed_turn_note(app: &App, caller: Option<&str>, conversation: &str, helper: bool) -> String {
+	let chat = app.stores.chats.get_chat(conversation);
+	let done = if chat.is_some() { "Your turn is done." } else { "The task step is done." };
+	if in_claude_code(caller) {
+		let lesson = chat.as_ref().filter(|c| c["kind"].as_str() != Some("talk")).and_then(|c| c["id"].as_str());
+		return format!("{done} {TYPED}. {}", waiter_hint(lesson, helper));
+	}
+	format!("{done} {}", typed_note(helper))
 }
 
 /// What the agent is told about the marks its reply lost: removed marks, then dropped quotes.
@@ -359,6 +385,12 @@ mod tests {
 		assert!(waiter_hint(Some("chat_a"), true).contains("wait-for-work.mjs --helper in the background"));
 		assert!(idle(Some("Claude Code"), true)["note"].as_str().unwrap().starts_with("Nothing to do right now. Wait with the waiter, not by calling wait_for_work yourself: run node .godspeed/wait-for-work.mjs --helper in"));
 		assert_eq!(idle(Some("Codex"), true)["note"], json!("Nothing to do right now. Call wait_for_work with helper: true again to keep waiting (the learner may be reading or answering)."));
+	}
+
+	#[test]
+	fn the_typed_notes_send_the_agent_back_to_waiting() {
+		assert_eq!(stringify(&json!({ "status": "idle", "note": typed_note(false) })), r#"{"status":"idle","note":"The learner typed to you in your terminal. Answer them there, then call wait_for_work again."}"#);
+		assert_eq!(typed_note(true), "The learner typed to you in your terminal. Answer them there, then call wait_for_work with helper: true again.");
 	}
 
 	#[tokio::test]

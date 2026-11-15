@@ -43,6 +43,8 @@ pub trait Outlet: Send + Sync + 'static {
 	fn push(&self, channel: &str, payload: Value);
 	/// The live terminal ids changed.
 	fn live(&self, ids: Vec<String>);
+	/// The learner sent a message to the agent in this terminal.
+	fn typed(&self, id: &str);
 	fn log(&self, line: &str);
 }
 
@@ -380,7 +382,18 @@ impl Terminals {
 		if screen::is_reply(data) {
 			return Ok(());
 		}
-		terminal.write(data.as_bytes())
+		self.sent(&terminal, data, data.contains('\r'))
+	}
+
+	/// Writes what the learner sent. When it submits (Enter) while the screen shows no question,
+	/// the server hears it: the learner is talking to the agent, so its wait for work ends.
+	fn sent(&self, terminal: &Terminal, data: &str, submits: bool) -> Result<(), String> {
+		let message = submits && terminal.state().screen.seen().prompt.is_none();
+		terminal.write(data.as_bytes())?;
+		if message {
+			self.outlet.typed(&terminal.id);
+		}
+		Ok(())
 	}
 
 	/// The trust or Enter button, only while the shell itself still sees that question. Trust
@@ -415,8 +428,10 @@ impl Terminals {
 			return Err(NOT_SHOWN.to_owned());
 		}
 		let text = text.replace('\x1b', "");
+		// Only an unbracketed paste submits at its line breaks.
+		let submits = !bracketed && text.contains(['\r', '\n']);
 		let pasted = if bracketed { format!("\x1b[200~{text}\x1b[201~") } else { text };
-		terminal.write(pasted.as_bytes())
+		self.sent(&terminal, &pasted, submits)
 	}
 
 	pub fn stop(&self, id: &str) -> Result<(), String> {
@@ -555,6 +570,7 @@ mod tests {
 	struct Heard {
 		pushes: Mutex<Vec<(String, Value)>>,
 		live: Mutex<Vec<Vec<String>>>,
+		typed: Mutex<Vec<String>>,
 		log: Mutex<Vec<String>>,
 		/// The next live message takes a while to send, and `sending` says when it began.
 		slow: AtomicBool,
@@ -572,6 +588,10 @@ mod tests {
 				std::thread::sleep(Duration::from_millis(300));
 			}
 			lock(&self.live).push(ids);
+		}
+
+		fn typed(&self, id: &str) {
+			lock(&self.typed).push(id.to_owned());
 		}
 
 		fn log(&self, line: &str) {
@@ -657,8 +677,11 @@ mod tests {
 		assert_eq!(terminals.write(&id, SECRET, true), Err(NOT_SHOWN.to_owned()), "not shown yet");
 		terminals.attach(&id).unwrap();
 		assert_eq!(terminals.write(&id, SECRET, false), Err(NOT_SHOWN.to_owned()), "the window is not focused");
+		terminals.write(&id, "a", true).unwrap();
+		assert!(lock(&heard.typed).is_empty(), "keys without Enter send nothing yet");
 		terminals.write(&id, &format!("{SECRET}\r"), true).unwrap();
-		until("the echo", || text(&terminals, &id).contains(&format!("got {SECRET}")));
+		assert_eq!(*lock(&heard.typed), vec![id.clone()], "Enter with no question on the screen is a message to the agent");
+		until("the echo", || text(&terminals, &id).contains(&format!("got a{SECRET}")));
 		until("the end", || ended_of(&terminals, &id) == Some(Ended::Exited(0)));
 
 		let pushes = lock(&heard.pushes);
@@ -667,7 +690,7 @@ mod tests {
 		let drawn = String::from_utf8(gs_base::base64::decode(snapshot["snapshot"].as_str().unwrap())).unwrap();
 		assert!(drawn.contains("ready"), "the snapshot redraws the screen");
 		let output: Vec<u8> = pushes.iter().filter_map(|(_, p)| p["data"].as_str()).flat_map(gs_base::base64::decode).collect();
-		assert!(String::from_utf8_lossy(&output).contains(&format!("got {SECRET}")), "output after the attach");
+		assert!(String::from_utf8_lossy(&output).contains(&format!("got a{SECRET}")), "output after the attach");
 		let last = &pushes.iter().rfind(|(channel, _)| channel == "terminal-state").unwrap().1;
 		assert_eq!(last["ended"], json!({ "stopped": false, "code": 0 }));
 		assert_eq!(lock(&heard.live).last(), Some(&Vec::new()), "the server hears it ended");
@@ -684,6 +707,7 @@ mod tests {
 		terminals.attach(&id).unwrap();
 		until("ready", || text(&terminals, &id).contains("ready"));
 		terminals.paste(&id, &format!("{SECRET}\r"), true).unwrap();
+		assert_eq!(*lock(&heard.typed), vec![id.clone()], "an unbracketed paste with a line break submits");
 		until("the end", || ended_of(&terminals, &id).is_some());
 		let log = lock(&heard.log).join("\n");
 		assert!(log.contains("terminal started: teacher claude pid ") && log.contains(" code 0"), "{log}");
@@ -908,7 +932,8 @@ mod tests {
 			draw("  ", " \\342\\235\\257"),
 		);
 		let dir = folder("trust", &question);
-		let terminals = Terminals::new(Arc::new(Heard::default()));
+		let heard = Arc::new(Heard::default());
+		let terminals = Terminals::new(heard.clone());
 		let id = start(&terminals, &dir);
 		until("the question", || terminals.find(&id).unwrap().state().screen.trust() == Some(Trust::OnNo));
 		assert!(terminals.answer(&id, Prompt::Enter).is_err(), "no Press Enter line");
@@ -916,6 +941,25 @@ mod tests {
 		terminals.answer(&id, Prompt::Trust).unwrap();
 		until("the answer", || text(&terminals, &id).contains("trusted"));
 		assert!(terminals.answer(&id, Prompt::Trust).is_err(), "the question is gone");
+		assert!(lock(&heard.typed).is_empty(), "godspeed's own answer is not the learner talking");
+		terminals.stop(&id).unwrap();
+		until("the stop", || ended_of(&terminals, &id).is_some());
+		std::fs::remove_dir_all(dir).unwrap();
+	}
+
+	#[cfg(unix)]
+	#[test]
+	fn enter_on_a_menu_answers_it_and_is_no_message() {
+		let menu = "#!/bin/sh\nprintf ' Select a model\\r\\n\\r\\n \\342\\235\\257 1. Default (recommended)\\r\\n   2. Opus\\r\\n'\nsleep 30\n";
+		let dir = folder("menu", menu);
+		let heard = Arc::new(Heard::default());
+		let terminals = Terminals::new(heard.clone());
+		let id = start(&terminals, &dir);
+		terminals.attach(&id).unwrap();
+		until("the menu", || terminals.find(&id).unwrap().state().screen.seen().prompt == Some(Prompt::Menu));
+		terminals.write(&id, "\r", true).unwrap();
+		terminals.paste(&id, "2\n", true).unwrap();
+		assert!(lock(&heard.typed).is_empty());
 		terminals.stop(&id).unwrap();
 		until("the stop", || ended_of(&terminals, &id).is_some());
 		std::fs::remove_dir_all(dir).unwrap();

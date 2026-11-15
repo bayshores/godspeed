@@ -118,6 +118,8 @@ struct State {
 	live_terminals: HashSet<String>,
 	/// terminal id → its last request.
 	terminal_contact: HashMap<String, i64>,
+	/// terminal id → when the learner last typed to its agent, until a wait from it reads that.
+	typed: HashMap<String, i64>,
 	/// The last request from an agent outside the app's terminals.
 	outside_contact: i64,
 }

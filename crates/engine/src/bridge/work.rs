@@ -8,7 +8,7 @@ use gs_core::records::agent_seen::seen_mark;
 use gs_json::Json;
 
 use super::helper::{self, compacting_now, someone_compacting};
-use super::terminals::closed;
+use super::terminals::{closed, typed_lately};
 use super::render::{instructions_and_tools, prints_of};
 use super::view::{WorkView, remember_seen};
 use super::{Bridge, State, WorkItem, is_background};
@@ -151,6 +151,8 @@ enum Claim {
 	/// The background run this waiter stays on ended, or the waiter's terminal did: it sends
 	/// nothing more.
 	Ended,
+	/// The learner typed to this waiter's agent in its terminal: it answers them first.
+	Typed,
 	Nothing,
 }
 
@@ -160,6 +162,9 @@ impl Bridge {
 		let mut s = self.0.state.lock();
 		if closed(&s, opts.terminal.as_deref()) {
 			return Claim::Ended;
+		}
+		if typed_lately(&s, opts.terminal.as_deref(), now) {
+			return Claim::Typed;
 		}
 		let Some(i) = pick(&s, now, opts) else {
 			let ended = opts.conversation.as_deref().is_some_and(|c| is_background(c) && !s.background_runs.contains(c));
@@ -179,7 +184,8 @@ impl Bridge {
 	}
 
 	/// Waits up to `timeout_ms` for a request, claims it and presents it. None when nothing
-	/// came, its background run or its terminal ended, or the server is stopping.
+	/// came, its background run or its terminal ended, the learner typed in its terminal, or the
+	/// server is stopping.
 	pub async fn wait_for_work(&self, timeout_ms: i64, opts: WaitOptions) -> Option<WorkView> {
 		// An empty lesson_id is no conversation in the TS (a falsy string).
 		let opts = WaitOptions { conversation: opts.conversation.filter(|c| !c.is_empty()), ..opts };
@@ -206,7 +212,7 @@ impl Bridge {
 			drop(ticket.take());
 			match claimed {
 				Claim::Taken(view) => return Some(*view),
-				Claim::Ended => return None,
+				Claim::Ended | Claim::Typed => return None,
 				Claim::Nothing => {}
 			}
 			let remaining = deadline - now;
