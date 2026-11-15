@@ -725,6 +725,7 @@ describe("the teacher column", () => {
 		const idle = renderToStaticMarkup(named(column()));
 		assert.match(idle, /data-testid="teacher-head"[\s\S]*marco[\s\S]*data-testid="teacher-activity-open"[^>]*>Activity<[\s\S]*data-testid="your-turn"/);
 		assert.doesNotMatch(idle, /teacher-head-doing/);
+		assert.doesNotMatch(idle, /teacher-terminal-open/, "the Terminal key is the desktop app's only");
 		assert.match(renderToStaticMarkup(named(column({ busy: true }))), /data-testid="teacher-head-doing"[^>]*>marco is writing…</);
 		for (const busy of [true, false]) {
 			const waiting = renderToStaticMarkup(<MemoryRouter initialEntries={["/chat/ses_1"]}>{named(column({ busy, noAgent: true }))}</MemoryRouter>);
