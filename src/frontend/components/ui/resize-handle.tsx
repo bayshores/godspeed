@@ -4,7 +4,8 @@ import { draggedWidth, keyedWidth, storedWidth, type PaneBounds } from "./pane-w
 
 const storageKey = (key: string) => `lh:pane-width:${key}`;
 
-function saveWidth(key: string, width: number | null) {
+/** Remembers a pane's width; null forgets it. */
+export function saveWidth(key: string, width: number | null) {
 	writeStorage(storageKey(key), width === null ? null : String(width));
 }
 

@@ -47,8 +47,15 @@ export const SCREENS = [
 	{ name: "Lesson with a sourced reply, an open quiz and the plan", url: "/chat/{lesson}", ready: "[data-testid=cite-list]" },
 	{ name: "Lesson with a plugin's page open", url: "/chat/{lesson}", ready: "[data-testid=lesson-plugin-flashcards]", setup: `document.querySelector("[data-testid=lesson-plugin-flashcards]").click()`, eachWidth: scrollToEnd, shows: "[data-testid=plugin-dock] [data-testid=plugin-frame][data-state=ready]" },
 	{ name: "Space's plugin tab", url: "/space/plugin/flashcards", ready: "[data-testid=plugin-frame][data-state=ready]" },
-	{ name: "Teacher's panel with no agent", url: "/", ready: deadlineCard, setup: openTeacher, shows: "[data-testid=terminal-none] [data-testid=open-agent]" },
-	{ name: "Teacher's panel beside a lesson", url: "/chat/{lesson}", ready: "[data-testid=cite-list]", setup: `document.querySelector("[data-testid=teacher-terminal-open]").click()`, shows: "[data-testid=terminal-none] [data-testid=open-agent]" },
+	{ name: "Teacher's window with no agent", url: "/", ready: deadlineCard, setup: openTeacher, shows: "[data-testid=terminal-none] [data-testid=open-agent]" },
+	{
+		name: "Teacher's panel docked beside a lesson",
+		url: "/chat/{lesson}",
+		ready: "[data-testid=cite-list]",
+		// The height it opens at is read once, as it opens.
+		setup: `localStorage.setItem("lh:pane-height:teacher", "full"); document.querySelector("[data-testid=teacher-terminal-open]").click(); ${pause}; localStorage.removeItem("lh:pane-height:teacher")`,
+		shows: "[data-testid=terminal-none] [data-testid=open-agent]",
+	},
 	{ name: "Teacher's Activity", url: "/", ready: deadlineCard, setup: `${openTeacher}; ${pause}; document.querySelector("[data-testid=teacher-panel-activity]").click()`, shows: "[data-testid=teacher-panel-list] [data-testid=activity-list] > *" },
 	{ name: "Settings, Connection", url: "/settings?section=connection", ready: "[data-testid=agent-status]" },
 	{ name: "Settings, Teaching", url: "/settings?section=teaching", ready: "[data-testid^=area-][data-testid$=-instructions]:not(:disabled)" },

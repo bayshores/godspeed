@@ -203,22 +203,6 @@
 	border-radius: 8px;
 }
 
-/* A right-edge panel slides in (the teacher's panel, the graph's panel). */
-@keyframes lh-slide-in {
-	from {
-		opacity: 0;
-		transform: translateX(16px);
-	}
-}
-.lh-slide-in {
-	animation: lh-slide-in var(--lh-dur) var(--lh-ease-out) both;
-}
-@media (prefers-reduced-motion: reduce) {
-	.lh-slide-in {
-		animation: none;
-	}
-}
-
 @theme inline {
 	/* Fonts: the interface is Zen Kaku Gothic New, reading text Literata
 	   (the Appearance reading font overrides --font-prose at runtime),
