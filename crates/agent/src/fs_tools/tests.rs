@@ -108,6 +108,56 @@ async fn err(tool: &Arc<dyn Tool>, args: Json) -> String {
 	run(tool, args).await.unwrap_err()
 }
 
+// protected places
+
+/// The paths every tool must refuse: a file and a folder the `.env` rule covers, and a place in
+/// the real home folder (never created, so a failure here reads nothing private).
+fn protected_paths(dir: &TempDir) -> [String; 3] {
+	dir.put(".env", "SECRET=1");
+	dir.put(".envdata/x.txt", "x");
+	[dir.text(".env"), dir.text(".envdata"), "~/.ssh/godspeed-test-file".to_owned()]
+}
+
+#[tokio::test]
+async fn read_refuses_protected_paths() {
+	let dir = TempDir::new("read-protected");
+	for given in protected_paths(&dir) {
+		assert_eq!(err(&read_tool(), json!({ "path": given.as_str() })).await, format!("Access denied: {given} is a protected location."));
+	}
+}
+
+#[tokio::test]
+async fn ls_refuses_protected_paths_and_leaves_them_out_of_listings() {
+	let dir = TempDir::new("ls-protected");
+	dir.put("a.txt", "x");
+	for given in protected_paths(&dir) {
+		assert_eq!(err(&ls_tool(), json!({ "path": given.as_str() })).await, format!("Access denied: {given} is a protected location."));
+	}
+	assert_eq!(ok(&ls_tool(), json!({ "path": dir.text("") })).await, "a.txt");
+}
+
+#[tokio::test]
+async fn find_refuses_protected_paths_and_walks_around_them() {
+	let dir = TempDir::new("find-protected");
+	dir.put("a.txt", "x");
+	dir.put("sub/.env.local", "x");
+	for given in protected_paths(&dir) {
+		assert_eq!(err(&find_tool(), json!({ "pattern": "*", "path": given.as_str() })).await, format!("Access denied: {given} is a protected location."));
+	}
+	assert_eq!(ok(&find_tool(), json!({ "pattern": "**", "path": dir.text("") })).await, "a.txt");
+}
+
+#[tokio::test]
+async fn grep_refuses_protected_paths_and_walks_around_them() {
+	let dir = TempDir::new("grep-protected");
+	dir.put("a.txt", "x");
+	dir.put("sub/.env.local", "x");
+	for given in protected_paths(&dir) {
+		assert_eq!(err(&grep_tool(), json!({ "pattern": "x", "path": given.as_str() })).await, format!("Access denied: {given} is a protected location."));
+	}
+	assert_eq!(ok(&grep_tool(), json!({ "pattern": "x", "path": dir.text("") })).await, "a.txt:1: x");
+}
+
 // read
 
 #[tokio::test]
@@ -121,17 +171,50 @@ async fn read_returns_text_by_lines() {
 	assert_eq!(err(&tool, json!({ "path": file.as_str(), "offset": 10 })).await, "Offset 10 is beyond end of file (4 lines total)");
 }
 
+/// A plain picture of `width` by `height` pixels in `format`.
+fn picture(format: image::ImageFormat, width: u32, height: u32) -> Vec<u8> {
+	let mut out = std::io::Cursor::new(Vec::new());
+	image::DynamicImage::ImageRgb8(image::RgbImage::from_pixel(width, height, image::Rgb([200, 30, 30]))).write_to(&mut out, format).unwrap();
+	out.into_inner()
+}
+
+/// What `read` attached for a picture: its mime type and its size in pixels.
+async fn attached(tool: &Arc<dyn Tool>, file: &str) -> (String, (u32, u32)) {
+	let result = tool.execute(json!({ "path": file }), ToolContext { tool_call_id: "c".to_owned(), abort: Abort::new() }).await.unwrap();
+	let sent = &result["content"][1];
+	let bytes = gs_base::base64::decode(sent["data"].as_str().unwrap());
+	let size = image::load_from_memory(&bytes).unwrap().to_rgb8().dimensions();
+	(sent["mimeType"].as_str().unwrap().to_owned(), size)
+}
+
 #[tokio::test]
-async fn read_shows_pictures_and_refuses_binaries() {
+async fn read_attaches_small_pictures_as_they_are() {
+	let dir = TempDir::new("read-small");
+	dir.put("pic.PNG", picture(image::ImageFormat::Png, 8, 6));
+	let tool = read_tool();
+	assert_eq!(attached(&tool, &dir.text("pic.PNG")).await, ("image/png".to_owned(), (8, 6)));
+	let result = tool.execute(json!({ "path": dir.text("pic.PNG") }), ToolContext { tool_call_id: "c".to_owned(), abort: Abort::new() }).await.unwrap();
+	assert!(result["content"][0]["text"].as_str().unwrap().starts_with("Read image file [image/png] \u{2014} pic.PNG ("));
+}
+
+#[tokio::test]
+async fn read_shrinks_big_pictures_and_turns_other_formats_into_png_or_jpeg() {
+	let dir = TempDir::new("read-big");
+	dir.put("big.png", picture(image::ImageFormat::Png, 3000, 2000));
+	dir.put("old.bmp", picture(image::ImageFormat::Bmp, 40, 30));
+	dir.put("not-a-picture.png", [1u8, 2, 3, 4]);
+	let tool = read_tool();
+	assert_eq!(attached(&tool, &dir.text("big.png")).await, ("image/png".to_owned(), (1568, 1045)));
+	assert_eq!(attached(&tool, &dir.text("old.bmp")).await, ("image/jpeg".to_owned(), (40, 30)));
+	assert_eq!(err(&tool, json!({ "path": dir.text("not-a-picture.png") })).await, "Can't read not-a-picture.png.");
+}
+
+#[tokio::test]
+async fn read_refuses_binaries() {
 	let dir = TempDir::new("read-binary");
-	dir.put("pic.PNG", [1u8, 2, 3, 4]);
 	dir.put("data.bin", [0u8, 1, 2]);
 	dir.put("paper.pdf", "%PDF-1.4");
 	let tool = read_tool();
-	let picture = tool.execute(json!({ "path": dir.text("pic.PNG") }), ToolContext { tool_call_id: "c".to_owned(), abort: Abort::new() }).await.unwrap();
-	assert_eq!(picture["content"][0]["text"].as_str().unwrap(), "Read image file [image/png] \u{2014} pic.PNG (4B), attached as an image.");
-	assert_eq!(picture["content"][1]["data"].as_str().unwrap(), "AQIDBA==");
-	assert_eq!(picture["content"][1]["mimeType"].as_str().unwrap(), "image/png");
 	assert_eq!(ok(&tool, json!({ "path": dir.text("data.bin") })).await, "data.bin is a binary file (3B), not readable as text.");
 	assert_eq!(ok(&tool, json!({ "path": dir.text("paper.pdf") })).await, "paper.pdf is a binary file (8B), not readable as text. For a PDF, dispatch a pdf job if you have that tool.");
 }

@@ -9,6 +9,7 @@ use gs_json::Json;
 
 use super::fs_shared::{cap_output, existing_dir, off_thread, output_limit, resolve_source_path};
 use super::glob::GlobMatcher;
+use super::protected::Protected;
 use crate::tools::fn_tool::FnTool;
 use gs_core::session::schema::{self, integer, string, string_min};
 use super::walk::walk_files;
@@ -35,20 +36,25 @@ pub fn find_tool() -> Arc<dyn Tool> {
 			if ctx.abort.is_aborted() {
 				return Ok(Json::Str("Operation aborted".to_owned()));
 			}
+			let given = args["path"].str_or_empty().to_owned();
 			let dir = resolve_source_path(args["path"].as_str());
 			let pattern = args["pattern"].str_or_empty().to_owned();
 			let limit = args["limit"].as_i64().map_or(DEFAULT_LIMIT, |l| l.max(0) as usize);
-			off_thread(move || find(&dir, &pattern, limit, &ctx.abort)).await
+			off_thread(move || {
+				let guard = Protected::current();
+				guard.refuse(&given, &dir)?;
+				find(&dir, &pattern, limit, &guard, &ctx.abort)
+			}).await
 		},
 	).into_arc()
 }
 
-fn find(dir: &Path, pattern: &str, limit: usize, abort: &Abort) -> Result<Json, String> {
+fn find(dir: &Path, pattern: &str, limit: usize, guard: &Protected, abort: &Abort) -> Result<Json, String> {
 	existing_dir(dir)?;
 	let matcher = GlobMatcher::new(pattern);
 	let mut matches: Vec<String> = Vec::new();
 	let mut limit_reached = false;
-	let walked = walk_files(dir, abort, |_, relative| {
+	let walked = walk_files(dir, abort, guard, |_, relative| {
 		if !matcher.matches(relative) {
 			return false;
 		}

@@ -154,6 +154,14 @@ async fn a_pdf_job_error_drops_the_failure_prefix() {
 }
 
 #[tokio::test]
+async fn a_pdf_job_in_a_protected_place_fails_with_the_denial() {
+	let host = setup("pdf-protected", Some(faux_engine(&Scripted::new())), no_demo());
+	let id = job(&host, "pdf", Some(json!({ "path": "~/.aws/credentials.pdf", "question": "" })));
+	let record = run(&host, &id).await;
+	assert_eq!(record["error"], Json::from("Access denied: ~/.aws/credentials.pdf is a protected location."));
+}
+
+#[tokio::test]
 async fn research_failures_and_sources() {
 	let host = setup("research", Some(faux_engine(&Scripted::new())), no_demo());
 	let id = job(&host, "research", Some(json!({ "context": "no question" })));

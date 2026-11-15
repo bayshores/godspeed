@@ -7,6 +7,7 @@ mod glob;
 pub mod grep;
 pub mod ls;
 pub mod pdf_read;
+pub mod protected;
 pub mod read;
 mod walk;
 pub mod web;

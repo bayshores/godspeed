@@ -28,6 +28,7 @@ use super::declare;
 use super::pi_run::{JobAgentOptions, RunError};
 use super::stream_once::{message_text, png_message, stream_once, tool_text, user_text};
 use crate::fs_tools::fs_shared::resolve_source_path;
+use crate::fs_tools::protected::Protected;
 
 const INSTRUCTIONS: &str = r#"You are a PDF reading specialist working for a teacher agent in a learning app: given a PDF
 path and a question, read the document for the teacher and produce a focused brief to teach from,
@@ -143,7 +144,10 @@ pub async fn run_pdf_reader_agent(path: &str, question: &str, pdf: &Pdf, keeper:
 	let pdf_path = resolve_source_path(Some(path));
 	let shown = pdf_path.to_string_lossy().into_owned();
 	let mut reader = Reader { pdf, path: &pdf_path, messages: Vec::new(), consulted: BTreeSet::new(), read: BTreeSet::new(), rendered: BTreeSet::new(), keeper, saved: 0 };
-	// A source that cannot open fails before any model call.
+	// A protected place or a source that cannot open fails before any model call.
+	if let Err(reason) = Protected::current().refuse(path, &pdf_path) {
+		return reader.result(&shown, question, &format!("PDF failed: {reason}"));
+	}
 	if let Err(reason) = probe_readable(pdf, &pdf_path).await {
 		return reader.result(&shown, question, &format!("PDF failed: {reason}"));
 	}

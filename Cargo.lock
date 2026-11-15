@@ -1913,6 +1913,7 @@ dependencies = [
  "gs-shell-rpc",
  "gs-store",
  "gs-web",
+ "image",
  "parking_lot",
  "tokio",
 ]

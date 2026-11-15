@@ -60,6 +60,17 @@ async fn unreadable_sources_fail_before_any_model_call() {
 }
 
 #[tokio::test]
+async fn a_protected_place_fails_before_any_model_call() {
+	let scratch = Scratch::new("protected");
+	let script = Scripted::new();
+	let (opts, _) = job_agent_options(&script, FakeHeadless::new(no_demo()));
+	let pdf = Pdf::new(Path::new("/nonexistent"));
+	let env_file = scratch.path(".env.pdf");
+	assert_eq!(run_pdf_reader_agent(&env_file, "", &pdf, None, &opts).await["brief"], Json::from(format!("PDF failed: Access denied: {env_file} is a protected location.")));
+	assert_eq!(run_pdf_reader_agent("~/.ssh/key.pdf", "", &pdf, None, &opts).await["brief"], Json::from("PDF failed: Access denied: ~/.ssh/key.pdf is a protected location."));
+}
+
+#[tokio::test]
 async fn the_gate_sends_an_unread_finish_back_once() {
 	let Some(pdf) = shared_pdf() else { return };
 	let script = Scripted::new();

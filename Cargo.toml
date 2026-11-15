@@ -38,7 +38,7 @@ htmd = "0.5.6"
 http-body-util = "0.1.5"
 icu_collator = "2.4"
 icu_locale_core = "2.4"
-image = { version = "0.25.10", default-features = false, features = ["png", "jpeg", "gif", "webp"] }
+image = { version = "0.25.10", default-features = false, features = ["png", "jpeg", "gif", "webp", "bmp"] }
 indexmap = "2.14"
 jiff = "0.2.42"
 markdown = "=1.0.0"

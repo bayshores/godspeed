@@ -1,11 +1,13 @@
 //! The pages behind the lesson's "agent at work" view: the file the teacher is reading, as text or
 //! as rendered PDF pages. Only plain files under the learner's home are served (the same anchor
-//! the read tool resolves against), never anything inside a dot folder.
+//! the read tool resolves against), never anything inside a dot folder or another place the
+//! file tools refuse.
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use gs_agent::fs_tools::fs_shared::resolve_source_path;
+use gs_agent::fs_tools::protected::Protected;
 use gs_base::config::resolve;
 use gs_base::{fsx, text};
 use gs_json::{Json, json};
@@ -40,7 +42,7 @@ fn is_hidden_or_outside(home: &Path, absolute: &Path) -> bool {
 
 async fn servable(app: &App, raw_path: &str) -> Result<Servable, ReadingError> {
 	let absolute = resolve(&resolve_source_path(Some(raw_path)));
-	if is_hidden_or_outside(&resolve(&app.paths.home), &absolute) {
+	if is_hidden_or_outside(&resolve(&app.paths.home), &absolute) || Protected::new(&app.paths.home, &app.paths.data).refuse(raw_path, &absolute).is_err() {
 		return Err(ReadingError::Refused(403, "Not a file the teacher can show"));
 	}
 	let meta = tokio::fs::metadata(&absolute).await.ok().filter(std::fs::Metadata::is_file).ok_or(ReadingError::Refused(404, "No such file"))?;
@@ -159,8 +161,28 @@ mod tests {
 		assert_eq!(refused(home.join("notes/none.txt")).await, Err(ReadingError::Refused(404, "No such file")));
 		assert_eq!(refused(home.join("notes")).await, Err(ReadingError::Refused(404, "No such file")));
 		assert_eq!(refused(home.join(".hidden/a.txt")).await, Err(ReadingError::Refused(403, "Not a file the teacher can show")));
+		assert_eq!(refused(home.join("Library/Cookies/a.txt")).await, Err(ReadingError::Refused(403, "Not a file the teacher can show")));
 		assert_eq!(refused(root.join("data/settings.json")).await, Err(ReadingError::Refused(403, "Not a file the teacher can show")));
 		assert_eq!(reading_pdf_page(&app, &home.join("notes/a.txt").to_string_lossy(), 1).await, Err(ReadingError::Refused(415, "Not a PDF")));
+	}
+
+	#[tokio::test]
+	async fn godspeeds_own_secrets_are_not_shown_even_inside_home() {
+		let root = scratch_dir("reading-secrets");
+		let home = root.join("home");
+		let data = home.join("Library/Application Support/godspeed");
+		for name in ["tmp", "res"] {
+			std::fs::create_dir_all(root.join(name)).unwrap();
+		}
+		let app = App::new(gs_base::config::Paths::new(data.clone(), home, root.join("tmp"), root.join("res")), None);
+		crate::app::disk::write_file_atomic(&data.join("mcp-token"), "secret").unwrap();
+		crate::app::disk::write_file_atomic(&data.join("other.txt"), "fine").unwrap();
+		let shown = |name: &'static str| {
+			let (app, path) = (&app, data.join(name));
+			async move { reading_document(app, &path.to_string_lossy()).await }
+		};
+		assert_eq!(shown("mcp-token").await, Err(ReadingError::Refused(403, "Not a file the teacher can show")));
+		assert_eq!(shown("other.txt").await.unwrap()["text"], Json::from("fine"));
 	}
 
 	#[tokio::test]

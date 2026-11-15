@@ -9,8 +9,10 @@ use gs_base::{fsx, text};
 use gs_engine::turn::tool::Tool;
 use gs_engine::turn::tool_execute::{Image, ImageFileResult};
 use gs_json::Json;
+use gs_media::attach::normalize_image;
 
 use super::fs_shared::{MAX_OUTPUT_BYTES, format_size, is_binary_file, off_thread, output_limit, read_error, resolve_source_path};
+use super::protected::Protected;
 use crate::tools::fn_tool::FnTool;
 use gs_core::session::schema::{self, integer, string_min};
 
@@ -18,15 +20,8 @@ const MAX_LINES: usize = 2000;
 
 /// Pictures the model can look at, by extension. Learner files are study material, so the
 /// extension is enough.
-fn image_mime(ext: &str) -> Option<&'static str> {
-	Some(match ext {
-		".jpg" | ".jpeg" => "image/jpeg",
-		".png" => "image/png",
-		".gif" => "image/gif",
-		".webp" => "image/webp",
-		".bmp" => "image/bmp",
-		_ => return None,
-	})
+fn is_image(ext: &str) -> bool {
+	matches!(ext, ".jpg" | ".jpeg" | ".png" | ".gif" | ".webp" | ".bmp")
 }
 
 pub fn read_tool() -> Arc<dyn Tool> {
@@ -43,9 +38,13 @@ pub fn read_tool() -> Arc<dyn Tool> {
 		format!("Read the contents of a file. Supports text files and images (jpg, png, gif, webp, bmp). Images are sent as attachments. For text files, output is truncated to {MAX_LINES} lines or {} (whichever is hit first). Use offset/limit for large files. When you need the full file, continue with offset until complete.", output_limit()),
 		parameters,
 		|args, _ctx| async move {
+			let given = args["path"].str_or_empty().to_owned();
 			let file = resolve_source_path(args["path"].as_str());
 			let (offset, limit) = (args["offset"].as_i64(), args["limit"].as_i64());
-			off_thread(move || read(&file, offset, limit)).await
+			off_thread(move || {
+				Protected::current().refuse(&given, &file)?;
+				read(&file, offset, limit)
+			}).await
 		},
 	).into_arc()
 }
@@ -53,18 +52,20 @@ pub fn read_tool() -> Arc<dyn Tool> {
 fn read(file: &Path, offset: Option<i64>, limit: Option<i64>) -> Result<Json, String> {
 	let name = file.file_name().unwrap_or_default().to_string_lossy();
 	let ext = file.extension().map_or_else(String::new, |ext| format!(".{}", ext.to_string_lossy().to_ascii_lowercase()));
-	let mime = image_mime(&ext);
+	let image = is_image(&ext);
 	// The 8 KB sniff keeps a video from ever being loaded; a PDF's head may have no NUL byte,
 	// hence the extension check.
-	if mime.is_none() && (ext == ".pdf" || is_binary_file(file)?) {
+	if !image && (ext == ".pdf" || is_binary_file(file)?) {
 		let size = std::fs::metadata(file).map_err(|e| fsx::node_error_message(&e, "stat", file))?.len();
 		let pdf_hint = if ext == ".pdf" { " For a PDF, dispatch a pdf job if you have that tool." } else { "" };
 		return Ok(Json::Str(format!("{name} is a binary file ({}), not readable as text.{pdf_hint}", format_size(size))));
 	}
 	let bytes = read_all(file)?;
-	if let Some(mime) = mime {
-		let text = format!("Read image file [{mime}] \u{2014} {name} ({}), attached as an image.", format_size(bytes.len() as u64));
-		return Ok(ImageFileResult { text, images: vec![Image { data: gs_base::base64::encode(&bytes), mime_type: mime.to_owned() }], details: None }.into());
+	if image {
+		// The same shrinking and re-encoding a learner's attached picture gets.
+		let picture = normalize_image(&name, &bytes)?;
+		let text = format!("Read image file [{}] \u{2014} {name} ({}), attached as an image.", picture.mime_type, format_size(picture.bytes.len() as u64));
+		return Ok(ImageFileResult { text, images: vec![Image { data: gs_base::base64::encode(&picture.bytes), mime_type: picture.mime_type.to_owned() }], details: None }.into());
 	}
 	read_text_slice(&text::from_utf8_lossy(&bytes), offset, limit).map(Json::Str)
 }

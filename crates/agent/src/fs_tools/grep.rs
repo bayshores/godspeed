@@ -13,6 +13,7 @@ use gs_json::Json;
 
 use super::fs_shared::{GREP_MAX_LINE_LENGTH, MAX_OUTPUT_BYTES, WALK_TIMEOUT_MS, byte_len, format_size, is_binary_file, off_thread, output_limit, resolve_source_path, truncate_grep_line};
 use super::glob::GlobMatcher;
+use super::protected::Protected;
 use crate::tools::fn_tool::FnTool;
 use gs_core::session::schema::{self, boolean, integer, string, string_min};
 use super::walk::walk_files;
@@ -46,6 +47,7 @@ pub fn grep_tool() -> Arc<dyn Tool> {
 				return Ok(Json::Str("Operation aborted".to_owned()));
 			}
 			let request = Request {
+				given: args["path"].str_or_empty().to_owned(),
 				path: resolve_source_path(args["path"].as_str()),
 				pattern: args["pattern"].str_or_empty().to_owned(),
 				glob: args["glob"].as_str().filter(|g| !g.is_empty()).map(str::to_owned),
@@ -60,6 +62,8 @@ pub fn grep_tool() -> Arc<dyn Tool> {
 }
 
 struct Request {
+	/// The path as the caller wrote it.
+	given: String,
 	path: std::path::PathBuf,
 	pattern: String,
 	glob: Option<String>,
@@ -76,6 +80,8 @@ struct Target {
 }
 
 fn grep(req: &Request, abort: &Abort) -> Result<Json, String> {
+	let guard = Protected::current();
+	guard.refuse(&req.given, &req.path)?;
 	let shown = req.path.display();
 	let meta = std::fs::metadata(&req.path).map_err(|_| format!("Path not found: {shown}"))?;
 	let is_directory = meta.is_dir();
@@ -87,7 +93,7 @@ fn grep(req: &Request, abort: &Abort) -> Result<Json, String> {
 	let (mut timed_out, mut aborted) = (false, false);
 	if is_directory {
 		let glob = req.glob.as_deref().map(GlobMatcher::new);
-		let walked = walk_files(&req.path, abort, |full, relative| {
+		let walked = walk_files(&req.path, abort, &guard, |full, relative| {
 			if glob.as_ref().is_none_or(|g| g.matches(relative)) {
 				targets.push(Target { full: full.to_owned(), name: relative.to_owned() });
 			}

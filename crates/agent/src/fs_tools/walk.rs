@@ -1,15 +1,17 @@
 //! Depth-first walk under a folder for find and grep.
 
-use std::path::{MAIN_SEPARATOR, Path};
+use std::path::{MAIN_SEPARATOR, Path, PathBuf};
 
 use gs_base::clock;
 use gs_base::config::resolve;
 use gs_engine::turn::abort::Abort;
 
 use super::fs_shared::{WALK_TIMEOUT_MS, read_dir_items};
+use super::protected::{Protected, real_path};
 
 /// Folders never entered: dependencies and repository data, and the home folder's caches, app
-/// support and trash. Only walks skip them; naming one as the path is allowed.
+/// support and trash. Only walks skip them; naming one as the path is allowed. Protected places
+/// are skipped too, and refused when named.
 const EXCLUDED_DIR_NAMES: [&str; 4] = ["node_modules", ".git", "Library", ".Trash"];
 
 /// Why a walk ended early.
@@ -20,6 +22,9 @@ pub(super) struct Walked {
 
 struct Walk<'a, F> {
 	abort: &'a Abort,
+	guard: &'a Protected,
+	/// The real form of the root, which every entry below it is a path under.
+	real_root: PathBuf,
 	deadline: i64,
 	visit: F,
 	out: Walked,
@@ -28,8 +33,8 @@ struct Walk<'a, F> {
 /// Visits every file under `root` (symlinks and other kinds are not followed) with its full
 /// path (this OS's separators) and its path from `root` (`/` separators). `visit` returns true to stop. The walk
 /// stops by itself after `WALK_TIMEOUT_MS` or when the abort fires, keeping what it found.
-pub fn walk_files(root: &Path, abort: &Abort, visit: impl FnMut(&str, &str) -> bool) -> Walked {
-	let mut walk = Walk { abort, deadline: clock::now_ms() + WALK_TIMEOUT_MS, visit, out: Walked { timed_out: false, aborted: false } };
+pub fn walk_files(root: &Path, abort: &Abort, guard: &Protected, visit: impl FnMut(&str, &str) -> bool) -> Walked {
+	let mut walk = Walk { abort, guard, real_root: real_path(root), deadline: clock::now_ms() + WALK_TIMEOUT_MS, visit, out: Walked { timed_out: false, aborted: false } };
 	if abort.is_aborted() {
 		walk.out.aborted = true;
 		return walk.out;
@@ -68,6 +73,9 @@ impl<F: FnMut(&str, &str) -> bool> Walk<'_, F> {
 			let full = format!("{dir}{MAIN_SEPARATOR}{}", item.name);
 			let below = if relative.is_empty() { item.name.clone() } else { format!("{relative}/{}", item.name) };
 			let Some(kind) = item.file_type else { continue };
+			if self.guard.hides(&self.real_root.join(&below)) {
+				continue;
+			}
 			if kind.is_dir() {
 				if EXCLUDED_DIR_NAMES.contains(&item.name.as_str()) {
 					continue;
@@ -88,9 +96,14 @@ mod tests {
 	use super::*;
 	use crate::fs_tools::tests::TempDir;
 
+	/// Protects what a home folder at `root` would, and `root/data`'s secrets.
+	fn guard(root: &Path) -> Protected {
+		Protected::new(root, &root.join("data"))
+	}
+
 	fn collect(root: &Path, abort: &Abort) -> (Vec<String>, Walked) {
 		let mut seen = Vec::new();
-		let out = walk_files(root, abort, |_, rel| {
+		let out = walk_files(root, abort, &guard(root), |_, rel| {
 			seen.push(rel.to_owned());
 			false
 		});
@@ -117,11 +130,46 @@ mod tests {
 	}
 
 	#[test]
+	fn protected_folders_and_env_files_are_skipped() {
+		let dir = TempDir::new("walk-protected");
+		dir.put("notes/a.txt", "");
+		dir.put(".ssh/id_rsa", "");
+		dir.put(".config/gcloud/credentials.db", "");
+		dir.put(".config/other/ok.txt", "");
+		dir.put("notes/.env", "");
+		dir.put("notes/.env.local", "");
+		dir.put(".claude/projects/x.jsonl", "");
+		dir.put("data/mcp-token", "");
+		dir.put("data/chats/c.json", "");
+		let (seen, _) = collect(dir.path(), &Abort::new());
+		assert_eq!(seen, [".config/other/ok.txt", "data/chats/c.json", "notes/a.txt"]);
+		// A walk that starts inside a protected folder is the caller's refusal to make; a walk
+		// below an ordinary folder still skips what is protected.
+		assert_eq!(collect(&dir.path().join("notes"), &Abort::new()).0, ["a.txt"]);
+	}
+
+	#[test]
+	#[cfg(unix)]
+	fn a_walk_through_a_link_to_home_skips_what_home_protects() {
+		let dir = TempDir::new("walk-home-link");
+		dir.put("home/.ssh/id_rsa", "");
+		dir.put("home/notes/a.txt", "");
+		dir.link("home", "alias");
+		let guard = Protected::new(&dir.path().join("home"), &dir.path().join("data"));
+		let mut seen = Vec::new();
+		walk_files(&dir.path().join("alias"), &Abort::new(), &guard, |_, rel| {
+			seen.push(rel.to_owned());
+			false
+		});
+		assert_eq!(seen, ["notes/a.txt"]);
+	}
+
+	#[test]
 	fn full_paths_use_this_os_separator() {
 		let dir = TempDir::new("walk-full");
 		dir.put("a/z.txt", "");
 		let mut seen = Vec::new();
-		walk_files(dir.path(), &Abort::new(), |full, rel| {
+		walk_files(dir.path(), &Abort::new(), &guard(dir.path()), |full, rel| {
 			seen.push((full.to_owned(), rel.to_owned()));
 			false
 		});
@@ -146,7 +194,7 @@ mod tests {
 		dir.put("a.txt", "");
 		dir.put("b.txt", "");
 		let mut count = 0;
-		walk_files(dir.path(), &Abort::new(), |_, _| {
+		walk_files(dir.path(), &Abort::new(), &guard(dir.path()), |_, _| {
 			count += 1;
 			true
 		});
