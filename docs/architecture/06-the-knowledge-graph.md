@@ -47,12 +47,23 @@ The submit step checks these rules and returns an error the model fixes within i
 
 The submit agent repairs payloads that arrive as strings before checking (`heal_encoded_arguments`, `core::session::argument_heal`, called from `agent::extraction::submit_agent`).
 
+### The duplicate check
+
+The first submit that passes the rules is checked once against the facts the graph holds (`core::graph::duplicates`, `agent::extraction::duplicate_check`). No model runs for the check.
+
+1. A new proposition is flagged when an existing fact has the same name (lower case, spaces collapsed), or when the two "name: statement" texts score a cosine of 0.92 or more (`Search::similar_facts`).
+2. Nothing flagged: the submit is merged.
+3. Something flagged: the submit returns a notice listing each flagged proposition with at most 3 existing facts as `id | name | statement`. The notice is a plain tool result, not an error, and it does not use one of the turns kept for rule errors.
+4. The extractor submits again. A proposition that is the same idea as a listed fact is left out, and that fact's id goes in chains, `tests` and `reteaches`. This submit is merged without a second check.
+
+A search failure skips the check and the submit is merged. Duplicates stored before this check stay separate nodes.
+
 ### What the merger writes
 
 - Each new proposition becomes a node.
 - Each valid `reteaches` id gets a credit line with this source's provenance, so source counts toward that idea.
 - Chains dedupe by sorted premises plus conclusion. A known argument found again appends under same `arg_` id, provenance combined.
-- Search misses stay separate nodes. No second model call matches duplicates.
+- The merger does not compare names or statements. Duplicates are caught before it, by the duplicate check.
 
 ### Chain simplification
 

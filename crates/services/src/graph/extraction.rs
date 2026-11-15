@@ -9,6 +9,7 @@ use futures_util::future::BoxFuture;
 use gs_agent::extraction::extraction::{Extraction, ExtractionHost, ExtractionState};
 use gs_base::events::Events;
 use gs_base::locks::Locks;
+use gs_core::graph::duplicates::Nearest;
 use gs_engine::bridge::Bridge;
 use gs_json::Json;
 use gs_store::chats::ChatStore;
@@ -48,6 +49,9 @@ impl ExtractionHost for AppHost {
 	}
 	fn related_facts<'a>(&'a self, scope: Option<&'a str>, nodes: &'a [Json], text: &'a str, limit: usize) -> BoxFuture<'a, Result<Vec<String>, String>> {
 		Box::pin(self.0.search.related_facts(scope, nodes, text, limit))
+	}
+	fn similar_facts<'a>(&'a self, scope: Option<&'a str>, nodes: &'a [Json], new: &'a [Json], limit: usize) -> BoxFuture<'a, Result<Vec<Nearest>, String>> {
+		Box::pin(self.0.search.similar_facts(scope, nodes, new, limit))
 	}
 }
 

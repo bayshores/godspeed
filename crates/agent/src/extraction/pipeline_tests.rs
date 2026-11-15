@@ -8,6 +8,7 @@ use gs_base::config::Paths;
 use gs_base::events::Events;
 use gs_base::locks::Locks;
 use gs_base::{fsx, ids};
+use gs_core::graph::duplicates::Nearest;
 use gs_core::graph::graph::get_graph;
 use gs_core::graph::ports::GraphStore;
 use gs_engine::bridge::Bridge;
@@ -31,6 +32,8 @@ pub(super) struct Host {
 	pub state: ExtractionState,
 	script: Mutex<Arc<Scripted>>,
 	written: Mutex<Vec<Option<String>>>,
+	/// The duplicate check's search answer, the same for every proposition.
+	similar: Mutex<Result<Nearest, String>>,
 	pub dir: PathBuf,
 }
 
@@ -63,6 +66,10 @@ impl ExtractionHost for Host {
 	fn related_facts<'a>(&'a self, _scope: Option<&'a str>, nodes: &'a [Json], _text: &'a str, limit: usize) -> BoxFuture<'a, Result<Vec<String>, String>> {
 		Box::pin(async move { Ok(nodes.iter().filter_map(|n| n["id"].as_str().map(str::to_owned)).take(limit).collect()) })
 	}
+	fn similar_facts<'a>(&'a self, _scope: Option<&'a str>, _nodes: &'a [Json], new: &'a [Json], _limit: usize) -> BoxFuture<'a, Result<Vec<Nearest>, String>> {
+		let answer = self.similar.lock().clone();
+		Box::pin(async move { answer.map(|scores| vec![scores; new.len()]) })
+	}
 }
 
 impl Drop for Host {
@@ -91,7 +98,7 @@ pub(super) fn host() -> Arc<Host> {
 	let (events, locks) = (Events::new(), Locks::new());
 	let stores = Stores::new(&paths, &events, &locks);
 	let bridge = Bridge::new(&events, stores.agent_seen.clone());
-	Arc::new(Host { stores, events, locks, bridge, state: ExtractionState::default(), script: Mutex::new(Scripted::new()), written: Mutex::new(Vec::new()), dir })
+	Arc::new(Host { stores, events, locks, bridge, state: ExtractionState::default(), script: Mutex::new(Scripted::new()), written: Mutex::new(Vec::new()), similar: Mutex::new(Ok(Vec::new())), dir })
 }
 
 pub(super) fn submit(findings: Json) -> Json {
@@ -224,4 +231,103 @@ async fn a_lesson_run_that_ends_early_lets_go_of_its_claim() {
 	drop(held);
 	assert!(!host.state.runs.in_flight("chat_dropped"));
 	assert!(host.state.runs.statuses().is_empty());
+}
+
+fn notes_input(source_id: &str) -> NotesImportInput {
+	NotesImportInput { file_path: format!("{source_id}.md"), text: "Merging two sorted lists is linear.".into(), scope: None, source_id: Some(source_id.into()), may_be_space_info: false }
+}
+
+fn merging(name: &str) -> Json {
+	json!({ "propositions": [{ "id": "p1", "name": name, "statement": "Merging two sorted lists takes linear time." }], "chains": [], "reteaches": [] })
+}
+
+/// How many model steps each of the source's jobs logged.
+fn logged_steps(host: &Host, source_id: &str) -> Vec<usize> {
+	let sources = host.stores.graphs.read_sources(None).unwrap();
+	let source = sources.iter().find(|s| s["id"] == Json::from(source_id)).unwrap();
+	source["extractions"].items().iter().map(|e| e["stages"]["extractor"]["steps"].items().len()).collect()
+}
+
+/// Queues `findings` as a reply that keeps the messages the model was shown.
+fn submit_seeing(host: &Host, findings: Json) -> Arc<Mutex<Vec<Json>>> {
+	let seen = Arc::new(Mutex::new(Vec::new()));
+	let answer = submit(findings);
+	host.script().run({
+		let seen = seen.clone();
+		move |request| {
+			*seen.lock() = request.messages;
+			Box::pin(async move { Ok(answer) })
+		}
+	});
+	seen
+}
+
+#[tokio::test]
+async fn a_likely_duplicate_gets_one_notice_and_the_existing_fact_is_credited() {
+	let host = host();
+	let extraction = Extraction::new(host.clone());
+	host.script().reply(submit(merging("Merging")));
+	assert_eq!(extraction.import_notes(notes_input("src_a")).await.unwrap(), json!({ "nodes": 1, "chains": 0 }));
+	assert_eq!(logged_steps(&host, "src_a"), vec![1], "nothing to compare with: one step");
+	let existing = get_graph(&ScopedGraph::new(&host.stores.graphs, None)).unwrap().nodes[0]["id"].as_str().unwrap().to_owned();
+
+	host.script().reply(submit(merging(" merging ")));
+	let seen = submit_seeing(&host, json!({ "propositions": [], "chains": [], "reteaches": [existing] }));
+	assert_eq!(extraction.import_notes(notes_input("src_b")).await.unwrap(), json!({ "nodes": 0, "chains": 0 }));
+	let notice = seen.lock().last().unwrap().clone();
+	assert_eq!(notice["role"], Json::from("toolResult"));
+	assert_ne!(notice["isError"], Json::Bool(true), "a notice is not a refusal");
+	let text = notice["content"][0]["text"].as_str().unwrap();
+	assert!(text.starts_with("Possible duplicates: the graph may already hold these ideas.\n  p1 |  merging \n    n_"), "{text}");
+	assert!(text.contains(" | Merging | Merging two sorted lists takes linear time.\n"), "{text}");
+	assert_eq!(logged_steps(&host, "src_b"), vec![2]);
+	let graph = get_graph(&ScopedGraph::new(&host.stores.graphs, None)).unwrap();
+	assert_eq!(graph.nodes.len(), 1);
+	assert!(graph.nodes[0]["provenance"].items().iter().any(|p| p["chatId"] == Json::from("src_b")), "{}", gs_json::stringify(&graph.nodes[0]));
+}
+
+#[tokio::test]
+async fn the_submit_after_a_notice_is_final_and_a_failed_search_skips_the_check() {
+	let host = host();
+	let extraction = Extraction::new(host.clone());
+	host.script().reply(submit(merging("Merging")));
+	extraction.import_notes(notes_input("src_a")).await.unwrap();
+	let existing = get_graph(&ScopedGraph::new(&host.stores.graphs, None)).unwrap().nodes[0]["id"].as_str().unwrap().to_owned();
+
+	// A near-equal embedding under another name, then the same submit again.
+	*host.similar.lock() = Ok(vec![(existing.clone(), 0.95)]);
+	host.script().reply(submit(merging("Linear merge")));
+	host.script().reply(submit(merging("Linear merge")));
+	assert_eq!(extraction.import_notes(notes_input("src_b")).await.unwrap(), json!({ "nodes": 1, "chains": 0 }));
+	assert_eq!(logged_steps(&host, "src_b"), vec![2]);
+
+	// Below the threshold under another name: accepted at once.
+	*host.similar.lock() = Ok(vec![(existing, 0.9)]);
+	host.script().reply(submit(merging("Merge cost")));
+	assert_eq!(extraction.import_notes(notes_input("src_c")).await.unwrap(), json!({ "nodes": 1, "chains": 0 }));
+	assert_eq!(logged_steps(&host, "src_c"), vec![1]);
+
+	// The search failed: even the same name goes through.
+	*host.similar.lock() = Err("The search model is missing".to_owned());
+	host.script().reply(submit(merging("Merging")));
+	assert_eq!(extraction.import_notes(notes_input("src_d")).await.unwrap(), json!({ "nodes": 1, "chains": 0 }));
+	assert_eq!(logged_steps(&host, "src_d"), vec![1]);
+	assert_eq!(get_graph(&ScopedGraph::new(&host.stores.graphs, None)).unwrap().nodes.len(), 4);
+}
+
+#[tokio::test]
+async fn a_notice_leaves_every_retry_for_rule_failures() {
+	let host = host();
+	let extraction = Extraction::new(host.clone());
+	host.script().reply(submit(merging("Merging")));
+	extraction.import_notes(notes_input("src_a")).await.unwrap();
+	let broken = json!({ "propositions": [], "chains": [], "reteaches": ["n_missing"] });
+	// A rule failure, the notice, two more rule failures, then a good submit: five calls.
+	host.script().reply(submit(broken.clone()));
+	host.script().reply(submit(merging("Merging")));
+	host.script().reply(submit(broken.clone()));
+	host.script().reply(submit(broken));
+	host.script().reply(submit(merging("Merging")));
+	assert_eq!(extraction.import_notes(notes_input("src_b")).await.unwrap(), json!({ "nodes": 1, "chains": 0 }));
+	assert_eq!(logged_steps(&host, "src_b"), vec![5]);
 }

@@ -190,6 +190,7 @@ mod tests {
 		spawnable(&s.search_space_files("c", &[], "q", 3));
 		spawnable(&s.search_facts(None, &[], "q", 3));
 		spawnable(&s.related_facts(None, &[], "text", 3));
+		spawnable(&s.similar_facts(None, &[], &[], 3));
 		assert_eq!(s.passages_file("cls_x"), Path::new("/d/spaces/cls_x/search/passages"));
 		assert_eq!(s.facts_file(None), Path::new("/d/search/facts"));
 		assert_eq!(hash_of("a"), "ca978112ca1bbdca");

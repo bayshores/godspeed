@@ -4,10 +4,12 @@
 
 use std::sync::Arc;
 
+use gs_core::graph::duplicates::Nearest;
 use gs_json::{Json, Obj};
 
 use crate::chunks::chunk_text;
 use crate::embed::DIMS;
+use crate::fusion::cosine_ranking;
 use crate::index::{Search, field, hash_of, keywords_of, rank};
 use crate::keyword::KeywordIndex;
 use crate::table::Table;
@@ -90,5 +92,20 @@ impl Search {
 		let (table, keywords) = facts?;
 		let queries: Vec<&[f32]> = vectors.chunks(DIMS).collect();
 		Ok(rank(&table, &queries, text, &keywords, limit))
+	}
+
+	/// For each new proposition (`{ name, statement, .. }`), the scope's facts nearest to it with
+	/// their cosines, best first, at most `limit` (the duplicate check). The propositions are
+	/// embedded like stored facts and never stored.
+	pub async fn similar_facts(&self, scope: Option<&str>, nodes: &[Json], new: &[Json], limit: usize) -> Result<Vec<Nearest>, String> {
+		if nodes.is_empty() || new.is_empty() {
+			return Ok(vec![Vec::new(); new.len()]);
+		}
+		let texts: Vec<String> = new.iter().map(fact_text).collect();
+		let (facts, vectors) = tokio::join!(self.current_facts(scope, nodes), self.embed(&texts, false));
+		let vectors = vectors?;
+		let (table, _) = facts?;
+		let ranked = vectors.chunks(DIMS).map(|query| cosine_ranking(query, &table.vectors, DIMS, limit).into_iter().map(|(row, score)| (field(&table.rows[row], "id").to_owned(), score)).collect());
+		Ok(ranked.collect())
 	}
 }

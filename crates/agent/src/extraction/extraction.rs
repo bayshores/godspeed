@@ -18,6 +18,7 @@ use gs_base::events::Events;
 use gs_base::locks::{LockKey, Locks};
 use gs_base::{hash, time};
 use gs_core::graph::coverage::{CoverageSlot, batch_runs, coverage_of, message_view_lines};
+use gs_core::graph::duplicates::Nearest;
 use gs_core::graph::graph::{MergeSource, get_graph, merge_findings};
 use gs_core::graph::ports::GraphStore;
 use gs_core::messages::native_messages::failed_output_call_ids;
@@ -30,6 +31,7 @@ use gs_store::chats::ChatStore;
 use gs_store::graph::GraphStores;
 
 use super::context::{chunk_notes, graph_context, message_id, notes_view, prose_view};
+use super::duplicate_check::duplicate_check;
 use super::extraction_runs::{ExtractionPhase, ExtractionRuns, RunKind};
 use super::findings::{
 	as_session_findings, extractor_instructions, fill_notes_findings, notes_extractor_instructions, notes_findings_schema, session_findings_schema, validate_findings_chains,
@@ -58,6 +60,9 @@ pub trait ExtractionHost: Send + Sync {
 	fn on_graph_written(&self, scope: Option<&str>);
 	/// The existing ideas of `scope` (its merged `nodes`) most related to `text`, best first.
 	fn related_facts<'a>(&'a self, scope: Option<&'a str>, nodes: &'a [Json], text: &'a str, limit: usize) -> BoxFuture<'a, Result<Vec<String>, String>>;
+	/// For each new proposition (`{ name, statement, .. }`), the ideas of `scope` (its merged
+	/// `nodes`) nearest to it with their cosines, best first, at most `limit`.
+	fn similar_facts<'a>(&'a self, scope: Option<&'a str>, nodes: &'a [Json], new: &'a [Json], limit: usize) -> BoxFuture<'a, Result<Vec<Nearest>, String>>;
 }
 
 /// The pipeline's server-wide state.
@@ -303,7 +308,8 @@ impl Extraction {
 		critical.await
 	}
 
-	/// One extractor call over a stretch: the prompt's graph context, then the submit.
+	/// One extractor call over a stretch: the prompt's graph context, then the submit, which may
+	/// get one duplicate notice before it is final.
 	async fn extract(&self, key: &str, source_id: &str, scope: Option<&str>, view: &str, stretch: &str, door: Door) -> Result<Json, JobError> {
 		let abort = self.abort_of(key);
 		if abort.is_aborted() {
@@ -334,6 +340,7 @@ impl Extraction {
 				opts
 			}
 		};
+		opts.notice = Some(duplicate_check(self.0.clone(), scope.map(str::to_owned), Arc::new(graph.nodes)));
 		opts.engine = self.0.engine();
 		opts.abort = Some(abort);
 		opts.task_label = Some(self.task_label(key));

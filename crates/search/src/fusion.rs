@@ -21,7 +21,7 @@ pub fn vector_ranking(queries: &[&[f32]], vectors: &[f32], dims: usize, n: usize
 		.map(|row| {
 			let mut best = f64::NEG_INFINITY;
 			for q in queries {
-				let dot = q.iter().zip(row).fold(0f64, |sum, (a, b)| sum + f64::from(*a) * f64::from(*b));
+				let dot = dot(q, row);
 				if dot > best {
 					best = dot;
 				}
@@ -33,6 +33,20 @@ pub fn vector_ranking(queries: &[&[f32]], vectors: &[f32], dims: usize, n: usize
 	rows.sort_by(|&a, &b| scores[b].partial_cmp(&scores[a]).unwrap_or(Ordering::Equal));
 	rows.truncate(n);
 	rows
+}
+
+/// Rows of `vectors` (as in `vector_ranking`) by their cosine with `query`, best first, at most
+/// `n`, with the cosines.
+pub fn cosine_ranking(query: &[f32], vectors: &[f32], dims: usize, n: usize) -> Vec<(usize, f32)> {
+	let mut scored: Vec<(usize, f32)> = vectors.chunks_exact(dims).map(|row| dot(query, row) as f32).enumerate().collect();
+	scored.sort_by(|a, b| b.1.total_cmp(&a.1));
+	scored.truncate(n);
+	scored
+}
+
+/// Normalized vectors' dot product is their cosine.
+fn dot(a: &[f32], b: &[f32]) -> f64 {
+	a.iter().zip(b).fold(0f64, |sum, (x, y)| sum + f64::from(*x) * f64::from(*y))
 }
 
 /// Reciprocal-rank fusion: each ranking adds weight / (60 + rank) to an id (rank from 1). Best
@@ -65,6 +79,13 @@ mod tests {
 		let vectors = [1.0, 0.0, 0.0, 1.0, 0.6, 0.8];
 		assert_eq!(vector_ranking(&[&[1.0, 0.0]], &vectors, 2, 3), vec![0, 2, 1]);
 		assert_eq!(vector_ranking(&[&[1.0, 0.0], &[0.0, 1.0]], &vectors, 2, 2), vec![0, 1]);
+	}
+
+	#[test]
+	fn cosine_ranking_keeps_the_cosines_best_first() {
+		let vectors = [1.0, 0.0, 0.0, 1.0, 0.6, 0.8];
+		assert_eq!(cosine_ranking(&[1.0, 0.0], &vectors, 2, 2), vec![(0, 1.0), (2, 0.6)]);
+		assert_eq!(cosine_ranking(&[0.0, 1.0], &vectors, 2, 5), vec![(1, 1.0), (2, 0.8), (0, 0.0)]);
 	}
 
 	#[test]

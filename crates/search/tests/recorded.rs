@@ -112,6 +112,11 @@ async fn the_search_vectors_scenario_comes_out_as_recorded() {
 		let kept = if EXACT { want.len() } else { 1 };
 		assert_eq!(got[..kept], want[..kept], "{:?}", q["query"]);
 	}
+	// A fact's own text embeds like the stored fact, so it is its own nearest at a cosine of 1.
+	let own = [json!({ "id": "p1", "name": "Binary search", "statement": "Binary search finds an item in a sorted array by halving the candidate range." })];
+	let similar = search.similar_facts(None, &all, &own, 2).await.unwrap();
+	assert_eq!(similar[0][0].0, "<n#3>");
+	assert!(similar[0][0].1 > 0.999 && similar[0][1].1 < similar[0][0].1, "{similar:?}");
 	let facts = dir.join("data/search/facts");
 	assert_eq!(std::fs::read_to_string(facts.with_extension("json")).unwrap(), s(&want["factsJson"]));
 	assert_vectors(&facts, &want["facts"]);

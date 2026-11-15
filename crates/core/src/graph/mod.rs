@@ -3,6 +3,7 @@
 pub mod chains;
 pub mod clusters;
 pub mod coverage;
+pub mod duplicates;
 pub mod graph;
 pub mod graph_deletion;
 mod ledger_lines;

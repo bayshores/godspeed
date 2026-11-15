@@ -4,6 +4,7 @@
 use std::collections::HashSet;
 
 use gs_base::text;
+use gs_core::graph::duplicates::Duplicate;
 use gs_core::session::schema::{self, string, strings};
 use gs_json::{Json, Obj, json};
 
@@ -235,6 +236,21 @@ pub fn validate_session_anchors(value: &Json, batch_ids: &HashSet<String>, exist
 	None
 }
 
+const DUPLICATE_NOTICE_HEAD: &str = "Possible duplicates: the graph may already hold these ideas.";
+
+const DUPLICATE_NOTICE_TAIL: &str = "Same idea as a listed one (even worded differently): leave it out of propositions, use that id in chains and tests, list it in reteaches. Different idea: keep it. Submit again; that submission is final.";
+
+/// The duplicate check's answer to a submit: each flagged proposition under its candidates.
+pub fn duplicate_notice(duplicates: &[Duplicate]) -> String {
+	let mut out = vec![DUPLICATE_NOTICE_HEAD.to_owned()];
+	for d in duplicates {
+		out.push(format!("  {} | {}", d.new.id, d.new.name));
+		out.extend(d.candidates.iter().map(|c| format!("    {} | {} | {}", c.id, c.name, c.statement)));
+	}
+	out.push(DUPLICATE_NOTICE_TAIL.to_owned());
+	out.join("\n")
+}
+
 /// The submit as the merger takes it: omitted aliases become `[]`, `tests` rides along when sent.
 pub fn as_session_findings(raw: &Json) -> Json {
 	let propositions: Vec<Json> = raw["propositions"].items()
@@ -260,6 +276,7 @@ pub fn as_session_findings(raw: &Json) -> Json {
 
 #[cfg(test)]
 mod tests {
+	use gs_core::graph::duplicates::Fact;
 	use gs_json::stringify;
 
 	use super::*;
@@ -306,6 +323,16 @@ mod tests {
 		assert!(validate_session_anchors(&other, &batch, &existing).unwrap().contains("names messageId \"m2\""));
 		let test = json!({ "propositions": [], "tests": [{ "messageId": "m1", "ids": ["x"] }] });
 		assert!(validate_session_anchors(&test, &batch, &existing).unwrap().starts_with("tests: \"x\""));
+	}
+
+	#[test]
+	fn the_duplicate_notice_lists_each_flagged_idea_under_its_candidates() {
+		let fact = |id, name, statement| Fact { id, name, statement };
+		let found = [Duplicate { new: fact("p1", "Merging", "Merging two sorted lists is linear."), candidates: vec![fact("n_1", "Merge step", "Merging sorted lists takes linear time."), fact("n_2", "Merging", "Two sorted runs merge in O(n).")] }];
+		assert_eq!(
+			duplicate_notice(&found),
+			"Possible duplicates: the graph may already hold these ideas.\n  p1 | Merging\n    n_1 | Merge step | Merging sorted lists takes linear time.\n    n_2 | Merging | Two sorted runs merge in O(n).\nSame idea as a listed one (even worded differently): leave it out of propositions, use that id in chains and tests, list it in reteaches. Different idea: keep it. Submit again; that submission is final."
+		);
 	}
 
 	#[test]

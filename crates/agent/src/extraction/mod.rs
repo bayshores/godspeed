@@ -2,6 +2,7 @@
 //! single-submit agent seam, the topic grouper, and the graph ports over the stores.
 
 mod context;
+mod duplicate_check;
 #[allow(clippy::module_inception)]
 pub mod extraction;
 pub mod extraction_runs;

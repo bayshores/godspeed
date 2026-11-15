@@ -1,8 +1,10 @@
 //! The single-submit agent seam (submit-agent.ts): one schema-checked submit call is the whole
 //! deliverable, run as a background agent only so the model can retry a refused call. The value is
-//! captured where the engine runs a schema-valid call; `fill` and `validate` apply there.
+//! captured where the engine runs a schema-valid call; `fill`, `validate` and `notice` apply there.
 
+use std::cell::Cell;
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use futures_util::future::BoxFuture;
 use gs_core::session::argument_heal::heal_encoded_arguments;
@@ -21,6 +23,10 @@ pub type Fill = Box<dyn Fn(Json) -> Json + Send + Sync>;
 /// A pipeline law the schema cannot state: `Some(problem)` goes back to the model as an error
 /// result and it tries again within its turns. May read files.
 pub type Validate = Box<dyn Fn(&Json) -> BoxFuture<'static, Option<String>> + Send + Sync>;
+/// Asked once, of the first submit that passes `validate`: `Some(text)` goes back to the model as
+/// a plain result, not an error, and its next valid submit is final. The model call this adds does
+/// not count against `max_turns`.
+pub type Notice = Box<dyn Fn(&Json) -> BoxFuture<'static, Option<String>> + Send + Sync>;
 /// Each finished model call's usage and `provider:model`.
 pub type OnStep = Arc<dyn Fn(&Json, &str) + Send + Sync>;
 
@@ -31,6 +37,7 @@ pub struct SubmitAgentOptions {
 	pub parameters: Json,
 	pub fill: Option<Fill>,
 	pub validate: Option<Validate>,
+	pub notice: Option<Notice>,
 	pub system_prompt: String,
 	/// Text, or content parts.
 	pub prompt: Json,
@@ -56,6 +63,7 @@ impl SubmitAgentOptions {
 			parameters,
 			fill: None,
 			validate: None,
+			notice: None,
 			system_prompt,
 			prompt,
 			engine: None,
@@ -75,6 +83,9 @@ struct SubmitTool {
 	parameters: Json,
 	fill: Option<Fill>,
 	validate: Option<Validate>,
+	notice: Option<Notice>,
+	/// Whether `notice` was asked.
+	noticed: Arc<AtomicBool>,
 	submitted: Arc<Mutex<Option<Json>>>,
 }
 
@@ -104,6 +115,11 @@ impl Tool for SubmitTool {
 			if let Some(problem) = problem {
 				return Ok(invalid_input_result(&self.name, &[problem]));
 			}
+			if let Some(notice) = self.notice.as_ref().filter(|_| !self.noticed.swap(true, Ordering::SeqCst))
+				&& let Some(text) = notice(&value).await
+			{
+				return Ok(to_tool_result(&Json::from(text)));
+			}
 			let result = to_tool_result(&value);
 			*self.submitted.lock() = Some(value);
 			Ok(result)
@@ -120,12 +136,14 @@ fn called_tools(message: &Json) -> String {
 /// Runs the agent until it makes one valid submit, and returns the (filled) value.
 pub async fn run_submit_agent(bridge: &Bridge, opts: SubmitAgentOptions) -> Result<Json, RunError> {
 	let submitted = Arc::new(Mutex::new(None));
-	let tool_name = opts.tool_name.clone();
-	let submit = SubmitTool { name: opts.tool_name, description: opts.tool_description, parameters: opts.parameters, fill: opts.fill, validate: opts.validate, submitted: submitted.clone() };
+	let noticed = Arc::new(AtomicBool::new(false));
+	let max_turns = opts.max_turns.unwrap_or(4);
+	let ceiling = max_turns + usize::from(opts.notice.is_some());
+	let submit = SubmitTool { name: opts.tool_name, description: opts.tool_description, parameters: opts.parameters, fill: opts.fill, validate: opts.validate, notice: opts.notice, noticed: noticed.clone(), submitted: submitted.clone() };
 	let mut tools = opts.lookups;
 	tools.push(Arc::new(submit));
 
-	let mut run = SubagentRunOptions::new(&opts.system_prompt, opts.prompt, opts.max_turns.unwrap_or(4));
+	let mut run = SubagentRunOptions::new(&opts.system_prompt, opts.prompt, ceiling);
 	run.engine = opts.engine;
 	run.abort_signal = opts.abort;
 	run.task_label = opts.task_label;
@@ -137,7 +155,11 @@ pub async fn run_submit_agent(bridge: &Bridge, opts: SubmitAgentOptions) -> Resu
 			eprintln!("[submit-agent] step {step}: {}, tools: {}", message["stopReason"].str_or_empty(), called_tools(message));
 		}));
 	}
-	run.should_stop = Some(Box::new(move |_message, results| results.iter().any(|r| r["toolName"].as_str() == Some(tool_name.as_str()) && r["isError"] != Json::Bool(true))));
+	let (captured, turns) = (submitted.clone(), Cell::new(0));
+	run.should_stop = Some(Box::new(move |_message, _results| {
+		turns.set(turns.get() + 1);
+		captured.lock().is_some() || turns.get() >= max_turns + usize::from(noticed.load(Ordering::SeqCst))
+	}));
 	run_subagent(bridge, tools, run).await?;
 	let value = submitted.lock().take();
 	value.ok_or(RunError::Failed(opts.never_submitted))
