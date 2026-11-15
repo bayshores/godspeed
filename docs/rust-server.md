@@ -1,53 +1,48 @@
 # The Rust server
 
-`godspeed-server` is the Rust program behind the app. It serves the UI files, the /api routes and the MCP endpoint, and it reads and writes the data files. Read "Rules for every module" before you change it.
-
-Data written by earlier versions, including the Node server that came before, keeps working, and the files the server writes read the same byte for byte.
+`godspeed-server` serves the UI files, /api routes and MCP endpoint, and reads and writes the data files. Read "Rules for every module" before changing it. Data from earlier versions (including the Node server) keeps working; written files read the same byte for byte.
 
 ## Layout
 
-All Rust lives in `crates/`, a Cargo workspace with `Cargo.toml` at the repo root and the toolchain pinned in `rust-toolchain.toml`. A crate uses only crates listed above it in this table, and Cargo refuses a cycle. The desktop shell (`crates/shell`) is in [tauri-shell.md](tauri-shell.md).
+All Rust lives in `crates/`, a Cargo workspace (`Cargo.toml` at repo root, toolchain pinned in `rust-toolchain.toml`). A crate uses only crates above it here; Cargo refuses a cycle. Packages are named `gs-<crate>`. The desktop shell (`crates/shell`) is in [tauri-shell/README.md](tauri-shell/README.md).
 
-| Crate | What it holds |
+| Crate | Holds |
 |---|---|
 | `json` (gs-json) | `Json`: JSON with JS key order, JS number text, lone surrogates |
-| `base` (gs-base) | JS-compatible text, numbers, dates, regex, sorting, ids, hashes, the app clock, paths, events, locks, atomic writes, shutdown |
+| `base` (gs-base) | JS-compatible text, numbers, dates, regex, sorting, ids, hashes, app clock, paths, events, locks, atomic writes, shutdown |
 | `core` (gs-core) | pure logic: `contracts`, `records`, `messages`, `session`, `graph`, `spaces`, `study`, `mocks` |
-| `shell-rpc` (gs-shell-rpc) | the line protocol between the server and the desktop shell |
-| `store` (gs-store) | every data file, read and written byte for byte the way earlier versions did |
+| `shell-rpc` (gs-shell-rpc) | line protocol between server and desktop shell |
+| `store` (gs-store) | every data file, read and written byte for byte as earlier versions did |
 | `media` | image re-encoding, SVG to PNG, PNG fixes |
 | `pdf` | pdfium on one thread: text, shape, search, page images |
 | `files` | space files to text, linked folder walks, fingerprints |
 | `search` | embedding model (ort), MiniSearch BM25+, fusion, index tables |
-| `web` | web page to markdown, PDF downloads, plugin zips and godspeed's plugin list from GitHub |
+| `web` | web page to markdown, PDF downloads, plugin zips, godspeed's plugin list from GitHub |
 | `transcribe` | recordings to captions with brew's ffmpeg and whisper |
-| `engine` | the turn loop and the work bridge to the outside agent |
+| `engine` | turn loop, work bridge to the outside agent |
 | `agent` | prompts, lesson tools, file tools, background jobs, extraction |
-| `services` | `App` (all server state) and the server's services |
-| `server` (gs-server, binary `godspeed-server`) | the HTTP layer, the /api routes, the MCP endpoint |
-
-Every package is named `gs-<crate>`.
+| `services` | `App` (all server state) and the services |
+| `server` (gs-server, binary `godspeed-server`) | HTTP layer, /api routes, MCP endpoint |
 
 ## Rules for every module
 
 ### Records are `Json`, not structs
 
-Data files and API bodies are `gs_json::Json` (`Null | Bool | Num(f64) | Str | Arr | Obj`). `Obj` keeps JS key order: array-index keys first in ascending order, then insertion order. Unknown fields survive a round trip.
+Data files and API bodies are `gs_json::Json` (`Null | Bool | Num(f64) | Str | Arr | Obj`). `Obj` keeps JS key order (array-index keys ascending, then insertion order). Unknown fields survive a round trip.
 
-- Index with `v["key"]`. A missing key reads as `Null`.
-- Test with `truthy()` and build with `json!({...})`.
+- Index with `v["key"]`; a missing key is `Null`. Test with `truthy()`, build with `json!({...})`.
 - `stringify`, `stringify_pretty(v, "\t")` and `parse` match `JSON.stringify` and `JSON.parse` exactly, number text included (`js_number`).
-- Use a typed struct only inside one function, through `to_json` and `from_json`.
+- Use a typed struct only inside one function, via `to_json` and `from_json`.
 
 ### Text is JS text
 
-Rust `String`s may hold lone UTF-16 halves as stand-ins (`gs_json::lone`). JSON output writes them as `\udxxx` like `JSON.stringify`, and UTF-8 output writes U+FFFD.
+`String`s may hold lone UTF-16 halves as stand-ins (`gs_json::lone`). JSON output writes them as `\udxxx` like `JSON.stringify`; UTF-8 output writes U+FFFD.
 
-Where a length or a slice is counted in UTF-16 units like JS (stored offsets, the screens), use `gs_base::text`: `len16`, `slice16`, `index_of16`, `cmp16`, `trim` with JS whitespace, `pad_start`. Never use `s.len()` for a JS `.length`.
+Where JS counts UTF-16 units (stored offsets, the screens), use `gs_base::text`: `len16`, `slice16`, `index_of16`, `cmp16`, `trim` with JS whitespace, `pad_start`. Never `s.len()` for a JS `.length`.
 
 ### Regexes are JS regexes
 
-Use `gs_base::re::Re::new(pattern, flags)` with the pattern as the screens' JS would write it. It runs on UTF-16 units, so `.` and `\w` behave like V8. Never use the `regex` crate.
+Use `gs_base::re::Re::new(pattern, flags)` with the pattern as the screens' JS writes it. It runs on UTF-16 units, so `.` and `\w` act like V8. Never use the `regex` crate.
 
 ### Numbers, dates, ids and sorting
 
@@ -61,43 +56,38 @@ Use `gs_base::re::Re::new(pattern, flags)` with the pattern as the screens' JS w
 
 ### Time goes through the app clock
 
-`clock::now_ms()` is the current time in ms. `clock::sleep(ms)` and `clock::sleep_until(t)` wait. The contract suite moves this clock (`GODSPEED_CONTRACT_NOW`, `GODSPEED_CONTRACT_CLOCK_FILE`), and a real-time timer would miss the jump.
-
-`clippy.toml` refuses `SystemTime::now`, tokio's `sleep`, `sleep_until`, `interval` and `timeout`, `fs::write` and `stdout`. A repeating timer is a loop over `sleep_until(due)` with `due += period`.
+`clock::now_ms()` is the time in ms; `clock::sleep(ms)` and `clock::sleep_until(t)` wait. The contract suite moves this clock (`GODSPEED_CONTRACT_NOW`, `GODSPEED_CONTRACT_CLOCK_FILE`); a real-time timer would miss the jump. `clippy.toml` refuses `SystemTime::now`, tokio's `sleep`, `sleep_until`, `interval` and `timeout`, `fs::write` and `stdout`. A repeating timer loops over `sleep_until(due)` with `due += period`.
 
 ### Files
 
-- Write only with `fsx::write_atomic`, `fsx::write_text_atomic` or `fsx::write_atomic_pair`. Each writes a temp file `<name>.tmp-<8 hex>` and then renames it, like the `write-file-atomic` package.
-- `write_atomic_pair` streams two files that go together and renames them only once both are written.
+- Write only with `fsx::write_atomic`, `fsx::write_text_atomic` or `fsx::write_atomic_pair`. Each writes temp file `<name>.tmp-<8 hex>`, then renames, like `write-file-atomic`. `write_atomic_pair` streams two files that go together and renames only once both are written.
 - Unreadable records go aside with `fsx::set_aside_corrupt`.
-- Error texts the learner or the outside agent sees come from `fsx::node_error_message`, which spells libuv's messages as Node did (`ENOENT: no such file or directory, open '<path>'`).
+- Error texts the learner or outside agent sees come from `fsx::node_error_message`, which spells libuv's messages as Node did (`ENOENT: no such file or directory, open '<path>'`).
 - Directory and file order must not depend on the file system. Sort explicitly.
 
 ### No globals
 
-Everything lives in `App` (`crates/services/src/lib.rs`): `paths`, `events`, `locks`, `stores`, `pdf`, `search`, `bridge`, `shell` and one state struct per service package. Routes and MCP tools get `Arc<App>`. State a service keeps lives in a field of its package's state struct, behind a `parking_lot::Mutex`.
+Everything lives in `App` (`crates/services/src/lib.rs`): `paths`, `events`, `locks`, `stores`, `pdf`, `search`, `bridge`, `shell` and one state struct per service package. Routes and MCP tools get `Arc<App>`. Service state is a field of its package's state struct, behind a `parking_lot::Mutex`.
 
 ### Events, errors and concurrency
 
-- Emit an event with `app.events.emit(EventKind::X, json!({...}))`. The payload is the event minus `type`.
-- A function that can fail returns `Result<T, String>`, or a small error enum when callers match on the kind.
-- A route returns `Result<Response, Unhandled>`. `?` on any error answers an empty 500.
-- A panic in a handler also answers an empty 500 and the server keeps running, but do not rely on it.
+- Emit with `app.events.emit(EventKind::X, json!({...}))`. Payload is the event minus `type`.
+- A fallible function returns `Result<T, String>`, or a small error enum when callers match on kind.
+- A route returns `Result<Response, Unhandled>`; `?` on any error answers an empty 500. A handler panic also answers an empty 500 and the server keeps running, but do not rely on it.
 - Never hold a lock across `.await`. See [Locks](#locks).
 
 ### Tests
 
-Every module gets unit tests. Route and MCP work is checked with the contract scenarios (see [Checking against the recordings](#checking-against-the-recordings)).
+Every module gets unit tests. Route and MCP work is checked with contract scenarios (see [Checking against the recordings](#checking-against-the-recordings)).
 
-Where the output must equal what the original TypeScript produced (formatting, ranking, merging, texts), a golden case replays a recorded output. `crates/<crate>/tests/golden/<name>.json` holds the cases, and a Rust test in `crates/<crate>/tests/` replays them (see `crates/base/tests/golden.rs`). The `.json` files are recordings, not hand-written. Change one only when the behaviour is meant to change.
+Where output must equal the original TypeScript's (formatting, ranking, merging, texts), a golden case replays a recorded output. `crates/<crate>/tests/golden/<name>.json` holds the cases; a Rust test in `crates/<crate>/tests/` replays them (see `crates/base/tests/golden.rs`). The `.json` files are recordings, not hand-written; change one only when behaviour is meant to change.
 
 ### Style and done
 
 - Short files with one job, short comments that say why, no history or phase notes in comments, no dead code.
-- No `unsafe`. The shell's platform modules are the only exception ([tauri-shell.md](tauri-shell.md#rules)).
-- Workspace dependencies are listed in the root `Cargo.toml`. Indent with tabs.
-- Done means `npm run rust:check` passes: cargo test, clippy with `-D warnings` (also with the shell's `screens` and `self-test` features) and cargo-machete.
-- A dependency a crate does not use is removed, not ignored.
+- No `unsafe`, except the shell's platform modules ([tauri-shell/files.md](tauri-shell/files.md#rules)).
+- Workspace dependencies are listed in root `Cargo.toml`. Indent with tabs.
+- Done means `npm run rust:check` passes: cargo test, clippy with `-D warnings` (also with the shell's `screens` and `self-test` features) and cargo-machete. Remove an unused dependency; do not ignore it.
 
 ## What every module can use
 
@@ -109,15 +99,15 @@ Where the output must equal what the original TypeScript produced (formatting, r
 
 ### `gs_server::http`
 
-The desktop access rule is covered by the `access` unit tests and `crates/server/tests/shell.rs`.
+The `access` unit tests and `crates/server/tests/shell.rs` cover the desktop access rule.
 
-- `front` runs before routing. Backslashes, `//` and trailing slashes redirect 308 with the path as body, and `.`, `..` and `%2e` segments resolve. Then the desktop access check runs. A segment that will not decode answers Next's 500 page.
-- `route::ApiRoute::new().get(h).post(h).put(h).delete(h).into_route()` builds one route path. Register every route with it. OPTIONS answers 204 with Next's sorted `Allow`, other methods an empty 405, HEAD runs GET without the body, and a panic answers an empty 500.
+- `front` runs before routing. Backslashes, `//` and trailing slashes redirect 308 with the path as body; `.`, `..` and `%2e` segments resolve. Then the desktop access check runs. A segment that will not decode answers Next's 500 page.
+- `route::ApiRoute::new().get(h).post(h).put(h).delete(h).into_route()` builds one route path; register every route with it. OPTIONS answers 204 with Next's sorted `Allow`, other methods an empty 405, HEAD runs GET without the body, a panic an empty 500.
 - `reply`: `json(status, &v)`, `json_no_store`, `text`, `empty`, `no_store`, `not_found`, `Unhandled`, `json_body(body)` (`await req.json()`, None where it throws), `read_body` (cut at 210 MiB like `proxyClientMaxBodySize`), `body_text`.
 - `paths::search_params(query)` and `paths::param` read a query like `URLSearchParams`. `paths::decode_component` decodes one segment.
-- `ui` serves `ui/` and `/pdfjs/*`. `plugin_files` serves `/plugin-files/<id>/<path>` with the plugin's CSP, only for a Host on 127.0.0.1, localhost or [::1]. `events` is `GET /api/events`.
+- `ui` serves `ui/` and `/pdfjs/*`. `plugin_files` serves `/plugin-files/<id>/<path>` with the plugin's CSP, only for a Host of 127.0.0.1, localhost or [::1]. `events` is `GET /api/events`.
 
-Handlers take axum extractors: `State<Arc<App>>`, `Path<String>` (or `Path<(String, String)>`), `Uri` for the query, `HeaderMap`, and `Body` last. Path params are decoded per segment like Next. Use the same param names on shared prefixes: `{id}` for a space or chat, `{deadline_id}`, `{file_id}`, `{section}`, `{*segment}`, `{n}`, `{file}`.
+Handlers take axum extractors: `State<Arc<App>>`, `Path<String>` (or `Path<(String, String)>`), `Uri` for the query, `HeaderMap`, `Body` last. Path params decode per segment like Next. Shared prefixes use the same names: `{id}` for a space or chat, `{deadline_id}`, `{file_id}`, `{section}`, `{*segment}`, `{n}`, `{file}`.
 
 ## Locks
 
@@ -132,32 +122,31 @@ Requests run in parallel, so every read-modify-write of a file takes a lock from
 
 ### Order
 
-- Take at most one lock, or several in this order: space, then chat, then graph, then app file.
+- Take at most one lock, or several in this order: space, chat, graph, app file.
 - Several of one kind go in id order. A space delete holds each of its lessons.
-- Of two app files, `settings.json` comes first. Reading settings takes its lock, so code holding another app file must not read settings unless it took `settings.json` before.
-- Locks are re-entrant on one thread, so a store may take the lock its caller already holds.
-- A read that saves on the side while its caller may hold a later lock uses `try_lock`. When the lock is taken it leaves the save to a later read (a space's first color, `SpaceStore::get_space`).
+- Of two app files, `settings.json` comes first. Reading settings takes its lock, so code holding another app file must not read settings unless it took `settings.json` first.
+- Locks are re-entrant on one thread, so a store may take the lock its caller holds.
+- A read that saves on the side while its caller may hold a later lock uses `try_lock`; if it gets the lock it leaves the save to a later read (a space's first color, `SpaceStore::get_space`).
 - Code under a chat lock never waits for a space lock. Progress (`progress_for`) runs under a lesson's lock, so it reads mocks with `MockStore::list_mocks_unlocked`; mock writes are a temp file and a rename, so no half-written mock is read.
 
 ### Holding a lock
 
 - The guard is not `Send`. Hold it only in synchronous code.
-- Read, change and write inside the guard. Do slow work (PDF, model, network, agent) outside, and check again after taking the lock again, as after any wait.
-- A store method that does its own read-modify-write takes the lock itself. A service that reads a record, decides, then writes takes the lock around all of it.
+- Read, change and write inside the guard. Do slow work (PDF, model, network, agent) outside, and check again after retaking the lock, as after any wait.
+- A store method that does its own read-modify-write takes the lock itself. A service that reads a record, decides, then writes locks around all of it.
 
 ### Lessons and spaces
 
-- A turn begins under its lesson's lock (the write-ahead), and an extraction reads its lesson under it. So a check that no turn or extraction runs, made under that lock, holds until the lock is let go.
+- A turn begins under its lesson's lock (the write-ahead), and an extraction reads its lesson under it. So a check under that lock that no turn or extraction runs holds until the lock is released.
 - Deleting or moving a lesson checks again under the lock after waiting out its work (`rewrite_blocker`).
-- A lesson enters a space (created in it or moved to it) under the space's lock. A space delete holds that lock, so the delete sees every lesson in the space.
+- A lesson enters a space (created in or moved to it) under the space's lock. A space delete holds that lock, so it sees every lesson in the space.
 
 ## The server process
 
 ### Working directory and files
 
-- The server starts with its working directory beside `ui/`, `models/` (`Snowflake/snowflake-arctic-embed-xs`) and `pdfjs-dist/` (`Paths::resources`).
-- pdfium's library sits there too (package pdf decides the file name), unless `LH_PDFIUM_PATH` names the library file. The Mac app keeps it in `Contents/Frameworks`, where the bundler signs it.
-- `scripts/fetch-pdfium.mjs` downloads the pinned library into `.stage/`.
+- The working directory sits beside `ui/`, `models/` (`Snowflake/snowflake-arctic-embed-xs`) and `pdfjs-dist/` (`Paths::resources`).
+- pdfium's library sits there too (package pdf decides the file name) unless `LH_PDFIUM_PATH` names the file. The Mac app keeps it in `Contents/Frameworks`, where the bundler signs it. `scripts/fetch-pdfium.mjs` downloads the pinned library into `.stage/`.
 - A debug build (`cargo build`) keeps the godspeed folder in `<data>/godspeed-folder` until the learner picks one, so a dev run never rewrites the real `~/godspeed`. A release build uses `~/godspeed`.
 - The app version is package.json's, baked in at build time (`config::VERSION`).
 
@@ -165,12 +154,12 @@ Requests run in parallel, so every read-modify-write of a file takes a lock from
 
 | Variable | Meaning |
 |---|---|
-| `PORT` | The port. The bind is always 127.0.0.1. Defaults to 3000. |
-| `LH_DATA_DIR` | The data folder. Unset, `data/` in the working directory. |
-| `HOME`, `TMPDIR`, `TZ` | The home folder, the temp folder and the time zone. |
+| `PORT` | Port. Bind is always 127.0.0.1. Default 3000. |
+| `LH_DATA_DIR` | Data folder. Unset, `data/` in the working directory. |
+| `HOME`, `TMPDIR`, `TZ` | Home folder, temp folder, time zone. |
 | `LH_DESKTOP_SERVER`, `LH_DESKTOP_API_SECRET` | `1` and the window's secret, set by the shell. See [Access](#access). |
 | `LH_SHELL` | `1` when the desktop shell started the server. Turns on the line protocol. |
-| `LH_PDFIUM_PATH` | pdfium's library file, when it is not in the working directory. |
+| `LH_PDFIUM_PATH` | pdfium's library file, when not in the working directory. |
 | `LH_SERVER_RESTARTED` | `1` after the shell restarted a crashed server. The welcome screen then shows the "restarted" notice. |
 | `LH_TERMINALS` | The desktop app's live terminal ids and the teacher's, `{"live":[…],"teacher":…}`. The shell's `terminals` message updates them. |
 | `LH_PLUGIN_LIST` | Debug builds only: a file read as godspeed's plugin list, each time the list is asked for, in place of GitHub's (`npm run layout` names `tests/fixtures/plugins/layout-list.json`). |
@@ -179,26 +168,25 @@ Requests run in parallel, so every read-modify-write of a file takes a lock from
 
 ### Start-up and writes
 
-- At start-up the server writes nothing but a missing data folder, made empty so its lock is held from the start. The shell writes `mcp-endpoint.json`.
-- With a shell, the deadline reminder check writes `reminders.json`: 10 seconds after the start, then every 10 minutes.
+- At start-up the server writes only a missing data folder, made empty so its lock is held from the start. The shell writes `mcp-endpoint.json`.
+- With a shell, the deadline reminder check writes `reminders.json`: 10 seconds after start, then every 10 minutes.
 - Reading `settings.json` can rewrite an old one or set aside one that does not parse.
-- Data from before spaces were called spaces moves just before the first request that reaches an /api route (not a 404 or a refused request): `data/classes` to `data/spaces`, and a saved `shared/12-class-context.md` to `12-space-context.md` (`Stores::adopt_old_names`).
+- Data from before spaces were called spaces moves just before the first request that reaches an /api route (not a 404 or refused request): `data/classes` to `data/spaces`, and a saved `shared/12-class-context.md` to `12-space-context.md` (`Stores::adopt_old_names`).
 - `class.json`, v1 chats and v2 settings are read in their old shape and written in the new one.
 
 ### One server per data folder
 
-On Mac and Linux, an advisory lock on the data folder itself keeps a second server off the same data, with no lock file. A new server waits up to 3 s for one that is still stopping. Windows cannot lock a directory, so there the desktop app's single-instance check and old-app check do this job (`crates/server/src/data_lock.rs`).
+On Mac and Linux, an advisory lock on the data folder itself (no lock file) keeps a second server off the same data. A new server waits up to 3 s for one still stopping. Windows cannot lock a directory, so there the desktop app's single-instance check and old-app check do this job (`crates/server/src/data_lock.rs`).
 
 ### Stopping
 
 - The server stops on SIGTERM or SIGINT (Ctrl-C on Windows), and at the end of stdin: always with `LH_SHELL=1`, otherwise when stdin is a pipe.
-- `gs_base::shutdown::wait()` ends long waits (event streams, `wait_for_work`).
-- Open requests get 2 s, then the process exits with 143.
-- Log lines go to stderr. stdout belongs to the shell protocol.
+- `gs_base::shutdown::wait()` ends long waits (event streams, `wait_for_work`). Open requests get 2 s, then the process exits with 143.
+- Log lines go to stderr; stdout belongs to the shell protocol.
 
 ### Shell protocol
 
-With `LH_SHELL=1` the server speaks the line protocol of `gs-shell-rpc`, which [tauri-shell.md](tauri-shell.md#the-line-protocol) spells out. `App::shell` holds the `ShellLink`. `get_headless` sends demo runs and the SVGs resvg cannot draw through it and waits at most 60 s (`demo check timed out`). Without a link they answer the no-browser error.
+With `LH_SHELL=1` the server speaks the line protocol of `gs-shell-rpc` ([tauri-shell/the-line-protocol.md](tauri-shell/the-line-protocol.md#the-line-protocol)). `App::shell` holds the `ShellLink`. `get_headless` sends demo runs and the SVGs resvg cannot draw through it and waits at most 60 s (`demo check timed out`). Without a link they answer the no-browser error.
 
 ### Login
 
@@ -215,10 +203,9 @@ With `LH_SHELL=1` the server speaks the line protocol of `gs-shell-rpc`, which [
 - Every /api path needs cookie `gs_desktop` equal to the secret and exactly one `Sec-Fetch-Site: same-origin`.
 - Exempt: `/api/mcp`, `/api/mcp/forget` and `/api/mcp/compacting` (each checks the bearer token in its route), and `/api/desktop/login`.
 - Refusals are 403 `{"error":"Desktop API access requires the trusted godspeed window."}`.
-- `LH_DESKTOP_SERVER=1` without a secret refuses them all.
-- Browser mode (neither set) allows everything.
+- `LH_DESKTOP_SERVER=1` without a secret refuses all. Browser mode (neither set) allows all.
 
-Demo iframes and plugin frames in the window send `Sec-Fetch-Site: cross-site`, so their requests are refused even where WebKit attaches the cookie. `/plugin-files/` is outside /api, so a plugin frame loads its own files.
+Demo iframes and plugin frames send `Sec-Fetch-Site: cross-site`, so their requests are refused even where WebKit attaches the cookie. `/plugin-files/` is outside /api, so a plugin frame loads its own files.
 
 ## Checking against the recordings
 
@@ -231,9 +218,9 @@ The contract lab replays recorded HTTP and MCP traffic from the last Node build 
 CONTRACT_SERVER_CMD="/bin/sh <lab>/contract/lib/rust-server.sh" CONTRACT_PORTS=48060-48069 node <lab>/contract/run.mjs check <scenario>
 ```
 
-- The recordings hold only for a release server. A debug build keeps its own godspeed folder, answers the spaces-folder checks differently, and is too slow for the timing in some scenarios.
+- Recordings hold only for a release server. A debug build keeps its own godspeed folder, answers the spaces-folder checks differently, and is too slow for some scenarios' timing.
 - Each scenario gets its own copy of the seed data and its own home, tmp, Claude and Codex folders. The launcher stops the server afterwards.
-- On a failure the full result is in `out/<scenario>.actual.json`.
+- On failure the full result is in `out/<scenario>.actual.json`.
 - **Never point a server at real data**, `~/godspeed`, `~/.claude`, `~/.codex` or a cloud-synced folder.
 
 ## Known gaps and decisions
@@ -241,9 +228,9 @@ CONTRACT_SERVER_CMD="/bin/sh <lab>/contract/lib/rust-server.sh" CONTRACT_PORTS=4
 - The server copies the Node server's recorded behaviour exactly, odd parts included (for example an empty 500 for a `null` JSON body). Fixing those is separate work.
 - Range and conditional requests: the recordings show the Node server answers both with the full file (200), so the Rust server does too.
 - Source marks read Markdown with the `markdown` crate (CommonMark plus math), whose code offsets match mdast-util-from-markdown's. A web mark is checked with the `url` crate in place of `URL.canParse`.
-- Characters in Unicode's last 2048 private-use code points (U+10F800 to U+10FFFF) are the lone-surrogate stand-ins and cannot appear as real text.
-- A mock's Run examples runs JavaScript with the computer's own `node` (PATH, then Homebrew's folders), since the desktop app has no Node of its own. Without one it answers "godspeed couldn't find Node.js on this computer. Install Node.js, or answer in Python.". Python is found as Node finds it.
+- Unicode's last 2048 private-use code points (U+10F800 to U+10FFFF) are the lone-surrogate stand-ins and cannot appear as real text.
+- A mock's Run examples runs JavaScript with the computer's own `node` (PATH, then Homebrew's folders), since the desktop app has no Node. Without one it answers "godspeed couldn't find Node.js on this computer. Install Node.js, or answer in Python.". Python is found as Node is.
 - Search vectors: if Rust's vectors do not match the stored ones exactly, the tables are rebuilt from saved text.
 - PDFs read before the switch keep their saved text. Only new PDFs go through the Rust reader.
 - ONNX Runtime's KleidiAI kernels stay on. Turning them off (`mlas.disable_kleidiai`) saved about 200 MB but changed the vectors by up to 0.014.
-- The loaded search model keeps about 190 MiB after its first use. Dropping it when idle would cost a reload on the next search.
+- The loaded search model keeps about 190 MiB after first use. Dropping it when idle would cost a reload on the next search.

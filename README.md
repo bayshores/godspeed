@@ -118,7 +118,7 @@ npm run dev                    # http://localhost:3000
 npm run check                  # everything CI runs
 ```
 
-`src/` is the React screens and `crates/` is the Rust server and the Tauri shell. The [development guide](docs/development.md) and [architecture](docs/architecture.md) have the rest. Bugs and requests go to [Issues](https://github.com/bayshores/godspeed/issues).
+`src/` is the React screens and `crates/` is the Rust server and the Tauri shell. The [development guide](docs/development.md) and [architecture](docs/architecture/README.md) have the rest. Bugs and requests go to [Issues](https://github.com/bayshores/godspeed/issues).
 
 ## License
 
