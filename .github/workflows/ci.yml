@@ -107,3 +107,7 @@ jobs:
             Linux) xvfb-run -a target/debug/godspeed --self-test ;;
             *) target/debug/godspeed --self-test ;;
           esac
+      # The screens in the real WebKit window on made-up data, checked for broken layout.
+      - name: Layout check in the real app window
+        if: runner.os == 'macOS'
+        run: npm run layout
