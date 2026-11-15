@@ -7,6 +7,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { parseHTML } from "linkedom";
 import { MessageResponse, ToolContentResponse } from "../../src/frontend/components/ai-elements/message.tsx";
 import { CitedResponse } from "../../src/frontend/components/citations/cited-response.tsx";
+import { CiteDialog } from "../../src/frontend/components/citations/cite-dialog.tsx";
 import { fileCiteMark } from "../../src/shared/core/index.ts";
 
 const dom = parseHTML("<html><body></body></html>");
@@ -122,5 +123,28 @@ describe("opening a space file source", () => {
 		await opened(new Response(JSON.stringify({ error: "No space has that file" }), { status: 404 }), (dialog) => {
 			assert.match(dialog.querySelector('[data-testid="cite-gone"]')?.textContent ?? "", /can't find this place in your space files/);
 		});
+	});
+
+	it("a passage id from the agent's screen asks for the passage by number and shows the place the answer names", async () => {
+		const urls: string[] = [];
+		const realFetch = globalThis.fetch;
+		globalThis.fetch = (async (url: string) => {
+			urls.push(url);
+			return new Response(JSON.stringify({ name: "Week 6 slides.pdf", range: "lines 4–9", page: null, text: "A heap is a tree." }), { status: 200 });
+		}) as typeof fetch;
+		const host = document.createElement("div");
+		document.body.append(host);
+		const root = createRoot(host);
+		try {
+			await act(async () => root.render(<CiteDialog cite={{ fileId: FILE, passage: 7, name: "Week 6 slides.pdf" }} onClose={() => {}} />));
+			await act(async () => new Promise((r) => setTimeout(r, 0)));
+			assert.deepEqual(urls, [`/api/cited/${FILE}?passage=7`]);
+			assert.equal(document.querySelector('[data-testid="cite-place"]')?.textContent, "lines 4–9");
+			assert.equal(document.querySelector('[data-testid="cite-text"]')?.textContent, "A heap is a tree.");
+		} finally {
+			globalThis.fetch = realFetch;
+			await act(async () => root.unmount());
+			host.remove();
+		}
 	});
 });

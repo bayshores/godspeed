@@ -2,18 +2,18 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import { DialogSheet, useLastWhileClosing } from "@/frontend/components/ui/dialog-sheet";
 import { CodeLines, MarkedText, PageMarks } from "./page-excerpt";
-import type { FileCite } from "./page-excerpt-model";
+import type { FileCite, PassageCite } from "./page-excerpt-model";
 import { useCited } from "./use-cited";
 
-/** The place in a space file a source points at: the PDF page as an image,
- *  or the passage text, with the words the source quotes marked. */
-export function CiteDialog({ cite, onClose }: { cite: FileCite | null; onClose: () => void }) {
+/** The place in a space file a source or a passage id points at: the PDF
+ *  page as an image, or the passage text, with the words the source quotes marked. */
+export function CiteDialog({ cite, onClose }: { cite: FileCite | PassageCite | null; onClose: () => void }) {
 	const { mounted, state, shown } = useLastWhileClosing(cite);
 	if (!mounted || !shown) return null;
 	return createPortal(<CiteSheet cite={shown} state={state} onClose={onClose} />, document.body);
 }
 
-function CiteSheet({ cite, state, onClose }: { cite: FileCite; state: "open" | "closed"; onClose: () => void }) {
+function CiteSheet({ cite, state, onClose }: { cite: FileCite | PassageCite; state: "open" | "closed"; onClose: () => void }) {
 	const passage = useCited(cite);
 	const [brokenImage, setBrokenImage] = useState(false);
 	const found = passage === "gone" ? null : passage;
@@ -28,7 +28,7 @@ function CiteSheet({ cite, state, onClose }: { cite: FileCite; state: "open" | "
 			) : (
 				<>
 					<p data-testid="cite-place" className="text-[15px] text-ink">
-						{cite.range}
+						{"range" in cite ? cite.range : found.range}
 					</p>
 					{showImage ? (
 						<div className="relative shrink-0 border border-line">

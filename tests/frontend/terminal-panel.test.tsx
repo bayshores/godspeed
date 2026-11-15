@@ -23,6 +23,7 @@ const { TeacherContext } = await import("../../src/frontend/components/teacher/t
 const { useTeacherPanel } = await import("../../src/frontend/components/teacher/use-teacher-panel.ts");
 const { panelViews, viewIn } = await import("../../src/frontend/components/teacher/dock-model.ts");
 const { NoAgentLine } = await import("../../src/frontend/components/agent-folder/no-agent-line.tsx");
+const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
 type Access = Parameters<typeof TerminalsProvider>[0]["status"];
 
 const access = (over: Partial<NonNullable<Access>> = {}): Access => ({ connected: false, teaching: false, helperHere: false, helperCovering: false, pendingWork: 0, pendingTurns: 0, claimedLessons: [], terminals: [], outsideHere: false, ...over });
@@ -100,6 +101,8 @@ const click = async (testid: string) => {
 	await settle();
 };
 
+const noEvents = () => ({ onEvent() {}, onOpen() {}, close() {} });
+
 async function mounted(status: Access, run: (render: (s: Access, extra?: React.ReactNode) => Promise<void>) => Promise<void>, extra?: React.ReactNode) {
 	const host = document.createElement("div");
 	document.body.append(host);
@@ -107,9 +110,11 @@ async function mounted(status: Access, run: (render: (s: Access, extra?: React.R
 	const render = async (s: Access, more: React.ReactNode = extra) => {
 		await act(async () =>
 			root.render(
-				<TerminalsProvider status={s}>
-					<PanelHost>{more}</PanelHost>
-				</TerminalsProvider>,
+				<ServerEventsProvider connect={noEvents as never}>
+					<TerminalsProvider status={s}>
+						<PanelHost>{more}</PanelHost>
+					</TerminalsProvider>
+				</ServerEventsProvider>,
 			),
 		);
 		await settle();
@@ -502,7 +507,11 @@ describe("onboarding", () => {
 			const [open, setOpen] = React.useState(false);
 			return <AgentNeed open={open} onOpen={() => setOpen(true)} />;
 		}
-		const page = (done: boolean) => <TerminalsProvider status={status}>{done ? <PanelHost /> : <Step />}</TerminalsProvider>;
+		const page = (done: boolean) => (
+			<ServerEventsProvider connect={noEvents as never}>
+				<TerminalsProvider status={status}>{done ? <PanelHost /> : <Step />}</TerminalsProvider>
+			</ServerEventsProvider>
+		);
 		try {
 			await act(async () => root.render(page(false)));
 			await settle();
@@ -537,10 +546,12 @@ describe("onboarding", () => {
 		const root = createRoot(host);
 		const status = access({ terminals: [{ id: "t1", here: true }, { id: "h1", here: true }] });
 		const page = (step: "agent" | "next" | "done") => (
-			<TerminalsProvider status={status}>
-				{step === "agent" && <FirstRunScreen />}
-				{step === "done" && <PanelHost />}
-			</TerminalsProvider>
+			<ServerEventsProvider connect={noEvents as never}>
+				<TerminalsProvider status={status}>
+					{step === "agent" && <FirstRunScreen />}
+					{step === "done" && <PanelHost />}
+				</TerminalsProvider>
+			</ServerEventsProvider>
 		);
 		try {
 			await act(async () => root.render(page("agent")));
