@@ -71,11 +71,13 @@ function harness(manifest: PluginManifest = PROBE, overrides: Partial<HostCalls>
 }
 
 describe("PluginFrame", () => {
-	it("is a frame sandboxed to scripts alone, on the plugin's entry, hidden while it loads", () => {
+	it("is a frame sandboxed to scripts alone, on the plugin's entry at localhost, hidden while it loads", () => {
+		// The window is on 127.0.0.1: the frame's host is one no Tauri capability names.
+		Object.defineProperty(globalThis, "location", { value: { port: "4100" }, configurable: true });
 		const html = renderToStaticMarkup(createElement(PluginFrame, { manifest: { ...PROBE, entry: "app/start page.html" }, values: {}, context: CONTEXT }));
 		assert.match(html, /<iframe[^>]* sandbox="allow-scripts"/);
 		assert.doesNotMatch(html, /allow-same-origin/);
-		assert.match(html, /src="\/plugin-files\/probe\/app\/start%20page\.html"/);
+		assert.match(html, /src="http:\/\/localhost:4100\/plugin-files\/probe\/app\/start%20page\.html"/);
 		assert.match(html, /title="Probe"/);
 		assert.match(html, /data-state="loading"[^>]*class="[^"]*invisible/);
 	});
@@ -135,6 +137,27 @@ describe("what the host hears", () => {
 		for (const method of ["ui/message", "ui/update-model-context", "sampling/createMessage", "resources/read"]) {
 			assert.equal((await h.request(method, {}))?.error?.code, -32601, method);
 		}
+	});
+});
+
+describe("a frame that navigates", () => {
+	it("stops at its second page: nothing more is heard or answered, not even a request already running", async () => {
+		let finish: (value: { error: null; value: unknown }) => void = () => {};
+		const h = harness({ ...PROBE, uses: ["agent"] }, { askAgent: () => new Promise((done) => (finish = done)) });
+		assert.equal(h.bridge.loaded(), true);
+		await h.start();
+		h.bridge.receive(h.frame, { jsonrpc: "2.0", id: "ask", method: "tools/call", params: { name: "ask_agent", arguments: { prompt: "A caption", schema: {} } } });
+		await h.settle();
+		const before = h.posted.length;
+		assert.equal(h.bridge.loaded(), false);
+		finish({ error: null, value: { caption: "for the plugin" } });
+		assert.equal(await h.tool("get_context"), undefined);
+		h.bridge.receive(h.frame, { jsonrpc: "2.0", id: 99, method: "ui/initialize", params: {} });
+		h.bridge.receive(h.frame, { jsonrpc: "2.0", method: "ui/notifications/initialized" });
+		await h.settle();
+		assert.equal(h.posted.length, before);
+		assert.equal(h.ready(), 1);
+		assert.equal(h.bridge.loaded(), false);
 	});
 });
 

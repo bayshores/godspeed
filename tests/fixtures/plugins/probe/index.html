@@ -12,7 +12,14 @@
 			const send = (message) => parent.postMessage({ jsonrpc: "2.0", ...message }, "*");
 			const waiting = new Map();
 			addEventListener("message", (event) => {
-				if (event.source !== parent || !waiting.has(event.data?.id)) return;
+				if (event.source !== parent) return;
+				// The live check hands over the window's real invoke key: Tauri must still refuse.
+				if (event.data?.probeKey) {
+					const { probeKey, callback, error } = event.data;
+					window.webkit?.messageHandlers?.ipc?.postMessage(JSON.stringify({ cmd: "set_zoom", callback, error, payload: { factor: 1.7 }, options: {}, __TAURI_INVOKE_KEY__: probeKey }));
+					return;
+				}
+				if (!waiting.has(event.data?.id)) return;
 				waiting.get(event.data.id)(event.data);
 				waiting.delete(event.data.id);
 			});
@@ -36,6 +43,7 @@
 				},
 				ipcFetch: () => fetch("ipc://localhost/get_zoom", { method: "POST", body: "{}" }).then((r) => `status ${r.status}`),
 				api: () => fetch("/api/settings").then((r) => `status ${r.status}`),
+				appApi: () => fetch(`http://127.0.0.1:${location.port}/api/settings`).then((r) => `status ${r.status}`),
 				apiImage: () => new Promise((done) => {
 					const img = new Image();
 					img.onload = () => done("loaded");

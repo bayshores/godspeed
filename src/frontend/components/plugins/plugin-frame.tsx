@@ -41,8 +41,10 @@ function look() {
 	return { theme: root.classList.contains("dark") ? ("dark" as const) : ("light" as const), variables };
 }
 
+/** At `localhost` on the window's port: the window is on 127.0.0.1, the only host the shell's
+ *  Tauri capabilities name, so the frame can't pass Tauri's capability check. */
 function pluginEntryUrl(manifest: PluginManifest): string {
-	return `/plugin-files/${encodeURIComponent(manifest.id)}/${manifest.entry.split("/").map(encodeURIComponent).join("/")}`;
+	return `http://localhost:${location.port}/plugin-files/${encodeURIComponent(manifest.id)}/${manifest.entry.split("/").map(encodeURIComponent).join("/")}`;
 }
 
 /**
@@ -52,6 +54,7 @@ function pluginEntryUrl(manifest: PluginManifest): string {
  */
 export function PluginFrame({ manifest, values, context, className }: { manifest: PluginManifest; values: Record<string, SettingValue>; context: PluginContext; className?: string }) {
 	const frameRef = useRef<HTMLIFrameElement>(null);
+	const bridgeRef = useRef<ReturnType<typeof createBridge> | null>(null);
 	// The bridge reads these when the plugin asks, so a new render never restarts it.
 	const latest = useRef({ manifest, values, context });
 	latest.current = { manifest, values, context };
@@ -84,6 +87,7 @@ export function PluginFrame({ manifest, values, context, className }: { manifest
 			},
 			onReady: () => setState("ready"),
 		});
+		bridgeRef.current = bridge;
 		const onMessage = (event: MessageEvent) => bridge.receive(event.source, event.data);
 		window.addEventListener("message", onMessage);
 		const timer = setTimeout(() => setState((now) => (now === "ready" ? now : "failed")), READY_WITHIN_MS);
@@ -113,6 +117,10 @@ export function PluginFrame({ manifest, values, context, className }: { manifest
 			// allow-scripts only: never allow-same-origin, which would give the page the app's origin.
 			sandbox="allow-scripts"
 			src={pluginEntryUrl(manifest)}
+			// A second load is the page navigating away from the plugin's entry.
+			onLoad={() => {
+				if (bridgeRef.current?.loaded() === false) setState("failed");
+			}}
 			data-testid="plugin-frame"
 			data-state={state}
 			className={cn("block h-full w-full border-0", state === "loading" && "invisible", className)}

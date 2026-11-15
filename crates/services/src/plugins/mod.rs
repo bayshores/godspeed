@@ -18,7 +18,7 @@ use std::collections::HashSet;
 use parking_lot::Mutex;
 
 pub use ask::ask_agent;
-pub use csp::{FILES_PREFIX, is_loopback_host, plugin_csp};
+pub use csp::{FILES_PREFIX, plugin_csp, plugin_files_port};
 pub use install::{install_from_folder, install_from_github};
 pub use installed::{installed_manifest, list_plugins, plugin_view, remove_plugin, served_file};
 pub use state::set_state;

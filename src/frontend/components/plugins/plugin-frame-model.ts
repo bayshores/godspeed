@@ -96,6 +96,12 @@ const text = (params: Params, key: string): string => {
 export function createBridge(options: BridgeOptions) {
 	const { manifest, calls } = options;
 	let initialized = false;
+	let loads = 0;
+	// After a navigation the frame holds another page: it hears nothing more, answers included.
+	let stopped = false;
+	const post = (message: object) => {
+		if (!stopped) options.post(message);
+	};
 
 	// `needs`: the manifest's `uses` entry a tool asks for.
 	const tools: Record<string, { needs?: "agent" | "space"; run: (args: Params, progressToken: Id | undefined) => Promise<ToolResult> }> = {
@@ -119,7 +125,7 @@ export function createBridge(options: BridgeOptions) {
 				const prompt = text(args, "prompt");
 				let progress = 0;
 				const timer =
-					progressToken === undefined ? undefined : setInterval(() => options.post({ jsonrpc: "2.0", method: "notifications/progress", params: { progressToken, progress: ++progress } }), PROGRESS_EVERY_MS);
+					progressToken === undefined ? undefined : setInterval(() => post({ jsonrpc: "2.0", method: "notifications/progress", params: { progressToken, progress: ++progress } }), PROGRESS_EVERY_MS);
 				try {
 					const asked = await calls.askAgent(prompt, args.schema ?? {});
 					return asked.error === null ? toolResult({ answer: asked.value }) : toolError(asked.error);
@@ -191,8 +197,15 @@ export function createBridge(options: BridgeOptions) {
 	}
 
 	return {
+		/** The frame loaded a page. Only its first page is the plugin's entry: a later load means
+		 *  it navigated, so the bridge stops; false then. */
+		loaded(): boolean {
+			loads += 1;
+			if (loads > 1) stopped = true;
+			return !stopped;
+		},
 		receive(source: unknown, data: unknown) {
-			if (source === null || source === undefined || source !== options.frame()) return;
+			if (stopped || source === null || source === undefined || source !== options.frame()) return;
 			const message = readMessage(data);
 			if (!message) return;
 			const { id, method, params } = message;
@@ -201,10 +214,10 @@ export function createBridge(options: BridgeOptions) {
 				return;
 			}
 			answer(method, params).then(
-				(result) => options.post({ jsonrpc: "2.0", id, result }),
+				(result) => post({ jsonrpc: "2.0", id, result }),
 				(err: unknown) => {
 					const error = err instanceof RpcError ? { code: err.code, message: err.message } : { code: HOST_REFUSED, message: "godspeed couldn't do that." };
-					options.post({ jsonrpc: "2.0", id, error });
+					post({ jsonrpc: "2.0", id, error });
 				},
 			);
 		},
