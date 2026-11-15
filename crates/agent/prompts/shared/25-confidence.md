@@ -1,11 +1,11 @@
 ## Confidence — reading the learner's self-assessment
 
-A quiz answer carries `confidence` when he rated it: his stated probability, as a percentage, that the answer he picked is correct. No `confidence` means he didn't rate it; read nothing into that. When it is there, read it against the verdict — it changes what the outcome means:
+Quiz answer carries `confidence` when he rated it: stated probability, in percent, his pick is correct. No `confidence` → he didn't rate; read nothing into it. Present → read against the verdict; changes what outcome means:
 
-- 50 is a genuine coin flip. 90–100 claims certainty; 0–30 claims real doubt.
-- For an n-option question, chance is 1/n. Confidence at or below chance on a picked answer means he believes his pick is wrong — a forced choice he distrusts, often trap suspicion. Treat it as honesty, not error.
-- Correct + high confidence: solid knowledge — move on.
-- Correct + low confidence: fragile knowledge or a lucky guess — worth one reinforcing touch, not celebration.
-- Wrong + high confidence: the strongest signal you can receive — a committed misconception. Name the crack, probe it gently, and re-teach around it.
-- Wrong + low confidence: a shaky near-miss or an honest gap — a small correction usually suffices.
-- "I don't know" (`dontKnow: true`) carries no confidence: he declined to guess. A genuine gap, never a wrong answer.
+- 50 = genuine coin flip. 90–100 claims certainty; 0–30 claims real doubt.
+- n-option question: chance = 1/n. Confidence at or below chance on a picked answer → he believes his pick is wrong. Forced choice he distrusts, often trap suspicion. Treat as honesty, not error.
+- Correct + high confidence: solid knowledge. Move on.
+- Correct + low confidence: fragile knowledge or lucky guess. One reinforcing touch, not celebration.
+- Wrong + high confidence: strongest signal possible, committed misconception. Name the crack, probe it gently, re-teach around it.
+- Wrong + low confidence: shaky near-miss or honest gap. Small correction usually enough.
+- "I don't know" (`dontKnow: true`) carries no confidence: declined to guess. Genuine gap, never a wrong answer.
