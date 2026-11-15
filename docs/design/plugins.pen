@@ -1,0 +1,5029 @@
+{
+  "version": "2.22",
+  "children": [
+    {
+      "type": "frame",
+      "id": "UIFRC",
+      "x": 0,
+      "y": -400,
+      "name": "Keycap",
+      "reusable": true,
+      "fill": "$gs-key",
+      "cornerRadius": 8,
+      "effect": {
+        "type": "shadow",
+        "shadowType": "inner",
+        "color": "$gs-key-edge",
+        "offset": {
+          "x": 0,
+          "y": -3
+        }
+      },
+      "layout": "vertical",
+      "padding": [
+        9,
+        20,
+        11,
+        20
+      ],
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "text",
+          "id": "eULLl",
+          "name": "Label",
+          "fill": "$gs-key-ink",
+          "content": "Start",
+          "fontFamily": "$gs-font",
+          "fontSize": 16,
+          "fontWeight": "normal"
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "ZC2ad",
+      "x": 140,
+      "y": -400,
+      "name": "Keycap dark",
+      "reusable": true,
+      "fill": "$gs-key2",
+      "cornerRadius": 7,
+      "effect": {
+        "type": "shadow",
+        "shadowType": "inner",
+        "color": "$gs-key2-edge",
+        "offset": {
+          "x": 0,
+          "y": -3
+        }
+      },
+      "layout": "vertical",
+      "padding": [
+        6,
+        14,
+        8,
+        14
+      ],
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "text",
+          "id": "uZl4c",
+          "name": "Label",
+          "fill": "$gs-ink",
+          "content": "Continue",
+          "fontFamily": "$gs-font",
+          "fontSize": 14,
+          "fontWeight": "normal"
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "U0VrwX",
+      "x": 280,
+      "y": -400,
+      "name": "Switch on",
+      "reusable": true,
+      "width": 28,
+      "height": 16,
+      "fill": "$gs-ink",
+      "padding": 3,
+      "justifyContent": "end",
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "rectangle",
+          "id": "ETGIk",
+          "name": "Knob",
+          "fill": "$gs-bg",
+          "width": 10,
+          "height": 10
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "HBftZ",
+      "x": 340,
+      "y": -400,
+      "name": "Switch off",
+      "reusable": true,
+      "width": 28,
+      "height": 16,
+      "fill": "$gs-bg",
+      "stroke": "$gs-faint",
+      "strokeWidth": 1,
+      "padding": 3,
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "rectangle",
+          "id": "Ta9vQ",
+          "name": "Knob",
+          "fill": "$gs-mute",
+          "width": 10,
+          "height": 10
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "Ki5kJ",
+      "x": 0,
+      "y": -340,
+      "name": "App bar",
+      "reusable": true,
+      "width": 1440,
+      "height": 48,
+      "fill": "$gs-bg",
+      "gap": 28,
+      "padding": [
+        0,
+        24,
+        0,
+        104
+      ],
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "text",
+          "id": "xJ4Rz",
+          "name": "Wordmark",
+          "fill": "$gs-ink",
+          "content": "godspeed",
+          "fontFamily": "$gs-font",
+          "fontSize": 16,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "text",
+          "id": "IGTZL",
+          "name": "Today",
+          "fill": "$gs-ink",
+          "content": "Today",
+          "fontFamily": "$gs-font",
+          "fontSize": 15,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "frame",
+          "id": "oVT8a",
+          "name": "Tab CSE 21",
+          "gap": 8,
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "rectangle",
+              "id": "fIVaO",
+              "name": "Color",
+              "fill": "$gs-blue",
+              "width": 10,
+              "height": 10
+            },
+            {
+              "type": "text",
+              "id": "j4ovqP",
+              "name": "Name",
+              "fill": "$gs-ink",
+              "content": "CSE 21",
+              "fontFamily": "$gs-font",
+              "fontSize": 15,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "HOohh",
+          "name": "Tab CSE 29",
+          "gap": 8,
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "rectangle",
+              "id": "a2kXm",
+              "name": "Color",
+              "fill": "$gs-purple",
+              "width": 10,
+              "height": 10
+            },
+            {
+              "type": "text",
+              "id": "kbgiu",
+              "name": "Name",
+              "fill": "$gs-ink",
+              "content": "CSE 29",
+              "fontFamily": "$gs-font",
+              "fontSize": 15,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "icon",
+          "id": "ctPyB",
+          "name": "Add space",
+          "width": 16,
+          "height": 16,
+          "icon": "plus",
+          "library": "lucide",
+          "fill": "$gs-ink"
+        },
+        {
+          "type": "frame",
+          "id": "Og8Vi",
+          "name": "Spacer",
+          "width": "fill_container",
+          "height": 1
+        },
+        {
+          "type": "text",
+          "id": "TIlKt",
+          "name": "Agent status",
+          "fill": "$gs-mute",
+          "content": "Claude is teaching",
+          "fontFamily": "$gs-font",
+          "fontSize": 14,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "text",
+          "id": "WsZfm",
+          "name": "Menu",
+          "fill": "$gs-mute",
+          "content": "Menu",
+          "fontFamily": "$gs-font",
+          "fontSize": 14,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "text",
+          "id": "QzPS2",
+          "name": "Clock",
+          "fill": "$gs-ink",
+          "content": "19:17",
+          "fontFamily": "$gs-count",
+          "fontSize": 15,
+          "fontWeight": "normal"
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "RpWjx",
+      "x": 0,
+      "y": 0,
+      "name": "1A Plugins page, one list",
+      "clip": true,
+      "width": 1440,
+      "height": 900,
+      "fill": "$gs-bg",
+      "layout": "vertical",
+      "children": [
+        {
+          "id": "IuW2y",
+          "type": "ref",
+          "ref": "Ki5kJ",
+          "name": "App bar",
+          "width": "fill_container",
+          "descendants": {
+            "TIlKt": {
+              "content": "Claude is ready"
+            }
+          }
+        },
+        {
+          "type": "frame",
+          "id": "RYdAH",
+          "name": "Body",
+          "width": "fill_container",
+          "height": "fill_container",
+          "gap": 96,
+          "padding": [
+            56,
+            0,
+            0,
+            104
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "k9zT6",
+              "name": "Sections",
+              "width": 180,
+              "layout": "vertical",
+              "gap": 18,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "cz2Xl",
+                  "name": "Title",
+                  "fill": "$gs-ink",
+                  "content": "Settings",
+                  "fontFamily": "$gs-font",
+                  "fontSize": 30,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "Gr7R3",
+                  "name": "Connection",
+                  "fill": "$gs-mute",
+                  "content": "Connection",
+                  "fontFamily": "$gs-font",
+                  "fontSize": 16
+                },
+                {
+                  "type": "text",
+                  "id": "YZPls",
+                  "name": "Teaching",
+                  "fill": "$gs-mute",
+                  "content": "Teaching",
+                  "fontFamily": "$gs-font",
+                  "fontSize": 16
+                },
+                {
+                  "type": "text",
+                  "id": "LkRPJ",
+                  "name": "Appearance",
+                  "fill": "$gs-mute",
+                  "content": "Appearance",
+                  "fontFamily": "$gs-font",
+                  "fontSize": 16
+                },
+                {
+                  "type": "text",
+                  "id": "Q12RK",
+                  "name": "General",
+                  "fill": "$gs-mute",
+                  "content": "General",
+                  "fontFamily": "$gs-font",
+                  "fontSize": 16
+                },
+                {
+                  "type": "text",
+                  "id": "HyZ2L",
+                  "name": "Plugins",
+                  "fill": "$gs-ink",
+                  "content": "Plugins",
+                  "fontFamily": "$gs-font",
+                  "fontSize": 16,
+                  "fontWeight": "500"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "CDAOb",
+              "name": "Content",
+              "width": 720,
+              "layout": "vertical",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "Q8V79F",
+                  "name": "Heading",
+                  "fill": "$gs-ink",
+                  "content": "Plugins",
+                  "fontFamily": "$gs-font",
+                  "fontSize": 40,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "vy8AC",
+                  "name": "Gap",
+                  "width": 1,
+                  "height": 28
+                },
+                {
+                  "type": "frame",
+                  "id": "HXfvU",
+                  "name": "Installed",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "f70Mt",
+                      "name": "Head",
+                      "width": "fill_container",
+                      "stroke": "$gs-line-strong",
+                      "strokeWidth": {
+                        "bottom": 1
+                      },
+                      "padding": [
+                        0,
+                        0,
+                        8,
+                        0
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "q1VirC",
+                          "name": "Title",
+                          "fill": "$gs-ink",
+                          "content": "Installed",
+                          "fontFamily": "$gs-font",
+                          "fontSize": 20,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "M0Dk2v",
+                      "name": "Row Meme plugin",
+                      "width": "fill_container",
+                      "stroke": "$gs-line",
+                      "strokeWidth": {
+                        "bottom": 1
+                      },
+                      "gap": 16,
+                      "padding": [
+                        16,
+                        0
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "UPhRk",
+                          "name": "Icon",
+                          "width": 36,
+                          "height": 36,
+                          "fill": "$gs-green",
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "ZvJBw",
+                              "name": "Glyph",
+                              "fill": "#0A0A0A",
+                              "content": "M",
+                              "fontFamily": "$gs-count",
+                              "fontSize": 20,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "P7dNg",
+                          "name": "Text",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 4,
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "LYZmv",
+                              "name": "Name",
+                              "fill": "$gs-ink",
+                              "content": "Meme plugin",
+                              "fontFamily": "$gs-font",
+                              "fontSize": 17,
+                              "fontWeight": "normal"
+                            },
+                            {
+                              "type": "text",
+                              "id": "diJa1",
+                              "name": "Description",
+                              "fill": "$gs-mute",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "Turns the question you just answered into a meme.",
+                              "fontFamily": "$gs-font",
+                              "fontSize": 14,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "id": "SsGNX",
+                          "type": "ref",
+                          "ref": "U0VrwX",
+                          "name": "On"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "pbAdx",
+                      "name": "Row Mistake tracker",
+                      "width": "fill_container",
+                      "stroke": "$gs-line",
+                      "strokeWidth": {
+                        "bottom": 1
+                      },
+                      "gap": 16,
+                      "padding": [
+                        16,
+                        0
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "itqAP",
+                          "name": "Icon",
+                          "width": 36,
+                          "height": 36,
+                          "fill": "$gs-purple",
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "MTJMh",
+                              "name": "Glyph",
+                              "fill": "#0A0A0A",
+                              "content": "!",
+                              "fontFamily": "$gs-count",
+                              "fontSize": 20,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "A39GDl",
+                          "name": "Text",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 4,
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "i2zkr",
+                              "name": "Name",
+                              "fill": "$gs-ink",
+                              "content": "Mistake tracker",
+                              "fontFamily": "$gs-font",
+                              "fontSize": 17,
+                              "fontWeight": "normal"
+                            },
+                            {
+                              "type": "text",
+                              "id": "mNxdK",
+                              "name": "Description",
+                              "fill": "$gs-mute",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "Keeps a list of what you got wrong and why.",
+                              "fontFamily": "$gs-font",
+                              "fontSize": 14,
+                              "fontWeight": "normal"
+                            },
+                            {
+                              "type": "frame",
+                              "id": "ZIVQl",
+                              "name": "Asks for more",
+                              "gap": 12,
+                              "padding": [
+                                6,
+                                0,
+                                0,
+                                0
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "zOReF",
+                                  "name": "New ask",
+                                  "fill": "$gs-olive-ink",
+                                  "content": "The new version also wants to ask Claude for short jobs.",
+                                  "fontFamily": "$gs-font",
+                                  "fontSize": 14,
+                                  "fontWeight": "normal"
+                                },
+                                {
+                                  "id": "WC16K",
+                                  "type": "ref",
+                                  "ref": "ZC2ad",
+                                  "name": "Allow",
+                                  "descendants": {
+                                    "uZl4c": {
+                                      "content": "Allow"
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "id": "P6XtD",
+                          "type": "ref",
+                          "ref": "HBftZ",
+                          "name": "Off"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "FXWii",
+                  "name": "Gap",
+                  "width": 1,
+                  "height": 40
+                },
+                {
+                  "type": "frame",
+                  "id": "pOVev",
+                  "name": "More plugins",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "gjikt",
+                      "name": "Head",
+                      "width": "fill_container",
+                      "stroke": "$gs-line-strong",
+                      "strokeWidth": {
+                        "bottom": 1
+                      },
+                      "padding": [
+                        0,
+                        0,
+                        8,
+                        0
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "Y8lx8q",
+                          "name": "Title",
+                          "fill": "$gs-ink",
+                          "content": "More plugins",
+                          "fontFamily": "$gs-font",
+                          "fontSize": 20,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "NMdiR",
+                      "name": "Row Activity heatmap",
+                      "width": "fill_container",
+                      "stroke": "$gs-line",
+                      "strokeWidth": {
+                        "bottom": 1
+                      },
+                      "gap": 16,
+                      "padding": [
+                        16,
+                        0
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "HZM3T",
+                          "name": "Icon",
+                          "width": 36,
+                          "height": 36,
+                          "fill": "$gs-blue",
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "z0RE7T",
+                              "name": "Glyph",
+                              "fill": "#0A0A0A",
+                              "content": "#",
+                              "fontFamily": "$gs-count",
+                              "fontSize": 20,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "QSR2B",
+                          "name": "Text",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 4,
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "eBKg7",
+                              "name": "Name",
+                              "fill": "$gs-ink",
+                              "content": "Activity heatmap",
+                              "fontFamily": "$gs-font",
+                              "fontSize": 17,
+                              "fontWeight": "normal"
+                            },
+                            {
+                              "type": "text",
+                              "id": "qZNss",
+                              "name": "Description",
+                              "fill": "$gs-mute",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "A year of study days on your Today page.",
+                              "fontFamily": "$gs-font",
+                              "fontSize": 14,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "id": "V8QUqs",
+                          "type": "ref",
+                          "ref": "ZC2ad",
+                          "name": "Add",
+                          "descendants": {
+                            "uZl4c": {
+                              "content": "Add"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "s9hKq",
+                      "name": "Row Drawing pad",
+                      "width": "fill_container",
+                      "stroke": "$gs-line",
+                      "strokeWidth": {
+                        "bottom": 1
+                      },
+                      "gap": 16,
+                      "padding": [
+                        16,
+                        0
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "h7r2SJ",
+                          "name": "Icon",
+                          "width": 36,
+                          "height": 36,
+                          "fill": "$gs-olive",
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "ZGklP",
+                              "name": "Glyph",
+                              "fill": "#0A0A0A",
+                              "content": "~",
+                              "fontFamily": "$gs-count",
+                              "fontSize": 20,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "yWPM8",
+                          "name": "Text",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 4,
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "kjZtR",
+                              "name": "Name",
+                              "fill": "$gs-ink",
+                              "content": "Drawing pad",
+                              "fontFamily": "$gs-font",
+                              "fontSize": 17,
+                              "fontWeight": "normal"
+                            },
+                            {
+                              "type": "text",
+                              "id": "LKNSF",
+                              "name": "Description",
+                              "fill": "$gs-mute",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "Sketch your working beside a problem.",
+                              "fontFamily": "$gs-font",
+                              "fontSize": 14,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "VoD6s",
+                          "name": "Too new",
+                          "fill": "$gs-mute",
+                          "content": "Needs godspeed 0.6.8",
+                          "fontFamily": "$gs-font",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "k3ZAqv",
+                      "name": "Row Flashcards",
+                      "width": "fill_container",
+                      "stroke": "$gs-line",
+                      "strokeWidth": {
+                        "bottom": 1
+                      },
+                      "gap": 16,
+                      "padding": [
+                        16,
+                        0
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "pPFaQ",
+                          "name": "Icon",
+                          "width": 36,
+                          "height": 36,
+                          "fill": "$gs-red",
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "EApHg",
+                              "name": "Glyph",
+                              "fill": "#0A0A0A",
+                              "content": "F",
+                              "fontFamily": "$gs-count",
+                              "fontSize": 20,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "eq1yl",
+                          "name": "Text",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 4,
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "lTLR1",
+                              "name": "Name",
+                              "fill": "$gs-ink",
+                              "content": "Flashcards",
+                              "fontFamily": "$gs-font",
+                              "fontSize": 17,
+                              "fontWeight": "normal"
+                            },
+                            {
+                              "type": "text",
+                              "id": "kSPVP",
+                              "name": "Description",
+                              "fill": "$gs-mute",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "Turns a lesson into cards you review later.",
+                              "fontFamily": "$gs-font",
+                              "fontSize": 14,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "id": "nMHVJ",
+                          "type": "ref",
+                          "ref": "ZC2ad",
+                          "name": "Add",
+                          "descendants": {
+                            "uZl4c": {
+                              "content": "Add"
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "L0vYmw",
+                  "name": "Gap",
+                  "width": 1,
+                  "height": 28
+                },
+                {
+                  "type": "frame",
+                  "id": "TQz5b",
+                  "name": "Add from a folder",
+                  "gap": 8,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "NTKss",
+                      "name": "Plus",
+                      "width": 16,
+                      "height": 16,
+                      "icon": "folder-plus",
+                      "library": "lucide",
+                      "fill": "$gs-mute"
+                    },
+                    {
+                      "type": "text",
+                      "id": "RX6p2",
+                      "name": "Label",
+                      "fill": "$gs-mute",
+                      "content": "Add from a folder",
+                      "fontFamily": "$gs-font",
+                      "fontSize": 15,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "jOKip",
+      "x": 1540,
+      "y": 0,
+      "name": "1C Plugins page, list beside detail",
+      "clip": true,
+      "width": 1440,
+      "height": 900,
+      "fill": "$gs-bg",
+      "layout": "vertical",
+      "children": [
+        {
+          "id": "cZq6x",
+          "type": "ref",
+          "ref": "Ki5kJ",
+          "name": "App bar",
+          "width": "fill_container",
+          "descendants": {
+            "TIlKt": {
+              "content": "Claude is ready"
+            }
+          }
+        },
+        {
+          "type": "frame",
+          "id": "t1bmH",
+          "name": "Body",
+          "width": "fill_container",
+          "height": "fill_container",
+          "gap": 96,
+          "padding": [
+            56,
+            0,
+            0,
+            104
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "Bn6no",
+              "name": "Sections",
+              "width": 180,
+              "layout": "vertical",
+              "gap": 18,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "z8mkI",
+                  "name": "Title",
+                  "fill": "$gs-ink",
+                  "content": "Settings",
+                  "fontFamily": "$gs-font",
+                  "fontSize": 30,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "SAl88",
+                  "name": "Connection",
+                  "fill": "$gs-mute",
+                  "content": "Connection",
+                  "fontFamily": "$gs-font",
+                  "fontSize": 16
+                },
+                {
+                  "type": "text",
+                  "id": "D6SCpo",
+                  "name": "Teaching",
+                  "fill": "$gs-mute",
+                  "content": "Teaching",
+                  "fontFamily": "$gs-font",
+                  "fontSize": 16
+                },
+                {
+                  "type": "text",
+                  "id": "Md8lj",
+                  "name": "Appearance",
+                  "fill": "$gs-mute",
+                  "content": "Appearance",
+                  "fontFamily": "$gs-font",
+                  "fontSize": 16
+                },
+                {
+                  "type": "text",
+                  "id": "kJXhY",
+                  "name": "General",
+                  "fill": "$gs-mute",
+                  "content": "General",
+                  "fontFamily": "$gs-font",
+                  "fontSize": 16
+                },
+                {
+                  "type": "text",
+                  "id": "O7JXW",
+                  "name": "Plugins",
+                  "fill": "$gs-ink",
+                  "content": "Plugins",
+                  "fontFamily": "$gs-font",
+                  "fontSize": 16,
+                  "fontWeight": "500"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "Yc05t",
+              "name": "Content",
+              "width": 1000,
+              "height": "fill_container",
+              "gap": 48,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "P1dlZ7",
+                  "name": "List",
+                  "width": 320,
+                  "layout": "vertical",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "XFIu3",
+                      "name": "Heading",
+                      "fill": "$gs-ink",
+                      "content": "Plugins",
+                      "fontFamily": "$gs-font",
+                      "fontSize": 40,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "HO0eb",
+                      "name": "Gap",
+                      "width": 1,
+                      "height": 24
+                    },
+                    {
+                      "type": "frame",
+                      "id": "hqiIR",
+                      "name": "Item Meme plugin",
+                      "width": "fill_container",
+                      "fill": "$gs-raise",
+                      "stroke": "$gs-line-strong",
+                      "strokeWidth": 1,
+                      "gap": 12,
+                      "padding": [
+                        10,
+                        12
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "S5KGOd",
+                          "name": "Icon",
+                          "width": 28,
+                          "height": 28,
+                          "fill": "$gs-green",
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "DfLbc",
+                              "name": "Glyph",
+                              "fill": "#0A0A0A",
+                              "content": "M",
+                              "fontFamily": "$gs-count",
+                              "fontSize": 15.400000000000002,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "Xo5zC",
+                          "name": "Name",
+                          "fill": "$gs-ink",
+                          "content": "Meme plugin",
+                          "fontFamily": "$gs-font",
+                          "fontSize": 16,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "WYoYt",
+                          "name": "Spacer",
+                          "width": "fill_container",
+                          "height": 1
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "j9L4w8",
+                      "name": "Item Mistake tracker",
+                      "width": "fill_container",
+                      "gap": 12,
+                      "padding": [
+                        10,
+                        12
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "ZdiSS",
+                          "name": "Icon",
+                          "opacity": 0.45,
+                          "width": 28,
+                          "height": 28,
+                          "fill": "$gs-purple",
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "EgftR",
+                              "name": "Glyph",
+                              "fill": "#0A0A0A",
+                              "content": "!",
+                              "fontFamily": "$gs-count",
+                              "fontSize": 15.400000000000002,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "yYGzK",
+                          "name": "Name",
+                          "fill": "$gs-faint",
+                          "content": "Mistake tracker",
+                          "fontFamily": "$gs-font",
+                          "fontSize": 16,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "HZXz0",
+                          "name": "Spacer",
+                          "width": "fill_container",
+                          "height": 1
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "HwkuL",
+                      "name": "More head",
+                      "width": "fill_container",
+                      "padding": [
+                        20,
+                        12,
+                        8,
+                        12
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "crLov",
+                          "name": "Title",
+                          "fill": "$gs-mute",
+                          "content": "More plugins",
+                          "fontFamily": "$gs-font",
+                          "fontSize": 15,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "nJh0I",
+                      "name": "Item Activity heatmap",
+                      "width": "fill_container",
+                      "gap": 12,
+                      "padding": [
+                        10,
+                        12
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "ULGsb",
+                          "name": "Icon",
+                          "width": 28,
+                          "height": 28,
+                          "fill": "$gs-blue",
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "n4imL",
+                              "name": "Glyph",
+                              "fill": "#0A0A0A",
+                              "content": "#",
+                              "fontFamily": "$gs-count",
+                              "fontSize": 15.400000000000002,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "k1Pord",
+                          "name": "Name",
+                          "fill": "$gs-ink",
+                          "content": "Activity heatmap",
+                          "fontFamily": "$gs-font",
+                          "fontSize": 16,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "N9dCs",
+                          "name": "Spacer",
+                          "width": "fill_container",
+                          "height": 1
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "c9ZYP",
+                      "name": "Item Drawing pad",
+                      "width": "fill_container",
+                      "gap": 12,
+                      "padding": [
+                        10,
+                        12
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "hwtUi",
+                          "name": "Icon",
+                          "width": 28,
+                          "height": 28,
+                          "fill": "$gs-olive",
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "Pll1C",
+                              "name": "Glyph",
+                              "fill": "#0A0A0A",
+                              "content": "~",
+                              "fontFamily": "$gs-count",
+                              "fontSize": 15.400000000000002,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "j6o1K",
+                          "name": "Name",
+                          "fill": "$gs-ink",
+                          "content": "Drawing pad",
+                          "fontFamily": "$gs-font",
+                          "fontSize": 16,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "T4OBQ",
+                          "name": "Spacer",
+                          "width": "fill_container",
+                          "height": 1
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "gIOnK",
+                      "name": "Item Flashcards",
+                      "width": "fill_container",
+                      "gap": 12,
+                      "padding": [
+                        10,
+                        12
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "NgDpI",
+                          "name": "Icon",
+                          "width": 28,
+                          "height": 28,
+                          "fill": "$gs-red",
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "Q4XsW",
+                              "name": "Glyph",
+                              "fill": "#0A0A0A",
+                              "content": "F",
+                              "fontFamily": "$gs-count",
+                              "fontSize": 15.400000000000002,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "kRHLH",
+                          "name": "Name",
+                          "fill": "$gs-ink",
+                          "content": "Flashcards",
+                          "fontFamily": "$gs-font",
+                          "fontSize": 16,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "X3oW6",
+                          "name": "Spacer",
+                          "width": "fill_container",
+                          "height": 1
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "x9JlF",
+                      "name": "Add from a folder",
+                      "gap": 8,
+                      "padding": [
+                        20,
+                        12
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "J0MYq",
+                          "name": "Plus",
+                          "width": 16,
+                          "height": 16,
+                          "icon": "folder-plus",
+                          "library": "lucide",
+                          "fill": "$gs-mute"
+                        },
+                        {
+                          "type": "text",
+                          "id": "c0XpJ3",
+                          "name": "Label",
+                          "fill": "$gs-mute",
+                          "content": "Add from a folder",
+                          "fontFamily": "$gs-font",
+                          "fontSize": 15,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "RoigB",
+                  "name": "Detail",
+                  "width": "fill_container",
+                  "height": "fill_container",
+                  "stroke": "$gs-line",
+                  "strokeWidth": {
+                    "left": 1
+                  },
+                  "layout": "vertical",
+                  "gap": 28,
+                  "padding": [
+                    64,
+                    0,
+                    0,
+                    40
+                  ],
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "U2civ",
+                      "name": "Head",
+                      "width": "fill_container",
+                      "gap": 16,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "Zgo5N",
+                          "name": "Icon",
+                          "width": 56,
+                          "height": 56,
+                          "fill": "$gs-green",
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "O45Lu",
+                              "name": "Glyph",
+                              "fill": "#0A0A0A",
+                              "content": "M",
+                              "fontFamily": "$gs-count",
+                              "fontSize": 30.800000000000004,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "jIrBd",
+                          "name": "Title",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 4,
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "XXWl6",
+                              "name": "Name",
+                              "fill": "$gs-ink",
+                              "content": "Meme plugin",
+                              "fontFamily": "$gs-font",
+                              "fontSize": 28,
+                              "fontWeight": "normal"
+                            },
+                            {
+                              "type": "text",
+                              "id": "CjTnf",
+                              "name": "By",
+                              "fill": "$gs-mute",
+                              "content": "by 808arc",
+                              "fontFamily": "$gs-font",
+                              "fontSize": 14,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "id": "l3gg9O",
+                          "type": "ref",
+                          "ref": "U0VrwX",
+                          "name": "On"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "KQprk",
+                      "name": "About",
+                      "fill": "$gs-ink",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Turns the question you just answered into a meme. The meme states the answer, so its button shows once you have answered.",
+                      "lineHeight": 1.5,
+                      "fontFamily": "$gs-prose",
+                      "fontSize": 16,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "lVahw",
+                      "name": "Settings rows",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "X5Pxz",
+                          "name": "Row Meme mode",
+                          "width": "fill_container",
+                          "stroke": "$gs-line",
+                          "strokeWidth": {
+                            "bottom": 1
+                          },
+                          "padding": [
+                            14,
+                            0
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "N0em4",
+                              "name": "Label",
+                              "fill": "$gs-ink",
+                              "content": "Meme mode",
+                              "fontFamily": "$gs-font",
+                              "fontSize": 16,
+                              "fontWeight": "normal"
+                            },
+                            {
+                              "type": "frame",
+                              "id": "TPRGH",
+                              "name": "Spacer",
+                              "width": "fill_container",
+                              "height": 1
+                            },
+                            {
+                              "type": "frame",
+                              "id": "pD9ui",
+                              "name": "Choice",
+                              "stroke": "$gs-line-strong",
+                              "strokeWidth": 1,
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "PaF0a",
+                                  "name": "Answer",
+                                  "fill": "$gs-ink",
+                                  "padding": [
+                                    5,
+                                    12
+                                  ],
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "iAVJk",
+                                      "name": "L",
+                                      "fill": "$gs-bg",
+                                      "content": "Answer",
+                                      "fontFamily": "$gs-font",
+                                      "fontSize": 14,
+                                      "fontWeight": "normal"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "sS19G",
+                                  "name": "Hint",
+                                  "padding": [
+                                    5,
+                                    12
+                                  ],
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "x2n4Y",
+                                      "name": "L",
+                                      "fill": "$gs-mute",
+                                      "content": "Hint",
+                                      "fontFamily": "$gs-font",
+                                      "fontSize": 14,
+                                      "fontWeight": "normal"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "Cehns",
+                                  "name": "Think",
+                                  "padding": [
+                                    5,
+                                    12
+                                  ],
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "NaCVS",
+                                      "name": "L",
+                                      "fill": "$gs-mute",
+                                      "content": "Think",
+                                      "fontFamily": "$gs-font",
+                                      "fontSize": 14,
+                                      "fontWeight": "normal"
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "JnUJp",
+                          "name": "Row Tone",
+                          "width": "fill_container",
+                          "stroke": "$gs-line",
+                          "strokeWidth": {
+                            "bottom": 1
+                          },
+                          "padding": [
+                            14,
+                            0
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "GfqQ5",
+                              "name": "Label",
+                              "fill": "$gs-ink",
+                              "content": "Tone",
+                              "fontFamily": "$gs-font",
+                              "fontSize": 16,
+                              "fontWeight": "normal"
+                            },
+                            {
+                              "type": "frame",
+                              "id": "RZ86F",
+                              "name": "Spacer",
+                              "width": "fill_container",
+                              "height": 1
+                            },
+                            {
+                              "type": "frame",
+                              "id": "qFVsZ",
+                              "name": "Choice",
+                              "stroke": "$gs-line-strong",
+                              "strokeWidth": 1,
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "wddQ5",
+                                  "name": "Plain",
+                                  "padding": [
+                                    5,
+                                    12
+                                  ],
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "D4pgO",
+                                      "name": "L",
+                                      "fill": "$gs-mute",
+                                      "content": "Plain",
+                                      "fontFamily": "$gs-font",
+                                      "fontSize": 14,
+                                      "fontWeight": "normal"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "W8peFT",
+                                  "name": "Deadpan",
+                                  "fill": "$gs-ink",
+                                  "padding": [
+                                    5,
+                                    12
+                                  ],
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "xvuFW",
+                                      "name": "L",
+                                      "fill": "$gs-bg",
+                                      "content": "Deadpan",
+                                      "fontFamily": "$gs-font",
+                                      "fontSize": 14,
+                                      "fontWeight": "normal"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "SIe4U",
+                                  "name": "Absurd",
+                                  "padding": [
+                                    5,
+                                    12
+                                  ],
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "ZWK9M",
+                                      "name": "L",
+                                      "fill": "$gs-mute",
+                                      "content": "Absurd",
+                                      "fontFamily": "$gs-font",
+                                      "fontSize": 14,
+                                      "fontWeight": "normal"
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "qWgtC",
+                          "name": "Row Days before a meme comes back",
+                          "width": "fill_container",
+                          "stroke": "$gs-line",
+                          "strokeWidth": {
+                            "bottom": 1
+                          },
+                          "padding": [
+                            14,
+                            0
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "ntGdW",
+                              "name": "Label",
+                              "fill": "$gs-ink",
+                              "content": "Days before a meme comes back",
+                              "fontFamily": "$gs-font",
+                              "fontSize": 16,
+                              "fontWeight": "normal"
+                            },
+                            {
+                              "type": "frame",
+                              "id": "y0ci8J",
+                              "name": "Spacer",
+                              "width": "fill_container",
+                              "height": 1
+                            },
+                            {
+                              "type": "frame",
+                              "id": "uRaVX",
+                              "name": "Number",
+                              "stroke": "$gs-line-strong",
+                              "strokeWidth": 1,
+                              "padding": [
+                                5,
+                                12
+                              ],
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "mRspp",
+                                  "name": "V",
+                                  "fill": "$gs-ink",
+                                  "content": "14",
+                                  "fontFamily": "$gs-count",
+                                  "fontSize": 15,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "y57jd",
+                          "name": "Row Use my own memes first",
+                          "width": "fill_container",
+                          "stroke": "$gs-line",
+                          "strokeWidth": {
+                            "bottom": 1
+                          },
+                          "padding": [
+                            14,
+                            0
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "bu1Bc",
+                              "name": "Label",
+                              "fill": "$gs-ink",
+                              "content": "Use my own memes first",
+                              "fontFamily": "$gs-font",
+                              "fontSize": 16,
+                              "fontWeight": "normal"
+                            },
+                            {
+                              "type": "frame",
+                              "id": "Zd0eN",
+                              "name": "Spacer",
+                              "width": "fill_container",
+                              "height": 1
+                            },
+                            {
+                              "id": "FFujq",
+                              "type": "ref",
+                              "ref": "U0VrwX",
+                              "name": "On"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "VgVlo",
+                      "name": "Foot",
+                      "width": "fill_container",
+                      "gap": 16,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "id": "o2xJv",
+                          "type": "ref",
+                          "ref": "ZC2ad",
+                          "name": "Show plugin folder",
+                          "descendants": {
+                            "uZl4c": {
+                              "content": "Show plugin folder"
+                            }
+                          }
+                        },
+                        {
+                          "type": "frame",
+                          "id": "i0TrpV",
+                          "name": "Spacer",
+                          "width": "fill_container",
+                          "height": 1
+                        },
+                        {
+                          "type": "text",
+                          "id": "YrHcv",
+                          "name": "Remove",
+                          "fill": "$gs-red",
+                          "content": "Remove",
+                          "fontFamily": "$gs-font",
+                          "fontSize": 15,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "MplpS",
+      "x": 0,
+      "y": 1000,
+      "name": "2 Add sheet",
+      "clip": true,
+      "width": 1440,
+      "height": 900,
+      "fill": "$gs-bg",
+      "layout": "vertical",
+      "children": [
+        {
+          "id": "Cbuh2",
+          "type": "ref",
+          "ref": "Ki5kJ",
+          "name": "App bar",
+          "width": "fill_container",
+          "descendants": {
+            "TIlKt": {
+              "content": "Claude is ready"
+            }
+          }
+        },
+        {
+          "type": "frame",
+          "id": "larCU",
+          "name": "Body",
+          "width": "fill_container",
+          "height": "fill_container",
+          "gap": 96,
+          "padding": [
+            56,
+            0,
+            0,
+            104
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "IM19i",
+              "name": "Sections",
+              "width": 180,
+              "layout": "vertical",
+              "gap": 18,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "aaBFv",
+                  "name": "Title",
+                  "fill": "$gs-ink",
+                  "content": "Settings",
+                  "fontFamily": "$gs-font",
+                  "fontSize": 30,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "IEdIo",
+                  "name": "Connection",
+                  "fill": "$gs-mute",
+                  "content": "Connection",
+                  "fontFamily": "$gs-font",
+                  "fontSize": 16
+                },
+                {
+                  "type": "text",
+                  "id": "My0um",
+                  "name": "Teaching",
+                  "fill": "$gs-mute",
+                  "content": "Teaching",
+                  "fontFamily": "$gs-font",
+                  "fontSize": 16
+                },
+                {
+                  "type": "text",
+                  "id": "O9SQm",
+                  "name": "Appearance",
+                  "fill": "$gs-mute",
+                  "content": "Appearance",
+                  "fontFamily": "$gs-font",
+                  "fontSize": 16
+                },
+                {
+                  "type": "text",
+                  "id": "N8aL7",
+                  "name": "General",
+                  "fill": "$gs-mute",
+                  "content": "General",
+                  "fontFamily": "$gs-font",
+                  "fontSize": 16
+                },
+                {
+                  "type": "text",
+                  "id": "DIvE5",
+                  "name": "Plugins",
+                  "fill": "$gs-ink",
+                  "content": "Plugins",
+                  "fontFamily": "$gs-font",
+                  "fontSize": 16,
+                  "fontWeight": "500"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "J9VRMj",
+              "name": "Content",
+              "width": 720,
+              "layout": "vertical",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "yFalx",
+                  "name": "Heading",
+                  "fill": "$gs-ink",
+                  "content": "Plugins",
+                  "fontFamily": "$gs-font",
+                  "fontSize": 40,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "c2Aqyy",
+                  "name": "Gap",
+                  "width": 1,
+                  "height": 28
+                },
+                {
+                  "type": "frame",
+                  "id": "vWmBW",
+                  "name": "Installed",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "msd75",
+                      "name": "Head",
+                      "width": "fill_container",
+                      "stroke": "$gs-line-strong",
+                      "strokeWidth": {
+                        "bottom": 1
+                      },
+                      "padding": [
+                        0,
+                        0,
+                        8,
+                        0
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "J7LRKX",
+                          "name": "Title",
+                          "fill": "$gs-ink",
+                          "content": "Installed",
+                          "fontFamily": "$gs-font",
+                          "fontSize": 20,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "z7S2W0",
+                      "name": "Row Meme plugin",
+                      "width": "fill_container",
+                      "stroke": "$gs-line",
+                      "strokeWidth": {
+                        "bottom": 1
+                      },
+                      "gap": 16,
+                      "padding": [
+                        16,
+                        0
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "guip9",
+                          "name": "Icon",
+                          "width": 36,
+                          "height": 36,
+                          "fill": "$gs-green",
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "d0rWJ",
+                              "name": "Glyph",
+                              "fill": "#0A0A0A",
+                              "content": "L",
+                              "fontFamily": "$gs-count",
+                              "fontSize": 20,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "Ho4ts",
+                          "name": "Text",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 4,
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "Z23ulQ",
+                              "name": "Name",
+                              "fill": "$gs-ink",
+                              "content": "Lecture notes",
+                              "fontFamily": "$gs-font",
+                              "fontSize": 17,
+                              "fontWeight": "normal"
+                            },
+                            {
+                              "type": "text",
+                              "id": "f5Whc",
+                              "name": "Description",
+                              "fill": "$gs-mute",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "Pulls key lines from your lecture slides.",
+                              "fontFamily": "$gs-font",
+                              "fontSize": 14,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "id": "eeV46",
+                          "type": "ref",
+                          "ref": "U0VrwX",
+                          "name": "On"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "PsuIo",
+                      "name": "Row Mistake tracker",
+                      "width": "fill_container",
+                      "stroke": "$gs-line",
+                      "strokeWidth": {
+                        "bottom": 1
+                      },
+                      "gap": 16,
+                      "padding": [
+                        16,
+                        0
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "JBqVm",
+                          "name": "Icon",
+                          "width": 36,
+                          "height": 36,
+                          "fill": "$gs-purple",
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "yi7XT",
+                              "name": "Glyph",
+                              "fill": "#0A0A0A",
+                              "content": "!",
+                              "fontFamily": "$gs-count",
+                              "fontSize": 20,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "k5jGlF",
+                          "name": "Text",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 4,
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "iqKIj",
+                              "name": "Name",
+                              "fill": "$gs-ink",
+                              "content": "Mistake tracker",
+                              "fontFamily": "$gs-font",
+                              "fontSize": 17,
+                              "fontWeight": "normal"
+                            },
+                            {
+                              "type": "text",
+                              "id": "Y9CnVI",
+                              "name": "Description",
+                              "fill": "$gs-mute",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "Keeps a list of what you got wrong and why.",
+                              "fontFamily": "$gs-font",
+                              "fontSize": 14,
+                              "fontWeight": "normal"
+                            },
+                            {
+                              "type": "frame",
+                              "id": "M8a1I",
+                              "name": "Asks for more",
+                              "gap": 12,
+                              "padding": [
+                                6,
+                                0,
+                                0,
+                                0
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "v1BAK7",
+                                  "name": "New ask",
+                                  "fill": "$gs-olive-ink",
+                                  "content": "The new version also wants to ask Claude for short jobs.",
+                                  "fontFamily": "$gs-font",
+                                  "fontSize": 14,
+                                  "fontWeight": "normal"
+                                },
+                                {
+                                  "id": "pDpCj",
+                                  "type": "ref",
+                                  "ref": "ZC2ad",
+                                  "name": "Allow",
+                                  "descendants": {
+                                    "uZl4c": {
+                                      "content": "Allow"
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "id": "HxEZ4",
+                          "type": "ref",
+                          "ref": "HBftZ",
+                          "name": "Off"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "vjA7d",
+                  "name": "Gap",
+                  "width": 1,
+                  "height": 40
+                },
+                {
+                  "type": "frame",
+                  "id": "w50sXB",
+                  "name": "More plugins",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "pLdUx",
+                      "name": "Head",
+                      "width": "fill_container",
+                      "stroke": "$gs-line-strong",
+                      "strokeWidth": {
+                        "bottom": 1
+                      },
+                      "padding": [
+                        0,
+                        0,
+                        8,
+                        0
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "cUUOv",
+                          "name": "Title",
+                          "fill": "$gs-ink",
+                          "content": "More plugins",
+                          "fontFamily": "$gs-font",
+                          "fontSize": 20,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "hmBh8",
+                      "name": "Row Activity heatmap",
+                      "width": "fill_container",
+                      "stroke": "$gs-line",
+                      "strokeWidth": {
+                        "bottom": 1
+                      },
+                      "gap": 16,
+                      "padding": [
+                        16,
+                        0
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "r9Nsm",
+                          "name": "Icon",
+                          "width": 36,
+                          "height": 36,
+                          "fill": "$gs-blue",
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "NsxAb",
+                              "name": "Glyph",
+                              "fill": "#0A0A0A",
+                              "content": "#",
+                              "fontFamily": "$gs-count",
+                              "fontSize": 20,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "uJsqQ",
+                          "name": "Text",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 4,
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "gUg2x",
+                              "name": "Name",
+                              "fill": "$gs-ink",
+                              "content": "Meme plugin",
+                              "fontFamily": "$gs-font",
+                              "fontSize": 17,
+                              "fontWeight": "normal"
+                            },
+                            {
+                              "type": "text",
+                              "id": "m9vJA",
+                              "name": "Description",
+                              "fill": "$gs-mute",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "Turns the question you just answered into a meme.",
+                              "fontFamily": "$gs-font",
+                              "fontSize": 14,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "id": "s25TYN",
+                          "type": "ref",
+                          "ref": "ZC2ad",
+                          "name": "Add",
+                          "descendants": {
+                            "uZl4c": {
+                              "content": "Add"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "wjFXC",
+                      "name": "Row Drawing pad",
+                      "width": "fill_container",
+                      "stroke": "$gs-line",
+                      "strokeWidth": {
+                        "bottom": 1
+                      },
+                      "gap": 16,
+                      "padding": [
+                        16,
+                        0
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "fkGPD",
+                          "name": "Icon",
+                          "width": 36,
+                          "height": 36,
+                          "fill": "$gs-olive",
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "hWK9h",
+                              "name": "Glyph",
+                              "fill": "#0A0A0A",
+                              "content": "~",
+                              "fontFamily": "$gs-count",
+                              "fontSize": 20,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "awrbd",
+                          "name": "Text",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 4,
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "O0dvmx",
+                              "name": "Name",
+                              "fill": "$gs-ink",
+                              "content": "Drawing pad",
+                              "fontFamily": "$gs-font",
+                              "fontSize": 17,
+                              "fontWeight": "normal"
+                            },
+                            {
+                              "type": "text",
+                              "id": "nbNqo",
+                              "name": "Description",
+                              "fill": "$gs-mute",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "Sketch your working beside a problem.",
+                              "fontFamily": "$gs-font",
+                              "fontSize": 14,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "fOPA6",
+                          "name": "Too new",
+                          "fill": "$gs-mute",
+                          "content": "Needs godspeed 0.6.8",
+                          "fontFamily": "$gs-font",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "inJCq",
+                      "name": "Row Flashcards",
+                      "width": "fill_container",
+                      "stroke": "$gs-line",
+                      "strokeWidth": {
+                        "bottom": 1
+                      },
+                      "gap": 16,
+                      "padding": [
+                        16,
+                        0
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "zes91",
+                          "name": "Icon",
+                          "width": 36,
+                          "height": 36,
+                          "fill": "$gs-red",
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "N3SnU",
+                              "name": "Glyph",
+                              "fill": "#0A0A0A",
+                              "content": "F",
+                              "fontFamily": "$gs-count",
+                              "fontSize": 20,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "NEupr",
+                          "name": "Text",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 4,
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "dcqmH",
+                              "name": "Name",
+                              "fill": "$gs-ink",
+                              "content": "Flashcards",
+                              "fontFamily": "$gs-font",
+                              "fontSize": 17,
+                              "fontWeight": "normal"
+                            },
+                            {
+                              "type": "text",
+                              "id": "xrVDE",
+                              "name": "Description",
+                              "fill": "$gs-mute",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "Turns a lesson into cards you review later.",
+                              "fontFamily": "$gs-font",
+                              "fontSize": 14,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "id": "bwrUC",
+                          "type": "ref",
+                          "ref": "ZC2ad",
+                          "name": "Add",
+                          "descendants": {
+                            "uZl4c": {
+                              "content": "Add"
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "QW8a2",
+                  "name": "Gap",
+                  "width": 1,
+                  "height": 28
+                },
+                {
+                  "type": "frame",
+                  "id": "nmZlR",
+                  "name": "Add from a folder",
+                  "gap": 8,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "gwf9G",
+                      "name": "Plus",
+                      "width": 16,
+                      "height": 16,
+                      "icon": "folder-plus",
+                      "library": "lucide",
+                      "fill": "$gs-mute"
+                    },
+                    {
+                      "type": "text",
+                      "id": "v3otbv",
+                      "name": "Label",
+                      "fill": "$gs-mute",
+                      "content": "Add from a folder",
+                      "fontFamily": "$gs-font",
+                      "fontSize": 15,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "S1A4N",
+          "layoutPosition": "absolute",
+          "x": 0,
+          "y": 0,
+          "name": "Dim",
+          "width": 1440,
+          "height": 900,
+          "fill": "#000000C0",
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "rF97C",
+              "name": "Sheet",
+              "width": 540,
+              "fill": "$gs-card",
+              "stroke": "$gs-line-strong",
+              "strokeWidth": 1,
+              "layout": "vertical",
+              "gap": 24,
+              "padding": 32,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "e2kbK",
+                  "name": "Head",
+                  "width": "fill_container",
+                  "gap": 16,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "Pfp7p",
+                      "name": "Icon",
+                      "width": 56,
+                      "height": 56,
+                      "fill": "$gs-green",
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "GcAaY",
+                          "name": "Glyph",
+                          "fill": "#0A0A0A",
+                          "content": "M",
+                          "fontFamily": "$gs-count",
+                          "fontSize": 30,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "v7bTY",
+                      "name": "Title",
+                      "layout": "vertical",
+                      "gap": 4,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "Hp3ze",
+                          "name": "Name",
+                          "fill": "$gs-ink",
+                          "content": "Meme plugin",
+                          "fontFamily": "$gs-font",
+                          "fontSize": 26,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "text",
+                          "id": "U9nVDx",
+                          "name": "By",
+                          "fill": "$gs-mute",
+                          "content": "by 808arc",
+                          "fontFamily": "$gs-font",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "WQJ1D",
+                  "name": "About",
+                  "fill": "$gs-ink",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Turns the question you just answered into a meme, with Another and Not this one when it misses.",
+                  "lineHeight": 1.5,
+                  "fontFamily": "$gs-prose",
+                  "fontSize": 16,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "X7n01j",
+                  "name": "It can",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 10,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "ywedx",
+                      "name": "Title",
+                      "fill": "$gs-ink",
+                      "content": "It can",
+                      "fontFamily": "$gs-font",
+                      "fontSize": 17,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "j8C0Fi",
+                      "name": "Line",
+                      "width": "fill_container",
+                      "gap": 12,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "GZ2ZB",
+                          "name": "Mark",
+                          "width": 16,
+                          "height": 16,
+                          "icon": "check",
+                          "library": "lucide",
+                          "fill": "$gs-green"
+                        },
+                        {
+                          "type": "text",
+                          "id": "o7wSVh",
+                          "name": "Text",
+                          "fill": "$gs-ink",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "See the question on your screen, once you have answered it",
+                          "fontFamily": "$gs-font",
+                          "fontSize": 15,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "TnakF",
+                      "name": "Line",
+                      "width": "fill_container",
+                      "gap": 12,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "f1Qfa",
+                          "name": "Mark",
+                          "width": 16,
+                          "height": 16,
+                          "icon": "check",
+                          "library": "lucide",
+                          "fill": "$gs-green"
+                        },
+                        {
+                          "type": "text",
+                          "id": "gwx4Q",
+                          "name": "Text",
+                          "fill": "$gs-ink",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "Ask Claude for short text jobs, which uses your plan",
+                          "fontFamily": "$gs-font",
+                          "fontSize": 15,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "yJqmH",
+                      "name": "Line",
+                      "width": "fill_container",
+                      "gap": 12,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "ZoBKD",
+                          "name": "Mark",
+                          "width": 16,
+                          "height": 16,
+                          "icon": "check",
+                          "library": "lucide",
+                          "fill": "$gs-green"
+                        },
+                        {
+                          "type": "text",
+                          "id": "k06JOD",
+                          "name": "Text",
+                          "fill": "$gs-ink",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "Send the meme text to api.memegen.link to draw the picture",
+                          "fontFamily": "$gs-font",
+                          "fontSize": 15,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "cFGEI",
+                  "name": "It can't",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 10,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "JshLt",
+                      "name": "Title",
+                      "fill": "$gs-ink",
+                      "content": "It can't",
+                      "fontFamily": "$gs-font",
+                      "fontSize": 17,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "bIpAt",
+                      "name": "Line",
+                      "width": "fill_container",
+                      "gap": 12,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "xh9Cr",
+                          "name": "Mark",
+                          "width": 16,
+                          "height": 16,
+                          "icon": "x",
+                          "library": "lucide",
+                          "fill": "$gs-red"
+                        },
+                        {
+                          "type": "text",
+                          "id": "PF4uU",
+                          "name": "Text",
+                          "fill": "$gs-ink",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "Open your files itself",
+                          "fontFamily": "$gs-font",
+                          "fontSize": 15,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "EEGdr",
+                      "name": "Line",
+                      "width": "fill_container",
+                      "gap": 12,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "Chmyb",
+                          "name": "Mark",
+                          "width": 16,
+                          "height": 16,
+                          "icon": "x",
+                          "library": "lucide",
+                          "fill": "$gs-red"
+                        },
+                        {
+                          "type": "text",
+                          "id": "jKeeH",
+                          "name": "Text",
+                          "fill": "$gs-ink",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "See your other spaces or your lessons",
+                          "fontFamily": "$gs-font",
+                          "fontSize": 15,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "gcSaE",
+                      "name": "Line",
+                      "width": "fill_container",
+                      "gap": 12,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "XI5d3",
+                          "name": "Mark",
+                          "width": 16,
+                          "height": 16,
+                          "icon": "x",
+                          "library": "lucide",
+                          "fill": "$gs-red"
+                        },
+                        {
+                          "type": "text",
+                          "id": "ZfrTY",
+                          "name": "Text",
+                          "fill": "$gs-ink",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "Use the internet anywhere else",
+                          "fontFamily": "$gs-font",
+                          "fontSize": 15,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "w2AGv4",
+                  "name": "Buttons",
+                  "width": "fill_container",
+                  "gap": 16,
+                  "padding": [
+                    8,
+                    0,
+                    0,
+                    0
+                  ],
+                  "justifyContent": "end",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "mifeI",
+                      "name": "Cancel",
+                      "fill": "$gs-mute",
+                      "content": "Cancel",
+                      "fontFamily": "$gs-font",
+                      "fontSize": 15,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "id": "hD7uG",
+                      "type": "ref",
+                      "ref": "UIFRC",
+                      "name": "Add",
+                      "descendants": {
+                        "eULLl": {
+                          "content": "Add"
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "BwO56",
+      "x": 1540,
+      "y": 1000,
+      "name": "3A Lesson, floating card",
+      "clip": true,
+      "width": 1440,
+      "height": 900,
+      "fill": "$gs-bg",
+      "layout": "vertical",
+      "children": [
+        {
+          "type": "frame",
+          "id": "d666e",
+          "name": "Lesson bar",
+          "width": "fill_container",
+          "height": 48,
+          "fill": "#141414",
+          "gap": 16,
+          "padding": [
+            0,
+            24,
+            0,
+            96
+          ],
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "G9fR5v",
+              "name": "Back",
+              "stroke": "$gs-line-strong",
+              "strokeWidth": 1,
+              "gap": 8,
+              "padding": [
+                5,
+                12
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "vBGtw",
+                  "name": "Chevron",
+                  "width": 14,
+                  "height": 14,
+                  "icon": "chevron-left",
+                  "library": "lucide",
+                  "fill": "$gs-ink"
+                },
+                {
+                  "type": "text",
+                  "id": "hmVpq",
+                  "name": "Label",
+                  "fill": "$gs-ink",
+                  "content": "CSE 21",
+                  "fontFamily": "$gs-font",
+                  "fontSize": 15,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "HZc5x",
+              "name": "Title",
+              "fill": "$gs-ink",
+              "content": "Big-O of nested loops",
+              "fontFamily": "$gs-font",
+              "fontSize": 18,
+              "fontWeight": "500"
+            },
+            {
+              "type": "frame",
+              "id": "DPdHw",
+              "name": "Spacer",
+              "width": "fill_container",
+              "height": 1
+            },
+            {
+              "type": "frame",
+              "id": "TDTjp",
+              "name": "Meme this",
+              "height": 48,
+              "fill": "$gs-ink",
+              "padding": [
+                0,
+                16
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "xBHEH",
+                  "name": "L",
+                  "fill": "#141414",
+                  "content": "Meme this",
+                  "fontFamily": "$gs-font",
+                  "fontSize": 15,
+                  "fontWeight": "500"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "hP3yZ",
+              "name": "Cheat sheet",
+              "height": 48,
+              "padding": [
+                0,
+                16
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "NBHlK",
+                  "name": "L",
+                  "fill": "$gs-ink",
+                  "content": "Cheat sheet",
+                  "fontFamily": "$gs-font",
+                  "fontSize": 15
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "C7OSC",
+              "name": "Find",
+              "height": 48,
+              "padding": [
+                0,
+                16
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "vFCVq",
+                  "name": "L",
+                  "fill": "$gs-ink",
+                  "content": "Find",
+                  "fontFamily": "$gs-font",
+                  "fontSize": 15
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "wKmuP",
+          "name": "Lesson body",
+          "width": "fill_container",
+          "height": "fill_container",
+          "layout": "vertical",
+          "gap": 28,
+          "padding": [
+            48,
+            0,
+            0,
+            260
+          ],
+          "children": [
+            {
+              "type": "text",
+              "id": "MTGZi",
+              "name": "Prose",
+              "fill": "$gs-ink",
+              "textGrowth": "fixed-width",
+              "width": 680,
+              "content": "Two loops that each run n times, one inside the other, do n times n steps. That is why a nested loop over the same list is O(n²), even when the inner loop body is one line.",
+              "lineHeight": 1.65,
+              "fontFamily": "$gs-prose",
+              "fontSize": 17,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "frame",
+              "id": "m6YdTI",
+              "name": "Your turn",
+              "width": 680,
+              "stroke": "$gs-line-strong",
+              "strokeWidth": {
+                "top": 1
+              },
+              "layout": "vertical",
+              "gap": 14,
+              "padding": [
+                20,
+                0,
+                0,
+                0
+              ],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "LIBaI",
+                  "name": "Heading",
+                  "fill": "$gs-ink",
+                  "content": "Your turn",
+                  "fontFamily": "$gs-font",
+                  "fontSize": 26,
+                  "fontWeight": "500"
+                },
+                {
+                  "type": "text",
+                  "id": "Y9Geg",
+                  "name": "Question",
+                  "fill": "$gs-ink",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "What is the running time of a loop over i in 1..n with an inner loop over j in 1..n?",
+                  "lineHeight": 1.6,
+                  "fontFamily": "$gs-prose",
+                  "fontSize": 17,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "oxixa",
+                  "name": "Options",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 8,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "MV75s",
+                      "name": "O(n)",
+                      "width": "fill_container",
+                      "stroke": "$gs-line",
+                      "strokeWidth": 1,
+                      "gap": 12,
+                      "padding": [
+                        10,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "P0teh",
+                          "name": "T",
+                          "fill": "$gs-ink",
+                          "content": "O(n)",
+                          "fontFamily": "$gs-count",
+                          "fontSize": 16,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "mDeRa",
+                          "name": "S",
+                          "width": "fill_container",
+                          "height": 1
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "sy1gb",
+                      "name": "O(n²)",
+                      "width": "fill_container",
+                      "fill": "#78998022",
+                      "stroke": "$gs-green",
+                      "strokeWidth": 1,
+                      "gap": 12,
+                      "padding": [
+                        10,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "LLa9g",
+                          "name": "T",
+                          "fill": "$gs-ink",
+                          "content": "O(n²)",
+                          "fontFamily": "$gs-count",
+                          "fontSize": 16,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "RJV8K",
+                          "name": "S",
+                          "width": "fill_container",
+                          "height": 1
+                        },
+                        {
+                          "type": "text",
+                          "id": "BnrlB",
+                          "name": "Mark",
+                          "fill": "$gs-green",
+                          "content": "Right",
+                          "fontFamily": "$gs-font",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "TqW9G",
+                      "name": "O(n log n)",
+                      "width": "fill_container",
+                      "stroke": "$gs-line",
+                      "strokeWidth": 1,
+                      "gap": 12,
+                      "padding": [
+                        10,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "Ah1Z4",
+                          "name": "T",
+                          "fill": "$gs-ink",
+                          "content": "O(n log n)",
+                          "fontFamily": "$gs-count",
+                          "fontSize": 16,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "lMS2o",
+                          "name": "S",
+                          "width": "fill_container",
+                          "height": 1
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "kYBth",
+          "layoutPosition": "absolute",
+          "x": 1000,
+          "y": 56,
+          "name": "Plugin card",
+          "width": 400,
+          "fill": "$gs-card",
+          "stroke": "$gs-line-strong",
+          "strokeWidth": 1,
+          "effect": {
+            "type": "shadow",
+            "shadowType": "outer",
+            "color": "#000000CC",
+            "offset": {
+              "x": 0,
+              "y": 12
+            },
+            "blur": 32
+          },
+          "layout": "vertical",
+          "children": [
+            {
+              "type": "frame",
+              "id": "hBLwz",
+              "name": "Frame head",
+              "width": "fill_container",
+              "stroke": "$gs-line",
+              "strokeWidth": {
+                "bottom": 1
+              },
+              "padding": [
+                10,
+                12,
+                10,
+                16
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "bXlhm",
+                  "name": "Plugin name",
+                  "fill": "$gs-mute",
+                  "content": "Meme plugin",
+                  "fontFamily": "$gs-font",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "Fw0zy",
+                  "name": "S",
+                  "width": "fill_container",
+                  "height": 1
+                },
+                {
+                  "type": "icon",
+                  "id": "Bimdz",
+                  "name": "Close",
+                  "width": 16,
+                  "height": 16,
+                  "icon": "x",
+                  "library": "lucide",
+                  "fill": "$gs-mute"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "d2k0Z",
+              "name": "Plugin page (iframe)",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 14,
+              "padding": 16,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "d1bXrD",
+                  "name": "Meme",
+                  "metadata": {
+                    "type": "unsplash",
+                    "username": "jellymarketing",
+                    "link": "https://unsplash.com/@jellymarketing",
+                    "author": "Jelly Marketing"
+                  },
+                  "width": "fill_container",
+                  "height": 250,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "https://images.unsplash.com/photo-1791318554953-3b0cf0bb2992?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3OTQ3MTI5MDF8&ixlib=rb-4.1.0&q=80&w=1080",
+                    "mode": "cover"
+                  },
+                  "layout": "vertical",
+                  "padding": 12,
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "cEPAy",
+                      "name": "Top",
+                      "fill": "#FFFFFF",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "TWO LOOPS INSIDE EACH OTHER",
+                      "textAlign": "center",
+                      "fontFamily": "Anton",
+                      "fontSize": 22,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "xi2Br",
+                      "name": "Bottom",
+                      "fill": "#FFFFFF",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "THAT'S n² STEPS, NOT 2n",
+                      "textAlign": "center",
+                      "fontFamily": "Anton",
+                      "fontSize": 22,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "QlhRB",
+                  "name": "Plugin buttons",
+                  "width": "fill_container",
+                  "gap": 10,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "id": "j7yTi",
+                      "type": "ref",
+                      "ref": "ZC2ad",
+                      "name": "Another",
+                      "descendants": {
+                        "uZl4c": {
+                          "content": "Another"
+                        }
+                      }
+                    },
+                    {
+                      "id": "DQMkY",
+                      "type": "ref",
+                      "ref": "ZC2ad",
+                      "name": "Not this one",
+                      "descendants": {
+                        "uZl4c": {
+                          "content": "Not this one"
+                        }
+                      }
+                    },
+                    {
+                      "type": "frame",
+                      "id": "V7PERq",
+                      "name": "S",
+                      "width": "fill_container",
+                      "height": 1
+                    },
+                    {
+                      "type": "text",
+                      "id": "mSom2",
+                      "name": "Copy",
+                      "fill": "$gs-mute",
+                      "content": "Copy caption",
+                      "fontFamily": "$gs-font",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "I5e3q",
+      "x": 3080,
+      "y": 1000,
+      "name": "3C2 Lesson, inline card under the answer",
+      "clip": true,
+      "width": 1440,
+      "height": 900,
+      "fill": "$gs-bg",
+      "layout": "vertical",
+      "children": [
+        {
+          "type": "frame",
+          "id": "F9aLF",
+          "name": "Lesson bar",
+          "width": "fill_container",
+          "height": 48,
+          "fill": "#141414",
+          "gap": 16,
+          "padding": [
+            0,
+            24,
+            0,
+            96
+          ],
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "vztE8",
+              "name": "Back",
+              "stroke": "$gs-line-strong",
+              "strokeWidth": 1,
+              "gap": 8,
+              "padding": [
+                5,
+                12
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "FQViE",
+                  "name": "Chevron",
+                  "width": 14,
+                  "height": 14,
+                  "icon": "chevron-left",
+                  "library": "lucide",
+                  "fill": "$gs-ink"
+                },
+                {
+                  "type": "text",
+                  "id": "wkdqa",
+                  "name": "Label",
+                  "fill": "$gs-ink",
+                  "content": "CSE 21",
+                  "fontFamily": "$gs-font",
+                  "fontSize": 15,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "EVrT8",
+              "name": "Title",
+              "fill": "$gs-ink",
+              "content": "Big-O of nested loops",
+              "fontFamily": "$gs-font",
+              "fontSize": 18,
+              "fontWeight": "500"
+            },
+            {
+              "type": "frame",
+              "id": "pDBw3",
+              "name": "Spacer",
+              "width": "fill_container",
+              "height": 1
+            },
+            {
+              "type": "frame",
+              "id": "vwh4b",
+              "name": "Meme this",
+              "height": 48,
+              "fill": "$gs-ink",
+              "padding": [
+                0,
+                16
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "etoRY",
+                  "name": "L",
+                  "fill": "#141414",
+                  "content": "Meme this",
+                  "fontFamily": "$gs-font",
+                  "fontSize": 15,
+                  "fontWeight": "500"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "InHsm",
+              "name": "Cheat sheet",
+              "height": 48,
+              "padding": [
+                0,
+                16
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "l4EwhS",
+                  "name": "L",
+                  "fill": "$gs-ink",
+                  "content": "Cheat sheet",
+                  "fontFamily": "$gs-font",
+                  "fontSize": 15
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "EVMRs",
+              "name": "Find",
+              "height": 48,
+              "padding": [
+                0,
+                16
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "F8EKO",
+                  "name": "L",
+                  "fill": "$gs-ink",
+                  "content": "Find",
+                  "fontFamily": "$gs-font",
+                  "fontSize": 15
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "BwOM0",
+          "name": "Lesson body",
+          "width": "fill_container",
+          "height": "fill_container",
+          "layout": "vertical",
+          "gap": 28,
+          "padding": [
+            32,
+            0,
+            0,
+            260
+          ],
+          "children": [
+            {
+              "type": "text",
+              "id": "zQiD6",
+              "name": "Prose",
+              "fill": "$gs-ink",
+              "textGrowth": "fixed-width",
+              "width": 680,
+              "content": "Two loops that each run n times, one inside the other, do n times n steps. That is why a nested loop over the same list is O(n²), even when the inner loop body is one line.",
+              "lineHeight": 1.65,
+              "fontFamily": "$gs-prose",
+              "fontSize": 17,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "frame",
+              "id": "OoIG7",
+              "name": "Your turn",
+              "width": 680,
+              "stroke": "$gs-line-strong",
+              "strokeWidth": {
+                "top": 1
+              },
+              "layout": "vertical",
+              "gap": 14,
+              "padding": [
+                20,
+                0,
+                0,
+                0
+              ],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "Dp4rd",
+                  "name": "Heading",
+                  "fill": "$gs-ink",
+                  "content": "Your turn",
+                  "fontFamily": "$gs-font",
+                  "fontSize": 26,
+                  "fontWeight": "500"
+                },
+                {
+                  "type": "text",
+                  "id": "p1erhT",
+                  "name": "Question",
+                  "fill": "$gs-ink",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "What is the running time of a loop over i in 1..n with an inner loop over j in 1..n?",
+                  "lineHeight": 1.6,
+                  "fontFamily": "$gs-prose",
+                  "fontSize": 17,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "MSqKC",
+                  "name": "Options",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 8,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "I5x4R2",
+                      "name": "O(n)",
+                      "width": "fill_container",
+                      "stroke": "$gs-line",
+                      "strokeWidth": 1,
+                      "gap": 12,
+                      "padding": [
+                        10,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "fTc82",
+                          "name": "T",
+                          "fill": "$gs-ink",
+                          "content": "O(n)",
+                          "fontFamily": "$gs-count",
+                          "fontSize": 16,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "d5Yxc",
+                          "name": "S",
+                          "width": "fill_container",
+                          "height": 1
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "K38toz",
+                      "name": "O(n²)",
+                      "width": "fill_container",
+                      "fill": "#78998022",
+                      "stroke": "$gs-green",
+                      "strokeWidth": 1,
+                      "gap": 12,
+                      "padding": [
+                        10,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "iLjXA",
+                          "name": "T",
+                          "fill": "$gs-ink",
+                          "content": "O(n²)",
+                          "fontFamily": "$gs-count",
+                          "fontSize": 16,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "ZWzM9",
+                          "name": "S",
+                          "width": "fill_container",
+                          "height": 1
+                        },
+                        {
+                          "type": "text",
+                          "id": "Bc0nB",
+                          "name": "Mark",
+                          "fill": "$gs-green",
+                          "content": "Right",
+                          "fontFamily": "$gs-font",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "qGEzb",
+                      "name": "O(n log n)",
+                      "width": "fill_container",
+                      "stroke": "$gs-line",
+                      "strokeWidth": 1,
+                      "gap": 12,
+                      "padding": [
+                        10,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "ZAoCm",
+                          "name": "T",
+                          "fill": "$gs-ink",
+                          "content": "O(n log n)",
+                          "fontFamily": "$gs-count",
+                          "fontSize": 16,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "sbBWT",
+                          "name": "S",
+                          "width": "fill_container",
+                          "height": 1
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "lHRAM",
+                  "name": "Plugin card",
+                  "width": "fill_container",
+                  "fill": "$gs-card",
+                  "stroke": "$gs-line-strong",
+                  "strokeWidth": 1,
+                  "layout": "vertical",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "m6bvw1",
+                      "name": "Frame head",
+                      "width": "fill_container",
+                      "stroke": "$gs-line",
+                      "strokeWidth": {
+                        "bottom": 1
+                      },
+                      "padding": [
+                        10,
+                        12,
+                        10,
+                        16
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "qKtcy",
+                          "name": "Plugin name",
+                          "fill": "$gs-mute",
+                          "content": "Meme plugin",
+                          "fontFamily": "$gs-font",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "BOO9V",
+                          "name": "S",
+                          "width": "fill_container",
+                          "height": 1
+                        },
+                        {
+                          "type": "icon",
+                          "id": "Qwgq5",
+                          "name": "Close",
+                          "width": 16,
+                          "height": 16,
+                          "icon": "x",
+                          "library": "lucide",
+                          "fill": "$gs-mute"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "V4gsTv",
+                      "name": "Plugin page (iframe)",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 14,
+                      "padding": 16,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "dNjTS",
+                          "name": "Meme",
+                          "metadata": {
+                            "type": "unsplash",
+                            "username": "jellymarketing",
+                            "link": "https://unsplash.com/@jellymarketing",
+                            "author": "Jelly Marketing"
+                          },
+                          "width": "fill_container",
+                          "height": 300,
+                          "fill": {
+                            "type": "image",
+                            "enabled": true,
+                            "url": "https://images.unsplash.com/photo-1791318554953-3b0cf0bb2992?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3OTQ3MTI5MDF8&ixlib=rb-4.1.0&q=80&w=1080",
+                            "mode": "cover"
+                          },
+                          "layout": "vertical",
+                          "padding": 12,
+                          "justifyContent": "space_between",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "E0EuAF",
+                              "name": "Top",
+                              "fill": "#FFFFFF",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "TWO LOOPS INSIDE EACH OTHER",
+                              "textAlign": "center",
+                              "fontFamily": "Anton",
+                              "fontSize": 22,
+                              "fontWeight": "normal"
+                            },
+                            {
+                              "type": "text",
+                              "id": "f2QwZ",
+                              "name": "Bottom",
+                              "fill": "#FFFFFF",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "THAT'S n² STEPS, NOT 2n",
+                              "textAlign": "center",
+                              "fontFamily": "Anton",
+                              "fontSize": 22,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "ofmpN",
+                          "name": "Plugin buttons",
+                          "width": "fill_container",
+                          "gap": 10,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "id": "uD7yR",
+                              "type": "ref",
+                              "ref": "ZC2ad",
+                              "name": "Another",
+                              "descendants": {
+                                "uZl4c": {
+                                  "content": "Another"
+                                }
+                              }
+                            },
+                            {
+                              "id": "Azpx9",
+                              "type": "ref",
+                              "ref": "ZC2ad",
+                              "name": "Not this one",
+                              "descendants": {
+                                "uZl4c": {
+                                  "content": "Not this one"
+                                }
+                              }
+                            },
+                            {
+                              "type": "frame",
+                              "id": "ucSY7",
+                              "name": "S",
+                              "width": "fill_container",
+                              "height": 1
+                            },
+                            {
+                              "type": "text",
+                              "id": "kUhEY",
+                              "name": "Copy",
+                              "fill": "$gs-mute",
+                              "content": "Copy caption",
+                              "fontFamily": "$gs-font",
+                              "fontSize": 14,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "JFtEi",
+      "x": 0,
+      "y": 2000,
+      "name": "4 Card states and notices",
+      "width": 1880,
+      "height": 480,
+      "fill": "$gs-bg",
+      "gap": 40,
+      "padding": 48,
+      "children": [
+        {
+          "type": "frame",
+          "id": "l0bVr",
+          "name": "Working",
+          "width": 400,
+          "layout": "vertical",
+          "gap": 16,
+          "children": [
+            {
+              "type": "text",
+              "id": "EYqzg",
+              "name": "Board label",
+              "fill": "$gs-mute",
+              "content": "Working",
+              "fontFamily": "$gs-font",
+              "fontSize": 15,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "frame",
+              "id": "yoEjK",
+              "name": "Plugin card",
+              "width": "fill_container",
+              "fill": "$gs-card",
+              "stroke": "$gs-line-strong",
+              "strokeWidth": 1,
+              "layout": "vertical",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "fmzvo",
+                  "name": "Frame head",
+                  "width": "fill_container",
+                  "stroke": "$gs-line",
+                  "strokeWidth": {
+                    "bottom": 1
+                  },
+                  "padding": [
+                    10,
+                    12,
+                    10,
+                    16
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "uJyRV",
+                      "name": "Plugin name",
+                      "fill": "$gs-mute",
+                      "content": "Meme plugin",
+                      "fontFamily": "$gs-font",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "u2MNpa",
+                      "name": "S",
+                      "width": "fill_container",
+                      "height": 1
+                    },
+                    {
+                      "type": "icon",
+                      "id": "WU5aI",
+                      "name": "Close",
+                      "width": 16,
+                      "height": 16,
+                      "icon": "x",
+                      "library": "lucide",
+                      "fill": "$gs-mute"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "d4Lqr",
+                  "name": "Plugin page (iframe)",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 14,
+                  "padding": 16,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "Ib1Jf",
+                      "name": "Empty meme",
+                      "width": "fill_container",
+                      "height": 220,
+                      "fill": "$gs-raise"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "HmRbC",
+                  "name": "Agent strip (godspeed)",
+                  "width": "fill_container",
+                  "stroke": "$gs-line",
+                  "strokeWidth": {
+                    "top": 1
+                  },
+                  "gap": 10,
+                  "padding": [
+                    10,
+                    12,
+                    10,
+                    16
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "q27nn",
+                      "name": "Pulse",
+                      "width": 8,
+                      "height": 8,
+                      "fill": "$gs-olive-ink"
+                    },
+                    {
+                      "type": "text",
+                      "id": "nBZZH",
+                      "name": "Text",
+                      "fill": "$gs-ink",
+                      "content": "Claude is writing the meme",
+                      "fontFamily": "$gs-font",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "B7Z7c4",
+                      "name": "S",
+                      "width": "fill_container",
+                      "height": 1
+                    },
+                    {
+                      "type": "text",
+                      "id": "TfTCT",
+                      "name": "Stop",
+                      "fill": "$gs-mute",
+                      "content": "Stop",
+                      "fontFamily": "$gs-font",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "eFwMY",
+          "name": "Waiting behind the lesson",
+          "width": 400,
+          "layout": "vertical",
+          "gap": 16,
+          "children": [
+            {
+              "type": "text",
+              "id": "Q2aqv",
+              "name": "Board label",
+              "fill": "$gs-mute",
+              "content": "Waiting behind the lesson",
+              "fontFamily": "$gs-font",
+              "fontSize": 15,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "frame",
+              "id": "xd7Wz",
+              "name": "Plugin card",
+              "width": "fill_container",
+              "fill": "$gs-card",
+              "stroke": "$gs-line-strong",
+              "strokeWidth": 1,
+              "layout": "vertical",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "s5Esco",
+                  "name": "Frame head",
+                  "width": "fill_container",
+                  "stroke": "$gs-line",
+                  "strokeWidth": {
+                    "bottom": 1
+                  },
+                  "padding": [
+                    10,
+                    12,
+                    10,
+                    16
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "clXsi",
+                      "name": "Plugin name",
+                      "fill": "$gs-mute",
+                      "content": "Meme plugin",
+                      "fontFamily": "$gs-font",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "rrFtR",
+                      "name": "S",
+                      "width": "fill_container",
+                      "height": 1
+                    },
+                    {
+                      "type": "icon",
+                      "id": "FrIu0",
+                      "name": "Close",
+                      "width": 16,
+                      "height": 16,
+                      "icon": "x",
+                      "library": "lucide",
+                      "fill": "$gs-mute"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "HOPSY",
+                  "name": "Plugin page (iframe)",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 14,
+                  "padding": 16,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "ZYkJs",
+                      "name": "Empty meme",
+                      "width": "fill_container",
+                      "height": 220,
+                      "fill": "$gs-raise"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "SK010",
+                  "name": "Agent strip (godspeed)",
+                  "width": "fill_container",
+                  "stroke": "$gs-line",
+                  "strokeWidth": {
+                    "top": 1
+                  },
+                  "gap": 10,
+                  "padding": [
+                    10,
+                    12,
+                    10,
+                    16
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "lIShf",
+                      "name": "Pulse",
+                      "width": 8,
+                      "height": 8,
+                      "fill": "$gs-olive-ink"
+                    },
+                    {
+                      "type": "text",
+                      "id": "TZo5Y",
+                      "name": "Text",
+                      "fill": "$gs-ink",
+                      "content": "Claude answers your lesson first",
+                      "fontFamily": "$gs-font",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "e0dyRw",
+                      "name": "S",
+                      "width": "fill_container",
+                      "height": 1
+                    },
+                    {
+                      "type": "text",
+                      "id": "pj8bl",
+                      "name": "Stop",
+                      "fill": "$gs-mute",
+                      "content": "Stop",
+                      "fontFamily": "$gs-font",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "sAIxA",
+          "name": "No agent running",
+          "width": 400,
+          "layout": "vertical",
+          "gap": 16,
+          "children": [
+            {
+              "type": "text",
+              "id": "uo7KZ",
+              "name": "Board label",
+              "fill": "$gs-mute",
+              "content": "No agent running",
+              "fontFamily": "$gs-font",
+              "fontSize": 15,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "frame",
+              "id": "rMoir",
+              "name": "Plugin card",
+              "width": "fill_container",
+              "fill": "$gs-card",
+              "stroke": "$gs-line-strong",
+              "strokeWidth": 1,
+              "layout": "vertical",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "fB4v5",
+                  "name": "Frame head",
+                  "width": "fill_container",
+                  "stroke": "$gs-line",
+                  "strokeWidth": {
+                    "bottom": 1
+                  },
+                  "padding": [
+                    10,
+                    12,
+                    10,
+                    16
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "r85A6B",
+                      "name": "Plugin name",
+                      "fill": "$gs-mute",
+                      "content": "Meme plugin",
+                      "fontFamily": "$gs-font",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Edt6K",
+                      "name": "S",
+                      "width": "fill_container",
+                      "height": 1
+                    },
+                    {
+                      "type": "icon",
+                      "id": "f9ro99",
+                      "name": "Close",
+                      "width": 16,
+                      "height": 16,
+                      "icon": "x",
+                      "library": "lucide",
+                      "fill": "$gs-mute"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "U2YxE6",
+                  "name": "Body",
+                  "width": "fill_container",
+                  "height": 260,
+                  "layout": "vertical",
+                  "gap": 16,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "id": "FekAS",
+                      "type": "ref",
+                      "ref": "UIFRC",
+                      "name": "Start Claude",
+                      "descendants": {
+                        "eULLl": {
+                          "content": "Start Claude"
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "yhvES",
+          "name": "Plugin stopped",
+          "width": 400,
+          "layout": "vertical",
+          "gap": 16,
+          "children": [
+            {
+              "type": "text",
+              "id": "u3ckQ",
+              "name": "Board label",
+              "fill": "$gs-mute",
+              "content": "Plugin stopped",
+              "fontFamily": "$gs-font",
+              "fontSize": 15,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "frame",
+              "id": "TN9mq",
+              "name": "Plugin card",
+              "width": "fill_container",
+              "fill": "$gs-card",
+              "stroke": "$gs-line-strong",
+              "strokeWidth": 1,
+              "layout": "vertical",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "I77E7A",
+                  "name": "Frame head",
+                  "width": "fill_container",
+                  "stroke": "$gs-line",
+                  "strokeWidth": {
+                    "bottom": 1
+                  },
+                  "padding": [
+                    10,
+                    12,
+                    10,
+                    16
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "gRBTb",
+                      "name": "Plugin name",
+                      "fill": "$gs-mute",
+                      "content": "Meme plugin",
+                      "fontFamily": "$gs-font",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "FZ2bW",
+                      "name": "S",
+                      "width": "fill_container",
+                      "height": 1
+                    },
+                    {
+                      "type": "icon",
+                      "id": "lT0dX",
+                      "name": "Close",
+                      "width": 16,
+                      "height": 16,
+                      "icon": "x",
+                      "library": "lucide",
+                      "fill": "$gs-mute"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "zK7I5",
+                  "name": "Body",
+                  "width": "fill_container",
+                  "height": 260,
+                  "layout": "vertical",
+                  "gap": 16,
+                  "padding": 24,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "XzGuh",
+                      "name": "Text",
+                      "fill": "$gs-ink",
+                      "content": "Meme plugin stopped working.",
+                      "fontFamily": "$gs-font",
+                      "fontSize": 16,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "id": "aReTN",
+                      "type": "ref",
+                      "ref": "ZC2ad",
+                      "name": "Reload",
+                      "descendants": {
+                        "uZl4c": {
+                          "content": "Reload"
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "eAb9Z",
+      "x": 1980,
+      "y": 2000,
+      "name": "5 Notices",
+      "width": 900,
+      "height": 620,
+      "fill": "$gs-bg",
+      "layout": "vertical",
+      "gap": 28,
+      "padding": 48,
+      "children": [
+        {
+          "type": "frame",
+          "id": "PGRUi",
+          "name": "After Add",
+          "layout": "vertical",
+          "gap": 12,
+          "children": [
+            {
+              "type": "text",
+              "id": "Vjdu9",
+              "name": "Board label",
+              "fill": "$gs-mute",
+              "content": "After Add",
+              "fontFamily": "$gs-font",
+              "fontSize": 15,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "frame",
+              "id": "Pr5Ag",
+              "name": "Notice",
+              "width": 380,
+              "fill": "$gs-bg",
+              "stroke": "#C0C0C0",
+              "strokeWidth": 1,
+              "layout": "vertical",
+              "gap": 14,
+              "padding": [
+                18,
+                18,
+                14,
+                18
+              ],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "JTiXs",
+                  "name": "Text",
+                  "fill": "$gs-ink",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Meme plugin's button is at the top of your lessons, once you answer a question.",
+                  "lineHeight": 1.45,
+                  "fontFamily": "$gs-font",
+                  "fontSize": 16,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "S6eCJ4",
+                  "name": "Buttons",
+                  "width": "fill_container",
+                  "justifyContent": "end",
+                  "children": [
+                    {
+                      "id": "OMHGm",
+                      "type": "ref",
+                      "ref": "ZC2ad",
+                      "name": "OK",
+                      "descendants": {
+                        "uZl4c": {
+                          "content": "OK"
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "ywpVn",
+          "name": "Add from a folder, bad folder",
+          "layout": "vertical",
+          "gap": 12,
+          "children": [
+            {
+              "type": "text",
+              "id": "A2wLP2",
+              "name": "Board label",
+              "fill": "$gs-mute",
+              "content": "Add from a folder, bad folder",
+              "fontFamily": "$gs-font",
+              "fontSize": 15,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "frame",
+              "id": "WTVn3",
+              "name": "Notice",
+              "width": 380,
+              "fill": "$gs-bg",
+              "stroke": "#C0C0C0",
+              "strokeWidth": 1,
+              "layout": "vertical",
+              "gap": 14,
+              "padding": [
+                18,
+                18,
+                14,
+                18
+              ],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "tvPjf",
+                  "name": "Text",
+                  "fill": "$gs-ink",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "This folder has no valid manifest.json. The plugin guide says what goes in it.",
+                  "lineHeight": 1.45,
+                  "fontFamily": "$gs-font",
+                  "fontSize": 16,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "Q0C1SX",
+                  "name": "Buttons",
+                  "width": "fill_container",
+                  "justifyContent": "end",
+                  "children": [
+                    {
+                      "id": "oyiBx",
+                      "type": "ref",
+                      "ref": "ZC2ad",
+                      "name": "OK",
+                      "descendants": {
+                        "uZl4c": {
+                          "content": "OK"
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "v57ri0",
+          "name": "Remove",
+          "layout": "vertical",
+          "gap": 12,
+          "children": [
+            {
+              "type": "text",
+              "id": "QJYwt",
+              "name": "Board label",
+              "fill": "$gs-mute",
+              "content": "Remove",
+              "fontFamily": "$gs-font",
+              "fontSize": 15,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "frame",
+              "id": "IZfGu",
+              "name": "Notice",
+              "width": 380,
+              "fill": "$gs-bg",
+              "stroke": "#C0C0C0",
+              "strokeWidth": 1,
+              "layout": "vertical",
+              "gap": 14,
+              "padding": [
+                18,
+                18,
+                14,
+                18
+              ],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "PZ0iF",
+                  "name": "Text",
+                  "fill": "$gs-ink",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Remove Meme plugin and your 12 own memes?",
+                  "lineHeight": 1.45,
+                  "fontFamily": "$gs-font",
+                  "fontSize": 16,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "CA452",
+                  "name": "Buttons",
+                  "width": "fill_container",
+                  "gap": 16,
+                  "justifyContent": "end",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "m5OV5",
+                      "name": "Cancel",
+                      "fill": "$gs-mute",
+                      "content": "Cancel",
+                      "fontFamily": "$gs-font",
+                      "fontSize": 15,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "id": "CuxI3",
+                      "type": "ref",
+                      "ref": "ZC2ad",
+                      "name": "Remove",
+                      "descendants": {
+                        "uZl4c": {
+                          "content": "Remove"
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variables": {
+    "ink": {
+      "type": "color",
+      "value": "#EDEDEF"
+    },
+    "bg": {
+      "type": "color",
+      "value": "#141416"
+    },
+    "panel": {
+      "type": "color",
+      "value": "#1B1B1E"
+    },
+    "line": {
+      "type": "color",
+      "value": "#2A2A2F"
+    },
+    "dim": {
+      "type": "color",
+      "value": "#8C8C94"
+    },
+    "faint": {
+      "type": "color",
+      "value": "#5A5A62"
+    },
+    "red": {
+      "type": "color",
+      "value": "#FF453A"
+    },
+    "blue": {
+      "type": "color",
+      "value": "#0A84FF"
+    },
+    "g-bg": {
+      "type": "color",
+      "value": "#000000"
+    },
+    "g-ink": {
+      "type": "color",
+      "value": "#E6E6E6"
+    },
+    "g-mute": {
+      "type": "color",
+      "value": "#8D8D8D"
+    },
+    "g-faint": {
+      "type": "color",
+      "value": "#5E5E5E"
+    },
+    "g-tone": {
+      "type": "color",
+      "value": "#141414"
+    },
+    "g-line": {
+      "type": "color",
+      "value": "#222222"
+    },
+    "g-red": {
+      "type": "color",
+      "value": "#EF4444"
+    },
+    "g-orange": {
+      "type": "color",
+      "value": "#F97316"
+    },
+    "g-yellow": {
+      "type": "color",
+      "value": "#EAB308"
+    },
+    "g-green": {
+      "type": "color",
+      "value": "#10B981"
+    },
+    "gs-bg": {
+      "type": "color",
+      "value": "#000000"
+    },
+    "gs-card": {
+      "type": "color",
+      "value": "#0A0A0A"
+    },
+    "gs-raise": {
+      "type": "color",
+      "value": "#141414"
+    },
+    "gs-ink": {
+      "type": "color",
+      "value": "#ECECEC"
+    },
+    "gs-mute": {
+      "type": "color",
+      "value": "#9B9B9B"
+    },
+    "gs-faint": {
+      "type": "color",
+      "value": "#5C5C5C"
+    },
+    "gs-line": {
+      "type": "color",
+      "value": "#2E2E2E"
+    },
+    "gs-line-strong": {
+      "type": "color",
+      "value": "#8C8C8C"
+    },
+    "gs-key": {
+      "type": "color",
+      "value": "#DEDEDE"
+    },
+    "gs-key-edge": {
+      "type": "color",
+      "value": "#848484"
+    },
+    "gs-key-ink": {
+      "type": "color",
+      "value": "#111111"
+    },
+    "gs-key2": {
+      "type": "color",
+      "value": "#2B2B2B"
+    },
+    "gs-key2-edge": {
+      "type": "color",
+      "value": "#151515"
+    },
+    "gs-olive": {
+      "type": "color",
+      "value": "#554F31"
+    },
+    "gs-olive-ink": {
+      "type": "color",
+      "value": "#E9E2BC"
+    },
+    "gs-green": {
+      "type": "color",
+      "value": "#789980"
+    },
+    "gs-blue": {
+      "type": "color",
+      "value": "#758CA4"
+    },
+    "gs-purple": {
+      "type": "color",
+      "value": "#917C92"
+    },
+    "gs-red": {
+      "type": "color",
+      "value": "#C0675C"
+    },
+    "gs-font": {
+      "type": "string",
+      "value": "Zen Kaku Gothic New"
+    },
+    "gs-count": {
+      "type": "string",
+      "value": "DotGothic16"
+    },
+    "gs-prose": {
+      "type": "string",
+      "value": "Literata"
+    }
+  },
+  "fileToken": "e46b8a32-cc64-4c22-8096-0b7960533b53",
+  "fonts": [
+    {
+      "name": "KaTeX_AMS",
+      "url": "fonts/localhost/34494743736fda75.woff2"
+    },
+    {
+      "name": "KaTeX_Caligraphic",
+      "url": "fonts/localhost/5bfa49cac46cd1d7.woff2",
+      "weight": 700
+    },
+    {
+      "name": "KaTeX_Caligraphic",
+      "url": "fonts/localhost/9f8077e0b38a290c.woff2"
+    },
+    {
+      "name": "KaTeX_Fraktur",
+      "url": "fonts/localhost/f98f89272eca11ae.woff2",
+      "weight": 700
+    },
+    {
+      "name": "KaTeX_Fraktur",
+      "url": "fonts/localhost/a5764c6e2784d028.woff2"
+    },
+    {
+      "name": "KaTeX_Main",
+      "url": "fonts/localhost/31050a1b1b123fb2.woff2",
+      "weight": 700
+    },
+    {
+      "name": "KaTeX_Main",
+      "url": "fonts/localhost/a4a4905b8b126f9f.woff2",
+      "style": "italic",
+      "weight": 700
+    },
+    {
+      "name": "KaTeX_Main",
+      "url": "fonts/localhost/c9b2b5ffd2f27aa5.woff2",
+      "style": "italic"
+    },
+    {
+      "name": "KaTeX_Main",
+      "url": "fonts/localhost/c884086c25cec855.woff2"
+    },
+    {
+      "name": "KaTeX_Math",
+      "url": "fonts/localhost/8fcb9d2de65ac71a.woff2",
+      "style": "italic",
+      "weight": 700
+    },
+    {
+      "name": "KaTeX_Math",
+      "url": "fonts/localhost/db4883d0cff95ecb.woff2",
+      "style": "italic"
+    },
+    {
+      "name": "KaTeX_SansSerif",
+      "url": "fonts/localhost/886e61797a525d4a.woff2",
+      "weight": 700
+    },
+    {
+      "name": "KaTeX_SansSerif",
+      "url": "fonts/localhost/3d5fa3cb309f8d83.woff2",
+      "style": "italic"
+    },
+    {
+      "name": "KaTeX_SansSerif",
+      "url": "fonts/localhost/e45d5f4f4a7f2ff3.woff2"
+    },
+    {
+      "name": "KaTeX_Script",
+      "url": "fonts/localhost/63b80959f1fc5689.woff2"
+    },
+    {
+      "name": "KaTeX_Size1",
+      "url": "fonts/localhost/57fa599974a1bc0b.woff2"
+    },
+    {
+      "name": "KaTeX_Size2",
+      "url": "fonts/localhost/ee18713634a3be8c.woff2"
+    },
+    {
+      "name": "KaTeX_Size3",
+      "url": "fonts/localhost/19a7caadfb66bd27.woff2"
+    },
+    {
+      "name": "KaTeX_Size4",
+      "url": "fonts/localhost/9bed17fb92f26505.woff2"
+    },
+    {
+      "name": "KaTeX_Typewriter",
+      "url": "fonts/localhost/7a08883fffc6958c.woff2"
+    }
+  ]
+}
