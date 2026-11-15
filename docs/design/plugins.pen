@@ -59560,7 +59560,7 @@
                   "type": "text",
                   "id": "R7Sgd",
                   "fill": "#e6e6e6",
-                  "content": "1  A plugin picked",
+                  "content": "1  Picked",
                   "fontFamily": "Zen Kaku Gothic New",
                   "fontSize": 22,
                   "fontWeight": "normal"
@@ -59571,7 +59571,7 @@
                   "name": "crop",
                   "clip": true,
                   "width": 1040,
-                  "height": 820,
+                  "height": 770,
                   "cornerRadius": 10,
                   "layout": "none",
                   "children": [
@@ -59584,7 +59584,7 @@
                       "fill": {
                         "type": "image",
                         "enabled": true,
-                        "url": "plugins/plugin-sheet.png?v=4",
+                        "url": "plugins/plugin-sheet.png?v=5",
                         "mode": "stretch"
                       },
                       "width": 1440,
@@ -59604,7 +59604,7 @@
                   "type": "text",
                   "id": "mMoMC",
                   "fill": "#e6e6e6",
-                  "content": "2  One with no settings, turned off",
+                  "content": "2  Off, no settings",
                   "fontFamily": "Zen Kaku Gothic New",
                   "fontSize": 22,
                   "fontWeight": "normal"
@@ -59615,7 +59615,7 @@
                   "name": "crop",
                   "clip": true,
                   "width": 1040,
-                  "height": 330,
+                  "height": 310,
                   "cornerRadius": 10,
                   "layout": "none",
                   "children": [
@@ -59628,7 +59628,7 @@
                       "fill": {
                         "type": "image",
                         "enabled": true,
-                        "url": "plugins/plugin-off.png?v=4",
+                        "url": "plugins/plugin-off.png?v=5",
                         "mode": "stretch"
                       },
                       "width": 1440,
@@ -59640,7 +59640,7 @@
                   "type": "text",
                   "id": "h89Fd",
                   "fill": "#e6e6e6",
-                  "content": "3  Add a plugin",
+                  "content": "3  Add",
                   "fontFamily": "Zen Kaku Gothic New",
                   "fontSize": 22,
                   "fontWeight": "normal"
@@ -59651,7 +59651,7 @@
                   "name": "crop",
                   "clip": true,
                   "width": 1040,
-                  "height": 320,
+                  "height": 310,
                   "layout": "none",
                   "children": [
                     {
@@ -59663,7 +59663,7 @@
                       "fill": {
                         "type": "image",
                         "enabled": true,
-                        "url": "plugins/plugin-add.png?v=4",
+                        "url": "plugins/plugin-add.png?v=5",
                         "mode": "stretch"
                       },
                       "width": 1440,
@@ -59690,7 +59690,7 @@
                   "type": "text",
                   "id": "CyXbx",
                   "fill": "#e6e6e6",
-                  "content": "4  In a lesson: its word in the bar, its panel beside the lesson",
+                  "content": "4  In a lesson",
                   "fontFamily": "Zen Kaku Gothic New",
                   "fontSize": 22,
                   "fontWeight": "normal"
@@ -59714,7 +59714,7 @@
                       "fill": {
                         "type": "image",
                         "enabled": true,
-                        "url": "plugins/lesson-plugin.png?v=4",
+                        "url": "plugins/lesson-plugin.png?v=5",
                         "mode": "stretch"
                       },
                       "width": 1440,
@@ -59734,7 +59734,7 @@
                   "type": "text",
                   "id": "mWBDa",
                   "fill": "#e6e6e6",
-                  "content": "5  While Claude works on it",
+                  "content": "5  Working",
                   "fontFamily": "Zen Kaku Gothic New",
                   "fontSize": 22,
                   "fontWeight": "normal"
@@ -59758,7 +59758,7 @@
                       "fill": {
                         "type": "image",
                         "enabled": true,
-                        "url": "plugins/lesson-plugin-working.png?v=4",
+                        "url": "plugins/lesson-plugin-working.png?v=5",
                         "mode": "stretch"
                       },
                       "width": 1440,
@@ -59770,7 +59770,7 @@
                   "type": "text",
                   "id": "PFTit",
                   "fill": "#e6e6e6",
-                  "content": "6  If the plugin doesn't load",
+                  "content": "6  Failed",
                   "fontFamily": "Zen Kaku Gothic New",
                   "fontSize": 22,
                   "fontWeight": "normal"
@@ -59793,7 +59793,7 @@
                       "fill": {
                         "type": "image",
                         "enabled": true,
-                        "url": "plugins/lesson-plugin-failed.png?v=4",
+                        "url": "plugins/lesson-plugin-failed.png?v=5",
                         "mode": "stretch"
                       },
                       "width": 1440,
@@ -59813,7 +59813,7 @@
                   "type": "text",
                   "id": "F7ma5J",
                   "fill": "#e6e6e6",
-                  "content": "7  A plugin's own tab on a space's page",
+                  "content": "7  Space tab",
                   "fontFamily": "Zen Kaku Gothic New",
                   "fontSize": 22,
                   "fontWeight": "normal"
@@ -59836,7 +59836,7 @@
                       "fill": {
                         "type": "image",
                         "enabled": true,
-                        "url": "plugins/space-plugin-tab.png?v=4",
+                        "url": "plugins/space-plugin-tab.png?v=5",
                         "mode": "stretch"
                       },
                       "width": 1440,
