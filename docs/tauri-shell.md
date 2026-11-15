@@ -175,6 +175,7 @@ The shell bakes `APP_ORIGIN` and `PLATFORM` into the script text before the wind
 | `terminals.write(id, data)` | `terminal_write` | Keys typed in the shown terminal. |
 | `terminals.answer(id, kind)` | `terminal_answer` | `kind` is `"trust"` or `"enter"`: the shell answers only while it still sees that question (see [What the shell recognises](#what-the-shell-recognises)). |
 | `terminals.paste(id)` | `terminal_paste` | The shell reads the clipboard and types it. |
+| `terminals.addFile(id, name, data)` | `terminal_add_file` | `data` is the file in base64. The shell saves it in the godspeed folder and types its path. Answers the path. See [While it runs](#while-it-runs). |
 | `terminals.stop(id)` | `terminal_stop` | Stops the terminal and everything it started. |
 | `terminals.list()` | `terminal_list` | Every terminal, for a page that reloaded. |
 | `terminals.onOutput(cb)` | push `terminal-output` | `{id, snapshot}` (base64 escape codes that redraw the screen) or `{id, data}` (base64 raw output). |
@@ -212,8 +213,9 @@ The learner's agents (Claude Code or Codex) run in terminals the shell owns, sho
 Each terminal has four threads: output, input, its exit, and a clock that sleeps until it has work, so an idle or hidden terminal never wakes the app.
 
 - **Output** goes through a `vt100` screen (1000 lines of scrollback) and to the page as `terminal-output` only while attached, 16 ms after the first byte that waits. More than 64 KB in one frame goes as a snapshot of the screen instead, so a program that prints without pause cannot hold up the window. If drawing the output panics, the shell stops the terminal, keeps reading and dropping its output, and the screen says "godspeed couldn't read this terminal's screen, so it stopped it." with `ended` `{stopped: false, code: null}`. The shell answers the questions a program asks its terminal (cursor position, device attributes, status), because a hidden terminal has no page and ConPTY waits for the cursor position before the program starts. The page's own answers to those are dropped.
-- **Input** is queued and written in order on its own thread, so a terminal that reads nothing never holds the window up. `terminal_write`, `terminal_answer` and `terminal_paste` run without `async`, so keys keep their order.
+- **Input** is queued and written in order on its own thread, so a terminal that reads nothing never holds the window up. `terminal_write`, `terminal_answer`, `terminal_paste` and `terminal_add_file` run without `async`, so keys keep their order.
 - **Typing** (`write`, `paste`) is refused unless that terminal is attached and the main window has the focus. Paste drops escape characters and is bracketed when the program asked for bracketed paste.
+- **Attach** (`add_file`) takes only the teacher's attached terminal, but not the focus: a file dropped from Finder arrives while Finder still has it. It checks the first bytes (PNG, JPEG, GIF, WebP, PDF) and the 20 MB limit, writes `<folder>/.godspeed/attachments/<first 12 hex of the SHA-256>-<name>` (the name's last part, other characters than letters, digits, `.`, `-` and `_` as `_`), and types the path and a space, bracketed when the program asked for it, with no Enter.
 - **The clock** sends waiting output and pushes `terminal-state` when the recognised question or the web address on the screen changes. It wakes only for output to send or for a question to reach its 2 s, and otherwise sleeps until output comes or the terminal ends.
 
 ### What the shell recognises
@@ -484,6 +486,7 @@ The access rule and the login route are in [rust-server.md](rust-server.md#the-s
     "allow-terminal-write",
     "allow-terminal-answer",
     "allow-terminal-paste",
+    "allow-terminal-add-file",
     "allow-terminal-stop",
     "allow-terminal-list",
     "allow-report-bug",
