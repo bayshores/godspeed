@@ -1,27 +1,54 @@
-/** Which corner notices show. Pure. */
+/** Which notices show under the pill, and what the pill says of them. Pure. */
 
 /** At most this many notices show at once; the rest wait their turn. */
 const MAX_SHOWN = 3;
 
+/** A notice shows by itself this long, then folds into the pill. */
+export const PRESENT_MS = 12_000;
+
+/** "first": update and restart, ahead of the rest. "quiet": a quiet
+ *  space, one at a time. */
+export type NoticeKind = "first" | "quiet";
+
+export interface Notice {
+	id: string;
+	title: string;
+	kind: NoticeKind | null;
+	/** A title and nothing under it. */
+	bare: boolean;
+	/** When it folds into the pill (ms); never, for one that closes by itself. */
+	foldAt: number;
+}
+
+interface NoticeView {
+	/** The ids on screen, in the stack's order. */
+	shown: string[];
+	/** The first notice still showing by itself: the pill says its title. */
+	presenting: Notice | null;
+	/** How many wait folded in the pill, for its count. */
+	waiting: number;
+}
+
 /**
- * Each notice's `data-notice`, in the stack's order, to whether it shows:
- * "first" ones (update, restart) before the rest, which keep their order,
- * and one "quiet" (space) notice at a time, so quiet spaces never fill
- * the stack.
+ * The notices in the stack's order, to what shows: "first" ones before the
+ * rest, which keep their order, one "quiet" notice at a time, 3 at most.
+ * One shows by itself until it folds; `open` (the pill's card is open)
+ * shows the folded ones too.
  */
-export function shownNotices(kinds: readonly (string | null)[]): boolean[] {
-	const ranked = [...kinds.keys()].sort((a, b) => Number(kinds[b] === "first") - Number(kinds[a] === "first"));
-	const shown = kinds.map(() => false);
-	let count = 0;
+export function noticeView(notices: readonly Notice[], now: number, open: boolean): NoticeView {
+	const ranked = [...notices].sort((a, b) => Number(b.kind === "first") - Number(a.kind === "first"));
 	let quiet = false;
-	for (const i of ranked) {
-		if (count === MAX_SHOWN) break;
-		if (kinds[i] === "quiet") {
-			if (quiet) continue;
-			quiet = true;
-		}
-		shown[i] = true;
-		count++;
-	}
-	return shown;
+	const taking = ranked.filter((n) => {
+		if (n.kind !== "quiet") return true;
+		if (quiet) return false;
+		quiet = true;
+		return true;
+	});
+	const fresh = taking.filter((n) => n.foldAt > now);
+	const shown = (open ? taking : fresh).slice(0, MAX_SHOWN);
+	return {
+		shown: shown.map((n) => n.id),
+		presenting: fresh[0] ?? null,
+		waiting: open ? 0 : taking.length - fresh.length,
+	};
 }

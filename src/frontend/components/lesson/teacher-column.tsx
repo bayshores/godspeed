@@ -76,7 +76,7 @@ export function TeacherColumn({
 			</div>
 			<Pane className="flex min-h-0 flex-1 flex-col overflow-hidden">
 				<TeacherHead name={name} color={color} doing={doing}>
-					<FollowButton tone="sheet" />
+					<FollowButton />
 					{activityOpen ? (
 						<button type="button" data-testid="teacher-activity-back" onClick={() => setActivityOpen(false)} className="lh-btn shrink-0">
 							<PixelIcon name="chevron" className="-scale-x-100" />

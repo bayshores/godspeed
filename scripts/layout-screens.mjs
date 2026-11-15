@@ -13,7 +13,9 @@ export const WIDTHS = [1440, 1100, 800];
 /** After a fetch in the page: an HTTP error throws, so a setup that failed is not walked past. */
 export const HTTP_OK = `.then((r) => { if (!r.ok) throw new Error(r.url + " answered " + r.status); return r; })`;
 
-const openTeacher = `document.querySelector("[data-testid=bar-teacher]").click()`;
+const pause = `await new Promise((done) => setTimeout(done, 100))`;
+const openPill = `document.querySelector("[data-testid=live-pill]").click()`;
+const openTeacher = `${openPill}; ${pause}; document.querySelector("[data-testid=pill-talk]").click()`;
 const deadlineCard = "[data-teacher-target='deadline:{deadline}']";
 
 export const SCREENS = [
@@ -26,8 +28,9 @@ export const SCREENS = [
 	{ name: "Deadlines", url: "/space/deadlines", ready: "[data-testid=deadline-open]" },
 	{ name: "Deadline", url: "/space/deadline/{deadline}", ready: "[data-testid=deadline-page] [data-testid=deadline-name]" },
 	{ name: "Lesson with a sourced reply, an open quiz and the plan", url: "/chat/{lesson}", ready: "[data-testid=cite-list]" },
+	{ name: "The pill's card", url: "/", ready: deadlineCard, setup: openPill, shows: "[data-testid=pill-panel] [data-testid=pill-talk]" },
 	{ name: "Talk with a sourced reply and no agent", url: "/", ready: deadlineCard, setup: openTeacher, shows: "[data-testid=talk-teacher] [data-testid=cite-list]" },
-	{ name: "Activity", url: "/", ready: deadlineCard, setup: `${openTeacher}; await new Promise((done) => setTimeout(done, 100)); document.querySelector("[data-testid=teacher-tab-activity]").click()`, shows: "[data-testid=activity-list] > *" },
+	{ name: "Activity", url: "/", ready: deadlineCard, setup: `${openTeacher}; ${pause}; document.querySelector("[data-testid=teacher-tab-activity]").click()`, shows: "[data-testid=activity-list] > *" },
 	{ name: "Settings, Connection", url: "/settings?section=connection", ready: "[data-testid=agent-status]" },
 	{ name: "Settings, Teaching", url: "/settings?section=teaching", ready: "[data-testid^=area-][data-testid$=-instructions]:not(:disabled)" },
 	{ name: "Settings, Appearance", url: "/settings?section=appearance", ready: "[data-testid=appearance-preview]" },

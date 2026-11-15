@@ -45,11 +45,11 @@ export function ClosedSpacesMenu({ lit, onAdd, onDelete }: { lit: boolean; onAdd
 				aria-haspopup="menu"
 				aria-expanded={open}
 				onClick={() => (open ? close() : setOpen(true))}
-				className={cn(BAR_TAB, "shrink-0", barTabState(lit || open))}
+				className={cn(BAR_TAB, "shrink-0", barTabState(lit && !open))}
 			>
 				<PixelIcon name="plus" />
 			</button>
-			<MenuShell open={open} anchorRef={anchorRef} testid="spaces-plus-list" preferredSide="down" align="left" menuClass="lh-popup flex w-[260px] flex-col p-1.5">
+			<MenuShell open={open} anchorRef={anchorRef} testid="spaces-plus-list" preferredSide="down" align="left" hang menuClass="lh-popup flex w-[260px] flex-col p-1.5">
 				{/* A press inside the list, off a row's menu, closes that menu. */}
 				<div className="flex flex-col" onPointerDown={closeRowMenu}>
 					<button

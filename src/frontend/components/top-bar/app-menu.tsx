@@ -24,11 +24,11 @@ export function AppMenu({ lit }: { lit: boolean }) {
 				aria-haspopup="menu"
 				aria-expanded={open}
 				onClick={() => setOpen((v) => !v)}
-				className={cn(BAR_TAB, "shrink-0", barTabState(lit || open))}
+				className={cn(BAR_TAB, "shrink-0", barTabState(lit && !open), open && "font-medium")}
 			>
 				Menu
 			</button>
-			<MenuShell open={open} anchorRef={anchorRef} testid="app-menu-list" preferredSide="down" menuClass="lh-popup flex w-[250px] flex-col p-1.5">
+			<MenuShell open={open} anchorRef={anchorRef} testid="app-menu-list" preferredSide="down" hang menuClass="lh-popup flex w-[250px] flex-col p-1.5">
 				<button
 					role="menuitem"
 					type="button"

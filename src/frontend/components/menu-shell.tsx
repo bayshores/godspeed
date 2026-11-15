@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { usePresence } from "@/frontend/components/presence";
+import { BARS } from "@/frontend/components/top-bar/bar-look";
 
 /**
  * THE shared menu shell: one placement body for the app's dropdown menus,
@@ -31,7 +32,9 @@ import { usePresence } from "@/frontend/components/presence";
  * a positioned menu.
  *
  * Motion: the placed body carries .lh-pop
- * (data-side from the placement, data-state from presence). Sites pass
+ * (data-side from the placement, data-state from presence). A menu of the
+ * top bar passes `hang`: it sits flush under the bar as part of it and
+ * grows out of it (.lh-hang) instead. Sites pass
  * `open` and render the shell unconditionally, so it stays mounted ~110ms
  * through its exit; while closing it is inert — no focus, no keys, no
  * clicks. Without `open` the shell is open while mounted (enter only).
@@ -79,9 +82,10 @@ export function computeMenuPlacement(
 	contentHeight: number,
 	preferredSide: MenuSide,
 	align: MenuAlign,
+	gap: number = GAP,
 ): MenuPlacement {
-	const availDown = viewport.height - EDGE - (rect.bottom + GAP);
-	const availUp = rect.top - GAP - EDGE;
+	const availDown = viewport.height - EDGE - (rect.bottom + gap);
+	const availUp = rect.top - gap - EDGE;
 	// contentHeight ≤ 0 (nothing measured yet) keeps the preferred side —
 	// the hidden first pass re-measures and decides with real numbers.
 	let side = preferredSide;
@@ -97,7 +101,7 @@ export function computeMenuPlacement(
 	const horizontal: Record<string, number> =
 		align === "right" ? { right: viewport.width - rect.right } : { left: rect.left };
 	const vertical: Record<string, number> =
-		side === "down" ? { top: rect.bottom + GAP } : { bottom: viewport.height - rect.top + GAP };
+		side === "down" ? { top: rect.bottom + gap } : { bottom: viewport.height - rect.top + gap };
 	return { side, style: { ...horizontal, ...vertical }, maxHeight };
 }
 
@@ -128,6 +132,8 @@ interface MenuBodyProps {
 	preferredSide: MenuSide;
 	/** Which anchor edge the menu's horizontal position keys off. */
 	align?: MenuAlign;
+	/** The anchor is in the top bar: the menu hangs from the bar as part of it. */
+	hang?: boolean;
 	/** The menu body spaces: width, border, bg, padding, text — the
 	 *  shell adds position, z-index, the height cap, and scrolling. */
 	menuClass: string;
@@ -142,6 +148,7 @@ function MenuShellBody({
 	label,
 	preferredSide,
 	align = "right",
+	hang = false,
 	menuClass,
 	children,
 	closing,
@@ -236,12 +243,16 @@ function MenuShellBody({
 		const place = () => {
 			const el = anchor();
 			if (!el || !menuRef.current) return;
+			const rect = el.getBoundingClientRect();
+			// A hanging menu starts at the bar's bottom edge, wherever in the bar its anchor sits.
+			const bar = hang ? el.closest(BARS) : null;
 			const p = computeMenuPlacement(
-				el.getBoundingClientRect(),
+				bar ? { top: rect.top, bottom: bar.getBoundingClientRect().bottom, left: rect.left, right: rect.right } : rect,
 				{ width: window.innerWidth, height: window.innerHeight },
 				menuRef.current.scrollHeight,
 				preferredSide,
 				align,
+				hang ? 0 : GAP,
 			);
 			setPlaced(p);
 		};
@@ -257,7 +268,7 @@ function MenuShellBody({
 			window.removeEventListener("scroll", rePlace, true);
 			window.removeEventListener("resize", rePlace);
 		};
-	}, [anchorRef, anchorTestid, preferredSide, align]);
+	}, [anchorRef, anchorTestid, preferredSide, align, hang]);
 
 	// First pass: mounted hidden at the viewport's top-left so the layout
 	// effect can measure the real content height before anything is seen.
@@ -276,7 +287,9 @@ function MenuShellBody({
 			document.body,
 		);
 	}
-	return createPortal(
+	const state = closing ? "closed" : "open";
+	const where = { position: "fixed", zIndex: 60, ...placed.style } as const;
+	const body = (
 		<div
 			ref={menuRef}
 			data-testid={testid}
@@ -286,20 +299,29 @@ function MenuShellBody({
 			tabIndex={-1}
 			onKeyDown={onBodyKeyDown}
 			data-side={placed.side}
-			data-state={closing ? "closed" : "open"}
+			data-state={state}
 			inert={closing}
-			style={{ position: "fixed", zIndex: 60, ...placed.style, maxHeight: placed.maxHeight, overflowY: "auto" }}
+			style={{ ...(hang ? {} : where), maxHeight: placed.maxHeight, overflowY: "auto" }}
 			// The body is the arrow machine's focus home (input-less menus
 			// land focus here on open) — the focus STAYS, but the browser's
 			// default blue ring around it must not draw. Arrow cycling moves
 			// DOM focus to the buttons, which
 			// carry their own hover/highlight; the ring is pure noise.
-			// .lh-pop lands on the PLACED body only: the animation starts on
-			// the first visible frame, already at its anchor.
-			className={`${menuClass} lh-pop outline-none`}
+			// The motion class lands on the PLACED body only: the animation
+			// starts on the first visible frame, already at its anchor.
+			className={`${menuClass} ${hang ? "lh-hang-body" : "lh-pop"} outline-none`}
 		>
 			{children}
-		</div>,
+		</div>
+	);
+	return createPortal(
+		hang ? (
+			<div data-state={state} style={where} className="lh-hang">
+				{body}
+			</div>
+		) : (
+			body
+		),
 		document.body,
 	);
 }
