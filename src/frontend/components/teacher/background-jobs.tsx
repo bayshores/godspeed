@@ -10,7 +10,7 @@ import { blobLabel, formatElapsed, toBlobs, type ActivityBlob } from "./activity
 
 /**
  * "Running in the background": jobs that failed lately, then one row per
- * running sub-agent job or fact-building run, with a Stop button (POST
+ * running sub-agent job, fact-building run or deadline request, a Stop button on the first two (POST
  * /api/activity/abort). 404/409 mean it already ended (refresh, no error);
  * a real failure says so and Stop stays clickable. Clicking a row opens its
  * detail inline (the list scrolls, so a popover would clip). Hidden when
@@ -150,17 +150,19 @@ function JobRow({
 						{label}, <span data-testid="activity-blob-elapsed">{elapsed}</span>
 					</span>
 				</button>
-				<button
-					type="button"
-					data-testid="activity-abort"
-					onClick={onAbort}
-					disabled={abortState === "pending"}
-					title={abortState === "failed" ? "Abort failed. Try again." : undefined}
-					aria-label={`Stop ${label} in ${blob.title}`}
-					className="lh-btn h-auto shrink-0 px-2.5 py-1 text-[15px]"
-				>
-					Stop
-				</button>
+				{blob.process !== "request" && (
+					<button
+						type="button"
+						data-testid="activity-abort"
+						onClick={onAbort}
+						disabled={abortState === "pending"}
+						title={abortState === "failed" ? "Abort failed. Try again." : undefined}
+						aria-label={`Stop ${label} in ${blob.title}`}
+						className="lh-btn h-auto shrink-0 px-2.5 py-1 text-[15px]"
+					>
+						Stop
+					</button>
+				)}
 			</div>
 			{detail.mounted && (
 				<div className="lh-collapse" data-state={detail.state}>

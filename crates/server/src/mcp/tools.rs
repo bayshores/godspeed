@@ -56,6 +56,9 @@ pub async fn call_tool(call: &ToolCall<'_>, name: &str, args: &Json) -> Json {
 		Ok(args) => args,
 		Err(error) => return failure(&error),
 	};
+	if !matches!(name, "wait_for_work" | "respond") {
+		call.app.bridge.drop_typed(call.terminal);
+	}
 	match name {
 		"wait_for_work" => work::wait_for_work(call, &args).await,
 		"respond" => work::respond(call, &args).await,

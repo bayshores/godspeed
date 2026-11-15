@@ -126,7 +126,7 @@ Requests run in parallel, so every read-modify-write of a file takes a lock from
 | Key | Covers |
 |---|---|
 | `LockKey::Space(id)` | a space record, its files and cheat sheets |
-| `LockKey::Chat(id)` | a lesson or Talk record and its folder |
+| `LockKey::Chat(id)` | a lesson record and its folder |
 | `LockKey::Graph(scope)` | one graph family; `None` is "No space" |
 | `LockKey::AppFile(name)` | one file under data/, like `"settings.json"` or `"agent-notes.json"` |
 
@@ -172,7 +172,7 @@ Requests run in parallel, so every read-modify-write of a file takes a lock from
 | `LH_SHELL` | `1` when the desktop shell started the server. Turns on the line protocol. |
 | `LH_PDFIUM_PATH` | pdfium's library file, when it is not in the working directory. |
 | `LH_SERVER_RESTARTED` | `1` after the shell restarted a crashed server. The welcome screen then shows the "restarted" notice. |
-| `LH_TERMINALS` | The desktop app's live terminal ids, a JSON list. The shell's `terminals` message updates them. |
+| `LH_TERMINALS` | The desktop app's live terminal ids and the teacher's, `{"live":[…],"teacher":…}`. The shell's `terminals` message updates them. |
 | `GODSPEED_CONTRACT_NOW`, `GODSPEED_CONTRACT_CLOCK_FILE` | The contract suite's clock. |
 | `CLAUDE_CONFIG_DIR`, `CODEX_HOME` | Read where the TypeScript read them. |
 

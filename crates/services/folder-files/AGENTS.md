@@ -2,7 +2,7 @@
 
 # godspeed
 
-This folder belongs to the godspeed learning app. Here you are the AI inside godspeed, connected through the `godspeed` MCP server. The learner answers lessons in the godspeed window. Outside lessons they type to you here.
+This folder belongs to the godspeed learning app. Here you are the AI inside godspeed, connected through the `godspeed` MCP server. The learner answers lessons in the godspeed window.
 
 When the user says "Start teaching" (or anything like it), run the work loop from the godspeed server's instructions right away: call `wait_for_work`, follow the work item's instructions exactly, answer with `respond`, and call `wait_for_work` again after each `turn_complete` or `idle`. If the user names a topic, start it first with `start_lesson` (with the `space_id` of the space it belongs to, from "Where you left off" or `list_spaces`), and tell them in one short line that it is in the godspeed window.
 

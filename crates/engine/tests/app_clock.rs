@@ -114,7 +114,7 @@ async fn the_app_clock_ends_stuck_tools_and_stale_claims() {
 	// terminal's agent here.
 	let bridge = Bridge::new(&Events::new(), Arc::new(Marks::default()));
 	let terminal = "0123456789abcdef0123456789abcdef";
-	bridge.set_live_terminals(vec![terminal.to_owned()]);
+	bridge.set_live_terminals(vec![terminal.to_owned()], Some(terminal.to_owned()));
 	bridge.record_terminal_contact(None, clock::now_ms());
 	bridge.record_terminal_contact(Some(terminal), clock::now_ms());
 	let outside = tokio::spawn({
@@ -132,7 +132,7 @@ async fn the_app_clock_ends_stuck_tools_and_stale_claims() {
 	settle().await;
 	assert!(bridge.outside_here(clock::now_ms()), "outside agent still waiting after 4 minutes");
 	assert_eq!(bridge.terminals_here(clock::now_ms()), vec![(terminal.to_owned(), true)]);
-	bridge.set_live_terminals(Vec::new());
+	bridge.set_live_terminals(Vec::new(), None);
 	assert!(inside.await.unwrap().is_none());
 	outside.abort();
 }

@@ -21,9 +21,9 @@ impl Outlet for AppOutlet {
 		push::push(&self.0, channel, &payload);
 	}
 
-	fn live(&self, ids: Vec<String>) {
+	fn live(&self, ids: Vec<String>, teacher: Option<String>) {
 		if let Some(server) = self.0.try_state::<Server>() {
-			server.send(None, &gs_shell_rpc::ToServer::Terminals { live: ids });
+			server.send(None, &gs_shell_rpc::ToServer::Terminals { live: ids, teacher });
 		}
 	}
 

@@ -17,6 +17,21 @@ const pause = `await new Promise((done) => setTimeout(done, 100))`;
 const openPill = `document.querySelector("[data-testid=live-pill]").click()`;
 const openTeacher = `${openPill}; ${pause}; document.querySelector("[data-testid=pill-talk]").click()`;
 const deadlineCard = "[data-teacher-target='deadline:{deadline}']";
+/** Today's every group at once: the next deadline, three more this week, one ticked done, two
+ *  later. Dates count from the day the check runs. */
+const busyDay = `const day = (n) => new Date(Date.now() + n * 86400000).toLocaleDateString("sv");
+const base = "/api/spaces/{space}/deadlines";
+const add = (kind, name, n, time) => fetch(base, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind, name, date: day(n), time, fileIds: [] }) })${HTTP_OK};
+await add("exam", "Graphing quiz", 2, "10:00");
+await add("homework", "Homework 7: slopes", 3);
+await add("project", "Spring-loaded graph project", 5, "23:00");
+await add("homework", "Warm-up problems", 6);
+await add("homework", "Polynomial practice", 4);
+await add("exam", "Final exam, everything", 20, "09:00");
+await add("quiz", "Quiz 3: graphing systems", 12);
+const { deadlines } = await fetch("/api/deadlines")${HTTP_OK}.then((r) => r.json());
+const done = deadlines.find((d) => d.name === "Polynomial practice");
+await fetch(base + "/" + done.id, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ done: true }) })${HTTP_OK};`;
 
 export const SCREENS = [
 	{ name: "Today with a deadline", url: "/", ready: deadlineCard },
@@ -43,6 +58,7 @@ export const SCREENS = [
 		shows: "[data-testid=terminal-stop]",
 	},
 	{ name: "Today with no deadline", before: `await fetch("/api/spaces/{space}/deadlines/{deadline}", { method: "DELETE" })${HTTP_OK}`, url: "/", ready: "[data-testid=today-empty]" },
+	{ name: "Today on a busy day", before: busyDay, url: "/", ready: "[data-testid=today-list] [data-testid^=today-done-row]", shows: "[data-testid=later-list]" },
 	{
 		name: "Onboarding",
 		before: `const { settings } = await fetch("/api/settings")${HTTP_OK}.then((r) => r.json()); await fetch("/api/settings/general", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...settings.general, onboarded: false }) })${HTTP_OK}`,

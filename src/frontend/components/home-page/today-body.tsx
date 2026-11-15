@@ -1,12 +1,10 @@
 import { localDay, longDay, type DeadlineProgress, type ProgressPayload, type SpaceSummary } from "@/shared/core";
-import { LoadFailed } from "@/frontend/components/load-failed";
 import type { OpenDeadline } from "@/frontend/components/deadlines-model";
-import { AddDeadline } from "./add-deadline";
-import { todaySections, type TodayLists } from "./home-page-model";
-import { NextCard } from "./next-card";
+import { Pane } from "@/frontend/components/ui/pane";
+import { DeadlinesCard } from "./deadlines-card";
+import type { TodayLists } from "./home-page-model";
 import { SpaceList } from "./space-list";
-import { ROW_LIST, SECTION_TITLE } from "./styles";
-import { DoneRow, LaterRow, TodayRow } from "./today-row";
+import { CARD_HEAD, CARD_TITLE } from "./styles";
 import { WeekStrip } from "./week-strip";
 
 interface TodayBodyProps {
@@ -41,103 +39,61 @@ interface TodayBodyProps {
 }
 
 /**
- * TODAY (the render seam of home-page.tsx) in three levels: the next
- * thing as the one card with the page's main button; the rest of what is
- * due this week and what was ticked done today as a framed list; the
- * spaces and Later (with "Add a deadline") as plain rows. This week's
- * study days are a quiet line under the title.
+ * TODAY (the render seam of home-page.tsx), from the top of the window
+ * down: the head (Today, the date, this week's study days), then the
+ * deadlines card with the next thing biggest, then the spaces card. With
+ * no space yet, the spaces card alone, with the key for the first.
  */
 export function TodayBody(p: TodayBodyProps) {
 	return (
-		<div className="mx-auto flex w-full max-w-[808px] shrink-0 flex-col gap-10 px-6 pt-12 pb-10">
-			<div className="flex flex-col gap-3">
-				<div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+		<div className="mx-auto flex w-full max-w-[904px] flex-col gap-10 px-6 pt-14 pb-16">
+			<header className="flex flex-col gap-4">
+				<div className="flex flex-wrap items-end gap-x-5 gap-y-3">
 					<h1 className="text-[56px] leading-none text-ink">Today</h1>
 					{p.nowMs !== null && (
-						<p data-testid="today-date" className="bg-highlight px-2.5 py-1 font-count text-[17px] text-ink">
+						<p data-testid="today-date" className="mb-1 bg-highlight px-2.5 py-1 font-count text-[17px] text-ink">
 							{longDay(localDay(p.nowMs))}
 						</p>
 					)}
 				</div>
 				{p.ready && p.nowMs !== null && p.spaces.length > 0 && <WeekStrip progress={p.spacesProgress} noSpace={p.noSpaceProgress} nowMs={p.nowMs} />}
-			</div>
+			</header>
 			{!p.ready || p.nowMs === null ? (
 				<div data-testid="home-loading" aria-hidden className="h-[320px] w-full bg-panel" />
 			) : p.spaces.length === 0 ? (
-				<div className="flex flex-col items-start gap-4">
-					<p data-testid="today-empty" className="text-[17px] text-ink-2">
-						No spaces yet. Add one, then add its deadlines.
+				<Pane>
+					<div className={CARD_HEAD}>
+						<h2 className={CARD_TITLE}>Your spaces</h2>
+						<button type="button" data-testid="today-add-space" onClick={p.onAddSpace} className="lh-btn lh-btn-main">
+							Add a space
+						</button>
+					</div>
+					<p data-testid="today-empty" className="px-6 pb-6 text-[17px] text-ink-2">
+						None yet. A space holds one subject&apos;s files, deadlines and lessons.
 					</p>
-					<button type="button" data-testid="today-add-space" onClick={p.onAddSpace} className="lh-btn lh-btn-main">
-						Add a space
-					</button>
-				</div>
+				</Pane>
 			) : (
-				<Sections {...p} nowMs={p.nowMs} />
+				<>
+					{p.lessonError && (
+						<p role="alert" className="-mb-5 text-[15px] text-ans-wrong">
+							{p.lessonError}
+						</p>
+					)}
+					<DeadlinesCard
+						spaces={p.spaces}
+						lists={p.lists}
+						progress={p.deadlineProgress}
+						nowMs={p.nowMs}
+						busy={p.busy}
+						onStart={p.onStart}
+						onDone={p.onDone}
+						onUndo={p.onUndo}
+						onRetry={p.onRetry}
+						onAdd={p.onAddDeadline}
+					/>
+					<SpaceList spaces={p.spaces} progress={p.spacesProgress} errors={p.progressErrors} worker={p.worker} newFiles={p.newFiles} onOpen={p.onOpenSpace} />
+				</>
 			)}
 		</div>
-	);
-}
-
-function Sections(p: TodayBodyProps & { nowMs: number }) {
-	const { nowMs, lists, deadlineProgress } = p;
-	const color = (d: OpenDeadline) => p.spaces.find((s) => s.id === d.spaceId)?.color;
-	const sections = lists && todaySections(lists, deadlineProgress, nowMs);
-	return (
-		<>
-			{p.lessonError && (
-				<p role="alert" className="-mb-4 text-[15px] text-ans-wrong">
-					{p.lessonError}
-				</p>
-			)}
-			{!sections ? (
-				<LoadFailed message="Couldn't load your deadlines." onRetry={p.onRetry} />
-			) : sections.card ? (
-				<NextCard
-					deadline={sections.card}
-					progress={deadlineProgress.get(sections.card.id)}
-					color={color(sections.card)}
-					nowMs={nowMs}
-					busy={p.busy}
-					onStart={p.onStart}
-					onDone={p.onDone}
-				/>
-			) : (
-				sections.empty && (
-					<p data-testid="today-empty" className="text-[17px] text-ink-2">
-						{sections.empty}
-					</p>
-				)
-			)}
-			{lists && sections && sections.due.length + lists.done.length > 0 && (
-				<section className="flex flex-col gap-2">
-					<h2 className={SECTION_TITLE}>Due this week</h2>
-					<ul data-testid="today-list" className={`${ROW_LIST} border-y-2 border-line`}>
-						{sections.due.map((d) => (
-							<TodayRow key={d.id} deadline={d} progress={deadlineProgress.get(d.id)} color={color(d)} nowMs={nowMs} busy={p.busy} onStart={p.onStart} onDone={p.onDone} />
-						))}
-						{lists.done.map((d) => (
-							<DoneRow key={d.id} deadline={d} onUndo={p.onUndo} />
-						))}
-					</ul>
-				</section>
-			)}
-			<SpaceList spaces={p.spaces} progress={p.spacesProgress} errors={p.progressErrors} worker={p.worker} newFiles={p.newFiles} onOpen={p.onOpenSpace} />
-			{lists && (
-				<section className="flex flex-col gap-2">
-					<div className="flex min-h-9 items-center justify-between gap-4">
-						<h2 className={SECTION_TITLE}>{lists.later.length > 0 && "Later"}</h2>
-						<AddDeadline spaces={p.spaces} onPick={p.onAddDeadline} />
-					</div>
-					{lists.later.length > 0 && (
-						<ul data-testid="later-list" className={ROW_LIST}>
-							{lists.later.map((d) => (
-								<LaterRow key={d.id} deadline={d} progress={deadlineProgress.get(d.id)} nowMs={nowMs} />
-							))}
-						</ul>
-					)}
-				</section>
-			)}
-		</>
 	);
 }

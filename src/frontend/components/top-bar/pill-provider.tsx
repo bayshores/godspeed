@@ -67,6 +67,7 @@ export function PillProvider({ children }: { children: ReactNode }) {
 	const following = teacher?.follow ?? false;
 	const terminal = teacherTerminalState(terminals?.facts.teacher ?? null);
 	const jobs = feed.jobs.length + feed.extractions.length;
+	const requests = useMemo(() => (feed.requests ?? []).map((r) => r.title), [feed.requests]);
 	const things = useMemo(
 		() =>
 			pillThings({
@@ -74,12 +75,12 @@ export function PillProvider({ children }: { children: ReactNode }) {
 				doing,
 				agent,
 				terminal,
-				work: workProgress({ worker, spaces, jobs }),
+				work: workProgress({ worker, spaces, jobs, requests }),
 				ready,
 				due: deadlines && minute !== null ? dueSoon(deadlines, minute, pathname) : null,
 				offer: followButtons({ following, working: false, offer }).go && offer ? offer.label : null,
 			}),
-		[name, doing, agent, terminal, worker, spaces, jobs, ready, deadlines, minute, pathname, following, offer],
+		[name, doing, agent, terminal, worker, spaces, jobs, requests, ready, deadlines, minute, pathname, following, offer],
 	);
 	const said = notices.said?.title ?? null;
 	const known = notices.known.length;

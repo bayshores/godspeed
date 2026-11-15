@@ -7,7 +7,7 @@ use gs_base::time;
 use gs_core::spaces::agent_briefing::{BriefingSpace, BriefingInput, BriefingLesson, agent_briefing};
 use gs_core::spaces::space_setup::{SETUP_HOW, missing_setup};
 use gs_core::spaces::space_shortcuts::{space_dirs, readme_text, safe_entry_name, shortcut_layout, unique_name};
-use gs_core::spaces::space_tools::{SPACE_ARG_TEXT, SPACE_TOOL_TEXT, DEADLINE_KINDS, FILE_KINDS, lesson_started_last_turn};
+use gs_core::spaces::space_tools::{SPACE_ARG_TEXT, SPACE_TOOL_TEXT, DEADLINE_KINDS, FILE_KINDS};
 use gs_core::spaces::deadline_requests::{RequestedDeadline, asked_deadline_ids, unlinked_deadlines};
 use gs_core::spaces::file_groups::{file_groups, pair_series};
 use gs_core::spaces::file_series::{date_in_name, group_file_series};
@@ -204,13 +204,6 @@ fn space_tool_text_matches_node() {
 	assert_eq!(args.iter().map(|(k, v)| ((*k).to_owned(), (*v).to_owned())).collect::<Vec<_>>(), want);
 	assert_eq!(DEADLINE_KINDS.to_vec(), strings(&c["deadlineKinds"]));
 	assert_eq!(FILE_KINDS.to_vec(), strings(&c["fileKinds"]));
-}
-
-#[test]
-fn lesson_started_last_turn_matches_node() {
-	for c in case("lesson started last turn") {
-		assert_eq!(lesson_started_last_turn(list(&c["messages"])), c["output"].as_str().map(str::to_owned), "{:?}", c["messages"]);
-	}
 }
 
 #[test]

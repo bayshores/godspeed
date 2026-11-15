@@ -8,9 +8,10 @@ use std::sync::Arc;
 
 use futures_util::future::BoxFuture;
 use gs_agent::teacher::prompt_segments::{AgentKind, all_segment_paths};
-use gs_agent::teacher::teacher_agent::{AgentBuildOptions, compose_instructions, create_homework_agent, create_practice_agent, create_prober_agent, create_study_agent, create_talk_agent, create_teacher_agent};
+use gs_agent::teacher::teacher_agent::{AgentBuildOptions, compose_instructions, create_homework_agent, create_practice_agent, create_prober_agent, create_study_agent, create_teacher_agent};
 use gs_agent::tools::space::{SpaceSearch, SpaceToolContext};
 use gs_agent::tools::fn_tool::FnTool;
+use gs_agent::tools::space_actions::SpaceActions;
 use gs_agent::tools::graph::{GraphToolContext, ScopedGraph};
 use gs_agent::tools::homework::{HomeworkDeadline, HomeworkToolContext, homework_tools};
 use gs_agent::tools::jobs::JobToolContext;
@@ -24,7 +25,6 @@ use gs_agent::tools::probe::ProbeDoneContext;
 use gs_agent::tools::questions::bare_question_tools;
 use gs_agent::tools::rules::SaveRule;
 use gs_agent::tools::side::LessonSide;
-use gs_agent::tools::talk::{SpaceActions, talk_tools};
 use gs_agent::tools::topic_done::CheckMarks;
 use gs_base::config::Paths;
 use gs_base::fsx;
@@ -42,13 +42,12 @@ use gs_store::prompt_overrides::PromptOverrides;
 use parking_lot::Mutex;
 
 const FILE_TOOLS: [&str; 4] = ["read", "ls", "find", "grep"];
-const KINDS: [(&str, AgentKind); 6] = [
+const KINDS: [(&str, AgentKind); 5] = [
 	("prober", AgentKind::Prober),
 	("teacher", AgentKind::Teacher),
 	("practice", AgentKind::Practice),
 	("study", AgentKind::Study),
 	("homework", AgentKind::Homework),
-	("talk", AgentKind::Talk),
 ];
 
 // The stub world: the same chats, graphs and stores as the TypeScript golden.
@@ -486,7 +485,6 @@ fn agents(prompts: &PromptOverrides) -> Json {
 		"practice": agent_facts(&create_practice_agent(&w.practice("lesson"), toggled(off()))),
 		"study": agent_facts(&create_study_agent(&study, toggled(json!({ "demo": false })))),
 		"homework": agent_facts(&create_homework_agent(&w.homework("lesson", deadline), AgentBuildOptions { learner_rules: rules(), ..opts() })),
-		"talk": agent_facts(&create_talk_agent(&space_actions(), toggled(off()))),
 		"explicit tools": agent_facts(&create_teacher_agent(Some(&teacher()), AgentBuildOptions { tools: Some(explicit), ..toggled(json!({ "quiz": false })) })),
 	})
 }
@@ -508,7 +506,6 @@ async fn run_cases(data: &Path) -> Vec<(&'static str, Json)> {
 				("shared/10-voice.md", "Custom voice."),
 				("teacher/20-teaching.md", ""),
 				("practice/20-hints.md", "   \n"),
-				("talk/00-base.md", "Talk base override.\n"),
 				("shared/99-ignored.md", "No such part."),
 			],
 		),
@@ -546,7 +543,6 @@ async fn run_cases(data: &Path) -> Vec<(&'static str, Json)> {
 	case("registry: practice minimal", describe(&practice_tools(&w.practice("lesson"), None)));
 	case("registry: practice full", describe(&practice_tools(&practice_full, Some(&json!({ "pdf": false })))));
 	case("registry: homework full", describe(&homework_tools(&homework_full, None)));
-	case("registry: talk", describe(&talk_tools(&space_actions())));
 	case("registry: bare questions", describe(&bare_question_tools()));
 	case("icons", SPACE_ICONS.iter().map(|(icon, _)| Json::from(*icon)).collect());
 
@@ -693,27 +689,6 @@ async fn run_cases(data: &Path) -> Vec<(&'static str, Json)> {
 	let gone = script(&space_only(Arc::new(|| Ok(None))), vec![("read_space", json!({}))]).await;
 	let no_today = script(&space_only(Arc::new(|| Ok(Some(card())))), vec![("read_space", json!({}))]).await;
 	case("space: tools", json!({ "out": out, "gone": gone, "noToday": no_today }));
-	let icon = SPACE_ICONS[0].0;
-	case(
-		"space: talk",
-		script(
-			&talk_tools(&space_actions()),
-			vec![
-				("list_spaces", json!({})),
-				("read_space", json!({ "space_id": "space1", "files": true })),
-				("search_space_files", json!({ "space_id": "space1", "query": "q", "limit": 2 })),
-				("create_space", json!({ "name": "New", "icon": icon, "signature": { "kind": "math", "value": "x^2" } })),
-				("add_space_file", json!({ "space_id": "space1", "path": "/a.md", "kind": "study" })),
-				("set_space_file_kind", json!({ "space_id": "space1", "file_ids": ["f1"], "kind": "info" })),
-				("add_space_deadline", json!({ "space_id": "space1", "deadlines": [{ "kind": "quiz", "name": "Q1", "date": "2026-03-01", "time": "10:00", "file_ids": ["f1"] }] })),
-				("remove_space_deadline", json!({ "space_id": "space1", "deadline_id": "d1" })),
-				("start_lesson", json!({ "topic": "Limits" })),
-				("link_space_folder", json!({ "space_id": "space1", "path": "/folder" })),
-			],
-		)
-		.await,
-	);
-
 	let w = world();
 	let with_graph = |graph: GraphToolContext| ProberToolContext { graph: Some(graph), ..w.prober("lesson") };
 	let own = prober_tools(&with_graph(w.graph(w.own.clone(), false)), None);

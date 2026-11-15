@@ -4,8 +4,8 @@ import { useServerEvent, useServerResync } from "@/frontend/components/server-ev
 
 /**
  * THE ACTIVITY FEED: one feed of GET /api/activity (running sub-agent jobs
- * across all lessons, title-joined, the fact-building runs, and jobs that
- * failed lately), fetched when truth moves. The teacher's Activity list
+ * across all lessons, title-joined, the fact-building runs, the deadline
+ * requests, and jobs that failed lately), fetched when truth moves. The teacher's Activity list
  * (teacher/teacher-activity.tsx) draws it. Teaching turns are not in it:
  * a turn in flight shows where it happens.
  */
@@ -37,6 +37,14 @@ export interface FeedExtraction {
 	startedAt: number;
 }
 
+/** A deadline request the agent works on ("Deadline: Wave Optics Final"); it has no Stop. */
+interface FeedRequest {
+	/** Its first deadline's id. */
+	id: string;
+	title: string;
+	startedAt: number;
+}
+
 /** A job that failed lately (server/observability.ts ActivityFailedJob). */
 interface FeedFailedJob {
 	id: string;
@@ -52,9 +60,11 @@ export interface ActivityFeed {
 	extractions: FeedExtraction[];
 	/** Jobs that failed in the last few minutes (absent on older payloads). */
 	failed?: FeedFailedJob[];
+	/** Deadline requests running (absent on older payloads). */
+	requests?: FeedRequest[];
 }
 
-const EMPTY_FEED: ActivityFeed = { jobs: [], extractions: [], failed: [] };
+const EMPTY_FEED: ActivityFeed = { jobs: [], extractions: [], failed: [], requests: [] };
 
 // ─── The activity feed (composition root: src/frontend/routes/root.tsx) ───────────────────
 
@@ -90,7 +100,7 @@ export function ActivityProvider({ children }: { children: React.ReactNode }) {
 				if (res.ok) {
 					const data = (await res.json()) as Partial<ActivityFeed>;
 					if (alive)
-						setFeed({ jobs: data.jobs ?? [], extractions: data.extractions ?? [], failed: data.failed ?? [] });
+						setFeed({ jobs: data.jobs ?? [], extractions: data.extractions ?? [], failed: data.failed ?? [], requests: data.requests ?? [] });
 				}
 			} catch {
 				// transport blip: keep the last feed, announce again next event

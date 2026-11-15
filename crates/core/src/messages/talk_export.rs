@@ -1,7 +1,7 @@
 //! An older build's Talk chat as Markdown for `Talk.md` in the godspeed folder: who said what,
 //! each change a tool made as one line, math left as its source. Its pictures come back as files
-//! to save in `Talk files/`; its PDFs are named by the file they were saved as in the chat's
-//! folder, which is copied there too.
+//! to save in the folder beside it (`Talk files/`); its PDFs are named by the file they were saved
+//! as in the chat's folder, which is copied there too.
 
 use gs_base::base64;
 use gs_base::hash::sha256_hex;
@@ -10,9 +10,6 @@ use gs_json::Json;
 
 use super::attachments::pdf_note_of;
 use crate::spaces::today_note::{day_label, local_day};
-
-/// The folder beside `Talk.md` that holds its pictures and PDFs.
-pub const TALK_FILES: &str = "Talk files";
 
 pub struct TalkExport {
 	pub text: String,
@@ -32,8 +29,9 @@ enum Speaker {
 	Godspeed,
 }
 
-/// The chat as Markdown; None when nothing in it was ever shown.
-pub fn talk_export(record: &Json, teacher: &str) -> Option<TalkExport> {
+/// The chat as Markdown, linking its pictures and PDFs in the folder `files` beside it; None when
+/// nothing in it was ever shown.
+pub fn talk_export(record: &Json, teacher: &str, files: &str) -> Option<TalkExport> {
 	let mut pictures = Vec::new();
 	let mut rows: Vec<(Speaker, Option<i64>, String)> = Vec::new();
 	for m in record["messages"].items() {
@@ -42,7 +40,7 @@ pub fn talk_export(record: &Json, teacher: &str) -> Option<TalkExport> {
 		}
 		let at = m["timestamp"].as_f64().map(|t| t as i64);
 		match (m["role"].as_str(), m["customType"].as_str()) {
-			(Some("user"), _) => rows.extend(learner_lines(&m["content"], &mut pictures).into_iter().map(|line| (Speaker::You, at, line))),
+			(Some("user"), _) => rows.extend(learner_lines(&m["content"], files, &mut pictures).into_iter().map(|line| (Speaker::You, at, line))),
 			(Some("assistant"), _) => rows.extend(m["content"].items().iter().filter(|p| p["type"].as_str() == Some("text")).filter_map(|p| shown(&p["text"])).map(|text| (Speaker::Teacher, at, text))),
 			(Some("toolResult"), _) => {
 				let labels = m["details"]["changes"].items().iter().filter_map(|c| c["label"].as_str());
@@ -84,7 +82,7 @@ fn shown(text: &Json) -> Option<String> {
 }
 
 /// The learner's words, a link per PDF, and each picture as an image link to its new file.
-fn learner_lines(content: &Json, pictures: &mut Vec<Picture>) -> Vec<String> {
+fn learner_lines(content: &Json, files: &str, pictures: &mut Vec<Picture>) -> Vec<String> {
 	if let Some(text) = shown(content) {
 		return vec![text];
 	}
@@ -94,14 +92,14 @@ fn learner_lines(content: &Json, pictures: &mut Vec<Picture>) -> Vec<String> {
 			Some("text") => {
 				let Some(text) = shown(&part["text"]) else { continue };
 				lines.push(match pdf_note_of(&text) {
-					Some((name, path)) => format!("[PDF: {name}](<{TALK_FILES}/{}>)", file_name(&path)),
+					Some((name, path)) => format!("[PDF: {name}](<{files}/{}>)", file_name(&path)),
 					None => text,
 				});
 			}
 			Some("image") => {
 				let bytes = base64::decode(part["data"].str_or_empty());
 				let name = format!("{}.{}", slice16(&sha256_hex(&bytes), 0, Some(12)), extension(part["mimeType"].as_str()));
-				lines.push(format!("![Picture](<{TALK_FILES}/{name}>)"));
+				lines.push(format!("![Picture](<{files}/{name}>)"));
 				if !pictures.iter().any(|p| p.name == name) {
 					pictures.push(Picture { name, bytes });
 				}
@@ -156,7 +154,7 @@ mod tests {
 			{ "role": "toolResult", "details": { "changes": [{ "label": "Creating Algebra", "page": "/space" }] } },
 			{ "role": "custom", "customType": "app-request", "details": { "deadlines": [{ "name": "Midterm", "spaceName": "Algebra" }, { "name": "Quiz", "spaceName": "Algebra" }, { "name": "Final", "spaceName": "Biology" }] } },
 		] });
-		let export = talk_export(&record, "Marco").unwrap();
+		let export = talk_export(&record, "Marco", "Talk files").unwrap();
 		let name = format!("{}.png", &sha256_hex(b"\x89PNG tiny")[..12]);
 		assert_eq!(
 			export.text,
@@ -166,12 +164,14 @@ mod tests {
 		);
 		assert_eq!(export.pictures.len(), 1);
 		assert_eq!((export.pictures[0].name.as_str(), export.pictures[0].bytes.as_slice()), (name.as_str(), &b"\x89PNG tiny"[..]));
+		let beside = talk_export(&record, "Marco", "Talk files (godspeed)").unwrap().text;
+		assert!(beside.contains(&format!("![Picture](<Talk files (godspeed)/{name}>)")) && beside.contains("](<Talk files (godspeed)/0123456789ab-Week 3.pdf>)"));
 	}
 
 	#[test]
 	fn a_chat_with_nothing_shown_has_no_export() {
-		assert!(talk_export(&json!({ "messages": [] }), "Teacher").is_none());
-		assert!(talk_export(&json!({ "messages": [{ "role": "custom", "customType": "compaction", "content": "[SESSION HISTORY COMPACTED]" }] }), "Teacher").is_none());
+		assert!(talk_export(&json!({ "messages": [] }), "Teacher", "Talk files").is_none());
+		assert!(talk_export(&json!({ "messages": [{ "role": "custom", "customType": "compaction", "content": "[SESSION HISTORY COMPACTED]" }] }), "Teacher", "Talk files").is_none());
 	}
 
 	#[test]
@@ -182,7 +182,7 @@ mod tests {
 			{ "role": "assistant", "content": [{ "type": "text", "text": "Hello." }], "timestamp": first },
 			{ "role": "user", "content": "back", "timestamp": second },
 		] });
-		let text = talk_export(&record, "Teacher").unwrap().text;
+		let text = talk_export(&record, "Teacher", "Talk files").unwrap().text;
 		let heading = |ms: i64| format!("## {} {}", day_label(&local_day(ms)), &local_day(ms)[..4]);
 		assert!(text.ends_with(&format!("\n{}\n\n**You**\n\nhi\n\n**Teacher**\n\nHello.\n\n{}\n\n**You**\n\nback\n", heading(first), heading(second))), "{text}");
 	}

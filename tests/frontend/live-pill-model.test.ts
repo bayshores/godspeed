@@ -123,6 +123,12 @@ describe("the card's rows", () => {
 		assert.deepEqual(rowWords(due!, teacher!), { title: "Homework 5", sub: "Due in" });
 	});
 
+	it("a deadline request reads by its name", () => {
+		const request = { worker: "Helper", doing: "Deadline: Wave Optics Final", count: null, tag: "Deadline: Wave Optics Final" };
+		const [, work] = pillThings({ ...nothing, doing: reading, work: request });
+		assert.deepEqual(rowWords(work!, null), { title: "Deadline: Wave Optics Final", sub: "Helper" });
+	});
+
 	it("background work by the teacher the pill names leaves the name out too", () => {
 		const [own, files] = pillThings({ ...nothing, doing: reading, work: { ...helper, worker: "marco" } });
 		assert.deepEqual(rowWords(files!, own!), { title: "Reading files", sub: "6 of 17" });

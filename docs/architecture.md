@@ -506,7 +506,7 @@ While study files wait to be read, the space shows it where the learner is:
 - a line on the space's row under "Your spaces" on Today
 - a tag on the space's tab in the top bar ("15 left")
 
-The record keeps the newest round of work as `lastWork` (`core::spaces::space_work`, applied by the spaces store on every file write). A round opens when a study file starts waiting, collects each file that finishes or fails and each deadline added meanwhile, and ends when nothing waits. The frame then shows what the round made until the learner closes it (`DELETE /api/spaces/{id}/work`), new work starts, or a day passes. The space list carries `filesLeft` and `building` for Today and the top bar, and `filesRead` while a round is open. A space the teacher makes from Talk opens by itself.
+The record keeps the newest round of work as `lastWork` (`core::spaces::space_work`, applied by the spaces store on every file write). A round opens when a study file starts waiting, collects each file that finishes or fails and each deadline added meanwhile, and ends when nothing waits. The frame then shows what the round made until the learner closes it (`DELETE /api/spaces/{id}/work`), new work starts, or a day passes. The space list carries `filesLeft` and `building` for Today and the top bar, and `filesRead` while a round is open. A space the teacher makes from its terminal in godspeed opens by itself.
 
 #### Source marks
 
@@ -515,7 +515,7 @@ The teacher marks what it read with a source mark right after the sentence:
 - `[[f_1a2b3c4d5e6f:7]]`: a passage id from `search_space_files` or `read_passage`
 - `[[https://example.com/page]]`: a web page
 
-The prompt part is `crates/agent/prompts/shared/13-source-marks.md`, and Talk has one sentence about it in `talk/00-base.md`.
+The prompt part is `crates/agent/prompts/shared/13-source-marks.md`.
 
 `respond` checks every mark before the reply is stored (`services::spaces::citations`):
 
@@ -570,7 +570,7 @@ A space can have deadlines (`SpaceDeadline` in `core::contracts::space`): a kind
 
 #### Deadline requests
 
-A deadline request is one background run of the learner's agent on one or more deadlines (`services::spaces::deadline_requests`, `agent::subagents::deadline_request`). It gets a short fixed prompt, the request (`core::spaces::deadline_requests`) and the space tools it needs: `read_space`, `search_space_files`, `read_passage` and `update_space_deadline`, plus `add_space_file` for a study guide or What it's like. The helper takes it when one is open. Its changes go into the activity log, so Follow opens the deadline page.
+A deadline request is one background run of the learner's agent on one or more deadlines (`services::spaces::deadline_requests`, `agent::subagents::deadline_request`). It gets a short fixed prompt, the request (`core::spaces::deadline_requests`) and the space tools it needs: `read_space`, `search_space_files`, `read_passage` and `update_space_deadline`, plus `add_space_file` for a study guide or What it's like. The helper takes it when one is open. Its changes go into the activity log, so Follow opens the deadline page. While it runs it is background work: the activity feed lists it as `{id, title, startedAt}` under `requests`, titled "Deadline: {space} {name}" (or "Deadlines: {n}"), and Activity shows it with no Stop. The pill names it when it is the only background work and counts it with the jobs otherwise.
 
 | Kind | Started by | It |
 |---|---|---|
@@ -605,7 +605,7 @@ The record is `spaces/<id>/cheat-sheets/<deadlineId>.json` (`store::cheat_sheets
 
 Pictures and PDFs sent in the chat sit in `<deadlineId>-files/`, named by their content. Older formats are read by `core::study::cheat_sheet`: format 3's prompts become the chat's first messages, and an HTML or block sheet (formats 2 and 1) keeps its asks and offers Make it again.
 
-Each chat message is one background work item (`sheet_reply`, `agent::subagents::cheat_sheet_writer`), not a chat kind, so lessons, Talk, search and extraction never see it. The request carries:
+Each chat message is one background work item (`sheet_reply`, `agent::subagents::cheat_sheet_writer`), not a chat kind, so lessons, search and extraction never see it. The request carries:
 
 - the deadline's topics with readiness and a few facts, and the mistakes from practice
 - the sheet's rules and the last 8 messages
@@ -630,7 +630,7 @@ A space's Cheat sheets tab (`/space/cheat-sheets`, `GET /api/spaces/<id>/cheat-s
 
 ### 6.2 Interviews and mocks
 
-Getting ready for an interview, an online assessment or a test is a normal space that the learner's own agent sets up from Talk; there is no separate kind of space.
+Getting ready for an interview, an online assessment or a test is a normal space that the learner's own agent sets up from its screen; there is no separate kind of space.
 
 - **Interview deadlines.** A deadline may have the kind `interview` (no "due", like an exam) and an `aboutFileId`: a space info file on what it is like, usually `What it's like.md` (space format 11, `core::spaces::space_deadlines`; the reader drops the id once the file is gone). `GET /api/spaces/{id}/deadlines/{deadlineId}/about` gives its text, or 404 when the file is empty or not text.
 - **Setting one up.** The tool texts tell the teacher to add the posting as space info, the interview with its date and time, `What it's like.md` as `about_file_id` (searched for first, under 200 words, only sources it read) and a `Study guide.md` it writes as a study file in `file_ids`, so the deadline's topics fill once extraction has run. `add_space_file` writes such a file from `name` and `text`; one it wrote before by that name (the upgrade's two files count) is replaced and keeps its id.
@@ -837,7 +837,7 @@ An agent started in one of the desktop app's terminals sends the terminal's id w
 
 #### The godspeed folder
 
-Agents are opened in one folder, `~/godspeed` by default. `data/agent-folder.json` remembers another one, whether the one-time notice was seen, `startCommands`, and `talkExported` (see [Talk](#talk)). A debug build uses `<data>/godspeed-folder` instead.
+Agents are opened in one folder, `~/godspeed` by default. `data/agent-folder.json` remembers another one, whether the one-time notice was seen, `startCommands`, and `talkExported` (see [Talking to the agent outside lessons](#talking-to-the-agent-outside-lessons)). A debug build uses `<data>/godspeed-folder` instead.
 
 `services::app::agent_folder` writes it from `crates/services/folder-files/` and `core::spaces::agent_folder`, once per app start so an update reaches it:
 
@@ -891,20 +891,20 @@ Every model request (a lesson turn, a background job, an extraction run, topic g
 
 - The agent takes an item with `wait_for_work` and answers with `respond`.
 - Claude Code waits in a background script, `.godspeed/wait-for-work.mjs`, so it spends no tokens while the learner thinks. `CLAUDE.md` and the idle, `turn_complete` and `start_lesson` notes point it there.
-- A waiter given a lesson id stays on that lesson: it takes its turns and Talk's, plus other lessons' turns no one else waits for, oldest first. So one agent takes turns between lessons, and two agents each keep their own.
+- A waiter given a lesson id stays on that lesson: it takes its turns, plus other lessons' turns no one else waits for, oldest first. So one agent takes turns between lessons, and two agents each keep their own.
 - Codex has no waiter, and its wait is capped by its MCP tool timeout (60 s by default). Its start command sets `tool_timeout_sec=620` with `-c` flags (`core::spaces::agent_folder`).
 - `wait_for_work` takes `timeout_seconds` from 1 to 600, default 45.
-- Outside lessons the learner types to the agent in its terminal. When they send a message there ([tauri-shell.md](tauri-shell.md#while-it-runs)), the wait from that terminal, or `respond`'s wait for a follow-up, ends at once with a note to answer them there and wait again. It claims nothing, so a lesson turn that waits goes to the next wait. The mark lasts until a wait from that terminal reads it, at most 2 minutes. For Claude Code the waiter waits again by itself.
-- A space or lesson an agent starts from godspeed's teacher terminal (not the helper's, not an agent outside godspeed) opens in the window even with Follow off. `start_lesson` from an agent whose wait is under way says its running waiter brings the turns, so Claude Code starts no second waiter.
+- Outside lessons the learner types to the agent in its terminal. When they send a message there ([tauri-shell.md](tauri-shell.md#while-it-runs)), the wait from that terminal, or `respond`'s wait for a follow-up, ends at once with a note to answer them there and wait again. It claims nothing, so a lesson turn that waits goes to the next wait. The mark lasts until a wait from that terminal reads it, at most 2 minutes. For Claude Code the waiter reads it and waits again by itself, and the agent answers the learner beside it, so the server instructions and `CLAUDE.md` say only to answer them there.
+- A space or lesson an agent starts from godspeed's teacher terminal (not the helper's, not an agent outside godspeed; the shell says which terminal is the teacher's) opens in the window even with Follow off. `start_lesson` from an agent whose wait is under way says its running waiter brings the turns, so Claude Code starts no second waiter.
 
 #### The helper
 
 "Start Claude Code" and "Start Codex" start the teacher in the godspeed folder. The window calls the helper "Background work" (`HELPER_NAME`); the code, the start scripts, the MCP flag and what the agent reads keep "helper". The helper is a second session told "Start as the helper": the window starts it by itself once the teacher has checked in and background jobs wait, and Settings, Connection has Start background work. The helper's waiter runs with `--helper` (`wait_for_work` with `helper: true`). `engine::bridge::helper` keeps the two apart.
 
 - A work item is background when its conversation id does not start with `chat_`: file reading, graph work, sheets, research, topic grouping.
-- The helper takes background items. It takes lesson and Talk turns only while a teacher compacts, including the turn the teacher held.
+- The helper takes background items. It takes lesson turns only while a teacher compacts, including the turn the teacher held.
 - A teacher's PreCompact hook reports compacting through `/api/mcp/compacting`. A mark that never ends lapses after 10 minutes.
-- The teacher takes lesson and Talk turns, and background items only while no helper is here.
+- The teacher takes lesson turns, and background items only while no helper is here.
 - A helper is here when it checked in within 3 minutes or holds an item whose claim has not run out. It never counts as teaching.
 
 The window shows who works (`src/frontend/components/work/`): a striped frame around a page being worked on, the live pill in every top bar, and Teacher and Background work tiles under Settings, Connection, under a headline that names the agent (each tile's chip says whether it runs; beside the teacher's open panel the teacher's tile leaves its chip and line to the panel's head). The pill (`src/frontend/components/top-bar/live-pill.tsx`, words in `live-pill-model.ts`) says the first live thing in one line: the teacher needing an answer, a lesson whose reply came while another page was open, the teacher at work, background work, then a deadline in its last 24 hours. It leaves out what the page already says: the teacher beside a lesson's or cheat sheet's teacher head (unless it needs an answer), a deadline on Today and on its own page, and in a page's own bar it shows only while it has something to say. A click opens its card under the bar with a row and a button per thing, Follow, and "Talk to <name>", which opens the teacher's panel on the agent's screen; the background work row's Activity opens it with the Activity list down, and Answer opens it on the screen. A notice (update, restart, new files, a saved rule) shows in the same panel for 12 seconds, with its title on the pill, then folds into the pill as a count until the card is opened; a notice with its own timer closes by itself instead (`notice-store.ts`). The teacher's tile has a Start button while it isn't running, labelled like the start pair ("Start Claude Code", `startLabel`), and left to the panel while the open panel shows a key that starts the teacher (`panelStarts` in `dock-model.ts`); the helper's has one only when godspeed can't start it by itself (the browser, or a teacher started outside godspeed) or after it stopped while the teacher runs.
@@ -954,14 +954,14 @@ The setup check (`core::spaces::space_setup`) lists a missing icon, signature or
 
 #### Talking to the agent outside lessons
 
-Outside lessons the learner types to the agent in its own screen in the teacher panel; the window has no chat of its own there. An older build's Talk chat, kind `"talk"` with the fixed id `chat_talk` (`TALK_CHAT_ID`), stays on disk, and the server still has its routes (`/api/talk`, `services::turns::talk`), which the window no longer calls:
+Outside lessons the learner types to the agent in its own screen in the teacher panel; the window has no chat of its own there.
 
-- Its messages take pictures and PDFs like a lesson's.
+An older build's Talk chat (kind `"talk"`, the fixed id `chat_talk`, `TALK_CHAT_ID`, and its `chat_talk/` folder of PDFs) is the learner's and is only ever read:
+
+- The chat store refuses to make, write or delete it (`TALK_KEPT` in `store::chats`): every writer, `delete_chat` and `save_attachment`. `POST /api/chat` to it answers 404 "Talk was replaced by your agent's screen", and `DELETE /api/chats/{id}` answers 404 "No such lesson".
 - The store leaves it out of every lesson list, so Today, Progress, search, `list_lessons` and extraction never see it, and the lesson page 404s for it.
-- Its agent (`create_talk_agent`) has a short prompt (`crates/agent/prompts/talk/` plus the shared voice) and the space tools in `agent::tools::talk`. None of them deletes a space or a file.
-- Those tools run the same space actions as the MCP server (`services::spaces::space_actions`), so each change goes into the activity log and shows in the chat as a row that opens it.
-- The chat is summarized like a lesson (`talk_compaction_prompt`).
-- The learner's old chat is kept: `DELETE /api/chats/{id}` refuses it. On a start with a Talk record and no `data/talk-backup-*` yet, the server first (right after taking the data lock, before anything else reads the record) copies `chat_talk.json` and `chat_talk/` to `data/talk-backup-<version>` (`services::app::old_talk`). Once, into the first godspeed folder set up after that, it writes `Talk.md` (who said what, each change as one line, math as written; `core::messages::talk_export`) with its pictures and PDFs in `Talk files/`. Each file is written under a `.partial` name and renamed when whole, `Talk.md` last, and `talkExported` is set only after that, so a start cut off halfway makes it again. A `Talk.md` already there is the learner's: nothing is written and `talkExported` is set.
+- Its old deadline requests still count as asked (see [Deadline requests](#deadline-requests)).
+- On a start with a Talk record and no `data/talk-backup-*` yet, the server first (right after taking the data lock, before anything else reads the record) copies `chat_talk.json` and `chat_talk/` to `data/talk-backup-<version>` (`services::app::old_talk`). Once, into the first godspeed folder set up after that, it writes `Talk.md` (who said what, each change as one line, math as written; `core::messages::talk_export`) with its pictures and PDFs in `Talk files/`. Each picture and PDF is written under a `.partial` name, flushed to disk and renamed, `Talk.md` last, and `talkExported` is set only after that, so a start cut off halfway makes it again. A `Talk.md` already there with other text is the learner's and is never changed: the export goes beside it under the first free name of `Talk (godspeed).md`, `Talk (godspeed) 2.md` and on, with `Talk files (godspeed)/`, `Talk files (godspeed) 2/` and on. The backup's files are flushed to disk before its folder is renamed, and neither the backup nor the export follows a link. A failed export leaves `talkExported` unset, so the next start tries again.
 
 While a lesson is open, the panel shows only the screen: the lesson is the chat, and its teacher column has Activity and, in the desktop app, a Terminal key that opens it. Lessons get `list_spaces` and the three deadline tools (`lesson_space_change_tools`), so "add HW 4, due Friday" works mid-lesson.
 
@@ -1024,7 +1024,7 @@ By default the outside agent looks things up with its own web search. A learner 
 
 Logging is one tagged line per event on stderr, for example `[chat <id>]` on turn services, `[extraction <id>]` on the pipeline and `[job <id>]` on runners.
 
-The activity feed is where running work shows: `services::jobs::observability` feeds `GET /api/activity`, which the teacher panel's Activity tab shows. It lists running jobs, extraction runs, recently failed jobs and per-run usage in tokens. `POST /api/activity/abort` takes `{kind: "job" | "extraction" | "turn", id}`.
+The activity feed is where running work shows: `services::jobs::observability` feeds `GET /api/activity`, which the teacher panel's Activity tab shows. It lists running jobs, extraction runs, deadline requests, recently failed jobs and per-run usage in tokens. `POST /api/activity/abort` takes `{kind: "job" | "extraction" | "turn", id}`.
 
 ### 10.1 The events channel
 
@@ -1046,7 +1046,7 @@ The list is `EventKind` in `crates/base/src/events.rs`, mirrored in `src/shared/
 | `turn-started` | `{chatId}` | `begin_turn` succeeds, for every turn. The 409 path is silent |
 | `turn-settled` | `{chatId}` | `end_turn` on a live entry, after `persist_turn`, so fetches read saved data |
 | `jobs-changed` | `{chatId?}` | every job-store write that changed something |
-| `activity-changed` | `{}` | an extraction run changed phase, or a background work item was queued, taken or dropped (`engine::bridge`, `agent::extraction::extraction_runs`) |
+| `activity-changed` | `{}` | an extraction run changed phase, a deadline request started or ended, or a background work item was queued, taken or dropped (`engine::bridge`, `agent::extraction::extraction_runs`, `services::spaces::deadline_requests`) |
 | `chats-changed` | `{}` | a lesson was created, renamed or deleted |
 | `spaces-changed` | `{}` | a space was created, edited, closed or deleted, or its files changed |
 | `agent-changed` | `{}` | the outside agent connected, started or stopped teaching, was renamed or lapsed, a helper arrived, or compacting started or lapsed |

@@ -85,8 +85,8 @@ One JSON object per line, UTF-8, ending in `\n`. The field `t` names the message
 | shell to server | `{"t":"demo_done","id":n,"result":{"consoleErrors":[],"pageErrors":[],"failedRequests":[],"probeResult":…,"ok":true}}` or `{"t":"demo_done","id":n,"error":"…"}` | `probeResult` is absent when no probe ran. |
 | shell to server | `{"t":"svg_done","id":n,"png":"<base64>"}` or `{"t":"svg_done","id":n,"error":"…"}` | A PNG of exactly w × h px. |
 | shell to server | `{"t":"notify_done","id":n,"shown":true\|false}` | False while the main window has the focus, or when the plugin refused it. |
-| shell to server | `{"t":"terminals","live":["<32 hex>",…]}` | The ids of the agents' terminals that run now. Sent after every start, Stop and end, in order, and again once a restarted server is ready. |
-| shell to server | `{"t":"typed","terminal":"<32 hex>"}` | The learner sent a message to the agent in that terminal: Enter, or an unbracketed paste with a line break, while the screen showed no question. |
+| shell to server | `{"t":"terminals","live":["<32 hex>",…],"teacher":"<32 hex>"\|null}` | The ids of the agents' terminals that run now, and the teacher's among them. Sent after every start, Stop and end, in order, and again once a restarted server is ready. |
+| shell to server | `{"t":"typed","terminal":"<32 hex>"}` | The learner sent a message to the agent in that terminal: Enter on its own while the screen showed no question. |
 | shell to server | `{"t":"agent_folder","id":n}` | Where is the godspeed folder? Asked at every terminal start. |
 | server to shell | `{"t":"agent_folder","id":n,"folder":"…"\|null}` | The folder in use, or `null` while it isn't set up. The shell waits 2 s. |
 
@@ -215,7 +215,7 @@ Each terminal has four threads: output, input, its exit, and a clock that sleeps
 
 - **Output** goes through a `vt100` screen (1000 lines of scrollback) and to the page as `terminal-output` only while attached, 16 ms after the first byte that waits. More than 64 KB in one frame goes as a snapshot of the screen instead, so a program that prints without pause cannot hold up the window. If drawing the output panics, the shell stops the terminal, keeps reading and dropping its output, and the screen says "godspeed couldn't read this terminal's screen, so it stopped it." with `ended` `{stopped: false, code: null}`. The shell answers the questions a program asks its terminal (cursor position, device attributes, status), because a hidden terminal has no page and ConPTY waits for the cursor position before the program starts. The page's own answers to those are dropped.
 - **Input** is queued and written in order on its own thread, so a terminal that reads nothing never holds the window up. `terminal_write`, `terminal_answer`, `terminal_paste` and `terminal_add_file` run without `async`, so keys keep their order.
-- **Typing** (`write`, `paste`) is refused unless that terminal is attached and the main window has the focus. Paste drops escape characters and is bracketed when the program asked for bracketed paste. When the learner's keys submit (Enter, or an unbracketed paste with a line break) while the shell sees no question on the screen, the server hears `typed`. The trust and Enter buttons write through `answer`, so they never count.
+- **Typing** (`write`, `paste`) is refused unless that terminal is attached and the main window has the focus. Paste drops escape characters and is bracketed when the program asked for bracketed paste. When the learner presses Enter on its own (not with Alt or Shift, not in a paste) while the shell sees no question on the screen, the server hears `typed`. The trust and Enter buttons write through `answer`, so they never count.
 - **Attach** (`add_file`) takes only the teacher's attached terminal, but not the focus: a file dropped from Finder arrives while Finder still has it. That is safe because it types only a path the shell saved itself, and refuses a path with a line break. It runs off the main thread, refuses a file over 20 MB from the base64 text's length before decoding it, checks the first bytes (PNG, JPEG, GIF, WebP, PDF), writes `<folder>/.godspeed/attachments/<first 12 hex of the SHA-256>-<name>` (the name's last part, other characters than letters, digits, `.`, `-` and `_` as `_`), and types the path as a drag from Finder types it (a backslash before a space or a character a shell reads; on Windows in quotes when it has a space) and a space, bracketed when the program asked for it, with no Enter.
 - **The clock** sends waiting output and pushes `terminal-state` when the recognised question or the web address on the screen changes. It wakes only for output to send or for a question to reach its 2 s, and otherwise sleeps until output comes or the terminal ends.
 
@@ -244,7 +244,7 @@ A question counts once it has stayed the same for 2 s. `url` is true while the s
 
 The Job Object has kill-on-close and takes the script right after it starts, so closing the app kills the tree too.
 
-The server side: `refuse()` in `crates/server/src/mcp/mod.rs` answers 403 `{"error": "This terminal was closed in godspeed."}` to a request whose terminal id is not live (no header means an agent outside the app). `Bridge::set_live_terminals` wakes every waiter, a wait of an ended terminal ends with the same error, and the items that terminal claimed go back at once instead of after the 10 minute hold. After `typed` (`Bridge::typed`), that terminal's wait, or the next one within 2 minutes, ends at once and claims nothing, and the agent counts as here and teaching for 3 minutes ([architecture.md](architecture.md#the-work-loop)).
+The server side: `refuse()` in `crates/server/src/mcp/mod.rs` answers 403 `{"error": "This terminal was closed in godspeed."}` to a request whose terminal id is not live (no header means an agent outside the app). `Bridge::set_live_terminals` wakes every waiter, a wait of an ended terminal ends with the same error, and the items that terminal claimed go back at once instead of after the 10 minute hold. After `typed` (`Bridge::typed`, only for a live terminal), that terminal's wait, or the next one within 2 minutes, ends at once and claims nothing. When the wait that reads it is the teacher terminal's, the agent counts as teaching for 3 minutes ([architecture.md](architecture.md#the-work-loop)).
 
 ## The main window
 
@@ -371,7 +371,7 @@ Mac: `print_pdf(path)` canonicalizes the path and refuses anything that is not a
 | `LH_PDFIUM_PATH` | The pdfium library path above. |
 | `LH_DESKTOP_SERVER`, `LH_DESKTOP_API_SECRET` | `1` and the secret, in desktop mode. Removed in `desktop:dev` browser mode. |
 | `LH_SERVER_RESTARTED` | `1` on a restart after a crash, removed otherwise. |
-| `LH_TERMINALS` | The live terminal ids as a JSON list, so a restarted server refuses a stopped terminal's agent at once. |
+| `LH_TERMINALS` | The live terminal ids and the teacher's, `{"live":[…],"teacher":…}`, so a restarted server refuses a stopped terminal's agent at once. |
 | `LH_DEV_URL` | Removed. |
 | Other env | Inherited. |
 

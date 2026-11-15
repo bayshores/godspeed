@@ -3,7 +3,7 @@
 use gs_base::events::EventKind;
 use gs_base::text::trim;
 use gs_base::{clock, ids, shutdown};
-use gs_core::contracts::chat::{CHAT_ID_PREFIX, TALK_CHAT_ID};
+use gs_core::contracts::chat::CHAT_ID_PREFIX;
 use gs_core::records::agent_seen::seen_mark;
 use gs_json::Json;
 
@@ -24,7 +24,7 @@ const WAIT_SLICE_MS: i64 = 15_000;
 /// Who asks for work.
 #[derive(Clone, Default)]
 pub struct WaitOptions {
-	/// Stay on this conversation: its items (and Talk's, for a lesson) first.
+	/// Stay on this conversation: its items first.
 	pub conversation: Option<String>,
 	/// The asking agent's session id, when its client sends one.
 	pub agent: Option<String>,
@@ -76,7 +76,7 @@ fn claimable(state: &State, item: &WorkItem, now: i64, taker: &WaitOptions) -> b
 		return false;
 	}
 	let held = Some(item.conversation.as_str()) != taker.conversation.as_deref() && state.held.get(&item.conversation).is_some_and(|until| *until > now);
-	// The helper answers a compacting teacher's lessons and Talk, so those holds do not count.
+	// The helper answers a compacting teacher's lessons, so those holds do not count.
 	let covers = taker.helper && !is_background(&item.conversation) && someone_compacting(state, now);
 	if held && !covers {
 		return false;
@@ -103,13 +103,13 @@ fn unwaited(state: &State, lesson: &str) -> bool {
 	!state.waiting.iter().any(|wait| wait.on.as_deref().is_none_or(|on| on == lesson))
 }
 
-/// The next item. A teacher: any, or its conversation's (a lesson also takes Talk's, oldest first,
-/// so Talk never waits on a lesson, and when asked another lesson's no one else waits for, so one
-/// agent takes turns), then background jobs when asked; it leaves background jobs to a helper that
+/// The next item. A teacher: any, or its conversation's (a lesson, when asked, also another
+/// lesson's no one else waits for, oldest first, so one agent takes turns), then background jobs
+/// when asked; it leaves background jobs to a helper that
 /// is here. A helper: background jobs, and what it began.
 fn pick(state: &State, now: i64, opts: &WaitOptions) -> Option<usize> {
 	if opts.helper {
-		// A compacting teacher's lesson and Talk turns come first, so they wait one job step at most.
+		// A compacting teacher's lesson turns come first, so they wait one job step at most.
 		let covered = if someone_compacting(state, now) { oldest(state, now, opts, |i| !is_background(&i.conversation)) } else { None };
 		return covered.or_else(|| match opts.conversation.as_deref() {
 			Some(conversation) => oldest(state, now, opts, |i| i.conversation == conversation),
@@ -118,9 +118,8 @@ fn pick(state: &State, now: i64, opts: &WaitOptions) -> Option<usize> {
 	}
 	let alone = !helper::here(state, now);
 	let Some(conversation) = opts.conversation.as_deref() else { return oldest(state, now, opts, |i| alone || !is_background(&i.conversation)) };
-	let with_talk = conversation.starts_with(CHAT_ID_PREFIX);
-	let others = with_talk && opts.and_others;
-	oldest(state, now, opts, |i| i.conversation == conversation || (with_talk && i.conversation == TALK_CHAT_ID) || (others && !is_background(&i.conversation) && unwaited(state, &i.conversation)))
+	let others = conversation.starts_with(CHAT_ID_PREFIX) && opts.and_others;
+	oldest(state, now, opts, |i| i.conversation == conversation || (others && !is_background(&i.conversation) && unwaited(state, &i.conversation)))
 		.or_else(|| if opts.and_others && alone { oldest(state, now, opts, |i| is_background(&i.conversation)) } else { None })
 }
 

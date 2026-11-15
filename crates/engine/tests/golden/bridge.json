@@ -912,39 +912,6 @@
 				},
 				{
 					"step": {
-						"op": "stay",
-						"agent": "agent-A",
-						"lesson": "chat_l1"
-					},
-					"result": null,
-					"events": []
-				},
-				{
-					"step": {
-						"op": "staying",
-						"agent": "agent-A"
-					},
-					"result": "chat_l1",
-					"events": []
-				},
-				{
-					"step": {
-						"op": "stay",
-						"agent": "agent-A"
-					},
-					"result": null,
-					"events": []
-				},
-				{
-					"step": {
-						"op": "staying",
-						"agent": "agent-A"
-					},
-					"result": null,
-					"events": []
-				},
-				{
-					"step": {
 						"op": "forgetConversation",
 						"conversation": "job_x"
 					},

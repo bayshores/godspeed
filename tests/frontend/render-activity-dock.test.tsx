@@ -187,6 +187,7 @@ describe("activity dock pure layer", () => {
 		assert.equal(blobLabel({ process: "job", jobKind: "research" }), "Research agent");
 		assert.equal(blobLabel({ process: "job", jobKind: "pdf" }), "PDF reader");
 		assert.equal(blobLabel({ process: "job" }), "Sub-agent");
+		assert.equal(blobLabel({ process: "request" }), "Your agent");
 	});
 
 	it("says how long ago a change was", () => {
@@ -249,6 +250,15 @@ describe("background jobs render", () => {
 		assert.match(html, /title="Chain-rule demo"/);
 	});
 
+
+	it("a deadline request is a row by its name, oldest first, with no Stop", () => {
+		const feed = { jobs: [], extractions: [], requests: [{ id: "d1", title: "Deadline: Wave Optics Final", startedAt: NOW - 30_000 }] };
+		assert.deepEqual(toBlobs(feed).map((b) => [b.process, b.title]), [["request", "Deadline: Wave Optics Final"]]);
+		const html = renderToStaticMarkup(<BackgroundJobs feed={feed} waiting={null} />);
+		assert.match(html, /data-testid="activity-blob-request"/);
+		assert.match(html, /Your agent, <span data-testid="activity-blob-elapsed">/);
+		assert.doesNotMatch(html, /activity-abort/);
+	});
 
 	it("shows the plan that pays for the running jobs", () => {
 		const usage = {

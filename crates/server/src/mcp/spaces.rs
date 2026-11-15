@@ -17,7 +17,7 @@ pub async fn space_tool(call: &ToolCall<'_>, name: &str, args: &Json) -> Option<
 	// From godspeed's own teacher terminal the learner asked for it there, so the window opens
 	// what it starts even with Follow off.
 	let agent = agent_id_of(call.meta);
-	let asked_here = call.terminal.is_some() && !call.app.bridge.is_helper_agent(agent.as_deref());
+	let asked_here = call.app.bridge.is_teacher_terminal(call.terminal);
 	let actions = space_actions(call.app, call.caller, send_first_message(call.app), asked_here);
 	match name {
 		"start_lesson" => {
@@ -30,6 +30,9 @@ pub async fn space_tool(call: &ToolCall<'_>, name: &str, args: &Json) -> Option<
 	}
 }
 
+/// Where the new lesson is: the window opens it itself, or Follow does, or the learner does.
+const IN_WINDOW: &str = "The lesson is in the godspeed window.";
+
 /// start_lesson's answer also says how to begin teaching, unless the agent's waiter already runs.
 fn started(call: &ToolCall<'_>, done: ToolOutcome, waiting: bool) -> Json {
 	let value = match done {
@@ -38,11 +41,11 @@ fn started(call: &ToolCall<'_>, done: ToolOutcome, waiting: bool) -> Json {
 	};
 	let lesson_id = value["lessonId"].str_or_empty();
 	let note = if waiting {
-		"Open in the godspeed window. Your waiter already running brings its turns.".to_owned()
+		format!("{IN_WINDOW} Your waiter already running brings its turns.")
 	} else if in_claude_code(call.caller) {
-		format!("Open the lesson in the godspeed window. {}", super::work::waiter_hint(Some(lesson_id), false))
+		format!("{IN_WINDOW} {}", super::work::waiter_hint(Some(lesson_id), false))
 	} else {
-		format!("Open the lesson in the godspeed window. Call wait_for_work with lesson_id \"{lesson_id}\" to begin teaching.")
+		format!("{IN_WINDOW} Call wait_for_work with lesson_id \"{lesson_id}\" to begin teaching.")
 	};
 	let mut answer = value.clone();
 	if let Some(fields) = answer.as_obj_mut() {

@@ -114,10 +114,14 @@ describe("elsewhere", () => {
 
 	it("the top bar pill counts the files of every space being read, else the jobs", () => {
 		const spaces = [space({ filesLeft: 11, filesRead: 6 }), space({ filesLeft: 2 }), space({ filesLeft: 4, closed: true })];
-		assert.deepEqual(workProgress({ worker: "Helper", spaces, jobs: 3 }), { worker: "Helper", doing: "reading files", count: "6 of 19", tag: "6 of 19 files" });
-		assert.deepEqual(workProgress({ worker: "Marco", spaces: [space({})], jobs: 1 }), { worker: "Marco", doing: "working on 1 job", count: null, tag: "1 job" });
-		assert.deepEqual(workProgress({ worker: "Marco", spaces: [space({})], jobs: 2 }), { worker: "Marco", doing: "working on 2 jobs", count: null, tag: "2 jobs" });
-		assert.equal(workProgress({ worker: "Marco", spaces: [space({})], jobs: 0 }), null);
-		assert.equal(workProgress({ worker: null, spaces, jobs: 3 }), null, "no agent takes the work");
+		assert.deepEqual(workProgress({ worker: "Helper", spaces, jobs: 3, requests: [] }), { worker: "Helper", doing: "reading files", count: "6 of 19", tag: "6 of 19 files" });
+		assert.deepEqual(workProgress({ worker: "Marco", spaces: [space({})], jobs: 1, requests: [] }), { worker: "Marco", doing: "working on 1 job", count: null, tag: "1 job" });
+		assert.deepEqual(workProgress({ worker: "Marco", spaces: [space({})], jobs: 2, requests: [] }), { worker: "Marco", doing: "working on 2 jobs", count: null, tag: "2 jobs" });
+		assert.equal(workProgress({ worker: "Marco", spaces: [space({})], jobs: 0, requests: [] }), null);
+		assert.equal(workProgress({ worker: null, spaces, jobs: 3, requests: [] }), null, "no agent takes the work");
+		const request = "Deadline: Wave Optics Final";
+		assert.deepEqual(workProgress({ worker: "Marco", spaces: [space({})], jobs: 0, requests: [request] }), { worker: "Marco", doing: request, count: null, tag: request }, "a deadline request alone says its name");
+		assert.deepEqual(workProgress({ worker: "Marco", spaces: [space({})], jobs: 1, requests: [request] }), { worker: "Marco", doing: "working on 2 jobs", count: null, tag: "2 jobs" });
+		assert.deepEqual(workProgress({ worker: "Marco", spaces: [space({})], jobs: 0, requests: [request, "Deadlines: 3"] }), { worker: "Marco", doing: "working on 2 jobs", count: null, tag: "2 jobs" });
 	});
 });

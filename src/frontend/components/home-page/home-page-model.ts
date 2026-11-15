@@ -184,7 +184,7 @@ export function todaySections(lists: TodayLists, progress: ReadonlyMap<string, D
 		lists.today.length + lists.done.length > 0
 			? null
 			: lists.later.length === 0
-				? "No deadlines yet. Your agent can add them from your files."
+				? "None yet. Your agent can add them from your files."
 				: "Nothing is due in the next 7 days.";
 	return { card: lists.today.find((d) => d.id === mainId) ?? null, due: lists.today.filter((d) => d.id !== mainId), empty };
 }

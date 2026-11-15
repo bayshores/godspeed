@@ -97,6 +97,9 @@ impl ChatReply {
 	}
 }
 
+/// What a message to the old Talk chat answers.
+const TALK_REPLACED: &str = "Talk was replaced by your agent's screen";
+
 pub type ReplyFuture = Pin<Box<dyn Future<Output = ChatReply> + Send>>;
 
 /// A new lesson's first message, sent as the learner's text; Err holds the refusal's body text.
@@ -129,6 +132,10 @@ fn input_files(input: &TurnInput) -> Option<&[ChatAttachment]> {
 
 async fn run(app: &Arc<App>, chat_id: &str, input: TurnInput) -> ChatReply {
 	let Some(record) = app.stores.chats.get_chat(chat_id) else { return ChatReply::error(404, "Unknown chat") };
+	// An older build's Talk chat is kept as it was; the learner talks to the agent in its screen.
+	if record["kind"].as_str() == Some("talk") {
+		return ChatReply::error(404, TALK_REPLACED);
+	}
 
 	// The learner's files first: nothing may run between the record read below and the
 	// write-ahead.
@@ -439,7 +446,6 @@ fn kick(app: &Arc<App>, chat_id: &str) {
 fn agent_kind_of(record: &Json) -> AgentKind {
 	match record["kind"].as_str() {
 		Some("practice") => AgentKind::Practice,
-		Some("talk") => AgentKind::Talk,
 		Some("study") => AgentKind::Study,
 		Some("homework") => AgentKind::Homework,
 		_ if has_probe_done(record["messages"].items()) => AgentKind::Teacher,
@@ -451,16 +457,9 @@ fn agent_kind_of(record: &Json) -> AgentKind {
 fn compaction_deps(app: &Arc<App>, record: &Json, effective: &Json) -> CompactionDeps {
 	let engine = agent_engine(&app.bridge);
 	let agent_kind = agent_kind_of(record);
-	// A study session teaches; homework practices.
-	let kind = match agent_kind {
-		AgentKind::Teacher | AgentKind::Study => "teach",
-		AgentKind::Prober => "probe",
-		AgentKind::Homework | AgentKind::Practice => "practice",
-		AgentKind::Talk => "talk",
-	};
 	let threshold_tokens = effective_threshold_tokens(effective["compaction"]["thresholdTokens"].as_f64(), engine.model["contextWindow"].as_f64());
 	let system_prompt_tokens = (text::len16(&compose_instructions(agent_kind, &app.stores.prompt_overrides)) as f64 / 4.0).ceil();
-	CompactionDeps { model_id: model_id_of(&engine.model), engine, kind, threshold_tokens, system_prompt_tokens }
+	CompactionDeps { model_id: model_id_of(&engine.model), engine, threshold_tokens, system_prompt_tokens }
 }
 
 /// Wires the wake pipeline to this composition at start-up: its steers run turns through

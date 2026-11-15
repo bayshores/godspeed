@@ -192,7 +192,7 @@ impl Server {
 			.env("LH_DATA_DIR", &paths.data)
 			.env("LH_SHELL", "1")
 			.env("LH_PDFIUM_PATH", &paths.pdfium)
-			.env("LH_TERMINALS", serde_json::Value::from(app.try_state::<Terminals>().map(|t| t.live()).unwrap_or_default()).to_string())
+			.env("LH_TERMINALS", live_terminals(app))
 			.env_remove("LH_DEV_URL");
 		match &self.mode {
 			Mode::Desktop { secret } => command.env("LH_DESKTOP_SERVER", "1").env("LH_DESKTOP_API_SECRET", secret),
@@ -319,6 +319,12 @@ impl Server {
 }
 
 /// Report a bug opens the issue page and asks again.
+/// The live terminals for a server that starts now: `{ live, teacher }`, as the shell sends them.
+fn live_terminals(app: &AppHandle) -> String {
+	let (live, teacher) = app.try_state::<Terminals>().map(|t| t.live()).unwrap_or_default();
+	serde_json::json!({ "live": live, "teacher": teacher }).to_string()
+}
+
 fn ask_after_stop(app: AppHandle) {
 	let buttons = MessageDialogButtons::YesNoCancelCustom("Relaunch".to_owned(), "Report a bug".to_owned(), "Quit".to_owned());
 	app.dialog().message("The app's server stopped running.").title("godspeed stopped working").kind(MessageDialogKind::Error).buttons(buttons).show_with_result(move |answer| match answer {

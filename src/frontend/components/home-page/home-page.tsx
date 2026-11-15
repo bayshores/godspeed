@@ -79,7 +79,7 @@ export function HomePage() {
 		let alive = true;
 		void waitForTarget({ kind: "deadline", id: lit.slice("deadline:".length) }, 3000, () => alive).then((els) => {
 			if (!alive) return;
-			// The pane, which covers its card or list item.
+			// What it holds: the next deadline's band or a row.
 			const row = els[0]?.firstElementChild;
 			if (row instanceof HTMLElement) highlight(row);
 			setParams(
@@ -96,9 +96,7 @@ export function HomePage() {
 	}, [lit, ready, setParams]);
 
 	return (
-		// A short page sits a little above the middle of the window: the space left over is
-		// shared 2 to 3 above and below it.
-		<div data-testid="home-page" className="flex h-full flex-col overflow-y-auto before:flex-[2] after:flex-[3]">
+		<div data-testid="home-page" className="h-full overflow-y-auto">
 			<TodayBody
 				nowMs={nowMs}
 				ready={ready}
