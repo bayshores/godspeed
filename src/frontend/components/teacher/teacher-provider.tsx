@@ -27,7 +27,7 @@ import { useSpaces } from "@/frontend/components/space-context";
 import { prefersReducedMotion } from "@/frontend/components/presence";
 import { useSettingsSaved } from "@/frontend/components/settings-signal";
 import { noAgentHere, useTerminals } from "@/frontend/components/terminal/use-terminals";
-import { TeacherPanel } from "./teacher-panel";
+import { TeacherPanel, panelCovers } from "./teacher-panel";
 import { TeacherContext, useTeacher, type TeacherApi, type LessonPresence } from "./teacher-context";
 import { useTeacherPanel } from "./use-teacher-panel";
 import { panelBody, panelStarts, shownScreen } from "./dock-model";
@@ -182,7 +182,7 @@ export function TeacherProvider({ initialName, children }: { initialName?: strin
 
 	// ── the panel ──
 	const panel = useTeacherPanel();
-	const { open: panelOpen, setOpen: setPanelOpen, showTerminal } = panel;
+	const { open: panelOpen, setOpen: setPanelOpen, showTerminal, setList } = panel;
 
 	// ── the tour ──
 	const queue = useRef<AgentAction[]>([]);
@@ -288,13 +288,15 @@ export function TeacherProvider({ initialName, children }: { initialName?: strin
 
 	const go = useCallback(
 		(action: AgentAction) => {
-			setPanelOpen(false);
+			// The panel stays beside the page it pushed; over the page it gets out of the way.
+			if (panelCovers()) setPanelOpen(false);
+			else setList(false);
 			// Not queued twice if it is still waiting.
 			queue.current = [...queue.current.filter((a) => a.id !== action.id), action];
 			forced.current.add(action.id);
 			void run();
 		},
-		[run, setPanelOpen],
+		[run, setPanelOpen, setList],
 	);
 
 	// A lesson has its own teacher column: the panel shuts when one opens.
@@ -327,8 +329,10 @@ export function TeacherProvider({ initialName, children }: { initialName?: strin
 	return (
 		<TeacherContext.Provider value={api}>
 			{children}
-			{panelOpen && view && (
-				<PanelPortal>
+			{/* On the page's top layer. Only the pill closes it. */}
+			{panelOpen &&
+				view &&
+				createPortal(
 					<TeacherPanel
 						name={name}
 						agent={agent}
@@ -336,43 +340,12 @@ export function TeacherProvider({ initialName, children }: { initialName?: strin
 						listable={!inLesson}
 						list={panel.list}
 						onList={panel.setList}
-						overLesson={inLesson}
 						screen={panel.role}
 						onScreen={showTerminal}
 						focus={panel.focus}
-					/>
-				</PanelPortal>
-			)}
+					/>,
+					document.body,
+				)}
 		</TeacherContext.Provider>
 	);
-}
-
-/** The open panel, on the page's top layer. It closes on a click elsewhere
- *  and on Esc, except while a dialog opened from it is up. */
-function PanelPortal({ children }: { children: ReactNode }) {
-	const api = useTeacher();
-	const close = api?.setPanelOpen;
-	useEffect(() => {
-		if (!close) return;
-		const dialogUp = () => !!document.querySelector('[role="dialog"][aria-modal="true"]');
-		const onDown = (e: PointerEvent) => {
-			if (dialogUp()) return;
-			const t = e.target;
-			if (t instanceof Element && t.closest("[data-teacher-panel], [data-teacher-panel-toggle]")) return;
-			close(false);
-		};
-		const onKey = (e: KeyboardEvent) => {
-			if (e.key === "Escape" && !dialogUp()) {
-				e.stopPropagation();
-				close(false);
-			}
-		};
-		document.addEventListener("pointerdown", onDown);
-		document.addEventListener("keydown", onKey);
-		return () => {
-			document.removeEventListener("pointerdown", onDown);
-			document.removeEventListener("keydown", onKey);
-		};
-	}, [close]);
-	return createPortal(children, document.body);
 }

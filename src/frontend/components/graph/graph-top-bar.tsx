@@ -99,7 +99,7 @@ function SearchBox({ inputRef, query, onQuery }: { inputRef: RefObject<HTMLInput
 			placeholder="Search topics and facts"
 			aria-label="Search topics and facts"
 			spellCheck={false}
-			className="h-10 w-[340px] max-w-full rounded border-[1.5px] border-ink bg-background px-3 text-[15px] text-ink outline-none placeholder:text-ink-3"
+			className="h-10 w-[340px] max-w-full lh-well rounded px-3 text-[15px] text-ink outline-none placeholder:text-ink-3"
 		/>
 	);
 }

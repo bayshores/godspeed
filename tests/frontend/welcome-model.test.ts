@@ -12,7 +12,7 @@ const midterm = (date: string, time?: string) => ({ name: "Midterm 2", date, ...
 
 describe("bootLines", () => {
 	it("the version, then the agent or that none is connected", () => {
-		assert.deepEqual(bootLines("0.5.41", on, undefined, NOW, false), ["godspeed 0.5.41", "Claude Code is connected"]);
+		assert.deepEqual(bootLines("0.5.41", on, undefined, NOW, false), ["Version 0.5.41", "Claude Code is connected"]);
 		assert.deepEqual(bootLines("0.5.41", { connected: true }, undefined, NOW, false)[1], "Your agent is connected");
 		assert.deepEqual(bootLines("0.5.41", { connected: false, name: "Claude Code" }, undefined, NOW, false)[1], "No agent is connected");
 	});
@@ -23,7 +23,7 @@ describe("bootLines", () => {
 		assert.equal(bootLines("1", on, midterm("2026-10-28", "09:00"), NOW, false)[2], "Midterm 2 is overdue");
 	});
 	it("the first launch after the new look arrives says so", () => {
-		assert.deepEqual(bootLines("0.5.41", on, midterm("2026-10-29"), NOW, true), ["godspeed 0.5.41", "New look", "Loading your spaces"]);
+		assert.deepEqual(bootLines("0.5.41", on, midterm("2026-10-29"), NOW, true), ["Version 0.5.41", "New look", "Loading your spaces"]);
 	});
 });
 

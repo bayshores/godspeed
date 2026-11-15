@@ -43,6 +43,7 @@ export const SCREENS = [
 	{ name: "Deadline", url: "/space/deadline/{deadline}", ready: "[data-testid=deadline-page] [data-testid=deadline-name]" },
 	{ name: "Lesson with a sourced reply, an open quiz and the plan", url: "/chat/{lesson}", ready: "[data-testid=cite-list]" },
 	{ name: "Teacher's panel with no agent", url: "/", ready: deadlineCard, setup: openTeacher, shows: "[data-testid=terminal-none] [data-testid=open-agent]" },
+	{ name: "Teacher's panel beside a lesson", url: "/chat/{lesson}", ready: "[data-testid=cite-list]", setup: `document.querySelector("[data-testid=teacher-terminal-open]").click()`, shows: "[data-testid=terminal-none] [data-testid=open-agent]" },
 	{ name: "Teacher's Activity", url: "/", ready: deadlineCard, setup: `${openTeacher}; ${pause}; document.querySelector("[data-testid=teacher-panel-activity]").click()`, shows: "[data-testid=teacher-panel-list] [data-testid=activity-list] > *" },
 	{ name: "Settings, Connection", url: "/settings?section=connection", ready: "[data-testid=agent-status]" },
 	{ name: "Settings, Teaching", url: "/settings?section=teaching", ready: "[data-testid^=area-][data-testid$=-instructions]:not(:disabled)" },

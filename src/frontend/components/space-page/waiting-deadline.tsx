@@ -23,7 +23,7 @@ export function WaitingDeadline({ record }: { record: SpaceRecord | null }) {
 						</span>
 						<span className="text-[17px] text-ink-2">The interview has no date yet.</span>
 					</span>
-					<button type="button" data-testid="waiting-deadline-add" onClick={() => setAdding(true)} className="lh-btn lh-btn-main h-[38px] shrink-0 px-[18px] text-[15px]">
+					<button type="button" data-testid="waiting-deadline-add" onClick={() => setAdding(true)} className="lh-btn lh-btn-main shrink-0">
 						Add the date
 					</button>
 				</Pane>

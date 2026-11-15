@@ -173,6 +173,7 @@ The shell bakes `APP_ORIGIN` and `PLATFORM` into the script text before the wind
 | `openLink(url)` | `open_link` | A web or mail link, as a link click sends it. |
 | `terminals.start(role, agent)` | `terminal_start` | `role` is `"teacher"` or `"helper"`, `agent` is `"claude"` or `"codex"`. Answers `{ id }`. See [Terminals](#terminals). |
 | `terminals.attach(id)`, `terminals.detach(id)` | `terminal_attach`, `terminal_detach` | Attach pushes a snapshot of the screen, then the live output, on `terminal-output`. |
+| `terminals.resize(id, cols, rows)` | `terminal_resize` | Sizes a running terminal to the screen the page shows it on (kept within 40 to 200 columns and 10 to 100 rows). Answers `{ cols, rows }`, the size in force: an ended terminal keeps the size it ended at. |
 | `terminals.write(id, data)` | `terminal_write` | Keys typed in the shown terminal. |
 | `terminals.answer(id, kind)` | `terminal_answer` | `kind` is `"trust"` or `"enter"`: the shell answers only while it still sees that question (see [What the shell recognises](#what-the-shell-recognises)). |
 | `terminals.paste(id)` | `terminal_paste` | The shell reads the clipboard and types it. |
@@ -199,7 +200,7 @@ The learner's agents (Claude Code or Codex) run in terminals the shell owns, sho
 1. The page names a role and an agent. The shell asks the server where the godspeed folder is (`agent_folder`) and builds everything else, so the page can never name a program, an argument or a folder.
 2. The script must be `<folder>/.godspeed/start-<agent>[-helper].<command|cmd|sh>`, the start scripts the server writes: a plain file in a plain `.godspeed` folder, neither of them a link. A link, a missing script or a folder that isn't set up answers "The godspeed folder isn't set up yet."
 3. The command runs it through the learner's login shell, as Terminal does with a `.command` file, so PATH from `.zprofile` and `.zshrc` both count: `<shell> -l -i -c 'exec "$0"' <script>`. `<shell>` is `$SHELL` when it is zsh, bash, sh, dash or ksh, else `/bin/zsh` (Mac) or `/bin/bash` (Linux). Windows runs `%ComSpec% /d /c .godspeed\<script name>` in the folder: portable-pty quotes only spaces, and cmd would split a full path at `&`, `(`, `)` or `^`.
-4. `portable-pty` opens a pseudo-terminal of a fixed 80 × 30 (ConPTY on Windows), the width agents are drawn for. There is no resize command.
+4. `portable-pty` opens a pseudo-terminal of 80 × 30 (ConPTY on Windows). The page that shows it then sizes it to its screen (`terminal_resize`): the pseudo-terminal and the shell's own `vt100` screen take the new size together, and the agent redraws for it.
 
 | Environment | Value |
 |---|---|

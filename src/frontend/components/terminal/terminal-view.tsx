@@ -1,6 +1,7 @@
 /**
  * One terminal's live screen (xterm.js, loaded with this file only when a
- * screen first shows). Fixed at 80 by 30; the font scales to the box.
+ * screen first shows). Its columns and rows follow its box, and the
+ * shell gives the agent the same size.
  * While it has focus every key goes to the agent: none reaches the app's
  * shortcuts (Escape never stops a turn, Tab never leaves), except the
  * Mac's Command keys. Web links open in the browser; space file names
@@ -11,7 +12,7 @@ import { Terminal } from "@xterm/xterm";
 import { WebLinksAddon } from "@xterm/addon-web-links";
 import { WebglAddon } from "@xterm/addon-webgl";
 import "@xterm/xterm/css/xterm.css";
-import { COLS, ROWS, fitFontSize } from "./terminal-model";
+import { CELL, FONT_SIZE, START_COLS, START_ROWS, gridSize, type Cell } from "./terminal-model";
 import { screenLook } from "./terminal-theme";
 import type { LinkFile, ScreenLink } from "./terminal-links-model";
 import { linkScreen, type Linking } from "./screen-links";
@@ -79,12 +80,12 @@ export function TerminalView({ id, ended, focusOnOpen, focusKey, files, onLink }
 		if (!lh || !el || !frame) return;
 		const t = new Terminal({
 			...screenLook(),
-			cols: COLS,
-			rows: ROWS,
+			cols: START_COLS,
+			rows: START_ROWS,
 			scrollback: 1000,
 			// The links' dotted lines are decorations, still proposed API in xterm 6.
 			allowProposedApi: true,
-			fontSize: fitFontSize(...inside(frame)),
+			fontSize: FONT_SIZE,
 			linkHandler: { activate: (_e, url) => void window.lh?.openLink?.(url) },
 		});
 		t.loadAddon(new WebLinksAddon((_e, url) => void window.lh?.openLink?.(url)));
@@ -103,15 +104,51 @@ export function TerminalView({ id, ended, focusOnOpen, focusKey, files, onLink }
 			}
 			if (out.data) t.write(bytes(out.data));
 		});
-		lh.attach(id).catch(() => {/* it ended: the screen stays empty */});
 		el.addEventListener("keydown", keepKey);
-		// Too small a box even at the smallest font keeps the bottom in view: the agent's input and status lines.
+		// One drawn cell, measured from the screen xterm laid out.
+		const cell = (): Cell => {
+			const drawn = el.querySelector(".xterm-screen")?.getBoundingClientRect();
+			return drawn && drawn.width > 0 && drawn.height > 0 ? { width: drawn.width / t.cols, height: drawn.height / t.rows } : CELL;
+		};
+		let shown = true;
+		let asked = "";
+		// The shell sizes the agent's terminal and answers the size in force
+		// (an ended screen keeps its own), which the screen then takes. One
+		// at a time, so the last size asked is the last one set.
+		let sizing: Promise<void> = Promise.resolve();
+		const size = () => {
+			const want = gridSize(...inside(frame), cell());
+			const key = `${want.cols}x${want.rows}`;
+			if (key === asked) return;
+			asked = key;
+			sizing = sizing
+				.then(() => lh.resize(id, want.cols, want.rows))
+				.then((now) => {
+					if (shown) t.resize(now.cols, now.rows);
+				})
+				.catch(() => {/* it is gone: the screen keeps its size */});
+		};
+		// Too small a box keeps the bottom in view: the agent's input and status lines.
+		const fitBox = () => {
+			size();
+			return sizing.then(() => {
+				if (shown) frame.scrollTop = frame.scrollHeight;
+			});
+		};
+		// Sized first, so the screen the shell sends is drawn at this size.
+		void fitBox().then(() => {
+			if (shown) lh.attach(id).catch(() => {/* it ended: the screen stays empty */});
+		});
+		// A drag of the panel's edge sizes the agent once it rests.
+		let rest: ReturnType<typeof setTimeout> | undefined;
 		const fit = new ResizeObserver(() => {
-			t.options.fontSize = fitFontSize(...inside(frame));
-			frame.scrollTop = frame.scrollHeight;
+			clearTimeout(rest);
+			rest = setTimeout(() => void fitBox(), 80);
 		});
 		fit.observe(frame);
 		return () => {
+			shown = false;
+			clearTimeout(rest);
 			fit.disconnect();
 			links.dispose();
 			relink.current = null;
@@ -135,7 +172,7 @@ export function TerminalView({ id, ended, focusOnOpen, focusKey, files, onLink }
 		if (!ended && (focusOnOpen || focusKey > 0)) term.current?.focus();
 	}, [focusKey, focusOnOpen, ended, id]);
 
-	// The box's padding is the screen's only inset: the font fit reads it,
+	// The box's padding is the screen's only inset: the size fit reads it,
 	// so text, cursor and links share one column.
 	return (
 		<div className="flex min-h-0 min-w-0 flex-1 overflow-hidden bg-bar">

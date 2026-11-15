@@ -17,7 +17,7 @@ const LIT_KEY = "[--lh-key:var(--lh-highlight)] [--lh-key-hover:color-mix(in_srg
  * work's screen while that needs the learner, and Activity, which drops
  * the Activity list over the top of the screen. Background work's screen
  * has its name first, and Back. The pill that opened the panel closes it.
- * Under a name in the narrow panel the status takes its own row.
+ * Under a name the status takes its own row.
  */
 export function PanelHead({
 	title,
@@ -28,7 +28,6 @@ export function PanelHead({
 	follow,
 	need,
 	back,
-	wide,
 }: {
 	/** Null on the teacher's screen: the pill above names it. */
 	title: string | null;
@@ -42,7 +41,6 @@ export function PanelHead({
 	/** Background work needs the learner: its key goes to its screen. */
 	need: (() => void) | null;
 	back: (() => void) | null;
-	wide: boolean;
 }) {
 	const listKey = useRef<HTMLButtonElement>(null);
 	const card = useRef<HTMLDivElement>(null);
@@ -87,7 +85,6 @@ export function PanelHead({
 		"flex min-w-0 items-center gap-2 text-left leading-5 transition-colors duration-(--lh-dur) ease-(--lh-ease-out)",
 		TYPE,
 		lit ? "rounded-[10px] bg-highlight px-2.5 py-1 text-ink" : "text-ink-2",
-		!wide && "flex-1",
 	);
 	const statusChip = status && (
 		<span data-testid="teacher-panel-agent" title={status} className={chipLook}>
@@ -103,7 +100,7 @@ export function PanelHead({
 		</>
 	);
 
-	const inRow = wide || !title;
+	const inRow = !title;
 	return (
 		<div className="relative z-10 flex shrink-0 flex-col gap-2 pt-2.5 pb-1.5 pr-3 pl-[18px]">
 			<div className="flex min-h-8 items-center gap-2.5">

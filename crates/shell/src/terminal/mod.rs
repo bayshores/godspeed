@@ -14,13 +14,16 @@ use std::sync::mpsc::{self, Sender};
 use std::sync::{Arc, Condvar, Mutex, MutexGuard, PoisonError};
 use std::time::{Duration, Instant};
 
-use portable_pty::{Child, MasterPty};
+use portable_pty::{Child, MasterPty, PtySize};
 use serde_json::{Value, json};
 
 pub use screen::Prompt;
 use screen::{Screen, Settle, Trust};
 pub use spawn::{Agent, Role};
 
+/// The fewest and the most columns and rows a page may size a terminal to.
+const COLS_RANGE: (u16, u16) = (40, 200);
+const ROWS_RANGE: (u16, u16) = (10, 100);
 /// How long a stopped agent gets to close before it is killed.
 const STOP_GRACE: Duration = Duration::from_secs(2);
 /// How long the trust button waits for the pointer to reach "Yes" after its Down key.
@@ -80,7 +83,7 @@ struct Terminal {
 /// The terminal's input, queued in order, and its page end, kept open until the script ends.
 struct Io {
 	input: Sender<Vec<u8>>,
-	_master: Box<dyn MasterPty + Send>,
+	master: Box<dyn MasterPty + Send>,
 }
 
 struct State {
@@ -300,7 +303,7 @@ impl Terminals {
 			#[cfg(windows)]
 			job: spawned.job,
 			state: Mutex::new(State {
-				io: Some(Io { input, _master: spawned.master }),
+				io: Some(Io { input, master: spawned.master }),
 				screen: Screen::default(),
 				settle: Settle::default(),
 				shown: (None, false),
@@ -371,6 +374,22 @@ impl Terminals {
 		let snapshot = gs_base::base64::encode(state.screen.snapshot().as_bytes());
 		self.outlet.push("terminal-output", json!({ "id": id, "snapshot": snapshot }));
 		Ok(())
+	}
+
+	/// Sizes a running terminal to the screen the page shows it on, so its program draws for
+	/// that screen: the size now in force. An ended terminal keeps the size it ended at.
+	pub fn resize(&self, id: &str, cols: u16, rows: u16) -> Result<(u16, u16), String> {
+		let terminal = self.find(id)?;
+		let mut state = terminal.state();
+		let (cols, rows) = (cols.clamp(COLS_RANGE.0, COLS_RANGE.1), rows.clamp(ROWS_RANGE.0, ROWS_RANGE.1));
+		let (now_rows, now_cols) = state.screen.size();
+		if state_ended(&state) || (now_cols, now_rows) == (cols, rows) {
+			return Ok((now_cols, now_rows));
+		}
+		let io = state.io.as_ref().ok_or(NOT_THERE)?;
+		io.master.resize(PtySize { rows, cols, pixel_width: 0, pixel_height: 0 }).map_err(|_| NOT_THERE.to_owned())?;
+		state.screen.resize(rows, cols);
+		Ok((cols, rows))
 	}
 
 	pub fn detach(&self, id: &str) -> Result<(), String> {
@@ -799,6 +818,24 @@ mod tests {
 		std::fs::remove_dir_all(dir).unwrap();
 	}
 
+	#[cfg(unix)]
+	#[test]
+	fn a_running_terminal_takes_the_size_of_its_screen_and_an_ended_one_keeps_its_own() {
+		let dir = folder("size", "#!/bin/sh\nprintf 'ready\\n'\nread line\nstty size\nsleep 1\n");
+		let heard = Arc::new(Heard::default());
+		let terminals = Terminals::new(heard.clone());
+		let id = start(&terminals, &dir);
+		until("ready", || text(&terminals, &id).contains("ready"));
+		assert_eq!(terminals.resize(&id, 5, 500), Ok((40, 100)), "kept inside the range");
+		assert_eq!(terminals.resize(&id, 50, 34), Ok((50, 34)));
+		terminals.attach(&id).unwrap();
+		terminals.write(&id, "\r", true).unwrap();
+		until("the program's own size", || text(&terminals, &id).contains("34 50"));
+		until("the end", || ended_of(&terminals, &id).is_some());
+		assert_eq!(terminals.resize(&id, 80, 30), Ok((50, 34)), "an ended screen keeps its size");
+		std::fs::remove_dir_all(dir).unwrap();
+	}
+
 	#[test]
 	fn attach_saves_a_picture_in_the_folder_and_types_its_path_without_enter() {
 		let dir = folder("attach", ECHO);
@@ -823,7 +860,9 @@ mod tests {
 		assert!(!text(&terminals, &id).contains("got "), "no Enter: the line is still being typed");
 		terminals.write(&id, "\r", true).unwrap();
 		until("the echo", || text(&terminals, &id).contains("-week_3.png"));
-		assert!(text(&terminals, &id).contains("Lab\\ folder"), "the folder's space typed as a drag types it");
+		let spaced_typed = if cfg!(windows) { "Lab folder" } else { "Lab\\ folder" };
+		// Windows' terminal may break the long line anywhere.
+		assert!(text(&terminals, &id).replace('\n', "").contains(spaced_typed), "the folder's space typed as a drag types it");
 		until("the end", || ended_of(&terminals, &id).is_some());
 		std::fs::remove_dir_all(dir).unwrap();
 	}

@@ -171,7 +171,7 @@ function InstallLine({ fileId, command }: { fileId: string; command: string }) {
 	return (
 		<span data-testid={`space-file-install-${fileId}`} className="flex basis-full flex-wrap items-center gap-x-2.5 gap-y-1.5 pt-0.5 pb-2 text-base text-ink-2">
 			<span className="min-w-0 flex-1 basis-[240px]">To turn recordings into text, run this in Terminal, then click Retry.</span>
-			<code className="font-count flex h-8 items-center rounded border border-border bg-background px-2.5 text-sm text-ink">{command}</code>
+			<code className="font-count flex h-8 items-center lh-well rounded px-2.5 text-sm text-ink">{command}</code>
 			<CopyButton text={command} data-testid={`space-file-install-copy-${fileId}`} className={SMALL_BTN} />
 		</span>
 	);

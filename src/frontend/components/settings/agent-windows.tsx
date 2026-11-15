@@ -58,7 +58,7 @@ export function AgentWindows({ agent }: { agent: AgentStatus }) {
 	});
 
 	return (
-		<section data-testid="agent-windows" className="@container flex flex-col gap-5 rounded border-2 border-line bg-panel p-6">
+		<section data-testid="agent-windows" className="@container flex flex-col gap-5 lh-sheet p-6">
 			<div className="flex flex-wrap items-start gap-x-4 gap-y-2">
 				<div className="min-w-0 flex-1">
 					{/* Each tile's chip says whether it runs; the headline names the agent. */}
@@ -141,7 +141,7 @@ function Tile({
 }) {
 	const off = tile.tone === "off";
 	return (
-		<div data-testid={`agent-window-${id}`} data-tone={tile.tone} className={cn("flex min-w-0 flex-col border-2", off ? "border-edge" : "border-line bg-background")}>
+		<div data-testid={`agent-window-${id}`} data-tone={tile.tone} className="lh-well flex min-w-0 flex-col overflow-hidden rounded">
 			<div aria-hidden data-state={tile.tone === "busy" ? "working" : undefined} className={cn("h-3 shrink-0", tile.tone === "busy" ? "lh-work-stripes" : off ? "bg-tone-2" : "bg-ink")} />
 			<div className="flex min-w-0 items-start gap-4 p-4">
 				<span aria-hidden className={cn("flex size-16 shrink-0 items-center justify-center", tile.tone === "busy" ? "bg-highlight text-ink" : off ? "bg-tone text-ink-2" : "bg-ink text-background")}>

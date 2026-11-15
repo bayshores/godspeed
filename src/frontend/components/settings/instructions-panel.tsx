@@ -135,7 +135,7 @@ export function InstructionsPanel({
 					data-testid="instructions-editor"
 					spellCheck={false}
 					onChange={(e) => setDrafts((d) => ({ ...d, [part.path]: e.target.value }))}
-					className="h-[470px] w-full resize-none rounded border-[1.5px] border-ink bg-background px-7 py-[22px] text-lg leading-relaxed text-ink"
+					className="h-[470px] w-full resize-none lh-well rounded px-7 py-[22px] text-lg leading-relaxed text-ink"
 				/>
 			</div>
 			<footer className="flex items-center gap-2.5">

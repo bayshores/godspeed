@@ -72,7 +72,7 @@ function Card({ saved, onDone }: { saved: Saved; onDone: () => void }) {
 				</div>
 			) : (
 				<>
-					<p className={cn("border border-border bg-tone px-2.5 py-2 text-[15px] text-ink", mode.kind === "removed" && "text-ink-2 line-through")}>{api.rule}</p>
+					<p className={cn("lh-well rounded px-2.5 py-2 text-[15px] text-ink", mode.kind === "removed" && "text-ink-2 line-through")}>{api.rule}</p>
 					<NoticeText>{saved.label}</NoticeText>
 				</>
 			)}

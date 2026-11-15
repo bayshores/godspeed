@@ -225,7 +225,7 @@ function FontPicker({ family, onPick }: { family: string | null; onPick: (family
 				aria-expanded={open}
 				data-testid="font-trigger"
 				onClick={toggle}
-				className="lh-press flex h-10 w-full items-center justify-between gap-2.5 rounded border-[1.5px] border-ink bg-panel px-3 text-left text-[15px] font-medium text-ink hover:bg-tone"
+				className="lh-press flex h-10 w-full items-center justify-between gap-2.5 lh-well rounded px-3 text-left text-[15px] font-medium text-ink hover:bg-tone"
 			>
 				<span className="min-w-0 truncate" style={{ fontFamily: family ? `"${family}"` : undefined }}>
 					{family || DEFAULT_READING_FONT}

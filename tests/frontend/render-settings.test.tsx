@@ -161,7 +161,7 @@ describe("GeneralSection (SSR)", () => {
 		const html = render({ version: 1 });
 		assert.ok(tagOf(html, "teacher-name").includes('placeholder="Teacher"'));
 		assert.doesNotMatch(html, /slider-|Summarize long lessons|Add to the graph|toggle-build-the-graph/);
-		assert.match(html, /<span class="block text-base text-ink-2">Shown in the window only</, "hints use the readable quiet color");
+		assert.match(html, /<span class="block pt-0.5 text-\[15px\] text-ink-2">Shown in the window only</, "hints use the readable quiet color");
 	});
 
 	it("a switch says On or Off beside its track", () => {

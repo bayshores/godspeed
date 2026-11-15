@@ -14,7 +14,7 @@ import { CHIP } from "./styles";
 export const blockColor = (color: SpaceColor | undefined) => (color ? spaceColorVar(color) : "var(--border)");
 
 /** A row's small keycap. */
-const SMALL_KEY = "lh-btn h-[30px] shrink-0 rounded-[8px] px-3 text-[13px]";
+const SMALL_KEY = "lh-btn h-[30px] shrink-0 px-3 text-[13px]";
 
 /**
  * A deadline under "Due this week": a small block with the time left,

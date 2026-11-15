@@ -14,7 +14,7 @@ const PROBLEM_LINE: Record<FolderProblem, string> = {
 };
 
 /** A plain button in the Files page's top row and the folder box. */
-export const ROW_BUTTON = "lh-btn h-[38px] shrink-0 text-[15px]";
+export const ROW_BUTTON = "lh-btn shrink-0";
 
 /**
  * "Linked folder" (Files page): opens a box with the full path, what is
@@ -129,7 +129,7 @@ export function LinkFolderButton({ disabled, onClick }: { disabled?: boolean; on
 	);
 }
 
-const FIELD = "h-10 min-w-0 flex-1 rounded border-[1.5px] border-ink bg-background px-3 text-[15px] text-ink placeholder:text-ink-3";
+const FIELD = "h-10 min-w-0 flex-1 lh-well rounded px-3 text-[15px] text-ink placeholder:text-ink-3";
 
 /** The path field (no native folder picker): type a folder, Link. */
 export function LinkFolderField({
@@ -173,7 +173,7 @@ export function LinkFolderField({
 			<button type="button" onClick={onCancel} className={ROW_BUTTON}>
 				Cancel
 			</button>
-			<button type="submit" data-testid="space-link-folder" disabled={disabled || !ready} className="lh-btn lh-btn-main h-[38px] shrink-0 text-[15px]">
+			<button type="submit" data-testid="space-link-folder" disabled={disabled || !ready} className="lh-btn lh-btn-main shrink-0">
 				Link
 			</button>
 		</form>

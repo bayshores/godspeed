@@ -6,8 +6,8 @@ function StepMark({ n, label, here }: { n: 1 | 2; label: string; here: boolean }
 		<div className="flex items-center gap-2.5">
 			<span
 				className={cn(
-					"flex size-7 items-center justify-center rounded border-2 border-ink font-count text-base leading-none",
-					here ? "bg-ink text-background" : "text-ink",
+					"flex size-7 items-center justify-center rounded font-count text-base leading-none",
+					here ? "bg-ink text-background" : "lh-well text-ink",
 				)}
 			>
 				{n}
@@ -33,7 +33,7 @@ export function StepSheet({ at, title, sub, wide = false, children }: { at: 1 | 
 	return (
 		<div className="ob-step m-auto flex min-w-0 flex-col items-center gap-[30px] px-4 py-8">
 			<StepBar at={at} />
-			<section className={cn("flex max-w-full flex-col", wide ? "w-[880px]" : "w-[600px]", "gap-4 rounded border-2 border-ink bg-panel px-[34px] pt-[30px] max-[600px]:px-5 pb-[26px]")}>
+			<section className={cn("flex max-w-full flex-col", wide ? "w-[880px]" : "w-[600px]", "lh-sheet gap-4 px-[34px] pt-[30px] max-[600px]:px-5 pb-[26px]")}>
 				<h1 className="text-[30px] leading-tight text-ink">{title}</h1>
 				<p className="text-lg text-ink-2">{sub}</p>
 				{children}

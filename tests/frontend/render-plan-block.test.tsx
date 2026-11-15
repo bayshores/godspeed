@@ -144,7 +144,7 @@ describe("plan block render", () => {
 		const html = renderToStaticMarkup(<PlanBlock data={data} onOpen={() => {}} />);
 		assert.match(html, /data-testid="plan-block-full"/);
 		// A card on the lesson's background, like the other cards in the text.
-		assert.match(html, /data-testid="plan-block-full"[^>]*class="[^"]*border-edge bg-background/);
+		assert.match(html, /data-testid="plan-block-full"[^>]*class="[^"]*lh-well/);
 		// Fills the column UP TO the chat-font cap: the svg is w-full +
 		// mx-auto with maxWidth = extent × TEXT_CAP_SCALE, so node text never
 		// renders past the 16px prose size.

@@ -131,7 +131,7 @@ function DeadlineDialogInner({ mode, state, onClose, onRemoved }: { mode: Deadli
 					</button>
 				)}
 				<span className="flex-1" />
-				<button type="button" data-testid="deadline-save" disabled={busy} onClick={() => void save()} className="lh-btn lh-btn-main h-[38px] px-[22px] text-[15px]">
+				<button type="button" data-testid="deadline-save" disabled={busy} onClick={() => void save()} className="lh-btn lh-btn-main px-[22px]">
 					{saved ? "Save" : "Add deadline"}
 				</button>
 			</>
@@ -187,7 +187,7 @@ function DeadlineDialogInner({ mode, state, onClose, onRemoved }: { mode: Deadli
 						/>
 					)}
 					{/* Its own scroll, so Done and Save stay in sight under a long list. */}
-					<div role="group" aria-label="Files this covers" className="flex max-h-[212px] flex-col overflow-y-auto rounded border border-border bg-background px-3 py-1.5">
+					<div role="group" aria-label="Files this covers" className="flex max-h-[212px] flex-col overflow-y-auto lh-well rounded px-3 py-1.5">
 						{listed.map((f) => (
 							<CheckRow key={f.id} testid={`deadline-file-${f.id}`} label={f.name} note={fileDayLabel(f.name)} checked={draft.fileIds.includes(f.id)} disabled={busy} onToggle={() => change({ fileIds: toggleFile(draft.fileIds, f.id, order) })} />
 						))}

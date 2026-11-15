@@ -558,7 +558,7 @@ export function Chat({
 										className="lh-dots lh-lesson-body relative h-full"
 										style={{ "--lh-turn-w": `${columnWidth}px` } as React.CSSProperties}
 									>
-										<Pane className="@container/reading flex min-h-0 min-w-0 flex-col [grid-area:reading]">
+										<Pane className="@container/reading flex min-h-0 min-w-0 flex-col overflow-hidden [grid-area:reading]">
 											<div className="shrink-0 px-14 pt-[26px] pb-3 empty:hidden @max-[640px]/reading:px-7">
 												<PlanRow kind={kind} spaceId={spaceId} stepBar={stepBar} edges={planEdges} stop={lessonStop.stop} homework={planHomework} practice={stablePractice} onJump={planHomework ? jumpToProblem : jumpToAnswer} onOpenPlan={openPlan} />
 											</div>

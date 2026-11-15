@@ -1,16 +1,15 @@
 /**
  * The teacher's docked panel: what it shows, how wide it is, and how far
- * it pushes the page left so nothing sits under it. While the agent's
- * screen shows, it is wide enough for the whole screen at its largest
- * font. Pure.
+ * it pushes the page left so nothing sits under it. Pure.
  */
-import { FULL_SCREEN_WIDTH, screenWidth, type TerminalRecord, type TerminalRole } from "@/frontend/components/terminal/terminal-model";
+import type { TerminalRecord, TerminalRole } from "@/frontend/components/terminal/terminal-model";
+import type { PaneBounds } from "@/frontend/components/ui/pane-width-model";
 
 /** The panel's body: the agent's screen or the Activity list. */
 export type PanelView = "terminal" | "activity";
 
 /** What the panel's body is: the screen in the desktop app (Activity then
- *  hangs from the status chip), Activity in a browser. A lesson has its own
+ *  hangs from its key in the head), Activity in a browser. A lesson has its own
  *  Activity, so there the panel is the screen alone, or nothing. */
 export function panelBody(inLesson: boolean, terminals: boolean): PanelView | null {
 	if (terminals) return "terminal";
@@ -32,45 +31,25 @@ export function panelStarts(p: { view: PanelView; screen: TerminalRole; terminal
 	return p.teacher ? !!p.teacher.ended : !p.outside;
 }
 
-export const DOCK_WIDTH = 400;
-/** The screen card's margins and padding on both sides, and the panel's left border. */
-const SCREEN_FRAME = 2 * 12 + 2 * 18 + 2;
-/** The whole screen at 14 px. */
-export const TERMINAL_DOCK_WIDTH = FULL_SCREEN_WIDTH + SCREEN_FRAME;
-/** The narrowest screen panel that pushes the page: the whole screen at 12 px. */
-export const TERMINAL_PUSH_MIN = screenWidth(12) + SCREEN_FRAME;
+/** The panel's width: the learner drags its left edge. The narrowest
+ *  still shows the agent's screen 40 columns wide. */
+export const PANEL_WIDTH: PaneBounds = { initial: 440, min: 360, max: 900 };
 /** Below this the panel takes the whole width. */
 const DOCK_FULL_BELOW = 640;
 /** The page is never pushed narrower than this; the panel covers it instead. */
 const MIN_PAGE = 480;
 
 /**
- * How wide the open panel is, how far it pushes the page left, and whether
- * it is wide. It is 400 and pushes while the page keeps 480, until the
- * agent's screen shows (`screen`: a live or ended terminal; before a start
- * the panel is a sentence and two keys). With a screen it pushes too, as
- * wide as the page allows up to the whole screen at 14 px, as long as the
- * screen keeps 12 px (the font fit shrinks it); below that it covers the
- * page at its full width and keeps the narrow push, so swapping to the
- * screen never widens the page. A lesson draws its own top bar, which a
- * push would cut short above the panel: there the panel covers. A narrow
- * window gets the whole width.
+ * How wide the open panel is and how far it pushes the page left. It is
+ * as wide as the learner left it (`wanted`) and pushes the page by that
+ * much, narrower when the page would drop under 480. A page with no room
+ * for even the narrowest panel is covered instead. A narrow window gets
+ * the whole width.
  */
-export function dockLayout(
-	viewportWidth: number,
-	pageWidth: number,
-	view: PanelView,
-	screen: boolean,
-	overLesson: boolean,
-): { width: number; push: number; wide: boolean } {
-	const wide = view === "terminal" && screen;
-	if (viewportWidth < DOCK_FULL_BELOW) return { width: viewportWidth, push: 0, wide };
-	const room = overLesson ? 0 : pageWidth - MIN_PAGE;
-	const narrowPush = room >= DOCK_WIDTH ? DOCK_WIDTH : 0;
-	if (!wide) return { width: DOCK_WIDTH, push: narrowPush, wide };
-	if (room >= TERMINAL_PUSH_MIN) {
-		const width = Math.min(TERMINAL_DOCK_WIDTH, room);
-		return { width, push: width, wide };
-	}
-	return { width: Math.min(TERMINAL_DOCK_WIDTH, viewportWidth), push: narrowPush, wide };
+export function dockLayout(viewportWidth: number, pageWidth: number, wanted: number): { width: number; push: number } {
+	if (viewportWidth < DOCK_FULL_BELOW) return { width: viewportWidth, push: 0 };
+	const room = pageWidth - MIN_PAGE;
+	if (room < PANEL_WIDTH.min) return { width: Math.min(wanted, viewportWidth), push: 0 };
+	const width = Math.min(wanted, room);
+	return { width, push: width };
 }
