@@ -84,7 +84,7 @@ export function DeadlinesCard({
 					)}
 					{lists.later.length > 0 && (
 						<section className={cn(GROUP, "pt-5 pb-1")}>
-							<h3 className="px-6 pb-1 text-xl leading-snug text-ink">Later</h3>
+							<h3 className="px-6 pb-1 text-[17px] leading-snug text-ink">Later</h3>
 							<ul data-testid="later-list" className={ROW_LIST}>
 								{lists.later.map((d) => (
 									<LaterRow key={d.id} deadline={d} progress={progress.get(d.id)} nowMs={nowMs} />
