@@ -17,6 +17,8 @@ const MAX_BYTES: usize = 256 * 1024;
 const TIME_LIMIT_MS: i64 = 10_000;
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(5);
 const USER_AGENT: &str = "godspeed";
+/// Why a list over the cap wasn't read; it counts as no list, not as a failed read.
+pub const TOO_LARGE: &str = "The list is over 256 KB.";
 
 /// The list's text, or why not.
 pub async fn download_list() -> Result<String, String> {
@@ -35,7 +37,7 @@ async fn download(url: &str) -> Result<String, String> {
 		let mut body = Vec::new();
 		while let Some(chunk) = response.chunk().await.map_err(|e| e.to_string())? {
 			if body.len() + chunk.len() > MAX_BYTES {
-				return Err("The list is over 256 KB.".to_owned());
+				return Err(TOO_LARGE.to_owned());
 			}
 			body.extend_from_slice(&chunk);
 		}
@@ -65,7 +67,7 @@ mod tests {
 		.await;
 		let at = |path: &str| format!("{}{path}", server.origin);
 		assert_eq!(download(&at("/plugins.json")).await, Ok(r#"{"version":1,"plugins":[]}"#.to_owned()));
-		assert_eq!(download(&at("/big.json")).await, Err("The list is over 256 KB.".to_owned()));
+		assert_eq!(download(&at("/big.json")).await, Err(TOO_LARGE.to_owned()));
 		assert_eq!(download(&at("/moved.json")).await, Err("HTTP 302".to_owned()));
 		assert_eq!(download(&at("/nope.json")).await, Err("HTTP 404".to_owned()));
 		let seen = server.requests();

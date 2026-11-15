@@ -180,7 +180,7 @@ fn install_listed_zip(app: &App, entry: &Json, bytes: Vec<u8>) -> Outcome<Json> 
 /// Installs, or updates, the plugin godspeed's list names `id`, from the zip GitHub makes for the
 /// listed tag.
 pub async fn install_from_list(app: &App, id: &str) -> Outcome<Json> {
-	let Some(entry) = listed_entry(app, id).await else { return refuse(404, "That plugin isn't on godspeed's list.") };
+	let Some(entry) = listed_entry(app, id) else { return refuse(404, "That plugin isn't on godspeed's list.") };
 	let (owner, repo) = entry["repo"].str_or_empty().split_once('/').unwrap_or_default();
 	let url = gs_web::zip_download::tag_zip_url(owner, repo, entry["tag"].str_or_empty());
 	let bytes = gs_web::zip_download::download_zip(&url, MAX_ZIP_BYTES).await.map_err(|e| Stop::Refuse(502, format!("Couldn't download the plugin: {e}")))?;
@@ -192,7 +192,7 @@ mod tests {
 	use super::*;
 	use crate::app::test_support::{scratch_dir, test_app};
 	use crate::plugins::installed::list_plugins;
-	use crate::plugins::list::keep_list;
+	use crate::plugins::list::{listed_plugins, read_list_from};
 	use crate::plugins::state::set_state;
 	use crate::plugins::storage::{storage_get, storage_set};
 	use crate::plugins::test_plugin::{manifest_text, zip_of};
@@ -287,7 +287,8 @@ mod tests {
 	fn a_tag_that_asks_for_more_than_the_list_checked_is_refused_and_nothing_is_kept() {
 		let root = scratch_dir("plugin-reviewed");
 		let app = test_app(&root);
-		for over in [json!({ "uses": ["agent", "space"] }), json!({ "network": ["api.memegen.link", "evil.example.com"] }), json!({ "id": "other" })] {
+		let elsewhere = [json!({ "space": { "label": "Memes" } }), json!({ "lesson": { "label": "Laughs" } })];
+		for over in [json!({ "uses": ["agent", "space"] }), json!({ "network": ["api.memegen.link", "evil.example.com"] }), json!({ "id": "other" })].into_iter().chain(elsewhere) {
 			assert_eq!(refusal(install_zip(&app, plugin_zip(&over, b"x"))), "This tag of the plugin isn't what godspeed's list checked.", "{over:?}");
 		}
 		assert_eq!(std::fs::read_dir(plugins_root(&app)).unwrap().count(), 0);
@@ -327,7 +328,13 @@ mod tests {
 	async fn only_a_plugin_on_the_list_can_be_installed_from_it() {
 		let root = scratch_dir("plugin-not-listed");
 		let app = test_app(&root);
-		keep_list(&app, &format!(r#"{{ "version": 1, "plugins": [{}] }}"#, gs_json::stringify(&entry("v0.2.0"))));
-		assert_eq!(install_from_list(&app, "other").await, Err(Stop::Refuse(404, "That plugin isn't on godspeed's list.".to_owned())));
+		let not_listed = Err(Stop::Refuse(404, "That plugin isn't on godspeed's list.".to_owned()));
+		let file = root.join("plugins.json");
+		gs_base::fsx::write_text_atomic(&file, &format!(r#"{{ "version": 1, "plugins": [{}] }}"#, gs_json::stringify(&entry("v0.2.0")))).unwrap();
+		read_list_from(&app, file);
+		// Nothing read yet, so even a listed id isn't found, and nothing is fetched.
+		assert_eq!(install_from_list(&app, "memes").await, not_listed);
+		listed_plugins(&app).await;
+		assert_eq!(install_from_list(&app, "other").await, not_listed);
 	}
 }

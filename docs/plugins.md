@@ -328,7 +328,7 @@ Field lengths are in [the manifest](#the-manifest) and tool limits in [Host tool
 
 ## Getting listed
 
-The reviewed list of plugins is `plugins.json` in the repository <https://github.com/bayshores/godspeed-plugins>. Settings, Plugins reads it when the tab opens and shows its plugins under Add.
+The reviewed list of plugins is `plugins.json` in the repository <https://github.com/bayshores/godspeed-plugins>. Settings, Plugins reads it each time the tab opens and shows its plugins under Add, so a newly listed plugin or tag shows without a restart. When it can't be read, the last list godspeed read since it started shows.
 
 - Each entry names a GitHub repository and one tag. godspeed downloads exactly that tag, so a plugin changes for a learner only when its entry moves to a newer tag and the learner clicks Update.
 - To add a plugin, open a pull request that adds your entry to `plugins.json`. The code at that tag is read before the pull request is merged.
@@ -359,5 +359,5 @@ An entry is the repository, the tag, and these fields copied from `manifest.json
 | `repo` | `owner/name`, as on GitHub. |
 | `tag` | One tag of letters, digits, `.`, `_`, `+` and `-`, like `v0.2.0`. |
 | The copied fields | Checked by the manifest's rules above. |
-| The manifest at the tag | Its `id`, `uses` and `network` must equal the entry's. Otherwise the add or update is refused and nothing is kept, so a tag can't ask for more than was reviewed. |
-| The list | A `version` other than 1, or any entry that breaks a rule (an id listed twice too), and godspeed reads the whole list as empty. |
+| The manifest at the tag | Its `id`, `uses`, `network`, `lesson` and `space` must equal the entry's. Otherwise the add or update is refused and nothing is kept, so a tag can't ask for more than was reviewed or show somewhere else. |
+| The list | An entry that breaks a rule is left out, and of two entries with one id the first is kept. A list that isn't JSON, has a `version` other than 1 or is over 256 KB reads as empty. |

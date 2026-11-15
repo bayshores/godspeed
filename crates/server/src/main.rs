@@ -56,7 +56,7 @@ async fn main() -> ExitCode {
 	// A stand-in for godspeed's plugin list, so a debug run (npm run layout) never reads GitHub's.
 	#[cfg(debug_assertions)]
 	if let Some(file) = std::env::var_os("LH_PLUGIN_LIST") {
-		gs_services::plugins::keep_list(&app, &std::fs::read_to_string(file).unwrap_or_default());
+		gs_services::plugins::read_list_from(&app, file.into());
 	}
 	if let Some(shell) = &shell {
 		listen_for_terminals(&app, shell);

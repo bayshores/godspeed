@@ -116,8 +116,9 @@ mod tests {
 		let (status, out) = read(install(State(app.clone()), body(json!({ "from": "folder", "folder": root.join("src").to_str().unwrap() }))).await).await;
 		assert_eq!((status, out["plugin"]["values"].clone()), (200, json!({ "hard": false })));
 		assert_eq!(read(install(State(app.clone()), body(json!({ "from": "disk" }))).await).await.0, 400);
-		// Kept, so nothing here reaches GitHub.
-		gs_services::plugins::keep_list(&app, r#"{ "version": 1, "plugins": [{ "id": "quiz", "repo": "me/quiz", "tag": "v1", "name": "Quiz", "description": "Quick quiz.", "space": { "label": "Quiz" } }] }"#);
+		// A list file, so nothing here reaches GitHub.
+		gs_base::fsx::write_text_atomic(&root.join("plugins.json"), r#"{ "version": 1, "plugins": [{ "id": "quiz", "repo": "me/quiz", "tag": "v1", "name": "Quiz", "description": "Quick quiz.", "space": { "label": "Quiz" } }] }"#).unwrap();
+		gs_services::plugins::read_list_from(&app, root.join("plugins.json"));
 		assert_eq!(read(listed(State(app.clone())).await).await.1["plugins"][0]["tag"], json!("v1"));
 		let (status, out) = read(install(State(app.clone()), body(json!({ "from": "list", "id": "other" }))).await).await;
 		assert_eq!((status, out), (404, json!({ "error": "That plugin isn't on godspeed's list." })));
