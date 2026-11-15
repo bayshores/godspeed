@@ -59584,7 +59584,7 @@
                       "fill": {
                         "type": "image",
                         "enabled": true,
-                        "url": "plugins/plugin-sheet.png?v=5",
+                        "url": "plugins/plugin-sheet.png?v=6",
                         "mode": "stretch"
                       },
                       "width": 1440,
@@ -59628,7 +59628,7 @@
                       "fill": {
                         "type": "image",
                         "enabled": true,
-                        "url": "plugins/plugin-off.png?v=5",
+                        "url": "plugins/plugin-off.png?v=6",
                         "mode": "stretch"
                       },
                       "width": 1440,
