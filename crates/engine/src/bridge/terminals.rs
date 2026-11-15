@@ -106,6 +106,14 @@ impl Bridge {
 		lately
 	}
 
+	/// The agent in this terminal had a turn after the learner typed, so it read what they typed
+	/// and no wait needs to say so.
+	pub fn drop_typed(&self, terminal: Option<&str>) {
+		if let Some(id) = terminal {
+			self.0.state.lock().typed.remove(id);
+		}
+	}
+
 	/// Every live terminal, and whether a request came from it lately.
 	pub fn terminals_here(&self, now: i64) -> Vec<(String, bool)> {
 		let s = self.0.state.lock();

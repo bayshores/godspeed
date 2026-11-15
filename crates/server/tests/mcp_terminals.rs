@@ -89,6 +89,17 @@ async fn typing_in_the_terminal_ends_its_wait_with_a_note() {
 	assert!(body.contains("Nothing to do right now."), "read once: {body}");
 }
 
+#[tokio::test]
+async fn a_tool_call_after_the_typing_shows_the_agent_already_read_it() {
+	let app = app();
+	app.bridge.set_live_terminals(vec![TERMINAL.to_owned()], Some(TERMINAL.to_owned()));
+	app.bridge.typed(TERMINAL, gs_base::clock::now_ms());
+	let (status, body) = call(&app, Some(TERMINAL), None, "list_spaces", "{}").await;
+	assert_eq!(status, 200, "{body}");
+	let (_, body) = wait(&app, Some(TERMINAL)).await;
+	assert!(body.contains("Nothing to do right now.") && !body.contains("typed to you"), "{body}");
+}
+
 /// Whether the window opened the agent's last change, as Follow does.
 fn opened(app: &App, label: &str) -> bool {
 	let actions = gs_services::app::agent_actions::recent_agent_actions(app);
