@@ -22,6 +22,8 @@ declare global {
 				/** Pushes the screen as it is, then its live output, until detach. */
 				attach: (id: string) => Promise<void>;
 				detach: (id: string) => Promise<void>;
+				/** Sizes the agent's terminal; answers the size in force (an ended one keeps its own). */
+				resize: (id: string, cols: number, rows: number) => Promise<{ cols: number; rows: number }>;
 				write: (id: string, data: string) => Promise<void>;
 				/** Sends Enter only if the shell still sees that prompt on the screen. */
 				answer: (id: string, kind: "trust" | "enter") => Promise<void>;

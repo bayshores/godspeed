@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 
 use portable_pty::{Child, CommandBuilder, MasterPty, PtySize};
 
-/// Every view shows the same fixed size, so the agent never redraws for a resize.
+/// The size a terminal starts at; the page that shows it then sizes it to its screen.
 pub const ROWS: u16 = 30;
 pub const COLS: u16 = 80;
 

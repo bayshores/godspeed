@@ -4,7 +4,7 @@ import {
 	CHECK_IN_WAIT_MS,
 	TEACH_WAIT_MS,
 	firstRunFooter,
-	fitFontSize,
+	gridSize,
 	helperShouldStart,
 	needsYou,
 	restartAsks,
@@ -191,16 +191,14 @@ describe("which start is allowed", () => {
 	});
 });
 
-describe("the screen's font", () => {
-	it("fits the whole 80 by 30 screen between 8 and 14 px, in width and height", () => {
-		assert.equal(fitFontSize(2000, 1000), 14);
-		assert.equal(fitFontSize(920, 700), 13);
-		assert.equal(fitFontSize(2000, 300), 8, "the height decides too");
-		assert.equal(fitFontSize(300, 200), 8, "too small even at 8 px: it scrolls inside");
-		// The screen box inside its padding, measured in the window at 1100x800 and 800x700, where
-		// xterm drew the screen 593x600 at 12 px and 495x480 at 10 px: whole in both.
-		assert.equal(fitFontSize(695, 610), 12);
-		assert.equal(fitFontSize(695, 510), 10);
+describe("the screen's size", () => {
+	it("is the columns and rows that fit its box, at one font size", () => {
+		assert.deepEqual(gridSize(404, 700, { width: 8, height: 22 }), { cols: 50, rows: 31 });
+		assert.deepEqual(gridSize(407.9, 703, { width: 8, height: 22 }), { cols: 50, rows: 31 }, "never a column or row that is cut");
+		assert.deepEqual(gridSize(100, 50, { width: 8, height: 22 }), { cols: 40, rows: 10 }, "too small a box scrolls inside");
+		assert.deepEqual(gridSize(9000, 9000, { width: 8, height: 22 }), { cols: 200, rows: 100 });
+		// Before xterm has drawn a cell: 13 px type.
+		assert.deepEqual(gridSize(404, 700), { cols: 50, rows: 31 });
 	});
 });
 

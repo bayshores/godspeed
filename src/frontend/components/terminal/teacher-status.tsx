@@ -7,7 +7,8 @@ import { useTerminals } from "./use-terminals";
 /** The teacher's status line under its name. While godspeed runs the
  *  teacher's terminal, it says when the teacher starts or what it needs
  *  from the learner, and a click opens the teacher's panel on Terminal;
- *  otherwise it is the usual line, as plain text. */
+ *  otherwise, and while the panel is open and says so in its head, it is
+ *  the usual line, as plain text. */
 export function TeacherStatus({ name, line, testid, className }: {
 	name: string;
 	/** The usual line, used while the terminal has nothing to say. */
@@ -17,9 +18,10 @@ export function TeacherStatus({ name, line, testid, className }: {
 }) {
 	const api = useTerminals();
 	const panel = useTeacher();
-	const text = screenStatusLine(api?.facts.teacher ?? null, name) ?? line;
+	const open = !!panel?.panelOpen;
+	const text = (open ? null : screenStatusLine(api?.facts.teacher ?? null, name)) ?? line;
 	if (!text) return null;
-	if (!api?.teacher || !panel)
+	if (!api?.teacher || !panel || open)
 		return (
 			<span data-testid={testid} className={className}>
 				{text}

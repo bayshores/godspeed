@@ -77,7 +77,6 @@ function PanelHost({ children }: { children?: React.ReactNode }) {
 					listable
 					list={panel.list}
 					onList={panel.setList}
-					overLesson={false}
 					screen={panel.role}
 					onScreen={panel.showTerminal}
 					focus={panel.focus}
@@ -392,34 +391,27 @@ describe("the screens", () => {
 		}
 	});
 
-	it("before any start: what shows here and the start pair at the narrow width, which starts the teacher here and widens for its screen, shown once it stops growing; beside an agent from outside godspeed, where its screen is", async () => {
+	it("before any start: what shows here and the start pair, which starts the teacher here at the same width; beside an agent from outside godspeed, where its screen is", async () => {
 		const shell = fakeShell();
 		const wasWidth = dom.window.innerWidth;
 		Object.assign(dom.window, { innerWidth: 1440 });
-		const g = globalThis as unknown as { getComputedStyle: (el: Element) => object };
-		const wasStyle = g.getComputedStyle;
-		g.getComputedStyle = (el) => ({ ...wasStyle(el), transitionDuration: "0.16s" });
-		const settling = () => q("teacher-panel")?.querySelector("[data-testid='teacher-panel-body']")?.hasAttribute("data-settling");
 		try {
 			stored.set("lh-folder-agent", "codex");
 			await mounted(access(), async () => {
 				await click("open-terminal");
 				assert.equal(text("terminal-none"), "Ada's screen shows here.Start CodexUse another agent");
 				assert.ok(!/not connected/i.test(text("terminal-none") ?? ""), "the status line says that");
-				assert.equal(q("teacher-panel")?.style.width, "400px", "nothing to show yet: the narrow width");
+				assert.equal(q("teacher-panel")?.style.width, "440px");
 				assert.equal(q("open-agent")?.textContent, "Start Codex", "the agent last started here");
 				await click("open-agent");
 				assert.ok(shell.calls.includes("start teacher codex"));
-				assert.equal(q("teacher-panel")?.style.width, "757px", "its screen shows: wide");
-				assert.ok(settling(), "hidden while the panel grows, so nothing shows cut off");
-				await act(() => new Promise((r) => setTimeout(r, 300)));
-				assert.ok(!settling(), "shown once the width settled");
-				assert.equal(text("status"), "Ada is starting.");
+				assert.equal(q("teacher-panel")?.style.width, "440px", "its screen shows in the same panel");
+				assert.equal(text("teacher-panel-agent"), "Ada is starting.");
+				assert.equal(text("status"), "Ready", "the open panel's head says it: the line beside it does not say it again");
 				assert.equal(text("terminal-footer"), "");
 			});
 		} finally {
 			Object.assign(dom.window, { innerWidth: wasWidth });
-			g.getComputedStyle = wasStyle;
 			shell.remove();
 		}
 		const outside = fakeShell();

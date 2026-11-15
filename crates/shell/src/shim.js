@@ -173,6 +173,7 @@
 			start: (role, agent) => invoke("terminal_start", { role, agent }),
 			attach: (id) => invoke("terminal_attach", { id }),
 			detach: (id) => invoke("terminal_detach", { id }),
+			resize: (id, cols, rows) => invoke("terminal_resize", { id, cols, rows }),
 			write: (id, data) => invoke("terminal_write", { id, data }),
 			answer: (id, kind) => invoke("terminal_answer", { id, kind }),
 			paste: (id) => invoke("terminal_paste", { id }),

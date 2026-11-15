@@ -87,6 +87,18 @@ impl Screen {
 		std::mem::take(&mut self.parser.callbacks_mut().0)
 	}
 
+	/// The screen's rows and columns.
+	pub fn size(&self) -> (u16, u16) {
+		let (rows, cols) = self.parser.screen().size();
+		(rows.get(), cols.get())
+	}
+
+	/// Cuts or pads the screen to a new size, as a terminal does before its program redraws.
+	pub fn resize(&mut self, rows: u16, cols: u16) {
+		let size = |n: u16| std::num::NonZeroU16::new(n.max(1)).expect("at least one");
+		self.parser.set_size(size(rows), size(cols));
+	}
+
 	/// What redraws this screen in an empty terminal.
 	pub fn snapshot(&self) -> String {
 		self.parser.screen().state_formatted()
@@ -102,7 +114,7 @@ impl Screen {
 
 	/// Where the pointer is on the trust question, while the screen shows exactly that.
 	pub fn trust(&self) -> Option<Trust> {
-		let rows: Vec<String> = self.parser.screen().rows(0, COLS).collect();
+		let rows: Vec<String> = self.parser.screen().rows(0, self.size().1).collect();
 		trust(&rows).map(|(pointer, _)| pointer)
 	}
 
@@ -137,7 +149,7 @@ fn menu_row(screen: &vt100::Screen, row: u16, text: &str) -> Option<(u32, bool, 
 	if label.is_empty() {
 		return None;
 	}
-	let inverse = (0..COLS).filter_map(|col| screen.cell(row, col)).any(|cell| cell.inverse() && cell.has_contents());
+	let inverse = (0..screen.size().1.get()).filter_map(|col| screen.cell(row, col)).any(|cell| cell.inverse() && cell.has_contents());
 	Some((rest[..digits].parse().ok()?, pointed || inverse, label.to_owned()))
 }
 
@@ -205,7 +217,7 @@ fn asks_for_enter(rows: &[String]) -> Option<String> {
 }
 
 fn seen(screen: &vt100::Screen) -> Seen {
-	let rows: Vec<String> = screen.rows(0, COLS).collect();
+	let rows: Vec<String> = screen.rows(0, screen.size().1.get()).collect();
 	let url = rows.iter().any(|row| row.contains("https://") || row.contains("http://"));
 	if let Some((_, items)) = trust(&rows) {
 		return Seen { prompt: Some(Prompt::Trust), menu: items, url };

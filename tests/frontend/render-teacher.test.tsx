@@ -34,8 +34,7 @@ Object.assign(globalThis, {
 globalThis.fetch = (() => new Promise(() => {})) as typeof fetch;
 
 const { TeacherPanel, agentLine } = await import("../../src/frontend/components/teacher/teacher-panel.tsx");
-const { TERMINAL_DOCK_WIDTH, TERMINAL_PUSH_MIN, dockLayout, panelBody, panelStarts, shownScreen } = await import("../../src/frontend/components/teacher/dock-model.ts");
-const { fitFontSize } = await import("../../src/frontend/components/terminal/terminal-model.ts");
+const { PANEL_WIDTH, dockLayout, panelBody, panelStarts, shownScreen } = await import("../../src/frontend/components/teacher/dock-model.ts");
 const { waitingNotice } = await import("../../src/frontend/components/agent-status.tsx");
 const { ActivityList, TeacherActivity } = await import("../../src/frontend/components/teacher/teacher-activity.tsx");
 const { DEFAULT_TEACHER_NAME, sanitizeTeacherName, sanitizeUserSettings, TEACHER_NAME_MAX } = await import("../../src/shared/core/settings.ts");
@@ -79,7 +78,6 @@ const panel = (over: Partial<PanelProps> = {}) => (
 		listable
 		list={false}
 		onList={() => {}}
-		overLesson={false}
 		screen="teacher"
 		onScreen={() => {}}
 		focus={false}
@@ -108,6 +106,9 @@ describe("the panel", () => {
 		assert.match(html, /data-testid="teacher-panel-agent"[^>]*class="[^"]*font-mono[^"]*"[^>]*>(<[^>]*>)*Ready</);
 		assert.doesNotMatch(html, /teacher-panel-name|teacher-panel-close|role="switch"/);
 	});
+	it("in a lesson the head leaves what the teacher is doing to the lesson's teacher column", () => {
+		assert.doesNotMatch(renderToStaticMarkup(panel({ listable: false })), /teacher-panel-agent/);
+	});
 	it("docks on the right edge as a square sheet of the top bar, with no blur", () => {
 		const section = /<section[^>]*>/.exec(renderToStaticMarkup(panel()))![0];
 		assert.match(section, /data-testid="teacher-panel"/);
@@ -126,14 +127,22 @@ describe("the panel", () => {
 		const html = renderToStaticMarkup(panel({ agent: { ...IDLE, pendingWork: 2 } }));
 		assert.equal(html.split(`>${waitingNotice()}<`).length - 1, 1, "in the head, not again in Activity");
 	});
-	it("Activity and a screen not shown yet: 400 wide, pushing the page while it keeps 480 px; the whole window when narrow", () => {
-		assert.deepEqual(dockLayout(1440, 1440, "activity", false, false), { width: 400, push: 400, wide: false });
-		assert.deepEqual(dockLayout(1000, 1000, "activity", false, false), { width: 400, push: 400, wide: false });
-		assert.deepEqual(dockLayout(800, 800, "activity", false, false), { width: 400, push: 0, wide: false }, "a page too narrow to push is covered instead");
-		assert.deepEqual(dockLayout(600, 600, "activity", false, false), { width: 600, push: 0, wide: false }, "the whole window: no push");
-		assert.deepEqual(dockLayout(1440, 1440, "terminal", false, false), { width: 400, push: 400, wide: false }, "before a start: a sentence and the start keys");
-		assert.deepEqual(dockLayout(1100, 1100, "terminal", false, false), { width: 400, push: 400, wide: false });
-		assert.deepEqual(dockLayout(1440, 1440, "activity", true, false), { width: 400, push: 400, wide: false }, "a running screen does not widen Activity");
+	it("is as wide as the learner left it, pushing the page while it keeps 480 px", () => {
+		assert.deepEqual(dockLayout(1440, 1440, 440), { width: 440, push: 440 });
+		assert.deepEqual(dockLayout(1440, 1440, 900), { width: 900, push: 900 });
+		assert.deepEqual(dockLayout(1100, 1100, 900), { width: 620, push: 620 }, "narrower than asked: the page keeps 480");
+		assert.deepEqual(dockLayout(840, 840, 440), { width: 360, push: 360 }, "down to its narrowest");
+		for (let w = 640; w <= 2000; w += 10) {
+			for (const wanted of [PANEL_WIDTH.min, PANEL_WIDTH.initial, PANEL_WIDTH.max]) {
+				const { width, push } = dockLayout(w, w, wanted);
+				assert.ok(push === 0 || (push === width && w - push >= 480 && width >= PANEL_WIDTH.min), `${w}, ${wanted}`);
+			}
+		}
+	});
+	it("covers a page with no room for its narrowest, and takes the whole of a narrow window", () => {
+		assert.deepEqual(dockLayout(800, 800, 440), { width: 440, push: 0 });
+		assert.deepEqual(dockLayout(700, 700, 900), { width: 700, push: 0 });
+		assert.deepEqual(dockLayout(600, 600, 440), { width: 600, push: 0 });
 	});
 	it("shows a key that starts the teacher: the start pair before any start, Start again once it ended, and in a browser above Activity", () => {
 		const ended = { id: "t1", role: "teacher" as const, agent: "claude" as const, startedAt: 0, ended: { stopped: true as const, code: null }, prompt: null, url: false };
@@ -149,46 +158,21 @@ describe("the panel", () => {
 		assert.equal(shownScreen("helper", false), "teacher", "no helper: the teacher's screen");
 		assert.equal(shownScreen("helper", true), "helper");
 	});
-	it("Terminal: the whole screen at 14 px where the page keeps 480 px", () => {
-		assert.equal(fitFontSize(TERMINAL_DOCK_WIDTH - 62, 10_000), 14, "the screen's box: the width less the card's margins and padding and the border");
-		assert.deepEqual(dockLayout(1440, 1440, "terminal", true, false), { width: TERMINAL_DOCK_WIDTH, push: TERMINAL_DOCK_WIDTH, wide: true });
-	});
-	it("Terminal: narrower, still pushing, while the screen keeps 12 px", () => {
-		assert.equal(fitFontSize(TERMINAL_PUSH_MIN - 62, 10_000), 12);
-		assert.deepEqual(dockLayout(1200, 1200, "terminal", true, false), { width: 720, push: 720, wide: true });
-		assert.equal(fitFontSize(720 - 62, 10_000), 13);
-		assert.deepEqual(dockLayout(480 + TERMINAL_PUSH_MIN, 480 + TERMINAL_PUSH_MIN, "terminal", true, false).push, TERMINAL_PUSH_MIN);
-	});
-	it("Terminal: below 12 px it covers the page at full width and keeps the narrow push, so swapping to the screen never widens the page", () => {
-		assert.deepEqual(dockLayout(1100, 1100, "terminal", true, false), { width: TERMINAL_DOCK_WIDTH, push: 400, wide: true });
-		assert.deepEqual(dockLayout(800, 800, "terminal", true, false), { width: TERMINAL_DOCK_WIDTH, push: 0, wide: true }, "the font fit does the rest");
-		assert.deepEqual(dockLayout(600, 600, "terminal", true, false), { width: 600, push: 0, wide: true });
-		for (let w = 640; w <= 2000; w += 10) {
-			const { push } = dockLayout(w, w, "terminal", true, false);
-			assert.ok(push === 0 || w - push >= 480, `${w}: the page never under 480`);
-			assert.ok(push <= 400 || fitFontSize(push - 62, 10_000) >= 12, `${w}: a pushing screen keeps 12 px`);
-		}
-	});
-	it("covers a lesson instead of pushing it (the lesson draws its own top bar)", () => {
-		assert.deepEqual(dockLayout(1800, 1800, "terminal", true, true), { width: TERMINAL_DOCK_WIDTH, push: 0, wide: true });
-		assert.equal(dockLayout(1800, 1800, "terminal", false, true).push, 0);
-	});
-	it("is the screen in the desktop app (Activity hangs from its chip), Activity in a browser, and over a lesson the screen or nothing", () => {
+	it("is the screen in the desktop app (Activity hangs from its key), Activity in a browser, and over a lesson the screen or nothing", () => {
 		assert.equal(panelBody(false, true), "terminal");
 		assert.equal(panelBody(false, false), "activity");
 		assert.equal(panelBody(true, true), "terminal");
 		assert.equal(panelBody(true, false), null);
 	});
-	it("dims the page only where it covers it, and the dimming takes no clicks", () => {
+	it("never dims the page, covered or pushed, and has an edge to drag unless it takes the whole window", () => {
 		const wasWidth = window.innerWidth;
 		try {
 			Object.assign(window, { innerWidth: 800 });
-			const scrim = mount(panel()).querySelector<HTMLElement>("[data-testid='teacher-panel-scrim']");
-			assert.ok(scrim !== null, "800 wide: the panel covers the page");
-			assert.equal(scrim.style.right, "400px", "the page beside the panel");
-			assert.ok(scrim.classList.contains("pointer-events-none"));
-			Object.assign(window, { innerWidth: 1440 });
-			assert.ok(mount(panel()).querySelector("[data-testid='teacher-panel-scrim']") === null, "1440 wide: it pushes the page");
+			const covering = mount(panel());
+			assert.ok(covering.querySelector("[data-testid='teacher-panel-scrim']") === null);
+			assert.ok(covering.querySelector("[data-testid='resize-teacher']") !== null);
+			Object.assign(window, { innerWidth: 600 });
+			assert.ok(mount(panel()).querySelector("[data-testid='resize-teacher']") === null, "the whole window: nothing to drag");
 		} finally {
 			Object.assign(window, { innerWidth: wasWidth });
 		}
