@@ -111,3 +111,9 @@ jobs:
       - name: Layout check in the real app window
         if: runner.os == 'macOS'
         run: npm run layout
+      - name: Keep the layout report and pictures
+        if: failure() && runner.os == 'macOS'
+        uses: actions/upload-artifact@v7
+        with:
+          name: layout
+          path: target/layout
