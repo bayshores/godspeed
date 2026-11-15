@@ -34,7 +34,6 @@ The Mac app draws its pages with WebKit, not Chrome, and the two lay pages out d
 
 - A UI change is looked at in the real app window (the debug shell) before it is called finished, at 1440, 1100 and 800 points wide. A browser screenshot does not count.
 - Look at each state the change touches, and at the screen's scroll end, for text on top of text, content spilling out of its box and sideways scrolling.
-- `npm run layout` checks the screens in `scripts/layout-screens.mjs` in the real window at all three widths for overlapping text, spills, sideways scrolling, hidden text and cut-off letters. It runs in CI on the Mac and is not part of `npm run check`: run it yourself before calling a UI change finished. A new screen or state gets an entry there.
 
 # No guessing
 
