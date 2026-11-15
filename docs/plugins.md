@@ -292,10 +292,12 @@ Follow the app's look so the plugin reads as part of it. godspeed does not check
 ## Trying a plugin
 
 1. Open Settings, then Plugins.
-2. Click Add and pick your plugin's folder. Add is in the desktop app only. godspeed copies the folder. If something is wrong, a red message under Add says what, for example `manifest.json: id must be lowercase letters, digits and dashes, like meme-cards`.
+2. Click Add. When godspeed's list has plugins you haven't added, Add shows them in a sheet with Add beside each, and the last row, From a folder, has Choose. Otherwise Add opens the folder chooser itself. Picking a folder is in the desktop app only. godspeed copies the folder. If something is wrong, a red message says what, for example `manifest.json: id must be lowercase letters, digits and dashes, like meme-cards`.
 3. The new plugin is picked in the list, and its sheet shows the switch, its settings, Show folder and Remove. A plugin that is off is not shown anywhere, its files are not served, and `ask_agent` is refused.
 4. Open it. A lesson plugin is a word in the lesson's top bar, left of the cheat sheet. Click it to open the page in a panel beside the lesson, and click it again to close it. A space plugin is a tab after the space's own tabs, and shows only in a real space.
-5. After changing a file, click Add and pick the same folder again. godspeed replaces the copy and keeps the plugin's stored JSON and settings. Open the page again to see the change.
+5. After changing a file, click Add, then Choose if the sheet shows, and pick the same folder again. godspeed replaces the copy and keeps the plugin's stored JSON and settings. Open the page again to see the change.
+
+A plugin added from the list shows Update beside Remove when the list moves its entry to another tag. Update installs that tag and keeps the plugin's switch, settings and stored JSON. Nothing updates by itself, and a plugin added from a folder never shows Update.
 
 A plugin whose folder can no longer load shows in the list with its error and a Remove button.
 
@@ -326,10 +328,36 @@ Field lengths are in [the manifest](#the-manifest) and tool limits in [Host tool
 
 ## Getting listed
 
-The reviewed list of plugins is the repository <https://github.com/bayshores/godspeed-plugins>. Its README says:
+The reviewed list of plugins is `plugins.json` in the repository <https://github.com/bayshores/godspeed-plugins>. Settings, Plugins reads it when the tab opens and shows its plugins under Add.
 
-- Each entry in `plugins.json` names a GitHub repository and one tag. godspeed will download exactly that tag, so a plugin changes for a learner only when its entry moves to a newer tag.
-- To add a plugin, open a pull request that adds your repository and tag to `plugins.json`. The code at that tag is read before the pull request is merged.
-- The list is empty for now, and the app doesn't read it yet.
+- Each entry names a GitHub repository and one tag. godspeed downloads exactly that tag, so a plugin changes for a learner only when its entry moves to a newer tag and the learner clicks Update.
+- To add a plugin, open a pull request that adds your entry to `plugins.json`. The code at that tag is read before the pull request is merged.
+- `manifest.json` must sit at the top of the repository. A single folder around everything, as GitHub's zips have, is removed, and hidden files such as `.github` are left out.
 
-The server can already install one tag of a GitHub repository from the zip GitHub makes for it (`POST /api/plugins` with `{ "from": "github", "owner", "repo", "tag" }`), but no screen uses it yet. For that zip, `manifest.json` must sit at the top of the repository. A single folder around everything, as GitHub's zips have, is removed, and hidden files such as `.github` are left out.
+An entry is the repository, the tag, and these fields copied from `manifest.json` at that tag as they are: `id`, `name`, `description`, `lesson` and `space` (whichever the manifest has), `uses` and `network`. The Add sheet shows the name, the description and where the plugin shows and what it uses before anything is downloaded.
+
+```json
+{
+	"version": 1,
+	"plugins": [
+		{
+			"repo": "808arc/meme-plugin",
+			"tag": "v0.2.0",
+			"id": "memes",
+			"name": "Memes",
+			"description": "Turns the question into a meme.",
+			"lesson": { "label": "Memes" },
+			"uses": ["agent"],
+			"network": ["api.memegen.link"]
+		}
+	]
+}
+```
+
+| Rule | Value |
+|---|---|
+| `repo` | `owner/name`, as on GitHub. |
+| `tag` | One tag of letters, digits, `.`, `_`, `+` and `-`, like `v0.2.0`. |
+| The copied fields | Checked by the manifest's rules above. |
+| The manifest at the tag | Its `id`, `uses` and `network` must equal the entry's. Otherwise the add or update is refused and nothing is kept, so a tag can't ask for more than was reviewed. |
+| The list | A `version` other than 1, or any entry that breaks a rule (an id listed twice too), and godspeed reads the whole list as empty. |

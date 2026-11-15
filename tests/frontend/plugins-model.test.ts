@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { pluginFacts, pluginLine } from "../../src/frontend/components/settings/plugins-model.ts";
-import type { PluginManifest } from "../../src/frontend/lib/plugins-api.ts";
+import { addAction, addable, pluginFacts, pluginLine, updateFor } from "../../src/frontend/components/settings/plugins-model.ts";
+import type { InstalledPlugin, ListedPlugin, PluginManifest } from "../../src/frontend/lib/plugins-api.ts";
 
 const manifest = (over: Partial<PluginManifest>): PluginManifest => ({
 	id: "memes",
@@ -44,5 +44,37 @@ describe("the facts godspeed writes from a manifest", () => {
 	it("puts the author's sentence first, ended with a full stop", () => {
 		assert.equal(pluginLine(manifest({ lesson: { label: "A" } })), "Made from your lesson. Shows in lessons.");
 		assert.equal(pluginLine(manifest({ description: "Streaks", space: { label: "A" } })), "Streaks. Shows in spaces.");
+	});
+});
+
+const LISTED: ListedPlugin = { id: "quiz", repo: "ann/quiz", tag: "v1.0.0", name: "Quiz", description: "Five quick questions", space: { label: "Quiz" }, network: [], uses: [] };
+const installed = (over: Partial<Extract<InstalledPlugin, { manifest: unknown }>>): InstalledPlugin => ({ id: "quiz", folder: "/p/quiz", enabled: true, values: {}, manifest: manifest({ id: "quiz" }), ...over });
+
+describe("adding from godspeed's list", () => {
+	it("offers the listed plugins not installed yet, in the list's order", () => {
+		const memes = { ...LISTED, id: "memes", name: "Memes" };
+		assert.deepEqual(addable([memes, LISTED], [installed({})]), [memes]);
+		assert.deepEqual(addable([LISTED], [{ id: "quiz", folder: "/p/quiz", error: "broken" }]), [], "a broken install still counts as installed");
+	});
+
+	it("Add shows the sheet when there is a row, else opens the chooser, which only the desktop app has", () => {
+		assert.equal(addAction(1, false), "sheet");
+		assert.equal(addAction(2, true), "sheet");
+		assert.equal(addAction(0, true), "chooser");
+		assert.equal(addAction(0, false), null);
+	});
+
+	it("Update shows only for a plugin from the list whose listed repo or tag moved", () => {
+		const from = (tag: string, repo = "ann/quiz") => installed({ source: { repo, tag } });
+		assert.equal(updateFor(from("v0.9.0"), [LISTED]), LISTED);
+		assert.equal(updateFor(from("v1.0.0", "old/quiz"), [LISTED]), LISTED);
+		assert.equal(updateFor(from("v1.0.0"), [LISTED]), null);
+		assert.equal(updateFor(installed({}), [LISTED]), null, "added from a folder");
+		assert.equal(updateFor(from("v0.9.0"), []), null, "no longer listed");
+		assert.equal(updateFor({ id: "quiz", folder: "/p/quiz", error: "broken" }, [LISTED]), null);
+	});
+
+	it("writes a list entry's line as it writes a manifest's", () => {
+		assert.equal(pluginLine(LISTED), "Five quick questions. Shows in spaces.");
 	});
 });

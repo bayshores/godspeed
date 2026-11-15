@@ -1,6 +1,7 @@
 /**
  * Settings → Plugins in a DOM: the list and the picked plugin's sheet from real server answers,
- * the switch and settings that save, a plugin that failed to load, and a failed install.
+ * the switch and settings that save, a plugin that failed to load, a failed install, the Add
+ * sheet over godspeed's list and Update.
  */
 import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;
@@ -28,7 +29,7 @@ const { createRoot } = await import("react-dom/client");
 const { PluginsSection } = await import("../../src/frontend/components/settings/plugins-section.tsx");
 const { ServerEventsProvider } = await import("../../src/frontend/components/server-events.tsx");
 const { AgentStatusProvider } = await import("../../src/frontend/components/agent-status.tsx");
-import type { InstalledPlugin } from "../../src/frontend/lib/plugins-api.ts";
+import type { InstalledPlugin, ListedPlugin } from "../../src/frontend/lib/plugins-api.ts";
 
 const quietEvents = () => ({ onEvent() {}, onOpen() {}, close() {} });
 const originalFetch = globalThis.fetch;
@@ -65,6 +66,9 @@ const CARDS: InstalledPlugin = {
 	values: {},
 	manifest: { id: "cards", name: "Flashcards", version: "0.4.1", description: "Recall cards on a schedule", author: "LearnHarness", entry: "index.html", space: { label: "Cards" }, settings: [], network: [], uses: ["space"] },
 };
+const { name, description, lesson, network, uses } = (MEMES as Extract<InstalledPlugin, { manifest: unknown }>).manifest;
+const MEMES_ABOUT = { name, description, lesson, network, uses };
+const QUIZ: ListedPlugin = { id: "quiz", repo: "ann/quiz", tag: "v1.0.0", name: "Quiz", description: "Five quick questions", space: { label: "Quiz" }, network: [], uses: ["space"] };
 const BROKEN: InstalledPlugin = { id: "old-quiz", folder: "/home/godspeed/plugins/old-quiz", error: "manifest.json: version must be like 1.0.0" };
 
 interface Call {
@@ -73,8 +77,8 @@ interface Call {
 	body: unknown;
 }
 
-/** The plugins routes over a made-up list; `install` answers a POST. */
-function serve(initial: InstalledPlugin[], install?: () => Response) {
+/** The plugins routes over made-up plugins; `install` answers a POST, `listed` is godspeed's list. */
+function serve(initial: InstalledPlugin[], install?: (body: unknown) => Response | Promise<Response>, listed: ListedPlugin[] = []) {
 	let plugins = initial;
 	const calls: Call[] = [];
 	globalThis.fetch = (async (url: string, init?: RequestInit) => {
@@ -83,7 +87,8 @@ function serve(initial: InstalledPlugin[], install?: () => Response) {
 		calls.push({ method, url: String(url), body });
 		const id = String(url).split("/")[3];
 		if (String(url).startsWith("/api/mcp-access")) return Response.json({ agentConnected: true, agentName: "Claude" });
-		if (method === "POST") return install!();
+		if (String(url) === "/api/plugin-list") return Response.json({ plugins: listed });
+		if (method === "POST") return install!(body);
 		if (method === "DELETE") {
 			plugins = plugins.filter((p) => p.id !== id);
 			return Response.json({ ok: true });
@@ -245,5 +250,89 @@ describe("Settings, Plugins", () => {
 		await mount();
 		await click("plugin-setting-mode-Think");
 		assert.equal(q("plugin-error")!.textContent, "Mode must be one of the options.");
+	});
+
+	it("with plugins on the list to add, Add shows the Add sheet: the line, a row each, then the folder", async () => {
+		serve([MEMES], undefined, [{ ...QUIZ }, { id: "memes", repo: "808arc/meme-plugin", tag: "v0.2.0", ...MEMES_ABOUT }]);
+		(window as { lh?: unknown }).lh = { pickFolder: async () => null };
+		await mount();
+		await click("plugins-add");
+		assert.equal(q("plugins-add")!.getAttribute("aria-current"), "true");
+		assert.equal(q("plugin-memes")!.getAttribute("aria-current"), "false");
+		const sheet = q("plugins-add-sheet")!;
+		assert.ok(q("plugin-sheet") === null);
+		assert.equal(sheet.querySelector("p")!.textContent, "Checked by godspeed.");
+		assert.equal(q("plugins-listed-quiz")!.textContent, "QuizFive quick questions. Shows in spaces. Uses the space's facts.Add");
+		assert.ok(q("plugins-listed-memes") === null, "an installed plugin isn't offered again");
+		assert.equal(q("plugins-from-folder")!.textContent, "From a folderChoose");
+		assert.equal(sheet.textContent, "Checked by godspeed.QuizFive quick questions. Shows in spaces. Uses the space's facts.AddFrom a folderChoose");
+	});
+
+	it("a listed add sends only its id, reads Adding… while it runs, then opens the new plugin's sheet", async () => {
+		let finish: (r: Response) => void = () => {};
+		const added: InstalledPlugin = { id: "quiz", folder: "/p/quiz", enabled: true, values: {}, source: { repo: "ann/quiz", tag: "v1.0.0" }, manifest: { ...QUIZ, version: "1.0.0", author: "ann", entry: "index.html", settings: [] } };
+		const server = serve([MEMES], () => new Promise((done) => (finish = done)), [QUIZ]);
+		await mount();
+		await click("plugins-add");
+		await click("plugins-listed-add-quiz");
+		assert.deepEqual(server.calls.find((c) => c.method === "POST")!.body, { from: "list", id: "quiz" });
+		assert.equal(q("plugins-listed-add-quiz")!.textContent, "Adding…");
+		assert.ok(q("plugins-listed-add-quiz")!.hasAttribute("disabled"));
+		server.set([MEMES, added]);
+		await act(async () => finish(Response.json({ plugin: added })));
+		await act(async () => {
+			await new Promise((r) => setTimeout(r, 10));
+		});
+		assert.ok(q("plugins-add-sheet") === null);
+		assert.equal(q("plugin-quiz")!.getAttribute("aria-current"), "true");
+		assert.ok(q("plugins-add") === null, "nothing left to add and no folder chooser here, so no Add");
+	});
+
+	it("a failed listed add says so under its row and only then", async () => {
+		serve([], () => Response.json({ error: "This tag of the plugin isn't what godspeed's list checked." }, { status: 400 }), [QUIZ]);
+		await mount();
+		await click("plugins-add");
+		assert.ok(q("plugin-error") === null);
+		assert.ok(q("plugins-from-folder") === null, "no folder chooser outside the desktop app");
+		await click("plugins-listed-add-quiz");
+		assert.equal(q("plugin-error")!.textContent, "Quiz couldn't be added.");
+		assert.equal(q("plugins-listed-add-quiz")!.textContent, "Add");
+	});
+
+	it("with nothing on the list to add, Add opens the folder chooser itself", async () => {
+		serve([MEMES], undefined, [{ id: "memes", repo: "808arc/meme-plugin", tag: "v0.2.0", ...MEMES_ABOUT }]);
+		let asked = 0;
+		(window as { lh?: unknown }).lh = { pickFolder: async () => (asked++, null) };
+		await mount();
+		await click("plugins-add");
+		assert.equal(asked, 1);
+		assert.ok(q("plugins-add-sheet") === null);
+	});
+
+	it("a plugin from the list whose listed tag moved shows Update left of Remove; a failure says so", async () => {
+		const fromList = { ...MEMES, source: { repo: "808arc/meme-plugin", tag: "v0.1.0" } } as InstalledPlugin;
+		let finish: (r: Response) => void = () => {};
+		const server = serve([fromList], () => new Promise((done) => (finish = done)), [{ id: "memes", repo: "808arc/meme-plugin", tag: "v0.2.0", ...MEMES_ABOUT }]);
+		(window as { lh?: unknown }).lh = { openPath: async () => {} };
+		await mount();
+		const keys = [...q("plugin-sheet")!.querySelectorAll("button")].slice(-3).map((b) => b.textContent);
+		assert.deepEqual(keys, ["Show folder", "Update", "Remove"]);
+		await click("plugin-update");
+		assert.deepEqual(server.calls.find((c) => c.method === "POST")!.body, { from: "list", id: "memes" });
+		assert.equal(q("plugin-update")!.textContent, "Updating…");
+		assert.ok(q("plugin-update")!.hasAttribute("disabled") && q("plugin-remove")!.hasAttribute("disabled"));
+		await act(async () => finish(Response.json({ error: "Couldn't download the plugin: fetch failed" }, { status: 502 })));
+		assert.equal(q("plugin-error")!.textContent, "Memes couldn't be updated.");
+	});
+
+	it("no Update for the listed tag already installed, nor for a plugin added from a folder", async () => {
+		const listed = [{ id: "memes", repo: "808arc/meme-plugin", tag: "v0.2.0", ...MEMES_ABOUT }];
+		serve([{ ...MEMES, source: { repo: "808arc/meme-plugin", tag: "v0.2.0" } } as InstalledPlugin], undefined, listed);
+		await mount();
+		assert.ok(q("plugin-sheet") && q("plugin-update") === null);
+		await act(async () => root?.unmount());
+		serve([MEMES], undefined, listed);
+		await mount();
+		assert.ok(q("plugin-sheet") && q("plugin-update") === null);
 	});
 });

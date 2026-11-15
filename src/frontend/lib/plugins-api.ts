@@ -27,10 +27,15 @@ export interface PluginManifest {
 
 export type SettingValue = boolean | number | string;
 
-/** An installed plugin: its manifest, switch and setting values, or why the manifest failed. */
+/** An installed plugin: its manifest, switch and setting values, and where it came from when that
+ *  was godspeed's list; or why the manifest failed. */
 export type InstalledPlugin =
-	| { id: string; folder: string; manifest: PluginManifest; enabled: boolean; values: Record<string, SettingValue> }
+	| { id: string; folder: string; manifest: PluginManifest; enabled: boolean; values: Record<string, SettingValue>; source?: { repo: string; tag: string } }
 	| { id: string; folder: string; error: string };
+
+/** A plugin on godspeed's checked list: its GitHub repo and tag, and a copy of fields of its
+ *  manifest at that tag. */
+export type ListedPlugin = Pick<PluginManifest, "id" | "name" | "description" | "lesson" | "space" | "network" | "uses"> & { repo: string; tag: string };
 
 export type PluginResult = { error: string; plugin: null } | { error: null; plugin: InstalledPlugin };
 
@@ -48,6 +53,17 @@ async function pluginReply(request: Promise<{ error: WriteResult; body: unknown 
 /** Installs the plugin in a folder of the learner's. */
 export function installPlugin(folder: string): Promise<PluginResult> {
 	return pluginReply(send("/api/plugins", jsonInit("POST", { from: "folder", folder })));
+}
+
+/** godspeed's checked list; empty when it can't be read. */
+export async function fetchListed(): Promise<ListedPlugin[]> {
+	const { error, body } = await send("/api/plugin-list", { method: "GET" });
+	return error ? [] : (body as { plugins: ListedPlugin[] }).plugins;
+}
+
+/** Installs the listed tag of the plugin on the list: an add, or an update of one installed from it. */
+export function installListed(id: string): Promise<PluginResult> {
+	return pluginReply(send("/api/plugins", jsonInit("POST", { from: "list", id })));
 }
 
 /** Changes its switch and/or setting values; the plugin comes back as stored. */

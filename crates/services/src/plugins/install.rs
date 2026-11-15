@@ -1,17 +1,16 @@
 //! Installing a plugin: its files go into a staging folder (copied from a folder, or unpacked from
-//! a zip), the manifest is checked there, and only then does the folder take the plugin's place.
-//! Reinstalling keeps the plugin's stored JSON and settings.
+//! the zip of a listed tag), the manifest is checked there, and only then does the folder take the
+//! plugin's place. Reinstalling keeps the plugin's stored JSON and settings.
 
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, LazyLock};
 
 use gs_base::locks::LockKey;
-use gs_base::re::Re;
 use gs_base::{fsx, ids};
 use gs_files::zipfile::Zip;
-use gs_json::Json;
+use gs_json::{Json, json};
 
-use super::installed::{plugin_dir, plugin_lock, plugin_view, plugins_root};
+use super::installed::{SOURCE_FILE, plugin_dir, plugin_lock, plugin_view, plugins_root};
+use super::list::{listed_entry, same_as_reviewed};
 use super::manifest::{DATA_FOLDER, is_inside_path, read_manifest};
 use crate::App;
 use crate::outcome::{Outcome, Stop, refuse};
@@ -167,33 +166,49 @@ pub fn install_from_folder(app: &App, folder: &str) -> Outcome<Json> {
 	finish(app, staged)
 }
 
-/// Installs the plugin in a zip.
-pub fn install_from_zip(app: &App, bytes: Vec<u8>) -> Outcome<Json> {
+/// Installs the listed plugin in a zip of its tag. Its manifest must have what the entry was
+/// reviewed with, and the entry's repo and tag are kept beside the plugin.
+fn install_listed_zip(app: &App, entry: &Json, bytes: Vec<u8>) -> Outcome<Json> {
 	let staged = staging(app)?;
 	unpack_zip(bytes, &staged.0).map_err(refused)?;
+	let manifest = read_manifest(&staged.0).map_err(refused)?;
+	same_as_reviewed(entry, &manifest).map_err(refused)?;
+	fsx::write_json_atomic(&staged.0.join(SOURCE_FILE), &json!({ "repo": entry["repo"], "tag": entry["tag"] }))?;
 	finish(app, staged)
 }
 
-/// Installs one tag of a GitHub repository, from the zip GitHub makes for it.
-pub async fn install_from_github(app: &Arc<App>, owner: &str, repo: &str, tag: &str) -> Outcome<Json> {
-	static OWNER: LazyLock<Re> = LazyLock::new(|| Re::new(r"^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$", ""));
-	static NAME: LazyLock<Re> = LazyLock::new(|| Re::new(r"^[A-Za-z0-9_][A-Za-z0-9._+-]{0,99}$", ""));
-	if !OWNER.test(owner) || !NAME.test(repo) || !NAME.test(tag) {
-		return refuse(400, "Give the plugin's GitHub owner, repository and tag.");
-	}
-	let url = gs_web::zip_download::tag_zip_url(owner, repo, tag);
+/// Installs, or updates, the plugin godspeed's list names `id`, from the zip GitHub makes for the
+/// listed tag.
+pub async fn install_from_list(app: &App, id: &str) -> Outcome<Json> {
+	let Some(entry) = listed_entry(app, id).await else { return refuse(404, "That plugin isn't on godspeed's list.") };
+	let (owner, repo) = entry["repo"].str_or_empty().split_once('/').unwrap_or_default();
+	let url = gs_web::zip_download::tag_zip_url(owner, repo, entry["tag"].str_or_empty());
 	let bytes = gs_web::zip_download::download_zip(&url, MAX_ZIP_BYTES).await.map_err(|e| Stop::Refuse(502, format!("Couldn't download the plugin: {e}")))?;
-	install_from_zip(app, bytes)
+	install_listed_zip(app, &entry, bytes)
 }
 
 #[cfg(test)]
 mod tests {
-	use gs_json::json;
-
 	use super::*;
 	use crate::app::test_support::{scratch_dir, test_app};
+	use crate::plugins::installed::list_plugins;
+	use crate::plugins::list::keep_list;
+	use crate::plugins::state::set_state;
 	use crate::plugins::storage::{storage_get, storage_set};
 	use crate::plugins::test_plugin::{manifest_text, zip_of};
+
+	/// The list's entry for the test plugin at `tag`.
+	fn entry(tag: &str) -> Json {
+		json!({ "id": "memes", "repo": "808arc/meme-plugin", "tag": tag, "name": "Memes", "description": "Turns the question into a meme.", "lesson": { "label": "Memes" }, "network": ["api.memegen.link"], "uses": ["agent"] })
+	}
+
+	fn install_zip(app: &App, bytes: Vec<u8>) -> Outcome<Json> {
+		install_listed_zip(app, &entry("v0.2.0"), bytes)
+	}
+
+	fn plugin_zip(overrides: &Json, page: &[u8]) -> Vec<u8> {
+		zip_of(&[("manifest.json", manifest_text(overrides).as_bytes()), ("index.html", page)])
+	}
 
 	fn refusal(outcome: Outcome<Json>) -> String {
 		match outcome {
@@ -208,7 +223,7 @@ mod tests {
 		let app = test_app(&root);
 		let manifest = manifest_text(&json!({}));
 		let zip = zip_of(&[("meme-plugin-0.2.0/", b""), ("meme-plugin-0.2.0/manifest.json", manifest.as_bytes()), ("meme-plugin-0.2.0/index.html", b"<!doctype html>"), ("meme-plugin-0.2.0/.github/x.yml", b"x"), ("meme-plugin-0.2.0/js/app.js", b"go()")]);
-		let view = install_from_zip(&app, zip).unwrap();
+		let view = install_zip(&app, zip).unwrap();
 		assert_eq!(view["id"], json!("memes"));
 		let dir = plugin_dir(&app, "memes");
 		assert!(dir.join("js/app.js").is_file() && !dir.join(".github").exists());
@@ -223,13 +238,13 @@ mod tests {
 		let manifest = manifest_text(&json!({}));
 		for evil in ["../evil.js", "/tmp/evil.js", "a/../../evil.js", "./evil.js", "C:/evil.js", "a\\..\\evil.js", "data/score.json"] {
 			let zip = zip_of(&[("manifest.json", manifest.as_bytes()), ("index.html", b"<!doctype html>"), (evil, b"x")]);
-			assert!(refusal(install_from_zip(&app, zip)).starts_with("The zip has a file that would land outside"), "{evil}");
+			assert!(refusal(install_zip(&app, zip)).starts_with("The zip has a file that would land outside"), "{evil}");
 		}
 		assert!(!root.join("data/evil.js").exists() && !root.join("evil.js").exists());
 		assert_eq!(std::fs::read_dir(plugins_root(&app)).unwrap().count(), 0);
-		assert_eq!(refusal(install_from_zip(&app, b"not a zip".to_vec())), NOT_A_ZIP);
+		assert_eq!(refusal(install_zip(&app, b"not a zip".to_vec())), NOT_A_ZIP);
 		let no_manifest = zip_of(&[("index.html", b"x")]);
-		assert_eq!(refusal(install_from_zip(&app, no_manifest)), "The folder has no manifest.json.");
+		assert_eq!(refusal(install_zip(&app, no_manifest)), "The folder has no manifest.json.");
 	}
 
 	#[test]
@@ -239,7 +254,7 @@ mod tests {
 		let manifest = manifest_text(&json!({}));
 		let big = vec![0u8; 11 * 1024 * 1024];
 		let zip = zip_of(&[("manifest.json", manifest.as_bytes()), ("index.html", b"x"), ("a.bin", &big), ("b.bin", &big)]);
-		assert_eq!(refusal(install_from_zip(&app, zip)), "A plugin can be at most 20 MB.");
+		assert_eq!(refusal(install_zip(&app, zip)), "A plugin can be at most 20 MB.");
 	}
 
 	#[test]
@@ -268,12 +283,51 @@ mod tests {
 		assert_eq!(refusal(install_from_folder(&app, "relative/path")), "Pick a folder that holds a plugin.");
 	}
 
-	#[tokio::test]
-	async fn github_names_are_checked_before_any_download() {
-		let root = scratch_dir("plugin-github");
+	#[test]
+	fn a_tag_that_asks_for_more_than_the_list_checked_is_refused_and_nothing_is_kept() {
+		let root = scratch_dir("plugin-reviewed");
 		let app = test_app(&root);
-		for (owner, repo, tag) in [("../x", "r", "v1"), ("o", "..", "v1"), ("o", "r", "v1/../../x"), ("o", "r", ""), ("o", "r", "v1?x")] {
-			assert_eq!(install_from_github(&app, owner, repo, tag).await, Err(Stop::Refuse(400, "Give the plugin's GitHub owner, repository and tag.".to_owned())), "{owner} {repo} {tag}");
+		for over in [json!({ "uses": ["agent", "space"] }), json!({ "network": ["api.memegen.link", "evil.example.com"] }), json!({ "id": "other" })] {
+			assert_eq!(refusal(install_zip(&app, plugin_zip(&over, b"x"))), "This tag of the plugin isn't what godspeed's list checked.", "{over:?}");
 		}
+		assert_eq!(std::fs::read_dir(plugins_root(&app)).unwrap().count(), 0);
+		install_zip(&app, plugin_zip(&json!({}), b"v1")).unwrap();
+		refusal(install_listed_zip(&app, &entry("v0.3.0"), plugin_zip(&json!({ "uses": ["agent", "space"] }), b"v2")));
+		assert_eq!(std::fs::read_to_string(plugin_dir(&app, "memes").join("index.html")).unwrap(), "v1");
+		assert_eq!(list_plugins(&app).unwrap()[0]["source"], json!({ "repo": "808arc/meme-plugin", "tag": "v0.2.0" }));
+	}
+
+	#[test]
+	fn an_update_keeps_the_switch_the_values_and_the_stored_data() {
+		let root = scratch_dir("plugin-update");
+		let app = test_app(&root);
+		let settings = json!({ "settings": [{ "key": "loud", "label": "Loud", "kind": "toggle", "default": false }] });
+		let manifest = install_zip(&app, plugin_zip(&settings, b"v1")).unwrap()["manifest"].clone();
+		set_state(&app, "memes", &manifest, &json!({ "enabled": false, "values": { "loud": true } })).unwrap();
+		storage_set(&app, "memes", "score", &json!(7)).unwrap();
+		let view = install_listed_zip(&app, &entry("v0.3.0"), plugin_zip(&settings, b"v2")).unwrap();
+		assert_eq!(std::fs::read_to_string(plugin_dir(&app, "memes").join("index.html")).unwrap(), "v2");
+		assert_eq!((view["enabled"].clone(), view["values"].clone(), view["source"]["tag"].clone()), (json!(false), json!({ "loud": true }), json!("v0.3.0")));
+		assert_eq!(storage_get(&app, "memes", "score"), Ok(json!(7)));
+	}
+
+	#[test]
+	fn a_folder_install_forgets_that_the_plugin_came_from_the_list() {
+		let root = scratch_dir("plugin-source");
+		let app = test_app(&root);
+		install_zip(&app, plugin_zip(&json!({}), b"v1")).unwrap();
+		let src = root.join("src");
+		gs_base::fsx::write_text_atomic(&src.join("manifest.json"), &manifest_text(&json!({}))).unwrap();
+		gs_base::fsx::write_text_atomic(&src.join("index.html"), "mine").unwrap();
+		assert!(install_from_folder(&app, src.to_str().unwrap()).unwrap().get("source").is_none());
+		assert!(!plugin_dir(&app, "memes").join(SOURCE_FILE).exists());
+	}
+
+	#[tokio::test]
+	async fn only_a_plugin_on_the_list_can_be_installed_from_it() {
+		let root = scratch_dir("plugin-not-listed");
+		let app = test_app(&root);
+		keep_list(&app, &format!(r#"{{ "version": 1, "plugins": [{}] }}"#, gs_json::stringify(&entry("v0.2.0"))));
+		assert_eq!(install_from_list(&app, "other").await, Err(Stop::Refuse(404, "That plugin isn't on godspeed's list.".to_owned())));
 	}
 }

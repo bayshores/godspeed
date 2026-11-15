@@ -175,16 +175,10 @@ fn settings(raw: &Json) -> Checked {
 	Ok(Json::from(out))
 }
 
-/// The manifest as godspeed keeps it, or the first thing wrong with it.
-pub fn check_manifest(raw: &Json) -> Checked {
-	if raw.as_obj().is_none() {
-		return Err("manifest.json must be a JSON object".to_owned());
-	}
+/// The fields a list entry copies from the manifest (`plugins::list`): `id`, `name`,
+/// `description`, `lesson`, `space`, `network` and `uses`, each checked as the manifest's are.
+pub fn check_listed(raw: &Json) -> Result<Obj, String> {
 	let Some(id) = raw["id"].as_str().filter(|id| is_plugin_id(id)) else { return Err(problem("id", "must be lowercase letters, digits and dashes, like meme-cards")) };
-	if !is_version(&raw["version"]) {
-		return Err(problem("version", "must be like 1.0.0"));
-	}
-	let Some(entry) = raw["entry"].as_str().filter(|e| is_inside_path(e) && e.to_lowercase().ends_with(".html")) else { return Err(problem("entry", "must be an .html file inside the plugin's folder")) };
 	let lesson = place(&raw["lesson"], "lesson")?;
 	let space = place(&raw["space"], "space")?;
 	if lesson.is_none() && space.is_none() {
@@ -201,15 +195,36 @@ pub fn check_manifest(raw: &Json) -> Checked {
 	let mut out = Obj::new();
 	out.insert("id", id);
 	out.insert("name", short_text(&raw["name"], "name", NAME_MAX)?);
-	out.insert("version", raw["version"].clone());
 	out.insert("description", short_text(&raw["description"], "description", DESCRIPTION_MAX)?);
-	out.insert("author", short_text(&raw["author"], "author", AUTHOR_MAX)?);
-	out.insert("entry", entry);
 	out.set_or_remove("lesson", lesson);
 	out.set_or_remove("space", space);
-	out.insert("settings", settings(&raw["settings"])?);
 	out.insert("network", network);
 	out.insert("uses", uses);
+	Ok(out)
+}
+
+/// The manifest as godspeed keeps it, or the first thing wrong with it.
+pub fn check_manifest(raw: &Json) -> Checked {
+	if raw.as_obj().is_none() {
+		return Err("manifest.json must be a JSON object".to_owned());
+	}
+	let listed = check_listed(raw)?;
+	if !is_version(&raw["version"]) {
+		return Err(problem("version", "must be like 1.0.0"));
+	}
+	let Some(entry) = raw["entry"].as_str().filter(|e| is_inside_path(e) && e.to_lowercase().ends_with(".html")) else { return Err(problem("entry", "must be an .html file inside the plugin's folder")) };
+	let mut out = Obj::new();
+	out.insert_present("id", listed.get("id"));
+	out.insert_present("name", listed.get("name"));
+	out.insert("version", raw["version"].clone());
+	out.insert_present("description", listed.get("description"));
+	out.insert("author", short_text(&raw["author"], "author", AUTHOR_MAX)?);
+	out.insert("entry", entry);
+	out.insert_present("lesson", listed.get("lesson"));
+	out.insert_present("space", listed.get("space"));
+	out.insert("settings", settings(&raw["settings"])?);
+	out.insert_present("network", listed.get("network"));
+	out.insert_present("uses", listed.get("uses"));
 	Ok(Json::Obj(out))
 }
 

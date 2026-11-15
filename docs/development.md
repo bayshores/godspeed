@@ -11,7 +11,7 @@ godspeed is a desktop learning app. Its screens are a React app built with Vite 
 | Doc | What it covers |
 |---|---|
 | [architecture.md](architecture.md) | Layers, the import law, the systems and how they talk, the rules that always hold. |
-| [plugins.md](plugins.md) | How to write a plugin: the manifest, the host tools, the look and trying it. |
+| [plugins.md](plugins.md) | How to write a plugin: the manifest, the host tools, the look, trying it and getting it listed. |
 | [rust-server.md](rust-server.md) | The crates, the rules every Rust module follows, locks, the server process and its environment variables. |
 | [tauri-shell.md](tauri-shell.md) | The desktop shell. |
 | [desktop-release.md](desktop-release.md) | Builds, CI and releases on all three operating systems. |

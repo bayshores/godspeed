@@ -19,7 +19,7 @@ All Rust lives in `crates/`, a Cargo workspace with `Cargo.toml` at the repo roo
 | `pdf` | pdfium on one thread: text, shape, search, page images |
 | `files` | space files to text, linked folder walks, fingerprints |
 | `search` | embedding model (ort), MiniSearch BM25+, fusion, index tables |
-| `web` | web page to markdown, PDF downloads |
+| `web` | web page to markdown, PDF downloads, plugin zips and godspeed's plugin list from GitHub |
 | `transcribe` | recordings to captions with brew's ffmpeg and whisper |
 | `engine` | the turn loop and the work bridge to the outside agent |
 | `agent` | prompts, lesson tools, file tools, background jobs, extraction |
@@ -173,6 +173,7 @@ Requests run in parallel, so every read-modify-write of a file takes a lock from
 | `LH_PDFIUM_PATH` | pdfium's library file, when it is not in the working directory. |
 | `LH_SERVER_RESTARTED` | `1` after the shell restarted a crashed server. The welcome screen then shows the "restarted" notice. |
 | `LH_TERMINALS` | The desktop app's live terminal ids and the teacher's, `{"live":[…],"teacher":…}`. The shell's `terminals` message updates them. |
+| `LH_PLUGIN_LIST` | Debug builds only: a file read as godspeed's plugin list in place of GitHub's (`npm run layout` names `tests/fixtures/plugins/layout-list.json`). |
 | `GODSPEED_CONTRACT_NOW`, `GODSPEED_CONTRACT_CLOCK_FILE` | The contract suite's clock. |
 | `CLAUDE_CONFIG_DIR`, `CODEX_HOME` | Read where the TypeScript read them. |
 

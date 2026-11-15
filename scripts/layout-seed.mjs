@@ -4,7 +4,8 @@
  * A small stand-in agent talks to the app over MCP, as Claude Code would: it makes the space
  * "Lab Algebra" with a deadline and one file, reads the file into one fact, starts a lesson and
  * answers it with a plan, then a sourced reply and an open quiz. The window installs the plugin
- * "Flashcards". No model runs; every word is fixed here.
+ * "Flashcards", marked as from the made-up plugin list (tests/fixtures/plugins/layout-list.json)
+ * at an older tag, so its sheet shows Update. No model runs; every word is fixed here.
  */
 import * as fs from "node:fs";
 import * as path from "node:path";
@@ -116,6 +117,7 @@ export async function seed(dataDir, page, log) {
 	await agent.call("add_space_file", { space_id: space.id, kind: "study", name: "Graphing quiz prep.md", text: "# Solving by graphing\n\nTo solve ax + b = c, subtract b from both sides, then divide by a. Graphing y = ax + b and y = c gives the same x where the lines cross." });
 	const { lessonId } = await agent.json("start_lesson", { topic: "Solving linear equations by graphing", space_id: space.id });
 	await page.fetch("/api/plugins", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ from: "folder", folder: PLUGIN_FOLDER }) });
+	fs.writeFileSync(path.join(dataDir, "plugins", "flashcards", ".source.json"), JSON.stringify({ repo: "example/flashcards", tag: "v1.0.0" }));
 
 	// The file's passage, found and read as an agent would before citing it.
 	let passage;

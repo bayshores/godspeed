@@ -155,6 +155,8 @@ async function startApp(port, name) {
 			TMPDIR: path.join(RUN, "tmp"),
 			LH_SCREENS_CTL: ctl,
 			LH_SCREENS_OUT: out,
+			// godspeed's plugin list, made up, so the run never reads GitHub's.
+			LH_PLUGIN_LIST: path.join(ROOT, "tests", "fixtures", "plugins", "layout-list.json"),
 		},
 	});
 	let exited = false;

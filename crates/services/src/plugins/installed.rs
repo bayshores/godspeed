@@ -25,6 +25,10 @@ pub fn plugin_lock(id: &str) -> String {
 	format!("plugins/{id}")
 }
 
+/// Beside a plugin installed from godspeed's list: `{ repo, tag }`. Hidden, so no install copies
+/// one in from a plugin's own files and no file route serves it.
+pub const SOURCE_FILE: &str = ".source.json";
+
 const NO_SUCH_PLUGIN: &str = "No such plugin.";
 
 /// The installed plugin's checked manifest; 404 when there is no such plugin or it doesn't load.
@@ -39,11 +43,16 @@ pub fn installed_manifest(app: &App, id: &str) -> Outcome<Json> {
 	Ok(manifest)
 }
 
-/// `{ id, folder, manifest, enabled, values }`.
+/// `{ id, folder, manifest, enabled, values, source? }`, with `source` for a plugin from the list.
 pub fn plugin_view(app: &App, manifest: &Json) -> Result<Json, String> {
 	let id = manifest["id"].str_or_empty();
+	let dir = plugin_dir(app, id);
 	let (enabled, values) = resolve_state(manifest, &saved_entry(app, id)?);
-	Ok(json!({ "id": id, "folder": plugin_dir(app, id).to_string_lossy(), "manifest": manifest, "enabled": enabled, "values": values }))
+	let mut view = json!({ "id": id, "folder": dir.to_string_lossy(), "manifest": manifest, "enabled": enabled, "values": values });
+	if let (Some(fields), Some(source)) = (view.as_obj_mut(), gs_base::fsx::read_json(&dir.join(SOURCE_FILE))) {
+		fields.insert("source", json!({ "repo": source["repo"], "tag": source["tag"] }));
+	}
+	Ok(view)
 }
 
 /// Every installed plugin by id; one that no longer loads is `{ id, folder, error }`, so it can

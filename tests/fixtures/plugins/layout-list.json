@@ -1,0 +1,36 @@
+{
+	"version": 1,
+	"plugins": [
+		{
+			"id": "meme-cards",
+			"repo": "example/meme-cards",
+			"tag": "v0.2.0",
+			"name": "Meme cards",
+			"description": "A made-up listed plugin that turns the open question into a meme, for the layout check.",
+			"lesson": { "label": "Memes" },
+			"uses": ["agent"],
+			"network": ["api.memegen.link"]
+		},
+		{
+			"id": "quick-quiz",
+			"repo": "example/quick-quiz",
+			"tag": "v1.4.0",
+			"name": "Quick quiz",
+			"description": "A made-up listed plugin that asks five fast questions from the space's facts.",
+			"space": { "label": "Quiz" },
+			"uses": ["space"],
+			"network": []
+		},
+		{
+			"id": "flashcards",
+			"repo": "example/flashcards",
+			"tag": "v1.1.0",
+			"name": "Flashcards",
+			"description": "A made-up plugin that shows in a lesson and in a space, for the layout check.",
+			"lesson": { "label": "Flashcards" },
+			"space": { "label": "Flashcards" },
+			"uses": [],
+			"network": []
+		}
+	]
+}

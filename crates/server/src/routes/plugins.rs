@@ -1,5 +1,5 @@
-//! /api/plugins, /api/plugins/{id}, /api/plugins/{id}/storage/{key} and /api/plugins/{id}/ask.
-//! Only the window calls these: a plugin's frame has no way in (it reaches godspeed by messages to
+//! /api/plugins, /api/plugins/{id}, /api/plugins/{id}/storage/{key}, /api/plugins/{id}/ask and
+//! /api/plugin-list. Only the window calls these: a plugin's frame has no way in (it reaches godspeed by messages to
 //! the window, which calls here for it).
 
 use std::sync::Arc;
@@ -11,7 +11,7 @@ use axum::response::Response;
 use gs_json::{Json, Obj, json};
 use gs_services::App;
 use gs_services::outcome::Outcome;
-use gs_services::plugins::{ask_agent, install_from_folder, install_from_github, installed_manifest, list_plugins, plugin_view, remove_plugin, set_state, storage_get, storage_set};
+use gs_services::plugins::{ask_agent, install_from_folder, install_from_list, installed_manifest, list_plugins, listed_plugins, plugin_view, remove_plugin, set_state, storage_get, storage_set};
 
 use crate::http::reply::{self, Unhandled, error, json, json_body};
 use crate::http::route::ApiRoute;
@@ -22,6 +22,7 @@ pub fn routes() -> Router<Arc<App>> {
 		.route("/api/plugins/{id}", ApiRoute::new().put(change).delete(remove).into_route())
 		.route("/api/plugins/{id}/storage/{key}", ApiRoute::new().get(get_stored).put(put_stored).into_route())
 		.route("/api/plugins/{id}/ask", ApiRoute::new().post(ask).into_route())
+		.route("/api/plugin-list", ApiRoute::new().get(listed).into_route())
 }
 
 fn answer(outcome: Outcome<Json>, key: &str) -> Result<Response, Unhandled> {
@@ -37,14 +38,20 @@ async fn list(State(app): State<Arc<App>>) -> Result<Response, Unhandled> {
 	Ok(json(200, &json!({ "plugins": list_plugins(&app)? })))
 }
 
-/// `{ from: "folder", folder }` or `{ from: "github", owner, repo, tag }`: `{ plugin }`.
+/// godspeed's checked list: `{ plugins: [{ id, repo, tag, name, description, lesson?, space?, network, uses }] }`,
+/// empty when it can't be read.
+async fn listed(State(app): State<Arc<App>>) -> Result<Response, Unhandled> {
+	Ok(json(200, &json!({ "plugins": listed_plugins(&app).await })))
+}
+
+/// `{ from: "folder", folder }` or `{ from: "list", id }` (an add or an update): `{ plugin }`.
 async fn install(State(app): State<Arc<App>>, body: Body) -> Result<Response, Unhandled> {
 	let body = json_body(body).await.unwrap_or(Json::Null);
 	let text = |key: &str| body[key].as_str().unwrap_or_default().to_owned();
 	let installed = match body["from"].as_str() {
 		Some("folder") => install_from_folder(&app, &text("folder")),
-		Some("github") => install_from_github(&app, &text("owner"), &text("repo"), &text("tag")).await,
-		_ => return Ok(error(400, "Say where the plugin comes from: folder or github.")),
+		Some("list") => install_from_list(&app, &text("id")).await,
+		_ => return Ok(error(400, "Say where the plugin comes from: folder or list.")),
 	};
 	answer(installed, "plugin")
 }
@@ -109,6 +116,13 @@ mod tests {
 		let (status, out) = read(install(State(app.clone()), body(json!({ "from": "folder", "folder": root.join("src").to_str().unwrap() }))).await).await;
 		assert_eq!((status, out["plugin"]["values"].clone()), (200, json!({ "hard": false })));
 		assert_eq!(read(install(State(app.clone()), body(json!({ "from": "disk" }))).await).await.0, 400);
+		// Kept, so nothing here reaches GitHub.
+		gs_services::plugins::keep_list(&app, r#"{ "version": 1, "plugins": [{ "id": "quiz", "repo": "me/quiz", "tag": "v1", "name": "Quiz", "description": "Quick quiz.", "space": { "label": "Quiz" } }] }"#);
+		assert_eq!(read(listed(State(app.clone())).await).await.1["plugins"][0]["tag"], json!("v1"));
+		let (status, out) = read(install(State(app.clone()), body(json!({ "from": "list", "id": "other" }))).await).await;
+		assert_eq!((status, out), (404, json!({ "error": "That plugin isn't on godspeed's list." })));
+		let (status, _) = read(install(State(app.clone()), body(json!({ "from": "github", "owner": "me", "repo": "quiz", "tag": "v1" }))).await).await;
+		assert_eq!(status, 400);
 		let (_, out) = read(change(State(app.clone()), Path("quiz".to_owned()), body(json!({ "enabled": false, "values": { "hard": true } }))).await).await;
 		assert_eq!((out["plugin"]["enabled"].clone(), out["plugin"]["values"]["hard"].clone()), (json!(false), json!(true)));
 		let key = || Path(("quiz".to_owned(), "best".to_owned()));

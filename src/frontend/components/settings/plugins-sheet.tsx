@@ -2,7 +2,7 @@ import { Pane } from "@/frontend/components/ui/pane";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { Segmented } from "@/frontend/components/ui/segmented";
 import { SELECT, SELECT_ARROW } from "@/frontend/components/ui/field";
-import type { PluginManifest, PluginSetting, SettingValue } from "@/frontend/lib/plugins-api";
+import type { ListedPlugin, PluginManifest, PluginSetting, SettingValue } from "@/frontend/lib/plugins-api";
 import { cn } from "@/frontend/lib/utils";
 import { CommitInput, QUIET_KEY, SMALL_KEY, SettingsRow, Toggle } from "./controls.tsx";
 import { SEGMENTED_MAX, pluginLine } from "./plugins-model.ts";
@@ -51,7 +51,8 @@ function RemoveKey({ busy, onRemove }: { busy: boolean; onRemove: () => void }) 
 	);
 }
 
-/** One plugin's sheet: its switch beside its name, what it adds and uses, its settings, then who made it. */
+/** One plugin's sheet: its switch beside its name, what it adds and uses, its settings, then who
+ *  made it. `onUpdate` is there when the list names a newer tag. */
 export function PluginSheet({
 	manifest,
 	enabled,
@@ -59,8 +60,10 @@ export function PluginSheet({
 	folder,
 	agentName,
 	busy,
+	updating,
 	error,
 	onChange,
+	onUpdate,
 	onRemove,
 }: {
 	manifest: PluginManifest;
@@ -69,8 +72,10 @@ export function PluginSheet({
 	folder: string;
 	agentName?: string;
 	busy: boolean;
+	updating: boolean;
 	error: string | null;
 	onChange: (change: { enabled?: boolean; values?: Record<string, SettingValue> }) => void;
+	onUpdate?: () => void;
 	onRemove: () => void;
 }) {
 	const openPath = typeof window !== "undefined" ? window.lh?.openPath : undefined;
@@ -106,9 +111,64 @@ export function PluginSheet({
 								Show folder
 							</button>
 						)}
+						{onUpdate && (
+							<button type="button" data-testid="plugin-update" disabled={busy} onClick={onUpdate} className={SMALL_KEY}>
+								{updating ? "Updating…" : "Update"}
+							</button>
+						)}
 						<RemoveKey busy={busy} onRemove={onRemove} />
 					</span>
 				</div>
+			</div>
+		</Pane>
+	);
+}
+
+/** What Add shows when the list has plugins to add: each with its Add key, then the folder
+ *  chooser (desktop app only). A failed add says so under its row. */
+export function AddSheet({
+	rows,
+	agentName,
+	busy,
+	adding,
+	failed,
+	folderError,
+	onAdd,
+	onChoose,
+}: {
+	rows: ListedPlugin[];
+	agentName?: string;
+	busy: boolean;
+	/** The entry whose add runs. */
+	adding: string | null;
+	/** The entry whose add failed. */
+	failed: string | null;
+	folderError: string | null;
+	onAdd: (entry: ListedPlugin) => void;
+	onChoose?: () => void;
+}) {
+	return (
+		<Pane data-testid="plugins-add-sheet" aria-label="Add" className="px-8 pt-7 pb-5">
+			<p className="text-lg text-ink">Checked by godspeed.</p>
+			<div className="flex flex-col pt-4">
+				{rows.map((entry) => (
+					<div key={entry.id}>
+						<SettingsRow label={entry.name} hint={pluginLine(entry, agentName)} testid={`plugins-listed-${entry.id}`}>
+							<button type="button" data-testid={`plugins-listed-add-${entry.id}`} disabled={busy} onClick={() => onAdd(entry)} className={SMALL_KEY}>
+								{adding === entry.id ? "Adding…" : "Add"}
+							</button>
+						</SettingsRow>
+						{failed === entry.id && <ErrorLine text={`${entry.name} couldn't be added.`} />}
+					</div>
+				))}
+				{onChoose && (
+					<SettingsRow label="From a folder" testid="plugins-from-folder">
+						<button type="button" data-testid="plugins-choose-folder" disabled={busy} onClick={onChoose} className={SMALL_KEY}>
+							Choose
+						</button>
+					</SettingsRow>
+				)}
+				{folderError && <ErrorLine text={folderError} />}
 			</div>
 		</Pane>
 	);
