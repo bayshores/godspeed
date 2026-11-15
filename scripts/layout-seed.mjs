@@ -4,10 +4,13 @@
  * A small stand-in agent talks to the app over MCP, as Claude Code would: it makes the space
  * "Lab Algebra" with a deadline and one file, reads the file into one fact, starts a lesson and
  * answers it with a plan, then a sourced reply and an open quiz, and answers a Talk message with
- * a sourced reply. No model runs; every word is fixed here.
+ * a sourced reply. The window installs the plugin "Flashcards". No model runs; every word is fixed here.
  */
 import * as fs from "node:fs";
 import * as path from "node:path";
+
+/** The made-up plugin that shows in a lesson and in a space, installed from this folder. */
+const PLUGIN_FOLDER = path.resolve(import.meta.dirname, "..", "tests", "fixtures", "plugins", "layout");
 
 const WEB_SOURCE = "[[https://example.com/lab-algebra/linear-equations]]";
 /** Every made-up name has letters that hang below the line (g, j, p, q, y), so the check for
@@ -111,6 +114,7 @@ export async function seed(dataDir, page, log) {
 	await agent.call("add_space_deadline", { space_id: space.id, deadlines: [{ kind: "exam", name: DEADLINE, date, time: "10:00" }] });
 	await agent.call("add_space_file", { space_id: space.id, kind: "study", name: "Graphing quiz prep.md", text: "# Solving by graphing\n\nTo solve ax + b = c, subtract b from both sides, then divide by a. Graphing y = ax + b and y = c gives the same x where the lines cross." });
 	const { lessonId } = await agent.json("start_lesson", { topic: "Solving linear equations by graphing", space_id: space.id });
+	await page.fetch("/api/plugins", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ from: "folder", folder: PLUGIN_FOLDER }) });
 	await page.fetch("/api/talk", { method: "POST" });
 	// The Talk turn's request stays open until the stand-in answers it.
 	await page.start("/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ chatId: "chat_talk", input: { type: "text", text: "When is my pop quiz, and what does it cover?" } }) });

@@ -28,6 +28,8 @@ export const SCREENS = [
 	{ name: "Deadlines", url: "/space/deadlines", ready: "[data-testid=deadline-open]" },
 	{ name: "Deadline", url: "/space/deadline/{deadline}", ready: "[data-testid=deadline-page] [data-testid=deadline-name]" },
 	{ name: "Lesson with a sourced reply, an open quiz and the plan", url: "/chat/{lesson}", ready: "[data-testid=cite-list]" },
+	{ name: "Lesson with a plugin's page open", url: "/chat/{lesson}", ready: "[data-testid=lesson-plugin-flashcards]", setup: `document.querySelector("[data-testid=lesson-plugin-flashcards]").click()`, shows: "[data-testid=plugin-dock] [data-testid=plugin-frame][data-state=ready]" },
+	{ name: "Space's plugin tab", url: "/space/plugin/flashcards", ready: "[data-testid=plugin-frame][data-state=ready]" },
 	{ name: "The pill's card", url: "/", ready: deadlineCard, setup: openPill, shows: "[data-testid=pill-panel] [data-testid=pill-talk]" },
 	{ name: "Talk with a sourced reply and no agent", url: "/", ready: deadlineCard, setup: openTeacher, shows: "[data-testid=talk-teacher] [data-testid=cite-list]" },
 	{ name: "Activity", url: "/", ready: deadlineCard, setup: `${openTeacher}; ${pause}; document.querySelector("[data-testid=teacher-tab-activity]").click()`, shows: "[data-testid=activity-list] > *" },

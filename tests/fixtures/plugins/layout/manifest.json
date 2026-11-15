@@ -1,0 +1,13 @@
+{
+	"id": "flashcards",
+	"name": "Flashcards",
+	"version": "1.0.0",
+	"description": "A made-up plugin that shows in a lesson and in a space, for the layout check.",
+	"author": "godspeed tests",
+	"entry": "index.html",
+	"lesson": { "label": "Flashcards" },
+	"space": { "label": "Flashcards" },
+	"settings": [],
+	"network": [],
+	"uses": []
+}

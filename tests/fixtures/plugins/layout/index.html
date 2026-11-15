@@ -1,0 +1,18 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>Flashcards</title>
+	</head>
+	<body>
+		<p>Flashcards: what is x when 2x + 3 = 11?</p>
+		<script>
+			// The smallest MCP Apps handshake, so the host counts the page as loaded.
+			const send = (message) => parent.postMessage({ jsonrpc: "2.0", ...message }, "*");
+			addEventListener("message", (event) => {
+				if (event.source === parent && event.data?.id === 1) send({ method: "ui/notifications/initialized" });
+			});
+			send({ id: 1, method: "ui/initialize", params: { appInfo: { name: "flashcards", version: "1.0.0" }, appCapabilities: {}, protocolVersion: "2026-01-26" } });
+		</script>
+	</body>
+</html>
