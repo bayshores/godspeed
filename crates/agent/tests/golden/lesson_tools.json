@@ -653,7 +653,7 @@
 			},
 			{
 				"name": "read_passage",
-				"description": "Read one passage of a space file by its id from search_space_files, or a file's passages at a place (file_id + range, e.g. a whole page). Returns text with ids of passages before and after, to keep reading.",
+				"description": "Read one passage of a space file by its id from search_space_files, or a file's passages at a place (file_id + range, e.g. a whole page). Returns the text with the ids of the passages before and after it, to keep reading.",
 				"parameters": {
 					"type": "object",
 					"properties": {
@@ -1250,7 +1250,7 @@
 			},
 			{
 				"name": "read_passage",
-				"description": "Read one passage of a space file by its id from search_space_files, or a file's passages at a place (file_id + range, e.g. a whole page). Returns text with ids of passages before and after, to keep reading.",
+				"description": "Read one passage of a space file by its id from search_space_files, or a file's passages at a place (file_id + range, e.g. a whole page). Returns the text with the ids of the passages before and after it, to keep reading.",
 				"parameters": {
 					"type": "object",
 					"properties": {
@@ -2288,7 +2288,7 @@
 			},
 			{
 				"name": "read_passage",
-				"description": "Read one passage of a space file by its id from search_space_files, or a file's passages at a place (file_id + range, e.g. a whole page). Returns text with ids of passages before and after, to keep reading.",
+				"description": "Read one passage of a space file by its id from search_space_files, or a file's passages at a place (file_id + range, e.g. a whole page). Returns the text with the ids of the passages before and after it, to keep reading.",
 				"parameters": {
 					"type": "object",
 					"properties": {
@@ -2890,7 +2890,7 @@
 			},
 			{
 				"name": "read_passage",
-				"description": "Read one passage of a space file by its id from search_space_files, or a file's passages at a place (file_id + range, e.g. a whole page). Returns text with ids of passages before and after, to keep reading.",
+				"description": "Read one passage of a space file by its id from search_space_files, or a file's passages at a place (file_id + range, e.g. a whole page). Returns the text with the ids of the passages before and after it, to keep reading.",
 				"parameters": {
 					"type": "object",
 					"properties": {
@@ -3631,7 +3631,7 @@
 			},
 			{
 				"name": "read_passage",
-				"description": "Read one passage of a space file by its id from search_space_files, or a file's passages at a place (file_id + range, e.g. a whole page). Returns text with ids of passages before and after, to keep reading.",
+				"description": "Read one passage of a space file by its id from search_space_files, or a file's passages at a place (file_id + range, e.g. a whole page). Returns the text with the ids of the passages before and after it, to keep reading.",
 				"parameters": {
 					"type": "object",
 					"properties": {
@@ -4744,7 +4744,7 @@
 			},
 			{
 				"name": "read_passage",
-				"description": "Read one passage of a space file by its id from search_space_files, or a file's passages at a place (file_id + range, e.g. a whole page). Returns text with ids of passages before and after, to keep reading.",
+				"description": "Read one passage of a space file by its id from search_space_files, or a file's passages at a place (file_id + range, e.g. a whole page). Returns the text with the ids of the passages before and after it, to keep reading.",
 				"parameters": {
 					"type": "object",
 					"properties": {
@@ -5328,7 +5328,7 @@
 			},
 			{
 				"name": "read_passage",
-				"description": "Read one passage of a space file by its id from search_space_files, or a file's passages at a place (file_id + range, e.g. a whole page). Returns text with ids of passages before and after, to keep reading.",
+				"description": "Read one passage of a space file by its id from search_space_files, or a file's passages at a place (file_id + range, e.g. a whole page). Returns the text with the ids of the passages before and after it, to keep reading.",
 				"parameters": {
 					"type": "object",
 					"properties": {

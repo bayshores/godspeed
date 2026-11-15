@@ -1817,7 +1817,7 @@
 										"model": "agent:outside-agent",
 										"steps": [
 											{
-												"inputTokens": 1555,
+												"inputTokens": 1508,
 												"outputTokens": 69,
 												"cacheReadTokens": 0,
 												"cacheWriteTokens": 0,
@@ -1825,7 +1825,7 @@
 												"reasoningTokens": 0
 											},
 											{
-												"inputTokens": 1762,
+												"inputTokens": 1715,
 												"outputTokens": 73,
 												"cacheReadTokens": 0,
 												"cacheWriteTokens": 0,
@@ -1856,7 +1856,7 @@
 										"model": "agent:outside-agent",
 										"steps": [
 											{
-												"inputTokens": 5652,
+												"inputTokens": 5605,
 												"outputTokens": 35,
 												"cacheReadTokens": 0,
 												"cacheWriteTokens": 0,
@@ -1876,7 +1876,7 @@
 										"model": "agent:outside-agent",
 										"steps": [
 											{
-												"inputTokens": 5690,
+												"inputTokens": 5642,
 												"outputTokens": 3,
 												"cacheReadTokens": 0,
 												"cacheWriteTokens": 0,
@@ -1896,7 +1896,7 @@
 										"model": "agent:outside-agent",
 										"steps": [
 											{
-												"inputTokens": 5692,
+												"inputTokens": 5645,
 												"outputTokens": 4,
 												"cacheReadTokens": 0,
 												"cacheWriteTokens": 0,
@@ -1916,7 +1916,7 @@
 										"model": "agent:outside-agent",
 										"steps": [
 											{
-												"inputTokens": 1925,
+												"inputTokens": 1878,
 												"outputTokens": 2,
 												"cacheReadTokens": 0,
 												"cacheWriteTokens": 0,
@@ -1947,7 +1947,7 @@
 										"model": "agent:outside-agent",
 										"steps": [
 											{
-												"inputTokens": 1703,
+												"inputTokens": 1653,
 												"outputTokens": 20,
 												"cacheReadTokens": 0,
 												"cacheWriteTokens": 0,
@@ -1976,7 +1976,7 @@
 							"model": "agent:outside-agent",
 							"steps": [
 								{
-									"inputTokens": 1806,
+									"inputTokens": 1757,
 									"outputTokens": 44,
 									"cacheReadTokens": 0,
 									"cacheWriteTokens": 0,
@@ -1984,7 +1984,7 @@
 									"reasoningTokens": 0
 								},
 								{
-									"inputTokens": 1915,
+									"inputTokens": 1866,
 									"outputTokens": 78,
 									"cacheReadTokens": 0,
 									"cacheWriteTokens": 0,
@@ -1992,7 +1992,7 @@
 									"reasoningTokens": 0
 								},
 								{
-									"inputTokens": 2055,
+									"inputTokens": 2007,
 									"outputTokens": 106,
 									"cacheReadTokens": 0,
 									"cacheWriteTokens": 0,

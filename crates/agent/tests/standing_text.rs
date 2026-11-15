@@ -15,36 +15,36 @@ use AgentKind::{Homework, Practice, Prober, Study, Teacher};
 const EVERY: [AgentKind; 5] = [Prober, Teacher, Practice, Study, Homework];
 
 /// S, the place to stop.
-const S: &str = "godspeed offers a place to stop at the end of each topic and of a long problem; stopping there costs him nothing.";
+const S: &str = "godspeed offers a stop at the end of each topic and long problem; stopping there costs him nothing.";
 /// F, how a topic ends.
-const F: &str = "After a `conclude` that does not finish the topic, say your closing words and end your turn. When it finishes the topic, its `verdict` is your closing words and you write no other prose; then read what the next topic needs and call `topic_done` in its own reply. When a right quiz finishes the topic, write no prose: read what the next topic needs, then call `topic_done`.";
+const F: &str = "After a `conclude` not finishing the topic: closing words, end turn. Finishes topic: its `verdict` is your closing words, no other prose; then read what next topic needs, call `topic_done` in its own reply. Right quiz finishes topic: no prose; read what next topic needs, call `topic_done`.";
 /// F, the verdict at a topic end.
 const F_VERDICT: &str = "At a topic end, the verdict says what is now solid, in exact terms, and gives one exact credit: a move he made that you saw in the transcript or a tool result (an answer, a line of his work). Never credit what you did not see. Do not name the next topic; godspeed shows it. Never ask whether he wants to go on, and never mention time, tiredness or breaks.";
 /// F, the [Resumed] line.
-const F_RESUMED: &str = "A [Resumed] line means he came back to a stopped session. Do not recap. His answer to the opener is the next step.";
+const F_RESUMED: &str = "[Resumed] line: he came back to a stopped session. No recap. His answer to the opener is next step.";
 /// Decision 3, the strong topic's extra question.
-const EXTRA_QUESTION: &str = "A strong topic's extra question is a `quiz` before the `conclude`, and he may skip it; skip it yourself when a deadline is 2 days away or less.";
+const EXTRA_QUESTION: &str = "Strong topic's extra question = `quiz` before `conclude`; he may skip it. Skip it yourself when a deadline is 2 days away or less.";
 /// Decision 1, the line Study gets in place of the deadline tools.
-const OUTSIDE_DEADLINES: &str = "Deadline changes happen outside lessons, in your terminal: when he asks for one, say so in one line and go back to the lesson.";
-const F3: &str = "A [From earlier] line lists earlier questions godspeed just asked him again. Do not reteach a miss now unless it is on the topic you are teaching; godspeed brings it back.";
-const G: &str = "Set `standalone: true` on a quiz that makes sense with no lesson around it: name the setting, never \"above\", \"the plot\" or \"the slide\". godspeed may ask it again weeks later.";
-const I: &str = "To point at exact words, add a few words copied from the passage in quotes after the id: `[[f_1a2b3c4d5e6f:7 \"degree 12\"]]`. godspeed marks them on his page. Do it in every topic, once, in the message that opens it or in topic_done's opener.lead. A quote is 2 or more words, or on code the exact expression from the line, found once in the passage, at most 80 characters, without [ ] backtick or $.";
-const K: &str = "When a quiz proves an idea the topic stands on, add `keep`: one sentence he can hold without the lesson, in the space's own words. At most 2 keeps a topic. None on a quiz whose own reply shows a plot, and none right after a plot or another keep. The card is the only place he reads a kept sentence, its fits or its stops. Do not write the same sentence in the reply that carries the keep or the one before it. After you tested an analogy, the next keep carries `fits` and `stops`; `stops` names the first concrete place a careful student would carry it too far. After an [Analogy dropped] line, never mention that analogy again and give no other for that idea.";
+const OUTSIDE_DEADLINES: &str = "Deadline changes happen outside lessons, in your terminal. He asks for one: say so in one line, back to the lesson.";
+const F3: &str = "[From earlier] line lists earlier questions godspeed just re-asked. Don't reteach a miss now unless it's on current topic; godspeed brings it back.";
+const G: &str = "`standalone: true` on a quiz that makes sense with no lesson around it: name the setting, never \"above\", \"the plot\" or \"the slide\". godspeed may ask it again weeks later.";
+const I: &str = "Point at exact words: a few words copied from the passage in quotes after the id: `[[f_1a2b3c4d5e6f:7 \"degree 12\"]]`. godspeed marks them on his page. Once per topic, in the message opening it or in topic_done's opener.lead. Quote = 2+ words (on code: exact expression from the line), found once in the passage, max 80 characters, no [ ] backtick or $.";
+const K: &str = "Quiz proves an idea the topic stands on: add `keep`, one sentence he can hold without the lesson, in space's own words. Max 2 keeps per topic. None on a quiz whose own reply shows a plot, none right after a plot or another keep. Card is the only place he reads a kept sentence, its fits or stops: don't write that sentence in the reply carrying the keep or the one before. After testing an analogy, next keep carries `fits` and `stops`; `stops` names first concrete place a careful student would carry it too far. After an [Analogy dropped] line: never mention that analogy again, give no other for that idea.";
 /// When a plot beats a table.
-const PLOT: &str = "When the idea is a curve, send `plot` with a prediction on it: a formula with one knob, or measured numbers as `points`. Never write a table whose rows are points of one curve.";
+const PLOT: &str = "Idea is a curve: send `plot` with a prediction on it: formula with one knob, or measured numbers as `points`. Never a table whose rows are points of one curve.";
 /// No question lists in chat.
-const PROBLEMS: &str = "Problems go through `problem` and `conclude`, never as chat prose. Ask one question at a time. A reply never holds a list of questions.";
+const PROBLEMS: &str = "Problems go through `problem` and `conclude`, never chat prose. One question at a time; never a list of questions in a reply.";
 /// A broken formula is looked at before it is taught.
-const FORMULAS: &str = "When a passage's formulas read broken, have the page looked at with `pdf` before you teach from it.";
+const FORMULAS: &str = "Passage's formulas read broken → have page looked at with `pdf` before teaching from it.";
 /// E3, the memory phrase.
-const PHRASE: &str = "Add `keep.phrase` only when a short phrase makes the sentence easier to remember: a well-known one (SOH CAH TOA) or one made from the space's own words. Never look one up and never draw one. Leave it out otherwise.";
-const B: &str = "When the space files have a worked example, a figure or a line of code for the first unconditional truth, give that case first, then state the truth it shows.";
-const C: &str = "3. **His own case first.** When the space files have a worked example, a figure or a line of code for the idea, open on it and cite it. When they do not, build a small case with numbers he can check, or simply assert a foundational truth. An analogy comes only after the case, and only when every part he will lean on maps onto the idea. Give it as one sentence on what it gets right. Never a table or callout for it. Never a second analogy for the same idea. When nothing maps, use none and say nothing about it. If he asks for one and none holds, say so in one sentence and go back to the case. If he says an analogy did not help, drop it in one line and go back to the case.";
-const D: &str = "- When you have offered an analogy, make the next prediction one where the analogy and the idea give different answers. After his answer, say in one sentence where the analogy stops fitting.";
-const P2: &str = "The card says nothing when his pick was right and names the right answer when it was not, so open with one plain sentence on whether his pick holds; your prose resolution is the real explanation; make the correction land on the attempt.";
-const M: &str = "Marks go in your message text only, never inside a question, a problem or any other tool call, unless a field's own description asks for a mark.";
+const PHRASE: &str = "`keep.phrase` only when a short phrase makes the sentence easier to remember: well-known one (SOH CAH TOA) or one made from space's own words. Never look one up, never draw one. Else leave it out.";
+const B: &str = "Space files have a worked example, figure or line of code for the first unconditional truth: give that case first, then state the truth it shows.";
+const C: &str = "3. **His own case first.** Space files have a worked example, figure or line of code for the idea: open on it, cite it. They don't: build a small case with numbers he can check, or simply assert a foundational truth. An analogy comes only after the case, and only when every part he will lean on maps onto the idea. Give it as one sentence on what it gets right. Never a table or callout for it. Never a second analogy for the same idea. Nothing maps: use none, say nothing about it. He asks for one and none holds: say so in one sentence, go back to the case. He says an analogy didn't help: drop it in one line, go back to the case.";
+const D: &str = "- Offered an analogy → next prediction is one where analogy and idea give different answers. After his answer, say in one sentence where analogy stops fitting.";
+const P2: &str = "Card says nothing when his pick was right and names right answer when not, so open with one plain sentence on whether his pick holds. Your prose resolution is the real explanation; land correction on the attempt.";
+const M: &str = "Marks in message text only, never inside a question, problem or other tool call, unless a field's description asks for one.";
 const E: &str = "No moralizing. His choices about pace, effort, and what to work on are logistics, never judgments. Never mention time away, missed days, or what he did not do.";
-const DEADLINE_TOOLS: &str = "When the learner asks you to add, move or remove a deadline mid-lesson, do it with the deadline tools (list_spaces gives the space id), say what changed in one line, and go back to where the lesson was.";
+const DEADLINE_TOOLS: &str = "Learner asks to add, move or remove a deadline mid-lesson → deadline tools (list_spaces gives space id), say what changed in one line, back to where lesson was.";
 
 /// Sentences the lines above replaced or removed: no agent reads them any more.
 const GONE: [&str; 12] = [

@@ -546,42 +546,42 @@
 				{
 					"path": "system-prompt.md",
 					"shared": true,
-					"sourceSha": "9508631d35931e9da94e648e3f806a48a8fada8b182b7d94bb5db9224752e65c"
+					"sourceSha": "4cacfa871468435e9b009c9f5e0acbc9b5324dcfa60bc97c0778801f59c32214"
 				},
 				{
 					"path": "teacher/05-method.md",
 					"shared": false,
-					"sourceSha": "24ecb9a32cb9ceeac1d6caafee04374b6e26a933af8d145761e90189d02d29a6"
+					"sourceSha": "5406f390682bfa1e6900c09a7e9477bab7bac6ae091cc976677b6c5bee2c9b12"
 				},
 				{
 					"path": "teacher/10-planning.md",
 					"shared": false,
-					"sourceSha": "e76dc44e72b40e5cf8567bd9ce67269c5fc34af2dfd64e5d05ecdc58f0c38b72"
+					"sourceSha": "a7248ac1d56b30354cd71c1fbb606c0d108d198124717b9910a275841bfa6f4a"
 				},
 				{
 					"path": "teacher/20-teaching.md",
 					"shared": false,
-					"sourceSha": "3bc8f097d02452d4a6a0cc906801a487b96210a1c289b6831bddb471cc217f51"
+					"sourceSha": "92b5048e4e0aa4180edb87fd8cd6acf7bcc2a165dd215055d9f5ab8134b9b914"
 				},
 				{
 					"path": "teacher/28-predictions.md",
 					"shared": false,
-					"sourceSha": "f082506c2a5aab44d2873c30784138509b9efa7cf820d5a7d34ca99d3b5de201"
+					"sourceSha": "57e5c07116231e2d7904e519d78f103f7de6e4bade9d145b39d0a8a88d1fe461"
 				},
 				{
 					"path": "teacher/30-question-principles.md",
 					"shared": false,
-					"sourceSha": "8bef787a2dbb1818fbcde75e13901ce4a9aec6eeb38525ac7ced7ada7bb0da44"
+					"sourceSha": "2e7fd96ba2f009e3cde21263e123a0c514bb9a8eb695cb9c9f6521ce128deef9"
 				},
 				{
 					"path": "teacher/40-jobs.md",
 					"shared": false,
-					"sourceSha": "24e9feb8d710cde69e316762683cd9347ebd01bfc0ee31ee8efdabe1294213cc"
+					"sourceSha": "59bfb88345a109bc84d823ad6b3db25760ba35e470a3269301d05a4dd099fda9"
 				},
 				{
 					"path": "teacher/50-demos.md",
 					"shared": false,
-					"sourceSha": "b61c71dd7cde7ab2be0b3af3ff8901d5e7fd4913aca892951bb9a26c79558eaf"
+					"sourceSha": "6dfda9c8baa6fda0fcd44890ebbf99c8236fc76cb4e04ef8c7b92fb1655e10fa"
 				},
 				{
 					"path": "shared/10-voice.md",
@@ -591,62 +591,62 @@
 				{
 					"path": "shared/11-learner-first.md",
 					"shared": true,
-					"sourceSha": "56c6578c55e615bb71cb470f2c49ee60992f528dec2c51a31f5b3e82b6c93715"
+					"sourceSha": "ab29280433a6fa56348eba0c1947249cf2b4e650f6af5ef397da82b365891101"
 				},
 				{
 					"path": "shared/12-space-context.md",
 					"shared": true,
-					"sourceSha": "177bc07f0029118bebe2c5133e7bfc8b2feec8e7e7b8dc93224a2703e3b35ff2"
+					"sourceSha": "3cd2c48fd975402b1753b2cced23c5ad8c3ed5df160099e0e7bd0a1f32777c0e"
 				},
 				{
 					"path": "shared/13-source-marks.md",
 					"shared": true,
-					"sourceSha": "50db2657440e425bb8d75951d3c0e0f03ecaa28241f7126ee043725f08737f54"
+					"sourceSha": "45270375a9cb9e29442721a1fc83d0d091170968a8a501e5d4166298328873e4"
 				},
 				{
 					"path": "shared/14-deadline-changes.md",
 					"shared": true,
-					"sourceSha": "391b58ba04bac9b8dddde09a13b2caaff3e447e39cc2f156c2816eeb1d23f1c5"
+					"sourceSha": "b5b3528d235ffe3725df9dc074707078b3e26fed325c8134039e69e0a6860c7e"
 				},
 				{
 					"path": "shared/15-accuracy.md",
 					"shared": true,
-					"sourceSha": "0ab4d315ce7433d3ca54bb9bdef655334ab7d3c2c3cb8184d6195cd69ab24c2b"
+					"sourceSha": "8d914fe64951fe218cfc3b61cd10bd5de3781a252280a6202aa177cfbc314afb"
 				},
 				{
 					"path": "shared/16-mental-model.md",
 					"shared": true,
-					"sourceSha": "b19f1354639cd393479393b690b3479a9bf8e43736a2ba616a60a3a70147c938"
+					"sourceSha": "250800fcaa663682643883cd36343f231a36c7a64f32f3dd728a46df0dd844f9"
 				},
 				{
 					"path": "shared/20-question-tools.md",
 					"shared": true,
-					"sourceSha": "06aeff50ca7944ff693b5d78422f9ad33621b40048ad242a6b5d03d91b8018ba"
+					"sourceSha": "9ed2c72711fca3b742f5a2d91bc99511df1f3b998d7f9c8b8745235e591db6e1"
 				},
 				{
 					"path": "shared/25-confidence.md",
 					"shared": true,
-					"sourceSha": "bb8210ba127d8fccea8dc648b571ca769716133ae8ccf075bfcc21e070122189"
+					"sourceSha": "202aca8c284a73d6e6ccdd634b4b45c6a9cd7e3eaf21929ebdb103efa0e7586e"
 				},
 				{
 					"path": "shared/30-learner-files.md",
 					"shared": true,
-					"sourceSha": "9a6746226f084ee0cc3742a4a7f88ccfd22e3e5c9ea77504e2d40253d582737b"
+					"sourceSha": "ab14dec252e8cd4d33f559ee482969f35ab24517210827c7743e2d55aaa4d714"
 				},
 				{
 					"path": "shared/35-work-plan.md",
 					"shared": true,
-					"sourceSha": "d405bd2627c3523148505ea5ee3c67452e06df7f3e54e154a57eecd1ff11fef9"
+					"sourceSha": "d13134c069c31815a316a9ed8dded5cefa8e982e53210f721a74b64033dd27f9"
 				},
 				{
 					"path": "shared/40-formatting.md",
 					"shared": true,
-					"sourceSha": "361bd910b55daaf1187f869346d309fc61b79d4572a38b49ea70ee0a72751332"
+					"sourceSha": "0d7130507fd950c525296f2f21de0eb92b2df78db7a1d373540c3071b099062a"
 				},
 				{
 					"path": "prober/10-probe-doctrine.md",
 					"shared": false,
-					"sourceSha": "67e2816b943dc3e8d8c2f0079a0f9bb708e3538867716ed3c870ba4e48837891"
+					"sourceSha": "9a8b950461e7a08bc033c2988c7a3a6208c74dcd475bb76f2bfeb546cfb11b2c"
 				}
 			],
 			"supported": [
