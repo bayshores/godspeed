@@ -405,7 +405,7 @@ mod tests {
 	}
 
 	#[test]
-	fn the_learners_own_talk_md_is_kept_and_counts_as_exported() {
+	fn the_learners_own_talk_md_is_kept_and_the_export_goes_beside_it() {
 		let root = scratch_dir("folder-talk-mine");
 		let app = test_app(&root);
 		let folder = agent_folder(&app);
@@ -415,7 +415,28 @@ mod tests {
 		fsx::write_text_atomic(&talk, "my own notes").unwrap();
 		export_old_talk(&app, &folder);
 		assert_eq!(std::fs::read_to_string(&talk).unwrap(), "my own notes");
+		assert!(std::fs::read_to_string(Path::new(&folder).join("Talk (godspeed).md")).unwrap().ends_with("\n**You**\n\nhi\n"));
 		assert_eq!(std::fs::read_to_string(state_file(&app)).unwrap(), "{\n\t\"talkExported\": true\n}\n");
+	}
+
+	#[cfg(unix)]
+	#[test]
+	fn an_export_that_fails_is_tried_again_next_start() {
+		use std::os::unix::fs::PermissionsExt;
+		let root = scratch_dir("folder-talk-locked");
+		let app = test_app(&root);
+		let folder = agent_folder(&app);
+		app.stores.chats.create_chat("Talk", Some("talk"), None, None).unwrap();
+		app.stores.chats.save_messages("chat_talk", &[json!({ "id": "m1", "role": "user", "content": "hi" })]).unwrap();
+		let record = std::fs::read(app.paths.chats.join("chat_talk.json")).unwrap();
+		std::fs::create_dir_all(&folder).unwrap();
+		std::fs::set_permissions(&folder, std::fs::Permissions::from_mode(0o555)).unwrap();
+		export_old_talk(&app, &folder);
+		std::fs::set_permissions(&folder, std::fs::Permissions::from_mode(0o755)).unwrap();
+		assert!(!state_file(&app).exists(), "the flag is not set");
+		assert_eq!(std::fs::read(app.paths.chats.join("chat_talk.json")).unwrap(), record);
+		export_old_talk(&app, &folder);
+		assert!(Path::new(&folder).join("Talk.md").exists());
 	}
 
 	#[test]
