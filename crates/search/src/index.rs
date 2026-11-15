@@ -23,7 +23,9 @@ use crate::table::{self, Table};
 
 /// The model's instruction for queries (documents get none).
 const QUERY_PREFIX: &str = "Represent this sentence for searching relevant passages: ";
-const EMBED_BATCH: usize = 8;
+/// One text per model run: a run's memory grows with its rows times its longest row squared, so
+/// eight passages at a time peaked near 560 MB, and one at a time stays near 150 MB and is faster.
+const EMBED_BATCH: usize = 1;
 /// How deep each ranking goes before fusion.
 const CANDIDATES: usize = 50;
 
