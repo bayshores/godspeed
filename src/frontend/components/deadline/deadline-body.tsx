@@ -88,7 +88,8 @@ export const DeadlineBody = memo(function DeadlineBody(props: DeadlineBodyProps)
 			{d.topics.length > 0 && <TopicStrip deadline={d} tallies={tallies} />}
 
 			<div className="flex flex-col items-start gap-5 @4xl:flex-row">
-				<div className="flex w-full min-w-0 flex-1 flex-col gap-5">
+				{/* Grows only beside the path: stacked, WebKit kept its height from before a resize. */}
+				<div className="flex w-full min-w-0 flex-col gap-5 @4xl:flex-1">
 					{props.about}
 					{props.homework}
 					{!(interview && d.files.length === 0) && (
