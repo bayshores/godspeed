@@ -1,25 +1,33 @@
 import type { IDecoration, Terminal } from "@xterm/xterm";
-import { lineText, screenLinks, type LinkFile, type ScreenLink } from "./terminal-links-model";
+import { rowLinks, type LinkFile, type Row, type ScreenLink } from "./terminal-links-model";
 
 export interface Linking {
 	files: readonly LinkFile[];
 	onLink: (link: ScreenLink) => void;
 }
 
-/** The links on buffer line `y` (from 0), with their first and last screen columns (from 1). */
+/** How far above and below a row a name that runs over rows may start or end. */
+const REACH = 2;
+
+/** The links that cover buffer row `y` (from 0), read with the rows around it. */
 function linksOn(t: Terminal, y: number, files: readonly LinkFile[]) {
-	const line = t.buffer.active.getLine(y);
-	if (!line) return [];
-	const cells = Array.from({ length: line.length }, (_, x) => line.getCell(x)).map((c) => ({ chars: c?.getChars() ?? "", width: c?.getWidth() ?? 1 }));
-	const { text, columns } = lineText(cells);
-	return screenLinks(text, files).map((link) => ({ link, text: text.slice(link.start, link.end), from: columns[link.start]!, to: columns[link.end - 1]! }));
+	const first = Math.max(0, y - REACH);
+	const rows: Row[] = [];
+	for (let r = first; r <= y + REACH; r++) {
+		const line = t.buffer.active.getLine(r);
+		if (!line) break;
+		const cells = Array.from({ length: line.length }, (_, x) => line.getCell(x)).map((c) => ({ chars: c?.getChars() ?? "", width: c?.getWidth() ?? 1 }));
+		rows.push({ cells, wrapped: line.isWrapped });
+	}
+	return rowLinks(rows, first, files).filter((l) => l.parts.some((p) => p.row === y));
 }
 
 /**
- * Space file names and passage ids in the screen: each has a dotted line
- * under it while it is in view (redrawn shortly after output or a scroll,
- * so a busy screen is read once per burst), and a click opens it. The
- * lines are xterm decorations, which need `allowProposedApi`.
+ * Space file names and passage ids in the screen, also one that runs on to
+ * the next row: each has a dotted line under it while it is in view
+ * (redrawn shortly after output or a scroll, so a busy screen is read once
+ * per burst), and a click opens it. The lines are xterm decorations, which
+ * need `allowProposedApi`.
  */
 export function linkScreen(t: Terminal, linking: { current: Linking }) {
 	const provider = t.registerLinkProvider({
@@ -29,7 +37,7 @@ export function linkScreen(t: Terminal, linking: { current: Linking }) {
 				found.length === 0
 					? undefined
 					: found.map((f) => ({
-							range: { start: { x: f.from, y }, end: { x: f.to, y } },
+							range: { start: { x: f.parts[0]!.from, y: f.parts[0]!.row + 1 }, end: { x: f.parts.at(-1)!.to, y: f.parts.at(-1)!.row + 1 } },
 							text: f.text,
 							activate: () => linking.current.onLink(f.link),
 						})),
@@ -49,8 +57,9 @@ export function linkScreen(t: Terminal, linking: { current: Linking }) {
 		const buffer = t.buffer.active;
 		for (let y = buffer.viewportY; y < buffer.viewportY + t.rows; y++) {
 			for (const f of linksOn(t, y, linking.current.files)) {
+				const part = f.parts.find((p) => p.row === y)!;
 				const marker = t.registerMarker(y - buffer.baseY - buffer.cursorY);
-				const mark = marker && t.registerDecoration({ marker, x: f.from - 1, width: f.to - f.from + 1 });
+				const mark = marker && t.registerDecoration({ marker, x: part.from - 1, width: part.to - part.from + 1 });
 				if (!mark) {
 					marker?.dispose();
 					continue;

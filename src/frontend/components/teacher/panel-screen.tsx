@@ -27,11 +27,11 @@ export function PanelScreen({ name, role, focus }: { name: string; role: Termina
 	if (!api) return null;
 	if (!facts)
 		return (
-			// The outline of the screen to come, with what starts it.
-			<div data-testid="terminal-none" className="mx-3 mb-3 flex min-h-0 flex-1 flex-col items-center justify-center gap-4 overflow-auto rounded-[10px] border border-dashed border-edge px-6 py-8 text-center">
+			// Where the screen will be, with what starts it.
+			<div data-testid="terminal-none" className="mx-3 mb-3 flex min-h-0 flex-1 flex-col items-center justify-center gap-4 overflow-auto rounded-[10px] bg-tone px-6 py-8 text-center">
 				<PixelIcon name="window" className="h-7 text-ink-2" />
 				<p className="max-w-80 text-[15px] leading-[22px] text-ink">
-					{api.outsideHere ? "Your agent was started outside godspeed, so its screen is in its own window." : `${name}'s screen shows here once it starts.`}
+					{api.outsideHere ? "Your agent runs in its own window." : `${name}'s screen shows here.`}
 				</p>
 				{!api.outsideHere && <StartTeacher />}
 			</div>

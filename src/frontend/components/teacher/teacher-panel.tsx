@@ -26,7 +26,7 @@ import { DOCK_WIDTH, dockLayout, shownScreen, type PanelView } from "./dock-mode
  *  agent. */
 export function agentLine(agent: AgentStatus | null, doing: AgentDoing | null = null): string | null {
 	if (!agent) return null;
-	if (agent.helperCovering) return `Tidying my memory. ${HELPER_NAME} is answering for a minute.`;
+	if (agent.helperCovering) return "Tidying my memory.";
 	if (agentWaiting(agent)) return waitingNotice(agent.name);
 	if (doing?.working) return doing.text;
 	if (agent.teaching) return "Teaching, idle";

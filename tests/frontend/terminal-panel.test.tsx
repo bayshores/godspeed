@@ -154,8 +154,8 @@ describe("opening by itself", () => {
 			await mounted(access(), async () => {
 				assert.ok(onTerminal(), "it opened on Terminal");
 				assert.equal(text("status"), "Claude Code asks to trust its folder.");
-				assert.equal(text("terminal-footer"), "godspeed made the folder for it.", "the status line already asks");
-				assert.deepEqual(bright(), ["Yes, trust this folder"]);
+				assert.equal(text("terminal-footer"), "", "the status line already asks");
+				assert.deepEqual(bright(), ["Trust folder"]);
 				await click("terminal-assist");
 				assert.ok(shell.calls.includes("answer trust"));
 			});
@@ -232,7 +232,7 @@ describe("opening by itself", () => {
 				await settle();
 				await faded();
 				assert.ok(onTerminal(), "it opened");
-				assert.equal(text("terminal-footer"), "The last lines are above.");
+				assert.equal(text("terminal-footer"), "", "the chip says it closed");
 				assert.ok(q("terminal-stop") === null, "nothing to stop");
 				assert.deepEqual(bright(), ["Start again"]);
 				await click("terminal-start-again");
@@ -343,7 +343,7 @@ describe("the screens", () => {
 				assert.equal(text("teacher-panel-name"), "Background work");
 				assert.equal(text("teacher-panel-agent"), "Claude Code is asking you something.");
 				assert.ok(q("teacher-panel-agent")?.classList.contains("bg-highlight"), "its chip carries the need");
-				assert.equal(text("terminal-footer"), "Answer it on the screen.", "the chip already says what");
+				assert.equal(text("terminal-footer"), "", "the chip already says what");
 				assert.ok(q("teacher-panel-need") === null && q("terminal-attach") === null);
 				await click("teacher-panel-back");
 				assert.equal(text("teacher-panel-name"), "Ada");
@@ -418,7 +418,7 @@ describe("the screens", () => {
 			stored.set("lh-folder-agent", "codex");
 			await mounted(access(), async () => {
 				await click("open-terminal");
-				assert.equal(text("terminal-none"), "Ada's screen shows here once it starts.Start CodexUse another agent");
+				assert.equal(text("terminal-none"), "Ada's screen shows here.Start CodexUse another agent");
 				assert.ok(!/not connected/i.test(text("terminal-none") ?? ""), "the status line says that");
 				assert.equal(q("teacher-panel")?.style.width, "400px", "nothing to show yet: the narrow width");
 				assert.equal(q("open-agent")?.textContent, "Start Codex", "the agent last started here");
@@ -429,7 +429,7 @@ describe("the screens", () => {
 				await act(() => new Promise((r) => setTimeout(r, 300)));
 				assert.ok(!settling(), "shown once the width settled");
 				assert.equal(text("status"), "Ada is starting.");
-				assert.equal(text("terminal-footer"), "If Codex asks you something, answer it here.");
+				assert.equal(text("terminal-footer"), "");
 			});
 		} finally {
 			Object.assign(dom.window, { innerWidth: wasWidth });
@@ -440,7 +440,7 @@ describe("the screens", () => {
 		try {
 			await mounted(access({ connected: true, teaching: true, outsideHere: true }), async () => {
 				await click("open-terminal");
-				assert.equal(text("terminal-none"), "Your agent was started outside godspeed, so its screen is in its own window.");
+				assert.equal(text("terminal-none"), "Your agent runs in its own window.");
 			});
 		} finally {
 			outside.remove();
@@ -648,7 +648,7 @@ describe("the footer", () => {
 	});
 
 
-	it("a refused Paste shows until the footer has something new to say", async () => {
+	it("a refused Paste shows until the screen asks something else", async () => {
 		const shell = fakeShell([teacher()]);
 		const terminals = (dom.window as unknown as { lh: { terminals: { paste: () => Promise<void> } } }).lh.terminals;
 		terminals.paste = () => Promise.reject("Show the terminal and click in it first.");
@@ -659,7 +659,7 @@ describe("the footer", () => {
 				assert.equal(text("terminal-footer"), "Show the terminal and click in it first.");
 				await act(async () => shell.push({ id: "t1", ended: null, prompt: "trust", url: false }));
 				await settle();
-				assert.equal(text("terminal-footer"), "godspeed made the folder for it.");
+				assert.equal(text("terminal-footer"), "", "the chip asks");
 			});
 		} finally {
 			shell.remove();

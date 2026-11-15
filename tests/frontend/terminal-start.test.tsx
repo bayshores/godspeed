@@ -149,7 +149,7 @@ describe("Start with an agent outside godspeed connected", () => {
 					await settle();
 					assert.ok(posts.some((b) => b.includes('"setup"')), "the folder was set up");
 					assert.ok(!shell.calls.some((c) => c.startsWith("start")), "no second teacher");
-					assert.match(document.body.textContent!, /An agent started outside godspeed is already connected\. Close it there, then start one here\./);
+					assert.match(document.body.textContent!, /An agent outside godspeed is connected\. Close it first\./);
 				},
 			);
 		} finally {
