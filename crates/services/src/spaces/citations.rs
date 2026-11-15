@@ -116,6 +116,18 @@ pub async fn cited_passage(app: &App, file_id: &str, range: &str, quote: Option<
 	Ok(json!({ "name": file["name"], "range": range, "page": page.map_or(Json::Null, Json::from), "text": text, "marks": marks.unwrap_or(Json::Null) }))
 }
 
+/// The place of passage `n` of a space file (its id is `<file_id>:<n>`), as `cited_passage`
+/// takes it; None when there is no such passage.
+pub fn passage_range(app: &App, file_id: &str, n: &str) -> Option<String> {
+	if n.is_empty() || !n.bytes().all(|b| b.is_ascii_digit()) {
+		return None;
+	}
+	let records = app.stores.spaces.list_space_records();
+	let (record, _) = find_file(&records, file_id)?;
+	let passages = app.search.passages_at(record["id"].str_or_empty(), &PassageRef::Passage(format!("{file_id}:{n}")));
+	passages.first().map(|p| p["range"].str_or_empty().to_owned()).filter(|range| !range.is_empty())
+}
+
 /// Plain text and code: their passages' lines are the file's own lines.
 fn reads_as_lines(name: &str) -> bool {
 	let ext = extension_of(name);
@@ -371,6 +383,18 @@ mod tests {
 		assert_eq!(shown(NOTES, "lines 50–60").await, Err(ReadingError::Refused(404, "No passage at that place")));
 		assert_eq!(shown(GONE, "p. 1").await, Err(ReadingError::Refused(404, "No space has that file")));
 		assert_eq!(shown("not-an-id", "p. 1").await, Err(ReadingError::Refused(404, "No space has that file")));
+	}
+
+	#[test]
+	fn a_passage_id_gives_its_place() {
+		let root = scratch_dir("cites-passage-id");
+		let app = test_app(&root);
+		make_space(&app);
+		assert_eq!(passage_range(&app, SLIDES, "1").as_deref(), Some("p. 2"));
+		assert_eq!(passage_range(&app, NOTES, "1").as_deref(), Some("lines 1–2"));
+		for (file, n) in [(NOTES, "2"), (NOTES, "1 "), (NOTES, ""), (GONE, "1")] {
+			assert_eq!(passage_range(&app, file, n), None, "{file}:{n}");
+		}
 	}
 
 	#[tokio::test]
