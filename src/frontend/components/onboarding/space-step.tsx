@@ -128,8 +128,8 @@ export function SpaceStep({ onDone }: { onDone: (spaceId: string | null) => void
 					onDragLeave={() => setOver(false)}
 					onDrop={(e) => void onDrop(e)}
 					className={cn(
-						"lh-press flex h-[150px] w-full flex-col items-center justify-center gap-1.5 rounded border-2 bg-background px-6 text-center",
-						over ? "border-ink" : "border-line hover:border-ink-3",
+						"lh-press lh-well flex h-[150px] w-full flex-col items-center justify-center gap-1.5 rounded px-6 text-center",
+						over ? "bg-highlight" : "hover:bg-tone",
 					)}
 				>
 					<span className="text-[17px] text-ink">{summary ? "Drop to replace, or click to choose again" : "Drop files or a folder here"}</span>

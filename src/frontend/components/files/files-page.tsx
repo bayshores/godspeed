@@ -300,7 +300,7 @@ function FilesPageBody() {
 
 function SearchBox({ value, onChange }: { value: string; onChange: (value: string) => void }) {
 	return (
-		<label className="flex h-10 min-w-[200px] flex-1 items-center gap-2 rounded border-[1.5px] border-ink bg-background px-3 text-ink-2 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ink">
+		<label className="flex h-10 min-w-[200px] flex-1 items-center gap-2 lh-well rounded px-3 text-ink-2 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ink">
 			<input
 				type="search"
 				data-testid="files-search"

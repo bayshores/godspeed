@@ -69,7 +69,7 @@ export function NextCard({
 							<button type="button" data-testid="today-done" onClick={() => onDone(d)} className="lh-btn lh-btn-quiet text-[15px]">
 								Mark done
 							</button>
-							<button type="button" data-testid="today-start" disabled={busy} onClick={() => onStart(d)} className="lh-btn lh-btn-main h-[56px] rounded-[12px] px-7 text-[18px]">
+							<button type="button" data-testid="today-start" disabled={busy} onClick={() => onStart(d)} className="lh-btn lh-btn-main h-[56px] px-7 text-[18px]">
 								{words.button}
 							</button>
 						</span>

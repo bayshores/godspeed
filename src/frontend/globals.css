@@ -100,8 +100,13 @@
 	--lh-space-wash: #ffffff;
 	/* The Done stamp. */
 	--lh-stamp: #b3665c;
-	/* A sheet's outline: ink on Paper, a grey on a dark background. */
+	/* The work frame's line: ink on Paper, a grey on a dark background. */
 	--lh-line: #24231f;
+	/* A sheet's fill and the lip under it. A well is a field's fill: the
+	   sheet color on the page, the page color on a sheet. */
+	--lh-sheet: #d7d5cb;
+	--lh-sheet-lip: #b0aea5;
+	--lh-well: var(--lh-sheet);
 	/* The code editor's syntax colors (Shiki's github-light; .dark below
 	   swaps in github-dark, as the code blocks do). */
 	--lh-code-keyword: #b31d28;
@@ -166,6 +171,7 @@
 	--lh-line: color-mix(in srgb, var(--lh-bar-ink) 22%, var(--lh-bar));
 	--lh-tint: var(--lh-bar-ink);
 	--lh-mark-bg: var(--lh-highlight);
+	--lh-well: var(--card);
 	border-radius: 12px;
 	background-color: var(--lh-bar);
 	color: var(--lh-bar-ink);
@@ -391,28 +397,66 @@ body {
 	}
 }
 
-/* Buttons are keycaps: a rounded face on a darker bottom edge, which
+/* A box is a sheet: a flat fill with pixel corners (two 4px steps) and a
+   lip under it, no outline. A field is a well: a fill that differs from
+   what it sits on, no outline. */
+@layer components {
+	/* Drawn as fills, not clipped, so a menu inside a sheet can hang past its edge. */
+	.lh-sheet {
+		--lh-well: var(--background);
+		--lh-sheet-fill: linear-gradient(var(--lh-sheet), var(--lh-sheet));
+		--lh-sheet-edge: linear-gradient(var(--lh-sheet-lip), var(--lh-sheet-lip));
+		border-bottom: 4px solid transparent;
+		background:
+			var(--lh-sheet-edge) 8px 100% / calc(100% - 16px) 4px,
+			var(--lh-sheet-edge) left 4px bottom 4px / 4px 4px,
+			var(--lh-sheet-edge) right 4px bottom 4px / 4px 4px,
+			var(--lh-sheet-edge) left 0 bottom 8px / 4px 4px,
+			var(--lh-sheet-edge) right 0 bottom 8px / 4px 4px,
+			var(--lh-sheet-fill) 8px 0 / calc(100% - 16px) 100%,
+			var(--lh-sheet-fill) 4px 4px / calc(100% - 8px) calc(100% - 8px),
+			var(--lh-sheet-fill) 0 8px / 100% calc(100% - 16px);
+		background-repeat: no-repeat;
+		background-origin: border-box;
+		background-clip: border-box;
+	}
+	/* A sheet that cuts its content cuts it to the same corners. */
+	.lh-sheet.overflow-hidden {
+		clip-path: polygon(
+			0 8px, 4px 8px, 4px 4px, 8px 4px, 8px 0,
+			calc(100% - 8px) 0, calc(100% - 8px) 4px, calc(100% - 4px) 4px, calc(100% - 4px) 8px, 100% 8px,
+			100% calc(100% - 8px), calc(100% - 4px) calc(100% - 8px), calc(100% - 4px) calc(100% - 4px), calc(100% - 8px) calc(100% - 4px), calc(100% - 8px) 100%,
+			8px 100%, 8px calc(100% - 4px), 4px calc(100% - 4px), 4px calc(100% - 8px), 0 calc(100% - 8px)
+		);
+	}
+	.lh-well {
+		background-color: var(--lh-well);
+	}
+}
+
+/* Buttons are keycaps: a hard-cornered face on a darker bottom edge, which
    sinks while pressed. .lh-btn-main is the one bright key of a view;
    .lh-btn-quiet is a plain word. In the components layer, so a size
    utility on one button wins. */
 @layer components {
 	.lh-btn {
-		--lh-key: color-mix(in srgb, var(--foreground) 22%, var(--background));
-		--lh-key-hover: color-mix(in srgb, var(--foreground) 30%, var(--background));
+		--lh-key: color-mix(in srgb, var(--foreground) 26%, var(--background));
+		--lh-key-hover: color-mix(in srgb, var(--foreground) 34%, var(--background));
 		--lh-lip: 4px;
 		display: inline-flex;
 		align-items: center;
 		gap: 8px;
-		height: 36px;
-		padding: 0 16px;
+		height: 40px;
+		padding: 0 18px;
 		/* The bottom edge is a border, so the label centers on the face. */
 		border: 0 solid transparent;
-		border-bottom: var(--lh-lip) solid color-mix(in srgb, var(--lh-key) 60%, #000);
-		border-radius: 10px;
+		border-bottom: var(--lh-lip) solid color-mix(in srgb, var(--lh-key) 48%, #000);
+		border-radius: 5px;
 		background: var(--lh-key) padding-box;
 		font-family: var(--font-ui);
-		font-size: 14px;
-		font-weight: 500;
+		font-size: 15px;
+		font-weight: 400;
+		letter-spacing: 0.01em;
 		line-height: 1.4;
 		white-space: nowrap;
 		color: var(--foreground);
@@ -433,11 +477,13 @@ body {
 	.lh-btn-danger {
 		--lh-key: var(--color-ans-wrong);
 		--lh-key-hover: var(--color-ans-wrong-hover);
+		font-weight: 500;
 		color: var(--background);
 	}
 	.lh-btn-main {
 		--lh-key: var(--lh-tint);
 		--lh-key-hover: color-mix(in srgb, var(--lh-tint) 88%, #fff);
+		font-weight: 500;
 		color: var(--background);
 	}
 	.lh-btn-quiet {
@@ -450,12 +496,17 @@ body {
 	.lh-btn-quiet:hover {
 		color: var(--foreground);
 	}
+	/* Beside a key the word keeps the key's lip, unseen, so both read on one line. */
+	.lh-btn:not(.lh-btn-quiet) ~ .lh-btn-quiet,
+	.lh-btn-quiet:has(~ .lh-btn:not(.lh-btn-quiet)) {
+		--lh-lip: 4px;
+		border-bottom-color: transparent;
+	}
 	/* A button on the dark bar of a lesson or a cheat sheet. */
 	.lh-btn-bar {
-		--lh-key: color-mix(in srgb, var(--lh-bar-ink) 22%, var(--lh-bar));
-		--lh-key-hover: color-mix(in srgb, var(--lh-bar-ink) 32%, var(--lh-bar));
+		--lh-key: color-mix(in srgb, var(--lh-bar-ink) 26%, var(--lh-bar));
+		--lh-key-hover: color-mix(in srgb, var(--lh-bar-ink) 34%, var(--lh-bar));
 		flex-shrink: 0;
-		font-size: 15px;
 		color: var(--lh-bar-ink);
 	}
 }

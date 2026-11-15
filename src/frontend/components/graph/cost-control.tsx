@@ -38,7 +38,7 @@ function GraphCostPanel({ costs }: { costs: GraphCostSummary }) {
 	];
 	const unpriced = displayUnpricedRuns(costs);
 	return (
-		<div data-testid="graph-costs-panel" className="flex w-[440px] max-w-[calc(100vw-1.5rem)] flex-col gap-2 rounded border-2 border-line bg-panel px-[18px] py-4">
+		<div data-testid="graph-costs-panel" className="flex w-[440px] max-w-[calc(100vw-1.5rem)] flex-col gap-2 lh-sheet px-[18px] py-4">
 			<h2 className="text-lg text-ink">Graph costs</h2>
 			<p className="text-base text-ink-2">
 				{planLine(costs)}

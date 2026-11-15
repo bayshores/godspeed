@@ -316,7 +316,7 @@ function QuestionPanel({ question: q, n, teacher }: { question: MockQuestion; n:
 				q.examples.map((e, i) => (
 					<div key={i} className="flex flex-col gap-1">
 						<p className="text-[15px] text-ink-2">Example {i + 1}</p>
-						<pre className="overflow-x-auto rounded-sm border border-border bg-background px-3 py-2 font-mono text-[13.5px] leading-relaxed text-ink">
+						<pre className="overflow-x-auto lh-well rounded-sm px-3 py-2 font-mono text-[13.5px] leading-relaxed text-ink">
 							{exampleCall(q.fn, e.args)}
 							{"\n"}returns {e.expected}
 						</pre>

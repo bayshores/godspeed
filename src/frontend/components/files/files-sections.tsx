@@ -130,8 +130,8 @@ export function FinderDropTargets({ count, onDrop }: { count: number; onDrop: (k
 					data-over={over === kind || undefined}
 					{...target(kind)}
 					className={cn(
-						"flex h-[110px] flex-1 flex-col items-center justify-center gap-0.5 rounded border-[1.5px] border-ink px-4 text-center transition-colors duration-(--lh-dur)",
-						over === kind ? "bg-highlight" : "bg-panel",
+						"flex h-[110px] flex-1 flex-col items-center justify-center gap-0.5 lh-well rounded px-4 text-center transition-colors duration-(--lh-dur)",
+						over === kind && "bg-highlight",
 					)}
 				>
 					<span data-testid={`files-drop-${kind}-title`} className="text-[17px] font-medium text-ink">

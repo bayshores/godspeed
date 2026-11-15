@@ -112,7 +112,7 @@ export function FontMenuList({
 				}}
 				placeholder="Search fonts…"
 				aria-label="Search fonts"
-				className="mb-1.5 h-9 w-full rounded border-[1.5px] border-ink bg-background px-2.5 text-[15px] text-ink placeholder:text-ink-3"
+				className="mb-1.5 h-9 w-full lh-well rounded px-2.5 text-[15px] text-ink placeholder:text-ink-3"
 			/>
 			{!families && <div className="px-2 py-3 text-center text-[15px] text-ink-2">Loading fonts…</div>}
 			<ul ref={listRef} data-testid="font-list" className="flex max-h-72 flex-col overflow-y-auto">

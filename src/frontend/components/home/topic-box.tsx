@@ -43,7 +43,7 @@ export function TopicBox({
 	return (
 		<form
 			data-testid="home-topic-box"
-			className="flex min-h-[170px] w-full flex-col rounded border-[1.5px] border-ink bg-background pt-0.5 pr-2.5 pb-2.5 pl-4"
+			className="flex min-h-[170px] w-full flex-col lh-well rounded pt-0.5 pr-2.5 pb-2.5 pl-4"
 			onSubmit={(e) => {
 				e.preventDefault();
 				if (empty) inputRef?.current?.focus();

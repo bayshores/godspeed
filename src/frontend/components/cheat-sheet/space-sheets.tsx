@@ -78,7 +78,7 @@ export function SpaceSheetsPage() {
 						<p data-testid="cheat-sheets-summary" className="min-w-0 flex-1 text-[15px] text-ink-2">
 							No deadlines yet. Add one to make a cheat sheet for it.
 						</p>
-						<Link to={ADD_DEADLINE_HREF} data-testid="cheat-sheets-add-deadline" className="lh-btn h-[38px] shrink-0 text-[15px]">
+						<Link to={ADD_DEADLINE_HREF} data-testid="cheat-sheets-add-deadline" className="lh-btn shrink-0">
 							<PixelIcon name="plus" />
 							Add a deadline
 						</Link>
@@ -117,7 +117,7 @@ export function SheetCardView({
 	const width = first ? Math.round(Math.min(THUMB_W, (THUMB_H * first.widthPt) / first.heightPt)) : 0;
 	return (
 		<li data-testid="cheat-sheet-card" data-status={card.status} className="relative flex items-center gap-4 border-b border-dotted border-edge px-1 py-3.5 transition-colors last:border-b-0 hover:bg-tone">
-			<span aria-hidden className="flex shrink-0 items-center justify-center border border-border bg-background" style={{ width: THUMB_W, height: THUMB_H }}>
+			<span aria-hidden className="lh-well flex shrink-0 items-center justify-center" style={{ width: THUMB_W, height: THUMB_H }}>
 				{card.version && first && <PdfThumb url={sheetPdfPath(spaceId, card.deadlineId, card.version.n)} page={first} width={width} />}
 			</span>
 			<span className="flex min-w-0 flex-1 flex-col gap-0.5">
