@@ -3,8 +3,7 @@
  *
  * A screen opens at `url`, waits for `ready`, runs `setup` in the page (clicks), then waits for
  * `shows`. `ready` and `shows` name something drawn from the screen's data, not its frame, so the
- * check never runs on a screen still loading. `eachWidth` runs in the page after each width is
- * set, for state a width change undoes (a scroll position). `before` runs in the page first, on the screen
+ * check never runs on a screen still loading. `before` runs in the page first, on the screen
  * before it, for a change of data; it stays for the screens after it. `{space}`, `{lesson}` and
  * `{deadline}` are the made-up data's ids (layout-seed.mjs). Scripts may await.
  */
@@ -16,8 +15,6 @@ export const HTTP_OK = `.then((r) => { if (!r.ok) throw new Error(r.url + " answ
 
 const pause = `await new Promise((done) => setTimeout(done, 100))`;
 const openTeacher = `document.querySelector("[data-testid=live-pill]").click()`;
-// A width change can clamp the lesson's scroll, which the lesson reads as the learner scrolling up, so it lets go of the end and the floating "Scroll to the bottom" button rightly sits over the text. A learner at the end is back at the end after each width.
-const scrollToEnd = `let pane = document.querySelector("[data-testid=cite-row]"); while (pane && !["auto", "scroll"].includes(getComputedStyle(pane).overflowY)) pane = pane.parentElement; pane.scrollTop = pane.scrollHeight; ${pause}`;
 const deadlineCard = "[data-teacher-target='deadline:{deadline}']";
 /** Today's every group at once: the next deadline, three more this week, one ticked done, two
  *  later. Dates count from the day the check runs. */
@@ -45,7 +42,7 @@ export const SCREENS = [
 	{ name: "Deadlines", url: "/space/deadlines", ready: "[data-testid=deadline-open]" },
 	{ name: "Deadline", url: "/space/deadline/{deadline}", ready: "[data-testid=deadline-page] [data-testid=deadline-name]" },
 	{ name: "Lesson with a sourced reply, an open quiz and the plan", url: "/chat/{lesson}", ready: "[data-testid=cite-list]" },
-	{ name: "Lesson with a plugin's page open", url: "/chat/{lesson}", ready: "[data-testid=lesson-plugin-flashcards]", setup: `document.querySelector("[data-testid=lesson-plugin-flashcards]").click()`, eachWidth: scrollToEnd, shows: "[data-testid=plugin-dock] [data-testid=plugin-frame][data-state=ready]" },
+	{ name: "Lesson with a plugin's page open", url: "/chat/{lesson}", ready: "[data-testid=lesson-plugin-flashcards]", setup: `document.querySelector("[data-testid=lesson-plugin-flashcards]").click()`, shows: "[data-testid=plugin-window] [data-testid=plugin-frame][data-state=ready]" },
 	{ name: "Space's plugin tab", url: "/space/plugin/flashcards", ready: "[data-testid=plugin-frame][data-state=ready]" },
 	{ name: "Teacher's window with no agent", url: "/", ready: deadlineCard, setup: openTeacher, shows: "[data-testid=terminal-none] [data-testid=open-agent]" },
 	{

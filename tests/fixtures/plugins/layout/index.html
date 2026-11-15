@@ -3,14 +3,31 @@
 	<head>
 		<meta charset="utf-8" />
 		<title>Flashcards</title>
+		<style>
+			body {
+				margin: 0;
+				padding: 16px;
+				background: var(--color-background-primary);
+				color: var(--color-text-primary);
+				font: 15px/1.4 var(--font-sans, sans-serif);
+			}
+			p {
+				margin: 0;
+			}
+		</style>
 	</head>
 	<body>
 		<p>Flashcards: what is x when 2x + 3 = 11?</p>
 		<script>
-			// The smallest MCP Apps handshake, so the host counts the page as loaded.
+			// The smallest MCP Apps handshake, so the host counts the page as loaded, in the host's colors, and the page's size.
 			const send = (message) => parent.postMessage({ jsonrpc: "2.0", ...message }, "*");
 			addEventListener("message", (event) => {
-				if (event.source === parent && event.data?.id === 1) send({ method: "ui/notifications/initialized" });
+				if (event.source !== parent || event.data?.id !== 1) return;
+				for (const [name, value] of Object.entries(event.data.result?.hostContext?.styles?.variables ?? {})) document.documentElement.style.setProperty(name, value);
+				send({ method: "ui/notifications/initialized" });
+				// The lesson's window is as tall as the page says.
+				const root = document.documentElement;
+				new ResizeObserver(() => send({ method: "ui/notifications/size-changed", params: { width: root.clientWidth, height: Math.ceil(root.getBoundingClientRect().height) } })).observe(root);
 			});
 			send({ id: 1, method: "ui/initialize", params: { appInfo: { name: "flashcards", version: "1.0.0" }, appCapabilities: {}, protocolVersion: "2026-01-26" } });
 		</script>

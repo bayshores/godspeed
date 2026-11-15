@@ -3,42 +3,20 @@ import { LoadFailed } from "@/frontend/components/load-failed";
 import { askAgent, readSpace, readStored, writeStored } from "@/frontend/lib/plugin-host-api";
 import type { PluginManifest, SettingValue } from "@/frontend/lib/plugins-api";
 import { cn } from "@/frontend/lib/utils";
-import { createBridge, hostFonts, type PluginContext } from "./plugin-frame-model";
+import { createBridge, hostFonts, styleTokens, type PluginContext } from "./plugin-frame-model";
 
 /** A page that hasn't finished the handshake by then didn't load. */
 const READY_WITHIN_MS = 10_000;
 /** A change is told once things hold still this long, so a streaming reply is one notice, not one per word. */
 const NOTICE_AFTER_MS = 500;
 
-/** godspeed's tokens under their MCP Apps names, so a plugin can match the app. A plugin's page
- *  always sits on a sheet (the dock, a space's tab): its background is the sheet, a well on it
- *  is the page color, as on any sheet, and the tone is a hovered row's. */
-const STYLE_VARIABLES: Record<string, string> = {
-	"--color-background-primary": "--lh-sheet",
-	"--color-background-secondary": "--background",
-	"--color-background-tertiary": "--accent",
-	"--color-background-inverse": "--lh-bar",
-	"--color-text-primary": "--foreground",
-	"--color-text-secondary": "--muted-foreground",
-	"--color-text-tertiary": "--lh-ink-3",
-	"--color-text-inverse": "--lh-bar-ink",
-	"--color-text-danger": "--destructive",
-	"--color-text-success": "--lh-ans-right",
-	"--color-border-primary": "--border",
-	"--color-ring-primary": "--ring",
-	"--font-sans": "--font-sans",
-	"--font-mono": "--font-mono",
-	"--border-radius-xs": "--radius",
-	"--border-radius-sm": "--radius",
-	"--border-radius-md": "--radius",
-	"--border-radius-lg": "--radius",
-};
-
-function look() {
+/** The look where the frame sits: a window hanging from the top bar is made of the bar, so it is dark there. */
+function look(frame: HTMLIFrameElement | null) {
 	const root = document.documentElement;
-	const css = getComputedStyle(root);
+	const onBar = !!frame?.closest(".lh-popup");
+	const css = getComputedStyle(frame ?? root);
 	const variables: Record<string, string> = {};
-	for (const [name, token] of Object.entries(STYLE_VARIABLES)) {
+	for (const [name, token] of Object.entries(styleTokens(onBar))) {
 		const value = css.getPropertyValue(token).trim();
 		if (value) variables[name] = value;
 	}
@@ -51,7 +29,7 @@ function look() {
 		}
 	});
 	const fonts = hostFonts(rules, css.getPropertyValue("--font-sans"), location);
-	return { theme: root.classList.contains("dark") ? ("dark" as const) : ("light" as const), variables, fonts };
+	return { theme: onBar || root.classList.contains("dark") ? ("dark" as const) : ("light" as const), variables, fonts };
 }
 
 /** At `localhost` on the window's port: the window is on 127.0.0.1, the only host the shell's
@@ -61,16 +39,29 @@ function pluginEntryUrl(manifest: PluginManifest): string {
 }
 
 /**
- * A plugin's page, filling the box it is placed in. The page runs in a frame sandboxed without
+ * A plugin's page, filling the box it is placed in; `onSize` hears the page's own height, for a box
+ * that follows it. The page runs in a frame sandboxed without
  * allow-same-origin, so it has an opaque origin: no /api, no window, no cookies, no storage. It
  * reaches godspeed only by MCP Apps messages (plugin-frame-model.ts).
  */
-export function PluginFrame({ manifest, values, context, className }: { manifest: PluginManifest; values: Record<string, SettingValue>; context: PluginContext; className?: string }) {
+export function PluginFrame({
+	manifest,
+	values,
+	context,
+	onSize,
+	className,
+}: {
+	manifest: PluginManifest;
+	values: Record<string, SettingValue>;
+	context: PluginContext;
+	onSize?: (height: number) => void;
+	className?: string;
+}) {
 	const frameRef = useRef<HTMLIFrameElement>(null);
 	const bridgeRef = useRef<ReturnType<typeof createBridge> | null>(null);
 	// The bridge reads these when the plugin asks, so a new render never restarts it.
-	const latest = useRef({ manifest, values, context });
-	latest.current = { manifest, values, context };
+	const latest = useRef({ manifest, values, context, onSize });
+	latest.current = { manifest, values, context, onSize };
 	const [attempt, setAttempt] = useState(0);
 	const [state, setState] = useState<"loading" | "ready" | "failed">("loading");
 	const id = manifest.id;
@@ -83,7 +74,7 @@ export function PluginFrame({ manifest, values, context, className }: { manifest
 			// The frame's origin is opaque, so it can't be named; the window is this frame's own.
 			post: (message) => frameRef.current?.contentWindow?.postMessage(message, "*"),
 			context: () => latest.current.context,
-			look,
+			look: () => look(frameRef.current),
 			calls: {
 				readStored: (key) => readStored(id, key),
 				writeStored: (key, value) => writeStored(id, key, value),
@@ -98,6 +89,7 @@ export function PluginFrame({ manifest, values, context, className }: { manifest
 				},
 			},
 			onReady: () => setState("ready"),
+			onSize: (height) => latest.current.onSize?.(height),
 		});
 		bridgeRef.current = bridge;
 		const onMessage = (event: MessageEvent) => bridge.receive(event.source, event.data);

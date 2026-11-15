@@ -9,8 +9,9 @@
  * the agent's screen (panel-screen.tsx), or in a browser Activity
  * (teacher-activity.tsx).
  */
-import { useEffect, useLayoutEffect, useState, type CSSProperties } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import { cn } from "@/frontend/lib/utils";
+import { BarWindow } from "@/frontend/components/ui/bar-window";
 import { ResizeHandle, usePaneWidth } from "@/frontend/components/ui/resize-handle";
 import { agentWaiting, agentStatusLabel, waitingNotice, type AgentStatus } from "@/frontend/components/agent-status";
 import { needsYou, screenStatusLine, teacherTerminalState, type TerminalRole } from "@/frontend/components/terminal/terminal-model";
@@ -108,67 +109,54 @@ export function TeacherPanel({
 		},
 		[],
 	);
-	const docked = height === null;
-
 	return (
-		// Docked, it meets the bar square, as a column of the window.
-		<div data-state={state} style={docked ? { "--lh-hang-r": "0px" } as CSSProperties : undefined} className={cn("lh-hang fixed top-12 right-0 z-[41]", docked && "bottom-0")}>
-			<section
-				data-teacher-panel=""
-				data-whole={whole || undefined}
-				data-testid="teacher-panel"
-				data-state={state}
-				aria-label={name}
-				style={{ width, height: height ?? "100%", borderRadius: docked ? 0 : "0 0 0 var(--lh-hang-r)" }}
-				className="lh-popup lh-hang-body relative flex max-h-[calc(100dvh-3rem)] max-w-[100vw] flex-col overflow-hidden font-ui"
-			>
-				{/* Nothing to drag while it takes the whole window. */}
-				{!whole && <ResizeHandle paneKey="teacher" width={width} bounds={PANEL_WIDTH} onWidth={setWanted} label={`Resize ${name}'s panel`} />}
-				{!whole && <PanelSize width={width} shown={height ?? room} room={room} onWidth={setWanted} onHeight={setTall} label={`Resize ${name}'s panel in height`} />}
-				{background ? (
-					<PanelHead
-						title={HELPER_NAME}
-						status={screenStatusLine(helperFacts, HELPER_NAME)}
-						lit={helperCalls}
-						working={false}
-						list={null}
-						follow={false}
-						need={null}
-						back={() => onScreen("teacher")}
-					/>
-				) : (
-					<PanelHead
-						title={null}
-						status={teacherStatus ?? line}
-						lit={teacherTerminalState(teacherFacts) === "needsYou"}
-						working={!teacherStatus && !!doing?.working && line === doing.text}
-						list={listable && onScreenView ? { open: list, onOpen: onList } : null}
-						follow={listable}
-						need={onScreenView && helperCalls ? () => onScreen("helper") : null}
-						back={null}
-					/>
-				)}
+		<BarWindow right={0} width={width} height={height} state={state} data-teacher-panel="" data-whole={whole || undefined} data-testid="teacher-panel" aria-label={name}>
+			{/* Nothing to drag while it takes the whole window. */}
+			{!whole && <ResizeHandle paneKey="teacher" width={width} bounds={PANEL_WIDTH} onWidth={setWanted} label={`Resize ${name}'s panel`} />}
+			{!whole && <PanelSize width={width} shown={height ?? room} room={room} onWidth={setWanted} onHeight={setTall} label={`Resize ${name}'s panel in height`} />}
+			{background ? (
+				<PanelHead
+					title={HELPER_NAME}
+					status={screenStatusLine(helperFacts, HELPER_NAME)}
+					lit={helperCalls}
+					working={false}
+					list={null}
+					follow={false}
+					need={null}
+					back={() => onScreen("teacher")}
+				/>
+			) : (
+				<PanelHead
+					title={null}
+					status={teacherStatus ?? line}
+					lit={teacherTerminalState(teacherFacts) === "needsYou"}
+					working={!teacherStatus && !!doing?.working && line === doing.text}
+					list={listable && onScreenView ? { open: list, onOpen: onList } : null}
+					follow={listable}
+					need={onScreenView && helperCalls ? () => onScreen("helper") : null}
+					back={null}
+				/>
+			)}
 
-				<div
-					data-testid="teacher-panel-body"
-					className={cn(
-						"flex min-h-0 flex-1 flex-col motion-safe:transition-opacity motion-safe:duration-(--lh-dur) motion-safe:ease-(--lh-ease-out)",
-						!onScreenView && "gap-[18px] px-[18px] pt-1.5 pb-[18px]",
-						// The Activity list drops over the screen: the screen steps back under it.
-						list && onScreenView && "opacity-40",
-					)}
-				>
-					{onScreenView ? (
-						<PanelScreen name={background ? HELPER_NAME : name} role={shown} focus={focus} />
-					) : (
-						<>
-							{/* In a browser there is no screen to start from. */}
-							{!terminals?.available && noAgentHere(agent, terminals) && <StartTeacher />}
-							<TeacherActivity underStatus />
-						</>
-					)}
-				</div>
-			</section>
-		</div>
+			<div
+				data-testid="teacher-panel-body"
+				className={cn(
+					"flex min-h-0 flex-1 flex-col motion-safe:transition-opacity motion-safe:duration-(--lh-dur) motion-safe:ease-(--lh-ease-out)",
+					!onScreenView && "gap-[18px] px-[18px] pt-1.5 pb-[18px]",
+					// The Activity list drops over the screen: the screen steps back under it.
+					list && onScreenView && "opacity-40",
+				)}
+			>
+				{onScreenView ? (
+					<PanelScreen name={background ? HELPER_NAME : name} role={shown} focus={focus} />
+				) : (
+					<>
+						{/* In a browser there is no screen to start from. */}
+						{!terminals?.available && noAgentHere(agent, terminals) && <StartTeacher />}
+						<TeacherActivity underStatus />
+					</>
+				)}
+			</div>
+		</BarWindow>
 	);
 }

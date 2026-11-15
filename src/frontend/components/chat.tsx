@@ -58,10 +58,11 @@ import { Pane } from "@/frontend/components/ui/pane";
 import { usePaneWidth } from "@/frontend/components/ui/resize-handle";
 import { useAttachmentDraft } from "@/frontend/components/lesson/attachment-tray";
 import { takeStartFiles } from "@/frontend/components/lesson/start-files";
+import { useTeacher } from "@/frontend/components/teacher/teacher-context";
 import { useTeacherLesson } from "@/frontend/components/teacher/teacher-provider";
 import { SheetDock, useSheetDock } from "@/frontend/components/cheat-sheet/sheet-dock";
 import { lessonPluginContext } from "@/frontend/components/lesson/lesson-plugins-model";
-import { PluginDock } from "@/frontend/components/lesson/plugin-dock";
+import { PluginWindow } from "@/frontend/components/lesson/plugin-window";
 import { useSpaces } from "@/frontend/components/space-context";
 import { usePluginsAt } from "@/frontend/lib/use-plugins-at";
 import { jsonInit } from "@/frontend/lib/api";
@@ -524,20 +525,27 @@ export function Chat({
 	);
 
 	const sheet = useSheetDock(chatId);
-	// One dock at a time: a plugin's page and the cheat sheet each close the other.
+	// A plugin's window lies over the page; opening the cheat sheet closes it. It and the
+	// Teacher's window are both made of the bar and hang over the same corner, so one shows at a time.
 	const { plugins: lessonPlugins } = usePluginsAt("lesson");
 	const { spaces } = useSpaces();
+	const teacher = useTeacher();
 	const [pluginId, setPluginId] = useState<string | null>(null);
-	const openPlugin = lessonPlugins?.find((p) => p.id === pluginId);
-	const sheetOpen = !!spaceId && sheet.state.open && !openPlugin;
+	const openPlugin = lessonPlugins?.find((p) => p.id === pluginId) ?? null;
+	const sheetOpen = !!spaceId && sheet.state.open;
 	const toggleSheet = () => {
 		setPluginId(null);
 		sheet.update({ open: !sheetOpen });
 	};
 	const togglePlugin = (id: string) => {
 		setPluginId(pluginId === id ? null : id);
-		if (sheet.state.open) sheet.update({ open: false });
+		if (pluginId !== id && teacher?.panelOpen) teacher.setPanelOpen(false);
 	};
+	const closePlugin = useCallback(() => setPluginId(null), []);
+	const teacherOpen = !!teacher?.panelOpen;
+	useEffect(() => {
+		if (teacherOpen) setPluginId(null);
+	}, [teacherOpen]);
 	const space = spaces.find((s) => s.id === spaceId);
 	const pluginContext = useMemo(
 		() => lessonPluginContext({ space: space ? { id: space.id, name: space.name } : null, title: rename.title, messages, pending, requiresReveal }),
@@ -573,15 +581,16 @@ export function Chat({
 								scopeRef={sessionFindScopeRef}
 								scrollContextRef={scrollContextRef}
 							/>
+							<PluginWindow plugin={openPlugin} context={pluginContext} onClose={closePlugin} />
 							<div className="min-h-0 flex-1">
 								<LessonWorkFrame chatId={chatId}>
 									<div
 										ref={sessionFindScopeRef}
-										data-dock={sheetOpen || openPlugin ? "" : undefined}
+										data-dock={sheetOpen ? "" : undefined}
 										className="lh-dots lh-lesson-body relative h-full"
 										style={{ "--lh-turn-w": `${columnWidth}px` } as React.CSSProperties}
 									>
-										<Pane className="@container/reading flex min-h-0 min-w-0 flex-col overflow-hidden [grid-area:reading]">
+										<Pane data-testid="lesson-reading" className="@container/reading flex min-h-0 min-w-0 flex-col overflow-hidden [grid-area:reading]">
 											<div className="shrink-0 px-14 pt-[26px] pb-3 empty:hidden @max-[640px]/reading:px-7">
 												<PlanRow kind={kind} spaceId={spaceId} stepBar={stepBar} edges={planEdges} stop={lessonStop.stop} homework={planHomework} practice={stablePractice} onJump={planHomework ? jumpToProblem : jumpToAnswer} onOpenPlan={openPlan} />
 											</div>
@@ -609,11 +618,6 @@ export function Chat({
 													onPick={(id) => sheet.update({ deadlineId: id })}
 													onClose={() => sheet.update({ open: false })}
 												/>
-											</div>
-										)}
-										{openPlugin && (
-											<div className="flex min-h-0 [grid-area:dock]">
-												<PluginDock key={openPlugin.id} plugin={openPlugin} context={pluginContext} />
 											</div>
 										)}
 										<TeacherColumn
