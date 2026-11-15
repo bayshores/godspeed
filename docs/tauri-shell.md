@@ -86,6 +86,7 @@ One JSON object per line, UTF-8, ending in `\n`. The field `t` names the message
 | shell to server | `{"t":"svg_done","id":n,"png":"<base64>"}` or `{"t":"svg_done","id":n,"error":"…"}` | A PNG of exactly w × h px. |
 | shell to server | `{"t":"notify_done","id":n,"shown":true\|false}` | False while the main window has the focus, or when the plugin refused it. |
 | shell to server | `{"t":"terminals","live":["<32 hex>",…]}` | The ids of the agents' terminals that run now. Sent after every start, Stop and end, in order, and again once a restarted server is ready. |
+| shell to server | `{"t":"typed","terminal":"<32 hex>"}` | The learner sent a message to the agent in that terminal: Enter, or an unbracketed paste with a line break, while the screen showed no question. |
 | shell to server | `{"t":"agent_folder","id":n}` | Where is the godspeed folder? Asked at every terminal start. |
 | server to shell | `{"t":"agent_folder","id":n,"folder":"…"\|null}` | The folder in use, or `null` while it isn't set up. The shell waits 2 s. |
 
@@ -213,7 +214,7 @@ Each terminal has four threads: output, input, its exit, and a clock that sleeps
 
 - **Output** goes through a `vt100` screen (1000 lines of scrollback) and to the page as `terminal-output` only while attached, 16 ms after the first byte that waits. More than 64 KB in one frame goes as a snapshot of the screen instead, so a program that prints without pause cannot hold up the window. If drawing the output panics, the shell stops the terminal, keeps reading and dropping its output, and the screen says "godspeed couldn't read this terminal's screen, so it stopped it." with `ended` `{stopped: false, code: null}`. The shell answers the questions a program asks its terminal (cursor position, device attributes, status), because a hidden terminal has no page and ConPTY waits for the cursor position before the program starts. The page's own answers to those are dropped.
 - **Input** is queued and written in order on its own thread, so a terminal that reads nothing never holds the window up. `terminal_write`, `terminal_answer` and `terminal_paste` run without `async`, so keys keep their order.
-- **Typing** (`write`, `paste`) is refused unless that terminal is attached and the main window has the focus. Paste drops escape characters and is bracketed when the program asked for bracketed paste.
+- **Typing** (`write`, `paste`) is refused unless that terminal is attached and the main window has the focus. Paste drops escape characters and is bracketed when the program asked for bracketed paste. When the learner's keys submit (Enter, or an unbracketed paste with a line break) while the shell sees no question on the screen, the server hears `typed`. The trust and Enter buttons write through `answer`, so they never count.
 - **The clock** sends waiting output and pushes `terminal-state` when the recognised question or the web address on the screen changes. It wakes only for output to send or for a question to reach its 2 s, and otherwise sleeps until output comes or the terminal ends.
 
 ### What the shell recognises
@@ -241,7 +242,7 @@ A question counts once it has stayed the same for 2 s. `url` is true while the s
 
 The Job Object has kill-on-close and takes the script right after it starts, so closing the app kills the tree too.
 
-The server side: `refuse()` in `crates/server/src/mcp/mod.rs` answers 403 `{"error": "This terminal was closed in godspeed."}` to a request whose terminal id is not live (no header means an agent outside the app). `Bridge::set_live_terminals` wakes every waiter, a wait of an ended terminal ends with the same error, and the items that terminal claimed go back at once instead of after the 10 minute hold.
+The server side: `refuse()` in `crates/server/src/mcp/mod.rs` answers 403 `{"error": "This terminal was closed in godspeed."}` to a request whose terminal id is not live (no header means an agent outside the app). `Bridge::set_live_terminals` wakes every waiter, a wait of an ended terminal ends with the same error, and the items that terminal claimed go back at once instead of after the 10 minute hold. After `typed` (`Bridge::typed`), that terminal's wait, or the next one within 2 minutes, ends at once and claims nothing, and the agent counts as here and teaching for 3 minutes ([architecture.md](architecture.md#the-work-loop)).
 
 ## The main window
 

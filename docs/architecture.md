@@ -824,7 +824,7 @@ An agent started in one of the desktop app's terminals sends the terminal's id w
 
 #### The godspeed folder
 
-Agents are opened in one folder, `~/godspeed` by default. `data/agent-folder.json` remembers another one, whether the one-time notice was seen, and `startCommands`. A debug build uses `<data>/godspeed-folder` instead.
+Agents are opened in one folder, `~/godspeed` by default. `data/agent-folder.json` remembers another one, whether the one-time notice was seen, `startCommands`, and `talkExported` (see [Talk](#talk)). A debug build uses `<data>/godspeed-folder` instead.
 
 `services::app::agent_folder` writes it from `crates/services/folder-files/` and `core::spaces::agent_folder`, once per app start so an update reaches it:
 
@@ -879,6 +879,8 @@ Every model request (a lesson turn, a background job, an extraction run, topic g
 - A waiter given a lesson id stays on that lesson: it takes its turns and Talk's, plus other lessons' turns no one else waits for, oldest first. So one agent takes turns between lessons, and two agents each keep their own.
 - Codex has no waiter, and its wait is capped by its MCP tool timeout (60 s by default). Its start command sets `tool_timeout_sec=620` with `-c` flags (`core::spaces::agent_folder`).
 - `wait_for_work` takes `timeout_seconds` from 1 to 600, default 45.
+- Outside lessons the learner types to the agent in its terminal. When they send a message there ([tauri-shell.md](tauri-shell.md#while-it-runs)), the wait from that terminal, or `respond`'s wait for a follow-up, ends at once with a note to answer them there and wait again. It claims nothing, so a lesson turn that waits goes to the next wait. The mark lasts until a wait from that terminal reads it, at most 2 minutes. For Claude Code the waiter waits again by itself.
+- A space or lesson an agent starts from godspeed's teacher terminal (not the helper's, not an agent outside godspeed) opens in the window even with Follow off. `start_lesson` from an agent whose wait is under way says its running waiter brings the turns, so Claude Code starts no second waiter.
 
 #### The helper
 
@@ -944,6 +946,7 @@ The teacher panel opens on a Talk tab: one ongoing chat outside lessons, kind `"
 - Its agent (`create_talk_agent`) has a short prompt (`crates/agent/prompts/talk/` plus the shared voice) and the space tools in `agent::tools::talk`. None of them deletes a space or a file.
 - Those tools run the same space actions as the MCP server (`services::spaces::space_actions`), so each change goes into the activity log and shows in the chat as a row that opens it.
 - The chat is summarized like a lesson (`talk_compaction_prompt`).
+- The learner's old chat is kept: `DELETE /api/chats/{id}` refuses it. On a start with a Talk record and no `data/talk-backup-*` yet, the server copies `chat_talk.json` and `chat_talk/` to `data/talk-backup-<version>` (`services::app::old_talk`). Once, into the first godspeed folder set up after that, it writes `Talk.md` (who said what, each change as one line, math as written; `core::messages::talk_export`) with its pictures and PDFs in `Talk files/`, never over a `Talk.md` already there, and then sets `talkExported`.
 
 While a lesson is open, the panel shows only Terminal: the lesson is the chat, and its teacher column has Activity and, in the desktop app, a Terminal key that opens it. Lessons get `list_spaces` and the three deadline tools (`lesson_space_change_tools`), so "add HW 4, due Friday" works mid-lesson.
 
