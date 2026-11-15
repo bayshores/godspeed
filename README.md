@@ -4,7 +4,7 @@
 
 <h3 align="center">The AI agent you already use teaches you, and godspeed remembers where you got stuck.</h3>
 
-<p align="center">A free, open-source study app. It runs on the Claude or ChatGPT plan you already pay for, with no API keys.</p>
+<p align="center">A free, open-source study app. It runs on the Claude or ChatGPT plan you already pay for, with no API keys. godspeed is in alpha. Things change fast between updates.</p>
 
 <p align="center">
   <a href="https://github.com/bayshores/godspeed/releases/latest/download/godspeed-mac-apple-silicon.dmg"><img src="https://img.shields.io/badge/Mac_(Apple_chip)-c9c6bb?style=for-the-badge" alt="Download for Mac with an Apple chip"></a>
