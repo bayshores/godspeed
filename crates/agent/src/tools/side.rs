@@ -1,6 +1,6 @@
 //! The tools every lesson-like session may add beside its own: the space card and search, the
-//! learner's rules and the deadline changes. Each is present only when the composition root
-//! passes its reader.
+//! graph search, the learner's rules and the deadline changes. Each is present only when the
+//! composition root passes its reader.
 
 use gs_core::session::tool_switches::filter_enabled_tools;
 use gs_engine::turn::tool::Tool;
@@ -13,7 +13,7 @@ use crate::fs_tools::read::read_tool;
 
 use super::space::{SpaceToolContext, space_tools};
 use super::fn_tool::FnTool;
-use super::graph::{GraphToolContext, prober_graph_tools};
+use super::graph::{SearchGraph, search_graph_tool};
 use super::rules::{SaveRule, save_rule_tool};
 use super::space_actions::{SpaceActions, lesson_space_change_tools};
 
@@ -21,6 +21,8 @@ use super::space_actions::{SpaceActions, lesson_space_change_tools};
 pub struct LessonSide {
 	/// The lesson's space, when it has one.
 	pub space: Option<SpaceToolContext>,
+	/// The lesson's own graph, when the settings open it to the agent.
+	pub search_graph: Option<SearchGraph>,
 	pub save_rule: Option<SaveRule>,
 	/// The deadline changes a learner may ask for mid-lesson.
 	pub space_actions: Option<SpaceActions>,
@@ -32,6 +34,9 @@ impl LessonSide {
 		if let Some(space) = &self.space {
 			tools.extend(space_tools(space));
 		}
+		if let Some(search) = &self.search_graph {
+			tools.push(search_graph_tool(search.clone()));
+		}
 		if let Some(save_rule) = &self.save_rule {
 			tools.push(save_rule_tool(save_rule.clone()));
 		}
@@ -40,13 +45,6 @@ impl LessonSide {
 		}
 		tools
 	}
-}
-
-/// The map readers when the graph is open to the agent, then the lesson's own side tools.
-pub fn graph_and_side(graph: Option<&GraphToolContext>, side: &LessonSide) -> Vec<FnTool> {
-	let mut tools = graph.map(prober_graph_tools).unwrap_or_default();
-	tools.extend(side.tools());
-	tools
 }
 
 /// The read-only tools over the learner's own files, in every agent's registry.

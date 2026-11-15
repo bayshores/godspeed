@@ -34,8 +34,8 @@ export const artifactRenderers: Record<string, ComponentType<ArtifactPartProps>>
 	probe_done: ProbeDoneCard,
 	// The learner-filesystem set: one quiet expandable
 	// tool-call card each — collapsed one-liner (plain verb + headline
-	// argument), full input/output on expand. The prober's graph lookups
-	// (list_sessions, list_propositions) render nothing.
+	// argument), full input/output on expand. The lesson's graph lookup
+	// (search_graph) renders nothing.
 	read: ToolCallCard,
 	ls: ToolCallCard,
 	find: ToolCallCard,

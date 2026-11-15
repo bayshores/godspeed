@@ -16,14 +16,13 @@ use gs_json::{Json, json, stringify};
 use parking_lot::Mutex;
 
 use super::fn_tool::FnTool;
-use super::graph::GraphToolContext;
 use super::heal::heal_tool_record;
 use super::jobs::{JobToolContext, pdf_tool, research_tool};
 use super::plan::PlanContext;
 use super::questions::node_id_problem;
 use super::ports::ChatPort;
 use gs_core::session::schema::{literals_or_null, object, one_of_literals, string};
-use super::side::{LessonSide, file_tools, filter_enabled, graph_and_side};
+use super::side::{LessonSide, file_tools, filter_enabled};
 
 /// The whole graph's nodes (id and name), read fresh per pose.
 pub type GraphNodes = Arc<dyn Fn() -> Vec<Json> + Send + Sync>;
@@ -39,8 +38,6 @@ pub struct PracticeToolContext {
 	/// With it, targets are checked against every proposition of the graph, not only the
 	/// session's picks. Without it, nothing is checked.
 	pub graph_nodes: Option<GraphNodes>,
-	/// The map readers, behind the same settings gate as the prober's.
-	pub graph: Option<GraphToolContext>,
 	pub jobs: Option<JobToolContext>,
 	pub side: LessonSide,
 }
@@ -284,19 +281,19 @@ pub fn practice_tools(ctx: &PracticeToolContext, enabled: Option<&Json>) -> Vec<
 	let gate = TurnGate::new(problem_is_active(&ctx.chat_store, &ctx.chat_id));
 	let record = PlanContext { chat_id: ctx.chat_id.clone(), chat_store: ctx.chat_store.clone() };
 	let mut tools = vec![problem_tool(&gate, ctx.graph_nodes.clone(), problem_parameters(), None), conclude_tool(&gate, record)];
-	tools.extend(practice_side_tools(ctx.jobs.as_ref(), ctx.graph.as_ref(), &ctx.side, enabled));
+	tools.extend(practice_side_tools(ctx.jobs.as_ref(), &ctx.side, enabled));
 	heal_tool_record(tools)
 }
 
 /// The rarely needed set practice and homework share: the learner's files, the research and pdf
-/// jobs (demo and visual stay teach-only), the map readers when the settings gate opened, the space
-/// tools, save_rule and the deadline changes. The teacher's Settings switches apply to them.
-pub fn practice_side_tools(jobs: Option<&JobToolContext>, graph: Option<&GraphToolContext>, side: &LessonSide, enabled: Option<&Json>) -> Vec<FnTool> {
+/// jobs (demo and visual stay teach-only) and the lesson's side tools. The teacher's Settings
+/// switches apply to them.
+pub fn practice_side_tools(jobs: Option<&JobToolContext>, side: &LessonSide, enabled: Option<&Json>) -> Vec<FnTool> {
 	let mut tools = file_tools();
 	if let Some(jobs) = jobs {
 		tools.extend([research_tool(jobs), pdf_tool(jobs)]);
 	}
-	tools.extend(graph_and_side(graph, side));
+	tools.extend(side.tools());
 	filter_enabled(tools, enabled)
 }
 
@@ -347,7 +344,7 @@ mod tests {
 
 		let practice = |minutes| {
 			let PlanContext { chat_id, chat_store } = record(worked(minutes));
-			let ctx = PracticeToolContext { chat_id, chat_store, graph_nodes: None, graph: None, jobs: None, side: LessonSide::default() };
+			let ctx = PracticeToolContext { chat_id, chat_store, graph_nodes: None, jobs: None, side: LessonSide::default() };
 			practice_tools(&ctx, None).into_iter().find(|t| t.name() == "conclude").unwrap()
 		};
 		let out = conclude(&practice(26), "solved", Json::Null).await;

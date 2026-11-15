@@ -3,13 +3,12 @@
 
 use std::sync::Arc;
 
-use gs_core::graph::ports::ChatListing;
 use gs_json::Json;
 use gs_store::chats::ChatStore;
 use gs_store::jobs::{CreateJobInit, JobStore};
 
 /// The chat records the tools read (the open question, the plan tree) and the one thing they write.
-pub trait ChatPort: ChatListing {
+pub trait ChatPort: Send + Sync {
 	fn get_chat(&self, id: &str) -> Option<Json>;
 	fn save_tree(&self, id: &str, tree: &Json) -> Result<(), String>;
 }

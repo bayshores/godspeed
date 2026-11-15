@@ -12,7 +12,7 @@ use gs_agent::teacher::teacher_agent::{AgentBuildOptions, compose_instructions, 
 use gs_agent::tools::space::{SpaceSearch, SpaceToolContext};
 use gs_agent::tools::fn_tool::FnTool;
 use gs_agent::tools::space_actions::SpaceActions;
-use gs_agent::tools::graph::{GraphToolContext, ScopedGraph};
+use gs_agent::tools::graph::SearchGraph;
 use gs_agent::tools::homework::{HomeworkDeadline, HomeworkToolContext, homework_tools};
 use gs_agent::tools::jobs::JobToolContext;
 use gs_agent::tools::lesson_parts::LessonParts;
@@ -31,7 +31,6 @@ use gs_base::fsx;
 use gs_core::messages::citations::CheckedMarks;
 use gs_core::spaces::space_tools::{SpaceChange, ToolOutcome};
 use gs_core::contracts::space::SPACE_ICONS;
-use gs_core::graph::ports::{ChatListing, GraphStore, LedgerRewrite};
 use gs_engine::turn::abort::Abort;
 use gs_engine::turn::agent::Agent;
 use gs_engine::turn::faux::{Engine, Scripted, faux_model};
@@ -50,7 +49,7 @@ const KINDS: [(&str, AgentKind); 5] = [
 	("homework", AgentKind::Homework),
 ];
 
-// The stub world: the same chats, graphs and stores as the TypeScript golden.
+// The stub world: the same chats and stores as the TypeScript golden.
 
 fn tool_call(id: &str, name: &str, args: Json) -> Json {
 	json!({ "type": "toolCall", "id": id, "name": name, "arguments": args })
@@ -99,12 +98,6 @@ struct Chats {
 	saved: Mutex<Vec<Json>>,
 }
 
-impl ChatListing for Chats {
-	fn list_chats(&self) -> Vec<Json> {
-		vec![json!({ "id": "lesson", "title": "Limits", "createdAt": "2026-02-01T00:00:00.000Z", "updatedAt": "2026-02-02T00:00:00.000Z" })]
-	}
-}
-
 impl ChatPort for Chats {
 	fn get_chat(&self, id: &str) -> Option<Json> {
 		self.records.lock().iter().find(|(chat, _)| chat == id).map(|(_, record)| record.clone())
@@ -134,47 +127,8 @@ impl JobPort for Jobs {
 	}
 }
 
-/// A graph with only its nodes filled in.
-struct Graph(Vec<Json>);
-
-impl GraphStore for Graph {
-	fn append_node(&self, _node: &Json) -> Result<(), String> {
-		Err("read only".to_owned())
-	}
-	fn read_nodes(&self) -> Result<Vec<Json>, String> {
-		Ok(self.0.clone())
-	}
-	fn append_chain(&self, _assertion: &Json) -> Result<(), String> {
-		Err("read only".to_owned())
-	}
-	fn read_chains(&self) -> Result<Vec<Json>, String> {
-		Ok(Vec::new())
-	}
-	fn append_checkpoint(&self, _checkpoint: &Json) -> Result<(), String> {
-		Err("read only".to_owned())
-	}
-	fn read_checkpoints(&self) -> Result<Vec<Json>, String> {
-		Ok(Vec::new())
-	}
-	fn append_coverage(&self, _entry: &Json) -> Result<(), String> {
-		Err("read only".to_owned())
-	}
-	fn read_coverage(&self) -> Result<Vec<Json>, String> {
-		Ok(Vec::new())
-	}
-	fn read_sources(&self) -> Result<Vec<Json>, String> {
-		Ok(Vec::new())
-	}
-	fn remove_source(&self, _id: &str) -> Result<bool, String> {
-		Ok(false)
-	}
-	fn rewrite_ledgers(&self, _next: LedgerRewrite) -> Result<(), String> {
-		Err("read only".to_owned())
-	}
-}
-
-fn graph_node(id: &str, name: &str, chat: &str) -> Json {
-	json!({ "id": id, "name": name, "statement": format!("{name} holds."), "aliases": [], "createdAt": "2026-01-01T00:00:00.000Z", "provenance": [{ "chatId": chat, "messageId": "" }] })
+fn graph_node(id: &str, name: &str) -> Json {
+	json!({ "id": id, "name": name, "statement": format!("{name} holds.") })
 }
 
 /// The homework deadline: it keeps what the tools post and mark.
@@ -214,8 +168,6 @@ struct World {
 	jobs: Arc<Jobs>,
 	spawned: Arc<Mutex<Vec<Json>>>,
 	delivered: Arc<Mutex<Vec<Json>>>,
-	own: Arc<Graph>,
-	other: Arc<Graph>,
 }
 
 fn world() -> World {
@@ -224,8 +176,6 @@ fn world() -> World {
 		jobs: Arc::new(Jobs(Mutex::new(Vec::new()))),
 		spawned: Arc::new(Mutex::new(Vec::new())),
 		delivered: Arc::new(Mutex::new(Vec::new())),
-		own: Arc::new(Graph(vec![graph_node("n_a", "Alpha", "lesson"), graph_node("n_b", "Beta", "lesson"), graph_node("n_c", "Gamma", "gone")])),
-		other: Arc::new(Graph(vec![graph_node("n_x", "Xi", "other")])),
 	}
 }
 
@@ -267,6 +217,16 @@ fn space_search() -> Arc<SpaceSearch> {
 	})
 }
 
+/// The lesson's graph search over `facts`: names holding the query, or all of them without one.
+fn search_graph(facts: Vec<Json>) -> SearchGraph {
+	Arc::new(move |query| {
+		let found: Vec<Json> = facts.iter().filter(|f| query.as_deref().is_none_or(|q| f["name"].str_or_empty().contains(q))).cloned().collect();
+		let chains: Vec<Json> = if found.is_empty() { Vec::new() } else { vec![Json::from("Alpha → Beta")] };
+		let reply = json!({ "totalFacts": facts.len(), "facts": found, "chains": chains });
+		Box::pin(async move { Ok(reply) })
+	})
+}
+
 fn save_rule() -> SaveRule {
 	Arc::new(|rule, scope, area| {
 		if rule == "dup" {
@@ -305,7 +265,8 @@ impl World {
 		JobToolContext { chat_id: chat_id.to_owned(), job_store: self.jobs.clone(), spawn: self.spawn() }
 	}
 
-	/// The space card, [Today] note, file search, space note, rule saving and deadline changes.
+	/// The space card, [Today] note, file search, space note, graph search, rule saving and
+	/// deadline changes.
 	fn side(&self) -> LessonSide {
 		LessonSide {
 			space: Some(SpaceToolContext {
@@ -314,26 +275,14 @@ impl World {
 				search: Some(space_search()),
 				set_note: Some(Arc::new(|text| format!("Note saved: {text}"))),
 			}),
+			search_graph: Some(search_graph(vec![graph_node("n_a", "Alpha"), graph_node("n_b", "Beta")])),
 			save_rule: Some(save_rule()),
 			space_actions: Some(space_actions()),
 		}
 	}
 
-	fn graph(&self, store: Arc<dyn GraphStore>, across_spaces: bool) -> GraphToolContext {
-		let (own, other) = (self.own.clone(), self.other.clone());
-		let graphs: Option<Arc<dyn Fn() -> Vec<ScopedGraph> + Send + Sync>> = across_spaces.then(|| {
-			Arc::new(move || {
-				vec![
-					ScopedGraph { space_name: "Space One".to_owned(), graph_store: own.clone(), own: true },
-					ScopedGraph { space_name: "Space Two".to_owned(), graph_store: other.clone(), own: false },
-				]
-			}) as Arc<dyn Fn() -> Vec<ScopedGraph> + Send + Sync>
-		});
-		GraphToolContext { chat_store: self.chat_port(), graph_store: store, graphs }
-	}
-
 	fn prober(&self, chat_id: &str) -> ProberToolContext {
-		ProberToolContext { probe: ProbeDoneContext { chat_id: chat_id.to_owned(), chat_store: self.chat_port(), deliver: self.deliver() }, jobs: self.jobs(chat_id), graph: None, side: LessonSide::default() }
+		ProberToolContext { probe: ProbeDoneContext { chat_id: chat_id.to_owned(), chat_store: self.chat_port(), deliver: self.deliver() }, jobs: self.jobs(chat_id), side: LessonSide::default() }
 	}
 
 	fn teacher(&self, chat_id: &str) -> TeacherToolContext {
@@ -341,11 +290,11 @@ impl World {
 	}
 
 	fn practice(&self, chat_id: &str) -> PracticeToolContext {
-		PracticeToolContext { chat_id: chat_id.to_owned(), chat_store: self.chat_port(), graph_nodes: None, graph: None, jobs: None, side: LessonSide::default() }
+		PracticeToolContext { chat_id: chat_id.to_owned(), chat_store: self.chat_port(), graph_nodes: None, jobs: None, side: LessonSide::default() }
 	}
 
 	fn homework(&self, chat_id: &str, homework: Arc<Deadline>) -> HomeworkToolContext {
-		HomeworkToolContext { chat_id: chat_id.to_owned(), chat_store: self.chat_port(), homework, graph: None, jobs: None, side: LessonSide::default() }
+		HomeworkToolContext { chat_id: chat_id.to_owned(), chat_store: self.chat_port(), homework, jobs: None, side: LessonSide::default() }
 	}
 }
 
@@ -518,24 +467,14 @@ async fn run_cases(data: &Path) -> Vec<(&'static str, Json)> {
 	prober_minimal.side = LessonSide::default();
 	let mut prober_full = w.prober("lesson");
 	prober_full.side = w.side();
-	prober_full.graph = Some(w.graph(w.own.clone(), true));
-	let mut prober_recall = w.prober("lesson");
-	prober_recall.side = w.side();
-	prober_recall.graph = Some(w.graph(w.own.clone(), false));
 	let teacher_full = TeacherToolContext { side: w.side(), ..w.teacher("lesson") };
 	let study_ctx = StudyToolContext { teacher: teacher_full.clone(), graph_nodes: Some(nodes_of(vec![json!({ "id": "n_a", "name": "Alpha" })])), check_marks: marks_kept() };
-	let practice_full = PracticeToolContext {
-		graph_nodes: Some(nodes_of(Vec::new())),
-		graph: Some(w.graph(w.own.clone(), true)),
-		jobs: Some(w.jobs("lesson")),
-		side: w.side(),
-		..w.practice("lesson")
-	};
-	let homework_full = HomeworkToolContext { graph: Some(w.graph(w.own.clone(), false)), jobs: Some(w.jobs("lesson")), side: w.side(), ..w.homework("lesson", Deadline::new(Vec::new())) };
+	let practice_full = PracticeToolContext { graph_nodes: Some(nodes_of(Vec::new())), jobs: Some(w.jobs("lesson")), side: w.side(), ..w.practice("lesson") };
+	let homework_full = HomeworkToolContext { jobs: Some(w.jobs("lesson")), side: w.side(), ..w.homework("lesson", Deadline::new(Vec::new())) };
 
 	case("registry: prober minimal", describe(&prober_tools(&prober_minimal, None)));
 	case("registry: prober full", describe(&prober_tools(&prober_full, None)));
-	case("registry: prober free recall and toggles", describe(&prober_tools(&prober_recall, Some(&off))));
+	case("registry: prober free recall and toggles", describe(&prober_tools(&prober_full, Some(&off))));
 	case("registry: teacher minimal", describe(&teacher_tools(&w.teacher("lesson"), None)));
 	case("registry: teacher full", describe(&teacher_tools(&teacher_full, None)));
 	case("registry: teacher free recall and toggles", describe(&teacher_tools(&teacher_full, Some(&json!({ "explain": true, "demo": false, "visual": false })))));
@@ -690,16 +629,16 @@ async fn run_cases(data: &Path) -> Vec<(&'static str, Json)> {
 	let no_today = script(&space_only(Arc::new(|| Ok(Some(card())))), vec![("read_space", json!({}))]).await;
 	case("space: tools", json!({ "out": out, "gone": gone, "noToday": no_today }));
 	let w = world();
-	let with_graph = |graph: GraphToolContext| ProberToolContext { graph: Some(graph), ..w.prober("lesson") };
-	let own = prober_tools(&with_graph(w.graph(w.own.clone(), false)), None);
-	let cross = prober_tools(&with_graph(w.graph(w.own.clone(), true)), None);
-	let empty = prober_tools(&with_graph(w.graph(Arc::new(Graph(Vec::new())), false)), None);
+	let with_search = |search: SearchGraph| prober_tools(&ProberToolContext { side: LessonSide { search_graph: Some(search), ..LessonSide::default() }, ..w.prober("lesson") }, None);
+	let found = with_search(search_graph(vec![graph_node("n_a", "Alpha"), graph_node("n_b", "Beta")]));
+	let empty = with_search(search_graph(Vec::new()));
+	let failing = with_search(Arc::new(|_| Box::pin(async { Err("The graph could not be read.".to_owned()) })));
 	case(
-		"graph: tools",
+		"graph: search",
 		json!({
-			"own": script(&own, vec![("list_sessions", json!({})), ("list_propositions", json!({ "session": "lesson" })), ("list_propositions", json!({ "session": "nope" })), ("list_propositions", json!({ "session": "gone" }))]).await,
-			"cross": script(&cross, vec![("list_sessions", json!({})), ("list_propositions", json!({ "session": "other" })), ("list_propositions", json!({ "session": "lesson" }))]).await,
-			"empty": script(&empty, vec![("list_sessions", json!({}))]).await,
+			"found": script(&found, vec![("search_graph", json!({ "query": "Alpha" })), ("search_graph", json!({}))]).await,
+			"empty": script(&empty, vec![("search_graph", json!({ "query": "Alpha" }))]).await,
+			"failing": script(&failing, vec![("search_graph", json!({ "query": "Alpha" }))]).await,
 		}),
 	);
 

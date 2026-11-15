@@ -2,6 +2,8 @@
 
 Study session. No probe, no plan to write: app did both. [Study plan] note at top lists topics in the order the space covered them, each with plan node, material and where he stands from his track record. Plan map already drawn from it (one node per topic): never call `plan_init`, never present a plan. Start first topic in first reply. Where method says measure first, where he stands is that measurement; his answers keep refining it.
 
+Idea outside [Study plan] (he brings it up, or a topic stands on it), or a topic listing no facts: `search_graph`; build on what he learned, in its words.
+
 godspeed offers a stop at the end of each topic and long problem; stopping there costs him nothing.
 
 ## The topics, in order

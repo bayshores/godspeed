@@ -147,7 +147,7 @@ Each system writes only its own store. They talk through three protocols:
 - Ack-and-steer: a job tool answers at once, the Workbench runs the job, and the result comes back into the lesson (§5.1).
 - The extraction trigger: the Classroom tells the Library to read new teacher prose (§6).
 
-Study, practice and homework are lesson kinds inside the Classroom, not separate systems (§7). The teacher reads the graph through two read-only tools, `list_sessions` and `list_propositions` (§6). Nothing pushes graph context into a lesson.
+Study, practice and homework are lesson kinds inside the Classroom, not separate systems (§7). Every lesson reads its own graph through one read-only tool, `search_graph` (§6). A study lesson also starts with the picked facts and their chains in a `[Session context]` note and its topics in a `[Study plan]` note (§7).
 
 ```mermaid
 flowchart TB
@@ -431,9 +431,15 @@ The same pipeline reads notes and space files:
 - Deleting an implication node (any `arg_` id) removes exactly that one stored chain.
 - The same confirm dialog (`src/frontend/components/delete-node-dialog.tsx`) opens from a fact's right-click menu and from the chain table's Delete.
 
-### The teacher's graph tools
+### The teacher's graph tool
 
-The teacher reads the graph only through `list_sessions` (birth sessions, the learner's files) and `list_propositions` (the facts a session covered), in `agent::tools::graph`. The `agent.graphTools` setting turns them off. There is no topic embedding, no top-K pick and no start-of-lesson injection.
+Every lesson kind has one graph tool, `search_graph` (`agent::tools::graph`). It works like this:
+
+1. It searches only the lesson's own graph: its space's graph, or "No space" for a lesson without a space.
+2. With a query, it ranks facts by meaning and keywords (`search_facts`, `crates/search`). Without one, it gives the newest facts.
+3. It returns at most 8 facts (id, name, statement) and at most 8 chains whose conclusion or a premise is among them, written as "premises → conclusion".
+
+The body is `search_graph` in `services::graph::graph`, shared with the MCP tool of the same name (§8.1). The `agent.graphTools` setting, or the graph turned off, removes the tool from every lesson (`graph_tools_enabled`). Besides this tool, a study lesson starts with the `[Session context]` and `[Study plan]` notes (§7).
 
 ### The Graph page
 
@@ -447,7 +453,7 @@ The topic grouper (`agent::extraction::topic_grouper`, scheduled by `services::g
 
 ### 6.1 Spaces
 
-Each space has its own graph. `graph_store_for(app, scope)` (`services::graph::graph`) gives `data/graph/` for "No space" and `data/spaces/<id>/graph/` for a space. Extraction picks the graph from the source's space, so lessons and files write into their own space's graph. Reads may cross spaces (the prober's tools can read several graphs), but `merge_findings` writes only the source's own graph.
+Each space has its own graph. `graph_store_for(app, scope)` (`services::graph::graph`) gives `data/graph/` for "No space" and `data/spaces/<id>/graph/` for a space. Extraction picks the graph from the source's space, so lessons and files write into their own space's graph. A lesson reads only its own space's graph, and `merge_findings` writes only the source's own graph.
 
 Where the space code lives:
 
@@ -932,6 +938,7 @@ The forget hook: when Claude Code compacts or the learner runs `/clear`, `.godsp
 Besides the loop, agents get lesson, graph and space tools (`crates/server/src/mcp/tools.json`):
 
 - `list_lessons` takes `space_id` (a space or `"none"`) and `limit` (default 20, at most 200) and returns `{lessons, total}`.
+- `search_graph` takes `space_id`, `query` and `limit` (default 30, at most 200), which caps both facts and chains. The lesson tool `search_graph` runs the same code (`services::graph::graph`) on the lesson's own graph with a limit of 8.
 - `read_lesson` pages a long lesson like a work item.
 - `read_space` gives file counts by status and only the failed files; `files: true` lists them all. Its deadlines carry their about file.
 - `add_space_file` takes a `path`, or a `name` and `text` (up to 20,000 characters) to write a Markdown file into the space. A written file is marked `written` on its entry, and a later write by that name replaces only such a file; a name the learner's own file has is refused.
@@ -1130,7 +1137,7 @@ Each seam is the one place a future change should touch.
 | Turn composition | `services::turns::chat_handler` | what a turn consists of |
 | Extraction trigger | `services::turns::turn_service` (`trigger_extraction`) | when the Library runs |
 | Outside-agent boundary | `server::mcp` (tools, access check) and `engine::bridge` (work items) | what agents can do and how work reaches them |
-| Teacher's graph access | `agent::tools::graph` (`list_sessions`, `list_propositions`) | what the teacher can read of the graph |
+| Teacher's graph access | `agent::tools::graph` (`search_graph`), filled in by `services::turns::lesson_agent` | what the teacher can read of the graph |
 | Steer delivery | `services::jobs` (`deliver_job_result`, `set_turn_runner`, `set_job_respawn`) | how background results re-enter lessons |
 | Push events | `Events` in `crates/base`, `server::http::events`, `src/frontend/components/server-events.tsx`; vocabulary in `src/shared/core/events.ts` | change notification, end to end |
 | Agent construction | `AgentBuildOptions` in `agent::teacher::teacher_agent` | scripted engines and tool registries in tests |

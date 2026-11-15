@@ -3,8 +3,6 @@
 
 use std::collections::{HashMap, HashSet};
 
-use gs_base::locale;
-use gs_base::text::cmp16;
 use gs_json::{Json, Obj, json};
 
 pub use super::merge::{MergeSource, merge_findings};
@@ -15,7 +13,7 @@ use super::clusters::MIN_CLUSTER_SIZE;
 use super::ledger_lines::{chain_key_of, union_points};
 use super::ordered::OrderedMap;
 use super::ports::{GraphDeps, GraphStore};
-use super::session_clusters::{BirthSessionCluster, attach_imp_to_communities, birth_session_of, birth_session_partition};
+use super::session_clusters::{BirthSessionCluster, attach_imp_to_communities, birth_session_partition};
 
 /// The merged stored truth: propositions and chains. No derived implication nodes.
 pub struct DerivedGraph {
@@ -203,45 +201,6 @@ pub fn graph_snapshot(deps: &GraphDeps) -> Result<Json, String> {
 	Ok(Json::from(out))
 }
 
-/// The teacher's session list: every birth session, most recently active first (records that
-/// cannot be dated sink, in id order). Each entry is `{ id, name, kind, createdAt, updatedAt,
-/// propositions }`.
-pub fn graph_session_index(deps: &GraphDeps) -> Result<Vec<Json>, String> {
-	let born = get_graph(deps.graph_store)?;
-	let chats = deps.chat_store.list_chats();
-	let sources = deps.graph_store.read_sources()?;
-	let chat_by_id: HashMap<&str, &Json> = chats.iter().filter_map(|c| Some((c["id"].as_str()?, c))).collect();
-	let source_by_id: HashMap<&str, &Json> = sources.iter().filter_map(|s| Some((s["id"].as_str()?, s))).collect();
-	let mut entries: Vec<Json> = Vec::new();
-	for cluster in birth_session_partition(&born.nodes) {
-		let (id, propositions) = (cluster.id.as_str(), cluster.members.len());
-		if let Some(chat) = chat_by_id.get(id) {
-			entries.push(json!({ "id": id, "name": chat["title"], "kind": "chat", "createdAt": chat["createdAt"], "updatedAt": chat["updatedAt"], "propositions": propositions }));
-		} else if !id.starts_with("src_") {
-			// A chat deleted with its graph kept.
-			entries.push(json!({ "id": id, "name": "deleted lesson", "kind": "chat", "createdAt": null, "updatedAt": null, "propositions": propositions }));
-		} else {
-			let source = source_by_id.get(id);
-			let imported = source.map_or(Json::Null, |s| s["importedAt"].clone());
-			let name = source.and_then(|s| s["filePath"].as_str()).unwrap_or(id);
-			entries.push(json!({ "id": id, "name": name, "kind": "file", "createdAt": imported, "updatedAt": imported, "propositions": propositions }));
-		}
-	}
-	let text = |entry: &Json, key: &str| -> String { entry[key].str_or_empty().to_owned() };
-	entries.sort_by(|a, b| {
-		let ids = || cmp16(a["id"].str_or_empty(), b["id"].str_or_empty());
-		locale::compare(&text(b, "updatedAt"), &text(a, "updatedAt")).then_with(|| locale::compare(&text(b, "createdAt"), &text(a, "createdAt"))).then_with(ids)
-	});
-	Ok(entries)
-}
-
-/// The propositions born in one session, as `{ nodeId, name }` sorted by node id.
-pub fn graph_session_propositions(deps: &GraphDeps, session_id: &str) -> Result<Vec<Json>, String> {
-	let mut born: Vec<Json> = get_graph(deps.graph_store)?.nodes.iter().filter(|node| birth_session_of(node) == Some(session_id)).map(|node| json!({ "nodeId": node["id"], "name": node["name"] })).collect();
-	born.sort_by(|a, b| cmp16(a["nodeId"].str_or_empty(), b["nodeId"].str_or_empty()));
-	Ok(born)
-}
-
 #[cfg(test)]
 mod tests {
 	use super::*;
@@ -282,19 +241,6 @@ mod tests {
 		let memory = Memory::with(nodes, vec![]);
 		memory.ledgers.lock().unwrap().sources = vec![json!({ "id": "src_f", "filePath": "notes/a.pdf", "importedAt": "2026-01-02T00:00:00.000Z" })];
 		(memory, Chats(vec![json!({ "id": "c1", "title": "First lesson", "createdAt": "2026-01-01T00:00:00.000Z", "updatedAt": "2026-01-03T00:00:00.000Z" })]))
-	}
-
-	#[test]
-	fn the_session_list_runs_newest_first_and_names_every_kind() {
-		let (memory, chats) = world();
-		let deps = GraphDeps { chat_store: &chats, graph_store: &memory };
-		let index = graph_session_index(&deps).unwrap();
-		let got: Vec<(&str, &str, &str)> = index.iter().map(|e| (e["id"].as_str().unwrap(), e["name"].as_str().unwrap(), e["kind"].as_str().unwrap())).collect();
-		assert_eq!(got, [("c1", "First lesson", "chat"), ("src_f", "notes/a.pdf", "file"), ("gone", "deleted lesson", "chat")]);
-		assert_eq!(index[0]["propositions"], Json::from(3));
-		assert!(index[2]["updatedAt"].is_null());
-		let born = graph_session_propositions(&deps, "c1").unwrap();
-		assert_eq!(born.iter().map(|b| b["nodeId"].as_str().unwrap()).collect::<Vec<_>>(), ["n_a", "n_b", "n_c"]);
 	}
 
 	#[test]

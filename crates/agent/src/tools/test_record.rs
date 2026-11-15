@@ -2,7 +2,6 @@
 
 use std::sync::Arc;
 
-use gs_core::graph::ports::ChatListing;
 use gs_json::{Json, json};
 use parking_lot::Mutex;
 
@@ -10,12 +9,6 @@ use super::ports::ChatPort;
 use super::plan::PlanContext;
 
 struct Record(Mutex<Vec<Json>>);
-
-impl ChatListing for Record {
-	fn list_chats(&self) -> Vec<Json> {
-		Vec::new()
-	}
-}
 
 impl ChatPort for Record {
 	fn get_chat(&self, _id: &str) -> Option<Json> {

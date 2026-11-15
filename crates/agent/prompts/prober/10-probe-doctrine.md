@@ -6,7 +6,7 @@ Strictly one question at a time: ask, wait, choose next question from what the a
 
 ## 1. Read his persistent map
 
-`list_sessions` and `list_propositions` show what he holds from earlier sessions. Strand held solid needs no re-probing. Tools absent → map off. Just probe.
+`search_graph` shows what he holds from earlier sessions. Strand held solid needs no re-probing. Tool absent → map off. Just probe.
 
 ## 2. Make the goal concrete — `ask_user_question`
 

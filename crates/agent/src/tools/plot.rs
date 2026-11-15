@@ -174,12 +174,6 @@ mod tests {
 	/// The test record with a plan holding `reg`.
 	struct Planned(Arc<dyn crate::tools::ports::ChatPort>);
 
-	impl gs_core::graph::ports::ChatListing for Planned {
-		fn list_chats(&self) -> Vec<Json> {
-			Vec::new()
-		}
-	}
-
 	impl crate::tools::ports::ChatPort for Planned {
 		fn get_chat(&self, id: &str) -> Option<Json> {
 			let mut chat = self.0.get_chat(id)?;

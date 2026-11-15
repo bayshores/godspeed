@@ -7,7 +7,7 @@ use std::sync::Arc;
 use gs_agent::extraction::ledgers;
 use gs_agent::teacher::teacher_agent::{AgentBuildOptions, create_homework_agent, create_practice_agent, create_prober_agent, create_study_agent, create_teacher_agent};
 use gs_agent::tools::space::SpaceToolContext;
-use gs_agent::tools::graph::{GraphToolContext, ScopedGraph};
+use gs_agent::tools::graph::SearchGraph;
 use gs_agent::tools::homework::HomeworkToolContext;
 use gs_agent::tools::jobs::JobToolContext;
 use gs_agent::tools::lesson::{ProberToolContext, StudyToolContext, TeacherToolContext};
@@ -32,6 +32,7 @@ use super::chat_handler::send_first_message;
 use super::homework::homework_deadline;
 use super::job_host::run_job;
 use crate::App;
+use crate::graph::graph::search_graph;
 use crate::app::agent_rules::save_rule_by_agent;
 use crate::app::today_note::current_today_note;
 use crate::spaces::space_actions::space_actions;
@@ -58,29 +59,18 @@ fn lesson_space_rules(app: &App, space_id: Option<&str>) -> Option<(String, Vec<
 	Some((cls["name"].str_or_empty().to_owned(), rules))
 }
 
-fn graph_of(app: &Arc<App>, scope: Option<&str>) -> Arc<dyn GraphStore> {
-	Arc::new(ledgers::ScopedGraph::new(&app.stores.graphs, scope))
-}
-
-/// Every space graph plus "No space", `own` marking the lesson's (reads may cross spaces, writes
-/// never do).
-fn scoped_graphs(app: &Arc<App>, lesson_scope: Option<&str>) -> Arc<dyn Fn() -> Vec<ScopedGraph> + Send + Sync> {
+/// search_graph over the lesson's own graph only, a few facts and chains at a time.
+fn lesson_graph_search(app: &Arc<App>, lesson_scope: Option<&str>) -> SearchGraph {
 	let (app, lesson_scope) = (app.clone(), lesson_scope.map(str::to_owned));
-	Arc::new(move || {
-		let spaces = app.stores.spaces.list_spaces();
-		let scopes = std::iter::once((None, "No space")).chain(spaces.iter().map(|c| (c["id"].as_str(), c["name"].str_or_empty())));
-		scopes.map(|(scope, name)| ScopedGraph { space_name: name.to_owned(), graph_store: graph_of(&app, scope), own: scope == lesson_scope.as_deref() }).collect()
+	Arc::new(move |query| {
+		let (app, lesson_scope) = (app.clone(), lesson_scope.clone());
+		Box::pin(async move { search_graph(&app, lesson_scope.as_deref(), query.as_deref(), 8).await })
 	})
-}
-
-/// The map readers, when the settings open them to the agent.
-fn graph_tools(app: &Arc<App>, effective: &Json, lesson_scope: Option<&str>) -> Option<GraphToolContext> {
-	graph_tools_enabled(effective).then(|| GraphToolContext { chat_store: app.stores.chats.clone(), graph_store: graph_of(app, lesson_scope), graphs: Some(scoped_graphs(app, lesson_scope)) })
 }
 
 /// The whole graph's nodes, read fresh per pose.
 fn graph_nodes(app: &Arc<App>, scope: Option<&str>) -> GraphNodes {
-	let graph = graph_of(app, scope);
+	let graph: Arc<dyn GraphStore> = Arc::new(ledgers::ScopedGraph::new(&app.stores.graphs, scope));
 	Arc::new(move || graph.read_nodes().unwrap_or_default())
 }
 
@@ -157,17 +147,22 @@ pub(super) fn build_lesson_agent(app: &Arc<App>, record: &Json, effective: &Json
 		Arc::new(move |job: &Json, input: &Json| run_job(&app, job["id"].str_or_empty(), Some(input.clone())))
 	};
 	let jobs = JobToolContext { chat_id: chat_id.clone(), job_store: app.stores.jobs.clone(), spawn };
-	let side = LessonSide { space: lesson_scope.map(|id| space_tools(app, id, pdf_on)), save_rule: Some(save_rule(app, lesson_scope)), space_actions: Some(agent_space_actions(app)) };
+	let side = LessonSide {
+		space: lesson_scope.map(|id| space_tools(app, id, pdf_on)),
+		search_graph: graph_tools_enabled(effective).then(|| lesson_graph_search(app, lesson_scope)),
+		save_rule: Some(save_rule(app, lesson_scope)),
+		space_actions: Some(agent_space_actions(app)),
+	};
 	let teacher = || TeacherToolContext { plan: PlanContext { chat_id: chat_id.clone(), chat_store: chats.clone() }, jobs: jobs.clone(), side: side.clone() };
 
 	let kind = record["kind"].as_str();
 	match (kind, lesson_scope, record["deadlineId"].as_str()) {
 		(Some("practice"), ..) => {
-			let ctx = PracticeToolContext { chat_id, chat_store: chats, graph_nodes: Some(graph_nodes(app, lesson_scope)), graph: graph_tools(app, effective, lesson_scope), jobs: Some(jobs), side };
+			let ctx = PracticeToolContext { chat_id, chat_store: chats, graph_nodes: Some(graph_nodes(app, lesson_scope)), jobs: Some(jobs), side };
 			create_practice_agent(&ctx, opts)
 		}
 		(Some("homework"), Some(space_id), Some(deadline_id)) if !space_id.is_empty() && !deadline_id.is_empty() => {
-			let ctx = HomeworkToolContext { chat_id, chat_store: chats, homework: homework_deadline(app, space_id, deadline_id), graph: graph_tools(app, effective, lesson_scope), jobs: Some(jobs), side };
+			let ctx = HomeworkToolContext { chat_id, chat_store: chats, homework: homework_deadline(app, space_id, deadline_id), jobs: Some(jobs), side };
 			create_homework_agent(&ctx, opts)
 		}
 		(Some("study"), ..) => {
@@ -181,7 +176,7 @@ pub(super) fn build_lesson_agent(app: &Arc<App>, record: &Json, effective: &Json
 		_ => {
 			let deliver_app = app.clone();
 			let probe = ProbeDoneContext { chat_id: chat_id.clone(), chat_store: chats.clone(), deliver: Arc::new(move |steer| deliver_job_result(&deliver_app, steer)) };
-			create_prober_agent(&ProberToolContext { probe, jobs, graph: graph_tools(app, effective, lesson_scope), side }, opts)
+			create_prober_agent(&ProberToolContext { probe, jobs, side }, opts)
 		}
 	}
 }
@@ -193,12 +188,14 @@ mod tests {
 	use super::*;
 	use crate::app::test_support::{scratch_dir, test_app};
 
-	fn tool_names(app: &Arc<App>, kind: &str) -> Vec<String> {
-		let record = json!({ "id": "chat_a", "kind": kind, "messages": [] });
-		let effective = app.stores.settings.effective_settings().unwrap();
+	fn names_for(app: &Arc<App>, record: &Json, effective: &Json) -> Vec<String> {
 		let turn = TurnAgent { chat_id: "chat_a".to_owned(), messages: Vec::new(), teaching: false, side_turn: false, engine: agent_engine(&app.bridge) };
-		let agent = build_lesson_agent(app, &record, &effective, turn);
+		let agent = build_lesson_agent(app, record, effective, turn);
 		agent.messages()[0]["toolsAdded"].as_arr().unwrap().iter().map(|t| t["name"].as_str().unwrap().to_owned()).collect()
+	}
+
+	fn tool_names(app: &Arc<App>, kind: &str) -> Vec<String> {
+		names_for(app, &json!({ "id": "chat_a", "kind": kind, "messages": [] }), &app.stores.settings.effective_settings().unwrap())
 	}
 
 	#[test]
@@ -211,5 +208,25 @@ mod tests {
 		for kind in ["practice", "lesson"] {
 			assert!(tool_names(&app, kind).contains(&"add_space_deadline".to_owned()), "{kind}");
 		}
+	}
+
+	#[test]
+	fn every_lesson_searches_its_own_graph_while_the_graph_switch_is_on() {
+		let root = scratch_dir("lesson-agent-graph");
+		let app = test_app(&root);
+		let space_id = app.stores.spaces.create_space(&json!({ "name": "Botany" })).unwrap()["id"].as_str().unwrap().to_owned();
+		let effective = app.stores.settings.effective_settings().unwrap();
+		let in_space = names_for(&app, &json!({ "id": "chat_a", "kind": "study", "spaceId": space_id, "messages": [] }), &effective);
+		assert!(in_space.contains(&"search_graph".to_owned()) && in_space.contains(&"read_space".to_owned()), "{in_space:?}");
+		let no_space = tool_names(&app, "study");
+		assert!(no_space.contains(&"search_graph".to_owned()) && !no_space.contains(&"read_space".to_owned()), "{no_space:?}");
+		for kind in ["practice", "lesson"] {
+			assert!(tool_names(&app, kind).contains(&"search_graph".to_owned()), "{kind}");
+		}
+
+		let mut off = effective.clone();
+		off.get_mut("graph").and_then(Json::as_obj_mut).unwrap().insert("enabled", false);
+		let study = names_for(&app, &json!({ "id": "chat_a", "kind": "study", "messages": [] }), &off);
+		assert!(!study.contains(&"search_graph".to_owned()), "{study:?}");
 	}
 }

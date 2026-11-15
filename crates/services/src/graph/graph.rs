@@ -1,14 +1,16 @@
 //! The graph reads and single-node deletion (server/graph.ts): the home view, its cost pill, the
-//! revision stamp, and deleting one node with everything that names it.
+//! revision stamp, the graph search, and deleting one node with everything that names it.
 
+use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 
 use gs_agent::extraction::extraction_runs::RunKind;
 use gs_agent::extraction::ledgers::ScopedGraph;
 use gs_base::config::GraphFiles;
-use gs_base::fsx;
 use gs_base::locks::LockKey;
-use gs_core::graph::graph::graph_snapshot;
+use gs_base::{fsx, locale, text};
+use gs_core::graph::chains::format_chain_line;
+use gs_core::graph::graph::{get_graph, graph_snapshot};
 use gs_core::graph::graph_deletion::{ChatDeleteMode, ChatDeletionStats, delete_chat_traces, delete_node_traces};
 use gs_core::graph::ports::{GraphDeps, GraphStore};
 use gs_core::session::cost_summary::graph_cost_summary;
@@ -32,6 +34,39 @@ pub fn delete_chat_from_graph(app: &App, scope: Option<&str>, chat_id: &str, mod
 /// Everything the graph view shows for one scope. A pure read: only extraction writes graphs.
 pub fn graph_view(app: &App, scope: Option<&str>) -> Result<Json, String> {
 	graph_snapshot(&GraphDeps { chat_store: app.stores.chats.as_ref(), graph_store: graph_store_for(app, scope).as_ref() })
+}
+
+/// One scope's facts for `query` (newest first without one), at most `limit`, with the chains
+/// whose conclusion or a premise is among them, at most `limit` too.
+pub async fn search_graph(app: &App, scope: Option<&str>, query: Option<&str>, limit: usize) -> Result<Json, String> {
+	let graph = get_graph(graph_store_for(app, scope).as_ref())?;
+	let found: Vec<&Json> = match query.filter(|q| !text::trim(q).is_empty()) {
+		Some(query) => {
+			let by_id: HashMap<&str, &Json> = graph.nodes.iter().map(|n| (n["id"].str_or_empty(), n)).collect();
+			let ids = app.search.search_facts(scope, &graph.nodes, query, limit).await?;
+			ids.iter().filter_map(|id| by_id.get(id.as_str()).copied()).collect()
+		}
+		None => {
+			let mut newest: Vec<&Json> = graph.nodes.iter().collect();
+			newest.sort_by(|a, b| locale::compare(b["createdAt"].str_or_empty(), a["createdAt"].str_or_empty()));
+			newest.truncate(limit);
+			newest
+		}
+	};
+	let picked: HashSet<&str> = found.iter().filter_map(|n| n["id"].as_str()).collect();
+	let names: HashMap<String, String> = graph.nodes.iter().filter_map(|n| Some((n["id"].as_str()?.to_owned(), n["name"].as_str()?.to_owned()))).collect();
+	let chains: Vec<String> = graph
+		.chains
+		.iter()
+		.filter_map(|c| {
+			let premises: Vec<&str> = c["premises"].items().iter().filter_map(Json::as_str).collect();
+			let conclusion = c["conclusion"].str_or_empty();
+			(picked.contains(conclusion) || premises.iter().any(|p| picked.contains(p))).then(|| format_chain_line(&premises, conclusion, &names))
+		})
+		.take(limit)
+		.collect();
+	let facts: Vec<Json> = found.iter().map(|n| json!({ "id": n["id"], "name": n["name"], "statement": n["statement"] })).collect();
+	Ok(json!({ "totalFacts": graph.nodes.len(), "facts": facts, "chains": chains }))
 }
 
 /// The cost pill: what the graph pipeline spent, from the scope's lessons and imported notes.
@@ -105,4 +140,37 @@ pub fn delete_graph_node(app: &App, node_id: &str, scope: Option<&str>) -> Resul
 		return Ok(Err(NodeDeleteRefusal { status: 404, code: "not_found", error: "No such node" }));
 	};
 	Ok(Ok(json!({ "stats": { "chainsRemoved": stats.chains_removed }, "graphRevision": graph_revision(app, scope) })))
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use crate::app::test_support::{scratch_dir, test_app};
+
+	fn node(id: &str, at: &str) -> Json {
+		json!({ "id": id, "name": id.to_uppercase(), "statement": format!("{id} holds."), "aliases": [], "createdAt": at, "provenance": [] })
+	}
+
+	#[tokio::test]
+	async fn search_without_a_query_gives_the_newest_facts_and_caps_the_chains() {
+		let root = scratch_dir("search-graph");
+		let app = test_app(&root);
+		let empty = json!({ "totalFacts": 0, "facts": [], "chains": [] });
+		assert_eq!(search_graph(&app, None, None, 8).await.unwrap(), empty);
+		assert_eq!(search_graph(&app, None, Some("limits"), 8).await.unwrap(), empty);
+
+		let store = graph_store_for(&app, None);
+		for (id, at) in [("a", "2026-01-01T00:00:00.000Z"), ("c", "2026-01-03T00:00:00.000Z"), ("b", "2026-01-02T00:00:00.000Z"), ("d", "2025-12-31T00:00:00.000Z")] {
+			store.append_node(&node(id, at)).unwrap();
+		}
+		// arg_3 touches neither picked fact; arg_4 does but is past the cap.
+		for (id, premises, conclusion) in [("arg_1", vec!["b", "a"], "c"), ("arg_2", vec!["a"], "b"), ("arg_3", vec!["d"], "a"), ("arg_4", vec!["c"], "a")] {
+			store.append_chain(&json!({ "id": id, "premises": premises, "conclusion": conclusion, "createdAt": "2026-01-04T00:00:00.000Z", "provenance": [] })).unwrap();
+		}
+		let found = search_graph(&app, None, None, 2).await.unwrap();
+		assert_eq!(found["totalFacts"], json!(4));
+		assert_eq!(found["facts"], json!([{ "id": "c", "name": "C", "statement": "c holds." }, { "id": "b", "name": "B", "statement": "b holds." }]));
+		assert_eq!(found["chains"], json!(["A, B → C", "A → B"]));
+		assert_eq!(search_graph(&app, None, Some("  "), 2).await.unwrap(), found);
+	}
 }

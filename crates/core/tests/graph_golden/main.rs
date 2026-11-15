@@ -17,7 +17,7 @@ use gs_json::{Json, parse};
 
 fn replay(op: &str, input: &Json) -> Json {
 	match op {
-		"get_graph" | "derive_view" | "snapshot" | "session_index" | "simplify" => ops_reads::run(op, input),
+		"get_graph" | "derive_view" | "snapshot" | "simplify" => ops_reads::run(op, input),
 		"resolve_topics" | "repair_topics" | "topic_names" => ops_topics::run(op, input),
 		"chains_selection" | "resolve_target" | "format_chain_line" | "session_clusters" | "session_clusters_ledgers" => ops_clusters::run(op, input),
 		"coverage" => ops_coverage::run(input),

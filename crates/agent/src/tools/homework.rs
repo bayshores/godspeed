@@ -17,7 +17,6 @@ use gs_json::{Json, js_number, json, quote};
 use parking_lot::Mutex;
 
 use super::fn_tool::FnTool;
-use super::graph::GraphToolContext;
 use super::heal::heal_tool_record;
 use super::jobs::JobToolContext;
 use super::ports::ChatPort;
@@ -38,7 +37,6 @@ pub struct HomeworkToolContext {
 	pub chat_id: String,
 	pub chat_store: Arc<dyn ChatPort>,
 	pub homework: Arc<dyn HomeworkDeadline>,
-	pub graph: Option<GraphToolContext>,
 	pub jobs: Option<JobToolContext>,
 	pub side: LessonSide,
 }
@@ -154,7 +152,7 @@ fn conclude_tool(ctx: &HomeworkToolContext, open: &Arc<Mutex<Option<String>>>) -
 pub fn homework_tools(ctx: &HomeworkToolContext, enabled: Option<&Json>) -> Vec<FnTool> {
 	let open = Arc::new(Mutex::new(open_problem_of(ctx)));
 	let mut tools = vec![post_problems_tool(ctx.homework.clone()), problem_tool(ctx.homework.clone(), &open), part_tool(&open), conclude_tool(ctx, &open)];
-	tools.extend(practice_side_tools(ctx.jobs.as_ref(), ctx.graph.as_ref(), &ctx.side, enabled));
+	tools.extend(practice_side_tools(ctx.jobs.as_ref(), &ctx.side, enabled));
 	heal_tool_record(tools)
 }
 
@@ -190,7 +188,7 @@ mod tests {
 		let worked: Vec<Json> = (0..6).map(|i| learner_at(22 - 4 * i)).collect();
 		let PlanContext { chat_id, chat_store } = record([vec![posed, result], worked].concat());
 		let homework = Arc::new(Deadline(Mutex::new(problems.as_arr().unwrap().clone())));
-		let ctx = HomeworkToolContext { chat_id, chat_store, homework, graph: None, jobs: None, side: LessonSide::default() };
+		let ctx = HomeworkToolContext { chat_id, chat_store, homework, jobs: None, side: LessonSide::default() };
 		let tool = homework_tools(&ctx, None).into_iter().find(|t| t.name() == "conclude").unwrap();
 		tool.execute(json!({ "outcome": outcome, "verdict": "v" }), ToolContext { tool_call_id: "c1".to_owned(), abort: Abort::new() }).await.unwrap()
 	}

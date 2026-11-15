@@ -12,7 +12,6 @@ use gs_engine::turn::tool_execute::invalid_input_result;
 use gs_json::Json;
 
 use super::fn_tool::FnTool;
-use super::graph::GraphToolContext;
 use super::heal::heal_tool_record;
 use super::jobs::{JobToolContext, demo_tool, pdf_tool, research_tool, visual_tool};
 use super::lesson_parts::LessonParts;
@@ -21,7 +20,7 @@ use super::plot::plot_tool;
 use super::practice::{GraphNodes, PlanNodes, TurnGate, problem_is_active, study_problem_tools};
 use super::probe::{ProbeDoneContext, ProbeGate, probe_done_tool};
 use super::questions::{ask_user_question_tool, plan_node_ids, probe_explain_tool, probe_quiz_tool, study_quiz_tool, teach_explain_tool, teach_quiz_tool, write_code_tool};
-use super::side::{LessonSide, file_tools, filter_enabled, graph_and_side};
+use super::side::{LessonSide, file_tools, filter_enabled};
 use super::topic_done::{CheckMarks, topic_done_tool};
 use super::work_plan::work_plan_tool;
 
@@ -31,8 +30,6 @@ use super::work_plan::work_plan_tool;
 pub struct ProberToolContext {
 	pub probe: ProbeDoneContext,
 	pub jobs: JobToolContext,
-	/// Present when the settings gate opened the map readers.
-	pub graph: Option<GraphToolContext>,
 	pub side: LessonSide,
 }
 
@@ -95,7 +92,7 @@ fn with_probe_gate(gate: &Arc<ProbeGate>, tool: FnTool) -> FnTool {
 }
 
 /// The prober's tools: the probe quiz (recall under free recall) and ask, the learner's files,
-/// research and pdf, the map readers when the gate opened, and probe_done. `enabled` drops any
+/// research and pdf, the lesson's side tools, and probe_done. `enabled` drops any
 /// tool explicitly off; probe_done is added after the filter, since a prober that can never
 /// conclude is a lockout.
 pub fn prober_tools(ctx: &ProberToolContext, enabled: Option<&Json>) -> Vec<FnTool> {
@@ -104,7 +101,7 @@ pub fn prober_tools(ctx: &ProberToolContext, enabled: Option<&Json>) -> Vec<FnTo
 	tools.extend(file_tools());
 	tools.push(work_plan_tool());
 	tools.extend([research_tool(&ctx.jobs), pdf_tool(&ctx.jobs)]);
-	tools.extend(graph_and_side(ctx.graph.as_ref(), &ctx.side));
+	tools.extend(ctx.side.tools());
 	let mut tools = filter_enabled(tools, without_mechanics(enabled).as_ref());
 	tools.push(probe_done_tool(&ctx.probe, &gate));
 	heal_tool_record(tools.into_iter().map(|tool| with_probe_gate(&gate, tool)).collect())

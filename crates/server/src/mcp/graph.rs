@@ -1,14 +1,10 @@
 //! search_graph and import_notes: a space's knowledge graph, read and added to directly.
 
-use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 use gs_agent::extraction::extraction::NotesImportInput;
-use gs_agent::extraction::ledgers::ScopedGraph;
-use gs_base::locale;
 use gs_base::re::Re;
 use gs_core::contracts::space::safe_name;
-use gs_core::graph::graph::get_graph;
 use gs_json::{Json, json};
 use gs_services::App;
 use gs_services::app::agent_actions::note_agent_action;
@@ -24,42 +20,11 @@ pub async fn search_graph(call: &ToolCall<'_>, args: &Json) -> Json {
 		Ok(scope) => scope,
 		Err(error) => return failure(&error),
 	};
-	let graph = match get_graph(&ScopedGraph::new(&app.stores.graphs, scope.as_deref())) {
-		Ok(graph) => graph,
-		Err(error) => return failure(&error),
-	};
-	let max = args["limit"].as_i64().unwrap_or(30) as usize;
-	let found: Vec<&Json> = match args["query"].as_str().filter(|q| !gs_base::text::trim(q).is_empty()) {
-		Some(query) => {
-			let by_id: HashMap<&str, &Json> = graph.nodes.iter().map(|n| (n["id"].str_or_empty(), n)).collect();
-			match app.search.search_facts(scope.as_deref(), &graph.nodes, query, max).await {
-				Ok(ids) => ids.iter().filter_map(|id| by_id.get(id.as_str()).copied()).collect(),
-				Err(error) => return failure(&error),
-			}
-		}
-		None => {
-			let mut newest: Vec<&Json> = graph.nodes.iter().collect();
-			newest.sort_by(|a, b| locale::compare(b["createdAt"].str_or_empty(), a["createdAt"].str_or_empty()));
-			newest.truncate(max);
-			newest
-		}
-	};
-	let picked: HashSet<&str> = found.iter().filter_map(|n| n["id"].as_str()).collect();
-	let names: HashMap<&str, &str> = graph.nodes.iter().filter_map(|n| Some((n["id"].as_str()?, n["name"].as_str()?))).collect();
-	let name_of = |id: &str| names.get(id).copied().unwrap_or(id).to_owned();
-	let ids = |c: &Json| -> Vec<String> { c["premises"].items().iter().filter_map(|p| p.as_str().map(str::to_owned)).collect() };
-	let chains: Vec<String> = graph
-		.chains
-		.iter()
-		.filter(|c| picked.contains(c["conclusion"].str_or_empty()) || ids(c).iter().any(|p| picked.contains(p.as_str())))
-		.take(100)
-		.map(|c| {
-			let premises: Vec<String> = ids(c).iter().map(|p| name_of(p)).collect();
-			format!("{} ⟹ {}", premises.join(" + "), name_of(c["conclusion"].str_or_empty()))
-		})
-		.collect();
-	let facts: Vec<Json> = found.iter().map(|n| json!({ "id": n["id"], "name": n["name"], "statement": n["statement"] })).collect();
-	result(&json!({ "totalFacts": graph.nodes.len(), "facts": facts, "chains": chains }))
+	let limit = args["limit"].as_i64().unwrap_or(30) as usize;
+	match gs_services::graph::graph::search_graph(app, scope.as_deref(), args["query"].as_str(), limit).await {
+		Ok(found) => result(&found),
+		Err(error) => failure(&error),
+	}
 }
 
 pub fn import_notes(call: &ToolCall<'_>, args: &Json) -> Json {
