@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { evalLine, fill, findingLine, readAnswer, snapName, stableFindings } from "../../scripts/layout.mjs";
-import { cross, lineBox, meet, sticksOut } from "../../scripts/layout-page.mjs";
+import { cross, cutOf, inkOf, lineBox, meet, sticksOut } from "../../scripts/layout-page.mjs";
 import { workOf } from "../../scripts/layout-seed.mjs";
 import { SCREENS } from "../../scripts/layout-screens.mjs";
 
@@ -31,6 +31,23 @@ describe("the page check's boxes", () => {
 		assert.deepEqual(lineBox(box(0, 0, 50, 40), 20), box(0, 10, 50, 30));
 		assert.deepEqual(lineBox(box(0, 0, 50, 20), 30), box(0, 0, 50, 20));
 		assert.deepEqual(lineBox(box(0, 0, 50, 20), Number.NaN), box(0, 0, 50, 20), "line-height: normal");
+	});
+});
+
+describe("cut-off letters", () => {
+	// The space title as measured in the real window: 38 px Zen Kaku Gothic New in a 46 px box.
+	const metrics = { fontBoundingBoxAscent: 44, actualBoundingBoxAscent: 27.4, actualBoundingBoxDescent: 8.2 };
+	const text = box(0, 92.5, 200, 147.5);
+
+	it("puts the baseline the font's ascent below the text box and the ink around it", () => {
+		const ink = inkOf(text, metrics);
+		assert.ok(Math.abs(ink.top - 109.1) < 0.01 && Math.abs(ink.bottom - 144.7) < 0.01, JSON.stringify(ink));
+	});
+
+	it("counts whole pixels the clip cuts off, and nothing under 1 px", () => {
+		assert.deepEqual(cutOf(inkOf(text, metrics), box(0, 97.2, 200, 143.2)), { top: 0, bottom: 2 });
+		assert.deepEqual(cutOf(inkOf(text, metrics), box(0, 97.2, 200, 144)), { top: 0, bottom: 0 });
+		assert.deepEqual(cutOf({ top: 10, bottom: 20 }, box(0, 12, 50, 30)), { top: 2, bottom: 0 });
 	});
 });
 

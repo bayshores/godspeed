@@ -7,6 +7,8 @@
  * - spill: an element sticks out of its parent's box, up or down, while the parent neither
  *   scrolls nor clips.
  * - sideways: the page, or a panel at least half the window tall, scrolls sideways.
+ * - cut-off letters: a box that clips (truncate, line-clamp, overflow-hidden) cuts off the top or
+ *   bottom of letters it shows, such as the tail of a "g".
  */
 
 /** Pixels two boxes may cross, or a box may stick out, before it counts: rounding and
@@ -33,6 +35,20 @@ export function sticksOut(child, parent) {
 	return child.bottom > parent.bottom + SLACK || child.top < parent.top - SLACK;
 }
 
+/** Where a run of text's letters reach, up and down. A text box is as tall as the font's ascent
+ *  and descent, so the baseline sits the font's ascent below its top; the letters' ink reaches
+ *  their own ascent above it and descent below it (canvas measureText metrics). */
+export function inkOf(box, metrics) {
+	const baseline = box.top + metrics.fontBoundingBoxAscent;
+	return { top: baseline - metrics.actualBoundingBoxAscent, bottom: baseline + metrics.actualBoundingBoxDescent };
+}
+
+/** Whole pixels of ink cut off by a clip box at the top and the bottom; under 1 px is rounding. */
+export function cutOf(ink, clip) {
+	const cut = (px) => (px >= 1 ? Math.round(px) : 0);
+	return { top: cut(clip.top - ink.top), bottom: cut(ink.bottom - clip.bottom) };
+}
+
 const clips = (style) => style.overflowX !== "visible" || style.overflowY !== "visible";
 
 /** How a finding names an element: its test id (or the nearest one above it) and first words. */
@@ -53,6 +69,8 @@ function visiblePart(el, rect) {
 		const style = getComputedStyle(node);
 		if (style.clip !== "auto" || style.clipPath !== "none") part = meet(part, node.getBoundingClientRect());
 	}
+	// Its own overflow clips its own text (truncate).
+	if (part && clips(getComputedStyle(el))) part = meet(part, el.getBoundingClientRect());
 	let position = getComputedStyle(el).position;
 	let skipTo = position === "absolute" ? el.offsetParent : null;
 	for (let node = el.parentElement; node && part && position !== "fixed"; node = node.parentElement) {
@@ -173,9 +191,78 @@ function sideways() {
 	return found;
 }
 
+/** The boxes that clip `el`'s text top and bottom: it and its ancestors with overflow hidden or
+ *  clip, up to the first scroller. A scroller cuts what is scrolled out of view on purpose. */
+function textClips(el) {
+	const found = [];
+	for (let node = el; node && node !== document.body; node = node.parentElement) {
+		const style = getComputedStyle(node);
+		if (style.overflowY === "auto" || style.overflowY === "scroll") break;
+		if (style.overflowY === "hidden" || style.overflowY === "clip") {
+			const box = node.getBoundingClientRect();
+			const top = box.top + node.clientTop;
+			found.push({ node, left: box.left, right: box.right, top, bottom: top + node.clientHeight });
+		}
+		if (style.position === "fixed") break;
+	}
+	return found;
+}
+
+/**
+ * Cut-off letters. For each line of text a box clips, the letters' ink (inkOf) must stay inside
+ * it. A line whose middle is outside the box is hidden on purpose (the lines line-clamp drops,
+ * the letters truncate replaces with "..."), so only lines the box shows are measured. A line
+ * that may be cut is measured again letter by letter, to name the letter.
+ */
+function cutOffs() {
+	const found = [];
+	const context = document.createElement("canvas").getContext("2d");
+	const measure = (style, text) => {
+		context.font = `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+		return context.measureText(text);
+	};
+	const shows = (clip, box) => {
+		const middle = (box.top + box.bottom) / 2;
+		return middle > clip.top && middle < clip.bottom && box.right > clip.left && box.left < clip.right;
+	};
+	for (const el of document.body.querySelectorAll("*")) {
+		const texts = [...el.childNodes].filter((node) => node.nodeType === Node.TEXT_NODE && node.data.trim());
+		// Text for screen readers only is clipped to nothing on purpose.
+		if (texts.length === 0 || el.closest("svg, .katex") || !shown(el) || !visiblePart(el, el.getBoundingClientRect())) continue;
+		const clipping = textClips(el);
+		if (clipping.length === 0) continue;
+		const style = getComputedStyle(el);
+		const range = document.createRange();
+		let worst = null;
+		for (const node of texts) {
+			range.selectNodeContents(node);
+			const lines = [...range.getClientRects()];
+			const whole = measure(style, node.data);
+			for (const clip of clipping) {
+				for (const line of lines.filter((box) => shows(clip, box))) {
+					const cut = cutOf(inkOf(line, whole), clip);
+					if (!cut.top && !cut.bottom) continue;
+					for (let i = 0; i < node.data.length; i++) {
+						if (!node.data[i].trim()) continue;
+						range.setStart(node, i);
+						range.setEnd(node, i + 1);
+						const box = range.getBoundingClientRect();
+						if (!shows(clip, box) || box.top >= line.bottom || box.bottom <= line.top) continue;
+						const letter = cutOf(inkOf(box, measure(style, node.data[i])), clip);
+						const px = Math.max(letter.top, letter.bottom);
+						if (px > (worst?.px ?? 0)) worst = { px, letter: node.data[i], side: letter.bottom >= letter.top ? "bottom" : "top", clip: clip.node };
+					}
+				}
+			}
+		}
+		if (worst) found.push({ check: "cut-off letters", what: `${label(el)}: the "${worst.letter}" loses ${worst.px} px at the ${worst.side}, clipped by ${worst.clip === el ? "its own box" : label(worst.clip)}` });
+	}
+	return found;
+}
+
 /** Every finding on the page as it is now, each once. */
 export function checkPage() {
-	const all = [...overlaps(), ...spills(), ...sideways()];
+	const all = [...overlaps(), ...spills(), ...sideways(), ...cutOffs()];
 	const seen = new Set();
 	return all.filter((f) => !seen.has(f.check + f.what) && seen.add(f.check + f.what));
 }

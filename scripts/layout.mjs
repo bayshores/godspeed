@@ -186,7 +186,7 @@ async function main() {
 		ids = await seed(path.join(RUN, "data"), page);
 		const { settings } = JSON.parse(await app.run(`return fetch("/api/settings").then((r) => r.text())`));
 		const version = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8")).version;
-		const general = { ...settings.general, onboarded: true, lastSeenVersion: version, activeSpace: ids.space, sounds: false };
+		const general = { ...settings.general, onboarded: true, lastSeenVersion: version, activeSpace: ids.space, sounds: false, teacherName: "Quigley" };
 		await page.fetch("/api/settings/general", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(general) });
 	} finally {
 		await app.quit();

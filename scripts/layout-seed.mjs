@@ -9,7 +9,10 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 
-const SOURCE = "[[https://example.com/lab-algebra/linear-equations]]";
+const WEB_SOURCE = "[[https://example.com/lab-algebra/linear-equations]]";
+/** Every made-up name has letters that hang below the line (g, j, p, q, y), so the check for
+ *  cut-off letters has something to catch. */
+const DEADLINE = "Pop quiz: graphing";
 
 /** The stand-in agent: tool calls to the app's MCP endpoint. */
 function standIn(dataDir) {
@@ -60,18 +63,18 @@ function answerFor(work, ids, date, lessonTurn) {
 	if (work.lessonId === ids.lesson && lessonTurn === 0) {
 		return {
 			text: "Here is the plan.",
-			tool_calls: [{ name: "plan_init", arguments: { mermaid: "graph TD\n  read-equation[Read the equation] --> undo-addition[Undo addition] --> undo-multiplication[Undo multiplication] --> check-answer[Check the answer] --> word-problems[Word problems]" } }],
+			tool_calls: [{ name: "plan_init", arguments: { mermaid: "graph TD\n  read-equation[Read the equation] --> undo-adding[Undo adding] --> undo-multiplying[Undo multiplying] --> check-by-graphing[Check by graphing] --> word-problems[Word problems]" } }],
 		};
 	}
 	if (work.lessonId === ids.lesson && lessonTurn === 1) {
 		return {
-			text: `To solve 2x + 3 = 11, undo each step in reverse: subtract 3 from both sides, then divide by 2. ${SOURCE}`,
+			text: `To solve 2x + 3 = 11, undo each step in reverse: subtract 3 from both sides, then divide by 2. [[${ids.passage}]] Graphing y = 2x + 3 shows the same answer. ${WEB_SOURCE}`,
 			tool_calls: [
 				{
 					name: "quiz",
 					arguments: {
 						type: "predict",
-						nodeId: "undo-addition",
+						nodeId: "undo-adding",
 						question: "What is x when 2x + 3 = 11?",
 						options: [{ label: "4", value: "4" }, { label: "7", value: "7" }, { label: "5.5", value: "5.5" }],
 						explanation: "Subtract 3 to get 2x = 8, then divide by 2.",
@@ -82,7 +85,7 @@ function answerFor(work, ids, date, lessonTurn) {
 		};
 	}
 	if (work.lessonId === "chat_talk") {
-		return { text: `Midterm 1 is on ${date} at 10:00. It covers linear equations: moving terms across the equals sign and dividing by the coefficient. ${SOURCE}\n\nStart with the lesson on solving linear equations; it has a short quiz.` };
+		return { text: `${DEADLINE} is on ${date} at 10:00. It covers solving linear equations by graphing and by moving terms across the equals sign. [[${ids.passage}]] ${WEB_SOURCE}\n\nStart with the lesson on solving linear equations by graphing; it has a short quiz.` };
 	}
 	return null;
 }
@@ -102,12 +105,21 @@ export async function seed(dataDir, page) {
 		signature: { kind: "math", value: "ax + b = c" },
 		icon: "sigma",
 	});
-	await agent.call("add_space_deadline", { space_id: space.id, deadlines: [{ kind: "exam", name: "Midterm 1", date, time: "10:00" }] });
-	await agent.call("add_space_file", { space_id: space.id, kind: "study", name: "Week 1 notes.md", text: "# Linear equations\n\nTo solve ax + b = c, subtract b from both sides, then divide by a." });
-	const { lessonId } = await agent.json("start_lesson", { topic: "Solving linear equations", space_id: space.id });
+	await agent.call("add_space_deadline", { space_id: space.id, deadlines: [{ kind: "exam", name: DEADLINE, date, time: "10:00" }] });
+	await agent.call("add_space_file", { space_id: space.id, kind: "study", name: "Graphing quiz prep.md", text: "# Solving by graphing\n\nTo solve ax + b = c, subtract b from both sides, then divide by a. Graphing y = ax + b and y = c gives the same x where the lines cross." });
+	const { lessonId } = await agent.json("start_lesson", { topic: "Solving linear equations by graphing", space_id: space.id });
 	await page.fetch("/api/talk", { method: "POST" });
 	// The Talk turn's request stays open until the stand-in answers it.
-	await page.start("/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ chatId: "chat_talk", input: { type: "text", text: "When is my midterm, and what does it cover?" } }) });
+	await page.start("/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ chatId: "chat_talk", input: { type: "text", text: "When is my pop quiz, and what does it cover?" } }) });
+
+	// The file's passage, found and read as an agent would before citing it.
+	let passage;
+	for (let tries = 0; !passage; tries++) {
+		if (tries > 30) throw new Error("the made-up file was never indexed for search");
+		passage = /f_[0-9a-f]{12}:\d+/.exec((await agent.call("search_space_files", { space_id: space.id, query: "graphing" })).join("\n"))?.[0];
+		if (!passage) await new Promise((done) => setTimeout(done, 300));
+	}
+	await agent.call("read_passage", { space_id: space.id, passage_id: passage });
 
 	// Answer every item until the queue stays empty twice in a row. A respond answers with the
 	// next item when one waits.
@@ -125,7 +137,7 @@ export async function seed(dataDir, page) {
 		const texts = [...reply];
 		for (let n = 2; n <= (header.pages ?? 1); n++) texts.push(...(await agent.call("read_work", { work_id: header.workId, page: n })));
 		const work = workOf(texts.slice(header.pages > 1 ? 1 : 0).join(""));
-		const answer = answerFor(work, { lesson: lessonId }, date, lessonTurns);
+		const answer = answerFor(work, { lesson: lessonId, passage }, date, lessonTurns);
 		if (work.lessonId === lessonId) lessonTurns++;
 		if (!answer) throw new Error(`the stand-in agent got work it does not expect: ${work.task ?? work.lessonId}`);
 		reply = await agent.call("respond", { work_id: header.workId, ...answer, wait_seconds: 0 });
