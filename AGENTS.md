@@ -30,6 +30,24 @@ Nothing is said twice on one screen.
 - Help for when something fails shows when it fails, not all the time.
 - Before calling a UI change finished, read every word on the changed screen in each of its states (empty, working, failed) and cut what is said twice.
 
+# No button behind a button
+
+A click does the thing. It does not open a box that holds the button for the thing.
+
+- A control never opens a pop-up, menu, card or dialog that holds only one action. The control does that action itself.
+- A pop-up is for a choice between two or more things, or for something that arrives by itself (a notice, a question).
+- This holds in every state: a menu that is down to one entry in some state does that entry on the first click.
+- Before calling a UI change finished, click every control on the changed screen in each of its states and count what opens. One action inside means the pop-up goes.
+
+# No label sandwich
+
+A big title does not sit between a small line above it and a small line below it.
+
+- Nothing small sits above a title. No eyebrow, no category line, no date line on top.
+- A title gets at most one supporting line, under it or beside it. More facts go into that one line or a chip beside the title, or are cut.
+- This holds everywhere a title shows: page heads, cards, rows, pop-ups and empty states.
+- Before calling a UI change finished, look at every title on the changed screen for a small line above it.
+
 # Look at the real window
 
 The Mac app draws its pages with WebKit, not Chrome, and the two lay pages out differently. A page that looks right in a browser can overlap in the app.
