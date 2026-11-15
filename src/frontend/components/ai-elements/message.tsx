@@ -6,8 +6,10 @@ import type { ComponentProps, HTMLAttributes } from "react";
 import { memo } from "react";
 import remarkBreaks from "remark-breaks";
 import {
+  defaultRehypePlugins,
   Streamdown,
   type PluginConfig,
+  type StreamdownProps,
 } from "streamdown";
 import { mdComponents } from "@/frontend/components/md-blocks";
 import { lazyCodePlugin } from "@/frontend/components/lazy-code-plugin";
@@ -70,6 +72,28 @@ export const streamdownPlugins = {
 // The source number on a mark; a module constant so Streamdown sees one identity.
 const citeTags = { [CITE_TAG]: ["n"] };
 
+// Model text must not load remote images: a rendered ![x](https://host/?d=...) sends data out
+// with no click. Streamdown's default harden step allows every image prefix, so this keeps its
+// raw, sanitize, harden pipeline and changes that one option; a blocked image shows as
+// "[Image blocked: alt]". The app's own pictures are <img> elements, not Markdown. Streamdown
+// only adds `allowedTags` to the sanitize step while it runs the default list, so a custom list
+// has to add them itself.
+type Schema = { tagNames?: string[]; attributes?: Record<string, unknown> };
+const [sanitizePlugin, sanitizeSchema] = defaultRehypePlugins.sanitize as [unknown, Schema];
+const [hardenPlugin, hardenOptions] = defaultRehypePlugins.harden as [unknown, Record<string, unknown>];
+
+function withoutRemoteImages(tags: Record<string, string[]>): NonNullable<StreamdownProps["rehypePlugins"]> {
+  const schema = { ...sanitizeSchema, tagNames: [...(sanitizeSchema.tagNames ?? []), ...Object.keys(tags)], attributes: { ...sanitizeSchema.attributes, ...tags } };
+  return Object.values({
+    ...defaultRehypePlugins,
+    sanitize: [sanitizePlugin, schema],
+    harden: [hardenPlugin, { ...hardenOptions, allowedImagePrefixes: [] }],
+  }) as NonNullable<StreamdownProps["rehypePlugins"]>;
+}
+
+export const plainRehypePlugins = withoutRemoteImages({});
+const messageRehypePlugins = withoutRemoteImages(citeTags);
+
 export const MessageResponse = memo(
   ({ className, children, ...props }: MessageResponseProps) => {
     // Legacy backslash delimiters are converted in a single linear scan;
@@ -93,6 +117,7 @@ export const MessageResponse = memo(
         components={mdComponents}
         allowedTags={citeTags}
         plugins={streamdownPlugins}
+        rehypePlugins={messageRehypePlugins}
         {...props}
       >
         {content}

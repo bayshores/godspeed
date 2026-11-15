@@ -20,7 +20,7 @@ import {
 import { Streamdown } from "streamdown";
 
 import { transformMathDelimiters } from "@/shared/core";
-import { streamdownPlugins } from "./message";
+import { plainRehypePlugins, streamdownPlugins } from "./message";
 import { mdComponents } from "@/frontend/components/md-blocks";
 import { Shimmer } from "./shimmer";
 
@@ -154,7 +154,7 @@ export const ReasoningContent = memo(
       )}
       {...props}
     >
-      <Streamdown components={mdComponents} plugins={streamdownPlugins}>
+      <Streamdown components={mdComponents} plugins={streamdownPlugins} rehypePlugins={plainRehypePlugins}>
         {transformMathDelimiters(children)}
       </Streamdown>
     </CollapsibleContent>
