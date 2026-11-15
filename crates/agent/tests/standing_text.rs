@@ -25,7 +25,7 @@ const F_RESUMED: &str = "A [Resumed] line means he came back to a stopped sessio
 /// Decision 3, the strong topic's extra question.
 const EXTRA_QUESTION: &str = "A strong topic's extra question is a `quiz` before the `conclude`, and he may skip it; skip it yourself when a deadline is 2 days away or less.";
 /// Decision 1, the line Study gets in place of the deadline tools.
-const TALK_DEADLINES: &str = "Deadline changes happen in Talk: when he asks for one, say so in one line and go back to the lesson.";
+const OUTSIDE_DEADLINES: &str = "Deadline changes happen outside lessons, in your terminal: when he asks for one, say so in one line and go back to the lesson.";
 const F3: &str = "A [From earlier] line lists earlier questions godspeed just asked him again. Do not reteach a miss now unless it is on the topic you are teaching; godspeed brings it back.";
 const G: &str = "Set `standalone: true` on a quiz that makes sense with no lesson around it: name the setting, never \"above\", \"the plot\" or \"the slide\". godspeed may ask it again weeks later.";
 const I: &str = "To point at exact words, add a few words copied from the passage in quotes after the id: `[[f_1a2b3c4d5e6f:7 \"degree 12\"]]`. godspeed marks them on his page. Do it in every topic, once, in the message that opens it or in topic_done's opener.lead. A quote is 2 or more words, or on code the exact expression from the line, found once in the passage, at most 80 characters, without [ ] backtick or $.";
@@ -78,7 +78,7 @@ fn lands_in(line: &str, readers: &[AgentKind]) {
 
 #[test]
 fn the_study_only_lines_reach_study_alone() {
-	for line in [S, F, F_VERDICT, F_RESUMED, EXTRA_QUESTION, TALK_DEADLINES, F3, G, I, K, PLOT, PROBLEMS, PHRASE] {
+	for line in [S, F, F_VERDICT, F_RESUMED, EXTRA_QUESTION, OUTSIDE_DEADLINES, F3, G, I, K, PLOT, PROBLEMS, PHRASE] {
 		lands_in(line, &[Study]);
 	}
 }

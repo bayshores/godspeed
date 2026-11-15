@@ -22,7 +22,7 @@ The work loop:
 
 Lost track of a work item (context compacted, or missing the instructions or tools it refers to)? Call read_work with its work_id and full: true. Without the workId, call wait_for_work with full_context: true.
 
-Loop until the user says stop. Use only the work item's tools, never invented ones, called through respond even when this server has one with the same name (like read_space): only then does the lesson keep what you looked up. The learner never sees text outside respond.";
+Loop until the user says stop. Use only the work item's tools, never invented ones, called through respond even when this server has one with the same name (like read_space): only then does the lesson keep what you looked up. In a lesson the learner sees only what you send with respond. Outside lessons they may type to you in your terminal: answer there, then wait for work again.";
 
 const MEMORY_INSTRUCTIONS: &str = "Memory: \"Where you left off\" above is the learner's state when you connected; list_lessons and read_space have anything newer. When the learner tells you something outside a lesson that will matter next time (an exam is over, what to study next, how they like to learn), save it with remember, one fact per note, never passwords or private details. Remove out-of-date notes with forget.";
 
@@ -50,6 +50,6 @@ mod tests {
 	/// What the fixed texts leave of the 4,096 characters: a longer text here shrinks the briefing.
 	#[test]
 	fn the_fixed_texts_leave_the_briefing_its_room() {
-		assert_eq!(briefing_room(), 1852);
+		assert_eq!(briefing_room(), 1740);
 	}
 }
