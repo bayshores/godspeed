@@ -8,7 +8,7 @@ import { Hint } from "@/frontend/components/ui/hint";
 import { Pane } from "@/frontend/components/ui/pane";
 import { PixelIcon } from "@/frontend/components/ui/pixel-icon";
 import { useProgress } from "@/frontend/components/use-progress";
-import type { WriteResult } from "@/frontend/components/files/space-files-api";
+import type { WriteResult } from "@/frontend/lib/api";
 import { readStorage, writeStorage } from "@/frontend/lib/storage";
 import { AddFilesButton } from "./add-files";
 import {

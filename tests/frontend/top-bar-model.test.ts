@@ -1,10 +1,10 @@
 /**
- * The top bar's words: the clock, the lit tab, the teacher chip and the
+ * The top bar's words: the clock, the lit tab and the
  * Follow buttons.
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { chipText, clockText, followButtons, hasLessonsWithNoSpace, plusName, selectedTab, spaceMenuDescription } from "../../src/frontend/components/top-bar/top-bar-model.ts";
+import { clockText, followButtons, hasLessonsWithNoSpace, plusName, selectedTab, spaceMenuDescription } from "../../src/frontend/components/top-bar/top-bar-model.ts";
 import type { AgentAction } from "../../src/shared/core/events.ts";
 
 describe("the clock", () => {
@@ -60,34 +60,6 @@ describe("the + list", () => {
 	it("a tab and a closed row tell a screen reader they have a menu", () => {
 		assert.equal(spaceMenuDescription(false), "Has a menu with Close and Delete space");
 		assert.equal(spaceMenuDescription(true), "Has a menu with Reopen and Delete space");
-	});
-});
-
-describe("the teacher chip", () => {
-	const off = { connected: false, teaching: false, helperHere: false, helperCovering: false, pendingWork: 0, pendingTurns: 0, claimedLessons: [] };
-	const teaching = { ...off, connected: true, teaching: true, name: "Claude Code" };
-	const reading = { text: "Reading Lecture 14 notes", working: true };
-	it("the teacher's name with what it is doing", () => {
-		assert.equal(chipText({ name: "marco", doing: reading, agent: teaching }), "marco, reading Lecture 14 notes");
-	});
-	it("just the name while it teaches and nothing runs", () => {
-		assert.equal(chipText({ name: "marco", doing: { text: "Idle", working: false }, agent: teaching }), "marco");
-	});
-	it("godspeed's own terminal: starting, or needing the learner, in the status line's words", () => {
-		assert.equal(chipText({ name: "Ada", doing: null, agent: off, terminal: "starting" }), "Ada, starting");
-		assert.equal(chipText({ name: "Ada", doing: null, agent: null, terminal: "starting" }), "Ada, starting");
-		assert.equal(chipText({ name: "Ada", doing: reading, agent: teaching, terminal: "needsYou" }), "Ada needs you.");
-	});
-	it("the agent's state when none is teaching", () => {
-		assert.equal(chipText({ name: "marco", doing: null, agent: off }), "No agent connected");
-		assert.equal(chipText({ name: "marco", doing: null, agent: { ...off, connected: true, name: "Codex" } }), "Codex connected, not teaching");
-		assert.equal(chipText({ name: "marco", doing: null, agent: { ...off, pendingWork: 1 } }), "Waiting for your agent");
-	});
-	it("says so while the helper answers", () => {
-		assert.equal(chipText({ name: "marco", doing: reading, agent: { ...teaching, helperCovering: true } }), "marco, tidying its memory");
-	});
-	it("just the name before the agent's state is read", () => {
-		assert.equal(chipText({ name: "marco", doing: null, agent: null }), "marco");
 	});
 });
 

@@ -1,6 +1,6 @@
 /**
  * Background work on a space, in words: what the work frame on a space
- * page, Today, the space's tab and the top bar chip say while its
+ * page, Today, the space's tab and the top bar pill say while its
  * files are read and after. Pure.
  */
 import { isWaitingFile, type SpaceFile, type SpaceSummary, type SpaceWork } from "@/shared/core";
@@ -99,14 +99,25 @@ export function tabWorkTag(space: Pick<SpaceSummary, "filesLeft">): string | nul
 	return space.filesLeft > 0 ? `${space.filesLeft} left` : null;
 }
 
+/** Background work, for the pill: who does it, what it is, how far it is,
+ *  and its short form as a tag. */
+export interface WorkProgress {
+	worker: string;
+	doing: string;
+	count: string | null;
+	tag: string;
+}
+
 /**
- * The top bar's work chip, on every page while background work runs:
- * "Helper, 6 of 17 files" while files are read, else the number of jobs.
- * Null when nothing runs or no agent takes the work.
+ * The background work under way on every page: "Helper reading files, 6
+ * of 17" while files are read, else the number of jobs. Null when nothing
+ * runs or no agent takes the work.
  */
-export function workChip(i: { worker: string | null; spaces: readonly ProgressSpace[]; jobs: number }): string | null {
+export function workProgress(i: { worker: string | null; spaces: readonly ProgressSpace[]; jobs: number }): WorkProgress | null {
 	if (!i.worker) return null;
 	const { live, read, left } = filesProgress(i.spaces);
-	if (live.length > 0) return `${i.worker}, ${read} of ${files(read + left)}`;
-	return i.jobs > 0 ? `${i.worker}, ${i.jobs} job${i.jobs === 1 ? "" : "s"}` : null;
+	if (live.length > 0) return { worker: i.worker, doing: "reading files", count: `${read} of ${read + left}`, tag: `${read} of ${files(read + left)}` };
+	if (i.jobs === 0) return null;
+	const jobs = `${i.jobs} job${i.jobs === 1 ? "" : "s"}`;
+	return { worker: i.worker, doing: `working on ${jobs}`, count: null, tag: jobs };
 }

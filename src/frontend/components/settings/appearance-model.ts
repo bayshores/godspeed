@@ -54,7 +54,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 /** The surfaces and text a background implies. Dark: +8 panel, +20
- *  tooltip, +22 tone, +39 a hovered row in a pop-up, +47 edge, a top bar
+ *  tooltip, +22 tone, +47 edge, a top bar
  *  12 below, text by contrast. Paper: picked by hand, with an ink top bar. */
 function surfacesOf(background: string) {
 	if (background === PAPER) {
@@ -62,7 +62,6 @@ function surfacesOf(background: string) {
 			card: "#d7d5cb",
 			tip: "#dddbd1",
 			accent: "#cfcdc3",
-			tipHover: "#cfcdc3",
 			border: "#a9a79d",
 			edge: "#6d6b62",
 			bar: "#24231f",
@@ -79,15 +78,15 @@ function surfacesOf(background: string) {
 		};
 	}
 	const at = (n: number) => shiftHex(background, n);
-	const [card, accent, tipHover] = [at(8), at(22), at(39)];
-	const panels = [card, accent, tipHover];
+	const [card, accent] = [at(8), at(22)];
+	// Text reads up to 39 above the background, lighter than any surface it sits on.
+	const panels = [card, accent, at(39)];
 	const fg = inkFor(background, "text", panels);
 	const quiet = inkFor(background, "faint", [card, accent]);
 	return {
 		card,
 		tip: at(20),
 		accent,
-		tipHover,
 		border: at(47),
 		edge: inkFor(background, "edge", [card]),
 		bar: at(-12),
@@ -117,7 +116,6 @@ export function derivedPalette(background: string): Record<string, string> {
 		"--muted": s.card,
 		"--accent": s.accent,
 		"--lh-tip": s.tip,
-		"--lh-tip-hover": s.tipHover,
 		"--border": s.border,
 		"--input": s.border,
 		"--lh-edge": s.edge,

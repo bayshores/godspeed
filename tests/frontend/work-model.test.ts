@@ -1,11 +1,11 @@
 /**
  * Background work on a space, in words (work-model.ts): who does it, the
  * work frame's states and tag, and the lines on Today, the space's tab
- * and the top bar chip.
+ * and the top bar pill.
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { files, filesProgress, jobFrame, spaceFrame, tabWorkTag, todayWorkLine, workChip, workerName, workState } from "../../src/frontend/components/work/work-model.ts";
+import { files, filesProgress, jobFrame, spaceFrame, tabWorkTag, todayWorkLine, workProgress, workerName, workState } from "../../src/frontend/components/work/work-model.ts";
 import type { SpaceFile, SpaceFileStatus, SpaceSummary } from "../../src/shared/core/index.ts";
 
 const file = (id: string, status: SpaceFileStatus, extra: Partial<SpaceFile> = {}): SpaceFile => ({
@@ -112,12 +112,12 @@ describe("elsewhere", () => {
 		assert.equal(files(19), "19 files");
 	});
 
-	it("the top bar chip counts the files of every space being read, else the jobs", () => {
+	it("the top bar pill counts the files of every space being read, else the jobs", () => {
 		const spaces = [space({ filesLeft: 11, filesRead: 6 }), space({ filesLeft: 2 }), space({ filesLeft: 4, closed: true })];
-		assert.equal(workChip({ worker: "Helper", spaces, jobs: 3 }), "Helper, 6 of 19 files");
-		assert.equal(workChip({ worker: "Marco", spaces: [space({})], jobs: 1 }), "Marco, 1 job");
-		assert.equal(workChip({ worker: "Marco", spaces: [space({})], jobs: 2 }), "Marco, 2 jobs");
-		assert.equal(workChip({ worker: "Marco", spaces: [space({})], jobs: 0 }), null);
-		assert.equal(workChip({ worker: null, spaces, jobs: 3 }), null, "no agent takes the work");
+		assert.deepEqual(workProgress({ worker: "Helper", spaces, jobs: 3 }), { worker: "Helper", doing: "reading files", count: "6 of 19", tag: "6 of 19 files" });
+		assert.deepEqual(workProgress({ worker: "Marco", spaces: [space({})], jobs: 1 }), { worker: "Marco", doing: "working on 1 job", count: null, tag: "1 job" });
+		assert.deepEqual(workProgress({ worker: "Marco", spaces: [space({})], jobs: 2 }), { worker: "Marco", doing: "working on 2 jobs", count: null, tag: "2 jobs" });
+		assert.equal(workProgress({ worker: "Marco", spaces: [space({})], jobs: 0 }), null);
+		assert.equal(workProgress({ worker: null, spaces, jobs: 3 }), null, "no agent takes the work");
 	});
 });

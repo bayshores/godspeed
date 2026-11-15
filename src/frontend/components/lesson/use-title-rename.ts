@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { jsonInit } from "@/frontend/components/files/space-files-api";
+import { jsonInit } from "@/frontend/lib/api";
 
 /** PUT a lesson's title, then tell every listener (the lesson list and an
  *  open lesson header) through lh:chat-renamed. Throws when the server says no. */

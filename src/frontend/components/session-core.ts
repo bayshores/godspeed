@@ -36,7 +36,7 @@ import {
 	type ChatAttachment,
 	type QuestionAnswerData,
 } from "../../shared/core";
-import { jsonInit } from "./files/space-files-api";
+import { jsonInit } from "@/frontend/lib/api";
 import { keepGoingOwesNext } from "./lesson/stop-card-model";
 
 type SessionStatus = "ready" | "submitted" | "streaming" | "error";
