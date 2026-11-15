@@ -19,6 +19,22 @@ The pen.dev files hold only what someone still needs to look at, so they never p
 - Code comments don't point at design boards or exports. The code is the reference once it's built.
 - pen.dev saves on ⌘S; ask the user to save after a cleanup.
 
+# Say it once
+
+Nothing is said twice on one screen.
+
+- Each fact shows in one place: a status, a name, an instruction or a count is not repeated in a second label, sentence or chip that is visible at the same time.
+- A sentence does not repeat the label of the button beside it. If the button says it, cut the sentence.
+- Help for when something fails shows when it fails, not all the time.
+- Before calling a UI change finished, read every word on the changed screen in each of its states (empty, working, failed) and cut what is said twice.
+
+# Look at the real window
+
+The Mac app draws its pages with WebKit, not Chrome, and the two lay pages out differently. A page that looks right in a browser can overlap in the app.
+
+- A UI change is looked at in the real app window (the debug shell) before it is called finished, at 1440, 1100 and 800 points wide. A browser screenshot does not count.
+- Look at each state the change touches, and at the screen's scroll end, for text on top of text, content spilling out of its box and sideways scrolling.
+
 # No guessing
 
 All design authority belongs to the human. **Never guess a design or implementation decision.** If anything is ambiguous — naming, behavior, data shapes, UX, defaults, scope boundaries, prompt wording — STOP and ask with the ask-user-question tool before proceeding. If you are "a little unsure," you are unsure: ask. A wrong guess is far more expensive than a question. Ask early, ask specific, one question per call.
