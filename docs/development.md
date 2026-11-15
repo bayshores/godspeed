@@ -35,13 +35,13 @@ You need Node, a Rust toolchain (`rust-toolchain.toml` pins it) and `cargo-mache
 | `npm run dev` | Vite serves the screens at http://localhost:3000, and the debug Rust server serves `/api` on port 4000. |
 | `npm run dev:fresh` | A fresh instance with empty data at http://localhost:3005, for testing onboarding. Its data folder is `.fresh-data/`, wiped each launch unless you pass `--keep`. |
 | `npm run build` | `vite build`: the screens into `dist-ui/`. |
-| `npm run check` | The done gate: typecheck, tests, lint, deadcode, `rust:check` and, on a Mac, `layout`. CI runs the same. |
+| `npm run check` | The done gate: typecheck, tests, lint, deadcode and `rust:check`. CI runs the same, plus `layout` on the Mac. |
 | `npm test` | The frontend, shared and desktop tests (node:test through tsx). |
 | `npm run lint` | ESLint, including the import law. |
 | `npm run typecheck` | `tsc --noEmit`. Unused variables and parameters are errors. |
 | `npm run deadcode` | knip: unused files, exports, types and npm packages. |
 | `npm run rust:check` | `cargo test --workspace`, the shell's `screens` tests, clippy with `-D warnings` (also with the shell's `screens` and `self-test` features), and `cargo machete`. |
-| `npm run layout` | Mac only: opens the debug app window on made-up data, walks the screens in `scripts/layout-screens.mjs` at 1440, 1100 and 800 points, and fails on text drawn over text, a box spilling out of its parent, sideways scrolling, or letters a clipping box cuts off. Findings and pictures go to `target/layout/`. |
+| `npm run layout` | Mac only: opens the debug app window on made-up data, walks the screens in `scripts/layout-screens.mjs` at 1440, 1100 and 800 points, and fails on text drawn over text, a box spilling out of its parent, sideways scrolling, text or a control a clipping box hides, or letters it cuts off. Findings and pictures go to `target/layout/`. Not part of `check`: it builds the app and opens a window, so run it yourself before calling a UI change finished, one run at a time. |
 | `npm run desktop:dev` | Vite, the debug Rust server and the Tauri shell pointed at Vite. |
 | `npm run desktop:local` | An unsigned local Mac app in `target/release/bundle/macos/`. |
 | `npm run desktop:dist` | The signed, notarized Mac app and DMG. `scripts/mac-dist.sh` says what it needs. |
@@ -50,7 +50,7 @@ A change is done when `npm run check` passes.
 
 To check a new screen or state with `npm run layout`:
 
-1. Add one entry to `scripts/layout-screens.mjs`: a name, its `url`, and a `ready` selector to wait for.
+1. Add one entry to `scripts/layout-screens.mjs`: a name, its `url`, and a `ready` selector for something drawn from the screen's data (not its frame, which shows before the data).
 2. For a state the URL does not reach, add `setup` (a page script that clicks) and `shows` (the selector it waits for), or `before` (a page script that changes the data first).
 3. If the state needs data that is not there, have the stand-in agent in `scripts/layout-seed.mjs` write it through MCP.
 
