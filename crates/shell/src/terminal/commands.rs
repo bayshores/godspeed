@@ -1,6 +1,7 @@
 //! The terminal commands (`window.lh.terminals` in shim.js). Each checks `trusted()` first. The
 //! page names a role, an agent and a terminal id; it never names a program, an argument or a
-//! folder, and it can type only into a terminal it shows while the window has the focus.
+//! folder, and it can type only into a terminal it shows: keys only while the window has the
+//! focus, an attached file's path also while it has not.
 
 use serde_json::{Value, json};
 use tauri::{AppHandle, Manager, State, Webview};
@@ -85,6 +86,15 @@ pub fn terminal_paste(webview: Webview, origin: State<AppOrigin>, terminals: Sta
 	terminals.paste(&id, &text, focused(&webview))
 }
 
+/// Attach: a picture or a PDF the learner picked or dropped on the teacher's screen, as base64.
+/// Without `async`, so its path lands in the input in order with the keys. Answers the path.
+#[tauri::command]
+pub fn terminal_add_file(webview: Webview, origin: State<AppOrigin>, terminals: State<Terminals>, server: State<Server>, id: String, name: String, data: String) -> Result<String, String> {
+	trusted(&webview, &origin)?;
+	let folder = server.agent_folder().flatten().ok_or(NOT_SET_UP)?;
+	terminals.add_file(&id, &name, &gs_base::base64::decode(&data), std::path::Path::new(&folder))
+}
+
 #[tauri::command(async)]
 pub fn terminal_stop(webview: Webview, origin: State<AppOrigin>, terminals: State<Terminals>, id: String) -> Result<(), String> {
 	trusted(&webview, &origin)?;
@@ -118,7 +128,7 @@ mod tests {
 	fn every_terminal_command_checks_the_page_first() {
 		let source = include_str!("commands.rs").split("#[cfg(test)]").next().unwrap();
 		let commands: Vec<&str> = source.split("#[tauri::command").skip(1).collect();
-		assert_eq!(commands.len(), 8);
+		assert_eq!(commands.len(), 9);
 		for command in commands {
 			let body = &command[command.find('{').unwrap() + 1..];
 			assert!(body.trim_start().starts_with("trusted(&webview, &origin)?;"), "{}", &command[..80]);

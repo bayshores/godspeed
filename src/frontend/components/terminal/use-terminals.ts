@@ -13,7 +13,10 @@ import type { FolderAgent } from "@/shared/core";
 import { postAgentFolder, savedAgent } from "@/frontend/components/agent-folder/agent-folder-api";
 import type { FolderView } from "@/frontend/components/agent-folder/agent-folder-model";
 import { AgentStatusContext, type AgentStatus } from "@/frontend/components/agent-status";
+import { readBase64 } from "@/frontend/lib/read-base64";
 import {
+	ATTACH_MAX_BYTES,
+	ATTACH_TOO_BIG,
 	CHECK_IN_WAIT_MS,
 	OUTSIDE_REFUSAL,
 	TEACH_WAIT_MS,
@@ -64,6 +67,8 @@ export interface TerminalsApi {
 	/** These resolve to why the shell refused, or null. */
 	answer: (role: TerminalRole, kind: "trust" | "enter") => Promise<string | null>;
 	paste: (role: TerminalRole) => Promise<string | null>;
+	/** Attach on the teacher's screen: the file's path typed into its input. */
+	addFile: (file: File) => Promise<string | null>;
 	/** Start lesson and a lesson's send: start the teacher hidden when it may (wakeAgent). */
 	wake: () => void;
 }
@@ -73,6 +78,8 @@ const ROLES: readonly TerminalRole[] = ["teacher", "helper"];
 
 /** A start's error: the shell rejects with a sentence. */
 const reason = (err: unknown): string => (typeof err === "string" && err ? err : err instanceof Error && err.message ? err.message : UNSTARTED);
+
+const ATTACH_UNREAD = "godspeed couldn't read that file.";
 
 /** A shell refusal's sentence, or null when it went through. */
 const refusal = (p: Promise<void> | undefined): Promise<string | null> => (p ?? Promise.resolve()).then(() => null, (err: unknown) => (typeof err === "string" ? err : null));
@@ -298,6 +305,15 @@ function useTerminalsState(status: AgentStatus | null): TerminalsApi {
 		},
 		[idOf, lh],
 	);
+	const addFile = useCallback(
+		(file: File) => {
+			const id = idOf("teacher");
+			if (!id || !lh) return Promise.resolve(null);
+			if (file.size > ATTACH_MAX_BYTES) return Promise.resolve(ATTACH_TOO_BIG);
+			return refusal(readBase64(file).then((data) => lh.addFile(id, file.name, data).then(() => undefined), () => Promise.reject(ATTACH_UNREAD)));
+		},
+		[idOf, lh],
+	);
 	// The server's `connected` lasts up to 3 minutes after a terminal ended; the terminals know at once.
 	const agentHere = outsideHere || (teacherLive && teacherCheckedIn);
 	// Two sends close together start one teacher: the second comes before the first start's record.
@@ -312,8 +328,8 @@ function useTerminalsState(status: AgentStatus | null): TerminalsApi {
 	}, [lh, loaded, teacher, agentHere, outsideHere, start]);
 
 	return useMemo(
-		() => ({ available: !!lh, teacher, helper, facts, folder, outsideHere, agentHere, loaded, onScreen, setOnScreen, calling, heard, start: startRole, stop, answer, paste, wake }),
-		[lh, teacher, helper, facts, folder, outsideHere, agentHere, loaded, onScreen, calling, heard, startRole, stop, answer, paste, wake],
+		() => ({ available: !!lh, teacher, helper, facts, folder, outsideHere, agentHere, loaded, onScreen, setOnScreen, calling, heard, start: startRole, stop, answer, paste, addFile, wake }),
+		[lh, teacher, helper, facts, folder, outsideHere, agentHere, loaded, onScreen, calling, heard, startRole, stop, answer, paste, addFile, wake],
 	);
 }
 

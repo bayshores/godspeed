@@ -298,6 +298,55 @@ describe("the screens", () => {
 		}
 	});
 
+	it("Attach on the teacher's screen types each picked file's path; a refusal shows under the screen; the helper's screen has no Attach", async () => {
+		const shell = fakeShell([teacher(), teacher({ id: "h1", role: "helper" })]);
+		const terminals = (dom.window as unknown as { lh: { terminals: { addFile: (id: string, name: string, data: string) => Promise<string> } } }).lh.terminals;
+		const g = globalThis as Record<string, unknown>;
+		const hadReader = g.FileReader;
+		// Node has no FileReader: this one reads a Blob as a data URL, as WebKit does.
+		g.FileReader = class {
+			result: string | null = null;
+			onload: (() => void) | null = null;
+			onerror: (() => void) | null = null;
+			readAsDataURL(blob: Blob) {
+				void blob.arrayBuffer().then((b) => {
+					this.result = `data:${blob.type};base64,${Buffer.from(b).toString("base64")}`;
+					this.onload?.();
+				});
+			}
+		};
+		const pick = async (files: File[]) => {
+			const input = q("terminal-attach-input") as HTMLInputElement;
+			Object.defineProperty(input, "files", { configurable: true, value: files });
+			await act(async () => void input.dispatchEvent(new dom.window.Event("change", { bubbles: true })));
+			await settle();
+		};
+		try {
+			await mounted(access({ teaching: true, terminals: [{ id: "t1", here: true }, { id: "h1", here: true }] }), async () => {
+				await click("status");
+				assert.equal(text("terminal-attach"), "Attach");
+				await pick([new File(["png"], "week 3.png", { type: "image/png" }), new File(["%PDF-"], "lab.pdf", { type: "application/pdf" })]);
+				assert.deepEqual(
+					shell.calls.filter((c) => c.startsWith("add ")),
+					[`add t1 week 3.png ${btoa("png")}`, `add t1 lab.pdf ${btoa("%PDF-")}`],
+					"in order, as base64",
+				);
+				terminals.addFile = () => Promise.reject("Attach takes pictures (PNG, JPEG, GIF or WebP) and PDFs.");
+				await pick([new File(["x"], "notes.txt")]);
+				assert.equal(text("terminal-footer"), "Attach takes pictures (PNG, JPEG, GIF or WebP) and PDFs.");
+				const big = new File(["x"], "scan.pdf");
+				Object.defineProperty(big, "size", { value: 21 * 1024 * 1024 });
+				await pick([big]);
+				assert.equal(text("terminal-footer"), "That file is over 20 MB.", "refused before it is read");
+				await click("terminal-screen-helper");
+				assert.ok(q("terminal-attach") === null);
+			});
+		} finally {
+			g.FileReader = hadReader;
+			shell.remove();
+		}
+	});
+
 	it("before any start: what shows here and the start pair at the narrow width, which starts the teacher here and widens for its screen, shown once it stops growing; beside an agent from outside godspeed, where its screen is", async () => {
 		const shell = fakeShell();
 		const wasWidth = dom.window.innerWidth;

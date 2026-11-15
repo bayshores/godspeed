@@ -63,6 +63,7 @@ export function fakeShell(list: TerminalRecord[] = []): FakeShell {
 		write: (_id, data) => call(`write ${data}`),
 		answer: (_id, kind) => call(`answer ${kind}`),
 		paste: () => call("paste"),
+		addFile: (id, name, data) => (calls.push(`add ${id} ${name} ${data}`), Promise.resolve(`/g/.godspeed/attachments/${name}`)),
 		stop: (id) => call(`stop ${id}`),
 		list: () => Promise.resolve(list),
 		onOutput: () => () => {},

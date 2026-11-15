@@ -176,6 +176,7 @@
 			write: (id, data) => invoke("terminal_write", { id, data }),
 			answer: (id, kind) => invoke("terminal_answer", { id, kind }),
 			paste: (id) => invoke("terminal_paste", { id }),
+			addFile: (id, name, data) => invoke("terminal_add_file", { id, name, data }),
 			stop: (id) => invoke("terminal_stop", { id }),
 			list: () => invoke("terminal_list"),
 			onOutput: (cb) => subscribe("terminal-output", cb),
