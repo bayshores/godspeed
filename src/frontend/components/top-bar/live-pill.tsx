@@ -72,7 +72,6 @@ export function LivePill({ own = false, named = false }: { own?: boolean; named?
 					<button
 						type="button"
 						data-testid="live-pill"
-						data-teacher-panel-toggle=""
 						aria-expanded={on || pill.open(place)}
 						aria-controls={own && !on && !thing?.needs ? NOTICE_STACK_ID : undefined}
 						title={spoken}

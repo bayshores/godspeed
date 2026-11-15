@@ -1,12 +1,14 @@
 /**
- * The teacher's panel, opened and closed from the pill. Docked to the window's right edge, under the top bar. It pushes the page
- * left to make room, and dims the page where it covers it instead. One head
- * row (panel-head.tsx), then the agent's screen (panel-screen.tsx), which
- * grows the panel to fit the whole screen, or in a browser Activity
- * (teacher-activity.tsx).
+ * The teacher's panel, opened and closed from the pill only: it stays
+ * beside the page while the learner works there. Docked to the window's
+ * right edge, under the top bar (the app's, or a lesson's own), as wide
+ * as the learner dragged its left edge. It pushes the page left to make
+ * room, and covers it where there is none. One head row (panel-head.tsx), then the agent's screen
+ * (panel-screen.tsx), or in a browser Activity (teacher-activity.tsx).
  */
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import { cn } from "@/frontend/lib/utils";
+import { ResizeHandle, usePaneWidth } from "@/frontend/components/ui/resize-handle";
 import { agentWaiting, agentStatusLabel, waitingNotice, type AgentStatus } from "@/frontend/components/agent-status";
 import { needsYou, screenStatusLine, teacherTerminalState, type TerminalRole } from "@/frontend/components/terminal/terminal-model";
 import { noAgentHere, useTerminals } from "@/frontend/components/terminal/use-terminals";
@@ -17,7 +19,7 @@ import { TeacherActivity } from "./teacher-activity";
 import { PanelHead } from "./panel-head";
 import { PanelScreen } from "./panel-screen";
 import { StartTeacher } from "./start-teacher";
-import { DOCK_WIDTH, dockLayout, shownScreen, type PanelView } from "./dock-model";
+import { PANEL_WIDTH, dockLayout, shownScreen, type PanelView } from "./dock-model";
 
 /** The status line under the name: the notice while the agent compacts,
  *  the waiting notice while work waits, what the agent is doing while it
@@ -35,6 +37,9 @@ export function agentLine(agent: AgentStatus | null, doing: AgentDoing | null = 
 /** The page's push while the panel is open (main's padding reads it). */
 const PUSH_VAR = "--lh-dock-push";
 
+/** The open panel lies over the page instead of pushing it aside. */
+export const panelCovers = (): boolean => !(parseFloat(document.documentElement.style.getPropertyValue(PUSH_VAR)) > 0);
+
 export function TeacherPanel({
 	name,
 	agent,
@@ -42,7 +47,6 @@ export function TeacherPanel({
 	listable,
 	list,
 	onList,
-	overLesson,
 	screen,
 	onScreen,
 	focus,
@@ -54,8 +58,6 @@ export function TeacherPanel({
 	listable: boolean;
 	list: boolean;
 	onList: (open: boolean) => void;
-	/** It opened over a lesson: it covers the page instead of pushing it. */
-	overLesson: boolean;
 	/** The screen picked (background work's only while it needs the learner), and the way to one. */
 	screen: TerminalRole;
 	onScreen: (role: TerminalRole) => void;
@@ -67,47 +69,27 @@ export function TeacherPanel({
 	const onScreenView = view === "terminal";
 	const shown = shownScreen(screen, !!terminals?.helper);
 	const background = onScreenView && shown === "helper";
-	const hasScreen = !!terminals?.facts[shown];
 	const teacherFacts = terminals?.facts.teacher ?? null;
 	const helperFacts = terminals?.facts.helper ?? null;
 	const helperCalls = !!helperFacts && !!needsYou(helperFacts);
 	const doing = teacher?.doing ?? null;
 	const line = agentLine(agent, doing);
 	const teacherStatus = screenStatusLine(teacherFacts, name);
-	const [{ width, wide, covers }, setDock] = useState({ width: DOCK_WIDTH, wide: false, covers: false });
-	const section = useRef<HTMLElement>(null);
-	const lastWidth = useRef(DOCK_WIDTH);
-	// While the panel grows to a new width the screen, laid out at the
-	// final width, would show cut off on its left: it waits, then fades in.
-	const [settling, setSettling] = useState(false);
-	// Before paint, so a screen that just appeared is never fitted to the narrow width first.
+	const [wanted, setWanted] = usePaneWidth("teacher", PANEL_WIDTH);
+	const [{ width, whole }, setDock] = useState({ width: wanted, whole: false });
+	// Before paint, so the screen is never sized to another width first.
 	useLayoutEffect(() => {
 		const root = document.documentElement;
-		let settled: ReturnType<typeof setTimeout> | undefined;
-		const measure = (changed: boolean) => {
+		const measure = () => {
 			const page = document.querySelector("main")?.getBoundingClientRect().width ?? window.innerWidth;
-			const dock = dockLayout(window.innerWidth, page, view, hasScreen, overLesson);
-			if (changed) {
-				// No width animation under reduced motion: 0s, shown at once.
-				const moves = dock.wide && dock.width !== lastWidth.current && !!section.current;
-				const ms = moves ? parseFloat(getComputedStyle(section.current!).transitionDuration) * 1000 : 0;
-				const grows = ms > 0;
-				setSettling(grows);
-				// The width's transitionend shows it; the timer only if that never comes.
-				if (grows) settled = setTimeout(() => setSettling(false), ms + 100);
-			}
-			lastWidth.current = dock.width;
-			setDock({ width: dock.width, wide: dock.wide, covers: dock.push < dock.width });
+			const dock = dockLayout(window.innerWidth, page, wanted);
+			setDock({ width: dock.width, whole: dock.width >= window.innerWidth });
 			root.style.setProperty(PUSH_VAR, `${dock.push}px`);
 		};
-		measure(true);
-		const onResize = () => measure(false);
-		window.addEventListener("resize", onResize);
-		return () => {
-			clearTimeout(settled);
-			window.removeEventListener("resize", onResize);
-		};
-	}, [view, hasScreen, overLesson]);
+		measure();
+		window.addEventListener("resize", measure);
+		return () => window.removeEventListener("resize", measure);
+	}, [wanted]);
 	useEffect(
 		() => () => {
 			document.documentElement.style.removeProperty(PUSH_VAR);
@@ -116,18 +98,9 @@ export function TeacherPanel({
 	);
 
 	return (
-		<>
-			{/* Where it covers the page, the page dims under it, as under a drawer. */}
-			{covers && <div aria-hidden data-testid="teacher-panel-scrim" data-state="open" style={{ right: width }} className="lh-fade pointer-events-none fixed top-12 bottom-0 left-0 z-40 bg-bar/25" />}
-			<section
-				ref={section}
-				onTransitionEnd={(e) => e.target === e.currentTarget && e.propertyName === "width" && setSettling(false)}
-				data-teacher-panel=""
-				data-testid="teacher-panel"
-				aria-label={name}
-				style={{ width, borderRadius: 0 }}
-				className="lh-slide-in fixed top-12 right-0 bottom-0 z-[41] flex max-w-full flex-col overflow-hidden lh-popup font-ui motion-safe:transition-[width] motion-safe:duration-(--lh-dur) motion-safe:ease-(--lh-ease-out)"
-			>
+		<section data-teacher-panel="" data-testid="teacher-panel" aria-label={name} style={{ width, borderRadius: 0 }} className="lh-slide-in fixed top-12 right-0 bottom-0 z-[41] flex max-w-full flex-col overflow-hidden lh-popup font-ui">
+			{/* Nothing to drag while it takes the whole window. */}
+			{!whole && <ResizeHandle paneKey="teacher" width={width} bounds={PANEL_WIDTH} onWidth={setWanted} label={`Resize ${name}'s panel`} />}
 				{background ? (
 					<PanelHead
 						title={HELPER_NAME}
@@ -138,7 +111,6 @@ export function TeacherPanel({
 						follow={false}
 						need={null}
 						back={() => onScreen("teacher")}
-						wide={wide}
 					/>
 				) : (
 					<PanelHead
@@ -150,24 +122,16 @@ export function TeacherPanel({
 						follow={listable}
 						need={onScreenView && helperCalls ? () => onScreen("helper") : null}
 						back={null}
-						wide={wide}
 					/>
 				)}
 
-				{/* The screen is laid out at the panel's final width, against its
-				    right edge, so its font is fitted once, not every frame. It is
-				    hidden at once while the panel grows and fades in after. */}
 				<div
 					data-testid="teacher-panel-body"
-					data-settling={settling || undefined}
-					style={wide ? { width } : undefined}
 					className={cn(
-						"flex min-h-0 flex-1 flex-col",
+						"flex min-h-0 flex-1 flex-col motion-safe:transition-opacity motion-safe:duration-(--lh-dur) motion-safe:ease-(--lh-ease-out)",
 						!onScreenView && "gap-[18px] px-[18px] pt-1.5 pb-[18px]",
-						wide && "self-end",
-						settling ? "opacity-0" : "motion-safe:transition-opacity motion-safe:duration-(--lh-dur) motion-safe:ease-(--lh-ease-out)",
 						// The Activity list drops over the screen: the screen steps back under it.
-						!settling && list && onScreenView && "opacity-40",
+						list && onScreenView && "opacity-40",
 					)}
 				>
 					{onScreenView ? (
@@ -180,7 +144,6 @@ export function TeacherPanel({
 						</>
 					)}
 				</div>
-			</section>
-		</>
+		</section>
 	);
 }

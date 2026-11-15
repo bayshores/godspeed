@@ -79,6 +79,7 @@ fn main() {
 			terminal::commands::terminal_start,
 			terminal::commands::terminal_attach,
 			terminal::commands::terminal_detach,
+			terminal::commands::terminal_resize,
 			terminal::commands::terminal_write,
 			terminal::commands::terminal_answer,
 			terminal::commands::terminal_paste,

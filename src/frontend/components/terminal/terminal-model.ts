@@ -1,7 +1,7 @@
 /**
  * The built-in terminal, in words and rules: when its screen opens by
  * itself, what its footer and the teacher's status line say, which start
- * is allowed, and the font size that fits the fixed screen. Pure.
+ * is allowed, and the columns and rows that fit the screen's box. Pure.
  */
 import type { FolderAgent } from "@/shared/core";
 import { AGENT_LABEL } from "@/frontend/components/agent-folder/agent-folder-model";
@@ -38,25 +38,31 @@ export const CHECK_IN_WAIT_MS = 20_000;
 /** Checked in, a turn waits, and no teaching for this long. */
 export const TEACH_WAIT_MS = 30_000;
 
-/** The screen's fixed size; the font scales to fit it. */
-export const COLS = 80;
-export const ROWS = 30;
-const MIN_FONT = 8;
-const MAX_FONT = 14;
-/** A monospace cell, in ems, rounded up so the last column and row fit
- *  (xterm rounds a row's height up to whole pixels: 20 px at 12 px). */
-const CELL_WIDTH = 0.62;
-const CELL_HEIGHT = 1.24 * LINE_HEIGHT;
+/** The size every terminal starts at (the shell opens it so); a shown
+ *  screen then takes the size of its box, at one font size. */
+export const START_COLS = 80;
+export const START_ROWS = 30;
+export const FONT_SIZE = 13;
+/** The shell keeps a screen inside the same range. */
+const MIN_COLS = 40;
+const MAX_COLS = 200;
+const MIN_ROWS = 10;
+const MAX_ROWS = 100;
 
-/** The screen's width at a font size, and at the largest (the room the panel makes for it). */
-export const screenWidth = (font: number): number => Math.ceil(COLS * CELL_WIDTH * font);
-export const FULL_SCREEN_WIDTH = screenWidth(MAX_FONT);
+/** One character's box on the screen, in px. */
+export interface Cell {
+	width: number;
+	height: number;
+}
+/** A cell before xterm has drawn one to measure, rounded up as xterm
+ *  rounds a row's height. */
+export const CELL: Cell = { width: 0.62 * FONT_SIZE, height: Math.ceil(1.24 * LINE_HEIGHT * FONT_SIZE) };
 
-/** The largest font from 8 to 14 px whose whole 80 by 30 screen fits the
- *  box. A box too small even at 8 px scrolls inside, never cuts. */
-export function fitFontSize(width: number, height: number): number {
-	const fit = Math.floor(Math.min(width / (COLS * CELL_WIDTH), height / (ROWS * CELL_HEIGHT)));
-	return Math.max(MIN_FONT, Math.min(MAX_FONT, fit));
+/** The columns and rows that fit a box. A box too small for 40 by 10
+ *  scrolls inside, never cuts. */
+export function gridSize(width: number, height: number, cell: Cell = CELL): { cols: number; rows: number } {
+	const within = (n: number, min: number, max: number) => Math.max(min, Math.min(max, Math.floor(n)));
+	return { cols: within(width / cell.width, MIN_COLS, MAX_COLS), rows: within(height / cell.height, MIN_ROWS, MAX_ROWS) };
 }
 
 /** What the page knows about one terminal at a moment. */

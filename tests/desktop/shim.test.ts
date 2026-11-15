@@ -89,6 +89,7 @@ test("the terminal members name a role, an agent and an id, and hear their pushe
 	const terminals = lh!.terminals as unknown as Record<string, (...args: unknown[]) => unknown>;
 	assert.deepEqual(await terminals.start!("teacher", "claude"), { id: "a1" });
 	await terminals.attach!("a1");
+	await terminals.resize!("a1", 50, 34);
 	await terminals.write!("a1", "y");
 	await terminals.answer!("a1", "trust");
 	await terminals.paste!("a1");
@@ -100,6 +101,7 @@ test("the terminal members name a role, an agent and an id, and hear their pushe
 	assert.deepEqual(invoked, [
 		["terminal_start", { role: "teacher", agent: "claude" }],
 		["terminal_attach", { id: "a1" }],
+		["terminal_resize", { id: "a1", cols: 50, rows: 34 }],
 		["terminal_write", { id: "a1", data: "y" }],
 		["terminal_answer", { id: "a1", kind: "trust" }],
 		["terminal_paste", { id: "a1" }],

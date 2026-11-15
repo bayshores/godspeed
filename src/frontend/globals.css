@@ -779,6 +779,16 @@ body {
 body:has(.lh-own-bar) .lh-app-bar {
 	display: none;
 }
+/* That bar stays whole across the window while the teacher's panel pushes
+   its page aside: the panel sits under it, as under the app's bar. */
+.lh-own-bar {
+	margin-right: calc(-1 * var(--lh-dock-push, 0px));
+}
+@media (prefers-reduced-motion: no-preference) {
+	.lh-own-bar {
+		transition: margin-right var(--lh-dur) var(--lh-ease-out);
+	}
+}
 
 /* Source-message arrival: a brief, static theme-colored spotlight. */
 .lh-source-passage {
@@ -1382,6 +1392,10 @@ body:not(:has(.lh-app-bar, .lh-own-bar)) .lh-sheet-wrap > .lh-hang[data-state="c
 :root[data-lh-resizing] {
 	cursor: col-resize;
 	user-select: none;
+}
+/* The page follows the dragged edge of the teacher's panel at once. */
+:root[data-lh-resizing] :is(#lh-page, .lh-own-bar) {
+	transition: none;
 }
 
 /* Printing a cheat sheet prints only its pages: the studio adds them to

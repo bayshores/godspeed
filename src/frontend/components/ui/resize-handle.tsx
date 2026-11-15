@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { readStorage, writeStorage } from "@/frontend/lib/storage";
 import { draggedWidth, keyedWidth, storedWidth, type PaneBounds } from "./pane-width-model";
 
@@ -8,13 +8,10 @@ function saveWidth(key: string, width: number | null) {
 	writeStorage(storageKey(key), width === null ? null : String(width));
 }
 
-/** A pane's width, remembered across restarts. Starts at the default so the
- *  server render matches, then picks up the stored width. `bounds` must be
- *  a module constant. */
+/** A pane's width, remembered across restarts: the stored width from the
+ *  first draw, so the pane never opens at one width and jumps to another. */
 export function usePaneWidth(key: string, bounds: PaneBounds): [number, (width: number) => void] {
-	const [width, setWidth] = useState(bounds.initial);
-	useEffect(() => setWidth(storedWidth(readStorage(storageKey(key)), bounds)), [key, bounds]);
-	return [width, setWidth];
+	return useState(() => storedWidth(readStorage(storageKey(key)), bounds));
 }
 
 /**

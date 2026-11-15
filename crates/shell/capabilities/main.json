@@ -21,6 +21,7 @@
     "allow-terminal-start",
     "allow-terminal-attach",
     "allow-terminal-detach",
+    "allow-terminal-resize",
     "allow-terminal-write",
     "allow-terminal-answer",
     "allow-terminal-paste",

@@ -66,7 +66,7 @@ describe("keys in the terminal's screen", () => {
 			press(input, "a", 65);
 			press(input, "Alt", 18);
 			assert.ok(reachedApp === 0, `${reachedApp} keys reached the app`);
-			assert.ok(shell.calls[0] === `attach ${ID}`, "the screen attached");
+			assert.deepEqual(shell.calls.slice(0, 2), [`resize ${ID} 40x10`, `attach ${ID}`], "the screen was sized, then attached");
 		} finally {
 			window.removeEventListener("lh:kbd-abort-turn", onAbort);
 			window.removeEventListener("keydown", onKey);

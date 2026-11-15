@@ -65,6 +65,14 @@ pub fn terminal_detach(webview: Webview, origin: State<AppOrigin>, terminals: St
 	terminals.detach(&id)
 }
 
+/// Without `async`, so the last size asked is the last one set. Answers the size in force.
+#[tauri::command]
+pub fn terminal_resize(webview: Webview, origin: State<AppOrigin>, terminals: State<Terminals>, id: String, cols: u16, rows: u16) -> Result<Value, String> {
+	trusted(&webview, &origin)?;
+	let (cols, rows) = terminals.resize(&id, cols, rows)?;
+	Ok(json!({ "cols": cols, "rows": rows }))
+}
+
 /// Without `async`, so keys reach the terminal in the order they were typed.
 #[tauri::command]
 pub fn terminal_write(webview: Webview, origin: State<AppOrigin>, terminals: State<Terminals>, id: String, data: String) -> Result<(), String> {
@@ -137,7 +145,7 @@ mod tests {
 	fn every_terminal_command_checks_the_page_first() {
 		let source = include_str!("commands.rs").split("#[cfg(test)]").next().unwrap();
 		let commands: Vec<&str> = source.split("#[tauri::command").skip(1).collect();
-		assert_eq!(commands.len(), 9);
+		assert_eq!(commands.len(), 10);
 		for command in commands {
 			let body = &command[command.find('{').unwrap() + 1..];
 			assert!(body.trim_start().starts_with("trusted(&webview, &origin)?;"), "{}", &command[..80]);

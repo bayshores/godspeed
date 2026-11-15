@@ -20,6 +20,7 @@ fn main() {
 		"terminal_start",
 		"terminal_attach",
 		"terminal_detach",
+		"terminal_resize",
 		"terminal_write",
 		"terminal_answer",
 		"terminal_paste",

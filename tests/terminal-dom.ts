@@ -5,7 +5,7 @@
  */
 import { registerHooks } from "node:module";
 import { parseHTML } from "linkedom";
-import type { TerminalRecord } from "../src/frontend/components/terminal/terminal-model.ts";
+import { START_COLS, START_ROWS, type TerminalRecord } from "../src/frontend/components/terminal/terminal-model.ts";
 
 // The bundler's view of xterm: its ES module build, and no stylesheet.
 const ES_BUILDS: Record<string, string> = { "@xterm/xterm": "@xterm/xterm/lib/xterm.mjs", "@xterm/addon-web-links": "@xterm/addon-web-links/lib/addon-web-links.mjs" };
@@ -17,6 +17,8 @@ registerHooks({
 export const dom = parseHTML("<!doctype html><html><body></body></html>");
 const frame = (cb: () => void) => setTimeout(cb, 0);
 Object.assign(dom.document, { hasFocus: () => true });
+// linkedom lays nothing out: a box has no room until a test gives it some.
+for (const side of ["clientWidth", "clientHeight"]) Object.defineProperty(dom.window.HTMLElement.prototype, side, { get: () => 0, configurable: true });
 Object.assign(dom.window, {
 	matchMedia: () => ({ matches: false, addListener() {}, removeListener() {}, addEventListener() {}, removeEventListener() {} }),
 	requestAnimationFrame: frame,
@@ -60,6 +62,8 @@ export function fakeShell(list: TerminalRecord[] = []): FakeShell {
 		start: (role, agent) => (calls.push(`start ${role} ${agent}`), Promise.resolve({ id: `${role}-new` })),
 		attach: (id) => call(`attach ${id}`),
 		detach: (id) => call(`detach ${id}`),
+		// Answers as an ended terminal does, with the size it has: linkedom draws no cells, and xterm cannot change size without them.
+		resize: (id, cols, rows) => (calls.push(`resize ${id} ${cols}x${rows}`), Promise.resolve({ cols: START_COLS, rows: START_ROWS })),
 		write: (_id, data) => call(`write ${data}`),
 		answer: (_id, kind) => call(`answer ${kind}`),
 		paste: () => call("paste"),
