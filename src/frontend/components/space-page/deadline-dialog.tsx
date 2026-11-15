@@ -19,7 +19,7 @@ import {
 } from "@/frontend/components/space-deadlines-model";
 import { mocksRemovedLine, takesMocks } from "@/frontend/components/deadline/mocks-model";
 import { useMockCount } from "@/frontend/components/deadline/use-deadline-mocks";
-import { jsonInit, send } from "@/frontend/components/files/space-files-api";
+import { jsonInit, send } from "@/frontend/lib/api";
 import { CheckRow } from "@/frontend/components/ui/check-row";
 import { DialogSheet, useLastWhileClosing } from "@/frontend/components/ui/dialog-sheet";
 import { FIELD } from "@/frontend/components/ui/field";

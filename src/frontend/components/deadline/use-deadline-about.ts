@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { send } from "@/frontend/components/files/space-files-api";
+import { send } from "@/frontend/lib/api";
 
 /** What it's like, as its sheet shows it. */
 export type About = { state: "loading" } | { state: "failed" } | { state: "ready"; text: string };

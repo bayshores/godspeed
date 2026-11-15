@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import type { MockSummary } from "@/shared/core";
-import { jsonInit, send } from "@/frontend/components/files/space-files-api";
+import { jsonInit, send } from "@/frontend/lib/api";
 import { mockHref } from "@/frontend/components/mock/mock-model";
 import { removeMock } from "@/frontend/components/mock/use-mock";
 import { useServerEvent, useServerResync } from "@/frontend/components/server-events";

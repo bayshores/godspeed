@@ -60,7 +60,7 @@ import { useAttachmentDraft } from "@/frontend/components/lesson/attachment-tray
 import { takeStartFiles } from "@/frontend/components/lesson/start-files";
 import { useTeacherLesson } from "@/frontend/components/teacher/teacher-provider";
 import { SheetDock, useSheetDock } from "@/frontend/components/cheat-sheet/sheet-dock";
-import { jsonInit } from "@/frontend/components/files/space-files-api";
+import { jsonInit } from "@/frontend/lib/api";
 import { useStableValue } from "@/frontend/lib/use-stable-value";
 import { useNow } from "@/frontend/components/use-now";
 

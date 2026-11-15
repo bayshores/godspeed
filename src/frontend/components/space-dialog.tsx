@@ -17,7 +17,7 @@ import { useSpaces } from "@/frontend/components/space-context";
 import { RuleChips } from "@/frontend/components/rule-chips";
 import { changedFields } from "@/frontend/components/space-deadlines-model";
 import { useSpaceRecord } from "@/frontend/components/files/space-files-api";
-import { jsonInit, send } from "@/frontend/components/files/space-files-api";
+import { jsonInit, send } from "@/frontend/lib/api";
 import { DEFAULT_TEACHER_NAME, savedTimes, type SpaceColor, type SpaceIcon, type SpaceRecord, type SpaceSignature, type SignatureKind } from "@/shared/core";
 import { useTeacher } from "@/frontend/components/teacher/teacher-provider";
 import { useSavedRules } from "@/frontend/components/use-saved-rules";
