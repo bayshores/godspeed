@@ -102,7 +102,7 @@ export function OtherAppSetup() {
 				Add a Streamable HTTP MCP server with this address and header, then ask your app to teach you with the godspeed tools. Let it use
 				them without asking your permission. For background work, start a second session and tell it "Start as the helper".
 			</p>
-			<div className="rounded border-[1.5px] border-ink bg-background">
+			<div className="lh-well rounded">
 				<div className="flex items-center justify-between border-b border-line px-4 py-2.5">
 					<span className="text-[15px] text-ink-2">MCP server</span>
 					<CopyButton

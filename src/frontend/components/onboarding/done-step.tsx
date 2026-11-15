@@ -30,7 +30,7 @@ export function DoneStep({
 	const [screen, setScreen] = useState(false);
 	return (
 		<div data-testid="onboarding-done" className="ob-step m-auto flex flex-col items-center gap-[30px] px-4 text-center">
-			<span className="flex size-14 items-center justify-center rounded border-2 border-ink bg-ans-right text-background">
+			<span className="flex size-14 items-center justify-center rounded bg-ans-right text-background">
 				<PixelIcon name="check" className="h-5" />
 			</span>
 			<div className="flex flex-col items-center gap-2.5">
