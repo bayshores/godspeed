@@ -109,7 +109,7 @@ The `~/godspeed` folder holds the agent's instructions (`CLAUDE.md`, `AGENTS.md`
 
 While you think, Claude Code waits in a background script, so the agent spends no tokens until you answer.
 
-godspeed also runs the same agent a second time as the helper, and starts it when there is reading to do. It reads your files and builds the graph so the teacher stays free for you. When the teacher stops to tidy its memory, the helper answers your lesson messages so you don't wait. For another MCP app, start a second session and tell it "Start as the helper". **Settings → Connection** shows what each one is doing, and a click on the teacher's status opens its screen.
+godspeed also runs a second session of your agent for background work, and starts it when there is reading to do. It reads your files and builds the graph so the teacher stays free for you. When the teacher stops to tidy its memory, that second session answers your lesson messages so you don't wait. For another MCP app, start a second session and tell it "Start as the helper". **Settings → Connection** shows what each one is doing, and a click on the teacher's status opens its screen.
 
 Agents can also list and read lessons, search your graph and your space files, import notes, and manage spaces and deadlines. They can save short notes about you (like "the midterm is over"), and every agent sees those notes and where you left off when it connects. You can see and delete the notes under **Settings → Connection**. Only programs on your computer that hold the token can connect.
 
