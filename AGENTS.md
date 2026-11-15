@@ -32,6 +32,15 @@ Design every feature as part of the whole app, never by itself.
 - If a new feature overlaps an old one, merge them or remove the old one in the same change. Two features never do the same job.
 - A plan says where the feature touches the rest of the app (Today, spaces, lessons, deadlines, the agent's pane, the agent's tools, the godspeed folder) and what changes there.
 
+# Crafted, not just working
+
+A UI change is thought out and built with care, so it fits the app as if it was always there. Working is not finished.
+
+- Before building, work out the whole interaction: where it opens, how big it is, what it covers or moves, how it closes, and every state.
+- A new part does not squeeze or split what the learner is working on.
+- Size follows content. Nothing small floats in a big empty box, and a control sits beside what it acts on.
+- Before showing the owner, look at each state in the real window as the owner would. If you would not call it good, fix it first.
+
 # Say it once
 
 Nothing is said twice on one screen.
