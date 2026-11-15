@@ -99,7 +99,12 @@ describe("the right side", () => {
 		const two = renderToStaticMarkup(
 			<DeadlinePane deadlines={[deadline, { ...deadline, id: "ex-2" }]} deadline={deadline} topics={data.topics} onChange={noop} onStudy={noop} studying={false} studyError={null} />,
 		);
-		assert.match(two, /data-testid="deadline-picker"[^>]*>Change deadline</);
+		assert.match(two, /data-testid="deadline-picker"[^>]*><span[^>]*>Switch to Midterm 1</, "one other deadline: the key names it");
+		assert.ok(!two.includes("aria-haspopup"), "and opens no menu");
+		const three = renderToStaticMarkup(
+			<DeadlinePane deadlines={[deadline, { ...deadline, id: "ex-2" }, { ...deadline, id: "ex-3" }]} deadline={deadline} topics={data.topics} onChange={noop} onStudy={noop} studying={false} studyError={null} />,
+		);
+		assert.match(three, /data-testid="deadline-picker"[^>]*>Change deadline</);
 	});
 
 	it("work on next: the counts, the deadline's topics with status lines and reasons, and Study these", () => {
@@ -305,15 +310,40 @@ describe("picking in the page", () => {
 	});
 });
 
-describe("the deadline picker's menu", () => {
-	it("is the space switcher's width; a long name truncates and shows in full on hover", async () => {
+describe("the deadline picker", () => {
+	it("with one other deadline, the first click shows that one", async () => {
 		const data = fixture();
-		const long = { ...data.deadlines[0]!, id: "ex-2", name: "Final exam covering every lecture from week one through week ten" };
+		const changed: string[] = [];
 		host = document.createElement("div");
 		document.body.append(host);
 		root = createRoot(host);
 		await act(async () =>
-			root!.render(<DeadlinePane deadlines={[data.deadlines[0]!, long]} deadline={data.deadlines[0]!} topics={data.topics} onChange={noop} onStudy={noop} studying={false} studyError={null} />),
+			root!.render(
+				<DeadlinePane
+					deadlines={[data.deadlines[0]!, { ...data.deadlines[0]!, id: "ex-2" }]}
+					deadline={data.deadlines[0]!}
+					topics={data.topics}
+					onChange={(id) => changed.push(id)}
+					onStudy={noop}
+					studying={false}
+					studyError={null}
+				/>,
+			),
+		);
+		await act(async () => host!.querySelector<HTMLButtonElement>('[data-testid="deadline-picker"]')!.click());
+		assert.deepEqual(changed, ["ex-2"]);
+		assert.ok(!document.querySelector('[data-testid="deadline-picker-menu"] [role="menuitemradio"]'), "no menu opened");
+	});
+
+	it("its menu is the space switcher's width; a long name truncates and shows in full on hover", async () => {
+		const data = fixture();
+		const long = { ...data.deadlines[0]!, id: "ex-2", name: "Final exam covering every lecture from week one through week ten" };
+		const third = { ...data.deadlines[0]!, id: "ex-3", name: "Quiz 4" };
+		host = document.createElement("div");
+		document.body.append(host);
+		root = createRoot(host);
+		await act(async () =>
+			root!.render(<DeadlinePane deadlines={[data.deadlines[0]!, long, third]} deadline={data.deadlines[0]!} topics={data.topics} onChange={noop} onStudy={noop} studying={false} studyError={null} />),
 		);
 		await act(async () => host!.querySelector<HTMLButtonElement>('[data-testid="deadline-picker"]')!.click());
 		const menu = document.querySelector('[data-testid="deadline-picker-menu"]')!;

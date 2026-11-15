@@ -137,12 +137,21 @@ export function DeadlinePane({
 // The picker's fixed width, so a long deadline name truncates.
 const PICKER_MENU_CLASS = "lh-popup flex w-[236px] flex-col gap-0.5 p-1.5 text-[13.5px]";
 
-/** "Change deadline": a menu of the other deadlines to show here. */
+/** "Change deadline": a menu of the other deadlines to show here. With
+ *  only one other, the key switches to it on the first click. */
 function DeadlinePicker({ deadlines, deadline, onChange }: { deadlines: readonly DeadlineProgress[]; deadline: DeadlineProgress; onChange: (id: string) => void }) {
 	const [open, setOpen] = useState(false);
 	const anchorRef = useRef<HTMLButtonElement>(null);
 	const close = useCallback(() => setOpen(false), []);
 	useMenuDismiss(open, close, anchorRef);
+	const others = deadlines.filter((d) => d.id !== deadline.id);
+	const only = others.length === 1 ? others[0] : undefined;
+	if (only)
+		return (
+			<button type="button" data-testid="deadline-picker" title={only.name} onClick={() => onChange(only.id)} className="lh-btn lh-btn-quiet min-w-0 max-w-[50%] px-1 text-[15px]">
+				<span className="min-w-0 truncate">Switch to {only.name}</span>
+			</button>
+		);
 	return (
 		<>
 			<button
